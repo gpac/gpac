@@ -1830,7 +1830,7 @@ force_input:
 			u32 nb_pass, nb_views, offscreen_view = 0;
 			GF_VideoSurface fb;
 			GF_Err e;
-			nb_pass = 0;
+			nb_pass = 1;
 			nb_views = gf_term_get_option(term, GF_OPT_NUM_STEREO_VIEWS);
 			if (nb_views>1) {
 				fprintf(stdout, "Auto-stereo mode detected - type number of view to dump (0 is main output, 1 to %d offscreen view, %d for all offscreen, %d for all offscreen and main)\n", nb_views, nb_views+1, nb_views+2);
