@@ -947,7 +947,7 @@ if $cc -o $TMPO $TMPC -lfaad -lm 2> /dev/null  ; then
 has_faad="system"
 elif test "$alt_macosx_dir" != "" ; then
  if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lfaad 2> /dev/null ; then
- has_faad="system"
+  has_faad="system"
  fi
 elif $cc -o $TMPO $TMPC -I$local_inc/faad -L$local_lib -lfaad -lm 2> /dev/null  ; then
 has_faad="local"
@@ -957,11 +957,9 @@ fi
 #look for FFMPEG support
 
 if pkg-config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
-
   ffmpeg_cflags=`pkg-config --cflags libavcodec libavformat libswscale libavutil`
   ffmpeg_lflags=`pkg-config --libs libavcodec libavformat libswscale libavutil`
   has_ffmpeg="system"
-
 fi
 
 cat > $TMPC << EOF
@@ -969,17 +967,16 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC 2> /dev/null  ; then
-old_ffmpeg_inc="no"
+if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags2> /dev/null  ; then
+ old_ffmpeg_inc="no"
 else
-
-old_ffmpeg_inc="yes"
+ old_ffmpeg_inc="yes"
 
 cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
 int main( void ) { return 0; }
 EOF
-
+fi
 
 if test "$cross_prefix"  != "" ; then
   if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
@@ -1010,7 +1007,6 @@ else
   fi
 fi
 
-fi
 
 #look for vorbis support
 cat > $TMPC << EOF
