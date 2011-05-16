@@ -6,7 +6,7 @@ Bugs: mailto:jeanlf@users.sourceforge.net
 Homepage: http://gpac.sourceforge.net
 Standards-Version: 3.8.0
 Build-Conflicts: libgpac-dev
-Build-Depends: debhelper (>= 6), libasound2-dev (>= 1.0.15-3ubuntu4 ), libavcodec-dev (>= 3 ), libavutil-dev (>= 3 ), libc6 (>= 2.7-10ubuntu3 ), libc6-dev (>= 2.7-10ubuntu3 ), libc6-i686 (>= 2.7-10ubuntu3 ), libfreetype6-dev (>= 2.3.5-1ubuntu4 ), libjpeg62-dev (>= 6b-14 ), libmad0-dev (>= 0.15.1b-2.1ubuntu1 ), libogg-dev (>= 1.1.3-3ubuntu1 ), libpng12-dev (>= 1.2.15~beta5-3 ), libsdl1.2-dev (>= 1.2.13-1ubuntu1 ), libssl-dev (>= 0.9.8g-4ubuntu3.3 ), libtheora-dev (>= 1.0~beta2-2 ), libvorbis-dev (>= 1.2.0.dfsg-2 ), libwxgtk2.8-dev (>= 2.8.7.1-0ubuntu3 ), libx11-dev (>= 2 ), libxv-dev (>= 2 ), libxvidcore4-dev (>= 2 ), wx2.8-headers (>= 2.8.7.1-0ubuntu3 ), x11proto-core-dev (>= 7.0.11-1 ), x11proto-video-dev (>= 2.2.2-4ubuntu1 ), x11proto-xext-dev (>= 7.0.2-5ubuntu1 ), zlib1g-dev (>= 1 ), liba52-0.7.4-dev (>= 0.7.4-11ubuntu1), libmozjs-dev (>= 1.8.1.16+nobinonly-0ubuntu1), ccache
+Build-Depends: debhelper (>= 6), libc6, libc6-dev, libx11-dev (>= 1.3), zlib1g-dev (>= 1), xulrunner-dev, libfreetype6-dev, libjpeg62-dev, libpng12-dev, libopenjpeg-dev, libmad0-dev, libfaad-dev, libogg-dev, libvorbis-dev, libtheora-dev, liba52-dev, libavcodec-dev, libavformat-dev, libswscale-dev, libxv-dev, x11proto-video-dev, libgl1-mesa-dev, x11proto-gl-dev, linux-sound-base (>= 1.0), libxvidcore-dev, libssl-dev (>= 0.9.8), libjack-dev (>= 0.118), libasound2-dev (>= 1.0), libpulse-dev (>= 0.9), libsdl-dev (>= 1.2), ccache
 
 Package: gpac
 Architecture: any
@@ -23,6 +23,7 @@ Package: libgpac-dev
 Architecture: any
 Section: libdevel
 Depends: gpac
+Replaces: gpac (<= 0.4.5)
 Description: multimedia framework based on the MPEG-4 Systems standard
  The main development goal is to provide a clean (a.k.a. readable by as many
  people as possible), small and flexible alternative to the MPEG-4 Systems
