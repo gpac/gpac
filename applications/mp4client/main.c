@@ -1485,7 +1485,9 @@ int main (int argc, char **argv)
 				gf_sleep(rti_update_time_ms);
 			}
 			/*sim time*/
-			if (simulation_time_in_ms && (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms)) {
+			if (simulation_time_in_ms 
+				&& ( (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
+			) {
 				Run = 0;
 			}
 			continue;
