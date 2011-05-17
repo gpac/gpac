@@ -1095,7 +1095,7 @@ int main (int argc, char **argv)
 	char c;
 	const char *str;
 	u32 i, times[100], nb_times, dump_mode;
-	u32 simulation_time = 0;
+	u32 simulation_time_in_ms = 0;
 	Bool auto_exit = 0;
 	Bool logs_set = 0;
 	Bool start_fs = 0;
@@ -1279,7 +1279,7 @@ int main (int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-run-for")) {
-			simulation_time = atoi(argv[i+1]);
+			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
 			i++;
 		}
 		else if (!stricmp(arg, "-help")) {
@@ -1296,6 +1296,8 @@ int main (int argc, char **argv)
 		return 1;
 	}
 
+	if (!url_arg && simulation_time_in_ms)
+		simulation_time_in_ms += gf_sys_clock();
 
 	if (!gui_mode) {
 		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
@@ -1483,7 +1485,7 @@ int main (int argc, char **argv)
 				gf_sleep(rti_update_time_ms);
 			}
 			/*sim time*/
-			if (simulation_time && (gf_term_get_time_in_ms(term)>1000*simulation_time)) {
+			if (simulation_time_in_ms && (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms)) {
 				Run = 0;
 			}
 			continue;
