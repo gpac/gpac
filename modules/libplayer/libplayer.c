@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -29,7 +29,7 @@
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
-#define TEST_LIBPLAYER
+//#define TEST_LIBPLAYER
 
 #ifndef TEST_LIBPLAYER
 
@@ -60,7 +60,7 @@ typedef struct
 
 
 static const char * LIBPLAYER_MIME_TYPES[] = {
-  "video/x-mpeg", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
+  "video/x-mpeg", "mpg mpeg mp2 mpa mpe mpv2 ts", "MPEG 1/2 Movies",
   "video/x-mpeg-systems", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
   "audio/basic", "snd au", "Basic Audio",
   "audio/x-wav", "wav", "WAV Audio",
@@ -102,7 +102,7 @@ Bool LIBPLAYER_CanHandleURL(GF_InputService *plug, const char *url)
 		if (!strnicmp(url, "rtsp://", 7)) return 0;
 		sExt++;
 
-		cgi_par = strchr(sExt, '?'); 
+		cgi_par = strchr(sExt, '?');
 		if (cgi_par) cgi_par[0] = 0;
 
 		for (i = 0 ; LIBPLAYER_MIME_TYPES[i] ; i+=3) {
@@ -121,7 +121,7 @@ Bool LIBPLAYER_CanHandleURL(GF_InputService *plug, const char *url)
 
 static int on_libplayer_event(player_event_t e, void *data)
 {
-  fprintf(stdout, "Received event %d\n", e);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Received event %d\n", e));
 
   switch (e) {
     case PLAYER_EVENT_FE_HAS_LOCK:
@@ -139,6 +139,7 @@ static int on_libplayer_event(player_event_t e, void *data)
 
 GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
+	
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
 #ifndef TEST_LIBPLAYER
 	mrl_t *mrl = NULL;
@@ -146,10 +147,12 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 
 	if (!read || !serv || !url) return GF_BAD_PARAM;
 
+	if (!strnicmp(url, "libplayer://", 12)) url+=12;	
+  
 #ifndef TEST_LIBPLAYER
 	if (!read->player) {
 		/* libplayer init */
-		read->player = player_init(PLAYER_TYPE_DUMMY, PLAYER_AO_AUTO, PLAYER_VO_AUTO, PLAYER_MSG_ERROR, 0, on_libplayer_event);
+		read->player = player_init(PLAYER_TYPE_DUMMY, PLAYER_AO_AUTO, PLAYER_VO_AUTO, PLAYER_MSG_INFO, 0, on_libplayer_event);
 		if (!read->player) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[LibPlayerIN] Failed to instanciate libplayer\n"));
 			gf_term_on_connect(serv, NULL, GF_REMOTE_SERVICE_ERROR);
@@ -159,13 +162,13 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 
 	mrl = NULL;
 	if (!strnicmp(url, "dvb://", 6)) {
-	} 
+	}
 	else if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
 		mrl_resource_local_args_t *mrl_args;
 		mrl_args = calloc(1, sizeof(mrl_resource_local_args_t));
 		if (!strnicmp(url, "file://", 7)) {
 			mrl_args->location = strdup(url + 7);
-		} else {
+		}  else {
 			mrl_args->location = strdup(url);
 		}
 		mrl = mrl_new (read->player, MRL_RESOURCE_FILE, mrl_args);
@@ -178,12 +181,14 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
 	}
-	
+	printf("url is %s\n",url);
     player_mrl_set(read->player, mrl);
 #endif
 
 	read->state = 0;
 	read->service = serv;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Successfully created MRL for url %s\n", url));
 
 	/*ACK connection is OK*/
 	gf_term_on_connect(serv, NULL, GF_OK);
@@ -194,7 +199,7 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		GF_ESD *esd;
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
-		
+
 		esd = gf_odf_desc_esd_new(0);
 		esd->ESID = 1;
 		esd->slConfig->timestampResolution = 1000;
@@ -207,7 +212,6 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		gf_list_add(od->ESDescriptors, esd);
 		gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
 	}
-
 
 	return GF_OK;
 }
@@ -222,6 +226,7 @@ GF_Err LIBPLAYER_CloseService(GF_InputService *plug)
 #endif
 	read->state = 0;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIn] Closing service\n"));
 	return GF_OK;
 }
 
@@ -235,20 +240,21 @@ static GF_Descriptor *LIBPLAYER_GetServiceDesc(GF_InputService *plug, u32 expect
 GF_Err LIBPLAYER_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
-
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] ServiceCommand, read->state=%d\n", read->state));
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PULL: return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_INTERACTIVE: return GF_OK;
 	/*since data is file-based, no padding is needed (decoder plugin will handle it itself)*/
-	case GF_NET_CHAN_SET_PADDING: return GF_OK;
+	case GF_NET_CHAN_SET_PADDING:  return GF_OK;
 	case GF_NET_CHAN_BUFFER:
+ 		return GF_OK; 
 		com->buffer.max = com->buffer.min = 0;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		/*this module is not made for updates, use undefined duration*/
-		com->duration.duration = 0;
+		com->duration.duration = -1;
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
 		if (read->state==0) {
@@ -256,6 +262,7 @@ GF_Err LIBPLAYER_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			player_playback_start(read->player);
 #endif
 			read->state = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Starting playback\n"));
 		}
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
@@ -264,9 +271,10 @@ GF_Err LIBPLAYER_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			player_playback_pause(read->player);
 #endif
 			read->state = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Stoping playback\n"));
 		}
 		return GF_OK;
-	case GF_NET_CHAN_CONFIG: return GF_OK;
+	case GF_NET_CHAN_CONFIG:  return GF_OK;
 	case GF_NET_CHAN_GET_DSI:
 		com->get_dsi.dsi = NULL;
 		com->get_dsi.dsi_len = 0;
@@ -279,8 +287,8 @@ GF_Err LIBPLAYER_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 {
 	u32 ESID;
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
-	
 	sscanf(url, "ES_ID=%ud", &ESID);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] connect channel %d\n", ESID));
 	if (ESID != 1) {
 		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
 	} else {
@@ -292,6 +300,7 @@ GF_Err LIBPLAYER_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 GF_Err LIBPLAYER_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] disconnect channel\n"));
 	gf_term_on_disconnect(read->service, channel, GF_OK);
 	return GF_OK;
 }
@@ -305,6 +314,7 @@ Bool LIBPLAYER_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 static GF_Err LIBPLAYER_AttachStream(GF_BaseDecoder *dec, GF_ESD *esd)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] AttachStream\n"));
 	if (esd->ESID!=1) return GF_BAD_PARAM;
 	if (dec->privateStack) return GF_BAD_PARAM;
 	if (!esd->decoderConfig->decoderSpecificInfo) return GF_BAD_PARAM;
@@ -318,17 +328,19 @@ static GF_Err LIBPLAYER_AttachStream(GF_BaseDecoder *dec, GF_ESD *esd)
 
 static GF_Err LIBPLAYER_DetachStream(GF_BaseDecoder *dec, u16 ES_ID)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] DetachStream\n"));
 	dec->privateStack = NULL;
 	return GF_OK;
 }
 static GF_Err LIBPLAYER_GetCapabilities(GF_BaseDecoder *dec, GF_CodecCapability *capability)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] GetCapabilities\n"));
 	switch (capability->CapCode) {
 	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = 320;
+		capability->cap.valueInt = 1280;//320;
 		break;
 	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = 240;
+		capability->cap.valueInt = 720;//240;
 		break;
 	}
 	return GF_OK;
@@ -339,6 +351,7 @@ static GF_Err LIBPLAYER_SetCapabilities(GF_BaseDecoder *dec, GF_CodecCapability 
 }
 static Bool LIBPLAYER_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] CanHandleStream\n"));
 	if (StreamType!=GF_STREAM_PRIVATE_MEDIA) return 0;
 	/*don't reply to media type queries*/
 	if (!esd) return 0;
@@ -347,11 +360,13 @@ static Bool LIBPLAYER_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ES
 }
 static const char *LIBPLAYER_GetName(GF_BaseDecoder *dec)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] GetName\n"));
 	return "LibPlayer decoder";
 }
 
 static GF_Err LIBPLAYER_Control(GF_PrivateMediaDecoder *dec, Bool mute, GF_Window *src, GF_Window *dst)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Control\n"));
 #ifndef TEST_LIBPLAYER
 	video_rect_t in, out;
 	player_t *player = dec->privateStack;
@@ -369,13 +384,13 @@ static GF_Err LIBPLAYER_Control(GF_PrivateMediaDecoder *dec, Bool mute, GF_Windo
 	player_video_io_windows_set(player, &in, &out);
 #endif
 
-//	fprintf(stdout, "Repositioning video src %d %d %d %d - dest %d %d %d %d\n", src->x, src->y, src->w, src->h, dst->x, dst->y, dst->w, dst->h);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] Repositioning video src %d %d %d %d - dest %d %d %d %d\n", src->x, src->y, src->w, src->h, dst->x, dst->y, dst->w, dst->h) );
 	return GF_OK;
 }
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,
@@ -415,7 +430,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 		GF_SAFEALLOC(ifce, GF_PrivateMediaDecoder);
 		GF_REGISTER_MODULE_INTERFACE(ifce, GF_PRIVATE_MEDIA_DECODER_INTERFACE, "LibPlayer Decoder", "gpac distribution")
 
-		/*setup our own interface*/	
+		/*setup our own interface*/
 		ifce->AttachStream = LIBPLAYER_AttachStream;
 		ifce->DetachStream = LIBPLAYER_DetachStream;
 		ifce->GetCapabilities = LIBPLAYER_GetCapabilities;
