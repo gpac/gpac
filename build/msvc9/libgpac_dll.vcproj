@@ -388,6 +388,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				IgnoreDefaultLibraryNames="js32.lib"
 				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="9"
