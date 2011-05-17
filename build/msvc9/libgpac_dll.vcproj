@@ -176,7 +176,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib js.lib zlib.lib libGLES_CM.lib"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib zlib.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -383,12 +383,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib js.lib zlib.lib libGLES_CM.lib"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib zlib.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				IgnoreDefaultLibraryNames="js32.lib"
+				IgnoreDefaultLibraryNames=""
 				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="9"
