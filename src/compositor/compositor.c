@@ -78,7 +78,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] recomputing aspect ratio\n"));
 	compositor->recompute_ar = 1;
 	/*force signaling graphics reset*/
-	compositor->reset_graphics = 1;
+	if (!compositor->reset_graphics) compositor->reset_graphics = 1;
 }
 
 
@@ -152,7 +152,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				compositor->recompute_ar = 1;
 				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
-			compositor->reset_graphics = 1;
+			if (!compositor->reset_graphics) compositor->reset_graphics = 1;
 			notif_size=1;
 			
 		}
@@ -2513,9 +2513,13 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 {
 	/*not assigned yet*/
 	if (!compositor || !compositor->visual) return 0;
-	/*we're reconfiguring the video output, cancel all messages*/
-	if (compositor->msg_type & GF_SR_IN_RECONFIG) return 0;
-
+	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
+	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
+		if (event->type==GF_EVENT_VIDEO_SETUP) {
+			compositor->reset_graphics = 2;
+		}
+		return 0;
+	}
 	switch (event->type) {
 	case GF_EVENT_MOVE:
 	case GF_EVENT_REFRESH:
