@@ -601,7 +601,6 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 
 	if (!strnicmp(url, "libplayer://", 12)) {
 		force_module = "LibPlayer";
-		url+=12;	
 	}
 
 	/*used by GUIs scripts to skip URL concatenation*/
