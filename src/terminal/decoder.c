@@ -882,6 +882,24 @@ drop:
 }
 
 
+static GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable)
+{
+	
+	if (codec->ck && codec->ck->Paused) {
+		u32 i;
+		for (i=0; i<gf_list_count(codec->odm->channels); i++) {
+			GF_Channel *ch = gf_list_get(codec->odm->channels, i);
+			if (ch->BufferOn) {
+				ch->BufferOn = 0;
+				gf_clock_buffer_off(ch->clock);
+			}
+		}
+		if (codec->CB) 
+			gf_cm_abort_buffering(codec->CB);
+	}
+	return GF_OK;
+}
+
 GF_Err gf_codec_process_ocr(GF_Codec *codec, u32 TimeAvailable)
 {
 	/*OCR: needed for OCR in pull mode (dummy streams used to sync various sources)*/
@@ -1000,7 +1018,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		break;
 	case GF_STREAM_PRIVATE_MEDIA:
 		ifce_type = GF_PRIVATE_MEDIA_DECODER_INTERFACE;
-		codec->process = MediaCodec_Process;		
+		codec->process = gf_codec_process_private_media;		
 		break;
 	case GF_STREAM_PRIVATE_SCENE:
 		ifce_type = GF_SCENE_DECODER_INTERFACE;
