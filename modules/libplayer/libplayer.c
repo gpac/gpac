@@ -74,11 +74,8 @@ static const char * LIBPLAYER_MIME_TYPES[] = {
   "video/H263", "h263 263", "H263 Video",
   "video/H264", "h264 264", "H264 Video",
   "video/MPEG4", "cmp", "MPEG-4 Video",
-/* We let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample 
-   per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks 
-   moreover ffmpeg handles cmov, we don't */
+  "video/mp4", "mp4", "MPEG-4 Movie",
   "video/quicktime", "mov qt", "QuickTime Movies",
-/* Supported by latest versions of FFMPEG */
   "video/webm", "webm", "Google WebM Movies",
   "audio/webm", "webm", "Google WebM Music",
     NULL
