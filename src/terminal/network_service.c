@@ -584,6 +584,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	GF_Err e;
 	char *sURL, *qm, *frag, *ext, *mime_type, *url_res;
 	char szExt[50];
+	const char *force_module = NULL;
 	GF_InputService *ifce;
 	memset(szExt, 0, sizeof(szExt));
 
@@ -598,10 +599,16 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		goto exit;
 	}
 
+	if (!strnicmp(url, "libplayer://", 12)) {
+		force_module = "LibPlayer";
+		url+=12;	
+	}
+
 	/*used by GUIs scripts to skip URL concatenation*/
 	if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 	/*opera-style localhost URLs*/
 	else if (!strncmp(url, "file://localhost", 16)) sURL = gf_strdup(url+16);
+
 	else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 	/*path absolute*/
@@ -650,6 +657,10 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			sPlug += 2;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug));
 			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+			if (force_module && ifce && !strstr(ifce->module_name, force_module)) {
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
+				ifce = NULL;
+			}
 			if (ifce && !net_check_interface(ifce) ) {
 				gf_modules_close_interface((GF_BaseInterface *) ifce);
 				ifce = NULL;
@@ -717,7 +728,12 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] module[%i]=%s, mime=%s, cannot be loaded for GF_NET_CLIENT_INTERFACE.\n", i, sPlug, sMime));
 				continue;
 			}
-			if (!net_check_interface(ifce)) {
+			if (force_module && ifce && !strstr(ifce->module_name, force_module)) {
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
+				ifce = NULL;
+				continue;
+			}
+			if (ifce && !net_check_interface(ifce)) {
 				gf_modules_close_interface((GF_BaseInterface *) ifce);
 				ifce = NULL;
 				continue;
@@ -733,7 +749,11 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			ifce = (GF_InputService *) gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Checking if module %s supports URL %s\n", ifce->module_name, sURL));
-			if (net_check_interface(ifce) && ifce->CanHandleURL(ifce, sURL)) break;
+			if (force_module && ifce && !strstr(ifce->module_name, force_module)) {
+			}
+			else if (net_check_interface(ifce) && ifce->CanHandleURL(ifce, sURL)) {
+				break;
+			}
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
 			ifce = NULL;
 		}
