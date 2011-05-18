@@ -323,6 +323,12 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			txh->tx_io->nb_comp = 3;
 		}
 		break;
+	case GF_PIXEL_YUY2:
+		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
+		txh->tx_io->gl_format = GL_RGB;
+		txh->tx_io->nb_comp = 3;
+		break;
+
 	case GF_PIXEL_YUVD:
 		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
 		txh->tx_io->gl_format = GL_RGB;
@@ -487,6 +493,9 @@ common:
 		}
 		bpp = 3;
 		break;
+	case GF_PIXEL_YUY2:
+		bpp = 3;
+		break;
 	case GF_PIXEL_YUVD:
 		bpp = 4;
 		break;
@@ -524,6 +533,7 @@ common:
 
 	dst.video_buffer = txh->tx_io->conv_data;
 	switch (txh->pixelformat) {
+	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YV12:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
 		/*stretch and flip*/
