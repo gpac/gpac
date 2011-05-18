@@ -4,7 +4,7 @@ ECHO [Version] > gpaccab.inf
 ECHO Provider = "GPAC 0.4.6-r%gpac_revision%" >> gpaccab.inf
 type gpac.inf >> gpaccab.inf
 
-CabWiz gpaccab.inf
+"C:\Program Files\Microsoft Visual Studio 9.0\SmartDevices\SDK\SDKTools\CabWiz" gpaccab.inf
 
 ECHO off
 
@@ -20,7 +20,7 @@ ECHO CabFiles = gpaccab.cab >> gpac.ini
 
 ECHO on
 
-ezsetup -l english -i gpac.ini -r readme.txt -e ../../../../COPYING -o gpac.exe
+"C:\Program Files\Microsoft Visual Studio 9.0\SmartDevices\SDK\SDKTools\ezsetup" -l english -i gpac.ini -r readme.txt -e ../../../../COPYING -o gpac.exe
 rename gpac.exe "GPAC_0.4.6-r%gpac_revision%_WindowsMobile.exe"
 DEL gpaccab.cab
 DEL gpaccab.inf

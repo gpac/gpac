@@ -38,7 +38,7 @@ msvcr80.dll = 1
 libGLES_CM.dll = 1
 
 ;comment this one if not using SpiderMonkey
-js.dll = 1
+js32.dll = 1
 
 ;uncomment if your device doesn't have GX installed (I think most do)
 ;gx.dll = 2
@@ -91,7 +91,7 @@ DefaultDestDir = 0, %InstallDir%
 ;"gx.dll"
 "libgpac.dll"
 "GPAX.dll"
-"js.dll"
+"js32.dll"
 "libGLES_CM.dll"
 "msvcr80.dll"
 
