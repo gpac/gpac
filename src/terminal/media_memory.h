@@ -110,6 +110,7 @@ struct _composition_memory
 	u32 Min;
 	/*Unit size is the size of each buffer*/
 	u32 UnitSize;
+	Bool no_allocation;
 
 	/*Status of the buffer*/
 	u32 Status;
@@ -127,7 +128,7 @@ struct _composition_memory
 };
 
 /*a composition buffer only has fixed-size unit*/
-GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity);
+GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation);
 void gf_cm_del(GF_CompositionMemory *cb);
 /*re-inits complete cb*/
 void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity);

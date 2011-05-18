@@ -402,9 +402,8 @@ enum
     /*!OTI for 13K Voice / QCELP audio streams*/
     GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
 
-    /*!OTI for LIBPLAYER private streams. The data pointer in the DSI is the libplayer handle object*/
+	/*!OTI for LIBPLAYER private streams. The data pointer in the DSI is the libplayer handle object*/
     GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER = 0xF1
-
 };
 
 

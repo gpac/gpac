@@ -470,7 +470,7 @@ struct __tag_compositor
 	void *tgl_ctx;
 #endif
 
-	Float depth_gl_scale, depth_gl_strips_filter;
+	Fixed depth_gl_scale, depth_gl_strips_filter;
 	u32 depth_gl_type;
 	/*increase/decrease the standard interoccular offset by the specified distance in cm*/
 	Fixed interoccular_offset;

@@ -263,6 +263,7 @@ typedef struct
 	u32 command_type;
 	LPNETCHANNEL on_channel;
 	u32 hSpacing, vSpacing;
+	u32 width, height, pixel_format;
 } GF_NetComPixelAR;
 
 /*GF_NET_SERVICE_INFO*/

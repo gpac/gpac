@@ -111,6 +111,8 @@ enum
 	/*this is only used for audio in case transport mapping relies on sampleRate (RTP)
 	gets the CU duration in samplerate unit (type: int) */
 	GF_CODEC_CU_DURATION,
+	/*queries whether data is RAW (directly dispatched to CompositionMemory) or not*/
+	GF_CODEC_RAW_MEDIA,
 
 	/*This is only called on scene decoders to signal that potential overlay scene should be 
 	showed (cap.valueINT=1) or hidden (cap.valueINT=0). Currently only used with SetCap*/

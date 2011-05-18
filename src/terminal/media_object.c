@@ -453,6 +453,8 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 		gf_odm_lock(mo->odm, 0);
 		return;
 	}
+	if (mo->odm->codec->CB->no_allocation)
+		forceDrop = 1;
 
 	/*perform a sanity check on TS since the CB may have changed status - this may happen in 
 	temporal scalability only*/
