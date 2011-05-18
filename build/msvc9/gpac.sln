@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual C++ Express 2008
+# Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPAX", "GPAX.vcproj", "{72486240-A124-496E-A67A-E76FEC7E99BE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
@@ -635,7 +635,6 @@ Global
 		{4258687D-4905-46A6-9407-08F4F8A81CC0}.Release|Mixed Platforms.Build.0 = Release|Smartphone 2003 (ARMV4)
 		{4258687D-4905-46A6-9407-08F4F8A81CC0}.Release|Mixed Platforms.Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{4258687D-4905-46A6-9407-08F4F8A81CC0}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
-		{4258687D-4905-46A6-9407-08F4F8A81CC0}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
 		{4258687D-4905-46A6-9407-08F4F8A81CC0}.Release|Win32.ActiveCfg = Release|Win32
 		{4258687D-4905-46A6-9407-08F4F8A81CC0}.Release|Win32.Build.0 = Release|Win32
 		{E08DA5C2-9D97-4CD3-BB13-6FD6BA4458D6}.Debug|Mixed Platforms.ActiveCfg = Debug|Smartphone 2003 (ARMV4)
