@@ -71,7 +71,7 @@ static void yuv2rgb_init(void)
 	}
 }
 
-static void gf_yuv_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 y_stride, s32 uv_stride, s32 width)
+static void gf_yuv_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 y_stride, s32 uv_stride, s32 width)
 {
 	u32 hw, x;
 	unsigned char *dst2 = (unsigned char *) dst + dststride;
@@ -122,6 +122,41 @@ static void gf_yuv_load_lines(unsigned char *dst, s32 dststride, unsigned char *
 	}
 }
 
+static void gf_yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 width)
+{
+	u32 hw, x;
+	unsigned char *dst2 = (unsigned char *) dst + dststride;
+
+	hw = width / 2;
+	for (x = 0; x < hw; x++) {
+		s32 u, v;
+		s32 b_u, g_uv, r_v, rgb_y;
+
+		u = *u_src;
+		v = *v_src;
+
+		b_u = B_U[u];
+		g_uv = G_U[u] + G_V[v];
+		r_v = R_V[v];
+
+		rgb_y = RGB_Y[*y_src];
+		dst[0] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
+		dst[1] = col_clip( (rgb_y - g_uv) >> SCALEBITS_OUT);
+		dst[2] = col_clip( (rgb_y + b_u) >> SCALEBITS_OUT);
+		dst[3] = 0xFF;
+
+		rgb_y = RGB_Y[*(y_src+2)];
+		dst[4] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
+		dst[5] = col_clip( (rgb_y - g_uv) >> SCALEBITS_OUT);
+		dst[6] = col_clip( (rgb_y + b_u) >> SCALEBITS_OUT);
+		dst[7] = 0xFF;
+
+		dst += 8;
+		y_src += 4;
+		u_src += 4;
+		v_src += 4;
+	}
+}
 
 
 static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, unsigned char *a_src,
@@ -713,7 +748,7 @@ static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	pY += x_offset + y_offset*y_pitch;
 	pU += x_offset/2 + y_offset*y_pitch/4;
 	pV += x_offset/2 + y_offset*y_pitch/4;
-	gf_yuv_load_lines((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width);
+	gf_yuv_load_lines_planar((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width);
 }
 
 static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
@@ -731,6 +766,16 @@ static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	gf_yuva_load_lines(dst_bits, 4*width, pY, pU, pV, pA, y_pitch, y_pitch/2, width);
 }
 
+static void load_line_yuyv(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u8 *dst_bits)
+{
+	u8 *pY, *pU, *pV;
+	pY = (u8 *)src_bits + x_offset + y_offset*y_pitch;
+	pU = (u8 *)pY + 1;
+	pV = (u8 *)pY + 3;
+	gf_yuv_load_lines_packed((unsigned char*)dst_bits, 4*width, pY, pU, pV, width);
+}
+
+
 static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_);
 
 GF_EXPORT
@@ -739,7 +784,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	u8 *tmp, *rows;
 	u8 ka, kr, kg, kb, kl, kh;
 	s32 src_row;
-	u32 i, yuv_type = 0;
+	u32 i, yuv_planar_type = 0;
 	Bool no_memcpy;
 	Bool yuv_init = 0;
 	Bool has_alpha = (alpha!=0xFF) ? 1 : 0;
@@ -793,13 +838,18 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 		yuv2rgb_init();
-		yuv_type = 1;
+		yuv_planar_type = 1;
 		break;
 	case GF_PIXEL_YUVA:
 		has_alpha = 1;
 	case GF_PIXEL_YUVD:
-		yuv_type = 2;
+		yuv_planar_type = 2;
 		yuv2rgb_init();
+		break;
+	case GF_PIXEL_YUY2:
+		yuv_planar_type = 0;
+		yuv2rgb_init();
+		load_line = load_line_yuyv;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -855,9 +905,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	dst_w = dst_wnd ? dst_wnd->w : dst->width;
 	dst_h = dst_wnd ? dst_wnd->h : dst->height;
 
-	if (yuv_type && (src_w%2)) src_w++;
+	if (yuv_planar_type && (src_w%2)) src_w++;
 
-	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_type ? 8 : 4) );
+	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_planar_type ? 8 : 4) );
 	rows = tmp;
 
 	src_bits = (u8 *) src->video_buffer;
@@ -903,13 +953,13 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		/*new row, check if conversion is needed*/
 		if (prev_row != src_row) {
 			u32 the_row = src_row - 1;
-			if (yuv_type) {
+			if (yuv_planar_type) {
 				if ( the_row % 2) {
 					if (!yuv_init) {
 						yuv_init = 1;
 						the_row --;
 						if (flip) the_row = src->height-2 - the_row;
-						if (yuv_type==1) {
+						if (yuv_planar_type==1) {
 							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 						} else {
 							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
@@ -919,7 +969,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					rows = flip ? tmp : tmp + src_w * 4;
 				} else {
 					if (flip) the_row = src->height-2 - the_row;
-					if (yuv_type==1) {
+					if (yuv_planar_type==1) {
 						load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 					} else {
 						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
