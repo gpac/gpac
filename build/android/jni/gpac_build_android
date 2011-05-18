@@ -9,7 +9,19 @@ then
   exit 1
 fi
 
+if [ -z "$2" ] 
+then 
+  echo -e "\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m" 
+fi 
+	 	 
+if [ -z "$3" ] 
+then 
+  echo -e "\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m" 
+fi 
+	 	 
 export PATH="$1:$PATH"
+export PATH="$PATH:$2/tools" 
+export PATH="$3/bin:$PATH" 
 shift
 
 # Be sure to resolve if script not called from its directory
