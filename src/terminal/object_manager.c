@@ -934,6 +934,15 @@ clock_setup:
 			}
 		}
 	}
+	{
+		GF_CodecCapability cap;
+		cap.CapCode = GF_CODEC_RAW_MEDIA;
+		gf_codec_get_capability(dec, &cap);
+		if (cap.cap.valueInt) {
+			dec->flags |= GF_ESM_CODEC_IS_RAW_MEDIA;
+			dec->process = gf_codec_process_private_media;
+		}
+	}
 
 	ch->es_state = GF_ESM_ES_SETUP;
 	ch->odm = odm;
@@ -1449,13 +1458,29 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	gf_term_lock_media_queue(odm->term, 0);
 
 	/*little opt for image codecs: don't actually stop the OD*/
-	if (!force_close && odm->codec && odm->codec->CB) {
+	if (!force_close && odm->codec && odm->codec->CB && !odm->codec->CB->no_allocation) {
 		if (odm->codec->CB->Capacity==1) return;
 	}
+
+	/*if raw media, stop all channels before sending stop command to network, to avoid new media frames to be set
+	as pending and thereby locking the channel associated service*/
+	if (odm->codec && odm->codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
+		i=0;
+		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
+			gf_es_stop(ch);
+		}
+		gf_term_stop_codec(odm->codec);
+		/*and wait until frame has been consumed by the renderer*/
+		while (odm->raw_media_frame_pending) {
+			gf_sleep(1);
+		}
+	}
+
 
 	/*object was not unlocked, decoders were not started*/
 	if (odm->state==GF_ODM_STATE_BLOCKED) {
 		odm->current_time = 0;
+		odm->raw_media_frame_pending = 0;
 		return;
 	}
 

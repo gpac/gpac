@@ -84,20 +84,22 @@ static GFINLINE void my_large_gf_free(void *ptr) {
 #endif
 
 
-static void gf_cm_unit_del(GF_CMUnit *cb)
+static void gf_cm_unit_del(GF_CMUnit *cb, Bool no_data_allocation)
 {
 	if (!cb)
 	  return;
-	if (cb->next) gf_cm_unit_del(cb->next);
+	if (cb->next) gf_cm_unit_del(cb->next, no_data_allocation);
 	cb->next = NULL;
 	if (cb->data) {
-		my_large_gf_free(cb->data);
+		if (!no_data_allocation) {
+			my_large_gf_free(cb->data);
+		}
 		cb->data = NULL;
 	}
 	gf_free(cb);
 }
 
-GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
+GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 {
 	GF_CompositionMemory *tmp;
 	GF_CMUnit *cu, *prev;
@@ -108,6 +110,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 
 	tmp->Capacity = capacity;
 	tmp->UnitSize = UnitSize;
+	tmp->no_allocation = no_allocation;
 
 	prev = NULL;
 	i = 1;
@@ -120,8 +123,12 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 			cu->prev = prev;
 		}
 		cu->dataLength = 0;
-		cu->data = UnitSize ? (char*)my_large_alloc(sizeof(char)*UnitSize) : NULL;
-		if (cu->data) memset(cu->data, 0, sizeof(char)*UnitSize);
+		if (no_allocation) {
+			cu->data = NULL;
+		} else {
+			cu->data = UnitSize ? (char*)my_large_alloc(sizeof(char)*UnitSize) : NULL;
+			if (cu->data) memset(cu->data, 0, sizeof(char)*UnitSize);
+		}
 		prev = cu;
 		capacity --;
 		i++;
@@ -148,7 +155,7 @@ void gf_cm_del(GF_CompositionMemory *cb)
 	if (cb->input){
 	  /*break the loop and destroy*/
 	  cb->input->prev->next = NULL;
-	  gf_cm_unit_del(cb->input);
+	  gf_cm_unit_del(cb->input, cb->no_allocation);
 	  cb->input = NULL;
 	}
 	gf_odm_lock(cb->odm, 0);
@@ -400,12 +407,20 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
-	my_large_gf_free(cu->data);
-	cu->data = (char*) my_large_alloc(newCapacity);
-	cu = cu->next;
-	while (cu != cb->input) {
+	if (!cb->no_allocation) {
 		my_large_gf_free(cu->data);
 		cu->data = (char*) my_large_alloc(newCapacity);
+	} else {
+		cu->data = NULL;
+	}
+	cu = cu->next;
+	while (cu != cb->input) {
+		if (!cb->no_allocation) {
+			my_large_gf_free(cu->data);
+			cu->data = (char*) my_large_alloc(newCapacity);
+		} else {
+			cu->data = NULL;
+		}
 		cu = cu->next;
 	}
 
@@ -425,7 +440,7 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 	if (cb->input){
 	  /*break the loop and destroy*/
 	  cb->input->prev->next = NULL;
-	  gf_cm_unit_del(cb->input);
+	  gf_cm_unit_del(cb->input, cb->no_allocation);
 	  cb->input = NULL;
 	}
 
@@ -444,7 +459,11 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 			cu->prev = prev;
 		}
 		cu->dataLength = 0;
-		cu->data = (char*)my_large_alloc(UnitSize);
+		if (cb->no_allocation) {
+			cu->data = NULL;
+		} else {
+			cu->data = (char*)my_large_alloc(UnitSize);
+		}
 		prev = cu;
 		Capacity --;
 		i++;
@@ -523,9 +542,10 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	/*this allows reuse of the CU*/
 	cb->output->RenderedLength = 0;
 	cb->LastRenderedTS = cb->output->TS;
+	cb->odm->raw_media_frame_pending = 0;
 
-	/*on visual streams, always keep the last AU*/
-	if (cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
+	/*on visual streams (except raw oness), always keep the last AU*/
+	if (!cb->no_allocation && cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
 		if ( !cb->output->next->dataLength || (cb->Capacity == 1) )  {
 			return;
 		}

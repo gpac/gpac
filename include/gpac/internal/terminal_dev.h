@@ -644,6 +644,9 @@ struct _es_channel
 	GF_IPMPTool *ipmp_tool;
 	Bool is_protected;
 
+	/*indicates that AU received will be copied to the composition memory*/
+	Bool is_raw_channel;
+
 	u32 resync_drift;
 
 	/*TSs as received from network - these are used for cache storage*/
@@ -713,6 +716,9 @@ enum
 	GF_ESM_CODEC_IS_USE = 1<<1,
 	/*set for OD codec when static (ressources are declared in OD stream esd a la ISMA*/
 	GF_ESM_CODEC_IS_STATIC_OD = 1<<2,
+	/*set when codec is identified as RAW, meaning all AU comming from the network are directly
+	dispatched to the composition memory*/
+	GF_ESM_CODEC_IS_RAW_MEDIA = 1<<3,
 };
 
 struct _generic_codec 
@@ -875,6 +881,8 @@ struct _od_manager
 
 	u32 action_type;
 
+	u32 raw_media_frame_pending;
+
 #ifndef GPAC_DISABLE_VRML
 	/*the one and only media control currently attached to this object*/
 	struct _media_control *media_ctrl;
@@ -1006,6 +1014,7 @@ u32 gf_mo_get_od_id(MFURL *url);
 
 void gf_scene_generate_views(GF_Scene *scene, char *url);
 
+GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 
 #ifdef __cplusplus
 }

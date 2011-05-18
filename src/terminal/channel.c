@@ -633,6 +633,8 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, const char *S
 	gf_es_lock(ch, 0);
 }
 
+
+
 static void gf_es_check_timing(GF_Channel *ch)
 {
 	/*the first data received inits the clock - this is needed to handle clock dependencies on non-initialized 
@@ -670,6 +672,57 @@ static void gf_es_check_timing(GF_Channel *ch)
 	}
 }
 
+
+void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header)
+{
+	u32 ts;
+	GF_CompositionMemory *cb;
+	GF_CMUnit *cu;
+	if (!header || !ch->odm->codec->CB) return;
+
+	if (ch->ts_res != 1000) {
+		ts = (u32) (header->compositionTimeStamp * 1000 / ch->ts_res);
+	} else {
+		ts = (u32) header->compositionTimeStamp;
+	}
+
+	if (!ch->IsClockInit) {
+		ch->CTS = (u32) header->compositionTimeStamp;
+		gf_es_check_timing(ch);
+	}
+	if (ch->odm->raw_media_frame_pending) {
+		return;
+	}
+
+	cb = ch->odm->codec->CB;
+	cu = gf_cm_lock_input(cb, ts, 1);
+	if (cu) {
+		u32 size = 0;
+		assert(cu->RenderedLength==0);
+		if (cb->UnitSize >= payload_size) {
+			cu->data = payload;
+			size = payload_size;
+			cu->TS = ts;
+			ch->odm->raw_media_frame_pending = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS));
+		}
+		gf_cm_unlock_input(cb, cu, size, 1);
+
+		if (ch->BufferOn) {
+			ch->BufferOn = 0;
+			gf_clock_buffer_off(ch->clock);
+			gf_cm_abort_buffering(cb);
+		}
+		/*since the CB is a simple pointer to the input frame, wait until it is released before getting 
+		back to the caller module - we should use events for this ...*/
+		while (ch->odm->raw_media_frame_pending) {
+			gf_sleep(1);
+		}
+		size=0;
+	}
+}
+
+
 /*handles reception of an SL-PDU, logical or physical*/
 void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
 {
@@ -693,6 +746,15 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 	if (ch->es_state != GF_ESM_ES_RUNNING) return;
 
+	if (ch->skip_sl) {
+		Channel_ReceiveSkipSL(serv, ch, payload, payload_size);
+		return;
+	}
+	if (ch->is_raw_channel) {
+		Channel_RawMediaSL(serv, ch, payload, payload_size, header);
+		return;
+	}
+
 	/*physical SL-PDU - depacketize*/
 	if (!header) {
 		u32 SLHdrLen;
@@ -702,11 +764,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		payload += SLHdrLen;
 	} else {
 		hdr = *header;
-	}
-
-	if (ch->skip_sl) {
-		Channel_ReceiveSkipSL(serv, ch, payload, payload_size);
-		return;
 	}
 
 	/*we ignore OCRs for the moment*/

@@ -235,7 +235,8 @@ typedef struct {
 typedef struct
 {
 	BASE_DESCRIPTOR
-	u8 objectTypeIndication;
+	/*coded on 8 bit, but we use 32 bits for internal signaling in GPAC to enable usage of 4CC*/
+	u32 objectTypeIndication;
 	u8 streamType;
 	u8 upstream;
 	u32 bufferSizeDB;
@@ -247,6 +248,8 @@ typedef struct
 	GF_DefaultDescriptor *rvc_config;
 
 	GF_List *profileLevelIndicationIndexDescriptor;
+	/*pass through data for some modules*/
+	void *udta;
 } GF_DecoderConfig;
 
 

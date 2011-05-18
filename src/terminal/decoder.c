@@ -160,9 +160,11 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 
 		/*setup CB*/
 		if (!codec->CB && max) {
+			if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) max = 1;
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 
-			codec->CB = gf_cm_new(CUsize, max);
+			codec->CB = gf_cm_new(CUsize, max, (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) ? 1 : 0);
 			codec->CB->Min = min;
 			codec->CB->odm = codec->odm;
 		}
@@ -173,6 +175,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			cap.CapCode = GF_CODEC_REORDER;
 			if (gf_codec_get_capability(codec, &cap) == GF_OK)
 				codec->is_reordering = cap.cap.valueInt;
+		}
+
+		if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
+			ch->is_raw_channel = 1;
 		}
 
 		/*setup net channel config*/
@@ -882,7 +888,7 @@ drop:
 }
 
 
-static GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable)
+GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable)
 {
 	
 	if (codec->ck && codec->ck->Paused) {

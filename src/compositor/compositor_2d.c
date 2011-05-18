@@ -498,6 +498,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_YV12:
 		case GF_PIXEL_IYUV:
 		case GF_PIXEL_I420:
+		case GF_PIXEL_YVYU:
 		case GF_PIXEL_YUVD:
 			if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = 0;
 			else if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
@@ -702,6 +703,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
+	case GF_PIXEL_YVYU:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_RGBS:
