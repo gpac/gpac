@@ -1171,7 +1171,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		sOpt = "100";
 		gf_cfg_set_key(compositor->user->config, "Compositor", "DepthScale", sOpt);
 	}
-	compositor->depth_gl_scale = (Float) atof(sOpt);
+	compositor->depth_gl_scale = FLT2FIX( (Float) atof(sOpt) );
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthType");
 	if (!sOpt) {
@@ -1182,7 +1182,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (sOpt && !strnicmp(sOpt, "Strips", 6)) {
 		compositor->depth_gl_type = GF_SC_DEPTH_GL_STRIPS;
 		compositor->depth_gl_strips_filter = 0;
-		if (strlen(sOpt)>7) compositor->depth_gl_strips_filter = (Float) atof(sOpt+7);
+		if (strlen(sOpt)>7) compositor->depth_gl_strips_filter = FLT2FIX( (Float) atof(sOpt+7) );
 	}
 	else if (sOpt && !strcmp(sOpt, "VertexArray")) compositor->depth_gl_type = GF_SC_DEPTH_GL_VBO;
 	else compositor->depth_gl_type = GF_SC_DEPTH_GL_NONE;

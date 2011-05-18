@@ -2326,7 +2326,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		glEnable(GL_POINT_SMOOTH);
 		glDisable(GL_LIGHTING);
 
-		scale = visual->compositor->depth_gl_scale;
+		scale = FIX2FLT(visual->compositor->depth_gl_scale);
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
 		x = 0;
@@ -2376,7 +2376,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		glDisable(GL_FOG);
 
 restart:
-		scale = visual->compositor->depth_gl_scale;
+		scale = FIX2FLT(visual->compositor->depth_gl_scale);
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
 		x = 0;

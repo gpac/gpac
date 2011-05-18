@@ -663,7 +663,7 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 
 		gf_mx_copy(mx_bckup, tr_state->model_matrix);
 		gf_mx_init(mx);
-		mx.m[14] = stack->dg.depth_offset * tr_state->visual->compositor->depth_gl_scale;
+		mx.m[14] = gf_mulfix(stack->dg.depth_offset, tr_state->visual->compositor->depth_gl_scale);
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
