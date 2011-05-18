@@ -759,7 +759,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	}
 exit:
 	if (!ifce){
-  	    GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
+  	    GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
 	    if (sURL) gf_free(sURL);
 		if ( (*ret_code) == GF_OK) (*ret_code) = GF_NOT_SUPPORTED;
 	    *out_url = NULL;
