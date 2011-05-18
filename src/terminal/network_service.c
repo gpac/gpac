@@ -586,6 +586,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char szExt[50];
 	const char *force_module = NULL;
 	GF_InputService *ifce;
+	Bool skip_mime = 0;
 	memset(szExt, 0, sizeof(szExt));
 
 	(*ret_code) = GF_OK;
@@ -637,14 +638,13 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			|| !stricmp(mime_type, "application/octet-stream")
 		)
 	) {
-		gf_free(mime_type);
-		mime_type = NULL;
+		skip_mime = 1;
 	}
 
 	ifce = NULL;
 
 	/*load from mime type*/
-	if (mime_type) {
+	if (mime_type && !skip_mime) {
 		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime_type);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Mime type found: %s\n", mime_type));
 		if (!sPlug) {
