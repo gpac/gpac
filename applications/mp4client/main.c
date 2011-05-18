@@ -661,23 +661,23 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	{
 		const char *servName;
 		if (!evt->message.service || !strcmp(evt->message.service, the_url)) {
-			servName = "main service";
-		} else if (!strnicmp(evt->message.service, "data:", 5)) {
 			servName = "";
+		} else if (!strnicmp(evt->message.service, "data:", 5)) {
+			servName = "(embedded data)";
 		} else {
 			servName = evt->message.service;
 		}
-		servName = "";
 
 		if (!evt->message.message) return 0;
+
 		if (evt->message.error==GF_SCRIPT_INFO) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[Script] %s\n", evt->message.message));
 			fprintf(stdout, "%s\n", evt->message.message);
 		} else if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;
-			fprintf(stdout, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
+			fprintf(stdout, "%s %s: %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
 		} else if (!be_quiet) 
-			fprintf(stdout, "(%s) %s\r", servName, evt->message.message);
+			fprintf(stdout, "%s %s\r", evt->message.message, servName);
 	}
 		break;
 	case GF_EVENT_PROGRESS:
