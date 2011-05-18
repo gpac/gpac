@@ -242,6 +242,7 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "..\gm_dx_hw.dll"
   File "..\js32.dll"
   File "..\gm_gpac_js.dll"
+  File "..\gm_ismacryp.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
