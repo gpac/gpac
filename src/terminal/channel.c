@@ -1450,7 +1450,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 		gf_modules_close_interface((GF_BaseInterface *) ch->ipmp_tool);
 		ch->ipmp_tool = NULL;
 	}
-	gf_term_message(ch->odm->term, ch->service->url, "No IPMP tool suitable to handle channel protection", GF_NOT_SUPPORTED);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[IPMP] No IPMP tool suitable to handle channel protection scheme %s (KMS URI %s)\n", drm_cfg->scheme_uri, drm_cfg->kms_uri)); 
 	ch_buffer_off(ch);
 }
 
