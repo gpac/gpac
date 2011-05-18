@@ -800,7 +800,7 @@ static u32 download_segments(void *par)
 
 const char * MPD_MPD_DESC = "HTTP MPD Streaming";
 
-const char * MPD_MPD_EXT = "3gm mdp";
+const char * MPD_MPD_EXT = "3gm mpd";
 
 const char * MPD_M3U8_DESC = "HTTP M3U8 Playlist Streaming";
 
@@ -1035,7 +1035,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 			/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
 			if (MPD_isM3U8_mime(mime) || strstr(url, ".m3u8")) {
 				is_m3u8 = 1;
-			} else if (!MPD_is_MPD_mime(mime)) {
+			} else if (!MPD_is_MPD_mime(mime) && !strstr(url, ".mpd")) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' for '%s' should be m3u8 or mpd\n", mime, url));
 				gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
 				gf_term_download_del(mpdin->mpd_dnload);
