@@ -1637,22 +1637,37 @@ exit:
     close(fd);
   return NULL;
 }
-
 #else /* WIN32 */
-#pragma message("gf_global_resource_lock() not implemented")
 struct _GF_GlobalLock_opaque {
     char * resourceName;
+	HANDLE hMutex; /*a named mutex is a system-mode object on windows*/
 };
-
 #endif
 
 
 GF_GlobalLock * gf_global_resource_lock(const char * resourceName){
 #ifdef WIN32
-  GF_GlobalLock * lock = gf_malloc(sizeof(GF_GlobalLock));
-  lock->resourceName = gf_strdup( resourceName );
-  /* TODO : implement this properly for Windows... */
-  return lock;
+	GF_GlobalLock *lock = gf_malloc(sizeof(GF_GlobalLock));
+	lock->resourceName = gf_strdup(resourceName);
+
+	/*first ensure mutex is created*/
+	lock->hMutex = CreateMutex(NULL, TRUE, resourceName);
+	if (!lock->hMutex) {
+		DWORD lastErr = GetLastError();
+		if (lastErr != ERROR_ALREADY_EXISTS)
+			return NULL;
+	}
+
+	/*then lock it*/
+	switch (WaitForSingleObject(lock->hMutex, INFINITE)) {
+	case WAIT_ABANDONED:
+	case WAIT_TIMEOUT:
+		assert(0); /*serious error: someone has modified the object elsewhere*/
+		gf_global_resource_unlock(lock);
+		return NULL;
+	}
+
+	return lock;
 #else /* WIN32 */
   return gf_create_PID_file(resourceName);
 #endif /* WIN32 */
@@ -1675,8 +1690,15 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock){
     lock->pidFile = NULL;
     lock->fd = -1;
 #endif /* not defined WIN32 */
-    if (lock->resourceName)
-      gf_free(lock->resourceName);
+	{
+		/*MSDN: "The mutex object is destroyed when its last handle has been closed."*/
+		BOOL ret = ReleaseMutex(lock->hMutex);
+		assert(ret);
+		ret = CloseHandle(lock->hMutex);
+		assert(ret);
+	}
+	if (lock->resourceName)
+		gf_free(lock->resourceName);
     lock->resourceName = NULL;
     gf_free(lock);
     return GF_OK;
