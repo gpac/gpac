@@ -325,7 +325,6 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;..\..\bin\smartphone 2003 (armv4)\release\install\build_installer.bat&quot;"
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
