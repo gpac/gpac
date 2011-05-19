@@ -24,7 +24,7 @@
 
 #include <gpac/mpegts.h>
 
-#define GPAC_HBBTV
+//#define GPAC_HBBTV
 #ifdef GPAC_HBBTV
 #include <gpac/carousel.h>
 #endif
@@ -757,6 +757,7 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
 	if (!sec->process_section) {
+#ifdef GPAC_HBBTV
 		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) )
 		{				
 			GF_M2TS_SL_PCK pck;
@@ -766,14 +767,15 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
 
-		}else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+		} else
+#endif
+		if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
-		}
-		else if (ts->on_event) {
+		} else if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
