@@ -50,6 +50,9 @@ typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 /*When ODProfileLevelIndication has this value, only scene and od streams are sl-packetized*/
 #define GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING	10
 
+/*Maximum size of the buffer in UDP */
+#define UDP_BUFFER_SIZE	0x40000
+
 /*MPEG-2 TS Media types*/
 enum
 {
@@ -529,6 +532,41 @@ typedef struct
 /*MPEG-2 TS demuxer*/
 struct tag_m2ts_demux
 {
+	/* From M2TSIn */	
+	GF_List *requested_progs;
+	GF_List *requested_pids;
+
+	/*demuxer thread*/
+	GF_Thread *th;
+	u32 run_state;
+
+    /*net playing*/
+	GF_Socket *sock;
+
+#ifdef GPAC_HAS_LINUX_DVB
+	/*dvb playing*/
+	GF_Tuner *tuner;
+#endif
+	/*local file playing*/
+	FILE *file;
+	char filename[GF_MAX_PATH];
+	u32 start_range, end_range;
+	u32 file_size;
+	Double duration;
+	u32 nb_playing;
+	Bool file_regulate;
+	u64 pcr_last;
+	u32 stb_at_last_pcr;
+	u32 nb_pck;
+	Bool loop_demux;
+
+	/* "Network" =  "MobileIP", "DefaultMCastInterface" */
+	Bool MobileIPEnabled;
+	const char *network_type;
+	/* Set it to 1 if the TS is meant to be played during the demux */
+	Bool demux_and_play;
+	/* End of M2TSIn */
+
 	GF_M2TS_ES *ess[GF_M2TS_MAX_STREAMS];
 	GF_List *programs;
 	/*keep it seperate for now - TODO check if we're sure of the order*/
@@ -552,11 +590,12 @@ struct tag_m2ts_demux
 	Bool direct_mpe;
 
 	Bool dvb_h_demux;
+	
 	/*user callback - MUST NOT BE NULL*/
 	void (*on_mpe_event)(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
 	/* Structure to hold all the INT tables if the TS contains IP streams */
 	struct __gf_dvb_mpe_ip_platform *ip_platform;
-
+	
 	u32 pck_number;
 };
 
@@ -941,6 +980,8 @@ struct __m2ts_mux {
 };
 
 
+
+
 enum
 {
 	GF_M2TS_STATE_IDLE,
@@ -952,6 +993,7 @@ enum
 /*!
  * mux_rate en kbps
  */
+
 GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time);
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, Bool mpeg4_signaling);
@@ -967,6 +1009,52 @@ void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig 
 
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
+
+/******************* Demux DVB ****************************/
+#include <gpac/carousel.h>
+
+
+#define UDP_BUFFER_SIZE	0x40000
+#define M2TS_BUFFER_MAX 400
+
+#ifdef GPAC_HAS_LINUX_DVB
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <linux/dvb/dmx.h>
+#include <linux/dvb/frontend.h>
+
+typedef struct {
+	u32 freq;
+	u16 vpid;
+	u16 apid;
+	fe_spectral_inversion_t specInv;
+	fe_modulation_t modulation;
+	fe_bandwidth_t bandwidth;
+	fe_transmit_mode_t TransmissionMode;
+	fe_guard_interval_t guardInterval;
+	fe_code_rate_t HP_CodeRate;
+	fe_code_rate_t LP_CodeRate;
+	fe_hierarchy_t hierarchy;
+
+	int ts_fd;
+} GF_Tuner;
+
+#define DVB_BUFFER_SIZE 3760							// DVB buffer size 188x20
+
+#endif
+
+
+GF_Err TSDemux_Demux_Process(GF_M2TS_Demuxer *ts, const char *url,  Bool loop);
+void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url);
+void TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url);
+u32 TSDemux_DemuxRun(void *_p);
+#ifdef GPAC_HAS_LINUX_DVB
+void TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, char *url);
+#endif
+
+GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts);
+
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 

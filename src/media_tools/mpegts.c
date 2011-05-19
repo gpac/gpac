@@ -35,6 +35,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/math.h>
 #include <string.h>
+#include <gpac/carousel.h>
 
 #define DUMP_MPE_IP_DATAGRAMS
 //#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
@@ -757,11 +758,11 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
 	if (!sec->process_section) {
+
 #ifdef GPAC_HBBTV
 		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) )
 		{				
 			GF_M2TS_SL_PCK pck;
-			ts->on_event = on_ait_section;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
@@ -1253,6 +1254,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		reg_desc_format = 0;
 
 		switch (stream_type) {
+		  printf("stream_type :%d \n",stream_type);
 		/* PES */
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
@@ -1295,10 +1297,13 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		case GF_M2TS_13818_6_ANNEX_D:
 		case GF_M2TS_PRIVATE_SECTION:
-#ifdef GPAC_HBBTV
-			es = gf_ait_section_new();
+		  printf("unknown private section: pid = %d \n", pid);
+		  if (pid == GF_M2TS_TABLE_ID_AIT){
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT found \n"));
+			es = gf_ait_section_new();			
 			((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 0);
-#else
+		}else{
+
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			es = (GF_M2TS_ES *)ses;
 			es->flags |= GF_M2TS_ES_IS_SECTION;
@@ -1308,7 +1313,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				printf("unknown private section: pid = %d \n", pid);
 			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
 			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
-#endif
+		}
+
 			break;
 
 		case GF_M2TS_MPE_SECTIONS:
@@ -1831,7 +1837,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 //#if DEBUG_TS_PACKET
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 //#endif
-
+	//printf("[MPEG-2 TS] Packet PID %d\n", hdr.pid);
 	paf = NULL;
 	payload_size = 184;
 	pos = 4;
@@ -1972,7 +1978,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 			}
 			return GF_OK;
 		}
-		/*process*/
+		/*process*/		
 		gf_m2ts_process_packet(ts, ts->buffer+pos);
 		pos += 188;
 	}
@@ -2154,6 +2160,10 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	gf_dvb_mpe_init(ts);
 #endif
 
+	ts->requested_progs = gf_list_new();
+	ts->requested_pids = gf_list_new();	
+	ts->demux_and_play = 0;
+
 	return ts;
 }
 
@@ -2202,4 +2212,500 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 #endif
 }
 
+
+/* DVB fonction */
+
+u32 TSDemux_DemuxRun(void *_p)
+{
+	GF_Err e;
+	char data[UDP_BUFFER_SIZE];
+#ifdef GPAC_HAS_LINUX_DVB
+	char dvbts[DVB_BUFFER_SIZE];
+#endif
+	u32 size;
+	//u32 i;
+	GF_M2TS_Demuxer *ts = _p;
+
+	ts->run_state = 1;
+
+	gf_m2ts_reset_parsers(ts);
+	
+#ifdef GPAC_HAS_LINUX_DVB
+
+	if (ts->tuner) {
+		// in case of DVB
+		while (ts->run_state) {
+			s32 ts_size = read(ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
+			if (ts_size>0) gf_m2ts_process_data(ts, dvbts, (u32) ts_size);
+		}
+	} else
+#endif
+	 if (ts->sock) {
+		Bool first_run, is_rtp;
+		first_run = 1;
+		is_rtp = 0;
+		while (ts->run_state) {
+			size = 0;
+			/*m2ts chunks by chunks*/
+			e = gf_sk_receive(ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
+			if (!size || e) {
+				gf_sleep(1);
+				continue;
+			}
+			if (first_run) {
+				first_run = 0;
+				/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
+				if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
+					is_rtp = 1;
+				}
+			}
+			/*process chunk*/
+			if (is_rtp) {
+				gf_m2ts_process_data(ts, data+12, size-12);
+			} else {
+				gf_m2ts_process_data(ts, data, size);
+			}
+		}
+	} else {
+		u32 pos = 0;
+		if (ts->start_range && ts->duration) {
+			Double perc = ts->start_range / (1000 * ts->duration);
+			pos = (u32) (s64) (perc * ts->file_size);
+			/*align to TS packet size*/
+			while (pos%188) pos++;
+			if (pos>=ts->file_size) {
+				ts->start_range = 0;
+				pos = 0;
+			}
+		}
+		fseek(ts->file, pos, SEEK_SET);
+		while (ts->run_state && !feof(ts->file)) {
+			/*m2ts chunks by chunks*/
+			size = fread(data, 1, 188, ts->file);
+			if (!size){
+				if(ts->loop_demux == 1){
+					fseek(ts->file, pos, SEEK_SET);
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[EpgDemux] Loop \n"));
+                    gf_sleep(500);
+					size = fread(data, 1, 188, ts->file);
+				}else{
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Last M2TS packet has size error \n"));
+					break;
+				}
+			}
+
+			/*process chunk*/
+			
+			gf_m2ts_process_data(ts, data, size);
+
+			ts->nb_pck++;
+			//fprintf(stderr, "TS packet #%d\r", ts->nb_pck);
+
+			//gf_sleep(0);
+			/*if asked to regulate, wait until we get a play request*/
+			while (ts->run_state && !ts->nb_playing && ts->file_regulate) {
+				gf_sleep(50);
+				continue;
+			}
+
+            if(feof(ts->file) && ts->loop_demux == 1){
+                fseek(ts->file, pos, SEEK_SET);
+                GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[EpgDemux] Loop \n"));
+				gf_sleep(3000);
+            }
+		}
+		if (feof(ts->file)) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[EpgDemux] EOS reached\n"));
+
+	}
+	ts->run_state = 2;
+	return 0;
+}
+
+
+#ifdef GPAC_HAS_LINUX_DVB
+void TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, char *url)
+{
+	GF_Err e = GF_OK;
+
+	const char *chan_conf;
+
+	if (strnicmp(url, "dvb://", 6)) {
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	chan_conf = gf_cfg_get_key(cfg_file, "DVB", "ChannelsFile");
+	if (!chan_conf) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Cannot locate channel configuration file\n"));
+		e = GF_SERVICE_ERROR;
+		goto exit;
+	}
+
+	if (!ts->tuner) GF_SAFEALLOC(ts->tuner, GF_Tuner);
+
+	if (ts->tuner->freq != 0 && ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Tuner already tuned to that frequency\n"));
+		goto exit;
+	}
+
+	e = gf_dvb_tune(ts->tuner, url, chan_conf);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Unable to tune to frequency\n"));
+		goto exit;
+	}
+
+	if(ts->th){
+		/*start playing for tune-in*/
+		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
+	}else{
+		TSDemux_DemuxRun(ts);
+	}
+
+exit:
+	if(e){
+		//gf_term_on_connect(ts->user->service, NULL, e);
+    }	
+}
+#endif
+
+void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
+{
+	GF_Err e = GF_OK;
+	char *str;
+	u16 port;
+	u32 sock_type = 0;
+
+	if (!strnicmp(url, "udp://", 6) || !strnicmp(url, "mpegts-udp://", 13)) {
+		sock_type = GF_SOCK_TYPE_UDP;
+	} else if (!strnicmp(url, "mpegts-tcp://", 13) ) {
+		sock_type = GF_SOCK_TYPE_TCP;
+	} else {
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	url = strchr(url, ':');
+	url += 3;
+
+	ts->sock = gf_sk_new(sock_type);
+	if (!ts->sock) { e = GF_IO_ERR; goto exit; }
+
+	/*setup port and src*/
+	port = 1234;
+	str = strrchr(url, ':');
+	/*take care of IPv6 address*/
+	if (str && strchr(str, ']')) str = strchr(url, ':');
+	if (str) {
+		port = atoi(str+1);
+		str[0] = 0;
+	}
+
+	/*do we have a source ?*/
+	if (strlen(url) && strcmp(url, "localhost") ) {
+		const char *mob_ip = NULL;
+		const char *mob_on = ts->network_type;
+		if (ts->MobileIPEnabled){
+			mob_ip = ts->network_type;
+		}			
+
+		if (gf_sk_is_multicast_address(url)) {
+			mob_ip = ts->network_type;
+			gf_sk_setup_multicast(ts->sock, url, port, 0, 0, (char*)mob_ip);
+		} else {
+			gf_sk_bind(ts->sock, (char*)mob_ip, port, url, 0, GF_SOCK_REUSE_PORT);
+		}
+	}
+	if (str) str[0] = ':';
+
+	gf_sk_set_buffer_size(ts->sock, 0, UDP_BUFFER_SIZE);
+	gf_sk_set_block_mode(ts->sock, 0);
+
+	//gf_th_set_priority(ts->th, GF_THREAD_PRIORITY_HIGHEST);
+	if(ts->th){
+		/*start playing for tune-in*/
+		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
+	}else{
+		TSDemux_DemuxRun(ts);
+	}
+
+exit:
+	if(e){
+		//gf_term_on_connect(ts->user->service, NULL, e);
+    }	
+}
+
+void TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
+{
+	if (ts->file && !strcmp(ts->filename, url)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] TS file already being processed: %s\n", url));
+		return;
+	}
+
+	ts->file = fopen(url, "rb"); 
+	if (!ts->file) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Could not open TS file: %s\n", url));
+		if(ts->demux_and_play){
+			//gf_term_on_connect(ts->user->service, NULL, GF_URL_ERROR);
+		}
+		return;
+	}
+	strcpy(ts->filename, url);
+
+	fseek(ts->file, 0, SEEK_END);
+	ts->file_size = ftell(ts->file);
+
+	/* reinitialization for seek */
+	ts->end_range = ts->start_range = 0;
+	ts->nb_playing = 0;
+
+	if(ts->th){
+		/*start playing for tune-in*/
+		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
+	}else{
+		TSDemux_DemuxRun(ts);
+	}
+}
+
+GF_Err TSDemux_Demux_Process(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
+{
+	char szURL[2048];
+	char *frag;
+	
+	strcpy(szURL, url);
+	frag = strrchr(szURL, '#');
+	if (frag) frag[0] = 0;
+
+	ts->file_regulate = 0;
+	ts->duration = 0;
+
+    if(loop == 1){
+      ts->loop_demux = 1;
+      printf("Loop Mode activated \n");
+    }
+
+	if (!strnicmp(url, "udp://", 6)
+		|| !strnicmp(url, "mpegts-udp://", 13)
+		|| !strnicmp(url, "mpegts-tcp://", 13)
+		) {
+		TSDemux_SetupLive(ts, (char *) szURL);
+	}
+#ifdef GPAC_HAS_LINUX_DVB
+	else if (!strnicmp(url, "dvb://", 6)) {
+		M2TS_SetupDVB(ts, (char *) szURL);
+	}
+#endif
+	else {
+	  TSDemux_SetupFile(ts, (char *) szURL);
+	}
+	return GF_OK;
+}
+
+GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
+{
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[EpgDemux] Destroying demuxer\n"));
+	if (ts->th) {
+		if (ts->run_state == 1) {
+			ts->run_state = 0;
+			while (ts->run_state!=2) gf_sleep(0);
+		}
+		gf_th_del(ts->th);
+		ts->th = NULL;
+	}
+
+	if (ts->file) fclose(ts->file);
+	ts->file = NULL;
+	return GF_OK;
+}
+
+#ifdef GPAC_HAS_LINUX_DVB
+
+static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
+	struct dmx_pes_filter_params pesFilterParams;
+	struct dvb_frontend_parameters frp;
+	int demux1, front1;
+	FILE *chanfile;
+	char line[255], chan_name_t[255];
+	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255],
+		 mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
+	const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
+	char *chan_name;
+	char *tmp;
+	char frontend_name[100], demux_name[100], dvr_name[100];
+	u32 adapter_num;
+
+	chanfile = gf_f64_open(chan_path, "r");
+	if (!chanfile) return GF_BAD_PARAM;
+
+	chan_name = url+6; // 6 = strlen("dvb://")
+
+	// support for multiple frontends
+	tmp = strchr(chan_name, '@');
+	if (tmp) {
+		adapter_num = atoi(tmp+1);
+		tmp[0] = 0;
+	} else {
+		adapter_num = 0;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Channel name %s\n", chan_name));
+
+	while(!feof(chanfile)) {
+		if ( fgets(line, 255, chanfile) != NULL) {
+			if (line[0]=='#') continue;
+			if (line[0]=='\r') continue;
+			if (line[0]=='\n') continue;
+
+			strncpy(chan_name_t, line, index(line, ':')-line);
+			if (strncmp(chan_name,chan_name_t,strlen(chan_name))==0) {
+				sscanf(strstr(line,":"), chan_conf, freq_str, inv, bw, lcr, cr, mod, transm, gi, hier, apid_str, vpid_str);
+				tuner->freq = (uint32_t) atoi(freq_str);
+				tuner->apid = (uint16_t) atoi(apid_str);
+				tuner->vpid = (uint16_t) atoi(vpid_str);
+				//Inversion
+				if(! strcmp(inv, "INVERSION_ON")) tuner->specInv = INVERSION_ON;
+				else if(! strcmp(inv, "INVERSION_OFF")) tuner->specInv = INVERSION_OFF;
+				else tuner->specInv = INVERSION_AUTO;
+				//LP Code Rate
+				if(! strcmp(lcr, "FEC_1_2")) tuner->LP_CodeRate =FEC_1_2;
+				else if(! strcmp(lcr, "FEC_2_3")) tuner->LP_CodeRate =FEC_2_3;
+				else if(! strcmp(lcr, "FEC_3_4")) tuner->LP_CodeRate =FEC_3_4;
+				else if(! strcmp(lcr, "FEC_4_5")) tuner->LP_CodeRate =FEC_4_5;
+				else if(! strcmp(lcr, "FEC_6_7")) tuner->LP_CodeRate =FEC_6_7;
+				else if(! strcmp(lcr, "FEC_8_9")) tuner->LP_CodeRate =FEC_8_9;
+				else if(! strcmp(lcr, "FEC_5_6")) tuner->LP_CodeRate =FEC_5_6;
+				else if(! strcmp(lcr, "FEC_7_8")) tuner->LP_CodeRate =FEC_7_8;
+				else if(! strcmp(lcr, "FEC_NONE")) tuner->LP_CodeRate =FEC_NONE;
+				else tuner->LP_CodeRate =FEC_AUTO;
+				//HP Code Rate
+				if(! strcmp(cr, "FEC_1_2")) tuner->HP_CodeRate =FEC_1_2;
+				else if(! strcmp(cr, "FEC_2_3")) tuner->HP_CodeRate =FEC_2_3;
+				else if(! strcmp(cr, "FEC_3_4")) tuner->HP_CodeRate =FEC_3_4;
+				else if(! strcmp(cr, "FEC_4_5")) tuner->HP_CodeRate =FEC_4_5;
+				else if(! strcmp(cr, "FEC_6_7")) tuner->HP_CodeRate =FEC_6_7;
+				else if(! strcmp(cr, "FEC_8_9")) tuner->HP_CodeRate =FEC_8_9;
+				else if(! strcmp(cr, "FEC_5_6")) tuner->HP_CodeRate =FEC_5_6;
+				else if(! strcmp(cr, "FEC_7_8")) tuner->HP_CodeRate =FEC_7_8;
+				else if(! strcmp(cr, "FEC_NONE")) tuner->HP_CodeRate =FEC_NONE;
+				else tuner->HP_CodeRate =FEC_AUTO;
+				//Modulation
+				if(! strcmp(mod, "QAM_128")) tuner->modulation = QAM_128;
+				else if(! strcmp(mod, "QAM_256")) tuner->modulation = QAM_256;
+				else if(! strcmp(mod, "QAM_64")) tuner->modulation = QAM_64;
+				else if(! strcmp(mod, "QAM_32")) tuner->modulation = QAM_32;
+				else if(! strcmp(mod, "QAM_16")) tuner->modulation = QAM_16;
+				//Bandwidth
+				if(! strcmp(bw, "BANDWIDTH_6_MHZ")) tuner->bandwidth = BANDWIDTH_6_MHZ;
+				else if(! strcmp(bw, "BANDWIDTH_7_MHZ")) tuner->bandwidth = BANDWIDTH_7_MHZ;
+				else if(! strcmp(bw, "BANDWIDTH_8_MHZ")) tuner->bandwidth = BANDWIDTH_8_MHZ;
+				//Transmission Mode
+				if(! strcmp(transm, "TRANSMISSION_MODE_2K")) tuner->TransmissionMode = TRANSMISSION_MODE_2K;
+				else if(! strcmp(transm, "TRANSMISSION_MODE_8K")) tuner->TransmissionMode = TRANSMISSION_MODE_8K;
+				//Guard Interval
+				if(! strcmp(gi, "GUARD_INTERVAL_1_32")) tuner->guardInterval = GUARD_INTERVAL_1_32;
+				else if(! strcmp(gi, "GUARD_INTERVAL_1_16")) tuner->guardInterval = GUARD_INTERVAL_1_16;
+				else if(! strcmp(gi, "GUARD_INTERVAL_1_8")) tuner->guardInterval = GUARD_INTERVAL_1_8;
+				else tuner->guardInterval = GUARD_INTERVAL_1_4;
+				//Hierarchy
+				if(! strcmp(hier, "HIERARCHY_1")) tuner->hierarchy = HIERARCHY_1;
+				else if(! strcmp(hier, "HIERARCHY_2")) tuner->hierarchy = HIERARCHY_2;
+				else if(! strcmp(hier, "HIERARCHY_4")) tuner->hierarchy = HIERARCHY_4;
+				else if(! strcmp(hier, "HIERARCHY_AUTO")) tuner->hierarchy = HIERARCHY_AUTO;
+				else tuner->hierarchy = HIERARCHY_NONE;
+
+				break;
+			}
+		}
+	}
+	fclose(chanfile);
+
+	sprintf(frontend_name, "/dev/dvb/adapter%d/frontend0", adapter_num);
+	sprintf(demux_name, "/dev/dvb/adapter%d/demux0", adapter_num);
+	sprintf(dvr_name, "/dev/dvb/adapter%d/dvr0", adapter_num);
+
+	// Open frontend
+	if((front1 = open(frontend_name,O_RDWR|O_NONBLOCK)) < 0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot open frontend %s.\n", frontend_name));
+  		return GF_IO_ERR;
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Frontend %s opened.\n", frontend_name));
+	}
+	// Open demuxes
+	if ((demux1=open(demux_name, O_RDWR|O_NONBLOCK)) < 0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot open demux %s\n", demux_name));
+  		return GF_IO_ERR;
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Demux %s opened.\n", demux_name));
+	}
+	// Set FrontendParameters - DVB-T
+	frp.frequency = tuner->freq;
+	frp.inversion = tuner->specInv;
+	frp.u.ofdm.bandwidth = tuner->bandwidth;
+	frp.u.ofdm.code_rate_HP = tuner->HP_CodeRate;
+	frp.u.ofdm.code_rate_LP = tuner->LP_CodeRate;
+	frp.u.ofdm.constellation = tuner->modulation;
+	frp.u.ofdm.transmission_mode = tuner->TransmissionMode;
+	frp.u.ofdm.guard_interval = tuner->guardInterval;
+	frp.u.ofdm.hierarchy_information = tuner->hierarchy;
+	// Set frontend
+	if (ioctl(front1, FE_SET_FRONTEND, &frp) < 0){
+   		return GF_IO_ERR;
+	}
+	// Set dumex
+	pesFilterParams.pid      = 0x2000;				// Linux-DVB API take PID=2000 for FULL/RAW TS flag
+	pesFilterParams.input    = DMX_IN_FRONTEND;
+	pesFilterParams.output   = DMX_OUT_TS_TAP;
+	pesFilterParams.pes_type = DMX_PES_OTHER;
+	pesFilterParams.flags    = DMX_IMMEDIATE_START;
+	if (ioctl(demux1, DMX_SET_PES_FILTER, &pesFilterParams) < 0){
+  		return GF_IO_ERR;
+	}
+  /* The following code differs from mplayer and alike because the device is opened in blocking mode */
+	if ((tuner->ts_fd = open(dvr_name, O_RDONLY/*|O_NONBLOCK*/)) < 0){
+	        return GF_IO_ERR;
+ 	}
+	return GF_OK;
+}
+
+static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
+{
+	FILE *channels_config_file;
+	char line[255], name[255], *tmp, *channel_name;
+
+	u32 freq;
+
+	/* get rid of trailing @ */
+	tmp = strchr(url, '@');
+	if (tmp) tmp[0] = 0;
+
+	channel_name = url+6;
+
+	channels_config_file = gf_f64_open(channels_config_path, "r");
+	if (!channels_config_file) return GF_BAD_PARAM;
+
+	freq = 0;
+	while(!feof(channels_config_file)) {
+		if ( fgets(line, 255, channels_config_file) != NULL) {
+			if (line[0]=='#') continue;
+			if (line[0]=='\r') continue;
+			if (line[0]=='\n') continue;
+
+			tmp = strchr(line, ':');
+			tmp[0] = 0;
+			if (!strcmp(line, channel_name)) {
+				char *tmp2;
+				tmp++;
+				tmp2 = strchr(tmp, ':');
+				if (tmp2) tmp2[0] = 0;
+				freq = (u32)atoi(tmp);
+				break;
+			}
+		}
+	}
+	return freq;
+}
+
+#endif
+
+
+
 #endif /*GPAC_DISABLE_MPEG2TS*/
+
