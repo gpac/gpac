@@ -105,7 +105,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_write) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_lock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_read ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_del) )
 
