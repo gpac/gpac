@@ -647,7 +647,7 @@ restart:
 	obj = NULL;
 	i=0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(scene->scene_objects, &i))) {
-		if (obj->odm && ((obj->odm->state == GF_ODM_STATE_DESTROYED) || (obj->odm->action_type == GF_ODM_ACTION_DELETE)) )
+		if (obj->odm && ((obj->odm->flags & GF_ODM_DESTROYED) || (obj->odm->action_type == GF_ODM_ACTION_DELETE)) )
 			continue;
 
 		if (

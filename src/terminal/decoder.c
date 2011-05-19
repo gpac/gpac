@@ -160,7 +160,11 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 
 		/*setup CB*/
 		if (!codec->CB && max) {
-			if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) max = 1;
+			if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
+				max = 1;
+				/*create a semaphore in non-notified stage*/
+				codec->odm->raw_frame_sema = gf_sema_new(1, 0);
+			}
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 

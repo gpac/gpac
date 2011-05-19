@@ -88,6 +88,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 #endif
 	if (odm->mo) odm->mo->odm = NULL;
 
+	if (odm->raw_frame_sema) gf_sema_del(odm->raw_frame_sema);
 
 	gf_list_del(odm->channels);
 	odm->channels = NULL;
@@ -123,9 +124,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 {
 	GF_Channel *ch;
 
-	if (do_remove) odm->state = GF_ODM_STATE_DESTROYED;
+	if (do_remove) odm->flags |= GF_ODM_DESTROYED;
 	gf_odm_stop(odm, 1);
-	if (do_remove) odm->state = GF_ODM_STATE_DESTROYED;
 
 	/*disconnect sub-scene*/
 	if (odm->subscene) gf_scene_disconnect(odm->subscene, do_remove);
@@ -1470,8 +1470,9 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 			gf_es_stop(ch);
 		}
 		gf_term_stop_codec(odm->codec);
-		/*and wait until frame has been consumed by the renderer*/
-		while (odm->raw_media_frame_pending) {
+		/*and wait until frame has been consumed by the renderer
+		we don't use semaphore wait as the raw channel may already be pending on the semaphore*/
+		while (odm->codec->CB->UnitCount) {
 			gf_sleep(1);
 		}
 	}
@@ -1480,7 +1481,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	/*object was not unlocked, decoders were not started*/
 	if (odm->state==GF_ODM_STATE_BLOCKED) {
 		odm->current_time = 0;
-		odm->raw_media_frame_pending = 0;
+		gf_sema_notify(odm->raw_frame_sema, 1);
 		return;
 	}
 

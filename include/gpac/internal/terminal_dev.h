@@ -806,6 +806,8 @@ enum
 	/*flag set if object has been started before any start request from the scene*/
 	GF_ODM_PREFETCH = (1<<8),
 
+	/*flag set if object has been deleted*/
+	GF_ODM_DESTROYED = (1<<9),
 	/*dynamic flags*/
 	
 	/*flag set if associated subscene must be regenerated*/
@@ -818,7 +820,6 @@ enum
 	GF_ODM_STATE_PLAY,
 	GF_ODM_STATE_IN_SETUP,
 	GF_ODM_STATE_BLOCKED,
-	GF_ODM_STATE_DESTROYED,
 };
 
 enum
@@ -881,7 +882,8 @@ struct _od_manager
 
 	u32 action_type;
 
-	u32 raw_media_frame_pending;
+//	u32 raw_media_frame_pending;
+	GF_Semaphore *raw_frame_sema;
 
 #ifndef GPAC_DISABLE_VRML
 	/*the one and only media control currently attached to this object*/
