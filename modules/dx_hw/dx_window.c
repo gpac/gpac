@@ -588,6 +588,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 
 	case WM_UNICHAR:
+	case WM_CHAR:
 		if (wParam>=32) {
 			evt.type = GF_EVENT_TEXTINPUT;
 			evt.character.unicode_char = wParam;
