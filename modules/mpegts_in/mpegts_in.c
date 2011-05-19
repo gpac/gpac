@@ -115,10 +115,10 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 		}
 
 		/* if the tuner is already tuned to the same frequence, nothing needs to be done */
-		else if (ts->tuner->freq != 0) {
+		else if (m2ts->ts->tuner->freq != 0) {
 			char *frag = strchr(url, '#');
 			if (frag) frag[0] = 0;
-			if (ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
+			if (m2ts->ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same tuner for %s\n", url));
 				ret = 1;
 			}
@@ -241,12 +241,12 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 
 	count = gf_list_count(prog->streams);
 #ifdef GPAC_HAS_LINUX_DVB
-	if (ts->tuner) {
+	if (m2ts->ts->tuner) {
 		Bool found = 0;
 		for (i=0; i<count; i++) {
 			GF_M2TS_PES *pes = gf_list_get(prog->streams, i);
-			if (pes->pid==ts->tuner->vpid) found = 1;
-			else if (pes->pid==ts->tuner->apid) found = 1;
+			if (pes->pid==m2ts->ts->tuner->vpid) found = 1;
+			else if (pes->pid==m2ts->ts->tuner->apid) found = 1;
 		}
 		if (!found) return;
 	}
