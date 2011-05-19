@@ -1689,7 +1689,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock){
     gf_free(lock->pidFile);
     lock->pidFile = NULL;
     lock->fd = -1;
-#endif /* not defined WIN32 */
+#else /* WIN32 */
 	{
 		/*MSDN: "The mutex object is destroyed when its last handle has been closed."*/
 		BOOL ret = ReleaseMutex(lock->hMutex);
@@ -1697,6 +1697,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock){
 		ret = CloseHandle(lock->hMutex);
 		assert(ret);
 	}
+#endif
 	if (lock->resourceName)
 		gf_free(lock->resourceName);
     lock->resourceName = NULL;
