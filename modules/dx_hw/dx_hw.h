@@ -87,6 +87,10 @@ typedef struct
 # endif
 #endif
 
+#ifndef WM_UNICHAR
+#define WM_UNICHAR	0x0109
+#endif //WM_UNICHAR
+
 typedef struct
 {
 	HWND os_hwnd, fs_hwnd, cur_hwnd, parent_wnd;
