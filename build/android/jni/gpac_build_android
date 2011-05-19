@@ -31,20 +31,19 @@ export BUILDPATH=$(dirname "$0")
 cd $BUILDPATH
 export BUILDPATH=$(pwd)
 echo "Current Dir = $BUILDPATH"
-version=$(svnversion)
+version=$(svnversion ../../..)
 echo "*** Build path is $BUILDPATH, setting revision number $version"
-grep "$version" ../../../include/gpac/version.h >/dev/null 2&>1 && echo "Version $version already set" || echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/version.h
+grep "$version" ../../../include/gpac/version.h 2&>1 >/dev/null && echo "Version $version already set" || echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/version.h
 echo "Building lib gpac ..."
 cd ../../../
 BASEPATH=$(pwd)
 
-rm -rf $BUILDPATH/../obj/local/armeabi/* || mkdir $BUILDPATH/../obj/local/armeabi
-rm -rf $BUILDPATH/../obj/local/armeabi-v7a/* || mkdir $BUILDPATH/../obj/local/armeabi-v7a
-
+#rm -rf $BUILDPATH/../obj/*
 
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
-ndk-build $* && echo "[OK] build successful." || echo "Build FAILED"
+ndk-build
+echo "[OK] build successful."
 
 #echo "Copying modules to modules dir..."
 cd ../libs/
@@ -60,7 +59,7 @@ LIBS_DIR="$BASEPATH/applications/osmo4_android/libs/"
 echo "Copying libs to libs dir $LIBS_DIR ..."
 for i in $(find . -name '*.so')
 do
-	echo -n "$i..."
+	echo -n " Copy $i"
 	cp "$i" "$LIBS_DIR/$i"
 done
 echo
@@ -71,7 +70,7 @@ LIBS_DIR="$BASEPATH/applications/mp4box_android/libs/"
 echo "Copying libs to libs dir $LIBS_DIR ..."
 for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
 do
-echo "$i"
+echo " Copy $i"
 cp "$i" "$LIBS_DIR/$i"
 done
 echo
@@ -83,7 +82,7 @@ cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
 for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
 do
-echo "$i ::: $BASEPATH/extra_lib/lib/android ::: $LIBS_DIR"
+echo " Copy $i"
 cp "$i" "$LIBS_DIR/$i"
 done
 echo "[OK] success extra lib for Osmo4."
@@ -94,7 +93,7 @@ echo "Copying all extra libs to $LIBS_DIR ..."
 
 for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
 do
-echo "$i"
+echo " Copy $i"
 cp "$i" "$LIBS_DIR/$i"
 done
 echo "[OK] success extra lib MP4box."
