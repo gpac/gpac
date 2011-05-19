@@ -32,7 +32,7 @@ libgpac.dll = 1
 GPAX.dll = 1
 gpac.mp4 = 3
 
-msvcr90.dll = 1
+msvcr80.dll = 1
 
 ;comment this one if not using OpenGL
 libGLES_CM.dll = 1
@@ -70,6 +70,7 @@ gm_soft_raster.dll = 1
 gm_svg_in.dll = 1
 gm_wav_out.dll = 1
 gm_widgetman.dll = 1
+gm_xvid_dec.dll = 1
 gm_ogg.dll = 1
 
 
@@ -92,7 +93,7 @@ DefaultDestDir = 0, %InstallDir%
 "GPAX.dll"
 "js32.dll"
 "libGLES_CM.dll"
-"msvcr90.dll"
+"msvcr80.dll"
 
 [Exefiles]
 "%ExeName%"
@@ -123,6 +124,7 @@ DefaultDestDir = 0, %InstallDir%
 "gm_svg_in.dll"
 "gm_wav_out.dll"
 "gm_widgetman.dll"
+"gm_xvid_dec.dll"
 "gm_ogg.dll"
 
 [GPACReg]
