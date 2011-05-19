@@ -1,10 +1,13 @@
+set OLDDIR=%CD%
+cd /d %~dp0
+
 for /f "delims=" %%a in ('svnversion') do set gpac_revision=%%a
 
 ECHO [Version] > gpaccab.inf
 ECHO Provider = "GPAC 0.4.6-r%gpac_revision%" >> gpaccab.inf
 type gpac.inf >> gpaccab.inf
 
-"C:\Program Files\Microsoft Visual Studio 9.0\SmartDevices\SDK\SDKTools\CabWiz" gpaccab.inf
+CabWiz gpaccab.inf
 
 ECHO off
 
@@ -20,8 +23,11 @@ ECHO CabFiles = gpaccab.cab >> gpac.ini
 
 ECHO on
 
-"C:\Program Files\Microsoft Visual Studio 9.0\SmartDevices\SDK\SDKTools\ezsetup" -l english -i gpac.ini -r readme.txt -e ../../../../COPYING -o gpac.exe
+ezsetup -l english -i gpac.ini -r readme.txt -e ../../../../COPYING -o gpac.exe
 rename gpac.exe "GPAC_0.4.6-r%gpac_revision%_WindowsMobile.exe"
 DEL gpaccab.cab
 DEL gpaccab.inf
 DEL gpac.ini
+DEL *.tmp
+
+cd /d %OLDDIR%
