@@ -690,9 +690,6 @@ void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u
 		ch->CTS = (u32) header->compositionTimeStamp;
 		gf_es_check_timing(ch);
 	}
-	if (ch->odm->raw_media_frame_pending) {
-		return;
-	}
 
 	cb = ch->odm->codec->CB;
 	cu = gf_cm_lock_input(cb, ts, 1);
@@ -703,7 +700,6 @@ void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u
 			cu->data = payload;
 			size = payload_size;
 			cu->TS = ts;
-			ch->odm->raw_media_frame_pending = 1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS));
 		}
 		gf_cm_unlock_input(cb, cu, size, 1);
@@ -714,11 +710,10 @@ void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u
 			gf_cm_abort_buffering(cb);
 		}
 		/*since the CB is a simple pointer to the input frame, wait until it is released before getting 
-		back to the caller module - we should use events for this ...*/
-		while (ch->odm->raw_media_frame_pending) {
-			gf_sleep(1);
+		back to the caller module*/
+		if (size) {
+			gf_sema_wait(ch->odm->raw_frame_sema);
 		}
-		size=0;
 	}
 }
 
