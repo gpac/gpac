@@ -25,6 +25,7 @@
 
 #include "x11_out.h"
 #include <gpac/constants.h>
+#include <gpac/unicode.h>
 #include <gpac/user.h>
 #include <sys/time.h>
 #include <X11/XKBlib.h>
@@ -578,9 +579,10 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 			vout->on_event (vout->evt_cbk_hdl, &evt);
 		    
 			if (xevent.type ==KeyPress) {
-				XLookupString (&xevent.xkey, (char *) keybuf, sizeof(keybuf), NULL, &state);
-				if (keybuf[0]) {
-					evt.character.unicode_char = keybuf[0];
+				s32 len;
+				len = XLookupString (&xevent.xkey, (char *) keybuf, sizeof(keybuf), NULL, &state);
+				if ((len>0) && (len<5)) {
+					utf8_to_ucs4 (& evt.character.unicode_char, len, keybuf);
 					evt.type = GF_EVENT_TEXTINPUT;
 					vout->on_event (vout->evt_cbk_hdl, &evt);
 				}
