@@ -40,6 +40,9 @@ typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
 typedef struct tag_m2ts_es GF_M2TS_ES;
 typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 
+#ifdef GPAC_HAS_LINUX_DVB
+typedef struct __gf_dvb_tuner GF_Tuner;
+#endif
 
 /*Maximum number of streams in a TS*/
 #define GF_M2TS_MAX_STREAMS	8192
@@ -1017,6 +1020,7 @@ void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig 
 #define UDP_BUFFER_SIZE	0x40000
 #define M2TS_BUFFER_MAX 400
 
+
 #ifdef GPAC_HAS_LINUX_DVB
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -1024,7 +1028,7 @@ void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig 
 #include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
 
-typedef struct {
+struct __gf_dvb_tuner {
 	u32 freq;
 	u16 vpid;
 	u16 apid;
@@ -1038,7 +1042,8 @@ typedef struct {
 	fe_hierarchy_t hierarchy;
 
 	int ts_fd;
-} GF_Tuner;
+};
+
 
 #define DVB_BUFFER_SIZE 3760							// DVB buffer size 188x20
 
