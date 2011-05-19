@@ -1,6 +1,25 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
+ *			Authors: Telecom Paristech
+ *    Copyright (c)2006-200X ENST - All rights reserved
+ *
+ *  This file is part of GPAC / MPEG2-TS sub-project
+ *
+ *  GPAC is gf_free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the gf_free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the gf_free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
  */
 
 #include <gpac/carousel.h>
@@ -21,7 +40,7 @@ GF_M2TS_ES *gf_ait_section_new()
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
-	unsigned char *data;
+	char *data;
 	u32 u32_data_size;
 	u32 u32_table_id;
 
@@ -35,23 +54,25 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
-void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *data, u32 data_size, u32 table_id)
+GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id)
 {
 	
 	GF_BitStream *bs;
 	u8 temp_descriptor_tag;
 	u32 data_shift, app_desc_data_shift;
+	u32 nb_of_ait;
 
 	data_shift = 0;
 	temp_descriptor_tag = 0;
+	nb_of_ait = 0;
 	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
-
+	
 	ait->common_descriptors = gf_list_new();
 	ait->application_descriptors = gf_list_new();
 
 	
 	ait->table_id = gf_bs_read_int(bs,8);	
-    ait->section_syntax_indicator = gf_bs_read_int(bs,1);
+	ait->section_syntax_indicator = gf_bs_read_int(bs,1);
 	gf_bs_read_int(bs,3);
 	ait->section_length = gf_bs_read_int(bs,12);	
 	if( (data[1] & 0x0C) != 0){
@@ -66,6 +87,7 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *
 	}
 	gf_bs_read_int(bs,2);
 	ait->version_number = gf_bs_read_int(bs,5);
+	
 	ait->current_next_indicator = gf_bs_read_int(bs,1);	
 	if(!ait->current_next_indicator){
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] current next indicator should be at 1 \n"));
@@ -147,6 +169,8 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *
 					pre_processing_pos = gf_bs_get_position(bs);
 					protocol_descriptor->protocol_id = gf_bs_read_int(bs,16);
 					protocol_descriptor->transport_protocol_label = gf_bs_read_int(bs,8);
+					printf("protocol_descriptor->protocol_id %d \n",protocol_descriptor->protocol_id);
+								
 					switch(protocol_descriptor->protocol_id){
 						case CAROUSEL:
 							{
@@ -170,6 +194,7 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *
 								GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte;
 								GF_SAFEALLOC(Transport_http_selector_byte, GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE);
 								Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
+								//printf("Transport_http_selector_byte->URL_base_length %d \n",Transport_http_selector_byte->URL_base_length);
 								Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length,sizeof(char));
 								gf_bs_read_data(bs,Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
 								Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;
@@ -249,5 +274,7 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *
 
 	if(data_shift != data_size){
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] AIT processed length error. Difference between byte shifting %d and data size %d \n",data_shift,data_size));
-	}	
+	}
+
+	return GF_OK;
 }

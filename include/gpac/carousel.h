@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Walid B.H - Jean Le Feuvre
+ *			Authors: Telecom Paristech
  *    Copyright (c)2006-200X ENST - All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
@@ -44,11 +44,12 @@ typedef enum {
 
 typedef struct
 {
+	
 	ABSTRACT_ES
 	GF_M2TS_SectionFilter *sec;
 
 	u8 table_id;
-    Bool section_syntax_indicator;
+	Bool section_syntax_indicator;
 	u16 section_length;
 	Bool test_application_flag;
 	u16 application_type;
@@ -155,10 +156,10 @@ typedef struct
 
 } GF_M2TS_APPLICATION_NAME_DESCRIPTOR;
 
-void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *es, unsigned char  *data, u32 data_size, u32 table_id);
+GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *es, char  *data, u32 data_size, u32 table_id);
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par);
-
 GF_M2TS_ES *gf_ait_section_new();
 
 
 #endif	//_GF_CAROUSSEL_H_
+
