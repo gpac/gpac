@@ -21,12 +21,6 @@ endif
 #common obj
 OBJS= wxOsmo4.o wxGPACControl.o fileprops.o Playlist.o menubtn.o
 
-ifeq ($(BUILD_INSTALL), yes)
-INSTALL_FLAGS=-DGPAC_MODULES_PATH=\"$(moddir)\"
-else
-INSTALL_FLAGS=
-endif
-
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=Osmo4$(EXE)
@@ -54,7 +48,7 @@ Osmo4$(EXE): $(OBJS)
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS)
 
 %.o: %.cpp
-	$(CXX) $(CFLAGS) $(INSTALL_FLAGS) $(WX_CFLAGS) -c -o $@ $< 
+	$(CXX) $(CFLAGS) $(WX_CFLAGS) -c -o $@ $< 
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
@@ -74,7 +68,6 @@ ifeq ($(CONFIG_DARWIN),yes)
 	echo -n 'APPLOsm4' > $(DESTDIR)$(mac_apps)/Osmo4.app/Contents/PkgInfo
 else
 	rm -f wxOsmo4.o
-	$(MAKE) -override BUILD_INSTALL=yes all
 	mkdir -p $(DESTDIR)$(prefix)/bin
 	install -m 755 $(INSTFLAGS) ../../bin/gcc/Osmo4 "$(DESTDIR)$(prefix)/bin"
 endif

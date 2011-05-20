@@ -57,7 +57,6 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
-	$(MAKE) -C applications install
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
 	$(INSTALL) bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
 	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
@@ -86,14 +85,14 @@ install:
 
 uninstall:
 	$(MAKE) -C applications uninstall
-	rm -rf $(moddir)
-	rm -rf $(prefix)/$(libdir)/libgpac*
-	rm -rf $(prefix)/bin/MP4Box
-	rm -rf $(prefix)/bin/MP4Client
-	rm -rf $(mandir)/man1/mp4box.1
-	rm -rf $(mandir)/man1/mp4client.1
-	rm -rf $(mandir)/man1/gpac.1
-	rm -rf $(prefix)/share/gpac
+	rm -rf $(DESTDIR)$(moddir)
+	rm -rf $(DESTDIR)$(prefix)/$(libdir)/libgpac*
+	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
+	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
+	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
+	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
+	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
+	rm -rf $(DESTDIR)$(prefix)/share/gpac
 
 installdylib:
 ifeq ($(CONFIG_WIN32),yes)
