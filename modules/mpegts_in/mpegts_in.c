@@ -223,6 +223,8 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	gf_list_add(od->ESDescriptors, esd);
 	od->objectDescriptorID = esd->ESID;
 	if (streamType) *streamType = esd->decoderConfig->streamType;
+	/*remember program number for service/program selection*/
+	od->ServiceID = stream->program->number;
 	return od;
 }
 
