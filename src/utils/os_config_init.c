@@ -217,7 +217,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*locate the app*/
 #if (defined(__DARWIN__) || defined(__APPLE__) )
-	if (_NSGetExecutablePath(app_path, &size)!=0) return;
+	if (_NSGetExecutablePath(app_path, &size)!=0) {
+		return 0;
+	}
 #else
 	/*just to pass the test below*/
 	strcpy(app_path, "/usr/"); 
@@ -260,9 +262,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		strcat(app_path, "/Contents/MacOS/gui");
 		if (check_file_exists("gui.bt", app_path, file_path)) return 1;
 	}
-	else { // (path_type==GF_PATH_GUI) 
+	else { // (path_type==GF_PATH_MODULES) 
 		strcat(app_path, "/Contents/MacOS/modules");
-		if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+		if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 	}
 	/*not found ...*/
 	return 0;
@@ -278,6 +280,11 @@ static GF_Config *create_default_config(char *file_path)
 	char *cache_dir;
 	char szPath[GF_MAX_PATH];
 	char gui_path[GF_MAX_PATH];
+
+	if (! get_default_install_path(file_path, GF_PATH_CFG)) {
+		gf_delete_file(szPath);
+		return NULL;
+	}
 
 	/*Create the config file*/
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
@@ -386,7 +393,14 @@ static void check_modules_dir(GF_Config *cfg)
 	}
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
 		opt = gf_cfg_get_key(cfg, "General", "StartupFile");
-		if (!opt || strcmp(opt, path)) gf_cfg_set_key(cfg, "General", "StartupFile", path);
+		if (!opt || strcmp(opt, path)) {
+#if defined(_WIN32_WCE) || defined(WIN32)
+			strcat(path, "\\gui.bt");
+#else
+			strcat(path, "/gui.bt");
+#endif
+			gf_cfg_set_key(cfg, "General", "StartupFile", path);
+		}
 	}
 }
 
