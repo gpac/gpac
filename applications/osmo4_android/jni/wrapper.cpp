@@ -550,15 +550,10 @@ void CNativeWrapper::SetupLogs(){
 
 	gf_mx_p(m_mx);
 
-	/*setup GPAC logs: log all errors*/
-	gf_log_set_level(GF_LOG_DEBUG);
-	gf_log_set_tools(0xFFFFFFFF);
-
-	opt = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-        /* FIXME : set the loglevel according to config file */
-
-        opt = gf_cfg_get_key(m_user.config, "General", "LogTools");
-	if (opt) gf_log_set_tools(gf_log_parse_tools(opt));
+	u32 ll = gf_log_parse_level( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+	gf_log_set_level(ll);
+	u32 lt = gf_log_parse_tools( gf_cfg_get_key(m_user.config, "General", "LogTools") );
+	gf_log_set_tools(lt);
 
 	gf_log_set_callback(this, on_gpac_log);
 	gf_mx_v(m_mx);

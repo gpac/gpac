@@ -233,58 +233,6 @@ void dump_frame(BIFSVID b2v, char *conv_buf, char *out_path, u32 dump_type, avi_
 	gf_sc_release_screen_buffer(b2v.sr, &fb);
 }
 
-
-
-GF_Config *loadconfigfile()
-{
-	GF_Config *cfg;
-	char *cfg_dir;
-	char szPath[GF_MAX_PATH];
-
-#ifdef WIN32
-	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
-	cfg_dir = strrchr(szPath, '\\');
-	if (cfg_dir) cfg_dir[1] = 0;
-
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-
-#ifdef _DEBUG
-	strcpy(szPath, "C:\\Users\\Cyril\\sourceforge\\gpac\\bin\\w32_deb\\");
-#else
-	strcpy(szPath, "C:\\Users\\Cyril\\sourceforge\\gpac\\bin\\w32_rel\\");
-#endif
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, ".");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, "C:\\Program Files\\GPAC");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, ".");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-#else
-	/*linux*/
-	cfg_dir = getenv("HOME");
-	if (cfg_dir) {
-		strcpy(szPath, cfg_dir);
-	} else {
-		fprintf(stdout, "WARNING: HOME env var not set - using current directory for config file\n");
-		strcpy(szPath, ".");
-	}
-	cfg = gf_cfg_new(szPath, ".gpacrc");
-	if (cfg) goto success;
-#endif
-	if (!cfg) {
-	  fprintf(stdout, "cannot create config file in %s directory\n", szPath);
-	  return NULL;
-	}
- success:
-	fprintf(stdout, "Using config file in %s directory\n", szPath);
-	return cfg;
-}
-
 /*generates an intertwined bmp from a scene file with 5 different viewpoints*/
 void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Double fps, s32 frameID, s32 dump_time)
 {
@@ -305,20 +253,11 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		const char *test;
 		char config_path[GF_MAX_PATH];
 		memset(&user, 0, sizeof(GF_User));
-		if (szConfigFile && strlen(szConfigFile)) {
-			user.config = gf_cfg_new(config_path, GPAC_CFG_FILE);
-		} else {
-			user.config = loadconfigfile();
-		}
+		user.config = gf_cfg_init(szConfigFile, NULL);
 
 		if (!user.config) {
-			fprintf(stdout, "Configuration File \"GPAC.cfg\" not found\nPlease enter full path to config file:\n");
-			scanf("%s", config_path);
-			user.config = gf_cfg_new(config_path, GPAC_CFG_FILE);
-			if (!user.config) {
-				fprintf(stdout, "Error: Configuration File \"%s\" not found in %s\n", GPAC_CFG_FILE, config_path);
-				return;
-			}
+			fprintf(stdout, "Error: Configuration File \"%s\" not found in %s\n", GPAC_CFG_FILE, config_path);
+			return;
 		}
 
 		test = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
@@ -528,19 +467,14 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 
 	memset(&user, 0, sizeof(GF_User));
 	if (szConfigFile && strlen(szConfigFile)) {
-		user.config = gf_cfg_new(config_path, GPAC_CFG_FILE);
+		user.config = gf_cfg_init(config_path, NULL);
 	} else {
-		user.config = loadconfigfile();
+		user.config = gf_cfg_init(NULL, NULL);
 	}
 
 	if (!user.config) {
-		fprintf(stdout, "Configuration File \"GPAC.cfg\" not found\nPlease enter full path to config file:\n");
-		scanf("%s", config_path);
-		user.config = gf_cfg_new(config_path, GPAC_CFG_FILE);
-		if (!user.config) {
-			fprintf(stdout, "Error: Configuration File \"%s\" not found in %s\n", GPAC_CFG_FILE, config_path);
-			return;
-		}
+		fprintf(stdout, "Error: Configuration File \"%s\" not found in %s\n", GPAC_CFG_FILE, config_path);
+		return;
 	}
 	avi_out = NULL;
 	conv_buf = NULL;

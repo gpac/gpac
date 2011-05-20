@@ -44,12 +44,6 @@
 
 #else
 #include <windows.h> /*for GetModuleFileName*/
-#include <direct.h>  /*for _mkdir*/
-#include <shlobj.h>  /*for getting user-dir*/
-#ifndef SHGFP_TYPE_CURRENT
-#define SHGFP_TYPE_CURRENT 0 /*needed for MinGW*/
-#endif
-
 #endif	//WIN32
 
 /*local prototypes*/
@@ -278,195 +272,7 @@ void PrintHelp()
 		);
 }
 
-GF_Config *create_default_config(char *file_path, char *file_name)
-{
-	GF_Config *cfg;
-	char szPath[GF_MAX_PATH];
-	char gui_path[GF_MAX_PATH];
 
-#ifdef WIN32
-	FILE *f;
-	Bool write_access = 0;
-
-	strcpy(gui_path, file_path);
-
-	/*following code is highly inspired by Osmo4*/
-	/*do we have the write privileges on this dir ? if not, use user local data directory*/
-	strcpy(szPath, file_path);
-	strcat(szPath, "GPAC.cfg");
-	f = gf_f64_open(szPath, "wb");
-	if (f != NULL) {
-		fclose(f);
-		write_access = 1;
-	} else {
-		write_access = 0;
-	}
-	strcpy(szPath, file_path);
-	
-	/*get GPAC.cfg path*/
-	if (!write_access) {
-		char szPath2[GF_MAX_PATH];
-		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, file_path);
-		if (file_path[strlen((char *) file_path)-1] != '\\') strcat(file_path, "\\");
-		strcat(file_path, "GPAC\\");
-		/*create GPAC dir*/
-		_mkdir(file_path);
-		strcpy(szPath2, file_path);
-		strcat(szPath2, "GPAC.cfg");
-		f = gf_f64_open(szPath2, "wb");
-		assert(f);
-		if (!f) return NULL;
-		fclose(f);
-	}
-#else
-	FILE *f;
-	strcpy(gui_path, "");
-
-	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, file_name);
-	f = gf_f64_open(szPath, "wt");
-	fprintf(stdout, "create %s: %s\n", szPath, (f==NULL) ? "Error" : "OK");
-	if (!f) return NULL;
-	fclose(f);
-#endif
-
-	cfg = gf_cfg_new(file_path, file_name);
-	if (!cfg) return NULL;
-
-#if defined(WIN32)
-	//szPath still contains the executable directory
-#elif defined(GPAC_MODULES_PATH) /* Mac OS and UNIX */
-	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
-	strcpy(szPath, GPAC_MODULES_PATH);
-#else 
-	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
-	while ( 1 > scanf("%s", szPath));
-#endif
-	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
-	gf_cfg_set_key(cfg, "Compositor", "Raster2D", "GPAC 2D Raster");
-	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
-	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
-	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
-	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
-	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "ft_font");
-
-#ifdef WIN32
-	GetWindowsDirectory((char*)szPath, MAX_PATH);
-	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
-	strcat((char *)szPath, "Fonts");
-#elif defined(__DARWIN__) || defined(__APPLE__)
-	strcpy(szPath, "/Library/Fonts");
-#else
-	strcpy(szPath, "/usr/share/fonts/truetype/");
-#endif
-	fprintf(stdout, "Using default font directory %s\n", szPath);
-	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
-
-	{
-	  char * tmp = gf_get_default_cache_directory();
-	  gf_cfg_set_key(cfg, "General", "CacheDirectory", tmp);
-	  fprintf(stdout, "Using default cache directory %s\n", tmp);
-	  gf_free(tmp);
-	}
-
-	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
-	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
-	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30");
-	/*use power-of-2 emulation*/
-	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", "yes");
-#ifdef WIN32
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
-	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
-#elif defined(__DARWIN__)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
-	/*SDL not so fast with scalable zoom*/
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "no");
-#else
-	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
-	/*x11 only supports scalable zoom*/
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
-	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
-#endif
-
-	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
-	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
-	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
-	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
-
-#if defined(__DARWIN__) || defined(__APPLE__)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
-#endif
-
-	if (gui_path[0]) {
-		FILE *f;
-		strcat(gui_path, "gui/gui.bt");
-		f = fopen(gui_path, "rt");
-		if (f) {
-			fclose(f);
-			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
-		}
-	}
-
-
-	/*store and reload*/
-	gf_cfg_del(cfg);
-	return gf_cfg_new(file_path, file_name);
-}
-
-#if (defined(__DARWIN__) || defined(__APPLE__) )
-#include <mach-o/dyld.h>
-#endif /* Apple, needs this for _NSGetExecutablePath on Mac OS X */
-
-static void check_config_directories(GF_Config *cfg)
-{
-#if (defined(__DARWIN__) || defined(__APPLE__) )
-	char mod_path[GF_MAX_PATH];
-	char gui_path[GF_MAX_PATH];
-	char root_path[GF_MAX_PATH];
-	char *sep;
-	const char *opt;
-	u32 size = GF_MAX_PATH;
-	if (_NSGetExecutablePath(root_path, &size)!=0) return;
-	/*installed or symlink on system, do not attempt to modify the path*/
-	if (!strnicmp(root_path, "/usr/", 5)) return;
-	sep = strstr(root_path, ".app/");
-	if (sep) {
-		sep[4] = 0;
-	}
-	gui_path[0] = '\0';
-	strcpy(mod_path, root_path);
-	strcat(mod_path, "/Contents/MacOS/modules/");
-	{
-		struct stat buf;
-		int status_dir;
-		memset(&buf, 0, sizeof(struct stat));
-		status_dir = stat(mod_path, &buf);
-		if (!status_dir){
-			if (!(buf.st_mode & S_IFDIR)){
-#ifdef GPAC_MODULES_PATH
-				strcpy(mod_path, GPAC_MODULES_PATH);
-				gui_path[0] = '\0';
-#endif
-			} else {
-				/* OK, it means we are in an .app directory ! */
-				strcpy(gui_path, root_path);
-				strcat(gui_path, "/Contents/MacOS/gui/gui.bt");
-			}
-		} else {
-#ifdef GPAC_MODULES_PATH
-				strcpy(mod_path, GPAC_MODULES_PATH);
-				gui_path[0] = '\0';
-#endif
-		}
-	}
-	opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
-	/*modules directory has changed, forced to new location*/
-	if (!opt || strcmp(opt, mod_path)) {
-		gf_cfg_set_key(cfg, "General", "ModulesDirectory", mod_path);
-		if (gui_path[0])
-			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
-	}
-#endif
-}
 
 
 static void PrintTime(u64 time)
@@ -897,69 +703,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	return 0;
 }
 
-GF_Config *loadconfigfile(char *filepath)
-{
-	GF_Config *cfg = NULL;
-	char *cfg_dir;
-	char szPath[GF_MAX_PATH];
-
-	if (filepath) {
-		strcpy(szPath, filepath);
-		cfg_dir = strrchr(szPath, '\\');
-		if (!cfg_dir) cfg_dir = strrchr(szPath, '/');
-		if (cfg_dir) {
-			char c = cfg_dir[0];
-			cfg_dir[0] = 0;
-			cfg = gf_cfg_new(cfg_dir, cfg_dir+1);
-			cfg_dir[0] = c;
-			if (cfg) goto success;
-		} else {
-			cfg = gf_cfg_new(".", filepath);
-			if (cfg) goto success;
-		}
-	}
-	
-#ifdef WIN32
-	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
-	cfg_dir = strrchr(szPath, '\\');
-	if (cfg_dir) cfg_dir[1] = 0;
-
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, ".");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, ".");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-
-	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
-	cfg_dir = strrchr(szPath, '\\');
-	if (cfg_dir) cfg_dir[1] = 0;
-	cfg = create_default_config(szPath, "GPAC.cfg");
-#else
-	/*linux*/
-	cfg_dir = getenv("HOME");
-	if (cfg_dir) {
-		strcpy(szPath, cfg_dir);
-	} else {
-		fprintf(stdout, "WARNING: HOME env var not set - using current directory for config file\n");
-		strcpy(szPath, ".");
-	}
-	cfg = gf_cfg_new(szPath, ".gpacrc");
-	if (cfg) goto success;
-	fprintf(stdout, "GPAC config file not found in %s - creating new file\n", szPath);
-	cfg = create_default_config(szPath, ".gpacrc");
-#endif
-	if (!cfg) {
-	  fprintf(stdout, "cannot create config file in %s directory\n", szPath);
-	  return NULL;
-	}
- success:
-	fprintf(stdout, "Using config file in %s directory\n", szPath);
-	check_config_directories(cfg);
-	return cfg;
-}
 
 void list_modules(GF_ModuleManager *modules)
 {
@@ -1143,14 +886,12 @@ int main (int argc, char **argv)
 
 	gf_sys_init(enable_mem_tracker);
 
-	cfg_file = loadconfigfile(the_cfg);
+	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
-		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
+		fprintf(stdout, "Error: Configuration File not found\n");
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-
-
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];

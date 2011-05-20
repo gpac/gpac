@@ -246,97 +246,16 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 #endif
 
 	/*load config*/
-	user->config = gf_cfg_new(abs_gpac_path.c_str(), gpac_cfg);
+	Bool first_launch = 0;
+	user->config = gf_cfg_init(NULL, &first_launch);
 
 	if (!user->config) {
-		unsigned char config_file[GF_MAX_PATH];
-		strcpy((char *) config_file, (const char *) abs_gpac_path.c_str());
-		if (config_file[strlen((char *) config_file)-1] != GF_PATH_SEPARATOR) {
-		  char szSep[2];
-		  szSep[0] = GF_PATH_SEPARATOR;
-		  szSep[1] = 0;
-		  strcat((char *) config_file, (const char *)szSep);
-		}
-		strcat((char *) config_file, gpac_cfg);
-		FILE *ft = fopen((const char *) config_file, "wt");
-		if (!ft) {
-			wxMessageDialog(NULL, "Cannot create blank config file", "Init error", wxOK).ShowModal();
-			return 0;
-		}
-		fclose(ft);
-		user->config = gf_cfg_new(abs_gpac_path.c_str(), gpac_cfg);
-		if (!user->config) {
-			wxMessageDialog(NULL, "Cannot open GPAC configuration file", "Init error", wxOK);
-			return 0;
-		}
+		wxMessageDialog(NULL, "Cannot create GPAC config file", "Init error", wxOK).ShowModal();
 	}
 	if (!quiet) ::wxLogMessage("GPAC configuration file opened - looking for modules");
 	const char *str = gf_cfg_get_key(user->config, "General", "ModulesDirectory");
-	Bool first_launch = 0;
-	if (!str) {
-	  first_launch = 1;
-#ifdef GPAC_MODULES_PATH
-		str = GPAC_MODULES_PATH;
-#else
-		str = abs_gpac_path.c_str();
-#endif
-	}
 	user->modules = gf_modules_new(str, user->config);
 
-	/*initial launch*/
-	if (first_launch || !gf_modules_get_count(user->modules)) {
-		const char *sOpt;
-		wxDirDialog dlg(NULL, "Locate GPAC modules directory");
-		if  (!gf_modules_get_count(user->modules)) {
-		  gf_modules_del(user->modules);
-		  user->modules = NULL;
-			if ( dlg.ShowModal() != wxID_OK ) return false;
-			str = dlg.GetPath().c_str();;
-	
-			user->modules = gf_modules_new(str, user->config);
-			if (!user->modules || !gf_modules_get_count(user->modules) ) {
-				wxMessageDialog(NULL, "Cannot find any modules for GPAC", "Init error", wxOK);
-				gf_cfg_del(user->config);
-				return 0;
-			}		
-		}
-
-		gf_cfg_set_key(user->config, "General", "ModulesDirectory", (const char *) str);
-
-		/*check audio config on windows, force config*/
-		sOpt = gf_cfg_get_key(user->config, "Audio", "ForceConfig");
-		if (!sOpt) {
-			gf_cfg_set_key(user->config, "Audio", "ForceConfig", "yes");
-			gf_cfg_set_key(user->config, "Audio", "NumBuffers", "2");
-			gf_cfg_set_key(user->config, "Audio", "TotalDuration", "120");
-		}
-
-#ifdef WIN32
-		sOpt = gf_cfg_get_key(user->config, "Compositor", "Raster2D");
-		if (!sOpt) gf_cfg_set_key(user->config, "Compositor", "Raster2D", "gdip_rend");
-		sOpt = gf_cfg_get_key(user->config, "General", "CacheDirectory");
-		if (!sOpt) {
-			unsigned char str_path[MAX_PATH];
-			sprintf((char *) str_path, "%scache", abs_gpac_path.c_str());
-			gf_cfg_set_key(user->config, "General", "CacheDirectory", (const char *) str_path);
-		}
-		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(user->config, "FontEngine", "FontReader", "gdip_rend");
-		gf_cfg_set_key(user->config, "Video", "DriverName", "DirectX Video Output");
-#else
-		wxDirDialog dlg3(NULL, "Please specify a cache directory for GPAC");
-		dlg3.SetPath("/tmp");
-		if ( dlg3.ShowModal() == wxID_OK ) 
-			gf_cfg_set_key(user->config, "General", "CacheDirectory", (const char *) dlg3.GetPath().c_str() );
-
-		wxDirDialog dlg2(NULL, "Please locate a TrueType font repository on your system for text support");
-		dlg2.SetPath("/usr/share/fonts/truetype");
-		if ( dlg2.ShowModal() == wxID_OK ) 
-			gf_cfg_set_key(user->config, "FontEngine", "FontDirectory", (const char *) dlg2.GetPath().c_str() );
-
-		gf_cfg_set_key(user->config, "Video", "DriverName", "SDL Video Output");
-#endif
-	}	
 	if (! gf_modules_get_count(user->modules) ) {
 		wxMessageDialog(NULL, "No modules available - system cannot work", "Fatal Error", wxOK).ShowModal();
 		gf_modules_del(user->modules);

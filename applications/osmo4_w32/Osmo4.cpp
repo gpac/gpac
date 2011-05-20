@@ -333,9 +333,6 @@ static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_lis
 
 BOOL Osmo4::InitInstance()
 {
-	char config_file[MAX_PATH];
-	FILE *ft;
-	Bool write_access;
 	CCommandLineInfo cmdInfo;
 
 	m_logs = NULL;
@@ -349,29 +346,6 @@ BOOL Osmo4::InitInstance()
 	while (szApplicationPath[strlen((char *) szApplicationPath)-1] != '\\') szApplicationPath[strlen((char *) szApplicationPath)-1] = 0;
 	if (szApplicationPath[strlen((char *) szApplicationPath)-1] != '\\') strcat(szApplicationPath, "\\");
 
-	/*do we have the write privileges on this dir ? if no, use Documents and Settings*/
-	strcpy(config_file, szApplicationPath);
-	strcat(config_file, "test.txt");
-	ft = gf_f64_open(config_file, "wb");
-	if (ft != NULL) {
-		fclose(ft);
-		gf_delete_file(config_file);
-		write_access = 1;
-	} else {
-		write_access = 0;
-	}
-
-	/*get GPAC.cfg path*/
-	if (write_access) {
-		strcat(szUserPath, szApplicationPath);
-	} else {
-		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, szUserPath);
-		if (szUserPath[strlen((char *) szUserPath)-1] != '\\') strcat(szUserPath, "\\");
-		strcat(szUserPath, "GPAC\\");
-		/*create GPAC dir*/
-		_mkdir(szUserPath);
-	}
-
 	gf_sys_init(0);
 
 	/*setup user*/
@@ -379,27 +353,19 @@ BOOL Osmo4::InitInstance()
 
 	Bool first_launch = 0;
 	/*init config and modules*/
-	m_user.config = gf_cfg_new((const char *) szUserPath, "GPAC.cfg");
+	m_user.config = gf_cfg_init(NULL, &first_launch);
 	if (!m_user.config) {
-		first_launch = 1;
-		/*create blank config file in the exe dir*/
-		char config_file[MAX_PATH];
-
-		strcpy(config_file, szUserPath);
-		/*create GPAC cache dir*/
-		strcat(config_file, "cache");
-		_mkdir(config_file);
-
-		strcpy((char *) config_file, (const char *) szUserPath);
-		strcat((char *) config_file, "GPAC.cfg");
-		ft = gf_f64_open((const char *) config_file, "wt");
-		fclose(ft);
-		m_user.config = gf_cfg_new((const char *) szUserPath, "GPAC.cfg");
-		if (!m_user.config) {
-			MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
-			m_pMainWnd->PostMessage(WM_CLOSE);
-		}
+		MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
+		m_pMainWnd->PostMessage(WM_CLOSE);
 	}
+
+	char *name = gf_cfg_get_filename(m_user.config);
+	char *sep = strrchr(name, '\\');
+	if (sep) sep[0] = 0;
+	strcpy(szUserPath, name);
+	if (sep) sep[0] = '\\';
+	gf_free(name);
+
 	const char *opt = gf_cfg_get_key(m_user.config, "General", "SingleInstance");
 	m_SingleInstance = (opt && !stricmp(opt, "yes")) ? 1 : 0;
 
@@ -470,88 +436,27 @@ BOOL Osmo4::InitInstance()
 
 	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new(str, m_user.config);
-	if (!m_user.modules) {
-		const char *sOpt;
-		/*inital launch*/
-		m_user.modules = gf_modules_new(szApplicationPath, m_user.config);
-		if (m_user.modules) {
-			FILE *t;
-			unsigned char str_path[MAX_PATH];
-			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szApplicationPath);
-
-			sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
-
-			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
-			if (!sOpt) {
-				sprintf((char *) str_path, "%scache", szUserPath);
-				gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
-			}
-			/*setup UDP traffic autodetect*/
-			gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-			gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
-			gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-
-			/*first launch, register all files ext*/
-			u32 i;
-			for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
-				GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
-				if (!ifce) continue;
-				if (ifce) {
-					ifce->CanHandleURL(ifce, "test.test");
-					gf_modules_close_interface((GF_BaseInterface *)ifce);
-				}
-			}
-
-			sprintf((char *) str_path, "%sgui/gui.bt", szApplicationPath);
-			t = gf_f64_open((char *) str_path, "rt");
-			if (!t) {
-				sprintf((char *) str_path, "%sgpac.mp4", szApplicationPath);
-				t = gf_f64_open((char *) str_path, "rt");
-			}
-			if (t) {
-				gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
-				fclose(t);
+	if (!m_user.modules || ! gf_modules_get_count(m_user.modules) ) {
+		MessageBox(NULL, "No modules available - system cannot work", "Fatal Error", MB_OK);
+		m_pMainWnd->PostMessage(WM_CLOSE);
+	}
+	else if (first_launch) {
+		/*first launch, register all files ext*/
+		u32 i;
+		for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
+			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+			if (!ifce) continue;
+			if (ifce) {
+				ifce->CanHandleURL(ifce, "test.test");
+				gf_modules_close_interface((GF_BaseInterface *)ifce);
 			}
 		}
-
-		/*check audio config on windows, force config*/
-		sOpt = gf_cfg_get_key(m_user.config, "Audio", "ForceConfig");
-		if (!sOpt) {
-			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
-			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
-			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
-		}
-
-		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gm_soft_raster");
-
 		/*set some shortcuts*/
 		gf_cfg_set_key(m_user.config, "Shortcuts", "VolumeUp", "ctrl+Up");
 		gf_cfg_set_key(m_user.config, "Shortcuts", "VolumeDown", "ctrl+Down");
 		gf_cfg_set_key(m_user.config, "Shortcuts", "FastRewind", "ctrl+Left");
 		gf_cfg_set_key(m_user.config, "Shortcuts", "FastForward", "ctrl+Right");
 		gf_cfg_set_key(m_user.config, "Shortcuts", "Play", "ctrl+ ");
-	}
-	if (! gf_modules_get_count(m_user.modules) ) {
-		MessageBox(NULL, "No modules available - system cannot work", "Fatal Error", MB_OK);
-		m_pMainWnd->PostMessage(WM_CLOSE);
-	}
-
-	/*setup font dir*/
-	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontDirectory");
-	if (!str) {
-		char szFtPath[MAX_PATH];
-		::GetWindowsDirectory((char*)szFtPath, MAX_PATH);
-		if (szFtPath[strlen((char*)szFtPath)-1] != '\\') strcat((char*)szFtPath, "\\");
-		strcat((char *)szFtPath, "Fonts");
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) szFtPath);
-	}
-
-	/*check video driver, if none or raw_out use dx_hw by default*/
-	str = gf_cfg_get_key(m_user.config, "Video", "DriverName");
-	if (!str || !stricmp(str, "raw_out")) {
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "DirectX Video Output");
 	}
 
 	/*check log file*/
@@ -563,49 +468,13 @@ BOOL Osmo4::InitInstance()
 	else m_logs = NULL;
 
 	/*set log level*/
-	m_log_level = 0;
-	str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-	if (str) {
-		if (!stricmp(str, "debug")) m_log_level = GF_LOG_DEBUG;
-		else if (!stricmp(str, "info")) m_log_level = GF_LOG_INFO;
-		else if (!stricmp(str, "warning")) m_log_level = GF_LOG_WARNING;
-		else if (!stricmp(str, "error")) m_log_level = GF_LOG_ERROR;
-		gf_log_set_level(m_log_level);
-	}
+	m_log_level = gf_log_parse_level(gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+	gf_log_set_level(m_log_level);
 
 	/*set log tools*/
-	m_log_tools = 0;
-	str = gf_cfg_get_key(m_user.config, "General", "LogTools");
-	if (str) {
-		char *sep;
-		char *val = (char *) str;
-		while (val) {
-			sep = strchr(val, ':');
-			if (sep) sep[0] = 0;
-			if (!stricmp(val, "core")) m_log_tools |= GF_LOG_CODING;
-			else if (!stricmp(val, "coding")) m_log_tools |= GF_LOG_CODING;
-			else if (!stricmp(val, "container")) m_log_tools |= GF_LOG_CONTAINER;
-			else if (!stricmp(val, "network")) m_log_tools |= GF_LOG_NETWORK;
-			else if (!stricmp(val, "rtp")) m_log_tools |= GF_LOG_RTP;
-			else if (!stricmp(val, "author")) m_log_tools |= GF_LOG_AUTHOR;
-			else if (!stricmp(val, "sync")) m_log_tools |= GF_LOG_SYNC;
-			else if (!stricmp(val, "codec")) m_log_tools |= GF_LOG_CODEC;
-			else if (!stricmp(val, "parser")) m_log_tools |= GF_LOG_PARSER;
-			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
-			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
-			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
-			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
-			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
-			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
-			else if (!stricmp(val, "none")) m_log_tools = 0;
-			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;
-			if (!sep) break;
-			sep[0] = ':';
-			val = sep+1;
-		}
-		gf_log_set_tools(m_log_tools);
-	}
-
+	m_log_tools = gf_log_parse_tools(gf_cfg_get_key(m_user.config, "General", "LogTools") );
+	gf_log_set_tools(m_log_tools); 
+	
 	m_user.opaque = this;
 	m_user.os_window_handler = pFrame->m_pWndView->m_hWnd;
 	m_user.EventProc = Osmo4_EventProc;

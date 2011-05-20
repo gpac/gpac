@@ -73,7 +73,7 @@ int (*AVI_write_frame)(avi_t *AVI, char *data, long bytes, int keyframe);
 void (*gf_cfg_del)(GF_Config *iniFile);
 Bool (*gf_term_get_channel_net_info)(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code);
 void (*gf_term_process_shortcut)(GF_Terminal *term, GF_Event *ev);
-GF_Config *(*gf_cfg_new)(const char *filePath, const char *fileName);
+GF_Config *(*gf_cfg_init)(const char *fileName, Bool *is_new);
 Bool (*gf_term_get_download_info)(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
 u32 (*gf_sys_clock)();
 GF_ObjectManager *(*gf_term_get_object)(GF_Terminal *term, GF_ObjectManager *scene_od, u32 index);
@@ -318,131 +318,6 @@ void PrintHelp()
 		);
 }
 
-GF_Config *create_default_config(char *file_path, char *file_name)
-{
-	GF_Config *cfg;
-	char szPath[GF_MAX_PATH];
-
-#ifdef WIN32
-	FILE *f;
-	Bool write_access = 0;
-
-	/*following code is highly inspired by Osmo4*/
-	/*do we have the write privileges on this dir ? if not, use user local data directory*/
-	strcpy(szPath, file_path);
-	strcat(szPath, "GPAC.cfg");
-	f = gf_f64_open(szPath, "wb");
-	if (f != NULL) {
-		fclose(f);
-		write_access = 1;
-	} else {
-		write_access = 0;
-	}
-	strcpy(szPath, file_path);
-	
-	/*get GPAC.cfg path*/
-	if (!write_access) {
-		char szPath2[GF_MAX_PATH];
-		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, file_path);
-		if (file_path[strlen((char *) file_path)-1] != '\\') strcat(file_path, "\\");
-		strcat(file_path, "GPAC\\");
-		/*create GPAC dir*/
-		_mkdir(file_path);
-		strcpy(szPath2, file_path);
-		strcat(szPath2, "GPAC.cfg");
-		f = gf_f64_open(szPath2, "wb");
-		assert(f);
-		if (!f) return NULL;
-		fclose(f);
-	}
-#else
-	FILE *f;
-	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, file_name);
-	f = gf_f64_open(szPath, "wt");
-	fprintf(stdout, "create %s: %s\n", szPath, (f==NULL) ? "Error" : "OK");
-	if (!f) return NULL;
-	fclose(f);
-#endif
-
-	cfg = gf_cfg_new(file_path, file_name);
-	if (!cfg) return NULL;
-
-#ifdef GPAC_MODULES_PATH
-	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
-	strcpy(szPath, GPAC_MODULES_PATH);
-#elif defined(WIN32)
-	//szPath still contains the executable directory
-#else 
-#if 0
-	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
-	scanf("%s", szPath);
-#endif
-	strcpy(szPath, "/Applications/osmo4ios.app/");
-#endif
-	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
-	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
-	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
-	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
-	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
-	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "ft_font");
-
-#ifdef WIN32
-	GetWindowsDirectory((char*)szPath, MAX_PATH);
-	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
-	strcat((char *)szPath, "Fonts");
-#elif defined(__DARWIN__) || defined(__APPLE__)
-	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
-	//scanf("%s", szPath);
-#else
-	strcpy(szPath, "/usr/share/fonts/truetype/");
-#endif
-	strcpy(szPath, "/System/Library/Fonts/Cache"), /*iOS*/
-	fprintf(stdout, "Using default font directory %s\n", szPath);
-	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
-
-#ifdef WIN32
-/*	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
-	scanf("%s", szPath);
-*/
-	GetWindowsDirectory((char*)szPath, MAX_PATH);
-	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
-	strcat((char *)szPath, "Temp");
-
-	gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
-	fprintf(stdout, "Using default cache directory %s\n", szPath);
-#else
-	fprintf(stdout, "Using /tmp as a cache directory for HTTP downloads:\n");
-	gf_cfg_set_key(cfg, "General", "CacheDirectory", "/tmp");
-#endif
-
-	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
-	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
-	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30");
-	/*use power-of-2 emulation*/
-	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", "yes");
-#ifdef WIN32
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
-	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
-#elif defined(__DARWIN__)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
-	/*SDL not so fast with scalable zoom*/
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "no");
-#else
-	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
-	/*x11 only supports scalable zoom*/
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
-	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
-#endif
-
-	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
-	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
-	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
-	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
-
-	/*store and reload*/
-	gf_cfg_del(cfg);
-	return gf_cfg_new(file_path, file_name);
-}
 
 static void PrintTime(u64 time)
 {
@@ -831,75 +706,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	return 0;
 }
 
-GF_Config *loadconfigfile(char *filepath)
-{
-	GF_Config *cfg = NULL;
-	char *cfg_dir;
-	char szPath[GF_MAX_PATH];
-
-	if (filepath) {
-		strcpy(szPath, filepath);
-		cfg_dir = strrchr(szPath, '\\');
-		if (!cfg_dir) cfg_dir = strrchr(szPath, '/');
-		if (cfg_dir) {
-			char c = cfg_dir[0];
-			cfg_dir[0] = 0;
-			cfg = gf_cfg_new(cfg_dir, cfg_dir+1);
-			cfg_dir[0] = c;
-			if (cfg) goto success;
-		} else {
-			cfg = gf_cfg_new(".", filepath);
-			if (cfg) goto success;
-		}
-	}
-	
-#ifdef WIN32
-	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
-	cfg_dir = strrchr(szPath, '\\');
-	if (cfg_dir) cfg_dir[1] = 0;
-
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, ".");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-	strcpy(szPath, ".");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
-
-	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
-	cfg_dir = strrchr(szPath, '\\');
-	if (cfg_dir) cfg_dir[1] = 0;
-	cfg = create_default_config(szPath, "GPAC.cfg");
-#else
-	/*linux*/
-	cfg_dir = getenv("HOME");
-	fprintf(stderr, "WARNING: HOME env var not set - using current directory for config file\n");
-	strcpy(szPath, "/Applications/Documents");
-	cfg = gf_cfg_new(szPath, ".gpacrc");
-	if (cfg) goto success;
-	fprintf(stderr, "GPAC config file not found in %s - creating new file\n", szPath);
-	cfg = create_default_config(szPath, ".gpacrc");
-#endif
-	if (!cfg) {
-	  fprintf(stderr, "cannot create config file in %s directory\n", szPath);
-	  return NULL;
-	}
- success:
-	fprintf(stderr, "Using config file in %s directory\n", szPath);
-	return cfg;
-}
-
-void list_modules(GF_ModuleManager *modules)
-{
-	u32 i;
-	fprintf(stderr, "\rAvailable modules:\n");
-	for (i=0; i<gf_modules_get_count(modules); i++) {
-		char *str = (char *) gf_modules_get_file_name(modules, i);
-		if (str) fprintf(stderr, "\t%s\n", str);
-	}
-	fprintf(stderr, "\n");
-}
 
 void set_navigation()
 {
@@ -1093,7 +899,7 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_cfg_del\n", gf_cfg_del = dlsym(libgpac_so, "gf_cfg_del"));
 	fprintf(stderr, "dlsym: %p gf_term_get_channel_net_info\n", gf_term_get_channel_net_info = dlsym(libgpac_so, "gf_term_get_channel_net_info"));
 	fprintf(stderr, "dlsym: %p gf_term_process_shortcut\n", gf_term_process_shortcut = dlsym(libgpac_so, "gf_term_process_shortcut"));
-	fprintf(stderr, "dlsym: %p gf_cfg_new\n", gf_cfg_new = dlsym(libgpac_so, "gf_cfg_new"));
+	fprintf(stderr, "dlsym: %p gf_cfg_init\n", gf_cfg_init = dlsym(libgpac_so, "gf_cfg_init"));
 	fprintf(stderr, "dlsym: %p gf_term_get_download_info\n", gf_term_get_download_info = dlsym(libgpac_so, "gf_term_get_download_info"));
 	fprintf(stderr, "dlsym: %p gf_sys_clock\n", gf_sys_clock = dlsym(libgpac_so, "gf_sys_clock"));
 	fprintf(stderr, "dlsym: %p gf_term_get_object\n", gf_term_get_object = dlsym(libgpac_so, "gf_term_get_object"));
@@ -1159,7 +965,7 @@ int main (int argc, char *argv[])
 	gf_iphone_set_sdl_video_module(SDL_NewVideo);
 	gf_iphone_set_sdl_audio_module(SDL_NewAudio);
 	
-	cfg_file = loadconfigfile(the_cfg);
+	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
 		if (logfile) fclose(logfile);
@@ -1167,15 +973,10 @@ int main (int argc, char *argv[])
 	}
 
 {
-	const char *str;
 	logs_set = 1;
 	
-	str = gf_cfg_get_key(cfg_file, "General", "LogLevel");
-	if (str)
-		gf_log_set_level(gf_log_parse_level(str));
-	str = gf_cfg_get_key(cfg_file, "General", "LogTools");
-	if (str)	
-		gf_log_set_tools(gf_log_parse_tools(str));
+	gf_log_set_level( gf_log_parse_level( gf_cfg_get_key(cfg_file, "General", "LogLevel") ) );
+	gf_log_set_tools( gf_log_parse_tools( gf_cfg_get_key(cfg_file, "General", "LogTools") ) );
 }
 
 	for (i=1; i<(u32) argc; i++) {

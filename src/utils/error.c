@@ -133,6 +133,7 @@ u32 global_log_tools = 0;
 u32 gf_log_parse_level(const char *val)
 {
 #ifndef GPAC_DISABLE_LOG
+	if (!val) return 0;
 	if (!stricmp(val, "error")) return GF_LOG_ERROR;
 	if (!stricmp(val, "warning")) return GF_LOG_WARNING;
 	if (!stricmp(val, "info")) return GF_LOG_INFO;

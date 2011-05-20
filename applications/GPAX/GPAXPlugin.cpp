@@ -294,62 +294,10 @@ BOOL CGPAXPlugin::PreTranslateMessage(MSG* pMsg)
 LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
     if (m_term) return 0;
-	
-    char config_path[GF_MAX_PATH], config_test_file[GF_MAX_PATH];
-    char *gpac_cfg;
     const char *str;
 
     if (m_hWnd==NULL) return 0;
 
-	
-	gpac_cfg = "GPAC.cfg";
-
-	//Here we retrieve GPAC config file in the install diractory, which is indicated in the 
-	//Registry
-    HKEY hKey = NULL;
-    DWORD dwSize;
-#ifdef _WIN32_WCE
-    u16 w_path[1024];
-	RegOpenKeyEx(GPAC_REG_KEY, TEXT("Software\\GPAC"), 0, KEY_READ, &hKey);
-	DWORD dwType = REG_SZ;
-    dwSize = GF_MAX_PATH;
-#ifdef _DEBUG
-    if (RegQueryValueEx(hKey, TEXT("DebugDir"), 0, &dwType, (LPBYTE) w_path, &dwSize) != ERROR_SUCCESS)
-#endif
-		RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
-	CE_WideToChar(w_path, (char *)config_path);
-    RegCloseKey(hKey);
-#else
-	/*locate the key in current user, then in local machine*/
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
-		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
-	dwSize = GF_MAX_PATH;
-#ifdef _DEBUG
-	if (RegQueryValueEx(hKey, "DebugDir", NULL, NULL,(unsigned char*) config_path, &dwSize) != ERROR_SUCCESS)
-#endif
-		RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
-	RegCloseKey(hKey);
-
-	/*do we have write access?*/
-	strcpy(config_test_file, config_path);
-	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
-	if (config_path[strlen(config_path)-1] != '\\')
-		strcat(config_test_file, "\\");
-	strcat(config_test_file, "test");
-	FILE *ft = gf_f64_open(config_test_file, "wb");
-	if (ft) {
-		fclose(ft);
-		gf_delete_file(config_test_file);
-	}
-	else {
-		/*we don't*/
-		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, config_path);
-		if (config_path[strlen((char *) config_path)-1] != '\\') strcat(config_path, "\\");
-		strcat(config_path, "GPAC\\");
-		/*create GPAC dir*/
-		_mkdir(config_path);
-	}
-#endif
 
 	//Create a structure m_user for initialize the terminal. the parameters to set:
 	//1)config file path
@@ -358,42 +306,14 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	//4)EventProc
     memset(&m_user, 0, sizeof(m_user));
 
-    m_user.config = gf_cfg_new((const char*) config_path, gpac_cfg);
+    m_user.config = gf_cfg_init(NULL, NULL);
     if(!m_user.config) {
-		char cfg_file[MAX_PATH];
-		/*create a blank config*/
-		sprintf(cfg_file, "%s\\%s", config_path, gpac_cfg);
-		FILE *test = gf_f64_open(cfg_file, "wt");
-		if (test) fclose(test);
-		m_user.config = gf_cfg_new((const char *) config_path, gpac_cfg);
-	    if(!m_user.config) {
 #ifdef _WIN32_WCE
-			::MessageBox(NULL, _T("GPAC Configuration file not found"), _T("Fatal Error"), MB_OK);
+		::MessageBox(NULL, _T("GPAC Configuration file not found"), _T("Fatal Error"), MB_OK);
 #else
-			::MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
+		::MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
 #endif
-			goto err_exit;
-		}
-		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
-		gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
-		sprintf((char *) cfg_file, "%s\\cache", config_path);
-		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) cfg_file);
-		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "no");
-		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "0");
-		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
-		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
-		gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
-		gf_cfg_set_key(m_user.config, "Video", "HardwareMemory", "Auto");
-
-#ifdef _WIN32_WCE
-		strcpy((char*)cfg_file, "\\windows");
-#else
-		::GetWindowsDirectory((char*)cfg_file, MAX_PATH);
-#endif
-		if (cfg_file[strlen((char*)cfg_file)-1] != '\\') strcat((char*)cfg_file, "\\");
-		strcat((char *)cfg_file, "Fonts");
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) cfg_file);
+		goto err_exit;
 	}
 
     str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");

@@ -534,85 +534,26 @@ Bool wxOsmo4Frame::LoadTerminal()
     wxPathList pathList;
 	wxString currentDir(wxGetCwd());
     wxString abs_gpac_path = wxT("");
-	const char *gpac_cfg;
+	char *gpac_cfg, *sep;
 
 	::wxLogMessage(wxT("Looking for GPAC configuration file"));
 
-#if defined(__WXMAC__) && !defined(__DARWIN__)
-    // On Mac, the current directory is the relevant one when the application starts.
-    abs_gpac_path = wxGetCwd();
-	gpac_cfg = "GPAC.cfg";
-#else
-
-#ifdef WIN32
-	wxOsmo4App &app = wxGetApp();
-	gpac_cfg = "GPAC.cfg";
-	/*locate exe*/
-    if (wxIsAbsolutePath(app.argv[0])) {
-        abs_gpac_path = wxPathOnly(app.argv[0]);
-	} else {
-		if (currentDir.Last() != wxFILE_SEP_PATH) currentDir += wxFILE_SEP_PATH;
-		abs_gpac_path = currentDir + app.argv[0];
-		if (wxFileExists(abs_gpac_path)) {
-			abs_gpac_path = wxPathOnly(abs_gpac_path);
-		} else {
-			abs_gpac_path = wxT("");
-			pathList.AddEnvList(wxT("PATH"));
-			abs_gpac_path = pathList.FindAbsoluteValidPath(app.argv[0]);
-			if (!abs_gpac_path.IsEmpty()) {
-				abs_gpac_path = wxPathOnly(abs_gpac_path);
-			} else {
-				/*ask user*/
-				wxDirDialog dlg(NULL, wxT("Locate GPAC config file directory"));
-				if ( dlg.ShowModal() != wxID_OK ) return 0;
-				abs_gpac_path = dlg.GetPath();
-			}
-		}
-	}
-#else
-	gpac_cfg = ".gpacrc";
-	char *cfg_dir = getenv("HOME");
-	if (cfg_dir) {
-		abs_gpac_path = wxString(cfg_dir, wxConvUTF8);
-	} else {
-		/*ask user*/
-		wxDirDialog dlg(NULL, wxT("Locate GPAC config file directory"));
-		if ( dlg.ShowModal() != wxID_OK ) return 0;
-		abs_gpac_path = dlg.GetPath();
-	}
-#endif
-
-#endif
-
 	/*load config*/
-	m_user.config = gf_cfg_new(abs_gpac_path.mb_str(wxConvUTF8), gpac_cfg);
+	Bool first_launch = 0;
+	m_user.config = gf_cfg_init(NULL, &first_launch);
 
 	if (!m_user.config) {
-		unsigned char config_file[GF_MAX_PATH];
-		strcpy((char *) config_file, (const char *) abs_gpac_path.mb_str(wxConvUTF8));
-		if (config_file[strlen((char *) config_file)-1] != GF_PATH_SEPARATOR) {
-		  char szSep[2];
-		  szSep[0] = GF_PATH_SEPARATOR;
-		  szSep[1] = 0;
-		  strcat((char *) config_file, (const char *)szSep);
-		}
-		strcat((char *) config_file, gpac_cfg);
-		FILE *ft = fopen((const char *) config_file, "wt");
-		if (!ft) {
-			wxMessageDialog(NULL, wxT("Cannot create blank config file"), wxT("Init error"), wxOK).ShowModal();
-			return 0;
-		}
-		fclose(ft);
-		m_user.config = gf_cfg_new(abs_gpac_path.mb_str(wxConvUTF8), gpac_cfg);
-		if (!m_user.config) {
-			wxMessageDialog(NULL, wxT("Cannot open GPAC configuration file"), wxT("Init error"), wxOK);
-			return 0;
-		}
+		wxMessageDialog(NULL, wxT("Cannot open GPAC configuration file"), wxT("Init error"), wxOK);
+		return 0;
 	}
-	strcpy(szAppPath, abs_gpac_path.mb_str(wxConvUTF8));
-	if (szAppPath[strlen(szAppPath)] != GF_PATH_SEPARATOR)
-		sprintf(szAppPath, "%s%c", szAppPath, GF_PATH_SEPARATOR);
 
+	gpac_cfg = gf_cfg_get_filename(m_user.config);
+	sep = strrchr(gpac_cfg, '/');
+	if (!sep) sep = strrchr(gpac_cfg, '\\');
+	if (sep) sep[0] = 0;
+	strcpy(szAppPath, gpac_cfg);
+	if (sep) sep[0] = '/';
+	gf_free(gpac_cfg);
 
 	/*check log file*/
 	const char *str = gf_cfg_get_key(m_user.config, "General", "LogFile");
@@ -620,84 +561,28 @@ Bool wxOsmo4Frame::LoadTerminal()
 	gf_log_set_callback(this, wxOsmo4_do_log);
 
 	/*set log level*/
-	m_log_level = 0;
-	str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-	if (str) {
-		if (!stricmp(str, "debug")) m_log_level = GF_LOG_DEBUG;
-		else if (!stricmp(str, "info")) m_log_level = GF_LOG_INFO;
-		else if (!stricmp(str, "warning")) m_log_level = GF_LOG_WARNING;
-		else if (!stricmp(str, "error")) m_log_level = GF_LOG_ERROR;
-		gf_log_set_level(m_log_level);
-	}
+	m_log_level = gf_log_parse_level( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+	gf_log_set_level(m_log_level);
 
 	/*set log tools*/
-	m_log_tools = 0;
-	str = gf_cfg_get_key(m_user.config, "General", "LogTools");
-	if (str) {
-		char *sep;
-		char *val = (char *) str;
-		while (val) {
-			sep = strchr(val, ':');
-			if (sep) sep[0] = 0;
-			if (!stricmp(val, "core")) m_log_tools |= GF_LOG_CODING;
-			else if (!stricmp(val, "coding")) m_log_tools |= GF_LOG_CODING;
-			else if (!stricmp(val, "container")) m_log_tools |= GF_LOG_CONTAINER;
-			else if (!stricmp(val, "network")) m_log_tools |= GF_LOG_NETWORK;
-			else if (!stricmp(val, "rtp")) m_log_tools |= GF_LOG_RTP;
-			else if (!stricmp(val, "author")) m_log_tools |= GF_LOG_AUTHOR;
-			else if (!stricmp(val, "sync")) m_log_tools |= GF_LOG_SYNC;
-			else if (!stricmp(val, "codec")) m_log_tools |= GF_LOG_CODEC;
-			else if (!stricmp(val, "parser")) m_log_tools |= GF_LOG_PARSER;
-			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
-			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
-			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
-			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
-			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
-			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
-			else if (!stricmp(val, "none")) m_log_tools = 0;
-			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;
-			if (!sep) break;
-			sep[0] = ':';
-			val = sep+1;
-		}
-		gf_log_set_tools(m_log_tools);
-	}
+	m_log_tools = gf_log_parse_tools( gf_cfg_get_key(m_user.config, "General", "LogTools")  );
+	gf_log_set_tools(m_log_tools);
 
 	gf_sys_init(0);
 
 	::wxLogMessage(wxT("GPAC configuration file opened - looking for modules"));
-	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	Bool first_launch = 0;
-	if (!str) {
-	  first_launch = 1;
-#ifdef GPAC_MODULES_PATH
-		str = GPAC_MODULES_PATH;
-#else
-		str = abs_gpac_path.mb_str(wxConvUTF8);
-#endif
-	}
-
 
 	m_user.modules = gf_modules_new(str, m_user.config);
 	/*initial launch*/
-	if (first_launch || !gf_modules_get_count(m_user.modules)) {
-		const char *sOpt;
-		wxDirDialog dlg(NULL, wxT("Locate GPAC modules directory"));
-		if  (!gf_modules_get_count(m_user.modules)) {
-		  if (m_user.modules) gf_modules_del(m_user.modules);
-		  m_user.modules = NULL;
-			if ( dlg.ShowModal() != wxID_OK ) return false;
-			str = dlg.GetPath().mb_str(wxConvUTF8);
+	if (!m_user.modules || !gf_modules_get_count(m_user.modules)) {
+		wxMessageDialog(NULL, wxT("No modules available - system cannot work"), wxT("Fatal Error"), wxOK).ShowModal();
+		if (m_user.modules) gf_modules_del(m_user.modules);
+		gf_cfg_del(m_user.config);
+		m_user.config = NULL;
+		return 0;
+	}
 
-			m_user.modules = gf_modules_new(str, m_user.config);
-			if (!m_user.modules || !gf_modules_get_count(m_user.modules) ) {
-				wxMessageDialog(NULL, wxT("Cannot find any modules for GPAC"), wxT("Init error"), wxOK);
-				gf_cfg_del(m_user.config);
-				m_user.config = NULL;
-				return 0;
-			}
-		}
-
+	if (first_launch) {
 		u32 i;
 		for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
 			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
@@ -707,105 +592,9 @@ Bool wxOsmo4Frame::LoadTerminal()
 				gf_modules_close_interface((GF_BaseInterface *) ifce);
 			}
 		}
-
-		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) str);
-
-		/*setup UDP traffic autodetect*/
-		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
-		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-
-		/*check audio config on windows, force config*/
-		sOpt = gf_cfg_get_key(m_user.config, "Audio", "ForceConfig");
-		if (!sOpt) {
-			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
-			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
-			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
-		}
-
-		char str_path[GF_MAX_PATH];
-#ifdef WIN32
-		sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
-		if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "gdip_rend");
-		sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
-		if (!sOpt) {
-			sprintf((char *) str_path, "%scache", abs_gpac_path.mb_str(wxConvUTF8));
-			gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
-		}
-		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gdip_rend");
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "DirectX Video Output");
-
-		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
-		if (!sOpt) {
-			FILE *t;
-			sprintf((char *) str_path, "%sgui/gui.bt", abs_gpac_path.mb_str(wxConvUTF8));
-			t = fopen(str_path, "rt");
-			if (!t) {
-				sprintf((char *) str_path, "%sgpac.mp4", config_path);
-				t = fopen(str_path, "rt");
-			}
-			if (t) {
-				gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
-				fclose(t);
-			}
-		}
-#else
-
-#if defined(__DARWIN__) || defined(__APPLE__)
-		wxDirDialog dlg3(NULL, wxT("Please specify a cache directory for GPAC"));
-		dlg3.SetPath(wxT("/tmp"));
-		if ( dlg3.ShowModal() == wxID_OK )
-			gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) dlg3.GetPath().mb_str(wxConvUTF8) );
-
-		wxDirDialog dlg2(NULL, wxT("Please locate a TrueType font repository on your system for text support"));
-		dlg2.SetPath(wxT("/usr/share/fonts/truetype"));
-		if ( dlg2.ShowModal() == wxID_OK )
-			gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) dlg2.GetPath().mb_str(wxConvUTF8) );
-
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "SDL Video Output");
-		gf_cfg_set_key(m_user.config, "Compositor", "ScalableZoom", "no");
-#else
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", "/usr/share/fonts/truetype/");
-
-		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "/tmp");
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
-		gf_cfg_set_key(m_user.config, "Compositor", "ScalableZoom", "yes");
-		gf_cfg_set_key(m_user.config, "Audio", "DriverName", "SDL Audio Output");
-#endif
-
-		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
-		if (!sOpt) {
-			FILE *test;
-			strcpy(str_path, "/usr/local/share/gpac/gui/gui.bt");
-			test = fopen(str_path, "rb");
-			if (!test) {
-				strcpy(str_path, "/usr/local/share/gpac/gpac.mp4");
-				test = fopen(str_path, "rb");
-			}
-			if (!test) {
-				strcpy(str_path, "/usr/share/gpac/gui/gui.bt");
-				test = fopen(str_path, "rb");
-			}
-			if (!test) {
-				strcpy(str_path, "/usr/share/gpac/gpac.mp4");
-				test = fopen(str_path, "rb");
-			}
-			if (test) {
-				gf_cfg_set_key(m_user.config, "General", "StartupFile", str_path);
-				fclose(test);
-			} 
-		}
-
-#endif
 	}
-	if (! gf_modules_get_count(m_user.modules) ) {
-		wxMessageDialog(NULL, wxT("No modules available - system cannot work"), wxT("Fatal Error"), wxOK).ShowModal();
-		gf_modules_del(m_user.modules);
-		gf_cfg_del(m_user.config);
-		m_user.config = NULL;
-		return 0;
-	}
+
+
 
 	::wxLogMessage(wxT("%d modules found:"), gf_modules_get_count(m_user.modules));
 	for (u32 i=0; i<gf_modules_get_count(m_user.modules); i++) {
@@ -1666,7 +1455,9 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 		  cmd += event.to_url;
 		  wxExecute(cmd);
 		} else {
-		  wxLaunchDefaultBrowser(event.to_url);
+#ifdef wxLaunchDefaultBrowser
+			wxLaunchDefaultBrowser(event.to_url);
+#endif
 		}
 		break;
 	case GF_EVENT_QUIT:

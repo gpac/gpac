@@ -403,6 +403,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\os_config_init.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\os_divers.c"
 				>
 			</File>

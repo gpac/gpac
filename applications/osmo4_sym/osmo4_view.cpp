@@ -260,7 +260,8 @@ void COsmo4AppView::SetupLogs()
 			fclose(logs);
 			do_log = 1;
 			gf_log_set_level(GF_LOG_DEBUG);
-			gf_log_set_tools(0xFFFFFFFF);
+			u32 lt = gf_log_parse_tools( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+			gf_log_set_tools(lt ? lt : 0xFFFFFFFF);
 		}
 	}
 	if (!do_log) {
@@ -323,65 +324,12 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	m_mx = gf_mx_new("Osmo4");
 
 	//load config file
-	m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
+	m_user.config = gf_cfg_init(NULL, &first_launch);
 	if (!m_user.config) {
-		first_launch = 1;
-		FILE *ft = fopen(GPAC_CFG_DIR"GPAC.cfg", "wt");
-		if (!ft) {
-			MessageBox("Cannot create GPAC Config file", "Fatal Error");
-			User::Leave(KErrGeneral);
-		} else {
-			fclose(ft);
-		}
-		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
-		if (!m_user.config) {
-			MessageBox("GPAC Configuration file not found", "Fatal Error");
-			User::Leave(KErrGeneral);
-		}
+		MessageBox("Cannot create GPAC Config file", "Fatal Error");
+		User::Leave(KErrGeneral);
 	}
-
-	SetupLogs();
-	gf_set_progress_callback(this, Osmo4_progress_cbk);
-
-	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	if (!opt) first_launch = 2;
-	
 	if (first_launch) {
-		FILE *t;
-		/*hardcode module directory*/
-		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", GPAC_MODULES_DIR);
-		/*hardcode cache directory*/
-		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", GPAC_CFG_DIR"cache");
-		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
-		/*startup file*/
-		t = fopen(GPAC_CFG_DIR"gui/gui.bt", "rt");
-		if (t) {
-			fclose(t);
-			gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gui/gui.bt");
-		} else {
-			t = fopen(GPAC_CFG_DIR"gpac.mp4", "rt");
-			if (t) {
-				fclose(t);
-				gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gpac.mp4");
-			}
-		}
-		/*setup UDP traffic autodetect*/
-		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
-		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-		
-		gf_cfg_set_key(m_user.config, "Compositor", "TextureTextMode", "Default");
-
-		
-		/*save cfg and reload*/
-		gf_cfg_del(m_user.config);
-		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
-		if (!m_user.config) {
-			MessageBox("Cannot save initial GPAC Config file", "Fatal Error");
-			User::Leave(KErrGeneral);
-		}
-
-
 		MessageBox("Osmo4", "Thank you for Installing");
 	}
 

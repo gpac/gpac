@@ -271,58 +271,12 @@ static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va
 
 NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 {	
-	FILE *ft;
-	char config_path[GF_MAX_PATH], config_test_file[GF_MAX_PATH];
-	char *gpac_cfg;
 	const char *str;
 	
 	if(aWindow == NULL) return FALSE;
-	
-#ifdef XP_WIN
-	gpac_cfg = (char *)"GPAC.cfg";
-
-	HKEY hKey = NULL;
-	DWORD dwSize;
-	/*locate the key in current user, then in local machine*/
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
-		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
-	dwSize = GF_MAX_PATH;
-#ifdef _DEBUG
-	if (RegQueryValueEx(hKey, "DebugDir", NULL, NULL,(unsigned char*) config_path, &dwSize) != ERROR_SUCCESS)
-#endif
-		RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
-	RegCloseKey(hKey);
-
-	/*do we have write access?*/
-	strcpy(config_test_file, config_path);
-	if (config_path[strlen(config_path)-1] != '\\')
-		strcat(config_test_file, "\\");
-
-	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
-	strcat(config_test_file, "test");
-
-	ft = gf_f64_open(config_test_file, "wb");
-	if (ft) {
-		fclose(ft);
-		gf_delete_file(config_test_file);
-	}
-	else {
-		/*we don't*/
-		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, config_path);
-		if (config_path[strlen((char *) config_path)-1] != '\\') strcat(config_path, "\\");
-		strcat(config_path, "GPAC\\");
-		/*create GPAC dir*/
-		_mkdir(config_path);
-	}
-#endif	/*XP_WIN*/
-
-#ifdef XP_UNIX
-	gpac_cfg = (char *) ".gpacrc";
-	strcpy((char *) config_path, getenv("HOME"));
-#endif
-	
+		
 	memset(&m_user, 0, sizeof(m_user));
-	m_user.config = gf_cfg_new((const char *) config_path, gpac_cfg);
+	m_user.config = gf_cfg_init(NULL, NULL);
 	/*need to have a valid cfg file for now*/
 	if (!m_user.config) goto err_exit;
 
@@ -346,50 +300,13 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	}
 	else m_logs = NULL;
 
-	/*set log level*/
-	m_log_level = 0;
-	str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-	if (str) {
-		if (!stricmp(str, "debug")) m_log_level = GF_LOG_DEBUG;
-		else if (!stricmp(str, "info")) m_log_level = GF_LOG_INFO;
-		else if (!stricmp(str, "warning")) m_log_level = GF_LOG_WARNING;
-		else if (!stricmp(str, "error")) m_log_level = GF_LOG_ERROR;
-		gf_log_set_level(m_log_level);
-	}
+	/*setup logs*/
+	m_log_level = gf_log_parse_level(gf_cfg_get_key(m_user.config, "General", "LogLevel"));
+	gf_log_set_level(m_log_level);
+	m_log_tools = gf_log_parse_tools(gf_cfg_get_key(m_user.config, "General", "LogTools"));
+	gf_log_set_tools(m_log_tools);
 	if (m_log_level && !m_logs) m_logs = stdout;
 
-	/*set log tools*/
-	m_log_tools = 0;
-	str = gf_cfg_get_key(m_user.config, "General", "LogTools");
-	if (str) {
-		char *sep;
-		char *val = (char *) str;
-		while (val) {
-			sep = strchr(val, ':');
-			if (sep) sep[0] = 0;
-			if (!stricmp(val, "core")) m_log_tools |= GF_LOG_CODING;
-			else if (!stricmp(val, "coding")) m_log_tools |= GF_LOG_CODING;
-			else if (!stricmp(val, "container")) m_log_tools |= GF_LOG_CONTAINER;
-			else if (!stricmp(val, "network")) m_log_tools |= GF_LOG_NETWORK;
-			else if (!stricmp(val, "rtp")) m_log_tools |= GF_LOG_RTP;
-			else if (!stricmp(val, "author")) m_log_tools |= GF_LOG_AUTHOR;
-			else if (!stricmp(val, "sync")) m_log_tools |= GF_LOG_SYNC;
-			else if (!stricmp(val, "codec")) m_log_tools |= GF_LOG_CODEC;
-			else if (!stricmp(val, "parser")) m_log_tools |= GF_LOG_PARSER;
-			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
-			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
-			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
-			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
-			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
-			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
-			else if (!stricmp(val, "none")) m_log_tools = 0;
-			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;
-			if (!sep) break;
-			sep[0] = ':';
-			val = sep+1;
-		}
-		gf_log_set_tools(m_log_tools);
-	}
 	return mInitialized;
 
 err_exit:

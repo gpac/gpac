@@ -42,33 +42,10 @@ typedef struct
 struct __tag_config
 {
 	char *fileName;
-	char *filePath;
 	GF_List *sections;
 	Bool hasChanged;
 };
 
-/*!
- * \brief Build a full absolute path from a directory and a file_name
- * \param dest The destination absolute file name properly allocated
- * \param directory The directory file path
- * \param file_name The filename
- * \return NULL if bad parameters specified, dest otherwise
- */
-static const char * gf_build_full_path( char * dest, const char * directory, const char * file_name){
-	if (!dest || !file_name)
-	  return NULL;
-	if (directory) {
-		if (directory[strlen(directory)-1] == GF_PATH_SEPARATOR) {
-			strcpy(dest, directory);
-			strcat(dest, file_name);
-		} else {
-			sprintf(dest, "%s%c%s", directory, GF_PATH_SEPARATOR, file_name);
-		}
-	} else {
-		strcpy(dest, file_name);
-	}
-	return dest;
-}
 
 static void DelSection(IniSection *ptr)
 {
@@ -105,25 +82,33 @@ static void gf_cfg_clear(GF_Config * iniFile){
 	}
 	if (iniFile->fileName)
 	  gf_free(iniFile->fileName);
-	if (iniFile->filePath)
-	  gf_free(iniFile->filePath);
 	memset((void *)iniFile, 0, sizeof(GF_Config));
 }
 
 /*!
  * \brief Parses the config file if any and clears the existing structure
  */
-static GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const char * file_name){
-      IniSection *p;
+GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const char * file_name)
+{
+	IniSection *p;
 	IniKey *k;
 	FILE *file;
 	char *ret;
 	char *line;
 	u32 line_alloc = MAX_INI_LINE;
 	char fileName[GF_MAX_PATH];
-	gf_build_full_path(fileName, filePath, file_name);
+
 	gf_cfg_clear(tmp);
-	tmp->filePath = gf_strdup(filePath);
+
+	if (filePath && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
+		strcpy(fileName, filePath);
+		strcat(fileName, file_name);
+	} else if (filePath) {
+		sprintf(fileName, "%s%c%s", filePath, GF_PATH_SEPARATOR, file_name);
+	} else {
+		strcpy(fileName, file_name);
+	}
+
 	tmp->fileName = gf_strdup(fileName);
 	tmp->sections = gf_list_new();
 	file = gf_f64_open(fileName, "rt");
@@ -170,7 +155,6 @@ static GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, c
 			if (!p) {
 				gf_list_del(tmp->sections);
 				gf_free(tmp->fileName);
-				gf_free(tmp->filePath);
 				gf_free(tmp);
 				fclose(file);
 				gf_free(line);

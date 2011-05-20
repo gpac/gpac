@@ -253,47 +253,11 @@ static void setup_logs()
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 	} else {
 		u32 lt, ll;
-		const char *str = gf_cfg_get_key(user.config, "General", "LogLevel");
-		ll=0;
-		if (str && stricmp(str, "none")) {
-			if (!stricmp(str, "debug")) ll = GF_LOG_DEBUG;
-			else if (!stricmp(str, "info")) ll = GF_LOG_INFO;
-			else if (!stricmp(str, "warning")) ll = GF_LOG_WARNING;
-			else if (!stricmp(str, "error")) ll = GF_LOG_ERROR;
-			gf_log_set_level(ll);
-		}
-		lt = 0;
-		str = gf_cfg_get_key(user.config, "General", "LogTools");
-		if (str) {
-			char *sep;
-			char *val = (char *) str;
-			while (val) {
-				sep = strchr(val, ':');
-				if (sep) sep[0] = 0;
-				if (!stricmp(val, "core")) lt |= GF_LOG_CORE;
-				else if (!stricmp(val, "coding")) lt |= GF_LOG_CODING;
-				else if (!stricmp(val, "container")) lt |= GF_LOG_CONTAINER;
-				else if (!stricmp(val, "network")) lt |= GF_LOG_NETWORK;
-				else if (!stricmp(val, "rtp")) lt |= GF_LOG_RTP;
-				else if (!stricmp(val, "author")) lt |= GF_LOG_AUTHOR;
-				else if (!stricmp(val, "sync")) lt |= GF_LOG_SYNC;
-				else if (!stricmp(val, "codec")) lt |= GF_LOG_CODEC;
-				else if (!stricmp(val, "parser")) lt |= GF_LOG_PARSER;
-				else if (!stricmp(val, "media")) lt |= GF_LOG_MEDIA;
-				else if (!stricmp(val, "scene")) lt |= GF_LOG_SCENE;
-				else if (!stricmp(val, "script")) lt |= GF_LOG_SCRIPT;
-				else if (!stricmp(val, "interact")) lt |= GF_LOG_INTERACT;
-				else if (!stricmp(val, "compose")) lt |= GF_LOG_COMPOSE;
-				else if (!stricmp(val, "mmio")) lt |= GF_LOG_MMIO;
-				else if (!stricmp(val, "rti")) lt |= GF_LOG_RTI;
-				else if (!stricmp(val, "none")) ll = 0;
-				else if (!stricmp(val, "all")) lt = 0xFFFFFFFF;
-				if (!sep) break;
-				sep[0] = ':';
-				val = sep+1;
-			}
-			gf_log_set_tools(lt);
-		}
+		ll = gf_log_parse_level( gf_cfg_get_key(user.config, "General", "LogLevel") );
+		gf_log_set_level(ll);
+		lt = gf_log_parse_level( gf_cfg_get_key(user.config, "General", "LogTools") );
+		gf_log_set_tools(lt);
+
 		if (ll && (log_file = gf_f64_open("\\gpac_logs.txt", "a+t"))) {
 			gf_log_set_callback(log_file, on_gpac_log);
 		}
@@ -1321,83 +1285,6 @@ BOOL InitInstance (int CmdShow)
 	return TRUE;
 }
 
-Bool initial_setup(const char *szExePath)
-{
-	char szPath[GF_MAX_PATH];
-#ifdef _WIN32_WCE
-	TCHAR wzPath[GF_MAX_PATH];
-#endif
-	strcpy(szPath, szExePath);
-	strcat(szPath, "GPAC.cfg");
-	FILE *f = gf_f64_open(szPath, "wt");
-	if (!f) return 0;
-	fclose(f);
-
-	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
-	
-	gf_cfg_set_key(user.config, "General", "ModulesDirectory", szExePath);
-
-	strcpy(szPath, szExePath);
-	strcat(szPath, "cache");
-#ifdef _WIN32_WCE
-	CE_CharToWide(szPath, (u16 *) wzPath);
-	CreateDirectory(wzPath, NULL);
-#else
-	CreateDirectory(szPath, NULL);
-#endif
-	gf_cfg_set_key(user.config, "General", "CacheDirectory", szPath);
-
-	/*base rendering options*/
-	gf_cfg_set_key(user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
-	/*enable UDP traffic autodetect*/
-	gf_cfg_set_key(user.config, "Network", "AutoReconfigUDP", "yes");
-	gf_cfg_set_key(user.config, "Network", "UDPTimeout", "10000");
-	gf_cfg_set_key(user.config, "Network", "BufferLength", "3000");
-
-
-	gf_cfg_set_key(user.config, "Audio", "ForceConfig", "yes");
-	gf_cfg_set_key(user.config, "Audio", "NumBuffers", "2");
-	gf_cfg_set_key(user.config, "Audio", "TotalDuration", "200");
-
-	gf_cfg_set_key(user.config, "Video", "DriverName", "GAPI Video Output");
-
-	/*FIXME - is this true on all WinCE systems??*/
-	gf_cfg_set_key(user.config, "FontEngine", "FontDirectory", "\\Windows");
-
-	sprintf((char *) szPath, "%sgui.bt", szExePath);
-	FILE *t = gf_f64_open(szPath, "rt");
-	if (!t) {
-		sprintf((char *) szPath, "%sgpac.mp4", szExePath);
-		t = gf_f64_open(szPath, "rt");
-	}
-	if (t) {
-		gf_cfg_set_key(user.config, "General", "StartupFile", (const char *) szPath);
-		fclose(t);
-	}
-
-	/*FFMPEG registration - FFMPEG DLLs compiled with CEGCC cannot be loaded directly under WM 6.1
-	cf http://cegcc.sourceforge.net/docs/faq.html#DllDoesNotWorkWithWindowsMobile6.1
-	*/
-	HKEY hKey = NULL;
-	DWORD dwSize;
-	DWORD dwValue;
-	RegCreateKeyEx(HKEY_LOCAL_MACHINE, _T("System\\Loader\\LoadModuleLow"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
-	dwSize = 4; dwValue = 1;
-	LONG res = RegSetValueEx(hKey, _T("avcodec-52.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
-	res = RegSetValueEx(hKey, _T("avformat-52.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
-	res = RegSetValueEx(hKey, _T("avutil-50.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
-	res = RegSetValueEx(hKey, _T("swscale-0.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
-	RegCloseKey(hKey);
-
-	/*save*/
-	gf_cfg_del(user.config);
-	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
-	if (!user.config) return 0;
-	MessageBox(NULL, _T("Thank you for installing GPAC"), _T("Initial setup done"), MB_OK);
-	return 1;
-}
-
-
 #ifndef GETRAWFRAMEBUFFER
     #define GETRAWFRAMEBUFFER   0x00020001
     typedef struct _RawFrameBufferInfo
@@ -1429,7 +1316,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 #ifdef _WIN32_WCE
 	TCHAR wzExePath[GF_MAX_PATH];
 #endif
-	char szExePath[GF_MAX_PATH];
 
 	HWND 	hwndOld = NULL;	
 	const char *str;
@@ -1443,15 +1329,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	
 	memset(&user, 0, sizeof(GF_User));
 	term = NULL;
-
-#ifdef _WIN32_WCE
-	GetModuleFileName(NULL, wzExePath, GF_MAX_PATH);
-	CE_WideToChar((u16 *) wzExePath, szExePath);
-#else
-	GetModuleFileName(NULL, szExePath, GF_MAX_PATH);
-#endif
-	char *sep = strrchr(szExePath, '\\');
-	sep[1] = 0;
 
 	g_hinst = hInstance;
 	
@@ -1479,16 +1356,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 #endif
 
 
-	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
-	if (!user.config) {
-		initial_setup(szExePath);
-		initial_launch = 1;
-	}
+	user.config = gf_cfg_init(NULL, &initial_launch);
 	if (!user.config) {
 		MessageBox(NULL, _T("Couldn't locate GPAC config file"), _T("Fatal Error"), MB_OK);
 		return 0;
 	}
-
 
     str = gf_cfg_get_key(user.config, "Compositor", "ScreenWidth");
 	if (str) screen_w = atoi(str);
@@ -1521,6 +1393,20 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	/*first launch, register all files ext*/
 	if (initial_launch) {
+		/*FFMPEG registration - FFMPEG DLLs compiled with CEGCC cannot be loaded directly under WM 6.1
+		cf http://cegcc.sourceforge.net/docs/faq.html#DllDoesNotWorkWithWindowsMobile6.1
+		*/
+		HKEY hKey = NULL;
+		DWORD dwSize;
+		DWORD dwValue;
+		RegCreateKeyEx(HKEY_LOCAL_MACHINE, _T("System\\Loader\\LoadModuleLow"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
+		dwSize = 4; dwValue = 1;
+		LONG res = RegSetValueEx(hKey, _T("avcodec-52.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+		res = RegSetValueEx(hKey, _T("avformat-52.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+		res = RegSetValueEx(hKey, _T("avutil-50.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+		res = RegSetValueEx(hKey, _T("swscale-0.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+		RegCloseKey(hKey);
+
 		u32 i;
 		for (i=0; i<gf_modules_get_count(user.modules); i++) {
 			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(user.modules, i, GF_NET_CLIENT_INTERFACE);
@@ -1530,6 +1416,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				gf_modules_close_interface((GF_BaseInterface *)ifce);
 			}
 		}
+		MessageBox(NULL, _T("Thank you for installing GPAC"), _T("Initial setup done"), MB_OK);
 	}
 
 	str = gf_cfg_get_key(user.config, "General", "Loop");
