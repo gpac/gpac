@@ -23,15 +23,6 @@ endif
 #common obj
 OBJS= main.o extract.o
 
-#not the same path as local in target
-ifneq ($(CROSS_COMPILING), yes)
-ifeq ($(BUILD_INSTALL), yes)
-INSTALL_FLAGS=-DGPAC_MODULES_PATH=\"$(moddir)\"
-else
-INSTALL_FLAGS=
-endif
-endif
-
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Client$(EXE)
@@ -48,17 +39,16 @@ MP4Client$(EXE): $(OBJS)
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LINKLIBS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(INSTALL_FLAGS) -c -o $@ $< 
+	$(CC) $(CFLAGS) -c -o $@ $< 
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
 install: clean
-	$(MAKE) -override BUILD_INSTALL=yes all
 	install -m 755 $(INSTFLAGS) ../../bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
 
 uninstall:
-	rm -rf $(prefix)/bin/MP4Client
+	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
 
 dep: depend
 
