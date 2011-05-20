@@ -223,6 +223,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_find) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_remove) )
@@ -236,6 +237,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_key_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_insert_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del_section) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_filename) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )

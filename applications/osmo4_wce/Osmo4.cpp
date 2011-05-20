@@ -194,6 +194,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 
 BOOL COsmo4::InitInstance()
 {
+	Bool first_load = 0;
 	if (!AfxSocketInit())
 	{
 		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
@@ -230,102 +231,36 @@ BOOL COsmo4::InitInstance()
 	memset(&m_user, 0, sizeof(GF_User));
 
 	/*init config and plugins*/
-	m_user.config = gf_cfg_new((const char *) config_path, "GPAC.cfg");
+	m_user.config = gf_cfg_init(NULL, &first_load);
 	if (!m_user.config) {
-		/*create blank config file in the exe dir*/
-		unsigned char config_file[MAX_PATH];
-		strcpy((char *) config_file, (const char *) config_path);
-		strcat((char *) config_file, "GPAC.cfg");
-		FILE *ft = fopen((const char *) config_file, "wt");
-		fclose(ft);
-		m_user.config = gf_cfg_new((const char *) config_path, "GPAC.cfg");
-		if (!m_user.config) {
-			MessageBox(NULL, _T("GPAC Configuration file not found"), _T("Fatal Error"), MB_OK);
-			m_pMainWnd->PostMessage(WM_CLOSE);
-		}
+		MessageBox(NULL, _T("GPAC Configuration file not found"), _T("Fatal Error"), MB_OK);
+		m_pMainWnd->PostMessage(WM_CLOSE);
 	}
 
 	const char *str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
 	EnableLogs((str && !strcmp(str, "debug")) ? 1 : 0);
 
+	if (first_load) {
+		/*first launch, register all files ext*/
+		u32 i;
+		for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
+			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+			if (!ifce) continue;
+			if (ifce) {
+				ifce->CanHandleURL(ifce, "test.test");
+				gf_modules_close_interface((GF_BaseInterface *)ifce);
+			}
+		}
+		::MessageBox(NULL, _T("Osmo4/GPAC Setup complete"), _T("Initial launch"), MB_OK);
+	}
+
 
 	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new(str, m_user.config);
-	if (!m_user.modules) {
-		unsigned char str_path[MAX_PATH];
-		const char *sOpt;
-		FILE *t;
-		/*inital launch*/
-		m_user.modules = gf_modules_new(config_path, m_user.config);
-		if (m_user.modules) {
-			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
-
-			sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
-
-
-			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
-			if (!sOpt) {
-				sprintf((char *) str_path, "%scache", config_path);
-				gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
-			}
-			/*setup UDP traffic autodetect*/
-			gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-			gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
-			gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-
-		
-			/*first launch, register all files ext*/
-			u32 i;
-			for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
-				GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
-				if (!ifce) continue;
-				if (ifce) {
-					ifce->CanHandleURL(ifce, "test.test");
-					gf_modules_close_interface((GF_BaseInterface *)ifce);
-				}
-			}
-		}
-
-		/*check audio config on windows, force config*/
-		sOpt = gf_cfg_get_key(m_user.config, "Audio", "ForceConfig");
-		if (!sOpt) {
-			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
-			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
-			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "200");
-		}
-		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
-
-		sprintf((char *) str_path, "%sgui/gui.bt", config_path);
-		t = fopen(str_path, "rt");
-		if (!t) {
-			sprintf((char *) str_path, "%sgpac.mp4", config_path);
-			t = fopen(str_path, "rt");
-		}
-		if (t) {
-			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
-			fclose(t);
-		}
-
-		::MessageBox(NULL, _T("Osmo4/GPAC Setup complete"), _T("Initial launch"), MB_OK);
-	}	
-	if (! gf_modules_get_count(m_user.modules) ) {
+	if (!m_user.modules || ! gf_modules_get_count(m_user.modules) ) {
 		MessageBox(NULL, _T("No plugins available - system cannot work"), _T("Fatal Error"), MB_OK);
 		m_pMainWnd->PostMessage(WM_QUIT);
-	}
-
-	/*setup font dir*/
-	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontDirectory");
-	if (!str || !strlen(str) ) {
-		strcpy((char *) config_path, "\\Windows");
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) config_path);
-	}
-
-	/*check video driver, if none or raw_out use dx_hw by default*/
-	str = gf_cfg_get_key(m_user.config, "Video", "DriverName");
-	if (!str || !stricmp(str, "raw_out")) {
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "gapi");
+		return FALSE;
 	}
 
 	m_user.config = m_user.config;

@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/uni_bidi.o utils/url.o utils/utf.o utils/xml_parser.o utils/alloc.o utils/ringbuffer.o utils/unicode.o
+LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/uni_bidi.o utils/url.o utils/utf.o utils/xml_parser.o utils/alloc.o utils/ringbuffer.o utils/unicode.o
 
 ## libgpac objects gathering: src/ietf
 LIBGPAC_IETF=ietf/rtcp.o ietf/rtp.o ietf/rtp_packetizer.o ietf/rtp_pck_3gpp.o ietf/rtp_pck_mpeg12.o ietf/rtp_pck_mpeg4.o ietf/rtsp_command.o ietf/rtsp_common.o ietf/rtsp_response.o ietf/rtsp_session.o ietf/sdp.o ietf/rtp_depacketizer.o ietf/rtp_streamer.o
