@@ -48,6 +48,7 @@ typedef struct
 	ABSTRACT_ES
 	GF_M2TS_SectionFilter *sec;
 
+	u32 service_id;
 	u8 table_id;
 	Bool section_syntax_indicator;
 	u16 section_length;
@@ -60,14 +61,23 @@ typedef struct
 	u16 common_descriptors_length;
 	GF_List * common_descriptors;
 	u16 application_loop_length;
+	GF_List * application;
+	u32 CRC_32;
+
+} GF_M2TS_AIT;
+
+
+typedef struct
+{
 	u32 organisation_id;
 	u16 application_id;
 	u8 application_control_code;
 	u16 application_descriptors_loop_length;
 	GF_List * application_descriptors;
-	u32 CRC_32;
 
-} GF_M2TS_AIT;
+}
+GF_M2TS_AIT_APPLICATION;
+
 
 typedef enum {
 	FUTURE_USE = 0x00,

@@ -1050,7 +1050,7 @@ struct __gf_dvb_tuner {
 #endif
 
 
-GF_Err TSDemux_Demux_Process(GF_M2TS_Demuxer *ts, const char *url,  Bool loop);
+GF_Err TSDemux_Demux_Process(GF_M2TS_Demuxer *ts, const char *url, Bool loop);
 void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url);
 void TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url);
 u32 TSDemux_DemuxRun(void *_p);
