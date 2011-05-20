@@ -156,6 +156,9 @@ typedef struct
 	/*includes BOTH IPMP_DescriptorPointer (IPMP & IPMPX) and GF_IPMP_Descriptor (IPMPX only)*/
 	GF_List *IPMP_Descriptors;
 	GF_List *extensionDescriptors;
+	
+	/*MPEG-2 (or other service mux formats) service ID*/
+	u16 ServiceID;
 } GF_ObjectDescriptor;
 
 /*GF_InitialObjectDescriptor - WARNING: even though the bitstream IOD is not
@@ -181,6 +184,9 @@ typedef struct
 	u8 graphics_profileAndLevel;
 
 	GF_IPMP_ToolList *IPMPToolList;
+
+	/*MPEG-2 (or other service mux formats) service ID*/
+	u16 ServiceID;
 } GF_InitialObjectDescriptor;
 
 /*File Format Object Descriptor*/
