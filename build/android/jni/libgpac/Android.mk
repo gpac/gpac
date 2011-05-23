@@ -1,6 +1,7 @@
 #you should run gpac config first
 #./configure --host=arm-eabi CC=arm-eabi-gcc CPPFLAGS="-I$NDK/build/platforms/android-3/arch-arm/usr/include/" CFLAGS="-nostdlib" LDFLAGS="-Wl,-rpath-link=$NDK/build/platforms/android-4/arch-arm/usr/lib/ -L$NDK/build/platforms/android-3/arch-arm/usr/lib/" LIBS="-lc "
 #../../configure --host=arm-eabi CC=arm-eabi-gcc CPPFLAGS="-I$NDK/platforms/android-4/arch-arm/usr/include/" CFLAGS="-nostdlib" LDFLAGS="-Wl,-rpath-link=$NDK/platforms/android-4/arch-arm/usr/lib/ -L$NDK/platforms/android-4/arch-arm/usr/lib/" LIBS="-lc "
+
 LOCAL_PATH:= $(call my-dir)
 APP_ABI          := armeabi armeabi-v7a
 
@@ -21,7 +22,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
-LOCAL_LDLIBS    += -L$(COMMON_PATH)/../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
+LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv1_CM -ldl
 LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz
 #LOCAL_EXPORT_LDLIBS= -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz
@@ -114,6 +115,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/reedsolomon.c \
 	../../../../src/media_tools/mpd.c \
 	../../../../src/media_tools/m3u8.c \
+	../../../../src/media_tools/carousel.c \
 	../../../../src/laser/lsr_tables.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
