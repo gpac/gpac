@@ -2311,52 +2311,6 @@ u32 TSDemux_DemuxRun(void *_p)
 }
 
 
-#ifdef GPAC_HAS_LINUX_DVB
-void TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, char *url)
-{
-	GF_Err e = GF_OK;
-
-	const char *chan_conf;
-
-	if (strnicmp(url, "dvb://", 6)) {
-		e = GF_NOT_SUPPORTED;
-		goto exit;
-	}
-
-	chan_conf = gf_cfg_get_key(cfg_file, "DVB", "ChannelsFile");
-	if (!chan_conf) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Cannot locate channel configuration file\n"));
-		e = GF_SERVICE_ERROR;
-		goto exit;
-	}
-
-	if (!ts->tuner) GF_SAFEALLOC(ts->tuner, GF_Tuner);
-
-	if (ts->tuner->freq != 0 && ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Tuner already tuned to that frequency\n"));
-		goto exit;
-	}
-
-	e = gf_dvb_tune(ts->tuner, url, chan_conf);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Unable to tune to frequency\n"));
-		goto exit;
-	}
-
-	if(ts->th){
-		/*start playing for tune-in*/
-		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
-	}else{
-		TSDemux_DemuxRun(ts);
-	}
-
-exit:
-	if(e){
-		//gf_term_on_connect(ts->user->service, NULL, e);
-    }	
-}
-#endif
-
 void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
 {
 	GF_Err e = GF_OK;
@@ -2480,7 +2434,7 @@ GF_Err TSDemux_Demux_Process(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 	}
 #ifdef GPAC_HAS_LINUX_DVB
 	else if (!strnicmp(url, "dvb://", 6)) {
-		M2TS_SetupDVB(ts, (char *) szURL);
+		TSDemux_SetupDVB(ts, (char *) szURL);
 	}
 #endif
 	else {
@@ -2508,7 +2462,7 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 
 #ifdef GPAC_HAS_LINUX_DVB
 
-static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
+static GF_Err gf_dvb_tune(GF_Tuner *tuner, const char *url, const char *chan_path) {
 	struct dmx_pes_filter_params pesFilterParams;
 	struct dvb_frontend_parameters frp;
 	int demux1, front1;
@@ -2525,7 +2479,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	chanfile = gf_f64_open(chan_path, "r");
 	if (!chanfile) return GF_BAD_PARAM;
 
-	chan_name = url+6; // 6 = strlen("dvb://")
+	chan_name = (char *) url+6; // 6 = strlen("dvb://")
 
 	// support for multiple frontends
 	tmp = strchr(chan_name, '@');
@@ -2665,7 +2619,7 @@ u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 	tmp = strchr(url, '@');
 	if (tmp) tmp[0] = 0;
 
-	channel_name = url+6;
+	channel_name = (char *)url+6;
 
 	channels_config_file = gf_f64_open(channels_config_path, "r");
 	if (!channels_config_file) return GF_BAD_PARAM;
@@ -2690,6 +2644,36 @@ u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 		}
 	}
 	return freq;
+}
+
+GF_Err TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, const char *url)
+{
+	GF_Err e = GF_OK;
+
+	if (! ts->dvb_channels_conf_path) return GF_BAD_PARAM;
+
+	if (strnicmp(url, "dvb://", 6)) return GF_NOT_SUPPORTED;
+
+	if (!ts->tuner) GF_SAFEALLOC(ts->tuner, GF_Tuner);
+
+	if (ts->tuner->freq != 0 && ts->tuner->freq == gf_dvb_get_freq_from_url(ts->dvb_channels_conf_path, url)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Tuner already tuned to that frequency\n"));
+		return GF_OK;
+	}
+
+	e = gf_dvb_tune(ts->tuner, url, ts->dvb_channels_conf_path);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Unable to tune to frequency\n"));
+		return GF_SERVICE_ERROR;
+	}
+
+	if(ts->th){
+		/*start playing for tune-in*/
+		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
+	} else {
+		TSDemux_DemuxRun(ts);
+	}
+	return GF_OK;
 }
 
 #endif

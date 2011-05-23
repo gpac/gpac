@@ -68,7 +68,8 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 
 enum
 {
-	GF_PATH_CFG=0,
+	GF_PATH_APP,
+	GF_PATH_CFG,
 	GF_PATH_GUI,
 	GF_PATH_MODULES,
 };
@@ -88,7 +89,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #else
 	GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
 #endif
-
+	
+	/*remove exe name*/
+	sep = strrchr(file_path, '\\');
+	if (sep) sep[0] = 0;
 
 	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the 
 	installation path*/
@@ -123,9 +127,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 
 
-	/*remove exe name*/
-	sep = strrchr(file_path, '\\');
-	if (sep) sep[0] = 0;
+	if (path_type==GF_PATH_APP) return 1;
 	
 	if (path_type==GF_PATH_GUI) {
 		strcat(file_path, "\\gui");
@@ -171,7 +173,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
-	if (path_type==GF_PATH_CFG) strcpy(file_path, "");
+	if (path_type==GF_PATH_APP) strcpy(file_path, "");
+	else if (path_type==GF_PATH_CFG) strcpy(file_path, "");
 	else if (path_type==GF_PATH_GUI) strcpy(file_path, "");
 	else if (path_type==GF_PATH_MODULES) strcpy(file_path, "");
 	return 1;
@@ -192,7 +195,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
-	if (path_type==GF_PATH_CFG) strcpy(file_path, SYMBIAN_GPAC_CFG_DIR);
+	if (path_type==GF_PATH_APP) strcpy(file_path, SYMBIAN_GPAC_MODULES_DIR);
+	else if (path_type==GF_PATH_CFG) strcpy(file_path, SYMBIAN_GPAC_CFG_DIR);
 	else if (path_type==GF_PATH_GUI) strcpy(file_path, SYMBIAN_GPAC_GUI_DIR);
 	else if (path_type==GF_PATH_MODULES) strcpy(file_path, SYMBIAN_GPAC_MODULES_DIR);
 	return 1;
@@ -207,19 +211,34 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	char *sep;
 	u32 size = GF_MAX_PATH;
 
-	char *user_home = getenv("HOME");
-	if (!user_home) return 0;
-	strcpy(file_path, user_home);
-	if (file_path[strlen(file_path)-1] == '/') file_path[strlen(file_path)-1] = 0;
-
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
-	if (path_type==GF_PATH_CFG) return 1;
+	if (path_type==GF_PATH_CFG) {
+		char *user_home = getenv("HOME");
+		if (!user_home) return 0;
+		strcpy(file_path, user_home);
+		if (file_path[strlen(file_path)-1] == '/') file_path[strlen(file_path)-1] = 0;
+		return 1;
+	}
+
+	if (path_type==GF_PATH_APP) {
+#if (defined(__DARWIN__) || defined(__APPLE__) )
+		if (_NSGetExecutablePath(file_path, &size) ==0) return 1;
+
+#elif defined(GPAC_CONFIG_LINUX)
+		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH);
+		if (size>0) {				
+			char *sep = strrchr(file_path, '/');
+			if (sep) sep[0] = 0;
+			return 1;
+		}
+#endif
+		return 0;
+	}
+
 
 	/*locate the app*/
 #if (defined(__DARWIN__) || defined(__APPLE__) )
-	if (_NSGetExecutablePath(app_path, &size)!=0) {
-		return 0;
-	}
+	if (get_default_install_path(app_path, GF_PATH_APP)==0) return 0;
 #else
 	/*just to pass the test below*/
 	strcpy(app_path, "/usr/"); 
@@ -237,6 +256,17 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			strcpy(app_path, file_path);
 			strcat(app_path, "/.gpac/gui");
 			if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+
+			/*GUI not found, look in gpac distribution if any */
+			if (get_default_install_path(app_path, GF_PATH_APP)) {
+				char *sep = strstr(app_path, "/bin/gcc");
+				if (sep) {
+					sep[0] = 0;
+					strcat(app_path, "/gui");
+					if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+				}
+			}
+
 			/*GUI not found, look in .app for OSX case*/
 		} else if (path_type==GF_PATH_MODULES) {
 			/*look in possible install dirs ...*/
@@ -244,6 +274,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
+
+			if (get_default_install_path(app_path, GF_PATH_APP)) {
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			}
+
 			/*modules not found, look in ~/.gpac/modules/ */
 			strcpy(app_path, file_path);
 			strcat(app_path, "/.gpac/modules");
