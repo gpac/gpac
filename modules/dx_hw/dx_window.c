@@ -589,7 +589,9 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 
 	case WM_UNICHAR:
 	case WM_CHAR:
-		if (wParam>=32) {
+		/*no reason to filter out things*/
+//		if (wParam>=32) 
+		{
 			evt.type = GF_EVENT_TEXTINPUT;
 			evt.character.unicode_char = wParam;
 			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
