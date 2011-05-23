@@ -91,12 +91,17 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #endif
 	
 	/*remove exe name*/
-	sep = strrchr(file_path, '\\');
-	if (sep) sep[0] = 0;
+	if (strstr(file_path, ".exe")) {
+		sep = strrchr(file_path, '\\');
+		if (sep) sep[0] = 0;
+	}
+
+	strcpy(szPath, file_path);
+	strlwr(szPath);
 
 	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the 
 	installation path*/
-	if (!strstr(file_path, "GPAC")) {
+	if (!strstr(file_path, "gpac")) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
 		DWORD dwType = REG_SZ;
