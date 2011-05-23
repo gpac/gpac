@@ -168,7 +168,7 @@ typedef struct
 
 GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *es, char  *data, u32 data_size, u32 table_id);
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par);
-GF_M2TS_ES *gf_ait_section_new();
+GF_M2TS_ES *gf_ait_section_new(u32 service_id);
 
 
 #endif	//_GF_CAROUSSEL_H_
