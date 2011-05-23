@@ -600,6 +600,9 @@ struct tag_m2ts_demux
 	struct __gf_dvb_mpe_ip_platform *ip_platform;
 	
 	u32 pck_number;
+
+
+	const char *dvb_channels_conf_path;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
@@ -1056,7 +1059,7 @@ void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url);
 void TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url);
 u32 TSDemux_DemuxRun(void *_p);
 #ifdef GPAC_HAS_LINUX_DVB
-void TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, char *url);
+GF_Err TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, const char *url);
 #endif
 
 GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts);
