@@ -492,7 +492,15 @@ STDMETHODIMP CGPAXPlugin::Play()
 	if (m_term) {
 		if (!m_bIsConnected) {
 			if (strlen(m_url)) {
-				gf_term_connect(m_term, m_url);
+				/*connect from 0 and pause if not autoplay*/
+				const char *gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+				if (gui) {
+					gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
+					gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_url);
+					gf_term_connect(m_term, gui);
+				} else {
+					gf_term_connect(m_term, m_url);
+				}
 				gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, m_AR);
 			}
 		} else
