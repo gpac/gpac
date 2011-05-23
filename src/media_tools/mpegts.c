@@ -2654,7 +2654,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	return GF_OK;
 }
 
-static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
+u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 {
 	FILE *channels_config_file;
 	char line[255], name[255], *tmp, *channel_name;
