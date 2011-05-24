@@ -49,8 +49,6 @@ typedef struct
 
 	GF_ClientService *service;
 
-	/*remote file handling*/
-	GF_DownloadSession *dnload;
 	Bool ts_setup;
 	Bool request_all_pids;
 
@@ -253,7 +251,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		if (!found) return;
 	}
 #endif
-	if (m2ts->ts->file || m2ts->dnload) m2ts->ts->file_regulate = no_declare ? 0 : 1;
+	if (m2ts->ts->file || m2ts->ts->dnload) m2ts->ts->file_regulate = no_declare ? 0 : 1;
 
 	if (prog->pmt_iod && (prog->pmt_iod->tag==GF_ODF_IOD_TAG) && (((GF_InitialObjectDescriptor*)prog->pmt_iod)->OD_profileAndLevel==GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING)) {
 		force_declare_ods = 1;
@@ -460,7 +458,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream->first_dts) {
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
-			if (ts->file || m2ts->dnload) ts->file_regulate = 1;
+			if (ts->file || ts->dnload) ts->file_regulate = 1;
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_term_add_media(m2ts->service, NULL, 0);
@@ -551,7 +549,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	M2TSIn *m2ts = (M2TSIn *) cbk;
         assert( m2ts );
 	/*handle service message*/
-	gf_term_download_update_stats(m2ts->dnload);
+	gf_term_download_update_stats(m2ts->ts->dnload);
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		e = GF_EOS;
@@ -579,10 +577,10 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		} else {
 			gf_sleep(1);
 		}
-		if (!m2ts->ts->run_state){
-                        if (m2ts->dnload)
-                          gf_term_download_del( m2ts->dnload );
-			m2ts->dnload = NULL;
+		if (!m2ts->ts->run_state) {
+			if (m2ts->ts->dnload) 
+				gf_term_download_del( m2ts->ts->dnload );
+			m2ts->ts->dnload = NULL;
 		}
 
 	} else {
@@ -637,8 +635,8 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 #endif
 	else if (!strnicmp(url, "http://", 7)) {
 
-		m2ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
-		if (!m2ts->dnload) gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
+		m2ts->ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
+		if (!m2ts->ts->dnload) gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
 		else {
 			m2ts->ts->th = gf_th_new("MPEG-2 TS Demux");
 			/*start playing for tune-in*/
@@ -669,8 +667,8 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 	if (ts->file) fclose(ts->file);
 	ts->file = NULL;
 
-	if (m2ts->dnload) gf_term_download_del(m2ts->dnload);
-	m2ts->dnload = NULL;
+	if (ts->dnload) gf_term_download_del(ts->dnload);
+	ts->dnload = NULL;
 
 	gf_term_on_disconnect(m2ts->service, NULL, GF_OK);
 	return GF_OK;
