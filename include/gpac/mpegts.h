@@ -601,6 +601,8 @@ struct tag_m2ts_demux
 	
 	u32 pck_number;
 
+	/*remote file handling - created and destroyed by user*/
+	struct __gf_download_session *dnload;
 
 	const char *dvb_channels_conf_path;
 };

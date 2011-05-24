@@ -34,6 +34,7 @@
 #include <gpac/math.h>
 #include <string.h>
 #include <gpac/carousel.h>
+#include <gpac/download.h>
 
 #define DUMP_MPE_IP_DATAGRAMS
 //#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
@@ -2255,7 +2256,12 @@ u32 TSDemux_DemuxRun(void *_p)
 				gf_m2ts_process_data(ts, data, size);
 			}
 		}
-	} else {
+	 } else if (ts->dnload) {
+		 while (ts->run_state) { 	 
+			 gf_dm_sess_process(ts->dnload); 	 
+			 gf_sleep(1); 	 
+		 }
+	 } else if (ts->file) {
 		u32 pos = 0;
 		if (ts->start_range && ts->duration) {
 			Double perc = ts->start_range / (1000 * ts->duration);
