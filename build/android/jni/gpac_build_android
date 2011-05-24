@@ -21,7 +21,7 @@ fi
 	 	 
 export PATH="$1:$PATH"
 
-if [ -w "$3" ] && [ -w "$2" ]
+if [ ! -z "$3" ] && [ ! -z "$2" ]
 then 
 export PATH="$2/tools:$3/bin:$PATH"
 shift 3
@@ -38,7 +38,11 @@ export BUILDPATH=$(pwd)
 echo "Current Dir = $BUILDPATH"
 version=$(svnversion ../../..)
 echo "*** Build path is $BUILDPATH, setting revision number $version"
-grep "$version" ../../../include/gpac/version.h 2&>1 >/dev/null && echo "Version $version already set" || echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/version.h
+if grep "$version" ../../../include/gpac/version.h >/dev/null 2>&1 ; then
+  echo "Version $version already set"
+else
+  echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/version.h
+fi
 echo "Building lib gpac ..."
 cd ../../../
 BASEPATH=$(pwd)
@@ -47,7 +51,7 @@ BASEPATH=$(pwd)
 
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
-ndk-build $*
+ndk-build
 echo "[OK] build successful."
 
 #echo "Copying modules to modules dir..."
@@ -116,3 +120,4 @@ zipalign -v 4 bin/Osmo4-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERS
 rm bin/Osmo4-*
 echo -e "\n[OK] success."
 fi
+
