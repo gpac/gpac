@@ -877,7 +877,13 @@ int main (int argc, char **argv)
 			the_cfg = argv[i+1];
 			i++;
 		}
-		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
+		else if (!strcmp(arg, "-mem-track")) {
+#ifdef GPAC_MEMORY_TRACKING
+			enable_mem_tracker = 1;
+#else
+			fprintf(stdout, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+#endif
+		}
 		else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
 			PrintUsage();
 			return 1;
