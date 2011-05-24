@@ -848,30 +848,24 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 		gf_node_unregister(node, (GF_Node*) inst);
 		gf_list_rem(inst->node_code, 0);
 	}
-	gf_list_del(inst->node_code);
 
+	sg = inst->sgprivate->scenegraph;
+
+	/*reset the scene graph before destroying the node code list, as unregistering nodes
+	not destroyed in the previous phase (eg, cyclic references such as script and co) will
+	refer to the node-code list*/
+	gf_sg_reset(sg);
+	sg->pOwningProto = NULL;
+
+	gf_free((char *) inst->proto_name);
+	gf_list_del(inst->node_code);
 	assert(!gf_list_count(inst->scripts_to_load));
 	gf_list_del(inst->scripts_to_load);
 
 	if (inst->proto_interface) gf_list_del_item(inst->proto_interface->instances, inst);
 
-	sg = inst->sgprivate->scenegraph;
-
-	gf_free((char *) inst->proto_name);
-
-	/*and finally destroy the node. If the proto is a hardcoded one (UserCallback set), destroy the node first
-	since the hardcoded proto may need the scene graph when being destroyed*/
-	if (inst->sgprivate->UserCallback) {
-		gf_sg_reset(sg);
-		sg->pOwningProto = NULL;
-		gf_node_free((GF_Node *)inst);
-		gf_sg_del(sg);
-	} else {
-		gf_sg_reset(sg);
-		sg->pOwningProto = NULL;
-		gf_node_free((GF_Node *)inst);
-		gf_sg_del(sg);
-	}
+	gf_node_free((GF_Node *)inst);
+	gf_sg_del(sg);
 }
 
 /*Note on ISed fields: we cannot support fan-in on proto, eg we assume only one eventIn field can receive events
