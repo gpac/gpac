@@ -290,3 +290,8 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 
 	return GF_OK;
 }
+
+void gf_ait_destroy(GF_M2TS_AIT* ait)
+{
+	//ait->;
+}

@@ -597,56 +597,30 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		if (!m2ts->ts_setup) {
 			m2ts->ts_setup = 1;
 		}
-		GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,
-				("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
+		GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
 		gf_term_on_connect(m2ts->service, NULL, e);
 	}
 }
 
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-	char szURL[2048];
-	char *frag;
 	M2TSIn *m2ts = plug->priv;
 
 	M2TS_GetNetworkType(plug,m2ts);
 
 	m2ts->owner = plug;
 	m2ts->service = serv;
+	if (!strnicmp(url, "http://", 7)) {
 
-	strcpy(szURL, url);
-	frag = strrchr(szURL, '#');
-	if (frag) frag[0] = 0;
-
-	m2ts->ts->file_regulate = 0;
-	m2ts->ts->duration = 0;
-
-	if (!strnicmp(url, "udp://", 6)
-		|| !strnicmp(url, "mpegts-udp://", 13)
-		|| !strnicmp(url, "mpegts-tcp://", 13)
-		) {
-		TSDemux_SetupLive(m2ts->ts, (char *) szURL);
-	}
-#ifdef GPAC_HAS_LINUX_DVB
-	else if (!strnicmp(url, "dvb://", 6)) {
-		// DVB Setup
-		TSDemux_SetupDVB(m2ts->ts, (char *) szURL);
-	}
-#endif
-	else if (!strnicmp(url, "http://", 7)) {
-
-		m2ts->ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
-		if (!m2ts->ts->dnload) gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
-		else {
-			m2ts->ts->th = gf_th_new("MPEG-2 TS Demux");
-			/*start playing for tune-in*/
-			gf_th_run(m2ts->ts->th,TSDemux_DemuxRun, m2ts->ts);
-		}
-	}
-	else {
-		TSDemux_SetupFile(m2ts->ts, (char *) szURL);
-	}
-	return GF_OK;
+                m2ts->ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
+				if (!m2ts->ts->dnload){
+					gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
+				}else{
+					return TSDemux_DemuxPlay(m2ts->ts);
+				}
+	}	
+	
+	return TSDemux_Demux_Setup(m2ts->ts,url,0);
 }
 
 static GF_Err M2TS_CloseService(GF_InputService *plug)
@@ -654,21 +628,7 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 	M2TSIn *m2ts = plug->priv;
 	GF_M2TS_Demuxer* ts = m2ts->ts;
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("destroying TSin\n"));
-	if (ts->th) {
-		if (ts->run_state == 1) {
-			ts->run_state = 0;
-			while (ts->run_state!=2) gf_sleep(0);
-		}
-		gf_th_del(ts->th);
-		ts->th = NULL;
-	}
-
-	if (ts->file) fclose(ts->file);
-	ts->file = NULL;
-
-	if (ts->dnload) gf_term_download_del(ts->dnload);
-	ts->dnload = NULL;
+	TSDemux_CloseDemux(ts);	
 
 	gf_term_on_disconnect(m2ts->service, NULL, GF_OK);
 	return GF_OK;
@@ -743,7 +703,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/* restart the thread if the same service is reused and if the previous thread terminated */
 	if (m2ts->ts->run_state == 2) {
 		m2ts->ts->file_regulate = 0;
-		gf_th_run(m2ts->ts->th, TSDemux_DemuxRun, m2ts->ts);
+		TSDemux_DemuxPlay(m2ts->ts);
 	}
 
 	return NULL;
@@ -871,7 +831,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 			/*start demuxer*/
 			if (ts->run_state!=1) {
-				gf_th_run(ts->th, TSDemux_DemuxRun, m2ts->ts);
+				return TSDemux_DemuxPlay(ts);
 			}
 		}
 		ts->nb_playing++;
@@ -895,7 +855,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			while (ts->run_state!=2) gf_sleep(2);
 			if (gf_list_count(m2ts->ts->requested_progs)) {
 				ts->file_regulate = 0;
-				gf_th_run(ts->th, TSDemux_DemuxRun, m2ts->ts);
+				return TSDemux_DemuxPlay(ts);
 			}
 		}
 		return GF_OK;
