@@ -47,7 +47,7 @@ BASEPATH=$(pwd)
 
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
-ndk-build
+ndk-build $*
 echo "[OK] build successful."
 
 #echo "Copying modules to modules dir..."
@@ -103,11 +103,11 @@ cp "$i" "$LIBS_DIR/$i"
 done
 echo "[OK] success extra lib MP4box."
 
-echo "Self-updating project"
-android update project -p "$BASEPATH/applications/osmo4_android/"
-
 if [ $ANT -eq 1 ]
 then
+echo "\nSelf-updating project"
+android update project -p "$BASEPATH/applications/osmo4_android/"
+
 echo -e "\nBuiding Osmo4.apk" 
 cd $BASEPATH/applications/osmo4_android/
 ant release
