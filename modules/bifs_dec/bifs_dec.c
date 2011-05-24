@@ -112,12 +112,12 @@ static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 i
 	return e;
 }
 
-Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	BIFSPriv *priv = (BIFSPriv *)ifce->privateStack;
-	if (StreamType!=GF_STREAM_SCENE) return 0;
+	if (StreamType!=GF_STREAM_SCENE) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
-	if (!esd) return 1;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_SCENE_BIFS:
@@ -126,9 +126,9 @@ Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 
 		shall be treated as if the ObjectTypeIndication had been set to 0x01*/
 	case 0xFF:
 		priv->PL = PL;
-		return 1;
+		return GF_CODEC_SUPPORTED;
 	default:
-		return 0;
+		return GF_CODEC_NOT_SUPPORTED;
 	}
 }
 

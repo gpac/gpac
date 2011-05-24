@@ -228,16 +228,16 @@ const char *WGT_GetName(struct _basedecoder *plug)
 	return "GPAC W3C Widget Loader";
 }
 
-Bool WGT_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 WGT_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	/*don't reply to media type query*/
-	if (!esd) return 0;
+	if (!esd) return GF_CODEC_NOT_SUPPORTED;
 
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_PRIVATE_SCENE_WGT) return 1;
-		return 0;
+		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_PRIVATE_SCENE_WGT) return GF_CODEC_SUPPORTED;
+		return GF_CODEC_NOT_SUPPORTED;
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 static GF_Err WGT_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *cap)

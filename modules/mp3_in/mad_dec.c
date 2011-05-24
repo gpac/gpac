@@ -290,21 +290,21 @@ static const char *MAD_GetCodecName(GF_BaseDecoder *dec)
 		MAD_VERSION;
 }
 
-static Bool MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	/*audio decs*/
-	if (StreamType != GF_STREAM_AUDIO) return 0;
+	if (StreamType != GF_STREAM_AUDIO) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
-	if (!esd) return 1;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	/*MPEG1 audio*/
 	case GPAC_OTI_AUDIO_MPEG2_PART3:
 	/*MPEG2 audio*/
 	case GPAC_OTI_AUDIO_MPEG1:
-		return 1;
+		return GF_CODEC_SUPPORTED;
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 GF_BaseDecoder *NewMADDec()

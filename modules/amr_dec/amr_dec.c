@@ -241,17 +241,17 @@ static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd,
 {
 	char *dsi;
 	/*we handle audio only*/
-	if (StreamType!=GF_STREAM_AUDIO) return 0;
+	if (StreamType!=GF_STREAM_AUDIO) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
-	if (!esd) return 1;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
-	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_GENERIC) return 0;
+	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_GENERIC) return GF_CODEC_NOT_SUPPORTED;
 	dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
-	if (!dsi) return 0;
-	if (esd->decoderConfig->decoderSpecificInfo->dataLength < 4) return 0;
+	if (!dsi) return GF_CODEC_NOT_SUPPORTED;
+	if (esd->decoderConfig->decoderSpecificInfo->dataLength < 4) return GF_CODEC_NOT_SUPPORTED;
 	
-	if (!strnicmp(dsi, "samr", 4) || !strnicmp(dsi, "amr ", 4)) return 1;
-	return 0;
+	if (!strnicmp(dsi, "samr", 4) || !strnicmp(dsi, "amr ", 4)) return GF_CODEC_SUPPORTED;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 

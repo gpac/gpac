@@ -25,47 +25,47 @@
 #include "ogg_in.h"
 
 
-static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	/*video decs*/
 	if (StreamType == GF_STREAM_VISUAL) {
 		char *dsi;
 		/*media type query*/
-		if (!esd) return 1;
+		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 		dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
 		
 		switch (esd->decoderConfig->objectTypeIndication) {
 #ifdef GPAC_HAS_THEORA
 		case GPAC_OTI_MEDIA_OGG:
 			if (dsi && (esd->decoderConfig->decoderSpecificInfo->dataLength>=9)  && !strncmp((char *) &dsi[3], "theora", 6)) {
-				return NewTheoraDecoder(dec);
+				if (NewTheoraDecoder(dec)) return GF_CODEC_SUPPORTED;
 			}
-			return 0;
+			return GF_CODEC_NOT_SUPPORTED;
 #endif
 		default: 
-			return 0;
+			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
 	/*audio decs*/
 	if (StreamType == GF_STREAM_AUDIO) {
 		char *dsi;
 		/*media type query*/
-		if (!esd) return 1;
+		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 		dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
 
 		switch (esd->decoderConfig->objectTypeIndication) {
 #ifdef GPAC_HAS_VORBIS
 		case GPAC_OTI_MEDIA_OGG:
 			if (dsi && (esd->decoderConfig->decoderSpecificInfo->dataLength>=9)  && !strncmp((char *) &dsi[3], "vorbis", 6)) {
-				return NewVorbisDecoder(dec);
+				if (NewVorbisDecoder(dec)) return GF_CODEC_SUPPORTED;
 			}
-			return 0;
+			return GF_CODEC_NOT_SUPPORTED;
 #endif
 		default: 
-			return 0;
+			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 

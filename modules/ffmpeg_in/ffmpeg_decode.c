@@ -846,7 +846,7 @@ redecode:
 	return GF_OK;
 }
 
-static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	GF_BitStream *bs;
 	u32 codec_id;
@@ -855,8 +855,8 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *
 
 	/*media type query*/
 	if (!esd) {
-		if ((StreamType==GF_STREAM_VISUAL) || (StreamType==GF_STREAM_AUDIO)) return 1;
-		return 0;
+		if ((StreamType==GF_STREAM_VISUAL) || (StreamType==GF_STREAM_AUDIO)) return GF_CODEC_STREAM_TYPE_SUPPORTED;
+		return GF_CODEC_NOT_SUPPORTED;
 	}
 
 	/*store types*/
@@ -895,7 +895,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *
 				Bool is_svc = 0;
 				u32 i, count;
 				GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-				if (!cfg) return 1;
+				if (!cfg) return GF_CODEC_SUPPORTED;
 
 				/*decode all NALUs*/
 				count = gf_list_count(cfg->sequenceParameterSets);
@@ -909,9 +909,9 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *
 					}
 				}
 				gf_odf_avc_cfg_del(cfg);
-				return is_svc ? 0 : 1;
+				return is_svc ? GF_CODEC_MAYBE_SUPPORTED : GF_CODEC_SUPPORTED;
 			}
-			return 1;
+			return GF_CODEC_SUPPORTED;
 		}
 
 		switch (ffd->oti) {
@@ -931,25 +931,25 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *
 			codec_id = CODEC_ID_MPEG2VIDEO; break;
 		/*JPEG*/
 		case GPAC_OTI_IMAGE_JPEG:
-//			return 0; /*I'm having troubles with ffmpeg & jpeg, it appears to crash randomly*/
 			codec_id = CODEC_ID_MJPEG;
-			//break;
-			/* SOUCHAY : the JPEG handler has some issues with some JPEG files,
-			 * since GPAC also has img_in plugin for images, do not use FFMPEG one
-			 */
-			return 0;
+			/*return maybe supported as FFMPEG JPEG decoder has some issues with many files, so let's use it only if no
+			other dec is available*/
+			if (avcodec_find_decoder(codec_id) != NULL) 
+				return GF_CODEC_MAYBE_SUPPORTED;
+			
+			return GF_CODEC_NOT_SUPPORTED;
 		default:
-			return 0;
+			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
 	/*NeroDigital DVD subtitles*/
 	else if ((StreamType==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0))
-		return 1;
+		return GF_CODEC_SUPPORTED;
 
-	if (!codec_id) return 0;
-	if (check_4cc && (ffmpeg_get_codec(codec_id) != NULL)) return 1;
-	if (avcodec_find_decoder(codec_id) != NULL) return 1;
-	return 0;
+	if (!codec_id) return GF_CODEC_NOT_SUPPORTED;
+	if (check_4cc && (ffmpeg_get_codec(codec_id) != NULL)) return GF_CODEC_SUPPORTED;
+	if (avcodec_find_decoder(codec_id) != NULL) return GF_CODEC_SUPPORTED;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 static const char *FFDEC_GetCodecName(GF_BaseDecoder *dec)

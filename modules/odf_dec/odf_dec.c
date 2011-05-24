@@ -236,14 +236,14 @@ err_exit:
 }
 
 
-Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	ODPriv *priv = (ODPriv *)ifce->privateStack;
 	if (StreamType==GF_STREAM_OD) {
 		priv->PL = PL;
-		return 1;
+		return GF_CODEC_SUPPORTED;
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 
