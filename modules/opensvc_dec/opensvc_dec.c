@@ -300,12 +300,12 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	return GF_OK;
 }
 
-static Bool OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
-	if (StreamType != GF_STREAM_VISUAL) return 0;
+	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
 
 	/*media type query*/
-	if (!esd) return 1;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
@@ -313,7 +313,7 @@ static Bool OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 			Bool is_svc = 0;
 			u32 i, count;
 			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-			if (!cfg) return 0;
+			if (!cfg) return GF_CODEC_NOT_SUPPORTED;
 
 			/*decode all NALUs*/
 			count = gf_list_count(cfg->sequenceParameterSets);
@@ -327,11 +327,11 @@ static Bool OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 				}
 			}
 			gf_odf_avc_cfg_del(cfg);
-			return is_svc;
+			return is_svc ? GF_CODEC_SUPPORTED : GF_CODEC_MAYBE_SUPPORTED;
 		}
-		return 1;
+		return GF_CODEC_MAYBE_SUPPORTED;
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 static const char *OSVC_GetCodecName(GF_BaseDecoder *dec)

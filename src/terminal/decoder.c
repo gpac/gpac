@@ -1004,11 +1004,11 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 {
 	char szPrefDec[500];
 	const char *sOpt;
-	GF_BaseDecoder *ifce;
+	GF_BaseDecoder *ifce, *dec_ifce;
 	u32 i, plugCount;
 	u32 ifce_type;
 	char *cfg;
-	u32 cfg_size;
+	u32 cfg_size, dec_confidence;
 	GF_Terminal *term = codec->odm->term;
 
 	if (esd->decoderConfig->decoderSpecificInfo) {
@@ -1064,28 +1064,51 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		}
 	}
 
+	dec_confidence = 0;
+	ifce = NULL;
+
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
-			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL) ) {
-				codec->decio = ifce;
-				return GF_OK;
+			if (ifce->CanHandleStream) {
+				dec_confidence = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
+				if (dec_confidence==GF_CODEC_SUPPORTED) {
+					codec->decio = ifce;
+					return GF_OK;
+				}
+				if (dec_confidence==GF_CODEC_NOT_SUPPORTED) {
+					gf_modules_close_interface((GF_BaseInterface *) ifce);
+					ifce = NULL;
+				}
+			} else {
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
 			}
-			gf_modules_close_interface((GF_BaseInterface *) ifce);
 		}
 	}
 
+	dec_ifce = ifce;
 	/*prefered codec module per streamType/objectType from config*/
 	sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 	sOpt = gf_cfg_get_key(term->user->config, "Systems", szPrefDec);
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
-			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL) ) {
-				codec->decio = ifce;
-				return GF_OK;
+			if (ifce->CanHandleStream) {
+				u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
+				if (conf>=dec_confidence) {
+					/*switch*/
+					if (dec_ifce) gf_modules_close_interface((GF_BaseInterface *) dec_ifce);
+					dec_confidence = conf;
+					dec_ifce = ifce;
+					ifce = NULL;
+					if (dec_confidence==GF_CODEC_SUPPORTED) {
+						codec->decio = dec_ifce;
+						return GF_OK;
+					}
+				}
 			}
-			gf_modules_close_interface((GF_BaseInterface *) ifce);
+			if (ifce)
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
 		}
 	}
 	/*not found, check all modules*/
@@ -1093,14 +1116,28 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	for (i = 0; i < plugCount ; i++) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(term->user->modules, i, ifce_type);
 		if (!ifce) continue;
-		if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL) ) {
-			codec->decio = ifce;
-			sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-			gf_cfg_set_key(term->user->config, "Systems", szPrefDec, ifce->module_name);
-			return GF_OK;
+		if (ifce->CanHandleStream) {
+			u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);			
+
+			if (conf >=dec_confidence) {
+				/*switch*/
+				if (dec_ifce) gf_modules_close_interface((GF_BaseInterface *) dec_ifce);
+				dec_confidence = conf;
+				dec_ifce = ifce;
+				ifce = NULL;
+			}
 		}
-		gf_modules_close_interface((GF_BaseInterface *) ifce);
+		if (ifce)
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
 	}
+
+	if (dec_ifce) {
+		codec->decio = dec_ifce;
+		sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+		gf_cfg_set_key(term->user->config, "Systems", szPrefDec, dec_ifce->module_name);
+		return GF_OK;
+	}
+
 	return GF_CODEC_NOT_FOUND;
 }
 

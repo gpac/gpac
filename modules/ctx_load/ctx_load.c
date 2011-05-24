@@ -692,25 +692,37 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	}
 }
 
-Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		/*media type query*/
-		if (!esd) return 1;
+		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 		switch (esd->decoderConfig->objectTypeIndication) {
 		case GPAC_OTI_PRIVATE_SCENE_GENERIC:
-			return 1;
+			return GF_CODEC_SUPPORTED;
 		/*LASeR ML: we use this plugin since it has command handling*/
 		case GPAC_OTI_PRIVATE_SCENE_LASER:
-			return 1;
+			return GF_CODEC_SUPPORTED;
 		/* XBL */
 		case GPAC_OTI_PRIVATE_SCENE_XBL:
-			return 1;
+			return GF_CODEC_SUPPORTED;
+		/*SVG*/
+		case GPAC_OTI_PRIVATE_SCENE_SVG:
+			return GF_CODEC_MAYBE_SUPPORTED;
+		}
+	} else if (StreamType==GF_STREAM_SCENE) {
+		/*media type query*/
+		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
+		switch (esd->decoderConfig->objectTypeIndication) {
+		case GPAC_OTI_SCENE_SVG:
+		case GPAC_OTI_SCENE_SVG_GZ:
+		case GPAC_OTI_SCENE_DIMS:
+			return GF_CODEC_MAYBE_SUPPORTED;
+		default:	
+			break;
 		}
 	}
-	/*SVG*/
-	//if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==2)) return 1;
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 void DeleteContextLoader(GF_BaseDecoder *plug)

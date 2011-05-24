@@ -26,39 +26,44 @@
 #include "img_in.h"
 
 
-static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
-	if (StreamType != GF_STREAM_VISUAL) return 0;
+	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
-	if (!esd) return 1;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 #ifdef GPAC_HAS_PNG
 	case GPAC_OTI_IMAGE_PNG:
-		return NewPNGDec(dec);
+		if (NewPNGDec(dec)) return GF_CODEC_SUPPORTED;
+		return GF_CODEC_NOT_SUPPORTED;
 #endif
 #ifdef GPAC_HAS_JPEG
 	case GPAC_OTI_IMAGE_JPEG:
-		return NewJPEGDec(dec);
+		if (NewJPEGDec(dec)) return GF_CODEC_SUPPORTED;
+		return GF_CODEC_NOT_SUPPORTED;
 #endif
 #ifdef GPAC_HAS_JP2
 	case GPAC_OTI_IMAGE_JPEG_2000:
-		return NewJP2Dec(dec);
+		if (NewJP2Dec(dec)) return GF_CODEC_SUPPORTED;
+		return GF_CODEC_NOT_SUPPORTED;
 #endif
 	case GPAC_BMP_OTI:
-		return NewBMPDec(dec);
+		if (NewBMPDec(dec)) return GF_CODEC_SUPPORTED;
+		return GF_CODEC_NOT_SUPPORTED;
 
 	default:
 #ifdef GPAC_HAS_JP2
 		{
 			char *dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
 			if (dsi && (dsi[0]=='m') && (dsi[1]=='j') && (dsi[2]=='p') && (dsi[3]=='2'))
-				return NewJP2Dec(dec);
+				if (NewJP2Dec(dec)) return GF_CODEC_SUPPORTED;
+				return GF_CODEC_NOT_SUPPORTED;
 		}
 #endif
-		return 0;
+		return GF_CODEC_NOT_SUPPORTED;
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 

@@ -130,6 +130,18 @@ enum
 };
 
 
+enum
+{
+	/*stream format is NOT supported by this codec*/
+	GF_CODEC_NOT_SUPPORTED = 0,
+	/*stream type (eg audio, video) is supported by this codec*/
+	GF_CODEC_STREAM_TYPE_SUPPORTED = 1,
+	/*stream format may be (partially) supported by this codec*/
+	GF_CODEC_MAYBE_SUPPORTED = 127,
+	/*stream format is supported by this codec*/
+	GF_CODEC_SUPPORTED = 255,
+};
+
 	/* Generic interface used by both media decoders and scene decoders
 @AttachStream:
 	Add a Stream to the codec. If DependsOnESID is NULL, the stream is a base layer
@@ -145,7 +157,7 @@ enum
 	Set the desired capability given its code if possible
 	if the codec does not support the request capability, return GF_NOT_SUPPORTED
 @CanHandleStream
-	Can module handle this codec? Return 0 if No and !0 otherwise
+	Can module handle this codec? Return one of GF_CODEC_NOT_SUPPORTED, GF_CODEC_MAYBE_SUPPORTED or GF_CODEC_SUPPORTED
 	esd is provided for more advanced inspection ( eg MPEG4 audio/visual where a bunch of codecs are defined with same objectType). If esd is NULL, only 
 	decoder type is checked (audio or video), not codec type
 @GetDecoderName
@@ -160,7 +172,7 @@ enum
 	GF_Err (*DetachStream)(IFCE_NAME, u16 ES_ID);\
 	GF_Err (*GetCapabilities)(IFCE_NAME, GF_CodecCapability *capability);\
 	GF_Err (*SetCapabilities)(IFCE_NAME, GF_CodecCapability capability);\
-	Bool (*CanHandleStream)(IFCE_NAME, u32 StreamType, GF_ESD *esd, u8 ProfileLevelIndication);\
+	u32 (*CanHandleStream)(IFCE_NAME, u32 StreamType, GF_ESD *esd, u8 ProfileLevelIndication);\
 	const char *(*GetName)(IFCE_NAME);\
 	void *privateStack;	\
 

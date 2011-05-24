@@ -319,15 +319,16 @@ static const char *FAAD_GetCodecName(GF_BaseDecoder *ifcg)
 	return "FAAD2 " FAAD2_VERSION;
 }
 
-static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo a_cfg;
 #endif
+
 	/*audio decs*/	
-	if (StreamType != GF_STREAM_AUDIO) return 0;
+	if (StreamType != GF_STREAM_AUDIO) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
-	if (!esd) return 1;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	/*MPEG2 aac*/
@@ -338,16 +339,32 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 	case GPAC_OTI_AUDIO_AAC_MPEG4: 
 		break;
 	default:
-		return 0;
+		return GF_CODEC_NOT_SUPPORTED;
 	}
-	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return 0;
+	/*this codec currently requires AAC config in ESD*/
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_CODEC_NOT_SUPPORTED;
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return 0;
-	/*BSAC not supported*/
-	if (a_cfg.base_object_type == GF_M4A_ER_BSAC) return 0;
-#endif
-	return 1;
+	if (gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_CODEC_NOT_SUPPORTED;
 
+	switch (a_cfg.base_object_type) {
+	case GF_M4A_AAC_MAIN:
+	case GF_M4A_AAC_LC:
+	case GF_M4A_AAC_SSR:
+	case GF_M4A_AAC_LTP:
+	case GF_M4A_AAC_SBR:
+		return GF_CODEC_SUPPORTED;
+	case GF_M4A_ER_AAC_LC:
+	case GF_M4A_ER_AAC_LTP:
+	case GF_M4A_ER_AAC_SCALABLE:
+	case GF_M4A_ER_AAC_LD:
+	case GF_M4A_AAC_PS:
+		return GF_CODEC_MAYBE_SUPPORTED;
+	default:
+		return GF_CODEC_NOT_SUPPORTED;
+	}
+#endif
+
+	return GF_CODEC_SUPPORTED;
 }
 
 GF_BaseDecoder *NewFAADDec()

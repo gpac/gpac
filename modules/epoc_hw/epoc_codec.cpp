@@ -332,7 +332,7 @@ static const char *EDEC_GetCodecName(GF_BaseDecoder *ifcg)
 	return ctx->codec_name;
 }
 
-static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	char *dsi;
 	GF_M4ADecSpecInfo a_cfg;
@@ -341,7 +341,7 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *e
 	/*audio decs*/	
 	if (StreamType == GF_STREAM_AUDIO) {
 		/*media type query*/
-		if (!esd) return 1;
+		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 		dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
 		switch (esd->decoderConfig->objectTypeIndication) {
 		/*MPEG2 aac*/
@@ -350,13 +350,13 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *e
 		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 		/*MPEG4 aac*/
 		case GPAC_OTI_AUDIO_AAC_MPEG4: 
-			if (!dsi) return 0;
-			if (gf_m4a_get_config(dsi, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return 0;
+			if (!dsi) return GF_CODEC_NOT_SUPPORTED;
+			if (gf_m4a_get_config(dsi, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_CODEC_MAYBE_SUPPORTED;
 			switch (a_cfg.base_object_type) {
 			/*only LTP and LC supported*/
 			case GF_M4A_AAC_LC:
 			case GF_M4A_AAC_LTP:
-				if ((ctx->caps & GF_EPOC_HAS_AAC) || (ctx->caps & GF_EPOC_HAS_HEAAC) ) return 1;
+				if ((ctx->caps & GF_EPOC_HAS_AAC) || (ctx->caps & GF_EPOC_HAS_HEAAC) ) return GF_CODEC_SUPPORTED;
 			default:
 				break;
 			}
@@ -369,20 +369,20 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *e
 			break;
 		/*non-mpeg4 codecs*/
 		case GPAC_OTI_MEDIA_GENERIC:
-			if (!dsi) return 0;
-			if (esd->decoderConfig->decoderSpecificInfo->data < 4) return 0;
+			if (!dsi) return GF_CODEC_NOT_SUPPORTED;
+			if (esd->decoderConfig->decoderSpecificInfo->data < 4) return GF_CODEC_NOT_SUPPORTED;
 			if (!strnicmp(dsi, "samr", 4) || !strnicmp(dsi, "amr ", 4)) {
-				if (ctx->caps & GF_EPOC_HAS_AMR) return 1;
+				if (ctx->caps & GF_EPOC_HAS_AMR) return GF_CODEC_SUPPORTED;
 			}
 			if (!strnicmp(dsi, "sawb", 4)) {
-				if (ctx->caps & GF_EPOC_HAS_AMR_WB) return 1;
+				if (ctx->caps & GF_EPOC_HAS_AMR_WB) return GF_CODEC_SUPPORTED;
 			}
 			break;
 		default:
-			return 0;
+			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
-	return 0;
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 #ifdef __cplusplus

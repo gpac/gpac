@@ -70,7 +70,7 @@ typedef struct
 {
 	GF_Scene *inlineScene;
 	GF_Terminal *app;
-	u32 PL, nb_streams;
+	u32 nb_streams;
 
 	GF_TextConfig *cfg;
 
@@ -1094,17 +1094,16 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 	return e;
 }
 
-Bool TTD_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 TTD_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	TTDPriv *priv = (TTDPriv *)ifce->privateStack;
-	if (StreamType!=GF_STREAM_TEXT) return 0;
+	if (StreamType!=GF_STREAM_TEXT) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
-	if (!esd) return 1;
-	if (esd->decoderConfig->objectTypeIndication==0x08) {
-		priv->PL = PL;
-		return 1;
-	}
-	return 0;
+	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
+
+	if (esd->decoderConfig->objectTypeIndication==0x08) return GF_CODEC_SUPPORTED;
+
+	return GF_CODEC_NOT_SUPPORTED;
 }
 
 
