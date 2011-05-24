@@ -604,6 +604,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
+	GF_Err e;	
 	M2TSIn *m2ts = plug->priv;
 
 	M2TS_GetNetworkType(plug,m2ts);
@@ -620,18 +621,21 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 				}
 	}	
 	
-	return TSDemux_Demux_Setup(m2ts->ts,url,0);
+	e = TSDemux_Demux_Setup(m2ts->ts,url,0);
+	gf_term_on_connect(m2ts->service, NULL, e);	
+	return GF_OK;
 }
 
 static GF_Err M2TS_CloseService(GF_InputService *plug)
 {
 	M2TSIn *m2ts = plug->priv;
 	GF_M2TS_Demuxer* ts = m2ts->ts;
+
+	TSDemux_CloseDemux(ts);	
+	
 	
 	if (ts->dnload) gf_term_download_del(ts->dnload);
 	ts->dnload = NULL;
-
-	TSDemux_CloseDemux(ts);	
 
 	gf_term_on_disconnect(m2ts->service, NULL, GF_OK);
 	return GF_OK;
