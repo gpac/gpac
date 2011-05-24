@@ -2663,9 +2663,6 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 	if (ts->file) fclose(ts->file);
 	ts->file = NULL;
 
-	if (ts->dnload) gf_term_download_del(ts->dnload);
-	ts->dnload = NULL;
-
 	return GF_OK;
 }
 

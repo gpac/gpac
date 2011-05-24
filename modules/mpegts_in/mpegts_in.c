@@ -627,6 +627,9 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 {
 	M2TSIn *m2ts = plug->priv;
 	GF_M2TS_Demuxer* ts = m2ts->ts;
+	
+	if (ts->dnload) gf_term_download_del(ts->dnload);
+	ts->dnload = NULL;
 
 	TSDemux_CloseDemux(ts);	
 
