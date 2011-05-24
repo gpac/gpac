@@ -1541,13 +1541,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
 
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_Demux_Process) )
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_SetupLive) )
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_SetupFile) )
-#ifdef GPAC_HAS_LINUX_DVB
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_SetupDVB) )
-#endif
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_DemuxRun) )
+#pragma comment (linker, EXPORT_SYMBOL(TSDemux_Demux_Setup))
+#pragma comment (linker, EXPORT_SYMBOL(TSDemux_DemuxPlay) )
 #pragma comment (linker, EXPORT_SYMBOL(TSDemux_CloseDemux) )
 
 #endif /*GPAC_DISABLE_MPEG2TS*/

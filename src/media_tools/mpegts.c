@@ -2205,7 +2205,7 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 
 /* DVB fonction */
 
-u32 TSDemux_DemuxRun(void *_p)
+static u32 TSDemux_DemuxRun(void *_p)
 {
 	GF_Err e;
 	char data[UDP_BUFFER_SIZE];
@@ -2317,7 +2317,7 @@ u32 TSDemux_DemuxRun(void *_p)
 }
 
 
-void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
+static GF_Err TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
 {
 	GF_Err e = GF_OK;
 	char *str;
@@ -2330,14 +2330,16 @@ void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
 		sock_type = GF_SOCK_TYPE_TCP;
 	} else {
 		e = GF_NOT_SUPPORTED;
-		goto exit;
+		return e;
 	}
 
 	url = strchr(url, ':');
 	url += 3;
 
 	ts->sock = gf_sk_new(sock_type);
-	if (!ts->sock) { e = GF_IO_ERR; goto exit; }
+	if (!ts->sock) { 
+		return e = GF_IO_ERR;
+	}
 
 	/*setup port and src*/
 	port = 1234;
@@ -2370,100 +2372,8 @@ void TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
 	gf_sk_set_block_mode(ts->sock, 0);
 
 	//gf_th_set_priority(ts->th, GF_THREAD_PRIORITY_HIGHEST);
-	if(ts->th){
-		/*start playing for tune-in*/
-		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
-	}else{
-		TSDemux_DemuxRun(ts);
-	}
+	return  TSDemux_DemuxPlay(ts);
 
-exit:
-	if(e){
-		//gf_term_on_connect(ts->user->service, NULL, e);
-    }	
-}
-
-void TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
-{
-	if (ts->file && !strcmp(ts->filename, url)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] TS file already being processed: %s\n", url));
-		return;
-	}
-
-	ts->file = fopen(url, "rb"); 
-	if (!ts->file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Could not open TS file: %s\n", url));
-		if(ts->demux_and_play){
-			//gf_term_on_connect(ts->user->service, NULL, GF_URL_ERROR);
-		}
-		return;
-	}
-	strcpy(ts->filename, url);
-
-	fseek(ts->file, 0, SEEK_END);
-	ts->file_size = ftell(ts->file);
-
-	/* reinitialization for seek */
-	ts->end_range = ts->start_range = 0;
-	ts->nb_playing = 0;
-
-	if(ts->th){
-		/*start playing for tune-in*/
-		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
-	}else{
-		TSDemux_DemuxRun(ts);
-	}
-}
-
-GF_Err TSDemux_Demux_Process(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
-{
-	char szURL[2048];
-	char *frag;
-	
-	strcpy(szURL, url);
-	frag = strrchr(szURL, '#');
-	if (frag) frag[0] = 0;
-
-	ts->file_regulate = 0;
-	ts->duration = 0;
-
-    if(loop == 1){
-      ts->loop_demux = 1;
-      printf("Loop Mode activated \n");
-    }
-
-	if (!strnicmp(url, "udp://", 6)
-		|| !strnicmp(url, "mpegts-udp://", 13)
-		|| !strnicmp(url, "mpegts-tcp://", 13)
-		) {
-		TSDemux_SetupLive(ts, (char *) szURL);
-	}
-#ifdef GPAC_HAS_LINUX_DVB
-	else if (!strnicmp(url, "dvb://", 6)) {
-		TSDemux_SetupDVB(ts, (char *) szURL);
-	}
-#endif
-	else {
-	  TSDemux_SetupFile(ts, (char *) szURL);
-	}
-	return GF_OK;
-}
-
-GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
-{
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[EpgDemux] Destroying demuxer\n"));
-	if (ts->th) {
-		if (ts->run_state == 1) {
-			ts->run_state = 0;
-			while (ts->run_state!=2) gf_sleep(0);
-		}
-		gf_th_del(ts->th);
-		ts->th = NULL;
-	}
-
-	if (ts->file) fclose(ts->file);
-	ts->file = NULL;
-	return GF_OK;
 }
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -2673,16 +2583,103 @@ GF_Err TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, const char *url)
 		return GF_SERVICE_ERROR;
 	}
 
-	if(ts->th){
-		/*start playing for tune-in*/
-		gf_th_run(ts->th, TSDemux_DemuxRun, ts);
-	} else {
-		TSDemux_DemuxRun(ts);
-	}
-	return GF_OK;
+	return  TSDemux_DemuxPlay(ts);
 }
 
 #endif
+
+static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
+{
+	if (ts->file && !strcmp(ts->filename, url)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] TS file already being processed: %s\n", url));
+		return GF_IO_ERR;
+	}
+
+	ts->file = fopen(url, "rb"); 
+	if (!ts->file) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));		
+		return GF_IO_ERR;
+	}
+	strcpy(ts->filename, url);
+
+	fseek(ts->file, 0, SEEK_END);
+	ts->file_size = ftell(ts->file);
+
+	/* reinitialization for seek */
+	ts->end_range = ts->start_range = 0;
+	ts->nb_playing = 0;	
+
+	return  TSDemux_DemuxPlay(ts);
+
+}
+
+GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
+{
+	char szURL[2048];
+	char *frag;
+	
+	strcpy(szURL, url);
+	frag = strrchr(szURL, '#');
+	if (frag) frag[0] = 0;
+
+	ts->file_regulate = 0;
+	ts->duration = 0;
+
+    if(loop == 1){
+      ts->loop_demux = 1;
+      printf("Loop Mode activated \n");
+    }
+
+	if (!strnicmp(url, "udp://", 6)
+		|| !strnicmp(url, "mpegts-udp://", 13)
+		|| !strnicmp(url, "mpegts-tcp://", 13)
+		) {
+		return TSDemux_SetupLive(ts, (char *) szURL);
+	}
+#ifdef GPAC_HAS_LINUX_DVB
+	else if (!strnicmp(url, "dvb://", 6)) {
+		return TSDemux_SetupDVB(ts, (char *) szURL);
+	}
+#endif
+	else {
+	  return TSDemux_SetupFile(ts, (char *) szURL);
+	}
+
+	return GF_NOT_SUPPORTED;
+}
+
+GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
+{
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[TSDemux] Destroying demuxer\n"));
+	if (ts->th) {
+		if (ts->run_state == 1) {
+			ts->run_state = 0;
+			while (ts->run_state!=2) gf_sleep(0);
+		}
+		gf_th_del(ts->th);
+		ts->th = NULL;
+	}
+
+	if (ts->file) fclose(ts->file);
+	ts->file = NULL;
+
+	if (ts->dnload) gf_term_download_del(ts->dnload);
+	ts->dnload = NULL;
+
+	return GF_OK;
+}
+
+
+GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts){
+
+	if(ts->th){
+		/*start playing for tune-in*/
+		return gf_th_run(ts->th, TSDemux_DemuxRun, ts);
+	}else{
+		return TSDemux_DemuxRun(ts);
+	}
+
+}
 
 
 
