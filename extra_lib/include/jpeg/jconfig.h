@@ -26,6 +26,15 @@
 /* Define this if you get warnings about undefined structures. */
 #undef INCOMPLETE_TYPES_BROKEN
 
+#ifndef __MINGW32__
+/* Define "boolean" as unsigned char, not int, per Windows custom */
+#ifndef __RPCNDR_H__		/* don't conflict if rpcndr.h already read */
+typedef unsigned char boolean;
+#endif
+#define HAVE_BOOLEAN		/* prevent jmorecfg.h from redefining it */
+#endif
+
+
 #ifdef JPEG_INTERNALS
 
 #undef RIGHT_SHIFT_IS_UNSIGNED
