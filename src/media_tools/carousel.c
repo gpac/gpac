@@ -1,26 +1,26 @@
 /*
- *			GPAC - Multimedia Framework C SDK
- *
- *			Authors: Telecom Paristech
- *    Copyright (c)2006-200X ENST - All rights reserved
- *
- *  This file is part of GPAC / MPEG2-TS sub-project
- *
- *  GPAC is gf_free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the gf_free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *   
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the gf_free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *
- */
+*			GPAC - Multimedia Framework C SDK
+*
+*			Authors: Telecom Paristech
+*    Copyright (c)2006-200X ENST - All rights reserved
+*
+*  This file is part of GPAC / MPEG2-TS sub-project
+*
+*  GPAC is gf_free software; you can redistribute it and/or modify
+*  it under the terms of the GNU Lesser General Public License as published by
+*  the gf_free Software Foundation; either version 2, or (at your option)
+*  any later version.
+*   
+*  GPAC is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU Lesser General Public License for more details.
+*   
+*  You should have received a copy of the GNU Lesser General Public
+*  License along with this library; see the file COPYING.  If not, write to
+*  the gf_free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+*
+*/
 
 #include <gpac/carousel.h>
 
@@ -49,15 +49,15 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		data = pck->data;
 		u32_data_size = pck->data_len;
 		u32_table_id = data[0];
-			
+
 		gf_m2ts_process_ait(ts, (GF_M2TS_AIT*)pck->stream, data, u32_data_size, u32_table_id);
-		
+
 	}
 }
 
 GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id)
 {
-	
+
 	GF_BitStream *bs;
 	u8 temp_descriptor_tag;
 	u32 data_shift, app_desc_data_shift, ait_app_data_shift;
@@ -68,11 +68,10 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 	nb_of_ait = 0;
 	ait_app_data_shift = 0;
 	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
-	
+
 	ait->common_descriptors = gf_list_new();
 	ait->application = gf_list_new();
 
-	
 	ait->table_id = gf_bs_read_int(bs,8);	
 	ait->section_syntax_indicator = gf_bs_read_int(bs,1);
 	gf_bs_read_int(bs,3);
@@ -89,7 +88,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 	}
 	gf_bs_read_int(bs,2);
 	ait->version_number = gf_bs_read_int(bs,5);
-	
+
 	ait->current_next_indicator = gf_bs_read_int(bs,1);	
 	if(!ait->current_next_indicator){
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] current next indicator should be at 1 \n"));
@@ -109,6 +108,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 		GF_M2TS_AIT_APPLICATION* application;
 		GF_SAFEALLOC(application,GF_M2TS_AIT_APPLICATION);
 		application->application_descriptors = gf_list_new();
+		application->index_app_desc_id = 0;
 
 		/* application loop */
 		application->organisation_id = gf_bs_read_int(bs,32);	
@@ -116,7 +116,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 		application->application_control_code= gf_bs_read_int(bs,8);
 		gf_bs_read_int(bs,4);/* bit shifting */
 		application->application_descriptors_loop_length= gf_bs_read_int(bs,12);		
-		
+
 		ait_app_data_shift += 9;
 		app_desc_data_shift = 0;
 
@@ -129,6 +129,8 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					GF_M2TS_APPLICATION_DESCRIPTOR* application_descriptor;
 					GF_SAFEALLOC(application_descriptor, GF_M2TS_APPLICATION_DESCRIPTOR);
 					application_descriptor->descriptor_tag = temp_descriptor_tag;
+					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+					application->index_app_desc_id++;
 					application_descriptor->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
 					application_descriptor->application_profiles_length = gf_bs_read_int(bs,8);
@@ -153,6 +155,8 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					u64 pre_processing_pos;
 					GF_M2TS_APPLICATION_NAME_DESCRIPTOR* name_descriptor;
 					GF_SAFEALLOC(name_descriptor, GF_M2TS_APPLICATION_NAME_DESCRIPTOR);
+					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+					application->index_app_desc_id++;
 					name_descriptor->descriptor_tag = temp_descriptor_tag;
 					name_descriptor->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
@@ -173,6 +177,8 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					u64 pre_processing_pos;
 					GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR* protocol_descriptor;
 					GF_SAFEALLOC(protocol_descriptor, GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR);
+					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+					application->index_app_desc_id++;
 					protocol_descriptor->descriptor_tag = temp_descriptor_tag;
 					protocol_descriptor->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
@@ -181,49 +187,48 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					printf("protocol_descriptor->protocol_id %d \n",protocol_descriptor->protocol_id);
 
 					switch(protocol_descriptor->protocol_id){
-			case CAROUSEL:
-				{
-
-					GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE* Carousel_selector_byte;
-					GF_SAFEALLOC(Carousel_selector_byte, GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE);
-					Carousel_selector_byte->remote_connection = gf_bs_read_int(bs,1);
-					gf_bs_read_int(bs,7); /* bit shifting */
-					if(Carousel_selector_byte->remote_connection){
-						Carousel_selector_byte->original_network_id = gf_bs_read_int(bs,16);
-						Carousel_selector_byte->transport_stream_id = gf_bs_read_int(bs,16);
-						Carousel_selector_byte->service_id = gf_bs_read_int(bs,16);
-					}
-					Carousel_selector_byte->component_tag = gf_bs_read_int(bs,8);
-					protocol_descriptor->selector_byte = Carousel_selector_byte;
-					break;
-				}
-			case TRANSPORT_HTTP:
-				{					
-					u32 i;								
-					GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte;
-					GF_SAFEALLOC(Transport_http_selector_byte, GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE);
-					Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
-					//printf("Transport_http_selector_byte->URL_base_length %d \n",Transport_http_selector_byte->URL_base_length);
-					Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length,sizeof(char));
-					gf_bs_read_data(bs,Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
-					Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;
-					Transport_http_selector_byte->URL_extension_count = gf_bs_read_int(bs,8);
-					if(Transport_http_selector_byte->URL_extension_count){
-						Transport_http_selector_byte->URL_extentions = (GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION*) gf_calloc(Transport_http_selector_byte->URL_extension_count,sizeof(GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION));
-						for(i = 0; i < Transport_http_selector_byte->URL_extension_count;i++){
-							Transport_http_selector_byte->URL_extentions[i].URL_extension_length = gf_bs_read_int(bs,8);
-							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length,sizeof(char));
-							gf_bs_read_data(bs,Transport_http_selector_byte->URL_extentions[i].URL_extension_byte,(u32)(Transport_http_selector_byte->URL_extentions[i].URL_extension_length));
-							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte[Transport_http_selector_byte->URL_extentions[i].URL_extension_length] = 0;
-						}
-					}
-					protocol_descriptor->selector_byte = Transport_http_selector_byte;
-					break;
-				}
-			default:
-				{
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Protocol ID %d unsupported, ignoring the selector byte \n",protocol_descriptor->protocol_id));
-				}
+						case CAROUSEL:
+							{
+								GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE* Carousel_selector_byte;
+								GF_SAFEALLOC(Carousel_selector_byte, GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE);
+								Carousel_selector_byte->remote_connection = gf_bs_read_int(bs,1);
+								gf_bs_read_int(bs,7); /* bit shifting */
+								if(Carousel_selector_byte->remote_connection){
+									Carousel_selector_byte->original_network_id = gf_bs_read_int(bs,16);
+									Carousel_selector_byte->transport_stream_id = gf_bs_read_int(bs,16);
+									Carousel_selector_byte->service_id = gf_bs_read_int(bs,16);
+								}
+								Carousel_selector_byte->component_tag = gf_bs_read_int(bs,8);
+								protocol_descriptor->selector_byte = Carousel_selector_byte;
+								break;
+							}
+						case TRANSPORT_HTTP:
+							{					
+								u32 i;								
+								GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte;
+								GF_SAFEALLOC(Transport_http_selector_byte, GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE);					
+								Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
+								//printf("Transport_http_selector_byte->URL_base_length %d \n",Transport_http_selector_byte->URL_base_length);
+								Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length,sizeof(char));
+								gf_bs_read_data(bs,Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
+								Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;
+								Transport_http_selector_byte->URL_extension_count = gf_bs_read_int(bs,8);
+								if(Transport_http_selector_byte->URL_extension_count){
+									Transport_http_selector_byte->URL_extentions = (GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION*) gf_calloc(Transport_http_selector_byte->URL_extension_count,sizeof(GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION));
+									for(i = 0; i < Transport_http_selector_byte->URL_extension_count;i++){
+										Transport_http_selector_byte->URL_extentions[i].URL_extension_length = gf_bs_read_int(bs,8);
+										Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length,sizeof(char));
+										gf_bs_read_data(bs,Transport_http_selector_byte->URL_extentions[i].URL_extension_byte,(u32)(Transport_http_selector_byte->URL_extentions[i].URL_extension_length));
+										Transport_http_selector_byte->URL_extentions[i].URL_extension_byte[Transport_http_selector_byte->URL_extentions[i].URL_extension_length] = 0;
+									}
+								}
+								protocol_descriptor->selector_byte = Transport_http_selector_byte;
+								break;
+							}
+						default:
+							{
+								GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Protocol ID %d unsupported, ignoring the selector byte \n",protocol_descriptor->protocol_id));
+							}
 					}
 					if(pre_processing_pos+protocol_descriptor->descriptor_length != gf_bs_get_position(bs)){
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),protocol_descriptor->descriptor_length));
@@ -237,6 +242,8 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					u64 pre_processing_pos;
 					GF_M2TS_SIMPLE_APPLICATION_LOCATION* Simple_application_location;
 					GF_SAFEALLOC(Simple_application_location, GF_M2TS_SIMPLE_APPLICATION_LOCATION);
+					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+					application->index_app_desc_id++;
 					Simple_application_location->descriptor_tag = temp_descriptor_tag;
 					Simple_application_location->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
@@ -255,6 +262,8 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					u64 pre_processing_pos;
 					GF_M2TS_APPLICATION_USAGE* Application_usage;
 					GF_SAFEALLOC(Application_usage, GF_M2TS_APPLICATION_USAGE);
+					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+					application->index_app_desc_id++;
 					Application_usage->descriptor_tag = temp_descriptor_tag;
 					Application_usage->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
@@ -266,8 +275,6 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					app_desc_data_shift += (2+ Application_usage->descriptor_length);
 					break;
 				}
-
-
 			default:
 				{
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor tag %d unknown, ignoring the descriptor \n",temp_descriptor_tag));
