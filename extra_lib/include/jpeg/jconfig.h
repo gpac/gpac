@@ -2,15 +2,14 @@
 /* jconfig.cfg --- source file edited by configure script */
 /* see jconfig.doc for explanations */
 
-#undef HAVE_PROTOTYPES
 #ifdef _WIN32_WCE
+#define HAVE_PROTOTYPES
 #define HAVE_UNSIGNED_CHAR
 #define HAVE_UNSIGNED_SHORT
 #define HAVE_STDDEF_H
 #define HAVE_STDLIB_H
-#define XMD_H
-#define HAVE_BOOLEAN
 #else
+#undef HAVE_PROTOTYPES
 #undef HAVE_UNSIGNED_CHAR
 #undef HAVE_UNSIGNED_SHORT
 #undef HAVE_STDDEF_H
