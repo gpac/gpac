@@ -1,5 +1,8 @@
 #!/bin/sh
 
+echo "*** Clean previous build files ***"
+xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
+
 #echo "*** Compile libgpac for Simulator (i386) ***"
 xcodebuild -target libgpac_dynamic -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
 
