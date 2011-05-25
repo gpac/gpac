@@ -44,7 +44,7 @@
 
 #include "osmozilla.h"
 
-NPNetscapeFuncs NPNFuncs;
+NPNetscapeFuncs *sBrowserFunctions = NULL;
 
 NPError OSCALL NP_Shutdown()
 {
@@ -77,19 +77,19 @@ static NPError fillPluginFunctionTable(NPPluginFuncs* aNPPFuncs)
   aNPPFuncs->getvalue      = NewNPP_GetValueProc(Private_GetValue);
   aNPPFuncs->setvalue      = NewNPP_SetValueProc(Private_SetValue);
 #else
-  aNPPFuncs->newp          = NPP_New;
-  aNPPFuncs->destroy       = NPP_Destroy;
-  aNPPFuncs->setwindow     = NPP_SetWindow;
-  aNPPFuncs->newstream     = NPP_NewStream;
-  aNPPFuncs->destroystream = NPP_DestroyStream;
-  aNPPFuncs->asfile        = NPP_StreamAsFile;
-  aNPPFuncs->writeready    = NPP_WriteReady;
-  aNPPFuncs->write         = NPP_Write;
-  aNPPFuncs->print         = NPP_Print;
-  aNPPFuncs->event         = NPP_HandleEvent;
-  aNPPFuncs->urlnotify     = NPP_URLNotify;
-  aNPPFuncs->getvalue      = NPP_GetValue;
-  aNPPFuncs->setvalue      = NPP_SetValue;
+  aNPPFuncs->newp          = NPOsomzilla_New;
+  aNPPFuncs->destroy       = NPOsomzilla_Destroy;
+  aNPPFuncs->setwindow     = NPOsomzilla_SetWindow;
+  aNPPFuncs->newstream     = NPOsomzilla_NewStream;
+  aNPPFuncs->destroystream = NPOsomzilla_DestroyStream;
+  aNPPFuncs->asfile        = NPOsomzilla_StreamAsFile;
+  aNPPFuncs->writeready    = NPOsomzilla_WriteReady;
+  aNPPFuncs->write         = NPOsomzilla_Write;
+  aNPPFuncs->print         = NPOsomzilla_Print;
+  aNPPFuncs->event         = NPOsomzilla_HandleEvent;
+  aNPPFuncs->urlnotify     = NPOsomzilla_URLNotify;
+  aNPPFuncs->getvalue      = NPOsomzilla_GetValue;
+  aNPPFuncs->setvalue      = NPOsomzilla_SetValue;
 #endif
 #ifdef OJI
   aNPPFuncs->javaClass     = NULL;
@@ -98,55 +98,13 @@ static NPError fillPluginFunctionTable(NPPluginFuncs* aNPPFuncs)
   return NPERR_NO_ERROR;
 }
 
-static NPError fillNetscapeFunctionTable(NPNetscapeFuncs* aNPNFuncs)
-{
-  if(aNPNFuncs == NULL)
-    return NPERR_INVALID_FUNCTABLE_ERROR;
-
-  if(HIBYTE(aNPNFuncs->version) > NP_VERSION_MAJOR)
-    return NPERR_INCOMPATIBLE_VERSION_ERROR;
-
-  if(aNPNFuncs->size < sizeof(NPNetscapeFuncs))
-    return NPERR_INVALID_FUNCTABLE_ERROR;
-
-  NPNFuncs.size             = aNPNFuncs->size;
-  NPNFuncs.version          = aNPNFuncs->version;
-  NPNFuncs.geturlnotify     = aNPNFuncs->geturlnotify;
-  NPNFuncs.geturl           = aNPNFuncs->geturl;
-  NPNFuncs.posturlnotify    = aNPNFuncs->posturlnotify;
-  NPNFuncs.posturl          = aNPNFuncs->posturl;
-  NPNFuncs.requestread      = aNPNFuncs->requestread;
-  NPNFuncs.newstream        = aNPNFuncs->newstream;
-  NPNFuncs.write            = aNPNFuncs->write;
-  NPNFuncs.destroystream    = aNPNFuncs->destroystream;
-  NPNFuncs.status           = aNPNFuncs->status;
-  NPNFuncs.uagent           = aNPNFuncs->uagent;
-  NPNFuncs.memalloc         = aNPNFuncs->memalloc;
-  NPNFuncs.memfree          = aNPNFuncs->memfree;
-  NPNFuncs.memflush         = aNPNFuncs->memflush;
-  NPNFuncs.reloadplugins    = aNPNFuncs->reloadplugins;
-#ifdef OJI
-  NPNFuncs.getJavaEnv       = aNPNFuncs->getJavaEnv;
-  NPNFuncs.getJavaPeer      = aNPNFuncs->getJavaPeer;
-#endif
-  NPNFuncs.getvalue         = aNPNFuncs->getvalue;
-  NPNFuncs.setvalue         = aNPNFuncs->setvalue;
-  NPNFuncs.invalidaterect   = aNPNFuncs->invalidaterect;
-  NPNFuncs.invalidateregion = aNPNFuncs->invalidateregion;
-  NPNFuncs.forceredraw      = aNPNFuncs->forceredraw;
-
-  return NPERR_NO_ERROR;
-}
 
 #ifdef XP_WIN
 
 NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs)
 {
-  NPError rv = fillNetscapeFunctionTable(aNPNFuncs);
-  if(rv != NPERR_NO_ERROR)
-    return rv;
-
-  return NS_PluginInitialize();
+	sBrowserFunctions = aNPNFuncs;
+	return NS_PluginInitialize();
 }
 
 NPError OSCALL NP_GetEntryPoints(NPPluginFuncs* aNPPFuncs)
@@ -161,15 +119,12 @@ NPError OSCALL NP_GetEntryPoints(NPPluginFuncs* aNPPFuncs)
 
 NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFuncs)
 {
-  NPError rv = fillNetscapeFunctionTable(aNPNFuncs);
-  if(rv != NPERR_NO_ERROR)
-    return rv;
+	sBrowserFunctions = aNPNFuncs;
+	rv = fillPluginFunctionTable(aNPPFuncs);
+	if(rv != NPERR_NO_ERROR)
+		return rv;
 
-  rv = fillPluginFunctionTable(aNPPFuncs);
-  if(rv != NPERR_NO_ERROR)
-    return rv;
-
-  return NS_PluginInitialize();
+	return NS_PluginInitialize();
 }
 
 char * NP_GetMIMEDescription(void)
@@ -282,24 +237,23 @@ RoutineDescriptor mainRD = BUILD_ROUTINE_DESCRIPTOR(uppNPP_MainEntryProcInfo, ma
 
 NPError main(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFuncs, NPP_ShutdownUPP* aUnloadUpp)
 {
-  NPError rv = NPERR_NO_ERROR;
+	NPError rv = NPERR_NO_ERROR;
 
-  if (aUnloadUpp == NULL)
-    rv = NPERR_INVALID_FUNCTABLE_ERROR;
+	if (aUnloadUpp == NULL)
+		rv = NPERR_INVALID_FUNCTABLE_ERROR;
 
-  if (rv == NPERR_NO_ERROR)
-    rv = fillNetscapeFunctionTable(aNPNFuncs);
+	sBrowserFunctions = aNPNFuncs;
 
-  if (rv == NPERR_NO_ERROR) {
-    // defer static constructors until the global functions are initialized.
-    __InitCode__();
-    rv = fillPluginFunctionTable(aNPPFuncs);
-  }
+	if (rv == NPERR_NO_ERROR) {
+		// defer static constructors until the global functions are initialized.
+		__InitCode__();
+		rv = fillPluginFunctionTable(aNPPFuncs);
+	}
 
-  *aUnloadUpp = NewNPP_ShutdownProc(Private_Shutdown);
-  SetUpQD();
-  rv = Private_Initialize();
-	
-  return rv;
+	*aUnloadUpp = NewNPP_ShutdownProc(Private_Shutdown);
+	SetUpQD();
+	rv = Private_Initialize();
+
+	return rv;
 }
 #endif //XP_MAC

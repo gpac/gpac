@@ -5,6 +5,9 @@
 #ifndef __gen_nsIOsmozilla_h__
 #define __gen_nsIOsmozilla_h__
 
+#include "npplat.h"
+
+#ifdef GECKO_OLD_API
 
 #ifndef __gen_nsISupports_h__
 #include "nsISupports.h"
@@ -117,5 +120,6 @@ NS_IMETHODIMP nsOsmozilla::Update(const char *type, const char *commands)
 /* End of implementation class template. */
 #endif
 
+#endif //GECKO_OLD_API
 
 #endif /* __gen_nsIOsmozilla_h__ */

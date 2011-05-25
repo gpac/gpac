@@ -42,174 +42,44 @@
 //
 #include "npplat.h"
 
-extern NPNetscapeFuncs NPNFuncs;
-
-void NPN_Version(int* plugin_major, int* plugin_minor, int* netscape_major, int* netscape_minor)
-{
-  *plugin_major   = NP_VERSION_MAJOR;
-  *plugin_minor   = NP_VERSION_MINOR;
-  *netscape_major = HIBYTE(NPNFuncs.version);
-  *netscape_minor = LOBYTE(NPNFuncs.version);
-}
-
-NPError NPN_GetURLNotify(NPP instance, const char *url, const char *target, void* notifyData)
-{
-	int navMinorVers = NPNFuncs.version & 0xFF;
-  NPError rv = NPERR_NO_ERROR;
-
-  if( navMinorVers >= NPVERS_HAS_NOTIFICATION )
-		rv = CallNPN_GetURLNotifyProc(NPNFuncs.geturlnotify, instance, url, target, notifyData);
-	else
-		rv = NPERR_INCOMPATIBLE_VERSION_ERROR;
-
-  return rv;
-}
+extern NPNetscapeFuncs *sBrowserFunctions;
 
 NPError NPN_GetURL(NPP instance, const char *url, const char *target)
 {
-  NPError rv = CallNPN_GetURLProc(NPNFuncs.geturl, instance, url, target);
-  return rv;
-}
-
-NPError NPN_PostURLNotify(NPP instance, const char* url, const char* window, uint32 len, const char* buf, NPBool file, void* notifyData)
-{
-	int navMinorVers = NPNFuncs.version & 0xFF;
-  NPError rv = NPERR_NO_ERROR;
-
-	if( navMinorVers >= NPVERS_HAS_NOTIFICATION )
-		rv = CallNPN_PostURLNotifyProc(NPNFuncs.posturlnotify, instance, url, window, len, buf, file, notifyData);
-	else
-		rv = NPERR_INCOMPATIBLE_VERSION_ERROR;
-
-  return rv;
-}
-
-NPError NPN_PostURL(NPP instance, const char* url, const char* window, uint32 len, const char* buf, NPBool file)
-{
-  NPError rv = CallNPN_PostURLProc(NPNFuncs.posturl, instance, url, window, len, buf, file);
-  return rv;
-} 
-
-NPError NPN_RequestRead(NPStream* stream, NPByteRange* rangeList)
-{
-  NPError rv = CallNPN_RequestReadProc(NPNFuncs.requestread, stream, rangeList);
-  return rv;
-}
-
-NPError NPN_NewStream(NPP instance, NPMIMEType type, const char* target, NPStream** stream)
-{
-	int navMinorVersion = NPNFuncs.version & 0xFF;
-
-  NPError rv = NPERR_NO_ERROR;
-
-	if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT )
-		rv = CallNPN_NewStreamProc(NPNFuncs.newstream, instance, type, target, stream);
-	else
-		rv = NPERR_INCOMPATIBLE_VERSION_ERROR;
-
-  return rv;
-}
-
-int32 NPN_Write(NPP instance, NPStream *stream, int32 len, void *buffer)
-{
-	int navMinorVersion = NPNFuncs.version & 0xFF;
-  int32 rv = 0;
-
-  if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT )
-		rv = CallNPN_WriteProc(NPNFuncs.write, instance, stream, len, buffer);
-	else
-		rv = -1;
-
-  return rv;
-}
-
-NPError NPN_DestroyStream(NPP instance, NPStream* stream, NPError reason)
-{
-	int navMinorVersion = NPNFuncs.version & 0xFF;
-  NPError rv = NPERR_NO_ERROR;
-
-  if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT )
-		rv = CallNPN_DestroyStreamProc(NPNFuncs.destroystream, instance, stream, reason);
-	else
-		rv = NPERR_INCOMPATIBLE_VERSION_ERROR;
-
-  return rv;
+	if (!sBrowserFunctions) return NPERR_INVALID_FUNCTABLE_ERROR;
+#ifdef GECKO_OLD_API
+	return CallNPN_GetURLProc(sBrowserFunctions->geturl, instance, url, target);
+#else
+	return sBrowserFunctions->geturl(instance, url, target);
+#endif
 }
 
 void NPN_Status(NPP instance, const char *message)
 {
-  CallNPN_StatusProc(NPNFuncs.status, instance, message);
-}
-
-const char* NPN_UserAgent(NPP instance)
-{
-  const char * rv = NULL;
-  rv = CallNPN_UserAgentProc(NPNFuncs.uagent, instance);
-  return rv;
-}
-
-void* NPN_MemAlloc(uint32 size)
-{
-  void * rv = NULL;
-  rv = CallNPN_MemAllocProc(NPNFuncs.memalloc, size);
-  return rv;
-}
-
-void NPN_MemFree(void* ptr)
-{
-  CallNPN_MemFreeProc(NPNFuncs.memfree, ptr);
-}
-
-uint32 NPN_MemFlush(uint32 size)
-{
-  uint32 rv = CallNPN_MemFlushProc(NPNFuncs.memflush, size);
-  return rv;
-}
-
-void NPN_ReloadPlugins(NPBool reloadPages)
-{
-  CallNPN_ReloadPluginsProc(NPNFuncs.reloadplugins, reloadPages);
-}
-
-#ifdef OJI
-JRIEnv* NPN_GetJavaEnv(void)
-{
-  JRIEnv * rv = NULL;
-	rv = CallNPN_GetJavaEnvProc(NPNFuncs.getJavaEnv);
-  return rv;
-}
-
-jref NPN_GetJavaPeer(NPP instance)
-{
-  jref rv;
-  rv = CallNPN_GetJavaPeerProc(NPNFuncs.getJavaPeer, instance);
-  return rv;
-}
+	if (!sBrowserFunctions) return;
+#ifdef GECKO_OLD_API
+	CallNPN_StatusProc(sBrowserFunctions->status, instance, message);
+#else
+	sBrowserFunctions->status(instance, message);
 #endif
+}
+
+void* NPN_MemAlloc(unsigned int size)
+{
+	if (!sBrowserFunctions) return NULL;
+#ifdef GECKO_OLD_API
+	return CallNPN_MemAllocProc(sBrowserFunctions->memalloc, size);
+#else
+	return sBrowserFunctions->memalloc(size);
+#endif
+}
 
 NPError NPN_GetValue(NPP instance, NPNVariable variable, void *value)
 {
-  NPError rv = CallNPN_GetValueProc(NPNFuncs.getvalue, instance, variable, value);
-  return rv;
-}
-
-NPError NPN_SetValue(NPP instance, NPPVariable variable, void *value)
-{
-  NPError rv = CallNPN_SetValueProc(NPNFuncs.setvalue, instance, variable, value);
-  return rv;
-}
-
-void NPN_InvalidateRect(NPP instance, NPRect *invalidRect)
-{
-  CallNPN_InvalidateRectProc(NPNFuncs.invalidaterect, instance, invalidRect);
-}
-
-void NPN_InvalidateRegion(NPP instance, NPRegion invalidRegion)
-{
-  CallNPN_InvalidateRegionProc(NPNFuncs.invalidateregion, instance, invalidRegion);
-}
-
-void NPN_ForceRedraw(NPP instance)
-{
-  CallNPN_ForceRedrawProc(NPNFuncs.forceredraw, instance);
+	if (!sBrowserFunctions) return NPERR_INVALID_FUNCTABLE_ERROR;
+#ifdef GECKO_OLD_API
+	return CallNPN_GetValueProc(sBrowserFunctions->getvalue, instance, variable, value);
+#else
+	return sBrowserFunctions->getvalue(instance, variable, value);
+#endif
 }

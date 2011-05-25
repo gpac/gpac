@@ -123,11 +123,16 @@ public:
 	NPError SetWindow(NPWindow* aWindow);
 	NPError NewStream(NPMIMEType type, NPStream * stream, NPBool seekable,uint16 * stype);
 	NPError DestroyStream(NPStream * stream, NPError reason);
-	NPError GetValue(NPPVariable aVariable, void *aValue);
-    virtual uint16 HandleEvent(void* event);
+
+	virtual uint16 HandleEvent(void* event);
     
 
+#ifdef GECKO_OLD_API
 	nsOsmozillaPeer * getScriptablePeer();
+#else
+	NPObject *script_obj;
+	void init_scripting();
+#endif
 
 	// locals
 	const char * getVersion();
@@ -135,15 +140,17 @@ public:
 	int m_argc;
 	char **m_argv;
 	char **m_argn;
+
+#ifdef GECKO_OLD_API
 	nsOsmozillaPeer *mScriptablePeer;
+#endif
 
 	void Pause();
 	void Play();
 	void Stop();
-	void Update(const char *type, const char *commands);
+	void Update(const char *mimetype, const char *commands);
 	void Print(NPPrint* printInfo);
 	Bool EventProc(GF_Event *evt);
-
 
 private:
 	NPP mInstance;
@@ -183,6 +190,9 @@ private:
 
 	void SetOptions();
 };
+
+
+#ifdef GECKO_OLD_API
 
 // We must implement nsIClassInfo because it signals the
 	// Mozilla Security Manager to allow calls from JavaScript.
@@ -237,5 +247,6 @@ protected:
     nsOsmozillaInstance * mPlugin;
 };
 
+#endif //GECKO_OLD_API
 
 #endif // __PLUGIN_H__
