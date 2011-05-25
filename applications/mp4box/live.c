@@ -236,7 +236,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 			else {
 				Bool rap = rtpch->rap;
 				if (livesess->carousel_generation) rap = 1;
-				ts += rtpch->timescale*(gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
+				ts += rtpch->timescale*((u64)gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
 				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, (livesess->critical || rtpch->critical) ? 1 : 0 );
 				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, (livesess->critical || rtpch->critical) ? 1 : 0);
 				rtpch->rap = rtpch->critical = 0;
@@ -254,7 +254,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 	u64 ts=0;
 	if (ch) {
 		if (ch->carousel_size) {
-			ts = ch->carousel_ts + ch->timescale * ( (ch->adjust_carousel_time ? gf_sys_clock() : ch->time_at_carousel_store) - ch->init_time + ch->ts_delta)/1000;
+			ts = ch->carousel_ts + ch->timescale * ( (ch->adjust_carousel_time ? (u64)gf_sys_clock() : ch->time_at_carousel_store) - ch->init_time + ch->ts_delta)/1000;
 
 			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 			ch->last_carousel_time = now - livesess->start_time;
