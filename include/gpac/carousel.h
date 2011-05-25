@@ -74,6 +74,8 @@ typedef struct
 	u8 application_control_code;
 	u16 application_descriptors_loop_length;
 	GF_List * application_descriptors;
+	u8 application_descriptors_id[50];
+	u8 index_app_desc_id;
 
 }
 GF_M2TS_AIT_APPLICATION;
