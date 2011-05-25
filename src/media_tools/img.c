@@ -223,7 +223,7 @@ void _output_message (j_common_ptr cinfo){
 	char buffer[JMSG_LENGTH_MAX];
 	/* Create the message */
 	(*cinfo->err->format_message) (cinfo, buffer);
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[JPEG OUTPUT MESSAGE]: %s\n", buffer));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEG OUTPUT MESSAGE]: %s\n", buffer));
 }
 
 void _fatal_error(j_common_ptr cinfo)
@@ -270,7 +270,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jper.pub.output_message = _output_message;
 	jper.pub.emit_message = _nonfatal_error2;
 	if (setjmp(jper.jmpbuf)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[gf_img_jpeg_dec] : Failed to call cannot setjmp(jper.jmpbuf)\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGDecode] : Failed to decode\n"));
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_IO_ERR;
 	}
