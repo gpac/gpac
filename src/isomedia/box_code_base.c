@@ -6814,6 +6814,7 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid)
 {
 	u32 i;
 	GF_UserDataMap *map;
+	if (ptr == NULL) return;
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		if (map->boxType == box_type) {
