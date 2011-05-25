@@ -49,7 +49,27 @@
 #endif
 
 #include "npapi.h"
+
+/*check this with gecko 1.9.2*/
+#if (NP_VERSION_MINOR < 20)
+#define GECKO_OLD_API
+#endif
+
+
+#ifdef GECKO_OLD_API
 #include "npupp.h"
+
+#ifndef uint16_t
+typedef uint16 uint16_t;
+#endif
+
+#ifndef int16_t
+typedef int16 int16_t;
+#endif
+
+#else
+#include "npfunctions.h"
+#endif
 
 /**************************************************/
 /*                                                */
@@ -140,6 +160,29 @@ NPError Private_SetValue(NPP instance, NPNVariable variable, void *value);
 
 #endif //XP_MAC
 
+
+NPError NPOsomzilla_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* argn[], char* argv[], NPSavedData* saved);
+NPError NPOsomzilla_Destroy(NPP instance, NPSavedData** save);
+NPError NPOsomzilla_SetWindow(NPP instance, NPWindow* window);
+NPError NPOsomzilla_NewStream(NPP instance, NPMIMEType type, NPStream* stream, NPBool seekable, uint16_t* stype);
+NPError NPOsomzilla_DestroyStream(NPP instance, NPStream* stream, NPError reason);
+
+#ifdef GECKO_OLD_API
+int32 NPOsomzilla_WriteReady(NPP instance, NPStream* stream);
+int32 NPOsomzilla_Write (NPP instance, NPStream *stream, int32 offset, int32 len, void *buffer);
+#else
+int32_t   NPOsomzilla_WriteReady(NPP instance, NPStream* stream);
+int32_t   NPOsomzilla_Write(NPP instance, NPStream* stream, int32_t offset, int32_t len, void* buffer);
+#endif
+
+void    NPOsomzilla_StreamAsFile(NPP instance, NPStream* stream, const char* fname);
+void    NPOsomzilla_Print(NPP instance, NPPrint* platformPrint);
+int16_t   NPOsomzilla_HandleEvent(NPP instance, void* event);
+void    NPOsomzilla_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData);
+NPError NPOsomzilla_GetValue(NPP instance, NPPVariable variable, void *result);
+NPError NPOsomzilla_SetValue(NPP instance, NPNVariable variable, void *value);
+
+
 #ifndef HIBYTE
 #define HIBYTE(i) (i >> 8)
 #endif
@@ -147,5 +190,11 @@ NPError Private_SetValue(NPP instance, NPNVariable variable, void *value);
 #ifndef LOBYTE
 #define LOBYTE(i) (i & 0xff)
 #endif
+
+
+#ifdef GECKO_OLD_API
+void* NPN_MemAlloc(unsigned int size);
+#endif
+
 
 #endif //_NPPLAT_H_

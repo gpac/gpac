@@ -37,11 +37,12 @@
 
 #include "osmozilla.h"
 
+extern NPNetscapeFuncs *sBrowserFunctions;
 
 // here the plugin creates a plugin instance object which 
 // will be associated with this newly created NPP instance and 
 // will do all the neccessary job
-NPError NPP_New(NPMIMEType pluginType, NPP instance, uint16 mode, int16 argc, char* argn[], char* argv[], NPSavedData* saved)
+NPError NPOsomzilla_New(NPMIMEType pluginType, NPP instance, uint16 mode, int16 argc, char* argn[], char* argv[], NPSavedData* saved)
 {   
   if(instance == NULL)
     return NPERR_INVALID_INSTANCE_ERROR;
@@ -60,17 +61,22 @@ NPError NPP_New(NPMIMEType pluginType, NPP instance, uint16 mode, int16 argc, ch
   ds.argv     = argv; 
   ds.saved    = saved;
 
-  nsPluginInstanceBase * plugin = NS_NewPluginInstance(&ds);
+  nsOsmozillaInstance * plugin = (nsOsmozillaInstance *) NS_NewPluginInstance(&ds);
   if(plugin == NULL)
     return NPERR_OUT_OF_MEMORY_ERROR;
 
   // associate the plugin instance object with NPP instance
   instance->pdata = (void *)plugin;
+
+#ifndef GECKO_OLD_API
+	plugin->init_scripting();
+#endif
+
   return rv;
 }
 
 // here is the place to clean up and destroy the nsPluginInstance object
-NPError NPP_Destroy (NPP instance, NPSavedData** save)
+NPError NPOsomzilla_Destroy (NPP instance, NPSavedData** save)
 {
   if(instance == NULL)
     return NPERR_INVALID_INSTANCE_ERROR;
@@ -88,7 +94,7 @@ NPError NPP_Destroy (NPP instance, NPSavedData** save)
 // during this call we know when the plugin window is ready or
 // is about to be destroyed so we can do some gui specific
 // initialization and shutdown
-NPError NPP_SetWindow (NPP instance, NPWindow* pNPWindow)
+NPError NPOsomzilla_SetWindow (NPP instance, NPWindow* pNPWindow)
 {    
   if(instance == NULL)
     return NPERR_INVALID_INSTANCE_ERROR;
@@ -126,7 +132,7 @@ NPError NPP_SetWindow (NPP instance, NPWindow* pNPWindow)
   return rv;
 }
 
-NPError NPP_NewStream(NPP instance, NPMIMEType type, NPStream* stream, NPBool seekable, uint16* stype)
+NPError NPOsomzilla_NewStream(NPP instance, NPMIMEType type, NPStream* stream, NPBool seekable, uint16* stype)
 {
   if(instance == NULL)
     return NPERR_INVALID_INSTANCE_ERROR;
@@ -139,7 +145,11 @@ NPError NPP_NewStream(NPP instance, NPMIMEType type, NPStream* stream, NPBool se
   return rv;
 }
 
-int32 NPP_WriteReady (NPP instance, NPStream *stream)
+#ifdef GECKO_OLD_API
+int32 NPOsomzilla_WriteReady (NPP instance, NPStream *stream)
+#else
+int32_t NPOsomzilla_WriteReady (NPP instance, NPStream *stream)
+#endif
 {
   if(instance == NULL)
     return 0x0fffffff;
@@ -152,7 +162,11 @@ int32 NPP_WriteReady (NPP instance, NPStream *stream)
   return rv;
 }
 
-int32 NPP_Write (NPP instance, NPStream *stream, int32 offset, int32 len, void *buffer)
+#ifdef GECKO_OLD_API
+int32 NPOsomzilla_Write (NPP instance, NPStream *stream, int32 offset, int32 len, void *buffer)
+#else
+int32_t NPOsomzilla_Write (NPP instance, NPStream *stream, int32_t offset, int32_t len, void *buffer)
+#endif
 {   
   if(instance == NULL)
     return len;
@@ -165,7 +179,7 @@ int32 NPP_Write (NPP instance, NPStream *stream, int32 offset, int32 len, void *
   return rv;
 }
 
-NPError NPP_DestroyStream (NPP instance, NPStream *stream, NPError reason)
+NPError NPOsomzilla_DestroyStream (NPP instance, NPStream *stream, NPError reason)
 {
   if(instance == NULL)
     return NPERR_INVALID_INSTANCE_ERROR;
@@ -178,7 +192,7 @@ NPError NPP_DestroyStream (NPP instance, NPStream *stream, NPError reason)
   return rv;
 }
 
-void NPP_StreamAsFile (NPP instance, NPStream* stream, const char* fname)
+void NPOsomzilla_StreamAsFile (NPP instance, NPStream* stream, const char* fname)
 {
   if(instance == NULL)
     return;
@@ -190,7 +204,7 @@ void NPP_StreamAsFile (NPP instance, NPStream* stream, const char* fname)
   plugin->StreamAsFile(stream, fname);
 }
 
-void NPP_Print (NPP instance, NPPrint* printInfo)
+void NPOsomzilla_Print (NPP instance, NPPrint* printInfo)
 {
 	if(instance == NULL)
 		return;
@@ -201,7 +215,7 @@ void NPP_Print (NPP instance, NPPrint* printInfo)
 	plugin->Print(printInfo);
 }
 
-void NPP_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData)
+void NPOsomzilla_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData)
 {
   if(instance == NULL)
     return;
@@ -213,20 +227,62 @@ void NPP_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyD
   plugin->URLNotify(url, reason, notifyData);
 }
 
-NPError	NPP_GetValue(NPP instance, NPPVariable variable, void *value)
+NPError	NPOsomzilla_GetValue(NPP instance, NPPVariable variable, void *value)
 {
-  if(instance == NULL)
-    return NPERR_INVALID_INSTANCE_ERROR;
+	NPError rv = NPERR_NO_ERROR;
+	if(instance == NULL)
+		return NPERR_INVALID_INSTANCE_ERROR;
 
-  nsPluginInstanceBase * plugin = (nsPluginInstanceBase *)instance->pdata;
-  if(plugin == NULL) 
-    return NPERR_GENERIC_ERROR;
+	nsOsmozillaInstance *plugin = (nsOsmozillaInstance*)instance->pdata;
+	if(plugin == NULL) return NPERR_GENERIC_ERROR;
 
-  NPError rv = plugin->GetValue(variable, value);
-  return rv;
+	switch (variable) {
+#ifdef GECKO_OLD_API
+    case NPPVpluginScriptableInstance:
+	{
+		nsIOsmozilla *scriptablePeer = plugin->getScriptablePeer();
+	    if (scriptablePeer) {
+			*(nsISupports **) value = scriptablePeer;
+		} else
+			rv = NPERR_OUT_OF_MEMORY_ERROR;
+	}
+		break;	
+
+    case NPPVpluginScriptableIID:
+	{
+	    static nsIID scriptableIID = NS_IOSMOZILLA_IID;
+	    nsIID *ptr = (nsIID *) NPN_MemAlloc(sizeof(nsIID));
+	    if (ptr) {
+			*ptr = scriptableIID;
+			*(nsIID **) value = ptr;
+		} else
+			rv = NPERR_OUT_OF_MEMORY_ERROR;
+	}
+		break;
+#else
+
+	case NPPVpluginScriptableNPObject:
+		{
+			void ** v = (void **)value;
+            sBrowserFunctions->retainobject(plugin->script_obj);
+            *v = plugin->script_obj;
+		}
+		break;
+
+#endif
+	case NPPVpluginNameString :
+		*(char**)value = "Osmozilla/GPAC plugin for NPAPI";
+		break;
+    default:
+		break;
+	}
+
+	return rv;
 }
 
-NPError NPP_SetValue(NPP instance, NPNVariable variable, void *value)
+
+
+NPError NPOsomzilla_SetValue(NPP instance, NPNVariable variable, void *value)
 {
   if(instance == NULL)
     return NPERR_INVALID_INSTANCE_ERROR;
@@ -239,7 +295,7 @@ NPError NPP_SetValue(NPP instance, NPNVariable variable, void *value)
   return rv;
 }
 
-int16	NPP_HandleEvent(NPP instance, void* event)
+int16	NPOsomzilla_HandleEvent(NPP instance, void* event)
 {
   if(instance == NULL)
     return 0;
@@ -251,13 +307,6 @@ int16	NPP_HandleEvent(NPP instance, void* event)
   uint16 rv = plugin->HandleEvent(event);
   return rv;
 }
-
-#ifdef OJI
-jref NPP_GetJavaClass (void)
-{
-  return NULL;
-}
-#endif
 
 /**************************************************/
 /*                                                */
@@ -271,82 +320,78 @@ jref NPP_GetJavaClass (void)
 
 NPError	Private_New(NPMIMEType pluginType, NPP instance, uint16 mode, int16 argc, char* argn[], char* argv[], NPSavedData* saved)
 {
-  NPError rv = NPP_New(pluginType, instance, mode, argc, argn, argv, saved);
+  NPError rv = NPOsomzilla_New(pluginType, instance, mode, argc, argn, argv, saved);
   return rv;	
 }
 
 NPError Private_Destroy(NPP instance, NPSavedData** save)
 {
-  NPError rv = NPP_Destroy(instance, save);
+  NPError rv = NPOsomzilla_Destroy(instance, save);
   return rv;
 }
 
 NPError Private_SetWindow(NPP instance, NPWindow* window)
 {
-  NPError rv = NPP_SetWindow(instance, window);
+  NPError rv = NPOsomzilla_SetWindow(instance, window);
   return rv;
 }
 
 NPError Private_NewStream(NPP instance, NPMIMEType type, NPStream* stream, NPBool seekable, uint16* stype)
 {
-  NPError rv = NPP_NewStream(instance, type, stream, seekable, stype);
+  NPError rv = NPOsomzilla_NewStream(instance, type, stream, seekable, stype);
   return rv;
 }
 
 int32 Private_WriteReady(NPP instance, NPStream* stream)
 {
-  int32 rv = NPP_WriteReady(instance, stream);
+  int32 rv = NPOsomzilla_WriteReady(instance, stream);
   return rv;
 }
 
 int32 Private_Write(NPP instance, NPStream* stream, int32 offset, int32 len, void* buffer)
 {
-  int32 rv = NPP_Write(instance, stream, offset, len, buffer);
+  int32 rv = NPOsomzilla_Write(instance, stream, offset, len, buffer);
   return rv;
 }
 
 void Private_StreamAsFile(NPP instance, NPStream* stream, const char* fname)
 {
-  NPP_StreamAsFile(instance, stream, fname);
+  NPOsomzilla_StreamAsFile(instance, stream, fname);
 }
 
 
 NPError Private_DestroyStream(NPP instance, NPStream* stream, NPError reason)
 {
-  NPError rv = NPP_DestroyStream(instance, stream, reason);
+  NPError rv = NPOsomzilla_DestroyStream(instance, stream, reason);
   return rv;
 }
 
 int16 Private_HandleEvent(NPP instance, void* event)
 {
-  int16 rv = NPP_HandleEvent(instance, event);
+  int16 rv = NPOsomzilla_HandleEvent(instance, event);
   return rv;
 }
 
 void Private_Print(NPP instance, NPPrint* platformPrint)
 {
-  NPP_Print(instance, platformPrint);
+  NPOsomzilla_Print(instance, platformPrint);
 }
 
 void Private_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData)
 {
-  NPP_URLNotify(instance, url, reason, notifyData);
+  NPOsomzilla_URLNotify(instance, url, reason, notifyData);
 }
 
-jref Private_GetJavaClass(void)
-{
-  return NULL;
-}
 
 NPError Private_GetValue(NPP instance, NPPVariable variable, void *result)
 {
-  NPError rv = NPP_GetValue(instance, variable, result);
+  NPError rv = NPOsomzilla_GetValue(instance, variable, result);
   return rv;
 }
 
 NPError Private_SetValue(NPP instance, NPNVariable variable, void *value)
 {
-  NPError rv = NPP_SetValue(instance, variable, value);
+  NPError rv = NPOsomzilla_SetValue(instance, variable, value);
   return rv;
 }
 

@@ -49,7 +49,12 @@
 #include <gpac/options.h>
 #include <gpac/term_info.h>
 
+
+#ifdef GECKO_OLD_API
 nsIServiceManager *gServiceManager = NULL;
+#endif
+
+extern NPNetscapeFuncs *sBrowserFunctions;
 
 
 #define GPAC_PLUGIN_MIMETYPES \
@@ -105,6 +110,7 @@ char* NPP_GetMIMEDescription(void)
 //
 NPError NS_PluginInitialize()
 {
+#ifdef GECKO_OLD_API
     // this is probably a good place to get the service manager
     // note that Mozilla will add reference, so do not forget to release
     nsISupports *sm = NULL;
@@ -118,14 +124,17 @@ NPError NS_PluginInitialize()
 		sm->QueryInterface(NS_GET_IID(nsIServiceManager), (void **) &gServiceManager);
 		NS_RELEASE(sm);
     }
-    return NPERR_NO_ERROR;
+#endif
+	return NPERR_NO_ERROR;
 }
 
 void NS_PluginShutdown()
 {
+#ifdef GECKO_OLD_API
     // we should release the service manager
     NS_IF_RELEASE(gServiceManager);
     gServiceManager = NULL;
+#endif
 }
 
 // get values per plugin
@@ -162,10 +171,7 @@ void NS_DestroyPluginInstance(nsPluginInstanceBase * aPlugin)
 	if(aPlugin) delete (nsOsmozillaInstance *)aPlugin;
 }
 
-////////////////////////////////////////
-//
-// nsOsmozillaInstance class implementation
-//
+
 nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct) : nsPluginInstanceBase(),
   mInstance(aCreateDataStruct->instance)
 {
@@ -179,10 +185,10 @@ nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct)
 	m_hWnd = NULL;
 #endif
 
+#ifdef GECKO_OLD_API
 	mScriptablePeer = NULL;
+#endif
 	mInitialized = 0;
-
-	
 	m_szURL = NULL;
 	m_term = NULL;
 	m_bIsConnected = 0;
@@ -256,10 +262,12 @@ nsOsmozillaInstance::~nsOsmozillaInstance()
 		mInstance = NULL;
 	}
     mInitialized = FALSE;
+#ifdef GECKO_OLD_API
     if (mScriptablePeer != NULL) {
 		mScriptablePeer->SetInstance(NULL);
 		NS_IF_RELEASE(mScriptablePeer);
     }
+#endif
 }
 
 static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
@@ -325,6 +333,11 @@ err_exit:
 
 void nsOsmozillaInstance::shut()
 {
+#ifndef GECKO_OLD_API
+	if (script_obj) sBrowserFunctions->releaseobject(script_obj);
+	script_obj = NULL;
+#endif
+
 	if (m_szURL) gf_free(m_szURL);
 	m_szURL = NULL;
 	if (m_term) {
@@ -339,42 +352,9 @@ void nsOsmozillaInstance::shut()
 
 const char * nsOsmozillaInstance::getVersion()
 {
-  return NPN_UserAgent(mInstance);
+  return GPAC_FULL_VERSION;
 }
 
-NPError nsOsmozillaInstance::GetValue(NPPVariable aVariable, void *aValue)
-{
-  NPError rv = NPERR_NO_ERROR;
-
-    switch (aVariable) {
-    case NPPVpluginScriptableInstance:
-	{
-		nsIOsmozilla *scriptablePeer = getScriptablePeer();
-	    if (scriptablePeer) {
-			*(nsISupports **) aValue = scriptablePeer;
-		} else
-			rv = NPERR_OUT_OF_MEMORY_ERROR;
-	}
-		break;	
-
-
-    case NPPVpluginScriptableIID:
-	{
-	    static nsIID scriptableIID = NS_IOSMOZILLA_IID;
-	    nsIID *ptr = (nsIID *) NPN_MemAlloc(sizeof(nsIID));
-	    if (ptr) {
-			*ptr = scriptableIID;
-			*(nsIID **) aValue = ptr;
-		} else
-			rv = NPERR_OUT_OF_MEMORY_ERROR;
-	}
-		break;
-
-    default:
-		break;
-    }
-    return rv;
-}
 
 Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 {
@@ -751,9 +731,9 @@ void nsOsmozillaInstance::Update(const char *type, const char *commands)
 
 // Scriptability related code
 
+#ifdef GECKO_OLD_API
 nsOsmozillaPeer *nsOsmozillaInstance::getScriptablePeer()
 {
-fprintf(stdout, "get peer\n");
     if (!mScriptablePeer) {
 		mScriptablePeer = new nsOsmozillaPeer(this);
 		if (!mScriptablePeer) return NULL;
@@ -762,6 +742,9 @@ fprintf(stdout, "get peer\n");
     NS_ADDREF(mScriptablePeer);
     return mScriptablePeer;
 }
+#endif //GECKO_OLD_API
+
+#ifdef GECKO_OLD_API
 
 static NS_DEFINE_IID(kIZillaPluginIID, NS_IOSMOZILLA_IID);
 static NS_DEFINE_IID(kIClassInfoIID, NS_ICLASSINFO_IID);
@@ -839,3 +822,150 @@ NS_IMETHODIMP nsOsmozillaPeer::QueryInterface(const nsIID & aIID,
     return NS_NOINTERFACE;
 }
 
+#endif //GECKO_OLD_API
+
+
+
+#ifndef GECKO_OLD_API
+
+#define kOSMOZILLA_ID_METHOD_PLAY              	0
+#define kOSMOZILLA_ID_METHOD_PAUSE				1
+#define kOSMOZILLA_ID_METHOD_STOP				2
+#define kOSMOZILLA_ID_METHOD_UPDATE				3
+
+#define kOSMOZILLA_NUM_METHODS				4
+
+NPIdentifier    v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_NUM_METHODS];
+const NPUTF8 *  v_OSMOZILLA_MethodNames[kOSMOZILLA_NUM_METHODS] = {
+	"Play",
+	"Pause",
+	"Stop",
+	"Update"
+};
+
+NPClass script_class;
+
+struct OsmozillaObject {
+    NPClass *_class;
+    uint32_t referenceCount;
+	nsOsmozillaInstance *gpac;
+};
+
+NPObject *OSMOZILLA_Allocate(NPP npp, NPClass *theClass)
+{
+	nsOsmozillaInstance *instance = (nsOsmozillaInstance *) npp->pdata;
+    OsmozillaObject *obj = NULL;
+
+	sBrowserFunctions->getstringidentifiers(v_OSMOZILLA_MethodNames, kOSMOZILLA_NUM_METHODS, v_OSMOZILLA_MethodIdentifiers);
+    obj = (OsmozillaObject *)malloc(sizeof(OsmozillaObject));
+	obj->gpac = instance;
+    return (NPObject *)obj;
+}
+
+void OSMOZILLA_Deallocate(NPObject* obj)
+{
+    free(obj);
+    return;
+}
+
+void OSMOZILLA_Invalidate(NPObject* obj)
+{
+    return;
+}
+
+bool OSMOZILLA_HasMethod(NPObject* obj, NPIdentifier name)
+{
+    int i = 0;
+    while (i < kOSMOZILLA_NUM_METHODS) {
+        if ( name == v_OSMOZILLA_MethodIdentifiers[i] ) {
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
+bool OSMOZILLA_Invoke(NPObject* obj, NPIdentifier name, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+	OsmozillaObject *npo = (OsmozillaObject *)obj;
+	if (!npo->gpac) return false;
+    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_PLAY]) {
+		npo->gpac->Play();
+		return true;
+    }
+    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_PAUSE]) {
+		npo->gpac->Pause();
+    	return true;
+    }
+    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_STOP]) {
+		npo->gpac->Stop();
+    	return true;
+    }
+    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_UPDATE]) {
+		const char *mime = NULL;
+		const char *update = NULL;
+		if (argCount==2) {
+			mime = (args[0].type==NPVariantType_String) ? args[0].value.stringValue.UTF8Characters : NULL; 
+			update = (args[1].type==NPVariantType_String) ? args[1].value.stringValue.UTF8Characters : NULL; 
+		}
+		if (!update) return false;
+		npo->gpac->Update(mime, update);
+    	return true;
+    }
+    return false;
+}
+
+bool OSMOZILLA_InvokeDefault(NPObject *npobj, const NPVariant *args, uint32_t argCount, NPVariant *result)
+{
+    return true;
+}
+
+bool OSMOZILLA_HasProperty(NPObject* obj, NPIdentifier name)
+{
+    bool result = false;
+	/*nothing exposed yet*/
+    return result;
+}
+
+bool OSMOZILLA_GetProperty(NPObject* obj, NPIdentifier name, NPVariant* result)
+{
+    return true;
+}
+
+bool OSMOZILLA_SetProperty(NPObject *obj, NPIdentifier name, const NPVariant *value)
+{
+    return true;
+}
+
+bool OSMOZILLA_RemoveProperty(NPObject *npobj, NPIdentifier name)
+{
+    return true;
+}
+
+bool OSMOZILLA_Enumerate(NPObject *npobj, NPIdentifier **value, uint32_t *count)
+{
+    return true;
+}
+
+void nsOsmozillaInstance::init_scripting()
+{
+    script_class.allocate          = OSMOZILLA_Allocate;
+    script_class.deallocate        = OSMOZILLA_Deallocate;
+    script_class.invalidate        = OSMOZILLA_Invalidate;
+    script_class.hasMethod         = OSMOZILLA_HasMethod;
+    script_class.invoke            = OSMOZILLA_Invoke;
+    script_class.invokeDefault     = OSMOZILLA_InvokeDefault;
+    script_class.hasProperty       = OSMOZILLA_HasProperty;
+    script_class.getProperty       = OSMOZILLA_GetProperty;
+    script_class.setProperty       = OSMOZILLA_SetProperty;
+    script_class.removeProperty    = OSMOZILLA_RemoveProperty;
+    script_class.enumerate         = OSMOZILLA_Enumerate;
+
+	/*create script object*/
+	script_obj = sBrowserFunctions->createobject(mInstance, &script_class);
+
+}
+	
+
+
+#endif //GECKO_OLD_API
