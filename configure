@@ -173,7 +173,7 @@ echo "  --prefix=PREFIX          install in PREFIX [$prefix]"
 echo "  --mandir=DIR             man documentation in DIR [PREFIX/man]"
 echo ""
 echo "  --source-path=PATH       path of source code [$source_path]"
-echo "  --cross_prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
+echo "  --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
 echo "  --cc =CC                 use C   compiler CC  [$cc]"
 echo "  --cpp=CPP                use C++ compiler CPP [$cpp]"
 echo "  --make=MAKE              use specified make [$make]"
@@ -273,7 +273,7 @@ for opt do
   ;;
   --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
   ;;
-  --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2`
+  --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2` && echo "cross-prefix detected: $cross_prefix"
   ;;
   --cc=*) cc=`echo $opt | cut -d '=' -f 2`
   ;;
@@ -366,6 +366,7 @@ fi
 cc="${cross_prefix}${cc}"
 #for ccache
 cc="${cc}"
+cpp="${cross_prefix}${cpp}"
 ar="${cross_prefix}${ar}"
 ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
