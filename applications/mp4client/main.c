@@ -1711,6 +1711,11 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 		root_odm = gf_term_get_root_object(term);
 	}
 	if (!root_odm) return;
+
+	count = gf_term_get_current_service_id(term);
+	if (count) 
+		fprintf(stdout, "Current service ID %d\n", count);
+
 	if (gf_term_get_object_info(term, root_odm, &odi) != GF_OK) return;
 	if (!odi.od) {
 		fprintf(stdout, "Service not attached\n");
@@ -1722,6 +1727,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 	
 	fprintf(stdout, "%s", szIndent);
 	fprintf(stdout, "#%d %s - ", num, root_name);
+	if (odi.od->ServiceID) fprintf(stdout, "Service ID %d ", odi.od->ServiceID);
 	if (odi.media_url) {
 		fprintf(stdout, "%s\n", odi.media_url);
 	} else {
@@ -1756,7 +1762,9 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 				} else {
 					fprintf(stdout, "ID %d", odi.od->objectDescriptorID);
 				}
-				fprintf(stdout, " - %s\n", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
+				fprintf(stdout, " - %s", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
+				if (odi.od && odi.od->ServiceID) fprintf(stdout, " - Service ID %d", odi.od->ServiceID);
+				fprintf(stdout, "\n");
 				break;
 			}
 		}

@@ -888,6 +888,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_add_event_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_remove_event_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_media_queue) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
+
 
 /*ietf.h exports*/
 #ifndef GPAC_DISABLE_STREAMING

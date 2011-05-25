@@ -106,6 +106,20 @@ void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm)
 	gf_scene_select_object(term->root_scene, odm);
 }
 
+u32 gf_term_get_current_service_id(GF_Terminal *term)
+{
+	SFURL *the_url;
+	GF_MediaObject *mo;
+	if (!term || !term->root_scene) return 0;
+	if (! term->root_scene->is_dynamic_scene) return term->root_scene->root_od->OD->ServiceID;
+
+	if (term->root_scene->visual_url.OD_ID || term->root_scene->visual_url.url) the_url = &term->root_scene->visual_url;
+	else the_url = &term->root_scene->audio_url;
+
+	mo = gf_scene_find_object(term->root_scene, the_url->OD_ID, the_url->url);
+	if (mo && mo->odm && mo->odm->OD) return mo->odm->OD->ServiceID;
+	return 0;
+}
 
 
 static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)

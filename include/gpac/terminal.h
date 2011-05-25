@@ -96,6 +96,9 @@ u32 gf_term_get_option(GF_Terminal *term, u32 opt_type);
 if use_parent_url is set, relative URLs are solved against the current presentation URL*/
 Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check);
 
+/*returns the current service ID for MPEG-2 TS mux - returns 0 if no service ID is associated (or not loaded yet)*/
+u32 gf_term_get_current_service_id(GF_Terminal *term);
+
 /*sets simulation frame rate*/
 GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate);
 /*gets simulation frame rate*/
