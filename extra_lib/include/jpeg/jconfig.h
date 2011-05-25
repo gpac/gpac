@@ -3,13 +3,23 @@
 /* see jconfig.doc for explanations */
 
 #undef HAVE_PROTOTYPES
+#ifdef _WIN32_WCE
+#define HAVE_UNSIGNED_CHAR
+#define HAVE_UNSIGNED_SHORT
+#define HAVE_STDDEF_H
+#define HAVE_STDLIB_H
+#define XMD_H
+#define HAVE_BOOLEAN
+#else
 #undef HAVE_UNSIGNED_CHAR
 #undef HAVE_UNSIGNED_SHORT
+#undef HAVE_STDDEF_H
+#undef HAVE_STDLIB_H
+#endif
+
 #undef void
 #undef const
 #undef CHAR_IS_UNSIGNED
-#undef HAVE_STDDEF_H
-#undef HAVE_STDLIB_H
 #undef NEED_BSD_STRINGS
 #undef NEED_SYS_TYPES_H
 #undef NEED_FAR_POINTERS
@@ -24,6 +34,10 @@
 /* These are for configuring the JPEG memory manager. */
 #undef DEFAULT_MAX_MEM
 #undef NO_MKTEMP
+
+#ifdef __MINGW32__ 	 
+#define INLINE __inline__
+#endif //__MINGW32__ 	 
 
 #endif /* JPEG_INTERNALS */
 
