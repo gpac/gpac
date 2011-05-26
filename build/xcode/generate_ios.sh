@@ -1,6 +1,8 @@
 #!/bin/sh
 
 echo "*** Clean previous build files ***"
+xcodebuild -alltargets -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj clean
+xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
 xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
 
 #echo "*** Compile libgpac for Simulator (i386) ***"
@@ -43,7 +45,7 @@ if [ "$rev" != "" ]
 then
 	full_version="$version-r$rev"
 else
-        #if no revision can be extracted from SVN, use date
+	#if no revision can be extracted from SVN, use date
 	full_version="$version-$(date +%Y%m%d)"
 fi
 cd bin/iOS
