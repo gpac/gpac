@@ -376,8 +376,7 @@ fprintf(stdout, " default modules not found\n", szPath);
 	strcat((char *)szPath, "Fonts");
 #elif defined(__APPLE__)
 
-#ifdef GPAC_IPHONE
-#error "wtf is going on"
+#ifdef GPAC_IPHONEÒ
 	strcpy(szPath, "/System/Library/Fonts/Cache");
 #else
 	strcpy(szPath, "/Library/Fonts");
