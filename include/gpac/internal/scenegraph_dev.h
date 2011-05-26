@@ -975,7 +975,7 @@ struct _node_js_binding
 typedef struct __tag_svg_script_ctx 
 {
 	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
-	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event, GF_Node *observer);
+	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event, GF_Node *observer, char *utf8_script);
 	u32 nb_scripts;
 	/*global script context for the scene*/
 	struct JSContext *js_ctx;

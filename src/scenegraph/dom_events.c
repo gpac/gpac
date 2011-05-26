@@ -219,7 +219,7 @@ void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (hdl->sgprivate->scenegraph->svg_js) 
-		if (hdl->sgprivate->scenegraph->svg_js->handler_execute(hdl, event, observer)) return;
+		if (hdl->sgprivate->scenegraph->svg_js->handler_execute(hdl, event, observer, NULL)) return;
 #endif
 	/*no clue what this is*/
 	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events    ] Unknown event handler\n"));
@@ -252,6 +252,14 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 		GF_FieldInfo info;
 		if (gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, 0, 0, &info) == GF_OK) {
 			XMLRI *iri = (XMLRI *)info.far_ptr;
+
+			if ((iri->type==XMLRI_STRING) && iri->string && !strnicmp(iri->string, "javascript:", 11)) {
+#ifdef GPAC_HAS_SPIDERMONKEY
+			if (listen->sgprivate->scenegraph->svg_js) 
+				listen->sgprivate->scenegraph->svg_js->handler_execute(listen, event, observer, iri->string + 11);
+#endif
+				return;
+			}
 			if (!iri->target && iri->string) {
 				iri->target = gf_sg_find_node_by_name(listen->sgprivate->scenegraph, iri->string+1);
 			}

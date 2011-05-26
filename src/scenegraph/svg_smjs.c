@@ -42,7 +42,7 @@
 
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 
-static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer);
+static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer, char *utf8_script);
 
 
 jsval dom_element_construct(JSContext *c, GF_Node *n);
@@ -2545,7 +2545,7 @@ void dump_root(const char *name, void *rp, void *data)
 }
 #endif
 
-static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
+static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer, char *utf8_script)
 {
 	GF_DOMText *txt = NULL;
 	GF_SVGJS *svg_js;
@@ -2555,19 +2555,27 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	GF_DOMHandler *hdl = (GF_DOMHandler *)node;
 	jsval fval, rval;
 
-	if (!hdl->js_fun && !hdl->js_fun_val && !hdl->evt_listen_obj) {
-		txt = svg_get_text_child(node);
-		if (!txt) return 0;
+	/*LASeR hack for encoding scripts without handler - node is a listener in this case, not a handler*/
+	if (utf8_script) {
+		if (!node) return 0;
+		hdl = NULL;
+	} else {
+		if (!hdl->js_fun && !hdl->js_fun_val && !hdl->evt_listen_obj) {
+			txt = svg_get_text_child(node);
+			if (!txt) return 0;
+		}
+		/*not sure about this (cf test struct-use-205-t.svg)*/
+		if (!node->sgprivate->parents) return 0;
 	}
-	/*not sure about this (cf test struct-use-205-t.svg)*/
-	if (!node->sgprivate->parents) return 0;
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
 
 #ifndef GPAC_DISABLE_LOG
 	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_SCRIPT))) { 
 		char *content, *_content = NULL;
-		if (hdl->js_fun_val) {
+		if (utf8_script) {
+			content = utf8_script;
+		} else if (hdl->js_fun_val) {
 			JSString *s = JS_DecompileFunction(svg_js->js_ctx, JS_ValueToFunction(svg_js->js_ctx, (jsval) hdl->js_fun_val), 0);
 			content = _content = SMJS_CHARS_FROM_STRING(svg_js->js_ctx, s);
 		} else if (hdl->js_fun) {
@@ -2596,15 +2604,18 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	svg_js->in_script = 1;
 
 	/*if an observer is being specified, use it*/
-	if (hdl->evt_listen_obj) __this = hdl->evt_listen_obj;
+	if (hdl && hdl->evt_listen_obj) __this = hdl->evt_listen_obj;
 	/*compile the jsfun if any - 'this' is the associated observer*/
 	else __this = observer ? JSVAL_TO_OBJECT( dom_element_construct(svg_js->js_ctx, observer) ) : svg_js->global;
-	if (txt && !hdl->js_fun) {
+	if (txt && hdl && !hdl->js_fun) {
 		const char *argn = "evt";
 		hdl->js_fun = JS_CompileFunction(svg_js->js_ctx, __this, NULL, 1, &argn, txt->textContent, strlen(txt->textContent), NULL, 0);
 	}
 
-	if (hdl->js_fun || hdl->js_fun_val || hdl->evt_listen_obj) {
+	if (utf8_script) {
+		ret = JS_EvaluateScript(svg_js->js_ctx, __this, utf8_script, strlen(utf8_script), 0, 0, &rval);
+	} 
+	else if (hdl->js_fun || hdl->js_fun_val || hdl->evt_listen_obj) {
 		JSObject *evt;
 		jsval argv[1];
 		evt = gf_dom_new_event(svg_js->js_ctx);
@@ -2636,7 +2647,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
-	if (txt ) hdl->js_fun=0;
+	if (txt && hdl) hdl->js_fun=0;
 
 	while (svg_js->force_gc) {
 		svg_js->force_gc = 0;
@@ -2650,7 +2661,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	if ((event->type==GF_EVENT_CLICK) || (event->type==GF_EVENT_MOUSEOVER)) {
 		NodeIDedItem *reg_node;
 		fprintf(stdout, "Node registry\n");
-		reg_node = hdl->sgprivate->scenegraph->id_node;
+		reg_node = node->sgprivate->scenegraph->id_node;
 		while (reg_node) {
 			fprintf(stdout, "\t%s\n", reg_node->NodeName);
 			reg_node = reg_node->next;
