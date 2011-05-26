@@ -227,7 +227,12 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	if (path_type==GF_PATH_APP) {
 #if (defined(__DARWIN__) || defined(__APPLE__) )
-		if (_NSGetExecutablePath(file_path, &size) ==0) return 1;
+		if (_NSGetExecutablePath(app_path, &size) ==0) {
+			realpath(app_path, file_path);
+			char *sep = strrchr(file_path, '/');
+			if (sep) sep[0] = 0;
+			return 1;
+		}
 
 #elif defined(GPAC_CONFIG_LINUX)
 		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH);
@@ -242,12 +247,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 
 	/*locate the app*/
-#if (defined(__DARWIN__) || defined(__APPLE__) )
-	if (get_default_install_path(app_path, GF_PATH_APP)==0) return 0;
-#else
-	/*just to pass the test below*/
-	strcpy(app_path, "/usr/"); 
-#endif
+	if (!get_default_install_path(app_path, GF_PATH_APP)) return 0;
 
 	/*installed or symlink on system, user user home directory*/
 	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
@@ -257,40 +257,47 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists("gui.bt", "/usr/local/share/gpac/gui", file_path)) return 1;
 			if (check_file_exists("gui.bt", "/opt/share/gpac/gui", file_path)) return 1;
 			if (check_file_exists("gui.bt", "/opt/local/share/gpac/gui", file_path)) return 1;
-			/*GUI not found, look in ~/.gpac/gui/ */
-			strcpy(app_path, file_path);
-			strcat(app_path, "/.gpac/gui");
-			if (check_file_exists("gui.bt", app_path, file_path)) return 1;
-
-			/*GUI not found, look in gpac distribution if any */
-			if (get_default_install_path(app_path, GF_PATH_APP)) {
-				char *sep = strstr(app_path, "/bin/gcc");
-				if (sep) {
-					sep[0] = 0;
-					strcat(app_path, "/gui");
-					if (check_file_exists("gui.bt", app_path, file_path)) return 1;
-				}
-			}
-
-			/*GUI not found, look in .app for OSX case*/
 		} else if (path_type==GF_PATH_MODULES) {
 			/*look in possible install dirs ...*/
 			if (check_file_exists(TEST_MODULE, "/usr/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
+		}
+	}
 
-			if (get_default_install_path(app_path, GF_PATH_APP)) {
-				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+	if (path_type==GF_PATH_GUI) {
+		if (get_default_install_path(app_path, GF_PATH_CFG)) {
+			/*GUI not found, look in ~/.gpac/gui/ */
+			strcat(app_path, "/.gpac/gui");
+			if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+		}
+
+		/*GUI not found, look in gpac distribution if any */
+		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			char *sep = strstr(app_path, "/bin/gcc");
+			if (sep) {
+				sep[0] = 0;
+				strcat(app_path, "/gui");
+				if (check_file_exists("gui.bt", app_path, file_path)) return 1;
 			}
+		}
+		/*GUI not found, look in .app for OSX case*/
+	}
 
-			/*modules not found, look in ~/.gpac/modules/ */
+	if (path_type==GF_PATH_MODULES) {
+		/*look in gpac compilation tree (modules are output in the same folder as apps) */
+		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+		}
+		/*modules not found, look in ~/.gpac/modules/ */
+		if (get_default_install_path(app_path, GF_PATH_CFG)) {
 			strcpy(app_path, file_path);
 			strcat(app_path, "/.gpac/modules");
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
-			/*modules not found, failure*/
-			return 0;
 		}
+		/*modules not found, failure*/
+		return 0;
 	}
 
 	/*OSX way vs iPhone*/
@@ -333,6 +340,7 @@ static GF_Config *create_default_config(char *file_path)
 
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
 		gf_delete_file(szPath);
+fprintf(stdout, " default modules not found\n", szPath);
 		return NULL;
 	}
 
@@ -356,6 +364,7 @@ static GF_Config *create_default_config(char *file_path)
 
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
 	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "ft_font");
+	gf_cfg_set_key(cfg, "FontEngine", "RescanFonts", "yes");
 
 
 #if defined(_WIN32_WCE)
@@ -366,11 +375,12 @@ static GF_Config *create_default_config(char *file_path)
 	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
 	strcat((char *)szPath, "Fonts");
 #elif defined(__APPLE__)
-	/*check me è*/
-#if defined(__DARWIN__)	//non-iOS
-	strcpy(szPath, "/Library/Fonts");
+
+#ifdef GPAC_IPHONE
+#error "wtf is going on"
+	strcpy(szPath, "/System/Library/Fonts/Cache");
 #else
-	strcpy(szPath, "/System/Library/Fonts/Cache"); /*iOS*/
+	strcpy(szPath, "/Library/Fonts");
 #endif
 
 #else
