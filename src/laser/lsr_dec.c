@@ -3803,7 +3803,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 			if (!target->target) post_pone = 1;
 			else par = target->target;
 		}
-		if (!handler->target) {
+		if (!handler->target && !handler->string) {
 			handler->type = XMLRI_ELEMENTID;
 			handler->target = parent;
 		}
@@ -3983,7 +3983,8 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, GF_Node *elt, Bool skip_o
 
 
 	/*node attributes are all parsed*/
-	gf_node_init(elt);
+	if (elt->sgprivate->tag!=TAG_SVG_script)
+		gf_node_init(elt);
 
 	GF_LSR_READ_INT(lsr, count, 1, "opt_group");
 	if (count) {
@@ -4002,6 +4003,9 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, GF_Node *elt, Bool skip_o
 			}
 		}
 	}
+
+	if (elt->sgprivate->tag==TAG_SVG_script)
+		gf_node_init(elt);
 }
 
 static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVG_Element *elt, Bool skip_init)
