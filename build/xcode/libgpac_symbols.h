@@ -58,7 +58,7 @@
 #define gf_cfg_del _gf_cfg_del
 #define gf_term_get_channel_net_info _gf_term_get_channel_net_info
 #define gf_term_process_shortcut _gf_term_process_shortcut
-#define gf_cfg_new _gf_cfg_new
+#define gf_cfg_init _gf_cfg_init
 #define gf_term_get_download_info _gf_term_get_download_info
 #define gf_sys_clock _gf_sys_clock
 #define gf_term_get_object _gf_term_get_object
@@ -211,8 +211,8 @@ extern void (*gf_cfg_del)(GF_Config *iniFile);
 extern Bool (*gf_term_get_channel_net_info)(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code);
 #undef gf_term_process_shortcut
 extern void (*gf_term_process_shortcut)(GF_Terminal *term, GF_Event *ev);
-#undef gf_cfg_new
-extern GF_Config *(*gf_cfg_new)(const char *filePath, const char *fileName);
+#undef gf_cfg_init
+extern GF_Config *(*gf_cfg_init)(const char *fileName, Bool *is_new);
 #undef gf_term_get_download_info
 extern Bool (*gf_term_get_download_info)(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
 #undef gf_sys_clock
