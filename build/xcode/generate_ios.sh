@@ -52,6 +52,7 @@ cd bin/iOS
 rm -rf osmo4ios.app/.svn
 tar -czf "osmo4ios-$full_version.tar.gz" osmo4ios.app/
 rm -rf osmo4ios.app
+svn up
 cd ../../build/xcode/
 
 echo "*** Extra Libs generation for iOS completed (full_version)! ***"
