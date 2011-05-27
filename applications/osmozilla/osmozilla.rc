@@ -9,6 +9,10 @@
 //
 #include "winresrc.h"
 
+/*do not include setup.h*/
+#define _GF_SETUP_H_
+#include <gpac/tools.h>
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -28,8 +32,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -49,7 +53,7 @@ BEGIN
             VALUE "FileDescription", "Osmozilla allows playback of many media and rich media files. For more information, visit <a href=""http://gpac.sourceforge.net"">gpac.sourceforge.net</a>\0"
             VALUE "FileExtents", "*|aac|wrl,wrl.gz|x3dv,x3dv.gz,x3dvz|x3d,x3d.gz,x3dz|svg,svg.gz,svgz|mpg,mpeg,mp2,mpa,mpe,mpv2|asf,wma,wmv,asx,asr|avi|mp4,mpg4|mp4|m4a|3gp,3gpp|3gp,3gpp|3g2,3gp2|3g2,3gp2|mp2,mp3,mpga,mpega|ogg|sdp\0"
             VALUE "FileOpenName", "GPAC Plugin|AAC Music|VRML World|X3D/VRML World|X3D/XML World|SVG Document|MPEG Video|WindowsMedia Movies|AVI Movies|MPEG-4 Videos|MPEG-4 Movies|MPEG-4 Music|3GPP Movies|3GPP Music|3GPP2 Movies|3GPP2 Music|MP3 Music|OGG Movies|SDP Session\0"
-            VALUE "FileVersion", "0.4.5\0"
+            VALUE "FileVersion", GPAC_VERSION"-rev"GPAC_SVN_REVISION"\0"
             VALUE "InternalName", "nposmozilla\0"
             VALUE "LegalCopyright", "Copyright © GPAC 2005-2007\0"
             VALUE "LegalTrademarks", "\0"
@@ -57,7 +61,7 @@ BEGIN
             VALUE "OriginalFilename", "nposmozilla.dll\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "Osmozilla - GPAC Plugin for Mozilla\0"
-            VALUE "ProductVersion", "0.4.5\0"
+            VALUE "ProductVersion", GPAC_VERSION"-rev"GPAC_SVN_REVISION"\0"
             VALUE "SpecialBuild", "\0"
         END
     END

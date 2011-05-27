@@ -1,273 +1,53 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: NPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Netscape Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/NPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is 
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or 
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the NPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the NPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/*
+*			GPAC - Multimedia Framework C SDK
+*
+*			Copyright (c) ENST 2000-200X
+*					All rights reserved
+*
+*  This file is part of GPAC / Osmozilla NPAPI plugin
+*
+*  GPAC is free software; you can redistribute it and/or modify
+*  it under the terms of the GNU Lesser General Public License as published by
+*  the Free Software Foundation; either version 2, or (at your option)
+*  any later version.
+*   
+*  GPAC is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU Lesser General Public License for more details.
+*   
+*  You should have received a copy of the GNU Lesser General Public
+*  License along with this library; see the file COPYING.  If not, write to
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+*
+*/
 
-#include <nsIServiceManager.h>
-#include <nsIMemory.h>
-#include <nsISupportsUtils.h>
-#include <nsISupports.h>
-#include <nsMemory.h>
-#ifdef WIN32
-#include <direct.h>
-#include <shlobj.h>
-#endif
 #include "osmozilla.h"
 
+#include <windows.h>
+
 #include <gpac/options.h>
+#include <gpac/terminal.h>
 #include <gpac/term_info.h>
 
 
-#ifdef GECKO_OLD_API
-nsIServiceManager *gServiceManager = NULL;
-#endif
-
-extern NPNetscapeFuncs *sBrowserFunctions;
+short Osmozilla_GetURL(NPP instance, const char *url, const char *target);
+void Osmozilla_SetStatus(NPP instance, const char *message);
 
 
-#define GPAC_PLUGIN_MIMETYPES \
-	"audio/mpeg:mp2,mp3,mpga,mpega:MP3 Music;" \
-	"audio/x-mpeg:mp2,mp3,mpga,mpega:MP3 Music;" \
-	"audio/amr:amr,awb:AMR Audio;" \
-	"audio/mp4:mp4,mpg4,mpeg4,m4a:MPEG-4 Audio;" \
-	"audio/aac:aac:MPEG-4 AAC Music;" \
-	"audio/aacp:aac:MPEG-4 AACPlus Music;" \
-	"audio/basic:snd,au:Basic Audio;"	\
-	"audio/x-wav:wav:WAV Audio;"	\
-	"audio/3gpp:3gp,3gpp:3GPP/MMS Music;"	\
-	"audio/3gpp2:3g2,3gp2:3GPP2/MMS Music;"	\
-	"video/mpeg:mpg,mpeg,mpe,mpv2:MPEG Video;" \
-	"video/x-mpeg:mpg,mpeg,mpe,mpv2:MPEG Video;" \
-	"video/mpeg-system:mpg,mpeg,mpe,vob,mpv2:MPEG Video;" \
-	"video/x-mpeg-system:mpg,mpeg,mpe,vob,mpv2:MPEG Video;" \
-	"video/avi:avi:AVI Video;" \
-	"video/quicktime:mov,qt:QuickTime Movies;" \
-	"video/x-ms-asf:asf,asx:Windows Media Video;" \
-	"video/x-ms-wmv:wmv:Windows Media;" \
-	"video/mp4:mp4,mpg4:MPEG-4 Video;" \
-	"video/3gpp:3gp,3gpp:3GPP/MMS Video;" \
-	"video/3gpp2:3g2,3gp2:3GPP2/MMS Video;" \
-	"image/jpeg:jpeg,jpg:JPEG Images;"	\
-	"image/png:png:PNG Images;"	\
-	"image/bmp:bmp:MS Bitmap Images;"	\
-	"image/svg+xml:svg,svg.gz,svgz:SVG Document;"	\
-	"image/x-svgm:svgm:SVGM Document;"	\
-	"x-subtitle/srt:srt:SRT SubTitles;"	\
-	"x-subtitle/sub:sub:SUB SubTitles;"	\
-	"x-subtitle/ttxt:ttxt:GPAC 3GPP TimedText;"	\
-	"model/vrml:wrl,wrl.gz:VRML World;"	\
-	"model/x3d+vrml:x3dv,x3dv.gz,x3dvz:X3D/VRML World;"	\
-	"model/x3d+xml:x3d,x3d.gz,x3dz:X3D/XML World;" \
-	"application/ogg:ogg:Ogg Media;" \
-	"application/x-ogg:ogg:Ogg Media;" \
-	"application/x-bt:bt,bt.gz,btz:MPEG-4 Text (BT);"	\
-	"application/x-xmt:xmt,xmt.gz,xmtz:MPEG-4 Text (XMT);"	\
-	"application/mp4:mp4,mpg4:MPEG-4 Movies;" \
-	"application/sdp:sdp:Streaming Media Session;" \
-	 /* explicit plugin call */ \
-	"application/x-gpac::GPAC plugin;" \
-
-
-char* NPP_GetMIMEDescription(void)
+void Osmozilla_Shutdown(Osmozilla *osmo)
 {
-	return (char *) GPAC_PLUGIN_MIMETYPES;
-}
-
-/////////////////////////////////////
-// general initialization and shutdown
-//
-NPError NS_PluginInitialize()
-{
-#ifdef GECKO_OLD_API
-    // this is probably a good place to get the service manager
-    // note that Mozilla will add reference, so do not forget to release
-    nsISupports *sm = NULL;
-
-    NPN_GetValue(NULL, NPNVserviceManager, &sm);
-
-    // Mozilla returns nsIServiceManager so we can use it directly; doing QI on
-    // nsISupports here can still be more appropriate in case something is changed
-    // in the future so we don't need to do casting of any sort.
-    if (sm) {
-		sm->QueryInterface(NS_GET_IID(nsIServiceManager), (void **) &gServiceManager);
-		NS_RELEASE(sm);
-    }
-#endif
-	return NPERR_NO_ERROR;
-}
-
-void NS_PluginShutdown()
-{
-#ifdef GECKO_OLD_API
-    // we should release the service manager
-    NS_IF_RELEASE(gServiceManager);
-    gServiceManager = NULL;
-#endif
-}
-
-// get values per plugin
-NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
-{
-	NPError err = NPERR_NO_ERROR;
-	switch (aVariable) {
-	case NPPVpluginNameString:
-		*((char **)aValue) = (char *) "Osmozilla";
-		break;
-	case NPPVpluginDescriptionString:
-		*((char **)aValue) = (char *) "GPAC Plugin " GPAC_FULL_VERSION " for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
-		break;
-	default:
-		err = NPERR_INVALID_PARAM;
-		break;
+	if (osmo->url) gf_free(osmo->url);
+	osmo->url = NULL;
+	if (osmo->term) {
+		GF_Terminal *a_term = osmo->term;
+		osmo->term = NULL;
+		gf_term_del(a_term);
 	}
-	return err;
-}
-
-/////////////////////////////////////////////////////////////
-//
-// construction and destruction of our plugin instance object
-//
-nsPluginInstanceBase * NS_NewPluginInstance(nsPluginCreateData * aCreateDataStruct)
-{
-	if(!aCreateDataStruct) return NULL;
-	nsOsmozillaInstance * plugin = new nsOsmozillaInstance(aCreateDataStruct);
-	return plugin;
-}
-
-void NS_DestroyPluginInstance(nsPluginInstanceBase * aPlugin)
-{
-	if(aPlugin) delete (nsOsmozillaInstance *)aPlugin;
-}
-
-
-nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct) : nsPluginInstanceBase(),
-  mInstance(aCreateDataStruct->instance)
-{
-#ifdef XP_UNIX
-	mWindow = 0L;
-	mFontInfo = NULL;
-	mXtwidget = NULL;
-#endif
-
-#ifdef XP_WIN
-	m_hWnd = NULL;
-#endif
-
-#ifdef GECKO_OLD_API
-	mScriptablePeer = NULL;
-#endif
-	mInitialized = 0;
-	m_szURL = NULL;
-	m_term = NULL;
-	m_bIsConnected = 0;
-	
-	m_argc=aCreateDataStruct->argc;
-	m_argv=aCreateDataStruct->argv;
-	m_argn=aCreateDataStruct->argn;
-
-	SetOptions();
-}
-
-void nsOsmozillaInstance::SetOptions()
-{
-	m_bLoop = 0;
-	m_bAutoStart = 1;
-	m_bUse3D = 0;		
-
-	/*options sent from plugin*/
-	for(int i=0;i<m_argc;i++) {   
-		if (!m_argn[i] || !m_argv[i]) continue;
-		if (!stricmp(m_argn[i],"autostart") && (!stricmp(m_argv[i], "false") || !stricmp(m_argv[i], "no")) ) 
-			m_bAutoStart = 0;
-
-		else if (!stricmp(m_argn[i],"src") ) {
-			if (m_szURL) gf_free(m_szURL);
-			m_szURL = gf_strdup(m_argv[i]);
-		}
-		else if (!stricmp(m_argn[i],"use3d") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
-			m_bUse3D = 1;
-		}
-		else if (!stricmp(m_argn[i],"loop") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
-			m_bLoop = 1;
-		}
-		else if (!stricmp(m_argn[i],"aspectratio")) {
-			aspect_ratio = GF_ASPECT_RATIO_KEEP;
-			if (!stricmp(m_argv[i], "keep")) aspect_ratio = GF_ASPECT_RATIO_KEEP;
-			else if (!stricmp(m_argv[i], "16:9")) aspect_ratio = GF_ASPECT_RATIO_16_9;
-			else if (!stricmp(m_argv[i], "4:3")) aspect_ratio = GF_ASPECT_RATIO_4_3;
-			else if (!stricmp(m_argv[i], "fill")) aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
-		}
-	}
-
-	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
-	handled by gecko */
-	if (m_szURL) {
-		Bool absolute_url = 0;
-		if (strstr(m_szURL, "://")) absolute_url = 1;
-		else if (m_szURL[0] == '/') {
-			FILE *test = gf_f64_open(m_szURL, "rb");
-			if (test) {	
-				absolute_url = 1;
-				fclose(test);
-			}
-		}
-		else if ((m_szURL[1] == ':') && ((m_szURL[2] == '\\') || (m_szURL[2] == '/'))) absolute_url = 1;
-
-		if (!absolute_url) {
-			char *url = m_szURL;
-			m_szURL = NULL;
-			NPN_GetURL(mInstance, url, NULL);
-			gf_free(url);
-		}
-	}
-
-}
-
-nsOsmozillaInstance::~nsOsmozillaInstance()
-{
-    if (mInstance) {
-		mInstance->pdata = NULL;
-		mInstance = NULL;
-	}
-    mInitialized = FALSE;
-#ifdef GECKO_OLD_API
-    if (mScriptablePeer != NULL) {
-		mScriptablePeer->SetInstance(NULL);
-		NS_IF_RELEASE(mScriptablePeer);
-    }
-#endif
+	if (osmo->user->modules) gf_modules_del(osmo->user->modules);
+	if (osmo->user->config) gf_cfg_del(osmo->user->config);
+	gf_free(osmo->user);
+	osmo->user = NULL;
 }
 
 static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
@@ -277,90 +57,12 @@ static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va
 	fflush(logs);
 }
 
-NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
-{	
-	const char *str;
-	
-	if(aWindow == NULL) return FALSE;
-		
-	memset(&m_user, 0, sizeof(m_user));
-	m_user.config = gf_cfg_init(NULL, NULL);
-	/*need to have a valid cfg file for now*/
-	if (!m_user.config) goto err_exit;
 
-	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	m_user.modules = gf_modules_new(str, m_user.config);
-	if (!gf_modules_get_count(m_user.modules)) goto err_exit;
-
-	m_user.opaque = this;
-	
-	m_disable_mime = 1;
-	str = gf_cfg_get_key(m_user.config, "General", "NoMIMETypeFetch");
-	if (str && !strcmp(str, "no")) m_disable_mime = 0;
-
-	if (SetWindow(aWindow)) mInitialized = TRUE;
-
-	/*check log file*/
-	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
-	if (str) {
-		m_logs = gf_f64_open(str, "wt");
-		gf_log_set_callback(m_logs, osmozilla_do_log);
-	}
-	else m_logs = NULL;
-
-	/*setup logs*/
-	m_log_level = gf_log_parse_level(gf_cfg_get_key(m_user.config, "General", "LogLevel"));
-	gf_log_set_level(m_log_level);
-	m_log_tools = gf_log_parse_tools(gf_cfg_get_key(m_user.config, "General", "LogTools"));
-	gf_log_set_tools(m_log_tools);
-	if (m_log_level && !m_logs) m_logs = stdout;
-
-	return mInitialized;
-
-err_exit:
-
-#ifdef WIN32
-	MessageBox(NULL, "GPAC CONFIGURATION FILE NOT FOUND OR INVALID - PLEASE LAUNCH OSMO4 FIRST", "OSMOZILLA FATAL ERROR", MB_OK);
-#else
-	fprintf(stdout, "OSMOZILLA FATAL ERROR\nGPAC CONFIGURATION FILE NOT FOUND OR INVALID\nPLEASE LAUNCH OSMO4 or MP4Client FIRST\n");
-#endif
-	if (m_user.modules) gf_modules_del(m_user.modules);
-	m_user.modules = NULL;
-	if (m_user.config) gf_cfg_del(m_user.config);
-	m_user.config = NULL;
-	return FALSE;
-}
-
-void nsOsmozillaInstance::shut()
-{
-#ifndef GECKO_OLD_API
-	if (script_obj) sBrowserFunctions->releaseobject(script_obj);
-	script_obj = NULL;
-#endif
-
-	if (m_szURL) gf_free(m_szURL);
-	m_szURL = NULL;
-	if (m_term) {
-		GF_Terminal *a_term = m_term;
-		m_term = NULL;
-		gf_term_del(a_term);
-	}
-	if (m_user.modules) gf_modules_del(m_user.modules);
-	if (m_user.config) gf_cfg_del(m_user.config);
-	memset(&m_user, 0, sizeof(m_user));
-}
-
-const char * nsOsmozillaInstance::getVersion()
-{
-  return GPAC_FULL_VERSION;
-}
-
-
-Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
+Bool Osmozilla_EventProc(void *opaque, GF_Event *evt)
 {
 	char msg[1024];
-
-	if (!m_term) return 0;
+	Osmozilla *osmo = (Osmozilla *)opaque;
+	if (!osmo->term) return 0;
 
 	switch (evt->type) {
 	case GF_EVENT_MESSAGE:
@@ -370,61 +72,48 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 		else
 			sprintf((char *)msg, "GPAC: %s", evt->message.message);
 
-		NPN_Status(mInstance, msg);
+		Osmozilla_SetStatus(osmo->np_instance, msg);
 		break;
 	case GF_EVENT_PROGRESS:
 		if (evt->progress.done == evt->progress.total) {
-			NPN_Status(mInstance, "");
+			Osmozilla_SetStatus(osmo->np_instance, "");
 		} else {
 			char *szTitle = (char *)"";
 			if (evt->progress.progress_type==0) szTitle = (char *)"Buffer ";
 			else if (evt->progress.progress_type==1) szTitle = (char *)"Download ";
 			else if (evt->progress.progress_type==2) szTitle = (char *)"Import ";
 			sprintf(msg, "(GPAC) %s: %02.2f", szTitle, (100.0*evt->progress.done) / evt->progress.total);
-			NPN_Status(mInstance, msg);
+			Osmozilla_SetStatus(osmo->np_instance, msg);
 		}
 		break;
 
-	/*IGNORE any scene size, just work with the size allocated in the parent doc*/
+		/*IGNORE any scene size, just work with the size allocated in the parent doc*/
 	case GF_EVENT_SCENE_SIZE:	
-		gf_term_set_size(m_term, m_width, m_height);
+		gf_term_set_size(osmo->term, osmo->width, osmo->height);
 		break;
-	/*window has been resized (full-screen plugin), resize*/
+		/*window has been resized (full-screen plugin), resize*/
 	case GF_EVENT_SIZE:	
-		m_width = evt->size.width;
-		m_height = evt->size.height;
-		gf_term_set_size(m_term, m_width, m_height);
+		osmo->width = evt->size.width;
+		osmo->height = evt->size.height;
+		gf_term_set_size(osmo->term, osmo->width, osmo->height);
 		break;
 	case GF_EVENT_CONNECT:	
-		m_bIsConnected = evt->connect.is_connected;
+		osmo->is_connected = evt->connect.is_connected;
 		break;
 	case GF_EVENT_DURATION:	
-		m_bCanSeek = evt->duration.can_seek;
-		m_Duration = evt->duration.duration;
+		osmo->can_seek = evt->duration.can_seek;
+		osmo->duration = evt->duration.duration;
 		break;
 	case GF_EVENT_DBLCLICK:
-		gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
+		gf_term_set_option(osmo->term, GF_OPT_FULLSCREEN, !gf_term_get_option(osmo->term, GF_OPT_FULLSCREEN));
 		break;
-	case GF_EVENT_KEYDOWN:
-		if ((evt->key.flags & GF_KEY_MOD_ALT)) {
-	    } else {
-			switch (evt->key.key_code) {
-			case GF_KEY_HOME:
-				gf_term_set_option(m_term, GF_OPT_NAVIGATION_TYPE, 1);
-				break;
-/*			case GF_KEY_ESCAPE:
-				gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
-				break;
-*/			}
-		}
-	    break;
 	case GF_EVENT_NAVIGATE_INFO:
 		strcpy(msg, evt->navigate.to_url);
-		NPN_Status(mInstance, msg);
+		Osmozilla_SetStatus(osmo->np_instance, msg);
 		break;
 	case GF_EVENT_NAVIGATE:
-		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, m_disable_mime)) {
-			gf_term_navigate_to(m_term, evt->navigate.to_url);
+		if (gf_term_is_supported_url(osmo->term, evt->navigate.to_url, 1, osmo->disable_mime)) {
+			gf_term_navigate_to(osmo->term, evt->navigate.to_url);
 			return 1;
 		} else {
 			u32 i;
@@ -437,7 +126,7 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 				else if (!strcmp(evt->navigate.parameters[i], "_new")) target = (char *)"_new";
 				else if (!strnicmp(evt->navigate.parameters[i], "_target=", 8)) target = (char *) evt->navigate.parameters[i]+8;
 			}
-			NPN_GetURL(mInstance, evt->navigate.to_url, target);
+			Osmozilla_GetURL(osmo->np_instance, evt->navigate.to_url, target);
 			return 1;
 		}
 		break;
@@ -445,205 +134,270 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 	return 0;
 }
 
-Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
+int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char* argv[])
 {
-	nsOsmozillaInstance *gpac = (nsOsmozillaInstance *) priv;
-	return gpac->EventProc(evt);
+	const char *str;
+	int i;
+	u32 log_level, log_tools;
+
+	osmo->auto_start = 1;
+
+	/*options sent from plugin*/
+	for(i=0;i<argc;i++) {   
+		if (!argn[i] || !argv[i]) continue;
+		if (!stricmp(argn[i],"autostart") && (!stricmp(argv[i], "false") || !stricmp(argv[i], "no")) ) 
+			osmo->auto_start = 0;
+
+		else if (!stricmp(argn[i],"src") ) {
+			if (osmo->url) gf_free(osmo->url);
+			osmo->url = gf_strdup(argv[i]);
+		}
+		else if (!stricmp(argn[i],"use3d") && (!stricmp(argv[i], "true") || !stricmp(argv[i], "yes") ) ) {
+			osmo->use_3d = 1;
+		}
+		else if (!stricmp(argn[i],"loop") && (!stricmp(argv[i], "true") || !stricmp(argv[i], "yes") ) ) {
+			osmo->loop = 1;
+		}
+		else if (!stricmp(argn[i],"aspectratio")) {
+			osmo->aspect_ratio = GF_ASPECT_RATIO_KEEP;
+			if (!stricmp(argv[i], "keep")) osmo->aspect_ratio = GF_ASPECT_RATIO_KEEP;
+			else if (!stricmp(argv[i], "16:9")) osmo->aspect_ratio = GF_ASPECT_RATIO_16_9;
+			else if (!stricmp(argv[i], "4:3")) osmo->aspect_ratio = GF_ASPECT_RATIO_4_3;
+			else if (!stricmp(argv[i], "fill")) osmo->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
+		}
+	}
+
+	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
+	handled by gecko */
+	if (osmo->url) {
+		Bool absolute_url = 0;
+		if (strstr(osmo->url, "://")) absolute_url = 1;
+		else if (osmo->url[0] == '/') {
+			FILE *test = gf_f64_open(osmo->url, "rb");
+			if (test) {	
+				absolute_url = 1;
+				fclose(test);
+			}
+		}
+		else if ((osmo->url[1] == ':') && ((osmo->url[2] == '\\') || (osmo->url[2] == '/'))) absolute_url = 1;
+
+		if (!absolute_url) {
+			char *url = osmo->url;
+			osmo->url = NULL;
+			Osmozilla_GetURL(osmo->np_instance, url, NULL);
+			gf_free(url);
+		}
+	}
+
+	GF_SAFEALLOC(osmo->user, GF_User);
+	osmo->user->config = gf_cfg_init(NULL, NULL);
+	/*need to have a valid cfg file for now*/
+	if (!osmo->user->config) {
+		gf_free(osmo->user);
+		osmo->user = NULL;
+#ifdef WIN32
+		MessageBox(NULL, "GPAC CONFIGURATION FILE NOT FOUND OR INVALID", "OSMOZILLA FATAL ERROR", MB_OK);
+#else
+		fprintf(stdout, "OSMOZILLA FATAL ERROR\nGPAC CONFIGURATION FILE NOT FOUND OR INVALID\n");
+#endif
+		return 0;
+	}
+
+	str = gf_cfg_get_key(osmo->user->config, "General", "ModulesDirectory");
+	osmo->user->modules = gf_modules_new(str, osmo->user->config);
+	if (!gf_modules_get_count(osmo->user->modules)) {
+		if (osmo->user->modules) gf_modules_del(osmo->user->modules);
+		gf_free(osmo->user);
+		osmo->user = NULL;
+#ifdef WIN32
+		MessageBox(NULL, "GPAC MODULES NOT FOUND", "OSMOZILLA FATAL ERROR", MB_OK);
+#else
+		fprintf(stdout, "OSMOZILLA FATAL ERROR\nGPAC MODULES NOT FOUND\n");
+#endif
+		return 0;
+	}
+
+	osmo->user->opaque = osmo;
+	osmo->user->EventProc = Osmozilla_EventProc;
+	osmo->user->opaque = osmo;
+
+	/*always fetch mime ? Check with anchor examples*/
+	osmo->disable_mime = 0;
+	str = gf_cfg_get_key(osmo->user->config, "General", "NoMIMETypeFetch");
+	if (str && !strcmp(str, "yes")) osmo->disable_mime = 0;
+	/*check log file*/
+	str = gf_cfg_get_key(osmo->user->config, "General", "LogFile");
+	if (str) {
+		osmo->logs = gf_f64_open(str, "wt");
+		if (osmo->logs) gf_log_set_callback(osmo->logs, osmozilla_do_log);
+	}
+
+	/*setup logs*/
+	log_level = gf_log_parse_level(gf_cfg_get_key(osmo->user->config, "General", "LogLevel"));
+	gf_log_set_level(log_level);
+	log_tools = gf_log_parse_tools(gf_cfg_get_key(osmo->user->config, "General", "LogTools"));
+	gf_log_set_tools(log_tools);
+
+	return 1;
 }
 
-NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
+int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_display, unsigned int width, unsigned int height)
 {
 	const char *gui;
-	if (mInitialized) {
-		m_width = aWindow->width;
-		m_height = aWindow->height;
-		if (m_bIsConnected) gf_term_set_size(m_term, m_width, m_height);
-		return TRUE;
+	if (osmo->window_set) {
+		osmo->width = width;
+		osmo->height = height;
+		if (osmo->is_connected) gf_term_set_size(osmo->term, osmo->width, osmo->height);
+		return 1;
 	}
-	
-	if(aWindow == NULL) return FALSE;
-	if (!aWindow->width || !aWindow->height) return FALSE;
+	if (!os_wnd_handle) return 0;
 
-	m_width = aWindow->width;
-	m_height = aWindow->height;
+	osmo->width = width;
+	osmo->height = height;
 
-	m_user.EventProc = Osmozilla_EventProc;
-	
-#ifdef XP_WIN
-	m_user.os_window_handler = aWindow->window;
-#endif
+	osmo->user->os_window_handler = os_wnd_handle;
+	osmo->user->os_display = os_wnd_display;
 
-#ifdef XP_UNIX
-	m_user.os_window_handler = aWindow->window;
-	/*HACK - although we don't use the display in the X11 plugin, this is used to signal that 
-	the user is mozilla and prevent some X11 calls crashing the browser in file playing mode 
-	(eg, "firefox myfile.mp4" )*/
-	m_user.os_display =((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
-	XSynchronize((Display *) m_user.os_display, True);
-	m_user.os_window_handler = aWindow->window;
-#endif
+	/*Everything is now setup, create the terminal*/
+	osmo->term = gf_term_new(osmo->user);
+	if (!osmo->term) return 0;
 
- 	m_prev_time = 0;
-	m_url_changed = 0;
- 
-	m_term = gf_term_new(&m_user);
-	if (! m_term) return FALSE;
-
-	gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, aspect_ratio);
-	mInitialized = TRUE;
+	gf_term_set_option(osmo->term, GF_OPT_ASPECT_RATIO, osmo->aspect_ratio);
+	osmo->window_set = 1;
 
 #ifdef XP_WIN
-	SetFocus((HWND)aWindow->window);
+	SetFocus((HWND)os_wnd_handle);
 #endif
 
 	/*stream not ready*/
-	if (!m_szURL || !m_bAutoStart) return TRUE;
+	if (!osmo->url || !osmo->auto_start) return 1;
 
 	/*connect from 0 and pause if not autoplay*/
-	gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+	gui = gf_cfg_get_key(osmo->user->config, "General", "StartupFile");
 	if (gui) {
-		gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
-		gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_szURL);
-		gf_term_connect(m_term, gui);
+		gf_cfg_set_key(osmo->user->config, "Temp", "BrowserMode", "yes");
+		gf_cfg_set_key(osmo->user->config, "Temp", "GUIStartupFile", osmo->url);
+		gf_term_connect(osmo->term, gui);
 	} else {
-		gf_term_connect(m_term, m_szURL);
+		gf_term_connect(osmo->term, osmo->url);
 	}
-
-	return TRUE;
+	return 1;
 }
 
-
-
-NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
-				    NPBool seekable, uint16 * stype)
+char *Osmozilla_GetVersion()
 {
-	if (m_szURL) gf_free(m_szURL);
-	m_szURL = gf_strdup((const char *)stream->url);
+	return (char *) "GPAC Plugin " GPAC_FULL_VERSION " for NPAPI compatible Web Browsers. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
+}
+
+void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
+{
+	if (osmo->url) gf_free(osmo->url);
+	osmo->url = gf_strdup(url);
 
 	/*connect from 0 and pause if not autoplay*/
-	if (m_bAutoStart) {
-		const char *gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+	if (osmo->auto_start) {
+		const char *gui = gf_cfg_get_key(osmo->user->config, "General", "StartupFile");
 		if (gui) {
-			gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
-			gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_szURL);
-			gf_term_connect(m_term, gui);
+			gf_cfg_set_key(osmo->user->config, "Temp", "BrowserMode", "yes");
+			gf_cfg_set_key(osmo->user->config, "Temp", "GUIStartupFile", url);
+			gf_term_connect(osmo->term, gui);
 		} else {
-			gf_term_connect(m_term, m_szURL);
-		}
-	}
-
-	/*we handle data fetching ourselves*/
-    *stype = NP_SEEK;
-    return NPERR_NO_ERROR;
-}
-
-NPError nsOsmozillaInstance::DestroyStream(NPStream * stream, NPError reason)
-{
-	if (0 && m_szURL) {
-		gf_term_disconnect(m_term);
-		gf_free(m_szURL);
-		m_szURL = NULL;
-	}
-	return NPERR_NO_ERROR;
-}
-
-uint16 nsOsmozillaInstance::HandleEvent(void* event)
-{
-	fprintf(stdout, "event !\n");
-  return false;
-}
- 
-void nsOsmozillaInstance::Pause()
-{
-fprintf(stdout, "pause\n");
-	if (m_term) {
-		if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE) == GF_STATE_PAUSED) {
-	        gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
-		} else {
-	        gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+			gf_term_connect(osmo->term, url);
 		}
 	}
 }
 
-void nsOsmozillaInstance::Play()
+void Osmozilla_Pause(Osmozilla *osmo)
 {
-	if (!m_bIsConnected) {
-		if (m_szURL) gf_term_connect(m_term, (const char *) m_szURL);
+	if (osmo->term) {
+		if (gf_term_get_option(osmo->term, GF_OPT_PLAY_STATE) == GF_STATE_PAUSED) {
+			gf_term_set_option(osmo->term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+		} else {
+			gf_term_set_option(osmo->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+		}
+	}
+}
+
+void Osmozilla_Play(Osmozilla *osmo)
+{
+	if (!osmo->is_connected) {
+		if (osmo->url) gf_term_connect(osmo->term, (const char *) osmo->url);
 	} else {
-		gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+		gf_term_set_option(osmo->term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 	}
 }
 
-void nsOsmozillaInstance::Stop()
+void Osmozilla_Stop(Osmozilla *osmo)
 {
-	gf_term_disconnect(m_term);
+	if (osmo->term) gf_term_disconnect(osmo->term);
 }
 
 #ifdef XP_WIN
 PBITMAPINFO CreateBitmapInfoStruct(GF_VideoSurface *pfb)
 { 
-    PBITMAPINFO pbmi; 
-    WORD    cClrBits; 
+	PBITMAPINFO pbmi; 
+	WORD    cClrBits; 
 
 	cClrBits = 32;
 
-    pbmi = (PBITMAPINFO) LocalAlloc(LPTR, 
-                    sizeof(BITMAPINFOHEADER)); 
+	pbmi = (PBITMAPINFO) LocalAlloc(LPTR, 
+		sizeof(BITMAPINFOHEADER)); 
 
-    pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER); 
+	pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER); 
 	pbmi->bmiHeader.biWidth = pfb->width;
 	pbmi->bmiHeader.biHeight = 1;
-    pbmi->bmiHeader.biPlanes = 1; 
-    pbmi->bmiHeader.biBitCount = cClrBits; 
+	pbmi->bmiHeader.biPlanes = 1; 
+	pbmi->bmiHeader.biBitCount = cClrBits; 
 
-    pbmi->bmiHeader.biCompression = BI_RGB; 
-    pbmi->bmiHeader.biSizeImage = ((pbmi->bmiHeader.biWidth * cClrBits +31) & ~31) /8
-                                  * pbmi->bmiHeader.biHeight; 
-     pbmi->bmiHeader.biClrImportant = 0; 
-     return pbmi; 
+	pbmi->bmiHeader.biCompression = BI_RGB; 
+	pbmi->bmiHeader.biSizeImage = ((pbmi->bmiHeader.biWidth * cClrBits +31) & ~31) /8
+		* pbmi->bmiHeader.biHeight; 
+	pbmi->bmiHeader.biClrImportant = 0; 
+	return pbmi; 
 }
 #endif
 
-void nsOsmozillaInstance::Print(NPPrint* printInfo)
+void Osmozilla_Print(Osmozilla *osmo, unsigned int is_embed, void *os_print_dc, unsigned int target_x, unsigned int target_y, unsigned int target_width, unsigned int target_height)
 {
-	if (printInfo->mode == NP_EMBED)
-	{
-		NPEmbedPrint *ep = (NPEmbedPrint *)printInfo;
+	if (is_embed) {
 #ifdef XP_MACOS
 		/*
-		ep->platformPrint contains a THPrint reference on MacOS
+		os_print_dc contains a THPrint reference on MacOS
 		*/
-		}
+	}
 #endif  // XP_MACOS
 #ifdef XP_UNIX
-		/*
-		ep->platformPrint  contains a NPPrintCallbackStruct on Unix and
-		the plug-in location and size in the NPWindow are in page coordinates (720/ inch), but the printer requires point coordinates (72/inch)
-		*/
+	/*
+	os_print_dc contains a NPPrintCallbackStruct on Unix and
+	the plug-in location and size in the NPWindow are in page coordinates (720/ inch), but the printer requires point coordinates (72/inch)
+	*/
 #endif  // XP_UNIX
 #ifdef XP_WIN
-		/*
-		The coordinates for the window rectangle are in TWIPS format. 
-		This means that you need to convert the x-y coordinates using the Windows API call DPtoLP when you output text
-		*/
-		HDC pDC = (HDC)printInfo->print.embedPrint.platformPrint;
-		GF_VideoSurface fb;
-		u32 xsrc, ysrc;
-		u16 src_16;
-		char *src;
-		/*lock the source buffer */
-		gf_term_get_screen_buffer(m_term, &fb);
-		BITMAPINFO	*infoSrc = CreateBitmapInfoStruct(&fb);
-		float deltay = (float)printInfo->print.embedPrint.window.height/(float)fb.height;
-		int	ysuiv = 0;
-		char *ligne = (char *) LocalAlloc(GMEM_FIXED, fb.width*4);
-		for (ysrc=0; ysrc<fb.height; ysrc++)
+	/*
+	The coordinates for the window rectangle are in TWIPS format. 
+	This means that you need to convert the x-y coordinates using the Windows API call DPtoLP when you output text
+	*/
+	GF_VideoSurface fb;
+	u32 xsrc, ysrc;
+	u16 src_16;
+	char *src;
+	float deltay;
+	int	ysuiv = 0;
+	char *ligne;
+	BITMAPINFO	*infoSrc;
+	HDC pDC = (HDC)os_print_dc;
+	/*lock the source buffer */
+	gf_term_get_screen_buffer(osmo->term, &fb);
+	infoSrc = CreateBitmapInfoStruct(&fb);
+	deltay = (float)target_height/(float)fb.height;
+	ligne = (char *) LocalAlloc(GMEM_FIXED, fb.width*4);
+	for (ysrc=0; ysrc<fb.height; ysrc++) {
+		int ycrt, delta;
+		char *dst = (char*)ligne;
+		src = fb.video_buffer + ysrc * fb.pitch_y;
+		for (xsrc=0; xsrc<fb.width; xsrc++)
 		{
-			char *dst = (char*)ligne;
-			src = fb.video_buffer + ysrc * fb.pitch_y;
-			for (xsrc=0; xsrc<fb.width; xsrc++)
-			{
-				switch (fb.pixel_format) {
+			switch (fb.pixel_format) {
 				case GF_PIXEL_RGB_32:
 				case GF_PIXEL_ARGB:
 					dst[0] = src[0];
@@ -690,282 +444,41 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 					dst[0] += dst[0]>>5;
 					src+=2;
 					break;
-				}
-				dst += 4;
 			}
-			int ycrt = ysuiv;
-			ysuiv = (u32) ( ((float)ysrc+1.0)*deltay);
-			int delta = ysuiv-ycrt;
-			StretchDIBits(
-				pDC, printInfo->print.embedPrint.window.x, ycrt+printInfo->print.embedPrint.window.y, printInfo->print.embedPrint.window.width, 
-				delta, 
-				0, 0, fb.width, 1,
-				ligne, infoSrc, DIB_RGB_COLORS, SRCCOPY);
+			dst += 4;
 		}
-
-		/*unlock GPAC frame buffer */
-		gf_term_release_screen_buffer(m_term, &fb);
-		/* gf_free temporary  objects */
-		GlobalFree(ligne);
-		LocalFree(infoSrc);
-#endif   // XP_WIN
-	} else if (printInfo->mode == NP_FULL)
-	{
-		NPFullPrint *ep = (NPFullPrint *)printInfo;
-		// TODO present the print dialog and manage the print
+		ycrt = ysuiv;
+		ysuiv = (u32) ( ((float)ysrc+1.0)*deltay);
+		delta = ysuiv-ycrt;
+		StretchDIBits(
+			pDC, target_x, target_y, target_width, 
+			delta, 
+			0, 0, fb.width, 1,
+			ligne, infoSrc, DIB_RGB_COLORS, SRCCOPY);
 	}
+
+	/*unlock GPAC frame buffer */
+	gf_term_release_screen_buffer(osmo->term, &fb);
+	/* gf_free temporary  objects */
+	GlobalFree(ligne);
+	LocalFree(infoSrc);
+#endif   // XP_WIN
+
+	return;
+} 
+
+/*TODO - this is full print, present the print dialog and manage the print*/
 }
 
-void nsOsmozillaInstance::Update(const char *type, const char *commands)
+void Osmozilla_Update(Osmozilla *osmo, const char *type, const char *commands)
 {
-	if (m_term) {
-		GF_Err e = gf_term_scene_update(m_term, (char *) type, (char *) commands);
+	if (osmo->term) {
+		GF_Err e = gf_term_scene_update(osmo->term, (char *) type, (char *) commands);
 		if (e) {
 			char szMsg[1024];
 			sprintf((char *)szMsg, "GPAC: Error applying update (%s)", gf_error_to_string(e) );
-			NPN_Status(mInstance, szMsg);
+			Osmozilla_SetStatus(osmo->np_instance, szMsg);
 		}
 	}
 }
 
-
-// Scriptability related code
-
-#ifdef GECKO_OLD_API
-nsOsmozillaPeer *nsOsmozillaInstance::getScriptablePeer()
-{
-    if (!mScriptablePeer) {
-		mScriptablePeer = new nsOsmozillaPeer(this);
-		if (!mScriptablePeer) return NULL;
-		NS_ADDREF(mScriptablePeer);
-    }
-    NS_ADDREF(mScriptablePeer);
-    return mScriptablePeer;
-}
-#endif //GECKO_OLD_API
-
-#ifdef GECKO_OLD_API
-
-static NS_DEFINE_IID(kIZillaPluginIID, NS_IOSMOZILLA_IID);
-static NS_DEFINE_IID(kIClassInfoIID, NS_ICLASSINFO_IID);
-static NS_DEFINE_IID(kISupportsIID, NS_ISUPPORTS_IID);
-
-nsOsmozillaPeer::nsOsmozillaPeer(nsOsmozillaInstance * aPlugin)
-{
-	mPlugin=aPlugin;
-	mRefCnt = 0;
-}
-
-nsOsmozillaPeer::~nsOsmozillaPeer()
-{
-}
-	// Notice that we expose our claim to implement nsIClassInfo.
-//NS_IMPL_ISUPPORTS2(nsOsmozillaPeer, nsITestPlugin, nsIClassInfo)
-
-	// the following method will be callable from JavaScript
-NS_IMETHODIMP nsOsmozillaPeer::Pause() { mPlugin->Pause(); return NS_OK; }
-NS_IMETHODIMP nsOsmozillaPeer::Play() { mPlugin->Play(); return NS_OK; }
-NS_IMETHODIMP nsOsmozillaPeer::Stop() { mPlugin->Stop(); return NS_OK; }
-
-NS_IMETHODIMP nsOsmozillaPeer::Update(const char *type, const char *commands) 
-{
-	mPlugin->Update(type, commands); 
-	return NS_OK; 
-}
-
-void nsOsmozillaPeer::SetInstance(nsOsmozillaInstance * plugin)
-{
-    mPlugin = plugin;
-}
-
-NS_IMETHODIMP_(nsrefcnt) nsOsmozillaPeer::AddRef()
-{
-    ++mRefCnt;
-    return mRefCnt;
-}
-
-NS_IMETHODIMP_(nsrefcnt) nsOsmozillaPeer::Release()
-{
-    --mRefCnt;
-    if (mRefCnt == 0) {
-		delete this;
-		return 0;
-    }
-    return mRefCnt;
-}
-
-// here nsOsmozillaPeer should return three interfaces it can be asked for by their iid's
-// static casts are necessary to ensure that correct pointer is returned
-NS_IMETHODIMP nsOsmozillaPeer::QueryInterface(const nsIID & aIID,
-					       void **aInstancePtr)
-{
-    if (!aInstancePtr)
-		return NS_ERROR_NULL_POINTER;
-
-    if (aIID.Equals(kIZillaPluginIID)) {
-		*aInstancePtr = NS_STATIC_CAST(nsIOsmozilla *, this);
-		AddRef();
-		return NS_OK;
-    }
-    
-	if (aIID.Equals(kIClassInfoIID)) {
-		*aInstancePtr = NS_STATIC_CAST(nsIClassInfo *, this);
-		AddRef();
-		return NS_OK;
-    }
-
-    if (aIID.Equals(kISupportsIID)) {
-		*aInstancePtr = NS_STATIC_CAST(nsISupports *, (NS_STATIC_CAST (nsIOsmozilla *, this)));
-		AddRef();
-		return NS_OK;
-    }
-    return NS_NOINTERFACE;
-}
-
-#endif //GECKO_OLD_API
-
-
-
-#ifndef GECKO_OLD_API
-
-#define kOSMOZILLA_ID_METHOD_PLAY              	0
-#define kOSMOZILLA_ID_METHOD_PAUSE				1
-#define kOSMOZILLA_ID_METHOD_STOP				2
-#define kOSMOZILLA_ID_METHOD_UPDATE				3
-
-#define kOSMOZILLA_NUM_METHODS				4
-
-NPIdentifier    v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_NUM_METHODS];
-const NPUTF8 *  v_OSMOZILLA_MethodNames[kOSMOZILLA_NUM_METHODS] = {
-	"Play",
-	"Pause",
-	"Stop",
-	"Update"
-};
-
-NPClass script_class;
-
-struct OsmozillaObject {
-    NPClass *_class;
-    uint32_t referenceCount;
-	nsOsmozillaInstance *gpac;
-};
-
-NPObject *OSMOZILLA_Allocate(NPP npp, NPClass *theClass)
-{
-	nsOsmozillaInstance *instance = (nsOsmozillaInstance *) npp->pdata;
-    OsmozillaObject *obj = NULL;
-
-	sBrowserFunctions->getstringidentifiers(v_OSMOZILLA_MethodNames, kOSMOZILLA_NUM_METHODS, v_OSMOZILLA_MethodIdentifiers);
-    obj = (OsmozillaObject *)malloc(sizeof(OsmozillaObject));
-	obj->gpac = instance;
-    return (NPObject *)obj;
-}
-
-void OSMOZILLA_Deallocate(NPObject* obj)
-{
-    free(obj);
-    return;
-}
-
-void OSMOZILLA_Invalidate(NPObject* obj)
-{
-    return;
-}
-
-bool OSMOZILLA_HasMethod(NPObject* obj, NPIdentifier name)
-{
-    int i = 0;
-    while (i < kOSMOZILLA_NUM_METHODS) {
-        if ( name == v_OSMOZILLA_MethodIdentifiers[i] ) {
-            return true;
-        }
-        i++;
-    }
-    return false;
-}
-
-bool OSMOZILLA_Invoke(NPObject* obj, NPIdentifier name, const NPVariant* args, uint32_t argCount, NPVariant* result)
-{
-	OsmozillaObject *npo = (OsmozillaObject *)obj;
-	if (!npo->gpac) return false;
-    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_PLAY]) {
-		npo->gpac->Play();
-		return true;
-    }
-    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_PAUSE]) {
-		npo->gpac->Pause();
-    	return true;
-    }
-    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_STOP]) {
-		npo->gpac->Stop();
-    	return true;
-    }
-    if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_UPDATE]) {
-		const char *mime = NULL;
-		const char *update = NULL;
-		if (argCount==2) {
-			mime = (args[0].type==NPVariantType_String) ? args[0].value.stringValue.UTF8Characters : NULL; 
-			update = (args[1].type==NPVariantType_String) ? args[1].value.stringValue.UTF8Characters : NULL; 
-		}
-		if (!update) return false;
-		npo->gpac->Update(mime, update);
-    	return true;
-    }
-    return false;
-}
-
-bool OSMOZILLA_InvokeDefault(NPObject *npobj, const NPVariant *args, uint32_t argCount, NPVariant *result)
-{
-    return true;
-}
-
-bool OSMOZILLA_HasProperty(NPObject* obj, NPIdentifier name)
-{
-    bool result = false;
-	/*nothing exposed yet*/
-    return result;
-}
-
-bool OSMOZILLA_GetProperty(NPObject* obj, NPIdentifier name, NPVariant* result)
-{
-    return true;
-}
-
-bool OSMOZILLA_SetProperty(NPObject *obj, NPIdentifier name, const NPVariant *value)
-{
-    return true;
-}
-
-bool OSMOZILLA_RemoveProperty(NPObject *npobj, NPIdentifier name)
-{
-    return true;
-}
-
-bool OSMOZILLA_Enumerate(NPObject *npobj, NPIdentifier **value, uint32_t *count)
-{
-    return true;
-}
-
-void nsOsmozillaInstance::init_scripting()
-{
-    script_class.allocate          = OSMOZILLA_Allocate;
-    script_class.deallocate        = OSMOZILLA_Deallocate;
-    script_class.invalidate        = OSMOZILLA_Invalidate;
-    script_class.hasMethod         = OSMOZILLA_HasMethod;
-    script_class.invoke            = OSMOZILLA_Invoke;
-    script_class.invokeDefault     = OSMOZILLA_InvokeDefault;
-    script_class.hasProperty       = OSMOZILLA_HasProperty;
-    script_class.getProperty       = OSMOZILLA_GetProperty;
-    script_class.setProperty       = OSMOZILLA_SetProperty;
-    script_class.removeProperty    = OSMOZILLA_RemoveProperty;
-    script_class.enumerate         = OSMOZILLA_Enumerate;
-
-	/*create script object*/
-	script_obj = sBrowserFunctions->createobject(mInstance, &script_class);
-
-}
-	
-
-
-#endif //GECKO_OLD_API

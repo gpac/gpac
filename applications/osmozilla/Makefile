@@ -39,7 +39,7 @@ CFLAGS+=-DNPBASIC_EXPORTS -DMOZILLA_STRICT_API -DXPCOM_GLUE
 
 LINKLIBS=-L../../bin/gcc -lgpac
 
-OBJS=osmozilla.o npp_gate.o np_entry.o npn_gate.o
+OBJS=osmozilla.o osmo_npapi.o
 
 SRCS := $(OBJS:.o=.cpp) 
 
