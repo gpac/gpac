@@ -1,13 +1,13 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIOsmozilla.idl
- */
+* DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIOsmozilla.idl
+*/
 
 #ifndef __gen_nsIOsmozilla_h__
 #define __gen_nsIOsmozilla_h__
 
-#include "npplat.h"
+#include "osmo_npapi.h"
 
-#ifdef GECKO_OLD_API
+#ifdef GECKO_XPCOM
 
 #ifndef __gen_nsISupports_h__
 #include "nsISupports.h"
@@ -23,47 +23,47 @@
 
 #define NS_IOSMOZILLA_IID \
   {0xd2d536a0, 0xb6fc, 0x11d5, \
-    { 0x9d, 0x10, 0x00, 0x60, 0xb0, 0xfb, 0xd8, 0x0b }}
+	{ 0x9d, 0x10, 0x00, 0x60, 0xb0, 0xfb, 0xd8, 0x0b }}
 
 class NS_NO_VTABLE nsIOsmozilla : public nsISupports {
- public: 
+public: 
 
-  NS_DEFINE_STATIC_IID_ACCESSOR(NS_IOSMOZILLA_IID)
+	NS_DEFINE_STATIC_IID_ACCESSOR(NS_IOSMOZILLA_IID)
 
-  /* void Pause (); */
-  NS_IMETHOD Pause(void) = 0;
+		/* void Pause (); */
+		NS_IMETHOD Pause(void) = 0;
 
-  /* void Play (); */
-  NS_IMETHOD Play(void) = 0;
+	/* void Play (); */
+	NS_IMETHOD Play(void) = 0;
 
-  /* void Stop (); */
-  NS_IMETHOD Stop(void) = 0;
+	/* void Stop (); */
+	NS_IMETHOD Stop(void) = 0;
 
-  /* void Update (in string type, in string commands); */
-  NS_IMETHOD Update(const char *type, const char *commands) = 0;
+	/* void Update (in string type, in string commands); */
+	NS_IMETHOD Update(const char *type, const char *commands) = 0;
 
 };
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_NSIOSMOZILLA \
-  NS_IMETHOD Pause(void); \
-  NS_IMETHOD Play(void); \
-  NS_IMETHOD Stop(void); \
-  NS_IMETHOD Update(const char *type, const char *commands); 
+	NS_IMETHOD Pause(void); \
+	NS_IMETHOD Play(void); \
+	NS_IMETHOD Stop(void); \
+	NS_IMETHOD Update(const char *type, const char *commands); 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_NSIOSMOZILLA(_to) \
-  NS_IMETHOD Pause(void) { return _to Pause(); } \
-  NS_IMETHOD Play(void) { return _to Play(); } \
-  NS_IMETHOD Stop(void) { return _to Stop(); } \
-  NS_IMETHOD Update(const char *type, const char *commands) { return _to Update(type, commands); } 
+	NS_IMETHOD Pause(void) { return _to Pause(); } \
+	NS_IMETHOD Play(void) { return _to Play(); } \
+	NS_IMETHOD Stop(void) { return _to Stop(); } \
+	NS_IMETHOD Update(const char *type, const char *commands) { return _to Update(type, commands); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_NSIOSMOZILLA(_to) \
-  NS_IMETHOD Pause(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Pause(); } \
-  NS_IMETHOD Play(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Play(); } \
-  NS_IMETHOD Stop(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Stop(); } \
-  NS_IMETHOD Update(const char *type, const char *commands) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(type, commands); } 
+	NS_IMETHOD Pause(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Pause(); } \
+	NS_IMETHOD Play(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Play(); } \
+	NS_IMETHOD Stop(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Stop(); } \
+	NS_IMETHOD Update(const char *type, const char *commands) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(type, commands); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -72,12 +72,12 @@ class NS_NO_VTABLE nsIOsmozilla : public nsISupports {
 class nsOsmozilla : public nsIOsmozilla
 {
 public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOSMOZILLA
+	NS_DECL_ISUPPORTS
+		NS_DECL_NSIOSMOZILLA
 
-  nsOsmozilla();
-  virtual ~nsOsmozilla();
-  /* additional members */
+		nsOsmozilla();
+	virtual ~nsOsmozilla();
+	/* additional members */
 };
 
 /* Implementation file */
@@ -85,41 +85,41 @@ NS_IMPL_ISUPPORTS1(nsOsmozilla, nsIOsmozilla)
 
 nsOsmozilla::nsOsmozilla()
 {
-  /* member initializers and constructor code */
+	/* member initializers and constructor code */
 }
 
 nsOsmozilla::~nsOsmozilla()
 {
-  /* destructor code */
+	/* destructor code */
 }
 
 /* void Pause (); */
 NS_IMETHODIMP nsOsmozilla::Pause()
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 /* void Play (); */
 NS_IMETHODIMP nsOsmozilla::Play()
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 /* void Stop (); */
 NS_IMETHODIMP nsOsmozilla::Stop()
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 /* void Update (in string type, in string commands); */
 NS_IMETHODIMP nsOsmozilla::Update(const char *type, const char *commands)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 /* End of implementation class template. */
 #endif
 
-#endif //GECKO_OLD_API
+#endif //GECKO_XPCOM
 
 #endif /* __gen_nsIOsmozilla_h__ */
