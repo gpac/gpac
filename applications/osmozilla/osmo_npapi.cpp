@@ -274,21 +274,6 @@ static NPError fillPluginFunctionTable(NPPluginFuncs* aNPPFuncs)
 	// and have a UniversalProcPointer for every function we implement.
 
 	aNPPFuncs->version       = (NP_VERSION_MAJOR << 8) | NP_VERSION_MINOR;
-#ifdef XP_MAC
-	aNPPFuncs->newp          = NewNPP_NewProc(Private_New);
-	aNPPFuncs->destroy       = NewNPP_DestroyProc(Private_Destroy);
-	aNPPFuncs->setwindow     = NewNPP_SetWindowProc(Private_SetWindow);
-	aNPPFuncs->newstream     = NewNPP_NewStreamProc(Private_NewStream);
-	aNPPFuncs->destroystream = NewNPP_DestroyStreamProc(Private_DestroyStream);
-	aNPPFuncs->asfile        = NewNPP_StreamAsFileProc(Private_StreamAsFile);
-	aNPPFuncs->writeready    = NewNPP_WriteReadyProc(Private_WriteReady);
-	aNPPFuncs->write         = NewNPP_WriteProc(Private_Write);
-	aNPPFuncs->print         = NewNPP_PrintProc(Private_Print);
-	aNPPFuncs->event         = NewNPP_HandleEventProc(Private_HandleEvent);	
-	aNPPFuncs->urlnotify     = NewNPP_URLNotifyProc(Private_URLNotify);			
-	aNPPFuncs->getvalue      = NewNPP_GetValueProc(Private_GetValue);
-	aNPPFuncs->setvalue      = NewNPP_SetValueProc(Private_SetValue);
-#else
 	aNPPFuncs->newp          = NPOsmozilla_New;
 	aNPPFuncs->destroy       = NPOsmozilla_Destroy;
 	aNPPFuncs->setwindow     = NPOsmozilla_SetWindow;
@@ -302,11 +287,6 @@ static NPError fillPluginFunctionTable(NPPluginFuncs* aNPPFuncs)
 	aNPPFuncs->urlnotify     = NPOsmozilla_URLNotify;
 	aNPPFuncs->getvalue      = NPOsmozilla_GetValue;
 	aNPPFuncs->setvalue      = NPOsmozilla_SetValue;
-#endif
-#ifdef OJI
-	aNPPFuncs->javaClass     = NULL;
-#endif
-
 	return NPERR_NO_ERROR;
 }
 
@@ -338,35 +318,6 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
 }
 
 
-#ifdef XP_WIN
-
-NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs)
-{
-	sBrowserFunctions = aNPNFuncs;
-
-	return NS_PluginInitialize();
-}
-
-NPError OSCALL NP_GetEntryPoints(NPPluginFuncs* aNPPFuncs)
-{
-	return fillPluginFunctionTable(aNPPFuncs);
-}
-
-
-#endif
-
-
-#ifdef XP_UNIX
-
-NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFuncs)
-{
-	sBrowserFunctions = aNPNFuncs;
-	rv = fillPluginFunctionTable(aNPPFuncs);
-	if(rv != NPERR_NO_ERROR)
-		return rv;
-
-	return NS_PluginInitialize();
-}
 
 
 #define GPAC_PLUGIN_MIMETYPES \
@@ -414,6 +365,34 @@ NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFunc
 char * NP_GetMIMEDescription(void)
 {
 	return (char *) GPAC_PLUGIN_MIMETYPES;
+}
+
+
+#if defined(XP_WIN) || defined(XP_MACOS) 
+
+NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs)
+{
+	sBrowserFunctions = aNPNFuncs;
+
+	return NS_PluginInitialize();
+}
+
+NPError OSCALL NP_GetEntryPoints(NPPluginFuncs* aNPPFuncs)
+{
+	return fillPluginFunctionTable(aNPPFuncs);
+}
+
+
+#elif defined(XP_UNIX)
+
+NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFuncs)
+{
+	sBrowserFunctions = aNPNFuncs;
+	rv = fillPluginFunctionTable(aNPPFuncs);
+	if(rv != NPERR_NO_ERROR)
+		return rv;
+
+	return NS_PluginInitialize();
 }
 
 NPError NP_GetValue(void *future, NPPVariable aVariable, void *aValue)

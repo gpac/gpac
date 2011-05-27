@@ -24,7 +24,9 @@
 
 #include "osmozilla.h"
 
+#ifdef XP_WIN
 #include <windows.h>
+#endif
 
 #include <gpac/options.h>
 #include <gpac/terminal.h>
