@@ -37,7 +37,7 @@ extern "C" {
 
 /*GPAC client terminal*/
 typedef struct _tag_terminal GF_Terminal;
-
+typedef struct _tag_user GF_User;
 	
 
 enum
@@ -77,7 +77,7 @@ enum
 };
 
 /*user object for all callbacks*/
-typedef struct 
+struct _tag_user
 {
 	/*user defined callback for all functions - cannot be NULL*/
 	void *opaque;
@@ -98,7 +98,7 @@ typedef struct
 
 	/*init flags bypassing GPAC config file	*/
 	u32 init_flags;
-} GF_User;
+};
 
 
 #ifdef __cplusplus
