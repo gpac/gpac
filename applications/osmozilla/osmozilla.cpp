@@ -221,7 +221,6 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 
 	osmo->user->opaque = osmo;
 	osmo->user->EventProc = Osmozilla_EventProc;
-	osmo->user->opaque = osmo;
 
 	/*always fetch mime ? Check with anchor examples*/
 	osmo->disable_mime = 0;
@@ -239,6 +238,8 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 	gf_log_set_level(log_level);
 	log_tools = gf_log_parse_tools(gf_cfg_get_key(osmo->user->config, "General", "LogTools"));
 	gf_log_set_tools(log_tools);
+
+	fprintf(stdout, "Osmozilla initializaed\n");
 
 	return 1;
 }
@@ -261,8 +262,10 @@ int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_displ
 	osmo->user->os_display = os_wnd_display;
 
 	/*Everything is now setup, create the terminal*/
+	fprintf(stdout, "Creating Osmozilla terminal\n");
 	osmo->term = gf_term_new(osmo->user);
 	if (!osmo->term) return 0;
+	fprintf(stdout, "Osmozilla terminal created\n");
 
 	gf_term_set_option(osmo->term, GF_OPT_ASPECT_RATIO, osmo->aspect_ratio);
 	osmo->window_set = 1;
@@ -272,7 +275,10 @@ int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_displ
 #endif
 
 	/*stream not ready*/
-	if (!osmo->url || !osmo->auto_start) return 1;
+	if (!osmo->url || !osmo->auto_start) {
+		fprintf(stdout, "Osmozilla ready - not connecting to %s yet\n", osmo->url);
+		return 1;
+	}
 
 	/*connect from 0 and pause if not autoplay*/
 	gui = gf_cfg_get_key(osmo->user->config, "General", "StartupFile");
@@ -283,6 +289,7 @@ int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_displ
 	} else {
 		gf_term_connect(osmo->term, osmo->url);
 	}
+	fprintf(stdout, "Osmozilla connected to %s\n", osmo->url);
 	return 1;
 }
 
@@ -293,7 +300,8 @@ char *Osmozilla_GetVersion()
 
 void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
 {
-	if (osmo->url) gf_free(osmo->url);
+	fprintf(stdout, "Osmozilla connecting to %s\n", url);
+	if (osmo->url) gf_free(osmo->url);	
 	osmo->url = gf_strdup(url);
 
 	/*connect from 0 and pause if not autoplay*/
@@ -307,6 +315,7 @@ void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
 			gf_term_connect(osmo->term, url);
 		}
 	}
+	fprintf(stdout, "Osmozilla connected to %s\n", url);
 }
 
 void Osmozilla_Pause(Osmozilla *osmo)
