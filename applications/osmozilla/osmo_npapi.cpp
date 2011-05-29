@@ -30,6 +30,9 @@
 #include "osmo_npapi.h"
 #include "osmozilla.h"
 
+#include <malloc.h>
+#include <string.h>
+
 NPNetscapeFuncs *sBrowserFunctions = NULL;
 
 NPError Osmozilla_GetURL(NPP instance, const char *url, const char *target)
@@ -89,6 +92,8 @@ NPError NPOsmozilla_Destroy (NPP instance, NPSavedData** save)
 		if (osmozilla->script_obj) sBrowserFunctions->releaseobject(osmozilla->script_obj);
 		osmozilla->script_obj = NULL;
 #endif
+
+		free(osmozilla);
 	}
 	instance->pdata = NULL;
 	return rv;
@@ -224,16 +229,13 @@ NPError	NPOsmozilla_GetValue(NPP instance, NPPVariable variable, void *value)
 #else
 
 	case NPPVpluginScriptableNPObject:
-		{
-			void ** v = (void **)value;
-			sBrowserFunctions->retainobject(osmozilla->script_obj);
-			*v = osmozilla->script_obj;
-		}
+		sBrowserFunctions->retainobject(osmozilla->script_obj);
+		* (void **)value = osmozilla->script_obj;
 		break;
 
 #endif
 	case NPPVpluginNameString :
-		*(char**)value = "Osmozilla/GPAC plugin for NPAPI";
+		*(const char**)value = "Osmozilla/GPAC plugin for NPAPI";
 		break;
 	default:
 		break;
@@ -368,6 +370,12 @@ char * NP_GetMIMEDescription(void)
 }
 
 
+NPError NP_GetValue(void *future, NPPVariable aVariable, void *aValue)
+{
+	return NS_PluginGetValue(aVariable, aValue);
+}
+
+
 #if defined(XP_WIN) || defined(XP_MACOS) 
 
 NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs)
@@ -387,6 +395,7 @@ NPError OSCALL NP_GetEntryPoints(NPPluginFuncs* aNPPFuncs)
 
 NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFuncs)
 {
+	NPError rv;
 	sBrowserFunctions = aNPNFuncs;
 	rv = fillPluginFunctionTable(aNPPFuncs);
 	if(rv != NPERR_NO_ERROR)
@@ -394,12 +403,6 @@ NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs, NPPluginFuncs* aNPPFunc
 
 	return NS_PluginInitialize();
 }
-
-NPError NP_GetValue(void *future, NPPVariable aVariable, void *aValue)
-{
-	return NS_PluginGetValue(aVariable, aValue);
-}
-
 #endif
 
 
@@ -765,3 +768,4 @@ void Osmozilla_InitScripting(Osmozilla *osmo)
 }
 
 #endif //GECKO_XPCOM
+
