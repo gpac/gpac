@@ -114,7 +114,7 @@ GF_Thread *gf_th_new(const char *name)
 		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
-		sprintf(szN, "0x%p", (void*)tmp);
+		sprintf(szN, "%p", (void*)tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
 	log_add_thread(tmp);
@@ -381,7 +381,7 @@ GF_Mutex *gf_mx_new(const char *name)
 		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
-		sprintf(szN, "0x%p", (void*)tmp);
+		sprintf(szN, "%p", (void*)tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
 	assert( tmp->log_name);
