@@ -30,8 +30,10 @@
 #include "osmo_npapi.h"
 #include "osmozilla.h"
 
+#if defined(XP_UNIX) && !defined(XP_MACOS) 
 #include <malloc.h>
 #include <string.h>
+#endif
 
 NPNetscapeFuncs *sBrowserFunctions = NULL;
 
