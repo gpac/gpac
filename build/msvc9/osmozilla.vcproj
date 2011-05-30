@@ -450,7 +450,7 @@
 					<Tool
 						Name="VCResourceCompilerTool"
 						PreprocessorDefinitions=""
-						AdditionalIncludeDirectories="\gpac\applications\osmozilla"
+						AdditionalIncludeDirectories="../../include"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -459,7 +459,7 @@
 					<Tool
 						Name="VCResourceCompilerTool"
 						PreprocessorDefinitions=""
-						AdditionalIncludeDirectories="\gpac\applications\osmozilla"
+						AdditionalIncludeDirectories="../../include"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -468,7 +468,7 @@
 					<Tool
 						Name="VCResourceCompilerTool"
 						PreprocessorDefinitions=""
-						AdditionalIncludeDirectories="\gpac\applications\osmozilla"
+						AdditionalIncludeDirectories="../../include"
 					/>
 				</FileConfiguration>
 			</File>
