@@ -245,7 +245,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		return 0;
 	}
 
-
+	
 	/*locate the app*/
 	if (!get_default_install_path(app_path, GF_PATH_APP)) return 0;
 
@@ -306,8 +306,15 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*we are looking for .app install path, or GUI */
 	if (path_type==GF_PATH_GUI) {
+#ifndef GPAC_IPHONE
 		strcat(app_path, "/Contents/MacOS/gui");
 		if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+#else /*iOS: for now, everything is set flat within the package*/
+		/*iOS app is distributed with embedded GUI*/
+		get_default_install_path(app_path, GF_PATH_APP);
+		strcat(app_path, "/gui");
+		if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+#endif		
 	}
 	else { // (path_type==GF_PATH_MODULES) 
 		strcat(app_path, "/Contents/MacOS/modules");
@@ -376,7 +383,7 @@ fprintf(stdout, " default modules not found\n", szPath);
 	strcat((char *)szPath, "Fonts");
 #elif defined(__APPLE__)
 
-#ifdef GPAC_IPHONEÒ
+#ifdef GPAC_IPHONE
 	strcpy(szPath, "/System/Library/Fonts/Cache");
 #else
 	strcpy(szPath, "/Library/Fonts");

@@ -2006,13 +2006,14 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	return gf_node_get_field(node, (u32) res, field);
 }
 
-static char log_node_name[10];
+	
+static char log_node_name[2+16+1];
 const char *gf_node_get_log_name(GF_Node *anim) 
 {
 	const char *name = gf_node_get_name(anim);
 	if (name) return name;
 	else {
-		sprintf(log_node_name, "0x%p", anim);
+		sprintf(log_node_name, "%p", anim);
 		return log_node_name;
 	}
 }

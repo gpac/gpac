@@ -503,7 +503,7 @@ GF_Err evg_surface_clear_rgbx(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	b = GF_COL_B(col);
 	col = GF_COL_ARGB(0xFF, b, g, r);
 	for (y = 0; y < h; y++) {
-		u32 *data = (u32 *) (_this ->pixels + (y + sy) * _this->pitch_y + st*sx);
+		u8 *data = _this ->pixels + (y + sy) * _this->pitch_y + st*sx;
 		for (x = 0; x < w; x++) {
 			data[0] = r;
 			data[1] = g;
@@ -696,7 +696,7 @@ GF_Err evg_surface_clear_rgba(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 
 	if (!use_memset) {
 		for (y = 0; y < h; y++) {
-			data = (_this ->pixels + (sy+y)* st + _this->pitch_x * rc.x);
+			data = _this ->pixels + (sy+y)* st + _this->pitch_x * rc.x;
 			for (x = 0; x < w; x++) {
 				*(data) = r;
 				*(data+1) = g;

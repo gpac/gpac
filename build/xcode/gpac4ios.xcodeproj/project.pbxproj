@@ -494,6 +494,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		713FD6E31393868200E8102E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478371278647200917298;
+			remoteInfo = dummy_in;
+		};
 		718477D4127814D600917298 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
@@ -2277,6 +2284,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				713FD6E41393868200E8102E /* PBXTargetDependency */,
 			);
 			name = soft_raster;
 			productName = soft_raster;
@@ -3104,6 +3112,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		713FD6E41393868200E8102E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478371278647200917298 /* dummy_in */;
+			targetProxy = 713FD6E31393868200E8102E /* PBXContainerItemProxy */;
+		};
 		718477D5127814D600917298 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 71CCF1301277037A00339E12 /* libgpac_static */;
@@ -3387,7 +3400,12 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = GPAC_HAS_FAAD;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_CONFIG_DARWIN,
+					GPAC_IPHONE,
+					XP_UNIX,
+					GPAC_HAS_FAAD,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/faad,
@@ -3417,7 +3435,12 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				GCC_PREPROCESSOR_DEFINITIONS = GPAC_HAS_FAAD;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_CONFIG_DARWIN,
+					GPAC_IPHONE,
+					XP_UNIX,
+					GPAC_HAS_FAAD,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/faad,
@@ -3503,7 +3526,12 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = GPAC_HAS_MAD;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_CONFIG_DARWIN,
+					GPAC_IPHONE,
+					XP_UNIX,
+					GPAC_HAS_MAD,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/mad,
@@ -3533,7 +3561,12 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				GCC_PREPROCESSOR_DEFINITIONS = GPAC_HAS_MAD;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_CONFIG_DARWIN,
+					GPAC_IPHONE,
+					XP_UNIX,
+					GPAC_HAS_MAD,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/mad,
@@ -3674,9 +3707,11 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_CONFIG_DARWIN,
+					GPAC_IPHONE,
+					XP_UNIX,
 					GPAC_HAS_SPIDERMONKEY,
 					MOZILLA_1_8_BRANCH,
-					XP_UNIX,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -3708,9 +3743,11 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_CONFIG_DARWIN,
+					GPAC_IPHONE,
+					XP_UNIX,
 					GPAC_HAS_SPIDERMONKEY,
 					MOZILLA_1_8_BRANCH,
-					XP_UNIX,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -4197,7 +4234,6 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				GCC_PREPROCESSOR_DEFINITIONS = "";
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/SDL,
@@ -4228,7 +4264,6 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				GCC_PREPROCESSOR_DEFINITIONS = "";
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/SDL,
