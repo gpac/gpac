@@ -1578,11 +1578,11 @@ fi
 
 #look for GECKO support
 cat > $TMPCPP << EOF
-#include <nsIServiceManager.h>
+#include <npapi.h>
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPCPP -I$xulsdk_path 2> /dev/null  ; then
+if $cc -o $TMPO $TMPCPP -I$xulsdk_path $CFLAGS $LDFLAGS 2> /dev/null  ; then
 has_xul="system"
 xul_flags="-I$xulsdk_path $xul_flags"
 else
