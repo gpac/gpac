@@ -862,7 +862,7 @@ int main (int argc, char *argv[])
 	int *libgpac_so = NULL;
 	
 	libgpac_so = dlopen("/Applications/osmo4ios.app/libgpac_dynamic.dylib", RTLD_LAZY);
-	fprintf(stderr, "dlopen libgpac_so: 0x%p\n", libgpac_so);
+	fprintf(stderr, "dlopen libgpac_so: %p\n", libgpac_so);
 	fprintf(stderr, "dlsym: %p gf_log_lt\n", gf_log_lt = dlsym(libgpac_so, "gf_log_lt"));
 	fprintf(stderr, "dlsym: %p AVI_close\n", AVI_close = dlsym(libgpac_so, "AVI_close"));
 	fprintf(stderr, "dlsym: %p gf_sleep\n", gf_sleep = dlsym(libgpac_so, "gf_sleep"));

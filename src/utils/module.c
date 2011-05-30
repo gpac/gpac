@@ -183,10 +183,10 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	if (!strcmp(inst->name, "gm_sdl_out.dylib")) {
 		if (InterfaceFamily == GF_VIDEO_OUTPUT_INTERFACE) {
 			ifce = SDL_Module_Load_Video();
-			fprintf(stderr, "***         Loading SDL Video: 0x%p ***\n", ifce);
+			fprintf(stderr, "***         Loading SDL Video: %p ***\n", ifce);
 		} else if (InterfaceFamily == GF_AUDIO_OUTPUT_INTERFACE) {
 			ifce = SDL_Module_Load_Audio();
-			fprintf(stderr, "***         Loading SDL Audio: 0x%p ***\n", ifce);
+			fprintf(stderr, "***         Loading SDL Audio: %p ***\n", ifce);
 		}
 	}
 #endif
