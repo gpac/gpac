@@ -2167,7 +2167,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->eit) gf_m2ts_section_filter_del(ts->eit);
 	if (ts->tdt_tot_st) gf_m2ts_section_filter_del(ts->tdt_tot_st);
 
-	for (i=0; i<8192; i++) {
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		if (ts->ess[i]) gf_m2ts_es_del(ts->ess[i]);
 	}
 	if (ts->buffer) gf_free(ts->buffer);
