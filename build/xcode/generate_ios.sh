@@ -37,7 +37,7 @@ then
 	exit 1
 fi
 
-echo "*** Generate an archive and clean ***"
+#echo "*** Build archive name ***"
 cd ../..
 version=`grep '#define GPAC_VERSION ' include/gpac/tools.h | cut -d '"' -f 2`
 rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
@@ -48,11 +48,22 @@ else
 	#if no revision can be extracted from SVN, use date
 	full_version="$version-$(date +%Y%m%d)"
 fi
+
+echo "*** Generate an archive and clean ***"
 cd bin/iOS
-rm -rf osmo4ios.app/.svn
+mkdir osmo4ios.app/gui
+mkdir osmo4ios.app/gui/icons
+mkdir osmo4ios.app/gui/extensions
+cp ../../gui/gui.bt osmo4ios.app/gui/
+cp ../../gui/gui.js osmo4ios.app/gui/
+cp ../../gui/gwlib.js osmo4ios.app/gui/
+cp ../../gui/mpegu-core.js osmo4ios.app/gui/
+cp -r ../../gui/icons osmo4ios.app/icons/
+cp -r ../../gui/extensions osmo4ios.app/extensions/
+find osmo4ios.app | fgrep .svn | fgrep -v svn/ | xargs rm -rf 
 tar -czf "osmo4ios-$full_version.tar.gz" osmo4ios.app/
 rm -rf osmo4ios.app
-svn up
+svn up -r $rev
 cd ../../build/xcode/
 
 echo "*** Extra Libs generation for iOS completed (full_version)! ***"
