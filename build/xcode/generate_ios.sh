@@ -1,5 +1,15 @@
 #!/bin/sh
 
+echo "*** Set version within Info.plist application file ***"
+version=`grep '#define GPAC_VERSION ' include/gpac/tools.h | cut -d '"' -f 2`
+rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
+if [ "$rev" != "" ]
+then
+	sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist > ../../applications/osmo4_ios/osmo4ios-Info.plist.new
+	sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist.new > ../../applications/osmo4_ios/osmo4ios-Info.plist
+	rm ../../applications/osmo4_ios/osmo4ios-Info.plist.new
+fi
+
 echo "*** Clean previous build files ***"
 xcodebuild -alltargets -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj clean
 xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
@@ -39,8 +49,6 @@ fi
 
 #echo "*** Build archive name ***"
 cd ../..
-version=`grep '#define GPAC_VERSION ' include/gpac/tools.h | cut -d '"' -f 2`
-rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 if [ "$rev" != "" ]
 then
 	full_version="$version-r$rev"
