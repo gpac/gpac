@@ -501,7 +501,7 @@
 	<key>CFBundleShortVersionString</key>
 <!-- Please do not remove the comment in the next line
      It allows mkdmg.sh to perform a Version remplacement -->
-	<string>0.4.5</string><!-- VERSION_REV_REPLACE -->
+	<string>9.9.9</string><!-- VERSION_REV_REPLACE -->
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleURLTypes</key>
@@ -550,7 +550,7 @@
 	<key>CFBundleVersion</key>
 <!-- Please do not remove the comment in the next line
      It allows mkdmg.sh to perform a Version remplacement -->
-	<string>2200</string><!-- BUILD_REV_REPLACE -->
+	<string>9999</string><!-- BUILD_REV_REPLACE -->
 	<key>LSMinimumSystemVersion</key>
 	<string>10.5.0</string>
 	<key>NSMainNibFile</key>
