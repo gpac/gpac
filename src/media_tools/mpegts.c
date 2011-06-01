@@ -801,7 +801,9 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
+			if(ts->on_event){
+			  ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
+			}
 		}
 
 		has_syntax_indicator = (data[1] & 0x80) ? 1 : 0;
@@ -2618,6 +2620,9 @@ GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 	char szURL[2048];
 	char *frag;
 	
+	if(!url){
+	  return GF_IO_ERR;
+	}
 	strcpy(szURL, url);
 	frag = strrchr(szURL, '#');
 	if (frag) frag[0] = 0;
