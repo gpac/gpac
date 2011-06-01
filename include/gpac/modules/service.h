@@ -31,6 +31,7 @@ extern "C" {
 
 /*for SL, ESD and OD*/
 #include <gpac/mpeg4_odf.h>
+#include <gpac/events.h>
 #include <gpac/download.h>
 
 /*handle to service*/
@@ -465,6 +466,8 @@ media_desc: object descriptor for the new media. May be NULL to force scene rebu
 no_scene_check: specifies if the scene description shall be rebuilt or not.
 */
 void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_update);
+
+Bool gf_term_on_service_event(GF_ClientService *service, GF_Event *service_event);
 
 
 /*check if @fileExt extension is supported for given mimeType, and if associated with module. If mimeType not registered, register it for given module*/

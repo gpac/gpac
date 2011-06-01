@@ -861,6 +861,15 @@ void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Er
 	assert(service);
 	term_on_command(service->term, service, com, response);
 }
+
+GF_EXPORT
+Bool gf_term_on_service_event(GF_ClientService *service, GF_Event *service_event)
+{
+	assert(service);
+	if (!service->term->user->EventProc) return service->term->user->EventProc(service->term->user->opaque, service_event);
+	return 0;
+}
+
 GF_EXPORT
 void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {

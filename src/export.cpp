@@ -870,6 +870,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_on_command) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_on_sl_packet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_service_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_on_service_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_add_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_service_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_register_mime_type) )

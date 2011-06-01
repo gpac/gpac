@@ -199,6 +199,7 @@ enum {
 	GF_EVENT_NAVIGATE_INFO, /*indicates the link or its description under the mouse pointer*/
 	GF_EVENT_MESSAGE, /*message from the MPEG-4 terminal*/
 	GF_EVENT_PROGRESS, /*progress message from the MPEG-4 terminal*/
+	GF_EVENT_FORWARDED, /*event forwarded by service (MPEG-2, RTP, ...)*/
 	GF_EVENT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
 	GF_EVENT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
 	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
@@ -206,9 +207,9 @@ enum {
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
 
-        /* Events for Keyboad */
-        GF_EVENT_TEXT_EDITING_START,
-        GF_EVENT_TEXT_EDITING_END
+    /* Events for Keyboad */
+    GF_EVENT_TEXT_EDITING_START,
+    GF_EVENT_TEXT_EDITING_END
 };
 
 /*GPAC/DOM3 key codes*/
@@ -689,6 +690,25 @@ typedef struct {
 	u8 attrChange;
 } GF_EventMutation;
 
+enum
+{
+	/*events forwarded from MPEG-2 stack*/
+	GF_EVT_FORWARDED_MPEG2 = 0,
+	/*events forwarded from RTP/RTSP/IP stack (not used yet)*/
+	GF_EVT_FORWARDED_RTP_RTSP
+};
+
+typedef struct {
+	/* GF_EVENT_FORWARDED*/
+	u8 type;
+	/*one of te above event*/
+	u8 forward_type;
+	/*original type of event as forwarded by the service*/
+	u32 service_event_type;
+	/*parameter of event as forwarded by the service - creation/deletion is handled by the service*/
+	void *param;
+} GF_EventForwarded;
+
 typedef union
 {
 	u8 type;
@@ -709,6 +729,7 @@ typedef union
 	GF_EventMove move;
 	GF_EventVideoSetup setup;
 	GF_EventMutation mutation;
+	GF_EventForwarded forwarded_event;
 } GF_Event;
 
 
