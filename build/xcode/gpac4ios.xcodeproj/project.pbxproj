@@ -429,6 +429,7 @@
 		71CCF3FD12770A8C00339E12 /* user.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AE12770A8C00339E12 /* user.h */; };
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
+		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
 		71F2A45E12830B5300C384DE /* libjs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45412830B1400C384DE /* libjs.a */; };
 		71F2A46E12830BE200C384DE /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45312830B1400C384DE /* libjpeg.a */; };
 		71F2A46F12830BE800C384DE /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45612830B1400C384DE /* libpng.a */; };
@@ -937,6 +938,7 @@
 		71CCF3AE12770A8C00339E12 /* user.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = user.h; sourceTree = "<group>"; };
 		71CCF3AF12770A8C00339E12 /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utf.h; sourceTree = "<group>"; };
 		71CCF3B012770A8C00339E12 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xml.h; sourceTree = "<group>"; };
+		71EC88E01396273B004DCB6A /* osmo.icns */ = {isa = PBXFileReference; explicitFileType = image.icns; name = osmo.icns; path = ../../applications/osmo4_ios/Resources/osmo.icns; sourceTree = SOURCE_ROOT; };
 		71F2A45012830B1400C384DE /* libfaad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfaad.a; path = ../../extra_lib/lib/iOS/libfaad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45112830B1400C384DE /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../extra_lib/lib/iOS/libfreetype.a; sourceTree = SOURCE_ROOT; };
 		71F2A45312830B1400C384DE /* libjpeg.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjpeg.a; path = ../../extra_lib/lib/iOS/libjpeg.a; sourceTree = SOURCE_ROOT; };
@@ -1454,6 +1456,7 @@
 		71A19B1412796AC700ACFF58 /* osmo4iOS */ = {
 			isa = PBXGroup;
 			children = (
+				71EC88E01396273B004DCB6A /* osmo.icns */,
 				71A19B43127971C700ACFF58 /* libgpac_symbols.h */,
 				71A19B411279713300ACFF58 /* extract.c */,
 				71A19B2012796B6F00ACFF58 /* main.c */,
@@ -2648,6 +2651,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

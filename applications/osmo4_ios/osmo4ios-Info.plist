@@ -6,21 +6,21 @@
 	<string>English</string>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
-  <key>CFBundleIconFile</key>
-  <string>osmo.icns</string>
+	<key>CFBundleIconFile</key>
+	<string>osmo.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.gpac.${PRODUCT_NAME:identifier}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Osmo4</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-  <key>CFBundleName</key>
-  <string>Osmo4</string>
-  <key>CFBundleShortVersionString</key>
-  <string>9.9.9</string><!-- VERSION_REV_REPLACE -->
+	<key>CFBundleShortVersionString</key>
+	<string>9.9.9</string><!-- VERSION_REV_REPLACE -->
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
-	<key>CFBundleVersion</key><!-- BUILD_REV_REPLACE -->
-	<string>9999</string>
+	<key>CFBundleVersion</key>
+	<string>9999</string><!-- BUILD_REV_REPLACE -->
 </dict>
 </plist>
