@@ -1,7 +1,9 @@
 #!/bin/sh
 
+cd "`dirname $0`"
+
 echo "*** Set version within Info.plist application file ***"
-version=`grep '#define GPAC_VERSION ' include/gpac/tools.h | cut -d '"' -f 2`
+version=`grep '#define GPAC_VERSION ' ../../include/gpac/tools.h | cut -d '"' -f 2`
 rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 if [ "$rev" != "" ]
 then
@@ -11,20 +13,13 @@ then
 fi
 
 echo "*** Clean previous build files ***"
-xcodebuild -alltargets -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj clean
 xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
 xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
-
-#echo "*** Compile libgpac for Simulator (i386) ***"
-xcodebuild -target libgpac_dynamic -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
 
 echo "*** Compile libgpac for iOS (arm) ***"
 xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
 ./script_libgpac.sh Release
 #xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
-
-#echo "*** Compile modules and osmo4ios for Simulator (i386) ***"
-#xcodebuild -alltargets -parallelizeTargets -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
 
 echo "*** Compile modules for iOS (arm) ***"
 xcodebuild -alltargets -parallelizeTargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
