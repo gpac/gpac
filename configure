@@ -2245,7 +2245,9 @@ echo "XUL_CFLAGS=$xul_flags" >> config.mak
 fi
 
 echo "LINUX_DVB=$has_dvb4linux" >> config.mak
+if test "$has_dvb4linux" = "yes"; then
 echo "#define GPAC_HAS_LINUX_DVB" >> $TMPH
+fi
 
 echo "XMLRPC_INC=$has_xmlrpc" >> config.mak
 
