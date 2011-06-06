@@ -866,7 +866,7 @@ GF_EXPORT
 Bool gf_term_on_service_event(GF_ClientService *service, GF_Event *service_event)
 {
 	assert(service);
-	if (!service->term->user->EventProc) return service->term->user->EventProc(service->term->user->opaque, service_event);
+	if (service->term->user->EventProc) return service->term->user->EventProc(service->term->user->opaque, service_event);
 	return 0;
 }
 

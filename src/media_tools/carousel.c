@@ -50,12 +50,12 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		u32_data_size = pck->data_len;
 		u32_table_id = data[0];
 
-		gf_m2ts_process_ait(ts, (GF_M2TS_AIT*)pck->stream, data, u32_data_size, u32_table_id);
+		gf_m2ts_process_ait((GF_M2TS_AIT*)pck->stream, data, u32_data_size, u32_table_id);
 
 	}
 }
 
-GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id)
+GF_Err gf_m2ts_process_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id)
 {
 
 	GF_BitStream *bs;
@@ -125,13 +125,13 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 			switch(temp_descriptor_tag){
 			case APPLICATION_DESCRIPTOR:
 				{
-					u64 pre_processing_pos;
-					GF_M2TS_APPLICATION_DESCRIPTOR* application_descriptor;
-					GF_SAFEALLOC(application_descriptor, GF_M2TS_APPLICATION_DESCRIPTOR);
-					application_descriptor->descriptor_tag = temp_descriptor_tag;
-					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
-					application->index_app_desc_id++;
-					application_descriptor->descriptor_length = gf_bs_read_int(bs,8);
+ 					u64 pre_processing_pos;
+ 					GF_M2TS_APPLICATION_DESCRIPTOR* application_descriptor;
+ 					GF_SAFEALLOC(application_descriptor, GF_M2TS_APPLICATION_DESCRIPTOR);
+ 					application_descriptor->descriptor_tag = temp_descriptor_tag;
+ 					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+ 					application->index_app_desc_id++;
+ 					application_descriptor->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
 					application_descriptor->application_profiles_length = gf_bs_read_int(bs,8);
 					application_descriptor->application_profile = gf_bs_read_int(bs,16);
@@ -146,31 +146,31 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					if(pre_processing_pos+application_descriptor->descriptor_length != gf_bs_get_position(bs)){
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),application_descriptor->descriptor_length));
 					}
-					gf_list_add(application->application_descriptors,application_descriptor);
+ 					gf_list_add(application->application_descriptors,application_descriptor);
 					app_desc_data_shift += (2+ application_descriptor->descriptor_length);
-					break;
+ 					break;
 				}
 			case APPLICATION_NAME_DESCRIPTOR:
 				{
-					u64 pre_processing_pos;
-					GF_M2TS_APPLICATION_NAME_DESCRIPTOR* name_descriptor;
-					GF_SAFEALLOC(name_descriptor, GF_M2TS_APPLICATION_NAME_DESCRIPTOR);
-					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
-					application->index_app_desc_id++;
-					name_descriptor->descriptor_tag = temp_descriptor_tag;
-					name_descriptor->descriptor_length = gf_bs_read_int(bs,8);
-					pre_processing_pos = gf_bs_get_position(bs);
-					name_descriptor->ISO_639_language_code = gf_bs_read_int(bs,24);
-					name_descriptor->application_name_length = gf_bs_read_int(bs,8);
-					name_descriptor->application_name_char = (char*) gf_calloc(name_descriptor->application_name_length,sizeof(char));
-					gf_bs_read_data(bs,name_descriptor->application_name_char,name_descriptor->application_name_length);
-					name_descriptor->application_name_char[name_descriptor->application_name_length] = 0 ;
-					if(pre_processing_pos+name_descriptor->descriptor_length != gf_bs_get_position(bs)){
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),name_descriptor->descriptor_length));
-					}
-					gf_list_add(application->application_descriptors,name_descriptor);
-					app_desc_data_shift += (2+ name_descriptor->descriptor_length);
-					break;
+ 					u64 pre_processing_pos;
+ 					GF_M2TS_APPLICATION_NAME_DESCRIPTOR* name_descriptor;
+ 					GF_SAFEALLOC(name_descriptor, GF_M2TS_APPLICATION_NAME_DESCRIPTOR);
+ 					application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
+ 					application->index_app_desc_id++;
+ 					name_descriptor->descriptor_tag = temp_descriptor_tag;
+ 					name_descriptor->descriptor_length = gf_bs_read_int(bs,8);
+ 					pre_processing_pos = gf_bs_get_position(bs);
+ 					name_descriptor->ISO_639_language_code = gf_bs_read_int(bs,24);
+ 					name_descriptor->application_name_length = gf_bs_read_int(bs,8);
+ 					name_descriptor->application_name_char = (char*) gf_calloc(name_descriptor->application_name_length+1,sizeof(char));
+ 					gf_bs_read_data(bs,name_descriptor->application_name_char,name_descriptor->application_name_length);
+ 					name_descriptor->application_name_char[name_descriptor->application_name_length] = 0 ;
+ 					if(pre_processing_pos+name_descriptor->descriptor_length != gf_bs_get_position(bs)){
+ 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),name_descriptor->descriptor_length));
+ 					}
+ 					gf_list_add(application->application_descriptors,name_descriptor);
+ 					app_desc_data_shift += (2+ name_descriptor->descriptor_length);
+ 					break;
 				}
 			case TRANSPORT_PROTOCOL_DESCRIPTOR:
 				{
@@ -184,8 +184,6 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 					pre_processing_pos = gf_bs_get_position(bs);
 					protocol_descriptor->protocol_id = gf_bs_read_int(bs,16);
 					protocol_descriptor->transport_protocol_label = gf_bs_read_int(bs,8);
-					printf("protocol_descriptor->protocol_id %d \n",protocol_descriptor->protocol_id);
-
 					switch(protocol_descriptor->protocol_id){
 						case CAROUSEL:
 							{
@@ -300,5 +298,112 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, char  *data, u
 
 void gf_ait_destroy(GF_M2TS_AIT* ait)
 {
-	//ait->;
+// 	u32 common_descr_numb, app_numb;
+// 	GF_M2TS_ES *es = (GF_M2TS_ES *)ait;
+// 	
+// 	/* delete de Elementary Stream part of the AIT structure */
+// 	gf_m2ts_es_del(es);
+// 	
+// 	common_descr_numb = 0;
+// 	app_numb = 0;
+// 	
+// 	/* delete the common descriptors */ 
+// 	common_descr_numb = gf_list_count(ait->common_descriptors);
+// // 	while(common_app_numb != 0){
+// // 	  
+// // 	};
+// 
+// 	/* delete the applications and their descriptors */
+// 	app_numb = gf_list_count(ait->application);
+// 	while(app_numb != 0){
+// 	  u32 app_desc_num;
+// 	  u32 app_descr_index;
+// 	  
+// 	  app_desc_num = 0;
+// 	  app_descr_index = 0;
+// 	  app_desc_num = gf_list_count(ait->application->application_descriptors);
+// 	  while(app_desc_num != 0){
+// 	    u32 descr_tag;
+// 	    ait->application->index_app_desc_id--;
+// 	    descr_tag = ait->application->application_descriptors_id[ait->application->index_app_desc_id];
+// 	    
+// 	    switch(descr_tag){
+// 			case APPLICATION_DESCRIPTOR:
+// 				{
+// 					GF_M2TS_APPLICATION_DESCRIPTOR* application_descriptor = (GF_M2TS_APPLICATION_DESCRIPTOR*)gf_list_get(ait->application->application_descriptors,ait->application->index_app_desc_id);
+//  					gf_free(application_descriptor);  
+//  					break;
+// 				}
+// 			case APPLICATION_NAME_DESCRIPTOR:
+// 				{
+//  					u64 pre_processing_pos;
+//  					GF_M2TS_APPLICATION_NAME_DESCRIPTOR* name_descriptor = (GF_M2TS_APPLICATION_NAME_DESCRIPTOR*)gf_list_get(ait->application->application_descriptors,ait->application->index_app_desc_id);
+//  					gf_free(name_descriptor->application_name_char);
+// 					gf_free(name_descriptor);
+//  					break;
+// 				}
+// 			case TRANSPORT_PROTOCOL_DESCRIPTOR:
+// 				{
+// 					u64 pre_processing_pos;
+// 					GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR* protocol_descriptor = (GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR*)gf_list_get(ait->application->application_descriptors,ait->application->index_app_desc_id);
+//  					
+// 
+// 					switch(protocol_descriptor->protocol_id){
+// 						case CAROUSEL:
+// 							{
+// 								GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE* Carousel_selector_byte = (GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
+// 								gf_free(Carousel_selector_byte);
+// 								break;
+// 							}
+// 						case TRANSPORT_HTTP:
+// 							{					
+// 								u32 i;								
+// 								GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte = (GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
+// 								gf_free(Transport_http_selector_byte->URL_base_byte);
+// 								if(Transport_http_selector_byte->URL_extension_count){
+// 									for(i = 0; i < Transport_http_selector_byte->URL_extension_count;i++){
+// 										Transport_http_selector_byte->URL_extentions[i].URL_extension_length = gf_bs_read_int(bs,8);
+// 										gf_free(Transport_http_selector_byte->URL_extentions[i].URL_extension_byte)
+// 									}
+// 									gf_free(Transport_http_selector_byte->URL_extentions);
+// 								}
+// 								gf_free(Transport_http_selector_byte);
+// 								break;
+// 							}
+// 						default:
+// 							{
+// 								GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Protocol ID %d unsupported, ignoring the selector byte \n",protocol_descriptor->protocol_id));
+// 							}
+// 					}					
+// 					gf_free(protocol_descriptor);					
+// 					break;
+// 				}
+// 			case SIMPLE_APPLICATION_LOCATION_DESCRIPTOR:
+// 				{			
+// 					GF_M2TS_SIMPLE_APPLICATION_LOCATION* Simple_application_location = (GF_M2TS_SIMPLE_APPLICATION_LOCATION*)gf_list_get(ait->application->application_descriptors,ait->application->index_app_desc_id);
+//  					gf_free(Simple_application_location->initial_path_bytes);
+// 					gf_free(Simple_application_location);
+// 					break;
+// 				}
+// 			case APPLICATION_USAGE_DESCRIPTOR:
+// 				{
+// 					GF_M2TS_APPLICATION_USAGE* Application_usage = (GF_M2TS_SIMPLE_APPLICATION_LOCATION*)gf_list_get(ait->application->application_descriptors,ait->application->index_app_desc_id);
+//  					gf_free(Application_usage);
+// 					break;
+// 				}
+// 			default:
+// 				{
+// 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor tag %d unknown, ignoring the descriptor \n",temp_descriptor_tag));
+// 				}
+// 
+// 			}
+// 			 gf_list_rem(ait->application->application_descriptors,ait->application->index_app_desc_id);
+// 
+// 		}
+// 		gf_list_del(ait->application->application_descriptors);
+// 	  }
+// 	  gf_list_del(ait->application);
+// 	  
+// 	};
+	
 }

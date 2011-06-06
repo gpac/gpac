@@ -429,6 +429,16 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 #endif
 		break;
+	case GF_M2TS_EVT_AIT_FOUND:
+		{
+		  GF_Event evt;
+		  evt.type = GF_EVENT_FORWARDED;
+		  evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
+		  evt.forwarded_event.service_event_type = evt_type;
+		  evt.forwarded_event.param = param;
+		  gf_term_on_service_event(m2ts->service, &evt);
+		}
+		break;
 	case GF_M2TS_EVT_PAT_FOUND:
 		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
 		if (gf_list_count(m2ts->ts->programs) != 1)
