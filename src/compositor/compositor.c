@@ -1244,10 +1244,15 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
-	compositor->auto_calibration = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	compositor->auto_calibration = (!sOpt || !strcmp(sOpt, "yes")) ? 1 : 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisplayDepth");
 	compositor->display_depth = sOpt ? (!strcmp(sOpt, "auto") ? -1 : atoi(sOpt)) : 0;
+
+	/*if auto-stereo mode, turn on display depth by default*/
+	if (compositor->visual->autostereo_type && !compositor->display_depth) {
+		compositor->display_depth = -1;
+	}
 
 	if (!compositor->video_out->view_distance) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ViewDistance");

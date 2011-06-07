@@ -220,6 +220,8 @@ Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 		gf_mx_v(compositor->mx);
 		/*empty world ...*/
 		if (tr_state.bbox.radius==-1) return 1;
+		/*2D world with 3D camera forced*/
+		if (tr_state.bounds.width&&tr_state.bounds.height) return 1;
 		return 0;
 	}
 

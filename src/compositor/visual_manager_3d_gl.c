@@ -2459,6 +2459,7 @@ restart:
 		return;
 	}
 
+	glColor3f(1.0, 0.0, 0.0);
 	/*render using vertex array*/
 	if (!stack->mesh) {
 		stack->mesh = new_mesh();
@@ -2515,7 +2516,6 @@ restart:
 	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
 	VS3D_DrawMeshIntern(tr_state, stack->mesh);
 	visual_3d_disable_texture(tr_state);
-
 
 #endif //GPAC_USE_OGL_ES
 
