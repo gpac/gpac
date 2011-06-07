@@ -1889,7 +1889,7 @@ static void m2ts_sidx_add_entry(GF_SegmentIndexBox *sidx, Bool type,
 	ref = &(sidx->refs[sidx->nb_refs-1]);
 	ref->reference_type = type;
 	ref->contains_RAP = has_rap;
-	ref->reference_offset = size;
+	ref->reference_size = size;
 	ref->subsegment_duration = duration;
 	ref->RAP_delta_time = (has_rap ? RAP_delta_time: 0);
 }
@@ -1907,9 +1907,9 @@ static void m2ts_sidx_finalize_size(GF_M2TS_IndexingInfo *index_info, u64 file_s
 	GF_SIDXReference *ref;
 	if (index_info->sidx->nb_refs == 0) return;
 	ref = &(index_info->sidx->refs[index_info->sidx->nb_refs-1]);
-	ref->reference_offset = (u32)(file_size - index_info->prev_base_offset);
+	ref->reference_size = (u32)(file_size - index_info->prev_base_offset);
 	fprintf(stderr, "Subsegment: position-range ajdustment:%d-%d (%d bytes)\n",
-		index_info->prev_base_offset, (u32)file_size, ref->reference_offset);
+		index_info->prev_base_offset, (u32)file_size, ref->reference_size);
 }
 
 static void m2ts_sidx_flush_entry(GF_M2TS_IndexingInfo *index_info) 
@@ -2393,8 +2393,8 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 		start=index_info->sidx->first_offset;
 		for (i=0; i<index_info->sidx->nb_refs; i++) {
 			GF_SIDXReference *ref = &index_info->sidx->refs[i];
-			fprintf(index_info->mpd_file, "    <Url range=\""LLD"-"LLD"\"/>\n", start, start+ref->reference_offset-1);
-			start += ref->reference_offset;
+			fprintf(index_info->mpd_file, "    <Url range=\""LLD"-"LLD"\"/>\n", start, start+ref->reference_size-1);
+			start += ref->reference_size;
 		}		
 	} else {
 		fprintf(index_info->mpd_file, "    <Url sourceURL=\"%s\"/>\n", media_file_name);

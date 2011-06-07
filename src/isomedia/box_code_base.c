@@ -704,7 +704,6 @@ void dinf_del(GF_Box *s)
 }
 
 
-
 GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_DataInformationBox *ptr = (GF_DataInformationBox *)s;
@@ -714,6 +713,7 @@ GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 		ptr->dref = (GF_DataReferenceBox *)a;
 		return GF_OK;		
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 	gf_isom_box_del(a);
 	return GF_OK;		
 }
@@ -865,8 +865,9 @@ GF_Err edts_AddBox(GF_Box *s, GF_Box *a)
 		ptr->editList = (GF_EditListBox *)a;
 		return GF_OK;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 	gf_isom_box_del(a);
-	return GF_OK;
+	return GF_OK;		
 }
 
 
@@ -2896,8 +2897,9 @@ GF_Err mdia_AddBox(GF_Box *s, GF_Box *a)
 	   ptr->information = (GF_MediaInformationBox *)a;
 	   return GF_OK;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 	gf_isom_box_del(a);
-	return GF_OK;
+	return GF_OK;		
 }
 
 
@@ -3170,7 +3172,9 @@ GF_Err moof_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF:
 		return gf_list_add(ptr->TrackList, a);
 	default:
-		return GF_ISOM_INVALID_FILE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
+		gf_isom_box_del(a);
+		return GF_OK;		
 	}
 }
 
@@ -3451,6 +3455,7 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 		}
 		break;
 	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
 		break;
 	}
@@ -3571,6 +3576,7 @@ GF_Err mp4s_AddBox(GF_Box *s, GF_Box *a)
 		ptr->protection_info = (GF_ProtectionInfoBox*)a;
 		break;
 	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
 		break;
 	}
@@ -3701,6 +3707,7 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 		ptr->pasp = (GF_PixelAspectRatioBox *)a;
 		break;
 	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
 		break;
 	}
@@ -3890,8 +3897,9 @@ GF_Err mvex_AddBox(GF_Box *s, GF_Box *a)
 		ptr->mehd = (GF_MovieExtendsHeaderBox*)a;
 		return GF_OK;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 	gf_isom_box_del(a);
-	return GF_OK;
+	return GF_OK;		
 }
 
 
@@ -4542,9 +4550,10 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 		ptr->SubSamples = (GF_SubSampleInformationBox *)a;
 		break;
 
-	//what's this box ??? delete it
 	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
+		break;
 	}
 	return GF_OK;
 }
@@ -5979,6 +5988,7 @@ void traf_del(GF_Box *s)
 	if (ptr->tfhd) gf_isom_box_del((GF_Box *) ptr->tfhd);
 	if (ptr->sdtp) gf_isom_box_del((GF_Box *) ptr->sdtp);
 	if (ptr->subs) gf_isom_box_del((GF_Box *) ptr->subs);
+	if (ptr->tfdt) gf_isom_box_del((GF_Box *) ptr->tfdt);
 	gf_isom_box_array_del(ptr->TrackRuns);
 	gf_free(ptr);
 }
@@ -5998,16 +6008,18 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->sdtp) return GF_ISOM_INVALID_FILE;
 		ptr->sdtp = (GF_SampleDependencyTypeBox *)a;
 		return GF_OK;
-    case GF_ISOM_BOX_TYPE_TFAD:
-        if (ptr->tfad) return GF_ISOM_INVALID_FILE;
-        ptr->tfad = a;
+    case GF_ISOM_BOX_TYPE_TFDT:
+        if (ptr->tfdt) return GF_ISOM_INVALID_FILE;
+        ptr->tfdt = (GF_TFBaseMediaDecodeTimeBox*) a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SUBS:
 		if (ptr->subs) return GF_ISOM_INVALID_FILE;
 		ptr->subs = (GF_SubSampleInformationBox *)a;
 		return GF_OK;
 	default:
-		return GF_ISOM_INVALID_FILE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
+		gf_isom_box_del(a);
+		return GF_OK;		
 	}
 }
 
@@ -6051,6 +6063,10 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->subs, bs);
 		if (e) return e;
 	}
+	if (ptr->tfdt) {
+		e = gf_isom_box_write((GF_Box *) ptr->tfdt, bs);
+		if (e) return e;
+	}
 	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
 	if (e) return e;
 	if (ptr->sdtp) {
@@ -6080,6 +6096,11 @@ GF_Err traf_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->sdtp);
 		if (e) return e;
 		ptr->size += ptr->sdtp->size;
+	}
+	if (ptr->tfdt) {
+		e = gf_isom_box_size((GF_Box *) ptr->tfdt);
+		if (e) return e;
+		ptr->size += ptr->tfdt->size;
 	}
 	return gf_isom_box_array_size(s, ptr->TrackRuns);
 }
@@ -6245,7 +6266,8 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 		((GF_MediaBox *)a)->mediaTrack = ptr;
 		return GF_OK;
 	default:
-		gf_list_add(ptr->boxes, a);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
+		gf_isom_box_del(a);
 		return GF_OK;
 	}
 	return GF_OK;
@@ -7254,6 +7276,7 @@ GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
 		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
 		break;
 	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
 		break;
 	}
@@ -7583,6 +7606,7 @@ GF_Err lsr1_AddBox(GF_Box *s, GF_Box *a)
 		ptr->descr = (GF_MPEG4ExtensionDescriptorsBox *)a;
 		break;
 	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
 		break;
 	}
@@ -7697,7 +7721,7 @@ GF_Err sidx_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->refs = gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
 	for (i=0; i<ptr->nb_refs; i++) {
 		ptr->refs[i].reference_type = gf_bs_read_int(bs, 1);
-		ptr->refs[i].reference_offset = gf_bs_read_int(bs, 31);
+		ptr->refs[i].reference_size = gf_bs_read_int(bs, 31);
 		ptr->refs[i].subsegment_duration = gf_bs_read_u32(bs);
 		ptr->refs[i].contains_RAP = gf_bs_read_int(bs, 1);
 		ptr->refs[i].RAP_delta_time = gf_bs_read_int(bs, 31);
@@ -7742,7 +7766,7 @@ GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->nb_refs);
 	for (i=0; i<ptr->nb_refs; i++ ) {
 		gf_bs_write_int(bs, ptr->refs[i].reference_type, 1);
-		gf_bs_write_int(bs, ptr->refs[i].reference_offset, 31);
+		gf_bs_write_int(bs, ptr->refs[i].reference_size, 31);
 		gf_bs_write_u32(bs, ptr->refs[i].subsegment_duration);
 		gf_bs_write_int(bs, ptr->refs[i].contains_RAP, 1);
 		gf_bs_write_int(bs, ptr->refs[i].RAP_delta_time, 31);
@@ -7908,5 +7932,77 @@ GF_Err subs_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	return GF_OK;
 }
+
+
+GF_Box *tfdt_New()
+{
+	GF_TFBaseMediaDecodeTimeBox *tmp;
+	GF_SAFEALLOC(tmp, GF_TFBaseMediaDecodeTimeBox);
+	tmp->type = GF_ISOM_BOX_TYPE_TFDT;
+    tmp->version = 0;
+	return (GF_Box *)tmp;
+}
+
+void tfdt_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+/*this is using chpl format according to some NeroRecode samples*/
+GF_Err tfdt_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TFBaseMediaDecodeTimeBox *ptr = (GF_TFBaseMediaDecodeTimeBox *)s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	if (ptr->version==1) {
+		ptr->baseMediaDecodeTime = gf_bs_read_u64(bs);
+		ptr->size -= 8;
+	} else {
+		ptr->baseMediaDecodeTime = (u32) gf_bs_read_u32(bs);
+		ptr->size -= 4;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err tfdt_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TFBaseMediaDecodeTimeBox *ptr = (GF_TFBaseMediaDecodeTimeBox *) s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	if (ptr->version==1) {
+		gf_bs_write_u64(bs, ptr->baseMediaDecodeTime);
+	} else {
+		gf_bs_write_u32(bs, (u32) ptr->baseMediaDecodeTime);
+	}
+	return GF_OK;
+}
+
+GF_Err tfdt_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_TFBaseMediaDecodeTimeBox *ptr = (GF_TFBaseMediaDecodeTimeBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	if (ptr->baseMediaDecodeTime<=0xFFFFFFFF) {
+		ptr->version = 0;
+		ptr->size += 4;
+	} else {
+		ptr->version = 1;
+		ptr->size += 8;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+
 
 #endif /*GPAC_DISABLE_ISOM*/

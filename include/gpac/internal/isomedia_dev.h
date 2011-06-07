@@ -183,8 +183,7 @@ enum
 
     /* 3GPP Adaptive Streaming extensions */
 	GF_ISOM_BOX_TYPE_STYP	= GF_4CC( 's', 't', 'y', 'p' ),
-	GF_ISOM_BOX_TYPE_TFAD	= GF_4CC( 't', 'f', 'a', 'd' ),
-	GF_ISOM_BOX_TYPE_TFMA	= GF_4CC( 't', 'f', 'm', 'a' ),
+	GF_ISOM_BOX_TYPE_TFDT	= GF_4CC( 't', 'f', 'd', 't' ),
 	GF_ISOM_BOX_TYPE_SIDX	= GF_4CC( 's', 'i', 'd', 'x' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
@@ -1499,6 +1498,13 @@ typedef struct
 	u8 IFrameSwitching;
 } GF_TrackFragmentHeaderBox;
 
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u64 baseMediaDecodeTime;
+} GF_TFBaseMediaDecodeTimeBox;
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -1510,7 +1516,7 @@ typedef struct
 	GF_SubSampleInformationBox *subs;
 	/*when data caching is on*/
 	u32 DataCache;
-    GF_Box *tfad;
+    GF_TFBaseMediaDecodeTimeBox *tfdt;
 } GF_TrackFragmentBox;
 
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
@@ -1840,7 +1846,7 @@ typedef struct __oma_kms_box
 typedef struct
 {
 	Bool reference_type;
-	u32 reference_offset;
+	u32 reference_size;
 	u32 subsegment_duration;
 	Bool contains_RAP;
 	u32 RAP_delta_time;
@@ -3318,6 +3324,13 @@ GF_Err subs_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err subs_Size(GF_Box *s);
 GF_Err subs_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err subs_dump(GF_Box *a, FILE * trace);
+
+GF_Box *tfdt_New();
+void tfdt_del(GF_Box *);
+GF_Err tfdt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err tfdt_Size(GF_Box *s);
+GF_Err tfdt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tfdt_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

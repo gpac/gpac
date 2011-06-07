@@ -240,6 +240,7 @@ void PrintGeneralUsage()
 			" -segment-ext name    sets the segment extension. Default is m4s\n"
 			" -url-template        uses UrlTemplate instead of explicit sources in segments.\n"
 			"                       Ignored if segments are stored in the output file.\n"
+			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx<=1.\n"
 			"\n");
 }
 
@@ -1189,6 +1190,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool stream_rtp=0;
 	Bool live_scene=0;
 	Bool dump_iod=0;
+	Bool daisy_chain_sidx=0;
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
 	char *seg_ext = "m4s";
@@ -1466,9 +1468,11 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			seg_ext = argv[i+1];
 			i++;
+		} else if (!stricmp(arg, "-daisy-chain")) {
+			daisy_chain_sidx = 1;
 		} else if (!stricmp(arg, "-url-template")) {
 			use_url_template = 1;
-		}
+		}		
 		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
@@ -3010,7 +3014,7 @@ int mp4boxMain(int argc, char **argv)
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, 0, use_url_template);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, daisy_chain_sidx, use_url_template);
 		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		gf_sys_close();
@@ -3151,7 +3155,7 @@ int mp4boxMain(int argc, char **argv)
 err_exit:
 	/*close libgpac*/
 	gf_sys_close();
-	if (file) gf_isom_delete(file);
+	if (file) gf_isom_delete(file);		
 	fprintf(stdout, "\n\tError: %s\n", gf_error_to_string(e));
 	return 1;
 }
