@@ -695,9 +695,20 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
                 update_interval = (count3 - 1) * pe->durationInfo * 1000;
                 for (k=0; k<count3; k++) {
 					u32 cmp = 0;
+					char *src_url, *seg_url;
                     PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
-					while (base_url[cmp] == elt->url[cmp]) cmp++;
-                    fprintf(fmpd, "    <Url sourceURL=\"%s\"/>\n", elt->url+cmp);
+
+					/*remove protocol scheme and try to find the common part in baseURL and segment URL - this avoids copying the entire url*/
+					src_url = strstr(base_url, "://");
+					if (src_url) src_url += 3;
+					else src_url = base_url;
+
+					seg_url = strstr(elt->url, "://");
+					if (seg_url) seg_url += 3;
+					else seg_url = elt->url;
+
+					while (src_url[cmp] == seg_url[cmp]) cmp++;
+					fprintf(fmpd, "    <Url sourceURL=\"%s\"/>\n", cmp ? (seg_url + cmp) : elt->url);
                 }
                 fprintf(fmpd, "   </SegmentInfo>\n");
                 fprintf(fmpd, "  </Representation>\n");

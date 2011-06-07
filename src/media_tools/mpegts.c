@@ -2275,24 +2275,24 @@ static u32 TSDemux_DemuxRun(void *_p)
 				pos = 0;
 			}
 		}
-		fseek(ts->file, pos, SEEK_SET);
+		gf_f64_seek(ts->file, pos, SEEK_SET);
+
+restart_file:
+
 		while (ts->run_state && !feof(ts->file)) {
 			/*m2ts chunks by chunks*/
 			size = fread(data, 1, 188, ts->file);
-			if (!size){
-				if(ts->loop_demux == 1){
-					fseek(ts->file, pos, SEEK_SET);
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[EpgDemux] Loop \n"));
-                    gf_sleep(500);
-					size = fread(data, 1, 188, ts->file);
-				}else{
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Last M2TS packet has size error \n"));
-					break;
-				}
+			if (!size && (ts->loop_demux == 1)) {
+				gf_f64_seek(ts->file, pos, SEEK_SET);
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
+                gf_sleep(500);
+				size = fread(data, 1, 188, ts->file);
 			}
-
-			/*process chunk*/
-			
+			if (!size) break;
+			if (size != 188) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] %u bytes read from file instead of 188.\n", size));
+			} 
+			/*process chunk*/			
 			gf_m2ts_process_data(ts, data, size);
 
 			ts->nb_pck++;
@@ -2306,13 +2306,22 @@ static u32 TSDemux_DemuxRun(void *_p)
 			}
 
             if(feof(ts->file) && ts->loop_demux == 1){
-                fseek(ts->file, pos, SEEK_SET);
-                GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[EpgDemux] Loop \n"));
+                gf_f64_seek(ts->file, pos, SEEK_SET);
+                GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
 				gf_sleep(3000);
             }
 		}
-		if (feof(ts->file)) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[EpgDemux] EOS reached\n"));
+		if (feof(ts->file)) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
 
+		if (ts->run_state && ts->query_next) {
+			const char *next_url = ts->query_next(ts->udta_query);
+			if (next_url) {
+				fclose(ts->file);
+				ts->file = gf_f64_open(next_url, "rb");
+				if (ts->file) goto restart_file;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
+			}
+		}
 	}
 	ts->run_state = 2;
 	return 0;
@@ -2575,13 +2584,13 @@ GF_Err TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, const char *url)
 	if (!ts->tuner) GF_SAFEALLOC(ts->tuner, GF_Tuner);
 
 	if (ts->tuner->freq != 0 && ts->tuner->freq == gf_dvb_get_freq_from_url(ts->dvb_channels_conf_path, url)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Tuner already tuned to that frequency\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Tuner already tuned to that frequency\n"));
 		return GF_OK;
 	}
 
 	e = gf_dvb_tune(ts->tuner, url, ts->dvb_channels_conf_path);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[EpgDemux] Unable to tune to frequency\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Unable to tune to frequency\n"));
 		return GF_SERVICE_ERROR;
 	}
 
@@ -2597,15 +2606,15 @@ static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
 		return GF_IO_ERR;
 	}
 
-	ts->file = fopen(url, "rb"); 
+	ts->file = gf_f64_open(url, "rb"); 
 	if (!ts->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));		
 		return GF_IO_ERR;
 	}
 	strcpy(ts->filename, url);
 
-	fseek(ts->file, 0, SEEK_END);
-	ts->file_size = ftell(ts->file);
+	gf_f64_seek(ts->file, 0, SEEK_END);
+	ts->file_size = gf_f64_tell(ts->file);
 
 	/* reinitialization for seek */
 	ts->end_range = ts->start_range = 0;

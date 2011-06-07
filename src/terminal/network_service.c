@@ -440,7 +440,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 				if (ch->IsClockInit && (u32) ch->BufferTime  < com->buffer.occupancy) {
-					if (odm->codec->CB->UnitCount <= odm->codec->CB->Min) {
+					/*if we don't have more units (compressed or not) than requested max for the composition memory, request more data*/
+					if (odm->codec->CB->UnitCount + ch->AU_Count <= odm->codec->CB->Capacity) {
 						com->buffer.occupancy = 0;
 					} else {
 						com->buffer.occupancy = ch->BufferTime;

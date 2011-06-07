@@ -925,9 +925,10 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
     for (rep_i = 0; rep_i < gf_list_count(period->representations); rep_i++) {
         GF_MPD_Representation *rep = gf_list_get(period->representations, rep_i);
         GF_MPD_Representation *rep_sel = gf_list_get(period->representations, mpdin->active_rep_index);
+		/*by default tune to best quality and/or full bandwith*/
         if (rep->qualityRanking > rep_sel->qualityRanking) {
             mpdin->active_rep_index = rep_i;
-        } else if (rep->bandwidth < rep_sel->bandwidth) {
+        } else if (rep->bandwidth > rep_sel->bandwidth) {
             mpdin->active_rep_index = rep_i;
         }
     }

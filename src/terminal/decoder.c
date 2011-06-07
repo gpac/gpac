@@ -463,7 +463,7 @@ check_unit:
 			gf_scene_regenerate(scene);
 			scene->graph_attached = 2;
 			scene->is_dynamic_scene = prev_dyn;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
 		}
 	}
 
@@ -722,11 +722,11 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + 100 < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 
 				if (ch->resync_drift && (AU->CTS + ch->resync_drift < obj_time)) {
 					ch->clock->StartTime += (obj_time - AU->CTS);
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] ODM%d: decoder too slow on OCR stream - rewinding clock of %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time - AU->CTS));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] ODM%d: decoder too slow on OCR stream - rewinding clock of %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time - AU->CTS));
 					obj_time = gf_clock_time(codec->ck);
 				}
 			}
@@ -815,15 +815,12 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, codec->CB->UnitCount + 1));
 			}
 			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
 			else if (codec->CB->Status == CB_BUFFER) {
 				gf_cm_abort_buffering(codec->CB);
 			}
-			/*in seek don't dispatch any output*/
-			if (mmlevel	== GF_CODEC_LEVEL_SEEK)
-				unit_size = 0;
 
 			codec_update_stats(codec, AU->dataLength, now);
 			if (ch->skip_sl) {
@@ -839,7 +836,7 @@ scalable_retry:
 			}
 #ifndef GPAC_DISABLE_LOGS
 			if (codec->odm->flags & GF_ODM_PREFETCH) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[%s] ODM%d At %d decoding frame TS %d in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d At %d decoding frame TS %d in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock) ));
 			}
 #endif
 			break;
@@ -847,7 +844,7 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] ODM%d At %d (frame TS %d - %d ms ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d At %d (frame TS %d - %d ms ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
 			e = GF_OK;
 			break;
 		}
@@ -872,8 +869,14 @@ drop:
 
 		Decoder_GetNextAU(codec, &ch, &AU);
 		/*same CTS: same output, likely scalable stream so don't release the CB*/
-		if (AU && (AU->CTS == cts) && (ch !=prev_ch) )
+		if (AU && (AU->CTS == cts) && (ch !=prev_ch) ) {
+			unit_size = codec->CB->UnitSize;
 			goto scalable_retry;
+		}
+
+		/*in seek don't dispatch any output*/
+		if (mmlevel	== GF_CODEC_LEVEL_SEEK)
+			unit_size = 0;
 
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (!ch || !AU) return GF_OK;

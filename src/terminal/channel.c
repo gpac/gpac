@@ -775,8 +775,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				}
 				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, OCR_TS);
+				/*many TS streams deployed with HLS have broken PCRs - we will check their consistency
+				when receiving the first AU with DTS/CTS on this channel*/
+				ch->clock->probe_ocr = 1;
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d (origial TS "LLD") - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, hdr.objectClockReference, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
+
 			}
 		}
 #if 0
@@ -800,6 +804,18 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			ck = gf_clock_time(ch->clock);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d (origial TS "LLD") - diff %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck));
 //			gf_clock_set_time(ch->clock, (u32) OCR_TS);
+		}
+#else
+		{
+			u32 ck;
+			u32 OCR_TS;
+			if (hdr.m2ts_pcr) {
+				OCR_TS = (u32) ( hdr.objectClockReference / 27000);
+			} else {
+				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
+			}
+			ck = gf_clock_time(ch->clock);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d got OCR %d (origial TS "LLD") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
 		}
 #endif
 		if (!payload_size) return;
@@ -894,6 +910,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) 
 					ch->seed_ts = ch->net_dts;
 #endif
+				
 
 				if (ch->net_cts<ch->seed_ts) {
 					u64 diff = ch->seed_ts - ch->net_cts;
@@ -910,6 +927,17 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					/*TS Wraping not tested*/
 					ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
 					ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+				}
+
+				if (ch->clock->probe_ocr && gf_es_owns_clock(ch)) {
+					s32 diff_ts = ch->DTS;
+					diff_ts -= ch->clock->init_time;
+					if (ABS(diff_ts) > 10000) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %d OCR %d - using DTS as OCR\n", ch->DTS, ch->clock->init_time));
+						ch->clock->clock_init = 0;
+						gf_clock_set_time(ch->clock, ch->DTS-1000);
+					}
+					ch->clock->probe_ocr = 0;
 				}
 
 				ch->no_timestamps = 0;
