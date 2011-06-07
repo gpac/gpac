@@ -1123,14 +1123,11 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first);
 /*starts a new segment in the file. If SegName is given, the output will be written in the SegName file*/
 GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName);
 
-typedef struct
-{
-	u32 track_ID;
-	u64 decoding_time;
-} GF_SIDXTrackTimes;
+/*sets the baseMediaDecodeTime of the first sample of the given track*/
+GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
 
 /*closes current segment*/
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 fragments_per_sidx, u32 referenceTrackID, GF_SIDXTrackTimes *tracks_times, u32 nb_times, Bool daisy_chain_sidx);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx);
 
 enum
 {

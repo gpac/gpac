@@ -614,7 +614,7 @@ typedef struct
 	u32 FragmentLength;
 	u32 OriginalTrack;
 	u32 TimeScale, MediaType, DefaultDuration;
-	u64 last_sample_cts;
+	u64 last_sample_cts, next_sample_dts;
 } TrackFragmenter;
 
 
@@ -642,7 +642,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	Bool next_sample_rap = 0;
 	Bool flush_all_samples = 0;
 	u64 last_ref_cts = 0;
-	u64 start_range, end_range, file_size, init_seg_size;
+	u64 start_range, end_range, file_size, init_seg_size, ref_track_cur_dur;
 	u32 tfref_timescale = 0;
 	u32 bandwidth = 0;
 	TrackFragmenter *tf, *tfref;
@@ -779,6 +779,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	average_duration = 0;
 	nb_segments = 0;
 
+	ref_track_cur_dur = 0;
 	nb_done = 0;
 	cur_seg=1;
 	maxFragDurationOverSegment=0;
@@ -811,6 +812,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		e = gf_isom_start_fragment(output, 1);
 		if (e) goto err_exit;
 		sample = NULL;
+
+		for (i=0; i<count; i++) {
+			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
+			gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->next_sample_dts);
+		}
 
 		//process track by track
 		for (i=0; i<count; i++) {
@@ -860,6 +866,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				nb_done++;
 
 				tf->last_sample_cts = sample->DTS + sample->CTS_Offset;
+				tf->next_sample_dts = sample->DTS + defaultDuration;
 
 				gf_isom_sample_del(&sample);
 				sample = next;
@@ -955,8 +962,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				/*restore fragment duration*/
 				MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 
-				gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
-
+				gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx);
+				if (tfref) ref_track_cur_dur = tfref->next_sample_dts;
 
 				if (!seg_rad_name) {
 					file_size = end_range = gf_isom_get_file_size(output);
@@ -982,7 +989,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 		/*flush last segment*/
 		if (!switch_segment) {
-			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
+			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx);
 			nb_segments++;
 			if (!seg_rad_name) {
 				file_size = end_range = gf_isom_get_file_size(output);

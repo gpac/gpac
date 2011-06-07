@@ -254,6 +254,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return tfhd_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TRUN:
 		return trun_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TFDT:
+		return tfdt_dump(a, trace);		
 #endif
 	
 	case GF_ISOM_BOX_TYPE_SUBS:
@@ -2241,8 +2243,9 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->tfhd) gf_box_dump(p->tfhd, trace);
 	if (p->subs) gf_box_dump(p->subs, trace);
-	gf_box_array_dump(p->TrackRuns, trace);
 	if (p->sdtp) gf_box_dump(p->sdtp, trace);
+	if (p->tfdt) gf_box_dump(p->tfdt, trace);
+	gf_box_array_dump(p->TrackRuns, trace);
 	fprintf(trace, "</TrackFragmentBox>\n");
 	return GF_OK;
 }
@@ -3500,7 +3503,7 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 	
 	for (i=0; i<p->nb_refs; i++) {
-		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" hasRAP=\"%d\" RAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_offset, p->refs[i].subsegment_duration, p->refs[i].contains_RAP, p->refs[i].RAP_delta_time);
+		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" hasRAP=\"%d\" RAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].contains_RAP, p->refs[i].RAP_delta_time);
 	}
 	fprintf(trace, "</SegmentIndexBox>\n");
 	return GF_OK;
@@ -3535,6 +3538,19 @@ GF_Err subs_dump(GF_Box *a, FILE * trace)
 	} 
 
 	fprintf(trace, "</SubSampleInformationBox>\n");
+	return GF_OK;
+}
+
+
+GF_Err tfdt_dump(GF_Box *a, FILE * trace)
+{
+	GF_TFBaseMediaDecodeTimeBox *ptr = (GF_TFBaseMediaDecodeTimeBox*) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<TrackFragmentBaseMediaDecodeTimeBox baseMediaDecodeTime=\""LLD"\">\n", ptr->baseMediaDecodeTime);
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "</TrackFragmentBaseMediaDecodeTimeBox>\n");
 	return GF_OK;
 }
 
