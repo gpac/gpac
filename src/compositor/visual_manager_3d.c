@@ -496,8 +496,9 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 				}
 				
 #ifdef GF_SR_USE_DEPTH
-				if (tr_state->visual->compositor->display_depth)
+/*				if (tr_state->visual->compositor->display_depth)
 					tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
+*/
 #endif
 			} else {
 				tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;

@@ -397,6 +397,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (!og->order.count || (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		group_2d_traverse(node, (GroupingNode2D*)stack, tr_state);
 		return;
 	}
