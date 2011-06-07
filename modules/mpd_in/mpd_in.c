@@ -86,6 +86,7 @@ typedef struct __mpd_module {
     /* 0 not started, 1 download in progress */
     Bool is_dl_segments;
     Bool dl_stop_request;
+    Bool keep_files;
 
     /* Service really managing the segments */
     GF_InputService *seg_ifce;
@@ -417,7 +418,8 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         }
         if (mpdin->cached[0].cache) {
             if (mpdin->urlToDeleteNext) {
-                gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
+				if (!mpdin->keep_files)
+			        gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
                 gf_free( mpdin->urlToDeleteNext);
                 mpdin->urlToDeleteNext = NULL;
             }
@@ -478,7 +480,7 @@ exit:
  * Parameters are identical to the ones of gf_term_download_new.
  * \see gf_term_download_new()
  */
-GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk)
+GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk)
 {
     GF_Err e;
     if (*sess) {
@@ -1010,7 +1012,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitch", "no");
     if (opt && !strcmp(opt, "yes")) mpdin->auto_switch = 1;
 
-    if (mpdin->mpd_dnload) gf_term_download_del(mpdin->mpd_dnload);
+    opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
+    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
+    if (opt && !strcmp(opt, "yes")) mpdin->keep_files = 1;
+	
+	if (mpdin->mpd_dnload) gf_term_download_del(mpdin->mpd_dnload);
     mpdin->mpd_dnload = NULL;
 
     if (!strnicmp(url, "file://", 7)) {
@@ -1120,8 +1126,10 @@ void MPD_Stop(GF_MPD_In *mpdin)
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Stopping service 0x%x\n", mpdin->service));
     MPD_DownloadStop(mpdin);
     if (mpdin->urlToDeleteNext) {
-        gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
-        gf_free( mpdin->urlToDeleteNext);
+		if (!mpdin->keep_files)
+	        gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
+    
+		gf_free( mpdin->urlToDeleteNext);
         mpdin->urlToDeleteNext = NULL;
     }
     if (mpdin->mpd_dnload) {
@@ -1134,7 +1142,9 @@ void MPD_Stop(GF_MPD_In *mpdin)
     }
     while (mpdin->nb_cached) {
         mpdin->nb_cached --;
-        gf_delete_file(mpdin->cached[mpdin->nb_cached].cache);
+		if (!mpdin->keep_files)
+	        gf_delete_file(mpdin->cached[mpdin->nb_cached].cache);
+
         gf_free(mpdin->cached[mpdin->nb_cached].cache);
         gf_free(mpdin->cached[mpdin->nb_cached].url);
     }
