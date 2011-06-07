@@ -302,14 +302,16 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 		time_taken = gf_sys_clock();
 
 		e = gf_codec_process(ce->dec, time_slice);
+		time_taken = gf_sys_clock() - time_taken;
 
 		/*avoid signaling errors too often...*/
 #ifndef GPAC_DISABLE_LOG
-		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Decode time slice %d ms out of %d ms\n", ce->dec->decio->module_name, time_taken, time_left ));
+		}
 #endif
-
-		time_taken = gf_sys_clock() - time_taken;
-
 		if (ce->flags & GF_MM_CE_DISCRADED) {
 			gf_free(ce);
 			gf_list_rem(term->codecs, term->last_codec);
@@ -318,10 +320,10 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 			if (ce->dec->CB && (ce->dec->CB->UnitCount >= ce->dec->CB->Min)) ce->dec->PriorityBoost = 0;
 		}
 
+		term->last_codec = (term->last_codec + 1) % count;
+
 		remain -= 1;
 		if (!remain) break;
-
-		term->last_codec = (term->last_codec + 1) % count;
 
 		if (time_left > time_taken) {
 			time_left -= time_taken;

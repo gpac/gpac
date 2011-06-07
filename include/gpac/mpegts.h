@@ -554,7 +554,7 @@ struct tag_m2ts_demux
 	FILE *file;
 	char filename[GF_MAX_PATH];
 	u32 start_range, end_range;
-	u32 file_size;
+	u64 file_size;
 	Double duration;
 	u32 nb_playing;
 	Bool file_regulate;
@@ -605,6 +605,9 @@ struct tag_m2ts_demux
 	struct __gf_download_session *dnload;
 
 	const char *dvb_channels_conf_path;
+
+	const char *(*query_next)(void *udta);
+	void *udta_query;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();

@@ -288,8 +288,13 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = (pck->flags & GF_M2TS_PES_PCK_AU_START) ? 1 : 0;
 	if (slh.accessUnitStartFlag) {
+#if 0
 		slh.OCRflag = 1;
-		slh.objectClockReference = pck->stream->program->last_pcr_value/300;
+		slh.m2ts_pcr = 1;
+		slh.objectClockReference = pck->stream->program->last_pcr_value;
+#else
+		slh.OCRflag = 0;
+#endif
 		slh.compositionTimeStampFlag = 1;
 		slh.compositionTimeStamp = pck->PTS;
 		if (pck->DTS) {
@@ -510,7 +515,6 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				if (diff<0) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, ts->pcr_last));
 				} else if (diff>0) {
-					u32 sleep_for=50;
 #ifndef GPAC_DISABLE_LOG
 					u32 nb_sleep=0;
 #endif
@@ -529,11 +533,12 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						}
 						nb_sleep++;
 #endif
-						gf_sleep(sleep_for);
+						/*yield only*/
+						gf_sleep(1);
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (nb_sleep) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", nb_sleep, com.buffer.occupancy));
 					}
 #endif
 					ts->nb_pck = 0;
@@ -624,6 +629,28 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
+static const char *M2TS_QueryNextFile(void *udta)
+{
+	GF_NetworkCommand param;
+	GF_Err query_ret;
+	M2TSIn *m2ts = (M2TSIn *) udta;
+	assert(m2ts->owner);
+	assert( m2ts->owner->query_proxy);
+
+	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+	param.url_query.next_url = NULL;
+	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
+	if ((query_ret==GF_OK) && param.url_query.next_url){
+		return param.url_query.next_url;
+	} else if (query_ret==GF_OK){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
+	}	
+	return NULL;
+}
+
+
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	GF_Err e;	
@@ -642,7 +669,10 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 					return TSDemux_DemuxPlay(m2ts->ts);
 				}
 	}	
-	
+	if (m2ts->owner->query_proxy) {
+		m2ts->ts->query_next = M2TS_QueryNextFile;
+		m2ts->ts->udta_query = m2ts;
+	}
 	e = TSDemux_Demux_Setup(m2ts->ts,url,0);
 	gf_term_on_connect(m2ts->service, NULL, e);	
 	return GF_OK;

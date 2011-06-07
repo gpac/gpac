@@ -487,6 +487,7 @@ struct _object_clock
 	u32 discontinuity_time;
 	s32 drift;
 	u32 data_timeout;
+	Bool probe_ocr;
 };
 
 /*destroys clock*/
