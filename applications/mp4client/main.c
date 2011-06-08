@@ -1611,7 +1611,7 @@ force_input:
 					fprintf(stdout, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
 					nb_pass = 0;
 				} else {
-					u32 dst_size = fb.width*fb.height*3;
+					u32 dst_size = fb.width*fb.height*4;
 					char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
 
 					e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
