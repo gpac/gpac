@@ -64,6 +64,10 @@ ifeq ($(CONFIG_X11),yes)
 PLUGDIRS+=x11_out
 endif
 
+ifeq ($(CONFIG_DIRECTFB),yes)
+PLUGDIRS+=directfb_out
+endif
+
 ifeq ($(CONFIG_JS),no)
 else
 PLUGDIRS+=gpac_js
