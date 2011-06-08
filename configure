@@ -57,6 +57,7 @@ libdir="lib"
 #GPAC module config
 js_flags="XP_UNIX"
 js_lib="-ljs"
+lm_lib=""
 has_mingw_directx="no"
 has_js="no"
 has_ft="no"
@@ -77,6 +78,7 @@ has_pulseaudio="no"
 has_oss_audio="no"
 has_alsa="no"
 has_jack="no"
+has_directfb="no"
 has_x11="no"
 has_x11_shm="no"
 has_x11_xv="no"
@@ -650,7 +652,10 @@ EOF
  #try local
  js_inc="$local_inc/js"
  js_flags="-DXP_UNIX -I$local_inc/js"
- if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
+ if test "$cpu" = "sh4" ; then
+  lm_lib="-lm"
+ fi
+ if $cc -o $TMPO $TMPC $js_flags $lm_lib -L$local_lib -ljs 2> /dev/null  ; then
   has_js="local"
   #dc added
  else
@@ -979,8 +984,8 @@ int main( void ) { return 0; }
 EOF
 fi
 
-if test "$cross_prefix"  != "" ; then
-  if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
+if test "$cross_prefix"  != "" ; then 
+   if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
      has_ffmpeg="system"
      ffmpeg_cflags="-I$prefix/include"
      ffmpeg_lflags="-L$prefix/lib -lz -lavcodec -lavformat -lavutil"
@@ -1232,6 +1237,17 @@ int main( void ) {
 EOF
 if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_jack="yes"
+fi
+
+#look for directfb support
+cat > $TMPC << EOF
+#include <directfb/directfb.h>
+int main( void ) { return 0; }
+EOF
+directfb_inc="/opt/STM/STLinux-2.3/devkit/sh4/target/usr/include/directfb"
+directfb_lib="-ldirectfb -lfusion -ldirect"
+if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib 2> /dev/null  ; then
+has_directfb="yes"
 fi
 
 #look for X11 shared memory support
@@ -1910,6 +1926,7 @@ echo "OSS Audio: $has_oss_audio"
 echo "ALSA Audio: $has_alsa"
 echo "Jack Audio: $has_jack"
 echo "PulseAudio Audio: $has_pulseaudio"
+echo "DirectFB support: $has_directfb"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
 echo "X11 XVideo support: $has_x11_xv"	
 fi
@@ -2256,6 +2273,10 @@ echo "OSS_INC_TYPE=$has_oss_audio" >> config.mak
 echo "OSS_CFLAGS=$OSS_CFLAGS" >> config.mak
 echo "OSS_LDFLAGS=$OSS_LDFLAGS" >> config.mak
 fi
+
+echo "CONFIG_DIRECTFB=$has_directfb" >> config.mak
+echo "DIRECTFB_INC_PATH=$directfb_inc" >> config.mak
+echo "DIRECTFB_LIB=$directfb_lib" >> config.mak
 
 echo "CONFIG_X11=$has_x11" >> config.mak
 
