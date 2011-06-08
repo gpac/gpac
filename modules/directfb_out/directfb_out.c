@@ -15,9 +15,6 @@ u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf)
    case DSPF_RGB24: return  GF_PIXEL_RGB_24;
    case DSPF_RGB32: return  GF_PIXEL_RGB_32;
    case DSPF_ARGB: return  GF_PIXEL_ARGB;
-//   case DSPF_YUY2: return  GF_PIXEL_YUY2;
-//   case DSPF_YV12: return  GF_PIXEL_YV12;
-//   case DSPF_I420: return  GF_PIXEL_YV12;
    default: return 0;
   }
 }
@@ -32,10 +29,9 @@ u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf)
    case GF_PIXEL_RGB_32 : return DSPF_RGB32;
    case GF_PIXEL_ARGB: return DSPF_ARGB;
    case GF_PIXEL_RGBA: return DSPF_ARGB;
-   case GF_PIXEL_BGRA: return DSPF_ARGB;
    case GF_PIXEL_YUY2 : return DSPF_YUY2;
    case GF_PIXEL_YV12 : return DSPF_YV12;
-   default: 
+   default:
     GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectFB] pixel format %s not supported\n", gf_4cc_to_str(gpacpf)));
     return 0;
   }
@@ -62,10 +58,10 @@ static void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, GF_Event
 	evt->flags = 0;
 	evt->hw_code = DirectFBkey;
 	switch (DirectFBkey){
-	case DIKS_BACKSPACE: 
-		evt->key_code = GF_KEY_BACKSPACE; break;  
-	case DIKS_RETURN: 
-		evt->key_code = GF_KEY_ENTER; break; 
+	case DIKS_BACKSPACE:
+		evt->key_code = GF_KEY_BACKSPACE; break;
+	case DIKS_RETURN:
+		evt->key_code = GF_KEY_ENTER; break;
 	case DIKS_CANCEL:
 		evt->key_code = GF_KEY_CANCEL; break;
 	case DIKS_ESCAPE:
@@ -224,7 +220,7 @@ static void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, GF_Event
 	case DIKS_INSERT:
 		evt->key_code = GF_KEY_INSERT; break;
 	case DIKS_HOME:
-		evt->key_code = GF_KEY_HOME; break;		
+		evt->key_code = GF_KEY_HOME; break;
 	case DIKS_END:
 		evt->key_code = GF_KEY_END; break;
 	case DIKS_PAGE_UP:
@@ -251,51 +247,51 @@ static void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, GF_Event
 	case DIKS_PAUSE:
 		evt->key_code = GF_KEY_MEDIAPLAYPAUSE; break;
 	case DIKS_PLAY:
-		evt->key_code = GF_KEY_PLAY; break;	
+		evt->key_code = GF_KEY_PLAY; break;
 	case DIKS_STOP:
-		evt->key_code = GF_KEY_MEDIASTOP; break;		
+		evt->key_code = GF_KEY_MEDIASTOP; break;
 	case DIKS_PREVIOUS:
 		evt->key_code = GF_KEY_MEDIAPREVIOUSTRACK; break;
 	case DIKS_F1:
-		evt->key_code = GF_KEY_F1; break; 
+		evt->key_code = GF_KEY_F1; break;
 	case DIKS_F2:
-		evt->key_code = GF_KEY_F2; break; 
+		evt->key_code = GF_KEY_F2; break;
 	case DIKS_F3:
-		evt->key_code = GF_KEY_F3; break; 
+		evt->key_code = GF_KEY_F3; break;
 	case DIKS_F4:
-		evt->key_code = GF_KEY_F4; break; 
+		evt->key_code = GF_KEY_F4; break;
 	case DIKS_F5:
-		evt->key_code = GF_KEY_F5; break; 
+		evt->key_code = GF_KEY_F5; break;
 	case DIKS_F6:
-		evt->key_code = GF_KEY_F6; break; 
+		evt->key_code = GF_KEY_F6; break;
 	case DIKS_F7:
-		evt->key_code = GF_KEY_F7; break; 
+		evt->key_code = GF_KEY_F7; break;
 	case DIKS_F8:
-		evt->key_code = GF_KEY_F8; break; 
+		evt->key_code = GF_KEY_F8; break;
 	case DIKS_F9:
-		evt->key_code = GF_KEY_F9; break; 
+		evt->key_code = GF_KEY_F9; break;
 	case DIKS_F10:
-		evt->key_code = GF_KEY_F10; break; 
+		evt->key_code = GF_KEY_F10; break;
 	case DIKS_F11:
-		evt->key_code = GF_KEY_F11; break; 
+		evt->key_code = GF_KEY_F11; break;
 	case DIKS_F12:
-		evt->key_code = GF_KEY_F12; break; 
+		evt->key_code = GF_KEY_F12; break;
 	case DIKS_SHIFT:
-		evt->key_code = GF_KEY_SHIFT; break; 
+		evt->key_code = GF_KEY_SHIFT; break;
 	case DIKS_CONTROL:
-		evt->key_code = GF_KEY_CONTROL; break; 
+		evt->key_code = GF_KEY_CONTROL; break;
 	case DIKS_ALT:
-		evt->key_code = GF_KEY_ALT; break; 
+		evt->key_code = GF_KEY_ALT; break;
 	case DIKS_ALTGR:
-		evt->key_code = GF_KEY_ALTGRAPH; break; 
+		evt->key_code = GF_KEY_ALTGRAPH; break;
 	case DIKS_META:
-		evt->key_code = GF_KEY_META; break; 
+		evt->key_code = GF_KEY_META; break;
 	case DIKS_CAPS_LOCK:
-		evt->key_code = GF_KEY_CAPSLOCK; break; 
+		evt->key_code = GF_KEY_CAPSLOCK; break;
 	case DIKS_NUM_LOCK:
-		evt->key_code = GF_KEY_NUMLOCK; break; 
+		evt->key_code = GF_KEY_NUMLOCK; break;
 	case DIKS_SCROLL_LOCK:
-		evt->key_code = GF_KEY_SCROLL; break; 
+		evt->key_code = GF_KEY_SCROLL; break;
 	case DIKS_FAVORITES:
 		evt->key_code = GF_KEY_BROWSERFAVORITES; break;
 	case DIKS_CUSTOM0:
@@ -323,9 +319,9 @@ static void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, GF_Event
 	case DIKS_REWIND:
 		evt->key_code = GF_KEY_BROWSERBACK; break;
 	case DIKS_FASTFORWARD:
-		evt->key_code = GF_KEY_BROWSERFORWARD; break; 
+		evt->key_code = GF_KEY_BROWSERFORWARD; break;
 	case DIKS_SUBTITLE:
-		evt->key_code = GF_KEY_DEL; break; 
+		evt->key_code = GF_KEY_DEL; break;
 	case DIKS_CHANNEL_UP:
 		evt->key_code = GF_KEY_CHANNELUP; break;
 	case DIKS_CHANNEL_DOWN:
@@ -346,7 +342,7 @@ static void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, GF_Event
 }
 #if 0
 
-static int compare_symbol( const void *a, const void *b ) 
+static int compare_symbol( const void *a, const void *b )
 {
      u32      *keycode  = (u32 *) a;
      struct predef_keyid *idname = (struct predef_keyid *) b;
@@ -363,7 +359,7 @@ static const char *get_local_key_name(u32 key_code) {
 }
 
 static void show_key_event(DirectFBVidCtx *ctx, GF_EventKey *evt )
-{  
+{
      //DirectFBVID();
      char                               buf[16];
      struct predef_keyid      *predefine_keyid;
@@ -389,17 +385,17 @@ static void DirectFBVid_DrawHLine(GF_VideoOutput *driv, u32 x, u32 y, u32 length
 {
 	DirectFBVID();
 	u8 r, g, b;
-			
+
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] in DirectFBVid_DrawHLine(). Drawing line x %d y %d length %d color %08X\n", x, y, length, color));
 	SET_DRAWING_FLAGS( DSDRAW_NOFX );
 
 	r = GF_COL_R(color);
 	g = GF_COL_G(color);
 	b = GF_COL_B(color);
-			
+
 	ctx->primary->SetColor(ctx->primary, r, g, b, 0xFF); // no alpha
 	//ctx->primary->DrawLine(ctx->primary, x, y, x+length, y);	// no acceleration
-	ctx->primary->FillRectangle(ctx->primary, x, y,length, 1);	
+	ctx->primary->FillRectangle(ctx->primary, x, y,length, 1);
 
 }
 
@@ -410,12 +406,12 @@ static void DirectFBVid_DrawHLineAlpha(GF_VideoOutput *driv, u32 x, u32 y, u32 l
 
         //GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] in DirectFBVid_DrawHLineAlpha(). Alpha line drawing x %d y %d length %d color %08X alpha %d\n", x, y, length, color, alpha));
 
-	SET_DRAWING_FLAGS( DSDRAW_BLEND ); // use alpha 
+	SET_DRAWING_FLAGS( DSDRAW_BLEND ); // use alpha
 
 	r = GF_COL_R(color);
 	g = GF_COL_G(color);
-	b = GF_COL_B(color);	
-		
+	b = GF_COL_B(color);
+
 	ctx->primary->SetColor(ctx->primary, r, g, b, alpha);
 	//ctx->primary->DrawLine(ctx->primary, x, y, x+length, y);
 	ctx->primary->FillRectangle(ctx->primary, x, y, length, 1);	// with acceleration
@@ -433,8 +429,8 @@ static void DirectFBVid_DrawRectangle(GF_VideoOutput *driv, u32 x, u32 y, u32 wi
 	g = GF_COL_G(color);
 	b = GF_COL_B(color);
 	a = GF_COL_A(color);
-	
-	SET_DRAWING_FLAGS( DSDRAW_NOFX );	
+
+	SET_DRAWING_FLAGS( DSDRAW_NOFX );
 
 	ctx->primary->SetColor(ctx->primary, r, g, b, a);
 	ctx->primary->FillRectangle(ctx->primary, x, y, width, height);
@@ -450,18 +446,18 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
   DFBSurfacePixelFormat dfbpf;
   DFBAccelerationMask mask;
   DeviceInfo *devices = NULL;
-  
+
   DirectFBVID();
   ctx->is_init = 0;
   argc=0;
-  DFBCHECK(DirectFBInit(&argc, & (argv) )); 
-  
+  DFBCHECK(DirectFBInit(&argc, & (argv) ));
+
   DirectFBSetOption ("bg-none", NULL);
   DirectFBSetOption ("no-init-layer", NULL);
- 
+
   /* create the super interface */
   DFBCHECK(DirectFBCreate( &(ctx->dfb) ));
-  
+
   GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization\n"));
 
   /* create a list of input devices */
@@ -469,18 +465,18 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 
   /* create an event buffer for all devices */
   DFBCHECK(ctx->dfb->CreateInputEventBuffer(ctx->dfb, DICAPS_KEYS, DFB_FALSE, &(ctx->events) ));
-  
+
   /* Set the cooperative level */
   err = ctx->dfb->SetCooperativeLevel( ctx->dfb, DFSCL_FULLSCREEN );
   if (err)
     DirectFBError( "Failed to set cooperative level", err );
-  
+
   /* Get the primary surface, i.e. the surface of the primary layer. */
   dsc.flags = DSDESC_CAPS;
   dsc.caps = DSCAPS_PRIMARY | DSCAPS_DOUBLE;
 
   if (ctx->use_systems_memory) dsc.caps |= DSCAPS_SYSTEMONLY;
-  
+
   DFBCHECK(ctx->dfb->CreateSurface( ctx->dfb, &dsc, &(ctx->primary) ));
 
   ctx->primary->GetPixelFormat( ctx->primary, &dfbpf );
@@ -510,11 +506,11 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
   opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableBlit");
   if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableBlit", "no");
   if (opt && !strcmp(opt, "all")) {
-    driv->hw_caps &= ~(GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV); 
+    driv->hw_caps &= ~(GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV);
   }
-  else if (opt && !strcmp(opt, "yuv")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_YUV; 
-  else if (opt && !strcmp(opt, "rgb")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGB; 
-  else if (opt && !strcmp(opt, "rgba")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGBA; 
+  else if (opt && !strcmp(opt, "yuv")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
+  else if (opt && !strcmp(opt, "rgb")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGB;
+  else if (opt && !strcmp(opt, "rgba")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGBA;
 
 
   if (!ctx->disable_acceleration){
@@ -528,26 +524,31 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 
   GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DirectFB] hardware acceleration mask %08x - Line: %d Rectangle: %d\n", mask, ctx->accel_drawline, ctx->accel_fillrect));
 
-       	driv->hw_caps |= GF_VIDEO_HW_HAS_LINE_BLIT; 
+       	driv->hw_caps |= GF_VIDEO_HW_HAS_LINE_BLIT;
 	driv->DrawHLine = DirectFBVid_DrawHLine;
 	driv->DrawHLineAlpha = DirectFBVid_DrawHLineAlpha;
 	driv->DrawRectangle = DirectFBVid_DrawRectangle;
   }
-  
+
   ctx->is_init = 1;
-  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization success\n"));
+  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization success - HW caps %08x\n", driv->hw_caps));
+
 //  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Pixel format %s\n", gf_4cc_to_str(ctx->pixel_format)));
-  return GF_OK;  
+  return GF_OK;
 }
 
 static void DirectFBVid_Shutdown(GF_VideoOutput *driv)
 {
   DirectFBVID();
   if (!ctx->is_init) return;
+  //ctx->primary->Clear(ctx->primary,0,0,0,0);
+  //ctx->primary->Flip( ctx->primary, NULL, DSFLIP_NONE);
+  //ctx->primary->Clear(ctx->primary,0,0,0,0);
   ctx->primary->Release( ctx->primary );
   ctx->events->Release( ctx->events );
   ctx->dfb->Release( ctx->dfb );
   ctx->is_init = 0;
+  system("stgfb_control /dev/fb0 a 0");
 }
 
 static GF_Err DirectFBVid_Flush(GF_VideoOutput *driv, GF_Window *dest)
@@ -565,8 +566,8 @@ static GF_Err DirectFBVid_Flush(GF_VideoOutput *driv, GF_Window *dest)
 GF_Err DirectFBVid_SetFullScreen(GF_VideoOutput *driv, u32 bFullScreenOn, u32 *screen_width, u32 *screen_height)
 {
   DFBResult err;
-  DirectFBVID();  
-  
+  DirectFBVID();
+
   *screen_width = ctx->width;
   *screen_height = ctx->height;
 
@@ -578,8 +579,8 @@ Bool DirectFBVid_ProcessMessageQueue(DirectFBVidCtx *ctx, GF_VideoOutput *driv)
 {
   DFBInputEvent directfb_evt;
   GF_Event gpac_evt;
-      
-  while (ctx->events->GetEvent( ctx->events, DFB_EVENT(&directfb_evt) ) == DFB_OK) 
+
+  while (ctx->events->GetEvent( ctx->events, DFB_EVENT(&directfb_evt) ) == DFB_OK)
   {
 	u32 i;
 	switch (directfb_evt.type){
@@ -589,21 +590,21 @@ Bool DirectFBVid_ProcessMessageQueue(DirectFBVidCtx *ctx, GF_VideoOutput *driv)
 			directfb_translate_key(directfb_evt.key_symbol, &gpac_evt.key);
 			gpac_evt.type = (directfb_evt.type == DIET_KEYPRESS) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 #if 0
-			fprintf(stderr, "before %d %s\n", gpac_evt.key.key_code, 
+			fprintf(stderr, "before %d %s\n", gpac_evt.key.key_code,
 							     gf_dom_get_key_name(gpac_evt.key.key_code));
-			
-			for (i=0;i<200; i++) { 
+
+			for (i=0;i<200; i++) {
 			  fprintf(stderr, "%03d %s\n", i, gf_dom_get_key_name(i));
 			}
 #endif
 			driv->on_event(driv->evt_cbk_hdl, &gpac_evt);
-			//fprintf(stderr, "after %d %s\n", gpac_evt.key.key_code, gf_dom_get_key_name(gpac_evt.key.key_code)); 
-		default: 
+			//fprintf(stderr, "after %d %s\n", gpac_evt.key.key_code, gf_dom_get_key_name(gpac_evt.key.key_code));
+		default:
 			break;
 	}
-          
+
   }
-  
+
   return GF_OK;
 }
 
@@ -627,10 +628,10 @@ static GF_Err DirectFBVid_ProcessEvent(GF_VideoOutput *driv, GF_Event *evt)
 	driv->on_event(driv->evt_cbk_hdl, &gpac_evt);
    }
     return GF_OK;
-  
+
   case GF_EVENT_VIDEO_SETUP:
    if (evt->setup.opengl_mode) return GF_NOT_SUPPORTED;
-   
+
    if ((ctx->width !=evt->setup.width) || (ctx->height != evt->setup.height)) {
 	GF_Event gpac_evt;
   	gpac_evt.type = GF_EVENT_SIZE;
@@ -651,7 +652,7 @@ static GF_Err DirectFBVid_LockBackBuffer(GF_VideoOutput *driv, GF_VideoSurface *
   void *buf;
   u32 width, height;
   DFBSurfacePixelFormat format;
-  
+
   DirectFBVID();
   if (!ctx->primary) return GF_BAD_PARAM;
   if (do_lock)
@@ -666,7 +667,7 @@ static GF_Err DirectFBVid_LockBackBuffer(GF_VideoOutput *driv, GF_VideoSurface *
     video_info->pitch_y = pitch;
     video_info->video_buffer = buf;
     video_info->pixel_format = ctx->pixel_format;
-    video_info->is_hardware_memory = !ctx->use_systems_memory;   
+    video_info->is_hardware_memory = !ctx->use_systems_memory;
 
    GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] backbuffer locked\n"));
   } else {
@@ -674,7 +675,7 @@ static GF_Err DirectFBVid_LockBackBuffer(GF_VideoOutput *driv, GF_VideoSurface *
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] backbuffer unlocked\n"));
   }
   return GF_OK;
-  
+
 }
 
 static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
@@ -699,13 +700,10 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
   srcdesc.preallocated[0].data = video_src->video_buffer;
   srcdesc.preallocated[0].pitch = video_src->pitch_y;
 
-  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] video_src->pitch_y %d \n",video_src->pitch_y ));
-
 
   switch (video_src->pixel_format){
   case GF_PIXEL_ARGB: //return DSPF_ARGB;
   case GF_PIXEL_RGBA: //return DSPF_ARGB;
-  case GF_PIXEL_BGRA: //return DSPF_ARGB;
 	ctx->primary->SetBlittingFlags(ctx->primary, DSBLIT_BLEND_ALPHACHANNEL);
 	break;
   default:
@@ -718,9 +716,8 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectFB] cannot create blit source surface for pixel format %s: %s (%d)\n", gf_4cc_to_str(video_src->pixel_format), DirectFBErrorString(res), res));
    return GF_IO_ERR;
   }
- 
-   GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB]  blit source surface created\n"));
-   
+
+
    dfbsrc.x = src_wnd->x;
    dfbsrc.y = src_wnd->y;
    dfbsrc.w = src_wnd->w;
@@ -728,7 +725,7 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
 
    if (!src_wnd->x && !src_wnd->y && (dst_wnd->w==src_wnd->w) && (dst_wnd->h==src_wnd->h)) {
 	   ctx->primary->Blit(ctx->primary, src, &dfbsrc, dst_wnd->x, dst_wnd->y);
-   } else {  
+   } else {
 	   dfbdst.x = dst_wnd->x;
 	   dfbdst.y = dst_wnd->y;
 	   dfbdst.w = dst_wnd->w;
@@ -737,6 +734,7 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
   }
 
   src->Release(src);
+  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] blit successful\n"));
 
   return GF_OK;
 }
@@ -745,14 +743,14 @@ void *DirectFBNewVideo()
 {
   DirectFBVidCtx *ctx;
   GF_VideoOutput *driv;
-  
+
   driv = gf_malloc(sizeof(GF_VideoOutput));
   memset(driv, 0, sizeof(GF_VideoOutput));
   GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectFB Video Output", "gpac distribution");
-  
+
   ctx = gf_malloc(sizeof(DirectFBVidCtx));
   memset(ctx, 0, sizeof(DirectFBVidCtx));
-  
+
   /* GF_VideoOutput */
   driv->opaque = ctx;
   driv->Setup = DirectFBVid_Setup;
@@ -763,9 +761,9 @@ void *DirectFBNewVideo()
   driv->LockBackBuffer = DirectFBVid_LockBackBuffer;
   driv->LockOSContext = NULL;
   driv->Blit = DirectFBVid_Blit;
-  driv->hw_caps |= GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV; 
-	
-  return driv;  
+  driv->hw_caps |= GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_STRETCH;
+
+  return driv;
 }
 
 void DirectFBDeleteVideo(void *ifce)
@@ -778,13 +776,13 @@ void DirectFBDeleteVideo(void *ifce)
 
 
 /*interface query*/
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_VIDEO_OUTPUT_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 /*interface create*/

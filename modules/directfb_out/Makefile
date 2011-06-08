@@ -4,7 +4,7 @@ vpath %.c $(SRC_PATH)/modules/directfb_out
 
 CFLAGS= $(OPTFLAGS)
 CFLAGS+=-I"$(SRC_PATH)/include" -I$(DIRECTFB_INC_PATH)
-LDFLAGS+=-ldirectfb -lfusion -ldirect
+LDFLAGS+=$(DIRECTFB_LIB)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
