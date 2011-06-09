@@ -398,8 +398,8 @@ static void gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			pck.stream = pes;
 			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
 			cfg.base_object_type = hdr.profile;
-			cfg.base_sr = GF_M4ASampleRates[hdr.sr_idx];
-			cfg.nb_chan = hdr.nb_ch;
+			pes->aud_sr = cfg.base_sr = GF_M4ASampleRates[hdr.sr_idx];
+			pes->aud_nb_ch = cfg.nb_chan = hdr.nb_ch;
 			cfg.sbr_object_type = 0;
 			gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
 			ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
@@ -496,11 +496,11 @@ static void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 
 							if (!pes->aud_sr) {
 								pck.stream = pes;
+								pes->aud_sr = cfg.base_sr;
+								pes->aud_nb_ch = cfg.nb_chan;
 								gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
 								ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
 								gf_free(pck.data);
-								pes->aud_sr = cfg.base_sr;
-								pes->aud_nb_ch = cfg.nb_chan;
 							}
 						}
 						frameLengthType = gf_bs_read_int(bs, 3);
