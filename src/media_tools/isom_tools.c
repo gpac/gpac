@@ -26,6 +26,7 @@
 
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
+#include <gpac/config_file.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -609,20 +610,21 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 
 typedef struct
 {
+	Bool done;
 	u32 TrackID;
 	u32 SampleNum, SampleCount;
 	u32 FragmentLength;
 	u32 OriginalTrack;
-	u32 TimeScale, MediaType, DefaultDuration;
+	u32 TimeScale, MediaType, DefaultDuration, InitialTSOffset;
 	u64 last_sample_cts, next_sample_dts;
 } TrackFragmenter;
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 fragments_per_sidx, Bool daisy_chain_sidx, Bool use_url_template)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 fragments_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, const char *dash_ctx_file)
 {
 	u8 NbBits;
-	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id;
+	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
 	u32 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, nb_samp, nb_done;
 	u8 defaultPadding;
 	u16 defaultDegradationPriority;
@@ -649,6 +651,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	FILE *mpd = NULL;
 	FILE *mpd_segs = NULL;
 	char *SegName = NULL;
+	const char *opt;
+	GF_Config *dash_ctx = NULL;
+	Bool store_dash_params = 0;
+	Bool dash_moov_setup = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
@@ -656,17 +662,42 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	//create output file
 	if (dash_mode) {
-		u32 len = strlen(output_file);
+		u32 len;
+		
+		if (dash_ctx_file) {
+			dash_ctx = gf_cfg_new(NULL, dash_ctx_file);
+			if (!dash_ctx) {
+				FILE *t = fopen(dash_ctx_file, "wt");
+				if (t) fclose(t);
+				dash_ctx = gf_cfg_new(NULL, dash_ctx_file);
+				
+				if (dash_ctx) store_dash_params=1;
+			}
+		}
+		len = strlen(output_file);
 		len += 100;
 		SegName = gf_malloc(sizeof(char)*len);
 		if (!SegName) return GF_OUT_OF_MEM;
-		strcpy(SegName, output_file);
-		strcat(SegName, ".mp4");
-		output = gf_isom_open(SegName, GF_ISOM_OPEN_WRITE, NULL);
+
+		opt = gf_cfg_get_key(dash_ctx, "DASH", "InitializationSegment");
+		if (opt) {
+			output = gf_isom_open(opt, GF_ISOM_OPEN_CAT_FRAGMENTS, NULL);
+			dash_moov_setup = 1;
+		} else {
+			strcpy(SegName, output_file);
+			strcat(SegName, ".mp4");
+			output = gf_isom_open(SegName, GF_ISOM_OPEN_WRITE, NULL);
+		}
 		if (!output) {
 			e = gf_isom_last_error(NULL);
 			goto err_exit;
 		}
+
+		if (store_dash_params) {
+			gf_cfg_set_key(dash_ctx, "DASH", "InitializationSegment", SegName);
+		}
+
+
 		strcpy(SegName, output_file);
 		strcat(SegName, ".mpd");
 		mpd = gf_f64_open(SegName, "wt");
@@ -680,8 +711,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	nb_samp = 0;
 	fragmenters = gf_list_new();
 
-	e = gf_isom_clone_movie(input, output, 0, 0);
-	if (e) goto err_exit;
+	if (! dash_moov_setup) {
+		e = gf_isom_clone_movie(input, output, 0, 0);
+		if (e) goto err_exit;
+	}
 
 	MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 	MaxSegmentDuration = (u32) (dash_duration_sec * 1000);
@@ -693,78 +726,114 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
+		u32 _w, _h, _sr, _nb_ch;
+
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
 
-		e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
-		if (e) goto err_exit;
+		if (! dash_moov_setup) {
+			e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
+			if (e) goto err_exit;
 
-		//if only one sample, don't fragment track
-		count = gf_isom_get_sample_count(input, i+1);
-		if (count<=1) {
-			for (j=0; j<count; j++) {
-				sample = gf_isom_get_sample(input, i+1, j+1, &descIndex);
+			if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
+
+			//if only one sample, don't fragment track
+			count = gf_isom_get_sample_count(input, i+1);
+			if (count==1) {
+				sample = gf_isom_get_sample(input, i+1, 1, &descIndex);
 				e = gf_isom_add_sample(output, TrackNum, 1, sample);
 				gf_isom_sample_del(&sample);
 				if (e) goto err_exit;
-			}
-		}
-		//otherwise setup fragmented
-		else {
-			u32 _w, _h, _sr, _nb_ch;
 
+				continue;
+			}
+		} else {
+			TrackNum = gf_isom_get_track_by_id(output, gf_isom_get_track_id(input, i+1));
+			count = gf_isom_get_sample_count(input, i+1);
+		}
+
+		//setup fragmenters
+
+		if (! dash_moov_setup) {
 			gf_isom_get_fragment_defaults(input, i+1,
-										 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
-			//otherwise setup fragmentation
+									 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+
+			//new initialization segment, setup fragmentation
 			e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
 						defaultDescriptionIndex, defaultDuration,
 						defaultSize, (u8) defaultRandomAccess,
 						defaultPadding, defaultDegradationPriority);
 			if (e) goto err_exit;
 
-			GF_SAFEALLOC(tf, TrackFragmenter);
-			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
-			tf->SampleCount = gf_isom_get_sample_count(input, i+1);
-			tf->OriginalTrack = i+1;
-			tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
-			tf->MediaType = gf_isom_get_media_type(input, i+1);
-			tf->DefaultDuration = defaultDuration;
-
-			if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) { 
-				tfref = tf;
-				tfref_timescale = tf->TimeScale;
-				nb_sync = gf_isom_get_sync_point_count(input, i+1);
-			}
-
-			switch (mtype) {
-			case GF_ISOM_MEDIA_TEXT:
-				gf_isom_get_media_language(input, i+1, langCode);
-			case GF_ISOM_MEDIA_VISUAL:
-			case GF_ISOM_MEDIA_SCENE:
-			case GF_ISOM_MEDIA_DIMS:
-				gf_isom_get_track_layout_info(input, i+1, &_w, &_h, NULL, NULL, NULL);
-				if (_w>width) width = _w;
-				if (_h>height) height = _h;
-				break;
-			case GF_ISOM_MEDIA_AUDIO:
-				gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
-				if (_sr>sample_rate) sample_rate=_sr;
-				if (_nb_ch>nb_channels) nb_channels = _nb_ch;
-				gf_isom_get_media_language(input, i+1, langCode);
-				break;
-			}
-
-			if (file_duration < ((Double) gf_isom_get_media_duration(input, i+1)) / tf->TimeScale ) {
-				file_duration = ((Double) gf_isom_get_media_duration(input, i+1)) / tf->TimeScale;
-			}
-			gf_list_add(fragmenters, tf);
-			nb_samp += count;
+		} else {
+			gf_isom_get_fragment_defaults(output, TrackNum,
+									 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 		}
 
-		if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
+		GF_SAFEALLOC(tf, TrackFragmenter);
+		tf->TrackID = gf_isom_get_track_id(output, TrackNum);
+		tf->SampleCount = gf_isom_get_sample_count(input, i+1);
+		tf->OriginalTrack = i+1;
+		tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
+		tf->MediaType = gf_isom_get_media_type(input, i+1);
+		tf->DefaultDuration = defaultDuration;
+
+		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) { 
+			tfref = tf;
+			nb_sync = gf_isom_get_sync_point_count(input, i+1);
+		}
+
+			/*figure out if we have an initial TS*/
+		if (!dash_moov_setup) {
+			if (gf_isom_get_edit_segment_count(input, i+1)) {
+				u64 EditTime, SegmentDuration, MediaTime;
+				u8 EditMode;
+				gf_isom_get_edit_segment(input, i+1, 1, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
+				if (EditMode==GF_ISOM_EDIT_EMPTY) {
+					tf->InitialTSOffset = (u32) (SegmentDuration * tf->TimeScale / gf_isom_get_timescale(input));
+				}
+				/*and remove edit segments*/
+				gf_isom_remove_edit_segments(output, TrackNum);
+			}
+		}
+		/*restore track decode times*/
+		else {
+			char *opt, sKey[100];
+			sprintf(sKey, "TrackID_%d", tf->TrackID);
+			opt = (char *)gf_cfg_get_key(dash_ctx, sKey, "NextDecodingTime");
+			if (opt) tf->InitialTSOffset = atoi(opt);
+		}
+
+		switch (mtype) {
+		case GF_ISOM_MEDIA_TEXT:
+			gf_isom_get_media_language(input, i+1, langCode);
+		case GF_ISOM_MEDIA_VISUAL:
+			if (!tfref && (count >=10)) {
+				tfref = tf;
+			}
+		case GF_ISOM_MEDIA_SCENE:
+		case GF_ISOM_MEDIA_DIMS:
+			gf_isom_get_track_layout_info(input, i+1, &_w, &_h, NULL, NULL, NULL);
+			if (_w>width) width = _w;
+			if (_h>height) height = _h;
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
+			if (_sr>sample_rate) sample_rate=_sr;
+			if (_nb_ch>nb_channels) nb_channels = _nb_ch;
+			gf_isom_get_media_language(input, i+1, langCode);
+			break;
+		}
+
+		if (file_duration < ((Double) gf_isom_get_media_duration(input, i+1)) / tf->TimeScale ) {
+			file_duration = ((Double) gf_isom_get_media_duration(input, i+1)) / tf->TimeScale;
+		}
+		gf_list_add(fragmenters, tf);
+		nb_samp += count;
 	}
 
 	if (!tfref) tfref = gf_list_get(fragmenters, 0);
+	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
 
 	//flush movie
@@ -776,18 +845,44 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	file_size = end_range;
 	init_seg_size = end_range;
 
+	if (dash_ctx) {
+		if (store_dash_params) {
+			char szVal[1024];
+			sprintf(szVal, "%d", init_seg_size);
+			gf_cfg_set_key(dash_ctx, "DASH", "InitializationSegmentSize", szVal);
+		} else {
+			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "InitializationSegmentSize");
+			if (opt) init_seg_size = atoi(opt);
+		}
+	}
+
 	average_duration = 0;
 	nb_segments = 0;
 
-	ref_track_cur_dur = 0;
+	nb_tracks_done = 0;
+	ref_track_cur_dur = tfref ? tfref->InitialTSOffset : 0;
 	nb_done = 0;
-	cur_seg=1;
+
 	maxFragDurationOverSegment=0;
 	if (dash_mode) switch_segment=1;
 
 	if (!seg_rad_name) use_url_template = 0;
 
+	cur_seg=1;
 
+	/*setup previous URL list*/
+	if (dash_ctx) {
+		const char *opt;
+		count = gf_cfg_get_key_count(dash_ctx, "URLs");
+		for (i=0; i<count; i++) {
+			const char *key_name = gf_cfg_get_key_name(dash_ctx, "URLs", i);
+			opt = gf_cfg_get_key(dash_ctx, "URLs", key_name);
+			fprintf(mpd_segs, "    %s\n", opt);	
+		}
+
+		opt = gf_cfg_get_key(dash_ctx, "DASH", "NextSegmentIndex");
+		if (opt) cur_seg = atoi(opt);
+	}
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 
@@ -800,6 +895,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				e = gf_isom_start_segment(output, SegName);
 				if (!use_url_template) {
 					fprintf(mpd_segs, "    <Url sourceURL=\"%s\"/>\n", SegName);	
+					if (dash_ctx) {
+						char szKey[100], szVal[4046];
+						sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
+						sprintf(szVal, "<Url sourceURL=\"%s\"/>", SegName);
+						gf_cfg_set_key(dash_ctx, "URLs", szKey, szVal);
+					}
 				}
 			} else {
 				e = gf_isom_start_segment(output, NULL);
@@ -815,7 +916,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 		for (i=0; i<count; i++) {
 			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
-			gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->next_sample_dts);
+			if (tf->done) continue;
+			gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->InitialTSOffset + tf->next_sample_dts);
 		}
 
 		//process track by track
@@ -836,6 +938,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				if (tf == tfref) 
 					has_rap=0;
 			} 
+			if (tf->done) continue;
 
 			//ok write samples
 			while (1) {
@@ -926,10 +1029,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			}
 
 			if (tf->SampleNum==tf->SampleCount) {
-				gf_free(tf);
-				gf_list_rem(fragmenters, i);
-				i--;
-				count --;
+				tf->done = 1;
+				nb_tracks_done++;
 				if (tf == tfref) {
 					tfref = NULL;
 					flush_all_samples = 1;
@@ -963,11 +1064,18 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 
 				gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx);
-				if (tfref) ref_track_cur_dur = tfref->next_sample_dts;
+				if (tfref) ref_track_cur_dur = tfref->InitialTSOffset + tfref->next_sample_dts;
 
 				if (!seg_rad_name) {
 					file_size = end_range = gf_isom_get_file_size(output);
 					fprintf(mpd_segs, "    <Url range=\""LLD"-"LLD"\"/>\n", start_range, end_range);	
+					if (dash_ctx) {
+						char szKey[100], szVal[4046];
+						sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
+						sprintf(szVal, "<Url range=\""LLD"-"LLD"\"/>", start_range, end_range);
+						gf_cfg_set_key(dash_ctx, "URLs", szKey, szVal);
+
+					}
 				} else {
 					file_size += gf_isom_get_file_size(output);
 				}
@@ -978,6 +1086,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				split_at_rap = 1;
 			}
 		}
+		
+		if (nb_tracks_done==count) break;
 	}
 
 
@@ -994,14 +1104,23 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			if (!seg_rad_name) {
 				file_size = end_range = gf_isom_get_file_size(output);
 				fprintf(mpd_segs, "    <Url range=\""LLD"-"LLD"\"/>\n", start_range, end_range);	
-			} else {
-				if (use_url_template) {
-					sprintf(SegName, "%s_seg$Index$.%s", seg_rad_name, seg_ext);
-					fprintf(mpd_segs, "    <UrlTemplate sourceURL=\"%s\" startIndex=\"1\" endIndex=\"%d\" />\n", SegName, nb_segments);	
+
+				if (dash_ctx) {
+					char szKey[100], szVal[4046];
+					sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
+					sprintf(szVal, "<Url range=\""LLD"-"LLD"\"/>", start_range, end_range);
+					gf_cfg_set_key(dash_ctx, "URLs", szKey, szVal);
 				}
+			} else {
 				file_size += gf_isom_get_file_size(output);
 			}
 		}
+
+		if (use_url_template) {
+			sprintf(SegName, "%s_seg$Index$.%s", seg_rad_name, seg_ext);
+			fprintf(mpd_segs, "    <UrlTemplate sourceURL=\"%s\" startIndex=\"1\" endIndex=\"%d\" />\n", SegName, cur_seg-1);	
+		}
+
 		h = (u32) (file_duration/3600);
 		m = (u32) (file_duration-h*60)/60;
 		s = file_duration - h*3600 - m*60;
@@ -1051,6 +1170,20 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
         fprintf(mpd, "</MPD>");
 	}
 
+	/*store context*/
+	if (dash_ctx) {
+		char sOpt[100], sKey[100];
+		for (i=0; i<gf_list_count(fragmenters); i++) {
+			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
+			
+			sprintf(sKey, "TrackID_%d", tf->TrackID);
+			sprintf(sOpt, "%d", tf->InitialTSOffset + tf->next_sample_dts);
+			gf_cfg_set_key(dash_ctx, sKey, "NextDecodingTime", sOpt);
+		}
+		sprintf(sOpt, "%d", cur_seg);
+		gf_cfg_set_key(dash_ctx, "DASH", "NextSegmentIndex", sOpt);
+	}
+
 err_exit:
 	if (fragmenters){
 		while (gf_list_count(fragmenters)) {
@@ -1066,6 +1199,7 @@ err_exit:
 	if (SegName) gf_free(SegName);
 	if (mpd) fclose(mpd);
 	if (mpd_segs) fclose(mpd_segs);
+	if (dash_ctx) gf_cfg_del(dash_ctx);
 	return e;
 }
 

@@ -290,7 +290,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 		gf_free(tmp);
 		return NULL;
 	}
-	tmp->bs = gf_bs_from_file(tmp->stream, GF_BITSTREAM_READ);
+	tmp->bs = gf_bs_from_file(tmp->stream, GF_BITSTREAM_WRITE);
 	if (!tmp->bs) {
 		fclose(tmp->stream);
 		gf_free(tmp);
@@ -329,6 +329,12 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	case GF_ISOM_DATA_MAP_WRITE:
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "w+b");
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "wb");
+		bs_mode = GF_BITSTREAM_WRITE;
+		break;
+	///we open the file in CAT mode, in case 
+	case GF_ISOM_DATA_MAP_CAT:
+		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "a+b");
+		if (tmp->stream) gf_f64_seek(tmp->stream, 0, SEEK_END);
 		bs_mode = GF_BITSTREAM_WRITE;
 		break;
 	default:

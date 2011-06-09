@@ -2324,12 +2324,21 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 	e = CanAccessMovie(dest_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (orig_file->brand) 
+	if (orig_file->brand) {
+		gf_list_del_item(dest_file->TopBoxes, dest_file->brand);
+		gf_isom_box_del((GF_Box *)dest_file->brand);
+		dest_file->brand = NULL;
 		clone_box((GF_Box *)orig_file->brand, (GF_Box **)&dest_file->brand);
+		if (dest_file->brand) gf_list_add(dest_file->TopBoxes, dest_file->brand);
+	}
 
 	if (orig_file->meta) {
+		gf_list_del_item(dest_file->TopBoxes, dest_file->meta);
+		gf_isom_box_del((GF_Box *)dest_file->meta);
+		dest_file->meta = NULL;
 		/*fixme - check imports*/
 		clone_box((GF_Box *)orig_file->meta, (GF_Box **)dest_file->meta);
+		if (dest_file->meta) gf_list_add(dest_file->TopBoxes, dest_file->meta);
 	}
 	if (orig_file->moov) {
 		u32 i, dstTrack;

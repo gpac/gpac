@@ -60,20 +60,33 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 {
 	GF_Err e;
 	u32 i;
+	Bool store_file = 1;
 	GF_TrackExtendsBox *trex;
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
+
+	if (movie->openMode==GF_ISOM_OPEN_CAT_FRAGMENTS) {
+		/*from now on we are in write mode*/
+		movie->openMode = GF_ISOM_OPEN_WRITE;
+		store_file = 0;
+		movie->append_segment = 1;
+	} else {
+		movie->NextMoofNumber = 1;
+	}
+
 	//this is only allowed in write mode
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
 	if (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) return GF_OK;
 	movie->FragmentsFlags = 0;
 
-	//update durations
-	gf_isom_get_duration(movie);
+	if (store_file) {
+		//update durations
+		gf_isom_get_duration(movie);
 
-	//write movie
-	e = WriteToFile(movie);
-	if (e) return e;
+		//write movie
+		e = WriteToFile(movie);
+		if (e) return e;
+	}
 
 	//make sure we do have all we need. If not this is not an error, just consider 
 	//the file closed
@@ -92,7 +105,6 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 
 	//ok we are fine - note the data map is created at the begining
 	if (i) movie->FragmentsFlags |= GF_ISOM_FRAG_WRITE_READY;
-	movie->NextMoofNumber = 1;
 
 	if (use_segments) {
 		movie->use_segments = 1;
@@ -934,12 +946,26 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 	}
 	if (prev_sidx) {
 		sidx_rewrite(prev_sidx, movie->editFileMap->bs, sidx_start);
-		gf_isom_box_del((GF_Box*)sidx);
+		gf_isom_box_del((GF_Box*)prev_sidx);
 	}
 	if (root_sidx) {
 		sidx_rewrite(root_sidx, movie->editFileMap->bs, sidx_start);
 		gf_isom_box_del((GF_Box*)root_sidx);
 	}
+
+	if (movie->append_segment) {
+		char bloc[1024];
+		u32 seg_size = (u32) gf_bs_get_size(movie->editFileMap->bs);
+		gf_bs_seek(movie->editFileMap->bs, 0);
+		while (seg_size) {
+			u32 size = gf_bs_read_data(movie->editFileMap->bs, bloc, (seg_size>1024) ? 1024 : seg_size);
+			gf_bs_write_data(movie->movieFileMap->bs, bloc, size);
+			seg_size -= size;
+		}
+		gf_isom_datamap_del(movie->editFileMap);
+		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
+	}
+
 	return e;
 }
 

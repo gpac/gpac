@@ -241,6 +241,7 @@ void PrintGeneralUsage()
 			" -url-template        uses UrlTemplate instead of explicit sources in segments.\n"
 			"                       Ignored if segments are stored in the output file.\n"
 			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx<=1.\n"
+			" -dash-ctx FILE       Stores/restore DASH timing from FILE.\n"
 			"\n");
 }
 
@@ -1185,7 +1186,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, dash_ts_use_index;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
@@ -1215,12 +1216,12 @@ int mp4boxMain(int argc, char **argv)
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
-	frags_per_sidx = 1;
+	frags_per_sidx = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
-	seg_name = NULL;
+	seg_name = dash_ctx = NULL;
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	memset(&opts, 0, sizeof(opts));
@@ -1467,6 +1468,10 @@ int mp4boxMain(int argc, char **argv)
 		} else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
 			seg_ext = argv[i+1];
+			i++;
+		} else if (!stricmp(arg, "-dash-ctx")) {
+			CHECK_NEXT_ARG
+			dash_ctx = argv[i+1];
 			i++;
 		} else if (!stricmp(arg, "-daisy-chain")) {
 			daisy_chain_sidx = 1;
@@ -3006,7 +3011,7 @@ int mp4boxMain(int argc, char **argv)
 
 	/*split file*/
 	if (dash_duration) {
-		fprintf(stdout, "DASH-ing file with %.3f secs segments with %d fragments of %.3f secs", dash_duration, frags_per_sidx, InterleavingTime);
+		fprintf(stdout, "DASH-ing file with %.3f secs segments (fragments: %.3f secs - %d per sidx)", dash_duration, InterleavingTime, frags_per_sidx);
 		if (seg_at_rap) fprintf(stdout, " at GOP boundaries");
 		fprintf(stdout, "\n");
 
@@ -3014,7 +3019,7 @@ int mp4boxMain(int argc, char **argv)
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, daisy_chain_sidx, use_url_template);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, daisy_chain_sidx, use_url_template, dash_ctx);
 		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		gf_sys_close();
@@ -3023,7 +3028,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, NULL);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {

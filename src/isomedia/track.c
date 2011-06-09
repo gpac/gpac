@@ -353,7 +353,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size;
 	u64 base_offset, data_offset;
@@ -386,6 +386,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset)
 
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
+
+	if (is_first_merge && traf->tfdt) {
+		trak->dts_at_seg_start = traf->tfdt->baseMediaDecodeTime;
+	}
 
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {

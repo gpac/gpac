@@ -100,7 +100,9 @@ enum
 	/*Opens an existing file in EDIT mode*/
 	GF_ISOM_OPEN_EDIT,
 	/*Creates a new file in EDIT mode*/
-	GF_ISOM_WRITE_EDIT
+	GF_ISOM_WRITE_EDIT,
+	/*Opens an existing file for fragment concatenation*/
+	GF_ISOM_OPEN_CAT_FRAGMENTS,
 };
 
 /*Movie Options for file writing*/
