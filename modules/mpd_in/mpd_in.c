@@ -95,7 +95,7 @@ typedef struct __mpd_module {
     volatile u32 last_update_time;
 
     u32 nb_segs_done;
-    Bool auto_switch;
+    u32 auto_switch_count;
     u8 lastMPDSignature[20];
     Bool segment_must_be_streamed;
     char * mimeTypeForM3U8Segments;
@@ -773,9 +773,9 @@ static u32 download_segments(void *par)
             mpdin->nb_cached++;
             //gf_mx_v(mpdin->dl_mutex);
             mpdin->download_segment_index++;
-            if (mpdin->auto_switch) {
+            if (mpdin->auto_switch_count) {
                 mpdin->nb_segs_done++;
-                if (mpdin->nb_segs_done==1) {
+                if (mpdin->nb_segs_done==mpdin->auto_switch_count) {
                     mpdin->nb_segs_done=0;
                     mpdin->active_rep_index++;
                     if (mpdin->active_rep_index>=gf_list_count(period->representations)) mpdin->active_rep_index=0;
@@ -1007,10 +1007,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     mpdin->cached = gf_malloc(sizeof(segment_cache_entry)*mpdin->max_cached);
     memset(mpdin->cached, 0, sizeof(segment_cache_entry)*mpdin->max_cached);
 
-    mpdin->auto_switch = 0;
-    opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AutoSwitch");
-    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitch", "no");
-    if (opt && !strcmp(opt, "yes")) mpdin->auto_switch = 1;
+    mpdin->mpdin->auto_switch_count = 0;
+    opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AutoSwitchCount");
+    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitchCount", "0");
+    if (opt) mpdin->mpdin->auto_switch_count = atoi(opt);
 
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
     if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
