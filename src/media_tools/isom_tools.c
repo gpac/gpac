@@ -679,7 +679,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		SegName = gf_malloc(sizeof(char)*len);
 		if (!SegName) return GF_OUT_OF_MEM;
 
-		opt = gf_cfg_get_key(dash_ctx, "DASH", "InitializationSegment");
+		opt = dash_ctx ? gf_cfg_get_key(dash_ctx, "DASH", "InitializationSegment") : NULL;
 		if (opt) {
 			output = gf_isom_open(opt, GF_ISOM_OPEN_CAT_FRAGMENTS, NULL);
 			dash_moov_setup = 1;
