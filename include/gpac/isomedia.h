@@ -771,6 +771,9 @@ fragmented options such as MPEG-4 video packets. This will update the data size.
 CANNOT be used with OD media type*/
 GF_Err gf_isom_append_sample_data(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 data_size);
 
+/*sets RAP flag of last sample added to TRUE*/
+GF_Err gf_isom_set_sample_rap(GF_ISOFile *movie, u32 trackNumber);
+
 /*Add sample references to a track. The dataOffset is the offset of the data in the referenced file
 you MUST have created a StreamDescription with URL or URN specifying your referenced file
 Use streamDescriptionIndex to specify the desired stream (if several)*/
