@@ -222,6 +222,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 				/*merge all info*/
 				e = MergeFragment((GF_MovieFragmentBox *)a, mov);
 				gf_isom_box_del(a);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error merging fragment: %s\n", gf_error_to_string(e) ));
+				}
 			}
 			break;
 #endif

@@ -90,6 +90,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 			ALLOC_INC(stts->alloc_size);
 			stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
 			if (!stts->entries) return GF_OUT_OF_MEM;
+			memset(&stts->entries[stts->nb_entries], 0, sizeof(GF_SttsEntry)*(stts->alloc_size-stts->nb_entries) );
 		}
 		ent = &stts->entries[stts->nb_entries];
 		stts->nb_entries++;
@@ -134,6 +135,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		stts->alloc_size += 2;
 		stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
 		if (!stts->entries) return GF_OUT_OF_MEM;
+		memset(&stts->entries[stts->nb_entries], 0, sizeof(GF_SttsEntry)*(stts->alloc_size - stts->nb_entries) );
 	}
 
 	/*repack the DTSs*/
@@ -172,6 +174,7 @@ GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, u32 offset)
 			ALLOC_INC(ctts->alloc_size);
 			ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
 			if (!ctts->entries) return GF_OUT_OF_MEM;
+			memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
 		}
 		ctts->entries[ctts->nb_entries].decodingOffset = offset;
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
@@ -194,6 +197,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 			ALLOC_INC(ctts->alloc_size);
 			ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
 			if (!ctts->entries) return GF_OUT_OF_MEM;
+			memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size - ctts->nb_entries) );
 		}
 		ctts->entries[ctts->nb_entries].decodingOffset = CTSoffset;
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
@@ -228,6 +232,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 	if (ctts->nb_entries+2>=ctts->alloc_size) {
 		ctts->alloc_size += 2;
 		ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+		memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
 	}
 
 	ctts->entries[0].sampleCount = 1;
@@ -271,7 +276,7 @@ GF_Err stbl_repackCTS(GF_CompositionOffsetBox *ctts)
 		}
 	}
 	ctts->nb_entries=j+1;
-	/*note we don't gf_realloc*/
+	/*note we don't realloc*/
 	return GF_OK;
 }
 
@@ -294,6 +299,7 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 			if (ctts->nb_entries == ctts->alloc_size) {
 				ALLOC_INC(ctts->alloc_size);
 				ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+				memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
 			}
 			ctts->entries[ctts->nb_entries].decodingOffset = packed[i].decodingOffset;
 			ctts->entries[ctts->nb_entries].sampleCount = 1;
@@ -307,6 +313,7 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 		if (ctts->nb_entries == ctts->alloc_size) {
 			ALLOC_INC(ctts->alloc_size);
 			ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+			memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
 		}
 		ctts->entries[ctts->nb_entries].decodingOffset = 0;
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
@@ -368,6 +375,7 @@ GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size)
 			ALLOC_INC(stsz->alloc_size);
 			stsz->sizes = gf_realloc(stsz->sizes, sizeof(u32)*(stsz->alloc_size) );
 			if (!stsz->sizes) return GF_OUT_OF_MEM;
+			memset(&stsz->sizes[stsz->sampleCount], 0, sizeof(u32)*(stsz->alloc_size - stsz->sampleCount) );
 		}
 		stsz->sizes[stsz->sampleCount] = size;
 	} else {
@@ -413,6 +421,7 @@ GF_Err stbl_AddRAP(GF_SyncSampleBox *stss, u32 sampleNumber)
 			ALLOC_INC(stss->alloc_size);
 			stss->sampleNumbers = gf_realloc(stss->sampleNumbers, sizeof(u32) * stss->alloc_size);
 			if (!stss->sampleNumbers) return GF_OUT_OF_MEM;
+			memset(&stss->sampleNumbers[stss->nb_entries], 0, sizeof(u32) * (stss->alloc_size-stss->nb_entries) );
 		}
 		stss->sampleNumbers[stss->nb_entries] = sampleNumber;
 	} else {
@@ -448,6 +457,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 	if (sdtp->sampleCount + 1 < sampleNumber) {
 		u32 missed = sampleNumber-1 - sdtp->sampleCount;
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
+		memset(&sdtp->sample_info[sdtp->sampleCount], 0, sizeof(u8) * missed );
 		while (missed) {
 			u8 isRAP;
 			if (stbl->SyncSample) stbl_GetSampleRAP(stbl->SyncSample, sdtp->sampleCount+1, &isRAP, NULL, NULL);
@@ -542,6 +552,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 					ALLOC_INC(stco->alloc_size);
 					stco->offsets = (u32*)gf_realloc(stco->offsets, sizeof(u32) * stco->alloc_size);
 					if (!stco->offsets) return GF_OUT_OF_MEM;
+					memset(&stco->offsets[stco->nb_entries], 0, sizeof(u32) * (stco->alloc_size-stco->nb_entries) );
 				}
 				stco->offsets[stco->nb_entries] = (u32) offset;
 				stco->nb_entries += 1;
@@ -572,6 +583,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 				ALLOC_INC(co64->alloc_size);
 				co64->offsets = (u64*)gf_realloc(co64->offsets, sizeof(u64) * co64->alloc_size);
 				if (!co64->offsets) return GF_OUT_OF_MEM;
+				memset(&co64->offsets[co64->nb_entries], 0, sizeof(u64) * (co64->alloc_size - co64->nb_entries) );
 			}
 			co64->offsets[co64->nb_entries] = offset;
 			co64->nb_entries += 1;
@@ -598,6 +610,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		ALLOC_INC(stsc->alloc_size);
 		stsc->entries = gf_realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
 		if (!stsc->entries) return GF_OUT_OF_MEM;
+		memset(&stsc->entries[stsc->nb_entries], 0, sizeof(GF_StscEntry)*(stsc->alloc_size-stsc->nb_entries) );
 	}
 	if (sampleNumber == stsc->nb_entries + 1) {
 		ent = &stsc->entries[stsc->nb_entries];
@@ -741,6 +754,7 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 		ALLOC_INC(stss->alloc_size);
 		stss->sampleNumbers = gf_realloc(stss->sampleNumbers, sizeof(u32)*stss->alloc_size);
 		if (!stss->sampleNumbers) return GF_OUT_OF_MEM;
+		memset(&stss->sampleNumbers[stss->nb_entries], 0, sizeof(u32)*(stss->alloc_size - stss->nb_entries) );
 	}
 
 	if (i+1 < stss->nb_entries)
@@ -937,7 +951,7 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
 	stbl->SampleToChunk->currentChunk = 1;
 	stbl->SampleToChunk->ghostNumber = 1;
 
-	//gf_realloc the chunk offset
+	//realloc the chunk offset
 	if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 		if (!stbl->SampleSize->sampleCount) {
 			gf_free(((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets);
@@ -1071,7 +1085,7 @@ GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits)
 		if (!stbl->PaddingBits->padbits) return GF_OUT_OF_MEM;
 		memset(stbl->PaddingBits->padbits, 0, sizeof(u8)*stbl->PaddingBits->SampleCount);
 	}
-	//gf_realloc (this is needed in case n out of k samples get padding added)
+	//realloc (this is needed in case n out of k samples get padding added)
 	if (stbl->PaddingBits->SampleCount < stbl->SampleSize->sampleCount) {
 		p = (u8*)gf_malloc(sizeof(u8) * stbl->SampleSize->sampleCount);
 		if (!p) return GF_OUT_OF_MEM;
@@ -1215,7 +1229,7 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 	u32 i;
 	if (!stsz || !stsz->sampleCount) return GF_BAD_PARAM;
 	
-	//we must gf_realloc our table
+	//we must realloc our table
 	if (stsz->sampleSize) {
 		stsz->sizes = (u32*)gf_malloc(sizeof(u32)*stsz->sampleCount);
 		if (!stsz->sizes) return GF_OUT_OF_MEM;
@@ -1244,6 +1258,7 @@ void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration)
 		ALLOC_INC(stts->alloc_size);
 		stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
 		if (!stts->entries) return;
+		memset(&stts->entries[stts->nb_entries], 0, sizeof(GF_SttsEntry)*(stts->alloc_size-stts->nb_entries) );
 	}
 	stts->entries[stts->nb_entries].sampleCount = 1;
 	stts->entries[stts->nb_entries].sampleDelta = duration;
@@ -1271,6 +1286,7 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
 
 		stbl->SampleSize->sizes = (u32 *)gf_realloc(stbl->SampleSize->sizes, sizeof(u32)*stbl->SampleSize->alloc_size);
 		if (!stbl->SampleSize->sizes) return;
+		memset(&stbl->SampleSize->sizes[stbl->SampleSize->sampleCount], 0, sizeof(u32) * (stbl->SampleSize->alloc_size - stbl->SampleSize->sampleCount) );
 
 		if (init_table) {
 			for (i=0; i<stbl->SampleSize->sampleCount;i++) 
@@ -1350,6 +1366,7 @@ void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 sample
 		ALLOC_INC(stsc->alloc_size);
 		stsc->entries = gf_realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
 		if (!stsc->entries) return;
+		memset(&stsc->entries[stsc->nb_entries], 0, sizeof(GF_StscEntry)*(stsc->alloc_size - stsc->nb_entries) );
 	}
 	//ok we need a new entry - this assumes this function is called AFTER AppendChunk
 	ent = &stsc->entries[stsc->nb_entries];
@@ -1389,6 +1406,7 @@ void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 		ALLOC_INC(stbl->SyncSample->alloc_size);
 		stbl->SyncSample->sampleNumbers = (u32*) gf_realloc(stbl->SyncSample->sampleNumbers, sizeof(u32) * stbl->SyncSample->alloc_size);
 		if (!stbl->SyncSample->sampleNumbers) return;
+		memset(&stbl->SyncSample->sampleNumbers[stbl->SyncSample->nb_entries], 0, sizeof(u32) * (stbl->SyncSample->alloc_size-stbl->SyncSample->nb_entries) );
 	}
 	stbl->SyncSample->sampleNumbers[stbl->SyncSample->nb_entries] = stbl->SampleSize->sampleCount;
 	stbl->SyncSample->nb_entries += 1;
@@ -1426,6 +1444,7 @@ void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, u32 CTSOffset)
 	if (ctts->nb_entries==ctts->alloc_size) {
 		ALLOC_INC(ctts->alloc_size);
 		ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+		memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
 	}
 	ctts->entries[ctts->nb_entries].decodingOffset = CTSOffset;
 	ctts->entries[ctts->nb_entries].sampleCount = 1;
@@ -1594,6 +1613,7 @@ static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
 			ALLOC_INC(stco->alloc_size);
 			stco->offsets = (u32*)gf_realloc(stco->offsets, stco->alloc_size * sizeof(u32));
 			if (!stco->offsets) return GF_OUT_OF_MEM;
+			memset(&stco->offsets[stco->nb_entries], 0, (stco->alloc_size - stco->nb_entries) * sizeof(u32));
 		}
 
 		stco->offsets[stco->nb_entries] = (u32) offset;
@@ -1605,6 +1625,7 @@ static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
 			ALLOC_INC(co64->alloc_size);
 			co64->offsets = (u64*)gf_realloc(co64->offsets, co64->alloc_size * sizeof(u64));
 			if (!co64->offsets) return GF_OUT_OF_MEM;
+			memset(&co64->offsets[co64->nb_entries], 0, (co64->alloc_size - co64->nb_entries) * sizeof(u64) );
 		}
 		co64->offsets[co64->nb_entries] = offset;
 		co64->nb_entries += 1;
@@ -1673,6 +1694,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 		ALLOC_INC(the_stsc->alloc_size);
 		the_stsc->entries = gf_realloc(the_stsc->entries, sizeof(GF_StscEntry)*the_stsc->alloc_size);
 		if (!the_stsc->entries) return GF_OUT_OF_MEM;
+		memset(&the_stsc->entries[the_stsc->nb_entries], 0, sizeof(GF_StscEntry)*(the_stsc->alloc_size-the_stsc->nb_entries));
 	}
 	//create a new entry (could be the first one, BTW)
 	newEnt = &the_stsc->entries[the_stsc->nb_entries];
