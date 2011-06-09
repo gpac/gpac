@@ -40,6 +40,7 @@ The config file is based on the win32 .ini file model, thus is ordered by sectio
 <b><a href="#FFMPEG" style="text-decoration: underline;">FFMPEG</a></b>
 <b><a href="#ISOReader" style="text-decoration: underline;">ISOReader</a></b>
 <b><a href="#DVB" style="text-decoration: underline;">DVB</a></b>
+<b><a href="#DASH" style="text-decoration: underline;">DASH</a></b>
 <b><a href="#ALSA" style="text-decoration: underline;">ALSA</a></b>
 <b><a href="#SHORTCUTS" style="text-decoration: underline;">Shortcuts</a></b>
 
@@ -674,6 +675,21 @@ Ignores all MPEG-4 systems tracks and IOD for files showing the listed brands in
 <b>ChannelsFile</b> [value: <i>Absolute file path</i>]
 <p style="text-indent: 5%">
 Specifies the DVB channels configuration file as produced by dvbtools' scan util.</p>
+
+<br/><br/>
+
+<a name="DASH"></a>
+<span style="text-decoration: underline;"><b>Section "DASH"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>The "DASH" section of the config file holds all configuration options for DASH or HLS/M3U8 playback.</p>
+<b>MaxCachedSegments</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies how many segments should be downloaded at most in the cache.</p>
+<b>KeepFiles</b> [value: <i>yes, no</i>]
+<p style="text-indent: 5%">
+Specifies whether downloaded files should not be deleted.</p>
+<b>AutoSwitchCount</b> [value: <i>yes, no</i>]
+<p style="text-indent: 5%">
+For debug purposes, instructs the player to switch representation every N segments. If 0 (default), switching is disabled.</p>
 
 <br/><br/>
 
