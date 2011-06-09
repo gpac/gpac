@@ -406,6 +406,8 @@ GF_Err stbl_AddRAP(GF_SyncSampleBox *stss, u32 sampleNumber)
 		return GF_OK;
 	}
 
+	if (stss->sampleNumbers[stss->nb_entries-1] == sampleNumber) return GF_OK;
+
 	if (stss->sampleNumbers[stss->nb_entries-1] < sampleNumber) {
 		if (stss->nb_entries==stss->alloc_size) {
 			ALLOC_INC(stss->alloc_size);

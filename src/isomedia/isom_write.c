@@ -718,6 +718,22 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 	return SetTrackDuration(trak);
 }
 
+GF_Err gf_isom_set_sample_rap(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_SampleTableBox *stbl;
+	GF_Err e;
+	GF_TrackBox *trak;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	stbl = trak->Media->information->sampleTable;
+	if (!stbl->SyncSample) stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+	return stbl_AddRAP(stbl->SyncSample, stbl->SampleSize->sampleCount);
+
+}
+
 GF_Err gf_isom_append_sample_data(GF_ISOFile *movie, u32 trackNumber, char *data, u32 data_size)
 {
 	GF_Err e;

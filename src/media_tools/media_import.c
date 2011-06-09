@@ -5775,6 +5775,10 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 				if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 				if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
+
+				if (pck->flags & GF_M2TS_PES_PCK_RAP) {
+					e = gf_isom_set_sample_rap(import->dest, tsimp->track);
+				}
 				return;
 			}
 
