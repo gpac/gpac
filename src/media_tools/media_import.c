@@ -5641,6 +5641,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				esd->decoderConfig->decoderSpecificInfo->data = NULL;
 				gf_odf_desc_del((GF_Descriptor *)esd);
 				tsimp->stream_setup = 1;
+				gf_isom_set_audio_info(import->dest, tsimp->track, 1, ((GF_M2TS_PES_PCK*)par)->stream->aud_sr, ((GF_M2TS_PES_PCK*)par)->stream->aud_nb_ch, 8);
 			}
 		}
 		break;

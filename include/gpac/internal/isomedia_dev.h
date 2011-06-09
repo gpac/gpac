@@ -1889,6 +1889,8 @@ enum
 	/*read-only access to the movie file: we create a file mapping object
 	mode is set to GF_ISOM_DATA_MAP_READ afterwards*/
 	GF_ISOM_DATA_MAP_READ_ONLY = 4,
+	/*write-only access at the end of the movie - only used for movie fragments concatenation*/
+	GF_ISOM_DATA_MAP_CAT = 5,
 };
 
 /*this is the DataHandler structure each data handler has its own bitstream*/
@@ -1961,6 +1963,8 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 #define GF_ISOM_GET_FRAG_PAD(flag) ( (flag) >> 17) & 0x7
 #define GF_ISOM_GET_FRAG_SYNC(flag) ( ! ( ( (flag) >> 16) & 0x1))
 #define GF_ISOM_GET_FRAG_DEG(flag)	(flag) & 0x7FFF
+
+GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID);
 #endif
 
 enum
@@ -2011,6 +2015,7 @@ struct __tag_isom {
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;
+	Bool first_moof_merged;
 	/*active fragment*/
 	GF_MovieFragmentBox *moof;
 	/*in WRITE mode, this is the current MDAT where data is written*/
@@ -2019,7 +2024,7 @@ struct __tag_isom {
 	u64 segment_start;
 
 	GF_List *moof_list;
-	Bool use_segments, moof_first;
+	Bool use_segments, moof_first, append_segment;
 
 	Bool is_index_segment;
 #endif

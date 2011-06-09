@@ -192,6 +192,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 		movie = gf_isom_create_movie(fileName, OpenMode, tmp_dir);
 		break;
 	case GF_ISOM_OPEN_EDIT:
+	case GF_ISOM_OPEN_CAT_FRAGMENTS:
 		movie = gf_isom_open_file(fileName, OpenMode, tmp_dir);
 		break;
 	case GF_ISOM_WRITE_EDIT:
@@ -1733,9 +1734,29 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 	GF_TrackBox *trak;
 	GF_StscEntry *sc_ent;
 	u32 i, j, maxValue, value;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_TrackExtendsBox *trex;
+#endif
 	GF_SampleTableBox *stbl;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
+
+	/*if trex is already set, restore flags*/
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	trex = the_file->moov->mvex ? GetTrex(the_file->moov, gf_isom_get_track_id(the_file,trackNumber) ) : NULL;
+	if (trex) {
+		trex->track = trak;
+
+		if (defaultDuration) *defaultDuration = trex->def_sample_duration;
+		if (defaultSize) *defaultSize = trex->def_sample_size;
+		if (defaultDescriptionIndex) *defaultDescriptionIndex = trex->def_sample_desc_index;
+		if (defaultRandomAccess) *defaultRandomAccess = GF_ISOM_GET_FRAG_SYNC(trex->def_sample_flags);
+		if (defaultPadding) *defaultPadding = GF_ISOM_GET_FRAG_PAD(trex->def_sample_flags);
+		if (defaultDegradationPriority) *defaultDegradationPriority = GF_ISOM_GET_FRAG_DEG(trex->def_sample_flags);
+		return GF_OK;
+	}
+#endif
+
 
 	stbl = trak->Media->information->sampleTable;
 	//duration
