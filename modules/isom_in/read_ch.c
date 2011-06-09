@@ -104,6 +104,7 @@ static void check_segment_switch(ISOMReader *read)
 {
 	GF_NetworkCommand param;
 	u32 i, count;
+	GF_Err e;
 	if (!read->frag_type) return;
 	if (!read->input->query_proxy) return;
 
@@ -111,23 +112,30 @@ static void check_segment_switch(ISOMReader *read)
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		/*check all playing channels are waiting for next segment*/
-		if (ch->is_playing && !ch->wait_for_segment_switch) return;
+		if (ch->is_playing && !ch->wait_for_segment_switch) {
+			return;
+		}
 	}
 	/*close current segment*/
 	gf_isom_release_segment(read->mov, 1);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Done playing segment - querying new one\n"));
 
 	/*update current fragment if any*/
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
-		gf_isom_open_segment(read->mov, param.url_query.next_url);
+
+		e = gf_isom_open_segment(read->mov, param.url_query.next_url);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] playing new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
 
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
 			ch->wait_for_segment_switch = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 		}
 	} else {
 		/*consider we are done*/
 		read->frag_type = 2;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] No more segments - done playing file\n"));
 	}
 }
 
@@ -190,10 +198,6 @@ fetch_next:
 			ch->sample_num++;
 			goto fetch_next;
 		}
-		/*if sample cannot be found and file is fragmented, rewind sample*/
-		if (!ch->sample && ch->owner->frag_type) {
-			ch->sample_num--;
-		}
 	}
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
@@ -207,11 +211,19 @@ fetch_next:
 			}
 		} else if (!ch->sample_num || (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
 			if (ch->owner->frag_type==1) {
+				if (!ch->wait_for_segment_switch) {
+					ch->wait_for_segment_switch = 1;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+				}
+				/*if sample cannot be found and file is fragmented, rewind sample*/
+				if (ch->sample_num) ch->sample_num--;
 				ch->last_state = GF_OK;
-				ch->wait_for_segment_switch = 1;
 			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
 			}
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
 		if (ch->wait_for_segment_switch) check_segment_switch(ch->owner);
 		return;
