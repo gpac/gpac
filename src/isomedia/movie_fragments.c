@@ -80,6 +80,8 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 	movie->FragmentsFlags = 0;
 
 	if (store_file) {
+		/*"dash" brand: this is a DASH Initialization Segment*/
+		gf_isom_modify_alternate_brand(movie, GF_4CC('d','a','s','h'), 1);
 		//update durations
 		gf_isom_get_duration(movie);
 
@@ -110,6 +112,20 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 		movie->use_segments = 1;
 		movie->moof_list = gf_list_new();
 	}
+
+	/*set brands for segment*/
+
+	/*"msdh": it's a media segment */
+	gf_isom_set_brand_info(movie, GF_4CC('m','s','d','h'), 0);
+	/*remove all brands	*/
+	gf_isom_reset_alt_brands(movie);
+	/*
+		msdh: it's a media segment
+		sims: it's a media segment with an SSIX 
+		msix: it's a media segment with an index
+		lmsg: it's the last media segment
+	*/
+
 	return GF_OK;
 }
 
@@ -712,7 +728,7 @@ static GF_Err sidx_rewrite(GF_SegmentIndexBox *sidx, GF_BitStream *bs, u64 start
 }
 
 
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx)
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *prev_sidx=NULL;
@@ -741,9 +757,18 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
 	gf_bs_truncate(movie->editFileMap->bs);
 
-	if (referenceTrackID) 
+	if (referenceTrackID) {
 		trak = gf_isom_get_track_from_id(movie->moov, referenceTrackID);
 
+		/*modify brands STYP*/
+
+		/*"msix" brand: this is a DASH Initialization Segment*/
+		gf_isom_modify_alternate_brand(movie, GF_4CC('m','s','i','x'), 1);
+		if (last_segment) {
+			/*"lmsg" brand: this is the last DASH Segment*/
+			gf_isom_modify_alternate_brand(movie, GF_4CC('l','m','s','g'), 1);
+		}
+	}
 	/*write STYP*/
 	movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
     e = gf_isom_box_size((GF_Box *) movie->brand);
@@ -972,7 +997,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 1);
 	} else {
 		return StoreFragment(movie, 0, 0, NULL);
 	}
