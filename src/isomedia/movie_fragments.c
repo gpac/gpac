@@ -541,8 +541,8 @@ u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
 		j=0;
 		while ((ent = gf_list_enum(trun->entries, &j))) {
-			if (ent->Duration + ent->CTS_Offset < cts)
-				cts = ent->Duration + ent->CTS_Offset;
+			if (duration + ent->CTS_Offset < cts)
+				cts = duration + ent->CTS_Offset;
 			duration += ent->Duration;
 		}
 	}

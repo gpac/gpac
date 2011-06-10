@@ -655,6 +655,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	GF_Config *dash_ctx = NULL;
 	Bool store_dash_params = 0;
 	Bool dash_moov_setup = 0;
+	Bool segments_start_with_rap = 1;
+	Bool first_sample_in_segment = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
@@ -889,6 +891,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		if (switch_segment) {
 			SegmentDuration = 0;
 			switch_segment = 0;
+			first_sample_in_segment = 1;
 			start_range = gf_isom_get_file_size(output);
 			if (seg_rad_name) {
 				sprintf(SegName, "%s_seg%d.%s", seg_rad_name, cur_seg, seg_ext);
@@ -954,6 +957,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				} else {
 					defaultDuration = tf->DefaultDuration;
 				}
+
+				if (segments_start_with_rap && first_sample_in_segment && (tf==tfref)) {
+					first_sample_in_segment = 0;
+					if (!sample->IsRAP) segments_start_with_rap = 0;
+				}
+
 
 				e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
 								 defaultDuration, NbBits, 0);
@@ -1135,8 +1144,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
 		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
-		fprintf(mpd, " startWithRAP=\"%s\"", split_seg_at_rap ? "true" : "false");
+		fprintf(mpd, " startWithRAP=\"%s\"", (segments_start_with_rap || split_seg_at_rap) ? "true" : "false");
 		fprintf(mpd, " bandwidth=\"%d\"", bandwidth);
+		/*what should we put here ?? */
+		fprintf(mpd, " minBufferTime=\"%d\"", MaxFragmentDuration);
 		
 		fprintf(mpd, ">\n");
 
