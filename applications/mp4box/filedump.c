@@ -807,7 +807,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 	for (i=0; i<gf_isom_get_track_count(file); i++) {	
 		Bool has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
-		fprintf(dump, "#dumping track ID %d timing\n", gf_isom_get_track_id(file, i+1));
+		fprintf(dump, "#dumping track ID %d timing: Num DTS CTS Size RAP\n", gf_isom_get_track_id(file, i+1));
 		count = gf_isom_get_sample_count(file, i+1);
 		for (j=0; j<count; j++) {
 			u64 dts, cts;
@@ -815,8 +815,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
 
-			fprintf(dump, "Sample %d - DTS "LLD" - CTS "LLD"", j+1, LLD_CAST dts, LLD_CAST cts);
-			if (samp->IsRAP) fprintf(dump, " - RAP");
+			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP);
 			if (cts<dts) { fprintf(dump, " #NEGATIVE CTS OFFSET!!!"); has_error = 1;}
 		
 			gf_isom_sample_del(&samp);
