@@ -2887,7 +2887,9 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 		/*just wait for destruction*/
 		if (!ctx->async) {
 			while (ctx->sess) {
+				gf_sg_lock_javascript(ctx->c, 0);
 				gf_sleep(20);
+				gf_sg_lock_javascript(ctx->c, 1);
 			}
 		}
 	} else {
