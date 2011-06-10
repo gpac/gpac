@@ -1708,7 +1708,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
     const char *url;
     const char *user_profile;
     const char *param_string;
-    Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile;
+    Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile, has_mime;
     assert (sess->status == GF_NETIO_CONNECTED);
     /*setup authentification*/
     strcpy(pass_buf, "");
@@ -1757,11 +1757,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
                 par.name ? par.name : "GET", url, sess->server_name);
     }
 
-    /*signal we support title streaming*/
-    if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
-
     /*get all headers*/
-    has_agent = has_accept = has_connection = has_range = has_language = 0;
+    has_agent = has_accept = has_connection = has_range = has_language = has_mime = 0;
     while (1) {
         par.msg_type = GF_NETIO_GET_HEADER;
         par.value = NULL;
@@ -1776,6 +1773,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
         else if (!strcmp(par.name, "Range")) has_range = 1;
         else if (!strcmp(par.name, "User-Agent")) has_agent = 1;
         else if (!strcmp(par.name, "Accept-Language")) has_language = 1;
+        else if (!strcmp(par.name, "Content-Type")) has_mime = 1;
         if (!par.msg_type) break;
     }
     if (!has_agent) {
@@ -1783,7 +1781,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
         strcat(sHTTP, user_agent);
         strcat(sHTTP, "\r\n");
     }
-    if (!has_accept) strcat(sHTTP, "Accept: */*\r\n");
+	if (!has_mime && (sess->http_read_type!=OTHER)) strcat(sHTTP, "Content-Type: application/octet-stream\r\n");
+    if (!has_accept && (sess->http_read_type!=OTHER) ) strcat(sHTTP, "Accept: */*\r\n");
     if (sess->proxy_enabled==1) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
     else if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
     if (!has_range && sess->needs_range) {
@@ -1853,26 +1852,28 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
             strcat(sHTTP, range_buf);
         }
     }
-    /*{
-      const char * mime = gf_cache_get_mime_type(sess->cache_entry);
-      if (sess->server_only_understand_get || mime && !strcmp("audio/mpeg", mime)){*/
-    /* This will force the server to respond with Icy-Metaint */
-    strcat(sHTTP, "Icy-Metadata: 1\r\n");
-    /*  }
-    }*/
 
-    if (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Cache Entry : %p, FAILED to append cache directives.", sess->cache_entry));
-    }
+	if (sess->http_read_type!=OTHER) {
+		/*signal we support title streaming*/
+		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
+	    /* This will force the server to respond with Icy-Metaint */
+		strcat(sHTTP, "Icy-Metadata: 1\r\n");
+
+		/*cached headers are not appended in POST*/
+		if (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) {
+	        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Cache Entry : %p, FAILED to append cache directives.", sess->cache_entry));
+		}
+	}
 
     strcat(sHTTP, "\r\n");
 
     if (send_profile || par.data) {
         u32 len = strlen(sHTTP);
-        char *tmp_buf = gf_malloc(sizeof(char)*(len+par.size));
+        char *tmp_buf = gf_malloc(sizeof(char)*(len+par.size+1));
         strcpy(tmp_buf, sHTTP);
         if (par.data) {
             memcpy(tmp_buf+len, par.data, par.size);
+            tmp_buf[len+par.size] = 0;
         } else {
             FILE *profile;
             assert( sess->dm );
