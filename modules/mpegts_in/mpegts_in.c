@@ -515,6 +515,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				if (diff<0) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, ts->pcr_last));
 				} else if (diff>0) {
+					u32 sleep_for=50;
 #ifndef GPAC_DISABLE_LOG
 					u32 nb_sleep=0;
 #endif
@@ -523,8 +524,10 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					com.command_type = GF_NET_BUFFER_QUERY;
 					while (ts->run_state) {
 						gf_term_on_command(m2ts->service, &com, GF_OK);
-						if (com.buffer.occupancy < M2TS_BUFFER_MAX)
+						if (com.buffer.occupancy < M2TS_BUFFER_MAX) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
 							break;
+						}
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
 #ifndef GPAC_DISABLE_LOG
@@ -533,12 +536,11 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						}
 						nb_sleep++;
 #endif
-						/*yield only*/
-						gf_sleep(1);
+						gf_sleep(sleep_for);
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (nb_sleep) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", nb_sleep, com.buffer.occupancy));
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
 					}
 #endif
 					ts->nb_pck = 0;
@@ -660,21 +662,26 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 	m2ts->owner = plug;
 	m2ts->service = serv;
-	if (!strnicmp(url, "http://", 7)) {
-
-                m2ts->ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
-				if (!m2ts->ts->dnload){
-					gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
-				}else{
-					return TSDemux_DemuxPlay(m2ts->ts);
-				}
-	}	
 	if (m2ts->owner->query_proxy) {
 		m2ts->ts->query_next = M2TS_QueryNextFile;
 		m2ts->ts->udta_query = m2ts;
 	}
-	e = TSDemux_Demux_Setup(m2ts->ts,url,0);
-	gf_term_on_connect(m2ts->service, NULL, e);	
+
+	if (!strnicmp(url, "http://", 7)) {
+		m2ts->ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
+		if (!m2ts->ts->dnload){
+			gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
+			return GF_OK;
+		} else {
+			e = TSDemux_DemuxPlay(m2ts->ts);
+		}
+	} else {
+		e = TSDemux_Demux_Setup(m2ts->ts,url,0);
+	}
+
+	if (e) {
+		gf_term_on_connect(m2ts->service, NULL, e);	
+	}
 	return GF_OK;
 }
 
