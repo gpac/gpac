@@ -608,6 +608,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
             if (count < 1) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] 0 representations, aborting\n"));
                 gf_free(base_init_url);
+		        gf_mx_v(mpdin->dl_mutex);
                 return GF_BAD_PARAM;
             }
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Resizing to %u max_cached elements instead of %u.\n", count, mpdin->max_cached));
@@ -616,7 +617,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         }
         e = gf_dm_sess_process(mpdin->seg_dnload);
         /* Mime-Type check */
-	strncpy(mime, gf_dm_sess_mime_type(mpdin->seg_dnload), sizeof(mime));
+		strncpy(mime, gf_dm_sess_mime_type(mpdin->seg_dnload), sizeof(mime));
         strlwr(mime);
         if (mime && mpdin->seg_ifce == NULL) {
             GF_Err e;
@@ -626,8 +627,10 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
             gf_free( rep->mime);
             rep->mime = gf_strdup( mime );
             e = MPD_LoadMediaService(mpdin, mime);
-            if (e != GF_OK)
+			if (e != GF_OK) {
+		        gf_mx_v(mpdin->dl_mutex);
                 return e;
+			}
         }
         if (!mime || (stricmp(mime, rep->mime))) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, rep->mime));
@@ -778,7 +781,6 @@ static u32 download_segments(void *par)
 			/*byte-range request from file are ignored*/
 	        if (seg->use_byterange) {
 				mpdin->is_dl_segments = 0;
-				gf_mx_v(mpdin->dl_mutex);
 				break;
 			}
 			resource_name = local_file_name = (char *) new_base_seg_url; 
@@ -795,12 +797,10 @@ static u32 download_segments(void *par)
 		}
 
 		if (e == GF_OK || mpdin->segment_must_be_streamed) {
-            //gf_mx_p(mpdin->dl_mutex);
             mpdin->cached[mpdin->nb_cached].cache = gf_strdup(local_file_name);
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( resource_name );
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache, mpdin->nb_cached+1, mpdin->max_cached));
             mpdin->nb_cached++;
-            //gf_mx_v(mpdin->dl_mutex);
             mpdin->download_segment_index++;
             if (mpdin->auto_switch_count) {
                 mpdin->nb_segs_done++;
