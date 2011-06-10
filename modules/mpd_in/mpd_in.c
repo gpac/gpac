@@ -1007,10 +1007,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     mpdin->cached = gf_malloc(sizeof(segment_cache_entry)*mpdin->max_cached);
     memset(mpdin->cached, 0, sizeof(segment_cache_entry)*mpdin->max_cached);
 
-    mpdin->mpdin->auto_switch_count = 0;
+    mpdin->auto_switch_count = 0;
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AutoSwitchCount");
     if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitchCount", "0");
-    if (opt) mpdin->mpdin->auto_switch_count = atoi(opt);
+    if (opt) mpdin->auto_switch_count = atoi(opt);
 
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
     if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
