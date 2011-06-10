@@ -200,10 +200,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(ext+1, "sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
 		else if (!stricmp(ext+1, "ovsbr")) import_flags |= GF_IMPORT_OVSBR;
-		else if (!stricmp(ext+1, "svc")) import_flags |= GF_IMPORT_SVC_EXPLICIT;
-		else if (!stricmp(ext+1, "nosvc")) import_flags |= GF_IMPORT_SVC_NONE;
 		else if (!stricmp(ext+1, "ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
 		else if (!stricmp(ext+1, "psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
+		else if (!stricmp(ext+1, "svc")) import_flags |= GF_IMPORT_SVC_EXPLICIT;
+		else if (!stricmp(ext+1, "nosvc")) import_flags |= GF_IMPORT_SVC_NONE;
+		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);

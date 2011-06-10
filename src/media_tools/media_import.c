@@ -3743,7 +3743,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
+	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples;
 	u32 ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
@@ -3761,6 +3761,8 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		import->tk_info[0].flags = GF_IMPORT_OVERRIDE_FPS | GF_IMPORT_FORCE_PACKED;
 		return GF_OK;
 	}
+
+	set_subsamples = (import->flags & GF_IMPORT_SET_SUBSAMPLES) ? 1 : 0;
 
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
@@ -4106,22 +4108,26 @@ restart_import:
 
 				samp->dataLength -= size_length/8 + prev_nalu_prefix_size;
 
-				/* determine the number of subsamples */
-				nb_subs = gf_isom_sample_has_subsamples(import->dest, track, cur_samp+1);
-				if (nb_subs) {
-					/* fetch size, priority, reserved and discardable info for last subsample */
-					gf_isom_sample_get_subsample(import->dest, track, cur_samp+1, nb_subs, &size, &priority, &reserved, &discardable); 
-				
-					/*remove last subsample entry!*/
-					gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0, 0);
+				if (set_subsamples) {
+					/* determine the number of subsamples */
+					nb_subs = gf_isom_sample_has_subsamples(import->dest, track, cur_samp+1);
+					if (nb_subs) {
+						/* fetch size, priority, reserved and discardable info for last subsample */
+						gf_isom_sample_get_subsample(import->dest, track, cur_samp+1, nb_subs, &size, &priority, &reserved, &discardable); 
+					
+						/*remove last subsample entry!*/
+						gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0, 0);
+					}
 				}
 
 				/*rewrite last NALU prefix at the beginning of next sample*/
 				sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				gf_bs_write_data(sample_data, samp->data + samp->dataLength, size_length/8 + prev_nalu_prefix_size);
-	
-				/*add subsample entry to next sample*/
-				gf_isom_add_subsample(import->dest, track, cur_samp+2, size_length/8 + prev_nalu_prefix_size, priority, reserved, discardable);
+
+				if (set_subsamples) {
+					/*add subsample entry to next sample*/
+					gf_isom_add_subsample(import->dest, track, cur_samp+2, size_length/8 + prev_nalu_prefix_size, priority, reserved, discardable);
+				}
 
 				prev_nalu_prefix_size = 0;
 			}
@@ -4195,14 +4201,16 @@ restart_import:
 				// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
 				prio = (63 - p[1] & 0x3F) << 2;
 				
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, prio, res, 1);
-				
+				if (set_subsamples) {
+					gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, prio, res, 1);
+				}
+
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
 					/* remember reserved and priority value */
 					res_prev_nalu_prefix = res;
 					priority_prev_nalu_prefix = prio;
 				}
-			} else {
+			} else if (set_subsamples) {
 				/* use the res and priority value of last prefix NALU */
 				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, priority_prev_nalu_prefix, res_prev_nalu_prefix, 0);
 			}
