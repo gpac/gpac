@@ -2326,7 +2326,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     case 400:
     case 501:
         /* Method not implemented ! */
-        if (sess->http_read_type != GET) {
+        if (sess->http_read_type == HEAD) {
             /* Since HEAD is not understood by this server, we use a GET instead */
             sess->http_read_type = GET;
             sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
@@ -2342,7 +2342,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             }
             return e;
         }
-        return GF_URL_ERROR;
+
+		gf_dm_sess_user_io(sess, &par);
+        e = GF_REMOTE_SERVICE_ERROR;
+        goto exit;
+
     case 503:
         /*retry without proxy*/
         if (sess->proxy_enabled==1) {
