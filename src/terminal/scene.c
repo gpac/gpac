@@ -260,7 +260,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	}
 #endif	
 
-	if (scene->graph_attached && (scene->root_od->term->root_scene == scene)) {
+	if (scene->root_od->term->root_scene == scene) {
 		gf_sc_set_scene(scene->root_od->term->compositor, NULL);
 	}
 	/*release the scene*/
