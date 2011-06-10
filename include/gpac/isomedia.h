@@ -1132,7 +1132,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName);
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
 
 /*closes current segment*/
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment);
 
 enum
 {
