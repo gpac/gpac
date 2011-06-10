@@ -765,12 +765,19 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
       /*relative URL*/
       if (!strstr(url, "://")) {
           u32 i;
-          info->protocol = "file:/";
-          if (baseURL){
+          info->protocol = "file://";
+          if (baseURL) {
             urlConcatenateWithBaseURL = gf_url_concatenate(baseURL, url);
+			/*relative file path*/
+			if (!strstr(baseURL, "://")) {
+				info->canonicalRepresentation = urlConcatenateWithBaseURL;
+				return GF_OK;
+			}
             proto_offset = gf_dm_parse_protocol(urlConcatenateWithBaseURL, info);
-          } else
+		  } else {
             proto_offset = -1;
+		  }
+
           if (proto_offset < 0){
             tmp = urlConcatenateWithBaseURL;
             assert( ! info->remotePath );

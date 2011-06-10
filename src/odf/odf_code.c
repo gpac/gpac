@@ -583,7 +583,8 @@ GF_Err gf_odf_write_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod)
 
 GF_Descriptor *gf_odf_new_od()
 {
-	GF_ObjectDescriptor *newDesc = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_ObjectDescriptor));
+	GF_ObjectDescriptor *newDesc;
+	GF_SAFEALLOC(newDesc, GF_ObjectDescriptor);
 	if (!newDesc) return NULL;
 
 	newDesc->URLString = NULL;
