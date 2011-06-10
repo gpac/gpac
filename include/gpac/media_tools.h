@@ -91,6 +91,10 @@ enum
 	/* oversampled SBR */
 	GF_IMPORT_OVSBR = 1<<14,
 
+	/* set subsample information with SVC*/
+	GF_IMPORT_SET_SUBSAMPLES = 1<<15,
+
+
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
 	/*only set when probing, signals several frames per sample possible*/
