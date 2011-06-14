@@ -12,6 +12,7 @@
 #include <gpac/modules/video_out.h>
 
 #include <gpac/iso639.h>
+#include "Options.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -1146,7 +1147,7 @@ void COptHTTP::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_HTTP_USE_PROXY, m_useProxy);
 	DDX_Control(pDX, IDC_SAX_DELAY, m_SAXDuration);
 	DDX_Control(pDX, IDC_SAX_PROGRESSIVE, m_Progressive);
-	DDX_Control(pDX, IDC_RESTART_CACHE, m_RestartFile);
+	DDX_Control(pDX, IDC_RESTART_CACHE, m_DisableCache);
 	DDX_Control(pDX, IDC_CLEAN_CACHE, m_CleanCache);
 	DDX_Control(pDX, IDC_BROWSE_CACHE, m_CacheDir);
 	//}}AFX_DATA_MAP
@@ -1159,6 +1160,7 @@ BEGIN_MESSAGE_MAP(COptHTTP, CDialog)
 	ON_BN_CLICKED(IDC_SAX_PROGRESSIVE, OnSaxProgressive)
 	ON_BN_CLICKED(IDC_HTTP_USE_PROXY, OnUseProxy)
 	//}}AFX_MSG_MAP
+	ON_BN_CLICKED(IDC_RESTART_CACHE, &COptHTTP::OnBnClickedRestartCache)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1208,8 +1210,8 @@ BOOL COptHTTP::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "CleanCache");
 	m_CleanCache.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "RestartFiles");
-	m_RestartFile.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "DisableCache");
+	m_DisableCache.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "SAXLoader", "Progressive");
 	m_Progressive.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -1264,7 +1266,7 @@ void COptHTTP::SaveOptions()
 	Osmo4 *gpac = GetApp();
 
 	gf_cfg_set_key(gpac->m_user.config, "Downloader", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Downloader", "RestartFiles", m_RestartFile.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Downloader", "DisableCache", m_DisableCache.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "Progressive", m_Progressive.GetCheck() ? "yes" : "no");
 
 	m_SAXDuration.GetWindowText(szCacheDir, MAX_PATH);
@@ -1979,4 +1981,9 @@ void COptLogs::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "General", "LogTools", str);
 	gpac->m_log_tools = flags;
 	gf_log_set_tools(gpac->m_log_tools);
+}
+
+void COptHTTP::OnBnClickedRestartCache()
+{
+	// TODO : ajoutez ici le code de votre gestionnaire de notification de contrôle
 }

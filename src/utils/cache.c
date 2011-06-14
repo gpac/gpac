@@ -153,7 +153,7 @@ struct __DownloadedCacheEntryStruct
 	GF_DownloadManager * dm;
 };
 
-Bool enum_cache_files(void *cbck, char *item_name, char *item_path) {
+Bool delete_cache_files(void *cbck, char *item_name, char *item_path) {
 	const char * startPattern;
 	int sz;
 	assert( cbck );
@@ -171,9 +171,8 @@ Bool enum_cache_files(void *cbck, char *item_name, char *item_path) {
 static const char * cache_file_prefix = "gpac_cache_";
 
 GF_Err gf_cache_delete_all_cached_files(const char * directory) {
-	gf_enum_dir_item item = &enum_cache_files;
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("Deleting cached files in %s...\n", directory));
-	return gf_enum_directory( directory, 0, item, (void*)cache_file_prefix, NULL);
+	return gf_enum_directory( directory, 0, delete_cache_files, (void*)cache_file_prefix, NULL);
 }
 
 void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry) {
