@@ -1871,13 +1871,14 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			trak->Media->information->dataHandler = NULL;
 		}
 		if (reset_tables) {
-			u32 type;
+			u32 type, dur;
 			u64 dts;
 			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 			trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
-			stbl_GetSampleDTS(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts);
-			trak->dts_at_seg_start += dts;
-
+			if (trak->sample_count_at_seg_start) {
+				stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
+				trak->dts_at_seg_start += dts + dur;
+			}
 #define RECREATE_BOX(_a, __cast)	\
 		if (_a) {	\
 			type = _a->type;\
@@ -1898,6 +1899,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		}
 	}
 
+	movie->first_moof_merged = 0;
 	gf_isom_datamap_del(movie->movieFileMap);
 	movie->movieFileMap = NULL;
 #endif
