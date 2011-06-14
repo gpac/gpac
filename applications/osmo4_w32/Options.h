@@ -215,7 +215,7 @@ public:
 	CButton	m_useProxy;
 	CEdit	m_SAXDuration;
 	CButton	m_Progressive;
-	CButton	m_RestartFile;
+	CButton	m_DisableCache;
 	CButton	m_CleanCache;
 	CButton	m_CacheDir;
 	//}}AFX_DATA
@@ -241,6 +241,8 @@ protected:
 	afx_msg void OnUseProxy();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedRestartCache();
 };
 
 

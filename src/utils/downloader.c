@@ -131,6 +131,7 @@ struct __gf_download_session
     Bool server_only_understand_get;
     /* True if cache file must be stored on disk */
     Bool use_cache_file;
+	Bool disable_cache;
 
 #ifdef GPAC_HAS_SSL
     SSL *ssl;
@@ -158,6 +159,7 @@ struct __gf_download_manager
 	u32 head_timeout;
     GF_Config *cfg;
     GF_List *sessions;
+	Bool disable_cache;
 
     GF_List *skip_proxy_servers;
     GF_List *credentials;
@@ -514,7 +516,7 @@ s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadS
 void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
     DownloadedCacheEntry entry;
-    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags&GF_NETIO_SESSION_NOT_CACHED?"no":"yes" ));
+    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags & GF_NETIO_SESSION_NOT_CACHED ? "no" : "yes" ));
     gf_dm_remove_cache_entry_from_session(sess);
     entry = gf_dm_find_cached_entry_by_url(sess);
     if (!entry) {
@@ -963,6 +965,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
     sess->usr_cbk = usr_cbk;
     sess->creds = NULL;
     sess->dm = dm;
+	sess->disable_cache = dm->disable_cache;
     assert( dm );
 
     *e = gf_dm_setup_from_url(sess, url);
@@ -1366,7 +1369,14 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
         sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);
     } else {
         dm->cache_directory = gf_strdup(opt);
+
     }
+
+	if (cfg) {
+		opt = gf_cfg_get_key(cfg, "Downloader", "DisableCache");
+		if (!opt) gf_cfg_set_key(cfg, "Downloader", "DisableCache", "no");
+		if (opt && !strcmp(opt, "yes")) dm->disable_cache = 1;
+	}
 
 	dm->head_timeout = 5000;
 	if (cfg) {
@@ -1788,7 +1798,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
         strcat(sHTTP, user_agent);
         strcat(sHTTP, "\r\n");
     }
-	if (!has_mime && (sess->http_read_type!=OTHER)) strcat(sHTTP, "Content-Type: application/octet-stream\r\n");
+	/*no mime and POST/PUT, default to octet stream*/
+	if (!has_mime && (sess->http_read_type==OTHER)) strcat(sHTTP, "Content-Type: application/octet-stream\r\n");
     if (!has_accept && (sess->http_read_type!=OTHER) ) strcat(sHTTP, "Accept: */*\r\n");
     if (sess->proxy_enabled==1) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
     else if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
@@ -1867,7 +1878,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		strcat(sHTTP, "Icy-Metadata: 1\r\n");
 
 		/*cached headers are not appended in POST*/
-		if (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) {
+		if (!sess->disable_cache && (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) ) {
 	        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Cache Entry : %p, FAILED to append cache directives.", sess->cache_entry));
 		}
 	}
