@@ -2041,6 +2041,7 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 			pes->data = NULL;
 			pes->data_len = 0;
 			pes->PTS = pes->DTS = 0;
+			pes->pes_len = pes->pes_end_packet_number = pes->pes_start_packet_number = 0;
 		}
 //		gf_free(es);
 //		ts->ess[i] = NULL;
