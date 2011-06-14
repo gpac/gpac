@@ -1098,7 +1098,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		if (ifce) {
 			if (ifce->CanHandleStream) {
 				u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
-				if (conf>=dec_confidence) {
+				if ((conf!=GF_CODEC_NOT_SUPPORTED) && (conf>=dec_confidence)) {
 					/*switch*/
 					if (dec_ifce) gf_modules_close_interface((GF_BaseInterface *) dec_ifce);
 					dec_confidence = conf;
@@ -1122,7 +1122,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		if (ifce->CanHandleStream) {
 			u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);			
 
-			if (conf >=dec_confidence) {
+			if ((conf!=GF_CODEC_NOT_SUPPORTED) && (conf>=dec_confidence)) {
 				/*switch*/
 				if (dec_ifce) gf_modules_close_interface((GF_BaseInterface *) dec_ifce);
 				dec_confidence = conf;
