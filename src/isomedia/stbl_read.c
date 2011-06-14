@@ -167,7 +167,7 @@ GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, u32 *C
 }
 
 //Get the DTS of a sample
-GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
+GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS, u32 *duration)
 {
 	u32 i, j, count;
 	GF_SttsEntry *ent;
@@ -212,15 +212,17 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 
 found:
 	(*DTS) = stts->r_CurrentDTS + j * (u64) ent->sampleDelta;
-
+	if (duration) *duration = ent->sampleDelta;
 	if (stts->r_FirstSampleInEntry == 1)
 		stts->r_FirstSampleInEntry = 1;
 
-	
-	
 	return GF_OK;
 }
 
+GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
+{
+	return stbl_GetSampleDTS_and_Duration(stts, SampleNumber, DTS, NULL);
+}
 //Set the RAP flag of a sample
 GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {

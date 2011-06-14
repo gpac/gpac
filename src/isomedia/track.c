@@ -387,7 +387,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
 
-	if (is_first_merge && traf->tfdt) {
+	/*in playback mode*/
+	if (traf->tfdt && is_first_merge) {
+#ifndef GPAC_DISABLE_LOG
+		if (trak->sample_count_at_seg_start && (trak->dts_at_seg_start != traf->tfdt->baseMediaDecodeTime)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: TFDT timing "LLD" different from track cumulated timing "LLD" - using tfdt\n", traf->tfdt->baseMediaDecodeTime, trak->dts_at_seg_start ));
+		}
+#endif
 		trak->dts_at_seg_start = traf->tfdt->baseMediaDecodeTime;
 	}
 

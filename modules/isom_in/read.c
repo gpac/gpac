@@ -643,7 +643,7 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 	if (!ch->sample) {
 		/*get sample*/
 		isor_reader_get_sample(ch);
-		*is_new_data = 1;
+		*is_new_data = ch->sample ? 1 : 0;
 	}
 
 	if (ch->sample) {
