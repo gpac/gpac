@@ -234,13 +234,13 @@ void PrintGeneralUsage()
 			"						using the interleaver (-inter) switch.\n"
 			"                       Note: You can specify -rap switch to split segments at RAP boundaries\n"
 			" -frags-per-sidx N    sets the number of segments to be written in each SIDX box\n"
-			"                       If 0, SIDX box is not used\n"
+			"                       If 0, a single SIDX box is used per segment\n"
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s\n"
 			" -url-template        uses UrlTemplate instead of explicit sources in segments.\n"
 			"                       Ignored if segments are stored in the output file.\n"
-			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx<=1.\n"
+			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
 			" -dash-ctx FILE       Stores/restore DASH timing from FILE.\n"
 			"\n");
 }
