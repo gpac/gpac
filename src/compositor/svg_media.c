@@ -283,8 +283,8 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			svg_audio_smil_evaluate_ex(NULL, 0, SMIL_TIMING_EVAL_REMOVE, stack->audio, stack->txh.owner);
 			gf_node_unregister(stack->audio, NULL);
 			stack->audio = NULL;
-			stack->audio_dirty = 1;
 		}
+		stack->audio_dirty = 1;
 
 		if (stack->txurl.count) svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
@@ -470,17 +470,19 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		}
 	}
 
-	if (!stack->audio && (gf_mo_has_audio(stack->txh.stream) || stack->audio_dirty)) {
-		GF_FieldInfo att_vid, att_aud;
-		stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
-		gf_node_register(stack->audio, NULL);
-		if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
-			gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
-			gf_svg_attributes_copy(&att_aud, &att_vid, 0);
-		}
-		/*BYPASS SMIL TIMING MODULE!!*/
-		compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
+	if (!stack->audio && stack->audio_dirty) {
 		stack->audio_dirty = 0;
+		if (gf_mo_has_audio(stack->txh.stream)) {
+			GF_FieldInfo att_vid, att_aud;
+			stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
+			gf_node_register(stack->audio, NULL);
+			if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
+				gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
+				gf_svg_attributes_copy(&att_aud, &att_vid, 0);
+			}
+			/*BYPASS SMIL TIMING MODULE!!*/
+			compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
+		}
 	}
 	
 	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
