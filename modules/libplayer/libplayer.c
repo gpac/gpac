@@ -43,13 +43,17 @@ typedef s32 off_t;
 #include "player.h"
 
 
-#endif
-static int libplayer_id = 0;
 video_rect_t in, out;
+
+#endif
+
+static int libplayer_id = 0;
+
 typedef struct
 {
 	/*the service we're responsible for*/
 	GF_ClientService *service;
+	u32 init;
 	u32 state;
 	u32 player_id;
 	u32 width;
@@ -148,9 +152,9 @@ static int on_libplayer_event(player_event_t e, void *data)
 
 GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-	unsigned long prop;
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
 #ifndef TEST_LIBPLAYER
+	unsigned long prop;
 	mrl_t *mrl = NULL;
 #endif
 	printf("[LibPlayerIN]connecting\n");
@@ -158,11 +162,12 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 
 	if (!strnicmp(url, "libplayer://", 12)) url+=12;
   
-#ifndef TEST_LIBPLAYER
-	if (!read->player) {
+	if (!read->init) {
+		read->init=1;
 		/* libplayer init */
 		read->url = url;
 		read->player_id = libplayer_id;
+#ifndef TEST_LIBPLAYER
 		read->player = player_init(PLAYER_TYPE_DUMMY, PLAYER_AO_AUTO, PLAYER_VO_AUTO, PLAYER_MSG_INFO, read->player_id, on_libplayer_event);
 		//~ read->width = 0;
 		//~ read->height = 0;
@@ -172,12 +177,14 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 			gf_term_on_connect(serv, NULL, GF_REMOTE_SERVICE_ERROR);
 			return GF_OK;
 		}
+#endif
 		libplayer_id++;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Opening URL %s for Player instance %d\n", url, read->player_id));
 		//~ player_local_location_set(read->player, url);
 		
 	}
 	
+#ifndef TEST_LIBPLAYER
 	mrl = NULL;
 	if (!strnicmp(url, "dvb://", 6)) {
 	}
@@ -199,7 +206,6 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
 	}
-
     player_mrl_set(read->player, mrl);
 
 #endif
@@ -235,8 +241,8 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 GF_Err LIBPLAYER_CloseService(GF_InputService *plug)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
+	if(libplayer_id >= 0){
 #ifndef TEST_LIBPLAYER
-	 if(libplayer_id >= 0){
 		printf("in do loop\n");
 		printf("[LibPlayerIN]read->url: %s\n", read->url);
 		player_playback_stop(read->player);
@@ -245,10 +251,10 @@ GF_Err LIBPLAYER_CloseService(GF_InputService *plug)
 		printf("[LibPlayerIN]player_uninit\n");
 		read->player = NULL;
 		libplayer_id--;
-	
-	
+
+
 #endif
-	read->state = 0;
+		read->state = 0;
 	}
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIn] Closing libplayer instance %d\n", read->player_id));
@@ -267,6 +273,8 @@ GF_Err LIBPLAYER_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] ServiceCommand for instance %d, read->state=%d\n", read->player_id, read->state));
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
+
+	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) return GF_NOT_SUPPORTED;
 
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PULL: return GF_NOT_SUPPORTED;
@@ -343,12 +351,11 @@ static GF_Err LIBPLAYER_AttachStream(GF_BaseDecoder *dec, GF_ESD *esd)
 
 	if (dec->privateStack) return GF_BAD_PARAM;
 	if (!esd->decoderConfig->decoderSpecificInfo) return GF_BAD_PARAM;
-#ifndef TEST_LIBPLAYER
 	if (!esd->decoderConfig->decoderSpecificInfo->data) return GF_BAD_PARAM;
-	read = esd->decoderConfig->decoderSpecificInfo->data;
+	read = (LibPlayerIn *) esd->decoderConfig->decoderSpecificInfo->data;
 	if (esd->ESID!=1+read->player_id) return GF_BAD_PARAM;
 	dec->privateStack = read;
-#endif
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] AttachStream for instance %d\n", read->player_id));
 	esd->decoderConfig->decoderSpecificInfo->data = NULL;
 	return GF_OK;
