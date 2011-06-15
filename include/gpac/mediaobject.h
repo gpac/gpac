@@ -125,7 +125,8 @@ Bool gf_mo_has_audio(GF_MediaObject *mo);
 /*checks if the service associated withthis object has an audio stream*/
 Bool gf_mo_is_private_media(GF_MediaObject *mo);
 
-void gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst);
+/*set destination window for harware codecs directly outputing to video out - returns 1 if video size has changed*/
+Bool gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst);
 
 enum
 {
