@@ -108,7 +108,8 @@ void isor_declare_objects(ISOMReader *read)
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			od->objectDescriptorID = esd->ESID;
+			od->service_ifce = read->input;
+			od->objectDescriptorID = 0;
 			if (!ocr_es_id) ocr_es_id = esd->ESID;
 			esd->OCRESID = ocr_es_id;
 			gf_list_add(od->ESDescriptors, esd);
@@ -134,6 +135,7 @@ void isor_declare_objects(ISOMReader *read)
 				fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
 				fclose(t);
 				od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+				od->service_ifce = read->input;
 				od->objectDescriptorID = 1050;
 				od->URLString = gf_strdup(szName);
 				gf_term_add_media(read->service, (GF_Descriptor*)od, 1);

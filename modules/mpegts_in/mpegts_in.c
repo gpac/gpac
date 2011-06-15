@@ -219,10 +219,11 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
-	od->objectDescriptorID = esd->ESID;
+	od->objectDescriptorID = 0;
 	if (streamType) *streamType = esd->decoderConfig->streamType;
 	/*remember program number for service/program selection*/
 	od->ServiceID = stream->program->number;
+	od->service_ifce = m2ts->owner;
 	return od;
 }
 
@@ -344,7 +345,8 @@ static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
-	od->objectDescriptorID = GF_M2TS_PID_EIT_ST_CIT;
+	od->objectDescriptorID = 0;
+	od->service_ifce = m2ts->owner;
 	return od;
 }
 
