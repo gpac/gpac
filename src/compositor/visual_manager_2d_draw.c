@@ -373,7 +373,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 //		raster->surface_set_path(visual->raster_surface, NULL);
 
 		if (compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL)) {
-			if (gf_mo_set_position(txh->stream, &src, &dst)) {
+			if (txh->stream && gf_mo_set_position(txh->stream, &src, &dst)) {
 				gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat);
 			}
 		}
