@@ -304,6 +304,17 @@ extern "C" {
      *\return the mime type of the URL, or NULL if error. You should get the error with \ref gf_dm_sess_last_error
      */
     const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
+
+    /*!
+     *\brief sets session range
+     *
+     *Sets the session byte range. This shll be called before processing the session.
+     *\param sess the download session
+     *\param start_range HTTP download start range in byte 
+     *\param end_range HTTP download end range in byte 
+     *\note this can only be used when the session is not threaded
+     */
+	GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range);
     /*!
      *\brief get cache file name
      *

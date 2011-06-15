@@ -117,7 +117,7 @@ struct __gf_download_session
 
     /* Range information if needed for the download (cf flag) */
     Bool needs_range;
-    u32 range_start, range_end;
+    u64 range_start, range_end;
 
     /*0: GET
       1: HEAD
@@ -448,10 +448,12 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
         assert(e);
         url = gf_cache_get_url(e);
         assert( url );
-        if (!strcmp(url, sess->orig_url)) {
-            gf_mx_v( sess->dm->cache_mx );
-            return e;
-        }
+        if (strcmp(url, sess->orig_url)) continue;
+		if (sess->range_start != gf_cache_get_start_range(e)) continue;
+		if (sess->range_end != gf_cache_get_end_range(e)) continue;
+		/*OK that's ours*/
+		gf_mx_v( sess->dm->cache_mx );
+		return e;
     }
     gf_mx_v( sess->dm->cache_mx );
     return NULL;
@@ -463,7 +465,7 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
  * \param url The full URL
  * \return The DownloadedCacheEntry
  */
-DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url);
+DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range);
 
 /*!
  * Removes a session for a DownloadedCacheEntry
@@ -520,7 +522,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     gf_dm_remove_cache_entry_from_session(sess);
     entry = gf_dm_find_cached_entry_by_url(sess);
     if (!entry) {
-        entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url);
+		entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end);
         gf_mx_p( sess->dm->cache_mx );
         gf_list_add(sess->dm->cache_entries, entry);
         gf_mx_v( sess->dm->cache_mx );
@@ -1143,6 +1145,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
     sess->status = GF_NETIO_CONNECTED;
     gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
     gf_sk_set_buffer_size(sess->sock, 0, GF_DOWNLOAD_BUFFER_SIZE);
+	/*this should be done when building HTTP GET request in case we have range directives*/
     gf_dm_configure_cache(sess);
 
 #ifdef GPAC_HAS_SSL
@@ -1259,7 +1262,16 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
     return gf_cache_get_mime_type( sess->cache_entry );
 }
 
-
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range)
+{
+	if (!sess) return GF_BAD_PARAM;
+	if (sess->cache_entry) return GF_BAD_PARAM;
+	if (sess->status != GF_NETIO_SETUP) return GF_BAD_PARAM;
+	sess->range_start = start_range;
+	sess->range_end = end_range;
+    sess->needs_range = 1;
+	return GF_OK;
+}
 
 GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 {
@@ -1804,8 +1816,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
     if (sess->proxy_enabled==1) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
     else if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
     if (!has_range && sess->needs_range) {
-        if (!sess->range_end) sprintf(range_buf, "Range: bytes=%d-\r\n", sess->range_start);
-        else sprintf(range_buf, "Range: bytes=%d-%d\r\n", sess->range_start, sess->range_end);
+        if (!sess->range_end) sprintf(range_buf, "Range: bytes="LLD"-\r\n", sess->range_start);
+        else sprintf(range_buf, "Range: bytes="LLD"-"LLD"\r\n", sess->range_start, sess->range_end);
         /* FIXME : cache should not be used here */
         strcat(sHTTP, range_buf);
     }

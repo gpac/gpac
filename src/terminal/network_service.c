@@ -256,13 +256,15 @@ static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
 	if (!esd1) return 0;
 	esd2 = gf_list_get(od2->ESDescriptors, 0);
 	if (!esd2) return 0;
-	if (esd1->ESID==esd2->ESID) return 1;
-	return 0;
+	if (esd1->ESID!=esd2->ESID) return 0;
+	if (esd1->decoderConfig->streamType != esd2->decoderConfig->streamType) return 0;
+	if (esd1->decoderConfig->objectTypeIndication != esd2->decoderConfig->objectTypeIndication ) return 0;
+	return 1;
 }
 
 static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
-	u32 i;
+	u32 i, min_od_id;
 	GF_MediaObject *the_mo;
 	GF_Scene *scene;
 	GF_ObjectManager *odm, *root;
@@ -301,12 +303,17 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
 	odm = NULL;
+	min_od_id = 0;
 	for (i=0; i<gf_list_count(scene->scene_objects); i++) {
 		char *frag, *ext;
 		GF_ESD *esd;
 		char *url;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 		if (!mo->odm) continue;
+
+		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID)) 
+			min_od_id = mo->OD_ID;
+
 		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service,
 		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
 		keep track of declared objects*/
@@ -377,7 +384,6 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		odm = mo->odm;
 		break;
 	}
-
 	if (!odm) {
 		odm = gf_odm_new();
 		odm->term = term;
@@ -386,8 +392,12 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 	odm->OD = od;
 	odm->mo = the_mo;
-	if (the_mo) the_mo->OD_ID = od->objectDescriptorID;
 	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
+	if (!od->objectDescriptorID) {
+		od->objectDescriptorID = min_od_id + 1;
+	}
+
+	if (the_mo) the_mo->OD_ID = od->objectDescriptorID;
 	gf_term_lock_net(term, 0);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));

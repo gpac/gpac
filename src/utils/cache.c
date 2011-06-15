@@ -44,6 +44,8 @@ static const char * CACHE_SECTION_NAME = "cache";
 
 static const char * CACHE_SECTION_NAME_URL = "url";
 
+static const char * CACHE_SECTION_NAME_RANGE = "range";
+
 static const char * CACHE_SECTION_NAME_ETAG = "ETag";
 
 static const char * CACHE_SECTION_NAME_MIME_TYPE = "Content-Type";
@@ -151,6 +153,10 @@ struct __DownloadedCacheEntryStruct
 	Bool deletableFilesOnDelete;
 
 	GF_DownloadManager * dm;
+
+	/*start and end range of the cache*/
+	u64 range_start, range_end;
+
 };
 
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path) {
@@ -241,6 +247,16 @@ Bool gf_cache_is_cached_on_disk(const DownloadedCacheEntry entry ) {
 	return entry->flags & NO_CACHE;
 }
 
+u64 gf_cache_get_start_range( const DownloadedCacheEntry entry )
+{
+	return entry ? entry->range_start : 0;
+}
+
+u64 gf_cache_get_end_range( const DownloadedCacheEntry entry )
+{
+	return entry ? entry->range_end : 0;
+}
+
 const char * gf_cache_get_url ( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->url : NULL;
@@ -285,11 +301,16 @@ GF_Err gf_cache_set_last_modified_on_disk ( const DownloadedCacheEntry entry, co
 
 GF_Err gf_cache_flush_disk_cache ( const DownloadedCacheEntry entry )
 {
+	char buff[100];
 	CHECK_ENTRY;
 	if ( !entry->properties)
 		return GF_OK;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_flush_disk_cache:%d for entry=%p\n", __LINE__, entry));
 	gf_cfg_set_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_URL, entry->url);
+
+	sprintf(buff, LLD"-"LLD, entry->range_start, entry->range_end);
+	gf_cfg_set_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_RANGE, buff);
+
 	if (entry->mimeType)
 		gf_cfg_set_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_MIME_TYPE, entry->mimeType);
 	if (entry->diskETag)
@@ -297,7 +318,6 @@ GF_Err gf_cache_flush_disk_cache ( const DownloadedCacheEntry entry )
 	if (entry->diskLastModified)
 		gf_cfg_set_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_LAST_MODIFIED, entry->diskLastModified);
 	{
-		char buff[16];
 		snprintf(buff, 16, "%d", entry->contentLength);
 		gf_cfg_set_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE, buff);
 	}
@@ -343,7 +363,7 @@ static const char * default_cache_file_suffix = ".dat";
 
 static const char * cache_file_info_suffix = ".txt";
 
-DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url )
+DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url , u64 start_range, u64 end_range)
 {
 	char tmp[_CACHE_TMP_SIZE];
 	u8 hash[_CACHE_HASH_SIZE];
@@ -364,7 +384,11 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	}
 	tmp[0] = '\0';
 	/*generate hash of the full url*/
-	strcpy ( tmp, url );
+	if (start_range && end_range) {
+		sprintf(tmp, "%s_"LLD"-"LLD, url, start_range, end_range );
+	} else {
+		strcpy ( tmp, url );
+	}
 	gf_sha1_csum ( tmp, strlen ( tmp ), hash );
 	tmp[0] = 0;
 	{
@@ -379,18 +403,18 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	}
 	assert ( strlen ( tmp ) == (_CACHE_HASH_SIZE * 2) );
 
-	entry = gf_malloc ( sizeof ( struct __DownloadedCacheEntryStruct ) );
+	GF_SAFEALLOC(entry, struct __DownloadedCacheEntryStruct);
+
 	if ( !entry ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_cache_create_entry:%d : OUT of memory !\n", __LINE__));
 		return NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 		("[CACHE] gf_cache_create_entry:%d, entry=%p\n", __LINE__, entry));
-	entry->properties = NULL;
-	entry->writeFilePtr = NULL;
+
 	entry->url = gf_strdup ( url );
 	entry->hash = gf_strdup ( tmp );
-	entry->mimeType = NULL;
+
 	/* Sizeof cache directory + hash + possible extension */
 	entry->cache_filename = gf_malloc ( strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1);
 
@@ -403,6 +427,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	entry->diskLastModified = NULL;
 	entry->serverLastModified = NULL;
 	entry->dm = dm;
+	entry->range_start = start_range;
+	entry->range_end = end_range;
+
 	{
 		char name[1024];
 		snprintf(name, 1024, "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
@@ -469,6 +496,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 		const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_URL );
 		if ( keyValue == NULL || stricmp ( url, keyValue ) )
 			entry->flags |= CORRUPTED;
+
+		keyValue = gf_cfg_get_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_RANGE);
+		if (keyValue) sscanf(keyValue, LLD"-"LLD, &entry->range_start, &entry->range_end);
 	}
 	gf_cache_check_if_cache_file_is_corrupted(entry);
 

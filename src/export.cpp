@@ -291,6 +291,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_is_thread_dead) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_abort) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_range) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_can_be_cached_on_disk) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
