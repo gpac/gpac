@@ -359,22 +359,13 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
 		GF_Window src, dst;
 
-
-		/*no aa*/
-//		visual_2d_set_options(visual->compositor, visual->raster_surface, 0, 1);
-
-		/*set matrix*/
-//		raster->surface_set_matrix(visual->raster_surface, &ctx->transform);
-
-		/*push path*/
-//		raster->surface_set_path(visual->raster_surface, ctx->drawable->path);
-		/*using NULL will clear the clip rect with color 0x00000000*/
 		visual_2d_fill_path(visual, ctx, NULL, tr_state);
-//		raster->surface_set_path(visual->raster_surface, NULL);
 
 		if (compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL)) {
 			if (txh->stream && gf_mo_set_position(txh->stream, &src, &dst)) {
 				gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat);
+				/*force dirty flag to get called again*/
+				gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 0);
 			}
 		}
 
