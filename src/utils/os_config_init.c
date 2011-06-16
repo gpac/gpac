@@ -289,6 +289,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		/*look in gpac compilation tree (modules are output in the same folder as apps) */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			/*on OSX check modules subdirectory */
+			strcat(app_path, "/modules");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 		}
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
@@ -347,7 +350,7 @@ static GF_Config *create_default_config(char *file_path)
 
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
 		gf_delete_file(szPath);
-fprintf(stdout, " default modules not found\n", szPath);
+		fprintf(stdout, "default modules not found\n");
 		return NULL;
 	}
 
