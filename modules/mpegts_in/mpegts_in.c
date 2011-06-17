@@ -506,6 +506,18 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
 
+		if ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) {
+#if 0
+			if (ts->pcr_last) {
+				ts->pcr_last = ((GF_M2TS_PES_PCK *) param)->PTS;
+				ts->stb_at_last_pcr = gf_sys_clock();
+			}
+#endif
+			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities 
+			seen in many HLS solutions*/
+			return;
+		}
+
 		if (ts->file_regulate) {
 			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
 			u32 stb = gf_sys_clock();
@@ -517,7 +529,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				if (diff<0) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, ts->pcr_last));
 				} else if (diff>0) {
-					u32 sleep_for=50;
+					u32 sleep_for=1;
 #ifndef GPAC_DISABLE_LOG
 					u32 nb_sleep=0;
 #endif
