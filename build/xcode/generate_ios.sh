@@ -7,6 +7,7 @@ version=`grep '#define GPAC_VERSION ' ../../include/gpac/tools.h | cut -d '"' -f
 rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 if [ "$rev" != "" ]
 then
+	svn revert ../../applications/osmo4_ios/osmo4ios-Info.plist
 	sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist > ../../applications/osmo4_ios/osmo4ios-Info.plist.new
 	sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist.new > ../../applications/osmo4_ios/osmo4ios-Info.plist
 	rm ../../applications/osmo4_ios/osmo4ios-Info.plist.new
@@ -57,8 +58,9 @@ cd bin/iOS
 mkdir osmo4ios.app/gui
 mkdir osmo4ios.app/gui/icons
 mkdir osmo4ios.app/gui/extensions
-cp ../../gui/gui.bt osmo4ios.app/gui/
-cp ../../gui/gui.js osmo4ios.app/gui/
+cp ../../applications/osmo4_ios/Resources/icon.png osmo4ios.app/
+cp ../../gui/gui*.bt osmo4ios.app/gui/
+cp ../../gui/gui*.js osmo4ios.app/gui/
 cp ../../gui/gwlib.js osmo4ios.app/gui/
 cp ../../gui/mpegu-core.js osmo4ios.app/gui/
 cp -r ../../gui/icons osmo4ios.app/gui/
