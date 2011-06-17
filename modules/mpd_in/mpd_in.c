@@ -79,7 +79,7 @@ typedef struct __mpd_group
     Bool segment_must_be_streamed;
 
 	/* Service really managing the segments */
-    GF_InputService *seg_ifce;
+    GF_InputService *service;
     Bool service_connected;
 } GF_MPD_Group;
 
@@ -430,7 +430,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 		for (i=0; i<gf_list_count(mpdin->groups); i++) {
 			group = gf_list_get(mpdin->groups, i);
-			if (group->selected && (group->seg_ifce == ifce)) break;
+			if (group->selected && (group->service == ifce)) break;
 			group = NULL;
 		}
 		
@@ -497,10 +497,10 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, GF_MPD_Group *group, const 
     if (sPlug) sPlug = strrchr(sPlug, '"');
     if (sPlug) {
         sPlug += 2;
-        group->seg_ifce = (GF_InputService *) gf_modules_load_interface_by_name(mpdin->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-        if (group->seg_ifce) {
-            group->seg_ifce->proxy_udta = mpdin;
-            group->seg_ifce->query_proxy = MPD_ClientQuery;
+        group->service = (GF_InputService *) gf_modules_load_interface_by_name(mpdin->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+        if (group->service) {
+            group->service->proxy_udta = mpdin;
+            group->service->query_proxy = MPD_ClientQuery;
         } else {
             goto exit;
         }
@@ -676,7 +676,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         /* Mime-Type check */
 		strncpy(mime, gf_dm_sess_mime_type(group->segment_dnload), sizeof(mime));
         strlwr(mime);
-        if (mime && group->seg_ifce == NULL) {
+        if (mime && group->service == NULL) {
             GF_Err e;
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Searching a decoder for mime type : %s...\n", mime));
             gf_free( mpdin->mimeTypeForM3U8Segments);
@@ -768,7 +768,7 @@ static u32 download_segments(void *par)
 	for (i=0; i<group_count; i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service... %s\n", group->segment_local_url));
-		group->seg_ifce->ConnectService(group->seg_ifce, mpdin->service, group->segment_local_url);
+		group->service->ConnectService(group->service, mpdin->service, group->segment_local_url);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service DONE\n", group->segment_local_url));
 	}
 
@@ -988,11 +988,21 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 GF_InputService *MPD_GetInputServiceForChannel(GF_MPD_In *mpdin, LPNETCHANNEL channel)
 {
 	GF_Channel *ch;
-	if (mpdin->group_zero_selected) return mpdin->group_zero_selected->seg_ifce;
+	if (mpdin->group_zero_selected) return mpdin->group_zero_selected->service;
 	ch = (GF_Channel *) channel;
 	assert(ch && ch->odm && ch->odm->OD);
 
 	return (GF_InputService *) ch->odm->OD->service_ifce;
+}
+
+GF_MPD_Group *MPD_GetGroupForInputService(GF_MPD_In *mpdin, GF_InputService *ifce)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(mpdin->groups); i++) {
+		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
+		if (group->service==ifce) return group;
+	}
+	return NULL;
 }
 
 GF_Err MPD_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -1208,7 +1218,7 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 			goto exit;
 		}
 
-		group->seg_ifce = NULL;
+		group->service = NULL;
 		if (strcmp(M3U8_UNKOWN_MIME_TYPE, rep_sel->mime)) {
 			e = MPD_LoadMediaService(mpdin, group, rep_sel->mime);
 			if (e != GF_OK)
@@ -1361,8 +1371,8 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Description request from terminal for %s\n", sub_url));
 	if (mpdin->group_zero_selected) {
-		if (mpdin->group_zero_selected->seg_ifce) {
-	        return mpdin->group_zero_selected->seg_ifce->GetServiceDescriptor(mpdin->group_zero_selected->seg_ifce, expect_type, sub_url);
+		if (mpdin->group_zero_selected->service) {
+	        return mpdin->group_zero_selected->service->GetServiceDescriptor(mpdin->group_zero_selected->service, expect_type, sub_url);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot provide service description: no segment service hanlder created\n"));
 			return NULL;
@@ -1374,7 +1384,7 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 			if (!group->selected) continue;
 			if (group->service_connected) continue;
 			group->service_connected = 1;
-	        return group->seg_ifce->GetServiceDescriptor(group->seg_ifce, expect_type, sub_url);
+	        return group->service->GetServiceDescriptor(group->service, expect_type, sub_url);
 		}
 		return NULL;
 	}
@@ -1404,10 +1414,10 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 	for (i=0; i<gf_list_count(mpdin->groups); i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 	
-		if (group->seg_ifce && group->service_connected) {
-			group->seg_ifce->CloseService(group->seg_ifce);
+		if (group->service && group->service_connected) {
+			group->service->CloseService(group->service);
 			group->service_connected = 0;
-			group->seg_ifce = NULL;
+			group->service = NULL;
 		}
 	}
     MPD_Stop(mpdin);
@@ -1422,9 +1432,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     GF_Err e;
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	GF_InputService *segment_ifce = NULL;
+	GF_MPD_Group *group = NULL;
     if (!plug || !plug->priv || !com ) return GF_SERVICE_ERROR;
 
-	if (mpdin->group_zero_selected) segment_ifce = mpdin->group_zero_selected->seg_ifce;
+	if (mpdin->group_zero_selected) segment_ifce = mpdin->group_zero_selected->service;
 
 	switch (com->command_type) {
     case GF_NET_SERVICE_INFO:
@@ -1460,6 +1471,8 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	
 	segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
 	if (!segment_ifce) return GF_NOT_SUPPORTED;
+	group = MPD_GetGroupForInputService(mpdin, segment_ifce);
+
 
 	switch (com->command_type) {
     case GF_NET_CHAN_SET_PADDING:
@@ -1502,10 +1515,12 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         mpdin->playback_speed = com->play.speed;
         mpdin->playback_start_range = com->play.start_range;
         mpdin->playback_end_range = com->play.end_range;
+		group->is_over = 0;
         return segment_ifce->ServiceCommand(segment_ifce, com);
 
 	case GF_NET_CHAN_STOP:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Stop command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+		group->is_over = 1;
         return segment_ifce->ServiceCommand(segment_ifce, com);
     case GF_NET_CHAN_PAUSE:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Pause command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
