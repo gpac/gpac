@@ -51,7 +51,9 @@
 //#define GPAC_BIG_ENDIAN
 
 /*SSL enabled*/
-//#define GPAC_HAS_SSL
+#ifdef WIN32
+#define GPAC_HAS_SSL
+#endif
 
 /*spidermonkey enabled*/
 #define GPAC_HAS_SPIDERMONKEY
