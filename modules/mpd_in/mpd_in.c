@@ -708,6 +708,8 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         group->cached[0].cache = gf_strdup(base_init_url);
         group->cached[0].url = gf_strdup(base_init_url);
         group->nb_cached = 1;
+		/*do not erase local files*/
+		group->local_files = 1;
         group->download_segment_index = firstSegment;
         group->segment_local_url = group->cached[0].cache;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Setup initialization segment %s \n", group->segment_local_url));
@@ -914,6 +916,10 @@ static u32 download_segments(void *par)
 			if (group->done) continue;
 
 
+			if (group->nb_cached>=group->max_cached) {
+				continue;
+			}
+
 			rep = gf_list_get(period->representations, group->active_rep_index);
 
 			/* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
@@ -1015,6 +1021,8 @@ static u32 download_segments(void *par)
 			}
 
 			if (e == GF_OK || group->segment_must_be_streamed) {
+				gf_mx_p(mpdin->dl_mutex);
+				assert(group->nb_cached<group->max_cached);
 				group->cached[group->nb_cached].cache = gf_strdup(local_file_name);
 				group->cached[group->nb_cached].url = gf_strdup( resource_name );
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[group->nb_cached].url, group->cached[group->nb_cached].cache, group->nb_cached+1, group->max_cached));
@@ -1033,6 +1041,7 @@ static u32 download_segments(void *par)
 						group->active_bitrate = rep->bandwidth;
 					}
 				}
+				gf_mx_v(mpdin->dl_mutex);
 			}
 			gf_free(new_base_seg_url);
 			new_base_seg_url = NULL;
