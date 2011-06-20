@@ -572,6 +572,8 @@ struct tag_m2ts_demux
 
 	GF_M2TS_ES *ess[GF_M2TS_MAX_STREAMS];
 	GF_List *programs;
+	u32 nb_prog_pmt_received;
+	Bool all_prog_pmt_received;
 	/*keep it seperate for now - TODO check if we're sure of the order*/
 	GF_List *SDTs;
 

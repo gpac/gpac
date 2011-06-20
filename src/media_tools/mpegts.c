@@ -1178,7 +1178,7 @@ static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es,
 
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
-	u32 info_length, pos, desc_len, evt_type, nb_es;
+	u32 info_length, pos, desc_len, evt_type, nb_es,i;
 	u32 nb_sections;
 	u32 data_size;
 	unsigned char *data;
@@ -1242,6 +1242,16 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	data += 4 + info_length;
 	data_size -= 4 + info_length;
 	pos = 0;
+	
+	/* count de number of program related PMT received */
+	for(i=0;i<gf_list_count(ts->programs);i++){
+	  GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
+	  if(prog->pmt_pid == pmt->pid){
+		ts->nb_prog_pmt_received++;
+		break;
+	  }
+	}
+	
 
 	while (pos<data_size) {
 		GF_M2TS_PES *pes = NULL;
@@ -1450,7 +1460,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			nb_es++;
 		}
 	}
+	
 	if (nb_es) {
+		if(ts->nb_prog_pmt_received == gf_list_count(ts->programs)){
+		    ts->all_prog_pmt_received = 1;
+		}
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
 		if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
 	} else {
@@ -1483,19 +1497,19 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	if (nb_sections > 1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("PAT on multiple sections not supported\n"));
 	}
-
+	
 	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
 	data = section->data;
 	data_size = section->data_size;
 
-	nb_progs = data_size / 4;
+	nb_progs = data_size / 4;	
 
 	for (i=0; i<nb_progs; i++) {
 		u16 number, pid;
 		number = (data[0]<<8) | data[1];
 		pid = (data[2]&0x1f)<<8 | data[3];
 		data += 4;
-		if (number==0) {
+		if (number==0) {			
 			if (!ts->nit) {
 				ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 			}
@@ -1516,7 +1530,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	}
 
 	evt_type = (status&GF_M2TS_TABLE_UPDATE) ? GF_M2TS_EVT_PAT_UPDATE : GF_M2TS_EVT_PAT_FOUND;
-	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
+	if (ts->on_event) ts->on_event(ts, evt_type, NULL);	
 }
 
 static void gf_m2ts_process_cat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
@@ -2156,6 +2170,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->requested_progs = gf_list_new();
 	ts->requested_pids = gf_list_new();	
 	ts->demux_and_play = 0;
+	ts->nb_prog_pmt_received = 0;
 
 	return ts;
 }
