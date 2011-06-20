@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato
+ *			Authors: Cyril Concolato, Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2010-
  *					All rights reserved
  *
@@ -56,11 +56,14 @@ typedef struct __mpd_group
 	GF_List *representations;
 	u32 group_id;
 	Bool selected;
-	Bool is_over;
+	Bool done;
+	Bool force_switch_bandwidth;
+	u32 nb_bw_check;
 	/*pointer toactive period*/
 	GF_MPD_Period *period;
 	/*active representation index in period->representations*/
 	u32 active_rep_index;
+	u32 active_bitrate, max_bitrate, min_bitrate;
 	/*local file playback, do not delete them*/
 	Bool local_files;
 	/*next segment to download for this group*/
@@ -150,11 +153,17 @@ static Bool MPD_CheckRootType(const char *local_url)
 void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 {
     GF_Err e;
+	u32 download_rate;
     GF_MPD_Group *group= (GF_MPD_Group*) cbk;
 
     /*handle service message*/
     gf_term_download_update_stats(group->segment_dnload);
-    e = param->error;
+	if (group->done) {
+		gf_dm_sess_abort(group->segment_dnload);
+		return;
+	}	
+	
+	e = param->error;
     if (param->msg_type == GF_NETIO_PARSE_REPLY) {
         if (! gf_dm_sess_can_be_cached_on_disk(group->segment_dnload)) {
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE,
@@ -165,6 +174,27 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
             group->segment_must_be_streamed = 0;
         }
     }
+	else if ((param->msg_type == GF_NETIO_DATA_EXCHANGE) || (param->msg_type == GF_NETIO_DATA_TRANSFERED)) {
+		if (gf_dm_sess_get_stats(group->segment_dnload, NULL, NULL, NULL, NULL, &download_rate, NULL) == GF_OK) {
+			if (download_rate) {
+				download_rate *= 8;
+				if (download_rate<group->min_bitrate) group->min_bitrate = download_rate;
+				if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
+
+				if (download_rate && (download_rate < group->active_bitrate)) {
+					fprintf(stdout, "Downloading from group %d at rate %d kbps but group bitrate is %d kbps\n", group->group_id, download_rate/1024, group->active_bitrate/1024);
+					group->nb_bw_check ++;
+					if (group->nb_bw_check>2) {
+						fprintf(stdout, "Downloading from group %d at rate %d kbps but group bitrate is %d kbps - switching\n", group->group_id, download_rate/1024, group->active_bitrate/1024);
+						group->force_switch_bandwidth = 1;
+						gf_dm_sess_abort(group->segment_dnload);
+					}
+				} else {
+					group->nb_bw_check = 0;
+				}
+			}
+		}
+	}
 }
 
 /*!
@@ -403,6 +433,15 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 							info2 = gf_list_get(rep->segments, group->download_segment_index);
 						}
 					}
+					/*update group/period to new period*/
+					group->period = new_period;
+
+					/*and rebuild representations for this group*/
+					gf_list_reset(group->representations);
+					for (i=0; i<gf_list_count(new_period->representations); i++) {
+					    GF_MPD_Representation *rep = gf_list_get(new_period->representations, i);
+						if (rep->groupID==group->group_id) gf_list_add(group->representations, rep);
+					}
 				}
                 /*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
                 if (mpdin->mpd)
@@ -442,7 +481,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         /* Wait until no file is scheduled to be downloaded */
         while (mpdin->mpd_is_running && group->nb_cached<2) {
             gf_mx_v(mpdin->dl_mutex);
-			if (group->is_over) {
+			if (group->done) {
 				return GF_EOS;
 			}
             gf_sleep(16);
@@ -570,6 +609,50 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
     }
 }
 
+static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
+{
+	u32 i, bandwidth, min_bandwidth;
+	GF_MPD_Representation *rep_sel = NULL;
+	GF_MPD_Representation *min_rep_sel = NULL;
+	Bool min_bandwidth_selected = 0;
+	bandwidth = 0;
+	min_bandwidth = group->min_bitrate;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPDIn] Checking representations between %d and %d kbps\n", group->min_bitrate/1024, group->max_bitrate/1024));
+
+	for (i=0; i<gf_list_count(group->representations); i++) {
+		GF_MPD_Representation *rep = gf_list_get(group->representations, i);
+		if ((rep->bandwidth > bandwidth) && (rep->bandwidth < group->max_bitrate )) {
+			rep_sel = rep;
+			bandwidth = rep->bandwidth;
+		}
+		if (rep->bandwidth < min_bandwidth) {
+			min_rep_sel = rep;
+			min_bandwidth = rep->bandwidth;
+		}
+	}
+	if (!rep_sel) {
+		rep_sel = min_rep_sel;
+		min_bandwidth_selected = 1;
+	}
+	i = gf_list_find(group->period->representations, rep_sel);
+
+	assert((s32) i >= 0);
+
+	group->force_switch_bandwidth = 0;
+	group->max_bitrate = 0;
+	group->min_bitrate = (u32) -1;
+
+	if (i != group->active_rep_index) {
+		if (min_bandwidth_selected) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPDIn] No representation found with bandwidth below %d kbps - using representation @ %d kbps\n", group->max_bitrate/1024, rep_sel->bandwidth/1024));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPDIn] Switching to representation bandwidth %d kbps for download bandwidth %d kbps\n", rep_sel->bandwidth/1024, group->max_bitrate/1024));
+		}
+		group->active_rep_index = i;
+		group->active_bitrate = rep_sel->bandwidth;
+	}
+}
 
 static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
 {
@@ -633,7 +716,17 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
 		return GF_OK;
 	}
 
+	group->max_bitrate = 0;
+	group->min_bitrate = (u32)-1;
     e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), base_init_url, MPD_NetIO_Segment, group, start_range, end_range);
+
+	if ((e==GF_OK) && group->force_switch_bandwidth && !mpdin->auto_switch_count) {
+		MPD_SwitchGroupRepresentation(mpdin, group);
+        gf_mx_v(mpdin->dl_mutex);
+		return MPD_DownloadInitSegment(mpdin, group);
+	}
+
+
     if (e == GF_URL_ERROR && !base_init_url) { /* We have a 404 and started with segments */
         /* It is possible that the first segment has been deleted while we made the first request...
          * so we try with the next segment on some M3U8 servers */
@@ -792,7 +885,7 @@ static u32 download_segments(void *par)
 			    gf_mx_p(mpdin->dl_mutex);
 				for (i=0; i<group_count; i++) {
 					GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
-					if (!group->selected || group->is_over) continue;
+					if (!group->selected || group->done) continue;
 					if (group->nb_cached<group->max_cached) {
 						cache_full = 0;
 						break;
@@ -814,11 +907,11 @@ static u32 download_segments(void *par)
         /* Continue the processing (no stop request) */
         period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
 
-		/*for erach selected groups*/
+		/*for each selected groups*/
 		for (i=0; i<group_count; i++) {		
 			GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 			if (! group->selected) continue;
-			if (group->is_over) continue;
+			if (group->done) continue;
 
 
 			rep = gf_list_get(period->representations, group->active_rep_index);
@@ -848,7 +941,7 @@ static u32 download_segments(void *par)
 					} else {
 						/* if not, we are really at the end of the playlist, we can quit */
 						GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] End of playlist reached... downloading remaining elements..."));
-						group->is_over = 1;
+						group->done = 1;
 						break;
 					}
 				}
@@ -876,7 +969,7 @@ static u32 download_segments(void *par)
 			if (!strstr(new_base_seg_url, "://") || !strnicmp(new_base_seg_url, "file://", 7)) {
 				/*byte-range request from file are ignored*/
 				if (seg->use_byterange) {
-					group->is_over = 1;
+					group->done = 1;
 					break;
 				}
 				resource_name = local_file_name = (char *) new_base_seg_url; 
@@ -884,11 +977,21 @@ static u32 download_segments(void *par)
 				/*do not erase local files*/
 				group->local_files = 1;
 			} else {
+				group->max_bitrate = 0;
+				group->min_bitrate = (u32)-1;
 				if (seg->use_byterange) {
 					e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), new_base_seg_url, MPD_NetIO_Segment, group, seg->byterange_start, seg->byterange_end);
 				} else {
 					e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), new_base_seg_url, MPD_NetIO_Segment, group, 0, 0);
 				}
+
+				if ((e==GF_OK) && group->force_switch_bandwidth && !mpdin->auto_switch_count) {
+					MPD_SwitchGroupRepresentation(mpdin, group);
+					/*restart*/
+					i--;
+					continue;
+				}
+
 				if (group->segment_must_be_streamed) local_file_name = gf_dm_sess_get_resource_name(group->segment_dnload);
 				else local_file_name = gf_dm_sess_get_cache_name(group->segment_dnload);
 
@@ -904,6 +1007,10 @@ static u32 download_segments(void *par)
 					bitrate /= 1024;
 					fprintf(stdout, "Downloaded segment bitrate %d kbps with bandwith %d kbps\n", (u32) bitrate, 8*bytes_per_sec/1024);
 					/*TODO switch quality*/
+
+					if (!mpdin->auto_switch_count) {
+						MPD_SwitchGroupRepresentation(mpdin, group);
+					}
 				}
 			}
 
@@ -923,6 +1030,7 @@ static u32 download_segments(void *par)
 						if (rep_idx==gf_list_count(group->representations)) rep_idx = 0;
 						rep = gf_list_get(group->representations, rep_idx);
 						group->active_rep_index = gf_list_find(period->representations, rep);
+						group->active_bitrate = rep->bandwidth;
 					}
 				}
 			}
@@ -1040,6 +1148,14 @@ static u32 MPD_GetPeriodIndexFromTime(GF_MPD_In *mpdin, u32 time)
 
 static void MPD_DownloadStop(GF_MPD_In *mpdin)
 {
+	u32 i;
+	for (i=0; i<gf_list_count(mpdin->groups); i++) {
+		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
+		if (group->selected && group->segment_dnload) {
+			gf_dm_sess_abort(group->segment_dnload);
+			group->done = 1;
+		}
+	}
     /* stop the download thread */
     gf_mx_p(mpdin->dl_mutex);
     if (mpdin->mpd_is_running == 1) {
@@ -1081,7 +1197,7 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 		}
 		while (group->nb_cached) {
 			group->nb_cached --;
-			if (!mpdin->keep_files)
+			if (!mpdin->keep_files || !group->local_files)
 				gf_delete_file(group->cached[group->nb_cached].cache);
 
 			gf_free(group->cached[group->nb_cached].cache);
@@ -1206,6 +1322,7 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 
 		rep_sel = gf_list_get(group->representations, active_rep);
 		group->active_rep_index = gf_list_find(group->period->representations, rep_sel);
+		group->active_bitrate = rep_sel->bandwidth;
 
 
 		/* TODO: Generate segment names if urltemplates are used */
@@ -1515,12 +1632,12 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         mpdin->playback_speed = com->play.speed;
         mpdin->playback_start_range = com->play.start_range;
         mpdin->playback_end_range = com->play.end_range;
-		group->is_over = 0;
+		group->done = 0;
         return segment_ifce->ServiceCommand(segment_ifce, com);
 
 	case GF_NET_CHAN_STOP:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Stop command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
-		group->is_over = 1;
+		group->done = 1;
         return segment_ifce->ServiceCommand(segment_ifce, com);
     case GF_NET_CHAN_PAUSE:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Pause command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));

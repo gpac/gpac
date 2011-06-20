@@ -584,35 +584,50 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
     assert( pl->programs );
     while ((prog = gf_list_enum(pl->programs, &i))) {
         u32 j=0;
-        while (NULL != (pe = gf_list_enum(prog->bitrates, &j))) {
-            if (pe->url && strstr(pe->url, ".m3u8")) {
-                char *suburl = gf_url_concatenate(base_url, pe->url);
-                if (!strcmp(base_url, suburl)) {
-                    gf_free(suburl);
-                    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
-                    continue;
-                }
-				if (service) {
-                    GF_DownloadSession *sess = gf_term_download_new(service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
-                    if (!sess) {
-                        gf_free(suburl);
-                        break;
-                    }
-                    e = gf_dm_sess_process(sess);
-                    if (e==GF_OK) {
-                        e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
-                    }
-                    gf_term_download_del(sess);
-                    gf_free(suburl);
-				} else { /* for use in MP4Box */
-					extern GF_Err gf_dm_wget(const char *url, const char *filename);
-					e = gf_dm_wget(suburl, "tmp.m3u8");
-                    if (e==GF_OK) {
-                        e = parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
-                    }
-					gf_delete_file("tmp.m3u8");
+		while (NULL != (pe = gf_list_enum(prog->bitrates, &j))) {
+			Bool found = 0;
+			u32 k;
+			char *suburl;
+			
+			if (!pe->url || !strstr(pe->url, ".m3u8")) 
+				continue;
+
+			/*filter out duplicated entries (seen on M6 m3u8)*/
+			for (k=0; k<j-1; k++) {
+				PlaylistElement *a_pe = gf_list_get(prog->bitrates, k);
+				if (a_pe->url && pe->url && !strcmp(a_pe->url, pe->url)) {
+					found = 1;
+					break;
 				}
+			}
+			if (found) continue;
+
+            suburl = gf_url_concatenate(base_url, pe->url);
+            if (!strcmp(base_url, suburl)) {
+                gf_free(suburl);
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
+                continue;
             }
+			if (service) {
+                GF_DownloadSession *sess = gf_term_download_new(service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
+                if (!sess) {
+                    gf_free(suburl);
+                    break;
+                }
+                e = gf_dm_sess_process(sess);
+                if (e==GF_OK) {
+                    e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
+                }
+                gf_term_download_del(sess);
+                gf_free(suburl);
+			} else { /* for use in MP4Box */
+				extern GF_Err gf_dm_wget(const char *url, const char *filename);
+				e = gf_dm_wget(suburl, "tmp.m3u8");
+                if (e==GF_OK) {
+                    e = parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
+                }
+				gf_delete_file("tmp.m3u8");
+			}
         }
     }
 

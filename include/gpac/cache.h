@@ -230,6 +230,9 @@ extern "C" {
 
     u32 gf_cache_get_sessions_count_for_cache_entry(const DownloadedCacheEntry entry);
 
+	u64 gf_cache_get_start_range( const DownloadedCacheEntry entry );
+	u64 gf_cache_get_end_range( const DownloadedCacheEntry entry );
+
 #ifdef __cplusplus
 }
 #endif
