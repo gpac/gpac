@@ -79,7 +79,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				UseLibraryDependencyInputs="false"
-				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib libeay32.lib ssleay32.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -286,7 +286,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib opengl32.lib glu32.lib"
+				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib opengl32.lib glu32.lib libeay32.lib ssleay32.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
