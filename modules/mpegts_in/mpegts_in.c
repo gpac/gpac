@@ -442,14 +442,24 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		  evt.type = GF_EVENT_FORWARDED;
 		  evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
 		  evt.forwarded_event.service_event_type = evt_type;
-		  evt.forwarded_event.param = param;
+		  evt.forwarded_event.param = param;		  
 		  gf_term_on_service_event(m2ts->service, &evt);
 		}
 		break;
 	case GF_M2TS_EVT_PAT_FOUND:
-		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
+		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */		
 		if (gf_list_count(m2ts->ts->programs) != 1)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
+		{
+			/* Send the TS to the a user if needed. Useful to check the number of received programs*/
+			GF_Event evt;
+			evt.type = GF_EVENT_FORWARDED;
+			evt.forwarded_event.forward_type = GF_M2TS_EVT_PAT_FOUND;
+			evt.forwarded_event.service_event_type = evt_type;
+			evt.forwarded_event.param = ts;
+			gf_term_on_service_event(m2ts->service, &evt);		
+			
+		}
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		if (gf_list_count(m2ts->ts->programs) == 1)
@@ -457,7 +467,6 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 		/*do not declare if  single program was requested for playback*/
 		MP2TS_SetupProgram(m2ts, param, m2ts->request_all_pids, m2ts->request_all_pids ? 0 : 1);
-
 		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
@@ -1005,8 +1014,8 @@ GF_InputService *NewM2TSReader()
 	reader->ts->demux_and_play = 1;
 	reader->ts->th = gf_th_new("MPEG-2 TS Demux");
 
-	reader->mx = gf_mx_new("MPEG2 Demux");	
-
+	reader->mx = gf_mx_new("MPEG2 Demux");
+	
 	return plug;
 }
 
