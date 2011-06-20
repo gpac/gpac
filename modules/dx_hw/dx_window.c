@@ -419,6 +419,30 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		if (ctx->cur_hwnd==hWnd) DD_SetCursor(vout, ctx->cursor_type);
 		break;
 
+	case WM_DROPFILES:
+		{
+			char szFile[GF_MAX_PATH];
+			GF_Event evt;
+			u32 i;
+			
+			HDROP hDrop = (HDROP) wParam;
+			evt.type = GF_EVENT_OPENFILE;
+			evt.open_file.nb_files = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
+			evt.open_file.files = gf_malloc(sizeof(char *)*evt.open_file.nb_files);
+			for (i=0; i<evt.open_file.nb_files; i++) {
+				u32 res = DragQueryFile(hDrop, i, szFile, GF_MAX_PATH);
+				evt.open_file.files[i] = res ? gf_strdup(szFile) : NULL;
+			}
+			DragFinish(hDrop);
+			/*send message*/
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+			for (i=0; i<evt.open_file.nb_files; i++) {
+				if (evt.open_file.files[i]) gf_free(evt.open_file.files[i]);
+			}
+			gf_free(evt.open_file.files);
+		}
+		break;
+
 	case WM_MOUSEMOVE:
 		if (ctx->cur_hwnd!=hWnd) break;
 
@@ -729,6 +753,8 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		if (ctx->os_hwnd == NULL) {
 			return 0;
 		}
+		DragAcceptFiles(ctx->os_hwnd, TRUE);
+
 		if (flags & GF_TERM_INIT_HIDE) {
 			ShowWindow(ctx->os_hwnd, SW_HIDE);
 		} else {

@@ -206,7 +206,7 @@ enum {
 	GF_EVENT_MIGRATE, /*indicates a session migration request*/
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
-
+	GF_EVENT_OPENFILE,
     /* Events for Keyboad */
     GF_EVENT_TEXT_EDITING_START,
     GF_EVENT_TEXT_EDITING_END
@@ -699,6 +699,13 @@ enum
 };
 
 typedef struct {
+	/* GF_EVENT_OPENFILE*/
+	u8 type;
+	u32 nb_files;
+	char **files;
+} GF_EventOpenFile;
+
+typedef struct {
 	/* GF_EVENT_FORWARDED*/
 	u8 type;
 	/*one of te above event*/
@@ -730,6 +737,7 @@ typedef union
 	GF_EventVideoSetup setup;
 	GF_EventMutation mutation;
 	GF_EventForwarded forwarded_event;
+	GF_EventOpenFile open_file;
 } GF_Event;
 
 

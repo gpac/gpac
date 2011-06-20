@@ -77,6 +77,8 @@ GF_Err last_error = GF_OK;
 static Fixed bench_speed = FLT2FIX(20);
 
 static Bool request_next_playlist_item = 0;
+FILE *playlist = NULL;
+static Bool readonly_playlist = 0;
 
 static GF_Config *cfg_file;
 static Bool display_rti = 0;
@@ -651,6 +653,32 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		ResetCaption();
 		break;
 
+	case GF_EVENT_OPENFILE:
+	{
+		u32 i, pos;
+		/*todo - force playlist mode*/
+		if (readonly_playlist) {
+			fclose(playlist);
+			playlist = NULL;
+		}
+		readonly_playlist = 0;
+		if (!playlist) {
+			readonly_playlist = 0;
+			playlist = gf_temp_file_new();
+		}
+		pos = ftell(playlist);
+		i=0;
+		while (i<evt->open_file.nb_files) {
+			if (evt->open_file.files[i] != NULL) {
+				fprintf(playlist, "%s\n", evt->open_file.files[i]); 
+			}
+			i++;
+		}
+		fseek(playlist, pos, SEEK_SET);
+		request_next_playlist_item = 1;
+	}
+		return 1;
+
 	case GF_EVENT_QUIT:
 		Run = 0;
 		break;
@@ -852,7 +880,6 @@ int main (int argc, char **argv)
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file, *views;
 	GF_SystemRTInfo rti;
-	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1172,6 +1199,7 @@ int main (int argc, char **argv)
 		if (ext && strncmp("http:", the_url, 5) && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
 			playlist = gf_f64_open(the_url, "rt");
+			readonly_playlist = 1;
 			if (playlist) {
 				strcpy(pl_path, the_url);
 				if (1 > fscanf(playlist, "%s", the_url))

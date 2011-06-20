@@ -670,6 +670,19 @@ static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER,
 		if (!strcmp(name, "target_url")) {
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, evt->navigate.to_url) );
 		}
+		else if (!strcmp(name, "files")) {
+			u32 i, idx;
+			jsval v;
+			JSObject *files_array = JS_NewArrayObject(c, 0, NULL);
+			for (i=0; i<evt->open_file.nb_files; i++) {
+				if (evt->open_file.files[i]) {
+					JS_GetArrayLength(c, files_array, &idx);
+					v = STRING_TO_JSVAL( JS_NewStringCopyZ(c, evt->open_file.files[i]) );
+					JS_SetElement(c, files_array, idx, &v);
+				}
+			}
+			*vp = OBJECT_TO_JSVAL(files_array);
+		}
 		SMJS_FREE(c, name);
 	}
 
@@ -690,13 +703,13 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	gjs->evt = evt;
 	JS_SetPrivate(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
+	rval = JSVAL_VOID;
 	JS_CallFunctionValue(gjs->c, gjs->evt_filter_obj, gjs->evt_fun, 1, argv, &rval);
 	JS_SetPrivate(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
 
-	if (rval==JSVAL_VOID) {
-		res = 0;
-	} else if (JSVAL_IS_BOOLEAN(rval) ) {
+	res = 0;
+	if (JSVAL_IS_BOOLEAN(rval) ) {
 		res = (JSVAL_TO_BOOLEAN(rval)==JS_TRUE) ? 1 : 0;
 	} else if (JSVAL_IS_INT(rval) ) {
 		res = (JSVAL_TO_INT(rval)) ? 1 : 0;
@@ -883,6 +896,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_CONNECT);
 		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE_INFO);
 		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE);
+		DECLARE_GPAC_CONST(GF_EVENT_OPENFILE);
 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
