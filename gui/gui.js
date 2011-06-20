@@ -28,6 +28,7 @@ UPnP_Enabled = false;
 browser_mode = false;
 upnp_renderers = null;
 current_url = '';
+current_time = 0.0;
 player_control = null;
 
 all_extensions = [];
@@ -57,6 +58,9 @@ function on_movie_active(value)
 
 function on_movie_time(value)
 {
+  /*filter out every 1/2 seconds*/
+  if (current_time+0.5 > value) return;
+  current_time = value;
   player_control.set_time(value);
   if (UPnP_Enabled) UPnP.MovieTime = value;
 }
@@ -83,6 +87,15 @@ function filter_event(evt)
     return true;
   }
   return false;
+  
+ case GF_EVENT_OPENFILE:
+  var files = evt.files;
+  /*todo - handle playlist*/
+  if (files.length) {
+   set_movie_url(files[0]);
+  }
+  return true;
+  
  case GF_EVENT_MOUSEUP:
   in_drag = false;
   if (evt.picked) return false;
@@ -415,6 +428,11 @@ function set_movie_url(url)
     controlled_renderer.Open(uri); 
   }
   current_url = url;
+  current_time = 0;
+  
+  if (url == '') player_control.show();
+  else player_control.hide();
+
 }
 
 //performs layout on all contents
