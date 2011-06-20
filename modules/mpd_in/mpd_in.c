@@ -1206,7 +1206,7 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 		}
 		while (group->nb_cached) {
 			group->nb_cached --;
-			if (!mpdin->keep_files || !group->local_files)
+			if (!mpdin->keep_files && !group->local_files)
 				gf_delete_file(group->cached[group->nb_cached].cache);
 
 			gf_free(group->cached[group->nb_cached].cache);
