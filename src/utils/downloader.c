@@ -112,7 +112,7 @@ struct __gf_download_session
     u32 flags;
 
     u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
-    u32 bytes_per_sec, window_start, bytes_in_wnd;
+    u32 bytes_per_sec;
     u32 limit_data_rate;
 
     /* Range information if needed for the download (cf flag) */
@@ -1593,16 +1593,11 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, const char *d
     }
     /*update state if not done*/
     if (rcv) {
-        sess->bytes_in_wnd += rcv;
-        runtime = gf_sys_clock() - sess->window_start;
+        runtime = gf_sys_clock() - sess->start_time;
         if (!runtime) {
             sess->bytes_per_sec = 0;
         } else {
-            sess->bytes_per_sec = (1000 * (sess->bytes_in_wnd)) / runtime;
-            if (runtime>1000) {
-                sess->window_start += runtime/2;
-                sess->bytes_in_wnd = sess->bytes_per_sec / 2;
-            }
+            sess->bytes_per_sec = (1000 * sess->bytes_done) / runtime;
         }
     }
 }
@@ -1979,15 +1974,15 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
         if (sess->limit_data_rate && sess->bytes_per_sec) {
             if (sess->bytes_per_sec>sess->limit_data_rate) {
                 /*update state*/
-                u32 runtime = gf_sys_clock() - sess->window_start;
-                sess->bytes_per_sec = (1000 * (sess->bytes_in_wnd)) / runtime;
+                u32 runtime = gf_sys_clock() - sess->start_time;
+				sess->bytes_per_sec = (1000 * sess->bytes_done) / runtime;
                 if (sess->bytes_per_sec > sess->limit_data_rate) return GF_OK;
             }
         }
 #endif
         e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
         if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
-            if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && (gf_sys_clock() - sess->window_start > 5000))) {
+            if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && (gf_sys_clock() - sess->start_time > 5000))) {
                 sess->total_size = sess->bytes_done;
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 				assert(sess->server_name);
@@ -2449,8 +2444,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         }
     }
 
-    sess->window_start = sess->start_time = gf_sys_clock();
-    sess->bytes_in_wnd = 0;
+    sess->start_time = gf_sys_clock();
 
     /* we may have existing data in this buffer ... */
     if (!e && (BodyStart < (s32) bytesRead)) {
@@ -2616,13 +2610,12 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->status = GF_NETIO_SETUP;
     sess->needs_range = 0;
     sess->range_start = sess->range_end = 0;
-    sess->bytes_done = sess->bytes_in_wnd = sess->bytes_per_sec = 0;
+    sess->bytes_done = sess->bytes_per_sec = 0;
     if (sess->init_data) gf_free(sess->init_data);
     sess->init_data = NULL;
     sess->init_data_size = 0;
     sess->last_error = GF_OK;
     sess->total_size = 0;
-    sess->window_start = 0;
     sess->start_time = 0;
     return GF_OK;
 }

@@ -37,6 +37,7 @@ typedef struct
 {
 #ifndef DONT_USE_TERMINAL_MODULE_API
 	GF_ClientService *service;
+	GF_InputService *input;
 	LPNETCHANNEL ch;
 #endif
 
@@ -80,7 +81,7 @@ typedef struct
 
 #ifndef DONT_USE_TERMINAL_MODULE_API
 
-static const char * AAC_MIMES[] = {  "audio/x-m4a", "audio/aac", "audio/aacp", 0 };
+static const char * AAC_MIMES[] = {  "audio/x-m4a", "audio/aac", "audio/aacp", "audio/x-aac", 0 };
 
 static const char * AAC_EXTENSIONS = "aac mp4a";
 
@@ -164,7 +165,8 @@ static void AAC_SetupObject(AACReader *read)
 {
 	GF_ESD *esd;
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	od->objectDescriptorID = 1;
+	od->objectDescriptorID = 0;
+	od->service_ifce = read->input;
 	esd = AAC_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
@@ -552,7 +554,8 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	char *ext;
 	GF_Err reply;
 	AACReader *read = plug->priv;
-        read->service = serv;
+	read->service = serv;
+	read->input = plug;
 
 	AAC_disconnect_from_http_and_free(read);
 
@@ -770,6 +773,19 @@ fetch_next:
 		if (!sync) {
 			gf_bs_del(bs);
 			if (!read->dnload) {
+				if (read->input->query_proxy) {
+					GF_NetworkCommand param;
+					param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+					if ((read->input->query_proxy(read->input, &param)==GF_OK) 
+						&& param.url_query.next_url
+					) {
+						fclose(read->stream);
+						read->stream = gf_f64_open(param.url_query.next_url, "rb");
+						*out_reception_status = GF_OK;
+						return GF_OK;
+					}
+				}
+
 				*out_reception_status = GF_EOS;
 				read->done = 1;
 			} else {
