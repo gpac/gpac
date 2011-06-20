@@ -354,6 +354,8 @@ struct _tag_terminal
 
 	/*net services*/
 	GF_List *net_services;
+	/*net services to be connected*/
+	GF_List *net_services_to_connect;
 	/*net services to be destroyed*/
 	GF_List *net_services_to_remove;
 	/*channels waiting for service CONNECT ack to be setup*/

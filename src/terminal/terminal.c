@@ -528,6 +528,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	tmp->net_services = gf_list_new();
 	tmp->net_services_to_remove = gf_list_new();
+	tmp->net_services_to_connect = gf_list_new();
 	tmp->channels_pending = gf_list_new();
 	tmp->media_queue = gf_list_new();
 	tmp->media_queue_mx = gf_mx_new("MediaQueue");
@@ -676,6 +677,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_sc_del(term->compositor);
 
 	gf_list_del(term->net_services);
+	gf_list_del(term->net_services_to_connect);
 	gf_list_del(term->net_services_to_remove);
 	gf_list_del(term->input_streams);
 	gf_list_del(term->x3d_sensors);
@@ -898,6 +900,16 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	}
 }
 
+static void gf_term_cleanup_pending_session(GF_Terminal *term, GF_ClientService *ns)
+{
+	if (gf_list_find(term->net_services, ns)<0) return;
+
+	if (ns && ns->pending_service_session) {
+		gf_dm_sess_del(ns->pending_service_session);
+		ns->pending_service_session = NULL;
+	}
+}
+
 
 GF_EXPORT
 GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
@@ -914,6 +926,25 @@ void gf_term_handle_services(GF_Terminal *term)
 	grab the media queue now, we'll do our management at the next cycle*/
 	if (!gf_mx_try_lock(term->media_queue_mx))
 		return;
+
+
+	while (gf_list_count(term->net_services_to_connect)) {
+		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->net_services_to_connect, 0);
+		GF_ClientService *ns = odm->net_service;
+		gf_list_rem(term->net_services_to_connect, 0);
+		/*unlock media queue before connecting*/
+		gf_mx_v(term->media_queue_mx);
+	
+		/*OK connect*/
+		gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
+		odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
+
+		/*remove pending download session if any*/
+		gf_term_cleanup_pending_session(term, ns);
+
+		/*lock media queue after connecting*/
+		gf_mx_p(term->media_queue_mx);
+	}
 
 	/*play ODs that need it*/
 	while (gf_list_count(term->media_queue)) {
@@ -1197,16 +1228,6 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 	return 0;
 }
 
-static void gf_term_cleanup_pending_session(GF_Terminal *term, GF_ClientService *ns)
-{
-	if (gf_list_find(term->net_services, ns)<0) return;
-
-	if (ns && ns->pending_service_session) {
-		gf_dm_sess_del(ns->pending_service_session);
-		ns->pending_service_session = NULL;
-	}
-}
-
 /*connects given OD manager to its URL*/
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
@@ -1287,11 +1308,13 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	gf_term_lock_net(term, 0);
 
 	ns = odm->net_service;
-	/*OK connect*/
-	gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
-	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 
-	gf_term_cleanup_pending_session(term, ns);
+	gf_mx_p(term->media_queue_mx);
+	/*we are all set but we cannot assume it is safe to call connect from this thread, as this could be a
+	script callback (JS locked) and connecting the media could trigger JS calls, which would deadlock*/
+	gf_list_add(term->net_services_to_connect, odm);
+	
+	gf_mx_v(term->media_queue_mx);
 }
 
 /*connects given channel to its URL if needed*/
