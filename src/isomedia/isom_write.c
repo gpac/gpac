@@ -2388,6 +2388,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 			dest_file->moov->mvhd->nextTrackID = 1;
 			gf_isom_clone_pl_indications(orig_file, dest_file);
 		}
+		dest_file->moov->mov = dest_file;
 	}
 	return GF_OK;
 }
