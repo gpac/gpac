@@ -241,7 +241,8 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
   File "..\js32.dll"
-  File "..\gm_gpac_js.dll"
+  File "..\libeay32.dll"
+  File "..\ssleay32.dll"
   File "..\gm_ismacryp.dll"
 
   ;create default cache
