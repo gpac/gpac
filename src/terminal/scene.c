@@ -883,7 +883,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 {
 	u32 w, h;
 	gf_scene_get_video_size(mo, &w, &h);
-	gf_scene_force_size(scene, w, h);
+	if (w && h) gf_scene_force_size(scene, w, h);
 }
 
 #ifndef GPAC_DISABLE_VRML

@@ -905,16 +905,15 @@ void *New_FFMPEG_Demux()
 	GF_InputService *ffd = gf_malloc(sizeof(GF_InputService));
 	memset(ffd, 0, sizeof(GF_InputService));
 
-	priv = gf_malloc(sizeof(FFDemux));
-	memset(priv, 0, sizeof(FFDemux));
+	GF_SAFEALLOC(priv, FFDemux);
 
-        GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
-        /* register all codecs, demux and protocols */
-        av_register_all();
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
+    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
+    /* register all codecs, demux and protocols */
+    av_register_all();
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
 
 	ffd->RegisterMimeTypes = FFD_RegisterMimeTypes;
-	ffd->CanHandleURL = FFD_CanHandleURL;
+	ffd->CanHandleURL = FFD_CanHandleURL;	
 	ffd->CloseService = FFD_CloseService;
 	ffd->ConnectChannel = FFD_ConnectChannel;
 	ffd->ConnectService = FFD_ConnectService;
