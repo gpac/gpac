@@ -135,8 +135,15 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_APP) return 1;
 	
 	if (path_type==GF_PATH_GUI) {
+		char *sep;
 		strcat(file_path, "\\gui");
 		if (check_file_exists("gui.bt", file_path, file_path)) return 1;
+		sep = strstr(file_path, "\\bin\\");
+		if (sep) {
+			sep[0] = 0;
+			strcat(file_path, "\\gui");
+			if (check_file_exists("gui.bt", file_path, file_path)) return 1;
+		}
 		return 0;
 	}
 	/*modules are stored in the GPAC directory (should be changed to GPAC/modules)*/
