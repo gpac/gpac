@@ -455,7 +455,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				if (ch->IsClockInit && (u32) ch->BufferTime  < com->buffer.occupancy) {
 					/*if we don't have more units (compressed or not) than requested max for the composition memory, request more data*/
 					if (odm->codec->CB->UnitCount + ch->AU_Count <= odm->codec->CB->Capacity) {
-						com->buffer.occupancy = 0;
+//						com->buffer.occupancy = 0;
+						com->buffer.occupancy = ch->BufferTime;
 					} else {
 						com->buffer.occupancy = ch->BufferTime;
 					}
@@ -463,6 +464,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			}
 		}
 		gf_mx_v(term->mm_mx);
+//		fprintf(stdout, "Buffer occupancy %d\n", com->buffer.occupancy);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 		return;
 	}

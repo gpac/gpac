@@ -522,6 +522,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				ts->stb_at_last_pcr = gf_sys_clock();
 			}
 #endif
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
 			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities 
 			seen in many HLS solutions*/
 			return;
@@ -532,11 +533,23 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			u32 stb = gf_sys_clock();
 			if (ts->pcr_last) {
 				s32 diff;
-				u64 pcr_diff = (pcr - ts->pcr_last);
-				pcr_diff /= 27000;
-				diff = (u32) pcr_diff - (stb - ts->stb_at_last_pcr);
+				if (pcr < ts->pcr_last) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR "LLU" less than previous PCR "LLU"\n", ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
+					ts->pcr_last = pcr;
+					ts->stb_at_last_pcr = gf_sys_clock();
+					diff = 0;
+				} else {
+					u64 pcr_diff = (pcr - ts->pcr_last);
+					pcr_diff /= 27000;
+					if (pcr_diff>500) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
+						diff = 100;
+					} else {
+						diff = (u32) pcr_diff - (stb - ts->stb_at_last_pcr);
+					}
+				}
 				if (diff<0) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, ts->pcr_last));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLU", last pcr: "LLU")\n", diff, pcr, ts->pcr_last));
 				} else if (diff>0) {
 					u32 sleep_for=1;
 #ifndef GPAC_DISABLE_LOG
@@ -666,6 +679,7 @@ static const char *M2TS_QueryNextFile(void *udta)
 	param.url_query.next_url = NULL;
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
 	if ((query_ret==GF_OK) && param.url_query.next_url){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Switching to next segment %s\n", param.url_query.next_url));
 		return param.url_query.next_url;
 	} else if (query_ret==GF_OK){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));

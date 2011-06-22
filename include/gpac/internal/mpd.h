@@ -46,6 +46,7 @@ typedef struct {
     char *lang;
     char *mime;
     u32 groupID;
+    Bool disabled;
     Bool startWithRap;
 	/* TODO: maximumRAPPeriod */
 	/* TODO: depid*/

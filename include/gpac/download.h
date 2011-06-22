@@ -166,6 +166,8 @@ extern "C" {
 				Whether the data is cached or not to disk cannot be controlled by the user at the current time.
 		*/
         GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
+		/*indicates that the connection to the server should be kept once the download is successfully completed*/
+        GF_NETIO_SESSION_PERSISTENT =	1<<2,
     };
 
 
@@ -456,7 +458,34 @@ extern "C" {
      */
 	GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk);
 
-    /*! @} */
+    /*!
+     * Re-setup an existing, completed session to download a new URL. If same server/port/protocol is used, the same socket will be reused if the session
+	 has the @GF_NETIO_SESSION_PERSISTENT flag set. This is only possible if the session is not threaded.
+	 * \param sess The session
+	 * \param url The new url for the session 
+     * \return GF_OK or error
+     */
+	GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url);
+
+    /*
+     *\brief sets download manager max rate per session
+     *
+     *Sets the maximum rate (per session only at the current time). 
+     *\param dm the download manager object
+     *\param rate_in_byte_per_sec the new rate in bytes per sec. If 0, HTTP rate will not be limited
+     */
+    void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_byte_per_sec);
+
+    /*
+     *\brief gets download manager max rate per session
+     *
+     *Sets the maximum rate (per session only at the current time). 
+     *\param dm the download manager object
+     *\return the rate in bytes per sec. If 0, HTTP rate is not limited
+     */
+    u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
+
+	/*! @} */
 
 #ifdef __cplusplus
 }
