@@ -398,10 +398,13 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 
 	if (the_mo) the_mo->OD_ID = od->objectDescriptorID;
-	gf_term_lock_net(term, 0);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));
 	gf_odm_setup_object(odm, service);
+
+	/*unlock net once the object has been added to the scene, otherwise we may have another modules declaring an object with ID 0 from
+	another thread, which will assert (only one object with a givne OD ID)*/
+	gf_term_lock_net(term, 0);
 
 	/*OD inserted by service: resetup scene*/
 	if (!no_scene_check && scene->is_dynamic_scene) gf_scene_regenerate(scene);
