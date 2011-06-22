@@ -1659,14 +1659,18 @@ GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebu
 static void gf_term_sample_scenetime(GF_Scene *scene)
 {
 	u32 i, count;
-	gf_term_lock_net(scene->root_od->term, 1);
+	Bool locked = gf_mx_try_lock(scene->root_od->term->net_mx);
+	/*we cannot grab the network mutex, therefore we are not sure if some resources are not being destroyed.
+	TODO: add a dedicated mutex for this condition instead of using the global net mutex*/
+	if (!locked) return;
+
 	gf_scene_sample_time(scene);
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
 		GF_ObjectManager *odm = gf_list_get(scene->resources, i);
 		if (odm->subscene) gf_term_sample_scenetime(odm->subscene);
 	}
-	gf_term_lock_net(scene->root_od->term, 0);
+	gf_mx_v(scene->root_od->term->net_mx);
 }
 
 u32 gf_term_sample_clocks(GF_Terminal *term)
