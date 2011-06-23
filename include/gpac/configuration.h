@@ -28,12 +28,8 @@
 
 #define GPAC_CONFIGURATION "(static configuration file)"
 
-/*this file defines all common macros for libgpac compilation*/
-#ifdef WIN32
-#define GPAC_CONFIG_WIN32
-#endif
-
-/*except for symbian32 which uses .mmp directives ... */
+/*this file defines all common macros for libgpac compilation
+  except for symbian32 which uses .mmp directives ... */
 #if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) /*visual studio and xcode*/
 
 /*enables GPAC fixed point*/
