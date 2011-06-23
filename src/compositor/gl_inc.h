@@ -100,7 +100,7 @@ extern proc_ ## funname funname;	\
 //no extensions with TinyGL
 #elif defined (GPAC_USE_OGL_ES)
 //no extensions with OpenGL ES
-#elif defined (GPAC_CONFIG_WIN32)
+#elif defined(WIN32) || defined (GPAC_CONFIG_WIN32)
 #define LOAD_GL_FUNCS
 #define GET_GLFUN(funname) funname = (proc_ ## funname) wglGetProcAddress(#funname) 
 #elif defined(CONFIG_DARWIN_GL)
