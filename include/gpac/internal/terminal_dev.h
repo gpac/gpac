@@ -173,6 +173,8 @@ struct _scene
 	/*FIXME - Dynamic scenes are only supported through VRML/BIFS nodes, we should add support for SVG scene graph
 	generation if needed*/
 	Bool is_dynamic_scene;
+	/*for MPEG-2 TS, indicates the current serviceID played from mux*/
+	u32 selected_service_id;
 	/*clock for dynamic scene - current assumption is that all selected streams are synchronized in the dyn scene*/
 	GF_Clock *dyn_ck;
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/

@@ -1188,6 +1188,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		mt->startTime = gf_scene_get_time(scene);
 		gf_node_changed((GF_Node *)mt, NULL);
 		if (odm->mo) gf_scene_force_size_to_video(scene, odm->mo);
+		scene->selected_service_id = odm->OD->ServiceID;
 		return;
 	}
 
