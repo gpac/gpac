@@ -48,7 +48,7 @@
 #ifndef GPAC_DISABLE_ISOM_WRITE
 void convert_file_info(char *inName, u32 trackID);
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, const char *tmpdir, char *outfile);
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat);
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
@@ -2529,9 +2529,10 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (split_duration || split_size) {
-		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, tmpdir, outName);
+		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, tmpdir);
 		/*never save file when splitting is desired*/
 		open_edit = 0;
+		needSave = 0;
 	}
 #endif
 
