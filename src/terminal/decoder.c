@@ -675,23 +675,29 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	/*image codecs*/
 	if (codec->CB->Capacity == 1) {
-		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
-		u8 new_unit_signature[20];
-		gf_sha1_csum(AU->data, AU->dataLength, new_unit_signature);
-		if (!memcmp(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature))) {
-			codec->nb_repeted_frames++;
-			gf_es_drop_au(ch);
-			return GF_OK;
-		}
-		codec->nb_repeted_frames = 0;
-		memcpy(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature));
-
 		/*usually only one image is tolerated in the stream, but just in case force reset of CB*/
 		if (codec->CB->UnitCount && (obj_time>=AU->CTS)) {
 			gf_mx_p(codec->odm->mx);
 			codec->CB->output->dataLength = 0;
 			codec->CB->UnitCount = 0;
 			gf_mx_v(codec->odm->mx);
+		}
+
+		/*CB is already full*/
+		if (codec->CB->UnitCount)
+			return GF_OK;
+
+		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
+		{
+			u8 new_unit_signature[20];
+			gf_sha1_csum(AU->data, AU->dataLength, new_unit_signature);
+			if (!memcmp(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature))) {
+				codec->nb_repeted_frames++;
+				gf_es_drop_au(ch);
+				return GF_OK;
+			}
+			codec->nb_repeted_frames = 0;
+			memcpy(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature));
 		}
 	}
 
