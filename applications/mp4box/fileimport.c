@@ -522,7 +522,7 @@ typedef struct
 	u32 stop_state;
 } TKInfo;
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, const char *tmpdir, char *outfile)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, const char *tmpdir)
 {
 	u32 i, count, nb_tk, needs_rap_sync, cur_file, conv_type, nb_tk_done, nb_samp, nb_done, di;
 	Double max_dur, cur_file_time;
@@ -719,11 +719,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		Bool is_last;
 
 		if (chunk_extraction) {
-			if (outfile) {
-				strcpy(szFile, outfile);
-			} else {
-				sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+split_dur), ext);
-			}
+			sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+split_dur), ext);
 		} else {
 			sprintf(szFile, "%s_%03d%s", szName, cur_file+1, ext);
 		}
