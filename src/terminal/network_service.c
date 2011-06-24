@@ -398,6 +398,8 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 
 	if (the_mo) the_mo->OD_ID = od->objectDescriptorID;
+	if (!scene->selected_service_id) 
+		scene->selected_service_id = od->ServiceID;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));
 	gf_odm_setup_object(odm, service);

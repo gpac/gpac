@@ -671,7 +671,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	/*case 3: if the object is inserted from a broadcast, start it if not already done. This covers cases where the scene (BIFS, LASeR) and 
 	the media (images) are both carrouseled and the carrousels are interleaved. If we wait for the scene to trigger a PLAY, we will likely 
 	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal*/
-	else if (!odm->state && (odm->flags & GF_ODM_NO_TIME_CTRL)) {
+	else if (!odm->state && (odm->flags & GF_ODM_NO_TIME_CTRL) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
 		gf_odm_start(odm, 2);
 		odm->flags |= GF_ODM_PREFETCH;

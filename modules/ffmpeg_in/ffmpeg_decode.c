@@ -646,6 +646,7 @@ redecode:
 		return GF_PACKED_FRAMES;
 	}
 
+	*outBufferLength = 0;
 	/*visual stream*/
 	w = ctx->width;
 	h = ctx->height;
@@ -720,6 +721,12 @@ redecode:
 		}
 	}
 
+	if (!gotpic && (!ctx->width || !ctx->height) ) {
+		ctx->width = w;
+		ctx->height = h;
+		return GF_OK;
+	}
+
 	/*some streams use odd width/height frame values*/
 	if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
 		if (ctx->width%2) ctx->width++;
@@ -746,6 +753,9 @@ redecode:
 			*cached_sws = NULL;
 		}
 #endif
+		if (!ffd->no_par_update && ctx->sample_aspect_ratio.num && ctx->sample_aspect_ratio.den) {
+			ffd->previous_par = (ctx->sample_aspect_ratio.num<<16) | ctx->sample_aspect_ratio.den;
+		}
 		return GF_BUFFER_TOO_SMALL;
 	}
 	/*check PAR in case on-the-fly change*/
@@ -758,7 +768,6 @@ redecode:
 		}
 	}
 
-	*outBufferLength = 0;
 	if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 	if (!gotpic) return GF_OK;
