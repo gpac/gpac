@@ -475,8 +475,9 @@ common:
 			txh->tx_io->conv_data = gf_malloc(sizeof(char)*txh->stride*txh->height);
 			txh->tx_io->conv_format = txh->pixelformat;
 		}
-
-		/*if texture is using RECT extension, flip image manually because
+assert(txh->tx_io->conv_data );
+assert(txh->data );
+/*if texture is using RECT extension, flip image manually because
 		texture transforms are not supported in this case ...*/
 		for (i=0; i<txh->height; i++) {
 			memcpy(txh->tx_io->conv_data + (txh->height - 1 - i) * txh->stride, txh->data + i*txh->stride, txh->stride);
@@ -630,13 +631,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	}
 	if (!txh->tx_io->gl_type) return 0;
 	
-	if (txh->tx_io->flags & TX_EMULE_FIRST_LOAD) {
-		txh->tx_io->flags &= ~TX_EMULE_FIRST_LOAD;
-		first_load = 1;
-	}
+	/*if data not yet ready don't push the texture*/
+	if (txh->data) {
 
-	/*convert image*/
-	gf_sc_texture_convert(txh);
+		if (txh->tx_io->flags & TX_EMULE_FIRST_LOAD) {
+			txh->tx_io->flags &= ~TX_EMULE_FIRST_LOAD;
+			first_load = 1;
+		}
+
+		/*convert image*/
+		gf_sc_texture_convert(txh);
+	}
 
 	tx_bind(txh);
 

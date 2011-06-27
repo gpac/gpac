@@ -712,6 +712,7 @@ void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u
 		/*since the CB is a simple pointer to the input frame, wait until it is released before getting 
 		back to the caller module*/
 		if (size) {
+			assert(cb->output->dataLength != 0);
 			gf_sema_wait(ch->odm->raw_frame_sema);
 		}
 	}
