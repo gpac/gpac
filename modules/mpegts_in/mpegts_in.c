@@ -719,7 +719,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	if (e) {
 		gf_term_on_connect(m2ts->service, NULL, e);	
 	}
-	return GF_OK;
+	return e;
 }
 
 static GF_Err M2TS_CloseService(GF_InputService *plug)
