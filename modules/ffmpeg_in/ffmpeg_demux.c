@@ -224,7 +224,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (ext) ext[0] = 0;
 
 	ext = strrchr(szName, '.');
-	if (strlen(ext) > 19) ext = NULL;
+	if (ext && strlen(ext) > 19) ext = NULL;
 
 	if (ext && strlen(ext) > 1) {
 		strcpy(szExt, &ext[1]);
@@ -255,12 +255,10 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		  }
 		}
 	}
-fprintf(stdout, "ffd check 1\n");
 
 	ctx = NULL;
     if (av_open_input_file(&ctx, szName, NULL, 0, NULL)<0) {
 		AVInputFormat *av_in = NULL;;
-fprintf(stdout, "ffd check 2 - ext %s\n", szExt);
 		/*some extensions not supported by ffmpeg*/
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
@@ -268,8 +266,6 @@ fprintf(stdout, "ffd check 2 - ext %s\n", szExt);
 			return 0;
 		}
 	}
-
-fprintf(stdout, "ffd check 3\n");
     if (!ctx || av_find_stream_info(ctx) <0) goto exit;
 
 	/*figure out if we can use codecs or not*/
@@ -318,7 +314,6 @@ fprintf(stdout, "ffd check 3\n");
 	}
 
 exit:
-fprintf(stdout, "ffd check exit\n");
     if (ctx) av_close_input_file(ctx);
 	return ret;
 }
