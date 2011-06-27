@@ -171,6 +171,9 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 	else if (!strcmp(prop_name, "hardware_stretch")) {
 		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
 	}
+	else if (!strcmp(prop_name, "http_bitrate")) {
+		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader)*8/1024);
+	}
 
 
 	SMJS_FREE(c, prop_name);
@@ -238,6 +241,11 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, js
 			gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
 		}
 	}
+	else if (!strcmp(prop_name, "http_bitrate")) {
+		u32 new_rate = JSVAL_TO_INT(*vp);
+		gf_dm_set_data_rate(term->downloader, new_rate * 128 /*1024/8*/);
+	}
+
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
@@ -826,6 +834,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	JSFunctionSpec gpacClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("getOption",		gpac_getOption, 3),
 		SMJS_FUNCTION_SPEC("setOption",		gpac_setOption, 4),
+		SMJS_FUNCTION_SPEC("get_option",		gpac_getOption, 3),
+		SMJS_FUNCTION_SPEC("set_option",		gpac_setOption, 4),
 		SMJS_FUNCTION_SPEC("enum_directory",	gpac_enum_directory, 1),
 		SMJS_FUNCTION_SPEC("set_size",		gpac_set_size, 1),
 		SMJS_FUNCTION_SPEC("get_horizontal_dpi",	gpac_get_horizontal_dpi, 0),
