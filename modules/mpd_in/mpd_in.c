@@ -872,7 +872,7 @@ static u32 download_segments(void *par)
     GF_MPD_Period *period;
     GF_MPD_Representation *rep;
     GF_MPD_SegmentInfo *seg;
-    u32 i, group_count;
+    u32 i, group_count, ret = 0;
 	Bool go_on = 1;
     char *new_base_seg_url;
     assert(mpdin);
@@ -880,6 +880,7 @@ static u32 download_segments(void *par)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] Incorrect state, no mpdin->mpd for URL=%s, already stopped ?\n", mpdin->url));
       return 1;
     }
+
     /* Setting the download status in exclusive code */
     gf_mx_p(mpdin->dl_mutex);
     mpdin->mpd_is_running = 1;
@@ -897,19 +898,31 @@ static u32 download_segments(void *par)
     mpdin->mpd_stop_request=0;
 
 	if (e != GF_OK) {
-        gf_term_on_connect(mpdin->service, NULL, e);
-        return 1;
+        gf_term_on_connect(mpdin->service, NULL, e); //Romain
+        ret = 1;
+		goto exit;
     }
 
     mpdin->last_update_time = gf_sys_clock();
 
-	/* Forward the ConnectService message to the appropriate service for this type of segment */
+    gf_mx_p(mpdin->dl_mutex);
+    mpdin->mpd_is_running = 0;
+    gf_mx_v(mpdin->dl_mutex);
 	for (i=0; i<group_count; i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service... %s\n", group->segment_local_url));
-		group->service->ConnectService(group->service, mpdin->service, group->segment_local_url);
+		e = group->service->ConnectService(group->service, mpdin->service, group->segment_local_url);
+		if (e) {
+			ret = 1;
+			goto exit;
+		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service DONE\n", group->segment_local_url));
 	}
+
+    /* Setting the download status in exclusive code */
+    gf_mx_p(mpdin->dl_mutex);
+    mpdin->mpd_is_running = 1;
+    gf_mx_v(mpdin->dl_mutex);
 
 	while (go_on) {
 		const char *local_file_name = NULL;
@@ -1005,7 +1018,7 @@ static u32 download_segments(void *par)
 				if (rep->init_url)
 					new_base_seg_url = gf_url_concatenate(rep->default_base_url, rep->init_url);
 				else
-					new_base_seg_url = strdup(rep->default_base_url);
+					new_base_seg_url = gf_strdup(rep->default_base_url);
 			} else if (rep->default_base_url) {
 				new_base_seg_url = gf_url_concatenate(rep->default_base_url, seg->url);
 			} else {
@@ -1103,11 +1116,12 @@ static u32 download_segments(void *par)
 
     }
 
+exit:
     /* Signal that the download thread has ended */
     gf_mx_p(mpdin->dl_mutex);
     mpdin->mpd_is_running = 0;
     gf_mx_v(mpdin->dl_mutex);
-    return 0;
+    return ret;
 }
 
 const char * MPD_MPD_DESC = "HTTP MPD Streaming";
@@ -1260,7 +1274,7 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 			gf_free(group->cached[group->nb_cached].url);
 		}
 		gf_free(group->cached);
-		free(group);
+		gf_free(group);
 	}
 	gf_list_del(mpdin->groups);
 	mpdin->groups = NULL;
