@@ -379,6 +379,9 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 
 	cu = cb->input;
 	cu->RenderedLength = 0;
+	if (cu->dataLength && cb->odm->raw_frame_sema) 
+		gf_sema_notify(cb->odm->raw_frame_sema, 1);
+	
 	cu->dataLength = 0;
 	cu->TS = 0;
 	cu = cu->next;
@@ -412,6 +415,10 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 		cu->data = (char*) my_large_alloc(newCapacity);
 	} else {
 		cu->data = NULL;
+		if (cu->dataLength && cb->odm->raw_frame_sema) {
+			cu->dataLength = 0;
+			gf_sema_notify(cb->odm->raw_frame_sema, 1);
+		}
 	}
 	cu = cu->next;
 	while (cu != cb->input) {
