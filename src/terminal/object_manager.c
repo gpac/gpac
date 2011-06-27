@@ -670,8 +670,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	}
 	/*case 3: if the object is inserted from a broadcast, start it if not already done. This covers cases where the scene (BIFS, LASeR) and 
 	the media (images) are both carrouseled and the carrousels are interleaved. If we wait for the scene to trigger a PLAY, we will likely 
-	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal*/
-	else if (!odm->state && (odm->flags & GF_ODM_NO_TIME_CTRL) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
+	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal
+	we also force a prefetch for object declared outside the OD stream to make sure we don't loose any data before object declaration and play
+	as can be the case with MPEG2 TS (first video packet right after the PMT) - this should be refined*/
+	else if (!odm->state && ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
 		gf_odm_start(odm, 2);
 		odm->flags |= GF_ODM_PREFETCH;
