@@ -1424,7 +1424,7 @@ static JSBool SMJS_FUNCTION(svg_connection_create)
 	return JS_TRUE;
 }
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 /**
  * FIXME : those 5 funcs and two variables are not used anywhere...
  */
@@ -1462,7 +1462,7 @@ static JSFunctionSpec connectionFuncs[] = {
 	{"close", svg_connection_close, 0, 0, 0},
 	{0, 0, 0, 0, 0}
 };
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static void baseCI_finalize(JSContext *c, JSObject *obj)
 {
@@ -1617,7 +1617,7 @@ static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 #endif
 }
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static JSBool pathCI_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	pathCI *p;
@@ -1626,7 +1626,7 @@ static JSBool pathCI_constructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	*rval = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static void pathCI_finalize(JSContext *c, JSObject *obj)
 {

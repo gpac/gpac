@@ -2608,7 +2608,7 @@ static GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 	fprintf(sdump->trace, "/>\n");
 	return GF_OK;
 }
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static GF_Err DumpLSRInsert(GF_SceneDumper *sdump, GF_Command *com)
 {
 	return GF_OK;
@@ -2619,7 +2619,7 @@ static GF_Err SD_SetSceneGraph(GF_SceneDumper *sdump, GF_SceneGraph *sg)
 	if (sdump) sdump->sg = sg;
 	return GF_OK;
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static GF_Err DumpLSRRestore(GF_SceneDumper *sdump, GF_Command *com)
 {

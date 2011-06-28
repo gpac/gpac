@@ -359,7 +359,7 @@ static GF_ESD *od_get_esd(GF_ObjectDescriptor *OD, u16 ESID)
 	return NULL;
 }
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static void ODM_SelectAlternateStream(GF_ObjectManager *odm, u32 lang_code, u8 stream_type)
 {
 	u32 i;
@@ -409,7 +409,7 @@ static void ODM_SelectAlternateStream(GF_ObjectManager *odm, u32 lang_code, u8 s
 		}
 	}
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 
 /*Validate the streams in this OD, and check if we have to setup an inline scene*/

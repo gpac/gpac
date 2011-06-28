@@ -114,7 +114,7 @@ void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF
 	gf_mx2d_copy(tr_state->transform, *backup_matrix_2d);  
 }
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
 {
 #define CHECK_PROP(a, b) if (b) a = b;
@@ -138,7 +138,7 @@ static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, 
 	CHECK_PROP(render_svg_props->stroke_width, all_atts->stroke_width);
 	CHECK_PROP(render_svg_props->visibility, all_atts->visibility);
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static const struct svg_11_feature { const char *name; Bool supported; } svg11_features[] = 
 {

@@ -483,7 +483,7 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 	}
 }
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static void lsr_write_private_element_container(GF_LASeRCodec *lsr)
 {
 	/*NO PRIVATE DATA ON ENCODING YET*/
@@ -523,7 +523,7 @@ static Bool lsr_float_list_equal(GF_List *l1, GF_List *l2)
 	}
 	return 1;
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 
 
@@ -549,9 +549,9 @@ static void lsr_write_private_attributes(GF_LASeRCodec *lsr, SVG_Element *elt)
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_private_attr");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_private_attr");
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 		lsr_write_private_att_class(lsr);
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 	}
 }
 static void lsr_write_string_attribute(GF_LASeRCodec *lsr, char *class_attr, char *name)

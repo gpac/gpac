@@ -395,7 +395,7 @@ static GF_Err BD_DecNodeDeleteEx(GF_BifsDecoder * codec, GF_BitStream *bs)
 	return gf_node_replace(node, NULL, 1);
 }
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static GF_Err BD_DecOperandReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	s32 pos;
@@ -499,7 +499,7 @@ static GF_Err BD_DecOperandReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	gf_sg_vrml_field_copy(dst_ptr, src_ptr, src_type);
 	return GF_OK;
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static GF_Err BD_DecExtendedUpdate(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
