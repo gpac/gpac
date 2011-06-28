@@ -956,6 +956,10 @@ void gf_sys_close()
 		if (psapi_hinst) FreeLibrary(psapi_hinst);
 		psapi_hinst = NULL;
 #endif
+
+#ifdef GPAC_MEMORY_TRACKING
+		gf_memory_print();
+#endif
 	}
 }
 

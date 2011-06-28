@@ -620,7 +620,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 /*prints allocations sum-up*/
 void gf_memory_size()
 {
-	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_WARNING : GF_MEMORY_INFO;
+	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
 	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
 }
 
