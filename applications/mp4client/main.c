@@ -1685,16 +1685,6 @@ force_input:
 	gf_modules_del(user.modules);
 	gf_cfg_del(cfg_file);
 
-#ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker) {
-		gf_memory_print();
-		fprintf(stdout, "print any key\n");
-		while (!gf_prompt_has_input()) {
-			gf_sleep(100);
-		}
-	}
-#endif
-
 	gf_sys_close();
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);
