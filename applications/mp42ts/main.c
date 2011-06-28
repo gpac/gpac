@@ -40,6 +40,9 @@ static GFINLINE void usage(const char * progname)
 {
 	fprintf(stderr, "USAGE: %s -rate=R [[-prog=prog1]..[-prog=progn]] [-audio=url] [-video=url] [-mpeg4-carousel=n] [-mpeg4] [-time=n] [-src=file] DST [[DST]]\n"
 					"\n"
+#ifdef GPAC_MEMORY_TRACKING
+					"\t-mem-track:  enables memory tracker\n"
+#endif
 					"\t-rate=R                specifies target rate in kbps of the multiplex (mandatory)\n"
 					/* "\t                        If not set transport stream will be of variable bitrate\n" */
 					"\t-prog=filename         specifies an input file used for a TS service\n"
@@ -1247,9 +1250,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 	Bool mpeg4_signaling = 0; 
 	s32 i;
 	
-	/*first pass: find audio*/
+	/*first pass: find audio - NO GPAC INIT MODIFICATION MUST OCCUR IN THIS PASS*/
 	for (i=1; i<argc; i++) {
-		arg = argv[i];		
+		arg = argv[i];
 		if (!strnicmp(arg, "-video=", 7)) {
 			FILE *f;
 			if (video_input_found) {
@@ -1324,6 +1327,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 			mpeg4_found = 1;
 			mpeg4_signaling = 1;
+		} else if (!strcmp(arg, "-mem-track")) {
+#ifdef GPAC_MEMORY_TRACKING
+			gf_sys_close();
+			gf_sys_init(1);
+			gf_log_set_tools(gf_log_get_tools()|GF_LOG_MEMORY);
+#else
+			fprintf(stdout, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+#endif
 		}
 	}
 	/*second pass: other*/
@@ -1589,7 +1600,7 @@ int main(int argc, char **argv)
 	/*   gpac init   */
 	/*****************/
 	gf_sys_init(0);
-	gf_log_set_level(GF_LOG_ERROR);
+	gf_log_set_level(GF_LOG_CONTAINER|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR|GF_LOG_CODING);
 	gf_log_set_tools(0xFFFFFFFF);
 
 	/***********************/

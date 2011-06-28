@@ -124,8 +124,7 @@ void PrintUsage()
 	fprintf(stdout, "Usage MP4Client [options] [filename]\n"
 		"\t-c fileName:    user-defined configuration file. Also works with -cfg\n"
 #ifdef GPAC_MEMORY_TRACKING
-		"\t-mem-track:  unables memory tracker\n"
-		
+		"\t-mem-track:  enables memory tracker\n"
 #endif
 		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
 		"\t-rtix fileName: same as -rti but driven by GPAC logs\n"
@@ -875,7 +874,9 @@ int main (int argc, char **argv)
 	Bool rgbd_dump = 0;
 	Bool depth_dump = 0;
 	Bool pause_at_first = 0;
+#ifdef GPAC_MEMORY_TRACKING
 	Bool enable_mem_tracker = 0;
+#endif
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file, *views;
@@ -917,7 +918,11 @@ int main (int argc, char **argv)
 		}
 	}
 
+#ifdef GPAC_MEMORY_TRACKING
 	gf_sys_init(enable_mem_tracker);
+#else
+	gf_sys_init(0);
+#endif
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
@@ -1027,7 +1032,13 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else if (!strcmp(arg, "-pause")) pause_at_first = 1;
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
-		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
+		else if (!strcmp(arg, "-mem-track")) {
+#ifdef GPAC_MEMORY_TRACKING
+			enable_mem_tracker = 1;
+#else
+			fprintf(stdout, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+#endif
+		}
 		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 		else if (!strcmp(arg, "-opt")) {
 			char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
