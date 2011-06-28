@@ -1737,7 +1737,7 @@ static u32 avc_add_emulation_bytes(const unsigned char *buffer_src, unsigned cha
 	}
 	return nal_size+emulation_bytes_count;
 }
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 /*returns the nal_size without emulation prevention bytes*/
 static u32 avc_emulation_bytes_remove_count(unsigned char *buffer, u32 nal_size)
 {
@@ -1774,7 +1774,7 @@ static u32 avc_emulation_bytes_remove_count(unsigned char *buffer, u32 nal_size)
 
 	return emulation_bytes_count;
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 /*nal_size is updated to allow better error detection*/
 static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 

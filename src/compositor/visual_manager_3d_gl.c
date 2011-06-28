@@ -292,7 +292,7 @@ static char *default_glsl_vertex = "\
 		gl_TexCoord[0] = gl_MultiTexCoord0;\
 	}";
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static char *default_glsl_lighting = "\
 	varying vec3 gfNormal;\
 	varying vec3 gfView;\
@@ -308,7 +308,7 @@ static char *default_glsl_lighting = "\
 	   Ispec = clamp(Ispec, 0.0, 1.0);\
 	   gl_FragColor = gl_FrontLightModelProduct.sceneColor + Iamb + Idiff + Ispec;\
 	}";
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static char *glsl_view_anaglyph = "\
 	uniform sampler2D gfView1;\
@@ -322,7 +322,7 @@ static char *glsl_view_anaglyph = "\
 		gl_FragColor.b = col2.b;\
 	}";
 
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static char *glsl_view_anaglyph_optimize = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
@@ -335,7 +335,7 @@ static char *glsl_view_anaglyph_optimize = "\
 		gl_FragColor.g = col2.g;\
 		gl_FragColor.b = col2.b;\
 	}";
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 static char *glsl_view_columns = "\
 	uniform sampler2D gfView1;\

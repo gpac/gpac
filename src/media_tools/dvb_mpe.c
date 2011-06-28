@@ -1200,7 +1200,7 @@ void addPadding(MPE_FEC_FRAME *mff , u32 offset)
 	for ( i = offset ; i <mff->capacity_total; i ++ )
 	mff -> p_adt [i] = 0xff ; 
 }
-#ifdef UNUSED_FUNC
+#ifdef GPAC_UNUSED_FUNC
 static void print_bytes2(u8 * data, u32 length ) /*print_bytes2 */
 {
 	u32 i = 0; 
@@ -1220,7 +1220,7 @@ static void print_bytes2(u8 * data, u32 length ) /*print_bytes2 */
 		}
 	}
 }
-#endif /* UNUSED_FUNC */
+#endif /*GPAC_UNUSED_FUNC*/
 
 /*add a ip datagram into mpe fec frame, and indicate error positions*/
 void setIpDatagram(MPE_FEC_FRAME * mff, u32 offset, u8* dgram, u32 length )
