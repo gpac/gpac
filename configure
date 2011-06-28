@@ -297,7 +297,7 @@ case "$cpu" in
         ;;
     x86_64|amd64)
         cpu="x86"
-        if test "$linux" = "yes" ; then
+        if [ "$linux" = "yes" -o "$darwin" = "yes" ] ; then
             is_64="yes"
         fi
         case `uname -s` in
@@ -460,7 +460,9 @@ case $targetos in
         extralibs=""
         GPAC_SH_FLAGS=""
         strip="strip -x"
-        LDFLAGS="$LDFLAGS -read_only_relocs warning"
+        if test "$is_64" = "yes" ; then
+            LDFLAGS="$LDFLAGS -read_only_relocs warning"
+        fi
         darwin="yes"
         gcc_version=`$cc -v 2>&1 | grep version | cut -d ' ' -f3`
         case "$gcc_version" in
