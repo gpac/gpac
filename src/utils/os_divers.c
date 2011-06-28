@@ -193,7 +193,7 @@ GF_Err gf_delete_file(const char *fileName)
 {
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
-	CE_CharToWide(fileName, swzName);
+	CE_CharToWide((char*)fileName, swzName);
 	return (DeleteFile(swzName)==0) ? GF_IO_ERR : GF_OK;
 #elif defined(WIN32)
 	/* success if != 0 */
@@ -209,8 +209,8 @@ void gf_move_file(const char *fileName, const char *newFileName)
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	TCHAR swzNewName[MAX_PATH];
-	CE_CharToWide(fileName, swzName);
-	CE_CharToWide(newFileName, swzNewName);
+	CE_CharToWide((char*)fileName, swzName);
+	CE_CharToWide((char*)newFileName, swzNewName);
 	MoveFile(swzName, swzNewName);
 #elif defined(WIN32)
 	MoveFile(fileName, newFileName);
@@ -1651,11 +1651,19 @@ struct _GF_GlobalLock_opaque {
 
 GF_GlobalLock * gf_global_resource_lock(const char * resourceName){
 #ifdef WIN32
+#ifdef _WIN32_WCE
+	unsigned short sWResourceName[MAX_PATH];
+#endif
 	GF_GlobalLock *lock = gf_malloc(sizeof(GF_GlobalLock));
 	lock->resourceName = gf_strdup(resourceName);
 
 	/*first ensure mutex is created*/
+#ifdef _WIN32_WCE
+	CE_CharToWide((char *)resourceName, sWResourceName)
+	lock->hMutex = CreateMutex(NULL, TRUE, sWResourceName);
+#else
 	lock->hMutex = CreateMutex(NULL, TRUE, resourceName);
+#endif
 	if (!lock->hMutex) {
 		DWORD lastErr = GetLastError();
 		if (lastErr != ERROR_ALREADY_EXISTS)
