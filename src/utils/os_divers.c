@@ -1659,7 +1659,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName){
 
 	/*first ensure mutex is created*/
 #ifdef _WIN32_WCE
-	CE_CharToWide((char *)resourceName, sWResourceName)
+	CE_CharToWide((char *)resourceName, sWResourceName);
 	lock->hMutex = CreateMutex(NULL, TRUE, sWResourceName);
 #else
 	lock->hMutex = CreateMutex(NULL, TRUE, resourceName);
