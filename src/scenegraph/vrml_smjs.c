@@ -1411,7 +1411,7 @@ static void node_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 	JS_ObjectDestroyed(c, obj, ptr, is_js_call);
 
 	if (ptr) {
-		GF_Node *parent = (GF_Node *)JS_GetScript(ptr->js_ctx ? ptr->js_ctx : c);
+		JS_GetScript(ptr->js_ctx ? ptr->js_ctx : c);
 		if (ptr->node
 			/*num_instances may be 0 if the node is the script being destroyed*/
 			&& ptr->node->sgprivate->num_instances
@@ -3606,7 +3606,6 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSObject *obj
 {
 	u32 i;
 	jsval newVal;
-	GF_JSField *slot = NULL;
 	JSString *s;
 
 	/*we need to rebuild MF types where SF is a native type.*/
@@ -4095,8 +4094,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 {
-	u32 i=0;
-
 	while (gf_list_count(priv->js_cache)) {
 		GF_JSField *jsf;
 		/*we don't walk through the list since unprotecting an element could trigger GC which in turn could modify this list content*/
@@ -4540,7 +4537,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 
 			if (gf_list_del_item(sg->objects, node->sgprivate->interact->js_binding->node)>=0) {
 #ifndef GPAC_DISABLE_SVG
-				JSBool ret = gf_js_remove_root(sg->svg_js->js_ctx, &(node->sgprivate->interact->js_binding->node), GF_JSGC_OBJECT);
+				gf_js_remove_root(sg->svg_js->js_ctx, &(node->sgprivate->interact->js_binding->node), GF_JSGC_OBJECT);
 				if (sg->svg_js->in_script) 
 					sg->svg_js->force_gc = 1;
 				else

@@ -231,8 +231,7 @@ exit:
 static Bool video_encoding_thread_run(void *param)
 {
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
-    u64 currentFrameTimeProcessed = 0;
-    u32 lastEncodedFrameTime = 0;
+    u64 currentFrameTimeProcessed = 0, lastEncodedFrameTime = 0;
     AVCodecContext * ctx = NULL;
     assert( avr );
     gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );

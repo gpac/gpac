@@ -476,11 +476,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (f) {
 					char *data;
 					u32 size;
+					size_t read;
 					gf_f64_seek(f, 0, SEEK_END);
 					size = (u32) gf_f64_tell(f);
 					gf_f64_seek(f, 0, SEEK_SET);
 					data = gf_malloc(sizeof(char)*size);
-					fread(data, 1, size, f);
+					read = fread(data, 1, size, f);
+					assert(read);
+					assert(read == size);
 					fclose(f);
 					gf_gz_compress_payload(&data, size, &size);
 

@@ -49,6 +49,9 @@
 #define CFG_FILE_NAME	".gpacrc"
 
 #else
+#if GPAC_CONFIG_LINUX
+#include <unistd.h>
+#endif
 #define CFG_FILE_NAME	".gpacrc"
 #define TEST_MODULE		"gm_dummy_in.so"
 #endif

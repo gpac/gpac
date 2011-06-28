@@ -125,7 +125,6 @@ static void gf_yuv_load_lines_planar(unsigned char *dst, s32 dststride, unsigned
 static void gf_yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 width)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *) dst + dststride;
 
 	hw = width / 2;
 	for (x = 0; x < hw; x++) {

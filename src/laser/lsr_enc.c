@@ -484,7 +484,6 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 }
 
 #ifdef UNUSED_FUNC
-
 static void lsr_write_private_element_container(GF_LASeRCodec *lsr)
 {
 	/*NO PRIVATE DATA ON ENCODING YET*/

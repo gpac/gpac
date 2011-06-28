@@ -2239,7 +2239,6 @@ static u32 TSDemux_DemuxRun(void *_p)
 	gf_m2ts_reset_parsers(ts);
 	
 #ifdef GPAC_HAS_LINUX_DVB
-
 	if (ts->tuner) {
 		// in case of DVB
 		while (ts->run_state) {
@@ -2381,7 +2380,6 @@ static GF_Err TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
 		const char *mob_ip = NULL;
-		const char *mob_on = ts->network_type;
 		if (ts->MobileIPEnabled){
 			mob_ip = ts->network_type;
 		}			
@@ -2554,7 +2552,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, const char *url, const char *chan_pat
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 {
 	FILE *channels_config_file;
-	char line[255], name[255], *tmp, *channel_name;
+	char line[255], *tmp, *channel_name;
 
 	u32 freq;
 

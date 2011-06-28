@@ -1101,7 +1101,7 @@ static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 	/*browse for parent*/
 	return get_namespace_code_by_prefix(gf_node_get_parent(node, 0), prefix);
 }
-#endif
+#endif /* UNUSED_FUNC */
 
 static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
