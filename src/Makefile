@@ -156,10 +156,6 @@ EXTRALIBS+=-liconv
 MEDIATOOLS_CFLAGS+=-DGPAC_ENST_PRIVATE
 endif
 
-ifeq ($(LINUX_DVB), yes)
-MEDIATOOLS_CFLAGS+=-DGPAC_HAS_LINUX_DVB
-endif
-
 
 ##libgpac library output
 LIB=libgpac.$(DYN_LIB_SUFFIX)
