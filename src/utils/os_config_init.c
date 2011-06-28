@@ -49,7 +49,7 @@
 #define CFG_FILE_NAME	".gpacrc"
 
 #else
-#if GPAC_CONFIG_LINUX
+#ifdef GPAC_CONFIG_LINUX
 #include <unistd.h>
 #endif
 #define CFG_FILE_NAME	".gpacrc"
