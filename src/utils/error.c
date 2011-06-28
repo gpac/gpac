@@ -138,6 +138,7 @@ u32 gf_log_parse_level(const char *val)
 	if (!stricmp(val, "warning")) return GF_LOG_WARNING;
 	if (!stricmp(val, "info")) return GF_LOG_INFO;
 	if (!stricmp(val, "debug")) return GF_LOG_DEBUG;
+	fprintf(stderr, "Unknown log level specified: %s\n", val);
 #endif
 	return 0;
 }
@@ -174,6 +175,7 @@ u32 gf_log_parse_tools(const char *val)
 		else if (!stricmp(val, "mem")) flags |= GF_LOG_MEMORY;
 		else if (!stricmp(val, "module")) flags |= GF_LOG_MODULE;
 		else if (!stricmp(val, "mutex")) flags |= GF_LOG_MUTEX;
+		else fprintf(stderr, "Unknown log tool specified: %s\n", val);
 		if (!sep) break;
 		sep[0] = ':';
 		val = sep+1;
