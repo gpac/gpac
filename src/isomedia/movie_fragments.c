@@ -735,7 +735,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 	GF_SegmentIndexBox *root_sidx=NULL;
 	u64 sidx_start, sidx_end;
 	Bool first_sidx = 0;
-	u32 count, nb_subsegs, idx, cur_dur, sidx_dur, sidx_idx;
+	u32 count, nb_subsegs=0, idx, cur_dur, sidx_dur, sidx_idx;
 	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end;
 	GF_TrackBox *trak = NULL;
 	GF_Err e;

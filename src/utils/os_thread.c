@@ -540,7 +540,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	*/
 	{
 		char semaName[40];
-		sprintf(semaName,"GPAC_SEM%d", (u32) tmp);
+		sprintf(semaName,"GPAC_SEM%ld", (unsigned long) tmp);
 		tmp->SemName = gf_strdup(semaName);
 	}
 	tmp->hSemaphore = sem_open(tmp->SemName, O_CREAT, S_IRUSR|S_IWUSR, InitCount);

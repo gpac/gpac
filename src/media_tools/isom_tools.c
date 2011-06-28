@@ -850,7 +850,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	if (dash_ctx) {
 		if (store_dash_params) {
 			char szVal[1024];
-			sprintf(szVal, "%d", init_seg_size);
+			sprintf(szVal, LLU, init_seg_size);
 			gf_cfg_set_key(dash_ctx, "DASH", "InitializationSegmentSize", szVal);
 		} else {
 			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "InitializationSegmentSize");
@@ -1188,7 +1188,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
 			
 			sprintf(sKey, "TrackID_%d", tf->TrackID);
-			sprintf(sOpt, "%d", tf->InitialTSOffset + tf->next_sample_dts);
+			sprintf(sOpt, LLU, tf->InitialTSOffset + tf->next_sample_dts);
 			gf_cfg_set_key(dash_ctx, sKey, "NextDecodingTime", sOpt);
 		}
 		sprintf(sOpt, "%d", cur_seg);

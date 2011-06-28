@@ -1096,7 +1096,7 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 
 static u32 TTD_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
-	TTDPriv *priv = (TTDPriv *)ifce->privateStack;
+	/*TTDPriv *priv = (TTDPriv *)ifce->privateStack;*/
 	if (StreamType!=GF_STREAM_TEXT) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;

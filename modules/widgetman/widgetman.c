@@ -247,7 +247,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	dir = gf_cfg_get_key(wm->term->user->config, "General", "CacheDirectory");
 	/* create the extracted path for the package root using:
 	   the cache dir + a CRC of the file path and the instance*/
-	sprintf(wzip->root_extracted_path, "%s%08X", path, (u32) wzip);
+	sprintf(wzip->root_extracted_path, "%s%08X", path, (long) wzip);
 	i = gf_crc_32((char *)wzip->root_extracted_path, strlen(wzip->root_extracted_path));
 	sprintf(wzip->archive_id, "GWM_%08X_", i);
 	sprintf(wzip->root_extracted_path, "%s/%s", dir, wzip->archive_id);
@@ -326,7 +326,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 	dir = gf_cfg_get_key(wm->term->user->config, "General", "CacheDirectory");
 	/* create the extracted path for the package root using:
 	   the cache dir + a CRC of the file path and the instance*/
-	sprintf(wzip->root_extracted_path, "%s%08X", path, (u32) wzip);
+	sprintf(wzip->root_extracted_path, "%s%08X", path, (long) wzip);
 	i = gf_crc_32((char *)wzip->root_extracted_path, strlen(wzip->root_extracted_path));
 	sprintf(wzip->archive_id, "GWM_%08X_", i);
 	sprintf(wzip->root_extracted_path, "%s/%s", dir, wzip->archive_id);
