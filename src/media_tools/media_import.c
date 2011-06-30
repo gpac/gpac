@@ -4199,7 +4199,7 @@ restart_import:
 				res |= 0 ? 0x00000002 : 0;             // StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
 
 				// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
-				prio = (63 - p[1] & 0x3F) << 2;
+				prio = (63 - (p[1] & 0x3F)) << 2;
 				
 				if (set_subsamples) {
 					gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, prio, res, 1);
