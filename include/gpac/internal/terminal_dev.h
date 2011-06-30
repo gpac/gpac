@@ -583,7 +583,7 @@ struct _es_channel
 	/*last received AU time - if exceeding a certain time and buffering is on, buffering is turned off.
 	This is needed for streams with very short duration (less than buffer time) and stream with only one AU (BIFS/OD)*/
 	u32 last_au_time;
-	/*Current reassemnbling buffer - currently packets are NOT reordered, only AUs are*/
+	/*Current reassembling buffer - currently packets are NOT reordered, only AUs are*/
 	char *buffer;
 	u32 len, allocSize;
 	/*only for last packet of an AU*/

@@ -120,25 +120,46 @@ void isor_declare_objects(ISOMReader *read)
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_term_get_service_interface(read->service), "General", "CacheDirectory");
 		if (cdir) {
-			char szName[GF_MAX_PATH], *sep;
+			char szName[GF_MAX_PATH];
+			const char *sep;
 			FILE *t;
 			sep = strrchr(gf_isom_get_filename(read->mov), '\\');
 			if (!sep) sep = strrchr(gf_isom_get_filename(read->mov), '/');
+			if (!sep) sep = gf_isom_get_filename(read->mov);
 
 			if ((cdir[strlen(cdir)-1] != '\\') && (cdir[strlen(cdir)-1] != '/')) {
 				sprintf(szName, "%s/%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
 			} else {
 				sprintf(szName, "%s%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
 			}
+
 			t = gf_f64_open(szName, "wb");
+
 			if (t) {
+				Bool isom_contains_video = 0;
+
+				/*write cover data*/
+				assert(!(tlen & 0x80000000));
 				fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
 				fclose(t);
-				od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-				od->service_ifce = read->input;
-				od->objectDescriptorID = 1050;
-				od->URLString = gf_strdup(szName);
-				gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+
+				/*don't display cover art when video is present*/
+				for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
+					if (!gf_isom_is_track_enabled(read->mov, i+1))
+						continue;
+					if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) {
+						isom_contains_video = 1;
+						break;
+					}
+				}
+
+				if (!isom_contains_video) {
+					od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+					od->service_ifce = read->input;
+					od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
+					od->URLString = gf_strdup(szName);
+					gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+				}
 			}
 		}
 	}

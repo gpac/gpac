@@ -761,7 +761,7 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 	/*check on full URL without removing fragment IDs*/
 	if (include_sub_url) {
 		for (i=0; i<an_url->count; i++) {
-			if (!stricmp(szURL1, an_url->vals[i].url)) return 1;
+			if (an_url->vals[i].url && !stricmp(szURL1, an_url->vals[i].url)) return 1;
 		}
 		return 0;
 	}
