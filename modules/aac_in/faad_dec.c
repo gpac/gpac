@@ -50,7 +50,6 @@ typedef struct
 
 static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
-	s8 Test;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
@@ -73,26 +72,35 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	e = gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
 #endif
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("ctx->sample_rate:%d ctx->num_channels:%d esd->decoderConfig->decoderSpecificInfo->dataLength:%d esd->decoderConfig->decoderSpecificInfo->data:%s \n",ctx->sample_rate,ctx->num_channels,esd->decoderConfig->decoderSpecificInfo->dataLength,esd->decoderConfig->decoderSpecificInfo->data));
-	Test = (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels); 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Test: %d \n",Test));
-	if ( Test < 0) 
+	if (faacDecInit2(ctx->codec, (unsigned char *)esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0) 
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
-		char *dsi;
+		char *dsi, *s_base_object_type;
 		u32 dsi_len;
 		switch (a_cfg.base_object_type) {
-		case GF_M4A_AAC_MAIN:
-		case GF_M4A_AAC_LC:
-		case GF_M4A_AAC_SSR:
-		case GF_M4A_AAC_LTP:
-		case GF_M4A_AAC_SBR:
-		case GF_M4A_AAC_PS:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] 1 Error initializing stream %d\n", esd->ESID));
-			return GF_NOT_SUPPORTED;
-		default:
-			break;
+			case GF_M4A_AAC_MAIN:
+				s_base_object_type = gf_stringizer(GF_M4A_AAC_MAIN);
+				goto base_object_type_error;
+			case GF_M4A_AAC_LC:
+				s_base_object_type = gf_stringizer(GF_M4A_AAC_LC);
+				goto base_object_type_error;
+			case GF_M4A_AAC_SSR:
+				s_base_object_type = gf_stringizer(GF_M4A_AAC_SSR);
+				goto base_object_type_error;
+			case GF_M4A_AAC_LTP:
+				s_base_object_type = gf_stringizer(GF_M4A_AAC_LTP);
+				goto base_object_type_error;
+			case GF_M4A_AAC_SBR:
+				s_base_object_type = gf_stringizer(GF_M4A_AAC_SBR);
+				goto base_object_type_error;
+			case GF_M4A_AAC_PS:
+				s_base_object_type = gf_stringizer(GF_M4A_AAC_PS);
+				base_object_type_error: /*error case*/
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error: unsupported %s format for stream %d\n", s_base_object_type, esd->ESID));
+				return GF_NOT_SUPPORTED;
+			default:
+				break;
 		}
 		a_cfg.base_object_type = GF_M4A_AAC_LC;
 		a_cfg.has_sbr = 0;
@@ -104,7 +112,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (res < 0) 
 #endif
 		{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] 2 Error initializing stream %d\n", esd->ESID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error when initializing AAC decoder for stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		}
 	}

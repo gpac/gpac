@@ -72,6 +72,14 @@ extern "C" {
 #define GPAC_VERSION_INT	0x00000406
 
 /*!
+ *	\brief Stringizer
+ *	\hideinitializer
+ *
+ *	Macro transforming its input name into a string
+*/
+#define gf_stringizer(x) #x
+
+/*!
  *	\brief Memory allocation
  *	\hideinitializer
  *
