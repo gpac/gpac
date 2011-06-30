@@ -530,7 +530,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_TMPO:
 	case GF_ISOM_BOX_TYPE_CPIL:
 	case GF_ISOM_BOX_TYPE_PGAP:
-	case GF_ISOM_BOX_TYPE_COVR: return ListItem_New(boxType);
+	case GF_ISOM_BOX_TYPE_COVR:
+		return ListItem_New(boxType);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_New();
 	
@@ -779,7 +780,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TMPO:
 	case GF_ISOM_BOX_TYPE_CPIL:
 	case GF_ISOM_BOX_TYPE_PGAP:
-	case GF_ISOM_BOX_TYPE_COVR: ListItem_del(a); return;
+	case GF_ISOM_BOX_TYPE_COVR:
+		ListItem_del(a);
+		return;
 
 	case GF_ISOM_BOX_TYPE_DATA: data_del(a); return;
 
@@ -1009,7 +1012,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TMPO:
 	case GF_ISOM_BOX_TYPE_CPIL:
 	case GF_ISOM_BOX_TYPE_PGAP:
-	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_COVR:
+		return ListItem_Read(a, bs);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_Read(a, bs);
 
@@ -1239,7 +1243,8 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TMPO:
 	case GF_ISOM_BOX_TYPE_CPIL:
 	case GF_ISOM_BOX_TYPE_PGAP:
-	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_COVR:
+		return ListItem_Write(a, bs);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_Write(a, bs);
 
@@ -1467,7 +1472,8 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TMPO:
 	case GF_ISOM_BOX_TYPE_CPIL:
 	case GF_ISOM_BOX_TYPE_PGAP:
-	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Size(a);
+	case GF_ISOM_BOX_TYPE_COVR:
+		return ListItem_Size(a);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_Size(a);
 

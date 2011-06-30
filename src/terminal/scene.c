@@ -306,46 +306,48 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	root_od = scene->root_od;
 
 	url = mo->URLs.vals[0].url;
-	if (!stricmp(url, "KeySensor")) {
-		GF_ESD *esd = gf_odf_desc_esd_new(0);
-		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
-		esd->decoderConfig->objectTypeIndication = 1;
-		gf_free(esd->decoderConfig->decoderSpecificInfo->data);
-		esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" KeySensor");
-		esd->decoderConfig->decoderSpecificInfo->data[0] = 9;
-		esd->decoderConfig->decoderSpecificInfo->dataLength = 10;
-		esd->ESID = esd->OCRESID = 65534;
-		gf_list_add(odm->OD->ESDescriptors, esd);
-	} else if (!stricmp(url, "StringSensor")) {
-		GF_ESD *esd = gf_odf_desc_esd_new(0);
-		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
-		esd->decoderConfig->objectTypeIndication = 1;
-		gf_free(esd->decoderConfig->decoderSpecificInfo->data);
-		esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" StringSensor");
-		esd->decoderConfig->decoderSpecificInfo->data[0] = 12;
-		esd->decoderConfig->decoderSpecificInfo->dataLength = 13;
-		esd->ESID = esd->OCRESID = 65534;
-		gf_list_add(odm->OD->ESDescriptors, esd);
-	} else if (!stricmp(url, "Mouse")) {
-		GF_ESD *esd = gf_odf_desc_esd_new(0);
-		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
-		esd->decoderConfig->objectTypeIndication = 1;
-		gf_free(esd->decoderConfig->decoderSpecificInfo->data);
-		esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" Mouse");
-		esd->decoderConfig->decoderSpecificInfo->data[0] = 5;
-		esd->decoderConfig->decoderSpecificInfo->dataLength = 6;
-		esd->ESID = esd->OCRESID = 65534;
-		gf_list_add(odm->OD->ESDescriptors, esd);
-	} else {
-		if (!keep_fragment) {
-			char *frag = strrchr(mo->URLs.vals[0].url, '#');
-			if (frag) frag[0] = 0;
-			odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
-			if (frag) frag[0] = '#';
+	if (url) {
+		if (!stricmp(url, "KeySensor")) {
+			GF_ESD *esd = gf_odf_desc_esd_new(0);
+			esd->decoderConfig->streamType = GF_STREAM_INTERACT;
+			esd->decoderConfig->objectTypeIndication = 1;
+			gf_free(esd->decoderConfig->decoderSpecificInfo->data);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" KeySensor");
+			esd->decoderConfig->decoderSpecificInfo->data[0] = 9;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = 10;
+			esd->ESID = esd->OCRESID = 65534;
+			gf_list_add(odm->OD->ESDescriptors, esd);
+		} else if (!stricmp(url, "StringSensor")) {
+			GF_ESD *esd = gf_odf_desc_esd_new(0);
+			esd->decoderConfig->streamType = GF_STREAM_INTERACT;
+			esd->decoderConfig->objectTypeIndication = 1;
+			gf_free(esd->decoderConfig->decoderSpecificInfo->data);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" StringSensor");
+			esd->decoderConfig->decoderSpecificInfo->data[0] = 12;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = 13;
+			esd->ESID = esd->OCRESID = 65534;
+			gf_list_add(odm->OD->ESDescriptors, esd);
+		} else if (!stricmp(url, "Mouse")) {
+			GF_ESD *esd = gf_odf_desc_esd_new(0);
+			esd->decoderConfig->streamType = GF_STREAM_INTERACT;
+			esd->decoderConfig->objectTypeIndication = 1;
+			gf_free(esd->decoderConfig->decoderSpecificInfo->data);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" Mouse");
+			esd->decoderConfig->decoderSpecificInfo->data[0] = 5;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = 6;
+			esd->ESID = esd->OCRESID = 65534;
+			gf_list_add(odm->OD->ESDescriptors, esd);
 		} else {
-			odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
+			if (!keep_fragment) {
+				char *frag = strrchr(mo->URLs.vals[0].url, '#');
+				if (frag) frag[0] = 0;
+				odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
+				if (frag) frag[0] = '#';
+			} else {
+				odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
+			}
+			if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 		}
-		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 	}
 
 	/*HACK - temp storage of sync ref*/
