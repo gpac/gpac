@@ -176,11 +176,11 @@ enum
 	GF_M2TS_EVT_EIT_OTHER_PF,
 	/* An EIT message for the schedule of an other TS has been received */
 	GF_M2TS_EVT_EIT_OTHER_SCHEDULE,
+#endif
 	/* A message to inform about the current date and time in the TS */
 	GF_M2TS_EVT_TDT,
 	/* A message to inform about the current time offset in the TS */
 	GF_M2TS_EVT_TOT,
-#endif
 	/* A generic event message for EIT, TDT, TOT etc */
 	GF_M2TS_EVT_DVB_GENERAL,
 	/* MPE / MPE-FEC frame extraction and IP datagrams decryptation */
@@ -436,6 +436,16 @@ typedef struct
 	u32 logical_channel_number;
 } GF_M2TS_NIT;
 
+typedef struct
+{
+	u16 year;
+	u8 month;
+	u8 day;
+	u8 hour;
+	u8 minute;
+	u8 second;
+} GF_M2TS_TDT_TOT;
+
 #define GF_M2TS_BASE_DESCRIPTOR u32 tag;
 
 typedef struct {
@@ -576,6 +586,7 @@ struct tag_m2ts_demux
 	Bool all_prog_pmt_received;
 	/*keep it seperate for now - TODO check if we're sure of the order*/
 	GF_List *SDTs;
+	GF_M2TS_TDT_TOT *TDT_time; /*UTC time from both TDT and TOT (we currently ignore local offset)*/
 
 	/*user callback - MUST NOT BE NULL*/
 	void (*on_event)(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
@@ -586,7 +597,7 @@ struct tag_m2ts_demux
 	char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
-	GF_M2TS_SectionFilter *pat, *cat, *nit, *sdt, *eit, *tdt_tot_st;
+	GF_M2TS_SectionFilter *pat, *cat, *nit, *sdt, *eit, *tdt_tot;
 
 	Bool has_4on2;
 	/* analyser */
@@ -706,11 +717,11 @@ enum {
 	GF_M2TS_PID_TSDT		= 0x0002,
 	/* reserved 0x0003 to 0x000F */ 
 	GF_M2TS_PID_NIT_ST		= 0x0010,
-	GF_M2TS_PID_SDT_BAT_ST		= 0x0011,
-	GF_M2TS_PID_EIT_ST_CIT		= 0x0012,
+	GF_M2TS_PID_SDT_BAT_ST	= 0x0011,
+	GF_M2TS_PID_EIT_ST_CIT	= 0x0012,
 	GF_M2TS_PID_RST_ST		= 0x0013,
-	GF_M2TS_PID_TDT_TOT_ST		= 0x0014,
-	GF_M2TS_PID_NET_SYNC		= 0x0015,
+	GF_M2TS_PID_TDT_TOT_ST	= 0x0014,
+	GF_M2TS_PID_NET_SYNC	= 0x0015,
 	GF_M2TS_PID_RNT			= 0x0016,
 	/* reserved 0x0017 to 0x001B */ 
 	GF_M2TS_PID_IN_SIG		= 0x001C,
@@ -728,10 +739,10 @@ enum {
 	GF_M2TS_TABLE_ID_MPEG4_BIFS		= 0x04, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_MPEG4_OD		= 0x05, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_METADATA		= 0x06, 
-	GF_M2TS_TABLE_ID_IPMP_CONTROL		= 0x07, 
+	GF_M2TS_TABLE_ID_IPMP_CONTROL	= 0x07, 
 	/* 0x08 - 0x37 reserved */
 	/* 0x38 - 0x3D DSM-CC defined */
-	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE		= 0x3E, /* used for MPE (only, not MPE-FEC) */
+	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE	= 0x3E, /* used for MPE (only, not MPE-FEC) */
 	/* 0x3F DSM-CC defined */
 	GF_M2TS_TABLE_ID_NIT_ACTUAL		= 0x40, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_NIT_OTHER		= 0x41,
@@ -744,20 +755,20 @@ enum {
 	GF_M2TS_TABLE_ID_INT			= 0x4c, /* max size for section 4096 */
 	/* 0x4d reserved */
 	
-	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF		= 0x4E, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_EIT_OTHER_PF		= 0x4F,
+	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF	= 0x4E, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_EIT_OTHER_PF	= 0x4F,
 	/* 0x50 - 0x6f EIT SCHEDULE */
 	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN	= 0x50,
 	GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX= 0x5F,
 	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX	= 0x6F,
 
-	GF_M2TS_TABLE_ID_TDT			= 0x70,
+	GF_M2TS_TABLE_ID_TDT			= 0x70, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_TOT			= 0x73,
+	GF_M2TS_TABLE_ID_TOT			= 0x73, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_AIT			= 0x74,
 	GF_M2TS_TABLE_ID_CONT			= 0x75,
-	GF_M2TS_TABLE_ID_RC			= 0x76,
+	GF_M2TS_TABLE_ID_RC				= 0x76,
 	GF_M2TS_TABLE_ID_CID			= 0x77,
 	GF_M2TS_TABLE_ID_MPE_FEC		= 0x78,
 	GF_M2TS_TABLE_ID_RES_NOT		= 0x79,
