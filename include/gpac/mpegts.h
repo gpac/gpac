@@ -762,10 +762,10 @@ enum {
 	GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX= 0x5F,
 	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX	= 0x6F,
 
-	GF_M2TS_TABLE_ID_TDT			= 0x70, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_TDT			= 0x70, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_TOT			= 0x73, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_TOT			= 0x73, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_AIT			= 0x74,
 	GF_M2TS_TABLE_ID_CONT			= 0x75,
 	GF_M2TS_TABLE_ID_RC				= 0x76,
