@@ -117,6 +117,8 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	case GF_M2TS_TABLE_ID_PAT:
 	case GF_M2TS_TABLE_ID_SDT_ACTUAL:
 	case GF_M2TS_TABLE_ID_SDT_OTHER:
+	case GF_M2TS_TABLE_ID_TDT:
+	case GF_M2TS_TABLE_ID_TOT:
 	case GF_M2TS_TABLE_ID_BAT:
 		maxSectionLength = 1024; 
 		break;

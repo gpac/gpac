@@ -898,7 +898,7 @@ static u32 download_segments(void *par)
     mpdin->mpd_stop_request=0;
 
 	if (e != GF_OK) {
-        gf_term_on_connect(mpdin->service, NULL, e); //Romain
+        gf_term_on_connect(mpdin->service, NULL, e);
         ret = 1;
 		goto exit;
     }

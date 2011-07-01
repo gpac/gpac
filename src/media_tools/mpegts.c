@@ -757,16 +757,12 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
 	if (!sec->process_section) {
-
-
-		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) )
-		{				
+		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) ) {				
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
-
 		} else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -796,13 +792,21 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*look for proper table*/
 		table_id = data[0];
 
-		if ((table_id == GF_M2TS_TABLE_ID_PAT || table_id == GF_M2TS_TABLE_ID_SDT_ACTUAL || table_id == GF_M2TS_TABLE_ID_PMT || table_id == GF_M2TS_TABLE_ID_NIT_ACTUAL) && ts->on_event) {
-			GF_M2TS_SL_PCK pck;
-			pck.data_len = sec->length;
-			pck.data = sec->section;
-			pck.stream = (GF_M2TS_ES *)ses;
-			if(ts->on_event){
-			  ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
+		if (ts->on_event) {
+			switch (table_id) {
+				case GF_M2TS_TABLE_ID_PAT:
+				case GF_M2TS_TABLE_ID_SDT_ACTUAL:
+				case GF_M2TS_TABLE_ID_PMT:
+				case GF_M2TS_TABLE_ID_NIT_ACTUAL:
+				case GF_M2TS_TABLE_ID_TDT:
+				case GF_M2TS_TABLE_ID_TOT:
+				{
+					GF_M2TS_SL_PCK pck;
+					pck.data_len = sec->length;
+					pck.data = sec->section;
+					pck.stream = (GF_M2TS_ES *)ses;
+					ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
+				}
 			}
 		}
 
@@ -1080,7 +1084,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 
 	 nb_sections = gf_list_count(sections);
 	 if (nb_sections > 1) {
-	         GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("SDT on multiple sections not supported\n"));
+	         GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] SDT on multiple sections not supported\n"));
 	 }
 
 	 section = (GF_M2TS_Section *)gf_list_get(sections, 0);
@@ -1172,8 +1176,120 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] NIT table processing (not yet implemented)"));
+}
 
+extern void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day);
+static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt_tot_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
+{
+	unsigned char *data;
+	u32 data_size, nb_sections;
+	GF_M2TS_Section *section;
+	GF_M2TS_TDT_TOT *time_table;
+	const char *table_name;
 
+	/*wait for the last section */
+	if ( !(status & GF_M2TS_TABLE_END) )
+		return;
+
+	switch (table_id) {
+		case GF_M2TS_TABLE_ID_TDT:
+			table_name = "TDT";
+			break;
+		case GF_M2TS_TABLE_ID_TOT:
+			table_name = "TOT";
+			break;
+		default:
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Unimplemented table_id %u for PID %u\n", table_id, GF_M2TS_PID_TDT_TOT_ST));
+			return;
+	}
+
+	nb_sections = gf_list_count(sections);
+	if (nb_sections > 1) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] %s on multiple sections not supported\n", table_name));
+	}
+
+	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
+	data = section->data;
+	data_size = section->data_size;
+
+	/*TOT only contains 40 bits of UTC_time; TDT add descriptors and a CRC*/
+	assert(table_id!=GF_M2TS_TABLE_ID_TDT || data_size == 5); /**/
+	GF_SAFEALLOC(time_table, GF_M2TS_TDT_TOT);
+
+	/*UTC_time - see annex C of DVB-SI ETSI EN 300468*/
+	dvb_decode_mjd_date(data[0]*256 + data[1], &time_table->year, &time_table->month, &time_table->day);
+	time_table->hour   = 10*(data[2]&0xf0) + data[2]&0x0f;
+	time_table->minute = 10*(data[3]&0xf0) + data[3]&0x0f;
+	time_table->second = 10*(data[4]&0xf0) + data[4]&0x0f;
+	assert(time_table->hour<24 && time_table->minute<60 && time_table->second<60);
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream UTC time is %u/%u/%u %02u:%02u:%02u\n", time_table->year, time_table->month, time_table->day, time_table->hour, time_table->minute, time_table->second));
+
+	switch (table_id) {
+		case GF_M2TS_TABLE_ID_TDT:
+			if (ts->TDT_time) gf_free(ts->TDT_time);
+			ts->TDT_time = time_table;
+			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TDT, time_table);
+			break;
+		case GF_M2TS_TABLE_ID_TOT:
+#if 0
+			{
+				u32 pos, loop_len;
+				loop_len = ((data[5]&0x0f) << 8) | (data[6] & 0xff);
+				data += 7;
+				pos = 0;
+				while (pos < loop_len) {
+					u8 tag = data[pos];
+					pos += 2;
+					if (tag == GF_M2TS_DVB_LOCAL_TIME_OFFSET_DESCRIPTOR) {
+						char tmp_time[10];
+						u16 offset_hours, offset_minutes;
+						now->country_code[0] = data[pos];
+						now->country_code[1] = data[pos+1];
+						now->country_code[2] = data[pos+2];
+						now->country_region_id = data[pos+3]>>2;
+
+						sprintf(tmp_time, "%02x", data[pos+4]);
+						offset_hours = atoi(tmp_time);
+						sprintf(tmp_time, "%02x", data[pos+5]);
+						offset_minutes = atoi(tmp_time);
+						now->local_time_offset_seconds = (offset_hours * 60 + offset_minutes) * 60;
+						if (data[pos+3] & 1) now->local_time_offset_seconds *= -1;
+
+						dvb_decode_mjd_to_unix_time(data+pos+6, &now->unix_next_toc);
+
+						sprintf(tmp_time, "%02x", data[pos+11]);
+						offset_hours = atoi(tmp_time);
+						sprintf(tmp_time, "%02x", data[pos+12]);
+						offset_minutes = atoi(tmp_time);
+						now->next_time_offset_seconds = (offset_hours * 60 + offset_minutes) * 60;
+						if (data[pos+3] & 1) now->next_time_offset_seconds *= -1;
+						pos+= 13;
+					}
+				}
+				/*TODO: check lengths are ok*/
+				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, time_table);
+			}
+#endif
+			/*check CRC32*/
+			if (!gf_m2ts_crc32_check(ts->tdt_tot->section, ts->tdt_tot->length-4)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted %s table (CRC32 failed)\n", table_name));
+				goto error_exit;
+			}
+			if (ts->TDT_time) gf_free(ts->TDT_time);
+			ts->TDT_time = time_table;
+			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, time_table);
+			break;
+		default:
+			assert(0);
+			goto error_exit;
+	}
+
+	return; /*success*/
+
+error_exit:
+	gf_free(time_table);
+	return;
 }
 
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
@@ -1908,15 +2024,13 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size);
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_TDT_TOT_ST) {
-				gf_m2ts_gather_section(ts, ts->tdt_tot_st, NULL, &hdr, data, payload_size);
+				gf_m2ts_gather_section(ts, ts->tdt_tot, NULL, &hdr, data, payload_size);
 			} else {
 				/* ignore packet */
 			}
 		} else if (es->flags & GF_M2TS_ES_IS_SECTION) { 	/* The stream uses sections to carry its payload */
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
-			//fprintf(stderr, "000000000000000000000000000000000000000000000\n\n\n\n\n\n\n\n");
 			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
-			//fprintf(stderr, "callback: %x %x\n", ses->sec->process_section, gf_m2ts_process_pmt);
 		} else {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			/* regular stream using PES packets */
@@ -2161,7 +2275,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt, 1);
 	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
-	ts->tdt_tot_st = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_tdt_tot_st*/, 1);
+	ts->tdt_tot = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot, 1);
 
 #ifdef DUMP_MPE_IP_DATAGRAMS
 	gf_dvb_mpe_init(ts);
@@ -2183,7 +2297,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->sdt) gf_m2ts_section_filter_del(ts->sdt);
 	if (ts->nit) gf_m2ts_section_filter_del(ts->nit);
 	if (ts->eit) gf_m2ts_section_filter_del(ts->eit);
-	if (ts->tdt_tot_st) gf_m2ts_section_filter_del(ts->tdt_tot_st);
+	if (ts->tdt_tot) gf_m2ts_section_filter_del(ts->tdt_tot);
 
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		if (ts->ess[i]) gf_m2ts_es_del(ts->ess[i]);
@@ -2203,7 +2317,9 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 	gf_list_del(ts->programs);
 
+	if (ts->TDT_time) gf_free(ts->TDT_time);
 	gf_m2ts_reset_sdt(ts);
+	if (ts->tdt_tot)
 	gf_list_del(ts->SDTs);
 
 #ifdef DUMP_MPE_IP_DATAGRAMS

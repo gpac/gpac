@@ -23,31 +23,31 @@
 
 
 #include <gpac/tools.h>
-#include <math.h>
 #include <time.h>
 
 
 /* decodes an Modified Julian Date (MJD) into a Co-ordinated Universal Time (UTC)
 See annex C of DVB-SI ETSI EN 300468 */
-void dvb_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
+void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day)
 {
     u32 yp, mp, k;
-    yp = (u32)floor((date - 15078.2)/365.25);
-    mp = (u32)floor((date - 14956.1 - floor(yp * 365.25))/30.6001);
-    *day = (u32)(date - 14956 - floor(yp * 365.25) - floor(mp * 30.6001));
+    yp = (u32)((date - 15078.2)/365.25);
+    mp = (u32)((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
+    *day = (u32)(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
     if (mp == 14 || mp == 15) k = 1;
     else k = 0;
     *year = yp + k + 1900;
     *month = mp - 1 - k*12;
+	assert(*year>=1900 && *year<=2100 && *month && *month<12 && *day && *day<=31);
 }
 
 /* decodes an Modified Julian Date (MJD) into a unix time (i.e. seconds since Jan 1st 1970) */
-void dvb_decode_mjd_to_unix_time(unsigned char *data, time_t *unix_time) {
+void dvb_decode_mjd_to_unix_time(u8 *data, time_t *unix_time) {
     struct tm time;
     char tmp_time[10];
 
     memset(&time, 0, sizeof(struct tm));
-    dvb_decode_mjd_date((data[0] << 8) | data[1], &time.tm_year, &time.tm_mon, &time.tm_mday);
+    dvb_decode_mjd_date((data[0] << 8) | data[1], &((u16)time.tm_year), &((u8)time.tm_mon), &((u8)time.tm_mday));
     time.tm_year -= 1900;
     time.tm_mon -= 1; /* months are 0-based in time_t */
     time.tm_isdst = -1; /* we don't want to apply Daylight Saving Time */
