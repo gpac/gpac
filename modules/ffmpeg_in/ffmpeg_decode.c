@@ -510,12 +510,15 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability capability)
 {
 	FFDec *ffd = (FFDec *)plug->privateStack;
+	assert(plug);
+	assert( ffd );
 	switch (capability.CapCode) {
 	case GF_CODEC_WAIT_RAP:
 		ffd->frame_start = 0;
 		if (ffd->st==GF_STREAM_VISUAL) {
 			assert( ffd->base_ctx);
 			avcodec_flush_buffers(ffd->base_ctx);
+			assert( ffd->depth_ctx);
 			if (ffd->depth_ctx) avcodec_flush_buffers(ffd->depth_ctx);
 		}
 		return GF_OK;
@@ -1020,6 +1023,7 @@ void FFDEC_Delete(void *ifce)
         if (!ifce)
           return;
         ffd = dec->privateStack;
+	dec->privateStack = NULL;
         if (ffd){
           if (ffd->base_ctx) avcodec_close(ffd->base_ctx);
           ffd->base_ctx = NULL;
@@ -1033,6 +1037,5 @@ void FFDEC_Delete(void *ifce)
 #endif
           gf_free(ffd);
         }
-	dec->privateStack = NULL;
-	gf_free(dec);
+        gf_free(dec);
 }
