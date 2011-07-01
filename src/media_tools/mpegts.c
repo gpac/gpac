@@ -939,6 +939,7 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 	switch (table_id) {
 	case GF_M2TS_TABLE_ID_MPEG4_BIFS:
 	case GF_M2TS_TABLE_ID_MPEG4_OD:
+	case GF_M2TS_TABLE_ID_INT:
 	case GF_M2TS_TABLE_ID_EIT_ACTUAL_PF:
 	case GF_M2TS_TABLE_ID_EIT_OTHER_PF:
 	case GF_M2TS_TABLE_ID_ST:
@@ -1218,7 +1219,7 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 	GF_SAFEALLOC(time_table, GF_M2TS_TDT_TOT);
 
 	/*UTC_time - see annex C of DVB-SI ETSI EN 300468*/
-	dvb_decode_mjd_date(data[0]*256 + data[1], &time_table->year, &time_table->month, &time_table->day);
+	dvb_decode_mjd_date(data[0]*256 + data[1], &(time_table->year), &(time_table->month), &(time_table->day));
 	time_table->hour   = 10*(data[2]&0xf0) + data[2]&0x0f;
 	time_table->minute = 10*(data[3]&0xf0) + data[3]&0x0f;
 	time_table->second = 10*(data[4]&0xf0) + data[4]&0x0f;
