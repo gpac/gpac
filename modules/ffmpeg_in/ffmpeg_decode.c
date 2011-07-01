@@ -514,6 +514,7 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 	case GF_CODEC_WAIT_RAP:
 		ffd->frame_start = 0;
 		if (ffd->st==GF_STREAM_VISUAL) {
+			assert( ffd->base_ctx);
 			avcodec_flush_buffers(ffd->base_ctx);
 			if (ffd->depth_ctx) avcodec_flush_buffers(ffd->depth_ctx);
 		}
