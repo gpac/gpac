@@ -41,15 +41,20 @@ void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day)
 	assert(*year>=1900 && *year<=2100 && *month && *month<12 && *day && *day<=31);
 }
 
+#if 0 /*disabled since mktime doesn't exist on Windows Mobile*/
 /* decodes an Modified Julian Date (MJD) into a unix time (i.e. seconds since Jan 1st 1970) */
 void dvb_decode_mjd_to_unix_time(u8 *data, time_t *unix_time) {
     struct tm time;
     char tmp_time[10];
+    u16 year = (u16)time.tm_year;
+    u8 month = (u8) time.tm_mon;
+    u8 day   = (u8) time.tm_mday;
 
     memset(&time, 0, sizeof(struct tm));
-    dvb_decode_mjd_date((data[0] << 8) | data[1], &((u16)time.tm_year), &((u8)time.tm_mon), &((u8)time.tm_mday));
-    time.tm_year -= 1900;
-    time.tm_mon -= 1; /* months are 0-based in time_t */
+    dvb_decode_mjd_date((data[0] << 8) | data[1], &year, &month, &day);
+    time.tm_year = year - 1900;
+    time.tm_mon = month-1; /* months are 0-based in time_t */
+    time.tm_mday = day;
     time.tm_isdst = -1; /* we don't want to apply Daylight Saving Time */
 
     sprintf(tmp_time, "%02x", data[2]);
@@ -60,3 +65,4 @@ void dvb_decode_mjd_to_unix_time(u8 *data, time_t *unix_time) {
     time.tm_sec = atoi(tmp_time);
     *unix_time = mktime(&time);
 }
+#endif
