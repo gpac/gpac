@@ -353,7 +353,7 @@ typedef struct _netinterface
 	/* interface declaration*/
 	GF_DECL_MODULE_INTERFACE
 
-	/*retuns 1 if module can process this URL, 0 otherwise. This is only called when the file extension/mimeType cannot be
+	/*returns 1 if module can process this URL, 0 otherwise. This is only called when the file extension/mimeType cannot be
 	retrieved in the cfg file, otherwise the mime type/file ext is used to load service. Typically a module would 
 	register its mime types in this function (cf gf_term_register_mime_type below)
 	*/
