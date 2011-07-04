@@ -51,7 +51,7 @@ BASEPATH=$(pwd)
 
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
-ndk-build
+ndk-build 
 echo "[OK] build successful."
 
 #echo "Copying modules to modules dir..."

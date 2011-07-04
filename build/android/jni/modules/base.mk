@@ -1,4 +1,4 @@
-LOCAL_PATH := $(call my-dir)
+OCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/../common.mk
 LOCAL_C_INCLUDES 	:= $(LOCAL_PATH)
