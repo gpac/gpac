@@ -317,7 +317,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	/*setup audio streams*/
 	if (ffd->st==GF_STREAM_AUDIO) {
-		if ((*codec)->type == CODEC_ID_MP2) {
+		/* souchay : test was wrong I think, was codec->type but must be codec->id */
+		if ((*codec)->id == CODEC_ID_MP2) {
 			(*ctx)->frame_size = ((*ctx)->sample_rate > 24000) ? 1152 : 576;
 		}
 		/*may be 0 (cfg not known yet)*/
