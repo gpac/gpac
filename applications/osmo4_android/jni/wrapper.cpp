@@ -93,36 +93,36 @@ static JNINativeMethod sMethods[] = {
      /* name, signature, funcPtr */
 
     {"createInstance",
-      "(Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
-      (void*)&Java_com_artemis_Osmo4_GPACInstance_createInstance},
+      "(Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
+      (void*)&Java_com_gpac_Osmo4_GPACInstance_createInstance},
     {"gpacdisconnect",
       "()V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacdisconnect},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpacdisconnect},
     {"gpacrender",
       "()V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacrender},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpacrender},
     {"gpacresize",
       "(II)V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacresize},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpacresize},
     {"gpacfree",
       "()V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacfree},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpacfree},
     {"gpaceventkeypress",
       "(IIIII)V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress},
     {"gpaceventmousedown",
       "(FF)V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmousedown},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousedown},
     {"gpaceventmouseup",
       "(FF)V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmouseup},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmouseup},
     {"gpaceventmousemove",
       "(FF)V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmousemove},
+      (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousemove},
     {"setGpacPreference",
       "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-      (void*)Java_com_artemis_Osmo4_GPACInstance_setGpacPreference},
-    NULL
+      (void*)Java_com_gpac_Osmo4_GPACInstance_setGpacPreference},
+      NULL
 };
 
 
@@ -137,7 +137,7 @@ jint JNI_OnUnLoad(JavaVM* vm, void* reserved){
 
 //---------------------------------------------------------------------------------------------------
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
-        const char * className = "com/artemis/Osmo4/GPACInstance";
+        const char * className = "com/gpac/Osmo4/GPACInstance";
         JNIEnv * env;
         if (!vm)
           return -1;
@@ -647,7 +647,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	}
 
 	/*we don't thread the visual compositor to be able to minimize the app and still have audio running*/
-	m_user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
+ 	m_user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
 	//m_user.init_flags |= GF_TERM_NO_AUDIO;
 	m_user.opaque = this;
 
@@ -688,7 +688,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
         debug_log("init end");
 	LOGD("Saving config file %s...\n", m_cfg_filename);
         gf_cfg_save(m_user.config);
-        LOGI("Initialization complete, config file saved as %s.\n", m_cfg_filename);
+        LOGI("Initialization complete, config file saved as %s.\n", m_cfg_filename);	
+	
         return 0;
 }
 //-------------------------------
