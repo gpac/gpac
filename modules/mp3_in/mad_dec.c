@@ -62,6 +62,7 @@ typedef struct
 static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	MADCTX();
+	assert( ctx );
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 
 	if (ctx->configured) {
@@ -89,7 +90,10 @@ static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 static GF_Err MAD_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	MADCTX();
+	assert( ctx );
 	if (ES_ID != ctx->ES_ID) return GF_BAD_PARAM;
+	assert( ifcg );
+	assert( ctx );
 	ctx->ES_ID = 0;
 	if (ctx->buffer) gf_free(ctx->buffer);
 	ctx->buffer = NULL;
@@ -106,6 +110,7 @@ static GF_Err MAD_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 static GF_Err MAD_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
 {
 	MADCTX();
+	assert( ctx );
 	switch (capability->CapCode) {
 	/*not tested yet*/
 	case GF_CODEC_RESILIENT:
@@ -153,6 +158,7 @@ static GF_Err MAD_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 static GF_Err MAD_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
 	MADCTX();
+	assert( ctx );
 	switch (capability.CapCode) {
 	/*reset storage buffer*/
 	case GF_CODEC_WAIT_RAP:
@@ -194,6 +200,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 	char *ptr;
 	u32 num, outSize;
 	MADCTX();
+	assert( ctx );
 
 	/*check not using scalabilty*/
 	assert(ctx->ES_ID == ES_ID);
@@ -337,6 +344,7 @@ void DeleteMADDec(GF_MediaDecoder *ifcg)
         if (!ifcg)
           return;
         ctx = (MADDec *) ifcg->privateStack;
+        ifcg->privateStack = NULL;
         if (ctx){
           if (ctx->configured) {
 		mad_stream_finish(&ctx->stream);
@@ -348,8 +356,8 @@ void DeleteMADDec(GF_MediaDecoder *ifcg)
           ctx->num_channels = 0;
           gf_free(ctx);
 	}
-        ifcg->privateStack = NULL;
         gf_free(ifcg);
 }
 
 #endif
+
