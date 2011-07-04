@@ -571,9 +571,10 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 GF_RTPPacket *gf_isom_hint_rtp_new()
 {
 	GF_RTPPacket *tmp = (GF_RTPPacket *)gf_malloc(sizeof(GF_RTPPacket));
+	memset( tmp, 0, sizeof( GF_RTPPacket ));
 	tmp->TLV = gf_list_new();
 	tmp->DataTable = gf_list_new();
-	tmp->B_bit = tmp->M_bit = tmp->P_bit = tmp->payloadType = tmp->payloadType = tmp->R_bit = tmp->X_bit = 0;
+	tmp->B_bit = tmp->M_bit = tmp->P_bit = tmp->payloadType = tmp->R_bit = tmp->X_bit = 0;
 	tmp->relativeTransTime = 0;
 	tmp->SequenceNumber = 0;
 	return tmp;
