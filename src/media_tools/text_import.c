@@ -569,18 +569,11 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		if (duration && (start >= duration)) break;
 	}
 
-	/*final flush*/	
-	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
-		gf_isom_text_reset(samp);
-		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u64) ((timescale*end)/1000);
-		s->IsRAP = 1;
-		gf_isom_add_sample(import->dest, track, 1, s);
-		gf_isom_sample_del(&s);
-		nb_samp++;
-	}
 	gf_isom_delete_text_sample(samp);
-	gf_isom_set_last_sample_duration(import->dest, track, 0);
+	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
+	to figure out when to stop displaying the last text sample
+	However update the last sample duration*/
+	gf_isom_set_last_sample_duration(import->dest, track, (u32) (end-start) );
 	gf_set_progress("Importing SRT", nb_samp, nb_samp);
 
 exit:
@@ -805,18 +798,12 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		gf_set_progress("Importing SUB", gf_f64_tell(sub_in), file_size);
 		if (duration && (end >= duration)) break;
 	}
-	/*final flush*/
-	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
-		gf_isom_text_reset(samp);
-		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u64)(FPS*(s64)end);
-		gf_isom_add_sample(import->dest, track, 1, s);
-		gf_isom_sample_del(&s);
-		nb_samp++;
-	}
-	gf_isom_delete_text_sample(samp);
-	
-	gf_isom_set_last_sample_duration(import->dest, track, 0);
+	gf_isom_delete_text_sample(samp);	
+	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
+	to figure out when to stop displaying the last text sample
+		However update the last sample duration*/
+
+	gf_isom_set_last_sample_duration(import->dest, track, (u32) (end-start) );
 	gf_set_progress("Importing SUB", nb_samp, nb_samp);
 
 exit:
