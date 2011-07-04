@@ -413,7 +413,7 @@ Bool visual_3d_compile_shader(u32 shader_id, const char *name, const char *sourc
 void visual_3d_init_shaders(GF_VisualManager *visual)
 {
 /* This test creates a compilation warning under MacOS since always defined, should now compile with -Wall -Werror */
-#if defined(GL_VERSION_2_0) && defined(GL_GLEXT_PROTOTYPES)
+#if (defined(GL_VERSION_2_0) && defined(GL_GLEXT_PROTOTYPES)) || defined(CONFIG_DARWIN_GL)
 #else
 	if (!glCreateProgram) return;
 #endif /* for Linux w/ OpenGL 2 + CONFIG_DARWIN_GL ... */
