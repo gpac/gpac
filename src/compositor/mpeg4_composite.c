@@ -442,7 +442,7 @@ static void composite_update(GF_TextureHandler *txh)
 #ifdef GPAC_USE_TINYGL
 			if (st->visual->type_3d && !compositor->visual->type_3d) {
 				st->tgl_ctx = ostgl_create_context(txh->width, txh->height, txh->transparent ? 32 : 24, &txh->data, 1);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Creating TinyGL Offscreen context 0x%08x (%d %d - pf %s)\n", st->tgl_ctx, txh->width, txh->width, gf_4cc_to_str(txh->pixelformat)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Creating TinyGL Offscreen context %p (%d %d - pf %s)\n", st->tgl_ctx, txh->width, txh->width, gf_4cc_to_str(txh->pixelformat)));
 			}
 #endif
 

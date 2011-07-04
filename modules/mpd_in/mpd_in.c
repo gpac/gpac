@@ -1188,7 +1188,7 @@ GF_Err MPD_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const cha
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	GF_InputService *segment_ifce = MPD_GetInputServiceForChannel(mpdin, channel);
     if (!plug || !plug->priv || !segment_ifce) return GF_SERVICE_ERROR;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Channel Connection (0x%x) request from terminal for %s\n", channel, url));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Channel Connection (%p) request from terminal for %s\n", channel, url));
 	return segment_ifce->ConnectChannel(segment_ifce, channel, url, upstream);
 }
 
@@ -1197,7 +1197,7 @@ GF_Err MPD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	GF_InputService *segment_ifce = MPD_GetInputServiceForChannel(mpdin, channel);
     if (!plug || !plug->priv || !segment_ifce) return GF_SERVICE_ERROR;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Disconnect channel (0x%x) request from terminal \n", channel));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Disconnect channel (%p) request from terminal \n", channel));
 
 	return segment_ifce->DisconnectChannel(segment_ifce, channel);
 }
@@ -1433,7 +1433,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     GF_DOMParser *mpd_parser;
     Bool is_m3u8 = 0;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Connection request (0x%x) from terminal for %s\n", serv, url));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
     if (!mpdin|| !serv || !url) return GF_BAD_PARAM;
 
@@ -1581,7 +1581,7 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 void MPD_Stop(GF_MPD_In *mpdin)
 {
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Stopping service 0x%x\n", mpdin->service));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Stopping service %p\n", mpdin->service));
     MPD_DownloadStop(mpdin);
     MPD_ResetGroups(mpdin);
 
@@ -1598,7 +1598,7 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 {
 	u32 i;
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Close Service (0x%x) request from terminal\n", mpdin->service));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Close Service (%p) request from terminal\n", mpdin->service));
    
 	for (i=0; i<gf_list_count(mpdin->groups); i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
@@ -1629,7 +1629,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	switch (com->command_type) {
     case GF_NET_SERVICE_INFO:
     {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Info command from terminal on Service (0x%x)\n", mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Info command from terminal on Service (%p)\n", mpdin->service));
 
 		e = GF_OK;
 		if (segment_ifce) {
@@ -1648,7 +1648,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         return GF_OK;
     }
     case GF_NET_SERVICE_HAS_AUDIO:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Has Audio command from terminal on Service (0x%x)\n", mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Has Audio command from terminal on Service (%p)\n", mpdin->service));
 		if (segment_ifce) {
 	        /* defer to the real input service */
 		    return segment_ifce->ServiceCommand(segment_ifce, com);
@@ -1665,30 +1665,30 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	switch (com->command_type) {
     case GF_NET_CHAN_SET_PADDING:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Padding command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Padding command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* for padding settings, the MPD level should not change anything */
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_SET_PULL:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Pull command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Pull command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* defer to the real input service */
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_INTERACTIVE:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Interactive command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Interactive command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* we are interactive (that's the whole point of MPD) */
         return GF_OK;
 
 	case GF_NET_CHAN_BUFFER:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Buffer query command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Buffer query command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_BUFFER_QUERY:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received buffer query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received buffer query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_DURATION:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Duration query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Duration query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* Ignore the duration given by the input service and use the one given in the MPD
            Note: the duration of the initial segment will be 0 anyway (in MP4).*/
         {
@@ -1700,7 +1700,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         }
         break;
     case GF_NET_CHAN_PLAY:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Play command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         mpdin->playback_speed = com->play.speed;
         mpdin->playback_start_range = com->play.start_range;
         mpdin->playback_end_range = com->play.end_range;
@@ -1708,69 +1708,69 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         return segment_ifce->ServiceCommand(segment_ifce, com);
 
 	case GF_NET_CHAN_STOP:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Stop command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Stop command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 		group->done = 1;
         return segment_ifce->ServiceCommand(segment_ifce, com);
     case GF_NET_CHAN_PAUSE:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Pause command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Pause command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
     case GF_NET_CHAN_RESUME:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Resume command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Resume command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
 	case GF_NET_CHAN_SET_SPEED:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Speed command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Speed command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* recording the speed, to change the segment download speed */
         mpdin->playback_speed = com->play.speed;
         return segment_ifce->ServiceCommand(segment_ifce, com);
 
 	case GF_NET_CHAN_CONFIG:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Config command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Set Config command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* defer to the real input service */
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_GET_PIXEL_AR:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Pixel Aspect Ratio query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Pixel Aspect Ratio query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         /* defer to the real input service */
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_GET_DSI:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Decoder Specific Info query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Decoder Specific Info query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_MAP_TIME:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Map Time query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Map Time query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_RECONFIG:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Reconfig command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Reconfig command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_DRM_CFG:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received DRM query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received DRM query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_CHAN_GET_ESD:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Elementary Stream Descriptor query from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Elementary Stream Descriptor query from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_BUFFER_QUERY:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Global Buffer query from terminal on Service (0x%x)\n", mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Global Buffer query from terminal on Service (%p)\n", mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_GET_STATS:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Statistics query from terminal on Service (0x%x)\n", mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Statistics query from terminal on Service (%p)\n", mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_IS_CACHABLE:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Cachable query from terminal on Service (0x%x)\n", mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Cachable query from terminal on Service (%p)\n", mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     case GF_NET_SERVICE_MIGRATION_INFO:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Migration info query from terminal on Service (0x%x)\n", mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Migration info query from terminal on Service (%p)\n", mpdin->service));
         return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
     default:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received unknown command (%d) on Service (0x%x)\n",com->command_type, mpdin->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received unknown command (%d) on Service (%p)\n",com->command_type, mpdin->service));
         return GF_SERVICE_ERROR;
     }
 }
@@ -1806,7 +1806,7 @@ Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	/*JLF: commented out, this shall not happen*/
 #if 0
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Can Handle URL In Service (0x%x) request from terminal for %s\n", mpdin->service, url));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", mpdin->service, url));
     if (!plug || !plug->priv) return GF_SERVICE_ERROR;
     if (mpdin->url && !strcmp(mpdin->url, url)) {
         return 1;

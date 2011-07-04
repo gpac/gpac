@@ -306,7 +306,7 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
 		js_rt->mx = gf_mx_new("JavaScript");
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated %p\n", js_runtime));
 		gf_sg_load_script_modules(sg);
 	}
 	js_rt->nb_inst++;
@@ -3814,7 +3814,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				&& (jsf->field.far_ptr==field->far_ptr)
 #endif
 				) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj 0x%08x (field %s) in script %s bank (%d entries)\n", obj, field->name, gf_node_get_log_name((GF_Node*)JS_GetScript(priv->js_ctx)), gf_list_count(priv->js_cache) ) );
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj %p (field %s) in script %s bank (%d entries)\n", obj, field->name, gf_node_get_log_name((GF_Node*)JS_GetScript(priv->js_ctx)), gf_list_count(priv->js_cache) ) );
 				if (!force_evaluate && !jsf->field.NDTtype) return OBJECT_TO_JSVAL(obj);
 
 				gf_sg_script_update_cached_object(priv, obj, jsf, field, parent);

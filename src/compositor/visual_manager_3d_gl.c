@@ -867,7 +867,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	has_col = has_tx = has_norm = 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 
 
 	if ((compositor->reset_graphics==2) && mesh->vbo) {
