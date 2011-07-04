@@ -24,11 +24,11 @@ extern "C" {
 //                        __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, "Handle = %p", wr);
 
 /*
- * Class:     com_artemis_Osmo4_GPACInstance
+ * Class:     com_gpac_Osmo4_GPACInstance
  * Method:    createInstance
- * Signature: (Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
+ * Signature: (Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring url_to_open)
+JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring url_to_open)
 {
         jboolean isCopy;
         const char * s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
@@ -66,7 +66,7 @@ JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEn
         return (jlong) gpac_obj;
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacconnect(JNIEnv * env, jobject obj, jstring fileName)
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacconnect(JNIEnv * env, jobject obj, jstring fileName)
 {
         CAST_HANDLE(wr);
         jniLOGV("connect::start");
@@ -83,7 +83,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacconnect(JNIEnv * 
         jniLOGV("connect::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacdisconnect(JNIEnv * env, jobject obj){
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacdisconnect(JNIEnv * env, jobject obj){
         CAST_HANDLE(wr);
         jniLOGV("disconnect::start");
         if (wr)
@@ -91,7 +91,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacdisconnect(JNIEnv
         jniLOGV("disconnect::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacfree(JNIEnv * env, jobject obj)
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacfree(JNIEnv * env, jobject obj)
 {
         CAST_HANDLE(wr);
         jniLOGV("free::start");
@@ -100,7 +100,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacfree(JNIEnv * env
         jniLOGV("free::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacrender (JNIEnv * env, jobject obj)
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacrender (JNIEnv * env, jobject obj)
 {
         CAST_HANDLE(wr);
         //jniLOGV("render::start");
@@ -109,7 +109,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacrender (JNIEnv * 
         //jniLOGV("render::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacresize (JNIEnv * env, jobject obj, jint width, jint height)
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacresize (JNIEnv * env, jobject obj, jint width, jint height)
 {
         CAST_HANDLE(wr);
         jniLOGV("resize::start");
@@ -118,7 +118,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpacresize (JNIEnv * 
         jniLOGV("resize::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmousedown(JNIEnv * env, jobject obj, jfloat x, jfloat y){
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventmousedown(JNIEnv * env, jobject obj, jfloat x, jfloat y){
         CAST_HANDLE(wr);
         jniLOGV("mouseDown::start");
         if (wr)
@@ -126,7 +126,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmousedown(JN
         jniLOGV("mouseDown::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmouseup(JNIEnv * env, jobject obj, jfloat x, jfloat y){
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventmouseup(JNIEnv * env, jobject obj, jfloat x, jfloat y){
         CAST_HANDLE(wr);
         jniLOGV("mouseUp::start");
         if (wr)
@@ -134,7 +134,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmouseup(JNIE
         jniLOGV("mouseUp::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmousemove(JNIEnv * env, jobject obj, jfloat x, jfloat y){
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventmousemove(JNIEnv * env, jobject obj, jfloat x, jfloat y){
         CAST_HANDLE(wr);
         jniLOGV("mouseMouv::start");
         if (wr)
@@ -142,21 +142,32 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmousemove(JN
         jniLOGV("mouseMouv::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag, jint unicode){
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag, jint unicode){
         CAST_HANDLE(wr);
         jniLOGV("keypress::start");
         if (wr)
           wr->onKeyPress(keycode, rawkeycode, up, flag, unicode);
         jniLOGV("keypress::end");
 }
-
+/*
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_getdpi(JNIEnv * env, jobject obj, jint keycode,jfloat x, jfloat y){
+        CAST_HANDLE(wr);
+        jniLOGV("get DPI::start");
+	jclass cls = (*env)->GetObjectClass(env, obj);
+	jmethodID mid = (*env)->GetStaticMethodID(env, cls, "getdpi", "(FF)V");
+	if (mid == 0)
+	  return;
+	(*env)->CallStaticIntMethod(env, cls, mid, x,y);
+        jniLOGV("get DPI::end");
+}
+*/
 
 /*
- * Class:     com_artemis_Osmo4_GPACInstance
+ * Class:     com_gpac_Osmo4_GPACInstance
  * Method:    setGpacPreference
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_setGpacPreference
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_setGpacPreference
   (JNIEnv * env, jobject obj, jstring category, jstring name, jstring value){
         CAST_HANDLE(wr);
         jboolean isCopy;
