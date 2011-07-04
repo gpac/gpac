@@ -1,0 +1,54 @@
+*********************************
+* How to build GPAC for Android *
+*********************************
+
+To compile GPAC for Android, please execute the following steps:
+
+
+1) Check out the GPAC SVN repository:
+   "svn co https://gpac.svn.sourceforge.net/svnroot/gpac/trunk/". This directory will be reminded as GPAC_DIR
+
+2) Create a directory Android
+   In this file this directory will be call ANDROID_DIR
+
+3) Get the Android softwares
+
+  A.Download the Android SDK at http://developer.android.com/sdk/index.html and unzip it in ANDROID_DIR. This directory will be reminded as ANDROID_SDK
+  
+  B.Download the Android NDK at http://developer.android.com/sdk/ndk/index.html and unzip it in ANDROID_DIR. This directory will be reminded as ANDROID_NDK
+
+  Only one of the two are nedeed for building the APK (Android Package) but you can have both of them. 
+
+  C. If you want to build the APK with command lines, you have to get ANT (at least the 1.8 version) at http://ant.apache.org/bindownload.cgi and install it. In this file the directory will be reminded as ANT_DIR
+
+  D. Eclipse IDE, is useful if you want to go beyond the compilation (ie program, use the simulator etc). Firstly, get Eclispe for java at http://www.eclipse.org/downloads/?osType=linux or sudo apt-get install eclipse.
+     Then get the ADT (Android Development Tools) plug-in in order to allow Eclipse to interact with Android tools at http://developer.android.com/sdk/eclipse-adt.html abd follow the instructions.
+
+  E. Get and install SDK Component for Android.
+     If you have ANT, launch <android_sdk>/tools/android. This opens a window. On the left panel, click on "Available packages", select "Android Repository" and then "Install Selected".
+     If you have Eclipse Select Window -> Preferences -> Android and put the SDK directory path. Then select Window > Android SDK and AVD Managergo get the packages (Android repository packages are needed. The third party ones depend of on which devices your want to develop your application. More informations at http://developer.android.com/sdk/adding-components.html.
+
+
+4) Building GPAC for Android
+
+  A. Links the Android SDK and NDK directories
+    
+   * cd /opt/
+   * sudo ln -s /home/xxx/xxx/<Android SDK> android_sdk
+   * sudo ln -s /home/xxx/xxx/<Android NDK> android_ndk
+
+  B. Building GPAC. Go to GPAC_DIR/build/android/jni and launch the script ./gpac_build_android /opt/android_ndk
+  ** Warning, two messages will appear to alert the user that he has not put the links to the SDK directory and the ANT one. These two parameters are used for the automatic build of Osmo4.apk package. This is detailed in Part 4.C **
+
+  C. Building the package Osmo4.apk with ANT
+     If you have ANT, create a link the ANT directory
+
+     * cd /opt/
+     * sudo ln -s /home/xxx/xxx/ANT_DIR ant
+      
+     Then go to GPAC_DIR/build/android/jni and launch the script ./gpac_build_android /opt/android_ndk /opt/android_sdk /opt/ant
+     It will generate the package Osmo4.apk sera in the following directory répertoire GPAC_DIR/applications/osmo4_android/bin
+
+   D. Building the package Osmo4.apk with Eclipse
+      Once the step 4.B done, Start Eclipse and select File->Import->General->Existing projects into Workspace and open the directory GPAC_DIR/applications/osmo4_android. Build the package and it is created in GPAC_DIR/applications/osmo4_android/bin.
+
