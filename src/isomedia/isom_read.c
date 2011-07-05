@@ -607,6 +607,28 @@ GF_Err gf_isom_get_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceTy
 	return GF_OK;
 }
 
+//Return the number of track references of a track for a given ReferenceType
+//return -1 if error
+GF_EXPORT
+Bool gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID)
+{
+	u32 i;
+	GF_TrackBox *trak;
+	GF_TrackReferenceTypeBox *dpnd;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return 0;
+	if (!trak->References) return 0;
+
+	dpnd = NULL;
+	if ( (movie->LastError = Track_FindRef(trak, referenceType, &dpnd)) ) return 0;
+	if (!dpnd) return 0;
+	for (i=0; i<dpnd->trackIDCount; i++) {
+		if (dpnd->trackIDs[i]==refTrackID) return 1;
+	}
+	return 0;
+}
+
+
 
 //Return the media time given the absolute time in the Movie
 GF_EXPORT
@@ -1114,6 +1136,18 @@ u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 
 	stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber+1, &dts);
 	return (u32) (dts - dur);
+}
+
+
+GF_EXPORT
+u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
+{
+	u32 size = 0;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !sampleNumber) return 0;
+
+	stbl_GetSampleSize(trak->Media->information->sampleTable->SampleSize, sampleNumber, &size);
+	return size;
 }
 
 //same as gf_isom_get_sample but doesn't fetch media data

@@ -480,6 +480,9 @@ u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumb
 /*returns sample duration in media timeScale*/
 u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
+/*returns sample size in bytes*/
+u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
+
 /*gets a sample given a desired decoding time IN MEDIA TIME SCALE
 and set the StreamDescIndex of this sample
 this index allows to retrieve the stream description if needed (2 media in 1 track)
@@ -592,6 +595,9 @@ s32 gf_isom_get_reference_count(GF_ISOFile *the_file, u32 trackNumber, u32 refer
 return -1 if error, 0 if the reference is a NULL one, or the trackNumber
 */
 GF_Err gf_isom_get_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 referenceIndex, u32 *refTrack);
+
+/*Return 1 if the given track has a reference to the given TreckID of a given ReferenceType, 0 otherwise*/
+Bool gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID);
 
 u8 gf_isom_get_pl_indication(GF_ISOFile *the_file, u8 PL_Code);
 
