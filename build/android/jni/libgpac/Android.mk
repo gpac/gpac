@@ -1,7 +1,3 @@
-#you should run gpac config first
-#./configure --host=arm-eabi CC=arm-eabi-gcc CPPFLAGS="-I$NDK/build/platforms/android-3/arch-arm/usr/include/" CFLAGS="-nostdlib" LDFLAGS="-Wl,-rpath-link=$NDK/build/platforms/android-4/arch-arm/usr/lib/ -L$NDK/build/platforms/android-3/arch-arm/usr/lib/" LIBS="-lc "
-#../../configure --host=arm-eabi CC=arm-eabi-gcc CPPFLAGS="-I$NDK/platforms/android-4/arch-arm/usr/include/" CFLAGS="-nostdlib" LDFLAGS="-Wl,-rpath-link=$NDK/platforms/android-4/arch-arm/usr/lib/ -L$NDK/platforms/android-4/arch-arm/usr/lib/" LIBS="-lc "
-
 LOCAL_PATH:= $(call my-dir)
 APP_ABI          := armeabi armeabi-v7a
 
