@@ -28,9 +28,9 @@
 
 GF_Box *ghnt_New()
 {
-	GF_HintSampleEntryBox *tmp = (GF_HintSampleEntryBox *) gf_malloc(sizeof(GF_HintSampleEntryBox));
+	GF_HintSampleEntryBox *tmp;
+	GF_SAFEALLOC(tmp, GF_HintSampleEntryBox);
 	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_HintSampleEntryBox));
 	tmp->HintDataTable = gf_list_new();
 	if (!tmp->HintDataTable) {
 		gf_free(tmp);
@@ -336,10 +336,12 @@ GF_GenericDTE *New_EmptyDTE()
 
 GF_GenericDTE *New_ImmediateDTE()
 {
-	GF_ImmediateDTE *dte = (GF_ImmediateDTE *)gf_malloc(sizeof(GF_ImmediateDTE));
-	dte->source = 1;
-	memset(dte->data, 0, 14);
-	dte->dataLength = 0;
+	GF_ImmediateDTE *dte;
+	GF_SAFEALLOC(dte, GF_ImmediateDTE);
+	if (dte) {
+		dte->source = 1;
+		dte->dataLength = 0;
+	}
 	return (GF_GenericDTE *)dte;
 }
 
@@ -570,13 +572,11 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 
 GF_RTPPacket *gf_isom_hint_rtp_new()
 {
-	GF_RTPPacket *tmp = (GF_RTPPacket *)gf_malloc(sizeof(GF_RTPPacket));
-	memset( tmp, 0, sizeof( GF_RTPPacket ));
+	GF_RTPPacket *tmp;
+	GF_SAFEALLOC(tmp, GF_RTPPacket);
+	if (!tmp) return NULL;
 	tmp->TLV = gf_list_new();
 	tmp->DataTable = gf_list_new();
-	tmp->B_bit = tmp->M_bit = tmp->P_bit = tmp->payloadType = tmp->R_bit = tmp->X_bit = 0;
-	tmp->relativeTransTime = 0;
-	tmp->SequenceNumber = 0;
 	return tmp;
 }
 
