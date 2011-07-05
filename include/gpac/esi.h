@@ -109,6 +109,8 @@ enum
 	GF_ESI_SIGNAL_DTS =	1<<1,
 	/*no more data to expect from this stream*/
 	GF_ESI_STREAM_IS_OVER	=	1<<2,
+	/*stream is not signaled through MPEG-4 Systems (OD stream) */
+	GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS =	1<<3,
 };
 
 typedef struct __elementary_stream_ifce 
@@ -137,6 +139,9 @@ typedef struct __elementary_stream_ifce
 	
 	char *decoder_config;
 	u32 decoder_config_size;
+	
+	/* MPEG-4 SL Config if any*/
+	GF_SLConfig *sl_config;
 
 	struct __esi_video_info info_video;
 	struct __esi_audio_info info_audio;

@@ -2641,7 +2641,7 @@ int mp4boxMain(int argc, char **argv)
 			break;
 #endif
 		case 7:
-			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
+			if (gf_isom_has_meta_xml(file, meta->root_meta, tk)) {
 				e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
 			} else {
 				fprintf(stdout, "No meta box in input file\n");

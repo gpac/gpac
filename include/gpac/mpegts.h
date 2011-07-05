@@ -50,9 +50,6 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 /*Maximum number of service in a TS*/
 #define GF_M2TS_MAX_SERVICES	65535
 
-/*When ODProfileLevelIndication has this value, only scene and od streams are sl-packetized*/
-#define GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING	10
-
 /*Maximum size of the buffer in UDP */
 #define UDP_BUFFER_SIZE	0x40000
 
@@ -388,6 +385,10 @@ typedef struct tag_m2ts_pes
 	Bool rap;
 	u64 PTS, DTS;
 	u32 pes_end_packet_number;
+	/*bytes not consumed from previous PES - shall be less than 9*/
+	unsigned char *prev_data;
+	/*number of bytes not consumed from previous PES - shall be less than 9*/
+	u32 prev_data_len;
 
 	u32 pes_start_packet_number;
 	/* PCR info related to the PES start */
@@ -402,8 +403,8 @@ typedef struct tag_m2ts_pes
 
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
-	/*returns the number of bytes consummed from the input data buffer*/
-	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
+	/*returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
+	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
 	/*LATM stuff - should be moved out of mpegts*/
 	unsigned char *buf;
 	u32 buf_len;
@@ -666,6 +667,7 @@ enum
 	/* ... */	
 	GF_M2TS_AVC_TIMING_HRD_DESCRIPTOR			= 0x2A,
 	/* ... */
+	GF_M2TS_MPEG4_ODUPDATE_DESCRIPTOR			= 0x35,
 
 	/* 0x2D - 0x3F - ISO/IEC 13818-6 values */
 	/* 0x40 - 0xFF - User Private values */
@@ -891,6 +893,8 @@ typedef struct __m2ts_mux_stream {
 	
 	/*multiplexer time - NOT THE PCR*/
 	GF_M2TS_Time time;
+	/*for PCR strreams, set to 1 when PCR has to be sent, 0 otherwise*/
+	u32 pcr_priority;
 
 	/*table tools*/
 	GF_M2TS_Mux_Table *tables;
@@ -903,21 +907,30 @@ typedef struct __m2ts_mux_stream {
 	u32 refresh_rate_ms;
 	Bool table_needs_update;
 
-	Bool (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
+	/*process PES or table update/framing
+	returns the priority of the stream,  0 meaning not scheduled, 1->N highest priority sent first*/
+	u32 (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
 
 	/*PES tools*/
 	void *pes_packetizer;
 	u32 mpeg2_stream_type;
 	u32 mpeg2_stream_id;
+	u32 scheduling_priority;
 
 	GF_ESIPacket curr_pck; /*current packet being processed - does not belong to the packet fifo*/
 	u32 pck_offset;
+	u32 next_payload_size, copy_from_next_packets;
+	u32 pes_data_len, pes_data_remain;
 	Bool force_new;
 	Bool discard_data;
+	
+	u32 next_pck_flags;
+	u64 next_pck_cts, next_pck_dts;
+
+	u32 reframe_overhead;
 
 	struct __elementary_stream_ifce *ifce;
 	Double ts_scale;
-	u64 initial_ts;
 
 	/*packet fifo*/
 	GF_M2TS_Packet *pck_first, *pck_last;
@@ -926,13 +939,11 @@ typedef struct __m2ts_mux_stream {
 	GF_Mutex *mx;
 	/*avg bitrate compute*/
 	u64 last_br_time;
-	u32 bytes_since_last_time;
+	u32 bytes_since_last_time, pes_since_last_time;
 
 	/*MPEG-4 over MPEG-2*/
 	u8 table_id;
 	GF_SLHeader sl_header;
-	/* MPEG-4 SL Config */
-	GF_SLConfig sl_config;
 
 	u32 last_aac_time;
 } GF_M2TS_Mux_Stream;
@@ -940,9 +951,16 @@ typedef struct __m2ts_mux_stream {
 enum {
 	GF_M2TS_MPEG4_SIGNALING_NONE = 0,
 	GF_M2TS_MPEG4_SIGNALING_FULL,
-	/*experimental profile where all PES media streams (audio, video, images) are sent directly on PES without SL-packetization*/
+	/*MPEG-4 over MPEG-2 profile where PES media streams may be refered to by the scene without SL-packetization*/
 	GF_M2TS_MPEG4_SIGNALING_SCENE
 };
+
+typedef struct __m2ts_base_descriptor 
+{
+	u8 tag;
+	u8 data_len;
+	char *data;
+} GF_M2TSDescriptor;
 
 
 struct __m2ts_mux_program {
@@ -961,9 +979,14 @@ struct __m2ts_mux_program {
 	GF_M2TS_Time ts_time_at_pcr_init;
 	u64 pcr_init_time, num_pck_at_pcr_init;
 	u64 last_pcr;
+	u64 last_dts;
 	u32 last_sys_clock;
+	u64 initial_ts;
+	Bool initial_ts_set;
 
 	GF_Descriptor *iod;
+	/*list of GF_M2TSDescriptor to add to the program descriptor loop. By default set to NULL, if non null will be reset and destroyed upon cleanup*/
+	GF_List *loop_descriptors;
 	Bool mpeg4_signaling;
 	Bool mpeg4_signaling_for_scene_only;
 };
@@ -987,6 +1010,9 @@ struct __m2ts_mux {
 	/*output bit-rate in bit/sec*/
 	u32 bit_rate;
 
+	/*init value for PCRs on all streams if 0, random value is used*/
+	u64 init_pcr_value;
+
 	char dst_pck[188], null_pck[188];
 
 	/*multiplexer time, incremented each time a packet is sent
@@ -998,6 +1024,8 @@ struct __m2ts_mux {
 	
     /* System time when the muxer is started */
     u32 init_sys_time;
+
+	Bool one_au_per_pes;
 
 	Bool eos_found;
 	u32 pck_sent_over_br_window, last_br_time, avg_br;
@@ -1023,14 +1051,19 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, Bool mpeg4_signaling);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr);
-void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
+void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);	
+void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux);
+
 const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status);
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
+/*set muxer in/out single-au pes mode. In this mode, each PES contains one and only one AU*/
+GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, Bool strict_au_pes_mode);
+GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
+
 /*user inteface functions*/
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale);
-void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig *slc);
 
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/

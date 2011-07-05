@@ -569,6 +569,9 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 				mo->odm->media_stop_time = 0;
 			}
 		}
+		/*done prefetching*/
+		mo->odm->flags &= ~GF_ODM_PREFETCH;
+
 		if (is_restart) {
 			mediacontrol_restart(mo->odm);
 		} else {
