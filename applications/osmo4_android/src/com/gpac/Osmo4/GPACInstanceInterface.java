@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 /**
  * @copyright RTL Group 2008

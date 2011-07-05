@@ -5,7 +5,7 @@
 // *
 // *
 // */
-//package com.artemis.Osmo4;
+//package com.gpac.Osmo4;
 //
 //import android.content.Context;
 //import android.graphics.Bitmap;

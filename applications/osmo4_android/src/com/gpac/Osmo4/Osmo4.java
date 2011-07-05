@@ -5,7 +5,7 @@
  * $Id$
  *
  */
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -53,8 +53,8 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
-import com.artemis.Osmo4.extra.FileChooserActivity;
-import com.artemis.Osmo4.logs.GpacLogger;
+import com.gpac.Osmo4.extra.FileChooserActivity;
+import com.gpac.Osmo4.logs.GpacLogger;
 
 /**
  * The main Osmo4 activity, used to launch everything
@@ -768,7 +768,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#displayMessage(String, String, int)
+     * @see com.gpac.Osmo4.GpacCallback#displayMessage(String, String, int)
      */
     @Override
     public void displayMessage(final String message, final String title, final int status) {
@@ -808,7 +808,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#onLog(int, int, String)
+     * @see com.gpac.Osmo4.GpacCallback#onLog(int, int, String)
      */
     @Override
     public void onLog(int level, int module, String message) {
@@ -816,7 +816,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#onProgress(java.lang.String, int, int)
+     * @see com.gpac.Osmo4.GpacCallback#onProgress(java.lang.String, int, int)
      */
     @Override
     public void onProgress(final String msg, final int done, final int total) {
@@ -841,7 +841,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#onGPACReady()
+     * @see com.gpac.Osmo4.GpacCallback#onGPACReady()
      */
     @Override
     public void onGPACReady() {
@@ -850,7 +850,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#onGPACError(java.lang.Throwable)
+     * @see com.gpac.Osmo4.GpacCallback#onGPACError(java.lang.Throwable)
      */
     @Override
     public void onGPACError(final Throwable e) {
@@ -903,7 +903,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#setCaption(java.lang.String)
+     * @see com.gpac.Osmo4.GpacCallback#setCaption(java.lang.String)
      */
     @Override
     public void setCaption(final String newCaption) {
@@ -926,7 +926,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#showKeyboard(boolean)
+     * @see com.gpac.Osmo4.GpacCallback#showKeyboard(boolean)
      */
     @Override
     public void showKeyboard(boolean showKeyboard) {

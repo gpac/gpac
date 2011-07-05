@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4.extra;
+package com.gpac.Osmo4.extra;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ListView;
-import com.artemis.Osmo4.R;
+import com.gpac.Osmo4.R;
 
 /**
  * @version $Revision$

@@ -1,4 +1,4 @@
-package com.artemis.mp4box;
+package com.enst.mp4box;
 
 
 public class mp4terminal {

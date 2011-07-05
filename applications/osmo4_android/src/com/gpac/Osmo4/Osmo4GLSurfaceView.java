@@ -1,4 +1,4 @@
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
@@ -139,7 +139,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     }
 
     /**
-     * @see com.artemis.Osmo4.GPACInstanceInterface#connect(java.lang.String)
+     * @see com.gpac.Osmo4.GPACInstanceInterface#connect(java.lang.String)
      */
     @Override
     public void connect(final String url) {
@@ -155,7 +155,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     }
 
     /**
-     * @see com.artemis.Osmo4.GPACInstanceInterface#disconnect()
+     * @see com.gpac.Osmo4.GPACInstanceInterface#disconnect()
      */
     @Override
     public void disconnect() {
@@ -171,7 +171,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     }
 
     /**
-     * @see com.artemis.Osmo4.GPACInstanceInterface#destroy()
+     * @see com.gpac.Osmo4.GPACInstanceInterface#destroy()
      */
     @Override
     public void destroy() {
@@ -187,7 +187,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     }
 
     /**
-     * @see com.artemis.Osmo4.GPACInstanceInterface#setGpacPreference(String, String, String)
+     * @see com.gpac.Osmo4.GPACInstanceInterface#setGpacPreference(String, String, String)
      */
     @Override
     public void setGpacPreference(final String category, final String name, final String value) {

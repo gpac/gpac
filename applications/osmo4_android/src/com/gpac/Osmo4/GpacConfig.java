@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 import java.io.File;
 import android.content.Context;
@@ -34,12 +34,12 @@ public class GpacConfig {
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacConfigDirectory + " for osmo"); //$NON-NLS-1$ //$NON-NLS-2$
         gpacCacheDirectory = new File(osmo, "cache").getAbsolutePath() + '/'; //$NON-NLS-1$
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacCacheDirectory + " for cache"); //$NON-NLS-1$ //$NON-NLS-2$
-        //gpacModulesDirectory = (new File(Environment.getDataDirectory() + "/data", "com.artemis.Osmo4")).getAbsolutePath() + '/'; //$NON-NLS-1$ //$NON-NLS-2$
+        //gpacModulesDirectory = (new File(Environment.getDataDirectory() + "/data", "com.gpac.Osmo4")).getAbsolutePath() + '/'; //$NON-NLS-1$ //$NON-NLS-2$
         //Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
         String dataDir;
         try {
             if (context == null || context.getPackageManager() == null) {
-                dataDir = Environment.getDataDirectory() + "/data/com.artemis.Osmo4/"; //$NON-NLS-1$
+                dataDir = Environment.getDataDirectory() + "/data/com.gpac.Osmo4/"; //$NON-NLS-1$
                 Log.e(LOG_GPAC_CONFIG, "Cannot get context or PackageManager, using default directory=" + dataDir); //$NON-NLS-1$
             } else
                 dataDir = context.getPackageManager().getApplicationInfo(context.getPackageName(), 0).dataDir;

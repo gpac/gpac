@@ -5,7 +5,7 @@
  * should not be modified by hand.
  */
 
-package org.artemis.mp4box;
+package com.enst.mp4box;
 
 public final class R {
     public static final class attr {

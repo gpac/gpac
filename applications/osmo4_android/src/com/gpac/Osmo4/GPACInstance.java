@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -361,7 +361,7 @@ public class GPACInstance implements GPACInstanceInterface {
     }
 
     /**
-     * @see com.artemis.Osmo4.GPACInstanceInterface#setGpacPreference(String, String, String)
+     * @see com.gpac.Osmo4.GPACInstanceInterface#setGpacPreference(String, String, String)
      */
     @Override
     public native void setGpacPreference(String category, String name, String value);

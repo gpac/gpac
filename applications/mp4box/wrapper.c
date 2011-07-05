@@ -27,7 +27,7 @@ extern "C" {
  
 char ** ConvertCommandLine( const char* sCommand, int* iNbArg );
                         
-JNIEXPORT void JNICALL Java_com_artemis_mp4box_mp4terminal_run(JNIEnv * env, jobject obj, jstring sCommand)
+JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobject obj, jstring sCommand)
 {
 	//CAST_HANDLE(wr);
     jniLOGV("mp4terminal::start");
