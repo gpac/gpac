@@ -29,8 +29,9 @@
 /*diff time in ms to consider an audio frame too early and insert silence*/
 #define MIN_RESYNC_TIME		500
 
-/*diff time in ms to consider an audio frame too late and drop it*/
-#define MAX_RESYNC_TIME		500
+/*diff time in ms to consider an audio frame too late and drop it - we should try to dynamically figure this out
+since the drift may be high on TS for example, where PTS-PCR>500ms is quite common*/
+#define MAX_RESYNC_TIME		1000
 
 struct __audiofilteritem
 {

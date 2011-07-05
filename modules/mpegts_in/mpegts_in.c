@@ -79,7 +79,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 		|| !strnicmp(url, "dvb://", 6)
 #endif
 	) {
-  	return 1;
+	  	return 1;
 	}
 
 	sExt = strrchr(url, '.');
@@ -96,11 +96,19 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	Bool ret = 0;
 	M2TSIn *m2ts;
-        if (!plug || !url)
-          return 0;
-        m2ts = (M2TSIn *)plug->priv;
-        if (!m2ts)
-          return 0;
+
+	if (!plug || !url)
+		return 0;
+	m2ts = (M2TSIn *)plug->priv;
+	if (!m2ts)
+		return 0;
+
+	if (!strnicmp(url, "pid://", 6)) {
+		u32 pid = atoi(url+6);
+		if (pid>=GF_M2TS_MAX_STREAMS) return 0;
+		if (m2ts->ts->ess[pid]) return 1;
+		return 0;
+	}
 
 #ifdef GPAC_HAS_LINUX_DVB
 	if (!stricmp(url, "dvb://EPG")) return 1;
@@ -238,7 +246,6 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u3
 static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regenerate_scene, Bool no_declare)
 {
 	u32 i, count;
-	Bool force_declare_ods = 0;
 
 	count = gf_list_count(prog->streams);
 #ifdef GPAC_HAS_LINUX_DVB
@@ -254,9 +261,6 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 #endif
 	if (m2ts->ts->file || m2ts->ts->dnload) m2ts->ts->file_regulate = no_declare ? 0 : 1;
 
-	if (prog->pmt_iod && (prog->pmt_iod->tag==GF_ODF_IOD_TAG) && (((GF_InitialObjectDescriptor*)prog->pmt_iod)->OD_profileAndLevel==GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING)) {
-		force_declare_ods = 1;
-	}
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
@@ -266,11 +270,9 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 
 		if (!prog->pmt_iod && !no_declare) {
 			MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
-		} else if (force_declare_ods) {
-			if ((es->stream_type!=GF_M2TS_SYSTEMS_MPEG4_PES) && (es->stream_type!=GF_M2TS_SYSTEMS_MPEG4_SECTIONS)) {
-				MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
-			}
-		}
+		} 
+		/*if IOD, streams not declared through OD framework are refered to by pid:// scheme, and will be declared upon
+		request by the terminal through GetServiceDesc*/
 	}
 
 	/*force scene regeneration*/
@@ -742,6 +744,15 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	M2TSIn *m2ts = plug->priv;
 	GF_Descriptor *desc = NULL;
 	char *frag;
+	M2TSIn_Prog *prog;
+
+	if (sub_url && !strnicmp(sub_url, "pid://", 6)) {
+		GF_ObjectDescriptor *od;
+		u32 pid = atoi(sub_url+6);
+		if (pid>=GF_M2TS_MAX_STREAMS) return NULL;
+		od = MP2TS_GetOD(m2ts, (GF_M2TS_PES*) m2ts->ts->ess[pid], NULL, 0, NULL);
+		return (GF_Descriptor *) od;
+	}
 
 	frag = sub_url ? strrchr(sub_url, '#') : NULL;
 	if (frag) frag++;
@@ -754,8 +765,6 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (!frag) {
 		m2ts->request_all_pids = 1;
 	} else {
-		M2TSIn_Prog *prog;
-
 		/*we need exclusive access*/
 		gf_mx_p(m2ts->mx);
 		if (!strnicmp(frag, "pid=", 4)) {
@@ -831,7 +840,10 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 				for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 					GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
 					if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-					if (pes->mpeg4_es_id == ES_ID) {
+					if ((pes->mpeg4_es_id == ES_ID)
+						/*for pid:// url*/
+						|| (!pes->mpeg4_es_id && (pes->pid == ES_ID))
+					) {
 						if (pes->user) {
 							e = GF_SERVICE_ERROR;
 							gf_term_on_connect(m2ts->service, channel, e);

@@ -1028,7 +1028,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 		if (ch->esd->URLString) {
 			strcpy(szURL, ch->esd->URLString);
 		} else {
-			sprintf(szURL, "ES_ID=%ud", ch->esd->ESID);
+			sprintf(szURL, "ES_ID=%u", ch->esd->ESID);
 		}
 
 		/*connect before setup: this is needed in case the decoder cfg is wrong, we may need to get it from
@@ -1192,8 +1192,6 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 	Bool skip_register = 1;
 	gf_term_lock_media_queue(odm->term, 1);
 
-	odm->flags &= ~GF_ODM_PREFETCH;
-
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
 	if (!odm->pending_channels && odm->OD) {
 		/*object is not started - issue channel setup requests*/
@@ -1263,6 +1261,14 @@ void gf_odm_play(GF_ObjectManager *odm)
 	MediaControlStack *ctrl;
 #endif
 	GF_Clock *parent_ck = NULL;
+
+	if (odm->codec && odm->codec->CB && !(odm->flags & GF_ODM_PREFETCH)) {
+		/*reset*/
+		gf_cm_set_status(odm->codec->CB, CB_STOP);
+		odm->codec->CB->HasSeenEOS = 0;
+	}
+	odm->flags &= ~GF_ODM_PREFETCH;
+
 
 	if (odm->parentscene) {
 		parent_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
@@ -1392,11 +1398,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
 	if (odm->codec) {
-		/*reset*/
-		if (odm->codec->CB) {
-			gf_cm_set_status(odm->codec->CB, CB_STOP);
-			odm->codec->CB->HasSeenEOS = 0;
-		}
 		gf_term_start_codec(odm->codec);
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) gf_term_start_codec(odm->subscene->scene_codec);

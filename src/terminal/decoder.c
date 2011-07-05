@@ -675,6 +675,15 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	/*image codecs*/
 	if (codec->CB->Capacity == 1) {
+		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
+		u8 new_unit_signature[20];
+		gf_sha1_csum(AU->data, AU->dataLength, new_unit_signature);
+		if (!memcmp(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature))) {
+			codec->nb_repeted_frames++;
+			gf_es_drop_au(ch);
+			return GF_OK;
+		}
+
 		/*usually only one image is tolerated in the stream, but just in case force reset of CB*/
 		if (codec->CB->UnitCount && (obj_time>=AU->CTS)) {
 			gf_mx_p(codec->odm->mx);
@@ -687,18 +696,9 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		if (codec->CB->UnitCount)
 			return GF_OK;
 
-		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
-		{
-			u8 new_unit_signature[20];
-			gf_sha1_csum(AU->data, AU->dataLength, new_unit_signature);
-			if (!memcmp(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature))) {
-				codec->nb_repeted_frames++;
-				gf_es_drop_au(ch);
-				return GF_OK;
-			}
-			codec->nb_repeted_frames = 0;
-			memcpy(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature));
-		}
+		codec->nb_repeted_frames = 0;
+		memcpy(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature));
+
 	}
 
 	/*try to refill the full buffer*/
@@ -850,7 +850,7 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d At %d (frame TS %d - %d ms ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d At %d (frame TS %d - %d ms ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
 			e = GF_OK;
 			break;
 		}
