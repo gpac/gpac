@@ -218,7 +218,23 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			}
 		
 		}
+	} else if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
+		cap.CapCode = GF_CODEC_OUTPUT_SIZE;
+		gf_codec_get_capability(codec, &cap);
+		if (codec->CB && (cap.cap.valueInt != codec->CB->UnitSize)) {
+			gf_cm_del(codec->CB);
+			codec->CB = NULL;
+		}
+		CUsize = cap.cap.valueInt;
+		/*create a semaphore in non-notified stage*/
+		codec->odm->raw_frame_sema = gf_sema_new(1, 0);
+
+		codec->CB = gf_cm_new(CUsize, 1, 1);
+		codec->CB->Min = 0;
+		codec->CB->odm = codec->odm;
+		ch->is_raw_channel = 1;
 	}
+
 
 	/*assign the first base layer as the codec clock by default, or current channel clock if no clock set
 	Also assign codec priority here*/
@@ -957,8 +973,62 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 {
 	cap->cap.valueInt = 0;
-	if (!codec->decio) return GF_OK;
-	return codec->decio->GetCapabilities(codec->decio, cap);
+	if (codec->decio) 
+		return codec->decio->GetCapabilities(codec->decio, cap);
+
+	if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
+		GF_BitStream *bs;
+		u32 pf, w, h, stride, out_size, sr, nb_ch, bpp, ch_cfg;
+		GF_Channel *ch = gf_list_get(codec->odm->channels, 0);
+		if (!ch || !ch->esd->decoderConfig->decoderSpecificInfo || !ch->esd->decoderConfig->decoderSpecificInfo->data) return 0;
+		bs = gf_bs_new(ch->esd->decoderConfig->decoderSpecificInfo->data, ch->esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+
+		pf = w = h = sr = nb_ch = bpp = ch_cfg = 0;
+		if (codec->type==GF_STREAM_VISUAL) {
+			pf = gf_bs_read_u32(bs);
+			w = gf_bs_read_u16(bs);
+			h = gf_bs_read_u16(bs);
+			out_size = gf_bs_read_u32(bs);
+			stride = gf_bs_read_u32(bs);
+		} else {
+			sr = gf_bs_read_u32(bs);
+			nb_ch = gf_bs_read_u16(bs);
+			bpp = gf_bs_read_u16(bs);
+			out_size = gf_bs_read_u32(bs);
+			ch_cfg = gf_bs_read_u32(bs);
+		}
+		gf_bs_del(bs);
+		switch (cap->CapCode) {
+		case GF_CODEC_WIDTH:
+			cap->cap.valueInt = w;
+			return GF_OK;
+		case GF_CODEC_HEIGHT:
+			cap->cap.valueInt = h;
+			return GF_OK;
+		case GF_CODEC_STRIDE:
+			cap->cap.valueInt = stride;
+			return GF_OK;
+		case GF_CODEC_PIXEL_FORMAT:
+			cap->cap.valueInt = pf;
+			return GF_OK;
+		case GF_CODEC_OUTPUT_SIZE:
+			cap->cap.valueInt = out_size;
+			return GF_OK;
+		case GF_CODEC_SAMPLERATE:
+			cap->cap.valueInt = sr;
+			return GF_OK;
+		case GF_CODEC_NB_CHAN:
+			cap->cap.valueInt = nb_ch;
+			return GF_OK;
+		case GF_CODEC_BITS_PER_SAMPLE:
+			cap->cap.valueInt = bpp;
+			return GF_OK;
+		case GF_CODEC_CHANNEL_CONFIG:
+			cap->cap.valueInt = ch_cfg;
+			return GF_OK;
+		}
+	}
+	return GF_BAD_PARAM;
 }
 
 GF_Err gf_codec_set_capability(GF_Codec *codec, GF_CodecCapability cap)
@@ -1172,6 +1242,12 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	case GF_STREAM_AUDIO:
 		if (!esd->decoderConfig->objectTypeIndication)
 			return GF_NON_COMPLIANT_BITSTREAM;
+		
+		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_RAW_MEDIA_STREAM) {
+			codec->flags |= GF_ESM_CODEC_IS_RAW_MEDIA;
+			codec->process = gf_codec_process_private_media;
+			return GF_OK;
+		}
 	default:
 		return Codec_LoadModule(codec, esd, PL);
 	}
@@ -1196,7 +1272,8 @@ void gf_codec_del(GF_Codec *codec)
 			break;
 #endif
 		default:
-			gf_modules_close_interface((GF_BaseInterface *) codec->decio);
+			if (codec->decio)
+				gf_modules_close_interface((GF_BaseInterface *) codec->decio);
 			break;
 		}
 	}
