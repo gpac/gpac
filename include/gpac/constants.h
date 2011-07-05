@@ -402,6 +402,27 @@ enum
     /*!OTI for 13K Voice / QCELP audio streams*/
     GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
 
+	/*!OTI for RAW media streams. Input data is directly dispatched to the composition memory.  The DSI contains is formated (MSBF) as follows:\n
+ *	DSI Syntax for audio streams
+ \code
+ *	u32 sample_rate: sampling rate
+ *	u16 nb_channels: num channels 
+ *	u16 nb_bits_per_sample: num of bits per audio sample
+ *	u32 frame_size: max size of audio frame in byte
+ *	u32 channel_config: GPAC mask of GF_AUDIO_CH_ constants, or 0 of unknown
+ \endcode
+ \n
+ *	DSI Syntax for video streams
+ \code
+ *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
+ *	u16 width: video width or 0 if unknown
+ *	u16 height: video height or 0 if unknown
+ *	u32 frame_size: size of the video frame
+ *	u32 stride: horizontal stride of the video frame
+ \endcode
+	*/
+	GPAC_OTI_RAW_MEDIA_STREAM = 0x101,
+
 	/*!OTI for LIBPLAYER private streams. The data pointer in the DSI is the libplayer handle object*/
     GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER = 0xF1
 };
