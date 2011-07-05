@@ -1,10 +1,10 @@
-package com.artemis.mp4box;
+package com.enst.mp4box;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.artemis.mp4box.R;
+import com.enst.mp4box.R;
 
 import android.app.Activity;
 import android.os.Bundle;

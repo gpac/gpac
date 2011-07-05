@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4.extra;
+package com.gpac.Osmo4.extra;
 
 import java.io.File;
 

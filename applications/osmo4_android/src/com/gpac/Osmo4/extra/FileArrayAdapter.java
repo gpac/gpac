@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4.extra;
+package com.gpac.Osmo4.extra;
 
 import java.io.File;
 import java.util.List;
@@ -13,7 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
-import com.artemis.Osmo4.R;
+import com.gpac.Osmo4.R;
 
 /**
  * Class that contains the list of file for given directory

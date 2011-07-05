@@ -1,4 +1,4 @@
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -23,7 +23,7 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
             try {
                 Log.i(LOG_RENDERER, "Creating instance from thread " + Thread.currentThread()); //$NON-NLS-1$
                 instance = new GPACInstance(callback, 320, 430, gpacConfig, urlToLoad);
-            } catch (com.artemis.Osmo4.GPACInstanceInterface.GpacInstanceException e) {
+            } catch (com.gpac.Osmo4.GPACInstanceInterface.GpacInstanceException e) {
                 Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
                 instance = null;
                 callback.onGPACError(e);

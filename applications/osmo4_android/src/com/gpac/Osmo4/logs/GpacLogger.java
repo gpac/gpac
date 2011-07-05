@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4.logs;
+package com.gpac.Osmo4.logs;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -13,8 +13,8 @@ import java.util.Date;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import android.util.Log;
-import com.artemis.Osmo4.GpacConfig;
-import com.artemis.Osmo4.GpacCallback.GF_Log_Module;
+import com.gpac.Osmo4.GpacConfig;
+import com.gpac.Osmo4.GpacCallback.GF_Log_Module;
 
 /**
  * This class handles logging.

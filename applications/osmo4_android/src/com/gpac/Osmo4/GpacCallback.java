@@ -3,7 +3,7 @@
  *
  * $LastChangedBy$ - $LastChangedDate$
  */
-package com.artemis.Osmo4;
+package com.gpac.Osmo4;
 
 /**
  * Interface to implement by Java Objects to listen for callbacks from GPAC native code
