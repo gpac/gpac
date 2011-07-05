@@ -42,9 +42,6 @@ typedef s32 off_t;
 
 #include "player.h"
 
-
-video_rect_t in, out;
-
 #endif
 
 static int libplayer_id = 0;
@@ -128,19 +125,19 @@ Bool LIBPLAYER_CanHandleURL(GF_InputService *plug, const char *url)
 
 static int on_libplayer_event(player_event_t e, void *data)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Received event %d\n", e));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerEvent] Received event %d\n", e));
 
-  switch (e) {
+	switch (e) {
 	case PLAYER_EVENT_PLAYBACK_FINISHED:
-	  player_playback_stop(data);
-	  player_playback_start(data);
-	  if ((in.w && in.h) || (out.w && out.h))
-					player_video_io_windows_set(data, &in, &out);
+		player_playback_stop(data);
+		player_playback_start(data);
 	  break;
     case PLAYER_EVENT_FE_HAS_LOCK:
       break;
     case PLAYER_EVENT_FE_TIMEDOUT:
       break;
+    case PLAYER_EVENT_VIDEO_PICTURE:
+	  break;
     default:
       break;
   }
@@ -148,29 +145,32 @@ static int on_libplayer_event(player_event_t e, void *data)
   return 0;
 }
 
+
+
 #endif
 
 GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
 #ifndef TEST_LIBPLAYER
-	unsigned long prop;
 	mrl_t *mrl = NULL;
 #endif
-	printf("[LibPlayerIN]connecting\n");
+
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[LibPlayerIN] Connecting\n"));
+	
 	if (!read || !serv || !url) return GF_BAD_PARAM;
 
 	if (!strnicmp(url, "libplayer://", 12)) url+=12;
   
 	if (!read->init) {
 		read->init=1;
-		/* libplayer init */
+		/* libplayer init with default width/height */
+		read->width = 80;
+		read->height = 20;
 		read->url = url;
 		read->player_id = libplayer_id;
 #ifndef TEST_LIBPLAYER
 		read->player = player_init(PLAYER_TYPE_DUMMY, PLAYER_AO_AUTO, PLAYER_VO_AUTO, PLAYER_MSG_INFO, read->player_id, on_libplayer_event);
-		//~ read->width = 0;
-		//~ read->height = 0;
 		
 		if (!read->player) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[LibPlayerIN] Failed to instanciate libplayer instance %d\n", read->player_id));
@@ -180,8 +180,6 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 #endif
 		libplayer_id++;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] Opening URL %s for Player instance %d\n", url, read->player_id));
-		//~ player_local_location_set(read->player, url);
-		
 	}
 	
 #ifndef TEST_LIBPLAYER
@@ -206,6 +204,7 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
 	}
+	
     player_mrl_set(read->player, mrl);
 
 #endif
@@ -241,21 +240,19 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 GF_Err LIBPLAYER_CloseService(GF_InputService *plug)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
-	if(libplayer_id >= 0){
+	
 #ifndef TEST_LIBPLAYER
-		printf("in do loop\n");
-		printf("[LibPlayerIN]read->url: %s\n", read->url);
 		player_playback_stop(read->player);
-		printf("[LibPlayerIN]player_playback_stop\n");
+		printf("[LibPlayerIN]player_playback_stop for instance %d\n", read->player_id);
 		player_uninit(read->player);
-		printf("[LibPlayerIN]player_uninit\n");
+		printf("[LibPlayerIN]player_uninit for instance %d\n", read->player_id);
 		read->player = NULL;
 		libplayer_id--;
 
 
 #endif
 		read->state = 0;
-	}
+
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIn] Closing libplayer instance %d\n", read->player_id));
 	return GF_OK;
@@ -271,6 +268,7 @@ static GF_Descriptor *LIBPLAYER_GetServiceDesc(GF_InputService *plug, u32 expect
 GF_Err LIBPLAYER_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
+	unsigned long prop = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] ServiceCommand for instance %d, read->state=%d\n", read->player_id, read->state));
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
@@ -371,32 +369,20 @@ static GF_Err LIBPLAYER_DetachStream(GF_BaseDecoder *dec, u16 ES_ID)
 static GF_Err LIBPLAYER_GetCapabilities(GF_BaseDecoder *dec, GF_CodecCapability *capability)
 {
 	LibPlayerIn *read = dec->privateStack;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] GetCapabilities\n"));
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] GetCapabilities\n"));
 	switch (capability->CapCode) {
 	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = 1280; //read->width; 320;
+		capability->cap.valueInt = read->width;
 		break;
 	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = 720; //read->height; 240;
+		capability->cap.valueInt = read->height;
 		break;
 	}
 	return GF_OK;
 }
 static GF_Err LIBPLAYER_SetCapabilities(GF_BaseDecoder *dec, GF_CodecCapability capability)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] SetCapabilities\n"));
-	//~ LibPlayerIn *read = dec->privateStack;
-	//~ if (capability.CapCode==GF_CODEC_WIDTH) {
-		//~ if (capability.cap.valueInt) {
-			//~ read->width = mrl_get_property(player, mrl, MRL_PROPERTY_VIDEO_WIDTH);
-			//~ TTD_ResetDisplay(priv);
-			//~ TTD_UpdateSizeInfo(priv);
-			//~ gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 0);
-		//~ } else {
-			//~ gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 1);
-		//~ }
-	//~ }
-	return GF_OK;
+	return GF_NOT_SUPPORTED;
 }
 static u32 LIBPLAYER_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
@@ -415,24 +401,38 @@ static const char *LIBPLAYER_GetName(GF_BaseDecoder *dec)
 
 static GF_Err LIBPLAYER_Control(GF_PrivateMediaDecoder *dec, Bool mute, GF_Window *src, GF_Window *dst)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] Control\n"));
 #ifndef TEST_LIBPLAYER
-	//~ video_rect_t in, out;
+	video_rect_t in, out;
 	LibPlayerIn *read = dec->privateStack;
-
+	u32 width, height;
+	
 	if (!read) return GF_OK;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] Control instance %d\n",read->player_id));
 
-	in.x = src->x;
-	in.y = src->y;
-	in.w = src->w;
-	in.h = src->h;
-	out.x = dst->x;
-	out.y = dst->y;
-	out.w = dst->w;
-	out.h = dst->h;
-	player_video_io_windows_set(read->player, &in, &out);
+	width = mrl_get_property(read->player, NULL, MRL_PROPERTY_VIDEO_WIDTH);
+	height = mrl_get_property(read->player, NULL, MRL_PROPERTY_VIDEO_HEIGHT);
+
+	if((width != read->width) || (height != read->height))	{
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] video size changed to width %d - height %d\n", width, height));
+		if (width && height) {
+			read->width = width;
+			read->height = height;
+		}
+		return GF_BUFFER_TOO_SMALL;
+	}
+	
+		in.x = src->x;
+		in.y = src->y;
+		in.w = src->w;
+		in.h = src->h;
+		out.x = dst->x;
+		out.y = dst->y;
+		out.w = dst->w;
+		out.h = dst->h;
+		player_video_io_windows_set(read->player, &in, &out);
+	
 #endif
-
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] Repositioning video src %d %d %d %d - dest %d %d %d %d\n", src->x, src->y, src->w, src->h, dst->x, dst->y, dst->w, dst->h) );
 	return GF_OK;
 }
