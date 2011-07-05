@@ -332,6 +332,17 @@ void gf_bs_write_u32_le(GF_BitStream *bs, u32 value);
 void gf_bs_write_u16_le(GF_BitStream *bs, u32 value);
 
 /*!
+ *	\brief write byte multiple times
+ *
+ *	Writes a give byte multiple times.
+ *	\param bs the target bitstream
+ *	\param byte the byte value to write
+ *	\param count the number of times the byte should be written
+ *	\return the number of bytes written
+ */
+u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 count);
+
+/*!
  *	\brief end of bitstream management
  *
  *	Assigns a notification callback function for end of stream signaling in read mode
