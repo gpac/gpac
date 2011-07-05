@@ -587,6 +587,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_for_movie_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_dts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_segment_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_copyright_count) )
@@ -602,6 +603,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_decoder_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_reference_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_reference) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_brand_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_alternate_brand) )
@@ -1540,11 +1542,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_add) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_program_stream_add) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_program_stream_update_ts_scale) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_program_stream_update_sl_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_update_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sys_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_ts_clock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_use_single_au_pes_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_set_initial_pcr) )
+
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 /* M3U8 & MPD related functions */
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_new) )
