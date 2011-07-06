@@ -41,6 +41,7 @@ typedef struct s_FM_FAKE_PULL {
 	u64 PTS;
 	unsigned char buffer10[FM_FAKE_PULL_FRAME_LEN]; /*played 10 percent of time*/
 	unsigned char buffer90[FM_FAKE_PULL_FRAME_LEN]; /*played 90 percent of time*/
+
 } FM_FAKE_PULL;
 FM_FAKE_PULL FM_FAKE_PULL_private_data;
 
@@ -73,7 +74,7 @@ GF_HYBMEDIA master_fm_fake_pull = {
 
 static Bool FM_FAKE_PULL_CanHandleURL(const char *url)
 {
-	if (!strnicmp(url, "fm://fake", 9))
+	if (!strnicmp(url, "fm://fake_pull", 14))
 		return 1;
 
 	return 0;
@@ -128,7 +129,6 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 	/*set audio preloaded data*/
 	assert(self->private_data);
 	memset(self->private_data, 0, sizeof(FM_FAKE_PULL));
-
 	for (i=0; i<(FM_FAKE_PULL_FRAME_LEN*8)/FM_FAKE_PULL_BITS; i++) {
 		if (((2*i)/(FM_FAKE_PULL_CHAN_NUM*100))%2) /*100Hz*/
 			*((FM_FAKE_PULL_TYPE*)((FM_FAKE_PULL*)self->private_data)->buffer10+i) = 1 << (FM_FAKE_PULL_BITS-1);
@@ -139,7 +139,6 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 
 static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service)
 {
-	//not implemented
 	self->owner = NULL;
 	return GF_OK;
 }

@@ -181,8 +181,6 @@ static GF_Err HYB_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->duration.duration = 0;
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
-		/*not implemented for push mode*/
-		assert(hyb_in->master->data_mode == HYB_PULL);
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		return GF_OK;
@@ -203,7 +201,6 @@ static GF_Err HYB_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static Bool HYB_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
-	assert(0); //not implemented
 	return 0;
 }
 
