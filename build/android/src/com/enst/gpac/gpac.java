@@ -1,4 +1,4 @@
-package com.artemis.gpac;
+package com.enst.gpac;
 
 import android.app.Activity;
 import android.os.Bundle;
