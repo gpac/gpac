@@ -690,6 +690,8 @@ these channels are ALWAYS pulling ones, and this function will init the channel 
 void gf_es_init_dummy(GF_Channel *ch);
 /*setup DRM info*/
 void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *isma_cryp);
+/*dispatch raw media AU to the composition buffer and BLOCKS until the AU is consumed by the decoder*/
+void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts);
 
 /*
 		decoder stuff

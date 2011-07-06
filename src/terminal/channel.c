@@ -673,33 +673,22 @@ static void gf_es_check_timing(GF_Channel *ch)
 }
 
 
-void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header)
+void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts)
 {
-	u32 ts;
 	GF_CompositionMemory *cb;
 	GF_CMUnit *cu;
-	if (!header || !ch->odm->codec->CB) return;
-
-	if (ch->ts_res != 1000) {
-		ts = (u32) (header->compositionTimeStamp * 1000 / ch->ts_res);
-	} else {
-		ts = (u32) header->compositionTimeStamp;
-	}
-
-	if (!ch->IsClockInit) {
-		ch->CTS = (u32) header->compositionTimeStamp;
-		gf_es_check_timing(ch);
-	}
+	if (!payload || !ch->odm->codec->CB) return;
+	if (!ch->odm->codec->CB->no_allocation) return;
 
 	cb = ch->odm->codec->CB;
-	cu = gf_cm_lock_input(cb, ts, 1);
+	cu = gf_cm_lock_input(cb, cts, 1);
 	if (cu) {
 		u32 size = 0;
 		assert(cu->RenderedLength==0);
 		if (cb->UnitSize >= payload_size) {
 			cu->data = payload;
 			size = payload_size;
-			cu->TS = ts;
+			cu->TS = cts;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS));
 		}
 		gf_cm_unlock_input(cb, cu, size, 1);
@@ -714,6 +703,7 @@ void Channel_RawMediaSL(GF_ClientService *serv, GF_Channel *ch, char *payload, u
 		if (size) {
 			assert(cb->output->dataLength != 0);
 			gf_sema_wait(ch->odm->raw_frame_sema);
+			assert(cb->output->dataLength == 0);
 		}
 	}
 }
@@ -747,7 +737,18 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		return;
 	}
 	if (ch->is_raw_channel) {
-		Channel_RawMediaSL(serv, ch, payload, payload_size, header);
+		u32 ts;
+		if (ch->ts_res != 1000) {
+			ts = (u32) (header->compositionTimeStamp * 1000 / ch->ts_res);
+		} else {
+			ts = (u32) header->compositionTimeStamp;
+		}
+		ch->CTS = ch->DTS = ts;
+		if (!ch->IsClockInit) {
+			gf_es_check_timing(ch);
+		}
+		if (payload)
+			gf_es_dispatch_raw_media_au(ch, payload, payload_size, ts);
 		return;
 	}
 
@@ -1221,6 +1222,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	/*update timing if new stream data but send no data*/
 	if (is_new_data) {
 		gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
+		
 		if (ch->ipmp_tool) {
 			GF_IPMPEvent evt;
 			memset(&evt, 0, sizeof(evt));
