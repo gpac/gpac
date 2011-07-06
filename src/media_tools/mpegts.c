@@ -1873,23 +1873,28 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
+	u8 expect_cc;
+	Bool disc;
 	Bool flush_pes = 0;
 
-#if 0
-	u8 expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
-	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
-	pes->cc = expect_cc;
+	/*duplicated packet, NOT A DISCONTINUITY, discard the packet*/
+	if (hdr->continuity_counter==pes->cc) return;
+
+	expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
+	disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
+	pes->cc = hdr->continuity_counter;
 
 	if (disc) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Packet discontinuity (%d expected - got %d- - trashing PES packet\n", pes->pid, expect_cc, hdr->continuity_counter));
 		if (pes->data) {
 			gf_free(pes->data);
 			pes->data = NULL;
 		}
 		pes->data_len = 0;
 		pes->pes_len = 0;
+		pes->cc = -1;
 		return;
 	}
-#endif
 
 	if (!pes->reframe) return;
 
@@ -2030,6 +2035,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		payload_size = 0;
+		/*no payload and no PCR, return*/
+		if (! paf->PCR_flag) return;
 		break;
 	/*reserved*/
 	case 0:
@@ -2073,7 +2080,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		} else {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			/* regular stream using PES packets */
-			if (pes->reframe) gf_m2ts_process_pes(ts, pes, &hdr, data, payload_size, paf);
+			if (pes->reframe && payload_size) gf_m2ts_process_pes(ts, pes, &hdr, data, payload_size, paf);
 		}
 	}
 	if (paf && paf->PCR_flag && es) {
@@ -2203,6 +2210,7 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 		} else {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
+			pes->cc = -1;
 			pes->frame_state = 0;
 			if (pes->data) gf_free(pes->data);
 			pes->data = NULL;
