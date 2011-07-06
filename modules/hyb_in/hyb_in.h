@@ -77,6 +77,7 @@ typedef struct s_GF_HYBMEDIA {
 
 	/*object carrying us (needed to communicate with the player)*/
 	GF_ClientService *owner;
+	LPNETCHANNEL channel;
 
 	/*pivate data which type depends on dynamic considerations*/
 	void *private_data;

@@ -551,7 +551,10 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	/*this allows reuse of the CU*/
 	cb->output->RenderedLength = 0;
 	cb->LastRenderedTS = cb->output->TS;
-	gf_sema_notify(cb->odm->raw_frame_sema, 1);
+	if (cb->odm->raw_frame_sema) {
+		cb->output->dataLength = 0;
+		gf_sema_notify(cb->odm->raw_frame_sema, 1);
+	}
 
 	/*on visual streams (except raw oness), always keep the last AU*/
 	if (!cb->no_allocation && cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
