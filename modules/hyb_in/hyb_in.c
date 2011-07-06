@@ -109,7 +109,18 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err HYB_CloseService(GF_InputService *plug)
 {
+	GF_Err e;
+    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Close Service (%p) request from terminal\n", ((GF_HYB_In*)plug->priv)->service));
+
+	/*disconnect the master*/
+	e = hyb_in->master->Disconnect(hyb_in->master, hyb_in->service);
+	if (e) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot disconnect service %p\n", hyb_in->service));
+        gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
+		return e;
+	}
 
 	return GF_OK;
 }
@@ -124,14 +135,17 @@ static GF_Descriptor *HYB_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 static GF_Err HYB_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
     GF_HYB_In *hyb_in;
+	GF_HYBMEDIA *master;
 
     if (!plug || !plug->priv)
 		return GF_SERVICE_ERROR;
 	
 	hyb_in = (GF_HYB_In*)plug->priv;
+	master = (GF_HYBMEDIA*)hyb_in->master;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Connection request from service %p for %s\n", channel, url));
-
+	
+	master->channel = channel;
 	gf_term_on_connect(hyb_in->service, channel, GF_OK);
 
 	return GF_OK;
@@ -139,19 +153,11 @@ static GF_Err HYB_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 
 static GF_Err HYB_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	GF_Err e;
     GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Disconnect Service (%p) request from terminal\n", hyb_in->service));
 
-	/*disconnect the master*/
-	e = hyb_in->master->Disconnect(hyb_in->master, hyb_in->service);
-	if (e) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot disconnect service %p\n", hyb_in->service));
-        gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
-		return e;
-	}
-
+	hyb_in->master->channel = NULL;
 	gf_term_on_disconnect(hyb_in->service, NULL, GF_OK);
 
 	return GF_OK;
@@ -206,6 +212,7 @@ static GF_Err HYB_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
     GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 	assert(hyb_in->master->data_mode == HYB_PULL && hyb_in->master->GetData && hyb_in->master->ReleaseData);
 
+	assert(((GF_HYB_In*)plug->priv)->master->channel == channel);
 	hyb_in->master->GetData(hyb_in->master, out_data_ptr, out_data_size, out_sl_hdr);
 	*sl_compressed = 0;
 	*out_reception_status = GF_OK;
@@ -215,6 +222,8 @@ static GF_Err HYB_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 static GF_Err HYB_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
+    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	assert(((GF_HYB_In*)plug->priv)->master->channel == channel);
 	return GF_OK;
 }
 

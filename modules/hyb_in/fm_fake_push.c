@@ -62,6 +62,7 @@ GF_HYBMEDIA master_fm_fake_push = {
 	FM_FAKE_PUSH_ReleaseData,
 	HYB_PUSH,
 	NULL,
+	NULL,
 	&FM_FAKE_PUSH_private_data
 };
 /**********************************************************************************************************************/

@@ -66,6 +66,7 @@ GF_HYBMEDIA master_fm_fake_pull = {
 	FM_FAKE_PULL_ReleaseData,
 	HYB_PULL,
 	NULL,
+	NULL,
 	&FM_FAKE_PULL_private_data
 };
 /**********************************************************************************************************************/
@@ -125,6 +126,7 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 	self->owner = service;
 
 	/*set audio preloaded data*/
+	assert(self->private_data);
 	memset(self->private_data, 0, sizeof(FM_FAKE_PULL));
 
 	for (i=0; i<(FM_FAKE_PULL_FRAME_LEN*8)/FM_FAKE_PULL_BITS; i++) {
