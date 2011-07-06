@@ -906,6 +906,7 @@ typedef struct __m2ts_mux_stream {
 	u32 current_section_offset;
 	u32 refresh_rate_ms;
 	Bool table_needs_update;
+	Bool table_needs_send;
 
 	/*process PES or table update/framing
 	returns the priority of the stream,  0 meaning not scheduled, 1->N highest priority sent first*/
@@ -983,6 +984,7 @@ struct __m2ts_mux_program {
 	u32 last_sys_clock;
 	u64 initial_ts;
 	Bool initial_ts_set;
+	u32 pcr_offset;
 
 	GF_Descriptor *iod;
 	/*list of GF_M2TSDescriptor to add to the program descriptor loop. By default set to NULL, if non null will be reset and destroyed upon cleanup*/
@@ -1043,14 +1045,14 @@ enum
 	GF_M2TS_STATE_EOS,
 };
 
+#define GF_M2TS_PSI_DEFAULT_REFRESH_RATE	200
 /*!
  * mux_rate en kbps
  */
-
 GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time);
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, Bool mpeg4_signaling);
-GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr);
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling);
+GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);	
 void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux);
 
