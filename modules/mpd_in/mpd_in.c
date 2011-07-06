@@ -1849,7 +1849,6 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     plug->ChannelGetSLP = MPD_ChannelGetSLP;
     plug->ChannelReleaseSLP = MPD_ChannelReleaseSLP;
     GF_SAFEALLOC(mpdin, GF_MPD_In);
-    memset(mpdin, 0, sizeof(GF_MPD_In));
     plug->priv = mpdin;
     mpdin->mpd_thread = gf_th_new("MPD Segment Downloader Thread");
     mpdin->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
