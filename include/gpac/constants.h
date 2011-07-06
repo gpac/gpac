@@ -409,7 +409,7 @@ enum
  *	u16 nb_channels: num channels 
  *	u16 nb_bits_per_sample: num of bits per audio sample
  *	u32 frame_size: max size of audio frame in byte
- *	u32 channel_config: GPAC mask of GF_AUDIO_CH_ constants, or 0 of unknown
+ *	u32 channel_config: GPAC mask of GF_AUDIO_CH_ constants, or 0 if unknown
  \endcode
  \n
  *	DSI Syntax for video streams

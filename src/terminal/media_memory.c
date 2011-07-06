@@ -379,8 +379,10 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 
 	cu = cb->input;
 	cu->RenderedLength = 0;
-	if (cu->dataLength && cb->odm->raw_frame_sema) 
+	if (cu->dataLength && cb->odm->raw_frame_sema)  {
+		cu->dataLength = 0;
 		gf_sema_notify(cb->odm->raw_frame_sema, 1);
+	}
 	
 	cu->dataLength = 0;
 	cu->TS = 0;

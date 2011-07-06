@@ -727,8 +727,7 @@ GF_TermExt *avr_new()
 {
     GF_TermExt *dr;
     GF_AVRedirect *uir;
-    dr = gf_malloc ( sizeof ( GF_TermExt ) );
-    memset ( dr, 0, sizeof ( GF_TermExt ) );
+    GF_SAFEALLOC ( dr, GF_TermExt );
     GF_REGISTER_MODULE_INTERFACE ( dr, GF_TERM_EXT_INTERFACE, "GPAC Output Recorder", "gpac distribution" );
 
     GF_SAFEALLOC ( uir, GF_AVRedirect );
