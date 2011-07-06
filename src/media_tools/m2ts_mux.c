@@ -1883,7 +1883,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 				}
 			}
 			nb_streams++;
-			if (!res && (stream->ifce->caps & GF_ESI_STREAM_IS_OVER)) 
+			if ((stream->ifce->caps & GF_ESI_STREAM_IS_OVER) && (!res || stream->refresh_rate_ms) ) 
 				nb_streams_done ++;
 
 			stream = stream->next;
@@ -1934,6 +1934,10 @@ send_pck:
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Send %s from PID %d at %d:%09d - mux time %d:%09d\n", stream_to_process->tables ? "table" : "PES", stream_to_process->pid, time.sec, time.nanosec, muxer->time.sec, muxer->time.nanosec));
 #endif
+
+
+		if (nb_streams && (nb_streams==nb_streams_done)) 
+			*status = GF_M2TS_STATE_EOS;
 	}
 	if (ret) {
 		muxer->tot_pck_sent++;
