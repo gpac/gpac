@@ -701,7 +701,6 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 		/*since the CB is a simple pointer to the input frame, wait until it is released before getting 
 		back to the caller module*/
 		if (size) {
-			assert(cb->output->dataLength != 0);
 			gf_sema_wait(ch->odm->raw_frame_sema);
 			assert(cb->output->dataLength == 0);
 		}
