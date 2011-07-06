@@ -33,6 +33,7 @@
 #include "input_sensor.h"
 
 GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL);
+GF_Err gf_codec_process_raw_media_pull(GF_Codec *codec, u32 TimeAvailable);
 
 GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e)
 {
@@ -233,6 +234,9 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		codec->CB->Min = 0;
 		codec->CB->odm = codec->odm;
 		ch->is_raw_channel = 1;
+		if (ch->is_pulling) {
+			codec->process = gf_codec_process_raw_media_pull;
+		}
 	}
 
 
@@ -932,6 +936,36 @@ GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable)
 		if (codec->CB) 
 			gf_cm_abort_buffering(codec->CB);
 	}
+	return GF_OK;
+}
+
+
+GF_Err gf_codec_process_raw_media_pull(GF_Codec *codec, u32 TimeAvailable)
+{
+	GF_Channel *ch;
+	GF_DBUnit *db;
+	if (codec->ck && codec->ck->Paused) {
+		u32 i;
+		for (i=0; i<gf_list_count(codec->odm->channels); i++) {
+			ch = gf_list_get(codec->odm->channels, i);
+			if (ch->BufferOn) {
+				ch->BufferOn = 0;
+				gf_clock_buffer_off(ch->clock);
+			}
+		}
+		if (codec->CB) 
+			gf_cm_abort_buffering(codec->CB);
+	}
+
+	/*this will pull the next AU from the service */
+	Decoder_GetNextAU(codec, &ch, &db);
+	if (!db) return GF_OK;
+
+	/*dispatch raw media - this call is blocking untill the cu has been consumed */
+	gf_es_dispatch_raw_media_au(ch, db->data, db->dataLength, db->CTS);
+
+	/*release AU from service*/
+	gf_term_channel_release_sl_packet(ch->service, ch);
 	return GF_OK;
 }
 
