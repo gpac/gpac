@@ -29,6 +29,9 @@
 #include <gpac/scene_engine.h>
 #include <gpac/mpegts.h>
 
+
+#define DEFAULT_PCR_OFFSET	18000
+
 #define UDP_BUFFER_SIZE	0x40000
 
 #define MP42TS_PRINT_FREQ 634 /*refresh printed info every CLOCK_REFRESH ms*/
@@ -45,7 +48,7 @@ static GFINLINE void usage(const char * progname)
 					"\t-real-time             specifies the muxer will work in real-time mode\n"
 					"\t                        * automatically set for SDP or BT input\n"
 					"\t-pcr-init=V            sets initial value V for PCR - if not set, random value is used\n"
-					"\t-pcr-offset=V          offsets all timestamps from PCR by V, in 90kHz. Default value: 0\n"
+					"\t-pcr-offset=V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
 					"\t-psi-rate=V            sets PSI refresh rate V in ms (default 100ms). If 0, PSI data is only send once at the begining\n"
 					"\t-time=n                request the program to stop after n ms\n"
 					"\t-single-au             forces 1 PES = 1 AU (disabled by default)\n"
@@ -76,7 +79,7 @@ static GFINLINE void usage(const char * progname)
 					"\t-ll=LogLevel           specifies log level to use (by default error)\n"
 					"\t-lt=LogTools           specifies log tools to use (by default all)\n"
 					"\t-h or -help             Print this screen\n"
-					"\n", progname
+					"\n", progname, DEFAULT_PCR_OFFSET
 		);
 }
 
@@ -1823,7 +1826,7 @@ int main(int argc, char **argv)
 	single_au_pes = 0;
 	bifs_use_pes = 0;
 	psi_refresh_rate = GF_M2TS_PSI_DEFAULT_REFRESH_RATE;
-	pcr_offset = 0;
+	pcr_offset = DEFAULT_PCR_OFFSET;
 
 	/***********************/
 	/*   parse arguments   */
