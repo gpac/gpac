@@ -1073,6 +1073,13 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 }
 
 
+GF_Node *gf_smil_anim_get_target(GF_Node *e)
+{
+	XLinkAttributesPointers *xlinkp = NULL;
+	if (!gf_svg_is_animation_tag(e->sgprivate->tag)) return NULL;
+	xlinkp = ((SVGTimedAnimBaseElement *)e)->xlinkp;
+	return xlinkp->href->target;
+}
 
 void gf_smil_anim_init_runtime_info(GF_Node *e)
 {
