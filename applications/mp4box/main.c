@@ -2206,8 +2206,13 @@ int mp4boxMain(int argc, char **argv)
 			if (!test) {
 				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 				if (!outName) outName = inName;
+			} else {
+				fclose(test);
+				if (! gf_isom_probe_file(inName) ) {
+					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+					if (!outName) outName = inName;
+				}
 			}
-			else fclose(test);
 		}
 
 		open_edit = 1;
