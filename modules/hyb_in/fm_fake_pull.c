@@ -23,19 +23,20 @@
  *
  */
 
-
 /*hybrid media interface implementation generating fake audio consisting in beeps every second in pull mode*/
 #include <gpac/thread.h>
 #include "hyb_in.h"
 
+/**********************************************************************************************************************/
 
 #define FM_FAKE_PULL_AUDIO_FREQ 44100
 #define FM_FAKE_PULL_CHAN_NUM	2
 #define FM_FAKE_PULL_BITS		16
 #define FM_FAKE_PULL_TYPE		s16
-#define FM_FAKE_PULL_FRAME_DUR	60	/*in ms*/
+#define FM_FAKE_PULL_FRAME_DUR	60		/*in ms*/
 #define FM_FAKE_PULL_FRAME_LEN	((FM_FAKE_PULL_FRAME_DUR*FM_FAKE_PULL_CHAN_NUM*FM_FAKE_PULL_BITS*FM_FAKE_PULL_AUDIO_FREQ)/(1000*8))		/*in bytes*/
-	
+
+/**********************************************************************************************************************/
 
 typedef struct s_FM_FAKE_PULL {
 	u64 PTS;
@@ -46,30 +47,27 @@ typedef struct s_FM_FAKE_PULL {
 FM_FAKE_PULL FM_FAKE_PULL_private_data;
 
 /**********************************************************************************************************************/
-/*  Declare FM_FAKE_PULL interfaces  */
-/**********************************************************************************************************************/
-Bool FM_FAKE_PULL_CanHandleURL(const char *url);
-GF_ESD* FM_FAKE_PULL_GetESD();
-GF_ObjectDescriptor* FM_FAKE_PULL_GetOD(GF_HYBMEDIA *self);
-GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service, const char *url);
-GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service);
-GF_Err FM_FAKE_PULL_AddMedia(GF_HYBMEDIA *self);
-GF_Err FM_FAKE_PULL_GetData(GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr);
-GF_Err FM_FAKE_PULL_ReleaseData(GF_HYBMEDIA *self);
+
+static Bool FM_FAKE_PULL_CanHandleURL(const char *url);
+static GF_ObjectDescriptor* FM_FAKE_PULL_GetOD(void);
+static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service, const char *url);
+static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service);
+static GF_Err FM_FAKE_PULL_GetData(GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr);
+static GF_Err FM_FAKE_PULL_ReleaseData(GF_HYBMEDIA *self);
 
 GF_HYBMEDIA master_fm_fake_pull = {
-	FM_FAKE_PULL_CanHandleURL,
-	FM_FAKE_PULL_GetOD,
-	FM_FAKE_PULL_Connect,
-	FM_FAKE_PULL_Disconnect,
-	FM_FAKE_PULL_AddMedia,
-	FM_FAKE_PULL_GetData,
-	FM_FAKE_PULL_ReleaseData,
-	HYB_PULL,
-	NULL,
-	NULL,
-	&FM_FAKE_PULL_private_data
+	"Fake FM (pull mode)",		/*name*/
+	FM_FAKE_PULL_CanHandleURL,	/*CanHandleURL()*/
+	FM_FAKE_PULL_GetOD,			/*GetOD()*/
+	FM_FAKE_PULL_Connect,		/*Connect()*/
+	FM_FAKE_PULL_Disconnect,	/*Disconnect()*/
+	NULL,						/*SetState()*/
+	FM_FAKE_PULL_GetData,		/*GetData()*/
+	FM_FAKE_PULL_ReleaseData,	/*ReleaseData()*/
+	HYB_PULL,					/*data_mode*/
+	&FM_FAKE_PULL_private_data	/*private_data*/
 };
+
 /**********************************************************************************************************************/
 
 static Bool FM_FAKE_PULL_CanHandleURL(const char *url)
@@ -80,7 +78,9 @@ static Bool FM_FAKE_PULL_CanHandleURL(const char *url)
 	return 0;
 }
 
-static GF_ESD* FM_FAKE_PULL_GetESD()
+/**********************************************************************************************************************/
+
+static GF_ESD* get_esd()
 {
 	GF_BitStream *dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	GF_ESD *esd = gf_odf_desc_esd_new(0);
@@ -103,16 +103,19 @@ static GF_ESD* FM_FAKE_PULL_GetESD()
 	return esd;
 }
 
-static GF_ObjectDescriptor* FM_FAKE_PULL_GetOD(GF_HYBMEDIA *self)
+/**********************************************************************************************************************/
+
+static GF_ObjectDescriptor* FM_FAKE_PULL_GetOD(void)
 {
 	/*declare object to terminal*/
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-	GF_ESD *esd = FM_FAKE_PULL_GetESD();
+	GF_ESD *esd = get_esd();
 	od->objectDescriptorID = 1;
-	od->service_ifce = self->owner;
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
 }
+
+/**********************************************************************************************************************/
 
 static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service, const char *url)
 {
@@ -137,20 +140,15 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 	return GF_OK;
 }
 
+/**********************************************************************************************************************/
+
 static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service)
 {
 	self->owner = NULL;
 	return GF_OK;
 }
 
-static GF_Err FM_FAKE_PULL_AddMedia(GF_HYBMEDIA *self)
-{
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-	//not implemented
-	assert(0);
-	gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
-	return GF_OK;
-}
+/**********************************************************************************************************************/
 
 static GF_Err FM_FAKE_PULL_GetData(GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr)
 {
@@ -175,7 +173,11 @@ static GF_Err FM_FAKE_PULL_GetData(GF_HYBMEDIA *self, char **out_data_ptr, u32 *
 	return GF_OK;
 }
 
+/**********************************************************************************************************************/
+
 static GF_Err FM_FAKE_PULL_ReleaseData(GF_HYBMEDIA *self)
 {
 	return GF_OK;
 }
+
+/**********************************************************************************************************************/

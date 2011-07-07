@@ -40,7 +40,7 @@ typedef struct _net_service GF_ClientService;
 /*handle to channel*/
 typedef void *LPNETCHANNEL;
 
-enum
+typedef enum
 {
 	/*channel control, app->module. Note that most modules don't need to handle pause/resume/set_speed*/
 	GF_NET_CHAN_PLAY,
@@ -100,7 +100,7 @@ enum
 
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
-};
+} GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
 GF_NET_CHAN_SET_PULL: module shall return GF_OK or GF_NOT_SUPPORTED

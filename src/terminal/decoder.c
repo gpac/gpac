@@ -60,7 +60,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 
 	if (tmp->type==GF_STREAM_PRIVATE_MEDIA) tmp->type = GF_STREAM_VISUAL;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Codec] Found decoder %s for stream type %s\n", tmp->decio ? tmp->decio->module_name : "", gf_esd_get_textual_description(base_layer) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Codec] Found decoder %s for stream type %s\n", tmp->decio ? tmp->decio->module_name : "RAW", gf_esd_get_textual_description(base_layer) ));
 	return tmp;
 }
 
