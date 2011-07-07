@@ -335,6 +335,10 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	gf_odm_setup_object(odm, odm->net_service);
 	gf_term_lock_net(term, 0);
 
+	/*it may happen that this object was inserted in a dynamic scene from a service through a URL redirect. In which case, 
+	the scene regeneration might not have been completed since the redirection was not done yet - force a scene regenerate*/
+	if (odm->parentscene && odm->parentscene->is_dynamic_scene)
+		gf_scene_regenerate(odm->parentscene);
 	return;
 
 err_exit:
