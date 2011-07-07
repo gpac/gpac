@@ -64,6 +64,8 @@ typedef struct
 
 	/*pick first pcr pid for regulation*/
 	u32 regulation_pcr_pid;
+
+	Bool hybrid_on;
 }M2TSIn;
 
 
@@ -555,7 +557,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				} else {
 					u64 pcr_diff = (pcr - ts->pcr_last);
 					pcr_diff /= 27000;
-					if (pcr_diff>500) {
+					if (pcr_diff>1000) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
 						diff = 100;
 					} else {
@@ -575,14 +577,14 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					while (ts->run_state) {
 						gf_term_on_command(m2ts->service, &com, GF_OK);
 						if (com.buffer.occupancy < M2TS_BUFFER_MAX) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
 							break;
 						}
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
 #ifndef GPAC_DISABLE_LOG
 						if (!nb_sleep) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep (buffer occupancy %d ms)\n", com.buffer.occupancy));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep (buffer occupancy %d ms)\n", com.buffer.occupancy));
 						}
 						nb_sleep++;
 #endif
@@ -590,7 +592,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (nb_sleep) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
 					}
 #endif
 					ts->nb_pck = 0;
@@ -604,6 +606,35 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				ts->stb_at_last_pcr = gf_sys_clock();
 			}
 		}
+		break;
+	case GF_M2TS_EVT_TDT:
+		if (m2ts->hybrid_on) {
+			u32 i, count;
+			GF_M2TS_TDT_TOT *tdt = (GF_M2TS_TDT_TOT *)param;
+			GF_NetworkCommand com;
+			memset(&com, 0, sizeof(com));
+			com.command_type = GF_NET_CHAN_MAP_TIME;
+			com.map_time.media_time = tdt->hour*3600+tdt->minute*60+tdt->second;
+			com.map_time.reset_buffers = 0;
+			count = gf_list_count(ts->programs);
+			for (i=0; i<count; i++) {
+				GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
+				u32 j, count2;
+				count2 = gf_list_count(prog->streams);
+				com.map_time.timestamp = prog->last_pcr_value/300;
+				for (j=0; j<count2; j++) {
+					GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
+					if (stream->user) {
+						com.base.on_channel = stream->user;
+						gf_term_on_command(m2ts->service, &com, GF_OK);
+					}
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n", 
+					tdt->year, tdt->month, tdt->day, tdt->hour, tdt->minute, tdt->second, com.map_time.timestamp, prog->number));
+			}
+		}
+		break;
+	case GF_M2TS_EVT_TOT:
 		break;
 	}
 }
@@ -707,11 +738,18 @@ static const char *M2TS_QueryNextFile(void *udta)
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	GF_Err e;	
+	const char *opt;
 	M2TSIn *m2ts = plug->priv;
 
 	M2TS_GetNetworkType(plug,m2ts);
 
 	m2ts->owner = plug;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "HybRadio", "Activated");
+	if (opt && !strcmp(opt, "true")) {
+		m2ts->hybrid_on = 1;
+	}
+
 	m2ts->service = serv;
 	if (m2ts->owner->query_proxy) {
 		m2ts->ts->query_next = M2TS_QueryNextFile;

@@ -21,7 +21,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
 #ifndef DONT_USE_TERMINAL_MODULE_API
 #include <gpac/modules/service.h>
 #endif
@@ -30,6 +29,8 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 #include <gpac/download.h>
+
+#include <time.h>
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -71,6 +72,9 @@ typedef struct
 	char *icy_name;
 	char *icy_genre;
 	char *icy_track_name;
+
+	Bool hybrid_on;
+	u64 prev_map_time;
 } AACReader;
 
 typedef struct
@@ -336,6 +340,41 @@ static void AAC_OnLiveData(AACReader *read, const char *data, u32 data_size)
 		SampleCallBack(audio_prog, AUDIO_DATA_ESID, read->data + pos, hdr.frame_size, read->sl_hdr.compositionTimeStamp);
 #endif
 		gf_bs_skip_bytes(bs, hdr.frame_size);
+
+#ifndef DONT_USE_TERMINAL_MODULE_API
+#ifndef _WIN32_WCE
+		/* For Hybrid scenarios*/
+		if (read->hybrid_on && (!read->prev_map_time || (read->sl_hdr.compositionTimeStamp - read->prev_map_time) > read->sample_rate*5)) {
+			Double hybrid_delay = 0.0;
+			time_t now;
+			struct tm *now_tm;
+			const char *opt;
+	
+			opt = gf_modules_get_option((GF_BaseInterface *)read->input, "HybRadio", "AudioDelay");
+			if (opt) {
+				hybrid_delay = atof(opt);
+			}
+			time(&now); 
+			now += (s32)hybrid_delay;
+			now_tm = gmtime(&now);
+			{
+				GF_NetworkCommand com;
+				memset(&com, 0, sizeof(com));
+				com.command_type = GF_NET_CHAN_MAP_TIME;
+				com.map_time.media_time = now_tm->tm_hour*3600+now_tm->tm_min*60+now_tm->tm_sec + hybrid_delay;
+				com.map_time.timestamp = read->sl_hdr.compositionTimeStamp;
+				com.map_time.reset_buffers = 0;	
+				com.base.on_channel = read->ch;
+				gf_term_on_command(read->service, &com, GF_OK);
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AAC  In] Mapping WC  Time %04d/%02d/%02d %02d:%02d:%02d and AAC time "LLD" (audio delay %f)\n", 
+					(now_tm->tm_year + 1900), (now_tm->tm_mon + 1), now_tm->tm_mday, now_tm->tm_hour, now_tm->tm_min, now_tm->tm_sec, 
+					com.map_time.timestamp, hybrid_delay));
+
+			}
+			read->prev_map_time = read->sl_hdr.compositionTimeStamp;
+		}
+#endif
+#endif
 	}
 
 	pos = (u32) gf_bs_get_position(bs);
@@ -534,9 +573,9 @@ static void AAC_Reader_del(AACReader * read)
 }
 
 static AACReader * AAC_Reader_new(){
-  AACReader *reader = gf_malloc(sizeof(AACReader));
-  memset(reader, 0, sizeof(AACReader));
-  return reader;
+	AACReader *reader = gf_malloc(sizeof(AACReader));
+	memset(reader, 0, sizeof(AACReader));
+	return reader;
 }
 
 
@@ -552,10 +591,16 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 {
 	char szURL[2048];
 	char *ext;
+	const char *opt;
 	GF_Err reply;
 	AACReader *read = plug->priv;
 	read->service = serv;
 	read->input = plug;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)read->input, "HybRadio", "Activated");
+	if (opt && !strcmp(opt, "true")) {
+		read->hybrid_on = 1;
+	}
 
 	AAC_disconnect_from_http_and_free(read);
 
