@@ -1013,6 +1013,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 	if (gf_list_count(movie->moof_list)) 
 		return GF_BAD_PARAM;
 
+	movie->append_segment = 0;
 	/*update segment file*/
 	if (SegName) {
 		gf_isom_datamap_del(movie->editFileMap);
@@ -1022,6 +1023,9 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 	}	
 	assert(gf_list_count(movie->moof_list) == 0);
 	movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
+	/*if movieFileMap is not null, we are concatenating segments to the original move, force a copy*/
+	if (movie->movieFileMap)
+		movie->append_segment = 1;
 	return GF_OK;
 }
 
