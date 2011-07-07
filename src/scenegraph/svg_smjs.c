@@ -1360,6 +1360,33 @@ JSBool SMJS_FUNCTION(svg_udom_create_color)
 	return JS_TRUE;
 }
 
+
+JSBool SMJS_FUNCTION(svg_path_get_total_length)
+{
+	Double length = 0;
+	GF_FieldInfo info;
+	SMJS_OBJ
+
+	GF_Node *n = (GF_Node *)dom_get_element(c, obj);
+	if (!n) return JS_TRUE;
+	if (n->sgprivate->tag != TAG_SVG_path) return JS_TRUE;
+
+	gf_node_get_field_by_name(n, "d", &info);
+	if (info.fieldType == SVG_PathData_datatype) {
+#if USE_GF_PATH
+		GF_Path *p = (GF_Path *)info.far_ptr;
+		GF_PathIterator *path_it = gf_path_iterator_new(p);
+		if (path_it) {
+			Fixed len = gf_path_iterator_get_length(path_it);
+			length = FIX2FLT(len);
+			gf_path_iterator_del(path_it);
+		}
+#endif
+	}
+	SMJS_SET_RVAL( JS_MAKE_DOUBLE(c, length ) );
+	return JS_TRUE;
+}
+
 JSBool SMJS_FUNCTION(svg_udom_move_focus)
 {
 	GF_JSAPIParam par;
@@ -2160,6 +2187,9 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			SMJS_FUNCTION_SPEC("endElement", svg_udom_smil_end, 0),
 			SMJS_FUNCTION_SPEC("pauseElement", svg_udom_smil_pause, 0),
 			SMJS_FUNCTION_SPEC("resumeElement", svg_udom_smil_resume, 0),
+
+			SMJS_FUNCTION_SPEC("getTotalLength", svg_path_get_total_length, 0),
+
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 

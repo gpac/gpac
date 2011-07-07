@@ -1955,8 +1955,22 @@ static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 			}
 		}
 
-
 		if (gf_node_get_attribute_by_name(n, name, ns_code,  1, 1, &info)==GF_OK) {
+			if (!strcmp(name, "from") || !strcmp(name, "to") || !strcmp(name, "values") ) {
+				GF_FieldInfo attType;
+				SMIL_AttributeName *attname;
+				if (gf_node_get_attribute_by_tag((GF_Node *)n, TAG_SVG_ATT_attributeName, 0, 0, &attType) != GF_OK) 
+					goto exit;
+			
+				attname = (SMIL_AttributeName *)attType.far_ptr;
+				if (!attname->type && attname->name) {
+					GF_Node *anim_target = gf_smil_anim_get_target(n);
+					gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, 0, 0, &attType);
+					attname->type = attType.fieldType;
+				}
+
+				anim_value_type = attname->type;
+			}
 			gf_svg_parse_attribute(n, &info, val, anim_value_type);
 
 			if (info.fieldType==SVG_ID_datatype) {

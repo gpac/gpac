@@ -835,6 +835,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *node);
 void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
 void gf_smil_anim_delete_animations(GF_Node *e);
 void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target);
+GF_Node *gf_smil_anim_get_target(GF_Node *e);
 
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
 void gf_smil_setup_events(GF_Node *node);
