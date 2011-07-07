@@ -731,7 +731,7 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 	GF_MediaObject *obj;
 	u32 i;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Setup object manager %d (MO %08x)\n", odm->OD->objectDescriptorID, odm->mo));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Setup object manager %d (MO %p)\n", odm->OD->objectDescriptorID, odm->mo));
 
 	/*an object may already be assigned (when using ESD URLs, setup is performed twice)*/
 	if (odm->mo != NULL) goto existing;
@@ -1008,7 +1008,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
 just once when receiving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
-to update the OD ressources, we still kake care of it*/
+to update the OD ressources, we still take care of it*/
 void gf_scene_regenerate(GF_Scene *scene)
 {
 	GF_Node *n1, *n2;

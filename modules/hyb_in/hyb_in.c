@@ -23,9 +23,7 @@
  *
  */
 
-
 #include "hyb_in.h"
-
 
 /*register by hand existing masters*/
 extern GF_HYBMEDIA master_fm_mmbtools;
@@ -39,7 +37,6 @@ GF_HYBMEDIA* hyb_masters[] = {
 	&master_fm_mmbtools,
 #endif
 };
-
 
 typedef struct {
 	/*GPAC Service object (i.e. how this module is seen by the terminal)*/
@@ -72,6 +69,33 @@ static Bool HYB_CanHandleURL(GF_InputService *plug, const char *url)
 	return 0;
 }
 
+static GF_Err hybmedia_sanity_check(GF_HYBMEDIA *master)
+{
+	/*these checks need to be upgraded when the interface changes*/
+	if (master->data_mode != HYB_PUSH && master->data_mode != HYB_PULL)
+		return GF_BAD_PARAM;
+
+	if (!master->name) goto error_exit;
+	if (!master->CanHandleURL) goto error_exit;
+	if (!master->GetOD) goto error_exit;
+	if (!master->Connect) goto error_exit;
+	if (!master->Disconnect) goto error_exit;
+
+	if (master->data_mode == HYB_PUSH) {
+		if (!master->SetState) goto error_exit;
+	}
+
+	if (master->data_mode == HYB_PULL) {
+		if (!master->GetData) goto error_exit;
+		if (!master->ReleaseData) goto error_exit;
+	}
+
+	return GF_OK;
+
+error_exit:
+	return GF_SERVICE_ERROR;
+}
+
 static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	u32 i;
@@ -94,15 +118,24 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 	assert(hyb_in->master);
 
+	/*sanity check about the master*/
+	e = hybmedia_sanity_check(hyb_in->master);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - object \"%s\" failed the sanity checks\n", hyb_in->master->name));
+        gf_term_on_connect(hyb_in->service, NULL, e);
+		return e;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Selected master object \"%s\" for URL: %s\n", hyb_in->master->name, url));
+
 	/*connect the master*/
 	e = hyb_in->master->Connect(hyb_in->master, hyb_in->service, url);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot connect service, wrong URL: %s\n", url));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot connect service, wrong URL %s\n", url));
         gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
 		return e;
 	}
 	gf_term_on_connect(hyb_in->service, NULL, GF_OK);
-	gf_term_add_media(hyb_in->service, (GF_Descriptor*)hyb_in->master->GetOD(hyb_in->master), 0);
+	gf_term_add_media(hyb_in->service, (GF_Descriptor*)hyb_in->master->GetOD(), 0);
 
 	return GF_OK;
 }
@@ -181,19 +214,17 @@ static GF_Err HYB_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->duration.duration = 0;
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
-		return GF_OK;
 	case GF_NET_CHAN_STOP:
-		return GF_OK;
-    case GF_NET_SERVICE_INFO:
+	case GF_NET_CHAN_PAUSE:
+	case GF_NET_CHAN_RESUME:
+		if (hyb_in->master->data_mode == HYB_PUSH)
+			return hyb_in->master->SetState(hyb_in->master, com->command_type);
 		return GF_OK;
 	case GF_NET_CHAN_SET_PULL:
-		if (hyb_in->master->data_mode == HYB_PULL) {
+		if (hyb_in->master->data_mode == HYB_PULL)
 			return GF_OK;
-		} else {
-			return GF_NOT_SUPPORTED;
-		}
-	default:
-		return GF_OK;
+		else
+			return GF_NOT_SUPPORTED; /*we're in push mode*/
 	}
 
 	return GF_OK;

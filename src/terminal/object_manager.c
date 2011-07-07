@@ -610,7 +610,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
 		odm->state = GF_ODM_STATE_IN_SETUP;
 
-
 		gf_odm_lock(odm, 1);
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
@@ -641,7 +640,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			/*not clear in the spec how the streams attached to AFC are started - default to "right now"*/
 			gf_odm_start(odm, 0);
 		}
-
 
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;

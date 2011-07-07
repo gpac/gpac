@@ -957,12 +957,11 @@ Bool gf_mo_is_done(GF_MediaObject *mo)
 	u64 dur;
 	if (!gf_odm_lock_mo(mo)) return 0;
 
-	/*for natural media use composition buffer*/
-	if (mo->odm->codec && mo->odm->codec->CB) 
+	if (mo->odm->codec && mo->odm->codec->CB) {
+		/*for natural media use composition buffer*/
 		res = (mo->odm->codec->CB->Status==CB_STOP) ? 1 : 0;
-
-	/*otherwise check EOS and time*/
-	else {
+	} else {
+		/*otherwise check EOS and time*/
 		codec = mo->odm->codec;
 		dur = mo->odm->duration;
 		if (!mo->odm->codec) {
