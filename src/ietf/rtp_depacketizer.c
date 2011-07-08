@@ -1009,10 +1009,9 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 			rtp->flags |= GF_RTP_ISMA_HAS_KEY_IDX;
 		else 
 			rtp->flags &= ~GF_RTP_ISMA_HAS_KEY_IDX;
-	}
-	else if (!stricmp(param_name, "ISMACrypKey")) 
+	} else if (!stricmp(param_name, "ISMACrypKey")) {
 		rtp->key = gf_strdup(param_val);
-	
+	}
 	return GF_OK;
 }
 
@@ -1025,6 +1024,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	memset(&rtp->sl_map, 0, sizeof(GP_RTPSLMap));
 	
 	if (!stricmp(map->payload_name, "enc-mpeg4-generic")) rtp->flags |= GF_RTP_HAS_ISMACRYP;
+
 
 	/*then process all FMTPs*/
 	i=0;

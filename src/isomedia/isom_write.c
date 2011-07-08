@@ -3960,6 +3960,54 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 	return gf_isom_add_subsample_info(sub_samples, sampleNumber, subSampleSize, priority, reserved, discardable);
 }
 
+
+GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, char *data, u32 size)
+{
+	GF_MPEGVisualSampleEntryBox *entry;
+	GF_Err e;
+	GF_TrackBox *trak;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+
+	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sampleDescriptionIndex-1);
+	if (!entry ) return GF_BAD_PARAM;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_BOX_TYPE_AVC1: 
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_ENCV:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+
+	if (entry->rvcc && entry->rvcc->rvc_meta_idx) {
+		gf_isom_remove_meta_item(movie, 0, track, entry->rvcc->rvc_meta_idx);
+		entry->rvcc->rvc_meta_idx = 0;
+	}
+
+	if (!entry->rvcc) {
+		entry->rvcc = (GF_RVCConfigurationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_RVCC);
+	}
+	entry->rvcc->predefined_rvc_config = rvc_predefined;
+	if (!rvc_predefined) {
+		e = gf_isom_set_meta_type(movie, 0, track, GF_4CC('r','v','c','i'));
+		if (e) return e;
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, 1);		
+		e = gf_isom_add_meta_item_memory(movie, 0, track, "rvcconfig.xml", mime, NULL, data, size);
+		if (e) return e;
+		entry->rvcc->rvc_meta_idx = gf_isom_get_meta_item_count(movie, 0, track);
+	}
+	return GF_OK;
+}
+
+
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 

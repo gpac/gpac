@@ -939,6 +939,10 @@ typedef struct
 	/* stream profile and level indication - for AVC/H264, 0xPPCCLL, with PP:profile, CC:compatibility, LL:level*/
 	u32 PL_ID;
 
+	/*rvc config of the stream if carried in SDP*/
+	u16 rvc_predef;
+	char *rvc_config;
+	u32 rvc_config_size;
 
 	/*2 - optional options*/
 	

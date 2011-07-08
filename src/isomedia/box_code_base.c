@@ -3665,6 +3665,7 @@ void mp4v_del(GF_Box *s)
 	if (ptr->emul_esd) gf_odf_desc_del((GF_Descriptor *)ptr->emul_esd);
 
 	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
+	if (ptr->rvcc) gf_isom_box_del((GF_Box *)ptr->rvcc);
 
 	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	gf_free(ptr);
@@ -3705,6 +3706,10 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PASP:
 		if (ptr->pasp) return GF_ISOM_INVALID_FILE;
 		ptr->pasp = (GF_PixelAspectRatioBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_RVCC:
+		if (ptr->rvcc) return GF_ISOM_INVALID_FILE;
+		ptr->rvcc = (GF_RVCConfigurationBox *)a;
 		break;
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
@@ -3810,6 +3815,10 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->protection_info, bs);
 		if (e) return e;
 	}
+	if (ptr->rvcc) {
+		e = gf_isom_box_write((GF_Box *)ptr->rvcc, bs);
+		if (e) return e;
+	}
 	return e;
 }
 
@@ -3860,6 +3869,11 @@ GF_Err mp4v_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->pasp);
 		if (e) return e;
 		ptr->size += ptr->pasp->size;
+	}
+	if (ptr->rvcc) {
+		e = gf_isom_box_size((GF_Box *)ptr->rvcc);
+		if (e) return e;
+		ptr->size += ptr->rvcc->size;
 	}
 	if (ptr->protection_info && (ptr->type == GF_ISOM_BOX_TYPE_ENCV)) {
 		e = gf_isom_box_size((GF_Box *)ptr->protection_info);
@@ -7996,6 +8010,65 @@ GF_Err tfdt_Size(GF_Box *s)
 		ptr->version = 1;
 		ptr->size += 8;
 	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+
+GF_Box *rvcc_New()
+{
+	GF_RVCConfigurationBox *tmp;
+	GF_SAFEALLOC(tmp, GF_RVCConfigurationBox);
+	tmp->type = GF_ISOM_BOX_TYPE_RVCC;
+	return (GF_Box *)tmp;
+}
+
+void rvcc_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+/*this is using chpl format according to some NeroRecode samples*/
+GF_Err rvcc_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_RVCConfigurationBox *ptr = (GF_RVCConfigurationBox*)s;
+	ptr->predefined_rvc_config = gf_bs_read_u16(bs);
+	ptr->size -= 2;
+	if (!ptr->predefined_rvc_config) {
+		ptr->rvc_meta_idx = gf_bs_read_u16(bs);
+		ptr->size -= 2;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err rvcc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_RVCConfigurationBox *ptr = (GF_RVCConfigurationBox*) s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u16(bs, ptr->predefined_rvc_config);
+	if (!ptr->predefined_rvc_config) {
+		gf_bs_write_u16(bs, ptr->rvc_meta_idx);
+	}
+	return GF_OK;
+}
+
+GF_Err rvcc_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_RVCConfigurationBox *ptr = (GF_RVCConfigurationBox *)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 2;
+	if (! ptr->predefined_rvc_config) ptr->size += 2;
 	return GF_OK;
 }
 

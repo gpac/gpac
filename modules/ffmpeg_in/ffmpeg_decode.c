@@ -921,9 +921,9 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 					}
 				}
 				gf_odf_avc_cfg_del(cfg);
-				return is_svc ? GF_CODEC_MAYBE_SUPPORTED : GF_CODEC_SUPPORTED;
+				return (is_svc || esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) ? GF_CODEC_MAYBE_SUPPORTED : GF_CODEC_SUPPORTED;
 			}
-			if (esd->decoderConfig->rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
+			if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
 			return GF_CODEC_SUPPORTED;
 		}
 
@@ -962,12 +962,12 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 	if (!codec_id) return GF_CODEC_NOT_SUPPORTED;
 
 	if (check_4cc && (ffmpeg_get_codec(codec_id) != NULL)) {
-		if (esd->decoderConfig->rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
+		if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
 		return GF_CODEC_SUPPORTED;
 	}
 
 	if (avcodec_find_decoder(codec_id) != NULL) {
-		if (esd->decoderConfig->rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
+		if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
 		return GF_CODEC_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;

@@ -760,7 +760,7 @@ GF_EXPORT
 GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 {
 	u32 Width, Height;
-	GF_DecoderConfig *dcd;
+	GF_ESD *esd;
 	char sdpLine[20000];
 	char mediaName[30], payloadName[30];
 
@@ -844,14 +844,14 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	/*MPEG-4 decoder config*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_MPEG4) {
-		dcd = gf_isom_get_decoder_config(tkHint->file, tkHint->TrackNum, 1);
+		esd = gf_isom_get_esd(tkHint->file, tkHint->TrackNum, 1);
 
-		if (dcd && dcd->decoderSpecificInfo && dcd->decoderSpecificInfo->data) {
-			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
+		if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		} else {
 			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, NULL, 0);
 		}
-		if (dcd) gf_odf_desc_del((GF_Descriptor *)dcd);
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 
 		if (tkHint->rtp_p->slMap.IV_length) {
 			const char *kms;
@@ -881,12 +881,12 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_bs_write_int(bs, 0, 3); /* numLayer */ 
  
 		/* audio-specific config */ 
-		dcd = gf_isom_get_decoder_config(tkHint->file, tkHint->TrackNum, 1); 
-		if (dcd) { 
+		esd = gf_isom_get_esd(tkHint->file, tkHint->TrackNum, 1); 
+		if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo) { 
 			/*PacketVideo patch: don't signal SBR and PS stuff, not allowed in LATM with audioMuxVersion=0*/
-			gf_bs_write_data(bs, dcd->decoderSpecificInfo->data, MIN(dcd->decoderSpecificInfo->dataLength, 2) ); 
-			gf_odf_desc_del((GF_Descriptor *)dcd); 
+			gf_bs_write_data(bs, esd->decoderConfig->decoderSpecificInfo->data, MIN(esd->decoderConfig->decoderSpecificInfo->dataLength, 2) ); 
 		} 
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd); 
  
 		/* other data */ 
 		gf_bs_write_int(bs, 0, 3); /* frameLengthType */ 
@@ -936,6 +936,22 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		sprintf(sdpLine, "a=framesize:%d %d-%d", tkHint->rtp_p->PayloadType, Width, Height);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
+
+	esd = gf_isom_get_esd(tkHint->file, tkHint->TrackNum, 1);
+	if (esd && esd->decoderConfig && (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config)) {
+		if (esd->decoderConfig->predefined_rvc_config) {
+			sprintf(sdpLine, "a=rvc-config-predef:%d", esd->decoderConfig->predefined_rvc_config);
+		} else {
+			/*temporary ...*/
+			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_avc.xml");
+			} else {
+				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_sp.xml");
+			}
+		}
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+	}
+	if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 
 	gf_isom_set_track_enabled(tkHint->file, tkHint->HintTrack, 1);
 	return GF_OK;

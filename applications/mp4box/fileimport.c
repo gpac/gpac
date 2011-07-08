@@ -138,11 +138,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty;
 	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, keep_handler;
-	u32 group, handler;
+	u32 group, handler, rvc_predefined;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *fmt, *handler_name, *rvc_config;
+	rvc_predefined = 0;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -219,7 +220,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
-		else if (!strnicmp(ext+1, "rvc=", 4)) rvc_config = gf_strdup(ext+5);
+		else if (!strnicmp(ext+1, "rvc=", 4)) {
+			if (sscanf(ext+5, "%d", &rvc_predefined) != 1) {
+				rvc_config = gf_strdup(ext+5);
+			}
+		}
 		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
 		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
 		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
@@ -487,11 +492,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					fclose(f);
 					gf_gz_compress_payload(&data, size, &size);
 
-					e = gf_isom_set_meta_type(import.dest, 0, track, GF_4CC('r','v','c','z'));
-					gf_isom_modify_alternate_brand(import.dest, GF_ISOM_BRAND_ISO2, 1);		
-					gf_isom_set_meta_xml_memory(import.dest, 0, track, data, size, 1);
+					gf_isom_set_rvc_config(import.dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 					gf_free(data);
 				}
+			} else if (rvc_predefined>0) {
+				gf_isom_set_rvc_config(import.dest, track, 1, rvc_predefined, NULL, NULL, 0);
 			}
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);

@@ -410,12 +410,17 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 	
 			/*new resource*/
 			if (iinf->full_path) {
-				FILE *src = gf_f64_open(iinf->full_path, "rb");
-
-				if (!src) continue;
-				gf_f64_seek(src, 0, SEEK_END);
-				it_size = gf_f64_tell(src);
-				gf_f64_seek(src, 0, SEEK_SET);
+				FILE *src=NULL;
+				
+				if (!iinf->data_len) {
+					src = gf_f64_open(iinf->full_path, "rb");
+					if (!src) continue;
+					gf_f64_seek(src, 0, SEEK_END);
+					it_size = gf_f64_tell(src);
+					gf_f64_seek(src, 0, SEEK_SET);
+				} else {
+					it_size = iinf->data_len;
+				}
 				if (maxExtendSize<it_size) maxExtendSize = it_size;
 
 				if (!gf_list_count(iloc->extent_entries)) {
@@ -428,16 +433,20 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 
 				/*OK write to mdat*/
 				if (!Emulation) {
-					char cache_data[4096];
-					u64 remain = entry->extent_length;
-					while (remain) {
-						u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-						size_cache = fread(cache_data, sizeof(char), size_cache, src);
-						gf_bs_write_data(bs, cache_data, size_cache);
-						remain -= size_cache;
+					if (src) {
+						char cache_data[4096];
+						u64 remain = entry->extent_length;
+						while (remain) {
+							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
+							size_cache = fread(cache_data, sizeof(char), size_cache, src);
+							gf_bs_write_data(bs, cache_data, size_cache);
+							remain -= size_cache;
+						}
+					} else {
+						gf_bs_write_data(bs, iinf->full_path, iinf->data_len);
 					}
 				}
-				fclose(src);
+				if (src) fclose(src);
 			} 
 			else if (gf_list_count(iloc->extent_entries)) {
 				u32 j;
@@ -1180,6 +1189,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		//so just shift the offset
 		e = ShiftOffset(movie, writers, finalOffset - offset);
 		if (e) goto exit;
+		firstSize = GetMoovAndMetaSize(movie, writers);
 	}
 	//now write our stuff
 	e = WriteMoovAndMeta(movie, writers, bs);

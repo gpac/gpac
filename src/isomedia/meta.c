@@ -189,8 +189,9 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return 0;
 }
 
-GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name)
+GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name, char **out_data, u32 *out_size, const char **out_mime )
 {
+	GF_BitStream *item_bs;
 	char szPath[1024];
 	GF_ItemExtentEntry *extent_entry;
 	FILE *resource = NULL;
@@ -201,11 +202,14 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
+	
+	if (out_mime) *out_mime = NULL;
 
 	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
 	if (item_num) {
 		GF_ItemInfoEntryBox *item_entry = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 		item_name = item_entry->item_name;
+		if (out_mime) *out_mime = item_entry->content_type;
 	} 
 
 	location_entry = NULL;
@@ -242,13 +246,20 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 			) return GF_BAD_PARAM;
 	}
 
-	if (dump_file_name) {
+	item_bs = NULL;
+
+	if (out_data) {
+		item_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	} else if (dump_file_name) {
 		strcpy(szPath, dump_file_name);
+		resource = gf_f64_open(szPath, "wb");
+		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	} else {
 		if (item_name) strcpy(szPath, item_name);
 		else sprintf(szPath, "item_id%02d", item_id);
+		resource = gf_f64_open(szPath, "wb");
+		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	}
-	resource = gf_f64_open(szPath, "wb");
 		
 	for (i=0; i<count; i++) {
 		char buf_cache[4096];
@@ -260,12 +271,28 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 		while (remain) {
 			u32 cache_size = (remain>4096) ? 4096 : (u32) remain;
 			gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
-			fwrite(buf_cache, 1, cache_size, resource);
+			gf_bs_write_data(item_bs, buf_cache, cache_size);
 			remain -= cache_size;
 		}
 	}
-	fclose(resource);
+	if (out_data) {
+		gf_bs_get_content(item_bs, out_data, out_size);
+	}
+	if (resource) {
+		fclose(resource);
+	} 
+	gf_bs_del(item_bs);
 	return GF_OK;
+}
+
+GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name)
+{
+	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL);
+}
+
+GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **out_mime)
+{
+	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_mime);
 }
 
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num)
@@ -423,7 +450,7 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 	return GF_OK;
 }
 
-GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN)
+GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, char *data, u32 data_len)
 {
 	GF_Err e;
 	GF_ItemLocationEntry *location_entry;
@@ -444,7 +471,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	if (e) return e;
 
 	/*check file exists */
-	if (!URN && !URL && !self_reference) {
+	if (!URN && !URL && !self_reference && !data) {
 		FILE *src = gf_f64_open(resource_path, "rb");
 		if (!src) return GF_URL_ERROR;
 		fclose(src);
@@ -544,35 +571,58 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 		entry->extent_offset = 0;
 		gf_list_add(location_entry->extent_entries, entry);
 
-		src = gf_f64_open(resource_path, "rb");
-		if (src) {
-			char cache_data[4096];
-			u64 remain;
-			gf_f64_seek(src, 0, SEEK_END);
-			entry->extent_length = gf_f64_tell(src);
-			gf_f64_seek(src, 0, SEEK_SET);
-
-			remain = entry->extent_length;
-			while (remain) {
-				u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-				size_cache = fread(cache_data, 1, size_cache, src);
-				gf_bs_write_data(file->editFileMap->bs, cache_data, size_cache);
-				remain -= size_cache;
-			}
-			fclose(src);
-
+		if (data) {
+			gf_bs_write_data(file->editFileMap->bs, data, data_len);
 			/*update length size*/
 			if (entry->extent_length>0xFFFFFFFF) meta->item_locations->length_size = 8;
 			else if (entry->extent_length && !meta->item_locations->length_size) meta->item_locations->length_size = 4;
+		} else if (resource_path) {
+			src = gf_f64_open(resource_path, "rb");
+			if (src) {
+				char cache_data[4096];
+				u64 remain;
+				gf_f64_seek(src, 0, SEEK_END);
+				entry->extent_length = gf_f64_tell(src);
+				gf_f64_seek(src, 0, SEEK_SET);
+
+				remain = entry->extent_length;
+				while (remain) {
+					u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
+					size_cache = fread(cache_data, 1, size_cache, src);
+					gf_bs_write_data(file->editFileMap->bs, cache_data, size_cache);
+					remain -= size_cache;
+				}
+				fclose(src);
+
+				/*update length size*/
+				if (entry->extent_length>0xFFFFFFFF) meta->item_locations->length_size = 8;
+				else if (entry->extent_length && !meta->item_locations->length_size) meta->item_locations->length_size = 4;
+			}
 		}
 	}
 	/*store full path for info*/
 	else if (!location_entry->data_reference_index) {
-		infe->full_path = gf_strdup(resource_path);
+		if (data) {
+			infe->full_path = gf_malloc(sizeof(char) * data_len);
+			memcpy(infe->full_path, data, sizeof(char) * data_len);
+			infe->data_len = data_len;
+		} else {
+			infe->full_path = gf_strdup(resource_path);
+			infe->data_len = 0;
+		}
 	}
 	return GF_OK;
 }
 
+GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN)
+{
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, mime_type, content_encoding, URL, URN, NULL, 0);
+}
+
+GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, const char *mime_type, const char *content_encoding, char *data, u32 data_len)
+{
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, 0, NULL, item_name, mime_type, content_encoding, NULL, NULL, data, data_len);
+}
 
 GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id)
 {

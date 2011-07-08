@@ -1134,6 +1134,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 			if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
 				u32 w, h;
+				u16 rvc_predef;
 				w = h = 0;
 				if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1229,6 +1230,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					if (full_dump) fprintf(stdout, "\t");
 					fprintf(stdout, "Visual Size %d x %d\n", w, h);
 				}
+				if (gf_isom_get_rvc_config(file, trackNum, 1, &rvc_predef, NULL, NULL, NULL)==GF_OK) {
+					fprintf(stdout, "Has RVC signaled - Predefined configuration %d\n", rvc_predef);
+				}
+
 			} else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 				GF_M4ADecSpecInfo a_cfg;

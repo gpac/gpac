@@ -66,16 +66,18 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 {
 	GF_Err e;
 	GF_ESD *esd;
+	u32 track_num = 0;
 	GF_SampleTableBox *stbl;
 	GF_TrackBox *trak, *OCRTrack;
 	GF_TrackReferenceTypeBox *dpnd;
 	GF_SLConfig *slc;
 	GF_MPEGSampleEntryBox *entry;
 
+	track_num = gf_isom_get_tracknum_from_id(moov, trackID);
 	dpnd = NULL;
 	*outESD = NULL;
 
-	trak = gf_isom_get_track(moov, gf_isom_get_tracknum_from_id(moov, trackID));
+	trak = gf_isom_get_track(moov, track_num);
 	if (!trak) return GF_ISOM_INVALID_FILE;
 
 	e = Media_GetESD(trak->Media, StreamDescIndex, &esd, 0);
@@ -253,7 +255,29 @@ default_sync:
 
 	//this new SL will be OUT OF THE FILE. Let's set its predefined to 0
 	esd->slConfig->predefined = 0;
-	
+
+
+	{
+		u16 rvc_predefined;
+		char *rvc_cfg_data;
+		const char *mime_type;
+		u32 rvc_cfg_size;
+		e = gf_isom_get_rvc_config(moov->mov, track_num, 1, &rvc_predefined, &rvc_cfg_data, &rvc_cfg_size, &mime_type);
+		if (e==GF_OK) {
+			if (rvc_predefined) {
+				esd->decoderConfig->predefined_rvc_config = rvc_predefined;
+			} else {
+				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
+					gf_gz_decompress_payload(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
+					gf_free(rvc_cfg_data);
+				} else {
+					esd->decoderConfig->rvc_config->data = rvc_cfg_data;
+					esd->decoderConfig->rvc_config->dataLength = rvc_cfg_size;
+				}
+			}
+		}
+	}
 	*outESD = esd;
 	return GF_OK;
 }

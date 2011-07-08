@@ -260,6 +260,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	
 	case GF_ISOM_BOX_TYPE_SUBS:
 		return subs_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_RVCC:
+		return rvcc_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_VOID:
 		return void_dump(a, trace);
@@ -904,6 +906,7 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 		gf_box_dump(p->protection_info, trace);
 	}
 	if (p->pasp) gf_box_dump(p->pasp, trace);
+	if (p->rvcc) gf_box_dump(p->rvcc, trace);
 
 	DumpBox(a, trace);
 
@@ -3551,6 +3554,19 @@ GF_Err tfdt_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "</TrackFragmentBaseMediaDecodeTimeBox>\n");
+	return GF_OK;
+}
+
+GF_Err rvcc_dump(GF_Box *a, FILE * trace)
+{
+	GF_RVCConfigurationBox *ptr = (GF_RVCConfigurationBox*) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<RVCConfigurationBox predefined=\"%d\"", ptr->predefined_rvc_config);
+	if (! ptr->predefined_rvc_config) fprintf(trace, " rvc_meta_idx=\"%d\"", ptr->rvc_meta_idx);
+	fprintf(trace, ">\n");
+	DumpBox(a, trace);
+	fprintf(trace, "</RVCConfigurationBox>\n");
 	return GF_OK;
 }
 

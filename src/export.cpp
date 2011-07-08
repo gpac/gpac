@@ -294,6 +294,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_abort) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_setup_from_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_file_memory) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_can_be_cached_on_disk) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
@@ -656,6 +658,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_next_alternate_group_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_primary_item_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_JPEG2000) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_rvc_config) )
+
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -791,6 +795,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_estimate_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_meta_item) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_meta_item_memory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_primary_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml) )
@@ -807,6 +812,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_alternate_group_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_dims_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_dims_description) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_rvc_config) )
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_hint_description) )

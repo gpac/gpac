@@ -566,6 +566,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_SIDX: return sidx_New();
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_New();
 	case GF_ISOM_BOX_TYPE_TFDT: return tfdt_New();
+	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_New();
 
 	default:
 		a = defa_New();
@@ -815,6 +816,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SIDX: sidx_del(a); return;
 	case GF_ISOM_BOX_TYPE_SUBS: subs_del(a); return;
 	case GF_ISOM_BOX_TYPE_TFDT: tfdt_del(a); return;
+	case GF_ISOM_BOX_TYPE_RVCC: rvcc_del(a); return;
 
 	default:
 		defa_del(a);
@@ -1045,6 +1047,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SIDX: return sidx_Read(a, bs); 
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TFDT: return tfdt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -1276,6 +1279,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SIDX: return sidx_Write(a, bs); 
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TFDT: return tfdt_Write(a, bs); 
+	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_Write(a, bs); 
 
 	default:
 		return defa_Write(a, bs);
@@ -1505,6 +1509,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SIDX: return sidx_Size(a); 
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_Size(a);
 	case GF_ISOM_BOX_TYPE_TFDT: return tfdt_Size(a);
+	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_Size(a);
 
 	default: return defa_Size(a);
 	}
