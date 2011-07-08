@@ -51,6 +51,7 @@ typedef struct
 
 	Bool ts_setup;
 	Bool request_all_pids;
+	Bool is_connected;
 
 	Bool epg_requested;
 	Bool has_eit;
@@ -426,6 +427,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
+	GF_Event evt;
 	M2TSIn *m2ts = (M2TSIn *) ts->user;
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
@@ -443,33 +445,30 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 #endif
 		break;
 	case GF_M2TS_EVT_AIT_FOUND:
-		{
-		  GF_Event evt;
-		  evt.type = GF_EVENT_FORWARDED;
-		  evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
-		  evt.forwarded_event.service_event_type = evt_type;
-		  evt.forwarded_event.param = param;		  
-		  gf_term_on_service_event(m2ts->service, &evt);
-		}
+		evt.type = GF_EVENT_FORWARDED;
+		evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
+		evt.forwarded_event.service_event_type = evt_type;
+		evt.forwarded_event.param = param;		  
+		gf_term_on_service_event(m2ts->service, &evt);
 		break;
 	case GF_M2TS_EVT_PAT_FOUND:
 		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */		
-		if (gf_list_count(m2ts->ts->programs) != 1)
+		if (gf_list_count(m2ts->ts->programs) != 1) {
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
-		{
-			/* Send the TS to the a user if needed. Useful to check the number of received programs*/
-			GF_Event evt;
-			evt.type = GF_EVENT_FORWARDED;
-			evt.forwarded_event.forward_type = GF_M2TS_EVT_PAT_FOUND;
-			evt.forwarded_event.service_event_type = evt_type;
-			evt.forwarded_event.param = ts;
-			gf_term_on_service_event(m2ts->service, &evt);		
-			
+			m2ts->is_connected = 1;
 		}
+		/* Send the TS to the a user if needed. Useful to check the number of received programs*/
+		evt.type = GF_EVENT_FORWARDED;
+		evt.forwarded_event.forward_type = GF_M2TS_EVT_PAT_FOUND;
+		evt.forwarded_event.service_event_type = evt_type;
+		evt.forwarded_event.param = ts;
+		gf_term_on_service_event(m2ts->service, &evt);		
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
-		if (gf_list_count(m2ts->ts->programs) == 1)
+		if (gf_list_count(m2ts->ts->programs) == 1) {
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
+			m2ts->is_connected = 1;
+		}
 
 		/*do not declare if  single program was requested for playback*/
 		MP2TS_SetupProgram(m2ts, param, m2ts->request_all_pids, m2ts->request_all_pids ? 0 : 1);
@@ -699,16 +698,18 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 
 	switch (e){
 	  case GF_EOS:
-	    gf_term_on_connect(m2ts->service, NULL, GF_OK);
-	    return;
+		  if (!m2ts->is_connected) {
+			  gf_term_on_connect(m2ts->service, NULL, GF_OK);
+		  }
+		  return;
 	  case GF_OK:
-	    return;
+		  return;
 	  default:
-		if (!m2ts->ts_setup) {
-			m2ts->ts_setup = 1;
-		}
-		GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
-		gf_term_on_connect(m2ts->service, NULL, e);
+		  if (!m2ts->ts_setup) {
+			  m2ts->ts_setup = 1;
+		  }
+		  GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
+		  gf_term_on_connect(m2ts->service, NULL, e);
 	}
 }
 
@@ -842,10 +843,12 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		gf_mx_v(m2ts->mx);
 	}
 
-	if (expect_type==GF_MEDIA_OBJECT_SCENE) {
+	/*if type is undefined, check the PMT for an IOD*/
+	if (expect_type<=GF_MEDIA_OBJECT_SCENE) {
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
 			if (prog->pmt_iod) {
+				m2ts->request_all_pids = 0;
 				gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
 				return desc;
 			}
