@@ -5804,8 +5804,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_M2TS_AUDIO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_AAC: gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				}
-
-				gf_isom_set_media_language(import->dest, tsimp->track, (char *) gf_4cc_to_str(pck->stream->lang)+1);
+				if (pck->stream->lang)
+					gf_isom_set_media_language(import->dest, tsimp->track, (char *) gf_4cc_to_str(pck->stream->lang)+1);
 			}
 			if (!tsimp->stream_setup) {
 				if (pck->stream->aud_sr) {
