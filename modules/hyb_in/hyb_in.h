@@ -35,7 +35,7 @@ typedef enum {
 	HYB_STATE_STOPPED  = -2,	/*thread received HYB_STATE_STOP_REQ and stopped*/
 	HYB_STATE_STOP_REQ = -1,	/*user asked to stop*/
 	HYB_STATE_PAUSE    = 0,		/*default state*/
-	//HYB_STATE_PLAY_REQ = 1,		/*user asked to play*/
+	//HYB_STATE_PLAY_REQ = 1,	/*user asked to play*/
 	HYB_STATE_PLAYING  = 2,		/*thread received HYB_STATE_PLAY_REQ and has started playing*/
 } HYB_STATE;
 
@@ -63,10 +63,10 @@ typedef struct s_GF_HYBMEDIA {
 	
 	/*create/destroy the object and all its data*/
 	GF_Err (*Connect)   (struct s_GF_HYBMEDIA *self, GF_ClientService *service, const char *url);
-	GF_Err (*Disconnect)(struct s_GF_HYBMEDIA *self, GF_ClientService *service);
+	GF_Err (*Disconnect)(struct s_GF_HYBMEDIA *self);
 
 	/*request state from */
-	GF_Err (*SetState)(struct s_GF_HYBMEDIA *self, GF_NET_CHAN_CMD state);
+	GF_Err (*SetState)(struct s_GF_HYBMEDIA *self, const GF_NET_CHAN_CMD state);
 	
 	/*in case data retrieval paradigm is pull these two functions shall not be NULL*/
 	GF_Err (*GetData)    (struct s_GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr); /*only available when data_mode is pull*/
