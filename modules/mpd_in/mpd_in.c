@@ -43,6 +43,12 @@ static const char * MPD_MIME_TYPES[] = { "video/vnd.3gpp.mpd", "audio/vnd.3gpp.m
  */
 static const char * M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
+typedef enum {
+	MPD_STATE_STOPPED = 0,
+	MPD_STATE_RUNNING,
+	MPD_STATE_CONNECTING,
+} MPD_STATE;
+
 GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk, u64 start_range, u64 end_range, Bool persistent);
 
 typedef struct
@@ -123,7 +129,7 @@ typedef struct __mpd_module {
     GF_Mutex *dl_mutex;
 
     /* 0 not started, 1 download in progress */
-    Bool mpd_is_running;
+    MPD_STATE mpd_is_running;
     Bool mpd_stop_request;
 
 
@@ -897,7 +903,7 @@ static u32 download_segments(void *par)
 
     /* Setting the download status in exclusive code */
     gf_mx_p(mpdin->dl_mutex);
-    mpdin->mpd_is_running = 1;
+    mpdin->mpd_is_running = MPD_STATE_CONNECTING;
     gf_mx_v(mpdin->dl_mutex);
 
 	e = GF_OK;
@@ -920,7 +926,7 @@ static u32 download_segments(void *par)
     mpdin->last_update_time = gf_sys_clock();
 
     gf_mx_p(mpdin->dl_mutex);
-    mpdin->mpd_is_running = 1;
+    mpdin->mpd_is_running = MPD_STATE_CONNECTING;
     gf_mx_v(mpdin->dl_mutex);
 
 	for (i=0; i<group_count; i++) {
@@ -939,6 +945,10 @@ static u32 download_segments(void *par)
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service DONE\n", group->segment_local_url));
 	}
+
+    gf_mx_p(mpdin->dl_mutex);
+    mpdin->mpd_is_running = MPD_STATE_RUNNING;
+    gf_mx_v(mpdin->dl_mutex);
 
 	while (go_on) {
 		const char *local_file_name = NULL;
@@ -1135,7 +1145,7 @@ static u32 download_segments(void *par)
 exit:
     /* Signal that the download thread has ended */
     gf_mx_p(mpdin->dl_mutex);
-    mpdin->mpd_is_running = 0;
+    mpdin->mpd_is_running = MPD_STATE_STOPPED;
     gf_mx_v(mpdin->dl_mutex);
     return ret;
 }
@@ -1244,14 +1254,14 @@ static void MPD_DownloadStop(GF_MPD_In *mpdin)
 	}
     /* stop the download thread */
     gf_mx_p(mpdin->dl_mutex);
-    if (mpdin->mpd_is_running == 1) {
+    if (mpdin->mpd_is_running != MPD_STATE_STOPPED) {
         mpdin->mpd_stop_request = 1;
         gf_mx_v(mpdin->dl_mutex);
         while (1) {
             /* waiting for the download thread to stop */
             gf_sleep(16);
             gf_mx_p(mpdin->dl_mutex);
-            if (mpdin->mpd_is_running == 0) {
+            if (mpdin->mpd_is_running != MPD_STATE_RUNNING) {
                 /* it's stopped we can continue */
                 gf_mx_v(mpdin->dl_mutex);
                 break;
