@@ -2584,6 +2584,56 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
     return e;
 }
 
+GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime)
+{
+    GF_Err e;
+    FILE * f;
+    GF_DownloadSession *dnload;  
+    GF_DownloadManager *dm;
+	
+	if (!url || !out_data || !out_size)
+        return GF_BAD_PARAM;
+    f = gf_temp_file_new();
+    if (!f) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to create temp file for write.\n"));
+		return GF_IO_ERR;
+    }
+
+	dm = gf_dm_new(NULL);
+	if (!dm) {
+		fclose(f);
+        return GF_OUT_OF_MEM;
+	}
+	
+    dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
+    if (!dnload) {
+		gf_dm_del(dm);
+        return GF_BAD_PARAM;
+    }
+    dnload->use_cache_file = 1;
+    if (!e)  
+		e = gf_dm_sess_process(dnload);
+    
+	if (!e)  
+	    e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
+	
+	if (!e) {
+		*out_size = ftell(f);
+		*out_data = gf_malloc(sizeof(char)* (*out_size+1));
+		fseek(f, 0, SEEK_SET);
+		fread(*out_data, 1, *out_size, f);
+		*out_data[*out_size] = 0;
+		if (out_size) {
+			const char *mime = gf_dm_sess_mime_type(dnload);
+			if (mime) *out_mime = gf_strdup(mime);
+		}
+	}
+	fclose(f);
+    gf_dm_sess_del(dnload);
+	gf_dm_del(dm);
+    return e;
+}
+
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
 {
     return dnload ? dnload->orig_url : NULL;

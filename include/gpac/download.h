@@ -485,6 +485,18 @@ extern "C" {
      */
     u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
 
+
+    /*
+     *\brief fetches remote file in memory
+     *
+     *Fetches remote file in memory . 
+     *\param url the data to fetch 
+     *\param out_data output data (allocated by function)
+     *\param out_size output data size
+     *\param out_mime if not NULL, pointer will contain the mime type (allocated by function)
+     *\return error code if any
+     */
+	GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime);
 	/*! @} */
 
 #ifdef __cplusplus
