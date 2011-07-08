@@ -920,8 +920,9 @@ static u32 download_segments(void *par)
     mpdin->last_update_time = gf_sys_clock();
 
     gf_mx_p(mpdin->dl_mutex);
-    mpdin->mpd_is_running = 0;
+    mpdin->mpd_is_running = 1;
     gf_mx_v(mpdin->dl_mutex);
+
 	for (i=0; i<group_count; i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service... %s\n", group->segment_local_url));
@@ -938,11 +939,6 @@ static u32 download_segments(void *par)
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service DONE\n", group->segment_local_url));
 	}
-
-    /* Setting the download status in exclusive code */
-    gf_mx_p(mpdin->dl_mutex);
-    mpdin->mpd_is_running = 1;
-    gf_mx_v(mpdin->dl_mutex);
 
 	while (go_on) {
 		const char *local_file_name = NULL;
@@ -1533,6 +1529,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         if (strstr(url, ".m3u8"))
             is_m3u8 = 1;
     }
+	
+	if (is_local) {
+		FILE *f = fopen(local_url, "rt");
+		if (!f) {
+	        gf_term_on_connect(mpdin->service, NULL, GF_URL_ERROR);
+			return GF_OK;
+		}
+		fclose(f);
+	}
 
     if (is_m3u8) {
 		if (is_local) {
