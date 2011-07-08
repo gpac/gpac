@@ -36,6 +36,22 @@
 #include <errno.h>
 #endif
 
+/**
+ * New versions of ffmpeg do not declare AVERROR_NOMEM, AVERROR_IO, AVERROR_NOFMT
+ */
+
+#ifndef AVERROR_NOMEM
+#define AVERROR_NOMEM AVERROR(ENOMEM)
+#endif /* AVERROR_NOMEM */
+
+#ifndef AVERROR_IO
+#define AVERROR_IO AVERROR(EIO)
+#endif /* AVERROR_IO */
+
+#ifndef AVERROR_NOFMT
+#define AVERROR_NOFMT AVERROR(EINVAL)
+#endif /* AVERROR_NOFMT */
+
 static u32 FFDemux_Run(void *par)
 {
 	AVPacket pkt;
