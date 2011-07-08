@@ -307,6 +307,8 @@ enum
 
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
+	GF_ISOM_BOX_TYPE_RVCC	= GF_4CC( 'r', 'v', 'c', 'c' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -744,6 +746,12 @@ typedef struct
 	u32 vSpacing;
 } GF_PixelAspectRatioBox;
 
+typedef struct
+{
+	GF_ISOM_BOX
+	u16 predefined_rvc_config;
+	u32 rvc_meta_idx;
+} GF_RVCConfigurationBox;
 
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
@@ -759,7 +767,8 @@ typedef struct
 	char compressor_name[33];			\
 	u16 bit_depth;						\
 	s16 color_table_index;				\
-	GF_PixelAspectRatioBox *pasp;		
+	GF_PixelAspectRatioBox *pasp;		\
+	GF_RVCConfigurationBox *rvcc;		\
 
 typedef struct
 {
@@ -1336,6 +1345,8 @@ typedef struct
 	char *content_encoding;
 	// needed to actually read the resource file, but not written in the MP21 file.
 	char *full_path;
+	// if not 0, full_path is actually the data to write.
+	u32 data_len;
 } GF_ItemInfoEntryBox;
 
 typedef struct
@@ -3338,6 +3349,13 @@ GF_Err tfdt_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tfdt_Size(GF_Box *s);
 GF_Err tfdt_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tfdt_dump(GF_Box *a, FILE * trace);
+
+GF_Box *rvcc_New();
+void rvcc_del(GF_Box *);
+GF_Err rvcc_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err rvcc_Size(GF_Box *s);
+GF_Err rvcc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err rvcc_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

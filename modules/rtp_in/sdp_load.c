@@ -186,6 +186,15 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 		memcpy(esd->decoderConfig->decoderSpecificInfo->data, ch->depacketizer->sl_map.config, sizeof(char) * ch->depacketizer->sl_map.configSize);
 		esd->decoderConfig->decoderSpecificInfo->dataLength = ch->depacketizer->sl_map.configSize;
 	}
+	if (ch->depacketizer->sl_map.rvc_predef) {
+		esd->decoderConfig->predefined_rvc_config = ch->depacketizer->sl_map.rvc_predef;
+	} else if (ch->depacketizer->sl_map.rvc_config) {
+		esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+		esd->decoderConfig->rvc_config->data = ch->depacketizer->sl_map.rvc_config;
+		esd->decoderConfig->rvc_config->dataLength = ch->depacketizer->sl_map.rvc_config_size;
+		ch->depacketizer->sl_map.rvc_config = NULL;
+		ch->depacketizer->sl_map.rvc_config_size = 0;
+	}
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
 }

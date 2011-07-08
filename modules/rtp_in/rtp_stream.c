@@ -135,6 +135,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	Bool force_bcast = 0;
 	Double Start, End;
 	Float CurrentTime;
+	u16 rvc_predef = 0;
+	char *rvc_config_att = NULL;
 	u32 s_port_first, s_port_last;
 	GF_X_Attribute *att;
 	Bool is_migration = 0;
@@ -166,6 +168,10 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		}
 		else if (!stricmp(att->Name, "x-server-port") ) {
 			sscanf(att->Value, "%u-%u", &s_port_first, &s_port_last);
+		} else if (!stricmp(att->Name, "rvc-config-predef")) { 
+			rvc_predef = atoi(att->Value);
+		} else if (!stricmp(att->Name, "rvc-config")) { 
+			rvc_config_att = att->Value;
 		}
 	}
 
@@ -269,6 +275,40 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		gf_rtp_set_info_rtp(tmp->rtp_ch, rtp_seq, rtp_time, ssrc);
 		tmp->status = RTP_SessionResume;
 	}
+
+	if (rvc_predef) { 
+		tmp->depacketizer->sl_map.rvc_predef = rvc_predef ;
+	} else if (rvc_config_att) { 
+		char *rvc_data=NULL;
+		u32 rvc_size;
+		Bool is_gz = 0;
+		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 32) && strstr(rvc_config_att, "base64") ) {
+			char *data = strchr(rvc_config_att, ',');
+			if (data) {
+				rvc_size = strlen(data) * 3 / 4 + 1;
+				rvc_data = gf_malloc(sizeof(char) * rvc_size);
+				rvc_size = gf_base64_decode(data, strlen(data), rvc_data, rvc_size);
+				rvc_data[rvc_size] = 0;
+			}
+			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 35)) is_gz = 1;
+		} else if (!strnicmp(rvc_config_att, "http://", 7) || !strnicmp(rvc_config_att, "https://", 8) ) {
+			char *mime;
+			if (gf_dm_get_file_memory(rvc_config_att, &rvc_data, &rvc_size, &mime) == GF_OK) {
+				if (mime && strstr(mime, "+gz")) is_gz = 1;
+				if (mime) gf_free(mime);
+			}
+		}
+		if (rvc_data) {
+			if (is_gz) {
+				gf_gz_decompress_payload(rvc_data, rvc_size, &tmp->depacketizer->sl_map.rvc_config, &tmp->depacketizer->sl_map.rvc_config_size);
+				gf_free(rvc_data);
+			} else {
+				tmp->depacketizer->sl_map.rvc_config = rvc_data;
+				tmp->depacketizer->sl_map.rvc_config_size = rvc_size;
+			}
+		}
+	}
+	
 	return tmp;
 }
 

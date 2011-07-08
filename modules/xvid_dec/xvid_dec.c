@@ -373,7 +373,7 @@ static u32 XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
-		if (esd->decoderConfig->rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
+		if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
 		return GF_CODEC_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;

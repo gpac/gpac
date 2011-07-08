@@ -648,6 +648,9 @@ GF_Err gf_isom_get_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matri
 /*returns width and height of the given visual sample desc - error if not a visual track*/
 GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *hSpacing, u32 *vSpacing);
 
+/*gets RVC config of given sample description*/
+GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 *rvc_predefined, char **data, u32 *size, const char **mime);
+
 /*
 	User Data Manipulation (cf write API too)
 */
@@ -977,6 +980,9 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *the_file, u32 trackNumber, char *t
 
 /*removes given stream description*/
 GF_Err gf_isom_remove_sample_description(GF_ISOFile *the_file, u32 trackNumber, u32 streamDescIndex);
+
+/*sets the RVC config for the given track sample description*/
+GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, char *data, u32 size);
 
 /*
 	some authoring extensions
@@ -1761,8 +1767,14 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 
 /*extracts item from given meta
 	@item_num: 1-based index of item to query
+	@dump_file_name: if NULL, use item name for dumping
 */
 GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num, const char *dump_file_name);
+
+/*extracts item from given meta in memory
+	@item_num: 1-based index of item to query
+*/
+GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **mime_type);
 
 /*retirves primary item ID, 0 if none found (primary can also be stored through meta XML)*/
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num);
@@ -1792,6 +1804,8 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 	@URL, @URN: if set, resource will be remote (same as stream descriptions)
 */
 GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN);
+/*same as above excepts take the item directly in memory*/
+GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, const char *mime_type, const char *content_encoding, char *data, u32 data_len);
 
 /*removes item from meta*/
 GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num);

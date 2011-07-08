@@ -254,7 +254,8 @@ typedef struct
 	u32 avgBitrate;
 	GF_DefaultDescriptor *decoderSpecificInfo;
 	
-	/*placeholder for RVC decoder config*/
+	/*placeholder for RVC decoder config if any*/
+	u16 predefined_rvc_config;
 	GF_DefaultDescriptor *rvc_config;
 
 	GF_List *profileLevelIndicationIndexDescriptor;

@@ -685,27 +685,7 @@ GF_ESD *gf_isom_get_esd(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptio
 		movie->LastError = e;
 		return NULL;
 	}
-	if (esd) {
-		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
-		if (trak->meta) {
-			u32 brand = gf_isom_get_meta_type(movie, 0, trackNumber);
-			if (brand==GF_4CC('r','v','c','z')) {
-				Bool compressed=0;
-				GF_XMLBox *xml = gf_isom_get_meta_xml(movie, 0, trackNumber, &compressed);
-				if (xml) {
-					esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-					if (compressed) {
-						gf_gz_decompress_payload(xml->xml, xml->xml_length, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
-					} else {
-						esd->decoderConfig->rvc_config->data = gf_malloc(sizeof(char)*(xml->xml_length+1));
-						memcpy(esd->decoderConfig->rvc_config->data, xml->xml, sizeof(char)*xml->xml_length);
-						esd->decoderConfig->rvc_config->data[xml->xml_length] = 0;
-						esd->decoderConfig->rvc_config->dataLength = xml->xml_length;
-					}
-				}
-			}
-		}
-	}
+
 	return esd;
 }
 
@@ -2587,6 +2567,40 @@ GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumb
 	*priority = entry->subsample_priority;
 	*reserved = entry->reserved;
 	*discardable = entry->discardable ? 1 : 0;
+	return GF_OK;
+}
+
+GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 *rvc_predefined, char **data, u32 *size, const char **mime)
+{
+	GF_MPEGVisualSampleEntryBox *entry;
+	GF_TrackBox *trak;
+
+	if (!rvc_predefined || !data || !size) return GF_BAD_PARAM;
+	*rvc_predefined = 0;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+
+	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sampleDescriptionIndex-1);
+	if (!entry ) return GF_BAD_PARAM;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_BOX_TYPE_AVC1: 
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_ENCV:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+	if (!entry->rvcc) return GF_BAD_PARAM;
+
+	*rvc_predefined = entry->rvcc->predefined_rvc_config;
+	if (entry->rvcc->rvc_meta_idx) {
+		if (!data || !size) return GF_OK;
+		return gf_isom_extract_meta_item_mem(movie, 0, track, entry->rvcc->rvc_meta_idx, data, size, mime);
+	}
 	return GF_OK;
 }
 

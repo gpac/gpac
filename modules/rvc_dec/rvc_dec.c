@@ -74,7 +74,8 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	s32 res;
 	char Picture;
 	RVCDec *ctx = (RVCDec*) ifcg->privateStack;
-	char* VTLFolder; //= "Z:\\code\\RVC\\VTL\\VTL\\";
+	char* VTLFolder; 
+	char *XDF_doc = NULL; 
 	int isAVCFile;
 
 	/*not supported in this version*/
@@ -83,11 +84,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = 0;
 
-	/*initialize RVC*/
-	if (!esd->decoderConfig->rvc_config) return GF_NOT_SUPPORTED;
-
-
-	VTLFolder = gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", "VTLPath");
+	VTLFolder = (char *)gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", "VTLPath");
 	if (!VTLFolder) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC_Dec] Cannot locate VTL: path is unknown. Please indicate path in GPAC config file:\n[RVCDecoder]\nVTLPath=PATH\n"));
 		return GF_SERVICE_ERROR;
@@ -95,12 +92,45 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[RVC_Dec] Using VTL in %s\n", VTLFolder));
 	}
 
+	/*initialize RVC*/
+	if (esd->decoderConfig->predefined_rvc_config) {
+		char opt[100], *path;
+		FILE *f;
+		u32 size;
+		sprintf(opt, "Predefined_%d", esd->decoderConfig->predefined_rvc_config);
+		path = gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", (const char *)opt);
+		if (!opt) return GF_NOT_SUPPORTED;
+		f = fopen(path, "rt");
+		if (!f) return GF_NOT_SUPPORTED;
+		fseek(f, 0, SEEK_END);
+		size = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		XDF_doc = gf_malloc(sizeof(char)*(size+1));
+		if (!XDF_doc) {
+			fclose(f);
+			return GF_OUT_OF_MEM;
+		}
+		fread(XDF_doc, 1, size, f);
+		fclose(f);
+		XDF_doc[size]=0;
+	} else {
+		if (!esd->decoderConfig->rvc_config) 
+			return GF_NOT_SUPPORTED;
+		XDF_doc = esd->decoderConfig->rvc_config->data;
+	}
+
 
 	if(esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) isAVCFile = 1;
 	else isAVCFile = 0;
 
-	rvc_init(esd->decoderConfig->rvc_config->data, VTLFolder, isAVCFile); //->data contains the uncompressed XDF
+	rvc_init(XDF_doc, VTLFolder, isAVCFile); //->data contains the uncompressed XDF
 
+	/*free data*/
+	gf_free(XDF_doc);
+	if (esd->decoderConfig->rvc_config) {
+		esd->decoderConfig->rvc_config->data = NULL;
+		esd->decoderConfig->rvc_config->dataLength = 0;
+	}
 		
 	/*decoder config not known, output buffers will be reconfigured at run-time*/
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) 
@@ -346,7 +376,7 @@ static u32 RVCD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
 	case GPAC_OTI_VIDEO_MPEG4_PART2:
-		if (!esd->decoderConfig->rvc_config) return GF_CODEC_NOT_SUPPORTED;
+		if (!esd->decoderConfig->rvc_config && !esd->decoderConfig->predefined_rvc_config) return GF_CODEC_NOT_SUPPORTED;
 		return GF_CODEC_SUPPORTED+1;
 	}
 	return GF_CODEC_NOT_SUPPORTED;
