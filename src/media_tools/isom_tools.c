@@ -621,7 +621,7 @@ typedef struct
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 fragments_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, const char *dash_ctx_file)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 fragments_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, const char *dash_ctx_file)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -629,12 +629,13 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	u8 defaultPadding;
 	u16 defaultDegradationPriority;
 	GF_Err e;
-	u32 cur_seg;
+	char sOpt[100], sKey[100];
+	u32 cur_seg, fragment_index;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
 	u32 MaxFragmentDuration, MaxSegmentDuration, SegmentDuration, maxFragDurationOverSegment;
-	Double average_duration, file_duration;
+	Double average_duration, file_duration, period_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels;
 	char langCode[5];
 	Bool switch_segment = 0;
@@ -871,6 +872,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	if (!seg_rad_name) use_url_template = 0;
 
 	cur_seg=1;
+	fragment_index=1;
+	period_duration = 0;
 
 	/*setup previous URL list*/
 	if (dash_ctx) {
@@ -884,7 +887,13 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 		opt = gf_cfg_get_key(dash_ctx, "DASH", "NextSegmentIndex");
 		if (opt) cur_seg = atoi(opt);
+		opt = gf_cfg_get_key(dash_ctx, "DASH", "NextFragmentIndex");
+		if (opt) fragment_index = atoi(opt);
+		opt = gf_cfg_get_key(dash_ctx, "DASH", "PeriodDuration");
+		if (opt) period_duration = atof(opt);
 	}
+	gf_isom_set_next_moof_number(output, fragment_index);
+	max_segment_duration = 0;
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 
@@ -894,7 +903,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			first_sample_in_segment = 1;
 			start_range = gf_isom_get_file_size(output);
 			if (seg_rad_name) {
-				sprintf(SegName, "%s_seg%d.%s", seg_rad_name, cur_seg, seg_ext);
+				sprintf(SegName, "%s%d.%s", seg_rad_name, cur_seg, seg_ext);
 				e = gf_isom_start_segment(output, SegName);
 				if (!use_url_template) {
 					fprintf(mpd_segs, "    <Url sourceURL=\"%s\"/>\n", SegName);	
@@ -1055,6 +1064,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			if ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap)) {
 				average_duration += SegmentDuration;
 				nb_segments++;
+				if (max_segment_duration * 1000 <= SegmentDuration) {
+					max_segment_duration = SegmentDuration;
+					max_segment_duration /= 1000;
+				}
+
 
 #if 0
 				if (split_seg_at_rap) has_rap = 0;
@@ -1108,6 +1122,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 		/*flush last segment*/
 		if (!switch_segment) {
+			if (max_segment_duration * 1000 <= SegmentDuration) {
+				max_segment_duration = SegmentDuration;
+				max_segment_duration /= 1000;
+			}
+			assert(max_segment_duration <= dash_duration_sec);
+
 			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, 1);
 			nb_segments++;
 			if (!seg_rad_name) {
@@ -1129,10 +1149,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			sprintf(SegName, "%s_seg$Index$.%s", seg_rad_name, seg_ext);
 			fprintf(mpd_segs, "    <UrlTemplate sourceURL=\"%s\" startIndex=\"1\" endIndex=\"%d\" />\n", SegName, cur_seg-1);	
 		}
-
-		h = (u32) (file_duration/3600);
-		m = (u32) (file_duration-h*60)/60;
-		s = file_duration - h*3600 - m*60;
+		period_duration += file_duration;
+		h = (u32) (period_duration/3600);
+		m = (u32) (period_duration-h*60)/60;
+		s = period_duration - h*3600 - m*60;
 		bandwidth = (u32) (file_size * 8 / file_duration);
 
 		fprintf(mpd, "<MPD type=\"OnDemand\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\">\n");
@@ -1151,9 +1171,27 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		
 		fprintf(mpd, ">\n");
 
-		h = (u32) (dash_duration_sec/3600);
-		m = (u32) (dash_duration_sec-h*60)/60;
-		s = dash_duration_sec - h*3600 - m*60;
+		if (dash_ctx) {
+			Double seg_dur;
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "MaxSegmentDuration");
+			if (opt) {
+				seg_dur = atof(opt);
+				if (seg_dur < max_segment_duration) {
+					sprintf(sOpt, "%f", max_segment_duration);
+					gf_cfg_set_key(dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
+					seg_dur = max_segment_duration;
+				} else {
+					max_segment_duration = seg_dur;
+				}
+			} else {
+				sprintf(sOpt, "%f", max_segment_duration);
+				gf_cfg_set_key(dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
+			}
+		}
+
+		h = (u32) (max_segment_duration / 3600);
+		m = (u32) (max_segment_duration - h*60)/60;
+		s = max_segment_duration - h*3600 - m*60;
 		if (m) {
 			fprintf(mpd, "   <SegmentInfo duration=\"PT%dM%.2fS\"", m, s);	
 		} else {
@@ -1183,7 +1221,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	/*store context*/
 	if (dash_ctx) {
-		char sOpt[100], sKey[100];
 		for (i=0; i<gf_list_count(fragmenters); i++) {
 			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
 			
@@ -1193,6 +1230,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		}
 		sprintf(sOpt, "%d", cur_seg);
 		gf_cfg_set_key(dash_ctx, "DASH", "NextSegmentIndex", sOpt);
+
+		fragment_index = gf_isom_get_next_moof_number(output);
+		sprintf(sOpt, "%d", fragment_index);
+		gf_cfg_set_key(dash_ctx, "DASH", "NextFragmentIndex", sOpt);
+		sprintf(sOpt, "%f", period_duration);
+		gf_cfg_set_key(dash_ctx, "DASH", "PeriodDuration", sOpt);
 	}
 
 err_exit:

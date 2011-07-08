@@ -238,6 +238,7 @@ void PrintGeneralUsage()
 			"                       Note: You can specify -rap switch to split segments at RAP boundaries\n"
 			" -frags-per-sidx N    sets the number of segments to be written in each SIDX box\n"
 			"                       If 0, a single SIDX box is used per segment\n"
+			"                       If -1, no SIDX box is used\n"
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s\n"
@@ -1188,8 +1189,9 @@ int mp4boxMain(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u64 movie_time;
+	s32 frags_per_sidx;
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx, program_number;
+	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, dash_ts_use_index;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
@@ -2410,6 +2412,7 @@ int mp4boxMain(int argc, char **argv)
 				}
 
 				if (dash_duration) {
+					if (frags_per_sidx<0) frags_per_sidx = 0;
 #ifndef GPAC_DISABLE_MPEG2TS
 					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, frags_per_sidx,
 						seg_name, seg_ext, use_url_template, dash_ts_use_index);
@@ -3046,7 +3049,11 @@ int mp4boxMain(int argc, char **argv)
 
 	/*split file*/
 	if (dash_duration) {
-		fprintf(stdout, "DASH-ing file with %.3f secs segments (fragments: %.3f secs - %d per sidx)", dash_duration, InterleavingTime, frags_per_sidx);
+
+		fprintf(stdout, "DASH-ing file with %.3f secs segments - fragments: %.3f secs - ", dash_duration, InterleavingTime);
+		if (frags_per_sidx<0) fprintf(stdout, "no sidx");
+		else if (frags_per_sidx) fprintf(stdout, "%d per sidx", frags_per_sidx);
+		else fprintf(stdout, "single sidx");
 		if (seg_at_rap) fprintf(stdout, " at GOP boundaries");
 		fprintf(stdout, "\n");
 

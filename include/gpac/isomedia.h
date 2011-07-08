@@ -1137,8 +1137,8 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName);
 /*sets the baseMediaDecodeTime of the first sample of the given track*/
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
 
-/*closes current segment*/
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment);
+/*closes current segment - if fragments_per_sidx is <0, no sidx is used - if fragments_per_sidx is ==0, a single sidx is used*/
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment);
 
 enum
 {
@@ -1951,6 +1951,10 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSam
 /*copy over the subsample information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
 GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber);
 
+/*gets the number of the next moof to be produced*/
+u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);
+/*Sets the number of the next moof to be produced*/
+void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 
 #endif /*GPAC_DISABLE_ISOM*/
 
