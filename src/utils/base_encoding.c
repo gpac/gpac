@@ -260,7 +260,7 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 		}
 		*out_size = d_stream.total_out;
 		inflateEnd(&d_stream);
-		return GF_OK;
+		return e;
 	}
 	if (e!=GF_OK) {
 		gf_free(*uncompressed_data);
