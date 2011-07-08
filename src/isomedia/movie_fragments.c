@@ -728,13 +728,14 @@ static GF_Err sidx_rewrite(GF_SegmentIndexBox *sidx, GF_BitStream *bs, u64 start
 }
 
 
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment)
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *prev_sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
 	u64 sidx_start, sidx_end;
 	Bool first_sidx = 0;
+	Bool no_sidx = 0;
 	u32 count, nb_subsegs=0, idx, cur_dur, sidx_dur, sidx_idx;
 	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end;
 	GF_TrackBox *trak = NULL;
@@ -775,6 +776,12 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
     if (e) return e;
     e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
     if (e) return e;
+
+	if (frags_per_sidx < 0) {
+		referenceTrackID = 0;
+		frags_per_sidx = 0;
+		no_sidx = 1;
+	}
 
 	/*prepare SIDX: we write a blank SIDX box with the right number of entries, and will rewrite it later on*/
 	if (referenceTrackID) {
@@ -855,7 +862,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 		}
 
 		/*hierarchical or daisy-chain SIDXs*/
-		if (!sidx && (root_sidx || daisy_chain_sidx) ) {
+		if (!no_sidx && !sidx && (root_sidx || daisy_chain_sidx) ) {
 			sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
 			sidx->reference_ID = referenceTrackID;
 			sidx->timescale = trak->Media->mediaHeader->timeScale;
@@ -1438,5 +1445,21 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u
 }
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS)*/
+
+
+void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (movie) movie->NextMoofNumber = value;
+#endif
+}
+
+u32 gf_isom_get_next_moof_number(GF_ISOFile *movie)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (movie) return movie->NextMoofNumber;
+#endif
+	return 0;
+}
 
 #endif /*GPAC_DISABLE_ISOM*/
