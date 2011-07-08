@@ -752,7 +752,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 		esd->OCRESID = ck->clockID;
 	}
 	/*for dynamic scene, force all streams to be sync on main OD stream (one timeline, no need to reload ressources)*/
-	else if (odm->parentscene->is_dynamic_scene && !odm->subscene) {
+	else if (odm->parentscene && odm->parentscene->is_dynamic_scene && !odm->subscene) {
 		GF_ObjectManager *parent_od = odm->parentscene->root_od;
 		if (parent_od->net_service && (gf_list_count(parent_od->net_service->Clocks)==1)) {
 			ck = (GF_Clock*)gf_list_get(parent_od->net_service->Clocks, 0);

@@ -1238,7 +1238,7 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 	time_table->minute = 10*((data[3]&0xf0)>>4) + (data[3]&0x0f);
 	time_table->second = 10*((data[4]&0xf0)>>4) + (data[4]&0x0f);
 	assert(time_table->hour<24 && time_table->minute<60 && time_table->second<60);
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream UTC time is %u/%u/%u %02u:%02u:%02u\n", time_table->year, time_table->month, time_table->day, time_table->hour, time_table->minute, time_table->second));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream UTC time is %u/%u/%u %02u:%02u:%02u\n", time_table->year, time_table->month, time_table->day, time_table->hour, time_table->minute, time_table->second));
 
 	switch (table_id) {
 		case GF_M2TS_TABLE_ID_TDT:
