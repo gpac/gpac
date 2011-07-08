@@ -736,18 +736,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		return;
 	}
 	if (ch->is_raw_channel) {
-		u32 ts;
-		if (ch->ts_res != 1000) {
-			ts = (u32) (header->compositionTimeStamp * 1000 / ch->ts_res);
-		} else {
-			ts = (u32) header->compositionTimeStamp;
-		}
-		ch->CTS = ch->DTS = ts;
+		ch->CTS = ch->DTS = (u32) (ch->ts_offset + (header->compositionTimeStamp - ch->seed_ts) * 1000 / ch->ts_res);
 		if (!ch->IsClockInit) {
 			gf_es_check_timing(ch);
 		}
 		if (payload)
-			gf_es_dispatch_raw_media_au(ch, payload, payload_size, ts);
+			gf_es_dispatch_raw_media_au(ch, payload, payload_size, ch->CTS);
 		return;
 	}
 

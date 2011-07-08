@@ -286,6 +286,10 @@ typedef struct
 	used to compute PCR interpolation value*/
 	u64 before_last_pcr_value;
 	u32 before_last_pcr_value_pck_number;
+
+	/*for hybrid use-cases we need to know if TDT has already been processed*/
+	Bool tdt_found;
+
 } GF_M2TS_Program;
 
 /*ES flags*/

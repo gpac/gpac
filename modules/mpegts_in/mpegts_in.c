@@ -429,6 +429,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	GF_Event evt;
 	M2TSIn *m2ts = (M2TSIn *) ts->user;
+
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
 /*	example code showing how to forward an event from MPEG-2 TS input service to GPAC user*/
@@ -619,6 +620,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			for (i=0; i<count; i++) {
 				GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
 				u32 j, count2;
+				if (prog->tdt_found || !prog->last_pcr_value) /*map TDT one time, after we received a PCR*/
+					continue;
+				prog->tdt_found = 1;
 				count2 = gf_list_count(prog->streams);
 				com.map_time.timestamp = prog->last_pcr_value/300;
 				for (j=0; j<count2; j++) {
