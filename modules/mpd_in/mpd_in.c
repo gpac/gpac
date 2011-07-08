@@ -547,27 +547,40 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
     return GF_OK;
 }
 
-static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, GF_MPD_Group *group, const char *mime)
+static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, GF_MPD_Group *group, const char *mime, const char *init_segment_name)
 {
+	u32 i;
     const char *sPlug;
-    /* Check MIME type to start the right InputService (ISOM or MPEG-2) */
-    sPlug = gf_cfg_get_key(mpdin->service->term->user->config, "MimeTypes", mime);
-    if (sPlug) sPlug = strrchr(sPlug, '"');
-    if (sPlug) {
-        sPlug += 2;
-        group->service = (GF_InputService *) gf_modules_load_interface_by_name(mpdin->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-        if (group->service) {
-            group->service->proxy_udta = mpdin;
-            group->service->query_proxy = MPD_ClientQuery;
-        } else {
-            goto exit;
-        }
-    } else {
-        goto exit;
-    }
-    return GF_OK;
-exit:
-    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error locating plugin for segment mime type: %s\n", mime));
+	if (mime) {
+		/* Check MIME type to start the right InputService */
+		sPlug = gf_cfg_get_key(mpdin->service->term->user->config, "MimeTypes", mime);
+		if (sPlug) sPlug = strrchr(sPlug, '"');
+		if (sPlug) {
+			sPlug += 2;
+			group->service = (GF_InputService *) gf_modules_load_interface_by_name(mpdin->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+			if (group->service) {
+				group->service->proxy_udta = mpdin;
+				group->service->query_proxy = MPD_ClientQuery;
+				return GF_OK;
+			}
+		}
+	}
+	if (init_segment_name) {
+		for (i=0; i< gf_modules_get_count(mpdin->service->term->user->modules); i++) {
+			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(mpdin->service->term->user->modules, i, GF_NET_CLIENT_INTERFACE);
+			if (!ifce) continue;
+			
+			if (ifce->CanHandleURL && ifce->CanHandleURL(ifce, init_segment_name)) {
+				group->service = ifce;
+				group->service->proxy_udta = mpdin;
+				group->service->query_proxy = MPD_ClientQuery;
+				return GF_OK;
+			}
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
+		}
+	}
+
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error locating plugin for segment - mime type %s - name %s\n", mime, init_segment_name));
     return GF_CODEC_NOT_FOUND;
 }
 
@@ -742,6 +755,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         group->download_segment_index = firstSegment;
         group->segment_local_url = group->cached[0].cache;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Setup initialization segment %s \n", group->segment_local_url));
+		if (!group->service) e = MPD_LoadMediaService(mpdin, group, rep->mime, group->segment_local_url);
         gf_mx_v(mpdin->dl_mutex);
         gf_free(base_init_url);
 		return GF_OK;
@@ -809,7 +823,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
             mpdin->mimeTypeForM3U8Segments = gf_strdup( mime );
             gf_free( rep->mime);
             rep->mime = gf_strdup( mime );
-            e = MPD_LoadMediaService(mpdin, group, mime);
+            e = MPD_LoadMediaService(mpdin, group, mime, base_init_url);
 			if (e != GF_OK) {
 		        gf_mx_v(mpdin->dl_mutex);
                 return e;
@@ -911,6 +925,12 @@ static u32 download_segments(void *par)
 	for (i=0; i<group_count; i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service... %s\n", group->segment_local_url));
+		if (! group->service) {
+			e = GF_SERVICE_ERROR;
+	        gf_term_on_connect(mpdin->service, NULL, e);
+			ret = 1;
+			goto exit;
+		}
 		e = group->service->ConnectService(group->service, mpdin->service, group->segment_local_url);
 		if (e) {
 			ret = 1;
@@ -1407,7 +1427,7 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 
 		group->service = NULL;
 		if (strcmp(M3U8_UNKOWN_MIME_TYPE, rep_sel->mime)) {
-			e = MPD_LoadMediaService(mpdin, group, rep_sel->mime);
+			e = MPD_LoadMediaService(mpdin, group, rep_sel->mime, NULL);
 			if (e != GF_OK)
 				goto exit;
 		} else {
@@ -1428,10 +1448,12 @@ exit:
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
+	char local_path[GF_MAX_PATH];
     const char *local_url, *opt;
     GF_Err e;
     GF_DOMParser *mpd_parser;
     Bool is_m3u8 = 0;
+    Bool is_local = 0;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
@@ -1466,6 +1488,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
     if (!strnicmp(url, "file://", 7)) {
         local_url = url + 7;
+		is_local = 1;
         if (strstr(url, ".m3u8")) {
             is_m3u8 = 1;
         }
@@ -1506,10 +1529,24 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         }
     } else {
         local_url = url;
+		is_local = 1;
+        if (strstr(url, ".m3u8"))
+            is_m3u8 = 1;
     }
 
     if (is_m3u8) {
-        gf_m3u8_to_mpd(mpdin->service, local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+		if (is_local) {
+			char *sep;
+			strcpy(local_path, local_url);
+			sep = strrchr(local_path, '.');
+			if (sep) sep[0]=0;
+			strcat(local_path, ".mpd");
+
+	        gf_m3u8_to_mpd(mpdin->service, local_url, url, local_path, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+			local_url = local_path;
+		} else {
+	        gf_m3u8_to_mpd(mpdin->service, local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+		}
     }
 
     if (!MPD_CheckRootType(local_url)) {
