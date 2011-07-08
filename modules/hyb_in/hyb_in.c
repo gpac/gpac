@@ -147,8 +147,9 @@ static GF_Err HYB_CloseService(GF_InputService *plug)
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Close Service (%p) request from terminal\n", ((GF_HYB_In*)plug->priv)->service));
 
-	/*disconnect the master*/
-	e = hyb_in->master->Disconnect(hyb_in->master, hyb_in->service);
+	/*force to stop and disconnect the master*/
+	hyb_in->master->SetState(hyb_in->master, GF_NET_CHAN_STOP);
+	e = hyb_in->master->Disconnect(hyb_in->master);
 	if (e) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot disconnect service %p\n", hyb_in->service));
         gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);

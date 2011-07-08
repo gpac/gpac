@@ -24,6 +24,7 @@
  */
 
 /*hybrid media interface implementation generating fake audio consisting in beeps every second in pull mode*/
+
 #include <gpac/thread.h>
 #include "hyb_in.h"
 
@@ -51,7 +52,7 @@ FM_FAKE_PULL FM_FAKE_PULL_private_data;
 static Bool FM_FAKE_PULL_CanHandleURL(const char *url);
 static GF_ObjectDescriptor* FM_FAKE_PULL_GetOD(void);
 static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service, const char *url);
-static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service);
+static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self);
 static GF_Err FM_FAKE_PULL_GetData(GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr);
 static GF_Err FM_FAKE_PULL_ReleaseData(GF_HYBMEDIA *self);
 
@@ -142,7 +143,7 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 
 /**********************************************************************************************************************/
 
-static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service)
+static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self)
 {
 	self->owner = NULL;
 	return GF_OK;

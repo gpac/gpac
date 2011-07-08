@@ -24,8 +24,10 @@
  */
 
 /*hybrid media interface implementation generating fake audio consisting in beeps every second in push mode*/
+
 #include <gpac/thread.h>
 #include <gpac/modules/service.h>
+#include <time.h>
 #include "hyb_in.h"
 
 /**********************************************************************************************************************/
@@ -54,8 +56,8 @@ FM_FAKE_PUSH FM_FAKE_PUSH_private_data;
 static Bool FM_FAKE_PUSH_CanHandleURL(const char *url);
 static GF_ObjectDescriptor* FM_FAKE_PUSH_GetOD(void);
 static GF_Err FM_FAKE_PUSH_Connect(GF_HYBMEDIA *self, GF_ClientService *service, const char *url);
-static GF_Err FM_FAKE_PUSH_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service);
-static GF_Err FM_FAKE_PUSH_SetState(GF_HYBMEDIA *self, GF_NET_CHAN_CMD state);
+static GF_Err FM_FAKE_PUSH_Disconnect(GF_HYBMEDIA *self);
+static GF_Err FM_FAKE_PUSH_SetState(GF_HYBMEDIA *self, const GF_NET_CHAN_CMD state);
 
 GF_HYBMEDIA master_fm_fake_push = {
 	"Fake FM (push mode)",		/*name*/
@@ -119,7 +121,7 @@ static GF_ObjectDescriptor* FM_FAKE_PUSH_GetOD(void)
 
 /**********************************************************************************************************************/
 
-static GF_Err GetData(GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr)
+static GF_Err GetData(const GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr)
 {
 	u64 delta_pts = (FM_FAKE_PUSH_FRAME_DUR*FM_FAKE_PUSH_AUDIO_FREQ)/1000;
 	assert(!(FM_FAKE_PUSH_FRAME_DUR*FM_FAKE_PUSH_AUDIO_FREQ%1000));
@@ -148,7 +150,7 @@ static u32 audio_gen_th(void *par)
 {
 	GF_Err e;
 	char *data;
-	u32 data_size, init_time = gf_sys_clock();
+	u32 data_size, init_time;
 	s32 time_to_wait = 0;
 	GF_SLHeader slh;
 	GF_HYBMEDIA *self = (GF_HYBMEDIA*) par;
@@ -159,17 +161,56 @@ static u32 audio_gen_th(void *par)
 	{
 		if (self->state == HYB_STATE_PAUSE) {
 			gf_sleep(10);
+			init_time = (u32)(gf_sys_clock() - ((u64)slh.compositionTimeStamp*1000)/FM_FAKE_PUSH_AUDIO_FREQ);	/*pause: won't wait at resume*/
 			continue;
 		}
 
-		if (!time_to_wait) {
+		if (!time_to_wait)
+		{
+			/*TODO: remove the sleep*/
+			gf_sleep(1000);
+
+			/*for hybrid scenarios: add an external media*/
+			{
+				/*declare object to terminal*/
+				GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+				od->URLString = PUT_TOUR_URL_HERE;
+				od->objectDescriptorID = 0;
+				gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
+			}
+
+			/*for hybrid scenarios: map clocks*/
+			{
+				time_t now;
+				struct tm *now_tm;
+				time(&now);
+				now_tm = gmtime(&now);
+				{
+					GF_NetworkCommand com;
+					memset(&com, 0, sizeof(com));
+					com.command_type = GF_NET_CHAN_MAP_TIME;
+					com.map_time.media_time = now_tm->tm_hour*3600+now_tm->tm_min*60+now_tm->tm_sec;
+					com.map_time.timestamp = slh.compositionTimeStamp;
+					com.map_time.reset_buffers = 0;
+					com.base.on_channel = self->channel;
+					gf_term_on_command(self->owner, &com, GF_OK);
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HYB In] Mapping WC  Time %04d/%02d/%02d %02d:%02d:%02d and Hyb time "LLD"\n",
+						(now_tm->tm_year + 1900), (now_tm->tm_mon + 1), now_tm->tm_mday, now_tm->tm_hour, now_tm->tm_min, now_tm->tm_sec,
+						com.map_time.timestamp));
+				}
+			}
+
+			/*initialize clock*/
 			init_time = gf_sys_clock();
 		}
 
 		time_to_wait = (u32)(init_time + ((u64)slh.compositionTimeStamp*1000)/FM_FAKE_PUSH_AUDIO_FREQ - gf_sys_clock());
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] FM_FAKE_PUSH - %d ms before next AU\n", time_to_wait));
-		if (time_to_wait > 0)
+		if (time_to_wait > 0) {
+			if (time_to_wait > 1000) /*TODO: understand the big shifts when playing icecasts contents*/
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[HYB_IN] FM_FAKE_PUSH - audio asked to sleep for %d ms\n", time_to_wait));
 			gf_sleep(time_to_wait);
+		}
 
 		e = GetData(self, &data, &data_size, &slh);
 		gf_term_on_sl_packet(self->owner, self->channel, data, data_size, &slh, e);
@@ -184,7 +225,7 @@ static u32 audio_gen_th(void *par)
 
 static void audio_gen_stop(GF_HYBMEDIA *self)
 {
-	if (self->state > 0) { /*only when playing*/
+	if (self->state >= 0) { /*only when playing*/
 		self->state = HYB_STATE_STOP_REQ;
 		while (self->state != HYB_STATE_STOPPED)
 			gf_sleep(10);
@@ -227,7 +268,7 @@ static GF_Err FM_FAKE_PUSH_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 
 /**********************************************************************************************************************/
 
-static GF_Err FM_FAKE_PUSH_Disconnect(GF_HYBMEDIA *self, GF_ClientService *service)
+static GF_Err FM_FAKE_PUSH_Disconnect(GF_HYBMEDIA *self)
 {
 	FM_FAKE_PUSH *priv = (FM_FAKE_PUSH*)self->private_data;
 
@@ -241,7 +282,7 @@ static GF_Err FM_FAKE_PUSH_Disconnect(GF_HYBMEDIA *self, GF_ClientService *servi
 
 /**********************************************************************************************************************/
 
-static GF_Err FM_FAKE_PUSH_SetState(GF_HYBMEDIA *self, GF_NET_CHAN_CMD state)
+static GF_Err FM_FAKE_PUSH_SetState(GF_HYBMEDIA *self, const GF_NET_CHAN_CMD state)
 {
 	switch(state) {
 		case GF_NET_CHAN_PLAY:
