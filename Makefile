@@ -121,7 +121,7 @@ install-lib:
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
+	$(INSTALL) $(INSTFLAGS) -m 644 config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
 ifeq ($(GPAC_ENST), yes)
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
