@@ -382,9 +382,11 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
     case 0:
         meth = SSLv23_client_method();
         break;
+#if 0 /*SSL v2 is no longer supported in OpenSSL 1.0*/
     case 1:
         meth = SSLv2_client_method();
         break;
+#endif
     case 2:
         meth = SSLv3_client_method();
         break;
