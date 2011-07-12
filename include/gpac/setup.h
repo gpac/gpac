@@ -372,7 +372,12 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define LLU "%llu"
 #define LLX "%llx"
 #define LLXPAD( pad ) "%" pad "llx"
+
+#ifdef __LP64__ /* Mac OS 64 bits */
+#define PTR_TO_U_CAST (u64)
+#else
 #define PTR_TO_U_CAST (u32)
+#endif
 
 #elif defined(_LP64) /*Unix 64 bits*/
 

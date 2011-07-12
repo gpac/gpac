@@ -332,7 +332,7 @@ u32 gf_th_id()
 #ifdef WIN32
 	return ((u32) GetCurrentThreadId());
 #else
-	return ((u32) pthread_self());
+	return ((u32) (PTR_TO_U_CAST(pthread_self())));
 #endif
 }
 

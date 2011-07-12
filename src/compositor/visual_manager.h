@@ -154,6 +154,12 @@ struct _visual_manager
 	 *	Visual Manager part for 3D drawing 
 	 */
 
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
+#define GF_SHADERID u64
+#else
+#define GF_SHADERID u32
+#endif
+
 #ifndef GPAC_DISABLE_VRML
 	/*navigation stack*/
 	GF_List *navigation_stack;
@@ -181,9 +187,9 @@ struct _visual_manager
 	u32 *gl_textures;
 	u32 auto_stereo_width, auto_stereo_height;
 	GF_Mesh *autostereo_mesh;
-	u32 glsl_program;
-	u32 glsl_vertex;
-	u32 glsl_fragment;
+	GF_SHADERID glsl_program;
+	GF_SHADERID glsl_vertex;
+	GF_SHADERID glsl_fragment;
 #endif
 
 #ifdef GF_SR_USE_DEPTH

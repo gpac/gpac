@@ -385,7 +385,7 @@ static char *glsl_view_5VSP19 = "\
 	}";
 
 
-Bool visual_3d_compile_shader(u32 shader_id, const char *name, const char *source)
+Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
 	GLint blen = 0;	
 	GLsizei slen = 0;
