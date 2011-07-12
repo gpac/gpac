@@ -1233,7 +1233,11 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #include <mach/vm_region.h>
 #include <mach/vm_map.h>
 #include <mach/task.h>
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060
+#include <mach/shared_region.h>
+#else
 #include <mach/shared_memory_server.h>
+#endif
 	
 static u64 total_physical_memory = 0;
 	
