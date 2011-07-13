@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
-echo -e "\033[32m Note: You have to install Android NDK and setup the environment first!\033[0m"
-echo -e "\033[32m Note: You have to compile extra_libs first!\033[0m"
+echo -e "\033[32m If you have problem using this script, read the README in  trunk/gpac/build/android \033[0m"
 
 if [ -z "$1" ]
 then
