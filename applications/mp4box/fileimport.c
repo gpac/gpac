@@ -1069,7 +1069,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample);
 		if (e) return e;
 	} else {
-		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ, NULL);
+		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
+		orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
 	}
 
 	nb_samp = 0;
@@ -1152,11 +1153,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			if (gf_isom_get_sample_description_count(orig, i+1) != gf_isom_get_sample_description_count(dest, dst_tk)) dst_tk = 0;
 			/*if not forcing cat, check the media codec config is the same*/
 			if (!gf_isom_is_same_sample_description(orig, i+1, dest, dst_tk)) {
-				if (!force_cat) {
-					dst_tk = 0;
-				} else {
-					fprintf(stdout, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
-				}
+				dst_tk = 0;
 			} 
 			/*we force the same visual resolution*/
 			else if (mtype==GF_ISOM_MEDIA_VISUAL) {
@@ -1164,40 +1161,82 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 				gf_isom_get_visual_info(dest, dst_tk, 1, &w, &h);
 				if ((ow!=w) || (oh!=h)) {
-					if (!force_cat) {
-						dst_tk = 0;
-					} else {
-						fprintf(stdout, "WARNING: Concatenating track ID %d even though visual sizes do not match\n", tk_id);
-					}
+					dst_tk = 0;
 				}
 			}
 
+			/*merge AVC config if possible*/
 			if (!dst_tk && ((stype == GF_ISOM_SUBTYPE_AVC_H264) || (stype == GF_ISOM_SUBTYPE_AVC2_H264))  ) {
 				GF_AVCConfig *avc_src, *avc_dst;
 				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 				
 				avc_src = gf_isom_avc_config_get(orig, i+1, 1);
 				avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
-
-				if (avc_src->nal_unit_size != avc_dst->nal_unit_size) dst_tk = 0;
-				else if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) dst_tk = 0;
-				else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) dst_tk = 0;
-				else {
-					while (gf_list_count(avc_src->sequenceParameterSets)) {
-						GF_AVCConfigSlot *slc = gf_list_get(avc_src->sequenceParameterSets, 0);
-						gf_list_rem(avc_src->sequenceParameterSets, 0);
-						gf_list_add(avc_dst->sequenceParameterSets, slc);
-					}
-
-					while (gf_list_count(avc_src->pictureParameterSets)) {
-						GF_AVCConfigSlot *slc = gf_list_get(avc_src->pictureParameterSets, 0);
-						gf_list_rem(avc_src->pictureParameterSets, 0);
-						gf_list_add(avc_dst->pictureParameterSets, slc);
-					}
-					gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
-					gf_odf_avc_cfg_del(avc_src);
-					gf_odf_avc_cfg_del(avc_dst);
+				
+				if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) {
+					fprintf(stdout, "Cannot concatenate files: Different AVC Level Indication between source (%d) and destination (%d)\n", avc_src->AVCLevelIndication, avc_dst->AVCLevelIndication);
+					dst_tk = 0;
+				} else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) {
+					fprintf(stdout, "Cannot concatenate files: Different AVC Profile Indication between source (%d) and destination (%d)\n", avc_src->AVCProfileIndication, avc_dst->AVCProfileIndication);
+					dst_tk = 0;
 				}
+				else {
+					u32 j, k;
+					/*rewrite all samples if using different NALU size*/
+					if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
+						gf_media_avc_rewrite_samples(dest, dst_tk, 8*avc_dst->nal_unit_size, 8*avc_src->nal_unit_size); 
+						avc_dst->nal_unit_size = avc_src->nal_unit_size;
+					} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
+						gf_media_avc_rewrite_samples(orig, i+1, 8*avc_src->nal_unit_size, 8*avc_dst->nal_unit_size); 
+					}
+
+					/*merge SPS*/
+					for (j=0; j<gf_list_count(avc_src->sequenceParameterSets); j++) {
+						Bool found = 0;
+						GF_AVCConfigSlot *slc = gf_list_get(avc_src->sequenceParameterSets, j);
+						for (k=0; k<gf_list_count(avc_dst->sequenceParameterSets); k++) {
+							GF_AVCConfigSlot *slc_dst = gf_list_get(avc_dst->sequenceParameterSets, k);
+							if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
+								found = 1;
+								break;
+							}
+						}
+						if (!found) {
+							gf_list_rem(avc_src->sequenceParameterSets, j);
+							j--;
+							gf_list_add(avc_dst->sequenceParameterSets, slc);
+						}
+					}
+
+					/*merge PPS*/
+					for (j=0; j<gf_list_count(avc_src->pictureParameterSets); j++) {
+						Bool found = 0;
+						GF_AVCConfigSlot *slc = gf_list_get(avc_src->pictureParameterSets, j);
+						for (k=0; k<gf_list_count(avc_dst->pictureParameterSets); k++) {
+							GF_AVCConfigSlot *slc_dst = gf_list_get(avc_dst->pictureParameterSets, k);
+							if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
+								found = 1;
+								break;
+							}
+						}
+						if (!found) {
+							gf_list_rem(avc_src->pictureParameterSets, j);
+							j--;
+							gf_list_add(avc_dst->pictureParameterSets, slc);
+						}
+					}
+
+					gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
+				}
+
+
+				gf_odf_avc_cfg_del(avc_src);
+				gf_odf_avc_cfg_del(avc_dst);
+			}
+
+			if (!dst_tk && force_cat) {
+				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+				fprintf(stdout, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
 			}
 		}
 

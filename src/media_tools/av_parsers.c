@@ -1836,7 +1836,6 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 
 	pcomp = gf_bs_read_int(bs, 8);
 	/*sanity checks*/
-	//JLF commented - breaks SVC import and no time to investigate
 	if (pcomp & 0x3)
 		goto exit;
 
