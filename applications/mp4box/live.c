@@ -163,7 +163,8 @@ typedef struct
 	u32 timescale, init_time;
 	u32 carousel_period, ts_delta;
 	u16 aggregate_on_stream;
-	Bool adjust_carousel_time, discard, aggregate, rap, critical, m2ts_vers_inc;
+	Bool adjust_carousel_time, discard, aggregate, rap, m2ts_vers_inc;
+	u32 critical;
 } RTPChannel;
 
 typedef struct 
@@ -234,11 +235,16 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 			}
 			/*send data*/
 			else {
+				u32 critical = 0;
 				Bool rap = rtpch->rap;
 				if (livesess->carousel_generation) rap = 1;
 				ts += rtpch->timescale*((u64)gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
-				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, (livesess->critical || rtpch->critical) ? 1 : 0 );
-				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, (livesess->critical || rtpch->critical) ? 1 : 0);
+				if (rtpch->critical) critical = rtpch->critical;
+				else if (livesess->critical) critical = 1;
+
+				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, critical);
+
+				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
 				rtpch->rap = rtpch->critical = 0;
 
 				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0);
@@ -359,7 +365,7 @@ void live_session_shutdown(LiveSession *livesess)
 }
 
 
-static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
+static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, u32 signal_critical, Bool version_inc)
 {
 	RTPChannel *rtpch = NULL;
 
@@ -369,6 +375,8 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 		while ( (rtpch = gf_list_enum(livesess->streams, &i))) {
 			if (rtpch->ESID == esid) break;
 		}
+	} else {
+		rtpch = gf_list_get(livesess->streams, 0);
 	}
 
 	/*TODO - set/reset the ESID for the parsers*/
@@ -429,9 +437,9 @@ int live_session(int argc, char **argv)
 	char *update_buffer = NULL;
 	u32 update_buffer_size = 0;
 	u16 aggregate_on_stream;
-	Bool adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc;
+	Bool adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, version_inc;
 	Bool update_context;
-	u32 period, ts_delta;
+	u32 period, ts_delta, signal_critical;
 	u16 es_id;
 	e = GF_OK;
 	/* souchay : needs to initialize those two vars... */
