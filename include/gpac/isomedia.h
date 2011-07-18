@@ -483,6 +483,9 @@ u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 /*returns sample size in bytes*/
 u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
+/*returns sync flag of sample*/
+u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
+
 /*gets a sample given a desired decoding time IN MEDIA TIME SCALE
 and set the StreamDescIndex of this sample
 this index allows to retrieve the stream description if needed (2 media in 1 track)

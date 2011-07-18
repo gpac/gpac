@@ -207,9 +207,11 @@ void PrintGeneralUsage()
 			" -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list.\n"
 			" -split time_sec      splits in files of time_sec max duration\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -split-size size     splits in files of max filesize kB.\n"
+			" -split-size size     splits in files of max filesize kB. same as -splits.\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -split-chunk S:E     extracts a new file from Start to End (in seconds)\n"
+			" -split-rap           splits in files begining at each RAP. same as -splitr.\n"
+			"                       * Note: this removes all MPEG-4 Systems media\n"
+			" -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -group-add fmt       creates a new grouping information in the file. Format is\n"
 			"                      a colon-separated list of following options:\n"
@@ -1875,8 +1877,25 @@ int mp4boxMain(int argc, char **argv)
 			nb_track_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-split")) { CHECK_NEXT_ARG split_duration = atof(argv[i+1]); i++; split_size = 0; }
-		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) { CHECK_NEXT_ARG split_size = atoi(argv[i+1]); i++; split_duration = 0; }
+		else if (!stricmp(arg, "-split")) { 
+			CHECK_NEXT_ARG 
+			split_duration = atof(argv[i+1]);
+			if (split_duration<0) split_duration=0;;
+			i++;
+			split_size = 0;
+		}
+		else if (!stricmp(arg, "-split-rap") || !stricmp(arg, "-splitr")) { 
+			CHECK_NEXT_ARG 
+			split_duration = -1;
+			split_size = -1;
+		}
+		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) { 
+			CHECK_NEXT_ARG 
+			split_size = atoi(argv[i+1]);
+			if (split_size<0) split_size = 0; 
+			i++; 
+			split_duration = 0;
+		}
 		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx")) { 
 			CHECK_NEXT_ARG 
 			if (!strstr(argv[i+1], ":")) {

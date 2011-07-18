@@ -1130,6 +1130,20 @@ u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNum
 	return size;
 }
 
+GF_EXPORT
+u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
+{
+	u8 is_rap;
+	GF_Err e;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !sampleNumber) return 0;
+
+	if (! trak->Media->information->sampleTable->SyncSample) return 1;
+	e = stbl_GetSampleRAP(trak->Media->information->sampleTable->SyncSample, sampleNumber, &is_rap, NULL, NULL);
+	if (e) return 0;
+	return is_rap;
+}
+
 //same as gf_isom_get_sample but doesn't fetch media data
 GF_EXPORT
 GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, u64 *data_offset)
