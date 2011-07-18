@@ -3691,11 +3691,12 @@ exit:
 	fclose(mdia);
 	return e;
 }
-static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 new_size)
+
+GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 new_size)
 {
 	u32 i, count, di, remain, msize;
 	char *buffer;
-
+	
 	msize = 4096;
 	buffer = (char*)gf_malloc(sizeof(char)*msize);
 	count = gf_isom_get_sample_count(file, track);
@@ -3726,6 +3727,7 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 		gf_isom_sample_del(&samp);
 	}
 	gf_free(buffer);
+	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -4155,7 +4157,7 @@ restart_import:
 				if (size_length+diff_size == 24) diff_size+=8;
 
 				gf_import_message(import, GF_OK, "Adjusting AVC SizeLength to %d bits", size_length+diff_size);
-				avc_rewrite_samples(import->dest, track, size_length, size_length+diff_size);
+				gf_media_avc_rewrite_samples(import->dest, track, size_length, size_length+diff_size);
 
 				/*rewrite current sample*/
 				if (sample_data) {
