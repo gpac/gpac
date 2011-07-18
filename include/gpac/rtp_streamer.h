@@ -92,7 +92,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 
 GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap);
 
-GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, Bool inc_au_sn);
+GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn);
 
 GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex);
 

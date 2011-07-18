@@ -714,9 +714,9 @@ GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 ct
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, 0, 0, 0);
 }
 
-GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, Bool inc_au_sn)
+GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn)
 {
-	if (inc_au_sn) rtp->packetizer->sl_header.AU_sequenceNumber++;
+	if (inc_au_sn) rtp->packetizer->sl_header.AU_sequenceNumber += inc_au_sn;
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
 }
 
