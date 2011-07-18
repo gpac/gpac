@@ -590,6 +590,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_dts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_sync) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_segment_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_copyright_count) )
