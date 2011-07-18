@@ -6114,7 +6114,8 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	GF_Err		  err = GF_OK;
 	GF_ISOSample	 *samp = NULL;
 	GF_List		 *subpic;
-	u32		  total, last_samp_dur = 0;
+	u64 last_dts = 0;
+	u32 total, last_samp_dur = 0;
 	unsigned char buf[0x800];
 
 	strcpy(filename, import->in_name);
@@ -6236,6 +6237,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	subpic = vobsub->langs[trackID].subpos;
 	total  = gf_list_count(subpic);
 
+	last_dts = 0;
 	for (c = 0; c < total; c++)
 	{
 		u32		i, left, size, psize, dsize, hsize, duration;
@@ -6310,12 +6312,18 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		samp->data	 = packet;
 		samp->dataLength = psize;
 		samp->DTS	 = pos->start * 90;
+		
+		if (last_dts && (last_dts >= samp->DTS)) {
+			err = gf_import_message(import, GF_CORRUPTED_DATA, "Out of order timestamps in vobsub file");
+			goto error;
+		}
 
 		err = gf_isom_add_sample(import->dest, track, di, samp);
 		if (err) goto error;
 		gf_free(packet);
 
 		gf_set_progress("Importing VobSub", c, total);
+		last_dts = samp->DTS;
 
 		if (import->flags & GF_IMPORT_DO_ABORT) {
 			break;
