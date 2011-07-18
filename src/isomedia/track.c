@@ -183,6 +183,30 @@ default_sync:
 		esd->langDesc->langCode |= trak->Media->mediaHeader->packedLanguage[2];
 	}
 
+
+	{
+		u16 rvc_predefined;
+		char *rvc_cfg_data;
+		const char *mime_type;
+		u32 rvc_cfg_size;
+		e = gf_isom_get_rvc_config(moov->mov, track_num, 1, &rvc_predefined, &rvc_cfg_data, &rvc_cfg_size, &mime_type);
+		if (e==GF_OK) {
+			if (rvc_predefined) {
+				esd->decoderConfig->predefined_rvc_config = rvc_predefined;
+			} else {
+				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
+					gf_gz_decompress_payload(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
+					gf_free(rvc_cfg_data);
+				} else {
+					esd->decoderConfig->rvc_config->data = rvc_cfg_data;
+					esd->decoderConfig->rvc_config->dataLength = rvc_cfg_size;
+				}
+			}
+		}
+	}
+
+
 	/*normally all files shall be stored with predefined=SLPredef_MP4, but of course some are broken (philips)
 	so we just check the ESD_URL. If set, use the given cfg, otherwise always rewrite it*/
 	if (esd->URLString != NULL) {
@@ -257,27 +281,6 @@ default_sync:
 	esd->slConfig->predefined = 0;
 
 
-	{
-		u16 rvc_predefined;
-		char *rvc_cfg_data;
-		const char *mime_type;
-		u32 rvc_cfg_size;
-		e = gf_isom_get_rvc_config(moov->mov, track_num, 1, &rvc_predefined, &rvc_cfg_data, &rvc_cfg_size, &mime_type);
-		if (e==GF_OK) {
-			if (rvc_predefined) {
-				esd->decoderConfig->predefined_rvc_config = rvc_predefined;
-			} else {
-				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
-					gf_gz_decompress_payload(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
-					gf_free(rvc_cfg_data);
-				} else {
-					esd->decoderConfig->rvc_config->data = rvc_cfg_data;
-					esd->decoderConfig->rvc_config->dataLength = rvc_cfg_size;
-				}
-			}
-		}
-	}
 	*outESD = esd;
 	return GF_OK;
 }
