@@ -403,13 +403,13 @@ void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value)
 	else if (!stricmp(Header, "Accept-Encoding")) com->Accept_Encoding = gf_strdup(Value);
 	else if (!stricmp(Header, "Accept-Language")) com->Accept_Language = gf_strdup(Value);
 	else if (!stricmp(Header, "Authorization")) com->Authorization = gf_strdup(Value);
-	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%ud", &com->Bandwidth);
-	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%ud", &com->Blocksize);
+	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%u", &com->Bandwidth);
+	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%u", &com->Blocksize);
 	else if (!stricmp(Header, "Cache-Control")) com->Cache_Control = gf_strdup(Value);
 	else if (!stricmp(Header, "Conference")) com->Conference = gf_strdup(Value);
 	else if (!stricmp(Header, "Connection")) com->Connection = gf_strdup(Value);
-	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%ud", &com->Content_Length);
-	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%ud", &com->CSeq);
+	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%u", &com->Content_Length);
+	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%u", &com->CSeq);
 	else if (!stricmp(Header, "From")) com->From = gf_strdup(Value);
 	else if (!stricmp(Header, "Proxy_Authorization")) com->Proxy_Authorization = gf_strdup(Value);
 	else if (!stricmp(Header, "Proxy_Require")) com->Proxy_Require = gf_strdup(Value);

@@ -206,7 +206,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\
 	} else { \
-		sprintf(temp, "%ud", d);		\
+		sprintf(temp, "%d", d);		\
 	}	\
 	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
 

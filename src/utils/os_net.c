@@ -615,7 +615,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	s32 optval;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
-	
+
 #ifndef WIN32	
 	if(!local_ip){
 		if(!peer_name || !strcmp(peer_name,"localhost")){
@@ -631,7 +631,10 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	/*probe way to peer: is it V4 or V6? */
 	if (peer_name && peer_port) {
 		res = gf_sk_get_ipv6_addr(peer_name, peer_port, af, AI_PASSIVE, type);
-		if (!res) return GF_IP_CONNECTION_FAILURE;
+		if (!res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Cannot get IPV6 host name for %s:%d\n", peer_name, peer_port));
+			return GF_IP_ADDRESS_NOT_FOUND;
+		}
 #ifdef WIN32
 		/*win32 has troubles redirecting IPV4 datagrams to IPV6 sockets, so override
 		local family type to avoid IPV4(S)->IPV6(C) UDP*/
@@ -657,7 +660,10 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 			res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
 			local_ip = NULL;
 		}
-		if (!res) return GF_IP_CONNECTION_FAILURE;
+		if (!res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Cannot get IPV6 host name for %s:%d\n", local_ip, port));
+			return GF_IP_ADDRESS_NOT_FOUND;
+		}
 	}
 
 	/*for all interfaces*/
@@ -700,6 +706,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		return GF_OK;
 	}
 	freeaddrinfo(res);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Cannot bind to host %s port %d\n", local_ip, port));
 	return GF_IP_CONNECTION_FAILURE;
 
 #else

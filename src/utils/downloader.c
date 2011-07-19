@@ -2205,10 +2205,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 if (hdr_val[0] == ':') hdr_val += 1;
                 hdr_val += http_skip_space(hdr_val);
                 if (hdr_val[0] == '*') {
-                    sscanf(hdr_val, "*/%ud", &total_size);
+                    sscanf(hdr_val, "*/%u", &total_size);
                 } else {
-					/*do not use %ud here, broken on Win32 (sscanf returns 1)*/
-                    sscanf(hdr_val, "%d-%d/%d", &first_byte, &last_byte, &total_size);
+                    sscanf(hdr_val, "%u-%u/%u", &first_byte, &last_byte, &total_size);
                 }
             }
         }

@@ -2257,7 +2257,8 @@ int mp4boxMain(int argc, char **argv)
 		/*unless explicitly asked, remove all systems tracks*/
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 		needSave = 1;
-		if (!conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
+		/*JLF commented: if you want ISMA, just ask for it, no more auto-detect*/
+//		if (!conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
 	}
 
 	if (nb_cat) {

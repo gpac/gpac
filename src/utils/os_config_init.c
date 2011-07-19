@@ -456,8 +456,10 @@ static void check_modules_dir(GF_Config *cfg)
 	const char *opt;
 
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
+#if defined(__DARWIN__) || defined(__APPLE__)
 		opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
 		if (!opt || strcmp(opt, path)) gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
+#endif
 	}
 
 	/*if startup file was disabled, do not attempt to correct it*/	
