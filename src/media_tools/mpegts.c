@@ -353,6 +353,8 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 	u32 sc_pos = 0;
 	u32 start = 0;
 	u32 hdr_size = 0;
+	Bool first = 1;
+	u32 remain;
 	GF_M2TS_PES_PCK pck;
 
 	if (PTS) {
@@ -365,6 +367,8 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 	pck.DTS = pes->DTS;
 	pck.PTS = pes->PTS;
 	pck.flags = 0;
+	remain = pes->frame_state;
+	pes->frame_state = 0;
 
 	/*fixme - we need to test this with more ADTS sources were PES framing is on any boundaries*/
 	while (sc_pos+2<data_len) {
@@ -385,6 +389,8 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 			pck.flags = 0;
 			pck.data = data+start;
 			pck.data_len = sc_pos-start;
+			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+			remain = 0;
 		}
 
 		bs = gf_bs_new(data + sc_pos + 1, 9, GF_BITSTREAM_READ);
@@ -405,6 +411,17 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 		hdr_size = hdr.no_crc ? 7 : 9;
 
 		gf_bs_del(bs);
+
+		/*make sure we are sync*/
+		if (sc_pos + hdr.frame_size - hdr_size < data_len) {
+			if ((data[sc_pos + hdr.frame_size]!=0xFF) || ((data[sc_pos+hdr.frame_size+1] & 0xF0) != 0xF0)) {
+				sc_pos++;
+				continue;
+			}
+		} else if (first && (hdr.frame_size + sc_pos > data_len)) {
+			sc_pos++;
+			continue;
+		}
 
 		if (pes->aud_sr != GF_M4ASampleRates[hdr.sr_idx]) {
 			GF_M4ADecSpecInfo cfg;
@@ -429,14 +446,22 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 		pck.data = data + sc_pos + hdr_size;
 		pck.data_len = hdr.frame_size - hdr_size;
 
+		if (pck.data_len > data_len - sc_pos - hdr_size) {
+			/*remember how much we have to send*/
+			pes->frame_state = pck.data_len - (data_len - sc_pos - hdr_size);
+			pck.data_len = data_len - sc_pos - hdr_size;
+		}
+
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		sc_pos += hdr.frame_size;
+		sc_pos += pck.data_len + hdr_size;
 		start = sc_pos;
+
 		/*update PTS in case we don't get any update*/
 		if (pes->aud_sr) {
 			size = 1024*90000/pes->aud_sr;
 			pes->PTS += size;
 		}
+		first = 0;
 	}
 	/*we consumed all data*/
 	return 0;
