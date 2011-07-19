@@ -1310,7 +1310,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	/*create new BIFS stream*/
 	read->bifs_es = gf_sm_stream_new(read->load->ctx, esd->ESID, GF_STREAM_SCENE, 1);
 	read->bifs_es->timeScale = prev_sc->timeScale;
-	read->bifs_es->dump_time_offset = prev_sc->dump_time_offset + prev_au->timing;
+	read->bifs_es->imp_exp_time = prev_sc->imp_exp_time + prev_au->timing;
 
 	/*create first AU*/
 	read->bifs_au = gf_sm_stream_au_new(read->bifs_es, 0, 0, 1);

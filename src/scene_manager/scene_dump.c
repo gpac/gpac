@@ -3213,11 +3213,11 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 		au->timing = (u64) (au->timing_sec * au->owner->timeScale);
 	}
 
-	autime = au->timing + au->owner->dump_time_offset;
+	autime = au->timing + au->owner->imp_exp_time;
 	has_base = 0;
 	i=0; 
 	while ((ptr = (GF_AUContext*)gf_list_enum(sample_list, &i))) {
-		time = ptr->timing + ptr->owner->dump_time_offset;
+		time = ptr->timing + ptr->owner->imp_exp_time;
 		if (
 			/*time ordered*/
 			(time > autime) 

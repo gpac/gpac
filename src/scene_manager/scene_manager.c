@@ -175,7 +175,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
     u64 tmp_timing;
 
     tmp_timing = timing ? timing : (u64) (time_sec*1000);
-    if (stream->last_au_time >= tmp_timing) {
+    if (stream->imp_exp_time >= tmp_timing) {
 	    /*look for existing AU*/
 	    i=0;
 	    while ((tmp = (GF_AUContext *)gf_list_enum(stream->AUs, &i))) {
@@ -203,7 +203,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	tmp->owner = stream;
 	if (stream->disable_aggregation) tmp->flags |= GF_SM_AU_NOT_AGGREGATED;
 	gf_list_add(stream->AUs, tmp);
-    stream->last_au_time = tmp_timing;
+    stream->imp_exp_time = tmp_timing;
 	return tmp;
 }
 
