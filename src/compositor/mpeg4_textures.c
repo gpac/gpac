@@ -23,7 +23,6 @@
  */
 
 #include "texturing.h"
-//#include "nodes_stacks.h"
 
 #include <gpac/network.h>
 #include <gpac/nodes_mpeg4.h>
@@ -34,6 +33,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*for cache texture decode and hash*/
+#include <gpac/avparse.h>
+#include <gpac/crypt.h>
+	
+	
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -237,6 +242,9 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 				gf_delete_file((char*)file);
 				gf_cfg_del_section(txh->compositor->user->config, section);
 			}
+
+			if (txh->data) gf_free(txh->data);
+			txh->data = NULL;
 		}
 		gf_sc_texture_destroy(txh);
 		gf_free(txh);
@@ -245,31 +253,123 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 
 static void imagetexture_update(GF_TextureHandler *txh)
 {
-	MFURL url;
-	SFURL sfurl;
 	if (gf_node_get_tag(txh->owner)!=TAG_MPEG4_CacheTexture) {
-		url = ((M_ImageTexture *) txh->owner)->url;
-	} else {
-		url.count = 1;
-		sfurl.OD_ID=GF_MEDIA_EXTERNAL_ID;
-		sfurl.url = ((M_CacheTexture *) txh->owner)->image.buffer;
-		url.vals = &sfurl;
-	}
+		MFURL url = ((M_ImageTexture *) txh->owner)->url;
 
-	/*setup texture if needed*/
-	if (!txh->is_open && url.count) {
-		gf_sc_texture_play(txh, &url);
-	}
-	gf_sc_texture_update_frame(txh, 0);
-	
-	if (
-		/*URL is present but not opened - redraw till fetch*/
-		/* (txh->stream && !txh->tx_io) && */ 
-		/*image has been updated*/
-		txh->needs_refresh) {
-		/*mark all subtrees using this image as dirty*/
-		gf_node_dirty_parents(txh->owner);
-		gf_sc_invalidate(txh->compositor, NULL);
+		/*setup texture if needed*/
+		if (!txh->is_open && url.count) {
+			gf_sc_texture_play(txh, &url);
+		}
+		gf_sc_texture_update_frame(txh, 0);
+		
+		if (
+			/*URL is present but not opened - redraw till fetch*/
+			/* (txh->stream && !txh->tx_io) && */ 
+			/*image has been updated*/
+			txh->needs_refresh) {
+			/*mark all subtrees using this image as dirty*/
+			gf_node_dirty_parents(txh->owner);
+			gf_sc_invalidate(txh->compositor, NULL);
+		}
+		return;
+	} 
+	/*cache texture case*/
+	else {
+		M_CacheTexture *ct = (M_CacheTexture *) txh->owner;
+
+		/*decode cacheTexture data */
+		if (ct->data && !txh->data) {
+			u32 out_size;
+			GF_Err e;
+			switch (ct->objectTypeIndication) {
+			case GPAC_OTI_IMAGE_JPEG:
+				out_size = 0;
+				e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
+				if (e==GF_BUFFER_TOO_SMALL) {
+					u32 BPP;
+					txh->data = gf_malloc(sizeof(char) * out_size);
+					if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
+					else BPP = 3;
+
+					e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
+					if (e==GF_OK) {
+						txh->needs_refresh = 1;
+						txh->stride = out_size / txh->height;
+					}
+				}
+				break;
+			case GPAC_OTI_IMAGE_PNG:
+				out_size = 0;
+				e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
+				if (e==GF_BUFFER_TOO_SMALL) {
+					txh->data = gf_malloc(sizeof(char) * out_size);
+					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
+					if (e==GF_OK) {
+						txh->needs_refresh = 1;
+						txh->stride = out_size / txh->height;
+					}
+				}
+				break;
+			}
+			
+			/*cacheURL is specified, store the image*/
+			if (ct->cacheURL.buffer) {
+				u32 i;
+				u8 hash[20];
+				FILE *cached_texture;
+				char szExtractName[GF_MAX_PATH], section[16], *opt, *src_url;
+				opt = (char *) gf_cfg_get_key(txh->compositor->user->config, "General", "CacheDirectory");
+				if (opt) {
+					strcpy(szExtractName, opt);
+				} else {
+					opt = gf_get_default_cache_directory();
+					strcpy(szExtractName, opt);
+					gf_free(opt);
+				}
+				strcat(szExtractName, "/");
+				src_url = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
+
+				gf_sha1_csum(src_url, strlen(src_url), hash);
+				for (i=0; i<20; i++) {
+					char t[3];
+					t[2] = 0;
+					sprintf(t, "%02X", hash[i]);
+					strcat(szExtractName, t);
+				}
+				strcat(szExtractName, "_");
+
+				strcat(szExtractName, ct->cacheURL.buffer);
+				cached_texture = gf_f64_open(szExtractName, "wb");
+				if (cached_texture) {
+					fwrite(ct->data, 1, ct->data_len, cached_texture);
+					fclose(cached_texture);
+				}
+
+				/*and write cache info*/
+				if (ct->expirationDate!=0) {
+					sprintf(section, "@cache=%08X", (u32) (PTR_TO_U_CAST ct));
+					gf_cfg_set_key(txh->compositor->user->config, section, "serviceURL", src_url);
+					gf_cfg_set_key(txh->compositor->user->config, section, "cacheFile", szExtractName);
+					gf_cfg_set_key(txh->compositor->user->config, section, "cacheName", ct->cacheURL.buffer);
+
+					if (ct->expirationDate>0) {
+						char exp[50];
+						u32 sec, frac;
+						gf_net_get_ntp(&sec, &frac);
+						sec += ct->expirationDate;
+						sprintf(exp, "%u", sec);
+						gf_cfg_set_key(txh->compositor->user->config, section, "expireAfterNTP", exp);
+					} else {
+						gf_cfg_set_key(txh->compositor->user->config, section, "expireAfterNTP", "0");
+					}
+				}
+			}
+
+			/*done with image, destroy buffer*/
+			gf_free(ct->data);
+			ct->data  =NULL;
+			ct->data_len = 0;
+		}
 	}
 }
 
@@ -287,7 +387,6 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 		if (((M_ImageTexture*)node)->repeatS) txh->flags |= GF_SR_TEXTURE_REPEAT_S;
 		if (((M_ImageTexture*)node)->repeatT) txh->flags |= GF_SR_TEXTURE_REPEAT_T;
 	} else {
-		char section[16];
 		const char *url;
 		u32 i, count;
 		M_CacheTexture*ct = (M_CacheTexture*)node;
@@ -314,25 +413,6 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 			}
 		}
 
-		sprintf(section, "@cache=%08X", (u32) (PTR_TO_U_CAST ct));
-		gf_cfg_set_key(compositor->user->config, section, "serviceURL", url);
-		gf_cfg_set_key(compositor->user->config, section, "cacheFile", ct->image.buffer);
-
-		/*setup cache if needed*/ 
-		if (ct->cacheURL.buffer && (ct->expirationDate!=0) ) {
-			char exp[50];
-			u32 sec, frac;
-			gf_cfg_set_key(compositor->user->config, section, "cacheName", ct->cacheURL.buffer);
-
-			if (ct->expirationDate>0) {
-				gf_net_get_ntp(&sec, &frac);
-				sec += ct->expirationDate;
-				sprintf(exp, "%u", sec);
-			} else {
-				strcpy(exp, "0");
-			}
-			gf_cfg_set_key(compositor->user->config, section, "expireAfterNTP", exp);
-		}
 	}
 }
 

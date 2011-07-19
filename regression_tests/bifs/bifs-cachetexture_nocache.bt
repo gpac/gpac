@@ -38,7 +38,7 @@ OrderedGroup {
      appearance Appearance {
       texture CacheTexture {
        objectTypeIndication 108
-       image "sky.jpg"
+       image "../auxiliary_files/sky.jpg"
       }
      }
      geometry Rectangle {
