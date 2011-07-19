@@ -2612,7 +2612,8 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		gf_dm_del(dm);
         return GF_BAD_PARAM;
     }
-    dnload->use_cache_file = 1;
+    dnload->use_cache_file = 0;
+	dnload->disable_cache = 1;
     if (!e)  
 		e = gf_dm_sess_process(dnload);
     
@@ -2620,12 +2621,13 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 	    e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
 	
 	if (!e) {
-		*out_size = ftell(f);
-		*out_data = gf_malloc(sizeof(char)* (*out_size+1));
+		u32 size = ftell(f);
+		*out_size = size;
+		*out_data = gf_malloc(sizeof(char)* ( 1 + size));
 		fseek(f, 0, SEEK_SET);
-		fread(*out_data, 1, *out_size, f);
-		*out_data[*out_size] = 0;
-		if (out_size) {
+		fread(*out_data, 1, size, f);
+		(*out_data)[size] = 0;
+		if (out_mime) {
 			const char *mime = gf_dm_sess_mime_type(dnload);
 			if (mime) *out_mime = gf_strdup(mime);
 		}
