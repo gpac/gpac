@@ -83,7 +83,7 @@
 
 PROTO ScoreShape [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
 exposedField  SFMusicScoreNode    score                  NULL
-exposedField  SFNode     					geometry               NULL
+exposedField  SF2DNode     					geometry               NULL
 ]{}
 
 

@@ -39,7 +39,7 @@ PROTO SpacePartition [ #%NDT=SFWorldNode,SF3DNode %COD=N
 eventIn      MF3DNode   addChildren
 eventIn      MF3DNode   removeChildren
 exposedField MF3DNode   children       []
-exposedField SFUrl	    SPStream	NULL
+exposedField SFURL	    SPStream	NULL
 ]{}
 
 PROTO Storage [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
