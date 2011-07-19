@@ -83,13 +83,13 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 		}
 		//substract this RTCP pck size
 		pck_size -= (rtcp_hdr.Length + 1) * 4;
-		//all RTCP are Compounds (>1 pck), the first SHALL be SR or RR without padding
+		//in all RTCP Compounds (>1 pck), the first RTCP report SHALL be SR or RR without padding
 		if (first) {
 			if ( ( (rtcp_hdr.PayloadType!=200) && (rtcp_hdr.PayloadType!=201) )
 				|| rtcp_hdr.Padding
-				|| !pck_size
-				) {
+			) {
 				gf_bs_del(bs);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 2001 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
 				return GF_CORRUPTED_DATA;
 			}
 			first = 0;
