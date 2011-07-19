@@ -42,7 +42,7 @@ static char *CurrentLine;
 
 void PrintUsage()
 {
-	printf("MPEG4Gen [-p file] template_file_v1 (template_file_v2 ...)\n"
+	printf("MPEG4Gen [-p file] [template_file_v1 (template_file_v2 ...) ]\n"
 			"\nGPAC MPEG4 Scene Graph generator. Usage:\n"
 			"-p: listing file of nodes to exclude from tables\n"
 			"Template files MUST be fed in order\n"
@@ -347,6 +347,11 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 			} else {
 				fprintf(f, "\t%s %s;\t/*%s*/\n", bf->familly, bf->name, bf->type);
 			}
+		}
+		if (!strcmp(n->name, "CacheTexture")) {
+				fprintf(f, "\t/*GPAC private*/\n");
+				fprintf(f, "\tu8 *data;\n");
+				fprintf(f, "\tu32 data_len;\n");
 		}
 		fprintf(f, "} M_%s;\n\n\n", n->name);
 	}
@@ -877,6 +882,9 @@ void WriteNodeCode(GF_List *BNodes)
 					fprintf(f, "\tgf_node_unregister_children((GF_Node *) p, p->%s);\t\n", bf->name);
 				}
 			}
+		}
+		if (!strcmp(n->name, "CacheTexture")) {
+			fprintf(f, "\tif (p->data) gf_free(p->data);\n");
 		}
 		if (is_parent) fprintf(f, "\tgf_sg_vrml_parent_destroy((GF_Node *) p);\t\n");
 		fprintf(f, "\tgf_node_free((GF_Node *) p);\n}\n\n");
@@ -1686,7 +1694,7 @@ int main (int argc, char **argv)
 	BNode *n;
 	BField *bf;
 
-	if (argc < 2) {
+	if (argc < 1) {
 		PrintUsage();
 		return 0;
 	}
@@ -1697,16 +1705,18 @@ int main (int argc, char **argv)
 
 
 	fskip = NULL;
-	i=1;
-	if (!strcmp(argv[i], "-ndt")) {
-		generate_ndt = 1;
-	} else if (argv[i][0]=='-') {
-		fskip = fopen(argv[i+1], "rt");
-		if (!fskip) {
-			printf("file %s not found\n", argv[i+1]);
-			return 0;
+	if (argc>1) {
+		i=1;
+		if (!strcmp(argv[i], "-ndt")) {
+			generate_ndt = 1;
+		} else if (argv[i][0]=='-') {
+			fskip = fopen(argv[i+1], "rt");
+			if (!fskip) {
+				printf("file %s not found\n", argv[i+1]);
+				return 0;
+			}
+			i+=2;
 		}
-		i+=2;
 	}
 	nbVersion=1;
 	while (1) {

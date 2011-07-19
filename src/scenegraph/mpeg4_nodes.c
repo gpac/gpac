@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Jan 18 12:27:12 2010
+	DO NOT MOFIFY - File generated on GMT Tue Jul 19 16:44:06 2011
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -32126,14 +32126,14 @@ static Bool AdvancedAudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTyp
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
-		*b_min = FLT2FIX(-65536.0f);
+		*b_min = FLT2FIX(-65536);
 		*b_max = FLT2FIX( 0);
 		return 1;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
-		*b_min = FLT2FIX(-65536.0f);
+		*b_min = FLT2FIX(-65536);
 		*b_max = FLT2FIX( 0);
 		return 1;
 	case 13:
@@ -34410,7 +34410,7 @@ GF_Node *MusicScore_Create()
 	p->firstVisibleMeasure = 0;
 	p->hyperlinkEnable = 1;
 	p->scoreOffset = 0.0;
-	p->size.x = FLT2FIX(-1);
+	p->size.x = FLT2FIX(-1,);
 	p->size.y = FLT2FIX(-1);
 	p->speed = FLT2FIX(1.0);
 	p->startTime = 0;
@@ -35257,6 +35257,7 @@ static void CacheTexture_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->image);
 	gf_sg_sfstring_del(p->cacheURL);
 	gf_sg_mfurl_del(p->cacheOD);
+	if (p->data) gf_free(p->data);
 	gf_node_free((GF_Node *) p);
 }
 

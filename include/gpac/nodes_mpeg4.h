@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Jan 18 12:27:12 2010
+	DO NOT MOFIFY - File generated on GMT Tue Jul 19 16:44:06 2011
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -3185,6 +3185,9 @@ typedef struct _tagCacheTexture
 	SFInt32 expirationDate;	/*field*/
 	SFBool repeatS;	/*field*/
 	SFBool repeatT;	/*field*/
+	/*GPAC private*/
+	u8 *data;
+	u32 data_len;
 } M_CacheTexture;
 
 

@@ -25,7 +25,6 @@
 
 
 #include <gpac/internal/bifs_dev.h>
-#include <gpac/crypt.h>
 #include "quant.h" 
 #include "script.h" 
 
@@ -124,65 +123,10 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
-			Bool skip_file_url_proto=0;
-			char *name;
-			FILE *f;
 			M_CacheTexture *ct = (M_CacheTexture *) node;
-			char *buf = gf_malloc(sizeof(char)*length);
-			gf_bs_read_data(bs, buf, length);
-			if (ct->cacheURL.buffer) {
-				name = gf_strdup(ct->cacheURL.buffer);
-			} else {
-				char szImg[100], *ext;
-				switch (ct->objectTypeIndication) {
-				case GPAC_OTI_IMAGE_JPEG: ext = "jpg"; break;
-				case GPAC_OTI_IMAGE_PNG: ext = "png"; break;
-				case GPAC_OTI_IMAGE_JPEG_2000: ext = "jp2"; break;
-				default: ext = "img";
-				}
-				sprintf(szImg, "%p%p.%s", codec, ct, ext);
-				name = gf_strdup(szImg);
-			}
-
-			if (codec->extraction_path) {
-				char *path;
-				u32 len = strlen(name)+strlen(codec->extraction_path)+2;
-				if (strnicmp(codec->extraction_path, "file://", 7)) len+=7;
-				/*SHA1 of service in hexa*/
-				if (codec->service_url) len += 41;
-				path = gf_malloc(sizeof(char)*len);
-
-				path[0] = 0;
-				/*force using file:// URL prototype to avoid confusion with resources adressed from the root of the source server*/
-				if (strnicmp(codec->extraction_path, "file://", 7)) strcpy(path, "file://");
-				strcat(path, codec->extraction_path);
-				strcat(path, "/");
-
-				if (codec->service_url) {
-					u8 hash[20];
-					u32 i;
-					gf_sha1_csum(codec->service_url, strlen(codec->service_url), hash);
-					for (i=0; i<20; i++) {
-						char t[3];
-						t[2] = 0;
-						sprintf(t, "%02X", hash[i]);
-						strcat(path, t);
-					}
-					strcat(path, "_");
-				} 
-				strcat(path, name);
-
-				gf_free(name);
-				name = path;
-				skip_file_url_proto = 1;
-			}
-
-			((SFString *)field->far_ptr)->buffer = name;
-			/*skip the initial file://*/
-			f = gf_f64_open(name + (skip_file_url_proto ? 7 : 0), "wb");
-			fwrite(buf, 1, length, f);
-			fclose(f);
-			gf_free(buf);
+			ct->data_len = length;
+			ct->data = gf_malloc(sizeof(char)*length);
+			gf_bs_read_data(bs, ct->data, length);
 		} else {
 			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
 			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(sizeof(char)*(length+1));
