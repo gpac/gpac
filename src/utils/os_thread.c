@@ -486,14 +486,20 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 	}
 
 #ifdef WIN32
-	/*wait for 1 ms (I can't figure out from MS doc if 0 timeout only "tests the state" or also lock the mutex ... */
-	switch (WaitForSingleObject(mx->hMutex, 1)) {
+	/*is the object signaled?*/
+	switch (WaitForSingleObject(mx->hMutex, 0)) {
+	case WAIT_OBJECT_0:
+		break;
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
 		return 0;
+	case WAIT_FAILED:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] At %d WaitForSingleObject failed\n", mx->log_name, gf_sys_clock()));
+		return 0;
 	default:
-		break;
+		assert(0);
+		return 0;
 	}
 #else
 	if (pthread_mutex_trylock(&mx->hMutex) != 0 ) {
