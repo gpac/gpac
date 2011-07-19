@@ -251,7 +251,7 @@ GF_Err GF_IPMPX_ParseEventType(char *val, u8 *eventType, u8 *eventTypeCount)
 		if (j) {
 			szVal[j] = 0;
 			if (!strnicmp(szVal, "0x", 2)) { sscanf(szVal, "%x", &v); eventType[*eventTypeCount] = v; }
-			else { sscanf(szVal, "%ud", &v); eventType[*eventTypeCount] = v; }
+			else { sscanf(szVal, "%u", &v); eventType[*eventTypeCount] = v; }
 			j=0;
 			(*eventTypeCount) += 1;
 			if (*eventTypeCount == 9) return GF_OK;
@@ -282,7 +282,7 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 		if (j) {
 			szVal[j] = 0;
 			if (!strnicmp(szVal, "0x", 2)) { sscanf(szVal, "%x", &v); data[count] = v; }
-			else { sscanf(szVal, "%ud", &v); data[count] = v; }
+			else { sscanf(szVal, "%u", &v); data[count] = v; }
 			j=0;
 			count += 1;
 			if (count == alloc) {

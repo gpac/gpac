@@ -184,9 +184,9 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 		if (!strnicmp(name, "od", 2)) ID = atoi(name + 2);
 		else if (!strnicmp(name, "iod", 3)) ID = atoi(name+ 3);
 		/*be carefull, an url like "11-regression-test.mp4" will return 1 on sscanf :)*/
-		else if (sscanf(name, "%ud", &ID) == 1) {
+		else if (sscanf(name, "%u", &ID) == 1) {
 			char szURL[20];
-			sprintf(szURL, "%ud", ID);
+			sprintf(szURL, "%u", ID);
 			if (strcmp(szURL, name)) {
 				ID = 0;
 			} else {
@@ -242,9 +242,9 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	if (!strnicmp(name, "od", 2)) ID = atoi(name + 2);
 	else if (!strnicmp(name, "iod", 3)) ID = atoi(name + 3);
 	/*be carefull, an url like "11-regression-test.mp4" will return 1 on sscanf :)*/
-	else if (sscanf(name, "%ud", &ID) == 1) {
+	else if (sscanf(name, "%u", &ID) == 1) {
 		char szURL[20];
-		sprintf(szURL, "%ud", ID);
+		sprintf(szURL, "%u", ID);
 		if (strcmp(szURL, name)) {
 			ID = 0;
 		} else {
@@ -346,7 +346,7 @@ static u32 xmt_get_od_id(GF_XMTParser *parser, char *od_name)
 {
 	u32 i, ID;
 	XMT_ODLink *l;
-	if (sscanf(od_name, "%ud", &ID)==1) return ID;
+	if (sscanf(od_name, "%u", &ID)==1) return ID;
 
 	i=0;
 	while ((l = (XMT_ODLink*)gf_list_enum(parser->od_links, &i))) {
@@ -360,7 +360,7 @@ static u32 xmt_get_esd_id(GF_XMTParser *parser, char *esd_name)
 {
 	u32 i, ID;
 	XMT_ESDLink *l;
-	if (sscanf(esd_name, "%ud", &ID)==1) return ID;
+	if (sscanf(esd_name, "%u", &ID)==1) return ID;
 
 	i=0;
 	while ((l = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
@@ -607,7 +607,7 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 {
 	GF_Node *n;
 	u32 ID;
-	if (sscanf(name, "N%ud", &ID) == 1) {
+	if (sscanf(name, "N%u", &ID) == 1) {
 		ID ++;
 		n = gf_sg_find_node(parser->load->scene_graph, ID);
 		if (n) {
@@ -940,7 +940,7 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 			char *name = "pixels";
 			XMT_GET_ONE_VAL
 			if (strstr(value, "0x")) sscanf(value, "%x", &v);
-			else sscanf(value, "%ud", &v);
+			else sscanf(value, "%u", &v);
 			switch (img->numComponents) {
 			case 1:
 				img->pixels[k] = (char) v;

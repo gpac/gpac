@@ -825,7 +825,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\
 	} else { \
-		sprintf(temp, "%ud", d);		\
+		sprintf(temp, "%u", d);		\
 	}	\
 	SDP_WRITE_ALLOC_STR_WITHOUT_CHECK(temp, spa);
 

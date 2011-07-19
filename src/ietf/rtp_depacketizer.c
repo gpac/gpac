@@ -1207,7 +1207,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
 				if (stricmp(att->Name, "cliprect")) continue;
 				/*only get the display area*/
-				sscanf(att->Value, "%ud,%ud,%ud,%ud", &y, &x, &h, &w);
+				sscanf(att->Value, "%u,%u,%u,%u", &y, &x, &h, &w);
 			}
 
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;

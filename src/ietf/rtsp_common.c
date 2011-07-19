@@ -185,20 +185,18 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		else if (!stricmp(param_name, "interleaved")) {
 			u32 rID, rcID;
 			tmp->IsInterleaved = 1;
-			/*do not use %ud here, broken on Win32 (sscanf returns 1)*/
-			if (sscanf(param_val, "%d-%d", &rID, &rcID) == 1) {
-				sscanf(param_val, "%ud", &rID);
+			if (sscanf(param_val, "%u-%u", &rID, &rcID) == 1) {
+				sscanf(param_val, "%u", &rID);
 				tmp->rtcpID = tmp->rtpID = (u8) rID;
 			} else {
 				tmp->rtpID = (u8) rID;
 				tmp->rtcpID = (u8) rcID;
 			}
 		}
-		else if (!stricmp(param_name, "layers")) sscanf(param_val, "%ud", &tmp->MulticastLayers);
+		else if (!stricmp(param_name, "layers")) sscanf(param_val, "%u", &tmp->MulticastLayers);
 		else if (!stricmp(param_name, "ttl")) sscanf(param_val, "%c	", &tmp->TTL);
-		/*do not use %hud here, broken on Win32 (sscanf returns 1)*/
 		else if (!stricmp(param_name, "port")) {
-			sscanf(param_val, "%d-%d", &v1, &v2);
+			sscanf(param_val, "%u-%u", &v1, &v2);
 			tmp->port_first = (u16) v1;
 			tmp->port_last = (u16) v2;
 		}

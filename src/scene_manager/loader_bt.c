@@ -884,9 +884,9 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 				if (!strnicmp(str, "od://", 5)) odstr += 5;
 				else if (!strnicmp(str, "od:", 3)) odstr += 3;
 				/*be carefull, an url like "11-regression-test.mp4" will return 1 on sscanf :)*/
-				if (sscanf(odstr, "%ud", &id) == 1) {
+				if (sscanf(odstr, "%u", &id) == 1) {
 					char szURL[20];
-					sprintf(szURL, "%ud", id);
+					sprintf(szURL, "%u", id);
 					if (strcmp(szURL, odstr)) id=0;
 				}
 				if (id) {
@@ -1077,7 +1077,7 @@ u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 {
 	GF_Node *n;
 	u32 ID;
-	if (sscanf(defName, "N%ud", &ID) == 1) {
+	if (sscanf(defName, "N%u", &ID) == 1) {
 		ID ++;
 		n = gf_sg_find_node(parser->load->scene_graph, ID);
 		/*if an existing node use*/
@@ -1778,9 +1778,9 @@ next_field:
 			str = gf_bt_get_next(parser, 0);
 			gf_sg_vrml_mf_append(&proto->ExternProto, GF_SG_VRML_MFURL, (void **) &url);
 			if (!strnicmp(str, "od:", 3)) {
-				sscanf(str, "od:%ud", &url->OD_ID);
+				sscanf(str, "od:%u", &url->OD_ID);
 			} else {
-				if (!sscanf(str, "%ud", &url->OD_ID)) {
+				if (!sscanf(str, "%u", &url->OD_ID)) {
 					url->url = gf_strdup(str);
 				} else {
 					char szURL[20];
@@ -3239,7 +3239,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (str[0] == 'D') {
 				parser->au_time += atoi(&str[1]);
 			} else {
-				if (sscanf(str, "%ud", &parser->au_time) != 1) {
+				if (sscanf(str, "%u", &parser->au_time) != 1) {
 					gf_bt_report(parser, GF_BAD_PARAM, "Number expected got %s", str);
 					break;
 				}

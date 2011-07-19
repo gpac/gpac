@@ -64,7 +64,7 @@ static char *xml_translate_xml_string(char *str)
 				if (szChar[2]=='x')
 					sscanf(szChar, "&#x%x;", &val);
 				else
-					sscanf(szChar, "&#%ud;", &val);
+					sscanf(szChar, "&#%u;", &val);
 				wchar[0] = val;
 				srcp = wchar;
 				j += gf_utf8_wcstombs(&value[j], 20, &srcp);
