@@ -85,7 +85,6 @@ typedef struct _stream_context
 	u32 timeScale;
 	GF_List *AUs;
 
-	u64 dump_time_offset;
 	/*last stream AU time, when playing the context directly*/
 	u64 last_au_time;
 	/*set if stream is part of root OD (playback only)*/
@@ -94,6 +93,9 @@ typedef struct _stream_context
 	u32 current_au_count;
 	char *dec_cfg;
 	u32 dec_cfg_len;
+
+	/*time offset when exporting (dumping), max AU time created when importing*/
+	u64 imp_exp_time;
 
 	u16 aggregate_on_esid;
 	u32 carousel_period;
