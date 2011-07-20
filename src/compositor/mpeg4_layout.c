@@ -667,7 +667,8 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	recompute_layout = 0;
-	if (gf_node_dirty_get(node)) recompute_layout = 1;
+	if (gf_node_dirty_get(node)) 
+		recompute_layout = 1;
 
 	/*setup clipping*/
 	prev_clip = tr_state->visual->top_clipper;
@@ -705,9 +706,11 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 
 		/*apply justification*/
 		layout_justify(st, l);
-
-		/*prepare initial scroll bounds*/
-//		layout_setup_scroll_bounds(st, l);
+		
+		/*if scrolling, update bounds*/
+		if (l->scrollRate && st->is_scrolling) {
+			layout_setup_scroll_bounds(st, l);
+		}
 	}
 
 
