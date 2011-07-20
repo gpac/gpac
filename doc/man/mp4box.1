@@ -24,10 +24,19 @@ MP4Box doesn't expect any particular order in options at prompt.
 .SH GETTING HELP WITH MP4Box
 .TP
 .B \-h [type]
-prints help screen. "type" can be one of "general", "hint", "import", "encode", "extract", "dump", "swf", "meta", "crypt", "format" for specific help.
+prints help screen. "type" can be one of "general", "hint", "import", "encode", "extract", "dump", "swf", "meta", "crypt", "format", "rtp", "live" for specific help.
 .TP
 .B \-version
 prints version of MP4Box.
+.TP
+.B \-noprog
+disable progress reports.
+.TP
+.B \-quiet
+quiet mode (no log info).
+.TP
+.B \-v
+verbose mode (more log info).
 .TP
 .B \-nodes
 lists supported MPEG-4 Systems nodes in MP4Box current build.
@@ -39,12 +48,25 @@ prints the node syntax. Each field is listed as
 .br
 and field quantization information and quantization bounds if any.
 .
+.TP
+.B \-xnodes
+lists supported X3D nodes in MP4Box current build.
+.TP
+.B \-xnode NodeName
+prints the X3D node syntax. Each field is listed as
+.
+.TP
+.B \-snodes
+lists supported SVG/LASeR nodes in MP4Box current build.
 .
 .SH GENERAL OPTIONS
 .P
 .TP
 .B \-inter duration
 interleaves media data in chunks of the maximum specified duration (expressed in milliseconds) and prepare file for HTTP/FTP streaming. By default MP4Box always stores with 0.5 second interleaving. An interleaving value of '0' stores without interleaving (meta-data then track after track). 
+.br
+.B \-old-inter duration
+same as -inter but without drift adjustment
 .br
 .B NOTE: Track Edit Lists are ignored when performing interleaving.
 .TP
@@ -60,8 +82,14 @@ specifies output file name.
 .B -tmp\ \<dirname>
 specifies driectory for temporary storage. If not set, temporary storage is OS-dependent.
 .TP
+.B -ffspace size
+inserts free space before moof in fragmented files.
+.TP
 .B \-nosys
-removes all MPEG-4 Systems information from the file but keeps an empty IOD for MPEG-4 Profile@Level indications.
+removes all MPEG-4 Systems information from the file but keeps an empty IOD for MPEG-4 Profile@Level indications. alias: -no-sys
+.TP
+.B \-no-iod
+removes InitialObjectDescriptor from file.
 .TP
 .B \-isma
 rewrites the file as an ISMA 1.0 Audio/Video file (all systems info rewritten) with proper clock references.
@@ -74,6 +102,18 @@ rewrites the file as an ISMA 1.0 Audio/Video file (all systems info rewritten) w
 .B \-3gp
 rewrites the file as a 3GP file (no more MPEG-4 Systems specific info). This option is turned on by default when input file extension is .3gp or .3g2.
 .TP
+.B \-ipod
+rewrites the file for iPod.
+.TP
+.B \-brand ABCD[:v]
+sets major brand of file, with optional version.
+.TP
+.B \-ab ABCD
+adds given brand to file's alternate brand list.
+.TP
+.B \-rb ABCD
+removes given brand to file's alternate brand list.
+.TP
 .B -cprt string
 adds string copyright notice to file.
 .TP
@@ -82,6 +122,12 @@ adds chapter information contained in chap_file to movie. For more details on ch
 .TP
 .B -rem trackID
 removes given track from file - can be specified multiple times.
+.TP
+.B -enable trackID
+enables given track.
+.TP
+.B -disable trackID
+disables given track.
 .TP
 .B -new
 forces creation of a new destination file.
@@ -92,14 +138,72 @@ sets the language of all tracks or the given track. LAN is the ISO 639-2 3 chara
 .B -delay [tkID=]delay_ms
 sets the delay in milliseconds of all tracks or the given track. LAN is the ISO 639-2 3 character code.
 .TP
+.B -par tkID=PAR
+sets visual track pixel aspect ratio (PAR=Num:Den or "none").
+.TP
+.B -name tkID=name
+sets track handler name.
+.TP
+.B -itags tag1[:tag2]
+sets iTunes tags to file - more info: MP4Box -tag-list.
+.TP
 .B \-split time_in_seconds
 splits in files of desired maximum duration. This will remove all MPEG-4 Systems media.
 .TP
-.B \-splits size_in_kilobytes
-splits in files of desired maximum size. This will remove all MPEG-4 Systems media.
+.B \-split-size size_in_kilobytes
+splits in files of desired maximum size. This will remove all MPEG-4 Systems media. Alias: -splits
 .TP
-.B \-splitx start:end
-extracts a new file from specified start to end times (in seconds). This will remove all MPEG-4 Systems media.
+.B \-split-chunk start:end
+extracts a new file from specified start to end times (in seconds). This will remove all MPEG-4 Systems media. Alias: -splitx
+.TP
+.B \-split-rap start:end
+splits in files begining at each RAP. This will remove all MPEG-4 Systems media. Alias: -splitr
+.TP
+.B \-group-add fmt
+creates a new grouping information in the file. Format is a colon-separated list of following options:
+.br
+refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the previous trackID specified. If 0 or no previous track specified, a new alternate group will be created.
+.br
+switchID=ID: ID of the switch group to create. If 0, a new ID will be computed for you. If <0, disables SwitchGroup.
+.br
+criteria=string: list of space-separated 4CCs.
+.br
+trackID=ID: ID of the track to add to this group.
+.br
+*WARNING* Options modify state as they are parsed: trackID=1:criteria=lang:trackID=2 is different from: criteria=lang:trackID=1:trackID=2. 
+.B \-group-rem-track ID
+removes track from its group.
+.TP
+.B \-group-rem ID
+removes the track's group.
+.TP
+.B \-group-clean
+removes all group information from all tracks.
+.TP
+.B \-ref id:XXXX:refID
+adds a reference of type 4CC from track ID to track refID.
+.TP
+.B \-dash DUR
+enables DASH-ing of the file with a segment duration of DUR.
+.TP
+.B \-frags-per-sidx N
+sets the number of segments to be written in each SIDX box.
+.TP
+.B \-segment-name name
+sets the segment name for generated segments.
+.TP
+.B \-segment-ext name
+sets the segment extension name. Default is m4s.
+.TP
+.B \-url-template
+uses UrlTemplate instead of explicit sources in segments.
+.TP
+.B \-daisy-chain
+Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.
+.TP
+.B \-dash-ctx FILE
+Stores/restore DASH timing from FILE.
+
 .B When input file is an ISO-Media file (QT, MP4, 3GP), if no output is specified THE INPUT FILE IS OVERWRITTEN.
 .
 .
@@ -157,7 +261,7 @@ enables Access Units concatenation in RTP packets (-ts, -size and -idx are selec
 prevents system tracks embedding in IOD (ISMA-like IOD) when generating in SDP. MP4Box automatically detects ambiguous (ISMA/non-ISMA) files but nobody's perfect. This shouldn't be used with -isma option.
 .
 .TP
-.B \-sdp_ex string
+.B \-add-sdp string
 adds string to movie SDP or track SDP (tkID:string, where tkID is the OD of the hint track or its media track). This takes care of SDP line reordering, but not of SDP content validity.
 .TP
 .B \-unhint
@@ -181,10 +285,14 @@ file#trackID=ID or file#ID: imports given trackfrom src_file. To get a listing o
 .B \-cat <src_file>
 concatenates all src_file tracks to input file, creating it if not exisiting. Media samples are added at the end of existing compatible tracks. If no compatible track is found for a media it is created. Up to 20 cumulated -cat operations can be used. Syntax is the same as -add.
 .TP
+.B \-force-cat
+skips media configuration check when concatenating file.
+.TP
 .B \-keepsys
 by default all MPEG-4 systems media are removed with -add and -cat. This option will avoid removing them from final file.
 .TP
-.
+.B \-keep-all
+keeps all existing tracks when add file.
 .TP
 .B \-dref
 keeps media data in original file an only imports meta-data (frame timing, size and random access). 
@@ -193,7 +301,7 @@ keeps media data in original file an only imports meta-data (frame timing, size 
 .B NOTE
 Data referencing may fail with some AVI because it requires the framed data (eg an MP4 sample) to be continuous in the original file, which is not always the case depending on the original interleaving.
 .TP
-.B \-nodrop
+.B \-no-drop
 forces constant FPS when importing AVI video. By default non coded frames (n-vop) are removed at import time, resulting in a variable frame-rate media.
 .TP
 .B \-packed
@@ -204,6 +312,15 @@ imports AAC as AAC-SBR, with backward compatible signaling (non AAC-SBR decoders
 .TP
 .B \-sbrx
 imports AAC as AAC-SBR, with non-backward compatible signaling (non AAC-SBR decoders will not be able to play it).
+.TP
+.B \-ovsbr
+imports AAC as AAC-SBR with oversample SBR.
+.TP
+.B \-ps
+imports AAC as AAC-PS, with backward compatible signaling of AAC-PS.
+.TP
+.B \-psx
+imports AAC as AAC-PS, with non-backward compatible signaling (non AAC-PS decoders will not be able to play it).
 .TP 
 .B \-fps FrameRate
 overrides the input video frame rate or specifies it for SUB subtitles.
@@ -235,12 +352,59 @@ forces BIFS random access point generation every time milliseconds. Cannot be us
 .B \-shadow time
 forces BIFS shadow random access points generation every time milliseconds. Shadow samples are random access points that can be used instead of non random access points when seeking. WARNING: this may be not supported by some players (EXPERTS ONLY - DANGEROUS). Cannot be used with -sync.
 .TP
-.B \-inctx file
+.B \-ctx-in file
 specifies initial context (MP4/BT/XMTA) for chunk processing. Input file must then be a command-only file: no IOD, and no implicit commands (commands without 'AT').
 .TP
-.B \-outctx file
+.B \-ctx-out file
 specifies output file of updated context (MP4/BT/XMTA) in chunk processing mode. This is optional, chunk processing doesn't need to store the final context.
+.TP
+.B \-resolution res
+LASeR resolution factor (-8 to 7, default 0). All coords are multiplied by 2^res before truncation.
+.TP
+.B \-coord-bits bits
+bits used for encoding truncated coordinates in LASeR. (0 to 31, default 12)
+.TP
+.B \-scale-bits bits
+bits used for encoding truncated scales in LASeR. (0 to 4, default 0)
+.TP
+.B \-auto-quant res
+Use automatic LASeR quantification. resolution is given as if using -resolution but coord-bits and scale-bits are infered.
 .
+.SH ISMACRYPT OPTIONS
+.TP
+.B \-crypt drm_file
+crypts a specific track using ISMA AES CTR 128. 
+.TP
+.B \-decrypt [drm_file]
+decrypts a specific track using ISMA AES CTR 128. drm_file can be omitted if keys are in file.
+.TP
+.B \-set-kms [tkID=]kms_uri
+changes KMS location for all tracks or a given one if tkID is specified.
+.TP
+.B \DRM file syntax for GPAC ISMACryp
+File is XML and shall start with xml header. File root is an "ISMACryp" element. File is a list of "ISMACrypTrack" elements. 
+.br
+ISMACrypTrack attributes:
+.br
+TrackID: ID of track to en/decrypt.
+.br
+key:  AES-128 key formatted (hex string 0x +32 chars.
+.br
+salt: CTR IV salt key (64 bits) (hex string 0x +16 chars.
+.br
+Encryption only attributes
+.br
+Scheme_URI: URI of scheme used.
+.br
+KMS_URI: URI of key management system - \'self\' writes key and salt in the file.
+.br
+selectiveType selective encryption type - understood values are "None":              all samples encrypted (default), "RAP":  only encrypts random access units, "Non-RAP":  only encrypts non-random access units, "Rand": random selection is performed", "X": Encrypts every first sample out of X, "RandX": Encrypts one random sample out of X.
+.br
+ipmpType: IPMP Signaling Type: None, IPMP, IPMPX.
+.br 
+ipmpDescriptorID: IPMP_Descriptor ID to use if IPMP(X) is used. If not set MP4Box will generate one for you.
+.
+
 .SH EXTRACTING OPTIONS
 .TP
 .B \-raw TrackID
@@ -251,6 +415,9 @@ extract each track sample to a file. Note: 'TrackID:N' extracts Nth sample of th
 .TP
 .B \-nhnt TrackID
 extracts given track in NHNT format. All track types except ObjectDescriptors tracks can be exported.
+.TP
+.B \-nhml TrackID
+extracts track in nhml format (XML nhnt). All track types except ObjectDescriptors tracks can be exported.
 .TP
 .B \-single TrackID
 extracts given track to a new mp4 file with a single track.
@@ -263,6 +430,15 @@ same as '-raw' but defaults to QCP file format for AVRC and SMV audio codecs.
 .TP
 .B \-aviraw TK
 extracts AVI track to its raw format. TK can be one of "video", "audio" or "audioN" for multi-track avi files (cf '-info'). 
+.TP
+.B \-saf
+remux file to SAF multiplex. 
+.TP
+.B \-dvbhdemux
+demux DVB-H file into IP Datagrams. 
+.TP
+.B \-diod
+extracts file IOD in raw format when supported. 
 .
 .SH DUMP OPTIONS
 .TP
@@ -284,17 +460,29 @@ dumps complete scene in an X3D XML file. This will remove unknown X3D nodes.
 .B \-x3dv
 dumps complete scene in an X3D Text (VRML) file. This will remove unknown X3D nodes.
 .TP
+.B \-lsr
+dumps complete scene in a LASeR+XML file. 
+.TP
 .B \-diso
 creates XML image of the file atoms.
 .TP
 .B \-drtp
 creates XML image of all hint tracks samples of a hinted mp4 file.
 .TP
+.B \-dts
+prints sample timing to text output.
+.TP
 .B \-dcr
 creates XML image of all ISMACryp tracks samples of an mp4 file.
 .TP
 .B \-sdp
 creates SDP file associated with a hinted mp4 file.
+.TP
+.B \-dump-cover
+Extracts cover art if any.
+.TP
+.B \-dump-chap
+Extracts chapter list to file if any.
 .TP
 .B \-ttxt
 converts input subtitle to GPAC TTXT format.
@@ -319,6 +507,9 @@ generates statistic report on node/field usage per BIFS Access Unit.
 .TP
 .B \-statx
 generates statistic report on node/field usage in the scene graph after each BIFS Access Unit.
+.TP
+.B \-hash
+generates SHA-1 Hash of the input file.
 .
 .SH Meta OPTIONS
 .
@@ -361,28 +552,103 @@ dumps the XML data of the given meta to a file.
 .TP
 .B \-dump-item itemID[;tk=ID][;path=fileName]
 dumps the given item of the the given meta to a file. By default the item name is used as the output file name.
+.TP
+.B \-package
+packages input XML file into an ISO container. all media referenced except hyperlinks are added to file.
+.TP
+.B \-mgt
+packages input XML file into an MPEG-U widget in ISO container. All files contained in the current folder are added to the widget package.
+.
+.SH RTP STREAMER OPTIONS
+.
+.LP
+MP4Box can stream ISO files to RTP. The streamer currently doesn't support data carrouselling and will therefore not handle BIFS and OD streams properly.      
+.TP
+.B \-rtp
+enables rtp file streamer.
+.TP
+.B \-noloop
+disables looping when streaming.
+.TP
+.B \-mpeg4
+forces MPEG-4 ES Generic for all RTP streams.
+.TP
+.B \-dst=IP
+IP destination (uni/multi-cast). Default: 127.0.0.1.
+.TP
+.B \-port=PORT
+output port of the first stream. Default: 7000.
+.TP
+.B \-mtu=MTU
+path MTU for RTP packets. Default is 1450 bytes.
+.TP
+.B \-ifce=IP
+IP address of the physical interface to use. Default: NULL (ANY).
+.TP
+.B \-ttl=N
+time to live for multicast packets. Default: 1.
+.TP
+.B \-sdp=FILE
+file name of the generated SDP. Default is session.sdp.
+.
+.SH LIVE SCENE STREAMER OPTIONS
+.
+.LP
+MP4Box can stream BIFS or DIMS content to RTP with carousel generation and updates. The streamer currently doesn't support audio/video/image streaming at the same time. All options supported by the file streamer are supported.
+.TP
+.B \-live
+enables rtp live streamer.
+.TP
+.B \-dims
+turns on DIMS mode for SVG input - default: off.
+.TP
+.B \-src=FILE
+source of updates - default: null.
+.TP
+.B \-rap=TIME
+duration in ms of base carousel - default: 0 (off). you can specify the RAP period of a single ESID (not in DIMS) with -rap=ESID=X:time.
+.TP
+.B \Runtime Options
+The following options can be used at prompt:
+.br
+q: quits
+.br
+u: inputs some commands to be sent
+.br
+U: same as u but signals the updates as critical
+.br
+e: inputs some commands to be sent without being aggregated
+.br
+E: same as e but signals the updates as critical
+.br
+f: forces RAP sending
+.br
+F: forces RAP regeneration and sending
+.br
+p: dumps current scene
+.
 .
 .SH SWF OPTIONS
 .
 .LP
 MP4Box can import very simple Macromedia Flash files (".SWF"). You can specify a SWF input file with -bt, xmt and -mp4 switches.
 .TP
-.B \-static
+.B \-global
 all SWF defines are placed in first scene replace. By default SWF defines are sent when needed.
 .TP
-.B \-ctrl
-uses a dedicated stream for movie control (forces -static option).
+.B \-no-ctrl
+uses a dedicated stream for movie control. This will disable ActionScript.
 .TP
-.B \-notext
+.B \-no-text
 removes all SWF text.
 .TP
-.B \-nofont
+.B \-no-font
 removes all embedded SWF Fonts, forcing usage of MPEG-4 Text and terminal fonts.
 .TP
-.B \-noline
+.B \-no-line
 removes all lines from SWF shapes.
 .TP
-.B \-nograd
+.B \-no-grad
 removes all gradients from swf shapes.
 .TP
 .B \-quad
@@ -523,7 +789,7 @@ For bug reports, more information on BT or XMT-A formats or GPAC TTXT files or I
 .
 .SH "AUTHORS"
 .LP 
-Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005
+Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005 - (c) Telecom ParisTech 2005-2011
 .
 .SH "SEE ALSO"
 .LP 
