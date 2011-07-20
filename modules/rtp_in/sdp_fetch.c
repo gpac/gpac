@@ -101,25 +101,23 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	case GF_NETIO_DATA_TRANSFERED:
 		if (sdp->original_url) {
 			u32 sdp_size;
-			gf_dm_sess_get_stats(rtp->dnload, NULL, NULL, &sdp_size, NULL, NULL, NULL);
-			if (!sdp_size) 
-				break;
-		} 
-		
-		{
-			const char *szFile = gf_dm_sess_get_cache_name(rtp->dnload);
-			if (!szFile) {
-				e = GF_SERVICE_ERROR;
-			} else {
-				e = GF_OK;
-				RP_SDPFromFile(rtp, (char *) szFile, sdp->chan);
-				gf_free(sdp->remote_url);
-				if (sdp->original_url) gf_free(sdp->original_url);
-				gf_free(sdp);
-				rtp->sdp_temp = NULL;
-				return;
+			e = gf_dm_sess_get_stats(rtp->dnload, NULL, NULL, &sdp_size, NULL, NULL, NULL);
+			if (sdp_size) { 
+				const char *szFile = gf_dm_sess_get_cache_name(rtp->dnload);
+				if (!szFile) {
+					e = GF_SERVICE_ERROR;
+				} else {
+					e = GF_OK;
+					RP_SDPFromFile(rtp, (char *) szFile, sdp->chan);
+					gf_free(sdp->remote_url);
+					if (sdp->original_url) gf_free(sdp->original_url);
+					gf_free(sdp);
+					rtp->sdp_temp = NULL;
+					return;
+				}
 			}
 		}
+		break;
 	default:
 		if (e == GF_OK) return;
 	}
