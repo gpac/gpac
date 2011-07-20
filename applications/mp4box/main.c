@@ -548,6 +548,8 @@ void PrintMetaUsage()
 			" -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
 			" -package             packages input XML file into an ISO container\n"
 			"                       * all media referenced except hyperlinks are added to file\n"
+			" -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
+			"                       * all files contained in the current folder are added to the widget package\n"
 			"\n");
 }
 
@@ -588,7 +590,8 @@ void PrintUsage()
 			" -h swf               Flash (SWF) options help\n"
 			" -h crypt             ISMA E&A options help\n"
 			" -h format            supported formats help\n"
-			" -h rtp               streamer help\n"
+			" -h rtp               file streamer help\n"
+			" -h live              BIFS streamer help\n"
 			"\n"
 			" -nodes               lists supported MPEG4 nodes\n"
 			" -node NodeName       gets MPEG4 node syntax and QP info\n"
@@ -598,8 +601,8 @@ void PrintUsage()
 			" -snode NodeName      gets SVG node syntax\n"
 			" -languages           lists supported ISO 639 languages\n"
 			"\n"
-			"-quiet                quiet mode\n"
-			"-noprog               disables progress\n"
+			" -quiet                quiet mode\n"
+			" -noprog               disables progress\n"
 			" -v                   verbose mode\n"
 			" -version             gets build version\n"
 			);
