@@ -121,6 +121,9 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 		unsigned char *start = (unsigned char *)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
 		sc_pos = start - data;
+		/*not enough space to test for start code, don't check it*/
+		if (data_len - sc_pos < 5)
+			break;
 
 		/*0x00000001 start code*/
 		if (!start[1] && !start[2] && (start[3]==1)) {
@@ -412,8 +415,8 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 
 		gf_bs_del(bs);
 
-		/*make sure we are sync*/
-		if (sc_pos + hdr.frame_size - hdr_size < data_len) {
+		/*make sure we are sync if we have more data following*/
+		if (sc_pos + hdr.frame_size < data_len) {
 			if ((data[sc_pos + hdr.frame_size]!=0xFF) || ((data[sc_pos+hdr.frame_size+1] & 0xF0) != 0xF0)) {
 				sc_pos++;
 				continue;
