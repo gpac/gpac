@@ -43,6 +43,7 @@ ar="ar"
 ranlib="ranlib"
 make="make"
 strip="strip"
+readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
@@ -413,8 +414,19 @@ case $targetos in
 
     SunOS)
         make="gmake"
+        readelf="greadelf"
         LDFLAGS="${opt#--extra-ldflags=}"
         instflags=""
+        # check for 64-bit
+cat > $TMPC << EOF
+#include <stdio.h>
+int main( void ) { return 0; }
+EOF
+        CFLAGS_NO_LTO=$(echo ${CFLAGS} | sed -e 's/\ -flto[-A-Za-z0-9=]*//g')
+        $cc ${CFLAGS_NO_LTO} -o $TMPO $TMPC 2>/dev/null && $($readelf -h $TMPO | grep "Class:.*ELF64$" >/dev/null 2>&1)
+        if test $? -eq 0; then
+          is_64="yes"
+        fi
         if test "$is_64" = "yes"; then
             if test "$cpu" = "x86_64"; then
                 libdir=lib/amd64
