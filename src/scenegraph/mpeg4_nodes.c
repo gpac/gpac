@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Jul 19 16:44:06 2011
+	DO NOT MOFIFY - File generated on GMT Wed Jul 20 05:50:21 2011
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -34410,7 +34410,7 @@ GF_Node *MusicScore_Create()
 	p->firstVisibleMeasure = 0;
 	p->hyperlinkEnable = 1;
 	p->scoreOffset = 0.0;
-	p->size.x = FLT2FIX(-1,);
+	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
 	p->speed = FLT2FIX(1.0);
 	p->startTime = 0;

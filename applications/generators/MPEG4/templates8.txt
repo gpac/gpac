@@ -101,7 +101,7 @@ exposedField    SFBool          loop											FALSE
 exposedField    MFString        partsLyrics								[]
 exposedField    MFInt32         partsShown								[]
 exposedField    SFTime          scoreOffset								0.0
-exposedField    SFVec2f         size											-1, -1 
+exposedField    SFVec2f         size											-1 -1 
 exposedField    SFFloat         speed											1.0			#%b=(-I,+I) #%q=0 #%a=7
 exposedField    SFTime          startTime									0				#%b=(-I,+I)
 exposedField    SFTime          stopTime									0				#%b=(-I,+I)
