@@ -983,7 +983,7 @@ function on_widget_launch() {
       
 function widget_get_icon(widget) 
 {
-  var icon = '';
+  var icon = 'icons/process-stop.svg';
   var preferredIconType = '.svg';
   for (var i = 0; i < widget.icons.length; i++) {
       icon = widget.icons[i].relocated_src;
