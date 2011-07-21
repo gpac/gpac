@@ -167,14 +167,14 @@ u32 gf_log_parse_tools(const char *val)
 		else if (!stricmp(val, "smil")) flags |= GF_LOG_SMIL;
 		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
 		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
-		else if (!stricmp(val, "none")) flags = 0;
-		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
 		else if (!stricmp(val, "rti")) flags |= GF_LOG_RTI;
 		else if (!stricmp(val, "cache")) flags |= GF_LOG_CACHE;
 		else if (!stricmp(val, "audio")) flags |= GF_LOG_AUDIO;
 		else if (!stricmp(val, "mem")) flags |= GF_LOG_MEMORY;
 		else if (!stricmp(val, "module")) flags |= GF_LOG_MODULE;
 		else if (!stricmp(val, "mutex")) flags |= GF_LOG_MUTEX;
+		else if (!stricmp(val, "none")) flags = 0;
+		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
 		else fprintf(stderr, "Unknown log tool specified: %s\n", val);
 		if (!sep) break;
 		sep[0] = ':';
@@ -201,9 +201,9 @@ void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_l
 #endif
 }
 
-
 static void *user_log_cbk = NULL;
 static gf_log_cbk log_cbk = default_log_callback;
+static Bool log_exit_on_error = 0;
 
 GF_EXPORT
 void gf_log(const char *fmt, ...)
@@ -212,6 +212,8 @@ void gf_log(const char *fmt, ...)
 	va_start(vl, fmt);
 	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	va_end(vl);
+	if (log_exit_on_error && call_lev==GF_LOG_ERROR)
+		exit(1);
 }
 
 GF_EXPORT
@@ -219,11 +221,19 @@ void gf_log_set_level(u32 level)
 {
 	global_log_level = level;
 }
+
+GF_EXPORT
+void gf_log_set_strict_error(Bool strict)
+{
+	log_exit_on_error = strict;
+}
+
 GF_EXPORT
 void gf_log_set_tools(u32 modules)
 {
 	global_log_tools = modules;
 }
+
 GF_EXPORT
 void gf_log_lt(u32 ll, u32 lt)
 {
@@ -251,6 +261,10 @@ void gf_log_lt(u32 ll, u32 lt)
 }
 GF_EXPORT
 void gf_log_set_level(u32 level)
+{
+}
+GF_EXPORT
+void gf_log_set_strict_error(Bool strict)
 {
 }
 GF_EXPORT

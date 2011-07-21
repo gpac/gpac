@@ -296,6 +296,15 @@ enum
  */
 void gf_log_set_level(u32 level);
 
+/*!
+ *	\brief Log exits at first error assignment
+ *
+ * When GF_LOG_ERROR happens, program leaves with instruction exit(1);
+ *	\param strict strict behaviour when encoutering a serious error.
+ *
+ */
+void gf_log_set_strict_error(Bool strict);
+
 
 /*!
  * GPAC Log tools
@@ -348,8 +357,9 @@ enum
 	/*! generic Log for modules*/
 	GF_LOG_MODULE = 1<<20,
 	/*! log for threads and mutexes */
-        GF_LOG_MUTEX = 1<<21
-
+    GF_LOG_MUTEX = 1<<21,
+	/*! All logs*/
+	GF_LOG_ALL = (1<<22)-1
 };
 
 /*!

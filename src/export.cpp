@@ -57,6 +57,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_get_level) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_level) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_set_strict_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_parse_level) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_parse_tools) )

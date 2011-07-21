@@ -953,9 +953,9 @@ GF_EXPORT
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props)
 {
 	u32 count_all, i;
+	u32 active_anim;
 #ifndef GPAC_DISABLE_LOG
 	u32 time=0;
-	u32 active_anim;
 
 	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
 		time = gf_sys_clock();
