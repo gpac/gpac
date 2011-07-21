@@ -515,6 +515,9 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                     if (ptr)
                       ptr->disconnect();
                     break;
+                  case GF_EVENT_NAVIGATE:
+					ptr->navigate( evt);
+					break;
                   default:
                     LOGI("Unknown Message %d", evt->type);
                 }
@@ -522,6 +525,13 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 	return 0;
 }
 
+void CNativeWrapper::navigate( GF_Event* evt)
+{	
+	if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, 1)) 
+	{
+		gf_term_navigate_to(m_term, evt->navigate.to_url);
+	} 
+}
 
 void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total){
         JavaEnvTh *env = getEnv();
