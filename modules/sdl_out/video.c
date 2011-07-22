@@ -671,11 +671,11 @@ u32 SDLVid_EventProc(void *par)
 	SDLVID();
 
 	if (!SDLVid_InitializeWindow(ctx, dr)) {
-		ctx->sdl_th_state = 3;
+		ctx->sdl_th_state = SDL_STATE_STOP_REQ;
 	}
-	ctx->sdl_th_state = 1;
 
-	while (ctx->sdl_th_state==1) {
+	ctx->sdl_th_state = SDL_STATE_RUNNING;
+	while (ctx->sdl_th_state==SDL_STATE_RUNNING) {
 		/*after much testing: we must ensure nothing is using the event queue when resizing window.
 		-- under X, it throws Xlib "unexpected async reply" under linux, therefore we don't wait events,
 		we check for events and execute them if any
@@ -703,13 +703,20 @@ u32 SDLVid_EventProc(void *par)
 #endif
 	
 		/*QUIT message has been processed*/
-		if (!ret) break;
+		if (!ret) {
+			ctx->sdl_th_state = SDL_STATE_STOP_REQ;
+			break;
+		}
 
-		gf_sleep(0);
+		gf_sleep(2);
 	}
 
+	while (ctx->sdl_th_state == SDL_STATE_STOP_REQ)
+		gf_sleep(10);
+
 	SDLVid_ShutdownWindow(ctx);
-	ctx->sdl_th_state = 3;
+	ctx->sdl_th_state = SDL_STATE_STOPPED;
+
 	return 0;
 }
 #endif /*SDL_WINDOW_THREAD*/
@@ -729,12 +736,15 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 
 #ifdef	SDL_WINDOW_THREAD
-	ctx->sdl_th_state = 0;
+	ctx->sdl_th_state = SDL_STATE_STOPPED;
 	gf_th_run(ctx->sdl_th, SDLVid_EventProc, dr);
-	while (!ctx->sdl_th_state) gf_sleep(10);
-	if (ctx->sdl_th_state==3) {
+
+	while (!ctx->sdl_th_state)
+		gf_sleep(10);
+
+	if (ctx->sdl_th_state==SDL_STATE_STOP_REQ) {
 		SDLOUT_CloseSDL();
-		ctx->sdl_th_state = 0;
+		ctx->sdl_th_state = SDL_STATE_STOPPED;
 		return GF_IO_ERR;
 	}
 #else
@@ -755,13 +765,16 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 
 	if (!ctx->is_init) return;
 #ifdef	SDL_WINDOW_THREAD
-	if (ctx->sdl_th_state==1) {
+	if (ctx->sdl_th_state==SDL_STATE_RUNNING) {
 		SDL_Event evt;
-		ctx->sdl_th_state = 2;
 		evt.type = SDL_QUIT;
 		SDL_PushEvent(&evt);
-		while (ctx->sdl_th_state != 3) gf_sleep(100);
 	}
+	/*wait until thread say it is stopped*/
+	ctx->sdl_th_state = SDL_STATE_WAIT_FOR_THREAD_TERMINATION;
+	while (ctx->sdl_th_state != SDL_STATE_STOPPED)
+		gf_sleep(10);
+
 #else
 	SDLVid_ShutdownWindow(ctx);
 #endif
@@ -1000,6 +1013,13 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		SDLVid_SetCursor(dr, evt->cursor.cursor_type);
 		break;
 	case GF_EVENT_SET_CAPTION:
+#ifdef SDL_WINDOW_THREAD
+	{
+		SDLVID();
+		if (ctx->sdl_th_state != SDL_STATE_RUNNING)
+			break;
+	}
+#endif
 		SDL_WM_SetCaption(evt->caption.caption, NULL);
 		break;
 	case GF_EVENT_SHOWHIDE:

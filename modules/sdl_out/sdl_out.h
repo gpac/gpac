@@ -42,11 +42,18 @@ void SDLOUT_CloseSDL();
 #define SDL_WINDOW_THREAD
 #endif
 
+typedef enum {
+	SDL_STATE_STOPPED = 0,
+	SDL_STATE_RUNNING,
+	SDL_STATE_STOP_REQ,
+	SDL_STATE_WAIT_FOR_THREAD_TERMINATION
+} GF_SDL_STATE;
+
 typedef struct
 {
 #ifdef	SDL_WINDOW_THREAD
 	GF_Thread *sdl_th;
-	u32 sdl_th_state;
+	GF_SDL_STATE sdl_th_state;
 #endif
 	GF_Mutex *evt_mx;
 	Bool is_init, fullscreen;
