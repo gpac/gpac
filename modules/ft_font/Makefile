@@ -38,7 +38,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKVAR) $(EXTRALIBS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_ft_font-static.so $(OBJS) $(LINKVAR) $(EXTRALIBS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_ft_font-static.$(DYN_LIB_SUFFIX) $(OBJS) $(LINKVAR) $(EXTRALIBS)
 endif
 
 
