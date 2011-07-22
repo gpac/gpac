@@ -467,7 +467,7 @@ static void check_modules_dir(GF_Config *cfg)
 
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
 		opt = gf_cfg_get_key(cfg, "General", "StartupFile");
-		if (!opt || strcmp(opt, path)) {
+		if (strstr(opt, "gui.bt") && strcmp(opt, path)) {
 #if defined(_WIN32_WCE) || defined(WIN32)
 			strcat(path, "\\gui.bt");
 #else
