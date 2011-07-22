@@ -50,6 +50,8 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 
+#define GPAC_JS_RTI_REFRESH_RATE	200
+
 typedef struct
 {
 	u32 nb_loaded;
@@ -66,6 +68,9 @@ typedef struct
 	JSContext *c;
 	JSObject *evt_filter_obj, *evt_obj;
 	JSObject *gpac_obj;
+
+	u32 rti_refresh_rate;
+	GF_SystemRTInfo rti;
 } GF_GPACJSExt;
 
 
@@ -173,6 +178,20 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 	}
 	else if (!strcmp(prop_name, "http_bitrate")) {
 		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader)*8/1024);
+	}
+	else if (!strcmp(prop_name, "fps")) {
+		Double fps = gf_sc_get_fps(term->compositor, 0);
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, fps) );
+	}
+	else if (!strcmp(prop_name, "cpu_load")) {
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
+		*vp = INT_TO_JSVAL(ext->rti.process_cpu_usage);
+	}
+	else if (!strcmp(prop_name, "memory")) {
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
+		*vp = INT_TO_JSVAL(ext->rti.process_memory);
 	}
 
 
@@ -940,6 +959,7 @@ GF_JSUserExtension *gjs_new()
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_JS_USER_EXT_INTERFACE, "GPAC JavaScript Bindings", "gpac distribution");
 
 	GF_SAFEALLOC(gjs, GF_GPACJSExt);
+	gjs->rti_refresh_rate = GPAC_JS_RTI_REFRESH_RATE;
 	dr->load = gjs_load;
 	dr->udta = gjs;
 	return dr;
