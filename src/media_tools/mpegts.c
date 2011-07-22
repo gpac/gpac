@@ -648,7 +648,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64
 		pes->aud_sr = gf_mp3_sampling_rate(pes->frame_state);
 		pes->aud_nb_ch = gf_mp3_num_channels(pes->frame_state);
 	}
-	/*we may get a PTS for aither the previous or the current frame*/
+	/*we may get a PTS for either the previous or the current frame*/
 	if (PTS>=pes->PTS) pes->PTS = PTS;
 	pck.flags = GF_M2TS_PES_PCK_RAP | GF_M2TS_PES_PCK_AU_START;
 
@@ -1467,10 +1467,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		
 		case GF_M2TS_PRIVATE_SECTION:
-			printf("unknown private section: pid = %d \n", pid);		
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT found \n"));
-			es = gf_ait_section_new(pmt->program->number);			
-			((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 0);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT section found on pid %d\n", pid));
+			/*to refine with generic private section redispatching to AIT or other afterwards*/
+			es = gf_ait_section_new(pmt->program->number);
+			ses = (GF_M2TS_SECTION_ES *)es;
+			ses->sec = gf_m2ts_section_filter_new(NULL, 0);
 			break;
 		case GF_M2TS_13818_6_ANNEX_D:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
@@ -1542,7 +1543,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR:
 					 {
 				 		u32 id = data[2]<<8 | data[3];
-						if (id == 0xB) {
+						if ((id == 0xB) && ses && !ses->sec) {
 					 		ses->sec = gf_m2ts_section_filter_new(NULL, 1);
 						}
 					 }
