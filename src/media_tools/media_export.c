@@ -1717,7 +1717,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 				samp->data[pos+2+size] = 0;
 
 
-				fprintf(nhml, "<DIMSUnit time=\""LLD"\"", LLD_CAST samp->DTS);
+				fprintf(nhml, "<DIMSUnit time=\""LLU"\"", LLU_CAST samp->DTS);
 				/*DIMS flags*/
 				if (flags & GF_DIMS_UNIT_S) fprintf(nhml, " is-Scene=\"yes\"");
 				if (flags & GF_DIMS_UNIT_M) fprintf(nhml, " is-RAP=\"yes\"");
@@ -1764,8 +1764,8 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			gf_bs_del(bs);
 
 		} else {
-			fprintf(nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" ", LLD_CAST samp->DTS, samp->dataLength);
-			if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%d\" ", samp->CTS_Offset);
+			fprintf(nhml, "<NHNTSample DTS=\""LLU"\" dataLength=\"%d\" ", LLU_CAST samp->DTS, samp->dataLength);
+			if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%u\" ", samp->CTS_Offset);
 			if (samp->IsRAP==1) fprintf(nhml, "isRAP=\"yes\" ");
 			else if (samp->IsRAP==2) fprintf(nhml, "isSyncShadow=\"yes\" ");
 			else if (full_dump) fprintf(nhml, "isRAP=\"no\" ");
