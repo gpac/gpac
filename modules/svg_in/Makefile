@@ -36,7 +36,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -lz
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_svg_in-static.so $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static -lz
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_svg_in-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static -lz
 endif
 
 
