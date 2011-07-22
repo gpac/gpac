@@ -175,7 +175,10 @@ u32 gf_log_parse_tools(const char *val)
 		else if (!stricmp(val, "mutex")) flags |= GF_LOG_MUTEX;
 		else if (!stricmp(val, "none")) flags = 0;
 		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
-		else fprintf(stderr, "Unknown log tool specified: %s\n", val);
+		else {
+			fprintf(stderr, "Unknown log tool specified: %s\n", val);
+			return 0;
+		}
 		if (!sep) break;
 		sep[0] = ':';
 		val = sep+1;

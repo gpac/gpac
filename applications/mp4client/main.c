@@ -1001,11 +1001,15 @@ int main (int argc, char **argv)
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
-			gf_log_set_level(gf_log_parse_level(argv[i+1]));
+			u32 flags = gf_log_parse_level(argv[i+1]);
+			if (!flags) return 1;
+			gf_log_set_level(flags);
 			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
-			gf_log_set_tools(gf_log_parse_tools(argv[i+1]));
+			u32 flags = gf_log_parse_tools(argv[i+1]);
+			if (!flags) return 1;
+			gf_log_set_tools(flags);
 			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
@@ -1566,24 +1570,34 @@ force_input:
 
 		case 'L':
 		{
+			u32 flags;
 			char szLog[1024];
 			fprintf(stdout, "Enter new log level:\n");
 			if (1 > scanf("%s", szLog)){
 			    fprintf(stderr, "Cannot read new log level, aborting.\n");
 			    break;
 			}
-			gf_log_set_level(gf_log_parse_level(szLog));
+			flags = gf_log_parse_level(szLog);
+			if (!flags)
+				fprintf(stderr, "Wrong log level specified, aborting.\n");
+			else
+				gf_log_set_level(flags);
 		}
 			break;
 		case 'T':
 		{
+			u32 flags;
 			char szLog[1024];
 			fprintf(stdout, "Enter new log tools:\n");
-			if (1 > scanf("%s", szLog)){
+			if (1 > scanf("%s", szLog)) {
 			    fprintf(stderr, "Cannot read new log tools, aborting.\n");
 			    break;
 			}
-			gf_log_set_tools(gf_log_parse_tools(szLog));
+			flags = gf_log_parse_tools(szLog);
+			if (!flags)
+				fprintf(stderr, "Wrong log tools specified, aborting.\n");
+			else
+				gf_log_set_tools(flags);
 		}
 			break;
 		case 'g':
@@ -1703,8 +1717,6 @@ force_input:
 	}
 	return 0;
 }
-
-
 
 
 void PrintWorldInfo(GF_Terminal *term)

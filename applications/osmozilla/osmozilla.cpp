@@ -235,11 +235,15 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 
 	/*setup logs*/
 	log_level = gf_log_parse_level(gf_cfg_get_key(osmo->user->config, "General", "LogLevel"));
+	if (!log_level)
+		fprintf(stdout, "Osmozilla: invalid log level specified\n");
 	gf_log_set_level(log_level);
 	log_tools = gf_log_parse_tools(gf_cfg_get_key(osmo->user->config, "General", "LogTools"));
+	if (!log_tools)
+		fprintf(stdout, "Osmozilla: invalid log tools specified\n");
 	gf_log_set_tools(log_tools);
 
-	fprintf(stdout, "Osmozilla initializaed\n");
+	fprintf(stdout, "Osmozilla initialized\n");
 
 	return 1;
 }

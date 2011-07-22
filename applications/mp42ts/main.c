@@ -1566,9 +1566,13 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		arg = argv[i];		
 		if (arg[0]=='-') {
 			if (!strnicmp(arg, "-ll=", 4)) {
-				gf_log_set_level(gf_log_parse_level(argv[i]+4));
+				u32 flags = gf_log_parse_level(argv[i]+4);
+				if (!flags) return GF_BAD_PARAM;
+				gf_log_set_level(flags);
 			} else if (!strnicmp(arg, "-lt=", 4)) {
-				gf_log_set_tools(gf_log_parse_tools(argv[i]+4));
+				u32 flags = gf_log_parse_tools(argv[i]+4);
+				if (!flags) return GF_BAD_PARAM;
+				gf_log_set_tools(flags);
 			} else if (!strnicmp(arg, "-prog=", 6)) {
 				u32 res;
 				prog_name = arg+6;
