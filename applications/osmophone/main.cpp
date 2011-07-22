@@ -255,7 +255,7 @@ static void setup_logs()
 		u32 lt, ll;
 		ll = gf_log_parse_level( gf_cfg_get_key(user.config, "General", "LogLevel") );
 		gf_log_set_level(ll);
-		lt = gf_log_parse_level( gf_cfg_get_key(user.config, "General", "LogTools") );
+		lt = gf_log_parse_tools( gf_cfg_get_key(user.config, "General", "LogTools") );
 		gf_log_set_tools(lt);
 
 		if (ll && (log_file = gf_f64_open("\\gpac_logs.txt", "a+t"))) {

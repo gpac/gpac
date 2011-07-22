@@ -469,10 +469,14 @@ BOOL Osmo4::InitInstance()
 
 	/*set log level*/
 	m_log_level = gf_log_parse_level(gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+	if (!m_log_level)
+		MessageBox(NULL, "Invalid log level", "Error", MB_OK);
 	gf_log_set_level(m_log_level);
 
 	/*set log tools*/
 	m_log_tools = gf_log_parse_tools(gf_cfg_get_key(m_user.config, "General", "LogTools") );
+	if (!m_log_tools)
+		MessageBox(NULL, "Invalid log tools", "Error", MB_OK);
 	gf_log_set_tools(m_log_tools); 
 	
 	m_user.opaque = this;
