@@ -290,7 +290,6 @@ static void PrintTime(u64 time)
 
 static u32 rti_update_time_ms = 200;
 static FILE *rti_logs = NULL;
-static u64 memory_at_gpac_startup = 0;
 
 static void UpdateRTInfo(const char *legend)
 {
@@ -303,9 +302,6 @@ static void UpdateRTInfo(const char *legend)
 
 	if (display_rti) {
 		char szMsg[1024];
-		if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
-		if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
-
 
 		if (rti.total_cpu_usage) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
@@ -881,7 +877,6 @@ int main (int argc, char **argv)
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file, *views;
-	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1110,8 +1105,6 @@ int main (int argc, char **argv)
 		gf_log_set_tools(0xFFFFFFFF);
 	}
 
-	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-	memory_at_gpac_startup = rti.physical_memory_avail;
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
 	/*setup dumping options*/

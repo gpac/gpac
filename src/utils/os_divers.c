@@ -856,6 +856,8 @@ sh4_change_fpscr(int off, int on)
 void gf_mem_enable_tracker();
 #endif
 
+static u64 memory_at_gpac_startup = 0;
+
 void gf_sys_init(Bool enable_memory_tracker)
 {
 	if (!sys_init) {
@@ -937,6 +939,14 @@ void gf_sys_init(Bool enable_memory_tracker)
 #endif
 	}
 	sys_init += 1;
+
+
+	/*init RTI stats*/
+	if (!memory_at_gpac_startup) {
+		GF_SystemRTInfo rti;
+		gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
+		memory_at_gpac_startup = rti.physical_memory_avail;
+	}
 }
 
 void gf_sys_close()
@@ -969,10 +979,9 @@ extern size_t gpac_nb_alloc_blocs;
 #endif
 
 /*CPU and Memory Usage*/
-
 #ifdef WIN32
 
-Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 #if defined(_WIN32_WCE)
 	THREADENTRY32 tentry;
@@ -1241,7 +1250,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	
 static u64 total_physical_memory = 0;
 	
-Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	size_t length;
 	u32 entry_time, i, percent;
@@ -1348,7 +1357,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 //linux
 #else
 
-Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
   u32 entry_time;
   u64 process_u_k_time;
@@ -1507,6 +1516,18 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 }
 
 #endif
+
+
+Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+{
+	Bool res = gf_sys_get_rti_os(refresh_time_ms, rti, flags);
+	if (res) {
+		if (!rti->process_memory) rti->process_memory = memory_at_gpac_startup - rti->physical_memory_avail;
+		if (!rti->gpac_memory) rti->gpac_memory = memory_at_gpac_startup - rti->physical_memory_avail;
+	}
+	return res;
+}
+
 
 char * gf_get_default_cache_directory(){  
 #ifdef _WIN32_WCE
