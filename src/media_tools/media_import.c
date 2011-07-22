@@ -2838,10 +2838,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 			if (!stricmp(att->name, "DTS") || !stricmp(att->name, "time")) {
 				u32 h, m, s, ms;
-				if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-					samp->DTS = (u64) ( (Double) ( ((h*3600 + m*60 + s)*1000 + ms) / 1000.0) * timescale );
-				} else {
-					samp->DTS = atoi(att->value);
+				u64 dst_val;
+				if (strchr(att->value, ':') && sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					samp->DTS = (u64) ( (Double) ( ((h*3600.0 + m*60.0 + s)*1000 + ms) / 1000.0) * timescale );
+				} else if (sscanf(att->value, ""LLU, &dst_val)==1) {
+					samp->DTS = dst_val;
 				}
 			}
 			else if (!stricmp(att->name, "CTSOffset")) samp->CTS_Offset = atoi(att->value);
