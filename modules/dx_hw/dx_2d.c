@@ -415,7 +415,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 	src_h = src_wnd ? src_wnd->h : src->height;
 	dst_w = dst_wnd ? dst_wnd->w : dd->width;
 	dst_h = dst_wnd ? dst_wnd->h : dd->height;
-	
+
 	if (src_wnd != NULL) MAKERECT(r_src, src_wnd);
 	if (dst_wnd != NULL) MAKERECT(r_dst, dst_wnd);
 
@@ -439,7 +439,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		if (key) flags |= DDBLT_KEYSRC;
 		hr = IDirectDrawSurface_Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit result: %d (%08x)\n", hr, hr));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit src w=%d,h=%d to dst w=%d,h=%d - result: %08x\n", src_w, src_h, dst_w, dst_h, hr));
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
