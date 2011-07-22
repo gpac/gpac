@@ -2431,7 +2431,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num,
 		dumper.index_info.segment_duration = dash_duration;
 		dumper.index_info.segment_at_rap = seg_at_rap;
 		dumper.index_info.subsegs_per_segment = subseg_per_seg;
-		dumper.index_info.seg_name = gf_strdup(seg_name);
+		dumper.index_info.seg_name = seg_name ? gf_strdup(seg_name) : NULL;
 		dumper.index_info.use_url_template = use_url_template;
 		dumper.index_info.init_seg_name = NULL;
 		dumper.index_info.use_index_segment = use_index_segment;
