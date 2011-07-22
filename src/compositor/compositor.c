@@ -443,7 +443,7 @@ static u32 gf_sc_proc(void *par)
 		else	
 			gf_sc_simulation_tick(compositor);
 	}
-	/*destroy video out here if w're using openGL, to avoid threading issues*/
+	/*destroy video out here if we're using openGL, to avoid threading issues*/
 	compositor->video_out->Shutdown(compositor->video_out);
 	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 	compositor->video_out = NULL;
