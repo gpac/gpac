@@ -26,6 +26,7 @@
 #include <gpac/terminal.h>
 #include <gpac/term_info.h>
 #include <gpac/constants.h>
+#include <gpac/media_tools.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
 #include <gpac/avparse.h>
@@ -196,7 +197,7 @@ void PrintUsage()
 		"\t-depth:         dumps depthmap (z-buffer) frames\n"
 		"                   with -avi [times]: dumps depthmap in grayscale .avi\n"		
 		"                   with -bmp: dumps depthmap in grayscale .bmp\n"		
-		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
+		"\t-fps FPS:       specifies frame rate for AVI dumping (default: %f)\n"
 		"\t-scale s:       scales the visual size (default: 1)\n"
 		"\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
 		"\t-show:          show window while dumping (default: no)\n"
@@ -205,7 +206,7 @@ void PrintUsage()
 		"\n"
 		"MP4Client - GPAC command line player and dumper - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
-
+		GF_IMPORT_DEFAULT_FPS,
 		GPAC_FULL_VERSION
 		);
 }
@@ -874,7 +875,7 @@ int main (int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
 	Bool enable_mem_tracker = 0;
 #endif
-	Double fps = 25.0;
+	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file, *views;
 	FILE *logfile = NULL;

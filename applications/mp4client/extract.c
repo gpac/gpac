@@ -26,6 +26,7 @@
 
 #include <gpac/terminal.h>
 #include <gpac/options.h>
+#include <gpac/media_tools.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -678,7 +679,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			}	
 		}
 		
-		if (!fps) fps = 25.0;
+		if (!fps) fps = GF_IMPORT_DEFAULT_FPS;
 		time = prev_time = 0;
 		nb_frames = 0;
 

@@ -184,7 +184,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		if (!strnicmp(ext+1, "lang=", 5)) szLan = GetLanguageCode(ext+6);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "fps=", 4)) {
-			if (!strcmp(ext+5, "auto")) force_fps = 10000.0;
+			if (!strcmp(ext+5, "auto")) force_fps = GF_IMPORT_AUTO_FPS;
 			else if (strchr(ext+5, '-')) {
 				u32 ticks, dts_inc;
 				sscanf(ext+5, "%u-%u", &ticks, &dts_inc);

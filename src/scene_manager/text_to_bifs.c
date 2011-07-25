@@ -416,7 +416,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	com = NULL;
 	inf = NULL;
 
-	fps = 25.0;
+	fps = GF_IMPORT_DEFAULT_FPS;
 	if (mux->frame_rate) fps = mux->frame_rate;
 
 	line = 0;

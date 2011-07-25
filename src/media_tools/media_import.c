@@ -34,9 +34,8 @@
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
-#define GF_IMPORT_DEFAULT_FPS	25.0
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
@@ -793,7 +792,8 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	max_size = 4096;
 	samp->data = (char*)gf_malloc(sizeof(char)*max_size);
 	/*no auto frame-rate detection*/
-	if (import->video_fps == 10000.0) import->video_fps = 25.0;
+	if (import->video_fps == GF_IMPORT_AUTO_FPS)
+		import->video_fps = GF_IMPORT_DEFAULT_FPS;
 
 	PL = dsi.VideoPL;
 	if (!PL) {
@@ -1104,7 +1104,8 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		goto exit;
 	}
 	/*no auto frame-rate detection*/
-	if (import->video_fps == 10000.0) import->video_fps = 25.0;
+	if (import->video_fps == GF_IMPORT_AUTO_FPS)
+		import->video_fps = GF_IMPORT_DEFAULT_FPS;
 
 	FPS = AVI_frame_rate(in);
 	if (import->video_fps) FPS = (Double) import->video_fps;
@@ -1813,7 +1814,8 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Cannot use data referencing with MPEG-1/2 files");
 
 	/*no auto frame-rate detection*/
-	if (import->video_fps == 10000.0) import->video_fps = 25.0;
+	if (import->video_fps == GF_IMPORT_AUTO_FPS)
+		import->video_fps = GF_IMPORT_DEFAULT_FPS;
 
 	ps = mpeg2ps_init(import->in_name);
 	if (!ps) return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Failed to open MPEG file %s", import->in_name);
@@ -3588,7 +3590,8 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 		goto exit;
 	}
 	/*no auto frame-rate detection*/
-	if (import->video_fps == 10000.0) import->video_fps = 25.0;
+	if (import->video_fps == GF_IMPORT_AUTO_FPS)
+		import->video_fps = GF_IMPORT_DEFAULT_FPS;
 
 	FPS = (Double) import->video_fps;
 	/*for H263 we use 15 fps by default!!*/
@@ -3771,12 +3774,15 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
 	detect_fps = 1;
-	if (import->video_fps == 10000.0) {
-		import->video_fps = 25.0;
-	}
-
 	FPS = (Double) import->video_fps;
-	if (!FPS) FPS = GF_IMPORT_DEFAULT_FPS;
+	if (!FPS) {
+		FPS = GF_IMPORT_DEFAULT_FPS;
+	} else {
+		if (import->video_fps == GF_IMPORT_AUTO_FPS)
+			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
+		else
+			detect_fps = 0;								/*fps is forced by the caller*/
+	}
 	get_video_timing(FPS, &timescale, &dts_inc);
 
 	poc_diff = 0;
