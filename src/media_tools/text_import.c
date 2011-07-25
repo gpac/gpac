@@ -608,7 +608,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported SUB UTF encoding");
 	}
 
-	FPS = 25.0;
+	FPS = GF_IMPORT_DEFAULT_FPS;
 	if (import->video_fps) FPS = import->video_fps;
 
 	cfg = NULL;

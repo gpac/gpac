@@ -1759,7 +1759,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
 		else if (!stricmp(arg, "-fps")) { 
 			CHECK_NEXT_ARG 
-			if (!strcmp(argv[i+1], "auto")) import_fps = 10000.0;
+			if (!strcmp(argv[i+1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
 			else if (strchr(argv[i+1], '-')) {
 				u32 ticks, dts_inc;
 				sscanf(argv[i+1], "%u-%u", &ticks, &dts_inc);

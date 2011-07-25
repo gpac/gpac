@@ -109,6 +109,9 @@ enum
 	GF_IMPORT_DO_ABORT = 1<<31
 };
 
+#define GF_IMPORT_DEFAULT_FPS	25.0
+#define GF_IMPORT_AUTO_FPS		10000.0
+
 #define GF_IMPORT_MAX_TRACKS	100
 struct __track_video_info
 {
