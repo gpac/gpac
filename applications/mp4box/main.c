@@ -164,8 +164,9 @@ void PrintGeneralUsage()
 {
 	fprintf(stdout, "General Options:\n"
 #ifdef GPAC_MEMORY_TRACKING
-			"\t-mem-track:  enables memory tracker\n"	
+			" -mem-track:  enables memory tracker\n"	
 #endif
+			" -strict-error        exits after the first error is reported\n"
 			" -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
 			"                       * Note 1: Interleaving is 0.5s by default\n"
 			"                       * Note 2: Performs drift checking accross tracks\n"
@@ -241,6 +242,9 @@ void PrintGeneralUsage()
 			" -frags-per-sidx N    sets the number of segments to be written in each SIDX box\n"
 			"                       If 0, a single SIDX box is used per segment\n"
 			"                       If -1, no SIDX box is used\n"
+			" -rap                 segments begin with random access points\n"
+			"                       Note: segment duration may not be exactly what asked by\n"
+			"                       \"-dash\" since raw video data is not modified\n"
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s\n"
@@ -1454,8 +1458,9 @@ int mp4boxMain(int argc, char **argv)
 #else
 			fprintf(stdout, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
 #endif
-		}
-		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
+		} else if (!strcmp(arg, "-strict-error")) {
+			gf_log_set_strict_error(1);
+		} else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
 			InterleavingTime = atof(argv[i+1]) / 1000;
 			open_edit = 1;
