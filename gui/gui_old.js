@@ -6,6 +6,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////////
 
+UPnP_Enabled = false;
+
 
 function new_extension()
 {
@@ -68,8 +70,8 @@ function initialize() {
 
 	widget_remote_candidate = null;
 	controlled_renderer = null;
-	has_upnp = eval("(typeof(UPnP) != 'undefined');");
-	if (has_upnp) {
+	UPnP_Enabled = eval("(typeof(UPnP) != 'undefined');");
+	if (UPnP_Enabled) {
 		UPnP.onMediaRendererAdd = onMediaRendererAdd;
 		UPnP.onMediaConnect = onMediaConnect;
 		UPnP.onMediaStop = onMediaStop;
@@ -137,8 +139,9 @@ function initialize() {
 		widgets_init();
 	}
 
-
+ /*extensions are no longer usable with old GUI as we changed the gwlib interfaces*/
 	/*init all extensions*/
+/*
 	var list = gpac.enum_directory('extensions', '*', 0);
 	for (i=0; i<list.length; i++) {
 		if (list[i].directory) {
@@ -156,7 +159,7 @@ function initialize() {
 			}
 		}
 	}
-
+*/
 	current_url = '';
 	//let's do the layout
 	layout();
@@ -192,7 +195,7 @@ function set_movie_url(url, set_local, set_remote)
 		movie.children[0].url[0] = url;
 		movie_ctrl.url[0] = url;
 		movie_sensor.url[0] = url;
-		if (has_upnp) UPnP.MovieURL = url;
+		if (UPnP_Enabled) UPnP.MovieURL = url;
 	}
 	if (set_remote && (controlled_renderer!=null) ) {
 		var uri = UPnP.ShareResource(url);
@@ -594,7 +597,7 @@ function new_widget_control(widget)
 	obj.children[1].children[2] = icon_button('icons/applications-internet.svg', 'Push to remote display', 0);
 	obj.children[1].children[2].widget = widget;
 	obj.children[1].children[2].button_click = function() {
-		if (has_upnp && UPnP.MediaRenderersCount) {
+		if (UPnP_Enabled && UPnP.MediaRenderersCount) {
 			widget_remote_candidate = this.widget;
 			on_upnpopen(true, true);
 		}
@@ -1039,7 +1042,7 @@ function setup_icons()
 
 	//push to display
 	upnp_icon = null;
-	if (has_upnp) {
+	if (UPnP_Enabled) {
 		icon = icon_button('icons/video-display.svg', 'Select Display', 0);
 		icon.button_click = function () {
 			widget_remote_candidate = null;
@@ -1651,7 +1654,7 @@ function new_file_browse(init_directory, label, filter, show_scan, show_upnp)
 		}
 	}
 
-	if (show_upnp && has_upnp) {
+	if (show_upnp && UPnP_Enabled) {
 		filebrowse.upnp = icon_button('icons/applications-internet.svg', 'Network Servers', 0);
 		filebrowse.upnp.filebrowse = filebrowse;
 		filebrowse.children[filebrowse.children.length] = filebrowse.upnp;
