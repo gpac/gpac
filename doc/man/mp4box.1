@@ -38,6 +38,9 @@ quiet mode (no log info).
 .B \-v
 verbose mode (more log info).
 .TP
+.B \-strict-error
+exits after the first error is reported.
+.TP
 .B \-nodes
 lists supported MPEG-4 Systems nodes in MP4Box current build.
 .TP
@@ -185,6 +188,9 @@ adds a reference of type 4CC from track ID to track refID.
 .TP
 .B \-dash DUR
 enables DASH-ing of the file with a segment duration of DUR.
+.TP
+.B \-rap
+segments begin with random access points.
 .TP
 .B \-frags-per-sidx N
 sets the number of segments to be written in each SIDX box.
