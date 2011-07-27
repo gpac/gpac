@@ -698,93 +698,126 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	w = 720;
 	h = 576;
 
-	dd->yuv_init = 1;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "PreferedYUV4CC");
+	if (opt) {
+		char a, b, c, d;
+		if (sscanf(opt, "%c%c%c%c", &a, &b, &c, &d)==4) {
+			dr->yuv_pixel_format = GF_4CC(a, b, c, d);
+			dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+			opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HasOverlay");
+			if (opt && !strcmp(opt, "yes")) 
+				dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
+			dd->yuv_init = 1;
+			num_yuv = 1;
+		}
+	}
+
+	/*first run on this machine, to some benchmark*/
+	if (! dd->yuv_init) {		
+		char szOpt[100];
+		dd->yuv_init = 1;
+
+		dr->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY;
 
 #ifdef USE_DX_3
-	IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, NULL);
-	if (!numCodes) return;
-	codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
-	IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, codes);
+		IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, NULL);
+		if (!numCodes) return;
+		codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
+		IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, codes);
 #else
-	IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, NULL);
-	if (!numCodes) return;
-	codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
-	IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, codes);
+		IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, NULL);
+		if (!numCodes) return;
+		codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
+		IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, codes);
 #endif
-	
-	num_yuv = 0;
-	for (i=0; i<numCodes; i++) {
-		formats[num_yuv] = is_yuv_supported(codes[i]);
-		if (formats[num_yuv]) num_yuv++;
-	}
-	gf_free(codes);
-	
-	
-	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY;
-	
-	/*too bad*/
-	if (!num_yuv) {
-		dr->hw_caps &= ~(GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY);
-		dr->yuv_pixel_format = 0;
-		return;
-	}
+		
+		num_yuv = 0;
+		for (i=0; i<numCodes; i++) {
+			formats[num_yuv] = is_yuv_supported(codes[i]);
+			if (formats[num_yuv]) num_yuv++;
+		}
+		gf_free(codes);
+		
+		/*too bad*/
+		if (!num_yuv) {
+			dr->hw_caps &= ~(GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY);
+			dr->yuv_pixel_format = 0;
+			return;
+		}
 
-	for (i=0; i<num_yuv; i++) {
-		/*check planar first*/
-		if (!checkPacked && !is_yuv_planar(formats[i])) goto go_on;
-		/*then check packed */
-		if (checkPacked && is_yuv_planar(formats[i])) goto go_on;
+		for (i=0; i<num_yuv; i++) {
+			/*check planar first*/
+			if (!checkPacked && !is_yuv_planar(formats[i])) goto go_on;
+			/*then check packed */
+			if (checkPacked && is_yuv_planar(formats[i])) goto go_on;
+
+			if (dd->yuv_pool.pSurface) {
+				SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+				memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+			}
+
+			dr->yuv_pixel_format = formats[i];
+			if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format, 1) == NULL)
+				goto rem_fmt;
+
+			now = gf_sys_clock();
+			/*perform blank blit*/
+			for (j=0; j<YUV_NUM_TEST; j++) {
+				if (DD_BlitSurface(dd, &dd->yuv_pool, NULL, NULL, NULL) != GF_OK)
+					goto rem_fmt;
+			}
+			now = gf_sys_clock() - now;
+			if (formats[i]== GF_PIXEL_YV12) 
+				force_yv12=1;
+
+			if (!checkPacked) {
+				if (now<min_planar) {
+					min_planar = now;
+					best_planar = dr->yuv_pixel_format;
+				}
+			} else {
+				if (now<min_packed) {
+					min_packed = now;
+					best_packed = dr->yuv_pixel_format;
+				}
+			}
+
+go_on:
+			if (checkPacked && (i+1==num_yuv)) {
+				i = -1;
+				checkPacked = FALSE;
+			}
+			continue;
+
+rem_fmt:
+			for (j=i; j<num_yuv-1; j++) {
+				formats[j] = formats[j+1];
+			}
+			i--;
+			num_yuv--;
+		}
 
 		if (dd->yuv_pool.pSurface) {
 			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
 		}
 
-		dr->yuv_pixel_format = formats[i];
-		if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format, 1) == NULL)
-			goto rem_fmt;
-
-		now = gf_sys_clock();
-		/*perform blank blit*/
-		for (j=0; j<YUV_NUM_TEST; j++) {
-			if (DD_BlitSurface(dd, &dd->yuv_pool, NULL, NULL, NULL) != GF_OK)
-				goto rem_fmt;
-		}
-		now = gf_sys_clock() - now;
-		if (formats[i]== GF_PIXEL_YV12) 
-			force_yv12=1;
-
-		if (!checkPacked) {
-			if (now<min_planar) {
-				min_planar = now;
-				best_planar = dr->yuv_pixel_format;
-			}
+		if (best_planar && (min_planar <= min_packed )) {
+			dr->yuv_pixel_format = best_planar;
 		} else {
-			if (now<min_packed) {
-				min_packed = now;
-				best_packed = dr->yuv_pixel_format;
-			}
-		}
+			min_planar = min_packed;
+			dr->yuv_pixel_format = best_packed;
+		} 
+		if (force_yv12)
+			dr->yuv_pixel_format = GF_PIXEL_YV12;
 
-go_on:
-		if (checkPacked && (i+1==num_yuv)) {
-			i = -1;
-			checkPacked = FALSE;
-		}
-		continue;
-
-rem_fmt:
-		for (j=i; j<num_yuv-1; j++) {
-			formats[j] = formats[j+1];
-		}
-		i--;
-		num_yuv--;
+		/*store our options*/
+		sprintf(szOpt, "%c%c%c%c", (dr->yuv_pixel_format>>24) & 0xFF, (dr->yuv_pixel_format>>16) & 0xFF, (dr->yuv_pixel_format>>8) & 0xFF, (dr->yuv_pixel_format) & 0xFF);
+		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "PreferedYUV4CC", szOpt);
+		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "HasOverlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
 	}
 
-	if (dd->yuv_pool.pSurface) {
-		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-	}
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
 	if (opt && !strcmp(opt, "Never")) num_yuv = 0;
 
@@ -795,15 +828,6 @@ rem_fmt:
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] YUV hardware not available\n"));
 		return;
 	}
-
-	if (best_planar && (min_planar <= min_packed )) {
-		dr->yuv_pixel_format = best_planar;
-	} else {
-		min_planar = min_packed;
-		dr->yuv_pixel_format = best_packed;
-	} 
-	if (force_yv12)
-		dr->yuv_pixel_format = GF_PIXEL_YV12;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 
