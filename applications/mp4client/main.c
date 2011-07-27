@@ -1816,7 +1816,6 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 	GF_MediaInfo odi;
 	u32 i, j, count, d_enum,id;
 	GF_Err e;
-	char code[5];
 	NetStatCommand com;
 	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
@@ -1925,64 +1924,42 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 		if (esd->dependsOnESID) fprintf(stdout, "\tDepends on Stream ID %d for decoding\n", esd->dependsOnESID);
 
 		switch (esd->decoderConfig->streamType) {
-		case GF_STREAM_OD: fprintf(stdout, "\tOD Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		case GF_STREAM_OCR: fprintf(stdout, "\tOCR Stream\n"); break;
-		case GF_STREAM_SCENE: fprintf(stdout, "\tScene Description Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
+		case GF_STREAM_OD:
+			fprintf(stdout, "\tOD Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		case GF_STREAM_OCR:
+			fprintf(stdout, "\tOCR Stream\n");
+			break;
+		case GF_STREAM_SCENE:
+			fprintf(stdout, "\tScene Description Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
 		case GF_STREAM_VISUAL:
-			fprintf(stdout, "\tVisual Stream - media type: ");
-			switch (esd->decoderConfig->objectTypeIndication) {
-			case GPAC_OTI_VIDEO_MPEG4_PART2: fprintf(stdout, "MPEG-4\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_SIMPLE: fprintf(stdout, "MPEG-2 Simple Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_MAIN: fprintf(stdout, "MPEG-2 Main Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_SNR: fprintf(stdout, "MPEG-2 SNR Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_SPATIAL: fprintf(stdout, "MPEG-2 Spatial Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_HIGH: fprintf(stdout, "MPEG-2 High Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_422: fprintf(stdout, "MPEG-2 422 Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG1: fprintf(stdout, "MPEG-1\n"); break;
-			case GPAC_OTI_IMAGE_JPEG: fprintf(stdout, "JPEG\n"); break;
-			case GPAC_OTI_IMAGE_PNG: fprintf(stdout, "PNG\n"); break;
-			case GPAC_OTI_IMAGE_JPEG_2000: fprintf(stdout, "JPEG2000\n"); break;
-				
-			case GPAC_OTI_MEDIA_GENERIC:
-				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
-				code[4] = 0;
-				fprintf(stdout, "GPAC Intern (%s)\n", code);
-				break;
-			default:
-				fprintf(stdout, "Private Type (0x%x)\n", esd->decoderConfig->objectTypeIndication);
-				break;
-			}
+			fprintf(stdout, "\tVisual Stream - media type: %s", gf_esd_get_textual_description(esd));
 			break;
-
 		case GF_STREAM_AUDIO:
-			fprintf(stdout, "\tAudio Stream - media type: ");
-			switch (esd->decoderConfig->objectTypeIndication) {
-			case GPAC_OTI_AUDIO_AAC_MPEG4: fprintf(stdout, "MPEG-4\n"); break;
-			case GPAC_OTI_AUDIO_AAC_MPEG2_MP: fprintf(stdout, "MPEG-2 AAC Main Profile\n"); break;
-			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: fprintf(stdout, "MPEG-2 AAC LowComplexity Profile\n"); break;
-			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: fprintf(stdout, "MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
-			case GPAC_OTI_AUDIO_MPEG2_PART3: fprintf(stdout, "MPEG-2 Audio\n"); break;
-			case GPAC_OTI_AUDIO_MPEG1: fprintf(stdout, "MPEG-1 Audio\n"); break;
-			case GPAC_OTI_AUDIO_EVRC_VOICE: fprintf(stdout, "EVRC Audio\n"); break;
-			case GPAC_OTI_AUDIO_SMV_VOICE: fprintf(stdout, "SMV Audio\n"); break;
-			case GPAC_OTI_AUDIO_13K_VOICE: fprintf(stdout, "QCELP Audio\n"); break;
-			case GPAC_OTI_MEDIA_GENERIC:
-				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
-				code[4] = 0;
-				fprintf(stdout, "GPAC Intern (%s)\n", code);
-				break;
-			default:
-				fprintf(stdout, "Private Type (0x%x)\n", esd->decoderConfig->objectTypeIndication);
-				break;
-			}
+			fprintf(stdout, "\tAudio Stream - media type: %s", gf_esd_get_textual_description(esd));
 			break;
-		case GF_STREAM_MPEG7: fprintf(stdout, "\tMPEG-7 Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		case GF_STREAM_IPMP: fprintf(stdout, "\tIPMP Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		case GF_STREAM_OCI: fprintf(stdout, "\tOCI Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		case GF_STREAM_MPEGJ: fprintf(stdout, "\tMPEGJ Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		case GF_STREAM_INTERACT: fprintf(stdout, "\tUser Interaction Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		case GF_STREAM_TEXT: fprintf(stdout, "\tStreaming Text Stream - version %d\n", esd->decoderConfig->objectTypeIndication); break;
-		default: fprintf(stdout, "Unknown Stream\r\n"); break;
+		case GF_STREAM_MPEG7:
+			fprintf(stdout, "\tMPEG-7 Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		case GF_STREAM_IPMP:
+			fprintf(stdout, "\tIPMP Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		case GF_STREAM_OCI:
+			fprintf(stdout, "\tOCI Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		case GF_STREAM_MPEGJ:
+			fprintf(stdout, "\tMPEGJ Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		case GF_STREAM_INTERACT:
+			fprintf(stdout, "\tUser Interaction Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		case GF_STREAM_TEXT:
+			fprintf(stdout, "\tStreaming Text Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
+			break;
+		default:
+			fprintf(stdout, "\tUnknown Stream\n");
+			break;
 		}
 
 		fprintf(stdout, "\tBuffer Size %d\n\tAverage Bitrate %d bps\n\tMaximum Bitrate %d bps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate, esd->decoderConfig->maxBitrate);
