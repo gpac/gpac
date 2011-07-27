@@ -259,7 +259,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 
 	read->duration = 0;
 
-	if (!read->is_remote) {
+	if (0 && !read->is_remote) {
 		read->duration = 1024;
 		gf_bs_skip_bytes(bs, hdr.frame_size);
 		while (ADTS_SyncFrame(bs, !read->is_remote, &hdr)) {
