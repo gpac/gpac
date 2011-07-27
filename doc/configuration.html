@@ -226,6 +226,10 @@ handling and "Multi" means that each decoder runs in its own thread.
 <p style="text-indent: 5%">
 Specifies the priority of the decoders (priority is applied to decoder thread(s) regardless of threading mode).
 </p>
+<b>ModuleUnload</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether modules should be unloaded if not used or not. Default: "yes".
+</p>
 <b>ResyncLateClock</b> [value: <i>unsigned integer</i>]
 <p style="text-indent: 5%">
 Specifies the threshold after which late clocks are resynchronized to timestamps for OCR streams. By default, no threashold (0) is used and clocks are never resynchronized. This allows to 
