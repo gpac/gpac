@@ -910,6 +910,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subs
 {
 #ifndef GPAC_DISABLE_SVG
 	GF_DOM_Event evt;
+	u32 i;
 	GF_SceneGraph *scene = (subscene ? subscene : compositor->scene);
 	GF_Node *root = gf_sg_get_root_node(scene);
 	/*if root node is not DOM, sent a resize event (for VRML/BIFS). Otherwise this must be handled
@@ -949,6 +950,11 @@ void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subs
 		evt.bubbles = 0;
 	}
 	gf_dom_event_fire(gf_sg_get_root_node(scene), &evt);
+
+	i=0;
+	while ((scene = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
+		gf_dom_event_fire(gf_sg_get_root_node(scene), &evt);
+	}
 
 #endif
 }
