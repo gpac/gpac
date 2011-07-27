@@ -434,7 +434,7 @@ service restart
 */
 void gf_term_handle_services(GF_Terminal *app);
 /*close service and queue for delete*/
-void gf_term_close_services(GF_Terminal *app, GF_ClientService *service);
+void gf_term_close_service(GF_Terminal *app, GF_ClientService *service);
 
 /*locks media quaue*/
 void gf_term_lock_media_queue(GF_Terminal *app, Bool LockIt);

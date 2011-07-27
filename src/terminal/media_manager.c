@@ -316,6 +316,8 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 			gf_free(ce);
 			gf_list_rem(term->codecs, term->last_codec);
 			count--;
+			if (!count)
+				break;
 		} else {
 			if (ce->dec->CB && (ce->dec->CB->UnitCount >= ce->dec->CB->Min)) ce->dec->PriorityBoost = 0;
 		}
