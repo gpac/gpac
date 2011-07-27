@@ -1,6 +1,6 @@
 include ../../config.mak
 
-vpath %.c $(SRC_PATH)/modules/ui_rec
+vpath %.c $(SRC_PATH)/modules/osd
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
@@ -18,16 +18,11 @@ LINKLIBS= -lgpac
 LOCAL_LIB=../../bin/gcc
 
 #common objects
-OBJS=ui_rec.o
-
-
+OBJS=osd.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_ui_rec.$(DYN_LIB_SUFFIX)
-ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols ui_rec.def 
-endif
+LIB=gm_osd.$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)
