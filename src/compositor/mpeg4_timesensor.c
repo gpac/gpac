@@ -136,8 +136,10 @@ void timesensor_update_time(GF_TimeNode *st)
 				return;
 			}
 		}
-		TS->fraction_changed = newFraction;
-		gf_node_event_out(st->udta, 6);//"fraction_changed"
+		if (newFraction != TS->fraction_changed) {
+			TS->fraction_changed = newFraction;
+			gf_node_event_out(st->udta, 6);//"fraction_changed"
+		}
 	}
 
 	/*we're (about to be) active: VRML:
