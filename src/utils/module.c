@@ -48,11 +48,12 @@ GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
 	GF_ModuleManager *tmp;
-        u32 loadedModules;
+	u32 loadedModules;
+	const char *opt;
 	if (!directory || !strlen(directory) || (strlen(directory) > GF_MAX_PATH)){
-          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
-          return NULL;
-        }
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
+		return NULL;
+	}
 	GF_SAFEALLOC(tmp, GF_ModuleManager);
 	if (!tmp) return NULL;
 	strcpy(tmp->dir, directory);
@@ -62,12 +63,16 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 
 	tmp->plug_list = gf_list_new();
 	if (!tmp->plug_list) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of modules !!!\n", directory));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of modules !!!\n", directory));
 		gf_free(tmp);
 		return NULL;
 	}
 	tmp->cfg = config;
-        loadedModules = gf_modules_refresh(tmp);
+	opt = gf_cfg_get_key(config, "Systems", "ModuleUnload");
+	if (opt && !strcmp(opt, "no")) {
+		tmp->no_unload = 1;
+	}
+	loadedModules = gf_modules_refresh(tmp);
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Loaded %d modules from directory %s.\n", loadedModules, directory));
 	return tmp;
 }
@@ -114,27 +119,27 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	GF_BaseInterface *ifce;
 
 	if (!pm){
-          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : No Module Manager set\n"));
-          return NULL;
-        }
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : No Module Manager set\n"));
+		return NULL;
+	}
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
 	if (!inst){
-          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : no module %d exist.\n", whichplug));
-          return NULL;
-        }
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface...%s\n", inst->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : no module %d exist.\n", whichplug));
+		return NULL;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface...%s\n", inst->name));
 	/*look in cache*/
-        if (!pm->cfg){
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] No pm->cfg has been set !!!\n"));
-            return NULL;
-        }
-        opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->name);
+	if (!pm->cfg){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] No pm->cfg has been set !!!\n"));
+		return NULL;
+	}
+	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->name);
 	if (opt) {
-                const char * ifce_str = gf_4cc_to_str(InterfaceFamily);
+		const char * ifce_str = gf_4cc_to_str(InterfaceFamily);
 		snprintf(szKey, 32, "%s:yes", ifce_str ? ifce_str : "(null)");
 		if (!strstr(opt, szKey)){
-		  return NULL;
-                }
+			return NULL;
+		}
 	}
 	if (!gf_modules_load_library(inst)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load library %s\n", inst->name));

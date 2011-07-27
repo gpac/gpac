@@ -140,6 +140,10 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 void gf_modules_unload_library(ModuleInstance *inst)
 {
 	if (!inst->lib_handle || gf_list_count(inst->interfaces)) return;
+	/*module unloading is disabled*/
+	if (inst->plugman->no_unload)
+		return;
+
 #ifdef WIN32
 	FreeLibrary(inst->lib_handle);
 #else

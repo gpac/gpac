@@ -54,6 +54,7 @@ struct __tag_mod_man
 	char dir[GF_MAX_PATH];
 	GF_List *plug_list;
 	GF_Config *cfg;
+	Bool no_unload;
 	/*the one and only ssl instance used throughout the client engine*/
 	void *ssl_inst;
 };
