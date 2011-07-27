@@ -1135,7 +1135,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	fprintf(stdout, "Modules Loaded (%d found in %s)\n", i, str);
+	fprintf(stdout, "Modules Found (%d in dir %s)\n", i, str);
 
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
@@ -1148,6 +1148,7 @@ int main (int argc, char **argv)
 	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
 	fprintf(stdout, "Loading GPAC Terminal\n");	
+	i = gf_sys_clock();
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stdout, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
@@ -1158,7 +1159,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	fprintf(stdout, "Terminal Loaded\n");
+	fprintf(stdout, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
 
 	if (dump_mode) {
 //		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
@@ -1697,13 +1698,14 @@ force_input:
 		}
 	}
 
+	i = gf_sys_clock();
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
 
 	fprintf(stdout, "Deleting terminal... ");
 	if (playlist) fclose(playlist);
 	gf_term_del(term);
-	fprintf(stdout, "OK\n");
+	fprintf(stdout, "done (in %d ms)\n", gf_sys_clock() - i);
 
 	fprintf(stdout, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
