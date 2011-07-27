@@ -115,6 +115,8 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 
 void gf_scene_del(GF_Scene *scene)
 {
+	gf_mx_p(scene->root_od->term->net_mx);
+
 	gf_list_del(scene->resources);
 	assert(!gf_list_count(scene->extra_scenes) );
 	gf_list_del(scene->extra_scenes);
@@ -171,6 +173,8 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->dims_url.url) gf_free(scene->dims_url.url);
 	if (scene->fragment_uri) gf_free(scene->fragment_uri);
 	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
+
+	gf_mx_v(scene->root_od->term->net_mx);
 	gf_free(scene);
 }
 

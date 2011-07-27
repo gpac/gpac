@@ -559,6 +559,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 		GF_TermExt *ifce = (GF_TermExt *) gf_modules_load_interface(user->modules, i, GF_TERM_EXT_INTERFACE);
 		if (ifce) gf_list_add(tmp->extensions, ifce);
 	}
+
 	tmp->unthreaded_extensions = gf_list_new();
 	tmp->evt_mx = gf_mx_new("Event Filter");
 
@@ -626,6 +627,9 @@ GF_Err gf_term_del(GF_Terminal * term)
 	/*close main service*/
 	gf_term_disconnect(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] main service disconnected\n"));
+
+	/*signal we are being destroyed*/
+	term->reload_state = 3;
 
 	/*wait for destroy*/
 	e = GF_IO_ERR;
@@ -929,8 +933,10 @@ void gf_term_handle_services(GF_Terminal *term)
 
 
 	while (gf_list_count(term->net_services_to_connect)) {
-		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->net_services_to_connect, 0);
-		GF_ClientService *ns = odm->net_service;
+		GF_ClientService *ns = (GF_ClientService*)gf_list_get(term->net_services_to_connect, 0);
+		GF_ObjectManager *odm = ns->owner;
+		assert(odm);
+
 		gf_list_rem(term->net_services_to_connect, 0);
 		/*unlock media queue before connecting*/
 		gf_mx_v(term->media_queue_mx);
@@ -945,6 +951,9 @@ void gf_term_handle_services(GF_Terminal *term)
 		/*lock media queue after connecting*/
 		gf_mx_p(term->media_queue_mx);
 	}
+
+	/*!! media queue is still locked here*/
+
 
 	/*play ODs that need it*/
 	while (gf_list_count(term->media_queue)) {
@@ -996,31 +1005,31 @@ void gf_term_handle_services(GF_Terminal *term)
 	gf_mx_v(term->media_queue_mx);
 
 	/*lock to avoid any start attemps from compositor*/
-	if (!gf_mx_try_lock(term->compositor->mx)) 
-		return;
-	while (gf_list_count(term->net_services_to_remove)) {
-		gf_mx_p(term->net_mx);
-		ns = (GF_ClientService*)gf_list_get(term->net_services_to_remove, 0);
-		if (ns) gf_list_rem(term->net_services_to_remove, 0);
-		gf_mx_v(term->net_mx);
-		if (!ns) break;
-		gf_term_service_del(ns);
-	}
-
-	if (term->nodes_pending) {
-		u32 i, count, n_count;
-		i=0;
-		count = gf_list_count(term->nodes_pending);
-		while (i<count) {
-			GF_Node *n = (GF_Node *)gf_list_get(term->nodes_pending, i);
-			gf_node_traverse(n, NULL);
-			if (!term->nodes_pending) break;
-			n_count = gf_list_count(term->nodes_pending);
-			if (n_count==count) i++;
-			else count=n_count;
+	if (gf_mx_try_lock(term->compositor->mx)) {
+		while (gf_list_count(term->net_services_to_remove)) {
+			gf_mx_p(term->net_mx);
+			ns = (GF_ClientService*)gf_list_get(term->net_services_to_remove, 0);
+			if (ns) gf_list_rem(term->net_services_to_remove, 0);
+			gf_mx_v(term->net_mx);
+			if (!ns) break;
+			gf_term_service_del(ns);
 		}
+
+		if (term->nodes_pending) {
+			u32 i, count, n_count;
+			i=0;
+			count = gf_list_count(term->nodes_pending);
+			while (i<count) {
+				GF_Node *n = (GF_Node *)gf_list_get(term->nodes_pending, i);
+				gf_node_traverse(n, NULL);
+				if (!term->nodes_pending) break;
+				n_count = gf_list_count(term->nodes_pending);
+				if (n_count==count) i++;
+				else count=n_count;
+			}
+		}
+		gf_sc_lock(term->compositor, 0);
 	}
-	gf_sc_lock(term->compositor, 0);
 
 	/*extensions*/
 	if (!term->reload_state && term->unthreaded_extensions) {
@@ -1070,23 +1079,30 @@ void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node)
 	gf_sc_lock(term->compositor, 0);
 }
 
-void gf_term_close_services(GF_Terminal *term, GF_ClientService *ns)
+void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
 {
+	s32 idx;
 	GF_Err e;
 
 	/*prevent the media manager / term to access the list of services to destroy, otherwise
 	we could unload the module while poping its CloseService() call stack which can lead to 
 	random crashes (return adresses no longer valid) - cf any "stress mode" playback of a playlist*/
-	gf_mx_p(term->net_mx);
+	gf_mx_p(term->media_queue_mx);
 	ns->owner = NULL;
-	e = ns->ifce->CloseService(ns->ifce);
+	idx = gf_list_find(term->net_services_to_connect, ns);
+	if (idx>=0) {
+		gf_list_rem(term->net_services_to_connect, idx);
+		e = GF_BAD_PARAM;
+	} else {
+		e = ns->ifce->CloseService(ns->ifce);
+	}
 	/*if error don't wait for ACK to remove from main list*/
 	if (e) {
 		gf_list_del_item(term->net_services, ns);
 		if (gf_list_find(term->net_services_to_remove, ns)<0)
 			gf_list_add(term->net_services_to_remove, ns);
 	}
-	gf_mx_v(term->net_mx);
+	gf_mx_v(term->media_queue_mx);
 }
 
 void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)
@@ -1307,12 +1323,11 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	odm->net_service->nb_odm_users++;
 	gf_term_lock_net(term, 0);
 
-	ns = odm->net_service;
-
 	gf_mx_p(term->media_queue_mx);
+	assert(odm->net_service->owner == odm);
 	/*we are all set but we cannot assume it is safe to call connect from this thread, as this could be a
 	script callback (JS locked) and connecting the media could trigger JS calls, which would deadlock*/
-	gf_list_add(term->net_services_to_connect, odm);
+	gf_list_add(term->net_services_to_connect, odm->net_service);
 	
 	gf_mx_v(term->media_queue_mx);
 }

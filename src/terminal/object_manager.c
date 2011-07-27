@@ -214,7 +214,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 			}
 		}
 		odm->net_service = NULL;
-		if (!ns->nb_odm_users) gf_term_close_services(odm->term, ns);
+		if (!ns->nb_odm_users) gf_term_close_service(odm->term, ns);
 	}
 
 	gf_odm_lock(odm, 0);
@@ -705,7 +705,7 @@ void ODM_CheckChannelService(GF_Channel *ch)
 	if (ch->service == ch->odm->net_service) return;
 	/*if the stream has created a service check if close is needed or not*/
 	if (ch->esd->URLString && !ch->service->nb_ch_users) 
-		gf_term_close_services(ch->odm->term, ch->service);
+		gf_term_close_service(ch->odm->term, ch->service);
 }
 
 /*setup channel, clock and query caps*/
