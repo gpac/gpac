@@ -3660,7 +3660,7 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 
 
 
-GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
+GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, Bool force_wrl)
 {
 	GF_SceneLoader ctx;
 	GF_BTParser parser;
@@ -3674,7 +3674,7 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
 	parser.undef_nodes = gf_list_new();
 	parser.def_nodes = gf_list_new();
 	parser.peeked_nodes = gf_list_new();
-	parser.is_wrl = 1;
+	parser.is_wrl = force_wrl;
 	gf_bt_loader_run_intern(&parser, NULL, 1);
 	gf_list_del(parser.undef_nodes);
 	gf_list_del(parser.def_nodes);

@@ -1142,6 +1142,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_run) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_suspend) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_import_bifs_subtitle) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_bt_from_string) )
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_encode_to_file) )

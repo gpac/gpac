@@ -52,10 +52,6 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(st);
 		return;
 	}
-
-	if (gf_node_get_name(node)) {
-		node = node;
-	}
 	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Switch:

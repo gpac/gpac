@@ -996,7 +996,7 @@ static JSBool SMJS_FUNCTION(createVrmlFromString)
 	GF_ScriptPriv *priv;
 	GF_FieldInfo field;
 	/*BT/VRML from string*/
-	GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str);
+	GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, Bool force_wrl);
 	char *str;
 	GF_List *nlist;
 	SMJS_ARGS
@@ -1005,7 +1005,7 @@ static JSBool SMJS_FUNCTION(createVrmlFromString)
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	str = SMJS_CHARS(c, argv[0]);
-	nlist = gf_sm_load_bt_from_string(sc_node->sgprivate->scenegraph, str);
+	nlist = gf_sm_load_bt_from_string(sc_node->sgprivate->scenegraph, str, 1);
 	SMJS_FREE(c, str);
 	if (!nlist) return JS_FALSE;
 
