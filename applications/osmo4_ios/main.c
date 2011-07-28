@@ -45,7 +45,6 @@ u32 (*gf_cfg_get_section_count)(GF_Config *cfgFile);
 GF_Err (*gf_term_get_service_info)(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netcom);
 GF_Err (*gf_term_set_size)(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 Bool (*gf_sys_get_rti)(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
-void (*gf_log_set_tools)(u32 tools);
 u32 (*gf_term_play_from_time)(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
 void *(*gf_malloc)(size_t size);
 void (*gf_log_set_tools_level)(const char *);
@@ -883,7 +882,6 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_term_get_service_info\n", gf_term_get_service_info = dlsym(libgpac_so, "gf_term_get_service_info"));
 	fprintf(stderr, "dlsym: %p gf_term_set_size\n", gf_term_set_size = dlsym(libgpac_so, "gf_term_set_size"));
 	fprintf(stderr, "dlsym: %p gf_sys_get_rti\n", gf_sys_get_rti = dlsym(libgpac_so, "gf_sys_get_rti"));
-	fprintf(stderr, "dlsym: %p gf_log_set_tools\n", gf_log_set_tools = dlsym(libgpac_so, "gf_log_set_tools"));
 	fprintf(stderr, "dlsym: %p gf_term_play_from_time\n", gf_term_play_from_time = dlsym(libgpac_so, "gf_term_play_from_time"));
 	fprintf(stderr, "dlsym: %p gf_malloc\n", gf_malloc = dlsym(libgpac_so, "gf_malloc"));
 	fprintf(stderr, "dlsym: %p gf_log_set_tools_levels\n", gf_log_set_tools_levels = dlsym(libgpac_so, "gf_log_set_tools_levels"));

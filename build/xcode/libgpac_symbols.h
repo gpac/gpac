@@ -30,10 +30,10 @@
 #define gf_term_get_service_info _gf_term_get_service_info
 #define gf_term_set_size _gf_term_set_size
 #define gf_sys_get_rti _gf_sys_get_rti
-#define gf_log_set_tools _gf_log_set_tools
 #define gf_term_play_from_time _gf_term_play_from_time
 #define gf_malloc _gf_malloc
-#define gf_log_set_level _gf_log_set_level
+#define gf_log_set_tools_levels _gf_log_set_tools_levels
+#define gf_log_set_tool_level _gf_log_set_tool_level
 #define gf_iphone_set_sdl_video_module _gf_iphone_set_sdl_video_module
 #define gf_term_get_option _gf_term_get_option
 #define gf_term_user_event _gf_term_user_event
@@ -155,14 +155,14 @@ extern GF_Err (*gf_term_get_service_info)(GF_Terminal *term, GF_ObjectManager *o
 extern GF_Err (*gf_term_set_size)(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 #undef gf_sys_get_rti
 extern Bool (*gf_sys_get_rti)(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
-#undef gf_log_set_tools
-extern void (*gf_log_set_tools)(u32 tools);
 #undef gf_term_play_from_time
 extern u32 (*gf_term_play_from_time)(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
 #undef gf_malloc
 extern void *(*gf_malloc)(size_t size);
-#undef gf_log_set_level
-extern void (*gf_log_set_level)(u32 level);
+#undef gf_log_set_tools_levels
+extern void (*gf_log_set_tools_levels)(const char *tools);
+#undef gf_log_set_tool_level
+extern void (*gf_log_set_tool_level)(const char *tools);
 #undef gf_iphone_set_sdl_video_module
 extern void (*gf_iphone_set_sdl_video_module)(void* (*SDL_Module) (void));
 #undef gf_term_get_option
