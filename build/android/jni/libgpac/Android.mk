@@ -20,7 +20,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv1_CM -ldl
-LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz
+LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lz
 #LOCAL_EXPORT_LDLIBS= -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz
 
 
