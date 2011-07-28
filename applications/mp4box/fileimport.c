@@ -1319,6 +1319,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
 			new_track = 1;
+			/*remove cloned edit list, as it will be rewritten after import*/
+			gf_isom_remove_edit_segments(dest, dst_tk);
 		} else {
 			nb_edits = gf_isom_get_edit_segment_count(orig, i+1);
 		}
