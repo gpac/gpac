@@ -223,6 +223,16 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
 		} else if (child->type == GF_XML_NODE_TYPE) {
 			if (!strcmp(child->name, "InitialisationSegmentURL")) {
 				gf_mpd_parse_rep_initseg(child, rep, rep->default_base_url);
+			} else if (!strcmp(child->name, "BaseURL")) {
+				/*ISO/IEC 23001-6 (19/07/2011), 5.5.11.2: "If [InitialisationSegmentURL@sourceURL]
+				  not present, then any BaseURL element is mapped to the sourceURL"*/
+				att_index = 0;
+				while (att = gf_list_get(child->content, att_index)) {
+					if (att->value) {
+						rep->init_url = strdup(att->value);
+					}
+					att_index++;
+				}
 			} else if (!strcmp(child->name, "UrlTemplate")) {
 				gf_mpd_parse_rep_urltemplate(child, rep);
 			} else if (!strcmp(child->name, "Url")) {
