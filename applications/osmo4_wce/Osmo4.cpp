@@ -170,9 +170,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 			MessageBox(NULL, _T("Couldn't open log files at file system root"), _T("Disabling logs"), MB_OK);
 			turn_on = 0;
 		} else {
-			gf_log_set_level(GF_LOG_DEBUG);
-//			gf_log_set_tools(0xFFFFFFFF);
-			gf_log_set_tools(GF_LOG_CORE|GF_LOG_NETWORK|GF_LOG_RTP|GF_LOG_SYNC|GF_LOG_CODEC|GF_LOG_MEDIA);
+			gf_log_set_tools_levels("network:rtp:sync:codec:media@debug");
 			gf_log_set_callback(m_logs, osmo4_do_log);
 			gf_cfg_set_key(m_user.config, "General", "LogLevel", "debug");
 		}
@@ -182,8 +180,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 			fclose(m_logs);
 			m_logs = 0;
 		}
-		gf_log_set_level(0);
-		gf_log_set_tools(0);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_NONE);
 		gf_log_set_callback(NULL, NULL);
 		gf_cfg_set_key(m_user.config, "General", "LogLevel", "none");
 	}

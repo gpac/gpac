@@ -1837,7 +1837,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #ifndef GPAC_DISABLE_LOG
 		u32 time=0;
 		
-		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
+		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
 			time = gf_sys_clock();
 		}
 #endif
@@ -1856,7 +1856,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 
 #ifndef GPAC_DISABLE_LOG
-		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
+		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
 			compositor->visual_config_time = gf_sys_clock() - time;
 		}
 #endif

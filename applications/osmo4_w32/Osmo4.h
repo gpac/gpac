@@ -68,7 +68,6 @@ public:
 	char szUserPath[GF_MAX_PATH];
 
 	FILE *m_logs;
-	u32 m_log_level, m_log_tools;
 
 	HANDLE m_hMutex;
 

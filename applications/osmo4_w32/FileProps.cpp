@@ -448,7 +448,7 @@ void CFileProps::SetStreamsInfo()
 {
 	u32 i, count;
 	char info[10000];
-	char buf[1000], code[5];
+	char buf[1000];
 	GF_MediaInfo odi;
 	GF_ObjectManager *odm;
 	Bool is_media;

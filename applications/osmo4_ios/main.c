@@ -48,7 +48,8 @@ Bool (*gf_sys_get_rti)(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 void (*gf_log_set_tools)(u32 tools);
 u32 (*gf_term_play_from_time)(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
 void *(*gf_malloc)(size_t size);
-void (*gf_log_set_level)(u32 level);
+void (*gf_log_set_tools_level)(const char *);
+void (*gf_log_modify_tools_level)(const char *);
 void (*gf_iphone_set_sdl_video_module)(void* (*SDL_Module) (void));
 u32 (*gf_term_get_option)(GF_Terminal *term, u32 opt_type);
 Bool (*gf_term_user_event)(GF_Terminal *term, GF_Event *event);
@@ -823,8 +824,8 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 		/*turn on RTI loging*/
 		if (use_rtix) {
 			gf_log_set_callback(NULL, on_gpac_log);
-			gf_log_set_level(GF_LOG_DEBUG);
-			gf_log_set_tools(GF_LOG_RTI);
+			gf_log_set_tools_levels(GF_LOG_ALL, GF_LOG_ERROR);
+			gf_log_set_tools_levels(GF_LOG_RTI, GF_LOG_DEBUG);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 		} else if (log_time_start) {
@@ -844,7 +845,6 @@ int main (int argc, char *argv[])
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
-	Bool logs_set = 0;
 	Bool start_fs = 0;
 	Bool use_rtix = 0;
 	Bool rgbds_dump = 0;
@@ -886,7 +886,8 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_log_set_tools\n", gf_log_set_tools = dlsym(libgpac_so, "gf_log_set_tools"));
 	fprintf(stderr, "dlsym: %p gf_term_play_from_time\n", gf_term_play_from_time = dlsym(libgpac_so, "gf_term_play_from_time"));
 	fprintf(stderr, "dlsym: %p gf_malloc\n", gf_malloc = dlsym(libgpac_so, "gf_malloc"));
-	fprintf(stderr, "dlsym: %p gf_log_set_level\n", gf_log_set_level = dlsym(libgpac_so, "gf_log_set_level"));
+	fprintf(stderr, "dlsym: %p gf_log_set_tools_levels\n", gf_log_set_tools_levels = dlsym(libgpac_so, "gf_log_set_tools_levels"));
+	fprintf(stderr, "dlsym: %p gf_log_modify_tools_levels\n", gf_log_modify_tools_levels = dlsym(libgpac_so, "gf_log_modify_tools_levels"));
 	fprintf(stderr, "dlsym: %p gf_iphone_set_sdl_video_module\n", gf_iphone_set_sdl_video_module = dlsym(libgpac_so, "gf_iphone_set_sdl_video_module"));
 	fprintf(stderr, "dlsym: %p gf_term_get_option\n", gf_term_get_option = dlsym(libgpac_so, "gf_term_get_option"));
 	fprintf(stderr, "dlsym: %p gf_term_user_event\n", gf_term_user_event = dlsym(libgpac_so, "gf_term_user_event"));
@@ -984,12 +985,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-{
-	logs_set = 1;
-	
-	gf_log_set_level( gf_log_parse_level( gf_cfg_get_key(cfg_file, "General", "LogLevel") ) );
-	gf_log_set_tools( gf_log_parse_tools( gf_cfg_get_key(cfg_file, "General", "LogTools") ) );
-}
+	gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "LogLevel") );
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
@@ -1054,13 +1050,8 @@ int main (int argc, char *argv[])
 			logfile = gf_f64_open(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
-		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
-			gf_log_set_level(gf_log_parse_level(argv[i+1]));
-			logs_set = 1;
-			i++;
-		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
-			gf_log_set_tools(gf_log_parse_tools(argv[i+1]));
-			logs_set = 1;
+		} else if (!strcmp(arg, "-logs")) {
+			gf_log_set_tools_levels( argv[i+1] );
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 			log_time_start = 1;
@@ -1116,11 +1107,6 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	if (dump_mode) rti_file = NULL;
-
-	if (!logs_set) {
-		gf_log_set_level(GF_LOG_ERROR);
-		gf_log_set_tools(0xFFFFFFFF);
-	}
 
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
@@ -1547,15 +1533,7 @@ force_input:
 			char szLog[1024];
 			fprintf(stdout, "Enter new log level:\n");
 			scanf("%s", szLog);
-			gf_log_set_level(gf_log_parse_level(szLog));
-		}
-			break;
-		case 'T':
-		{
-			char szLog[1024];
-			fprintf(stdout, "Enter new log tools:\n");
-			scanf("%s", szLog);
-			gf_log_set_tools(gf_log_parse_tools(szLog));
+			gf_log_modify_tools_levels( szLog );
 		}
 			break;
 		case 'g':

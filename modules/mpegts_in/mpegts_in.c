@@ -712,7 +712,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		  if (!m2ts->ts_setup) {
 			  m2ts->ts_setup = 1;
 		  }
-		  GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
+		  GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
 		  gf_term_on_connect(m2ts->service, NULL, e);
 	}
 }

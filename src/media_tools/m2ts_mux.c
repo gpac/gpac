@@ -1317,8 +1317,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS "LLD" - PCR "LLD")\n", stream->curr_pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->curr_pck.dts, gf_m2ts_get_pcr(stream->program)/300));
 
 #ifndef GPAC_DISABLE_LOG
-		if ((gf_log_get_level() >= GF_LOG_INFO) 
-			&& (gf_log_get_tools() & GF_LOG_CONTAINER) 
+		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_INFO)
 			&& gf_m2ts_time_less(&stream->program->mux->time, &stream->time)
 		) {
 			s32 drift;
@@ -1918,8 +1917,7 @@ send_pck:
 		*status = GF_M2TS_STATE_DATA;
 
 #ifndef GPAC_DISABLE_LOG
-		if ((gf_log_get_level() >= GF_LOG_DEBUG) 
-			&& (gf_log_get_tools() & GF_LOG_CONTAINER) 
+		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG) 
 			&& muxer->fixed_rate 
 		) {
 			s32 drift;

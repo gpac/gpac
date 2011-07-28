@@ -246,7 +246,7 @@ void COsmo4AppView::SetupLogs()
 #ifndef GPAC_GUI_ONLY
 	gf_mx_p(m_mx);
 	if (do_log) {
-		gf_log_set_level(0);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_NONE);
 		do_log = 0;
 	}
 	/*setup GPAC logs: log all errors*/
@@ -259,14 +259,11 @@ void COsmo4AppView::SetupLogs()
 			MessageBox("Debug log enabled in \\data\\gpac_logs.txt", "Info");
 			fclose(logs);
 			do_log = 1;
-			gf_log_set_level(GF_LOG_DEBUG);
-			u32 lt = gf_log_parse_tools( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
-			gf_log_set_tools(lt ? lt : 0xFFFFFFFF);
+			gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
 		}
 	}
 	if (!do_log) {
-		gf_log_set_level(GF_LOG_ERROR);
-		gf_log_set_tools(0xFFFFFFFF);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
 	}
 
 	gf_log_set_callback(this, on_gpac_log);

@@ -131,8 +131,6 @@ int main(int argc, char **argv)
 	/*   gpac init   */
 	/*****************/
 	gf_sys_init(0);
-	gf_log_set_level(GF_LOG_ERROR);
-	gf_log_set_tools(0xFFFFFFFF);
 
 	/*****************/
 	/*   parsing of the arguments */

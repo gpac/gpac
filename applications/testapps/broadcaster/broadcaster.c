@@ -309,8 +309,6 @@ int main (const int argc, const char** argv)
 	
 	/* init gpac lib */
 	gf_sys_init();
-	gf_log_set_level(GF_LOG_ERROR);
-	gf_log_set_tools(GF_LOG_NETWORK|GF_LOG_RTP|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR|GF_LOG_CODING|GF_LOG_SCRIPT);
 	
 	GF_SAFEALLOC(conf, CONF_Data);
 		

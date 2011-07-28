@@ -81,9 +81,6 @@ int main(int argc, char **argv)
 		return GF_OK;
 	}
 
-	gf_log_set_level(GF_LOG_ERROR);
-	gf_log_set_tools(GF_LOG_CONTAINER);
-
 	GF_SAFEALLOC(mpedemux, MPEDemux);
 	mpedemux->ts_demux = gf_m2ts_demux_new();
 	mpedemux->ts_demux->on_event = mpedemux_on_event;

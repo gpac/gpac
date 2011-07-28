@@ -133,13 +133,13 @@ void PrintUsage()
 		"\t-strict-error:  exit when the player reports its first error\n"
 		"\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
 		"\t-log-file file: sets output log file. Also works with -lf\n"
-		"\t-log-level lev: sets log level. Also works with -ll. Possible values are:\n"
+		"\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+		"\t                 levelX can be one of:\n"
 		"\t        \"error\"      : logs only error messages\n"
 		"\t        \"warning\"    : logs error+warning messages\n"
 		"\t        \"info\"       : logs error+warning+info messages\n"
 		"\t        \"debug\"      : logs all messages\n"
-		"\n"
-		"\t-log-tools lt:  sets tool(s) to log. Also works with -lt. List of \':\'-separated values:\n"
+		"\t                 toolX can be one of:\n"
 		"\t        \"core\"       : libgpac core\n"
 		"\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
 		"\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
@@ -153,11 +153,19 @@ void PrintUsage()
 		"\t        \"scene\"      : scene graph and scene manager\n"
 		"\t        \"script\"     : scripting engine messages\n"
 		"\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
+		"\t        \"smil\"       : SMIL timing engine\n"
 		"\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
-		"\t        \"service\"    : network service management\n"
 		"\t        \"mmio\"       : Audio/Video HW I/O management\n"
+		"\t        \"rti\"        : various run-time stats\n"
+		"\t        \"cache\"      : HTTP cache subsystem\n"
+		"\t        \"audio\"      : Audio renderer and mixers\n"
+#ifdef GPAC_MEMORY_TRACKING
+		"\t        \"mem\"        : PGAC memory tracker\n"
+#endif
+		"\t        \"module\"     : GPAC modules debugging\n"
+		"\t        \"mutex\"      : mutex\n"
 		"\t        \"none\"       : no tool logged\n"
-		"\t        \"all\"        : all tools logged\n"
+		"\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
 #if defined(__DARWIN__) || defined(__APPLE__)
@@ -844,8 +852,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 		/*turn on RTI loging*/
 		if (use_rtix) {
 			gf_log_set_callback(NULL, on_gpac_log);
-			gf_log_set_level(GF_LOG_DEBUG);
-			gf_log_set_tools(GF_LOG_RTI);
+			gf_log_set_tool_level(GF_LOG_RTI, GF_LOG_DEBUG);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 		} else if (log_time_start) {
@@ -1001,16 +1008,10 @@ int main (int argc, char **argv)
 			logfile = gf_f64_open(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
-		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
-			u32 flags = gf_log_parse_level(argv[i+1]);
-			if (!flags) return 1;
-			gf_log_set_level(flags);
-			logs_set = 1;
-			i++;
-		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
-			u32 flags = gf_log_parse_tools(argv[i+1]);
-			if (!flags) return 1;
-			gf_log_set_tools(flags);
+		} else if (!strcmp(arg, "-logs") ) {
+			if (gf_log_set_tools_levels(argv[i+1]) != GF_OK) {
+				return 1;
+			}
 			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
@@ -1106,8 +1107,7 @@ int main (int argc, char **argv)
 	if (dump_mode) rti_file = NULL;
 
 	if (!logs_set) {
-		gf_log_set_level(GF_LOG_ERROR);
-		gf_log_set_tools(0xFFFFFFFF);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
 	}
 
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
@@ -1572,36 +1572,16 @@ force_input:
 
 		case 'L':
 		{
-			u32 flags;
 			char szLog[1024];
 			fprintf(stdout, "Enter new log level:\n");
-			if (1 > scanf("%s", szLog)){
+			if (scanf("%s", szLog) < 1) {
 			    fprintf(stderr, "Cannot read new log level, aborting.\n");
 			    break;
 			}
-			flags = gf_log_parse_level(szLog);
-			if (!flags)
-				fprintf(stderr, "Wrong log level specified, aborting.\n");
-			else
-				gf_log_set_level(flags);
+			gf_log_modify_tools_levels(szLog);
 		}
 			break;
-		case 'T':
-		{
-			u32 flags;
-			char szLog[1024];
-			fprintf(stdout, "Enter new log tools:\n");
-			if (1 > scanf("%s", szLog)) {
-			    fprintf(stderr, "Cannot read new log tools, aborting.\n");
-			    break;
-			}
-			flags = gf_log_parse_tools(szLog);
-			if (!flags)
-				fprintf(stderr, "Wrong log tools specified, aborting.\n");
-			else
-				gf_log_set_tools(flags);
-		}
-			break;
+
 		case 'g':
 		{
 			GF_SystemRTInfo rti;

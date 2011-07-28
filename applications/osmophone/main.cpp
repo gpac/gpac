@@ -236,8 +236,7 @@ static void setup_logs()
 	if (log_file) fclose(log_file);
 	log_file = NULL;
 
-	gf_log_set_level(GF_LOG_ERROR);
-	gf_log_set_tools(0);
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
 	gf_log_set_callback(NULL, NULL);
 
 	if (log_rti) {
@@ -246,22 +245,21 @@ static void setup_logs()
 		fprintf(log_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
 		fprintf(log_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
 
-		gf_log_set_level(GF_LOG_DEBUG);
-		gf_log_set_tools(GF_LOG_RTI|GF_LOG_SCRIPT);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		gf_log_set_tool_level(GF_LOG_RTI, GF_LOG_DEBUG);
 		gf_log_set_callback(log_file, on_gpac_rti_log);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 	} else {
-		u32 lt, ll;
-		ll = gf_log_parse_level( gf_cfg_get_key(user.config, "General", "LogLevel") );
-		gf_log_set_level(ll);
-		lt = gf_log_parse_tools( gf_cfg_get_key(user.config, "General", "LogTools") );
-		gf_log_set_tools(lt);
-
-		if (ll && (log_file = gf_f64_open("\\gpac_logs.txt", "a+t"))) {
-			gf_log_set_callback(log_file, on_gpac_log);
-		}
-
+		const char *logs = gf_cfg_get_key(user.config, "General", "LogLevel");
+		if (logs) {
+			if (gf_log_set_tools_levels( logs ) != GF_OK) {
+			} else {
+				if (log_file = gf_f64_open("\\gpac_logs.txt", "a+t")) {
+					gf_log_set_callback(log_file, on_gpac_log);
+				}
+			}
+		} 
 	}
 }
 

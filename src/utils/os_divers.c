@@ -870,6 +870,9 @@ void gf_sys_init(Bool enable_memory_tracker)
 			gf_mem_enable_tracker();
 #endif
 		}
+		/*by default log subsystem is initialized to error on all tools*/
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+
 
 #if defined(__sh__)
 		/* Round all denormalized floatting point number to 0.0 */

@@ -41,8 +41,7 @@ int main(int argc, char **argv)
 
     gf_sys_init(0);
 
-	gf_log_set_level(verbose ? GF_LOG_DEBUG : GF_LOG_INFO);
-	gf_log_set_tools(GF_LOG_NETWORK);
+	gf_log_set_tool_level(GF_LOG_NETWORK, verbose ? GF_LOG_DEBUG : GF_LOG_INFO);
 
     while (1) {
 
