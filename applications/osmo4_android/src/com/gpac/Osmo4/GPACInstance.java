@@ -49,12 +49,14 @@ public class GPACInstance implements GPACInstanceInterface {
      * @return a map of exceptions containing the library as key and the exception as value. If map is empty, no error
      * 
      */
+    
+    
     synchronized static Map<String, Throwable> loadAllLibraries(GpacConfig config) {
         if (errors != null)
             return errors;
         StringBuilder sb = new StringBuilder();
         final String[] toLoad = { "GLESv1_CM", "dl", "log",//$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
-                                 "jpeg", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$ 
+                                 "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$ 
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
                                  "ffmpeg", "faad", "gpac", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
