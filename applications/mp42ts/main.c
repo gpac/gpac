@@ -1520,7 +1520,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 #ifdef GPAC_MEMORY_TRACKING
 			gf_sys_close();
 			gf_sys_init(1);
-			gf_log_set_tools(gf_log_get_tools()|GF_LOG_MEMORY);
+			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_DEBUG);
 #else
 			fprintf(stdout, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
 #endif
