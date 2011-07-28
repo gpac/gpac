@@ -277,7 +277,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
+	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Packet Log Format: SSRC SequenceNumber TimeStamp NTP@recvTime deviance, Jiter, PckLost PckTotal BytesTotal\n"));
 	}
 #endif
@@ -478,7 +478,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	ch->last_pck_sn = CurrSeq;
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
+	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 		ch->total_pck++;
 		ch->total_bytes += pck_size-12;
 

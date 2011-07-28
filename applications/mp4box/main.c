@@ -609,6 +609,7 @@ void PrintUsage()
 			" -quiet                quiet mode\n"
 			" -noprog               disables progress\n"
 			" -v                   verbose mode\n"
+			" -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 			" -version             gets build version\n"
 			);
 }
@@ -1215,6 +1216,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool daisy_chain_sidx=0;
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
+	char *gf_logs = NULL;
 	char *seg_ext = "m4s";
 
 	if (argc < 2) {
@@ -1271,6 +1273,11 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-version")) { PrintVersion(); return 0; }
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
 		else if (!stricmp(arg, "-quiet")) quiet = 2;
+		else if (!stricmp(arg, "-logs")) {
+			CHECK_NEXT_ARG
+			gf_logs = argv[i+1];
+			i++;
+		}
 		else if (!stricmp(arg, "-noprog")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
@@ -2126,29 +2133,33 @@ int mp4boxMain(int argc, char **argv)
 		return 0;
 	}
 
-	{
-		u32 logtools = GF_LOG_CONTAINER|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR|GF_LOG_CODING;
-#ifdef GPAC_MEMORY_TRACKING
-		if (enable_mem_tracker) logtools |= GF_LOG_MEMORY;
-#endif
-
-		//gf_log_set_level((verbose>1) ? GF_LOG_DEBUG : (verbose ? GF_LOG_INFO : GF_LOG_WARNING) );
-		gf_log_set_level(verbose ? GF_LOG_DEBUG : GF_LOG_INFO);
-		gf_log_set_tools(logtools);
-		if (quiet) {
-			if (quiet==2) gf_log_set_level(0);
-			gf_set_progress_callback(NULL, progress_quiet);
-
-		}
-
-	}
-
 	/*init libgpac*/
 #ifdef GPAC_MEMORY_TRACKING
 	gf_sys_init(enable_mem_tracker);
 #else
 	gf_sys_init(0);
 #endif
+
+
+	if (gf_logs) {
+		gf_log_set_tools_levels(gf_logs);
+	} else {
+		u32 level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
+		gf_log_set_tool_level(GF_LOG_CONTAINER, level);
+		gf_log_set_tool_level(GF_LOG_SCENE, level);
+		gf_log_set_tool_level(GF_LOG_PARSER, level);
+		gf_log_set_tool_level(GF_LOG_AUTHOR, level);
+		gf_log_set_tool_level(GF_LOG_CODING, level);
+#ifdef GPAC_MEMORY_TRACKING
+		if (enable_mem_tracker)
+			gf_log_set_tool_level(GF_LOG_MEMORY, level);
+#endif
+		if (quiet) {
+			if (quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
+			gf_set_progress_callback(NULL, progress_quiet);
+
+		}
+	}
 
 	if (do_mpd) {
 		Bool remote = 0;

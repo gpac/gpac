@@ -165,7 +165,7 @@ static Bool audio_encoding_thread_run(void *param)
     while (avr->is_running) {
         u32 readen;
         if (U32_ABS(avr->audioCurrentTime, myTime) > 25000) {
-            //GF_LOG( GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] Drift in audio : audioCurrentTime = %u, myTime=%u, resync...\n", avr->audioCurrentTime, myTime));
+            //GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] Drift in audio : audioCurrentTime = %u, myTime=%u, resync...\n", avr->audioCurrentTime, myTime));
             //myTime = lastCurrentTime = avr->audioCurrentTime;
             //frameCountSinceReset = 0;
             sendPts = 1;
@@ -271,7 +271,7 @@ static Bool video_encoding_thread_run(void *param)
 #ifdef AVR_DUMP_RAW_AVI
                 if ( AVI_write_frame ( avr->avi_out, avr->frame, avr->size, 1 ) <0 )
                 {
-                    GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error writing video frame\n" ) );
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error writing video frame\n" ) );
                 }
 #endif /* AVR_DUMP_RAW_AVI */
                 gf_mx_v(avr->frameMutex);
@@ -285,7 +285,7 @@ static Bool video_encoding_thread_run(void *param)
                     //ctx->coded_frame->pts = currentFrameTimeProcessed;
                     if ( written < 0 )
                     {
-                        GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while encoding video frame =%d\n", written ) );
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while encoding video frame =%d\n", written ) );
                     } else
                         if ( written > 0 )
                         {
@@ -329,7 +329,7 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
     if ( !avr->avi_out )
     {
         gf_mx_v(avr->frameMutex);
-        GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error opening output AVI file\n" ) );
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error opening output AVI file\n" ) );
         return 4;
     }
 #endif /* AVR_DUMP_RAW_AVI */
@@ -345,14 +345,14 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
         if ( !avr->audioCodec)
         {
             gf_mx_v(avr->frameMutex);
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find audio codec.\n" ) );
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find audio codec.\n" ) );
             return 1;
         }
 #endif
 
         if ( !avr->videoCodec )
         {
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find video codec.\n" ) );
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find video codec.\n" ) );
             return 2;
         }
 
@@ -378,7 +378,7 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
         memset ( avr->videoOutbuf, 0, avr->videoOutbufSize );
     }
 #ifdef AVR_DUMP_RAW_AVI
-    GF_LOG ( GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Open output AVI file %s\n", "dump.avi" ) );
+    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Open output AVI file %s\n", "dump.avi" ) );
 #endif /* AVR_DUMP_RAW_AVI */
     /* Setting up the TS mux */
     {
@@ -400,7 +400,7 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
     /*
         if ( e )
         {
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while initializing UDP address %s\n", gf_error_to_string ( e ) ) );
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while initializing UDP address %s\n", gf_error_to_string ( e ) ) );
             return e;
         }
     */
@@ -466,7 +466,7 @@ static void avr_on_video_frame ( void *udta, u32 time )
     e = gf_sc_get_screen_buffer ( avr->term->compositor, &fb, 0 );
     if ( e )
     {
-        GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error grabing frame buffer %s\n", gf_error_to_string ( e ) ) );
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error grabing frame buffer %s\n", gf_error_to_string ( e ) ) );
         return;
     }
     /*convert frame*/
@@ -486,7 +486,7 @@ static void avr_on_video_frame ( void *udta, u32 time )
     avr->frameTime = time;
     gf_mx_v(avr->frameMutex);
     gf_sc_release_screen_buffer ( avr->term->compositor, &fb );
-    GF_LOG ( GF_LOG_DEBUG, GF_LOG_MODULE, ( "[AVRedirect] Writing video frame\n" ) );
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ( "[AVRedirect] Writing video frame\n" ) );
 }
 
 static void avr_on_video_reconfig ( void *udta, u32 width, u32 height )
@@ -501,7 +501,7 @@ static void avr_on_video_reconfig ( void *udta, u32 width, u32 height )
         comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
         AVI_set_video ( avr->avi_out, width, height, 30, comp );
 #endif /* AVR_DUMP_RAW_AVI */
-        GF_LOG ( GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Video reconfig width %d height %d\n", width, height ) );
+        GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Video reconfig width %d height %d\n", width, height ) );
         gf_mx_p(avr->frameMutex);
         if ( avr->frame ) gf_free ( avr->frame );
         avr->size = 3*width*height;
@@ -558,7 +558,7 @@ static void avr_close ( GF_AVRedirect *avr )
     if ( !avr->is_open ) return;
     avr->is_open = 0;
 #ifdef AVR_DUMP_RAW_AVI
-    GF_LOG ( GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Closing output AVI file\n" ) );
+    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Closing output AVI file\n" ) );
     AVI_close ( avr->avi_out );
     avr->avi_out = NULL;
 #endif /* AVR_DUMP_RAW_AVI */
@@ -660,7 +660,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
             }
             else
             {
-                GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Not a known Video codec : %s, using MPEG-2 video instead, %s\n", opt, possibleCodecs ) );
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Not a known Video codec : %s, using MPEG-2 video instead, %s\n", opt, possibleCodecs ) );
                 avr->videoCodec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
         }
@@ -672,7 +672,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                 if (!opt) {
                     gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS);
                     avr->udp_address = DEFAULT_UDP_OUT_ADDRESS;
-                    GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s not set, using %s\n", AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS ) );
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s not set, using %s\n", AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS ) );
                 } else
                     avr->udp_address = opt;
                 opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_PORT_OPTION);
@@ -687,7 +687,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                 }
                 if (!opt) {
                     gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_PORT_OPTION, DEFAULT_UDP_OUT_PORT_STR);
-                    GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s is not set or valid, using %s\n", AVR_UDP_PORT_OPTION, DEFAULT_UDP_OUT_PORT_STR ) );
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s is not set or valid, using %s\n", AVR_UDP_PORT_OPTION, DEFAULT_UDP_OUT_PORT_STR ) );
                     avr->udp_port = DEFAULT_UDP_OUT_PORT;
                 }
         */
@@ -695,7 +695,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
         if (!opt) {
             gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_DESTINATION, AVR_DEFAULT_DESTINATION);
             avr->destination = AVR_DEFAULT_DESTINATION;
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s not set, using %s\n", AVR_DESTINATION, AVR_DEFAULT_DESTINATION ) );
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s not set, using %s\n", AVR_DESTINATION, AVR_DEFAULT_DESTINATION ) );
         } else
             avr->destination = opt;
         avr->audio_listen.udta = avr;

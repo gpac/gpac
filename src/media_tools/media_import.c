@@ -41,7 +41,7 @@
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_get_level() && (gf_log_get_tools() & GF_LOG_AUTHOR)) {
+	if (gf_log_tool_level_on(GF_LOG_AUTHOR, GF_LOG_INFO)) {
 		va_list args;
 		char szMsg[1024];
 		va_start(args, format);

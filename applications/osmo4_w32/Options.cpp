@@ -1903,6 +1903,7 @@ BOOL COptLogs::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
+#if 0
 	Osmo4 *gpac = GetApp();
 	switch (gpac->m_log_level) {
 	case GF_LOG_ERROR: m_Level.SetCurSel(1); break;
@@ -1927,6 +1928,7 @@ BOOL COptLogs::OnInitDialog()
 	m_coding.SetCheck(gpac->m_log_tools & GF_LOG_CODING);
 	m_codec.SetCheck(gpac->m_log_tools & GF_LOG_CODEC);
 	m_author.SetCheck(gpac->m_log_tools & GF_LOG_AUTHOR);
+#endif
 
 	return TRUE;
 }
@@ -1935,52 +1937,47 @@ void COptLogs::SaveOptions()
 {
 	Osmo4 *gpac = GetApp();
 	CString str = "";
+	const char *level = "error";
 	u32 flags = 0;
 
 	switch (m_Level.GetCurSel()) {
 	case 1: 
-		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "error");
-		gpac->m_log_level = GF_LOG_ERROR;
+		level = "error";
 		break;
 	case 2: 
-		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "warning");
-		gpac->m_log_level = GF_LOG_WARNING;
+		level = "warning";
 		break;
 	case 3: 
-		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "info");
-		gpac->m_log_level = GF_LOG_INFO;
+		level = "info";
 		break;
 	case 4: 
-		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "debug");
-		gpac->m_log_level = GF_LOG_DEBUG;
+		level = "debug";
 		break;
 	default: 
-		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "none");
-		gpac->m_log_level = 0;
+		level = "none";
 		break;
 	}
-	gf_log_set_level(gpac->m_log_level);
 
-
-	if (m_sync.GetCheck()) { flags |= GF_LOG_SYNC; str +="sync:"; }
-	if (m_script.GetCheck()) { flags |= GF_LOG_SCRIPT; str +="script:"; }
-	if (m_scene.GetCheck()) { flags |= GF_LOG_SCENE; str +="scene:"; }
-	if (m_rtp.GetCheck()) { flags |= GF_LOG_RTP; str +="rtp:"; }
-	if (m_render.GetCheck()) { flags |= GF_LOG_COMPOSE; str +="compose:"; }
-	if (m_parser.GetCheck()) { flags |= GF_LOG_PARSER; str +="parser:"; }
-	if (m_net.GetCheck()) { flags |= GF_LOG_NETWORK; str +="network:"; }
-	if (m_mmio.GetCheck()) { flags |= GF_LOG_MMIO; str +="mmio:"; }
-	if (m_media.GetCheck()) { flags |= GF_LOG_MEDIA; str +="media:"; }
-	if (m_core.GetCheck()) { flags |= GF_LOG_CORE; str +="core:"; }
-	if (m_container.GetCheck()) { flags |= GF_LOG_CONTAINER; str +="container:"; }
-	if (m_compose.GetCheck()) { flags |= GF_LOG_INTERACT; str +="interact:"; }
-	if (m_coding.GetCheck()) { flags |= GF_LOG_CODING; str +="coding:"; }
-	if (m_codec.GetCheck()) { flags |= GF_LOG_CODEC; str +="codec:"; }
-	if (m_author.GetCheck()) { flags |= GF_LOG_AUTHOR; str +="author:"; }
+	if (m_sync.GetCheck()) { str +="sync:"; }
+	if (m_script.GetCheck()) { str +="script:"; }
+	if (m_scene.GetCheck()) { str +="scene:"; }
+	if (m_rtp.GetCheck()) { str +="rtp:"; }
+	if (m_render.GetCheck()) { str +="compose:"; }
+	if (m_parser.GetCheck()) { str +="parser:"; }
+	if (m_net.GetCheck()) { str +="network:"; }
+	if (m_mmio.GetCheck()) { str +="mmio:"; }
+	if (m_media.GetCheck()) { str +="media:"; }
+	if (m_core.GetCheck()) { str +="core:"; }
+	if (m_container.GetCheck()) { str +="container:"; }
+	if (m_compose.GetCheck()) { str +="interact:"; }
+	if (m_coding.GetCheck()) { str +="coding:"; }
+	if (m_codec.GetCheck()) { str +="codec:"; }
+	if (m_author.GetCheck()) { str +="author:"; }
 
 	gf_cfg_set_key(gpac->m_user.config, "General", "LogTools", str);
-	gpac->m_log_tools = flags;
-	gf_log_set_tools(gpac->m_log_tools);
+	str += "@";
+	str += level;
+	gf_log_set_tools_levels(str);
 }
 
 void COptHTTP::OnBnClickedRestartCache()

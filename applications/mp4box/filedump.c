@@ -153,8 +153,6 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	GF_SceneGraph *sg;
 	GF_SceneLoader load;
 	u32 ftype;
-	u32 prev_level = gf_log_get_level();
-	u32 prev_tools = gf_log_get_tools();
 	gf_log_cbk prev_logs = NULL;
 	FILE *logs = NULL;
 	e = GF_OK;
@@ -198,16 +196,14 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 		sprintf(szLog, "%s_dec.logs", inName);
 		logs = gf_f64_open(szLog, "wt");
 
-		gf_log_set_tools(GF_LOG_CODING);
-		gf_log_set_level(GF_LOG_DEBUG);
+		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
 		prev_logs = gf_log_set_callback(logs, scene_coding_log);
 	}
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (logs) {
-		gf_log_set_tools(prev_tools);
-		gf_log_set_level(prev_level);
+		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_ERROR);
 		gf_log_set_callback(NULL, prev_logs);
 		fclose(logs);
 	}

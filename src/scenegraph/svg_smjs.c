@@ -2601,7 +2601,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	svg_js = node->sgprivate->scenegraph->svg_js;
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_SCRIPT))) { 
+	if (gf_log_tool_level_on(GF_LOG_SCRIPT, GF_LOG_DEBUG)) { 
 		char *content, *_content = NULL;
 		if (utf8_script) {
 			content = utf8_script;

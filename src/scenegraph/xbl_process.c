@@ -56,7 +56,7 @@ typedef struct
 static GF_Err xbl_parse_report(GF_XBL_Parser *parser, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_get_level() && (gf_log_get_tools() & GF_LOG_PARSER)) {
+	if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_WARNING)) {
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);

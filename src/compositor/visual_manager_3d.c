@@ -1400,7 +1400,7 @@ void visual_3d_vrml_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 			tr_state->camera->collide_point = collide_pt;
 
 #ifndef GPAC_DISABLE_LOG
-			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_COMPOSE)) { 				
+			if (gf_log_tool_level_on(GF_LOG_COMPOSE, GF_LOG_DEBUG)) { 				
 				gf_vec_diff(v1, pos, collide_pt);
 				gf_vec_norm(&v1);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] found at %g %g %g (WC) - dist (%g) - local normal %g %g %g\n", 

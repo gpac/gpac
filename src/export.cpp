@@ -53,16 +53,19 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rand) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_user_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_enum_directory) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_get_tools) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_get_level) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_set_level) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools_levels) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tool_level) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_strict_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_callback) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_parse_level) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_parse_tools) )
+
+#ifndef GPAC_DISABLE_LOG
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_tool_level_on) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_lt) )
+#endif
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_delete_file) )

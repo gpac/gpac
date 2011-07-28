@@ -89,8 +89,7 @@ int stream_file_rtp(int argc, char **argv)
 
 	gf_sys_init(0);
 
-	gf_log_set_tools(GF_LOG_RTP);
-	gf_log_set_level(GF_LOG_WARNING);	//set to debug to have packet list
+	gf_log_set_tool_level(GF_LOG_RTP, GF_LOG_WARNING);	//set to debug to have packet list
 
 	file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
 	if (!file_streamer) {
@@ -450,8 +449,7 @@ int live_session(int argc, char **argv)
 
 	memset(&livesess, 0, sizeof(LiveSession));
 	
-	gf_log_set_level(GF_LOG_INFO);
-	gf_log_set_tools(0xFFFFFFFF);
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_INFO);
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];

@@ -1637,18 +1637,14 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
 	} else {
-		u32 prev_level = gf_log_get_level();
-		u32 prev_tools = gf_log_get_tools();
 		gf_log_cbk prev_logs = NULL;
 		if (logs) {
-			gf_log_set_tools(GF_LOG_CODING);
-			gf_log_set_level(GF_LOG_DEBUG);
+			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
 			prev_logs = gf_log_set_callback(logs, scene_coding_log);
 		}
 		e = gf_sm_encode_to_file(ctx, mp4, opts);
 		if (logs) {
-			gf_log_set_tools(prev_tools);
-			gf_log_set_level(prev_level);
+			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_ERROR);
 			gf_log_set_callback(NULL, prev_logs);
 		}
 	}

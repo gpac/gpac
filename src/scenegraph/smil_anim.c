@@ -618,7 +618,7 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (0 && (gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_SMIL)) { 
+	if (0 && gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) { 
 		char *str;
 		gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL); 
 		str = gf_svg_dump_attribute(rai->anim_elt, &rai->interpolated_value);
@@ -779,7 +779,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 								  1);
 
 #ifndef GPAC_DISABLE_LOG
-		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_SMIL)) { 
+		if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) { 
 			char *str;
 			gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL); 
 			str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
@@ -807,7 +807,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 			
 			gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 #ifndef GPAC_DISABLE_LOG
-			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_SMIL)) { 
+			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) { 
 				char *str;
 				gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL); 
 				str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
@@ -904,7 +904,7 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 		rai->anim_done = 1;
 
 #ifndef GPAC_DISABLE_LOG
-		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_SMIL)) { 
+		if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) { 
 			char *str;
 			gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL); 
 			str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
@@ -957,7 +957,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 #ifndef GPAC_DISABLE_LOG
 	u32 time=0;
 
-	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
+	if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
 		time = gf_sys_clock();
 	}
 #endif
@@ -1038,7 +1038,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 #ifndef GPAC_DISABLE_LOG
 		if (aa->presentation_value_changed) {
-			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_SMIL)) { 
+			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) { 
 				char *str;
 				gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL); 
 				str = gf_svg_dump_attribute(node, &aa->presentation_value);
@@ -1066,7 +1066,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
+	if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
 		time_spent_in_anim += gf_sys_clock() - time;
 	}
 #endif

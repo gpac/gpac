@@ -277,8 +277,10 @@ const char *gf_error_to_string(GF_Err e);
  */
 enum
 {
+	/*! Disable all Log message*/
+	GF_LOG_QUIET = 0,
 	/*! Log message describes an error*/
-	GF_LOG_ERROR = 1,
+	GF_LOG_ERROR,
 	/*! Log message describes a warning*/
 	GF_LOG_WARNING,
 	/*! Log message is informational (state, etc..)*/
@@ -286,15 +288,6 @@ enum
 	/*! Log message is a debug info*/
 	GF_LOG_DEBUG
 };
-
-/*!
- *	\brief Log level assignment
- *
- * Sets the level used for log filtering. By default no log is performed
- *	\param level log level used.
- *
- */
-void gf_log_set_level(u32 level);
 
 /*!
  *	\brief Log exits at first error assignment
@@ -315,61 +308,64 @@ void gf_log_set_strict_error(Bool strict);
 enum
 {
 	/*! Log message from the core library (init, threads, network calls, etc)*/
-	GF_LOG_CORE = 1,
+	GF_LOG_CORE = 0,
 	/*! Log message from a raw media parser (BIFS, LASeR, A/V formats)*/
-	GF_LOG_CODING= 1<<1,
+	GF_LOG_CODING,
 	/*! Log message from a bitstream parser (IsoMedia, MPEG-2 TS, OGG, ...)*/
-	GF_LOG_CONTAINER = 1<<2,
+	GF_LOG_CONTAINER,
 	/*! Log message from the network/service stack (messages & co)*/
-	GF_LOG_NETWORK = 1<<3,
+	GF_LOG_NETWORK,
 	/*! Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug)*/
-	GF_LOG_RTP = 1<<4,
+	GF_LOG_RTP,
 	/*! Log message from authoring subsystem (file manip, import/export)*/
-	GF_LOG_AUTHOR = 1<<5,
+	GF_LOG_AUTHOR,
 	/*! Log message from the sync layer of the terminal*/
-	GF_LOG_SYNC = 1<<6,
+	GF_LOG_SYNC,
 	/*! Log message from a codec*/
-	GF_LOG_CODEC = 1<<7,
+	GF_LOG_CODEC,
 	/*! Log message from any XML parser (context loading, etc)*/
-	GF_LOG_PARSER = 1<<8,
+	GF_LOG_PARSER,
 	/*! Log message from the terminal/compositor, indicating media object state*/
-	GF_LOG_MEDIA = 1<<9,
+	GF_LOG_MEDIA,
 	/*! Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core)*/
-	GF_LOG_SCENE = 1<<10,
+	GF_LOG_SCENE,
 	/*! Log message from the scripting engine*/
-	GF_LOG_SCRIPT = 1<<11,
+	GF_LOG_SCRIPT,
 	/*! Log message from event handling*/
-	GF_LOG_INTERACT = 1<<12,
+	GF_LOG_INTERACT,
 	/*! Log message from compositor*/
-	GF_LOG_COMPOSE = 1<<13,
+	GF_LOG_COMPOSE,
 	/*! Log for video object cache */
-	GF_LOG_CACHE = 1<<14,
+	GF_LOG_CACHE,
 	/*! Log message from multimedia I/O devices (audio/video input/output, ...)*/
-	GF_LOG_MMIO = 1<<15,
+	GF_LOG_MMIO,
 	/*! Log for runtime info (times, memory, CPU usage)*/
-	GF_LOG_RTI = 1<<16,
+	GF_LOG_RTI,
 	/*! Log for SMIL timing and animation*/
-	GF_LOG_SMIL = 1<<17,
+	GF_LOG_SMIL,
 	/*! Log for memory tracker*/
-	GF_LOG_MEMORY = 1<<18,
+	GF_LOG_MEMORY,
 	/*! Log for audio compositor*/
-	GF_LOG_AUDIO = 1<<19,
+	GF_LOG_AUDIO,
 	/*! generic Log for modules*/
-	GF_LOG_MODULE = 1<<20,
+	GF_LOG_MODULE,
 	/*! log for threads and mutexes */
-    GF_LOG_MUTEX = 1<<21,
-	/*! All logs*/
-	GF_LOG_ALL = (1<<22)-1
+    GF_LOG_MUTEX,
+
+	/*! special value used to set a level for all tools*/
+	GF_LOG_ALL,
+	GF_LOG_TOOL_MAX = GF_LOG_ALL,
 };
 
 /*!
  *	\brief Log modules assignment
  *
- * Sets the modules to be checked for log filtering. By default no modules are logged.
- *	\param tools log tools filtered. This is an OR'ed combinaison of log module flags
+ * Sets the tools to be checked for log filtering. By default no logging is performed.
+ *	\param tool tool to be logged.
+ *	\param level level of logging for this tool.
  *
  */
-void gf_log_set_tools(u32 tools);
+void gf_log_set_tool_level(u32 tool, u32 level);
 
 /*!
  *	\brief Log Message Callback
@@ -397,7 +393,6 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 /*!
  \cond DUMMY_DOXY_SECTION
 */
-
 #ifndef GPAC_DISABLE_LOG
 /*note:
 		to turn log on, change to GPAC_ENABLE_LOG
@@ -416,11 +411,43 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 void gf_log(const char *fmt, ...);
 void gf_log_lt(u32 ll, u32 lt);
 
-u32 gf_log_get_level();
-u32 gf_log_get_tools();
 
-u32 gf_log_parse_level(const char *val);
-u32 gf_log_parse_tools(const char *val);
+/*!
+ *	\brief Log level checking
+ *
+ *	Checks if a given tool is logged for the given level
+ *	\param log_tool tool to check
+ *	\param log_level level to check
+ *	\return 1 if logged, 0 otherwise
+*/
+Bool gf_log_tool_level_on(u32 log_tool, u32 log_level);
+
+/*!
+ *	\brief Set log tools and levels
+ *
+ *	Set log tools and levels according to the log_tools_levels string. All previous log settings are discarded.
+ *	\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX@logLevelX:logToolZ@logLevelZ:... 
+ *	\return GF_OK or GF_BAD_PARAM
+*/
+GF_Err gf_log_set_tools_levels(const char *log_tools_levels);
+
+/*!
+ *	\brief Modify log tools and levels
+ *
+ *	Modify log tools and levels according to the log_tools_levels string. Previous log settings are kept.
+ *	\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX@logLevelX:logToolZ@logLevelZ:... 
+ *	\return GF_OK or GF_BAD_PARAM
+*/
+GF_Err gf_log_modify_tools_levels(const char *val);
+
+/*!
+ *	\brief Set log level for a given tool
+ *
+ *	Set log level for a given tool.
+ *	\param tool tool to log
+ *	\param level log level for this tool
+*/
+void gf_log_set_tool_level(u32 tool, u32 level);
 
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args)
@@ -431,7 +458,7 @@ u32 gf_log_parse_tools(const char *val);
  *
  *	Macro for logging messages. Usage is GF_LOG(log_lev, log_module, (fmt, ...)). The log function is only called if log filtering allows it. This avoids fetching logged parameters when the tool is not being logged.
 */
-#define GF_LOG(_log_level, _log_tools, __args) if ((gf_log_get_level() >= (_log_level)) && (gf_log_get_tools() & (_log_tools))) { gf_log_lt(_log_level, _log_tools); gf_log __args ;}
+#define GF_LOG(_log_level, _log_tools, __args) if (gf_log_tool_level_on(_log_tools, _log_level) ) { gf_log_lt(_log_level, _log_tools); gf_log __args ;}
 #endif
 
 

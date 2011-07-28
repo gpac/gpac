@@ -468,13 +468,9 @@ BOOL Osmo4::InitInstance()
 	else m_logs = NULL;
 
 	/*set log level*/
-	m_log_level = gf_log_parse_level(gf_cfg_get_key(m_user.config, "General", "LogLevel"));
-	gf_log_set_level(m_log_level);
+	if (gf_log_set_tools_levels(gf_cfg_get_key(m_user.config, "General", "LogLevel")) != GF_OK)
+		fprintf(stdout, "osmo4: invalid log level specified\n");
 
-	/*set log tools*/
-	m_log_tools = gf_log_parse_tools(gf_cfg_get_key(m_user.config, "General", "LogTools"));
-	gf_log_set_tools(m_log_tools); 
-	
 	m_user.opaque = this;
 	m_user.os_window_handler = pFrame->m_pWndView->m_hWnd;
 	m_user.EventProc = Osmo4_EventProc;

@@ -816,7 +816,7 @@ scalable_retry:
 				unit_size = 0;
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;
@@ -841,7 +841,7 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, codec->CB->UnitCount + 1));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, codec->CB->UnitCount + 1));
 			}
 			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
 			else if (codec->CB->Status == CB_BUFFER) {
