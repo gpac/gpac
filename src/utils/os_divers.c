@@ -1304,6 +1304,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	
     error = task_for_pid(mach_task_self(), the_rti.pid, &task);
  	if (error) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get process task for PID %d: error %d\n", the_rti.pid, error));
 		return 0;
 	}
 	
@@ -1311,12 +1312,20 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	utime = ti.user_time.seconds + ti.user_time.microseconds * 1e-6;
 	stime = ti.system_time.seconds + ti.system_time.microseconds * 1e-6;
 	error = task_threads(task, &thread_table, &table_size);
-	assert(error == KERN_SUCCESS);
+	if (error != KERN_SUCCESS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get threads task for PID %d: error %d\n", the_rti.pid, error));
+		return 0;
+	}
 	thi = &thi_data;
 	for (i = 0; i != table_size; ++i) {
 		count = THREAD_BASIC_INFO_COUNT;
 		error = thread_info(thread_table[i], THREAD_BASIC_INFO, (thread_info_t)thi, &count);
-		assert(error == KERN_SUCCESS);
+		if (error != KERN_SUCCESS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Error %d while fetching thread info for PID %d\n", error, the_rti.pid));
+			vm_deallocate(mach_task_self(), (vm_offset_t)thread_table, table_size * sizeof(thread_array_t));
+			mach_port_deallocate(mach_task_self(), task);
+			return 0;
+		}
 		if ((thi->flags & TH_FLAGS_IDLE) == 0) {
 			utime += thi->user_time.seconds + thi->user_time.microseconds * 1e-6;
 			stime += thi->system_time.seconds + thi->system_time.microseconds * 1e-6;
