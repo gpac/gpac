@@ -252,6 +252,7 @@ void PrintGeneralUsage()
 			"                       Ignored if segments are stored in the output file.\n"
 			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
 			" -dash-ctx FILE       Stores/restore DASH timing from FILE.\n"
+			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
 
