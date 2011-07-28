@@ -23,8 +23,7 @@
 #define gf_iphone_set_sdl_audio_module _gf_iphone_set_sdl_audio_module
 #define gf_term_step_clocks _gf_term_step_clocks
 #define gf_prompt_set_echo_off _gf_prompt_set_echo_off
-#define gf_log_get_tools _gf_log_get_tools
-#define gf_log_get_level _gf_log_get_level
+#define gf_log_tool_level_on _gf_log_tool_level_on
 #define gf_cfg_set_key _gf_cfg_set_key
 #define gf_cfg_get_section_count _gf_cfg_get_section_count
 #define gf_term_get_service_info _gf_term_get_service_info
@@ -141,10 +140,8 @@ extern void (*gf_iphone_set_sdl_audio_module)(void* (*SDL_Module) (void));
 extern GF_Err (*gf_term_step_clocks)(GF_Terminal * term, u32 ms_diff);
 #undef gf_prompt_set_echo_off
 extern void (*gf_prompt_set_echo_off)(Bool echo_off);
-#undef gf_log_get_tools
-extern u32 (*gf_log_get_tools)();
-#undef gf_log_get_level
-extern u32 (*gf_log_get_level)();
+#undef gf_log_tool_level_on
+extern u32 (*gf_log_tool_level_on)();
 #undef gf_cfg_set_key
 extern GF_Err (*gf_cfg_set_key)(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue);
 #undef gf_cfg_get_section_count
@@ -162,7 +159,7 @@ extern void *(*gf_malloc)(size_t size);
 #undef gf_log_set_tools_levels
 extern void (*gf_log_set_tools_levels)(const char *tools);
 #undef gf_log_set_tool_level
-extern void (*gf_log_set_tool_level)(const char *tools);
+extern void (*gf_log_set_tool_level)(u32 tool, u32 level);
 #undef gf_iphone_set_sdl_video_module
 extern void (*gf_iphone_set_sdl_video_module)(void* (*SDL_Module) (void));
 #undef gf_term_get_option
