@@ -38,8 +38,7 @@ GF_Err (*gf_sc_get_screen_buffer)(GF_Compositor *sr, GF_VideoSurface *framebuffe
 void (*gf_iphone_set_sdl_audio_module)(void* (*SDL_Module) (void));
 GF_Err (*gf_term_step_clocks)(GF_Terminal * term, u32 ms_diff);
 void (*gf_prompt_set_echo_off)(Bool echo_off);
-u32 (*gf_log_get_tools)();
-u32 (*gf_log_get_level)();
+u32 (*gf_log_tool_level_on)();
 GF_Err (*gf_cfg_set_key)(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue);
 u32 (*gf_cfg_get_section_count)(GF_Config *cfgFile);
 GF_Err (*gf_term_get_service_info)(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netcom);
@@ -823,8 +822,8 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 		/*turn on RTI loging*/
 		if (use_rtix) {
 			gf_log_set_callback(NULL, on_gpac_log);
-			gf_log_set_tools_levels(GF_LOG_ALL, GF_LOG_ERROR);
-			gf_log_set_tools_levels(GF_LOG_RTI, GF_LOG_DEBUG);
+			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+			gf_log_set_tool_level(GF_LOG_RTI, GF_LOG_DEBUG);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 		} else if (log_time_start) {
@@ -875,8 +874,7 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_iphone_set_sdl_audio_module\n", gf_iphone_set_sdl_audio_module = dlsym(libgpac_so, "gf_iphone_set_sdl_audio_module"));
 	fprintf(stderr, "dlsym: %p gf_term_step_clocks\n", gf_term_step_clocks = dlsym(libgpac_so, "gf_term_step_clocks"));
 	fprintf(stderr, "dlsym: %p gf_prompt_set_echo_off\n", gf_prompt_set_echo_off = dlsym(libgpac_so, "gf_prompt_set_echo_off"));
-	fprintf(stderr, "dlsym: %p gf_log_get_tools\n", gf_log_get_tools = dlsym(libgpac_so, "gf_log_get_tools"));
-	fprintf(stderr, "dlsym: %p gf_log_get_level\n", gf_log_get_level = dlsym(libgpac_so, "gf_log_get_level"));
+	fprintf(stderr, "dlsym: %p gf_log_tool_level_on\n", gf_log_tool_level_on = dlsym(libgpac_so, "gf_log_tool_level_on"));
 	fprintf(stderr, "dlsym: %p gf_cfg_set_key\n", gf_cfg_set_key = dlsym(libgpac_so, "gf_cfg_set_key"));
 	fprintf(stderr, "dlsym: %p gf_cfg_get_section_count\n", gf_cfg_get_section_count = dlsym(libgpac_so, "gf_cfg_get_section_count"));
 	fprintf(stderr, "dlsym: %p gf_term_get_service_info\n", gf_term_get_service_info = dlsym(libgpac_so, "gf_term_get_service_info"));

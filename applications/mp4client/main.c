@@ -160,7 +160,7 @@ void PrintUsage()
 		"\t        \"cache\"      : HTTP cache subsystem\n"
 		"\t        \"audio\"      : Audio renderer and mixers\n"
 #ifdef GPAC_MEMORY_TRACKING
-		"\t        \"mem\"        : PGAC memory tracker\n"
+		"\t        \"mem\"        : GPAC memory tracker\n"
 #endif
 		"\t        \"module\"     : GPAC modules debugging\n"
 		"\t        \"mutex\"      : mutex\n"
