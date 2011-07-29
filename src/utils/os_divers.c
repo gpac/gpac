@@ -870,8 +870,9 @@ void gf_sys_init(Bool enable_memory_tracker)
 			gf_mem_enable_tracker();
 #endif
 		}
-		/*by default log subsystem is initialized to error on all tools*/
+		/*by default log subsystem is initialized to error on all tools, and info on console to debug scripts*/
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		gf_log_set_tool_level(GF_LOG_CONSOLE, GF_LOG_INFO);
 
 
 #if defined(__sh__)

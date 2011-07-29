@@ -188,7 +188,7 @@ static JSBool SMJS_FUNCTION(svg_echo)
 
 	if (JSVAL_IS_STRING(argv[0])) {
 		char *str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, argv[0]) );
-		_ScriptMessage(sg, GF_SCRIPT_INFO, str);
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONSOLE, (str) );
 		SMJS_FREE(c, str);
 	}
 	return JS_TRUE;

@@ -198,6 +198,7 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 #endif
 			else if (!stricmp(tools, "module")) global_log_tools[GF_LOG_MODULE] = level;
 			else if (!stricmp(tools, "mutex")) global_log_tools[GF_LOG_MUTEX] = level;
+			else if (!stricmp(tools, "console")) global_log_tools[GF_LOG_CONSOLE] = level;
 			else if (!stricmp(tools, "none")) {
 				memset(global_log_tools, 0, sizeof(global_log_tools) );
 				return GF_OK;
@@ -333,8 +334,6 @@ GF_EXPORT
 const char *gf_error_to_string(GF_Err e)
 {
 	switch (e) {
-	case GF_SCRIPT_INFO:
-		return "Script message";
 	case GF_EOS:
 		return "End Of Stream / File";
 	case GF_OK:

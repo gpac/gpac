@@ -477,7 +477,7 @@ static JSBool SMJS_FUNCTION(JSPrint)
 	SMJS_ARGS	
 	if (JSVAL_IS_STRING(argv[0])) {
 		char *str = SMJS_CHARS(c, argv[0]);
-		_ScriptMessage(c, GF_SCRIPT_INFO, str);
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONSOLE, (str) );
 		SMJS_FREE(c, str);
 	}
 	return JS_TRUE;
