@@ -2353,10 +2353,10 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 				z = p[3]; z = z / 255;
 
 				glColor4f(r, g, b, 1.0);
-				glVertex3f(x, y, -z*60);
-				x += inc;
+				glVertex3f(FIX2FLT(x), FIX2FLT(y), FIX2FLT(-z)*60);
+				x += FLT2FIX(inc);
 			}
-			y -= inc;
+			y -= FLT2FIX(inc);
 		}
 		glEnd();
 
@@ -2365,7 +2365,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 	}
 
 	if (visual->compositor->depth_gl_type==GF_SC_DEPTH_GL_STRIPS) {
-		delta = visual->compositor->depth_gl_strips_filter;
+		delta = FIX2FLT(visual->compositor->depth_gl_strips_filter);
 		if (!delta) first_pass = 2;
 		else first_pass = 1;
 
@@ -2409,7 +2409,7 @@ restart:
 							glEnd();
 							in_strip = 0;
 						}
-						x += inc;
+						x += FLT2FIX(inc);
 						continue;
 					}
 				} else if (first_pass==0) {
@@ -2419,7 +2419,7 @@ restart:
 							glEnd();
 							in_strip = 0;
 						}
-						x += inc;
+						x += FLT2FIX(inc);
 						continue;
 					}
 				}
@@ -2439,7 +2439,7 @@ restart:
 				}
 
 				glColor3f(r, g, b);
-				glVertex3f(x, y, z1*scale);
+				glVertex3f(FIX2FLT(x), FIX2FLT(y), FIX2FLT(z1)*scale);
 
 				r = p2[0];
 				r /= 255;
@@ -2449,15 +2449,15 @@ restart:
 				b /= 255;
 
 				glColor3f(r, g, b);
-				glVertex3f(x, y-inc, z2*scale);
+				glVertex3f(FIX2FLT(x), FIX2FLT(y)-inc, FIX2FLT(z2)*scale);
 
-				x += inc;
+				x += FLT2FIX(inc);
 			}
 			if (in_strip) {
 				glEnd();
 				in_strip = 0;
 			}
-			y -= inc;
+			y -= FLT2FIX(inc);
 		}
 
 		if (first_pass==1) {
@@ -2485,7 +2485,7 @@ restart:
 
 			for (w=0; w<txh->width; w++) {
 				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w) / (txh->width-1), INT2FIX(txh->height - h  -1) / (txh->height-1) );
-				x += inc;
+				x += FLT2FIX(inc);
 
 				/*set triangle*/
 				if (h && w) {
@@ -2494,7 +2494,7 @@ restart:
 					mesh_set_triangle(stack->mesh, first_idx, txh->width + first_idx, txh->width + first_idx +1);
 				}
 			}
-			y -= inc;
+			y -= FLT2FIX(inc);
 		}
 		/*force recompute of Z*/
 		txh->needs_refresh = 1;
