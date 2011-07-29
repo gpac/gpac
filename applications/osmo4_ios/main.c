@@ -46,7 +46,8 @@ GF_Err (*gf_term_set_size)(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 Bool (*gf_sys_get_rti)(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 u32 (*gf_term_play_from_time)(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
 void *(*gf_malloc)(size_t size);
-void (*gf_log_set_tools_level)(const char *);
+void (*gf_log_set_tools_levels)(const char *);
+void (*gf_log_set_tool_level)(u32, u32);
 void (*gf_log_modify_tools_level)(const char *);
 void (*gf_iphone_set_sdl_video_module)(void* (*SDL_Module) (void));
 u32 (*gf_term_get_option)(GF_Terminal *term, u32 opt_type);
@@ -881,6 +882,7 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_sys_get_rti\n", gf_sys_get_rti = dlsym(libgpac_so, "gf_sys_get_rti"));
 	fprintf(stderr, "dlsym: %p gf_term_play_from_time\n", gf_term_play_from_time = dlsym(libgpac_so, "gf_term_play_from_time"));
 	fprintf(stderr, "dlsym: %p gf_malloc\n", gf_malloc = dlsym(libgpac_so, "gf_malloc"));
+	fprintf(stderr, "dlsym: %p gf_log_set_tool_level\n", gf_log_set_tool_level = dlsym(libgpac_so, "gf_log_set_tool_level"));
 	fprintf(stderr, "dlsym: %p gf_log_set_tools_levels\n", gf_log_set_tools_levels = dlsym(libgpac_so, "gf_log_set_tools_levels"));
 	fprintf(stderr, "dlsym: %p gf_log_modify_tools_levels\n", gf_log_modify_tools_levels = dlsym(libgpac_so, "gf_log_modify_tools_levels"));
 	fprintf(stderr, "dlsym: %p gf_iphone_set_sdl_video_module\n", gf_iphone_set_sdl_video_module = dlsym(libgpac_so, "gf_iphone_set_sdl_video_module"));
