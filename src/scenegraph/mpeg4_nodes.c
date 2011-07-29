@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Jul 20 05:50:21 2011
+	DO NOT MOFIFY - File generated on GMT Fri Jul 29 07:58:18 2011
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -2776,14 +2776,14 @@ static Bool CompositeTexture2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	case 7:
 		*AType = 0;
@@ -2969,14 +2969,14 @@ static Bool CompositeTexture3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	default:
 		return 0;
@@ -30855,14 +30855,14 @@ static Bool SynthesizedTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	case 3:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	case 5:
 		*AType = 7;
@@ -32120,21 +32120,21 @@ static Bool AdvancedAudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTyp
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
-		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		*b_max = FIX_MAX;
 		return 1;
 	case 11:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
-		*b_min = INT2FIX(-65536);
-		*b_max = INT2FIX( 0);
+		*b_min = FIX_MIN;
+		*b_max = FLT2FIX( 0);
 		return 1;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
-		*b_min = INT2FIX(-65536);
-		*b_max = INT2FIX( 0);
+		*b_min = FIX_MIN;
+		*b_max = FLT2FIX( 0);
 		return 1;
 	case 13:
 		*AType = 0;

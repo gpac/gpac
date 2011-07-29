@@ -789,12 +789,12 @@ void WriteNodeQuant(FILE *f, BNode *n)
 		if (bf->hasBounds) {
 			if (!strcmp(bf->b_min, "+I") || !strcmp(bf->b_min, " +I") || !strcmp(bf->b_min, "I")) {
 				fprintf(f, "\t\t*b_min = FIX_MAX;\n");
-			} else if (!strcmp(bf->b_min, "-I")) {
+			} else if (!strcmp(bf->b_min, "-I")  || !strcmp(bf->b_min, "-65536")) {
 				fprintf(f, "\t\t*b_min = FIX_MIN;\n");
 			} else {
 				fprintf(f, "\t\t*b_min = %s;\n", GetFixedPrintout(bf->b_min));
 			}
-			if (!strcmp(bf->b_max, "+I") || !strcmp(bf->b_max, " +I") || !strcmp(bf->b_max, "I")) {
+			if (!strcmp(bf->b_max, "+I") || !strcmp(bf->b_max, " +I") || !strcmp(bf->b_max, "I") || !strcmp(bf->b_max, "65535")) {
 				fprintf(f, "\t\t*b_max = FIX_MAX;\n");
 			} else {
 				fprintf(f, "\t\t*b_max = %s;\n", GetFixedPrintout(bf->b_max));
