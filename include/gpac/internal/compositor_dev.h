@@ -771,6 +771,7 @@ struct _traversing_state
 #ifndef GPAC_DISABLE_SVG
 	SVG_Number *parent_use_opacity;
 	SVGAllAttributes *parent_anim_atts;
+	Bool parent_is_use;
 
 	/*SVG text rendering state*/
 	Bool in_svg_text;
