@@ -139,7 +139,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_WARNING)) {
+	if (gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
 		char szMsg[1024];
 		va_list args;
 		va_start(args, format);
