@@ -169,8 +169,6 @@ u64 gf_f64_seek(FILE *f, s64 pos, s32 whence);
  */
 typedef enum
 {
-	/*!Message from any scripting engine used in the presentation (ECMAScript, MPEG-J, ...) (Info).*/
-	GF_SCRIPT_INFO						= 3,
 	/*!Indicates an data frame has several AU packed (not MPEG-4 compliant). This is used by decoders to force
 	multiple decoding of the same data frame (Info).*/
 	GF_PACKED_FRAMES					= 2,
@@ -329,7 +327,7 @@ enum
 	GF_LOG_MEDIA,
 	/*! Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core)*/
 	GF_LOG_SCENE,
-	/*! Log message from the scripting engine*/
+	/*! Log message from the scripting engine APIs - does not cover alert() in the script code itself*/
 	GF_LOG_SCRIPT,
 	/*! Log message from event handling*/
 	GF_LOG_INTERACT,
@@ -351,6 +349,8 @@ enum
 	GF_LOG_MODULE,
 	/*! log for threads and mutexes */
     GF_LOG_MUTEX,
+	/*! log for all messages comming from GF_Terminal or script alert()*/
+    GF_LOG_CONSOLE,
 
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
