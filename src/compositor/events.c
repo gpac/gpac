@@ -877,15 +877,21 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	for (i=0; i<count; i++) {
 		GF_Node *keynav;
 		hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
-		res += hs->OnUserEvent(hs, 1, 0, ev, compositor);
 
 		/*try to remove this sensor from the previous sensor list*/
 		gf_list_del_item(compositor->previous_sensors, hs);
-
 		stype = gf_node_get_tag(hs->sensor);
-
 		keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
 		if (keynav) gf_sc_change_key_navigator(compositor, keynav);
+
+		/*call the sensor LAST, as this may triger a destroy of the scene the sensor is in 
+		this is only true for anchors, as other other sensors output events are queued as routes untill next pass*/
+		res += hs->OnUserEvent(hs, 1, 0, ev, compositor);
+		if ((stype == TAG_MPEG4_Anchor) || (stype == TAG_X3D_Anchor) ) {
+			/*subscene with active sensor has been deleted, we cannot continue process the sensors stack*/
+			if (count != gf_list_count(compositor->sensors))
+				break;
+		}
 	}
 	compositor->grabbed_sensor = 0;
 	/*check if we have grabbed sensors*/
