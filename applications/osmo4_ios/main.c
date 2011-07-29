@@ -104,8 +104,7 @@ GF_ObjectManager *(*gf_term_get_root_object)(GF_Terminal *term);
 u32 (*gf_term_get_time_in_ms)(GF_Terminal *term);
 void (*gf_term_connect_with_path)(GF_Terminal *term, const char *URL, const char *parent_URL);
 gf_log_cbk (*gf_log_set_callback)(void *usr_cbk, gf_log_cbk cbk);
-u32 (*gf_log_parse_tools)(const char *val);
-u32 (*gf_log_parse_level)(const char *val);
+GF_Err (*gf_log_modify_tools_levels)(const char *val);
 void (*gf_term_switch_quality)(GF_Terminal *term, Bool up);
 GF_Err (*gf_term_release_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
 GF_Err (*gf_term_get_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
@@ -940,8 +939,6 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_term_get_time_in_ms\n", gf_term_get_time_in_ms = dlsym(libgpac_so, "gf_term_get_time_in_ms"));
 	fprintf(stderr, "dlsym: %p gf_term_connect_with_path\n", gf_term_connect_with_path = dlsym(libgpac_so, "gf_term_connect_with_path"));
 	fprintf(stderr, "dlsym: %p gf_log_set_callback\n", gf_log_set_callback = dlsym(libgpac_so, "gf_log_set_callback"));
-	fprintf(stderr, "dlsym: %p gf_log_parse_tools\n", gf_log_parse_tools = dlsym(libgpac_so, "gf_log_parse_tools"));
-	fprintf(stderr, "dlsym: %p gf_log_parse_level\n", gf_log_parse_level = dlsym(libgpac_so, "gf_log_parse_level"));
 	fprintf(stderr, "dlsym: %p gf_term_switch_quality\n", gf_term_switch_quality = dlsym(libgpac_so, "gf_term_switch_quality"));
 	fprintf(stderr, "dlsym: %p gf_term_release_screen_buffer\n", gf_term_release_screen_buffer = dlsym(libgpac_so, "gf_term_release_screen_buffer"));
 	fprintf(stderr, "dlsym: %p gf_term_get_screen_buffer\n", gf_term_get_screen_buffer = dlsym(libgpac_so, "gf_term_get_screen_buffer"));
