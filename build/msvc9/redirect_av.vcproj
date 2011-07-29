@@ -62,7 +62,9 @@
 				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
+				DisableSpecificWarnings="4090"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -160,6 +162,8 @@
 				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				Detect64BitPortabilityProblems="false"
+				DisableSpecificWarnings="4090"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

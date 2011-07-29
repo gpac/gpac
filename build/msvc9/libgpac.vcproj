@@ -76,6 +76,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalOptions="/ignore:4221"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/libgpac_static.lib"
 				SuppressStartupBanner="true"
 			/>
@@ -153,6 +154,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalOptions="/ignore:4221"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac_static.lib"
 				SuppressStartupBanner="true"
 			/>
