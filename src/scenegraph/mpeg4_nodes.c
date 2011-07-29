@@ -32126,15 +32126,15 @@ static Bool AdvancedAudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTyp
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
-		*b_min = FLT2FIX(-65536);
-		*b_max = FLT2FIX( 0);
+		*b_min = INT2FIX(-65536);
+		*b_max = INT2FIX( 0);
 		return 1;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
-		*b_min = FLT2FIX(-65536);
-		*b_max = FLT2FIX( 0);
+		*b_min = INT2FIX(-65536);
+		*b_max = INT2FIX( 0);
 		return 1;
 	case 13:
 		*AType = 0;
