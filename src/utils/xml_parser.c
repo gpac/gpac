@@ -485,6 +485,11 @@ att_retry:
 		sep = strchr(parser->buffer + parser->current_pos, parser->att_sep);
 		if (!sep || !sep[1]) return 1;
 
+		if (sep[1]==parser->att_sep) {
+			format_sax_error(parser, sep - parser->buffer, "Invalid character %c after attribute value separator %c ", sep[1], parser->att_sep);
+			return 1;
+		}
+
 		if (!parser->init_state && (strchr(" />\n\t\r", sep[1])==NULL)) {
 			parser->current_pos = sep - parser->buffer + 1;
 			goto att_retry;

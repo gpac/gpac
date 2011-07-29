@@ -230,13 +230,14 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 	}
 
 exit:
-	if ((svgin->scene->graph_attached!=1) && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
+	if ((e>=GF_OK) && (svgin->scene->graph_attached!=1) && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
 		gf_scene_attach_to_compositor(svgin->scene);
 	}
 	/*prepare for next playback*/
-	if (e==GF_EOS) {
+	if (e) {
 		gf_sm_load_done(&svgin->loader);
 		svgin->loader.fileName = NULL;
+		e = GF_EOS;
 	}
 	return e;
 }
