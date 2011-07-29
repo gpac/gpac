@@ -485,10 +485,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 		if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("%s %s: %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error)));
+			if (evt->message.error==GF_SCRIPT_INFO) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONSOLE, ("%s\n", evt->message.message));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("%s %s: %s\n", servName, evt->message.message, gf_error_to_string(evt->message.error)));
+			}
 		} else if (!be_quiet) 
-			/*TODO: put a GF_LOG here*/
-			fprintf(stdout, "%s %s\r", evt->message.message, servName);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONSOLE, ("%s %s\n", servName, evt->message.message));
 	}
 		break;
 	case GF_EVENT_PROGRESS:
