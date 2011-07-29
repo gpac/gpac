@@ -299,11 +299,11 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 
     case EOsmo4OptEnableLogs:
     {
-		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "General", "LogLevel");
-		if (opt && !stricmp(opt, "debug")) {
-			gf_cfg_set_key(iAppView->m_user.config, "General", "LogLevel", "error");
+		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "General", "Logs");
+		if (opt && !stricmp(opt, "@debug")) {
+			gf_cfg_set_key(iAppView->m_user.config, "General", "Logs", "all@error");
 		} else {
-			gf_cfg_set_key(iAppView->m_user.config, "General", "LogLevel", "debug");
+			gf_cfg_set_key(iAppView->m_user.config, "General", "Logs", "all@debug");
 		}
 		iAppView->SetupLogs();
     }

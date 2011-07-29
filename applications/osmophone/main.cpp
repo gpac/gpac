@@ -72,6 +72,8 @@ static Bool is_connected = 0;
 static Bool navigation_on = 0;
 static Bool playlist_navigation_on = 1;
 
+static u32 log_level = GF_LOG_ERROR;
+
 static u32 Duration;
 static Bool CanSeek = 0;
 static u32 Volume=100;
@@ -240,7 +242,12 @@ static void setup_logs()
 	gf_log_set_callback(NULL, NULL);
 
 	if (log_rti) {
-		log_file = gf_f64_open("\\gpac_logs.txt", "a+t");
+		const char *filename = gf_cfg_get_key(user.config, "General", "LogFile");
+		if (!filename) {
+			gf_cfg_set_key(user.config, "General", "LogFile", "\\gpac_logs.txt");
+			filename = "\\gpac_logs.txt";
+		}
+		log_file = gf_f64_open(filename, "a+t");
 
 		fprintf(log_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
 		fprintf(log_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
@@ -251,11 +258,16 @@ static void setup_logs()
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 	} else {
-		const char *logs = gf_cfg_get_key(user.config, "General", "LogLevel");
+		const char *filename = gf_cfg_get_key(user.config, "General", "LogFile");
+		if (!filename) {
+			gf_cfg_set_key(user.config, "General", "LogFile", "\\gpac_logs.txt");
+			filename = "\\gpac_logs.txt";
+		}
+		const char *logs = gf_cfg_get_key(user.config, "General", "Logs");
 		if (logs) {
 			if (gf_log_set_tools_levels( logs ) != GF_OK) {
 			} else {
-				if (log_file = gf_f64_open("\\gpac_logs.txt", "a+t")) {
+				if (log_file = gf_f64_open(filename, "a+t")) {
 					gf_log_set_callback(log_file, on_gpac_log);
 				}
 			}
@@ -818,36 +830,22 @@ void do_copy_paste()
 	CloseClipboard(); 
 }
 
-static void rewrite_log_tools(const char *lt) 
+static void rewrite_log_tools(u32 tool) 
 {
-	char *opt = (char *) gf_cfg_get_key(user.config, "General", "LogTools");
-	if (!opt || !strcmp(opt, "none")) opt="";
-
-	if (!strstr(opt, lt)) {
-		char *opt2 = (char*) gf_malloc(sizeof(char) * (strlen(opt) + strlen(lt) + 2));
-		strcpy(opt2, opt);
-		if (strlen(opt)) strcat(opt2, ":");
-		strcat(opt2, lt);
-		gf_cfg_set_key(user.config, "General", "LogTools", opt2);
-		gf_free(opt2);
+	char *logs;
+	if (tool == GF_LOG_ALL) {
+		gf_log_set_tool_level(GF_LOG_ALL, log_level);
 	} else {
-		char *opt2, *sep;
-		opt2 = gf_strdup(opt);
-		opt2[0] = 0; 
-		
-		while (opt) {
-			sep = strchr(opt, ':');
-			if (sep) sep[0] = 0;
-			if (strcmp(opt, lt)) {
-				if (strlen(opt2)) strcat(opt2, ":");
-				strcat(opt2, opt);
-			}
-			if (sep) sep[0] = ':';
-			opt = sep ? sep+1 : NULL;;
+		if (gf_log_tool_level_on(tool, log_level)) {
+			gf_log_set_tool_level(tool, GF_LOG_QUIET);
+		} else {
+			gf_log_set_tool_level(tool, log_level);
 		}
-		if (!strlen(opt2)) strcpy(opt2, "none");
-		gf_cfg_set_key(user.config, "General", "LogTools", opt2);
-		gf_free(opt2);
+	}
+	logs = gf_log_get_tools_levels();
+	if (logs) {
+		gf_cfg_set_key(user.config, "General", "Logs", logs);
+		gf_free(logs);
 	}
 	setup_logs();
 }
@@ -977,53 +975,53 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case ID_LOGLEVEL_NONE:
-		gf_cfg_set_key(user.config, "General", "LogLevel", "none");
-		setup_logs();
+		log_level = GF_LOG_QUIET;
+		rewrite_log_tools(GF_LOG_ALL);
 		break;
 	case ID_LOGLEVEL_ERROR:
-		gf_cfg_set_key(user.config, "General", "LogLevel", "error");
-		setup_logs();
+		log_level = GF_LOG_ERROR;
+		rewrite_log_tools(GF_LOG_ALL);
 		break;
 	case ID_LOGLEVEL_WARNING:
-		gf_cfg_set_key(user.config, "General", "LogLevel", "warning");
-		setup_logs();
+		log_level = GF_LOG_WARNING;
+		rewrite_log_tools(GF_LOG_ALL);
 		break;
 	case ID_LOGLEVEL_INFO:
-		gf_cfg_set_key(user.config, "General", "LogLevel", "info");
-		setup_logs();
+		log_level = GF_LOG_INFO;
+		rewrite_log_tools(GF_LOG_ALL);
 		break;
 	case ID_LOGLEVEL_DEBUG:
-		gf_cfg_set_key(user.config, "General", "LogLevel", "debug");
-		setup_logs();
+		log_level = GF_LOG_DEBUG;
+		rewrite_log_tools(GF_LOG_ALL);
 		break;
-	case ID_TOOLS_CORE: rewrite_log_tools("core"); break;
-	case ID_TOOLS_CODING: rewrite_log_tools("coding"); break;
-	case ID_TOOLS_CONTAINER: rewrite_log_tools("container"); break;
-	case ID_TOOLS_NETWORK: rewrite_log_tools("network"); break;
-	case ID_TOOLS_RTP: rewrite_log_tools("rtp"); break;
-	case ID_TOOLS_SCRIPT: rewrite_log_tools("script"); break;
-	case ID_TOOLS_CODEC: rewrite_log_tools("codec"); break;
-	case ID_TOOLS_PARSER: rewrite_log_tools("parser"); break;
-	case ID_TOOLS_MEDIA: rewrite_log_tools("media"); break;
-	case ID_TOOLS_SCENE: rewrite_log_tools("scene"); break;
-	case ID_TOOLS_INTERACT: rewrite_log_tools("interact"); break;
-	case ID_TOOLS_COMPOSE: rewrite_log_tools("compose"); break;
-	case ID_TOOLS_MMIO: rewrite_log_tools("mmio"); break;
-	case ID_TOOLS_RTI: rewrite_log_tools("rti"); break;
-	case ID_TOOLS_ALL: 
-		gf_cfg_set_key(user.config, "General", "LogTools", "all");
-		setup_logs();
-		break;
+	case ID_TOOLS_CORE: rewrite_log_tools(GF_LOG_CORE); break;
+	case ID_TOOLS_CODING: rewrite_log_tools(GF_LOG_CODING); break;
+	case ID_TOOLS_CONTAINER: rewrite_log_tools(GF_LOG_CONTAINER); break;
+	case ID_TOOLS_NETWORK: rewrite_log_tools(GF_LOG_NETWORK); break;
+	case ID_TOOLS_RTP: rewrite_log_tools(GF_LOG_RTP); break;
+	case ID_TOOLS_SCRIPT: rewrite_log_tools(GF_LOG_SCRIPT); break;
+	case ID_TOOLS_CODEC: rewrite_log_tools(GF_LOG_CODEC); break;
+	case ID_TOOLS_PARSER: rewrite_log_tools(GF_LOG_PARSER); break;
+	case ID_TOOLS_MEDIA: rewrite_log_tools(GF_LOG_MEDIA); break;
+	case ID_TOOLS_SCENE: rewrite_log_tools(GF_LOG_SCENE); break;
+	case ID_TOOLS_INTERACT: rewrite_log_tools(GF_LOG_INTERACT); break;
+	case ID_TOOLS_COMPOSE: rewrite_log_tools(GF_LOG_COMPOSE); break;
+	case ID_TOOLS_MMIO: rewrite_log_tools(GF_LOG_MMIO); break;
+	case ID_TOOLS_RTI: rewrite_log_tools(GF_LOG_RTI); break;
+	case ID_TOOLS_ALL: rewrite_log_tools(GF_LOG_ALL); break;
 	case ID_TOOLS_NONE: 
-		gf_cfg_set_key(user.config, "General", "LogTools", "none");
-		setup_logs();
+		log_level = GF_LOG_QUIET;
+		rewrite_log_tools(GF_LOG_ALL);
 		break;
 	case ID_LOGS_RESET: 
 		if (log_file) {
 			fclose(log_file);
 			log_file = NULL;
 		}
-		gf_delete_file("\\gpac_logs.txt");
+		{
+			const char *filename = gf_cfg_get_key(user.config, "General", "LogFile");
+			if (filename) gf_delete_file(filename);
+		}
 		setup_logs();
 		break;
 
@@ -1112,15 +1110,15 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 		}
 	}
 
-	opt = (char *) gf_cfg_get_key(user.config, "General", "LogLevel");
-	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_NONE, MF_BYCOMMAND | ( !strcmp(opt, "none") ? MF_CHECKED : MF_UNCHECKED) );
-	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_ERROR, MF_BYCOMMAND | ( !strcmp(opt, "error") ? MF_CHECKED : MF_UNCHECKED) );
-	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_WARNING, MF_BYCOMMAND | ( !strcmp(opt, "warning") ? MF_CHECKED : MF_UNCHECKED) );
-	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_INFO, MF_BYCOMMAND | ( !strcmp(opt, "info") ? MF_CHECKED : MF_UNCHECKED) );
-	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_DEBUG, MF_BYCOMMAND | ( !strcmp(opt, "debug") ? MF_CHECKED : MF_UNCHECKED) );
+	opt = (char *) gf_cfg_get_key(user.config, "General", "Logs");
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_NONE, MF_BYCOMMAND | ( strstr(opt, "quiet") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_ERROR, MF_BYCOMMAND | ( strstr(opt, "error") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_WARNING, MF_BYCOMMAND | ( strstr(opt, "warning") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_INFO, MF_BYCOMMAND | ( strstr(opt, "info") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_DEBUG, MF_BYCOMMAND | ( strstr(opt, "debug") ? MF_CHECKED : MF_UNCHECKED) );
 
 #define CHECK_TOOL(_ID, _name) CheckMenuItem((HMENU)wParam, _ID, MF_BYCOMMAND | ( ((strstr(opt, _name) != NULL) || !strcmp(opt, "all")) ? MF_CHECKED : MF_UNCHECKED) );
-	opt = (char *) gf_cfg_get_key(user.config, "General", "LogTools");
+	opt = (char *) gf_cfg_get_key(user.config, "General", "Logs");
 	CHECK_TOOL(ID_TOOLS_CORE, "core");
 	CHECK_TOOL(ID_TOOLS_CODING, "coding");
 	CHECK_TOOL(ID_TOOLS_CONTAINER, "container");

@@ -165,14 +165,19 @@ static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_lis
 void COsmo4::EnableLogs(Bool turn_on)
 {
 	if (turn_on) {
-		m_logs = fopen("\\gpac_logs.txt", "wt");
+		const char *filename = gf_cfg_get_key(m_user.config, "General", "LogFile");
+		if (!filename) {
+			gf_cfg_set_key(m_user.config, "General", "LogFile", "\\gpac_logs.txt");
+			filename = "\\gpac_logs.txt";
+		}
+		m_logs = fopen(filename, "wt");
 		if (!m_logs) {
-			MessageBox(NULL, _T("Couldn't open log files at file system root"), _T("Disabling logs"), MB_OK);
+			MessageBox(NULL, _T("Couldn't open log file on file system"), _T("Disabling logs"), MB_OK);
 			turn_on = 0;
 		} else {
 			gf_log_set_tools_levels("network:rtp:sync:codec:media@debug");
 			gf_log_set_callback(m_logs, osmo4_do_log);
-			gf_cfg_set_key(m_user.config, "General", "LogLevel", "debug");
+			gf_cfg_set_key(m_user.config, "General", "Logs", "network:rtp:sync:codec:media@debug");
 		}
 	} 
 	if (!turn_on) {
@@ -182,7 +187,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 		}
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_NONE);
 		gf_log_set_callback(NULL, NULL);
-		gf_cfg_set_key(m_user.config, "General", "LogLevel", "none");
+		gf_cfg_set_key(m_user.config, "General", "Logs", "all@quiet");
 	}
 }
 
@@ -234,8 +239,8 @@ BOOL COsmo4::InitInstance()
 		m_pMainWnd->PostMessage(WM_CLOSE);
 	}
 
-	const char *str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-	EnableLogs((str && !strcmp(str, "debug")) ? 1 : 0);
+	const char *str = gf_cfg_get_key(m_user.config, "General", "Logs");
+	EnableLogs((str && strcmp(str, "all@quiet") ) ? 1 : 0);
 
 	if (first_load) {
 		/*first launch, register all files ext*/

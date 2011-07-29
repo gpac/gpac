@@ -135,6 +135,7 @@ void PrintUsage()
 		"\t-log-file file: sets output log file. Also works with -lf\n"
 		"\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 		"\t                 levelX can be one of:\n"
+		"\t        \"quiet\"      : skip logs\n"
 		"\t        \"error\"      : logs only error messages\n"
 		"\t        \"warning\"    : logs error+warning messages\n"
 		"\t        \"info\"       : logs error+warning+info messages\n"
@@ -164,7 +165,6 @@ void PrintUsage()
 #endif
 		"\t        \"module\"     : GPAC modules debugging\n"
 		"\t        \"mutex\"      : mutex\n"
-		"\t        \"none\"       : no tool logged\n"
 		"\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
@@ -929,7 +929,10 @@ int main (int argc, char **argv)
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File not found\n");
-		if (logfile) fclose(logfile);
+		return 1;
+	}
+	/*if logs are specified, use them*/
+	if (gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") ) != GF_OK) {
 		return 1;
 	}
 
@@ -1570,8 +1573,9 @@ force_input:
 
 		case 'L':
 		{
-			char szLog[1024];
-			fprintf(stdout, "Enter new log level:\n");
+			char szLog[1024], *cur_logs;
+			cur_logs = gf_log_get_tools_levels();
+			fprintf(stdout, "Enter new log level (current tools %s):\n", cur_logs);
 			if (scanf("%s", szLog) < 1) {
 			    fprintf(stderr, "Cannot read new log level, aborting.\n");
 			    break;

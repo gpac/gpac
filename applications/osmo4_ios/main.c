@@ -977,7 +977,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "LogLevel") );
+	gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];

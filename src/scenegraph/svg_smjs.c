@@ -65,9 +65,9 @@ jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only
 
 
 
-#define _ScriptMessage(_sg, _e, _msg) {\
+#define _ScriptMessage(_sg, _msg) {\
 			GF_JSAPIParam par;	\
-			par.info.e = _e;			\
+			par.info.e = GF_SCRIPT_INFO;			\
 			par.info.msg = _msg;		\
 			_sg->script_action(_sg->script_action_cbck, GF_JSAPI_OP_MESSAGE, NULL, &par);\
 		}
@@ -188,7 +188,7 @@ static JSBool SMJS_FUNCTION(svg_echo)
 
 	if (JSVAL_IS_STRING(argv[0])) {
 		char *str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, argv[0]) );
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONSOLE, (str) );
+		_ScriptMessage(sg, str);
 		SMJS_FREE(c, str);
 	}
 	return JS_TRUE;
@@ -2557,7 +2557,7 @@ void JSScript_LoadSVG(GF_Node *node)
 		if (!txt) return;
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 		if (ret==JS_FALSE) {
-			_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid script");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid script\n") );
 		}
 		gf_dom_listener_process_add(node->sgprivate->scenegraph);
 	}
@@ -2703,7 +2703,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 #endif
 
 	if (ret==JS_FALSE) {
-		_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid handler textContent");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid handler textContent\n" ));
 		return 0;
 	}
 	return 1;

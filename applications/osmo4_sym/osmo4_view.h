@@ -151,6 +151,7 @@ class COsmo4AppView : public CCoeControl
 
 public:
 		u32 last_title_update;
+		FILE *m_Logs;
 		Bool do_log;
 		Bool show_rti;
 #ifndef GPAC_GUI_ONLY

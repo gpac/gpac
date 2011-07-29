@@ -560,7 +560,7 @@ void CNativeWrapper::SetupLogs(){
 
 	gf_mx_p(m_mx);
 
-	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 	gf_log_set_callback(this, on_gpac_log);
 	gf_mx_v(m_mx);
 

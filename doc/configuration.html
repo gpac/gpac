@@ -73,7 +73,7 @@ A key is declared as <b><i>keyName</i></b>=<i>value</i>. The key value is not in
 <a name="General"></a>
 <span style="text-decoration: underline;"><b>Section "General"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>
-The <b>General</b> section of the config file holds player specific options. This section is not used by GPAC core engine.
+The <b>General</b> section of the config file holds player specific options.
 </p>
 <b>ModulesDirectory</b> [value: <i>path to directory</i>]
 <p style="text-indent: 5%">
@@ -82,6 +82,53 @@ Specifies the path to modules directory. The MPEG-4 Systems engine cannot be loa
 <b>CacheDirectory</b> [value: <i>path to storage directory</i>]
 <p style="text-indent: 5%">
 Specifies location of temp files. The user must have write access to this location. Although not used by applications, this is used by several modules.
+</p>
+<b>StartupFile</b> [value: <i>filename</i>]
+<p style="text-indent: 5%">
+Specifies file to load upon startup of most clients (Osmo4/MP4Client). If not specified, no file is loaded.
+</p>
+
+<b>LogFile</b> [value: <i>filename</i>]
+<p style="text-indent: 5%">
+Specifies where to output GPAC's log. By default, the logs are written to stdout. Note that GPAC may be compiled without log support. This is not used by MP4Client.
+</p>
+<b>Logs</b> [value: <i>tool[:tool]@level:tool[:tool]@level</i>]
+<p style="text-indent: 5%">
+Specifies log level for each tool. By default, only errors are logged. Available levels are:
+<ul>
+<li><i>quiet</i> : no logging is performed on the tool</li>
+<li><i>error</i> : only errors are logged</li>
+<li><i>warning</i> : warnings are also logged.</li>
+<li><i>info</i> : information messages are also logged</li>
+<li><i>debug</i> : debug messages are also logged</li>
+</ul>
+<br/>
+Available tools are:
+<ul>
+<li><i>core</i> : libgpac core</li>
+<li><i>coding</i> : bitstream formats (audio, video, scene)</li>
+<li><i>container</i> : container formats (ISO File, MPEG-2 TS, AVI, ...)</li>
+<li><i>network</i> : network data exept RTP trafic</li>
+<li><i>rtp</i> : rtp, rtcp and rtsp trafic</li>
+<li><i>author</i> : authoring tools (hint, import, export)</li>
+<li><i>sync</i> : terminal sync layer</li>
+<li><i>codec</i> : terminal codec messages</li>
+<li><i>parser</i> : scene parsers (svg, xmt, bt) and other</li>
+<li><i>media</i> : terminal media object management</li>
+<li><i>scene</i> : scene graph and scene manager</li>
+<li><i>script</i> : scripting engine messages</li>
+<li><i>interact</i> : user interaction messages</li>
+<li><i>compose</i> : composition engine (events, etc)</li>
+<li><i>cache</i> : HTTP cache</li>
+<li><i>mmio</i> : Audio/Video HW I/O management</li>
+<li><i>rti</i> : Run-time info (CPU, mem, ...)</li>
+<li><i>smil</i> : SMIL timing and animation</li>
+<li><i>memory</i> : GPAC memory tracker</li>
+<li><i>audio</i> : Audio renderer and mixers</li>
+<li><i>module</i> : used by some modules</li>
+<li><i>mutex</i> : mutex information</li>
+<li><i>console</i> : console messages, such as script alert() and error notifications</li>
+</ul>
 </p>
 
 <p>
@@ -145,42 +192,6 @@ Specifies the directory of the last local file opened. Smartphone Windows only
 <p style="text-indent: 5%">
 Specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.
 </p>
-<b>StartupFile</b> [value: <i>filename</i>]
-<p style="text-indent: 5%">
-Specifies file to load upon startup of osmo4/MP4Client. If not specified, no file is loaded.
-</p>
-
-<b>LogFile</b> [value: <i>filename</i>]
-<p style="text-indent: 5%">
-Specifies where to output GPAC's log. By default, the logs are written to stdout. Note that GPAC may be compiled without log support. This is not used by MP4Client.
-</p>
-<b>LogLevel</b> [value: <i>"none", "error", "warning", "info", "debug"</i>]
-<p style="text-indent: 5%">
-Specifies the level of the log. By default, no log is performed.
-</p>
-<b>LogTools</b> [value: a &apos;:&apos;-separated list of the following values]
-<p style="text-indent: 5%">
-Specifies which set of tools from GPAC should be logged. Available tools are:
-<ul>
-<li><i>core</i> : libgpac core</li>
-<li><i>coding</i> : bitstream formats (audio, video, scene)</li>
-<li><i>container</i> : container formats (ISO File, MPEG-2 TS, AVI, ...)</li>
-<li><i>network</i> : network data exept RTP trafic</li>
-<li><i>rtp</i> : rtp, rtcp and rtsp trafic</li>
-<li><i>author</i> : authoring tools (hint, import, export)</li>
-<li><i>sync</i> : terminal sync layer</li>
-<li><i>codec</i> : terminal codec messages</li>
-<li><i>parser</i> : scene parsers (svg, xmt, bt) and other</li>
-<li><i>media</i> : terminal media object management</li>
-<li><i>scene</i> : scene graph and scene manager</li>
-<li><i>script</i> : scripting engine messages</li>
-<li><i>compose</i> : composition engine (events, etc)</li>
-<li><i>render</i> : renderng engine (2D, 3D, etc)</li>
-<li><i>service</i> : network service management</li>
-<li><i>mmio</i> : Audio/Video HW I/O management</li>
-</ul>
-</p>
-
 
 <a name="RecentFiles"></a>
 <span style="text-decoration: underline;"><b>Section "RecentFiles"</b></span> <i><a href="#Overview">Back to top</a></i>

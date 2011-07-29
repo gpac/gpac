@@ -468,7 +468,7 @@ BOOL Osmo4::InitInstance()
 	else m_logs = NULL;
 
 	/*set log level*/
-	if (gf_log_set_tools_levels(gf_cfg_get_key(m_user.config, "General", "LogLevel")) != GF_OK)
+	if (gf_log_set_tools_levels(gf_cfg_get_key(m_user.config, "General", "Logs")) != GF_OK)
 		fprintf(stdout, "osmo4: invalid log level specified\n");
 
 	m_user.opaque = this;
