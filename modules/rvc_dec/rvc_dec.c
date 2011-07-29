@@ -98,7 +98,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		FILE *f;
 		u32 size;
 		sprintf(opt, "Predefined_%d", esd->decoderConfig->predefined_rvc_config);
-		path = gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", (const char *)opt);
+		path = (char *) gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", (const char *)opt);
 		if (!opt) return GF_NOT_SUPPORTED;
 		f = fopen(path, "rt");
 		if (!f) return GF_NOT_SUPPORTED;

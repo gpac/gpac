@@ -503,8 +503,8 @@ BOOL COptGen::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "DisableBackLight");
 	m_NoBacklight.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "LogLevel");
-	m_Logs.SetCheck((sOpt && !stricmp(sOpt, "debug")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Logs");
+	m_Logs.SetCheck((sOpt && !strstr(sOpt, "none")) ? 1 : 0);
 	return TRUE; 
 }
 

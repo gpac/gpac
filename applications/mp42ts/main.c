@@ -76,9 +76,8 @@ static GFINLINE void usage(const char * progname)
                     "\t-bifs-pes              carries BIFS over PES instead of sections\n"
                     "\t-bifs-pes-ex           carries BIFS over PES without writing timestamps in SL\n"
 					"\t\n"
-					"\t-ll=LogLevel           specifies log level to use (by default error)\n"
-					"\t-lt=LogTools           specifies log tools to use (by default all)\n"
-					"\t-h or -help             Print this screen\n"
+					"\t-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+					"\t-h or -help            print this screen\n"
 					"\n", progname, DEFAULT_PCR_OFFSET
 		);
 }

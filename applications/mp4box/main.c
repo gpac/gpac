@@ -1209,9 +1209,7 @@ int mp4boxMain(int argc, char **argv)
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
-#ifdef GPAC_MEMORY_TRACKING
 	Bool enable_mem_tracker = 0;
-#endif
 	Bool dump_iod=0;
 	Bool daisy_chain_sidx=0;
 	Bool use_url_template=0;
@@ -2134,12 +2132,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	/*init libgpac*/
-#ifdef GPAC_MEMORY_TRACKING
 	gf_sys_init(enable_mem_tracker);
-#else
-	gf_sys_init(0);
-#endif
-
 
 	if (gf_logs) {
 		gf_log_set_tools_levels(gf_logs);

@@ -561,7 +561,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 	gf_log_set_callback(this, wxOsmo4_do_log);
 
 	/*set log level*/
-	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 
 	gf_sys_init(0);
 

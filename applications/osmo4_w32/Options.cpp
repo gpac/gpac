@@ -1974,7 +1974,7 @@ void COptLogs::SaveOptions()
 	if (m_codec.GetCheck()) { str +="codec:"; }
 	if (m_author.GetCheck()) { str +="author:"; }
 
-	gf_cfg_set_key(gpac->m_user.config, "General", "LogTools", str);
+	gf_cfg_set_key(gpac->m_user.config, "General", "Logs", str);
 	str += "@";
 	str += level;
 	gf_log_set_tools_levels(str);

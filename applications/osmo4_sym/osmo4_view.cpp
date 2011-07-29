@@ -130,6 +130,10 @@ void COsmo4AppView::Shutdown()
 		m_term = NULL;
 		gf_term_del(t);
 	}
+	if (m_Logs) {
+		fclose(m_Logs);
+		m_Logs = NULL;
+	}
     if (m_user.config) {
 		gf_cfg_del(m_user.config);
 		m_user.config = NULL;
@@ -194,12 +198,8 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 
 #ifndef GPAC_GUI_ONLY
 	gf_mx_p(app->m_mx);
-	if (app->do_log) {
-		FILE *logs = fopen("\\data\\gpac_logs.txt", "a+t");
-		if (logs) {
-			vfprintf(logs, fmt, list);
-			fclose(logs);
-		}
+	if (app->m_Logs) {
+		vfprintf(app->m_Logs, fmt, list);
 	} else {
 		vsprintf(szMsg, fmt, list);
 		app->MessageBox(szMsg, "Error:");
@@ -250,20 +250,25 @@ void COsmo4AppView::SetupLogs()
 		do_log = 0;
 	}
 	/*setup GPAC logs: log all errors*/
-	opt = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-	if ((opt && !stricmp(opt, "debug")) /*|| 1*/) { 
-		FILE *logs = fopen("\\data\\gpac_logs.txt", "wt");
-		if (!logs) {
+	opt = gf_cfg_get_key(m_user.config, "General", "Logs");
+	if (opt && !strstr(opt, "none")){ 
+		const char *filename = gf_cfg_get_key(m_user.config, "General", "LogFile");
+		if (!filename) {
+			gf_cfg_set_key(m_user.config, "General", "LogFile", "\\data\\gpac_logs.txt");
+			filename = "\\data\\gpac_logs.txt";
+		}
+		m_Logs = gf_f64_open(filename, "wt");
+		if (!m_Logs) {
 			MessageBox("Cannot open log file - disabling logs", "Warning !");
 		} else {
-			MessageBox("Debug log enabled in \\data\\gpac_logs.txt", "Info");
-			fclose(logs);
+			MessageBox("Debug logs enabled!", filename);
 			do_log = 1;
-			gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "LogLevel") );
+			gf_log_set_tools_levels( opt );
 		}
 	}
 	if (!do_log) {
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		if (m_Logs) fclose(m_Logs);
 	}
 
 	gf_log_set_callback(this, on_gpac_log);

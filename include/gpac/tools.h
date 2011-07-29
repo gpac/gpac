@@ -169,6 +169,8 @@ u64 gf_f64_seek(FILE *f, s64 pos, s32 whence);
  */
 typedef enum
 {
+	/*!Message from any scripting engine used in the presentation (ECMAScript, MPEG-J, ...) (Info).*/
+	GF_SCRIPT_INFO                                          = 3,
 	/*!Indicates an data frame has several AU packed (not MPEG-4 compliant). This is used by decoders to force
 	multiple decoding of the same data frame (Info).*/
 	GF_PACKED_FRAMES					= 2,
@@ -296,6 +298,14 @@ enum
  */
 void gf_log_set_strict_error(Bool strict);
 
+/*!
+ *	\brief gets string-formated log tools
+ *
+ * Returns the string-formatted log tools and levels. Returned string shall be freed by the caller.
+ *	\return string-formatted log tools.
+ *
+ */
+char *gf_log_get_tools_levels();
 
 /*!
  * GPAC Log tools
@@ -389,6 +399,7 @@ typedef void (*gf_log_cbk)(void *cbck, u32 log_level, u32 log_tool, const char* 
  *	\return previous callback function
 */
 gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
+
 
 /*!
  \cond DUMMY_DOXY_SECTION
