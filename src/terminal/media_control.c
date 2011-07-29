@@ -346,7 +346,10 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		/*OD not ready yet*/
 		if (!stack->ck) {
 			stack->stream = NULL;
-			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
+			if (stack->control->url.count) {
+				stack->is_init = 0;
+				gf_term_invalidate_compositor(stack->parent->root_od->term);
+			}
 			return;
 		}
 		gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
@@ -385,7 +388,14 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->media_stop = stack->control->mediaStopTime;
 		stack->is_init = 1;
 		/*the object has already been started, and media start time is not 0, restart*/
-		if (stack->stream->num_open && (stack->media_start > 0) ) mediacontrol_restart(odm);
+		if (stack->stream->num_open) {
+			if (stack->media_start > 0) {
+				mediacontrol_restart(odm);
+			} else if (stack->media_speed == 0) {
+				mediacontrol_pause(odm);
+				stack->paused = 1;
+			}
+		}
 		return;
 	}
 
