@@ -90,7 +90,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 
 	gf_mx2d_init(mx);
 
-	if (stack->root_svg) {
+	if (stack->root_svg && !tr_state->parent_is_use) {
 		const char *frag_uri = gf_scene_get_fragment_uri(node);
 		if (frag_uri) {
 			/*SVGView*/
@@ -994,7 +994,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
   	GF_Matrix2D translate;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags, dirty;
-	Bool is_fragment;
+	Bool is_fragment, parent_is_use;
 	GF_Node *used_node;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	SVGAllAttributes all_atts;
@@ -1075,6 +1075,8 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 
 	prev_opacity = tr_state->parent_use_opacity;
 	tr_state->parent_use_opacity = all_atts.opacity;
+	parent_is_use = tr_state->parent_is_use;
+	tr_state->parent_is_use = 1;
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
@@ -1117,6 +1119,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	gf_list_rem_last(tr_state->use_stack);
 	tr_state->vp_size = prev_vp;
 
+	tr_state->parent_is_use = parent_is_use;
 	tr_state->parent_use_opacity = prev_opacity;
 
 end:
