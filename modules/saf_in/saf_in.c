@@ -426,7 +426,7 @@ static GF_Err SAF_CloseService(GF_InputService *plug)
 	if (read->th) {
 		if (read->run_state == 1) {
 			read->run_state=0;
-			while (read->run_state!=2) gf_sleep(0);
+			while (read->run_state!=2) gf_sleep(2);
 		}
 		gf_th_del(read->th);
 		read->th = NULL;

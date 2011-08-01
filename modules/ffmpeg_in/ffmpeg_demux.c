@@ -751,7 +751,7 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	if (ffd->dnload) {
 		if (ffd->is_running) {
-			while (!ffd->is_running) gf_sleep(0);
+			while (!ffd->is_running) gf_sleep(1);
 			ffd->is_running = 0;
 		}
 		gf_term_download_del(ffd->dnload);

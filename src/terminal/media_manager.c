@@ -551,7 +551,7 @@ void gf_term_set_threading(GF_Terminal *term, u32 mode)
 
 		if (ce->flags & GF_MM_CE_THREADED) {
 			/*wait for thread to die*/
-			while (!(ce->flags & GF_MM_CE_DEAD)) gf_sleep(0);
+			while (!(ce->flags & GF_MM_CE_DEAD)) gf_sleep(1);
 			ce->flags &= ~GF_MM_CE_DEAD;
 			gf_th_del(ce->thread);
 			ce->thread = NULL;
