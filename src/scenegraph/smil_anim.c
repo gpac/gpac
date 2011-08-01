@@ -1078,7 +1078,7 @@ GF_Node *gf_smil_anim_get_target(GF_Node *e)
 	XLinkAttributesPointers *xlinkp = NULL;
 	if (!gf_svg_is_animation_tag(e->sgprivate->tag)) return NULL;
 	xlinkp = ((SVGTimedAnimBaseElement *)e)->xlinkp;
-	return xlinkp->href->target;
+	return (xlinkp && xlinkp->href) ? xlinkp->href->target : NULL;
 }
 
 void gf_smil_anim_init_runtime_info(GF_Node *e)
@@ -1097,6 +1097,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	/* Filling animation structures to be independent of the SVG Element structure */
 	animp = ((SVGTimedAnimBaseElement *)e)->animp;
 	timingp = ((SVGTimedAnimBaseElement *)e)->timingp;
+	if (!animp || !timingp) return;
 	xlinkp = ((SVGTimedAnimBaseElement *)e)->xlinkp;
 
 	target = xlinkp->href->target;
@@ -1449,7 +1450,12 @@ void gf_smil_anim_init_node(GF_Node *node)
 	if (!xlinkp->href->target) return;
 
 	// We may not have an attribute name, when using an animateMotion element
-    if (node->sgprivate->tag != TAG_SVG_animateMotion && !all_atts.attributeName) return;
+	if (node->sgprivate->tag != TAG_SVG_animateMotion && !all_atts.attributeName) {
+		gf_smil_timing_init_runtime_info(node);
+		gf_smil_anim_init_runtime_info(node);
+		gf_smil_anim_set_anim_runtime_in_timing(node);
+		return;
+	}
 
 	if ( (all_atts.to && (all_atts.to->type==0))
 		|| (all_atts.from && (all_atts.from->type==0))

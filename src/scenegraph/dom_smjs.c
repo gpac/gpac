@@ -1965,8 +1965,12 @@ static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 				attname = (SMIL_AttributeName *)attType.far_ptr;
 				if (!attname->type && attname->name) {
 					GF_Node *anim_target = gf_smil_anim_get_target(n);
-					gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, 0, 0, &attType);
-					attname->type = attType.fieldType;
+					if (anim_target) {
+						gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, 0, 0, &attType);
+						attname->type = attType.fieldType;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find attribute type of element attribute %s\n", attname->name));
+					}
 				}
 
 				anim_value_type = attname->type;
