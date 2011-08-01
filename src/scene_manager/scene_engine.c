@@ -315,7 +315,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
 	e = GF_OK;
 
-    if (!seng->dump_path) cache_dir = "C:\\Windows\\Temp";
+    if (!seng->dump_path) cache_dir = gf_get_default_cache_directory();
     else cache_dir = seng->dump_path;
 
     dump_name = "gpac_scene_engine_dump";
@@ -341,6 +341,7 @@ start:
         sprintf(rad_name, "%s%c%s-%s-%s%s", cache_dir, GF_PATH_SEPARATOR, date_str, time_str, "rap_", dump_name);
 #endif
 	}
+
 	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
@@ -451,6 +452,7 @@ start:
 	gf_bs_del(bs);
 
 exit:
+    if (!seng->dump_path) gf_free(cache_dir);
     if (buffer) gf_free(buffer);
     if (file) fclose(file);
 	return e;
