@@ -130,6 +130,7 @@ void PrintLiveUsage()
 		"-sdp=Name  ouput SDP file - default: session.sdp\n"
 		"\n"
 		"-dims      turns on DIMS mode for SVG input - default: off\n"
+		"-no-rap    disabled RAP sending - this also disables carousel generation. Default: off\n"
 		"-src=file  source of updates - default: null\n"
 		"-rap=time  duration in ms of base carousel - default: 0 (off)\n"
 		"            you can specify the RAP period of a single ESID (not in DIMS):\n"
@@ -427,7 +428,7 @@ int live_session(int argc, char **argv)
 	s32 next_time;
 	u64 last_src_modif, mod_time;
 	char *src_name = NULL;
-	Bool run, has_carousel, skip_init_scene;
+	Bool run, has_carousel, no_rap;
     Bool udp = 0;
 	u16 sk_port=0;
     GF_Socket *sk = NULL;
@@ -444,7 +445,7 @@ int live_session(int argc, char **argv)
 	/* souchay : needs to initialize those two vars... */
 	aggregate_au = 1;
 	es_id = 0;
-	skip_init_scene = 0;
+	no_rap = 0;
 	gf_sys_init(0);
 
 	memset(&livesess, 0, sizeof(LiveSession));
@@ -460,15 +461,11 @@ int live_session(int argc, char **argv)
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
-
-        else if (!strnicmp(arg, "-dims-stream", 12)) { 
-			load_type = GF_SM_LOAD_DIMS;
-			skip_init_scene = 1;
-		}
+        else if (!strnicmp(arg, "-no-rap", 7)) no_rap = 1;
 		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
 		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
         else if (!strnicmp(arg, "-udp=", 5)) { sk_port = atoi(arg+5); udp = 1; }
-        else if (!strnicmp(arg, "-tcp=", 5)) { sk_port = atoi(arg+5); udp = 0; }
+        else if (!strnicmp(arg, "-tcp=", 5)) { sk_port = atoi(arg+5); udp = 0; }		
 	}
 	if (!filename) {
 		fprintf(stdout, "Missing filename\n");
@@ -537,7 +534,7 @@ int live_session(int argc, char **argv)
 
 	update_context = 0;
 
-	if (has_carousel || !skip_init_scene) {
+	if (has_carousel || !no_rap) {
 		livesess.carousel_generation = 1;
 		gf_seng_encode_context(livesess.seng, live_session_callback);
 		livesess.carousel_generation = 0;
@@ -683,7 +680,7 @@ int live_session(int argc, char **argv)
 				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 				e = gf_seng_aggregate_context(livesess.seng, 0);
 
-				update_context = 1;
+				update_context = no_rap ? 0 : 1;
 			}
 		}
 
