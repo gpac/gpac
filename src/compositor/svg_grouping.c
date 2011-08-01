@@ -1076,7 +1076,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	prev_opacity = tr_state->parent_use_opacity;
 	tr_state->parent_use_opacity = all_atts.opacity;
 	parent_is_use = tr_state->parent_is_use;
-	tr_state->parent_is_use = 1;
+	tr_state->parent_is_use = is_foreign_object ? 0 : 1;
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
