@@ -1316,6 +1316,11 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	if (!stack->inline_sg && stack->resource) {
 		stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
 	}
+	/*if we have the focus, move it to the subtree*/
+	if (tr_state->visual->compositor->focus_node==node) {
+		GF_Node *subroot = gf_sg_get_root_node(stack->inline_sg);
+		if (subroot) tr_state->visual->compositor->focus_node = subroot;
+	}
 
 	if (stack->inline_sg) {
 		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);

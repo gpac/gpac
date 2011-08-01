@@ -782,6 +782,15 @@ TODO clean: figure out whether we use a mouse or a touch device - if touch devic
 		evt.detail = event->key.key_code;
 		evt.key_hw_code = event->key.hw_code;
 		target = compositor->focus_node;
+		
+		/*dirty hack to simulate browserback*/
+		if (event->key.key_code==GF_KEY_BACKSPACE && (event->key.flags & GF_KEY_MOD_CTRL)) {
+			event->key.key_code = GF_KEY_BROWSERBACK;
+		}
+
+		if ((event->key.key_code>=GF_KEY_BROWSERBACK) && (event->key.key_code<=GF_KEY_BROWSERSTOP)) {
+			target = NULL;
+		}
 		if (!target) target = gf_sg_get_root_node(compositor->scene);
 		ret += gf_dom_event_fire(target, &evt);
 
