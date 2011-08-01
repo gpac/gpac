@@ -474,7 +474,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 		/*wait until init is done*/
 		while (tmp->video_th_state < GF_COMPOSITOR_THREAD_RUN) {
-			gf_sleep(0);
+			gf_sleep(1);
 		}
 		/*init failure*/		
 		if (tmp->video_th_state == GF_COMPOSITOR_THREAD_INIT_FAILED) {
@@ -2245,7 +2245,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {
-		gf_sleep(0);
+		gf_sleep(1);
 		return;
 	}
 
