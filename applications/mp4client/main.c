@@ -1579,6 +1579,7 @@ force_input:
 			char szLog[1024], *cur_logs;
 			cur_logs = gf_log_get_tools_levels();
 			fprintf(stdout, "Enter new log level (current tools %s):\n", cur_logs);
+			gf_free(cur_logs);
 			if (scanf("%s", szLog) < 1) {
 			    fprintf(stderr, "Cannot read new log level, aborting.\n");
 			    break;
