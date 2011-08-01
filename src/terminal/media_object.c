@@ -417,7 +417,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	mo->frame = CU->data + CU->RenderedLength;
 	if (mo->timestamp != CU->TS) {
 #ifndef GPAC_DISABLE_VRML
-		mediasensor_update_timing(mo->odm, *eos);
+		mediasensor_update_timing(mo->odm, mo->odm->codec->CB->HasSeenEOS);
 #endif
 		mo->timestamp = CU->TS;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %d fetch frame TS %d size %d - %d unit in CB\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp, mo->framesize, mo->odm->codec->CB->UnitCount));
