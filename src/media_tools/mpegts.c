@@ -2029,7 +2029,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.continuity_counter = data[3] & 0xf;
 
 	if (hdr.error) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet has error (PID could be %d)\n", hdr.pid));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet has error (PID could be %d)\n", hdr.pid));
 		return;
 	}
 //#if DEBUG_TS_PACKET

@@ -558,7 +558,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					u64 pcr_diff = (pcr - ts->pcr_last);
 					pcr_diff /= 27000;
 					if (pcr_diff>1000) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
 						diff = 100;
 					} else {
 						diff = (u32) pcr_diff - (stb - ts->stb_at_last_pcr);
