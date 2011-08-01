@@ -2328,8 +2328,6 @@ typedef struct
 	GF_List *node_stack;
 	/*dom graph*/
 	GF_SceneGraph *document;
-
-	Bool use_cache;
 } XMLHTTPContext;
 
 static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *val)
@@ -2787,7 +2785,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (!strncmp(parameter->value, "application/xml", 15)
 			|| !strncmp(parameter->value, "text/xml", 8)
 			|| strstr(parameter->value, "+xml")
-			|| !strncmp(parameter->value, "text/plain", 10)
+			|| strstr(parameter->value, "/xml")
+//			|| !strncmp(parameter->value, "text/plain", 10)
 		) {
 			assert(!ctx->sax);
 			ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
@@ -2796,7 +2795,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
 			ctx->document->reference_count = 1;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] content type %s not supported\n", parameter->value));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[XmlHttpRequest] content type %s - ResponseXML not supported\n", parameter->value));
 		}
 		return;
 	case GF_NETIO_DATA_EXCHANGE:
@@ -2820,16 +2819,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_DATA_TRANSFERED:
 		if (ctx->sax) {
-			if(ctx->use_cache ) {
-				const char *filename;
-				ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
-				filename = gf_dm_sess_get_cache_name(ctx->sess);
-				gf_xml_sax_parse_file(ctx->sax, filename, NULL);
-			}
 #if !USE_PROGRESSIVE_SAX
-			else {
-				gf_xml_sax_init(ctx->sax, ctx->data);
-			}
+			gf_xml_sax_init(ctx->sax, ctx->data);
 #endif
 		}
 		break;
@@ -2896,9 +2887,8 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	ctx->data = data ? gf_strdup(data) : NULL;
 	SMJS_FREE(c, data);
 
-	ctx->use_cache = 0;
 	if (!strncmp(ctx->url, "http://", 7)) {
-		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, (ctx->use_cache ? 0 : GF_NETIO_SESSION_NOT_CACHED), xml_http_on_data, ctx, &e);
+		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, 0, xml_http_on_data, ctx, &e);
 		
 		if (!ctx->sess) return JS_TRUE;
 	
@@ -3086,7 +3076,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER
 		/*responseXML*/
 		case 3:
 			if (ctx->readyState<3) return JS_TRUE;
-			if (ctx->data) {
+			if (ctx->data && ctx->document) {
 				*vp = dom_document_construct(c, ctx->document);
 			} else {
 				*vp = JSVAL_VOID;
