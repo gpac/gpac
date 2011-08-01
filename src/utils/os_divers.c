@@ -1322,10 +1322,9 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		count = THREAD_BASIC_INFO_COUNT;
 		error = thread_info(thread_table[i], THREAD_BASIC_INFO, (thread_info_t)thi, &count);
 		if (error != KERN_SUCCESS) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Error %d while fetching thread info for PID %d\n", error, the_rti.pid));
-			vm_deallocate(mach_task_self(), (vm_offset_t)thread_table, table_size * sizeof(thread_array_t));
-			mach_port_deallocate(mach_task_self(), task);
-			return 0;
+			mach_error("[RTI] Unexpected thread_info() call return", error);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[RTI] Unexpected thread info for PID %d\n", the_rti.pid));
+			break;
 		}
 		if ((thi->flags & TH_FLAGS_IDLE) == 0) {
 			utime += thi->user_time.seconds + thi->user_time.microseconds * 1e-6;
