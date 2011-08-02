@@ -395,7 +395,10 @@ void gf_mx_del(GF_Mutex *mx)
 #ifdef WIN32
 	CloseHandle(mx->hMutex);
 #else
-	pthread_mutex_destroy(&mx->hMutex);
+	int err;
+	if (err = pthread_mutex_destroy(&mx->hMutex))
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] pthread_mutex_destroy failed with error code %d\n", mx->log_name, err));
+
 #endif
 #ifndef GPAC_DISABLE_LOG
 	gf_free(mx->log_name);
