@@ -1297,6 +1297,9 @@ Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
                 return 0;
 			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Unrecognized transofrm type in attribute %s\n", attribute_content));
+            return 0;
 		}
 		/*for svgView parsing*/
 		if (str[i] == ')') i++;
