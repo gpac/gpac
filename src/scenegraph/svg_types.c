@@ -92,6 +92,14 @@ void gf_svg_node_del(GF_Node *node)
 	if (p->sgprivate->tag==TAG_SVG_handler) {
 		GF_Node *listener = p->sgprivate->UserPrivate;
 		if (listener && (listener->sgprivate->tag==TAG_SVG_listener)) {
+			GF_FieldInfo info;
+			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 0, 0, &info) == GF_OK) {
+				XMLRI *iri = (XMLRI *)info.far_ptr;
+				if (iri->target) {
+					assert(iri->target==p);
+					iri->target = NULL;
+				}
+			}
 			gf_node_unregister(listener, NULL);
 //			gf_svg_node_del(listener);
 		}
