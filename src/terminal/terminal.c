@@ -1250,9 +1250,8 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	GF_ClientService *ns;
 	u32 i, count;
 	GF_Err e;
-	Bool reloc_result; 
+	Bool reloc_result, net_locked; 
 	char relocated_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
-	gf_term_lock_net(term, 1);
 
 	/*try to relocate the url*/
 	reloc_result = gf_term_relocate_url(term, serviceURL, parent_url, relocated_url, localized_url);
@@ -1290,20 +1289,32 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 		}
 	}
 
-	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
+	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used
+	net mutex may be locked at this time (if another service sends a connect OK)*/
+	net_locked = gf_mx_try_lock(term->net_mx);
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
-			gf_term_lock_net(term, 0);
+			if (net_locked) {
+				gf_term_lock_net(term, 0);
+				net_locked = 0;
+			}
 
 			/*wait for service to setup - service may become destroyed if not available*/
 			while (1) {
-				gf_term_lock_net(term, 1);
+				net_locked = gf_mx_try_lock(term->net_mx);
 				if (!ns->owner) {
-					gf_term_lock_net(term, 0);
+					if (net_locked) {
+						gf_term_lock_net(term, 0);
+						net_locked = 0;
+					}
 					return;
 				}
-				gf_term_lock_net(term, 0);
+				if (net_locked) {
+					gf_term_lock_net(term, 0);
+					net_locked = 0;
+				}
+
 				if (ns->owner->OD) break;
 				gf_sleep(5);
 			}
@@ -1312,16 +1323,16 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 			return;
 		}
 	}
+	if (net_locked) 
+		gf_term_lock_net(term, 0);
 
 	odm->net_service = gf_term_service_new(term, odm, serviceURL, reloc_result ? NULL : parent_url, &e);
 	if (!odm->net_service) {
-		gf_term_lock_net(term, 0);
 		gf_term_message(term, serviceURL, "Cannot open service", e);
 		gf_odm_disconnect(odm, 1);
 		return;
 	}
 	odm->net_service->nb_odm_users++;
-	gf_term_lock_net(term, 0);
 
 	gf_mx_p(term->media_queue_mx);
 	assert(odm->net_service->owner == odm);
