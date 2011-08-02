@@ -1574,15 +1574,20 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 			u32 now;
 			now = gf_sys_clock() - upnp->upnp_init_time;
 			if (now - upnp->last_time > 200) {
-				u32 i, count; 
+				u32 i, count, arg_set; 
 				jsval argv[1], rval;
 				upnp->LockJavascript(1);
-				argv[0] = DOUBLE_TO_JSVAL( JS_NewDouble(upnp->m_pJSCtx, (Double)now / 1000.0) );
+				arg_set = 0;
 				count = gf_list_count(upnp->m_Devices);
 				for (i=0; i<count; i++) {
 					GPAC_GenericDevice *device = (GPAC_GenericDevice *)gf_list_get(upnp->m_Devices, i);
-					if (device->run_proc)
+					if (device->run_proc) {
+						if (!arg_set) {
+							argv[0] = DOUBLE_TO_JSVAL( JS_NewDouble(upnp->m_pJSCtx, (Double)now / 1000.0) );
+							arg_set = 1;
+						}
 						JS_CallFunctionValue(upnp->m_pJSCtx, device->obj, device->run_proc, 1, argv, &rval);
+					}
 				}
 				upnp->LockJavascript(0);
 				upnp->last_time = now;
