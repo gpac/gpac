@@ -67,6 +67,13 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_list_del_item(odm->term->media_queue, odm);
 	gf_term_lock_media_queue(odm->term, 0);
 
+	/*detach media object as referenced by the scene - this should ensures that any attempt to lock the ODM from the 
+	compositor will fail as the media object is no longer linked to object manager*/
+	gf_mx_p(odm->mx);
+	if (odm->mo) odm->mo->odm = NULL;
+	gf_mx_v(odm->mx);
+	
+	/*relock the mutex for final object destruction*/
 	gf_mx_p(odm->mx);
 
 #ifndef GPAC_DISABLE_VRML
@@ -85,7 +92,6 @@ void gf_odm_del(GF_ObjectManager *odm)
 	}
 	gf_list_del(odm->mc_stack);
 #endif
-	if (odm->mo) odm->mo->odm = NULL;
 
 	if (odm->raw_frame_sema) gf_sema_del(odm->raw_frame_sema);
 
