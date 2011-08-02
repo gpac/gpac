@@ -244,7 +244,6 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 static void gf_term_reload_cfg(GF_Terminal *term)
 {
 	const char *sOpt;
-	Double fps;
 	u32 mode;
 	s32 prio;
 
@@ -264,14 +263,12 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	else
 		term->flags &= ~GF_TERM_SINGLE_CLOCK;
 
-	sOpt = gf_cfg_get_key(term->user->config, "Compositor", "FrameRate");
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "TimeSlice");
 	if (!sOpt) {
-		sOpt = "30.0";
-		gf_cfg_set_key(term->user->config, "Compositor", "FrameRate", "30.0");
+		sOpt = "30";
+		gf_cfg_set_key(term->user->config, "Systems", "TimeSlice", "30");
 	}
-	fps = atof(sOpt);
-	term->frame_duration = (u32) (1000/fps);
-	gf_sc_set_fps(term->compositor, fps);
+	term->frame_duration = atoi(sOpt);
 
 	if (!(term->user->init_flags & GF_TERM_NO_DECODER_THREAD) ){
 		prio = GF_THREAD_PRIORITY_NORMAL;
@@ -1846,13 +1843,16 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		}
 	}
 
+	opt = gf_cfg_get_key(term->user->config, "Systems", "TimeSlice");
+	if (!opt) opt="30";	
+	i = (u32) ( atoi(opt) / FIX2FLT(speed) );
+	if (!i) i = 1;
+	term->frame_duration = i;
+
 	opt = gf_cfg_get_key(term->user->config, "Compositor", "FrameRate");
-	if (!opt) opt="30.0";
-	
-	fps = atof(opt);
+	fps = atoi(opt);
 	fps *= FIX2FLT(speed);
 	if (fps>100) fps = 1000;
-	term->frame_duration = (u32) (1000/fps);
 	gf_sc_set_fps(term->compositor, fps);
 }
 

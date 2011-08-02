@@ -1001,6 +1001,14 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	/*changing drivers needs exclusive access*/
 	gf_sc_lock(compositor, 1);
 	
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FrameRate");
+	if (!sOpt) {
+		sOpt = "30.0";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "FrameRate", "30.0");
+	}
+	gf_sc_set_fps(compositor, atof(sOpt));
+
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceSceneSize");
 	if (sOpt && ! stricmp(sOpt, "yes")) {
 		compositor->override_size_flags = 1;
