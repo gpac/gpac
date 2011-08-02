@@ -106,11 +106,9 @@ static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 	rc.left = rc.top = 0;
 	rc.right = dd->width;
 	rc.bottom = dd->height;
-#ifdef USE_DX_3
-	hr = IDirectDrawSurface_Blt(dd->pBack, &rc, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
-#else
-	hr = IDirectDrawSurface7_Blt(dd->pBack, &rc, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
-#endif
+
+	hr = dd->pBack->lpVtbl->Blt(dd->pBack, &rc, NULL, NULL, DDBLT_COLORFILL, &ddbltfx);
+
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
@@ -119,11 +117,7 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	Bool force_reinit;
 	HRESULT hr;
 	const char *opt; 
-#ifdef USE_DX_3
-    DDSURFACEDESC ddsd;
-#else
-    DDSURFACEDESC2 ddsd;
-#endif
+    DDSURFDESC ddsd;
 
 	DDCONTEXT;
 
@@ -141,7 +135,7 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 		return GF_OK;
 	}
 
-	if (dd->pBack) 	SAFE_DD_RELEASE(dd->pBack);
+	SAFE_DD_RELEASE(dd->pBack);
 
 	/*create backbuffer*/
 	ZeroMemory(&ddsd, sizeof(ddsd));
@@ -167,11 +161,8 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	ddsd.dwWidth = Width;
 	ddsd.dwHeight = Height;
 
-#ifdef USE_DX_3
-    hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
-#else
-    hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
-#endif
+	hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
+
 	if (FAILED(hr)) {
 		if (!dd->systems_memory) {
 			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
@@ -179,11 +170,7 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 			dd->systems_memory = 2;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Hardware Video not available for backbuffer)\n"));
 
-#ifdef USE_DX_3
-		    hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
-#else
-		    hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
-#endif
+			hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
 		}
 		if (FAILED(hr)) return GF_IO_ERR;
 	}
@@ -208,27 +195,19 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	HRESULT hr;
 	DWORD cooplev;
 	LPDIRECTDRAW ddraw;
-#ifdef USE_DX_3
-    DDSURFACEDESC ddsd;
-#else
-    DDSURFACEDESC2 ddsd;
-#endif
+    DDSURFDESC ddsd;
 	DDPIXELFORMAT pixelFmt;
     LPDIRECTDRAWCLIPPER pcClipper;
 	DDCONTEXT;
 	
-	if (!dd->cur_hwnd || !Width || !Height) return GF_BAD_PARAM;
+	if (!dd->cur_hwnd || !Width || !Height || !dd->DirectDrawCreate) return GF_BAD_PARAM;
 	DestroyObjects(dd);
 
-	if( FAILED( hr = DirectDrawCreate(NULL, &ddraw, NULL ) ) )
+	if( FAILED( hr = dd->DirectDrawCreate(NULL, &ddraw, NULL ) ) )
 		return GF_IO_ERR;
 
-#ifdef USE_DX_3
-	hr = IDirectDraw_QueryInterface(ddraw, &IID_IDirectDraw, (LPVOID *)&dd->pDD);
-#else
-	hr = IDirectDraw_QueryInterface(ddraw, &IID_IDirectDraw7, (LPVOID *)&dd->pDD);
-#endif		
-	IDirectDraw_Release(ddraw);
+	hr = ddraw->lpVtbl->QueryInterface(ddraw, &IID_IDirectDraw7, (LPVOID *)&dd->pDD);
+	ddraw->lpVtbl->Release(ddraw);
 	if (FAILED(hr)) return GF_IO_ERR;
 
 	dd->switch_res = 0;
@@ -239,9 +218,9 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 		/*change display mode*/
 		if (dd->switch_res) {
 #ifdef USE_DX_3
-			hr = IDirectDraw_SetDisplayMode(dd->pDD, dd->fs_width, dd->fs_height, dd->video_bpp);
+			hr = dd->pDD->lpVtbl->SetDisplayMode(dd->pDD, dd->fs_width, dd->fs_height, dd->video_bpp);
 #else
-			hr = IDirectDraw7_SetDisplayMode(dd->pDD, dd->fs_width, dd->fs_height, dd->video_bpp, 0, 0 );
+			hr = dd->pDD->lpVtbl->SetDisplayMode(dd->pDD, dd->fs_width, dd->fs_height, dd->video_bpp, 0, 0 );
 #endif
 			if( FAILED(hr)) return GF_IO_ERR;
 		}
@@ -249,12 +228,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 		cooplev = DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN;
 	}
 
-	
-#ifdef USE_DX_3
-	hr = IDirectDraw_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, cooplev);
-#else
-	hr = IDirectDraw7_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, cooplev);
-#endif
+	hr = dd->pDD->lpVtbl->SetCooperativeLevel(dd->pDD, dd->cur_hwnd, cooplev);
 	if( FAILED(hr) ) return GF_IO_ERR;
 
 	/*create primary*/
@@ -263,18 +237,15 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
     ddsd.dwFlags = DDSD_CAPS;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-#ifdef USE_DX_3
-    if( FAILED(IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pPrimary, NULL ) ) )
+    hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &dd->pPrimary, NULL);
+	if( FAILED(hr) )
         return GF_IO_ERR;
-#else
-    if( FAILED(hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->pPrimary, NULL ) ) ) 
-		return GF_IO_ERR;
-#endif
 
 	/*get pixel format of video board*/
 	memset (&pixelFmt, 0, sizeof(pixelFmt));
 	pixelFmt.dwSize = sizeof(pixelFmt);
-	hr = IDirectDrawSurface_GetPixelFormat(dd->pPrimary, &pixelFmt);
+
+	hr = dd->pPrimary->lpVtbl->GetPixelFormat(dd->pPrimary, &pixelFmt);
 	if( FAILED(hr) ) return GF_IO_ERR;
 
 	switch(pixelFmt.dwRGBBitCount) {
@@ -306,53 +277,40 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 		return GF_IO_ERR;
 	}
 
+	hr = dd->pDD->lpVtbl->CreateClipper(dd->pDD, 0, &pcClipper, NULL);
+    if( FAILED(hr)) 
+		return GF_IO_ERR;
 
-#ifdef USE_DX_3
-	if( FAILED( hr = IDirectDraw_CreateClipper(dd->pDD, 0, &pcClipper, NULL ) ) )
-        return GF_IO_ERR;
-#else
-	if( FAILED( hr = IDirectDraw7_CreateClipper(dd->pDD, 0, &pcClipper, NULL ) ) )
-        return GF_IO_ERR;
-#endif
-	
-	if( FAILED( hr = IDirectDrawClipper_SetHWnd(pcClipper, 0, dd->cur_hwnd) ) ) {
-        IDirectDrawClipper_Release(pcClipper);
+	hr = pcClipper->lpVtbl->SetHWnd(pcClipper, 0, dd->cur_hwnd);
+	if( FAILED(hr) ) {
+        pcClipper->lpVtbl->Release(pcClipper);
         return GF_IO_ERR;
     }
-    if( FAILED( hr = IDirectDrawSurface_SetClipper(dd->pPrimary, pcClipper ) ) ) {
-        IDirectDrawClipper_Release(pcClipper);
+    hr = dd->pPrimary->lpVtbl->SetClipper(dd->pPrimary, pcClipper);
+	if( FAILED(hr)) {
+		pcClipper->lpVtbl->Release(pcClipper);
         return GF_IO_ERR;
     }
-	IDirectDrawClipper_Release(pcClipper);
+	pcClipper->lpVtbl->Release(pcClipper);
 	dd->ddraw_init = 1;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/
 	return CreateBackBuffer(dr, Width, Height, dd->yuv_init);
 }
 
-static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, void *surface)
+static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, LPDDRAWSURFACE surface)
 {
     HRESULT hr;
-#ifdef USE_DX_3
-	DDSURFACEDESC desc;
-#else
-	DDSURFACEDESC2 desc;
-#endif
+	DDSURFDESC desc;
 	
 	if (!dd || !vi || !surface) return GF_BAD_PARAM;
 
-#ifdef USE_DX_3
-	ZeroMemory(&desc, sizeof(DDSURFACEDESC));
+	ZeroMemory(&desc, sizeof(desc));
 	desc.dwSize = sizeof(DDSURFACEDESC);
-	if (FAILED(hr = IDirectDrawSurface_Lock( (LPDIRECTDRAWSURFACE)surface, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | /*DDLOCK_WRITEONLY | */ DDLOCK_WAIT, NULL))) {
+
+	hr = surface->lpVtbl->Lock(surface, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | /*DDLOCK_WRITEONLY | */ DDLOCK_WAIT, NULL);
+	if (FAILED(hr)) 
 		return GF_IO_ERR;
-	}	
-#else
-	ZeroMemory(&desc, sizeof(DDSURFACEDESC2));
-	desc.dwSize = sizeof(DDSURFACEDESC2);
-	if (FAILED(hr = IDirectDrawSurface7_Lock( (LPDIRECTDRAWSURFACE7) surface, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | /*DDLOCK_WRITEONLY | */ DDLOCK_WAIT, NULL))) {
-		return GF_IO_ERR;
-	}	
-#endif
+
 	vi->video_buffer = desc.lpSurface;
 	vi->width = desc.dwWidth;
 	vi->height = desc.dwHeight;
@@ -362,15 +320,11 @@ static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, void *surface)
 	return GF_OK;
 }
 
-static GF_Err DD_UnlockSurface(DDContext *dd, void *surface)
+static GF_Err DD_UnlockSurface(DDContext *dd, LPDDRAWSURFACE surface)
 {
     HRESULT hr;
 	if (!dd || !dd->ddraw_init) return GF_IO_ERR;
-#ifdef USE_DX_3
-	hr = IDirectDrawSurface_Unlock( (LPDIRECTDRAWSURFACE)surface, NULL);
-#else
-	hr = IDirectDrawSurface7_Unlock((LPDIRECTDRAWSURFACE7)surface, NULL);
-#endif
+	hr = surface->lpVtbl->Unlock(surface, NULL);
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
@@ -393,12 +347,12 @@ static void *LockOSContext(GF_VideoOutput *dr, Bool do_lock)
 	if (!dd->pBack) return NULL;
 
 	if (do_lock) {
-		if (!dd->lock_hdc && ! IDirectDrawSurface_IsLost(dd->pBack)) {
-			if (FAILED(IDirectDrawSurface_GetDC(dd->pBack, &dd->lock_hdc)) ) 
+		if (!dd->lock_hdc && ! dd->pBack->lpVtbl->IsLost(dd->pBack)) {
+			if (FAILED(dd->pBack->lpVtbl->GetDC(dd->pBack, &dd->lock_hdc)) ) 
 				dd->lock_hdc = NULL;
 		} 
 	} else if (dd->lock_hdc) {
-		IDirectDrawSurface_ReleaseDC(dd->pBack, dd->lock_hdc);
+		dd->pBack->lpVtbl->ReleaseDC(dd->pBack, dd->lock_hdc);
 		dd->lock_hdc = NULL;
 	}
 	return (void *)dd->lock_hdc ;
@@ -424,7 +378,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		DDCOLORKEY ck;
 		col = GF_COL_ARGB(0xFF, key->r, key->g, key->b);
 		ck.dwColorSpaceHighValue = ck.dwColorSpaceLowValue = col;
-		hr = IDirectDrawSurface_SetColorKey(src->pSurface, DDCKEY_SRCBLT, &ck);
+		hr = src->pSurface->lpVtbl->SetColorKey(src->pSurface, DDCKEY_SRCBLT, &ck);
 		if (FAILED(hr)) 
 			return GF_IO_ERR;
 	}
@@ -433,11 +387,11 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		flags = DDBLTFAST_WAIT;
 		if (key) flags |= DDBLTFAST_SRCCOLORKEY;
 		if (dst_wnd) { left = r_dst.left; top = r_dst.top; } else left = top = 0; 
-		hr = IDirectDrawSurface_BltFast(dd->pBack, left, top, src->pSurface, src_wnd ? &r_src : NULL, flags);
+		hr = dd->pBack->lpVtbl->BltFast(dd->pBack, left, top, src->pSurface, src_wnd ? &r_src : NULL, flags);
 	} else {
 		flags = DDBLT_WAIT;
 		if (key) flags |= DDBLT_KEYSRC;
-		hr = IDirectDrawSurface_Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
+		hr = dd->pBack->lpVtbl->Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit src w=%d,h=%d to dst w=%d,h=%d - result: %08x\n", src_w, src_h, dst_w, dst_h, hr));
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
@@ -445,11 +399,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 
 static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pixel_format, Bool check_caps)
 {
-#ifdef USE_DX_3
-	DDSURFACEDESC ddsd;
-#else
-	DDSURFACEDESC2 ddsd;
-#endif
+	DDSURFDESC ddsd;
 	HRESULT hr;
 	DDCONTEXT;
 
@@ -487,11 +437,8 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 			ddsd.dwHeight = height;
 			ddsd.ddpfPixelFormat.dwFourCC = get_win_4CC(dr->yuv_pixel_format);
 
-#ifdef USE_DX_3
-			if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL ) ) ) {
-#else
-			if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL ) ) ) {
-#endif
+			hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL);
+			if (FAILED(hr) ) {
 				if (!check_caps) return NULL;
 
 				/*try withou overlay cap*/
@@ -499,11 +446,8 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 					dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV_OVERLAY;
 					ddsd.ddsCaps.dwCaps = DDSCAPS_VIDEOMEMORY;
 
-#ifdef USE_DX_3
-					if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL ) ) ) {
-#else
-					if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL ) ) ) {
-#endif
+					hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL);
+					if( FAILED(hr) ) {
 						return NULL;
 					}
 				}
@@ -536,14 +480,9 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 	ddsd.dwWidth = width;
 	ddsd.dwHeight = height;
 
-#ifdef USE_DX_3
-	if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->rgb_pool.pSurface, NULL ) ) )
+	hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &dd->rgb_pool.pSurface, NULL);
+	if (FAILED(hr))
 		return NULL;
-#else
-	if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->rgb_pool.pSurface, NULL ) ) )
-		return NULL;
-#endif
-
 	dd->rgb_pool.width = width;
 	dd->rgb_pool.height = height;
 	dd->rgb_pool.format = dd->pixelFormat;
@@ -560,7 +499,8 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	DDCONTEXT;
 
 	if (!video_src) {
-		if (overlay_type && dd->yuv_pool.pSurface) IDirectDrawSurface2_UpdateOverlay(dd->yuv_pool.pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
+		if (overlay_type && dd->yuv_pool.pSurface) 
+			dd->yuv_pool.pSurface->lpVtbl->UpdateOverlay(dd->yuv_pool.pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
 		return GF_OK;
 	}
 	if (src_wnd) {
@@ -609,21 +549,21 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 
 #if 1
 		if (overlay_type==1) {
-			hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW, NULL);
+			hr = pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW, NULL);
 		} else {
 			DDOVERLAYFX ddofx;
 			memset(&ddofx, 0, sizeof(DDOVERLAYFX));
 			ddofx.dwSize = sizeof(DDOVERLAYFX);
 			ddofx.dckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
 			ddofx.dckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
-			hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
+			hr = pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
 		}
 		if (FAILED(hr)) {
-			IDirectDrawSurface2_UpdateOverlay(pool->pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
+			pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
 		}
 #else
 		if (overlay_type==1) {
-			hr = IDirectDrawSurface_Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, 0, NULL);
+			hr = dd->pPrimary->lpVtbl->Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, 0, NULL);
 		} else {
 			DDBLTFX ddfx;
 			memset(&ddfx, 0, sizeof(DDBLTFX));
@@ -631,7 +571,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 			ddfx.ddckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
 			ddfx.ddckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
 
-			hr = IDirectDrawSurface_Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, DDBLT_WAIT | DDBLT_KEYDESTOVERRIDE, &ddfx);
+			hr = dd->pPrimary->lpVtbl->Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, DDBLT_WAIT | DDBLT_KEYDESTOVERRIDE, &ddfx);
 		}
 #endif
 		return FAILED(hr) ? GF_IO_ERR : GF_OK;
@@ -720,17 +660,10 @@ void DD_InitYUV(GF_VideoOutput *dr)
 
 		dr->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY;
 
-#ifdef USE_DX_3
-		IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, NULL);
+		dd->pDD->lpVtbl->GetFourCCCodes(dd->pDD, &numCodes, NULL);
 		if (!numCodes) return;
 		codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
-		IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, codes);
-#else
-		IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, NULL);
-		if (!numCodes) return;
-		codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
-		IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, codes);
-#endif
+		dd->pDD->lpVtbl->GetFourCCCodes(dd->pDD, &numCodes, codes);
 		
 		num_yuv = 0;
 		for (i=0; i<numCodes; i++) {

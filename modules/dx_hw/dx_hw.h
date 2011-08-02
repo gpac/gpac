@@ -37,18 +37,43 @@
 #include <gpac/constants.h>
 #include <gpac/thread.h>
 
+#define INITGUID
 
 /*
 #include <windows.h>
 */
-#include <ddraw.h>
 
+#define HAS_DDRAW_H
+
+#ifdef HAS_DDRAW_H
+#include <ddraw.h>
 #include <mmsystem.h>
 #include <dsound.h>
 
 #ifndef _WIN32_WCE
 #include <vfw.h>
 #endif
+
+/*DirectDraw video output*/
+#if (DIRECTDRAW_VERSION < 0x0700)
+#define USE_DX_3
+#endif
+
+
+#ifdef USE_DX_3
+typedef LPDIRECTDRAWSURFACE LPDDRAWSURFACE;
+typedef DDSURFACEDESC DDSURFDESC;
+#else
+typedef LPDIRECTDRAWSURFACE7 LPDDRAWSURFACE;
+typedef DDSURFACEDESC2 DDSURFDESC;
+#endif
+typedef DDSURFDESC *LPDDSURFDESC;
+
+typedef HRESULT(WINAPI * DIRECTDRAWCREATEPROC) (GUID *, LPDIRECTDRAW *, IUnknown *);
+
+#endif
+
+
 
 #ifdef _WIN32_WCE
 # ifndef SWP_ASYNCWINDOWPOS
@@ -62,21 +87,9 @@
 #include "GLES/egl.h"
 #endif
 
-/*
-		DirectDraw video output
-*/
-
-#if (DIRECTDRAW_VERSION < 0x0700)
-#define USE_DX_3
-#endif
-
 typedef struct
 {
-#ifdef USE_DX_3
-    LPDIRECTDRAWSURFACE pSurface;
-#else
-    LPDIRECTDRAWSURFACE7 pSurface;
-#endif
+    LPDDRAWSURFACE pSurface;
 	u32 width, height, format, pitch;
 } DDSurface;
 
@@ -166,6 +179,11 @@ typedef struct
 
 	u32 last_mouse_move, timer, cursor_type_backup;
 	Bool windowless, hidden;
+
+
+	HMODULE hDDrawLib;
+    DIRECTDRAWCREATEPROC DirectDrawCreate;
+
 } DDContext;
 
 void DD_SetupWindow(GF_VideoOutput *dr, Bool hide);
@@ -195,19 +213,16 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 #endif
 
 
-#ifdef USE_DX_3
-#define SAFE_DD_RELEASE(p) { if(p) { IDirectDraw_Release(p); (p)=NULL; } }
-#else
-#define SAFE_DD_RELEASE(p) { if(p) { IDirectDraw7_Release(p); (p)=NULL; } }
-#endif
+#define SAFE_DD_RELEASE(p) { if(p) { (p)->lpVtbl->Release( (p) ); (p)=NULL; } }
 
 
 void *NewAudioOutput();
 void DeleteAudioOutput(void *);
 
 
-#define SAFE_DS_RELEASE(p) { if(p) { IDirectSound_Release(p); (p)=NULL; } }
+#define SAFE_DS_RELEASE(p) { if(p) { p->lpVtbl->Release(p); (p)=NULL; } }
 
 LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam);
+
 
 #endif

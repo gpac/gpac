@@ -151,14 +151,8 @@ static void RestoreWindow(DDContext *dd)
 	} else 
 #endif
 
-	{
-#ifdef USE_DX_3
-		IDirectDraw_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
-#else
-		IDirectDraw7_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
-#endif
-		dd->NeedRestore = 0;
-	}
+	dd->pDD->lpVtbl->SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
+	dd->NeedRestore = 0;
 
 //	SetForegroundWindow(dd->cur_hwnd);
 	SetFocus(dd->cur_hwnd);
@@ -610,24 +604,20 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dest->x = pt.x;
 		dest->y = pt.y;
 		MAKERECT(rc, dest);
-		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, dd->pBack, NULL, DDBLT_WAIT, NULL);
+		hr = dd->pPrimary->lpVtbl->Blt(dd->pPrimary, &rc, dd->pBack, NULL, DDBLT_WAIT, NULL);
 	} else {
-		hr = IDirectDrawSurface_Blt(dd->pPrimary, NULL, dd->pBack, NULL, DDBLT_WAIT, NULL);
+		hr = dd->pPrimary->lpVtbl->Blt(dd->pPrimary, NULL, dd->pBack, NULL, DDBLT_WAIT, NULL);
 	}
 	if (hr == DDERR_SURFACELOST) {
-		IDirectDrawSurface_Restore(dd->pPrimary);
-		IDirectDrawSurface_Restore(dd->pBack);
+		dd->pPrimary->lpVtbl->Restore(dd->pPrimary);
+		dd->pBack->lpVtbl->Restore(dd->pBack);
 	}
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
 
 
-#ifdef USE_DX_3
-HRESULT WINAPI EnumDisplayModes( LPDDSURFACEDESC lpDDDesc, LPVOID lpContext)
-#else
-HRESULT WINAPI EnumDisplayModes( LPDDSURFACEDESC2 lpDDDesc, LPVOID lpContext)
-#endif
+HRESULT WINAPI EnumDisplayModes( LPDDSURFDESC lpDDDesc, LPVOID lpContext)
 {
 	DDContext *dd = (DDContext *) lpContext;
 	
@@ -649,27 +639,20 @@ HRESULT WINAPI EnumDisplayModes( LPDDSURFACEDESC2 lpDDDesc, LPVOID lpContext)
 
 GF_Err GetDisplayMode(DDContext *dd)
 {
-	if (dd->switch_res) {
+	if (dd->switch_res && dd->DirectDrawCreate) {
 		HRESULT hr;
 		Bool temp_dd = 0;;
 		if (!dd->pDD) {
 			LPDIRECTDRAW ddraw;
-			DirectDrawCreate(NULL, &ddraw, NULL);
-#ifdef USE_DX_3
-			IDirectDraw_QueryInterface(ddraw, &IID_IDirectDraw, (LPVOID *)&dd->pDD);
-#else
-			IDirectDraw_QueryInterface(ddraw, &IID_IDirectDraw7, (LPVOID *)&dd->pDD);
-#endif		
+			dd->DirectDrawCreate(NULL, &ddraw, NULL);
+			ddraw->lpVtbl->QueryInterface(ddraw, &IID_IDirectDraw7, (LPVOID *)&dd->pDD);
 			temp_dd = 1;
 		}
 		//we start with a hugde res and downscale
 		dd->fs_width = dd->fs_height = 50000;
 
-#ifdef USE_DX_3
-		hr = IDirectDraw_EnumDisplayModes(dd->pDD, 0L, NULL, dd,  (LPDDENUMMODESCALLBACK) EnumDisplayModes);
-#else
-		hr = IDirectDraw7_EnumDisplayModes(dd->pDD, 0L, NULL, dd,  (LPDDENUMMODESCALLBACK2) EnumDisplayModes);
-#endif
+		hr = dd->pDD->lpVtbl->EnumDisplayModes(dd->pDD, 0L, NULL, dd,  EnumDisplayModes);
+
 		if (temp_dd) SAFE_DD_RELEASE(dd->pDD);
 		if (FAILED(hr)) return GF_IO_ERR;
 	} else {
@@ -697,6 +680,11 @@ static void *NewDXVideoOutput()
 	driv->SetFullScreen = DD_SetFullScreen;
 	driv->ProcessEvent = DD_ProcessEvent;
 
+	pCtx->hDDrawLib = LoadLibrary("ddraw.dll");
+	if (pCtx->hDDrawLib) {
+		pCtx->DirectDrawCreate = (DIRECTDRAWCREATEPROC) GetProcAddress(pCtx->hDDrawLib, "DirectDrawCreate");
+	}
+
     driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
     driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
 	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA | GF_VIDEO_HW_HAS_HWND_HDC;
@@ -710,6 +698,11 @@ static void DeleteVideoOutput(void *ifce)
 {
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
 	DDContext *dd = (DDContext *)driv->opaque;
+
+	if (dd->hDDrawLib) {
+		FreeLibrary(dd->hDDrawLib);
+	}
+
 	gf_free(dd);
 	gf_free(driv);
 }
