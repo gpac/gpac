@@ -4159,6 +4159,8 @@ static void JS_PreDestroy(GF_Node *node)
 	dom_js_pre_destroy(priv->js_ctx, node->sgprivate->scenegraph, NULL);
 #endif
 
+	gf_sg_lock_javascript(priv->js_ctx, 0);
+
 	gf_sg_ecmascript_del(priv->js_ctx);
 
 #ifndef GPAC_DISABLE_SVG
@@ -4168,8 +4170,6 @@ static void JS_PreDestroy(GF_Node *node)
 	gf_list_del(priv->js_cache);
 
 	priv->js_ctx = NULL;
-
-	gf_sg_lock_javascript(priv->js_ctx, 0);
 
 	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
 	gf_list_del_item(node->sgprivate->scenegraph->scripts, node);
