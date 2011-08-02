@@ -523,7 +523,10 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 
 	glyph_idx = FT_Get_Char_Index(ftpriv->active_face, glyph_name);
 	/*missing glyph*/
-	if (!glyph_idx) return NULL;
+	if (!glyph_idx) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Glyph not found for char %d in font %s (style %s)\n", glyph_name, ftpriv->active_face->family_name, ftpriv->active_face->style_name));
+		return NULL;
+	}
 
 	/*work in design units*/
 	FT_Load_Glyph(ftpriv->active_face, glyph_idx, FT_LOAD_NO_SCALE | FT_LOAD_NO_BITMAP);
