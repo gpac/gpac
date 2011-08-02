@@ -2325,7 +2325,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			par.error = 0;
 			par.msg_type = GF_NETIO_PARSE_HEADER;
 			par.name = "Content-Type";
-			par.value = gf_cache_get_mime_type(sess->cache_entry);
+			par.value = (char *) gf_cache_get_mime_type(sess->cache_entry);
 			gf_dm_sess_user_io(sess, &par);
 
             sess->status = GF_NETIO_DATA_EXCHANGE;
