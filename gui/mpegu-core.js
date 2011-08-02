@@ -227,6 +227,13 @@ function wmjs_probe_widget(url) {
     return 0;
 }
 
+function wmjs_bind_output_trigger(widget, msg, callback, udta)
+{
+  var res = widget.bind_output_trigger(msg, callback, udta);
+  if (!res) {
+   log(l_err, 'Cannot bind output trigger of message '+msg.name+' in widget '+widget.name);
+  }
+}
 
 function wmjs_open_widget(url, src_ip, parent_widget) {
     log(l_deb, "wmjs_open_widget");
@@ -529,11 +536,11 @@ function wmjs_bind_interface_to_local(wid, ifce) {
                     log(l_inf, 'Binding ' + wid.name + '.' + msg.name + ' to ' + a_wid.name + '.' + a_msg.name);
                     /*OK let's bind this action: we only need to assign the output trigger, the input action will be called from the other widget*/
                     if (msg.has_output_trigger) {
-                        wid.bind_output_trigger(msg, wmjs_output_trigger_callback_local(msg, wid, a_msg, a_wid), a_wid);
+                        wmjs_bind_output_trigger(wid, msg, wmjs_output_trigger_callback_local(msg, wid, a_msg, a_wid), a_wid);
                     }
                     /*OK let's bind this action: we only need to assign the output trigger, the input action will be called from the other widget*/
                     if (a_msg.has_output_trigger) {
-                        a_wid.bind_output_trigger(a_msg, wmjs_output_trigger_callback_local(a_msg, a_wid, msg, wid), wid);
+                        wmjs_bind_output_trigger(a_wid, a_msg, wmjs_output_trigger_callback_local(a_msg, a_wid, msg, wid), wid);
                     }
                 }
             }
@@ -652,7 +659,7 @@ function wmjs_message_setup_upnp(widget, service, msg) {
     if (msg.has_output_trigger) {
         var fun_name = 'call_' + msg.name;
         widget[fun_name] = wmjs_output_trigger_callback_upnp(service, widget, msg);
-        widget.bind_output_trigger(msg, widget[fun_name], service);
+        wmjs_bind_output_trigger(widget, msg, widget[fun_name], service);
     }
     /*assign the input action*/
     if (msg.has_input_action) {
@@ -982,12 +989,12 @@ function wmjs_create_upnp_service(widget, ifce) {
                 /* output in an input message => this is a reply */
                 var fun_name1 = 'respond_' + msg.name;
                 widget[fun_name1] = wmjs_upnp_action_response(service, widget, msg);
-                widget.bind_output_trigger(msg, widget[fun_name1], service);
+                wmjs_bind_output_trigger(widget, msg, widget[fun_name1], service);
             } else {
                 /* output in an output message => this is an event */
                 var fun_name2 = 'send_event_' + msg.name;
                 widget[fun_name2] = wmjs_upnp_event_sender(service, widget, msg);
-                widget.bind_output_trigger(msg, widget[fun_name2], service);
+                wmjs_bind_output_trigger(widget, msg, widget[fun_name2], service);
             }
         }
         /*if message is input, a reply may be sent*/
@@ -1494,7 +1501,7 @@ function wmjs_bind_interface_to_core_service1(wid, ifce, core) {
         /*OK let's bind this action: we only need to assign the output trigger, the input
          action will be called from the other widget*/
         if (msg.has_output_trigger) {
-            wid.bind_output_trigger(msg, wmjs_output_trigger_callback_core(msg, wid, a_msg), WidgetManager);
+            wmjs_bind_output_trigger(wid, msg, wmjs_output_trigger_callback_core(msg, wid, a_msg), WidgetManager);
         }
     }
     if (!set_bind) return false;
