@@ -299,6 +299,10 @@ Specifies whether the bounding volume of an object shall be drawn or not. Note t
 <p style="text-indent: 5%">
 Specifies the color key to use for windowless rendering. GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.
 </p>
+<b>BackColor</b> [value: <i>unsigned hexadecimal integer, formated as AARRGGBB</i>]
+<p style="text-indent: 5%">
+Specifies the background color to use when displaying transparent images or video with no scene compoistion instructions.
+</p>
 <b>DrawMode</b> [value: <i>"immediate" "defer" "defer-debug"</i>]
 <p style="text-indent: 5%">
 Specifies whether immediate drawing should be used or not. In immediate mode, the screen is completely redrawn at each frame. In defer mode
