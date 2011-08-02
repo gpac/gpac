@@ -80,12 +80,12 @@ function open_widget_manager(extension)
 		  WidgetManager.last_widget_dir = directory;
 		  widget_insert_icon(new_wid);
 		  dock.layout(dock.width, dock.height);
-		  open_dock(true);
+		  show_dock(true);
     }
     filebrowse.on_directory = function(directory) {
   		WidgetManager.last_widget_dir = directory;
    		scan_directory(directory);
-		  open_dock(true);
+		  show_dock(true);
     }
     filebrowse.set_size(320 , 240);
     gpacui_show_window(filebrowse);
@@ -100,7 +100,7 @@ function open_widget_manager(extension)
     widman_cfg_dlg.close();
     widman_cfg_dlg = null;
 	  dock.layout(dock.width, dock.height);
-	  open_dock(true);
+	  show_dock(true);
   }
   widman_cfg_dlg.on_close = function() {
    widman_cfg_dlg = null;
@@ -575,7 +575,7 @@ function on_widget_launch() {
 	} else {
 		widget_launch(this.widget);
 	}
-  open_dock(false);
+  show_dock(false);
 }
 
 
@@ -721,9 +721,10 @@ function widget_request_install(wid, args)
 			break;
 		}
 	}
+	alert('opening widget '+wid_url);
 	/*not found, install new widget*/
 	if (j == count) {
-		var new_wid = WidgetManager.open(wid_url, null);
+		var new_wid = WidgetManager.open(wid_url, null, wid);
 		if (new_wid==null) return;
 		widget_insert_icon(new_wid);
 	}

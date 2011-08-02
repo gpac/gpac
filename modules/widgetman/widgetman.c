@@ -2191,7 +2191,7 @@ static JSBool SMJS_FUNCTION(wm_widget_is_interface_bound)
 static JSBool SMJS_FUNCTION(wm_load)
 {
 	u32 i, count;
-	char *manifest;
+	char *manifest, *url;
 	GF_WidgetInstance *wid;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -2200,16 +2200,30 @@ static JSBool SMJS_FUNCTION(wm_load)
 
 	manifest = SMJS_CHARS(c, argv[0]);
 
+	url = NULL;
+	if ((argc==2) && JSVAL_IS_OBJECT(argv[1])) {
+		GF_WidgetInstance *parent_widget;
+		if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[1]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
+		parent_widget = (GF_WidgetInstance *)JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[1]) );
+		
+		if (parent_widget->widget->url) url = gf_url_concatenate(parent_widget->widget->url, manifest);
+	}
+	if (!url) {
+		url = gf_strdup(manifest);
+	}
+
 	wid=NULL;
 	count = gf_list_count(wm->widget_instances);
 	for (i=0; i<count; i++) {
 		wid = gf_list_get(wm->widget_instances, i);
-		if (!strcmp(wid->widget->url, manifest) && !wid->activated) break;
+		if (!strcmp(wid->widget->url, url) && !wid->activated) break;
 		wid = NULL;
 	}
 	if (!wid) {
-		wid = wm_load_widget(wm, manifest, 0);
+		wid = wm_load_widget(wm, url, 0);
 	}
+	if (url) gf_free(url);
+
 	if (wid) {
 		wm_widget_jsbind(wm, wid);
 		SMJS_SET_RVAL(OBJECT_TO_JSVAL(wid->obj));
@@ -3426,7 +3440,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	};
 	JSFunctionSpec wmClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("initialize", wm_initialize, 0),
-		SMJS_FUNCTION_SPEC("load", wm_load, 1),
+		SMJS_FUNCTION_SPEC("load", wm_load, 2),
 		SMJS_FUNCTION_SPEC("unload", wm_unload, 1),
 		SMJS_FUNCTION_SPEC("get", wm_get, 1),
 		SMJS_FUNCTION_SPEC("findByInterface", wm_find_interface, 1),
