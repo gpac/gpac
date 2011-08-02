@@ -228,9 +228,14 @@ function wmjs_probe_widget(url) {
 }
 
 
-function wmjs_open_widget(url, src_ip) {
+function wmjs_open_widget(url, src_ip, parent_widget) {
     log(l_deb, "wmjs_open_widget");
-    var wid = WidgetManager.load(url);
+    var wid;
+    if (arguments.length>=3) {
+      wid = WidgetManager.load(url, parent_widget);
+    } else {
+      wid = WidgetManager.load(url);
+    }
     if (wid == null) {
         log(l_err, 'File ' + url + ' is not a valid widget');
         return null;

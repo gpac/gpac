@@ -360,7 +360,7 @@ function initialize() {
 // implementation of core:out install widget
 //
 function coreOutInstallWidgetImplementation(wid, args) {
-    var w = widgetInstall(args[0], true, false);
+    var w = widgetInstall(args[0], true, false, wid);
     var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
     if (ifce != null) {
         wmjs_core_out_invoke_reply(coreOut.installWidgetMessage, ifce.get_message("installWidget"),
@@ -372,7 +372,7 @@ function coreOutInstallWidgetImplementation(wid, args) {
 // implementation of core:out activate temporary widget
 //
 function coreOutActivateTemporaryWidgetImplementation(wid, args) {
-    var w = widgetInstall(args[0], true, true);
+    var w = widgetInstall(args[0], true, true, null);
     if (w != null) activating_widget(w);
     var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
     if (ifce != null) {
@@ -1041,7 +1041,7 @@ function on_clean_up() {
 //
 // install, but do not launch, the widget whose config.xml has been chosen, and return to the home page
 //
-function widgetInstall(uri, manual, temporary) {
+function widgetInstall(uri, manual, temporary, parent_wid) {
     var wid, j, count = WidgetManager.num_widgets, nbWidgets = getNbWidgets();
     for (j = 0; j < count; j++) {
         wid = WidgetManager.get(j);
@@ -1052,7 +1052,7 @@ function widgetInstall(uri, manual, temporary) {
         }
     }
     if (j == count) {
-        wid = WidgetManager.open(uri, null);
+        wid = WidgetManager.open(uri, null, parent_wid);
         if (wid != null) {
             if (temporary) wid.permanent = false;
             else insert_icon(wid, nbWidgets, nbWidgets);
@@ -1235,7 +1235,7 @@ function createGoto(s) {
 
 function createWidgetInstall(s) {
     return function () {
-        widgetInstall(s, false, false);
+        widgetInstall(s, false, false, null);
     };
 }
 
