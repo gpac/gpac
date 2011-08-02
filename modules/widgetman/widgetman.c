@@ -925,7 +925,8 @@ static SVG_handlerElement *wm_create_scene_listener(GF_WidgetInstance *wid, GF_W
 
 	evt_type = GF_EVENT_ATTR_MODIFIED;
 	n = gf_sg_find_node_by_name(wid->scene, param->node);
-	if (!n) return NULL;
+	if (!n) 
+		return NULL;
 
 	att_name = 0;
 
@@ -1504,20 +1505,22 @@ static JSBool SMJS_FUNCTION(wm_widget_bind_output_trigger)
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
-	if (!wid || !wid->scene || (argc!=3)) return JS_FALSE;
 
-	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_OBJECT(argv[1])) return JS_FALSE;
-	if (!JSVAL_IS_OBJECT(argv[2])) return JS_FALSE;
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_FALSE) );
+	if (!wid || !wid->scene || (argc!=3)) return JS_TRUE;
+
+	if (!JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
+	if (!JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
+	if (!JSVAL_IS_OBJECT(argv[2])) return JS_TRUE;
 
 	msg = (GF_WidgetMessage *)JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!msg) return JS_FALSE;
+	if (!msg) return JS_TRUE;
 	param = msg->output_trigger;
-	if (!param) return JS_FALSE;
+	if (!param) return JS_TRUE;
 
 
 	handler = wm_create_scene_listener(wid, param);
-	if (!handler) return JS_FALSE;
+	if (!handler) return JS_TRUE;
 	handler->js_fun_val = argv[1];
 	gf_js_add_root(c, &handler->js_fun_val, GF_JSGC_VAL);
 	handler->evt_listen_obj = wid;
@@ -1527,6 +1530,7 @@ static JSBool SMJS_FUNCTION(wm_widget_bind_output_trigger)
 	handler->sgprivate->UserPrivate = JSVAL_TO_OBJECT(argv[2]);
 
 	gf_list_add(wid->output_triggers, handler);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_TRUE) );
 
 	return JS_TRUE;
 }
