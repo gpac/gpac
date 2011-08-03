@@ -354,6 +354,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_angle_diff) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_v2d_len) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_v2d_from_polar) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_v2d_distance) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rect_union) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rect_center) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rect_overlaps) )
