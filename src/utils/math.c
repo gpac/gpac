@@ -636,6 +636,15 @@ Fixed gf_v2d_len(GF_Point2D *vec)
 	return (Fixed) sqrt(vec->x*vec->x + vec->y*vec->y);
 }
 
+GF_EXPORT
+Fixed gf_v2d_distance(GF_Point2D *a, GF_Point2D *b)
+{
+	GF_Point2D d;
+	d.x = a->x - b->x;
+	d.y = a->y - b->y;
+	return gf_v2d_len(&d);
+}
+
 /*
 
 Fixed gf_cos(_a) { return (Float) cos(_a); }

@@ -671,6 +671,21 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		focal.y = center.y;
 	}
 
+	/* clamping fx/fy according to:
+	http://www.w3.org/TR/SVG11/pservers.html#RadialGradients
+	If the point defined by ‘fx’ and ‘fy’ lies outside the circle defined by ‘cx’, ‘cy’ and ‘r’, 
+	then the user agent shall set the focal point to the intersection of the line from (‘cx’, ‘cy’) 
+	to (‘fx’, ‘fy’) with the circle defined by ‘cx’, ‘cy’ and ‘r’.*/
+	{
+		Fixed norm = gf_v2d_distance(&focal, &center);
+		if (norm > radius) {
+			Fixed xdelta = gf_muldiv(radius, focal.x-center.x, norm);
+			Fixed ydelta = gf_muldiv(radius, focal.y-center.y, norm);
+			focal.x = center.x + xdelta;
+			focal.y = center.y + ydelta;
+		}
+	}
+
 	if (bounds && (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) ) {
 		/*move to local coord system - cf SVG spec*/
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);

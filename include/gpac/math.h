@@ -251,6 +251,13 @@ typedef struct __vec2f
  */
 Fixed gf_v2d_len(GF_Point2D *vec);
 /*!
+ *\brief get distance between 2 points
+ *
+ *Gets the distance between the 2 points
+ *\return distance
+ */
+Fixed gf_v2d_distance(GF_Point2D *a, GF_Point2D *b);
+/*!
  *\brief 2D vector from polar coordinates
  *
  *Constructs a 2D vector from its polar coordinates
