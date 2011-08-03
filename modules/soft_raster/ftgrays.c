@@ -364,7 +364,7 @@ static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, i
 	}
 	/* vertical line - avoid calling gray_render_scanline */
 	incr = 1;
-	if ( dx == 0 ) {
+	if (dx == 0 ) {
 		TCoord  ex     = TRUNC( raster->x );
 		TCoord  two_fx = (TCoord)( ( raster->x - SUBPIXELS( ex ) ) << 1 );
 		TPos    area;

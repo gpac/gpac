@@ -95,12 +95,10 @@ void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	register s32 i;
 	u32 len;
 	s32 x;
-	u8 aa_lev = surf->AALevel;
 
 	col_no_a = col&0x00FFFFFF;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		x = spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 		if (spans[i].coverage != 0xFF) {
@@ -122,12 +120,10 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u32 col = surf->fill_col;
 	register u32 a, fin, col_no_a;
 	register s32 i;
-	u8 aa_lev = surf->AALevel;
 
 	a = (col>>24)&0xFF;
 	col_no_a = col&0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
 		overmask_565_const_run(fin, (u16*) (dst + spans[i].x * surf->pitch_x), surf->pitch_x, spans[i].len);
@@ -142,10 +138,8 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	register s32 i, x;
 	register u32 len;
 	register u32 *col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);

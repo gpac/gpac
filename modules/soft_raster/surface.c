@@ -285,16 +285,13 @@ GF_Err evg_surface_set_raster_level(GF_SURFACE _this, GF_RasterLevel RasterSetti
 	if (!surf) return GF_BAD_PARAM;
 	switch (RasterSetting) {
 	case GF_RASTER_HIGH_QUALITY:
-		surf->AALevel = 1;/*don't draw pixels with 0 alpha...*/
 		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_QUALITY;
 		break;
 	case GF_RASTER_MID:
-		surf->AALevel = 90;
 		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_QUALITY;
 		break;
 	case GF_RASTER_HIGH_SPEED:
 	default:
-		surf->AALevel = 254;
 		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_SPEED;
 		break;
 	}
