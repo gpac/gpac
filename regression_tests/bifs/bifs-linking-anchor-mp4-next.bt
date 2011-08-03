@@ -31,7 +31,7 @@ OrderedGroup {
    title "Anchor Test"
   }
   Anchor {
-   url ["bifs-linking-anchor-mp4-prev.mp4"]
+   url ["bifs-linking-anchor-mp4-prev.bt"]
    children [
     Shape {
      appearance Appearance {
