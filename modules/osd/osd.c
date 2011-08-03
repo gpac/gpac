@@ -240,7 +240,7 @@ static Bool osd_process(GF_TermExt *termext, u32 action, void *param)
 
 	case GF_TERM_EXT_PROCESS:
 		/*flush all events until current time if reached*/
-		if (gf_sys_get_rti(osd->refresh_time_ms, &osd->rti, 0)) {
+		if ((osd->visible->whichChoice==0) && gf_sys_get_rti(osd->refresh_time_ms, &osd->rti, 0)) {
 			sprintf(osd->statBuffer, "CPU %02d - FPS %02.2f - MEM "LLU" KB", osd->rti.process_cpu_usage, gf_sc_get_fps(osd->term->compositor, 0), osd->rti.process_memory/1000);
 			gf_node_dirty_set((GF_Node *) osd->text, GF_SG_NODE_DIRTY, 1);
 		}
