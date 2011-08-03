@@ -651,8 +651,6 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			it = it->next;
 		}
 	}
-	/*no visual */
-	//if (!visual->compositor->output_width && !visual->compositor->output_height) goto exit;
 
 	if (redraw_all) {
 		ra_clear(&visual->to_redraw);
@@ -722,12 +720,12 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 skip_background:
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_COMPOSE, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw %d / %d nodes (all: %s)", num_changed, num_nodes, redraw_all ? "yes" : "no"));
+	if (gf_log_tool_level_on(GF_LOG_COMPOSE, GF_LOG_INFO)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Visual2D] Redraw %d / %d nodes (all: %s - %d dirty rects\n)", num_changed, num_nodes, redraw_all ? "yes" : "no", visual->to_redraw.count));
 		if (visual->to_redraw.count>1) GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\n"));
 
 		for (i=0; i<visual->to_redraw.count; i++) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, visual->to_redraw.list[i].x, visual->to_redraw.list[i].y, visual->to_redraw.list[i].width, visual->to_redraw.list[i].height));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, visual->to_redraw.list[i].x, visual->to_redraw.list[i].y, visual->to_redraw.list[i].width, visual->to_redraw.list[i].height));
 			assert(visual->to_redraw.list[i].width);
 		}
 	}
@@ -776,7 +774,6 @@ exit:
 	visual_2d_release_raster(visual);
 	visual_clean_contexts(visual);
 	visual->num_nodes_prev_frame = visual->num_nodes_current_frame;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw done - %schanged\n", has_changed ? "" : "un"));
 	return has_changed;
 }
 
