@@ -126,8 +126,6 @@ struct _evg_surface
 	/*color buffer for variable stencils - size of width*/
 	u32 *stencil_pix_run;
 
-	/*aliasing flag (on/off only)*/
-	u8 AALevel;
 	/*default texture filter level*/
 	u32 texture_filter;
 

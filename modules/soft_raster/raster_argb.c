@@ -99,7 +99,6 @@ void evg_bgra_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	s32 i, x;
 	u32 len;
 	u8 col_a, col_r, col_g, col_b;
-	u8 aa_lev = surf->AALevel;
 
 	col_a = GF_COL_A(col);
 	col_r = GF_COL_R(col);
@@ -107,7 +106,6 @@ void evg_bgra_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	col_b = GF_COL_B(col);
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		x = spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 	
@@ -132,13 +130,11 @@ void evg_bgra_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
-	u8 aa_lev = surf->AALevel;
 	s32 i;
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
 		overmask_bgra_const_run(fin, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len);
@@ -153,10 +149,8 @@ void evg_bgra_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	s32 i, x;
 	u32 len;
 	u32 *col, _col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -275,7 +269,6 @@ void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	s32 i, x;
 	u32 len;
-	u8 aa_lev = surf->AALevel;
 
 	col_no_a = col & 0x00FFFFFF;
 	col_r = GF_COL_R(col);
@@ -283,7 +276,6 @@ void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	col_b = GF_COL_B(col);
 	for (i=0; i<count; i++) {
 		spana = spans[i].coverage;
-		if (spana<aa_lev) continue;
 		x = spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 
@@ -307,13 +299,11 @@ void evg_bgrx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
-	u8 aa_lev = surf->AALevel;
 	s32 i;
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
 		overmask_bgrx_const_run(fin, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len);
@@ -328,10 +318,8 @@ void evg_bgrx_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	s32 i, x;
 	u32 len;
 	u32 *col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -403,7 +391,6 @@ void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 r, g, b;
 	s32 i, x;
 	u32 len;
-	u8 aa_lev = surf->AALevel;
 
 	col_no_a = col & 0x00FFFFFF;
 	r = GF_COL_R(col);
@@ -412,7 +399,6 @@ void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 	for (i=0; i<count; i++) {
 		spana = spans[i].coverage;
-		if (spana<aa_lev) continue;
 		x = spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 
@@ -436,13 +422,11 @@ void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
-	u8 aa_lev = surf->AALevel;
 	s32 i;
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
 		overmask_rgbx_const_run(fin, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len);
@@ -457,10 +441,8 @@ void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	s32 i, x;
 	u32 len;
 	u32 *col, _col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -585,7 +567,6 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	char *p;
 	s32 i;
 	u32 len;
-	u8 aa_lev = surf->AALevel;
 
 	a = GF_COL_A(col);
 	r = GF_COL_R(col);
@@ -594,7 +575,6 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	col_no_a = col & 0x00FFFFFF;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		p = dst + spans[i].x*surf->pitch_x;
 		len = spans[i].len;
 	
@@ -618,14 +598,12 @@ void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 a, fin, col_no_a;
-	u8 aa_lev = surf->AALevel;
 	s32 i;
 
 	a = GF_COL_A(surf->fill_col);
 	col_no_a = surf->fill_col & 0x00FFFFFF;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
 		overmask_rgba_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
@@ -641,10 +619,8 @@ void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	s32 i;
 	u32 len;
 	u32 *col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		p = dst + spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
