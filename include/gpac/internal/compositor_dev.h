@@ -363,7 +363,8 @@ struct __tag_compositor
 	/*user rotation angle - ALWAYS CENTERED*/
 	Fixed rotation;
 
-	Bool skip_flush;
+	/*0: flush to be done - 1: flush can be skipped - 2: forces flush*/
+	u32 skip_flush;
 #ifndef GPAC_DISABLE_SVG
 	u32 num_clicks;
 #endif

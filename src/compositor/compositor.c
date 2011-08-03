@@ -44,6 +44,8 @@ void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
 	compositor->frame_draw_type = state;
+	if (state==GF_SC_DRAW_FLUSH)
+		compositor->skip_flush = 2;
 }
 
 
@@ -1893,13 +1895,18 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	flags = compositor->traverse_state->immediate_draw;
 
-	if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1))
-		compositor->skip_flush = 1;
-	
-		/*if using OpenGL, flush even if no changes as the display may be dirty (as seen on android, likely other devices)*/
+	if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
+		/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
 #ifdef GPAC_ANDROID
-		 compositor->skip_flush = 0;
+		compositor->skip_flush = 0;
+#else
+		if (compositor->skip_flush==2) {
+			compositor->skip_flush = 0;
+		} else {
+			compositor->skip_flush = 1;
+		}
 #endif
+	}
 
 
 	compositor->traverse_state->immediate_draw = flags;
@@ -2163,7 +2170,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 		if(compositor->user->init_flags & GF_TERM_INIT_HIDE) compositor->skip_flush = 1;
 
-		if (!compositor->skip_flush) {
+		if (compositor->skip_flush!=1) {
 			rc.x = rc.y = 0; 
 			rc.w = compositor->display_width;	
 			rc.h = compositor->display_height;		
