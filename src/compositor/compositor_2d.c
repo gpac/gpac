@@ -456,7 +456,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (!compositor_texture_rectangles(visual, txh, clip, unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return 1;
-
+	
 	/*can we use hardware blitter ?*/
 	hw_caps = visual->compositor->video_out->hw_caps;
 	overlay_type = 0;
@@ -635,7 +635,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				visual->compositor->video_memory = 2;
 			}
 			/*force a reconfigure of video output*/
-			else {
+			else if (visual->compositor->video_memory!=2) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring video output to use video memory\n"));
 				visual->compositor->request_video_memory = 1;
 				visual->compositor->root_visual_setup = 0;
@@ -696,6 +696,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	if (!alpha) return 1;
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_BGR_24:
 	case GF_PIXEL_RGB_555:
@@ -709,7 +711,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_I420:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_RGBS:
-	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_RGBAS:		
 		break;
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:

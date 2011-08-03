@@ -619,6 +619,29 @@ static void merge_row_rgba(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 	}
 }
 
+
+static void load_line_grey(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u8 *dst_bits)
+{
+	u32 i;
+	src_bits += x_offset + y_offset*y_pitch;
+	for (i=0; i<width; i++) {
+		dst_bits[0] = dst_bits[1] = dst_bits[2] = *src_bits++;
+		dst_bits[3] = 0xFF;
+		dst_bits+=4;
+	}
+}
+
+static void load_line_alpha_grey(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u8 *dst_bits)
+{
+	u32 i;
+	src_bits += x_offset*2 + y_offset*y_pitch;
+	for (i=0; i<width; i++) {
+		dst_bits[0] = dst_bits[1] = dst_bits[2] = *src_bits++;
+		dst_bits[3] = *src_bits++;
+		dst_bits+=4;
+	}
+}
+
 static GFINLINE u8 colmask(s32 a, s32 n)
 {
     s32 mask = (1 << n) - 1;
@@ -800,6 +823,13 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	else if (key && (key->alpha<0xFF)) has_alpha = 1;
 
 	switch (src->pixel_format) {
+	case GF_PIXEL_GREYSCALE:
+		load_line = load_line_grey;
+		break;
+	case GF_PIXEL_ALPHAGREY:
+		load_line = load_line_alpha_grey;
+		has_alpha = 1;
+		break;
 	case GF_PIXEL_RGB_555:
 		load_line = load_line_rgb_555;
 		break;
