@@ -102,11 +102,11 @@ function filter_event(evt)
   if ((start_drag_x == evt.mouse_x) && (start_drag_y == evt.mouse_y)) {
 /*
    if (dock.visible) {
-    open_dock(false);
+    show_dock(false);
    } else 
 */   
    {
-    open_dock(false);
+    show_dock(false);
     if (player_control.visible) {
       //player_control.hide();
       top_wnd = null;
@@ -123,7 +123,7 @@ function filter_event(evt)
   //commented out as HOME is used for viewpoint reset
 /*
   if (evt.keycode=='Home') {
-    open_dock(!dock.visible);
+    show_dock(!dock.visible);
     return true;
   }
 */
@@ -162,16 +162,27 @@ function filter_event(evt)
 }
 
 
-function open_dock(show)
+function show_dock(show)
 {
  if (show) {
   dock.show();
+  if (movie_connected) {
+   dock.set_size(display_width, display_height/2);
+   dock.move(0, -display_height/4);
+   movie.scale.x = movie.scale.y = 0.5;
+   movie.translation.y = display_height/4;
+  } else {
+   dock.set_size(display_width, display_height);
+   dock.move(0, 0);
+  }
   dock.layout();
   player_control.hide();
-  set_movie_url('');
+//  set_movie_url('');
   top_wnd = dock;
 //  uidisplay.hide();
  } else {
+  movie.scale.x = movie.scale.y = 1;
+  movie.translation.y = 0;
   dock.hide();
   player_control.hide();
   top_wnd = null;
@@ -212,6 +223,20 @@ function gpacui_show_window(obj)
  layout();
 }
  
+function compute_movie_size(width, height)
+{
+   var w, h, r_w, r_h;
+   if (!width || !height) return;
+   
+   w = width;
+   h = height;
+   if (w < min_width) r_w = Math.ceil(min_width/w);
+   if (h < min_height) r_h = Math.ceil(min_height/h);
+   if (r_w < r_h) r_w = r_h;
+   w = r_w * w;
+   h = r_w * h;
+   gpac.set_size(w, h);
+}
 
 //Initialize the main UI script
 function initialize() {
@@ -239,9 +264,20 @@ function initialize() {
 //    gwskin.tooltip_callback = function(over, label) { alert('' + over ? label : ''); };
 
     root.children[0].backColor = gwskin.back_color;
+    movie.children[0].on_size = function(evt) {
+      if (!gpac.fullscreen) {
+       compute_movie_size(evt.width, evt.height);
+      }
+    }
+    movie.children[0].addEventListener('gpac_scene_attached', movie.children[0].on_size, 0);
     
     display_width = parseInt( gpac.getOption('General', 'LastWidth') );
     display_height = parseInt( gpac.getOption('General', 'LastHeight') );
+    
+    if (!gpac.fullscreen && (!display_width || !display_height)) {
+     display_width = 320;
+     display_height = 240;
+    }
     
     if (!gpac.fullscreen && display_width && display_height) {
      gpac.set_size(display_width, display_height);
@@ -309,14 +345,14 @@ function initialize() {
 
     /*init our internal extensions*/
     var icon = gpacui_insert_dock_icon('Player', 'icons/applications-multimedia.svg');
-    icon.on_click = function () { dock.hide(); player_control.show(); };
+    icon.on_click = function () { show_dock(false); player_control.show(); };
     
     if (UPnP_Enabled) {
       icon = gpacui_insert_dock_icon('Control', 'icons/video-display.svg');
-      icon.on_click = function () { select_remote_display('select'); };
+      icon.on_click = function () { show_dock(false); select_remote_display('select'); };
 
       icon = gpacui_insert_dock_icon('Remote', 'icons/applications-internet.svg');
-      icon.on_click = function () { browse_remote_servers('select'); };
+      icon.on_click = function () { set_movie_url(''); show_dock(false); browse_remote_servers('select'); };
     }
 
     /*init all extensions*/
@@ -339,7 +375,7 @@ function initialize() {
       if (extension.icon && extension.launch) {
        var icon = gpacui_insert_dock_icon(extension.label, extension.path+extension.icon);
        icon.extension = extension;
-       icon.on_click = function () { dock.hide(); this.extension.launch(this.extension); }
+       icon.on_click = function () { show_dock(false); this.extension.launch(this.extension); }
       }
       if (extension.initialize) extension.initialize(extension);
     }
@@ -354,7 +390,7 @@ function initialize() {
       if (url.indexOf('://')<0) set_movie_url('gpac://'+url);
       else set_movie_url(url);
     } else {
-//     open_dock(true);
+//     show_dock(true);
         player_control.show();
   }
 }
@@ -390,12 +426,7 @@ function set_movie_url(url)
 
         if (!movie_connected) {
           if (!gpac.fullscreen) {
-           var w, h;
-           w = evt.width;
-           if (w < min_width) w = min_width;
-           h = evt.height;
-           if (h < min_height) h = min_height;
-           gpac.set_size(w, h);
+           compute_movie_size(evt.width, evt.height);
           }
           movie_connected = true;
           gpac.set_3d(evt.type3d ? 1 : 0);
@@ -441,7 +472,9 @@ function layout()
   var i, list, start_x;
   player_control.set_size(display_width, player_control.height);
 
+  
   dock.set_size(display_width, display_height);
+//  dock.set_size(display_width, display_height);
 //  if (uidisplay.children.length) uidisplay.children[0].set_size(display_width, display_height);
 }
 
@@ -667,7 +700,7 @@ function new_player_control(container)
   
   if (!browser_mode) {
     wnd.home = gw_new_icon_button(wnd.infobar, 'icons/go-home.svg', 'Home', 'icon');
-    wnd.home.on_click = function() { open_dock(true); }
+    wnd.home.on_click = function() { show_dock(true); }
     wnd.home.set_size(small_control_icon_size, small_control_icon_size);
   } else {
     wnd.home = null;
@@ -866,7 +899,7 @@ function open_local_file()
   filebrowse.on_browse = function(value, directory) {
     if (directory) gpac.last_working_directory = directory;
     set_movie_url(value);
-    open_dock(false);
+    show_dock(false);
  }
 
  filebrowse.set_size(display_width, display_height);
