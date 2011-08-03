@@ -259,24 +259,26 @@ function gw_window_show_hide()
    this.timer = gw_new_timer(1);
    this.timer.set_timeout(0.25, false);
    this.timer.on_fraction = function(val) {
+    if (!this.wnd) return;
     if (this.wnd.visible) {
       this.wnd.scale.x = 1-val;
       this.wnd.scale.y = 1-val;
-      this.wnd.set_alpha(1-val);
+      this.wnd.set_alpha( (1-val) * this.wnd.alpha);
     } else {
       this.wnd.scale.x = val;
       this.wnd.scale.y = val;
-      this.wnd.set_alpha(val);
+      this.wnd.set_alpha(val * this.wnd.alpha);
     }
    }
    this.timer.on_active = function(val) {
     var fun;
-    if (val) return;
+    if (val || !this.wnd) return;
     var wnd = this.wnd;
     this.wnd = null;
     wnd.visible = !wnd.visible;
     wnd.scale.x = wnd.visible ? 1 : 0;
     wnd.scale.y = wnd.visible ? 1 : 0;
+    wnd.set_alpha(wnd.alpha);
     fun = this.call_on_end;
     this.call_on_end = null;
     if (fun) {
@@ -284,6 +286,10 @@ function gw_window_show_hide()
     }
    }
  }
+ /*not done yet! This can happen when the function is called faster than the animation duration*/
+ if (this.timer.wnd) return;
+ 
+ this.alpha = this.get_alpha();
  this.set_alpha(1.0);
  this.timer.wnd = this;
  this.timer.start(0);
@@ -616,6 +622,9 @@ function gw_new_rectangle(class_name, style)
    obj.set_alpha = function(alpha) {
     this.children[0].appearance.material.transparency = 1-alpha;
    }
+   obj.get_alpha = function() {
+    return 1 - this.children[0].appearance.material.transparency;
+   } 
    obj.set_fill_color = function(r, g, b) {
     this.children[0].appearance.material.emissiveColor.r = r;
     this.children[0].appearance.material.emissiveColor.g = g;
@@ -636,6 +645,7 @@ function gw_new_rectangle(class_name, style)
    obj.set_fill_color = function(r, g, b) {}
    obj.set_strike_color = function(r, g, b) {}
    obj.set_line_width = function(width) {}
+   obj.get_alpha = function() { return 1; }
   }
   
   obj.set_style = function(classname, style) {
@@ -839,6 +849,10 @@ function gw_new_window(parent, offscreen, class_name)
     obj.set_alpha = function(alpha) {
      this.children[0].appearance.material.transparency = 1 - alpha;
     } 
+    obj.get_alpha = function() {
+     return 1 - this.children[0].appearance.material.transparency;
+    } 
+
     obj.add_child = function(child) {
      this.children[0].appearance.texture.children[this.children[0].appearance.texture.children.length] = child;
     }
@@ -1618,6 +1632,8 @@ function gw_new_slider(parent, vertical, class_name)
   }
   obj.min = 0;
   obj.max = 100;
+  obj.frac = 0;
+  obj.set_trackpoint(0);
   
   obj.move = function(x,y) {
    this.translation.x = x;
