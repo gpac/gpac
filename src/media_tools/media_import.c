@@ -5838,9 +5838,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
 				samp->data = pck->data;
 				samp->dataLength = pck->data_len;
-				e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
+
+				if (samp->DTS && (samp->DTS==tsimp->last_dts)) {
+					e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
+				} else {
+					e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
+				}
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample: %s\n", gf_error_to_string(e)));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d: Error adding sample: %s\n", pck->stream->pid, gf_error_to_string(e)));
 					//import->flags |= GF_IMPORT_DO_ABORT;
 					import->last_error = e;
 				}
@@ -5850,6 +5855,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 				if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 				if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
+				tsimp->last_dts = samp->DTS;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
 			}
@@ -5949,11 +5955,21 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				} else {
 					if (!(sl_pck->stream->flags & GF_M2TS_ES_FIRST_DTS)) {
 						sl_pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
+
+						if (!hdr.compositionTimeStampFlag) {
+							hdr.compositionTimeStamp = sl_pck->stream->program->first_dts;
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d SL Access unit start flag set without any composition time stamp - defaulting to last CTS seen on program\n", sl_pck->stream->pid));
+						} 
 						sl_pck->stream->first_dts = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
 						if (!sl_pck->stream->program->first_dts ||
 							sl_pck->stream->program->first_dts > sl_pck->stream->first_dts) {
 							sl_pck->stream->program->first_dts = sl_pck->stream->first_dts;
 						}
+					} else {
+						if (!hdr.compositionTimeStampFlag) {
+							hdr.compositionTimeStamp = sl_pck->stream->first_dts + tsimp->last_dts+1;
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d SL Access unit start flag set without any composition time stamp - defaulting to last CTS seen on stream + 1\n", sl_pck->stream->pid));
+						} 
 					}
 
 					samp = gf_isom_sample_new();
@@ -5971,8 +5987,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						samp->dataLength = sl_pck->data_len - hdr_len;
 
 						e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
+						/*if CTS was not specified, samples will simply be skipped*/
 						if (e) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d Error adding sample\n", sl_pck->stream->pid));
 						}
 						if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90)) {
 							//import->flags |= GF_IMPORT_DO_ABORT;
@@ -6078,28 +6095,29 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		}
 
 
+		if (tsimp.track) {
+			MP4T_RecomputeBitRate(import->dest, tsimp.track);
+			/* creation of the edit lists */
+			if (es->first_dts != es->program->first_dts) {
+				u32 media_ts, moov_ts, offset;
+				u64 dur;
+				media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);
+				moov_ts = gf_isom_get_timescale(import->dest);
+				assert(es->program->first_dts <= es->first_dts);
+				offset = (u32)(es->first_dts - es->program->first_dts) * moov_ts / media_ts;
+				dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
+				gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
+				gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
+				gf_import_message(import, GF_OK, "Timeline offset: %d ms", offset);
+			}
 
-		MP4T_RecomputeBitRate(import->dest, tsimp.track);
-		/* creation of the edit lists */
-		if (es->first_dts != es->program->first_dts) {
-			u32 media_ts, moov_ts, offset;
-			u64 dur;
-			media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);
-			moov_ts = gf_isom_get_timescale(import->dest);
-			assert(es->program->first_dts < es->first_dts);
-			offset = (u32)(es->first_dts - es->program->first_dts) * moov_ts / media_ts;
-			dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
-			gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
-			gf_import_message(import, GF_OK, "Timeline offset: %d ms", offset);
+			if (tsimp.nb_p) {
+				gf_import_message(import, GF_OK, "Import results: %d VOPs (%d Is - %d Ps - %d Bs)", gf_isom_get_sample_count(import->dest, tsimp.track), tsimp.nb_i, tsimp.nb_p, tsimp.nb_b);
+			}
+
+			if (es->program->pmt_iod)
+				gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_MP42, 1);
 		}
-
-		if (tsimp.nb_p) {
-			gf_import_message(import, GF_OK, "Import results: %d VOPs (%d Is - %d Ps - %d Bs)", gf_isom_get_sample_count(import->dest, tsimp.track), tsimp.nb_i, tsimp.nb_p, tsimp.nb_b);
-		}
-
-		if (es->program->pmt_iod)
-			gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_MP42, 1);
 	}
 
 	gf_m2ts_demux_del(ts);

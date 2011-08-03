@@ -104,7 +104,11 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 	GF_M2TS_PES_PCK pck;
 
 	if (PTS) {
-		if (pes->PTS != PTS) force_new_au = 1;
+		if (pes->PTS != PTS) {
+			force_new_au = 1;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packet \n", pes->pid, PTS) );
+		}
 		pes->PTS = PTS;
 		if (DTS) pes->DTS = DTS;
 		else pes->DTS = PTS;
@@ -237,7 +241,7 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 		}
 		if (force_new_au) {
 			pck.flags |= GF_M2TS_PES_PCK_AU_START;
-			force_new_au = 0;
+			//force_new_au = 0;
 		}
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 	}
