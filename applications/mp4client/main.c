@@ -939,6 +939,10 @@ int main (int argc, char **argv)
 		return 1;
 	}
 
+	if( gf_cfg_get_key(cfg_file, "General", "Logs") != NULL ){
+		logs_set = 1;
+	}
+
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 //		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
@@ -1090,7 +1094,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-
+	GF_LOG( GF_LOG_INFO, GF_LOG_CONSOLE, ("hello world"));
 	if (!url_arg && simulation_time_in_ms)
 		simulation_time_in_ms += gf_sys_clock();
 
@@ -1111,7 +1115,7 @@ int main (int argc, char **argv)
 	if (dump_mode) rti_file = NULL;
 
 	if (!logs_set) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		//gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
 	}
 
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
