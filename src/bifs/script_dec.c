@@ -128,7 +128,7 @@ GF_Err ParseScriptField(ScriptParser *parser)
 		if (gf_bs_read_int(parser->bs, 1)) {
 			e = gf_sg_script_field_get_info(field, &info);
 			if (e) return e;
-			gf_bifs_dec_field(parser->codec, parser->bs, parser->script, &info);
+			gf_bifs_dec_field(parser->codec, parser->bs, parser->script, &info, 0);
 		}
 	}
 

@@ -63,7 +63,7 @@ typedef struct
 	GF_Err last_error;
 	u32 line;
 
-	Bool done;
+	Bool done, in_com;
 	u32 is_wrl;
 	/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
 	u32 unicode_type;
@@ -3173,14 +3173,17 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 {
 	char *str;
 	GF_Node *node, *vrml_root_node;
-	Bool in_com, force_new_com;
+	Bool force_new_com;
 	GF_Route *r;
 	Bool has_id;
 	char szDEFName[1000];
 
 	vrml_root_node = NULL;
 	has_id = 0;
-	in_com = init_com ? 0 : 1;
+	
+	if (init_com)
+		parser->in_com = 0 ;
+
 	parser->cur_com = init_com;
 
 	force_new_com = (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) ? 1 : 0;
@@ -3202,7 +3205,8 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 		}
 	}
 
-	parser->stream_id = parser->load->force_es_id;
+	if (!parser->in_com)
+		parser->stream_id = parser->load->force_es_id;
 
 	/*parse all top-level items*/
 	while (!parser->last_error) {
@@ -3257,7 +3261,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			is always RAP*/
 			if (!parser->au_time) parser->au_is_rap = 1;
 
-			in_com = 1;
+			parser->in_com = 1;
 
 			if (!gf_bt_check_code(parser, '{')) {
 				str = gf_bt_get_next(parser, 0);
@@ -3316,7 +3320,10 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 				GF_StreamContext *prev = parser->od_es;
 				parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, 0);
 				/*force new AU if stream changed*/
-				if (parser->od_es != prev) parser->bifs_au = NULL;
+				if (parser->od_es != prev) {
+					parser->bifs_au = NULL;
+					parser->od_au = NULL;
+				}
 			}
 			if (!parser->od_es) parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, 0);
 			if (!parser->od_au) parser->od_au = gf_sm_stream_au_new(parser->od_es, parser->au_time, 0, parser->au_is_rap);
@@ -3394,7 +3401,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 		/*if in command, check command end*/
 		else {
 			/*check command end*/
-			if (/*in_com && */gf_bt_check_code(parser, '}')) in_com = 0;
+			if (/*in_com && */gf_bt_check_code(parser, '}')) parser->in_com = 0;
 			else if (strlen(str)) {
 				gf_bt_report(parser, GF_BAD_PARAM, "%s: Unknown top-level element", str);
 			}

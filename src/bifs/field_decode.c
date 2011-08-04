@@ -70,7 +70,7 @@ Fixed BD_ReadSFFloat(GF_BifsDecoder * codec, GF_BitStream *bs)
 }
 
 
-GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
+GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com)
 {
 	GF_Err e;
 	GF_Node *new_node;
@@ -231,7 +231,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		//for nodes the field ptr is a ptr to the field, which is a node ptr ;)
 		new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 		if (new_node) {
-			e = gf_node_register(new_node, node);
+			e = gf_node_register(new_node, is_mem_com ? NULL : node);
 			if (e) return e;
 		}
 		//it may happen that new_node is NULL (this is valid for a proto declaration)
@@ -264,7 +264,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 	return codec->LastError;
 }
 
-GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
+GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com)
 {
 	GF_Node *new_node;
 	GF_Err e;
@@ -288,12 +288,12 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		e = GF_OK;;
 		if (field->fieldType != GF_SG_VRML_MFNODE) {
 			e = gf_sg_vrml_mf_append(field->far_ptr, field->fieldType, & sffield.far_ptr);
-			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield);
+			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 0);
 		} else {
 			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			//append
 			if (new_node) {
-				e = gf_node_register(new_node, node);
+				e = gf_node_register(new_node, is_mem_com ? NULL : node);
 				if (e) return e;
 
 				//regular coding
@@ -353,7 +353,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 	return GF_OK;
 }
 
-GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
+GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com)
 {
 	GF_Err e;
 	u32 NbBits, nbFields;
@@ -387,14 +387,14 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 		for (i=0;i<nbFields; i++) {
 			e = gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, & sffield.far_ptr, i);
 			if (e) return e;
-			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield);
+			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 0);
 		}
 	} else {
 		last = NULL;
 		for (i=0;i<nbFields; i++) {
 			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			if (new_node) {
-				e = gf_node_register(new_node, node);
+				e = gf_node_register(new_node, is_mem_com ? NULL : node);
 				if (e) return e;
 
 				if (node) {
@@ -463,7 +463,7 @@ void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field)
 
 }
 
-GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
+GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com)
 {
 	GF_Err e;
 	u8 flag;
@@ -474,7 +474,7 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 //	if (field->fieldType == GF_SG_VRML_UNKNOWN) return GF_NON_COMPLIANT_BITSTREAM;
 	
 	if (gf_sg_vrml_is_sf_field(field->fieldType)) {
-		e = gf_bifs_dec_sf_field(codec, bs, node, field);
+		e = gf_bifs_dec_sf_field(codec, bs, node, field, is_mem_com);
 		if (e) return e;
 	} else {
 		/*clean up the eventIn field if not done*/
@@ -512,9 +512,9 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 			/*List description - alloc is dynamic*/
 			flag = gf_bs_read_int(bs, 1);
 			if (flag) {
-				e = BD_DecMFFieldList(codec, bs, node, field);
+				e = BD_DecMFFieldList(codec, bs, node, field, is_mem_com);
 			} else {
-				e = BD_DecMFFieldVec(codec, bs, node, field);
+				e = BD_DecMFFieldVec(codec, bs, node, field, is_mem_com);
 			}
 			if (e) return e;
 		}
@@ -576,7 +576,7 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 		if (e) return e;
 		e = gf_node_get_field(node, field_all, &field);
 		if (e) return e;
-		e = gf_bifs_dec_field(codec, bs, node, &field);
+		e = gf_bifs_dec_field(codec, bs, node, &field, 0);
 		if (e) return e;
 		flag = gf_bs_read_int(bs, 1);
 
@@ -614,7 +614,7 @@ GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 			else {
 				e = gf_node_get_field(node, i, &field);
 				if (e) return e;
-				e = gf_bifs_dec_field(codec, bs, node, &field);
+				e = gf_bifs_dec_field(codec, bs, node, &field, 0);
 			}
 			if (e) return e;
 		}
@@ -628,7 +628,7 @@ GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 			gf_bifs_get_field_index(node, i, GF_SG_FIELD_CODING_DEF, &index);
 			e = gf_node_get_field(node, index, &field);
 			if (e) return e;
-			e = gf_bifs_dec_field(codec, bs, node, &field);
+			e = gf_bifs_dec_field(codec, bs, node, &field, 0);
 			if (e) return e;
 
 			if (is_proto) gf_sg_proto_mark_field_loaded(node, &field);

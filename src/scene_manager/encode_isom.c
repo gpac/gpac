@@ -397,7 +397,7 @@ static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, u32 scene_type)
 {
 	char *data;
-	Bool is_in_iod, delete_desc, first_scene_id;
+	Bool is_in_iod, delete_desc;
 	u32 i, j, di, rate, init_offset, data_len, count, track, rap_delay, flags, rap_mode;
 	u64 last_rap, dur, time_slice, avg_rate, prev_dts;
 	GF_Err e;
@@ -438,7 +438,6 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 
 	flags = opts ? opts->flags : 0;
 	delete_desc = 0;
-	first_scene_id = 0;
 	esd = NULL;
 
 
@@ -585,15 +584,6 @@ force_scene_rap:
 		if (sc && sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
 
-		/*force scene dependencies (we cannot encode in 2 different scene contexts)*/
-		if (!esd->dependsOnESID) {
-			if (!first_scene_id) {
-				esd->dependsOnESID = 0;
-				first_scene_id = esd->ESID;
-			} else {
-				esd->dependsOnESID = first_scene_id;
-			}
-		}
 		if (!esd->decoderConfig) esd->decoderConfig = (GF_DecoderConfig*)gf_odf_desc_new(GF_ODF_DCD_TAG);
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
 
@@ -1046,6 +1036,14 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 						GF_ESD *imp_esd;
 						m=0;
 						while ((imp_esd = (GF_ESD*)gf_list_enum(od->ESDescriptors, &m))) {
+							switch (imp_esd->decoderConfig->streamType) {
+							case GF_STREAM_SCENE:
+							case GF_STREAM_OD:
+								continue;
+							default:
+								break;
+							}
+
 							switch (imp_esd->tag) {
 							case GF_ODF_ESD_TAG:
 								e = gf_sm_import_stream(ctx, mp4, imp_esd, au->timing_sec, mediaSource, au->flags & GF_SM_AU_RAP);

@@ -372,7 +372,8 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 			cfg->pixelHeight = gf_bs_read_int(bs, 16);
 		}
 		gf_bs_align(bs);
-		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))  e = GF_ODF_INVALID_DESCRIPTOR;
+		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))
+			e = GF_ODF_INVALID_DESCRIPTOR;
 	}
 	gf_bs_del(bs);
 	return cfg;

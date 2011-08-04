@@ -179,7 +179,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 				memcpy(&sffield, &targetField, sizeof(GF_FieldInfo));
 				sffield.fieldType = sftype;
 				sffield.far_ptr = slot_ptr;
-				gf_bifs_dec_sf_field(codec, bs, target, &sffield);
+				gf_bifs_dec_sf_field(codec, bs, target, &sffield, 0);
 			}
 		}
 		gf_bifs_check_field_change(target, &targetField);
@@ -227,7 +227,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 				list = list->next;
 			}
 		} else {
-			e = gf_bifs_dec_field(codec, bs, target, &targetField);
+			e = gf_bifs_dec_field(codec, bs, target, &targetField, 0);
 			if (e) return e;
 		}
 		if (previous)
@@ -245,7 +245,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			if (fromField.fieldType == targetField.fieldType) 
 				gf_sg_vrml_field_clone(targetField.far_ptr, fromField.far_ptr, targetField.fieldType, codec->current_graph);
 		} else {	
-			e = gf_bifs_dec_field(codec, bs, target, &targetField);
+			e = gf_bifs_dec_field(codec, bs, target, &targetField, 0);
 		}
 		break;
 	}
@@ -332,7 +332,7 @@ static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *b
 
 		e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & sffield.far_ptr, pos);
 		if (e) return e;
-		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield);
+		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 0);
 		if (e) break;
 		count--;
 	}
@@ -641,7 +641,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 			e = gf_sg_vrml_mf_insert(field.far_ptr, field.fieldType, & sffield.far_ptr, pos);
 		}
 		if (e) return e;
-		e = gf_bifs_dec_sf_field(codec, bs, def, &sffield);
+		e = gf_bifs_dec_sf_field(codec, bs, def, &sffield, 0);
 		if (!e) gf_bifs_check_field_change(def, &field);
 	}
 	return e;
@@ -806,7 +806,7 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 	/*parse the field*/
 	codec->is_com_dec = 1;
-	e = gf_bifs_dec_field(codec, bs, node, &field);
+	e = gf_bifs_dec_field(codec, bs, node, &field, 0);
 	codec->is_com_dec = 0;
 	/*remove prev nodes*/
 	if (field.fieldType == GF_SG_VRML_SFNODE) {
@@ -883,7 +883,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 		e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & sffield.far_ptr, pos);
 		if (e) return e;
-		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield);
+		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 0);
 		if (!e) gf_bifs_check_field_change(node, &field);
 	}
 
@@ -1045,7 +1045,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			case GF_SG_EVENT_FIELD:
 				/*parse default value except nodes ...*/
 				if (gf_sg_vrml_is_sf_field(field_type)) {
-					e = gf_bifs_dec_sf_field(codec, bs, NULL, &field);
+					e = gf_bifs_dec_sf_field(codec, bs, NULL, &field, 0);
 				} else {
 					f = 0;
 					if (codec->info->config.UsePredictiveMFField) {
@@ -1186,12 +1186,12 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 					qp_min_value = gf_sg_vrml_field_pointer_new(qpsftype);
 					field.name = "QPMinValue";
 					field.far_ptr = qp_min_value;
-					gf_bifs_dec_sf_field(codec, bs, NULL, &field);
+					gf_bifs_dec_sf_field(codec, bs, NULL, &field, 0);
 
 					qp_max_value = gf_sg_vrml_field_pointer_new(qpsftype);
 					field.name = "QPMaxValue";
 					field.far_ptr = qp_max_value;
-					gf_bifs_dec_sf_field(codec, bs, NULL, &field);
+					gf_bifs_dec_sf_field(codec, bs, NULL, &field, 0);
 				}
 
 				/*and store*/

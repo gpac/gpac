@@ -79,7 +79,7 @@ static GF_Err BM_ParseMultipleIndexedReplace(GF_BifsDecoder *codec, GF_BitStream
 			gf_node_register(inf->new_node, NULL);
 		} else {
 			field.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
-			e = gf_bifs_dec_sf_field(codec, bs, node, &field);
+			e = gf_bifs_dec_sf_field(codec, bs, node, &field, 1);
 			if (e) goto err;
 		}
 		count--;
@@ -126,7 +126,7 @@ static GF_Err BM_ParseMultipleReplace(GF_BifsDecoder *codec, GF_BitStream *bs, G
 			} else {
 				field.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 			}
-			e = gf_bifs_dec_field(codec, bs, node, &field);
+			e = gf_bifs_dec_field(codec, bs, node, &field, 1);
 			if (e) goto exit;
 		}
 	} else {
@@ -148,7 +148,7 @@ static GF_Err BM_ParseMultipleReplace(GF_BifsDecoder *codec, GF_BitStream *bs, G
 			} else {
 				field.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 			}
-			e = gf_bifs_dec_field(codec, bs, node, &field);
+			e = gf_bifs_dec_field(codec, bs, node, &field, 1);
 			if (e) goto exit;
 			flag = gf_bs_read_int(bs, 1);
 		}
@@ -342,7 +342,7 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 	} else {
 		decfield.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 	}
-	e = gf_bifs_dec_sf_field(codec, bs, target, &decfield);
+	e = gf_bifs_dec_sf_field(codec, bs, target, &decfield, 1);
 	if (e) return e;
 
 	gf_list_add(com_list, com);
@@ -511,7 +511,7 @@ GF_Err BM_ParseIndexInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 		inf->fieldIndex = field_ind;
 		inf->fieldType = sffield.fieldType;
 		sffield.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(sffield.fieldType);
-		codec->LastError = gf_bifs_dec_sf_field(codec, bs, def, &sffield);
+		codec->LastError = gf_bifs_dec_sf_field(codec, bs, def, &sffield, 1);
 		gf_list_add(com_list, com);
 	}
 	return codec->LastError;
@@ -723,7 +723,7 @@ GF_Err BM_ParseFieldReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 		field.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(field.fieldType);
 	}
 	/*parse the field*/
-	codec->LastError = gf_bifs_dec_field(codec, bs, node, &field);
+	codec->LastError = gf_bifs_dec_field(codec, bs, node, &field, 1);
 
 	gf_list_add(com_list, com);
 	return codec->LastError;
@@ -783,7 +783,7 @@ GF_Err BM_ParseIndexValueReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Lis
 		sffield.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
 		inf->fieldType = sffield.fieldType;
 		sffield.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(sffield.fieldType);
-		codec->LastError = gf_bifs_dec_sf_field(codec, bs, node, &sffield);
+		codec->LastError = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 1);
 	}
 	gf_list_add(com_list, com);
 	return codec->LastError;
