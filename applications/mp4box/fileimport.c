@@ -75,7 +75,7 @@ void convert_file_info(char *inName, u32 trackID)
 		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_OD: fprintf(stdout, "ObjectDescriptor (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_OD: fprintf(stdout, "OD (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		default: fprintf(stdout, "Other (4CC: %s)", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 

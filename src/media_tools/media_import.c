@@ -5295,7 +5295,6 @@ static void m2ts_set_track_mpeg4_probe_info(GF_M2TS_ES *es, GF_ESD *esd,
 			tk_info->type = GF_ISOM_MEDIA_ESM;
 			break;
 		}
-		if (es) tk_info->mpeg4_es_id = es->mpeg4_es_id;
 	}
 }
 
@@ -5373,13 +5372,16 @@ static void m2ts_set_track_mpeg4_creation_info(GF_MediaImporter *import, u32 *mt
 
 }
 
-static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti, Bool is_in_iod)
+static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti, u32 mpeg4_es_id, Bool is_in_iod)
 {
 	GF_MediaImporter *import= (GF_MediaImporter *)tsimp->import;
 	if (mtype != GF_ISOM_MEDIA_ESM) {
 		u32 di;
 		Bool destroy_esd = 0;
-		tsimp->track = gf_isom_new_track(import->dest, (import->esd?import->esd->ESID:import->trackID), mtype, 90000);
+		if (import->esd) mpeg4_es_id = import->esd->ESID;
+		else if (!mpeg4_es_id) mpeg4_es_id = import->trackID;
+
+		tsimp->track = gf_isom_new_track(import->dest, mpeg4_es_id, mtype, 90000);
 		if (!tsimp->track) {
 			tsimp->track = gf_isom_new_track(import->dest, 0, mtype, 90000);
 			if (!tsimp->track) {
@@ -5472,6 +5474,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				idx = import->nb_tracks;
 				import->tk_info[idx].track_num = es->pid;
 				import->tk_info[idx].prog_num = prog->number;
+				import->tk_info[idx].mpeg4_es_id = es->mpeg4_es_id;
 
 				switch (es->stream_type) {
 				case GF_M2TS_VIDEO_MPEG1:
@@ -5643,7 +5646,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				}
 				break;
 			}
-			m2ts_create_track(tsimp, mtype, stype, oti, is_in_iod);
+			m2ts_create_track(tsimp, mtype, stype, oti, es->mpeg4_es_id, is_in_iod);
 		}
 		break;
 	case GF_M2TS_EVT_AAC_CFG:
@@ -5939,7 +5942,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				mtype = stype = oti = 0;
 				import->esd = gf_m2ts_get_esd(sl_pck->stream);
 				m2ts_set_track_mpeg4_creation_info(import, &mtype, &stype, &oti);
-				m2ts_create_track(tsimp, mtype, stype, oti, 0);
+				m2ts_create_track(tsimp, mtype, stype, oti, sl_pck->stream->mpeg4_es_id, 0);
 			}
 
 			if (import->esd) {
@@ -5958,7 +5961,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 						if (!hdr.compositionTimeStampFlag) {
 							hdr.compositionTimeStamp = sl_pck->stream->program->first_dts;
-							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d SL Access unit start flag set without any composition time stamp - defaulting to last CTS seen on program\n", sl_pck->stream->pid));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d First SL Access unit start flag set without any composition time stamp - defaulting to last CTS seen on program\n", sl_pck->stream->pid));
 						} 
 						sl_pck->stream->first_dts = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
 						if (!sl_pck->stream->program->first_dts ||

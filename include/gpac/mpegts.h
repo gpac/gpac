@@ -406,9 +406,11 @@ typedef struct tag_m2ts_pes
 
 
 	/*PES reframer - if NULL, pes processing is skiped*/
-	u32 frame_state;
 	/*returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
-	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
+	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, unsigned char *data, u32 data_len);
+
+	/*used by several reframers to store their parsing state*/
+	u32 frame_state;
 	/*LATM stuff - should be moved out of mpegts*/
 	unsigned char *buf;
 	u32 buf_len;
