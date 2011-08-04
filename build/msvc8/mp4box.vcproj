@@ -296,7 +296,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="if not exist &quot;$(ProgramFiles)\GPAC&quot; md &quot;$(ProgramFiles)\GPAC&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\mp4box.exe &quot;$(ProgramFiles)\GPAC&quot;&#x0D;&#x0A;"
+				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
