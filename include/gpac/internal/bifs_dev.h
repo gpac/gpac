@@ -136,9 +136,9 @@ struct __tag_bifs_dec
 GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag);
 /*decodes an SFField (to get a ptr to the field, use gf_node_get_field )
 the FieldIndex is used for Quantzation*/
-GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
+GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com);
 /*decodes a Field (either SF or MF). The field MUST BE EMPTY*/
-GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
+GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com);
 /*decodes a route*/
 GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_insert);
 /*get name*/

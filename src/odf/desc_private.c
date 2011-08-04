@@ -451,6 +451,11 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 
 #endif /*GPAC_MINIMAL_ODF*/
 	default:
+		/*don't write out l descriptors*/
+		if ((desc->tag>=GF_ODF_MUXINFO_TAG) && (desc->tag<=GF_ODF_LASER_CFG_TAG)) {
+			*outSize = 0;
+			return GF_OK;
+		}
 		return gf_odf_size_default((GF_DefaultDescriptor *)desc, outSize);
 	}
 	return GF_OK;
@@ -544,6 +549,9 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 		return gf_odf_write_ipmp_tool(bs, (GF_IPMP_Tool *)desc);
 #endif /*GPAC_MINIMAL_ODF*/
 	default:
+		/*don't write out internal descriptors*/
+		if ((desc->tag>=GF_ODF_MUXINFO_TAG) && (desc->tag<=GF_ODF_LASER_CFG_TAG))
+			return GF_OK;
 		return gf_odf_write_default(bs, (GF_DefaultDescriptor *)desc);
 	}
 	return GF_OK;

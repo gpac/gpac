@@ -3281,6 +3281,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		}
 		if (dumper->dump_mode==GF_SM_DUMP_SVG) break;
 	}
+	first_bifs = (num_scene==1) ? 1 : 0;
 	num_scene = (num_scene>1) ? 1 : 0;
 	num_od = (num_od>1) ? 1 : 0;
 
@@ -3307,7 +3308,6 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 	time = dumper->LSRDump ? -1 : 0;
 	first_par = 0;
-	first_bifs = 1;
 
 	while (gf_list_count(sample_list)) {
 		GF_AUContext *au = (GF_AUContext*)gf_list_get(sample_list, 0);
