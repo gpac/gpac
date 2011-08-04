@@ -342,19 +342,6 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 	return time_left;
 }
 
-u32 MM_SimulationStep_Compositor(GF_Terminal *term, u32 time_left)
-{
-	u32 time_taken = gf_sys_clock();
-	gf_sc_draw_frame(term->compositor);
-	time_taken = gf_sys_clock() - time_taken;
-	if (time_left>time_taken) 
-		time_left -= time_taken;
-	else
-		time_left = 0;
-
-	return time_left;
-}
-
 u32 MM_Loop(void *par)
 {
 	GF_Terminal *term = (GF_Terminal *) par;
@@ -371,8 +358,15 @@ u32 MM_Loop(void *par)
 		if (do_codec) left = MM_SimulationStep_Decoder(term);
 		else left = term->frame_duration;
 		
-		if (do_scene) left = MM_SimulationStep_Compositor(term, left);
-
+		if (do_scene) {
+			u32 time_taken = gf_sys_clock();
+			gf_sc_draw_frame(term->compositor);
+			time_taken = gf_sys_clock() - time_taken;
+			if (left>time_taken) 
+				left -= time_taken;
+			else
+				left = 0;
+		}
 		if (do_regulate)
 			gf_sleep(left);
 	}
@@ -619,23 +613,27 @@ void gf_term_set_priority(GF_Terminal *term, s32 Priority)
 }
 
 GF_EXPORT
-GF_Err gf_term_process_step(GF_Terminal *term)
+u32 gf_term_process_step(GF_Terminal *term)
 {
-	u32 left = 0;
+	u32 time_taken = gf_sys_clock();
 
 	if (term->flags & GF_TERM_NO_DECODER_THREAD) {
-		left = MM_SimulationStep_Decoder(term);
-	} else {
-		left = term->frame_duration;
-	}
+		MM_SimulationStep_Decoder(term);
+	} 
 
 	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD) {
-		left = MM_SimulationStep_Compositor(term, left);
+		gf_sc_draw_frame(term->compositor);
 	}
-	if (term->user->init_flags & GF_TERM_NO_REGULATION) return GF_OK;
+	time_taken = gf_sys_clock() - time_taken;
+	if (time_taken > term->compositor->frame_duration) {
+		time_taken = 0;
+	} else {
+		time_taken = term->compositor->frame_duration - time_taken;
+	}
+	if (term->user->init_flags & GF_TERM_NO_REGULATION) return time_taken;
 
-	gf_sleep(left);
-	return GF_OK;
+	gf_sleep(time_taken);
+	return time_taken;
 }
 
 GF_EXPORT
