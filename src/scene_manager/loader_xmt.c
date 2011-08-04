@@ -110,7 +110,7 @@ typedef struct
 	u32 stream_id;
 	Double au_time;
 	Bool au_is_rap;
-
+	Bool in_com;
 	GF_List *script_to_load;
 } GF_XMTParser;
 
@@ -159,7 +159,7 @@ static Bool xmt_esid_available(GF_XMTParser *parser, u16 ESID)
 	XMT_ESDLink *esdl;
 	i=0;
 	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
-		if (esdl->esd->ESID == ESID) return 0;
+		if (esdl->ESID == ESID) return 0;
 	}
 	return 1;
 }
@@ -170,7 +170,7 @@ static char *xmt_get_es_name(GF_XMTParser *parser, u16 ESID)
 	XMT_ESDLink *esdl;
 	i=0;
 	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
-		if (esdl->esd->ESID == ESID) return esdl->desc_name;
+		if (esdl->ESID == ESID) return esdl->desc_name;
 	}
 	return NULL;
 }
@@ -1971,10 +1971,11 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		parser->state = XMT_STATE_ELEMENTS;
 		return;
 	}
-
-	parser->stream_id = parser->load->force_es_id;
+	if (!parser->in_com)
+		parser->stream_id = parser->load->force_es_id;
 
 	if (!strcmp(name, "par")) {
+		parser->in_com = 1;
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
@@ -2416,7 +2417,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		else if (!strcmp(name, "IPMP_DescriptorRemove")) tag = GF_ODF_IPMP_REMOVE_TAG;
 
 		stream = gf_sm_stream_find(parser->load->ctx, (u16) stream_id);
-		if (!stream || (stream->streamType!=GF_STREAM_OD)) stream_id = parser->base_od_id;
+		if (stream && (stream->streamType!=GF_STREAM_OD)) stream_id = parser->base_od_id;
 		parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_OD, 0);
 		parser->od_au = gf_sm_stream_au_new(parser->od_es, 0, au_time, au_is_rap);
 		parser->od_command = gf_odf_com_new(tag);
@@ -2681,6 +2682,10 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 					|| !strcmp(name, "IPMP_DescriptorUpdate") || !strcmp(name, "IPMP_DescriptorRemove") ) {
 				parser->od_command = NULL;
 			}
+
+			else if (!strcmp(name, "par"))
+				parser->in_com = 1;
+
 
 		}
 		else if (parser->state == XMT_STATE_BODY_END) {
@@ -2964,9 +2969,15 @@ static GF_Err xmt_restore_context(GF_SceneLoader *load)
 		switch (sc->streamType) {
 		case GF_STREAM_SCENE:
 		case GF_STREAM_PRIVATE_SCENE:
-			if (!parser->scene_es) parser->scene_es = sc; break;
-		case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
-		default: break;
+			if (!parser->scene_es) 
+				parser->scene_es = sc; 
+			break;
+		case GF_STREAM_OD: 
+			if (!parser->od_es) 
+				parser->od_es = sc; 
+			break;
+		default: 
+			break;
 		}
 	}
 	/*scene creation - pick up a size*/

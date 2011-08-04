@@ -3361,7 +3361,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				} else {
 					fprintf(dumper->trace, " </par>\n");
 				}
-				fprintf(dumper->trace, " <par begin=\"%g\" atES_ID=\"es%d\">\n", au->timing_sec, au->owner->ESID);
+				fprintf(dumper->trace, " <par begin=\"%g\" atES_ID=\"es%d\" isRAP=\"%s\">\n", au->timing_sec, au->owner->ESID, (au->flags & GF_SM_AU_RAP) ? "yes" : "no");
 			} else if (au->timing_sec>time) {
 				if (!first_par) {
 					first_par = 1;
