@@ -50,6 +50,7 @@ BASEPATH=$(pwd)
 
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
+ndk-build clean
 ndk-build 
 echo "[OK] build successful."
 
