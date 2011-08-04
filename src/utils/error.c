@@ -129,28 +129,28 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 /*ENTRIES MUST BE IN THE SAME ORDER AS LOG_TOOL DECLARATION IN <gpac/tools.h>*/
 static struct log_tool_info {u32 type;  const char *name; u32 level; } global_log_tools [] =
 {
-	{ GF_LOG_CORE, "core", GF_LOG_ERROR },
-	{ GF_LOG_CODING, "coding", GF_LOG_ERROR },
-	{ GF_LOG_CONTAINER, "container", GF_LOG_ERROR },
-	{ GF_LOG_NETWORK, "network", GF_LOG_ERROR },
-	{ GF_LOG_RTP, "rtp", GF_LOG_ERROR },
-	{ GF_LOG_AUTHOR, "author", GF_LOG_ERROR },
-	{ GF_LOG_SYNC, "sync", GF_LOG_ERROR },
-	{ GF_LOG_CODEC, "codec", GF_LOG_ERROR },
-	{ GF_LOG_PARSER, "parser", GF_LOG_ERROR },
-	{ GF_LOG_MEDIA, "media", GF_LOG_ERROR },
-	{ GF_LOG_SCENE, "scene", GF_LOG_ERROR },
-	{ GF_LOG_SCRIPT, "script", GF_LOG_ERROR },
-	{ GF_LOG_INTERACT, "interact", GF_LOG_ERROR },
-	{ GF_LOG_COMPOSE, "compose", GF_LOG_ERROR },
-	{ GF_LOG_CACHE, "cache", GF_LOG_ERROR },
-	{ GF_LOG_MMIO, "mmio", GF_LOG_ERROR },
-	{ GF_LOG_RTI, "rti", GF_LOG_ERROR },
-	{ GF_LOG_SMIL, "smil", GF_LOG_ERROR },
-	{ GF_LOG_MEMORY, "mem", GF_LOG_ERROR },
-	{ GF_LOG_AUDIO, "audio", GF_LOG_ERROR },
-	{ GF_LOG_MODULE, "module", GF_LOG_ERROR },
-	{ GF_LOG_MUTEX, "mutex", GF_LOG_ERROR },
+	{ GF_LOG_CORE, "core", GF_LOG_WARNING },
+	{ GF_LOG_CODING, "coding", GF_LOG_WARNING },
+	{ GF_LOG_CONTAINER, "container", GF_LOG_WARNING },
+	{ GF_LOG_NETWORK, "network", GF_LOG_WARNING },
+	{ GF_LOG_RTP, "rtp", GF_LOG_WARNING },
+	{ GF_LOG_AUTHOR, "author", GF_LOG_WARNING },
+	{ GF_LOG_SYNC, "sync", GF_LOG_WARNING },
+	{ GF_LOG_CODEC, "codec", GF_LOG_WARNING },
+	{ GF_LOG_PARSER, "parser", GF_LOG_WARNING },
+	{ GF_LOG_MEDIA, "media", GF_LOG_WARNING },
+	{ GF_LOG_SCENE, "scene", GF_LOG_WARNING },
+	{ GF_LOG_SCRIPT, "script", GF_LOG_WARNING },
+	{ GF_LOG_INTERACT, "interact", GF_LOG_WARNING },
+	{ GF_LOG_COMPOSE, "compose", GF_LOG_WARNING },
+	{ GF_LOG_CACHE, "cache", GF_LOG_WARNING },
+	{ GF_LOG_MMIO, "mmio", GF_LOG_WARNING },
+	{ GF_LOG_RTI, "rti", GF_LOG_WARNING },
+	{ GF_LOG_SMIL, "smil", GF_LOG_WARNING },
+	{ GF_LOG_MEMORY, "mem", GF_LOG_WARNING },
+	{ GF_LOG_AUDIO, "audio", GF_LOG_WARNING },
+	{ GF_LOG_MODULE, "module", GF_LOG_WARNING },
+	{ GF_LOG_MUTEX, "mutex", GF_LOG_WARNING },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO }
 };
 
@@ -243,7 +243,7 @@ GF_Err gf_log_set_tools_levels(const char *val)
 #ifndef GPAC_DISABLE_LOG
 	u32 i;
 	for (i=0; i<GF_LOG_TOOL_MAX - 1; i++) 
-		global_log_tools[i].level = GF_LOG_ERROR;
+		global_log_tools[i].level = GF_LOG_WARNING;
 
 	return gf_log_modify_tools_levels(val);
 #else
@@ -272,8 +272,8 @@ char *gf_log_get_tools_levels()
 			}
 		}
 		if (nb_tools) {
-			char *levelstr = "@error";
-			if (level==GF_LOG_QUIET) levelstr = "&quiet";
+			char *levelstr = "@warning";
+			if (level==GF_LOG_QUIET) levelstr = "@quiet";
 			else if (level==GF_LOG_ERROR) levelstr = "@error";
 			else if (level==GF_LOG_WARNING) levelstr = "@warning";
 			else if (level==GF_LOG_INFO) levelstr = "@info";
