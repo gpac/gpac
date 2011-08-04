@@ -65,7 +65,7 @@ struct __tag_thread
 	char *log_name;
 #endif
 #ifdef GPAC_ANDROID
-        u32 (*RunBeforeExit)(void *param);
+	u32 (*RunBeforeExit)(void *param);
 #endif
 };
 
@@ -133,17 +133,19 @@ static pthread_once_t currentThreadInfoKey_once = PTHREAD_ONCE_INIT;
 
 GF_Err gf_register_before_exit_function(GF_Thread *t, u32 (*toRunBeforePthreadExit)(void *param) )
 {
-      if (!t)
-        return GF_BAD_PARAM;
-      t->RunBeforeExit = toRunBeforePthreadExit;
-      return GF_OK;
+	if (!t)
+		return GF_BAD_PARAM;
+	t->RunBeforeExit = toRunBeforePthreadExit;
+	return GF_OK;
 }
 
 /* Unique key allocation */
 static void currentThreadInfoKey_alloc()
 {
+	int err;
   /* We do not use any destructor */
-  pthread_key_create(&currentThreadInfoKey, NULL);
+  if (err = pthread_key_create(&currentThreadInfoKey, NULL))
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] pthread_key_create() failed with error %d\n", err));
 }
 
 GF_Thread * gf_th_current(){
@@ -167,8 +169,8 @@ void * RunThread(void *ptr)
 	/* Signal the caller */
 	if (! t->_signal) goto exit;
 #ifdef GPAC_ANDROID
-        pthread_once(&currentThreadInfoKey_once, &currentThreadInfoKey_alloc);
-        pthread_setspecific(currentThreadInfoKey, t);
+	if (pthread_once(&currentThreadInfoKey_once, &currentThreadInfoKey_alloc) || pthread_setspecific(currentThreadInfoKey, t))
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't run thread %s, ID 0x%08x\n", t->log_name, t->id));
 #endif /* GPAC_ANDROID */
 	t->status = GF_THREAD_STATUS_RUN;
 	gf_sema_notify(t->_signal, 1);
@@ -191,17 +193,20 @@ exit:
 	t->status = GF_THREAD_STATUS_DEAD;
 	t->Run = NULL;
 #ifdef WIN32
-	CloseHandle(t->threadH);
+	if (!CloseHandle(t->threadH)) {
+		DWORD err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] Couldn't close handle when exiting thread proc, error code: %d\n", t->log_name, err));
+	}
 	t->threadH = NULL;
 	return ret;
 #else
 
 #ifdef GPAC_ANDROID
-        #ifndef GPAC_DISABLE_LOG
-          GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] RunBeforeExit=%p\n", t->log_name, t->RunBeforeExit));
-        #endif
-        if (t->RunBeforeExit)
-          t->RunBeforeExit(t->args);
+	#ifndef GPAC_DISABLE_LOG
+		GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] RunBeforeExit=%p\n", t->log_name, t->RunBeforeExit));
+	#endif
+	if (t->RunBeforeExit)
+		t->RunBeforeExit(t->args);
 #endif /* GPAC_ANDROID */
 	pthread_exit((void *)0);
 	return (void *)ret;
@@ -248,7 +253,11 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 #ifdef WIN32
 		if (Destroy) {
 			DWORD dw = 1;
-			TerminateThread(t->threadH, dw);
+			BOOL ret = TerminateThread(t->threadH, dw);
+			if (!ret) {
+				DWORD err = GetLastError();
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] Couldn't stop thread ID 0x%08x, error code %d\n", t->log_name, t->id, err));
+			}
 			t->threadH = NULL;
 		} else {
 			WaitForSingleObject(t->threadH, INFINITE);
@@ -256,14 +265,16 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 #else
 		if (Destroy) {
 #ifdef GPAC_ANDROID
-			pthread_kill(t->threadH, SIGQUIT);
+			if (pthread_kill(t->threadH, SIGQUIT))
 #else
-			pthread_cancel(t->threadH);
+			if (pthread_cancel(t->threadH))
 #endif
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] Couldn't kill thread ID 0x%08x\n", t->log_name, t->id));
 			t->threadH = 0;
 		} else {
 			/*gracefully wait for Run to finish*/
-			pthread_join(t->threadH, NULL);
+			if (pthread_join(t->threadH, NULL))
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));
 		}
 #endif
 	}
@@ -300,7 +311,11 @@ void gf_th_set_priority(GF_Thread *t, s32 priority)
 #ifdef WIN32
 	/*!! in WinCE, changin thread priority is extremely dangerous, it may freeze threads randomly !!*/
 #ifndef _WIN32_WCE
-	SetThreadPriority(t ? t->threadH : GetCurrentThread(), priority);
+	BOOL ret = SetThreadPriority(t ? t->threadH : GetCurrentThread(), priority);
+	if (!ret) {
+		DWORD err = GetLastError();
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Thread %s] Couldn't set priority for thread ID 0x%08x, error %d\n", t->log_name, t->id, err));
+	}
 #endif
 
 #else
@@ -311,10 +326,12 @@ void gf_th_set_priority(GF_Thread *t, s32 priority)
 	/* consider this as real-time priority */
 	if (priority > 200) {
 		s_par.sched_priority = priority - 200;
-		pthread_setschedparam(t->threadH, SCHED_RR, &s_par);
+		if (pthread_setschedparam(t->threadH, SCHED_RR, &s_par))
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Thread %s] Couldn't set priority(1) for thread ID 0x%08x\n", t->log_name, t->id));
 	} else {
 		s_par.sched_priority = priority;
-		pthread_setschedparam(t->threadH, SCHED_OTHER, &s_par);
+		if (pthread_setschedparam(t->threadH, SCHED_OTHER, &s_par))
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Thread %s] Couldn't set priority(2) for thread ID 0x%08x\n", t->log_name, t->id));
 	}
 
 #endif
@@ -372,6 +389,7 @@ GF_Mutex *gf_mx_new(const char *name)
 	pthread_mutexattr_init(&attr);
 	if ( pthread_mutex_init(&tmp->hMutex, &attr) != 0 ) {
 #endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't create mutex %s\n", strlen(name) ? name : ""));
 		gf_free(tmp);
 		return NULL;
 	}
@@ -393,7 +411,10 @@ GF_Mutex *gf_mx_new(const char *name)
 void gf_mx_del(GF_Mutex *mx)
 {
 #ifdef WIN32
-	CloseHandle(mx->hMutex);
+	if (!CloseHandle(mx->hMutex)) {
+		DWORD err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] CloseHandle when deleting mutex failed with error code %d\n", mx->log_name, err));
+	}
 #else
 	int err;
 	if (err = pthread_mutex_destroy(&mx->hMutex))
@@ -425,9 +446,16 @@ void gf_mx_v(GF_Mutex *mx)
 #endif
 		mx->Holder = 0;
 #ifdef WIN32
-		ReleaseMutex(mx->hMutex);
+		{
+			BOOL ret = ReleaseMutex(mx->hMutex);
+			if (!ret) {
+				DWORD err = GetLastError();
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s, error %d)\n", log_th_name(mx->Holder), err));
+			}
+		}
 #else
-		pthread_mutex_unlock(&mx->hMutex);
+		if (pthread_mutex_unlock(&mx->hMutex))
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s)\n", log_th_name(mx->Holder)));
 #endif
 	}
 }
@@ -555,6 +583,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	tmp->hSemaphore = sem_open(tmp->SemName, O_CREAT, S_IRUSR|S_IWUSR, InitCount);
 #else
 	if (sem_init(&tmp->SemaData, 0, InitCount) < 0 ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't init semaphore\n"));
 		gf_free(tmp);
 		return NULL;
 	}
@@ -562,6 +591,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 #endif
 
 	if (!tmp->hSemaphore) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't create semaphore\n"));
 		gf_free(tmp);
 		return NULL;
 	}
@@ -571,7 +601,10 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 void gf_sema_del(GF_Semaphore *sm)
 {
 #if defined(WIN32)
-	CloseHandle(sm->hSemaphore);
+	if (!CloseHandle(sm->hSemaphore)) {
+		DWORD err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] CloseHandle when deleting semaphore failed with error code %d\n", err));
+	}
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	sem_t *sema = sem_open(sm->SemName, 0);
 	sem_destroy(sema);
