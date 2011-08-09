@@ -69,7 +69,7 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 {
 	Bool signal;
-	u8 *txt;
+	char *txt;
 	u32 len;
 	if (!compositor->edited_text) return;
 
