@@ -60,20 +60,20 @@ static void gf_dm_connect(GF_DownloadSession *sess);
 /*internal flags*/
 enum
 {
-    GF_DOWNLOAD_SESSION_USE_SSL		=	1<<10,
-    GF_DOWNLOAD_SESSION_THREAD_DEAD	=	1<<11
+	GF_DOWNLOAD_SESSION_USE_SSL		=	1<<10,
+	GF_DOWNLOAD_SESSION_THREAD_DEAD	=	1<<11
 };
 
 typedef struct __gf_user_credentials
 {
-    char site[1024];
-    char username[50];
-    char digest[1024];
-    Bool valid;
+	char site[1024];
+	char username[50];
+	char digest[1024];
+	Bool valid;
 } gf_user_credentials_struct;
 
 enum REQUEST_TYPE {
-    GET = 0,
+	GET = 0,
     HEAD = 1,
     OTHER = 2
 };
@@ -2240,12 +2240,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         /*			else if (!stricmp(hdr, "Connection") )
         				if (strstr(hdr_val, "close")) sess->http_read_type = 1; */
 
-
         if (sep) sep[0]=':';
         if (hdr_sep) hdr_sep[0] = '\r';
 
 
-		if (sess->status==GF_NETIO_DISCONNECTED) return GF_OK;
+        if (sess->status==GF_NETIO_DISCONNECTED) return GF_OK;
     }
     if (no_range) first_byte = 0;
 
@@ -2322,11 +2321,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 return e;
             }
 
-			par.error = 0;
-			par.msg_type = GF_NETIO_PARSE_HEADER;
-			par.name = "Content-Type";
-			par.value = (char *) gf_cache_get_mime_type(sess->cache_entry);
-			gf_dm_sess_user_io(sess, &par);
+            par.error = 0;
+            par.msg_type = GF_NETIO_PARSE_HEADER;
+            par.name = "Content-Type";
+            par.value = (char *) gf_cache_get_mime_type(sess->cache_entry);
+            gf_dm_sess_user_io(sess, &par);
 
             sess->status = GF_NETIO_DATA_EXCHANGE;
 			if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
@@ -2416,7 +2415,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             return e;
         }
 
-		gf_dm_sess_user_io(sess, &par);
+        gf_dm_sess_user_io(sess, &par);
         e = GF_REMOTE_SERVICE_ERROR;
         goto exit;
 
@@ -2542,89 +2541,89 @@ void http_do_requests(GF_DownloadSession *sess)
  */
 static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
-    FILE * f = (FILE*) cbk;
+	FILE * f = (FILE*) cbk;
 
-    /*handle service message*/
-    if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
+	/*handle service message*/
+	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
 		s32 written = fwrite( param->data, sizeof(char), param->size, f);
 		if (written != param->size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Failed to write data on disk\n"));
 		}
-    }
+	}
 }
 
 
 GF_Err gf_dm_wget(const char *url, const char *filename){
-    GF_Err e;
-    GF_DownloadManager * dm = NULL;
-    dm = gf_dm_new(NULL);
-    if (!dm)
-        return GF_OUT_OF_MEM;
-    e = gf_dm_wget_with_cache(dm, url, filename);
-    gf_dm_del(dm);
-    return e;
+	GF_Err e;
+	GF_DownloadManager * dm = NULL;
+	dm = gf_dm_new(NULL);
+	if (!dm)
+		return GF_OUT_OF_MEM;
+	e = gf_dm_wget_with_cache(dm, url, filename);
+	gf_dm_del(dm);
+	return e;
 }
 
 GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 				const char *url, const char *filename)
 {
-    GF_Err e;
-    FILE * f;
-    GF_DownloadSession *dnload;
-    if (!filename || !url || !dm)
-        return GF_BAD_PARAM;
-    f= fopen(filename, "w");
-    if (!f){
+	GF_Err e;
+	FILE * f;
+	GF_DownloadSession *dnload;
+	if (!filename || !url || !dm)
+		return GF_BAD_PARAM;
+	f= fopen(filename, "w");
+	if (!f){
 	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to open file %s for write.\n", filename));
 	return GF_IO_ERR;
-    }
-    dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
-    if (!dnload) {
-        return GF_BAD_PARAM;
-    }
-    dnload->use_cache_file = 1;
-    if (e == GF_OK) {
-        e = gf_dm_sess_process(dnload);
-    }
-    e|= gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
-    fclose(f);
-    gf_dm_sess_del(dnload);
-    return e;
+	}
+	dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
+	if (!dnload) {
+		return GF_BAD_PARAM;
+	}
+	dnload->use_cache_file = 1;
+	if (e == GF_OK) {
+		e = gf_dm_sess_process(dnload);
+	}
+	e |= gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
+	fclose(f);
+	gf_dm_sess_del(dnload);
+	return e;
 }
 
 GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime)
 {
-    GF_Err e;
-    FILE * f;
-    GF_DownloadSession *dnload;  
-    GF_DownloadManager *dm;
+	GF_Err e;
+	FILE * f;
+	GF_DownloadSession *dnload;  
+	GF_DownloadManager *dm;
 	
 	if (!url || !out_data || !out_size)
-        return GF_BAD_PARAM;
-    f = gf_temp_file_new();
-    if (!f) {
+		return GF_BAD_PARAM;
+	f = gf_temp_file_new();
+	if (!f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to create temp file for write.\n"));
 		return GF_IO_ERR;
-    }
+	}
 
 	dm = gf_dm_new(NULL);
 	if (!dm) {
 		fclose(f);
-        return GF_OUT_OF_MEM;
+		return GF_OUT_OF_MEM;
 	}
 	
-    dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
-    if (!dnload) {
+	dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
+	if (!dnload) {
 		gf_dm_del(dm);
-        return GF_BAD_PARAM;
-    }
-    dnload->use_cache_file = 0;
+	return GF_BAD_PARAM;
+	}
+	dnload->use_cache_file = 0;
 	dnload->disable_cache = 1;
-    if (!e)  
-		e = gf_dm_sess_process(dnload);
-    
 	if (!e)  
-	    e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
+		e = gf_dm_sess_process(dnload);
+
+	if (!e)  
+		e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
 	
 	if (!e) {
 		u32 size = ftell(f);
@@ -2639,14 +2638,14 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		}
 	}
 	fclose(f);
-    gf_dm_sess_del(dnload);
+	gf_dm_sess_del(dnload);
 	gf_dm_del(dm);
-    return e;
+	return e;
 }
 
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
 {
-    return dnload ? dnload->orig_url : NULL;
+	return dnload ? dnload->orig_url : NULL;
 }
 
 const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload)
@@ -2828,9 +2827,9 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 
 	if ( ! (flags & GF_NETIO_SESSION_NOT_THREADED) ) {
 		sess->th = gf_th_new(sess->orig_url);
-        sess->mx = gf_mx_new(sess->orig_url);
-        gf_th_run(sess->th, gf_dm_session_thread, sess);
-    }
+	sess->mx = gf_mx_new(sess->orig_url);
+	gf_th_run(sess->th, gf_dm_session_thread, sess);
+	}
 
 	return GF_OK;
 }

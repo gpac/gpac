@@ -416,8 +416,8 @@ void gf_mx_del(GF_Mutex *mx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] CloseHandle when deleting mutex failed with error code %d\n", mx->log_name, err));
 	}
 #else
-	int err;
-	if (err = pthread_mutex_destroy(&mx->hMutex))
+	int err = pthread_mutex_destroy(&mx->hMutex);
+	if (err)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] pthread_mutex_destroy failed with error code %d\n", mx->log_name, err));
 
 #endif

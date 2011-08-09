@@ -697,7 +697,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->CB->Capacity == 1) {
 		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
 		u8 new_unit_signature[20];
-		gf_sha1_csum(AU->data, AU->dataLength, new_unit_signature);
+		gf_sha1_csum((u8*)AU->data, AU->dataLength, new_unit_signature);
 		if (!memcmp(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature))) {
 			codec->nb_repeted_frames++;
 			gf_es_drop_au(ch);
