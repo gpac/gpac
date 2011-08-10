@@ -65,6 +65,7 @@ install:
 	$(MAKE) installdylib
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
+	cp -R include/gpac "$(DESTDIR)$(prefix)/include/" ;
 	if [ -d  doc ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
 	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
@@ -94,6 +95,7 @@ uninstall:
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
+	rm -rf $(DESTDIR)$(prefix)/include/gpac
 
 installdylib:
 ifeq ($(CONFIG_WIN32),yes)
