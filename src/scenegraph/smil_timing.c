@@ -307,7 +307,8 @@ static void gf_smil_mark_modified(SMIL_Timing_RTI *rti, Bool remove)
 
 /* Attributes from the timed elements are not easy to use during runtime, 
    the runtime info is a set of easy to use structures. 
-   This function initializes them (intervals, status ...). */
+   This function initializes them (intervals, status ...) 
+   and registers the element with the scenegraph */
 GF_EXPORT
 void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 {

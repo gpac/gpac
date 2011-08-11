@@ -145,9 +145,15 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 	GF_FieldInfo to_info;
 	SMILAnimationAttributesPointers *animp = rai->animp;
 
-	if (!animp->to || !animp->to->type) {
+	if (!animp->to) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, 
 			   ("[SMIL Animation] Animation     %s - set element without to attribute\n", 
+			   gf_node_get_log_name((GF_Node *)rai->anim_elt)));
+		return;
+	}
+	if (!animp->to->type) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, 
+			   ("[SMIL Animation] Animation     %s - set element with an unparsed to attribute\n", 
 			   gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 		return;
 	}
@@ -1081,6 +1087,10 @@ GF_Node *gf_smil_anim_get_target(GF_Node *e)
 	return (xlinkp && xlinkp->href) ? xlinkp->href->target : NULL;
 }
 
+/* Attributes from the animation elements are not easy to use during runtime, 
+   the runtime info is a set of easy to use structures. 
+   This function initializes them (interpolation values ...) 
+   Needs to be called after gf_smil_timing_init_runtime_info */
 void gf_smil_anim_init_runtime_info(GF_Node *e)
 {
 	u32 i;
@@ -1105,8 +1115,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	memset(&target_attribute, 0, sizeof(GF_FieldInfo));
 	if (animp->attributeName && (animp->attributeName->name || animp->attributeName->tag)) {
 		/* Filling the target_attribute structure with info on the animated attribute (type, pointer to data, ...)
-		NOTE: in the mode Dynamic Allocation of Attributes, this means that the animated 
-		attribute is created with a default value, if it was not specified on the target element */
+		NOTE: the animated attribute is created with a default value, if it was not specified on the target element */
 		if (animp->attributeName->tag) {
 			gf_node_get_attribute_by_tag(target, animp->attributeName->tag, 1, 1, &target_attribute);
 		} else {
@@ -1422,7 +1431,8 @@ void gf_smil_anim_init_node(GF_Node *node)
 	xlinkp->href = all_atts.xlink_href;
 	xlinkp->type = all_atts.xlink_type;		
 
-	/*perform init of default values*/
+	/*perform init of default values
+	  When the xlink:href attribute of animation is not set, the target defaults to the parent element */
 	if (!xlinkp->href) {
 		GF_FieldInfo info;
 		gf_node_get_attribute_by_tag((GF_Node *)node, TAG_XLINK_ATT_href, 1, 0, &info);
@@ -1432,7 +1442,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 	}
 	if (xlinkp->href->type == XMLRI_STRING) {
 		if (!xlinkp->href->string) { 
-			fprintf(stderr, "Error: IRI not initialized\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,("Error: IRI not initialized\n"));
 			return;
 		} else {
 			GF_Node *n;
@@ -1447,19 +1457,21 @@ void gf_smil_anim_init_node(GF_Node *node)
 			}
 		}
 	} 
-	if (!xlinkp->href->target) return;
-
-	// We may not have an attribute name, when using an animateMotion element
-	if (node->sgprivate->tag != TAG_SVG_animateMotion && !all_atts.attributeName) {
-		gf_smil_timing_init_runtime_info(node);
-		gf_smil_anim_init_runtime_info(node);
-		gf_smil_anim_set_anim_runtime_in_timing(node);
+	if (!xlinkp->href->target) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_SMIL,("Trying to initialize an animation when the target is not known\n"));
 		return;
 	}
 
+	// We may not have an attribute name, when using an animateMotion element
+	if (node->sgprivate->tag != TAG_SVG_animateMotion && !all_atts.attributeName) {
+		goto end_init;
+	}
+
+	/* if an attribute (to, from or by) is present but its type is not set 
+	(e.g. it could not be determined before, the target was not known), we try to get the type from the target */
 	if ( (all_atts.to && (all_atts.to->type==0))
 		|| (all_atts.from && (all_atts.from->type==0))
-		|| (all_atts.from && (all_atts.from->type==0))
+		|| (all_atts.by && (all_atts.by->type==0))
 	) {
 		GF_FieldInfo info;
 		if (gf_node_get_attribute_by_name((GF_Node *)xlinkp->href->target, all_atts.attributeName->name, 0, 1, 1, &info)==GF_OK) {
@@ -1475,11 +1487,10 @@ void gf_smil_anim_init_node(GF_Node *node)
 				if (gf_node_get_attribute_by_tag((GF_Node *)node, tag, 0, 0, &info)==GF_OK) {
 					SMIL_AnimateValue *attval = info.far_ptr;
 					if (attval->type==0) {
-						SVG_String *string = attval->value;
+						SVG_String string = attval->value;
 						attval->value = NULL;
 						if (string) {
-							gf_svg_parse_attribute((GF_Node *)node, &info, * string, anim_value_type);
-							if (* string) gf_free(* string);
+							gf_svg_parse_attribute((GF_Node *)node, &info, string, anim_value_type);
 							gf_free(string);
 						}
 					}
@@ -1515,7 +1526,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 		e->animp->rotate = NULL;
 	}
 	
-
+end_init:
 	gf_smil_timing_init_runtime_info(node);
 	gf_smil_anim_init_runtime_info(node);
 	gf_smil_anim_set_anim_runtime_in_timing(node);
