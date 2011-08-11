@@ -208,6 +208,7 @@ void CNativeWrapper::Shutdown()
     }
 #endif
     m_term = NULL;
+    gf_sys_close();
     debug_log("shutdown end");
 }
 
@@ -342,12 +343,14 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
         {
           JavaEnvTh *env = self->getEnv();
           jstring msg;
+          
           if (!env || !env->cbk_onLog)
                 goto displayInAndroidlogs;
-	  env->env->PushLocalFrame(1);
+		  
+		  env->env->PushLocalFrame(1);
           msg = env->env->NewStringUTF(szMsg);
           env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, debug, lm, msg);
-	  env->env->PopLocalFrame(NULL);
+		  env->env->PopLocalFrame(NULL);
           return;
         }
 displayInAndroidlogs:
@@ -559,7 +562,6 @@ void CNativeWrapper::SetupLogs(){
 	debug_log("SetupLogs()");
 
 	gf_mx_p(m_mx);
-
 	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 	gf_log_set_callback(this, on_gpac_log);
 	gf_mx_v(m_mx);
@@ -602,7 +604,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	//load config file
         LOGI("Loading User Config %s...", "GPAC.cfg");
 	m_user.config = gf_cfg_force_new(cfg_dir, "GPAC.cfg");
-	SetupLogs();
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
@@ -653,8 +654,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	}
 
 	/*we don't thread the visual compositor to be able to minimize the app and still have audio running*/
- 	m_user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
-	//m_user.init_flags |= GF_TERM_NO_AUDIO;
+ 	m_user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD;
 	m_user.opaque = this;
 
 	m_user.os_window_handler = m_window;
@@ -666,6 +666,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
         }
 
         LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
+    gf_sys_init(0);
+	SetupLogs();
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
                 LOGE("Cannot load GPAC Terminal with m_user=%p", m_user);
@@ -699,12 +701,26 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
         return 0;
 }
 //-------------------------------
-int CNativeWrapper::connect(const char *url){
-        if (m_term){
-          debug_log("Starting to connect ...");
-          gf_term_connect_from_time(m_term, url, 0, false);
-          debug_log("connected ...");
-        }
+int CNativeWrapper::connect(const char *url)
+{
+	const char *str;
+	char the_url[256];
+	
+	if (m_term)
+	{
+		debug_log("Starting to connect ...");
+		str = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+		if (str) 
+		{
+			gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", url);
+			gf_term_connect(m_term, str);
+		}
+		if( url )
+		{
+			gf_term_connect_from_time(m_term, url, 0, false);		
+		}
+	}
+	debug_log("connected ...");
 }
 
 void CNativeWrapper::setGpacPreference( const char * category, const char * name, const char * value)
@@ -739,10 +755,8 @@ void CNativeWrapper::step(void * env, void * bitmap){
           else if (!m_term->compositor->video_out->Setup)
 		debug_log("step(): No video_out->Setup found");
           else {
-                //debug_log("step(): gf_term_process_step : start()");
-                m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			  m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
                 gf_term_process_step(m_term);
-                //debug_log("step(): gf_term_process_step : end()");
 	}
 }
 
