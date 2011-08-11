@@ -1799,10 +1799,150 @@ exit:
 	return JS_TRUE;
 }
 
+static void gf_dom_add_handler_listener(GF_Node *n, u32 evtType, char *handlerCode)
+{
+	/*check if we're modifying an existing listener*/
+	SVG_handlerElement *handler;
+	u32 i, count = gf_dom_listener_count(n);
+	for (i=0;i<count; i++) {
+		GF_FieldInfo info;
+		GF_DOMText *text;
+		GF_Node *listen = gf_dom_listener_get(n, i);
+
+		gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_event, 0, 0, &info);
+		if (!info.far_ptr || (((XMLEV_Event*)info.far_ptr)->type != evtType)) continue;
+
+		/* found a listener for this event, override the handler 
+		TODO: FIX this, there may be a listener/handler already set with JS, why overriding ? */
+		gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, 0, 0, &info);
+		assert(info.far_ptr);
+		handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
+		text = (GF_DOMText*)handler->children->node;
+		if (text->sgprivate->tag==TAG_DOMText) {
+			if (text->textContent) gf_free(text->textContent);
+			text->textContent = gf_strdup(handlerCode);
+		}
+		return;
+	}
+	/*nope, create a listener*/
+	handler = gf_dom_listener_build(n, evtType, 0);
+	gf_dom_add_text_node((GF_Node*)handler, gf_strdup(handlerCode));
+	return;
+}
+
+static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name, char *attribute_content)
+{
+	GF_DOMFullAttribute *prev = NULL;
+	GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
+	while (att) {
+		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, attribute_name)) {
+			if (att->data) gf_free(att->data);
+			att->data = gf_strdup(attribute_content);
+			dom_node_changed((GF_Node *)node, 0, NULL);
+			return;
+		}
+		prev = att;
+		att = (GF_DOMFullAttribute *) att->next;
+	}
+	/*create new att*/
+	GF_SAFEALLOC(att, GF_DOMFullAttribute);
+	att->name = gf_strdup(attribute_name);
+	att->data = gf_strdup(attribute_content);
+	if (prev) prev->next = (GF_DOMAttribute*) att;
+	else node->attributes = (GF_DOMAttribute*) att;
+	return;
+}
+
+static void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
+{
+	GF_FieldInfo info;
+	u32 anim_value_type = 0;
+	u32 ns_code = 0;
+	if (ns) {
+		ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
+	} else {
+		ns_code = gf_xml_get_element_namespace(n);
+	}
+
+	if (!strcmp(name, "attributeName")) {
+		if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
+			SMIL_AttributeName *attname = (SMIL_AttributeName *)info.far_ptr;
+
+			/*parse the attribute name even if the target is not found, because a namespace could be specified and 
+			only valid for the current node*/
+			if (!attname->type) {
+				char *sep;
+				char *name = attname->name;
+				sep = strchr(name, ':');
+				if (sep) {
+					sep[0] = 0;
+					attname->type = gf_sg_get_namespace_code(n->sgprivate->scenegraph, name);
+					sep[0] = ':';
+					name = gf_strdup(sep+1);
+					gf_free(attname->name);
+					attname->name = name;
+				}
+			}
+		}
+	}
+
+	if ((n->sgprivate->tag == TAG_SVG_animateTransform) && (strstr(name, "from") || strstr(name, "to")) ) {
+		if (gf_node_get_attribute_by_tag((GF_Node *)n, TAG_SVG_ATT_transform_type, 1, 0, &info) != GF_OK) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SCRIPT, ("Cannot retrieve attribute 'type' from animateTransform\n"));
+			return;
+		}
+
+		switch(*(SVG_TransformType *) info.far_ptr) {
+		case SVG_TRANSFORM_TRANSLATE: anim_value_type = SVG_Transform_Translate_datatype; break;
+		case SVG_TRANSFORM_SCALE: anim_value_type = SVG_Transform_Scale_datatype; break;
+		case SVG_TRANSFORM_ROTATE: anim_value_type = SVG_Transform_Rotate_datatype; break;
+		case SVG_TRANSFORM_SKEWX: anim_value_type = SVG_Transform_SkewX_datatype; break;
+		case SVG_TRANSFORM_SKEWY: anim_value_type = SVG_Transform_SkewY_datatype; break;
+		case SVG_TRANSFORM_MATRIX: anim_value_type = SVG_Transform_datatype; break;
+		default:
+			return;
+		}
+	}
+
+	if (gf_node_get_attribute_by_name(n, name, ns_code,  1, 1, &info)==GF_OK) {
+		if (!strcmp(name, "from") || !strcmp(name, "to") || !strcmp(name, "values") ) {
+			GF_FieldInfo attType;
+			SMIL_AttributeName *attname;
+			if (gf_node_get_attribute_by_tag((GF_Node *)n, TAG_SVG_ATT_attributeName, 0, 0, &attType) != GF_OK) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_SCRIPT, ("Cannot retrieve attribute 'attributeName'\n"));
+				return;
+			}
+		
+			attname = (SMIL_AttributeName *)attType.far_ptr;
+			if (!attname->type && attname->name) {
+				GF_Node *anim_target = gf_smil_anim_get_target(n);
+				if (anim_target) {
+					gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, 0, 0, &attType);
+					attname->type = attType.fieldType;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find attribute 'type' on <%s> element and cannot find target of the animation to parse attribute %s\n", gf_node_get_class_name(n), attname->name));
+				}
+			}
+
+			anim_value_type = attname->type;
+		}
+		gf_svg_parse_attribute(n, &info, val, anim_value_type);
+
+		if (info.fieldType==SVG_ID_datatype) {
+			char *idname = *(SVG_String*)info.far_ptr;
+			gf_svg_parse_element_id(n, idname, 0);
+		}
+		if (info.fieldType==XMLRI_datatype) {
+			gf_node_dirty_set(n, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+		}
+		dom_node_changed(n, 0, &info);
+		return;
+	}
+}
 
 static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 {
-	u32 evtType, idx;
+	u32 idx;
 	char *name, *val, *ns, *_val;
 	char szVal[100];
 	SMJS_OBJ
@@ -1851,56 +1991,17 @@ static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	if (!name || !val) goto exit;
 
 
+	/* For on* attribute (e.g. onclick), we create a couple listener/handler elements on setting the attribute */
 	if ((name[0]=='o') && (name[1]=='n')) {
-		evtType = gf_dom_event_type_by_name(name + 2);
+		u32 evtType = gf_dom_event_type_by_name(name + 2);
 		if (evtType != GF_EVENT_UNKNOWN) {
-			/*check if we're modifying an existing listener*/
-			SVG_handlerElement *handler;
-			u32 i, count = gf_dom_listener_count(n);
-			for (i=0;i<count; i++) {
-				GF_FieldInfo info;
-				GF_DOMText *text;
-				GF_Node *listen = gf_dom_listener_get(n, i);
-
-				gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_event, 0, 0, &info);
-				if (!info.far_ptr || (((XMLEV_Event*)info.far_ptr)->type != evtType)) continue;
-				gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, 0, 0, &info);
-				assert(info.far_ptr);
-				handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
-				text = (GF_DOMText*)handler->children->node;
-				if (text->sgprivate->tag==TAG_DOMText) {
-					if (text->textContent) gf_free(text->textContent);
-					text->textContent = gf_strdup(val);
-				}
-				goto exit;
-			}
-			/*nope, create a listener*/
-			handler = gf_dom_listener_build(n, evtType, 0);
-			gf_dom_add_text_node((GF_Node*)handler, gf_strdup(val) );
+			gf_dom_add_handler_listener(n, evtType, val);
 			goto exit;
 		}
 	}
 
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
-		GF_DOMFullAttribute *prev = NULL;
-		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
-		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
-		while (att) {
-			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-				if (att->data) gf_free(att->data);
-				att->data = gf_strdup(val);
-				dom_node_changed(n, 0, NULL);
-				goto exit;
-			}
-			prev = att;
-			att = (GF_DOMFullAttribute *) att->next;
-		}
-		/*create new att*/
-		GF_SAFEALLOC(att, GF_DOMFullAttribute);
-		att->name = gf_strdup(name);
-		att->data = gf_strdup(val);
-		if (prev) prev->next = (GF_DOMAttribute*) att;
-		else node->attributes = (GF_DOMAttribute*) att;
+		gf_dom_full_set_attribute((GF_DOMFullNode*)n, name, val);
 		goto exit;
 	}
 
@@ -1909,84 +2010,7 @@ static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	}
 
 	if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
-		GF_FieldInfo info;
-		u32 anim_value_type = 0;
-		u32 ns_code = 0;
-		if (ns) {
-			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
-		} else {
-			ns_code = gf_xml_get_element_namespace(n);
-		}
-		if (!strcmp(name, "attributeName")) {
-			if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
-				SMIL_AttributeName *attname = (SMIL_AttributeName *)info.far_ptr;
-
-				/*parse the attribute name even if the target is not found, because a namespace could be specified and 
-				only valid for the current node*/
-				if (!attname->type) {
-					char *sep;
-					char *name = attname->name;
-					sep = strchr(name, ':');
-					if (sep) {
-						sep[0] = 0;
-						attname->type = gf_sg_get_namespace_code(n->sgprivate->scenegraph, name);
-						sep[0] = ':';
-						name = gf_strdup(sep+1);
-						gf_free(attname->name);
-						attname->name = name;
-					}
-				}
-			}
-		}
-
-		if ((n->sgprivate->tag == TAG_SVG_animateTransform) && (strstr(name, "from") || strstr(name, "to")) ) {
-			if (gf_node_get_attribute_by_tag((GF_Node *)n, TAG_SVG_ATT_transform_type, 1, 0, &info) != GF_OK)
-				goto exit;
-
-			switch(*(SVG_TransformType *) info.far_ptr) {
-			case SVG_TRANSFORM_TRANSLATE: anim_value_type = SVG_Transform_Translate_datatype; break;
-			case SVG_TRANSFORM_SCALE: anim_value_type = SVG_Transform_Scale_datatype; break;
-			case SVG_TRANSFORM_ROTATE: anim_value_type = SVG_Transform_Rotate_datatype; break;
-			case SVG_TRANSFORM_SKEWX: anim_value_type = SVG_Transform_SkewX_datatype; break;
-			case SVG_TRANSFORM_SKEWY: anim_value_type = SVG_Transform_SkewY_datatype; break;
-			case SVG_TRANSFORM_MATRIX: anim_value_type = SVG_Transform_datatype; break;
-			default:
-				goto exit;
-			}
-		}
-
-		if (gf_node_get_attribute_by_name(n, name, ns_code,  1, 1, &info)==GF_OK) {
-			if (!strcmp(name, "from") || !strcmp(name, "to") || !strcmp(name, "values") ) {
-				GF_FieldInfo attType;
-				SMIL_AttributeName *attname;
-				if (gf_node_get_attribute_by_tag((GF_Node *)n, TAG_SVG_ATT_attributeName, 0, 0, &attType) != GF_OK) 
-					goto exit;
-			
-				attname = (SMIL_AttributeName *)attType.far_ptr;
-				if (!attname->type && attname->name) {
-					GF_Node *anim_target = gf_smil_anim_get_target(n);
-					if (anim_target) {
-						gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, 0, 0, &attType);
-						attname->type = attType.fieldType;
-					} else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find attribute type of element attribute %s\n", attname->name));
-					}
-				}
-
-				anim_value_type = attname->type;
-			}
-			gf_svg_parse_attribute(n, &info, val, anim_value_type);
-
-			if (info.fieldType==SVG_ID_datatype) {
-				char *idname = *(SVG_String*)info.far_ptr;
-				gf_svg_parse_element_id(n, idname, 0);
-			}
-			if (info.fieldType==XMLRI_datatype) {
-				gf_node_dirty_set(n, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
-			}
-			dom_node_changed(n, 0, &info);
-			goto exit;
-		}
+		gf_svg_set_attribute(n, ns, name, val);
 	}
 exit:
 	if (ns) gf_free(ns);
@@ -2823,11 +2847,14 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_xml_sax_init(ctx->sax, ctx->data);
 #endif
 		}
+		/* No return, go till the end of the function */
 		break;
 	case GF_NETIO_DISCONNECTED:
 		return;
 	case GF_NETIO_STATE_ERROR:
 		ctx->ret_code = parameter->error;
+		/* No return, go till the end of the function */
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] Download error: %s\n", gf_error_to_string(parameter->error)));
 		break;
 	}
 
@@ -2840,6 +2867,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	/*error, complete reset*/
 	if (parameter->error) {
 		xml_http_reset(ctx);
+	} else {
+		ctx->html_status = 200;
 	}
 	/*but stay in loaded mode*/
 	ctx->readyState = 4;
