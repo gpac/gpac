@@ -1103,7 +1103,7 @@ static u32 download_segments(void *par)
 					bitrate *= 1000;
 					bitrate /= rep->default_segment_duration;
 					bitrate /= 1024;
-					fprintf(stdout, "Downloaded segment bitrate %d kbps with bandwith %d kbps\n", (u32) bitrate, 8*bytes_per_sec/1024);
+					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Downloaded segment bitrate %d kbps with bandwith %d kbps\n", (u32) bitrate, 8*bytes_per_sec/1024));
 					/*TODO switch quality*/
 
 					if (!mpdin->auto_switch_count) {
