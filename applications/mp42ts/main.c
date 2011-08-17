@@ -165,12 +165,15 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (!priv->sample) 
 			priv->sample = gf_isom_get_sample(priv->mp4, priv->track, priv->sample_number+1, NULL);
 
-		if (!priv->sample) return GF_IO_ERR;
+		if (!priv->sample) {
+			return GF_IO_ERR;
+		}
 
 		pck.flags = 0;
 		pck.flags = GF_ESI_DATA_AU_START | GF_ESI_DATA_HAS_CTS;
 		if (priv->sample->IsRAP) pck.flags |= GF_ESI_DATA_AU_RAP;
 		pck.cts = priv->sample->DTS + priv->ts_offset;
+		fprintf(stderr, "MP4 Input Sample: CTS: "LLD"\r", pck.cts);
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
 		if (priv->nb_repeat_last) {
@@ -1960,6 +1963,10 @@ int main(int argc, char **argv)
 			break;
 		default:
 			assert(0);
+	}
+
+	if (!nb_progs) {
+		fprintf(stderr, "No program to mux, quitting.\n");
 	}
 
 	/****************************************/
