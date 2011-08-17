@@ -73,12 +73,15 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	u32 len;
 	if (!compositor->edited_text) return;
 
+    /* if this is the final editing and there is text, 
+    we need to remove the caret from the text selection buffer */
 	if (final_flush && compositor->sel_buffer_len) {
 		memmove(&compositor->sel_buffer[compositor->caret_pos], &compositor->sel_buffer[compositor->caret_pos+1], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
 		compositor->sel_buffer_len--;
 		compositor->sel_buffer[compositor->sel_buffer_len] = 0;
 	}
 
+    /* Recomputes the edited text */
 	if (*compositor->edited_text) {
 		gf_free(*compositor->edited_text);
 		*compositor->edited_text = NULL;
@@ -101,8 +104,11 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	/*notify compositor that text has been edited, in order to update composite textures*/
 	//compositor->text_edit_changed = 1;
+
 	gf_node_set_private(compositor->focus_highlight->node, NULL);
 
+    /* if this is the final flush, we free the selection buffer and edited text buffer 
+    and signal a text content change in the focus node */
 	if (final_flush) {
 		GF_FieldInfo info;
 		if (compositor->sel_buffer) gf_free(compositor->sel_buffer);
@@ -809,7 +815,7 @@ TODO clean: figure out whether we use a mouse or a touch device - if touch devic
 		case '\r':
 		case '\n':
 		case '\t':
-		case '\b':
+		//case '\b':
 			break;
 		default:
 			memset(&evt, 0, sizeof(GF_DOM_Event));
@@ -1955,9 +1961,13 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	}
 
 	/*process regular events except if navigation is grabbed*/
-	if ( (compositor->navigation_state<2) && (compositor->interaction_level & GF_INTERACT_NORMAL) && gf_sc_execute_event(compositor, compositor->traverse_state, evt, NULL)) {
-		compositor->navigation_state = 0;
-		ret = 1;
+    if ( (compositor->navigation_state<2) && (compositor->interaction_level & GF_INTERACT_NORMAL)) {
+        Bool res;
+        res = gf_sc_execute_event(compositor, compositor->traverse_state, evt, NULL);
+        if (res) {
+		    compositor->navigation_state = 0;
+		    ret = 1;
+        }
 	}
 	if (switch_coords) {
 		evt->mouse.x = x;
