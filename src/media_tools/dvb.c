@@ -38,7 +38,7 @@ void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day)
     else k = 0;
     *year = yp + k + 1900;
     *month = mp - 1 - k*12;
-	assert(*year>=1900 && *year<=2100 && *month && *month<12 && *day && *day<=31);
+	assert(*year>=1900 && *year<=2100 && *month && *month<=12 && *day && *day<=31);
 }
 
 #if 0 /*disabled since mktime doesn't exist on Windows Mobile*/
