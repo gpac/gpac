@@ -560,11 +560,11 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	entry->write_session = sess;
 	assert( ! entry->writeFilePtr);
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
-		("[CACHE] Opening cache file %s for write (%s)...", entry->cache_filename, entry->url));
+		("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
 	entry->writeFilePtr = gf_f64_open(entry->cache_filename, "wb");
 	if (!entry->writeFilePtr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
-			("[CACHE] Error while opening cache file %s for writting.", entry->cache_filename));
+			("[CACHE] Error while opening cache file %s for writting.\n", entry->cache_filename));
 		entry->write_session = NULL;
 #ifdef ENABLE_WRITE_MX
 		gf_mx_v(entry->write_mutex);
