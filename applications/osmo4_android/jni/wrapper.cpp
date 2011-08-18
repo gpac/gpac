@@ -315,26 +315,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
 	char szMsg[4096];
         const char * tag;
         char unknTag[32];
-        int debug;
-        // We do not want to be flood by mutexes
-        if (ll == GF_LOG_DEBUG && lm == GF_LOG_MUTEX)
-          return;
-        switch (ll){
-          case GF_LOG_DEBUG:
-            debug = ANDROID_LOG_DEBUG;
-            break;
-          case GF_LOG_INFO:
-            debug = ANDROID_LOG_INFO;
-            break;
-          case GF_LOG_WARNING:
-            debug = ANDROID_LOG_WARN;
-            break;
-          case GF_LOG_ERROR:
-            debug = ANDROID_LOG_ERROR;
-            break;
-          default:
-            debug = ANDROID_LOG_INFO;
-        }
+        int debug = ANDROID_LOG_DEBUG;
         vsnprintf(szMsg, 4096, fmt, list);
         CNativeWrapper * self = (CNativeWrapper *) cbk;
         if (!self)
