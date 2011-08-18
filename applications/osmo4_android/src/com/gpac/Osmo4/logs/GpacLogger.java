@@ -97,16 +97,11 @@ public class GpacLogger {
      */
     public void onLog(int level, int module, String message) {
         GF_Log_Module gModule = GF_Log_Module.getModule(module);
-        if (loggedModules.contains(gModule)) {
-            if (loggedLevel <= level)
-                doLog(gModule, level, message);
-        } else if (defaultLoggedLevel <= level) {
-            doLog(gModule, level, message);
-        }
+    	doLog(gModule, level, message);
     }
-
+    
     private void doLog(GF_Log_Module module, int level, String message) {
-        Log.println(level, module.name(), message);
+        Log.println(4, module.name(), message);
         if (enableLogOnDisk) {
             PrintStream s = writer;
             if (s != null) {
