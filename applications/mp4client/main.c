@@ -1094,7 +1094,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	GF_LOG( GF_LOG_INFO, GF_LOG_CONSOLE, ("hello world"));
+
 	if (!url_arg && simulation_time_in_ms)
 		simulation_time_in_ms += gf_sys_clock();
 
