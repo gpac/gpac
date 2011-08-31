@@ -102,12 +102,12 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	GF_Err e = GF_OK;
 	const size_t nb_masters = sizeof(hyb_masters) / sizeof(GF_HYBMEDIA*);
 
-    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Connection request from service %p for %s\n", serv, url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Connection request from service %p for %s\n", serv, url));
 
-    if (!hyb_in || !serv || !url) return GF_BAD_PARAM;
-    hyb_in->service = serv;
+	if (!hyb_in || !serv || !url) return GF_BAD_PARAM;
+	hyb_in->service = serv;
 
 	/*choose the master service*/
 	for (i=0; i<nb_masters; i++) {
@@ -122,7 +122,7 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	e = hybmedia_sanity_check(hyb_in->master);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - object \"%s\" failed the sanity checks\n", hyb_in->master->name));
-        gf_term_on_connect(hyb_in->service, NULL, e);
+		gf_term_on_connect(hyb_in->service, NULL, e);
 		return e;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Selected master object \"%s\" for URL: %s\n", hyb_in->master->name, url));
@@ -131,7 +131,7 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	e = hyb_in->master->Connect(hyb_in->master, hyb_in->service, url);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot connect service, wrong URL %s\n", url));
-        gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
+		gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
 		return e;
 	}
 	gf_term_on_connect(hyb_in->service, NULL, GF_OK);
@@ -143,41 +143,43 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 static GF_Err HYB_CloseService(GF_InputService *plug)
 {
 	GF_Err e;
-    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Close Service (%p) request from terminal\n", ((GF_HYB_In*)plug->priv)->service));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Close Service (%p) request from terminal\n", ((GF_HYB_In*)plug->priv)->service));
 
 	/*force to stop and disconnect the master*/
 	hyb_in->master->SetState(hyb_in->master, GF_NET_CHAN_STOP);
 	e = hyb_in->master->Disconnect(hyb_in->master);
 	if (e) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot disconnect service %p\n", hyb_in->service));
-        gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot disconnect service %p\n", hyb_in->service));
+		gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
 		return e;
 	}
+
+	gf_term_on_disconnect(hyb_in->service, NULL, GF_OK);
 
 	return GF_OK;
 }
 
 static GF_Descriptor *HYB_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Service Description request from terminal for %s\n", sub_url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Service Description request from terminal for %s\n", sub_url));
 
 	return NULL;
 }
 
 static GF_Err HYB_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
-    GF_HYB_In *hyb_in;
+	GF_HYB_In *hyb_in;
 	GF_HYBMEDIA *master;
 
-    if (!plug || !plug->priv)
+	if (!plug || !plug->priv)
 		return GF_SERVICE_ERROR;
 	
 	hyb_in = (GF_HYB_In*)plug->priv;
 	master = (GF_HYBMEDIA*)hyb_in->master;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Connection request from service %p for %s\n", channel, url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Connection request from service %p for %s\n", channel, url));
 	
 	master->channel = channel;
 	gf_term_on_connect(hyb_in->service, channel, GF_OK);
@@ -187,19 +189,19 @@ static GF_Err HYB_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 
 static GF_Err HYB_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Disconnect Service (%p) request from terminal\n", hyb_in->service));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Disconnect Service (%p) request from terminal\n", hyb_in->service));
 
+	gf_term_on_disconnect(hyb_in->service, channel, GF_OK);
 	hyb_in->master->channel = NULL;
-	gf_term_on_disconnect(hyb_in->service, NULL, GF_OK);
 
 	return GF_OK;
 }
 
 static GF_Err HYB_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_SPEED:
@@ -238,7 +240,7 @@ static Bool HYB_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 static GF_Err HYB_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 	assert(hyb_in->master->data_mode == HYB_PULL && hyb_in->master->GetData && hyb_in->master->ReleaseData);
 
 	assert(((GF_HYB_In*)plug->priv)->master->channel == channel);
@@ -251,7 +253,7 @@ static GF_Err HYB_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 static GF_Err HYB_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-    GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
+	GF_HYB_In *hyb_in = (GF_HYB_In*)plug->priv;
 	assert(((GF_HYB_In*)plug->priv)->master->channel == channel);
 	return GF_OK;
 }
@@ -259,38 +261,38 @@ static GF_Err HYB_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 GF_EXPORT
 const u32 *QueryInterfaces()
 {
-    static u32 si [] = {
-        GF_NET_CLIENT_INTERFACE,
-        0
-    };
-    return si;
+	static u32 si [] = {
+		GF_NET_CLIENT_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-    GF_HYB_In *hyb_in;
-    GF_InputService *plug;
-    if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
+ 	GF_HYB_In *hyb_in;
+	GF_InputService *plug;
+	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
-    GF_SAFEALLOC(plug, GF_InputService);
-    GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC HYBRID MEDIA Loader", "gpac distribution")
-    plug->RegisterMimeTypes=	HYB_RegisterMimeTypes;
-    plug->CanHandleURL=			HYB_CanHandleURL;
-    plug->ConnectService=		HYB_ConnectService;
-    plug->CloseService=			HYB_CloseService;
-    plug->GetServiceDescriptor=	HYB_GetServiceDesc;
-    plug->ConnectChannel=		HYB_ConnectChannel;
-    plug->DisconnectChannel=	HYB_DisconnectChannel;
-    plug->ServiceCommand=		HYB_ServiceCommand;
-    plug->CanHandleURLInService=HYB_CanHandleURLInService;
-    plug->ChannelGetSLP=		HYB_ChannelGetSLP;
-    plug->ChannelReleaseSLP=	HYB_ChannelReleaseSLP;
+	GF_SAFEALLOC(plug, GF_InputService);
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC HYBRID MEDIA Loader", "gpac distribution")
+	plug->RegisterMimeTypes=	HYB_RegisterMimeTypes;
+	plug->CanHandleURL=			HYB_CanHandleURL;
+	plug->ConnectService=		HYB_ConnectService;
+	plug->CloseService=			HYB_CloseService;
+	plug->GetServiceDescriptor=	HYB_GetServiceDesc;
+	plug->ConnectChannel=		HYB_ConnectChannel;
+	plug->DisconnectChannel=	HYB_DisconnectChannel;
+	plug->ServiceCommand=		HYB_ServiceCommand;
+	plug->CanHandleURLInService=HYB_CanHandleURLInService;
+	plug->ChannelGetSLP=		HYB_ChannelGetSLP;
+	plug->ChannelReleaseSLP=	HYB_ChannelReleaseSLP;
 
-    GF_SAFEALLOC(hyb_in, GF_HYB_In);
-    plug->priv = hyb_in;
+	GF_SAFEALLOC(hyb_in, GF_HYB_In);
+	plug->priv = hyb_in;
 
-    return (GF_BaseInterface *)plug;
+	return (GF_BaseInterface *)plug;
 }
 
 GF_EXPORT
@@ -306,3 +308,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface %p: 2\n", ifce));
 	}
 }
+

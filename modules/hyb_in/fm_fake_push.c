@@ -174,7 +174,7 @@ static u32 audio_gen_th(void *par)
 			{
 				/*declare object to terminal*/
 				GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-				od->URLString = PUT_TOUR_URL_HERE;
+				od->URLString = "my_url";
 				od->objectDescriptorID = 0;
 				gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
 			}
