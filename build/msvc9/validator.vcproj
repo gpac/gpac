@@ -175,6 +175,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib "
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -435,6 +436,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib "
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
