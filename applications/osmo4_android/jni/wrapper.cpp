@@ -310,6 +310,28 @@ int CNativeWrapper::Quit(int code){
 
 #include <stdio.h>
 
+void CNativeWrapper::on_fm_request(void *cbk, u32 type, u32 param, int *value){
+	CNativeWrapper * self = (CNativeWrapper *) cbk;
+	JavaEnvTh *envth = self->getEnv();
+
+	envth->env->PushLocalFrame(1);
+	switch(type) {
+		case 0: // Get PI
+		case 1: // Get RT
+		case 2: // Get PS
+			jint jvalue;
+			jvalue = envth->env->CallIntMethod(envth->cbk_obj, envth->cbk_onFmRequest, type, param);
+			*value = (int)jvalue;
+			break;
+		case 3: // Set Freq
+		case 4: // Set Volume
+			envth->env->CallVoidMethod(envth->cbk_obj, envth->cbk_onFmRequest, type, param);
+			break;
+	}
+	envth->env->PopLocalFrame(NULL);
+}
+
+
 //-------------------------------
 void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list){
 	char szMsg[4096];
@@ -647,7 +669,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
         }
 
         LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
-    gf_sys_init(0);
+    	gf_sys_init(0);
+	gf_fm_request_set_callback(this, on_fm_request);
 	SetupLogs();
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {

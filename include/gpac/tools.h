@@ -790,6 +790,13 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *out_size);
  */
 GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size);
 
+
+#ifdef GPAC_ANDROID
+typedef void (*fm_callback_func)(void *cbk_obj, u32 type, u32 param, int *value);
+extern void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func);
+void gf_fm_request_call(u32 type, u32 param, int *value);
+#endif //GPAC_ANDROID
+
 /*! @} */
 
 
