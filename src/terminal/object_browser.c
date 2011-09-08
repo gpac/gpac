@@ -148,14 +148,19 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		if (odm->codec->ck) info->current_time = odm->codec->CB ? odm->current_time : gf_clock_time(odm->codec->ck);
 		info->current_time /= 1000;
 		info->nb_droped = odm->codec->nb_droped;
-	} else if (odm->subscene && odm->subscene->scene_codec) {
-		if (odm->subscene->scene_codec->ck) {
-			info->current_time = gf_clock_time(odm->subscene->scene_codec->ck);
+	} else if (odm->subscene) {
+		if (odm->subscene->scene_codec) {
+			if (odm->subscene->scene_codec->ck) {
+				info->current_time = gf_clock_time(odm->subscene->scene_codec->ck);
+				info->current_time /= 1000;
+			}
+			info->duration = (Double) (s64)odm->subscene->duration;
+			info->duration /= 1000;
+			info->nb_droped = odm->subscene->scene_codec->nb_droped;
+		} else if (odm->subscene->is_dynamic_scene && odm->subscene->dyn_ck) {
+			info->current_time = gf_clock_time(odm->subscene->dyn_ck);
 			info->current_time /= 1000;
 		}
-		info->duration = (Double) (s64)odm->subscene->duration;
-		info->duration /= 1000;
-		info->nb_droped = odm->subscene->scene_codec->nb_droped;
 	}
 
 	info->buffer = -2;
