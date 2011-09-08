@@ -152,7 +152,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "Mode");
 		if (!opt) return 0;
 		uifile = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "File");
-		if (!opt) return 0;
+		if (!uifile) return 0;
 
 		if (!strcmp(opt, "Play")) {
 			uir->uif = gf_f64_open(uifile, "rb");
@@ -166,7 +166,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 
 			uir_load_event(uir);
 		} else if (!strcmp(opt, "Record")) {
-			uir->uif = fopen(uifile, "wb");
+			uir->uif = gf_f64_open(uifile, "wb");
 			if (!uir->uif) return 0;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_WRITE);
 

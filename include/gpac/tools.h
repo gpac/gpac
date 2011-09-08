@@ -355,12 +355,12 @@ enum
 	GF_LOG_MEMORY,
 	/*! Log for audio compositor*/
 	GF_LOG_AUDIO,
-	/*! generic Log for modules*/
+	/*! Generic Log for modules*/
 	GF_LOG_MODULE,
-	/*! log for threads and mutexes */
-    GF_LOG_MUTEX,
-	/*! log for all messages comming from GF_Terminal or script alert()*/
-    GF_LOG_CONSOLE,
+	/*! Log for threads and mutexes */
+	GF_LOG_MUTEX,
+	/*! Log for all messages coming from GF_Terminal or script alert()*/
+	GF_LOG_CONSOLE,
 
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
