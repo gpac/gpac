@@ -496,7 +496,23 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	case GF_NET_CHAN_MAP_TIME:
 		ch->seed_ts = com->map_time.timestamp;
 		ch->ts_offset = (u32) (com->map_time.media_time*1000);
-		if (com->map_time.reset_buffers) gf_es_reset_buffers(ch);
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: mapping TS "LLD" to media time %f - current time %d\n", ch->esd->ESID, com->map_time.timestamp, com->map_time.media_time, gf_clock_time(ch->clock)));
+
+		if (com->map_time.reset_buffers) {
+			gf_es_reset_buffers(ch);
+		}
+		/*if we were reassembling an AU, do not perform clock init check when dispatching it since we computed its timestamps 
+		according to the previous clock origin*/
+		else {
+			gf_mx_p(ch->mx);
+			ch->skip_time_check_for_pending = 1;
+			gf_mx_v(ch->mx);
+		}
+		/*if the channel is the clock, force a re-init*/
+		if (gf_es_owns_clock(ch)) {
+			ch->IsClockInit = 0;
+			gf_clock_reset(ch->clock);
+		}
 		break;
 	/*duration changed*/
 	case GF_NET_CHAN_DURATION:

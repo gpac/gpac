@@ -615,6 +615,9 @@ struct _es_channel
 	/* used in Carousel, to skip packets until the end of AU */ 
 	u8 carousel_type;
 	Bool skip_carousel_au;
+
+	/*discard clock initialization when dispatching pending AU - this is used when TS discontinuities / MPA_TIME happen*/
+	Bool skip_time_check_for_pending;
 	
 	/* TimeStamp to Media Time mapping*/
 	/*TS (in TSResolution) corresponding to the SeedTime of the decoder. Delivered by net, otherwise 0*/
@@ -692,6 +695,8 @@ void gf_es_init_dummy(GF_Channel *ch);
 void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *isma_cryp);
 /*dispatch raw media AU to the composition buffer and BLOCKS until the AU is consumed by the decoder*/
 void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts);
+/*returns true if this stream owns its clock, false if it simply refers to it*/
+Bool gf_es_owns_clock(GF_Channel *ch);
 
 /*
 		decoder stuff
