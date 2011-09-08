@@ -1830,9 +1830,11 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS) );
 				}
 #ifndef GPAC_DISABLE_LOG
+				/*FIXME - this test should only be done for non bi-directionnally coded media
 				else if (pesh.PTS < pes->PTS) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - PTS "LLU" less than previous packet PTS "LLU"\n", pes->pid, pesh.PTS, pes->PTS) );
 				}
+				*/
 #endif
 
 				pes->PTS = pesh.PTS;
