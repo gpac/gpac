@@ -1016,8 +1016,6 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 			return GF_STREAM_NOT_FOUND;
 		}
-
-		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 		/* In case of EOS, we may receive a stop command after no one is playing */
 		if (ts->nb_playing)
 		  ts->nb_playing--;
@@ -1027,9 +1025,11 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			while (ts->run_state!=2) gf_sleep(2);
 			if (gf_list_count(m2ts->ts->requested_progs)) {
 				ts->file_regulate = 0;
+				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 				return TSDemux_DemuxPlay(ts);
 			}
 		}
+		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 		return GF_OK;
 	case GF_NET_CHAN_CONFIG:
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
