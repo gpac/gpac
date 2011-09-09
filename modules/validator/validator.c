@@ -81,23 +81,23 @@ static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char 
     GF_XMLNode *snap_node;
     GF_XMLAttribute *att;
     GF_SAFEALLOC(snap_node, GF_XMLNode);
-    snap_node->name = strdup("snapshot");
+    snap_node->name = gf_strdup("snapshot");
     snap_node->attributes = gf_list_new();
     GF_SAFEALLOC(att, GF_XMLAttribute);
-    att->name = strdup("time");
-    att->value = malloc(100);
+    att->name = gf_strdup("time");
+    att->value = gf_malloc(100);
     sprintf(att->value, "%d", scene_time);
     gf_list_add(snap_node->attributes, att);
     GF_SAFEALLOC(att, GF_XMLAttribute);
-    att->name = strdup("image");
-    att->value = strdup(filename);
+    att->name = gf_strdup("image");
+    att->value = gf_strdup(filename);
     gf_list_add(snap_node->attributes, att);
     gf_list_add(validator->xvs_node->content, snap_node);
 
     /* adding an extra text node for line break in serialization */
     GF_SAFEALLOC(snap_node, GF_XMLNode);
     snap_node->type = GF_XML_TEXT_TYPE;
-    snap_node->name = strdup("\n");
+    snap_node->name = gf_strdup("\n");
     gf_list_add(validator->xvs_node->content, snap_node);
 }
 
@@ -109,7 +109,7 @@ static char *validator_get_snapshot_name(char *test_filename, Bool is_reference,
     dot[0] = 0;
     sprintf(dumpname, "%s-%s-%03d.png", test_filename, (is_reference?"reference":"newest"), number);
     dot[0] = '.';
-    return strdup(dumpname);
+    return gf_strdup(dumpname);
 }
 
 static char *validator_create_snapshot(GF_Validator *validator) 
@@ -126,13 +126,13 @@ static char *validator_create_snapshot(GF_Validator *validator)
 	    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error dumping screen buffer %s\n", gf_error_to_string(e)));
     } else {
 	    u32 dst_size = fb.width*fb.height*3;
-	    char *dst=malloc(sizeof(char)*dst_size);
+	    char *dst=gf_malloc(sizeof(char)*dst_size);
 
 	    e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
 	    if (e) {
 		    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error encoding PNG %s\n", gf_error_to_string(e)));
 	    } else {
-		    FILE *png = fopen(dumpname, "wb");
+		    FILE *png = gf_f64_open(dumpname, "wb");
 		    if (!png) {
 			    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error writing file %s\n", dumpname));
 		    } else {
@@ -141,7 +141,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 			    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Validator] Writing file %s\n", dumpname));
 		    }
 	    }
-	    if (dst) free(dst);
+	    if (dst) gf_free(dst);
 	    gf_term_release_screen_buffer(term, &fb);
     }
     validator->snapshot_number++;
@@ -206,7 +206,7 @@ static void validator_on_video_frame(void *udta, u32 time)
     if (validator->snapshot_next_frame) {
         char *snap_name = validator_create_snapshot(validator);
         validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->ck));
-        free(snap_name);
+        gf_free(snap_name);
         validator->snapshot_next_frame = 0;
     }
 }
@@ -265,20 +265,20 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_KEYUP:
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_TEXTINPUT:
-        evt_node->name = strdup(gf_dom_event_get_name(event->type));
+        evt_node->name = gf_strdup(gf_dom_event_get_name(event->type));
         break;
     }
     
     if (!evt_node->name) {
-        free(evt_node);
+        gf_free(evt_node);
         return;
     }
 
     evt_node->attributes = gf_list_new();
 
     GF_SAFEALLOC(att, GF_XMLAttribute);
-    att->name = strdup("time");
-    att->value = malloc(100);
+    att->name = gf_strdup("time");
+    att->value = gf_malloc(100);
     sprintf(att->value, "%f", gf_scene_get_time(validator->term->root_scene)*1000);
     gf_list_add(evt_node->attributes, att);
 
@@ -292,53 +292,53 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_MOUSEWHEEL:
         if (event->type == GF_EVENT_MOUSEDOWN || event->type == GF_EVENT_MOUSEUP) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("button");
+            att->name = gf_strdup("button");
             switch (event->mouse.button) {
                 case 0:
-                    att->value = strdup("Left");
+                    att->value = gf_strdup("Left");
                     break;
                 case 1:
-                    att->value = strdup("Middle");
+                    att->value = gf_strdup("Middle");
                     break;
                 case 2:
-                    att->value = strdup("Right");
+                    att->value = gf_strdup("Right");
                     break;
             }
             gf_list_add(evt_node->attributes, att);
         }
         GF_SAFEALLOC(att, GF_XMLAttribute);
-        att->name = strdup("x");
-        att->value = malloc(100);
+        att->name = gf_strdup("x");
+        att->value = gf_malloc(100);
         sprintf(att->value, "%d", event->mouse.x);
         gf_list_add(evt_node->attributes, att);
         GF_SAFEALLOC(att, GF_XMLAttribute);
-        att->name = strdup("y");
-        att->value = malloc(100);
+        att->name = gf_strdup("y");
+        att->value = gf_malloc(100);
         sprintf(att->value, "%d", event->mouse.y);
         gf_list_add(evt_node->attributes, att);
         if (event->type == GF_EVENT_MOUSEWHEEL) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("wheel_pos");
-            att->value = malloc(100);
+            att->name = gf_strdup("wheel_pos");
+            att->value = gf_malloc(100);
             sprintf(att->value, "%f", event->mouse.wheel_pos);
             gf_list_add(evt_node->attributes, att);
         }
         if (event->mouse.key_states & GF_KEY_MOD_SHIFT) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("shift");
-            att->value = strdup("true");
+            att->name = gf_strdup("shift");
+            att->value = gf_strdup("true");
             gf_list_add(evt_node->attributes, att);
         }
         if (event->mouse.key_states & GF_KEY_MOD_CTRL) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("ctrl");
-            att->value = strdup("true");
+            att->name = gf_strdup("ctrl");
+            att->value = gf_strdup("true");
             gf_list_add(evt_node->attributes, att);
         }
         if (event->mouse.key_states & GF_KEY_MOD_ALT) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("alt");
-            att->value = strdup("true");
+            att->name = gf_strdup("alt");
+            att->value = gf_strdup("true");
             gf_list_add(evt_node->attributes, att);
         }
         break;
@@ -347,32 +347,32 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_LONGKEYPRESS:
         GF_SAFEALLOC(att, GF_XMLAttribute);
-        att->name = strdup("key_identifier");
-        att->value = strdup(gf_dom_get_key_name(event->key.key_code));
+        att->name = gf_strdup("key_identifier");
+        att->value = gf_strdup(gf_dom_get_key_name(event->key.key_code));
         gf_list_add(evt_node->attributes, att);        
         if (event->key.flags & GF_KEY_MOD_SHIFT) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("shift");
-            att->value = strdup("true");
+            att->name = gf_strdup("shift");
+            att->value = gf_strdup("true");
             gf_list_add(evt_node->attributes, att);
         }
         if (event->key.flags & GF_KEY_MOD_CTRL) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("ctrl");
-            att->value = strdup("true");
+            att->name = gf_strdup("ctrl");
+            att->value = gf_strdup("true");
             gf_list_add(evt_node->attributes, att);
         }
         if (event->key.flags & GF_KEY_MOD_ALT) {
             GF_SAFEALLOC(att, GF_XMLAttribute);
-            att->name = strdup("alt");
-            att->value = strdup("true");
+            att->name = gf_strdup("alt");
+            att->value = gf_strdup("true");
             gf_list_add(evt_node->attributes, att);
         }
 		break;
 	case GF_EVENT_TEXTINPUT:
         GF_SAFEALLOC(att, GF_XMLAttribute);
-        att->name = strdup("unicode-char");
-        att->value = malloc(100);
+        att->name = gf_strdup("unicode-char");
+        att->value = gf_malloc(100);
         sprintf(att->value, "%d", event->character.unicode_char);
         gf_list_add(evt_node->attributes, att);
         break;
@@ -381,7 +381,7 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
     /* adding an extra text node for line break in serialization */
     GF_SAFEALLOC(evt_node, GF_XMLNode);
     evt_node->type = GF_XML_TEXT_TYPE;
-    evt_node->name = strdup("\n");
+    evt_node->name = gf_strdup("\n");
     gf_list_add(validator->xvs_node->content, evt_node);
 } 
 
@@ -416,7 +416,7 @@ Bool validator_on_event_record(GF_Validator *validator, GF_Event *event, Bool co
             if (event->key.key_code == GF_KEY_INSERT) { 
                 char *snap_name = validator_create_snapshot(validator);
                 validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->ck));
-                free(snap_name);
+                gf_free(snap_name);
             } else if (event->key.key_code == GF_KEY_END) {
                 GF_Event evt;
                 evt.type = GF_EVENT_QUIT;
@@ -470,7 +470,7 @@ static void validator_xvl_open(GF_Validator *validator)
         att = gf_list_get(validator->xvl_node->attributes, att_index);
         if (!att) break;
         if (!strcmp(att->name, "content-base")) {
-            validator->test_base = strdup(att->value);
+            validator->test_base = gf_strdup(att->value);
         }
         att_index++;
     }
@@ -490,10 +490,10 @@ static void validator_xvl_close(GF_Validator *validator)
             dot[0] = 0;
             sprintf(result_filename, "%s-result.xml", validator->xvl_filename);
             dot[0] = '.';
-            xvl_fp = fopen(result_filename, "wt");
+            xvl_fp = gf_f64_open(result_filename, "wt");
             fwrite(xvl_content, strlen(xvl_content), 1, xvl_fp);
             fclose(xvl_fp);
-            free(xvl_content);
+            gf_free(xvl_content);
         } 
         gf_xml_dom_del(validator->xvl_parser);
         validator->xvl_parser = NULL;
@@ -544,7 +544,7 @@ static Bool validator_xvs_open(GF_Validator *validator)
     if (e != GF_OK) {
         if (validator->is_recording) {
             GF_SAFEALLOC(validator->xvs_node, GF_XMLNode);
-            validator->xvs_node->name = strdup("TestValidationScript");
+            validator->xvs_node->name = gf_strdup("TestValidationScript");
             validator->xvs_node->attributes = gf_list_new();
             validator->xvs_node->content = gf_list_new();
         } else {
@@ -582,7 +582,7 @@ static Bool validator_xvs_open(GF_Validator *validator)
                 validator->test_filename = att_file->value;
             } else {
                 sep[0] = 0;
-                validator->test_base = strdup(att_file->value);
+                validator->test_base = gf_strdup(att_file->value);
                 sep[0] = GF_PATH_SEPARATOR;
                 validator->test_filename = sep+1;
             }
@@ -599,7 +599,7 @@ static Bool validator_xvs_open(GF_Validator *validator)
         /* adding an extra text node for line break in serialization */
         GF_SAFEALLOC(node, GF_XMLNode);
         node->type = GF_XML_TEXT_TYPE;
-        node->name = strdup("\n");
+        node->name = gf_strdup("\n");
         gf_list_add(validator->xvs_node->content, node);
     } else {
         validator->xvs_result = 1;
@@ -629,19 +629,19 @@ static void validator_xvs_close(GF_Validator *validator)
 
             if (!att_file) {
                 GF_SAFEALLOC(att, GF_XMLAttribute);
-                att->name = strdup("file");
+                att->name = gf_strdup("file");
                 gf_list_add(validator->xvs_node->attributes, att);
             } else {
                 att = att_file;
-                if (att->value) free(att->value);
+                if (att->value) gf_free(att->value);
             }
             sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
-            att->value = strdup(filename);
+            att->value = gf_strdup(filename);
             xvs_content = gf_xml_dom_serialize(validator->xvs_node, 0);
-            xvs_fp = fopen(validator->xvs_filename, "wt");
+            xvs_fp = gf_f64_open(validator->xvs_filename, "wt");
             fwrite(xvs_content, strlen(xvs_content), 1, xvs_fp);
             fclose(xvs_fp);
-            free(xvs_content);
+            gf_free(xvs_content);
         } else {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Validator] XVS Result : %s\n", (validator->xvs_result?"Success":"Failure")));
             if (validator->xvs_node_in_xvl) {
@@ -659,11 +659,11 @@ static void validator_xvs_close(GF_Validator *validator)
                 }
                 if (!att_result) {
                     GF_SAFEALLOC(att_result, GF_XMLAttribute);
-                    att_result->name = strdup("result");
+                    att_result->name = gf_strdup("result");
                     gf_list_add(validator->xvs_node_in_xvl->attributes, att_result);
                 } 
-                if (att_result->value) free(att_result->value);
-                att_result->value = strdup(validator->xvs_result ? "pass" : "fail");
+                if (att_result->value) gf_free(att_result->value);
+                att_result->value = gf_strdup(validator->xvs_result ? "pass" : "fail");
             }
         }
         gf_xml_dom_del(validator->xvs_parser);
@@ -802,9 +802,9 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		/* if the validator is loaded, we switch off anti-aliasing for image comparison and we put a low framerate, 
 		but we store the previous value to restore it upon termination of the validator */
         opt = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Compositor", "FrameRate");
-        if (opt) validator->prev_fps = strdup(opt);
+        if (opt) validator->prev_fps = gf_strdup(opt);
         opt = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias");
-        if (opt) validator->prev_alias = strdup(opt);
+        if (opt) validator->prev_alias = gf_strdup(opt);
 
 		/* Check if the validator should be loaded and in which mode */
         opt = gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "Mode");
@@ -896,7 +896,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
         validator_xvl_close(validator);
 		validator->term = NULL;
         if (validator->test_base) {
-            free(validator->test_base);
+            gf_free(validator->test_base);
             validator->test_base = NULL;
         }
 		/*auto-disable the recording by default*/
@@ -904,12 +904,12 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));
 		if (validator->prev_fps) {
 			gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", validator->prev_fps);
-            free(validator->prev_fps);
+            gf_free(validator->prev_fps);
             validator->prev_fps = NULL;
 		}
         if (validator->prev_alias) {
 	        gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", validator->prev_alias);
-            free(validator->prev_alias);
+            gf_free(validator->prev_alias);
             validator->prev_alias = NULL;
         }
 		break;

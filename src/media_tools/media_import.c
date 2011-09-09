@@ -6132,7 +6132,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 GF_Err gf_import_vobsub(GF_MediaImporter *import)
 {
-	static u8 null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
+	static const u8 null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
 	char		  filename[GF_MAX_PATH];
 	FILE		 *file = NULL;
 	int		  version;

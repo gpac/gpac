@@ -219,10 +219,10 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 	const char *file_name;
 	u32 i, count;
 	GF_BaseInterface *ifce;
-        if (!pm || !plug_name || !pm->plug_list || !pm->cfg){
-          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface_by_name has bad parameters pm=%p, plug_name=%s.\n", pm, plug_name));
-          return NULL;
-        }
+	if (!pm || !plug_name || !pm->plug_list || !pm->cfg){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface_by_name has bad parameters pm=%p, plug_name=%s.\n", pm, plug_name));
+		return NULL;
+	}
 	count = gf_list_count(pm->plug_list);
 	/*look for cache entry*/
 	file_name = gf_cfg_get_key(pm->cfg, "PluginsCache", plug_name);
@@ -237,14 +237,14 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 			}
 		}
 	}
-        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s of type %d not found in cache, searching for it...\n", plug_name, InterfaceFamily));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s of type %d not found in cache, searching for it...\n", plug_name, InterfaceFamily));
 	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
 		if (!ifce) continue;
 		if (ifce->module_name && !strnicmp(ifce->module_name, plug_name, MIN(strlen(ifce->module_name), strlen(plug_name)) )) {
 			/*update cache entry*/
 			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->name);
-                        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
 			return ifce;
 		}
 		gf_modules_close_interface(ifce);
