@@ -383,7 +383,7 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
 
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
-	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "ft_font");
+	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "FreeType Font Reader");
 	gf_cfg_set_key(cfg, "FontEngine", "RescanFonts", "yes");
 
 
