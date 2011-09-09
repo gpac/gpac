@@ -317,7 +317,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	/*setup audio streams*/
 	if (ffd->st==GF_STREAM_AUDIO) {
-		/* souchay : test was wrong I think, was codec->type but must be codec->id */
 		if ((*codec)->id == CODEC_ID_MP2) {
 			(*ctx)->frame_size = ((*ctx)->sample_rate > 24000) ? 1152 : 576;
 		}
@@ -900,6 +899,7 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 
 	/*std MPEG-4 visual*/
 	else if (StreamType==GF_STREAM_VISUAL) {
+		return GF_CODEC_NOT_SUPPORTED;
 
 		/*fixme - we should use some priority rather than declare ffmpeg can't handle svc*/
 		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {

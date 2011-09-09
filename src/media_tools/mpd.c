@@ -229,7 +229,7 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
 				att_index = 0;
 				while ((att = gf_list_get(child->content, att_index))) {
 					if (att->value) {
-						rep->init_url = strdup(att->value);
+						rep->init_url = gf_strdup(att->value);
 					}
 					att_index++;
 				}

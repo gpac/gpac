@@ -954,7 +954,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			}
 		} else {
 			/*use CU duration*/
-			if (!ch->IsClockInit) ch->DTS = ch->CTS = ch->ts_offset;
+			if (!ch->IsClockInit)
+				ch->DTS = ch->CTS = ch->ts_offset;
 
 			if (!ch->esd->slConfig->AUSeqNumLength) {
 				if (!ch->au_sn) {
