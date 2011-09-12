@@ -58,6 +58,7 @@ void PrintGPACConfig();
 static Bool gui_mode = 0;
 
 static Bool restart = 0;
+static Bool reload = 0;
 #if defined(__DARWIN__) || defined(__APPLE__)
 //we keep no decoder thread because of JS_GC deadlocks between threads ...
 static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
@@ -614,6 +615,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_L:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
 				gf_term_switch_quality(term, 0);
+			break;
+		case GF_KEY_F5:
+			if (is_connected)
+				reload = 1;
 			break;
 		}
 		break;
@@ -1264,6 +1269,11 @@ int main (int argc, char **argv)
 	while (Run) {		
 		/*we don't want getchar to block*/
 		if (gui_mode || !gf_prompt_has_input()) {
+			if (reload) {
+				reload = 0;
+				gf_term_disconnect(term);
+				gf_term_connect(term, startup_file ? gf_cfg_get_key(cfg_file, "General", "StartupFile") : the_url);
+			}
 			if (restart) {
 				restart = 0;
 				gf_term_play_from_time(term, 0, 0);
@@ -1365,10 +1375,8 @@ force_input:
 			}
 			break;
 		case 'r':
-			if (is_connected) {
-				gf_term_disconnect(term);
-				gf_term_connect(term, startup_file ? gf_cfg_get_key(cfg_file, "General", "StartupFile") : the_url);
-			}
+			if (is_connected) 
+				reload = 1;
 			break;
 		
 		case 'D':

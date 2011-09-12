@@ -734,15 +734,10 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 	u32 i;
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
 
-	if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
-		if (!obj->URLs.count) {
-			if (!obj->odm) return 0;
-			strcpy(szURL1, obj->odm->net_service->url);
-		} else {
-			strcpy(szURL1, obj->URLs.vals[0].url);
-		}
+	if (!obj->URLs.count) {
+		if (!obj->odm) return 0;
+		strcpy(szURL1, obj->odm->net_service->url);
 	} else {
-		if (!obj->URLs.count) return 0;
 		strcpy(szURL1, obj->URLs.vals[0].url);
 	}
 
@@ -794,6 +789,8 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 		for (i=0; i<an_url->count; i++) {
 			if (an_url->vals[i].url && !stricmp(szURL1, an_url->vals[i].url)) return 1;
 		}
+		/*not same resource, we will have to check fragment as URL might point to a sub-service or single stream of a mux*/
+		if (keep_fragment) *keep_fragment = 1;
 		return 0;
 	}
 	ext = strrchr(szURL1, '#');

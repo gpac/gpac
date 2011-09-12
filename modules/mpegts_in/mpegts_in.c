@@ -748,6 +748,8 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 	M2TS_GetNetworkType(plug,m2ts);
 
+	assert(strchr(url, '#'));
+
 	m2ts->owner = plug;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "HybRadio", "Activated");

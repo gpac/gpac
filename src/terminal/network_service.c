@@ -310,16 +310,18 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		GF_ESD *esd;
 		char *url;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
-		if (!mo->odm) continue;
 
 		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID)) 
 			min_od_id = mo->OD_ID;
+
+		if (!mo->odm) continue;
+		if (mo->odm->net_service != service) continue;
 
 		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service,
 		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
 		keep track of declared objects*/
 		if (mo->odm->OD) {
-			if (is_same_od(mo->odm->OD, od)) {
+			if (od->objectDescriptorID && is_same_od(mo->odm->OD, od)) {
 				/*reassign OD ID*/
 				mo->OD_ID = od->objectDescriptorID;
 				gf_odf_desc_del(media_desc);
@@ -385,6 +387,10 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		odm = mo->odm;
 		break;
 	}
+	if (!odm) fprintf(stdout, "ODM not found (new object - ID %d)\n", od->objectDescriptorID);
+	else if (!the_mo) fprintf(stdout, "MediaObject not found for ODM ID %d!!\n", od->objectDescriptorID);
+	else fprintf(stdout, "Associating new object ID %d to mediaObject %s\n", od->objectDescriptorID, the_mo->URLs.vals[0].url);
+
 	if (!odm) {
 		odm = gf_odm_new();
 		odm->term = term;
@@ -512,6 +518,10 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		if (gf_es_owns_clock(ch)) {
 			ch->IsClockInit = 0;
 			gf_clock_reset(ch->clock);
+		}
+		else if (ch->odm->flags & GF_ODM_INHERIT_TIMELINE) {
+			ch->IsClockInit = 0;
+//			ch->ts_offset -= ch->seed_ts*1000/ch->ts_res;
 		}
 		break;
 	/*duration changed*/
