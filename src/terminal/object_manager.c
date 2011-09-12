@@ -601,6 +601,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		hasInline = 0;
 	}
 
+	if (odm->net_service->owner &&  (odm->net_service->owner->flags & GF_ODM_INHERIT_TIMELINE)) {
+		odm->flags |= GF_ODM_INHERIT_TIMELINE;
+	}
+
 	/*if there is a BIFS stream in the OD, we need an GF_Scene (except if we already 
 	have one, which means this is the first IOD)*/
 	if (hasInline && !odm->subscene) {

@@ -647,6 +647,8 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 	OD_ID = gf_mo_get_od_id(url);
 	if (!OD_ID) return NULL;
 
+	gf_term_lock_net(scene->root_od->term, 1);
+
 	/*the first pass is needed to detect objects already inserted and registered with the given nodes, regardless of 
 	the force_new_if_not_attached flag. This ty^pically occurs when a resource is first created then linked to an animation/inline*/
 restart:
@@ -660,8 +662,9 @@ restart:
 			/*regular OD scheme*/
 			(OD_ID != GF_MEDIA_EXTERNAL_ID && (obj->OD_ID==OD_ID)) 
 		||
-			/*dynamic OD scheme*/
-			((OD_ID == GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID==GF_MEDIA_EXTERNAL_ID)
+			/*dynamic OD scheme - !! obj->OD_ID may different from GF_MEDIA_EXTERNAL_ID when ODs are 
+			directly added to the terminal by the service*/
+			((OD_ID == GF_MEDIA_EXTERNAL_ID) 
 				/*if object type unknown (media control, media sensor), return first obj matching URL
 				otherwise check types*/
 				&& is_match_obj_type(obj->type, obj_type_hint)
@@ -672,10 +675,12 @@ restart:
 			if (!first_pass && !force_new_if_not_attached) {
 				if (node && (gf_list_find(obj->nodes, node)<0))
 					gf_list_add(obj->nodes, node);
+				gf_term_lock_net(scene->root_od->term, 0);
 				return obj;
 			}
 			/*special case where the URL is requested twice for the same node: use the existing resource*/
 			else if (node && (gf_list_find(obj->nodes, node)>=0)) {
+				gf_term_lock_net(scene->root_od->term, 0);
 				return obj;
 			}
 		}
@@ -684,6 +689,7 @@ restart:
 		first_pass = 0;
 		goto restart;
 	}
+	gf_term_lock_net(scene->root_od->term, 0);
 
 	/*we cannot create an OD manager at this point*/
 	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) return NULL;
@@ -742,6 +748,9 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 
 	i=0;
 	while ((obj = (GF_MediaObject*)gf_list_enum(scene->scene_objects, &i))) {
+		/*make sure services are different*/
+		if (obj->odm && (odm->net_service != obj->odm->net_service)) continue;
+
 		if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
 			//assert(obj->odm);
 			if (obj->odm == odm) {

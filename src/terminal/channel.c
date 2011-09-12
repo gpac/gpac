@@ -659,7 +659,12 @@ static void gf_es_check_timing(GF_Channel *ch)
 	/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
 	else if (!ch->IsClockInit ) {
 //		ch->ts_offset += gf_clock_real_time(ch->clock);
-		if (ch->clock->clock_init) ch->IsClockInit = 1;
+		if (ch->clock->clock_init) {
+			ch->IsClockInit = 1;
+			if (ch->odm->flags & GF_ODM_INHERIT_TIMELINE) {
+				ch->ts_offset += gf_clock_real_time(ch->clock) - ch->CTS;
+			}
+		}
 	}
 	/*deal with some broken DMB streams were the timestamps on BIFS/OD are not set (0) or completely out of sync
 	of the OCR clock (usually audio). If the audio codec (BSAC ...) is not found, we force re-initializing of the clock
