@@ -1577,6 +1577,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	} else {
 		fprintf(stdout, "\tAverage rate %d bps - Max Rate %d bps\n", rate, max_rate);
 	}
+
+	{
+		u32 dmin, dmax, davg, smin, smax, savg;
+		gf_isom_get_chunks_infos(file, trackNum, &dmin, &davg, &dmax, &smin, &savg, &smax);
+		fprintf(stdout, "\tChunk durations: min %d ms - max %d ms - average %d ms\n", (1000*dmin)/ts, (1000*dmax)/ts, (1000*davg)/ts);
+		fprintf(stdout, "\tChunk sizes (bytes): min %d - max %d - average %d\n", smin, smax, savg);
+	}
 	fprintf(stdout, "\n");
 
 	count = gf_isom_get_chapter_count(file, trackNum);
