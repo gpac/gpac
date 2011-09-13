@@ -1,9 +1,11 @@
 #!/bin/sh
 #
 # GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre
-#		inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
+#      inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
 #set -v
-# set temporary file name
+
+
+#set temporary file name
 if test ! -z "$TMPDIR" ; then
     TMPDIR1="${TMPDIR}"
 elif test ! -z "$TEMPDIR" ; then
@@ -11,6 +13,7 @@ elif test ! -z "$TEMPDIR" ; then
 else
     TMPDIR1="/tmp"
 fi
+
 
 #thanks to ffmpeg for this
 for v in "$@"; do
@@ -28,7 +31,8 @@ TMPE="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}"
 TMPO="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPS="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.S"
 
-# default parameters
+
+#default parameters
 DESTDIR=""
 prefix="/usr/local"
 mandir=""
@@ -162,7 +166,7 @@ OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
 
-#Configure Usage
+#configure usage
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
     cat << EOF
 
@@ -352,7 +356,7 @@ case "$cpu" in
         ;;
 esac
 
-# Checking for CFLAGS
+#checking for CFLAGS
 if test -z "$CFLAGS"; then
     CFLAGS=""
 fi
@@ -365,6 +369,7 @@ if test "$mingw32" = "yes" ; then
     cross_prefix=""
 fi
 
+
 cc="${cross_prefix}${cc}"
 #for ccache
 cc="${cc}"
@@ -374,7 +379,7 @@ ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
 
 
-# find source path
+#find source path
 source_path="`echo $0 | sed -e 's#/configure##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
@@ -383,7 +388,9 @@ if test -z "$source_path" -o "$source_path" = "." ; then
 else
     source_path="`cd \"$source_path\"; pwd`"
 fi
-# OS specific
+
+
+#OS specific
 targetos=`uname -s`
 case $targetos in
     BeOS)
@@ -402,8 +409,8 @@ case $targetos in
         esac
 
         SHFLAGS=-nostart
-        # no need for libm, but the inet stuff
-        # Check for BONE
+        #no need for libm, but the inet stuff
+        #check for BONE
         if (echo $BEINCLUDES|grep 'headers/be/bone' >/dev/null); then
             extralibs="-lbind -lsocket"
         else
@@ -417,11 +424,12 @@ case $targetos in
         readelf="greadelf"
         LDFLAGS="${opt#--extra-ldflags=}"
         instflags=""
-        # check for 64-bit
-cat > $TMPC << EOF
+        #check for 64-bit
+        cat > $TMPC << EOF
 #include <stdio.h>
 int main( void ) { return 0; }
 EOF
+
         CFLAGS_NO_LTO=$(echo ${CFLAGS} | sed -e 's/\ -flto[-A-Za-z0-9=]*//g')
         $cc ${CFLAGS_NO_LTO} -o $TMPO $TMPC 2>/dev/null && $($readelf -h $TMPO | grep "Class:.*ELF64$" >/dev/null 2>&1)
         if test $? -eq 0; then
@@ -519,7 +527,8 @@ EOF
     *) ;;
 esac
 
-# Defines directory for binaries and libs (ex. for TinyGL)
+
+#defines directory for binaries and libs (ex. for TinyGL)
 target_bin_dir="" 
 if test "$cross_prefix" = "" ; then
     target_bin_dir=`${cc} -v 2>&1 | sed -n '2p' | awk ' {print $2}'`-${cc_orig}
@@ -527,11 +536,13 @@ else
     target_bin_dir=${cross_prefix}${cc_orig}
 fi
 
+
 #if test "$source_path_used" = "yes" ; then
 mkdir -p extra_lib
 mkdir -p extra_lib/lib
 mkdir -p extra_lib/lib/gcc
 #fi
+
 
 #OK check for all local & systems lib
 local_inc=$source_path/extra_lib/include
@@ -551,6 +562,8 @@ if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
 
+
+
 #look for zlib
 cat > $TMPC << EOF
 #include <zlib.h>
@@ -565,6 +578,7 @@ else
     echo "error: zlib not found on system or in local libs"
     exit 1
 fi
+
 
 
 #check dlopen
@@ -583,6 +597,7 @@ else
         exit 1
     fi
 fi
+
 
 
 #look for spidermonkey JS support
@@ -721,7 +736,6 @@ EOF
 fi
 
 
-
 if test "$has_js" != "no" ; then
     if test "$linux" = "yes" ; then
         if test "$cpu" != "sh4"; then
@@ -741,8 +755,8 @@ fi
 
 #fi
 
-
 #end JS test
+
 
 
 #look for freetype support
@@ -804,6 +818,7 @@ if $cc -o $TMPO $TMPC $LINK_SSL 2> /dev/null  ; then
 fi
 
 
+
 #look for JPEG support
 cat > $TMPC << EOF
 #include <stdio.h>
@@ -849,6 +864,8 @@ else
     fi
 fi
 
+
+
 #look for OpenJPEG support
 cat > $TMPC << EOF
 #include <stdio.h>
@@ -865,6 +882,8 @@ elif test "$alt_macosx_dir" != "" ; then
 elif $cc -o $TMPO $TMPC -I$local_inc/openjpeg -L$local_lib -lopenjpeg 2> /dev/null  ; then
     has_openjpeg="local"
 fi
+
+
 
 #look for PNG support
 cat > $TMPC << EOF
@@ -898,6 +917,8 @@ else
     fi
 fi
 
+
+
 #look for MAD support
 cat > $TMPC << EOF
 #include <mad.h>
@@ -913,6 +934,8 @@ elif test "$alt_macosx_dir" != "" ; then
 elif $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lmad 2> /dev/null  ; then
     has_mad="local"
 fi
+
+
 
 #look for A52DEC support
 cat > $TMPC << EOF
@@ -932,6 +955,8 @@ elif test "$alt_macosx_dir" != "" ; then
 elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -la52 2> /dev/null  ; then
     has_a52="local"
 fi
+
+
 
 #look for XVID support
 cat > $TMPC << EOF
@@ -957,6 +982,8 @@ else
     fi
 fi
 
+
+
 #look for FAAD support
 cat > $TMPC << EOF
 #include <faad.h>
@@ -974,12 +1001,16 @@ elif $cc -o $TMPO $TMPC -I$local_inc/faad -L$local_lib -lfaad -lm 2> /dev/null  
 fi
 
 
+
 #look for FFMPEG support
 
 if pkg-config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
     ffmpeg_cflags=`pkg-config --cflags libavcodec libavformat libswscale libavutil`
     ffmpeg_lflags=`pkg-config --libs libavcodec libavformat libswscale libavutil`
     has_ffmpeg="system"
+else
+    ffmpeg_cflags=``
+    ffmpeg_lflags=`-lz -lavcodec -lavformat`
 fi
 
 cat > $TMPC << EOF
@@ -996,36 +1027,38 @@ else
 #include <ffmpeg/avcodec.h>
 int main( void ) { return 0; }
 EOF
+
 fi
 
 if test "$cross_prefix"  != "" ; then 
-    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $ffmpeg_lflags 2> /dev/null  ; then
         has_ffmpeg="system"
         ffmpeg_cflags="-I$prefix/include"
-        ffmpeg_lflags="-L$prefix/lib -lz -lavcodec -lavformat -lavutil"
+        ffmpeg_lflags="-L$prefix/lib $ffmpeg_lflags"
     else
-        if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
+        if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib $ffmpeg_lflags 2> /dev/null  ; then
             has_ffmpeg="local"
             ffmpeg_cflags="-I$local_inc/include"
-            ffmpeg_lflags="-L$local_lib/lib -lz -lavcodec -lavformat -lavutil"
+            ffmpeg_lflags="-L$local_lib/lib $ffmpeg_lflags"
             echo OK 
         fi
     fi
 else
-    if $cc -o $TMPO $TMPC -lz -lavcodec -lavformat 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $ffmpeg_lflags 2> /dev/null  ; then
         has_ffmpeg="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $ffmpeg_lflags 2> /dev/null ; then
             has_ffmpeg="system"
             ffmpeg_cflags="-I$alt_macosx_dir/include"
-            ffmpeg_lflags="-L$alt_macosx_dir/lib -lz -lavcodec -lavformat"
+            ffmpeg_lflags="-L$alt_macosx_dir/lib $ffmpeg_lflags"
         fi
-    elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
+    elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib $ffmpeg_lflags 2> /dev/null  ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
-        ffmpeg_lflags="-L$local_lib -lz -lavcodec -lavformat -lavutil"
+        ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
     fi
 fi
+
 
 
 #look for vorbis support
@@ -1044,6 +1077,8 @@ elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lvorbis -lm 2> /dev/null  ; t
     has_vorbis="local"
 fi
 
+
+
 #look for theora support
 cat > $TMPC << EOF
 #include <theora/theora.h>
@@ -1059,6 +1094,8 @@ elif test "$alt_macosx_dir" != "" ; then
 elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -logg -lm 2> /dev/null  ; then
     has_theora="local"
 fi
+
+
 
 #look for OGG support
 cat > $TMPC << EOF
@@ -1080,14 +1117,14 @@ else
 fi
 
 
+
 #look for OSS support
-
 if test "$darwin" = "yes" ; then
-
     cat > $TMPC << EOF
 #include <soundcard.h>
 int main( void ) { return 0; }
 EOF
+
     if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss 2> /dev/null ; then
         has_oss_audio="SYS"
         OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
@@ -1114,12 +1151,14 @@ EOF
 #include <soundcard.h>
 int main( void ) { return 0; }
 EOF
+
         if $cc -o $TMPO $TMPC 2> /dev/null  ; then
             has_oss_audio="YES"
         fi
     fi
 
 fi
+
 
 
 #look for wxWidgets support
@@ -1167,9 +1206,9 @@ EOF
 fi
 #end wx test
 
-# If svg isn't disabled
+#if svg isn't disabled
 if test "$disable_svg" != "yes"; then
-    # Then we check libxm2 presence via pkg-config
+    #then check libxm2 presence via pkg-config
     if pkg-config libxml-2.0 --exists > /dev/null 2>&1  ; then
         libxml2_cflags=`pkg-config libxml-2.0 --cflags`
         libxml2_lib_flags=`pkg-config libxml-2.0 --libs`
@@ -1178,7 +1217,8 @@ if test "$disable_svg" != "yes"; then
 fi
 
 
-# look for IPv6
+
+#look for IPv6
 cat > $TMPC << EOF
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1197,7 +1237,9 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
     has_ipv6="yes"
 fi
 
-# look for DVB4linux
+
+
+#look for DVB4linux
 cat > $TMPC << EOF
 #include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
@@ -1209,7 +1251,9 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
     has_dvb4linux="yes"
 fi
 
-# look for XMLRPC
+
+
+#look for XMLRPC
 cat > $TMPC << EOF
 #include <xmlrpc-c/base.h>
 #include <xmlrpc-c/server.h>
@@ -1222,9 +1266,11 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
     has_xmlrpc="yes"
 fi
 
-# look for alsa
+
+
+#look for alsa
 cat > $TMPC << EOF
-#include <alsa/asoundlib.h>	      
+#include <alsa/asoundlib.h>
 int main( void ) {
 }
 EOF
@@ -1233,15 +1279,20 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
     has_alsa="yes"
 fi
 
-# look for pulseaudio
+
+
+#look for pulseaudio
 cat > $TMPC << EOF
 #include <pulse/pulseaudio.h>
 int main( void ) {
 }
 EOF
+
 if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
     has_pulseaudio="yes"
 fi
+
+
 
 #look for jack
 cat > $TMPC << EOF
@@ -1253,22 +1304,27 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
     has_jack="yes"
 fi
 
+
+
 #look for directfb support
 cat > $TMPC << EOF
 #include <directfb/directfb.h>
 int main( void ) { return 0; }
 EOF
-directfb_inc="/opt/STM/STLinux-2.3/devkit/sh4/target/usr/include/directfb"
+directfb_inc="romain"
 directfb_lib="-ldirectfb -lfusion -ldirect"
 if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib 2> /dev/null  ; then
     has_directfb="yes"
 fi
+
+
 
 #look for X11 shared memory support
 cat > $TMPC << EOF
 #include <X11/Xlib.h>
 int main( void ) { return 0; }
 EOF
+
 if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
     has_x11="yes"
 
@@ -1299,6 +1355,9 @@ EOF
 
 fi
 
+
+
+#overwrite detection with manual settings
 for opt do
     case "$opt" in
         --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
@@ -1548,8 +1607,9 @@ for opt do
     esac
 done
 
-#look for OpenGL support or for TinyGL support
 
+
+#look for OpenGL support or for TinyGL support
 LINK3D=""
 INCL3D=""
 DarwinGL="no"
@@ -1560,12 +1620,14 @@ if test "$darwin" = "yes" ; then
 #include <OpenGL/glu.h>
 int main( void ) { glEnable(GL_NORMALIZE); return 0; }
 EOF
+
 else
     cat > $TMPC << EOF
 #include <GL/gl.h>
 #include <GL/glu.h>
 int main( void ) { glEnable(GL_NORMALIZE); return 0; }
 EOF
+
 fi
 
 if test "$disable_3d" = "no" ; then
@@ -1597,6 +1659,7 @@ cat > $TMPC << EOF
 #include <GL/gl.h>
 int main( void ) { int a ; a = TINYGL ; }
 EOF
+
 if test "$enable_tinygl" = "yes"  ;then
     if $cc -o $TMPO $TMPC -lTinyGL 2> /dev/null  ; then
         has_tinygl="yes"
@@ -1604,6 +1667,7 @@ if test "$enable_tinygl" = "yes"  ;then
         LINK3D="-lTinyGL"
     fi
 fi
+
 
 
 #look for GECKO support
@@ -1631,6 +1695,7 @@ else
 fi
 
 
+
 #look for joystick support
 cat > $TMPC << EOF
 #include <linux/joystick.h>
@@ -1654,6 +1719,8 @@ if test "$no_gcc_opt" = "no"; then
     fi
 fi
 
+
+
 #look for DX support
 dx_path="system"
 has_mingw_directx="no"
@@ -1674,6 +1741,7 @@ EOF
     fi
 
 fi
+
 
 
 #look for SDL support
@@ -1713,6 +1781,8 @@ fi
 #end SDL check
 
 
+
+#look at endianess
 if test -z "$cross_prefix" ; then
 
     # big/little endian test
@@ -1740,6 +1810,8 @@ else
 fi
 
 
+
+#man dir
 if test x"$mandir" = x""; then
     mandir="${prefix}/man"
 fi
@@ -1760,13 +1832,14 @@ if test "$cpu" = "sh4"; then
     fi
 fi
 
+
+
 #prepare for config.h writing
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
 echo "/* Automatically generated by configure */" > $TMPH
 echo "#ifndef GF_CONFIG_H" >> $TMPH
 echo "#define GF_CONFIG_H" >> $TMPH
 echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
-
 
 version="`grep '#define GPAC_VERSION ' \"$source_path/include/gpac/tools.h\" | cut -d '"' -f 2`"
 
@@ -1943,7 +2016,7 @@ if test "$win32" != "yes" ; then
     echo "PulseAudio Audio: $has_pulseaudio"
     echo "DirectFB support: $has_directfb"
     echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
-    echo "X11 XVideo support: $has_x11_xv"	
+    echo "X11 XVideo support: $has_x11_xv"
 fi
 
 echo "SDL Support: $has_sdl"
@@ -2338,7 +2411,8 @@ echo "GPAC_ENST=$GPAC_ENST" >> config.mak
 echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 
 
-# build tree in object directory if source path is different from current one
+
+#build tree in object directory if source path is different from current one
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
@@ -2394,7 +2468,8 @@ echo "LOCAL_INC_PATH=$local_inc" >> config.mak
 
 echo "#endif" >> $TMPH
 
-# Do not overwrite config.h if unchanged to avoid superfluous rebuilds.
+
+#do not overwrite config.h if unchanged to avoid superfluous rebuilds.
 if ! cmp -s $TMPH config.h; then
     rm -f config.h
     mv -f $TMPH config.h
@@ -2402,7 +2477,9 @@ else
     echo "config.h is unchanged"
 fi
 
+
 rm -f $TMPO $TMPC $TMPE $TMPS $TMPCPP $TMPH
+
 
 if [ ! -d "./bin" ]; then
     mkdir ./bin
@@ -2416,5 +2493,6 @@ fi
 
 echo '%.opic : %.c' >> config.mak
 echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
+
 
 echo "Done - type 'make help' for make info, 'make' to build"
