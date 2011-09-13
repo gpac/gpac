@@ -431,8 +431,8 @@ u64 gf_isom_get_media_duration(GF_ISOFile *the_file, u32 trackNumber);
 /*Get the timeScale of the media. */
 u32 gf_isom_get_media_timescale(GF_ISOFile *the_file, u32 trackNumber);
 
-/*return the maximum chunk duration of the track in milliseconds*/
-u32 gf_isom_get_max_chunk_duration(GF_ISOFile *the_file, u32 trackNumber);
+/*gets min, average and max maximum chunk durations (each of them s optional) of the track in media timescale*/
+GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min, u32 *dur_avg, u32 *dur_max, u32 *size_min, u32 *size_avg, u32 *size_max);
 
 /*Get the HandlerDescription name. The outName must be:
 		 (outName != NULL && *outName == NULL)

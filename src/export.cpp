@@ -582,7 +582,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_self_contained) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_timescale) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_max_chunk_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_chunks_infos) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_handler_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_language) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_check_data_reference) )
