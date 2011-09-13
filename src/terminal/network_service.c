@@ -387,9 +387,6 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		odm = mo->odm;
 		break;
 	}
-	if (!odm) fprintf(stdout, "ODM not found (new object - ID %d)\n", od->objectDescriptorID);
-	else if (!the_mo) fprintf(stdout, "MediaObject not found for ODM ID %d!!\n", od->objectDescriptorID);
-	else fprintf(stdout, "Associating new object ID %d to mediaObject %s\n", od->objectDescriptorID, the_mo->URLs.vals[0].url);
 
 	if (!odm) {
 		odm = gf_odm_new();

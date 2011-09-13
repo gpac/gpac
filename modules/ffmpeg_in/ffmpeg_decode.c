@@ -899,7 +899,6 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 
 	/*std MPEG-4 visual*/
 	else if (StreamType==GF_STREAM_VISUAL) {
-		return GF_CODEC_NOT_SUPPORTED;
 
 		/*fixme - we should use some priority rather than declare ffmpeg can't handle svc*/
 		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
