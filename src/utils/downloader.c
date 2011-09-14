@@ -2171,12 +2171,16 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             if (hdr_sep) hdr_sep[0] = 0;
         }
 
-        par.error = 0;
+		/*header signaling is moved after response processing*/
+#if 0
+		par.error = 0;
         par.msg_type = GF_NETIO_PARSE_HEADER;
         par.name = hdr;
         par.value = hdr_val;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Processing header %s: %s\n", hdr, hdr_val));
         gf_dm_sess_user_io(sess, &par);
+#endif
+
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Processing header %s: %s\n", hdr, hdr_val));
 
         if (!stricmp(hdr, "Content-Length") ) {
             ContentLength = (u32) atoi(hdr_val);
@@ -2432,6 +2436,36 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         e = GF_REMOTE_SERVICE_ERROR;
         goto exit;
     }
+
+
+    /* FIXME UGLY CODE DUPLICATION to fix later on: we only send the headers to the user if no problem in response (eg no relocation, ...)*/
+    while (1) {
+        char *sep, *hdr_sep, *hdr, *hdr_val;
+        if ( (s32) LinePos + 4 > BodyStart) break;
+        LinePos = gf_token_get_line(sHTTP, LinePos , bytesRead, buf, 1024);
+        if (LinePos < 0) break;
+
+        hdr_sep = NULL;
+        hdr_val = NULL;
+        hdr = buf;
+        sep = strchr(buf, ':');
+        if (sep) {
+            sep[0]=0;
+            hdr_val = sep+1;
+            while (hdr_val[0]==' ') hdr_val++;
+            hdr_sep = strrchr(hdr_val, '\r');
+            if (hdr_sep) hdr_sep[0] = 0;
+        }
+
+        par.error = 0;
+        par.msg_type = GF_NETIO_PARSE_HEADER;
+        par.name = hdr;
+        par.value = hdr_val;
+        gf_dm_sess_user_io(sess, &par);
+        if (sep) sep[0]=':';
+        if (hdr_sep) hdr_sep[0] = '\r';
+    }
+
 
     if (sess->http_read_type != GET)
         sess->use_cache_file = 0;
