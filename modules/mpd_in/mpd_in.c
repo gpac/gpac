@@ -171,8 +171,9 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 	}	
 	
     if ((param->msg_type == GF_NETIO_PARSE_HEADER) && !strcmp(param->name, "Content-Type")) {
-		if (!group->service_mime) group->service_mime = gf_strdup(param->value);
-		else if (strcmp(group->service_mime, param->value)) {
+		if (!group->service_mime) {
+			group->service_mime = gf_strdup(param->value);
+		} else if (strcmp(group->service_mime, param->value)) {
 			GF_MPD_Representation *rep = gf_list_get(group->period->representations, group->active_rep_index);
 			if (!rep->mime) rep->mime = gf_strdup(param->value);
 			rep->disabled = 1;
@@ -1306,6 +1307,7 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 	mpdin->groups = NULL;
 }
 
+/* Adds all representations to a group (possibly creating it) */
 GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 {
 	GF_Err e;
@@ -1374,10 +1376,6 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
     GF_MPD_Period *period;
     e = GF_BAD_PARAM;
 
-#if 0
-    MPD_DownloadStop(mpdin);
-#endif
-
 	MPD_ResetGroups(mpdin);
 
 	/* Get the right period from the given time */
@@ -1400,6 +1398,8 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 		if (group->group_id==0) {
 			mpdin->group_zero_selected = group;
 		} else if (mpdin->group_zero_selected) {
+			/* if this group is not the group 0 and we have found the group 0, 
+			we can safely ignore this group. */
 			break;
 		}
 
