@@ -1855,19 +1855,24 @@ GF_Err MPD_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
-	/*JLF: commented out, this shall not happen*/
-#if 0
+	/**
+	 * May arrive when using pid:// URLs into a TS stream
+	 */
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", mpdin->service, url));
     if (!plug || !plug->priv) return GF_SERVICE_ERROR;
     if (mpdin->url && !strcmp(mpdin->url, url)) {
         return 1;
     } else {
+	GF_InputService *segment_ifce = NULL;
+        GF_MPD_Group *group = NULL;
+        if (mpdin->group_zero_selected)
+		segment_ifce = mpdin->group_zero_selected->service;
+	if (segment_ifce && segment_ifce->CanHandleURLInService){
+		return segment_ifce->CanHandleURLInService(plug, url);
+	}
         return 0;
     }
-#endif
-
-	return 0;
 }
 
 GF_EXPORT
