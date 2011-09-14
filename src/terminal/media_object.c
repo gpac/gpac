@@ -242,25 +242,27 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 				const char *opt;
 				u32 r, g, b, a;
 				M_Background2D *back = (M_Background2D *) gf_sg_find_node_by_name(mo->odm->parentscene->graph, "DYN_BACK");
-				switch (cap.cap.valueInt) {
-				case GF_PIXEL_ARGB:
-				case GF_PIXEL_RGBA:
-				case GF_PIXEL_YUVA:
-					opt = gf_cfg_get_key(mo->odm->term->user->config, "Compositor", "BackColor");
-					if (!opt) {
-						gf_cfg_set_key(mo->odm->term->user->config, "Compositor", "BackColor", "FF999999");
-						opt = "FF999999";
+				if (back) {
+					switch (cap.cap.valueInt) {
+					case GF_PIXEL_ARGB:
+					case GF_PIXEL_RGBA:
+					case GF_PIXEL_YUVA:
+						opt = gf_cfg_get_key(mo->odm->term->user->config, "Compositor", "BackColor");
+						if (!opt) {
+							gf_cfg_set_key(mo->odm->term->user->config, "Compositor", "BackColor", "FF999999");
+							opt = "FF999999";
+						}
+						sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
+						back->backColor.red = INT2FIX(r)/255;
+						back->backColor.green = INT2FIX(g)/255;
+						back->backColor.blue = INT2FIX(b)/255;
+						break;
+					default:
+						back->backColor.red = back->backColor.green = back->backColor.blue = FIX_ONE;
+						break;
 					}
-					sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
-					back->backColor.red = INT2FIX(r)/255;
-					back->backColor.green = INT2FIX(g)/255;
-					back->backColor.blue = INT2FIX(b)/255;
-					break;
-				default:
-					back->backColor.red = back->backColor.green = back->backColor.blue = FIX_ONE;
-					break;
+					gf_node_dirty_set((GF_Node *)back, 0, 1);
 				}
-				gf_node_dirty_set((GF_Node *)back, 0, 1);
 			}
 		}
 	}
