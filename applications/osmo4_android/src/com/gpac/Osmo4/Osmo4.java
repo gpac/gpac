@@ -102,7 +102,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     /**
      * List of all extensions recognized by Osmo
      */
-    public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png"; //$NON-NLS-1$
+    public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png,*.wrl"; //$NON-NLS-1$
 
     private PowerManager.WakeLock wl = null;
 
