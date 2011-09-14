@@ -112,8 +112,8 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 	
 	if (is_destroy) {
-		gf_list_del(st->backs);
-		gf_list_del(st->views);
+		BindableStackDelete(st->backs);
+		BindableStackDelete(st->views);
 		group_2d_destroy(node, (GroupingNode2D*)st);
 		gf_free(st);
 		return;
