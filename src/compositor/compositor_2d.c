@@ -314,8 +314,8 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 	if (disable_blit) *disable_blit = 0;
 	if (has_scale) *has_scale = 0;
 
-	/*this should never happen but we check for float rounding safety*/
 	if (final.width<=0 || final.height <=0) return 0;
+	if (txh->width==0 || txh->height==0) return 0;
 
 
 	w_scale = final.width / txh->width;
