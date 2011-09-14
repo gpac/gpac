@@ -1046,9 +1046,11 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
-		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
-		gf_node_register(n2, n1);
+		if (! scene->root_od->parentscene) {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+			gf_node_register(n2, n1);
+		}
 
 		/*create an sound2D and an audioClip node*/
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Sound2D, NULL);
