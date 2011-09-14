@@ -166,6 +166,8 @@ OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
 
+
+
 #configure usage
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
     cat << EOF
@@ -203,11 +205,15 @@ GPAC configuration options:
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
   --disable-wx             disable wxWidgets support
+  --disable-alsa           disable Alsa audio
   --disable-oss-audio      disable OSS audio
+  --enable-jack            enable  Jack audio
+  --disable-jack           disable Jack audio
+  --enable-pulseaudio      enable  Pulse audio
+  --disable-pulseaudio     disable Pulse audio
   --disable-x11-shm        disable X11 shared memory support
   --disable-x11-xv         disable X11 Xvideo support
   --enable-fixed-point     enable fixed-point math
-  --force-fixed-point      force fixed-point math without changing gpac math.h header
   --enable-tinygl          enable TinyGL support
   --enable-joystick        enable joystick support
   --disable-ssl            disable OpenSSL support
@@ -215,6 +221,7 @@ GPAC configuration options:
   --enable-amr-nb          enable AMR NB library
   --enable-amr-wb          enable AMR WB library
   --enable-amr             enable both AMR NB and WB libraries
+  --enable-static-bin      GPAC static build
   --static-mp4box          configure for static linking of MP4Box.
   --enable-depth           enables depth handling in the compositor
 
@@ -234,6 +241,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-m2ps           disable MPEG2 PS
   --disable-m2ts           disable MPEG2 TS
   --disable-m2ts-mux       disable MPEG2 TS Multiplexer
+  --disable-dvb4linux      disable dvb4linux support
   --disable-parsers        disable AV parsers
   --disable-import         disable media importers
   --disable-export         disable media exporters
@@ -265,6 +273,7 @@ Extra libraries configuration. You can turn a libray off or force using the loca
   --use-vorbis=OPT         force vorbis OPT=[no,system,local]
   --use-theora=OPT         force theora OPT=[no,system,local]
   --use-openjpeg=OPT       force openjpeg OPT=[no,system,local]
+  --use-a52=OPT            force a52 (ac3) OPT=[no,system,local]
 
 NOTE: The object files are build at the place where configure is launched
 EOF
@@ -1311,7 +1320,7 @@ cat > $TMPC << EOF
 #include <directfb/directfb.h>
 int main( void ) { return 0; }
 EOF
-directfb_inc="romain"
+directfb_inc="/usr/include/"
 directfb_lib="-ldirectfb -lfusion -ldirect"
 if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib 2> /dev/null  ; then
     has_directfb="yes"
@@ -1534,6 +1543,8 @@ for opt do
             ;;
         --enable-m2ts-mux) disable_m2ts_mux="no"
             ;;
+        --disable-dvb4linux) has_dvb4linux="no"
+            ;;
         --disable-parsers) disable_parsers="yes"
             ;;
         --enable-parsers) disable_parsers="no"
@@ -1601,7 +1612,7 @@ for opt do
         --disable-streaming) disable_streaming="yes"
             ;;
         --enable-streaming) disable_streaming="no"
-            ;;
+            ;; 
 
 
     esac
