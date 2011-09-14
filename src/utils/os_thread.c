@@ -311,7 +311,35 @@ void gf_th_set_priority(GF_Thread *t, s32 priority)
 #ifdef WIN32
 	/*!! in WinCE, changin thread priority is extremely dangerous, it may freeze threads randomly !!*/
 #ifndef _WIN32_WCE
-	BOOL ret = SetThreadPriority(t ? t->threadH : GetCurrentThread(), priority);
+	int _prio;
+	BOOL ret;
+	switch (priority) {
+	case GF_THREAD_PRIORITY_IDLE:
+		_prio = THREAD_PRIORITY_IDLE;
+		break;
+	case GF_THREAD_PRIORITY_LESS_IDLE:
+		_prio = THREAD_PRIORITY_IDLE;
+		break;
+	case GF_THREAD_PRIORITY_LOWEST:
+		_prio = THREAD_PRIORITY_LOWEST;
+		break;
+	case GF_THREAD_PRIORITY_LOW:
+		_prio = THREAD_PRIORITY_BELOW_NORMAL;
+		break;
+	case GF_THREAD_PRIORITY_NORMAL:
+		_prio = THREAD_PRIORITY_NORMAL;
+		break;
+	case GF_THREAD_PRIORITY_HIGH:
+		_prio = THREAD_PRIORITY_ABOVE_NORMAL;
+		break;
+	case GF_THREAD_PRIORITY_HIGHEST:
+		_prio = THREAD_PRIORITY_HIGHEST;
+		break;
+	default: /*GF_THREAD_PRIORITY_REALTIME -> GF_THREAD_PRIORITY_REALTIME_END*/
+		_prio = THREAD_PRIORITY_TIME_CRITICAL;
+		break;
+	}
+	ret = SetThreadPriority(t ? t->threadH : GetCurrentThread(), _prio);
 	if (!ret) {
 		DWORD err = GetLastError();
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Thread %s] Couldn't set priority for thread ID 0x%08x, error %d\n", t->log_name, t->id, err));
