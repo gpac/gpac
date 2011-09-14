@@ -139,10 +139,19 @@ void gf_inline_on_modified(GF_Node *node)
 				}
 			}
 		}
-	} else {
+	} 
+	/*force a redraw and load scene at next pass - we cannot load the scene now because 
+		- we can be in a JS call (eg JS mutex blocked)
+		- locating scene objects matching the new url needs exclusive access to the MediaObject list, achieved with the term net mutex
+		- another service may already be setting up objects (eg exclusive access to the net mutex grabbed), which can trigger event forwarding
+		- some event forwarders may request JS context (eg access to JS mutex)
+
+		In such a case we would end up in a deadlock
+	*/
+	if (ODID) {
 		gf_node_dirty_parents(node);
 	}
-	if (ODID) gf_inline_set_scene(pInline);
+//	if (ODID) gf_inline_set_scene(pInline);
 }
 
 static void gf_inline_check_restart(GF_Scene *scene)
