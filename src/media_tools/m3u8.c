@@ -695,8 +695,13 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 					currentPlayList->element.playlist.target_duration = attribs.targetDurationInSeconds;
 					currentPlayList->durationInfo = attribs.targetDurationInSeconds;
 				}
-				if (attribs.durationInSeconds) {
-					currentPlayList->durationInfo = attribs.durationInSeconds;
+				if (attribs.durationInSeconds) {					
+					if (currentPlayList->durationInfo == 0) {
+						/* we set the playlist duration info as the duration of a segment, only if it's not set
+						   There are cases of playlist with the last segment with a duration different from the others 
+						   (example: Apple bipbop test)*/				  
+						currentPlayList->durationInfo = attribs.durationInSeconds;
+					}
 				}
 				currentPlayList->element.playlist.mediaSequenceMin = attribs.minMediaSequence;
 				currentPlayList->element.playlist.mediaSequenceMax = attribs.currentMediaSequence++;
