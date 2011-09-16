@@ -1570,6 +1570,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
+#pragma comment (linker, EXPORT_SYMBOL(parse_root_playlist) )
+#pragma comment (linker, EXPORT_SYMBOL(variant_playlist_del) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(TSDemux_Demux_Setup))
 #pragma comment (linker, EXPORT_SYMBOL(TSDemux_DemuxPlay) )
