@@ -1380,8 +1380,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	/* count de number of program related PMT received */
 	for(i=0;i<gf_list_count(ts->programs);i++){
 	  GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
-	  if(prog->pmt_pid == pmt->pid){
-		ts->nb_prog_pmt_received++;
+	  if(prog->pmt_pid == pmt->pid){		
 		break;
 	  }
 	}
@@ -1596,10 +1595,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		}
 	}
 	
-	if (nb_es) {
-		if(ts->nb_prog_pmt_received == gf_list_count(ts->programs)){
-		    ts->all_prog_pmt_received = 1;
-		}
+	if (nb_es) {		
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
 		if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
 	} else {
