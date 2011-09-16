@@ -591,6 +591,7 @@ struct tag_m2ts_demux
 	GF_List *programs;
 	u32 nb_prog_pmt_received;
 	Bool all_prog_pmt_received;
+	Bool all_prog_processed;
 	/*keep it seperate for now - TODO check if we're sure of the order*/
 	GF_List *SDTs;
 	GF_M2TS_TDT_TOT *TDT_time; /*UTC time from both TDT and TOT (we currently ignore local offset)*/
