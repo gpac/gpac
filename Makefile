@@ -64,8 +64,7 @@ install:
 	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
 	$(MAKE) installdylib
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
-	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
-	cp -R include/gpac "$(DESTDIR)$(prefix)/include/" ;
+	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1";
 	if [ -d  doc ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
 	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
