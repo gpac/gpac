@@ -263,6 +263,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
 Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
   --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
   --use-ft=OPT             force FreeType OPT=[no,local]
+  --use-zlib=OPT           force ZLIB OPT=[no,local]
   --use-jpeg=OPT           force JPEG OPT=[no,local]
   --use-png=OPT            force PNG OPT=[no,local]
   --use-faad=OPT           force FAAD OPT=[no,local]
@@ -579,10 +580,10 @@ cat > $TMPC << EOF
 int main( void ) { if (zlibVersion() != ZLIB_VERSION) { puts("zlib version differs !!!"); return 1; } return 0; }
 EOF
 has_zlib="no"
-if $cc -o $TMPO $TMPC -lz 2> /dev/null  ; then
-    has_zlib="system"
-elif $cc -o $TMPO $TMPC -I"$local_inc/zlib" -L$local_lib -lz 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC -I"$local_inc/zlib" -L$local_lib -lz 2> /dev/null  ; then
     has_zlib="local"
+elif $cc -o $TMPO $TMPC -lz 2> /dev/null  ; then
+    has_zlib="system"
 else
     echo "error: zlib not found on system or in local libs"
     exit 1
@@ -1397,7 +1398,7 @@ for opt do
             ;;
         --disable-jack=*) has_jack="no"
             ;;
-        --disable-alsa=*) has_alsa="no"
+        --disable-alsa) has_alsa="no"
             ;;
         --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
             ;;
@@ -1467,6 +1468,22 @@ for opt do
             fi
             has_png=$tmp_has_png
             ;;
+        --use-zlib=*) tmp_has_zlib=${opt#--use-zlib=}
+            if test "$tmp_has_zlib" = "system" ; then
+                if test "$has_zlib"  != "system" ; then
+                    if test "$cross_prefix"  != "" ; then
+                        echo 
+                        echo "WARNING: ZLIB has been forced to system, but we are cross-compiling, it will have to be on target"
+                        echo 
+                    else
+                        echo 
+                        echo "WARNING!! : ZLIB has been forced to system even though it hasn't been found in this host"
+                        echo 
+                    fi
+                fi
+            fi
+            has_png=$tmp_has_png
+            ;;
         --use-ogg=*) has_ogg=${opt#--use-ogg=}
             ;;
         --use-vorbis=*) has_vorbis=${opt#--use-vorbis=}
@@ -1480,7 +1497,7 @@ for opt do
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
 
-        --disable-all) has_pulseaudio="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"
             ;;
 
         --disable-3d) disable_3d="yes"
