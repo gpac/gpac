@@ -685,6 +685,11 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 	if (!payload || !ch->odm->codec->CB) return;
 	if (!ch->odm->codec->CB->no_allocation) return;
 
+	if (cts + 100 < gf_clock_real_time(ch->clock)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %d but frame TS is %d ms - DROPPING\n", ch->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), cts));
+		return;
+	}
+
 	cb = ch->odm->codec->CB;
 	cu = gf_cm_lock_input(cb, cts, 1);
 	if (cu) {
@@ -694,7 +699,7 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 			cu->data = payload;
 			size = payload_size;
 			cu->TS = cts;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
 		}
 		gf_cm_unlock_input(cb, cu, size, 1);
 

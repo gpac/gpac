@@ -551,14 +551,17 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	/*this allows reuse of the CU*/
 	cb->output->RenderedLength = 0;
 	cb->LastRenderedTS = cb->output->TS;
-	if (cb->odm->raw_frame_sema) {
-		cb->output->dataLength = 0;
-		gf_sema_notify(cb->odm->raw_frame_sema, 1);
-	}
+
+	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available 
+	for the raw channel - we have to make sure the output is completely reseted before releasing the sema*/
 
 	/*on visual streams (except raw oness), always keep the last AU*/
 	if (!cb->no_allocation && cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
 		if ( !cb->output->next->dataLength || (cb->Capacity == 1) )  {
+			if (cb->odm->raw_frame_sema) {
+				cb->output->dataLength = 0;
+				gf_sema_notify(cb->odm->raw_frame_sema, 1);
+			}
 			return;
 		}
 	}
@@ -571,6 +574,10 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 
 	if (!cb->HasSeenEOS && cb->UnitCount <= cb->Min) {
 		cb->odm->codec->PriorityBoost = 1;
+	}
+
+	if (cb->odm->raw_frame_sema) {
+		gf_sema_notify(cb->odm->raw_frame_sema, 1);
 	}
 }
 
