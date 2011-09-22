@@ -2048,13 +2048,15 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		}
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
-		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
+		assert(af_size>=0 && af_size<=182);
+		if (af_size) gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		pos += 1+af_size;
 		payload_size = 183 - af_size;
 		break;
 	/*adaptation only - still process in cas of PCR*/
 	case 2:
 		af_size = data[4];
+		assert(af_size==183);
 		if (af_size>183) {
 			//error
 			return;
