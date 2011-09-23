@@ -310,6 +310,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		break;
 #endif
 	case GF_PIXEL_YV12:
+	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_OGL_ES 
 		if (!compositor->disable_yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
 			txh->tx_io->gl_format = compositor->gl_caps.yuv_texture;
@@ -486,6 +487,7 @@ assert(txh->data );
 		txh->tx_io->flags |= TX_IS_FLIPPED;
 		return 1;
 	case GF_PIXEL_YV12:
+	case GF_PIXEL_NV21:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
 			txh->tx_io->conv_format = GF_PIXEL_YVYU;
 			txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
@@ -536,6 +538,7 @@ assert(txh->data );
 	switch (txh->pixelformat) {
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YV12:
+	case GF_PIXEL_NV21:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
 		/*stretch and flip*/
 		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);

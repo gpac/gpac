@@ -1563,11 +1563,9 @@ char * gf_get_default_cache_directory(){
 #ifdef _WIN32_WCE
 	return gf_strdup( "\\windows\\temp" );
 #elif defined(WIN32)
-	char szPath[512];
-	GetWindowsDirectory(szPath, 507);
-	if (szPath[strlen(szPath)-1] != '\\')
-		strcat((char*)szPath, "\\");
-	strcat((char *)szPath, "Temp");
+	char szPath[MAX_PATH];
+	/*ivica patch*/
+	GetTempPath(MAX_PATH, szPath);
 	return gf_strdup( szPath );
 #else
 	return gf_strdup("/tmp");

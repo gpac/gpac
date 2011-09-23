@@ -34,6 +34,7 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 	if (!ray->dir.x && !ray->dir.y) {
 		res->x = ray->orig.x;
 		res->y = ray->orig.y;
+		res->z = 0;
 		return 1;
 	}
 	p.normal.x = p.normal.y = 0; p.normal.z = FIX_ONE;

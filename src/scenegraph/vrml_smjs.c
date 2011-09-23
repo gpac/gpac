@@ -4522,6 +4522,8 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 			jsf = JS_GetPrivate(priv->js_ctx, obj);
 			if (jsf->node && (jsf->node==node)) {
 				jsf->node = NULL;
+				/*Ivica patch*/
+				node->sgprivate->interact->js_binding->node = NULL;
 			}
 		}
 		return;

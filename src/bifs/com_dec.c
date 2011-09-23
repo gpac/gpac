@@ -1121,6 +1121,9 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				e = gf_node_register(node, NULL);
 				if (e) goto exit;
 
+				//Ivica patch - Flush immediately because of proto instantiation
+				gf_bifs_flush_command_list(codec);
+
 				gf_sg_proto_add_node_code(proto, node);
 				flag = gf_bs_read_int(bs, 1);
 			}

@@ -61,10 +61,6 @@
 #undef GL_MAX_CLIP_PLANES
 #endif
 
-#ifdef GPAC_ANDROID
-#define GPAC_USE_TINYGL
-#endif
-
 #ifdef GPAC_USE_OGL_ES
 #define GL_CLAMP GL_CLAMP_TO_EDGE
 #endif
