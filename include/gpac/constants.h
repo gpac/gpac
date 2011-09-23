@@ -214,6 +214,8 @@ typedef enum
 	GF_PIXEL_IYUV		=	GF_4CC('I','Y','U','V'),
 	/*!YUV planar format*/
 	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
+	/*!YUV planar format*/
+	GF_PIXEL_NV21		=	GF_4CC('N','V','2','1'),
 
 	/*!YV12 + Alpha plane*/
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),

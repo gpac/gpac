@@ -38,6 +38,9 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#if defined(GPAC_ANDROID) && !defined(XP_UNIX)
+#define XP_UNIX
+#endif
 
 #if !defined(__GNUC__)
 #  pragma comment(lib, "js32")

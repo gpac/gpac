@@ -1120,13 +1120,13 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 				((SFString*)dest)->buffer = gf_strdup(tmp);
 			} else {
 				if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
-				((SFString*)dest)->buffer = gf_strdup(url->url);
+				((SFString*)dest)->buffer = url->url ? gf_strdup(url->url) : NULL;
 			}
 		}
 		/*for SFString to MFString cast*/
 		else if (ori_field_type == GF_SG_VRML_SFSTRING) {
 			if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
-			((SFString*)dest)->buffer = gf_strdup(((SFString*)orig)->buffer);
+			((SFString*)dest)->buffer = ((SFString*)orig)->buffer ? gf_strdup(((SFString*)orig)->buffer) : NULL;
 		}
 		return;
 	case GF_SG_VRML_SFURL:
@@ -1235,7 +1235,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		SFCommandBuffer *cb_src = (SFCommandBuffer *)orig;
 
 		cb_dst->bufferSize = cb_src->bufferSize;
-		if (cb_dst->bufferSize) {
+		if (cb_dst->bufferSize && !gf_list_count(cb_src->commandList) ) {
 			cb_dst->buffer = (u8*)gf_realloc(cb_dst->buffer, sizeof(char)*cb_dst->bufferSize);
 			memcpy(cb_dst->buffer, cb_src->buffer, sizeof(char)*cb_src->bufferSize);
 		} else {
