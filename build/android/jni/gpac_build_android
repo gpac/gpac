@@ -1,34 +1,70 @@
 #!/bin/bash -e
 
-echo -e "\033[32m If you have problem using this script, read the README in  trunk/gpac/build/android \033[0m"
+echo -e "\n\033[32m If you have problem using this script, read the README in  trunk/gpac/build/android \033[0m\n"
+ 
+NDK=0
+SDK=0
+ANT=0
+REBUILD=0
 
-if [ -z "$1" ]
+for i in $*
+do
+
+#! Check for force rebuild
+ if [ "$i" = "-force_rebuild" ] 
+then 
+  echo -e "\033[31m Usage: $0 Force Rebuild : Activated \033[0m" 
+  REBUILD=1  
+fi
+
+#! Check for the NDK path
+ if [ "${i%=*}" = "-ndk" ] 
+then 
+  echo -e "\033[31m Usage: $0 Path to Android NDK : Ok \033[0m"
+  NDK=1 
+  export PATH="$(echo $i | cut -d"=" -f2):$PATH"  
+fi
+
+#! Check for the SDK path
+ if [ "${i%=*}" = "-sdk" ] 
+then 
+  echo -e "\033[31m Usage: $0 Path to Android SDK : Ok \033[0m"
+  SDK=1 
+  export PATH="$(echo $i | cut -d"=" -f2)/tools:$PATH"  
+fi
+
+#! Check for the ANT path
+ if [ "${i%=*}" = "-ant" ] 
+then 
+  echo -e "\033[31m Usage: $0 Path to Ant : Ok \033[0m"
+  ANT=1 
+  export PATH="$(echo $i | cut -d"=" -f2)/bin:$PATH"  
+fi
+
+done
+
+if [ $NDK -eq 0 ]
 then
-  echo "Usage: $0 PATH_TO_ANDROID_NDK [ADDITIONAL_NDK-BUILD arguments] : You must give as first argument the directory path of the NDK"
+  echo "\nUsage: $0 PATH_TO_ANDROID_NDK [ADDITIONAL_NDK-BUILD arguments] : You must give as first argument the directory path of the NDK, add -ndk=PATH_TO_NDK"
   exit 1
 fi
 
-if [ -z "$2" ] 
+if [ $SDK -eq 0 ] 
 then 
-  echo -e "\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m" 
+  echo -e "\n\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -sdk=PATH_TO_SDK\033[0m" 
 fi 
 	 	 
-if [ -z "$3" ] 
+if [ $ANT -eq 0 ] 
 then 
-  echo -e "\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m" 
+  echo -e "\n\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -ant=PATH_TO_ANT \033[0m" 
 fi 
-	 	 
-export PATH="$1:$PATH"
 
-if [ ! -z "$3" ] && [ ! -z "$2" ]
+if [ $REBUILD -eq 0 ] 
 then 
-export PATH="$2/tools:$3/bin:$PATH"
-shift 3
-ANT=1
-else
-ANT=0
-shift
-fi
+  echo -e "\n\033[33m Usage: $0 Force Rebuild : Add -force_rebuild to rebuild the whole solution \033[0m" 
+fi 
+
+echo -e "\n $PATH"
 
 # Be sure to resolve if script not called from its directory
 export BUILDPATH=$(dirname "$0")
@@ -51,7 +87,12 @@ BASEPATH=$(pwd)
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
 ndk-build clean
-ndk-build 
+if [ $REBUILD -eq 1 ]
+then
+ndk-build -B
+else
+ndk-build
+fi
 echo "[OK] build successful."
 
 #echo "Copying modules to modules dir..."
@@ -115,6 +156,12 @@ android update project -p "$BASEPATH/applications/osmo4_android/"
 echo -e "\nBuiding Osmo4.apk" 
 cd $BASEPATH/applications/osmo4_android/
 ant release
+
+if [ -f $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/tools.h | cut -d "\"" -f 2 )-r$version.apk ]
+then
+echo -e "\nOld Osmo4.apk found. Removing it ..." 
+rm $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/tools.h | cut -d "\"" -f 2 )-r$version.apk
+fi  
 
 zipalign -v 4 bin/Osmo4-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/tools.h | cut -d "\"" -f 2 )-r$version.apk
 rm bin/Osmo4-*
