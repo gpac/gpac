@@ -466,7 +466,7 @@ void GPAC_FileMediaServer::ShareVirtualResource(const char *res_uri, const char 
 	if (sep) {
 		sep = strchr(sep+3, '/');
 		if (sep) uri = sep;
-		else uri="/";
+		else uri = (char*)"/";
 	}
 	the_uri = "";
 	while (1) {

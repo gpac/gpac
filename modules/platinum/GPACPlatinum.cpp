@@ -970,9 +970,9 @@ static JSBool SMJS_FUNCTION(upnp_server_browse)
 	_dir = _filter = NULL;
 
 	dir = _dir = SMJS_CHARS(c, argv[0]);
-	if (!dir) dir = "0";
+	if (!dir) dir = (char*)"0";
 	filter = _filter = SMJS_CHARS(c, argv[1]);
-	if (!filter) filter = "*";
+	if (!filter) filter = (char*)"*";
 
 	PLT_Service* service;
 	if (NPT_SUCCEEDED(server->m_device->FindServiceByType("urn:schemas-upnp-org:service:ContentDirectory:1", service))) {

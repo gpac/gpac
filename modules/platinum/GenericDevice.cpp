@@ -335,7 +335,7 @@ static JSBool SMJS_FUNCTION(upnp_service_call_action)
 
 			JS_GetElement(c, list, (jsint) i+1, &an_arg);
 
-			param_val = "";
+			param_val = (char*)"";
 			if (JSVAL_IS_STRING(an_arg)) {
 				param_val = _param_val = SMJS_CHARS(c, an_arg);
 			} else if (JSVAL_IS_BOOLEAN(an_arg)) {
@@ -870,7 +870,7 @@ static JSBool SMJS_FUNCTION(upnp_action_send_reply)
 
 			JS_GetElement(c, list, (jsint) i+1, &an_arg);
 
-			param_val = "";
+			param_val = (char*)"";
 			if (JSVAL_IS_STRING(an_arg)) {
 				param_val = _param_val = SMJS_CHARS(c, an_arg);
 			} else if (JSVAL_IS_BOOLEAN(an_arg)) {
