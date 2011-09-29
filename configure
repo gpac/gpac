@@ -65,6 +65,7 @@ js_lib="-ljs"
 lm_lib=""
 has_mingw_directx="no"
 has_js="no"
+has_platinum="no"
 has_ft="no"
 has_jpeg="no"
 has_png="no"
@@ -205,6 +206,7 @@ GPAC configuration options:
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
   --disable-wx             disable wxWidgets support
+  --disable-platinum       disable Platinum UPnP support
   --disable-alsa           disable Alsa audio
   --disable-oss-audio      disable OSS audio
   --enable-jack            enable  Jack audio
@@ -766,6 +768,18 @@ fi
 #fi
 
 #end JS test
+
+
+
+#look for platinum support
+cat > $TMPC << EOF
+#include <Platinum.h>
+int main( void ) { return 0; }
+EOF
+if $cpp -o $TMPO $TMPC -I$local_inc/platinum -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib 2> /dev/null  ; then
+  has_platinum="yes"
+fi
+
 
 
 
@@ -1413,6 +1427,8 @@ for opt do
         --disable-ipv6) has_ipv6="no"
             ;;
         --disable-wx) has_wx="no"
+            ;;
+        --disable-platinum) has_platinum="no"
             ;;
         --disable-oss-audio) has_oss_audio="no"
             ;;
@@ -2075,6 +2091,11 @@ if test "$has_wx" = "yes" ; then
 else
     echo "wxWidgets support: no"
 fi
+if test "$has_platinum" = "yes" ; then
+    echo "Platinum support: yes"
+else
+    echo "Platinum support: no"
+fi
 
 
 echo ""
@@ -2369,6 +2390,8 @@ if test "$has_wx" = "yes"; then
     echo "WX_CFLAGS=$wx_cflags" >> config.mak
     echo "WX_LFLAGS=$wx_lflags" >> config.mak
 fi
+
+echo "USE_PLATINUM=$has_platinum" >> config.mak
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
 
