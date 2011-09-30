@@ -3850,7 +3850,8 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 	count = gf_list_count(dom_rt->handlers);
 	for (i=0; i<count; i++) {
 		SVG_handlerElement *handler = (SVG_handlerElement *)gf_list_get(dom_rt->handlers, i);
-		if (handler->js_context==c) {
+		/*if same context and same document, discard handler*/
+		if ( (handler->js_context==c) && (!sg || (handler->sgprivate->scenegraph==sg)) ) {
 			/*unprotect the function*/
 			gf_js_remove_root(handler->js_context, &(handler->js_fun_val), GF_JSGC_VAL);
 			handler->js_fun_val=0;
