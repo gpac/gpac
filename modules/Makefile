@@ -1,7 +1,7 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in ac3_in audio_filter bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in svg_in saf_in mpegts_in ismacryp platinum widgetman mpd_in osd
+PLUGDIRS=aac_in ac3_in audio_filter bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in svg_in saf_in mpegts_in ismacryp widgetman mpd_in osd
 
 ifeq ($(DISABLE_SVG), no)
 PLUGDIRS+=laser_dec svg_in
@@ -72,6 +72,9 @@ else
 PLUGDIRS+=gpac_js
 endif
 
+ifeq ($(CONFIG_PLATINUM),yes)
+PLUGDIRS+=platinum
+endif
 
 ifeq ($(RENOIR_ENABLE),yes)
 PLUGDIRS+=viren_out
