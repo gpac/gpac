@@ -48,7 +48,7 @@
 #ifndef GPAC_DISABLE_ISOM_WRITE
 void convert_file_info(char *inName, u32 trackID);
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, const char *tmpdir);
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, Bool adjust_split_end, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat);
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
@@ -213,6 +213,8 @@ void PrintGeneralUsage()
 			" -split-rap           splits in files begining at each RAP. same as -splitr.\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
+			"                       * Note: this removes all MPEG-4 Systems media\n"
+			" -splitz S:E          same as -split-chunk, but adjust the end time to be before the last RAP sample\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -group-add fmt       creates a new grouping information in the file. Format is\n"
 			"                      a colon-separated list of following options:\n"
@@ -1214,6 +1216,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool daisy_chain_sidx=0;
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
+	Bool adjust_split_end = 0;
 	char *gf_logs = NULL;
 	char *seg_ext = "m4s";
 
@@ -1910,7 +1913,7 @@ int mp4boxMain(int argc, char **argv)
 			i++; 
 			split_duration = 0;
 		}
-		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx")) { 
+		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) { 
 			CHECK_NEXT_ARG 
 			if (!strstr(argv[i+1], ":")) {
 				fprintf(stdout, "Chunk extraction usage: \"-splitx start->end\" expressed in seconds\n");
@@ -1919,6 +1922,7 @@ int mp4boxMain(int argc, char **argv)
 			sscanf(argv[i+1], "%lf:%lf", &split_start, &split_duration);
 			split_duration -= split_start; 
 			split_size = 0;
+			if (!stricmp(arg, "-splitz")) adjust_split_end = 1;
 			i++;
 		}
 		/*meta*/
@@ -2596,7 +2600,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (split_duration || split_size) {
-		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, tmpdir);
+		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, adjust_split_end, tmpdir);
 		/*never save file when splitting is desired*/
 		open_edit = 0;
 		needSave = 0;

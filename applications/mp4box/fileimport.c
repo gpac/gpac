@@ -543,7 +543,7 @@ typedef struct
 	u32 stop_state;
 } TKInfo;
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, const char *tmpdir)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, const char *tmpdir)
 {
 	u32 i, count, nb_tk, needs_rap_sync, cur_file, conv_type, nb_tk_done, nb_samp, nb_done, di;
 	Double max_dur, cur_file_time;
@@ -932,7 +932,15 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			fprintf(stdout, "Cannot split file (duration too small or size too small)\n");
 			goto err_exit;
 		}
-		if (chunk_extraction) file_split_dur = split_dur;
+		if (chunk_extraction) {
+			if (adjust_split_end) {
+				fprintf(stdout, "Adjusting chunk end time to previous random access at %02.2f sec\n", chunk_start + last_rap_sample_time);
+				file_split_dur = last_rap_sample_time;
+				sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+file_split_dur), ext);
+				gf_isom_set_final_name(dest, szFile);
+			}
+			else file_split_dur = split_dur;
+		}
 
 		/*don't split if eq to copy...*/
 		if (is_last && !cur_file && !chunk_start) {

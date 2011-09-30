@@ -159,6 +159,9 @@ splits in files of desired maximum size. This will remove all MPEG-4 Systems med
 .B \-split-chunk start:end
 extracts a new file from specified start to end times (in seconds). This will remove all MPEG-4 Systems media. Alias: -splitx
 .TP
+.B \-splitz start:end
+same as -split-chunk option, but adjust end time to be juste before the last rap found in the chunk.
+.TP
 .B \-split-rap start:end
 splits in files begining at each RAP. This will remove all MPEG-4 Systems media. Alias: -splitr
 .TP
