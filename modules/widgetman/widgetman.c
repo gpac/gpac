@@ -2205,7 +2205,7 @@ static JSBool SMJS_FUNCTION(wm_load)
 	manifest = SMJS_CHARS(c, argv[0]);
 
 	url = NULL;
-	if ((argc==2) && JSVAL_IS_OBJECT(argv[1])) {
+	if ((argc==2) && (argv[1]!= JSVAL_NULL) && JSVAL_IS_OBJECT(argv[1])) {
 		GF_WidgetInstance *parent_widget;
 		if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[1]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
 		parent_widget = (GF_WidgetInstance *)JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[1]) );
