@@ -900,7 +900,11 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
             validator->test_base = NULL;
         }
 		/*auto-disable the recording by default*/
-		if (validator->is_recording) gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Play");
+		if (validator->is_recording) {
+			gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Play");
+		} else {
+			gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Disable");
+		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));
 		if (validator->prev_fps) {
 			gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", validator->prev_fps);
