@@ -322,7 +322,7 @@ typedef struct
 } GF_WidgetComponentInstance;
 
 
-GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 InstanceID);
+GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 InstanceID, Bool skip_context);
 
 
 JSBool SMJS_FUNCTION(widget_has_feature);

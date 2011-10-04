@@ -332,6 +332,49 @@ function on_widget_load()
 }
 
 
+mpegu_targets = null;
+
+function select_mpegu_target(callback)
+{ 
+  if (mpegu_targets) return;
+  mpegu_targets = gw_new_file_open();
+  mpegu_targets.set_label('Select Remote Display');
+  mpegu_targets.callback = callback;
+
+  mpegu_targets.on_close = function() {
+   mpegu_targets = null;
+  }
+  /*override browse function*/
+  mpegu_targets._on_mpegu_click = function() {
+   	var target = (this.render_idx<0) ? null : WidgetManager.get_mpegu_service_providers(this.render_idx);
+
+		mpegu_targets.callback(target);
+		mpegu_targets.callback = null;
+    mpegu_targets.close();
+    mpegu_targets = null;
+  }
+  mpegu_targets._browse = function(dir, up) {
+   var w, h, i, y;
+   this.area.reset_children();
+ 
+   for (i=0; ; i++) {
+		var target = WidgetManager.get_mpegu_service_providers(i);
+		if (!target) break;
+		var	icon = 'icons/applications-internet.svg';
+    var item = gw_new_icon_button(this.area, icon, target.Name, 'button');
+    item.set_size(item.width, item.height);
+    item.render_idx = i;
+    item.on_click = this._on_mpegu_click;
+   }  
+   this.layout(this.width, this.height);
+ }
+ mpegu_targets.browse('');  
+ mpegu_targets.go_up.hide();
+ mpegu_targets.set_size(display_width, display_height);
+ gpacui_show_window(mpegu_targets);
+}
+
+
 function new_widget_control(widget)
 {
   var ctrl;
@@ -447,7 +490,7 @@ function new_widget_control(widget)
   if (UPnP_Enabled) {
     ctrl.remote = ctrl.add_tool(gwskin.images.remote_display, gwskin.labels.remote_display);
     ctrl.remote.on_click = function() { 
-      var dlg = select_remote_display('callback', new_migrate_callback(this.dlg.widget) );    
+      var dlg = select_mpegu_target(new_migrate_callback(this.dlg.widget) );    
     };  
   	
     ctrl.show_remote = function(show) {
@@ -752,7 +795,7 @@ function widget_migrate_component(wid, args)
 		WidgetManager.migrate_widget(UPnP.GetMediaRenderer(parseInt(args[1])), comp);
 		widget_close(comp);
 	} else {
-    var dlg = select_remote_display('callback', new_migrate_callback(comp) );    
+    var dlg = select_mpegu_target(new_migrate_callback(comp) );    
 	}
 	if (ifce != null) {
 		wmjs_core_out_invoke_reply(coreOut.migrateComponentMessage, ifce.get_message("migrateComponent"), wid, 1); // send return code 1 = success

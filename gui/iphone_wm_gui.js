@@ -396,7 +396,8 @@ function coreOutMigrateComponentImplementation(wid, args) {
        return;
     }
     if (args.length > 1 && args[1] != null) {
-        WidgetManager.migrate_widget(UPnP.GetMediaRenderer(parseInt(args[1])), comp);
+        //WidgetManager.migrate_widget(UPnP.GetMediaRenderer(parseInt(args[1])), comp);
+        WidgetManager.migrate_widget(WidgetManager.get_mpegu_service_providers(parseInt(args[1])), comp);
         widget_close(comp);
     } else {
         upnp_renders = selector_window(comp);
@@ -406,7 +407,8 @@ function coreOutMigrateComponentImplementation(wid, args) {
             if (item == -1) return;
             if (comp != null) {
                 alert("upnp_renders.on_select("+item+","+comp.name+")");
-                WidgetManager.migrate_widget(UPnP.GetMediaRenderer(item), comp);
+                //WidgetManager.migrate_widget(UPnP.GetMediaRenderer(item), comp);
+                WidgetManager.migrate_widget(WidgetManager.get_mpegu_service_providers(item), comp);
                 widget_close(comp);
             }
         };
@@ -902,7 +904,8 @@ function on_widget_remote() {
             if (item == -1) return;
             if (wid != null) {
                 alert("upnp_renders.on_select("+item+","+wid.name+")");
-                WidgetManager.migrate_widget(UPnP.GetMediaRenderer(item), wid);
+                //WidgetManager.migrate_widget(UPnP.GetMediaRenderer(item), wid);
+                WidgetManager.migrate_widget(WidgetManager.get_mpegu_service_providers(item), wid);
                 widget_close(wid);
             }
         };
@@ -917,10 +920,10 @@ function selector_window(widget) {
     var i, count, render;
     var selector = document.createElement('g'), obj, child;
     selector.setAttribute('transform', 'translate(10,10)');
-    count = UPnP.MediaRenderersCount;
+    count = WidgetManager.MPEGUStandardServiceProviders.length;
     selector.appendChild(rect(0, 0, 300, 20 * (count + 1), 'white', 'black'));
     for (i = 0; i < count; i++) {
-        render = UPnP.GetMediaRenderer(i);
+        render = WidgetManager.MPEGUStandardServiceProviders[i];
         obj = createtext(render.Name, 'black', 5, 17 + (20 * i), 15, 'sans-serif');
         obj.setAttribute('id', "selector" + i);
         selector.appendChild(obj);
@@ -1356,4 +1359,3 @@ function appropriateElementForMedia(uri, w, h) {
 function endsWith(s1, s2) {
     return s1.toLowerCase().substring(s1.length - s2.length) == s2;
 }
-

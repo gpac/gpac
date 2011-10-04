@@ -136,6 +136,7 @@ typedef struct _tag_dom_parser GF_DOMParser;
 GF_DOMParser *gf_xml_dom_new();
 void gf_xml_dom_del(GF_DOMParser *parser);
 GF_Err gf_xml_dom_parse(GF_DOMParser *parser, const char *file, gf_xml_sax_progress OnProgress, void *cbk);
+GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string);
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
 const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);

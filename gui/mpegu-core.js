@@ -178,6 +178,8 @@ function widget_manager_init() {
         WidgetManager.upnp = true;
         log(l_inf, 'Enabling Widget UPnP Discovery')
         UPnP.onDeviceAdd = wmjs_on_device_add;
+        log(l_inf, 'Creating the standard MPEG-U Service')
+        wmjs_create_standard_service();
     }
     WidgetManager.migrate_widget = wmjs_migrate_widget;
     WidgetManager.probe = wmjs_probe_widget;
@@ -190,6 +192,9 @@ function widget_manager_init() {
     WidgetManager.check_bindings = wmjs_bind_widgets;
     WidgetManager.unbind_widget = wmjs_unbind_widget;
     WidgetManager.corein_message = wmjs_corein_message;
+    
+    WidgetManager.get_mpegu_service_providers = wmjs_get_mpegu_service_providers;
+    
     WidgetManager.initialize();
     log(l_inf, 'MPEG-U Widgets successfully initialized');
     initCore();
@@ -198,29 +203,6 @@ function widget_manager_init() {
 function wmjs_on_widget_add(widget) {}
 
 function wmjs_on_widget_remove(widget) {}
-
-function wmjs_migrate_widget(render, widget) {
-    if (WidgetManager.upnp) {
-        var url, ctx, ctx_uri, uri;
-
-        url = widget.url;
-        ctx = widget.get_context();
-        uri = UPnP.ShareResource(url, render.HostName);
-
-        if ((ctx!= null) && (ctx != "")) {
-            if ((uri.indexOf('?') < 0) && (uri.indexOf('%3f') < 0) && (uri.indexOf('%3F') < 0)) {
-                ctx_uri = uri + '?mpeg-u-context';
-            } else {
-                ctx_uri = uri + '&mpeg-u-context';
-            }
-            UPnP.ShareVirtualResource(ctx_uri, ctx, "application/mpegu-context", true);
-            log(l_inf, 'Migrating widget ' + url + ' to renderer ' + render.Name + ' as resource ' + uri);
-            log(l_inf, 'Migration Context ' + ctx);
-            log(l_inf, 'Migration Context URI ' + ctx_uri);
-        }
-        render.Open(uri);
-    }
-}
 
 function wmjs_probe_widget(url) {
     if ((url.lastIndexOf('.wgt') >= 0) || (url.lastIndexOf('.mgt') >= 0) || (url.lastIndexOf('.xml') >= 0)) return 1;
@@ -352,6 +334,7 @@ function wmjs_on_device_add(device, is_add) {
     log(l_deb, 'wmjs_on_device_add');
     if (!is_add) {
         log(l_inf, 'Device Removed ' + device.Name);
+        wmjs_standard_service_remove(device);
         wmjs_unbind_upnp_device(device);
         if (device.widget != null) {
             log(l_inf, 'Widget Removed ' + device.widget.name);
@@ -363,6 +346,7 @@ function wmjs_on_device_add(device, is_add) {
         return;
     }
     log(l_inf, 'Device Added ' + device.Name + ' URL ' + device.PresentationURL);
+    wmjs_standard_service_add(device);
     WidgetManager.check_bindings();
     /*look for a presentation url - if not given or not identifying a widget, don't do anything*/
     var url = device.PresentationURL;
@@ -792,12 +776,188 @@ function wmjs_unbind_upnp_device(device)
     }
 }
 
-
 /*
  END OF INTERFACE BINDING TO UPNP SERVICES ROUTINES
  */
 
+//
+// section on widget migration
+//
 
+var header = '<scpd xmlns="urn:schemas-upnp-org:service-1-0"><specVersion><major>1</major><minor>0</minor></specVersion><actionList>';
+var middler = '</actionList><serviceStateTable>';
+var footer = '</serviceStateTable></scpd>';
+var standard_service_scpd = header+'<action><name>startWidget</name><argumentList><argument><name>widgetUrl</name><direction>in</direction><relatedStateVariable>s1</relatedStateVariable></argument><argument><name>widgetUUID</name><direction>in</direction><relatedStateVariable>s2</relatedStateVariable></argument><argument><name>widgetContext</name><direction>in</direction><relatedStateVariable>s3</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s4</relatedStateVariable></argument></argumentList></action>';
+{
+    standard_service_scpd += '<action><name>requestCapabilitiesList</name><argumentList><argument><name>capabilitiesType</name><direction>out</direction><relatedStateVariable>s5</relatedStateVariable></argument><argument><name>capabilities</name><direction>out</direction><relatedStateVariable>s6</relatedStateVariable></argument></argumentList></action>';
+    standard_service_scpd += '<action><name>listWidgets</name><argumentList><argument><name>widgetCodes</name><direction>out</direction><relatedStateVariable>s7</relatedStateVariable></argument><argument><name>widgetNames</name><direction>out</direction><relatedStateVariable>s8</relatedStateVariable></argument><argument><name>widgetIdentifiers</name><direction>out</direction><relatedStateVariable>s9</relatedStateVariable></argument></argumentList></action>';
+    standard_service_scpd += '<action><name>getWidget</name><argumentList><argument><name>widgetCode</name><direction>int</direction><relatedStateVariable>s10</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s11</relatedStateVariable></argument></argumentList></action>';
+    standard_service_scpd += middler+'<stateVariable><name>s1</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s2</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s3</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s4</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s5</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s6</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s7</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s8</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s9</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s10</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s11</name><dataType>string</dataType></stateVariable>'+footer;
+}
+
+//
+// migrate a widget by calling the appropriate startWidget message of the target
+// migration service
+//
+function wmjs_migrate_widget(render, widget) {
+    if (WidgetManager.upnp) {
+        var url, ctx, uri;
+
+        url = widget.url;
+        /*share the widget*/
+        uri = UPnP.ShareResource(url, render.HostName);
+
+        ctx = widget.get_context();
+
+        if (ctx == null) ctx = "";
+        log(l_inf, 'Migrating widget ' + url + ' to renderer ' + render.Name + ' as resource ' + uri);
+        log(l_inf, 'Migration Context ' + ctx);
+
+        // envoyer la methode startWidget sur render
+        var args = new Array();
+        args.push("widgetUrl");
+        args.push(uri);
+        args.push("widgetUUID");
+        args.push(null);
+        args.push("widgetContext");
+        args.push(ctx);
+        var code = render.standardService.CallAction("startWidget", args);
+        alert("return code from standardService.CallAction is "+code);
+    }
+}
+
+//
+// check whether the removed device was a publisher of MPEGUStandardService
+// if yes, remove it from the list
+//
+function wmjs_standard_service_remove(device) {
+    var service = device.FindService("urn:mpeg:mpeg-u:standard-service:widget-manager:1");
+    if (service != null) {
+        var i = WidgetManager.MPEGUStandardServiceProviders.indexOf(device);
+        if (i >= 0) {
+            log(l_err, "migration service remove "+device.Name);
+            WidgetManager.MPEGUStandardServiceProviders.splice(i, 1);
+        } else log(l_err, "Trying to remove a standard service device which was not added first: "+device);
+    }
+}
+
+//
+// add a migration service provider to the list and remember the service in the device
+//
+function wmjs_standard_service_add(device) {
+    var service = device.FindService("urn:mpeg:mpeg-u:standard-service:widget-manager:1");
+    if (service != null) {
+        log(l_err, "migration service add "+device.Name);
+        WidgetManager.MPEGUStandardServiceProviders.push(device);
+        device.standardService = service;
+    }
+}
+
+//
+// get the nth standard service provider (migration service)
+//
+function wmjs_get_mpegu_service_providers(index) {
+    if (!WidgetManager.MPEGUStandardServiceProviders) {
+        log(l_err, "uninitialized MPEGUStandardServiceProviders");
+        return null;
+    }
+    if (index < 0 || index > WidgetManager.MPEGUStandardServiceProviders.length) {
+        log(l_err, "index of MPEGUStandardServiceProviders out of bounds:"+index);
+        return null;
+    }
+    return WidgetManager.MPEGUStandardServiceProviders[index];
+}
+
+function wmjs_create_standard_service() {
+    //alert("create_standard_service");
+    WidgetManager.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:standard-service:widget-manager:1", "MPEG-U@"+gpac.hostname);
+    WidgetManager.device.enabled = 1;
+    /* implement the response to a external call (messageOut of another widget) */
+    WidgetManager.device.OnAction = wmjs_widget_standard_service_process_action;
+    log(l_err, 'wmjs_create_standard_service');
+    //log(l_inf, 'Service scpd ' + standard_service_scpd);
+    /* WidgetManager.standardService = */
+    var service = WidgetManager.device.SetupService("MPEG-U_Standard_Service", "urn:mpeg:mpeg-u:standard-service:widget-manager:1",
+            "urn:mpeg:mpeg-u:standard-service:widget-manager:1.001", standard_service_scpd);
+    WidgetManager.device.Start();
+    WidgetManager.MPEGUStandardServiceProviders = new Array();
+    //alert("create_standard_service end");
+}
+
+/* generic processing of any action from outside for the standard MPEG-U service */
+function wmjs_widget_standard_service_process_action(action) {
+    log(l_err, 'wmjs_widget_standard_service_process_action Action ' + action.Name);
+    /* find the message matching the action in the interface */
+    if (action.Name == "startWidget") {
+        process_startWidget_action(action);
+    } else if (action.Name == "requestCapabilitiesList"){
+        process_requestCapabilitiesList_action(action);
+    } else if (action.Name == "listWidgets") {
+        process_listWidgets_action(action);
+    } else if (action.Name == "getWidget") {
+        process_getWidget_action(action);
+    } else {
+        log(l_inf, 'wmjs_widget_standard_service_process_action Action not found: ' + action.Name);
+    }
+}
+
+//
+// processing of a request to start a widget (push migration or predefined "activateWidgetByUrl")
+//
+function process_startWidget_action(action) {
+    log(l_err,"process start widget");
+    // get action arguments
+    var widgetUrl = action.GetArgument("widgetUrl");
+    var widgetUUID = action.GetArgument("widgetUUID");
+    var widgetContext = action.GetArgument("widgetContext");
+    log(l_err,"start:"+widgetUrl+" "+widgetUUID+" "+widgetContext);
+    // get widget
+    if (widgetUrl == null && widgetUUID != null) {
+        log(l_err, "unable to load a widget by UUID: unimplemented");
+        action.SendReply(["errorCode", 1]);
+        return;
+    }
+    var wid = WidgetManager.load(widgetUrl, null, widgetContext);
+    WidgetManager.on_widget_add(wid);
+}
+
+//
+// processing of a request for the list of capabilities
+//
+function process_requestCapabilitiesList_action(action) {
+    //TODO
+    alert("UNIMPLEMENTED in mpegu-core.js: request capabilities list");
+}
+
+//
+// processing of a request for the list of widgets (prelude to a pull migration)
+//
+function process_listWidgets_action(action) {
+    //TODO
+    alert("UNIMPLEMENTED in mpegu-core.js: list widgets");
+}
+
+//
+// processing of a pull migration request
+//
+function process_getWidget_action(action) {
+    //TODO
+    alert("UNIMPLEMENTED in mpegu-core.js: pull migration");
+}
+
+//
+// end of migration service
+//
 
 /*
  INTERFACE PUBLISHING AS UPNP SERVICES ROUTINES
@@ -806,11 +966,6 @@ function wmjs_unbind_upnp_device(device)
  by generating on the fly a new device associated with a widget, and one UPnP service per widget interface.
  The UPnP service description (SCPD) is generated on the fly from the interface description
  */
-
-
-var header = '<scpd xmlns="urn:schemas-upnp-org:service-1-0"><specVersion><major>1</major><minor>0</minor></specVersion><actionList>';
-var middler = '</actionList><serviceStateTable>';
-var footer = '</serviceStateTable></scpd>';
 
 function wmjs_make_interface_scpd(widget, ifce) {
     log(l_deb, "wmjs_make_interface_scpd");
@@ -836,7 +991,7 @@ function wmjs_make_interface_scpd(widget, ifce) {
 
 /* generic processing of any action from outside */
 function wmjs_widget_upnp_process_action(action) {
-    log(l_deb, 'wmjs_widget_upnp_process_action Action ' + action.Name + ' invoked on ' + action.Service.ifce.type);
+    log(l_err, 'wmjs_widget_upnp_process_action Action ' + action.Name + ' invoked on ' + action.Service.ifce.type);
     var i, ai, args, msg, has_output = false;
     /* find the message matching the action in the interface */
     msg = null;
@@ -883,7 +1038,6 @@ function wmjs_widget_upnp_process_action(action) {
         action.Service.action = null;
     }
 }
-
 
 function wmjs_upnp_event_sender(service, widget, msg) {
     return function(value) {
@@ -954,14 +1108,17 @@ function wmjs_upnp_action_response_script(service) {
     };
 }
 
+
 function wmjs_create_upnp_service(widget, ifce) {
     var i, service, scpd, start_device = 0;
+    var name;
 
     log(l_deb, 'widget device : ' + widget.device);
+
+    /* at least one interface is a provider, so create a device - service or device names SHALL NOT CONTAIN SPACES*/
+    name = widget.name.replace(new RegExp(' ', 'g'), '_');
     if (!widget.device) {
         //log(l_inf,'creating device');
-        /* at least one interface is a provider, so create a device */
-        var name = widget.name.replace(new RegExp(' ', 'g'), '_');
         widget.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:widget:provider:" + name + ":1", name);
         /* remember the widget in the device */
         widget.device.widget = widget;
@@ -976,7 +1133,7 @@ function wmjs_create_upnp_service(widget, ifce) {
 
     log(l_inf, 'wmjs_create_upnp_service');
     scpd = wmjs_make_interface_scpd(widget, ifce);
-    log(l_inf, 'Service scpd ' + scpd);
+    //log(l_inf, 'Service scpd ' + scpd);
     service = widget.device.SetupService(name, ifce.type, ifce.type + ".001", scpd);
     service.ifce = ifce;
 
