@@ -39,15 +39,12 @@ typedef enum {
 	TRANSPORT_PROTOCOL_DESCRIPTOR = 0x02,
 	SIMPLE_APPLICATION_LOCATION_DESCRIPTOR = 0x15,
 	APPLICATION_USAGE_DESCRIPTOR = 0x16,
+	APPLICATION_BOUNDARY_DESCRIPTOR = 0x17,
 } DESCRIPTOR_TAG;
-
 
 typedef struct
 {
-	
-	ABSTRACT_ES
-	GF_M2TS_SectionFilter *sec;
-
+	u32 pid;
 	u32 service_id;
 	u8 table_id;
 	Bool section_syntax_indicator;
@@ -65,6 +62,17 @@ typedef struct
 	u32 CRC_32;
 
 } GF_M2TS_AIT;
+
+
+typedef struct
+{
+	
+	ABSTRACT_ES
+	GF_M2TS_SectionFilter *sec;
+
+	GF_M2TS_AIT* ait;
+
+} GF_M2TS_AIT_CARRY;
 
 
 typedef struct
@@ -102,7 +110,7 @@ typedef struct
 	Bool service_bound_flag;
 	u8 visibility;
 	u8 application_priority;
-	u8 transport_protocol_label;
+	u8 transport_protocol_label[5];
 
 } GF_M2TS_APPLICATION_DESCRIPTOR;
 
@@ -168,10 +176,30 @@ typedef struct
 
 } GF_M2TS_APPLICATION_NAME_DESCRIPTOR;
 
+typedef struct
+{
+	u8 boundary_extension_length;
+	char* boundary_extension_byte;
+
+} GF_M2TS_APPLICATION_BOUNDARY_EXTENSION_INFO;
+
+typedef struct
+{
+	u8 descriptor_tag;
+	u8 descriptor_length;
+	u8 boundary_extension_count;
+	GF_M2TS_APPLICATION_BOUNDARY_EXTENSION_INFO* boundary_extension_info;
+
+} GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR;
+
+
+ 
+
 GF_Err gf_m2ts_process_ait(GF_M2TS_AIT *es, char  *data, u32 data_size, u32 table_id);
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par);
 GF_M2TS_ES *gf_ait_section_new(u32 service_id);
 void gf_ait_destroy(GF_M2TS_AIT* ait);
+void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application);
 
 
 #endif	//_GF_CAROUSSEL_H_
