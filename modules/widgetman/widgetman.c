@@ -2130,7 +2130,7 @@ GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstanc
 			comp_wid = NULL;
 		}
 		if (!comp_wid) {
-			comp_wid = wm_load_widget(wid->widget->wm, url, 0);
+			comp_wid = wm_load_widget(wid->widget->wm, url, 0, 0);
 			if (comp_wid) comp_wid->permanent = 0;
 		}
 		gf_free(url);
@@ -2195,7 +2195,7 @@ static JSBool SMJS_FUNCTION(wm_widget_is_interface_bound)
 static JSBool SMJS_FUNCTION(wm_load)
 {
 	u32 i, count;
-	char *manifest, *url;
+	char *manifest, *url, *widget_ctx;
 	GF_WidgetInstance *wid;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -2212,6 +2212,12 @@ static JSBool SMJS_FUNCTION(wm_load)
 		
 		if (parent_widget->widget->url) url = gf_url_concatenate(parent_widget->widget->url, manifest);
 	}
+
+	widget_ctx = NULL;
+	if ((argc==3) && (argv[2]!= JSVAL_NULL) && JSVAL_IS_STRING(argv[2])) {
+		widget_ctx = SMJS_CHARS(c, argv[2]);
+	}
+
 	if (!url) {
 		url = gf_strdup(manifest);
 	}
@@ -2224,15 +2230,38 @@ static JSBool SMJS_FUNCTION(wm_load)
 		wid = NULL;
 	}
 	if (!wid) {
-		wid = wm_load_widget(wm, url, 0);
+		wid = wm_load_widget(wm, url, 0, 1);
 	}
 	if (url) gf_free(url);
+
+	/*parse context if any*/
+	if (wid && wid->mpegu_context) {
+		gf_xml_dom_del(wid->mpegu_context);
+		wid->mpegu_context = NULL;
+	}
+	if (wid && widget_ctx && strlen(widget_ctx)) {
+		GF_Err e;
+		GF_XMLNode *context = NULL;
+		wid->mpegu_context = gf_xml_dom_new();
+		e = gf_xml_dom_parse_string(wid->mpegu_context, widget_ctx);
+		if (!e) {
+			context = gf_xml_dom_get_root(wid->mpegu_context);
+			if (strcmp(context->name, "contextInformation")) context = NULL;
+		} else {
+		}
+
+		if (!context && wid->mpegu_context) {
+			gf_xml_dom_del(wid->mpegu_context);
+			wid->mpegu_context = NULL;
+		}
+	}
 
 	if (wid) {
 		wm_widget_jsbind(wm, wid);
 		SMJS_SET_RVAL(OBJECT_TO_JSVAL(wid->obj));
 	}
 	SMJS_FREE(c, manifest);
+	SMJS_FREE(c, widget_ctx);
 	return JS_TRUE;
 }
 
@@ -2886,7 +2915,7 @@ static void wm_set_default_icon_files(GF_WidgetManager *wm, const char *widget_p
 	if (result) wm_add_icon(widget, relocated_path, localized_path);
 }
 
-GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 InstanceID)
+GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 InstanceID, Bool skip_context)
 {
 	char szName[GF_MAX_PATH];
 	u32 i, count;
@@ -3328,7 +3357,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 	gf_list_add(wm->widget_instances, wi);
 
 
-	if (strstr(path, "http://")) {
+	if (!skip_context && strstr(path, "http://")) {
 		GF_XMLNode *context;
 		GF_DownloadSession *ctx_sess = NULL;
 		char *ctxPath;
@@ -3386,7 +3415,7 @@ static Bool wm_enum_widget(void *cbk, char *file_name, char *file_path)
 {
 	GF_WidgetInstance *wid;
 	GF_WidgetManager *wm = (GF_WidgetManager *)cbk;
-	wid = wm_load_widget(wm, file_path, 0);
+	wid = wm_load_widget(wm, file_path, 0, 0);
 	if (wid) {
 		wm_widget_jsbind(wm, wid);
 		/*remove section info*/
@@ -3419,7 +3448,7 @@ static JSBool SMJS_FUNCTION(wm_initialize)
 			if (manifest) {
 				const char *ID = gf_cfg_get_key(wm->term->user->config, name, "WM:InstanceID");
 				u32 instID = ID ? atoi(ID) : 0;
-				GF_WidgetInstance *wi = wm_load_widget(wm, manifest, instID);
+				GF_WidgetInstance *wi = wm_load_widget(wm, manifest, instID, 0);
 				if (wi) {
 					strcpy(wi->secname, name);
 					wm_widget_jsbind(wm, wi);

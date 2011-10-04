@@ -328,6 +328,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_serialize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
+
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
