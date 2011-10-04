@@ -28,13 +28,11 @@
 GF_M2TS_ES *gf_ait_section_new(u32 service_id)
 {
 	GF_M2TS_ES *es;
-
 	GF_M2TS_AIT_CARRY *ses;
 	GF_SAFEALLOC(ses, GF_M2TS_AIT_CARRY);
-	GF_SAFEALLOC(ses->ait, GF_M2TS_AIT);
 	es = (GF_M2TS_ES *)ses;
 	es->flags = GF_M2TS_ES_IS_SECTION;
-	ses->ait->service_id = service_id;
+	ses->service_id = service_id;
 	return es;
 }
 
@@ -47,12 +45,15 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	u32 u32_table_id;
 
 	if (evt_type == GF_M2TS_EVT_AIT_FOUND) {
+		GF_M2TS_AIT* ait;
+		GF_SAFEALLOC(ait, GF_M2TS_AIT);
 		data = pck->data;
 		u32_data_size = pck->data_len;
 		u32_table_id = data[0];
 		GF_M2TS_AIT_CARRY* ait_carry = (GF_M2TS_AIT_CARRY*)pck->stream;
-		ait_carry->ait->pid = ait_carry->pid;
-		gf_m2ts_process_ait(ait_carry->ait, data, u32_data_size, u32_table_id);
+		ait->pid = ait_carry->pid;
+		ait->service_id = ait_carry->service_id;
+		gf_m2ts_process_ait(ait, data, u32_data_size, u32_table_id);
 
 	}
 }
