@@ -66,11 +66,9 @@ typedef struct
 
 typedef struct
 {
-	
 	ABSTRACT_ES
 	GF_M2TS_SectionFilter *sec;
-
-	GF_M2TS_AIT* ait;
+	u32 service_id;	
 
 } GF_M2TS_AIT_CARRY;
 
