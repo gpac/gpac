@@ -200,23 +200,32 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	if (odm->net_service) {
 		GF_ClientService *ns = odm->net_service;
 		if (ns->nb_odm_users) ns->nb_odm_users--;
-		//if (odm->flags & GF_ODM_SERVICE_ENTRY) 
-		{
-			if (ns->owner == odm) {
-				/*detach it!!*/
-				ns->owner = NULL;
-				/*try to assign a new root in case this is not scene shutdown*/
-				if (ns->nb_odm_users && odm->parentscene) {
-					GF_ObjectManager *new_root;
-					u32 i = 0;
-					while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->resources, &i)) ) {
-						if (new_root == odm) continue;
-						if (new_root->net_service != ns) continue;
-						ns->owner = new_root;
-						break;
+		if (ns->owner == odm) {
+			/*detach it!!*/
+			ns->owner = NULL;
+			/*try to assign a new root in case this is not scene shutdown*/
+			if (ns->nb_odm_users && odm->parentscene) {
+				GF_ObjectManager *new_root;
+				u32 i = 0;
+				while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->resources, &i)) ) {
+					if (new_root == odm) continue;
+					if (new_root->net_service != ns) continue;
+
+					/*if the new root is not playing or assoicated with the scene, force a destroy on it - this
+					is needed for services declaring their objects dynamically*/
+					if (!new_root->mo || (!new_root->mo->num_open)) {
+						gf_term_lock_media_queue(odm->term, 1);
+						new_root->action_type = GF_ODM_ACTION_DELETE;
+						if (gf_list_find(odm->term->media_queue, new_root)<0)
+							gf_list_add(odm->term->media_queue, new_root);
+						gf_term_lock_media_queue(odm->term, 0);
 					}
+					ns->owner = new_root;
+					break;
 				}
 			}
+		} else {
+			assert(ns->nb_odm_users);
 		}
 		odm->net_service = NULL;
 		if (!ns->nb_odm_users) gf_term_close_service(odm->term, ns);
@@ -575,7 +584,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->subscene = gf_scene_new(odm->parentscene);
 			odm->subscene->root_od = odm;
 		}
-		gf_term_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
+		gf_term_post_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
 		gf_free(url);
 		return;
 	}

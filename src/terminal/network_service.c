@@ -315,7 +315,8 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 			min_od_id = mo->OD_ID;
 
 		if (!mo->odm) continue;
-		if (mo->odm->net_service != service) continue;
+		/*if object is attached to a service, don't bother looking in a different one*/
+		if (mo->odm->net_service && (mo->odm->net_service != service)) continue;
 
 		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service,
 		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't

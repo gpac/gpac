@@ -119,8 +119,9 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 
 Fixed gf_mo_get_current_speed(GF_MediaObject *mo);
 
-/*checks if the service associated withthis object has an audio stream*/
-Bool gf_mo_has_audio(GF_MediaObject *mo);
+/*checks if the service associated withthis object has an audio stream
+returns 0 if no audio is associated, 1 if there is an audio object associated, 2 if the service is not yet ready (not connected)*/
+u32 gf_mo_has_audio(GF_MediaObject *mo);
 
 /*checks if the service associated withthis object has an audio stream*/
 Bool gf_mo_is_private_media(GF_MediaObject *mo);
