@@ -1184,8 +1184,7 @@ GF_Err gf_odf_size_dcd(GF_DecoderConfig *dcd, u32 *outSize)
 		//the decSpecInfo is handle as a defaultDescriptor (opaque data, but same structure....)
 		e = gf_odf_size_descriptor((GF_Descriptor *) dcd->decoderSpecificInfo , &tmpSize);
 		if (e) return e;
-		if (tmpSize)
-			*outSize += tmpSize + gf_odf_size_field_size(tmpSize);
+		*outSize += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
 	e = gf_odf_size_descriptor_list(dcd->profileLevelIndicationIndexDescriptor, outSize);
 	if (e) return e;
