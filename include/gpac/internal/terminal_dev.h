@@ -360,6 +360,8 @@ struct _tag_terminal
 	GF_List *net_services_to_connect;
 	/*net services to be destroyed*/
 	GF_List *net_services_to_remove;
+	/*connection tasks pending*/
+	GF_List *connection_tasks;
 	/*channels waiting for service CONNECT ack to be setup*/
 	GF_List *channels_pending;
 	/*media objects pending for stop/play*/
@@ -422,8 +424,8 @@ Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool
 
 /*error report function*/
 void gf_term_message(GF_Terminal *app, const char *service, const char *message, GF_Err error);
-/*creates service for given OD / URL*/
-void gf_term_connect_object(GF_Terminal *app, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
+/*posts a request to connect a given object*/
+void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
 /*creates service for given channel / URL*/
 GF_Err gf_term_connect_remote_channel(GF_Terminal *app, GF_Channel *ch, char *URL);
 

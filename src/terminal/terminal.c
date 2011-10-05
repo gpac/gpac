@@ -37,6 +37,11 @@
 
 #include "media_memory.h"
 
+
+/*creates service for given OD / URL
+SHALL ONLY BE USED BY MAIN CLIENT*/
+static void gf_term_connect_object(GF_Terminal *app, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
+
 void gf_term_load_shortcuts(GF_Terminal *term);
 
 u32 gf_term_get_time(GF_Terminal *term)
@@ -526,6 +531,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->net_services = gf_list_new();
 	tmp->net_services_to_remove = gf_list_new();
 	tmp->net_services_to_connect = gf_list_new();
+	tmp->connection_tasks = gf_list_new();
 	tmp->channels_pending = gf_list_new();
 	tmp->media_queue = gf_list_new();
 	tmp->media_queue_mx = gf_mx_new("MediaQueue");
@@ -680,6 +686,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->net_services);
 	gf_list_del(term->net_services_to_connect);
 	gf_list_del(term->net_services_to_remove);
+	gf_list_del(term->connection_tasks);
 	gf_list_del(term->input_streams);
 	gf_list_del(term->x3d_sensors);
 	assert(!gf_list_count(term->channels_pending));
@@ -919,6 +926,13 @@ GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
 	return gf_sc_set_size(term->compositor, NewWidth, NewHeight);
 }
 
+typedef struct
+{
+	GF_ObjectManager *odm;
+	char *service_url, *parent_url;
+} GF_TermConnectObject;
+
+
 void gf_term_handle_services(GF_Terminal *term)
 {
 	GF_ClientService *ns;
@@ -926,8 +940,7 @@ void gf_term_handle_services(GF_Terminal *term)
 	/*we could run into a deadlock if some thread has requested opening of a URL. If we cannot
 	grab the media queue now, we'll do our management at the next cycle*/
 	if (!gf_mx_try_lock(term->media_queue_mx))
-		return;
-
+		return;	
 
 	while (gf_list_count(term->net_services_to_connect)) {
 		GF_ClientService *ns = (GF_ClientService*)gf_list_get(term->net_services_to_connect, 0);
@@ -999,6 +1012,22 @@ void gf_term_handle_services(GF_Terminal *term)
 		/*relock before sending play/pause*/
 		gf_mx_p(term->media_queue_mx);
 	}
+
+	/*finally process all connection tasks - we MUST do that after processing ODM tasks, as an ODM might have just destroyed 
+	a service we could query during the connection step*/
+	while (gf_list_count(term->connection_tasks)) {
+		GF_TermConnectObject *connect = gf_list_get(term->connection_tasks, 0);
+		gf_list_rem(term->connection_tasks, 0);
+	
+		/*if object has already been attached to its service (eg, task was posted but media_add occured inbetween), ignore*/
+		if (!connect->odm->net_service)
+			gf_term_connect_object(term, connect->odm, connect->service_url, connect->parent_url);
+		
+		gf_free(connect->service_url);
+		if (connect->parent_url) gf_free(connect->parent_url);
+		gf_free(connect);
+	}
+
 	gf_mx_v(term->media_queue_mx);
 
 	/*lock to avoid any start attemps from compositor*/
@@ -1085,6 +1114,15 @@ void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
 	we could unload the module while poping its CloseService() call stack which can lead to 
 	random crashes (return adresses no longer valid) - cf any "stress mode" playback of a playlist*/
 	gf_mx_p(term->media_queue_mx);
+
+	{
+	GF_ObjectManager *odm;
+	idx = 0;
+	while (odm = gf_list_enum(term->media_queue, &idx)) {
+		assert(odm->net_service != ns);
+	}
+	}
+
 	ns->owner = NULL;
 	idx = gf_list_find(term->net_services_to_connect, ns);
 	if (idx>=0) {
@@ -1241,8 +1279,24 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 	return 0;
 }
 
+/*in most cases we cannot directly connect an object, as the request may come from a different thread than the one handling
+ODM disconnection. We could therefore end up attaching an object to a service currently being destroyed because of a concurrent
+odm_disconnect*/
+void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
+{
+	GF_TermConnectObject *connect;
+	GF_SAFEALLOC(connect, GF_TermConnectObject);
+	connect->odm = odm;
+	connect->service_url = strdup(serviceURL);
+	connect->parent_url = parent_url ? strdup(parent_url) : NULL;
+
+	gf_mx_p(term->media_queue_mx);
+	gf_list_add(term->connection_tasks, connect);
+	gf_mx_v(term->media_queue_mx);
+}
+
 /*connects given OD manager to its URL*/
-void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
+static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
 	GF_ClientService *ns;
 	u32 i, count;
@@ -1291,6 +1345,9 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	net_locked = gf_mx_try_lock(term->net_mx);
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		/*we shall not have a service scheduled for destruction here*/
+		assert(ns->owner && !(ns->owner->flags & GF_ODM_DESTROYED) && (ns->owner->action_type !=GF_ODM_ACTION_DELETE) );
+
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			if (net_locked) {
 				gf_term_lock_net(term, 0);
@@ -1315,7 +1372,9 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 				if (ns->owner->OD) break;
 				gf_sleep(5);
 			}
+			assert(!odm->net_service);
 			odm->net_service = ns;
+			odm->net_service->nb_odm_users ++;
 			gf_odm_setup_entry_point(odm, serviceURL);
 			return;
 		}

@@ -1061,7 +1061,7 @@ Bool gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst)
 }
 
 GF_EXPORT
-Bool gf_mo_has_audio(GF_MediaObject *mo)
+u32 gf_mo_has_audio(GF_MediaObject *mo)
 {
 	char *sub_url, *ext;
 	u32 i;
@@ -1070,6 +1070,7 @@ Bool gf_mo_has_audio(GF_MediaObject *mo)
 	GF_Scene *scene;
 	if (!mo || !mo->odm) return 0;
 	if (mo->type != GF_MEDIA_OBJECT_VIDEO) return 0;
+	if (!mo->odm->net_service) return 2;
 
 	ns = mo->odm->net_service;
 	scene = mo->odm->parentscene;

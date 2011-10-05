@@ -473,17 +473,20 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	}
 
 	if (!stack->audio && stack->audio_dirty) {
-		stack->audio_dirty = 0;
-		if (gf_mo_has_audio(stack->txh.stream)) {
-			GF_FieldInfo att_vid, att_aud;
-			stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
-			gf_node_register(stack->audio, NULL);
-			if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
-				gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
-				gf_svg_attributes_copy(&att_aud, &att_vid, 0);
+		u32 res = gf_mo_has_audio(stack->txh.stream);
+		if (res != 2) {
+			stack->audio_dirty = 0;
+			if (res) {
+				GF_FieldInfo att_vid, att_aud;
+				stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
+				gf_node_register(stack->audio, NULL);
+				if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
+					gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
+					gf_svg_attributes_copy(&att_aud, &att_vid, 0);
+				}
+				/*BYPASS SMIL TIMING MODULE!!*/
+				compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
 			}
-			/*BYPASS SMIL TIMING MODULE!!*/
-			compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
 		}
 	}
 	
