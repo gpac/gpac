@@ -46,11 +46,11 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 	if (evt_type == GF_M2TS_EVT_AIT_FOUND) {
 		GF_M2TS_AIT* ait;
+		GF_M2TS_AIT_CARRY* ait_carry = (GF_M2TS_AIT_CARRY*)pck->stream;
 		GF_SAFEALLOC(ait, GF_M2TS_AIT);
 		data = pck->data;
 		u32_data_size = pck->data_len;
-		u32_table_id = data[0];
-		GF_M2TS_AIT_CARRY* ait_carry = (GF_M2TS_AIT_CARRY*)pck->stream;
+		u32_table_id = data[0];		
 		ait->pid = ait_carry->pid;
 		ait->service_id = ait_carry->service_id;
 		gf_m2ts_process_ait(ait, data, u32_data_size, u32_table_id);
@@ -239,7 +239,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 tab
 								GF_SAFEALLOC(Transport_http_selector_byte, GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE);					
 								Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
 								//printf("Transport_http_selector_byte->URL_base_length %d \n",Transport_http_selector_byte->URL_base_length);
-								Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length,sizeof(char));
+								Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length+1,sizeof(char));
 								gf_bs_read_data(bs,Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
 								Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;
 								Transport_http_selector_byte->URL_extension_count = gf_bs_read_int(bs,8);
@@ -247,7 +247,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 tab
 									Transport_http_selector_byte->URL_extentions = (GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION*) gf_calloc(Transport_http_selector_byte->URL_extension_count,sizeof(GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION));
 									for(i = 0; i < Transport_http_selector_byte->URL_extension_count;i++){
 										Transport_http_selector_byte->URL_extentions[i].URL_extension_length = gf_bs_read_int(bs,8);
-										Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length,sizeof(char));
+										Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length+1,sizeof(char));
 										gf_bs_read_data(bs,Transport_http_selector_byte->URL_extentions[i].URL_extension_byte,(u32)(Transport_http_selector_byte->URL_extentions[i].URL_extension_length));
 										Transport_http_selector_byte->URL_extentions[i].URL_extension_byte[Transport_http_selector_byte->URL_extentions[i].URL_extension_length] = 0;
 									}
@@ -291,7 +291,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 tab
 					Simple_application_location->descriptor_tag = temp_descriptor_tag;
 					Simple_application_location->descriptor_length = gf_bs_read_int(bs,8);
 					pre_processing_pos = gf_bs_get_position(bs);
-					Simple_application_location->initial_path_bytes = (char*)gf_calloc(Simple_application_location->descriptor_length,sizeof(char));
+					Simple_application_location->initial_path_bytes = (char*)gf_calloc(Simple_application_location->descriptor_length+1,sizeof(char));
 					gf_bs_read_data(bs,Simple_application_location->initial_path_bytes ,(u32)(Simple_application_location->descriptor_length));
 					Simple_application_location->initial_path_bytes[Simple_application_location->descriptor_length] = 0;
 					if(pre_processing_pos+Simple_application_location->descriptor_length != gf_bs_get_position(bs)){						
@@ -341,7 +341,7 @@ GF_Err gf_m2ts_process_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 tab
 						for(i=0;i<boundary_descriptor->boundary_extension_count;i++){
 							boundary_descriptor->boundary_extension_info[i].boundary_extension_length = gf_bs_read_int(bs,8);
 							if(boundary_descriptor->boundary_extension_info[i].boundary_extension_length > 0){
-								boundary_descriptor->boundary_extension_info[i].boundary_extension_byte = (char*)gf_calloc(boundary_descriptor->boundary_extension_info[i].boundary_extension_length,sizeof(char));
+								boundary_descriptor->boundary_extension_info[i].boundary_extension_byte = (char*)gf_calloc(boundary_descriptor->boundary_extension_info[i].boundary_extension_length+1,sizeof(char));
 								gf_bs_read_data(bs,boundary_descriptor->boundary_extension_info[i].boundary_extension_byte ,(u8)(boundary_descriptor->boundary_extension_info[i].boundary_extension_length));
 								boundary_descriptor->boundary_extension_info[i].boundary_extension_byte[boundary_descriptor->boundary_extension_info[i].boundary_extension_length] = 0;
 							}
@@ -448,7 +448,6 @@ void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application)
  				}
  			case APPLICATION_NAME_DESCRIPTOR:
  				{
-  					u64 pre_processing_pos;
   					GF_M2TS_APPLICATION_NAME_DESCRIPTOR* name_descriptor = (GF_M2TS_APPLICATION_NAME_DESCRIPTOR*)gf_list_get(application->application_descriptors,0);
   					gf_free(name_descriptor->application_name_char);
  					gf_free(name_descriptor);
@@ -456,9 +455,7 @@ void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application)
  				}
  			case TRANSPORT_PROTOCOL_DESCRIPTOR:
  				{
- 					u64 pre_processing_pos;
- 					GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR* protocol_descriptor = (GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR*)gf_list_get(application->application_descriptors,0);
-  					
+ 					GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR* protocol_descriptor = (GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR*)gf_list_get(application->application_descriptors,0);  					
  
  					switch(protocol_descriptor->protocol_id){
  						case CAROUSEL:
@@ -505,7 +502,7 @@ void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application)
  			case APPLICATION_BOUNDARY_DESCRIPTOR:
 				{
 				
-					u32 i,j;
+					u32 i;
 					GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR* boundary_descriptor = (GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR*)gf_list_get(application->application_descriptors,0);
   									
 					for(i = 0;i<boundary_descriptor->boundary_extension_count;i++);
