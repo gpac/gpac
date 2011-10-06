@@ -469,15 +469,15 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 			m2ts->is_connected = 1;
-		}
+		}		
 		/*do not declare if  single program was requested for playback*/
 		MP2TS_SetupProgram(m2ts, param, m2ts->request_all_pids, m2ts->request_all_pids ? 0 : 1);
-		M2TS_FlushRequested(m2ts);
+		M2TS_FlushRequested(m2ts);		
 		/* Send the TS to the a user if needed. Useful to check the number of received programs*/
 		evt.type = GF_EVENT_FORWARDED;
 		evt.forwarded_event.forward_type = GF_M2TS_EVT_PMT_FOUND;
 		evt.forwarded_event.service_event_type = evt_type;
-		evt.forwarded_event.param = ts;
+		evt.forwarded_event.param = param;
 		gf_term_on_service_event(m2ts->service, &evt);		
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
