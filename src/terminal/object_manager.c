@@ -65,6 +65,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	/*make sure we are not in the media queue*/
 	gf_term_lock_media_queue(odm->term, 1);
 	gf_list_del_item(odm->term->media_queue, odm);
+	gf_term_check_connections_for_delete(odm->term, odm);
 	gf_term_lock_media_queue(odm->term, 0);
 
 	/*detach media object as referenced by the scene - this should ensures that any attempt to lock the ODM from the 
@@ -97,9 +98,9 @@ void gf_odm_del(GF_ObjectManager *odm)
 
 	gf_list_del(odm->channels);
 	odm->channels = NULL;
+	assert (!odm->net_service);
 	gf_odf_desc_del((GF_Descriptor *)odm->OD);
 	odm->OD = NULL;
-	assert (!odm->net_service);
 	gf_mx_v(odm->mx);
 	gf_mx_del(odm->mx);
 	gf_free(odm);
@@ -127,9 +128,14 @@ Bool gf_odm_lock_mo(GF_MediaObject *mo)
 GF_EXPORT
 void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 {
+	GF_Terminal *term;
 	GF_Channel *ch;
 
-	if (do_remove) odm->flags |= GF_ODM_DESTROYED;
+	if (do_remove) {
+		gf_mx_p(odm->term->net_mx);
+		odm->flags |= GF_ODM_DESTROYED;
+		gf_mx_v(odm->term->net_mx);
+	}
 	gf_odm_stop(odm, 1);
 
 	/*disconnect sub-scene*/
@@ -216,8 +222,10 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 					if (!new_root->mo || (!new_root->mo->num_open)) {
 						gf_term_lock_media_queue(odm->term, 1);
 						new_root->action_type = GF_ODM_ACTION_DELETE;
-						if (gf_list_find(odm->term->media_queue, new_root)<0)
+						if (gf_list_find(odm->term->media_queue, new_root)<0) {
+							assert(! (new_root->flags & GF_ODM_DESTROYED));
 							gf_list_add(odm->term->media_queue, new_root);
+						}
 						gf_term_lock_media_queue(odm->term, 0);
 					}
 					ns->owner = new_root;
@@ -233,6 +241,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 	gf_odm_lock(odm, 0);
 
+	term = odm->term;
+
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
 		GF_Event evt;
@@ -240,9 +250,11 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		evt.connect.is_connected = 0;
 		gf_term_forward_event(odm->term, &evt, 0, 1);
 
+		gf_term_lock_net(term, 1);
 		gf_scene_remove_object(odm->parentscene, odm, do_remove);
 		if (odm->subscene) gf_scene_del(odm->subscene);
 		gf_odm_del(odm);
+		gf_term_lock_net(term, 0);
 		return;
 	}
 	
@@ -259,8 +271,11 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		gf_term_send_event(odm->term, &evt);
 	}
 
+	gf_term_lock_net(term, 1);
 	/*delete the ODMan*/
 	gf_odm_del(odm);
+
+	gf_term_lock_net(term, 0);
 }
 
 /*setup service for OD (extract IOD and go)*/
@@ -272,6 +287,10 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	GF_Terminal *term;
 	GF_Descriptor *desc;
 
+	if (odm->flags & GF_ODM_DESTROYED) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] Root object of service %s has been scheduled for destruction - ignoring object setup\n", service_sub_url));
+		return;
+	}
 //	assert(odm->OD==NULL);
 
 	term = odm->term;
@@ -559,6 +578,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	GF_MediaObject *syncRef;
 
 	if (!odm->net_service) {
+		if (odm->flags & GF_ODM_DESTROYED) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
+			return;
+		}
 		odm->net_service = serv;
 		if (!odm->OD->URLString) 
 			odm->net_service->nb_odm_users++;
@@ -693,10 +716,20 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal
 	we also force a prefetch for object declared outside the OD stream to make sure we don't loose any data before object declaration and play
 	as can be the case with MPEG2 TS (first video packet right after the PMT) - this should be refined*/
-	else if (!odm->state && ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
-		gf_odm_start(odm, 2);
-		odm->flags |= GF_ODM_PREFETCH;
+	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
+		Bool force_play = 0;
+		if (odm->state==GF_ODM_STATE_STOP) {
+			odm->flags |= GF_ODM_PREFETCH;
+			force_play = 1;
+		}
+		/*the object could have been queued for play when setting up the scene object. If so, remove from queue and start right away*/
+		else if ((odm->state==GF_ODM_STATE_PLAY) && (gf_list_del_item(odm->term->media_queue, odm)>=0) ) {
+			force_play = 1;
+		}
+		if (force_play) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
+			gf_odm_start(odm, 2);
+		}
 	}
 		
 	/*for objects inserted by user (subs & co), auto select*/
@@ -1254,6 +1287,7 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 			gf_odm_play(odm);
 		} else if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
+			assert(! (odm->flags & GF_ODM_DESTROYED));
 			gf_list_add(odm->term->media_queue, odm);
 		}
 	}
@@ -1527,7 +1561,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec);
 #endif
 
-	gf_term_lock_net(odm->term, 1);
+//	gf_term_lock_net(odm->term, 1);
 
 	/*send stop command*/
 	com.command_type = GF_NET_CHAN_STOP;
@@ -1560,7 +1594,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		gf_es_stop(ch);
 	}
 
-	gf_term_lock_net(odm->term, 0);
+//	gf_term_lock_net(odm->term, 0);
 
 	odm->state = GF_ODM_STATE_STOP;
 	odm->current_time = 0;

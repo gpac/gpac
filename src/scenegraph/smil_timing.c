@@ -344,8 +344,9 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		   have a defined duration."
 		TODO: Check if this should work with the animation element */
 		if (!e->timingp->dur) {
-			SVGAttribute *att = gf_xml_create_attribute((GF_Node *)e, TAG_SVG_ATT_dur);
-			e->timingp->dur = (SMIL_Duration *)att->data;
+			GF_FieldInfo info;
+			gf_node_get_attribute_by_tag((GF_Node *)e, TAG_SVG_ATT_dur, 1, 0, &info);
+			e->timingp->dur = (SMIL_Duration *)info.far_ptr;
 			e->timingp->dur->type = SMIL_DURATION_MEDIA;
 		}
 	}

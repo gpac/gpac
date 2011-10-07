@@ -356,8 +356,6 @@ struct _tag_terminal
 
 	/*net services*/
 	GF_List *net_services;
-	/*net services to be connected*/
-	GF_List *net_services_to_connect;
 	/*net services to be destroyed*/
 	GF_List *net_services_to_remove;
 	/*connection tasks pending*/
@@ -440,10 +438,11 @@ void gf_term_close_service(GF_Terminal *app, GF_ClientService *service);
 
 /*locks media quaue*/
 void gf_term_lock_media_queue(GF_Terminal *app, Bool LockIt);
-
 /*locks net manager*/
 void gf_term_lock_net(GF_Terminal *app, Bool LockIt);
 
+/*checks no connection on the ODM are pending - of so, remove them*/
+void gf_term_check_connections_for_delete(GF_Terminal *term, GF_ObjectManager *odm);
 
 /*locks scene compositor*/
 void gf_term_lock_compositor(GF_Terminal *app, Bool LockIt);

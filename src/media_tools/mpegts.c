@@ -85,6 +85,23 @@ static u32 gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool s
 	return 0;
 }
 
+static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
+{
+	if (pes->data) {
+		gf_free(pes->data);
+		pes->data = NULL;
+	}
+	pes->data_len = 0;
+	if (pes->prev_data) {
+		gf_free(pes->prev_data);
+		pes->prev_data = NULL;
+	}
+	pes->prev_data_len = 0;
+	pes->pes_len = 0;
+	pes->reframe = NULL;
+	return 0;
+}
+
 static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
 {
 	Bool force_new_au=0;
@@ -2301,18 +2318,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		pes->reframe = gf_m2ts_reframe_default;
 		break;
 	case GF_M2TS_PES_FRAMING_SKIP:
-		if (pes->data) {
-			gf_free(pes->data);
-			pes->data = NULL;
-		}
-		pes->data_len = 0;
-		if (pes->prev_data) {
-			gf_free(pes->prev_data);
-			pes->prev_data = NULL;
-		}
-		pes->prev_data_len = 0;
-		pes->pes_len = 0;
-		pes->reframe = NULL;
+		pes->reframe = gf_m2ts_reframe_reset;
 		break;
 	case GF_M2TS_PES_FRAMING_SKIP_NO_RESET:
 		pes->reframe = NULL;
@@ -2437,8 +2443,6 @@ static u32 TSDemux_DemuxRun(void *_p)
 	u32 size;
 	//u32 i;
 	GF_M2TS_Demuxer *ts = _p;
-
-	ts->run_state = 1;
 
 	gf_m2ts_reset_parsers(ts);
 	
@@ -2901,6 +2905,9 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 
 GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts){
 
+	/*set the state variable outside the TS thread. If inside, we may get called for shutdown before the TS thread has started
+	and we would overwrite the run_state when entering the TS thread, which would make the thread run forever and the stop() wait forever*/
+	ts->run_state = 1;
 	if(ts->th){
 		/*start playing for tune-in*/
 		return gf_th_run(ts->th, TSDemux_DemuxRun, ts);

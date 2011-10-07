@@ -1161,6 +1161,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		}
 	}
 
+	gf_es_lock(ch, 1);
+
 	if (hdr.paddingFlag && !EndAU) {	
 		/*to do - this shouldn't happen anyway */
 
@@ -1181,6 +1183,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 
 	if (EndAU) Channel_DispatchAU(ch, hdr.au_duration);
+
+
+	gf_es_lock(ch, 0);
 }
 
 

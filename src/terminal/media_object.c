@@ -631,8 +631,10 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
 		gf_term_lock_media_queue(mo->odm->term, 1);
 		/*if object not in media queue, add it*/
-		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0)
+		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
+			assert(! (mo->odm->flags & GF_ODM_DESTROYED));
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
+		}
 		
 		/*signal STOP request*/
 		if ((mo->OD_ID==GF_MEDIA_EXTERNAL_ID) || (mo->odm && mo->odm->OD && (mo->odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID))) {

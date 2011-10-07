@@ -625,6 +625,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts);
 const char *gf_svg_get_attribute_name(GF_Node *elt, u32 tag);
 u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) ;
 
+/*creates a DOMAttribute for the given tag - THE ATTRIOBUTE IS NOT ADDED TO THE NODE'S ATTRIBUTES*/
 GF_DOMAttribute *gf_xml_create_attribute(GF_Node *node, u32 tag);
 u32 gf_xml_get_attribute_type(u32 tag);
 u32 gf_xml_get_attribute_tag(GF_Node *node, char *attribute_name, u32 ns);
