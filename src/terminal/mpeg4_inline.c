@@ -146,12 +146,17 @@ void gf_inline_on_modified(GF_Node *node)
 		- another service may already be setting up objects (eg exclusive access to the net mutex grabbed), which can trigger event forwarding
 		- some event forwarders may request JS context (eg access to JS mutex)
 
-		In such a case we would end up in a deadlock
+		In such a case we would end up in a deadlock - this needs urgent fixing ...
 	*/
+
 	if (ODID) {
-		gf_node_dirty_parents(node);
+		/*if no parent we must process the url change as we may not be traversed later on (not in the scene tree)*/
+		if (gf_node_get_parent(node, 0)==NULL) {
+			gf_inline_set_scene(pInline);
+		} else {
+			gf_node_dirty_parents(node);
+		}
 	}
-//	if (ODID) gf_inline_set_scene(pInline);
 }
 
 static void gf_inline_check_restart(GF_Scene *scene)
