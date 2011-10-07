@@ -538,6 +538,30 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	gf_mx_v(gpac_allocations_lock);
 }
 
+#if 0
+void gf_check_address(void *ptr)
+{
+	int pos;
+
+	/*lock*/
+	gf_mx_p(gpac_allocations_lock);
+
+	if ( (pos=gf_memory_find(memory_rem, ptr)) ) {
+		int i;
+		unsigned int hash = gf_memory_hash(ptr);
+		memory_element *element = memory_rem[hash];
+		assert(element);
+		for (i=1; i<pos; i++)
+			element = element->next;
+		assert(element);
+		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p has already been freed\n             in file %s at line %d\n", ptr, element->filename, element->line);
+		assert(0);
+	}
+	/*unlock*/
+	gf_mx_v(gpac_allocations_lock);
+}
+#endif
+
 /*returns the size of the unregistered block*/
 static int unregister_address(void *ptr, char *filename, int line)
 {

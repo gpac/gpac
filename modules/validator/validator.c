@@ -979,6 +979,8 @@ void validator_delete(GF_BaseInterface *ifce)
 {
 	GF_TermExt *dr = (GF_TermExt *) ifce;
 	GF_Validator *validator = dr->udta;
+	if (validator->prev_fps) gf_free(validator->prev_fps);
+	if (validator->prev_alias) gf_free(validator->prev_alias);
     gf_free(validator);
 	gf_free(dr);
 }

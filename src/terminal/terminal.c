@@ -530,7 +530,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	tmp->net_services = gf_list_new();
 	tmp->net_services_to_remove = gf_list_new();
-	tmp->net_services_to_connect = gf_list_new();
 	tmp->connection_tasks = gf_list_new();
 	tmp->channels_pending = gf_list_new();
 	tmp->media_queue = gf_list_new();
@@ -684,7 +683,6 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_sc_del(term->compositor);
 
 	gf_list_del(term->net_services);
-	gf_list_del(term->net_services_to_connect);
 	gf_list_del(term->net_services_to_remove);
 	gf_list_del(term->connection_tasks);
 	gf_list_del(term->input_streams);
@@ -783,12 +781,19 @@ void gf_term_disconnect(GF_Terminal *term)
 	if (term->play_state != GF_STATE_PLAYING) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
 	if (term->root_scene->root_od) {
-		gf_odm_disconnect(term->root_scene->root_od, 1);
+
+		gf_term_lock_media_queue(term, 1);
+
+		term->root_scene->root_od->action_type = GF_ODM_ACTION_DELETE;
+		if (gf_list_find(term->media_queue, term->root_scene->root_od)<0)
+			gf_list_add(term->media_queue, term->root_scene->root_od);
+
+		gf_term_lock_media_queue(term, 0);
 	} else {
 		gf_scene_del(term->root_scene);
 		term->root_scene = NULL;
 	}
-	while (term->root_scene || gf_list_count(term->net_services_to_remove)) {
+	while (term->root_scene || gf_list_count(term->net_services_to_remove) || gf_list_count(term->connection_tasks)  || gf_list_count(term->media_queue) ) {
 		gf_term_handle_services(term);
 		gf_sleep(10);
 	}
@@ -942,29 +947,6 @@ void gf_term_handle_services(GF_Terminal *term)
 	if (!gf_mx_try_lock(term->media_queue_mx))
 		return;	
 
-	while (gf_list_count(term->net_services_to_connect)) {
-		GF_ClientService *ns = (GF_ClientService*)gf_list_get(term->net_services_to_connect, 0);
-		GF_ObjectManager *odm = ns->owner;
-		assert(odm);
-
-		gf_list_rem(term->net_services_to_connect, 0);
-		/*unlock media queue before connecting*/
-		gf_mx_v(term->media_queue_mx);
-	
-		/*OK connect*/
-		gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
-		odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
-
-		/*remove pending download session if any*/
-		gf_term_cleanup_pending_session(term, ns);
-
-		/*lock media queue after connecting*/
-		gf_mx_p(term->media_queue_mx);
-	}
-
-	/*!! media queue is still locked here*/
-
-
 	/*play ODs that need it*/
 	while (gf_list_count(term->media_queue)) {
 		Bool destroy = 0;
@@ -972,7 +954,7 @@ void gf_term_handle_services(GF_Terminal *term)
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->media_queue, 0);
 		gf_list_rem(term->media_queue, 0);
 		/*unlock media queue before sending play/pause*/
-		gf_mx_v(term->media_queue_mx);
+		gf_term_lock_media_queue(term, 0);
 
 		act_type = odm->action_type;
 		odm->action_type = GF_ODM_ACTION_PLAY;
@@ -1010,7 +992,7 @@ void gf_term_handle_services(GF_Terminal *term)
 		}
 	
 		/*relock before sending play/pause*/
-		gf_mx_p(term->media_queue_mx);
+		gf_term_lock_media_queue(term, 1);
 	}
 
 	/*finally process all connection tasks - we MUST do that after processing ODM tasks, as an ODM might have just destroyed 
@@ -1019,16 +1001,27 @@ void gf_term_handle_services(GF_Terminal *term)
 		GF_TermConnectObject *connect = gf_list_get(term->connection_tasks, 0);
 		gf_list_rem(term->connection_tasks, 0);
 	
+		/*unlock media queue before sending connect*/
+		gf_term_lock_media_queue(term, 0);
+
+		gf_mx_p(term->net_mx);
+
 		/*if object has already been attached to its service (eg, task was posted but media_add occured inbetween), ignore*/
-		if (!connect->odm->net_service)
+		if (!connect->odm->net_service && !(connect->odm->flags & GF_ODM_DESTROYED) ) {
 			gf_term_connect_object(term, connect->odm, connect->service_url, connect->parent_url);
+		}
+
+		gf_mx_v(term->net_mx);
 		
 		gf_free(connect->service_url);
 		if (connect->parent_url) gf_free(connect->parent_url);
 		gf_free(connect);
+
+		/*relock media queue after sending connect*/
+		gf_term_lock_media_queue(term, 1);
 	}
 
-	gf_mx_v(term->media_queue_mx);
+	gf_term_lock_media_queue(term, 0);
 
 	/*lock to avoid any start attemps from compositor*/
 	if (gf_mx_try_lock(term->compositor->mx)) {
@@ -1105,39 +1098,58 @@ void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node)
 	gf_sc_lock(term->compositor, 0);
 }
 
+void gf_term_check_connections_for_delete(GF_Terminal *term, GF_ObjectManager *odm)
+{
+	GF_TermConnectObject *ct;
+	u32 i = 0;
+	while (ct = gf_list_enum(term->connection_tasks, &i)) {
+		if (ct->odm == odm) {
+			i--;
+			gf_list_rem(term->connection_tasks, i);
+			if (ct->parent_url) gf_free(ct->parent_url);
+			gf_free(ct->service_url);
+			gf_free(ct);
+		}
+	}
+}
+
 void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
 {
-	s32 idx;
 	GF_Err e;
 
 	/*prevent the media manager / term to access the list of services to destroy, otherwise
 	we could unload the module while poping its CloseService() call stack which can lead to 
 	random crashes (return adresses no longer valid) - cf any "stress mode" playback of a playlist*/
-	gf_mx_p(term->media_queue_mx);
+	gf_term_lock_media_queue(term, 1);
+
+#if 0
+	{
+		GF_ObjectManager *odm;
+		u32 i = 0;
+		while (odm = gf_list_enum(term->media_queue, &i)) {
+			assert(odm->net_service != ns);
+		}
+	}
 
 	{
-	GF_ObjectManager *odm;
-	idx = 0;
-	while (odm = gf_list_enum(term->media_queue, &idx)) {
-		assert(odm->net_service != ns);
+		GF_TermConnectObject *ct;
+		u32 i = 0;
+		while (ct = gf_list_enum(term->connection_tasks, &i)) {
+			assert(ct->odm->net_service != ns);
+		}
 	}
-	}
+#endif
 
 	ns->owner = NULL;
-	idx = gf_list_find(term->net_services_to_connect, ns);
-	if (idx>=0) {
-		gf_list_rem(term->net_services_to_connect, idx);
-		e = GF_BAD_PARAM;
-	} else {
-		e = ns->ifce->CloseService(ns->ifce);
-	}
+	e = ns->ifce->CloseService(ns->ifce);
+
 	/*if error don't wait for ACK to remove from main list*/
 	if (e) {
 		gf_list_del_item(term->net_services, ns);
 		if (gf_list_find(term->net_services_to_remove, ns)<0)
 			gf_list_add(term->net_services_to_remove, ns);
 	}
-	gf_mx_v(term->media_queue_mx);
+	gf_term_lock_media_queue(term, 0);
 }
 
 void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)
@@ -1287,12 +1299,12 @@ void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char 
 	GF_TermConnectObject *connect;
 	GF_SAFEALLOC(connect, GF_TermConnectObject);
 	connect->odm = odm;
-	connect->service_url = strdup(serviceURL);
-	connect->parent_url = parent_url ? strdup(parent_url) : NULL;
+	connect->service_url = gf_strdup(serviceURL);
+	connect->parent_url = parent_url ? gf_strdup(parent_url) : NULL;
 
-	gf_mx_p(term->media_queue_mx);
+	gf_term_lock_media_queue(term, 1);
 	gf_list_add(term->connection_tasks, connect);
-	gf_mx_v(term->media_queue_mx);
+	gf_term_lock_media_queue(term, 0);
 }
 
 /*connects given OD manager to its URL*/
@@ -1346,7 +1358,8 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		/*we shall not have a service scheduled for destruction here*/
-		assert(ns->owner && !(ns->owner->flags & GF_ODM_DESTROYED) && (ns->owner->action_type !=GF_ODM_ACTION_DELETE) );
+		if (ns->owner && ( (ns->owner->flags & GF_ODM_DESTROYED) || (ns->owner->action_type == GF_ODM_ACTION_DELETE)) )
+			continue;
 
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			if (net_locked) {
@@ -1372,10 +1385,18 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 				if (ns->owner->OD) break;
 				gf_sleep(5);
 			}
+			
+			gf_mx_p(term->net_mx);
 			assert(!odm->net_service);
+			if (odm->flags & GF_ODM_DESTROYED) {
+				gf_mx_v(term->net_mx);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
+				return;
+			}
 			odm->net_service = ns;
 			odm->net_service->nb_odm_users ++;
 			gf_odm_setup_entry_point(odm, serviceURL);
+			gf_mx_v(term->net_mx);
 			return;
 		}
 	}
@@ -1390,13 +1411,14 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 	}
 	odm->net_service->nb_odm_users++;
 
-	gf_mx_p(term->media_queue_mx);
 	assert(odm->net_service->owner == odm);
-	/*we are all set but we cannot assume it is safe to call connect from this thread, as this could be a
-	script callback (JS locked) and connecting the media could trigger JS calls, which would deadlock*/
-	gf_list_add(term->net_services_to_connect, odm->net_service);
-	
-	gf_mx_v(term->media_queue_mx);
+
+	/*OK connect*/
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
+	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
+
+	/*remove pending download session if any*/
+	gf_term_cleanup_pending_session(term, ns);
 }
 
 /*connects given channel to its URL if needed*/

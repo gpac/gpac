@@ -87,7 +87,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 
 			/*destroy service only if attached*/
 			if (root) {
-				gf_mx_p(term->media_queue_mx);
+				gf_term_lock_media_queue(term, 1);
 				service->ifce->CloseService(service->ifce);
 				root->net_service = NULL;
 				if (service->owner && service->nb_odm_users) service->nb_odm_users--;
@@ -97,7 +97,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 					/*and queue for destroy*/
 					gf_list_add(term->net_services_to_remove, service);
 				}
-				gf_mx_v(term->media_queue_mx);
+				gf_term_lock_media_queue(term, 0);
 
 				if (!root->parentscene) {
 					GF_Event evt;
@@ -214,13 +214,13 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	}
 	/*this is service disconnect*/
 	if (!netch) {
-		gf_mx_p(term->media_queue_mx);
+		gf_term_lock_media_queue(term, 1);
 		/*unregister from valid services*/
 		if (gf_list_del_item(term->net_services, service)>=0) {
 			/*and queue for destroy*/
 			gf_list_add(term->net_services_to_remove, service);
 		}
-		gf_mx_v(term->media_queue_mx);
+		gf_term_lock_media_queue(term, 0);
 		return;
 	}
 	/*this is channel disconnect*/
@@ -273,8 +273,12 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	GET_TERM();
 
 	root = service->owner;
-	if (!root){
+	if (!root) {
 	  GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] has not root, aborting !\n", service->url));
+	  return;
+	}
+	if (root->flags & GF_ODM_DESTROYED) {
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] root has been scheduled for destruction - aborting !\n", service->url));
 	  return;
 	}
 	scene = root->subscene ? root->subscene : root->parentscene;
@@ -1021,7 +1025,7 @@ void gf_term_download_del(GF_DownloadSession * sess)
 	/*avoid sending data back to user*/
 	gf_dm_sess_abort(sess);
 
-	gf_mx_p(serv->term->media_queue_mx); 
+	gf_term_lock_media_queue(serv->term, 1);
 
 	/*unregister from service*/
 	gf_list_del_item(serv->dnloads, sess);
@@ -1029,7 +1033,8 @@ void gf_term_download_del(GF_DownloadSession * sess)
 	/*same as service: this may be called in the downloader thread (typically when download fails)
 	so we must queue the downloader and let the term delete it later on*/
 	gf_list_add(serv->term->net_services_to_remove, sess);
-	gf_mx_v(serv->term->media_queue_mx); 
+
+	gf_term_lock_media_queue(serv->term, 0);
 }
 
 GF_EXPORT
