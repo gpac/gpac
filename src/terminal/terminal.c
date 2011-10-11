@@ -1004,14 +1004,14 @@ void gf_term_handle_services(GF_Terminal *term)
 		/*unlock media queue before sending connect*/
 		gf_term_lock_media_queue(term, 0);
 
-		gf_mx_p(term->net_mx);
+//		gf_mx_p(term->net_mx);
 
 		/*if object has already been attached to its service (eg, task was posted but media_add occured inbetween), ignore*/
 		if (!connect->odm->net_service && !(connect->odm->flags & GF_ODM_DESTROYED) ) {
 			gf_term_connect_object(term, connect->odm, connect->service_url, connect->parent_url);
 		}
 
-		gf_mx_v(term->net_mx);
+//		gf_mx_v(term->net_mx);
 		
 		gf_free(connect->service_url);
 		if (connect->parent_url) gf_free(connect->parent_url);

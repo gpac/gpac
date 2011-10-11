@@ -349,6 +349,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	i=0;
 	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i))) {
 		if (!pl->mo) continue;
+		if (! pl->mo->odm->net_service) continue;
 		if (gf_mo_get_od_id(pl->url) != GF_MEDIA_EXTERNAL_ID) {
 			if (gf_mo_get_od_id(pl->url) == gf_mo_get_od_id(lib_url)) {
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
@@ -366,6 +367,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 				char *url1, *url2;
 				Bool ok;
 				if (!pl->mo) continue;
+				if (! pl->mo->odm->net_service) continue;
 				if (gf_mo_get_od_id(pl->url) != GF_MEDIA_EXTERNAL_ID) continue;
 				/*not the same url*/
 				if (!gf_mo_is_same_url(pl->mo, lib_url, NULL, 0)) continue;

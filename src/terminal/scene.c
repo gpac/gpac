@@ -974,9 +974,9 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = gf_strdup(odm->net_service->url);
 
 			if (!scene->dyn_ck) {
-				if (odm->subscene) {
+				if (odm->subscene && odm->subscene->scene_codec) {
 					scene->dyn_ck = odm->subscene->scene_codec->ck;
-				} else {
+				} else if (odm->codec) {
 					scene->dyn_ck = odm->codec->ck;
 				}
 			}
