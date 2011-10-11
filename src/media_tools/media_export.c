@@ -182,7 +182,10 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 	FILE *out;
 	u32 track, i, size, m_stype, sn, count;
 
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
 	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
 
 	e = gf_isom_reset_hint_reader(dumper->file, track, dumper->sample_num ? dumper->sample_num : 1, 0, 0, 0);
@@ -243,7 +246,10 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
 
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
 	m_type = gf_isom_get_media_type(dumper->file, track);
 	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
 	dsi_size = 0;
@@ -382,7 +388,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown", szNum);
 			break;
 		}
-		if (udesc->extension_buf) gf_free(udesc->extension_buf);
+		if (udesc && udesc->extension_buf) gf_free(udesc->extension_buf);
 		if (udesc) gf_free(udesc);
 	}
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
@@ -580,7 +586,12 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	dsi_size = 0;
 	dsi = NULL;
 	avccfg = NULL;
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
+
 	m_type = gf_isom_get_media_type(dumper->file, track);
 	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
 	has_qcp_pad = 0;
@@ -1141,7 +1152,10 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	Bool has_b_frames;
 	u32 track, i, di, count, pos;
 
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
 	esd = gf_isom_get_esd(dumper->file, track, 1);
 	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
 
@@ -1402,7 +1416,10 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	u32 track;
 	u8 mode;
 
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
 	if (gf_isom_get_media_type(dumper->file, dumper->trackID)==GF_ISOM_MEDIA_OD) {
 		return gf_export_message(dumper, GF_BAD_PARAM, "Cannot extract OD track, result is  meaningless");
 	}
@@ -1465,7 +1482,10 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	GF_M4VDecSpecInfo dsi;
 	Double FPS;
 
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
 	esd = gf_isom_get_esd(dumper->file, track, 1);
 	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
 
@@ -1577,7 +1597,10 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	u32 track, i, di, count, pos, mstype;
 	const char *szRootName, *szSampleName;
 
-	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		return GF_BAD_PARAM;
+	}
 	if (!track) return gf_export_message(dumper, GF_BAD_PARAM, "Invalid track ID %d", dumper->trackID);
 
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
