@@ -1746,8 +1746,8 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			/*move to perspective 3D when simulating depth*/
 #ifdef GF_SR_USE_DEPTH
 			if (compositor->display_depth) {
-				compositor->visual->type_3d = 2;
-				compositor->visual->camera.is_3D = 1;
+				compositor->visual->type_3d = 0;
+				compositor->visual->camera.is_3D = 0;
 			} else 
 #endif
 			{

@@ -467,7 +467,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		case GF_KEY_RIGHT:
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
-					compositor->view_distance_offset += key_inv * INT2FIX((is_pixel_metrics ? 5 : 1));
+					compositor->view_distance_offset += key_inv * (is_pixel_metrics ? INT2FIX(1) : FLT2FIX(0.1));
 					cam->flags |= CAM_IS_DIRTY;
 					fprintf(stdout, "AutoStereo view distance %f\n", FIX2FLT(compositor->view_distance_offset + compositor->video_out->view_distance)/100);
 					gf_sc_invalidate(compositor, NULL);
