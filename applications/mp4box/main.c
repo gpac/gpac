@@ -1267,6 +1267,7 @@ int mp4boxMain(int argc, char **argv)
 		/*main file*/
 //		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
 		if (arg[0] != '-') {
+			if (argc < 3) { fprintf(stdout, "Error - only one input file found as argument, please check usage\n"); return 1; }
 			if (inName) { fprintf(stdout, "Error - 2 input names specified, please check usage\n"); return 1; }
 			inName = arg;
 		}
