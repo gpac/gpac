@@ -544,7 +544,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			u32 stb = gf_sys_clock();
 			
 			if (m2ts->regulation_pcr_pid==0) {
-				/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being plyaed as we
+				/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
 				only check buffer levels, not DTS/PTS of the streams in the regulation step*/
 				m2ts->regulation_pcr_pid = ((GF_M2TS_PES_PCK *) param)->stream->pid;
 			} else if (m2ts->regulation_pcr_pid != ((GF_M2TS_PES_PCK *) param)->stream->pid) {

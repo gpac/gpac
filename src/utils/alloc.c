@@ -183,6 +183,8 @@ static int unregister_address(void *ptr, char *filename, int line);
 static void gf_memory_log(unsigned int level, const char *fmt, ...);
 enum
 {
+	/*! Disable all Log message*/
+	GF_MEMORY_QUIET = 0,
 	/*! Log message describes an error*/
 	GF_MEMORY_ERROR = 1,
 	/*! Log message describes a warning*/
@@ -586,8 +588,12 @@ static int unregister_address(void *ptr, char *filename, int line)
 				/* assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
 				int i;
+#if GPAC_MEMORY_TRACKING_HASH_TABLE
 				unsigned int hash = gf_memory_hash(ptr);
 				memory_element *element = memory_rem[hash];
+#else
+				memory_element *element = memory_rem;
+#endif
 				assert(element);
 				for (i=1; i<pos; i++)
 					element = element->next;
@@ -645,7 +651,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 void gf_memory_size()
 {
 	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
-	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated in %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
 }
 
 /*prints the state of current allocations*/

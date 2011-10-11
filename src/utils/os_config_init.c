@@ -153,6 +153,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_MODULES) return 1;
 
 	/*we are looking for the config file path - make sure it is writable*/
+	assert(path_type == GF_PATH_CFG);
 
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
@@ -504,7 +505,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 	}
 
 	if (!cfg) {
-		fprintf(stdout, "cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
+		fprintf(stdout, "Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
 		return NULL;
 	}
 
