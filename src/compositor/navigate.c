@@ -280,8 +280,8 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		is_pixel_metrics = compositor->traverse_state->pixel_metrics;
 	}
 
-	if (!cam->navigate_mode) return 0;
 	keys = compositor->key_states;
+	if (!cam->navigate_mode && !(keys & GF_KEY_MOD_ALT) ) return 0;
 	x = y = 0;
 	/*renorm between -1, 1*/
 	if (ev->type<=GF_EVENT_MOUSEWHEEL) {
@@ -570,7 +570,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 	if (visual->type_3d) navigation_mode = visual->camera.navigate_mode;
 #endif
 
-	if (!navigation_mode /*&& !(keys & GF_KEY_MOD_ALT) */) return 0;
+	if (!navigation_mode && !(keys & GF_KEY_MOD_ALT) ) return 0;
 
 
 	x = y = 0;
