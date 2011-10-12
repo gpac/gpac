@@ -1380,6 +1380,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				/*remember program number for service/program selection*/
 				if (pmt->program->pmt_iod) pmt->program->pmt_iod->ServiceID = pmt->program->number;
 				gf_bs_del(iod_bs );
+				/*if empty IOD (freebox case), discard it and use dynamic declaration of object*/
+				if (!gf_list_count(pmt->program->pmt_iod->ESDescriptors)) {
+					gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
+					pmt->program->pmt_iod = NULL;
+				}
 			} else {
 #else
 			{
