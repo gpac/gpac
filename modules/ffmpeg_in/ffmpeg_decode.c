@@ -192,8 +192,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			(*ctx)->height = gf_bs_read_u16(bs);
 		}
 		(*ctx)->bit_rate = gf_bs_read_u32(bs);
-
 		(*ctx)->codec_tag = gf_bs_read_u32(bs);
+		ffd->raw_pix_fmt = gf_bs_read_u32(bs);
 
 		*codec = avcodec_find_decoder(codec_id);
 		FFDEC_LoadDSI(ffd, bs, *codec, *ctx, 1);
@@ -312,8 +312,13 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		}
 		*frame = avcodec_alloc_frame();
 	}
-
-	if (avcodec_open((*ctx), (*codec) )<0) return GF_NON_COMPLIANT_BITSTREAM;
+	if (codec_id == CODEC_ID_RAWVIDEO) {
+		(*ctx)->codec_id = CODEC_ID_RAWVIDEO;
+		(*ctx)->pix_fmt = ffd->raw_pix_fmt;
+		if ((*ctx)->extradata && strstr((*ctx)->extradata, "BottomUp")) ffd->flipped = 1;
+	} else {
+		if (avcodec_open((*ctx), (*codec) )<0) return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	/*setup audio streams*/
 	if (ffd->st==GF_STREAM_AUDIO) {
@@ -332,8 +337,10 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 #if (LIBAVCODEC_VERSION_INT > ((51<<16)+(20<<8)+0) )
 		case CODEC_ID_GIF:
 #endif
+		case CODEC_ID_RAWVIDEO:
 			ffd->pix_fmt = GF_PIXEL_RGB_24;
 			break;
+
 		case CODEC_ID_DVD_SUBTITLE:
 			*frame = avcodec_alloc_frame();
 #ifdef USE_AVCODEC2
@@ -400,7 +407,7 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	if (*ctx) {
 		if ((*ctx)->extradata) gf_free((*ctx)->extradata);
 		(*ctx)->extradata = NULL;
-		avcodec_close((*ctx));
+		if ((*ctx)->codec) avcodec_close((*ctx));
 		*ctx = NULL;
 	}
 	*codec = NULL;
@@ -516,8 +523,8 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 	case GF_CODEC_WAIT_RAP:
 		ffd->frame_start = 0;
 		if (ffd->st==GF_STREAM_VISUAL) {
-			if (ffd->base_ctx) avcodec_flush_buffers(ffd->base_ctx);
-			if (ffd->depth_ctx) avcodec_flush_buffers(ffd->depth_ctx);
+			if (ffd->base_ctx && ffd->base_ctx->codec) avcodec_flush_buffers(ffd->base_ctx);
+			if (ffd->depth_ctx && ffd->depth_ctx->codec) avcodec_flush_buffers(ffd->depth_ctx);
 		}
 		return GF_OK;
 	default:
@@ -646,6 +653,41 @@ redecode:
 
 		/*more frames in the current sample*/
 		return GF_PACKED_FRAMES;
+	}
+
+
+	if ( ctx->codec_id == CODEC_ID_RAWVIDEO) {
+		if (*outBufferLength != ffd->out_size) {
+			*outBufferLength = ffd->out_size;
+			return GF_BUFFER_TOO_SMALL;
+		}
+		if (inBufferLength) {
+			*outBufferLength = ffd->out_size;
+			assert(inBufferLength==ffd->out_size);
+
+			if (ffd->raw_pix_fmt==PIX_FMT_BGR24) {
+				u32 i, j;
+				for (j=0; j<ctx->height; j++) {
+					u8 *src = inBuffer + j*3*ctx->width;
+					u8 *dst = outBuffer + j*3*ctx->width;
+					if (ffd->flipped) {
+						dst = outBuffer + (ctx->height-j-1) * 3*ctx->width;
+					}
+					for (i=0; i<ctx->width; i++) {
+						dst[0] = src[2];
+						dst[1] = src[1];
+						dst[2] = src[2];
+						src += 3;
+						dst += 3;
+					}
+				}
+			} else {
+				memcpy(outBuffer, inBuffer, ffd->out_size);
+			}
+		} else {
+			*outBufferLength = 0;
+		}
+		return GF_OK;
 	}
 
 	*outBufferLength = 0;
@@ -1018,22 +1060,22 @@ void FFDEC_Delete(void *ifce)
 {
 	GF_BaseDecoder *dec = ifce;
 	FFDec *ffd;
-        if (!ifce)
-          return;
-        ffd = dec->privateStack;
+	if (!ifce)
+		return;
+	ffd = dec->privateStack;
 	dec->privateStack = NULL;
-        if (ffd){
-          if (ffd->base_ctx) avcodec_close(ffd->base_ctx);
-          ffd->base_ctx = NULL;
-          if (ffd->depth_ctx) avcodec_close(ffd->depth_ctx);
-          ffd->depth_ctx = NULL;
+	if (ffd){
+		if (ffd->base_ctx && ffd->base_ctx->codec) avcodec_close(ffd->base_ctx);
+		ffd->base_ctx = NULL;
+		if (ffd->depth_ctx && ffd->depth_ctx->codec) avcodec_close(ffd->depth_ctx);
+		ffd->depth_ctx = NULL;
 #ifdef FFMPEG_SWSCALE
-          if (ffd->base_sws) sws_freeContext(ffd->base_sws);
-          ffd->base_sws = NULL;
-          if (ffd->depth_sws) sws_freeContext(ffd->base_sws);
-          ffd->depth_sws = NULL;
+		if (ffd->base_sws) sws_freeContext(ffd->base_sws);
+		ffd->base_sws = NULL;
+		if (ffd->depth_sws) sws_freeContext(ffd->base_sws);
+		ffd->depth_sws = NULL;
 #endif
-          gf_free(ffd);
-        }
-        gf_free(dec);
+		gf_free(ffd);
+	}
+	gf_free(dec);
 }

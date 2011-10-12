@@ -112,6 +112,9 @@ typedef struct
 	u32 out_pix_fmt;
 	Bool is_image;
 
+	u32 raw_pix_fmt;
+	Bool flipped;
+
 	/*for audio packed frames*/
 	u32 frame_start;
 	char audio_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];

@@ -421,6 +421,7 @@ opaque_video:
 			/*ffmpeg specific*/
 			gf_bs_write_u32(bs, dec->bit_rate);
 			gf_bs_write_u32(bs, dec->codec_tag);
+			gf_bs_write_u32(bs, dec->pix_fmt);
 
 			if (dec->extradata_size) {
 				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
