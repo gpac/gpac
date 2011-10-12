@@ -638,7 +638,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		ResetCaption();
 		break;
 	case GF_EVENT_EOS:
-		if (loop_at_end) restart = 1;
+		if (!playlist && loop_at_end) restart = 1;
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
@@ -1344,9 +1344,15 @@ force_input:
 		case '\n':
 		case 'N':
 			if (playlist) {
+				int res;
 				gf_term_disconnect(term);
 
-				if (fscanf(playlist, "%s", the_url) == EOF) {
+				res = fscanf(playlist, "%s", the_url);
+				if ((res == EOF) && loop_at_end) {
+					fseek(playlist, 0, SEEK_SET);
+					res = fscanf(playlist, "%s", the_url);
+				}
+				if (res == EOF) {
 					fprintf(stdout, "No more items - exiting\n");
 					Run = 0;
 				} else {
