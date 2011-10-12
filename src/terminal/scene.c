@@ -1031,7 +1031,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	M_AnimationStream *as;
 	M_Inline *dims;
 
-	if (!scene->is_dynamic_scene) return;
+	if (scene->is_dynamic_scene != 1) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->net_service->url));
 
@@ -1531,7 +1531,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url)
 	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
 	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 	scene->graph_attached = 1;
-	scene->is_dynamic_scene = 1;
+	scene->is_dynamic_scene = 2;
 
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
