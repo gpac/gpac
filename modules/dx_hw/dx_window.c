@@ -1015,14 +1015,14 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	/*if scene resize resize window*/
 	case GF_EVENT_SIZE:
 		if (ctx->owns_hwnd) {
-			if (ctx->windowless)
-				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
-			else 
-				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
-
 			if (ctx->fullscreen) {
 				ctx->store_width = evt->size.width;
 				ctx->store_height = evt->size.height;
+			} else {
+				if (ctx->windowless)
+					SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+				else 
+					SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 			}
 		}
 		break;
