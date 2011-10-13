@@ -278,40 +278,52 @@ static void imagetexture_update(GF_TextureHandler *txh)
 		M_CacheTexture *ct = (M_CacheTexture *) txh->owner;
 
 		/*decode cacheTexture data */
-		if (ct->data && !txh->data) {
+		if ((ct->data || ct->image.buffer) && !txh->data) {
 			u32 out_size;
 			GF_Err e;
-			switch (ct->objectTypeIndication) {
-			case GPAC_OTI_IMAGE_JPEG:
-				out_size = 0;
-				e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
-				if (e==GF_BUFFER_TOO_SMALL) {
-					u32 BPP;
-					txh->data = gf_malloc(sizeof(char) * out_size);
-					if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
-					else BPP = 3;
 
-					e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
-					if (e==GF_OK) {
-						txh->needs_refresh = 1;
-						txh->stride = out_size / txh->height;
-					}
+			/*BT/XMT playback*/
+			if (ct->image.buffer) {
+				e = gf_img_file_dec(ct->image.buffer, &ct->objectTypeIndication, &txh->width, &txh->height, &txh->pixelformat, &txh->data, &out_size);
+				if (e==GF_OK) {
+					txh->needs_refresh = 1;
+					txh->stride = out_size / txh->height;
 				}
-				break;
-			case GPAC_OTI_IMAGE_PNG:
-				out_size = 0;
-				e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
-				if (e==GF_BUFFER_TOO_SMALL) {
-					txh->data = gf_malloc(sizeof(char) * out_size);
-					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
-					if (e==GF_OK) {
-						txh->needs_refresh = 1;
-						txh->stride = out_size / txh->height;
+			} 
+			/*BIFS decoded playback*/
+			else {
+				switch (ct->objectTypeIndication) {
+				case GPAC_OTI_IMAGE_JPEG:
+					out_size = 0;
+					e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
+					if (e==GF_BUFFER_TOO_SMALL) {
+						u32 BPP;
+						txh->data = gf_malloc(sizeof(char) * out_size);
+						if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
+						else BPP = 3;
+
+						e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
+						if (e==GF_OK) {
+							txh->needs_refresh = 1;
+							txh->stride = out_size / txh->height;
+						}
 					}
+					break;
+				case GPAC_OTI_IMAGE_PNG:
+					out_size = 0;
+					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
+					if (e==GF_BUFFER_TOO_SMALL) {
+						txh->data = gf_malloc(sizeof(char) * out_size);
+						e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
+						if (e==GF_OK) {
+							txh->needs_refresh = 1;
+							txh->stride = out_size / txh->height;
+						}
+					}
+					break;
 				}
-				break;
 			}
-			
+
 			/*cacheURL is specified, store the image*/
 			if (ct->cacheURL.buffer) {
 				u32 i;
@@ -366,8 +378,8 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			}
 
 			/*done with image, destroy buffer*/
-			gf_free(ct->data);
-			ct->data  =NULL;
+			if (ct->data) gf_free(ct->data);
+			ct->data = NULL;
 			ct->data_len = 0;
 		}
 	}

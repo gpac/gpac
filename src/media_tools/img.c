@@ -319,6 +319,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_BUFFER_TOO_SMALL;
 	}
+	if (!dst_nb_comp) dst_nb_comp = jpx.cinfo.num_components;
 
 	scan_line = NULL;
 	/*decode*/
@@ -411,34 +412,46 @@ static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
  	longjmp(png_jmpbuf(png_ptr), 1);
 }
 
-GF_Err gf_img_png_file_dec(char *png_filename, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
+GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
-    u32 fsize, readen;
+    u32 fsize, read, oti;
     FILE *f;
     char *data;
     GF_Err e;
     f = gf_f64_open(png_filename, "rb");
     if (!f) return GF_URL_ERROR;
 
+	oti = 0;
+	if (!hint_oti || ! *hint_oti) {
+		char *ext = strrchr(png_filename, '.');
+		if (!ext) return GF_NOT_SUPPORTED;
+		if (!stricmp(ext, ".png")) oti = GPAC_OTI_IMAGE_PNG;
+		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) oti = GPAC_OTI_IMAGE_JPEG;
+	}
     gf_f64_seek(f, 0, SEEK_END);
     fsize = (u32)gf_f64_tell(f);
     gf_f64_seek(f, 0, SEEK_SET);
     data = gf_malloc(fsize);
-    readen = fread(data, sizeof(char), fsize, f);
-    if (readen != fsize){
+    read = fread(data, sizeof(char), fsize, f);
 	fclose( f );
-	return GF_IO_ERR;
-    }
-    *dst_size = 0;
-    e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);    
-    if (*dst_size) {
-        *dst = gf_malloc(*dst_size);
-	fclose( f );
-        return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);    
-    } else {
-	fclose( f );
-        return e;
-    }
+    if (read != fsize) return GF_IO_ERR;
+
+	e = GF_NOT_SUPPORTED;
+	*dst_size = 0;
+	if (oti == GPAC_OTI_IMAGE_JPEG) {
+		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);    
+		if (*dst_size) {
+			*dst = gf_malloc(*dst_size);
+			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);    
+		}
+	} else if (oti == GPAC_OTI_IMAGE_PNG) {
+		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);    
+		if (*dst_size) {
+			*dst = gf_malloc(*dst_size);
+			return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);    
+		}
+	}
+	return e;
 }
 
 GF_EXPORT
