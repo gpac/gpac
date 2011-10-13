@@ -1133,11 +1133,6 @@ const char *gf_mp3_version_name(u32 hdr)
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 
-static u8 MP3_GetLayerV(u32 hdr)
-{
-	return ((hdr >> 17) & 0x3); 
-}
-
 GF_EXPORT
 u8 gf_mp3_layer(u32 hdr)
 {
@@ -1151,56 +1146,45 @@ u8 gf_mp3_num_channels(u32 hdr)
 	return 2;
 }
 
-
-static GFINLINE u32 get_MP3SamplingRates(u32 version, u32 idx) 
-{
-	switch (version) {
-	case 0:
-		switch (idx) {
-		case 0: return 11025;
-		case 1: return 12000;
-		case 2: return 8000;
-		default: return 0;
-		}
-		break;
-	case 1:
-		return 0;
-	case 2:
-		switch (idx) {
-		case 0: return 22050;
-		case 1: return 24000;
-		case 2: return 16000;
-		default: return 0;
-		}
-		break;
-	case 3:
-		switch (idx) {
-		case 0: return 44100;
-		case 1: return 48000;
-		case 2: return 32000;
-		default: return 0;
-		}
-		break;
-	}
-	return 0;
-}
-
 GF_EXPORT
 u16 gf_mp3_sampling_rate(u32 hdr)
 {
+	u16 res;
 	/* extract the necessary fields from the MP3 header */
 	u8 version = gf_mp3_version(hdr);
 	u8 sampleRateIndex = (hdr >> 10) & 0x3;
-	return get_MP3SamplingRates(version, sampleRateIndex);
+
+	switch (sampleRateIndex) {
+	case 0: 
+		res = 44100; 
+		break;
+	case 1: 
+		res = 48000; 
+		break;
+	case 2: 
+		res = 32000; 
+		break;
+	default: 
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] Samplerate index not valid\n"));
+		return 0;
+	}
+	/*reserved or MPEG-1*/
+	if (version & 1) return res;
+
+	/*MPEG-2*/
+	res /= 2;
+	/*MPEG-2.5*/
+	if (version == 0) res /= 2;
+	return res;
 }
 
 GF_EXPORT
 u16 gf_mp3_window_size(u32 hdr)
 {
 	u8 version = gf_mp3_version(hdr);
-	u8 layer = MP3_GetLayerV(hdr);
+	u8 layer = gf_mp3_layer(hdr);
 
-	if (layer == 1) {
+	if (layer == 3) {
 		if (version == 3) return 1152;
 		return 576;
 	}
@@ -1222,175 +1206,67 @@ u8 gf_mp3_object_type_indication(u32 hdr)
 	}
 }
 
+/*aligned bitrate parsing with libMAD*/
 
-static GFINLINE u32 get_MP3BitRates(u32 idx1, u32 idx2) 
+static
+u32 const bitrate_table[5][15] = {
+  /* MPEG-1 */
+  { 0,  32000,  64000,  96000, 128000, 160000, 192000, 224000,  /* Layer I   */
+       256000, 288000, 320000, 352000, 384000, 416000, 448000 },
+  { 0,  32000,  48000,  56000,  64000,  80000,  96000, 112000,  /* Layer II  */
+       128000, 160000, 192000, 224000, 256000, 320000, 384000 },
+  { 0,  32000,  40000,  48000,  56000,  64000,  80000,  96000,  /* Layer III */
+       112000, 128000, 160000, 192000, 224000, 256000, 320000 },
+
+  /* MPEG-2 LSF */
+  { 0,  32000,  48000,  56000,  64000,  80000,  96000, 112000,  /* Layer I   */
+       128000, 144000, 160000, 176000, 192000, 224000, 256000 },
+  { 0,   8000,  16000,  24000,  32000,  40000,  48000,  56000,  /* Layers    */
+        64000,  80000,  96000, 112000, 128000, 144000, 160000 } /* II & III  */
+};
+
+
+u32 gf_mp3_bit_rate(u32 hdr)
 {
-	switch (idx1) {
-	/* MPEG-1, Layer III */
-	case 0:
-		switch (idx2) {
-		case 0: return 32;
-		case 1: return 40;
-		case 2: return 48;
-		case 3: return 56;
-		case 4: return 64;
-		case 5: return 80;
-		case 6: return 96;
-		case 7: return 112;
-		case 8: return 128;
-		case 9: return 160;
-		case 10: return 192;
-		case 11: return 224;
-		case 12: return 256;
-		case 13: return 320;
-		default: return 0;
-		}
-		break;
-	/* MPEG-1, Layer II */
-	case 1:
-		switch (idx2) {
-		case 0: return 32;
-		case 1: return 48;
-		case 2: return 56;
-		case 3: return 64;
-		case 4: return 80;
-		case 5: return 96;
-		case 6: return 112;
-		case 7: return 128;
-		case 8: return 160;
-		case 9: return 192;
-		case 10: return 224;
-		case 11: return 256;
-		case 12: return 320;
-		case 13: return 384;
-		default: return 0;
-		}
-		break;
-	/* MPEG-1, Layer I */
-	case 2:
-		switch (idx2) {
-		case 0: return 32;
-		case 1: return 64;
-		case 2: return 96;
-		case 3: return 128;
-		case 4: return 160;
-		case 5: return 192;
-		case 6: return 224;
-		case 7: return 256;
-		case 8: return 288;
-		case 9: return 320;
-		case 10: return 352;
-		case 11: return 384;
-		case 12: return 416;
-		case 13: return 448;
-		default: return 0;
-		}
-		break;
-	/* MPEG-2 or 2.5, Layer II or III */
-	case 3:
-		switch (idx2) {
-		case 0: return 8;
-		case 1: return 16;
-		case 2: return 24;
-		case 3: return 32;
-		case 4: return 40;
-		case 5: return 48;
-		case 6: return 56;
-		case 7: return 64;
-		case 8: return 80;
-		case 9: return 96;
-		case 10: return 112;
-		case 11: return 128;
-		case 12: return 144;
-		case 13: return 160;
-		default: return 0;
-		}
-		break;
-	/* MPEG-2 or 2.5, Layer I */
-	case 4:
-		switch (idx2) {
-		case 0: return 32;
-		case 1: return 48;
-		case 2: return 56;
-		case 3: return 64;
-		case 4: return 80;
-		case 5: return 96;
-		case 6: return 112;
-		case 7: return 128;
-		case 8: return 144;
-		case 9: return 160;
-		case 10: return 176;
-		case 11: return 192;
-		case 12: return 224;
-		case 13: return 256;
-		default: return 0;
-		}
-		break;
-	default:
-		return 0;
+	u8 version = gf_mp3_version(hdr);
+	u8 layer = gf_mp3_layer(hdr);
+	u8 bitRateIndex = (hdr >> 12) & 0xF;
+
+	if (bitRateIndex == 15) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] Bitrate index not valid\n"));
+	    return 0;
 	}
-	return 0;
+
+	/*MPEG-1*/
+	if (version & 1)
+	    return bitrate_table[layer - 1][bitRateIndex];
+	/*MPEG-2/2.5*/
+	else
+	    return bitrate_table[3 + (layer >> 1)][bitRateIndex];
 }
+
 
 
 GF_EXPORT
 u16 gf_mp3_frame_size(u32 hdr)
 {
-	u32 val;
-	u8 bitRateIndex1;
 	u8 version = gf_mp3_version(hdr);
-	u8 layer = MP3_GetLayerV(hdr);
-	u8 bitRateIndex2 = (hdr >> 12) & 0xF;
-	u8 sampleRateIndex = (hdr >> 10) & 0x3;
-	Bool isPadded = (hdr >> 9) & 0x1;
+	u8 layer = gf_mp3_layer(hdr);
+	u32 pad = ( (hdr >> 9) & 0x1) ? 1 : 0;
+	u32 bitrate = gf_mp3_bit_rate(hdr);
+	u32 samplerate = gf_mp3_sampling_rate(hdr);
+
 	u32 frameSize = 0;
+	if (!samplerate || !bitrate) return 0;
 
-	if (version == 3) {
-		bitRateIndex1 = layer - 1;
+	if (layer==1) {
+		frameSize = (( 12 * bitrate / samplerate) + pad) * 4;
 	} else {
-		if (layer == 3) {
-			bitRateIndex1 = 4;
-		} else {
-			bitRateIndex1 = 3;
-		}
-	}
-
-	/* compute frame size */
-	val = get_MP3SamplingRates(version, sampleRateIndex);
-	if (!(version & 1)) val <<= 1;
-	if (!val) return 0;
-	frameSize = 144 * 1000 * get_MP3BitRates(bitRateIndex1, bitRateIndex2-1);
-	frameSize /= val;
-
-	if (isPadded) {
-		if (layer == 3) {
-			frameSize += 4;
-		} else {
-			frameSize++;
-		}
+		u32 slots_per_frame = 144;
+	    if ((layer == 3) && !(version & 1)) slots_per_frame = 72;
+		frameSize = (slots_per_frame * bitrate / samplerate) + pad;
 	}
 	return (u16) frameSize;
-}
-
-
-u16 gf_mp3_bit_rate(u32 hdr)
-{
-	u8 bitRateIndex1;
-	u8 version = gf_mp3_version(hdr);
-	u8 layer = MP3_GetLayerV(hdr);
-	u8 bitRateIndex2 = (hdr >> 12) & 0xF;
-	if (version == 3) {
-		bitRateIndex1 = layer - 1;
-	} else {
-		if (layer == 3) {
-			bitRateIndex1 = 4;
-		} else {
-			bitRateIndex1 = 3;
-		}
-	}
-
-	/* compute frame size */
-	return get_MP3BitRates(bitRateIndex1, bitRateIndex2-1);
 }
 
 

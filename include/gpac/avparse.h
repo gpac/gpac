@@ -91,7 +91,7 @@ s32 gf_mv12_next_slice_start(unsigned char *pbuffer, u32 startoffset, u32 buflen
 u8 gf_mp3_num_channels(u32 hdr);
 u16 gf_mp3_sampling_rate(u32 hdr);
 u16 gf_mp3_window_size(u32 hdr);
-u16 gf_mp3_bit_rate(u32 hdr);
+u32 gf_mp3_bit_rate(u32 hdr);
 u8 gf_mp3_object_type_indication(u32 hdr);
 u8 gf_mp3_layer(u32 hdr);
 u16 gf_mp3_frame_size(u32 hdr);
