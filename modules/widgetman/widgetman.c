@@ -2867,7 +2867,7 @@ static void wm_set_default_start_file(GF_WidgetManager *wm, GF_WidgetContent *co
 	content->encoding = gf_strdup("utf-8");
 }
 
-static GF_WidgetContent *wm_add_icon(GF_Widget *widget, const char *icon_relocated_path, const char *icon_localized_path)
+static GF_WidgetContent *wm_add_icon(GF_Widget *widget, const char *icon_relocated_path, const char *icon_localized_path, const char *uri_fragment)
 {
 	GF_WidgetContent *icon;
 	u32 i, count;
@@ -2884,8 +2884,18 @@ static GF_WidgetContent *wm_add_icon(GF_Widget *widget, const char *icon_relocat
 	if (already_in) return NULL;
 
 	GF_SAFEALLOC(icon, GF_WidgetContent);
-	icon->src = gf_strdup(icon_localized_path);
-	icon->relocated_src = gf_strdup(icon_relocated_path);
+	if (uri_fragment) {
+		icon->src = gf_malloc(strlen(icon_localized_path) + strlen(uri_fragment) + 1);
+		strcpy(icon->src, icon_localized_path);
+		strcat(icon->src, uri_fragment);
+
+		icon->relocated_src = gf_malloc(strlen(icon_relocated_path) + strlen(uri_fragment) + 1);
+		strcpy(icon->relocated_src, icon_relocated_path);
+		strcat(icon->relocated_src, uri_fragment);
+	} else {
+		icon->src = gf_strdup(icon_localized_path);
+		icon->relocated_src = gf_strdup(icon_relocated_path);
+	}
 	icon->interfaces = gf_list_new();
 	icon->components = gf_list_new();
 	icon->preferences = gf_list_new();
@@ -2900,19 +2910,19 @@ static void wm_set_default_icon_files(GF_WidgetManager *wm, const char *widget_p
 	Bool result;
 
 	result = wm_relocate_url(wm, widget_path, "icon.svg", relocated_path, localized_path);
-	if (result) wm_add_icon(widget, relocated_path, localized_path);
+	if (result) wm_add_icon(widget, relocated_path, localized_path, NULL);
 
 	result = wm_relocate_url(wm, widget_path, "icon.ico", relocated_path, localized_path);
-	if (result) wm_add_icon(widget, relocated_path, localized_path);
+	if (result) wm_add_icon(widget, relocated_path, localized_path, NULL);
 
 	result = wm_relocate_url(wm, widget_path, "icon.png", relocated_path, localized_path);
-	if (result) wm_add_icon(widget, relocated_path, localized_path);
+	if (result) wm_add_icon(widget, relocated_path, localized_path, NULL);
 
 	result = wm_relocate_url(wm, widget_path, "icon.gif", relocated_path, localized_path);
-	if (result) wm_add_icon(widget, relocated_path, localized_path);
+	if (result) wm_add_icon(widget, relocated_path, localized_path, NULL);
 
 	result = wm_relocate_url(wm, widget_path, "icon.jpg", relocated_path, localized_path);
-	if (result) wm_add_icon(widget, relocated_path, localized_path);
+	if (result) wm_add_icon(widget, relocated_path, localized_path, NULL);
 }
 
 GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 InstanceID, Bool skip_context)
@@ -3167,7 +3177,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				if (sep) sep[0] = '#';
 				if (!result) continue;
 
-				iconic = wm_add_icon(widget, relocated, localized_path);
+				iconic = wm_add_icon(widget, relocated, localized_path, sep);
 				if (iconic) {
 					wm_parse_mpegu_content_element(iconic, icon, mpegu_ns_prefix, global_prefs);
 					icon_width = (char *)wm_xml_get_attr(icon, "width");
