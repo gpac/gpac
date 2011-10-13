@@ -504,7 +504,7 @@ typedef struct
 	u8 type;
 	/*width and height of visual surface to allocate*/
 	u16 width, height;
-	/*indicates whether double buffering is desired*/
+	/*indicates whether double buffering is desired - when sent from plugin to player, indicates the backbuffer has been destroyed*/
 	Bool back_buffer;
 	/*indicates whether system memory for the backbuffer is desired (no video blitting)*/
 	Bool system_memory;

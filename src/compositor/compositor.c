@@ -2540,6 +2540,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
 			compositor->reset_graphics = 2;
+			if (event->setup.back_buffer) 
+				compositor->recompute_ar = 1;
 		}
 		return 0;
 	}
@@ -2564,6 +2566,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		{
 			Bool locked = gf_mx_try_lock(compositor->mx);
 			compositor->reset_graphics = 2;
+			if (event->setup.back_buffer) 
+				compositor->recompute_ar = 1;
 			if (locked) gf_mx_v(compositor->mx);
 		}
 		break;

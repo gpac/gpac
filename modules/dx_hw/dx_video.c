@@ -380,6 +380,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 
 
 	if (dd->output_3d_type==1) {
+		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.opengl_mode = 1;
 		dr->on_event(dr->evt_cbk_hdl, &evt);	
