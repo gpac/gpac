@@ -327,6 +327,8 @@ Bool gf_isom_is_JPEG2000(GF_ISOFile *mov);
 
 u64 gf_isom_get_file_size(GF_ISOFile *the_file);
 
+Bool gf_isom_moov_first(GF_ISOFile *movie);
+
 /********************************************************************
 				STREAMING API FUNCTIONS
 ********************************************************************/
