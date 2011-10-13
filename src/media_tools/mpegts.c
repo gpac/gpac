@@ -797,7 +797,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
-		} else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+		} else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_ES_IS_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
