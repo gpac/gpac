@@ -53,7 +53,11 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	if (! ((M_Appearance *)tr_state->appear)->texture) return;
 	txh = gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture );
 	/*bitmap not ready*/
-	if (!txh || !txh->tx_io || !txh->width || !txh->height) {
+	if (!txh || !txh->width || !txh->height
+#ifndef GPAC_DISABLE_3D
+		|| (tr_state->visual->type_3d && !txh->tx_io) 
+#endif
+		) {
 		if (notify_changes) gf_node_dirty_set(node, 0, 1);
 		return;
 	}

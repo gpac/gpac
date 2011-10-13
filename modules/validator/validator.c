@@ -162,12 +162,12 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
     ref_name = validator_get_snapshot_name(validator->test_filename, 1, snap_number);
     new_name = validator_get_snapshot_name(validator->test_filename, 0, snap_number);
 
-    e = gf_img_png_file_dec(ref_name, &ref_width, &ref_height, &ref_pixel_format, &ref_data, &ref_data_size);
+    e = gf_img_file_dec(ref_name, NULL, &ref_width, &ref_height, &ref_pixel_format, &ref_data, &ref_data_size);
     if (e) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Cannot decode PNG file %s\n", ref_name));
         goto end;
     }
-    e = gf_img_png_file_dec(new_name, &new_width, &new_height, &new_pixel_format, &new_data, &new_data_size);
+    e = gf_img_file_dec(new_name, NULL, &new_width, &new_height, &new_pixel_format, &new_data, &new_data_size);
     if (e) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Cannot decode PNG file %s\n", new_name));
         goto end;
