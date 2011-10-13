@@ -130,7 +130,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 
 static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
-	u32 codec_id;
+	u32 codec_id = 0;
 	int gotpic;
 	GF_BitStream *bs;
 	AVCodecContext **ctx;
