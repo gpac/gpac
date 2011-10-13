@@ -474,6 +474,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		assert(ctx->screen);
 		ctx->width = width;
 		ctx->height = height;
+		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		dr->on_event(dr->evt_cbk_hdl, &evt);		
 	} else {
@@ -832,6 +833,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 		/*GL has changed*/
 		if (ctx->output_3d_type==1) {
 			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_VIDEO_SETUP;
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}

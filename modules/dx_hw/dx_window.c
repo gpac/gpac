@@ -372,6 +372,13 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			ctx->orig_wnd_proc = 0L;
 		}
 		break;
+	case WM_DISPLAYCHANGE:
+		ctx->dd_lost = 1;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_VIDEO_SETUP;
+		evt.setup.back_buffer = 1;
+		vout->on_event(vout->evt_cbk_hdl, &evt);
+		break;
 
 	case WM_ACTIVATE:
 		if (!ctx->on_secondary_screen && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) 
@@ -1028,6 +1035,10 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	/*HW setup*/
 	case GF_EVENT_VIDEO_SETUP:
+		if (ctx->dd_lost) {
+			ctx->dd_lost = 0;
+			DestroyObjects(ctx);
+		}
 		ctx->is_setup=1;
 		switch (evt->setup.opengl_mode) {
 		case 0:

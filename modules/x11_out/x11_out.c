@@ -680,6 +680,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 
   if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
   XSync(xWin->display, False);
+  memset(&evt, 0, sizeof(GF_Event));
   evt.type = GF_EVENT_VIDEO_SETUP;
   vout->on_event (vout->evt_cbk_hdl,&evt);
   xWin->is_init = 1;

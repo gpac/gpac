@@ -695,6 +695,7 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 		return GF_IO_ERR;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[GAPI] OpenGL initialize - %d x %d \n", gctx->bb_width, gctx->bb_height));
+	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;

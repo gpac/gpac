@@ -180,6 +180,8 @@ typedef struct
 	u32 last_mouse_move, timer, cursor_type_backup;
 	Bool windowless, hidden;
 
+	Bool dd_lost;
+
 
 	HMODULE hDDrawLib;
     DIRECTDRAWCREATEPROC DirectDrawCreate;
