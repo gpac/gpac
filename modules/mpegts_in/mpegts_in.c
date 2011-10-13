@@ -196,6 +196,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 				NB: we removed "no file regulation" since we may get broken files where PMT declares an AAC stream but no AAC PID is in the MUX
 				(filtered out). In this case, "no regulation" will make the entire TS to be read as fast as possible
 			*/
+			m2ts->ts->file_regulate = 2;
 			gf_m2ts_set_pes_framing(stream, GF_M2TS_PES_FRAMING_DEFAULT);
 			gf_odf_desc_del((GF_Descriptor *)esd);
 			return NULL;
