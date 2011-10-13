@@ -2528,7 +2528,7 @@ restart_file:
 
 			//gf_sleep(0);
 			/*if asked to regulate, wait until we get a play request*/
-			while (ts->run_state && !ts->nb_playing && ts->file_regulate) {
+			while (ts->run_state && !ts->nb_playing && (ts->file_regulate==1)) {
 				gf_sleep(50);
 				continue;
 			}
