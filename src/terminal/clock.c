@@ -164,8 +164,8 @@ void gf_clock_reset(GF_Clock *ck)
 
 void gf_clock_stop(GF_Clock *ck)
 {
-	ck->StartTime = gf_clock_time(ck);
 	ck->clock_init = 0;
+	ck->StartTime = 0;
 }
 
 void gf_clock_set_time(GF_Clock *ck, u32 TS)
