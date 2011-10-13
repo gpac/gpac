@@ -184,9 +184,12 @@ static void gf_inline_check_restart(GF_Scene *scene)
 				e = -1;
 				MC_GetRange(scene->root_od->media_ctrl, &s, &e);
 				if ((e>=0) && (e<GF_MAX_FLOAT)) dur = (u32) (e*1000);
-				if (dur<now) {
+				if (dur<=now) {
 					scene->needs_restart = 1;
 					scene->root_od->media_ctrl->current_seg = 0;
+				} else {
+					/*trigger render until to watch for restart...*/
+					gf_term_invalidate_compositor(scene->root_od->term);
 				}
 			}
 		} else {
