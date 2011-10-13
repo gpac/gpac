@@ -1657,6 +1657,9 @@ void DumpMovieInfo(GF_ISOFile *file)
 	fprintf(stdout, "* Movie Info *\n\tTimescale %d - Duration %s\n\tFragmented File %s - %d track(s)\n",
 		timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_is_fragmented(file) ? "yes" : "no", gf_isom_get_track_count(file));
 
+	if (gf_isom_moov_first(file))
+		fprintf(stdout, "\tFile suitable for progressive download (moov before mdat)\n");
+
 	if (gf_isom_get_brand_info(file, &brand, &min, NULL) == GF_OK) {
 		fprintf(stdout, "\tFile Brand %s - version %d\n", gf_4cc_to_str(brand), min);
 	}

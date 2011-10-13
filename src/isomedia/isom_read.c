@@ -2652,5 +2652,16 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	return GF_OK;
 }
 
+GF_EXPORT
+Bool gf_isom_moov_first(GF_ISOFile *movie)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(movie->TopBoxes); i++) {
+		GF_Box *b = gf_list_get(movie->TopBoxes, i);
+		if (b->type == GF_ISOM_BOX_TYPE_MOOV) return 1;
+		if (b->type == GF_ISOM_BOX_TYPE_MDAT) return 0;
+	}
+	return 0;
+}
 
 #endif /*GPAC_DISABLE_ISOM*/
