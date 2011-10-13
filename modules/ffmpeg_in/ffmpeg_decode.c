@@ -666,7 +666,7 @@ redecode:
 			assert(inBufferLength==ffd->out_size);
 
 			if (ffd->raw_pix_fmt==PIX_FMT_BGR24) {
-				u32 i, j;
+				s32 i, j;
 				for (j=0; j<ctx->height; j++) {
 					u8 *src = inBuffer + j*3*ctx->width;
 					u8 *dst = outBuffer + j*3*ctx->width;
