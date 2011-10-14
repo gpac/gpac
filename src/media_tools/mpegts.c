@@ -99,6 +99,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	pes->prev_data_len = 0;
 	pes->pes_len = 0;
 	pes->reframe = NULL;
+	pes->cc = -1;
 	return 0;
 }
 

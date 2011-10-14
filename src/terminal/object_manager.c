@@ -320,8 +320,9 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	if (!desc) {
 		/*if desc is NULL for a media, the media will be declared later by the service (gf_term_media_add)*/
-		if (od_type != GF_MEDIA_OBJECT_SCENE)
+		if (od_type != GF_MEDIA_OBJECT_SCENE) {
 			return;
+		}
 		/*create empty service descriptor, this will automatically create a dynamic scene*/
 		desc = gf_odf_desc_new(GF_ODF_OD_TAG);
 	}

@@ -313,6 +313,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		char *frag, *ext;
 		GF_ESD *esd;
 		char *url;
+		u32 match_esid = 0;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 
 		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID)) 
@@ -355,14 +356,17 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		if (!strnicmp(url, "file://localhost", 16)) url += 16;
 		else if (!strnicmp(url, "file://", 7)) url += 7;
 		else if (!strnicmp(url, "gpac://", 7)) url += 7;
+		else if (!strnicmp(url, "pid://", 6)) match_esid = atoi(url+6);
 
-		if (!strstr(service->url, url)) {
+		if (!match_esid && !strstr(service->url, url)) {
 			if (ext) ext[0] = '#';
 			continue;
 		}
 		if (ext) ext[0] = '#';
 
 		esd = gf_list_get(od->ESDescriptors, 0);
+		if (match_esid && (esd->ESID != match_esid)) 
+			continue;
 		/*match type*/
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_VISUAL:

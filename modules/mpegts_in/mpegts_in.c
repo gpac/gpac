@@ -266,7 +266,9 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		if (!found) return;
 	}
 #endif
-	if (m2ts->ts->file || m2ts->ts->dnload) m2ts->ts->file_regulate = no_declare ? 0 : 1;
+
+	/*TS is a file, start regulation regardless of how the TS is access (with or without fragment URI)*/
+	if (m2ts->ts->file || m2ts->ts->dnload) m2ts->ts->file_regulate = 1;
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
@@ -1003,7 +1005,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		if (!ts->nb_playing) {
 			ts->start_range = (u32) (com->play.start_range*1000);
