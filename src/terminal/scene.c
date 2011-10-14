@@ -689,10 +689,12 @@ restart:
 		first_pass = 0;
 		goto restart;
 	}
-	gf_term_lock_net(scene->root_od->term, 0);
 
 	/*we cannot create an OD manager at this point*/
-	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) return NULL;
+	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) {
+		gf_term_lock_net(scene->root_od->term, 0);
+		return NULL;
+	}
 
 	/*create a new object identification*/
 	obj = gf_mo_new();
@@ -717,16 +719,21 @@ restart:
 		gf_sg_vrml_copy_mfurl(&obj->URLs, url);
 		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment, original_parent_scene);
 		/*safety check!!!*/
-		if (gf_list_find(scene->scene_objects, obj)<0) 
+		if (gf_list_find(scene->scene_objects, obj)<0) {
+			gf_term_lock_net(scene->root_od->term, 0);
 			return NULL;
+		}
 
 		if (obj->odm==NULL) {
 			gf_list_del_item(scene->scene_objects, obj); 
 			if (obj->nodes) gf_list_del(obj->nodes);
 			gf_free(obj);
+			gf_term_lock_net(scene->root_od->term, 0);
 			return NULL;
 		}
 	}
+
+	gf_term_lock_net(scene->root_od->term, 0);
 	return obj;
 }
 

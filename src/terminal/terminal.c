@@ -1387,7 +1387,10 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 			}
 			
 			gf_mx_p(term->net_mx);
-			assert(!odm->net_service);
+			if (odm->net_service) {
+				gf_mx_v(term->net_mx);
+				return;
+			}
 			if (odm->flags & GF_ODM_DESTROYED) {
 				gf_mx_v(term->net_mx);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
