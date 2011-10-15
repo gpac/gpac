@@ -193,6 +193,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			com.base.on_channel = ch;
 
 			com.cfg.priority = ch->esd->streamPriority;
+			assert( ch->clock );
 			com.cfg.sync_id = ch->clock->clockID;
 			memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
 			/*get the frame duration if audio (used by some network stack)*/
