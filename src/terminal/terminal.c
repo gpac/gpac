@@ -1102,7 +1102,7 @@ void gf_term_check_connections_for_delete(GF_Terminal *term, GF_ObjectManager *o
 {
 	GF_TermConnectObject *ct;
 	u32 i = 0;
-	while (ct = gf_list_enum(term->connection_tasks, &i)) {
+	while (NULL != (ct = (gf_list_enum(term->connection_tasks, &i)))) {
 		if (ct->odm == odm) {
 			i--;
 			gf_list_rem(term->connection_tasks, i);
