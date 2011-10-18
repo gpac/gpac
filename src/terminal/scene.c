@@ -220,6 +220,27 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	} else {
 		while (gf_list_count(scene->resources)) {
 			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
+	
+			//Ivica patch: Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
+#ifndef GPAC_DISABLE_VRML
+			if (for_shutdown) {
+				obj = odm->mo;
+				while (gf_list_count(obj->nodes)) {
+					GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, 0);
+					switch (gf_node_get_tag(n)) {
+						case TAG_MPEG4_InputSensor:
+						{
+							M_InputSensor* is = (M_InputSensor*)n;
+							is->enabled = 0;
+							InputSensorModified(n);
+							break;
+						}
+					}
+					gf_list_rem(obj->nodes, 0);
+				}	
+			}
+#endif
+
 			gf_odm_disconnect(odm, (for_shutdown || !scene->static_media_ressources) ? 1 : 0);
 		}
 #ifndef GPAC_DISABLE_VRML
