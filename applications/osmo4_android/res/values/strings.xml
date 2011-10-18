@@ -8,6 +8,9 @@
     <string name="open_url">Open URL...</string>
     <string name="about">About...</string>
     <string name="quit">Exit</string>
+    <string name="really_quit">Are you sure that you want to exit Osmo4?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
     <string name="app_name">Osmo4</string>
     <string name="titleWithURL">Osmo4 [%s]</string>
     <string name="copying_native_libs">Copying module %1$s to %2$s...</string>
@@ -17,6 +20,10 @@
     <string name="cleaningCache">Cleaning Cache...</string>
     <string name="cleaningCacheDirectory">Cleaning Cache directory %s...</string>
     <string name="showVirtualKeyboard">Keyboard</string>
+    <string name="reloadFile">Reload File</string>
+    <string name="debug">Enable Debug</string>
+    <string name="autoRotate">AutoRotate</string>
+    <string name="quickSettings">Quick Settings</string>
     <string name="gpacNotInitializedLongMessages">Sorry, GPAC is not initialized, operation cannot be performed</string>
     <string name="usernameLabel">Username:</string>
     <string name="usernameHint">Username</string>
@@ -54,5 +61,6 @@
         <item>Jonathan Sillan</item>
         <item>Pierre Souchay (VizionR)</item>
         <item>NGO Van Luyen</item>
+        <item>Arsov Ivica</item>
     </string-array>
 </resources>
