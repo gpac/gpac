@@ -144,9 +144,11 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		case GF_STREAM_VISUAL:
 		case GF_STREAM_AUDIO:
 			cap.CapCode = GF_CODEC_BUFFER_MIN;
+			cap.cap.valueInt = 1;
 			gf_codec_get_capability(codec, &cap);
 			min = cap.cap.valueInt;
 			cap.CapCode = GF_CODEC_BUFFER_MAX;
+			cap.cap.valueInt = 1;
 			gf_codec_get_capability(codec, &cap);
 			max = cap.cap.valueInt;
 			break;
@@ -1060,6 +1062,15 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 			return GF_OK;
 		case GF_CODEC_CHANNEL_CONFIG:
 			cap->cap.valueInt = ch_cfg;
+			return GF_OK;
+		case GF_CODEC_PAR:
+			cap->cap.valueInt = 0;
+			return GF_OK;
+		case GF_CODEC_PADDING_BYTES:
+			cap->cap.valueInt = 0;
+			return GF_OK;
+		case GF_CODEC_RESILIENT:
+			cap->cap.valueInt = 1;
 			return GF_OK;
 		}
 	}
