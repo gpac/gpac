@@ -55,6 +55,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
+import android.hardware.SensorManager;
 
 import com.gpac.Osmo4.extra.FileChooserActivity;
 import com.gpac.Osmo4.logs.GpacLogger;
