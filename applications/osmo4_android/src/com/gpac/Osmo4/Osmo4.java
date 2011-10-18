@@ -118,6 +118,9 @@ public class Osmo4 extends Activity implements GpacCallback {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_PROGRESS);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+		
+		MPEGVSensor.mySensorManager = (SensorManager)getSystemService(
+        		Context.SENSOR_SERVICE);
 
         final String toOpen;
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
