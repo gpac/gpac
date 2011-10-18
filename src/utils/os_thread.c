@@ -681,7 +681,9 @@ void gf_sema_wait(GF_Semaphore *sm)
 #else
 	hSem = sm->hSemaphore;
 #endif
-	sem_wait(hSem);
+	if (sem_wait(hSem)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore: %d\n", errno));
+	}
 #endif
 }
 
