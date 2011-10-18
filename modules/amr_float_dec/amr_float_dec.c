@@ -229,14 +229,14 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 			D_IF_decode(ctx->wb_destate, inBuffer, (s16 *) outBuffer, 0);
 			*outBufferLength += 320*2;
 			outBuffer += 320*2;
-			offset = GF_AMR_WB_FRAME_SIZE[ft] + 1;
+			offset = (u32)GF_AMR_WB_FRAME_SIZE[ft] + 1;
 #endif
 		} else {
 #ifdef GPAC_HAS_AMR_FT
 			Decoder_Interface_Decode(ctx->nb_destate, inBuffer, (s16 *) outBuffer, 0);
 			*outBufferLength += 160*2;
 			outBuffer += 160*2;
-			offset = GF_AMR_FRAME_SIZE[ft] + 1;
+			offset = (u32)GF_AMR_FRAME_SIZE[ft] + 1;
 #endif
 		}
 		/*don't complain but...*/

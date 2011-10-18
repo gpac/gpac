@@ -3178,9 +3178,9 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 			/*update mode set (same mechanism for both AMR and AMR-WB*/
 			gpp_cfg.AMR_mode_set |= (1<<ft);
 			if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_AMR_WB) {
-				samp->dataLength = GF_AMR_WB_FRAME_SIZE[ft];
+				samp->dataLength = (u32)GF_AMR_WB_FRAME_SIZE[ft];
 			} else {
-				samp->dataLength = GF_AMR_FRAME_SIZE[ft];
+				samp->dataLength = (u32)GF_AMR_FRAME_SIZE[ft];
 			}
 			samp->data[0] = toc;
 			break;
@@ -3189,7 +3189,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 			for (i=0; i<GF_SMV_EVRC_RATE_TO_SIZE_NB; i++) {
 				if (GF_SMV_EVRC_RATE_TO_SIZE[2*i]==toc) {
 					/*remove rate_type byte*/
-					samp->dataLength = GF_SMV_EVRC_RATE_TO_SIZE[2*i+1] - 1;
+					samp->dataLength = (u32)GF_SMV_EVRC_RATE_TO_SIZE[2*i+1] - 1;
 					break;
 				}
 			}

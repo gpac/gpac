@@ -93,8 +93,9 @@ extern "C" {
  *
  *	Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 */
+#ifndef GF_4CC
 #define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
-
+#endif
 
 /*!
  *	\brief GPAC feature list

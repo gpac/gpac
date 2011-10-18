@@ -355,9 +355,9 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 		c = payload[i + 1];
 		type = ((c & 0x78) >> 3);
 		if (rtp->payt==GF_RTP_PAYT_AMR) {
-			frame_size = GF_AMR_FRAME_SIZE[type];
+			frame_size = (u32)GF_AMR_FRAME_SIZE[type];
 		} else {
-			frame_size = GF_AMR_WB_FRAME_SIZE[type];
+			frame_size = (u32)GF_AMR_WB_FRAME_SIZE[type];
 		}
 
 		rtp->sl_hdr.compositionTimeStampFlag = 1;

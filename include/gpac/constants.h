@@ -29,7 +29,6 @@
 extern "C" {
 #endif
 
-#include <gpac/tools.h>
 
 /*! \addtogroup cst_grp constants
  *	\brief Constants used within GPAC
@@ -154,6 +153,9 @@ enum
  *
  *	Supported pixel formats for everything using video
 */
+#ifndef GF_4CC
+#define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
+#endif
 typedef enum
 {
 	/*!8 bit GREY */
@@ -560,12 +562,12 @@ enum
 
 
 /*rate sizes - note that these sizes INCLUDE the rate_type header byte*/
-static const u32 GF_QCELP_RATE_TO_SIZE [] = {0, 1, 1, 4, 2, 8, 3, 17, 4, 35, 5, 8, 14, 1};
-static const u32 GF_QCELP_RATE_TO_SIZE_NB = 7;
-static const u32 GF_SMV_EVRC_RATE_TO_SIZE [] = {0, 1, 1, 3, 2, 6, 3, 11, 4, 23, 5, 1};
-static const u32 GF_SMV_EVRC_RATE_TO_SIZE_NB = 6;
-static const u32 GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0, 0, 0, 0, 0, 0, 0 };
-static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, 0, 0, 0, 0, 0 };
+static const unsigned int GF_QCELP_RATE_TO_SIZE [] = {0, 1, 1, 4, 2, 8, 3, 17, 4, 35, 5, 8, 14, 1};
+static const unsigned int GF_QCELP_RATE_TO_SIZE_NB = 7;
+static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE [] = {0, 1, 1, 3, 2, 6, 3, 11, 4, 23, 5, 1};
+static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE_NB = 6;
+static const unsigned int GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0, 0, 0, 0, 0, 0, 0 };
+static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, 0, 0, 0, 0, 0 };
 
 
 /*out-of-band sample desc (128 and 255 reserved in RFC)*/
