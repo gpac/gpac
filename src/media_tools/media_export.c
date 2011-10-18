@@ -572,7 +572,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	GF_GenericSampleDescription *udesc;
 	char szName[1000], szEXT[5], GUID[16];
 	FILE *out;
-	u32 *qcp_rates;
+	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
 	GF_AVCConfig *avccfg;
 	GF_M4ADecSpecInfo a_cfg;
 	GF_BitStream *bs;
@@ -581,7 +581,6 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	u32 aac_type, is_aac;
 	char *dsi;
 	QCPRateTable rtable[8];
-	u32 rt_cnt;
 
 	dsi_size = 0;
 	dsi = NULL;
@@ -880,10 +879,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		}
 
 		if (qcp_type==1) {
-			qcp_rates = (u32 *)GF_QCELP_RATE_TO_SIZE;
+			qcp_rates = (unsigned int*)GF_QCELP_RATE_TO_SIZE;
 			rt_cnt = GF_QCELP_RATE_TO_SIZE_NB;
 		} else {
-			qcp_rates = (u32 *)GF_SMV_EVRC_RATE_TO_SIZE;
+			qcp_rates = (unsigned int*)GF_SMV_EVRC_RATE_TO_SIZE;
 			rt_cnt = GF_SMV_EVRC_RATE_TO_SIZE_NB;
 		}
 
