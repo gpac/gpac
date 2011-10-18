@@ -1124,6 +1124,39 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format , u32 pitch_y, 
 		memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
 		memcpy(pVD, pV, sizeof(unsigned char)*src_width*src_height/4);
 		memcpy(pUD, pU, sizeof(unsigned char)*src_width*src_height/4);
+	} else if (src_pf==GF_PIXEL_YUY2){
+		u32 i, j;
+		unsigned char *dst_y, *dst_u, *dst_v;
+
+		pY = src + src_stride * src_wnd->y + src_wnd->x;
+		pU = src + src_stride * src_wnd->y + src_wnd->x + 1;
+		pV = src + src_stride * src_wnd->y + src_wnd->x + 3;
+
+
+		dst_y = pYD;
+		dst_v = pVD;
+		dst_u = pUD;
+		for (i=0; i<src_wnd->h; i++) {
+			for (j=0; j<src_wnd->w; j+=2) {
+				*dst_y = * pY;
+				*(dst_y+1) = * (pY+2);
+				dst_y += 2;
+				pY += 4;
+				if (i%2) continue;
+
+				*dst_u = (*pU + *(pU + src_stride)) / 2;
+				*dst_v = (*pV + *(pV + src_stride)) / 2;
+				dst_u++;
+				dst_v++;
+				pU += 4;
+				pV += 4;
+			}
+			if (i%2) {
+				pU += src_stride;
+				pV += src_stride;
+			}
+		}
+
 	} else {
 		u32 i;
 		unsigned char *dst, *src, *dst2, *src2, *dst3, *src3;
