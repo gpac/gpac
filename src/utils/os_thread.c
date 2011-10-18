@@ -597,6 +597,13 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	if (!tmp) return NULL;
 #if defined(WIN32)
 	tmp->hSemaphore = CreateSemaphore(NULL, InitCount, MaxCount, NULL);
+
+	if (!tmp->hSemaphore) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't create semaphore\n"));
+		gf_free(tmp);
+		return NULL;
+	}
+
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	/* sem_init isn't supported on Mac OS X 10.3 & 10.4; it returns ENOSYS
 	To get around this, a NAMED semaphore needs to be used
@@ -609,20 +616,19 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 		tmp->SemName = gf_strdup(semaName);
 	}
 	tmp->hSemaphore = sem_open(tmp->SemName, O_CREAT, S_IRUSR|S_IWUSR, InitCount);
+	if (tmp->hSemaphore==SEM_FAILED) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't init semaphore: error %d\n", errno));
+		gf_free(tmp);
+		return NULL;
+	}
 #else
 	if (sem_init(&tmp->SemaData, 0, InitCount) < 0 ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't init semaphore\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't init semaphore: error %d\n", errno));
 		gf_free(tmp);
 		return NULL;
 	}
 	tmp->hSemaphore = &tmp->SemaData;
 #endif
-
-	if (!tmp->hSemaphore) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't create semaphore\n"));
-		gf_free(tmp);
-		return NULL;
-	}
 	return tmp;
 }
 
@@ -634,8 +640,7 @@ void gf_sema_del(GF_Semaphore *sm)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] CloseHandle when deleting semaphore failed with error code %d\n", err));
 	}
 #elif defined(__DARWIN__) || defined(__APPLE__)
-	sem_t *sema = sem_open(sm->SemName, 0);
-	sem_destroy(sema);
+	sem_destroy(sm->hSemaphore);
 	gf_free(sm->SemName);
 #else
 	sem_destroy(sm->hSemaphore);
@@ -657,7 +662,7 @@ u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 #else
 
 #if defined(__DARWIN__) || defined(__APPLE__)
-	hSem = sem_open(sm->SemName, 0);
+	hSem = sm->hSemaphore;
 #else
 	hSem = sm->hSemaphore;
 #endif
@@ -674,13 +679,12 @@ void gf_sema_wait(GF_Semaphore *sm)
 {
 #ifdef WIN32
 	WaitForSingleObject(sm->hSemaphore, INFINITE);
-#else
-	sem_t *hSem;
-#if defined(__DARWIN__) || defined(__APPLE__)
-	hSem = sem_open(sm->SemName, 0);
+#elif defined (__DARWIN__) || defined(__APPLE__)
+	if (sem_wait(sm->hSemaphore)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: %d\n", sm->SemName, errno));
+	}
 #else
 	hSem = sm->hSemaphore;
-#endif
 	if (sem_wait(hSem)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore: %d\n", errno));
 	}
@@ -695,7 +699,7 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 #else
 	sem_t *hSem;
 #if defined(__DARWIN__) || defined(__APPLE__)
-	hSem = sem_open(sm->SemName, 0);
+	hSem = sm->hSemaphore;
 #else
 	hSem = sm->hSemaphore;
 #endif
