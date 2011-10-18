@@ -1320,6 +1320,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_add_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_add_named_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_remove_root) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_js_vrml_flush_event_out) )
+#pragma comment (linker, EXPORT_SYMBOL(dom_js_pre_destroy) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_has_instance) )
 

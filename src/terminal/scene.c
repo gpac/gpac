@@ -39,6 +39,8 @@
 #include <gpac/scenegraph_svg.h>
 #endif
 
+#include "input_sensor.h"
+
 GF_EXPORT
 Double gf_scene_get_time(void *_is)
 {

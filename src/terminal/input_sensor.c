@@ -806,7 +806,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 		ISPriv *is = (ISPriv *)cod->decio->privateStack;
 		if (is->type==IS_StringSensor) {
 
-			GF_Channel *ch = (GF_Channel *)gf_list_get(cod->inChannels, 0);
+//			GF_Channel *ch = (GF_Channel *)gf_list_get(cod->inChannels, 0);
 			is->enteredText[is->text_len] = character;
 			is->text_len += 1;
 
@@ -818,7 +818,8 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 			gf_bs_get_content(bs, &buf, &buf_size);
 			gf_bs_del(bs);
 			
-			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
+//			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
+			IS_ProcessData((GF_SceneDecoder*)cod->decio, buf, buf_size, 0, 0, 0);
 			
 			gf_free(buf);
 		}
