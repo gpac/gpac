@@ -237,6 +237,9 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		codec->CB->Min = 0;
 		codec->CB->odm = codec->odm;
 		ch->is_raw_channel = 1;
+		if (gf_es_owns_clock(ch))
+			ch->is_raw_channel = 2;
+
 		if (ch->is_pulling) {
 			codec->process = gf_codec_process_raw_media_pull;
 		}

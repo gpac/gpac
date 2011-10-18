@@ -680,13 +680,21 @@ static void gf_es_check_timing(GF_Channel *ch)
 
 void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts)
 {
+	u32 now;
 	GF_CompositionMemory *cb;
 	GF_CMUnit *cu;
 	if (!payload || !ch->odm->codec->CB) return;
 	if (!ch->odm->codec->CB->no_allocation) return;
 
-	if (cts + 100 < gf_clock_real_time(ch->clock)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %d but frame TS is %d ms - DROPPING\n", ch->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), cts));
+	now = gf_clock_real_time(ch->clock);
+	if (cts + ch->MinBuffer < now) {
+		if (ch->MinBuffer && (ch->is_raw_channel==2)) {
+			ch->clock->clock_init = 0;
+			gf_clock_set_time(ch->clock, cts);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %d but frame TS is %d ms - adjusting clock\n", ch->odm->OD->objectDescriptorID, now, cts));
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %d but frame TS is %d ms - DROPPING\n", ch->odm->OD->objectDescriptorID, now, cts));
+		}
 		return;
 	}
 
