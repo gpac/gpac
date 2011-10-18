@@ -61,4 +61,12 @@ public interface GPACInstanceInterface {
      */
     public void setGpacPreference(String category, String name, String value);
 
+    
+    /**
+     * Set a GPAC debug level for a given tool
+     * 
+     * @param tools Debug tools (0 - 23)
+     * @param level Debug level (0 - 4)
+     */
+    public void setGpacLogs(String tools_at_levels);
 }

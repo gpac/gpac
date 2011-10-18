@@ -367,4 +367,12 @@ public class GPACInstance implements GPACInstanceInterface {
      */
     @Override
     public native void setGpacPreference(String category, String name, String value);
+
+
+    
+    /**
+     * @see com.gpac.Osmo4.GPACInstanceInterface#setGpacLogs(String)
+     */
+    @Override
+    public native void setGpacLogs(String tools_at_levels);
 }

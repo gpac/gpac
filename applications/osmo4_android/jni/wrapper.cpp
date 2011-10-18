@@ -110,6 +110,9 @@ static JNINativeMethod sMethods[] = {
     {"gpaceventkeypress",
       "(IIIII)V",
       (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress},
+    {"gpacsetdebug",
+	  "(II)V",
+	  (void*)Java_com_gpac_Osmo4_GPACInstance_gpacsetdebug},
     {"gpaceventmousedown",
       "(FF)V",
       (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousedown},
@@ -163,8 +166,9 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
 
 CNativeWrapper::CNativeWrapper(){
 	do_log = 1;
-        m_term = NULL;
-        m_mx = NULL;
+  m_term = NULL;
+  m_mx = NULL;
+	mainJavaEnv = NULL;
 #ifndef GPAC_GUI_ONLY
 	memset(&m_user, 0, sizeof(GF_User));
 	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
@@ -232,9 +236,11 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
 }
 
 static u32 beforeThreadExits(void * param){
-  LOGI("Before Thread exist, detach the JavaVM from Thread for thread %p...\n", gf_th_current());
-  if (javaVM)
+	/* Ivica - I think there is no need for this because the detach is done in jni_destroy_env_func()
+  /*LOGI("Before Thread exist, detach the JavaVM from Thread for thread %p...\n", gf_th_current());
+   if (javaVM)
     javaVM->DetachCurrentThread();
+    */
 }
 
 JavaEnvTh * CNativeWrapper::getEnv(){
@@ -253,12 +259,12 @@ JavaEnvTh * CNativeWrapper::getEnv(){
     memset(javaEnv, 0, sizeof(JavaEnvTh));
     javaVM->AttachCurrentThread(&env, NULL);
     if (!env){
-      LOGE("Attaching to thread did faild for thread id=%d", gf_th_id());
+      LOGE("Attaching to thread did failed for thread id=%d", gf_th_id());
       gf_free(javaEnv);
       return NULL;
     }
     LOGI("Rebuilding methods for thread %d", gf_th_id());
-    setJavaEnv(javaEnv, env, mainJavaEnv.cbk_obj);
+    setJavaEnv(javaEnv, env, mainJavaEnv->cbk_obj);
     if (pthread_setspecific(jni_thread_env_key, javaEnv)){
       LOGE("Failed to set specific thread data to jni_thread_env_key for thread=%d. No ENV available !", gf_th_id());
       gf_free(javaEnv);
@@ -597,10 +603,13 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	m_window = env;
 	m_session = bitmap;
-        setJavaEnv(&mainJavaEnv, env, env->NewGlobalRef(*callback));
-        if (pthread_setspecific( jni_thread_env_key, &mainJavaEnv)){
-          LOGE("Failed to set specific thread data to jni_thread_env_key=%p for main thread !", jni_thread_env_key);
-        }
+  if (!mainJavaEnv)
+  	mainJavaEnv = (JavaEnvTh *) gf_malloc(sizeof(JavaEnvTh));
+  memset(mainJavaEnv, 0, sizeof(JavaEnvTh));
+  setJavaEnv(mainJavaEnv, env, env->NewGlobalRef(*callback));
+  if (pthread_setspecific( jni_thread_env_key, mainJavaEnv)){
+    LOGE("Failed to set specific thread data to jni_thread_env_key=%p for main thread !", jni_thread_env_key);
+  }
 
 	m_mx = gf_mx_new("Osmo4");
 
@@ -924,6 +933,12 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 		break;
 	}
 	evt->hw_code = evt->key_code;
+}
+
+//-----------------------------------------------------
+void CNativeWrapper::setGpacLogs(const char *tools_at_level)
+{
+	gf_log_set_tools_levels(tools_at_level);
 }
 
 //---------------------------------------------------------------------------------------------------
