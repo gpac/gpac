@@ -2162,7 +2162,7 @@ int mp4boxMain(int argc, char **argv)
 	if (do_mpd) {
 		Bool remote = 0;
 		char *mpd_base_url = gf_strdup(inName);
-		if (strcmp(inName, "http://")) {
+		if (!strnicmp(inName, "http://", 7)) {
 			e = gf_dm_wget(inName, "tmp_main.m3u8");
 			if (e != GF_OK) {
 				fprintf(stdout, "Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e));
@@ -2181,6 +2181,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stdout, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outName, gf_error_to_string(e));
 			return 1;
 		} else {
+			fprintf(stdout, "Done converting M3U8 (%s) to MPD (%s)\n", inName, outName);
 			return 0;
 		}
 	}
