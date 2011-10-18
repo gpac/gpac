@@ -4545,7 +4545,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 				else
 				{
 					gf_sg_js_call_gc(sg->svg_js->js_ctx);
-					JS_ClearNewbornRoots(sg->svg_js->js_ctx);
+					//invalid with firefox>7: JS_ClearNewbornRoots(sg->svg_js->js_ctx);
 				}
 #endif
 			}

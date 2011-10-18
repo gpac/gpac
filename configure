@@ -629,7 +629,7 @@ EOF
         has_js="local"
         #dc added
     else
-
+        #try pkg-config
         if pkg-config --exists mozilla-js 2> /dev/null  ; then
             js_flags=`pkg-config --cflags mozilla-js`
             js_lib_pkg=`pkg-config --libs mozilla-js`
@@ -637,6 +637,18 @@ EOF
                 has_js="system"
                 js_lib=`pkg-config --libs mozilla-js`
             fi
+        #try firefox folders (starting at ubuntu 11.10, no pkg-config)
+        elif ls -d /usr/lib/firefox* > /dev/null  ; then
+            firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
+            for i in $firefox_version ; do
+                if test "$has_js" = "no" ; then
+                    js_flags="-DXP_UNIX -I$js_inc"
+                    js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnss3"
+                    if $cpp -o $TMPO $TMPCPP $js_flags $js_lib 2> /dev/null  ; then
+                        has_js="$i"
+                    fi
+                fi
+            done
         fi
 
         if test "$has_js" = "no" ; then
@@ -766,6 +778,7 @@ if test "$has_js" != "no" ; then
 fi
 
 #fi
+
 
 #end JS test
 
@@ -1332,10 +1345,10 @@ fi
 
 #look for directfb support
 cat > $TMPC << EOF
-#include <directfb/directfb.h>
+#include <directfb.h>
 int main( void ) { return 0; }
 EOF
-directfb_inc="/usr/include/"
+directfb_inc="/usr/include/directfb"
 directfb_lib="-ldirectfb -lfusion -ldirect"
 if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib 2> /dev/null  ; then
     has_directfb="yes"
