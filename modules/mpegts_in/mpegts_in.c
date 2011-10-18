@@ -469,6 +469,13 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		evt.forwarded_event.param = ts;
 		gf_term_on_service_event(m2ts->service, &evt);		
 		break;
+	case GF_M2TS_EVT_DSMCC_FOUND:
+		evt.type = GF_EVENT_FORWARDED;
+		evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
+		evt.forwarded_event.service_event_type = evt_type;
+		evt.forwarded_event.param = param;		  
+		gf_term_on_service_event(m2ts->service, &evt);
+		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);

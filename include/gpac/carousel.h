@@ -32,6 +32,7 @@
 
 #define AIT_SECTION_LENGTH_MAX 1021
 #define APPLICATION_TYPE_HTTP_APPLICATION 16
+#define DSMCC_SECTION_LENGTH_MAX 4093
 
 typedef enum {
 	APPLICATION_DESCRIPTOR = 0x00,
@@ -41,6 +42,15 @@ typedef enum {
 	APPLICATION_USAGE_DESCRIPTOR = 0x16,
 	APPLICATION_BOUNDARY_DESCRIPTOR = 0x17,
 } DESCRIPTOR_TAG;
+
+typedef enum{
+	DOWNLOAD_INFO_REQUEST =					0x1001,
+	DOWNLOAD_INFO_REPONSE_INDICATION =		0x1002,
+	DOWNLOAD_DATA_BLOCK =					0x1003,
+	DOWNLOAD_DATA_REQUEST =					0x1004,
+	DOWNLOAD_DATA_CANCEL =					0x1005,
+	DOWNLOAD_SERVER_INITIATE =				0x1006
+}DSMCC_DOWNLOAD_MESSAGE_ID;
 
 typedef struct
 {
@@ -199,6 +209,218 @@ GF_M2TS_ES *gf_ait_section_new(u32 service_id);
 void gf_ait_destroy(GF_M2TS_AIT* ait);
 void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application);
 
+/********************************************************** CAROUSEL PART ************************************************************************************/
+
+typedef struct
+{
+	u32 moduleId;
+	u32 downloadId;
+	u32 version_number;	
+}GF_M2TS_DSMCC_PROCESSED;
+
+typedef struct
+{
+	u32 moduleId;
+	u32 version_number;
+	u32 size;
+	u32 downloadId;
+	char* buffer;
+	u32 byte_sift;
+	u16 section_number;
+	u16 last_section_number;
+	Bool processed;
+}GF_M2TS_DSMCC_MODULE;
+
+
+typedef struct
+{	
+	GF_List* dsmcc_modules;
+	GF_M2TS_DSMCC_PROCESSED processed[255];
+}GF_M2TS_DSMCC_OVERLORD;
+
+typedef struct
+{
+	u8 table_id;
+	u8 section_syntax_indicator;
+	u8 private_indicator;
+	u16 dsmcc_section_length;
+	u16 table_id_extension;
+	u8 version_number;
+	u8 current_next_indicator;
+	u8 section_number;
+	u8 last_section_number; 
+	void* DSMCC_Extension;
+	u32 checksum;
+	u32 CRC_32;
+}GF_M2TS_DSMCC_SECTION;
+
+typedef struct
+{
+	u8 adaptationType;
+	char* adaptationDataByte;
+}
+GF_M2TS_DSMCC_ADAPTATION_HEADER;
+
+typedef struct
+{
+	u8 protocolDiscriminator;
+	u8 dsmccType;
+	u16 messageId;
+	/* dsmccMessageHeader mode */
+	u32 transactionId;
+	/* dsmccDownloadDataHeader */
+	u32 downloadId;
+	u8 reserved;
+	u8 adaptationLength;
+	u16 messageLength;
+	/* added not in the spec */
+	u8 header_length;
+	GF_M2TS_DSMCC_ADAPTATION_HEADER* DsmccAdaptationHeader;
+
+}GF_M2TS_DSMCC_MESSAGE_DATA_HEADER;
+
+/* DOWNLOAD_DATA_MESSAGE */
+typedef struct
+{
+	u8 protocolDiscriminator;
+	u8 dsmccType;
+	u16 messageId;
+	u32 downloadId;
+	u8 reserved;
+	u8 adaptationLength;
+	u16 messageLength;
+	GF_M2TS_DSMCC_ADAPTATION_HEADER* DsmccAdaptationHeader;
+
+}GF_M2TS_DSMCC_DOWNLOAD_DATA_HEADER;
+
+typedef struct
+{	
+	u8 subDescriptorType;
+	u8 subDescriptorLength;	
+	char *additionalInformation;
+	
+}GF_M2TS_DSMCC_SUBDESCRIPTOR;
+
+typedef struct
+{
+	u8 descriptorType;
+	u8 descriptorLength;
+	u8 specifierType;
+	u32 specifierData;
+	u16 model;
+	u16 version;
+	u8 subDescriptorCount;
+	GF_M2TS_DSMCC_SUBDESCRIPTOR* SubDescriptor;
+
+}GF_M2TS_DSMCC_DESCRIPTOR;
+
+typedef struct
+{
+	u16 compatibilityDescriptorLength;
+	u16 descriptorCount;
+	GF_M2TS_DSMCC_DESCRIPTOR* Descriptor;
+}GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR;
+
+typedef struct
+{	
+	u8 bufferSize;
+	u8 maximumBlockSize;
+	GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR Compatibility_Descr;
+	u8 privateDataLength;
+	char* privateDataByte;
+}GF_M2TS_DSMCC_DOWNLOAD_INFO_REQUEST;
+
+typedef struct
+{
+  u16 moduleId;
+  u32 moduleSize;
+  u8 moduleVersion;
+  u8 moduleInfoLength;
+  char* moduleInfoByte;
+}GF_M2TS_DSMCC_INFO_MODULES;
+
+typedef struct
+{  
+  u32 downloadId;
+  u16 blockSize;
+  u8 windowSize;
+  u8 ackPeriod;
+  u32 tCDownloadWindow;
+  u32 tCDownloadScenario;
+  GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR CompatibilityDescr;
+  u16 numberOfModules;
+  GF_M2TS_DSMCC_INFO_MODULES* Modules;
+  u16 privateDataLength;     
+  char* privateDataByte;
+}GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC;
+
+typedef struct
+{  
+  u8 moduleId;
+  u8 moduleVersion;
+  u8 reserved;
+  u8 blockNumber;
+  char* blockDataByte;
+  /*added not in the spec */
+  u32 dataBlocksize;
+}GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK;
+
+typedef struct
+{ 
+  u16 moduleId;
+  u16 blockNumber;
+  u8 downloadReason;
+}GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE;
+
+typedef struct
+{  
+  u32 downloadId;
+  u16 moduleId;
+  u16 blockNumber;
+  u8 downloadCancelReason;
+  u8 reserved;
+  u16 privateDataLength;
+  char* privateDataByte;
+}GF_M2TS_DSMCC_DOWNLOAD_CANCEL;
+
+typedef struct
+{ 
+  u8 serverId[20];
+  GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR CompatibilityDescr;
+  u16 privateDataLength;
+  char* privateDataByte;
+}GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT;
+
+typedef struct
+{
+	GF_M2TS_DSMCC_MESSAGE_DATA_HEADER DownloadDataHeader;
+	void* dataMessagePayload;
+}GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE;
+
+/* DESCRIPTOR LIST */
+
+typedef struct
+{
+	u8 descriptorTag;
+	u8 descriptorLength;
+	u8 postDiscontinuityIndicator;
+	u8 contentId;
+	u8 STC_Reference[5];
+	u8 NPT_Reference[5];
+	u16 scaleNumerator;
+	u16 scaleDenominator;
+}GF_M2TS_DSMCC_NPT_REFERENCE_DESCRIPTOR;
+
+
+typedef struct
+{
+	u8 descriptorTag;
+	u8 descriptorLength;
+	void* descriptor;
+}GF_M2TS_DSMCC_STREAM_DESCRIPTOR;
+
+GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id);
+GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord();
 
 #endif	//_GF_CAROUSSEL_H_
 

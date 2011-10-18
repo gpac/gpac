@@ -1623,6 +1623,9 @@
 /* carousel.h */
 #pragma comment (linker, EXPORT_SYMBOL(on_ait_section) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_ait) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ait_destroy) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_dsmcc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord))
 
 
 

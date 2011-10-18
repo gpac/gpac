@@ -24,6 +24,16 @@
 
 #include <gpac/carousel.h>
 
+/* static functions */
+static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId);
+static GF_Err gf_m2ts_dsmcc_process_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc, char* data,GF_BitStream *bs,u32* data_shift);
+static GF_Err gf_m2ts_dsmcc_process_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader, char* data,GF_BitStream *bs,u32* data_shift,u32 mode);
+static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, GF_BitStream *bs,u32* data_shift);
+static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc);
+static GF_Err gf_m2ts_dsmcc_delete_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader);
+static GF_Err gf_m2ts_dsmcc_delete_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc);
+static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *dsmcc);
+
 
 GF_M2TS_ES *gf_ait_section_new(u32 service_id)
 {
@@ -422,7 +432,7 @@ void gf_ait_destroy(GF_M2TS_AIT* ait)
 		app_numb = gf_list_count(ait->application);
 	}
 	gf_list_del(ait->application);
-	//~ gf_free(ait);
+	gf_free(ait);
 	
 	
 }
@@ -529,4 +539,537 @@ void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application)
  		} 	
 		gf_list_del(application->application_descriptors);
 		gf_free(application);
+}
+
+void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
+{
+	GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
+	GF_Err e;
+	char *data;
+	u32 u32_data_size;
+	u32 u32_table_id;
+	GF_M2TS_ES* section;
+
+	if(ts->dsmcc_controler == NULL){
+		ts->dsmcc_controler = gf_m2ts_init_dsmcc_overlord();	
+	}		
+
+	if (evt_type == GF_M2TS_EVT_DSMCC_FOUND) {
+		GF_M2TS_DSMCC_SECTION* dsmcc;
+		data = pck->data;
+		u32_data_size = pck->data_len;
+		u32_table_id = data[0];	
+		section = (GF_M2TS_ES*)pck->stream;
+		GF_SAFEALLOC(dsmcc,GF_M2TS_DSMCC_SECTION);
+
+		e = gf_m2ts_process_dsmcc(ts,dsmcc,data,u32_data_size,u32_table_id);	
+
+	}
+}
+
+GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(){
+	GF_M2TS_DSMCC_OVERLORD* dsmcc_controler;
+	GF_SAFEALLOC(dsmcc_controler,GF_M2TS_DSMCC_OVERLORD);	
+	dsmcc_controler->dsmcc_modules = gf_list_new();
+	return dsmcc_controler;
+}
+
+GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id)
+{
+
+	GF_BitStream *bs;
+	u32 data_shift,reserved_test;
+
+	data_shift = 0;
+	//first_section = *first_section_received;
+	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
+
+	dsmcc->table_id = gf_bs_read_int(bs,8);	
+	dsmcc->section_syntax_indicator = gf_bs_read_int(bs,1);
+	dsmcc->private_indicator = gf_bs_read_int(bs,1);
+	reserved_test = gf_bs_read_int(bs,2);
+	if(reserved_test != 3){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] test reserved flag is not at 3. Corrupted section, abording processing\n"));
+		return GF_BAD_PARAM;
+	}
+	dsmcc->dsmcc_section_length = gf_bs_read_int(bs,12);	
+	if( dsmcc->dsmcc_section_length > DSMCC_SECTION_LENGTH_MAX){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] section length should not exceed 4096. Wrong section, abording processing \n"));
+		return GF_BAD_PARAM;
+	}
+	dsmcc->table_id_extension = gf_bs_read_int(bs,16);
+
+	/*bit shifting */
+	gf_bs_read_int(bs,2);
+
+	dsmcc->version_number = gf_bs_read_int(bs,5);
+	if(dsmcc->version_number != 0 &&(dsmcc->table_id == GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA || dsmcc->table_id == GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE)){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Version number should be 0 for Encapsulated Data or UN Message, abording processing \n"));
+		return GF_BAD_PARAM;
+	}
+
+	dsmcc->current_next_indicator = gf_bs_read_int(bs,1);	
+	if(!dsmcc->current_next_indicator){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] current next indicator should be at 1 \n"));
+		return GF_BAD_PARAM;
+	}
+	dsmcc->section_number = gf_bs_read_int(bs,8);
+	/*if(dsmcc->section_number >0 && ((*first_section_received) == 0)){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Wainting for the first section \n"));
+		return GF_BAD_PARAM;
+	}
+	*first_section_received = 1;*/
+	dsmcc->last_section_number = gf_bs_read_int(bs,8);	
+	printf("\nsection_number %d last_section_number %d\n",dsmcc->section_number,dsmcc->last_section_number);
+	printf("dsmcc->table_id %d \n",dsmcc->table_id);
+	switch(dsmcc->table_id){
+		case GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA:
+			{
+				data_shift = (u32)(gf_bs_get_position(bs));
+				break;
+			}
+		case GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE:			
+		case GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE:
+			{
+				data_shift = (u32)(gf_bs_get_position(bs));
+				gf_m2ts_dsmcc_download_data(dsmcc,data,bs,&data_shift);
+				break;
+			}
+		case GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION:
+			{
+				data_shift = (u32)(gf_bs_get_position(bs));
+				break;
+			}
+		default:
+			{
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Unknown DSMCC Section Type \n"));		
+				break;
+			}
+	}
+	if(dsmcc->section_syntax_indicator == 0) {
+		dsmcc->checksum = gf_bs_read_int(bs,32);	
+	}else {
+		dsmcc->CRC_32= gf_bs_read_int(bs,32);
+	}
+
+	data_shift = (u32)(gf_bs_get_position(bs));
+
+	/*if(data_shift != dsmcc->dsmcc_section_length){.
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] AIT processed length error. Difference between byte shifting %d and data size %d \n",data_shift,data_size));
+		return GF_BAD_PARAM;
+	}*/
+
+	gf_m2ts_extract_info(ts,dsmcc);
+	gf_m2ts_dsmcc_section_delete(dsmcc);
+
+	
+
+	return GF_OK;
+}
+
+static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, GF_BitStream *bs,u32* data_shift)
+{
+
+
+	GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE* DataMessage;	
+
+	GF_SAFEALLOC(DataMessage,GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE);
+
+	/* Header */
+	gf_m2ts_dsmcc_process_message_header(&DataMessage->DownloadDataHeader,data,bs,data_shift,1);
+
+	printf("DataMessage->DownloadDataHeader.messageId %d \n",DataMessage->DownloadDataHeader.messageId);
+
+	switch( DataMessage->DownloadDataHeader.messageId )
+	{
+		case DOWNLOAD_INFO_REPONSE_INDICATION:
+			{
+				u32 i;
+				GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication;
+				GF_SAFEALLOC(DownloadInfoIndication,GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC);
+				DataMessage->dataMessagePayload = DownloadInfoIndication;
+				
+				/* Payload */
+				DownloadInfoIndication->downloadId = gf_bs_read_int(bs,32);
+				DownloadInfoIndication->blockSize = gf_bs_read_int(bs,16);
+				DownloadInfoIndication->windowSize = gf_bs_read_int(bs,8);
+				DownloadInfoIndication->ackPeriod = gf_bs_read_int(bs,8);
+				DownloadInfoIndication->tCDownloadWindow = gf_bs_read_int(bs,32);
+				DownloadInfoIndication->tCDownloadScenario = gf_bs_read_int(bs,32);
+				/* Compatibility Descr */
+				gf_m2ts_dsmcc_process_compatibility_descriptor(&DownloadInfoIndication->CompatibilityDescr,data,bs,data_shift);
+				DownloadInfoIndication->numberOfModules = gf_bs_read_int(bs,16);
+				DownloadInfoIndication->Modules = (GF_M2TS_DSMCC_INFO_MODULES*)gf_calloc(DownloadInfoIndication->numberOfModules,sizeof(GF_M2TS_DSMCC_INFO_MODULES));
+				for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){					
+						DownloadInfoIndication->Modules[i].moduleId = gf_bs_read_int(bs,16);
+						DownloadInfoIndication->Modules[i].moduleSize = gf_bs_read_int(bs,32);
+						DownloadInfoIndication->Modules[i].moduleVersion = gf_bs_read_int(bs,8);
+						DownloadInfoIndication->Modules[i].moduleInfoLength = gf_bs_read_int(bs,8);				
+						DownloadInfoIndication->Modules[i].moduleInfoByte = (char*)gf_calloc(DownloadInfoIndication->Modules[i].moduleInfoLength,sizeof(char));	
+						gf_bs_read_data(bs,DownloadInfoIndication->Modules[i].moduleInfoByte,(u8)(DownloadInfoIndication->Modules[i].moduleInfoLength));
+				}
+				
+				DownloadInfoIndication->privateDataLength = gf_bs_read_int(bs,16);    
+				DownloadInfoIndication->privateDataByte = (char*)gf_calloc(DownloadInfoIndication->privateDataLength,sizeof(char));
+				gf_bs_read_data(bs,DownloadInfoIndication->privateDataByte,(u8)(DownloadInfoIndication->privateDataLength));
+
+				break;
+			}
+		case DOWNLOAD_DATA_BLOCK:
+			{				
+				GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock;
+				GF_SAFEALLOC(DownloadDataBlock,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK);
+				DataMessage->dataMessagePayload = DownloadDataBlock;				
+				DownloadDataBlock->moduleId = gf_bs_read_int(bs,16);
+				printf("DownloadDataBlock->moduleId %d \n",DownloadDataBlock->moduleId);
+				DownloadDataBlock->moduleVersion = gf_bs_read_int(bs,8); 
+				DownloadDataBlock->reserved = gf_bs_read_int(bs,8);
+				if(DownloadDataBlock->reserved != 0xFF){
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] DataHeader reserved slot does not have the correct value, abording the processing \n"));
+					return GF_BAD_PARAM;
+				}
+				DownloadDataBlock->blockNumber = gf_bs_read_int(bs,16);
+				printf("DownloadDataBlock->blockNumber %d \n\n",DownloadDataBlock->blockNumber);
+				DownloadDataBlock->dataBlocksize = DataMessage->DownloadDataHeader.messageLength - DataMessage->DownloadDataHeader.adaptationLength - 6; /* the first 6 bytes of the Data Block message */
+				DownloadDataBlock->blockDataByte = (char*)gf_calloc(DownloadDataBlock->dataBlocksize,sizeof(char));
+				gf_bs_read_data(bs,DownloadDataBlock->blockDataByte,(u8)(DownloadDataBlock->dataBlocksize));
+				break;
+			}
+		case DOWNLOAD_DATA_REQUEST:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE* DownloadDataRequest;
+				GF_SAFEALLOC(DownloadDataRequest,GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE);
+				DataMessage->dataMessagePayload = DownloadDataRequest;	
+				DownloadDataRequest->moduleId = gf_bs_read_int(bs,16);
+				DownloadDataRequest->blockNumber = gf_bs_read_int(bs,16);
+				DownloadDataRequest->downloadReason  = gf_bs_read_int(bs,8);
+				break;
+			}
+		case DOWNLOAD_DATA_CANCEL:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_CANCEL* DownloadCancel;
+				GF_SAFEALLOC(DownloadCancel,GF_M2TS_DSMCC_DOWNLOAD_CANCEL);
+				DataMessage->dataMessagePayload = DownloadCancel;	
+				DownloadCancel->downloadId = gf_bs_read_int(bs,32);
+				DownloadCancel->moduleId = gf_bs_read_int(bs,16);
+				DownloadCancel->blockNumber = gf_bs_read_int(bs,16);
+				DownloadCancel->downloadCancelReason = gf_bs_read_int(bs,8);
+				DownloadCancel->reserved = gf_bs_read_int(bs,8);
+				DownloadCancel->privateDataLength = gf_bs_read_int(bs,16);
+				if(DownloadCancel->privateDataLength){
+					DownloadCancel->privateDataByte = (char*)gf_calloc(DownloadCancel->privateDataLength,sizeof(char));
+					gf_bs_read_data(bs,DownloadCancel->privateDataByte,(u8)(DownloadCancel->privateDataByte));
+				}
+				break;
+			}
+		case DOWNLOAD_SERVER_INITIATE:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit;
+				GF_SAFEALLOC(DownloadServerInit,GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT);
+				DataMessage->dataMessagePayload = DownloadServerInit;
+				gf_bs_read_data(bs,DownloadServerInit->serverId,20);			
+				gf_m2ts_dsmcc_process_compatibility_descriptor(&DownloadServerInit->CompatibilityDescr,data,bs,data_shift);
+				break;
+			}
+		default:
+			{
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Unknown dataMessagePayload Type \n"));
+				break;
+			}
+	}   
+
+	dsmcc->DSMCC_Extension = DataMessage;
+
+	return GF_OK;
+}
+	
+				
+
+
+static GF_Err gf_m2ts_dsmcc_process_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader, char* data,GF_BitStream *bs,u32* data_shift,u32 mode)
+{
+	u32 byte_shift;
+
+	byte_shift = *data_shift;
+	
+	MessageHeader->protocolDiscriminator = gf_bs_read_int(bs,8);
+	if(MessageHeader->protocolDiscriminator != 0x11){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] DataHeader Protocol Discriminator slot does not have the correct value, abording the processing \n"));
+		return GF_BAD_PARAM;
+	}
+	MessageHeader->dsmccType = gf_bs_read_int(bs,8);
+	MessageHeader->messageId = gf_bs_read_int(bs,16);
+	/* mode 0 for Message Header - 1 for Download Data header */
+	if(mode == 0){
+		MessageHeader->transactionId = gf_bs_read_int(bs,32);
+	}else if(mode == 1){
+		MessageHeader->downloadId = gf_bs_read_int(bs,32);
+	}
+	printf("MessageHeader->downloadId %d \n",MessageHeader->downloadId);
+	MessageHeader->reserved = gf_bs_read_int(bs,8);
+	if(MessageHeader->reserved != 0xFF){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] DataHeader reserved slot does not have the correct value, abording the processing \n"));
+		return GF_BAD_PARAM;
+	}
+	MessageHeader->adaptationLength = gf_bs_read_int(bs,8);
+	MessageHeader->header_length = ((u32)(gf_bs_get_position(bs)) - byte_shift);
+	MessageHeader->messageLength = gf_bs_read_int(bs,16);
+
+	if(MessageHeader->adaptationLength > 0){
+		MessageHeader->DsmccAdaptationHeader = (GF_M2TS_DSMCC_ADAPTATION_HEADER*)gf_calloc(1,sizeof(GF_M2TS_DSMCC_ADAPTATION_HEADER));
+		MessageHeader->DsmccAdaptationHeader->adaptationType = gf_bs_read_int(bs,8);
+		MessageHeader->DsmccAdaptationHeader->adaptationDataByte = (char*)gf_calloc(MessageHeader->adaptationLength-1,sizeof(char));
+		gf_bs_read_data(bs,MessageHeader->DsmccAdaptationHeader->adaptationDataByte,(u8)(MessageHeader->adaptationLength));
+	}
+
+	*data_shift = (u32)(gf_bs_get_position(bs));
+
+	return GF_OK;
+}
+
+static GF_Err gf_m2ts_dsmcc_process_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc, char* data,GF_BitStream *bs,u32* data_shift)
+{
+	u32 byte_shift,i,j;
+
+	byte_shift = *data_shift;
+	
+	CompatibilityDesc->compatibilityDescriptorLength = gf_bs_read_int(bs,16);
+	if(CompatibilityDesc->compatibilityDescriptorLength){
+	CompatibilityDesc->descriptorCount = gf_bs_read_int(bs,16);
+		if(CompatibilityDesc->descriptorCount){
+			CompatibilityDesc->Descriptor = (GF_M2TS_DSMCC_DESCRIPTOR*)gf_calloc(CompatibilityDesc->descriptorCount,sizeof(GF_M2TS_DSMCC_DESCRIPTOR));
+				for(i=0;i<CompatibilityDesc->descriptorCount;i++){
+					CompatibilityDesc->Descriptor[i].descriptorType = gf_bs_read_int(bs,8);
+					CompatibilityDesc->Descriptor[i].descriptorLength = gf_bs_read_int(bs,8);
+					CompatibilityDesc->Descriptor[i].specifierType = gf_bs_read_int(bs,8);
+					CompatibilityDesc->Descriptor[i].specifierData = gf_bs_read_int(bs,21);
+					CompatibilityDesc->Descriptor[i].model = gf_bs_read_int(bs,16);
+					CompatibilityDesc->Descriptor[i].version = gf_bs_read_int(bs,16);
+					CompatibilityDesc->Descriptor[i].subDescriptorCount = gf_bs_read_int(bs,8);
+					if(CompatibilityDesc->Descriptor[i].subDescriptorCount){
+						CompatibilityDesc->Descriptor[i].SubDescriptor  = (GF_M2TS_DSMCC_SUBDESCRIPTOR*)gf_calloc(CompatibilityDesc->Descriptor[i].subDescriptorCount,sizeof(GF_M2TS_DSMCC_SUBDESCRIPTOR));
+						for(j=0;j>CompatibilityDesc->Descriptor[i].subDescriptorCount;j++){
+							CompatibilityDesc->Descriptor[i].SubDescriptor[j].subDescriptorType = gf_bs_read_int(bs,8);
+							CompatibilityDesc->Descriptor[i].SubDescriptor[j].subDescriptorLength = gf_bs_read_int(bs,8);
+							if(CompatibilityDesc->Descriptor[i].SubDescriptor[j].subDescriptorLength){
+								CompatibilityDesc->Descriptor[i].SubDescriptor[j].additionalInformation = (char*)gf_calloc(CompatibilityDesc->Descriptor[i].SubDescriptor[j].subDescriptorLength,sizeof(char));
+								gf_bs_read_data(bs,CompatibilityDesc->Descriptor[i].SubDescriptor[j].additionalInformation,(u8)(CompatibilityDesc->Descriptor[i].SubDescriptor[j].subDescriptorLength));
+							}
+						}
+					}
+
+				}
+		}
+	}
+	
+	*data_shift = (u32)(gf_bs_get_position(bs));
+
+	return GF_OK;
+}
+
+static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *dsmcc)
+{	
+	
+	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)ts->dsmcc_controler;
+	switch(dsmcc->table_id){
+
+		case GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA:
+			{
+				break;
+			}
+		case GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE:		
+		case GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE* DataMessage = (GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE*)dsmcc->DSMCC_Extension;
+
+				switch( DataMessage->DownloadDataHeader.messageId )
+				{
+					case DOWNLOAD_INFO_REPONSE_INDICATION:
+						{
+							u32 i,j;
+							GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication = (GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC*)DataMessage->dataMessagePayload;							
+							for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){
+									GF_M2TS_DSMCC_MODULE* dsmcc_module;
+									GF_SAFEALLOC(dsmcc_module,GF_M2TS_DSMCC_MODULE);
+									dsmcc_module->downloadId = DownloadInfoIndication->downloadId;
+									dsmcc_module->moduleId = DownloadInfoIndication->Modules[i].moduleId;
+									dsmcc_module->size = DownloadInfoIndication->Modules[i].moduleSize;
+									dsmcc_module->version_number = DownloadInfoIndication->Modules[i].moduleVersion;
+									dsmcc_module->buffer = (char*)gf_calloc(dsmcc_module->size,sizeof(char));
+									gf_list_add(dsmcc_overlord->dsmcc_modules,dsmcc_module);
+							}
+							break;
+						}
+					case DOWNLOAD_DATA_BLOCK:
+						{				
+							u32 modules_count,i;
+							GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock = (GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK*)DataMessage->dataMessagePayload;
+							modules_count = 0;
+
+							modules_count = gf_list_count(dsmcc_overlord->dsmcc_modules);
+							for(i=0;i<modules_count;i++){
+								GF_M2TS_DSMCC_MODULE* dsmcc_module = gf_list_get(dsmcc_overlord->dsmcc_modules,i);
+								/* Test if the data are compatible with the module configuration */
+								if(!dsmcc_download_data_validation(DownloadDataBlock,dsmcc_module,DataMessage->DownloadDataHeader.downloadId)){									
+									memcpy(dsmcc_module->buffer+dsmcc_module->byte_sift,DownloadDataBlock->blockDataByte,sizeof(char));
+									dsmcc_module->byte_sift += DownloadDataBlock->dataBlocksize;									
+									dsmcc_module->last_section_number = dsmcc->last_section_number;
+									dsmcc_module->section_number++;
+									break;
+								}
+							}							
+							break;
+						}
+					case DOWNLOAD_DATA_REQUEST:
+						{
+							GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE* DownloadDataRequest = (GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE*)DataMessage->dataMessagePayload;
+							break;
+						}
+					case DOWNLOAD_DATA_CANCEL:
+						{
+							GF_M2TS_DSMCC_DOWNLOAD_CANCEL* DownloadCancel = (GF_M2TS_DSMCC_DOWNLOAD_CANCEL*)DataMessage->dataMessagePayload;						
+							break;
+						}
+					case DOWNLOAD_SERVER_INITIATE:
+						{
+							GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit = (GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT*)DataMessage->dataMessagePayload;								
+							break;
+						}
+					default:
+						{
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Unknown dataMessagePayload Type \n"));
+							break;
+						}
+				} 			
+				break;
+			}
+		case GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION:
+			{
+				break;
+			}
+		default:
+			{
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Unknown DSMCC Section Type \n"));		
+				break;
+			}
+	}
+
+}
+
+
+static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId){
+
+		if((dsmcc_module->moduleId == DownloadDataBlock->moduleId) && (dsmcc_module->section_number == DownloadDataBlock->blockNumber) &&
+			dsmcc_module->version_number == DownloadDataBlock->moduleVersion && (dsmcc_module->downloadId == downloadId)){
+			return GF_OK;
+		}
+		return  GF_BAD_PARAM;
+
+}
+
+/* Delete structure of the DSMCC data processing */
+
+static GF_Err gf_m2ts_dsmcc_delete_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc)
+{
+	u32 byte_shift,i,j;	
+	if(CompatibilityDesc->compatibilityDescriptorLength){	
+		if(CompatibilityDesc->descriptorCount){			
+			for(i=0;i<CompatibilityDesc->descriptorCount;i++){					
+				if(CompatibilityDesc->Descriptor[i].subDescriptorCount){
+					for(j=0;j>CompatibilityDesc->Descriptor[i].subDescriptorCount;j++){							
+						if(CompatibilityDesc->Descriptor[i].SubDescriptor[j].subDescriptorLength){
+							gf_free(CompatibilityDesc->Descriptor[i].SubDescriptor[j].additionalInformation);
+						}
+					}
+					gf_free(CompatibilityDesc->Descriptor[i].SubDescriptor);
+				}
+
+			}
+			gf_free(CompatibilityDesc->Descriptor);
+		}
+	}
+	return GF_OK;
+}
+
+static GF_Err gf_m2ts_dsmcc_delete_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader)
+{	
+	if(MessageHeader->adaptationLength > 0){		
+		gf_free(MessageHeader->DsmccAdaptationHeader->adaptationDataByte);
+		gf_free(MessageHeader->DsmccAdaptationHeader);
+	}
+	return GF_OK;
+}
+
+static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc){
+
+	GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE* DataMessage = (GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE*)dsmcc->DSMCC_Extension;	
+
+	switch( DataMessage->DownloadDataHeader.messageId )
+	{
+		case DOWNLOAD_INFO_REPONSE_INDICATION:
+			{
+				u32 i,j;
+				GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication = (GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC*)DataMessage->dataMessagePayload;
+								
+				/* Compatibility Descr */
+				gf_m2ts_dsmcc_delete_compatibility_descriptor(&DownloadInfoIndication->CompatibilityDescr);
+				if(DownloadInfoIndication->numberOfModules){					
+					for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){										
+						gf_free(DownloadInfoIndication->Modules[i].moduleInfoByte);								
+					}
+					gf_free(DownloadInfoIndication->Modules);
+				}				
+				if(DownloadInfoIndication->privateDataLength){  
+					gf_free(DownloadInfoIndication->privateDataByte);
+				}
+				gf_free(DownloadInfoIndication);
+				break;
+			}
+		case DOWNLOAD_DATA_BLOCK:
+			{				
+				GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock = (GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK*)DataMessage->dataMessagePayload;
+				if(DownloadDataBlock->dataBlocksize){
+					gf_free(DownloadDataBlock->blockDataByte);
+				}
+				gf_free(DownloadDataBlock);
+				break;
+			}
+		case DOWNLOAD_DATA_REQUEST:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE* DownloadDataRequest = (GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE*)DataMessage->dataMessagePayload;
+				gf_free(DownloadDataRequest);
+				break;
+			}
+		case DOWNLOAD_DATA_CANCEL:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_CANCEL* DownloadCancel = (GF_M2TS_DSMCC_DOWNLOAD_CANCEL*)DataMessage->dataMessagePayload;			
+				if(DownloadCancel->privateDataLength){
+					gf_free(DownloadCancel->privateDataByte);
+				}
+				gf_free(DownloadCancel);
+				break;
+			}
+		case DOWNLOAD_SERVER_INITIATE:
+			{
+				GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit = (GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT*)DataMessage->dataMessagePayload;
+				gf_m2ts_dsmcc_delete_compatibility_descriptor(&DownloadServerInit->CompatibilityDescr);
+				if(DownloadServerInit->privateDataLength){
+					gf_free(DownloadServerInit->privateDataByte);
+				}
+				gf_free(DownloadServerInit);
+				break;
+			}
+		default:
+			{
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Unknown dataMessagePayload Type \n"));
+				break;
+			}
+	} 
+
+	/* Header */
+	gf_m2ts_dsmcc_delete_message_header(&DataMessage->DownloadDataHeader);
+	gf_free(DataMessage);
+	gf_free(dsmcc);
+	dsmcc = NULL;
+	return GF_OK;
 }

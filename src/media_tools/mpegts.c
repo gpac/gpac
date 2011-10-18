@@ -798,12 +798,19 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
-		} else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_ES_IS_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+		} else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA	|| sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE ||
+			sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_PRIVATE)) ) {				
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
+			ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
+		} else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+			GF_M2TS_SL_PCK pck;
+			pck.data_len = sec->length;
+			pck.data = sec->section;
+			pck.stream = (GF_M2TS_ES *)ses;
+			//ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
 		} else if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -1463,20 +1470,28 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			break;
 
 		
-		case GF_M2TS_PRIVATE_SECTION:
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT section found on pid %d\n", pid));
+		
 			/*to refine with generic private section redispatching to AIT or other afterwards*/
 			es = gf_ait_section_new(pmt->program->number);
 			ses = (GF_M2TS_SECTION_ES *)es;
 			ses->sec = gf_m2ts_section_filter_new(NULL, 0);
 			break;
+		case GF_M2TS_13818_6_ANNEX_A:
+		case GF_M2TS_13818_6_ANNEX_B:
+		case GF_M2TS_13818_6_ANNEX_C:
 		case GF_M2TS_13818_6_ANNEX_D:
+		case GF_M2TS_PRIVATE_SECTION:			
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			es = (GF_M2TS_ES *)ses;
-			es->flags |= GF_M2TS_ES_IS_SECTION;		
-			printf("stream type DSM CC user private section: pid = %d \n", pid);		
+			es->flags |= GF_M2TS_ES_IS_SECTION;	
+			if(stream_type == GF_M2TS_PRIVATE_SECTION){
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT section found on pid %d\n", pid));
+			}else{
+				printf("stream type DSM CC user private section: pid = %d \n", pid);		
+			}
 			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
 			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+			//ses->sec->service_id = pmt->program->number;
 			break;
 
 		case GF_M2TS_MPE_SECTIONS:
@@ -1617,6 +1632,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			nb_es++;
 		}
 	}
+
 	
 	if (nb_es) {		
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
