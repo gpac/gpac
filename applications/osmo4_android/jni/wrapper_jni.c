@@ -187,6 +187,20 @@ JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_setGpacPreference
   }
 //-----------------------------------
 
+
+
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacsetdebug(JNIEnv * env, jobject obj, jstring tools_at_levels){
+  CAST_HANDLE(wr);
+  jniLOGV("setDebug::start");
+  if (wr) {
+    jboolean isCopy;
+    const char * string_tools_at_levels = env->GetStringUTFChars(tools_at_levels, &isCopy);
+    wr->setGpacLogs(tools_at_levels);
+    env->ReleaseStringUTFChars(tools_at_levels, string_tools_at_levels);
+  }
+  jniLOGV("setDebug::end");
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -171,7 +171,7 @@ class CNativeWrapper{
 		/*
 		 * Callback management
 		 */
-                JavaEnvTh mainJavaEnv;
+    JavaEnvTh *mainJavaEnv;
 
 		GF_Mutex *m_mx;
 		GF_User m_user;
@@ -208,7 +208,9 @@ class CNativeWrapper{
 		void onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode);
 		void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
 		void navigate( GF_Event* evt);
-                void setGpacPreference( const char * category, const char * name, const char * value);
+    void setGpacPreference( const char * category, const char * name, const char * value);
+    void setGpacLogs(const char *tools_at_level);
+
 	public:
 		int MessageBox(const char* msg, const char* title, GF_Err status);
 		int Quit(int code);

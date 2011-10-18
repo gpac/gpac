@@ -454,12 +454,12 @@ public class Osmo4 extends Activity implements GpacCallback {
             	if (item.isChecked())
             	{
             		item.setChecked(false);
-            		mGLView.gpacsetdebug(23, 1);
+            		mGLView.setGpacLogs("all@error");
             	}
             	else
             	{
             		item.setChecked(true);
-            		mGLView.gpacsetdebug(23, 4);
+            		mGLView.setGpacLogs("all@debug");
             	}
             	return true;
             case R.id.setAsStartupFile: {
