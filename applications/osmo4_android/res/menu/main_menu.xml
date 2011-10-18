@@ -12,8 +12,18 @@
             android:checkable="false"/>
         <item android:checkable="false" android:visible="true" android:title="@string/about" android:id="@+id/about"
             android:enabled="true"/>
+        <item android:title="@string/quickSettings" 		android:id="@+id/quickSettings">
+			<menu>
+				<group android:checkableBehavior="all">
+			    	<item android:title="@string/debug" 		android:id="@+id/enableDebug"></item>
+			    	<item android:title="@string/autoRotate" 	android:id="@+id/autoRotate"	android:checked="true"></item>
+				</group>
+			</menu>
+		</item>
         <item android:id="@+id/cleanCache" android:enabled="true" android:title="@string/cleanCache"
             android:checkable="false" android:visible="true"/>
+        <item android:checkable="false" android:visible="true" android:title="@string/reloadFile" android:id="@+id/reloadFile"
+            android:enabled="true"/>
         <item android:enabled="true" android:checkable="false" android:id="@+id/setAsStartupFile" android:visible="true"
             android:title="@string/setAsStartupFile"/>
         <item android:enabled="true" android:checkable="false" android:id="@+id/resetGpacConfig" android:visible="true"

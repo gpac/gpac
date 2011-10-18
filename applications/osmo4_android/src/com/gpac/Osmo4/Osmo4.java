@@ -37,6 +37,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
@@ -44,6 +45,7 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.text.InputType;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -53,6 +55,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
+
 import com.gpac.Osmo4.extra.FileChooserActivity;
 import com.gpac.Osmo4.logs.GpacLogger;
 
@@ -411,6 +414,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     // ---------------------------------------
 
+    private int last_orientation = 0;
+    
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -425,6 +430,38 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.showVirtualKeyboard:
                 showKeyboard(true);
                 return true;
+            case R.id.reloadFile:
+            	openURLasync(currentURL);
+            	return true;
+            case R.id.autoRotate:
+            	if (item.isChecked())
+            	{
+            		item.setChecked(false);
+            		last_orientation = this.getRequestedOrientation();
+            		int ornt = getResources().getConfiguration().orientation;
+            		if ( ornt == Configuration.ORIENTATION_PORTRAIT)
+            			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            		else
+            			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            	}
+            	else
+            	{
+            		item.setChecked(true);
+            		this.setRequestedOrientation(last_orientation);
+            	}
+            	return true;
+            case R.id.enableDebug:
+            	if (item.isChecked())
+            	{
+            		item.setChecked(false);
+            		mGLView.gpacsetdebug(23, 1);
+            	}
+            	else
+            	{
+            		item.setChecked(true);
+            		mGLView.gpacsetdebug(23, 4);
+            	}
+            	return true;
             case R.id.setAsStartupFile: {
                 AlertDialog.Builder b = new AlertDialog.Builder(this);
                 b.setTitle(R.string.setAsStartupFileTitle);
@@ -492,8 +529,8 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
                 return true;
             case R.id.quit:
+            	mGLView.disconnect();
                 this.finish();
-                mGLView.destroy();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -571,7 +608,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     // ---------------------------------------
     @Override
     protected void onDestroy() {
-        deleteConfigIfNeeded();
+    	deleteConfigIfNeeded();
         service.shutdown();
         logger.onDestroy();
         synchronized (this) {
@@ -585,6 +622,36 @@ public class Osmo4 extends Activity implements GpacCallback {
         // Deleteing is done two times if GPAC fails to shutdown by crashing...
         deleteConfigIfNeeded();
         super.onDestroy();
+    }
+    
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        //Handle the back button
+        if(keyCode == KeyEvent.KEYCODE_BACK) {
+            //Ask the user if they want to quit
+            new AlertDialog.Builder(this)
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setTitle(R.string.quit)
+            .setMessage(R.string.really_quit)
+            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+
+                public void onClick(DialogInterface dialog, int which) {
+
+                    //Stop the activity
+                	mGLView.disconnect();
+                    Osmo4.this.finish();
+                }
+
+            })
+            .setNegativeButton(R.string.no, null)
+            .show();
+
+            return true;
+        }
+        else {
+            return super.onKeyDown(keyCode, event);
+        }
+
     }
 
     // ---------------------------------------
