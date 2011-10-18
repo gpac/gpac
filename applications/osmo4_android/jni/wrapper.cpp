@@ -110,9 +110,6 @@ static JNINativeMethod sMethods[] = {
     {"gpaceventkeypress",
       "(IIIII)V",
       (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress},
-    {"gpacsetdebug",
-	  "(II)V",
-	  (void*)Java_com_gpac_Osmo4_GPACInstance_gpacsetdebug},
     {"gpaceventmousedown",
       "(FF)V",
       (void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousedown},
@@ -125,6 +122,9 @@ static JNINativeMethod sMethods[] = {
     {"setGpacPreference",
       "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
       (void*)Java_com_gpac_Osmo4_GPACInstance_setGpacPreference},
+    {"setGpacLogs",
+    "(Ljava/lang/String)V",
+	  (void*)Java_com_gpac_Osmo4_GPACInstance_setGpacLogs},
       NULL
 };
 
