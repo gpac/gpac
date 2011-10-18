@@ -1259,10 +1259,10 @@ void setColRS( MPE_FEC_FRAME * mff, u32 offset, u8 * pds, u32 length )
 {
 	if ( mff->current_offset_rs != offset)	{
 		printf ("there is an error hole in the RS from %d to %d \n", mff->current_offset_rs, offset );
-		mff->current_offset_rs = offset;
-		setErrorIndicator( mff->p_error_rs , mff->current_offset_rs , (offset - mff->current_offset_rs)*sizeof(u32));		 
+		setErrorIndicator( mff->p_error_rs , mff->current_offset_rs , (offset - mff->current_offset_rs)*sizeof(u32));
+		mff->current_offset_rs = offset;	
 	} 
-  assert(mff->rows == length);
+	assert(mff->rows == length);
 	memcpy(mff->p_rs + mff->current_offset_rs , pds, length*sizeof(u8) );
 	mff->current_offset_rs = offset + length ; 
 	
@@ -1270,9 +1270,7 @@ void setColRS( MPE_FEC_FRAME * mff, u32 offset, u8 * pds, u32 length )
 
 void getColRS(MPE_FEC_FRAME * mff, u32 offset, u8 * pds, u32 length)
 {
-	
 	memcpy(pds,mff->p_rs + offset, length);
-
 }
 
 void getErrorPositions(MPE_FEC_FRAME *mff, u32 row, u32 * errPositions)
@@ -1310,7 +1308,7 @@ u32  getErrasurePositions( MPE_FEC_FRAME *mff , u32 row, u32 *errasures)
 	return nb;
 }
 
-void setErrorIndicator(u32 * data , u32 offset,u32 length)
+void setErrorIndicator(u32 * data , u32 offset, u32 length)
 {
 //	printf("setting the error indication \n");
 	memset(data+offset, 1, length);
