@@ -691,19 +691,21 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
                 }
 
 		/*if asked to regulate, wait until we get a play request*/
-		if (m2ts->ts->run_state && !m2ts->ts->nb_playing && m2ts->ts->file_regulate) {
-			while (m2ts->ts->run_state && !m2ts->ts->nb_playing && m2ts->ts->file_regulate) {
+		if (m2ts->ts->run_state && !m2ts->ts->nb_playing && (m2ts->ts->file_regulate==1)) {
+			while (m2ts->ts->run_state && !m2ts->ts->nb_playing && (m2ts->ts->file_regulate==1) ) {
 				gf_sleep(50);
 				continue;
 			}
 		} else {
 			gf_sleep(1);
 		}
+#if 0
 		if (!m2ts->ts->run_state) {
 			if (m2ts->ts->dnload) 
 				gf_term_download_del( m2ts->ts->dnload );
 			m2ts->ts->dnload = NULL;
 		}
+#endif
 
 	} else {
 		e = param->error;
