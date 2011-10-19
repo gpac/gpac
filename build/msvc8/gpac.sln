@@ -237,6 +237,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "validator", "validator.vcpr
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "avcap", "avcap.vcproj", "{109C4F31-781F-4C9E-B160-E788A83F9387}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -1003,6 +1008,24 @@ Global
 		{75CD44BD-BE6F-407F-84CA-D0F60264EB4B}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{75CD44BD-BE6F-407F-84CA-D0F60264EB4B}.Release|Win32.ActiveCfg = Release|Win32
 		{75CD44BD-BE6F-407F-84CA-D0F60264EB4B}.Release|Win32.Build.0 = Release|Win32
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Mixed Platforms.ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Mixed Platforms.Build.0 = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Mixed Platforms.Deploy.0 = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Smartphone 2003 (ARMV4).Deploy.0 = Debug|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Win32.ActiveCfg = Debug|Win32
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Win32.Build.0 = Debug|Win32
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Mixed Platforms.ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Mixed Platforms.Build.0 = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Mixed Platforms.Deploy.0 = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Win32.ActiveCfg = Release|Win32
+		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

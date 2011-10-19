@@ -31,11 +31,12 @@
 #include <gpac/download.h>
 
 #if !defined(__GNUC__)&& (defined(_WIN32_WCE) || defined (WIN32))
-#  pragma comment(lib, "avcap")
 #  pragma comment(lib, "strmiids")
 #ifdef _DEBUG
+#  pragma comment(lib, "avcapd")
 #  pragma comment(lib, "strmbasd")
 #else
+#  pragma comment(lib, "avcap")
 #  pragma comment(lib, "strmbase")
 #endif
 #  pragma comment(lib, "winmm")
