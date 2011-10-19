@@ -384,8 +384,9 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 			
 	default:
 		if ((SDLkey>=0x30) && (SDLkey<=0x39))  evt->key_code = GF_KEY_0 + SDLkey-0x30;
-		else if ((SDLkey>=0x41) && (SDLkey<=0x5A))  evt->key_code = GF_KEY_A + SDLkey-0x51;
-		else
+		else if ((SDLkey>=0x41) && (SDLkey<=0x5A))  evt->key_code = GF_KEY_A + SDLkey-0x41;
+		else if ((SDLkey>=0x61) && (SDLkey<=0x7A))  evt->key_code = GF_KEY_A + SDLkey-0x61;
+		else	
 		{
 			evt->key_code = GF_KEY_UNIDENTIFIED;
 		}
