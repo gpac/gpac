@@ -68,6 +68,9 @@ NPError NPOsmozilla_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int1
 	// associate the plugin instance object with NPP instance
 	instance->pdata = (void *)osmo;
 
+	osmo->supports_xembed = 0;
+	sBrowserFunctions->getvalue(NULL, NPNVSupportsXEmbedBool, (void *)&osmo->supports_xembed);
+
 	Osmozilla_Initialize(osmo, argc, argn, argv);
 
 #ifndef GECKO_XPCOM
@@ -236,6 +239,9 @@ NPError	NPOsmozilla_GetValue(NPP instance, NPPVariable variable, void *value)
 		break;
 
 #endif
+	case NPPVpluginNeedsXEmbed:
+		*((int *)value) = 1;
+		break;
 	case NPPVpluginNameString :
 		*(const char**)value = "Osmozilla/GPAC plugin for NPAPI";
 		break;
