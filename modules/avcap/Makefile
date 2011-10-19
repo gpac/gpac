@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= $(AVCAP_LDFLAGS) -lgpac
+LINKLIBS= $(AVCAP_LDFLAGS) -L../../bin/gcc -lgpac
 
 
 #common objects
