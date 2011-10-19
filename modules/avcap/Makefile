@@ -15,8 +15,15 @@ LDFLAGS+=-pg
 endif
 
 LINKLIBS= -lgpac -lavcap
+
 LOCAL_LIB=../../bin/gcc -L../../extra_lib/lib/gcc
 CPPFLAGS+= -I"$(LOCAL_INC_PATH)"
+
+ifeq ($(CONFIG_DARWIN),yes)
+CPPFLAGS+= -I"$(LOCAL_INC_PATH)/avcap/osx"
+LINKLIBS+= ${wl}-flat_namespace ${wl}-undefined ${wl}suppress -lpthread  -framework QuickTime -framework QuartzCore
+endif
+
 
 #common objects
 OBJS=avcap.o
