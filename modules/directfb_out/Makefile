@@ -20,7 +20,7 @@ endif
 
 
 #common obj
-OBJS=directfb_out.o
+OBJS=directfb_out.o directfb_wrapper.o
 
 SRCS := $(OBJS:.o=.c) 
 
