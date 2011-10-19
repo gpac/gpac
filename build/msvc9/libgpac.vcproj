@@ -7030,6 +7030,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\events_constants.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\filestreamer.h"
 				>
 			</File>
