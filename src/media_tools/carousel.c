@@ -896,7 +896,7 @@ static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *ds
 				{
 					case DOWNLOAD_INFO_REPONSE_INDICATION:
 						{
-							u32 i,j,nb_modules;							
+							u32 i,nb_modules;							
 							GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication = (GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC*)DataMessage->dataMessagePayload;
 							nb_modules = gf_list_count(dsmcc_overlord->dsmcc_modules);
 							for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){
@@ -1054,7 +1054,7 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 
 static GF_Err gf_m2ts_dsmcc_delete_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc)
 {
-	u32 byte_shift,i,j;	
+	u32 i,j;	
 	if(CompatibilityDesc->compatibilityDescriptorLength){	
 		if(CompatibilityDesc->descriptorCount){			
 			for(i=0;i<CompatibilityDesc->descriptorCount;i++){					
@@ -1091,7 +1091,7 @@ static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc){
 	{
 		case DOWNLOAD_INFO_REPONSE_INDICATION:
 			{
-				u32 i,j;
+				u32 i;
 				GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication = (GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC*)DataMessage->dataMessagePayload;
 								
 				/* Compatibility Descr */
@@ -1160,7 +1160,6 @@ static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc){
 
 static GF_Err dsmcc_module_delete(GF_M2TS_DSMCC_MODULE* dsmcc_module){
 
-	u32 i;
 	gf_free(dsmcc_module->buffer);
 	gf_free(dsmcc_module);
 	dsmcc_module = NULL;
