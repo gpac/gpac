@@ -457,17 +457,6 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		}
 	}
 
-	if (node->sgprivate->tag==TAG_MPEG4_InputSensor) {
-		GF_Command *com_o, *com_f;
-		u32 k = 0;
-		M_InputSensor *clone_is = (M_InputSensor *)node;
-		M_InputSensor *orig_is = (M_InputSensor *)orig;
-		while ( (com_o = (GF_Command *)gf_list_enum(orig_is->buffer.commandList, &k) ) ) {
-			com_f = gf_sg_vrml_command_clone(com_o, node->sgprivate->scenegraph, 1);
-			gf_list_add(clone_is->buffer.commandList, com_f);
-		}
-	}
-
 	/*init node before creating ISed routes so the eventIn handler are in place*/
 	if (node->sgprivate->tag == TAG_MPEG4_Conditional) BIFS_SetupConditionalClone(node, orig);
 	else if (node->sgprivate->tag != TAG_ProtoNode) gf_node_init(node);
