@@ -243,6 +243,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "validator", "validator.vcpr
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "avcap", "avcap.vcproj", "{109C4F31-781F-4C9E-B160-E788A83F9387}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
