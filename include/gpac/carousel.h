@@ -215,7 +215,8 @@ typedef struct
 {
 	u32 moduleId;
 	u32 downloadId;
-	u32 version_number;	
+	u32 version_number;
+	Bool done;
 }GF_M2TS_DSMCC_PROCESSED;
 
 typedef struct

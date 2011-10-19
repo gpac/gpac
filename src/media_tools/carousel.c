@@ -33,6 +33,10 @@ static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc);
 static GF_Err gf_m2ts_dsmcc_delete_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader);
 static GF_Err gf_m2ts_dsmcc_delete_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc);
 static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *dsmcc);
+static GF_Err dsmcc_module_delete(GF_M2TS_DSMCC_MODULE* dsmcc_module);
+static GF_Err dsmcc_module_state(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 moduleId,u32 moduleVersion);
+static GF_Err dsmcc_create_module_validation(GF_M2TS_DSMCC_INFO_MODULES* InfoModules, u32 downloadId, GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 nb_module);
+static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 moduleIndex);
 
 
 GF_M2TS_ES *gf_ait_section_new(u32 service_id)
@@ -541,6 +545,8 @@ void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application)
 		gf_free(application);
 }
 
+/* DSMCC */
+
 void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
@@ -578,9 +584,11 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, c
 {
 
 	GF_BitStream *bs;
+	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
 	u32 data_shift,reserved_test;
 
 	data_shift = 0;
+	dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)ts->dsmcc_controler;
 	//first_section = *first_section_received;
 	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
 
@@ -632,7 +640,9 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, c
 		case GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE:
 			{
 				data_shift = (u32)(gf_bs_get_position(bs));
-				gf_m2ts_dsmcc_download_data(dsmcc,data,bs,&data_shift);
+				if(!dsmcc_module_state(dsmcc_overlord,dsmcc->table_id_extension,dsmcc->version_number)){
+					gf_m2ts_dsmcc_download_data(dsmcc,data,bs,&data_shift);
+				}
 				break;
 			}
 		case GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION:
@@ -886,9 +896,12 @@ static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *ds
 				{
 					case DOWNLOAD_INFO_REPONSE_INDICATION:
 						{
-							u32 i,j;
-							GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication = (GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC*)DataMessage->dataMessagePayload;							
+							u32 i,j,nb_modules;							
+							GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication = (GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC*)DataMessage->dataMessagePayload;
+							nb_modules = gf_list_count(dsmcc_overlord->dsmcc_modules);
 							for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){
+								if(!dsmcc_create_module_validation(&DownloadInfoIndication->Modules[i],DownloadInfoIndication->downloadId,dsmcc_overlord,nb_modules)){
+									u32 module_index;
 									GF_M2TS_DSMCC_MODULE* dsmcc_module;
 									GF_SAFEALLOC(dsmcc_module,GF_M2TS_DSMCC_MODULE);
 									dsmcc_module->downloadId = DownloadInfoIndication->downloadId;
@@ -896,7 +909,12 @@ static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *ds
 									dsmcc_module->size = DownloadInfoIndication->Modules[i].moduleSize;
 									dsmcc_module->version_number = DownloadInfoIndication->Modules[i].moduleVersion;
 									dsmcc_module->buffer = (char*)gf_calloc(dsmcc_module->size,sizeof(char));
+									module_index = gf_list_count(dsmcc_overlord->dsmcc_modules);
+									dsmcc_overlord->processed[module_index].moduleId = dsmcc_module->moduleId;
+									dsmcc_overlord->processed[module_index].downloadId = dsmcc_module->downloadId;
+									dsmcc_overlord->processed[module_index].version_number = dsmcc_module->version_number;
 									gf_list_add(dsmcc_overlord->dsmcc_modules,dsmcc_module);
+								}
 							}
 							break;
 						}
@@ -911,10 +929,13 @@ static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *ds
 								GF_M2TS_DSMCC_MODULE* dsmcc_module = gf_list_get(dsmcc_overlord->dsmcc_modules,i);
 								/* Test if the data are compatible with the module configuration */
 								if(!dsmcc_download_data_validation(DownloadDataBlock,dsmcc_module,DataMessage->DownloadDataHeader.downloadId)){									
-									memcpy(dsmcc_module->buffer+dsmcc_module->byte_sift,DownloadDataBlock->blockDataByte,sizeof(char));
+									memcpy(dsmcc_module->buffer+dsmcc_module->byte_sift,DownloadDataBlock->blockDataByte,DownloadDataBlock->dataBlocksize*sizeof(char));
 									dsmcc_module->byte_sift += DownloadDataBlock->dataBlocksize;									
 									dsmcc_module->last_section_number = dsmcc->last_section_number;
 									dsmcc_module->section_number++;
+									if(dsmcc_module->section_number == (dsmcc_module->last_section_number+1)){
+										dsmcc_module_complete(dsmcc_overlord,dsmcc_module,i);
+									}
 									break;
 								}
 							}							
@@ -953,9 +974,54 @@ static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *ds
 				break;
 			}
 	}
-
+	return GF_OK;
 }
 
+static GF_Err dsmcc_create_module_validation(GF_M2TS_DSMCC_INFO_MODULES* InfoModules, u32 downloadId, GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 nb_module){
+
+	u32 i;
+	for(i = 0;i<nb_module;i++){
+		GF_M2TS_DSMCC_PROCESSED dsmcc_process = dsmcc_overlord->processed[i];
+		if((InfoModules->moduleId == dsmcc_process.moduleId) && (downloadId == dsmcc_process.downloadId)){
+
+			if(InfoModules->moduleVersion <= dsmcc_process.version_number){
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Module already intialized \n"));
+				return GF_BAD_PARAM;
+			}else if(InfoModules->moduleVersion > dsmcc_process.version_number){
+				GF_M2TS_DSMCC_MODULE* dsmcc_module = (GF_M2TS_DSMCC_MODULE*)gf_list_get(dsmcc_overlord->dsmcc_modules,i);
+				dsmcc_module_delete(dsmcc_module);
+				gf_list_rem(dsmcc_overlord->dsmcc_modules,i);
+				dsmcc_process.version_number = InfoModules->moduleVersion;
+				dsmcc_process.done = 0;
+				return GF_OK;
+			}			
+		}		
+	}
+	return  GF_OK;
+}
+
+static GF_Err dsmcc_module_state(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 moduleId,u32 moduleVersion){
+
+	u32 i,nb_module;
+	nb_module = gf_list_count(dsmcc_overlord->dsmcc_modules);
+	/* This test comes from the fact that the moduleVersion only borrow the least 5 significant bits of the moduleVersion conveys in DownloadDataBlock */
+	/* If the moduleVersion is eq to 0x1F, it does not tell if it is clearly 0x1F or a superior value. So in this case it is better to process the data */
+	/* If the moduleVersion is eq to 0x0, it means that the data conveys a DownloadDataResponse, so it has to be processed */
+	if(moduleVersion != 0 || moduleVersion < 0x1F){
+		for(i = 0;i<nb_module;i++){
+			GF_M2TS_DSMCC_PROCESSED dsmcc_process = dsmcc_overlord->processed[i];
+			if((moduleId == dsmcc_process.moduleId) && moduleVersion == dsmcc_process.version_number){
+				if(dsmcc_process.done){
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Module already processed \n"));
+					return GF_BAD_PARAM;
+				}else{
+					return GF_OK;	
+				}
+			}
+		}
+	}
+	return  GF_OK;
+}
 
 static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId){
 
@@ -965,6 +1031,23 @@ static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* 
 		}
 		return  GF_BAD_PARAM;
 
+}
+
+static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 moduleIndex){
+
+	u32 i,nb_module;
+	nb_module = gf_list_count(dsmcc_overlord->dsmcc_modules);
+	for(i = 0;i<nb_module;i++){
+		GF_M2TS_DSMCC_PROCESSED dsmcc_process = dsmcc_overlord->processed[i];
+		if((dsmcc_module->moduleId == dsmcc_process.moduleId) && dsmcc_module->version_number == dsmcc_process.version_number && dsmcc_module->downloadId == dsmcc_process.downloadId){
+			dsmcc_process.done = 1;
+			/*process buffer*/
+			dsmcc_module_delete(dsmcc_module);
+			gf_list_rem(dsmcc_overlord->dsmcc_modules,moduleIndex);
+		}
+	}
+	
+	return  GF_OK;
 }
 
 /* Delete structure of the DSMCC data processing */
@@ -1072,4 +1155,15 @@ static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc){
 	gf_free(dsmcc);
 	dsmcc = NULL;
 	return GF_OK;
+}
+
+
+static GF_Err dsmcc_module_delete(GF_M2TS_DSMCC_MODULE* dsmcc_module){
+
+	u32 i;
+	gf_free(dsmcc_module->buffer);
+	gf_free(dsmcc_module);
+	dsmcc_module = NULL;
+	return  GF_OK;
+
 }
