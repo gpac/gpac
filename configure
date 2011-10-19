@@ -143,6 +143,9 @@ disable_isoff_frag="no"
 disable_streaming="no"
 enable_depth_compositor="no"
 enable_renoir="no"
+has_avcap="no"
+avcap_cflags=""
+avcap_ldflags="-lavcap"
 
 win32="no"
 mingw32="no"
@@ -794,6 +797,30 @@ if $cpp -o $TMPO $TMPC -I$local_inc/platinum -L$local_lib -lPlatinum -lPltMediaS
 fi
 
 
+#look for avcap support
+avcap_cflags=""
+avcap_ldlags="-lavcap"
+
+cat > $TMPC << EOF
+#include <avcap/avcap.h>
+int main( void ) { return 0; }
+EOF
+if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldlags 2> /dev/null  ; then
+  has_avcap="yes"
+else
+if test "$darwin" = "yes" ; then
+avcap_cflags="-I$local_inc -I$local_inc/avcap/osx"
+avcap_ldflags="${wl}-flat_namespace ${wl}-undefined ${wl}suppress -lavcap -lpthread  -framework QuickTime -framework QuartzCore"
+else
+avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
+avcap_ldflags="-lavcap -lpthread"
+fi
+if $cpp -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
+  has_avcap="yes"
+  avcap_ldflags="-L../../$local_lib $avcap_ldflags"
+fi
+
+fi
 
 
 #look for freetype support
@@ -2104,11 +2131,6 @@ if test "$has_wx" = "yes" ; then
 else
     echo "wxWidgets support: no"
 fi
-if test "$has_platinum" = "yes" ; then
-    echo "Platinum support: yes"
-else
-    echo "Platinum support: no"
-fi
 
 
 echo ""
@@ -2123,6 +2145,8 @@ echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
 echo "FFMPEG: $has_ffmpeg"
 echo "Xiph OGG: $has_ogg"
+echo "Platinum UPnP: $has_platinum"
+echo "AVCap: $has_avcap"
 if test "$has_ogg" = "no"; then
     has_ogg="no"
 else
@@ -2404,7 +2428,13 @@ if test "$has_wx" = "yes"; then
     echo "WX_LFLAGS=$wx_lflags" >> config.mak
 fi
 
-echo "USE_PLATINUM=$has_platinum" >> config.mak
+echo "CONFIG_PLATINUM=$has_platinum" >> config.mak
+
+echo "CONFIG_AVCAP=$has_avcap" >> config.mak
+if test "$has_avcap" = "yes" ; then
+    echo "AVCAP_CFLAGS=$avcap_cflags" >> config.mak
+    echo "AVCAP_LDFLAGS=$avcap_ldflags" >> config.mak
+fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
 
