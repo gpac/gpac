@@ -1036,12 +1036,15 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 						GF_ESD *imp_esd;
 						m=0;
 						while ((imp_esd = (GF_ESD*)gf_list_enum(od->ESDescriptors, &m))) {
-							switch (imp_esd->decoderConfig->streamType) {
-							case GF_STREAM_SCENE:
-							case GF_STREAM_OD:
-								continue;
-							default:
-								break;
+							/*do not import scene and OD streams*/
+							if (imp_esd->decoderConfig) {
+								switch (imp_esd->decoderConfig->streamType) {
+								case GF_STREAM_SCENE:
+								case GF_STREAM_OD:
+									continue;
+								default:
+									break;
+								}
 							}
 
 							switch (imp_esd->tag) {
