@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/avcap
 
-CFLAGS= $(CPPFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS= $(CPPFLAGS) -I"$(SRC_PATH)/include" $(AVCAP_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -14,15 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= -lgpac -lavcap
-
-LOCAL_LIB=../../bin/gcc -L../../extra_lib/lib/gcc
-CPPFLAGS+= -I"$(LOCAL_INC_PATH)"
-
-ifeq ($(CONFIG_DARWIN),yes)
-CPPFLAGS+= -I"$(LOCAL_INC_PATH)/avcap/osx"
-LINKLIBS+= ${wl}-flat_namespace ${wl}-undefined ${wl}suppress -lpthread  -framework QuickTime -framework QuartzCore
-endif
+LINKLIBS= $(AVCAP_LDFLAGS) -lgpac
 
 
 #common objects
@@ -37,7 +29,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKLIBS)
 
 
 %.o: %.cpp
