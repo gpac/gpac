@@ -768,7 +768,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_SECTION *dsmcc, char  *d
 				DownloadCancel->privateDataLength = gf_bs_read_int(bs,16);
 				if(DownloadCancel->privateDataLength){
 					DownloadCancel->privateDataByte = (char*)gf_calloc(DownloadCancel->privateDataLength,sizeof(char));
-					gf_bs_read_data(bs,DownloadCancel->privateDataByte,(u8)(DownloadCancel->privateDataByte));
+					gf_bs_read_data(bs,DownloadCancel->privateDataByte,(u8)(DownloadCancel->privateDataLength));
 				}
 				break;
 			}
