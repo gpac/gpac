@@ -320,7 +320,6 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GET
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 	prop_id = SMJS_ID_TO_INT(id);
 
-
 	switch (prop_id) {
 	case 0: /*id*/
 	{

@@ -185,7 +185,12 @@ void isor_setup_download(GF_InputService *plug, const char *url)
 {
 	ISOMReader *read = (ISOMReader *) plug->priv;
 	read->dnload = gf_term_download_new(read->service, url, 0, isor_net_io, read);
-	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	if (!read->dnload) {
+		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	} else {
+		/*start our download (threaded)*/
+		gf_dm_sess_process(read->dnload);
+	}
 	/*service confirm is done once IOD can be fetched*/
 }
 

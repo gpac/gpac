@@ -186,7 +186,12 @@ void DC_DownloadFile(GF_InputService *plug, char *url)
 	DCReader *read = (DCReader *) plug->priv;
 
 	read->dnload = gf_term_download_new(read->service, url, 0, DC_NetIO, read);
-	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	if (!read->dnload) {
+		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	} else {
+		/*start our download (threaded)*/
+		gf_dm_sess_process(read->dnload);
+	}
 }
 
 

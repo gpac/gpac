@@ -543,6 +543,12 @@ void aac_download_file(AACReader *read, char *url)
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 #endif
 	}
+
+#ifndef DONT_USE_TERMINAL_MODULE_API
+	/*start our download (threaded)*/
+	gf_dm_sess_process(read->dnload);
+#endif
+
 	/*service confirm is done once fetched*/
 }
 

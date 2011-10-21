@@ -188,6 +188,9 @@ void TTIn_download_file(GF_InputService *plug, const char *url)
 	if (!tti->dnload) {
 		tti->needs_connection = 0;
 		gf_term_on_connect(tti->service, NULL, GF_NOT_SUPPORTED);
+	} else {
+		/*start our download (threaded)*/
+		gf_dm_sess_process(tti->dnload);
 	}
 	/*service confirm is done once fetched*/
 }
