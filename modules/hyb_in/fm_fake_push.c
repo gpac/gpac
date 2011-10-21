@@ -36,7 +36,7 @@
 
 /**********************************************************************************************************************/
 
-#define FM_FAKE_PUSH_AUDIO_FREQ 44100
+#define FM_FAKE_PUSH_AUDIO_FREQ 22050
 #define FM_FAKE_PUSH_CHAN_NUM	2
 #define FM_FAKE_PUSH_BITS		16
 #define FM_FAKE_PUSH_TYPE		s16
@@ -156,7 +156,8 @@ u32 ext_media_load_th(void *par) {
 	GF_HYBMEDIA *self = (GF_HYBMEDIA*) par;
 	/*declare object to terminal*/
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
+//	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
+	od->URLString = gf_strdup("http://perso.telecom-paristech.fr/~bouqueau/bipbop/gear1/file_remux.ts");
 	od->objectDescriptorID = 0;
 	gf_sleep(2000); //TODO: remove the sleep
 	gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
@@ -187,7 +188,7 @@ static u32 audio_gen_th(void *par)
 #endif
 		}
 
-		if (1) {
+		if (0) {
 			time_t now;
 			struct tm *now_tm;
 			time(&now);
@@ -220,13 +221,15 @@ static u32 audio_gen_th(void *par)
 			continue;
 		}
 
-		time_to_wait = (u32)(init_time + ((u64)slh.compositionTimeStamp*1000)/FM_FAKE_PUSH_AUDIO_FREQ - gf_sys_clock());
+#if 0
+		time_to_wait = (s32)(init_time + ((u64)slh.compositionTimeStamp*1000)/FM_FAKE_PUSH_AUDIO_FREQ - gf_sys_clock());
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] FM_FAKE_PUSH - %d ms before next AU\n", time_to_wait));
 		if (time_to_wait > 0) {
 			if (time_to_wait > 1000) /*TODO: understand the big shifts when playing icecasts contents*/
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[HYB_IN] FM_FAKE_PUSH - audio asked to sleep for %d ms\n", time_to_wait));
 			gf_sleep(time_to_wait);
 		}
+#endif
 
 		e = GetData(self, &data, &data_size, &slh);
 		gf_term_on_sl_packet(self->owner, self->channel, data, data_size, &slh, e);

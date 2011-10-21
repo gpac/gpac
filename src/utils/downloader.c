@@ -1007,12 +1007,8 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         return NULL;
     }
     assert( sess );
-    if (!(sess->flags & GF_NETIO_SESSION_NOT_THREADED) ) {
-        sess->th = gf_th_new(url);
-        sess->mx = gf_mx_new(url);
-        gf_th_run(sess->th, gf_dm_session_thread, sess);
-    }
     sess->num_retry = SESSION_RETRY_COUNT;
+	/*threaded session must be started with gf_dm_sess_process*/
     return sess;
 }
 
@@ -1310,6 +1306,21 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 {
     Bool go;
+
+	/*if session is threaded, start thread*/
+	if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
+		if (sess->th) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Session already started - ignoring start\n"));
+			return GF_OK;
+		}
+		sess->th = gf_th_new(sess->orig_url);
+		if (!sess->th) return GF_OUT_OF_MEM;
+		sess->mx = gf_mx_new(sess->orig_url);
+		if (!sess->mx) return GF_OUT_OF_MEM;
+		gf_th_run(sess->th, gf_dm_session_thread, sess);
+		return GF_OK;
+	}
+	/*otherwise do a synchronous download*/
     go = 1;
     while (go) {
         switch (sess->status) {
@@ -2866,12 +2877,7 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 	if (sess->status==GF_NETIO_DISCONNECTED)
 		sess->status = GF_NETIO_SETUP;
 
-	if ( ! (flags & GF_NETIO_SESSION_NOT_THREADED) ) {
-		sess->th = gf_th_new(sess->orig_url);
-	sess->mx = gf_mx_new(sess->orig_url);
-	gf_th_run(sess->th, gf_dm_session_thread, sess);
-	}
-
+	/*threaded session shall be started with gf_dm_sess_process*/
 	return GF_OK;
 }
 
@@ -2890,4 +2896,3 @@ u32 gf_dm_get_data_rate(GF_DownloadManager *dm)
 {
 	return dm->limit_data_rate;
 }
-

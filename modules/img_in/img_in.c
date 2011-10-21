@@ -190,7 +190,12 @@ void jp_download_file(GF_InputService *plug, const char *url)
 	IMGLoader *read = (IMGLoader *) plug->priv;
 
 	read->dnload = gf_term_download_new(read->service, url, 0, IMG_NetIO, read);
-	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	if (!read->dnload) {
+		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	} else {
+		/*start our download (threaded)*/
+		gf_dm_sess_process(read->dnload);
+	}
 	/*service confirm is done once fetched*/
 }
 

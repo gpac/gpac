@@ -332,6 +332,9 @@ static void SAF_DownloadFile(GF_InputService *plug, char *url)
 	if (!read->dnload) {
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+	} else {
+		/*start our download (threaded)*/
+		gf_dm_sess_process(read->dnload);
 	}
 	/*service confirm is done once fetched*/
 }

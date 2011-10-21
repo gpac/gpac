@@ -160,7 +160,8 @@ extern "C" {
     /*!session download flags*/
     enum
     {
-        /*!session is not threaded, the user must explicitely fetch the data */
+        /*!session is not threaded, the user must explicitely fetch the data , either with the function gf_dm_sess_fetch_data 
+		or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
         GF_NETIO_SESSION_NOT_THREADED	=	1,
         /*! session data is live, e.g. data will be sent to the user if threaded mode (live streams like radios & co)
 				Whether the data is cached or not to disk cannot be controlled by the user at the current time.
@@ -242,14 +243,16 @@ extern "C" {
      *\param sess the download session
     */
     void gf_dm_sess_del(GF_DownloadSession * sess);
-    /*!
+
+	/*!
      *\brief aborts downloading
      *
      *Aborts all operations in the session, regardless of its state. The session cannot be reused once this is called.
      *\param sess the download session
      */
     void gf_dm_sess_abort(GF_DownloadSession * sess);
-    /*!
+
+	/*!
      *\brief sets private data
      *
      *associate private data with the session.

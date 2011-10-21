@@ -148,7 +148,6 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_url)
 {
-	u32 flags = 0;
 	SDPFetch *sdp;
 	/*if local URL get file*/
 	if (strstr(url, "data:application/sdp")) {
@@ -174,8 +173,13 @@ void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_ur
 	rtp->dnload = NULL;
 
 	rtp->sdp_temp = sdp;
-	rtp->dnload = gf_term_download_new(rtp->service, url, flags, SDP_NetIO, rtp);
-	if (!rtp->dnload) gf_term_on_connect(rtp->service, NULL, GF_NOT_SUPPORTED);
+	rtp->dnload = gf_term_download_new(rtp->service, url, 0, SDP_NetIO, rtp);
+	if (!rtp->dnload) {
+		gf_term_on_connect(rtp->service, NULL, GF_NOT_SUPPORTED);
+	} else {
+		/*start our download (threaded)*/
+		gf_dm_sess_process(rtp->dnload);
+	}
 	/*service confirm is done once fetched*/
 }
 

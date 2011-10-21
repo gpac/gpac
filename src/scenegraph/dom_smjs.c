@@ -1905,6 +1905,7 @@ static void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
 	}
 
 	if (gf_node_get_attribute_by_name(n, name, ns_code,  1, 1, &info)==GF_OK) {
+		GF_Err e;
 		if (!strcmp(name, "from") || !strcmp(name, "to") || !strcmp(name, "values") ) {
 			GF_FieldInfo attType;
 			SMIL_AttributeName *attname;
@@ -1926,7 +1927,10 @@ static void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
 
 			anim_value_type = attname->type;
 		}
-		gf_svg_parse_attribute(n, &info, val, anim_value_type);
+		e = gf_svg_parse_attribute(n, &info, val, anim_value_type);
+		if (e != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Error parsing attribute\n"));
+		}
 
 		if (info.fieldType==SVG_ID_datatype) {
 			char *idname = *(SVG_String*)info.far_ptr;
@@ -1951,14 +1955,16 @@ static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	if (!n) return JS_TRUE;
 	if ((argc < 2)) return JS_TRUE;
 
-	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[0])) 
+		return JS_TRUE;
 
 	idx = 1;
 	_val = name = ns = NULL;
 	/*NS version*/
 	if (argc==3) {
 		char *sep;
-		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		if (!JSVAL_CHECK_STRING(argv[1])) 
+			return JS_TRUE;
 		ns = js_get_utf8(c, argv[0]);
 		gf_sg_add_namespace(n->sgprivate->scenegraph, ns, NULL);
 		name = SMJS_CHARS(c, argv[1]);
@@ -1988,7 +1994,8 @@ static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	} else {
 		goto exit;
 	}
-	if (!name || !val) goto exit;
+	if (!name || !val) 
+		goto exit;
 
 
 	/* For on* attribute (e.g. onclick), we create a couple listener/handler elements on setting the attribute */
@@ -2881,7 +2888,6 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	GF_SceneGraph *scene;
 	char *data = NULL;
 	XMLHTTPContext *ctx;
-	GF_Err e;
 	SMJS_OBJ
 	SMJS_ARGS
 
@@ -2917,18 +2923,18 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	SMJS_FREE(c, data);
 
 	if (!strncmp(ctx->url, "http://", 7)) {
-		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, 0, xml_http_on_data, ctx, &e);
-		
+		GF_Err e;
+
+		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED, xml_http_on_data, ctx, &e);			
 		if (!ctx->sess) return JS_TRUE;
-	
-		/*just wait for destruction*/
-		if (!ctx->async) {
-			while (ctx->sess) {
-				gf_sg_lock_javascript(ctx->c, 0);
-				gf_sleep(20);
-				gf_sg_lock_javascript(ctx->c, 1);
-			}
+
+		/*start our download (whether the session is threaded or not)*/
+		e = gf_dm_sess_process(ctx->sess);
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] Error processing %s: %s\n", ctx->url, gf_error_to_string(e) ));
 		}
+		/**/
+		if (!ctx->async && ctx->sess) gf_dm_sess_del(ctx->sess);
 	} else {
 		u64 fsize;
 		FILE * xmlf;

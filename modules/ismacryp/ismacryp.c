@@ -80,6 +80,8 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, const char *kms
 
 	sess = gf_term_download_new(ch->service, kms_url, 0, ISMA_KMS_NetIO, ch);
 	if (!sess) return GF_IO_ERR;
+	/*start our download (threaded)*/
+	gf_dm_sess_process(sess);
 
 	while (1) {
 		e = gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, NULL);
