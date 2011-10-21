@@ -943,17 +943,23 @@ static GF_Err gf_m2ts_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *ds
 						}
 					case DOWNLOAD_DATA_REQUEST:
 						{
-							GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE* DownloadDataRequest = (GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE*)DataMessage->dataMessagePayload;
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Process DSMCC] Unimplemented DOWNLOAD_DATA_REQUEST type\n"));
+							assert(0);
+							//GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE* DownloadDataRequest = (GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE*)DataMessage->dataMessagePayload;
 							break;
 						}
 					case DOWNLOAD_DATA_CANCEL:
 						{
-							GF_M2TS_DSMCC_DOWNLOAD_CANCEL* DownloadCancel = (GF_M2TS_DSMCC_DOWNLOAD_CANCEL*)DataMessage->dataMessagePayload;						
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Process DSMCC] Unimplemented DOWNLOAD_DATA_CANCEL type\n"));
+							assert(0);
+							//GF_M2TS_DSMCC_DOWNLOAD_CANCEL* DownloadCancel = (GF_M2TS_DSMCC_DOWNLOAD_CANCEL*)DataMessage->dataMessagePayload;						
 							break;
 						}
 					case DOWNLOAD_SERVER_INITIATE:
 						{
-							GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit = (GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT*)DataMessage->dataMessagePayload;								
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Process DSMCC] Unimplemented DOWNLOAD_SERVER_INITIATE type\n"));
+							assert(0);
+							//GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit = (GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT*)DataMessage->dataMessagePayload;								
 							break;
 						}
 					default:

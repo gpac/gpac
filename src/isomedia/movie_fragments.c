@@ -518,7 +518,7 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
 {
 	u32 i, j, duration;
 	GF_TrunEntry *ent;
-	GF_TrackFragmentBox *traf;
+	GF_TrackFragmentBox *traf = NULL;
 	GF_TrackFragmentRunBox *trun;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
 		traf = gf_list_get(moof->TrackList, i);
@@ -542,7 +542,7 @@ u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 {
 	u32 i, j, cts, duration;
 	GF_TrunEntry *ent;
-	GF_TrackFragmentBox *traf;
+	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
 		traf = gf_list_get(moof->TrackList, i);

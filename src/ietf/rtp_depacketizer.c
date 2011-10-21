@@ -835,7 +835,7 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;
-			if (!gf_ac3_parser(payload, size, &offset, &hdr, 0)) {
+			if (!gf_ac3_parser((u8*)payload, size, &offset, &hdr, 0)) {
 				return;
 			}
 			if (offset) {

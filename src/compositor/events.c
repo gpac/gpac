@@ -1947,7 +1947,7 @@ static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed
 
 Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 {
-	s32 x, y;
+	s32 x=0, y=0;
 	Bool switch_coords=0;
 	Bool ret=0;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {

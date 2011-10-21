@@ -1280,16 +1280,16 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	int result;
 	int pagesize;
 	u64 process_u_k_time;
-	mach_msg_type_number_t count = HOST_VM_INFO_COUNT;	
+	double utime, stime;
 	vm_statistics_data_t vmstat;
 	task_t task;
 	kern_return_t error;
 	thread_array_t thread_table;
+	unsigned table_size;
 	thread_basic_info_t thi;
 	thread_basic_info_data_t thi_data;
-	unsigned table_size;
 	struct task_basic_info ti;
-	double utime, stime;
+	mach_msg_type_number_t count = HOST_VM_INFO_COUNT, size = sizeof(ti);
 
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
@@ -1320,10 +1320,15 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		}
 	}
 	
-	
 	error = task_for_pid(mach_task_self(), the_rti.pid, &task);
  	if (error) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get process task for PID %d: error %d\n", the_rti.pid, error));
+		return 0;
+	}
+
+	error = task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&ti, &size);
+	if (error) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get process task info (PID %d): error %d\n", the_rti.pid, error));
 		return 0;
 	}
 	
