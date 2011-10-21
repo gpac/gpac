@@ -89,7 +89,7 @@ static void build_shape(FSStack *st, GF_Node *node)
 	u32 wi, li, fi, ci, command, i, has_ci;
 	FSItem *fill_item, *line_item;
 	Fixed w;
-	SFVec2f cur, pt, ct1, ct2, *pts;
+	SFVec2f cur, pt, ct1={0,0}, ct2, *pts;
 	GF_Rect rc;
 	u32 line_col, fill_col;
 	Bool need_line, need_fill;

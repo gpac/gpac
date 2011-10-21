@@ -104,7 +104,7 @@ static void Conditional_execute(M_Conditional *node)
 	if (node->buffer.buffer) {
 		gf_free(buffer);
 	} else {
-		node->buffer.buffer = buffer;
+		node->buffer.buffer = (u8*)buffer;
 		node->buffer.bufferSize = len;
 	}
 	//set isActive - to clarify in the specs

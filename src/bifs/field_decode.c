@@ -126,7 +126,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			M_CacheTexture *ct = (M_CacheTexture *) node;
 			ct->data_len = length;
 			ct->data = gf_malloc(sizeof(char)*length);
-			gf_bs_read_data(bs, ct->data, length);
+			gf_bs_read_data(bs, (char*)ct->data, length);
 		} else {
 			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
 			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(sizeof(char)*(length+1));

@@ -1018,7 +1018,7 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 
 	if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
 		GF_BitStream *bs;
-		u32 pf, w, h, stride, out_size, sr, nb_ch, bpp, ch_cfg;
+		u32 pf, w, h, stride=0, out_size, sr, nb_ch, bpp, ch_cfg;
 		GF_Channel *ch = gf_list_get(codec->odm->channels, 0);
 		if (!ch || !ch->esd->decoderConfig->decoderSpecificInfo || !ch->esd->decoderConfig->decoderSpecificInfo->data) return 0;
 		bs = gf_bs_new(ch->esd->decoderConfig->decoderSpecificInfo->data, ch->esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);

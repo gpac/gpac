@@ -569,6 +569,7 @@ cat > $TMPC << EOF
 #include <stdio.h>
 int main( void ) { return 0; }
 EOF
+CFLAGS="$CFLAGS -Wall"
 if $cc -o $TMPO $TMPC -fno-strict-aliasing 2> /dev/null  ; then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
@@ -641,7 +642,7 @@ EOF
                 js_lib=`pkg-config --libs mozilla-js`
             fi
         #try firefox folders (starting at ubuntu 11.10, no pkg-config)
-        elif ls -d /usr/lib/firefox* > /dev/null  ; then
+        elif ls -d /usr/lib/firefox*  > /dev/null 2>&1 ; then
             firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
             for i in $firefox_version ; do
                 if test "$has_js" = "no" ; then
