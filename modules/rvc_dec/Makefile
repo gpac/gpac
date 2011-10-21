@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LDFLAGS+=-lRVCDecoder
+EXTRALIBS+=-lRVCDecoder
 
 #common obj
 OBJS= rvc_dec.o

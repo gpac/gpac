@@ -25,26 +25,26 @@ endif
 
 ifeq ($(X11_LIB_PATH), )
 else
-LDFLAGS+=-L$(X11_LIB_PATH)
+EXTRALIBS+=-L$(X11_LIB_PATH)
 endif
 
 ifeq ($(USE_X11_XV), yes)
 CFLAGS+=-DGPAC_HAS_X11_XV
-LDFLAGS+=-lXv
+EXTRALIBS+=-lXv
 endif
 
 ifeq ($(USE_X11_SHM), yes)
 CFLAGS+=-DGPAC_HAS_X11_SHM
-LDFLAGS+=-lXext
+EXTRALIBS+=-lXext
 endif
 
 ifeq ($(HAS_OPENGL), yes)
 ifeq ($(GPAC_USE_TINYGL), yes)
 else
 CFLAGS+=$(OGL_INCLS)
-LDFLAGS+=$(OGL_LIBS)
+EXTRALIBS+=$(OGL_LIBS)
 ifeq ($(CONFIG_DARWIN),yes)
-LDFLAGS+=-lGL -lGLU
+EXTRALIBS+=-lGL -lGLU
 endif
 endif
 endif
@@ -64,9 +64,9 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -lX11 -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -lX11 -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.$(DYN_LIB_SUFFIX) $(OBJS) -lX11 -L../../bin/gcc -lgpac_static
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.$(DYN_LIB_SUFFIX) $(OBJS) -lX11 -L../../bin/gcc -lgpac_static $(EXTRALIBS)
 endif
 
 #static-bin:

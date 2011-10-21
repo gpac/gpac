@@ -36,7 +36,7 @@ SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
 NEED_LOCAL_LIB="yes"
 endif
-LDFLAGS+=$(JS_LIBS)
+LINKFLAGS+=$(JS_LIBS)
 endif
 
 
@@ -45,7 +45,7 @@ SRCS := $(OBJS:.o=.cpp)
 all: $(PROG)
 
 Osmo4$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS) $(LINKFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) $(WX_CFLAGS) -c -o $@ $< 

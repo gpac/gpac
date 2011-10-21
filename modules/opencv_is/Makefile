@@ -15,11 +15,11 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= opencv.o
+OBJS= opencv_is.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LDFLAGS+=-lcv -lcvaux -lhighgui -lcxcore
+EXTRALIBS+=-lcv -lcvaux -lhighgui -lcxcore
 
 LIB=gm_opencv.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)

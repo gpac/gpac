@@ -31,7 +31,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LDFLAGS) -L../../bin/gcc -lgpac
                                                                                                
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 

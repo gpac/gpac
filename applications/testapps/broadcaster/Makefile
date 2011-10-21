@@ -21,13 +21,12 @@ endif
 #common obj
 OBJS=RTP_serv_generator.o RTP_serv_packetizer.o RTP_serv_sender.o broadcaster.o sdp_generator.o debug.o
 
-LDFLAGS += -L../../../bin/gcc
-LIBS=-lgpac
+LINKFLAGS=-L../../../bin/gcc -lgpac
 
 all: broadcaster
 
 broadcaster: $(OBJS) *.h
-	$(CC) -o $(APPNAME) $(OBJS) $(LIBS) $(LDFLAGS) 
+	$(CC) $(LDFLAGS) -o $(APPNAME) $(OBJS) $(LINKFLAG)
 
 .c.o:
 	$(CC) -Wall -g -c $(CFLAGS) $*.c
