@@ -40,11 +40,12 @@ static void on_dvb_mpe_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		case GF_M2TS_TABLE_ID_MPE_FEC:
 		case GF_M2TS_TABLE_ID_DSM_CC_PRIVATE:
-			if(ts->ip_platform != NULL) {
+			if ((ts->ip_platform != NULL) || ts->direct_mpe) {
 				gf_m2ts_process_mpe(ts, (GF_M2TS_SECTION_MPE*)pck->stream, data, u32_data_size, u32_table_id);
-			} else {
+			}
+			else {
 				//printf("Time Slice Parameters for MPE-FEC have not been found yet \n");
-			}						
+			}
 			break;				
 		default:
 			return;

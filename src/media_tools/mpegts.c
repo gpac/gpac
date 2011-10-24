@@ -810,7 +810,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
-			//ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
+			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
 		} else if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
