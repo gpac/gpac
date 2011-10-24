@@ -146,6 +146,7 @@ enable_renoir="no"
 has_avcap="no"
 avcap_cflags=""
 avcap_ldflags="-lavcap"
+has_opensvc="no"
 
 win32="no"
 mingw32="no"
@@ -801,13 +802,13 @@ fi
 
 #look for avcap support
 avcap_cflags=""
-avcap_ldlags="-lavcap"
+avcap_ldflags="-lavcap"
 
 cat > $TMPC << EOF
 #include <avcap/avcap.h>
 int main( void ) { return 0; }
 EOF
-if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldlags 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
 else
 if test "$darwin" = "yes" ; then
@@ -820,6 +821,33 @@ fi
 if $cpp -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
   avcap_ldflags="-L../../$local_lib $avcap_ldflags"
+fi
+
+fi
+
+
+#look for opensvc support
+
+if test "$darwin" = "yes" ; then
+osvc_cflags="-I/usr/include -I/usr/local/include"
+osvc_ldflags="-L/usr/lib -L/usr/local/lib -lOpenSVCDec"
+else
+osvc_cflags=""
+osvc_ldflags="-lOpenSVCDec"
+fi
+
+cat > $TMPC << EOF
+#include <OpenSVCDecoder/SVCDecoder_ietr_api.h>int main( void ) { return 0; }
+EOF
+if $cpp -o $TMPO $TMPC $osvc_cflags $osvc_ldflags 2> /dev/null  ; then
+  has_opensvc="yes"
+else
+osvc_cflags="-I$local_inc"
+osvc_ldflags="-lOpenSVCDec"
+
+if $cpp -o $TMPO $TMPC $osvc_cflags -L$local_lib $osvc_ldflags 2> /dev/null  ; then
+  has_opensvc="yes"
+  osvc_ldflags="-L../../$local_lib $osvc_ldflags"
 fi
 
 fi
@@ -2156,6 +2184,7 @@ else
     echo "Xiph Theora: $has_theora"
 fi
 echo "A52 (AC3): $has_a52"
+echo "OpenSVCDecoder: $has_opensvc"
 
 if test "$enable_renoir" = "yes" ; then
     echo "Renoir enabled - make sure the driver libraries are present in modules/viren_out directory"
@@ -2436,6 +2465,12 @@ echo "CONFIG_AVCAP=$has_avcap" >> config.mak
 if test "$has_avcap" = "yes" ; then
     echo "AVCAP_CFLAGS=$avcap_cflags" >> config.mak
     echo "AVCAP_LDFLAGS=$avcap_ldflags" >> config.mak
+fi
+
+echo "CONFIG_OPENSVC=$has_opensvc" >> config.mak
+if test "$has_opensvc" = "yes" ; then
+    echo "OSVC_CFLAGS=$osvc_cflags" >> config.mak
+    echo "OSVC_LDFLAGS=$osvc_ldflags" >> config.mak
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
