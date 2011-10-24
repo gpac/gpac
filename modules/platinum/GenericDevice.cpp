@@ -294,7 +294,6 @@ static JSBool SMJS_FUNCTION(upnp_service_has_action)
 
 static JSBool SMJS_FUNCTION(upnp_service_call_action)
 {
-	u32 i=1;
 	GPAC_ActionUDTA *act_udta = NULL;
 	char *action_name = NULL;
 	SMJS_OBJ
@@ -303,13 +302,13 @@ static JSBool SMJS_FUNCTION(upnp_service_call_action)
 	if (!service || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 
 	action_name = SMJS_CHARS(c, argv[0]);
-    PLT_ActionDesc* action_desc = service->m_service->FindActionDesc(action_name);
+	PLT_ActionDesc* action_desc = service->m_service->FindActionDesc(action_name);
 	SMJS_FREE(c, action_name);
 
 	if (action_desc == NULL) return JS_FALSE;
-    PLT_ActionReference action;
+	PLT_ActionReference action;
 
-    NPT_CHECK_SEVERE(
+	NPT_CHECK_SEVERE(
 		service->m_device->m_pUPnP->m_pGenericController->m_CtrlPoint->CreateAction(
 			service->m_device->m_device, 
 			service->m_service->GetServiceType(), 
@@ -506,7 +505,6 @@ static JSBool SMJS_FUNCTION(upnp_action_get_argument_value)
 static JSBool SMJS_FUNCTION(upnp_action_get_error_code)
 {
 	NPT_String res;
-	char *arg_name = NULL;
 	SMJS_OBJ
 	PLT_Action *action = (PLT_Action *) JS_GetPrivate(c, obj);
 	if (!action ) return JS_FALSE;
@@ -518,7 +516,6 @@ static JSBool SMJS_FUNCTION(upnp_action_get_error)
 {
 	NPT_String res;
 	unsigned int code;
-	char *arg_name = NULL;
 	SMJS_OBJ
 	PLT_Action *action = (PLT_Action *) JS_GetPrivate(c, obj);
 	if (!action ) return JS_FALSE;
@@ -847,7 +844,6 @@ static JSBool SMJS_FUNCTION(upnp_action_get_argument)
 
 static JSBool SMJS_FUNCTION(upnp_action_send_reply)
 {
-	u32 i=1;
 	SMJS_OBJ
 	SMJS_ARGS
 	GPAC_GenericDevice *device = (GPAC_GenericDevice *)JS_GetPrivate(c, obj);

@@ -642,10 +642,11 @@ EOF
                 js_lib=`pkg-config --libs mozilla-js`
             fi
         #try firefox folders (starting at ubuntu 11.10, no pkg-config)
-        elif ls -d /usr/lib/firefox*  > /dev/null 2>&1 ; then
+        elif ls -d /usr/lib/firefox* > /dev/null 2>&1 ; then
             firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
             for i in $firefox_version ; do
                 if test "$has_js" = "no" ; then
+                    js_inc="/usr/include/$i"
                     js_flags="-DXP_UNIX -I$js_inc"
                     js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnss3"
                     if $cpp -o $TMPO $TMPCPP $js_flags $js_lib 2> /dev/null  ; then
