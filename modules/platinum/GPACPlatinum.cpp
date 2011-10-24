@@ -547,6 +547,7 @@ static JSBool upnpdevice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETT
 	return JS_TRUE;
 }
 
+#ifdef GPAC_UNUSED_FUNC
 static JSBool upnp_device_subscribe(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     PLT_Service* service;
@@ -564,6 +565,8 @@ static JSBool upnp_device_subscribe(JSContext *c, JSObject *obj, uintN argc, jsv
 	SMJS_FREE(c, service_uuid);
 	return JS_TRUE;
 }
+#endif
+
 static JSBool SMJS_FUNCTION(upnp_device_find_service)
 {
 	char *service_uuid;
@@ -835,7 +838,6 @@ static JSBool SMJS_FUNCTION(upnp_renderer_open)
 			NPT_String objID = item;
 
 			// look back for the PLT_MediaItem in the results
-			PLT_MediaObject* track = NULL;
 			NPT_List<PLT_MediaObject*>::Iterator item = server->m_BrowseResults->GetFirstItem();
 			while (item) {
 				if ((*item)->m_ObjectID == objID) {
@@ -1324,6 +1326,7 @@ static JSBool SMJS_FUNCTION(upnp_device_start)
 	return JS_TRUE;
 }
 
+#ifdef GPAC_UNUSED_FUNC
 static JSBool SMJS_FUNCTION(upnp_device_stop)
 {
 	SMJS_OBJ
@@ -1335,7 +1338,7 @@ static JSBool SMJS_FUNCTION(upnp_device_stop)
 
 	return JS_TRUE;
 }
-
+#endif
 
 static GPAC_GenericDevice *upnp_create_generic_device(GF_UPnP *upnp, JSObject*global, const char *id, const char *name)
 {
