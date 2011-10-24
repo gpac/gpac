@@ -33,32 +33,8 @@
 #  pragma comment(lib, "OpenSVCDecoder")
 #endif
 
-typedef struct{
-	int Width;
-	int Height;
-	unsigned char* pY[1];
-	unsigned char* pU[1]; 
-	unsigned char* pV[1];
-} OPENSVCFRAME;
-
-
-enum {
-	SVC_STATUS_ERROR	= -1,
-	SVC_STATUS_OK	    = 0,	// no error and no frame ready
-	SVC_IMAGE_READY     = 1,	// no error and image ready
-	SVC_GHOST_IMAGE		= 2		// no image for chosen layer but image could be ready for other layers
-};
-
-int SVCDecoder_init(void **PlayerStruct);
-int SVCDecoder_close(void *PlayerStruct);
-//TODO
-int decodeNAL(void *PlayerStruct, unsigned char* nal, int nal_length, OPENSVCFRAME *Frame, int *LayerCommand); 
-/*ID vient du NAL type 14 et 20*/
-//TODO
-void SetCommandLayer(int *Command, int DqIdMax, int CurrDqId, int *TemporalCom, int TemporalId);
-void ParseAuPlayers(void *PlayerStruct, const unsigned char *buf, int buf_size, int nal_length_size, int is_avc);
-int GetDqIdMax(const unsigned char *buf, int buf_size, int nal_length_size, int *DqidTable, int is_avc);
-
+#include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
+#include <OpenSVCDecoder/ParseAU.h>
 
 typedef struct
 {
