@@ -423,8 +423,7 @@ void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 mpe_pid, unsigned char *
 
 	socket_simu(&ip_pck, ts, 0);
 
-	fprintf(stdout, "MPE PID %d - send datagram %d bytes to %d.%d.%d.%d port:%d\n", mpe_pid, ip_pck.u32_udp_data_size-8, ip_pck.u8_rx_adr[0], ip_pck.u8_rx_adr[1], ip_pck.u8_rx_adr[2], ip_pck.u8_rx_adr[3], ip_pck.u32_rx_udp_port);
-
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("MPE PID %d - send datagram %d bytes to %d.%d.%d.%d port:%d\n", mpe_pid, ip_pck.u32_udp_data_size-8, ip_pck.u8_rx_adr[0], ip_pck.u8_rx_adr[1], ip_pck.u8_rx_adr[2], ip_pck.u8_rx_adr[3], ip_pck.u32_rx_udp_port));
 }
 
 
@@ -1080,6 +1079,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 
 		if (gf_sk_is_multicast_address(name) ) {
 			e = gf_sk_setup_multicast(Sock_Struct->sock, name, ip_packet->u32_rx_udp_port, 1/*TTL - FIXME this should be in a cfg file*/, 0, NULL/*FIXME this should be in a cfg file*/);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Setting up multicast socket for MPE on %s:%d\n", name, ip_packet->u32_rx_udp_port ));
 		} else {
 			/* 
 				binding of the socket to send data to port 4600 on the local machine 
@@ -1087,6 +1087,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 				the second adress is "localhost" and the port is the destination port on localhost
 			*/
 			e = gf_sk_bind(Sock_Struct->sock, "127.0.0.1", ip_packet->u32_rx_udp_port,/*name*/"127.0.0.1", ip_packet->u32_rx_udp_port, 0); 
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Setting up socket for MPE on 127.0.0.1:%d\n", ip_packet->u32_rx_udp_port ));
 		}
 
 		if (e != GF_OK) {
