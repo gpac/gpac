@@ -690,4 +690,29 @@ void compositor_init_pointset2d(GF_Compositor  *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraversePointSet2D);
 }
 
+static void TraverseBitWrapper(GF_Node *node, void *rs, Bool is_destroy)
+{
+	GF_TraverseState *tr_state;
+	M_BitWrapper *bitWrap;
+
+	if (is_destroy) {
+		gf_node_set_private(node, NULL);
+		return;
+	}
+
+	tr_state = (GF_TraverseState *)rs;
+	// Traverse the node here
+	bitWrap = (M_BitWrapper *)node;
+	gf_node_traverse(bitWrap->node, tr_state);
+}
+
+void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node)
+{
+	M_BitWrapper *bit;
+	bit = (M_BitWrapper *)node;
+	gf_node_set_private(node, gf_node_get_private(bit->node));
+	gf_node_set_callback_function(node, TraverseBitWrapper);
+}
+
+
 #endif /*GPAC_DISABLE_VRML*/
