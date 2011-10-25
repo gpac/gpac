@@ -381,7 +381,7 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 {
 	GF_BitStream *bs;
 	Bool P_bit, V_bit;
-	u32 plen, plen_bits;
+	u32 plen;
 	u64 offset;
 	char blank[2];
 
@@ -391,7 +391,7 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 	P_bit = gf_bs_read_int(bs, 1);
 	V_bit = gf_bs_read_int(bs, 1);
 	plen = gf_bs_read_int(bs, 6);
-	plen_bits = gf_bs_read_int(bs, 3);
+	/*plen_bits = */gf_bs_read_int(bs, 3);
 
 	/*VRC not supported yet*/
 	if (V_bit) {
@@ -821,12 +821,12 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 
 static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
-	u8 ft, nb_pck;
+	u8 ft;
 
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	ft = payload[0];
-	nb_pck = payload[1];
+	/*nb_pck = payload[1];*/
 	payload += 2;
 	size -= 2;
 

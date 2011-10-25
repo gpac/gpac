@@ -4075,7 +4075,6 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag, u32 fieldType, void *val, u32 node_tag)
 {
 	u32 is_default, has_escape, escape_val = 0;
-	SVG_Paint *paint;
 	SVG_Number num, *n;
 	is_default = has_escape = 0;
 
@@ -4084,7 +4083,6 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 		GF_LSR_READ_INT(lsr, *(SVG_Boolean*)val, 1, "val");
 		break;
 	case SVG_Paint_datatype:
-		paint = (SVG_Paint *)val;
 		lsr_read_paint(lsr, (SVG_Paint*)val, "val");
 		break;
 /*
@@ -4951,7 +4949,6 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 {
 	GF_Node *n;
 	GF_Command *com;
-	GF_Err e;
 	u32 i, type, count;
 
 	if (cond) {
@@ -4984,10 +4981,10 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 		case LSR_UPDATE_ADD:
 		case LSR_UPDATE_INSERT:
 		case LSR_UPDATE_REPLACE:
-			e = lsr_read_add_replace_insert(lsr, com_list, type);
+			lsr_read_add_replace_insert(lsr, com_list, type);
 			break;
 		case LSR_UPDATE_DELETE:
-			e = lsr_read_delete(lsr, com_list);
+			lsr_read_delete(lsr, com_list);
 			break;
 		case LSR_UPDATE_NEW_SCENE:
 		case LSR_UPDATE_REFRESH_SCENE: /*TODO FIXME, depends on decoder state*/
@@ -5013,24 +5010,24 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 			lsr_read_byte_align_string(lsr, NULL, "textContent");
 			break;
 		case LSR_UPDATE_SEND_EVENT:
-			e = lsr_read_send_event(lsr, com_list);
+			lsr_read_send_event(lsr, com_list);
 			break;
 		case LSR_UPDATE_RESTORE:
-			e = lsr_read_restore(lsr, com_list);
+			lsr_read_restore(lsr, com_list);
 			break;
 		case LSR_UPDATE_SAVE:
-			e = lsr_read_save(lsr, com_list);
+			lsr_read_save(lsr, com_list);
 			break;
 		case LSR_UPDATE_EXTEND:
 		{
-			u32 extID, len;
+			u32 extID;
 			GF_Node *n;
 			GF_LSR_READ_INT(lsr, extID, lsr->info->cfg.extensionIDBits, "extensionID");
-			len = lsr_read_vluimsbf5(lsr, "len");
+			/*len = */lsr_read_vluimsbf5(lsr, "len");
 			if (extID==2) {
-				u32 j, sub_count;
+				u32 j;
 				lsr_read_vluimsbf5(lsr, "reserved");
-				sub_count = lsr_read_vluimsbf5(lsr, "occ2");
+				/*sub_count = */lsr_read_vluimsbf5(lsr, "occ2");
 				for (j=0; j<count; j++) {
 					u32 k, occ3;
 					GF_LSR_READ_INT(lsr, k, 2, "reserved");

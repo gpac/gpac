@@ -72,7 +72,6 @@ struct __tag_scene_engine
 #ifndef GPAC_DISABLE_BIFS_ENC
 static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_ESD *esd)
 {
-	GF_Err e;
 	char *data;
 	u32 data_len;
 	u32	nbb;
@@ -81,7 +80,6 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 
 	if (!esd->decoderConfig || (esd->decoderConfig->streamType != GF_STREAM_SCENE)) return GF_BAD_PARAM;
 
-	e = GF_OK;
 	if (!seng->bifsenc)
 		seng->bifsenc = gf_bifs_encoder_new(seng->ctx->scene_graph);
 
@@ -149,16 +147,13 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 #ifndef GPAC_DISABLE_LASER
 static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_ESD *esd)
 {
-	GF_Err e;
 	char *data;
 	u32 data_len;
 	GF_LASERConfig lsr_cfg;
 
 	if (!esd->decoderConfig || (esd->decoderConfig->streamType != GF_STREAM_SCENE)) return GF_BAD_PARAM;
 
-	e = GF_OK;
 	seng->lsrenc = gf_laser_encoder_new(seng->ctx->scene_graph);
-
 
 	/*inputctx is not properly setup, do it*/
 	if (!esd->decoderConfig->decoderSpecificInfo) {
@@ -195,7 +190,7 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 	GF_StreamContext *sc;
 	GF_InitialObjectDescriptor *iod;
 	GF_ESD *esd;
-	u32	i, j, count;
+	u32	i, j;
 
 	e = GF_OK;
 
@@ -225,7 +220,6 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 		}
 	}
 
-	count = gf_list_count(seng->ctx->streams);
 	i=0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
 
@@ -302,23 +296,22 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	u64 fsize;
 	char *buffer = NULL;
 	GF_BitStream *bs = NULL;
-	u32 offset;
 	u8 dims_header;
-    Bool compress_dims;
+	Bool compress_dims;
 #ifdef DUMP_DIMS_LOG_WITH_TIME
-    u32 do_dump_with_time = 1;
+	u32 do_dump_with_time = 1;
 #endif
 	u32 buffer_len;
-    char *cache_dir, *dump_name;
+	char *cache_dir, *dump_name;
 
-    if (!data) return GF_BAD_PARAM;
+	if (!data) return GF_BAD_PARAM;
 
 	e = GF_OK;
 
-    if (!seng->dump_path) cache_dir = gf_get_default_cache_directory();
-    else cache_dir = seng->dump_path;
+	if (!seng->dump_path) cache_dir = gf_get_default_cache_directory();
+	else cache_dir = seng->dump_path;
 
-    dump_name = "gpac_scene_engine_dump";
+	dump_name = "gpac_scene_engine_dump";
 	compress_dims = 1;
 
 #ifdef DUMP_DIMS_LOG_WITH_TIME
@@ -437,24 +430,22 @@ start:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[SceneEngine] Warning: DIMS Unit size too big !!!\n")); 
 		gf_bs_write_u16(bs, 0); /* internal GPAC hack to indicate that the size is larger than 65535 */
 		gf_bs_write_u32(bs, buffer_len+1);
-		offset = 6;
 	} else {
 		gf_bs_write_u16(bs, buffer_len+1);
-		offset = 2;
 	}
 	gf_bs_write_u8(bs, dims_header);
 	gf_bs_write_data(bs, buffer, buffer_len);
 
 	gf_free(buffer);
-    buffer = NULL;
+	buffer = NULL;
 
-    gf_bs_get_content(bs, data, size);
+	gf_bs_get_content(bs, data, size);
 	gf_bs_del(bs);
 
 exit:
-    if (!seng->dump_path) gf_free(cache_dir);
-    if (buffer) gf_free(buffer);
-    if (file) fclose(file);
+	if (!seng->dump_path) gf_free(cache_dir);
+	if (buffer) gf_free(buffer);
+	if (file) fclose(file);
 	return e;
 }
 
@@ -644,10 +635,9 @@ GF_EXPORT
 GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auString, gf_seng_callback callback)
 {
 	GF_StreamContext *sc;
-	u32 i, count;
+	u32 i;
 	GF_Err e;
 	
-	count = gf_list_count(seng->ctx->streams);
 	i = 0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
 		sc->current_au_count = gf_list_count(sc->AUs);
@@ -656,11 +646,11 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 	seng->loader.flags |= GF_SM_LOAD_CONTEXT_READY;
 	seng->loader.force_es_id = ESID;
     
-    /* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
-    sc = gf_list_get(seng->ctx->streams, 0);
-    if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
-        gf_seng_create_new_au(sc, 0);
-    }
+	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
+	sc = gf_list_get(seng->ctx->streams, 0);
+	if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+		gf_seng_create_new_au(sc, 0);
+	}
 
 	e = gf_sm_load_string(&seng->loader, auString, 0);
 	if (e) goto exit;
@@ -755,7 +745,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 {
 	GF_Err e;
 	GF_StreamContext *sc;
-	u32 i, count;
+	u32 i;
 	Bool dims = 0;
 
 	seng->loader.fileName = auFile;
@@ -763,18 +753,17 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 	seng->loader.force_es_id = ESID;
 
 	sc = NULL;
-	count = gf_list_count(seng->ctx->streams);
 	i=0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
 		sc->current_au_count = gf_list_count(sc->AUs);
 		sc->disable_aggregation = disable_aggregation;
 	}
-    /* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
-    sc = gf_list_get(seng->ctx->streams, 0);
-    if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
+	sc = gf_list_get(seng->ctx->streams, 0);
+	if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
 		dims = 1;
-        gf_seng_create_new_au(sc, 0);
-    }
+		gf_seng_create_new_au(sc, 0);
+	}
 	seng->loader.flags |= GF_SM_LOAD_CONTEXT_READY;
 
 	if (dims) {

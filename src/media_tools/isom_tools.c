@@ -76,11 +76,10 @@ static const u8 ISMA_BIFS_AI[] =
 GF_EXPORT
 GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr)
 {
-	u32 AudioTrack, VideoTrack, Tracks, i, mType, bifsT, odT, descIndex, VideoType, VID, AID, bifsID, odID;
+	u32 AudioTrack, VideoTrack, Tracks, i, mType, bifsT, odT, descIndex, VID, AID, bifsID, odID;
 	u32 bifs, w, h;
 	Bool is_image, image_track;
 	GF_ESD *a_esd, *v_esd, *_esd;
-	Bool update_vid_esd;
 	GF_ObjectDescriptor *od;
 	GF_ODUpdate *odU;
 	GF_ODCodec *codec;
@@ -174,7 +173,6 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
 	a_esd = v_esd = NULL;
-	update_vid_esd = 0;
 
 	gf_isom_set_root_od_id(mp4file, 1);
 
@@ -194,7 +192,6 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	w = h = 0;
 	if (VideoTrack) {
 		bifs = 1;
-		VideoType = 0;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = ISMA_VIDEO_OD_ID;
 
@@ -1116,7 +1113,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	if (dash_mode) {
 		char buffer[1000];
-		u32 size;
 		u32 h, m;
 		Double s;
 
@@ -1208,7 +1204,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		fprintf(mpd, "/>\n");
 
 		gf_f64_seek(mpd_segs, 0, SEEK_END);
-		size = (u32) gf_f64_tell(mpd_segs);
+		gf_f64_tell(mpd_segs);
 		gf_f64_seek(mpd_segs, 0, SEEK_SET);
 		while (!feof(mpd_segs)) {
 			u32 r = fread(buffer, 1, 100, mpd_segs);
@@ -1264,7 +1260,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 {
 	int readen=0;
 	GF_Err e;
-	u32 state, unicode_type, offset;
+	u32 state, offset;
 	u32 cur_chap;
 	u64 ts;
 	u32 i, h, m, s, ms, fr, fps;
@@ -1284,21 +1280,17 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 			e = GF_NOT_SUPPORTED;
 			goto err_exit;
 		}
-		unicode_type = 2;
 		offset = 2;
 	} else if ((line[0]==(char)(0xFE)) && (line[1]==(char)(0xFF))) {
 		if (!line[2] && !line[3]){
 			e = GF_NOT_SUPPORTED;
 			goto err_exit;
 		}
-		unicode_type = 1;
 		offset = 2;
 	} else if ((line[0]==(char)(0xEF)) && (line[1]==(char)(0xBB)) && (line[2]==(char)(0xBF))) {
 		/*we handle UTF8 as asci*/
-		unicode_type = 0;
 		offset = 3;
 	} else {
-		unicode_type = 0;
 		offset = 0;
 	}
 	gf_f64_seek(f, offset, SEEK_SET);

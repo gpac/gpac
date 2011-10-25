@@ -842,7 +842,7 @@ TODO clean: figure out whether we use a mouse or a touch device - if touch devic
 Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 {
 	u32 res = 0;
-	GF_SensorHandler *hs, *hs_grabbed;
+	GF_SensorHandler *hs;
 	GF_List *tmp;
 	u32 i, count, stype;
 
@@ -881,8 +881,6 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		compositor->prev_hit_appear = compositor->hit_appear;
 	}
 
-
-	hs_grabbed = NULL;
 	/*if we have a hit node at the compositor level, use "touch" as default cursor - this avoid
 	resetting the cursor when the picked node is a DOM node in a composite texture*/
 	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
@@ -1727,8 +1725,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	}
 
 	if (prev_focus) {
-		u32 i, count;
-		count = gf_node_list_get_count(child);
+		u32 i;
 		/*!! this may happen when walking up PROTO nodes !!*/
 		for (i=idx; i>0; i--) {
 			n = gf_node_list_get_child(child, i-1);

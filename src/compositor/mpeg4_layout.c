@@ -622,7 +622,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 	GF_IRect prev_clip;
 	Bool mode_bckup, had_clip;
 	ParentNode2D *parent_bck;
-	GF_Rect clip, prev_clipper;
+	GF_Rect prev_clipper;
 	M_Layout *l = (M_Layout *)node;
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -673,7 +673,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 	/*setup clipping*/
 	prev_clip = tr_state->visual->top_clipper;
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
-		clip = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 0);
+		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 0);
 		if (tr_state->has_clip) {
 			tr_state->visual->top_clipper = gf_rect_pixelize(&tr_state->clipper);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);

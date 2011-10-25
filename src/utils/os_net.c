@@ -799,7 +799,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 //send length bytes of a buffer
 GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 {
-	GF_Err e;
 	u32 count;
 	s32 res;
 #ifndef __SYMBIAN32__
@@ -807,8 +806,6 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 	struct timeval timeout;
 	fd_set Group;
 #endif
-
-	e = GF_OK;
 
 	//the socket must be bound or connected
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
@@ -1077,15 +1074,12 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 //BytesRead is the number of bytes read from the network
 GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
 {
-	GF_Err e;
 	s32 res;
 #ifndef __SYMBIAN32__
 	s32 ready;
 	struct timeval timeout;
 	fd_set Group;
 #endif
-
-	e = GF_OK;
 
 	*BytesRead = 0;
 	if (!sock->socket) return GF_BAD_PARAM;
@@ -1169,7 +1163,6 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 {
 	u32 client_address_size;
-	s32 res;
 	SOCKET sk;
 #ifndef __SYMBIAN32__
 	s32 ready;
@@ -1186,7 +1179,6 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	timeout.tv_sec = 0;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	res = 0;
 	ready = select(sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
@@ -1401,18 +1393,15 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 
 GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second )
 {
-	GF_Err e;
 	s32 res;
 #ifndef __SYMBIAN32__
 	s32 ready;
 	struct timeval timeout;
 	fd_set Group;
 #endif
-	e = GF_OK;
 
 	*BytesRead = 0;
 	if (startFrom >= length) return GF_OK;
-
 
 #ifndef __SYMBIAN32__
 	//can we read?
@@ -1454,8 +1443,6 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 //send length bytes of a buffer
 GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Second )
 {
-
-	GF_Err e;
 	u32 count;
 	s32 res;
 #ifndef __SYMBIAN32__
@@ -1463,7 +1450,6 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	struct timeval timeout;
 	fd_set Group;
 #endif
-	e = GF_OK;
 
 	//the socket must be bound or connected
 	if (!sock || !sock->socket) return GF_BAD_PARAM;

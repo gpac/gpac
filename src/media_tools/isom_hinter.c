@@ -34,7 +34,7 @@
 void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, u32 *TimeDelta, u32 *maxCTSDelta, u32 *const_duration, u32 *bandwidth)
 {
 	u32 i, count, ts_diff;
-	u64 prevTS, DTS, tdelta;
+	u64 prevTS, tdelta;
 	Double bw;
 	GF_ISOSample *samp;
 
@@ -43,7 +43,6 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 	*maxCTSDelta = 0;
 	bw = 0;
 	prevTS = 0;
-	DTS = 0;
 	tdelta = 0;
 
 	count = gf_isom_get_sample_count(file, Track);

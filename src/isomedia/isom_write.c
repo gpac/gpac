@@ -545,7 +545,6 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 	GF_Err e;
 	u32 dataRefIndex;
 	GF_ESD *new_esd;
-	GF_TrackReferenceBox *tref;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -554,8 +553,6 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 	if (!trak || !trak->Media || 
 		!esd || !esd->decoderConfig || 
 		!esd->slConfig) return GF_BAD_PARAM;
-
-	tref = NULL;
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
@@ -3243,6 +3240,7 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
 		e = gf_isom_box_size(a);
+		assert (e == GF_OK);
 		mdat_size += a->size;
 	}
 	return mdat_size;

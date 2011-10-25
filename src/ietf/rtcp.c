@@ -53,7 +53,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 	GF_RTCPHeader rtcp_hdr;
 	GF_BitStream *bs;
 	char sdes_buffer[300];
-	u32 i, sender_ssrc, cur_ssrc, val, sdes_type, sdes_len, res, first, nb_bytes, nb_pck;
+	u32 i, sender_ssrc, cur_ssrc, val, sdes_type, sdes_len, res, first;
 	GF_Err e = GF_OK;
 
 	if (has_sr) *has_sr=0;
@@ -115,8 +115,8 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			ch->last_SR_NTP_sec = gf_bs_read_u32(bs);
 			ch->last_SR_NTP_frac = gf_bs_read_u32(bs);
 			ch->last_SR_rtp_time = gf_bs_read_u32(bs);
-			nb_pck = gf_bs_read_u32(bs);
-			nb_bytes = gf_bs_read_u32(bs);
+			/*nb_pck =  */gf_bs_read_u32(bs);
+			/*nb_bytes =*/gf_bs_read_u32(bs);
 
 			rtcp_hdr.Length -= 5;
 			if (has_sr) *has_sr=1;

@@ -1216,7 +1216,6 @@ static JSBool SMJS_FUNCTION_EXT(svg_get_bbox, Bool get_screen)
 {
 	GF_JSAPIParam par;
 	SMJS_OBJ
-	SMJS_ARGS
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n || argc) return JS_TRUE;
 
@@ -1253,7 +1252,6 @@ JSBool SMJS_FUNCTION(svg_udom_get_screen_ctm)
 {
 	GF_JSAPIParam par;
 	SMJS_OBJ
-	SMJS_ARGS
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n || argc) return JS_TRUE;
 

@@ -1228,7 +1228,7 @@ static GF_Err swf_place_obj(SWFReader *read, u32 revision)
 {
 	GF_Err e;
 	u32 shape_id;
-	u32 ID, bitsize, ratio;
+	u32 ID, bitsize;
 	u32 clip_depth;
 	GF_Matrix2D mat;
 	GF_ColorMatrix cmat;
@@ -1289,7 +1289,7 @@ static GF_Err swf_place_obj(SWFReader *read, u32 revision)
 			swf_get_colormatrix(read, &cmat);
 			swf_align(read);
 		}
-		if (has_ratio) ratio = swf_get_16(read);
+		if (has_ratio) /*ratio = */swf_get_16(read);
 		if (has_clip) clip_depth = swf_get_16(read);
 
 		if (has_name) {
@@ -1900,8 +1900,6 @@ static GF_Err swf_start_sound(SWFReader *read)
 static GF_Err swf_soundstream_hdr(SWFReader *read)
 {
 	char szName[1024];
-	u8 rec_mix;
-	u32 samplesperframe;
 	SWFSound *snd;
 
 	if (read->sound_stream) {
@@ -1911,7 +1909,7 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 	
 	GF_SAFEALLOC(snd, SWFSound);
 
-	rec_mix = swf_read_int(read, 8);
+	/*rec_mix = */swf_read_int(read, 8);
 	/*0: uncompressed, 1: ADPCM, 2: MP3*/
 	snd->format = swf_read_int(read, 4);
 	/*0: 5.5k, 1: 11k, 2: 2: 22k, 3: 44k*/
@@ -1921,7 +1919,7 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 	/*0: mono, 8 1: stereo*/
 	snd->stereo = swf_read_int(read, 1);
 	/*samplesperframe hint*/
-	samplesperframe = swf_read_int(read, 16);
+	swf_read_int(read, 16);
 
 	switch (snd->format) {
 	/*raw PCM*/
@@ -1959,14 +1957,14 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 	return swf_func_skip(read);
 #else
 	unsigned char bytes[4];
-	u32 hdr, alloc_size, size, tot_size, samplesPerFrame, delay;
+	u32 hdr, alloc_size, size, tot_size, samplesPerFrame;
 	char *frame;
 
 	/*note we're doing only MP3*/
 	if (!read->sound_stream) return swf_func_skip(read);
 
 	samplesPerFrame = swf_get_16(read);
-	delay = swf_get_16(read);
+	/*delay = */swf_get_16(read);
 
 	if (!read->sound_stream->is_setup) {
 
@@ -2106,6 +2104,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		raw = gf_malloc(sizeof(char)*osize);
 		memset(raw, 0, sizeof(char)*osize);
 		e = gf_img_jpeg_dec(buf+skip, size-skip, &w, &h, &pf, raw, &osize, 4);
+		assert(e == GF_OK);
 
 		/*read alpha map and decompress it*/
 		if (size<AlphaPlaneSize) buf = gf_realloc(buf, sizeof(u8)*AlphaPlaneSize);
@@ -2138,7 +2137,6 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		gf_free(raw);
 	}
 	gf_free(buf);
-
 
 	return read->setup_image(read, ID, szName);
 }
@@ -2416,7 +2414,6 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	GF_Err e;
 	FILE *input;
 	u8 sig[3];
-	u8 version;
 
 	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
 	input = gf_f64_open(load->fileName, "rb");
@@ -2460,7 +2457,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 		e = GF_URL_ERROR;
 		goto exit;
 	}
-	version = gf_bs_read_u8(read->bs);
+	/*version = */gf_bs_read_u8(read->bs);
 	read->length = swf_get_32(read);
 
 	/*if compressed decompress the whole file*/

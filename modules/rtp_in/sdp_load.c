@@ -352,10 +352,8 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 
 void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
-	GF_Err e;
 	RTPClient *rtp = (RTPClient *)cbk;
 
-	e = param->error;
 	switch (param->msg_type) {
 	case GF_NETIO_GET_METHOD:
 		param->name = "POST";

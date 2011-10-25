@@ -1707,7 +1707,7 @@ GF_EXPORT
 GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min, u32 *dur_avg, u32 *dur_max, u32 *size_min, u32 *size_avg, u32 *size_max)
 {
 	GF_TrackBox *trak;
-	u32 i, k, sample_per_chunk, sample_idx, dmin, dmax, smin, smax, tot_chunks;
+	u32 i, k, sample_idx, dmin, dmax, smin, smax, tot_chunks;
 	u64 davg, savg;
 	GF_SampleToChunkBox *stsc;
 	GF_TimeToSampleBox *stts;
@@ -1723,7 +1723,6 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 	davg = savg = 0;
 	sample_idx = 1;
 	tot_chunks = 0;
-	sample_per_chunk = 0;
 	for (i=0; i<stsc->nb_entries; i++) {
 		u32 nb_chunk = 0;
 		while (1) {

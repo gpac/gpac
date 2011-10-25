@@ -1472,7 +1472,6 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						}
 					}
 					else if (!strcmp(sub->name, "sharedStyles")) {
-						u32 idx = 0;
 						GF_XMLNode *style, *ftable;
 						u32 m=0;
 						while ((style=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
@@ -1503,7 +1502,10 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 								if (!strcmp(css_style, "font-table")) {
 									u32 z;
 									styles[nb_styles].fontID = atoi(css_val);
-									for (z=0; z<td.font_count; z++) { if (td.fonts[z].fontID == styles[nb_styles].fontID) { idx = z; break; } }
+									for (z=0; z<td.font_count; z++) {
+										if (td.fonts[z].fontID == styles[nb_styles].fontID)
+											break;
+									}
 								}
 								else if (!strcmp(css_style, "font-size")) styles[nb_styles].font_size = atoi(css_val);
 								else if (!strcmp(css_style, "font-style") && !strcmp(css_val, "italic")) styles[nb_styles].style_flags |= GF_TXT_STYLE_ITALIC;
@@ -1539,7 +1541,6 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 				nb_descs ++;
 			} 
 			else if (!strcmp(desc->name, "sampleData")) {
-				Bool is_utf16 = 0;
 				GF_XMLNode *sub;
 				u16 start, end;
 				u32 styleID;
@@ -1550,7 +1551,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 
 				k=0;
 				while ((att=(GF_XMLAttribute *)gf_list_enum(desc->attributes, &k))) {
-					if (!strcmp(att->name, "targetEncoding") && !strcmp(att->value, "utf16")) is_utf16 = 1;
+					if (!strcmp(att->name, "targetEncoding") && !strcmp(att->value, "utf16")) ;//is_utf16 = 1;
 					else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, atoi(att->value) );
 					else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, tx3g_get_color(import, att->value));
 				}

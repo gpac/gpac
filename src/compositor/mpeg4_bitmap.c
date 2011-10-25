@@ -127,12 +127,10 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	GF_ColorKey *key, keyColor;
-	GF_Compositor *compositor;
 	DrawableContext *ctx = tr_state->ctx;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
 
 
-	compositor = tr_state->visual->compositor;
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 

@@ -200,7 +200,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 {
 	u32 i, j, int_major, k, styles, count;
-	Fixed fontSize, start_x, start_y, line_spacing, tot_width, tot_height, max_scale, space, maxExtent;
+	Fixed fontSize, start_x, start_y, line_spacing, tot_width, tot_height, max_scale, maxExtent;
 	u32 size, trim_size;
 	GF_Font *font;
 	Bool horizontal;
@@ -229,7 +229,6 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	/*NOTA: we could use integer maths here but we have a risk of overflow with large fonts, so use fixed maths*/
 	st->ascent = gf_muldiv(fontSize, INT2FIX(font->ascent), INT2FIX(font->em_size));
 	st->descent = -gf_muldiv(fontSize, INT2FIX(font->descent), INT2FIX(font->em_size));
-	space = gf_muldiv(fontSize, INT2FIX(font->line_spacing), INT2FIX(font->em_size)) ;
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
 	maxExtent = txt->maxExtent;

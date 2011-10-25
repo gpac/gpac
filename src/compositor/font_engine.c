@@ -498,7 +498,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 {
 	u32 i;
 	Fixed descent, ascent, bline;
-	Fixed min_x, min_y, width, max_y;
+	Fixed min_x, min_y, max_y;
 
 	if (!span->nb_glyphs) {
 		span->bounds.width = span->bounds.height = 0;
@@ -516,8 +516,6 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 	}
 
 	bline = span->font->baseline * span->font_scale;
-
-	width = (span->flags & GF_TEXT_SPAN_HORIZONTAL) ? 0 : span->font->max_advance_h*span->font_scale;
 
 	min_x = span->dx ? FIX_MAX : span->off_x;
 	min_y = span->dy ? FIX_MAX : span->off_y - descent;

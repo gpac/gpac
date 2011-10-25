@@ -3265,9 +3265,6 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace)
 
 GF_Err ListEntry_dump(GF_Box *a, FILE * trace)
 {
-	GF_ItemListBox *p;
-
-	p = (GF_ItemListBox *)a;
 	fprintf(trace, "<ListEntry>\n");
 	DumpBox(a, trace);
 	gf_box_dump(a, trace);
@@ -3277,9 +3274,6 @@ GF_Err ListEntry_dump(GF_Box *a, FILE * trace)
 
 GF_Err data_dump(GF_Box *a, FILE * trace)
 {
-	GF_ItemListBox *p;
-
-	p = (GF_ItemListBox *)a;
 	fprintf(trace, "<data>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);

@@ -890,7 +890,7 @@ static void reset_collide_cursor(GF_Compositor *compositor)
 
 void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *node_list)
 {
-	SFVec3f n, pos, dir;
+	SFVec3f n, dir;
 	Bool go;
 	Fixed diff, pos_diff;
 
@@ -917,7 +917,6 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 	gf_vec_diff(dir, tr_state->camera->position, tr_state->camera->last_pos);
 	pos_diff = gf_vec_len(dir);
 	gf_vec_norm(&dir);
-	pos = tr_state->camera->position;
 	
 	diff = 0;
 	go = 1;

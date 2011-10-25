@@ -351,6 +351,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 			ch->last_nat_keepalive_time = now; 
 		} else {
 			if (now - ch->last_nat_keepalive_time >= ch->nat_keepalive_time_period) {
+#if 0
 				char rtp_nat[12];
 				rtp_nat[0] = (u8) 0xC0;
 				rtp_nat[1] = ch->PayloadType;
@@ -364,7 +365,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 				rtp_nat[9] = (ch->SenderSSRC>>16)&0xFF;
 				rtp_nat[10] = (ch->SenderSSRC>>8)&0xFF;
 				rtp_nat[11] = (ch->SenderSSRC)&0xFF;
-
+#endif
 				e = gf_sk_send(ch->rtp, buffer, 12);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Error sending NAT keep-alive packet: %s - disabling NAT\n", gf_error_to_string(e) ));
@@ -644,7 +645,6 @@ static u16 NextAvailablePort = 0;
 GF_EXPORT
 GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 {
-	u32 retry;
 	u16 p;
 	GF_Socket *sock;
 	if (!ch) return GF_BAD_PARAM;
@@ -659,7 +659,6 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 	if (!sock) return GF_IO_ERR;
 
 	/*should be way enough (more than 100 rtp streams open on the machine)*/
-	retry = 100;
 	while (1) {
 		/*try to bind without reuse. If fails this means the port is used on the machine, don't reuse it*/
 		GF_Err e = gf_sk_bind(sock, NULL, p, NULL, 0, 0);

@@ -526,12 +526,10 @@ Bool gf_dom_event_fire(GF_Node *node, GF_DOM_Event *event)
 
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener)
 {
-	u32 tag;
 	SVG_Element *listener;
 	GF_FieldInfo info;
 	GF_ChildNodeItem *last = NULL;
 
-	tag = gf_node_get_tag(node);
 	listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 	/*don't register the listener, this will be done when adding to the node events list*/
 

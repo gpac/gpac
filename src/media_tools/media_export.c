@@ -1594,7 +1594,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	u32 w, h;
 	Bool uncompress;
 	u32 track, i, di, count, pos, mstype;
-	const char *szRootName, *szSampleName;
+	const char *szRootName;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
@@ -1612,7 +1612,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	if (dims_doc) {
 		sprintf(szName, "%s.dml", dumper->out_name);
 		szRootName = "DIMSStream";
-		szSampleName = "DIMSUnit";
+		//szSampleName = "DIMSUnit";
 	} else {
 		sprintf(szMedia, "%s.media", dumper->out_name);
 		med = gf_f64_open(szMedia, "wb");
@@ -1623,7 +1623,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 
 		sprintf(szName, "%s.nhml", dumper->out_name);
 		szRootName = "NHNTStream";
-		szSampleName = "NHNTSample";
+		//szSampleName = "NHNTSample";
 	}
 	nhml = gf_f64_open(szName, "wt");
 	if (!nhml) {

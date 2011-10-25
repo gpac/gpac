@@ -1580,11 +1580,9 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 				lsr_write_fixed_16_8(lsr, v->value, "val");
 			}
 		} else if (svg_type==SVG_Transform_Rotate_datatype) {
-			Fixed angle;
 			SVG_Point_Angle *p = (SVG_Point_Angle *)val;
 			count = (p->x || p->y) ? 3 : 1;
 			lsr_write_vluimsbf5(lsr, count, "count");
-			angle = gf_muldiv(p->angle, INT2FIX(180), GF_PI);
 			lsr_write_fixed_16_8(lsr, p->angle, "val");
 			if (count==3) {
 				lsr_write_fixed_16_8(lsr, p->x, "val");
@@ -3481,9 +3479,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	}
 	if (type!=LSR_UPDATE_INSERT) {
 		if (com->fromNodeID) {
-			GF_Node *opNode;
 			u8 opAttType;
-			opNode = gf_sg_find_node(lsr->sg, com->fromNodeID);
 			opAttType = gf_lsr_anim_type_from_attribute(com->fromFieldIndex);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "has_operandAttribute");
 			GF_LSR_WRITE_INT(lsr, opAttType, 8, "operandAttribute");

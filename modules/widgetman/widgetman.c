@@ -1209,7 +1209,6 @@ static JSBool SMJS_FUNCTION(wm_widget_activate)
 
 static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
 {
-	JSBool ret;
 	GF_FieldInfo info;
 	GF_Node *n;
 	jsval argv[1], rval, jsfun;
@@ -1227,7 +1226,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 	if (event->type != GF_EVENT_ATTR_MODIFIED) {
 		jsfun = (jsval) handler->js_fun_val;
 		if (JSVAL_IS_OBJECT(jsfun))
-			ret = JS_CallFunctionValue(handler->js_context, wid->obj, (jsval) handler->js_fun_val, 0, 0, &rval);
+			JS_CallFunctionValue(handler->js_context, wid->obj, (jsval) handler->js_fun_val, 0, 0, &rval);
 		return;
 	}
 
@@ -1277,7 +1276,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 
 	jsfun = (jsval) handler->js_fun_val;
 	if (JSVAL_IS_OBJECT(jsfun))
-		ret = JS_CallFunctionValue(handler->js_context, wid->obj, (jsval) handler->js_fun_val, 1, argv, &rval);
+		JS_CallFunctionValue(handler->js_context, wid->obj, (jsval) handler->js_fun_val, 1, argv, &rval);
 }
 
 static JSBool SMJS_FUNCTION(wm_widget_get_param_value)
@@ -1542,7 +1541,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 	const char *str;
 	char *att;
 	SMJS_OBJ
-	SMJS_ARGS
+	//SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 	if (!wid->scene) {
@@ -2161,7 +2160,6 @@ GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstanc
 static JSBool SMJS_FUNCTION(wm_widget_is_interface_bound)
 {
 	u32 i, count;
-	Bool check_fake_bind = 0;
 	JSObject *cookie;
 	GF_WidgetInterface *ifce;
 	SMJS_OBJ
@@ -2174,10 +2172,6 @@ static JSBool SMJS_FUNCTION(wm_widget_is_interface_bound)
 	cookie = NULL;
 	if ((argc==2) && JSVAL_IS_OBJECT(argv[1]) )
 		cookie = JSVAL_TO_OBJECT(argv[1]);
-
-	if ((argc==3) && JSVAL_IS_BOOLEAN(argv[2]) )
-		check_fake_bind = JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE ? 1 : 0;
-
 
 	SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(JS_FALSE));
 	count = gf_list_count(wid->bound_ifces);
@@ -3446,7 +3440,7 @@ static JSBool SMJS_FUNCTION(wm_initialize)
 	u32 i, count;
 	const char*opt;
 	SMJS_OBJ
-	SMJS_ARGS
+	//SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 
 	count = gf_cfg_get_key_count(wm->term->user->config, "Widgets");

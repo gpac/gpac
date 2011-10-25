@@ -683,7 +683,6 @@ static void UpdateTimeNode(GF_BifsDecoder * codec, GF_Node *node)
 GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 {
 	u32 nodeID, NDTBits, node_type, node_tag, ProtoID, BVersion;
-	u8 node_flag;
 	Bool skip_init, reset_qp14;
 	GF_Node *new_node;
 	GF_Err e;
@@ -703,7 +702,6 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 
 
 	BVersion = GF_BIFS_V1;
-	node_flag = 0;
 
 	/*this is a USE statement*/
 	if (gf_bs_read_int(bs, 1)) {

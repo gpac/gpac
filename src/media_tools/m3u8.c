@@ -462,7 +462,7 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 
 GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist)
 {
-	int readen, readPointer, len, i, currentLineNumber;
+	int len, i, currentLineNumber;
 	FILE * f;
 	VariantPlaylist * pl;
 	char currentLine[M3U8_BUF_SIZE];
@@ -481,8 +481,6 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 		}
 	}
 	pl = *playlist;
-	readen=0;
-	readPointer = 0;
 	currentLineNumber = 0;
 	bzero(&attribs, sizeof(s_accumulated_attributes));
 	attribs.bandwidth = 0;

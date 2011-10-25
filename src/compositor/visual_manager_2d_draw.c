@@ -337,7 +337,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	u32 tx_tile;
 	GF_STENCIL tx_raster;
 	GF_Matrix2D mx_texture;
-	GF_Rect rc, orig_rc;
+	GF_Rect orig_rc;
 	GF_Raster2D *raster = visual->compositor->rasterizer;
 
 	if (!txh) txh = ctx->aspect.fill_texture;
@@ -393,10 +393,6 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	} else {
 		gf_path_get_bounds(path, &orig_rc);
 	}
-
-	/*get active texture window in pixels*/
-	rc.width = INT2FIX(txh->width);
-	rc.height = INT2FIX(txh->height);
 
 	/*get scaling ratio so that active texture view is stretched to original bounds (std 2D shape texture mapping in MPEG4)*/
 	sS = orig_rc.width / txh->width;

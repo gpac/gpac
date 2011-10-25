@@ -859,7 +859,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	u32 dst_bpp, dst_w_size;
 	s32 pos_y, inc_y, inc_x, prev_row, x_off;
 	u32 src_w, src_h, dst_w, dst_h;
-	u8 *src_bits = NULL, *dst_bits = NULL, *dst_bits_prev = NULL, *dst_temp_bits = NULL;
+	u8 *dst_bits = NULL, *dst_bits_prev = NULL, *dst_temp_bits = NULL;
 	s32 dst_x_pitch = dst->pitch_x;
 
 	copy_row_proto copy_row = NULL;
@@ -988,7 +988,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_planar_type ? 8 : 4) );
 	rows = tmp;
 
-	src_bits = (u8 *) src->video_buffer;
 	dst_bits = (u8 *) dst->video_buffer;
 
 	pos_y = 0x10000;

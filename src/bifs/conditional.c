@@ -55,19 +55,18 @@ void Conditional_BufferReplaced(GF_BifsDecoder *codec, GF_Node *n)
 
 static void Conditional_execute(M_Conditional *node)
 {
-	GF_Err e;
 	char *buffer;
 	u32 len;
 	GF_BitStream *bs;
 	GF_BifsDecoder *codec;
 	GF_Proto *prevproto;
-	GF_SceneGraph *prev_graph, *cur_graph;
+	GF_SceneGraph *prev_graph;
 	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private((GF_Node*)node);
 	if (!priv) return;
 
 	/*set the codec working graph to the node one (to handle conditional in protos)*/
 	prev_graph = priv->codec->current_graph;
-	cur_graph = priv->codec->current_graph = gf_node_get_graph((GF_Node*)node);
+	priv->codec->current_graph = gf_node_get_graph((GF_Node*)node);
 	assert(priv->codec->current_graph);
 
 	priv->codec->info = priv->info;
@@ -94,7 +93,7 @@ static void Conditional_execute(M_Conditional *node)
 	/*and a conditional may destroy the entire scene!*/
 	cur_graph->graph_has_been_reset = 0;
 #endif
-	e = gf_bifs_dec_command(codec, bs);
+	gf_bifs_dec_command(codec, bs);
 	gf_bs_del(bs);
 #ifdef GF_SELF_REPLACE_ENABLE
 	if (cur_graph->graph_has_been_reset) {

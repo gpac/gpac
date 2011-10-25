@@ -2319,19 +2319,13 @@ static JSBool SMJS_FUNCTION(rot_multVec)
 static JSBool SMJS_FUNCTION(rot_setAxis)
 {
 	SFVec3f v;
-	SFRotation r;
 	SMJS_ARGS
-	SMJS_OBJ
 	if (argc<=0) return JS_FALSE;
 
 	if (argc<=0 || !JSVAL_IS_OBJECT(argv[0]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFVec3fClass, NULL))
 		return JS_FALSE;
 
-	r = *(SFRotation *) ((GF_JSField *) JS_GetPrivate(c, obj))->field.far_ptr;
 	v = *(SFVec3f *) ((GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0])))->field.far_ptr;
-	r.x = v.x;
-	r.y = v.y;
-	r.z = v.z;
 	return JS_TRUE;
 }
 static JSBool SMJS_FUNCTION(rot_slerp)
@@ -2993,7 +2987,6 @@ JSBool SMJS_FUNCTION(vrml_event_add_listener)
 	GF_Node *node;
 	GF_JSField *ptr;
 	SMJS_OBJ
-	SMJS_ARGS
 	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	ptr = (GF_JSField *) JS_GetPrivate(c, obj);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
@@ -3006,7 +2999,6 @@ JSBool SMJS_FUNCTION(vrml_event_remove_listener)
 	GF_Node *node;
 	GF_JSField *ptr;
 	SMJS_OBJ
-	SMJS_ARGS
 	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	ptr = (GF_JSField *) JS_GetPrivate(c, obj);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
@@ -3587,9 +3579,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			break;
 		case GF_SG_VRML_MFCOLOR:
 			if ( JSVAL_IS_OBJECT(item) && JS_InstanceOf(c, JSVAL_TO_OBJECT(item), &js_rt->SFColorClass, NULL) ) {
-				SFColor *col;
 				from = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(item));
-				col = (SFColor *)from->field.far_ptr;
 				gf_sg_vrml_field_copy(& ((MFColor*)field->far_ptr)->vals[i], from->field.far_ptr, GF_SG_VRML_SFCOLOR);
 			}
 			break;
@@ -4640,7 +4630,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 #ifndef GPAC_DISABLE_SVG
 	GF_ScriptPriv *priv;
 	Bool prev_type;
-	JSBool ret = JS_FALSE;
+	//JSBool ret = JS_FALSE;
 	GF_DOM_Event *prev_event = NULL;
 	SVG_handlerElement *hdl;
 	jsval rval;
@@ -4670,9 +4660,9 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 
 	if (hdl->js_fun_val) {
 		jsval funval = (jsval ) hdl->js_fun_val;
-		ret = JS_CallFunctionValue(priv->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj: priv->js_obj, funval, 1, argv, &rval);
+		/*ret = */JS_CallFunctionValue(priv->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj: priv->js_obj, funval, 1, argv, &rval);
 	} else {
-		ret = JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
+		/*ret = */JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
 	}
 
 	/*check any pending exception if outer-most event*/

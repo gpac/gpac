@@ -1306,7 +1306,6 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER
 {
 	u32 tag;
 	GF_Node *n;
-	GF_ParentNode *par;
 
 	n = dom_get_node(c, obj);
 	/*note an element - we don't support property setting on document yet*/
@@ -1315,7 +1314,6 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
 	tag = n ? gf_node_get_tag(n) : 0;
-	par = (GF_ParentNode*)n;
 
 	switch (SMJS_ID_TO_INT(id)) {
 	/*"nodeValue"*/
@@ -2062,7 +2060,6 @@ static JSBool SMJS_FUNCTION(xml_element_elements_by_tag)
 
 static JSBool SMJS_FUNCTION(xml_element_set_id)
 {
-	const char *node_name;
 	u32 node_id;
 	char *name;
 	Bool is_id;
@@ -2082,7 +2079,7 @@ static JSBool SMJS_FUNCTION(xml_element_set_id)
 		name = SMJS_CHARS(c, argv[0]);
 		is_id = (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ? 1 : 0;
 	}
-	node_name = gf_node_get_name_and_id(n, &node_id);
+	gf_node_get_name_and_id(n, &node_id);
 	if (node_id && is_id) {
 		/*we only support ONE ID per node*/
 		SMJS_FREE(c, name);

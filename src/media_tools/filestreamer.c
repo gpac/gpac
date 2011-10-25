@@ -335,7 +335,6 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	GF_ISOMRTPStreamer *streamer;
 	GF_Err e = GF_OK;
 	const char *opt = NULL;
-	const char *dest_ip;
 	/*GF_Config *configFile = NULL;	*/
 	u32 i, max_ptime, au_sn_len;	
 	u8 payt;			
@@ -352,7 +351,6 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	GF_SAFEALLOC(streamer, GF_ISOMRTPStreamer);
 	streamer->dest_ip = gf_strdup(ip_dest);
 
-	dest_ip = ip_dest;
 	payt = 96;
 	max_ptime = au_sn_len = 0;
 

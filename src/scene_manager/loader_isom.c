@@ -333,7 +333,7 @@ static GF_Err gf_sm_isom_suspend(GF_SceneLoader *loader, Bool suspend)
 
 GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 {
-	u32 i, track;
+	u32 i;
 	GF_BIFSConfig *bc;
 	GF_ESD *esd;
 	GF_Err e;
@@ -381,8 +381,6 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 
 	e = GF_OK;
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("%s\n", scene_msg));
-
-	track = i+1;
 
 	/*BIFS: update size & pixel metrics info*/
 	if (esd->decoderConfig->objectTypeIndication<=2) {

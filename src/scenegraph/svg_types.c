@@ -230,10 +230,9 @@ void gf_svg_reset_path(SVG_PathData d)
 GF_EXPORT
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
-	u32 i, j, command_count, points_count;
+	u32 i, j, command_count;
 	SVG_Point orig, ct_orig, ct_end, end, *tmp;
 	command_count = gf_list_count(commands);
-	points_count = gf_list_count(points);
 	orig.x = orig.y = ct_orig.x = ct_orig.y = 0;
 
 	for (i=0, j=0; i<command_count; i++) {

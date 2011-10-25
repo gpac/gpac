@@ -2836,7 +2836,6 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 	GF_ChildNodeItem *list;
 	char attName[100], *attValue, attID[100];
 	u32 i, count, nID;
-	Bool needs_cr;
 	SVG_Element *svg = (SVG_Element *)n;
 	GF_FieldInfo info;
 	SVGAttribute *att;
@@ -2994,7 +2993,6 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 	}
 
 	if (tag==TAG_SVG_text || tag==TAG_SVG_textArea) sdump->in_text = 1;
-	needs_cr = 1;
 	sdump->indent++;
 	list = svg->children;
 	while (list) {
