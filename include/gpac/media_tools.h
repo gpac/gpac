@@ -41,6 +41,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
 #endif
 
 
+#define GF_IMPORT_DEFAULT_FPS	25.0
+
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 /*			
@@ -109,7 +111,8 @@ enum
 	GF_IMPORT_DO_ABORT = 1<<31
 };
 
-#define GF_IMPORT_DEFAULT_FPS	25.0
+
+
 #define GF_IMPORT_AUTO_FPS		10000.0
 
 #define GF_IMPORT_MAX_TRACKS	100
