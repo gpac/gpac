@@ -794,7 +794,9 @@ void gf_term_disconnect(GF_Terminal *term)
 		term->root_scene = NULL;
 	}
 	while (term->root_scene || gf_list_count(term->net_services_to_remove) || gf_list_count(term->connection_tasks)  || gf_list_count(term->media_queue) ) {
-		gf_term_handle_services(term);
+		if (term->flags & GF_TERM_NO_DECODER_THREAD) {
+			gf_term_handle_services(term);
+		}
 		gf_sleep(10);
 	}
 }
