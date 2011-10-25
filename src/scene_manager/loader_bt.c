@@ -3423,6 +3423,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bool input_only)
 {
 	u32 size;
+	char *sep;
 	gzFile gzInput;
 	GF_Err e;
 	unsigned char BOM[5];
@@ -3481,7 +3482,10 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 		if (parser->gz_in) gzseek(parser->gz_in, 3, SEEK_CUR);
 	}
 	parser->initialized = 1;
-
+	
+	sep = strrchr(load->fileName, '.');
+	if (sep && !strnicmp(sep, ".wrl", 4)) parser->is_wrl = 1;
+	
 	if (input_only) return GF_OK;
 
 	/*initalize default streams in the context*/

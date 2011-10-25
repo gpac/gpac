@@ -156,6 +156,8 @@ void compositor_init_transformmatrix2d(GF_Compositor *compositor, GF_Node *node)
 void compositor_init_indexed_line_set2d(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_indexed_face_set2d(GF_Compositor *compositor, GF_Node *node);
 
+void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node);
+
 void compositor_init_viewport(GF_Compositor *compositor, GF_Node *node);
 
 void tr_mx2d_get_matrix(GF_Node *n, GF_Matrix2D *mat);

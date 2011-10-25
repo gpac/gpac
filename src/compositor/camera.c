@@ -401,6 +401,7 @@ void camera_reset_viewpoint(GF_Camera *cam, Bool animate)
 	if (!animate || (cam->had_viewpoint==2) ) {
 		camera_set_vectors(cam, cam->vp_position, cam->vp_orientation, cam->vp_fov);
 		cam->last_pos = cam->vp_position;
+		cam->anim_len = 0;
 		return;
 	}
 #ifndef FORCE_CAMERA_3D
