@@ -1397,7 +1397,6 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			u32 time, OTI, ST, i, ts_res;
 			GF_ODUpdate *odU;
 			GF_ObjectDescriptor *od;
-			Bool rap;
 			SVG_SAFExternalStream*st;
 			/*create a SAF stream*/
 			if (!parser->saf_es) {
@@ -1411,13 +1410,12 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
 			}
 			time = 0;
-			rap = 0;
 			ts_res = 1000;
 			OTI = ST = 0;
 			for (i=0; i<nb_attributes;i++) {
 				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
-				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
+				else if (!strcmp(att->name, "rap")) ;//rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "url")) url = gf_strdup(att->value); 
 				else if (!strcmp(att->name, "streamID")) ID = att->value;
 				else if (!strcmp(att->name, "objectTypeIndication")) OTI = atoi(att->value);
@@ -1655,7 +1653,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
+#ifdef SKIP_UNKNOWN_NODES
 	u32 ns;
+#endif
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)sax_cbck;
 	SVG_NodeStack *top = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 
@@ -1683,12 +1683,12 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		return;
 	}
 	
+#ifdef SKIP_UNKNOWN_NODES
 	ns = parser->current_ns;
 	if (name_space) 
 		ns = gf_sg_get_namespace_code(parser->load->scene_graph, (char *) name_space);  
 
 	/*only remove created nodes ... */
-#ifdef SKIP_UNKNOWN_NODES
 	if (gf_xml_get_element_tag(name, ns) != TAG_UndefinedNode) 
 #endif
 	{

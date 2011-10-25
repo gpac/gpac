@@ -458,14 +458,12 @@ End:
  
 static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 {
-	EVG_Vector   v_last;
 	EVG_Vector   v_start;
 	EVG_Vector*  point;
 	EVG_Vector*  limit;
 	char*       tags;
 	int   n;         /* index of contour in outline     */
 	int   first;     /* index of first point in contour */
-	char  tag;       /* current point's state           */
 #ifdef INLINE_POINT_CONVERSION
 	TPos _x, _y;
 #endif
@@ -475,13 +473,9 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 		int  last;  /* index of last point in contour */
 		last  = outline->contours[n];
 		limit = outline->points + last;
-		
 		v_start = outline->points[first];
-		v_last  = outline->points[last];
-
 		point = outline->points + first;
 		tags  = (char*) outline->tags  + first;
-		tag   = tags[0];
 		gray_move_to(&v_start, user);
 		while ( point < limit ) {
 			point++;

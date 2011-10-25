@@ -172,7 +172,9 @@ GF_Err gf_odf_write_od_remove(GF_BitStream *bs, GF_ODRemove *odRem)
 	if (! odRem) return GF_BAD_PARAM;
 
 	e = gf_odf_size_od_remove(odRem, &size);
+	assert(e == GF_OK);
 	e = gf_odf_write_base_descriptor(bs, odRem->tag, size);
+	assert(e == GF_OK);
 
 	for (i = 0; i < odRem->NbODs; i++) {
 		gf_bs_write_int(bs, odRem->OD_ID[i], 10);
@@ -431,11 +433,11 @@ GF_Err gf_odf_del_esd_remove(GF_ESDRemove *ESDRemove)
 
 GF_Err gf_odf_read_esd_remove(GF_BitStream *bs, GF_ESDRemove *esdRem, u32 gf_odf_size_command)
 {
-	u32 i = 0, aligned, nbBits;
+	u32 i = 0;
 	if (! esdRem) return GF_BAD_PARAM;
 
 	esdRem->ODID = gf_bs_read_int(bs, 10);
-	aligned = gf_bs_read_int(bs, 6);		//aligned
+	/*aligned = */gf_bs_read_int(bs, 6);		//aligned
 
 	//we have gf_odf_size_command - 2 bytes left, and this is our ES_ID[1...255]
 	//this works because OD commands are aligned
@@ -452,7 +454,7 @@ GF_Err gf_odf_read_esd_remove(GF_BitStream *bs, GF_ESDRemove *esdRem, u32 gf_odf
 		esdRem->ES_ID[i] = gf_bs_read_int(bs, 16);
 	}
 	//OD commands are aligned (but we should already be aligned....
-	nbBits = gf_bs_align(bs);
+	/*nbBits = */gf_bs_align(bs);
 	return GF_OK;
 }
 
@@ -569,7 +571,9 @@ GF_Err gf_odf_del_ipmp_update(GF_IPMPUpdate *IPMPDUpdate)
 	while (gf_list_count(IPMPDUpdate->IPMPDescList)) {
 		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(IPMPDUpdate->IPMPDescList, 0);
 		e = gf_odf_delete_descriptor(tmp);
+		assert(e == GF_OK);
 		e = gf_list_rem(IPMPDUpdate->IPMPDescList, 0);
+		assert(e == GF_OK);
 	}
 	gf_list_del(IPMPDUpdate->IPMPDescList);
 	gf_free(IPMPDUpdate);

@@ -51,7 +51,7 @@ static GF_Err gf_qt_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 /*import cubic QTVR to mp4*/
 GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 {
-	u32 i, di, w, h, tk, pano_t, nb_samp;
+	u32 i, di, w, h, tk, nb_samp;
 	Bool has_qtvr;
 	GF_ISOSample *samp;
 	GF_ISOFile *src;
@@ -72,7 +72,6 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	if (!src) return gf_qt_report(load, GF_URL_ERROR, "Opening file %s failed", load->fileName);
 
 	w = h = tk = 0;
-	pano_t = 0;
 	nb_samp = 0;
 
 	has_qtvr = 0;

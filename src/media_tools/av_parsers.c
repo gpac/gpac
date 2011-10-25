@@ -909,14 +909,12 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	case 22:
 	case 23:
 	{
-		Bool fl_flag, ext_flag;
-		u32 delay;
+		Bool ext_flag;
 		/*frame length flag*/
-		fl_flag = gf_bs_read_int(bs, 1);
+		/*fl_flag = */gf_bs_read_int(bs, 1);
 		/*depends on core coder*/
-		delay = 0;
 		if (gf_bs_read_int(bs, 1))
-			delay = gf_bs_read_int(bs, 14);
+			/*delay = */gf_bs_read_int(bs, 14);
 		ext_flag = gf_bs_read_int(bs, 1);
 		if (!cfg->nb_chan) {
 		}
@@ -2014,10 +2012,10 @@ static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHea
 
 static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, AVCSliceInfo *si) 
 {
-	s32 first_mb_in_slice, pps_id;
+	s32 pps_id;
 
 	/*s->current_picture.reference= h->nal_ref_idc != 0;*/
-	first_mb_in_slice = avc_get_ue(bs);
+	/*first_mb_in_slice = */avc_get_ue(bs);
 	si->slice_type = avc_get_ue(bs);
 	if (si->slice_type > 9) return -1;
 
@@ -2059,10 +2057,10 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 
 static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si) 
 {
-	s32 first_mb_in_slice, pps_id;
+	s32 pps_id;
 
 	/*s->current_picture.reference= h->nal_ref_idc != 0;*/
-	first_mb_in_slice = avc_get_ue(bs);
+	/*first_mb_in_slice = */avc_get_ue(bs);
 	si->slice_type = avc_get_ue(bs);
 	if (si->slice_type > 9) return -1;
 

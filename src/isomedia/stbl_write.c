@@ -731,9 +731,8 @@ GF_Err stbl_SetSampleSize(GF_SampleSizeBox *stsz, u32 SampleNumber, u32 size)
 
 GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 {
-	u32 i, nextSamp;
+	u32 i;
 
-	nextSamp = 0;
 	//check if we have already a sync sample
 	for (i = 0; i < stss->nb_entries; i++) {
 

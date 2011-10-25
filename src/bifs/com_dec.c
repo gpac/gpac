@@ -981,7 +981,7 @@ static GF_Err BD_DecReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *proto_list)
 {
 	u8 flag, field_type, event_type, useQuant, useAnim, f;
-	u32 i, NbRoutes, ID, numProtos, numFields, count, qpsftype, QP_Type, NumBits, Anim_Type;
+	u32 i, NbRoutes, ID, numProtos, numFields, count, qpsftype, QP_Type, NumBits;
 	GF_Node *node;
 	char name[1000];
 	GF_ProtoFieldInterface *proto_field;
@@ -1209,9 +1209,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			if (useAnim && ( (field.eventType == GF_SG_EVENT_IN) || (field.eventType == GF_SG_EVENT_EXPOSED_FIELD) )) {
 				flag = gf_bs_read_int(bs, 1);
 				if (flag) {
-					Anim_Type = gf_bs_read_int(bs, 4);
-				} else {
-					Anim_Type = 0;
+					/*Anim_Type = */gf_bs_read_int(bs, 4);
 				}
 			}
 		}

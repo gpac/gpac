@@ -2667,7 +2667,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 	dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
 	if (!dnload) {
 		gf_dm_del(dm);
-	return GF_BAD_PARAM;
+		return GF_BAD_PARAM;
 	}
 	dnload->use_cache_file = 0;
 	dnload->disable_cache = 1;
@@ -2678,15 +2678,20 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
 	
 	if (!e) {
-		u32 size = ftell(f);
+		u32 size = ftell(f), read;
 		*out_size = size;
 		*out_data = gf_malloc(sizeof(char)* ( 1 + size));
 		fseek(f, 0, SEEK_SET);
-		fread(*out_data, 1, size, f);
-		(*out_data)[size] = 0;
-		if (out_mime) {
-			const char *mime = gf_dm_sess_mime_type(dnload);
-			if (mime) *out_mime = gf_strdup(mime);
+		read = fread(*out_data, 1, size, f);
+		if (read != size) {
+			gf_free(*out_data);
+			e = GF_IO_ERR;
+		} else {
+			(*out_data)[size] = 0;
+			if (out_mime) {
+				const char *mime = gf_dm_sess_mime_type(dnload);
+				if (mime) *out_mime = gf_strdup(mime);
+			}
 		}
 	}
 	fclose(f);

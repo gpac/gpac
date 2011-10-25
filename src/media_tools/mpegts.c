@@ -36,6 +36,10 @@
 #include <gpac/carousel.h>
 #include <gpac/download.h>
 
+#ifdef GPAC_CONFIG_LINUX
+#include <unistd.h>
+#endif
+
 #define DUMP_MPE_IP_DATAGRAMS
 //#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 
@@ -359,7 +363,6 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	u32 hdr_size = 0;
 	u64 PTS;
 	Bool first = 1;
-	u32 remain;
 	GF_M2TS_PES_PCK pck;
 
 	/*dispatch frame*/
@@ -368,7 +371,6 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.DTS = pes->DTS;
 	pck.PTS = PTS;
 	pck.flags = 0;
-	remain = pes->frame_state;
 	pes->frame_state = 0;
 
 	/*fixme - we need to test this with more ADTS sources were PES framing is on any boundaries*/
@@ -391,7 +393,6 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			pck.data = data+start;
 			pck.data_len = sc_pos-start;
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-			remain = 0;
 		}
 
 		bs = gf_bs_new(data + sc_pos + 1, 9, GF_BITSTREAM_READ);
@@ -512,18 +513,18 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			amux_versionA = 0;
 			if (amux_version) amux_versionA = gf_bs_read_int(bs, 1);
 			if (!amux_versionA) {
-				u32 i, allStreamsSameTimeFraming, numSubFrames, numProgram;
+				u32 i, allStreamsSameTimeFraming, numProgram;
 				if (amux_version) latm_get_value(bs);
 
 				allStreamsSameTimeFraming = gf_bs_read_int(bs, 1);
-				numSubFrames = gf_bs_read_int(bs, 6);
+				/*numSubFrames = */gf_bs_read_int(bs, 6);
 				numProgram = gf_bs_read_int(bs, 4);
 				for (i=0; i<=numProgram; i++) {
 					u32 j, num_lay;
 					num_lay = gf_bs_read_int(bs, 3);
 					for (j=0;j<=num_lay; j++) {
 						GF_M4ADecSpecInfo cfg;
-						u32 frameLengthType, latmBufferFullness;
+						u32 frameLengthType;
 						Bool same_cfg = 0;
 						if (i || j) same_cfg = gf_bs_read_int(bs, 1);
 
@@ -542,7 +543,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 						}
 						frameLengthType = gf_bs_read_int(bs, 3);
 						if (!frameLengthType) {
-							latmBufferFullness = gf_bs_read_int(bs, 8);
+							/*latmBufferFullness = */gf_bs_read_int(bs, 8);
 							if (!allStreamsSameTimeFraming) {
 							}
 						} else {
@@ -1103,7 +1104,7 @@ aggregated_section:
 
 static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
-	 u32 orig_net_id, pos, evt_type;
+	 u32 pos, evt_type;
 	 u32 nb_sections;
 	 u32 data_size;
 	 unsigned char *data;
@@ -1134,7 +1135,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	 data = section->data;
 	 data_size = section->data_size;
 
-	 orig_net_id = (data[0] << 8) | data[1];
+	 //orig_net_id = (data[0] << 8) | data[1];
 	 pos = 3;
 	 while (pos < data_size) {
 	         GF_M2TS_SDT *sdt;
@@ -1377,11 +1378,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		while (info_length > first_loop_len) {
 #ifndef FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
-				u8 scope, label;
 				u32 size;
 				GF_BitStream *iod_bs;
-				scope = data[6];
-				label = data[7];
 				iod_bs = gf_bs_new(data+8, len-2, GF_BITSTREAM_READ);
 				if (pmt->program->pmt_iod) gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
 				gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
@@ -1780,7 +1778,7 @@ static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
 
 static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
-	u32 has_pts, has_dts, te;
+	u32 has_pts, has_dts;
 	u32 len_check;
 	memset(pesh, 0, sizeof(GF_M2TS_PESHeader));
 
@@ -1798,7 +1796,6 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 	copyright				= gf_bs_read_int(bs,1);
 	original				= gf_bs_read_int(bs,1);
 */
-	te = data[4];
 	has_pts = (data[4]&0x80);
 	has_dts = has_pts ? (data[4]&0x40) : 0;
 /*
@@ -2314,8 +2311,6 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 
 static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
-	u32 res;
-	res = 0;
 }
 
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)

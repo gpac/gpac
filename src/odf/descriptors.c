@@ -325,7 +325,6 @@ GF_EXPORT
 GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 {
 	Bool hasSize, cmd_stream;
-	GF_Err e;
 	GF_BitStream *bs;
 	GF_BIFSConfig *cfg;
 
@@ -341,7 +340,6 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	
 	cfg = (GF_BIFSConfig *) gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);	
-	e = GF_OK;
 	if (oti==2) {
 		/*3D Mesh Coding*/
 		gf_bs_read_int(bs, 1);
@@ -363,7 +361,9 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 			if (gf_bs_read_int(bs, 1) == 0) break;
 		}
 		gf_bs_align(bs);
-		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))  e = GF_NOT_SUPPORTED;
+		if (gf_bs_get_size(bs) != gf_bs_get_position(bs)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[ODF] Reading bifs config: shift in sizes (not supported)\n"));
+		}
 	} else {
 		cfg->pixelMetrics = gf_bs_read_int(bs, 1);
 		hasSize = gf_bs_read_int(bs, 1);
@@ -373,7 +373,7 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 		}
 		gf_bs_align(bs);
 		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))
-			e = GF_ODF_INVALID_DESCRIPTOR;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[ODF] Reading bifs config: shift in sizes (invalid descriptor)\n"));
 	}
 	gf_bs_del(bs);
 	return cfg;

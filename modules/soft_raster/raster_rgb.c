@@ -110,11 +110,10 @@ void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	char *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
-	u32 a, fin, col_no_a;
+	u32 a, fin;
 	s32 i;
 
 	a = (col>>24)&0xFF;
-	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | (col&0x00FFFFFF);
@@ -129,9 +128,8 @@ void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 spanalpha, col_a;
 	s32 i;
 	s32 x;
-	u32 len, bpp;
+	u32 len;
 	u32 *col;
-	bpp = surf->BPP;
 
 	for (i=0; i<count; i++) {
 		len = spans[i].len;
@@ -376,9 +374,8 @@ void evg_user_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u8 spanalpha, col_a, a;
 	s32 i;
-	u32 x, len, bpp;
+	u32 x, len;
 	u32 *col;
-	bpp = surf->BPP;
 
 	for (i=0; i<count; i++) {
 		len = spans[i].len;

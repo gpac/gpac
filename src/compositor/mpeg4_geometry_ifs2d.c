@@ -78,7 +78,7 @@ static void ifs2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 {
 	u32 i, count, ci_count;
-	u32 start_pts, j, ind_col, num_col;
+	u32 j, ind_col, num_col;
 	SFVec2f center, end;
 	SFColor col_cen;
 	GF_STENCIL grad;
@@ -184,7 +184,6 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		start = pts[ifs2D->coordIndex.vals[i]];
 		center = start;
 		gf_path_add_move_to(path, start.x, start.y);
-		start_pts = i;
 		num_col = 1;
 		i+=1;
 		while (ifs2D->coordIndex.vals[i] != -1) {	

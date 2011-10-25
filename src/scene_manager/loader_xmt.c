@@ -1400,7 +1400,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 {
 	GF_Err e;
 	GF_FieldInfo info;
-	u32	tag, i, count, ID;
+	u32	tag, i, ID;
 	Bool register_def = 0;
 	Bool is_script = 0;
 	GF_Node *node;
@@ -1642,7 +1642,6 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				ID = 0;
 				register_def = 0;
 				tag = 0;
-				count = 0;
 			}
 		}
 	} else {

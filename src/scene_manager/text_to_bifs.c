@@ -350,7 +350,6 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	SFString *sfstr;
 	GF_CommandField *inf;
 	Bool first_samp;
-	Double fps;
 	char szLine[2048], szTime[30], szText[2048];
 	GF_StreamContext *sc = NULL;
 
@@ -415,9 +414,6 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	au = NULL;
 	com = NULL;
 	inf = NULL;
-
-	fps = GF_IMPORT_DEFAULT_FPS;
-	if (mux->frame_rate) fps = mux->frame_rate;
 
 	line = 0;
 	first_samp = 1;

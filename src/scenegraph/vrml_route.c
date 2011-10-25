@@ -55,10 +55,9 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 void gf_sg_route_del(GF_Route *r)
 {
 	GF_SceneGraph *sg;
-	s32 ind;
 
 	/*remove declared routes*/
-	ind = gf_list_del_item(r->graph->Routes, r);
+	gf_list_del_item(r->graph->Routes, r);
 	/*remove route from node - do this regardless of setup state since the route is registered upon creation*/
 	if (r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->routes) {
 		gf_list_del_item(r->FromNode->sgprivate->interact->routes, r);

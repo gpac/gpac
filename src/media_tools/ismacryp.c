@@ -436,7 +436,7 @@ GF_EXPORT
 GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
-	u32 i, idx, count, common_idx, nb_tracks, scheme_type, cur_tk;
+	u32 i, idx, count, common_idx, nb_tracks, scheme_type;
 	const char *scheme_URI, *KMS_URI;
 	ISMACrypInfo *info;
 	Bool is_oma;
@@ -463,7 +463,6 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	}
 	
 	nb_tracks = gf_isom_get_track_count(mp4);
-	cur_tk = 1;
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
 		u32 trackID = gf_isom_get_track_id(mp4, i+1);

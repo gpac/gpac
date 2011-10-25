@@ -150,6 +150,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else if (ch->has_edit_list) {
 		u32 prev_sample = ch->sample_num;
 		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
+		assert (e == GF_OK);
 
 		/*we are in forced seek mode: fetch all samples before the one matching the sample time*/
 		if (ch->edit_sync_frame) {
@@ -171,6 +172,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				u32 samp_num = ch->sample_num;
 				ch->sample = NULL;
 				e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+				assert (e == GF_OK);
 				/*if no sync point in the past, use the first non-sync for the given time*/
 				if (!ch->sample || !ch->sample->data) {
 					gf_isom_sample_del(&ch->sample);
@@ -225,7 +227,8 @@ fetch_next:
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
-		if (ch->wait_for_segment_switch) check_segment_switch(ch->owner);
+		if (ch->wait_for_segment_switch)
+			check_segment_switch(ch->owner);
 		return;
 	}
 	ch->last_state = GF_OK;

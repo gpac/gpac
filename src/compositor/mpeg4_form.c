@@ -201,7 +201,7 @@ static void form_apply(FormStack *st, const char *constraint, u32 *group_idx, u3
 static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 {
 #if FORM_CLIPS
-	GF_Rect clip, prev_clipper;
+	GF_Rect prev_clipper;
 	Bool had_clip;
 	GF_IRect prev_clip;
 #endif
@@ -338,7 +338,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 	/*update clipper*/
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		prev_clip = tr_state->visual->top_clipper;
-		clip = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 0);
+		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 0);
 		if (tr_state->has_clip) {
 			tr_state->visual->top_clipper = gf_rect_pixelize(&tr_state->clipper);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);

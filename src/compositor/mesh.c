@@ -1032,10 +1032,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 							GF_Node *__texCoords, MFInt32 *texCoordIndex,
 							Fixed creaseAngle)
 {
-	u32 i, n, count, c_count, col_count, nor_count;
+	u32 i, n, count, c_count, nor_count;
 	u32 index;
-	u32 first_idx, last_idx;
-	Bool move_to, smooth_normals;
+	Bool smooth_normals;
 	SFVec2f tx;
 	u32 s_axis, t_axis;
 	SFVec3f pt, nor, bounds, center;
@@ -1133,14 +1132,12 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 			if (!colorIndex->vals) colorIndex = coordIndex;
 		}
 	}
-	col_count = colorIndex->count ? colorIndex->count : c_count;
 
 	if (has_normal && !normalPerVertex) {
 		index = normalIndex->count ? normalIndex->vals[0] : 0;
 		if (index < nor_count) nor = normal->vector.vals[index];
 	}
 
-	move_to = 1;
 	count = coordIndex->count;
 	has_coord = count ? 1 : 0;
 	if (!has_coord) count = c_count; 
@@ -1151,9 +1148,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	if (!has_coord) {
 		face_count = 1;
 	} else {
-		u32 pt_p_face;
 		face_count = 0;
-		pt_p_face = 0;
 		for (i=0; i<count; i++) {
 			if (coordIndex->vals[i] == -1) face_count++;
 		}
@@ -1178,10 +1173,8 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	}
 
 	cur_face = 0;
-	first_idx = last_idx = 0;
 	for (i=0; i<count; i++) {
 		if (has_coord && coordIndex->vals[i] == -1) {
-			move_to = 1;
 			n++;
 			if (has_color && !colorPerVertex) {
 				GET_IDX(n, colorIndex);

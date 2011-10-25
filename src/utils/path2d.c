@@ -337,15 +337,13 @@ static void gf_add_n_bezier(GF_Path *gp, GF_Point2D *newpts, u32 nbPoints)
 {
 	Double mu;
 	u32 numPoints, i;
-	GF_Point2D start, end;
+	GF_Point2D end;
 	numPoints = (u32) FIX2INT(GF_2D_DEFAULT_RES * gp->fineness);
 	mu = 0.0;
 	if (numPoints) mu = 1/(Double)numPoints;
-	start = newpts[0];
 	for (i=1; i<numPoints; i++) {
 		NBezier(newpts, nbPoints - 1, i*mu, &end);
 		gf_path_add_line_to(gp, end.x, end.y);
-		start = end;
 	}
 	gf_path_add_line_to(gp, newpts[nbPoints-1].x, newpts[nbPoints-1].y);
 }
@@ -765,7 +763,7 @@ GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 		gp->flags &= ~GF_PATH_BBOX_DIRTY;
 		e = gf_path_get_control_bounds(gp, &gp->bbox);
 		*rc = gp->bbox;
-		return GF_OK;
+		return e;
 	}
 
 	gp->flags &= ~GF_PATH_BBOX_DIRTY;

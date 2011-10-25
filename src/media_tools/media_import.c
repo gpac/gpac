@@ -500,7 +500,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	GF_M4ADecSpecInfo acfg;
 	FILE *in;
 	u64 offset, tot_size, done;
-	u32 max_size, track, di, duration, prof, i;
+	u32 max_size, track, di, duration, i;
 	GF_ISOSample *samp;
 
 	in = gf_f64_open(import->in_name, "rb");
@@ -630,7 +630,6 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (0 && hdr.is_mp2) acfg.audioPL = 0xFE;
 
 	gf_bs_align(dsi);
-	prof = hdr.profile;
 
 	e = GF_OK;
 	destroy_esd = 0;
@@ -742,7 +741,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	Double FPS;
 	FILE *mdia;
 	GF_ISOSample *samp;
-	Bool is_vfr, enable_vfr, erase_pl, has_cts_offset, is_packed, destroy_esd, do_vfr, forced_packed;
+	Bool is_vfr, erase_pl, has_cts_offset, is_packed, destroy_esd, do_vfr, forced_packed;
 	u32 nb_samp, i, timescale, max_size, track, di, PL, max_b, nbI, nbP, nbB, nbNotCoded, dts_inc, ref_frame, b_frames, duration;
 	u64 pos, tot_size, done_size, samp_offset;
 	GF_M4VDecSpecInfo dsi;
@@ -773,7 +772,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 
 	is_packed = 0;
 	nbNotCoded = nbI = nbP = nbB = max_b = 0;
-	enable_vfr = is_vfr = erase_pl = 0;
+	is_vfr = erase_pl = 0;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
@@ -1022,7 +1021,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 	u32 i, num_samples, timescale, track, di, PL, max_b, nb_f, ref_frame, b_frames;
 	u64 samp_offset, size, max_size;
 	u32 nbI, nbP, nbB, nbDummy, nbNotCoded, dts_inc, cur_samp;
-	Bool is_vfr, enable_vfr, erase_pl;
+	Bool is_vfr, erase_pl;
 	GF_M4VDecSpecInfo dsi;
 	GF_M4VParser *vparse;
 	s32 key;
@@ -1124,7 +1123,6 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 
 	is_packed = 0;
 	nbDummy = nbNotCoded = nbI = nbP = nbB = max_b = 0;
-	enable_vfr = 0;
 	has_cts_offset = 0;
 	cur_samp = b_frames = ref_frame = 0;
 
@@ -3029,7 +3027,7 @@ exit:
 GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, max_size, duration, sample_rate, block_size, i, readen;
+	u32 track, trackID, di, duration, sample_rate, block_size, i, readen;
 	GF_ISOSample *samp;
 	char magic[20], *msg;
 	Bool delete_esd, update_gpp_cfg;
@@ -3157,7 +3155,6 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	samp = gf_isom_sample_new();
 	samp->data = (char*)gf_malloc(sizeof(char) * 200);
 	samp->IsRAP = 1;
-	max_size = 200;
 	offset = gf_f64_tell(mdia);
 	gf_f64_seek(mdia, 0, SEEK_END);
 	media_size = gf_f64_tell(mdia) - offset;
@@ -3254,7 +3251,7 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 GF_Err gf_import_qcp(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, i, nb_pck, duration, riff_size, chunk_size, major, minor, version, avg_bps, pck_size, block_size, bps, samplerate, vrat_rate_flag, size_in_packets, nb_frames;
+	u32 track, trackID, di, i, nb_pck, duration, riff_size, chunk_size, pck_size, block_size, bps, samplerate, vrat_rate_flag, size_in_packets, nb_frames;
 	u64 max_size;
 	GF_BitStream *bs;
 	GF_ISOSample *samp;
@@ -3308,17 +3305,17 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	}
 	chunk_size = gf_bs_read_u32_le(bs);
 	has_pad = (chunk_size%2) ? 1 : 0;
-	major = gf_bs_read_u8(bs);
-	minor = gf_bs_read_u8(bs);
+	/*major = */gf_bs_read_u8(bs);
+	/*minor = */gf_bs_read_u8(bs);
 	chunk_size -= 2;
 	/*codec info*/
 	gf_bs_read_data(bs, GUID, 16);
-	version = gf_bs_read_u16_le(bs);
+	/*version = */gf_bs_read_u16_le(bs);
 	chunk_size -= 18;
 	gf_bs_read_data(bs, name, 80);
 	name[80]=0;
 	chunk_size -= 80;
-	avg_bps = gf_bs_read_u16_le(bs);
+	/*avg_bps = */gf_bs_read_u16_le(bs);
 	pck_size = gf_bs_read_u16_le(bs);
 	block_size = gf_bs_read_u16_le(bs);
 	samplerate = gf_bs_read_u16_le(bs);
@@ -5425,7 +5422,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	GF_MediaImporter *import= (GF_MediaImporter *)tsimp->import;
 	GF_M2TS_ES *es = NULL;
 	GF_M2TS_PES *pes = NULL;
-	GF_M2TS_SECTION_ES *ses = NULL;
 
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
@@ -5467,7 +5463,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
 				if (es->pid == prog->pmt_pid) continue;
 				if (es->flags & GF_M2TS_ES_IS_SECTION) {
-					ses = (GF_M2TS_SECTION_ES *)es;
+					//ses = (GF_M2TS_SECTION_ES *)es;
 				} else {
 					pes = (GF_M2TS_PES *)es;
 				}
@@ -5567,7 +5563,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				if (es->pid == prog->pmt_pid) continue;
 				if (es->pid == import->trackID) found = 1;
 				if (es->flags & GF_M2TS_ES_IS_SECTION) {
-					ses = (GF_M2TS_SECTION_ES *)es;
+					//ses = (GF_M2TS_SECTION_ES *)es;
 				} else {
 					pes = (GF_M2TS_PES *)es;
 				}
@@ -5591,7 +5587,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			es = ts->ess[import->trackID]; /* import->trackID == pid */
 
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
-				ses = (GF_M2TS_SECTION_ES *)es;
+				//ses = (GF_M2TS_SECTION_ES *)es;
 			} else {
 				pes = (GF_M2TS_PES *)es;
 				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
@@ -5874,7 +5870,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (!sl_pck->stream->program->pmt_iod) return;
 
 			if (sl_pck->stream->flags & GF_M2TS_ES_IS_SECTION) {
-				ses = (GF_M2TS_SECTION_ES *)sl_pck->stream;
+				//ses = (GF_M2TS_SECTION_ES *)sl_pck->stream;
 			} else {
 				pes = (GF_M2TS_PES *)sl_pck->stream;
 			}
@@ -6749,6 +6745,7 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 		if (level) slc->data[3] = level;
 	}
 	e = gf_isom_avc_config_update(file, track, 1, avcc);
+	assert (e == GF_OK);
 	gf_odf_avc_cfg_del(avcc);
 	return GF_OK;
 }

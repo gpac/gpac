@@ -437,11 +437,9 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	SVG_video_stack *stack = (SVG_video_stack *) gf_node_get_private(txh->owner);
 	
 	if (!txh->is_open) {
-		u32 tag;
 		SVG_InitialVisibility init_vis;
 		if (stack->first_frame_fetched) return;
 
-		tag = gf_node_get_tag(txh->owner);
 		init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
 		if (gf_node_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {

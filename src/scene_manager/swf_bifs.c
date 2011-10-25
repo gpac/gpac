@@ -1994,8 +1994,6 @@ Bool swf_bifs_action(SWFReader *read, SWFAction *act)
 	GF_List *dst;
 	MFURL url;
 	SFURL sfurl;
-	MFString str;
-	SFString sfstr;
 	Bool bval;
 	GF_Node *n;
 	Double time;
@@ -2026,11 +2024,7 @@ Bool swf_bifs_action(SWFReader *read, SWFAction *act)
 		sfurl.OD_ID = 0; sfurl.url = act->url;
 		url.count = 1; url.vals = &sfurl;
 		s2b_set_field(read, dst, n, "url", -1, GF_SG_VRML_MFURL, &url, 0);
-
-		sfstr.buffer = act->target;
-		str.count = 1; str.vals = &act->target;
 		s2b_set_field(read, dst, n, "parameter", -1, GF_SG_VRML_MFSTRING, &url, 0);
-		
 		bval = 1;
 		s2b_set_field(read, dst, n, "activate", -1, GF_SG_VRML_SFBOOL, &bval, 0);
 		break;

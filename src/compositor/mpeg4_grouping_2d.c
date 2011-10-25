@@ -36,7 +36,7 @@ typedef struct
 static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_ChildNodeItem *l;
-	u32 i, count;
+	u32 i;
 	Bool prev_switch;
 	GF_ChildNodeItem *children;
 	s32 whichChoice;
@@ -67,8 +67,6 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
-		count = gf_node_list_get_count(children);
-
 		prev_switch = tr_state->switched_off;
 		/*check changes in choice field*/
 		if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != whichChoice) ) {

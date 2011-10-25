@@ -1380,7 +1380,6 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 			if (is_script && parser->last_error) {
 				u32 eType, fType;
-				GF_ScriptField *sf;
 				eType = 0;
 				if (!strcmp(str, "eventIn") || !strcmp(str, "inputOnly")) eType = GF_SG_SCRIPT_TYPE_EVENT_IN;
 				else if (!strcmp(str, "eventOut") || !strcmp(str, "outputOnly")) eType = GF_SG_SCRIPT_TYPE_EVENT_OUT;
@@ -1397,7 +1396,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 				}
 				parser->last_error = GF_OK;
 				str = gf_bt_get_next(parser, 0);
-				sf = gf_sg_script_field_new(node, eType, fType, str);
+				gf_sg_script_field_new(node, eType, fType, str);
 				parser->last_error = gf_node_get_field_by_name(node, str, &info);
 
 				if (parser->parsing_proto && gf_bt_set_field_is(parser, &info, node)) continue;
@@ -1768,12 +1767,10 @@ next_field:
 
 	if (externProto) {
 		SFURL *url;
-		u32 nb_urls;
 		Bool has_urls = 0;
 		if (gf_bt_check_code(parser, '[')) has_urls = 1;
 
 		gf_sg_vrml_mf_reset(&proto->ExternProto, GF_SG_VRML_MFURL);
-		nb_urls = 0;
 		do {
 			str = gf_bt_get_next(parser, 0);
 			gf_sg_vrml_mf_append(&proto->ExternProto, GF_SG_VRML_MFURL, (void **) &url);

@@ -719,6 +719,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 }
 #endif
 
+#ifdef GPAC_UNUSED_FUNC
 static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
 {
 	/*if direct draw we can remove the context*/
@@ -778,6 +779,7 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 	/*if direct draw we can remove the context*/
 	return res;
 }
+#endif
 
 void drawable_check_bounds(struct _drawable_context *ctx, GF_VisualManager *visual)
 {
@@ -805,7 +807,6 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 
 void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
 {
-	Bool can_remove;
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
 
@@ -867,8 +868,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 		ctx->bi->clip.width = 0;
 	}
 
-
-	can_remove = drawable_finalize_end(ctx, tr_state);
+	//can_remove = drawable_finalize_end(ctx, tr_state);
 	if (ctx->drawable && !skip_focus)
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 

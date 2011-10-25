@@ -242,7 +242,6 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	M_Background2D *bck;
 #endif
 	u32 draw_mode;
-	u32 time;
 	
 	/*reset display list*/
 	visual->cur_context = visual->context;
@@ -271,7 +270,6 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	}
 	tr_state->invalidate_all = 0;
 
-	time = gf_sys_clock();
 	/*reset prev nodes if any (previous traverse was indirect)*/
 	rem = count = 0;
 	prev = NULL;
@@ -441,7 +439,7 @@ void ra_refresh(GF_RectArray *ra)
 static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx_idx, DrawableContext **first_opaque)
 {
 	u32 i;
-	Bool is_transparent, needs_redraw;
+	Bool needs_redraw;
 	GF_IRect *rc = &ctx->bi->clip;
 	assert(rc->width && rc->height);
 
@@ -449,10 +447,7 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 	needs_redraw = (ctx->flags & CTX_REDRAW_MASK) ? 1 : 0;
 
 	/*node is transparent*/
-	is_transparent = 1;
 	if ((ctx->flags & CTX_NO_ANTIALIAS) && !(ctx->flags & CTX_IS_TRANSPARENT) ) {
-		is_transparent = 0;
-
 		if ((*first_opaque==NULL) && needs_redraw) *first_opaque = ctx;
 	}
 

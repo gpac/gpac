@@ -1231,7 +1231,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	u32 backup_flags;
 	SFVec2f prev_vp;
 	GF_Rect rc;
-	GF_IRect clip, prev_clip;
+	GF_IRect prev_clip;
 	SVGAllAttributes *prev_vp_atts;
 	GF_TraverseState *tr_state = (GF_TraverseState*)rs;
   	GF_Matrix2D translate;
@@ -1310,7 +1310,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	rc.y = tr_state->vp_size.y;
 	gf_mx2d_apply_rect(&tr_state->transform, &rc);
 	prev_clip = tr_state->visual->top_clipper;
-	clip = gf_rect_pixelize(&rc);
+	gf_rect_pixelize(&rc);
 //	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
 
 	if (!stack->inline_sg && stack->resource) {

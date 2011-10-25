@@ -388,7 +388,6 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 	for (i=0; i<stream_count; i++) {
 		GF_AUContext *carousel_au;
 		GF_List *carousel_commands;
-		Bool self_carousel;
 		GF_StreamContext *aggregate_on_stream;
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 		if (ESID && (sc->ESID!=ESID)) continue;
@@ -396,11 +395,9 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 		/*locate the AU in which our commands will be aggregated*/
 		carousel_au = NULL;
 		carousel_commands = NULL;
-		self_carousel = 0;
 		aggregate_on_stream = sc->aggregate_on_esid ? gf_sm_get_stream(ctx, sc->aggregate_on_esid) : NULL;
 		if (aggregate_on_stream==sc) {
 			carousel_commands = gf_list_new();
-			self_carousel = 1;
 		} else if (aggregate_on_stream) {
 			if (!gf_list_count(aggregate_on_stream->AUs)) {
 				carousel_au = gf_sm_stream_au_new(aggregate_on_stream, 0, 0, 1);
@@ -415,17 +412,14 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
 			Bool has_modif = 0;
-			Bool first_au=1;
 			/*we check for each stream if it is a base stream (SceneReplace ...) - several streams may carry RAPs if inline nodes are used*/
 			Bool base_stream_found = 0;
-			u32 first_au_com_count = 0;
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
             if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
 
 			/*apply all commands - this will also apply the SceneReplace*/
 			while (gf_list_count(sc->AUs)) {
-				Bool first_com=1;
 				u32 count;
 				au = (GF_AUContext *) gf_list_get(sc->AUs, 0);
 				gf_list_rem(sc->AUs, 0);
@@ -433,12 +427,10 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 				/*AU not aggregated*/
 				if (au->flags & GF_SM_AU_NOT_AGGREGATED) {
 					gf_sm_au_del(sc, au);
-					first_au=0;
 					continue;
 				}
 
 				count = gf_list_count(au->commands);
-				if (first_au && (au->flags & GF_SM_AU_CAROUSEL) ) first_au_com_count = count;
 
 				for (j=0; j<count; j++) {
 					u32 store=0;
@@ -516,10 +508,8 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 						e = gf_sg_command_apply(ctx->scene_graph, com, 0);
 						break;
 					}
-					first_com=0;
 				}
 				gf_sm_au_del(sc, au);
-				first_au=0;
 			}
 
 			/*and recreate scene replace*/

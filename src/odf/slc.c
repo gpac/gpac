@@ -165,7 +165,7 @@ static u32 GetTSbytesLen(GF_SLConfig *sl)
 GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 {
 	GF_Err e;
-	u32 reserved, nbBytes = 0;
+	u32 nbBytes = 0;
 	
 	if (!sl) return GF_BAD_PARAM;
 
@@ -217,7 +217,7 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 		sl->packetSeqNumLength = gf_bs_read_int(bs, 5);
 		if (sl->packetSeqNumLength > 16) return GF_ODF_INVALID_DESCRIPTOR;
 	
-		reserved = gf_bs_read_int(bs, 2);
+		/*reserved = */gf_bs_read_int(bs, 2);
 		nbBytes += 15;
 	}
 
@@ -262,7 +262,9 @@ GF_Err gf_odf_write_slc(GF_BitStream *bs, GF_SLConfig *sl)
 	if (! sl) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)sl, &size);
+	assert(e == GF_OK);
 	e = gf_odf_write_base_descriptor(bs, sl->tag, size);
+	assert(e == GF_OK);
 
 	gf_bs_write_int(bs, sl->predefined, 8);
 	if (! sl->predefined) {

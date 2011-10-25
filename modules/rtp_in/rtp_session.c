@@ -361,7 +361,7 @@ void RP_RemoveStream(RTPClient *rtp, RTPStream *ch)
 void RP_ResetSession(RTSPSession *sess, GF_Err e)
 {
 	GF_RTSPCommand *com;
-	u32 first = 1;
+	//u32 first = 1;
 
 	//destroy command list
 	while (gf_list_count(sess->rtsp_commands)) {
@@ -370,7 +370,7 @@ void RP_ResetSession(RTSPSession *sess, GF_Err e)
 		//this destroys stacks if any
 //		RP_SendFailure(sess, com, first ? e : GF_OK);
 		gf_rtsp_command_del(com);
-		first = 0;
+		//first = 0;
 	}
 	/*reset session state*/	
 	gf_rtsp_session_reset(sess->session, 1);

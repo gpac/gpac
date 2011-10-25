@@ -374,7 +374,6 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		break;
 	case GF_ODF_BIFS_CFG_TAG:
 	{
-		s32 notused;
 		GF_BIFSConfig *bcd = (GF_BIFSConfig*)desc;
 		if (!stricmp(val, "auto")) return GF_OK;
 		if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hu", &bcd->nodeIDbits);
@@ -385,8 +384,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "pixelMetric") || !stricmp(fieldName, "pixelMetrics")) GET_BOOL(bcd->pixelMetrics)
 		else if (!stricmp(fieldName, "pixelWidth")) ret += sscanf(val, "%hu", &bcd->pixelWidth);
 		else if (!stricmp(fieldName, "pixelHeight")) ret += sscanf(val, "%hu", &bcd->pixelHeight);
-		else if (!stricmp(fieldName, "use3DMeshCoding")) GET_BOOL(notused)
-		else if (!stricmp(fieldName, "usePredictiveMFField")) GET_BOOL(notused)
+		else if (!stricmp(fieldName, "use3DMeshCoding")) ret = 1;
+		else if (!stricmp(fieldName, "usePredictiveMFField")) ret = 1;
 		else if (!stricmp(fieldName, "randomAccess")) GET_BOOL(bcd->randomAccess)
 		else if (!stricmp(fieldName, "useNames")) GET_BOOL(bcd->useNames)
 	}

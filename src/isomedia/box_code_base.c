@@ -3448,6 +3448,7 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 				GF_Err e;
 				GF_BitStream *bs = gf_bs_new(wave->data+offset, wave->dataSize-offset, GF_BITSTREAM_READ);
 				e = gf_isom_parse_box(&a, bs);
+				assert(e == GF_OK);
 				gf_bs_del(bs);
 				ptr->esd = (GF_ESDBox *)a;
 			}
@@ -6150,7 +6151,6 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	GF_GenericSampleEntryBox *genm;
 	GF_UnknownBox *a;
 	u32 i;
-	u64 read;
 
 	i=0;
 	while ((a = (GF_UnknownBox*)gf_list_enum(trak->Media->information->sampleTable->SampleDescription->boxList, &i))) {
@@ -6229,7 +6229,6 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
 			genm->size = a->size;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
-			read = 0;
 			gf_bs_read_data(bs, genm->reserved, 6);
 			genm->dataReferenceIndex = gf_bs_read_u16(bs);
 			genm->data_size = (u32) gf_bs_available(bs);
@@ -6752,7 +6751,6 @@ GF_Err trun_Size(GF_Box *s)
 {
 	GF_Err e;
 	u32 i, count;
-	GF_TrunEntry *p;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 
 	e = gf_isom_full_box_get_size(s);
@@ -6766,7 +6764,6 @@ GF_Err trun_Size(GF_Box *s)
 	//if nothing to do, this will be skipped automatically
 	count = gf_list_count(ptr->entries);
 	for (i=0; i<count; i++) {
-		p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
 		if (ptr->flags & GF_ISOM_TRUN_DURATION) ptr->size += 4;
 		if (ptr->flags & GF_ISOM_TRUN_SIZE) ptr->size += 4;
 		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED

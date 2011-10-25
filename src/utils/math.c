@@ -1905,7 +1905,7 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 {
 	Fixed t1, t2, tNEAR=FIX_MIN, tFAR=FIX_MAX;
 	Fixed temp;
-	s8 xyorz, sign;
+	//s8 xyorz, sign;
 	
 	if (ray->dir.x == 0) {
 		if ((ray->orig.x < box_min.x) || (ray->orig.x > box_max.x))
@@ -1920,8 +1920,8 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 		}
 		if (t1 > tNEAR) {
 			tNEAR = t1;
-			xyorz = XPLANE;
-			sign = (ray->dir.x < 0) ? 1 : -1;
+			//xyorz = XPLANE;
+			//sign = (ray->dir.x < 0) ? 1 : -1;
 		}
 		if (t2 < tFAR) tFAR = t2;
 		if (tNEAR > tFAR) return 0; // box missed
@@ -1943,8 +1943,8 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 		}
 		if (t1 > tNEAR) {
 			tNEAR = t1;
-			xyorz = YPLANE;
-			sign = (ray->dir.y < 0) ? 1 : -1;
+			//xyorz = YPLANE;
+			//sign = (ray->dir.y < 0) ? 1 : -1;
 		}
 		if (t2 < tFAR) tFAR = t2;
 		if (tNEAR > tFAR) return 0; // box missed
@@ -1967,8 +1967,8 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 		}
 		if (t1 > tNEAR) {
 			tNEAR = t1;
-			xyorz = ZPLANE;
-			sign = (ray->dir.z < 0) ? 1 : -1;
+			//xyorz = ZPLANE;
+			//sign = (ray->dir.z < 0) ? 1 : -1;
 		}
 		if (t2 < tFAR) tFAR = t2;
 		if (tNEAR>tFAR) return 0; // box missed

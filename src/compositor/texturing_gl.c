@@ -923,8 +923,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	char * action ;
 	int tmp;
 	u8 texture[4];
-	MFFloat coefficients ;
-	GF_Compositor *compositor;
+	MFFloat coefficients;
 #endif
 	M_MatteTexture *matte = (M_MatteTexture *)n;
 	
@@ -940,7 +939,6 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	return 1;
 #else
 
-	compositor = b_surf->compositor;
 	if (glActiveTexture==NULL) {
 		tx_bind(b_surf);
 		return 1;

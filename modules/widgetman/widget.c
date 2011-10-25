@@ -57,7 +57,6 @@ JSBool SMJS_FUNCTION(widget_has_feature)
 JSBool SMJS_FUNCTION(widget_open_url)
 {
 	GF_Event evt;
-	Bool res;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
@@ -66,7 +65,7 @@ JSBool SMJS_FUNCTION(widget_open_url)
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_NAVIGATE;
 	evt.navigate.to_url = SMJS_CHARS(c, argv[0]);
-	res = gf_term_send_event(wid->widget->wm->term, &evt);
+	gf_term_send_event(wid->widget->wm->term, &evt);
 	SMJS_FREE(c, (char *)evt.navigate.to_url);
 
 	return JS_TRUE;

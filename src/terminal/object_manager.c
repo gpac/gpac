@@ -457,7 +457,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 	u16 es_id;
 	GF_ESD *esd, *base_scene;
 	const char *sOpt;
-	u32 lang, nb_od, nb_ocr, nb_scene, nb_mp7, nb_ipmp, nb_oci, nb_mpj, nb_other, prev_st;
+	u32 nb_od, nb_ocr, nb_scene, nb_mp7, nb_ipmp, nb_oci, nb_mpj, nb_other, prev_st;
 
 	nb_od = nb_ocr = nb_scene = nb_mp7 = nb_ipmp = nb_oci = nb_mpj = nb_other = 0;
 	prev_st = 0;
@@ -512,8 +512,8 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 		gf_cfg_set_key(odm->term->user->config, "Systems", "Language2CC", "en");
 		gf_cfg_set_key(odm->term->user->config, "Systems", "LanguageName", "English");
 	}
-	lang = (sOpt[0]<<16) | (sOpt[1]<<8) | sOpt[2];
 #if 0
+	lang = (sOpt[0]<<16) | (sOpt[1]<<8) | sOpt[2];
 	if (gf_list_count(odm->OD->ESDescriptors)>1) {
 		ODM_SelectAlternateStream(odm, lang, GF_STREAM_SCENE);
 		ODM_SelectAlternateStream(odm, lang, GF_STREAM_OD);

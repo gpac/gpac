@@ -130,7 +130,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 					   u32 IV_length, u32 KI_length,
 					   char *pref_mode) 
 {
-	u32 k, totDelta, ismacrypt_flags;
+	u32 k, ismacrypt_flags;
 
 	memset(&builder->slMap, 0, sizeof(GP_RTPSLMap));
 	builder->Path_MTU = PathMTU;
@@ -339,7 +339,6 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 
 	if (builder->flags & GP_RTP_PCK_SIGNAL_TS) {
 		/*compute CTS delta*/
-		totDelta = k*avgTS;
 		builder->slMap.CTSDeltaLength = gf_get_bit_size(k*avgTS);
 
 		/*compute DTS delta. Delta is ALWAYS from the CTS of the same sample*/ 

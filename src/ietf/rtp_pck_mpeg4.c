@@ -205,12 +205,11 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 {
 	char *sl_buffer, *payl_buffer;
 	u32 sl_buffer_size, payl_buffer_size; 
-	u32 auh_size_tmp, rslh_tmp, bytesLeftInPacket, infoSize, pckSize;
+	u32 auh_size_tmp, bytesLeftInPacket, infoSize, pckSize;
 	u64 pos;
 	u8 flush_pck, no_split;
 
 	flush_pck = 0;
-	rslh_tmp = 0;
 
 	bytesLeftInPacket = data_size;
 	/*flush everything*/

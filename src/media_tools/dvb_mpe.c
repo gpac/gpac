@@ -8,10 +8,6 @@ static void gf_m2ts_Delete_IpPacket(GF_M2TS_IP_Packet *ip_packet);
 static void empty_list(GF_List * list)
 {
 	void *obj;
-	u32 nb;
-
-	nb = gf_list_count(list);
-
 	while(gf_list_count(list)){
 		obj = gf_list_get(list,0);
 		gf_list_rem(list,0);
@@ -71,7 +67,6 @@ void gf_dvb_mpe_init(GF_M2TS_Demuxer *ts)
 
 void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 {
-	u32 i_streams, i_targets;
 	GF_M2TS_IP_Stream *ip_stream_buff;
 
 	GF_M2TS_IP_PLATFORM * ip_platform;
@@ -81,8 +76,6 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 
 	if (!ip_platform) return;
 
-	i_streams = 0;
-	i_targets = 0;
 	if (ip_platform->ip_streams){
 		while(gf_list_count(ip_platform->ip_streams)){
 			ip_stream_buff=gf_list_get(ip_platform->ip_streams, 0);	
@@ -160,12 +153,11 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 {
 	GF_M2TS_IP_Stream *ip_stream_buff;
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform;
-	u32 delta_t;
 	u32 table_boundry_flag;
 	u32 frame_boundry_flag; 
 	u32 offset; 
 	u32 i_streams,j;
-	u32 id,section_length, section_number, last_section_number;
+	u32 section_number, last_section_number;
 	s32 len_left = data_size;
 	assert( ts );
 
@@ -179,11 +171,9 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	}
 	
 	/*get number of rows of mpe_fec_frame from descriptor*/
-	id = data[0];
-	section_length = (data[1] & 0xF)<<8|data[2];
 	section_number = data[6];		
 	last_section_number = data[7];
-	//printf( "table_id: %x section_length: %d section_number: %d last : %d \n",id, section_length, section_number, last_section_number);	
+	//printf( "table_id: %x section_length: %d section_number: %d last : %d \n", data[0], (data[1] & 0xF)<<8|data[2], section_number, last_section_number);	
 	
 	if (ts->direct_mpe) {
 		if (table_id != GF_M2TS_TABLE_ID_DSM_CC_PRIVATE) return;
@@ -202,7 +192,7 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 
 	/*get number of rows of mpe_fec_frame from descriptor*/
 	/* Real-Time Parameters */	
-  	delta_t = (data[8]<<4)|(data[9]>>4);
+  	//delta_t = (data[8]<<4)|(data[9]>>4);
 	table_boundry_flag = (data[9] >> 3 )& 0x1;
 	frame_boundry_flag = (data[9] >> 2 )& 0x1; 
 		

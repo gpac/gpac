@@ -472,14 +472,14 @@ GF_Err AddDescriptorToIOD(GF_InitialObjectDescriptor *iod, GF_Descriptor *desc)
 GF_Err gf_odf_read_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod, u32 DescSize)
 {
 	GF_Err e;
-	u32 reserved, urlflag, read;
+	u32 urlflag, read;
 	u32 tmp_size, nbBytes = 0;
 	if (! iod) return GF_BAD_PARAM;
 
 	iod->objectDescriptorID = gf_bs_read_int(bs, 10);
 	urlflag = gf_bs_read_int(bs, 1);
 	iod->inlineProfileFlag = gf_bs_read_int(bs, 1);
-	reserved = gf_bs_read_int(bs, 4);
+	/*reserved = */gf_bs_read_int(bs, 4);
 	nbBytes += 2;
 	
 	if (urlflag) {
@@ -649,13 +649,13 @@ GF_Err AddDescriptorToOD(GF_ObjectDescriptor *od, GF_Descriptor *desc)
 GF_Err gf_odf_read_od(GF_BitStream *bs, GF_ObjectDescriptor *od, u32 DescSize)
 {
 	GF_Err e;
-	u32 reserved, urlflag;
+	u32 urlflag;
 	u32 tmpSize, nbBytes = 0;
 	if (! od) return GF_BAD_PARAM;
 
 	od->objectDescriptorID = gf_bs_read_int(bs, 10);
 	urlflag = gf_bs_read_int(bs, 1);
-	reserved = gf_bs_read_int(bs, 5);
+	/*reserved = */gf_bs_read_int(bs, 5);
 	nbBytes += 2;
 	
 	if (urlflag) {
@@ -812,14 +812,14 @@ GF_Err AddDescriptorToIsomIOD(GF_IsomInitialObjectDescriptor *iod, GF_Descriptor
 GF_Err gf_odf_read_isom_iod(GF_BitStream *bs, GF_IsomInitialObjectDescriptor *iod, u32 DescSize)
 {
 	u32 nbBytes = 0, tmpSize;
-	u32 reserved, urlflag;
+	u32 urlflag;
 	GF_Err e;
 	if (! iod) return GF_BAD_PARAM;
 
 	iod->objectDescriptorID = gf_bs_read_int(bs, 10);
 	urlflag = gf_bs_read_int(bs, 1);
 	iod->inlineProfileFlag = gf_bs_read_int(bs, 1);
-	reserved = gf_bs_read_int(bs, 4);
+	/*reserved = */gf_bs_read_int(bs, 4);
 	nbBytes += 2;
 	
 	if (urlflag) {
@@ -1000,13 +1000,13 @@ GF_Err AddDescriptorToIsomOD(GF_IsomObjectDescriptor *od, GF_Descriptor *desc)
 GF_Err gf_odf_read_isom_od(GF_BitStream *bs, GF_IsomObjectDescriptor *od, u32 DescSize)
 {
 	GF_Err e;
-	u32 reserved, urlflag;
+	u32 urlflag;
 	u32 tmpSize, nbBytes = 0;
 	if (! od) return GF_BAD_PARAM;
 
 	od->objectDescriptorID = gf_bs_read_int(bs, 10);
 	urlflag = gf_bs_read_int(bs, 1);
-	reserved = gf_bs_read_int(bs, 5);
+	/*reserved = */gf_bs_read_int(bs, 5);
 	nbBytes += 2;
 	
 	if (urlflag) {
@@ -1119,13 +1119,13 @@ GF_Err gf_odf_del_dcd(GF_DecoderConfig *dcd)
 GF_Err gf_odf_read_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd, u32 DescSize)
 {
 	GF_Err e;
-	u32 reserved, tmp_size, nbBytes = 0;
+	u32 /*reserved, */tmp_size, nbBytes = 0;
 	if (! dcd) return GF_BAD_PARAM;
 
 	dcd->objectTypeIndication = gf_bs_read_int(bs, 8);
 	dcd->streamType = gf_bs_read_int(bs, 6);
 	dcd->upstream = gf_bs_read_int(bs, 1);
-	reserved = gf_bs_read_int(bs, 1);
+	/*reserved = */gf_bs_read_int(bs, 1);
 	dcd->bufferSizeDB = gf_bs_read_int(bs, 24);
 	dcd->maxBitrate = gf_bs_read_int(bs, 32);
 	dcd->avgBitrate = gf_bs_read_int(bs, 32);
@@ -1884,7 +1884,7 @@ GF_Err gf_odf_del_cc_name(GF_CC_Name *cnd)
 GF_Err gf_odf_read_cc_name(GF_BitStream *bs, GF_CC_Name *cnd, u32 DescSize)
 {
 	GF_Err e;
-	u32 i, aligned, count, len, nbBytes = 0;
+	u32 i, count, len, nbBytes = 0;
 	if (!cnd) return GF_BAD_PARAM;
 
 	count = gf_bs_read_int(bs, 8);
@@ -1895,7 +1895,7 @@ GF_Err gf_odf_read_cc_name(GF_BitStream *bs, GF_CC_Name *cnd, u32 DescSize)
 		memset(tmp , 0, sizeof(GF_ContentCreatorInfo));
 		tmp->langCode = gf_bs_read_int(bs, 24);
 		tmp->isUTF8 = gf_bs_read_int(bs, 1);
-		aligned = gf_bs_read_int(bs, 7);
+		/*aligned = */gf_bs_read_int(bs, 7);
 		nbBytes += 4;
 
 		e = OD_ReadUTF8String(bs, & tmp->contentCreatorName, tmp->isUTF8, &len);
@@ -1974,7 +1974,7 @@ GF_Err gf_odf_del_ci(GF_CIDesc *cid)
 
 GF_Err gf_odf_read_ci(GF_BitStream *bs, GF_CIDesc *cid, u32 DescSize)
 {
-	u32 reserved, nbBytes = 0;
+	u32 nbBytes = 0;
 	if (! cid) return GF_BAD_PARAM;
 
 	cid->compatibility = gf_bs_read_int(bs, 2);	//MUST BE NULL
@@ -1983,7 +1983,7 @@ GF_Err gf_odf_read_ci(GF_BitStream *bs, GF_CIDesc *cid, u32 DescSize)
 	cid->contentTypeFlag = gf_bs_read_int(bs, 1);
 	cid->contentIdentifierFlag = gf_bs_read_int(bs, 1);
 	cid->protectedContent = gf_bs_read_int(bs, 1);
-	reserved = gf_bs_read_int(bs, 3);
+	/*reserved = */gf_bs_read_int(bs, 3);
 	nbBytes += 1;
 
 	if (cid->contentTypeFlag) {
@@ -2098,12 +2098,12 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 {
 	GF_Err e;
 	u32 nbBytes = 0;
-	u32 i, aligned, len, nonLen, count;
+	u32 i, len, nonLen, count;
 	if (!etd) return GF_BAD_PARAM;
 
 	etd->langCode = gf_bs_read_int(bs, 24);
 	etd->isUTF8 = gf_bs_read_int(bs, 1);
-	aligned = gf_bs_read_int(bs, 7);
+	/*aligned = */gf_bs_read_int(bs, 7);
 	count = gf_bs_read_int(bs, 8);
 	nbBytes += 5;
 
@@ -2587,12 +2587,12 @@ GF_Err gf_odf_del_kw(GF_KeyWord *kwd)
 GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 {
 	GF_Err e;
-	u32 nbBytes = 0, aligned, i, kwcount, len;
+	u32 nbBytes = 0, i, kwcount, len;
 	if (!kwd) return GF_BAD_PARAM;
 
 	kwd->languageCode = gf_bs_read_int(bs, 24);
 	kwd->isUTF8 = gf_bs_read_int(bs, 1);
-	aligned = gf_bs_read_int(bs, 7);
+	/*aligned = */gf_bs_read_int(bs, 7);
 	kwcount = gf_bs_read_int(bs, 8);
 	nbBytes += 5;
 
@@ -2631,7 +2631,9 @@ GF_Err gf_odf_write_kw(GF_BitStream *bs, GF_KeyWord *kwd)
 	if (!kwd) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)kwd, &size);
+	assert(e == GF_OK);
 	e = gf_odf_write_base_descriptor(bs, kwd->tag, size);
+	assert(e == GF_OK);
 
 	gf_bs_write_int(bs, kwd->languageCode, 24);
 	gf_bs_write_int(bs, kwd->isUTF8, 1);
@@ -2726,7 +2728,7 @@ GF_Err gf_odf_read_oci_name(GF_BitStream *bs, GF_OCICreators *ocn, u32 DescSize)
 {
 	GF_Err e;
 	u32 nbBytes = 0;
-	u32 i, aligned, count, len;
+	u32 i, count, len;
 	if (!ocn) return GF_BAD_PARAM;
 
 	count = gf_bs_read_int(bs, 8);
@@ -2736,7 +2738,7 @@ GF_Err gf_odf_read_oci_name(GF_BitStream *bs, GF_OCICreators *ocn, u32 DescSize)
 		if (! tmp) return GF_OUT_OF_MEM;
 		tmp->langCode = gf_bs_read_int(bs, 24);
 		tmp->isUTF8 = gf_bs_read_int(bs, 1);
-		aligned = gf_bs_read_int(bs, 7);
+		/*aligned = */gf_bs_read_int(bs, 7);
 		nbBytes += 4;
 		e = OD_ReadUTF8String(bs, & tmp->OCICreatorName, tmp->isUTF8, &len);
 		if (e) return e;
@@ -2985,12 +2987,11 @@ GF_Err gf_odf_read_short_text(GF_BitStream *bs, GF_ShortTextual *std, u32 DescSi
 {
 	GF_Err e;
 	u32 nbBytes = 0, len;
-	u8 aligned;
 	if (!std) return GF_BAD_PARAM;
 
 	std->langCode = gf_bs_read_int(bs, 24);
 	std->isUTF8 = gf_bs_read_int(bs, 1);
-	aligned = gf_bs_read_int(bs, 7);
+	/*aligned = */gf_bs_read_int(bs, 7);
 	nbBytes += 4;
 
 	e = OD_ReadUTF8String(bs, & std->eventName, std->isUTF8, &len);

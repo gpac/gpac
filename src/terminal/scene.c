@@ -196,7 +196,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 {
 	u32 i;
 	GF_MediaObject *obj;
-	GF_Node *root_node;
 	GF_ObjectManager *odm;
 	GF_SceneDecoder *dec = NULL;
 	if (scene->scene_codec) dec = (GF_SceneDecoder *)scene->scene_codec->decio;
@@ -206,7 +205,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	gf_term_lock_compositor(scene->root_od->term, 1);
 		
 	/*force unregistering of inline nodes (for safety)*/
-	root_node = gf_sg_get_root_node(scene->graph);
 	if (for_shutdown && scene->root_od->mo) {
 		/*reset private stack of all inline nodes still registered*/
 		while (gf_list_count(scene->root_od->mo->nodes)) {

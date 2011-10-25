@@ -159,7 +159,6 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	u32 i, count, nbBits;
 	char *ptr;
 	ScriptParser parser;
-	Bool has_fields = 0;
 	e = GF_OK;
 	if (gf_node_get_tag(n) != TAG_MPEG4_Script) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -180,7 +179,6 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 		while (!gf_bs_read_int(bs, 1)){
 			e = ParseScriptField(&parser);
 			if (e) goto exit;
-			else has_fields = 1;
 		}
 	} else {
 		nbBits = gf_bs_read_int(bs, 4);
@@ -188,7 +186,6 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 		for (i=0; i<count; i++) {
 			e = ParseScriptField(&parser);
 			if (e) goto exit;
-			else has_fields = 1;
 		}
 	}
 	//reserevd
