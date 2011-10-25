@@ -204,56 +204,8 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] disconnecting\n"));
 
 	gf_term_lock_compositor(scene->root_od->term, 1);
-	
-	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
-	potentially registered Inline nodes of the graph with the sub-scene*/
-	if (!for_shutdown && scene->static_media_ressources) {
-		i=0;
-		/*stop all objects but DON'T DESTROY THEM*/
-		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
-			if (odm->state) gf_odm_disconnect(odm, 0);
-		}
-		/*reset all stream associations*/
-		i=0;
-		while ((obj = (GF_MediaObject*)gf_list_enum(scene->scene_objects, &i))) {
-			gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
-			gf_list_reset(obj->nodes);
-		}
-	} else {
-		while (gf_list_count(scene->resources)) {
-			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
-	
-			//Ivica patch: Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
-#ifndef GPAC_DISABLE_VRML
-			if (for_shutdown) {
-				obj = odm->mo;
-				while (gf_list_count(obj->nodes)) {
-					GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, 0);
-					switch (gf_node_get_tag(n)) {
-						case TAG_MPEG4_InputSensor:
-						{
-							M_InputSensor* is = (M_InputSensor*)n;
-							is->enabled = 0;
-							InputSensorModified(n);
-							break;
-						}
-					}
-					gf_list_rem(obj->nodes, 0);
-				}	
-			}
-#endif
-
-			gf_odm_disconnect(odm, (for_shutdown || !scene->static_media_ressources) ? 1 : 0);
-		}
-#ifndef GPAC_DISABLE_VRML
-		while (gf_list_count(scene->extern_protos)) {
-			GF_ProtoLink *pl = (GF_ProtoLink *)gf_list_get(scene->extern_protos, 0);
-			gf_list_rem(scene->extern_protos, 0);
-			gf_free(pl);
-		}
-#endif
-	}
-	
+		
+	/*force unregistering of inline nodes (for safety)*/
 	root_node = gf_sg_get_root_node(scene->graph);
 	if (for_shutdown && scene->root_od->mo) {
 		/*reset private stack of all inline nodes still registered*/
@@ -290,14 +242,65 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	if (scene->root_od->term->root_scene == scene) {
 		gf_sc_set_scene(scene->root_od->term->compositor, NULL);
 	}
-	/*release the scene*/
+
+	/*release the scene - at this stage, we no longer have any node stack refering to our media objects */
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
 	
+
 	assert(!gf_list_count(scene->extra_scenes) );
 	/*reset statc ressource flag since we destroyed scene objects*/
 	scene->static_media_ressources = 0;
+
+
+	/*disconnect and kill all objects*/
+	if (!for_shutdown && scene->static_media_ressources) {
+		i=0;
+		/*stop all objects but DON'T DESTROY THEM*/
+		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
+			if (odm->state) gf_odm_disconnect(odm, 0);
+		}
+		/*reset all stream associations*/
+		i=0;
+		while ((obj = (GF_MediaObject*)gf_list_enum(scene->scene_objects, &i))) {
+			gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
+			gf_list_reset(obj->nodes);
+		}
+	} else {
+		while (gf_list_count(scene->resources)) {
+			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
+	
+			//Ivica patch: Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
+#ifndef GPAC_DISABLE_VRML
+			if (for_shutdown && odm->mo) {
+				obj = odm->mo;
+				while (gf_list_count(obj->nodes)) {
+					GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, 0);
+					switch (gf_node_get_tag(n)) {
+						case TAG_MPEG4_InputSensor:
+						{
+							M_InputSensor* is = (M_InputSensor*)n;
+							is->enabled = 0;
+							InputSensorModified(n);
+							break;
+						}
+					}
+					gf_list_rem(obj->nodes, 0);
+				}	
+			}
+#endif
+
+			gf_odm_disconnect(odm, (for_shutdown || !scene->static_media_ressources) ? 2 : 0);
+		}
+#ifndef GPAC_DISABLE_VRML
+		while (gf_list_count(scene->extern_protos)) {
+			GF_ProtoLink *pl = (GF_ProtoLink *)gf_list_get(scene->extern_protos, 0);
+			gf_list_rem(scene->extern_protos, 0);
+			gf_free(pl);
+		}
+#endif
+	}
 
 	/*remove stream associations*/
 	while (gf_list_count(scene->scene_objects)) {
@@ -307,9 +310,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 		gf_list_del(obj->nodes);
 		gf_free(obj);
-	}
-
-	if (for_shutdown && scene->root_od && scene->root_od->mo) {
 	}
 	gf_term_lock_compositor(scene->root_od->term, 0);
 }
@@ -480,7 +480,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shu
 				}
 			}
 
-			if (discard_obj==1) {
+			if ((discard_obj==1) && !obj->num_open) {
 				gf_list_rem(scene->scene_objects, i-1);
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 				gf_list_del(obj->nodes);
