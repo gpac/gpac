@@ -156,8 +156,7 @@ u32 ext_media_load_th(void *par) {
 	GF_HYBMEDIA *self = (GF_HYBMEDIA*) par;
 	/*declare object to terminal*/
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-//	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
-	od->URLString = gf_strdup("http://perso.telecom-paristech.fr/~bouqueau/bipbop/gear1/file_remux.ts");
+	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
 	od->objectDescriptorID = 0;
 	gf_sleep(2000); //TODO: remove the sleep
 	gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
@@ -186,6 +185,7 @@ static u32 audio_gen_th(void *par)
 #else
 			ext_media_load_th(par);
 #endif
+			gf_sleep(2000); //TODO: remove the sleep
 		}
 
 		if (0) {

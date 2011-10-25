@@ -30,6 +30,10 @@
 
 /**********************************************************************************************************************/
 
+#define EXT_MEDIA_LOAD_THREADED
+
+/**********************************************************************************************************************/
+
 #define FM_FAKE_PULL_AUDIO_FREQ 44100
 #define FM_FAKE_PULL_CHAN_NUM	2
 #define FM_FAKE_PULL_BITS		16
@@ -44,6 +48,9 @@ typedef struct s_FM_FAKE_PULL {
 	unsigned char buffer10[FM_FAKE_PULL_FRAME_LEN]; /*played 10 percent of time*/
 	unsigned char buffer90[FM_FAKE_PULL_FRAME_LEN]; /*played 90 percent of time*/
 
+#ifdef EXT_MEDIA_LOAD_THREADED
+	GF_Thread *media_th;
+#endif
 } FM_FAKE_PULL;
 FM_FAKE_PULL FM_FAKE_PULL_private_data;
 
@@ -118,6 +125,17 @@ static GF_ObjectDescriptor* FM_FAKE_PULL_GetOD(void)
 
 /**********************************************************************************************************************/
 
+static u32 ext_media_load_th(void *par) {
+	GF_HYBMEDIA *self = (GF_HYBMEDIA*) par;
+	/*declare object to terminal*/
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
+	od->objectDescriptorID = 0;
+	gf_sleep(2000); //TODO: remove the sleep
+	gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
+	return 0;
+}
+
 static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service, const char *url)
 {
 	u32 i;
@@ -138,6 +156,20 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 			*((FM_FAKE_PULL_TYPE*)((FM_FAKE_PULL*)self->private_data)->buffer10+i) = 1 << (FM_FAKE_PULL_BITS-1);
 	}
 
+	/*for hybrid scenarios: add an external media*/
+	if (1) {
+#ifdef EXT_MEDIA_LOAD_THREADED
+		GF_Thread **th = &((FM_FAKE_PULL*)self->private_data)->media_th;
+		assert(*th == NULL);	//once at a time
+		*th = gf_th_new("HYB-FM fake external media load thread");
+		gf_th_run(*th, ext_media_load_th, self);
+#else
+		ext_media_load_th(self);
+#endif
+		//wait for video to begin as late video creates desynchro.
+		//gf_sleep(5000);
+	}
+
 	return GF_OK;
 }
 
@@ -145,7 +177,11 @@ static GF_Err FM_FAKE_PULL_Connect(GF_HYBMEDIA *self, GF_ClientService *service,
 
 static GF_Err FM_FAKE_PULL_Disconnect(GF_HYBMEDIA *self)
 {
+	FM_FAKE_PULL *priv = (FM_FAKE_PULL*)self->private_data;
 	self->owner = NULL;
+#ifdef EXT_MEDIA_LOAD_THREADED
+	gf_th_del(priv->media_th);
+#endif
 	return GF_OK;
 }
 
