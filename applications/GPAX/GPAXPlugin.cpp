@@ -289,6 +289,13 @@ BOOL CGPAXPlugin::PreTranslateMessage(MSG* pMsg)
 
 #define GPAC_REG_KEY	HKEY_CURRENT_USER
 
+static void gpax_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+{
+	FILE *logs = (FILE *) cbk;
+	vfprintf(logs, fmt, list);
+	fflush(logs);
+}
+
 //Create window message fuction. when the window is created, also initialize a instance of
 //GPAC player instance.
 LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -298,6 +305,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 
     if (m_hWnd==NULL) return 0;
 
+	gf_sys_init(0);
 
 	//Create a structure m_user for initialize the terminal. the parameters to set:
 	//1)config file path
@@ -305,6 +313,8 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	//3)window handler
 	//4)EventProc
     memset(&m_user, 0, sizeof(m_user));
+
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
 
     m_user.config = gf_cfg_init(NULL, NULL);
     if(!m_user.config) {
@@ -315,6 +325,17 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 #endif
 		goto err_exit;
 	}
+
+/*check log file*/	
+	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	if (str) {
+		m_pLogs = gf_f64_open(str, "wt");
+		if (m_pLogs) gf_log_set_callback(m_pLogs, gpax_do_log);
+	}
+ 
+	/*if logs are specified, use them*/
+	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
+	
 
     str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
     m_user.modules = gf_modules_new(str, m_user.config);
@@ -348,6 +369,7 @@ err_exit:
     if(m_user.config)
         gf_cfg_del(m_user.config);
     m_user.config = NULL;
+	gf_sys_close();
 	return 1;
 }
 
@@ -360,7 +382,12 @@ void CGPAXPlugin::UnloadTerm()
 	}
 	if (m_user.modules) gf_modules_del(m_user.modules);
 	if (m_user.config) gf_cfg_del(m_user.config);
+	if (m_pLogs) 
+		fclose(m_pLogs);
+	m_pLogs = NULL;
+	gf_log_set_callback(NULL, NULL);
 	memset(&m_user, 0, sizeof(m_user));
+	gf_sys_close();
 }
 CGPAXPlugin::~CGPAXPlugin()
 {
@@ -413,6 +440,9 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
 
     if (ReadParamString(pPropBag,pErrorLog,L"loop", szOpt, 1024))
 		m_bLoop = !stricmp(szOpt, "true") ? 0 : 1;
+
+	if (ReadParamString(pPropBag,pErrorLog,L"gui", szOpt, 1024))
+		m_bUseGUI = (!stricmp(szOpt, "true") || !stricmp(szOpt, "yes")) ? 1 : 0;
 
 	UpdateURL();
 
@@ -494,7 +524,7 @@ STDMETHODIMP CGPAXPlugin::Play()
 			if (strlen(m_url)) {
 				/*connect from 0 and pause if not autoplay*/
 				const char *gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
-				if (gui) {
+				if (gui && m_bUseGUI) {
 					gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
 					gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_url);
 					gf_term_connect(m_term, gui);

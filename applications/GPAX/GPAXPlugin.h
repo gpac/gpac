@@ -83,8 +83,10 @@ public:
 							   //to inherit the member variable m_hWnd which contains the window handler
 		m_bIsConnected = 0;
 		m_bUse3D = 0;
+		m_bUseGUI = 0;
 		m_AR = GF_ASPECT_RATIO_KEEP;
 		m_url[0] = 0;
+		m_pLogs = NULL;
 #ifndef _WIN32_WCE
 		m_pBrowser = NULL;
 #endif
@@ -249,7 +251,8 @@ private:
 #endif
 
 	u32 m_width, m_height, m_AR;
-	Bool m_bIsConnected, m_bInitialDraw, m_bAutoStart, m_bUse3D, m_bLoop;
+	Bool m_bIsConnected, m_bInitialDraw, m_bAutoStart, m_bUse3D, m_bLoop, m_bUseGUI;
+	FILE *m_pLogs;
 
 };
 
