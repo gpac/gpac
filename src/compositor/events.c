@@ -902,7 +902,11 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		/*call the sensor LAST, as this may triger a destroy of the scene the sensor is in 
 		this is only true for anchors, as other other sensors output events are queued as routes untill next pass*/
 		res += hs->OnUserEvent(hs, 1, 0, ev, compositor);
-		if ((stype == TAG_MPEG4_Anchor) || (stype == TAG_X3D_Anchor) ) {
+		if ((stype == TAG_MPEG4_Anchor)
+#ifndef GPAC_DISABLE_X3D
+						|| (stype == TAG_X3D_Anchor) 
+#endif
+		) {
 			/*subscene with active sensor has been deleted, we cannot continue process the sensors stack*/
 			if (count != gf_list_count(compositor->sensors))
 				break;
