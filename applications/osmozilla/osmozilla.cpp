@@ -46,10 +46,12 @@ void Osmozilla_Shutdown(Osmozilla *osmo)
 		osmo->term = NULL;
 		gf_term_del(a_term);
 	}
-	if (osmo->user->modules) gf_modules_del(osmo->user->modules);
-	if (osmo->user->config) gf_cfg_del(osmo->user->config);
-	gf_free(osmo->user);
-	osmo->user = NULL;
+	if (osmo->user) {
+		if (osmo->user->modules) gf_modules_del(osmo->user->modules);
+		if (osmo->user->config) gf_cfg_del(osmo->user->config);
+		gf_free(osmo->user);
+		osmo->user = NULL;
+	}
 }
 
 static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
@@ -141,6 +143,7 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 	const char *str;
 	int i;
 	osmo->auto_start = 1;
+	osmo->use_gui = 0;
 
 	/*options sent from plugin*/
 	for(i=0;i<argc;i++) {   
@@ -165,6 +168,8 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 			else if (!stricmp(argv[i], "4:3")) osmo->aspect_ratio = GF_ASPECT_RATIO_4_3;
 			else if (!stricmp(argv[i], "fill")) osmo->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 		}
+		else if (!stricmp(argn[i],"gui") && (!stricmp(argv[i], "true") || !stricmp(argv[i], "yes") ) ) 
+			osmo->use_gui = 1;
 	}
 
 	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
@@ -242,6 +247,9 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_display, unsigned int width, unsigned int height)
 {
 	const char *gui;
+
+	if (!osmo->user) return 0;
+
 	if (osmo->window_set) {
 		osmo->width = width;
 		osmo->height = height;
@@ -295,6 +303,8 @@ char *Osmozilla_GetVersion()
 
 void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
 {
+	if (!osmo->user) return;
+
 	fprintf(stdout, "Osmozilla connecting to %s\n", url);
 	if (osmo->url) gf_free(osmo->url);	
 	osmo->url = gf_strdup(url);
@@ -302,7 +312,7 @@ void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
 	/*connect from 0 and pause if not autoplay*/
 	if (osmo->auto_start) {
 		const char *gui = gf_cfg_get_key(osmo->user->config, "General", "StartupFile");
-		if (gui) {
+		if (gui && osmo->use_gui) {
 			gf_cfg_set_key(osmo->user->config, "Temp", "BrowserMode", "yes");
 			gf_cfg_set_key(osmo->user->config, "Temp", "GUIStartupFile", url);
 			gf_term_connect(osmo->term, gui);
