@@ -397,6 +397,9 @@ struct _tag_terminal
 	GF_Mutex *evt_mx;
 	u32 in_event_filter;
 
+	/*ID of the thread currently in handle_services routine, 0 if none*/
+	u32 thread_id_handling_services;
+
 	/*static URI relocator for locales*/
 	GF_TermLocales locales;
 

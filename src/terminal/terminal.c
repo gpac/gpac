@@ -776,6 +776,7 @@ void gf_term_connect_with_path(GF_Terminal * term, const char *URL, const char *
 GF_EXPORT
 void gf_term_disconnect(GF_Terminal *term)
 {
+	Bool handle_services;
 	if (!term->root_scene) return;
 	/*resume*/
 	if (term->play_state != GF_STATE_PLAYING) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
@@ -793,8 +794,16 @@ void gf_term_disconnect(GF_Terminal *term)
 		gf_scene_del(term->root_scene);
 		term->root_scene = NULL;
 	}
+	handle_services = 0;
+	if (term->flags & GF_TERM_NO_DECODER_THREAD) 
+		handle_services = 1;
+	/*if an unthreaded term extension decides to disconnect the scene (validator does so), we must flush services now
+	because we are called from gf_term_handle_services*/
+	if (term->thread_id_handling_services == gf_th_id()) 
+		handle_services = 1;
+
 	while (term->root_scene || gf_list_count(term->net_services_to_remove) || gf_list_count(term->connection_tasks)  || gf_list_count(term->media_queue) ) {
-		if (term->flags & GF_TERM_NO_DECODER_THREAD) {
+		if (handle_services) {
 			gf_term_handle_services(term);
 		}
 		gf_sleep(10);
@@ -949,6 +958,8 @@ void gf_term_handle_services(GF_Terminal *term)
 	if (!gf_mx_try_lock(term->media_queue_mx))
 		return;	
 
+	term->thread_id_handling_services = gf_th_id();
+
 	/*play ODs that need it*/
 	while (gf_list_count(term->media_queue)) {
 		Bool destroy = 0;
@@ -1070,14 +1081,16 @@ void gf_term_handle_services(GF_Terminal *term)
 		term->reload_state = 2;
 	}
 	if (term->reload_state == 2) {
-		if (gf_list_count(term->net_services)) return;
-		term->reload_state = 0;
-		if (term->reload_url) {
-			gf_term_connect(term, term->reload_url);
-			gf_free(term->reload_url);
+		if (! gf_list_count(term->net_services)) {
+			term->reload_state = 0;
+			if (term->reload_url) {
+				gf_term_connect(term, term->reload_url);
+				gf_free(term->reload_url);
+			}
+			term->reload_url = NULL;
 		}
-		term->reload_url = NULL;
 	}
+	term->thread_id_handling_services = 0;
 }
 
 void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node)
