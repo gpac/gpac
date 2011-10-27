@@ -181,15 +181,11 @@ static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	switch (capability.CapCode) {
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		if (capability.cap.valueInt) {
-			if (ctx->layer<32) {
-				ctx->layer += 8;
-				ctx->CurrDqId = ctx->layer;
-			}
+			// set layer up (command=1)
+			UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
 		} else {
-			if (ctx->layer>=8) {
-				ctx->layer -= 8;
-                ctx->CurrDqId = ctx->layer;
-			}
+			// set layer down (command=0)
+			UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
 		}
 		return GF_OK;
 	}
