@@ -660,7 +660,7 @@ const NPUTF8 *  v_OSMOZILLA_MethodNames[kOSMOZILLA_NUM_METHODS] = {
 	"Play",
 	"Pause",
 	"Stop",
-	"Update"
+	"Update",
 	"QualitySwitch",
 };
 
