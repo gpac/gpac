@@ -94,7 +94,7 @@
 			<Tool
 				Name="VCManifestTool"
 				OutputManifestFile="$(IntDir)\$(TargetFileName).embed.manifest"
-				EmbedManifest="false"
+				EmbedManifest="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
