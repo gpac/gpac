@@ -462,7 +462,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
 	
-	if (gui_mode) {
+	if (gui_mode==1) {
 		if (evt->type==GF_EVENT_QUIT) Run = 0;
 		return 0;
 	}

@@ -285,7 +285,7 @@ int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_displ
 
 	/*connect from 0 and pause if not autoplay*/
 	gui = gf_cfg_get_key(osmo->user->config, "General", "StartupFile");
-	if (gui) {
+	if (gui && osmo->use_gui) {
 		gf_cfg_set_key(osmo->user->config, "Temp", "BrowserMode", "yes");
 		gf_cfg_set_key(osmo->user->config, "Temp", "GUIStartupFile", osmo->url);
 		gf_term_connect(osmo->term, gui);
