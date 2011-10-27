@@ -2051,7 +2051,7 @@ struct __tag_isom {
 u64 gf_isom_get_mp4time();
 /*set the last error of the file. if file is NULL, set the static error (used for IO errors*/
 void gf_isom_set_last_error(GF_ISOFile *the_file, GF_Err error);
-GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing);
+GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode);
 GF_ISOFile *gf_isom_new_movie();
 /*Movie and Track access functions*/
 GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *the_file, u32 trackNumber);

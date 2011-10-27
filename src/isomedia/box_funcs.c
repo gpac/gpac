@@ -29,7 +29,7 @@
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
 //is the number of bytes missing to parse the box...
-GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected)
+GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected, Bool progressive_mode)
 {
 	GF_Err ret;
 	u64 start;
@@ -43,6 +43,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 	ret = gf_isom_parse_box(outBox, bs);
 	if (ret == GF_ISOM_INCOMPLETE_FILE) {
 		*bytesExpected = (*outBox)->size;
+		GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s\n", gf_4cc_to_str( (*outBox)->type) ));
 		gf_bs_seek(bs, start);
 		gf_isom_box_del(*outBox);
 		*outBox = NULL;
@@ -131,7 +132,6 @@ proceed_box:
 	if (size - hdr_size > end ) {
 		newBox->size = size - hdr_size - end;
 		*outBox = newBox;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s\n", gf_4cc_to_str(newBox->type) ));
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	//we need a special reading for these boxes...
