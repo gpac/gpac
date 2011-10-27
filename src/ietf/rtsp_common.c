@@ -32,7 +32,7 @@
 GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess)
 {
 	GF_Err e;
-	u32 res, body_size;
+	u32 res, body_size = 0;
 	u32 BodyStart = 0;
 
 	//fetch more data on the socket if needed

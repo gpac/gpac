@@ -887,8 +887,8 @@ redecode:
 					   ctx->width, ctx->height, ctx->pix_fmt,
 					   ctx->width, ctx->height, pix_out,
 					   SWS_BICUBIC, NULL, NULL, NULL);
-	if ((*cached_sws)){
-		int sz = sws_scale((*cached_sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+	if ((*cached_sws)) {
+		int sz = sws_scale((*cached_sws), frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 		assert( sz > 0 );
 	}
 #endif
