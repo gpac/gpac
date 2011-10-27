@@ -1581,9 +1581,10 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 			}
 		} else if (svg_type==SVG_Transform_Rotate_datatype) {
 			SVG_Point_Angle *p = (SVG_Point_Angle *)val;
+			Fixed angle = gf_muldiv(p->angle, INT2FIX(180), GF_PI);
 			count = (p->x || p->y) ? 3 : 1;
 			lsr_write_vluimsbf5(lsr, count, "count");
-			lsr_write_fixed_16_8(lsr, p->angle, "val");
+			lsr_write_fixed_16_8(lsr, angle, "val");
 			if (count==3) {
 				lsr_write_fixed_16_8(lsr, p->x, "val");
 				lsr_write_fixed_16_8(lsr, p->y, "val");

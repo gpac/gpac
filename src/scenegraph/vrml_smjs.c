@@ -2319,13 +2319,24 @@ static JSBool SMJS_FUNCTION(rot_multVec)
 static JSBool SMJS_FUNCTION(rot_setAxis)
 {
 	SFVec3f v;
+	SFRotation *r;
+	GF_JSField *ptr;
+	SMJS_OBJ
 	SMJS_ARGS
 	if (argc<=0) return JS_FALSE;
 
 	if (argc<=0 || !JSVAL_IS_OBJECT(argv[0]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFVec3fClass, NULL))
 		return JS_FALSE;
 
+	ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+	r = (SFRotation *) ptr->field.far_ptr;
+
 	v = *(SFVec3f *) ((GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0])))->field.far_ptr;
+
+	r->x = v.x; 	 
+	r->y = v.y; 	 
+	r->z = v.z;
+	Script_FieldChanged(c, NULL, ptr, NULL);
 	return JS_TRUE;
 }
 static JSBool SMJS_FUNCTION(rot_slerp)
