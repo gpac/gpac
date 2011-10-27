@@ -150,7 +150,7 @@ GF_Err gf_isom_open_progressive(const char *fileName, GF_ISOFile **the_file, u64
 	movie->finalName = NULL;
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-	e = gf_isom_parse_movie_boxes(movie, BytesMissing);
+	e = gf_isom_parse_movie_boxes(movie, BytesMissing, 1);
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
 		//if we have a moov, we're fine
 		if (movie->moov) {
@@ -1915,7 +1915,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 	if (prevsize==size) return GF_OK;
 
 	//ok parse root boxes
-	return gf_isom_parse_movie_boxes(movie, MissingBytes);
+	return gf_isom_parse_movie_boxes(movie, MissingBytes, 1);
 #endif
 }
 
@@ -1993,7 +1993,7 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName)
 
 	movie->current_top_box_start = 0;
 	//ok parse root boxes
-	return gf_isom_parse_movie_boxes(movie, &MissingBytes);
+	return gf_isom_parse_movie_boxes(movie, &MissingBytes, 1);
 #endif
 }
 

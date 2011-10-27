@@ -30,7 +30,7 @@
 /**************************************************************
 		Some Local functions for movie creation
 **************************************************************/
-GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected);
+GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected, Bool progressive_mode);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge);
@@ -82,7 +82,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 #endif
 
 
-GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
+GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
 	u64 totSize;
@@ -105,7 +105,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
 #endif
 
-		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, bytesMissing);
+		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, bytesMissing, progressive_mode);
 
 		if (e >= 0) {
 			e = GF_OK;
@@ -380,7 +380,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 	}
 
 	//OK, let's parse the movie...
-	mov->LastError = gf_isom_parse_movie_boxes(mov, &bytes);
+	mov->LastError = gf_isom_parse_movie_boxes(mov, &bytes, 0);
 	if (mov->LastError) {
 		gf_isom_set_last_error(NULL, mov->LastError);
 		gf_isom_delete_movie(mov);
