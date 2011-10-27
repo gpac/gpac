@@ -727,7 +727,12 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	if (consumed_by_compositor) return 0;
 
 	if (gjs->evt != NULL) return 0;
-	gf_sg_lock_javascript(gjs->c, 1);
+	res = 0;
+	while (gjs->nb_loaded) {
+		res = gf_sg_try_lock_javascript(gjs->c);
+		if (res) break;
+	}
+	if (!res) return 0;
 
 	rval = JSVAL_VOID;
 	gjs->evt = evt;
