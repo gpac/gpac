@@ -141,7 +141,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	GF_RTPStreamer *stream;
 	u32 rtp_type, default_rtp_rate;
 	u8 OfficialPayloadType;
-	u32 required_rate, PL_ID;
+	u32 required_rate, force_dts_delta, PL_ID;
 	char *mpeg4mode;
 	Bool has_mpeg4_mapping;
 	GF_Err e;
@@ -154,6 +154,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	/*by default NO PL signaled*/
 	PL_ID = 0;
 	OfficialPayloadType = 0;
+	force_dts_delta = 0;
 	mpeg4mode = NULL;
 	required_rate = 0;
 	nb_ch = 0;
@@ -256,6 +257,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		required_rate = default_rtp_rate;
 		if (is_crypted) {
 			/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
+			if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) force_dts_delta = 22;
 			flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_TS;
 		}
 
@@ -435,6 +437,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	gf_rtp_builder_init(stream->packetizer, PayloadType, MTU, max_ptime,
 					   streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
 
+
+	if (force_dts_delta) stream->packetizer->slMap.DTSDeltaLength = force_dts_delta;
 
 	e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
 	if (e) {

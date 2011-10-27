@@ -719,7 +719,6 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 }
 #endif
 
-#ifdef GPAC_UNUSED_FUNC
 static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
 {
 	/*if direct draw we can remove the context*/
@@ -779,7 +778,6 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 	/*if direct draw we can remove the context*/
 	return res;
 }
-#endif
 
 void drawable_check_bounds(struct _drawable_context *ctx, GF_VisualManager *visual)
 {
@@ -805,8 +803,12 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 	asp->line_scale = MAX(gf_divfix(tr_state->visual->compositor->scale_x, rc.width), gf_divfix(tr_state->visual->compositor->scale_y, rc.height));
 }
 
+//#define REMOVE_UNUSED_CTX
 void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
 {
+#ifdef REMVE_UNUSED_CTX
+	Bool can_remove = 0;
+#endif
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
 
@@ -868,13 +870,19 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 		ctx->bi->clip.width = 0;
 	}
 
-	//can_remove = drawable_finalize_end(ctx, tr_state);
+#ifdef REMVE_UNUSED_CTX
+	can_remove = drawable_finalize_end(ctx, tr_state);
+#else
+	drawable_finalize_end(ctx, tr_state);
+#endif
 	if (ctx->drawable && !skip_focus)
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 
 	/*remove if this is the last context*/
-//	if (can_remove && (tr_state->visual->cur_context == ctx)) 
-//		tr_state->visual->cur_context->drawable = NULL;
+#ifdef REMVE_UNUSED_CTX
+	if (can_remove && (tr_state->visual->cur_context == ctx)) 
+		tr_state->visual->cur_context->drawable = NULL;
+#endif
 }
 
 void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds)

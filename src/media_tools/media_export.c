@@ -1612,7 +1612,6 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	if (dims_doc) {
 		sprintf(szName, "%s.dml", dumper->out_name);
 		szRootName = "DIMSStream";
-		//szSampleName = "DIMSUnit";
 	} else {
 		sprintf(szMedia, "%s.media", dumper->out_name);
 		med = gf_f64_open(szMedia, "wb");
@@ -1623,7 +1622,6 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 
 		sprintf(szName, "%s.nhml", dumper->out_name);
 		szRootName = "NHNTStream";
-		//szSampleName = "NHNTSample";
 	}
 	nhml = gf_f64_open(szName, "wt");
 	if (!nhml) {

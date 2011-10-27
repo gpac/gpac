@@ -797,8 +797,6 @@ GF_Err BM_ParseRouteReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 	GF_Node *OutNode, *InNode;
 
 	RouteID = 1+gf_bs_read_int(bs, codec->info->config.RouteIDBits);
-	
-	gf_sg_route_find(codec->current_graph, RouteID);
 
 	/*origin*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);

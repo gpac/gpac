@@ -440,6 +440,9 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 {
 	u32 i;
 	Bool needs_redraw;
+#ifdef TRACK_OPAQUE_REGIONS
+	Bool is_transparent = 1;
+#endif
 	GF_IRect *rc = &ctx->bi->clip;
 	assert(rc->width && rc->height);
 
@@ -448,6 +451,9 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 
 	/*node is transparent*/
 	if ((ctx->flags & CTX_NO_ANTIALIAS) && !(ctx->flags & CTX_IS_TRANSPARENT) ) {
+#ifdef TRACK_OPAQUE_REGIONS
+		is_transparent = 0;
+#endif
 		if ((*first_opaque==NULL) && needs_redraw) *first_opaque = ctx;
 	}
 
