@@ -184,9 +184,6 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, B
 		scene = scene->root_od->parentscene;
 
 	res = gf_scene_get_media_object_ex(scene, url, obj_type, lock_timelines, syncRef, force_new_res, node);
-
-	if (res) {
-	}
 	return res;
 }
 

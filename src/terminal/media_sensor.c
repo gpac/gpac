@@ -110,7 +110,7 @@ void MS_Modified(GF_Node *node)
 			gf_node_event_out((GF_Node *) st->sensor, 4/*"isActive"*/);
 		}
 	}
-	st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
+	st->stream = NULL;
 	st->is_init = 0;
 	gf_term_invalidate_compositor(st->parent->root_od->term);
 }

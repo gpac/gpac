@@ -1324,6 +1324,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(dom_js_pre_destroy) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_has_instance) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_lock_javascript) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_try_lock_javascript) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )

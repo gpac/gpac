@@ -1210,7 +1210,7 @@ static void mae_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DO
 	}
 }
 
-void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
+void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec)
 {
 #ifndef GPAC_DISABLE_SVG
 	u32 i, count, min_buffer, min_time, transport;
@@ -1250,12 +1250,15 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	/*get buffering on all ODs*/
 	i=0;
 	while ((an_od = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		mae_collect_info(odm->net_service, an_od, &mae, transport, &min_time, &min_buffer);
+		if (odm->net_service == an_od->net_service)
+			mae_collect_info(odm->net_service, an_od, &mae, transport, &min_time, &min_buffer);
 	}
 
 	mae.level = min_buffer;
 	mae.remaining_time = INT2FIX(min_time) / 60;
 	mae.status = 0;
+	mae.loaded_size = loaded_size;
+	mae.total_size = total_size;
 
 	memset(&evt, 0, sizeof(GF_DOM_Event));
 	evt.mae = &mae;
@@ -1264,6 +1267,8 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 
 	/*lock scene to prevent concurrent access of scene data*/
 	locked = gf_mx_try_lock(odm->term->compositor->mx);
+	if (!locked) return;
+
 	for (i=0; i<count; i++) {
 		GF_Node *node = gf_list_get(odm->mo->nodes, i);
 		gf_dom_event_fire(node, &evt);
@@ -1272,10 +1277,14 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 		GF_Node *root = gf_sg_get_root_node(scene->graph);
 		if (root) gf_dom_event_fire(root, &evt);
 	}
-	if (locked) gf_sc_lock(odm->term->compositor, 0);
+	gf_sc_lock(odm->term->compositor, 0);
 #endif
 }
 
+void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
+{
+	gf_term_service_media_event_with_download(odm, event_type, 0, 0, 0);
+}
 
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
 Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url) 

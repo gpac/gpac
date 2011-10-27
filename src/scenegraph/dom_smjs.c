@@ -2271,7 +2271,14 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, j
 		case 42:
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 
-		/*MAE*/
+		case 52:/*loaded*/
+			if (!evt->mae) return JS_TRUE;
+			*vp = INT_TO_JSVAL( evt->mae->loaded_size);
+			return JS_TRUE;
+		case 53:/*total*/
+			if (!evt->mae) return JS_TRUE;
+			*vp = INT_TO_JSVAL( evt->mae->total_size);
+			return JS_TRUE;
 		case 54:/*bufferLevelValid*/
 			if (!evt->mae) return JS_TRUE;
 			*vp = BOOLEAN_TO_JSVAL( evt->mae->bufferValid ? JS_TRUE : JS_FALSE);
