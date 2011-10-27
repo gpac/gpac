@@ -888,7 +888,11 @@ redecode:
 					   ctx->width, ctx->height, pix_out,
 					   SWS_BICUBIC, NULL, NULL, NULL);
 	if ((*cached_sws)) {
+#if LIBSWSCALE_VERSION_INT < AV_VERSION_INT(0, 9, 0)
 		int sz = sws_scale((*cached_sws), frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+#else
+		int sz = sws_scale((*cached_sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+#endif
 		assert( sz > 0 );
 	}
 #endif
