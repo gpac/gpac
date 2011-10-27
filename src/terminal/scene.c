@@ -676,8 +676,7 @@ restart:
 	obj = NULL;
 	i=0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(scene->scene_objects, &i))) {
-		if (obj->odm && ((obj->odm->flags & GF_ODM_DESTROYED) || (obj->odm->action_type == GF_ODM_ACTION_DELETE)) )
-			continue;
+		Bool odm_matches = 0;
 
 		if (
 			/*regular OD scheme*/
@@ -692,18 +691,41 @@ restart:
 				/*locate sub-url in given one and handle fragments (viewpoint/segments/...)*/
 				&& gf_mo_is_same_url(obj, url, &keep_fragment, obj_type_hint) 
 			)
-		) {			
-			if (!first_pass && !force_new_if_not_attached) {
-				if (node && (gf_list_find(obj->nodes, node)<0))
-					gf_list_add(obj->nodes, node);
-				gf_term_lock_net(scene->root_od->term, 0);
-				return obj;
+		) {	
+			odm_matches = 1;
+		}
+
+		if (!odm_matches) continue;
+
+		if (obj->odm) {
+			Bool can_reuse = 1;
+			gf_term_lock_media_queue(scene->root_od->term, 1);
+			if (obj->odm->flags & GF_ODM_DESTROYED) can_reuse = 0;
+			else if (obj->odm->action_type == GF_ODM_ACTION_DELETE) {
+				/*check if object is being destroyed (no longer in the queue)*/
+				if (gf_list_del_item(scene->root_od->term->media_queue, obj->odm)<0) { 
+					can_reuse = 0;
+				} 
+				/*otherwise reuse object, discard current destroy command*/
+				else {
+					obj->odm->action_type = GF_ODM_ACTION_PLAY;
+				}
 			}
-			/*special case where the URL is requested twice for the same node: use the existing resource*/
-			else if (node && (gf_list_find(obj->nodes, node)>=0)) {
-				gf_term_lock_net(scene->root_od->term, 0);
-				return obj;
-			}
+			gf_term_lock_media_queue(scene->root_od->term, 0);
+			if (!can_reuse) continue;
+
+		}
+
+		if (!first_pass && !force_new_if_not_attached) {
+			if (node && (gf_list_find(obj->nodes, node)<0))
+				gf_list_add(obj->nodes, node);
+			gf_term_lock_net(scene->root_od->term, 0);
+			return obj;
+		}
+		/*special case where the URL is requested twice for the same node: use the existing resource*/
+		else if (node && (gf_list_find(obj->nodes, node)>=0)) {
+			gf_term_lock_net(scene->root_od->term, 0);
+			return obj;
 		}
 	}
 	if (first_pass) {

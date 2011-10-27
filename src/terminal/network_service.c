@@ -1055,12 +1055,16 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	switch (net_status) {
 	case GF_NETIO_SETUP:
 		gf_term_on_message(serv, GF_OK, "Connecting");
+		gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
 		break;
 	case GF_NETIO_CONNECTED:
 		gf_term_on_message(serv, GF_OK, "Connected");
 		break;
 	case GF_NETIO_WAIT_FOR_REPLY:
 		gf_term_on_message(serv, GF_OK, "Waiting for reply...");
+		break;
+	case GF_NETIO_PARSE_REPLY:
+		gf_term_on_message(serv, GF_OK, "Starting download...");
 		break;
 	case GF_NETIO_DATA_EXCHANGE:
 		/*notify some connection / ...*/
@@ -1075,6 +1079,11 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			gf_term_send_event(serv->term, &evt);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s received %d / %d\n", szURI, bytes_done, total_size));
+
+		gf_term_service_media_event_with_download(serv->owner, GF_EVENT_MEDIA_DATA_PROGRESS, bytes_done, total_size, bytes_per_sec);
+		break;
+	case GF_NETIO_DATA_TRANSFERED:
+		gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_END_OF_DATA);
 		break;
 	}
 }

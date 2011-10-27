@@ -241,6 +241,7 @@ typedef struct
 	Fixed remaining_time;
 	u16 status;
 	const char *session_name;
+	u64 loaded_size, total_size;
 	u32 nb_streams;
 	struct mae_item {u32 streamType; u32 mediaType; u32 transport; } streams[20];
 } GF_DOMMediaAccessEvent;
