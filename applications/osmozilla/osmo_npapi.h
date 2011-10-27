@@ -117,6 +117,7 @@ void Osmozilla_Play(Osmozilla *osmo);
 void Osmozilla_Pause(Osmozilla *osmo);
 void Osmozilla_Stop(Osmozilla *osmo);
 void Osmozilla_Update(Osmozilla *osmo, const char *type, const char *commands);
+void Osmozilla_QualitySwitch(Osmozilla *osmo, int switch_up);
 
 
 

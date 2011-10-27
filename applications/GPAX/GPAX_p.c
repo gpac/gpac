@@ -148,6 +148,7 @@ CINTERFACE_PROXY_VTABLE(15) _IGPAXProxyVtbl =
     (void *)-1 /* IGPAX::Pause */ ,
     (void *)-1 /* IGPAX::Stop */ ,
     (void *)-1 /* IGPAX::Update */ ,
+    (void *)-1 /* IGPAX::QualitySwitch */ ,
     (void *)-1 /* IGPAX::get_URL */ ,
     (void *)-1 /* IGPAX::put_URL */ ,
     (void *)-1 /* IGPAX::get_AutoStart */ ,

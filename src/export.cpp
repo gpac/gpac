@@ -1322,14 +1322,15 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_remove_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_vrml_flush_event_out) )
 #pragma comment (linker, EXPORT_SYMBOL(dom_js_pre_destroy) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_has_instance) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_lock_javascript) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_remove_listener) )
 #endif
-#endif
+
+#endif /*GPAC_HAS_SPIDERMONKEY*/
 
 /* scenegraph_vrml.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_replace_child) )
@@ -1400,7 +1401,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_get_next_available_proto_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_set_proto_loader) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_sfcolor_to_rgba) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_lock_javascript) )
 
 #ifndef GPAC_DISABLE_X3D
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_x3d_type_by_class_name) )

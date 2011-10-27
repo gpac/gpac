@@ -498,3 +498,8 @@ void Osmozilla_Update(Osmozilla *osmo, const char *type, const char *commands)
 	}
 }
 
+void Osmozilla_QualitySwitch(Osmozilla *osmo, int switch_up)
+{
+	if (osmo->term)
+		gf_term_switch_quality(osmo->term, switch_up ? 1 : 0);
+}

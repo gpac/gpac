@@ -557,6 +557,12 @@ STDMETHODIMP CGPAXPlugin::Stop()
     return S_OK;
 }
 
+STDMETHODIMP CGPAXPlugin::QualitySwitch(int switch_up)
+{
+	if (m_term) gf_term_switch_quality(m_term, switch_up ? 1 : 0);     
+    return S_OK;
+}
+
 STDMETHODIMP CGPAXPlugin::Update(BSTR _mtype, BSTR _updates)
 {
     if (m_term) {
