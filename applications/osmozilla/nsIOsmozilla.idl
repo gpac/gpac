@@ -6,4 +6,5 @@ interface nsIOsmozilla : nsISupports {
   void Play();
   void Stop();
   void Update(in string type, in string commands);
+  void QualitySwitch(in int switch_up);
 };

@@ -521,6 +521,12 @@ NS_IMETHODIMP nsOsmozillaPeer::Update(const char *type, const char *commands)
 	return NS_OK; 
 }
 
+NS_IMETHODIMP nsOsmozillaPeer::QualitySwitch(int switch_up) 
+{
+	Osmozilla_QualitySwitch(mPlugin, switch_up); 
+	return NS_OK; 
+}
+
 void nsOsmozillaPeer::SetInstance(Osmozilla *osmo)
 {
 	mPlugin = osmo;
@@ -638,12 +644,16 @@ NPError	NPOsmozilla_GetPeerIID(Osmozilla *osmo, void *value)
 
 #else
 
-#define kOSMOZILLA_ID_METHOD_PLAY              	0
-#define kOSMOZILLA_ID_METHOD_PAUSE				1
-#define kOSMOZILLA_ID_METHOD_STOP				2
-#define kOSMOZILLA_ID_METHOD_UPDATE				3
-
-#define kOSMOZILLA_NUM_METHODS				4
+enum
+{
+	kOSMOZILLA_ID_METHOD_PLAY = 0,
+	kOSMOZILLA_ID_METHOD_PAUSE,
+	kOSMOZILLA_ID_METHOD_STOP,
+	kOSMOZILLA_ID_METHOD_UPDATE,
+	kOSMOZILLA_ID_METHOD_QUALITY_SWITCH,
+	
+	kOSMOZILLA_NUM_METHODS,
+};
 
 NPIdentifier    v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_NUM_METHODS];
 const NPUTF8 *  v_OSMOZILLA_MethodNames[kOSMOZILLA_NUM_METHODS] = {
@@ -651,6 +661,7 @@ const NPUTF8 *  v_OSMOZILLA_MethodNames[kOSMOZILLA_NUM_METHODS] = {
 	"Pause",
 	"Stop",
 	"Update"
+	"QualitySwitch",
 };
 
 NPClass osmozilla_script_class;
@@ -719,6 +730,15 @@ bool OSMOZILLA_Invoke(NPObject* obj, NPIdentifier name, const NPVariant* args, u
 		}
 		if (!update) return 0;
 		Osmozilla_Update(npo->osmo, mime, update);
+		return 1;
+	}
+	if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_QUALITY_SWITCH]) {
+		int up = 1;
+		if (argCount==1) {
+			if (args[0].type==NPVariantType_Bool) up = args[0].value.boolValue ? 1 : 0;
+			else if (args[0].type==NPVariantType_Int32) up = args[0].value.intValue ? 1 : 0;
+		}
+		Osmozilla_QualitySwitch(npo->osmo, up);
 		return 1;
 	}
 	return 0;
