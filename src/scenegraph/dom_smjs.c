@@ -2272,28 +2272,28 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, j
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 
 		case 52:/*loaded*/
-			if (!evt->mae) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->mae->loaded_size);
+			if (!evt->media_event) return JS_TRUE;
+			*vp = INT_TO_JSVAL( evt->media_event->loaded_size);
 			return JS_TRUE;
 		case 53:/*total*/
-			if (!evt->mae) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->mae->total_size);
+			if (!evt->media_event) return JS_TRUE;
+			*vp = INT_TO_JSVAL( evt->media_event->total_size);
 			return JS_TRUE;
 		case 54:/*bufferLevelValid*/
-			if (!evt->mae) return JS_TRUE;
-			*vp = BOOLEAN_TO_JSVAL( evt->mae->bufferValid ? JS_TRUE : JS_FALSE);
+			if (!evt->media_event) return JS_TRUE;
+			*vp = BOOLEAN_TO_JSVAL( evt->media_event->bufferValid ? JS_TRUE : JS_FALSE);
 			return JS_TRUE;
 		case 55:/*bufferLevel*/
-			if (!evt->mae) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->mae->level);
+			if (!evt->media_event) return JS_TRUE;
+			*vp = INT_TO_JSVAL( evt->media_event->level);
 			return JS_TRUE;
 		case 56:/*bufferRemainingTime*/
-			if (!evt->mae) return JS_TRUE;
-			*vp = JS_MAKE_DOUBLE(c, evt->mae->remaining_time);
+			if (!evt->media_event) return JS_TRUE;
+			*vp = JS_MAKE_DOUBLE(c, evt->media_event->remaining_time);
 			return JS_TRUE;
 		case 57:/*status*/
-			if (!evt->mae) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->mae->status);
+			if (!evt->media_event) return JS_TRUE;
+			*vp = INT_TO_JSVAL( evt->media_event->status);
 			return JS_TRUE;
 
 		/*VRML ones*/

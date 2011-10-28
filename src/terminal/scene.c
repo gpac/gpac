@@ -871,6 +871,8 @@ void gf_scene_set_duration(GF_Scene *scene)
 	if (scene->duration == max_dur) return;
 
 	scene->duration = max_dur;
+	if (scene->is_dynamic_scene && !scene->root_od->duration) scene->root_od->duration = max_dur;
+
 	dur = (Double) (s64) scene->duration;
 	dur /= 1000;
 	

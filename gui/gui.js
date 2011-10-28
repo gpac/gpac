@@ -274,28 +274,26 @@ function initialize() {
     }
     movie.children[0].addEventListener('gpac_scene_attached', movie.children[0].on_size, 0);
 
-    movie.children[0].on_media_event = function(evt) {
+    movie.children[0].on_media_progress = function(evt) {
      if (!current_duration) return;
+     /*this is not conform to HTML5, we're using the old MediaAccessEvent syntax ...*/
      var percent_dload = 100.0 * evt.loaded / evt.total;
      var percent_playback = 100.0 * current_time / current_duration;
-     alert('URL data ' + percent_dload + ' - ' + percent_playback + ' playback');
-     
-     
-     if ( percent_playback >= percent_dload) {
-      if (movie_ctrl.mediaSpeed) {
-      alert('not enough data - pausing content');
-        if (controlled_renderer) controlled_renderer.Pause();
-        movie_ctrl.mediaSpeed = 0; 
-      }
-     } else {
-      if ((movie_ctrl.mediaSpeed==0) && ( percent_playback + 10 <= percent_dload)) {
-       alert('enough data - resuming content');
-       if (controlled_renderer) controlled_renderer.Play();
-       movie_ctrl.mediaSpeed = 1;
-      }
-     }
+     //alert('URL data ' + percent_dload + ' - ' + percent_playback + ' playback');     
     }
-    movie.children[0].addEventListener('DataReceptionProgress', movie.children[0].on_media_event, 0);
+    movie.children[0].addEventListener('progress', movie.children[0].on_media_progress, 0);
+
+    movie.children[0].on_media_playing = function(evt) {
+     alert('URL is now paying');     
+    }
+    movie.children[0].addEventListener('playing', movie.children[0].on_media_playing, 0);
+    movie.children[0].addEventListener('canplay', movie.children[0].on_media_playing, 0);
+
+    movie.children[0].on_media_waiting = function(evt) {
+     alert('URL is now buffering');     
+    }
+    movie.children[0].addEventListener('waiting', movie.children[0].on_media_waiting, 0);
+
     
     display_width = parseInt( gpac.getOption('General', 'LastWidth') );
     display_height = parseInt( gpac.getOption('General', 'LastHeight') );
@@ -446,7 +444,6 @@ function set_movie_url(url)
         var notif = gw_new_message(null, 'Error!', 'Failed to open\n'+this.url[0]+ '\nReason: '+gpac.error_string(evt.error) );
         gpacui_show_window(notif);
       } else {
-        
         movie.children[0].url[0] = current_url;
         movie_ctrl.url[0] = current_url;
         movie_sensor.url[0] = current_url;
