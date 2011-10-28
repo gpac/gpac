@@ -510,6 +510,14 @@ Specifies a Mobile IP interface overriding the default IP. If set, all sockets w
 <p style="text-indent: 5%">
 Specifies a default IP interface for Multicast overriding the default IP.If not set, the multicast will be setup using the default IP. </p>
 </p>
+<b>HTTPRebuffer</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies the default HTTP rebuffer time in ms. When playback position reaches download position, playback will be paused if this integer is not zero. Playback will resume once the HTTPRebuffer ms of playback are available. Default value is 5000 ms.</p>
+</p>
+<b>HTTPAutoRebuffer</b> [value: <i>"yes", "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether auto rebuffering is used. When auto-rebuffering is used, playback only resumes when estimated time to download the rest of the movie is less than remaining time of the playback. Default value is no.</p>
+</p>
 
 
 <br/><br/>

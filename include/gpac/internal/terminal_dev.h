@@ -74,6 +74,9 @@ struct _net_service
 	/*quick hack for avoiding double session creation*/
 	GF_DownloadSession *pending_service_session;
 
+	/*rebuffer window for http/...*/
+	u32 download_rebuffer;
+	Bool auto_rebuffer;
 };
 
 

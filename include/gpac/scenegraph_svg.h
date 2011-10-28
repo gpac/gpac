@@ -242,9 +242,7 @@ typedef struct
 	u16 status;
 	const char *session_name;
 	u64 loaded_size, total_size;
-	u32 nb_streams;
-	struct mae_item {u32 streamType; u32 mediaType; u32 transport; } streams[20];
-} GF_DOMMediaAccessEvent;
+} GF_DOMMediaEvent;
 
 /* 
 	DOM event handling
@@ -335,7 +333,8 @@ typedef struct
 
 	/*DOM event used in VRML (GPAC's internal)*/
 	Bool is_vrml;
-	GF_DOMMediaAccessEvent *mae;
+	/*media event*/
+	GF_DOMMediaEvent *media_event;
 
 	/*number of listeners triggered by the event*/
 	u32 consumed;
@@ -406,8 +405,12 @@ enum
 	GF_DOM_EVENT_SMIL = 1<<8,
 	/*LASeR events*/
 	GF_DOM_EVENT_LASER = 1<<9,
+	/*HTML Media events*/
+	GF_DOM_EVENT_MEDIA = 1<<10,
+#if 0
 	/*MediaAccess events*/
-	GF_DOM_EVENT_MEDIA_ACCESS = 1<<10,
+	GF_DOM_EVENT_MEDIA_ACCESS = 1<<11,
+#endif
 
 	/*fake events - these events are NEVER fired*/
 	GF_DOM_EVENT_FAKE = 1<<31,

@@ -261,7 +261,7 @@ struct __tag_scene_graph
 	u32 nb_evts_smil;
 	u32 nb_evts_mutation;
 	u32 nb_evts_laser;
-	u32 nb_evts_mae;
+	u32 nb_evts_media;
 	u32 nb_evts_svg;
 	u32 dom_evt_filter;
 

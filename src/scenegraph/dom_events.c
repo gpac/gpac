@@ -48,7 +48,7 @@ static void gf_dom_refresh_event_filter(GF_SceneGraph *sg)
 	if (sg->nb_evts_smil) sg->dom_evt_filter |= GF_DOM_EVENT_SMIL;
 	if (sg->nb_evts_laser) sg->dom_evt_filter |= GF_DOM_EVENT_LASER;
 	if (sg->nb_evts_svg) sg->dom_evt_filter |= GF_DOM_EVENT_SVG;
-	if (sg->nb_evts_mae) sg->dom_evt_filter |= GF_DOM_EVENT_MEDIA_ACCESS;
+	if (sg->nb_evts_media) sg->dom_evt_filter |= GF_DOM_EVENT_MEDIA;
 
 	/*for each graph until top, update event filter*/
 	par = sg->parent_scene;
@@ -71,7 +71,7 @@ void gf_sg_unregister_event_type(GF_SceneGraph *sg, u32 type)
 	if (sg->nb_evts_laser && (type & GF_DOM_EVENT_LASER)) sg->nb_evts_laser--;
 	if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
 	if (sg->nb_evts_svg && (type & GF_DOM_EVENT_SVG)) sg->nb_evts_svg--;
-	if (sg->nb_evts_mae && (type & GF_DOM_EVENT_MEDIA_ACCESS)) sg->nb_evts_mae--;
+	if (sg->nb_evts_media && (type & GF_DOM_EVENT_MEDIA)) sg->nb_evts_media--;
 
 	gf_dom_refresh_event_filter(sg);
 }
@@ -88,7 +88,7 @@ void gf_sg_register_event_type(GF_SceneGraph *sg, u32 type)
 	if (type & GF_DOM_EVENT_SMIL) sg->nb_evts_smil++;
 	if (type & GF_DOM_EVENT_LASER) sg->nb_evts_laser++;
 	if (type & GF_DOM_EVENT_SVG) sg->nb_evts_svg++;
-	if (type & GF_DOM_EVENT_MEDIA_ACCESS) sg->nb_evts_mae++;
+	if (type & GF_DOM_EVENT_MEDIA) sg->nb_evts_media++;
 
 	gf_dom_refresh_event_filter(sg);
 }

@@ -449,6 +449,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 #ifndef GPAC_DISABLE_VRML
 		mediasensor_update_timing(mo->odm, mo->odm->codec->CB->HasSeenEOS);
 #endif
+	
+		if (mo->odm->parentscene->is_dynamic_scene)
+			mo->odm->parentscene->root_od->current_time = mo->odm->current_time;
+
 		mo->timestamp = CU->TS;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %d fetch frame TS %d size %d - %d unit in CB\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp, mo->framesize, mo->odm->codec->CB->UnitCount));
 		/*signal EOS after rendering last frame, not while rendering it*/

@@ -151,9 +151,9 @@ static void svg_progress(void *cbk, u64 done, u64 total)
 
 	/*notify MediaEvent*/
 	if (parser->load && parser->load->is) {
-		parser->load->is->on_media_event(parser->load->is, GF_EVENT_MEDIA_DATA_PROGRESS); 
+		parser->load->is->on_media_event(parser->load->is, GF_EVENT_MEDIA_PROGRESS); 
 		if (done == total) {
-			parser->load->is->on_media_event(parser->load->is, GF_EVENT_MEDIA_END_OF_DATA); 
+			parser->load->is->on_media_event(parser->load->is, GF_EVENT_MEDIA_LOAD_DONE); 
 		}
 	}
 	gf_set_progress("SVG (Dynamic Attribute List) Parsing", done, total);
