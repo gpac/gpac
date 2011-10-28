@@ -228,14 +228,67 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	font_default = ftpriv->font_dir;
 	ftpriv->font_dir = font_dir;
 
+
+	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+	ftpriv->font_fixed = NULL;
+	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+	ftpriv->font_sans = NULL;
+	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+	ftpriv->font_serif = NULL;
+
+	/* let's check we have fonts that match our default Bol/Italic/BoldItalic conventions*/
+	count = gf_cfg_get_key_count(cfg, "FontEngine");
+	for (i=0; i<count; i++) {
+		Bool good_match = 1;
+		const char *opt;
+		char fkey[GF_MAX_PATH];
+		const char *key = gf_cfg_get_key_name(cfg, "FontEngine", i);
+		opt = gf_cfg_get_key(cfg, "FontEngine", key);
+		if (!strchr(opt, '/') && !strchr(opt, '\\')) continue;
+		if (!strcmp(key, "FontDirectory")) continue;
+
+		if (strstr(key, "Bold")) continue; 
+		if (strstr(key, "Italic")) continue; 
+
+		strcpy(fkey, key);
+		strcat(fkey, " Italic");
+		opt = gf_cfg_get_key(cfg, "FontEngine", fkey);
+		if (!opt) continue;
+
+		strcpy(fkey, key);
+		strcat(fkey, " Bold");
+		opt = gf_cfg_get_key(cfg, "FontEngine", fkey);
+		if (!opt) continue;
+
+		strcpy(fkey, key);
+		strcat(fkey, " Bold Italic");
+		opt = gf_cfg_get_key(cfg, "FontEngine", fkey);
+		if (!opt) continue;
+
+		strcpy(fkey, key);
+		strlwr(fkey);
+		
+		/*this font is suited for our case*/
+		if (isBestFontFor(BEST_FIXED_FONTS, "", key) || (!ftpriv->font_fixed && strstr(fkey, "fixed")) ) {
+			if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+			ftpriv->font_fixed = gf_strdup(key);
+		}
+		
+		if (isBestFontFor(BEST_SANS_FONTS, "", key) || (!ftpriv->font_sans && strstr(fkey, "sans")) ) {
+			if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+			ftpriv->font_sans = gf_strdup(key);
+		}
+		
+		if (isBestFontFor(BEST_SERIF_FONTS, "", key) || (!ftpriv->font_serif && strstr(fkey, "serif")) ) {
+			if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+			ftpriv->font_serif = gf_strdup(key);
+		}
+	}	
+
 	if (!ftpriv->font_serif) ftpriv->font_serif = gf_strdup(font_default ?  font_default : "");
 	if (!ftpriv->font_sans) ftpriv->font_sans = gf_strdup(font_default ?  font_default : "");
 	if (!ftpriv->font_fixed) ftpriv->font_fixed = gf_strdup(font_default ?  font_default : "");
-
 	if (font_default) gf_free(font_default);
-
-        /* We try these fonts in this order */
-	
 
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->font_fixed);
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->font_serif);
