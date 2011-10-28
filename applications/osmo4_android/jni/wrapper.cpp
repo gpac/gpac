@@ -470,7 +470,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                   case GF_EVENT_MEDIA_LOAD_DONE: 
                   case GF_EVENT_ABORT: 
                   case GF_EVENT_ERROR:
-                    LOGD("GPAC_EventProc() Media Event detected = [index=%d]", evt->type - GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
+                    LOGD("GPAC_EventProc() Media Event detected = [index=%d]", evt->type - GF_EVENT_MEDIA_SETUP_BEGIN);
                     break;
                   case GF_EVENT_MESSAGE:
                   {
