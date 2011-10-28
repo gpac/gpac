@@ -461,15 +461,15 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                   case GF_EVENT_TEXTINPUT:
                     /* We ignore all these events */
                     break;
-                  case GF_EVENT_MEDIA_BEGIN_SESSION_SETUP:
-                  case GF_EVENT_MEDIA_END_SESSION_SETUP:
-                  case GF_EVENT_MEDIA_DATA_REQUEST:
-                  case GF_EVENT_MEDIA_PLAYABLE:
-                  case GF_EVENT_MEDIA_NOT_PLAYABLE:
-                  case GF_EVENT_MEDIA_DATA_PROGRESS:
-                  case GF_EVENT_MEDIA_END_OF_DATA:
-                  case GF_EVENT_MEDIA_STOP:
-                  case GF_EVENT_MEDIA_ERROR:
+                  case GF_EVENT_MEDIA_SETUP_BEGIN: 
+                  case GF_EVENT_MEDIA_SETUP_DONE: 
+                  case GF_EVENT_MEDIA_LOAD_START: 
+                  case GF_EVENT_MEDIA_PLAYING: 
+                  case GF_EVENT_MEDIA_WAITING: 
+                  case GF_EVENT_MEDIA_PROGRESS: 
+                  case GF_EVENT_MEDIA_LOAD_DONE: 
+                  case GF_EVENT_ABORT: 
+                  case GF_EVENT_ERROR:
                     LOGD("GPAC_EventProc() Media Event detected = [index=%d]", evt->type - GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
                     break;
                   case GF_EVENT_MESSAGE:
@@ -791,6 +791,7 @@ void CNativeWrapper::resize(int w, int h){
 	gf_term_set_size(m_term, w, h);
         debug_log("resize end");
 }
+
 //-----------------------------------------------------
 void CNativeWrapper::onMouseDown(float x, float y){
         if (!m_term)
