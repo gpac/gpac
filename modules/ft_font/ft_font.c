@@ -239,7 +239,6 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	/* let's check we have fonts that match our default Bol/Italic/BoldItalic conventions*/
 	count = gf_cfg_get_key_count(cfg, "FontEngine");
 	for (i=0; i<count; i++) {
-		Bool good_match = 1;
 		const char *opt;
 		char fkey[GF_MAX_PATH];
 		const char *key = gf_cfg_get_key_name(cfg, "FontEngine", i);
@@ -269,7 +268,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		strlwr(fkey);
 		
 		/*this font is suited for our case*/
-		if (isBestFontFor(BEST_FIXED_FONTS, "", key) || (!ftpriv->font_fixed && strstr(fkey, "fixed")) ) {
+		if (isBestFontFor(BEST_FIXED_FONTS, "", key) || (!ftpriv->font_fixed && (strstr(fkey, "fixed") || strstr(fkey, "mono")) ) ) {
 			if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
 			ftpriv->font_fixed = gf_strdup(key);
 		}
