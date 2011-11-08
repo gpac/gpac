@@ -323,6 +323,8 @@ void svg_pause_animation(GF_Node *n, Bool pause);
 void svg_pause_audio(GF_Node *n, Bool pause);
 void svg_pause_video(GF_Node *n, Bool pause);
 
+void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node);
+
 #endif
 
 
