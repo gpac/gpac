@@ -29,6 +29,8 @@
 #include <gpac/mpegts.h>
 #include <string.h>
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 typedef struct tag_m2ts_section_mpe GF_M2TS_SECTION_MPE;
 typedef struct _sock_entry GF_SOCK_ENTRY;
 
@@ -37,5 +39,7 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts);
 GF_M2TS_ES *gf_dvb_mpe_section_new();
 void gf_dvb_mpe_section_del(GF_M2TS_ES *es);
 void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts);
+
+#endif //GPAC_DISABLE_MPEG2TS
 
 #endif	//_GF_DVB_MPE_H_
