@@ -353,6 +353,10 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 				fprintf(f, "\tu8 *data;\n");
 				fprintf(f, "\tu32 data_len;\n");
 		}
+		if (!strcmp(n->name, "BitWrapper")) {
+				fprintf(f, "\t/*GPAC private*/\n");
+				fprintf(f, "\tu32 buffer_len;\n");
+		}
 		fprintf(f, "} M_%s;\n\n\n", n->name);
 	}
 

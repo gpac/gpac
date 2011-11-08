@@ -868,22 +868,21 @@ clock_setup:
 		/*OD codec acts as main scene codec when used to generate scene graph*/
 		if (! odm->subscene->od_codec) {
 			odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
-			if (e) return e;
-			gf_term_add_codec(odm->term, odm->subscene->od_codec);
+			if (!e) gf_term_add_codec(odm->term, odm->subscene->od_codec);
 		} 
 		dec = odm->subscene->od_codec;
 		break;
 	case GF_STREAM_OCR:
 		/*OD codec acts as main scene codec when used to generate scene graph*/
 		dec = odm->ocr_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
-		gf_term_add_codec(odm->term, odm->ocr_codec);
+		if (!e) gf_term_add_codec(odm->term, odm->ocr_codec);
 		break;
 	case GF_STREAM_SCENE:
 		/*animationStream */
 		if (!odm->subscene) {
 			if (!odm->codec) {
 				odm->codec = gf_codec_new(odm, esd, odm->Scene_PL, &e);
-				gf_term_add_codec(odm->term, odm->codec);
+				if (!e) gf_term_add_codec(odm->term, odm->codec);
 			}
 			dec = odm->codec;
 		}
@@ -904,7 +903,7 @@ clock_setup:
 		} else {
 			odm->oci_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			odm->oci_codec->odm = odm;
-			gf_term_add_codec(odm->term, odm->oci_codec);
+			if (!e) gf_term_add_codec(odm->term, odm->oci_codec);
 		}
 		break;
 #endif
