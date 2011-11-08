@@ -4714,7 +4714,6 @@ void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_ac
 
 GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 {
-	JSBool has_p;
 #ifndef GPAC_DISABLE_VRML
 	if (js_rt && JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) {
 		GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
@@ -4723,9 +4722,11 @@ GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 #endif
 
 #ifndef GPAC_DISABLE_SVG
-	has_p = 0;
-	if (JS_HasProperty(c, obj, "namespaceURI", &has_p)) {
-		if (has_p==JS_TRUE) return dom_get_element(c, obj);
+	{
+		JSBool has_p = 0;
+		if (JS_HasProperty(c, obj, "namespaceURI", &has_p)) {
+			if (has_p==JS_TRUE) return dom_get_element(c, obj);
+		}
 	}
 #endif
 	return NULL;

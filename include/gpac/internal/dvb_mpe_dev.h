@@ -30,6 +30,9 @@
 #include <gpac/internal/reedsolomon.h>
 
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
+
 /*INT object*/
 typedef struct
 {
@@ -254,5 +257,8 @@ typedef enum {
 } DTAG_SCOPE;
 
 void descriptor_PRIVATE (u8 *b, DTAG_SCOPE tag_scope, GF_List * descriptors );
+
+
+#endif //GPAC_DISABLE_MPEG2TS
 
 #endif	//_GF_DVB_MPE_DEV_H_

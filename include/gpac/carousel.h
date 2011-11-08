@@ -30,6 +30,8 @@
 #include <string.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 #define AIT_SECTION_LENGTH_MAX 1021
 #define APPLICATION_TYPE_HTTP_APPLICATION 16
 #define DSMCC_SECTION_LENGTH_MAX 4093
@@ -422,6 +424,8 @@ typedef struct
 
 GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id);
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord();
+
+#endif //GPAC_DISABLE_MPEG2TS
 
 #endif	//_GF_CAROUSSEL_H_
 

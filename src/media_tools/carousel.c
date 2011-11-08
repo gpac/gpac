@@ -24,6 +24,8 @@
 
 #include <gpac/carousel.h>
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 /* static functions */
 static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId);
 static GF_Err gf_m2ts_dsmcc_process_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc, char* data,GF_BitStream *bs,u32* data_shift);
@@ -1145,3 +1147,6 @@ static GF_Err dsmcc_module_delete(GF_M2TS_DSMCC_MODULE* dsmcc_module){
 	return  GF_OK;
 
 }
+
+#endif //GPAC_DISABLE_MPEG2TS
+
