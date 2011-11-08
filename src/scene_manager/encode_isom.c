@@ -1036,6 +1036,10 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 							if (imp_esd->decoderConfig) {
 								switch (imp_esd->decoderConfig->streamType) {
 								case GF_STREAM_SCENE:
+									/*import AFX streams, but not others*/
+									if (imp_esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX) 
+										break;
+									continue;
 								case GF_STREAM_OD:
 									continue;
 								default:

@@ -107,10 +107,14 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 				size -= read;
 			}
 		} else {
-			u32 i;
+			u32 i, len, val;
 			char *str = (char *) ((SFString*)field->far_ptr)->buffer;
-			u32 len = str ? strlen(str) : 0;
-			u32 val = gf_get_bit_size(len);
+			if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
+				len = ((M_BitWrapper*)node)->buffer_len;
+			} else {
+				len = str ? strlen(str) : 0;
+			}
+			val = gf_get_bit_size(len);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
 			for (i=0; i<len; i++) gf_bs_write_int(bs, str[i], 8);
