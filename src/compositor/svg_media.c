@@ -563,6 +563,22 @@ void svg_pause_video(GF_Node *n, Bool pause)
 	else gf_mo_resume(st->txh.stream);
 }
 
+void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
+{
+	/*if href has been modified, stop the video right away - we cannot wait for next traversal to
+	process this as the video could be in a hidden subtree not traversed*/
+	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
+		SVG_video_stack *st = gf_node_get_private(node);
+		/*WARNING - stack may be NULL at this point when inserting the video from script*/
+		if (st && st->txh.is_open) {
+			gf_sc_texture_stop(&st->txh);
+		}
+	}
+	/*and force a redraw of next frame*/
+	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+}
+
+
 /*********************/
 /* SVG audio element */
 /*********************/
