@@ -225,7 +225,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 	/*remove all associated eventTargets - THIS NEEDS CLEANUP*/
 	i=0;
-	while ((obj = (GF_MediaObject *)gf_list_enum(scene->resources, &i))) {
+	while ((obj = (GF_MediaObject *)gf_list_enum(scene->scene_objects, &i))) {
 		if (obj->nodes) gf_list_reset(obj->nodes);
 	}
 
