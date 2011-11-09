@@ -517,6 +517,9 @@ JSBool SMJS_FUNCTION_EXT(svg_udom_smil_time_insert, Bool is_end)
 	} else {
 		info.far_ptr = ((SVGTimedAnimBaseElement *)n)->timingp->begin;
 	}
+	if (!info.far_ptr) {
+		return JS_FALSE;
+	}
 
 
 	times = *((GF_List **)info.far_ptr);
