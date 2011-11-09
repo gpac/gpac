@@ -565,12 +565,19 @@ void svg_pause_video(GF_Node *n, Bool pause)
 
 void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
 {
-	/*if href has been modified, stop the video right away - we cannot wait for next traversal to
+	/*if href has been modified, stop the video (and associated audio if any) right away - we cannot wait for next traversal to
 	process this as the video could be in a hidden subtree not traversed*/
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		SVG_video_stack *st = gf_node_get_private(node);
 		/*WARNING - stack may be NULL at this point when inserting the video from script*/
 		if (st && st->txh.is_open) {
+			if (st->audio) {
+				svg_audio_smil_evaluate_ex(NULL, 0, SMIL_TIMING_EVAL_REMOVE, st->audio, st->txh.owner);
+				gf_node_unregister(st->audio, NULL);
+				st->audio = NULL;
+			}
+			/*reset cached URL to avoid reopening the resource in the smil timing callback*/
+			gf_sg_vrml_mf_reset(&st->txurl, GF_SG_VRML_MFURL);
 			gf_sc_texture_stop(&st->txh);
 		}
 	}
