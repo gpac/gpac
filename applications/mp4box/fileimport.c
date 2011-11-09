@@ -299,6 +299,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				}
 			}
 		}
+		else if (!strnicmp(ext, "prog_id=", 8)) { 
+			prog_id = atoi(ext+8);
+			do_all = 0;
+		}
 		else track_id = atoi(ext);
 	}
 	if (do_audio || do_video || track_id) do_all = 0;
