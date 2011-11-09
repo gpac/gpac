@@ -676,7 +676,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
 	M2TSIn *m2ts = (M2TSIn *) cbk;
-        assert( m2ts );
+	assert( m2ts );
 	/*handle service message*/
 	gf_term_download_update_stats(m2ts->ts->dnload);
 
@@ -684,18 +684,18 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		e = GF_EOS;
 	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
 		e = GF_OK;
-                assert( m2ts->ts);
-                if (param->size > 0){
-                  /*process chunk*/
-                  assert(param->data);
-		  if (m2ts->network_buffer_size < param->size){
-			  m2ts->network_buffer = gf_realloc(m2ts->network_buffer, sizeof(char) * param->size);
-			  m2ts->network_buffer_size = param->size;
-		  }
-		  assert( m2ts->network_buffer );
-		  memcpy(m2ts->network_buffer, param->data, param->size);
-                  gf_m2ts_process_data(m2ts->ts, m2ts->network_buffer, param->size);
-                }
+		assert( m2ts->ts);
+		if (param->size > 0){
+			/*process chunk*/
+			assert(param->data);
+			if (m2ts->network_buffer_size < param->size){
+				m2ts->network_buffer = gf_realloc(m2ts->network_buffer, sizeof(char) * param->size);
+				m2ts->network_buffer_size = param->size;
+			}
+			assert( m2ts->network_buffer );
+			memcpy(m2ts->network_buffer, param->data, param->size);
+			gf_m2ts_process_data(m2ts->ts, m2ts->network_buffer, param->size);
+		}
 
 		/*if asked to regulate, wait until we get a play request*/
 		if (m2ts->ts->run_state && !m2ts->ts->nb_playing && (m2ts->ts->file_regulate==1)) {
@@ -706,7 +706,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		} else {
 			gf_sleep(1);
 		}
-#if 0
+#if 1 //see commit 3642: crashes when reload quickly with http
 		if (!m2ts->ts->run_state) {
 			if (m2ts->ts->dnload) 
 				gf_term_download_del( m2ts->ts->dnload );
