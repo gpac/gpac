@@ -80,7 +80,6 @@ static Bool svg_video_get_transform_behavior(GF_TraverseState *tr_state, SVGAllA
 static void SVG_Draw_bitmap(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
-
 	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) {
 		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
 	}
@@ -287,7 +286,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			stack->audio = NULL;
 		}
 		stack->audio_dirty = 1;
-
+		
 		if (stack->txurl.count) svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
@@ -298,6 +297,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			gf_node_dirty_clear(node, 0);
 			SVG_Build_Bitmap_Graph((SVG_video_stack*)gf_node_get_private(node), tr_state);
 		}
+		
 	} 
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {

@@ -187,6 +187,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		}
 		if (gf_mo_is_private_media(txh->stream)) {
 			setup_texture_object(txh, 1);
+			gf_node_dirty_set(txh->owner, 0, 0);
 		}
 	}
 	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size);
