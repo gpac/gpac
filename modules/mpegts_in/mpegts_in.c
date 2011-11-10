@@ -32,7 +32,7 @@
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
-static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
+static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/MP2T", "video/mpeg", NULL};
 
 typedef struct {
 	char *fragment;
