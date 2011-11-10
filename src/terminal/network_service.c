@@ -456,6 +456,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		/*get exclusive access to media scheduler, to make sure ODs are not being
 		manipulated*/
 		gf_mx_p(term->mm_mx);
+		if (!gf_list_count(od_list))
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
 		i=0;
 		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
 			u32 j, count;

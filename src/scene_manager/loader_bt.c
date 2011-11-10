@@ -53,7 +53,8 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 				fseek(f, 0, SEEK_SET);
 				data = gf_malloc(sizeof(char)*data_size);
 				if (data) {
-					fread(data, 1, data_size, f);
+					size_t s = fread(data, 1, data_size, f);
+					assert(s == data_size);
 				}
 				fclose(f);
 			}
