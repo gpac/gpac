@@ -2217,6 +2217,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             }
             hdr = strchr(mime_type, ';');
             if (hdr) hdr[0] = 0;
+	    strlwr(mime_type);
             gf_cache_set_mime_type(sess->cache_entry, mime_type);
             gf_free(mime_type);
         }

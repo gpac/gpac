@@ -302,9 +302,9 @@ extern "C" {
     GF_Err gf_dm_sess_fetch_data(GF_DownloadSession * sess, char *buffer, u32 buffer_size, u32 *read_size);
 
     /*!
-     *\brief get mime type
+     *\brief get mime type as lower case
      *
-     *Fetches the mime type of the URL this session is fetching
+     *Fetches the mime type of the URL this session is fetching, value will be returned lower case, so application/x-mpegURL will be returned as application/x-mpegurl
      *\param sess the download session
      *\return the mime type of the URL, or NULL if error. You should get the error with \ref gf_dm_sess_last_error
      */
