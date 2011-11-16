@@ -595,7 +595,10 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code,
 			if (*ret_code) break;
 			if (gf_dm_sess_get_status(sess)>=GF_NETIO_DATA_EXCHANGE) {
 				const char * mime = gf_dm_sess_mime_type(sess);
-				if (mime) ret = gf_strdup(mime);
+				/* The mime type is returned lower case */
+				if (mime){
+					ret = gf_strdup(mime);
+				}
 				break;
 			}
 		}
