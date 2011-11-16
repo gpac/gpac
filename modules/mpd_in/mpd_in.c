@@ -41,7 +41,7 @@ static const char * MPD_MIME_TYPES[] = { "video/vnd.3gpp.mpd", "audio/vnd.3gpp.m
 /*!
  * All the possible Mime-types for M3U8 files
  */
-static const char * M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
+static const char * M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", "application/x-mpegURL", NULL};
 
 typedef enum {
 	MPD_STATE_STOPPED = 0,
