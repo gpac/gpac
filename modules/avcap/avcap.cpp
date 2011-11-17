@@ -51,7 +51,7 @@ class GPACCaptureHandler : public CaptureHandler
 {
 public:
 	GPACCaptureHandler(GF_ClientService *service, LPNETCHANNEL channel) 
-		: m_pChannel(channel), m_pService(service)
+		: m_pService(service), m_pChannel(channel)
 	{
 		memset(&m_pSLHeader, 0, sizeof(GF_SLHeader));
 		m_pSLHeader.compositionTimeStampFlag = 1;
