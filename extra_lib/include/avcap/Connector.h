@@ -73,7 +73,7 @@ namespace avcap
 	public:
 		//! The Constructor. Objects of this class are created by the ConnectorManager.
 		inline Connector(DeviceDescriptor *dd, int index, const std::string& name, int type=0, int audioset=0):
-			mDeviceDescriptor(dd), mIndex(index), mName(name), mType(type), mAudioset(audioset)
+			mDeviceDescriptor(dd), mIndex(index), mAudioset(audioset), mType(type), mName(name)
 			{}
 
 		//! The Destructor. 
