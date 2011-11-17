@@ -811,7 +811,11 @@ avcap_ldflags="-lavcap"
 
 cat > $TMPC << EOF
 #include <avcap/avcap.h>
-int main( void ) { return 0; }
+using namespace avcap;
+int main( void ) { 
+ const DeviceCollector::DeviceList& dl = DEVICE_COLLECTOR::instance().getDeviceList();
+ return 0; 
+}
 EOF
 if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
