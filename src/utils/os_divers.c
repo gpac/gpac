@@ -29,7 +29,7 @@
 #include <winbase.h>
 #include <winsock.h>
 #include <tlhelp32.h>
-#include <direct.h>
+//#include <direct.h>
 
 #if !defined(__GNUC__)
 #pragma comment(lib, "toolhelp")
@@ -123,15 +123,32 @@ void gf_sleep(u32 ms)
 #endif
 }
 
-GF_Err gf_mkdir(char* DirPathName){
-	GF_Err e;
-	e = GF_OK;
-#if defined (WIN32) || defined (_WIN32_WCE)
-            e = mkdir(DirPathName);
+GF_Err gf_mkdir(char* DirPathName)
+{
+#if defined (_WIN32_WCE)
+	TCHAR swzName[MAX_PATH];
+	BOOL res;
+	CE_CharToWide(DirPathName, swzName);
+	res = CreateDirectory(swzName, NULL);
+	if (! res) {
+		int err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+	}
+#elif defined (WIN32)
+	int res = mkdir(DirPathName);
+	if (res==-1) {
+		int err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+		return GF_IO_ERR;
+	}
 #else
-           e =  mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	if (res==-1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, errno  ));
+		return GF_IO_ERR;
+	}
 #endif
-	return e;
+	return GF_OK;
 }
 
 #ifndef gettimeofday
