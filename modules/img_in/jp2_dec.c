@@ -1,26 +1,26 @@
 /*
- *			GPAC - Multimedia Framework C SDK
- *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
- *					All rights reserved
- *
- *  This file is part of GPAC / image format module
- *
- *  GPAC is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *   
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *
- */
+*			GPAC - Multimedia Framework C SDK
+*
+*			Copyright (c) Jean Le Feuvre 2000-2005 
+*					All rights reserved
+*
+*  This file is part of GPAC / image format module
+*
+*  GPAC is free software; you can redistribute it and/or modify
+*  it under the terms of the GNU Lesser General Public License as published by
+*  the Free Software Foundation; either version 2, or (at your option)
+*  any later version.
+*   
+*  GPAC is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU Lesser General Public License for more details.
+*   
+*  You should have received a copy of the GNU Lesser General Public
+*  License along with this library; see the file COPYING.  If not, write to
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+*
+*/
 
 #include "img_in.h"
 
@@ -33,6 +33,7 @@ typedef struct
 	/*no support for scalability with JPEG (progressive JPEG to test)*/
 	u32 bpp, nb_comp, width, height, out_size, pixel_format, dsi_size;
 	char *dsi;
+	opj_image_t *image;
 } JP2Dec;
 
 #define JP2CTX()	JP2Dec *ctx = (JP2Dec *) ((IMGDec *)ifcg->privateStack)->opaque
@@ -59,7 +60,7 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		case 1: ctx->pixel_format = GF_PIXEL_GREYSCALE; break;
 		case 2: ctx->pixel_format = GF_PIXEL_ALPHAGREY; break;
 		case 3: ctx->pixel_format = GF_PIXEL_RGB_24; break;
-		case 4: ctx->pixel_format = GF_PIXEL_ARGB; break;
+		case 4: ctx->pixel_format = GF_PIXEL_RGBA; break;
 		default: return GF_NOT_SUPPORTED;
 		}
 	} else {
@@ -92,6 +93,11 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 }
 static GF_Err JP2_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
+	JP2CTX();
+	if (ctx->image) {
+		opj_image_destroy(ctx->image);
+		ctx->image = NULL;
+	}
 	return GF_OK;
 }
 static GF_Err JP2_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
@@ -167,26 +173,26 @@ void info_callback(const char *msg, void *client_data)
 }
 
 /*
- * Divide an integer by a power of 2 and round upwards.
- *
- * a divided by 2^b
- */
+* Divide an integer by a power of 2 and round upwards.
+*
+* a divided by 2^b
+*/
 static int int_ceildivpow2(int a, int b) {
 	return (a + (1 << b) - 1) >> b;
 }
 
 static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+							  char *inBuffer, u32 inBufferLength,
+							  u16 ES_ID,
+							  char *outBuffer, u32 *outBufferLength,
+							  u8 PaddingBits, u32 mmlevel)
 {
 	u32 i, w, wr, h, hr, wh;
 	opj_dparameters_t parameters;	/* decompression parameters */
 	opj_event_mgr_t event_mgr;		/* event manager */
-	opj_image_t *image = NULL;
 	opj_dinfo_t* dinfo = NULL;	/* handle to a decompressor */
 	opj_cio_t *cio = NULL;
+	opj_codestream_info_t cinfo;
 
 	JP2CTX();
 
@@ -199,14 +205,15 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 	}
 #endif
 
-	/* configure the event callbacks (not required) */
-	memset(&event_mgr, 0, sizeof(opj_event_mgr_t));
-	event_mgr.error_handler = error_callback;
-	event_mgr.warning_handler = warning_callback;
-	event_mgr.info_handler = info_callback;
+	if (!ctx->image) {
+		/* configure the event callbacks (not required) */
+		memset(&event_mgr, 0, sizeof(opj_event_mgr_t));
+		event_mgr.error_handler = error_callback;
+		event_mgr.warning_handler = warning_callback;
+		event_mgr.info_handler = info_callback;
 
-	/* set decoding parameters to default values */
-	opj_set_default_decoder_parameters(&parameters);
+		/* set decoding parameters to default values */
+		opj_set_default_decoder_parameters(&parameters);
 
 		/* get a decoder handle */
 		dinfo = opj_create_decompress(CODEC_JP2);
@@ -218,117 +225,170 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 		opj_setup_decoder(dinfo, &parameters);
 
 
-	/* open a byte stream */
-	if (ctx->dsi) {
-		char *data;
-		
-		data = gf_malloc(sizeof(char) * (ctx->dsi_size+inBufferLength));
-		memcpy(data, ctx->dsi, ctx->dsi_size);
-		memcpy(data+ctx->dsi_size, inBuffer, inBufferLength);
-		cio = opj_cio_open((opj_common_ptr)dinfo, data, ctx->dsi_size+inBufferLength);
-		/* decode the stream and fill the image structure */
-		image = opj_decode(dinfo, cio);
-		gf_free(data);
-	} else {
-		cio = opj_cio_open((opj_common_ptr)dinfo, inBuffer, inBufferLength);
-		/* decode the stream and fill the image structure */
-		image = opj_decode(dinfo, cio);
-	}
+		/* open a byte stream */
+		if (ctx->dsi) {
+			char *data;
 
-	if(!image) {
-		opj_destroy_decompress(dinfo);
+			data = gf_malloc(sizeof(char) * (ctx->dsi_size+inBufferLength));
+			memcpy(data, ctx->dsi, ctx->dsi_size);
+			memcpy(data+ctx->dsi_size, inBuffer, inBufferLength);
+			cio = opj_cio_open((opj_common_ptr)dinfo, data, ctx->dsi_size+inBufferLength);
+			/* decode the stream and fill the image structure */
+			ctx->image = opj_decode(dinfo, cio);
+			gf_free(data);
+		} else {
+			cio = opj_cio_open((opj_common_ptr)dinfo, inBuffer, inBufferLength);
+			/* decode the stream and fill the image structure */
+			ctx->image = opj_decode_with_info(dinfo, cio, &cinfo);
+		}
+
+		//Fill the ctx info because dsi was not present
+		if (ctx->image) {
+			ctx->nb_comp = cinfo.numcomps;
+			ctx->width = cinfo.image_w;
+			ctx->height = cinfo.image_h;
+			ctx->bpp = ctx->nb_comp * 8;
+			ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;
+
+			switch (ctx->nb_comp) {
+			case 1: ctx->pixel_format = GF_PIXEL_GREYSCALE; break;
+			case 2: ctx->pixel_format = GF_PIXEL_ALPHAGREY; break;
+			case 3: ctx->pixel_format = GF_PIXEL_RGB_24; break;
+			case 4: ctx->pixel_format = GF_PIXEL_RGBA; break;
+			default: return GF_NOT_SUPPORTED;
+			}
+
+			if ( *outBufferLength < ctx->out_size ) {
+				*outBufferLength = ctx->out_size;
+				opj_destroy_decompress(dinfo);
+				opj_cio_close(cio);
+				return GF_BUFFER_TOO_SMALL;
+			}
+		}
+
+		if(!ctx->image) {
+			opj_destroy_decompress(dinfo);
+			opj_cio_close(cio);
+			return GF_IO_ERR;
+		}
+
+		/* close the byte stream */
 		opj_cio_close(cio);
-		return GF_IO_ERR;
+
+		/* gf_free( remaining structures */
+		if(dinfo) {
+			opj_destroy_decompress(dinfo);
+		}
 	}
 
-	/* close the byte stream */
-	opj_cio_close(cio);
-	
-	w = image->comps[0].w;
-	wr = int_ceildivpow2(image->comps[0].w, image->comps[0].factor);
-	h = image->comps[0].h;
-	hr = int_ceildivpow2(image->comps[0].h, image->comps[0].factor);
+	w = ctx->image->comps[0].w;
+	wr = int_ceildivpow2(ctx->image->comps[0].w, ctx->image->comps[0].factor);
+	h = ctx->image->comps[0].h;
+	hr = int_ceildivpow2(ctx->image->comps[0].h, ctx->image->comps[0].factor);
 	wh = wr*hr;
 
 	if (ctx->nb_comp==1) {
 		if ((w==wr) && (h==hr)) {
 			for (i=0; i<wh; i++) {
-				outBuffer[i] = image->comps[0].data[i];
+				outBuffer[i] = ctx->image->comps[0].data[i];
 			}
 		} else {
 			for (i=0; i<wh; i++) {
-				outBuffer[i] = image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+				outBuffer[i] = ctx->image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
 			}
 		}
 	}
 	else if (ctx->nb_comp==3) {
 
-		if ((image->comps[0].w==2*image->comps[1].w) && (image->comps[1].w==image->comps[2].w)
-		&& (image->comps[0].h==2*image->comps[1].h) && (image->comps[1].h==image->comps[2].h)) {
+		if ((ctx->image->comps[0].w==2*ctx->image->comps[1].w) && (ctx->image->comps[1].w==ctx->image->comps[2].w)
+			&& (ctx->image->comps[0].h==2*ctx->image->comps[1].h) && (ctx->image->comps[1].h==ctx->image->comps[2].h)) {
 
-			if (ctx->pixel_format != GF_PIXEL_YV12) {
-				ctx->pixel_format = GF_PIXEL_YV12;
-				ctx->out_size = 3*ctx->width*ctx->height/2;
-				*outBufferLength = ctx->out_size;
-				return GF_BUFFER_TOO_SMALL;
-			}
+				if (ctx->pixel_format != GF_PIXEL_YV12) {
+					ctx->pixel_format = GF_PIXEL_YV12;
+					ctx->out_size = 3*ctx->width*ctx->height/2;
+					*outBufferLength = ctx->out_size;
+					return GF_BUFFER_TOO_SMALL;
+				}
 
-			if ((w==wr) && (h==hr)) {
-				for (i=0; i<wh; i++) {
-					*outBuffer = image->comps[0].data[i];
-					outBuffer++;
+				if ((w==wr) && (h==hr)) {
+					for (i=0; i<wh; i++) {
+						*outBuffer = ctx->image->comps[0].data[i];
+						outBuffer++;
+					}
+					w = ctx->image->comps[1].w;
+					wr = int_ceildivpow2(ctx->image->comps[1].w, ctx->image->comps[1].factor);
+					h = ctx->image->comps[1].h;
+					hr = int_ceildivpow2(ctx->image->comps[1].h, ctx->image->comps[1].factor);
+					wh = wr*hr;
+					for (i=0; i<wh; i++) {
+						*outBuffer = ctx->image->comps[1].data[i];
+						outBuffer++;
+					}
+					for (i=0; i<wh; i++) {
+						*outBuffer = ctx->image->comps[2].data[i];
+						outBuffer++;
+					}
+				} else {
+					for (i=0; i<wh; i++) {
+						*outBuffer = ctx->image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+					}
+					w = ctx->image->comps[1].w;
+					wr = int_ceildivpow2(ctx->image->comps[1].w, ctx->image->comps[1].factor);
+					h = ctx->image->comps[1].h;
+					hr = int_ceildivpow2(ctx->image->comps[1].h, ctx->image->comps[1].factor);
+					wh = wr*hr;
+					for (i=0; i<wh; i++) {
+						*outBuffer = ctx->image->comps[1].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+					}
+					for (i=0; i<wh; i++) {
+						*outBuffer = ctx->image->comps[2].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+					}
 				}
-				w = image->comps[1].w;
-				wr = int_ceildivpow2(image->comps[1].w, image->comps[1].factor);
-				h = image->comps[1].h;
-				hr = int_ceildivpow2(image->comps[1].h, image->comps[1].factor);
-				wh = wr*hr;
-				for (i=0; i<wh; i++) {
-					*outBuffer = image->comps[1].data[i];
-					outBuffer++;
-				}
-				for (i=0; i<wh; i++) {
-					*outBuffer = image->comps[2].data[i];
-					outBuffer++;
-				}
-			} else {
-				for (i=0; i<wh; i++) {
-					*outBuffer = image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-				}
-				w = image->comps[1].w;
-				wr = int_ceildivpow2(image->comps[1].w, image->comps[1].factor);
-				h = image->comps[1].h;
-				hr = int_ceildivpow2(image->comps[1].h, image->comps[1].factor);
-				wh = wr*hr;
-				for (i=0; i<wh; i++) {
-					*outBuffer = image->comps[1].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-				}
-				for (i=0; i<wh; i++) {
-					*outBuffer = image->comps[2].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-				}
-			}
 
 
-		} else if ((image->comps[0].w==image->comps[1].w) && (image->comps[1].w==image->comps[2].w)
-		&& (image->comps[0].h==image->comps[1].h) && (image->comps[1].h==image->comps[2].h)) {
+		} else if ((ctx->image->comps[0].w==ctx->image->comps[1].w) && (ctx->image->comps[1].w==ctx->image->comps[2].w)
+			&& (ctx->image->comps[0].h==ctx->image->comps[1].h) && (ctx->image->comps[1].h==ctx->image->comps[2].h)) {
 
-			if ((w==wr) && (h==hr)) {
-				for (i=0; i<wh; i++) {
-					u32 idx = 3*i;
-					outBuffer[idx] = image->comps[0].data[i];
-					outBuffer[idx+1] = image->comps[1].data[i];
-					outBuffer[idx+2] = image->comps[2].data[i];
+				if ((w==wr) && (h==hr)) {
+					for (i=0; i<wh; i++) {
+						u32 idx = 3*i;
+						outBuffer[idx] = ctx->image->comps[0].data[i];
+						outBuffer[idx+1] = ctx->image->comps[1].data[i];
+						outBuffer[idx+2] = ctx->image->comps[2].data[i];
+					}
+				} else {
+					for (i=0; i<wh; i++) {
+						u32 idx = 3*i;
+						outBuffer[idx] = ctx->image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+						outBuffer[idx+1] = ctx->image->comps[1].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+						outBuffer[idx+2] = ctx->image->comps[2].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+					}
 				}
-			} else {
-				for (i=0; i<wh; i++) {
-					u32 idx = 3*i;
-					outBuffer[idx] = image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-					outBuffer[idx+1] = image->comps[1].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-					outBuffer[idx+2] = image->comps[2].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-				}
-			}
 		}
 	}
+	else if (ctx->nb_comp==4) {
+		if ((ctx->image->comps[0].w==ctx->image->comps[1].w) && (ctx->image->comps[1].w==ctx->image->comps[2].w) && (ctx->image->comps[2].w==ctx->image->comps[3].w)
+			&& (ctx->image->comps[0].h==ctx->image->comps[1].h) && (ctx->image->comps[1].h==ctx->image->comps[2].h) && (ctx->image->comps[2].h==ctx->image->comps[3].h)) {
+
+				if ((w==wr) && (h==hr)) {
+					for (i=0; i<wh; i++) {
+						u32 idx = 4*i;
+						outBuffer[idx] = ctx->image->comps[0].data[i];
+						outBuffer[idx+1] = ctx->image->comps[1].data[i];
+						outBuffer[idx+2] = ctx->image->comps[2].data[i];
+						outBuffer[idx+3] = ctx->image->comps[3].data[i];
+					}
+				} else {
+					for (i=0; i<wh; i++) {
+						u32 idx = 4*i;
+						outBuffer[idx] = ctx->image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+						outBuffer[idx+1] = ctx->image->comps[1].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+						outBuffer[idx+2] = ctx->image->comps[2].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+						outBuffer[idx+3] = ctx->image->comps[3].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
+					}
+				}
+		}
+	}	
 
 	/* gf_free( remaining structures */
 	if(dinfo) {
@@ -336,8 +396,11 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	/* gf_free( image data structure */
-	opj_image_destroy(image);
-	
+	if (ctx->image) {
+		opj_image_destroy(ctx->image);
+		ctx->image = NULL;
+	}
+
 	*outBufferLength = ctx->out_size;
 	return GF_OK;
 }
