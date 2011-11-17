@@ -32,7 +32,7 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway);
 
 /* Tools */
-void dsmcc_biop_get_context(GF_BitStream* bs,GF_M2TS_DSMCC_SERVICE_CONTEXT* Context,u32 serviceContextList_count);
+static void dsmcc_biop_get_context(GF_BitStream* bs,GF_M2TS_DSMCC_SERVICE_CONTEXT* Context,u32 serviceContextList_count);
 static void dsmcc_biop_descriptor(GF_BitStream* bs,GF_List* list,u32 size);
 static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR);
 static GF_M2TS_DSMCC_DIR* dsmcc_get_directory(GF_List* List, u32 objectKey_data);
@@ -1114,16 +1114,7 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 					return GF_CORRUPTED_DATA;
 				}
 			}else{
-				e = dsmcc_process_biop_data(dsmcc_overlord,dsmcc_module,dsmcc_module->buffer,dsmcc_module->size);
-				/*if(dsmcc_module->size == strlen(dsmcc_module->buffer)){
-					dsmcc_process_biop_data(dsmcc_module,dsmcc_module->buffer,dsmcc_module->size);
-				}else{
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Buffer size is not equal to the module size. Flushing the data \n"));
-					gf_free(dsmcc_module->buffer);
-					dsmcc_module->buffer = NULL;
-					dsmcc_module->buffer = (char*)gf_calloc(dsmcc_module->size,sizeof(char));
-					return GF_CORRUPTED_DATA;
-				}*/
+				e = dsmcc_process_biop_data(dsmcc_overlord,dsmcc_module,dsmcc_module->buffer,dsmcc_module->size);				
 			}
 			if(e){
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the processing of the module data. Flushing the data \n"));
