@@ -83,7 +83,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	}
 	if (!xml || !xml->xml || !xml->xml_length) return GF_BAD_PARAM;
 	
-	didfile = gf_f64_open(outName, "wt");
+	didfile = gf_f64_open(outName, "wb");
 	if (!didfile) return GF_IO_ERR;
 	fwrite(xml->xml, xml->xml_length, 1, didfile);
 	fclose(didfile);
