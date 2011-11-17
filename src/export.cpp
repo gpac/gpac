@@ -43,6 +43,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_close) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sleep) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mkdir) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_rti) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_battery_state) )

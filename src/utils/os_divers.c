@@ -29,6 +29,7 @@
 #include <winbase.h>
 #include <winsock.h>
 #include <tlhelp32.h>
+#include <direct.h>
 
 #if !defined(__GNUC__)
 #pragma comment(lib, "toolhelp")
@@ -41,6 +42,7 @@
 #include <io.h>
 #include <windows.h>
 #include <tlhelp32.h>
+#include <direct.h>
 
 #if !defined(__GNUC__)
 #pragma comment(lib, "winmm")
@@ -119,6 +121,17 @@ void gf_sleep(u32 ms)
 		sel_err = select(0, NULL, NULL, NULL, &tv);
 	} while ( sel_err && (errno == EINTR) );
 #endif
+}
+
+GF_Err gf_mkdir(char* DirPathName){
+	GF_Err e;
+	e = GF_OK;
+#if defined (WIN32) || defined (_WIN32_WCE)
+            e = mkdir(DirPathName);
+#else
+           e =  mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+#endif
+	return e;
 }
 
 #ifndef gettimeofday

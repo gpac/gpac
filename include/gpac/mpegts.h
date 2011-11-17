@@ -637,7 +637,7 @@ struct tag_m2ts_demux
 
 	/*Carousel*/	
 	void* dsmcc_controler;
-
+	void* carousel_info;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
@@ -724,8 +724,7 @@ enum
 	GF_M2TS_DVB_TIME_SLICE_FEC_DESCRIPTOR 		   = 0x77,
 	/* ... */
 	GF_M2TS_DVB_EAC3_DESCRIPTOR				= 0x7A,
-	GF_M2TS_DVB_LOGICAL_CHANNEL_DESCRIPTOR = 0x83,	
-	
+	GF_M2TS_DVB_LOGICAL_CHANNEL_DESCRIPTOR = 0x83,		
 };
 
 /* Reserved PID values */

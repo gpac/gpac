@@ -806,13 +806,17 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
-		} else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+		}
+#ifdef DUMP_MPE_IP_DATAGRAMS
+		else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
-		} else if (ts->on_event) {
+		} 
+#endif
+		else if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
@@ -989,6 +993,8 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 	case GF_M2TS_TABLE_ID_SIT:
 	case GF_M2TS_TABLE_ID_DSM_CC_PRIVATE:
 	case GF_M2TS_TABLE_ID_MPE_FEC:
+	case GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE:
+	case GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE:
 		return 1;
 	default:
 		if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX)

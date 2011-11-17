@@ -664,6 +664,14 @@ u32 gf_sys_clock();
 void gf_sleep(u32 ms);
 
 /*!
+ *	\brief Create Directory
+ *
+ *	Create a directory within the full path.
+ *	\param DirPathName the dir path name.
+ */
+GF_Err gf_mkdir(char* DirPathName);
+
+/*!
  *	\brief CRC32 compute
  *
  *	Computes the CRC32 value of a buffer.
