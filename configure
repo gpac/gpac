@@ -817,7 +817,7 @@ int main( void ) {
  return 0; 
 }
 EOF
-if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
+if $cpp $CFLAGS -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
 else
 if test "$darwin" = "yes" ; then
@@ -827,7 +827,7 @@ else
 avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
 avcap_ldflags="-lavcap -lpthread"
 fi
-if $cpp -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
+if $cpp $CFLAGS -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
   avcap_ldflags="-L../../$local_lib $avcap_ldflags"
 fi
