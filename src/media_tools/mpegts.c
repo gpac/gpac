@@ -1487,7 +1487,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_PRIVATE_SECTION:			
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			es = (GF_M2TS_ES *)ses;
-			es->flags |= GF_M2TS_ES_IS_SECTION;	
+			es->flags |= GF_M2TS_ES_IS_SECTION;
+			es->pid = pid;
+			es->service_id = pmt->program->number;
 			if(stream_type == GF_M2TS_PRIVATE_SECTION){
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT section found on pid %d\n", pid));
 			}else{
@@ -2403,6 +2405,8 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->demux_and_play = 0;
 	ts->nb_prog_pmt_received = 0;
 
+	ts->dsmcc_controler = gf_list_new();
+
 	return ts;
 }
 
@@ -2442,6 +2446,10 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 #ifdef DUMP_MPE_IP_DATAGRAMS
 	gf_dvb_mpe_shutdown(ts);
 #endif
+
+	if(gf_list_count(ts->dsmcc_controler)){
+		//gf_dsmcc_controller_free(ts->dsmcc_controler);
+	}
 
 	gf_free(ts);
 }

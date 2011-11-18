@@ -330,7 +330,8 @@ enum
 			GF_SLConfig *slcfg; \
 			s16 component_tag; \
 			void *user; \
-			u64 first_dts;
+			u64 first_dts; \
+			u32 service_id;
 
 struct tag_m2ts_es
 {
@@ -636,7 +637,7 @@ struct tag_m2ts_demux
 	void *udta_query;
 
 	/*Carousel*/	
-	void* dsmcc_controler;
+	GF_List* dsmcc_controler;
 	void* carousel_info;
 };
 
