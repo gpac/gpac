@@ -10,14 +10,14 @@
 static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId);
 static GF_Err gf_m2ts_dsmcc_process_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc, char* data,GF_BitStream *bs,u32* data_shift);
 static GF_Err gf_m2ts_dsmcc_process_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader, char* data,GF_BitStream *bs,u32* data_shift,u32 mode);
-static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, GF_BitStream *bs,u32* data_shift);
+static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, GF_BitStream *bs,u32* data_shift);
 static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc);
 static GF_Err gf_m2ts_dsmcc_delete_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HEADER *MessageHeader);
 static GF_Err gf_m2ts_dsmcc_delete_compatibility_descriptor(GF_M2TS_DSMCC_COMPATIBILITY_DESCRIPTOR *CompatibilityDesc);
-static GF_Err gf_m2ts_dsmcc_extract_info(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *dsmcc);
+
 
 static GF_Err dsmcc_module_delete(GF_M2TS_DSMCC_MODULE* dsmcc_module);
-static GF_Err dsmcc_module_state(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 moduleId,u32 moduleVersion);
+//static GF_Err dsmcc_module_state(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 moduleId,u32 moduleVersion);
 static GF_Err dsmcc_create_module_validation(GF_M2TS_DSMCC_INFO_MODULES* InfoModules, u32 downloadId, GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 nb_module);
 static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 moduleIndex);
 static GF_Err dsmcc_get_biop_module_info(GF_M2TS_DSMCC_MODULE* dsmcc_module,char* data,u8 data_size);
@@ -26,8 +26,8 @@ static GF_M2TS_DSMCC_MODULE* dsmcc_create_module(GF_M2TS_DSMCC_OVERLORD* dsmcc_o
 /* BIOP */
 static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_MODULE* dsmcc_module,char* data,u32 data_size);
 static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs,char* data);
-static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway,u16 moduleId,u32 downloadId);
-static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway,char* data,Bool IsServiceGateway);
+static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_OVERLORD*dsmcc_overlord,u16 moduleId,u32 downloadId);
+static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_OVERLORD*dsmcc_overlord,Bool IsServiceGateway);
 static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway);
 static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway);
 
@@ -545,18 +545,36 @@ void gf_ait_application_destroy(GF_M2TS_AIT_APPLICATION* application)
 
 /* DSMCC */
 
+GF_M2TS_DSMCC_OVERLORD* gf_m2ts_get_dmscc_overlord(GF_List* Dsmcc_controller,u32 service_id) 
+{
+	u16 nb_dsmcc,i;
+
+	nb_dsmcc = gf_list_count(Dsmcc_controller);
+
+	if(!nb_dsmcc){
+		return NULL;
+	}else{
+		for(i =0;i<nb_dsmcc;i++){
+			GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)gf_list_get(Dsmcc_controller,i);
+			if(dsmcc_overlord->service_id == service_id){
+				return dsmcc_overlord;
+			}
+		}
+	}
+	return NULL;
+}
+
 void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
 	char *data;
 	u32 u32_data_size;
 	u32 u32_table_id;
+	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
 
-	if (ts->dsmcc_controler == NULL) {
-		ts->dsmcc_controler = gf_m2ts_init_dsmcc_overlord();	
-	}
+	dsmcc_overlord = gf_m2ts_get_dmscc_overlord(ts->dsmcc_controler,pck->stream->service_id);
 
-	if (evt_type == GF_M2TS_EVT_DSMCC_FOUND) {
+	if (dsmcc_overlord && evt_type == GF_M2TS_EVT_DSMCC_FOUND) {
 		GF_Err e;
 		GF_M2TS_DSMCC_SECTION* dsmcc;
 		data = pck->data;
@@ -564,26 +582,25 @@ void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		u32_table_id = data[0];	
 		GF_SAFEALLOC(dsmcc,GF_M2TS_DSMCC_SECTION);
 
-		e = gf_m2ts_process_dsmcc(ts,dsmcc,data,u32_data_size,u32_table_id);	
+		e = gf_m2ts_process_dsmcc(dsmcc_overlord,dsmcc,data,u32_data_size,u32_table_id);	
 		assert(e == GF_OK);
 	}
 }
 
-GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord() {
-	GF_M2TS_DSMCC_OVERLORD* dsmcc_controler;
-	GF_SAFEALLOC(dsmcc_controler,GF_M2TS_DSMCC_OVERLORD);	
-	dsmcc_controler->dsmcc_modules = gf_list_new();
-	return dsmcc_controler;
+GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id) {
+	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
+	GF_SAFEALLOC(dsmcc_overlord,GF_M2TS_DSMCC_OVERLORD);	
+	dsmcc_overlord->dsmcc_modules = gf_list_new();
+	dsmcc_overlord->service_id = service_id;
+	return dsmcc_overlord;
 }
 
-GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id)
+GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id)
 {
-	GF_BitStream *bs;
-	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
+	GF_BitStream *bs;	
 	u32 data_shift,reserved_test;
 
 	data_shift = 0;
-	dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)ts->dsmcc_controler;
 	//first_section = *first_section_received;
 	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
 
@@ -635,7 +652,7 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, c
 		case GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE:
 			{
 				data_shift = (u32)(gf_bs_get_position(bs));				
-				gf_m2ts_dsmcc_download_data(ts,dsmcc,data,bs,&data_shift);				
+				gf_m2ts_dsmcc_download_data(dsmcc_overlord,dsmcc,data,bs,&data_shift);				
 				break;
 			}
 		case GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION:
@@ -669,13 +686,10 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_Demuxer* ts,GF_M2TS_DSMCC_SECTION *dsmcc, c
 	return GF_OK;
 }
 
-static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, GF_BitStream *bs,u32* data_shift)
+static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, GF_BitStream *bs,u32* data_shift)
 {
 	GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE* DataMessage;
-	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
-
 	GF_SAFEALLOC(DataMessage,GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE);
-	dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)ts->dsmcc_controler;
 
 	/* Header */
 	gf_m2ts_dsmcc_process_message_header(&DataMessage->DownloadDataHeader,data,bs,data_shift,1);
@@ -879,6 +893,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_Demuxer *ts,GF_M2TS_DSMCC_SECT
 					dsmcc_overlord->ServiceGateway = (GF_M2TS_DSMCC_SERVICE_GATEWAY*)gf_calloc(1,sizeof(GF_M2TS_DSMCC_SERVICE_GATEWAY));
 					dsmcc_overlord->ServiceGateway->downloadId = taggedProfile->BIOPProfileBody->ObjectLocation.carouselId;
 					dsmcc_overlord->ServiceGateway->moduleId = taggedProfile->BIOPProfileBody->ObjectLocation.moduleId;
+					dsmcc_overlord->ServiceGateway->service_id = dsmcc_overlord->service_id;
 					dsmcc_overlord->ServiceGateway->File = gf_list_new();
 					dsmcc_overlord->ServiceGateway->Dir = gf_list_new();
 				}
@@ -1048,28 +1063,28 @@ static GF_Err dsmcc_create_module_validation(GF_M2TS_DSMCC_INFO_MODULES* InfoMod
 	return  GF_OK;
 }
 
-static GF_Err dsmcc_module_state(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 moduleId,u32 moduleVersion){
-
-	u32 i,nb_module;
-	nb_module = gf_list_count(dsmcc_overlord->dsmcc_modules);
-	/* This test comes from the fact that the moduleVersion only borrow the least 5 significant bits of the moduleVersion conveys in DownloadDataBlock */
-	/* If the moduleVersion is eq to 0x1F, it does not tell if it is clearly 0x1F or a superior value. So in this case it is better to process the data */
-	/* If the moduleVersion is eq to 0x0, it means that the data conveys a DownloadDataResponse, so it has to be processed */
-	if (moduleVersion != 0 || moduleVersion < 0x1F) {
-		for (i=0; i<nb_module; i++) {
-			GF_M2TS_DSMCC_PROCESSED dsmcc_process = dsmcc_overlord->processed[i];
-			if ((moduleId == dsmcc_process.moduleId) && (moduleVersion <= dsmcc_process.version_number)) {
-				if (dsmcc_process.done) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Module already processed \n"));
-					return GF_CORRUPTED_DATA;
-				} else {
-					return GF_OK;	
-				}
-			}
-		}
-	}
-	return  GF_OK;
-}
+//static GF_Err dsmcc_module_state(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,u32 moduleId,u32 moduleVersion){
+//
+//	u32 i,nb_module;
+//	nb_module = gf_list_count(dsmcc_overlord->dsmcc_modules);
+//	/* This test comes from the fact that the moduleVersion only borrow the least 5 significant bits of the moduleVersion conveys in DownloadDataBlock */
+//	/* If the moduleVersion is eq to 0x1F, it does not tell if it is clearly 0x1F or a superior value. So in this case it is better to process the data */
+//	/* If the moduleVersion is eq to 0x0, it means that the data conveys a DownloadDataResponse, so it has to be processed */
+//	if (moduleVersion != 0 || moduleVersion < 0x1F) {
+//		for (i=0; i<nb_module; i++) {
+//			GF_M2TS_DSMCC_PROCESSED dsmcc_process = dsmcc_overlord->processed[i];
+//			if ((moduleId == dsmcc_process.moduleId) && (moduleVersion <= dsmcc_process.version_number)) {
+//				if (dsmcc_process.done) {
+//					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Module already processed \n"));
+//					return GF_CORRUPTED_DATA;
+//				} else {
+//					return GF_OK;	
+//				}
+//			}
+//		}
+//	}
+//	return  GF_OK;
+//}
 
 static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId)
 {
@@ -1317,7 +1332,7 @@ static GF_Err dsmcc_get_biop_module_info(GF_M2TS_DSMCC_MODULE* dsmcc_module,char
 
 				case CACHING_PRIORITY_DESCRIPTOR:
 					{
-						GF_M2TS_DSMCC_BIOP_CACHING_PRIORITY_DESCRIPTOR* CachingPriorityDescr = (GF_M2TS_DSMCC_BIOP_CACHING_PRIORITY_DESCRIPTOR*)gf_list_get(BIOP_ModuleInfo->descriptor,j);						
+						//GF_M2TS_DSMCC_BIOP_CACHING_PRIORITY_DESCRIPTOR* CachingPriorityDescr = (GF_M2TS_DSMCC_BIOP_CACHING_PRIORITY_DESCRIPTOR*)gf_list_get(BIOP_ModuleInfo->descriptor,j);						
 						break;					
 					}
 				case COMPRESSED_MODULE_DESCRIPTOR:
@@ -1378,11 +1393,11 @@ static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_
 
 		if(BIOP_Header){
 			if(!strcmp(BIOP_Header->objectKind_data,"fil")){
-				e = dsmcc_process_biop_file(bs,BIOP_Header,ServiceGateway,dsmcc_module->moduleId,dsmcc_module->downloadId);
+				e = dsmcc_process_biop_file(bs,BIOP_Header,dsmcc_overlord,dsmcc_module->moduleId,dsmcc_module->downloadId);
 			}else if(!strcmp(BIOP_Header->objectKind_data,"dir")){
-				e = dsmcc_process_biop_directory(bs,BIOP_Header,ServiceGateway,data,0);
+				e = dsmcc_process_biop_directory(bs,BIOP_Header,dsmcc_overlord,0);
 			}else if(!strcmp(BIOP_Header->objectKind_data,"srg")){
-				e = dsmcc_process_biop_directory(bs,BIOP_Header,ServiceGateway,data,1);
+				e = dsmcc_process_biop_directory(bs,BIOP_Header,dsmcc_overlord,1);
 				if(e == GF_OK){
 					dsmcc_overlord->Got_ServiceGateway = 1;
 				}
@@ -1442,10 +1457,11 @@ static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs,cha
 	return BIOP_Header;
 }
 
-static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway,u16 moduleId,u32 downloadId){
+static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_OVERLORD*dsmcc_overlord,u16 moduleId,u32 downloadId){
 
 	u32 nb_desc,descr_size;		
 	GF_M2TS_DSMCC_BIOP_FILE* BIOP_File;
+	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
 	GF_M2TS_DSMCC_FILE* File;
 	FILE* pFile;
 	char* FileType;
@@ -1453,7 +1469,9 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 
 	GF_SAFEALLOC(BIOP_File,GF_M2TS_DSMCC_BIOP_FILE);
 
-	BIOP_File->Header = BIOP_Header;
+	ServiceGateway = dsmcc_overlord->ServiceGateway;
+
+	BIOP_File->Header = BIOP_Header;	
 	BIOP_File->ContentSize = gf_bs_read_int(bs,64);	
 
 	descr_size = BIOP_File->Header->objectInfo_length-8;
@@ -1507,6 +1525,9 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 			fwrite(BIOP_File->content_byte,1,BIOP_File->content_length ,pFile);			
 			fclose(pFile);
 			printf("Fichier créé \n\n");
+			if(!strcmp(File->name,"index.html")){
+				dsmcc_overlord->get_index = 1;
+			}
 		}
 	}else{
 		printf("Fichier non créé \n\n");
@@ -1517,15 +1538,18 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	return GF_OK;
 }
 
-static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway,char* data,Bool IsServiceGateway){
+static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_OVERLORD*dsmcc_overlord,Bool IsServiceGateway){
 
 	GF_M2TS_DSMCC_BIOP_DIRECTORY* BIOP_Directory;
 	GF_M2TS_DSMCC_DIR* Dir;
 	char* ParentName;
 	char* FileType;
 	u32 i;
+	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
 
 	GF_SAFEALLOC(BIOP_Directory,GF_M2TS_DSMCC_BIOP_DIRECTORY);
+
+	ServiceGateway = dsmcc_overlord->ServiceGateway;
 
 	/* Get the Header */
 	BIOP_Directory->Header = BIOP_Header;
@@ -1537,11 +1561,19 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 	
 	if(IsServiceGateway){
 		/* create a "dir" struct with no parent */
+		char Root[50];
+		GF_Err e;
 		Dir = (GF_M2TS_DSMCC_DIR*)ServiceGateway;
 		ServiceGateway->objectKey_data = BIOP_Directory->Header->objectKey_data;
 		ServiceGateway->parent = NULL;
-		ServiceGateway->name = (char*)gf_strdup("./srg");
+		memset(&Root,0,50*sizeof(char));
+		sprintf(Root,"%s%c%d",dsmcc_overlord->root_dir,GF_PATH_SEPARATOR,ServiceGateway->service_id);
+		ServiceGateway->name = (char*)gf_strdup(Root);
 		ParentName = ServiceGateway->name;
+		e = gf_mkdir(ServiceGateway->name);
+		if(e){
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the creation of the directory %s \n",ServiceGateway->name));
+		}		
 	}else{
 		/* get the dir related to the payload */
 		Dir = dsmcc_get_directory(ServiceGateway->Dir,BIOP_Directory->Header->objectKey_data);		
