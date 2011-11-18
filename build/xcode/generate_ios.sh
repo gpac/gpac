@@ -35,6 +35,7 @@ cp build/Release-iphoneos/*.dylib ../../bin/iOS/osmo4ios.app/
 cp build/Debug-iphoneos/osmo4ios.app/osmo4ios ../../bin/iOS/osmo4ios.app/
 cp build/Debug-iphoneos/osmo4ios.app/PkgInfo ../../bin/iOS/osmo4ios.app/
 cp build/Debug-iphoneos/osmo4ios.app/Info.plist ../../bin/iOS/osmo4ios.app/
+cp build/xcode/build/Release-iphoneos/osmo4ios.app/ResourceRules.plist ../../bin/iOS/osmo4ios.app/
 
 echo "*** Test the presence of target files ***"
 if [ `ls ../../bin/iOS/osmo4ios.app/ | wc -l` -ne 22 ]
