@@ -580,6 +580,10 @@ if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
 fi
 
 
+#force use of cflags with cc
+cc="$cc $CFLAGS"
+cpp="$cpp $CPPFLAGS"
+
 
 #look for zlib
 cat > $TMPC << EOF
@@ -817,7 +821,7 @@ int main( void ) {
  return 0; 
 }
 EOF
-if $cpp $CFLAGS -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
 else
 if test "$darwin" = "yes" ; then
@@ -827,7 +831,7 @@ else
 avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
 avcap_ldflags="-lavcap -lpthread"
 fi
-if $cpp $CFLAGS -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
   avcap_ldflags="-L../../$local_lib $avcap_ldflags"
 fi
@@ -1800,7 +1804,7 @@ cat > $TMPCPP << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPCPP -I$xulsdk_path $CFLAGS $LDFLAGS 2> /dev/null  ; then
+if $cc -o $TMPO $TMPCPP -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
     has_xul="system"
     xul_flags="-I$xulsdk_path $xul_flags"
 else
