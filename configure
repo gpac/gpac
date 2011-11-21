@@ -482,11 +482,11 @@ EOF
         xul_flags=-DXP_MAC
         if test -d /sw/bin ; then
             alt_macosx_dir="/sw"
-            CFLAGS="-I/sw/include $CFLAGS"
+            CFLAGS_DIR="-I/sw/include"
             LDFLAGS="-L/sw/lib $LDFLAGS"
         elif test -d /opt/local/bin ; then
             alt_macosx_dir="/opt/local"
-            CFLAGS="-I/opt/local/include $CFLAGS"
+            CFLAGS_DIR="-I/opt/local/include"
             LDFLAGS="-L/opt/local/lib $LDFLAGS"
         fi
         cc="cc"
@@ -580,6 +580,18 @@ if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
 fi
 
 
+#GCC opt
+if test "$no_gcc_opt" = "no"; then
+    if $cc --version | grep 'sbox-arm-linux-gcc (GCC) 3.4.4'
+    then
+        echo "Detected buggy arm GCC (diablo), using -O2"
+        CFLAGS="-O2 $CFLAGS"
+    else
+        CFLAGS="-O3 $CFLAGS"
+    fi
+fi
+
+
 #force use of cflags with cc
 cc="$cc $CFLAGS"
 cpp="$cpp $CPPFLAGS"
@@ -588,11 +600,11 @@ cpp="$cpp $CPPFLAGS"
 #look for zlib
 cat > $TMPC << EOF
 #include <zlib.h>
-int main( void ) { if (zlibVersion() != ZLIB_VERSION) { puts("zlib version differs !!!"); return 1; } return 0; }
+int main( void ) { if (strcmp(zlibVersion(), ZLIB_VERSION)) { puts("zlib version differs !!!"); return 1; } return 0; }
 EOF
 has_zlib="no"
-if test "$cross_prefix"  != "" ; then
-  if $cc -o $TMPO $TMPC -lz 2> /dev/null  ; then
+if test "$cross_prefix" = "" ; then
+  if $cc -o $TMPO $TMPC -lz $LDFLAGS 2> /dev/null  ; then
       has_zlib="system"
   fi
 fi
@@ -615,7 +627,7 @@ EOF
 
 if $cc -o $TMPE $TMPC > /dev/null 2>&1 ; then
     dlopen="yes"
-elif $cc -o $TMPE $TMPC -ldl > /dev/null 2>&1 ; then
+elif $cc -o $TMPE $TMPC $LDFLAGS -ldl > /dev/null 2>&1 ; then
     GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
 else
     if test "$win32" = "no"; then
@@ -647,7 +659,7 @@ EOF
         if pkg-config --exists mozilla-js 2> /dev/null  ; then
             js_flags=`pkg-config --cflags mozilla-js`
             js_lib_pkg=`pkg-config --libs mozilla-js`
-            if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg -lpthread 2> /dev/null  ; then
+            if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                 has_js="system"
                 js_lib=`pkg-config --libs mozilla-js`
             fi
@@ -674,10 +686,10 @@ EOF
                 has_js="prefix"
                 #dc added end
             else
-                if $cpp -o $TMPO $TMPCPP $js_flags -ljs -lpthread 2> /dev/null  ; then
+                if $cpp -o $TMPO $TMPCPP $js_flags $LDFLAGS -ljs -lpthread 2> /dev/null  ; then
                     js_inc="/usr/include"
                     has_js="system"
-                elif $cpp -o $TMPO $TMPCPP -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs -lpthread 2> /dev/null ; then
+                elif $cpp -o $TMPO $TMPCPP -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs -lpthread 2> /dev/null ; then
                     has_js="system"
                     js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
                     js_lib="-L$alt_macosx_dir/lib -ljs"
@@ -686,14 +698,14 @@ EOF
                     #debian spidermonkey (smjs)
                     js_flags="-DXP_UNIX -I/usr/include/smjs"
                     js_inc="/usr/include/smjs"
-                    if $cpp -o $TMPO $TMPCPP $js_flags -lsmjs -lpthread 2> /dev/null  ; then
+                    if $cpp -o $TMPO $TMPCPP $js_flags $LDFLAGS -lsmjs -lpthread 2> /dev/null  ; then
                         has_js="system"
                         js_lib="-lsmjs"
                     else
                         #debian spidermonkey (mozjs)
                         js_flags="-DXP_UNIX -I/usr/include/mozjs"
                         js_inc="/usr/include/mozjs"
-                        if $cpp -o $TMPO $TMPCPP $js_flags -lmozjs -lpthread 2> /dev/null  ; then
+                        if $cpp -o $TMPO $TMPCPP $js_flags $LDFLAGS -lmozjs -lpthread 2> /dev/null  ; then
                             has_js="system"
                             js_lib="-lmozjs"
                         fi
@@ -737,16 +749,16 @@ EOF
             if pkg-config --exists mozilla-js 2> /dev/null  ; then
                 js_flags=`pkg-config --cflags mozilla-js`
                 js_lib_pkg=`pkg-config --libs mozilla-js`
-                if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg -lpthread 2> /dev/null  ; then
+                if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                     has_js="system"
                     js_lib=`pkg-config --libs mozilla-js`
                 fi
             fi
             if test "$has_js" = "no" ; then
-                if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
+                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -ljs 2> /dev/null  ; then
                     js_inc="/usr/include"
                     has_js="system"
-                elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
+                elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs 2> /dev/null ; then
                     has_js="system"
                     js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
                     js_lib="-L$alt_macosx_dir/lib -ljs"
@@ -755,14 +767,14 @@ EOF
                     #debian spidermonkey (smjs)
                     js_flags="-DXP_UNIX -I/usr/include/smjs"
                     js_inc="/usr/include/smjs"
-                    if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
+                    if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lsmjs 2> /dev/null  ; then
                         has_js="system"
                         js_lib="-lsmjs"
                     else
                         #debian spidermonkey (mozjs)
                         js_flags="-DXP_UNIX -I/usr/include/mozjs"
                         js_inc="/usr/include/mozjs"
-                        if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
+                        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lmozjs 2> /dev/null  ; then
                             has_js="system"
                             js_lib="-lmozjs"
                         fi
@@ -804,7 +816,7 @@ cat > $TMPC << EOF
 #include <Platinum.h>
 int main( void ) { return 0; }
 EOF
-if $cpp -o $TMPO $TMPC -I$local_inc/platinum -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib 2> /dev/null  ; then
   has_platinum="yes"
 fi
 
@@ -817,25 +829,31 @@ cat > $TMPC << EOF
 #include <avcap/avcap.h>
 using namespace avcap;
 int main( void ) { 
- const DeviceCollector::DeviceList& dl = DEVICE_COLLECTOR::instance().getDeviceList();
- return 0; 
+  const DeviceCollector::DeviceList& dl = DEVICE_COLLECTOR::instance().getDeviceList();
+  DeviceDescriptor* dd = 0;
+  for (DeviceCollector::DeviceList::const_iterator i = dl.begin(); i != dl.end(); i++) {
+    dd = *i;
+	std::cout << dd->getName().c_str() << "\n";
+  }
+  return 0; 
 }
 EOF
-if $cpp -o $TMPO $TMPC $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
 else
-if test "$darwin" = "yes" ; then
-avcap_cflags="-I$local_inc -I$local_inc/avcap/osx"
-avcap_ldflags="${wl}-flat_namespace ${wl}-undefined ${wl}suppress -lavcap -lpthread  -framework QuickTime -framework QuartzCore"
-else
-avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
-avcap_ldflags="-lavcap -lpthread"
-fi
-if $cpp -o $TMPO $TMPC $avcap_cflags -L$local_lib $avcap_ldflags 2> /dev/null  ; then
-  has_avcap="yes"
-  avcap_ldflags="-L../../$local_lib $avcap_ldflags"
-fi
-
+    if test "$darwin" = "yes" ; then
+        avcap_cflags="-I$local_inc -I$local_inc/avcap/osx"
+        avcap_ldflags="${wl}-flat_namespace -lavcap -lpthread  -framework QuickTime -framework QuartzCore"
+    else
+        avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
+        avcap_ldflags="-lavcap -lpthread"
+    fi
+echo "$cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags"
+$cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags
+    if $cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags 2> /dev/null  ; then
+		has_avcap="yes"
+        avcap_ldflags="-L../../$local_lib $avcap_ldflags"
+    fi
 fi
 
 
@@ -853,13 +871,13 @@ cat > $TMPC << EOF
 #include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
 int main( void ) { return 0; }
 EOF
-if $cpp -o $TMPO $TMPC $osvc_cflags $osvc_ldflags 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC $osvc_cflags $LDFLAGS $osvc_ldflags 2> /dev/null  ; then
   has_opensvc="yes"
 else
 osvc_cflags="-I$local_inc"
 osvc_ldflags="-lOpenSVCDec"
 
-if $cpp -o $TMPO $TMPC $osvc_cflags -L$local_lib $osvc_ldflags 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags 2> /dev/null  ; then
   has_opensvc="yes"
   osvc_ldflags="-L../../$local_lib $osvc_ldflags"
 fi
@@ -875,30 +893,25 @@ cat > $TMPC << EOF
 #include FT_OUTLINE_H
 int main( void ) { return 0; }
 EOF
-if test "$cross_prefix"  != "" ; then
+if test "$cross_prefix" = "" ; then
     ft_cflags="-I$prefix/include "
     ft_lflags="-L$prefix/lib -lfreetype"
-    if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
+    if $cc $CFLAGS_DIR -o $TMPO $TMPC $ft_cflags $ft_lflags $LDFLAGS 2> /dev/null  ; then
         has_ft="system"
     else
+        ft_cflags="`freetype-config --cflags`"
+        ft_lflags="`freetype-config --libs`"
+        if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags $LDFLAGS 2> /dev/null  ; then
+            has_ft="system"
+        fi
+    fi
+fi
+if test "$has_ft" = "no" ; then
+    if test "`which freetype-config`" != ""; then
         ft_cflags="-I$local_inc/freetype"
         ft_lflags="-L$local_lib -lfreetype"
         if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
             has_ft="local"
-        fi
-    fi
-else
-    if test "`which freetype-config`" != ""; then
-        ft_cflags="`freetype-config --cflags`"
-        ft_lflags="`freetype-config --libs`"
-        if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
-            has_ft="system"
-        else
-            ft_cflags="-I$local_inc/freetype"
-            ft_lflags="-L$local_lib -lfreetype"
-            if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
-                has_ft="local"
-            fi
         fi
     fi
 fi
@@ -921,7 +934,7 @@ else
     LINK_SSL="-lssl -lcrypto"
 fi
 
-if $cc -o $TMPO $TMPC $LINK_SSL 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $LINK_SSL $LDFLAGS 2> /dev/null  ; then
     has_ssl="yes"
 fi
 
@@ -934,40 +947,31 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if test "$cross_prefix"  != "" ; then
-    if test "`which $prefix/bin/jpeg-config`" != ""; then
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -ljpeg 2> /dev/null  ; then
+        has_jpeg="system"
+    elif test "$alt_macosx_dir" != "" ; then
+        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2> /dev/null ; then
+            has_jpeg="system"
+        fi
+    elif test "`which $prefix/bin/jpeg-config`" != ""; then
         jpeg_cflags="`$prefix/bin/jpeg-config --cflags`"
         jpeg_lflags="`$prefix/bin/jpeg-config --libs`"
-        if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+        if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags $LDFLAGS 2> /dev/null  ; then
             has_jpeg="system"
-        else
-            jpeg_cflags="-I$local_inc/jpeg"
-            jpeg_lflags="-L$local_lib -ljpeg"
-            if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
-                has_jpeg="local"
-            fi
         fi
     else
         jpeg_cflags="-I$prefix/include"
         jpeg_lflags="-L$prefix/lib -ljpeg"
-        if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+        if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags $LDFLAGS 2> /dev/null  ; then
             has_jpeg="system"
-        else
-            jpeg_cflags="-I$local_inc/jpeg"
-            jpeg_lflags="-L$local_lib -ljpeg"
-            if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
-                has_jpeg="local"
-            fi
         fi
     fi
-else
-    if $cc -o $TMPO $TMPC -ljpeg 2> /dev/null  ; then
-        has_jpeg="system"
-    elif test "$alt_macosx_dir" != "" ; then
-        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ljpeg 2> /dev/null ; then
-            has_jpeg="system"
-        fi
-    elif $cc -o $TMPO $TMPC -I$local_inc/jpeg -L$local_lib -ljpeg 2> /dev/null  ; then
+fi
+if test "$has_jpeg" = "no" ; then
+    jpeg_cflags="-I$local_inc/jpeg"
+    jpeg_lflags="-L$local_lib -ljpeg"
+    if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
         has_jpeg="local"
     fi
 fi
@@ -981,14 +985,20 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lopenjpeg 2> /dev/null  ; then
-    has_openjpeg="system"
-elif test "$alt_macosx_dir" != "" ; then
-    if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ljpeg 2> /dev/null ; then
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -lopenjpeg 2> /dev/null  ; then
         has_openjpeg="system"
+    elif test "$alt_macosx_dir" != "" ; then
+        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2> /dev/null ; then
+            has_openjpeg="system"
+        fi
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc/openjpeg -L$local_lib -lopenjpeg 2> /dev/null  ; then
-    has_openjpeg="local"
+fi
+
+if test "$has_openjpeg" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/openjpeg -L$local_lib -lopenjpeg 2> /dev/null  ; then
+        has_openjpeg="local"
+    fi
 fi
 
 
@@ -999,28 +1009,23 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if test "$cross_prefix"  != "" ; then
+if test "$cross_prefix" = "" ; then
     png_cflags="-I$prefix/include"
     png_lflags="-L$prefix/lib -lpng -lz"
     #-nostdlib prevents from searching standard compiler libraries
     #if $cc -o $TMPO $TMPC -nostdlib $png_cflags $png_lflags 2> /dev/null  ; then
-    if $cc -o $TMPO $TMPC $png_cflags $png_lflags 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $png_cflags $png_lflags $LDFLAGS 2> /dev/null  ; then
         has_png="system"
-    else
-        png_cflags="-I$local_inc/png"
-        png_lflags="-L$local_lib -lpng"
-        if $cc -o $TMPO $TMPC $png_cflags $png_lflags 2> /dev/null  ; then
-            has_png="local"
-        fi
-    fi
-else
-    if $cc -o $TMPO $TMPC -lpng -lz 2> /dev/null  ; then
+    elif $cc -o $TMPO $TMPC $LDFLAGS -lpng -lz 2> /dev/null  ; then
         has_png="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lpng 2> /dev/null ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lpng 2> /dev/null ; then
             has_png="system"
         fi
-    elif $cc -o $TMPO $TMPC -I$local_inc/png -L$local_lib -lpng 2> /dev/null  ; then
+    fi
+fi
+if test "$has_png" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/png -L$local_lib -lpng 2> /dev/null  ; then
         has_png="local"
     fi
 fi
@@ -1033,14 +1038,19 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lmad 2> /dev/null  ; then
-    has_mad="system"
-elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lmad 2> /dev/null ; then
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -lmad 2> /dev/null  ; then
         has_mad="system"
+    elif test "$alt_macosx_dir" != "" ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lmad 2> /dev/null ; then
+            has_mad="system"
+        fi
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lmad 2> /dev/null  ; then
-    has_mad="local"
+fi
+if test "$has_mad" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lmad 2> /dev/null  ; then
+        has_mad="local"
+    fi
 fi
 
 
@@ -1054,14 +1064,19 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -la52 2> /dev/null  ; then
-    has_a52="system"
-elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -la52 2> /dev/null ; then
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -la52 2> /dev/null  ; then
         has_a52="system"
+    elif test "$alt_macosx_dir" != "" ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -la52 2> /dev/null ; then
+            has_a52="system"
+        fi
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -la52 2> /dev/null  ; then
-    has_a52="local"
+fi
+if test "$has_a52" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -la52 2> /dev/null  ; then
+        has_a52="local"
+    fi
 fi
 
 
@@ -1072,20 +1087,19 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if test "$cross_prefix"  != "" ; then
-    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lxvidcore -lpthread 2> /dev/null  ; then
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $LDFLAGS -lxvidcore -lpthread 2> /dev/null  ; then
         has_xvid="system"
-    elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread 2> /dev/null  ; then
-        has_xvid="local"
-    fi
-else
-    if $cc -o $TMPO $TMPC -lxvidcore -lpthread 2> /dev/null  ; then
+    elif $cc -o $TMPO $TMPC $LDFLAGS -lxvidcore -lpthread 2> /dev/null  ; then
         has_xvid="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lxvidcore -lpthread 2> /dev/null ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lxvidcore -lpthread 2> /dev/null ; then
             has_xvid="system"
         fi
-    elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread 2> /dev/null  ; then
+    fi
+fi
+if test "$has_xvid" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread 2> /dev/null  ; then
         has_xvid="local"
     fi
 fi
@@ -1098,14 +1112,19 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lfaad -lm 2> /dev/null  ; then
-    has_faad="system"
-elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lfaad 2> /dev/null ; then
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -lfaad -lm 2> /dev/null  ; then
         has_faad="system"
+    elif test "$alt_macosx_dir" != "" ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfaad 2> /dev/null ; then
+            has_faad="system"
+        fi
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc/faad -L$local_lib -lfaad -lm 2> /dev/null  ; then
-    has_faad="local"
+fi
+if test "$has_faad" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/faad -L$local_lib -lfaad -lm 2> /dev/null  ; then
+        has_faad="local"
+    fi
 fi
 
 
@@ -1138,29 +1157,23 @@ EOF
 
 fi
 
-if test "$cross_prefix"  != "" ; then 
-    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $ffmpeg_lflags 2> /dev/null  ; then
+if test "$cross_prefix" = "" ; then 
+    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
         has_ffmpeg="system"
         ffmpeg_cflags="-I$prefix/include"
         ffmpeg_lflags="-L$prefix/lib $ffmpeg_lflags"
-    else
-        if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib $ffmpeg_lflags 2> /dev/null  ; then
-            has_ffmpeg="local"
-            ffmpeg_cflags="-I$local_inc/include"
-            ffmpeg_lflags="-L$local_lib/lib $ffmpeg_lflags"
-            echo OK 
-        fi
-    fi
-else
-    if $cc -o $TMPO $TMPC $ffmpeg_lflags 2> /dev/null  ; then
+    elif $cc -o $TMPO $TMPC $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
         has_ffmpeg="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $ffmpeg_lflags 2> /dev/null ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $ffmpeg_lflags $LDFLAGS 2> /dev/null ; then
             has_ffmpeg="system"
             ffmpeg_cflags="-I$alt_macosx_dir/include"
             ffmpeg_lflags="-L$alt_macosx_dir/lib $ffmpeg_lflags"
         fi
-    elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib $ffmpeg_lflags 2> /dev/null  ; then
+    fi
+fi
+if test "$has_ffmpeg" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib $ffmpeg_lflags 2> /dev/null  ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
         ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
@@ -1175,10 +1188,10 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lvorbis 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $LDFLAGS -lvorbis 2> /dev/null  ; then
     has_vorbis="system"
 elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lvorbis 2> /dev/null ; then
+    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lvorbis 2> /dev/null ; then
         has_vorbis="system"
     fi
 elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lvorbis -lm 2> /dev/null  ; then
@@ -1193,10 +1206,10 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -ltheora 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $LDFLAGS -ltheora 2> /dev/null  ; then
     has_theora="system"
 elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ltheora -logg 2> /dev/null ; then
+    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ltheora -logg 2> /dev/null ; then
         has_theora="system"
     fi
 elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -logg -lm 2> /dev/null  ; then
@@ -1211,10 +1224,10 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -logg 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $LDFLAGS -logg 2> /dev/null  ; then
     has_ogg="system"
 elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -logg 2> /dev/null ; then
+    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -logg 2> /dev/null ; then
         has_ogg="system"
     fi
 elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -logg -lm 2> /dev/null  ; then
@@ -1233,7 +1246,7 @@ if test "$darwin" = "yes" ; then
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss 2> /dev/null ; then
+    if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss $LDFLAGS 2> /dev/null ; then
         has_oss_audio="SYS"
         OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
         OSS_LDFLAGS="-L$alt_macosx_dir/lib -loss"
@@ -1260,7 +1273,7 @@ EOF
 int main( void ) { return 0; }
 EOF
 
-        if $cc -o $TMPO $TMPC 2> /dev/null  ; then
+        if $cc -o $TMPO $TMPC $LDFLAGS 2> /dev/null  ; then
             has_oss_audio="YES"
         fi
     fi
@@ -1341,7 +1354,7 @@ IN6_IS_ADDR_MULTICAST( (struct in6_addr *) 0);
 }
 EOF
 
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
     has_ipv6="yes"
 fi
 
@@ -1355,7 +1368,7 @@ int main( void ) {
 }
 EOF
 
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
     has_dvb4linux="yes"
 fi
 
@@ -1370,7 +1383,7 @@ int main( void ) {
 }
 EOF
 
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
     has_xmlrpc="yes"
 fi
 
@@ -1383,7 +1396,7 @@ int main( void ) {
 }
 EOF
 
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
     has_alsa="yes"
 fi
 
@@ -1396,7 +1409,7 @@ int main( void ) {
 }
 EOF
 
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
     has_pulseaudio="yes"
 fi
 
@@ -1408,7 +1421,7 @@ cat > $TMPC << EOF
 int main( void ) {
 }
 EOF
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
     has_jack="yes"
 fi
 
@@ -1421,7 +1434,7 @@ int main( void ) { return 0; }
 EOF
 directfb_inc="/usr/include/directfb"
 directfb_lib="-ldirectfb -lfusion -ldirect"
-if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib $LDFLAGS 2> /dev/null  ; then
     has_directfb="yes"
 fi
 
@@ -1433,7 +1446,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
     has_x11="yes"
 
     #look for X11 shared memory support
@@ -1445,7 +1458,7 @@ if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
         has_x11_shm="yes"
     fi
 
@@ -1457,7 +1470,7 @@ EOF
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
         has_x11_xv="yes"
     fi
 
@@ -1555,7 +1568,7 @@ for opt do
         --use-png=*) tmp_has_png=${opt#--use-png=}
             if test "$tmp_has_png" = "system" ; then
                 if test "$has_png"  != "system" ; then
-                    if test "$cross_prefix"  != "" ; then
+                    if test "$cross_prefix" != "" ; then
                         echo 
                         echo "WARNING: PNG has been forced to system, but we are cross-compiling, it will have to be on target"
                         echo 
@@ -1571,7 +1584,7 @@ for opt do
         --use-zlib=*) tmp_has_zlib=${opt#--use-zlib=}
             if test "$tmp_has_zlib" = "system" ; then
                 if test "$has_zlib"  != "system" ; then
-                    if test "$cross_prefix"  != "" ; then
+                    if test "$cross_prefix" != "" ; then
                         echo 
                         echo "WARNING: ZLIB has been forced to system, but we are cross-compiling, it will have to be on target"
                         echo 
@@ -1771,9 +1784,9 @@ if test "$disable_3d" = "no" ; then
     else
         LINK3D="-lGL -lGLU -lX11"
     fi
-    if $cc -o $TMPO $TMPC $LINK3D 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $LINK3D $LDFLAGS 2> /dev/null  ; then
         has_opengl="yes"
-    elif $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+    elif $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
         has_opengl="yes"
         INCL3D="-I$X11_PATH/include"
         LINK3D="-L$X11_PATH/lib $LINK3D"
@@ -1789,7 +1802,7 @@ int main( void ) { int a ; a = TINYGL ; }
 EOF
 
 if test "$enable_tinygl" = "yes"  ;then
-    if $cc -o $TMPO $TMPC -lTinyGL 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -lTinyGL 2> /dev/null  ; then
         has_tinygl="yes"
         has_opengl="yes"
         LINK3D="-lTinyGL"
@@ -1808,13 +1821,13 @@ if $cc -o $TMPO $TMPCPP -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
     has_xul="system"
     xul_flags="-I$xulsdk_path $xul_flags"
 else
-    if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS 2> /dev/null  ; then
         has_xul="local"
         xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
     else
         #xulrunner directories are sometimes included through js packages
         if test "$has_js" = "system"  ;then
-            if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg 2> /dev/null  ; then
+            if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
                 xul_flags=`pkg-config --cflags mozilla-js`
                 has_xul="system"
             fi
@@ -1830,20 +1843,8 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 if test "$enable_joystick" = "yes"  ;then
-    if $cc -o $TMPO $TMPC  2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS  2> /dev/null  ; then
         has_joystick="yes"
-    fi
-fi
-
-
-#GCC opt
-if test "$no_gcc_opt" = "no"; then
-    if $cc --version | grep 'sbox-arm-linux-gcc (GCC) 3.4.4'
-    then
-        echo "Detected buggy arm GCC (diablo), using -O2"
-        CFLAGS="-O2 $CFLAGS"
-    else
-        CFLAGS="-O3 $CFLAGS"
     fi
 fi
 
@@ -1859,7 +1860,7 @@ if test "$win32" = "yes" ; then
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS 2> /dev/null  ; then
         has_mingw_directx="yes"
     else
         dx_path="$dxsdk_path"
@@ -1896,7 +1897,7 @@ EOF
     fi
     sdl_cflags=`$sdl_config --cflags`
 
-    if $cc -o $TMPO $sdl_cflags $TMPC $sdl_lib_flags  > /dev/null 2>&1  ; then
+    if $cc -o $TMPO $sdl_cflags $TMPC $LDFLAGS $sdl_lib_flags  > /dev/null 2>&1  ; then
         _sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
         if test "$_sdlversion" -lt 121 ; then
             sdl_too_old=yes
@@ -1922,7 +1923,7 @@ return (*((uint8_t*)(&i))) == 0x67;
 }
 EOF
 
-    if $cc -o $TMPO $TMPC 2>/dev/null ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS 2>/dev/null ; then
         $TMPO && bigendian="yes"
     else
         echo big/little endian test failed
@@ -1983,8 +1984,8 @@ echo ""
 echo "** System Configuration"
 echo "Install prefix: $prefix"
 echo "Source path: $source_path"
-echo "C   compiler: $cc"
-echo "C++ compiler: $cpp"
+echo "C   compiler: `echo $cc | awk ' {print $1}'`"
+echo "C++ compiler: `echo $cpp | awk ' {print $1}'`"
 echo "make: $make"
 echo "CPU: $cpu"
 echo "Big Endian: $bigendian"
@@ -2249,6 +2250,9 @@ if test "$gprof_build" = "yes"; then
     fi
 fi
 
+if test "$darwin" = "yes" ; then
+    CFLAGS="$CFLAGS_DIR $CFLAGS"
+fi
 
 if test "$want_pic"  = "yes" ; then
     CFLAGS="$CFLAGS -fPIC -DPIC"
@@ -2286,7 +2290,7 @@ echo "libdir=$libdir" >> config.mak
 
 
 #for cross-compilation
-if test "$cross_prefix"  != "" ; then
+if test "$cross_prefix" != "" ; then
     echo "CROSS_COMPILING=yes" >> config.mak
 fi
 
