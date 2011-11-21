@@ -593,6 +593,8 @@ fi
 
 
 #force use of cflags with cc
+cc_naked=$cc
+cpp_naked=$cpp
 cc="$cc $CFLAGS"
 cpp="$cpp $CPPFLAGS"
 
@@ -1982,8 +1984,8 @@ echo ""
 echo "** System Configuration"
 echo "Install prefix: $prefix"
 echo "Source path: $source_path"
-echo "C   compiler: `echo $cc | awk ' {print $1}'`"
-echo "C++ compiler: `echo $cpp | awk ' {print $1}'`"
+echo "C   compiler: $cc_naked"
+echo "C++ compiler: $cpp_naked"
 echo "make: $make"
 echo "CPU: $cpu"
 echo "Big Endian: $bigendian"
@@ -2274,7 +2276,7 @@ echo "moddir_path=$prefix/$libdir/gpac" >> config.mak
 echo "mandir=$mandir" >> config.mak
 echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
-echo "CC=`echo $cc | awk ' {print $1}'`" >> config.mak
+echo "CC=$cc_naked" >> config.mak
 echo "AR=$ar" >> config.mak
 echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
