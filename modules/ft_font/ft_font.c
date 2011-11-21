@@ -99,8 +99,9 @@ void setBestFont(const char * listOfFonts[], char ** currentBestFont, const char
 			gf_free(*currentBestFont);
 		*currentBestFont = NULL;
 	}
-	if (! (*currentBestFont))
+	if (! (*currentBestFont)){
 		*currentBestFont = gf_strdup(fontName);
+	}
 }
 
 static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
@@ -268,21 +269,21 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		strlwr(fkey);
 		
 		/*this font is suited for our case*/
-		if (isBestFontFor(BEST_FIXED_FONTS, "", key) || (!ftpriv->font_fixed && (strstr(fkey, "fixed") || strstr(fkey, "mono")) ) ) {
+		if (isBestFontFor(BEST_FIXED_FONTS, ftpriv->font_fixed, key) || (!ftpriv->font_fixed && (strstr(fkey, "fixed") || strstr(fkey, "mono")) ) ) {
 			if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
 			ftpriv->font_fixed = gf_strdup(key);
 		}
 		
-		if (isBestFontFor(BEST_SANS_FONTS, "", key) || (!ftpriv->font_sans && strstr(fkey, "sans")) ) {
+		if (isBestFontFor(BEST_SANS_FONTS, ftpriv->font_sans, key) || (!ftpriv->font_sans && strstr(fkey, "sans")) ) {
 			if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
 			ftpriv->font_sans = gf_strdup(key);
 		}
 		
-		if (isBestFontFor(BEST_SERIF_FONTS, "", key) || (!ftpriv->font_serif && strstr(fkey, "serif")) ) {
+		if (isBestFontFor(BEST_SERIF_FONTS, ftpriv->font_serif, key) || (!ftpriv->font_serif && strstr(fkey, "serif")) ) {
 			if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
 			ftpriv->font_serif = gf_strdup(key);
 		}
-	}	
+	}
 
 	if (!ftpriv->font_serif) ftpriv->font_serif = gf_strdup(font_default ?  font_default : "");
 	if (!ftpriv->font_sans) ftpriv->font_sans = gf_strdup(font_default ?  font_default : "");
