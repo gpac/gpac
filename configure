@@ -848,8 +848,6 @@ else
         avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
         avcap_ldflags="-lavcap -lpthread"
     fi
-echo "$cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags"
-$cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags
     if $cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags 2> /dev/null  ; then
 		has_avcap="yes"
         avcap_ldflags="-L../../$local_lib $avcap_ldflags"
@@ -1145,7 +1143,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
     old_ffmpeg_inc="no"
 else
     old_ffmpeg_inc="yes"
@@ -2276,7 +2274,7 @@ echo "moddir_path=$prefix/$libdir/gpac" >> config.mak
 echo "mandir=$mandir" >> config.mak
 echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
-echo "CC=$cc" >> config.mak
+echo "CC=`echo $cc | awk ' {print $1}'`" >> config.mak
 echo "AR=$ar" >> config.mak
 echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
