@@ -29,7 +29,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKLIBS)
+	$(CXX) -w $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKLIBS)
 
 
 %.o: %.cpp
