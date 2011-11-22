@@ -536,7 +536,12 @@ ent_found:
 	}
 	
 	/*WARNING: this can be "-1" when doing searchForward mode (to prevent jumping to next entry)*/
-	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
+	mtime = ent->mediaTime;
+	mtime -= time;
+	mtime = mtime * (trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
+	mtime += movieTime;
+
+//	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
 	if (mtime<0) mtime = 0;
 	*MediaTime = (u64) mtime;
 	*MediaOffset = ent->mediaTime;

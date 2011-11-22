@@ -1366,6 +1366,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 GF_EXPORT
 GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber)
 {
+	Double tsscale;
 	GF_Err e;
 	GF_TrackBox *trak;
 	u64 mediaTime;
@@ -1430,6 +1431,9 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 		}
 	}
 
+	tsscale = trak->Media->mediaHeader->timeScale;
+	tsscale /= trak->moov->mvhd->timeScale;
+
 	//OK, we have a sample so fetch it
 	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
 	if (e) return e;
@@ -1438,13 +1442,13 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//to the media time scale (used by SLConfig) - add the edit start time but stay in
 	//the track TS
 	if (useEdit) {
-		u64 _ts = segStartTime;
-		_ts *= trak->Media->mediaHeader->timeScale;
-		_ts /= trak->moov->mvhd->timeScale;
+		u64 _ts = segStartTime * tsscale;
+		u64 _offset = mediaOffset * tsscale;
+
 		(*sample)->DTS += _ts;
 		/*watchout, the sample fetched may be before the first sample in the edit list (when seeking)*/
-		if ( (*sample)->DTS > (u64) mediaOffset) {
-			(*sample)->DTS -= (u64) mediaOffset;
+		if ( (*sample)->DTS > (u64) _offset) {
+			(*sample)->DTS -= (u64) _offset;
 		} else {
 			(*sample)->DTS = 0;
 		}
