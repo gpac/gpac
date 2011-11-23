@@ -309,6 +309,12 @@ for opt do
             ;;
         --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
             ;;
+        --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
+            ;;
+        --disable-opt) no_gcc_opt="yes"
+            ;;
+        --enable-pic) want_pic="yes";
+            ;;
     esac
 done
 
@@ -589,6 +595,13 @@ if test "$no_gcc_opt" = "no"; then
     else
         CFLAGS="-O3 $CFLAGS"
     fi
+fi
+
+
+#GCC PIC
+if test "$want_pic"  = "yes" ; then
+    CFLAGS="$CFLAGS -fPIC -DPIC"
+    CPPFLAGS="$CPPFLAGS -fPIC -DPIC"
 fi
 
 
@@ -1511,15 +1524,9 @@ for opt do
             ;;
         --disable-alsa) has_alsa="no"
             ;;
-        --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
-            ;;
         --enable-gprof) gprof_build="yes";
             ;;
         --enable-static-bin) static_build="yes";
-            ;;
-        --enable-pic) want_pic="yes";
-            ;;
-        --disable-opt) no_gcc_opt="yes"
             ;;
         --disable-ipv6) has_ipv6="no"
             ;;
@@ -2252,11 +2259,6 @@ fi
 
 if test "$darwin" = "yes" ; then
     CFLAGS="$CFLAGS_DIR $CFLAGS"
-fi
-
-if test "$want_pic"  = "yes" ; then
-    CFLAGS="$CFLAGS -fPIC -DPIC"
-    CPPFLAGS="$CPPFLAGS -fPIC -DPIC"
 fi
 
 ldir=`pwd`
