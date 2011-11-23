@@ -617,7 +617,7 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
 			suburl = gf_url_concatenate(base_url, pe->url);
 			if (!strcmp(base_url, suburl)) {
 				gf_free(suburl);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
 				continue;
 			}
 			if (service) {
