@@ -970,7 +970,7 @@ static u32 download_segments(void *par)
                 e = MPD_UpdatePlaylist(mpdin);
 				group_count = gf_list_count(mpdin->groups);
                 if (e) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MDP %s\n", gf_error_to_string(e)));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MPD %s\n", gf_error_to_string(e)));
                 }
             } else {
 				Bool cache_full = 1;
@@ -1021,7 +1021,7 @@ static u32 download_segments(void *par)
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Last segment in current playlist downloaded, checking updates after %u ms\n", timer));
 					e = MPD_UpdatePlaylist(mpdin);
 					if (e) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MDP %s\n", gf_error_to_string(e)));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MPD %s\n", gf_error_to_string(e)));
 					}
 					group_count = gf_list_count(mpdin->groups);
 					period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
@@ -1144,9 +1144,6 @@ static u32 download_segments(void *par)
 				break;
 			}
 		}
-
-		if (!go_on) break;
-
     }
 
 exit:
