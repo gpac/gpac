@@ -834,7 +834,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					last_rap_sample_time = (Double) (s64) samp->DTS;
 					last_rap_sample_time /= tki->time_scale;
 					e = gf_isom_get_sample_for_media_time(mp4, tki->tk, samp->DTS+tki->firstDTS+2, &sdi, GF_ISOM_SEARCH_SYNC_FORWARD, &next_rap, &next_rap_num);
-					if (e==GF_EOS) is_last = 1;
+					if (e==GF_EOS)
+						is_last = 1;
 					if (next_rap) {
 						if (!next_rap->IsRAP) 
 							is_last = 1;
@@ -888,8 +889,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				) {
 					nb_over++;
 					tki->stop_state = 1;
-					if (tki->last_sample<tki->sample_count) is_last = 0;
-					if ((!tki->can_duplicate || all_duplicatable) && (tki->last_sample==tki->sample_count)) is_last = 1;
+					if (tki->last_sample<tki->sample_count)
+						is_last = 0;
 
 					if (rap_split && tki->next_sample_is_rap) {
 						file_split_dur = (Double) ( gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1) - tki->firstDTS);
