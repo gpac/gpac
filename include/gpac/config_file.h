@@ -112,6 +112,16 @@ GF_Err gf_cfg_save(GF_Config *iniFile);
  */
 const char *gf_cfg_get_key(GF_Config *cfgFile, const char *secName, const char *keyName);
 /*!
+ *	\brief key value query ignoring case
+ *
+ *Gets a key value from its section and name. Comparison is performed while ignoring case.
+ *\param cfgFile the target configuration file
+ *\param secName the desired key parent section name (case ignored)
+ *\param keyName the desired key name (case ignored)
+ *\return the desired key value if found, NULL otherwise.
+ */
+const char *gf_cfg_get_ikey(GF_Config *cfgFile, const char *secName, const char *keyName);
+/*!
  *	\brief key value update
  *
  *Sets a key value from its section and name.
