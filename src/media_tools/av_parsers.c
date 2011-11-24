@@ -280,7 +280,7 @@ static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 
 static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
-	char p[4];
+	unsigned char p[4];
 	u32 ext_type;
 	s32 o_type;
 	u8 go, par;
