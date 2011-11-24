@@ -282,7 +282,7 @@ const char *gf_modules_get_option(GF_BaseInterface *ifce, const char *secName, c
 	if (!ifce || !ifce->HPLUG) return NULL;
 	cfg = ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
 	if (!cfg) return NULL;
-	return gf_cfg_get_key(cfg, secName, keyName);
+	return gf_cfg_get_ikey(cfg, secName, keyName);
 }
 
 GF_EXPORT

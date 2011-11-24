@@ -442,22 +442,41 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	in the cfg file*/
 	if (!fontName || !strlen(fontName)) return GF_NOT_SUPPORTED;
 	fname = gf_malloc(sizeof(char) * (strlen(fontName) + 50));
-	strcpy(fname, fontName);
-	if (styles & GF_FONT_WEIGHT_BOLD) strcat(fname, " Bold");
-	if (styles & GF_FONT_ITALIC) strcat(fname, " Italic");
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
-	gf_free(fname);
-	if (opt) {
-		FT_Face face;
-		if (FT_New_Face(ftpriv->library, opt, 0, & face )) return GF_IO_ERR;
-		if (!face) return GF_IO_ERR;
-		gf_list_add(ftpriv->loaded_fonts, face);
-		ftpriv->active_face = face;
-		return GF_OK;
+	{
+		int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
+	checkFont:
+		strcpy(fname, fontName);
+		if (styles & GF_FONT_WEIGHT_BOLD & checkStyles) strcat(fname, " Bold");
+		if (styles & GF_FONT_ITALIC & checkStyles) strcat(fname, " Italic");
+
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
+
+		if (opt) {
+			gf_free(fname);
+			FT_Face face;
+			if (FT_New_Face(ftpriv->library, opt, 0, & face )) return GF_IO_ERR;
+			if (!face) return GF_IO_ERR;
+			gf_list_add(ftpriv->loaded_fonts, face);
+			ftpriv->active_face = face;
+			return GF_OK;
+		}
+		if (checkStyles){
+			/* If we tried font + bold + italic -> we will try font + [bold | italic]
+			   If we tried font + [bold | italic] -> we try font
+		         */
+			if (checkStyles == (GF_FONT_WEIGHT_BOLD | GF_FONT_ITALIC))
+				checkStyles = GF_FONT_WEIGHT_BOLD;
+			else if (checkStyles == GF_FONT_WEIGHT_BOLD && (styles & GF_FONT_ITALIC))
+				checkStyles = GF_FONT_ITALIC;
+			else if (checkStyles == GF_FONT_WEIGHT_BOLD || checkStyles == GF_FONT_ITALIC)
+				checkStyles = 0;
+			goto checkFont;
+		}
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font %s not found\n", fontName));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font '%s' (%s) not found\n", fontName, fname));
+	gf_free(fname);
 	return GF_NOT_SUPPORTED;
 }
 

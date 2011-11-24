@@ -284,6 +284,26 @@ get_key:
 	return NULL;
 }
 
+GF_EXPORT
+const char *gf_cfg_get_ikey(GF_Config *iniFile, const char *secName, const char *keyName)
+{
+        u32 i;
+        IniSection *sec;
+        IniKey *key;
+
+        i=0;
+        while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
+                if (!stricmp(secName, sec->section_name)) goto get_key;
+        }
+        return NULL;
+
+get_key:
+        i=0;
+        while ( (key = (IniKey *) gf_list_enum(sec->keys, &i)) ) {
+                if (!stricmp(key->name, keyName)) return key->value;
+        }
+        return NULL;
+}
 
 
 GF_EXPORT
