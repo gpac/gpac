@@ -693,7 +693,7 @@ void gf_memory_print()
 
 
 /*gf_asprintf(): as_printf portable implementation*/
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(WIN32) || defined(_WIN32_WCE) || (defined (__SVR4) && defined (__sun))
 static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 {
 	int vsn_ret, size;
@@ -705,6 +705,9 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 		return -1;
 
 	while (1) {
+#if !defined(WIN32) || !defined(_WIN32_WCE)
+#define _vsnprintf vsnprintf
+#endif
 		vsn_ret = _vsnprintf(buffer, size, fmt, ap);
 
 		/* If that worked, return the string. */
@@ -732,7 +735,7 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 	s32 size;
 	va_list args;
 	va_start(args, fmt);
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(WIN32) || defined(_WIN32_WCE) || (defined (__SVR4) && defined (__sun))
 	size = gf_vasprintf(strp, fmt, args);
 #else
 	size = asprintf(strp, fmt, args);

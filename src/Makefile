@@ -175,6 +175,7 @@ endif
 
 ifeq ($(CONFIG_SUNOS), yes)
 LD_SONAME="-Wl,-h,$(LIB)"
+LINKLIBS+= -lrt
 endif
 
 SRCS := $(OBJS:.o=.c) 

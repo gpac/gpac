@@ -51,6 +51,10 @@ extern "C" {
 
 # include <zlib.h>
 
+#ifndef OF
+#define OF(x) x
+#endif
+
 #define ZCALLBACK
 
 #define ZLIB_FILEFUNC_SEEK_CUR (1)
