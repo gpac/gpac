@@ -453,8 +453,8 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
 
 		if (opt) {
-			gf_free(fname);
 			FT_Face face;
+			gf_free(fname);
 			if (FT_New_Face(ftpriv->library, opt, 0, & face )) return GF_IO_ERR;
 			if (!face) return GF_IO_ERR;
 			gf_list_add(ftpriv->loaded_fonts, face);
