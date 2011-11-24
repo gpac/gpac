@@ -705,7 +705,7 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 		return -1;
 
 	while (1) {
-#if !defined(WIN32) || !defined(_WIN32_WCE)
+#if !defined(WIN32) && !defined(_WIN32_WCE)
 #define _vsnprintf vsnprintf
 #endif
 		vsn_ret = _vsnprintf(buffer, size, fmt, ap);
