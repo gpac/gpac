@@ -145,7 +145,7 @@ typedef s32 SOCKET;
 static u32 ipv6_check_state = 0;
 #endif
 
-#ifdef __x86_64__
+#ifdef _LP64
 #define NULL_SOCKET 0
 #else
 #define NULL_SOCKET (SOCKET)NULL

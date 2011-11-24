@@ -32,6 +32,7 @@
 /*for key codes...*/
 #include <gpac/user.h>
 #include <gpac/base_coding.h>
+#include <gpac/network.h>
 
 
 void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
