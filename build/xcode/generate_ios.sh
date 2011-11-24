@@ -38,9 +38,9 @@ cp build/Debug-iphoneos/osmo4ios.app/Info.plist ../../bin/iOS/osmo4ios.app/
 cp build/Release-iphoneos/osmo4ios.app/ResourceRules.plist ../../bin/iOS/osmo4ios.app/
 
 echo "*** Test the presence of target files ***"
-if [ `ls ../../bin/iOS/osmo4ios.app/ | wc -l` -ne 22 ]
+if [ `ls ../../bin/iOS/osmo4ios.app/ | wc -l` -ne 23 ]
 then
-	echo "Error: target files number not correct (expected 22, got `ls ../../bin/iOS/osmo4ios.app/ | wc -l`)"
+	echo "Error: target files number not correct (expected 23, got `ls ../../bin/iOS/osmo4ios.app/ | wc -l`)"
 	exit 1
 fi
 
