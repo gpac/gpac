@@ -227,7 +227,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 #ifndef GPAC_DISABLE_VRML
 	if (for_shutdown) {
 		i = 0;
-		while (odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i)) {
+		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
 			if (for_shutdown && odm->mo) {
 				obj = odm->mo;
 				while (gf_list_count(obj->nodes)) {
