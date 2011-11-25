@@ -326,6 +326,8 @@ static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	IMGLoader *read = (IMGLoader *)plug->priv;
 
+	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) return GF_NOT_SUPPORTED;
+
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PADDING:

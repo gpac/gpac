@@ -786,17 +786,24 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	}
 	/*timeline override*/
 	if (odm->flags & GF_ODM_INHERIT_TIMELINE) {
-		GF_ObjectManager *odm_par = odm;
-		/*walk up the scenes until we find a clock*/
-		while (odm_par->parentscene) {
-			if (odm_par->parentscene->root_od->subscene->scene_codec)
-				ck = odm_par->parentscene->root_od->subscene->scene_codec->ck;
-			else {
-				ck = odm_par->parentscene->root_od->subscene->dyn_ck;
-			}
-			if (ck) break;
+		if (odm->parentscene->root_od->subscene->scene_codec) {
+			ck = odm->parentscene->root_od->subscene->scene_codec->ck;
+		} else {
+			ck = odm->parentscene->root_od->subscene->dyn_ck;
+		}
+		/**/
+		if (!ck) {
+			GF_ObjectManager *odm_par = odm->parentscene->root_od->parentscene->root_od;
+			while (odm_par) {
+				if (odm_par->subscene->scene_codec)
+					ck = odm_par->subscene->scene_codec->ck;
+				else 
+					ck = odm_par->subscene->dyn_ck;
 
-			odm_par = odm_par->parentscene->root_od->parentscene ? odm->parentscene->root_od->parentscene->root_od : NULL;
+				if (ck) break;
+
+				odm_par = odm->parentscene->root_od->parentscene ? odm->parentscene->root_od->parentscene->root_od : NULL;
+			}
 		}
 		if (ck)
 			goto clock_setup;

@@ -396,7 +396,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		if (!stricmp(fieldName, "fileName") || !stricmp(fieldName, "url")) GET_STRING(mi->file_name)
 		else if (!stricmp(fieldName, "streamFormat")) GET_STRING(mi->streamFormat)
 		else if (!stricmp(fieldName, "GroupID")) ret += sscanf(val, "%u", &mi->GroupID);
-		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%u", &mi->startTime);
+		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%d", &mi->startTime);
 		else if (!stricmp(fieldName, "duration")) ret += sscanf(val, "%u", &mi->duration);
 		else if (!stricmp(fieldName, "carouselPeriod")) {
 			ret += sscanf(val, "%u", &mi->carousel_period_plus_one);

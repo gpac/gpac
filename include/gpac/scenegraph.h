@@ -569,6 +569,10 @@ enum
 	GF_JSAPI_OP_PAUSE_SVG,
 	/*!resumes an SVG ELEMENT*/
 	GF_JSAPI_OP_RESUME_SVG,
+	/*!restarts an SVG ELEMENT: this restarts all the media tunning on the main timeline*/
+	GF_JSAPI_OP_RESTART_SVG,
+	/*!sets scene speed*/
+	GF_JSAPI_OP_SET_SCENE_SPEED,
 	/*!gets the DPI*/
 	GF_JSAPI_OP_GET_DPI_X,
 	GF_JSAPI_OP_GET_DPI_Y,
