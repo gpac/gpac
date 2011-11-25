@@ -498,7 +498,7 @@ typedef struct {
 	/*input stream format (not required, guessed from file_name)*/
 	char *streamFormat;
 	/*time offset in ms from first TS (appends an edit list in mp4)*/
-	u32 startTime;
+	s32 startTime;
 
 	/*media length to import in ms (from 0)*/
 	u32 duration;

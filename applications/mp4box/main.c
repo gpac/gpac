@@ -2172,7 +2172,7 @@ int mp4boxMain(int argc, char **argv)
 			inName = "tmp_main.m3u8";
 			remote = 1;
 		}
-		e = gf_m3u8_to_mpd(NULL, inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t");
+		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", NULL, 1);
 		gf_free(mpd_base_url);
 		if (remote) {
 			//gf_delete_file("tmp_main.m3u8");
@@ -2908,8 +2908,11 @@ int mp4boxMain(int argc, char **argv)
 		case 2:
 			if (tka->delay_ms) {
 				u64 tk_dur;
+
 				gf_isom_remove_edit_segments(file, track);
 				tk_dur = gf_isom_get_track_duration(file, track);
+				if (gf_isom_get_edit_segment_count(file, track))
+					needSave = 1;
 				if (tka->delay_ms>0) {
 					gf_isom_append_edit_segment(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
 					gf_isom_append_edit_segment(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
@@ -2917,8 +2920,9 @@ int mp4boxMain(int argc, char **argv)
 				} else {
 					u64 to_skip = (timescale*(-tka->delay_ms))/1000;
 					if (to_skip<tk_dur) {
-						u64 seg_dur = (-tka->delay_ms)*gf_isom_get_media_timescale(file, track) / 1000;
-						gf_isom_append_edit_segment(file, track, tk_dur-to_skip, seg_dur, GF_ISOM_EDIT_NORMAL);
+						u64 media_time = (-tka->delay_ms)*gf_isom_get_media_timescale(file, track) / 1000;
+						gf_isom_append_edit_segment(file, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+						needSave = 1;
 					} else {
 						fprintf(stdout, "Warning: request negative delay longer than track duration - ignoring\n");
 					}

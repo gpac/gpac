@@ -716,6 +716,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 	/*since we don't handle multitrack in ffmpeg, we don't need to check sub_url, only use expected type*/
 	if (expect_type==GF_MEDIA_OBJECT_AUDIO) {
+		if (ffd->audio_st<0) return NULL;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
 		esd = FFD_GetESDescriptor(ffd, 1);
@@ -726,6 +727,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		return (GF_Descriptor *) od;
 	}
 	if (expect_type==GF_MEDIA_OBJECT_VIDEO) {
+		if (ffd->video_st<0) return NULL;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
 		esd = FFD_GetESDescriptor(ffd, 0);

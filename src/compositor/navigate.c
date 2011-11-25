@@ -285,8 +285,8 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	x = y = 0;
 	/*renorm between -1, 1*/
 	if (ev->type<=GF_EVENT_MOUSEWHEEL) {
-		x = gf_divfix( INT2FIX(ev->mouse.x + (s32) compositor->visual->width/2), INT2FIX(compositor->visual->width));
-		y = gf_divfix( INT2FIX(ev->mouse.y + (s32) compositor->visual->height/2), INT2FIX(compositor->visual->height));
+		x = gf_divfix( INT2FIX(ev->mouse.x - (s32) compositor->visual->width/2), INT2FIX(compositor->visual->width));
+		y = gf_divfix( INT2FIX(ev->mouse.y - (s32) compositor->visual->height/2), INT2FIX(compositor->visual->height));
 	}
 
 	dx = (x - compositor->grab_x); 
@@ -296,13 +296,13 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	key_trans = is_pixel_metrics ? INT2FIX(10) : cam->avatar_size.x;
 */
 	trans_scale = cam->width/20;
-	key_trans = cam->avatar_size.x;
+	key_trans = cam->avatar_size.x/2;
 	if (cam->world_bbox.is_set && (key_trans*5 > cam->world_bbox.radius)) {
-		key_trans = cam->world_bbox.radius / 10;
+		key_trans = cam->world_bbox.radius / 100;
 	}
 
 	key_pan = FIX_ONE/25;
-	key_exam = FIX_ONE/10;
+	key_exam = FIX_ONE/20;
 	key_inv = 1;
 
 	if (keys & GF_KEY_MOD_SHIFT) {
@@ -580,7 +580,11 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		y = INT2FIX(ev->mouse.y);
 	}
 	dx = x - visual->compositor->grab_x;
-	dy = visual->compositor->grab_y - y;
+	if (visual->center_coords) {
+		dy = visual->compositor->grab_y - y;
+	} else {
+		dy = y - visual->compositor->grab_y;
+	}
 	if (!is_pixel_metrics) { dx /= visual->width; dy /= visual->height; }
 
 	key_inv = 1;
