@@ -32,6 +32,8 @@
 #include <gpac/xml.h>
 #include "../utils/module_wrap.h"
 
+#include "media_control.h"
+
 /*textual command processing*/
 #include <gpac/scene_manager.h>
 
@@ -131,6 +133,54 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		else param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
 	}
+
+	/*special case for pause/stop/resume*/
+	if (type==GF_JSAPI_OP_PAUSE_SVG) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
+			if (ck) gf_clock_pause(ck);
+			return 1;
+		}
+	}
+	if (type==GF_JSAPI_OP_RESUME_SVG) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
+			if (ck) gf_clock_resume(ck);
+			return 1;
+		}
+	}
+	if (type==GF_JSAPI_OP_RESTART_SVG) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
+			if (ck) {
+				Bool is_paused = ck->Paused;
+				if (is_paused) gf_clock_resume(ck);
+				gf_scene_restart_dynamic(scene, 0);
+				if (is_paused) gf_clock_pause(ck);
+			}
+			return 1;
+		}
+		return 0;
+	}
+	if (type==GF_JSAPI_OP_SET_SCENE_SPEED) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
+			if (ck) {
+				gf_clock_set_speed(ck, param->val);
+			}
+			return 1;
+		}
+		return 0;
+	}
+
 
 	ret = gf_sc_script_action(term->compositor, type, n, param);
 	if (ret) return ret;
