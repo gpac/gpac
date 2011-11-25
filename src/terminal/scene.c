@@ -702,6 +702,10 @@ restart:
 
 		if (obj->odm) {
 			Bool can_reuse = 1;
+			Bool timeline_locked = (obj->odm->flags & GF_ODM_INHERIT_TIMELINE) ? 1 : 0;
+			if (timeline_locked != lock_timelines) 
+				continue;
+
 			gf_term_lock_media_queue(scene->root_od->term, 1);
 			if (obj->odm->flags & GF_ODM_DESTROYED) can_reuse = 0;
 			else if (obj->odm->action_type == GF_ODM_ACTION_DELETE) {
