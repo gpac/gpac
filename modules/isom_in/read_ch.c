@@ -168,7 +168,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			} else {
 				/*if we get the same sample, figure out next interesting time (current sample + DTS gap to next sample should be a good bet)*/
 				if (prev_sample == ch->sample_num) {
-					s32 time_diff = 2;
+					u32 time_diff = 2;
 					u32 sample_num = ch->sample_num ? ch->sample_num : 1;
 					GF_ISOSample *s1 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num, NULL);
 					GF_ISOSample *s2 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num+1, NULL);
@@ -176,8 +176,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					gf_isom_sample_del(&ch->sample);
 
 					if (s2 && s1) {
-						time_diff = s2->DTS;
-						time_diff -= (s64) s1->DTS;
+						time_diff = (u32) (s2->DTS - s1->DTS);
 						e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
 					} else if (s1 && !s2) {
 						e = GF_EOS;
