@@ -2172,7 +2172,7 @@ int mp4boxMain(int argc, char **argv)
 			inName = "tmp_main.m3u8";
 			remote = 1;
 		}
-		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", NULL, 1);
+		e = gf_m3u8_to_mpd(NULL, inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t");
 		gf_free(mpd_base_url);
 		if (remote) {
 			//gf_delete_file("tmp_main.m3u8");
