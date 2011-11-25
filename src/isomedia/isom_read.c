@@ -641,7 +641,7 @@ GF_Err gf_isom_get_media_time(GF_ISOFile *the_file, u32 trackNumber, u32 movieTi
 	if (!trak || !MediaTime) return GF_BAD_PARAM;;
 
 	SegmentStartTime = 0;
-	return GetMediaTime(trak, movieTime, MediaTime, &SegmentStartTime, &mediaOffset, &useEdit);
+	return GetMediaTime(trak, 0, movieTime, MediaTime, &SegmentStartTime, &mediaOffset, &useEdit);
 }
 
 
@@ -1398,7 +1398,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	mediaTime = segStartTime = 0;
 	*StreamDescriptionIndex = 0;
 
-	e = GetMediaTime(trak, movieTime, &mediaTime, &segStartTime, &mediaOffset, &useEdit);
+	e = GetMediaTime(trak, (SearchMode==GF_ISOM_SEARCH_SYNC_FORWARD) ? 1 : 0, movieTime, &mediaTime, &segStartTime, &mediaOffset, &useEdit);
 	if (e) return e;
 
 	/*here we check if we were playing or not and return no sample in normal search modes*/
@@ -1443,12 +1443,11 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//the track TS
 	if (useEdit) {
 		u64 _ts = (u64)(segStartTime * tsscale);
-		u64 _offset = (u64)(mediaOffset * tsscale);
 
 		(*sample)->DTS += _ts;
 		/*watchout, the sample fetched may be before the first sample in the edit list (when seeking)*/
-		if ( (*sample)->DTS > (u64) _offset) {
-			(*sample)->DTS -= (u64) _offset;
+		if ( (*sample)->DTS > (u64) mediaOffset) {
+			(*sample)->DTS -= (u64) mediaOffset;
 		} else {
 			(*sample)->DTS = 0;
 		}

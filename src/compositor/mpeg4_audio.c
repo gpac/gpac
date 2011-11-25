@@ -38,7 +38,7 @@ typedef struct
 
 static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 {
-	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1) != GF_OK) {
+	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1, 0) != GF_OK) {
 		st->failure = 1;
 		return;
 	}
@@ -149,7 +149,7 @@ void compositor_audioclip_modified(GF_Node *node)
 	if (st->input.is_open && st->input.is_open) {
 		if (gf_sc_audio_check_url(&st->input, &ac->url)) {
 			gf_sc_audio_stop(&st->input);
-			gf_sc_audio_open(&st->input, &ac->url, 0, -1);
+			gf_sc_audio_open(&st->input, &ac->url, 0, -1, 0);
 			/*force unregister to resetup audio cfg*/
 			gf_sc_audio_unregister(&st->input);
 			gf_sc_invalidate(st->input.compositor, NULL);
@@ -181,7 +181,7 @@ typedef struct
 
 static void audiosource_activate(AudioSourceStack *st, M_AudioSource *as)
 {
-	if (gf_sc_audio_open(&st->input, &as->url, 0, -1) != GF_OK)
+	if (gf_sc_audio_open(&st->input, &as->url, 0, -1, 0) != GF_OK)
 		return;
 	st->is_active = 1;
 	gf_mo_set_speed(st->input.stream, st->input.speed);
@@ -281,7 +281,7 @@ void compositor_audiosource_modified(GF_Node *node)
 		gf_sc_audio_unregister(&st->input);
 		gf_sc_invalidate(st->input.compositor, NULL);
 
-		if (st->is_active) gf_sc_audio_open(&st->input, &as->url, 0, -1);
+		if (st->is_active) gf_sc_audio_open(&st->input, &as->url, 0, -1, 0);
 	}
 
 	//update state if we're active

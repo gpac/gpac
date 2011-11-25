@@ -451,7 +451,7 @@ GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *movie, u32 trackNumber)
 
 
 //WARNING: MOVIETIME IS EXPRESSED IN MEDIA TS
-GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit)
+GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit)
 {
 #if 0
 	GF_Err e;
@@ -459,7 +459,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *Segme
 	u64 firstDTS;
 #endif
 	u32 i;
-	u64 time, lastSampleTime, m_time;
+	u64 time, lastSampleTime;
 	s64 mtime;
 	GF_EdtsEntry *ent;
 	Double scale_ts;
@@ -490,17 +490,16 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *Segme
 		return GF_OK;
 	}
 	//browse the edit list and get the time
-	scale_ts = trak->moov->mvhd->timeScale;
-	scale_ts /= trak->Media->mediaHeader->timeScale;
-	scale_ts *= ((s64)movieTime );
-	m_time = (u64) (scale_ts);
+	scale_ts = trak->Media->mediaHeader->timeScale;
+	scale_ts /= trak->moov->mvhd->timeScale;
 
 	time = 0;
 	ent = NULL;
 	i=0;
 	while ((ent = (GF_EdtsEntry *)gf_list_enum(trak->editBox->editList->entryList, &i))) {
-		if (time + ent->segmentDuration > m_time) {
-			goto ent_found;
+		if ( (time + ent->segmentDuration) * scale_ts > movieTime) {
+			if (!force_non_empty || (ent->mediaTime >= 0)) 
+				goto ent_found;
 		}
 		time += ent->segmentDuration;
 	}
@@ -536,12 +535,7 @@ ent_found:
 	}
 	
 	/*WARNING: this can be "-1" when doing searchForward mode (to prevent jumping to next entry)*/
-	mtime = ent->mediaTime;
-	mtime -= time;
-	mtime = mtime * (trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
-	mtime += movieTime;
-
-//	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
+	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
 	if (mtime<0) mtime = 0;
 	*MediaTime = (u64) mtime;
 	*MediaOffset = ent->mediaTime;

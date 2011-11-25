@@ -581,6 +581,7 @@ void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
 			gf_sc_texture_stop(&st->txh);
 		}
 	}
+	gf_node_dirty_set(node, 0, 0);
 	/*and force a redraw of next frame*/
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 }
@@ -611,11 +612,15 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 		if (!stack->is_active && !stack->is_error) { 
 			if (stack->aurl.count) {
 				SVGAllAttributes atts;
+				Bool lock_timeline = 0;
 				gf_svg_flatten_attributes((SVG_Element*) (video ? video : audio), &atts);
+
+				if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;		
 
 				if (gf_sc_audio_open(&stack->input, &stack->aurl,
 						atts.clipBegin ? (*atts.clipBegin) : 0.0,
-						atts.clipEnd ? (*atts.clipEnd) : -1.0) == GF_OK) 
+						atts.clipEnd ? (*atts.clipEnd) : -1.0,
+						lock_timeline) == GF_OK) 
 				{
 					gf_mo_set_speed(stack->input.stream, FIX_ONE);
 					stack->is_active = 1;
@@ -690,6 +695,7 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		SVGAllAttributes atts;
+		Bool lock_timeline = 0;
 		if (stack->is_active) 
 			gf_sc_audio_stop(&stack->input);
 
@@ -699,10 +705,12 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
 
 		gf_svg_flatten_attributes((SVG_Element*) node, &atts);
+		if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;		
 
 		if (stack->aurl.count && (gf_sc_audio_open(&stack->input, &stack->aurl,
 				atts.clipBegin ? (*atts.clipBegin) : 0.0,
-				atts.clipEnd ? (*atts.clipEnd) : -1.0) == GF_OK) 
+				atts.clipEnd ? (*atts.clipEnd) : -1.0,
+				lock_timeline) == GF_OK) 
 
 		) {
 			gf_mo_set_speed(stack->input.stream, FIX_ONE);

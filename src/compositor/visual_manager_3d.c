@@ -173,6 +173,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	Fixed dist;
 	SFVec3f d;
 
+
 	/*update znear&zfar*/
 	tr_state->camera->z_near = tr_state->camera->avatar_size.x ; 
 
@@ -665,7 +666,13 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		}
 		
 		gf_node_traverse(geometry, tr_state);
-	
+
+		/*clear appearance flag once drawn in 3D - not doing so would prevent
+		dirty flag propagation in the tree, whcih would typically prevent redrawing 
+		layers/offscreen groups when texture changes*/
+		if (tr_state->appear)
+			gf_node_dirty_clear(tr_state->appear, 0);
+		
 		/*back to SORT*/
 		tr_state->traversing_mode = TRAVERSE_SORT;
 
@@ -773,8 +780,15 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		tr_state->depth_offset = ctx->depth_offset;
 #endif
 		gf_node_traverse(ctx->geometry, tr_state);
-		tr_state->appear = NULL;
-		
+
+		/*clear appearance flag once drawn in 3D - not doing so would prevent
+		dirty flag propagation in the tree, whcih would typically prevent redrawing 
+		layers/offscreen groups when texture changes*/
+		if (tr_state->appear) {
+			gf_node_dirty_clear(tr_state->appear, 0);
+			tr_state->appear = NULL;
+		}
+
 		/*reset directional lights*/
 		tr_state->local_light_on = 0;
 		for (i=gf_list_count(ctx->directional_lights); i>0; i--) {
@@ -1321,8 +1335,7 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 
 	if (compositor_is_composite_texture(tr_state->appear)) {
 		compositor->hit_appear = tr_state->appear;
-	} else 
-	{
+	} else {
 		compositor->hit_appear = NULL;
 	}
 	compositor->hit_node = n;

@@ -2290,7 +2290,7 @@ void gf_sc_visual_unregister(GF_Compositor *compositor, GF_VisualManager *visual
 	gf_list_del_item(compositor->visuals, visual);
 }
 
-void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
+void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
 {
 	Fixed min_hsize, vp_scale;
 	Bool use_pm, prev_pm, prev_coord;
@@ -2531,6 +2531,17 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 #endif
 }
 
+void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
+{
+	u32 i=0;
+	GF_SceneGraph *subsg;
+
+	gf_sc_traverse_subscene_ex(compositor, inline_parent, subscene, rs);
+
+	while ( (subsg = gf_scene_enum_extra_scene(subscene, &i))) 
+		gf_sc_traverse_subscene_ex(compositor, inline_parent, subsg, rs);
+
+}
 
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
