@@ -574,6 +574,8 @@ JSBool SMJS_FUNCTION(svg_udom_smil_pause)
 		gf_smil_timing_pause(n);
 	} else if (gf_svg_is_timing_tag(tag)) {
 		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_PAUSE_SVG, n, NULL);
+	} else if ((tag==TAG_SVG_svg) && (n->sgprivate->scenegraph->RootNode==n)) {
+		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_PAUSE_SVG, n, NULL);
 	} else {
 		return JS_TRUE;
 	}
@@ -592,6 +594,49 @@ JSBool SMJS_FUNCTION(svg_udom_smil_resume)
 		gf_smil_timing_resume(n);
 	} else if (gf_svg_is_timing_tag(tag)) {
 		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_RESUME_SVG, n, NULL);
+	} else if ((tag==TAG_SVG_svg) && (n->sgprivate->scenegraph->RootNode==n)) {
+		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_RESUME_SVG, n, NULL);
+	} else {
+		return JS_TRUE;
+	}
+	return JS_TRUE;
+}
+
+JSBool SMJS_FUNCTION(svg_udom_smil_restart)
+{
+	u32 tag;
+	SMJS_OBJ
+	GF_Node *n = dom_get_element(c, obj);
+
+	tag = gf_node_get_tag(n);
+	if ((tag==TAG_SVG_svg) && (n->sgprivate->scenegraph->RootNode==n)) {
+		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_RESTART_SVG, n, NULL);
+	} else {
+		return JS_TRUE;
+	}
+	return JS_TRUE;
+}
+
+JSBool SMJS_FUNCTION(svg_udom_smil_set_speed)
+{
+	u32 tag;
+	Double speed = 1.0;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_Node *n = dom_get_element(c, obj);
+
+	if (argc && JSVAL_IS_NUMBER(argv[0]) ) {
+		jsdouble d;
+		JS_ValueToNumber(c, argv[0], &d);
+		speed = d;
+	}
+
+	tag = gf_node_get_tag(n);
+	if ((tag==TAG_SVG_svg) && (n->sgprivate->scenegraph->RootNode==n)) {
+		GF_JSAPIParam par;
+		memset(&par, 0, sizeof(GF_JSAPIParam));
+		par.val = FLT2FIX(speed);
+		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_SCENE_SPEED, n, &par);
 	} else {
 		return JS_TRUE;
 	}
@@ -2187,6 +2232,8 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			SMJS_FUNCTION_SPEC("endElement", svg_udom_smil_end, 0),
 			SMJS_FUNCTION_SPEC("pauseElement", svg_udom_smil_pause, 0),
 			SMJS_FUNCTION_SPEC("resumeElement", svg_udom_smil_resume, 0),
+			SMJS_FUNCTION_SPEC("restartElement", svg_udom_smil_restart, 0),
+			SMJS_FUNCTION_SPEC("setSpeed", svg_udom_smil_set_speed, 0),
 
 			SMJS_FUNCTION_SPEC("getTotalLength", svg_path_get_total_length, 0),
 
