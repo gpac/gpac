@@ -1422,6 +1422,11 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 		if (ns->owner && ( (ns->owner->flags & GF_ODM_DESTROYED) || (ns->owner->action_type == GF_ODM_ACTION_DELETE)) )
 			continue;
 
+		/*if service has timeline locked to its parent scene, only reuse it if new object does as well*/
+		if (ns->owner->flags & GF_ODM_INHERIT_TIMELINE) {
+			if (!(odm->flags & GF_ODM_INHERIT_TIMELINE)) continue;
+		}
+
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			if (net_locked) {
 				gf_term_lock_net(term, 0);
