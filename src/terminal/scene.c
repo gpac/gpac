@@ -223,7 +223,32 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		}
 	}
 
-	/*remove all associated eventTargets - THIS NEEDS CLEANUP*/
+	//Ivica patch: Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
+#ifndef GPAC_DISABLE_VRML
+	if (for_shutdown) {
+		i = 0;
+		while (odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i)) {
+			if (for_shutdown && odm->mo) {
+				obj = odm->mo;
+				while (gf_list_count(obj->nodes)) {
+					GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, 0);
+					switch (gf_node_get_tag(n)) {
+						case TAG_MPEG4_InputSensor:
+							{
+								M_InputSensor* is = (M_InputSensor*)n;
+								is->enabled = 0;
+								InputSensorModified(n);
+								break;
+							}
+					}
+					gf_list_rem(obj->nodes, 0);
+				}	
+			}
+		}
+	}
+#endif
+
+	/*remove all associated eventTargets*/
 	i=0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(scene->scene_objects, &i))) {
 		if (obj->nodes) gf_list_reset(obj->nodes);
@@ -247,7 +272,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	scene->graph_attached = 0;
 	
 
-	assert(!gf_list_count(scene->extra_scenes) );
 	/*reset statc ressource flag since we destroyed scene objects*/
 	scene->static_media_ressources = 0;
 
@@ -267,28 +291,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		}
 	} else {
 		while (gf_list_count(scene->resources)) {
-			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
-	
-			//Ivica patch: Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
-#ifndef GPAC_DISABLE_VRML
-			if (for_shutdown && odm->mo) {
-				obj = odm->mo;
-				while (gf_list_count(obj->nodes)) {
-					GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, 0);
-					switch (gf_node_get_tag(n)) {
-						case TAG_MPEG4_InputSensor:
-						{
-							M_InputSensor* is = (M_InputSensor*)n;
-							is->enabled = 0;
-							InputSensorModified(n);
-							break;
-						}
-					}
-					gf_list_rem(obj->nodes, 0);
-				}	
-			}
-#endif
-
+			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);	
 			gf_odm_disconnect(odm, (for_shutdown || !scene->static_media_ressources) ? 2 : 0);
 		}
 #ifndef GPAC_DISABLE_VRML
@@ -1289,26 +1292,36 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 {
 	u32 i;
+	GF_Clock *ck;
 	GF_List *to_restart;
 	GF_ObjectManager *odm;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[InlineScene] Restarting from "LLD"\n", LLD_CAST from_time));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Restarting from "LLD"\n", LLD_CAST from_time));
+
+	ck = scene->dyn_ck;
+	if (scene->scene_codec) ck = scene->scene_codec->ck;
+	if (!ck) return;
+
 	to_restart = gf_list_new();
+
+
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (odm->state != GF_ODM_STATE_BLOCKED) {
-			gf_list_add(to_restart, odm);
-			if (odm->state == GF_ODM_STATE_PLAY) {
-				gf_odm_stop(odm, 1);
+		if (gf_odm_shares_clock(odm, ck)) {
+			if (odm->state != GF_ODM_STATE_BLOCKED) {
+				gf_list_add(to_restart, odm);
+				if (odm->state == GF_ODM_STATE_PLAY) {
+					gf_odm_stop(odm, 1);
+				}
 			}
 		}
 	}
 
 	/*reset clock*/
-	if (scene->dyn_ck) {
-		gf_clock_reset(scene->dyn_ck);
-		scene->simulation_time = from_time/1000.0;
-	}
+	gf_clock_reset(ck);
+	scene->simulation_time = from_time/1000.0;
+	if (!scene->is_dynamic_scene) gf_clock_set_time(ck, 0);
+
 	/*restart objects*/
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
@@ -1318,7 +1331,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	gf_list_del(to_restart);
 
 	/*also check nodes since they may be deactivated (end of stream)*/
-	{
+	if (scene->is_dynamic_scene) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 		M_MovieTexture *mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
 		M_AnimationStream *as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
@@ -1512,6 +1525,13 @@ Bool gf_scene_is_over(GF_SceneGraph *sg)
 		if (odm->subscene && !gf_scene_is_over(odm->subscene->graph) ) return 0;
 	}
 	return 1;
+}
+
+GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i)
+{
+	GF_Scene *scene = gf_sg_get_private(sg);
+	if (!scene) return NULL;
+	return gf_list_enum(scene->extra_scenes, i);
 }
 
 #define USE_TEXTURES	0

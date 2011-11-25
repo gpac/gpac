@@ -662,7 +662,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 		if (ch->clock->clock_init) {
 			ch->IsClockInit = 1;
 			if (ch->odm->flags & GF_ODM_INHERIT_TIMELINE) {
-				ch->ts_offset += gf_clock_real_time(ch->clock) - ch->CTS;
+//				ch->ts_offset += gf_clock_real_time(ch->clock) - ch->CTS;
 			}
 		}
 	}

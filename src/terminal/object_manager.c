@@ -786,11 +786,21 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	}
 	/*timeline override*/
 	if (odm->flags & GF_ODM_INHERIT_TIMELINE) {
-		if (odm->parentscene->root_od->subscene->scene_codec)
-			ck = odm->parentscene->root_od->subscene->scene_codec->ck;
-		else
-			ck = odm->parentscene->root_od->subscene->dyn_ck;
-		goto clock_setup;
+		GF_ObjectManager *odm_par = odm;
+		/*walk up the scenes until we find a clock*/
+		while (odm_par->parentscene) {
+			if (odm_par->parentscene->root_od->subscene->scene_codec)
+				ck = odm_par->parentscene->root_od->subscene->scene_codec->ck;
+			else {
+				ck = odm_par->parentscene->root_od->subscene->dyn_ck;
+			}
+			if (ck) break;
+
+			odm_par = odm_par->parentscene->root_od->parentscene ? odm->parentscene->root_od->parentscene->root_od : NULL;
+		}
+		if (ck)
+			goto clock_setup;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ODM] Cannot inherit timeline from parent scene for scene %s\n", odm->net_service->url));
 	}
 
 	/*get clocks namespace (eg, parent scene)*/
@@ -1542,6 +1552,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		return;
 	}
 
+	if (force_close && odm->mo) odm->mo->flags |= GF_MO_DISPLAY_REMOVE;
 	/*stop codecs*/
 	if (odm->codec) {
 		gf_term_stop_codec(odm->codec);

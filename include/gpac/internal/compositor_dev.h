@@ -1066,7 +1066,7 @@ void gf_sc_audio_setup(GF_AudioInput *ai, GF_Compositor *sr, GF_Node *node);
 /*unregister interface from renderer/mixer and stops source - deleteing the interface is the caller responsability*/
 void gf_sc_audio_predestroy(GF_AudioInput *ai);
 /*open audio object*/
-GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd);
+GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd, Bool lock_timeline);
 /*closes audio object*/
 void gf_sc_audio_stop(GF_AudioInput *ai);
 /*restarts audio object (cf note in MediaObj)*/
@@ -1157,6 +1157,7 @@ const char *gf_scene_get_service_url(GF_SceneGraph *sg);
 
 
 Bool gf_scene_is_over(GF_SceneGraph *sg);
+GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i);
 
 #ifndef GPAC_DISABLE_SVG
 

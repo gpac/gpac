@@ -278,6 +278,7 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 
 	memcpy(&backup_props, tr_state->svg_props, sizeof(SVGPropertiesPointers));
 	gf_svg_apply_inheritance(&all_atts, tr_state->svg_props);
+	if (compositor_svg_is_display_off(tr_state->svg_props)) return;
 
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
