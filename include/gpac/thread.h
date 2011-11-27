@@ -216,6 +216,14 @@ void gf_mx_v(GF_Mutex *mx);
 */
 Bool gf_mx_try_lock(GF_Mutex *mx);
 
+/*
+ *\brief get mutex number of locks
+ *
+ *Returns the number of locks on the mutex if the caller thread is holding the mutex. 
+ *\param mx the mutex object
+ *\return -1 if the mutex is not hold by the calling thread, or the number of locks (possibly 0) otherwise.
+ */
+s32 gf_mx_get_num_locks(GF_Mutex *mx);
 
 /*********************************************************************
 					Semaphore Object

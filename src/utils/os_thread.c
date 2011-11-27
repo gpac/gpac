@@ -534,6 +534,18 @@ u32 gf_mx_p(GF_Mutex *mx)
 	return 1;
 }
 
+
+s32 gf_mx_get_num_locks(GF_Mutex *mx)
+{
+	u32 caller;
+	if (!mx) return 0;
+	caller = gf_th_id();
+	if (caller == mx->Holder) {
+		return mx->HolderCount;
+	}
+	return -1;
+}
+
 Bool gf_mx_try_lock(GF_Mutex *mx)
 {
 	u32 caller;
