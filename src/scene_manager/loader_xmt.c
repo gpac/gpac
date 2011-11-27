@@ -906,7 +906,7 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 		break;
 	case GF_SG_VRML_SFSTRING:
 		res = xmt_parse_string(parser, info->name, (SFString*)info->far_ptr, 0, a_value); 
-		if (n->sgprivate->tag==TAG_MPEG4_BitWrapper) {
+		if (n && (n->sgprivate->tag==TAG_MPEG4_BitWrapper)) {
 			gf_sm_update_bitwrapper_buffer(n, parser->load->fileName);
 		}
 		break;
