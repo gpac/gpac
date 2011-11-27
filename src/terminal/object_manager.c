@@ -365,9 +365,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		goto err_exit;
 	}
 	
-	gf_term_lock_net(term, 1);
 	gf_odm_setup_object(odm, odm->net_service);
-	gf_term_lock_net(term, 0);
 
 	/*it may happen that this object was inserted in a dynamic scene from a service through a URL redirect. In which case, 
 	the scene regeneration might not have been completed since the redirection was not done yet - force a scene regenerate*/
@@ -574,14 +572,16 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 {
 	Bool hasInline;
 	u32 i, numOK;
-	s32 num_lock;
 	GF_Err e;
 	GF_ESD *esd;
 	GF_MediaObject *syncRef;
 
+	gf_term_lock_net(odm->term, 1);
+
 	if (!odm->net_service) {
 		if (odm->flags & GF_ODM_DESTROYED) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
+			gf_term_lock_net(odm->term, 0);
 			return;
 		}
 		odm->net_service = serv;
@@ -611,6 +611,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 		gf_term_post_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
 		gf_free(url);
+		gf_term_lock_net(odm->term, 0);
 		return;
 	}
 	/*restore OD ID */
@@ -628,6 +629,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (e) {
 		gf_term_message(odm->term, odm->net_service->url, "MPEG-4 Service Error", e);
 		gf_odm_disconnect(odm, 1);
+		gf_term_lock_net(odm->term, 0);
 		return;
 	}
 
@@ -670,12 +672,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 		odm->state = GF_ODM_STATE_STOP;
 		gf_odm_lock(odm, 0);
-	}
-
-	num_lock = gf_mx_get_num_locks(odm->term->net_mx);
-	assert(num_lock==1);
-	gf_mx_v(odm->term->net_mx);
-	
+	}	
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
 		GF_Event evt;
@@ -692,21 +689,27 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			gf_odm_start(odm, 0);
 		}
 
+		gf_term_lock_net(odm->term, 0);
+
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;
 		gf_term_forward_event(odm->term, &evt, 0, 1);
+
+		gf_term_lock_net(odm->term, 1);
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected !\n", odm->net_service->url));
 		
+		gf_term_lock_net(odm->term, 0);
+
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;
 		gf_term_send_event(odm->term, &evt);
-	}
 
-	gf_mx_p(odm->term->net_mx);
+		gf_term_lock_net(odm->term, 1);
+	}
 
 
 	/* start object*/
@@ -752,13 +755,16 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->OD_PL = 0;
 		}
 		if (odm->parentscene==odm->term->root_scene) {
-			assert(num_lock==1);
+			gf_term_lock_net(odm->term, 0);
 			gf_mx_v(odm->term->net_mx);
 			evt.type = GF_EVENT_STREAMLIST;
 			gf_term_send_event(odm->term,&evt);
-			gf_mx_p(odm->term->net_mx);
+	
+			gf_term_lock_net(odm->term, 1);
 		}
 	}
+
+	gf_term_lock_net(odm->term, 0);
 }
 
 

@@ -398,6 +398,16 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		break;
 	}
 
+	/*add a pass on scene->resource to check for min_od_id, 
+	otherwise we may have another modules declaring an object with ID 0 from
+	another thread, which will assert (only one object with a givne OD ID)*/
+	for (i=0; i<gf_list_count(scene->resources); i++) {
+		GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+
+		if (an_odm->OD && (an_odm->OD->objectDescriptorID != GF_MEDIA_EXTERNAL_ID) && (min_od_id < an_odm->OD->objectDescriptorID)) 
+			min_od_id = an_odm->OD->objectDescriptorID;
+	}
+
 	if (!odm) {
 		odm = gf_odm_new();
 		odm->term = term;
@@ -415,12 +425,13 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	if (!scene->selected_service_id) 
 		scene->selected_service_id = od->ServiceID;
 
+
+	/*net is unlocked before seting up the object as this might trigger events going into JS and deadlocks 
+	with the compositor*/
+	gf_term_lock_net(term, 0);
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));
 	gf_odm_setup_object(odm, service);
-
-	/*unlock net once the object has been added to the scene, otherwise we may have another modules declaring an object with ID 0 from
-	another thread, which will assert (only one object with a givne OD ID)*/
-	gf_term_lock_net(term, 0);
 
 	/*OD inserted by service: resetup scene*/
 	if (!no_scene_check && scene->is_dynamic_scene) gf_scene_regenerate(scene);
