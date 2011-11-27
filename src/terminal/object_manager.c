@@ -574,6 +574,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 {
 	Bool hasInline;
 	u32 i, numOK;
+	s32 num_lock;
 	GF_Err e;
 	GF_ESD *esd;
 	GF_MediaObject *syncRef;
@@ -670,6 +671,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->state = GF_ODM_STATE_STOP;
 		gf_odm_lock(odm, 0);
 	}
+
+	num_lock = gf_mx_get_num_locks(odm->term->net_mx);
+	assert(num_lock==1);
+	gf_mx_v(odm->term->net_mx);
 	
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
@@ -700,6 +705,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		evt.connect.is_connected = 1;
 		gf_term_send_event(odm->term, &evt);
 	}
+
+	gf_mx_p(odm->term->net_mx);
+
 
 	/* start object*/
 	/*case 1: object is the root, always start*/
@@ -744,8 +752,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->OD_PL = 0;
 		}
 		if (odm->parentscene==odm->term->root_scene) {
+			assert(num_lock==1);
+			gf_mx_v(odm->term->net_mx);
 			evt.type = GF_EVENT_STREAMLIST;
 			gf_term_send_event(odm->term,&evt);
+			gf_mx_p(odm->term->net_mx);
 		}
 	}
 }
