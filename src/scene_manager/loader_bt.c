@@ -935,7 +935,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 			else
 				gf_free(str);
 
-			if (n->sgprivate->tag==TAG_MPEG4_BitWrapper) {
+			if (n && (n->sgprivate->tag==TAG_MPEG4_BitWrapper)) {
 				gf_sm_update_bitwrapper_buffer(n, parser->load->fileName);
 			}
 		} else {
