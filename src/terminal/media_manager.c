@@ -149,6 +149,8 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	} else if (term->flags & GF_TERM_SINGLE_THREAD) {
 		threaded = 0;
 	}
+	if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) 
+		threaded = 0;
 	
 	if (threaded) {
 		cd->thread = gf_th_new(cd->dec->decio->module_name);
