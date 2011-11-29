@@ -1561,12 +1561,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 
 /* carousel.h */
-#pragma comment (linker, EXPORT_SYMBOL(on_ait_section) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_ait) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ait_destroy) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_channel_application_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_dsmcc) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord))
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_dmscc_overlord))
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_dmscc_overlord) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_dmscc_init) )
+
 
 
 #ifndef GPAC_DISABLE_MPEG2TS_MUX

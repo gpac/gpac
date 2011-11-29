@@ -798,14 +798,16 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
+			//ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
+			on_ait_section(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
 		} else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA	|| sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE ||
 			sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_PRIVATE)) ) {				
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
+			on_dsmcc_section(ts,GF_M2TS_EVT_DSMCC_FOUND,&pck); 
+			//ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
 		}
 #ifdef DUMP_MPE_IP_DATAGRAMS
 		else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
@@ -2385,6 +2387,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 GF_M2TS_Demuxer *gf_m2ts_demux_new()
 {
 	GF_M2TS_Demuxer *ts;
+
 	GF_SAFEALLOC(ts, GF_M2TS_Demuxer);
 	ts->programs = gf_list_new();
 	ts->SDTs = gf_list_new();
@@ -2404,10 +2407,37 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->requested_pids = gf_list_new();	
 	ts->demux_and_play = 0;
 	ts->nb_prog_pmt_received = 0;
+	ts->ChannelAppList = gf_list_new();
 
-	ts->dsmcc_controler = gf_list_new();
+#ifdef GPAC_DSMCC
+		gf_m2ts_demux_dmscc_init(ts);
+#endif
 
 	return ts;
+}
+
+void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts){
+
+	char* temp_dir;
+	u32 length;
+	GF_Err e;
+
+	ts->dsmcc_controler = gf_list_new();
+	ts->process_dmscc = 1;
+	
+	temp_dir = gf_get_default_cache_directory();														
+	length = strlen(temp_dir);
+	if(temp_dir[length-1] == GF_PATH_SEPARATOR){
+		temp_dir[length-1] = 0;
+	}
+
+	ts->dsmcc_root_dir = (char*)gf_calloc(strlen(temp_dir)+strlen("CarouselData")+2,sizeof(char));
+	sprintf(ts->dsmcc_root_dir,"%s%cCarouselData",temp_dir,GF_PATH_SEPARATOR);
+	e = gf_mkdir(ts->dsmcc_root_dir);
+	if(e){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the creation of the directory %s \n",ts->dsmcc_root_dir));
+	}
+
 }
 
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)

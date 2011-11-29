@@ -636,7 +636,13 @@ struct tag_m2ts_demux
 	const char *(*query_next)(void *udta);
 	void *udta_query;
 
+
+	/*AIT*/
+	GF_List* ChannelAppList;
+
 	/*Carousel*/	
+	Bool process_dmscc;
+	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
 	void* carousel_info;
 };
@@ -648,6 +654,7 @@ GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url);
+void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 
 
 

@@ -664,6 +664,14 @@ u32 gf_sys_clock();
 void gf_sleep(u32 ms);
 
 /*!
+ *	\brief Delete File
+ *
+ *	Delete a  file within the full path.
+ *	\param FilePathName the file path name.
+ */
+GF_Err gf_rmfile(char *FilePathName);
+
+/*!
  *	\brief Create Directory
  *
  *	Create a directory within the full path.
