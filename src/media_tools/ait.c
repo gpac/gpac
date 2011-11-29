@@ -2,7 +2,7 @@
  * Copyright (c) TELECOM ParisTech 2011
  */
 
-#include <gpac/carousel.h>
+#include <gpac/ait.h>
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
