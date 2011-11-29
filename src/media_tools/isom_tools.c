@@ -1122,9 +1122,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				max_segment_duration = SegmentDuration;
 				max_segment_duration /= 1000;
 			}
-			if (!split_at_rap) {
-				assert(max_segment_duration <= dash_duration_sec);
-			}
 
 			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, 1);
 			nb_segments++;
