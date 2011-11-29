@@ -2,8 +2,8 @@
  * Copyright (c) TELECOM ParisTech 2011
  */
 
-#ifndef _GF_CAROUSSEL_H_
-#define _GF_CAROUSSEL_H_
+#ifndef _GF_AIT_H_
+#define _GF_AIT_H_
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <gpac/mpegts.h>
+#include <gpac/dsmcc.h>
 #include <string.h>
 #include <gpac/bitstream.h>
 
@@ -202,7 +203,8 @@ typedef struct
 	/* Transport mode - 1 Broadcast - 3 Broadband */
 	Bool broadcast;
 	Bool broadband;
-	char* url;
+	char* http_url;
+	char* carousel_url;
 	Bool url_received;
 
 	/* Carousel */
