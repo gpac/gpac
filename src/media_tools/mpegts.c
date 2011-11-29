@@ -24,8 +24,6 @@
 
 #include <gpac/mpegts.h>
 
-#include <gpac/carousel.h>
-
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
@@ -33,7 +31,6 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/math.h>
 #include <string.h>
-#include <gpac/carousel.h>
 #include <gpac/download.h>
 
 #ifdef GPAC_CONFIG_LINUX
