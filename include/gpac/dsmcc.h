@@ -2,10 +2,13 @@
  * Copyright (c) TELECOM ParisTech 2011
  */
 
-#ifndef _GF_CAROUSSEL_H_
-#define _GF_CAROUSSEL_H_
+
+
+#ifndef _GF_DSMCC_H_
+#define _GF_DSMCC_H_
 
 #ifndef GPAC_DISABLE_MPEG2TS
+
 
 #ifdef __cplusplus
 extern "C" {
