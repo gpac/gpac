@@ -35,6 +35,8 @@
 #ifndef _WIDGETMAN_H_
 #define _WIDGETMAN_H_
 
+#include "unzip.h"
+
 /*base SVG type*/
 #include <gpac/modules/js_usr.h>
 
@@ -54,8 +56,6 @@
 
 
 #include <gpac/isomedia.h>
-
-#include "unzip.h"
 
 #include <gpac/internal/smjs_api.h>
 
