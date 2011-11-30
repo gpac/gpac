@@ -540,6 +540,7 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 		if(dsmcc_overlord && !gf_m2ts_is_dmscc_app(ChanAppInfo)){
 			Bool i;
 			char app_url[255];
+			i=0;
 
 			sprintf(app_url,"%s%c%d",dsmcc_overlord->root_dir,GF_PATH_SEPARATOR,dsmcc_overlord->service_id);
 			gf_enum_directory(app_url, 0, enum_dmscc_dir, NULL, NULL);
