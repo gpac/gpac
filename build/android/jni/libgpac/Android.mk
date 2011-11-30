@@ -112,7 +112,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/reedsolomon.c \
 	../../../../src/media_tools/mpd.c \
 	../../../../src/media_tools/m3u8.c \
-	../../../../src/media_tools/carousel.c \
+	../../../../src/media_tools/ait.c \
+	../../../../src/media_tools/dsmcc.c \
 	../../../../src/laser/lsr_tables.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
