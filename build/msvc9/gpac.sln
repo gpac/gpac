@@ -247,18 +247,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "avcap", "avcap.vcproj", "{1
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hbbtv_terminal", "..\..\..\hbbtvplayer\hbbtvterminal\hbbtv_terminal.vcproj", "{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hbbtvbrowserplugin", "..\..\..\hbbtvplayer\hbbtvbrowserplugin\hbbtvbrowserplugin.vcproj", "{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "epg_server", "..\..\..\gpac_enst\apps\epg_server\epg_server.vcproj", "{BF55724F-9BFD-4D37-8B54-231C6165E27F}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -954,42 +942,6 @@ Global
 		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
 		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Win32.ActiveCfg = Release|Win32
 		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Win32.Build.0 = Release|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Debug|Win32.ActiveCfg = Debug|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Debug|Win32.Build.0 = Debug|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Release|Win32.ActiveCfg = Release|Win32
-		{247BE3AF-EC92-4892-A7AC-0C51E42A5A44}.Release|Win32.Build.0 = Release|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Debug|Win32.ActiveCfg = Debug|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Debug|Win32.Build.0 = Debug|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Release|Win32.ActiveCfg = Release|Win32
-		{CBFCB6F1-4877-4CBA-9F59-9B9ADD1D64E5}.Release|Win32.Build.0 = Release|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Debug|Win32.ActiveCfg = Debug|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Debug|Win32.Build.0 = Debug|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Release|Win32.ActiveCfg = Release|Win32
-		{BF55724F-9BFD-4D37-8B54-231C6165E27F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
