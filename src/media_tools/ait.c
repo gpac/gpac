@@ -11,7 +11,6 @@ static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* dat
 static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* application_decode);
 static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id);
 static Bool gf_m2ts_is_dmscc_app(GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo);
-static Bool delete_carousel_data(void *cbck, char *item_name, char *item_path);
 static void gf_m2ts_free_ait_application(GF_M2TS_AIT_APPLICATION* application);
 static void gf_ait_destroy(GF_M2TS_AIT* ait);
 static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait);
