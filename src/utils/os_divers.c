@@ -176,16 +176,14 @@ GF_Err gf_mkdir(char* DirPathName)
 			return GF_IO_ERR;
 		}
 	}
-#else
-	errno_t err;
+#else	
     int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	if (res==-1) {
-		_get_errno( &err );
-		if(err == 17){
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s, it already exists: last error %d \n", DirPathName, err ));
+	if (res==-1) {		
+		if(errno == 17){
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s, it already exists: last error %d \n", DirPathName, errno ));
 			return GF_BAD_PARAM;
 		}else{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, errno ));
 			return GF_IO_ERR;
 		}
 	}
