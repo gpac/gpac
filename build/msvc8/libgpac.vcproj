@@ -3725,19 +3725,11 @@
 			<File
 				RelativePath="..\..\src\media_tools\ait.c"
 				>
-			</File>
-			<File
-				RelativePath="..\..\include\gpac\ait.h"
-				>
-			</File>
+			</File>			
 			<File
 				RelativePath="..\..\src\media_tools\dsmcc.c"
 				>
-			</File>
-			<File
-				RelativePath="..\..\include\gpac\dsmcc.h"
-				>
-			</File>
+			</File>			
 			<File
 				RelativePath="..\..\src\media_tools\dvb.c"
 				>
@@ -6323,6 +6315,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\ait.h"
+				>
+			</File>		
+			<File
 				RelativePath="..\..\include\gpac\base_coding.h"
 				>
 			</File>
@@ -6364,6 +6360,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\download.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\dsmcc.h"
 				>
 			</File>
 			<File
