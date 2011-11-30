@@ -4454,7 +4454,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\media_tools\dmscc.c"
+				RelativePath="..\..\src\media_tools\dsmcc.c"
 				>
 			</File>
 			<File
