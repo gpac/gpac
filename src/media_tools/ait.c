@@ -475,7 +475,7 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 
 														dsmcc_overlord = gf_m2ts_init_dsmcc_overlord(ait->service_id);
 														dsmcc_overlord->application_id = Application->application_id;
-														itoa(dsmcc_overlord->service_id,char_service_id,10);
+														sprintf(char_service_id,"%d",dsmcc_overlord->service_id);
 														dsmcc_overlord->root_dir = (char*)gf_calloc(strlen(ts->dsmcc_root_dir)+2+strlen(char_service_id),sizeof(char));
 														sprintf(dsmcc_overlord->root_dir,"%s%c%s",ts->dsmcc_root_dir,GF_PATH_SEPARATOR,char_service_id);
 														e = gf_mkdir(dsmcc_overlord->root_dir);
