@@ -7018,11 +7018,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\dmscc.h"
+				RelativePath="..\..\include\gpac\download.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\download.h"
+				RelativePath="..\..\include\gpac\dsmcc.h"
 				>
 			</File>
 			<File

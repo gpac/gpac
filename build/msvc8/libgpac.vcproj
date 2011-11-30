@@ -3723,11 +3723,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\media_tools\carousel.c"
+				RelativePath="..\..\src\media_tools\ait.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\carousel.h"
+				RelativePath="..\..\include\gpac\ait.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\dsmcc.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\dsmcc.h"
 				>
 			</File>
 			<File
