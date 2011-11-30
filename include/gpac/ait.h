@@ -226,16 +226,10 @@ typedef struct
 
 } GF_M2TS_CHANNEL_APPLICATION_INFO;
 
-
-GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *es, char  *data, u32 data_size, u32 table_id);
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par);
 GF_M2TS_ES *gf_ait_section_new(u32 service_id);
-void gf_ait_destroy(GF_M2TS_AIT* ait);
-void gf_m2ts_free_ait_application(GF_M2TS_AIT_APPLICATION* application);
-GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id);
-void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait);
-
 GF_M2TS_CHANNEL_APPLICATION_INFO* gf_m2ts_get_channel_application_info(GF_List* ChannelAppList, u32 ait_service_id);
+void  gf_m2ts_delete_channel_application_info(GF_M2TS_CHANNEL_APPLICATION_INFO* ChannelApp);
 
 #ifdef __cplusplus
 }

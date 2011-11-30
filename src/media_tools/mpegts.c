@@ -2406,10 +2406,6 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->nb_prog_pmt_received = 0;
 	ts->ChannelAppList = gf_list_new();
 
-#ifdef GPAC_DSMCC
-		gf_m2ts_demux_dmscc_init(ts);
-#endif
-
 	return ts;
 }
 
@@ -2475,8 +2471,21 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 #endif
 
 	if(gf_list_count(ts->dsmcc_controler)){
-		//gf_dsmcc_controller_free(ts->dsmcc_controler);
+		GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)gf_list_get(ts->dsmcc_controler,0);	
+		gf_cleanup_dir(dsmcc_overlord->root_dir);
+		gf_rmdir(dsmcc_overlord->root_dir);	
+		gf_m2ts_delete_dsmcc_overlord(dsmcc_overlord);
+		if(ts->dsmcc_root_dir){
+			gf_free(ts->dsmcc_root_dir);
+		}
 	}
+
+	while(gf_list_count(ts->ChannelAppList)){
+		GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo = (GF_M2TS_CHANNEL_APPLICATION_INFO*)gf_list_get(ts->ChannelAppList,0);
+		gf_m2ts_delete_channel_application_info(ChanAppInfo);
+		gf_list_rem(ts->ChannelAppList,0);
+	}
+	gf_list_del(ts->ChannelAppList);
 
 	gf_free(ts);
 }

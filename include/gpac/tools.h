@@ -664,12 +664,12 @@ u32 gf_sys_clock();
 void gf_sleep(u32 ms);
 
 /*!
- *	\brief Delete File
+ *	\brief Delete Directory
  *
- *	Delete a  file within the full path.
- *	\param FilePathName the file path name.
+ *	Delete a  dir within the full path.
+ *	\param DirPathName the file path name.
  */
-GF_Err gf_rmfile(char *FilePathName);
+GF_Err gf_rmdir(char *DirPathName);
 
 /*!
  *	\brief Create Directory
@@ -679,6 +679,13 @@ GF_Err gf_rmfile(char *FilePathName);
  */
 GF_Err gf_mkdir(char* DirPathName);
 
+/*!
+ *	\brief Create Directory
+ *
+ *	Cleanup a directory within the full path, removing all the files and the directories.
+ *	\param DirPathName the dir path name.
+ */
+GF_Err gf_cleanup_dir(char* DirPathName);
 /*!
  *	\brief CRC32 compute
  *

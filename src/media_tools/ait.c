@@ -9,11 +9,12 @@
 /* static functions */
 static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* data);
 static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* application_decode);
-
+static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id);
 static Bool gf_m2ts_is_dmscc_app(GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo);
 static Bool delete_carousel_data(void *cbck, char *item_name, char *item_path);
-static Bool enum_dmscc_dir(void *cbck, char *item_name, char *item_path);
-
+static void gf_m2ts_free_ait_application(GF_M2TS_AIT_APPLICATION* application);
+static void gf_ait_destroy(GF_M2TS_AIT* ait);
+static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait);
 
 GF_M2TS_ES *gf_ait_section_new(u32 service_id)
 {
@@ -56,7 +57,7 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
-GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id)
+static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 table_id)
 {
 
 	GF_BitStream *bs;
@@ -391,7 +392,7 @@ GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u32 tabl
 	return GF_OK;
 }
 
-void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
+static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 
 	u32 nb_app_desc,k,desc_id;
 
@@ -462,7 +463,7 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 									switch(protocol_descriptor->protocol_id){
 										case CAROUSEL:
 											{									
-												GF_Err e;
+												GF_Err e;												
 												GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE* Carousel_selector_byte = (GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
 												if(ts->process_dmscc){
 													GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = gf_m2ts_get_dmscc_overlord(ts->dsmcc_controler,ait->service_id);
@@ -479,12 +480,15 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 														dsmcc_overlord->root_dir = (char*)gf_calloc(strlen(ts->dsmcc_root_dir)+2+strlen(char_service_id),sizeof(char));
 														sprintf(dsmcc_overlord->root_dir,"%s%c%s",ts->dsmcc_root_dir,GF_PATH_SEPARATOR,char_service_id);
 														e = gf_mkdir(dsmcc_overlord->root_dir);
-														if(e){
+														if(e){															
 															GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the creation of the directory %s \n",dsmcc_overlord->root_dir));
+															if(e == GF_BAD_PARAM){
+																gf_cleanup_dir(dsmcc_overlord->root_dir);
+															}
 														}
 														sprintf(app_url,"%s%cindex.html",dsmcc_overlord->root_dir,GF_PATH_SEPARATOR);
 														Application->carousel_url = gf_strdup(app_url);											
-														gf_list_add(ts->dsmcc_controler,dsmcc_overlord);														
+														gf_list_add(ts->dsmcc_controler,dsmcc_overlord);
 													}
 												}
 												if(Carousel_selector_byte->remote_connection){
@@ -537,14 +541,12 @@ void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 	}
 	if(ts->process_dmscc){
 		GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = gf_m2ts_get_dmscc_overlord(ts->dsmcc_controler,ait->service_id);
-		if(dsmcc_overlord && !gf_m2ts_is_dmscc_app(ChanAppInfo)){
-			Bool i;
-			char app_url[255];
-			i=0;
 
-			sprintf(app_url,"%s%c%d",dsmcc_overlord->root_dir,GF_PATH_SEPARATOR,dsmcc_overlord->service_id);
-			gf_enum_directory(app_url, 0, enum_dmscc_dir, NULL, NULL);
-			
+		if(dsmcc_overlord && !gf_m2ts_is_dmscc_app(ChanAppInfo)){			
+			gf_cleanup_dir(dsmcc_overlord->root_dir);
+			gf_rmdir(dsmcc_overlord->root_dir);	
+			gf_m2ts_delete_dsmcc_overlord(dsmcc_overlord);
+
 		}
 	}
 }
@@ -578,24 +580,6 @@ GF_M2TS_CHANNEL_APPLICATION_INFO* gf_m2ts_get_channel_application_info(GF_List* 
 	return NULL;
 
 }
-
-static Bool delete_carousel_data(void *cbck, char *item_name, char *item_path)
-{
-
-	char path[512];
-	sprintf(path,"%s%c%s",item_path,GF_PATH_SEPARATOR,item_name);
-	gf_delete_file(path);
-	
-	return 0;
-}
-
-static Bool enum_dmscc_dir(void *cbck, char *item_name, char *item_path)
-{
-	gf_enum_directory(item_path, 0, delete_carousel_data, cbck, NULL);
-	gf_enum_directory(item_path, 1, delete_carousel_data, cbck, NULL);
-	return 0;
-}
-
 
 static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* data)
 {
@@ -635,7 +619,7 @@ static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* dat
 	return 0;
 }
 
-void gf_ait_destroy(GF_M2TS_AIT* ait)
+static void gf_ait_destroy(GF_M2TS_AIT* ait)
 {
 	u32 common_descr_numb, app_numb;
 
@@ -760,7 +744,7 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 	gf_free(application_decode);
 }
 
-void gf_m2ts_free_ait_application(GF_M2TS_AIT_APPLICATION* Application){
+static void gf_m2ts_free_ait_application(GF_M2TS_AIT_APPLICATION* Application){
 
 	if(Application->http_url){
 		gf_free(Application->http_url);
@@ -773,6 +757,18 @@ void gf_m2ts_free_ait_application(GF_M2TS_AIT_APPLICATION* Application){
 		gf_free(Application->appli_name);
 	}
 	gf_free(Application);
+}
+
+void  gf_m2ts_delete_channel_application_info(GF_M2TS_CHANNEL_APPLICATION_INFO* ChannelApp){
+
+	while(gf_list_count(ChannelApp->Application)){
+		GF_M2TS_AIT_APPLICATION* Application = (GF_M2TS_AIT_APPLICATION*)gf_list_get(ChannelApp->Application,0);
+		gf_m2ts_free_ait_application(Application);
+		gf_list_rem(ChannelApp->Application,0);
+		gf_list_del(ChannelApp->Application);
+	}
+
+	gf_free(ChannelApp);
 }
 #endif //GPAC_DISABLE_MPEG2TS
 
