@@ -49,7 +49,7 @@
 				Optimization="0"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include/,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include/jpeg,../../extra_lib/include/png"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;GPAC_DSMCC"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
