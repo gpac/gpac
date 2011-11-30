@@ -490,9 +490,13 @@
 		970A28621344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
 		970A28631344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
 		970A28641344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
+		9747B6EF14864C6400280D95 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EC14864C6400280D95 /* ait.h */; };
+		9747B6F014864C6400280D95 /* dsmcc.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6ED14864C6400280D95 /* dsmcc.h */; };
+		9747B6F114864C6400280D95 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EE14864C6400280D95 /* events_constants.h */; };
+		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
+		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
 		97FBAAE913BB61D700800B2F /* dvb.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FBAAE813BB61D700800B2F /* dvb.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
-		97FF0662138CE4E400D6C707 /* carousel.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF0661138CE4E400D6C707 /* carousel.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -959,9 +963,13 @@
 		970A270D1343540C0007362C /* libgcc_s.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgcc_s.1.dylib; path = usr/lib/libgcc_s.1.dylib; sourceTree = SDKROOT; };
 		970A283F134462AE0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = "build/Release-iphonesimulator/libgpac_dynamic.dylib"; sourceTree = "<group>"; };
 		970A28521344632F0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = ../../bin/iOS/osmo4ios.app/libgpac_dynamic.dylib; sourceTree = SOURCE_ROOT; };
+		9747B6EC14864C6400280D95 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ait.h; sourceTree = "<group>"; };
+		9747B6ED14864C6400280D95 /* dsmcc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dsmcc.h; sourceTree = "<group>"; };
+		9747B6EE14864C6400280D95 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = events_constants.h; sourceTree = "<group>"; };
+		9747B6F214864C7800280D95 /* ait.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ait.c; sourceTree = "<group>"; };
+		9747B6F314864C7800280D95 /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
 		97FBAAE813BB61D700800B2F /* dvb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dvb.c; sourceTree = "<group>"; };
 		97FF065F138CE4C400D6C707 /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
-		97FF0661138CE4E400D6C707 /* carousel.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = carousel.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1709,8 +1717,9 @@
 		71CCF1CD1277045100339E12 /* media_tools */ = {
 			isa = PBXGroup;
 			children = (
+				9747B6F214864C7800280D95 /* ait.c */,
+				9747B6F314864C7800280D95 /* dsmcc.c */,
 				97FBAAE813BB61D700800B2F /* dvb.c */,
-				97FF0661138CE4E400D6C707 /* carousel.c */,
 				970A26C713434D2C0007362C /* m3u8.c */,
 				970A26C813434D2C0007362C /* mpd.c */,
 				71CCF1CE1277045100339E12 /* av_parsers.c */,
@@ -1886,6 +1895,9 @@
 		71CCF35F12770A8C00339E12 /* gpac */ = {
 			isa = PBXGroup;
 			children = (
+				9747B6EC14864C6400280D95 /* ait.h */,
+				9747B6ED14864C6400280D95 /* dsmcc.h */,
+				9747B6EE14864C6400280D95 /* events_constants.h */,
 				970A26CF13434D960007362C /* cache.h */,
 				970A26D013434D960007362C /* ringbuffer.h */,
 				970A26D113434D960007362C /* unicode.h */,
@@ -2238,6 +2250,9 @@
 				970A26D213434D960007362C /* cache.h in Headers */,
 				970A26D313434D960007362C /* ringbuffer.h in Headers */,
 				970A26D413434D960007362C /* unicode.h in Headers */,
+				9747B6EF14864C6400280D95 /* ait.h in Headers */,
+				9747B6F014864C6400280D95 /* dsmcc.h in Headers */,
+				9747B6F114864C6400280D95 /* events_constants.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3112,8 +3127,9 @@
 				970A26D713434DAC0007362C /* ringbuffer.c in Sources */,
 				970A26D813434DAC0007362C /* unicode.c in Sources */,
 				97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */,
-				97FF0662138CE4E400D6C707 /* carousel.c in Sources */,
 				97FBAAE913BB61D700800B2F /* dvb.c in Sources */,
+				9747B6F414864C7800280D95 /* ait.c in Sources */,
+				9747B6F514864C7800280D95 /* dsmcc.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
