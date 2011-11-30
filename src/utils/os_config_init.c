@@ -376,6 +376,7 @@ static GF_Config *create_default_config(char *file_path)
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 		gf_free(cache_dir);
 	}
+	gf_cfg_set_key(cfg, "DSMCC", "Activated", "false");
 
 	gf_cfg_set_key(cfg, "Compositor", "Raster2D", "GPAC 2D Raster");
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");

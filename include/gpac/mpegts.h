@@ -644,7 +644,6 @@ struct tag_m2ts_demux
 	Bool process_dmscc;
 	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
-	void* carousel_info;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();

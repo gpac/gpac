@@ -51,7 +51,16 @@ static void dsmcc_free_biop_ior(GF_M2TS_DSMCC_IOR* IOR);
 static void dsmcc_free_biop_header(GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header);
 static void dsmcc_free_biop_directory(GF_M2TS_DSMCC_BIOP_DIRECTORY* BIOP_Directory);
 static void dsmcc_free_biop_file(GF_M2TS_DSMCC_BIOP_FILE* BIOP_File);
+static void dsmcc_free_biop_stream_event(GF_M2TS_DSMCC_BIOP_STREAM_EVENT* BIOP_StreamEvent);
+static void dsmcc_free_biop_stream_message(GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE* BIOP_StreamMessage);
 
+GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id) {
+	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
+	GF_SAFEALLOC(dsmcc_overlord,GF_M2TS_DSMCC_OVERLORD);	
+	dsmcc_overlord->dsmcc_modules = gf_list_new();
+	dsmcc_overlord->service_id = service_id;
+	return dsmcc_overlord;
+}
 
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_get_dmscc_overlord(GF_List* Dsmcc_controller,u32 service_id) 
 {
@@ -94,14 +103,6 @@ void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, pck);
 		assert(e == GF_OK);
 	}
-}
-
-GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id) {
-	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
-	GF_SAFEALLOC(dsmcc_overlord,GF_M2TS_DSMCC_OVERLORD);	
-	dsmcc_overlord->dsmcc_modules = gf_list_new();
-	dsmcc_overlord->service_id = service_id;
-	return dsmcc_overlord;
 }
 
 GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id)
@@ -1226,7 +1227,9 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 		for(i =0;i<BIOP_StreamEvent->eventIds_count;i++){
 			BIOP_StreamEvent->eventId[i] = gf_bs_read_int(bs,16);
 		}
-	}		
+	}
+
+	dsmcc_free_biop_stream_event(BIOP_StreamEvent);
 
 	return GF_OK;
 }
@@ -1275,7 +1278,9 @@ static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_B
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error in Stream Event : selector_length has a wrong value, abording the processing \n"));
 			return GF_CORRUPTED_DATA;
 		}		
-	}		
+	}
+
+	dsmcc_free_biop_stream_message(BIOP_StreamMessage);
 
 	return GF_OK;
 }
@@ -1617,6 +1622,101 @@ static char* dsmcc_get_file_namepath(GF_M2TS_DSMCC_DIR* Dir,char* name){
 
 /* Free struct */
 
+static void dsmcc_delete_module(GF_M2TS_DSMCC_MODULE* module)
+{
+	if(module->buffer){
+		gf_free(module->buffer);
+	}
+
+	gf_free(module);
+}
+
+static void dmscc_delete_file(GF_M2TS_DSMCC_FILE* File){
+
+	if(File->name){
+		gf_free(File->name);
+	}
+	if(File->Path){
+		gf_free(File->Path);
+	}
+}
+
+static void dmscc_delete_dir(GF_M2TS_DSMCC_DIR* Dir){
+
+	u32 nb_file, nb_dir,i;
+
+	if(Dir->name){
+		gf_free(Dir->name);
+	}
+	if(Dir->Path){
+		gf_free(Dir->Path);
+	}
+
+	nb_file = gf_list_count(Dir->File);
+	for(i=0;i<nb_file;i++){
+		GF_M2TS_DSMCC_FILE* File = (GF_M2TS_DSMCC_FILE*)gf_list_get(Dir->File,i);
+		dmscc_delete_file(File);
+	}
+	gf_list_del(Dir->File);
+
+	nb_dir = gf_list_count(Dir->Dir);
+	for(i=0;i<nb_dir;i++){
+		GF_M2TS_DSMCC_DIR* Sub_Dir = (GF_M2TS_DSMCC_DIR*)gf_list_get(Dir->Dir,i);
+		dmscc_delete_dir(Sub_Dir);
+	}
+	gf_list_del(Dir->Dir);
+	gf_free(Dir);
+}
+
+static void dmscc_delete_servicegateway(GF_M2TS_DSMCC_SERVICE_GATEWAY* Servicegateway){
+
+	u32 nb_file, nb_dir,i;
+
+	if(Servicegateway->name){
+		gf_free(Servicegateway->name);
+	}
+	nb_file = gf_list_count(Servicegateway->File);
+	for(i=0;i<nb_file;i++){
+		GF_M2TS_DSMCC_FILE* File = (GF_M2TS_DSMCC_FILE*)gf_list_get(Servicegateway->File,i);
+		dmscc_delete_file(File);
+	}
+	gf_list_del(Servicegateway->File);
+
+	nb_dir = gf_list_count(Servicegateway->Dir);
+	for(i=0;i<nb_dir;i++){
+		GF_M2TS_DSMCC_DIR* Dir = (GF_M2TS_DSMCC_DIR*)gf_list_get(Servicegateway->Dir,i);
+		dmscc_delete_dir(Dir);
+	}
+	gf_list_del(Servicegateway->Dir);
+	gf_free(Servicegateway);
+}
+
+void gf_m2ts_delete_dsmcc_overlord(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord) 
+{
+	u16 nb_module,i;
+
+	nb_module = gf_list_count(dsmcc_overlord->dsmcc_modules);
+	for(i=0;i<nb_module;i++){
+		GF_M2TS_DSMCC_MODULE* module = (GF_M2TS_DSMCC_MODULE*)gf_list_get(dsmcc_overlord->dsmcc_modules,i);
+		dsmcc_delete_module(module);
+	}
+	gf_list_del(dsmcc_overlord->dsmcc_modules);
+
+	nb_module = gf_list_count(dsmcc_overlord->Unprocessed_module);
+	for(i=0;i<nb_module;i++){
+		GF_M2TS_DSMCC_MODULE* module = (GF_M2TS_DSMCC_MODULE*)gf_list_get(dsmcc_overlord->Unprocessed_module,i);
+		dsmcc_delete_module(module);
+	}
+	gf_list_del(dsmcc_overlord->dsmcc_modules);
+	dmscc_delete_servicegateway(dsmcc_overlord->ServiceGateway);
+
+	if(dsmcc_overlord->root_dir){
+		gf_free(dsmcc_overlord->root_dir);
+	}
+
+	gf_free(dsmcc_overlord);
+}
+
 static void dsmcc_free_biop_header(GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header){	
 
 	gf_free(BIOP_Header->objectKind_data);	
@@ -1641,6 +1741,54 @@ static void dsmcc_free_biop_file(GF_M2TS_DSMCC_BIOP_FILE* BIOP_File){
 	gf_free(BIOP_File);
 }
 
+static void dsmcc_free_biop_stream_event(GF_M2TS_DSMCC_BIOP_STREAM_EVENT* BIOP_StreamEvent){
+
+	u32 i;
+
+	if(BIOP_StreamEvent->Info.aDescription_length){
+		gf_free(BIOP_StreamEvent->Info.aDescription_bytes);
+	}
+
+	if(BIOP_StreamEvent->objectInfo_byte){
+		gf_free(BIOP_StreamEvent->objectInfo_byte);
+	}
+	
+	if(BIOP_StreamEvent->eventNames_count){	
+		for(i=0;i<BIOP_StreamEvent->eventNames_count;i++){			
+			if(BIOP_StreamEvent->EventList[i].eventName_length){
+				gf_free(BIOP_StreamEvent->EventList[i].eventName_data_byte);
+			}
+		}
+		gf_free(BIOP_StreamEvent->EventList);
+	}
+	
+	if(BIOP_StreamEvent->taps_count){	
+		gf_free(BIOP_StreamEvent->Taps);
+	}
+
+	dsmcc_free_biop_context(BIOP_StreamEvent->ServiceContext,BIOP_StreamEvent->serviceContextList_count);
+	
+	if(BIOP_StreamEvent->eventId){	
+		gf_free(BIOP_StreamEvent->eventId);
+	}
+}
+
+static void dsmcc_free_biop_stream_message(GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE* BIOP_StreamMessage){
+
+	if(BIOP_StreamMessage->Info.aDescription_length){
+		gf_free(BIOP_StreamMessage->Info.aDescription_bytes);
+	}
+	
+	if(BIOP_StreamMessage->objectInfo_byte){
+		gf_free(BIOP_StreamMessage->objectInfo_byte);
+	}	
+	
+	if(BIOP_StreamMessage->taps_count){	
+		gf_free(BIOP_StreamMessage->Taps);
+	}
+
+	dsmcc_free_biop_context(BIOP_StreamMessage->ServiceContext,BIOP_StreamMessage->serviceContextList_count);	
+}
 
 static void dsmcc_free_biop_ior(GF_M2TS_DSMCC_IOR* IOR)
 {

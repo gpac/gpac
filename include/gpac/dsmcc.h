@@ -563,6 +563,7 @@ void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par);
 GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id);
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id);
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_get_dmscc_overlord(GF_List* Dsmcc_controller,u32 service_id);
+void gf_m2ts_delete_dsmcc_overlord(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord);
 
 #ifdef __cplusplus
 }

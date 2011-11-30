@@ -771,12 +771,17 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "HybRadio", "Activated");
 	if (opt && !strcmp(opt, "true")) {
 		m2ts->hybrid_on = 1;
-	}
+	}	
 
 	m2ts->service = serv;
 	if (m2ts->owner->query_proxy) {
 		m2ts->ts->query_next = M2TS_QueryNextFile;
 		m2ts->ts->udta_query = m2ts;
+	}
+
+	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
+	if (opt && !strcmp(opt, "true")) {
+		gf_m2ts_demux_dmscc_init(m2ts->ts);
 	}
 
 	if (!strnicmp(url, "http://", 7)) {

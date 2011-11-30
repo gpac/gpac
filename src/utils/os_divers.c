@@ -123,6 +123,35 @@ void gf_sleep(u32 ms)
 #endif
 }
 
+
+GF_Err gf_rmdir(char *DirPathName)
+{
+#if defined (_WIN32_WCE)
+	TCHAR swzName[MAX_PATH];
+	BOOL res;
+	CE_CharToWide(DirPathName, swzName);
+	res = RemoveDirectory(swzName);
+	if (! res) {
+		int err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, err ));
+	}
+#elif defined (WIN32)
+	int res = rmdir(DirPathName);
+	if (res==-1) {
+		int err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, err ));
+		return GF_IO_ERR;
+	}
+#else
+    int res = rmdir(DirPathName);
+	if (res==-1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, errno  ));
+		return GF_IO_ERR;
+	}
+#endif
+	return GF_OK;
+}   
+
 GF_Err gf_mkdir(char* DirPathName)
 {
 #if defined (_WIN32_WCE)
@@ -135,19 +164,57 @@ GF_Err gf_mkdir(char* DirPathName)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
+	errno_t err;
 	int res = mkdir(DirPathName);
 	if (res==-1) {
-		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
-		return GF_IO_ERR;
+		_get_errno( &err );
+		if(err == 17){
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s, it already exists: last error %d \n", DirPathName, err ));
+			return GF_BAD_PARAM;
+		}else{
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+			return GF_IO_ERR;
+		}
 	}
 #else
+	errno_t err;
     int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	if (res==-1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, errno  ));
-		return GF_IO_ERR;
+		_get_errno( &err );
+		if(err == 17){
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s, it already exists: last error %d \n", DirPathName, err ));
+			return GF_BAD_PARAM;
+		}else{
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+			return GF_IO_ERR;
+		}
 	}
 #endif
+	return GF_OK;
+}
+
+static Bool delete_carousel_data(void *cbck, char *item_name, char *item_path)
+{
+	Bool directory_clean_mode = *(Bool*)cbck;
+
+	if(directory_clean_mode){
+		 gf_cleanup_dir(item_path);
+		 gf_rmdir(item_path);		
+	}else{
+		gf_delete_file(item_path);		
+	}	
+	return GF_OK;
+}
+
+GF_Err gf_cleanup_dir(char* DirPathName)
+{
+	Bool directory_clean_mode;
+
+	directory_clean_mode = 1;
+	gf_enum_directory(DirPathName, 1, delete_carousel_data, &directory_clean_mode, NULL);														
+	directory_clean_mode = 0;
+	gf_enum_directory(DirPathName, 0, delete_carousel_data, &directory_clean_mode, NULL);
+
 	return GF_OK;
 }
 
