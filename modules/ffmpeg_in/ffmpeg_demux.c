@@ -212,6 +212,14 @@ static u32 FFD_RegisterMimeTypes(const GF_InputService *plug){
     return i/3;
 }
 
+static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputFormat * 	fmt){
+#ifdef USE_PRE_0_7
+	return av_open_input_file(ic_ptr, filename, fmt, 0, NULL);
+#else
+	return avformat_open_input(ic_ptr, filename, fmt, NULL);
+#endif
+}
+
 
 static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 {
@@ -273,12 +281,12 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 
 	ctx = NULL;
-    if (av_open_input_file(&ctx, szName, NULL, 0, NULL)<0) {
+    if (open_file(&ctx, szName, NULL)<0) {
 		AVInputFormat *av_in = NULL;;
 		/*some extensions not supported by ffmpeg*/
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
-		if (av_open_input_file(&ctx, szName, av_in, 0, NULL)<0) {
+		if (open_file(&ctx, szName, av_in)<0) {
 			return 0;
 		}
 	}
@@ -571,8 +579,16 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 #ifdef FFMPEG_DUMP_REMOTE
 		ffd->outdbg = gf_f64_open("ffdeb.raw", "wb");
 #endif
+/*#ifdef USE_PRE_0_7*/
 		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
+/*#else
+                ffio_init_context(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
+#endif*/
+#ifdef USE_PRE_0_7
 		ffd->io.is_streamed = 1;
+#else
+		ffd->io.seekable = 1;
+#endif
 
 		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, NULL, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;
@@ -588,7 +604,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		}
 		if (e==GF_EOS) {
 			const char *cache_file = gf_dm_sess_get_cache_name(ffd->dnload);
-			res = av_open_input_file(&ffd->ctx, cache_file, av_in, 0, NULL);
+			res = open_file(&ffd->ctx, cache_file, av_in);
 		} else {
 			pd.filename = szName;
 			pd.buf_size = ffd->buffer_used;
@@ -603,7 +619,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 			res = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
 		}
 	} else {
-		res = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+		res = open_file(&ffd->ctx, szName, av_in);
 	}
 
 	switch (res) {
@@ -680,7 +696,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
 		if (!ffd->seekable) {
 			av_close_input_file(ffd->ctx);
-			av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+			open_file(&ffd->ctx, szName, av_in);
 			av_find_stream_info(ffd->ctx);
 		}
 	}
