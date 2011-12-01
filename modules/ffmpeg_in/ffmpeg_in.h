@@ -73,6 +73,10 @@
 #ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/avformat.h>
 #else
+#include <libavformat/version.h>
+#ifdef FF_API_OLD_METADATA2
+#undef FF_API_OLD_METADATA2
+#endif
 #include <libavformat/avformat.h>
 #endif
 
@@ -152,6 +156,10 @@ void FFDEC_Delete(void *ifce);
 
 //#define FFMPEG_DUMP_REMOTE
 
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(102<<8)+0)
+#define USE_PRE_0_7 1
+#endif
+
 typedef struct
 {
 	/*the service we're responsible for*/
@@ -184,7 +192,11 @@ typedef struct
 	/*file downloader*/
 	GF_DownloadSession *dnload;
 
+#ifdef USE_PRE_0_7
 	ByteIOContext   io;
+#else
+	AVIOContext io;
+#endif
 	char *buffer;
 	u32 buffer_size;
 
