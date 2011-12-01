@@ -34,6 +34,12 @@
 
 #include "directfb_out.h"
 
+enum
+{
+	GF_MOUSE_LEFT = 0,
+	GF_MOUSE_MIDDLE,
+	GF_MOUSE_RIGHT
+};
 
 static int do_xor = 0;
 
@@ -59,6 +65,9 @@ struct __DirectFBVidCtx
     IDirectFB *dfb;
     /* the primary surface */
     IDirectFBSurface *primary;
+    
+    /* for keyboard input */
+    //~ IDirectFBInputDevice *keyboard;
 
     /* screen width, height */
     u32 width, height, pixel_format;
@@ -72,6 +81,9 @@ struct __DirectFBVidCtx
 
     /* Input interfaces: devices and its buffer */
     IDirectFBEventBuffer *events;
+    
+    /* mouse events */
+    IDirectFBInputDevice *mouse;
 
      /*=============================
 	if using window
@@ -103,22 +115,36 @@ struct _DeviceInfo {
 
 /* Wrapper to DirectFB members */
 
+/**
+ *	function DirectFBVid_DrawHLineWrapper
+ * 	- using hardware accelerator to draw horizontal line     
+ **/
 void DirectFBVid_DrawHLineWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 length, u8 r, u8 g, u8 b)
 {
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] in DirectFBVid_DrawHLine(). Drawing line x %d y %d length %d color %08X\n", x, y, length, color));
+	
+	// DSDRAW_NOFX: flag controlling drawing command, drawing without using any effects 
 	SET_DRAWING_FLAGS( DSDRAW_NOFX );
 
-	ctx->primary->SetColor(ctx->primary, r, g, b, 0xFF); // no alpha
+	// set the color used without alpha 
+	ctx->primary->SetColor(ctx->primary, r, g, b, 0xFF); 
+	
+	// to draw a line using hardware accelerators, we can use either DrawLine (in our STB, DrawLine() function is not accelerated) or FillRectangle function with height equals to 1
 	//ctx->primary->DrawLine(ctx->primary, x, y, x+length, y);	// no acceleration
 	ctx->primary->FillRectangle(ctx->primary, x, y,length, 1);
 }
 
 
+/**
+ *	function DirectFBVid_DrawHLineWrapper
+ * 	- using hardware accelerator to draw horizontal line with alpha     
+ **/
 void DirectFBVid_DrawHLineAlphaWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 length, u8 r, u8 g, u8 b, u8 alpha)
 {
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] in DirectFBVid_DrawHLineAlpha(). Alpha line drawing x %d y %d length %d color %08X alpha %d\n", x, y, length, color, alpha));
 
-	SET_DRAWING_FLAGS( DSDRAW_BLEND ); // use alpha
+	// DSDRAW_BLEND: using alpha from color
+	SET_DRAWING_FLAGS( DSDRAW_BLEND );
 
 	ctx->primary->SetColor(ctx->primary, r, g, b, alpha);
 	//ctx->primary->DrawLine(ctx->primary, x, y, x+length, y);
@@ -126,6 +152,10 @@ void DirectFBVid_DrawHLineAlphaWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 le
 }
 
 
+/**
+ *	function DirectFBVid_DrawRectangleWrapper
+ *	- using hardware accelerator to fill a rectangle with the given color  
+ **/
 void DirectFBVid_DrawRectangleWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 width, u32 height, u8 r, u8 g, u8 b, u8 a)
 {
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] in DirectFBVid_DrawRectangle(). Drawing rectangle x %d y %d width %d height %d color %08x\n", x, y, width, height, color));
@@ -138,6 +168,10 @@ void DirectFBVid_DrawRectangleWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 wid
 }
 
 
+/**
+ *	function DirectFBVid_CtxPrimaryLock
+ * 	- lock the surface (in order to access certain data)  
+ **/
 u32 DirectFBVid_CtxPrimaryLock(DirectFBVidCtx *ctx, void **buf, u32 *pitch)
 {
 	DFBResult ret = ctx->primary->Lock(ctx->primary, DSLF_READ | DSLF_WRITE, buf, pitch);
@@ -162,8 +196,12 @@ static DFBEnumerationResult enum_input_device(DFBInputDeviceID device_id, DFBInp
 }
 
 
+/**
+ *	function DirectFBVid_InitAndCreateSurface
+ * 	- initialize and create DirectFB surface 
+ **/
 u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf);
-void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx)
+void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, u32 window_mode)
 {
 	DFBResult err;
 	DFBSurfaceDescription dsc;
@@ -172,13 +210,21 @@ void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx)
 	
 	//fake arguments and DirectFBInit()
 	{
-		int i, argc=3, argc_ro=3;
+		int i, argc=2, argc_ro=2;
 		char **argv = malloc(argc*sizeof(char*));
-		char *argv_ro[3];
+		char *argv_ro[2];
 		//http://directfb.org/wiki/index.php/Configuring_DirectFB
 		argv_ro[0]=argv[0]=strdup("gpac");
-		argv_ro[1]=argv[1]=strdup("--dfb:system=x11");
-		argv_ro[2]=argv[2]=strdup("--dfb:mode=640x480");
+		// graphis system used is X11
+		if (window_mode == WINDOW_SDL) {
+			argv_ro[1]=argv[1]=strdup("--dfb:system=sdl");
+		} else {
+			argv_ro[1]=argv[1]=strdup("--dfb:system=x11");
+		}
+		
+		// screen resolution 640x480
+		//~ argv_ro[2]=argv[2]=strdup("--dfb:mode=640x480");
+		//~ argv_ro[2]=argv[2]=strdup("");
 
 		/* create the super interface */
 		DFBCHECK(DirectFBInit(&argc, &argv));
@@ -188,99 +234,172 @@ void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx)
 		free(argv);
 	}
 
-	DirectFBSetOption ("bg-none", NULL);
-	DirectFBSetOption ("no-init-layer", NULL);
+	// disable background handling
+	DFBCHECK(DirectFBSetOption ("bg-none", NULL));
+	// disable layers
+	DFBCHECK(DirectFBSetOption ("no-init-layer", NULL));
 
 	/* create the surface */
 	DFBCHECK(DirectFBCreate( &(ctx->dfb) ));
 
 	/* create a list of input devices */
 	ctx->dfb->EnumInputDevices(ctx->dfb, enum_input_device, &devices );
-
+	if (devices->desc.type & DIDTF_JOYSTICK) {
+		// for mouse
+		DFBCHECK(ctx->dfb->GetInputDevice(ctx->dfb, devices->device_id, &(ctx->mouse)));
+	}
+	
 	/* create an event buffer for all devices */
 	DFBCHECK(ctx->dfb->CreateInputEventBuffer(ctx->dfb, DICAPS_KEYS, DFB_FALSE, &(ctx->events) ));
 
 	/* Set the cooperative level */
-	err = ctx->dfb->SetCooperativeLevel( ctx->dfb, DFSCL_FULLSCREEN );
-	if (err)
-		DirectFBError( "Failed to set cooperative level", err );
+	DFBCHECK(ctx->dfb->SetCooperativeLevel( ctx->dfb, DFSCL_FULLSCREEN ));
 
 	/* Get the primary surface, i.e. the surface of the primary layer. */
+	// capabilities field is valid
 	dsc.flags = DSDESC_CAPS;
+	// primary, double-buffered surface
 	dsc.caps = DSCAPS_PRIMARY | DSCAPS_DOUBLE;
 
+	// if using system memory, data is permanently stored in this memory (no video memory allocation)
 	if (ctx->use_systems_memory) dsc.caps |= DSCAPS_SYSTEMONLY;
 
 	DFBCHECK(ctx->dfb->CreateSurface( ctx->dfb, &dsc, &(ctx->primary) ));
 
+	// fetch pixel format
 	ctx->primary->GetPixelFormat( ctx->primary, &dfbpf );
+	// translate DirectFB pixel format to GPAC
 	ctx->pixel_format = DirectFBVid_TranslatePixelFormatToGPAC(dfbpf);
+	// surface width and height in pixel
 	ctx->primary->GetSize( ctx->primary, &(ctx->width), &(ctx->height) );
 	ctx->primary->Clear( ctx->primary, 0, 0, 0, 0xFF);
 }
 
 
+/**
+ *	function DirectFBVid_CtxPrimaryUnlock
+ * 	- unlock a surface after direct access (in order to fetch data)
+ **/
 void DirectFBVid_CtxPrimaryUnlock(DirectFBVidCtx *ctx)
 {
 	ctx->primary->Unlock(ctx->primary);
 }
 
+
+/**
+ *	function DirectFBVid_CtxGetWidth
+ * 	- returns screen width 
+ **/
 u32 DirectFBVid_CtxGetWidth(DirectFBVidCtx *ctx)
 {
 	return ctx->width;
 }
 
+
+/**
+ *	function DirectFBVid_CtxGetHeight
+ * 	- returns screen height 
+ **/
 u32 DirectFBVid_CtxGetHeight(DirectFBVidCtx *ctx)
 {
 	return ctx->height;
 }
 
+
+/**
+ *	function DirectFBVid_CtxGetPrimary
+ * 	- return the primary surface  
+ **/
 void *DirectFBVid_CtxGetPrimary(DirectFBVidCtx *ctx)
 {
 	return ctx->primary;
 }
 
+
+/**
+ *	function DirectFBVid_CtxGetPixelFormat
+ * 	- get pixel format  
+ **/
 u32 DirectFBVid_CtxGetPixelFormat(DirectFBVidCtx *ctx)
 {
 	return ctx->pixel_format;
 }
 
+
+/**
+ *	function DirectFBVid_CtxIsHwMemory
+ * 	- return value whether system memory is used or not  
+ **/
 Bool DirectFBVid_CtxIsHwMemory(DirectFBVidCtx *ctx)
 {
 	return ctx->use_systems_memory;
 }
 
+
+/**
+ *	function DirectFBVid_CtxPrimaryFlip
+ * 	- flipping buffers 
+ **/
 u32 DirectFBVid_CtxPrimaryFlip(DirectFBVidCtx *ctx)
 {
 	return ctx->primary->Flip(ctx->primary, NULL, ctx->flip_mode);
 }
 
+
+/**
+ *	function DirectFBVid_CtxSetDisableDisplay
+ * 	- set disable display value   
+ **/
 void DirectFBVid_CtxSetDisableDisplay(DirectFBVidCtx *ctx, Bool val)
 {
 	ctx->disable_display = val;
 }
 
+
+/**
+ *	function DirectFBVid_CtxGetDisableDisplay
+ * 	- boolean showing whether display is enabled/disabled   
+ **/
 Bool DirectFBVid_CtxGetDisableDisplay(DirectFBVidCtx *ctx)
 {
 	return ctx->disable_display;
 }
 
+
+/**
+ *	function DirectFBVid_CtxSetDisableAcceleration
+ * 	- boolean showing whether hardware accelerator is enabled/disabled   
+ **/
 void DirectFBVid_CtxSetDisableAcceleration(DirectFBVidCtx *ctx, Bool val)
 {
 	ctx->disable_acceleration = val;
 }
 
+
+/**
+ *	function DirectFBVid_CtxGetDisableAcceleration
+ * 	- return disable_acceleration value  
+ **/
 Bool DirectFBVid_CtxGetDisableAcceleration(DirectFBVidCtx *ctx)
 {
 	return ctx->disable_acceleration;
 }
 
+
+/**
+ *	function DirectFBVid_CtxSetIsInit
+ * 	- boolean showing whether DirectFB is initialized   
+ **/
 void DirectFBVid_CtxSetIsInit(DirectFBVidCtx *ctx, Bool val)
 {
 	ctx->is_init = val;
 }
 
 
+/**
+ *	function DirectFBVid_CtxSetFlipMode
+ * 	- set flip mode   
+ **/
 void DirectFBVid_CtxSetFlipMode(DirectFBVidCtx *ctx, u32 flip_mode)
 {
 	ctx->flip_mode = DSFLIP_BLIT;
@@ -301,6 +420,10 @@ void DirectFBVid_CtxSetFlipMode(DirectFBVidCtx *ctx, u32 flip_mode)
 }
 
 
+/**
+ * 	function DirectFBVid_CtxPrimaryProcessGetAccelerationMask
+ *	- Get a mask of drawing functions that are hardware accelerated with the current settings.
+ **/
 void DirectFBVid_CtxPrimaryProcessGetAccelerationMask(DirectFBVidCtx *ctx)
 {
 	DFBAccelerationMask mask;
@@ -313,12 +436,16 @@ void DirectFBVid_CtxPrimaryProcessGetAccelerationMask(DirectFBVidCtx *ctx)
 }
 
 
+/**
+ *	function DirectFBVid_ShutdownWrapper
+ * 	- shutdown DirectFB module  
+ **/
 u32 DirectFBVid_ShutdownWrapper(DirectFBVidCtx *ctx)
 {
+	// case where initialization is not done
 	if (!ctx->is_init) return 1;
-	//ctx->primary->Clear(ctx->primary,0,0,0,0);
-	//ctx->primary->Flip( ctx->primary, NULL, DSFLIP_NONE);
-	//ctx->primary->Clear(ctx->primary,0,0,0,0);
+
+	//~ ctx->keyboard->Release( ctx->keyboard );
 	ctx->primary->Release( ctx->primary );
 	ctx->events->Release( ctx->events );
 	ctx->dfb->Release( ctx->dfb );
@@ -329,6 +456,9 @@ u32 DirectFBVid_ShutdownWrapper(DirectFBVidCtx *ctx)
 }
 
 
+/**
+ *	Blit a surface 
+ **/
 u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf);
 u32 DirectFBVid_BlitWrapper(DirectFBVidCtx *ctx, u32 video_src_width, u32 video_src_height, u32 video_src_pixel_format, char *video_src_buffer, s32 video_src_pitch_y, u32 src_wnd_x, u32 src_wnd_y, u32 src_wnd_w, u32 src_wnd_h, u32 dst_wnd_x, u32 dst_wnd_y, u32 dst_wnd_w, u32 dst_wnd_h, u32 overlay_type)
 {
@@ -359,6 +489,7 @@ u32 DirectFBVid_BlitWrapper(DirectFBVidCtx *ctx, u32 video_src_width, u32 video_
 			ctx->primary->SetBlittingFlags(ctx->primary, DSBLIT_NOFX);
 	}
 
+	// create a surface with the new surface description
 	res = ctx->dfb->CreateSurface(ctx->dfb, &srcdesc, &src);
 	if (res != DFB_OK) {
 		//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectFB] cannot create blit source surface for pixel format %s: %s (%d)\n", gf_4cc_to_str(video_src->pixel_format), DirectFBErrorString(res), res));
@@ -371,8 +502,10 @@ u32 DirectFBVid_BlitWrapper(DirectFBVidCtx *ctx, u32 video_src_width, u32 video_
 	dfbsrc.w = src_wnd_w;
 	dfbsrc.h = src_wnd_h;
 
+	// blit on the surface
 	if (!src_wnd_x && !src_wnd_y && (dst_wnd_w==src_wnd_w) && (dst_wnd_h==src_wnd_h)) {
 		 ctx->primary->Blit(ctx->primary, src, &dfbsrc, dst_wnd_x, dst_wnd_y);
+	// blit an area scaled from the source to the destination rectangle
 	} else {
 		dfbdst.x = dst_wnd_x;
 		dfbdst.y = dst_wnd_y;
@@ -387,21 +520,50 @@ u32 DirectFBVid_BlitWrapper(DirectFBVidCtx *ctx, u32 video_src_width, u32 video_
 }
 
 
-void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, u32 *flags, u32 *key_code);
-u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *flags, u32 *hw_code)
+/**
+ *	function DirectFBVid_ProcessMessageQueueWrapper  
+ * 	- handle DirectFB events
+ * 	- key events
+ **/
+void directfb_translate_key(DFBInputDeviceKeyIdentifier DirectFBkey, u32 *flags, u32 *key_code);
+u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *flags, u32 *key_code, s32 *x, s32 *y, u32 *button)
 {
 	DFBInputEvent directfb_evt;
 
 	if (ctx->events->GetEvent( ctx->events, DFB_EVENT(&directfb_evt) ) == DFB_OK)
 	{
-		switch (directfb_evt.type){
+		switch (directfb_evt.type) {
 			case DIET_KEYPRESS:
 			case DIET_KEYRELEASE:
-				directfb_translate_key(directfb_evt.key_symbol, flags, hw_code);
+				directfb_translate_key(directfb_evt.key_id, flags, key_code);
 				*type = (directfb_evt.type == DIET_KEYPRESS) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
+				break;
+			case DIET_BUTTONPRESS:
+			case DIET_BUTTONRELEASE:
+				*type = (directfb_evt.type == DIET_BUTTONPRESS) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
+				switch(directfb_evt.button) {
+					case DIBI_LEFT:
+						*button = GF_MOUSE_LEFT;
+						break;
+					case DIBI_RIGHT:
+						*button = GF_MOUSE_RIGHT;
+						break;
+					case DIBI_MIDDLE:
+						*button = GF_MOUSE_MIDDLE;
+						break;
+					default:
+						printf("in here for others\n");
+						break;
+				}
+				break;
+			case DIET_AXISMOTION:
+				*type = GF_EVENT_MOUSEMOVE;
+				ctx->mouse->GetXY(ctx->mouse, x, y);
 			default:
-				return 0;
+				break;
 		}
+		
+		return 0;
 	}
 
 	return 1;
@@ -409,7 +571,10 @@ u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *f
 
 
 /* Events translation */
-
+/**
+ *	function DirectFBVid_TranslatePixelFormatToGPAC
+ * 	- translate pixel from DirectFb to GPAC  
+ **/
 u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf)
 {
 	switch (dfbpf) {
@@ -422,7 +587,10 @@ u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf)
 	}
 }
 
-
+/**
+ *	function DirectFBVid_TranslatePixelFormatToGPAC
+ * 	- translate pixel from GPAC to DirectFB  
+ **/
 u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf)
 {
 	switch (gpacpf) {
@@ -443,289 +611,192 @@ u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf)
 }
 
 
-void directfb_translate_key(DFBInputDeviceKeySymbol DirectFBkey, u32 *flags, u32 *key_code)
+/**
+ *	function directfb_translate_key
+ * 	- translate key from DirectFB to GPAC  
+ **/
+void directfb_translate_key(DFBInputDeviceKeyIdentifier DirectFBkey, u32 *flags, u32 *key_code)
 {
-	switch (DirectFBkey){
-	case DIKS_BACKSPACE:
-		*key_code = GF_KEY_BACKSPACE; break;
-	case DIKS_RETURN:
-		*key_code = GF_KEY_ENTER; break;
-	case DIKS_CANCEL:
-		*key_code = GF_KEY_CANCEL; break;
-	case DIKS_ESCAPE:
-		*key_code = GF_KEY_ESCAPE; break;
-	case DIKS_SPACE:
-		*key_code = GF_KEY_SPACE; break;
-	case DIKS_EXCLAMATION_MARK:
-		*key_code = GF_KEY_EXCLAMATION; break;
-	case DIKS_QUOTATION:
-		*key_code = GF_KEY_QUOTATION; break;
-	case DIKS_NUMBER_SIGN:
-		*key_code = GF_KEY_NUMBER; break;
-	case DIKS_DOLLAR_SIGN:
-		*key_code = GF_KEY_DOLLAR; break;
-#if 0
-	case DIKS_PERCENT_SIGN:
-		*key_code = GF_KEY_PERCENT; break;
-#endif
-	case DIKS_AMPERSAND:
-		*key_code = GF_KEY_AMPERSAND; break;
-	case DIKS_APOSTROPHE:
-		*key_code = GF_KEY_APOSTROPHE; break;
-	case DIKS_PARENTHESIS_LEFT:
-		*key_code = GF_KEY_LEFTPARENTHESIS; break;
-	case DIKS_PARENTHESIS_RIGHT:
-		*key_code = GF_KEY_RIGHTPARENTHESIS; break;
-	case DIKS_ASTERISK:
-		*key_code = GF_KEY_STAR; break;
-	case DIKS_PLUS_SIGN:
-		*key_code = GF_KEY_PLUS; break;
-	case DIKS_COMMA:
-		*key_code = GF_KEY_COMMA; break;
-	case DIKS_MINUS_SIGN:
-		*key_code = GF_KEY_HYPHEN; break;
-	case DIKS_PERIOD:
-		*key_code = GF_KEY_FULLSTOP; break;
-	case DIKS_SLASH:
-		*key_code = GF_KEY_SLASH; break;
-	case DIKS_0:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_0; break;
-	case DIKS_1:
-		//fprintf(stderr, "DIKS_1: %d\n", GF_KEY_1);
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_1; break;
-	case DIKS_2:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_2; break;
-	case DIKS_3:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_3; break;
-	case DIKS_4:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_4; break;
-	case DIKS_5:
-		// fprintf(stderr, "DIKS_5\n");
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_5; break;
-	case DIKS_6:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_6; break;
-	case DIKS_7:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_7; break;
-	case DIKS_8:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_8; break;
-	case DIKS_9:
-		*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_9; break;
-	case DIKS_COLON:
-		*key_code = GF_KEY_COLON; break;
-	case DIKS_SEMICOLON:
-		*key_code = GF_KEY_SEMICOLON; break;
-	case DIKS_LESS_THAN_SIGN:
-		*key_code = GF_KEY_LESSTHAN; break;
-	case DIKS_EQUALS_SIGN:
-		*key_code = GF_KEY_EQUALS; break;
-	case DIKS_GREATER_THAN_SIGN:
-		*key_code = GF_KEY_GREATERTHAN; break;
-	case DIKS_QUESTION_MARK:
-		*key_code = GF_KEY_QUESTION; break;
-	case DIKS_AT:
-		*key_code = GF_KEY_AT; break;
-	case DIKS_CAPITAL_A:
-		*key_code = GF_KEY_A; break;
-	case DIKS_CAPITAL_B:
-		*key_code = GF_KEY_B; break;
-	case DIKS_CAPITAL_C:
-		*key_code = GF_KEY_C; break;
-	case DIKS_CAPITAL_D:
-		*key_code = GF_KEY_D; break;
-	case DIKS_CAPITAL_E:
-		*key_code = GF_KEY_E; break;
-	case DIKS_CAPITAL_F:
-		*key_code = GF_KEY_F; break;
-	case DIKS_CAPITAL_G:
-		*key_code = GF_KEY_G; break;
-	case DIKS_CAPITAL_H:
-		*key_code = GF_KEY_H; break;
-	case DIKS_CAPITAL_I:
-		*key_code = GF_KEY_I; break;
-	case DIKS_CAPITAL_J:
-		*key_code = GF_KEY_J; break;
-	case DIKS_CAPITAL_K:
-		*key_code = GF_KEY_K; break;
-	case DIKS_CAPITAL_L:
-		*key_code = GF_KEY_L; break;
-	case DIKS_CAPITAL_M:
-		*key_code = GF_KEY_M; break;
-	case DIKS_CAPITAL_N:
-		*key_code = GF_KEY_N; break;
-	case DIKS_CAPITAL_O:
-		*key_code = GF_KEY_O; break;
-	case DIKS_CAPITAL_P:
-		*key_code = GF_KEY_P; break;
-	case DIKS_CAPITAL_Q:
-		*key_code = GF_KEY_Q; break;
-	case DIKS_CAPITAL_R:
-		*key_code = GF_KEY_R; break;
-	case DIKS_CAPITAL_S:
-		*key_code = GF_KEY_S; break;
-	case DIKS_CAPITAL_T:
-		*key_code = GF_KEY_T; break;
-	case DIKS_CAPITAL_U:
-		*key_code = GF_KEY_U; break;
-	case DIKS_CAPITAL_V:
-		*key_code = GF_KEY_V; break;
-	case DIKS_CAPITAL_W:
-		*key_code = GF_KEY_W; break;
-	case DIKS_CAPITAL_X:
-		*key_code = GF_KEY_X; break;
-	case DIKS_CAPITAL_Y:
-		*key_code = GF_KEY_Y; break;
-	case DIKS_CAPITAL_Z:
-		*key_code = GF_KEY_Z; break;
-	case DIKS_SQUARE_BRACKET_LEFT:
-		*key_code = GF_KEY_LEFTSQUAREBRACKET; break;
-	case DIKS_BACKSLASH:
-		*key_code = GF_KEY_BACKSLASH; break;
-	case DIKS_SQUARE_BRACKET_RIGHT:
-		*key_code = GF_KEY_RIGHTSQUAREBRACKET; break;
-	case DIKS_CIRCUMFLEX_ACCENT:
-		*key_code = GF_KEY_CIRCUM; break;
-	case DIKS_UNDERSCORE:
-		*key_code = GF_KEY_UNDERSCORE; break;
-	case DIKS_GRAVE_ACCENT:
-		*key_code = GF_KEY_GRAVEACCENT; break;
-	case DIKS_CURLY_BRACKET_LEFT:
-		*key_code = GF_KEY_LEFTCURLYBRACKET; break;
-	case DIKS_VERTICAL_BAR:
-		*key_code = GF_KEY_PIPE; break;
-	case DIKS_CURLY_BRACKET_RIGHT:
-		*key_code = GF_KEY_RIGHTCURLYBRACKET; break;
-	case DIKS_TILDE: break;
-	case DIKS_DELETE:
-		*key_code = GF_KEY_DEL; break;
-	case DIKS_CURSOR_LEFT:
-		*key_code = GF_KEY_LEFT; break;
-	case DIKS_CURSOR_RIGHT:
-		*key_code = GF_KEY_RIGHT; break;
-	case DIKS_CURSOR_UP:
-		*key_code = GF_KEY_UP; break;
-	case DIKS_CURSOR_DOWN:
-		*key_code = GF_KEY_DOWN; break;
-	case DIKS_INSERT:
-		*key_code = GF_KEY_INSERT; break;
-	case DIKS_HOME:
-		*key_code = GF_KEY_HOME; break;
-	case DIKS_END:
-		*key_code = GF_KEY_END; break;
-	case DIKS_PAGE_UP:
-		*key_code = GF_KEY_PAGEUP; break;
-	case DIKS_PAGE_DOWN:
-		*key_code = GF_KEY_PAGEDOWN; break;
-	case DIKS_PRINT:
-		*key_code = GF_KEY_PRINTSCREEN; break;
-	case DIKS_SELECT:
-		*key_code = GF_KEY_SELECT; break;
-	case DIKS_CLEAR:
-		*key_code = GF_KEY_CLEAR; break;
-	case DIKS_HELP:
-		*key_code = GF_KEY_HELP; break;
-	case DIKS_ZOOM:
-		*key_code = GF_KEY_ZOOM; break;
-	case DIKS_VOLUME_UP:
-		*key_code = GF_KEY_VOLUMEUP; break;
-	case DIKS_VOLUME_DOWN:
-		*key_code = GF_KEY_VOLUMEDOWN; break;
-	case DIKS_MUTE:
-		*key_code = GF_KEY_VOLUMEMUTE; break;
-	case DIKS_PLAYPAUSE:
-	case DIKS_PAUSE:
-		*key_code = GF_KEY_MEDIAPLAYPAUSE; break;
-	case DIKS_PLAY:
-		*key_code = GF_KEY_PLAY; break;
-	case DIKS_STOP:
-		*key_code = GF_KEY_MEDIASTOP; break;
-	case DIKS_PREVIOUS:
-		*key_code = GF_KEY_MEDIAPREVIOUSTRACK; break;
-	case DIKS_F1:
-		*key_code = GF_KEY_F1; break;
-	case DIKS_F2:
-		*key_code = GF_KEY_F2; break;
-	case DIKS_F3:
-		*key_code = GF_KEY_F3; break;
-	case DIKS_F4:
-		*key_code = GF_KEY_F4; break;
-	case DIKS_F5:
-		*key_code = GF_KEY_F5; break;
-	case DIKS_F6:
-		*key_code = GF_KEY_F6; break;
-	case DIKS_F7:
-		*key_code = GF_KEY_F7; break;
-	case DIKS_F8:
-		*key_code = GF_KEY_F8; break;
-	case DIKS_F9:
-		*key_code = GF_KEY_F9; break;
-	case DIKS_F10:
-		*key_code = GF_KEY_F10; break;
-	case DIKS_F11:
-		*key_code = GF_KEY_F11; break;
-	case DIKS_F12:
-		*key_code = GF_KEY_F12; break;
-	case DIKS_SHIFT:
-		*key_code = GF_KEY_SHIFT; break;
-	case DIKS_CONTROL:
-		*key_code = GF_KEY_CONTROL; break;
-	case DIKS_ALT:
-		*key_code = GF_KEY_ALT; break;
-	case DIKS_ALTGR:
-		*key_code = GF_KEY_ALTGRAPH; break;
-	case DIKS_META:
-		*key_code = GF_KEY_META; break;
-	case DIKS_CAPS_LOCK:
-		*key_code = GF_KEY_CAPSLOCK; break;
-	case DIKS_NUM_LOCK:
-		*key_code = GF_KEY_NUMLOCK; break;
-	case DIKS_SCROLL_LOCK:
-		*key_code = GF_KEY_SCROLL; break;
-	case DIKS_FAVORITES:
-		*key_code = GF_KEY_BROWSERFAVORITES; break;
-	case DIKS_CUSTOM0:
-		*key_code = GF_KEY_BROWSERREFRESH; break;
-	case DIKS_MENU:
-		*key_code = GF_KEY_BROWSERHOME; break;
-	case DIKS_POWER:
-		*key_code = GF_KEY_ENTER; break;
-	case DIKS_RED:
-		*key_code = GF_KEY_TAB; break;
-	case DIKS_GREEN:
-		*key_code = GF_KEY_CANCEL; break;
-	case DIKS_YELLOW:
-		*key_code = GF_KEY_COPY; break;
-	case DIKS_BLUE:
-		*key_code = GF_KEY_CUT; break;
-	case DIKS_MODE:
-		*key_code = GF_KEY_MODECHANGE; break;
-	case DIKS_BACK:
-		*key_code = GF_KEY_BROWSERBACK; break;
-	case DIKS_TV:
-		*key_code = GF_KEY_CLEAR; break;
-	case DIKS_OK:
-		*key_code = GF_KEY_SELECT; break;
-	case DIKS_REWIND:
-		*key_code = GF_KEY_BROWSERBACK; break;
-	case DIKS_FASTFORWARD:
-		*key_code = GF_KEY_BROWSERFORWARD; break;
-	case DIKS_SUBTITLE:
-		*key_code = GF_KEY_DEL; break;
-	case DIKS_CHANNEL_UP:
-		*key_code = GF_KEY_CHANNELUP; break;
-	case DIKS_CHANNEL_DOWN:
-		*key_code = GF_KEY_CHANNELDOWN; break;
-	case DIKS_TEXT:
-		*key_code = GF_KEY_TEXT; break;
-	case DIKS_INFO:
-		*key_code = GF_KEY_INFO; break;
-	case DIKS_EPG:
-		*key_code = GF_KEY_EPG; break;
-	case DIKS_RECORD:
-		*key_code = GF_KEY_RECORD; break;
-	case DIKS_AUDIO:
-		*key_code = GF_KEY_BEGINPAGE; break;
-	default:
-		*key_code = GF_KEY_UNIDENTIFIED; break;
+	printf("DirectFBkey=%d\n", DirectFBkey);
+
+	switch (DirectFBkey) {
+		//~ case DIKI_BACKSPACE:
+			//~ *key_code = GF_KEY_BACKSPACE; break;
+		//~ case DIKI_TAB:
+			//~ *key_code = GF_KEY_TAB; break;
+		//~ case DIKI_ENTER:
+			//~ *key_code = GF_KEY_ENTER; break;
+		//~ case DIKI_ESCAPE:
+			//~ *key_code = GF_KEY_ESCAPE; break;
+		//~ case DIKI_SPACE:
+			//~ *key_code = GF_KEY_SPACE; break;
+		//~ case DIKI_SHIFT_L:
+		//~ case DIKI_SHIFT_R:
+			//~ *key_code = GF_KEY_SHIFT; break;
+		//~ case DIKI_CONTROL_L:
+		//~ case DIKI_CONTROL_R:
+			//~ *key_code = GF_KEY_CONTROL; break;
+		//~ case DIKI_ALT_L:
+		//~ case DIKI_ALT_R:
+			//~ *key_code = GF_KEY_ALT; break;
+		//~ case DIKI_CAPS_LOCK:
+			//~ *key_code = GF_KEY_CAPSLOCK; break;
+		//~ case DIKI_META_L:
+		//~ case DIKI_META_R:
+			//~ *key_code = GF_KEY_META; break;
+		//~ case DIKI_KP_EQUAL:
+			//~ *key_code = GF_KEY_EQUALS; break;
+		//~ case DIKI_SUPER_L:
+		//~ case DIKI_SUPER_R:
+			//~ *key_code = GF_KEY_WIN; break;
+		//~ 
+		//~ /* alphabets */
+		//~ case DIKI_A:
+			//~ *key_code = GF_KEY_A; break;
+		//~ case DIKI_B:
+			//~ *key_code = GF_KEY_B; break;
+		//~ case DIKI_C:
+			//~ *key_code = GF_KEY_C; break;
+		//~ case DIKI_D:
+			//~ *key_code = GF_KEY_D; break;
+		//~ case DIKI_E:
+			//~ *key_code = GF_KEY_E; break;
+		//~ case DIKI_F:
+			//~ *key_code = GF_KEY_F; break;
+		//~ case DIKI_G:
+			//~ *key_code = GF_KEY_G; break;
+		//~ case DIKI_H:
+			//~ *key_code = GF_KEY_H; break;
+		//~ case DIKI_I:
+			//~ *key_code = GF_KEY_I; break;
+		//~ case DIKI_J:
+			//~ *key_code = GF_KEY_J; break;
+		//~ case DIKI_K:
+			//~ *key_code = GF_KEY_K; break;
+		//~ case DIKI_L:
+			//~ *key_code = GF_KEY_L; break;
+		//~ case DIKI_M:
+			//~ *key_code = GF_KEY_M; break;
+		//~ case DIKI_N:
+			//~ *key_code = GF_KEY_N; break;
+		//~ case DIKI_O:
+			//~ *key_code = GF_KEY_O; break;
+		//~ case DIKI_P:
+			//~ *key_code = GF_KEY_P; break;
+		//~ case DIKI_Q:
+			//~ *key_code = GF_KEY_Q; break;
+		//~ case DIKI_R:
+			//~ *key_code = GF_KEY_R; break;
+		//~ case DIKI_S:
+			//~ *key_code = GF_KEY_S; break;
+		//~ case DIKI_T:
+			//~ *key_code = GF_KEY_T; break;
+		//~ case DIKI_U:
+			//~ *key_code = GF_KEY_U; break;
+		//~ case DIKI_V:
+			//~ *key_code = GF_KEY_V; break;
+		//~ case DIKI_W:
+			//~ *key_code = GF_KEY_W; break;
+		//~ case DIKI_X:
+			//~ *key_code = GF_KEY_X; break;
+		//~ case DIKI_Y:
+			//~ *key_code = GF_KEY_Y; break;
+		//~ case DIKI_Z:
+			//~ *key_code = GF_KEY_Z; break;
+			//~ 
+		//~ case DIKI_PRINT:
+			//~ *key_code = GF_KEY_PRINTSCREEN; break;
+		//~ case DIKI_SCROLL_LOCK:
+			//~ *key_code = GF_KEY_SCROLL; break;
+		//~ case DIKI_PAUSE:
+			//~ *key_code = GF_KEY_PAUSE; break;
+		//~ case DIKI_INSERT:
+			//~ *key_code = GF_KEY_INSERT; break;
+		//~ case DIKI_DELETE:
+			//~ *key_code = GF_KEY_DEL; break;
+		//~ case DIKI_HOME:
+			//~ *key_code = GF_KEY_HOME; break;
+		//~ case DIKI_END:
+			//~ *key_code = GF_KEY_END; break;
+		//~ case DIKI_PAGE_UP:
+			//~ *key_code = GF_KEY_PAGEUP; break;
+		//~ case DIKI_PAGE_DOWN:
+			//~ *key_code = GF_KEY_PAGEDOWN; break;
+		//~ 
+		//~ /* arrows */
+		//~ case DIKI_UP:
+			//~ *key_code = GF_KEY_UP; break;
+		//~ case DIKI_DOWN:
+			//~ *key_code = GF_KEY_DOWN; break;
+		//~ case DIKI_RIGHT:
+			//~ *key_code = GF_KEY_RIGHT; break;
+		//~ case DIKI_LEFT:
+			//~ *key_code = GF_KEY_LEFT; break;
+//~ 
+		//~ /* extended numerical pad */
+		//~ case DIKI_NUM_LOCK:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_NUMLOCK; break;
+		//~ case DIKI_KP_DIV:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_SLASH; break;
+		//~ case DIKI_KP_MULT:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_STAR; break;
+		//~ case DIKI_KP_MINUS:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_HYPHEN; break;
+		//~ case DIKI_KP_PLUS:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_PLUS; break;
+		//~ case DIKI_KP_ENTER:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_ENTER; break; 
+		//~ case DIKI_KP_DECIMAL:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_FULLSTOP; break;
+		//~ case DIKI_KP_0:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_0; break;
+		//~ case DIKI_KP_1:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_1; break;
+		//~ case DIKI_KP_2:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_2; break;
+		//~ case DIKI_KP_3:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_3; break;
+		//~ case DIKI_KP_4:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_4; break;
+		//~ case DIKI_KP_5: 
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_5; break;
+		//~ case DIKI_KP_6:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_6; break;
+		//~ case DIKI_KP_7:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_7; break;
+		//~ case DIKI_KP_8:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_8; break;
+		//~ case DIKI_KP_9:
+			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_9; break;
+		
+		/* Fn functions */
+		case DIKI_F1:
+			*key_code = GF_KEY_F1; break;
+		case DIKI_F2:
+			*key_code = GF_KEY_F2; break;
+		case DIKI_F3:
+			*key_code = GF_KEY_F3; break;
+		case DIKI_F4:
+			*key_code = GF_KEY_F4; break;
+		case DIKI_F5:
+			*key_code = GF_KEY_F5; break;
+		case DIKI_F6:
+			*key_code = GF_KEY_F6; break;
+		case DIKI_F7:
+			*key_code = GF_KEY_F7; break;
+		case DIKI_F8:
+			*key_code = GF_KEY_F8; break;
+		case DIKI_F9:
+			*key_code = GF_KEY_F9; break;
+		case DIKI_F10:
+			*key_code = GF_KEY_F10; break;
+		case DIKI_F11:
+			*key_code = GF_KEY_F11; break;
+		case DIKI_F12:
+			*key_code = GF_KEY_F12; break;
+
+		default:
+			*key_code = GF_KEY_UNIDENTIFIED; break;
 	}
 }
 

@@ -28,6 +28,11 @@
 typedef struct __DirectFBVidCtx DirectFBVidCtx;
 
 typedef enum {
+	WINDOW_X11 = 1,
+	WINDOW_SDL = 1 << 1,
+} WINDOW_MODE;
+
+typedef enum {
 	FLIP_SWAP	 = 1,
 	FLIP_WAITFORSYNC = 1 << 1,
 	FLIP_WAIT	 = 1 << 2,
@@ -41,10 +46,10 @@ typedef enum {
 u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf);
 u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf);
 size_t DirectFBVid_GetCtxSizeOf(void);
-void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx);
+void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, WINDOW_MODE window_mode);
 void DirectFBVid_CtxSetFlipMode(DirectFBVidCtx *ctx, FLIP_MODE flip_mode);
 void DirectFBVid_CtxPrimaryProcessGetAccelerationMask(DirectFBVidCtx *ctx);
-u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *flags, u32 *hw_code);
+u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *flags, u32 *key_code, s32 *x, s32 *y, u32 *button);
 void DirectFBVid_DrawHLineWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 length, u8 r, u8 g, u8 b);
 void DirectFBVid_DrawHLineAlphaWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 length, u8 r, u8 g, u8 b, u8 alpha);
 void DirectFBVid_DrawRectangleWrapper(DirectFBVidCtx *ctx, u32 x, u32 y, u32 width, u32 height, u8 r, u8 g, u8 b, u8 a);
