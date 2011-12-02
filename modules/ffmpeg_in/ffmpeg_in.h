@@ -73,17 +73,13 @@
 #ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/avformat.h>
 #else
-#include <libavformat/version.h>
-#ifdef FF_API_OLD_METADATA2
-#undef FF_API_OLD_METADATA2
-#endif
 #include <libavformat/avformat.h>
 #endif
 
 void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 
 
-#if LIBAVCODEC_VERSION_INT > ((52<<16)+(0<<8)+0)
+#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(52, 0, 0)
 #define FFMPEG_SWSCALE
 #ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/swscale.h>
@@ -156,7 +152,7 @@ void FFDEC_Delete(void *ifce);
 
 //#define FFMPEG_DUMP_REMOTE
 
-#if LIBAVCODEC_VERSION_INT < ((52<<16)+(102<<8)+0)
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 102, 0)
 #define USE_PRE_0_7 1
 #endif
 
