@@ -1791,8 +1791,8 @@ int main(int argc, char **argv)
 	/*   gpac init   */
 	/*****************/
 	gf_sys_init(0);
-	gf_log_set_tools_levels("container@warning:scene@warning:parser@warning:author@warning:coding@warning");
-
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+	
 	/***********************/
 	/*   initialisations   */
 	/***********************/

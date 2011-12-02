@@ -205,12 +205,12 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 			if (sep) sep[0] = 0;
 
 			if (!stricmp(tools, "all")) {
-				for (i=0; i<GF_LOG_TOOL_MAX - 1; i++) 
+				for (i=0; i<GF_LOG_TOOL_MAX; i++) 
 					global_log_tools[i].level = level;
 			}
 			else {
 				Bool found = 0;
-				for (i=0; i<GF_LOG_TOOL_MAX - 1; i++) {
+				for (i=0; i<GF_LOG_TOOL_MAX; i++) {
 					if (!strcmp(global_log_tools[i].name, tools)) {
 						global_log_tools[i].level = level;
 						found = 1;
@@ -242,7 +242,7 @@ GF_Err gf_log_set_tools_levels(const char *val)
 {
 #ifndef GPAC_DISABLE_LOG
 	u32 i;
-	for (i=0; i<GF_LOG_TOOL_MAX - 1; i++) 
+	for (i=0; i<GF_LOG_TOOL_MAX; i++) 
 		global_log_tools[i].level = GF_LOG_WARNING;
 
 	return gf_log_modify_tools_levels(val);
@@ -264,7 +264,7 @@ char *gf_log_get_tools_levels()
 	while (level <= GF_LOG_DEBUG) {
 		u32 nb_tools = 0;
 		strcpy(szLogs, "");
-		for (i=0; i<GF_LOG_TOOL_MAX - 1; i++) {
+		for (i=0; i<GF_LOG_TOOL_MAX; i++) {
 			if (global_log_tools[i].level == level) {
 				strcat(szLogs, global_log_tools[i].name);
 				strcat(szLogs, ":");
@@ -355,7 +355,7 @@ void gf_log_set_tool_level(u32 tool, u32 level)
 	assert(tool<=GF_LOG_TOOL_MAX); 
 	if (tool==GF_LOG_ALL) {
 		u32 i;
-		for (i=0; i<GF_LOG_TOOL_MAX-1; i++)
+		for (i=0; i<GF_LOG_TOOL_MAX; i++)
 			global_log_tools[i].level = level;
 	} else {
 		global_log_tools[tool].level = level;
