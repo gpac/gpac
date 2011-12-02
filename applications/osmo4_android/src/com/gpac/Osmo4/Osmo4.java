@@ -1001,14 +1001,10 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void showKeyboard(boolean showKeyboard) {
-        if (keyboardIsVisible == showKeyboard == true)
+        if (keyboardIsVisible == showKeyboard)
             return;
-        InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
         this.keyboardIsVisible = showKeyboard;
-        if (showKeyboard)
-            mgr.showSoftInput(mGLView, 0);
-        else
-            mgr.hideSoftInputFromInputMethod(mGLView.getWindowToken(), 0);
-
+        InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
+        mgr.toggleSoftInput(0, 0);
     }
 }
