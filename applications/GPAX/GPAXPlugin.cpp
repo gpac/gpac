@@ -577,6 +577,7 @@ STDMETHODIMP CGPAXPlugin::SetURL(BSTR _url)
 			srcp = (u16 *)_url;
 			len = gf_utf8_wcstombs(url, len, (const u16 **)&srcp);
 			url[len] = 0;
+			strcpy(m_url, url);
 			gf_term_connect(m_term, url);     
 			gf_free(url);
 		}

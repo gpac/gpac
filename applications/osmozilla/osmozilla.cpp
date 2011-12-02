@@ -506,6 +506,9 @@ void Osmozilla_QualitySwitch(Osmozilla *osmo, int switch_up)
 
 void Osmozilla_SetURL(Osmozilla *osmo, const char *url)
 {
-	if (osmo->term)
-		gf_term_connect(osmo->term, url);
+	if (osmo->term) {
+		if (osmo->url) gf_free(osmo->url);
+		osmo->url = gf_strdup(url);
+		gf_term_connect(osmo->term, osmo->url);
+	}
 }
