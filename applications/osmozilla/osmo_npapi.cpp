@@ -527,6 +527,12 @@ NS_IMETHODIMP nsOsmozillaPeer::QualitySwitch(int switch_up)
 	return NS_OK; 
 }
 
+NS_IMETHODIMP nsOsmozillaPeer::SetURL(const char *url) 
+{
+	Osmozilla_SetURL(mPlugin, url); 
+	return NS_OK; 
+}
+
 void nsOsmozillaPeer::SetInstance(Osmozilla *osmo)
 {
 	mPlugin = osmo;
@@ -651,6 +657,7 @@ enum
 	kOSMOZILLA_ID_METHOD_STOP,
 	kOSMOZILLA_ID_METHOD_UPDATE,
 	kOSMOZILLA_ID_METHOD_QUALITY_SWITCH,
+	kOSMOZILLA_ID_METHOD_SET_URL,
 	
 	kOSMOZILLA_NUM_METHODS,
 };
@@ -662,6 +669,7 @@ const NPUTF8 *  v_OSMOZILLA_MethodNames[kOSMOZILLA_NUM_METHODS] = {
 	"Stop",
 	"Update",
 	"QualitySwitch",
+	"SetURL",
 };
 
 NPClass osmozilla_script_class;
@@ -739,6 +747,15 @@ bool OSMOZILLA_Invoke(NPObject* obj, NPIdentifier name, const NPVariant* args, u
 			else if (args[0].type==NPVariantType_Int32) up = args[0].value.intValue ? 1 : 0;
 		}
 		Osmozilla_QualitySwitch(npo->osmo, up);
+		return 1;
+	}
+	if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_SET_URL]) {
+		const char *url = "";
+		if (argCount>=1) {
+			if (args[0].type==NPVariantType_String) 
+				url = args[0].value.stringValue.UTF8Characters;
+		}
+		Osmozilla_SetURL(npo->osmo, url);
 		return 1;
 	}
 	return 0;
