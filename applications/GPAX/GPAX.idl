@@ -44,6 +44,7 @@ library GPAXLib
 		[helpstring("Stop Movie")] HRESULT Stop();
 		[helpstring("Update Scene")] HRESULT Update([in] BSTR mtype, [in] BSTR updates);
 		[helpstring("Switch Quality")] HRESULT QualitySwitch ([in] int switch_up);
+		[helpstring("Change URL")] HRESULT SetURL ([in] BSTR url);
 
 
 		/*properties*/

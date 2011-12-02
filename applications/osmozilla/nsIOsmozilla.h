@@ -42,8 +42,11 @@ public:
 	/* void Update (in string type, in string commands); */
 	NS_IMETHOD Update(const char *type, const char *commands) = 0;
 
-	/* void Update (in string type, in string commands); */
+	/* void QualotySwitch (in string type, in string commands); */
 	NS_IMETHOD QualitySwitch(int switch_up) = 0;
+
+	/* void SetURL (in string url); */
+	NS_IMETHOD SetURL(const char *url) = 0;
 };
 
 /* Use this macro when declaring classes that implement this interface. */
@@ -51,24 +54,27 @@ public:
 	NS_IMETHOD Pause(void); \
 	NS_IMETHOD Play(void); \
 	NS_IMETHOD Stop(void); \
-	NS_IMETHOD Update(const char *type, const char *commands); 
-	NS_IMETHOD QualitySwitch(int switch_up); 
+	NS_IMETHOD Update(const char *type, const char *commands); \
+	NS_IMETHOD QualitySwitch(int switch_up); \
+	NS_IMETHOD SetURL(const char *type); 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_NSIOSMOZILLA(_to) \
 	NS_IMETHOD Pause(void) { return _to Pause(); } \
 	NS_IMETHOD Play(void) { return _to Play(); } \
 	NS_IMETHOD Stop(void) { return _to Stop(); } \
-	NS_IMETHOD Update(const char *type, const char *commands) { return _to Update(type, commands); } 
-	NS_IMETHOD QualitySwitch(int switch_up) { return _to QualitySwitch( switch_up ); }
+	NS_IMETHOD Update(const char *type, const char *commands) { return _to Update(type, commands); } \
+	NS_IMETHOD QualitySwitch(int switch_up) { return _to QualitySwitch( switch_up ); } \
+	NS_IMETHOD SetURL(const char *url) { return _to SetURL(url); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_NSIOSMOZILLA(_to) \
 	NS_IMETHOD Pause(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Pause(); } \
 	NS_IMETHOD Play(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Play(); } \
 	NS_IMETHOD Stop(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Stop(); } \
-	NS_IMETHOD Update(const char *type, const char *commands) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(type, commands); } 
+	NS_IMETHOD Update(const char *type, const char *commands) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(type, commands); } \
 	NS_IMETHOD QualitySwitch(int switch_up) { return !_to ? NS_ERROR_NULL_POINTER : _to->QualitySwitch(switch_up); } \
+	NS_IMETHOD SetURL(const char *url) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(url); } \
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -122,8 +128,14 @@ NS_IMETHODIMP nsOsmozilla::Update(const char *type, const char *commands)
 	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-/* void Update (in string type, in string commands); */
+/* void QualitySwitch (in string type, in string commands); */
 NS_IMETHODIMP nsOsmozilla::QualitySwitch(int switch_up)
+{
+	return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void SetURL (in string url); */
+NS_IMETHODIMP nsOsmozilla::SetURL(const char *type)
 {
 	return NS_ERROR_NOT_IMPLEMENTED;
 }

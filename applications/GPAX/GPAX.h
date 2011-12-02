@@ -115,6 +115,9 @@ EXTERN_C const IID IID_IGPAX;
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE QualitySwitch( 
             /* [in] */ INT switchUp) = 0;
         
+        virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE SetURL( 
+            /* [in] */ BSTR url) = 0;
+        
         virtual /* [helpstring][propget][id] */ HRESULT STDMETHODCALLTYPE get_src( 
             /* [retval][out] */ BSTR __RPC_FAR *url) = 0;
         
@@ -193,6 +196,10 @@ EXTERN_C const IID IID_IGPAX;
             IGPAX __RPC_FAR * This,
             /* [in] */ INT switchUp);
         
+        /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *SetURL )( 
+            IGPAX __RPC_FAR * This,
+            /* [in] */ BSTR url);
+
         /* [helpstring][propget][id] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *get_src )( 
             IGPAX __RPC_FAR * This,
             /* [retval][out] */ BSTR __RPC_FAR *url);
@@ -259,6 +266,9 @@ EXTERN_C const IID IID_IGPAX;
 
 #define IGPAX_QualitySwitch(This,switchUp)	\
     (This)->lpVtbl -> QualitySwitch(This,switchUp)
+
+#define IGPAX_SetURL(This,url)	\
+    (This)->lpVtbl -> SetURL(This,url)
 
 #define IGPAX_get_src(This,url)	\
     (This)->lpVtbl -> get_src(This,url)
@@ -330,6 +340,17 @@ void __RPC_STUB IGPAX_Update_Stub(
 
 
 void __RPC_STUB IGPAX_QualitySwitch_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+/* [helpstring] */ HRESULT STDMETHODCALLTYPE IGPAX_SetURL_Proxy( 
+    IGPAX __RPC_FAR * This,
+    /* [in] */ BSTR url);
+
+
+void __RPC_STUB IGPAX_SetURL_Stub(
     IRpcStubBuffer *This,
     IRpcChannelBuffer *_pRpcChannelBuffer,
     PRPC_MESSAGE _pRpcMessage,

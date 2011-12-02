@@ -503,3 +503,9 @@ void Osmozilla_QualitySwitch(Osmozilla *osmo, int switch_up)
 	if (osmo->term)
 		gf_term_switch_quality(osmo->term, switch_up ? 1 : 0);
 }
+
+void Osmozilla_SetURL(Osmozilla *osmo, const char *url)
+{
+	if (osmo->term)
+		gf_term_connect(osmo->term, url);
+}

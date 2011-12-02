@@ -563,6 +563,27 @@ STDMETHODIMP CGPAXPlugin::QualitySwitch(int switch_up)
     return S_OK;
 }
 
+STDMETHODIMP CGPAXPlugin::SetURL(BSTR _url)
+{
+	if (m_term) {
+		u16 *srcp;
+		u32 len;
+		char *url;
+
+		srcp = (u16 *)_url;
+		len = gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
+		if (len) {
+			url = (char *) gf_malloc(sizeof(char) * (len+1));
+			srcp = (u16 *)_url;
+			len = gf_utf8_wcstombs(url, len, (const u16 **)&srcp);
+			url[len] = 0;
+			gf_term_connect(m_term, url);     
+			gf_free(url);
+		}
+	}
+	return S_OK;
+}
+
 STDMETHODIMP CGPAXPlugin::Update(BSTR _mtype, BSTR _updates)
 {
     if (m_term) {

@@ -212,6 +212,7 @@ public:
 	STDMETHOD(Play)();
     STDMETHOD(Update)(BSTR mtype,BSTR updates);
 	STDMETHOD(QualitySwitch)(int switch_up);
+	STDMETHOD(SetURL)(BSTR url);
 
 	//Interface properties
     STDMETHODIMP get_src(BSTR *url);
