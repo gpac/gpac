@@ -334,7 +334,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		case CODEC_ID_MJPEG:
 		case CODEC_ID_MJPEGB:
 		case CODEC_ID_LJPEG:
-#if (LIBAVCODEC_VERSION_INT > ((51<<16)+(20<<8)+0) )
+#if (LIBAVCODEC_VERSION_INT > AV_VERSION_INT(51, 20, 0))
 		case CODEC_ID_GIF:
 #endif
 		case CODEC_ID_RAWVIDEO:
