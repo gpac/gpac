@@ -2372,6 +2372,10 @@ echo "CONFIG_JS=$has_js" >> config.mak
 if test "$has_js" = "no" ; then
     has_js="no"
 else
+    if test "$has_js" = "local" ; then
+        js_flags="-DXP_UNIX -I$local_inc/js"
+        js_lib="-ljs"
+    fi
     echo "JS_FLAGS=$js_flags" >> config.mak
     echo "JS_LIBS=$js_lib" >> config.mak
     echo "#define GPAC_HAS_SPIDERMONKEY" >> $TMPH
