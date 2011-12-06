@@ -281,19 +281,9 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 GLDECL(void, glActiveTexture, (GLenum texture) )
 GLDECL(void, glClientActiveTexture, (GLenum texture) )
 
-#define GL_ARRAY_BUFFER	0x8892
-#define GL_STREAM_DRAW	0x88E0
-#define GL_STATIC_DRAW	0x88E4
-#define GL_DYNAMIC_DRAW 0x88E8
 
-GLDECL(void, glGenBuffers, (GLsizei , GLuint *) )
-GLDECL(void, glDeleteBuffers, (GLsizei , GLuint *) )
-GLDECL(void, glBindBuffer, (GLenum, GLuint ) )
-GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
-GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
+GLDECL(void, glBlendEquation, (GLint mode) )
 #endif	//GL_VERSION_1_3
-
-
 
 #ifndef GL_VERSION_1_4
 
@@ -308,11 +298,31 @@ GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
 #define GL_BLEND_EQUATION_RGB GL_BLEND_EQUATION
 
 
-GLDECL(void, glBlendEquation, (GLint mode) )
 GLDECL(void, glPointParameterf, (GLenum , GLfloat) )
 GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
 
 #endif
+
+
+
+#ifndef GL_VERSION_1_5
+
+#ifdef LOAD_GL_FUNCS
+#define LOAD_GL_1_5
+#endif
+
+#define GL_ARRAY_BUFFER	0x8892
+#define GL_STREAM_DRAW	0x88E0
+#define GL_STATIC_DRAW	0x88E4
+#define GL_DYNAMIC_DRAW 0x88E8
+
+GLDECL(void, glGenBuffers, (GLsizei , GLuint *) )
+GLDECL(void, glDeleteBuffers, (GLsizei , GLuint *) )
+GLDECL(void, glBindBuffer, (GLenum, GLuint ) )
+GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
+GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
+
+#endif	//GL_VERSION_1_5
 
 
 #ifndef GL_VERSION_2_0
