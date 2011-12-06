@@ -73,11 +73,7 @@
 
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
-GLDECL_STATIC(glGenBuffers);
-GLDECL_STATIC(glDeleteBuffers);
-GLDECL_STATIC(glBindBuffer);
-GLDECL_STATIC(glBufferData);
-GLDECL_STATIC(glBufferSubData);
+GLDECL_STATIC(glBlendEquation);
 
 #endif //LOAD_GL_1_3
 
@@ -87,6 +83,15 @@ GLDECL_STATIC(glPointParameterf);
 GLDECL_STATIC(glPointParameterfv);
 
 #endif //LOAD_GL_1_4
+
+
+#ifdef LOAD_GL_1_5
+GLDECL_STATIC(glGenBuffers);
+GLDECL_STATIC(glDeleteBuffers);
+GLDECL_STATIC(glBindBuffer);
+GLDECL_STATIC(glBufferData);
+GLDECL_STATIC(glBufferSubData);
+#endif //LOAD_GL_1_5
 
 #ifdef LOAD_GL_2_0
 
@@ -128,7 +133,6 @@ GLDECL_STATIC(glUniformMatrix2x4fv);
 GLDECL_STATIC(glUniformMatrix4x2fv);
 GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
-GLDECL_STATIC(glBlendEquation);
 
 
 #endif //LOAD_GL_2_0
@@ -192,13 +196,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glActiveTexture);
 		GET_GLFUN(glClientActiveTexture);
 	}
-	if (compositor->gl_caps.vbo) {
-		GET_GLFUN(glGenBuffers);
-		GET_GLFUN(glDeleteBuffers);
-		GET_GLFUN(glBindBuffer);
-		GET_GLFUN(glBufferData);
-		GET_GLFUN(glBufferSubData);
-	}
+	GET_GLFUN(glBlendEquation);
 #endif
 
 #ifdef LOAD_GL_1_4
@@ -206,7 +204,16 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glPointParameterf);
 		GET_GLFUN(glPointParameterfv);
 	}
-	GET_GLFUN(glBlendEquation);
+#endif
+
+#ifdef LOAD_GL_1_5
+	if (compositor->gl_caps.vbo) {
+		GET_GLFUN(glGenBuffers);
+		GET_GLFUN(glDeleteBuffers);
+		GET_GLFUN(glBindBuffer);
+		GET_GLFUN(glBufferData);
+		GET_GLFUN(glBufferSubData);
+	}
 #endif
 
 
