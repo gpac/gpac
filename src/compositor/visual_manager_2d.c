@@ -794,6 +794,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	e = visual_2d_init_draw(visual, tr_state);
 	if (e) {
 		gf_mx2d_copy(tr_state->transform, backup);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Visual2D] Cannot init draw phase: %s\n", gf_error_to_string(e)));
 		return 0;
 	}
 

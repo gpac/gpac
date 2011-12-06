@@ -282,6 +282,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 	}
 	compositor->hw_locked = 0;
 	visual->is_attached = 0;
+	/*if using BlitTexture, return OK to still be able to blit images*/
+	if (compositor->video_out->BlitTexture) e = GF_OK;
 	return e;
 }
 
