@@ -716,6 +716,12 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
                        FILE *stream)
 {
         size_t result = fwrite(ptr, size, nmemb, stream);
+#ifdef _WIN32_WCE
+		if (result != nmemb) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nmemb, result));
+		}
+#else
+
         int errno_save = errno;
 #define ERRSTR_BUF_SIZE 256
         char errstr[ERRSTR_BUF_SIZE];
@@ -730,7 +736,9 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
             strncpy(errstr, strerror(errno_save), ERRSTR_BUF_SIZE);
 #endif
             GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, (errstr));
-        }
+
+		}
+#endif
         return result;
 }
 
