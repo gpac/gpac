@@ -122,7 +122,7 @@ int gf_asprintf(char **buffer, const char *fmt, ...);
 /*!
  *	\brief file writing helper
  *
- *	Wrapper to properly handle calls to gf_fwrite()
+ *	Wrapper to properly handle calls to fwrite()
  *	Ensures proper error handling is invoked when it fails.
  *	\return Same as gf_fwrite
  *
