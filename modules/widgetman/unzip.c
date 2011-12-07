@@ -122,7 +122,7 @@ uLong ZCALLBACK fwrite_file_func (opaque, stream, buf, size)
    uLong size;
 {
     uLong ret;
-    ret = (uLong)fwrite(buf, 1, (size_t)size, (FILE *)stream);
+    ret = (uLong)gf_fwrite(buf, 1, (size_t)size, (FILE *)stream);
     return ret;
 }
 
@@ -1282,7 +1282,7 @@ int do_extract_currentfile(uf)
                     break;
                 }
                 if (err>0)
-                    if (fwrite(buf,err,1,fout)!=1)
+                    if (gf_fwrite(buf,err,1,fout)!=1)
                     {
                         printf("error in writing extracted file\n");
                         err=UNZ_ERRNO;

@@ -511,7 +511,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 			FILE *f = gf_f64_open(opt, "wt");
 			if (f) {
 				sdp_buf = rtp->session_state_data + strlen("data:application/sdp,");
-				fwrite(sdp_buf, 1, strlen(sdp_buf), f);
+				gf_fwrite(sdp_buf, 1, strlen(sdp_buf), f);
 				fclose(f);
 			} else {
 				e = GF_IO_ERR;

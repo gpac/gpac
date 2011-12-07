@@ -2598,7 +2598,7 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	/*handle service message*/
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
-		s32 written = fwrite( param->data, sizeof(char), param->size, f);
+		s32 written = gf_fwrite( param->data, sizeof(char), param->size, f);
 		if (written != param->size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Failed to write data on disk\n"));
 		}
@@ -2790,7 +2790,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
                 read = fread(copyBuff, sizeof(char), MIN(sizeof(copyBuff), (size_t)  total), fr);
                 if (read > 0) {
                     total-= read;
-                    write = fwrite(copyBuff, sizeof(char), (size_t) read, fw);
+                    write = gf_fwrite(copyBuff, sizeof(char), (size_t) read, fw);
                     if (write != read) {
                         /* Something bad happened */
                         fclose( fw );

@@ -205,7 +205,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 					size = gf_bs_read_u32(bs);
 					nb_bytes = 6;
 				}
-//	            fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );
+//	            gf_fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );
 
 				dims_hdr = gf_bs_read_u8(bs);
 				prev = buf2[pos + nb_bytes + size];

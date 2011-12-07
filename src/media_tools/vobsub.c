@@ -633,7 +633,7 @@ GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, char *data, u32 dataSize
 		}
 
 		/* Write packet into file */
-		if (fwrite(buf, sizeof(buf), 1, fsub) != 1) {
+		if (gf_fwrite(buf, sizeof(buf), 1, fsub) != 1) {
 			return GF_IO_ERR;
 		}
 

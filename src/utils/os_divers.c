@@ -709,6 +709,30 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 #endif
 }
 
+#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE)
+#define HAVE_STRERROR_R 1
+#endif
+size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, 
+                       FILE *stream)
+{
+        size_t result = gf_fwrite(ptr, size, nmemb, stream);
+        int errno_save = errno;
+#define ERRSTR_BUF_SIZE 256
+        char errstr[ERRSTR_BUF_SIZE];
+        if(errno_save!=0)
+        {
+#ifdef HAVE_STRERROR_R
+            if(strerror_r(errno_save, errstr, ERRSTR_BUF_SIZE) != 0)
+            {
+                strerror_r(0, errstr, ERRSTR_BUF_SIZE);
+            }
+#else
+            strncpy(errstr, strerror(errno_save), ERRSTR_BUF_SIZE);
+#endif
+            GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, (errstr));
+        }
+        return result;
+}
 
 
 /*seems OK under mingw also*/

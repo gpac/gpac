@@ -688,7 +688,6 @@ int live_session(int argc, char **argv)
 		if (sk) {
 		    char buffer[2049];
 		    u32 bytes_read;
-		    Bool keep_receive;
 		    u32 update_length;
 		    u32 bytes_received;
 
@@ -741,14 +740,12 @@ int live_session(int argc, char **argv)
 					e = gf_sk_receive(sk, buffer, 2048, 0, &bytes_read);
 					switch (e) {
 					case GF_IP_NETWORK_EMPTY:
-						keep_receive = 0;
 						break;
 					case GF_OK:
 						memcpy(update_buffer+bytes_received, buffer, bytes_read);
 						bytes_received += bytes_read;
 						break;
 					default:
-						keep_receive = 0;
 						fprintf(stderr, "Error with UDP socket : %s\n", gf_error_to_string(e));
 						break;
 					}

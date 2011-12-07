@@ -142,7 +142,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *fmt, *handler_name, *rvc_config;
+	char *ext, szName[1000], *handler_name, *rvc_config;
 	rvc_predefined = 0;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
@@ -173,7 +173,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	handler_name = NULL;
 	rvc_config = NULL;
-	fmt = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
@@ -1182,7 +1181,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	for (i=0; i<nb_tracks; i++) {
 		u64 last_DTS, dest_track_dur_before_cat;
 		u32 nb_edits = 0;
-		Bool new_track = 0;
 		Bool use_ts_dur = 1;
 		Bool merge_edits = 0;
 		mtype = gf_isom_get_media_type(orig, i+1);
@@ -1343,7 +1341,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
-			new_track = 1;
 			/*remove cloned edit list, as it will be rewritten after import*/
 			gf_isom_remove_edit_segments(dest, dst_tk);
 		} else {
@@ -1708,7 +1705,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	u32 i, j, count;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
-	Bool is_in_iod, delete_desc, encode_names, delete_bcfg;
+	Bool encode_names, delete_bcfg;
 	GF_BIFSConfig *bcfg;
 	GF_AUContext		*au;
 	char szRad[GF_MAX_PATH], *ext;
@@ -1743,24 +1740,19 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		esd = NULL;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 
-		delete_desc = 0;
 		esd = NULL;
-		is_in_iod = 1;
 		if (iod) {
-			is_in_iod = 0;
 			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
 				esd = gf_list_get(iod->ESDescriptors, j);
 				if (esd->decoderConfig && esd->decoderConfig->streamType == GF_STREAM_SCENE) {
 					if (!sc->ESID) sc->ESID = esd->ESID;
 					if (sc->ESID == esd->ESID) {
-						is_in_iod = 1;
 						break;
 					}
 				}
 				/*special BIFS direct import from NHNT*/
 				else if (gf_list_count(iod->ESDescriptors)==1) {
 					sc->ESID = esd->ESID;
-					is_in_iod = 1;
 					break;
 				}
 				esd = NULL;
@@ -1768,7 +1760,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		}
 
 		if (!esd) {
-			delete_desc = 1;
 			esd = gf_odf_desc_esd_new(2);
 			gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 			esd->decoderConfig->decoderSpecificInfo = NULL;
@@ -1832,7 +1823,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			if (data) {
 				sprintf(szName, "%s%02d.bifs", szRad, j);
 				f = gf_f64_open(szName, "wb");
-				fwrite(data, data_len, 1, f);
+				gf_fwrite(data, data_len, 1, f);
 				fclose(f);
 				gf_free(data);
 			}

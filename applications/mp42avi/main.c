@@ -164,17 +164,17 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fi.biSizeImage = fb->pitch * fb->height;
 
 	/*NOT ALIGNED!!*/
-    fwrite(&fh.bfType, 2, 1, fout);
-    fwrite(&fh.bfSize, 4, 1, fout);
-    fwrite(&fh.bfReserved1, 2, 1, fout);
-    fwrite(&fh.bfReserved2, 2, 1, fout);
-    fwrite(&fh.bfOffBits, 4, 1, fout);
+    gf_fwrite(&fh.bfType, 2, 1, fout);
+    gf_fwrite(&fh.bfSize, 4, 1, fout);
+    gf_fwrite(&fh.bfReserved1, 2, 1, fout);
+    gf_fwrite(&fh.bfReserved2, 2, 1, fout);
+    gf_fwrite(&fh.bfOffBits, 4, 1, fout);
 
-	fwrite(&fi, 1, 40, fout);
+	gf_fwrite(&fi, 1, 40, fout);
 
 	for (j=fb->height; j>0; j--) {
 		ptr = fb->video_buffer + (j-1)*fb->pitch;
-		//fwrite(ptr, 1, fb->width  * 3, fout);
+		//gf_fwrite(ptr, 1, fb->width  * 3, fout);
 		for (i=0;i<fb->width; i++) {
 			fputc(ptr[2], fout);
 			fputc(ptr[1], fout);
@@ -201,7 +201,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 	fout = fopen(str, "wb");
 	if (!fout) return;
-	fwrite(fb->video_buffer , fb->height*fb->pitch, 1, fout);
+	gf_fwrite(fb->video_buffer , fb->height*fb->pitch, 1, fout);
 	fclose(fout);
 }
 

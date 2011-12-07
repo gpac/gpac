@@ -26,13 +26,13 @@
 void save_ts(char *filename, unsigned char *data)
 {
 	FILE *ts_out = fopen(filename,"a+b");
-	fwrite(data, 1, 188, ts_out);
+	gf_fwrite(data, 1, 188, ts_out);
 	fclose(ts_out);
 }
 void save_rs_0(char *filename, unsigned char *data)
 {
 	FILE *rs_out = fopen(filename,"a+b");
-	fwrite(data, 1, 204, rs_out);
+	gf_fwrite(data, 1, 204, rs_out);
 	fclose(rs_out);
 }
 
@@ -219,7 +219,7 @@ void main(int argc, char **argv)
 			for (j = 1; j <188; j++) {
 				buffer[j] = rand();//j; 
 			}
-			fwrite(buffer, 1, 188, in);
+			gf_fwrite(buffer, 1, 188, in);
 		}	
 	}
 	fclose(in);	

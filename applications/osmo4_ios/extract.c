@@ -180,13 +180,13 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fi.biSizeImage = fb->pitch_y * fb->height;
 
 	/*NOT ALIGNED!!*/
-    fwrite(&fh.bfType, 2, 1, fout);
-    fwrite(&fh.bfSize, 4, 1, fout);
-    fwrite(&fh.bfReserved1, 2, 1, fout);
-    fwrite(&fh.bfReserved2, 2, 1, fout);
-    fwrite(&fh.bfOffBits, 4, 1, fout);
+    gf_fwrite(&fh.bfType, 2, 1, fout);
+    gf_fwrite(&fh.bfSize, 4, 1, fout);
+    gf_fwrite(&fh.bfReserved1, 2, 1, fout);
+    gf_fwrite(&fh.bfReserved2, 2, 1, fout);
+    gf_fwrite(&fh.bfOffBits, 4, 1, fout);
 
-	fwrite(&fi, 1, 40, fout);
+	gf_fwrite(&fi, 1, 40, fout);
 //#ifndef GPAC_USE_TINYGL
 	for (j=fb->height; j>0; j--) {
 		ptr = fb->video_buffer + (j-1)*fb->pitch_y;

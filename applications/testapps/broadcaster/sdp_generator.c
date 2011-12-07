@@ -22,16 +22,16 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 		exit(1);
 	}
 
-	ret = fwrite("v=0\n", 1, 4, fp);
+	ret = gf_fwrite("v=0\n", 1, 4, fp);
 	sprintf(temp, "o=GpacBroadcaster 3326096807 1117107880000 IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
-	ret = fwrite(temp, 1, strlen(temp), fp);
+	ret = gf_fwrite(temp, 1, strlen(temp), fp);
 
-	ret = fwrite("s=MPEG4Broadcaster\n", 1, 19, fp);
+	ret = gf_fwrite("s=MPEG4Broadcaster\n", 1, 19, fp);
 	
 	sprintf(temp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
-	ret = fwrite(temp, 1, strlen(temp), fp);
+	ret = gf_fwrite(temp, 1, strlen(temp), fp);
 	
-	ret = fwrite("t=0 0\n", 1, 6, fp);
+	ret = gf_fwrite("t=0 0\n", 1, 6, fp);
 	
 	codec = (GF_SceneEngine *) data->codec;
 	if (codec) {
@@ -45,21 +45,21 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 		free(buffer);
 
 		sprintf(temp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", buf64);
-		ret = fwrite(temp, 1, strlen(temp), fp);
+		ret = gf_fwrite(temp, 1, strlen(temp), fp);
 	}
 	
 	sprintf(temp, "m=application %d RTP/AVP 96\n", port);
-	ret = fwrite(temp, 1, strlen(temp), fp);
+	ret = gf_fwrite(temp, 1, strlen(temp), fp);
 	
-	ret = fwrite("a=rtpmap:96 mpeg4-generic/1000\n", 1, 31, fp);
+	ret = gf_fwrite("a=rtpmap:96 mpeg4-generic/1000\n", 1, 31, fp);
 
 	if (esd) {
 		sprintf(temp, "a=mpeg4-esid:%d\n", esd->ESID);
-		ret = fwrite(temp, 1, strlen(temp), fp);
+		ret = gf_fwrite(temp, 1, strlen(temp), fp);
 	}
 	
 	sprintf(temp, "%s\n", sdp_fmt);
-	ret = fwrite(temp, 1, strlen(temp), fp);
+	ret = gf_fwrite(temp, 1, strlen(temp), fp);
 	fflush(fp);
 	fclose(fp);
 	dprintf(DEBUG_sdp_generator, "SDP file generated in broadcaster.sdp\n");

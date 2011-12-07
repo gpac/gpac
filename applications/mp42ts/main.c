@@ -2039,7 +2039,7 @@ int main(int argc, char **argv)
 		/*flush all packets*/
 		while ((ts_pck = gf_m2ts_mux_process(muxer, &status)) != NULL) {
 			if (ts_output_file != NULL) {
-				fwrite(ts_pck, 1, 188, ts_output_file); 
+				gf_fwrite(ts_pck, 1, 188, ts_output_file); 
 				if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
 					prev_seg_time = muxer->time;
 					fclose(ts_output_file);

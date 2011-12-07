@@ -120,6 +120,16 @@ const char *gf_4cc_to_str(u32 type);
 int gf_asprintf(char **buffer, const char *fmt, ...);
 
 /*!
+ *	\brief file writing helper
+ *
+ *	Wrapper to properly handle calls to gf_fwrite()
+ *	Ensures proper error handling is invoked when it fails.
+ *	\return Same as gf_fwrite
+ *
+*/
+size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+/*!
  *	\brief large file opening
  *
  *	Opens a large file (>4GB)

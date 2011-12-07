@@ -1131,7 +1131,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 			iri->string = NULL;
 			return GF_IO_ERR;
 		}
-		fwrite(data, data_size, 1, f);
+		gf_fwrite(data, data_size, 1, f);
 		fclose(f);
 	}
 	gf_free(data);

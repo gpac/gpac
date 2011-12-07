@@ -493,7 +493,7 @@ u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 		return repeat_count;
 	case GF_BITSTREAM_FILE_READ:
 	case GF_BITSTREAM_FILE_WRITE:
-		if (fwrite(&byte, 1, repeat_count, bs->stream) != repeat_count) return 0;
+		if (gf_fwrite(&byte, 1, repeat_count, bs->stream) != repeat_count) return 0;
 		if (bs->size == bs->position) bs->size += repeat_count;
 		bs->position += repeat_count;
 		return repeat_count;
@@ -564,7 +564,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 			return nbBytes;
 		case GF_BITSTREAM_FILE_READ:
 		case GF_BITSTREAM_FILE_WRITE:
-			if (fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
+			if (gf_fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
 			if (bs->size == bs->position) bs->size += nbBytes;
 			bs->position += nbBytes;
 			return nbBytes;

@@ -1572,7 +1572,7 @@ force_input:
 					if (!png) {
 						fprintf(stdout, "Error writing file dump.png\n");
 					} else {
-						fwrite(dst, dst_size, 1, png);
+						gf_fwrite(dst, dst_size, 1, png);
 						fclose(png);
 						fprintf(stdout, "Writing file dump.png\n");
 					}
