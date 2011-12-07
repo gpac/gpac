@@ -715,7 +715,7 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, 
                        FILE *stream)
 {
-        size_t result = gf_fwrite(ptr, size, nmemb, stream);
+        size_t result = fwrite(ptr, size, nmemb, stream);
         int errno_save = errno;
 #define ERRSTR_BUF_SIZE 256
         char errstr[ERRSTR_BUF_SIZE];
