@@ -32,7 +32,7 @@ void on_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_PES_PCK:
 		pck = par;
 		if (dest && (dump_pid == pck->stream->pid)) {
-			fwrite(pck->data, pck->data_len, 1, dest);
+			gf_fwrite(pck->data, pck->data_len, 1, dest);
 		}
 
 		//fprintf(stdout, "PES(%d): DTS "LLD" PTS" LLD" RAP %d size %d\n", pck->stream->pid, pck->DTS, pck->PTS, pck->rap, pck->data_len);

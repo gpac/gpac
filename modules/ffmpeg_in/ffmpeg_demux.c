@@ -491,7 +491,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 			ffd->buffer_used-=size;
 			memcpy(ffd->buffer, ffd->buffer+size, sizeof(char)*ffd->buffer_used);
 #ifdef FFMPEG_DUMP_REMOTE
-			if (ffd->outdbg) fwrite(buf, size, 1, ffd->outdbg);
+			if (ffd->outdbg) gf_fwrite(buf, size, 1, ffd->outdbg);
 #endif
 			return size;
 		}
@@ -524,7 +524,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 		buf += read;
 	}
 #ifdef FFMPEG_DUMP_REMOTE
-	if (ffd->outdbg) fwrite(ffd->buffer, full_size, 1, ffd->outdbg);
+	if (ffd->outdbg) gf_fwrite(ffd->buffer, full_size, 1, ffd->outdbg);
 #endif
 	return full_size ? (int) full_size : -1;
 }

@@ -1789,7 +1789,7 @@ GF_Err xml_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "<![CDATA[\n");
-	fwrite(p->xml, p->xml_length, 1, trace);
+	gf_fwrite(p->xml, p->xml_length, 1, trace);
 	fprintf(trace, "]]>\n");
 	fprintf(trace, "</XMLBox>\n");
 	return GF_OK;

@@ -140,7 +140,7 @@ void isor_declare_objects(ISOMReader *read)
 
 				/*write cover data*/
 				assert(!(tlen & 0x80000000));
-				fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
+				gf_fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
 				fclose(t);
 
 				/*don't display cover art when video is present*/

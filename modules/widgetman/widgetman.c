@@ -98,7 +98,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 				err = unzReadCurrentFile(uf,buf,8192);
 				if (err<0) break;
 				if (err>0)
-					if (fwrite(buf,err,1,fout)!=1) {
+					if (gf_fwrite(buf,err,1,fout)!=1) {
 						err=UNZ_ERRNO;
 						break;
 					}
@@ -366,7 +366,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 				if (err<0) break;
 
 				if (err>0)
-					if (fwrite(buf,err,1,fout)!=1) {
+					if (gf_fwrite(buf,err,1,fout)!=1) {
 						err=UNZ_ERRNO;
 						break;
 					}

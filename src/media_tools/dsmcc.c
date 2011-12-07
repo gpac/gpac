@@ -996,7 +996,7 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier: %s module_Id %d place :%d \n",File->Path,moduleId,File->objectKey_data));
 		pFile = fopen(File->Path,"wb");
 		if (pFile!=NULL){
-			fwrite(BIOP_File->content_byte,1,BIOP_File->content_length ,pFile);			
+			gf_fwrite(BIOP_File->content_byte,1,BIOP_File->content_length ,pFile);			
 			fclose(pFile);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier créé \n\n"));
 			if(!strcmp(File->name,"index.html")){

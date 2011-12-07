@@ -1203,10 +1203,10 @@ int mp4boxMain(int argc, char **argv)
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u64 movie_time;
 	s32 frags_per_sidx;
-	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
+	u32 brand_add[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, dash_ts_use_index;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, dash_ts_use_index;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
@@ -1239,7 +1239,7 @@ int mp4boxMain(int argc, char **argv)
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
-	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	frags_per_sidx = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -2036,13 +2036,11 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-rb")) { 
-			char *b = argv[i+1];
 			CHECK_NEXT_ARG 
 			if (nb_alt_brand_rem>=MAX_CUMUL_OPS) {
 				fprintf(stdout, "Sorry - no more than %d brand remove operations allowed\n", MAX_CUMUL_OPS);
 				return 1;
 			}
-			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_rem++;
 			open_edit = 1;
 			i++;
@@ -2126,7 +2124,7 @@ int mp4boxMain(int argc, char **argv)
 		done = 0;
 		while (1) {
 			u32 nb_bytes = fread(chunk, 1, 4096, fin);
-			fwrite(chunk, 1, nb_bytes, fout);
+			gf_fwrite(chunk, 1, nb_bytes, fout);
 			done += nb_bytes;
 			fprintf(stdout, "Appending file %s - %02.2f done\r", raw_cat, 100.0*done/to_copy);
 			if (done >= to_copy) break;
@@ -2579,7 +2577,7 @@ int mp4boxMain(int argc, char **argv)
 		} else {
 			char szName[GF_MAX_PATH];
 			FILE *iodf;
-			GF_BitStream *bs;
+			GF_BitStream *bs = NULL;
 
 			sprintf(szName, "%s.iod", outfile);
 			iodf = gf_f64_open(szName, "wb");
@@ -2590,13 +2588,14 @@ int mp4boxMain(int argc, char **argv)
 				u32 size;
 				bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
 				if (gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size)==GF_OK) {
-					fwrite(desc, 1, size, iodf);
+					gf_fwrite(desc, 1, size, iodf);
 					gf_free(desc);
 				} else {
 					fprintf(stdout, "Error writing IOD %s\n", szName);
 				}
 				fclose(iodf);
 			}
+                        gf_free(bs);
 		}
 	}
 

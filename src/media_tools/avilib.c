@@ -85,7 +85,7 @@ static u32 avi_write (FILE *fd, char *buf, u32 len)
    u32 r = 0;
 
    while (r < len) {
-      n = fwrite (buf + r, 1, len - r, fd);
+      n = gf_fwrite (buf + r, 1, len - r, fd);
       if (n < 0)
          return n;
 

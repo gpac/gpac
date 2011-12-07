@@ -1203,7 +1203,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		gf_f64_seek(mpd_segs, 0, SEEK_SET);
 		while (!feof(mpd_segs)) {
 			u32 r = fread(buffer, 1, 100, mpd_segs);
-			fwrite(buffer, 1, r, mpd);
+			gf_fwrite(buffer, 1, r, mpd);
 		}
 
 		fprintf(mpd, "   </SegmentInfo>\n");

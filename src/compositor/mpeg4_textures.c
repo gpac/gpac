@@ -353,7 +353,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				strcat(szExtractName, ct->cacheURL.buffer);
 				cached_texture = gf_f64_open(szExtractName, "wb");
 				if (cached_texture) {
-					fwrite(ct->data, 1, ct->data_len, cached_texture);
+					gf_fwrite(ct->data, 1, ct->data_len, cached_texture);
 					fclose(cached_texture);
 				}
 

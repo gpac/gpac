@@ -254,7 +254,7 @@ int main(int argc, char **argv)
 			if (ts_output_file != NULL) {
 				u32 now = gf_sys_clock();
 				if (towrite) {
-					fwrite(input_buffer, 1, towrite, ts_output_file); 
+					gf_fwrite(input_buffer, 1, towrite, ts_output_file); 
 					if (towrite < leftinbuffer) {
 						fprintf(stderr, "Warning: wrote %d bytes, keeping %d bytes\n", towrite, (leftinbuffer-towrite));
 						memmove(input_buffer, input_buffer+towrite, leftinbuffer-towrite);

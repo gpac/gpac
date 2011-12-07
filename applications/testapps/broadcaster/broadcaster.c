@@ -213,7 +213,7 @@ u32 tcp_server(void *par)
 				fprintf(stderr, "Error opening temp file for the configuration\n");
 				exit(1);
 			}
-			ret = fwrite(buffer, 1, byte_read, fp);
+			ret = gf_fwrite(buffer, 1, byte_read, fp);
 			fclose(fp);
 			
 			/* parsing config info */
@@ -240,7 +240,7 @@ u32 tcp_server(void *par)
 				GF_Err e = gf_sk_receive(conn_socket, temp, sizeof(temp), 0, &byte_read);
 
 				if (e == GF_OK) {
-					fwrite(temp, 1, byte_read, fp);
+					gf_fwrite(temp, 1, byte_read, fp);
 				} else if (e==GF_IP_NETWORK_EMPTY) {
 					num_retry--;
 					if (!num_retry)

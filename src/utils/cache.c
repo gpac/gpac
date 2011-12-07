@@ -583,7 +583,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Incorrect parameter : data=%p, entry->writeFilePtr=%p at "__FILE__, data, entry->writeFilePtr));
 		return GF_BAD_PARAM;
 	}
-	readen = fwrite(data, sizeof(char), size, entry->writeFilePtr);
+	readen = gf_fwrite(data, sizeof(char), size, entry->writeFilePtr);
 	if (readen > 0)
 		entry->written_in_cache+= readen;
 	if (readen != size) {

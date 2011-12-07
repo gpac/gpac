@@ -85,7 +85,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	
 	didfile = gf_f64_open(outName, "wb");
 	if (!didfile) return GF_IO_ERR;
-	fwrite(xml->xml, xml->xml_length, 1, didfile);
+	gf_fwrite(xml->xml, xml->xml_length, 1, didfile);
 	fclose(didfile);
 
 	if (is_binary) *is_binary = (xml->type==GF_ISOM_BOX_TYPE_BXML) ? 1 : 0;

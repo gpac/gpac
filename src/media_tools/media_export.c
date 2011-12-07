@@ -89,8 +89,8 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 
 		if (op.b_o_s) {
 			ogg_stream_pageout(&os, &og);
-			fwrite(og.header, 1, og.header_len, out);
-			fwrite(og.body, 1, og.body_len, out);
+			gf_fwrite(og.header, 1, og.header_len, out);
+			gf_fwrite(og.body, 1, og.body_len, out);
 			op.b_o_s = 0;
 
 			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_THEORA) {
@@ -116,8 +116,8 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	gf_odf_desc_del((GF_Descriptor *)esd);
 
 	while (ogg_stream_pageout(&os, &og)>0) {
-		fwrite(og.header, 1, og.header_len, out);
-		fwrite(og.body, 1, og.body_len, out);
+		gf_fwrite(og.header, 1, og.header_len, out);
+		gf_fwrite(og.body, 1, og.body_len, out);
 	}
 	
 	op.granulepos = -1;
@@ -157,15 +157,15 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 
 		while (ogg_stream_pageout(&os, &og)>0) {
-			fwrite(og.header, 1, og.header_len, out);
-			fwrite(og.body, 1, og.body_len, out);
+			gf_fwrite(og.header, 1, og.header_len, out);
+			gf_fwrite(og.body, 1, og.body_len, out);
 		}
 	}
 	if (samp) gf_isom_sample_del(&samp);
 
 	while (ogg_stream_flush(&os, &og)>0) {
-		fwrite(og.header, 1, og.header_len, out);
-		fwrite(og.body, 1, og.body_len, out);
+		gf_fwrite(og.header, 1, og.header_len, out);
+		gf_fwrite(og.body, 1, og.body_len, out);
 	}
     ogg_stream_clear(&os);
 	fclose(out);
@@ -207,7 +207,7 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 		if (e) return gf_export_message(dumper, e, "Error fetching hint packet %d", i);
 		sprintf(szName, "%s_pck_%04d.%s", dumper->out_name, i, gf_4cc_to_str(m_stype));
 		out = gf_f64_open(szName, "wb");
-		fwrite(pck, size, 1, out);
+		gf_fwrite(pck, size, 1, out);
 		fclose(out);
 		gf_free(pck);
 		i++;
@@ -1083,7 +1083,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 				max_size = size;
 			}
 			AVI_read_frame(in, frame, (int*)&key);
-			if ((u32) size>4) fwrite(frame, 1, size, fout);
+			if ((u32) size>4) gf_fwrite(frame, 1, size, fout);
 			gf_set_progress("AVI Extract", i+1, num_samples);
 		}
 		gf_free(frame);
@@ -1129,7 +1129,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		size = AVI_read_audio(in, frame, max_size, (int*)&continuous);
 		if (!size) break;
 		num_samples += size;
-		fwrite(frame, 1, size, fout);
+		gf_fwrite(frame, 1, size, fout);
 		gf_set_progress("AVI Extract", num_samples, tot_size);
 
 	}
@@ -1184,7 +1184,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 		sprintf(szName, "%s.info", dumper->out_name);
 		out_inf = gf_f64_open(szName, "wb");
-		if (out_inf) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, out_inf);
+		if (out_inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, out_inf);
 		fclose(out_inf);
 	}
 
@@ -1217,7 +1217,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
 		if (!samp) break;
-		fwrite(samp->data, samp->dataLength, 1, out_med);
+		gf_fwrite(samp->data, samp->dataLength, 1, out_med);
 		
 		/*dump nhnt info*/
 		gf_bs_write_u24(bs, samp->dataLength);
@@ -1640,7 +1640,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 			sprintf(szName, "%s.info", dumper->out_name);
 			inf = gf_f64_open(szName, "wb");
-			if (inf) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
+			if (inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
 			fclose(inf);
 			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
 		}
@@ -1673,7 +1673,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			if (sdesc->extension_buf) {
 				sprintf(szName, "%s.info", dumper->out_name);
 				inf = gf_f64_open(szName, "wb");
-				if (inf) fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
+				if (inf) gf_fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
 				fclose(inf);
 				fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
 				gf_free(sdesc->extension_buf);
@@ -1719,7 +1719,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		if (!samp) break;
 
 		if (med)
-			fwrite(samp->data, samp->dataLength, 1, med);
+			gf_fwrite(samp->data, samp->dataLength, 1, med);
 
 		if (dims_doc) {
 			GF_BitStream *bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
@@ -1774,7 +1774,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 						inflateEnd(&d_stream);
 					}
 				} else {
-					fwrite(samp->data+pos+3, size-1, 1, nhml);
+					gf_fwrite(samp->data+pos+3, size-1, 1, nhml);
 				}
 				fprintf(nhml, "</DIMSUnit>\n");
 				
@@ -1897,7 +1897,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		while (1) {
 			gf_saf_mux_for_time(mux, (u32) -1, 0, &data, &size);
 			if (!data) break;
-			fwrite(data, size, 1, saf_f);
+			gf_fwrite(data, size, 1, saf_f);
 			gf_free(data);
 		}
 		gf_set_progress("SAF Export", samp_done, tot_samp);
@@ -1905,7 +1905,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	}	
 	gf_saf_mux_for_time(mux, (u32) -1, 1, &data, &size);
 	if (data) {
-		fwrite(data, size, 1, saf_f);
+		gf_fwrite(data, size, 1, saf_f);
 		gf_free(data);
 	}
 	fclose(saf_f);
@@ -1925,12 +1925,12 @@ void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	if (evt_type == GF_M2TS_EVT_PES_PCK) {
 		FILE *dst = (FILE*)ts->user;
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
-		fwrite(pck->data, pck->data_len, 1, dst);
+		gf_fwrite(pck->data, pck->data_len, 1, dst);
 	}
 	else if (evt_type == GF_M2TS_EVT_SL_PCK) {
 		FILE *dst = (FILE*)ts->user;
 		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
-		fwrite(pck->data + 5, pck->data_len - 5, 1, dst);
+		gf_fwrite(pck->data + 5, pck->data_len - 5, 1, dst);
 	}
 }
 

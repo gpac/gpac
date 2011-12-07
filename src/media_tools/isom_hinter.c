@@ -131,14 +131,14 @@ void MP4T_DumpSDP(GF_ISOFile *file, const char *name)
 	f = gf_f64_open(name, "wt");
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
-	fwrite(sdp, size, 1, f);
+	gf_fwrite(sdp, size, 1, f);
 	fprintf(f, "\r\n");
 
 	//then tracks
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		if (gf_isom_get_media_type(file, i+1) != GF_ISOM_MEDIA_HINT) continue;
 		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
-		fwrite(sdp, size, 1, f);
+		gf_fwrite(sdp, size, 1, f);
 	}
 	fclose(f);
 }

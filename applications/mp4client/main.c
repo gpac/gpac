@@ -891,7 +891,7 @@ int main (int argc, char **argv)
 	Bool enable_mem_tracker = 0;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
-	Bool ret, fill_ar, visible;
+	Bool fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file, *views;
 	FILE *logfile = NULL;
 	Float scale = 1;
@@ -1208,14 +1208,13 @@ int main (int argc, char **argv)
 	}
 
 	Run = 1;
-	ret = 1;
 
 	if (dump_mode) {
 		if (!nb_times) {
 			times[0] = 0;
 			nb_times++;
 		}
-		ret = dump_file(url_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
+		dump_file(url_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
 	} else
 
@@ -1683,7 +1682,7 @@ force_input:
 							fprintf(stdout, "Error writing file %s\n", szFileName);
 							nb_pass = 0;
 						} else {
-							fwrite(dst, dst_size, 1, png);
+							gf_fwrite(dst, dst_size, 1, png);
 							fclose(png);
 							fprintf(stdout, "Dump to %s\n", szFileName);
 						}

@@ -113,7 +113,7 @@ GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 
 	sprintf(szName, "%s.%s", inName, (tag_len>>31) ? "png" : "jpg");
 	t = gf_f64_open(szName, "wb");
-	fwrite(tag, tag_len & 0x7FFFFFFF, 1, t);
+	gf_fwrite(tag, tag_len & 0x7FFFFFFF, 1, t);
 	
 	fclose(t);
 	return GF_OK;
@@ -2292,7 +2292,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 		}
 		if (dumper->pes_out && (dumper->dump_pid == pck->stream->pid)) {
-			fwrite(pck->data, pck->data_len, 1, dumper->pes_out);
+			gf_fwrite(pck->data, pck->data_len, 1, dumper->pes_out);
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
@@ -2320,7 +2320,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				if (sl_pck->stream->mpeg4_es_id) {
 					GF_ESD *esd = ((GF_M2TS_PES*)sl_pck->stream)->esd;
 					if (!dumper->is_info_dumped) {
-						if (esd->decoderConfig->decoderSpecificInfo) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, dumper->pes_out_info);
+						if (esd->decoderConfig->decoderSpecificInfo) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, dumper->pes_out_info);
 						dumper->is_info_dumped = 1;
 						fprintf(dumper->pes_out_nhml, "<NHNTStream version=\"1.0\" ");
 						fprintf(dumper->pes_out_nhml, "timeScale=\"%d\" ", esd->slConfig->timestampResolution);
@@ -2331,7 +2331,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						fprintf(dumper->pes_out_nhml, "inRootOD=\"yes\">\n");
 					}
 					gf_sl_depacketize(esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
-					fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, 1, dumper->pes_out);
+					gf_fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, 1, dumper->pes_out);
 					fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", LLD_CAST header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
 				}
 			}

@@ -188,7 +188,7 @@ static Bool audio_encoding_thread_run(void *param)
                     ts_encode_audio_frame(avr->ts_implementation, outBuff, encoded, sendPts ? myTime : AV_NOPTS_VALUE );
                     frameCountSinceReset++;
 #ifdef DUMP_MP3
-                    fwrite( outBuff, sizeof(char), encoded, mp3);
+                    gf_fwrite( outBuff, sizeof(char), encoded, mp3);
 #endif /* DUMP_MP3 */
                     //if (ctx->codec->id == CODEC_ID_MP3) {
                     /* It seems the MP3 codec only fetches 50% of data... */
