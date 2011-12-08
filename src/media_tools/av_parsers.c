@@ -2435,7 +2435,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	if ((hdr & 0x1F) != GF_AVC_NALU_SEI) return 0;
 
 	/*PPS still contains emulation bytes*/
-	sei_without_emulation_bytes = gf_malloc(nal_size*sizeof(char));
+	sei_without_emulation_bytes = gf_malloc(nal_size + 1/*for SEI null string termination*/);
 	sei_without_emulation_bytes_size = avc_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
 
 	bs = gf_bs_new(sei_without_emulation_bytes, sei_without_emulation_bytes_size, GF_BITSTREAM_READ);
@@ -2473,10 +2473,12 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			break;
 		case 5: /*user unregistered */
 		{
-			u8 prev = sei_without_emulation_bytes[start+2+psize];
-			sei_without_emulation_bytes[start+2+psize] = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", sei_without_emulation_bytes+start+2)); 
-			sei_without_emulation_bytes[start+2+psize] = prev;
+			char prev;
+			assert(start+psize+1 < nal_size+1);
+			prev = sei_without_emulation_bytes[start+psize+1];
+			sei_without_emulation_bytes[start+psize+1] = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", sei_without_emulation_bytes+start+16)); 
+			sei_without_emulation_bytes[start+psize+1] = prev;
 		}
 			break;
 		
