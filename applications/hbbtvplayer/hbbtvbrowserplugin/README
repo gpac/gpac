@@ -1,0 +1,14 @@
+******************************************
+HBBTVBROWSERPLUGIN  v0.01
+
+To build :
+
+	make
+
+To install : 
+
+	sudo make install
+
+*******************************************
+
+
