@@ -912,10 +912,14 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 {
     NPT_COMPILER_UNUSED(context);
 
+#ifdef GPAC_HAS_SPIDERMONKEY
 	gf_mx_p(m_pMutex);
+#endif
 	PLT_ActionDesc &act_desc = action->GetActionDesc();
         NPT_String name = act_desc.GetName();
+#ifdef GPAC_HAS_SPIDERMONKEY
 	assert(!m_pSema);
+#endif
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Action %s called (thread %d)\n", (char *) name, gf_th_id() ));
 	
 #ifdef GPAC_HAS_SPIDERMONKEY

@@ -64,10 +64,12 @@ GF_UPnP::~GF_UPnP()
 #endif
 }
 
+#ifdef GPAC_HAS_SPIDERMONKEY
 void GF_UPnP::LockJavascript(Bool do_lock)
 {
 	gf_sg_lock_javascript(m_pJSCtx, do_lock);
 }
+#endif
 
 void GF_UPnP::OnStop(const char *src_url)
 {
@@ -218,8 +220,8 @@ void GF_UPnP::onTimeChanged(s32 renderer_idx, Double time)
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
 		LockJavascript(0);
-	}
 #endif
+	}
 }
 
 void GF_UPnP::onDurationChanged(s32 renderer_idx, Double dur)
@@ -237,8 +239,8 @@ void GF_UPnP::onDurationChanged(s32 renderer_idx, Double dur)
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
 		LockJavascript(0);
-	}
 #endif
+	}
 }
 
 
