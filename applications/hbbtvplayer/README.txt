@@ -12,7 +12,7 @@ Documentation summary
 
 1. Go to the GPAC directory
 
-2. run ./configure --disable-3d --disable-jpeg 
+2. run ./configure 
 
 3. run make and then make install
 
