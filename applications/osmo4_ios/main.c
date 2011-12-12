@@ -110,6 +110,7 @@ void (*gf_term_switch_quality)(GF_Terminal *term, Bool up);
 GF_Err (*gf_term_release_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
 GF_Err (*gf_term_get_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
 FILE *(*gf_f64_open)(const char *file_name, const char *mode);
+size_t (*gf_fwrite)(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 GF_Err (*gf_img_png_enc)(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
 u32 (*utf8_to_ucs4)(u32 *ucs4_buf, u32 utf8_len, unsigned char *utf8_buf);
 
@@ -942,6 +943,7 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dlsym: %p gf_term_release_screen_buffer\n", gf_term_release_screen_buffer = dlsym(libgpac_so, "gf_term_release_screen_buffer"));
 	fprintf(stderr, "dlsym: %p gf_term_get_screen_buffer\n", gf_term_get_screen_buffer = dlsym(libgpac_so, "gf_term_get_screen_buffer"));
 	fprintf(stderr, "dlsym: %p gf_f64_open\n", gf_f64_open = dlsym(libgpac_so, "gf_f64_open"));
+	fprintf(stderr, "dlsym: %p gf_fwrite\n", gf_fwrite = dlsym(libgpac_so, "gf_fwrite"));
 	fprintf(stderr, "dlsym: %p gf_img_png_enc\n", gf_img_png_enc = dlsym(libgpac_so, "gf_img_png_enc"));
 	fprintf(stderr, "dlsym: %p utf8_to_ucs4\n", utf8_to_ucs4 = dlsym(libgpac_so, "utf8_to_ucs4"));
 

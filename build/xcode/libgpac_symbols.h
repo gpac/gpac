@@ -93,6 +93,7 @@
 #define gf_term_release_screen_buffer _gf_term_release_screen_buffer
 #define gf_term_get_screen_buffer _gf_term_get_screen_buffer
 #define gf_f64_open _gf_f64_open
+#define gf_fwrite _gf_fwrite
 #define gf_img_png_enc _gf_img_png_enc
 #define utf8_to_ucs4 _utf8_to_ucs4
 
@@ -281,6 +282,8 @@ extern GF_Err (*gf_term_release_screen_buffer)(GF_Terminal *term, GF_VideoSurfac
 extern GF_Err (*gf_term_get_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
 #undef gf_f64_open
 extern FILE *(*gf_f64_open)(const char *file_name, const char *mode);
+#undef gf_fwrite
+extern size_t (*gf_fwrite)(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 #undef gf_img_png_enc
 extern GF_Err (*gf_img_png_enc)(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
 #undef utf8_to_ucs4
