@@ -3554,8 +3554,11 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 	}
 	parser->initialized = 1;
 	
-	sep = strrchr(load->fileName, '.');
-	if (sep && !strnicmp(sep, ".wrl", 4)) parser->is_wrl = 1;
+	if ( load->fileName )
+	{
+		sep = strrchr(load->fileName, '.');
+		if (sep && !strnicmp(sep, ".wrl", 4)) parser->is_wrl = 1;
+	}
 	
 	if (input_only) return GF_OK;
 
