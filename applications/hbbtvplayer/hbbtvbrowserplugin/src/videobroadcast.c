@@ -376,8 +376,7 @@ void		VIDBRC_Invoke_setFullScreen(NPObj_VidBrc* obj,const NPVariant* args, uint3
 				if (pdata->window){						
 					OnVIDBRC_SetFullScreen(param);			
 				}
-			}
-			else							
+			}										
 		}	
 }
     
