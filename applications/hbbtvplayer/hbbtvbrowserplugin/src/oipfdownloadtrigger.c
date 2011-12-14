@@ -31,6 +31,7 @@ bool            v_bODWLDTRGIdentifiersInitialized = false;
 
 NPIdentifier    v_ODWLDTRGPropertyIdentifiers[kODWLDTRG_NUM_PROPERTY_IDENTIFIERS];
 const NPUTF8 *  v_ODWLDTRGPropertyNames[kODWLDTRG_NUM_PROPERTY_IDENTIFIERS] = {
+};
 
 NPIdentifier    v_ODWLDTRGMethodIdentifiers[kODWLDTRG_NUM_METHOD_IDENTIFIERS];
 const NPUTF8 *  v_ODWLDTRGMethodNames[kODWLDTRG_NUM_METHOD_IDENTIFIERS] = {
