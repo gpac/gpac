@@ -278,10 +278,9 @@ bool        KEYSET_GetProperty(NPObject* obj, NPIdentifier name, NPVariant* resu
 	
 	if (fctresult)
 	{
-			if (NPVARIANT_IS_DOUBLE(*result))				
-			else				
+							
 	}
-    else 
+    
 		
     
     return fctresult;    
