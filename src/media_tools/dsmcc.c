@@ -28,7 +28,7 @@ static GF_M2TS_DSMCC_MODULE* dsmcc_create_module(GF_M2TS_DSMCC_OVERLORD* dsmcc_o
 
 /* BIOP */
 static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_MODULE* dsmcc_module,char* data,u32 data_size);
-static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs,char* data);
+static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs);
 static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_OVERLORD*dsmcc_overlord,u16 moduleId,u32 downloadId);
 static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_OVERLORD*dsmcc_overlord,Bool IsServiceGateway);
 static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway);
@@ -563,7 +563,7 @@ static GF_Err dsmcc_create_module_validation(GF_M2TS_DSMCC_INFO_MODULES* InfoMod
 static GF_Err dsmcc_download_data_validation(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock,GF_M2TS_DSMCC_MODULE* dsmcc_module,u32 downloadId)
 {
 	/* It checks if the module Id is eq to the SGW's module Id if Got_ServiceGateway is null (means that the SWG has not been processed yet 
-		If then Got_ServiceGateway = 1 and all the module are processed */
+		If then Got_ServiceGateway = 1, all the module are processed */
 	if(dsmcc_overlord->ServiceGateway){
 		if ((dsmcc_overlord->Got_ServiceGateway || dsmcc_module->moduleId == dsmcc_overlord->ServiceGateway->moduleId)&&
 			((dsmcc_module->moduleId == DownloadDataBlock->moduleId) && (dsmcc_module->section_number == DownloadDataBlock->blockNumber) &&
@@ -863,7 +863,7 @@ static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_
 
 	while(byte_shift < data_size){
 
-		BIOP_Header = dsmcc_process_biop_header(bs,data);
+		BIOP_Header = dsmcc_process_biop_header(bs);
 
 		if(BIOP_Header){
 			if(!strcmp(BIOP_Header->objectKind_data,"fil")){
@@ -902,7 +902,7 @@ static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_
 	return GF_OK;
 }
 
-static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs,char* data){
+static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs){
 	
 	GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header;
 	GF_SAFEALLOC(BIOP_Header,GF_M2TS_DSMCC_BIOP_HEADER);
@@ -1099,7 +1099,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 
 		gf_bs_read_int(bs,(u32)(descr_length));
 
-		nb_desc = gf_list_count(BIOP_Directory->Name[i].descriptor );
+		nb_desc = gf_list_count(BIOP_Directory->Name[i].descriptor);
 		j = 0;
 		while(j<nb_desc){
 			/* get the descriptor tag */
