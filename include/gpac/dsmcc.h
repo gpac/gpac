@@ -67,30 +67,53 @@ typedef struct
 
 typedef struct
 {
+	/* Module identifier */
 	u32 moduleId;
+	/* Version number of the module */
 	u32 version_number;
+	/* size in byte of the module */
 	u32 size;
+	/* Download identifier */
 	u32 downloadId;
+	/* buffer of data */
 	char* buffer;
+	/* byte shifting in the buffer of data */
 	u32 byte_sift;
+	/* last section number processed */
 	u16 section_number;
+	/* the last section number of the module */
 	u16 last_section_number;
+	/* size in byte of each block in the module */
 	u32 block_size;
+	/* Checks if the module has been processed */
+	/* 1 if yes */
+	/* 0 otherwise */
 	Bool processed;
+	/* Checks if the module's data are zipped */
+	/* 1 if yes */
+	/* 0 otherwise */
 	Bool Gzip;
+	/* Size of the module's data after uncompression */
 	u32 original_size;
 }GF_M2TS_DSMCC_MODULE;
 
 typedef struct
 {
+	/* table id : identifier for dsmcc message type */
 	u8 table_id;
+	/* indicates the presence of CRC 32 */
 	u8 section_syntax_indicator;
 	u8 private_indicator;
+	/* length in byte of the dsmcc section */
 	u16 dsmcc_section_length;
+	/* linked with the moduleId if carried by the section */
 	u16 table_id_extension;
+	/* version number linked with the Data block if carried by the section */
 	u8 version_number;
 	u8 current_next_indicator;
+	/* section number of the data block if carried by the section */
 	u8 section_number;
+	/* last section number of the data block if carried by the section */
 	u8 last_section_number; 
 	void* DSMCC_Extension;
 	u32 checksum;
@@ -426,15 +449,24 @@ typedef struct{
 
 
 typedef struct{
+	/* "BIOP" */
 	u32 magic;
 	u8 biop_version_major;
 	u8 biop_version_minor;
 	u8 byte_order;
 	u8 message_type;
+	/* size in byte of the whole object carousel */
 	u32 message_size;
 	u8 objectKey_length;
+	/* witness the kind of object carousel the item is */
+	/* fil for a file */
+	/* dir for a directory */
+	/* srg for the ServiceGateway */
+	/* str for Stream Message */
+	/* ste for Stream Event Message */
 	u32 objectKey_data;
 	u32 objectKind_length;
+	/* The number that identifies the object in the module */
 	char* objectKind_data;
 	u16 objectInfo_length;
 }GF_M2TS_DSMCC_BIOP_HEADER;
@@ -446,7 +478,9 @@ typedef struct{
 	u8 serviceContextList_count;
 	GF_M2TS_DSMCC_SERVICE_CONTEXT* ServiceContext;
 	u32 messageBody_length;
+	/* size in byte of the data of the file */
 	u32 content_length;
+	/* data a the file */
 	char* content_byte;
 }GF_M2TS_DSMCC_BIOP_FILE;
 
@@ -455,9 +489,18 @@ typedef struct{
 	u8 nameComponents_count;
 	/* There is must be only one nameComponent */
 	u8 id_length;
+	/* the name of the item */
 	char * id_data;
 	u8 kind_length;
+	/* the kind of the item */
+	/* fil for a file */
+	/* dir for a directory */
+	/* srg for the ServiceGateway */
+	/* str for Stream Message */
+	/* ste for Stream Event Message */
 	char* kind_data;
+	/* 1 if the item a file or a stream */
+	/* 0 if the item si a directory */
 	u8 BindingType;
 	GF_M2TS_DSMCC_IOR IOR;
 	u16 objectInfo_length;
@@ -470,8 +513,11 @@ typedef struct{
 	char* objectInfo_data;
 	u8 serviceContextList_count;
 	GF_M2TS_DSMCC_SERVICE_CONTEXT* ServiceContext;
+	/* Length is byte of the message */
 	u32 messageBody_length;
+	/* Number of the item */
 	u16 bindings_count;
+	/* List of the item in the directory */
 	GF_M2TS_DSMCC_BIOP_NAME* Name;		
 }GF_M2TS_DSMCC_BIOP_DIRECTORY;
 
@@ -520,42 +566,67 @@ typedef struct{
 #define GF_M2TS_DSMCC_ELEMENT		\
 			u32 moduleId; \
 			u32 downloadId; \
+			/* version number of the item */
 			u32 version_number; \
+			/* identifier of the item in the module */
 			u32 objectKey_data; \
+			/* Name of the element */
 			char* name; \
+			/* Parent directory of the element */
 			void* parent;
 
 typedef struct
 {	
 	GF_M2TS_DSMCC_ELEMENT
+	/*Path to the file */
 	char* Path;
 }GF_M2TS_DSMCC_FILE;
 
 typedef struct
 {	GF_M2TS_DSMCC_ELEMENT
+	/* List of files in the directory*/
 	GF_List* File;
+	/* List of directories of the directory*/
 	GF_List* Dir;
+	/*Path to the directory */
 	char* Path;
 }GF_M2TS_DSMCC_DIR;
 
 typedef struct
 {	GF_M2TS_DSMCC_ELEMENT
+	/* Number of process directories */
 	u8 nb_processed_dir;
+	/* Service Id of the data carousel*/
 	u32 service_id;
+	/* List of files of the root of the file system*/
 	GF_List* File;
+	/* List of directories of the root of the file system*/
 	GF_List* Dir;
 }GF_M2TS_DSMCC_SERVICE_GATEWAY;
 
 typedef struct
 {	
+	/* List that carries the modules to process */
 	GF_List* dsmcc_modules;
+	/* List of processed module */
 	GF_M2TS_DSMCC_PROCESSED processed[512];	
+	/*Check if the ServiceGateway has been recovered*/
+	/* 1 ServiceGateway received */
+	/* 0 otherwise */
 	Bool Got_ServiceGateway;
+	/* ServiceGateway Structure */
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
+	/* List that carries modules that have been received before inti - TO DO */
 	GF_List* Unprocessed_module;
+	/* Service ID that carries this carousel */
 	u32 service_id;
+	/* Path of the root directory of the file system */
 	char* root_dir;
+	/*Check if the index.html (root of the application) has been recovered*/
+	/* 1 index.html received received */
+	/* 0 otherwise */
 	Bool get_index;
+	/* Number of the application that uses the carousel*/
 	u32 application_id;
 }GF_M2TS_DSMCC_OVERLORD;
 
