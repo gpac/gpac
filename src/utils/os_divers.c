@@ -715,31 +715,34 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, 
                        FILE *stream)
 {
-        size_t result = fwrite(ptr, size, nmemb, stream);
+	size_t result = fwrite(ptr, size, nmemb, stream);
+	if (result != nmemb) {
 #ifdef _WIN32_WCE
-		if (result != nmemb) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nmemb, result));
-		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nmemb, result));
 #else
-
-        int errno_save = errno;
-#define ERRSTR_BUF_SIZE 256
-        char errstr[ERRSTR_BUF_SIZE];
-        if(errno_save!=0)
-        {
+#if defined WIN32
+		errno_t errno_save;
+		_get_errno(&errno_save);
+#else
+		int errno_save = errno;
+#endif
+		//if (errno_save!=0)
+		{
 #ifdef HAVE_STRERROR_R
-            if(strerror_r(errno_save, errstr, ERRSTR_BUF_SIZE) != 0)
-            {
-                strerror_r(0, errstr, ERRSTR_BUF_SIZE);
-            }
+#define ERRSTR_BUF_SIZE 256
+			char errstr[ERRSTR_BUF_SIZE];
+			if(strerror_r(errno_save, errstr, ERRSTR_BUF_SIZE) != 0)
+			{
+				strerror_r(0, errstr, ERRSTR_BUF_SIZE);
+			}
 #else
-            strncpy(errstr, strerror(errno_save), ERRSTR_BUF_SIZE);
+			char *errstr = (char*)strerror(errno_save);
 #endif
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, (errstr));
-
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, nmemb, result));
 		}
 #endif
-        return result;
+	}
+	return result;
 }
 
 
