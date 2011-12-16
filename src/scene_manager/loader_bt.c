@@ -523,7 +523,7 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 	return parser->cur_buffer;
 }
 
-char *gf_bt_get_string(GF_BTParser *parser)
+char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 {
 	char *res;
 	s32 i, size;
@@ -542,22 +542,23 @@ char *gf_bt_get_string(GF_BTParser *parser)
 		if (gzeof(parser->gz_in)) return NULL;
 		gf_bt_check_line(parser);
 	}
+	if (!string_delim) string_delim = '"';
 
 	i=0;
 	while (1) {
-		if (parser->line_buffer[parser->line_pos] == '\"')
+		if (parser->line_buffer[parser->line_pos] == string_delim)
 			if ( !parser->line_pos || (parser->line_buffer[parser->line_pos-1] != '\\') ) break;
 
 		BT_STR_CHECK_ALLOC
 
 		if ((parser->line_buffer[parser->line_pos]=='/') && (parser->line_buffer[parser->line_pos+1]=='/') && (parser->line_buffer[parser->line_pos-1]!=':') ) {
 			/*this looks like a comment*/
-			if (!strstr(&parser->line_buffer[parser->line_pos], "\"")) {
+			if (!strchr(&parser->line_buffer[parser->line_pos], string_delim)) {
 				gf_bt_check_line(parser);
 				continue;
 			}
 		}
-		if ((parser->line_buffer[parser->line_pos] != '\\') || (parser->line_buffer[parser->line_pos+1] != '"')) {
+		if ((parser->line_buffer[parser->line_pos] != '\\') || (parser->line_buffer[parser->line_pos+1] != string_delim)) {
 			/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
 			if (!parser->unicode_type && parser->line_buffer[parser->line_pos] & 0x80) {
 				char c = parser->line_buffer[parser->line_pos];
@@ -924,8 +925,12 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		if (parser->last_error) return;
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if (gf_bt_check_code(parser, '\"') || gf_bt_check_code(parser, '\'')) {
-			char *str = gf_bt_get_string(parser);
+	{
+		u8 delim = 0;
+		if (gf_bt_check_code(parser, '\"')) delim = '\"';
+		else if (gf_bt_check_code(parser, '\'')) delim = '\'';
+		if (delim) {
+			char *str = gf_bt_get_string(parser, delim);
 			if (!str)
 				goto err;
 			if (((SFString *)info->far_ptr)->buffer) gf_free(((SFString *)info->far_ptr)->buffer);
@@ -941,11 +946,16 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		} else {
 			goto err;
 		}
+	}
 		break;
 	case GF_SG_VRML_SFURL:
-		if (gf_bt_check_code(parser, '\"') || gf_bt_check_code(parser, '\'')) {
+	{
+		u8 delim = 0;
+		if (gf_bt_check_code(parser, '\"')) delim = '\"';
+		else if (gf_bt_check_code(parser, '\'')) delim = '\'';
+		if (delim) {
 			SFURL *url = (SFURL *)info->far_ptr;
-			char *str = gf_bt_get_string(parser);
+			char *str = gf_bt_get_string(parser, delim);
 			if (!str) goto err;
 			if (url->url) gf_free(url->url);
 			url->url = NULL;
@@ -976,6 +986,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 			if (parser->last_error) return;
 			((SFURL *)info->far_ptr)->OD_ID = val;
 		}
+	}
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
@@ -1041,7 +1052,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		if (!gf_bt_check_code(parser, '\"')) {
 			gf_bt_report(parser, GF_BAD_PARAM, "\" expected in Script");
 		}
-		sc->script_text = (unsigned char*)gf_bt_get_string(parser);
+		sc->script_text = (unsigned char*)gf_bt_get_string(parser, '\"');
 	}
 		break;
 	case GF_SG_VRML_SFATTRREF:
@@ -1410,7 +1421,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					}
 					/*we ignore 'description' for MPEG4 sensors*/
 					else if (!strcmp(str, "description")) {
-						char *str = gf_bt_get_string(parser);
+						char *str = gf_bt_get_string(parser, 0);
 						gf_free(str);
 						parser->last_error = GF_OK;
 						continue;

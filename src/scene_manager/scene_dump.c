@@ -2730,6 +2730,10 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 				EndElement(sdump, "Scene", 1);
 				sdump->indent--;
 				EndElement(sdump, "Replace", 1);
+			} else {
+				DUMP_IND(sdump);
+				fprintf(sdump->trace, "\nAT 0 {\n");
+				sdump->indent++;
 			}
 		}
 #endif
@@ -2833,6 +2837,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	}
 
 	if (remain && !sdump->XMLDump) {
+		sdump->indent--;
 		DUMP_IND(sdump);
 		fprintf(sdump->trace, "}\n");
 	}
