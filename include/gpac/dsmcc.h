@@ -566,13 +566,9 @@ typedef struct{
 #define GF_M2TS_DSMCC_ELEMENT		\
 			u32 moduleId; \
 			u32 downloadId; \
-			/* version number of the item */
 			u32 version_number; \
-			/* identifier of the item in the module */
 			u32 objectKey_data; \
-			/* Name of the element */
 			char* name; \
-			/* Parent directory of the element */
 			void* parent;
 
 typedef struct
