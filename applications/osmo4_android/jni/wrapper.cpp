@@ -148,7 +148,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
           return -1;
         javaVM = vm;
         LOGI("Registering %s natives\n", className);
-        if (jniRegisterNativeMethods(env, className, sMethods, 9) < 0){
+        if (jniRegisterNativeMethods(env, className, sMethods, sizeof(sMethods)/sizeof(JNINativeMethod)) < 0){
           LOGE("Failed to register native methods for %s !\n", className);
           return -1;
         }
