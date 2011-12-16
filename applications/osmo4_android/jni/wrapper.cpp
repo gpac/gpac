@@ -549,12 +549,12 @@ void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total){
         JavaEnvTh *env = getEnv();
         if (!env || !env->cbk_onProgress)
                 return;
-        debug_log("Osmo4_progress_cbk start");
+        //debug_log("Osmo4_progress_cbk start");
 	env->env->PushLocalFrame(1);
         jstring js = env->env->NewStringUTF(title);
         env->env->CallVoidMethod(env->cbk_obj, env->cbk_onProgress, js, done, total);
 	env->env->PopLocalFrame(NULL);
-        debug_log("Osmo4_progress_cbk end");
+        //debug_log("Osmo4_progress_cbk end");
 }
 
 
