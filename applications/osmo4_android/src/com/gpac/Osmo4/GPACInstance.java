@@ -60,6 +60,7 @@ public class GPACInstance implements GPACInstanceInterface {
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
                                  "ffmpeg", "faad", "gpac", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
+                                 "gm_droid_cam", "gm_droid_mpegv", //$NON-NLS-1$ //$NON-NLS-2$
                                  "stdc++", "gpacWrapper" }; // //$NON-NLS-1$ //$NON-NLS-2$
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
