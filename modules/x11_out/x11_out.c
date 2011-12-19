@@ -971,7 +971,9 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		XUnmapWindow (xWindow->display, xWindow->full_wnd);
 		XMapWindow (xWindow->display, xWindow->wnd);
 		XUngrabKeyboard(xWindow->display, CurrentTime);
-		if (xWindow->par_wnd) XSetInputFocus(xWindow->display, xWindow->wnd, RevertToNone, CurrentTime);
+		/*looks like this makes osmozilla crash*/
+		//if (xWindow->par_wnd) XSetInputFocus(xWindow->display, xWindow->wnd, RevertToNone, CurrentTime);
+
 		/*backbuffer resize will be done right after this is called */
 	}
 #ifdef GPAC_HAS_OPENGL
