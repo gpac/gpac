@@ -242,34 +242,38 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 			/* Compatibility Descr */
 			gf_m2ts_dsmcc_process_compatibility_descriptor(&DownloadInfoIndication->CompatibilityDescr,data,bs,data_shift);
 			DownloadInfoIndication->numberOfModules = gf_bs_read_int(bs,16);
-			nb_modules = gf_list_count(dsmcc_overlord->dsmcc_modules);
-			for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){
-				DownloadInfoIndication->Modules.moduleId = gf_bs_read_int(bs,16);
-				DownloadInfoIndication->Modules.moduleSize = gf_bs_read_int(bs,32);
-				DownloadInfoIndication->Modules.moduleVersion = gf_bs_read_int(bs,8);
-				DownloadInfoIndication->Modules.moduleInfoLength = gf_bs_read_int(bs,8);				
-				DownloadInfoIndication->Modules.moduleInfoByte = (char*)gf_calloc(DownloadInfoIndication->Modules.moduleInfoLength,sizeof(char));
-				gf_bs_read_data(bs,DownloadInfoIndication->Modules.moduleInfoByte,(u32)(DownloadInfoIndication->Modules.moduleInfoLength));
-				if(!dsmcc_create_module_validation(&DownloadInfoIndication->Modules,DownloadInfoIndication->downloadId,dsmcc_overlord,nb_modules)){
-					/* Creation of the module */
-					GF_M2TS_DSMCC_MODULE*dsmcc_module = dsmcc_create_module(dsmcc_overlord,DownloadInfoIndication);
-					if(DownloadInfoIndication->Modules.moduleInfoLength){
-						GF_Err e;
-						e = dsmcc_get_biop_module_info(dsmcc_module,DownloadInfoIndication->Modules.moduleInfoByte,DownloadInfoIndication->Modules.moduleInfoLength);
-						if(e){
-							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error in BIOP Module Info for module %d, abording the processing \n",dsmcc_module->moduleId));
-							gf_free(DownloadInfoIndication->Modules.moduleInfoByte);
-							DownloadInfoIndication->Modules.moduleInfoByte = NULL;
-							return GF_CORRUPTED_DATA;
-						}						
+			/* Versioning of the DownloadInfoIndication is made by the field transactionId (here known as downloadId) */
+			if(DataMessage->DownloadDataHeader.downloadId > dsmcc_overlord->transactionId){
+				dsmcc_overlord->transactionId = DataMessage->DownloadDataHeader.downloadId;
+				nb_modules = gf_list_count(dsmcc_overlord->dsmcc_modules);
+				for(i = 0;i<DownloadInfoIndication->numberOfModules;i++){
+					DownloadInfoIndication->Modules.moduleId = gf_bs_read_int(bs,16);
+					DownloadInfoIndication->Modules.moduleSize = gf_bs_read_int(bs,32);
+					DownloadInfoIndication->Modules.moduleVersion = gf_bs_read_int(bs,8);
+					DownloadInfoIndication->Modules.moduleInfoLength = gf_bs_read_int(bs,8);				
+					DownloadInfoIndication->Modules.moduleInfoByte = (char*)gf_calloc(DownloadInfoIndication->Modules.moduleInfoLength,sizeof(char));
+					gf_bs_read_data(bs,DownloadInfoIndication->Modules.moduleInfoByte,(u32)(DownloadInfoIndication->Modules.moduleInfoLength));
+					if(!dsmcc_create_module_validation(&DownloadInfoIndication->Modules,DownloadInfoIndication->downloadId,dsmcc_overlord,nb_modules)){
+						/* Creation of the module */
+						GF_M2TS_DSMCC_MODULE*dsmcc_module = dsmcc_create_module(dsmcc_overlord,DownloadInfoIndication);
+						if(DownloadInfoIndication->Modules.moduleInfoLength){
+							GF_Err e;
+							e = dsmcc_get_biop_module_info(dsmcc_module,DownloadInfoIndication->Modules.moduleInfoByte,DownloadInfoIndication->Modules.moduleInfoLength);
+							if(e){
+								GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error in BIOP Module Info for module %d, abording the processing \n",dsmcc_module->moduleId));
+								gf_free(DownloadInfoIndication->Modules.moduleInfoByte);
+								DownloadInfoIndication->Modules.moduleInfoByte = NULL;
+								return GF_CORRUPTED_DATA;
+							}						
+						}
 					}
+					gf_free(DownloadInfoIndication->Modules.moduleInfoByte);
+					DownloadInfoIndication->Modules.moduleInfoByte = NULL;
 				}
-				gf_free(DownloadInfoIndication->Modules.moduleInfoByte);
-				DownloadInfoIndication->Modules.moduleInfoByte = NULL;
+				DownloadInfoIndication->privateDataLength = gf_bs_read_int(bs,16);    
+				DownloadInfoIndication->privateDataByte = (char*)gf_calloc(DownloadInfoIndication->privateDataLength,sizeof(char));
+				gf_bs_read_data(bs,DownloadInfoIndication->privateDataByte,(u32)(DownloadInfoIndication->privateDataLength));
 			}
-			DownloadInfoIndication->privateDataLength = gf_bs_read_int(bs,16);    
-			DownloadInfoIndication->privateDataByte = (char*)gf_calloc(DownloadInfoIndication->privateDataLength,sizeof(char));
-			gf_bs_read_data(bs,DownloadInfoIndication->privateDataByte,(u32)(DownloadInfoIndication->privateDataLength));
 			break;
 		}
 	case DOWNLOAD_DATA_BLOCK:

@@ -612,6 +612,8 @@ typedef struct
 	Bool Got_ServiceGateway;
 	/* ServiceGateway Structure */
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
+	/* u32 transactionId for DownloadInfoIndicator versioning */
+	u32 transactionId;
 	/* List that carries modules that have been received before inti - TO DO */
 	GF_List* Unprocessed_module;
 	/* Service ID that carries this carousel */
