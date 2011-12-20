@@ -764,9 +764,9 @@ void  gf_m2ts_delete_channel_application_info(GF_M2TS_CHANNEL_APPLICATION_INFO* 
 		GF_M2TS_AIT_APPLICATION* Application = (GF_M2TS_AIT_APPLICATION*)gf_list_get(ChannelApp->Application,0);
 		gf_m2ts_free_ait_application(Application);
 		gf_list_rem(ChannelApp->Application,0);
-		gf_list_del(ChannelApp->Application);
 	}
 
+	gf_list_del(ChannelApp->Application);
 	gf_free(ChannelApp);
 }
 #endif //GPAC_DISABLE_MPEG2TS
