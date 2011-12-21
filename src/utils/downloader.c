@@ -595,6 +595,9 @@ void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  co
 
 static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 {
+    assert( sess );
+    if (sess->status >= GF_NETIO_DISCONNECTED)
+	return;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] gf_dm_disconnect(%p)\n", sess ));
     if (sess->mx)
         gf_mx_p(sess->mx);
@@ -608,8 +611,10 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 		}
 #endif
 		if (sess->sock) {
-			gf_sk_del(sess->sock);
+			GF_Socket * sx = sess->sock;
 			sess->sock = NULL;
+			gf_sk_del(sx);
+			//sess->sock = NULL;
 		}
 	}
     sess->status = GF_NETIO_DISCONNECTED;
@@ -1730,6 +1735,7 @@ Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess)
 
 void gf_dm_sess_abort(GF_DownloadSession * sess)
 {
+    assert(sess);
     if (sess->mx) {
         gf_mx_p(sess->mx);
         gf_dm_disconnect(sess, 1);
