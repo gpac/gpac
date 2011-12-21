@@ -162,6 +162,7 @@
 	    GF_Err e;
 		u32 download_rate;
 	    GF_MPD_Group *group= (GF_MPD_Group*) cbk;
+	    assert( group );
 
 	    /*handle service message*/
 	    gf_term_download_update_stats(group->segment_dnload);
@@ -548,7 +549,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         {
             u32 timer2 = gf_sys_clock() - timer ;
             if (timer2 > 1000) {
-                GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
             }
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[0].url, timer2, group->cached[0].cache, group->nb_cached, group->max_cached));
         }
@@ -1248,14 +1249,18 @@ static u32 MPD_GetPeriodIndexFromTime(GF_MPD_In *mpdin, u32 time)
 
 static void MPD_DownloadStop(GF_MPD_In *mpdin)
 {
+    assert( mpdin );
 	u32 i;
+    if (mpdin->groups){
 	for (i=0; i<gf_list_count(mpdin->groups); i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
+		assert( group );
 		if (group->selected && group->segment_dnload) {
 			gf_dm_sess_abort(group->segment_dnload);
 			group->done = 1;
 		}
 	}
+    }
     /* stop the download thread */
     gf_mx_p(mpdin->dl_mutex);
     if (mpdin->mpd_is_running != MPD_STATE_STOPPED) {
@@ -1636,6 +1641,7 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 void MPD_Stop(GF_MPD_In *mpdin)
 {
+    assert( mpdin );
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Stopping service %p\n", mpdin->service));
     MPD_DownloadStop(mpdin);
     MPD_ResetGroups(mpdin);
@@ -1653,6 +1659,7 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 {
 	u32 i;
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
+    assert( mpdin );
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Close Service (%p) request from terminal\n", mpdin->service));
    
 	for (i=0; i<gf_list_count(mpdin->groups); i++) {
@@ -1922,16 +1929,24 @@ void ShutdownInterface(GF_BaseInterface *bi)
     GF_InputService *ifcn = (GF_InputService*)bi;
     if (ifcn->InterfaceType==GF_NET_CLIENT_INTERFACE) {
         GF_MPD_In *mpdin = (GF_MPD_In*)ifcn->priv;
+	assert( mpdin );
         if (mpdin->mpd)
             gf_mpd_del(mpdin->mpd);
         mpdin->mpd = NULL;
 	if (mpdin->url)
 	  gf_free(mpdin->url);
 	mpdin->url = NULL;
-        gf_th_del(mpdin->mpd_thread);
-        gf_mx_del(mpdin->dl_mutex);
-        gf_free(mpdin->mimeTypeForM3U8Segments);
+	if (mpdin->mpd_thread)
+          gf_th_del(mpdin->mpd_thread);
+        mpdin->mpd_thread = NULL;
+	if (mpdin->dl_mutex)
+          gf_mx_del(mpdin->dl_mutex);
+        mpdin->dl_mutex = NULL;
+        if (mpdin->mimeTypeForM3U8Segments)
+		gf_free(mpdin->mimeTypeForM3U8Segments);
+	mpdin->mimeTypeForM3U8Segments = NULL;
         gf_free(mpdin);
+	ifcn->priv = NULL;
         gf_free(bi);
     }
 }

@@ -407,9 +407,11 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
 	return GF_OK;
 }
 
+#include <assert.h>
 
 static void gf_sk_free(GF_Socket *sock)
 {
+	assert( sock );
 	/*leave multicast*/
 	if (sock->socket && (sock->flags & GF_SOCK_IS_MULTICAST) ) {
 		struct ip_mreq mreq;
@@ -441,8 +443,10 @@ static void gf_sk_free(GF_Socket *sock)
 	}
 }
 
+
 void gf_sk_del(GF_Socket *sock)
 {
+	assert( sock );
 	gf_sk_free(sock);
 #ifdef WIN32
 	wsa_init --;
