@@ -617,157 +617,185 @@ u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf)
  **/
 void directfb_translate_key(DFBInputDeviceKeyIdentifier DirectFBkey, u32 *flags, u32 *key_code)
 {
-	printf("DirectFBkey=%d\n", DirectFBkey);
+	//~ printf("DirectFBkey=%d\n", DirectFBkey);
 
 	switch (DirectFBkey) {
-		//~ case DIKI_BACKSPACE:
-			//~ *key_code = GF_KEY_BACKSPACE; break;
-		//~ case DIKI_TAB:
-			//~ *key_code = GF_KEY_TAB; break;
-		//~ case DIKI_ENTER:
-			//~ *key_code = GF_KEY_ENTER; break;
-		//~ case DIKI_ESCAPE:
-			//~ *key_code = GF_KEY_ESCAPE; break;
-		//~ case DIKI_SPACE:
-			//~ *key_code = GF_KEY_SPACE; break;
-		//~ case DIKI_SHIFT_L:
-		//~ case DIKI_SHIFT_R:
-			//~ *key_code = GF_KEY_SHIFT; break;
-		//~ case DIKI_CONTROL_L:
-		//~ case DIKI_CONTROL_R:
-			//~ *key_code = GF_KEY_CONTROL; break;
-		//~ case DIKI_ALT_L:
-		//~ case DIKI_ALT_R:
-			//~ *key_code = GF_KEY_ALT; break;
-		//~ case DIKI_CAPS_LOCK:
-			//~ *key_code = GF_KEY_CAPSLOCK; break;
-		//~ case DIKI_META_L:
-		//~ case DIKI_META_R:
-			//~ *key_code = GF_KEY_META; break;
-		//~ case DIKI_KP_EQUAL:
-			//~ *key_code = GF_KEY_EQUALS; break;
-		//~ case DIKI_SUPER_L:
-		//~ case DIKI_SUPER_R:
-			//~ *key_code = GF_KEY_WIN; break;
-		//~ 
-		//~ /* alphabets */
-		//~ case DIKI_A:
-			//~ *key_code = GF_KEY_A; break;
-		//~ case DIKI_B:
-			//~ *key_code = GF_KEY_B; break;
-		//~ case DIKI_C:
-			//~ *key_code = GF_KEY_C; break;
-		//~ case DIKI_D:
-			//~ *key_code = GF_KEY_D; break;
-		//~ case DIKI_E:
-			//~ *key_code = GF_KEY_E; break;
-		//~ case DIKI_F:
-			//~ *key_code = GF_KEY_F; break;
-		//~ case DIKI_G:
-			//~ *key_code = GF_KEY_G; break;
-		//~ case DIKI_H:
-			//~ *key_code = GF_KEY_H; break;
-		//~ case DIKI_I:
-			//~ *key_code = GF_KEY_I; break;
-		//~ case DIKI_J:
-			//~ *key_code = GF_KEY_J; break;
-		//~ case DIKI_K:
-			//~ *key_code = GF_KEY_K; break;
-		//~ case DIKI_L:
-			//~ *key_code = GF_KEY_L; break;
-		//~ case DIKI_M:
-			//~ *key_code = GF_KEY_M; break;
-		//~ case DIKI_N:
-			//~ *key_code = GF_KEY_N; break;
-		//~ case DIKI_O:
-			//~ *key_code = GF_KEY_O; break;
-		//~ case DIKI_P:
-			//~ *key_code = GF_KEY_P; break;
-		//~ case DIKI_Q:
-			//~ *key_code = GF_KEY_Q; break;
-		//~ case DIKI_R:
-			//~ *key_code = GF_KEY_R; break;
-		//~ case DIKI_S:
-			//~ *key_code = GF_KEY_S; break;
-		//~ case DIKI_T:
-			//~ *key_code = GF_KEY_T; break;
-		//~ case DIKI_U:
-			//~ *key_code = GF_KEY_U; break;
-		//~ case DIKI_V:
-			//~ *key_code = GF_KEY_V; break;
-		//~ case DIKI_W:
-			//~ *key_code = GF_KEY_W; break;
-		//~ case DIKI_X:
-			//~ *key_code = GF_KEY_X; break;
-		//~ case DIKI_Y:
-			//~ *key_code = GF_KEY_Y; break;
-		//~ case DIKI_Z:
-			//~ *key_code = GF_KEY_Z; break;
-			//~ 
-		//~ case DIKI_PRINT:
-			//~ *key_code = GF_KEY_PRINTSCREEN; break;
-		//~ case DIKI_SCROLL_LOCK:
-			//~ *key_code = GF_KEY_SCROLL; break;
-		//~ case DIKI_PAUSE:
-			//~ *key_code = GF_KEY_PAUSE; break;
-		//~ case DIKI_INSERT:
-			//~ *key_code = GF_KEY_INSERT; break;
-		//~ case DIKI_DELETE:
-			//~ *key_code = GF_KEY_DEL; break;
-		//~ case DIKI_HOME:
-			//~ *key_code = GF_KEY_HOME; break;
-		//~ case DIKI_END:
-			//~ *key_code = GF_KEY_END; break;
-		//~ case DIKI_PAGE_UP:
-			//~ *key_code = GF_KEY_PAGEUP; break;
-		//~ case DIKI_PAGE_DOWN:
-			//~ *key_code = GF_KEY_PAGEDOWN; break;
-		//~ 
-		//~ /* arrows */
-		//~ case DIKI_UP:
-			//~ *key_code = GF_KEY_UP; break;
-		//~ case DIKI_DOWN:
-			//~ *key_code = GF_KEY_DOWN; break;
-		//~ case DIKI_RIGHT:
-			//~ *key_code = GF_KEY_RIGHT; break;
-		//~ case DIKI_LEFT:
-			//~ *key_code = GF_KEY_LEFT; break;
-//~ 
-		//~ /* extended numerical pad */
-		//~ case DIKI_NUM_LOCK:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_NUMLOCK; break;
-		//~ case DIKI_KP_DIV:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_SLASH; break;
-		//~ case DIKI_KP_MULT:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_STAR; break;
-		//~ case DIKI_KP_MINUS:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_HYPHEN; break;
-		//~ case DIKI_KP_PLUS:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_PLUS; break;
-		//~ case DIKI_KP_ENTER:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_ENTER; break; 
-		//~ case DIKI_KP_DECIMAL:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_FULLSTOP; break;
-		//~ case DIKI_KP_0:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_0; break;
-		//~ case DIKI_KP_1:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_1; break;
-		//~ case DIKI_KP_2:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_2; break;
-		//~ case DIKI_KP_3:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_3; break;
-		//~ case DIKI_KP_4:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_4; break;
-		//~ case DIKI_KP_5: 
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_5; break;
-		//~ case DIKI_KP_6:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_6; break;
-		//~ case DIKI_KP_7:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_7; break;
-		//~ case DIKI_KP_8:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_8; break;
-		//~ case DIKI_KP_9:
-			//~ *flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_9; break;
+		case DIKI_BACKSPACE:
+			*key_code = GF_KEY_BACKSPACE; 
+			//~ printf("DIKI_BACKSPACE\n"); 
+			break;
+		case DIKI_TAB:
+			*key_code = GF_KEY_TAB; 
+			//~ printf("DIKI_TAB\n"); 
+			break;
+		case DIKI_ENTER:
+			*key_code = GF_KEY_ENTER; 
+			//~ printf("DIKI_ENTER\n"); 
+			break;
+		case DIKI_ESCAPE:
+			*key_code = GF_KEY_ESCAPE; 
+			//~ printf("DIKI_ESCAPE\n"); 
+			break;
+		case DIKI_SPACE:
+			*key_code = GF_KEY_SPACE; 
+			//~ printf("DIKI_SPACE\n"); 
+			break;
+		case DIKI_SHIFT_L:
+		case DIKI_SHIFT_R:
+			*key_code = GF_KEY_SHIFT; 
+			//~ printf("DIKI_SHIFT_R/DIKI_SHIFT_L\n"); 
+			break;
+		case DIKI_CONTROL_L:
+		case DIKI_CONTROL_R:
+			*key_code = GF_KEY_CONTROL; 
+			//~ printf("DIKI_CONTROL_L/DIKI_CONTROL_R\n"); 
+			break;
+		case DIKI_ALT_L:
+		case DIKI_ALT_R:
+			*key_code = GF_KEY_ALT; 
+			//~ printf("DIKI_ALT_L/DIKI_ALT_R\n"); 
+			break;
+		case DIKI_CAPS_LOCK:
+			*key_code = GF_KEY_CAPSLOCK; 
+			//~ printf("DIKI_CAPS_LOCK\n"); 
+			break;
+		case DIKI_META_L:
+		case DIKI_META_R:
+			*key_code = GF_KEY_META; break;
+		case DIKI_KP_EQUAL:
+			*key_code = GF_KEY_EQUALS; break;
+		case DIKI_SUPER_L:
+		case DIKI_SUPER_R:
+			*key_code = GF_KEY_WIN; break;
+		
+		/* alphabets */
+		case DIKI_A:
+			*key_code = GF_KEY_A; 
+			//~ printf("DIKI_A\n"); 
+			break;
+		case DIKI_B:
+			*key_code = GF_KEY_B; 
+			//~ printf("DIKI_B\n"); 
+			break;
+		case DIKI_C:
+			*key_code = GF_KEY_C; 
+			//~ printf("DIKI_C\n"); 
+			break;
+		case DIKI_D:
+			*key_code = GF_KEY_D; 
+			//~ printf("DIKI_D\n"); 
+			break;
+		case DIKI_E:
+			*key_code = GF_KEY_E; 
+			//~ printf("DIKI_E\n"); 
+			break;
+		case DIKI_F:
+			*key_code = GF_KEY_F; break;
+		case DIKI_G:
+			*key_code = GF_KEY_G; break;
+		case DIKI_H:
+			*key_code = GF_KEY_H; break;
+		case DIKI_I:
+			*key_code = GF_KEY_I; break;
+		case DIKI_J:
+			*key_code = GF_KEY_J; break;
+		case DIKI_K:
+			*key_code = GF_KEY_K; break;
+		case DIKI_L:
+			*key_code = GF_KEY_L; break;
+		case DIKI_M:
+			*key_code = GF_KEY_M; break;
+		case DIKI_N:
+			*key_code = GF_KEY_N; break;
+		case DIKI_O:
+			*key_code = GF_KEY_O; break;
+		case DIKI_P:
+			*key_code = GF_KEY_P; break;
+		case DIKI_Q:
+			*key_code = GF_KEY_Q; break;
+		case DIKI_R:
+			*key_code = GF_KEY_R; break;
+		case DIKI_S:
+			*key_code = GF_KEY_S; break;
+		case DIKI_T:
+			*key_code = GF_KEY_T; break;
+		case DIKI_U:
+			*key_code = GF_KEY_U; break;
+		case DIKI_V:
+			*key_code = GF_KEY_V; break;
+		case DIKI_W:
+			*key_code = GF_KEY_W; break;
+		case DIKI_X:
+			*key_code = GF_KEY_X; break;
+		case DIKI_Y:
+			*key_code = GF_KEY_Y; break;
+		case DIKI_Z:
+			*key_code = GF_KEY_Z; break;
+			
+		case DIKI_PRINT:
+			*key_code = GF_KEY_PRINTSCREEN; break;
+		case DIKI_SCROLL_LOCK:
+			*key_code = GF_KEY_SCROLL; break;
+		case DIKI_PAUSE:
+			*key_code = GF_KEY_PAUSE; break;
+		case DIKI_INSERT:
+			*key_code = GF_KEY_INSERT; break;
+		case DIKI_DELETE:
+			*key_code = GF_KEY_DEL; break;
+		case DIKI_HOME:
+			*key_code = GF_KEY_HOME; break;
+		case DIKI_END:
+			*key_code = GF_KEY_END; break;
+		case DIKI_PAGE_UP:
+			*key_code = GF_KEY_PAGEUP; break;
+		case DIKI_PAGE_DOWN:
+			*key_code = GF_KEY_PAGEDOWN; break;
+		
+		/* arrows */
+		case DIKI_UP:
+			*key_code = GF_KEY_UP; break;
+		case DIKI_DOWN:
+			*key_code = GF_KEY_DOWN; break;
+		case DIKI_RIGHT:
+			*key_code = GF_KEY_RIGHT; break;
+		case DIKI_LEFT:
+			*key_code = GF_KEY_LEFT; break;
+ 
+		/* extended numerical pad */
+		case DIKI_NUM_LOCK:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_NUMLOCK; break;
+		case DIKI_KP_DIV:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_SLASH; break;
+		case DIKI_KP_MULT:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_STAR; break;
+		case DIKI_KP_MINUS:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_HYPHEN; break;
+		case DIKI_KP_PLUS:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_PLUS; break;
+		case DIKI_KP_ENTER:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_ENTER; break; 
+		case DIKI_KP_DECIMAL:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_FULLSTOP; break;
+		case DIKI_KP_0:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_0; break;
+		case DIKI_KP_1:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_1; break;
+		case DIKI_KP_2:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_2; break;
+		case DIKI_KP_3:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_3; break;
+		case DIKI_KP_4:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_4; break;
+		case DIKI_KP_5: 
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_5; break;
+		case DIKI_KP_6:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_6; break;
+		case DIKI_KP_7:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_7; break;
+		case DIKI_KP_8:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_8; break;
+		case DIKI_KP_9:
+			*flags = GF_KEY_EXT_NUMPAD; *key_code = GF_KEY_9; break;
 		
 		/* Fn functions */
 		case DIKI_F1:
