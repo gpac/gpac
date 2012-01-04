@@ -14,7 +14,15 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= $(FREENECT_LDFLAGS) -L../../bin/gcc -lgpac
+
+LINKLIBS=
+
+ifeq ($(CONFIG_FREENECT), local)
+LINKLIBS+=-L../../extra_lib/lib/gcc
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
+endif
+
+LINKLIBS+=-lfreenect -L../../bin/gcc -lgpac
 
 
 #common objects

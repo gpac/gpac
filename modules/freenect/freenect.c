@@ -26,7 +26,6 @@
 
 #include <gpac/modules/service.h>
 #include <gpac/modules/codec.h>
-/*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
@@ -110,7 +109,8 @@ void Freenect_DepthCallback_GREY8(freenect_device *dev, void *v_depth, uint32_t 
 				vcap->depth_buf[j + i*vcap->width] = pval;
 			}
 		}
-		vcap->depth_sl_header.compositionTimeStamp = timestamp;
+//		vcap->depth_sl_header.compositionTimeStamp = timestamp;
+		vcap->depth_sl_header.compositionTimeStamp ++;
 		gf_term_on_sl_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
 	}
 }
@@ -182,15 +182,17 @@ u32 FreenectRun(void *par)
 {
 	FreenectIn *vcap = par;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] Starting device thread\n"));
 	freenect_start_depth(vcap->f_dev);
 	freenect_start_video(vcap->f_dev);
 	vcap->done = 0;
 	while (vcap->nb_running && (freenect_process_events(vcap->f_ctx)>=0) ) {
-		gf_sleep(100);
+		gf_sleep(0);
 	}
 	freenect_stop_depth(vcap->f_dev);
 	freenect_stop_video(vcap->f_dev);
 	vcap->done = 1;
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] Stoping device thread\n"));
 	return 0;
 }
 
