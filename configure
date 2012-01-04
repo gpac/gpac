@@ -1195,6 +1195,29 @@ fi
 
 
 
+#look for MAD support
+has_freenect="no"
+cat > $TMPC << EOF
+#include <libfreenect/libfreenect.h>
+int main( void ) { return 0; }
+EOF
+
+if test "$cross_prefix" = "" ; then
+    if $cc -o $TMPO $TMPC $LDFLAGS -lfreenect 2> /dev/null  ; then
+        has_freenect="system"
+    elif test "$alt_macosx_dir" != "" ; then
+        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfreenect 2> /dev/null ; then
+            has_freenect="system"
+        fi
+    fi
+fi
+if test "$has_freenect" = "no" ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lfreenect 2> /dev/null  ; then
+        has_freenect="local"
+    fi
+fi
+
+
 #look for vorbis support
 cat > $TMPC << EOF
 #include <vorbis/codec.h>
@@ -1571,6 +1594,8 @@ for opt do
         --use-jpeg=*) has_jpeg=${opt#--use-jpeg=}
             ;;
         --use-ffmpeg=*) has_ffmpeg=${opt#--use-ffmpeg=}
+            ;;
+        --use-freenect=*) has_freenect=${opt#--use-freenect=}
             ;;
         --use-png=*) tmp_has_png=${opt#--use-png=}
             if test "$tmp_has_png" = "system" ; then
@@ -2207,6 +2232,7 @@ else
 fi
 echo "A52 (AC3): $has_a52"
 echo "OpenSVCDecoder: $has_opensvc"
+echo "Freenect: $has_freenect"
 
 if test "$enable_renoir" = "yes" ; then
     echo "Renoir enabled - make sure the driver libraries are present in modules/viren_out directory"
@@ -2413,6 +2439,7 @@ echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "CONFIG_A52=$has_a52" >> config.mak
 echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
+echo "CONFIG_FREENECT=$has_freenect" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "HAS_LIBXML2=$has_libxml2" >> config.mak

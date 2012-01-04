@@ -27,6 +27,11 @@ else
 PLUGDIRS+=ogg
 endif
 
+ifeq ($(CONFIG_FREENECT), no)
+else
+PLUGDIRS+=freenect
+endif
+
 ifeq ($(CONFIG_AMR_NB), yes)
 PLUGDIRS+=amr_dec
 endif
