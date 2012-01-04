@@ -4661,11 +4661,18 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 
 	gf_sg_lock_javascript(priv->js_ctx, 1);
 
+	evt = gf_dom_new_event(priv->js_ctx);
+	if (!evt) {
+		gf_sg_lock_javascript(priv->js_ctx, 0);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM Events] Cannot create JavaScript dom event for event type %d\n", event->type));
+		return;
+	}
+
 	prev_type = event->is_vrml;
 	event->is_vrml = 1;
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
 
-	evt = gf_dom_new_event(priv->js_ctx);
+
 	JS_SetPrivate(priv->js_ctx, evt, event);
 	argv[0] = OBJECT_TO_JSVAL(evt);
 
