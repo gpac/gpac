@@ -275,7 +275,10 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 	GF_Rect orig_rc;
 	u8 alpha, r, g, b;
 	GF_ColorMatrix cmat;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
+	GF_Raster2D *raster;
+
+	if (!visual->is_attached) return;
+	raster = visual->compositor->rasterizer;
 
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
@@ -338,7 +341,9 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	GF_STENCIL tx_raster;
 	GF_Matrix2D mx_texture;
 	GF_Rect orig_rc;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
+	GF_Raster2D *raster;
+	if (!visual->is_attached) return;
+	raster = visual->compositor->rasterizer;
 
 	if (!txh) txh = ctx->aspect.fill_texture;
 	if (!txh) return;
@@ -457,7 +462,7 @@ void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, struct _dra
 #ifdef SKIP_DRAW
 	return;
 #endif
-	if (!visual->raster_surface || (ctx->flags & CTX_PATH_FILLED) || !ctx->aspect.fill_texture || visual->compositor->is_hidden) return;
+	if (!visual->is_attached || (ctx->flags & CTX_PATH_FILLED) || !ctx->aspect.fill_texture || visual->compositor->is_hidden) return;
 
 	/*this is ambiguous in the spec, what if the material is filled and the texture is transparent ?
 	let's draw, it's nicer */
@@ -481,8 +486,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 #ifdef SKIP_DRAW
 	return;
 #endif
-	
-	assert(visual->raster_surface);
+	if (!visual->is_attached) return;
 
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
 		if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
@@ -575,7 +579,7 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 	return;
 #endif
 
-	if (!visual->raster_surface) return;
+	if (!visual->is_attached) return;
 	if (!color && !strike_color) return;
 
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
@@ -639,7 +643,7 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 #endif
 
 	if (!rc) return;
-	if (!visual->raster_surface) return;
+	if (!visual->is_attached) return;
 	if (!fill && !strike ) return;
 
 	/*no aa*/
