@@ -485,8 +485,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_BGR_24:
 		case GF_PIXEL_RGBS:
 		case GF_PIXEL_RGBD:
-		case GF_PIXEL_RGB_555:
-		case GF_PIXEL_RGB_565:
+//		case GF_PIXEL_RGB_555:
+//		case GF_PIXEL_RGB_565:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGB)
 				use_soft_stretch = 0;
 			break;

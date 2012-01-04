@@ -1975,16 +1975,19 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 		n = SCPbegin.yaxis;
 		gf_vec_norm(&n);
-		MESH_SET_NORMAL(vx, n);
 
 		convexity = gf_polygone2d_get_convexity(path->points, path->n_points);
 		switch (convexity) {
 		case GF_POLYGON_CONVEX_CCW:
 		case GF_POLYGON_COMPLEX_CCW:
-			gf_vec_rev(vx.normal);
+			break;
+		default:
 			gf_vec_rev(n);
 			break;
 		}
+
+		MESH_SET_NORMAL(vx, n);
+
 
 		if (smooth_normals) {
 			faces_info[begin_face].nor = n;
