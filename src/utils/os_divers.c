@@ -163,18 +163,11 @@ GF_Err gf_mkdir(char* DirPathName)
 		int err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
 	}
-#elif defined (WIN32)
-	errno_t err;
+#elif defined (WIN32) 
 	int res = mkdir(DirPathName);
 	if (res==-1) {
-		_get_errno( &err );
-		if(err == 17){
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s, it already exists: last error %d \n", DirPathName, err ));
-			return GF_BAD_PARAM;
-		}else{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
-			return GF_IO_ERR;
-		}
+		int err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
 	}
 #else	
     int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -720,7 +713,7 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 #ifdef _WIN32_WCE
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nmemb, result));
 #else
-#if defined WIN32
+#if defined WIN32 && !defined(GPAC_CONFIG_WIN32)
 		errno_t errno_save;
 		_get_errno(&errno_save);
 #else

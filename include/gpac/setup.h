@@ -345,7 +345,7 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 
 /*end GPAC memory tracking*/
 
-#if (defined (WIN32) || defined (_WIN32_WCE)) && !defined(__GNUC__)
+#if (defined (WIN32) || defined (_WIN32_WCE)) && (defined(__MINGW32__) || !defined(__GNUC__))
 
 #define LLD "%I64d"
 #define LLU "%I64u"

@@ -107,10 +107,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (!strstr(file_path, "gpac")) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
-		DWORD dwType = REG_SZ;
 		
 		/*locate the key in current user, then in local machine*/
 #ifdef _WIN32_WCE
+		DWORD dwType = REG_SZ;
 		u16 w_path[1024];
 		RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("Software\\GPAC"), 0, KEY_READ, &hKey);
 #ifdef _DEBUG
