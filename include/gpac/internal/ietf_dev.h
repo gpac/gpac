@@ -80,7 +80,7 @@ void gf_rtp_reorderer_del(GF_RTPReorder *po);
 void gf_rtp_reorderer_reset(GF_RTPReorder *po);
 
 /*Adds a packet to the queue. Packet Data is memcopied*/
-GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_seqnum);
+GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u32 pck_seqnum);
 /*gets the output of the queue. Packet Data IS YOURS to delete*/
 void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size);
 

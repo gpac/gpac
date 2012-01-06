@@ -329,7 +329,10 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 
 	e = gf_sk_receive(ch->rtp, buffer, buffer_size, 0, &res);
 	if (!res || e || (res < 12)) res = 0;
-
+    if (res){
+        ch->total_bytes+=res;
+        ch->total_pck++;
+    }
 	//add the packet to our Queue if any
 	if (ch->po) {
 		if (res) {
@@ -781,7 +784,7 @@ void gf_rtp_reorderer_reset(GF_RTPReorder *po)
 	po->in = NULL;
 }
 
-GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_seqnum)
+GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u32 pck_seqnum)
 {
 	GF_POItem *it, *cur;
 	u32 bounds;
