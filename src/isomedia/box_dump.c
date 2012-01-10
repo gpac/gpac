@@ -179,6 +179,11 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return chpl_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PDIN:
 		return dpin_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SBGP: 
+		return sbgp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SGPD: 
+		return sgpd_dump(a, trace);
+
 
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
 		return ghnt_dump(a, trace);
@@ -674,6 +679,8 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->PaddingBits) gf_box_dump(p->PaddingBits, trace);
 	if (p->SubSamples) gf_box_dump(p->SubSamples, trace);
 	if (p->Fragments) gf_box_dump(p->Fragments, trace);
+	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
+	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 
 	fprintf(trace, "</SampleTableBox>\n");
 	return GF_OK;
@@ -3561,6 +3568,54 @@ GF_Err rvcc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	fprintf(trace, "</RVCConfigurationBox>\n");
+	return GF_OK;
+}
+
+GF_Err sbgp_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_SampleGroupBox *ptr = (GF_SampleGroupBox*) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<SampleGroupBox grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
+	if (ptr->version==1) fprintf(trace, " grouping_type_parameter=\"%d\"", ptr->grouping_type_parameter);
+	fprintf(trace, ">\n");
+	gf_full_box_dump((GF_Box *)a, trace);
+	for (i=0; i<ptr->entry_count; i++) {
+		fprintf(trace, "<SampleGroupBoxEntry sample_count=\"%d\" group_description_index=\"%d\"/>\n", ptr->sample_entries[i].sample_count, ptr->sample_entries[i].group_description_index );
+	}
+	fprintf(trace, "</SampleGroupBox>\n");
+	return GF_OK;
+}
+
+GF_Err sgpd_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_SampleGroupDescriptionBox *ptr = (GF_SampleGroupDescriptionBox*) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<SampleGroupDescriptionBox grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
+	if (ptr->version==1) fprintf(trace, " default_length=\"%d\"", ptr->default_length);
+	fprintf(trace, ">\n");
+	gf_full_box_dump((GF_Box *)a, trace);
+	for (i=0; i<gf_list_count(ptr->group_descriptions); i++) {
+		void *entry = gf_list_get(ptr->group_descriptions, i);
+		switch (ptr->grouping_type) {
+		case GF_4CC( 'r', 'o', 'l', 'l' ):
+			fprintf(trace, "<RollRecoveryEntry roll_distance=\"%d\" />\n", ((GF_RollRecoveryEntry*)entry)->roll_distance );
+			break;
+		case GF_4CC( 'r', 'a', 'p', ' ' ):
+			fprintf(trace, "<VisualRandomAccessEntry num_leading_samples_known=\"%s\"", ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples_known ? "yes" : "no");
+			if (((GF_VisualRandomAccessEntry*)entry)->num_leading_samples_known) fprintf(trace, " num_leading_samples=\"%d\" />", ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples);
+			fprintf(trace, "/>\n");
+			break;
+		default:
+			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+			DumpData(trace, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+			fprintf(trace, "\"/>\n");
+		}
+	}
+	fprintf(trace, "</SampleGroupDescriptionBox>\n");
 	return GF_OK;
 }
 

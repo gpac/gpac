@@ -4496,6 +4496,8 @@ void stbl_del(GF_Box *s)
 	if (ptr->PaddingBits) gf_isom_box_del((GF_Box *) ptr->PaddingBits);
 	if (ptr->Fragments) gf_isom_box_del((GF_Box *) ptr->Fragments);
 	if (ptr->SubSamples) gf_isom_box_del((GF_Box *) ptr->SubSamples);
+	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
+	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
 
 	gf_free(ptr);
 }
@@ -4563,6 +4565,15 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SUBS:
 		if (ptr->SubSamples) return GF_ISOM_INVALID_FILE;
 		ptr->SubSamples = (GF_SubSampleInformationBox *)a;
+		break;
+
+	case GF_ISOM_BOX_TYPE_SBGP:
+		if (!ptr->sampleGroups) ptr->sampleGroups = gf_list_new();
+		gf_list_add(ptr->sampleGroups, a);
+		break;
+	case GF_ISOM_BOX_TYPE_SGPD:
+		if (!ptr->sampleGroupsDescription) ptr->sampleGroupsDescription = gf_list_new();
+		gf_list_add(ptr->sampleGroupsDescription, a);
 		break;
 
 	default:
@@ -4692,6 +4703,14 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->SubSamples, bs);
 		if (e) return e;
 	}
+	if (ptr->sampleGroups) {
+		e = gf_isom_box_array_write(s, ptr->sampleGroups, bs);
+		if (e) return e;
+	}
+	if (ptr->sampleGroupsDescription) {
+		e = gf_isom_box_array_write(s, ptr->sampleGroupsDescription, bs);
+		if (e) return e;
+	}
 
 #if WRITE_SAMPLE_FRAGMENTS
 	//sampleFragments
@@ -4783,7 +4802,14 @@ GF_Err stbl_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->SubSamples->size;
 	}
-	
+	if (ptr->sampleGroups) {
+		e = gf_isom_box_array_size(s, ptr->sampleGroups);
+		if (e) return e;
+	}	
+	if (ptr->sampleGroupsDescription) {
+		e = gf_isom_box_array_size(s, ptr->sampleGroupsDescription);
+		if (e) return e;
+	}	
 	return GF_OK;
 }
 
@@ -6005,6 +6031,8 @@ void traf_del(GF_Box *s)
 	if (ptr->subs) gf_isom_box_del((GF_Box *) ptr->subs);
 	if (ptr->tfdt) gf_isom_box_del((GF_Box *) ptr->tfdt);
 	gf_isom_box_array_del(ptr->TrackRuns);
+	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
+	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
 	gf_free(ptr);
 }
 
@@ -6031,11 +6059,20 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->subs) return GF_ISOM_INVALID_FILE;
 		ptr->subs = (GF_SubSampleInformationBox *)a;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_SBGP:
+		if (!ptr->sampleGroups) ptr->sampleGroups = gf_list_new();
+		gf_list_add(ptr->sampleGroups, a);
+		return GF_OK;		
+	case GF_ISOM_BOX_TYPE_SGPD:
+		if (!ptr->sampleGroupsDescription) ptr->sampleGroupsDescription = gf_list_new();
+		gf_list_add(ptr->sampleGroupsDescription, a);
+		return GF_OK;		
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
 		gf_isom_box_del(a);
 		return GF_OK;		
 	}
+	return GF_OK;		
 }
 
 
@@ -6084,8 +6121,19 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
 	if (e) return e;
+	
 	if (ptr->sdtp) {
 		e = gf_isom_box_write((GF_Box *) ptr->sdtp, bs);
+		if (e) return e;
+	}
+
+	if (ptr->sampleGroups) {
+		e = gf_isom_box_array_write(s, ptr->sampleGroups, bs);
+		if (e) return e;
+	}
+	if (ptr->sampleGroupsDescription) {
+		e = gf_isom_box_array_write(s, ptr->sampleGroupsDescription, bs);
+		if (e) return e;
 	}
 	return e;
 }
@@ -6117,6 +6165,16 @@ GF_Err traf_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->tfdt->size;
 	}
+
+	if (ptr->sampleGroups) {
+		e = gf_isom_box_array_size(s, ptr->sampleGroups);
+		if (e) return e;
+	}
+	if (ptr->sampleGroupsDescription) {
+		e = gf_isom_box_array_size(s, ptr->sampleGroupsDescription);
+		if (e) return e;
+	}
+
 	return gf_isom_box_array_size(s, ptr->TrackRuns);
 }
 
@@ -8028,7 +8086,6 @@ void rvcc_del(GF_Box *s)
 	gf_free(s);
 }
 
-/*this is using chpl format according to some NeroRecode samples*/
 GF_Err rvcc_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_RVCConfigurationBox *ptr = (GF_RVCConfigurationBox*)s;
@@ -8072,6 +8129,274 @@ GF_Err rvcc_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+
+GF_Box *sbgp_New()
+{
+	GF_SampleGroupBox *p;
+	GF_SAFEALLOC(p, GF_SampleGroupBox);
+	p->type = GF_ISOM_BOX_TYPE_SBGP;
+	return (GF_Box *)p;
+}
+void sbgp_del(GF_Box *a)
+{
+	GF_SampleGroupBox *p = (GF_SampleGroupBox *)a;
+	if (p->sample_entries) gf_free(p->sample_entries);
+	gf_free(p);
+}
+
+GF_Err sbgp_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_SampleGroupBox *p = (GF_SampleGroupBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	p->grouping_type = gf_bs_read_u32(bs);
+	p->size -= 4;
+	if (p->version==1) {
+		p->grouping_type_parameter = gf_bs_read_u32(bs);
+		p->size -= 4;
+	}
+	p->entry_count = gf_bs_read_u32(bs);
+	p->size -= 4;
+	p->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry)*p->entry_count);
+	if (!p->sample_entries) return GF_IO_ERR;
+	for (i=0; i<p->entry_count; i++) {
+		p->sample_entries[i].sample_count = gf_bs_read_u32(bs);
+		p->sample_entries[i].group_description_index = gf_bs_read_u32(bs);
+		p->size -= 8;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err sbgp_Write(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_Err e;
+	GF_SampleGroupBox *p = (GF_SampleGroupBox*)s;
+	
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, p->grouping_type);
+	if (p->version==1) 
+		gf_bs_write_u32(bs, p->grouping_type_parameter);
+
+	gf_bs_write_u32(bs, p->entry_count);
+	for (i = 0; i<p->entry_count; i++ ) {
+		gf_bs_write_u32(bs, p->sample_entries[i].sample_count);
+		gf_bs_write_u32(bs, p->sample_entries[i].group_description_index);
+	}
+	return GF_OK;
+}
+
+GF_Err sbgp_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_SampleGroupBox *p = (GF_SampleGroupBox*)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	p->size += 8;
+	if (p->version==1) p->size += 4;
+	p->size += 8*p->entry_count;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_size, u32 *total_bytes)
+{
+	switch (grouping_type) {
+	case GF_4CC( 'r', 'o', 'l', 'l' ):
+	{
+		GF_RollRecoveryEntry *ptr;
+		GF_SAFEALLOC(ptr, GF_RollRecoveryEntry);
+		ptr->roll_distance = gf_bs_read_int(bs, 16);
+		*total_bytes = 2;
+		return ptr;
+	}
+	case GF_4CC( 'r', 'a', 'p', ' ' ):
+	{
+		GF_VisualRandomAccessEntry *ptr;
+		GF_SAFEALLOC(ptr, GF_VisualRandomAccessEntry);
+		ptr->num_leading_samples_known = gf_bs_read_int(bs, 1);
+		ptr->num_leading_samples = gf_bs_read_int(bs, 7);
+		*total_bytes = 1;
+		return ptr;
+	}
+	default:
+	{
+		GF_DefaultSampleGroupDescriptionEntry *ptr;
+		if (!entry_size) return NULL;
+		GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
+		ptr->length = entry_size;
+		ptr->data = (u8 *) gf_malloc(sizeof(u8)*ptr->length);
+		gf_bs_read_data(bs, ptr->data, ptr->length);
+		*total_bytes = entry_size;
+		return ptr;
+	}
+	}
+	return NULL;
+}
+
+static void	sgpd_del_entry(u32 grouping_type, void *entry)
+{
+	switch (grouping_type) {
+	case GF_4CC( 'r', 'o', 'l', 'l' ):
+	case GF_4CC( 'r', 'a', 'p', ' ' ):
+		gf_free(entry);
+		return;
+
+	default:
+	{
+		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
+		if (ptr->data) gf_free(ptr->data);
+		gf_free(ptr->data);
+	}
+
+	}
+}
+
+static void	sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
+{
+	switch (grouping_type) {
+	case GF_4CC( 'r', 'o', 'l', 'l' ):
+		gf_bs_write_int(bs, ((GF_RollRecoveryEntry*)entry)->roll_distance, 16);
+		return;
+	case GF_4CC( 'r', 'a', 'p', ' ' ):
+		gf_bs_write_int(bs, ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples_known, 1);
+		gf_bs_write_int(bs, ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples, 7);
+		return;
+	default:
+		{
+		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
+		gf_bs_write_data(bs, ptr->data, ptr->length);
+		}
+	}
+}
+static u32 sgpd_size_entry(u32 grouping_type, void *entry)
+{
+	switch (grouping_type) {
+	case GF_4CC( 'r', 'o', 'l', 'l' ):
+		return 2;
+	case GF_4CC( 'r', 'a', 'p', ' ' ):
+		return 1;
+	default:
+		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
+	}
+}
+
+
+GF_Box *sgpd_New()
+{
+	GF_SampleGroupDescriptionBox *p;
+	GF_SAFEALLOC(p, GF_SampleGroupDescriptionBox);
+	p->type = GF_ISOM_BOX_TYPE_SGPD;
+	/*version 0 is deprecated, use v1 by default*/
+	p->version = 1;
+	p->group_descriptions = gf_list_new();
+
+	return (GF_Box *)p;
+}
+
+void sgpd_del(GF_Box *a)
+{
+	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)a;
+	while (gf_list_count(p->group_descriptions)) {
+		void *ptr = gf_list_last(p->group_descriptions);
+		sgpd_del_entry(p->grouping_type, ptr);
+		gf_list_rem_last(p->group_descriptions);
+	}
+	gf_list_del(p->group_descriptions);
+	gf_free(p);
+}
+
+GF_Err sgpd_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 entry_count;
+	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	p->grouping_type = gf_bs_read_u32(bs);
+	p->size -= 4;
+	
+	if (p->version==1) {
+		p->default_length = gf_bs_read_u32(bs);
+		p->size -= 4;
+	}
+	entry_count = gf_bs_read_u32(bs);
+	p->size -= 4;
+
+	while (entry_count) {
+		void *ptr;
+		u32 parsed_bytes;
+		u32 size = p->default_length;
+		if ((p->version==1) && !size) {
+			size = gf_bs_read_u32(bs);
+			p->size -= 4;
+		}
+		ptr = sgpd_parse_entry(p->grouping_type, bs, size, &parsed_bytes);
+		if (!ptr) return GF_ISOM_INVALID_FILE;
+		if (p->size < parsed_bytes) return GF_ISOM_INVALID_FILE;
+		p->size -= parsed_bytes;
+		gf_list_add(p->group_descriptions, ptr);
+		entry_count--;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err sgpd_Write(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)s;
+	GF_Err e;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, p->grouping_type);
+	if (p->version==1) gf_bs_write_u32(bs, p->default_length);
+	gf_bs_write_u32(bs, gf_list_count(p->group_descriptions) );
+
+	for (i=0; i<gf_list_count(p->group_descriptions); i++) {
+		void *ptr = gf_list_get(p->group_descriptions, i);
+		if ((p->version == 1) && !p->default_length) {
+			u32 size = sgpd_size_entry(p->grouping_type, ptr);
+			gf_bs_write_u32(bs, size);
+		}
+		sgpd_write_entry(p->grouping_type, ptr, bs);
+	}
+	return GF_OK;
+}
+
+GF_Err sgpd_Size(GF_Box *s)
+{
+	u32 i;
+	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)s;
+	GF_Err e;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	p->size += 8;
+	if (p->version==1) p->size += 4;
+	p->default_length = 0;
+
+	for (i=0; i<gf_list_count(p->group_descriptions); i++) {
+		void *ptr = gf_list_get(p->group_descriptions, i);
+		u32 size = sgpd_size_entry(p->grouping_type, ptr);
+		p->size += size;
+		if (!p->default_length) {
+			p->default_length = size;
+		} else if (p->default_length != size) {
+			p->default_length = 0;
+		}
+	}
+	if (p->version==1) {
+		if (!p->default_length) p->size += gf_list_count(p->group_descriptions)*4;
+	}
+	return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 

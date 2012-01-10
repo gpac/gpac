@@ -1975,6 +1975,18 @@ u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);
 /*Sets the number of the next moof to be produced*/
 void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 
+
+/*sample groups information*/
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*sets rap flag for sample_number - this is used by non-IDR RAPs in AVC (also in USAC) were SYNC flag (stss table) cannot be used
+num_leading_sample is the number of samples to after this RAP that have dependences on samples before this RAP and hence should be discarded
+- currently sample group info MUST be added in order (no insertion in the tables)*/
+GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples);
+/*sets roll_distance info for sample_number (number of frames before (<0) or after (>0) this sample to have a complete refresh of the decoded data (used by GDR in AVC)
+- currently sample group info MUST be added in order (no insertion in the tables)*/
+GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance);
+#endif
+
 #endif /*GPAC_DISABLE_ISOM*/
 
 #ifdef __cplusplus

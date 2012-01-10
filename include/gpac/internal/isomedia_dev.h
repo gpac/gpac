@@ -133,6 +133,10 @@ enum
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
 	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
 
+	GF_ISOM_BOX_TYPE_SBGP	= GF_4CC( 's', 'b', 'g', 'p' ),
+	GF_ISOM_BOX_TYPE_SGPD	= GF_4CC( 's', 'g', 'p', 'd' ),
+
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*Movie Fragments*/
 	GF_ISOM_BOX_TYPE_MVEX	= GF_4CC( 'm', 'v', 'e', 'x' ),
@@ -1085,6 +1089,9 @@ typedef struct
 
 	GF_SubSampleInformationBox *SubSamples;
 
+	GF_List *sampleGroups;
+	GF_List *sampleGroupsDescription;
+
 	u32 MaxSamplePerChunk;
 	u16 groupID;
 	u16 trackPriority;
@@ -1525,6 +1532,10 @@ typedef struct
 	GF_TrackExtendsBox *trex;
 	GF_SampleDependencyTypeBox *sdtp;
 	GF_SubSampleInformationBox *subs;
+
+	GF_List *sampleGroups;
+	GF_List *sampleGroupsDescription;
+
 	/*when data caching is on*/
 	u32 DataCache;
     GF_TFBaseMediaDecodeTimeBox *tfdt;
@@ -1875,6 +1886,58 @@ typedef struct __sidx_box
 	GF_SIDXReference *refs;
 } GF_SegmentIndexBox;
 #endif
+
+
+
+/***********************************************************
+			Sample Groups
+***********************************************************/
+typedef struct
+{
+	u32 sample_count;
+	u32 group_description_index;
+} GF_SampleGroupEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 grouping_type;
+	u32 grouping_type_parameter;
+    
+	u32 entry_count;
+	GF_SampleGroupEntry *sample_entries;
+
+} GF_SampleGroupBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 grouping_type;
+	u32 default_length;
+
+	GF_List *group_descriptions;
+} GF_SampleGroupDescriptionBox;
+
+/*default entry */
+typedef struct
+{
+	u32 length; 
+	u8 *data; 
+} GF_DefaultSampleGroupDescriptionEntry;
+
+/*VisualRandomAccessEntry - 'rap ' type*/
+typedef struct
+{
+	u8 num_leading_samples_known; 
+	u8 num_leading_samples; 
+} GF_VisualRandomAccessEntry;
+
+/*RollRecoveryEntry - 'roll' type*/
+typedef struct
+{
+	s16 roll_distance; 
+} GF_RollRecoveryEntry;
+
 
 /*
 		Data Map (media storage) stuff
@@ -3356,6 +3419,21 @@ GF_Err rvcc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err rvcc_Size(GF_Box *s);
 GF_Err rvcc_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err rvcc_dump(GF_Box *a, FILE * trace);
+
+
+GF_Box *sbgp_New();
+void sbgp_del(GF_Box *);
+GF_Err sbgp_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err sbgp_Size(GF_Box *s);
+GF_Err sbgp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sbgp_dump(GF_Box *a, FILE * trace);
+
+GF_Box *sgpd_New();
+void sgpd_del(GF_Box *);
+GF_Err sgpd_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err sgpd_Size(GF_Box *s);
+GF_Err sgpd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sgpd_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 
