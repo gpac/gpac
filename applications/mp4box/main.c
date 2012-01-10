@@ -332,6 +332,8 @@ void PrintImportUsage()
 			" \":svc\"               import SVC with explicit signaling (no AVC base compatibility)\n"
 			" \":nosvc\"             discard SVC data when importing\n"
 			" \":subsamples\"        adds SubSample information for AVC+SVC\n"
+			" \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
+			"       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
 			" \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 			" \":size=s\"            specifies font size for text import (default 18)\n"
 			" \":stype=4CC\"         forces the sample description type to a different value\n"
