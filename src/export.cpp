@@ -827,6 +827,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_dims_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_dims_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_rvc_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_rap_group) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_roll_group) )
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_hint_description) )

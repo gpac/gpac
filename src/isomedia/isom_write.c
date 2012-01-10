@@ -4005,6 +4005,161 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	return GF_OK;
 }
 
+/*for now not exported*/
+static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_List *groupList;
+	void *entry;
+	GF_SampleGroupDescriptionBox *sgdesc = NULL;
+	GF_SampleGroupBox *sgroup = NULL;
+	u32 i, count, entry_idx, last_sample_in_entry;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	/*look in stbl for sample sampleGroupsDescription*/
+	if (!trak->Media->information->sampleTable->sampleGroupsDescription)
+		trak->Media->information->sampleTable->sampleGroupsDescription = gf_list_new();
+
+	groupList = trak->Media->information->sampleTable->sampleGroupsDescription;
+	count = gf_list_count(groupList);
+	for (i=0; i<count; i++) {
+		sgdesc = gf_list_get(groupList, i);
+		if (sgdesc->grouping_type==grouping_type) break;
+		sgdesc = NULL;
+	}
+	if (!sgdesc) {
+		sgdesc = (GF_SampleGroupDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SGPD);
+		sgdesc->grouping_type = grouping_type;
+		gf_list_add(groupList, sgdesc);
+	}
+	entry = NULL;
+	for (i=0; i<gf_list_count(sgdesc->group_descriptions); i++) {
+		entry = gf_list_get(sgdesc->group_descriptions, i);
+		if (sg_compare_entry(udta, entry)) break;
+		entry = NULL;
+	}
+	if (!entry) {
+		entry = sg_create_entry(udta);
+		if (!entry) return GF_IO_ERR;
+		gf_list_add(sgdesc->group_descriptions, entry);
+	}
+
+	entry_idx = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+
+	/*look in stbl for sample sampleGroups*/
+	if (!trak->Media->information->sampleTable->sampleGroups)
+		trak->Media->information->sampleTable->sampleGroups = gf_list_new();
+
+	groupList = trak->Media->information->sampleTable->sampleGroups;
+	count = gf_list_count(groupList);
+	for (i=0; i<count; i++) {
+		sgroup = gf_list_get(groupList, i);
+		if (sgroup->grouping_type==grouping_type) break;
+		sgroup = NULL;
+	}
+	if (!sgroup) {
+		sgroup = (GF_SampleGroupBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SBGP);
+		sgroup->grouping_type = grouping_type;
+		gf_list_add(groupList, sgroup);
+	}
+	if (!sgroup->entry_count) {
+		u32 idx = 0;
+		sgroup->entry_count = (sample_number>1) ? 2 : 1;
+		sgroup->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry) * sgroup->entry_count );
+		if (sample_number>1) {
+			sgroup->sample_entries[0].sample_count = sample_number-1;
+			sgroup->sample_entries[0].group_description_index = 0;
+			idx = 1;
+		}
+		sgroup->sample_entries[idx].sample_count = 1;
+		sgroup->sample_entries[idx].group_description_index = entry_idx;
+		return GF_OK;
+	}
+	last_sample_in_entry = 0;
+	for (i=0; i<sgroup->entry_count; i++) {
+		/*TODO*/
+		if (last_sample_in_entry + sgroup->sample_entries[i].sample_count > sample_number) return GF_NOT_SUPPORTED;
+		last_sample_in_entry += sgroup->sample_entries[i].sample_count;
+	}
+
+	if ((sgroup->sample_entries[sgroup->entry_count-1].group_description_index==entry_idx) && (last_sample_in_entry+1==sample_number)) {
+		sgroup->sample_entries[sgroup->entry_count-1].sample_count++;
+		return GF_OK;
+	}
+	/*last entry was an empty desc (no group associated), just add the number of samples missing until new one, then add new one*/
+	if (! sgroup->sample_entries[sgroup->entry_count-1].group_description_index) {
+		sgroup->sample_entries[sgroup->entry_count-1].sample_count += sample_number - 1 - last_sample_in_entry;
+		sgroup->sample_entries = gf_realloc(sgroup->sample_entries, sizeof(GF_SampleGroupEntry) * (sgroup->entry_count + 1) );
+		sgroup->sample_entries[sgroup->entry_count].sample_count = 1;
+		sgroup->sample_entries[sgroup->entry_count].group_description_index = entry_idx;
+		sgroup->entry_count++;
+		return GF_OK;
+	}
+
+	/*need to insert two entries ...*/
+	sgroup->sample_entries = gf_realloc(sgroup->sample_entries, sizeof(GF_SampleGroupEntry) * (sgroup->entry_count + 2) );
+
+	sgroup->sample_entries[sgroup->entry_count].sample_count = sample_number - 1 - last_sample_in_entry;
+	sgroup->sample_entries[sgroup->entry_count].group_description_index = 0;
+
+	sgroup->sample_entries[sgroup->entry_count+1].sample_count = 1;
+	sgroup->sample_entries[sgroup->entry_count+1].group_description_index = entry_idx;
+	sgroup->entry_count+=2;
+	return GF_OK;
+}
+
+void *sg_rap_create_entry(void *udta)
+{
+	GF_VisualRandomAccessEntry *entry;
+	u32 *num_leading_samples = (u32 *) udta;
+	GF_SAFEALLOC(entry, GF_VisualRandomAccessEntry);
+	entry->num_leading_samples_known = num_leading_samples ? 1 : 0;
+	entry->num_leading_samples = *num_leading_samples;
+	return entry;
+}
+
+Bool sg_rap_compare_entry(void *udta, void *entry)
+{
+	u32 *num_leading_samples = (u32 *) udta;
+	if (*num_leading_samples == ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples) return 1;
+	return 0;
+}
+
+GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples)
+{
+	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'a', 'p', ' ' ), &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
+}
+
+
+
+void *sg_roll_create_entry(void *udta)
+{
+	GF_RollRecoveryEntry *entry;
+	s16 *roll_distance = (s16 *) udta;
+	GF_SAFEALLOC(entry, GF_RollRecoveryEntry);
+	entry->roll_distance = *roll_distance;
+	return entry;
+}
+
+Bool sg_roll_compare_entry(void *udta, void *entry)
+{
+	s16 *roll_distance = (s16 *) udta;
+	if (*roll_distance == ((GF_RollRecoveryEntry *)entry)->roll_distance) return 1;
+	return 0;
+}
+
+GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance)
+{
+	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'a', 'p', ' ' ), &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
+}
+
+
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

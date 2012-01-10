@@ -3737,7 +3737,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
 	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_total_delay;
-	s32 idx;
+	s32 idx, sei_recovery_frame_count;
 	u8 nal_type;
 	GF_Err e;
 	FILE *mdia;
@@ -3750,7 +3750,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
-	Bool use_gdr = 0;
+	Bool use_opengop_gdr = 0;
 	u32 last_svc_sps;
 	u32 prev_nalu_prefix_size, res_prev_nalu_prefix;
 	u8 priority_prev_nalu_prefix;
@@ -3797,7 +3797,8 @@ restart_import:
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 	first_avc = 1;
-	last_svc_sps = 0,
+	last_svc_sps = 0;
+	sei_recovery_frame_count = -1;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!AVC_IsStartCode(bs)) {
@@ -4108,11 +4109,13 @@ restart_import:
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = sample_is_rap;
-			if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
-				samp->IsRAP = 1;
-				if (!use_gdr) {
-					use_gdr = 1;
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISO conformant\n"));
+			if (!sample_is_rap) {
+				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
+					samp->IsRAP = 1;
+					if (!use_opengop_gdr) {
+						use_opengop_gdr = 1;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISO conformant\n"));
+					}
 				}
 			}
 			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
@@ -4156,8 +4159,24 @@ restart_import:
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			if (e) goto exit;
 
-			gf_isom_sample_del(&samp);
 			cur_samp++;
+
+			/*write sampleGroups info*/
+			if (!samp->IsRAP && (sei_recovery_frame_count>=0)) {
+				/*generic GDR*/
+				if (sei_recovery_frame_count) {
+					if (!use_opengop_gdr) use_opengop_gdr = 1;
+					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
+				} 
+				/*open-GOP*/
+				else if (sample_has_islice) {
+					if (!use_opengop_gdr) use_opengop_gdr = 2;
+					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
+				}
+				if (e) goto exit;
+			}
+
+			gf_isom_sample_del(&samp);
 			gf_set_progress("Importing AVC-H264", (u32) (nal_start/1024), (u32) (total_size/1024) );
 			first_nal = 1;
 
@@ -4165,6 +4184,7 @@ restart_import:
 				min_poc = last_poc;
 
 			sample_has_islice = 0;
+			sei_recovery_frame_count = -1;
 		}
 
 		if (copy_size) {
@@ -4266,6 +4286,7 @@ restart_import:
 				if (first_nal) {
 					first_nal = 0;
 					if (avc.sei.recovery_point.valid) {
+						sei_recovery_frame_count = avc.sei.recovery_point.frame_cnt;
 						avc.sei.recovery_point.valid = 0;
 						if (import->flags & GF_IMPORT_FORCE_SYNC) 
 							slice_force_ref = 1;
@@ -4385,6 +4406,7 @@ restart_import:
 		gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
 	}
+
 
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
@@ -4506,6 +4528,11 @@ restart_import:
 		if (max_total_delay>1) {
 			gf_import_message(import, GF_OK, "Stream uses forward prediction - stream CTS offset: %d frames", max_total_delay);
 		}
+	}
+
+	if (use_opengop_gdr==2) {
+		gf_import_message(import, GF_OK, "OpenGOP detected - adjusting file brand");
+		gf_isom_modify_alternate_brand(import->dest, GF_4CC('i', 's', 'o', '6'), 1);
 	}
 
 	/*rewrite ESD*/

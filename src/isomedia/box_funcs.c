@@ -398,6 +398,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_VOID: return void_New();
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_New();
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_New();
+	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_New();
+	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_New();
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
@@ -649,6 +651,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_VOID: void_del(a); return;
 	case GF_ISOM_BOX_TYPE_STSF: stsf_del(a); return;
 	case GF_ISOM_BOX_TYPE_PDIN: pdin_del(a); return;
+	case GF_ISOM_BOX_TYPE_SBGP: sbgp_del(a); return;
+	case GF_ISOM_BOX_TYPE_SGPD: sgpd_del(a); return;
+
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: ghnt_del(a); return;
@@ -888,7 +893,9 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_VOID: return void_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Read(a, bs);
-	
+	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_Read(a, bs);
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Read(a, bs);
@@ -1120,6 +1127,8 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_VOID: return void_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_Write(a, bs);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Write(a, bs);
@@ -1350,7 +1359,9 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_VOID: return void_Size(a);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Size(a);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Size(a);
-	
+	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_Size(a);
+	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_Size(a);
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Size(a);
 	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Size(a);
