@@ -3746,10 +3746,11 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples;
-	u32 ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
+	Bool flush_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
+	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
+	Bool use_gdr = 0;
 	u32 last_svc_sps;
 	u32 prev_nalu_prefix_size, res_prev_nalu_prefix;
 	u8 priority_prev_nalu_prefix;
@@ -3783,6 +3784,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	get_video_timing(FPS, &timescale, &dts_inc);
 
 	poc_diff = 0;
+
 
 restart_import:
 
@@ -3830,6 +3832,7 @@ restart_import:
 
 	sample_data = NULL;
 	sample_is_rap = 0;
+	sample_has_islice = 0;
 	cur_samp = 0;
 	is_paff = 0;
 	total_size = gf_bs_get_size(bs);
@@ -3839,7 +3842,7 @@ restart_import:
 	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = 0;
 	max_w = max_h = 0;
 	first_nal = 1;
-	ref_frame = pred_frame = 0;
+	ref_frame = 0;
 	last_poc = max_last_poc = max_last_b_poc = prev_last_poc = 0;
 	max_total_delay = 0;
 
@@ -4044,7 +4047,9 @@ restart_import:
 				copy_size = nal_size;
 				switch (avc.s_info.slice_type) {
 				case GF_AVC_TYPE_P: case GF_AVC_TYPE2_P: nb_p++; break;
-				case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: nb_i++; break;
+				case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: nb_i++; 
+					sample_has_islice = 1;
+					break;
 				case GF_AVC_TYPE_B: case GF_AVC_TYPE2_B: nb_b++; break;
 				case GF_AVC_TYPE_SP: case GF_AVC_TYPE2_SP: nb_sp++; break;
 				case GF_AVC_TYPE_SI: case GF_AVC_TYPE2_SI: nb_si++; break;
@@ -4103,6 +4108,13 @@ restart_import:
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = sample_is_rap;
+			if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
+				samp->IsRAP = 1;
+				if (!use_gdr) {
+					use_gdr = 1;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISO conformant\n"));
+				}
+			}
 			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 			gf_bs_del(sample_data);
 			sample_data = NULL;
@@ -4151,6 +4163,8 @@ restart_import:
 
 			if (min_poc > last_poc)
 				min_poc = last_poc;
+
+			sample_has_islice = 0;
 		}
 
 		if (copy_size) {
@@ -4243,16 +4257,21 @@ restart_import:
 				if (!is_paff && avc.s_info.bottom_field_flag)
 					is_paff = 1;
 
-				if (first_nal) {
-					first_nal = 0;
-					/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
-					SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
-					avc.sei.recovery_point.valid = 0;
-
-					sample_is_rap = AVC_SliceIsIDR(&avc);
-				}
 				slice_is_ref = (avc.s_info.nal_unit_type==GF_AVC_NALU_IDR_SLICE);
 				if (slice_is_ref) nb_idr++;
+				slice_force_ref = 0;
+
+				/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
+				SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
+				if (first_nal) {
+					first_nal = 0;
+					if (avc.sei.recovery_point.valid) {
+						avc.sei.recovery_point.valid = 0;
+						if (import->flags & GF_IMPORT_FORCE_SYNC) 
+							slice_force_ref = 1;
+					}
+					sample_is_rap = AVC_SliceIsIDR(&avc);
+				}
 
 				if (avc.s_info.poc<poc_shift) {
 					u32 j;
@@ -4276,12 +4295,18 @@ restart_import:
 					}
 					last_poc = avc.s_info.poc;
 				}
+
 				/*ref slice, reset poc*/
 				if (slice_is_ref) {
 					ref_frame = cur_samp+1;
 					max_last_poc = last_poc = max_last_b_poc = 0;
-					pred_frame = 0;
 					poc_shift = 0;
+				}
+				/*forced ref slice*/
+				else if (slice_force_ref) {
+					ref_frame = cur_samp+1;	
+					/*adjust POC shift as sample will now be marked as sync, so wo must store poc as if IDR (eg POC=0) for our CTS offset computing to be correct*/
+					poc_shift = avc.s_info.poc;
 				}
 				/*strictly less - this is a new P slice*/
 				else if (max_last_poc<last_poc) {
@@ -4346,6 +4371,9 @@ restart_import:
 		GF_ISOSample *samp = gf_isom_sample_new();
 		samp->DTS = (u64)dts_inc*cur_samp;
 		samp->IsRAP = sample_is_rap;
+		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
+			samp->IsRAP = 1;
+		}
 		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
 		samp->CTS_Offset = last_poc - poc_shift;
 		gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);

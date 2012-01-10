@@ -96,6 +96,9 @@ enum
 	/* set subsample information with SVC*/
 	GF_IMPORT_SET_SUBSAMPLES = 1<<15,
 
+	/* force to mark non-IDR frmaes with sync data (I slices,) to be marked as sync points points 
+	THE RESULTING FILE IS NOT COMPLIANT*/
+	GF_IMPORT_FORCE_SYNC = 1<<16,
 
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
