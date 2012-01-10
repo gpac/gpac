@@ -4110,7 +4110,7 @@ restart_import:
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = sample_is_rap;
 			if (!sample_is_rap) {
-				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
+				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
 					samp->IsRAP = 1;
 					if (!use_opengop_gdr) {
 						use_opengop_gdr = 1;
@@ -4288,7 +4288,7 @@ restart_import:
 					if (avc.sei.recovery_point.valid) {
 						sei_recovery_frame_count = avc.sei.recovery_point.frame_cnt;
 						avc.sei.recovery_point.valid = 0;
-						if (import->flags & GF_IMPORT_FORCE_SYNC) 
+						if ((import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) 
 							slice_force_ref = 1;
 					}
 					sample_is_rap = AVC_SliceIsIDR(&avc);
