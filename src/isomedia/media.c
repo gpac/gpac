@@ -457,12 +457,21 @@ GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromSample, u32 *
 		(*sampleNumber) = searchFromSample;
 		return GF_OK;
 	}
+
+	/*check sample groups - prev & next are overwritten if RAP group is found, but are not re-initialized otherwise*/
+	stbl_SearchSAPs(stbl, searchFromSample, &isRAP, &prev, &next);
+	if (isRAP) {
+		(*sampleNumber) = searchFromSample;
+		return GF_OK;
+	}
+
 	//nothing yet, go for next time...
 	if (mode == GF_ISOM_SEARCH_SYNC_FORWARD) {
 		if (next) *sampleNumber = next;
 	} else {
 		if (prev) *sampleNumber = prev;
 	}
+
 	return GF_OK;
 }
 

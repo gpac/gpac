@@ -2162,12 +2162,15 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 
 /*find a RAP or set the prev / next RAPs if vars are passed*/
 GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP);
+/*same as above but only look for open-gop RAPs and GDR (roll)*/
+GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP);
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, u8 *isEdited);
 GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *syncNum);
 GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBits);
 u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber);
 u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32 FragmentIndex);
 GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
+
 
 /*unpack sample2chunk and chunk offset so that we have 1 sample per chunk (edition mode only)*/
 GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl);
