@@ -223,11 +223,10 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 {
 	return stbl_GetSampleDTS_and_Duration(stts, SampleNumber, DTS, NULL);
 }
-//Set the RAP flag of a sample
+//Retrieve closes RAP for a given sample - if sample is RAP, sets the RAP flag
 GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {
 	u32 i;
-
 	if (prevRAP) *prevRAP = 0;
 	if (nextRAP) *nextRAP = 0;
 
@@ -252,6 +251,99 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u3
 			return GF_OK;
 		}
 		if (prevRAP) *prevRAP = stss->sampleNumbers[i];
+	}
+	return GF_OK;
+}
+
+GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP)
+{
+	u32 i, j, count, count2;
+	assert(prevRAP);
+	assert(nextRAP);
+	(*IsRAP) = 0;
+
+	if (!stbl->sampleGroups || !stbl->sampleGroupsDescription) return GF_OK;
+
+	count = gf_list_count(stbl->sampleGroups);
+	count2 = gf_list_count(stbl->sampleGroupsDescription);
+	for (i=0; i<count; i++) {
+		GF_SampleGroupDescriptionBox *sgdp = NULL;
+		Bool is_rap_group = 0;
+		s16 roll_distance = 0;
+		u32 first_sample_in_entry, last_sample_in_entry;
+		GF_SampleGroupBox *sg = gf_list_get(stbl->sampleGroups, i);
+		switch (sg->grouping_type) {
+		case GF_4CC('r','a','p',' '):
+			is_rap_group = 1;
+			break;
+		case GF_4CC('r','o','l','l'):
+			break;
+		default:
+			continue;
+		}
+		for (j=0; j<count2; j++) {
+			sgdp = gf_list_get(stbl->sampleGroupsDescription, j);
+			if (sgdp->grouping_type==sg->grouping_type) break;
+			sgdp = NULL;
+		}
+		if (! sgdp) continue;
+			
+		first_sample_in_entry=1;
+		for (j=0; j<sg->entry_count; j++) {
+			u32 first_rap_in_entry, last_rap_in_entry;
+			last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+
+			/*samples in this entry are not RAPs, continue*/
+			if (! sg->sample_entries[j].group_description_index) {
+				first_sample_in_entry += sg->sample_entries[j].sample_count;
+				continue;
+			}
+			if (!is_rap_group) {
+				GF_RollRecoveryEntry *entry = gf_list_get(sgdp->group_descriptions, sg->sample_entries[j].group_description_index);
+				roll_distance = entry ? entry->roll_distance : 0;
+			}
+
+			/*we consider the first sample in a roll or rap group entry to be the RAP (eg, we have to decode from this sample anyway)
+			except if roll_distance is strictly negative in which case we have to rewind our sample numbers from roll_distance*/
+			if (roll_distance < 0) {
+				if (first_sample_in_entry + roll_distance>=0) first_rap_in_entry = first_sample_in_entry + roll_distance;
+				else first_rap_in_entry = 0;
+
+				if (last_sample_in_entry + roll_distance>=0) last_rap_in_entry = last_sample_in_entry + roll_distance;
+				else last_rap_in_entry = 0;
+			} else {
+				first_rap_in_entry = first_sample_in_entry;
+				last_rap_in_entry = last_sample_in_entry;
+			}
+
+			/*store previous & next sample RAP - note that we do not store the closest previous RAP, only the first of the previous RAP group
+			as RAPs are usually isolated this should not be an issue*/
+			if (prevRAP && (first_rap_in_entry <= SampleNumber)) {
+				*prevRAP = first_rap_in_entry;
+			}
+			if (nextRAP) {
+				*nextRAP = last_rap_in_entry;
+			}
+			
+			/*sample lies in this (rap) group, it is rap*/
+			if (is_rap_group) {
+				if ((first_rap_in_entry <= SampleNumber) && (SampleNumber <= last_rap_in_entry)) {
+					(*IsRAP) = 1;
+					return GF_OK;
+				}
+			} else {
+				/*prevRAP or nextRAP matches SampleNumber, sample is RAP*/
+				if ((*prevRAP == SampleNumber) || (*nextRAP == SampleNumber)) {
+					(*IsRAP) = 1;
+					return GF_OK;
+				}
+			}
+
+			/*first sample in entry is after our target sample, abort*/
+			if (first_rap_in_entry > SampleNumber) {
+				break;
+			}
+		}
 	}
 	return GF_OK;
 }
