@@ -1898,10 +1898,10 @@ static void m2ts_sidx_add_entry(GF_SegmentIndexBox *sidx, Bool type,
 	sidx->refs = gf_realloc(sidx->refs, sidx->nb_refs*sizeof(GF_SIDXReference));
 	ref = &(sidx->refs[sidx->nb_refs-1]);
 	ref->reference_type = type;
-	ref->contains_RAP = has_rap;
+	ref->SAP_type = has_rap;
 	ref->reference_size = size;
 	ref->subsegment_duration = duration;
-	ref->RAP_delta_time = (has_rap ? RAP_delta_time: 0);
+	ref->SAP_delta_time = (has_rap ? RAP_delta_time: 0);
 }
 
 static void m2ts_sidx_update_prev_entry_duration(GF_SegmentIndexBox *sidx, u32 duration)
