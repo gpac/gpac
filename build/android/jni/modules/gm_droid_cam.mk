@@ -8,6 +8,6 @@ include $(LOCAL_PATH)/base.mk
 
 LOCAL_LDLIBS += -llog
 
-LOCAL_SRC_FILES := ../../../../modules/droid_cam.c 
+LOCAL_SRC_FILES := ../../../../modules/droid_cam/droid_cam.c 
 
 include $(BUILD_SHARED_LIBRARY)
