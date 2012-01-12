@@ -7792,8 +7792,9 @@ GF_Err sidx_Read(GF_Box *s,GF_BitStream *bs)
 		ptr->refs[i].reference_type = gf_bs_read_int(bs, 1);
 		ptr->refs[i].reference_size = gf_bs_read_int(bs, 31);
 		ptr->refs[i].subsegment_duration = gf_bs_read_u32(bs);
-		ptr->refs[i].contains_RAP = gf_bs_read_int(bs, 1);
-		ptr->refs[i].RAP_delta_time = gf_bs_read_int(bs, 31);
+		ptr->refs[i].starts_with_SAP = gf_bs_read_int(bs, 1);
+		ptr->refs[i].SAP_type = gf_bs_read_int(bs, 3);
+		ptr->refs[i].SAP_delta_time = gf_bs_read_int(bs, 28);
 		ptr->size -= 12;
 	}
 	return GF_OK;
@@ -7837,8 +7838,9 @@ GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_int(bs, ptr->refs[i].reference_type, 1);
 		gf_bs_write_int(bs, ptr->refs[i].reference_size, 31);
 		gf_bs_write_u32(bs, ptr->refs[i].subsegment_duration);
-		gf_bs_write_int(bs, ptr->refs[i].contains_RAP, 1);
-		gf_bs_write_int(bs, ptr->refs[i].RAP_delta_time, 31);
+		gf_bs_write_int(bs, ptr->refs[i].starts_with_SAP, 1);
+		gf_bs_write_int(bs, ptr->refs[i].SAP_type, 3);
+		gf_bs_write_int(bs, ptr->refs[i].SAP_delta_time, 28);
 	}
 	return GF_OK;
 }

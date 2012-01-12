@@ -478,13 +478,15 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 	return sampleCount;
 }
 
-Bool moof_get_rap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *rap_delta)
+u32 moof_get_sap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap_delta, Bool *starts_with_sap)
 {
 	u32 i, j, delta;
+	Bool first = 1;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf;
 	GF_TrackFragmentRunBox *trun;
-	*rap_delta = 0;
+	*sap_delta = 0;
+	*starts_with_sap = 0;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
 		traf = gf_list_get(moof->TrackList, i);
 		if (traf->tfhd->trackID==refTrackID) break;
@@ -498,17 +500,20 @@ Bool moof_get_rap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *ra
 		if (trun->flags & GF_ISOM_TRUN_FIRST_FLAG) {
 			if (GF_ISOM_GET_FRAG_SYNC(trun->flags)) {
 				ent = gf_list_get(trun->entries, 0);
-				*rap_delta = delta + ent->CTS_Offset;
+				*sap_delta = delta + ent->CTS_Offset;
+				*starts_with_sap = first;
 				return 1;
 			}
 		}
 		j=0;
 		while ((ent = gf_list_enum(trun->entries, &j))) {
 			if (GF_ISOM_GET_FRAG_SYNC(ent->flags)) {
-				*rap_delta = delta + ent->CTS_Offset;
+				*sap_delta = delta + ent->CTS_Offset;
+				*starts_with_sap = first;
 				return 1;
 			}
 			delta += ent->Duration;
+			first = 0;
 		}
 	}
 	return 0;
@@ -904,19 +909,18 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 			if (sidx) {
 				/*we refer to next moof*/
 				sidx->refs[idx].reference_type = 0;
-				sidx->refs[idx].contains_RAP = moof_get_rap_time_offset(movie->moof, referenceTrackID, & sidx->refs[idx].RAP_delta_time);
-				if (sidx->refs[idx].contains_RAP) {
-					sidx->refs[idx].RAP_delta_time += cur_dur;
+				sidx->refs[idx].SAP_type = moof_get_sap_time_offset(movie->moof, referenceTrackID, & sidx->refs[idx].SAP_delta_time, & sidx->refs[idx].starts_with_SAP);
+				if (sidx->refs[idx].SAP_type) {
+					sidx->refs[idx].SAP_delta_time += cur_dur;
 
-					if (root_sidx && !root_sidx->refs[sidx_idx].contains_RAP) {
-						root_sidx->refs[sidx_idx].contains_RAP = 1;
-						root_sidx->refs[sidx_idx].RAP_delta_time = sidx->refs[idx].RAP_delta_time + sidx_dur;
+					if (root_sidx && !root_sidx->refs[sidx_idx].SAP_type) {
+						root_sidx->refs[sidx_idx].SAP_type = sidx->refs[idx].SAP_type;
+						root_sidx->refs[sidx_idx].SAP_delta_time = sidx->refs[idx].SAP_delta_time + sidx_dur;
 					}
-					else if (prev_sidx && !prev_sidx->refs[prev_sidx->nb_refs - 1].contains_RAP) {
-						prev_sidx->refs[prev_sidx->nb_refs - 1].contains_RAP = 1;
-						prev_sidx->refs[prev_sidx->nb_refs - 1].RAP_delta_time = sidx->refs[idx].RAP_delta_time;
+					else if (prev_sidx && !prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type) {
+						prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type = sidx->refs[idx].SAP_type;
+						prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_delta_time = sidx->refs[idx].SAP_delta_time;
 					}
-
 				}
 				
 				dur = moof_get_duration(movie->moof, referenceTrackID);
@@ -943,9 +947,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 						sidx = NULL;
 					} else if (daisy_chain_sidx) {
 						if (prev_sidx) {
-							if (prev_sidx->refs[prev_sidx->nb_refs - 1].contains_RAP) {
-								prev_sidx->refs[prev_sidx->nb_refs - 1].contains_RAP = 1;
-								prev_sidx->refs[prev_sidx->nb_refs - 1].RAP_delta_time += sidx_dur;
+							if (prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type) {
+								prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_delta_time += sidx_dur;
 							}
 							prev_sidx->refs[prev_sidx->nb_refs - 1].subsegment_duration = sidx_dur;
 							prev_sidx->refs[prev_sidx->nb_refs - 1].reference_size = (u32) (gf_bs_get_position(movie->editFileMap->bs) - local_sidx_start);

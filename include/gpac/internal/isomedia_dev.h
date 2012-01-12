@@ -1870,8 +1870,9 @@ typedef struct
 	Bool reference_type;
 	u32 reference_size;
 	u32 subsegment_duration;
-	Bool contains_RAP;
-	u32 RAP_delta_time;
+	Bool starts_with_SAP;
+	u32 SAP_type;
+	u32 SAP_delta_time;
 } GF_SIDXReference;
 
 typedef struct __sidx_box

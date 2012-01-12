@@ -3507,7 +3507,7 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 	
 	for (i=0; i<p->nb_refs; i++) {
-		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" hasRAP=\"%d\" RAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].contains_RAP, p->refs[i].RAP_delta_time);
+		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}
 	fprintf(trace, "</SegmentIndexBox>\n");
 	return GF_OK;
