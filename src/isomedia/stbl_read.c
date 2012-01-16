@@ -269,7 +269,7 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, u8 *IsRAP, u32
 	for (i=0; i<count; i++) {
 		GF_SampleGroupDescriptionBox *sgdp = NULL;
 		Bool is_rap_group = 0;
-		s16 roll_distance = 0;
+		s32 roll_distance = 0;
 		u32 first_sample_in_entry, last_sample_in_entry;
 		GF_SampleGroupBox *sg = gf_list_get(stbl->sampleGroups, i);
 		switch (sg->grouping_type) {
@@ -306,10 +306,10 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, u8 *IsRAP, u32
 			/*we consider the first sample in a roll or rap group entry to be the RAP (eg, we have to decode from this sample anyway)
 			except if roll_distance is strictly negative in which case we have to rewind our sample numbers from roll_distance*/
 			if (roll_distance < 0) {
-				if (first_sample_in_entry + roll_distance>=0) first_rap_in_entry = first_sample_in_entry + roll_distance;
+				if ((s32) first_sample_in_entry + roll_distance>=0) first_rap_in_entry = first_sample_in_entry + roll_distance;
 				else first_rap_in_entry = 0;
 
-				if (last_sample_in_entry + roll_distance>=0) last_rap_in_entry = last_sample_in_entry + roll_distance;
+				if ((s32) last_sample_in_entry + roll_distance>=0) last_rap_in_entry = last_sample_in_entry + roll_distance;
 				else last_rap_in_entry = 0;
 			} else {
 				first_rap_in_entry = first_sample_in_entry;
