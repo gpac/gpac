@@ -429,6 +429,14 @@
 		71CCF3FD12770A8C00339E12 /* user.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AE12770A8C00339E12 /* user.h */; };
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
+		71EB6E5514C5B92200B7EDA7 /* fm_fake_pull.c in Sources */ = {isa = PBXBuildFile; fileRef = 71EB6E4F14C5B92200B7EDA7 /* fm_fake_pull.c */; };
+		71EB6E5614C5B92200B7EDA7 /* fm_fake_push.c in Sources */ = {isa = PBXBuildFile; fileRef = 71EB6E5014C5B92200B7EDA7 /* fm_fake_push.c */; };
+		71EB6E5814C5B92200B7EDA7 /* hyb_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 71EB6E5214C5B92200B7EDA7 /* hyb_in.c */; };
+		71EB6E5914C5B92200B7EDA7 /* hyb_in.h in Headers */ = {isa = PBXBuildFile; fileRef = 71EB6E5314C5B92200B7EDA7 /* hyb_in.h */; };
+		71EB6EAF14C5C2F700B7EDA7 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
+		71EB6EB014C5C30000B7EDA7 /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
+		71EB6EB114C5C30500B7EDA7 /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
+		71EB6EB214C5C32B00B7EDA7 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
 		71F2A45E12830B5300C384DE /* libjs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45412830B1400C384DE /* libjs.a */; };
 		71F2A46E12830BE200C384DE /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45312830B1400C384DE /* libjpeg.a */; };
@@ -943,6 +951,11 @@
 		71CCF3AE12770A8C00339E12 /* user.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = user.h; sourceTree = "<group>"; };
 		71CCF3AF12770A8C00339E12 /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utf.h; sourceTree = "<group>"; };
 		71CCF3B012770A8C00339E12 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xml.h; sourceTree = "<group>"; };
+		71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_hyb_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		71EB6E4F14C5B92200B7EDA7 /* fm_fake_pull.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fm_fake_pull.c; sourceTree = "<group>"; };
+		71EB6E5014C5B92200B7EDA7 /* fm_fake_push.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fm_fake_push.c; sourceTree = "<group>"; };
+		71EB6E5214C5B92200B7EDA7 /* hyb_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hyb_in.c; sourceTree = "<group>"; };
+		71EB6E5314C5B92200B7EDA7 /* hyb_in.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hyb_in.h; sourceTree = "<group>"; };
 		71EC88E01396273B004DCB6A /* osmo.icns */ = {isa = PBXFileReference; explicitFileType = image.icns; name = osmo.icns; path = ../../applications/osmo4_ios/Resources/osmo.icns; sourceTree = SOURCE_ROOT; };
 		71F2A45012830B1400C384DE /* libfaad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfaad.a; path = ../../extra_lib/lib/iOS/libfaad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45112830B1400C384DE /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../extra_lib/lib/iOS/libfreetype.a; sourceTree = SOURCE_ROOT; };
@@ -961,7 +974,7 @@
 		970A26D513434DAC0007362C /* ringbuffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ringbuffer.c; sourceTree = "<group>"; };
 		970A26D613434DAC0007362C /* unicode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = unicode.c; sourceTree = "<group>"; };
 		970A270D1343540C0007362C /* libgcc_s.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgcc_s.1.dylib; path = usr/lib/libgcc_s.1.dylib; sourceTree = SDKROOT; };
-		970A283F134462AE0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = "build/Release-iphonesimulator/libgpac_dynamic.dylib"; sourceTree = "<group>"; };
+		970A283F134462AE0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = "build/Release-iphonesimulator/libgpac_dynamic.dylib"; sourceTree = SOURCE_ROOT; };
 		970A28521344632F0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = ../../bin/iOS/osmo4ios.app/libgpac_dynamic.dylib; sourceTree = SOURCE_ROOT; };
 		9747B6EC14864C6400280D95 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ait.h; sourceTree = "<group>"; };
 		9747B6ED14864C6400280D95 /* dsmcc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dsmcc.h; sourceTree = "<group>"; };
@@ -1204,12 +1217,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		71EB6E4614C5B6F500B7EDA7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71EB6EAF14C5C2F700B7EDA7 /* libgcc_s.1.dylib in Frameworks */,
+				71EB6EB014C5C30000B7EDA7 /* libgpac_dynamic.dylib in Frameworks */,
+				71EB6EB114C5C30500B7EDA7 /* libgpac_dynamic.dylib in Frameworks */,
+				71EB6EB214C5C32B00B7EDA7 /* libc.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				71EB6E4E14C5B92200B7EDA7 /* hyb_in */,
 				71179CB91292EC1800A83216 /* mpd_in */,
 				71A199061278765600ACFF58 /* aac_in */,
 				71A1990D1278767B00ACFF58 /* bifs_dec */,
@@ -1499,6 +1524,7 @@
 				718478B11278666100917298 /* gm_sdl_out.dylib */,
 				71A19B1A12796B5600ACFF58 /* osmo4ios.app */,
 				71179CC41292EC3400A83216 /* gm_mpd_in.dylib */,
+				71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.dylib */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2002,6 +2028,18 @@
 			path = modules;
 			sourceTree = "<group>";
 		};
+		71EB6E4E14C5B92200B7EDA7 /* hyb_in */ = {
+			isa = PBXGroup;
+			children = (
+				71EB6E4F14C5B92200B7EDA7 /* fm_fake_pull.c */,
+				71EB6E5014C5B92200B7EDA7 /* fm_fake_push.c */,
+				71EB6E5214C5B92200B7EDA7 /* hyb_in.c */,
+				71EB6E5314C5B92200B7EDA7 /* hyb_in.h */,
+			);
+			name = hyb_in;
+			path = ../../modules/hyb_in;
+			sourceTree = SOURCE_ROOT;
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -2253,6 +2291,14 @@
 				9747B6EF14864C6400280D95 /* ait.h in Headers */,
 				9747B6F014864C6400280D95 /* dsmcc.h in Headers */,
 				9747B6F114864C6400280D95 /* events_constants.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		71EB6E4414C5B6F500B7EDA7 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71EB6E5914C5B92200B7EDA7 /* hyb_in.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2619,6 +2665,23 @@
 			productReference = 71CCF1311277037A00339E12 /* libgpac_static.a */;
 			productType = "com.apple.product-type.library.static";
 		};
+		71EB6E4714C5B6F500B7EDA7 /* hyb_in */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 71EB6E4B14C5B71300B7EDA7 /* Build configuration list for PBXNativeTarget "hyb_in" */;
+			buildPhases = (
+				71EB6E4414C5B6F500B7EDA7 /* Headers */,
+				71EB6E4514C5B6F500B7EDA7 /* Sources */,
+				71EB6E4614C5B6F500B7EDA7 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = hyb_in;
+			productName = hyb_in;
+			productReference = 71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.dylib */;
+			productType = "com.apple.product-type.library.static";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -2660,6 +2723,7 @@
 				718478B01278666100917298 /* sdl_out */,
 				71A19B1912796B5600ACFF58 /* osmo4ios */,
 				71179CC31292EC3400A83216 /* mpd_in */,
+				71EB6E4714C5B6F500B7EDA7 /* hyb_in */,
 			);
 		};
 /* End PBXProject section */
@@ -3130,6 +3194,16 @@
 				97FBAAE913BB61D700800B2F /* dvb.c in Sources */,
 				9747B6F414864C7800280D95 /* ait.c in Sources */,
 				9747B6F514864C7800280D95 /* dsmcc.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		71EB6E4514C5B6F500B7EDA7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71EB6E5514C5B92200B7EDA7 /* fm_fake_pull.c in Sources */,
+				71EB6E5614C5B92200B7EDA7 /* fm_fake_push.c in Sources */,
+				71EB6E5814C5B92200B7EDA7 /* hyb_in.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4373,6 +4447,69 @@
 			};
 			name = Release;
 		};
+		71EB6E4914C5B6F500B7EDA7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_PREFIX = gm_;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_BUILTIN_FUNCTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HEADER_SEARCH_PATHS = ../../include;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
+					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
+					"\"$(SRCROOT)/../../bin/iOS\"",
+					"\"$(SRCROOT)/build/Release-iphoneos\"",
+					"\"$(SRCROOT)/../../bin/iOS/osmo4ios.app\"",
+				);
+				MACH_O_TYPE = mh_dylib;
+				OTHER_LDFLAGS = (
+					"-dynamic",
+					"-install_name",
+					"@loader_path/gm_hyb_in.dylib",
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = hyb_in;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		71EB6E4A14C5B6F500B7EDA7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_PREFIX = gm_;
+				GCC_ENABLE_BUILTIN_FUNCTIONS = YES;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				HEADER_SEARCH_PATHS = ../../include;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
+					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
+					"\"$(SRCROOT)/../../bin/iOS\"",
+					"\"$(SRCROOT)/build/Release-iphoneos\"",
+					"\"$(SRCROOT)/../../bin/iOS/osmo4ios.app\"",
+				);
+				MACH_O_TYPE = mh_dylib;
+				OTHER_LDFLAGS = (
+					"-dynamic",
+					"-install_name",
+					"@loader_path/gm_hyb_in.dylib",
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = hyb_in;
+				SDKROOT = iphoneos;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -4616,6 +4753,15 @@
 			buildConfigurations = (
 				71CCF1331277037B00339E12 /* Debug */,
 				71CCF1341277037B00339E12 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		71EB6E4B14C5B71300B7EDA7 /* Build configuration list for PBXNativeTarget "hyb_in" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				71EB6E4914C5B6F500B7EDA7 /* Debug */,
+				71EB6E4A14C5B6F500B7EDA7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
