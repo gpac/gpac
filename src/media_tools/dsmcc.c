@@ -1008,7 +1008,7 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 			}
 		}
 	}else{
-		printf("Fichier non créé \n\n");
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[DSMCC] File vould not be created\n"));
 	}
 
 	dsmcc_free_biop_file(BIOP_File);	

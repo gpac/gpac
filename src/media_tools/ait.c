@@ -419,7 +419,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 
 	ChanAppInfo->nb_application = nb_of_app;
 
-	printf("ChanAppInfo->nb_application %d \n",ChanAppInfo->nb_application);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DSMCC] ChanAppInfo->nb_application %d \n",ChanAppInfo->nb_application));
 	
 	for(j=0 ; j<nb_of_app ; j++){
 		GF_M2TS_AIT_APPLICATION* Application;
@@ -656,7 +656,7 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 	while (app_desc_num != 0) {
 		u32 descr_tag;
 		descr_tag = application_decode->application_descriptors_id[i];
-		printf("descr_tag %d\n", descr_tag);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DSMCC] descr_tag %d\n", descr_tag);
 		switch(descr_tag) {
 			case APPLICATION_DESCRIPTOR:
 				{
