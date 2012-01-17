@@ -1431,7 +1431,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		reg_desc_format = 0;
 
 		switch (stream_type) {
-		  printf("stream_type :%d \n",stream_type);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("stream_type :%d \n",stream_type));
 		/* PES */
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
@@ -1492,7 +1492,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if(stream_type == GF_M2TS_PRIVATE_SECTION){
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT section found on pid %d\n", pid));
 			}else{
-				printf("stream type DSM CC user private section: pid = %d \n", pid);		
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type DSM CC user private section: pid = %d \n", pid);		
 			}
 			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
 			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
@@ -1500,7 +1500,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			break;
 
 		case GF_M2TS_MPE_SECTIONS:
-			printf("stream type MPE found : pid = %d \n", pid);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type MPE found : pid = %d \n", pid));
 #ifdef DUMP_MPE_IP_DATAGRAMS
 			es = gf_dvb_mpe_section_new();
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
@@ -1578,7 +1578,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
 					{
 						es->component_tag = data[2];
-						printf("Component Tag: %d on Program %d\n", es->component_tag, es->program->number);
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d\n", es->component_tag, es->program->number));
 					}
 					break;
 				case GF_M2TS_DVB_TELETEXT_DESCRIPTOR:
@@ -2930,7 +2930,7 @@ GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 
     if(loop == 1){
       ts->loop_demux = 1;
-      printf("Loop Mode activated \n");
+      GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Loop Mode activated \n"));
     }
 
 	if (!strnicmp(url, "udp://", 6)
