@@ -656,7 +656,7 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 	while (app_desc_num != 0) {
 		u32 descr_tag;
 		descr_tag = application_decode->application_descriptors_id[i];
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DSMCC] descr_tag %d\n", descr_tag);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DSMCC] descr_tag %d\n", descr_tag));
 		switch(descr_tag) {
 			case APPLICATION_DESCRIPTOR:
 				{
