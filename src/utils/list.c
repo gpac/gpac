@@ -728,3 +728,29 @@ void *gf_list_enum(GF_List *ptr, u32 *pos)
 	(*pos)++;
 	return res;
 }
+
+GF_EXPORT
+GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
+{
+	GF_Err e;
+	u32 count = gf_list_count(l1);
+	if (!l1 || !l2) return GF_BAD_PARAM;
+	if (l1 == l2) return GF_OK;
+
+	while (gf_list_count(l2)) {
+		void *ptr = gf_list_get(l2, 0);
+		e = gf_list_rem(l2, 0);
+		if (e) return e;
+		e = gf_list_add(l1, ptr);
+		if (e) return e;
+	}
+	while (count) {
+		void *ptr = gf_list_get(l1, 0);
+		e = gf_list_rem(l1, 0);
+		if (e) return e;
+		count--;
+		e = gf_list_add(l2, ptr);
+		if (e) return e;
+	}
+	return GF_OK;
+}

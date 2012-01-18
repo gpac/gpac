@@ -435,6 +435,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			gf_free(pck.data);
 			pes->aud_sr = cfg.base_sr;
 			pes->aud_nb_ch = cfg.nb_chan;
+			pes->aud_obj_type = hdr.profile;
 		}
 
 		/*dispatch frame*/
@@ -533,6 +534,8 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 								pck.stream = pes;
 								pes->aud_sr = cfg.base_sr;
 								pes->aud_nb_ch = cfg.nb_chan;
+								pes->aud_obj_type = cfg.base_object_type;
+
 								gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
 								ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
 								gf_free(pck.data);
@@ -2099,9 +2102,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	/*adaptation only - still process in cas of PCR*/
 	case 2:
 		af_size = data[4];
-		assert(af_size==183);
-		if (af_size>183) {
-			//error
+		if (af_size != 183) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Non conformant bitstream: AF size is %d when it must be 183 for AF type 2\n", af_size));
 			return;
 		}
 		paf = &af;

@@ -2101,6 +2101,11 @@ struct __tag_isom {
 	GF_List *moof_list;
 	Bool use_segments, moof_first, append_segment;
 
+	/*used when building single-indexed self initializing media segments*/
+	GF_SegmentIndexBox *root_sidx;
+	u64 root_sidx_offset;
+	u32 root_sidx_index;
+
 	Bool is_index_segment;
 #endif
 
@@ -2109,6 +2114,7 @@ struct __tag_isom {
 
 	/*default track for sync of MPEG4 streams - this is the first accessed stream without OCR info - only set in READ mode*/
 	s32 es_id_default_sync;
+
 };
 
 /*time function*/

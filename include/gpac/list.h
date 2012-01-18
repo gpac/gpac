@@ -157,6 +157,15 @@ GF_Err gf_list_rem_last(GF_List *ptr);
  */
 void *gf_list_enum(GF_List *ptr, u32 *pos);
 
+/*!
+ *	\brief list swap
+ *
+ *	Swaps content of two lists
+ *	\param l1 first list object
+ *	\param l2 second list object
+ */
+GF_Err gf_list_swap(GF_List *l1, GF_List *l2);
+
 /*! @} */
 
 #ifdef __cplusplus

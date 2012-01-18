@@ -73,6 +73,7 @@ typedef struct s_playList {
     int target_duration;
     int mediaSequenceMin;
     int mediaSequenceMax;
+    int computed_duration;
     char is_ended;
     GF_List * elements;
 } Playlist;
@@ -99,6 +100,7 @@ typedef struct s_program {
     int programId;
     GF_List * bitrates;
     int currentBitrateIndex;
+	int computed_duration;
 } Program;
 
 

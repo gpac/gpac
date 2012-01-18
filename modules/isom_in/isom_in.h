@@ -28,6 +28,7 @@
 
 #include <gpac/constants.h>
 #include <gpac/modules/service.h>
+#include <gpac/thread.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -59,6 +60,9 @@ typedef struct
 
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
+
+	GF_Mutex *segment_mutex;
+
 } ISOMReader;
 
 

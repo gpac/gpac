@@ -5521,6 +5521,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					//ses = (GF_M2TS_SECTION_ES *)es;
 				} else {
 					pes = (GF_M2TS_PES *)es;
+					gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 				}
 				idx = import->nb_tracks;
 				import->tk_info[idx].track_num = es->pid;
@@ -5727,9 +5728,20 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						if (pck->stream->aud_sr) {
 							import->tk_info[i].audio_info.sample_rate = pck->stream->aud_sr;
 							import->tk_info[i].audio_info.nb_channels = pck->stream->aud_nb_ch;
+							if ((pck->stream->stream_type==GF_M2TS_AUDIO_AAC) || (pck->stream->stream_type==GF_M2TS_AUDIO_LATM_AAC)) {
+								sprintf(import->tk_info[i].szCodecProfile, "mp4a.40.%02x", (u8) pck->stream->aud_obj_type);
+							}
 						} else {
+							/*unpack AVC config*/
+							if (pck->stream->stream_type==GF_M2TS_VIDEO_H264) {
+								u32 nal_type = pck->data[4] & 0x1F;
+								if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
+									sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
+								}
+							}
 							import->tk_info[i].video_info.width = pck->stream->vid_w;
 							import->tk_info[i].video_info.height = pck->stream->vid_h;
+
 						}
 						break;
 					}

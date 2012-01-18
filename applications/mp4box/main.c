@@ -250,9 +250,10 @@ void PrintGeneralUsage()
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s\n"
-			" -url-template        uses UrlTemplate instead of explicit sources in segments.\n"
+			" -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
 			"                       Ignored if segments are stored in the output file.\n"
 			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
+			" -single-segment      Uses a single segment for the whole file (OnDemand profile). \n"
 			" -dash-ctx FILE       Stores/restore DASH timing from FILE.\n"
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
@@ -1216,6 +1217,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool enable_mem_tracker = 0;
 	Bool dump_iod=0;
 	Bool daisy_chain_sidx=0;
+	Bool single_segment=0;
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
 	Bool adjust_split_end = 0;
@@ -1488,7 +1490,7 @@ int mp4boxMain(int argc, char **argv)
 			Frag = 1;
 		} else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
-			dash_duration = atof(argv[i+1]) / 1000;
+			dash_duration = atof(argv[i+1]) /	 1000;
 			needSave = 1;
 			i++;
 		} else if (!stricmp(arg, "-dash-ts-prog")) {
@@ -1515,6 +1517,8 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		} else if (!stricmp(arg, "-daisy-chain")) {
 			daisy_chain_sidx = 1;
+		} else if (!stricmp(arg, "-single-segment")) {
+			single_segment = 1;
 		} else if (!stricmp(arg, "-url-template")) {
 			use_url_template = 1;
 		}		
@@ -1800,6 +1804,7 @@ int mp4boxMain(int argc, char **argv)
 			outName = argv[i+1]; 
 			i++; 
 		}
+		
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
 		else if (!stricmp(arg, "-sync")) {
@@ -2172,7 +2177,7 @@ int mp4boxMain(int argc, char **argv)
 			inName = "tmp_main.m3u8";
 			remote = 1;
 		}
-		e = gf_m3u8_to_mpd(NULL, inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t");
+		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", NULL, 1, use_url_template);
 		gf_free(mpd_base_url);
 		if (remote) {
 			//gf_delete_file("tmp_main.m3u8");
@@ -3093,11 +3098,16 @@ int mp4boxMain(int argc, char **argv)
 
 	/*split file*/
 	if (dash_duration) {
-
-		fprintf(stdout, "DASH-ing file with %.3f secs segments - fragments: %.3f secs - ", dash_duration, InterleavingTime);
-		if (frags_per_sidx<0) fprintf(stdout, "no sidx");
-		else if (frags_per_sidx) fprintf(stdout, "%d per sidx", frags_per_sidx);
-		else fprintf(stdout, "single sidx");
+		if (single_segment) {
+			fprintf(stdout, "DASH-ing file with single segment - subsegment duration %.3f - fragment duration: %.3f secs", dash_duration, InterleavingTime);
+			if (frags_per_sidx) fprintf(stdout, " - %d per sub-segment", frags_per_sidx);
+			seg_name = seg_ext = NULL;
+		} else {
+			fprintf(stdout, "DASH-ing file with %.3f secs segments - fragments: %.3f secs - ", dash_duration, InterleavingTime);
+			if (frags_per_sidx<0) fprintf(stdout, "no sidx");
+			else if (frags_per_sidx) fprintf(stdout, "%d per sidx", frags_per_sidx);
+			else fprintf(stdout, "single sidx");
+		}
 		if (seg_at_rap) fprintf(stdout, " at GOP boundaries");
 		fprintf(stdout, "\n");
 
@@ -3105,7 +3115,7 @@ int mp4boxMain(int argc, char **argv)
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, daisy_chain_sidx, use_url_template, dash_ctx);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx);
 		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		gf_sys_close();
@@ -3114,7 +3124,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, NULL);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {

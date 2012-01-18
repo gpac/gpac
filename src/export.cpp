@@ -131,6 +131,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_swap) )
 
 /* Bitstream */
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_new) )

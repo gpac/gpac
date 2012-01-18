@@ -32,15 +32,17 @@
 #include <gpac/internal/m3u8.h>
 #include <string.h>
 
+/*set to 1 if you want MPD to use SegmentTemplate if possible instead of SegmentList*/
+#define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*!
-* All the possible Mime-types for MPD files
-*/
+ * All the possible Mime-types for MPD files
+ */
 static const char * MPD_MIME_TYPES[] = { "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", NULL };
 
 /*!
-* All the possible Mime-types for M3U8 files
-*/
+ * All the possible Mime-types for M3U8 files
+ */
 static const char * M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
 typedef enum {
@@ -53,134 +55,145 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** 
 
 typedef struct
 {
-	char *cache;
-	char *url;
+    char *cache;
+    char *url;
 } segment_cache_entry;
 
+/*this structure Group is the implementation of the adaptationSet element of the MPD.*/
 typedef struct __mpd_group 
 {
-	GF_List *representations;
-	u32 group_id;
+	/*pointer to adaptation set*/
+	GF_MPD_AdaptationSet *adaptation_set;
+	/*pointer to active period*/
+	GF_MPD_Period *period;
+
+	/*active representation index in adaptation_set->representations*/
+	u32 active_rep_index;
+
 	Bool selected;
 	Bool done;
 	Bool force_switch_bandwidth;
 	u32 nb_bw_check;
-	/*pointer toactive period*/
-	GF_MPD_Period *period;
-	/*active representation index in period->representations*/
-	u32 active_rep_index;
 	u32 active_bitrate, max_bitrate, min_bitrate;
+
+	u32 nb_segments_in_rep;
+
 	/*local file playback, do not delete them*/
 	Bool local_files;
 	/*next segment to download for this group*/
 	u32 download_segment_index;
 
 	/*next file (cached) to delete at next GF_NET_SERVICE_QUERY_NEXT for this group*/
-	char * urlToDeleteNext;
-	volatile u32 max_cached, nb_cached;
-	segment_cache_entry *cached;
+    char * urlToDeleteNext;
+    volatile u32 max_cached_segments, nb_cached_segments;
+    segment_cache_entry *cached;
 
-	GF_DownloadSession *segment_dnload;
-	const char *segment_local_url;
+    GF_DownloadSession *segment_dnload;
+    const char *segment_local_url;
 
-	u32 nb_segments_done;
+    u32 nb_segments_done;
 
-	Bool segment_must_be_streamed;
+    Bool segment_must_be_streamed;
 
 	/* Service really managing the segments */
-	GF_InputService *service;
-	char *service_mime;
-	Bool service_connected;
+    GF_InputService *service;
+    char *service_mime;
+    Bool service_connected, service_descriptor_fetched;
 } GF_MPD_Group;
 
 typedef struct __mpd_module {
-	/* GPAC Service object (i.e. how this module is seen by the terminal)*/
-	GF_ClientService *service;
-	/* URL to which this service is connected
-	Used to detect when audio service connection request is made on the same URL as video */
-	char *url;
+    /* GPAC Service object (i.e. how this module is seen by the terminal)*/
+    GF_ClientService *service;
+    /* URL to which this service is connected
+       Used to detect when audio service connection request is made on the same URL as video */
+    char *url;
 
-	u32 option_max_cached;
-	u32 auto_switch_count;
-	Bool keep_files;
+    u32 option_max_cached;
+    u32 auto_switch_count;
+    Bool keep_files;
 
 	/* MPD downloader*/
-	GF_DownloadSession *mpd_dnload;
+    GF_DownloadSession *mpd_dnload;
 	/* MPD */
-	GF_MPD *mpd;
+    GF_MPD *mpd;
 	/* number of time the MPD has been reloaded and last update time*/
-	u32 reload_count, last_update_time;
+    u32 reload_count, last_update_time;
 	/*signature of last MPD*/
-	u8 lastMPDSignature[20];
+    u8 lastMPDSignature[20];
 	/*mime used by M3U8 server*/
-	char *mimeTypeForM3U8Segments;
+    char *mimeTypeForM3U8Segments;
 
 	/* active period in MPD (only one currently supported) */
-	u32 active_period_index;
+    u32 active_period_index;
 
 	/*list of groups in the active period*/
 	GF_List *groups;
 	/*group 0 if present, NULL otherwise*/
 	GF_MPD_Group *group_zero_selected;
 
-	/*Main MPD Thread handling segment downloads and MPD/M3U8 update*/
-	GF_Thread *mpd_thread;
+    /*Main MPD Thread handling segment downloads and MPD/M3U8 update*/
+    GF_Thread *mpd_thread;
 	/*mutex for group->cache file name access and MPD update*/
-	GF_Mutex *dl_mutex;
+    GF_Mutex *dl_mutex;
 
-	/* 0 not started, 1 download in progress */
-	MPD_STATE mpd_is_running;
-	Bool mpd_stop_request;
+    /* 0 not started, 1 download in progress */
+    MPD_STATE mpd_is_running;
+    Bool mpd_stop_request;
 
 
-	/* TODO - handle playback status for SPEED/SEEK through SIDX */
-	Double playback_speed, playback_start_range, playback_end_range;
+    /* TODO - handle playback status for SPEED/SEEK through SIDX */
+    Double playback_speed, playback_start_range, playback_end_range;
 } GF_MPD_In;
+
+
+
+static const char *MPD_GetMimeType(GF_MPD_SubRepresentation *subrep, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set)
+{
+	if (subrep && subrep->mime_type) return subrep->mime_type;
+	if (rep && rep->mime_type) return rep->mime_type;
+	if (set && set->mime_type) return set->mime_type;
+	return NULL;
+}
 
 
 static Bool MPD_CheckRootType(const char *local_url)
 {
-	if (local_url) {
-		char *rtype = gf_xml_get_root_type(local_url, NULL);
-		if (rtype) {
-			Bool handled = 0;
-			if (!strcmp(rtype, "MPD")) {
-				handled = 1;
-			}
-			gf_free(rtype);
-			return handled;
-		}
-	}
-	return 0;
+    if (local_url) {
+        char *rtype = gf_xml_get_root_type(local_url, NULL);
+        if (rtype) {
+            Bool handled = 0;
+            if (!strcmp(rtype, "MPD")) {
+                handled = 1;
+            }
+            gf_free(rtype);
+            return handled;
+        }
+    }
+    return 0;
 }
 
 /**
-* NET IO for MPD, we don't need this anymore since mime-type can be given by session
-*/
+ * NET IO for MPD, we don't need this anymore since mime-type can be given by session
+ */
 void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 {
-	GF_Err e;
+    GF_Err e;
 	u32 download_rate;
-	GF_MPD_Group *group= (GF_MPD_Group*) cbk;
-	assert( group );
+    GF_MPD_Group *group= (GF_MPD_Group*) cbk;
 
-	/*handle service message*/
-	gf_term_download_update_stats(group->segment_dnload);
+    /*handle service message*/
+    gf_term_download_update_stats(group->segment_dnload);
 	if (group->done) {
 		gf_dm_sess_abort(group->segment_dnload);
 		return;
 	}	
-
-	if ((param->msg_type == GF_NETIO_PARSE_HEADER) && !strcmp(param->name, "Content-Type")) {
+	
+    if ((param->msg_type == GF_NETIO_PARSE_HEADER) && !strcmp(param->name, "Content-Type")) {
 		if (!group->service_mime) {
 			group->service_mime = gf_strdup(param->value);
 		} else if (strcmp(group->service_mime, param->value)) {
-			GF_MPD_Representation *rep = gf_list_get(group->period->representations, group->active_rep_index);
-			if (!rep->mime){
-				rep->mime = gf_strdup(param->value);
-				/* Be sure to be lower case */
-				strlwr(rep->mime);
-			}
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+			if (! MPD_GetMimeType(NULL, rep, group->adaptation_set) ) rep->mime_type = gf_strdup(param->value);
 			rep->disabled = 1;
 			group->force_switch_bandwidth = 1;
 			gf_dm_sess_abort(group->segment_dnload);
@@ -207,10 +220,10 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 				if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
 
 				if (download_rate && (download_rate < group->active_bitrate)) {
-					fprintf(stdout, "Downloading from group %d at rate %d kbps but group bitrate is %d kbps\n", group->group_id, download_rate/1024, group->active_bitrate/1024);
+					fprintf(stdout, "Downloading from set %s at rate %d kbps but group bitrate is %d kbps\n", group->adaptation_set->id, download_rate/1024, group->active_bitrate/1024);
 					group->nb_bw_check ++;
 					if (group->nb_bw_check>2) {
-						fprintf(stdout, "Downloading from group %d at rate %d kbps but group bitrate is %d kbps - switching\n", group->group_id, download_rate/1024, group->active_bitrate/1024);
+						fprintf(stdout, "Downloading from group %s at rate %d kbps but group bitrate is %d kbps - switching\n", group->adaptation_set->id, download_rate/1024, group->active_bitrate/1024);
 						group->force_switch_bandwidth = 1;
 						gf_dm_sess_abort(group->segment_dnload);
 					}
@@ -254,15 +267,6 @@ static Bool MPD_isM3U8_mime(const char * mime) {
     return 0;
 }
 
-static Bool MPD_segments_are_equals(GF_MPD_SegmentInfo * info1, GF_MPD_SegmentInfo * info2) {
-    assert( info1 );
-    assert( info2 );
-    return info1->byterange_end == info2->byterange_end &&
-           info1->byterange_start == info2->byterange_start &&
-           info1->use_byterange == info2->use_byterange &&
-           (info1->url == info2->url || !strcmp(info1->url, info2->url));
-}
-
 void MPD_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
     GF_Err e;
@@ -276,19 +280,17 @@ void MPD_NetIO(void *cbk, GF_NETIO_Parameter *param)
 static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 {
     GF_Err e;
-    u32 i, j, rep_idx, group_idx;
+    u32 group_idx, rep_idx, i, j;
     Bool seg_found = 0;
     GF_DOMParser *mpd_parser;
     GF_MPD_Period *period, *new_period;
-    GF_MPD_Representation *rep, *new_rep;
-    GF_List *segs;
     const char *local_url;
     char mime[128];
     char * purl;
     Bool is_m3u8 = 0;
-    u32 oldUpdateTime = mpdin->mpd->min_update_time;
+	u32 oldUpdateTime = mpdin->mpd->minimum_update_period;
     /*reset update time - if any error occurs, we will no longer attempt to update the MPD*/
-    mpdin->mpd->min_update_time = 0;
+    mpdin->mpd->minimum_update_period = 0;
 
     if (!mpdin->mpd_dnload) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing downloader\n"));
@@ -320,7 +322,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 
     /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
     if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
-        gf_m3u8_to_mpd(mpdin->service, local_url, purl, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+        gf_m3u8_to_mpd(local_url, purl, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, mpdin->service, 0, M3U8_TO_MPD_USE_TEMPLATE);
     } else if (!MPD_is_MPD_mime(mime)) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
         gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
@@ -344,10 +346,9 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
             if (! memcmp( signature, mpdin->lastMPDSignature, sizeof(mpdin->lastMPDSignature))) {
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] MPD file did not change\n"));
                 mpdin->reload_count++;
-                mpdin->mpd->min_update_time = oldUpdateTime;
+                mpdin->mpd->minimum_update_period = oldUpdateTime;
             } else {
                 GF_MPD *new_mpd;
-                GF_MPD_SegmentInfo *info1;
                 mpdin->reload_count = 0;
                 memccpy(mpdin->lastMPDSignature, signature, sizeof(char), sizeof(mpdin->lastMPDSignature));
 
@@ -378,101 +379,121 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
                     return GF_NON_COMPLIANT_BITSTREAM;
                 }
 
-                if (gf_list_count(period->representations) != gf_list_count(new_period->representations)) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation\n"));
+				if (gf_list_count(period->adaptation_sets) != gf_list_count(new_period->adaptation_sets)) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing AdaptationSet\n"));
                     gf_mpd_del(new_mpd);
                     return GF_NON_COMPLIANT_BITSTREAM;
                 }
 
 				for (group_idx=0; group_idx<gf_list_count(mpdin->groups); group_idx++) {
+					GF_MPD_AdaptationSet *set, *new_set;
 					GF_MPD_Group *group = gf_list_get(mpdin->groups, group_idx);
 					if (!group->selected) continue;
+					set = group->adaptation_set;
+					new_set = gf_list_get(new_period->adaptation_sets, group_idx);
 
-					rep = gf_list_get(period->representations, group->active_rep_index);
-					info1 = gf_list_get(rep->segments, group->download_segment_index - 1);
+					if (gf_list_count(new_set->representations) != gf_list_count(group->adaptation_set->representations)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation in adaptation set\n"));
+						gf_mpd_del(new_mpd);
+						return GF_NON_COMPLIANT_BITSTREAM;
+					}
+					
+					/*get all representations in both periods*/
+					for (rep_idx = 0; rep_idx <gf_list_count(group->adaptation_set->representations); rep_idx++) {
+						GF_List *segments, *new_segments;
+						GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_idx);
+						GF_MPD_Representation *new_rep = gf_list_get(new_set->representations, rep_idx);
 
-					for (rep_idx = 0; rep_idx<gf_list_count(period->representations); rep_idx++) {
-						rep = gf_list_get(period->representations, rep_idx);
-						new_rep = gf_list_get(new_period->representations, rep_idx);
-						if (!new_rep) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation in period\n"));
-							gf_mpd_del(new_mpd);
-							return GF_NON_COMPLIANT_BITSTREAM;
+						if (rep->segment_base || group->adaptation_set->segment_base || period->segment_base) {
+							if (!new_rep->segment_base && !new_set->segment_base && !new_period->segment_base) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: representation does not use segment base as previous version\n"));
+								gf_mpd_del(new_mpd);
+								return GF_NON_COMPLIANT_BITSTREAM;
+							}
+							/*what else should we check ??*/
+
+							/*OK, this rep is fine*/
 						}
-						/*merge init segment*/
-						if (new_rep->init_url) {
-							seg_found = 0;
 
-							if (!strcmp(new_rep->init_url, rep->init_url)) {
-								seg_found = 1;
-							} else {
-								for (j=0; j<gf_list_count(rep->segments); j++) {
-									GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
-									if (!strcmp(new_rep->init_url, seg->url)) {
-										seg_found = 1;
+						else if (rep->segment_template || group->adaptation_set->segment_template || period->segment_template) {
+							if (!new_rep->segment_template && !new_set->segment_template && !new_period->segment_template) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: representation does not use segment template as previous version\n"));
+								gf_mpd_del(new_mpd);
+								return GF_NON_COMPLIANT_BITSTREAM;
+							}
+							/*what else should we check ??*/
+
+							/*OK, this rep is fine*/
+						}
+
+						else {
+							/*we're using segment list*/
+							assert(rep->segment_list || group->adaptation_set->segment_list || period->segment_list);
+
+							if (!new_rep->segment_list && !new_set->segment_list && !new_period->segment_list) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: representation does not use segment list as previous version\n"));
+								gf_mpd_del(new_mpd);
+								return GF_NON_COMPLIANT_BITSTREAM;
+							}
+							/*what else should we check ??*/
+
+							/*get the segment list*/
+							segments = new_segments = NULL;
+							if (period->segment_list && period->segment_list->segment_URLs) segments = period->segment_list->segment_URLs;
+							if (set->segment_list && set->segment_list->segment_URLs) segments = set->segment_list->segment_URLs;
+							if (rep->segment_list && rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
+
+							if (new_period->segment_list && new_period->segment_list->segment_URLs) new_segments = new_period->segment_list->segment_URLs;
+							if (new_set->segment_list && new_set->segment_list->segment_URLs) new_segments = new_set->segment_list->segment_URLs;
+							if (new_rep->segment_list && new_rep->segment_list->segment_URLs) new_segments = new_rep->segment_list->segment_URLs;
+
+
+							for (i=0; i<gf_list_count(new_segments); i++) {
+								GF_MPD_SegmentURL *new_seg = gf_list_get(new_segments, i);
+								Bool found = 0;
+								for (j=0; j<gf_list_count(segments); j++) {
+									GF_MPD_SegmentURL *seg = gf_list_get(segments, j);
+									if (seg->media && new_seg->media && !strcmp(seg->media, new_seg->media)) {
+										found=1;
+										break;
+									}
+									if (seg->media_range && new_seg->media_range && (seg->media_range->start_range==new_seg->media_range->start_range) && (seg->media_range->end_range==new_seg->media_range->end_range) ) {
+										found=1;
 										break;
 									}
 								}
+								/*this is a new segment, merge it: we remove from new list and push to old one, before doing a final swap
+								this ensures that indexing in the segment_list is still correct after merging*/
+								if (!found) {
+									gf_list_rem(new_segments, i);
+									i--;
+									gf_list_add(segments, new_seg);
+									GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment %s\n", rep_idx+1, new_seg->media));
+								}
 							}
-							/*remove from new list and push to old one*/
-							if (!seg_found) {
-								GF_MPD_SegmentInfo *new_seg;
-								GF_SAFEALLOC(new_seg, GF_MPD_SegmentInfo);
-								new_seg->url = gf_strdup(new_rep->init_url);
-								new_seg->use_byterange = new_rep->init_use_range;
-								new_seg->byterange_start = new_rep->init_byterange_start;
-								new_seg->byterange_end = new_rep->init_byterange_end;
-								gf_list_add(rep->segments, new_seg);
-								GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment from initialization segment %s\n", rep_idx+1, new_seg->url));
+
+							/*what else should we check ?*/
+
+							/*swap segment list content*/
+							gf_list_swap(new_segments, segments);
+
+							/*current representation is the active one in the group - update the number of segments*/
+							if (group->active_rep_index==rep_idx) {
+								group->nb_segments_in_rep = gf_list_count(new_segments);
 							}
 						}
 
-						/*merge segment list*/
-						for (i=0; i<gf_list_count(new_rep->segments); i++) {
-							GF_MPD_SegmentInfo *new_seg = gf_list_get(new_rep->segments, i);
-							assert( new_seg );
-							assert( new_seg->url);
-							seg_found = 0;
-							for (j=0; j<gf_list_count(rep->segments); j++) {
-								GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
-								assert( seg );
-								assert( seg->url);
-								if (!strcmp(new_seg->url, seg->url)) {
-									seg_found = 1;
-									break;
-								}
-							}
-							/*remove from new list and push to old one*/
-							if (!seg_found) {
-								gf_list_rem(new_rep->segments, i);
-								gf_list_add(rep->segments, new_seg);
-								GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment %s\n", rep_idx+1, new_seg->url));
-								i--;
-							}
-						}
-						/*swap lists*/
-						{
-							GF_MPD_SegmentInfo *info2;
-							segs = new_rep->segments;
-							new_rep->segments = rep->segments;
-							new_rep->disabled = rep->disabled;
-							if (!new_rep->mime) {
-								new_rep->mime = rep->mime;
-								rep->mime = NULL;
-							}
-							rep->segments = segs;
-							info2 = gf_list_get(rep->segments, group->download_segment_index);
+						/*copy over a few things from former rep*/
+						new_rep->disabled = rep->disabled;
+						if (!new_rep->mime_type) {
+							new_rep->mime_type = rep->mime_type;
+							rep->mime_type = NULL;
 						}
 					}
 					/*update group/period to new period*/
+					j = gf_list_find(group->period->adaptation_sets, group->adaptation_set);
+					group->adaptation_set = gf_list_get(new_period->adaptation_sets, j);
 					group->period = new_period;
-
-					/*and rebuild representations for this group*/
-					gf_list_reset(group->representations);
-					for (i=0; i<gf_list_count(new_period->representations); i++) {
-					    GF_MPD_Representation *rep = gf_list_get(new_period->representations, i);
-						if (rep->groupID==group->group_id) gf_list_add(group->representations, rep);
-					}
 				}
                 /*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
                 if (mpdin->mpd)
@@ -510,7 +531,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		}
 
         /* Wait until no file is scheduled to be downloaded */
-        while (mpdin->mpd_is_running && group->nb_cached<2) {
+        while (mpdin->mpd_is_running && group->nb_cached_segments<2) {
             gf_mx_v(mpdin->dl_mutex);
 			if (group->done) {
 				return GF_EOS;
@@ -518,7 +539,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
             gf_sleep(16);
             gf_mx_p(mpdin->dl_mutex);
         }
-        if (group->nb_cached<2) {
+        if (group->nb_cached_segments<2) {
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] No more file in cache, EOS\n"));
             gf_mx_v(mpdin->dl_mutex);
             return GF_EOS;
@@ -528,7 +549,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         if (group->cached[0].cache) {
             if (group->urlToDeleteNext) {
 				if (!group->local_files && !mpdin->keep_files)
-			        gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, group->urlToDeleteNext);
+					gf_dm_delete_cached_file_entry_session(group->segment_dnload, group->urlToDeleteNext);
 
 				gf_free( group->urlToDeleteNext);
                 group->urlToDeleteNext = NULL;
@@ -541,9 +562,9 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
             group->cached[0].url = NULL;
             group->cached[0].cache = NULL;
         }
-        memmove(&group->cached[0], &group->cached[1], sizeof(segment_cache_entry)*(group->nb_cached-1));
-        memset(&(group->cached[group->nb_cached-1]), 0, sizeof(segment_cache_entry));
-        group->nb_cached--;
+        memmove(&group->cached[0], &group->cached[1], sizeof(segment_cache_entry)*(group->nb_cached_segments-1));
+        memset(&(group->cached[group->nb_cached_segments-1]), 0, sizeof(segment_cache_entry));
+        group->nb_cached_segments--;
         param->url_query.next_url = group->cached[0].cache;
         gf_mx_v(mpdin->dl_mutex);
         {
@@ -551,7 +572,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
             if (timer2 > 1000) {
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
             }
-            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[0].url, timer2, group->cached[0].cache, group->nb_cached, group->max_cached));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[0].url, timer2, group->cached[0].cache, group->nb_cached_segments, group->max_cached_segments));
         }
     } else {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Client Query request (%d) from terminal\n", param->command_type));
@@ -661,6 +682,68 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
     }
 }
 
+static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representation *rep)
+{
+	u64 duration = 0;
+	u32 timescale = 1;
+	GF_MPD_AdaptationSet *set;
+	GF_MPD_Period *period;
+
+	u32 i = gf_list_find(group->adaptation_set->representations, rep);
+	assert((s32) i >= 0);
+
+	group->active_rep_index = i;
+	group->active_bitrate = rep->bandwidth;
+	group->nb_segments_in_rep = 1;
+
+	set = group->adaptation_set;
+	period = group->period;
+	/*single segment*/
+	if (rep->segment_base || set->segment_base || period->segment_base) {
+		return;
+	}
+	if (rep->segment_list || set->segment_list || period->segment_list) {
+		GF_List *segments = NULL;
+		if (period->segment_list) {
+			if (period->segment_list->duration) duration = period->segment_list->duration;
+			if (period->segment_list->segment_URLs) segments = period->segment_list->segment_URLs;
+		}
+		if (set->segment_list) {
+			if (set->segment_list->duration) duration = set->segment_list->duration;
+			if (set->segment_list->segment_URLs) segments = set->segment_list->segment_URLs;
+		}
+		if (rep->segment_list) {
+			if (rep->segment_list->duration) duration = rep->segment_list->duration;
+			if (rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
+		}
+		if (segments) 
+			group->nb_segments_in_rep = gf_list_count(segments);
+		
+		return;
+	}
+
+	if (period->segment_template) {
+		if (period->segment_template->duration) duration = period->segment_template->duration;
+		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
+	}
+	if (set->segment_template) {
+		if (set->segment_template->duration) duration = set->segment_template->duration;
+		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
+	}
+	if (rep->segment_template) {
+		if (rep->segment_template->duration) duration = rep->segment_template->duration;
+		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+	}
+	if (period->duration && duration) {
+		Double nb_seg = period->duration;
+		/*duration is given in ms*/
+		nb_seg /= 1000;
+		nb_seg *= timescale;
+		nb_seg /= duration;
+		group->nb_segments_in_rep = (u32) ceil(nb_seg);
+	}
+}
+
 static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 {
 	u32 i, bandwidth, min_bandwidth;
@@ -672,8 +755,8 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPDIn] Checking representations between %d and %d kbps\n", group->min_bitrate/1024, group->max_bitrate/1024));
 
-	for (i=0; i<gf_list_count(group->representations); i++) {
-		GF_MPD_Representation *rep = gf_list_get(group->representations, i);
+	for (i=0; i<gf_list_count(group->adaptation_set->representations); i++) {
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, i);
 		if (rep->disabled) continue;
 		if ((rep->bandwidth > bandwidth) && (rep->bandwidth < group->max_bitrate )) {
 			rep_sel = rep;
@@ -689,7 +772,7 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 		min_bandwidth_selected = 1;
 	}
 	assert(rep_sel);
-	i = gf_list_find(group->period->representations, rep_sel);
+	i = gf_list_find(group->adaptation_set->representations, rep_sel);
 
 	assert((s32) i >= 0);
 
@@ -703,16 +786,332 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPDIn] Switching to representation bandwidth %d kbps for download bandwidth %d kbps\n", rep_sel->bandwidth/1024, group->max_bitrate/1024));
 		}
-		group->active_rep_index = i;
-		group->active_bitrate = rep_sel->bandwidth;
+		MPD_SetGroupRepresentation(group, rep_sel);
 	}
+}
+
+
+u64 MPD_ResolveDuration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u32 item_index)
+{
+	GF_MPD_SegmentTimeline *segment_timeline;
+	GF_MPD_MultipleSegmentBase *mbase_rep, *mbase_set, *mbase_period;
+	/*single media segment - duration is not known unless indicated in period*/
+	if (rep->segment_base || set->segment_base || period->segment_base) {
+		return period ? period->duration : 0;
+	}
+	/*we have a segment template list or template*/
+	mbase_rep = rep->segment_list ? (GF_MPD_MultipleSegmentBase *) rep->segment_list : (GF_MPD_MultipleSegmentBase *) rep->segment_template;
+	mbase_set = set->segment_list ? (GF_MPD_MultipleSegmentBase *)set->segment_list : (GF_MPD_MultipleSegmentBase *)set->segment_template;
+	mbase_period = period->segment_list ? (GF_MPD_MultipleSegmentBase *)period->segment_list : (GF_MPD_MultipleSegmentBase *)period->segment_template;
+
+	segment_timeline = NULL;
+	if (mbase_period) segment_timeline =  mbase_period->segment_timeline;
+	if (mbase_set) segment_timeline =  mbase_set->segment_timeline;
+	if (mbase_rep) segment_timeline =  mbase_rep->segment_timeline;
+	
+	if (segment_timeline) {
+		/*not supported yet*/
+		assert(0);
+		return 0;
+	}
+	if (mbase_rep && mbase_rep->duration) return mbase_rep->duration;
+	if (mbase_set && mbase_set->duration) return mbase_set->duration;
+	if (mbase_period && mbase_period->duration) return mbase_period->duration;
+	return 0;
+}
+
+typedef enum
+{
+	GF_MPD_RESOLVE_URL_MEDIA,
+	GF_MPD_RESOLVE_URL_INIT,
+	GF_MPD_RESOLVE_URL_INDEX,
+} GF_MPDURLResolveType;
+
+
+GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, char *mpd_url, GF_MPDURLResolveType resolve_type, u32 item_index, char **out_url, u64 *out_range_start, u64 *out_range_end)
+{
+	GF_MPD_BaseURL *url_child;
+	u32 start_number = 1;
+	char *url, *media_url;
+	char *url_to_solve, *solved_template, *first_sep;
+	char *init_template, *index_template;
+
+	*out_range_start = *out_range_end = 0;
+	*out_url = NULL;
+
+	/*resolve base URLs from document base (download location) to representation (media)*/
+	url = gf_strdup(mpd_url);
+	url_child = gf_list_get(mpd->base_URLs, 0);
+	if (url_child) {
+		char *t_url = gf_url_concatenate(url, url_child->URL);
+		gf_free(url);
+		url = t_url;
+	}
+
+	url_child = gf_list_get(period->base_URLs, 0);
+	if (url_child) {
+		char *t_url = gf_url_concatenate(url, url_child->URL);
+		gf_free(url);
+		url = t_url;
+	}
+
+	url_child = gf_list_get(set->base_URLs, 0);
+	if (url_child) {
+		char *t_url = gf_url_concatenate(url, url_child->URL);
+		gf_free(url);
+		url = t_url;
+	}
+
+	media_url = NULL;
+	url_child = gf_list_get(rep->base_URLs, 0);
+	if (url_child) {
+		media_url = gf_url_concatenate(url, url_child->URL);
+	}
+
+	/*single URL*/
+	if (rep->segment_base || set->segment_base || period->segment_base) {
+		GF_MPD_URL *res_url;
+		if (item_index>0) return GF_EOS;
+		switch (resolve_type) {
+		case GF_MPD_RESOLVE_URL_MEDIA:
+			gf_free(url);
+			if (!media_url) return GF_NON_COMPLIANT_BITSTREAM;
+			*out_url = media_url;
+			return GF_OK;
+		case GF_MPD_RESOLVE_URL_INIT:
+		case GF_MPD_RESOLVE_URL_INDEX:
+			gf_free(media_url);
+			res_url = NULL;
+			if (resolve_type == GF_MPD_RESOLVE_URL_INDEX) {
+				if (period->segment_base) res_url = period->segment_base->representation_index;
+				if (set->segment_base) res_url = set->segment_base->representation_index;
+				if (rep->segment_base) res_url = rep->segment_base->representation_index;
+			} else {
+				if (period->segment_base) res_url = period->segment_base->initialization_segment;
+				if (set->segment_base) res_url = set->segment_base->initialization_segment;
+				if (rep->segment_base) res_url = rep->segment_base->initialization_segment;
+			}
+			/*no initialization segment / index*/
+			if (!res_url) {
+				gf_free(url);
+				return GF_OK;
+			}
+			if (res_url->sourceURL) {
+				*out_url = gf_url_concatenate(url, res_url->sourceURL);
+				gf_free(url);
+			} else {
+				*out_url = url;
+			}
+			if (res_url->byte_range) {
+				*out_range_start = res_url->byte_range->start_range;
+				*out_range_end = res_url->byte_range->end_range;
+			}
+			return GF_OK;
+		default:
+			break;
+		}
+		gf_free(url);
+		gf_free(media_url);
+		return GF_BAD_PARAM;
+	}
+
+	/*segmentList*/
+	if (rep->segment_list || set->segment_list || period->segment_list) {	
+		GF_MPD_URL *init_url, *index_url;
+		GF_MPD_SegmentURL *segment;
+		GF_List *segments = NULL;
+		u32 segment_count;
+
+		init_url = index_url = NULL;
+
+		/*apply inheritance of attributes, lowest level having preceedence*/
+		if (period->segment_list) {
+			if (period->segment_list->initialization_segment) init_url = period->segment_list->initialization_segment;
+			if (period->segment_list->representation_index) index_url = period->segment_list->representation_index;
+			if (period->segment_list->segment_URLs) segments = period->segment_list->segment_URLs;
+			if (period->segment_list->start_number != (u32) -1) start_number = period->segment_list->start_number;
+		}
+		if (set->segment_list) {
+			if (set->segment_list->initialization_segment) init_url = set->segment_list->initialization_segment;
+			if (set->segment_list->representation_index) index_url = set->segment_list->representation_index;
+			if (set->segment_list->segment_URLs) segments = set->segment_list->segment_URLs;
+			if (set->segment_list->start_number != (u32) -1) start_number = set->segment_list->start_number;
+		}
+		if (rep->segment_list) {
+			if (rep->segment_list->initialization_segment) init_url = rep->segment_list->initialization_segment;
+			if (rep->segment_list->representation_index) index_url = rep->segment_list->representation_index;
+			if (rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
+			if (rep->segment_list->start_number != (u32) -1) start_number = rep->segment_list->start_number;
+		}
+
+
+		segment_count = gf_list_count(segments);
+
+		switch (resolve_type) {
+		case GF_MPD_RESOLVE_URL_INIT:
+			gf_free(media_url);
+			if (init_url) {
+				*out_url = gf_url_concatenate(url, init_url->sourceURL);
+				if (init_url->byte_range) {
+					*out_range_start = init_url->byte_range->start_range;
+					*out_range_end = init_url->byte_range->end_range;
+				}
+			}
+			gf_free(url);
+			return GF_OK;
+		case GF_MPD_RESOLVE_URL_MEDIA:
+			gf_free(media_url);
+			if (item_index >= segment_count) {
+				gf_free(url);
+				return GF_EOS;
+			}
+			*out_url = url;
+			segment = gf_list_get(segments, item_index);
+			if (segment->media) {
+				*out_url = gf_url_concatenate(url, segment->media);
+				gf_free(url);
+			}
+			if (segment->media_range) {
+				*out_range_start = segment->media_range->start_range;
+				*out_range_end = segment->media_range->end_range;
+			}
+			return GF_OK;
+		case GF_MPD_RESOLVE_URL_INDEX:
+			gf_free(media_url);
+			if (item_index >= segment_count) {
+				gf_free(url);
+				return GF_EOS;
+			}
+			*out_url = url;
+			segment = gf_list_get(segments, item_index);
+			if (segment->index) {
+				*out_url = gf_url_concatenate(url, segment->index);
+				gf_free(url);
+			}
+			if (segment->index_range) {
+				*out_range_start = segment->index_range->start_range;
+				*out_range_end = segment->index_range->end_range;
+			}
+			return GF_OK;
+		default:
+			break;
+		}
+		gf_free(url);
+		gf_free(media_url);
+		return GF_BAD_PARAM;
+	}
+
+	/*segmentTemplate*/
+	init_template = index_template = NULL;
+
+	/*not clear in the spec, but we assume baseURL of representation is ignored and replaced with template*/	
+	gf_free(media_url);
+	media_url = NULL;
+
+	/*apply inheritance of attributes, lowest level having preceedence*/
+	if (period->segment_template) {
+		if (period->segment_template->initialization) init_template = period->segment_template->initialization;
+		if (period->segment_template->index) index_template = period->segment_template->index;
+		if (period->segment_template->media) media_url = period->segment_template->media;
+		if (period->segment_template->start_number != (u32) -1) start_number = period->segment_template->start_number;
+	}
+	if (set->segment_template) {
+		if (set->segment_template->initialization) init_template = set->segment_template->initialization;
+		if (set->segment_template->index) index_template = set->segment_template->index;
+		if (set->segment_template->media) media_url = set->segment_template->media;
+		if (set->segment_template->start_number != (u32) -1) start_number = set->segment_template->start_number;
+	}
+	if (rep->segment_template) {
+		if (rep->segment_template->initialization) init_template = rep->segment_template->initialization;
+		if (rep->segment_template->index) index_template = rep->segment_template->index;
+		if (rep->segment_template->media) media_url = rep->segment_template->media;
+		if (rep->segment_template->start_number != (u32) -1) start_number = rep->segment_template->start_number;
+	}
+	url_to_solve = NULL;
+	switch (resolve_type) {
+	case GF_MPD_RESOLVE_URL_INIT:
+		url_to_solve = init_template;
+		break;
+	case GF_MPD_RESOLVE_URL_MEDIA:
+		url_to_solve = media_url;
+		break;
+	case GF_MPD_RESOLVE_URL_INDEX:
+		url_to_solve = index_template;
+		break;
+	default:
+		gf_free(url);
+		return GF_BAD_PARAM;
+	}
+	if (!url_to_solve) {
+		gf_free(url);
+		return GF_OK;
+	}
+	/*let's solve the template*/
+	solved_template = gf_malloc(sizeof(char)*strlen(url_to_solve)*2);
+	solved_template[0] = 0;
+	strcpy(solved_template, url_to_solve);
+	first_sep = strchr(solved_template, '$');
+	if (first_sep) first_sep[0] = 0;
+
+	first_sep = strchr(url_to_solve, '$');
+	while (first_sep) {
+		char szFormat[100];
+		char *format_tag;
+		char *second_sep = strchr(first_sep+1, '$');
+		if (!second_sep) {
+			gf_free(url);
+			gf_free(solved_template);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		second_sep[0] = 0;
+		format_tag = strchr(first_sep+1, '%');
+		if (format_tag) format_tag[0] = 0;
+		/* identifier is $$ -> replace by $*/
+		if (!strlen(first_sep+1)) {
+			strcat(solved_template, "$");
+		}
+		else if (!strcmp(first_sep+1, "RepresentationID")) {
+			strcat(solved_template, rep->id);
+		}
+		else if (!strcmp(first_sep+1, "Number")) {
+			if (format_tag) {
+				sprintf(szFormat, format_tag+1, start_number + item_index);
+			} else {
+				sprintf(szFormat, "%d", start_number + item_index);
+			}
+			strcat(solved_template, szFormat);
+		}
+		else if (!strcmp(first_sep+1, "Bandwidth")) {
+			if (format_tag) {
+				sprintf(szFormat, format_tag+1, rep->bandwidth);
+			} else {
+				sprintf(szFormat, "%d", rep->bandwidth);
+			}
+			strcat(solved_template, szFormat);
+		}
+		else if (!strcmp(first_sep+1, "Time")) {
+			assert(0);
+			/*uses segment timeline, not supported yet*/
+		}
+		if (format_tag) format_tag[0] = '%';
+		second_sep[0] = '$';
+		/*look for next keyword - copy over remaining text if any*/
+		first_sep = strchr(second_sep+1, '$');
+		if (first_sep) first_sep[0] = 0;
+		if (strlen(second_sep+1)) 
+			strcat(solved_template, second_sep+1);
+		if (first_sep) first_sep[0] = '$';
+	}
+	*out_url = gf_url_concatenate(url, solved_template);
+	gf_free(url);
+	gf_free(solved_template);
+	return GF_OK;
 }
 
 static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
 {
     GF_Err e;
     char *base_init_url;
-    char * url_to_dl;
     GF_MPD_Representation *rep;
 	u64 start_range, end_range;
     /* This variable is 0 if there is a initURL, the index of first segment downloaded otherwise */
@@ -721,53 +1120,47 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         return GF_BAD_PARAM;
     gf_mx_p(mpdin->dl_mutex);
     
-	assert( group->period && group->period->representations );
-    rep = gf_list_get(group->period->representations, group->active_rep_index);
+	assert( group->adaptation_set && group->adaptation_set->representations );
+    rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
     if (!rep) {
         gf_mx_v(mpdin->dl_mutex);
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Unable to find any representation, aborting.\n"));
         return GF_IO_ERR;
     }
 	start_range = end_range = 0;
-    if (!rep->init_url) {
-        GF_MPD_SegmentInfo * seg = gf_list_get(rep->segments, 0);
-        /* No init URL provided, we have to download the first segment then */
-        if (!seg->url) {
-            mpdin->mpd_stop_request = 1;
-            gf_mx_v(mpdin->dl_mutex);
-            return GF_BAD_PARAM;
-        }
-        firstSegment = 1;
-        url_to_dl = seg->url;
-		if (seg->use_byterange) {
-			start_range = seg->byterange_start;
-			end_range = seg->byterange_end;
-		}
-    } else {
-        url_to_dl = rep->init_url;
-		if (rep->init_use_range) {
-			start_range = rep->init_byterange_start;
-			end_range = rep->init_byterange_end;
-		}
-    }
-    if (rep->default_base_url) {
-        base_init_url = gf_url_concatenate(rep->default_base_url, url_to_dl);
-    } else {
-        base_init_url = gf_strdup(url_to_dl);
-    }
+	
+	e = MPD_ResolveURL(mpdin->mpd, rep, group->adaptation_set, group->period, mpdin->url, GF_MPD_RESOLVE_URL_INIT, 0, &base_init_url, &start_range, &end_range);
+	if (e) {
+        gf_mx_v(mpdin->dl_mutex);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Unable to resolve initialization URL: %s\n", gf_error_to_string(e) ));
+        return e;
+	}
 
+	/*no error and no init segment, go for media segment*/
+	if (!base_init_url) {
+		e = MPD_ResolveURL(mpdin->mpd, rep, group->adaptation_set, group->period, mpdin->url, GF_MPD_RESOLVE_URL_MEDIA, 0, &base_init_url, &start_range, &end_range);
+		if (e) {
+			gf_mx_v(mpdin->dl_mutex);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Unable to resolve media URL: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+		firstSegment = 1;
+	}
 
 	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7)) {
-        assert(!group->nb_cached);
+        assert(!group->nb_cached_segments);
         group->cached[0].cache = gf_strdup(base_init_url);
         group->cached[0].url = gf_strdup(base_init_url);
-        group->nb_cached = 1;
+        group->nb_cached_segments = 1;
 		/*do not erase local files*/
 		group->local_files = 1;
         group->download_segment_index = firstSegment;
         group->segment_local_url = group->cached[0].cache;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Setup initialization segment %s \n", group->segment_local_url));
-		if (!group->service) e = MPD_LoadMediaService(mpdin, group, rep->mime, group->segment_local_url);
+		if (!group->service) {
+			const char *mime_type = MPD_GetMimeType(NULL, rep, group->adaptation_set);
+			e = MPD_LoadMediaService(mpdin, group, mime_type, group->segment_local_url);
+		}
         gf_mx_v(mpdin->dl_mutex);
         gf_free(base_init_url);
 		return GF_OK;
@@ -788,16 +1181,13 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
     if (e == GF_URL_ERROR && !base_init_url) { /* We have a 404 and started with segments */
         /* It is possible that the first segment has been deleted while we made the first request...
          * so we try with the next segment on some M3U8 servers */
-        GF_MPD_SegmentInfo * seg = gf_list_get(rep->segments, 1);
-        gf_free(base_init_url);
-        if (!seg || !seg->url) {
+
+		gf_free(base_init_url);
+
+		e = MPD_ResolveURL(mpdin->mpd, rep, group->adaptation_set, group->period, mpdin->url, GF_MPD_RESOLVE_URL_MEDIA, 1, &base_init_url, &start_range, &end_range);
+		if (!e) {
             gf_mx_v(mpdin->dl_mutex);
             return e;
-        }
-        if (rep->default_base_url) {
-            base_init_url = gf_url_concatenate(rep->default_base_url, seg->url);
-        } else {
-            base_init_url = gf_strdup(seg->url);
         }
         GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("Download of first segment failed... retrying with second one : %s\n", base_init_url));
         firstSegment = 2;
@@ -812,39 +1202,39 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         return e;
     } else {
         char mime[128];
-        u32 count = gf_list_count(rep->segments) + 1;
-        if (count < group->max_cached) {
+		const char *mime_type;
+        u32 count = group->nb_segments_in_rep + 1;
+        if (count < group->max_cached_segments) {
             if (count < 1) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] 0 representations, aborting\n"));
                 gf_free(base_init_url);
 		        gf_mx_v(mpdin->dl_mutex);
                 return GF_BAD_PARAM;
             }
-            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Resizing to %u max_cached elements instead of %u.\n", count, group->max_cached));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Resizing to %u max_cached_segments elements instead of %u.\n", count, group->max_cached_segments));
             /* OK, we have a problem, it may ends download */
-            group->max_cached = count;
+            group->max_cached_segments = count;
         }
         e = gf_dm_sess_process(group->segment_dnload);
         /* Mime-Type check */
-	strncpy(mime, gf_dm_sess_mime_type(group->segment_dnload), sizeof(mime));
-	/* Be sure to be lower case */
+		strncpy(mime, gf_dm_sess_mime_type(group->segment_dnload), sizeof(mime));
         strlwr(mime);
         if (mime && group->service == NULL) {
             GF_Err e;
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Searching an input plugin for mime type : %s...\n", mime));
             gf_free( mpdin->mimeTypeForM3U8Segments);
-	    /* Mime is already lower case */
             mpdin->mimeTypeForM3U8Segments = gf_strdup( mime );
-            gf_free( rep->mime);
-            rep->mime = gf_strdup( mime );
+			if (rep->mime_type) gf_free( rep->mime_type);
+            rep->mime_type = gf_strdup( mime );
             e = MPD_LoadMediaService(mpdin, group, mime, base_init_url);
 			if (e != GF_OK) {
 		        gf_mx_v(mpdin->dl_mutex);
                 return e;
 			}
         }
-        if (!mime || (stricmp(mime, rep->mime))) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, rep->mime));
+		mime_type = MPD_GetMimeType(NULL, rep, group->adaptation_set);
+        if (!mime || (stricmp(mime, mime_type))) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, mime_type));
             mpdin->mpd_stop_request = 0;
             gf_mx_v(mpdin->dl_mutex);
             gf_free(base_init_url);
@@ -865,10 +1255,10 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
             gf_free(base_init_url);
             return GF_BAD_PARAM;
         } else {
-            assert(!group->nb_cached);
+            assert(!group->nb_cached_segments);
             group->cached[0].cache = gf_strdup(group->segment_local_url);
             group->cached[0].url = gf_strdup(gf_dm_sess_get_resource_name(group->segment_dnload));
-            group->nb_cached = 1;
+            group->nb_cached_segments = 1;
             group->download_segment_index = firstSegment;
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", group->segment_local_url, group->cached[0].url ));
             gf_mx_v(mpdin->dl_mutex);
@@ -880,16 +1270,15 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
 
 static void MPDIn_skip_disabled_rep(GF_MPD_Group *group, GF_MPD_Representation *rep)
 {
-	s32 rep_idx = gf_list_find(group->representations, rep);
+	s32 rep_idx = gf_list_find(group->adaptation_set->representations, rep);
 	while (1) {
 		rep_idx++;
-		if (rep_idx==gf_list_count(group->representations)) rep_idx = 0;
-		rep = gf_list_get(group->representations, rep_idx);
+		if (rep_idx==gf_list_count(group->adaptation_set->representations)) rep_idx = 0;
+		rep = gf_list_get(group->adaptation_set->representations, rep_idx);
 		if (!rep->disabled) break;
 	}
 	assert(rep && !rep->disabled);
-	group->active_rep_index = gf_list_find(group->period->representations, rep);
-	group->active_bitrate = rep->bandwidth;
+	MPD_SetGroupRepresentation(group, rep);
 	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching to representation %d - BW %d\n", group->active_rep_index, group->active_bitrate ));
 }
 
@@ -899,7 +1288,6 @@ static u32 download_segments(void *par)
     GF_MPD_In *mpdin = (GF_MPD_In*) par;
     GF_MPD_Period *period;
     GF_MPD_Representation *rep;
-    GF_MPD_SegmentInfo *seg;
     u32 i, group_count, ret = 0;
 	Bool go_on = 1;
     char *new_base_seg_url;
@@ -951,6 +1339,7 @@ static u32 download_segments(void *par)
 			ret = 1;
 			goto exit;
 		}
+		group->service_connected = 1;
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service DONE\n", group->segment_local_url));
 	}
 
@@ -964,10 +1353,10 @@ static u32 download_segments(void *par)
         /*wait until next segment is needed*/
         while (!mpdin->mpd_stop_request) {
             u32 timer = gf_sys_clock() - mpdin->last_update_time;
-            Bool shouldParsePlaylist = mpdin->mpd->min_update_time && (timer > mpdin->mpd->min_update_time);
+            Bool shouldParsePlaylist = mpdin->mpd->minimum_update_period && (timer > mpdin->mpd->minimum_update_period);
 
 			if (shouldParsePlaylist) {
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Next segment in cache, but it is time to update the playlist (%u ms/%u)\n", timer, mpdin->mpd->min_update_time));
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Next segment in cache, but it is time to update the playlist (%u ms/%u)\n", timer, mpdin->mpd->minimum_update_period));
                 e = MPD_UpdatePlaylist(mpdin);
 				group_count = gf_list_count(mpdin->groups);
                 if (e) {
@@ -979,7 +1368,7 @@ static u32 download_segments(void *par)
 				for (i=0; i<group_count; i++) {
 					GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 					if (!group->selected || group->done) continue;
-					if (group->nb_cached<group->max_cached) {
+					if (group->nb_cached_segments<group->max_cached_segments) {
 						cache_full = 0;
 						break;
 					}
@@ -1002,23 +1391,25 @@ static u32 download_segments(void *par)
 
 		/*for each selected groups*/
 		for (i=0; i<group_count; i++) {		
+			u64 start_range, end_range;
+			Bool use_byterange;
 			GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 			if (! group->selected) continue;
 			if (group->done) continue;
 
 
-			if (group->nb_cached>=group->max_cached) {
+			if (group->nb_cached_segments>=group->max_cached_segments) {
 				continue;
 			}
 
-			rep = gf_list_get(period->representations, group->active_rep_index);
+			rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
 			/* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
 			   we need to check if a new playlist is ready */
-			if (group->download_segment_index>=gf_list_count(rep->segments)) {
+			if (group->download_segment_index>=group->nb_segments_in_rep) {
 				u32 timer = gf_sys_clock() - mpdin->last_update_time;
 				/* update of the playlist, only if indicated */
-				if (mpdin->mpd->min_update_time && timer > mpdin->mpd->min_update_time) {
+				if (mpdin->mpd->minimum_update_period && timer > mpdin->mpd->minimum_update_period) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Last segment in current playlist downloaded, checking updates after %u ms\n", timer));
 					e = MPD_UpdatePlaylist(mpdin);
 					if (e) {
@@ -1026,13 +1417,13 @@ static u32 download_segments(void *par)
 					}
 					group_count = gf_list_count(mpdin->groups);
 					period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
-					rep = gf_list_get(period->representations, group->active_rep_index);
+					rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 				} else {
 					gf_sleep(16);
 				}
 				/* Now that the playlist is up to date, we can check again */
-				if (group->download_segment_index >= gf_list_count(rep->segments)) {
-					if (mpdin->mpd->min_update_time) {
+				if (group->download_segment_index >= group->nb_segments_in_rep) {
+					if (mpdin->mpd->minimum_update_period) {
 						/* if there is a specified update period, we redo the whole process */
 						continue;
 					} else {
@@ -1045,27 +1436,22 @@ static u32 download_segments(void *par)
 			}
 			gf_mx_p(mpdin->dl_mutex);
 			/* At this stage, there are some segments left to be downloaded */
-			seg = gf_list_get(rep->segments, group->download_segment_index);
+			e = MPD_ResolveURL(mpdin->mpd, rep, group->adaptation_set, group->period, mpdin->url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range);
 			gf_mx_v(mpdin->dl_mutex);
-
-			if (!seg->url) {
-				if (rep->init_url)
-					new_base_seg_url = gf_url_concatenate(rep->default_base_url, rep->init_url);
-				else
-					new_base_seg_url = gf_strdup(rep->default_base_url);
-			} else if (rep->default_base_url) {
-				new_base_seg_url = gf_url_concatenate(rep->default_base_url, seg->url);
-			} else {
-				new_base_seg_url = gf_strdup(seg->url);
+			if (e) {
+				/*do something!!*/
+				break;
 			}
-			if (seg->use_byterange) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s (range: %d-%d)\n", new_base_seg_url, seg->byterange_start, seg->byterange_end));
+			use_byterange = (start_range || end_range) ? 1 : 0;
+
+			if (use_byterange) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s (range: "LLD"-"LLD")\n", new_base_seg_url, start_range, end_range));
 			}
 
 			/*local file*/
 			if (!strstr(new_base_seg_url, "://") || !strnicmp(new_base_seg_url, "file://", 7)) {
 				/*byte-range request from file are ignored*/
-				if (seg->use_byterange) {
+				if (use_byterange) {
 					group->done = 1;
 					break;
 				}
@@ -1077,8 +1463,8 @@ static u32 download_segments(void *par)
 				group->max_bitrate = 0;
 				group->min_bitrate = (u32)-1;
 				/*use persistent connection for segment downloads*/
-				if (seg->use_byterange) {
-					e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), new_base_seg_url, MPD_NetIO_Segment, group, seg->byterange_start, seg->byterange_end, 1);
+				if (use_byterange) {
+					e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), new_base_seg_url, MPD_NetIO_Segment, group, start_range, end_range, 1);
 				} else {
 					e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), new_base_seg_url, MPD_NetIO_Segment, group, 0, 0, 1);
 				}
@@ -1105,13 +1491,19 @@ static u32 download_segments(void *par)
 
 				{
 					u32 total_size, bytes_per_sec;
+					u64 duration;
 					Double bitrate;
 					gf_dm_sess_get_stats(group->segment_dnload, NULL, NULL, &total_size, NULL, &bytes_per_sec, NULL);
 					bitrate = 8*total_size;
 					bitrate *= 1000;
-					bitrate /= rep->default_segment_duration;
-					bitrate /= 1024;
-					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Downloaded segment bitrate %d kbps with bandwith %d kbps\n", (u32) bitrate, 8*bytes_per_sec/1024));
+					duration = MPD_ResolveDuration(rep, group->adaptation_set, group->period, 0);
+					if (!duration) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Downloaded segment (bandwidth %d) with bandwith %d kbps\n", 8*rep->bandwidth/1024, 8*bytes_per_sec/1024));
+					} else {
+						bitrate /= duration;
+						bitrate /= 1024;
+						GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Downloaded segment (bandwidth %d) bitrate %d with bandwith %d kbps\n", 8*rep->bandwidth/1024, (u32) bitrate, 8*bytes_per_sec/1024));
+					}
 					/*TODO switch quality*/
 
 					if (!mpdin->auto_switch_count) {
@@ -1122,11 +1514,11 @@ static u32 download_segments(void *par)
 
 			if (e == GF_OK || group->segment_must_be_streamed) {
 				gf_mx_p(mpdin->dl_mutex);
-				assert(group->nb_cached<group->max_cached);
-				group->cached[group->nb_cached].cache = gf_strdup(local_file_name);
-				group->cached[group->nb_cached].url = gf_strdup( resource_name );
-				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[group->nb_cached].url, group->cached[group->nb_cached].cache, group->nb_cached+1, group->max_cached));
-				group->nb_cached++;
+				assert(group->nb_cached_segments<group->max_cached_segments);
+				group->cached[group->nb_cached_segments].cache = gf_strdup(local_file_name);
+				group->cached[group->nb_cached_segments].url = gf_strdup( resource_name );
+				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[group->nb_cached_segments].url, group->cached[group->nb_cached_segments].cache, group->nb_cached_segments+1, group->max_cached_segments));
+				group->nb_cached_segments++;
 				group->download_segment_index++;
 				if (mpdin->auto_switch_count) {
 					group->nb_segments_done++;
@@ -1287,11 +1679,10 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 	while (gf_list_count(mpdin->groups)) {
 		GF_MPD_Group *group = gf_list_last(mpdin->groups);
 		gf_list_rem_last(mpdin->groups);
-		gf_list_del(group->representations);
 
 		if (group->urlToDeleteNext) {
 			if (!mpdin->keep_files && !group->local_files)
-				gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, group->urlToDeleteNext);
+				gf_dm_delete_cached_file_entry_session(group->segment_dnload, group->urlToDeleteNext);
 	    
 			gf_free(group->urlToDeleteNext);
 			group->urlToDeleteNext = NULL;
@@ -1300,13 +1691,13 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 			gf_term_download_del(group->segment_dnload);
 			group->segment_dnload = NULL;
 		}
-		while (group->nb_cached) {
-			group->nb_cached --;
+		while (group->nb_cached_segments) {
+			group->nb_cached_segments --;
 			if (!mpdin->keep_files && !group->local_files)
-				gf_delete_file(group->cached[group->nb_cached].cache);
+				gf_delete_file(group->cached[group->nb_cached_segments].cache);
 
-			gf_free(group->cached[group->nb_cached].cache);
-			gf_free(group->cached[group->nb_cached].url);
+			gf_free(group->cached[group->nb_cached_segments].cache);
+			gf_free(group->cached[group->nb_cached_segments].url);
 		}
 		gf_free(group->cached);
 		gf_free(group);
@@ -1315,7 +1706,7 @@ void MPD_ResetGroups(GF_MPD_In *mpdin)
 	mpdin->groups = NULL;
 }
 
-/* Adds all representations to a group (possibly creating it) */
+/* create groups (implemntation of adaptations set) */
 GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 {
 	GF_Err e;
@@ -1329,16 +1720,14 @@ GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 	period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
 	if (!period) return GF_BAD_PARAM;
 
-	count = gf_list_count(period->representations);
+	count = gf_list_count(period->adaptation_sets);
 	for (i=0; i<count; i++) {
         Bool found = 0;
-		GF_MPD_Representation *rep = gf_list_get(period->representations, i);
+		GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, i);
 		for (j=0; j<gf_list_count(mpdin->groups); j++) {
 			GF_MPD_Group *group = gf_list_get(mpdin->groups, j);
-			if (group->group_id==rep->groupID) {
+			if (group->adaptation_set==set) {
 		        found = 1;
-				e = gf_list_add(group->representations, rep);
-				if (e) return e;
 				break;
 			}
 		}
@@ -1346,32 +1735,22 @@ GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 			GF_MPD_Group *group;
 			GF_SAFEALLOC(group, GF_MPD_Group);
 			if (!group) return GF_OUT_OF_MEM;
-			group->representations = gf_list_new();
-			if (!group->representations) {
-				gf_free(group);
-				return GF_OUT_OF_MEM;
-			}
-			group->group_id = rep->groupID;
+			group->adaptation_set = set;
 			group->period = period;
-			group->max_cached = mpdin->option_max_cached;
-			group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached);
-			memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached);
+			group->period = period;
+			group->max_cached_segments = mpdin->option_max_cached;
+			group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
+			memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
 			if (!group->cached) {
-				gf_list_del(group->representations);
 				gf_free(group);
 				return GF_OUT_OF_MEM;
 			}
 			e = gf_list_add(mpdin->groups, group);
 			if (e) {
 				gf_free(group->cached);
-				gf_list_del(group->representations);
 				gf_free(group);
 				return e;
 			}
-
-			e = gf_list_add(group->representations, rep);
-			if (e) return e;
-
 		}
 	}
 	return GF_OK;
@@ -1389,7 +1768,7 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 	/* Get the right period from the given time */
     mpdin->active_period_index = MPD_GetPeriodIndexFromTime(mpdin, time);
     period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
-    if (!period || !gf_list_count(period->representations) ) {
+	if (!period || !gf_list_count(period->adaptation_sets) ) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot start: not enough periods or representations in MPD\n"));
         goto exit;
     }
@@ -1401,9 +1780,10 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 	for (group_i=0; group_i<gf_list_count(mpdin->groups); group_i++) {
 		GF_MPD_Representation *rep_sel;
 		u32 active_rep;
+		const char *mime_type;
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, group_i);
 
-		if (group->group_id==0) {
+		if (group->adaptation_set->group==0) {
 			mpdin->group_zero_selected = group;
 		} else if (mpdin->group_zero_selected) {
 			/* if this group is not the group 0 and we have found the group 0, 
@@ -1413,43 +1793,47 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 
 		/* Select the appropriate representation in the given period */
 		active_rep = 0;
-		for (rep_i = 0; rep_i < gf_list_count(group->representations); rep_i++) {
-			GF_MPD_Representation *rep = gf_list_get(group->representations, rep_i);
-			rep_sel = gf_list_get(group->representations, active_rep);
+		for (rep_i = 0; rep_i < gf_list_count(group->adaptation_set->representations); rep_i++) {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
+			rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
 			/*by default tune to best quality and/or full bandwith*/
-			if (rep->qualityRanking > rep_sel->qualityRanking) {
+			if (rep->quality_ranking > rep_sel->quality_ranking) {
 				active_rep = rep_i;
 			} else if (rep->bandwidth > rep_sel->bandwidth) {
 				active_rep = rep_i;
 			}
 		}
 
-		rep_sel = gf_list_get(group->representations, active_rep);
-		group->active_rep_index = gf_list_find(group->period->representations, rep_sel);
-		group->active_bitrate = rep_sel->bandwidth;
+		rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
+		MPD_SetGroupRepresentation(group, rep_sel);
 
+		mime_type = MPD_GetMimeType(NULL, rep_sel, group->adaptation_set);
+
+		if (!mime_type) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot start: missing mime\n"));
+			goto exit;
+		}
 
 		/* TODO: Generate segment names if urltemplates are used */
-		if (!gf_list_count(rep_sel->segments) || !rep_sel->mime) {
-			if (!rep_sel->mime) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot start: missing mime\n"));
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot start: missing segments\n"));
-			}
+		if (!rep_sel->segment_base && !rep_sel->segment_list && !rep_sel->segment_template
+			&& !group->adaptation_set->segment_base && !group->adaptation_set->segment_list && !group->adaptation_set->segment_template
+			&& !group->period->segment_base && !group->period->segment_list && !group->period->segment_template
+			
+		) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot start: missing segments\n"));
 			goto exit;
 		}
 
 		group->service = NULL;
-		if (strcmp(M3U8_UNKOWN_MIME_TYPE, rep_sel->mime)) {
-			e = MPD_LoadMediaService(mpdin, group, rep_sel->mime, NULL);
+		if (strcmp(M3U8_UNKOWN_MIME_TYPE, mime_type)) {
+			e = MPD_LoadMediaService(mpdin, group, mime_type, NULL);
 			if (e != GF_OK)
 				goto exit;
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Ignoring mime type %s, wait for first file...\n", rep_sel->mime));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Ignoring mime type %s, wait for first file...\n", mime_type));
 		}
 		group->selected = 1;
 	}
-
 
 	gf_th_run(mpdin->mpd_thread, download_segments, mpdin);
     return GF_OK;
@@ -1565,10 +1949,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 			if (sep) sep[0]=0;
 			strcat(local_path, ".mpd");
 
-	        gf_m3u8_to_mpd(mpdin->service, local_url, url, local_path, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+	        gf_m3u8_to_mpd(local_url, url, local_path, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, mpdin->service, 0, M3U8_TO_MPD_USE_TEMPLATE);
 			local_url = local_path;
 		} else {
-	        gf_m3u8_to_mpd(mpdin->service, local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+	        gf_m3u8_to_mpd(local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, mpdin->service, 0, M3U8_TO_MPD_USE_TEMPLATE);
 		}
     }
 
@@ -1584,7 +1968,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     mpd_parser = gf_xml_dom_new();
     e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
     if (e != GF_OK) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD parsing problem %s\n", gf_error_to_string(e)));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD parsing problem %s\n", gf_xml_dom_get_error(mpd_parser) ));
         gf_xml_dom_del(mpd_parser);
         gf_term_on_connect(mpdin->service, NULL, e);
         gf_term_download_del(mpdin->mpd_dnload);
@@ -1631,8 +2015,8 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		for (i=0; i<gf_list_count(mpdin->groups); i++) {
 			GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 			if (!group->selected) continue;
-			if (group->service_connected) continue;
-			group->service_connected = 1;
+			if (group->service_descriptor_fetched) continue;
+			group->service_descriptor_fetched = 1;
 	        return group->service->GetServiceDescriptor(group->service, expect_type, sub_url);
 		}
 		return NULL;
@@ -1700,12 +2084,13 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 
 		if (e!= GF_OK || !com->info.name || 2 > strlen(com->info.name)) {
-			com->info.name = mpdin->mpd->title;
+			GF_MPD_ProgramInfo *info = gf_list_get(mpdin->mpd->program_infos, 0);
+			if (info) {
+				com->info.name = info->title;
+				com->info.comment = info->source;
+			}
 			if (!com->info.name && mpdin->group_zero_selected)
-	            com->info.name = mpdin->group_zero_selected->cached[0].url;
-
-			if (mpdin->mpd->source)
-                com->info.comment = mpdin->mpd->source;
+				com->info.name = mpdin->group_zero_selected->cached[0].url;
         }
         return GF_OK;
     }
@@ -1755,7 +2140,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
            Note: the duration of the initial segment will be 0 anyway (in MP4).*/
         {
             Double duration;
-            duration = (Double)mpdin->mpd->duration;
+			duration = (Double)mpdin->mpd->media_presentation_duration;
             duration /= 1000;
             com->duration.duration = duration;
             return GF_OK;
