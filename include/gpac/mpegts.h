@@ -381,7 +381,7 @@ typedef struct tag_m2ts_pes
 	u32 lang;
 
 	/*object info*/
-	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch;
+	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch, aud_obj_type;
 	/*user private*/
 
 

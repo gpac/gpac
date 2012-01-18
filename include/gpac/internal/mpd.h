@@ -22,99 +22,293 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *		
  */
-#ifndef _MPD_IN_H_
-#define _MPD_IN_H_
+#ifndef _MPD_H_
+#define _MPD_H_
 
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
 #include <gpac/internal/terminal_dev.h>
 
-typedef struct
+
+/*TODO*/
+typedef struct 
 {
-    char *url;
-    Bool use_byterange;
-    u32 byterange_start;
-    u32 byterange_end;
-} GF_MPD_SegmentInfo;
+	u32 dummy;
+} GF_MPD_Metrics;
+
+/*TODO*/
+typedef struct 
+{
+	u32 dummy;
+} GF_MPD_ContentComponent;
+
+/*TODO*/
+typedef struct 
+{
+	char *scheme_id_uri; /*MANDATORY*/
+	char *value;
+} GF_MPD_Descriptor;
+
+/*TODO*/
+typedef struct 
+{
+	u32 dummy;
+} GF_MPD_Subset;
+
+/*TODO*/
+typedef struct 
+{
+	u32 start_time;
+	u32 duration; /*MANDATORY*/
+	u32 repeat_count;
+} GF_MPD_SegmentTimelineEntry;
+
+typedef struct 
+{
+	GF_List *entries;
+} GF_MPD_SegmentTimeline;
+
+typedef struct 
+{
+	u64 start_range, end_range;
+} GF_MPD_ByteRange;
+
+
+typedef struct 
+{
+    char *URL;
+    char *service_location;
+    GF_MPD_ByteRange *byte_range;
+} GF_MPD_BaseURL;
+
+typedef struct 
+{
+    char *sourceURL;
+    GF_MPD_ByteRange *byte_range;
+} GF_MPD_URL;
+
+typedef struct 
+{
+    u32 num, den;
+} GF_MPD_Fractional;
+
+
+#define GF_MPD_SEGMENT_BASE	\
+	u32 timescale;	\
+	u32 presentation_time_offset;	\
+	u32 index_range;	\
+	Bool index_range_exact;	\
+	GF_MPD_URL *initialization_segment;	\
+	GF_MPD_URL *representation_index;	\
+
+
+typedef struct 
+{
+	GF_MPD_SEGMENT_BASE
+} GF_MPD_SegmentBase;
+
+/*WARNING: duration is expressed in GF_MPD_SEGMENT_BASE@timescale unit*/
+#define GF_MPD_MULTIPLE_SEGMENT_BASE	\
+	GF_MPD_SEGMENT_BASE	\
+	u64 duration;	\
+	u32 start_number;	\
+	GF_MPD_SegmentTimeline *segment_timeline;	\
+	GF_MPD_URL *bitstream_switching_url;	\
+
+typedef struct 
+{
+	GF_MPD_MULTIPLE_SEGMENT_BASE
+} GF_MPD_MultipleSegmentBase;
+
+typedef struct 
+{
+	char *media;
+	GF_MPD_ByteRange *media_range;
+	char *index;
+	GF_MPD_ByteRange *index_range;
+} GF_MPD_SegmentURL;
+
+typedef struct 
+{
+	GF_MPD_MULTIPLE_SEGMENT_BASE	
+	/*list of segments - can be NULL if no segment*/
+	GF_List *segment_URLs;
+} GF_MPD_SegmentList;
+
+typedef struct 
+{
+	GF_MPD_MULTIPLE_SEGMENT_BASE	
+	char *media;
+	char *index;
+	char *initialization;
+	char *bitstream_switching;
+} GF_MPD_SegmentTemplate;
+
+typedef enum
+{
+	GF_MPD_SCANTYPE_UNKNWON,
+	GF_MPD_SCANTYPE_PROGRESSIVE,
+	GF_MPD_SCANTYPE_INTERLACED
+} GF_MPD_ScanType;
+
+/*MANDATORY:
+	mime_type
+	codecs
+*/
+#define GF_MPD_COMMON_ATTRIBUTES_ELEMENTS	\
+	char *profiles;	\
+	u32 width;	\
+	u32 height;	\
+	GF_MPD_Fractional *sar;	\
+	GF_MPD_Fractional *framerate;	\
+	u32 samplerate;	\
+	char *mime_type;	\
+	char *segmentProfiles;	\
+	char *codecs;	\
+	u32 maximum_sap_period;	\
+	Bool starts_with_sap;	\
+	Double max_playout_rate;	\
+	Bool coding_dependency;	\
+	GF_MPD_ScanType scan_type;	\
+	GF_List *frame_packing;	\
+	GF_List *audio_channels;	\
+	GF_List *content_protection;	\
+
 
 typedef struct {
-    char *id;
-    u32 bandwidth;
-    u32 width;
-    u32 height;
-    char *lang;
-    char *mime;
-    u32 groupID;
-    Bool disabled;
-    Bool startWithRap;
-	/* TODO: maximumRAPPeriod */
-	/* TODO: depid*/
-	/* TODO: default rep*/
+	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
+} GF_MPD_CommonAttributes;
 
-    u32 qualityRanking;
-    char *content_protection_type;
-    char *content_protection_uri;
-    double alternatePlayoutRate;
-    u32 default_segment_duration;
-	/*TODO: multiple views */
-    char *default_base_url;
+typedef struct {
+	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
+	
+	u32 level;
+	char *dependecy_level;
+	u32 bandwidth; /*MANDATORY if level set*/
+	char *content_components;
+} GF_MPD_SubRepresentation;
 
-    /* initialization segment */
-    char *init_url;
-    Bool init_use_range;
-    u32 init_byterange_start;
-    u32 init_byterange_end;
-    
-    /* other segments */
-    char *url_template;
-    u32 startIndex;
-    u32 endIndex;
 
-	GF_List *segments;
+typedef struct {
+	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
+
+	char *id; /*MANDATORY*/
+    u32 bandwidth; /*MANDATORY*/
+	u32 quality_ranking;
+	char *dependency_id;
+	char *media_stream_structure_id;
+	
+	GF_List *base_URLs;
+	GF_MPD_SegmentBase *segment_base;
+	GF_MPD_SegmentList *segment_list;
+	GF_MPD_SegmentTemplate *segment_template;
+
+	GF_List *sub_representations;
+
+	/*GPAC playback implementation*/
+	Bool disabled;
+
 } GF_MPD_Representation;
 
-typedef struct {
+
+typedef struct 
+{	
+	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
+
+	/*if not set in MPD, an ID is dynamically generated (u32 cast of the structure)*/
+	u32 id;
+	/*if not set in MPD, an ID is dynamically generated (u32 cast of the structure)*/
+	u32 group;
+
+	char *lang;
+	char *content_type;
+	GF_MPD_Fractional *par;
+	u32 min_bandwidth;
+	u32 max_bandwidth;
+	u32 min_width;
+	u32 max_width;
+	u32 min_height;
+	u32 max_height;
+	u32 min_framerate;
+	u32 max_framerate;
+	Bool segment_alignment;
+	Bool bitstream_switching;
+	Bool subsegment_alignment;
+	Bool subsegment_starts_with_sap;
+
+	GF_List *accessibility;
+	GF_List *role;
+	GF_List *rating;
+	GF_List *viewpoint;
+	GF_List *content_component;
+
+	GF_List *base_URLs;
+	GF_MPD_SegmentBase *segment_base;
+	GF_MPD_SegmentList *segment_list;
+	GF_MPD_SegmentTemplate *segment_template;
+
+	GF_List *representations;
+
+} GF_MPD_AdaptationSet;
+
+
+typedef struct 
+{
+	char *ID;
     u32 start; /* expressed in seconds, relative to the start of the MPD */
-	u32 duration; /* TODO */
-	char *id; /* TODO */
-    u8 flags;
-    Bool segment_alignment_flag; /* to be merged into real flags */
-    Bool bitstream_switching_flag;
+	u32 duration; /* expressed in seconds */
+	Bool bitstream_switching;
 
-    u32 default_segment_duration; /* milliseconds */
-    char *default_base_url;
-	/* TODO: default timeline */
-    char *url_template;
+	GF_List *base_URLs;
+	GF_MPD_SegmentBase *segment_base;
+	GF_MPD_SegmentList *segment_list;
+	GF_MPD_SegmentTemplate *segment_template;
 
-	/* TODO: xlink:href & xlink:actuate */
-
-    GF_List *representations;
-	/* TODO: representation groups */
-	/* TODO: subset */
+	GF_List *adaptation_sets;
+	GF_List *subsets;
 } GF_MPD_Period;
 
-typedef enum {
-    GF_MPD_TYPE_ON_DEMAND,
-    GF_MPD_TYPE_LIVE,
-} GF_MPD_Type;
-
-typedef struct {
-    GF_MPD_Type type;
-    char *base_url;
-	/* TODO: add alternate URL */
-    u32 duration; /* expressed in milliseconds */
-    u32 min_update_time; /* expressed in milliseconds */
-    u32 min_buffer_time; /* expressed in milliseconds */
-    /*start time*/
-    /*end time*/
-    u32 time_shift_buffer_depth; /* expressed in milliseconds */
+typedef struct 
+{
+    char *lang;
     char *title;
     char *source;
     char *copyright;
     char *more_info_url;
+} GF_MPD_ProgramInfo;
 
-    /* the number of periods is dynamic since we may update the MPD from time to time, cannot avoid GF_List */
+
+typedef enum {
+    GF_MPD_TYPE_STATIC,
+    GF_MPD_TYPE_DYNAMIC,
+} GF_MPD_Type;
+
+typedef struct {
+    char *ID;
+    char *profiles;	/*MANDATORY*/
+    GF_MPD_Type type;
+	u64 availabilityStartTime; /*MANDATORY if type=dynamic*/
+	u64 availabilityEndTime;
+    u32 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
+    u32 minimum_update_period; /* expressed in milliseconds */
+    u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
+
+	u32 time_shift_buffer_depth; /* expressed in milliseconds */
+	u32 suggested_presentaton_delay; /* expressed in milliseconds */
+
+	u32 max_segment_duration; /* expressed in milliseconds */
+	u32 max_subsegment_duration; /* expressed in milliseconds */
+
+	/*list of GF_MPD_ProgramInfo */
+	GF_List *program_infos;
+	/*list of GF_MPD_BaseURL */
+	GF_List *base_URLs;
+	/*list of strings */
+	GF_List *locations;
+	/*list of Metrics */
+	GF_List *metrics;
+	/*list of GF_MPD_Period */
     GF_List *periods;
 } GF_MPD;
 
@@ -122,10 +316,10 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url)
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
+/*frees a SegmentURL*/
+void gf_mpd_segment_url_free(void *_item);
 
-GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const char *base_url, 
-					  const char *mpd_file,
-					  u32 reload_count, char *mimeTypeForM3U8Segments);
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, GF_ClientService *service, Bool do_import, Bool use_mpd_templates);
 
-#endif // _MPD_IN_H_
+#endif // _MPD_H_
 

@@ -1135,8 +1135,9 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
 							 u8 DefaultSamplePadding,
 							 u16 DefaultDegradationPriority);
 
-/*flushes data to disk and prepare movie fragmentation*/
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, Bool use_segments);
+/*flushes data to disk and prepare movie fragmentation
+@media_segment_type: 0 if no segments, 1 if regular segment, 2 if single segment*/
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, u32 media_segment_type);
 
 /*starts a new movie fragment - if force_cache is set, fragment metadata will be written before
 fragment media data for all tracks*/
@@ -1150,6 +1151,13 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u
 
 /*closes current segment - if fragments_per_sidx is <0, no sidx is used - if fragments_per_sidx is ==0, a single sidx is used*/
 GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment);
+
+/*writes an empty sidx in the current movie. The SIDX will be forced to have nb_segs entries - nb_segs shall match the number of calls to
+gf_isom_close_segment that will follow. This avoids wasting time and disk space moving data around. Once gf_isom_close_segment has then been called nb_segs times, 
+the pre-allocated SIDX is destroyed and sucessive calls to gf_isom_close_segment will create their own sidx (unless gf_isom_allocate_sidx is called again).
+frags_per_sidx, daisy_chain_sidx and frags_per_segment are currently ignored and reserved for future usages where multiple SIDX could be written
+if not NULL, start_range and end_range will contain the byte range of the SIDX box in the movie*/
+GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 frags_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range);
 
 enum
 {

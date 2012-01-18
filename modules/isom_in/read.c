@@ -851,6 +851,8 @@ GF_InputService *isor_client_load()
 
 	GF_SAFEALLOC(reader, ISOMReader);
 	reader->channels = gf_list_new();
+	reader->segment_mutex = gf_mx_new("ISO Segment");
+	
 	plug->priv = reader;
 	return plug;
 }

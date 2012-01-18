@@ -660,6 +660,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						}
 						gf_list_add(currentPlayList->element.playlist.elements, subElement);
 						gf_list_add(program->bitrates, currentPlayList);
+						currentPlayList->element.playlist.computed_duration += subElement->durationInfo; 
 						assert( program );
 						assert( program->bitrates);
 						assert( currentPlayList);
@@ -684,6 +685,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							return GF_OUT_OF_MEM;
 						}
 						gf_list_add(currentPlayList->element.playlist.elements, subElement);
+						currentPlayList->element.playlist.computed_duration += subElement->durationInfo; 
 					}
 				}
 
@@ -726,5 +728,18 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 		}
 	}
 	fclose(f);
+
+	for (i=0; i < (int) gf_list_count(pl->programs); i++) {
+		u32 j;
+		Program *prog = gf_list_get(pl->programs, i);
+		prog->computed_duration = 0;
+		for (j=0; j<gf_list_count(prog->bitrates); j++) {
+			PlaylistElement *ple = gf_list_get(prog->bitrates, j);
+			if (ple->elementType==TYPE_PLAYLIST) {
+				if (ple->element.playlist.computed_duration > prog->computed_duration) 
+					prog->computed_duration = ple->element.playlist.computed_duration;
+			}
+		}
+	}
 	return GF_OK;
 }

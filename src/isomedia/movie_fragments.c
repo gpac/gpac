@@ -732,8 +732,44 @@ static GF_Err sidx_rewrite(GF_SegmentIndexBox *sidx, GF_BitStream *bs, u64 start
 	return e;
 }
 
+GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 frags_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range)
+{
+	GF_Err e;
 
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment)
+	//and only at setup
+	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
+	if (movie->root_sidx) return GF_BAD_PARAM;
+	if (movie->moof) return GF_BAD_PARAM;
+	if (gf_list_count(movie->moof_list)) return GF_BAD_PARAM;
+
+	movie->root_sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
+	/*we don't write anything between sidx and following moov*/
+	movie->root_sidx->first_offset = 0;
+
+	/*for now we only store one ref per subsegment*/
+	movie->root_sidx->nb_refs = nb_segs;
+
+	movie->root_sidx->refs = gf_malloc(sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
+	memset(movie->root_sidx->refs, 0, sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
+
+	movie->root_sidx_index = 0;
+
+	/*remember start of sidx*/
+	movie->root_sidx_offset = gf_bs_get_position(movie->editFileMap->bs);
+
+	e = gf_isom_box_size((GF_Box *) movie->root_sidx);
+	if (e) return e;
+	e = gf_isom_box_write((GF_Box *) movie->root_sidx, movie->editFileMap->bs);
+	if (e) return e;
+
+	if (start_range) *start_range = (u32) movie->root_sidx_offset;
+	if (end_range) *end_range = (u32) gf_bs_get_position(movie->editFileMap->bs);
+
+	return GF_OK;
+}
+
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *prev_sidx=NULL;
@@ -741,7 +777,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 	u64 sidx_start, sidx_end;
 	Bool first_sidx = 0;
 	Bool no_sidx = 0;
-	u32 count, nb_subsegs=0, idx, cur_dur, sidx_dur, sidx_idx;
+	u32 count, nb_subsegs=0, idx, cur_dur, sidx_dur, sidx_idx, frags_per_subseg, subseg_per_sidx, idx_offset;
 	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end;
 	GF_TrackBox *trak = NULL;
 	GF_Err e;
@@ -763,8 +799,13 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
 	gf_bs_truncate(movie->editFileMap->bs);
 
+	idx_offset = 0;
+
 	if (referenceTrackID) {
 		trak = gf_isom_get_track_from_id(movie->moov, referenceTrackID);
+	}
+	/*write STYP if we write to a different file or if we write the last segment*/
+	if ((!movie->append_segment && !movie->segment_start) || last_segment) {
 
 		/*modify brands STYP*/
 
@@ -774,80 +815,99 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 			/*"lmsg" brand: this is the last DASH Segment*/
 			gf_isom_modify_alternate_brand(movie, GF_4CC('l','m','s','g'), 1);
 		}
-	}
-	/*write STYP*/
-	movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
-    e = gf_isom_box_size((GF_Box *) movie->brand);
-    if (e) return e;
-    e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
-    if (e) return e;
 
-	if (frags_per_sidx < 0) {
+		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
+		e = gf_isom_box_size((GF_Box *) movie->brand);
+		if (e) return e;
+		e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
+		if (e) return e;
+	}
+
+	if (fragments_per_sidx < 0) {
 		referenceTrackID = 0;
-		frags_per_sidx = 0;
+		fragments_per_sidx = 0;
 		no_sidx = 1;
 	}
 
 	/*prepare SIDX: we write a blank SIDX box with the right number of entries, and will rewrite it later on*/
 	if (referenceTrackID) {
 		Bool is_root_sidx=0;
-		sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
+
+		if (movie->root_sidx) {
+			sidx = movie->root_sidx;
+		} else {
+			sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
+		}
 		sidx->reference_ID = referenceTrackID;
 		sidx->timescale = trak->Media->mediaHeader->timeScale;
 		/*we don't write anything between sidx and following moov*/
 		sidx->first_offset = 0;
-		sidx->earliest_presentation_time = ref_track_decode_time;
 
-		/*we consider that each fragment is a subsegment - this could be controled by another parameter*/
-		if (!frags_per_sidx) {
+		/*we allocated our sidx to have one ref per "segment" (eg per call to close_segment)*/
+		if (movie->root_sidx) {
+			if (!movie->root_sidx_index) {
+				sidx->earliest_presentation_time = ref_track_decode_time;
+			}
 			nb_subsegs = 1;
-			frags_per_sidx = count;
+			frags_per_subseg = count;
+			subseg_per_sidx = 1;
+
+			idx_offset = movie->root_sidx_index;
+			sidx_end = gf_bs_get_position(movie->editFileMap->bs);
 		} else {
-			nb_subsegs = count/frags_per_sidx;
-			if (nb_subsegs*frags_per_sidx<count) nb_subsegs++;
+			sidx->earliest_presentation_time = ref_track_decode_time;
+			/*we consider that each fragment is a subsegment - this could be controled by another parameter*/
+			if (!fragments_per_sidx) {
+				nb_subsegs = count;
+				frags_per_subseg = 1;
+				subseg_per_sidx = count;
+			} else {
+				nb_subsegs = count/fragments_per_sidx;
+				if (nb_subsegs * fragments_per_sidx < count) nb_subsegs++;
+				frags_per_subseg = fragments_per_sidx;
+				subseg_per_sidx = nb_subsegs;
+			}
+
+			/*single SIDX, each fragment is a subsegment and we reference all subsegments*/
+			if (! fragments_per_sidx) {
+				sidx->nb_refs = nb_subsegs;
+				daisy_chain_sidx = 0;
+			} 
+			/*daisy-chain SIDX: each SIDX describes a subsegment made of frags_per_subseg fragments plus next */
+			else if (daisy_chain_sidx) {
+				sidx->nb_refs = frags_per_subseg + 1;
+				/*we will have to adjust earliest cpresentation time*/
+				first_sidx = 1;
+			}
+			/*root SIDX referencing all subsegments (sub-SIDX)*/
+			else {
+				sidx->nb_refs = nb_subsegs;
+				is_root_sidx = 1;
+			}
+			sidx->refs = gf_malloc(sizeof(GF_SIDXReference)*sidx->nb_refs);
+			memset(sidx->refs, 0, sizeof(GF_SIDXReference)*sidx->nb_refs);
+
+			/*remember start of sidx*/
+			sidx_start = gf_bs_get_position(movie->editFileMap->bs);
+
+			e = gf_isom_box_size((GF_Box *) sidx);
+			if (e) return e;
+			e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
+			if (e) return e;
+
+			sidx_end = gf_bs_get_position(movie->editFileMap->bs);
 		}
-
-		/*single SIDX, reference all fragments*/
-		if (nb_subsegs==1) {
-			sidx->nb_refs = frags_per_sidx;
-			daisy_chain_sidx = 0;
-		} 
-		/*daisy-chain SIDX, reference all fragments plus next */
-		else if (daisy_chain_sidx) {
-			sidx->nb_refs = frags_per_sidx + 1;
-			/*we will have to adjust earliest cpresentation time*/
-			first_sidx = 1;
-		}
-		/*root SIDX referencing all subsegments*/
-		else {
-			sidx->nb_refs = nb_subsegs;
-			is_root_sidx = 1;
-		}
-		sidx->refs = gf_malloc(sizeof(GF_SIDXReference)*sidx->nb_refs);
-		memset(sidx->refs, 0, sizeof(GF_SIDXReference)*sidx->nb_refs);
-
-		/*remember start of sidx*/
-		sidx_start = gf_bs_get_position(movie->editFileMap->bs);
-
-		e = gf_isom_box_size((GF_Box *) sidx);
-		if (e) return e;
-		e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
-		if (e) return e;
-
-		sidx_end = gf_bs_get_position(movie->editFileMap->bs);
-	
-		count = idx = 0;
 
 		if (is_root_sidx) {
 			root_sidx = sidx;
 			sidx = NULL;
 		}
+		count = idx = 0;
 	}
 
-
+	last_top_box_pos = root_prev_offset = sidx_end;
 	sidx_idx = 0;
 	sidx_dur = 0;
-	last_top_box_pos = root_prev_offset = sidx_end;
 	local_sidx_start = local_sidx_end = 0;
 
 	/*cumulated segments duration since start of the sidx */
@@ -875,7 +935,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 
 			/*we don't write anything between sidx and following moov*/
 			sidx->first_offset = 0;
-			sidx->nb_refs = frags_per_sidx;
+			sidx->nb_refs = frags_per_subseg;
 			if (daisy_chain_sidx && (nb_subsegs>1)) {
 				sidx->nb_refs += 1;
 			}
@@ -907,33 +967,41 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 			e = StoreFragment(movie, 0, offset_diff, &moof_size);
 
 			if (sidx) {
-				/*we refer to next moof*/
-				sidx->refs[idx].reference_type = 0;
-				sidx->refs[idx].SAP_type = moof_get_sap_time_offset(movie->moof, referenceTrackID, & sidx->refs[idx].SAP_delta_time, & sidx->refs[idx].starts_with_SAP);
-				if (sidx->refs[idx].SAP_type) {
-					sidx->refs[idx].SAP_delta_time += cur_dur;
+				u32 cur_index = idx_offset + idx;
 
-					if (root_sidx && !root_sidx->refs[sidx_idx].SAP_type) {
-						root_sidx->refs[sidx_idx].SAP_type = sidx->refs[idx].SAP_type;
-						root_sidx->refs[sidx_idx].SAP_delta_time = sidx->refs[idx].SAP_delta_time + sidx_dur;
+				/*we refer to next moof*/
+				sidx->refs[cur_index].reference_type = 0;
+				if (!sidx->refs[cur_index].SAP_type) {
+					sidx->refs[cur_index].SAP_type = moof_get_sap_time_offset(movie->moof, referenceTrackID, & sidx->refs[cur_index].SAP_delta_time, & sidx->refs[cur_index].starts_with_SAP);
+					if (sidx->refs[cur_index].SAP_type) {
+						sidx->refs[cur_index].SAP_delta_time += cur_dur;
+
+						if (root_sidx && !root_sidx->refs[sidx_idx].SAP_type) {
+							root_sidx->refs[sidx_idx].SAP_type = sidx->refs[cur_index].SAP_type;
+							root_sidx->refs[sidx_idx].SAP_delta_time = sidx->refs[cur_index].SAP_delta_time + sidx_dur;
+						}
+						else if (prev_sidx && !prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type) {
+							prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type = sidx->refs[cur_index].SAP_type;
+							prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_delta_time = sidx->refs[cur_index].SAP_delta_time;
+						}
 					}
-					else if (prev_sidx && !prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type) {
-						prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type = sidx->refs[idx].SAP_type;
-						prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_delta_time = sidx->refs[idx].SAP_delta_time;
-					}
-				}
-				
+				}				
 				dur = moof_get_duration(movie->moof, referenceTrackID);
-				sidx->refs[idx].subsegment_duration += dur;
+				sidx->refs[cur_index].subsegment_duration += dur;
 				cur_dur += dur;
 				/*reference size is end of the moof we just wrote minus last_box_pos*/
-				sidx->refs[idx].reference_size = (u32) ( gf_bs_get_position(movie->editFileMap->bs) - last_top_box_pos) ;
+				sidx->refs[cur_index].reference_size += (u32) ( gf_bs_get_position(movie->editFileMap->bs) - last_top_box_pos) ;
 				last_top_box_pos = gf_bs_get_position(movie->editFileMap->bs);
-				idx++;
 
 				count++;
+
+				if (count==frags_per_subseg) {
+					count = 0;
+					idx++;
+				}
+
 				/*switching to next SIDX*/
-				if (count==frags_per_sidx) {
+				if (idx==subseg_per_sidx) {
 
 					if (root_sidx) {
 						root_sidx->refs[sidx_idx].reference_size = (u32) (gf_bs_get_position(movie->editFileMap->bs) - local_sidx_start);
@@ -967,6 +1035,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 					cur_dur = 0;
 					count = 0;
 					idx=0;
+					if (movie->root_sidx) 
+						movie->root_sidx_index++;
 					sidx_idx++;
 				}
 			}
@@ -974,6 +1044,17 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 frags_per_sidx, u32 referenc
 		gf_isom_box_del((GF_Box *) movie->moof);	
 		movie->moof = NULL;
 	}
+
+	if (movie->root_sidx) {
+		if (last_segment) {
+			assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
+
+			sidx_rewrite(movie->root_sidx, movie->editFileMap->bs, movie->root_sidx_offset);
+			gf_isom_box_del((GF_Box*) movie->root_sidx);
+			movie->root_sidx = NULL;
+		}
+		return GF_OK;
+	} 
 
 	if (sidx) {
 		sidx_rewrite(sidx, movie->editFileMap->bs, sidx_start);
@@ -1065,20 +1146,6 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 		if (e) return e;
 	}
  	
-    /* Inserting free data for testing HTTP streaming */
-#if 0
-	if (0) {
-        GF_FreeSpaceBox *fb = (GF_FreeSpaceBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
-        fb->dataSize = free_data_insert_size;
-        //gf_list_add(movie->TopBoxes, fb);
-	    e = gf_isom_box_size((GF_Box *) fb);
-	    if (e) return e;
-	    e = gf_isom_box_write((GF_Box *) fb, movie->editFileMap->bs);
-	    if (e) return e;
-        gf_isom_box_del((GF_Box *)fb);
-    }
-#endif
-
 	//create new fragment
 	movie->moof = (GF_MovieFragmentBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOF);
 	movie->moof->mfhd = (GF_MovieFragmentHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MFHD);

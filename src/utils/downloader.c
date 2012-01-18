@@ -135,7 +135,8 @@ struct __gf_download_session
     /* True if cache file must be stored on disk */
     Bool use_cache_file;
 	Bool disable_cache;
-
+	/*forces notification of data exchange to be sent regardless of threading mode*/
+	Bool force_data_write_callback;
 #ifdef GPAC_HAS_SSL
     SSL *ssl;
 #endif
@@ -1722,7 +1723,7 @@ GF_EXPORT
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
     if (!sess) return NULL;
-    assert( sess->cache_entry );
+    if (! sess->cache_entry )  return NULL;
     return gf_cache_get_cache_filename(sess->cache_entry);
 }
 
@@ -2357,7 +2358,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             gf_dm_sess_user_io(sess, &par);
 
             sess->status = GF_NETIO_DATA_EXCHANGE;
-			if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
+			if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED) || sess->force_data_write_callback) {
                 char file_cache_buff[16384];
                 int read = 0;
                 u32 total_size = gf_cache_get_cache_filesize(sess->cache_entry);
@@ -2641,6 +2642,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 		return GF_BAD_PARAM;
 	}
 	dnload->use_cache_file = 1;
+	dnload->force_data_write_callback = 1;
 	if (e == GF_OK) {
 		e = gf_dm_sess_process(dnload);
 	}
