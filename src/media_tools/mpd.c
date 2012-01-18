@@ -69,7 +69,7 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(char *attr)
 {
 	GF_MPD_Fractional *res;
 	GF_SAFEALLOC(res, GF_MPD_Fractional);
-	sscanf(attr, "%d:%d", &res->num, res->den);
+	sscanf(attr, "%d:%d", &res->num, &res->den);
 	return res;
 }
 
@@ -943,6 +943,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		mpd_file = m3u8_file;
 	}
 	the_pe = NULL;
+	pe = NULL;
 	is_end = !pl->playlistNeedsRefresh;
 	i=0;
 	assert( pl );
@@ -1133,7 +1134,6 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 	/*if we use templates, put the SegmentTemplate element at the adaptationSet level*/
 	if (use_template) {
-		char *media_base = template_base;
 		fprintf(fmpd, "   <SegmentTemplate");
 
 		fprintf(fmpd, " duration=\"%d\"", pe->durationInfo);
