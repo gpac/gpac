@@ -321,8 +321,15 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
-		inst->name = gf_strdup("gm_gpac_js.dylib");
+		inst->name = gf_strdup("gm_hyb_in.dylib");
 		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_gpac_js.dylib");
 	}
 	{
 		ModuleInstance *inst;
