@@ -828,6 +828,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 refe
 		fragments_per_sidx = 0;
 		no_sidx = 1;
 	}
+	frags_per_subseg = 0;
+	subseg_per_sidx = 0;
 
 	/*prepare SIDX: we write a blank SIDX box with the right number of entries, and will rewrite it later on*/
 	if (referenceTrackID) {
