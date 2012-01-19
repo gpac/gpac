@@ -2256,6 +2256,8 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	if (p->sdtp) gf_box_dump(p->sdtp, trace);
 	if (p->tfdt) gf_box_dump(p->tfdt, trace);
 	gf_box_array_dump(p->TrackRuns, trace);
+	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
+	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 	fprintf(trace, "</TrackFragmentBox>\n");
 	return GF_OK;
 }

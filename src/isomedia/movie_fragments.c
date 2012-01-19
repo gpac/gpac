@@ -478,9 +478,9 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 	return sampleCount;
 }
 
-u32 moof_get_sap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap_delta, Bool *starts_with_sap)
+static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap_delta, Bool *starts_with_sap)
 {
-	u32 i, j, delta;
+	u32 i, j, count, delta, sap_type, sap_sample_num, cur_sample;
 	Bool first = 1;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf;
@@ -494,6 +494,49 @@ u32 moof_get_sap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	}
 	if (!traf) return 0;
 
+
+	/*first check if we have a roll/rap sample in this traf, and mark its sample count*/
+	sap_type = 0;
+	sap_sample_num = 0;
+	/*check RAP and ROLL*/
+	count = traf->sampleGroups ? gf_list_count(traf->sampleGroups) : 0;
+	for (i=0; i<count; i++) {
+		GF_SampleGroupBox *sg;
+		u32 j, first_sample;
+		Bool rap_type = 0;
+		sg = gf_list_get(traf->sampleGroups, i);
+
+
+		switch (sg->grouping_type) {
+		case GF_4CC('r','a','p',' '):
+			rap_type = 1;
+			break;
+		case GF_4CC('r','o','l','l'):
+			break;
+		default:
+			continue;
+		}
+		/*first entry is SAP*/
+		first_sample = 1;
+		for (j=0; j<sg->entry_count; j++) {
+			if (! sg->sample_entries[0].group_description_index) {
+				first_sample += sg->sample_entries[0].sample_count;
+				continue;
+			}
+			if (!j) {
+				*starts_with_sap = 1;
+				sap_sample_num = 0;
+			}
+			if (!sap_sample_num || (sap_sample_num>first_sample)) {
+				sap_type = rap_type ? 3 : 4;
+				sap_sample_num = first_sample;
+			}
+			break;
+		}
+	}
+
+	/*then browse all samples, looking for SYNC flag or sap_sample_num*/
+	cur_sample = 1;
 	delta = 0;
 	i=0;
 	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
@@ -512,10 +555,16 @@ u32 moof_get_sap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 				*starts_with_sap = first;
 				return 1;
 			}
+			if (cur_sample==sap_sample_num) {
+				*sap_delta = delta + ent->CTS_Offset;
+				return sap_type;
+			}
 			delta += ent->Duration;
 			first = 0;
+			cur_sample++;
 		}
 	}
+	/*not found*/
 	return 0;
 }
 
@@ -769,7 +818,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 frags_per_sidx, Bool daisy_c
 	return GF_OK;
 }
 
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment)
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment, u64 *index_start_range, u64 *index_end_range)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *prev_sidx=NULL;
@@ -782,6 +831,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 refe
 	GF_TrackBox *trak = NULL;
 	GF_Err e;
 	sidx_start = sidx_end = 0;
+
+	if (index_start_range) *index_start_range = 0;
+	if (index_end_range) *index_end_range = 0;
+
 	//and only at setup
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
@@ -974,7 +1027,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 refe
 				/*we refer to next moof*/
 				sidx->refs[cur_index].reference_type = 0;
 				if (!sidx->refs[cur_index].SAP_type) {
-					sidx->refs[cur_index].SAP_type = moof_get_sap_time_offset(movie->moof, referenceTrackID, & sidx->refs[cur_index].SAP_delta_time, & sidx->refs[cur_index].starts_with_SAP);
+					sidx->refs[cur_index].SAP_type = moof_get_sap_info(movie->moof, referenceTrackID, & sidx->refs[cur_index].SAP_delta_time, & sidx->refs[cur_index].starts_with_SAP);
 					if (sidx->refs[cur_index].SAP_type) {
 						sidx->refs[cur_index].SAP_delta_time += cur_dur;
 
@@ -1071,6 +1124,11 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 refe
 		gf_isom_box_del((GF_Box*)root_sidx);
 	}
 
+	if ((root_sidx || sidx) && !daisy_chain_sidx) {
+		if (index_start_range) *index_start_range = sidx_start;
+		if (index_end_range) *index_end_range = sidx_end;
+	}
+
 	if (movie->append_segment) {
 		char bloc[1024];
 		u32 seg_size = (u32) gf_bs_get_size(movie->editFileMap->bs);
@@ -1090,7 +1148,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 refe
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0, 1);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 1, NULL, NULL);
 	} else {
 		return StoreFragment(movie, 0, 0, NULL);
 	}
@@ -1382,34 +1440,66 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 	u32 i, count, last_sample;
 	GF_SampleEntry *sub_sample;
 	GF_Err e;
+	GF_TrackBox *trak;
 	GF_TrackFragmentBox *traf;
 	if (!dest->moof || !(dest->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
-
-	if (! gf_isom_sample_get_subsample_entry(orig, track, sampleNumber, &sub_sample)) return GF_OK;
 
 	traf = GetTraf(dest, TrackID);
 	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
-	/*compute last sample number in traf*/
-	last_sample = 0;
-	count = gf_list_count(traf->TrackRuns);
-	for (i=0; i<count; i++) {
-		GF_TrackFragmentRunBox *trun = gf_list_get(traf->TrackRuns, i);
-		last_sample += trun->sample_count;
-	}
+	trak = gf_isom_get_track_from_file(orig, track);
+	if (!trak) return GF_BAD_PARAM;
 
-	/*create subsample if needed*/
-	if (!traf->subs) {
-		traf->subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
-		traf->subs->version = 0;
-	}
-	
+	/*copy subsample info if any*/
+	if ( gf_isom_sample_get_subsample_entry(orig, track, sampleNumber, &sub_sample)) {
+		if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
-	count = gf_list_count(sub_sample->SubSamples);
-	for (i=0; i<count; i++) {
-		GF_SubSampleEntry *entry = gf_list_get(sub_sample->SubSamples, i);
-		e = gf_isom_add_subsample_info(traf->subs, last_sample, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
-		if (e) return e;
+		/*compute last sample number in traf*/
+		last_sample = 0;
+		count = gf_list_count(traf->TrackRuns);
+		for (i=0; i<count; i++) {
+			GF_TrackFragmentRunBox *trun = gf_list_get(traf->TrackRuns, i);
+			last_sample += trun->sample_count;
+		}
+
+		/*create subsample if needed*/
+		if (!traf->subs) {
+			traf->subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+			traf->subs->version = 0;
+		}
+		
+
+		count = gf_list_count(sub_sample->SubSamples);
+		for (i=0; i<count; i++) {
+			GF_SubSampleEntry *entry = gf_list_get(sub_sample->SubSamples, i);
+			e = gf_isom_add_subsample_info(traf->subs, last_sample, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
+			if (e) return e;
+		}
+	}
+	/*copy sampleToGroup info if any*/
+	if (trak->Media->information->sampleTable->sampleGroups) {
+		count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
+		for (i=0; i<count; i++) {
+			GF_SampleGroupBox *sg;
+			u32 j;
+			u32 first_sample_in_entry, last_sample_in_entry;
+			first_sample_in_entry = 1;
+			
+			sg = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
+			for (j=0; j<sg->entry_count; j++) {
+				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+				if ((sampleNumber<first_sample_in_entry) || (sampleNumber>last_sample_in_entry)) {
+					first_sample_in_entry = last_sample_in_entry+1;
+					continue;
+				}
+				/*found our sample, add it to trak->sampleGroups*/
+				if (!traf->sampleGroups)
+					traf->sampleGroups = gf_list_new();
+
+				e = gf_isom_add_sample_group_entry(traf->sampleGroups, 0, sg->grouping_type, sg->sample_entries[j].group_description_index);
+				break;
+			}
+		}
 	}
 	return GF_OK;
 }

@@ -3108,8 +3108,8 @@ int mp4boxMain(int argc, char **argv)
 			else if (frags_per_sidx) fprintf(stdout, "%d per sidx", frags_per_sidx);
 			else fprintf(stdout, "single sidx");
 		}
-		if (seg_at_rap) fprintf(stdout, " at GOP boundaries");
 		fprintf(stdout, "\n");
+		if (seg_at_rap) fprintf(stdout, "Spliting at GOP boundaries\n");
 
 		strcpy(outfile, outName ? outName : inName);
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;

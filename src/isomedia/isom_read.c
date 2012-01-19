@@ -2666,4 +2666,64 @@ Bool gf_isom_moov_first(GF_ISOFile *movie)
 	return 0;
 }
 
+GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance)
+{
+	GF_TrackBox *trak;
+	u32 i, count;
+
+	if (is_rap) *is_rap = 0;
+	if (has_roll) *has_roll = 0;
+	if (roll_distance) *roll_distance = 0;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->Media->information->sampleTable->sampleGroups) return GF_OK;
+
+	count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
+	for (i=0; i<count; i++) {
+		GF_SampleGroupBox *sg;
+		u32 j, group_desc_index;
+		GF_SampleGroupDescriptionBox *sgdesc;
+		u32 first_sample_in_entry, last_sample_in_entry;
+		first_sample_in_entry = 1;
+		group_desc_index = 0;
+		sg = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
+		for (j=0; j<sg->entry_count; j++) {
+			last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+			if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
+				first_sample_in_entry = last_sample_in_entry+1;
+				continue;
+			}
+			/*we found our sample*/
+			group_desc_index = sg->sample_entries[j].group_description_index;
+			break;
+		}
+		/*no sampleGroup info associated*/
+		if (!group_desc_index) continue;
+
+		sgdesc = NULL;
+		for (j=0; j<gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription); j++) {
+			sgdesc = gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, j);
+			if (sgdesc->grouping_type==sg->grouping_type) break;
+			sgdesc = NULL;
+		}
+		/*no sampleGroup description found for this group (invalid file)*/
+		if (!sgdesc) continue;
+
+		switch (sgdesc->grouping_type) {
+		case GF_4CC('r','a','p',' '):
+			if (is_rap) *is_rap = 1;
+			break;
+		case GF_4CC('r','o','l','l'):
+			if (has_roll) *has_roll = 1;
+			if (roll_distance) {
+				GF_RollRecoveryEntry *roll_entry = (GF_RollRecoveryEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
+				if (roll_entry) *roll_distance = roll_entry->roll_distance;
+			}
+			break;
+		}
+	}
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/
