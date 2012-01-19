@@ -503,6 +503,7 @@
 		9747B6F114864C6400280D95 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EE14864C6400280D95 /* events_constants.h */; };
 		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
+		979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
 		97FBAAE913BB61D700800B2F /* dvb.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FBAAE813BB61D700800B2F /* dvb.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
 /* End PBXBuildFile section */
@@ -993,6 +994,7 @@
 				71179CF31292EDED00A83216 /* libc.dylib in Frameworks */,
 				970A2850134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
 				970A28631344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
+				979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
