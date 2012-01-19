@@ -712,7 +712,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	GF_Config *dash_ctx = NULL;
 	Bool store_dash_params = 0;
 	Bool dash_moov_setup = 0;
-	Bool segments_start_with_rap = 1;
+	Bool segments_start_with_sap = 1;
 	Bool first_sample_in_segment = 0;
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
@@ -1063,6 +1063,9 @@ restart_fragmentation_pass:
 
 		//process track by track
 		for (i=0; i<count; i++) {
+			Bool has_roll, is_rap;
+			s32 roll_distance;
+			u32 SAP_type = 0;
 			/*start with ref*/
 			if (tfref && split_seg_at_rap ) {
 				if (i==0) {
@@ -1084,8 +1087,22 @@ restart_fragmentation_pass:
 			//ok write samples
 			while (1) {
 				Bool stop_frag = 0;
+
+				/*first sample*/
 				if (!sample) {
 					sample = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1, &descIndex);
+
+					/*also get SAP type - this is not needed if sample is not NULL as SAP tye was computed for "next sample" in previous loop*/
+					if (sample->IsRAP) {
+						SAP_type = 1;
+					} else {
+						SAP_type = 0;
+						e = gf_isom_get_sample_rap_roll_info(input, tf->OriginalTrack, tf->SampleNum + 1, &is_rap, &has_roll, &roll_distance);
+						if (e==GF_OK) {
+							if (is_rap) SAP_type = 3;
+							else if (has_roll && (roll_distance>=0) ) SAP_type = 4;
+						}
+					}
 				}
 				gf_isom_get_sample_padding_bits(input, tf->OriginalTrack, tf->SampleNum+1, &NbBits);
 
@@ -1096,9 +1113,9 @@ restart_fragmentation_pass:
 					defaultDuration = tf->DefaultDuration;
 				}
 
-				if (segments_start_with_rap && first_sample_in_segment && (tf==tfref)) {
+				if (segments_start_with_sap && first_sample_in_segment && (tf==tfref)) {
 					first_sample_in_segment = 0;
-					if (!sample->IsRAP) segments_start_with_rap = 0;
+					if (! SAP_type) segments_start_with_sap = 0;
 				}
 
 				if (simulation_pass) {
@@ -1126,10 +1143,27 @@ restart_fragmentation_pass:
 				tf->FragmentLength += defaultDuration;
 				tf->SampleNum += 1;
 
-				if (next && next->IsRAP) {
+				/*compute SAP type*/
+				if (sample) {
+					if (sample->IsRAP) {
+						SAP_type = 1;
+					} else {
+						SAP_type = 0;
+						e = gf_isom_get_sample_rap_roll_info(input, tf->OriginalTrack, tf->SampleNum + 1, &is_rap, &has_roll, NULL);
+						if (e==GF_OK) {
+							if (is_rap)
+								SAP_type = 3;
+							else if (has_roll && (roll_distance>=0) )
+								SAP_type = 4;
+						}
+					}
+				}
+
+				if (next && SAP_type) {
 					if (tf==tfref) {
 						if (split_seg_at_rap) {
-							u32 frag_dur = tf->FragmentLength*1000/tf->TimeScale;
+							/*duration of fragment if we add this rap*/
+							u32 frag_dur = (tf->FragmentLength+defaultDuration)*1000/tf->TimeScale;
 							next_sample_rap = 1;
 							/*if media segment about to be produced is longer than max segment length, force split*/
 							if (MaxSegmentDuration && (SegmentDuration + frag_dur > MaxSegmentDuration)) {
@@ -1139,7 +1173,7 @@ restart_fragmentation_pass:
 							if (split_at_rap) {
 								stop_frag = 1;
 								/*override fragment duration for the rest of this fragment*/
-								MaxFragmentDuration = frag_dur;
+								MaxFragmentDuration = tf->FragmentLength*1000/tf->TimeScale;
 							}
 						} else if (!has_rap) {
 							if (tf->FragmentLength == defaultDuration) has_rap = 2;
@@ -1221,17 +1255,19 @@ restart_fragmentation_pass:
 				if (tfref) ref_track_cur_dur = tfref->InitialTSOffset + tfref->next_sample_dts;
 
 				if (!simulation_pass) {
-					gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, flush_all_samples ? 1 : 0);
+					u64 idx_start_range, idx_end_range;
+					
+					gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, flush_all_samples ? 1 : 0, &idx_start_range, &idx_end_range);
 
 					if (!seg_rad_name) {
 						file_size = gf_isom_get_file_size(output);
 						end_range = file_size - 1;
 						if (!single_segment_mode) {
-							fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"/>\n", start_range, end_range);	
+							fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\" indexRange=\""LLD"-"LLD"\"/>\n", start_range, end_range, idx_start_range, idx_end_range);	
 							if (dash_ctx) {
 								char szKey[100], szVal[4046];
 								sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
-								sprintf(szVal, "<SegmentURL mediaRange=\""LLD"-"LLD"\"/>", start_range, end_range);
+								sprintf(szVal, "<SegmentURL mediaRange=\""LLD"-"LLD"\" indexRange=\""LLD"-"LLD"\"/>", start_range, end_range, idx_start_range, idx_end_range);
 								gf_cfg_set_key(dash_ctx, "URLs", szKey, szVal);
 							}
 						}
@@ -1275,22 +1311,24 @@ restart_fragmentation_pass:
 
 		/*flush last segment*/
 		if (!switch_segment) {
+			u64 idx_start_range, idx_end_range;
+
 			if (max_segment_duration * 1000 <= SegmentDuration) {
 				max_segment_duration = SegmentDuration;
 				max_segment_duration /= 1000;
 			}
 
-			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, 1);
+			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, 1, &idx_start_range, &idx_end_range);
 			nb_segments++;
 			if (!seg_rad_name) {
 				file_size = gf_isom_get_file_size(output);
 				end_range = file_size - 1;
 				if (!single_segment_mode) {
-					fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"/>\n", start_range, end_range);	
+					fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\" indexRange=\""LLD"-"LLD"\"/>\n", start_range, end_range, idx_start_range, idx_end_range);	
 					if (dash_ctx) {
 						char szKey[100], szVal[4046];
 						sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
-						sprintf(szVal, "<SegmentURL mediaRange=\""LLD"-"LLD"\"/>", start_range, end_range);
+						sprintf(szVal, "<SegmentURL mediaRange=\""LLD"-"LLD"\" indexRange=\""LLD"-"LLD"\"/>", start_range, end_range, idx_start_range, idx_end_range);
 						gf_cfg_set_key(dash_ctx, "URLs", szKey, szVal);
 					}
 				}
@@ -1319,7 +1357,9 @@ restart_fragmentation_pass:
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
 		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
-		fprintf(mpd, " startWithSAP=\"%s\"", (segments_start_with_rap || split_seg_at_rap) ? "true" : "false");
+		fprintf(mpd, " startWithSAP=\"%s\"", (segments_start_with_sap || split_seg_at_rap) ? "true" : "false");
+		if (single_segment_mode && segments_start_with_sap) fprintf(mpd, " subsegmentStartsWithSAP=\"true\"");
+		
 		fprintf(mpd, " bandwidth=\"%d\"", bandwidth);		
 		fprintf(mpd, ">\n");
 		if (strlen(szComponents)) fprintf(mpd, "%s", szComponents);

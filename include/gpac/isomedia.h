@@ -1150,7 +1150,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName);
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
 
 /*closes current segment - if fragments_per_sidx is <0, no sidx is used - if fragments_per_sidx is ==0, a single sidx is used*/
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 fragments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, Bool daisy_chain_sidx, Bool last_segment, u64 *index_start_range, u64 *index_end_range);
 
 /*writes an empty sidx in the current movie. The SIDX will be forced to have nb_segs entries - nb_segs shall match the number of calls to
 gf_isom_close_segment that will follow. This avoids wasting time and disk space moving data around. Once gf_isom_close_segment has then been called nb_segs times, 
@@ -1975,7 +1975,8 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 #endif
 /*add subsample information for the latest sample added to the current track fragment*/
 GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
-/*copy over the subsample information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
+
+/*copy over the subsample and sampleToGroup information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
 GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber);
 
 /*gets the number of the next moof to be produced*/
@@ -1983,6 +1984,9 @@ u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);
 /*Sets the number of the next moof to be produced*/
 void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 
+
+/*returns 'rap ' and 'roll' group info for the given sample*/
+GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance);
 
 /*sample groups information*/
 #ifndef GPAC_DISABLE_ISOM_WRITE
