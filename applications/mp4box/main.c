@@ -241,7 +241,8 @@ void PrintGeneralUsage()
 			"                       Note: the duration of a fragment (subsegment) is set\n"
 			"						using the interleaver (-inter) switch.\n"
 			"                       Note: You can specify -rap switch to split segments at RAP boundaries\n"
-			" -frags-per-sidx N    sets the number of segments to be written in each SIDX box\n"
+			"                       Note: when single-segment is used, this specifies the duration of a subsegment\n"
+			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
 			"                       If 0, a single SIDX box is used per segment\n"
 			"                       If -1, no SIDX box is used\n"
 			" -rap                 segments begin with random access points\n"
@@ -1205,7 +1206,7 @@ int mp4boxMain(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u64 movie_time;
-	s32 frags_per_sidx;
+	s32 subsegs_per_sidx;
 	u32 brand_add[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
@@ -1244,7 +1245,7 @@ int mp4boxMain(int argc, char **argv)
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
-	frags_per_sidx = 0;
+	subsegs_per_sidx = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
@@ -1499,9 +1500,9 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		} else if (!stricmp(arg, "-dash-ts-use-index")) {
 			dash_ts_use_index = 1;
-		} else if (!stricmp(arg, "-frags-per-sidx")) {
+		} else if (!stricmp(arg, "-subsegs-per-sidx") || !stricmp(arg, "-frags-per-sidx")) {
 			CHECK_NEXT_ARG
-			frags_per_sidx = atoi(argv[i+1]);
+			subsegs_per_sidx = atoi(argv[i+1]);
 			i++;
 		} else if (!stricmp(arg, "-segment-name")) {
 			CHECK_NEXT_ARG
@@ -2456,9 +2457,9 @@ int mp4boxMain(int argc, char **argv)
 				}
 
 				if (dash_duration) {
-					if (frags_per_sidx<0) frags_per_sidx = 0;
+					if (subsegs_per_sidx<0) subsegs_per_sidx = 0;
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, frags_per_sidx,
+					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
 						seg_name, seg_ext, use_url_template, dash_ts_use_index);
 #endif
 				} else if (dump_m2ts) {
@@ -3099,23 +3100,23 @@ int mp4boxMain(int argc, char **argv)
 	/*split file*/
 	if (dash_duration) {
 		if (single_segment) {
-			fprintf(stdout, "DASH-ing file with single segment - subsegment duration %.3f - fragment duration: %.3f secs", dash_duration, InterleavingTime);
-			if (frags_per_sidx) fprintf(stdout, " - %d per sub-segment", frags_per_sidx);
+			fprintf(stdout, "DASH-ing file with single segment\nSubsegment duration %.3f - Fragment duration: %.3f secs\n", dash_duration, InterleavingTime);
+			subsegs_per_sidx = 0;
 			seg_name = seg_ext = NULL;
 		} else {
-			fprintf(stdout, "DASH-ing file with %.3f secs segments - fragments: %.3f secs - ", dash_duration, InterleavingTime);
-			if (frags_per_sidx<0) fprintf(stdout, "no sidx");
-			else if (frags_per_sidx) fprintf(stdout, "%d per sidx", frags_per_sidx);
-			else fprintf(stdout, "single sidx");
+			fprintf(stdout, "DASH-ing file with %.3f secs segments - fragments: %.3f secs\n", dash_duration, InterleavingTime);
+			if (subsegs_per_sidx<0) fprintf(stdout, "No sidx used");
+			else if (subsegs_per_sidx) fprintf(stdout, "%d subsegments per sidx", subsegs_per_sidx);
+			else fprintf(stdout, "Single sidx used");
 		}
 		fprintf(stdout, "\n");
-		if (seg_at_rap) fprintf(stdout, "Spliting at GOP boundaries\n");
+		if (seg_at_rap) fprintf(stdout, "Spliting segments at GOP boundaries\n");
 
 		strcpy(outfile, outName ? outName : inName);
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx);
 		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		gf_sys_close();

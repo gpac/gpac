@@ -421,7 +421,10 @@ static void gf_mpd_parse_common_representation(GF_MPD_CommonAttributes *com, GF_
 		else if (!strcmp(att->name, "segmentProfiles")) com->segmentProfiles = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "codecs")) com->codecs = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "maximumSAPPeriod")) com->maximum_sap_period = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "startsWithSAP")) com->starts_with_sap = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "startWithSAP")) {
+			if (!strcmp(att->value, "false")) com->starts_with_sap = 0;
+			else com->starts_with_sap = gf_mpd_parse_int(att->value);
+		}
 		else if (!strcmp(att->name, "maxPlayoutRate")) com->max_playout_rate = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "codingDependency")) com->coding_dependency = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "scanType")) {
@@ -548,7 +551,10 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "segmentAlignment")) set->segment_alignment = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "bitstreamSwitching")) set->bitstream_switching = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "subsegmentAlignment")) set->subsegment_alignment = gf_mpd_parse_bool(att->value);
-		else if (!strcmp(att->name, "subsegmentStartsWithSAP")) set->subsegment_starts_with_sap = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "subsegmentStartsWithSAP")) {
+			if (!strcmp(att->value, "false")) set->subsegment_starts_with_sap  = 0;
+			else set->subsegment_starts_with_sap = gf_mpd_parse_int(att->value);
+		}
 	}
 	gf_mpd_parse_common_representation((GF_MPD_CommonAttributes*)set, root);
 

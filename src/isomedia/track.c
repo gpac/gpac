@@ -491,6 +491,80 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			if (degr) stbl_AppendDegradation(trak->Media->information->sampleTable, degr);
 		}
 	}
+	/*merge sample groups*/
+	if (traf->sampleGroups) {
+		GF_List *groups;
+		GF_List *groupDescs;
+		if (!trak->Media->information->sampleTable->sampleGroups)
+			trak->Media->information->sampleTable->sampleGroups = gf_list_new();
+
+		if (!trak->Media->information->sampleTable->sampleGroupsDescription)
+			trak->Media->information->sampleTable->sampleGroupsDescription = gf_list_new();
+
+		groupDescs = trak->Media->information->sampleTable->sampleGroupsDescription;
+		for (i=0; i<gf_list_count(traf->sampleGroupsDescription); i++) {
+			GF_SampleGroupDescriptionBox *new_sgdesc = NULL;
+			GF_SampleGroupDescriptionBox *sgdesc = gf_list_get(traf->sampleGroupsDescription, i);
+			for (j=0; j<gf_list_count(groupDescs); j++) {
+				new_sgdesc = gf_list_get(groupDescs, j);
+				if (new_sgdesc->grouping_type==sgdesc->grouping_type) break;
+				new_sgdesc = NULL;
+			}
+			/*new description, move it to our sample table*/
+			if (!new_sgdesc) {
+				gf_list_add(groupDescs, sgdesc);
+				gf_list_rem(traf->sampleGroupsDescription, i);
+				i--;
+			}
+			/*merge descriptions*/
+			else {
+				u32 idx = gf_list_count(new_sgdesc->group_descriptions);
+				for (j=idx; j<gf_list_count(sgdesc->group_descriptions); j++) {
+					void *ptr = gf_list_get(sgdesc->group_descriptions, j);
+					if (ptr) {
+						gf_list_add(new_sgdesc->group_descriptions, ptr);
+						gf_list_rem(sgdesc->group_descriptions, j);
+						j--;
+					}
+				}
+			}
+		}
+
+		groups = trak->Media->information->sampleTable->sampleGroups;
+		for (i=0; i<gf_list_count(traf->sampleGroups); i++) {
+			GF_SampleGroupBox *stbl_group = NULL; 
+			GF_SampleGroupBox *frag_group = gf_list_get(traf->sampleGroups, i);
+
+
+			for (j=0; j<gf_list_count(groups); j++) {
+				stbl_group = gf_list_get(groups, j);
+				if ((frag_group->grouping_type==stbl_group->grouping_type) && (frag_group->grouping_type_parameter==stbl_group->grouping_type_parameter))
+					break;
+				stbl_group = NULL;
+			}
+			if (!stbl_group) {
+				stbl_group = (GF_SampleGroupBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SBGP);
+				stbl_group->grouping_type = frag_group->grouping_type;
+				stbl_group->grouping_type_parameter = frag_group->grouping_type_parameter;
+				stbl_group->version = frag_group->version;
+				gf_list_add(groups, stbl_group);
+			}
+			if (frag_group->entry_count && stbl_group->entry_count && 
+				(frag_group->sample_entries[0].group_description_index==stbl_group->sample_entries[stbl_group->entry_count-1].group_description_index) 
+			) {
+				stbl_group->sample_entries[stbl_group->entry_count - 1].sample_count += frag_group->sample_entries[0].sample_count;
+				if (frag_group->entry_count>1) {
+					stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count - 1));
+					memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[1], sizeof(GF_SampleGroupEntry) * (frag_group->entry_count - 1));
+					stbl_group->entry_count += frag_group->entry_count - 1;
+				}
+			} else {
+				stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count));
+				memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[0], sizeof(GF_SampleGroupEntry) * frag_group->entry_count);
+				stbl_group->entry_count += frag_group->entry_count;
+			}
+		}
+	}
 	return GF_OK;
 }
 
