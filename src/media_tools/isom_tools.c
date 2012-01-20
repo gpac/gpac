@@ -71,7 +71,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_avc_config_get(movie, track, 1);
 		sps = gf_list_get(avcc->sequenceParameterSets, 0);
-		sprintf(szCodec, "%s.%02x.%02x.%02x", gf_4cc_to_str(subtype), sps->data[1], sps->data[2], sps->data[3]);
+		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), sps->data[1], sps->data[2], sps->data[3]);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
 
@@ -670,9 +670,33 @@ typedef struct
 	u64 last_sample_cts, next_sample_dts;
 } TrackFragmenter;
 
+static u64 get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
+{
+	GF_ISOSample *samp;
+	u64 time;
+	Bool is_rap, has_roll;
+	u32 i, found_sample = 0;
+	for (i=sample_num; i<=sample_count; i++) {
+		if (gf_isom_get_sample_sync(input, track, i)) {
+			found_sample = i;
+			break;
+		}
+		gf_isom_get_sample_rap_roll_info(input, track, i, &is_rap, &has_roll, NULL);
+		if (is_rap || has_roll) {
+			found_sample = i;
+			break;
+		}
+	}
+	if (!found_sample) return 0;
+	samp = gf_isom_get_sample_info(input, track, found_sample, NULL, NULL);
+	time = samp->DTS;
+	gf_isom_sample_del(&samp);
+	return time;
+}
+
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 fragments_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -684,7 +708,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	char sOpt[100], sKey[100];
 	char szCodecs[200], szCodec[100];
 	char szComponents[1000];
-	u32 cur_seg, fragment_index, nb_fragments;
+	u32 cur_seg, fragment_index, nb_fragments, max_sap_type;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -693,6 +717,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	u32 nb_segments, width, height, sample_rate, nb_channels;
 	char langCode[5];
 	u32 index_start_range, index_end_range;
+	Bool force_switch_segment = 0;
 	Bool switch_segment = 0;
 	Bool split_seg_at_rap = (dash_mode==2) ? 1 : 0;
 	Bool split_at_rap = 0;
@@ -701,7 +726,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	Bool flush_all_samples = 0;
 	Bool simulation_pass = 0;
 	u64 last_ref_cts = 0;
-	u64 start_range, end_range, file_size, init_seg_size, ref_track_cur_dur;
+	u64 start_range, end_range, file_size, init_seg_size, ref_track_first_dts, ref_track_next_cts;
 	u32 tfref_timescale = 0;
 	u32 bandwidth = 0;
 	TrackFragmenter *tf, *tfref;
@@ -716,6 +741,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	Bool first_sample_in_segment = 0;
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
+
 
 	SegmentDuration = 0;
 	nb_samp = 0;
@@ -967,7 +993,7 @@ restart_fragmentation_pass:
 	nb_segments = 0;
 
 	nb_tracks_done = 0;
-	ref_track_cur_dur = tfref ? tfref->InitialTSOffset : 0;
+	ref_track_first_dts = (u64) -1;
 	nb_done = 0;
 
 	maxFragDurationOverSegment=0;
@@ -982,6 +1008,9 @@ restart_fragmentation_pass:
 	has_rap = 0;
 	next_sample_rap = 0;
 	flush_all_samples = 0;
+	force_switch_segment = 0;
+	max_sap_type = 0;
+	ref_track_next_cts = 0;
 
 	/*setup previous URL list*/
 	if (dash_ctx) {
@@ -1113,10 +1142,21 @@ restart_fragmentation_pass:
 					defaultDuration = tf->DefaultDuration;
 				}
 
-				if (segments_start_with_sap && first_sample_in_segment && (tf==tfref)) {
-					first_sample_in_segment = 0;
-					if (! SAP_type) segments_start_with_sap = 0;
+				if (tf==tfref) {
+					if (segments_start_with_sap && first_sample_in_segment ) {
+						first_sample_in_segment = 0;
+						if (! SAP_type) segments_start_with_sap = 0;
+					}
+					if (ref_track_first_dts > sample->DTS) 
+						ref_track_first_dts = sample->DTS;
+
+					if (next) {
+						u64 cts = gf_isom_get_media_duration(input, tf->OriginalTrack);
+						if (cts>ref_track_next_cts) ref_track_next_cts = cts;
+						else ref_track_next_cts += defaultDuration;
+					}
 				}
+				if (SAP_type > max_sap_type) max_sap_type = SAP_type;
 
 				if (simulation_pass) {
 					e = GF_OK;
@@ -1145,6 +1185,7 @@ restart_fragmentation_pass:
 
 				/*compute SAP type*/
 				if (sample) {
+					ref_track_next_cts = sample->DTS + sample->CTS_Offset;
 					if (sample->IsRAP) {
 						SAP_type = 1;
 					} else {
@@ -1162,14 +1203,25 @@ restart_fragmentation_pass:
 				if (next && SAP_type) {
 					if (tf==tfref) {
 						if (split_seg_at_rap) {
+							u64 next_sap_time;
 							/*duration of fragment if we add this rap*/
 							u32 frag_dur = (tf->FragmentLength+defaultDuration)*1000/tf->TimeScale;
 							next_sample_rap = 1;
-							/*if media segment about to be produced is longer than max segment length, force split*/
-							if (MaxSegmentDuration && (SegmentDuration + frag_dur > MaxSegmentDuration)) {
-								split_at_rap = 1;
+							next_sap_time = get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
+							/*if no more SAP after this one, do not switch segment*/
+							if (next_sap_time) {
+								/*this is the fragment duration from last sample added to next SAP*/
+								frag_dur += (u32) (next_sap_time - tf->next_sample_dts)*1000/tf->TimeScale;
+								/*if media segment about to be produced is longer than max segment length, force segment split*/
+								if (SegmentDuration + frag_dur > MaxSegmentDuration) {
+									split_at_rap = 1;
+									/*force new segment*/
+									force_switch_segment = 1;
+								}
+								/*if adding this SAP will result in stoping the fragment "soone" after it, stop now and start with SAP*/
+								if ( (tf->FragmentLength + 3*defaultDuration)*1000 >= MaxFragmentDuration * tf->TimeScale)
+									stop_frag = 1;
 							}
-
 							if (split_at_rap) {
 								stop_frag = 1;
 								/*override fragment duration for the rest of this fragment*/
@@ -1227,7 +1279,7 @@ restart_fragmentation_pass:
 			SegmentDuration += maxFragDurationOverSegment;
 			maxFragDurationOverSegment=0;
 
-			if (MaxSegmentDuration && (SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap)) {
+			if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap))) {
 				average_duration += SegmentDuration;
 				nb_segments++;
 				if (max_segment_duration * 1000 <= SegmentDuration) {
@@ -1245,6 +1297,7 @@ restart_fragmentation_pass:
 				}
 				fprintf(stdout, "\n ");
 #endif
+				force_switch_segment=0;
 				switch_segment=1;
 				SegmentDuration=0;
 				split_at_rap = 0;
@@ -1252,12 +1305,11 @@ restart_fragmentation_pass:
 				/*restore fragment duration*/
 				MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 
-				if (tfref) ref_track_cur_dur = tfref->InitialTSOffset + tfref->next_sample_dts;
-
 				if (!simulation_pass) {
 					u64 idx_start_range, idx_end_range;
 					
-					gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, flush_all_samples ? 1 : 0, &idx_start_range, &idx_end_range);
+					gf_isom_close_segment(output, subsegs_per_sidx, ref_track_id, ref_track_first_dts, ref_track_next_cts, daisy_chain_sidx, flush_all_samples ? 1 : 0, &idx_start_range, &idx_end_range);
+					ref_track_first_dts = (u64) -1;
 
 					if (!seg_rad_name) {
 						file_size = gf_isom_get_file_size(output);
@@ -1277,7 +1329,7 @@ restart_fragmentation_pass:
 				}
 			} 
 			/*next fragment will exceed segment length, abort fragment at next rap*/
-			if (split_seg_at_rap && MaxSegmentDuration && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
+			if (split_seg_at_rap && SegmentDuration && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
 				split_at_rap = 1;
 			}
 		}
@@ -1287,7 +1339,7 @@ restart_fragmentation_pass:
 
 	if (simulation_pass) {
 		/*OK, we have all segments and frags per segments*/
-		gf_isom_allocate_sidx(output, fragments_per_sidx, daisy_chain_sidx, nb_segments_info, segments_info, &index_start_range, &index_end_range );
+		gf_isom_allocate_sidx(output, subsegs_per_sidx, daisy_chain_sidx, nb_segments_info, segments_info, &index_start_range, &index_end_range );
 		gf_free(segments_info);
 		segments_info = NULL;
 		simulation_pass = 0;
@@ -1318,8 +1370,9 @@ restart_fragmentation_pass:
 				max_segment_duration /= 1000;
 			}
 
-			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, ref_track_cur_dur, daisy_chain_sidx, 1, &idx_start_range, &idx_end_range);
+			gf_isom_close_segment(output, subsegs_per_sidx, ref_track_id, ref_track_first_dts, ref_track_next_cts, daisy_chain_sidx, 1, &idx_start_range, &idx_end_range);
 			nb_segments++;
+
 			if (!seg_rad_name) {
 				file_size = gf_isom_get_file_size(output);
 				end_range = file_size - 1;
@@ -1357,7 +1410,11 @@ restart_fragmentation_pass:
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
 		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
-		fprintf(mpd, " startWithSAP=\"%s\"", (segments_start_with_sap || split_seg_at_rap) ? "true" : "false");
+		if (segments_start_with_sap || split_seg_at_rap) {
+			fprintf(mpd, " startWithSAP=\"%d\"", max_sap_type);
+		} else {
+			fprintf(mpd, " startWithSAP=\"false\"");
+		}
 		if (single_segment_mode && segments_start_with_sap) fprintf(mpd, " subsegmentStartsWithSAP=\"true\"");
 		
 		fprintf(mpd, " bandwidth=\"%d\"", bandwidth);		
