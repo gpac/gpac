@@ -483,7 +483,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	u32 i, j, count, delta, earliest_cts, sap_type, sap_sample_num, cur_sample;
 	Bool first = 1;
 	GF_TrunEntry *ent;
-	GF_TrackFragmentBox *traf;
+	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
 	*sap_delta = 0;
 	*starts_with_sap = 0;
@@ -493,6 +493,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 		traf=NULL;
 	}
 	if (!traf) return 0;
+	earliest_cts = 0;
 
 
 	/*first check if we have a roll/rap sample in this traf, and mark its sample count*/
