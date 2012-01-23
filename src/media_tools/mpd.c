@@ -525,8 +525,7 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_List *container, GF_XMLNode *root)
 	set->base_URLs = gf_list_new();
 	set->representations = gf_list_new();
 	/*assign default ID and group*/
-	set->id = (u64) set;
-	set->group = set->id;
+	set->group = -1;
 
 	e = gf_list_add(container, set);
 	if (e) return e;

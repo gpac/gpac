@@ -216,10 +216,9 @@ typedef struct
 {	
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 
-	/*if not set in MPD, an ID is dynamically generated (u32 cast of the structure)*/
-	u64 id;
-	/*if not set in MPD, an ID is dynamically generated (u32 cast of the structure)*/
-	u64 group;
+	u32 id;
+	/*default value is -1: not set in MPD*/
+	s32 group;
 
 	char *lang;
 	char *content_type;
