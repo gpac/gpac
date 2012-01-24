@@ -301,8 +301,8 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	u16 sr;
 	u32 nb_chan;
 	FILE *in;
-	u32 hdr, size, max_size, track, di, duration;
-	u64 done, tot_size, offset;
+	u32 hdr, size, max_size, track, di;
+	u64 done, tot_size, offset, duration;
 	GF_ISOSample *samp;
 
 	in = gf_f64_open(import->in_name, "rb");
@@ -371,7 +371,8 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
 
-	duration = import->duration*sr;
+	duration = import->duration;
+	duration *= sr;
 	duration /= 1000;
 
 	max_size = 0;
@@ -499,8 +500,8 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	ADTSHeader hdr;
 	GF_M4ADecSpecInfo acfg;
 	FILE *in;
-	u64 offset, tot_size, done;
-	u32 max_size, track, di, duration, i;
+	u64 offset, tot_size, done, duration;
+	u32 max_size, track, di, i;
 	GF_ISOSample *samp;
 
 	in = gf_f64_open(import->in_name, "rb");
@@ -686,7 +687,8 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (e) goto exit;
 	samp->DTS+=dts_inc;
 
-	duration = import->duration*sr;
+	duration = import->duration;
+	duration *= sr;
 	duration /= 1000;
 
 	tot_size = gf_bs_get_size(bs);
@@ -742,8 +744,8 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	FILE *mdia;
 	GF_ISOSample *samp;
 	Bool is_vfr, erase_pl, has_cts_offset, is_packed, destroy_esd, do_vfr, forced_packed;
-	u32 nb_samp, i, timescale, max_size, track, di, PL, max_b, nbI, nbP, nbB, nbNotCoded, dts_inc, ref_frame, b_frames, duration;
-	u64 pos, tot_size, done_size, samp_offset;
+	u32 nb_samp, i, timescale, max_size, track, di, PL, max_b, nbI, nbP, nbB, nbNotCoded, dts_inc, ref_frame, b_frames;
+	u64 pos, tot_size, done_size, samp_offset, duration;
 	GF_M4VDecSpecInfo dsi;
 	GF_M4VParser *vparse;
 	GF_BitStream *bs;
@@ -768,7 +770,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (import->video_fps) FPS = (Double) import->video_fps;
 	get_video_timing(FPS, &timescale, &dts_inc);
 
-	duration = (u32) (import->duration*FPS);
+	duration = (u64) (import->duration*FPS);
 
 	is_packed = 0;
 	nbNotCoded = nbI = nbP = nbB = max_b = 0;
@@ -1025,7 +1027,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 	GF_M4VDecSpecInfo dsi;
 	GF_M4VParser *vparse;
 	s32 key;
-	u32 duration;
+	u64 duration;
 	Bool destroy_esd, is_packed, is_init, has_cts_offset;
 	char *comp, *frame;
 	avi_t *in;
@@ -1109,7 +1111,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 	FPS = AVI_frame_rate(in);
 	if (import->video_fps) FPS = (Double) import->video_fps;
 	get_video_timing(FPS, &timescale, &dts_inc);
-	duration = (u32) (import->duration*FPS);
+	duration = (u64) (import->duration*FPS);
 
 	e = GF_OK;
 	max_size = 0;
@@ -1376,7 +1378,8 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 {
 	GF_Err e;
 	FILE *test;
-	u32 hdr, di, track, i, tot_size, duration;
+	u64 duration;
+	u32 hdr, di, track, i, tot_size;
 	s64 offset;
 	s32 size, max_size, done;
 	u16 sampleRate;
@@ -1533,8 +1536,8 @@ exit:
 GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u64 offset, sampDTS;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, stype, w, h, duration, sr, sbr_sr, ch, mstype;
+	u64 offset, sampDTS, duration;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, stype, w, h, sr, sbr_sr, ch, mstype;
 	s32 trans_x, trans_y;
 	s16 layer;
 	u8 bps;
@@ -1744,7 +1747,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		break;
 	}
 
-	duration = (u32) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
+	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 	for (i=0; i<num_samples; i++) {
@@ -1804,8 +1807,8 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	Double FPS;
 	char *buf;
 	u8 ftype;
-	u32 track, di, streamID, mtype, w, h, ar, nb_streams, buf_len, frames, ref_frame, timescale, duration, dts_inc, last_pos;
-	u64 file_size;
+	u32 track, di, streamID, mtype, w, h, ar, nb_streams, buf_len, frames, ref_frame, timescale, dts_inc, last_pos;
+	u64 file_size, duration;
 	Bool destroy_esd;
 
 	if (import->flags & GF_IMPORT_USE_DATAREF)
@@ -1881,7 +1884,8 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	if (import->video_fps) FPS = (Double) import->video_fps;
 	get_video_timing(FPS, &timescale, &dts_inc);
 
-	duration = import->duration*timescale;
+	duration = import->duration;
+	duration *= timescale;
 	duration /= 1000;
 
 	destroy_esd = 0;
@@ -1961,8 +1965,8 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 	GF_Err e;
 	mpeg2ps_t *ps;
 	char *buf;
-	u32 track, di, streamID, mtype, sr, nb_ch, nb_streams, buf_len, frames, hdr, duration, last_pos;
-	u64 file_size;
+	u32 track, di, streamID, mtype, sr, nb_ch, nb_streams, buf_len, frames, hdr, last_pos;
+	u64 file_size, duration;
 	Bool destroy_esd;
 	GF_ISOSample *samp;
 
@@ -2039,7 +2043,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 	gf_import_message(import, GF_OK, "%s Audio import - sample rate %d - %d channel%s", (mtype==GPAC_OTI_AUDIO_MPEG1) ? "MPEG-1" : "MPEG-2", sr, nb_ch, (nb_ch>1) ? "s" : "");
 
 
-	duration = (u32) ((Double)import->duration/1000.0 * sr);
+	duration = (u64) ((Double)import->duration/1000.0 * sr);
 
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
@@ -2081,10 +2085,10 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 {
 	GF_Err e;
 	Bool destroy_esd, next_is_start;
-	u32 track, di, mtype, max_size, duration, count, w, h, sig;
+	u32 track, di, mtype, max_size, count, w, h, sig;
 	GF_ISOSample *samp;
 	s64 media_size, media_done;
-	u64 offset;
+	u64 offset, duration;
 	GF_BitStream *bs;
 	FILE *nhnt, *mdia, *info;
 	char *ext, szName[1000], szMedia[1000], szNhnt[1000];
@@ -2232,7 +2236,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 
 	gf_import_message(import, GF_OK, "NHNT import - Stream Type %s - ObjectTypeIndication 0x%02x", gf_odf_stream_type_name(import->esd->decoderConfig->streamType), import->esd->decoderConfig->objectTypeIndication);
 
-	duration = (u32) ( ((Double) import->duration)/ 1000 * import->esd->slConfig->timestampResolution);
+	duration = (u64) ( ((Double) import->duration)/ 1000 * import->esd->slConfig->timestampResolution);
 
 	samp = gf_isom_sample_new();
 	samp->data = (char*)gf_malloc(sizeof(char) * 1024);
@@ -2526,10 +2530,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_Err e;
 	GF_DIMSDescription dims;
 	Bool destroy_esd, inRootOD, do_compress, use_dict, is_dims;
-	u32 i, track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize, dts_inc, par_den, par_num;
+	u32 i, track, tkID, di, mtype, max_size, count, streamType, oti, timescale, specInfoSize, dts_inc, par_den, par_num;
 	GF_ISOSample *samp;
 	GF_XMLAttribute *att;
 	s64 media_size, media_done, offset;
+	u64 duration;
 	FILE *nhml, *mdia, *info;
 	char *dictionary;
 	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
@@ -2801,7 +2806,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample);
 	}
 
-	duration = (u32) ( ((Double) import->duration)/ 1000 * timescale);
+	duration = (u64) ( ((Double) import->duration)/ 1000 * timescale);
 
 	samp = gf_isom_sample_new();
 	samp->data = (char*)gf_malloc(sizeof(char) * 1024);
@@ -3027,12 +3032,12 @@ exit:
 GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, duration, sample_rate, block_size, i, readen;
+	u32 track, trackID, di, sample_rate, block_size, i, readen;
 	GF_ISOSample *samp;
 	char magic[20], *msg;
 	Bool delete_esd, update_gpp_cfg;
 	u32 media_done, mtype, oti, nb_frames;
-	u64 offset, media_size;
+	u64 offset, media_size, duration;
 	GF_3GPConfig gpp_cfg;
 	FILE *mdia;
 	msg = NULL;
@@ -3149,7 +3154,8 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		if (e) goto exit;
 	}
 	gf_isom_set_audio_info(import->dest, track, di, sample_rate, 1, 16);
-	duration = import->duration * sample_rate;
+	duration = import->duration;
+	duration *= sample_rate;
 	duration /= 1000;
 
 	samp = gf_isom_sample_new();
@@ -3251,8 +3257,8 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 GF_Err gf_import_qcp(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, i, nb_pck, duration, riff_size, chunk_size, pck_size, block_size, bps, samplerate, vrat_rate_flag, size_in_packets, nb_frames;
-	u64 max_size;
+	u32 track, trackID, di, i, nb_pck, riff_size, chunk_size, pck_size, block_size, bps, samplerate, vrat_rate_flag, size_in_packets, nb_frames;
+	u64 max_size, duration;
 	GF_BitStream *bs;
 	GF_ISOSample *samp;
 	char magic[12], GUID[16], name[81], fmt[162];
@@ -3414,7 +3420,8 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	}
 	gf_isom_set_audio_info(import->dest, track, di, samplerate, 1, (u8) bps);
 
-	duration = import->duration * samplerate;
+	duration = import->duration;
+	duration *= samplerate;
 	duration /= 1000;
 
 	samp = gf_isom_sample_new();
@@ -3568,8 +3575,8 @@ static void h263_get_pic_size(GF_BitStream *bs, u32 fmt, u32 *w, u32 *h)
 GF_Err gf_import_h263(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, max_size, timescale, duration, w, h, fmt, nb_samp, dts_inc;
-	u64 offset, media_size, media_done;
+	u32 track, trackID, di, max_size, timescale, w, h, fmt, nb_samp, dts_inc;
+	u64 offset, media_size, media_done, duration;
 	GF_ISOSample *samp;
 	char *samp_data;
 	GF_3GPConfig gpp_cfg;
@@ -3645,7 +3652,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 
 	samp = gf_isom_sample_new();
 
-	duration = (u32) ( ((Double)import->duration) * timescale / 1000.0);
+	duration = (u64) ( ((Double)import->duration) * timescale / 1000.0);
 	media_size = gf_bs_get_size(bs);
 	nb_samp = 0;
 	media_done = 0;
@@ -3736,8 +3743,9 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, 
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_total_delay;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
 	s32 idx, sei_recovery_frame_count;
+	u64 duration;
 	u8 nal_type;
 	GF_Err e;
 	FILE *mdia;
@@ -3838,7 +3846,7 @@ restart_import:
 	is_paff = 0;
 	total_size = gf_bs_get_size(bs);
 	nal_start = gf_bs_get_position(bs);
-	duration = (u32) ( ((Double)import->duration) * timescale / 1000.0);
+	duration = (u64) ( ((Double)import->duration) * timescale / 1000.0);
 
 	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = 0;
 	max_w = max_h = 0;
@@ -4622,8 +4630,8 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 {
 	GF_Err e;
 	ogg_sync_state oy;
-	u32 di, track, duration;
-	u64 tot_size, done;
+	u32 di, track;
+	u64 tot_size, done, duration;
 	u32 w, h, fps_num, fps_den, keyframe_freq_force, theora_kgs, flag, dts_inc, timescale;
 	Double FPS;
 	Bool destroy_esd, go;
@@ -4813,7 +4821,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 						Double d = import->duration;
 						d *= import->esd->slConfig->timestampResolution;
 						d /= 1000;
-						duration = (u32) d;
+						duration = (u64) d;
 					}
 				}
 
@@ -4874,8 +4882,8 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 
 	GF_Err e;
 	ogg_sync_state oy;
-	u32 di, track, duration;
-	u64 done, tot_size;
+	u32 di, track;
+	u64 done, tot_size, duration;
 	s32 block_size;
 	GF_ISOSample *samp;
 	Bool destroy_esd, go;
@@ -4908,7 +4916,8 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	destroy_esd = 0;
 	samp = gf_isom_sample_new();
 	/*avoids gcc warnings*/
-	track = num_headers = duration = 0;
+	track = num_headers = 0;
+	duration = 0;
 
 	ogg_sync_init(&oy);
 
@@ -4997,7 +5006,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 						Double d = import->duration;
 						d *= vp.sample_rate;
 						d /= 1000;
-						duration = (u32) d;
+						duration = (u64) d;
 					}
 				}
 				continue;
@@ -6460,8 +6469,8 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	u32 nb_chan;
 	FILE *in;
 	GF_BitStream *bs;
-	u32 max_size, track, di, duration;
-	u64 tot_size, done;
+	u32 max_size, track, di;
+	u64 tot_size, done, duration;
 	GF_ISOSample *samp;
 
 	in = gf_f64_open(import->in_name, "rb");
@@ -6534,7 +6543,8 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
 
-	duration = import->duration*sr;
+	duration = import->duration;
+	duration *= sr;
 	duration /= 1000;
 
 	max_size = 0;
