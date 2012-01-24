@@ -43,7 +43,7 @@
 //#define NEW_RIFF_THRES (10*1024*1024)
 
 // Maximum number of indices per stream
-#define NR_IXNN_CHUNKS 32
+#define NR_IXNN_CHUNKS 96
 
 
 #define DEBUG_ODML
