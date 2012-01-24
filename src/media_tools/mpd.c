@@ -1241,7 +1241,6 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 						e = gf_dm_wget(elt->url, tmp_file);
 						if (e==GF_OK) {
 							import.in_name = tmp_file;
-							e = gf_media_import(&import);
 						}
 					}
 				} else {

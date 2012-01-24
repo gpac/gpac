@@ -194,8 +194,19 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_STYP:
-			if (((GF_SegmentTypeBox *)a)->majorBrand == GF_4CC('i', 's', 's', 's') ||
-				((GF_SegmentTypeBox *)a)->majorBrand == GF_4CC('i', 'm', 's', 's')) mov->is_index_segment = 1;
+		{
+			u32 brand = ((GF_SegmentTypeBox *)a)->majorBrand;
+			switch (brand) {
+			case GF_4CC('s', 'i', 's', 'x'):
+			case GF_4CC('r', 'i', 's', 'x'):
+			case GF_4CC('s', 's', 's', 's'):
+				mov->is_index_segment = 1;
+				break;
+			default:
+				break;
+			}
+		}
+		/*fall-through*/
 
 		case GF_ISOM_BOX_TYPE_SIDX:
 			totSize += a->size;
