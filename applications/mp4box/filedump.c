@@ -2456,9 +2456,9 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 	}
 
 	if (index_info->single_segment) {
-		fprintf(index_info->mpd_file, "    <SegmentBase>\n", media_file_name);
+		fprintf(index_info->mpd_file, "    <SegmentBase>\n");
 		fprintf(index_info->mpd_file, "     <RepresentationIndex>%s</RepresentationIndex>\n", index_info->index_file_name);
-		fprintf(index_info->mpd_file, "    </SegmentBase>\n", media_file_name);
+		fprintf(index_info->mpd_file, "    </SegmentBase>\n");
 		return;
 	} 
 
