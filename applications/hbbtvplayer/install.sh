@@ -63,7 +63,10 @@ fi
 
 if [ $WEBKIT -eq 1 ]
 then
-	svn checkout http://svn.webkit.org/repository/webkit/trunk WebKit
+	svn checkout http://svn.webkit.org/repository/webkit/trunk WebKit --depth files -r 97300 # 98458 ?
+	svn checkout http://svn.webkit.org/repository/webkit/trunk/Source WebKit/Source  -r 97300
+	svn checkout http://svn.webkit.org/repository/webkit/trunk/Tools WebKit/Tools  -r 97300
+	svn checkout http://svn.webkit.org/repository/webkit/trunk/WebKitLibraries WebKit/WebKitLibraries  -r 97300
 	./WebKit/Tools/Scripts/build-webkit --gtk --with-gtk=2.0 --no-webkit2 --makeargs="-j2 install"
 fi
 
