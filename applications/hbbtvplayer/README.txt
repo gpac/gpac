@@ -2,7 +2,7 @@
 
 Documentation summary
 
- 'doc/introduction.txt' to know the purporse of the project
+ 'doc/introduction.txt' to know the purpose of the project
 
  'doc/projectmanangement.txt' to know the organisation of files and directories.
 
@@ -10,18 +10,6 @@ Documentation summary
 
 /*****************************************************************************/
 
-1. Go to the GPAC directory
+1. Run getsources.sh (without sudo) to get the sources of gpac and/or webkit if necessary
 
-2. run ./configure 
-
-3. run make and then make install
-
-4. go to the hbbtvterminal/hbbtvbrowserplugin repository and run ./autogen.sh
-
-5. In the same directory, run ./configure
-
-6. Then run sudo make install
-
-7. Go to the hbbtvterminal/ repository and run ./autogen.sh
-
-8. run ./configure and finally run sudo make install
+2. Run 'sudo ./install.sh' with the appropriate parameter (full, player, gpac, webkit or dependencies)
