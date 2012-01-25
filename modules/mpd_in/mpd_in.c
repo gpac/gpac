@@ -949,27 +949,27 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 
 		switch (resolve_type) {
 		case GF_MPD_RESOLVE_URL_INIT:
-			gf_free(media_url);
+			gf_free(url);
 			if (init_url) {
-				*out_url = gf_url_concatenate(url, init_url->sourceURL);
+				*out_url = gf_url_concatenate(media_url, init_url->sourceURL);
 				if (init_url->byte_range) {
 					*out_range_start = init_url->byte_range->start_range;
 					*out_range_end = init_url->byte_range->end_range;
 				}
 			}
-			gf_free(url);
+			gf_free(media_url);
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_MEDIA:
-			gf_free(media_url);
+			gf_free(url);
 			if (item_index >= segment_count) {
-				gf_free(url);
+				gf_free(media_url);
 				return GF_EOS;
 			}
-			*out_url = url;
+			*out_url = media_url;
 			segment = gf_list_get(segments, item_index);
 			if (segment->media) {
-				*out_url = gf_url_concatenate(url, segment->media);
-				gf_free(url);
+				*out_url = gf_url_concatenate(media_url, segment->media);
+				gf_free(media_url);
 			}
 			if (segment->media_range) {
 				*out_range_start = segment->media_range->start_range;
@@ -977,16 +977,16 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 			}
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INDEX:
-			gf_free(media_url);
+			gf_free(url);
 			if (item_index >= segment_count) {
-				gf_free(url);
+				gf_free(media_url);
 				return GF_EOS;
 			}
-			*out_url = url;
+			*out_url = media_url;
 			segment = gf_list_get(segments, item_index);
 			if (segment->index) {
-				*out_url = gf_url_concatenate(url, segment->index);
-				gf_free(url);
+				*out_url = gf_url_concatenate(media_url, segment->index);
+				gf_free(media_url);
 			}
 			if (segment->index_range) {
 				*out_range_start = segment->index_range->start_range;
