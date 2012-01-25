@@ -647,6 +647,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->subscene = gf_scene_new(odm->parentscene);
 		odm->subscene->root_od = odm;
 	}
+	/*patch for DASH and OD streams: we need to keep track of the original service demuxing the channel, which is not the DASH service*/
+	if (!odm->OD->service_ifce && odm->parentscene) {
+		odm->OD->service_ifce  = odm->parentscene->root_od->OD->service_ifce;
+	}
 
 	numOK = odm->pending_channels = 0;
 	/*empty IOD, use a dynamic scene*/
