@@ -274,10 +274,12 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 
 		/* close the byte stream */
 		opj_cio_close(cio);
+		cio = NULL;
 
 		/* gf_free( remaining structures */
 		if(dinfo) {
 			opj_destroy_decompress(dinfo);
+			dinfo = NULL;
 		}
 	}
 
@@ -389,11 +391,6 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 				}
 		}
 	}	
-
-	/* gf_free( remaining structures */
-	if(dinfo) {
-		opj_destroy_decompress(dinfo);
-	}
 
 	/* gf_free( image data structure */
 	if (ctx->image) {
