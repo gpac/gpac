@@ -877,6 +877,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			if (prog->pmt_iod) {
 				m2ts->request_all_pids = 0;
 				gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
+				((GF_InitialObjectDescriptor *)desc)->service_ifce = m2ts->owner;
 				return desc;
 			}
 		}
