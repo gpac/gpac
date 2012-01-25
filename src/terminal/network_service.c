@@ -1054,6 +1054,7 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 GF_EXPORT
 void gf_term_download_del(GF_DownloadSession * sess)
 {
+	Bool locked;
 	GF_ClientService *serv;
 	if (!sess) return;
 	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
@@ -1061,7 +1062,7 @@ void gf_term_download_del(GF_DownloadSession * sess)
 	/*avoid sending data back to user*/
 	gf_dm_sess_abort(sess);
 
-	gf_term_lock_media_queue(serv->term, 1);
+	locked = gf_mx_try_lock(serv->term->media_queue_mx);
 
 	/*unregister from service*/
 	gf_list_del_item(serv->dnloads, sess);
@@ -1070,7 +1071,8 @@ void gf_term_download_del(GF_DownloadSession * sess)
 	so we must queue the downloader and let the term delete it later on*/
 	gf_list_add(serv->term->net_services_to_remove, sess);
 
-	gf_term_lock_media_queue(serv->term, 0);
+	if (locked)
+		gf_term_lock_media_queue(serv->term, 0);
 }
 
 GF_EXPORT
