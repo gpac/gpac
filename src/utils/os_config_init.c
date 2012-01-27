@@ -411,7 +411,7 @@ static GF_Config *create_default_config(char *file_path)
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
 	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
-	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30");
+	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30.0");
 	/*use power-of-2 emulation in OpenGL if no rectangular texture extension*/
 	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", "yes");
 	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
