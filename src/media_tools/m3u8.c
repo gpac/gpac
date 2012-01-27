@@ -128,13 +128,16 @@ gf_free(pl);
 return result;
 }*/
 
-PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo) {
+PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd) {
 	PlaylistElement * e = gf_malloc(sizeof(PlaylistElement));
 	bzero(e, sizeof(PlaylistElement));
 	assert( url );
 	if (e == NULL)
 		return NULL;
 	e->durationInfo = durationInfo;
+	e->byteRangeStart = byteRangeStart;
+	e->byteRangeEnd = byteRangeEnd;
+
 	e->title = (title ? gf_strdup(title) : NULL);
 	e->codecs = (codecs ? gf_strdup(codecs) : NULL);
 	assert( url);
@@ -320,6 +323,7 @@ typedef struct _s_accumulated_attributes {
 	int currentMediaSequence;
 	Bool isVariantPlaylist;
 	Bool isPlaylistEnded;
+	u64 byteRangeStart, byteRangeEnd;
 } s_accumulated_attributes;
 
 static Bool safe_start_equals(const char * attribute, const char * line) {
@@ -447,6 +451,22 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 				}
 			}
 			i++;
+		}
+		return ret;
+	}
+	ret = extractAttributes("#EXT-X-BYTERANGE:", line, 1);
+	if (ret) {
+		/* #EXT-X-BYTERANGE:<begin@end> */
+		if (ret[0]) {
+			u64 begin, size;
+			if (sscanf(ret[0], LLU"@"LLU, &size, &begin) == 2) {
+				if (size) {
+					attributes->byteRangeStart = begin;
+					attributes->byteRangeEnd = begin + size - 1;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,("[M3U8] Invalid byte range %s\n", ret[0]));
+				}
+			}
 		}
 		return ret;
 	}
@@ -607,7 +627,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						fullURL,
 						attribs.title,
 						attribs.codecs,
-						attribs.durationInSeconds);
+						attribs.durationInSeconds,
+						attribs.byteRangeStart, attribs.byteRangeEnd);
 					if (currentPlayList == NULL) {
 						/* OUT of memory */
 						variant_playlist_del(*playlist);
@@ -632,7 +653,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							baseURL,
 							attribs.title,
 							attribs.codecs,
-							attribs.durationInSeconds);
+							attribs.durationInSeconds, 
+							attribs.byteRangeStart, attribs.byteRangeEnd);
 						if (currentPlayList == NULL) {
 							/* OUT of memory */
 							variant_playlist_del(*playlist);
@@ -650,7 +672,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							fullURL,
 							attribs.title,
 							attribs.codecs,
-							attribs.durationInSeconds);
+							attribs.durationInSeconds,
+							attribs.byteRangeStart, attribs.byteRangeEnd);
 						if (subElement == NULL) {
 							variant_playlist_del(*playlist);
 							playlist_element_del(currentPlayList);
@@ -671,7 +694,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							fullURL,
 							attribs.title,
 							attribs.codecs,
-							attribs.durationInSeconds);
+							attribs.durationInSeconds,
+							attribs.byteRangeStart, attribs.byteRangeEnd);
 						if (currentPlayList->elementType != TYPE_PLAYLIST) {
 							currentPlayList->elementType = TYPE_PLAYLIST;
 							if (!currentPlayList->element.playlist.elements)

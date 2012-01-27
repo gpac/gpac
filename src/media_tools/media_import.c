@@ -5314,6 +5314,8 @@ typedef struct
 #endif
 	Bool force_next_au_start;
 	Bool stream_setup;
+	u32 nb_video, nb_video_configured;
+
 } GF_TSImport;
 
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -5543,24 +5545,28 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_MPEG2:
 					import->tk_info[idx].media_type = GF_4CC('M','P','G','2');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_MPEG4:
 					import->tk_info[idx].media_type = GF_4CC('M','P','4','V');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_H264:
 					import->tk_info[idx].media_type = GF_4CC('H','2','6','4');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_video++;
 					break;
 				case GF_M2TS_AUDIO_MPEG1:
 					import->tk_info[idx].media_type = GF_4CC('M','P','G','1');
@@ -5748,8 +5754,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 									sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
 								}
 							}
-							import->tk_info[i].video_info.width = pck->stream->vid_w;
-							import->tk_info[i].video_info.height = pck->stream->vid_h;
+							if (! import->tk_info[i].video_info.width ) {
+								import->tk_info[i].video_info.width = pck->stream->vid_w;
+								import->tk_info[i].video_info.height = pck->stream->vid_h;
+								tsimp->nb_video_configured++;
+								/*consider we are done if not using 4 on 2*/
+								if (!ts->has_4on2 && (tsimp->nb_video_configured == tsimp->nb_video))
+									import->flags |= GF_IMPORT_DO_ABORT;
+							}
 
 						}
 						break;
