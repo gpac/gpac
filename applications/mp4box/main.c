@@ -1192,6 +1192,8 @@ enum
 	GF_ISOM_CONV_TYPE_PSP
 };
 
+/*for dash*/
+#define MAX_DASH_REP	30
 
 int mp4boxMain(int argc, char **argv)
 {
@@ -1222,6 +1224,8 @@ int mp4boxMain(int argc, char **argv)
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
 	Bool adjust_split_end = 0;
+	char *dash_inputs[MAX_DASH_REP];
+	u32 nb_dash_inputs = 0;
 	char *gf_logs = NULL;
 	char *seg_ext = NULL;
 
@@ -1271,9 +1275,28 @@ int mp4boxMain(int argc, char **argv)
 		/*main file*/
 //		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
 		if (arg[0] != '-') {
-			if (argc < 3) { fprintf(stdout, "Error - only one input file found as argument, please check usage\n"); return 1; }
-			if (inName) { fprintf(stdout, "Error - 2 input names specified, please check usage\n"); return 1; }
-			inName = arg;
+			if (argc < 3) {
+				fprintf(stdout, "Error - only one input file found as argument, please check usage\n"); 
+				return 1; 
+			} else if (inName) { 
+				if (dash_duration) {
+					if (!nb_dash_inputs) {
+						dash_inputs[nb_dash_inputs] = inName;
+						nb_dash_inputs++;
+					}
+					if (MAX_DASH_REP<=nb_dash_inputs) {
+						fprintf(stdout, "Error - Max %d representations can be DASH'ed\n", MAX_DASH_REP);
+						return 1; 
+					}
+					dash_inputs[nb_dash_inputs] = arg;
+					nb_dash_inputs++;					
+				} else {
+					fprintf(stdout, "Error - 2 input names specified, please check usage\n");
+					return 1; 
+				}
+			} else {
+				inName = arg;
+			}
 		}
 		else if (!stricmp(arg, "-?")) { PrintUsage(); return 0; }
 		else if (!stricmp(arg, "-version")) { PrintVersion(); return 0; }
@@ -2189,6 +2212,12 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
+	if (dash_duration && !nb_dash_inputs) {
+		dash_inputs[nb_dash_inputs] = inName;
+		nb_dash_inputs++;
+	}
+
+
 	if (do_saf && !encode) {
 		switch (get_file_type_by_ext(inName)) {
 		case 2: case 3: case 4: 
@@ -2456,8 +2485,10 @@ int mp4boxMain(int argc, char **argv)
 				if (dash_duration) {
 					if (subsegs_per_sidx<0) subsegs_per_sidx = 0;
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
-						seg_name, seg_ext, use_url_template, single_segment);
+					for (i=0; i<nb_dash_inputs; i++) {
+						dump_mpeg2_ts(dash_inputs[i], NULL, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
+							seg_name, seg_ext, use_url_template, single_segment);
+					}
 #endif
 				} else if (dump_m2ts) {
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -3096,8 +3127,14 @@ int mp4boxMain(int argc, char **argv)
 
 	/*split file*/
 	if (dash_duration) {
+		char szMPD[GF_MAX_PATH];
+		char szInit[GF_MAX_PATH];
+		GF_ISOFile *init_seg;
+		Bool sps_merge_failed = 0;
+		Double period_duration = 0;
+
 		if (single_segment) {
-			fprintf(stdout, "DASH-ing file with single segment\nSubsegment duration %.3f - Fragment duration: %.3f secs\n", dash_duration, InterleavingTime);
+			fprintf(stdout, "DASH-ing file%s with single segment\nSubsegment duration %.3f - Fragment duration: %.3f secs\n", (nb_dash_inputs>1) ? "s" : "", dash_duration, InterleavingTime);
 			subsegs_per_sidx = 0;
 			seg_name = seg_ext = NULL;
 		} else {
@@ -3114,8 +3151,141 @@ int mp4boxMain(int argc, char **argv)
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx);
-		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
+
+		strcpy(szInit, outfile);
+		strcat(szInit, "_init.mp4");
+		strcpy(szMPD, outfile);
+		strcat(szMPD, ".mpd");
+
+		init_seg = gf_isom_open(szInit, GF_ISOM_WRITE_EDIT, tmpdir);
+		for (i=0; i<nb_dash_inputs; i++) {
+			u32 j;
+			Double dur;
+			GF_ISOFile *in = file;
+			if (i) {
+				in = gf_isom_open(dash_inputs[i], GF_ISOM_OPEN_READ, NULL);
+				if (!in) {
+					fprintf(stdout, "Error while opening %s: %s\n", dash_inputs[i], gf_error_to_string( gf_isom_last_error(NULL) ));
+					gf_isom_delete(file);
+					gf_sys_close();
+					return 1;
+				}
+			}
+			for (j=0; j<gf_isom_get_track_count(in); j++) {
+				u32 track = gf_isom_get_track_by_id(init_seg, gf_isom_get_track_id(in, j+1));
+				if (track) {					
+					u32 outDescIndex;
+					assert( gf_isom_get_sample_description_count(in, j+1) == 1);
+
+					/*if not the same sample desc we might need to clone it*/
+					if (! gf_isom_is_same_sample_description(in, j+1, 1, init_seg, track, 1)) {
+						Bool do_merge = 1;
+						u32 stype1, stype2;
+						stype1 = gf_isom_get_media_subtype(in, j+1, 1);
+						stype2 = gf_isom_get_media_subtype(init_seg, track, 1);
+						if (stype1 != stype2) do_merge = 0;
+						switch (stype1) {
+						case GF_4CC( 'a', 'v', 'c', '1'):
+						case GF_4CC( 'a', 'v', 'c', '2'):
+						case GF_4CC( 's', 'v', 'c', '1'):
+							break;
+						default:
+							do_merge = 0;
+							break;
+						}
+						if (do_merge) {
+							u32 k, l, sps_id1, sps_id2;
+							GF_AVCConfig *avccfg1 = gf_isom_avc_config_get(in, j+1, 1);
+							GF_AVCConfig *avccfg2 = gf_isom_avc_config_get(init_seg, track, 1);
+							for (k=0; k<gf_list_count(avccfg2->sequenceParameterSets); k++) {
+								GF_AVCConfigSlot *slc = gf_list_get(avccfg2->sequenceParameterSets, k);
+								gf_avc_get_sps_info(slc->data, slc->size, &sps_id1, NULL, NULL, NULL, NULL);
+								for (l=0; l<gf_list_count(avccfg1->sequenceParameterSets); l++) {
+									GF_AVCConfigSlot *slc_orig = gf_list_get(avccfg1->sequenceParameterSets, l);
+									gf_avc_get_sps_info(slc_orig->data, slc_orig->size, &sps_id2, NULL, NULL, NULL, NULL);
+									if (sps_id2==sps_id1) {
+										do_merge = 0;
+										break;
+									}
+								}
+							}
+							/*no conflicts in SPS ids, merge all SPS in a single sample desc*/
+							if (do_merge) {
+								while (gf_list_count(avccfg1->sequenceParameterSets)) {
+									GF_AVCConfigSlot *slc = gf_list_get(avccfg1->sequenceParameterSets, 0);
+									gf_list_rem(avccfg1->sequenceParameterSets, 0);
+									gf_list_add(avccfg2->sequenceParameterSets, slc);
+								}
+								while (gf_list_count(avccfg1->pictureParameterSets)) {
+									GF_AVCConfigSlot *slc = gf_list_get(avccfg1->pictureParameterSets, 0);
+									gf_list_rem(avccfg1->pictureParameterSets, 0);
+									gf_list_add(avccfg2->pictureParameterSets, slc);
+								}
+								gf_isom_avc_config_update(init_seg, track, 1, avccfg2);
+							} else {
+								sps_merge_failed = 1;
+							}
+							gf_odf_avc_cfg_del(avccfg1);
+							gf_odf_avc_cfg_del(avccfg2);
+						}
+
+						/*cannot merge, clone*/
+						if (!do_merge)
+							gf_isom_clone_sample_description(init_seg, track, in, j+1, 1, NULL, NULL, &outDescIndex);
+					}
+				} else {
+					gf_isom_clone_track(in, j+1, init_seg, 0, &track);
+				}
+				dur = gf_isom_get_track_duration(in, j+1);
+				dur /= gf_isom_get_timescale(in);
+				if (dur>period_duration) period_duration = dur;
+			}
+
+			if (i) gf_isom_close(in);
+		}
+		if (sps_merge_failed) {
+			fprintf(stdout, "Couldnt merge AVC|H264 SPS from different files (same SPS ID used) - different sample descriptions will be used\n");
+		}
+		if (!seg_name) use_url_template = 0;
+
+		gf_media_mpd_start(szMPD, gf_isom_get_filename(file), use_url_template, single_segment, dash_ctx, szInit, period_duration);
+
+		for (i=0; i<nb_dash_inputs; i++) {
+			char szSegName[GF_MAX_PATH], *segment_name;
+			GF_ISOFile *in = file;
+			if (i) in = gf_isom_open(dash_inputs[i], GF_ISOM_OPEN_READ, NULL);
+
+			segment_name = seg_name;
+
+			if (nb_dash_inputs>1) {
+				char *sep;
+				strcpy(outfile, dash_inputs[i]);
+				sep = strrchr(outfile, '.');
+				if (sep) sep[0] = 0;
+	
+				if (seg_name) {
+					if (strstr(seg_name, "%s")) sprintf(szSegName, seg_name, outfile);
+					else strcpy(szSegName, seg_name);
+					segment_name = szSegName;
+				}
+				strcat(outfile, "_dash");
+			}
+			if (nb_dash_inputs>1) {
+				fprintf(stdout, "DASHing file %s\n", dash_inputs[i]);
+			}
+			
+			e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg);
+			if (e) {
+				fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
+				break;
+			}
+			if (i) gf_isom_close(in);
+		}
+		/*close MPD*/
+		gf_media_mpd_end(szMPD);
+		/*write init segment to file*/
+		gf_isom_close(init_seg);
+
 		gf_isom_delete(file);
 		gf_sys_close();
 		return (e!=GF_OK) ? 1 : 0;
@@ -3123,7 +3293,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL);
+		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
