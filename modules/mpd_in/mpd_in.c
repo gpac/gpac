@@ -99,6 +99,8 @@ typedef struct __mpd_group
     GF_InputService *service;
     char *service_mime;
     Bool service_connected, service_descriptor_fetched;
+
+	struct __mpd_module *mpd_in;
 } GF_MPD_Group;
 
 typedef struct __mpd_module {
@@ -110,7 +112,7 @@ typedef struct __mpd_module {
 
     u32 option_max_cached;
     u32 auto_switch_count;
-    Bool keep_files;
+    Bool keep_files, disable_switching;
 
 	/* MPD downloader*/
     GF_DownloadSession *mpd_dnload;
@@ -213,7 +215,7 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 		}
 	}
 	else if ((param->msg_type == GF_NETIO_DATA_EXCHANGE) || (param->msg_type == GF_NETIO_DATA_TRANSFERED)) {
-		if (gf_dm_sess_get_stats(group->segment_dnload, NULL, NULL, NULL, NULL, &download_rate, NULL) == GF_OK) {
+		if (!group->mpd_in->disable_switching && (gf_dm_sess_get_stats(group->segment_dnload, NULL, NULL, NULL, NULL, &download_rate, NULL) == GF_OK)) {
 			if (download_rate) {
 				download_rate *= 8;
 				if (download_rate<group->min_bitrate) group->min_bitrate = download_rate;
@@ -626,9 +628,11 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, GF_MPD_Group *group, const 
  */
 GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk, u64 start_range, u64 end_range, Bool persistent)
 {
+	Bool had_sess = 0;
     GF_Err e;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading %s...\n", url));
+
 	if (! *sess) {
 		u32 flags = GF_NETIO_SESSION_NOT_THREADED;
 		if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT; 
@@ -639,6 +643,7 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
 			return GF_OUT_OF_MEM;
 		}
 	} else {
+		had_sess = 1;
 		e = gf_dm_sess_setup_from_url(*sess, url);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Cannot resetup session for url %s: %s\n", url, gf_error_to_string(e) ));
@@ -649,6 +654,13 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
 	if (end_range) {
 		e = gf_dm_sess_set_range(*sess, start_range, end_range);
 		if (e) {
+			if (had_sess) {
+				gf_term_download_del(*sess);
+				*sess = NULL;
+				return MPD_downloadWithRetry(service, sess, url, user_io, usr_cbk, start_range, end_range, persistent);
+			}
+
+
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Cannot setup byte-range download for %s: %s\n", url, gf_error_to_string(e) ));
 			return e;
 		}
@@ -961,6 +973,10 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_MEDIA:
 			gf_free(url);
+			if (!media_url) {
+		        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Media URL is not set in segment list\n"));
+				return GF_SERVICE_ERROR;
+			}
 			if (item_index >= segment_count) {
 				gf_free(media_url);
 				return GF_EOS;
@@ -1004,8 +1020,8 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 	/*segmentTemplate*/
 	init_template = index_template = NULL;
 
-	/*not clear in the spec, but we assume baseURL of representation is ignored and replaced with template*/	
-	gf_free(media_url);
+	gf_free(url);
+	url = media_url;
 	media_url = NULL;
 
 	/*apply inheritance of attributes, lowest level having preceedence*/
@@ -1735,6 +1751,7 @@ GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 			GF_MPD_Group *group;
 			GF_SAFEALLOC(group, GF_MPD_Group);
 			if (!group) return GF_OUT_OF_MEM;
+			group->mpd_in = mpdin;
 			group->adaptation_set = set;
 			group->period = period;
 			group->period = period;
@@ -1880,6 +1897,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
     if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
     if (opt && !strcmp(opt, "yes")) mpdin->keep_files = 1;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DisableSwitching");
+    if (opt && !strcmp(opt, "yes")) mpdin->disable_switching = 1;
 	
 	if (mpdin->mpd_dnload) gf_term_download_del(mpdin->mpd_dnload);
     mpdin->mpd_dnload = NULL;

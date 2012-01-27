@@ -133,7 +133,7 @@ static GF_MPD_ByteRange *gf_mpd_parse_byte_range(char *attr)
 {
 	GF_MPD_ByteRange *br;
 	GF_SAFEALLOC(br, GF_MPD_ByteRange);
-	sscanf(attr, LLD":"LLD, &br->start_range, &br->end_range);
+	sscanf(attr, LLD"-"LLD, &br->start_range, &br->end_range);
 	return br;
 }
 
@@ -1089,7 +1089,11 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				char *sub_url;
 				elt = gf_list_get(pe->element.playlist.elements, 0);
 				sub_url = strrchr(elt->url, '/');
-				if (!sub_url) sub_url = elt->url;
+				if (!sub_url) {
+					sub_url = elt->url;
+				} else {
+					sub_url ++;
+				}
 				template_base = gf_strdup(sub_url);
 				template_ext = strrchr(template_base, '.');
 				k=0;
@@ -1115,7 +1119,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			if (use_template) {
 				for (k=0; k<count3; k++) {
-					char szURL[GF_MAX_PATH];
+					char szURL[GF_MAX_PATH], *sub_url;
 					elt = gf_list_get(pe->element.playlist.elements, k);
 					
 					if (template_width==2) sprintf(szURL, "%s%02d%s", template_base, template_idx_start + k, template_ext);
@@ -1125,7 +1129,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					else if (template_width==6) sprintf(szURL, "%s%06d%s", template_base, template_idx_start + k, template_ext);
 					else sprintf(szURL, "%s%d%s", template_base, template_idx_start + k, template_ext);
 
-					if (strcmp(szURL, elt->url)) {
+					sub_url = strrchr(elt->url, '/');
+					if (!sub_url) sub_url = elt->url;
+					else sub_url ++;
+					if (strcmp(szURL, sub_url)) {
 						use_template = 0;
 						break;
 					}
@@ -1205,6 +1212,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		count2 = gf_list_count(prog->bitrates);
 		for (j = 0; j<count2; j++) {
 			char *base_url;
+			char *byte_range_media_file = NULL;
 			pe = gf_list_get(prog->bitrates, j);
 			
 			if (pe->elementType == TYPE_STREAM) {
@@ -1291,7 +1299,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			if (use_template) {
 				if (sep) {
-					sep[0] = 0;
+					/*keep final '/' */
+					sep[1] = 0;
 					fprintf(fmpd, ">\n    <BaseURL>%s</BaseURL>\n   </Representation>\n", base_url);
 				} else
 					fprintf(fmpd, "/>\n");
@@ -1306,6 +1315,12 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", base_url);
 			}
 
+			byte_range_media_file = NULL;
+			elt = gf_list_get(pe->element.playlist.elements, 0);
+			if (elt && (elt->byteRangeEnd || elt->byteRangeStart)) {
+				byte_range_media_file = elt->url;
+				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", byte_range_media_file);
+			}
 
 			fprintf(fmpd, "    <SegmentList duration=\"%d\">\n", pe->durationInfo);
 			update_interval = (count3 - 1) * pe->durationInfo * 1000;
@@ -1324,7 +1339,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				else seg_url = elt->url;
 
 				while (src_url[cmp] == seg_url[cmp]) cmp++;
-				fprintf(fmpd, "     <SegmentURL media=\"%s\"/>\n", cmp ? (seg_url + cmp) : elt->url);
+
+				if (byte_range_media_file) {
+					fprintf(fmpd, "     <SegmentURL mediaRange=\""LLU"-"LLU"\"", elt->byteRangeStart, elt->byteRangeEnd);
+					if (strcmp(elt->url, byte_range_media_file) )fprintf(fmpd, " media=\"%s\"", elt->url);
+					fprintf(fmpd, "/>\n");
+				} else {
+					fprintf(fmpd, "     <SegmentURL media=\"%s\"/>\n", cmp ? (seg_url + cmp) : elt->url);
+				}
 			}
 			fprintf(fmpd, "    </SegmentList>\n");
 			fprintf(fmpd, "   </Representation>\n");

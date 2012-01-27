@@ -240,7 +240,7 @@ u32 gf_clock_ellapse_time(GF_Clock *ck)
 
 Bool gf_clock_is_started(GF_Clock *ck)
 {
-	if (/*!ck->StartTime || */ck->Buffering || ck->Paused) return 0;
+	if (!ck || ck->Buffering || ck->Paused) return 0;
 	return 1;
 }
 

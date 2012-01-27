@@ -85,6 +85,7 @@ typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} 
  */
 typedef struct s_playlistElement {
     int durationInfo;
+    u64 byteRangeStart, byteRangeEnd;
     int bandwidth;
     char * title;
 	char * codecs;
@@ -145,7 +146,7 @@ GF_Err program_del(Program * program);
  * This element can be either a playlist of a stream according to first parameter.
  * @return NULL if element could not be created. Element deletion will be deleted recusivly by #playlist_del(Playlist*)
  */
-PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo);
+PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd);
 
 /**
  * Creates a new VariantPlaylist
