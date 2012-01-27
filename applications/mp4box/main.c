@@ -3236,7 +3236,7 @@ int mp4boxMain(int argc, char **argv)
 				} else {
 					gf_isom_clone_track(in, j+1, init_seg, 0, &track);
 				}
-				dur = gf_isom_get_track_duration(in, j+1);
+				dur = (Double) gf_isom_get_track_duration(in, j+1);
 				dur /= gf_isom_get_timescale(in);
 				if (dur>period_duration) period_duration = dur;
 			}
@@ -3248,7 +3248,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (!seg_name) use_url_template = 0;
 
-		gf_media_mpd_start(szMPD, gf_isom_get_filename(file), use_url_template, single_segment, dash_ctx, szInit, period_duration);
+		gf_media_mpd_start(szMPD, (char *)gf_isom_get_filename(file), use_url_template, single_segment, dash_ctx, szInit, period_duration);
 
 		for (i=0; i<nb_dash_inputs; i++) {
 			char szSegName[GF_MAX_PATH], *segment_name;
