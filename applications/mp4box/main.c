@@ -3157,7 +3157,7 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
 
-		init_seg = gf_isom_open(szInit, GF_ISOM_WRITE_EDIT, tmpdir);
+		init_seg = gf_isom_open(szInit, GF_ISOM_OPEN_WRITE, tmpdir);
 		for (i=0; i<nb_dash_inputs; i++) {
 			u32 j;
 			Double dur;
@@ -3258,8 +3258,10 @@ int mp4boxMain(int argc, char **argv)
 			segment_name = seg_name;
 
 			if (nb_dash_inputs>1) {
-				char *sep;
-				strcpy(outfile, dash_inputs[i]);
+				char *sep = strrchr(dash_inputs[i], '/');
+				if (!sep) sep = strrchr(dash_inputs[i], '\\');
+				if (sep) strcpy(outfile, sep+1);
+				else strcpy(outfile, dash_inputs[i]);
 				sep = strrchr(outfile, '.');
 				if (sep) sep[0] = 0;
 	

@@ -77,6 +77,8 @@ struct _net_service
 	/*rebuffer window for http/...*/
 	u32 download_rebuffer;
 	Bool auto_rebuffer;
+
+	Bool is_paused;
 };
 
 

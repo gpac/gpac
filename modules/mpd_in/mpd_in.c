@@ -101,6 +101,8 @@ typedef struct __mpd_group
     Bool service_connected, service_descriptor_fetched;
 
 	struct __mpd_module *mpd_in;
+
+	u32 force_representation_idx_plus_one;
 } GF_MPD_Group;
 
 typedef struct __mpd_module {
@@ -767,18 +769,26 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPDIn] Checking representations between %d and %d kbps\n", group->min_bitrate/1024, group->max_bitrate/1024));
 
-	for (i=0; i<gf_list_count(group->adaptation_set->representations); i++) {
-		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, i);
-		if (rep->disabled) continue;
-		if ((rep->bandwidth > bandwidth) && (rep->bandwidth < group->max_bitrate )) {
-			rep_sel = rep;
-			bandwidth = rep->bandwidth;
-		}
-		if (rep->bandwidth < min_bandwidth) {
-			min_rep_sel = rep;
-			min_bandwidth = rep->bandwidth;
+	if (group->force_representation_idx_plus_one) {
+		rep_sel = gf_list_get(group->adaptation_set->representations, group->force_representation_idx_plus_one - 1);
+		group->force_representation_idx_plus_one = 0;
+	} 
+
+	if (!rep_sel) {
+		for (i=0; i<gf_list_count(group->adaptation_set->representations); i++) {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, i);
+			if (rep->disabled) continue;
+			if ((rep->bandwidth > bandwidth) && (rep->bandwidth < group->max_bitrate )) {
+				rep_sel = rep;
+				bandwidth = rep->bandwidth;
+			}
+			if (rep->bandwidth < min_bandwidth) {
+				min_rep_sel = rep;
+				min_bandwidth = rep->bandwidth;
+			}
 		}
 	}
+
 	if (!rep_sel) {
 		rep_sel = min_rep_sel;
 		min_bandwidth_selected = 1;
@@ -844,8 +854,8 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 {
 	GF_MPD_BaseURL *url_child;
 	u32 start_number = 1;
-	char *url, *media_url;
-	char *url_to_solve, *solved_template, *first_sep;
+	char *url;
+	char *url_to_solve, *solved_template, *first_sep, *media_url;
 	char *init_template, *index_template;
 
 	*out_range_start = *out_range_end = 0;
@@ -874,10 +884,11 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 		url = t_url;
 	}
 
-	media_url = NULL;
 	url_child = gf_list_get(rep->base_URLs, 0);
 	if (url_child) {
-		media_url = gf_url_concatenate(url, url_child->URL);
+		char *t_url = gf_url_concatenate(url, url_child->URL);
+		gf_free(url);
+		url = t_url;
 	}
 
 	/*single URL*/
@@ -886,13 +897,11 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 		if (item_index>0) return GF_EOS;
 		switch (resolve_type) {
 		case GF_MPD_RESOLVE_URL_MEDIA:
-			gf_free(url);
-			if (!media_url) return GF_NON_COMPLIANT_BITSTREAM;
-			*out_url = media_url;
+			if (!url) return GF_NON_COMPLIANT_BITSTREAM;
+			*out_url = url;
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INIT:
 		case GF_MPD_RESOLVE_URL_INDEX:
-			gf_free(media_url);
 			res_url = NULL;
 			if (resolve_type == GF_MPD_RESOLVE_URL_INDEX) {
 				if (period->segment_base) res_url = period->segment_base->representation_index;
@@ -923,7 +932,6 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 			break;
 		}
 		gf_free(url);
-		gf_free(media_url);
 		return GF_BAD_PARAM;
 	}
 
@@ -961,31 +969,36 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 
 		switch (resolve_type) {
 		case GF_MPD_RESOLVE_URL_INIT:
-			gf_free(url);
+
 			if (init_url) {
-				*out_url = gf_url_concatenate(media_url, init_url->sourceURL);
+				if (init_url->sourceURL) {
+					*out_url = gf_url_concatenate(url, init_url->sourceURL);
+					gf_free(url);
+				} else {
+					*out_url = url;
+				}
 				if (init_url->byte_range) {
 					*out_range_start = init_url->byte_range->start_range;
 					*out_range_end = init_url->byte_range->end_range;
 				}
+			} else {
+				gf_free(url);
 			}
-			gf_free(media_url);
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_MEDIA:
-			gf_free(url);
-			if (!media_url) {
+			if (!url) {
 		        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Media URL is not set in segment list\n"));
 				return GF_SERVICE_ERROR;
 			}
 			if (item_index >= segment_count) {
-				gf_free(media_url);
+				gf_free(url);
 				return GF_EOS;
 			}
-			*out_url = media_url;
+			*out_url = url;
 			segment = gf_list_get(segments, item_index);
 			if (segment->media) {
-				*out_url = gf_url_concatenate(media_url, segment->media);
-				gf_free(media_url);
+				*out_url = gf_url_concatenate(url, segment->media);
+				gf_free(url);
 			}
 			if (segment->media_range) {
 				*out_range_start = segment->media_range->start_range;
@@ -993,16 +1006,15 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 			}
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INDEX:
-			gf_free(url);
 			if (item_index >= segment_count) {
-				gf_free(media_url);
+				gf_free(url);
 				return GF_EOS;
 			}
-			*out_url = media_url;
+			*out_url = url;
 			segment = gf_list_get(segments, item_index);
 			if (segment->index) {
-				*out_url = gf_url_concatenate(media_url, segment->index);
-				gf_free(media_url);
+				*out_url = gf_url_concatenate(url, segment->index);
+				gf_free(url);
 			}
 			if (segment->index_range) {
 				*out_range_start = segment->index_range->start_range;
@@ -1013,16 +1025,11 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 			break;
 		}
 		gf_free(url);
-		gf_free(media_url);
 		return GF_BAD_PARAM;
 	}
 
 	/*segmentTemplate*/
 	init_template = index_template = NULL;
-
-	gf_free(url);
-	url = media_url;
-	media_url = NULL;
 
 	/*apply inheritance of attributes, lowest level having preceedence*/
 	if (period->segment_template) {
@@ -1523,7 +1530,7 @@ static u32 download_segments(void *par)
 					/*TODO switch quality*/
 
 					if (!mpdin->auto_switch_count) {
-						MPD_SwitchGroupRepresentation(mpdin, group);
+//						MPD_SwitchGroupRepresentation(mpdin, group);
 					}
 				}
 			}
@@ -1816,7 +1823,7 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 			/*by default tune to best quality and/or full bandwith*/
 			if (rep->quality_ranking > rep_sel->quality_ranking) {
 				active_rep = rep_i;
-			} else if (rep->bandwidth > rep_sel->bandwidth) {
+			} else if (rep->bandwidth < rep_sel->bandwidth) {
 				active_rep = rep_i;
 			}
 		}
@@ -2121,6 +2128,28 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		    return segment_ifce->ServiceCommand(segment_ifce, com);
 		}
         return GF_NOT_SUPPORTED;
+
+	case GF_NET_SERVICE_QUALITY_SWITCH:
+		{
+			u32 i;
+			for (i=0; i<gf_list_count(mpdin->groups); i++) {
+				GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
+				u32 current_idx = group->active_rep_index;
+				if (group->force_representation_idx_plus_one) current_idx = group->force_representation_idx_plus_one - 1;
+				if (com->switch_quality.up) {
+					if (current_idx + 1 < gf_list_count(group->adaptation_set->representations)) {
+						group->force_representation_idx_plus_one = 1 + current_idx+1;
+						group->force_switch_bandwidth = 1;
+					}
+				} else {
+					if (current_idx) {
+						group->force_representation_idx_plus_one = 1 + current_idx - 1;
+						group->force_switch_bandwidth = 1;
+					}
+				}
+			}
+		}
+        return GF_OK;
 	}
 	/*not supported*/
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;

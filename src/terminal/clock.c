@@ -202,7 +202,7 @@ void gf_clock_pause(GF_Clock *ck)
 void gf_clock_resume(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);
-//	assert(ck->Paused);
+	assert(ck->Paused);
 	ck->Paused -= 1;
 	if (!ck->Paused) 
 		ck->StartTime += gf_term_get_time(ck->term) - ck->PauseTime;
