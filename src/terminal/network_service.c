@@ -1130,7 +1130,10 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			if (playback_percent >= download_percent) {
 				if (gf_clock_is_started(ck)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Played %d %% but downloaded %d %% - Pausing\n", (u32) playback_percent, (u32) download_percent));
-					mediacontrol_pause(serv->owner);
+					if (!serv->is_paused) {
+						serv->is_paused = 1;
+						mediacontrol_pause(serv->owner);
+					}
 					gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_WAITING);
 					gf_term_on_message(serv, GF_OK, "HTTP Buffering ...");
 				}
@@ -1152,7 +1155,10 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 						GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Auto-rebuffer done: should be done downloading in %d ms and remains %d ms to play\n", (u32) time_to_download, (u32) (serv->owner->duration - serv->owner->current_time) ));
 					}
 					gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_PLAYING);
-					mediacontrol_resume(serv->owner);
+					if (serv->is_paused) {
+						serv->is_paused = 0;
+						mediacontrol_resume(serv->owner);
+					}
 					gf_term_on_message(serv, GF_OK, "HTTP Resuming playback");
 				}
 			}
@@ -1164,7 +1170,10 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			GF_Clock *ck = gf_odm_get_media_clock(serv->owner);
 			if (!gf_clock_is_started(ck)) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Done retrieving file - resuming playback\n"));
-				mediacontrol_resume(serv->owner);
+				if (serv->is_paused) {
+					serv->is_paused = 0;
+					mediacontrol_resume(serv->owner);
+				}
 			}
 		}
 		break;

@@ -907,7 +907,18 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 				if (!sample_descs_track) {
 					e = GF_BAD_PARAM;
 					goto err_exit;
+
 				}
+
+				//the initialization segment is not yet setup for fragmentation
+				if (! gf_isom_is_track_fragmented(sample_descs, tf->TrackID)) {
+					e = gf_isom_setup_track_fragment(sample_descs, sample_descs_track,
+								defaultDescriptionIndex, defaultDuration,
+								defaultSize, (u8) defaultRandomAccess,
+								defaultPadding, defaultDegradationPriority);
+					if (e) goto err_exit;
+				}
+
 				/*reset all sample desc and clone with new ones*/
 				gf_isom_clone_sample_descriptions(output, TrackNum, sample_descs, sample_descs_track, 1);
 
@@ -1465,14 +1476,20 @@ restart_fragmentation_pass:
 			if (!sample_descs) fprintf(mpd, " initialization=\"%s.mp4\"", output_file);	
 			fprintf(mpd, "/>\n");
 		} else if (single_segment_mode) {
-			fprintf(mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"/>\n", index_start_range, index_end_range);	
 			fprintf(mpd, "    <BaseURL>%s</BaseURL>\n", gf_isom_get_filename(output) );	
+			fprintf(mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"/>\n", index_start_range, index_end_range);	
 		} else {
+			if (!seg_rad_name) {
+				fprintf(mpd, "    <BaseURL>%s.mp4</BaseURL>\n", output_file );	
+			}
 			fprintf(mpd, "    <SegmentList timescale=\"1000\" duration=\"%d\">\n", (u32) (max_segment_duration*1000));	
-			if (!sample_descs) {
-				fprintf(mpd, "     <Initialization sourceURL=\"%s.mp4\"", output_file);	
+			//if (!sample_descs) 
+			{
+				fprintf(mpd, "     <Initialization");	
 				if (!seg_rad_name) {
 					fprintf(mpd, " range=\"0-"LLD"\"", init_seg_size-1);
+				} else {
+					fprintf(mpd, " sourceURL=\"%s.mp4\"", output_file);
 				}
 				fprintf(mpd, "/>\n");
 			}
@@ -1536,7 +1553,7 @@ GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bo
 	u32 h, m;
 	Double s;
 	FILE *mpd = fopen(mpd_name, "wt");
-	if (!mpd_name) return GF_IO_ERR;
+	if (!mpd) return GF_IO_ERR;
 
 	h = (u32) (period_duration/3600);
 	m = (u32) (period_duration-h*60)/60;
@@ -1556,7 +1573,7 @@ GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bo
 	if (init_segment) {
 		if (use_url_template) {
 			fprintf(mpd, "   <SegmentTemplate initialization=\"%s\"/>\n", init_segment);	
-		} else if (!single_segment) {
+		} else if (0 && !single_segment) {
 			fprintf(mpd, "   <SegmentList>\n");	
 			fprintf(mpd, "    <Initialization sourceURL=\"%s\"/>\n", init_segment);	
 			fprintf(mpd, "   </SegmentList>\n");	
