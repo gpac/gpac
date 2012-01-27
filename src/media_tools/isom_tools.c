@@ -71,7 +71,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_avc_config_get(movie, track, 1);
 		sps = gf_list_get(avcc->sequenceParameterSets, 0);
-		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), sps->data[1], sps->data[2], sps->data[3]);
+		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), (u8) sps->data[1], (u8) sps->data[2], (u8) sps->data[3]);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
 
@@ -666,6 +666,7 @@ typedef struct
 	u32 SampleNum, SampleCount;
 	u32 FragmentLength;
 	u32 OriginalTrack;
+	u32 finalSampleDescriptionIndex;
 	u32 TimeScale, MediaType, DefaultDuration, InitialTSOffset;
 	u64 last_sample_cts, next_sample_dts;
 } TrackFragmenter;
@@ -696,7 +697,7 @@ static u64 get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file, GF_ISOFile *sample_descs)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -784,11 +785,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		if (store_dash_params) {
 			gf_cfg_set_key(dash_ctx, "DASH", "InitializationSegment", SegName);
 		}
-
-
-		strcpy(SegName, output_file);
-		strcat(SegName, ".mpd");
-		mpd = gf_f64_open(SegName, "wt");
+		mpd = gf_f64_open(mpd_name, "a+t");
 		mpd_segs = gf_temp_file_new();
 	} else {
 		output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
@@ -889,7 +886,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			nb_sync = gf_isom_get_sync_point_count(input, i+1);
 		}
 
-			/*figure out if we have an initial TS*/
+		tf->finalSampleDescriptionIndex = 1;
+
+		/*figure out if we have an initial TS*/
 		if (!dash_moov_setup) {
 			if (gf_isom_get_edit_segment_count(input, i+1)) {
 				u64 EditTime, SegmentDuration, MediaTime;
@@ -900,6 +899,31 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				}
 				/*and remove edit segments*/
 				gf_isom_remove_edit_segments(output, TrackNum);
+			}
+			/*locate sample description in list if given*/
+			if (sample_descs) {
+				u32 s_count;
+				u32 sample_descs_track = gf_isom_get_track_by_id(sample_descs, tf->TrackID);
+				if (!sample_descs_track) {
+					e = GF_BAD_PARAM;
+					goto err_exit;
+				}
+				/*reset all sample desc and clone with new ones*/
+				gf_isom_clone_sample_descriptions(output, TrackNum, sample_descs, sample_descs_track, 1);
+
+				/*and search in new ones the new index*/
+				s_count = gf_isom_get_sample_description_count(sample_descs, sample_descs_track); 
+				if (s_count>1) {
+					u32 found = 0;
+					u32 k;
+					/*remove all sample descs*/
+					for (k=0; k<s_count; k++) {
+						/*search in original file if we have the sample desc*/
+						if (gf_isom_is_same_sample_description(input, TrackNum, 1, sample_descs, sample_descs_track, k+1)) {
+							tf->finalSampleDescriptionIndex = k+1;
+						}
+					}
+				}
 			}
 		}
 		/*restore track decode times*/
@@ -935,6 +959,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			file_duration = ((Double) gf_isom_get_media_duration(input, i+1)) / tf->TimeScale;
 		}
 		gf_list_add(fragmenters, tf);
+
 		nb_samp += count;
 	}
 
@@ -1120,6 +1145,10 @@ restart_fragmentation_pass:
 				/*first sample*/
 				if (!sample) {
 					sample = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1, &descIndex);
+					if (!sample) {
+						e = gf_isom_last_error(input);
+						goto err_exit;
+					}
 
 					/*also get SAP type - this is not needed if sample is not NULL as SAP tye was computed for "next sample" in previous loop*/
 					if (sample->IsRAP) {
@@ -1161,6 +1190,8 @@ restart_fragmentation_pass:
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
+					/*override descIndex with final index used in file*/
+					descIndex = tf->finalSampleDescriptionIndex;
 					e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
 									 defaultDuration, NbBits, 0);
 					if (e) 
@@ -1396,16 +1427,6 @@ restart_fragmentation_pass:
 		s = period_duration - h*3600 - m*60;
 		bandwidth = (u32) (file_size * 8 / file_duration);
 
-		/*TODO what should we put for minBufferTime */
-		fprintf(mpd, "<MPD type=\"static\" xmlns=\"urn:mpeg:DASH:schema:MPD:2011\" profiles=\"%s\" minBufferTime=\"PT1.5S\" mediaPresentationDuration=\"PT%dH%dM%.2fS\">\n", 
-			single_segment_mode ? "urn:mpeg:dash:profile:isoff-on-demand:2011" : "urn:mpeg:dash:profile:full:2011",
-			h, m, s);
-	    fprintf(mpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
-		fprintf(mpd, "  <Title>Media Presentation Description for file %s generated with GPAC </Title>\n", gf_isom_get_filename(input));
-        fprintf(mpd, " </ProgramInformation>\n");
-        fprintf(mpd, " <Period start=\"PT0S\" duration=\"PT%dH%dM%.2fS\">\n", h, m, s);	
-		fprintf(mpd, "  <AdaptationSet>\n");
-		/*TODO*/
 		fprintf(mpd, "   <Representation id=\"1\" mimeType=\"video/mp4\" codecs=\"%s\"", szCodecs);
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
@@ -1441,17 +1462,21 @@ restart_fragmentation_pass:
 
 		if (use_url_template) {
 			sprintf(SegName, "%s$Number$.%s", seg_rad_name, seg_ext);
-			fprintf(mpd, "    <SegmentTemplate timescale=\"1000\" duration=\"%d\" initialization=\"%s.mp4\" media=\"%s\" startNumber=\"1\"/>\n", (u32) (max_segment_duration*1000), output_file, SegName);	
+			fprintf(mpd, "    <SegmentTemplate timescale=\"1000\" duration=\"%d\" media=\"%s\" startNumber=\"1\"", (u32) (max_segment_duration*1000), SegName);	
+			if (!sample_descs) fprintf(mpd, " initialization=\"%s.mp4\"", output_file);	
+			fprintf(mpd, "/>\n");
 		} else if (single_segment_mode) {
 			fprintf(mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"/>\n", index_start_range, index_end_range);	
 			fprintf(mpd, "    <BaseURL>%s</BaseURL>\n", gf_isom_get_filename(output) );	
 		} else {
 			fprintf(mpd, "    <SegmentList timescale=\"1000\" duration=\"%d\">\n", (u32) (max_segment_duration*1000));	
-			fprintf(mpd, "     <Initialization sourceURL=\"%s.mp4\"", output_file);	
-			if (!seg_rad_name) {
-				fprintf(mpd, " range=\"0-"LLD"\"", init_seg_size-1);
+			if (!sample_descs) {
+				fprintf(mpd, "     <Initialization sourceURL=\"%s.mp4\"", output_file);	
+				if (!seg_rad_name) {
+					fprintf(mpd, " range=\"0-"LLD"\"", init_seg_size-1);
+				}
+				fprintf(mpd, "/>\n");
 			}
-			fprintf(mpd, "/>\n");
 		}
 
 
@@ -1466,9 +1491,6 @@ restart_fragmentation_pass:
 		}
 
 		fprintf(mpd, "   </Representation>\n");
-        fprintf(mpd, "  </AdaptationSet>\n");
-        fprintf(mpd, " </Period>\n");
-        fprintf(mpd, "</MPD>");
 	}
 
 	/*store context*/
@@ -1507,6 +1529,56 @@ err_exit:
 	if (mpd_segs) fclose(mpd_segs);
 	if (dash_ctx) gf_cfg_del(dash_ctx);
 	return e;
+}
+
+
+GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, char *init_segment, Double period_duration)
+{
+	u32 h, m;
+	Double s;
+	FILE *mpd = fopen(mpd_name, "wt");
+	if (!mpd_name) return GF_IO_ERR;
+
+	h = (u32) (period_duration/3600);
+	m = (u32) (period_duration-h*60)/60;
+	s = period_duration - h*3600 - m*60;
+
+	/*TODO what should we put for minBufferTime */
+	fprintf(mpd, "<MPD type=\"static\" xmlns=\"urn:mpeg:DASH:schema:MPD:2011\" profiles=\"%s\" minBufferTime=\"PT1.5S\" mediaPresentationDuration=\"PT%dH%dM%.2fS\">\n", 
+		single_segment ? "urn:mpeg:dash:profile:isoff-on-demand:2011" : "urn:mpeg:dash:profile:full:2011",
+		h, m, s);
+    fprintf(mpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
+	if (title)
+		fprintf(mpd, "  <Title>Media Presentation Description for file %s generated with GPAC </Title>\n", title);
+    fprintf(mpd, " </ProgramInformation>\n");
+    fprintf(mpd, " <Period start=\"PT0S\" duration=\"PT%dH%dM%.2fS\">\n", h, m, s);	
+	fprintf(mpd, "  <AdaptationSet>\n");
+
+	if (init_segment) {
+		if (use_url_template) {
+			fprintf(mpd, "   <SegmentTemplate initialization=\"%s\"/>\n", init_segment);	
+		} else if (!single_segment) {
+			fprintf(mpd, "   <SegmentList>\n");	
+			fprintf(mpd, "    <Initialization sourceURL=\"%s\"/>\n", init_segment);	
+			fprintf(mpd, "   </SegmentList>\n");	
+		}
+	}
+
+	fclose(mpd);
+	return GF_OK;
+}
+
+GF_Err gf_media_mpd_end(char *mpd_name)
+{
+	FILE *mpd = fopen(mpd_name, "a+t");
+	if (!mpd_name) return GF_IO_ERR;
+
+    fprintf(mpd, "  </AdaptationSet>\n");
+    fprintf(mpd, " </Period>\n");
+    fprintf(mpd, "</MPD>");
+
+	fclose(mpd);
+	return GF_OK;
 }
 
 GF_EXPORT

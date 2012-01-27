@@ -2489,6 +2489,30 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	return GF_OK;
 }
 
+GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing)
+{
+	u32 i;
+	GF_TrackBox *dst_trak, *src_trak;
+	GF_Err e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	dst_trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!dst_trak || !dst_trak->Media) return GF_BAD_PARAM;
+	src_trak = gf_isom_get_track_from_file(orig_file, orig_track);
+	if (!src_trak || !src_trak->Media) return GF_BAD_PARAM;
+
+	if (reset_existing) {
+		gf_isom_box_array_del(dst_trak->Media->information->sampleTable->SampleDescription->boxList);
+		dst_trak->Media->information->sampleTable->SampleDescription->boxList = gf_list_new();
+	}
+
+	for (i=0; i<gf_list_count(src_trak->Media->information->sampleTable->SampleDescription->boxList); i++) {
+		u32 outDesc;
+		e = gf_isom_clone_sample_description(the_file, trackNumber, orig_file, orig_track, i+1, NULL, NULL, &outDesc);
+		if (e) break;
+	}
+	return e;
+}
 
 GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, u32 orig_desc_index, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
@@ -3103,7 +3127,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 
 
 
-Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2, u32 tk2)
+Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2)
 {
 	u32 i, count;
 	GF_TrackBox *trak1, *trak2;
@@ -3122,12 +3146,19 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2,
 
 	if (trak1->Media->handler->handlerType != trak2->Media->handler->handlerType) return 0;
 	count = gf_list_count(trak1->Media->information->sampleTable->SampleDescription->boxList);
-	if (count != gf_list_count(trak2->Media->information->sampleTable->SampleDescription->boxList)) return 0;
+	if (count != gf_list_count(trak2->Media->information->sampleTable->SampleDescription->boxList)) {
+		if (!sdesc_index1 && !sdesc_index2) return 0;
+	}
 
 	need_memcmp = 1;
 	for (i=0; i<count; i++) {
 		GF_Box *ent1 = (GF_Box *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->boxList, i);
 		GF_Box *ent2 = (GF_Box *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->boxList, i);
+
+		if (sdesc_index1) ent1 = (GF_Box *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->boxList, sdesc_index1 - 1);
+		if (sdesc_index2) ent2 = (GF_Box *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->boxList, sdesc_index2 - 1);
+
+		if (!ent1 || !ent2) return 0;
 		if (ent1->type != ent2->type) return 0;
 
 		switch (ent1->type) {
@@ -3195,6 +3226,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2,
 		}
 			break;
 		}
+
+		if (sdesc_index1 && sdesc_index2) break;
 	}
 	if (!need_memcmp) return 1;
 	ret = 0;

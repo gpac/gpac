@@ -1631,6 +1631,9 @@
  #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
  #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
 
+ #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_start) )
+ #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_end) )
+
 /* dvb_mpe.h */
 #ifdef GPAC_ENST_PRIVATE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )

@@ -1056,6 +1056,9 @@ special shortcut for stream description cloning from a given input file (this av
 */
 GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, u32 orig_desc_index, char *URLname, char *URNname, u32 *outDescriptionIndex);
 
+/*clones all sampleDescription entries in new track, after an optional reset of existing entries*/
+GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing);
+
 /*special shortcut: clones a track (everything except media data and sample info (DTS? CTS, RAPs, etc...) 
 also clones sampleDescriptions
 @keep_data_ref: if set, external data references are kept, otherwise they are removed (track media data will be self-contained)
@@ -1073,7 +1076,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only
 a brutal memory comparaison is done*/
-Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2, u32 tk2);
+Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2);
 
 GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
 
