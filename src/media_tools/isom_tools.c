@@ -914,7 +914,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 				/*and search in new ones the new index*/
 				s_count = gf_isom_get_sample_description_count(sample_descs, sample_descs_track); 
 				if (s_count>1) {
-					u32 found = 0;
 					u32 k;
 					/*remove all sample descs*/
 					for (k=0; k<s_count; k++) {
