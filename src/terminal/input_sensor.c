@@ -603,7 +603,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	gf_free(buf);
 }
 
-void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
+Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
 {
 	u32 i;
 	GF_BitStream *bs;
@@ -618,7 +618,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	GF_Codec *cod;
 	s32 keyPressed, keyReleased, actionKeyPressed, actionKeyReleased;
 
-	if (!term || (!gf_list_count(term->input_streams) && !gf_list_count(term->x3d_sensors)) ) return;
+	if (!term || (!gf_list_count(term->input_streams) && !gf_list_count(term->x3d_sensors)) ) return 0;
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
@@ -724,7 +724,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 		char szStr[10];
 		const unsigned short *ptr;
 		if (gf_node_get_tag((GF_Node*)n) != TAG_X3D_KeySensor) continue;
-		if (!n->enabled) return;
+		if (!n->enabled) return 0;
 
 		if (keyPressed) {
 			if (n->keyPress.buffer) gf_free(n->keyPress.buffer);
@@ -777,6 +777,8 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 		}
 	}
 #endif
+	/*with KeySensor, we don't know if the key will be consumed or not, assume it is*/
+	return 1;
 }
 
 void gf_term_string_input(GF_Terminal *term, u32 character)

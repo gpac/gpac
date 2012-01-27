@@ -167,7 +167,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event);
 	@isKeyUp: set if key is released
 */
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp);
+Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp);
 
 /*post extended user character interaction to terminal 
 	@character: unicode character input
