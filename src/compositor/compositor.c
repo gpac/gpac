@@ -2608,6 +2608,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_KEYUP:
+	{
+		Bool ret;
 		switch (event->key.key_code) {
 		case GF_KEY_SHIFT: 
 			if (event->type==GF_EVENT_KEYDOWN) {
@@ -2632,14 +2634,16 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			break;
 		
 		}	
-		
+	
+		ret = 0;
 		event->key.flags |= compositor->key_states;
 		/*key sensor*/
 		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-			gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? 1 : 0);
-		}	
-		
-		return gf_sc_handle_event_intern(compositor, event, from_user);
+			ret = gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? 1 : 0);
+		}			
+		ret += gf_sc_handle_event_intern(compositor, event, from_user);
+		return ret;
+	}
 
 	case GF_EVENT_TEXTINPUT:
 		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) )
