@@ -79,6 +79,10 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	if (inst->lib_handle) return 1;
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->name));
 
+#if _WIN32_WINNT >= 0x0502
+	SetDllDirectory(inst->plugman->dir);
+#endif
+
 #ifdef _WIN32_WCE
 	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->name);
 	CE_CharToWide(s_path, path);
