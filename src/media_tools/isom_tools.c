@@ -1252,7 +1252,7 @@ restart_fragmentation_pass:
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
 								/*this is the fragment duration from last sample added to next SAP*/
-								frag_dur += (u32) (next_sap_time - tf->next_sample_dts)*1000/tf->TimeScale;
+								frag_dur += (u32) (next_sap_time - tf->next_sample_dts - defaultDuration)*1000/tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
 								if (SegmentDuration + frag_dur > MaxSegmentDuration) {
 									split_at_rap = 1;

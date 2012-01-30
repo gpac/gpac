@@ -3285,8 +3285,14 @@ int mp4boxMain(int argc, char **argv)
 		}
 		/*close MPD*/
 		gf_media_mpd_end(szMPD);
-		/*write init segment to file*/
-		gf_isom_close(init_seg);
+		
+		/*if init segment shared, write to file*/
+		if (nb_dash_inputs>1) {
+			gf_isom_close(init_seg);
+		} else {
+			gf_isom_delete(init_seg);
+			gf_delete_file(szInit);
+		}
 
 		gf_isom_delete(file);
 		gf_sys_close();
