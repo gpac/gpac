@@ -32,7 +32,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////
 
-
+// 01122011 AMD1 startWidget listWidgets getWidget implemented
 
 /*
  The widget manager in MPEG-U reference software is implemented in 2 parts:
@@ -168,6 +168,8 @@ l_deb = 3;
 
 /*default log level*/
 log_level = l_err;
+
+whiteSpaceRegExp = new RegExp(' ', 'g');
 
 /*initializes the widget manager*/
 function widget_manager_init() {
@@ -333,7 +335,8 @@ function wmjs_bind_widget(wid) {
 function wmjs_on_device_add(device, is_add) {
     log(l_deb, 'wmjs_on_device_add');
     if (!is_add) {
-        log(l_inf, 'Device Removed ' + device.Name);
+        //TODO JCD: this is wrong, sometimes a device is not "is_add" but is not to be removed either
+        /*log(l_inf, 'Device Removed ' + device.Name);
         wmjs_standard_service_remove(device);
         wmjs_unbind_upnp_device(device);
         if (device.widget != null) {
@@ -342,7 +345,7 @@ function wmjs_on_device_add(device, is_add) {
             device.widget.originating_device = null;
             device.widget = null;
         }
-        WidgetManager.check_bindings();
+        WidgetManager.check_bindings();*/
         return;
     }
     log(l_inf, 'Device Added ' + device.Name + ' URL ' + device.PresentationURL);
@@ -784,14 +787,14 @@ function wmjs_unbind_upnp_device(device)
 // section on widget migration
 //
 
-var header = '<scpd xmlns="urn:schemas-upnp-org:service-1-0"><specVersion><major>1</major><minor>0</minor></specVersion><actionList>';
-var middler = '</actionList><serviceStateTable>';
-var footer = '</serviceStateTable></scpd>';
-var standard_service_scpd = header+'<action><name>startWidget</name><argumentList><argument><name>widgetUrl</name><direction>in</direction><relatedStateVariable>s1</relatedStateVariable></argument><argument><name>widgetUUID</name><direction>in</direction><relatedStateVariable>s2</relatedStateVariable></argument><argument><name>widgetContext</name><direction>in</direction><relatedStateVariable>s3</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s4</relatedStateVariable></argument></argumentList></action>';
+header = '<scpd xmlns="urn:schemas-upnp-org:service-1-0"><specVersion><major>1</major><minor>0</minor></specVersion><actionList>';
+middler = '</actionList><serviceStateTable>';
+footer = '</serviceStateTable></scpd>';
+standard_service_scpd = header+'<action><name>startWidget</name><argumentList><argument><name>widgetUrl</name><direction>in</direction><relatedStateVariable>s1</relatedStateVariable></argument><argument><name>widgetUUID</name><direction>in</direction><relatedStateVariable>s2</relatedStateVariable></argument><argument><name>widgetContext</name><direction>in</direction><relatedStateVariable>s3</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s4</relatedStateVariable></argument></argumentList></action>';
 {
     standard_service_scpd += '<action><name>requestCapabilitiesList</name><argumentList><argument><name>capabilitiesType</name><direction>out</direction><relatedStateVariable>s5</relatedStateVariable></argument><argument><name>capabilities</name><direction>out</direction><relatedStateVariable>s6</relatedStateVariable></argument></argumentList></action>';
     standard_service_scpd += '<action><name>listWidgets</name><argumentList><argument><name>widgetCodes</name><direction>out</direction><relatedStateVariable>s7</relatedStateVariable></argument><argument><name>widgetNames</name><direction>out</direction><relatedStateVariable>s8</relatedStateVariable></argument><argument><name>widgetIdentifiers</name><direction>out</direction><relatedStateVariable>s9</relatedStateVariable></argument></argumentList></action>';
-    standard_service_scpd += '<action><name>getWidget</name><argumentList><argument><name>widgetCode</name><direction>int</direction><relatedStateVariable>s10</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s11</relatedStateVariable></argument></argumentList></action>';
+    standard_service_scpd += '<action><name>getWidget</name><argumentList><argument><name>widgetCode</name><direction>in</direction><relatedStateVariable>s10</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s11</relatedStateVariable></argument></argumentList></action>';
     standard_service_scpd += middler+'<stateVariable><name>s1</name><dataType>string</dataType></stateVariable>';
     standard_service_scpd += '<stateVariable><name>s2</name><dataType>string</dataType></stateVariable>';
     standard_service_scpd += '<stateVariable><name>s3</name><dataType>string</dataType></stateVariable>';
@@ -831,8 +834,11 @@ function wmjs_migrate_widget(render, widget) {
         args.push(null);
         args.push("widgetContext");
         args.push(ctx);
+        log(l_inf, "startWidget "+uri);
+        log(l_inf, "startWidgetCtx "+ctx);
+        alert("call StdServ "+render.Name+" "+render.standardService);
         var code = render.standardService.CallAction("startWidget", args);
-        alert("return code from standardService.CallAction is "+code);
+        log(l_inf, "return code from standardService.CallAction is "+code);
     }
 }
 
@@ -860,6 +866,7 @@ function wmjs_standard_service_add(device) {
         log(l_err, "migration service add "+device.Name);
         WidgetManager.MPEGUStandardServiceProviders.push(device);
         device.standardService = service;
+        alert("add StdServ "+device.Name+" "+device.standardService);
     }
 }
 
@@ -929,6 +936,7 @@ function process_startWidget_action(action) {
     }
     var wid = WidgetManager.load(widgetUrl, null, widgetContext);
     WidgetManager.on_widget_add(wid);
+    action.SendReply(["errorCode", 0]);
 }
 
 //
@@ -943,16 +951,38 @@ function process_requestCapabilitiesList_action(action) {
 // processing of a request for the list of widgets (prelude to a pull migration)
 //
 function process_listWidgets_action(action) {
-    //TODO
-    alert("UNIMPLEMENTED in mpegu-core.js: list widgets");
+    log(l_err,"process list widgets");
+    // list widget
+    var count = WidgetManager.num_widgets, i, r1 = "", r2 = "", includeSpace = false;
+    for (i = 0; i < count; i++) {
+        var wid = WidgetManager.get(i);
+        if (wid.activated) {
+            if (includeSpace) {
+                r1 += " ";
+            } else {
+                includeSpace = true;
+            }
+            r1 += i+1;
+            r2 += wid.name.replace(whiteSpaceRegExp, '_')+" ";
+        }
+    }
+    alert("sendReply widgetCodes=|"+r1+"| widgetNames=|"+r2+"|");
+    action.SendReply(["widgetCodes", r1, "widgetNames", r2]);
 }
 
 //
 // processing of a pull migration request
 //
 function process_getWidget_action(action) {
-    //TODO
-    alert("UNIMPLEMENTED in mpegu-core.js: pull migration");
+    alert("process get widget "+action+" "+action.Name+" "+action.Service.name);
+    alert("pgw "+action.GetArgument("widgetCode"));
+    // get action arguments
+    var widgetCode = action.GetArgument("widgetCode");
+    alert("get:"+widgetCode);
+    // get widget
+    var wid = WidgetManager.get(parseInt(widgetCode) - 1);
+    wmjs_migrate_widget(this, wid);
+    action.SendReply(["errorCode", 0]);
 }
 
 //
@@ -1116,7 +1146,7 @@ function wmjs_create_upnp_service(widget, ifce) {
     log(l_deb, 'widget device : ' + widget.device);
 
     /* at least one interface is a provider, so create a device - service or device names SHALL NOT CONTAIN SPACES*/
-    name = widget.name.replace(new RegExp(' ', 'g'), '_');
+    name = widget.name.replace(whiteSpaceRegExp, '_');
     if (!widget.device) {
         //log(l_inf,'creating device');
         widget.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:widget:provider:" + name + ":1", name);
@@ -1186,7 +1216,7 @@ function wmjs_create_upnp_service(widget, ifce) {
  Start of implementation of core:in and core:out interfaces
  *********************************************************/
 
-var coreIn, coreOut;
+coreIn = null, coreOut = null;
 
 //
 // function defining messages for the core:* interfaces implemented by the WM
@@ -1271,7 +1301,7 @@ function hasParam(msg, name) {
 //
 // get a parameter from a message by index
 //
-function getParam(msg, i) {
+/*function getParam(msg, i) {
     if (!msg.is_input) {
         if (msg.paramsIn) {
             if (i < msg.paramsIn.length) {
@@ -1300,7 +1330,7 @@ function getParam(msg, i) {
         }
     }
     return null;
-}
+}*/
 
 //
 // get a parameter from a message by index
@@ -1691,8 +1721,7 @@ function wmjs_output_trigger_callback_core(msg_out, wid_src, msg_in) {
 //
 // send a core:in message with no parameter
 //
-function wmjs_corein_message() 
-{
+function wmjs_corein_message() {
   if (arguments.length < 2) return;
   var widget = arguments[0];
   var message = arguments[1];
