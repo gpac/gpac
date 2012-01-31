@@ -129,6 +129,39 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 	return GF_OK;
 }
 
+GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID, 
+							 u32 DefaultSampleDescriptionIndex,
+							 u32 DefaultSampleDuration,
+							 u32 DefaultSampleSize,
+							 u8 DefaultSampleIsSync,
+							 u8 DefaultSamplePadding,
+							 u16 DefaultDegradationPriority)
+{
+	GF_MovieExtendsBox *mvex;
+	GF_TrackExtendsBox *trex;
+	GF_TrackBox *trak;
+
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+	//this is only allowed in write mode
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
+
+	trak = gf_isom_get_track_from_id(movie->moov, TrackID);
+	if (!trak) return GF_BAD_PARAM;
+
+	mvex = movie->moov->mvex;
+	if (!mvex) return GF_BAD_PARAM;
+
+	trex = GetTrex(movie->moov, TrackID);
+	if (!trex)  return GF_BAD_PARAM;
+
+	trex->def_sample_desc_index = DefaultSampleDescriptionIndex;
+	trex->def_sample_duration = DefaultSampleDuration;
+	trex->def_sample_size = DefaultSampleSize;
+	trex->def_sample_flags = GF_ISOM_FORMAT_FRAG_FLAGS(DefaultSamplePadding, DefaultSampleIsSync, DefaultDegradationPriority);
+
+	return GF_OK;
+}
+
 
 GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID, 
 							 u32 DefaultSampleDescriptionIndex,
@@ -167,12 +200,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID,
 		mvex_AddBox((GF_Box*)mvex, (GF_Box *) trex);
 	}
 	trex->track = trak;
-	trex->def_sample_desc_index = DefaultSampleDescriptionIndex;
-	trex->def_sample_duration = DefaultSampleDuration;
-	trex->def_sample_size = DefaultSampleSize;
-	trex->def_sample_flags = GF_ISOM_FORMAT_FRAG_FLAGS(DefaultSamplePadding, DefaultSampleIsSync, DefaultDegradationPriority);
-
-	return GF_OK;
+	return gf_isom_change_track_fragment_defaults(movie, TrackID, DefaultSampleDescriptionIndex, DefaultSampleDuration, DefaultSampleSize, DefaultSampleIsSync, DefaultSamplePadding, DefaultDegradationPriority);
 }
 
 

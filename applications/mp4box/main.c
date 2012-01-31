@@ -2427,7 +2427,7 @@ int mp4boxMain(int argc, char **argv)
 			file = gf_isom_open(inName, (u8) (open_edit ? GF_ISOM_OPEN_EDIT : ( (dump_isom>0) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ), tmpdir);
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
-				e = gf_isom_open_progressive(inName, &file, &missing_bytes);
+				e = gf_isom_open_progressive(inName, 0, 0, &file, &missing_bytes);
 				fprintf(stdout, "Truncated file - missing "LLD" bytes\n", missing_bytes);
 			}
 
@@ -3275,8 +3275,7 @@ int mp4boxMain(int argc, char **argv)
 			if (nb_dash_inputs>1) {
 				fprintf(stdout, "DASHing file %s\n", dash_inputs[i]);
 			}
-			
-			e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg);
+			e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg, i+1);
 			if (e) {
 				fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 				break;
@@ -3301,7 +3300,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL);
+		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL, 0);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {

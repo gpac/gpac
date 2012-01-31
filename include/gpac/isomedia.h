@@ -338,11 +338,14 @@ to use for http streaming & co
 NOTE: you must buffer the data to a local file, this mode DOES NOT handle 
 http/ftp/... streaming
 
+start_range and end_range restricts the media byte range in the URL (used by DASH)
+if 0 or end_range<=start_range, the entire URL is used when parsing
+
 BytesMissing is the predicted number of bytes missing for the file to be loaded
 Note that if the file is not optimized for streaming, this number is not accurate
 If the movie is successfully loaded (the_file non-NULL), BytesMissing is zero
 */
-GF_Err gf_isom_open_progressive(const char *fileName, GF_ISOFile **the_file, u64 *BytesMissing);
+GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, GF_ISOFile **the_file, u64 *BytesMissing);
 
 /*If requesting a sample fails with error GF_ISOM_INCOMPLETE_FILE, use this function
 to get the number of bytes missing to retrieve the sample*/
@@ -1084,8 +1087,9 @@ GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
 If reset_tables is set, sample information for all tracks setup as segment are destroyed. This allows keeping the memory
 footprint low when playing segments. Note however that seeking in the file is then no longer possible*/
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
-/*opens a new segment file. Access to samples in previous segments is no longer possible*/
-GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName);
+/*opens a new segment file. Access to samples in previous segments is no longer possible
+if end_range>start_range, restricts the URL to the given byterange when parsing*/
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range);
 
 #ifndef GPAC_DISBALE_ISOM_FRAGMENTS
 
@@ -1132,6 +1136,16 @@ storage efficiency
 */
 GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID, 
 							 u32 DefaultStreamDescriptionIndex,
+							 u32 DefaultSampleDuration,
+							 u32 DefaultSampleSize,
+							 u8 DefaultSampleIsSync,
+							 u8 DefaultSamplePadding,
+							 u16 DefaultDegradationPriority);
+
+/*change the default parameters of an existing trak fragment - should not be used if samples have 
+already been added - semantics are the same as in gf_isom_setup_track_fragment*/
+GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID, 
+							 u32 DefaultSampleDescriptionIndex,
 							 u32 DefaultSampleDuration,
 							 u32 DefaultSampleSize,
 							 u8 DefaultSampleIsSync,

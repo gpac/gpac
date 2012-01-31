@@ -162,7 +162,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		return;
 	}
 	
-	e = gf_isom_open_progressive(local_name, &read->mov, &read->missing_bytes);
+	e = gf_isom_open_progressive(local_name, 0, 0, &read->mov, &read->missing_bytes);
 	switch (e) {
 	case GF_ISOM_INCOMPLETE_FILE:
 		return;
@@ -226,7 +226,18 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	}
 
 	if (isor_is_local(szURL)) {
-		GF_Err e = gf_isom_open_progressive(szURL, &read->mov, &read->missing_bytes);
+		GF_Err e;
+		u64 start_range, end_range;
+		start_range = end_range = 0;
+		if (plug->query_proxy) {
+			GF_NetworkCommand param;
+			param.command_type = GF_NET_SERVICE_QUERY_INIT_RANGE;
+			if (read->input->query_proxy(read->input, &param)==GF_OK) {
+				start_range = param.url_query.start_range;
+				end_range = param.url_query.end_range;
+			}
+		}
+		e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
 		if (e != GF_OK){
 		    GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] : error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
 			gf_term_on_connect(serv, NULL, e);

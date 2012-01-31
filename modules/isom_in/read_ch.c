@@ -131,8 +131,17 @@ static void check_segment_switch(ISOMReader *read)
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
 
-		e = gf_isom_open_segment(read->mov, param.url_query.next_url);
-		GF_LOG((e<0) ? GF_LOG_ERROR : GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] playing new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+		e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
+
+#ifndef GPAC_DISABLE_LOG
+		if (e<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+		} else if (param.url_query.end_range) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
+		}
+#endif
 
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);

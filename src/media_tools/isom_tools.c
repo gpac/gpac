@@ -669,6 +669,7 @@ typedef struct
 	u32 finalSampleDescriptionIndex;
 	u32 TimeScale, MediaType, DefaultDuration, InitialTSOffset;
 	u64 last_sample_cts, next_sample_dts;
+	Bool all_sample_raps;
 } TrackFragmenter;
 
 static u64 get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -697,7 +698,7 @@ static u64 get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file, GF_ISOFile *sample_descs)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file, GF_ISOFile *sample_descs, u32 rep_idx)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -884,6 +885,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) { 
 			tfref = tf;
 			nb_sync = gf_isom_get_sync_point_count(input, i+1);
+		} else if (!gf_isom_has_sync_points(input, i+1)) {
+			tf->all_sample_raps = 1;
 		}
 
 		tf->finalSampleDescriptionIndex = 1;
@@ -917,6 +920,18 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 								defaultSize, (u8) defaultRandomAccess,
 								defaultPadding, defaultDegradationPriority);
 					if (e) goto err_exit;
+				}
+				/*otherwise override the fragment defauls so that we are consistent with the shared init segment*/
+				else {
+					e = gf_isom_get_fragment_defaults(sample_descs, sample_descs_track,
+											 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+					if (e) goto err_exit;
+
+					e = gf_isom_change_track_fragment_defaults(output, TrackNum,
+											 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, defaultPadding, defaultDegradationPriority);
+					if (e) goto err_exit;
+
+
 				}
 
 				/*reset all sample desc and clone with new ones*/
@@ -1001,6 +1016,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	tfref->is_ref_track = 1;
 	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
+	if (tfref->all_sample_raps) split_seg_at_rap = 1;
 
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, dash_mode ? 1 : 0);
@@ -1251,6 +1267,7 @@ restart_fragmentation_pass:
 							next_sap_time = get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
+								u32 scaler;
 								/*this is the fragment duration from last sample added to next SAP*/
 								frag_dur += (u32) (next_sap_time - tf->next_sample_dts - defaultDuration)*1000/tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
@@ -1259,11 +1276,16 @@ restart_fragmentation_pass:
 									/*force new segment*/
 									force_switch_segment = 1;
 								}
-								/*if adding this SAP will result in stoping the fragment "soone" after it, stop now and start with SAP*/
-								if ( (tf->FragmentLength + 3*defaultDuration)*1000 >= MaxFragmentDuration * tf->TimeScale)
+
+								/*if adding this SAP will result in stoping the fragment "soon" after it, stop now and start with SAP
+								if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
+								otherwise, take 3 samples (should be refined of course)*/
+								scaler = 3;
+								if (tf->all_sample_raps) scaler = 1;
+								if ( (tf->FragmentLength + scaler*defaultDuration)*1000 >= MaxFragmentDuration * tf->TimeScale)
 									stop_frag = 1;
 							}
-							if (split_at_rap) {
+							if (split_at_rap && !tf->all_sample_raps) {
 								stop_frag = 1;
 								/*override fragment duration for the rest of this fragment*/
 								MaxFragmentDuration = tf->FragmentLength*1000/tf->TimeScale;
@@ -1320,6 +1342,11 @@ restart_fragmentation_pass:
 			SegmentDuration += maxFragDurationOverSegment;
 			maxFragDurationOverSegment=0;
 
+			/*next fragment will exceed segment length, abort fragment now (all samples RAPs)*/
+			if (tfref && tfref->all_sample_raps && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
+				force_switch_segment = 1;
+			}
+
 			if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap))) {
 				average_duration += SegmentDuration;
 				nb_segments++;
@@ -1369,7 +1396,7 @@ restart_fragmentation_pass:
 					}
 				}
 			} 
-			/*next fragment will exceed segment length, abort fragment at next rap*/
+			/*next fragment will exceed segment length, abort fragment at next rap (possibly after MaxSegmentDuration)*/
 			if (split_seg_at_rap && SegmentDuration && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
 				split_at_rap = 1;
 			}
@@ -1437,7 +1464,7 @@ restart_fragmentation_pass:
 		s = period_duration - h*3600 - m*60;
 		bandwidth = (u32) (file_size * 8 / file_duration);
 
-		fprintf(mpd, "   <Representation id=\"1\" mimeType=\"video/mp4\" codecs=\"%s\"", szCodecs);
+		fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"video/mp4\" codecs=\"%s\"", rep_idx ? rep_idx : 1, szCodecs);
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
 		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);

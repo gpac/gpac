@@ -2570,6 +2570,7 @@ static u32 TSDemux_DemuxRun(void *_p)
 		gf_f64_seek(ts->file, pos, SEEK_SET);
 
 restart_file:
+		gf_f64_seek(ts->file, ts->start_byterange, SEEK_SET);
 
 		while (ts->run_state && !feof(ts->file)) {
 			/*m2ts chunks by chunks*/
@@ -2590,6 +2591,9 @@ restart_file:
 			ts->nb_pck++;
 			//fprintf(stderr, "TS packet #%d\r", ts->nb_pck);
 
+			if (ts->end_byterange && (gf_f64_tell(ts->file)>=ts->end_byterange))
+				break;
+
 			//gf_sleep(0);
 			/*if asked to regulate, wait until we get a play request*/
 			while (ts->run_state && !ts->nb_playing && (ts->file_regulate==1)) {
@@ -2606,7 +2610,8 @@ restart_file:
 		if (feof(ts->file)) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
 
 		if (ts->run_state && ts->query_next) {
-			const char *next_url = ts->query_next(ts->udta_query);
+			const char *next_url = NULL;
+			ts->query_next(ts->query_udta, 0, &next_url, &ts->start_byterange, &ts->end_byterange);
 			if (next_url) {
 				fclose(ts->file);
 				ts->file = gf_f64_open(next_url, "rb");
@@ -2910,6 +2915,12 @@ static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
 	/* reinitialization for seek */
 	ts->end_range = ts->start_range = 0;
 	ts->nb_playing = 0;	
+
+	ts->start_byterange = ts->end_byterange = 0;
+	if (ts->query_next) {
+		ts->query_next(ts->query_udta, 1, NULL, &ts->start_byterange, &ts->end_byterange);
+	}
+
 
 	return  TSDemux_DemuxPlay(ts);
 

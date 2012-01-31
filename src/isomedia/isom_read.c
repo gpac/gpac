@@ -125,7 +125,7 @@ Bool gf_isom_probe_file(const char *fileName)
 			the file map is regular (through FILE handles)
 **************************************************************/
 GF_EXPORT
-GF_Err gf_isom_open_progressive(const char *fileName, GF_ISOFile **the_file, u64 *BytesMissing)
+GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, GF_ISOFile **the_file, u64 *BytesMissing)
 {
 	GF_Err e;
 	GF_ISOFile *movie;
@@ -150,6 +150,11 @@ GF_Err gf_isom_open_progressive(const char *fileName, GF_ISOFile **the_file, u64
 	movie->finalName = NULL;
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+	if (end_range>start_range) {
+		gf_bs_seek(movie->movieFileMap->bs, end_range+1);
+		gf_bs_truncate(movie->movieFileMap->bs);
+		gf_bs_seek(movie->movieFileMap->bs, start_range);
+	}
 	e = gf_isom_parse_movie_boxes(movie, BytesMissing, 1);
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
 		//if we have a moov, we're fine
@@ -1970,7 +1975,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 	return GF_OK;
 }
 
-GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName)
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range)
 {
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
@@ -1987,6 +1992,15 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName)
 	e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
 	if (e) return e;
 
+	movie->current_top_box_start = 0;
+
+	if (end_range > start_range) {
+		gf_bs_seek(movie->movieFileMap->bs, end_range+1);
+		gf_bs_truncate(movie->movieFileMap->bs);
+		gf_bs_seek(movie->movieFileMap->bs, start_range);	
+		movie->current_top_box_start = start_range;
+	}
+	
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
 		if (trak->Media->information->dataHandler == NULL) {
@@ -1994,7 +2008,6 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName)
 		}
 	}
 
-	movie->current_top_box_start = 0;
 	//ok parse root boxes
 	return gf_isom_parse_movie_boxes(movie, &MissingBytes, 1);
 #endif

@@ -735,7 +735,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
-static const char *M2TS_QueryNextFile(void *udta)
+static GF_Err M2TS_QueryNextFile(void *udta, Bool query_init, const char **out_url, u64 *out_start_range, u64 *out_end_range)
 {
 	GF_NetworkCommand param;
 	GF_Err query_ret;
@@ -743,18 +743,25 @@ static const char *M2TS_QueryNextFile(void *udta)
 	assert(m2ts->owner);
 	assert( m2ts->owner->query_proxy);
 
-	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+	if (out_url) *out_url = NULL;
+	if (out_start_range) *out_start_range = 0;
+	if (out_end_range) *out_end_range = 0;
+
+	param.command_type = query_init ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.next_url = NULL;
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
-	if ((query_ret==GF_OK) && param.url_query.next_url){
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Switching to next segment %s\n", param.url_query.next_url));
-		return param.url_query.next_url;
-	} else if (query_ret==GF_OK){
+
+
+	if ((query_ret==GF_OK) && !query_init && !param.url_query.next_url){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
-	} else {
+	} else if (query_ret) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
-	}	
-	return NULL;
+	} else {
+		if (out_url) *out_url = param.url_query.next_url;
+		if (out_start_range) *out_start_range = param.url_query.start_range;
+		if (out_end_range) *out_end_range = param.url_query.end_range;
+	}
+	return query_ret;
 }
 
 
@@ -776,7 +783,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->service = serv;
 	if (m2ts->owner->query_proxy) {
 		m2ts->ts->query_next = M2TS_QueryNextFile;
-		m2ts->ts->udta_query = m2ts;
+		m2ts->ts->query_udta = m2ts;
 	}
 
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
