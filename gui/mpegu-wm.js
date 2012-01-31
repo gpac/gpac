@@ -31,6 +31,9 @@
 //
 /////////////////////////////////////////////////////////////////////////////////
 
+// 01122011 AMD1 startWidget implemented
+// TODO AMD1 listWidgets getWidget requestCapabilitiesList
+
 //Initialize the main UI script
 function initialize() {
     //var icon;
@@ -132,14 +135,14 @@ function new_timeout(time)
  obj.start = function(when) {
   var t = this.getTime();
   this.startTime = when + this.getTime();
- }
+ };
  obj.stop = function(when) {
   this.stopTime = when + this.getTime();
- }
+ };
  obj.on_event = null;
  obj.event = function(val) {
   if (this.on_event) this.on_event(val);
- }
+ };
  Browser.addRoute(obj, 'fraction_changed', obj, obj.event); 
  return obj;
 }
@@ -191,12 +194,12 @@ function rectangle()
    temp[9] = new SFVec2f(-hw, hh-ry);
    temp[10] = new SFVec2f(-hw, hh);/*bezier control point*/
    temp[11] = new SFVec2f(-hw+rx, hh);
-  }
+  };
   obj.set_color = function(r, g, b) {
    this.appearance.material.emissiveColor.r = r;
    this.appearance.material.emissiveColor.g = g;
    this.appearance.material.emissiveColor.b = b;
-  }
+  };
   return obj;
 }
 
@@ -262,7 +265,7 @@ function text_label(label, justify)
     obj.children[0].geometry.fontStyle.size = 20;
     obj.set_label = function(value) {
      this.children[0].geometry.string[0] = value;
-    }
+    };
     return obj;
 }
 
@@ -368,7 +371,7 @@ function new_widget_control(widget)
     this.children[1].scale.x = 0;
     this.children[3].scale.x = 0;
    }
-  }
+  };
   Browser.addRoute(obj.children[0].children[1], 'isActive', obj, obj.onClick);
   
   obj.children[1] = new SFNode('Transform2D');
@@ -376,7 +379,7 @@ function new_widget_control(widget)
   obj.children[1].children[0].button_click = function() {
     if (widget.discardable) widget_remove(widget);
     else widget_close(widget, 0);
-  }
+  };
   
   obj.children[1].children[1] = icon_button('icons/user-trash.svg', 'Uninstall', 0);
   obj.children[1].children[1].button_click = function() { widget_remove(widget);  }
@@ -387,12 +390,12 @@ function new_widget_control(widget)
      widget_remote_candidate = widget;
      on_upnpopen();
     }
-  }
+  };
 
   obj.children[1].children[3] = icon_button('icons/dialog-information.svg', 'Widget Information', 0);
   obj.children[1].children[3].button_click = function() { 
    display_widget_info(widget);
-  }
+  };
 
   obj.children[1].children[4] = icon_button('icons/media-record.svg', 'Resize', 1);
   obj.children[1].children[4].children[1].children[2] = new SFNode('PlaneSensor2D');  
@@ -409,7 +412,7 @@ function new_widget_control(widget)
    widget.height += 2*(this.prev_y - value.y);
    this.prev_y = value.y;
    this.set_size(widget.width, widget.height);
-  }
+  };
   Browser.addRoute(obj.children[1].children[4].children[1].children[2], 'translation_changed', obj, obj.onSize);
   
   obj.children[2] = new SFNode('Layer2D');
@@ -435,7 +438,7 @@ function new_widget_control(widget)
    widget.x = value.x;
    widget.y = value.y;
    this.refresh_layout(false, null);
-  }
+  };
   Browser.addRoute(obj.children[3].children[1], 'translation_changed', obj, obj.onMove);
 
   obj.children[3].children[2] = new SFNode('TouchSensor');
@@ -458,7 +461,7 @@ function new_widget_control(widget)
     }   
    }
    this.last_ts = timestamp;
-  }
+  };
   Browser.addRoute(obj.children[3].children[2], 'isActive', obj, obj.onMaximize);
 
   obj.set_size = function(w, h) {
@@ -492,7 +495,7 @@ function new_widget_control(widget)
    this.refresh_layout(true, null);
    //call core:in
    WidgetManager.corein_message(widget, 'setSize', 'width', w, 'height', w, 'dpi', screen_dpi);
-  } 
+  };
   obj.refresh_layout = function(send_resize, comp_target) {
    var i;
    var x, y, w, h, scale_x, scale_y;
@@ -523,16 +526,16 @@ function new_widget_control(widget)
     if (send_resize || (comp_target==comp)) 
      comp.widget_control.set_size(w, h);
    }
-  }
+  };
   
   obj.hide = function() { 
    this.scale.x = 0;
    WidgetManager.corein_message(widget, 'hide');
-  }
+  };
   obj.show = function() { 
     this.scale.x = 1; 
     WidgetManager.corein_message(widget, 'show');
-  }
+  };
 
   obj.show_remote = function () {
    if (WidgetManager.upnp && UPnP.MediaRenderersCount) {
@@ -540,11 +543,11 @@ function new_widget_control(widget)
    } else {
     this.children[1].children[2].hide();
    }
-  }
+  };
   obj.show_remove = function(show) {
     if (show) this.children[1].children[1].show();
     else this.children[1].children[1].hide();
-  }
+  };
 
   obj.flash = function() {
     var time = new_timeout(0.25);
@@ -553,10 +556,10 @@ function new_widget_control(widget)
     time.on_event = function(val) {
      var scale = (val<0.5) ? 1+val : 2-val;
      this.ctrl.scale.x = this.ctrl.scale.y = scale;
-    }
+    };
     time.stop(1);
     time.start(0);
-  }
+  };
   obj.maximized = false;
   obj.show_remote();
   obj.onClick(true);
@@ -585,7 +588,7 @@ function display_widget_info(wid)
   widget_display.scale.x = 1;
   infobar.set_label('');
   layout();
- }
+ };
  
  info = text_rect('Widget Metadata');
  info_dlg.children[info_dlg.children.length] = info;
@@ -593,7 +596,7 @@ function display_widget_info(wid)
  info.button_click = function() { 
    this.visible = !this.visible;
    layout();
- }
+ };
  i=3;
  info.children[i++] = text_label('id: ' + wid.identifier + ' - shortname: '+wid.shortName + ' - name: '+wid.name, 'BEGIN');
  info.children[i++] = text_label('version: '+wid.version, 'BEGIN');
@@ -619,7 +622,7 @@ function display_widget_info(wid)
  info.button_click = function() { 
    this.visible = !this.visible;
    layout();
- }
+ };
  i=3;
  info.children[i++] = text_label('nb instances: '+wid.num_instances + ' nb components: '+wid.num_components, 'BEGIN' );
  info.children[i++] = text_label('Permanently installed: '+wid.permanent + ' - is component: '+wid.is_component, 'BEGIN' );
@@ -642,7 +645,7 @@ function display_widget_info(wid)
  info.button_click = function() { 
    this.visible = !this.visible;
    layout();
- }
+ };
  i=3;
  for (j=0; j<pref.length; j++) {
   info.children[i++] = text_label('Feature #'+(j+1)+' name=\''+pref[j].name+'\' required=\''+pref[j].required+'\'', 'BEGIN');
@@ -656,7 +659,7 @@ function display_widget_info(wid)
  info.button_click = function() { 
    this.visible = !this.visible;
    layout();
- }
+ };
  i=3;
  for (j=0; j<pref.length; j++) {
   var val = pref[j].value;
@@ -670,7 +673,7 @@ function display_widget_info(wid)
  info.button_click = function() { 
    this.visible = !this.visible;
    layout();
- }
+ };
  i=3;
  txt=wid.get_context();
  while (1) {
@@ -691,7 +694,7 @@ function display_widget_info(wid)
  info.button_click = function() { 
    this.visible = !this.visible;
    layout();
- }
+ };
  i=3;
  for (j=0; j<wid.num_interfaces; j++) {
   var idx;
@@ -702,7 +705,7 @@ function display_widget_info(wid)
   item.button_click = function() { 
     this.visible = !this.visible;
     layout();
-  }
+  };
   idx=3;
   item.children[idx++] = text_label('Multiple Binding: '+ifce.multipleBinding + ' - Service provider: '+ ifce.serviceProvider + ' - bound: ' + wid.is_interface_bound(ifce) , 'BEGIN');
   for (k=0; k<ifce.num_messages; k++) {
@@ -761,7 +764,7 @@ function display_widget_info(wid)
    }
    y += dy;
   }
- }
+ };
 
  dlg_display.children[0] = info_dlg;
  widget_display.scale.x = 0;
@@ -788,15 +791,22 @@ function setup_icons()
     icon.button_click = function () {
      widget_screen_visible = !widget_screen_visible;
      layout();
-    }
+    };
     dock.children[0] = icon;
+
+    //Get Widget Icon
+    icon = icon_button('icons/document-save.svg', 'Get Widget', 0);
+    icon.button_click = function () {
+     widget_get();
+    };
+    dock.children[1] = icon;
 
     //Widgets add Icon
     icon = icon_button('icons/list-add.svg', 'Add Widgets', 0);
     icon.button_click = function () {
      widget_browse();
-    }
-    dock.children[1] = icon;
+    };
+    dock.children[2] = icon;
 
 
     icon = icon_button('icons/user-trash.svg', 'Remove all widgets', 0);
@@ -808,13 +818,13 @@ function setup_icons()
       }
       widget_screen.children.length = 0;
       layout();
-    }
-    dock.children[2] = icon;
+    };
+    dock.children[3] = icon;
 
     //exit Icon
     icon = icon_button('icons/emblem-unreadable.svg', 'Exit', 0);
     icon.button_click = function() { gpac.exit(); };
-    dock.children[3] = icon;
+    dock.children[4] = icon;
 }
 
 
@@ -1181,7 +1191,7 @@ function widget_migrate_component(widget, args)
          return;
         }
         if (args.length > 1 && args[1] != null) {
-            var render = UPnP.GetMediaRenderer(parseInt(args[1]));
+            var render = WidgetManager.MPEGUStandardServiceProviders[parseInt(args[1])];
             WidgetManager.migrate_widget(render, widget_remote_candidate);
             widget_close(widget_remote_candidate, 0);
             widget_remote_candidate = null;
@@ -1194,9 +1204,10 @@ function widget_migrate_component(widget, args)
 // core out request migration targets JCD
 function widget_request_migration_targets(wid, args)
 {
-    var count = UPnP.MediaRenderersCount, codes = new Array(), names = new Array(), descriptions = new Array(), i;
+    var count = WidgetManager.MPEGUStandardServiceProviders.length,
+        codes = new Array(), names = new Array(), descriptions = new Array(), i;
     for (i = 0; i < count; i++) {
-        var render = UPnP.GetMediaRenderer(i);
+        var render = WidgetManager.MPEGUStandardServiceProviders[i];
         codes.push(""+i);
         names.push(render.Name);
         descriptions.push(render.HostName +" "+ render.UUID);
@@ -1499,7 +1510,7 @@ function on_upnpopen()
   upnp_renders.refresh = function () {
     var i, count, render, item, start_y, w;
     this.children.length = 0;
-    count = UPnP.MediaRenderersCount;
+    count = WidgetManager.MPEGUStandardServiceProviders.length;
     if (count+1>this.nb_items) count = this.nb_items-1;
 
     item = text_rect('Close');
@@ -1512,7 +1523,7 @@ function on_upnpopen()
     this.children[this.children.length] = item;
 
     for (i=0; i<count; i++) {
-      render = UPnP.GetMediaRenderer(i);
+      render = WidgetManager.MPEGUStandardServiceProviders[i];
       item = text_rect(render.Name);
       item.render = render;
   
@@ -1569,4 +1580,144 @@ function onMediaConnect(url, src_ip)
   }
   widget_insert(new_wid); 
  }
+}
+
+// widget get: UI for listWidgets and getWidget
+// added by Jean-Claude Dufourd, modeled on filebrowse
+function widget_get() {
+    alert("widget_get");
+    widgetbrowse = new SFNode('Transform2D');
+    infobar.set_label('Select widget manager');
+    dlg_display.children[0] = widgetbrowse;
+
+    widgetbrowse.children[0] = icon_button('icons/emblem-unreadable.svg', 'Close', 0);
+    widgetbrowse.children[0].button_click = function() {
+        dlg_display.children.length = 0;
+        widget_display.scale.x = 1;
+        layout();
+    };
+
+    widgetbrowse.children[1] = text_label('', 'BEGIN');
+    widgetbrowse.set_label = function(label) {
+        widgetbrowse.children[1].set_label(label);
+    };
+
+    widgetbrowse.nb_tools = widgetbrowse.children.length;
+
+    // this function builds the whole UI the first time
+    widgetbrowse.layout = function() {
+        alert("widgetbrowse.layout");
+        var w, h, i, y;
+        this.children.length = this.nb_tools;
+        for (i = 0; i < this.nb_items; i++) {
+            var item;
+            if (i >= this.list.length) {
+                break;
+            }
+            item = text_rect(this.list[i].Name);
+            item.wm = this.list[i];
+            item.widgetbrowse = this;
+            item.button_click = function() {
+                alert("click to select wm: "+this.wm.Name);
+                this.widgetbrowse.wm = this.wm;
+                this.wm.standardService.SetActionListener("listWidgets", get_widget_callback(this.wm, this.widgetbrowse), true);
+                this.wm.standardService.CallAction("listWidgets", new Array());
+            };
+            this.children[this.nb_tools + i] = item;
+        }
+        this.set_size(this.width, this.height);
+    };
+
+    widgetbrowse.set_size = function(w, h) {
+        alert("widgetbrowse.set_size "+w+" "+h);
+        var i, x, y, isize, nbi;
+        isize = 24;
+        if (w > display_width - isize) {
+            w = display_width - isize;
+        }
+        this.width = w;
+        this.height = h;
+        i = 1;
+        while ((i + 1) * isize <= h - isize) {
+            i++;
+        }
+        if (i != this.nb_items) {
+            this.nb_items = i;
+            this.layout(0);
+            return;
+        }
+        x = -w / 2 + isize / 2;
+        y = h / 2 - isize / 2;
+        for (i = 0; i < this.nb_tools; i++) {
+            if (this.nb_tools > i + 1) {
+                this.children[i].set_size(isize, isize);
+            }
+            this.children[i].translation.x = x;
+            this.children[i].translation.y = y;
+            x += isize;
+        }
+        y -= isize;
+        while (i < this.children.length) {
+            this.children[i].set_size(w, isize);
+            this.children[i].translation.x = 0;
+            this.children[i].translation.y = y;
+            y -= isize;
+            i++;
+        }
+    };
+
+    widgetbrowse.nb_items = WidgetManager.MPEGUStandardServiceProviders.length;
+    widgetbrowse.list = WidgetManager.MPEGUStandardServiceProviders;
+    widgetbrowse.set_label('Select Widget Manager');
+    widgetbrowse.layout(0);
+    widget_display.scale.x = 0;
+    layout();
+}
+
+function get_widget_callback(device, widgetbrowse) {
+    alert("get_widget_callback "+device.Name+" "+widgetbrowse);
+    return function() {
+        // msgHandler is the first argument, the next arguments are from the reply to listWidgets
+        var act = arguments[0];
+        var act1 = act.GetArgumentValue("widgetCodes");
+        var act2 = act.GetArgumentValue("widgetNames");
+        alert("callback |"+act1+"| |"+act2+"|");
+        widgetbrowse.set_label("Select Widget");
+        var w, h, i, y;
+        act1 = act1.split(" ");
+        act2 = act2.split(" ");
+        widgetbrowse.children.length = widgetbrowse.nb_tools;
+        for (i = 0; i < act2.length; i++) {
+            if (act1[i]=="" || act2[i]=="") continue;
+            var item = text_rect(act2[i]);
+            item.widgetCode = act1[i];
+            item.widgetName = act2[i];
+            item.widgetbrowse = widgetbrowse;
+            item.button_click = function() {
+                alert("selected widget: "+this.widgetName);
+                dlg_display.children.length = 0;
+                widget_display.scale.x = 1;
+                widget_screen_visible = true;
+                layout();
+                var arr = new Array();
+                arr[0] = "widgetCode";
+                arr[1] = this.widgetCode;
+                this.widgetbrowse.wm.standardService.SetActionListener("getWidget", get_widget_callback2, true);
+                this.widgetbrowse.wm.standardService.CallAction("getWidget", arr);
+            };
+            widgetbrowse.children[this.nb_tools + i] = item;
+        }
+        widgetbrowse.set_size(widgetbrowse.width, widgetbrowse.height);
+    }
+}
+
+function get_widget_callback2() {
+    // msgHandler is the first argument, the next arguments are from the reply to listWidgets
+    alert("callback2-1");
+    var act = arguments[0];
+    var act1 = act.GetArgumentValue("widgetUrl");
+    var act2 = act.GetArgumentValue("widgetContext");
+    alert("callback2-2 " + act1 + " " + act2);
+    var wid = WidgetManager.load(act1, null, act2);
+    WidgetManager.on_widget_add(wid);
 }

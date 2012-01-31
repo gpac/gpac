@@ -176,13 +176,6 @@ function widget_manager_init() {
     log(l_inf, 'Initializing MPEG-U Widgets');
     /*if UPnP is enabled, override the deviceAdd callback*/
     WidgetManager.upnp = false;
-    if (typeof(UPnP) != 'undefined') {
-        WidgetManager.upnp = true;
-        log(l_inf, 'Enabling Widget UPnP Discovery')
-        UPnP.onDeviceAdd = wmjs_on_device_add;
-        log(l_inf, 'Creating the standard MPEG-U Service')
-        wmjs_create_standard_service();
-    }
     WidgetManager.migrate_widget = wmjs_migrate_widget;
     WidgetManager.probe = wmjs_probe_widget;
     WidgetManager.open = wmjs_open_widget;
@@ -194,10 +187,17 @@ function widget_manager_init() {
     WidgetManager.check_bindings = wmjs_bind_widgets;
     WidgetManager.unbind_widget = wmjs_unbind_widget;
     WidgetManager.corein_message = wmjs_corein_message;
-    
+
     WidgetManager.get_mpegu_service_providers = wmjs_get_mpegu_service_providers;
-    
     WidgetManager.initialize();
+
+    if (typeof(UPnP) != 'undefined') {
+        WidgetManager.upnp = true;
+        log(l_inf, 'Enabling Widget UPnP Discovery')
+        UPnP.onDeviceAdd = wmjs_on_device_add;
+        log(l_inf, 'Creating the standard MPEG-U Service')
+        wmjs_create_standard_service();
+    }
     log(l_inf, 'MPEG-U Widgets successfully initialized');
     initCore();
 }
@@ -794,7 +794,8 @@ standard_service_scpd = header+'<action><name>startWidget</name><argumentList><a
 {
     standard_service_scpd += '<action><name>requestCapabilitiesList</name><argumentList><argument><name>capabilitiesType</name><direction>out</direction><relatedStateVariable>s5</relatedStateVariable></argument><argument><name>capabilities</name><direction>out</direction><relatedStateVariable>s6</relatedStateVariable></argument></argumentList></action>';
     standard_service_scpd += '<action><name>listWidgets</name><argumentList><argument><name>widgetCodes</name><direction>out</direction><relatedStateVariable>s7</relatedStateVariable></argument><argument><name>widgetNames</name><direction>out</direction><relatedStateVariable>s8</relatedStateVariable></argument><argument><name>widgetIdentifiers</name><direction>out</direction><relatedStateVariable>s9</relatedStateVariable></argument></argumentList></action>';
-    standard_service_scpd += '<action><name>getWidget</name><argumentList><argument><name>widgetCode</name><direction>in</direction><relatedStateVariable>s10</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s11</relatedStateVariable></argument></argumentList></action>';
+    standard_service_scpd += '<action><name>getWidget</name><argumentList><argument><name>widgetCode</name><direction>in</direction><relatedStateVariable>s10</relatedStateVariable></argument><argument><name>errorCode</name><direction>out</direction><relatedStateVariable>s11</relatedStateVariable></argument>';
+    standard_service_scpd += '<argument><name>widgetUrl</name><direction>out</direction><relatedStateVariable>s41</relatedStateVariable></argument><argument><name>widgetUUID</name><direction>out</direction><relatedStateVariable>s42</relatedStateVariable></argument><argument><name>widgetContext</name><direction>out</direction><relatedStateVariable>s43</relatedStateVariable></argument></argumentList></action>';
     standard_service_scpd += middler+'<stateVariable><name>s1</name><dataType>string</dataType></stateVariable>';
     standard_service_scpd += '<stateVariable><name>s2</name><dataType>string</dataType></stateVariable>';
     standard_service_scpd += '<stateVariable><name>s3</name><dataType>string</dataType></stateVariable>';
@@ -805,7 +806,10 @@ standard_service_scpd = header+'<action><name>startWidget</name><argumentList><a
     standard_service_scpd += '<stateVariable><name>s8</name><dataType>string</dataType></stateVariable>';
     standard_service_scpd += '<stateVariable><name>s9</name><dataType>string</dataType></stateVariable>';
     standard_service_scpd += '<stateVariable><name>s10</name><dataType>string</dataType></stateVariable>';
-    standard_service_scpd += '<stateVariable><name>s11</name><dataType>string</dataType></stateVariable>'+footer;
+    standard_service_scpd += '<stateVariable><name>s11</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s41</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s42</name><dataType>string</dataType></stateVariable>';
+    standard_service_scpd += '<stateVariable><name>s43</name><dataType>string</dataType></stateVariable>'+footer;
 }
 
 //
@@ -974,15 +978,31 @@ function process_listWidgets_action(action) {
 // processing of a pull migration request
 //
 function process_getWidget_action(action) {
-    alert("process get widget "+action+" "+action.Name+" "+action.Service.name);
-    alert("pgw "+action.GetArgument("widgetCode"));
+    log(l_deb, "process get widget "+action+" "+action.Name);
     // get action arguments
     var widgetCode = action.GetArgument("widgetCode");
-    alert("get:"+widgetCode);
+    log(l_deb, "get:"+widgetCode);
     // get widget
     var wid = WidgetManager.get(parseInt(widgetCode) - 1);
-    wmjs_migrate_widget(this, wid);
-    action.SendReply(["errorCode", 0]);
+    var url, ctx, uri;
+    url = wid.url;
+    /*share the widget*/
+    uri = UPnP.ShareResource(url);
+    ctx = wid.get_context();
+    if (ctx == null) ctx = "";
+    log(l_inf, 'sendReply widget ' + url + ' as resource ' + uri);
+    log(l_inf, 'with context ' + ctx);
+    var args = new Array();
+    args.push("errorCode");
+    args.push(0);
+    args.push("widgetUrl");
+    args.push(uri);
+    args.push("widgetUUID");
+    args.push(null);
+    args.push("widgetContext");
+    args.push(ctx);
+    action.SendReply(args);
+    WidgetManager.on_widget_remove(wid);
 }
 
 //
