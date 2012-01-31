@@ -212,13 +212,14 @@ static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 	i=0;
 	while ((argl = (GPAC_ActionArgListener *)gf_list_enum(service->m_ArgListeners, &i))) {
 		if (argl->arg == desc) break;
+		argl = NULL;
 	}
 	if (!argl) {
 		argl = new GPAC_ActionArgListener();
 		argl->arg = desc;
-		argl->action = action;
 		gf_list_add(service->m_ArgListeners, argl);
 	}
+	argl->action = action;
 	if (argl->on_event) gf_js_remove_root(c, &argl->on_event, GF_JSGC_VAL);
 	if (JSVAL_IS_NULL(argv[1])) {
 		gf_list_del_item(service->m_ArgListeners, argl);
