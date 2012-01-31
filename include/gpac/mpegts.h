@@ -578,6 +578,7 @@ struct tag_m2ts_demux
 	char filename[GF_MAX_PATH];
 	u32 start_range, end_range;
 	u64 file_size;
+	u64 start_byterange, end_byterange;
 	Double duration;
 	u32 nb_playing;
 	Bool file_regulate;
@@ -633,8 +634,9 @@ struct tag_m2ts_demux
 
 	const char *dvb_channels_conf_path;
 
-	const char *(*query_next)(void *udta);
-	void *udta_query;
+	/*for DASH*/
+	GF_Err (*query_next)(void *udta, Bool query_init_range, const char **next_url, u64 *next_start_range, u64 *next_end_range);
+	void *query_udta;
 
 
 	/*AIT*/

@@ -100,6 +100,9 @@ typedef enum
 
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
+	/*When using DASH, query the media range of the url passed in COnnectService - this is only used for local 
+	playback/validation of DASH sequences*/
+	GF_NET_SERVICE_QUERY_INIT_RANGE,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -307,6 +310,9 @@ typedef struct
 	u32 command_type;
 	/*out: next url to play after current one*/
 	const char *next_url;
+	/*out: range in given URL to be played - usually 0-0 as segments are downloaded to cache
+	but can be non-zero when playing local files*/
+	u64 start_range, end_range;
 } GF_NetURLQuery;
 
 /*GF_NET_SERVICE_QUALITY_SWITCH*/
