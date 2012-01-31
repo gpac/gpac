@@ -724,10 +724,13 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
 static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representation *rep)
 {
 	u64 duration = 0;
+#ifndef GPAC_DISABLE_LOG
+	u32 width=0, height=0, samplerate=0;
+	GF_MPD_Fractional *framerate=NULL;
+#endif
 	u32 timescale = 1;
 	GF_MPD_AdaptationSet *set;
 	GF_MPD_Period *period;
-
 	u32 i = gf_list_find(group->adaptation_set->representations, rep);
 	assert((s32) i >= 0);
 
@@ -737,6 +740,27 @@ static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representatio
 
 	set = group->adaptation_set;
 	period = group->period;
+
+#ifndef GPAC_DISABLE_LOG
+
+#define GET_REP_ATTR(_a)	_a = rep->_a; if (!_a) _a = set->_a;
+
+	GET_REP_ATTR(width);
+	GET_REP_ATTR(height);
+	GET_REP_ATTR(samplerate);
+	GET_REP_ATTR(framerate);
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPDIn] Switched to representation bandwidth %d kbps\n", rep->bandwidth/1024));
+	if (group->max_bitrate) GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("\tmax download bandwidth: %d kbps\n", group->max_bitrate/1024));
+	if (width&&height) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("\tWidth %d Height %d", width, height));
+		if (framerate) GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("framerate %d/%d", framerate->num, framerate->den));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("\n"));
+	} else if (samplerate) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("\tsamplerate %d\n", samplerate));
+	}
+#endif
+
 	/*single segment*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
 		return;
@@ -829,9 +853,7 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 
 	if (i != group->active_rep_index) {
 		if (min_bandwidth_selected) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPDIn] No representation found with bandwidth below %d kbps - using representation @ %d kbps\n", group->max_bitrate/1024, rep_sel->bandwidth/1024));
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPDIn] Switching to representation bandwidth %d kbps for download bandwidth %d kbps\n", rep_sel->bandwidth/1024, group->max_bitrate/1024));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPDIn] No representation found with bandwidth below %d kbps - using representation @ %d kbps\n", group->max_bitrate/1024, rep_sel->bandwidth/1024));
 		}
 		MPD_SetGroupRepresentation(group, rep_sel);
 	}
