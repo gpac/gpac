@@ -1628,11 +1628,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
 
 /*download.h exports*/
- #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
- #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
 
- #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_start) )
- #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_end) )
+#ifndef GPAC_DISABLE_ISOM
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_start) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_end) )
+#endif
 
 /* dvb_mpe.h */
 #ifdef GPAC_ENST_PRIVATE
