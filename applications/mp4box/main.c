@@ -235,6 +235,7 @@ void PrintGeneralUsage()
 			" -group-rem-track ID  removes track from its group\n"
 			" -group-rem ID        removes the track's group\n"
 			" -group-clean         removes all group information from all tracks\n"
+ 	        " -group-single        puts all tracks in a single group\n"
 			" -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
 			"\n"
 			" -dash dur            enables DASH-ing of the file with a segment duration of DUR\n"
@@ -661,7 +662,7 @@ void SetupClockReferences(GF_ISOFile *file)
 /*base RTP payload type used (you can specify your own types if needed)*/
 #define BASE_PAYT		96
 
-GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 base_flags, Bool copy_data, Bool interleave, Bool regular_iod)
+GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 base_flags, Bool copy_data, Bool interleave, Bool regular_iod, Bool single_group)
 {
 	GF_ESD *esd;
 	GF_InitialObjectDescriptor *iod;
@@ -689,7 +690,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	}
 
 	spec_type = gf_isom_guess_specification(file);
-	single_av = gf_isom_is_single_av(file);
+	single_av = single_group ? 1 : gf_isom_is_single_av(file);
 
 	/*first make sure we use a systems track as base OCR*/
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -1212,7 +1213,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 brand_add[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, single_group;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
@@ -1246,7 +1247,7 @@ int mp4boxMain(int argc, char **argv)
 	movie_time = 0;
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
-	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
+	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	subsegs_per_sidx = 0;
 	track_dump_type = 0;
@@ -2030,7 +2031,9 @@ int mp4boxMain(int argc, char **argv)
 			nb_tsel_acts++;
 			open_edit=1;
 		}
-
+ 		else if (!stricmp(arg, "-group-single")) {
+ 		    single_group = 1;
+ 		}
 		else if (!stricmp(arg, "-package")) {
 			CHECK_NEXT_ARG 
 			pack_file  = argv[i+1];
@@ -3316,7 +3319,7 @@ int mp4boxMain(int argc, char **argv)
 		if (force_ocr) SetupClockReferences(file);
 		fprintf(stdout, "Hinting file with Path-MTU %d Bytes\n", MTUSize);
 		MTUSize -= 12;		
-		e = HintFile(file, MTUSize, max_ptime, rtp_rate, hint_flags, HintCopy, HintInter, regular_iod);
+		e = HintFile(file, MTUSize, max_ptime, rtp_rate, hint_flags, HintCopy, HintInter, regular_iod, single_group);
 		if (e) goto err_exit;
 		needSave = 1;
 		if (print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
