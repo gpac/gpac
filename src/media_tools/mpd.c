@@ -1159,6 +1159,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 
 	if (do_import) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		GF_Err e;
 		GF_MediaImporter import;
 		char *tmp_file = NULL;
@@ -1203,6 +1204,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		}
 		if (tmp_file)
 			gf_delete_file(tmp_file);
+#endif
 	}
 
 	/*check if we use templates*/
@@ -1233,6 +1235,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				pe->codecs[len-2] = 0;
 			}
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (do_import) {
 				GF_Err e;
 				GF_MediaImporter import;
@@ -1286,6 +1289,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					pe->codecs = gf_strdup(szCodecs);
 				}
 			}
+#endif
 
 			fprintf(fmpd, "   <Representation id=\"%s\" bandwidth=\"%d\"", sep ? sep+1 : base_url, pe->bandwidth);
 			/* SOUCHAY : if mime-type is still unknown, do not try to add codec information since it would be wrong */
