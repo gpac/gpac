@@ -1703,7 +1703,10 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	sps_data_without_emulation_bytes = gf_malloc(sps_size*sizeof(char));
 	sps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
 	bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	
+	if (!bs) {
+		sps_id = -1;
+		goto exit;
+	}
 	if (vui_flag_pos) *vui_flag_pos = 0;
 
 	profile_idc = gf_bs_read_int(bs, 8);
@@ -1719,6 +1722,10 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	by subset SPS. According to the SVC standard, subset SPS can have the same sps_id 
 	than its base layer, but it does not refer to the same SPS. */
 	sps_id = avc_get_ue(bs) + GF_SVC_SSPS_ID_SHIFT * subseq_sps;
+	if (sps_id >=32) {
+		sps_id = -1;
+		goto exit;
+	}
 
 	sps = &avc->sps[sps_id];
 	sps->state |= subseq_sps ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
@@ -1958,11 +1965,24 @@ s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
 	pps_data_without_emulation_bytes = gf_malloc(pps_size*sizeof(char));
 	pps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(pps_data, pps_data_without_emulation_bytes, pps_size);
 	bs = gf_bs_new(pps_data_without_emulation_bytes, pps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	if (!bs) {
+		pps_id = -1;
+		goto exit;
+	}
 	pps_id = avc_get_ue(bs);
+	if (pps_id>=255) {
+		pps_id = -1;
+		goto exit;
+	}
 	pps = &avc->pps[pps_id];
    
 	if (!pps->status) pps->status = 1;
 	pps->sps_id = avc_get_ue(bs);
+	if (pps->sps_id >= 32) {
+		pps->sps_id = 0;
+		pps_id = -1;
+		goto exit;
+	}
 	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice refering to the pps*/
 	if (!avc->sps[pps->sps_id].state && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state) {
 		pps_id = -1;

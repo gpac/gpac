@@ -1879,12 +1879,16 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 		for (rep_i = 0; rep_i < gf_list_count(group->adaptation_set->representations); rep_i++) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
 			rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
+
+			if (rep_i && ( !rep->codecs || !rep_sel->codecs || strcmp(rep->codecs, rep_sel->codecs) ) ) continue;
+
 			/*by default tune to best quality and/or full bandwith*/
 			if (rep->quality_ranking > rep_sel->quality_ranking) {
 				active_rep = rep_i;
 			} else if (rep->bandwidth < rep_sel->bandwidth) {
 				active_rep = rep_i;
 			}
+
 		}
 
 		rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);

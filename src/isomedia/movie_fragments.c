@@ -860,11 +860,17 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	return GF_OK;
 }
 
+typedef struct
+{
+	GF_SegmentIndexBox *sidx;
+	u64 start_offset, end_offset;
+} SIDXEntry;
+
 GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u64 *index_start_range, u64 *index_end_range)
 {
 	GF_SegmentIndexBox *sidx=NULL;
-	GF_SegmentIndexBox *prev_sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
+	GF_List *daisy_sidx = NULL;
 	u64 sidx_start, sidx_end;
 	Bool first_frag_in_subseg;
 	Bool no_sidx = 0;
@@ -938,6 +944,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	
 	prev_earliest_cts = 0;
 	prev_earliest_dts = ref_track_decode_time;
+
+	if (daisy_chain_sidx)
+		daisy_sidx = gf_list_new();
 
 	/*prepare SIDX: we write a blank SIDX box with the right number of entries, and will rewrite it later on*/
 	if (referenceTrackID) {
@@ -1030,6 +1039,14 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			if (e) return e;
 
 			sidx_end = gf_bs_get_position(movie->editFileMap->bs);
+
+			if (daisy_sidx) {
+				SIDXEntry *entry;
+				GF_SAFEALLOC(entry, SIDXEntry);
+				entry->sidx = sidx;
+				entry->start_offset = sidx_start;
+				gf_list_add(daisy_sidx, entry);
+			}
 		}
 
 		if (is_root_sidx) {
@@ -1098,6 +1115,14 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 			/*adjust prev offset*/
 			last_top_box_pos = local_sidx_end;
+
+			if (daisy_sidx) {
+				SIDXEntry *entry;
+				GF_SAFEALLOC(entry, SIDXEntry);
+				entry->sidx = sidx;
+				entry->start_offset = local_sidx_start;
+				gf_list_add(daisy_sidx, entry);
+			}
 		}
 
 		offset_diff = (s32) (gf_bs_get_position(movie->editFileMap->bs) - movie->moof->fragment_offset);
@@ -1117,7 +1142,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 					if (cur_index) {
 						sidx->refs[cur_index-1].subsegment_duration = subseg_dur;
 						if (root_sidx) root_sidx->refs[sidx_idx].subsegment_duration += subseg_dur;
-						else if (prev_sidx) prev_sidx->refs[prev_sidx->nb_refs - 1].subsegment_duration += subseg_dur;
 					}
 					prev_earliest_cts = first_cts;
 					first_frag_in_subseg = 0;
@@ -1133,11 +1157,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 							root_sidx->refs[sidx_idx].SAP_type = sidx->refs[cur_index].SAP_type;
 							root_sidx->refs[sidx_idx].SAP_delta_time = sidx->refs[cur_index].SAP_delta_time;
 							root_sidx->refs[sidx_idx].starts_with_SAP = sidx->refs[cur_index].starts_with_SAP;
-						}
-						else if (prev_sidx && !prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type) {
-							prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_type = sidx->refs[cur_index].SAP_type;
-							prev_sidx->refs[prev_sidx->nb_refs - 1].SAP_delta_time = sidx->refs[cur_index].SAP_delta_time;
-							prev_sidx->refs[prev_sidx->nb_refs - 1].starts_with_SAP = sidx->refs[cur_index].starts_with_SAP;
 						}
 					}
 				}
@@ -1179,7 +1198,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 						sidx->refs[sidx->nb_refs-1].subsegment_duration = subseg_dur;
 					}
 					if (root_sidx) root_sidx->refs[sidx_idx].subsegment_duration += subseg_dur;
-					else if (prev_sidx) prev_sidx->refs[prev_sidx->nb_refs - 1].subsegment_duration += subseg_dur;
 
 					if (root_sidx) {
 						root_sidx->refs[sidx_idx].reference_size = (u32) (gf_bs_get_position(movie->editFileMap->bs) - local_sidx_start);
@@ -1190,17 +1208,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 						gf_isom_box_del((GF_Box*)sidx);
 						sidx = NULL;
 					} else if (daisy_chain_sidx) {
-						if (prev_sidx) {
-							prev_sidx->refs[prev_sidx->nb_refs - 1].reference_size = (u32) (gf_bs_get_position(movie->editFileMap->bs) - local_sidx_start);
-							prev_sidx->refs[prev_sidx->nb_refs - 1].reference_type = 1;
-							sidx_rewrite(prev_sidx, movie->editFileMap->bs, sidx_start);
-							gf_isom_box_del((GF_Box*)prev_sidx);
-
-							sidx_start = local_sidx_start;
-							sidx_end = local_sidx_end;
-						}
+						SIDXEntry *entry = gf_list_last(daisy_sidx);
+						entry->end_offset = gf_bs_get_position(movie->editFileMap->bs);
 						nb_subsegs--;
-						prev_sidx = sidx;
 						sidx = NULL;
 					}
 					sidx_dur += cur_dur;
@@ -1233,9 +1243,37 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		sidx_rewrite(sidx, movie->editFileMap->bs, sidx_start);
 		gf_isom_box_del((GF_Box*)sidx);
 	}
-	if (prev_sidx) {
-		sidx_rewrite(prev_sidx, movie->editFileMap->bs, sidx_start);
-		gf_isom_box_del((GF_Box*)prev_sidx);
+	if (daisy_sidx) {
+		u32 i, j;
+		u64 last_entry_end_offset = 0;
+		u32 count = gf_list_count(daisy_sidx);
+		for (i=count; i>1; i--) {
+			SIDXEntry *entry = gf_list_get(daisy_sidx, i-2);
+			SIDXEntry *next_entry = gf_list_get(daisy_sidx, i-1);
+
+			if (!last_entry_end_offset) {
+				last_entry_end_offset = next_entry->end_offset;
+				/*rewrite last sidx*/
+				sidx_rewrite(next_entry->sidx, movie->editFileMap->bs, next_entry->start_offset);
+			}
+			/*copy over SAP info for last item (which points to next item !)*/
+			entry->sidx->refs[entry->sidx->nb_refs-1] = next_entry->sidx->refs[0];
+			/*and rewrite reference type, size and dur*/
+			entry->sidx->refs[entry->sidx->nb_refs-1].reference_type = 1;
+			entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = (u32) (last_entry_end_offset - next_entry->start_offset);
+			entry->sidx->refs[entry->sidx->nb_refs-1].subsegment_duration = 0;
+			for (j=0; j<next_entry->sidx->nb_refs; j++) {
+				entry->sidx->refs[entry->sidx->nb_refs-1].subsegment_duration += next_entry->sidx->refs[j].subsegment_duration;
+			}
+			sidx_rewrite(entry->sidx, movie->editFileMap->bs, entry->start_offset);
+		}
+		while (gf_list_count(daisy_sidx)) {
+			SIDXEntry *entry = gf_list_last(daisy_sidx);
+			gf_isom_box_del((GF_Box*)entry->sidx);
+			gf_free(entry);
+			gf_list_rem_last(daisy_sidx);
+		}
+		gf_list_del(daisy_sidx);
 	}
 	if (root_sidx) {
 		sidx_rewrite(root_sidx, movie->editFileMap->bs, sidx_start);

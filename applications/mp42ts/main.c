@@ -173,7 +173,6 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		pck.flags = GF_ESI_DATA_AU_START | GF_ESI_DATA_HAS_CTS;
 		if (priv->sample->IsRAP) pck.flags |= GF_ESI_DATA_AU_RAP;
 		pck.cts = priv->sample->DTS + priv->ts_offset;
-		fprintf(stderr, "MP4 Input Sample: CTS: "LLD"\r", pck.cts);
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
 		if (priv->nb_repeat_last) {

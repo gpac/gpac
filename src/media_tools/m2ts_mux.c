@@ -1060,15 +1060,10 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 
 Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_length)
 {
-	stream->copy_from_next_packets = 0;
-	stream->next_payload_size = 0;
 
-	gf_m2ts_stream_update_data_following(stream);
-		
 	assert(stream->pes_data_remain==0);
 	stream->pes_data_len = stream->curr_pck.data_len - stream->pck_offset;
 
-//	stream->next_payload_size = 0;
 	/*if we have next payload ready, compute transmitted size*/
 	if (stream->next_payload_size) {
 		u32 pck_size = stream->curr_pck.data_len - stream->pck_offset;
@@ -1090,6 +1085,7 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 		stream->copy_from_next_packets = ts_bytes - pck_size;
 
 		if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) {
+#if 0
 			while (stream->copy_from_next_packets > stream->next_payload_size) {
 				if (stream->copy_from_next_packets < 184) {
 					stream->copy_from_next_packets = 0;
@@ -1097,8 +1093,11 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 				}
 				stream->copy_from_next_packets -= 184;
 			}
+#endif
+			stream->pes_data_len += stream->next_payload_size;
+		} else {
+			stream->pes_data_len += stream->copy_from_next_packets;
 		}
-		stream->pes_data_len += stream->copy_from_next_packets;
 	}
 	stream->pes_data_remain = stream->pes_data_len;
 	return 1;
@@ -1121,6 +1120,7 @@ static u32 gf_m2ts_stream_get_pes_header_length(GF_M2TS_Mux_Stream *stream)
 	return hdr_len;
 }
 
+u64 pts_last = 0;
 u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, u32 payload_length)
 {
 	u64 t, dts, cts;
@@ -1141,6 +1141,11 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 		use_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? 1 : 0;
 		dts = stream->curr_pck.dts;
 		cts = stream->curr_pck.cts;
+	}
+
+	if (stream->pid==102) {
+		if (pts_last) assert(pts_last != cts);
+		pts_last = cts;
 	}
 
 	assert(stream->pes_data_len);
@@ -1205,6 +1210,10 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 	bs = gf_bs_new(packet, 188, GF_BITSTREAM_WRITE);
 
 	hdr_len = gf_m2ts_stream_get_pes_header_length(stream);
+	if (hdr_len) {
+		gf_m2ts_stream_update_data_following(stream);
+		hdr_len = gf_m2ts_stream_get_pes_header_length(stream);
+	}
 	
 	adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
 	payload_length = 184 - hdr_len;
@@ -1341,7 +1350,17 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 			while (1) {
 				u32 remain = 0;
 				Bool res = stream->process(stream->program->mux, stream);
-				assert(res);
+				if (!res) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Not enough data to fill current PES (PID %d) - filling with 0xFF\n", stream->pid) );
+					memset(packet+pos, 0xFF, copy_next);
+					
+					if (stream->copy_from_next_packets > copy_next) {
+						stream->copy_from_next_packets -= copy_next;
+					} else {
+						stream->copy_from_next_packets = 0;
+					}
+					break;
+				}
 				if (copy_next > stream->curr_pck.data_len) {
 					remain = copy_next - stream->curr_pck.data_len;
 					copy_next = stream->curr_pck.data_len;

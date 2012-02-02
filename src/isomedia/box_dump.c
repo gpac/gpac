@@ -679,8 +679,8 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->PaddingBits) gf_box_dump(p->PaddingBits, trace);
 	if (p->SubSamples) gf_box_dump(p->SubSamples, trace);
 	if (p->Fragments) gf_box_dump(p->Fragments, trace);
-	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
+	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 
 	fprintf(trace, "</SampleTableBox>\n");
 	return GF_OK;
@@ -2255,9 +2255,9 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	if (p->subs) gf_box_dump(p->subs, trace);
 	if (p->sdtp) gf_box_dump(p->sdtp, trace);
 	if (p->tfdt) gf_box_dump(p->tfdt, trace);
-	gf_box_array_dump(p->TrackRuns, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
+	gf_box_array_dump(p->TrackRuns, trace);
 	fprintf(trace, "</TrackFragmentBox>\n");
 	return GF_OK;
 }
@@ -2273,7 +2273,7 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " BaseDataOffset=\""LLD"\"", LLD_CAST p->base_data_offset);
 	}
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DESC)
-		fprintf(trace, "SampleDescriptionIndex=\"%d\"", p->sample_desc_index);
+		fprintf(trace, " SampleDescriptionIndex=\"%d\"", p->sample_desc_index);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DUR)
 		fprintf(trace, " SampleDuration=\"%d\"", p->def_sample_duration);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_SIZE)
@@ -3582,6 +3582,7 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SampleGroupBox grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
 	if (ptr->version==1) fprintf(trace, " grouping_type_parameter=\"%d\"", ptr->grouping_type_parameter);
 	fprintf(trace, ">\n");
+	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	for (i=0; i<ptr->entry_count; i++) {
 		fprintf(trace, "<SampleGroupBoxEntry sample_count=\"%d\" group_description_index=\"%d\"/>\n", ptr->sample_entries[i].sample_count, ptr->sample_entries[i].group_description_index );
@@ -3599,6 +3600,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SampleGroupDescriptionBox grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
 	if (ptr->version==1) fprintf(trace, " default_length=\"%d\"", ptr->default_length);
 	fprintf(trace, ">\n");
+	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	for (i=0; i<gf_list_count(ptr->group_descriptions); i++) {
 		void *entry = gf_list_get(ptr->group_descriptions, i);

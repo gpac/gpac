@@ -102,7 +102,7 @@ const char *GetLanguageCode(char *lang);
 #ifndef GPAC_DISABLE_MPEG2TS
 void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, 
 				   Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
-				   char *seg_name, char *seg_ext, Bool use_url_template, Bool single_segment);
+				   char *seg_name, char *seg_ext, Bool use_url_template, Bool single_segment, u32 representation_idx, Bool last_rep);
 #endif 
 
 
@@ -1508,7 +1508,6 @@ int mp4boxMain(int argc, char **argv)
 		} else if (!stricmp(arg, "-frag")) {
 			CHECK_NEXT_ARG
 			InterleavingTime = atof(argv[i+1]) / 1000;
-			open_edit = 1;
 			needSave = 1;
 			i++;
 			Frag = 1;
@@ -1541,8 +1540,11 @@ int mp4boxMain(int argc, char **argv)
 			daisy_chain_sidx = 1;
 		} else if (!stricmp(arg, "-single-segment")) {
 			single_segment = 1;
-		} else if (!stricmp(arg, "-url-template")) {
+		} else if (!strnicmp(arg, "-url-template", 13)) {
 			use_url_template = 1;
+			if ((arg[13]=='=') && arg[14]) {
+				if (!strcmp( &arg[14], "simulate")) use_url_template = 2;
+			}
 		}		
 		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -2489,17 +2491,17 @@ int mp4boxMain(int argc, char **argv)
 					if (subsegs_per_sidx<0) subsegs_per_sidx = 0;
 #ifndef GPAC_DISABLE_MPEG2TS
 					for (i=0; i<nb_dash_inputs; i++) {
-						dump_mpeg2_ts(dash_inputs[i], NULL, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
-							seg_name, seg_ext, use_url_template, single_segment);
+						dump_mpeg2_ts(dash_inputs[i], outName, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
+							seg_name, seg_ext, use_url_template, single_segment, i, (i+1 == nb_dash_inputs) ? 1 : 0);
 					}
 #endif
 				} else if (dump_m2ts) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
 #endif
 				} else if (dump_ts) { /* dump_ts means dump time stamp information */
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
 #endif
 				} else {
 					convert_file_info(inName, info_track_id);

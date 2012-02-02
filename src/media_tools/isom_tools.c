@@ -743,6 +743,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	Bool first_sample_in_segment = 0;
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
+	Bool audio_only = 1;
 
 
 	SegmentDuration = 0;
@@ -852,6 +853,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 		else if (mtype == GF_ISOM_MEDIA_TEXT) nb_text++;
 		else if (mtype == GF_ISOM_MEDIA_SCENE) nb_scene++;
 		else if (mtype == GF_ISOM_MEDIA_DIMS) nb_scene++;
+
+		if (mtype != GF_ISOM_MEDIA_AUDIO) audio_only = 0;
 
 		//setup fragmenters
 		if (! dash_moov_setup) {
@@ -1206,11 +1209,17 @@ restart_fragmentation_pass:
 						ref_track_first_dts = sample->DTS;
 
 					if (next) {
+						u64 next_cts = next->DTS + next->CTS_Offset;
+						if (ref_track_next_cts<next_cts) {
+							ref_track_next_cts = next_cts;
+						}
+					} else {
 						u64 cts = gf_isom_get_media_duration(input, tf->OriginalTrack);
 						if (cts>ref_track_next_cts) ref_track_next_cts = cts;
 						else ref_track_next_cts += defaultDuration;
 					}
 				}
+
 				if (SAP_type > max_sap_type) max_sap_type = SAP_type;
 
 				if (simulation_pass) {
@@ -1242,7 +1251,6 @@ restart_fragmentation_pass:
 
 				/*compute SAP type*/
 				if (sample) {
-					ref_track_next_cts = sample->DTS + sample->CTS_Offset;
 					if (sample->IsRAP) {
 						SAP_type = 1;
 					} else {
@@ -1464,7 +1472,7 @@ restart_fragmentation_pass:
 		s = period_duration - h*3600 - m*60;
 		bandwidth = (u32) (file_size * 8 / file_duration);
 
-		fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"video/mp4\" codecs=\"%s\"", rep_idx ? rep_idx : 1, szCodecs);
+		fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"%s/mp4\" codecs=\"%s\"", rep_idx ? rep_idx : 1, audio_only ? "audio" : "video", szCodecs);
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
 		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
