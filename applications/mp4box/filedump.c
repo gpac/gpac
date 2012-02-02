@@ -2521,15 +2521,20 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 				pos = start;
 				end = start+ref->reference_size;
 				while (pos<end) {
-					if (pos+4096 < end) {
-						fread(buf, 1, 4096, src);
-						fwrite(buf, 1, 4096, dst);
-						pos += 4096;
-					} else {
-						fread(buf, 1, (u32) (end-pos), src);
-						fwrite(buf, 1, (u32) (end-pos), dst);
-						pos = end;
+					u32 res;
+					u32 to_read = 4096;
+					if (pos+4096 >= end) {
+						to_read = (u32) (end-pos);
 					}
+					res = fread(buf, 1, to_read, src);
+					if (res==to_read) {
+						res = fwrite(buf, 1, to_read, dst);
+					}
+					if (res!=to_read) {
+						fprintf(stderr, "IO error while Extracting segment %03d / %03d\r", i+1, index_info->sidx->nb_refs);
+						break;
+					}
+					pos += res;
 				}
 				fclose(dst);
 			}
