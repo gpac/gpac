@@ -4703,12 +4703,12 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->SubSamples, bs);
 		if (e) return e;
 	}
-	if (ptr->sampleGroups) {
-		e = gf_isom_box_array_write(s, ptr->sampleGroups, bs);
-		if (e) return e;
-	}
 	if (ptr->sampleGroupsDescription) {
 		e = gf_isom_box_array_write(s, ptr->sampleGroupsDescription, bs);
+		if (e) return e;
+	}
+	if (ptr->sampleGroups) {
+		e = gf_isom_box_array_write(s, ptr->sampleGroups, bs);
 		if (e) return e;
 	}
 
@@ -6118,23 +6118,22 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->tfdt) {
 		e = gf_isom_box_write((GF_Box *) ptr->tfdt, bs);
 		if (e) return e;
-	}
-	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
-	if (e) return e;
-	
+	}	
 	if (ptr->sdtp) {
 		e = gf_isom_box_write((GF_Box *) ptr->sdtp, bs);
-		if (e) return e;
-	}
-
-	if (ptr->sampleGroups) {
-		e = gf_isom_box_array_write(s, ptr->sampleGroups, bs);
 		if (e) return e;
 	}
 	if (ptr->sampleGroupsDescription) {
 		e = gf_isom_box_array_write(s, ptr->sampleGroupsDescription, bs);
 		if (e) return e;
 	}
+	if (ptr->sampleGroups) {
+		e = gf_isom_box_array_write(s, ptr->sampleGroups, bs);
+		if (e) return e;
+	}
+	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
+	if (e) return e;
+
 	return e;
 }
 

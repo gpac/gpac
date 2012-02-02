@@ -420,6 +420,7 @@ typedef struct tag_m2ts_pes
 	/*LATM stuff - should be moved out of mpegts*/
 	unsigned char *buf;
 	u32 buf_len;
+	u64 prev_PTS;
 
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
 } GF_M2TS_PES;

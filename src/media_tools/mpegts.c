@@ -99,6 +99,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	}
 	pes->prev_data_len = 0;
 	pes->pes_len = 0;
+	pes->prev_PTS = 0;
 	pes->reframe = NULL;
 	pes->cc = -1;
 	return 0;
@@ -357,6 +358,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	ADTSHeader hdr;
 	u32 sc_pos = 0;
 	u32 start = 0;
+
 	u32 hdr_size = 0;
 	u64 PTS;
 	Bool first = 1;
@@ -368,6 +370,20 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.DTS = pes->DTS;
 	pck.PTS = PTS;
 	pck.flags = 0;
+
+	if (pes->frame_state && (data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0)) {
+		assert(pes->frame_state<=data_len);
+		/*dispatch frame*/
+		pck.stream = pes;
+		pck.DTS = PTS;
+		pck.PTS = PTS;
+		pck.flags = 0;
+		pck.data = data;
+		pck.data_len = pes->frame_state;
+		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+		first = 0;
+		start = sc_pos = pes->frame_state;
+	}
 	pes->frame_state = 0;
 
 	/*fixme - we need to test this with more ADTS sources were PES framing is on any boundaries*/
@@ -390,6 +406,19 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			pck.data = data+start;
 			pck.data_len = sc_pos-start;
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+			if (pes->frame_state == pck.data_len) {
+				/*consider we are sync*/
+				first = 0;
+			} else {
+				first = 1;
+			}
+			pes->frame_state = 0;
+		}
+		/*not enough data to parse the frame header*/
+		if (sc_pos + 7 >= data_len) {
+			pes->frame_state = 0;
+			pes->prev_PTS = PTS;
+			return data_len-sc_pos;
 		}
 
 		bs = gf_bs_new(data + sc_pos + 1, 9, GF_BITSTREAM_READ);
@@ -440,8 +469,11 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 
 		/*dispatch frame*/
 		pck.stream = pes;
-		pck.DTS = PTS;
-		pck.PTS = PTS;
+		if (first && pes->prev_PTS) {
+			pck.DTS = pck.PTS = pes->prev_PTS;
+		} else {
+			pck.DTS = pck.PTS = PTS;
+		}
 		pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
 		pck.data = data + sc_pos + hdr_size;
 		pck.data_len = hdr.frame_size - hdr_size;
@@ -456,8 +488,11 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 		sc_pos += pck.data_len + hdr_size;
 		start = sc_pos;
 
-		/*update PTS in case we don't get any update*/
-		if (pes->aud_sr) {
+		if (first && pes->prev_PTS) {
+			pes->prev_PTS = 0;
+		} 
+		/*update PTS in case we don't get any update*/			
+		else if (pes->aud_sr) {
 			size = 1024*90000/pes->aud_sr;
 			PTS += size;
 		}
@@ -476,7 +511,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	/*dispatch frame*/
 	pck.stream = pes;
 	pck.DTS = pes->DTS;
-	pck.PTS = pes->PTS;
+	pck.PTS = pes->PTS;	
 	pck.flags = 0;
 
 	/*fixme - we need to test this with more LATM sources were PES framing is on any boundaries*/
