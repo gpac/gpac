@@ -38,7 +38,7 @@
 /*!
  * All the possible Mime-types for MPD files
  */
-static const char * MPD_MIME_TYPES[] = { "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", NULL };
+static const char * MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", NULL };
 
 /*!
  * All the possible Mime-types for M3U8 files
@@ -1306,12 +1306,20 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         }
 		mime_type = MPD_GetMimeType(NULL, rep, group->adaptation_set);
         if (!mime || (stricmp(mime, mime_type))) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, mime_type));
-            mpdin->mpd_stop_request = 0;
-            gf_mx_v(mpdin->dl_mutex);
-            gf_free(base_init_url);
-            base_init_url = NULL;
-            return GF_BAD_PARAM;
+			Bool valid = 0;
+			char *stype1, *stype2;
+			stype1 = strchr(mime_type, '/');
+			stype2 = mime ? strchr(mime, '/') : NULL;
+			if (stype1 && stype2 && !strcmp(stype1, stype2)) valid = 1;
+
+			if (!valid) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, mime_type));
+				mpdin->mpd_stop_request = 0;
+				gf_mx_v(mpdin->dl_mutex);
+				gf_free(base_init_url);
+				base_init_url = NULL;
+				return GF_BAD_PARAM;
+			}
         }
         if (group->segment_must_be_streamed ) {
             group->segment_local_url = gf_dm_sess_get_resource_name(group->segment_dnload);
