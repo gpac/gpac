@@ -234,14 +234,15 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		if (evt->connect.is_connected) {
 			pFrame->BuildChapterList(0);
 			gpac->m_isopen = 1;
+			//resetting sliders when opening a new file creates a deadlock on the window thread which is disconnecting
+			pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, gpac->m_isopen ? 4 : 3);
+			pFrame->m_Sliders.m_PosSlider.SetPos(0);
+			pFrame->SetProgTimer(1);
 		} else {
 			gpac->max_duration = 0;
 			gpac->m_isopen = 0;
 			pFrame->BuildChapterList(1);
 		}
-		pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, gpac->m_isopen ? 4 : 3);
-		pFrame->m_Sliders.m_PosSlider.SetPos(0);
-		pFrame->SetProgTimer(1);
 		if (!pFrame->m_bFullScreen) {
 			pFrame->SetFocus();
 			pFrame->SetForegroundWindow();
