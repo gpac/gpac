@@ -2514,7 +2514,7 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 			strcat(szFile, buf);
 			strcat(szFile, ".ts");
 
-			if (index_info->use_url_template==1) {
+			if (index_info->use_url_template!=2) {
 				dst = gf_f64_open(szFile, "wb");
 
 				gf_f64_seek(src, start, SEEK_SET);
