@@ -121,7 +121,6 @@ void Osmozilla_QualitySwitch(Osmozilla *osmo, int switch_up);
 void Osmozilla_SetURL(Osmozilla *osmo, const char *url);
 
 
-
 #ifdef GECKO_XPCOM
 
 void NPOsmozilla_GetServiceManager();
