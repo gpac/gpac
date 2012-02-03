@@ -582,7 +582,6 @@ NS_IMETHODIMP nsOsmozillaPeer::QueryInterface(const nsIID & aIID,
 	return NS_NOINTERFACE;
 }
 
-
 extern NPNetscapeFuncs *sBrowserFunctions;
 
 void NPOsmozilla_GetServiceManager()

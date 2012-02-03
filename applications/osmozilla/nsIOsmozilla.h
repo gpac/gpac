@@ -30,8 +30,8 @@ public:
 
 	NS_DEFINE_STATIC_IID_ACCESSOR(NS_IOSMOZILLA_IID)
 
-		/* void Pause (); */
-		NS_IMETHOD Pause(void) = 0;
+	/* void Pause (); */
+	NS_IMETHOD Pause(void) = 0;
 
 	/* void Play (); */
 	NS_IMETHOD Play(void) = 0;
@@ -42,7 +42,7 @@ public:
 	/* void Update (in string type, in string commands); */
 	NS_IMETHOD Update(const char *type, const char *commands) = 0;
 
-	/* void QualotySwitch (in string type, in string commands); */
+	/* void QualitySwitch (in int switch_up); */
 	NS_IMETHOD QualitySwitch(int switch_up) = 0;
 
 	/* void SetURL (in string url); */
@@ -128,7 +128,7 @@ NS_IMETHODIMP nsOsmozilla::Update(const char *type, const char *commands)
 	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-/* void QualitySwitch (in string type, in string commands); */
+/* void QualitySwitch (in int switch_up); */
 NS_IMETHODIMP nsOsmozilla::QualitySwitch(int switch_up)
 {
 	return NS_ERROR_NOT_IMPLEMENTED;
