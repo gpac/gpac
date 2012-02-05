@@ -724,6 +724,7 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
 static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representation *rep)
 {
 	u64 duration = 0;
+	u64 mediaDuration = 0;
 #ifndef GPAC_DISABLE_LOG
 	u32 width=0, height=0, samplerate=0;
 	GF_MPD_Fractional *framerate=NULL;
@@ -797,13 +798,17 @@ static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representatio
 		if (rep->segment_template->duration) duration = rep->segment_template->duration;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 	}
-	if (period->duration && duration) {
-		Double nb_seg = period->duration;
+	mediaDuration = period->duration;
+	if (!mediaDuration) mediaDuration = group->mpd_in->mpd->media_presentation_duration;
+	if (mediaDuration && duration) {
+		Double nb_seg = (Double) mediaDuration;
 		/*duration is given in ms*/
 		nb_seg /= 1000;
 		nb_seg *= timescale;
 		nb_seg /= duration;
 		group->nb_segments_in_rep = (u32) ceil(nb_seg);
+	} else {
+		group->nb_segments_in_rep = 0;
 	}
 }
 
@@ -1145,7 +1150,11 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 		}
 		else if (!strcmp(first_sep+1, "Number")) {
 			if (format_tag) {
-				sprintf(szFormat, format_tag+1, start_number + item_index);
+				char szPrintFormat[20];
+				strcpy(szPrintFormat, "%");
+				strcat(szPrintFormat, format_tag+1);
+				strcat(szPrintFormat, "d");
+				sprintf(szFormat, szPrintFormat, start_number + item_index);
 			} else {
 				sprintf(szFormat, "%d", start_number + item_index);
 			}
@@ -1153,6 +1162,10 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 		}
 		else if (!strcmp(first_sep+1, "Bandwidth")) {
 			if (format_tag) {
+				char szPrintFormat[20];
+				strcpy(szPrintFormat, "%");
+				strcat(szPrintFormat, format_tag+1);
+				strcat(szPrintFormat, "d");
 				sprintf(szFormat, format_tag+1, rep->bandwidth);
 			} else {
 				sprintf(szFormat, "%d", rep->bandwidth);
