@@ -1136,7 +1136,6 @@ static u32 gf_m2ts_stream_get_pes_header_length(GF_M2TS_Mux_Stream *stream)
 	return hdr_len;
 }
 
-u64 ts_last = 0;
 u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, u32 payload_length)
 {
 	u64 t, dts, cts;
@@ -1162,11 +1161,6 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 		use_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? 1 : 0;
 		dts = stream->curr_pck.dts;
 		cts = stream->curr_pck.cts;
-	}
-
-	if (cts) {
-		if (ts_last) assert(ts_last < cts);
-		ts_last = cts;
 	}
 
 	assert(stream->pes_data_len);
@@ -1243,8 +1237,10 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 
 	/*if we forced inserting PAT/PMT before new RAP, also insert PCR here*/
 	if (stream->program->force_pat_pmt_state == 3) {
-		stream->program->force_pat_pmt_state = 0;
-		needs_pcr = 1;
+		if( stream == stream->program->pcr) {
+			stream->program->force_pat_pmt_state = 0;
+			needs_pcr = 1;
+		}
 	}
 
 	if (needs_pcr) {
@@ -1329,8 +1325,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? 1 : 0;
 		gf_m2ts_add_adaptation(bs, stream->pid, needs_pcr, pcr, is_rap, padding_length);
-
-		stream->program->mux->tot_pes_pad_bytes += padding_length;
+	
+		if (padding_length) 
+			stream->program->mux->tot_pes_pad_bytes += padding_length;
 
 	}
 
@@ -1352,6 +1349,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		if (stream->discard_data) gf_free(stream->curr_pck.data);
 		stream->curr_pck.data = NULL;
 		stream->curr_pck.data_len = 0;
+		stream->pck_offset = 0;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS "LLD" - PCR "LLD")\n", stream->curr_pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->curr_pck.dts, gf_m2ts_get_pcr(stream->program)/300));
 
@@ -1412,6 +1410,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 					if (stream->discard_data) gf_free(stream->curr_pck.data);
 					stream->curr_pck.data = NULL;
 					stream->curr_pck.data_len = 0;
+					stream->pck_offset = 0;
 				}
 				if (!remain) break;
 				pos += copy_next;
@@ -1530,6 +1529,9 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	case GF_STREAM_VISUAL:
 		/*just pick first valid stream_id in visual range*/
 		stream->mpeg2_stream_id = 0xE0;
+		/*for video streams, prevent sending two frames start in one PES. This will
+		introduce more overhead at very low bitrates where such cases happen, but will ensure proper timing
+		of each frame*/
 		stream->prevent_two_au_start_in_pes = 1;
 		switch (ifce->object_type_indication) {
 		case GPAC_OTI_VIDEO_MPEG4_PART2:
