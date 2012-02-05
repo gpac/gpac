@@ -959,6 +959,8 @@ typedef struct __m2ts_mux_stream {
 
 	u32 reframe_overhead;
 
+	Bool start_pes_at_rap, prevent_two_au_start_in_pes;
+
 	struct __elementary_stream_ifce *ifce;
 	Double ts_scale;
 
@@ -1020,6 +1022,13 @@ struct __m2ts_mux_program {
 	GF_List *loop_descriptors;
 	Bool mpeg4_signaling;
 	Bool mpeg4_signaling_for_scene_only;
+
+	/*
+		1: signals to force pat/pmt after current PES
+		2: forces pat to be sent 
+		3: forces pmt to be sent after PAT
+	*/
+	u32 force_pat_pmt_state;
 };
 
 struct __m2ts_mux {
@@ -1056,11 +1065,13 @@ struct __m2ts_mux {
     /* System time when the muxer is started */
     u32 init_sys_time;
 
+	Bool force_pat;
+
 	Bool one_au_per_pes;
 
 	Bool eos_found;
 	u32 pck_sent_over_br_window, last_br_time, avg_br;
-	u64 tot_pck_sent, tot_pad_sent;
+	u64 tot_pck_sent, tot_pad_sent, tot_pes_pad_bytes;
 };
 
 
