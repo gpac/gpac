@@ -52,7 +52,8 @@ static GFINLINE void usage(const char * progname)
 					"\t-psi-rate=V            sets PSI refresh rate V in ms (default 100ms). If 0, PSI data is only send once at the begining\n"
 					"\t-time=n                request the program to stop after n ms\n"
 					"\t-single-au             forces 1 PES = 1 AU (disabled by default)\n"
-
+					"\t-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
+					"                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 					"\t-prog=filename         specifies an input file used for a TS service\n"
 					"\t                        * currently only supports ISO files and SDP files\n"
 					"\t                        * can be used several times, once for each program\n"
@@ -185,14 +186,6 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
 		}
 
-		if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
-			pck.data = priv->dsi;
-			pck.data_len = priv->dsi_size;
-			ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-			pck.flags = 0;
-		}
-
-
 		if (priv->nalu_size) {
 			Bool nalu_delim_sent = 0;
 			u32 remain = priv->sample->dataLength;
@@ -225,6 +218,15 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					pck.data_len = 6;
 					ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
 					pck.flags &= ~GF_ESI_DATA_AU_START;
+
+					/*and send SPD / PPS if RAP - it is not clear in the specs whether SPS/PPS should be inserted after
+					the AU delimiter NALU*/
+					if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
+						pck.data = priv->dsi;
+						pck.data_len = priv->dsi_size;
+						ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
+						pck.flags &= ~GF_ESI_DATA_AU_START;
+					}
 				}
 
 
@@ -233,7 +235,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
 
 				if (!remain) pck.flags |= GF_ESI_DATA_AU_END;
-					pck.flags &= ~GF_ESI_DATA_AU_START;
+				pck.flags &= ~GF_ESI_DATA_AU_START;
 
 				pck.data = ptr;
 				pck.data_len = size;
@@ -242,6 +244,14 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			}
 
 		} else {
+
+			if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
+				pck.data = priv->dsi;
+				pck.data_len = priv->dsi_size;
+				ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
+				pck.flags &= ~GF_ESI_DATA_AU_START;
+			}
+
 			pck.flags |= GF_ESI_DATA_AU_END;
 			pck.data = priv->sample->data;
 			pck.data_len = priv->sample->dataLength;
@@ -1419,7 +1429,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 								  Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
 								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
 								  u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port, 
-								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix)
+								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, Bool *split_rap)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0, 
 		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
@@ -1557,6 +1567,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*run_time = atoi(arg+6);
 		} else if (!stricmp(arg, "-single-au")) {
 			*single_au_pes = 1;
+		} else if (!stricmp(arg, "-rap")) {
+			*split_rap = 1;
 		}
 	}
 	if (*real_time) force_real_time = 1;
@@ -1761,7 +1773,7 @@ int main(int argc, char **argv)
 	const char *ts_pck;
 	GF_Err e;
 	u32 run_time;
-	Bool real_time, single_au_pes;
+	Bool real_time, single_au_pes, split_rap;
 	u64 pcr_init_val=0;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
@@ -1824,6 +1836,7 @@ int main(int argc, char **argv)
 	muxer = NULL;
 	single_au_pes = 0;
 	bifs_use_pes = 0;
+	split_rap = 0;
 	psi_refresh_rate = GF_M2TS_PSI_DEFAULT_REFRESH_RATE;
 	pcr_offset = DEFAULT_PCR_OFFSET;
 
@@ -1834,7 +1847,7 @@ int main(int argc, char **argv)
 							&real_time, &run_time, &video_buffer, &video_buffer_size,
 							&audio_input_type, &audio_input_ip, &audio_input_port,
 							&output_type, &ts_out, &udp_out, &rtp_out, &output_port, 
-							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix)) {
+							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap)) {
 		goto exit;
 	}
 	
@@ -1981,13 +1994,15 @@ int main(int argc, char **argv)
 		}
 
 		for (j=0; j<progs[i].nb_streams; j++) {
+			GF_M2TS_Mux_Stream *stream;
 			Bool force_pes_mode = 0;
 			/*likely an OD stream disabled*/
 			if (!progs[i].streams[j].stream_type) continue;
 
 			if (progs[i].streams[j].stream_type==GF_STREAM_SCENE) force_pes_mode = bifs_use_pes ? 1 : 0;
 
-			gf_m2ts_program_stream_add(program, &progs[i].streams[j], cur_pid+j+1, (progs[i].pcr_idx==j) ? 1 : 0, force_pes_mode);
+			stream = gf_m2ts_program_stream_add(program, &progs[i].streams[j], cur_pid+j+1, (progs[i].pcr_idx==j) ? 1 : 0, force_pes_mode);
+			if (split_rap && (progs[i].streams[j].stream_type==GF_STREAM_VISUAL)) stream->start_pes_at_rap = 1;
 		}
 
 		cur_pid += progs[i].nb_streams;
@@ -2137,7 +2152,8 @@ int main(int argc, char **argv)
 	{
 		u64 bits = muxer->tot_pck_sent*8*188;
 		u32 dur_sec = gf_m2ts_get_ts_clock(muxer) / 1000;
-		fprintf(stdout, "Done muxing - %d sec - average rate %d kbps "LLD" packets written ("LLD" padding)\n", dur_sec, (u32) (bits/dur_sec/1000), muxer->tot_pck_sent, muxer->tot_pad_sent);
+		fprintf(stdout, "Done muxing - %d sec - average rate %d kbps "LLD" packets written\n", dur_sec, (u32) (bits/dur_sec/1000), muxer->tot_pck_sent);
+		fprintf(stdout, "\tPadding: "LLD" packets - "LLD" PES padded bytes (%g kbps)\n", muxer->tot_pad_sent, muxer->tot_pes_pad_bytes, (Double) (muxer->tot_pes_pad_bytes*8.0/dur_sec/1000) );
 	}
 
 exit:

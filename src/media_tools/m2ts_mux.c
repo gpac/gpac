@@ -1016,6 +1016,7 @@ static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Program *program)
 void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 {
 	stream->next_payload_size = 0;
+	stream->next_pck_flags = 0;
 	stream->copy_from_next_packets = 0;
 	
 	if (stream->program->mux->one_au_per_pes) return;
@@ -1050,6 +1051,19 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 			stream->next_pck_flags = stream->pck_first->flags;
 		}
 	}
+	/*if we are asked to start new PES at RAP, just consider we don't have the next AU*/
+	if ( (stream->start_pes_at_rap && stream->pck_offset && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP))
+		/*if we start this AU at this packet and we are asked not to carry 2 au start in PES, consider we don't have the next AU*/
+		|| (stream->prevent_two_au_start_in_pes && !stream->pck_offset)
+	) {
+		if (stream->start_pes_at_rap && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP))
+			stream->program->force_pat_pmt_state = 1;
+		stream->next_payload_size = 0;
+		stream->next_pck_cts = 0;
+		stream->next_pck_dts = 0;
+		stream->next_pck_flags = 0;
+	} 
+
 	if (stream->next_payload_size) {
 		stream->next_payload_size += stream->reframe_overhead;
 
@@ -1109,18 +1123,20 @@ static u32 gf_m2ts_stream_get_pes_header_length(GF_M2TS_Mux_Stream *stream)
 	u32 hdr_len, flags;
 	flags = stream->pck_offset ? stream->next_pck_flags : stream->curr_pck.flags;
 
+	/*not done with the current pes*/
 	if (stream->pes_data_remain) return 0;
-	/*not the AU start*/
-	if ( !(flags & GF_ESI_DATA_AU_START) ) 
-		return 0;
-
 	hdr_len = 9;
-	if (flags & GF_ESI_DATA_HAS_CTS) hdr_len += 5;
-	if (flags & GF_ESI_DATA_HAS_DTS) hdr_len += 5;
+	/*signal timing only if AU start in the PES*/
+	if ( flags & GF_ESI_DATA_AU_START) {
+		if (flags & GF_ESI_DATA_HAS_CTS) hdr_len += 5;
+		if (flags & GF_ESI_DATA_HAS_DTS) hdr_len += 5;
+	} else {
+		hdr_len = hdr_len;
+	}
 	return hdr_len;
 }
 
-u64 pts_last = 0;
+u64 ts_last = 0;
 u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, u32 payload_length)
 {
 	u64 t, dts, cts;
@@ -1136,6 +1152,11 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 		use_dts = (stream->next_pck_flags & GF_ESI_DATA_HAS_DTS) ? 1 : 0;
 		dts = stream->next_pck_dts;
 		cts = stream->next_pck_cts;
+	}
+	/*we already sent the begining of the AU*/
+	else if (stream->pck_offset) {
+		use_pts = use_dts = 0;
+		dts = cts = 0;
 	} else {
 		use_pts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_CTS) ? 1 : 0;
 		use_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? 1 : 0;
@@ -1143,9 +1164,9 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 		cts = stream->curr_pck.cts;
 	}
 
-	if (stream->pid==102) {
-		if (pts_last) assert(pts_last != cts);
-		pts_last = cts;
+	if (cts) {
+		if (ts_last) assert(ts_last < cts);
+		ts_last = cts;
 	}
 
 	assert(stream->pes_data_len);
@@ -1219,6 +1240,12 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 	payload_length = 184 - hdr_len;
 	payload_to_copy = padding_length = 0;
 	needs_pcr = (hdr_len && stream->pcr_priority ) ? 1 : 0;
+
+	/*if we forced inserting PAT/PMT before new RAP, also insert PCR here*/
+	if (stream->program->force_pat_pmt_state == 3) {
+		stream->program->force_pat_pmt_state = 0;
+		needs_pcr = 1;
+	}
 
 	if (needs_pcr) {
 		/*AF headers + PCR*/
@@ -1302,6 +1329,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? 1 : 0;
 		gf_m2ts_add_adaptation(bs, stream->pid, needs_pcr, pcr, is_rap, padding_length);
+
+		stream->program->mux->tot_pes_pad_bytes += padding_length;
+
 	}
 
 	if (hdr_len) gf_m2ts_stream_add_pes_header(bs, stream, payload_length);
@@ -1387,6 +1417,10 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 				pos += copy_next;
 				copy_next = remain;
 			}
+		}
+		else if (stream->program->force_pat_pmt_state==1) {
+			stream->program->force_pat_pmt_state = 2;
+			stream->program->mux->force_pat = 1;
 		}
 	}
 	stream->bytes_since_last_time += 188;
@@ -1496,6 +1530,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	case GF_STREAM_VISUAL:
 		/*just pick first valid stream_id in visual range*/
 		stream->mpeg2_stream_id = 0xE0;
+		stream->prevent_two_au_start_in_pes = 1;
 		switch (ifce->object_type_indication) {
 		case GPAC_OTI_VIDEO_MPEG4_PART2:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG4;
@@ -1834,9 +1869,10 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 
 	/*PAT*/
 	res = muxer->pat->process(muxer, muxer->pat);
-	if (res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time) ) {
+	if ((res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time)) || muxer->force_pat) {
 		time = muxer->pat->time;
 		stream_to_process = muxer->pat;
+		muxer->force_pat = 0;
 		/*force sending the PAT regardless of other streams*/
 		goto send_pck;
 	}
@@ -1845,9 +1881,11 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 	program = muxer->programs;
 	while (program) {
 		res = program->pmt->process(muxer, program->pmt);
-		if (res && gf_m2ts_time_less_or_equal(&program->pmt->time, &time) ) {
+		if ((res && gf_m2ts_time_less_or_equal(&program->pmt->time, &time)) || (program->force_pat_pmt_state==2)) {
 			time = program->pmt->time;
 			stream_to_process = program->pmt;
+			if (program->force_pat_pmt_state==2) 
+				program->force_pat_pmt_state = 3;
 			/*force sending the PMT regardless of other streams*/
 			goto send_pck;
 		}

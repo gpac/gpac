@@ -107,6 +107,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 
 static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
 {
+	Bool au_start_in_pes=0;
 	Bool force_new_au=0;
 	Bool start_code_found = 0;
 	Bool short_start_code = 0;
@@ -199,8 +200,15 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 #endif
 			/*check AU start type*/
 			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
+				if (au_start_in_pes) {
+					/*FIXME - we should check the AVC framerate to update the timing ...*/
+					pck.DTS += 3000;
+					pck.PTS += 3000;
+//					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
+				}
 				pck.flags = GF_M2TS_PES_PCK_AU_START;
 				force_new_au = 0;
+				au_start_in_pes = 1;
 			} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
 				pck.flags = GF_M2TS_PES_PCK_RAP;
 			} 
