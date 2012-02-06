@@ -47,6 +47,7 @@ ar="ar"
 ranlib="ranlib"
 make="make"
 strip="strip"
+pkg_config="pkg-config"
 readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
@@ -399,6 +400,13 @@ cpp="${cross_prefix}${cpp}"
 ar="${cross_prefix}${ar}"
 ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
+pkg_config="${cross_prefix}${pkg_config}"
+
+
+#check pkg_config
+if ! $pkg_config --version >/dev/null 2>&1 ; then
+    echo "$pkg_config not found, configure may detect wrong libraries"
+fi
 
 
 #find source path
@@ -671,12 +679,12 @@ EOF
         #dc added
     else
         #try pkg-config
-        if pkg-config --exists mozilla-js 2> /dev/null  ; then
-            js_flags=`pkg-config --cflags mozilla-js`
-            js_lib_pkg=`pkg-config --libs mozilla-js`
+        if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+            js_flags=`$pkg_config --cflags mozilla-js`
+            js_lib_pkg=`$pkg_config --libs mozilla-js`
             if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                 has_js="system"
-                js_lib=`pkg-config --libs mozilla-js`
+                js_lib=`$pkg_config --libs mozilla-js`
             fi
         #try firefox folders (starting at ubuntu 11.10, no pkg-config)
         elif ls -d /usr/lib/firefox* > /dev/null 2>&1 ; then
@@ -761,12 +769,12 @@ EOF
             has_js="prefix"
             #dc added end
         else
-            if pkg-config --exists mozilla-js 2> /dev/null  ; then
-                js_flags=`pkg-config --cflags mozilla-js`
-                js_lib_pkg=`pkg-config --libs mozilla-js`
+            if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+                js_flags=`$pkg_config --cflags mozilla-js`
+                js_lib_pkg=`$pkg_config --libs mozilla-js`
                 if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                     has_js="system"
-                    js_lib=`pkg-config --libs mozilla-js`
+                    js_lib=`$pkg_config --libs mozilla-js`
                 fi
             fi
             if test "$has_js" = "no" ; then
@@ -1144,9 +1152,9 @@ fi
 
 #look for FFMPEG support
 
-if pkg-config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
-    ffmpeg_cflags=`pkg-config --cflags libavcodec libavformat libswscale libavutil`
-    ffmpeg_lflags=`pkg-config --libs libavcodec libavformat libswscale libavutil`
+if $pkg_config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
+    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil`
+    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
     has_ffmpeg="system"
 else
     ffmpeg_cflags=""
@@ -1366,9 +1374,9 @@ fi
 #if svg isn't disabled
 if test "$disable_svg" != "yes"; then
     #then check libxm2 presence via pkg-config
-    if pkg-config libxml-2.0 --exists > /dev/null 2>&1  ; then
-        libxml2_cflags=`pkg-config libxml-2.0 --cflags`
-        libxml2_lib_flags=`pkg-config libxml-2.0 --libs`
+    if $pkg_config libxml-2.0 --exists > /dev/null 2>&1  ; then
+        libxml2_cflags=`$pkg_config libxml-2.0 --cflags`
+        libxml2_lib_flags=`$pkg_config libxml-2.0 --libs`
         has_libxml2="yes"
     fi
 fi
@@ -1860,7 +1868,7 @@ else
         #xulrunner directories are sometimes included through js packages
         if test "$has_js" = "system"  ;then
             if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
-                xul_flags=`pkg-config --cflags mozilla-js`
+                xul_flags=`$pkg_config --cflags mozilla-js`
                 has_xul="system"
             fi
         fi
@@ -2652,7 +2660,7 @@ echo "#endif" >> $TMPH
 
 
 #do not overwrite config.h if unchanged to avoid superfluous rebuilds.
-if ! cmp -s $TMPH config.h; then
+if ! cmp -s $TMPH config.h ; then
     rm -f config.h
     mv -f $TMPH config.h
 else
@@ -2663,18 +2671,70 @@ fi
 rm -f $TMPO $TMPC $TMPE $TMPS $TMPCPP $TMPH
 
 
-if [ ! -d "./bin" ]; then
+if [ ! -d "./bin" ] ; then
     mkdir ./bin
 fi
-if [ ! -d "./bin/gcc" ]; then
+if [ ! -d "./bin/gcc" ] ; then
     mkdir ./bin/gcc
 fi
-if [ ! -d "./bin/gcc/temp" ]; then
+if [ ! -d "./bin/gcc/temp" ] ; then
     mkdir ./bin/gcc/temp
 fi
 
 echo '%.opic : %.c' >> config.mak
 echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
+
+
+
+pkgconfig_generate(){
+name=$1
+shortname=${name#lib}${build_suffix}
+comment=$2
+version=$3
+libs=$4
+requires=$5
+enabled ${name#lib} || return 0
+mkdir -p $name
+cat <<EOF > $name/$name.pc
+prefix=$prefix
+exec_prefix=\${prefix}
+libdir=$libdir
+includedir=$incdir
+
+Name: $name
+Description: $comment
+Version: $version
+Requires: $(enabled shared || echo $requires)
+Requires.private: $(enabled shared && echo $requires)
+Conflicts:
+Libs: -L\${libdir} -l${shortname} $(enabled shared || echo $libs)
+Libs.private: $(enabled shared && echo $libs)
+Cflags: -I\${includedir}
+EOF
+cat <<EOF > $name/$name-uninstalled.pc
+prefix=
+exec_prefix=
+libdir=\${pcfiledir}
+includedir=${source_path}
+
+Name: $name
+Description: $comment
+Version: $version
+Requires: $requires
+Conflicts:
+Libs: \${libdir}/${LIBPREF}${shortname}${LIBSUF} $libs
+Cflags: -I\${includedir}
+EOF
+}
+
+pkgconfig_generate libavutil "FFmpeg utility library" "$LIBAVUTIL_VERSION" "$LIBM"
+pkgconfig_generate libavcodec "FFmpeg codec library" "$LIBAVCODEC_VERSION" "$extralibs" "libavutil = $LIBAVUTIL_VERSION"
+pkgconfig_generate libavformat "FFmpeg container format library" "$LIBAVFORMAT_VERSION" "$extralibs" "libavcodec = $LIBAVCODEC_VERSION"
+pkgconfig_generate libavdevice "FFmpeg device handling library" "$LIBAVDEVICE_VERSION" "$extralibs" "libavformat = $LIBAVFORMAT_VERSION"
+pkgconfig_generate libavfilter "FFmpeg video filtering library" "$LIBAVFILTER_VERSION" "$extralibs"
+pkgconfig_generate libpostproc "FFmpeg postprocessing library" "$LIBPOSTPROC_VERSION" "" "libavutil = $LIBAVUTIL_VERSION"
+pkgconfig_generate libswscale "FFmpeg image rescaling library" "$LIBSWSCALE_VERSION" "$LIBM" "libavutil = $LIBAVUTIL_VERSION"
+pkgconfig_generate libswresample "FFmpeg audio rescaling library" "$LIBSWRESAMPLE_VERSION" "$LIBM" "libavutil = $LIBAVUTIL_VERSION"
 
 
 echo "Done - type 'make help' for make info, 'make' to build"
