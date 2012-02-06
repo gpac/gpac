@@ -1,10 +1,10 @@
 include ../config.mak
 
-APPDIRS= mp4client 
-APPDIRS+=mp42ts
+APPDIRS=mp4client 
 
 ifeq ($(DISABLE_ISOFF), no)
-APPDIRS += mp4box
+APPDIRS+=mp4box
+APPDIRS+=mp42ts
 endif
 
 V4STUDIODIR=
