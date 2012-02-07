@@ -318,6 +318,9 @@ enum
 	GF_M2TS_ES_SEND_REPEATED_SECTIONS = 1<<16,
 	/*Flag used by importers*/
 	GF_M2TS_ES_FIRST_DTS = 1<<17,
+
+	/*flag used to signal next discontinuity on stream should be ignored*/
+	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<18
 };
 
 /*Abstract Section/PES stream object, only used for type casting*/
