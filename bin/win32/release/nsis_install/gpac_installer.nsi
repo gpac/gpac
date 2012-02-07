@@ -437,6 +437,7 @@ Section "MP4Box" SecMP4B
   SectionIn 1
   SetOutPath $INSTDIR
   File "..\MP4Box.exe"
+  File "..\MP42TS.exe"
 
   Push $INSTDIR
   Call AddToPath
