@@ -1015,6 +1015,7 @@ static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Program *program)
 
 void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 {
+	Bool ignore_next=0;
 	stream->next_payload_size = 0;
 	stream->next_pck_flags = 0;
 	stream->copy_from_next_packets = 0;
@@ -1051,13 +1052,18 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 			stream->next_pck_flags = stream->pck_first->flags;
 		}
 	}
-	/*if we are asked to start new PES at RAP, just consider we don't have the next AU*/
-	if ( (stream->start_pes_at_rap && stream->pck_offset && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP))
-		/*if we start this AU at this packet and we are asked not to carry 2 au start in PES, consider we don't have the next AU*/
-		|| (stream->prevent_two_au_start_in_pes && !stream->pck_offset)
-	) {
-		if (stream->start_pes_at_rap && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP))
-			stream->program->force_pat_pmt_state = 1;
+	/*consider we don't have the next AU if:
+	1- we are asked to start new PES at RAP, just consider we don't have the next AU*/
+	if (stream->start_pes_at_rap && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP) ) {
+		ignore_next=1;
+		stream->program->force_pat_pmt_state = 1;
+	}
+	/*if we have a RAP about to start on a stream in this program, force all other streams to stop merging cuming data in their current PES*/
+	else if (stream->program->force_pat_pmt_state) {
+		ignore_next=1;
+	}
+
+	if (ignore_next) {
 		stream->next_payload_size = 0;
 		stream->next_pck_cts = 0;
 		stream->next_pck_dts = 0;
@@ -1074,29 +1080,77 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 
 Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_length)
 {
-
 	assert(stream->pes_data_remain==0);
 	stream->pes_data_len = stream->curr_pck.data_len - stream->pck_offset;
 
+	stream->copy_from_next_packets = 0;
 	/*if we have next payload ready, compute transmitted size*/
 	if (stream->next_payload_size) {
 		u32 pck_size = stream->curr_pck.data_len - stream->pck_offset;
 		u32 ts_bytes = payload_length;	
 
-		/*flushing end of previous PES, let's put the entire next AU in it*/
-		if (pck_size<=ts_bytes) {
+		/*finish this AU*/
+		while (ts_bytes < pck_size) {
+			ts_bytes += 184;
+		}
+
+		/*current AU started in PES, don't start new AU - if enough data
+		still to be sent from current AU, don't send the complete AU
+		in order to avoid padding*/
+		if (stream->prevent_two_au_start_in_pes && !stream->pck_offset) {
+			if (ts_bytes>184)
+				ts_bytes -= 184;
+			else
+				ts_bytes = pck_size;
+		}
+		/*try to fit in part of the next AU*/
+		else if (stream->next_payload_size) {
+			/*how much more TS packets do we need to send next AU ?*/
 			while (ts_bytes < pck_size + stream->next_payload_size) {
 				ts_bytes += 184;
 			}
-		} 
-		/*needs several TS packets to send the PES, don't attempt to stick in the entire next AU*/
-		else {
-			while (ts_bytes < pck_size) {
-				ts_bytes += 184;
+			/*don't end next AU in next PES if we don't want to start 2 AUs in one PES*/
+			if (stream->prevent_two_au_start_in_pes && (ts_bytes>pck_size + stream->next_payload_size)) {
+				if (ts_bytes>184)
+					ts_bytes -= 184;
+				else
+					ts_bytes = pck_size + stream->next_payload_size;
 			}
 		}
+
 		/*that's how much bytes we copy from the following AUs*/
-		stream->copy_from_next_packets = ts_bytes - pck_size;
+		if (ts_bytes >= pck_size) {
+			stream->copy_from_next_packets = ts_bytes - pck_size;
+		} else {
+			u32 skipped = pck_size-ts_bytes;
+			if (stream->pes_data_len > skipped)
+				stream->pes_data_len -= skipped;
+		}
+
+		if (stream->min_bytes_copy_from_next && stream->copy_from_next_packets) {
+			/*if we don't have enough space in the PES to store begining of new AU, don't copy it and ask
+			to recompute header (we might no longer have DTS/CTS signaled)*/
+			if (stream->copy_from_next_packets < stream->min_bytes_copy_from_next) {
+				stream->copy_from_next_packets = 0;
+				stream->next_payload_size = 0;
+				stream->next_pck_flags = 0;
+				return 0;
+			}
+			/*if what will remain after copying next AU is less than the minimum safety copy only copy next AU and
+			realign n+2 AU start with PES*/
+			if ((stream->copy_from_next_packets > stream->next_payload_size)
+				&& (stream->copy_from_next_packets - stream->next_payload_size < stream->min_bytes_copy_from_next)
+			) {
+				stream->copy_from_next_packets = stream->next_payload_size;
+			}
+		}
+
+		if (stream->pck_offset && !stream->copy_from_next_packets && stream->next_payload_size) {
+			stream->copy_from_next_packets = 0;
+			stream->next_payload_size = 0;
+			stream->next_pck_flags = 0;
+			return 0;
+		}
 
 		if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) {
 #if 0
@@ -1163,6 +1217,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 		cts = stream->curr_pck.cts;
 	}
 
+	/*PES packet length: number of bytes in the PES packet following the last byte of the field "pes packet length"*/
 	assert(stream->pes_data_len);
 	pes_len = stream->pes_data_len + 3; // 3 = header size
 	if (use_pts) pes_len += 5;
@@ -1218,47 +1273,60 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 {
 	GF_BitStream *bs;
-	Bool needs_pcr;
+	Bool needs_pcr, first_pass;
 	u32 adaptation_field_control, payload_length, payload_to_copy, padding_length, hdr_len, pos, copy_next;
 
 	assert(stream->pid);
 	bs = gf_bs_new(packet, 188, GF_BITSTREAM_WRITE);
 
 	hdr_len = gf_m2ts_stream_get_pes_header_length(stream);
-	if (hdr_len) {
-		gf_m2ts_stream_update_data_following(stream);
-		hdr_len = gf_m2ts_stream_get_pes_header_length(stream);
-	}
-	
-	adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
-	payload_length = 184 - hdr_len;
-	payload_to_copy = padding_length = 0;
-	needs_pcr = (hdr_len && stream->pcr_priority ) ? 1 : 0;
 
-	/*if we forced inserting PAT/PMT before new RAP, also insert PCR here*/
-	if (stream->program->force_pat_pmt_state == 3) {
-		if( stream == stream->program->pcr) {
-			stream->program->force_pat_pmt_state = 0;
-			needs_pcr = 1;
+	/*we may need two pass in case we first compute hdr len and TS payload size by considering
+	we concatenate next au start in this PES but finally couldn't do it when computing PES len
+	and AU alignment constraint of the stream*/
+	first_pass = 1;
+	while (1) {
+		if (hdr_len) {
+			if (first_pass)
+				gf_m2ts_stream_update_data_following(stream);
+			hdr_len = gf_m2ts_stream_get_pes_header_length(stream);
 		}
-	}
+		
+		adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
+		payload_length = 184 - hdr_len;
+		payload_to_copy = padding_length = 0;
+		needs_pcr = (hdr_len && stream->pcr_priority ) ? 1 : 0;
 
-	if (needs_pcr) {
-		/*AF headers + PCR*/
-		payload_length -= 8;
-		adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
-	}
-	
-	if (hdr_len) {
-		assert(!stream->pes_data_remain);
-		gf_m2ts_stream_compute_pes_length(stream, payload_length);
-		assert(stream->pes_data_remain==stream->pes_data_len);
+		/*if we forced inserting PAT/PMT before new RAP, also insert PCR here*/
+		if (stream->program->force_pat_pmt_state == 3) {
+			if( stream == stream->program->pcr) {
+				stream->program->force_pat_pmt_state = 0;
+				needs_pcr = 1;
+			}
+		}
+
+		if (needs_pcr) {
+			/*AF headers + PCR*/
+			payload_length -= 8;
+			adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
+		}
+		
+		if (hdr_len) {
+			assert(!stream->pes_data_remain);
+			if (! gf_m2ts_stream_compute_pes_length(stream, payload_length)) {
+				first_pass = 0;
+				continue;
+			}
+
+			assert(stream->pes_data_remain==stream->pes_data_len);
+		}
+		break;
 	}
 
 	copy_next = stream->copy_from_next_packets;
 	payload_to_copy = stream->curr_pck.data_len - stream->pck_offset;
 	/*end of PES packet*/
-	if (payload_to_copy > stream->pes_data_remain) {
+	if (payload_to_copy >= stream->pes_data_remain) {
 		payload_to_copy = stream->pes_data_remain;
 		copy_next = 0;
 	}
@@ -1284,7 +1352,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		if (payload_length < payload_to_copy + copy_next) {
 			padding_length = 10;
 			payload_length -= padding_length;
-			payload_to_copy = payload_length;
+			if (payload_to_copy > payload_length)
+				payload_to_copy = payload_length;
 		} else {
 			padding_length = payload_length - payload_to_copy - copy_next; 
 			payload_length -= padding_length;
@@ -1336,6 +1405,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 	pos = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
+	assert(stream->curr_pck.data_len - stream->pck_offset >= payload_to_copy);
 	memcpy(packet+pos, stream->curr_pck.data + stream->pck_offset, payload_to_copy);
 	stream->pck_offset += payload_to_copy;
 	assert(stream->pes_data_remain >= payload_to_copy);
@@ -1406,6 +1476,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 				}
 
 				if (stream->pck_offset == stream->curr_pck.data_len) {
+					assert(!remain || (remain>=stream->min_bytes_copy_from_next));
 					/*PES has been sent, discard internal buffer*/
 					if (stream->discard_data) gf_free(stream->curr_pck.data);
 					stream->curr_pck.data = NULL;
@@ -1539,6 +1610,8 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			break;
 		case GPAC_OTI_VIDEO_AVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_H264;
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (AU delim) + 4 byte start code + first nal header*/
+			stream->min_bytes_copy_from_next = 11;
 			break;
 		case GPAC_OTI_VIDEO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
@@ -1655,7 +1728,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->pmt->program = program;
 	muxer->pat->table_needs_update = 1;
 	program->pmt->process = gf_m2ts_stream_process_pmt;
-	program->pmt->refresh_rate_ms = pmt_refresh_rate;
+	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : (u32) -1;
 	return program;
 }
 
@@ -1666,7 +1739,7 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 	GF_SAFEALLOC(muxer, GF_M2TS_Mux);
 	muxer->pat = gf_m2ts_stream_new(GF_M2TS_PID_PAT);
 	muxer->pat->process = gf_m2ts_stream_process_pat;
-	muxer->pat->refresh_rate_ms = pat_refresh_rate;
+	muxer->pat->refresh_rate_ms = pat_refresh_rate ? pat_refresh_rate : (u32) -1;
 	muxer->real_time = real_time;
 	muxer->bit_rate = mux_rate;
 	muxer->init_pcr_value = 0;

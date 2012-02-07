@@ -450,7 +450,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 
 		/*make sure we are sync if we have more data following*/
 		if (sc_pos + hdr.frame_size < data_len) {
-			if ((data[sc_pos + hdr.frame_size]!=0xFF) || ((data[sc_pos+hdr.frame_size+1] & 0xF0) != 0xF0)) {
+			if ((hdr.frame_size < hdr_size) || (data[sc_pos + hdr.frame_size]!=0xFF) || ((data[sc_pos+hdr.frame_size+1] & 0xF0) != 0xF0)) {
 				sc_pos++;
 				continue;
 			}
@@ -487,8 +487,10 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 		pck.data_len = hdr.frame_size - hdr_size;
 
 		if (pck.data_len > data_len - sc_pos - hdr_size) {
+			assert(pck.data_len - (data_len - sc_pos - hdr_size) > 0);
 			/*remember how much we have to send*/
 			pes->frame_state = pck.data_len - (data_len - sc_pos - hdr_size);
+			assert((s32) pes->frame_state > 0);
 			pck.data_len = data_len - sc_pos - hdr_size;
 		}
 
@@ -1938,6 +1940,10 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 #endif
 				pes->DTS = pesh.DTS;
 			}
+			/*no PTSs were coded, same time*/
+			else if (!pesh.hdr_data_len)
+				same_pts = 1;
+
 
 			/*3-byte start-code + 6 bytes header + hdr extensions*/
 			len = 9 + pesh.hdr_data_len;
@@ -1958,6 +1964,10 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 			} else if (pes->reframe) {
 				u32 remain;
 				u32 offset = len;
+
+				if (pesh.pck_len && (pesh.pck_len-3-pesh.hdr_data_len != pes->data_len-len)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES payload size %d but received %d bytes\n", (u32) ( pesh.pck_len-3-pesh.hdr_data_len), pes->data_len-len));
+				}
 
 				if (pes->prev_data_len) {
 					assert(pes->prev_data_len < len);
