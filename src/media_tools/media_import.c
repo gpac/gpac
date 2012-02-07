@@ -5477,6 +5477,43 @@ static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti,
 	}
 }
 
+/*rewrite last AVC sample currently stored in Annex-B format to ISO format (rewrite start code)*/
+void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
+{
+	GF_Err e;
+	u32 sc_pos, start;
+	char *data;
+	GF_BitStream *bs;
+	GF_ISOSample *samp;
+	u32 count = gf_isom_get_sample_count(import->dest, tsimp->track);
+	if (!count || !tsimp->avccfg) return;
+
+	samp = gf_isom_get_sample(import->dest, tsimp->track, count, NULL);
+	sc_pos = 1;
+	start = 0;
+	bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_WRITE);
+	data = samp->data;
+	while (1) {
+		if (!samp->data[start+sc_pos] && !samp->data[start+sc_pos+1] && !samp->data[start+sc_pos+2] && (samp->data[start+sc_pos+3]==1)) {
+			gf_bs_seek(bs, start);
+			gf_bs_write_u32(bs, (u32) sc_pos-start-4);
+			start = sc_pos;
+		}
+		sc_pos++;
+		if (start+sc_pos>=samp->dataLength) break;
+	}
+	gf_bs_seek(bs, start);
+	gf_bs_write_u32(bs, samp->dataLength-start-4);
+	
+	gf_bs_del(bs);
+	
+	e = gf_isom_update_sample(import->dest, tsimp->track, count, samp, 1);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error rewriting AVC NALUs: %s\n", gf_error_to_string(e) ));
+	}
+	gf_isom_sample_del(&samp);
+}
+
 void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 	GF_Err e;
@@ -5736,7 +5773,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		{
 			GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
 			is_au_start = (pck->flags & GF_M2TS_PES_PCK_AU_START);
-
+			
 			if (import->flags & GF_IMPORT_PROBE_ONLY) {
 				for (i=0; i<import->nb_tracks; i++) {
 					if (import->tk_info[i].track_num == pck->stream->pid) {
@@ -5748,7 +5785,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							}
 						} else {
 							/*unpack AVC config*/
-							if (pck->stream->stream_type==GF_M2TS_VIDEO_H264) {
+							if ((pck->stream->stream_type==GF_M2TS_VIDEO_H264) && !pck->data[0] && !pck->data[1]) {
 								u32 nal_type = pck->data[4] & 0x1F;
 								if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
 									sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
@@ -5786,9 +5823,10 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			} 
 			if (pck->stream->pid != import->trackID) return;
 
-			if (tsimp->avccfg) {
+			/*avc data for the current sample is stored in annex-B, as we don't know the size of each nal
+			when called back (depending on PES packetization, the end of the nal could be in following pes)*/
+			if (tsimp->avccfg && !pck->data[0] && !pck->data[1]) {
 				GF_AVCConfigSlot *slc;
-				GF_BitStream *bs;
 				s32 idx;
 				Bool add_sps, is_subseq = 0;
 				u32 nal_type = pck->data[4] & 0x1F;
@@ -5861,11 +5899,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					break;
 				}
 
-				/*rewrite nalu header*/
-				bs = gf_bs_new(pck->data, pck->data_len, GF_BITSTREAM_WRITE);
-				gf_bs_write_u32(bs, pck->data_len - 4);
-				gf_bs_del(bs);
-
 				if (tsimp->force_next_au_start) {
 					is_au_start = 1;
 					tsimp->force_next_au_start = 0;
@@ -5874,7 +5907,12 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (!is_au_start) {
 				e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
+					if (!gf_isom_get_sample_count(import->dest, tsimp->track)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] missed begining of sample data\n"));
+						e = GF_OK;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
+					}
 				}
 				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 				if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
@@ -5929,6 +5967,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				if (samp->DTS && (samp->DTS==tsimp->last_dts)) {
 					e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 				} else {
+
+					if (tsimp->avccfg) m2ts_rewrite_avc_sample(import, tsimp);
 					e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
 				}
 				if (e) {
@@ -6178,6 +6218,10 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			gf_isom_avc_config_update(import->dest, tsimp.track, 1, tsimp.avccfg);
 			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
+
+
+			m2ts_rewrite_avc_sample(import, &tsimp);
+
 			gf_odf_avc_cfg_del(tsimp.avccfg);
 		}
 

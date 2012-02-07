@@ -937,6 +937,9 @@ typedef struct __m2ts_mux_stream {
 	Bool table_needs_update;
 	Bool table_needs_send;
 
+	/*minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this 
+	is available in PES, don't copy from next*/
+	u32 min_bytes_copy_from_next;
 	/*process PES or table update/framing
 	returns the priority of the stream,  0 meaning not scheduled, 1->N highest priority sent first*/
 	u32 (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);

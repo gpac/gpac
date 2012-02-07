@@ -229,7 +229,6 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					}
 				}
 
-
 				pck.data = sc;
 				pck.data_len = 4;
 				ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
