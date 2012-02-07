@@ -2012,15 +2012,21 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	pes->cc = hdr->continuity_counter;
 
 	if (disc) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Packet discontinuity (%d expected - got %d- - trashing PES packet\n", pes->pid, expect_cc, hdr->continuity_counter));
-		if (pes->data) {
-			gf_free(pes->data);
-			pes->data = NULL;
+		if (pes->flags & GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY) {
+			pes->flags &= ~GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY;
+			disc = 0;
 		}
-		pes->data_len = 0;
-		pes->pes_len = 0;
-		pes->cc = -1;
-		return;
+		if (disc) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Packet discontinuity (%d expected - got %d- - trashing PES packet\n", pes->pid, expect_cc, hdr->continuity_counter));
+			if (pes->data) {
+				gf_free(pes->data);
+				pes->data = NULL;
+			}
+			pes->data_len = 0;
+			pes->pes_len = 0;
+			pes->cc = -1;
+			return;
+		}
 	}
 
 	if (!pes->reframe) return;
@@ -2311,6 +2317,16 @@ GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es)
 	}
 
 	return esd;
+}
+
+void gf_m2ts_set_segment_switch(GF_M2TS_Demuxer *ts)
+{
+	u32 i;
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		GF_M2TS_ES *es = (GF_M2TS_ES *) ts->ess[i];
+		if (!es) continue;
+		es->flags |= GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY;
+	}
 }
 
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
@@ -2668,6 +2684,8 @@ restart_file:
 			if (next_url) {
 				fclose(ts->file);
 				ts->file = gf_f64_open(next_url, "rb");
+				gf_m2ts_set_segment_switch(ts);
+
 				if (ts->file) goto restart_file;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
 			}
