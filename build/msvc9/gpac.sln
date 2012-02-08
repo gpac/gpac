@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPAX", "GPAX.vcproj", "{72486240-A124-496E-A67A-E76FEC7E99BE}"
@@ -74,6 +74,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libgpac_dll", "libgpac_dll.
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp3_in", "mp3_in.vcproj", "{4AC7F65D-0DC0-49F9-8B96-AD05F11FF38E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "..\..\applications\mp42ts\mp42ts.vcproj", "{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
