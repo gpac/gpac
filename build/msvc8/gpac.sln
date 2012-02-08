@@ -222,11 +222,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "amr_float_dec", "amr_float_
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "..\..\applications\mp42ts\mp42ts.vcproj", "{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPAX", "GPAX.vcproj", "{72486240-A124-496E-A67A-E76FEC7E99BE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
@@ -507,6 +502,18 @@ Global
 		{4AC7F65D-0DC0-49F9-8B96-AD05F11FF38E}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
 		{4AC7F65D-0DC0-49F9-8B96-AD05F11FF38E}.Release|Win32.ActiveCfg = Release|Win32
 		{4AC7F65D-0DC0-49F9-8B96-AD05F11FF38E}.Release|Win32.Build.0 = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.Build.0 = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.ActiveCfg = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.Build.0 = Release|Win32
 		{48E2C7C6-52EB-46FB-8722-00A62F46F497}.Debug|Mixed Platforms.ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{48E2C7C6-52EB-46FB-8722-00A62F46F497}.Debug|Mixed Platforms.Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{48E2C7C6-52EB-46FB-8722-00A62F46F497}.Debug|Mixed Platforms.Deploy.0 = Debug|Smartphone 2003 (ARMV4)
@@ -951,18 +958,6 @@ Global
 		{5D3983BF-143F-49C3-9284-89778282AEFE}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{5D3983BF-143F-49C3-9284-89778282AEFE}.Release|Win32.ActiveCfg = Release|Win32
 		{5D3983BF-143F-49C3-9284-89778282AEFE}.Release|Win32.Build.0 = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.ActiveCfg = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.Build.0 = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.ActiveCfg = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.Build.0 = Release|Win32
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Debug|Mixed Platforms.ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Debug|Mixed Platforms.Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Debug|Mixed Platforms.Deploy.0 = Debug|Smartphone 2003 (ARMV4)
