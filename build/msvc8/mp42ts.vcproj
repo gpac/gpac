@@ -15,8 +15,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug"
-			IntermediateDirectory=".\Debug"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -37,7 +37,7 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Debug/mp42ts.tlb"
+				TypeLibraryName=".\obj\mp42ts_deb\mp42ts.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
@@ -48,10 +48,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\Debug/mp42ts.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
+				PrecompiledHeaderFile=".\obj\mp42ts_deb/$(ProjectName).pch"
+				AssemblerListingLocation=".\obj\mp42ts_deb/"
+				ObjectFile=".\obj\mp42ts_deb/"
+				ProgramDataBaseFileName=".\obj\mp42ts_deb/"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -74,9 +74,9 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP42TS.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/mp42ts.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -92,7 +92,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Debug/mp42ts.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -109,8 +108,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -131,7 +130,7 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Release/mp42ts.tlb"
+				TypeLibraryName=".\obj\mp42ts_rel\mp42ts.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
@@ -143,10 +142,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/mp42ts.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				PrecompiledHeaderFile=".\obj\mp42ts_rel/$(ProjectName).pch"
+				AssemblerListingLocation=".\obj\mp42ts_rel/"
+				ObjectFile=".\obj\mp42ts_rel/"
+				ProgramDataBaseFileName=".\obj\mp42ts_rel/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -167,8 +166,8 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP42TS.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../../extra_lib/lib/w32_rel"
-				ProgramDatabaseFile=".\Release/mp42ts.pdb"
+				AdditionalLibraryDirectories=""
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -184,7 +183,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Release/mp42ts.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -204,7 +202,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="main.c"
+			RelativePath="..\..\applications\mp42ts\main.c"
 			>
 			<FileConfiguration
 				Name="Debug|Win32"
