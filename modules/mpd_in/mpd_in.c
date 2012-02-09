@@ -2033,7 +2033,7 @@ GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 	return GF_OK;
 }
 
-static GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin)
+GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin)
 {
 	GF_Err e;
     u32 rep_i, group_i;
