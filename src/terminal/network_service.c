@@ -215,6 +215,14 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	}
 	/*this is service disconnect*/
 	if (!netch) {
+		if (service->subservice_disconnect) {
+			if (service->owner && service->subservice_disconnect==1) {
+				GF_Scene *scene = service->owner->subscene ? service->owner->subscene : service->owner->parentscene;
+				/*destrou all media*/
+				gf_scene_disconnect(scene, 1);
+			}
+			return;
+		}
 		gf_term_lock_media_queue(term, 1);
 		/*unregister from valid services*/
 		if (gf_list_del_item(term->net_services, service)>=0) {

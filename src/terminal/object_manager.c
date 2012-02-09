@@ -743,6 +743,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			force_play = 1;
 		}
 		if (force_play) {
+			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
 			gf_odm_start(odm, 2);
 		}
@@ -1174,6 +1175,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 
 		gf_term_lock_net(ch->odm->term, 1);
 		gf_es_start(ch);
+		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_CHAN_PLAY;
 		com.base.on_channel = ch;
 		com.play.speed = FIX2FLT(ch->clock->speed);
@@ -1374,7 +1376,15 @@ void gf_odm_play(GF_ObjectManager *odm)
 	nb_failure = gf_list_count(odm->channels);
 
 	/*send play command*/
+	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_PLAY;
+	
+	if (odm->flags & GF_ODM_INITIAL_BROADCAST_PLAY) {
+		odm->flags &= ~GF_ODM_INITIAL_BROADCAST_PLAY;
+		com.play.dash_segment_switch = 1;
+	}
+
+
 	i=0;
 	while ( (ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		Double ck_time;

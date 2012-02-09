@@ -255,8 +255,8 @@ typedef struct
 typedef struct 
 {
 	char *ID;
-    u32 start; /* expressed in seconds, relative to the start of the MPD */
-	u32 duration; /* expressed in seconds */
+    u32 start; /* expressed in ms, relative to the start of the MPD */
+	u32 duration; /* expressed in ms*/
 	Bool bitstream_switching;
 
 	GF_List *base_URLs;

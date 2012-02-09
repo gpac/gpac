@@ -496,7 +496,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 	if (! trak->editBox || !trak->editBox->editList) {
 		*MediaTime = movieTime;
 		//check this is in our media time line
-		if (*MediaTime > lastSampleTime) *MediaTime = lastSampleTime;
+		if (!trak->moov->mov->use_segments && (*MediaTime > lastSampleTime)) *MediaTime = lastSampleTime;
 		*useEdit = 0;
 		return GF_OK;
 	}

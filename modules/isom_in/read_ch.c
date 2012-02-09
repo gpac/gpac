@@ -41,10 +41,72 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->is_playing = 0;
 }
 
+static void check_segment_switch(ISOMReader *read)
+{
+	GF_NetworkCommand param;
+	u32 i, count;
+	GF_Err e;
+
+	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
+	gf_mx_p(read->segment_mutex);
+
+	if (!read->frag_type || !read->input->query_proxy) {
+		gf_mx_v(read->segment_mutex);
+		return;
+	}
+
+	count = gf_list_count(read->channels);
+	for (i=0; i<count; i++) {
+		ISOMChannel *ch = gf_list_get(read->channels, i);
+		/*check all playing channels are waiting for next segment*/
+		if (ch->is_playing && !ch->wait_for_segment_switch) {
+			gf_mx_v(read->segment_mutex);
+			return;
+		}
+	}
+	/*close current segment*/
+	gf_isom_release_segment(read->mov, 1);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Done playing segment - querying new one\n"));
+
+	/*update current fragment if any*/
+	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
+		if (param.url_query.discontinuity_type==2)
+			gf_isom_reset_fragment_info(read->mov);
+
+		e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
+
+#ifndef GPAC_DISABLE_LOG
+		if (e<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+		} else if (param.url_query.end_range) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
+		}
+#endif
+
+		for (i=0; i<count; i++) {
+			ISOMChannel *ch = gf_list_get(read->channels, i);
+			ch->wait_for_segment_switch = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+		}
+	} else {
+		/*consider we are done*/
+		read->frag_type = 2;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] No more segments - done playing file\n"));
+	}
+	gf_mx_v(read->segment_mutex);
+}
 
 static void init_reader(ISOMChannel *ch)
 {
 	u32 ivar;
+	if (ch->wait_for_segment_switch) {
+		check_segment_switch(ch->owner);
+		if (ch->wait_for_segment_switch) 
+			return;
+	}
 
 	ch->current_slh.accessUnitEndFlag = 1;
 	ch->current_slh.accessUnitStartFlag = 1;
@@ -64,7 +126,7 @@ static void init_reader(ISOMChannel *ch)
 		ch->last_state=GF_OK;
 	} else {
 		/*take care of seeking out of the track range*/
-		if (ch->duration<ch->start) {
+		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
 		} else {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
@@ -100,61 +162,7 @@ static void init_reader(ISOMChannel *ch)
 
 }
 
-static void check_segment_switch(ISOMReader *read)
-{
-	GF_NetworkCommand param;
-	u32 i, count;
-	GF_Err e;
 
-	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
-	gf_mx_p(read->segment_mutex);
-
-	if (!read->frag_type || !read->input->query_proxy) {
-		gf_mx_v(read->segment_mutex);
-		return;
-	}
-
-	count = gf_list_count(read->channels);
-	for (i=0; i<count; i++) {
-		ISOMChannel *ch = gf_list_get(read->channels, i);
-		/*check all playing channels are waiting for next segment*/
-		if (ch->is_playing && !ch->wait_for_segment_switch) {
-			gf_mx_v(read->segment_mutex);
-			return;
-		}
-	}
-	/*close current segment*/
-	gf_isom_release_segment(read->mov, 1);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Done playing segment - querying new one\n"));
-
-	/*update current fragment if any*/
-	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
-	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
-
-		e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
-
-#ifndef GPAC_DISABLE_LOG
-		if (e<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
-		} else if (param.url_query.end_range) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
-		}
-#endif
-
-		for (i=0; i<count; i++) {
-			ISOMChannel *ch = gf_list_get(read->channels, i);
-			ch->wait_for_segment_switch = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
-		}
-	} else {
-		/*consider we are done*/
-		read->frag_type = 2;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] No more segments - done playing file\n"));
-	}
-	gf_mx_v(read->segment_mutex);
-}
 
 void isor_reader_get_sample(ISOMChannel *ch)
 {

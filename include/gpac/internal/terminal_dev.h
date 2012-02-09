@@ -79,6 +79,12 @@ struct _net_service
 	Bool auto_rebuffer;
 
 	Bool is_paused;
+
+	/*used by DASH until we rewrite the input module API:
+	if set to 1 during a disconnect() call, the root scene of the service and all sub-objects will be disconnected
+	if set to 2 during a disconnect() call, the call will be skiped
+	*/
+	u32 subservice_disconnect;
 };
 
 
@@ -833,6 +839,9 @@ enum
 	
 	/*flag set if associated subscene must be regenerated*/
 	GF_ODM_REGENERATE_SCENE = (1<<10),
+
+	/*flag set for first play request*/
+	GF_ODM_INITIAL_BROADCAST_PLAY = (1<<11),
 };
 
 enum

@@ -755,7 +755,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, Bool query_init, const char **out_u
 	if ((query_ret==GF_OK) && !query_init && !param.url_query.next_url){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
 	} else if (query_ret) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
+		GF_LOG((query_ret<0) ? GF_LOG_ERROR : GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
 	} else {
 		if (out_url) *out_url = param.url_query.next_url;
 		if (out_start_range) *out_start_range = param.url_query.start_range;
@@ -1032,6 +1032,10 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (!ts->nb_playing) {
 			ts->start_range = (u32) (com->play.start_range*1000);
 			ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
+
+			if (ts->query_next && ts->file) 
+				ts->segment_switch = 1;
+
 			/*start demuxer*/
 			if (ts->run_state!=1) {
 				return TSDemux_DemuxPlay(ts);

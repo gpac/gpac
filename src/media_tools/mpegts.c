@@ -2626,6 +2626,11 @@ static u32 TSDemux_DemuxRun(void *_p)
 		 }
 	 } else if (ts->file) {
 		u32 pos = 0;
+
+		if (ts->segment_switch) {
+			ts->segment_switch = 0;
+			goto next_segment_setup;
+		} 
 		if (ts->start_range && ts->duration) {
 			Double perc = ts->start_range / (1000 * ts->duration);
 			pos = (u32) (s64) (perc * ts->file_size);
@@ -2678,6 +2683,7 @@ restart_file:
 		}
 		if (feof(ts->file)) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
 
+next_segment_setup:
 		if (ts->run_state && ts->query_next) {
 			const char *next_url = NULL;
 			ts->query_next(ts->query_udta, 0, &next_url, &ts->start_byterange, &ts->end_byterange);
