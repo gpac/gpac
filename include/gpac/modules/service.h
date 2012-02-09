@@ -126,6 +126,7 @@ typedef struct
 	Double start_range, end_range;
 	/*params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
 	Double speed;
+	Bool dash_segment_switch;
 } GF_NetComPlay;
 
 
@@ -313,6 +314,12 @@ typedef struct
 	/*out: range in given URL to be played - usually 0-0 as segments are downloaded to cache
 	but can be non-zero when playing local files*/
 	u64 start_range, end_range;
+	/*indicates discontinuity type at segment switch:
+		0: no discontinuity (eg, follow-up of previous segment
+		1: segment switch discontinuity (eg, bitrate/codec change)
+		2: time discontinuity - seeking has occured and some segments were skipped
+	*/
+	u32 discontinuity_type;
 } GF_NetURLQuery;
 
 /*GF_NET_SERVICE_QUALITY_SWITCH*/

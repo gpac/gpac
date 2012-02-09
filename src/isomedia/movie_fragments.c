@@ -914,6 +914,13 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	if (referenceTrackID) {
 		trak = gf_isom_get_track_from_id(movie->moov, referenceTrackID);
 	}
+	
+	if (subsegments_per_sidx < 0) {
+		referenceTrackID = 0;
+		subsegments_per_sidx = 0;
+		no_sidx = 1;
+	}
+
 	/*write STYP if we write to a different file or if we write the last segment*/
 	if ((!movie->append_segment && !movie->segment_start) || last_segment) {
 
@@ -933,11 +940,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		if (e) return e;
 	}
 
-	if (subsegments_per_sidx < 0) {
-		referenceTrackID = 0;
-		subsegments_per_sidx = 0;
-		no_sidx = 1;
-	}
 	frags_per_subseg = 0;
 	subseg_per_sidx = 0;
 	frags_per_subsidx = 0;

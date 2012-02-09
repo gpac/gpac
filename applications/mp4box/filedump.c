@@ -2431,7 +2431,7 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 	if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 	if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
 	if (langCode) fprintf(mpd, " lang=\"%s\"", gf_4cc_to_str(langCode) );
-	fprintf(mpd, " startsWithRAP=\"%s\"", split_seg_at_rap ? "true" : "false");
+	fprintf(mpd, " startWithRAP=\"%s\"", split_seg_at_rap ? "1" : "false");
 	fprintf(mpd, " bandwidth=\"%d\"", bandwidth);
 	fprintf(mpd, ">\n");
 

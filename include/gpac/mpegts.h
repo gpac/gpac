@@ -641,7 +641,7 @@ struct tag_m2ts_demux
 	/*for DASH*/
 	GF_Err (*query_next)(void *udta, Bool query_init_range, const char **next_url, u64 *next_start_range, u64 *next_end_range);
 	void *query_udta;
-
+	Bool segment_switch;
 
 	/*AIT*/
 	GF_List* ChannelAppList;

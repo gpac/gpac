@@ -1238,8 +1238,11 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	stbl = trak->Media->information->sampleTable;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (desiredTime < trak->dts_at_seg_start) return GF_BAD_PARAM;
-	desiredTime -= trak->dts_at_seg_start;
+	if (desiredTime < trak->dts_at_seg_start) {
+		desiredTime = 0;
+	} else {
+		desiredTime -= trak->dts_at_seg_start;
+	}
 #endif
 
 	e = findEntryForTime(stbl, desiredTime, 0, &sampleNumber, &prevSampleNumber);
@@ -1392,7 +1395,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 			return GF_EOS;
 		}
 	}
-	else if (movieTime * trak->moov->mvhd->timeScale > trak->Header->duration * trak->Media->mediaHeader->timeScale) {
+	else if (!trak->dts_at_seg_start && (movieTime * trak->moov->mvhd->timeScale > trak->Header->duration * trak->Media->mediaHeader->timeScale)) {
 		*sample = NULL;
 		if (sampleNumber) *sampleNumber = 0;
 		*StreamDescriptionIndex = 0;
@@ -1458,6 +1461,10 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 		}
 	}
 	if (sampleNumber) *sampleNumber = sampNum;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if ( (*sample) ) (*sample)->DTS += trak->dts_at_seg_start;
+#endif
+
 	return GF_OK;
 }
 
@@ -2677,6 +2684,19 @@ Bool gf_isom_moov_first(GF_ISOFile *movie)
 		if (b->type == GF_ISOM_BOX_TYPE_MDAT) return 0;
 	}
 	return 0;
+}
+
+void gf_isom_reset_fragment_info(GF_ISOFile *movie)
+{
+	u32 i;
+	if (!movie) return;
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+		trak->dts_at_seg_start = 0;
+		trak->sample_count_at_seg_start = 0;
+		trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
+	}
+	movie->NextMoofNumber = 0;
 }
 
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance)

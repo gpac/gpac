@@ -674,6 +674,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_primary_item_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_JPEG2000) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_rvc_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_fragment_info) )
 
 
 # ifndef GPAC_DISABLE_ISOM_DUMP

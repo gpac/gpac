@@ -791,6 +791,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (com->play.end_range >= 0) ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
 		}
 		ch->is_playing = 1;
+		if (com->play.dash_segment_switch) ch->wait_for_segment_switch = 1;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
