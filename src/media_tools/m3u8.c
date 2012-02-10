@@ -340,6 +340,7 @@ static Bool safe_start_equals(const char * attribute, const char * line) {
 static char ** extractAttributes(const char * name, const char * line, const int numberOfAttributes) {
 	int sz, i, currentAttribute, start;
 	char ** ret;
+	u8 quote=0;
 	int len = strlen(line);
 	start = strlen(name);
 	if (len <= start)
@@ -349,7 +350,7 @@ static char ** extractAttributes(const char * name, const char * line, const int
 	ret = gf_calloc((numberOfAttributes + 1 ), sizeof(char*));
 	currentAttribute = 0;
 	for (i = start ; i <= len ; i++) {
-		if (line[i] == '\0' || line[i] == ',') {
+		if (line[i] == '\0' || (!quote && line[i] == ',')  || (line[i] == quote) ) {
 			u32 spaces = 0;
 			sz = 1 + i - start;
 			while (line[start+spaces] == ' ') spaces++;
@@ -360,6 +361,10 @@ static char ** extractAttributes(const char * name, const char * line, const int
 			if (start == len) {
 				return ret;
 			}
+		}
+		if ((line[i] == '\'') || (line[i] == '"'))  {
+			if (quote) quote = 0;
+			else quote = line[i];
 		}
 	}
 	if (currentAttribute == 0) {

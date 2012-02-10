@@ -5315,6 +5315,7 @@ typedef struct
 	Bool force_next_au_start;
 	Bool stream_setup;
 	u32 nb_video, nb_video_configured;
+	u32 nb_audio, nb_audio_configured;
 
 } GF_TSImport;
 
@@ -5610,12 +5611,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_audio++;
 					break;
 				case GF_M2TS_AUDIO_MPEG2:
 					import->tk_info[idx].media_type = GF_4CC('M','P','G','2');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_audio++;
 					break;
 				case GF_M2TS_AUDIO_AAC:
 				case GF_M2TS_AUDIO_LATM_AAC:
@@ -5623,18 +5626,21 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_audio++;
 					break;
 				case GF_M2TS_AUDIO_AC3:
 					import->tk_info[idx].media_type = GF_4CC('D','A','C','3');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_audio++;
 					break;
 				case GF_M2TS_AUDIO_EC3:
 					import->tk_info[idx].media_type = GF_4CC('D','E','C','3');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
+					tsimp->nb_audio++;
 					break;
 				case GF_M2TS_SYSTEMS_MPEG4_PES:
 				case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
@@ -5777,12 +5783,15 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (import->flags & GF_IMPORT_PROBE_ONLY) {
 				for (i=0; i<import->nb_tracks; i++) {
 					if (import->tk_info[i].track_num == pck->stream->pid) {
-						if (pck->stream->aud_sr) {
+						if (pck->stream->aud_sr && ! import->tk_info[i].audio_info.sample_rate) {
 							import->tk_info[i].audio_info.sample_rate = pck->stream->aud_sr;
 							import->tk_info[i].audio_info.nb_channels = pck->stream->aud_nb_ch;
 							if ((pck->stream->stream_type==GF_M2TS_AUDIO_AAC) || (pck->stream->stream_type==GF_M2TS_AUDIO_LATM_AAC)) {
 								sprintf(import->tk_info[i].szCodecProfile, "mp4a.40.%02x", (u8) pck->stream->aud_obj_type);
 							}
+							import->tk_info[i].audio_info.sample_rate = pck->stream->aud_sr;
+							import->tk_info[i].audio_info.nb_channels = pck->stream->aud_nb_ch;
+							tsimp->nb_audio_configured++;
 						} else {
 							/*unpack AVC config*/
 							if ((pck->stream->stream_type==GF_M2TS_VIDEO_H264) && !pck->data[0] && !pck->data[1]) {
@@ -5791,15 +5800,18 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 									sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
 								}
 							}
-							if (! import->tk_info[i].video_info.width ) {
+							if (pck->stream->vid_w && ! import->tk_info[i].video_info.width ) {
 								import->tk_info[i].video_info.width = pck->stream->vid_w;
 								import->tk_info[i].video_info.height = pck->stream->vid_h;
 								tsimp->nb_video_configured++;
-								/*consider we are done if not using 4 on 2*/
-								if (!ts->has_4on2 && (tsimp->nb_video_configured == tsimp->nb_video))
-									import->flags |= GF_IMPORT_DO_ABORT;
 							}
-
+						}
+						/*consider we are done if not using 4 on 2*/
+						if (!ts->has_4on2 
+							&& (tsimp->nb_video_configured == tsimp->nb_video)
+							&& (tsimp->nb_audio_configured == tsimp->nb_audio)
+							) {
+							import->flags |= GF_IMPORT_DO_ABORT;
 						}
 						break;
 					}
