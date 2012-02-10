@@ -949,14 +949,12 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 	the_pe = NULL;
 	pe = NULL;
-	is_end = !pl->playlistNeedsRefresh;
 	i=0;
 	assert( pl );
 	assert( pl->programs );
 	while ((prog = gf_list_enum(pl->programs, &i))) {
 		u32 j=0;
-		if (max_dur < (u32) prog->computed_duration)
-			max_dur = (u32) prog->computed_duration;
+
 		while (NULL != (pe = gf_list_enum(prog->bitrates, &j))) {
 			Bool found = 0;
 			u32 k;
@@ -998,15 +996,22 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				gf_term_download_del(sess);
 				gf_free(suburl);
 			} else { /* for use in MP4Box */
-				e = gf_dm_wget(suburl, "tmp.m3u8");
-				if (e==GF_OK) {
-					e = parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
+				if (strstr(suburl, "://") && !strstr(suburl, "://") ) {
+					e = gf_dm_wget(suburl, "tmp.m3u8");
+					if (e==GF_OK) {
+						e = parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
+					}
+					gf_delete_file("tmp.m3u8");
+				} else {
+					e = parse_sub_playlist(suburl, &pl, suburl, prog, pe);
 				}
-				gf_delete_file("tmp.m3u8");
 			}
 		}
+		if (max_dur < (u32) prog->computed_duration)
+			max_dur = (u32) prog->computed_duration;
 	}
 
+	is_end = !pl->playlistNeedsRefresh;
 	assert(the_pe);
 
 	update_interval = 0;
@@ -1210,6 +1215,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	/*check if we use templates*/
 	count = gf_list_count(pl->programs);
 	for (i=0; i<count; i++) {
+		u32 width, height, samplerate, num_channels;
 		prog = gf_list_get(pl->programs, i);
 		count2 = gf_list_count(prog->bitrates);
 		for (j = 0; j<count2; j++) {
@@ -1236,6 +1242,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			}
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
+			width = height = samplerate = num_channels = 0;
 			if (do_import) {
 				GF_Err e;
 				GF_MediaImporter import;
@@ -1288,6 +1295,19 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					}
 					pe->codecs = gf_strdup(szCodecs);
 				}
+				for (k=0; k<import.nb_tracks; k++) {
+					switch (import.tk_info[k].type) {
+					case GF_ISOM_MEDIA_VISUAL:
+						width = import.tk_info[k].video_info.width;
+						height = import.tk_info[k].video_info.height;
+						break;
+					case GF_ISOM_MEDIA_AUDIO:
+						samplerate = import.tk_info[k].audio_info.sample_rate;
+						num_channels = import.tk_info[k].audio_info.nb_channels;
+						break;
+					}
+				}
+
 			}
 #endif
 
@@ -1300,6 +1320,12 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			}
 			if (pe->codecs)
 				fprintf(fmpd, " codecs=\"%s\"", pe->codecs);
+			if (width && height) {
+				fprintf(fmpd, " width=\"%d\" height=\"%d\"", width, height);
+			}
+			if (samplerate)
+				fprintf(fmpd, " audioSamplingRate=\"%d\"", samplerate);
+			
 
 			if (use_template) {
 				if (sep) {
@@ -1314,16 +1340,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			fprintf(fmpd, ">\n");
 
-			if (sep) {
-				sep[1] = 0;
-				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", base_url);
-			}
-
 			byte_range_media_file = NULL;
 			elt = gf_list_get(pe->element.playlist.elements, 0);
 			if (elt && (elt->byteRangeEnd || elt->byteRangeStart)) {
 				byte_range_media_file = elt->url;
 				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", byte_range_media_file);
+			} else if (sep) {
+				sep[1] = 0;
+				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", base_url);
 			}
 
 			fprintf(fmpd, "    <SegmentList duration=\"%d\">\n", pe->durationInfo);
