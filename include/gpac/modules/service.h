@@ -127,6 +127,8 @@ typedef struct
 	/*params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
 	Double speed;
 	Bool dash_segment_switch;
+	/*indicates theis is the first PLAY on an elemnt inserted from bcast*/
+	Bool initial_broadcast_play;
 } GF_NetComPlay;
 
 
