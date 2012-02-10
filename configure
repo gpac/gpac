@@ -2684,57 +2684,17 @@ fi
 echo '%.opic : %.c' >> config.mak
 echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
 
-
-
-pkgconfig_generate(){
-name=$1
-shortname=${name#lib}${build_suffix}
-comment=$2
-version=$3
-libs=$4
-requires=$5
-enabled ${name#lib} || return 0
-mkdir -p $name
-cat <<EOF > $name/$name.pc
-prefix=$prefix
-exec_prefix=\${prefix}
-libdir=$libdir
-includedir=$incdir
-
-Name: $name
-Description: $comment
-Version: $version
-Requires: $(enabled shared || echo $requires)
-Requires.private: $(enabled shared && echo $requires)
-Conflicts:
-Libs: -L\${libdir} -l${shortname} $(enabled shared || echo $libs)
-Libs.private: $(enabled shared && echo $libs)
-Cflags: -I\${includedir}
-EOF
-cat <<EOF > $name/$name-uninstalled.pc
-prefix=
-exec_prefix=
-libdir=\${pcfiledir}
-includedir=${source_path}
-
-Name: $name
-Description: $comment
-Version: $version
-Requires: $requires
-Conflicts:
-Libs: \${libdir}/${LIBPREF}${shortname}${LIBSUF} $libs
-Cflags: -I\${includedir}
-EOF
-}
-
-pkgconfig_generate libavutil "FFmpeg utility library" "$LIBAVUTIL_VERSION" "$LIBM"
-pkgconfig_generate libavcodec "FFmpeg codec library" "$LIBAVCODEC_VERSION" "$extralibs" "libavutil = $LIBAVUTIL_VERSION"
-pkgconfig_generate libavformat "FFmpeg container format library" "$LIBAVFORMAT_VERSION" "$extralibs" "libavcodec = $LIBAVCODEC_VERSION"
-pkgconfig_generate libavdevice "FFmpeg device handling library" "$LIBAVDEVICE_VERSION" "$extralibs" "libavformat = $LIBAVFORMAT_VERSION"
-pkgconfig_generate libavfilter "FFmpeg video filtering library" "$LIBAVFILTER_VERSION" "$extralibs"
-pkgconfig_generate libpostproc "FFmpeg postprocessing library" "$LIBPOSTPROC_VERSION" "" "libavutil = $LIBAVUTIL_VERSION"
-pkgconfig_generate libswscale "FFmpeg image rescaling library" "$LIBSWSCALE_VERSION" "$LIBM" "libavutil = $LIBAVUTIL_VERSION"
-pkgconfig_generate libswresample "FFmpeg audio rescaling library" "$LIBSWRESAMPLE_VERSION" "$LIBM" "libavutil = $LIBAVUTIL_VERSION"
-
+#pkg-config
+echo "prefix=$prefix"				 > gpac.pc
+echo "exec_prefix=\${prefix}"			>> gpac.pc
+echo "libdir=\${exec_prefix}/lib"		>> gpac.pc
+echo "includedir=\${exec_prefix}/include"	>> gpac.pc
+echo ""						>> gpac.pc
+echo "Name: gpac"				>> gpac.pc
+echo "Description: GPAC Multimedia Framework"	>> gpac.pc
+echo "URL: http://gpac.sourceforge.net"		>> gpac.pc
+echo "Version:$version"				>> gpac.pc
+echo "Cflags: -I\${prefix}/include/gpac"	>> gpac.pc
+echo "Libs: -L\${libdir} -lgpac"		>> gpac.pc
 
 echo "Done - type 'make help' for make info, 'make' to build"
