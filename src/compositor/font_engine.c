@@ -356,6 +356,8 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 		glyph->width = 0;
 		glyph->ID = name;
 		glyph->utf_name=name;
+	} else if (name==(u32) '\t') {
+		return NULL;
 	} else {
 		/*load glyph*/
 		if (font->load_glyph) {
