@@ -1381,7 +1381,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	
 	if (odm->flags & GF_ODM_INITIAL_BROADCAST_PLAY) {
 		odm->flags &= ~GF_ODM_INITIAL_BROADCAST_PLAY;
-		com.play.dash_segment_switch = 1;
+		com.play.initial_broadcast_play = 1;
 	}
 
 
