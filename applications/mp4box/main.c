@@ -1948,7 +1948,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) { 
 			CHECK_NEXT_ARG 
 			if (!strstr(argv[i+1], ":")) {
-				fprintf(stdout, "Chunk extraction usage: \"-splitx start->end\" expressed in seconds\n");
+				fprintf(stdout, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
 				return 1;
 			}
 			sscanf(argv[i+1], "%lf:%lf", &split_start, &split_duration);
