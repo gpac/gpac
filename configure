@@ -292,6 +292,8 @@ for opt do
     case "$opt" in
         --prefix=*) prefix=`echo $opt | cut -d '=' -f 2`
             ;;
+        --libdir=*) libdir=`echo $opt | cut -d '=' -f 2`
+            ;;
         --mandir=*) mandir=`echo $opt | cut -d '=' -f 2`
             ;;
         --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
@@ -340,9 +342,6 @@ case "$cpu" in
         if [ x"$canon_arch" = x"x86_64" -o x"$canon_arch" = x"amd64" ]; then
             if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
                 cpu="x86_64"
-                if test "$linux" = "yes" ; then
-                    libdir="lib64"
-                fi
                 want_pic="yes"
             fi
         fi
@@ -355,7 +354,6 @@ case "$cpu" in
         ;;
     ppc64)
         cpu="powerpc"
-        libdir="lib64"
         ;;  
     "Power Macintosh"|ppc)
         cpu="powerpc"
