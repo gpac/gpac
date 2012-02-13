@@ -59,6 +59,9 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
+	if [ -d  $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
+	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
+	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
 	$(INSTALL) bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
 	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
@@ -89,6 +92,7 @@ uninstall:
 	$(MAKE) -C applications uninstall
 	rm -rf $(DESTDIR)$(moddir)
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/libgpac*
+	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
