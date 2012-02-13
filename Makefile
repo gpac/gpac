@@ -57,7 +57,9 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+endif
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
 	if [ -d  $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
