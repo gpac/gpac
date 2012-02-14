@@ -402,8 +402,10 @@ pkg_config="${cross_prefix}${pkg_config}"
 
 
 #check pkg_config
-if ! $pkg_config --version >/dev/null 2>&1 ; then
-    echo "$pkg_config not found, configure may detect wrong libraries"
+if test "$cross_prefix" = "" ; then
+    if ! $pkg_config --version >/dev/null 2>&1 ; then
+        echo "$pkg_config not found, configure may detect wrong libraries"
+    fi
 fi
 
 
@@ -594,13 +596,9 @@ fi
 
 #GCC opt
 if test "$no_gcc_opt" = "no"; then
-    if $cc --version | grep 'sbox-arm-linux-gcc (GCC) 3.4.4'
-    then
-        echo "Detected buggy arm GCC (diablo), using -O2"
-        CFLAGS="-O2 $CFLAGS"
-    else
-        CFLAGS="-O3 $CFLAGS"
-    fi
+    CFLAGS="-O3 $CFLAGS"
+else
+    CFLAGS="-O0 $CFLAGS"
 fi
 
 
@@ -854,7 +852,7 @@ int main( void ) {
   DeviceDescriptor* dd = 0;
   for (DeviceCollector::DeviceList::const_iterator i = dl.begin(); i != dl.end(); i++) {
     dd = *i;
-	std::cout << dd->getName().c_str() << "\n";
+    std::cout << dd->getName().c_str() << "\n";
   }
   return 0; 
 }
@@ -870,7 +868,7 @@ else
         avcap_ldflags="-lavcap -lpthread"
     fi
     if $cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags 2> /dev/null  ; then
-		has_avcap="yes"
+        has_avcap="yes"
         avcap_ldflags="-L../../$local_lib $avcap_ldflags"
     fi
 fi
@@ -1283,13 +1281,14 @@ fi
 
 #look for OSS support
 if test "$darwin" = "yes" ; then
+
     cat > $TMPC << EOF
 #include <soundcard.h>
 int main( void ) { return 0; }
 EOF
 
     if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss $LDFLAGS 2> /dev/null ; then
-        has_oss_audio="SYS"
+        has_oss_audio="yes"
         OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
         OSS_LDFLAGS="-L$alt_macosx_dir/lib -loss"
     fi
@@ -1305,7 +1304,7 @@ int main( void ) { return 0; }
 EOF
 
     if $cc -o $TMPO $TMPC 2> /dev/null  ; then
-        has_oss_audio="SYS"
+        has_oss_audio="yes"
     else
         cat > $TMPC << EOF
 #include <sys/ioctl.h>
@@ -1316,7 +1315,7 @@ int main( void ) { return 0; }
 EOF
 
         if $cc -o $TMPO $TMPC $LDFLAGS 2> /dev/null  ; then
-            has_oss_audio="YES"
+            has_oss_audio="yes"
         fi
     fi
 
@@ -1328,44 +1327,44 @@ fi
 has_wx="no"
 wx_too_old="no"
 
-if type wx-config >/dev/null 2>&1; then
+if test "$cross_prefix" = "" ; then
+    if type wx-config >/dev/null 2>&1; then
 
-    wx_version=`wx-config --version | sed 's/[^0-9]//g'`
+        wx_version=`wx-config --version | sed 's/[^0-9]//g'`
 
-    if test "$wx_version" -lt 250 ; then
-        wx_too_old="yes"
-        has_wx="yes"
-    else
-        if test "$wx_version" -lt 260 ; then
+        if test "$wx_version" -lt 250 ; then
+            wx_too_old="yes"
             has_wx="yes"
-            wx_cflags=`wx-config --cppflags`
-            wx_lflags=`wx-config --libs`
         else
-            has_wx="yes"
-            wx_cflags=`wx-config --cppflags core, base`
-            wx_lflags=`wx-config --libs core, base`
+            if test "$wx_version" -lt 260 ; then
+                has_wx="yes"
+                wx_cflags=`wx-config --cppflags`
+                wx_lflags=`wx-config --libs`
+            else
+                has_wx="yes"
+                wx_cflags=`wx-config --cppflags core, base`
+                wx_lflags=`wx-config --libs core, base`
+            fi
+
+            if test "$darwin" = "yes" ; then
+                wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
+            fi
         fi
 
-        if test "$darwin" = "yes" ; then
-            wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
-        fi
-
-    fi
-
-    cat > $TMPCPP << EOF
+        cat > $TMPCPP << EOF
 #include <wx/wx.h>
 int main( void ) { return 0; }
 EOF
 
-    if $cc $wx_cflags -o $TMPO $TMPCPP $wx_lflags > /dev/null 2>&1 ; then
-        wx_version=`wx-config --version | sed 's/[^0-9]//g'`
-        if test "$wx_version" -lt 254 ; then
-            wx_too_old="yes"
-        else
-            has_wx="yes"
+        if $cc $wx_cflags -o $TMPO $TMPCPP $wx_lflags > /dev/null 2>&1 ; then
+            wx_version=`wx-config --version | sed 's/[^0-9]//g'`
+            if test "$wx_version" -lt 254 ; then
+                wx_too_old="yes"
+            else
+                has_wx="yes"
+            fi
         fi
     fi
-
 fi
 #end wx test
 
@@ -1920,30 +1919,32 @@ if test "$sdl_local" = "yes"; then
     sdl_static="yes"
 fi
 
-if type $sdl_config >/dev/null 2>&1; then
 
-    cat > $TMPC << EOF
+if test "$cross_prefix" = "" ; then
+    if type $sdl_config >/dev/null 2>&1; then
+
+        cat > $TMPC << EOF
 #include <SDL.h>
 #undef main
 int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
 EOF
 
-    if test "$sdl_static" = "yes"; then
-        sdl_lib_flags=`$sdl_config --static-libs`
-    else
-        sdl_lib_flags=`$sdl_config --libs`
-    fi
-    sdl_cflags=`$sdl_config --cflags`
-
-    if $cc -o $TMPO $sdl_cflags $TMPC $LDFLAGS $sdl_lib_flags  > /dev/null 2>&1  ; then
-        _sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
-        if test "$_sdlversion" -lt 121 ; then
-            sdl_too_old=yes
+        if test "$sdl_static" = "yes"; then
+            sdl_lib_flags=`$sdl_config --static-libs`
         else
-            has_sdl=yes
+            sdl_lib_flags=`$sdl_config --libs`
+        fi
+        sdl_cflags=`$sdl_config --cflags`
+
+        if $cc -o $TMPO $sdl_cflags $TMPC $LDFLAGS $sdl_lib_flags  > /dev/null 2>&1  ; then
+            _sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
+            if test "$_sdlversion" -lt 121 ; then
+                sdl_too_old=yes
+            else
+                has_sdl=yes
+            fi
         fi
     fi
-
 fi
 #end SDL check
 
