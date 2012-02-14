@@ -15,7 +15,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(OSS_INC_TYPE), SYS)
+ifeq ($(OSS_INC_TYPE), yes)
 else
 CFLAGS+=-DOSS_FIX_INC
 endif
