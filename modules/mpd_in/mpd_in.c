@@ -1874,6 +1874,7 @@ void MPD_SeekGroup(GF_MPD_In *mpdin, GF_MPD_Group *group)
 	u32 first_downloaded, last_downloaded, segment_idx;
 
 	group->force_segment_switch = 0;
+	if (!group->segment_duration) return;
 
 	/*figure out where to seek*/
 	segment_idx = 0;
