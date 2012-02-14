@@ -168,7 +168,7 @@ endif
 EXTRALIBS+=$(GPAC_SH_FLAGS)
 endif
 
-LD_SONAME="-Wl,-soname,$(LIB)"
+LD_SONAME="-Wl,-soname,libgpac.so.$(VERSION_MAJOR)"
 ifeq ($(CONFIG_DARWIN), yes)
 LD_SONAME=
 endif
@@ -210,6 +210,11 @@ else
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJS) $(EXTRALIBS)
+ifeq (,$(findstring yes, $(CONFIG_WIN32)))
+	mv ../bin/gcc/$@ ../bin/gcc/$@.$(VERSION_SONAME)
+	ln -sf $@.$(VERSION_SONAME) ../bin/gcc/$@.$(VERSION_MAJOR)
+	ln -sf $@.$(VERSION_SONAME) ../bin/gcc/$@
+endif
 endif
 
 dep: depend
@@ -220,7 +225,9 @@ depend:
 
 clean: 
 	rm -f $(OBJS) ../bin/gcc/$(LIB)
-	rm -rf ../bin/gcc/libgpac_static.a
+	rm -rf ../bin/gcc/libgpac_static.a ../bin/gcc/libgpac.so \
+		../bin/gcc/libgpac.so.$(VERSION_MAJOR) \
+		../bin/gcc/libgpac.so.$(VERSION_SONAME)
 
 distclean: clean
 	rm -f Makefile.bak .depend

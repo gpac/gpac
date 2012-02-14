@@ -298,7 +298,7 @@ for opt do
             ;;
         --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
             ;;
-        --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2` && echo "cross-prefix detected: $cross_prefix"
+        --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2` && echo "\ncross-prefix detected: $cross_prefix"
             ;;
         --cc=*) cc=`echo $opt | cut -d '=' -f 2`
             ;;
@@ -2010,6 +2010,10 @@ echo "#define GF_CONFIG_H" >> $TMPH
 echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 version="`grep '#define GPAC_VERSION ' \"$source_path/include/gpac/tools.h\" | cut -d '"' -f 2`"
+version_major=`grep '#define GPAC_VERSION_MAJOR ' $source_path/include/gpac/tools.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
+version_minor=`grep '#define GPAC_VERSION_MINOR ' $source_path/include/gpac/tools.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
+version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/tools.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
+soname_version="${version_major}.${version_minor}.${version_micro}"
 
 if which svnversion >/dev/null
 then
@@ -2245,8 +2249,8 @@ if test "$enable_renoir" = "yes" ; then
     echo "Renoir enabled - make sure the driver libraries are present in modules/viren_out directory"
 fi
 
-echo ""
 if test "$has_amr_nb_fixed" = "yes" ; then
+    echo ""
     echo "*** AMR NB FIXED-POINT NOTICE ***"
     echo "Make sure you have downloaded TS26.073 from:"
     echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-*.zip"
@@ -2255,8 +2259,8 @@ if test "$has_amr_nb_fixed" = "yes" ; then
     echo ""
 fi
 
-echo ""
 if test "$has_amr_nb" = "yes" ; then
+    echo ""
     echo "*** AMR NB NOTICE ***"
     echo "Make sure you have downloaded TS26.104 from:"
     echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.104/26104-*.zip"
@@ -2266,8 +2270,8 @@ if test "$has_amr_nb" = "yes" ; then
 fi
 
 
-echo ""
 if test "$has_amr_wb" = "yes" ; then
+    echo ""
     echo "*** AMR WB NOTICE ***"
     echo "Make sure you have downloaded TS26.204 from:"
     echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.204/26204-*.zip"
@@ -2276,6 +2280,7 @@ if test "$has_amr_wb" = "yes" ; then
     echo ""
 fi
 
+echo ""
 if test "$use_memory_tracking" = "yes"; then
     echo "!! WARNING: GPAC Memory tracking is enabled !!"
     echo "!! This may corrupt third-party tools using libgpac !!"
@@ -2350,6 +2355,8 @@ if test "$bigendian" = "yes" ; then
 fi
 echo "EXTRALIBS=$extralibs" >> config.mak
 echo "VERSION=$version" >>config.mak
+echo "VERSION_MAJOR=$version_major" >>config.mak
+echo "VERSION_SONAME=$soname_version" >>config.mak
 
 if test "$use_fixed_point" = "yes"; then
     echo "#define GPAC_FIXED_POINT" >> $TMPH
