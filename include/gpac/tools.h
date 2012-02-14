@@ -57,8 +57,14 @@ extern "C" {
  *
  *	Macro giving GPAC version expressed as a printable string
 */
-/*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
-#define GPAC_VERSION       "0.4.6-DEV"
+/* KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)
+ * NO SPACE in GPAC_VERSION for proper install
+ * SONAME versions must be digits (not strings)
+ */
+#define GPAC_VERSION          "0.4.6-DEV"
+#define GPAC_VERSION_MAJOR    1
+#define GPAC_VERSION_MINOR    0
+#define GPAC_VERSION_MICRO    0
 
 #include <gpac/version.h>
 #define GPAC_FULL_VERSION       GPAC_VERSION"-rev"GPAC_SVN_REVISION
