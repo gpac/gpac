@@ -122,10 +122,13 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	DDCONTEXT;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
-	if (use_system_memory) {
-		if (opt && !strcmp(opt, "Always")) use_system_memory = 0;
-	} else {
-		if (opt && !strcmp(opt, "Never")) use_system_memory = 1;
+	if (opt) {
+		if (use_system_memory) {
+			if (!strcmp(opt, "Always")) use_system_memory = 0;
+		} else {
+			if (!strcmp(opt, "Never")) use_system_memory = 1;
+			else if (!strcmp(opt, "Auto")) dd->force_video_mem_for_yuv = 1;
+		}
 	}
 
 	force_reinit = 0;
@@ -190,6 +193,7 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	return GF_OK;
 }
 
+
 GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 {
 	HRESULT hr;
@@ -209,6 +213,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	hr = ddraw->lpVtbl->QueryInterface(ddraw, &IID_IDirectDraw7, (LPVOID *)&dd->pDD);
 	ddraw->lpVtbl->Release(ddraw);
 	if (FAILED(hr)) return GF_IO_ERR;
+
 
 	dd->switch_res = 0;
 	cooplev = DDSCL_NORMAL;
@@ -292,6 +297,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
         return GF_IO_ERR;
     }
 	pcClipper->lpVtbl->Release(pcClipper);
+
 	dd->ddraw_init = 1;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/
 	return CreateBackBuffer(dr, Width, Height, dd->yuv_init);
@@ -393,6 +399,9 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		if (key) flags |= DDBLT_KEYSRC;
 		hr = dd->pBack->lpVtbl->Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
 	}
+
+	if (src->is_yuv && dd->force_video_mem_for_yuv && dd->systems_memory) return GF_IO_ERR;
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit src w=%d,h=%d to dst w=%d,h=%d - result: %08x\n", src_w, src_h, dst_w, dst_h, hr));
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
@@ -422,6 +431,7 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 
 			SAFE_DD_RELEASE(yuvp->pSurface);
 			memset(yuvp, 0, sizeof(DDSurface));
+			yuvp->is_yuv = 1;
 
 			memset (&ddsd, 0, sizeof(ddsd));
 			ddsd.dwSize = sizeof(ddsd);
@@ -688,6 +698,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 			if (dd->yuv_pool.pSurface) {
 				SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 				memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+				dd->yuv_pool.is_yuv = 1;
 			}
 
 			dr->yuv_pixel_format = formats[i];
@@ -734,6 +745,7 @@ rem_fmt:
 		if (dd->yuv_pool.pSurface) {
 			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+			dd->yuv_pool.is_yuv = 1;
 		}
 
 		if (best_planar && (min_planar <= min_packed )) {

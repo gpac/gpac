@@ -91,6 +91,7 @@ typedef struct
 {
     LPDDRAWSURFACE pSurface;
 	u32 width, height, format, pitch;
+	Bool is_yuv;
 } DDSurface;
 
 
@@ -181,11 +182,10 @@ typedef struct
 	Bool windowless, hidden;
 
 	Bool dd_lost;
-
+	Bool force_video_mem_for_yuv;
 
 	HMODULE hDDrawLib;
     DIRECTDRAWCREATEPROC DirectDrawCreate;
-
 } DDContext;
 
 void DD_SetupWindow(GF_VideoOutput *dr, Bool hide);

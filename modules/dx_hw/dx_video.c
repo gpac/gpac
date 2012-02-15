@@ -167,6 +167,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		memset(&dd->rgb_pool, 0, sizeof(DDSurface));
 		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+		dd->yuv_pool.is_yuv = 1;
 
 		SAFE_DD_RELEASE(dd->pPrimary);
 		SAFE_DD_RELEASE(dd->pBack);
