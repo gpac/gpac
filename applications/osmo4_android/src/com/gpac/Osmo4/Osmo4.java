@@ -429,7 +429,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.cleanCache:
                 return cleanCache();
             case R.id.showVirtualKeyboard:
-                showKeyboard(true);
+                showKeyboard(!keyboardIsVisible);
                 return true;
             case R.id.reloadFile:
             	openURLasync(currentURL);
@@ -1004,7 +1004,14 @@ public class Osmo4 extends Activity implements GpacCallback {
         if (keyboardIsVisible == showKeyboard)
             return;
         this.keyboardIsVisible = showKeyboard;
-        InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
-        mgr.toggleSoftInput(0, 0);
+        
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+            	InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
+            	mgr.toggleSoftInputFromWindow(mGLView.getWindowToken(), 0, 0);
+            	mGLView.requestFocus();
+            }
+        });
     }
 }
