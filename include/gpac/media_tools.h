@@ -391,7 +391,7 @@ if force_end_of_session is set, this flushes the SAF Session - no more operation
 GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size);
 
 
-GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, char *init_segment, Double period_duration);
+GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Double period_duration);
 GF_Err gf_media_mpd_end(char *mpd_name);
 
 #ifdef __cplusplus
