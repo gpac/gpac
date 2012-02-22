@@ -709,7 +709,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	GF_Err e;
 	char sOpt[100], sKey[100];
 	char szCodecs[200], szCodec[100];
-	char szComponents[1000];
 	u32 cur_seg, fragment_index, nb_fragments, max_sap_type;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
@@ -989,30 +988,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 		gf_list_add(fragmenters, tf);
 
 		nb_samp += count;
-	}
-
-	/*format component info*/
-	szComponents[0] = 0;
-	for (i=0; i<gf_list_count(fragmenters); i++) {
-		char szComponent[100];
-		tf = gf_list_get(fragmenters, i);
-		switch (tf->MediaType) {
-		case GF_ISOM_MEDIA_TEXT:
-			gf_isom_get_media_language(input, i+1, langCode);
-			sprintf(szComponent, "    <ContentComponent id=\"%d\" contentType=\"text\" lang=\"%s\"/>\n", tf->TrackID, langCode);
-			break;
-		case GF_ISOM_MEDIA_VISUAL:
-			sprintf(szComponent, "    <ContentComponent id=\"%d\" contentType=\"video\"/>\n", tf->TrackID);
-			break;
-		case GF_ISOM_MEDIA_SCENE:
-		case GF_ISOM_MEDIA_DIMS:
-			sprintf(szComponent, "    <ContentComponent id=\"%d\" contentType=\"application\" lang=\"%s\"/>\n", tf->TrackID, langCode);
-			break;
-		case GF_ISOM_MEDIA_AUDIO:
-			sprintf(szComponent, "    <ContentComponent id=\"%d\" contentType=\"audio\" lang=\"%s\"/>\n", tf->TrackID, langCode);
-			break;
-		}
-		strcat(szComponents, szComponent);
 	}
 
 	if (!tfref) tfref = gf_list_get(fragmenters, 0);
@@ -1485,7 +1460,6 @@ restart_fragmentation_pass:
 		
 		fprintf(mpd, " bandwidth=\"%d\"", bandwidth);		
 		fprintf(mpd, ">\n");
-		if (strlen(szComponents)) fprintf(mpd, "%s", szComponents);
 
 		if (dash_ctx) {
 			Double seg_dur;
@@ -1583,7 +1557,7 @@ err_exit:
 }
 
 
-GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, char *init_segment, Double period_duration)
+GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Double period_duration)
 {
 	u32 h, m;
 	Double s;
@@ -1606,11 +1580,37 @@ GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bo
 	fprintf(mpd, "  <AdaptationSet>\n");
 
 	if (init_segment) {
+		u32 i;
+		char langCode[4];
+		langCode[3] = 0;
+
+		for (i=0; i<gf_isom_get_track_count(init_segment); i++) {
+			u32 trackID = gf_isom_get_track_id(init_segment, i+1);
+
+			gf_isom_get_media_language(init_segment, i+1, langCode);
+
+			switch (gf_isom_get_media_type(init_segment, i+1) ) {
+			case GF_ISOM_MEDIA_TEXT:
+				fprintf(mpd, "    <ContentComponent id=\"%d\" contentType=\"text\" lang=\"%s\"/>\n", trackID, langCode);
+				break;
+			case GF_ISOM_MEDIA_VISUAL:
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"video\"/>\n", trackID);
+				break;
+			case GF_ISOM_MEDIA_SCENE:
+			case GF_ISOM_MEDIA_DIMS:
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"application\" lang=\"%s\"/>\n", trackID, langCode);
+				break;
+			case GF_ISOM_MEDIA_AUDIO:
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"audio\" lang=\"%s\"/>\n", trackID, langCode);
+				break;
+			}
+		}
+
 		if (use_url_template) {
-			fprintf(mpd, "   <SegmentTemplate initialization=\"%s\"/>\n", init_segment);	
+			fprintf(mpd, "   <SegmentTemplate initialization=\"%s\"/>\n", gf_isom_get_filename(init_segment) );	
 		} else if (0 && !single_segment) {
 			fprintf(mpd, "   <SegmentList>\n");	
-			fprintf(mpd, "    <Initialization sourceURL=\"%s\"/>\n", init_segment);	
+			fprintf(mpd, "    <Initialization sourceURL=\"%s\"/>\n", gf_isom_get_filename(init_segment) );	
 			fprintf(mpd, "   </SegmentList>\n");	
 		}
 	}
