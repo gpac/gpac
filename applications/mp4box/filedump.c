@@ -2396,23 +2396,6 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 	strcpy(szCodecs, "");
 	width = height = sample_rate = nb_channels = langCode = 0;
 
-	if (!e) {
-		for (i=0; i<import.nb_tracks;i++) {
-			if (strlen(import.tk_info[i].szCodecProfile)) {
-				if (strlen(szCodecs)) strcat(szCodecs, ",");
-				strcat(szCodecs, import.tk_info[i].szCodecProfile);
-			}
-			if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) {
-				if (!width) width = import.tk_info[i].video_info.width;
-				if (!height) height = import.tk_info[i].video_info.height;
-			}
-			else if (import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO) {
-				if (!sample_rate) sample_rate = import.tk_info[i].audio_info.sample_rate;
-				if (!nb_channels) nb_channels = import.tk_info[i].audio_info.nb_channels;
-			}
-			if (!langCode && import.tk_info[i].lang) langCode = import.tk_info[i].lang;
-		}
-	}
 
 	bandwidth = (u32) (file_size * 8 / file_duration);	
 	mpd_duration(file_duration, duration_string);
@@ -2426,6 +2409,29 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 		fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\" minBufferTime=\"%s\">\n", duration_string, buffer_string);	
 		fprintf(mpd, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"true\" subsegmentAlignment=\"true\">\n");
 	}
+
+	if (!e) {
+		for (i=0; i<import.nb_tracks;i++) {
+			if (strlen(import.tk_info[i].szCodecProfile)) {
+				if (strlen(szCodecs)) strcat(szCodecs, ",");
+				strcat(szCodecs, import.tk_info[i].szCodecProfile);
+			}
+
+			if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) {
+				if (!width) width = import.tk_info[i].video_info.width;
+				if (!height) height = import.tk_info[i].video_info.height;
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"video\"/>\n", import.tk_info[i].track_num);
+			}
+			else if (import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO) {
+				if (!sample_rate) sample_rate = import.tk_info[i].audio_info.sample_rate;
+				if (!nb_channels) nb_channels = import.tk_info[i].audio_info.nb_channels;
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"audio\"/>\n", import.tk_info[i].track_num);
+			}
+			if (!langCode && import.tk_info[i].lang) langCode = import.tk_info[i].lang;
+		}
+	}
+
+
 
 	fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"video/mp2t\" codecs=\"%s\"", index_info->represantation_idx+1, szCodecs);
 	if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
