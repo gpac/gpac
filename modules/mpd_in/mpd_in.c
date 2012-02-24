@@ -152,16 +152,17 @@ typedef struct __mpd_module {
     /* 0 not started, 1 download in progress */
     MPD_STATE mpd_is_running;
     Bool mpd_stop_request;
-
+	Bool in_period_setup;
 
     /* TODO - handle playback status for SPEED/SEEK through SIDX */
     Double playback_speed, playback_start_range, previous_start_range;
+	Double start_range_in_segment_at_next_period;
 	Bool in_seek;
 } GF_MPD_In;
 
 void MPD_ResetGroups(GF_MPD_In *mpdin);
 GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin);
-void MPD_SeekGroupsDownloads(GF_MPD_In *mpdin);
+
 
 
 static const char *MPD_GetMimeType(GF_MPD_SubRepresentation *subrep, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set)
@@ -551,6 +552,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		return GF_OK;
 	}
 	if (param->command_type==GF_NET_SERVICE_QUERY_NEXT) {
+		Bool discard_first_cache_entry = 1;
         u32 timer = gf_sys_clock();
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Query Next request from terminal\n"));
         gf_mx_p(mpdin->dl_mutex);
@@ -560,6 +562,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		if (mpdin->in_seek) {
 			mpdin->in_seek = 0;
 			param->url_query.discontinuity_type = 2;
+			discard_first_cache_entry = 0;
 		}
 
 		for (i=0; i<gf_list_count(mpdin->groups); i++) {
@@ -578,7 +581,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         while (mpdin->mpd_is_running && group->nb_cached_segments<2) {
             gf_mx_v(mpdin->dl_mutex);
 			if (group->done) {
-				if (!mpdin->request_period_switch && (mpdin->active_period_index<gf_list_count(mpdin->mpd->periods))) {
+				if (!mpdin->request_period_switch && (mpdin->active_period_index+1 < gf_list_count(mpdin->mpd->periods))) {
 					GF_NetworkCommand com;
 					memset(&com, 0, sizeof(GF_NetworkCommand));
 					com.command_type = GF_NET_BUFFER_QUERY;
@@ -590,7 +593,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 						}
 						gf_sleep(20);
 					}
-				}
+				} 
 				return GF_EOS;
 			}
             gf_sleep(16);
@@ -603,25 +606,29 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         } else {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Had to wait for %u ms for the only cache file to be downloaded\n", (gf_sys_clock() - timer)));
         }
-        if (group->cached[0].cache) {
-            if (group->urlToDeleteNext) {
-				if (!group->local_files && !mpdin->keep_files)
-					gf_dm_delete_cached_file_entry_session(group->segment_dnload, group->urlToDeleteNext);
 
-				gf_free( group->urlToDeleteNext);
-                group->urlToDeleteNext = NULL;
-            }
-            assert( group->cached[0].url );
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
-            group->urlToDeleteNext = gf_strdup( group->cached[0].url );
-            gf_free(group->cached[0].cache);
-            gf_free(group->cached[0].url);
-            group->cached[0].url = NULL;
-            group->cached[0].cache = NULL;
-        }
-        memmove(&group->cached[0], &group->cached[1], sizeof(segment_cache_entry)*(group->nb_cached_segments-1));
-        memset(&(group->cached[group->nb_cached_segments-1]), 0, sizeof(segment_cache_entry));
-        group->nb_cached_segments--;
+		if (discard_first_cache_entry) {
+			if (group->cached[0].cache) {
+				if (group->urlToDeleteNext) {
+					if (!group->local_files && !mpdin->keep_files)
+						gf_dm_delete_cached_file_entry_session(group->segment_dnload, group->urlToDeleteNext);
+
+					gf_free( group->urlToDeleteNext);
+					group->urlToDeleteNext = NULL;
+				}
+				assert( group->cached[0].url );
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
+				group->urlToDeleteNext = gf_strdup( group->cached[0].url );
+				gf_free(group->cached[0].cache);
+				gf_free(group->cached[0].url);
+				group->cached[0].url = NULL;
+				group->cached[0].cache = NULL;
+			}
+			memmove(&group->cached[0], &group->cached[1], sizeof(segment_cache_entry)*(group->nb_cached_segments-1));
+			memset(&(group->cached[group->nb_cached_segments-1]), 0, sizeof(segment_cache_entry));
+			group->nb_cached_segments--;
+		}
+
         param->url_query.next_url = group->cached[0].cache;
 		param->url_query.start_range = group->cached[0].start_range;
 		param->url_query.end_range = group->cached[0].end_range;
@@ -755,6 +762,72 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession **s
     }
 }
 
+static void MPD_GetSegmentDuration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, GF_MPD *mpd, u32 *nb_segments, Double *seg_duration)
+{
+	Double mediaDuration;
+	u32 timescale;
+	u64 duration;
+	*nb_segments = timescale = 0;
+	duration = 0;
+	
+	/*single segment*/
+	if (rep->segment_base || set->segment_base || period->segment_base) {
+		return;
+	}
+	if (rep->segment_list || set->segment_list || period->segment_list) {
+		GF_List *segments = NULL;
+		if (period->segment_list) {
+			if (period->segment_list->duration) duration = period->segment_list->duration;
+			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
+			if (period->segment_list->segment_URLs) segments = period->segment_list->segment_URLs;
+		}
+		if (set->segment_list) {
+			if (set->segment_list->duration) duration = set->segment_list->duration;
+			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
+			if (set->segment_list->segment_URLs) segments = set->segment_list->segment_URLs;
+		}
+		if (rep->segment_list) {
+			if (rep->segment_list->duration) duration = rep->segment_list->duration;
+			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
+			if (rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
+		}
+		if (segments) 
+			*nb_segments = gf_list_count(segments);
+
+		if (! timescale) timescale=1;
+		*seg_duration = (Double) duration;
+		*seg_duration /= timescale;
+		return;
+	}
+
+	if (period->segment_template) {
+		if (period->segment_template->duration) duration = period->segment_template->duration;
+		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
+	}
+	if (set->segment_template) {
+		if (set->segment_template->duration) duration = set->segment_template->duration;
+		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
+	}
+	if (rep->segment_template) {
+		if (rep->segment_template->duration) duration = rep->segment_template->duration;
+		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+	}
+	if (!timescale) timescale=1;
+	*seg_duration = (Double) duration;
+	*seg_duration /= timescale;
+	mediaDuration = period->duration;
+	if (!mediaDuration) mediaDuration = mpd->media_presentation_duration;
+	if (mediaDuration && duration) {
+		Double nb_seg = (Double) mediaDuration;
+		/*duration is given in ms*/
+		nb_seg /= 1000;
+		nb_seg *= timescale;
+		nb_seg /= duration;
+		*nb_segments = (u32) ceil(nb_seg);
+	}
+}
+
+
 static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representation *rep)
 {
 	u64 duration = 0;
@@ -796,63 +869,8 @@ static void MPD_SetGroupRepresentation(GF_MPD_Group *group, GF_MPD_Representatio
 	}
 #endif
 
-	/*single segment*/
-	if (rep->segment_base || set->segment_base || period->segment_base) {
-		return;
-	}
-	if (rep->segment_list || set->segment_list || period->segment_list) {
-		GF_List *segments = NULL;
-		if (period->segment_list) {
-			if (period->segment_list->duration) duration = period->segment_list->duration;
-			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
-			if (period->segment_list->segment_URLs) segments = period->segment_list->segment_URLs;
-		}
-		if (set->segment_list) {
-			if (set->segment_list->duration) duration = set->segment_list->duration;
-			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
-			if (set->segment_list->segment_URLs) segments = set->segment_list->segment_URLs;
-		}
-		if (rep->segment_list) {
-			if (rep->segment_list->duration) duration = rep->segment_list->duration;
-			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
-			if (rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
-		}
-		if (segments) 
-			group->nb_segments_in_rep = gf_list_count(segments);
 
-		if (!timescale) timescale=1;
-		group->segment_duration = (Double) duration;
-		group->segment_duration /= timescale;
-		return;
-	}
-
-	if (period->segment_template) {
-		if (period->segment_template->duration) duration = period->segment_template->duration;
-		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
-	}
-	if (set->segment_template) {
-		if (set->segment_template->duration) duration = set->segment_template->duration;
-		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
-	}
-	if (rep->segment_template) {
-		if (rep->segment_template->duration) duration = rep->segment_template->duration;
-		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
-	}
-	if (!timescale) timescale=1;
-	group->segment_duration = (Double) duration;
-	group->segment_duration /= timescale;
-	mediaDuration = period->duration;
-	if (!mediaDuration) mediaDuration = group->mpd_in->mpd->media_presentation_duration;
-	if (mediaDuration && duration) {
-		Double nb_seg = (Double) mediaDuration;
-		/*duration is given in ms*/
-		nb_seg /= 1000;
-		nb_seg *= timescale;
-		nb_seg /= duration;
-		group->nb_segments_in_rep = (u32) ceil(nb_seg);
-	} else {
-		group->nb_segments_in_rep = 0;
-	}
+	MPD_GetSegmentDuration(rep, set, period, group->mpd_in->mpd, &group->nb_segments_in_rep, &group->segment_duration);
 }
 
 static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
@@ -1440,6 +1458,7 @@ static u32 download_segments(void *par)
     gf_mx_v(mpdin->dl_mutex);
 
 restart_period:
+	mpdin->in_period_setup = 1;
 	e = GF_OK;
     period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
 	group_count = gf_list_count(mpdin->groups);
@@ -1482,6 +1501,7 @@ restart_period:
 	}
 
     gf_mx_p(mpdin->dl_mutex);
+	mpdin->in_period_setup = 0;
     mpdin->mpd_is_running = MPD_STATE_RUNNING;
     gf_mx_v(mpdin->dl_mutex);
 
@@ -1807,15 +1827,16 @@ static void MPD_DownloadStop(GF_MPD_In *mpdin)
 {
 	u32 i;
     assert( mpdin );
-    if (mpdin->groups){
-	for (i=0; i<gf_list_count(mpdin->groups); i++) {
-		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
-		assert( group );
-		if (group->selected && group->segment_dnload) {
-			gf_dm_sess_abort(group->segment_dnload);
-			group->done = 1;
+    if (mpdin->groups) {
+		for (i=0; i<gf_list_count(mpdin->groups); i++) {
+			GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
+			assert( group );
+			if (! group->service_connected ) return;
+			if (group->selected && group->segment_dnload) {
+				gf_dm_sess_abort(group->segment_dnload);
+				group->done = 1;
+			}
 		}
-	}
     }
     /* stop the download thread */
     gf_mx_p(mpdin->dl_mutex);
@@ -1844,6 +1865,8 @@ Bool MPD_SeekPeriods(GF_MPD_In *mpdin)
 	u32 i, period_idx;
 
 	gf_mx_p(mpdin->dl_mutex);
+	
+	mpdin->start_range_in_segment_at_next_period = 0;
 	start_time = 0;
 	period_idx = 0;
 	for (i=0; i<=gf_list_count(mpdin->mpd->periods); i++) {
@@ -1862,6 +1885,23 @@ Bool MPD_SeekPeriods(GF_MPD_In *mpdin)
 		mpdin->playback_start_range -= start_time;
 		mpdin->active_period_index = period_idx;
 		mpdin->request_period_switch = 2;
+
+		/*figure out default segment duration and substract from our start range request*/
+		if (mpdin->playback_start_range) {
+			Double duration;
+			u32 nb_segs;
+			GF_MPD_Period *period = gf_list_get(mpdin->mpd->periods, period_idx);
+			GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, 0);
+			GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
+
+			MPD_GetSegmentDuration(rep, set, period, mpdin->mpd, &nb_segs, &duration);
+
+			if (duration) {
+				while (mpdin->playback_start_range - mpdin->start_range_in_segment_at_next_period >= duration)
+					mpdin->start_range_in_segment_at_next_period += duration;
+			}
+
+		}
 	}
 	gf_mx_v(mpdin->dl_mutex);
 	
@@ -1928,6 +1968,16 @@ void MPD_SeekGroupsDownloads(GF_MPD_In *mpdin)
 	u32 i;
 
 	gf_mx_p(mpdin->dl_mutex);
+
+	if (mpdin->active_period_index) {
+		Double dur = 0;
+		u32 i;
+		for (i=0; i<mpdin->active_period_index; i++) {
+			GF_MPD_Period *period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index-1);
+			dur += period->duration/1000.0;
+		}
+		mpdin->playback_start_range -= dur;
+	}
 	for (i=0; i<gf_list_count(mpdin->groups); i++) {
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, i);
 		MPD_SeekGroup(mpdin, group);
@@ -2487,7 +2537,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     case GF_NET_CHAN_PLAY:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
-		if (!com->play.dash_segment_switch && ! mpdin->in_seek) {
+		if (! mpdin->in_period_setup && !com->play.dash_segment_switch && ! mpdin->in_seek) {
 			Bool skip_seek;
 			
 			mpdin->in_seek = 1;
@@ -2512,6 +2562,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		else if (mpdin->in_seek && (com->play.start_range==0)) {
 //			mpdin->in_seek = 0;
 		}
+		else if (mpdin->in_period_setup && (com->play.start_range==0)) {
+			com->play.start_range = mpdin->playback_start_range;
+		}
+
 		group->done = 0;
 		com->play.dash_segment_switch = group->force_segment_switch;
 		/*don't forward commands, we are killing the service anyway ...*/
