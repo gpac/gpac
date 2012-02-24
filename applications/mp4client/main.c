@@ -236,7 +236,8 @@ void PrintHelp()
 		"\n"
 		"\tp: play/pause the presentation\n"
 		"\ts: step one frame ahead\n"
-		"\tz: seek into presentation\n"
+		"\tz: seek into presentation by percentage\n"
+		"\tT: seek into presentation by time\n"
 		"\tt: print current timing\n"
 		"\n"
 		"\tu: sends a command (BIFS or LASeR) to the main scene\n"
@@ -1407,6 +1408,7 @@ force_input:
 			break;
 
 		case 'z':
+		case 'T':
 			if (!CanSeek || (Duration<=2000)) {
 				fprintf(stdout, "scene not seekable\n");
 			} else {
@@ -1415,12 +1417,28 @@ force_input:
 				fprintf(stdout, "Duration: ");
 				PrintTime(Duration);
 				res = gf_term_get_time_in_ms(term);
-				res *= 100; res /= (s64)Duration;
-				fprintf(stdout, " (current %.2f %%)\nEnter Seek percentage:\n", res);
-				if (scanf("%d", &seekTo) == 1) { 
-					if (seekTo > 100) seekTo = 100;
-					res = (Double)(s64)Duration; res /= 100; res *= seekTo;
-					gf_term_play_from_time(term, (u64) (s64) res, 0);
+				if (c=='z') {
+					res *= 100; res /= (s64)Duration;
+					fprintf(stdout, " (current %.2f %%)\nEnter Seek percentage:\n", res);
+					if (scanf("%d", &seekTo) == 1) { 
+						if (seekTo > 100) seekTo = 100;
+						res = (Double)(s64)Duration; res /= 100; res *= seekTo;
+						gf_term_play_from_time(term, (u64) (s64) res, 0);
+					}
+				} else {
+					u32 r, h, m, s;
+					fprintf(stdout, " - Current Time: ");
+					PrintTime((u64) res);
+					fprintf(stdout, "\nEnter seek time (Format: s, m:s or h:m:s):\n");
+					h = m = s = 0;
+					r =scanf("%d:%d:%d", &h, &m, &s);
+					if (r==2) { s = m; m = h; h = 0; }
+					else if (r==1) { s = h; m = h = 0;	}
+
+					if (r && (r<=3)) {
+						u64 time = h*3600 + m*60 + s;
+						gf_term_play_from_time(term, time*1000, 0);
+					}
 				}
 			}
 			break;
