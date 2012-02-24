@@ -1091,12 +1091,18 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 				if (key) {
 					for (i=0; i<src_w; i++) {
 						u32 idx = 4*i;
-						s32 thres;
-						thres = (255 + (tmp[idx]-kr)) % 255;
-						thres += (255 + (tmp[idx+1]-kg)) % 255;
-						thres += (255 + (tmp[idx+2]-kb)) % 255;
-						if (thres > 3*0xFE) tmp[idx+3] = ka;
-//						if ( (tmp[idx]==kr) && (tmp[idx+1]==kg) && (tmp[idx+2]==kb)) tmp[idx+3] = ka;
+						s32 thres, v;
+						v = tmp[idx]-kr; thres = ABS(v);
+						v = tmp[idx+1]-kg; thres += ABS(v);
+						v = tmp[idx+2]-kb; thres += ABS(v);
+						thres/=3;
+#if 0
+						if (thres < kl) tmp[idx+3] = 0;
+						else if (thres <= kh) tmp[idx+3] = (thres-kl)*ka / (kh-kl);
+#else
+						if (thres < kh) tmp[idx+3] = 0;
+#endif
+						else tmp[idx+3] = ka;
 					}
 				}
 			}
