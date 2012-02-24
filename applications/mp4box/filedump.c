@@ -2493,7 +2493,7 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 	/* add startIndex for live scenarios */
 	
 	if (index_info->init_seg_name) {
-		fprintf(index_info->mpd_file, "     <InitialisationSegment sourceURL=\"%s\"/>\n", index_info->init_seg_name);
+		fprintf(index_info->mpd_file, "     <Initialization sourceURL=\"%s\"/>\n", index_info->init_seg_name);
 	}
 
 
