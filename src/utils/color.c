@@ -854,6 +854,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	s32 src_row;
 	u32 i, yuv_planar_type = 0;
 	Bool no_memcpy;
+	Bool force_load_odd_yuv_lines = 0;
 	Bool yuv_init = 0;
 	Bool has_alpha = (alpha!=0xFF) ? 1 : 0;
 	u32 dst_bpp, dst_w_size;
@@ -988,6 +989,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_planar_type ? 8 : 4) );
 	rows = tmp;
 
+	if ( (src_h / dst_h) * dst_h != src_h) force_load_odd_yuv_lines = 1;
+
 	dst_bits = (u8 *) dst->video_buffer;
 
 	pos_y = 0x10000;
@@ -1031,8 +1034,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		if (prev_row != src_row) {
 			u32 the_row = src_row - 1;
 			if (yuv_planar_type) {
-				if ( the_row % 2) {
-					if (!yuv_init) {
+				if (the_row % 2) {
+					if (!yuv_init || force_load_odd_yuv_lines) {
 						yuv_init = 1;
 						the_row --;
 						if (flip) the_row = src->height-2 - the_row;
