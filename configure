@@ -835,7 +835,7 @@ cat > $TMPC << EOF
 #include <Platinum.h>
 int main( void ) { return 0; }
 EOF
-if $cpp -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib 2> /dev/null  ; then
+if $cpp -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread 2> /dev/null  ; then
   has_platinum="yes"
 fi
 
@@ -2456,6 +2456,7 @@ echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
 echo "CONFIG_FREENECT=$has_freenect" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
+echo "DISABLE_LOADER_BT=$disable_loader_bt" >> config.mak
 echo "HAS_LIBXML2=$has_libxml2" >> config.mak
 if test "$has_libxml2" = "yes"; then
     echo "XML2_CFLAGS=$libxml2_cflags" >> config.mak
