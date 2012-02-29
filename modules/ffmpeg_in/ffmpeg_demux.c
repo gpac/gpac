@@ -90,7 +90,7 @@ static u32 FFDemux_Run(void *par)
 
 		pkt.stream_index = -1;
 		/*EOF*/
-        if (av_read_frame(ffd->ctx, &pkt) <0) break;
+		if (av_read_frame(ffd->ctx, &pkt) <0) break;
 		if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
 		if (!pkt.dts) pkt.dts = pkt.pts;
 
@@ -230,8 +230,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	Bool ret = 0;
 	char *ext, szName[1000], szExt[20];
 	const char *szExtList;
-        if (!plug || !url)
-          return 0;
+	if (!plug || !url)
+		return 0;
 	/*disable RTP/RTSP from ffmpeg*/
 	if (!strnicmp(url, "rtsp://", 7)) return 0;
 	if (!strnicmp(url, "rtspu://", 8)) return 0;
@@ -294,19 +294,19 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 
 	/*figure out if we can use codecs or not*/
 	has_video = has_audio = 0;
-    for(i = 0; i < (s32)ctx->nb_streams; i++) {
-        AVCodecContext *enc = ctx->streams[i]->codec;
-        switch(enc->codec_type) {
-        case AVMEDIA_TYPE_AUDIO:
-            if (!has_audio) has_audio = 1;
-            break;
-        case AVMEDIA_TYPE_VIDEO:
-            if (!has_video) has_video= 1;
-            break;
-        default:
-            break;
-        }
-    }
+	for(i = 0; i < (s32)ctx->nb_streams; i++) {
+		AVCodecContext *enc = ctx->streams[i]->codec;
+		switch(enc->codec_type) {
+		case AVMEDIA_TYPE_AUDIO:
+			if (!has_audio) has_audio = 1;
+			break;
+		case AVMEDIA_TYPE_VIDEO:
+			if (!has_video) has_video= 1;
+			break;
+		default:
+			break;
+		}
+	}
 	if (!has_audio && !has_video) goto exit;
 	ret = 1;
 #if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
@@ -354,9 +354,9 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 	/*remap std object types - depending on input formats, FFMPEG may not have separate DSI from initial frame.
 	In this case we have no choice but using FFMPEG decoders*/
 	if (for_audio) {
-        AVCodecContext *dec = ffd->ctx->streams[ffd->audio_st]->codec;
+	AVCodecContext *dec = ffd->ctx->streams[ffd->audio_st]->codec;
 		esd->slConfig->timestampResolution = ffd->audio_tscale.den;
- 		switch (dec->codec_id) {
+		switch (dec->codec_id) {
 		case CODEC_ID_MP2:
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
 			break;
@@ -395,7 +395,7 @@ opaque_audio:
 		}
 		dont_use_sl = ffd->unreliable_audio_timing;
 	} else {
-        AVCodecContext *dec = ffd->ctx->streams[ffd->video_st]->codec;
+		AVCodecContext *dec = ffd->ctx->streams[ffd->video_st]->codec;
 		esd->slConfig->timestampResolution = ffd->video_tscale.den;
 		switch (dec->codec_id) {
 		case CODEC_ID_MPEG4:
@@ -569,7 +569,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] opening file %s - local %d - av_in %08x\n", url, is_local, av_in));
 
 	if (!is_local) {
-	    AVProbeData   pd;
+		AVProbeData   pd;
 
 		/*setup wraper for FFMPEG I/O*/
 		ffd->buffer_size = 8192;
@@ -579,12 +579,8 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 #ifdef FFMPEG_DUMP_REMOTE
 		ffd->outdbg = gf_f64_open("ffdeb.raw", "wb");
 #endif
-/*#ifdef USE_PRE_0_7*/
-		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
-/*#else
-                ffio_init_context(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
-#endif*/
 #ifdef USE_PRE_0_7
+		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
 		ffd->io.is_streamed = 1;
 #else
 		ffd->io.seekable = 1;
@@ -616,7 +612,11 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 			}
 			/*setup downloader*/
 			av_in->flags |= AVFMT_NOFILE;
+#if FF_API_FORMAT_PARAMETERS /*commit ffmpeg 603b8bc2a109978c8499b06d2556f1433306eca7*/
+			res = avformat_open_input(&ffd->ctx, szName, av_in, NULL);
+#else
 			res = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
+#endif
 		}
 	} else {
 		res = open_file(&ffd->ctx, szName, av_in);
@@ -645,25 +645,25 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	/*figure out if we can use codecs or not*/
 	ffd->audio_st = ffd->video_st = -1;
-    for (i = 0; i < ffd->ctx->nb_streams; i++) {
-        AVCodecContext *enc = ffd->ctx->streams[i]->codec;
-        switch(enc->codec_type) {
-        case AVMEDIA_TYPE_AUDIO:
-            if ((ffd->audio_st<0) && (ffd->service_type!=1)) {
+	for (i = 0; i < ffd->ctx->nb_streams; i++) {
+		AVCodecContext *enc = ffd->ctx->streams[i]->codec;
+		switch(enc->codec_type) {
+		case AVMEDIA_TYPE_AUDIO:
+			if ((ffd->audio_st<0) && (ffd->service_type!=1)) {
 				ffd->audio_st = i;
 				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
 			}
-            break;
-        case AVMEDIA_TYPE_VIDEO:
-            if ((ffd->video_st<0) && (ffd->service_type!=2)) {
+			break;
+		case AVMEDIA_TYPE_VIDEO:
+			if ((ffd->video_st<0) && (ffd->service_type!=2)) {
 				ffd->video_st = i;
 				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
 			}
-            break;
-        default:
-            break;
-        }
-    }
+			break;
+		default:
+			break;
+		}
+	}
 	if ((ffd->service_type==1) && (ffd->video_st<0)) goto err_exit;
 	if ((ffd->service_type==2) && (ffd->audio_st<0)) goto err_exit;
 	if ((ffd->video_st<0) && (ffd->audio_st<0)) {
@@ -911,12 +911,12 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	char szURL[2048], *sep;
 	FFDemux *ffd;
 	const char *this_url;
-        if (!plug || !url)
-          return 0;
-        ffd = (FFDemux *)plug->priv;
-        this_url = gf_term_get_service_url(ffd->service);
+	if (!plug || !url)
+		return 0;
+	ffd = (FFDemux *)plug->priv;
+	this_url = gf_term_get_service_url(ffd->service);
 	if (!this_url)
-          return 0;
+		return 0;
 
 	strcpy(szURL, this_url);
 	sep = strrchr(szURL, '#');
@@ -965,19 +965,19 @@ void Delete_FFMPEG_Demux(void *ifce)
 {
 	FFDemux *ffd;
 	GF_InputService *ptr = (GF_InputService *)ifce;
-        if (!ptr)
-          return;
+	if (!ptr)
+		return;
 	ffd = ptr->priv;
-        if (ffd){
-          if (ffd->thread)
-            gf_th_del(ffd->thread);
-          ffd->thread = NULL;
-          if (ffd->mx)
-            gf_mx_del(ffd->mx);
-          ffd->mx = NULL;
-          gf_free(ffd);
-          ptr->priv = NULL;
-        }
+	if (ffd) {
+		if (ffd->thread)
+			gf_th_del(ffd->thread);
+		ffd->thread = NULL;
+		if (ffd->mx)
+			gf_mx_del(ffd->mx);
+		ffd->mx = NULL;
+		gf_free(ffd);
+		ptr->priv = NULL;
+	}
 	gf_free(ptr);
 }
 

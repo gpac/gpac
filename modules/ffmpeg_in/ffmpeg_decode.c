@@ -1021,9 +1021,9 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 static const char *FFDEC_GetCodecName(GF_BaseDecoder *dec)
 {
 	FFDec *ffd;
-        if (!dec)
-          return NULL;
-        ffd = dec->privateStack;
+	if (!dec)
+		return NULL;
+	ffd = dec->privateStack;
 	if (ffd && ffd->base_codec) {
 		sprintf(ffd->szCodec, "FFMPEG %s", ffd->base_codec->name ? ffd->base_codec->name : "unknown");
 		return ffd->szCodec;
@@ -1038,10 +1038,12 @@ void *FFDEC_Load()
 	FFDec *priv;
 
 	/* Note for valgrind : those two functions cause a leak in valgrind */
-        GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Decoder] Registering all ffmpeg codecs...\n") );
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Decoder] Registering all ffmpeg codecs...\n") );
+#ifdef FF_API_AVCODE_INIT /*commit ffmpeg 3211932c513338566b31d990d06957e15a644d13*/
 	avcodec_init();
+#endif
 	avcodec_register_all();
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Decoder] Done registering all ffmpeg codecs.\n") );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Decoder] Done registering all ffmpeg codecs.\n") );
 
 
 	GF_SAFEALLOC(ptr , GF_MediaDecoder);
