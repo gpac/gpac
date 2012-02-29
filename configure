@@ -544,7 +544,7 @@ EOF
 
     Linux)
         js_flags="-DXP_UNIX -I/usr/include/js"
-        LDFLAGS="$LDFLAGS -Wl,--warn-common"
+        LDFLAGS="$LDFLAGS -Wl,--warn-common -Wl,-z,defs"
         #OSS_LDFLAGS="-laoss"
         linux="yes"
         case "$cpu" in
