@@ -1209,6 +1209,7 @@ GF_Err gf_odf_dump_ipmp(GF_IPMP_Descriptor *ipmp, FILE *trace, u32 indent, Bool 
 		DumpInt(trace, "controlPointCode", ipmp->control_point, indent, XMTDump);
 		if (ipmp->control_point) DumpInt(trace, "sequenceCode", ipmp->cp_sequence_code, indent, XMTDump);
 		EndAttributes(trace, indent, XMTDump);
+#ifndef GPAC_MINIMAL_ODF
 		/*parse IPMPX data*/
 		StartElement(trace, "IPMPX_Data", indent, XMTDump, 1);
 		indent++;
@@ -1219,6 +1220,7 @@ GF_Err gf_odf_dump_ipmp(GF_IPMP_Descriptor *ipmp, FILE *trace, u32 indent, Bool 
 		}
 		indent--;
 		EndElement(trace, "IPMPX_Data", indent, XMTDump, 1);
+#endif
 	}
 	else if (!ipmp->IPMPS_Type) {
 		DumpString(trace, "URLString", ipmp->opaque_data, indent, XMTDump);
@@ -1736,7 +1738,9 @@ GF_Err gf_odf_dump_ipmp_tool(GF_IPMP_Tool*t, FILE *trace, u32 indent, Bool XMTDu
 	if (t->tool_url) DumpString(trace, "ToolURL", t->tool_url, indent, XMTDump);
 	if (t->toolParamDesc) {
 		StartElement(trace, "toolParamDesc" , indent, XMTDump, 0);
+#ifndef GPAC_MINIMAL_ODF
 		gf_ipmpx_dump_data((GF_IPMPX_Data *)t->toolParamDesc, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+#endif
 		EndElement(trace, "toolParamDesc" , indent, XMTDump, 0);
 	}
 	EndAttributes(trace, indent, XMTDump);
@@ -1887,6 +1891,8 @@ GF_Err gf_odf_dump_base_command(GF_BaseODCom *com, FILE *trace, u32 indent, Bool
 }
 
 
+#ifndef GPAC_MINIMAL_ODF
+
 GF_EXPORT
 GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -1943,5 +1949,7 @@ GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 inde
 	gf_oci_codec_del(codec);
 	return e;
 }
+
+#endif /*GPAC_MINIMAL_ODF*/
 
 #endif /*GPAC_DISABLE_OD_DUMP*/

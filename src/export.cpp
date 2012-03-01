@@ -563,8 +563,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timed_meta_data_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del) )
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
+#endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )
@@ -1165,7 +1167,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_bt_from_string) )
 #endif
 
-#ifndef GPAC_DISABLE_SCENE_ENCODER
+#if !defined(GPAC_DISABLE_SCENE_ENCODER) && !defined(GPAC_DISABLE_ISOM_WRITE)
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_encode_to_file) )
 #endif
 
@@ -1180,8 +1182,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_com) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_com_list) )
+#ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_dump_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_dump_au) )
+#endif
 #endif
 #endif
 
@@ -1636,7 +1640,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
 
-#ifndef GPAC_DISABLE_ISOM
+#ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_end) )
 #endif

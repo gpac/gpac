@@ -100,12 +100,16 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_
 	}
 	if (rewrite_esd_only) return GF_OK;
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*what's the media type for input sensor ??*/
 	len = gf_isom_new_track(mp4, src->ESID, GF_ISOM_MEDIA_SCENE, 1000);
 	if (!len) return gf_isom_last_error(mp4);
 	gf_isom_set_track_enabled(mp4, len, 1);
 	if (!src->ESID) src->ESID = gf_isom_get_track_id(mp4, len);
 	return gf_isom_new_mpeg4_description(mp4, len, src, NULL, NULL, &i);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -394,6 +398,9 @@ static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 	}
 	return NULL;
 }
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, u32 scene_type)
 {
@@ -1333,5 +1340,7 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 	}
 	return GF_OK;
 }
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_SCENE_ENCODER*/

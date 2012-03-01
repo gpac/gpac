@@ -7893,6 +7893,9 @@ void subs_del(GF_Box *s)
 	gf_free(ptr);
 }
 
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
 GF_Err subs_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -7954,6 +7957,7 @@ GF_Err subs_Size(GF_Box *s)
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Err subs_Read(GF_Box *s, GF_BitStream *bs)
 {
