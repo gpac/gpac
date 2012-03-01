@@ -1385,7 +1385,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			u32 di;
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
 			last_DTS = samp->DTS;
-			samp->DTS =  (u64) (ts_scale * (s64)samp->DTS) + insert_dts;
+			samp->DTS =  (u64) (ts_scale * samp->DTS + insert_dts);
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
@@ -1397,7 +1397,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_sample_del(&s);
 			}
 			gf_isom_sample_del(&samp);
-			if (e) goto err_exit;
+			if (e)
+				goto err_exit;
 			gf_set_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}
