@@ -485,6 +485,12 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 # ifndef GPAC_DISABLE_QTVR
 # define GPAC_DISABLE_QTVR
 # endif
+# ifndef GPAC_DISABLE_ISOM_HINTING
+# define GPAC_DISABLE_ISOM_HINTING
+# endif
+# ifndef GPAC_DISABLE_SCENE_ENCODER
+# define GPAC_DISABLE_SCENE_ENCODER
+# endif
 #endif
 
 #ifdef GPAC_DISABLE_STREAMING

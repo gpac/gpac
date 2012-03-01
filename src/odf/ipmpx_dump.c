@@ -24,7 +24,7 @@
 
 #include <gpac/internal/odf_dev.h>
 
-#ifndef GPAC_DISABLE_OD_DUMP
+#if !defined(GPAC_DISABLE_OD_DUMP) && !defined(GPAC_MINIMAL_ODF)
 
 #define GF_IPMPX_MAX_TREE		100
 

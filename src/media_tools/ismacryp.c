@@ -560,7 +560,9 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_IPMPPtr *ipmpdp;
 	GF_IPMP_Descriptor *ipmpd;
 	GF_IPMPUpdate *ipmpdU;
+#ifndef GPAC_MINIMAL_ODF
 	GF_IPMPX_ISMACryp *ismac;
+#endif
 	GF_Err e;
 	Bool prev_sample_encryped, has_crypted_samp;
 
@@ -775,6 +777,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	/*format IPMPD*/
 	ipmpd = (GF_IPMP_Descriptor*)gf_odf_desc_new(GF_ODF_IPMP_TAG);
 	if (tci->ipmp_type==2) {
+#ifndef GPAC_MINIMAL_ODF
 		ipmpd->IPMP_DescriptorID = 0xFF;
 		ipmpd->IPMP_DescriptorIDEx = tci->ipmp_desc_id;
 		ipmpd->IPMPS_Type = 0xFFFF;
@@ -788,6 +791,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		ismac->key_indicator_length = 0;
 		ismac->use_selective_encryption = (tci->sel_enc_type!=0)? 1 : 0;
 		gf_list_add(ipmpd->ipmpx_data, ismac);
+#endif
 	} else {
 		ipmpd->IPMP_DescriptorID = tci->ipmp_desc_id;
 	}
