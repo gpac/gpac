@@ -1522,10 +1522,12 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	} 
 	/*MPEG4*/
 	else {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		/*ignore visual size info, get it from dsi*/
 		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 		w = dsi.width;
 		h = dsi.height;
+#endif
 
 		v4CC = "XVID";
 

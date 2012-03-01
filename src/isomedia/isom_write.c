@@ -1953,17 +1953,18 @@ GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, u8 Compactio
 GF_Err gf_isom_set_brand_info(GF_ISOFile *movie, u32 MajorBrand, u32 MinorVersion)
 {
 	u32 i, *p;
-	GF_Err e;
 
 	if (!MajorBrand) return GF_BAD_PARAM;
 	
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (! (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY)) {
-		e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+		GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 		if (e) return e;
 
 		e = CheckNoData(movie);
 		if (e) return e;
 	}
+#endif
 
 	if (!movie->brand) {
 		movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);
@@ -1997,17 +1998,18 @@ GF_Err gf_isom_set_brand_info(GF_ISOFile *movie, u32 MajorBrand, u32 MinorVersio
 GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, u8 AddIt)
 {
 	u32 i, k, *p;
-	GF_Err e;
 	
 	if (!Brand) return GF_BAD_PARAM;
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (! (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY)) {
-		e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+		GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 		if (e) return e;
 	
 		e = CheckNoData(movie);
 		if (e) return e;
 	}
+#endif
 
 	if (!movie->brand && AddIt) {
 		movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);
@@ -2065,15 +2067,16 @@ found:
 GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
 {
 	u32 *p;
-	GF_Err e;
 	
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (! (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY)) {
-		e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+		GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 		if (e) return e;
 		
 		e = CheckNoData(movie);
 		if (e) return e;
 	}
+#endif
 
 	if (!movie->brand) {
 		movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);

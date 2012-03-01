@@ -808,9 +808,11 @@ static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInf
 	case GF_SG_VRML_MFNODE:
 		needs_field_container = 0;
 		if (sdump->XMLDump && sdump->X3DDump) needs_field_container = gf_dump_vrml_needs_container(node, &field);
+#ifndef GPAC_DISABLE_X3D
 		if (!sdump->X3DDump) {
 			if (gf_node_get_tag(node)==TAG_X3D_Switch) field.name = "choice";
 		}
+#endif
 		list = * ((GF_ChildNodeItem **) field.far_ptr);
 		assert(list);
 		if (!sdump->XMLDump || !sdump->X3DDump) StartList(sdump, field.name);
@@ -1273,12 +1275,16 @@ static Bool scene_dump_vrml_can_dump(GF_SceneDumper *sdump, GF_Node *node)
 		name = gf_node_get_class_name(node);
 #ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(name);
-#endif
 		return tag ? 1 : 0;
+#else
+		return 0;
+#endif
 	} else {
 		if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) return 1;
+#ifndef GPAC_DISABLE_X3D
 		if (node->sgprivate->tag==TAG_X3D_Rectangle2D) return 1;
 		if (node->sgprivate->tag==TAG_X3D_Circle2D) return 1;
+#endif
 		name = gf_node_get_class_name(node);
 		tag = gf_node_mpeg4_type_by_class_name(name);
 		return tag ? 1 : 0;
@@ -1317,9 +1323,11 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 	if (sdump->X3DDump) {
 		if (node->sgprivate->tag == TAG_MPEG4_Circle) name = "Circle2D";
 		else if (node->sgprivate->tag == TAG_MPEG4_Rectangle) name = "Rectangle2D";
+#ifndef GPAC_DISABLE_X3D
 	} else if (!sdump->X3DDump) {
 		if (node->sgprivate->tag == TAG_X3D_Circle2D) name = "Circle";
 		else if (node->sgprivate->tag == TAG_X3D_Rectangle2D) name = "Rectangle";
+#endif
 	}
 #endif
 
@@ -1361,7 +1369,9 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 	base = NULL;
 	switch (gf_node_get_tag(node)) {
 #ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script:
+#endif
 	case TAG_MPEG4_Script:
 		isScript = 1;
 		break;
@@ -1586,10 +1596,13 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 						gf_dump_vrml_field(sdump, node, field);
 					}
 				} else {
+#ifndef GPAC_DISABLE_X3D
 					/*X3D script metadata, NOT DYN*/
 					if ((i==3) && (node->sgprivate->tag==TAG_X3D_Script) ) {
 						if (*((GF_Node **)field.far_ptr)) gf_dump_vrml_field(sdump, node, field);
-					} else {
+					} else 
+#endif
+					{
 						gf_dump_vrml_dyn_field(sdump, node, field, 0);
 					}
 				}

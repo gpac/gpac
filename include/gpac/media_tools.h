@@ -229,9 +229,11 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Double period_duration);
 GF_Err gf_media_mpd_end(char *mpd_name);
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*save file as fragmented movie
 @dash_mode: 0 = DASH not used, 1 = DASH used without GOP spliting, 2 = DASH used with GOP spliting, */
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file_radical, const char *mpd_name, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool use_single_segment, const char *dash_ctx, GF_ISOFile *sample_descs, u32 rep_id);
+#endif
 
 /*make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
 the file should not contain more than one audio and one video track

@@ -1091,7 +1091,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 if end_range>start_range, restricts the URL to the given byterange when parsing*/
 GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range);
 
-#ifndef GPAC_DISBALE_ISOM_FRAGMENTS
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 
 /*
 			Movie Fragments Writing API
@@ -1223,7 +1223,7 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, char *dat
 
 void gf_isom_reset_fragment_info(GF_ISOFile *movie);
 
-#endif /*GPAC_DISBALE_ISOM_FRAGMENTS*/
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
 /******************************************************************

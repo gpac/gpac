@@ -3500,6 +3500,7 @@ GF_Err lsr1_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+
 GF_Err sidx_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -3547,7 +3548,7 @@ GF_Err subs_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err tfdt_dump(GF_Box *a, FILE * trace)
 {
 	GF_TFBaseMediaDecodeTimeBox *ptr = (GF_TFBaseMediaDecodeTimeBox*) a;
@@ -3559,6 +3560,7 @@ GF_Err tfdt_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "</TrackFragmentBaseMediaDecodeTimeBox>\n");
 	return GF_OK;
 }
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 GF_Err rvcc_dump(GF_Box *a, FILE * trace)
 {

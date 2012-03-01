@@ -430,8 +430,9 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 #endif
 
 	gf_isom_box_array_del(mov->TopBoxes);
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	gf_isom_box_array_del(mov->moof_list);
-
+#endif
 
 	if (mov->fileName) gf_free(mov->fileName);
 	gf_free(mov);
@@ -496,7 +497,13 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 	if (! trak->editBox || !trak->editBox->editList) {
 		*MediaTime = movieTime;
 		//check this is in our media time line
-		if (!trak->moov->mov->use_segments && (*MediaTime > lastSampleTime)) *MediaTime = lastSampleTime;
+		if ((*MediaTime > lastSampleTime)
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			&& !trak->moov->mov->use_segments
+#endif
+		   ) {
+			*MediaTime = lastSampleTime;
+		}
 		*useEdit = 0;
 		return GF_OK;
 	}

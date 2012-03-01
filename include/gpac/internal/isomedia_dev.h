@@ -1865,7 +1865,6 @@ typedef struct __oma_kms_box
 	GF_OMADRMAUFormatBox *fmt;
 } GF_OMADRMKMSBox;
 
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 typedef struct
 {
@@ -1888,7 +1887,6 @@ typedef struct __sidx_box
 	u32 nb_refs;
 	GF_SIDXReference *refs;
 } GF_SegmentIndexBox;
-#endif
 
 
 
@@ -3421,12 +3419,14 @@ GF_Err subs_Size(GF_Box *s);
 GF_Err subs_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err subs_dump(GF_Box *a, FILE * trace);
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Box *tfdt_New();
 void tfdt_del(GF_Box *);
 GF_Err tfdt_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tfdt_Size(GF_Box *s);
 GF_Err tfdt_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tfdt_dump(GF_Box *a, FILE * trace);
+#endif
 
 GF_Box *rvcc_New();
 void rvcc_del(GF_Box *);

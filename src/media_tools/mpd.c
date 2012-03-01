@@ -1241,8 +1241,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				pe->codecs[len-2] = 0;
 			}
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			width = height = samplerate = num_channels = 0;
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (do_import) {
 				GF_Err e;
 				GF_MediaImporter import;

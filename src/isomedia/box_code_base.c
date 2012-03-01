@@ -5846,11 +5846,10 @@ GF_Err tfhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-
-
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
+
 
 void tims_del(GF_Box *s)
 {
@@ -6092,10 +6091,8 @@ GF_Box *traf_New()
 	return (GF_Box *)tmp;
 }
 
-
  
 #ifndef GPAC_DISABLE_ISOM_WRITE
-
 
 GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7754,7 +7751,6 @@ GF_Err lsr1_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void sidx_del(GF_Box *s)
 {
@@ -7863,7 +7859,6 @@ GF_Err sidx_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
 GF_Box *subs_New()
@@ -8004,6 +7999,8 @@ GF_Err subs_Read(GF_Box *s, GF_BitStream *bs)
 }
 
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+
 GF_Box *tfdt_New()
 {
 	GF_TFBaseMediaDecodeTimeBox *tmp;
@@ -8071,7 +8068,7 @@ GF_Err tfdt_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
 GF_Box *rvcc_New()

@@ -5,8 +5,6 @@
 #ifndef _GF_AIT_H_
 #define _GF_AIT_H_
 
-#ifndef GPAC_DISABLE_MPEG2TS
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +13,9 @@ extern "C" {
 #include <gpac/dsmcc.h>
 #include <string.h>
 #include <gpac/bitstream.h>
+
+
+#ifndef GPAC_DISABLE_MPEG2TS
 
 
 #define AIT_SECTION_LENGTH_MAX 1021
@@ -231,9 +232,10 @@ GF_M2TS_ES *gf_ait_section_new(u32 service_id);
 GF_M2TS_CHANNEL_APPLICATION_INFO* gf_m2ts_get_channel_application_info(GF_List* ChannelAppList, u32 ait_service_id);
 void  gf_m2ts_delete_channel_application_info(GF_M2TS_CHANNEL_APPLICATION_INFO* ChannelApp);
 
+#endif /*GPAC_DISABLE_MPEG2TS*/
+
 #ifdef __cplusplus
 }
-#endif
 #endif
 
 #endif	//_GF_CAROUSSEL_H_

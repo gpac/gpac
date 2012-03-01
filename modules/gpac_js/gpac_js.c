@@ -674,7 +674,9 @@ static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER,
 			*vp = INT_TO_JSVAL(evt->type);
 			break;
 		case 1:
+#ifndef GPAC_DISABLE_SVG
 			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->key.key_code) )); 
+#endif
 			break;
 		case 2:
 			*vp = INT_TO_JSVAL(evt->mouse.x); 
@@ -814,13 +816,17 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	if (!elt) return JS_TRUE;
 	switch (elt->sgprivate->tag) {
 	case TAG_MPEG4_Inline:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Inline:
+#endif
 		scene = (GF_Scene *)gf_node_get_private(elt);
 		break;
+#ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_animation:
 		sg = gf_sc_animation_get_scenegraph(elt);
 		scene = (GF_Scene *)gf_sg_get_private(sg);
 		break;
+#endif
 	default:
 		return JS_TRUE;
 	}
