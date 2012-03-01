@@ -201,6 +201,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					gf_isom_sample_del(&ch->sample);
 
 					if (s2 && s1) {
+						assert(s2->DTS >= s1->DTS);
 						time_diff = (u32) (s2->DTS - s1->DTS);
 						e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
 					} else if (s1 && !s2) {
