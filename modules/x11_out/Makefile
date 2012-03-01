@@ -15,7 +15,6 @@ LDFLAGS+=-pg
 endif
 
 CFLAGS+=-I"$(SRC_PATH)/include"
-# -I/usr/local/arm/3.3.2/include
 
 
 ifeq ($(X11_INC_PATH), )
@@ -64,7 +63,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -lX11 -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(EXTRALIBS)
 ifeq ($(STATICBUILD),yes)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.$(DYN_LIB_SUFFIX) $(OBJS) -lX11 -L../../bin/gcc -lgpac_static $(EXTRALIBS)
 endif
