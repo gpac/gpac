@@ -52,7 +52,7 @@ static void gf_sm_remove_mux_info(GF_ESD *src)
 
 static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 {
-#if !defined (GPAC_DISABLE_ISOM) || !defined(GPAC_DISABLE_ISOM_WRITE) 
+#if !defined (GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE) 
 	u32 track, mts, ts;
 	GF_MuxInfo *mux = gf_sm_get_mux_info(src);
 	if (!mux && !offset_ts) return;
@@ -108,6 +108,8 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_
 	return gf_isom_new_mpeg4_description(mp4, len, src, NULL, NULL, &i);
 }
 
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD *src, Double imp_time, char *mediaSource, Bool od_sample_rap)
 {
@@ -342,6 +344,9 @@ static GF_Err gf_sm_import_specials(GF_SceneManager *ctx)
 	return GF_OK;
 }
 
+
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
+
 /*locate stream in all OD updates/ESD updates (needed for systems tracks)*/
 static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 {
@@ -559,7 +564,11 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if (!au && !esd->URLString) {
 			/*if not in IOD, the stream will be imported when encoding the OD stream*/
 			if (!is_in_iod) continue;
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			e = gf_sm_import_stream(ctx, mp4, esd, 0, NULL, 0);
+#else
+			e = GF_BAD_PARAM;
+#endif
 			if (e) goto exit;
 			gf_sm_finalize_mux(mp4, esd, 0);
 			gf_isom_add_track_to_root_od(mp4, gf_isom_get_track_by_id(mp4, esd->ESID));
@@ -1049,7 +1058,11 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 
 							switch (imp_esd->tag) {
 							case GF_ODF_ESD_TAG:
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 								e = gf_sm_import_stream(ctx, mp4, imp_esd, au->timing_sec, mediaSource, au->flags & GF_SM_AU_RAP);
+#else
+								e = GF_BAD_PARAM;
+#endif
 								if (e) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
 									goto err_exit;
@@ -1077,7 +1090,11 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 					while ((imp_esd = (GF_ESD*)gf_list_enum(esdU->ESDescriptors, &m))) {
 						switch (imp_esd->tag) {
 						case GF_ODF_ESD_TAG:
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 							e = gf_sm_import_stream(ctx, mp4, imp_esd, au->timing_sec, mediaSource, au->flags & GF_SM_AU_RAP);
+#else
+							e = GF_BAD_PARAM;
+#endif
 							if (e) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
 								gf_odf_com_del(&com);
@@ -1261,7 +1278,11 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_MP41, 1);
 
 	/*import specials, that is input remapping to BIFS*/
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 	e = gf_sm_import_specials(ctx);
+#else
+	e = GF_BAD_PARAM;
+#endif
 	if (e) return e;
 
 

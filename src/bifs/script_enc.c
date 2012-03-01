@@ -30,7 +30,7 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 
-#if !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_SPIDERMONKEY)
+#if !defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_BIFS_ENC) && defined(GPAC_HAS_SPIDERMONKEY)
 
 typedef struct 
 {
@@ -1773,4 +1773,4 @@ void SFE_Params(ScriptEnc *sc_enc, u32 start, u32 end)
 	}
 }
 
-#endif	/* !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_SPIDERMONKEY) */
+#endif	/* !defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_BIFS_ENC) && defined(GPAC_HAS_SPIDERMONKEY) */

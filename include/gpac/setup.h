@@ -449,6 +449,15 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 # ifndef GPAC_DISABLE_MPEG2PS
 # define GPAC_DISABLE_MPEG2PS
 # endif
+# ifndef GPAC_DISABLE_ISOM_HINTING
+# define GPAC_DISABLE_ISOM_HINTING
+# endif
+# ifndef GPAC_DISABLE_MEDIA_IMPORT
+# define GPAC_DISABLE_MEDIA_IMPORT
+# endif
+# ifndef GPAC_DISABLE_MPEG2TS_MUX
+# define GPAC_DISABLE_MPEG2TS_MUX
+# endif
 #endif
 
 #ifdef GPAC_DISABLE_ISOM
@@ -472,6 +481,9 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #ifdef GPAC_DISABLE_ISOM_WRITE
 # ifndef GPAC_DISABLE_MEDIA_IMPORT
 # define GPAC_DISABLE_MEDIA_IMPORT
+# endif
+# ifndef GPAC_DISABLE_QTVR
+# define GPAC_DISABLE_QTVR
 # endif
 #endif
 

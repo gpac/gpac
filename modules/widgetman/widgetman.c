@@ -833,7 +833,11 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 		}
 
 		//if this is a script eventIn call directly script
-		if ((n->sgprivate->tag==TAG_MPEG4_Script) || (n->sgprivate->tag==TAG_X3D_Script) )
+		if ((n->sgprivate->tag==TAG_MPEG4_Script)
+#ifndef GPAC_DISABLE_X3D
+				|| (n->sgprivate->tag==TAG_X3D_Script)
+#endif
+				) 
 			gf_sg_script_event_in(n, &info);
 
 		gf_node_changed(n, &info);

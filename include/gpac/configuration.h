@@ -129,10 +129,10 @@
 //#define GPAC_DISABLE_VRML
 
 /*disables X3D scene graphs*/
-//#define GPAC_DISABLE_X3D
+//#define GPAC_DISABLE_X3D //Romain
 
 /*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed*/
-//#define GPAC_MINIMAL_ODF
+#define GPAC_MINIMAL_ODF
 
 /*disables BIFS coding*/
 //#define GPAC_DISABLE_BIFS
@@ -192,13 +192,13 @@
 //#define GPAC_DISABLE_MCRYPT
 
 /*disables all ISO FF*/
-//#define GPAC_DISABLE_ISOM
+//#define GPAC_DISABLE_ISOM //Romain
 
 /*disables ISO FF hint tracks*/
 //#define GPAC_DISABLE_ISOM_HINTING
 
 /*disables ISO FF writing*/
-//#define GPAC_DISABLE_ISOM_WRITE
+//#define GPAC_DISABLE_ISOM_WRITE //Romain
 
 /*disables ISO FF fragments*/
 //#define GPAC_DISABLE_ISOM_FRAGMENTS

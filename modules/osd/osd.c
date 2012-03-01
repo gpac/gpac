@@ -256,7 +256,7 @@ GF_TermExt *osd_new()
 	GF_OSD *osd;
 	dr = (GF_TermExt*)gf_malloc(sizeof(GF_TermExt));
 	memset(dr, 0, sizeof(GF_TermExt));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_TERM_EXT_INTERFACE, "GPAC OnSscreen Display", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_TERM_EXT_INTERFACE, "GPAC OnScreen Display", "gpac distribution");
 
 	GF_SAFEALLOC(osd, GF_OSD);
 	dr->process = osd_process;

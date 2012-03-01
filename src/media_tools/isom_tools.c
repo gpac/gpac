@@ -51,11 +51,14 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			}
 			break;
 		case GF_STREAM_VISUAL:
+#ifndef GPAC_DISABLE_AV_PARSERS
 			if (esd->decoderConfig->decoderSpecificInfo) {
 				GF_M4VDecSpecInfo dsi;
 				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 				sprintf(szCodec, "mp4v.%02x.%02x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
-			} else {
+			} else
+#endif
+			{
 				sprintf(szCodec, "mp4v.%02x", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
@@ -697,6 +700,8 @@ static u64 get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32
 }
 
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+
 GF_EXPORT
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, const char *dash_ctx_file, GF_ISOFile *sample_descs, u32 rep_idx)
 {
@@ -915,6 +920,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 
 				}
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				//the initialization segment is not yet setup for fragmentation
 				if (! gf_isom_is_track_fragmented(sample_descs, tf->TrackID)) {
 					e = gf_isom_setup_track_fragment(sample_descs, sample_descs_track,
@@ -932,9 +938,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 					e = gf_isom_change_track_fragment_defaults(output, TrackNum,
 											 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, defaultPadding, defaultDegradationPriority);
 					if (e) goto err_exit;
-
-
 				}
+#endif
 
 				/*reset all sample desc and clone with new ones*/
 				gf_isom_clone_sample_descriptions(output, TrackNum, sample_descs, sample_descs_track, 1);
@@ -997,8 +1002,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	if (tfref->all_sample_raps) split_seg_at_rap = 1;
 
 	//flush movie
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	e = gf_isom_finalize_for_fragment(output, dash_mode ? 1 : 0);
 	if (e) goto err_exit;
+#endif
 
 	start_range = 0;
 	file_size = gf_isom_get_file_size(output);
@@ -1556,6 +1563,7 @@ err_exit:
 	return e;
 }
 
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Double period_duration)
 {

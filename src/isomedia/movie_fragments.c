@@ -39,9 +39,6 @@ GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID)
 	return NULL;
 }
 
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
 GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID)
 {
 	u32 i;
@@ -55,6 +52,9 @@ GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID)
 	}
 	return NULL;
 }
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 {

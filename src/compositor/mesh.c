@@ -255,7 +255,7 @@ void mesh_recompute_normals(GF_Mesh *mesh)
 	}
 }
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D)
 void mesh_generate_tex_coords(GF_Mesh *mesh, GF_Node *__texCoords)
 {
 	u32 i;

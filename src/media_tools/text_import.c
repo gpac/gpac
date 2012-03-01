@@ -152,6 +152,7 @@ static void gf_text_get_video_size(GF_ISOFile *dest, u32 *width, u32 *height)
 }
 
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
 {
 	if (import->esd && import->esd->langDesc) {
@@ -163,7 +164,7 @@ static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
 		gf_isom_set_media_language(import->dest, track, lang);
 	}
 }
-
+#endif
 
 static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type)
 {
@@ -236,6 +237,9 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 	if (unicode_type==3) fgetc(txt_in); 
 	return sOK;
 }
+
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 {
@@ -1701,6 +1705,8 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	default: return GF_BAD_PARAM;
 	}
 }
+
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

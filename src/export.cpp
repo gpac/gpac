@@ -1055,7 +1055,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
+#endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_rewrite_samples) )
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
@@ -1173,12 +1175,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_dump) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_dump_command_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_dump_graph) )
+#ifndef GPAC_DISABLE_OD_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_com) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_com_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_dump_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_dump_au) )
+#endif
 #endif
 
 #ifndef GPAC_DISABLE_SENG

@@ -288,8 +288,10 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 
 static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, char **data, u32 *size)
 {
-	GF_Err e;
+#ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumper *dumper = NULL;
+#endif
+	GF_Err e;
 	char rad_name[4096];
 	char file_name[4096];
 	FILE *file = NULL;
@@ -335,16 +337,18 @@ start:
 #endif
 	}
 
+#ifndef GPAC_DISABLE_SCENE_DUMP
 	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
 		e = GF_IO_ERR;
 		goto exit;
-	}    
+	}
 
 	if (commands && gf_list_count(commands)) {
 		e = gf_sm_dump_command_list(dumper, commands, 0, 0);
-	} else {
+	}
+	else {
 		e = gf_sm_dump_graph(dumper, 0, 0);
 	}
 	gf_sm_dumper_del(dumper);
@@ -368,6 +372,8 @@ start:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n")); 
 		goto exit;
 	}
+#endif
+
 #ifdef DUMP_DIMS_LOG_WITH_TIME
     if (do_dump_with_time) {
         do_dump_with_time = 0;
@@ -546,7 +552,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 				break;
 #endif
 
-#ifndef GPAC_DISABLE_BIFS_ENC
+#ifndef GPAC_DISABLE_LASER
 			case GPAC_OTI_SCENE_LASER:
 				e = gf_laser_encode_au(seng->lsrenc, sc->ESID, au->commands, 0, &data, &size);
 				break;
@@ -584,6 +590,9 @@ GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap)
 GF_EXPORT
 GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 {
+#ifdef GPAC_DISABLE_SCENE_DUMP
+	return GF_NOT_SUPPORTED;
+#else
 	u32	d_mode, do_enc;
 	char szF[GF_MAX_PATH], *ext;
 	GF_Err	e;
@@ -617,6 +626,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 		e = gf_sm_dump(seng->ctx, ctxFileName ? szF : NULL, d_mode);
 	}
 	return e;
+#endif
 }
 
 static GF_AUContext *gf_seng_create_new_au(GF_StreamContext *sc, u32 time) 
@@ -723,7 +733,7 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 			break;
 #endif
 
-#ifndef GPAC_DISABLE_BIFS_ENC
+#ifndef GPAC_DISABLE_LASER
 		case GPAC_OTI_SCENE_LASER:
 			e = gf_laser_encode_au(seng->lsrenc, ESID, new_au->commands, 0, &data, &size);
 			break;
@@ -806,7 +816,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 	if (seng->bifsenc) gf_bifs_encoder_del(seng->bifsenc);
 #endif
 
-#ifndef GPAC_DISABLE_BIFS_ENC
+#ifndef GPAC_DISABLE_LASER
 	if (seng->lsrenc) gf_laser_encoder_del(seng->lsrenc);
 #endif
 
