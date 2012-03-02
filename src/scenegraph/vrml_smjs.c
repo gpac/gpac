@@ -324,9 +324,11 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
 #ifdef JS_THREADSAFE
+#if (JS_VERSION>=185)
 	assert(js_rt);
 	JS_SetRuntimeThread(js_rt->js_runtime);
 	JS_SetContextThread(ctx); 
+#endif
 #endif
 
 	JS_DestroyContext(ctx);
