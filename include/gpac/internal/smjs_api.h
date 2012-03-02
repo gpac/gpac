@@ -62,11 +62,8 @@
 #define SMJS_FREE(__c, __str)	if (__str) JS_free(__c, __str)
 
 
-#define SMJS_OBJ_CONSTRUCTOR	JSObject *obj = NULL;\
-	if (!JS_IsConstructing_PossiblyWithGivenThisObject(c, argsvp, &obj)) {	\
-		return JS_FALSE;\
-	}\
-	if (obj == NULL) obj = JS_NewObjectForConstructor(c, argsvp);	\
+#define SMJS_OBJ_CONSTRUCTOR	\
+	JSObject *obj = JS_NewObjectForConstructor(c, argsvp);	\
 	SMJS_SET_RVAL(OBJECT_TO_JSVAL(obj));\
 
 #define JS_GetFunctionName(_v) (JS_GetFunctionId(_v)!=NULL) ? SMJS_CHARS_FROM_STRING(c, JS_GetFunctionId(_v)) : NULL

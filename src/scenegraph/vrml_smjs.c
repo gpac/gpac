@@ -185,7 +185,6 @@ typedef struct
 	JSContext *ctx;
 
 	GF_Mutex *mx;
-	
 	JSClass SFNodeClass;
 
 #ifndef GPAC_DISABLE_VRML
@@ -311,13 +310,22 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 	}
 	js_rt->nb_inst++;
 	ctx = JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);
+	JS_SetOptions(ctx, JS_GetOptions(ctx) | JSOPTION_WERROR);
+
+#ifdef JS_THREADSAFE
+#if (JS_VERSION>=185)
+	JS_ClearContextThread(ctx);
+	JS_ClearRuntimeThread(js_rt->js_runtime);
+#endif
+#endif
 	return ctx;
 }
 
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
 #ifdef JS_THREADSAFE
-	JS_ClearContextThread(ctx);
+	assert(js_rt);
+	JS_SetRuntimeThread(js_rt->js_runtime);
 	JS_SetContextThread(ctx); 
 #endif
 
@@ -700,9 +708,9 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 //			gf_js_remove_root(priv->js_ctx, &r->obj);
 			r->obj=NULL;
 		}
-		if (r->fun) {
+		if ( ! JSVAL_IS_VOID(r->fun)) {
 //			gf_js_remove_root(priv->js_ctx, &r->fun);
-			r->fun=0;
+			r->fun=JSVAL_NULL;
 		}
 		return;
 	}
@@ -865,7 +873,7 @@ static JSBool SMJS_FUNCTION(deleteRoute)
 
 	if (!JSVAL_IS_OBJECT(argv[0]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	
-	if (JSVAL_IS_STRING(argv[1]) && (argv[2]==JSVAL_NULL) && (argv[3]==JSVAL_NULL)) {
+	if (JSVAL_IS_STRING(argv[1]) && JSVAL_IS_NULL(argv[2]) && JSVAL_IS_NULL(argv[3])) {
 		ptr = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]));
 		assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 		n1 = * ((GF_Node **)ptr->field.far_ptr);
@@ -1143,7 +1151,11 @@ JSBool gf_sg_script_eventout_set_prop(JSContext *c, JSObject *obj, SMJS_PROP_SET
 	GF_Node *n;
 	GF_ScriptField *sf;
 	GF_FieldInfo info;
-	JSString *str = JS_ValueToString(c, id);
+	jsval idval;
+	JS_IdToValue(c, id, &idval);
+	JSString *str;
+	if (! SMJS_ID_IS_STRING(id)) return JS_FALSE;
+	str = SMJS_ID_TO_STRING(id);
 	if (!str) return JS_FALSE;
 
 	script = JS_GetScriptStack(c);
@@ -3752,6 +3764,7 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSObject *obj
 		if(parent) gf_node_get_field(parent, field->fieldIndex, &jsf->field);	\
 
 #define SETUP_MF_FIELD	\
+		if (!obj) return JSVAL_NULL; \
 		jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);	\
 		jsf->owner = parent;		\
 		if (parent) gf_node_get_field(parent, field->fieldIndex, &jsf->field);	\
@@ -4761,25 +4774,36 @@ Bool gf_sg_javascript_initialized()
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+/*
+ * locking/try-locking the JS context
+ * we need to test whether the calling thread already has the lock on the script context
+ * if this is not the case (i.e. first lock on mutex), we switch JS context threads and
+ * call begin/end requests. Nesting begin/end request in a reentrant way crashes JS
+ * (mozilla doc is wrong here)
+ *
+ * */
 void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 {
 	if (!js_rt) return;
+	assert(cx);
 	if (LockIt) {
 		gf_mx_p(js_rt->mx);
 #ifdef JS_THREADSAFE
-		if (cx) {
+		if (gf_mx_get_num_locks(js_rt->mx)==1) {
 #if (JS_VERSION>=185)
-			JS_SetContextThread(cx); 
+			JS_SetRuntimeThread(js_rt->js_runtime);
+			JS_SetContextThread(cx);
 #endif
 			JS_BeginRequest(cx);
 		}
 #endif
 	} else {
 #ifdef JS_THREADSAFE
-		if (cx) {
+		if (gf_mx_get_num_locks(js_rt->mx)==1) {
 			JS_EndRequest(cx);
 #if (JS_VERSION>=185)
-			JS_ClearContextThread(cx); 
+			JS_ClearContextThread(cx);
+			JS_ClearRuntimeThread(js_rt->js_runtime);
 #endif
 		}
 #endif
@@ -4789,11 +4813,13 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 
 Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 {
+	assert(cx);
 	if (gf_mx_try_lock(js_rt->mx)) {
 #ifdef JS_THREADSAFE
-		if (cx) {
+		if (gf_mx_get_num_locks(js_rt->mx)==1) {
 #if (JS_VERSION>=185)
-			JS_SetContextThread(cx); 
+			JS_SetRuntimeThread(js_rt->js_runtime);
+			JS_SetContextThread(cx);
 #endif
 			JS_BeginRequest(cx);
 		}
