@@ -1207,7 +1207,7 @@ fi
 freenect_flags=""
 freenect_ld="-lfreenect"
 
-if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+if $pkg_config --exists libfreenect 2> /dev/null  ; then
   freenect_flags=`$pkg_config --cflags libfreenect`
   freenect_libs=`$pkg_config --libs libfreenect`
   has_freenect="system"
