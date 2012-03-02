@@ -3234,6 +3234,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3259,6 +3260,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3337,6 +3339,7 @@
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3364,6 +3367,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3392,6 +3396,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3418,6 +3423,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3446,6 +3452,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3472,6 +3479,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3506,6 +3514,7 @@
 					XP_UNIX,
 					GPAC_HAS_FAAD,
 				);
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/faad,
@@ -3541,6 +3550,7 @@
 					XP_UNIX,
 					GPAC_HAS_FAAD,
 				);
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/faad,
@@ -3572,6 +3582,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3598,6 +3609,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3632,6 +3644,7 @@
 					XP_UNIX,
 					GPAC_HAS_MAD,
 				);
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/mad,
@@ -3667,6 +3680,7 @@
 					XP_UNIX,
 					GPAC_HAS_MAD,
 				);
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/mad,
@@ -3698,6 +3712,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3724,6 +3739,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3752,6 +3768,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3778,6 +3795,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3813,6 +3831,7 @@
 					GPAC_HAS_SPIDERMONKEY,
 					MOZILLA_1_8_BRANCH,
 				);
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/js,
@@ -3849,6 +3868,7 @@
 					GPAC_HAS_SPIDERMONKEY,
 					MOZILLA_1_8_BRANCH,
 				);
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/js,
@@ -3880,6 +3900,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3906,6 +3927,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3934,6 +3956,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3960,6 +3983,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3988,6 +4012,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4014,6 +4039,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4042,6 +4068,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4068,6 +4095,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4096,6 +4124,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4122,6 +4151,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4150,6 +4180,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../extra_lib/include/freetype,
 					../../include,
@@ -4179,6 +4210,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../extra_lib/include/freetype,
 					../../include,
@@ -4210,6 +4242,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/js,
@@ -4239,6 +4272,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/js,
@@ -4270,6 +4304,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/SDL,
@@ -4299,6 +4334,7 @@
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/SDL,
@@ -4334,6 +4370,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/SDL,
@@ -4364,6 +4401,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/SDL,
@@ -4391,8 +4429,10 @@
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = "";
 				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_THUMB_SUPPORT = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../..,
@@ -4421,8 +4461,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
 				EXECUTABLE_PREFIX = "";
+				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_THUMB_SUPPORT = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../..,
@@ -4459,6 +4501,7 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_BUILTIN_FUNCTIONS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4490,6 +4533,7 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_BUILTIN_FUNCTIONS = YES;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
