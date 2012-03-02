@@ -476,6 +476,12 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 # ifndef GPAC_DISABLE_ISOM_DUMP
 # define GPAC_DISABLE_ISOM_DUMP
 # endif
+# ifndef GPAC_DISABLE_LOADER_ISOM
+# define GPAC_DISABLE_LOADER_ISOM
+# endif
+# ifndef GPAC_DISABLE_MEDIA_EXPORT
+# define GPAC_DISABLE_MEDIA_EXPORT
+# endif
 #endif
 
 #ifdef GPAC_DISABLE_ISOM_WRITE

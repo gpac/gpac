@@ -797,7 +797,7 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 {
 	u32 i, n, count, c_count, col_count;
 	u32 index;
-	u32 first_idx, last_idx;
+	u32 first_idx, last_idx; 
 	Bool move_to;
 	SFVec3f pt;
 	SFColorRGBA colRGBA;
@@ -805,7 +805,9 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 	M_Coordinate2D *coord2D = (M_Coordinate2D*) __coord;
 	M_Coordinate *coord = (M_Coordinate*) __coord;
 	M_Color *colorRGB = (M_Color *) __color;
+#ifndef GPAC_DISABLE_X3D
 	X_ColorRGBA *colorRGBA = (X_ColorRGBA *) __color;
+#endif
 
 	if (__coord && (gf_node_get_tag(__coord) == TAG_MPEG4_Coordinate2D)) {
 		coord = NULL;
@@ -832,11 +834,16 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 	}
 	has_color = 0;
 	if (__color) {
+#ifndef GPAC_DISABLE_X3D
 		if (gf_node_get_tag(__color)==TAG_X3D_ColorRGBA) {
 			colorRGB = NULL;
 			has_color = (colorRGBA->color.count) ? 1 : 0;
-		} else {
-			colorRGBA = NULL;
+		} else
+#endif
+		{
+#ifndef GPAC_DISABLE_X3D
+ 			colorRGBA = NULL;
+#endif
 			has_color = (colorRGB->color.count) ? 1 : 0;
 		}
 	}
@@ -848,7 +855,9 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 	n = 0;
 	if (has_color && !colorPerVertex) {
 		index = colorIndex->count ? colorIndex->vals[0] : 0;
+#ifndef GPAC_DISABLE_X3D
 		if ((u32) index < col_count) MESH_GET_COL(colRGBA, index);
+#endif
 	}
 	move_to = 1;
 
@@ -865,14 +874,18 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 				if (n<colorIndex->count) index = colorIndex->vals[n];
 				else if (n<col_count) index = n;
 				else index = 0;
+#ifndef GPAC_DISABLE_X3D
 				MESH_GET_COL(colRGBA, index);
+#endif
 			}
 		} else {
 			if (has_color && colorPerVertex) {
 				if (i<colorIndex->count) index = colorIndex->vals[i];
 				else if (i<col_count) index = i;
 				else index=0;
+#ifndef GPAC_DISABLE_X3D
 				MESH_GET_COL(colRGBA, index);
+#endif
 			}
 			if (has_coord) index = coordIndex->vals[i];
 			else index = i;
@@ -900,7 +913,9 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 		mesh_set_line(mesh, last_idx, first_idx);
 	}
 	if (coord2D) mesh->flags |= MESH_IS_2D;
+#ifndef GPAC_DISABLE_X3D
 	if (colorRGBA) mesh->flags |= MESH_HAS_ALPHA;
+#endif
 	mesh_update_bounds(mesh);
 }
 
@@ -913,7 +928,9 @@ void mesh_new_ps(GF_Mesh *mesh, GF_Node *__coord, GF_Node *__color)
 	M_Coordinate2D *coord2D = (M_Coordinate2D*) __coord;
 	M_Coordinate *coord = (M_Coordinate*) __coord;
 	M_Color *colorRGB = (M_Color *) __color;
+#ifndef GPAC_DISABLE_X3D
 	X_ColorRGBA *colorRGBA = (X_ColorRGBA *) __color;
+#endif
 
 	if (__coord && (gf_node_get_tag(__coord) == TAG_MPEG4_Coordinate2D)) {
 		coord = NULL;
@@ -930,11 +947,16 @@ void mesh_new_ps(GF_Mesh *mesh, GF_Node *__coord, GF_Node *__color)
 
 	has_color = 0;
 	if (__color) {
+#ifndef GPAC_DISABLE_X3D
 		if (gf_node_get_tag(__color)==TAG_X3D_ColorRGBA) {
 			colorRGB = NULL;
 			has_color = (colorRGBA->color.count) ? 1 : 0;
-		} else {
+		} else 
+#endif
+		{
+#ifndef GPAC_DISABLE_X3D
 			colorRGBA = NULL;
+#endif
 			has_color = (colorRGB->color.count) ? 1 : 0;
 		}
 	}
@@ -943,7 +965,9 @@ void mesh_new_ps(GF_Mesh *mesh, GF_Node *__coord, GF_Node *__color)
 	colRGBA.red = colRGBA.green = colRGBA.blue = colRGBA.alpha = FIX_ONE;
 
 	for (i=0; i<c_count; ++i) {
+#ifndef GPAC_DISABLE_X3D
 		if (has_color) MESH_GET_COL(colRGBA, i);
+#endif
 		if (coord2D) {
 			pt.x = coord2D->point.vals[i].x;
 			pt.y = coord2D->point.vals[i].y;
@@ -1047,7 +1071,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	M_Coordinate2D *coord2D = (M_Coordinate2D*) __coord;
 	M_Coordinate *coord = (M_Coordinate*) __coord;
 	M_Color *colorRGB = (M_Color *) __color;
+#ifndef GPAC_DISABLE_X3D
 	X_ColorRGBA *colorRGBA = (X_ColorRGBA *) __color;
+#endif
 	M_Normal *normal = (M_Normal*) __normal;
 	M_TextureCoordinate *txcoord = (M_TextureCoordinate*) __texCoords;
 
@@ -1059,15 +1085,21 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		coord = NULL;
 	} else {
 		coord2D = NULL;
-		if (!__coord) return;
+		if (!__coord)
+			return;
 		/*not supported yet*/
-		if (gf_node_get_tag(__coord) == TAG_X3D_CoordinateDouble) return;
+#ifndef GPAC_DISABLE_X3D
+		if (gf_node_get_tag(__coord) == TAG_X3D_CoordinateDouble)
+			return;
+#endif
 	}
 	gen_tex_coords = 0;
+#ifndef GPAC_DISABLE_X3D
 	if (__texCoords && (gf_node_get_tag(__texCoords)==TAG_X3D_TextureCoordinateGenerator)) {
 		gen_tex_coords = 1;
 		txcoord = NULL;
 	}
+#endif
 
 	if (!coord2D && !coord) return;
 	c_count = coord2D ? coord2D->point.count : coord->point.count;
@@ -1115,11 +1147,16 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 
 	has_color = 0;
 	if (__color) {
+#ifndef GPAC_DISABLE_X3D
 		if (gf_node_get_tag(__color)==TAG_X3D_ColorRGBA) {
 			colorRGB = NULL;
 			has_color = (colorRGBA->color.count) ? 1 : 0;
-		} else {
+		} else
+#endif
+		{
+#ifndef GPAC_DISABLE_X3D
 			colorRGBA = NULL;
+#endif
 			has_color = (colorRGB->color.count) ? 1 : 0;
 		}
 	}
@@ -1127,7 +1164,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	if (has_color) {
 		if (!colorPerVertex) {
 			index = colorIndex->count ? colorIndex->vals[0] : 0;
+#ifndef GPAC_DISABLE_X3D
 			MESH_GET_COL(colRGBA, index);
+#endif
 		} else {
 			if (!colorIndex->vals) colorIndex = coordIndex;
 		}
@@ -1178,7 +1217,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 			n++;
 			if (has_color && !colorPerVertex) {
 				GET_IDX(n, colorIndex);
+#ifndef GPAC_DISABLE_X3D
 				MESH_GET_COL(colRGBA, index);
+#endif
 			}
 			if (has_normal && !normalPerVertex) {
 				GET_IDX(n, normalIndex);
@@ -1205,7 +1246,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		} else {
 			if (has_color && colorPerVertex) {
 				GET_IDX(i, colorIndex);
+#ifndef GPAC_DISABLE_X3D
 				MESH_GET_COL(colRGBA, index);
+#endif
 			}
 			if (has_normal && normalPerVertex) {
 				GET_IDX(i, normalIndex);
@@ -1300,8 +1343,10 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 
 	if (!coord2D) gf_mesh_build_aabbtree(mesh);
 
+#ifndef GPAC_DISABLE_X3D
 	if (colorRGBA) mesh->flags |= MESH_HAS_ALPHA;
 	if (gen_tex_coords) mesh_generate_tex_coords(mesh, __texCoords);
+#endif
 }
 
 void mesh_new_ifs2d(GF_Mesh *mesh, GF_Node *node)
@@ -1336,7 +1381,9 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	M_ElevationGrid *eg = (M_ElevationGrid *) node;
 	M_Normal *norm = (M_Normal *)eg->normal;
 	M_Color *colorRGB = (M_Color *)eg->color;
+#ifndef GPAC_DISABLE_X3D
 	X_ColorRGBA *colorRGBA = (X_ColorRGBA *)eg->color;
+#endif
 	SFColorRGBA rgba;
 	M_TextureCoordinate *txc = (M_TextureCoordinate *)eg->texCoord;
 
@@ -1349,11 +1396,16 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	has_normal = norm ? norm->vector.count : 0;
 	has_color = 0;
 	if (eg->color) {
+#ifndef GPAC_DISABLE_X3D
 		if (gf_node_get_tag(eg->color)==TAG_X3D_ColorRGBA) {
 			colorRGB = NULL;
 			has_color = colorRGBA->color.count ? 1 : 0;
-		} else {
+		} else 
+#endif
+		{
+#ifndef GPAC_DISABLE_X3D
 			colorRGBA = NULL;
+#endif
 			has_color = colorRGB->color.count ? 1 : 0;
 		}
 	}
@@ -1424,7 +1476,9 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 			/*get face color*/
             if (has_color && !eg->colorPerVertex) {
 				idx = i + j * (xDimension-1);
+#ifndef GPAC_DISABLE_X3D
 				MESH_GET_COL(rgba, idx);
+#endif
 				vx.color = MESH_MAKE_COL(rgba);
             }
 			/*get face normal*/
@@ -1447,7 +1501,9 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 					/*get color per vertex*/
 					if (has_color && eg->colorPerVertex) {
 						idx = i+l + (j+k) * xDimension;
+#ifndef GPAC_DISABLE_X3D
 						MESH_GET_COL(rgba, idx);
+#endif
 						vx.color = MESH_MAKE_COL(rgba);
 					}
 					/*get tex coord*/
@@ -1555,8 +1611,9 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	mesh_update_bounds(mesh);
 	if (!eg->ccw) mesh->flags |= MESH_IS_CW;
 	if (eg->solid) mesh->flags |= MESH_IS_SOLID;
+#ifndef GPAC_DISABLE_X3D
 	if (colorRGBA) mesh->flags |= MESH_HAS_ALPHA;
-	gf_mesh_build_aabbtree(mesh);
+#endif	gf_mesh_build_aabbtree(mesh);
 }
 
 

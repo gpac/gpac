@@ -46,7 +46,7 @@ extern "C" {
 #include <gpac/ietf.h>
 #include <gpac/isomedia.h>
 
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
     
 typedef struct __rtp_streamer GF_RTPStreamer;
 
@@ -108,7 +108,7 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 }
 #endif
 
-#endif //GPAC_DISABLE_STREAMING
+#endif //GPAC_DISABLE_ISOM && GPAC_DISABLE_STREAMING
 
 #endif		/*_GF_RTPSTREAMER_H_*/
 

@@ -63,7 +63,7 @@ extern "C" {
  */
 #define GPAC_VERSION          "0.4.6-DEV"
 #define GPAC_VERSION_MAJOR    1
-#define GPAC_VERSION_MINOR    0
+#define GPAC_VERSION_MINOR    1
 #define GPAC_VERSION_MICRO    0
 
 #include <gpac/version.h>

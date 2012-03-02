@@ -31,7 +31,7 @@
 #endif
 #include <gpac/internal/ietf_dev.h>
 
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
 
 struct __rtp_streamer
 {
@@ -733,5 +733,5 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 	return gf_rtp_send_rtcp_report(streamer->channel, NULL, NULL);
 }
 
-#endif /*GPAC_DISABLE_STREAMING*/
+#endif /*GPAC_DISABLE_STREAMING && GPAC_DISABLE_ISOM*/
 
