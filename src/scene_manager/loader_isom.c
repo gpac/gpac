@@ -31,7 +31,7 @@
 
 
 
-#ifndef GPAC_DISABLE_LOADER_ISOM
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_LOADER_ISOM)
 
 static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 {
@@ -406,4 +406,4 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-#endif /*GPAC_DISABLE_LOADER_ISOM*/
+#endif /*GPAC_DISABLE_ISOM && GPAC_DISABLE_LOADER_ISOM*/

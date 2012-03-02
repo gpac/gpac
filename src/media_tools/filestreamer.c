@@ -22,18 +22,18 @@
  *
  */
 
-#include <gpac/isomedia.h>
-#include <gpac/ietf.h>
-#include <gpac/config_file.h>
-#include <gpac/base_coding.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/filestreamer.h>
-#include <gpac/rtp_streamer.h>
 #include <gpac/constants.h>
 #include <gpac/math.h>
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 
+#include <gpac/isomedia.h>
+#include <gpac/ietf.h>
+#include <gpac/config_file.h>
+#include <gpac/base_coding.h>
+#include <gpac/filestreamer.h>
+#include <gpac/rtp_streamer.h>
 
 typedef struct __tag_rtp_track
 {
