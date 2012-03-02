@@ -735,9 +735,10 @@ EOF
     fi
 fi
 
+new_js_api="no"
 if test "$has_js" != "no" ; then
     js_flags="-DSPIDERMONKEY_NEW_API $js_flags"
-    echo "SpiderMonkey new API detected" # (version > 1.8.0rc1)
+    new_js_api="yes"
 fi
 
 #spidermonkey test for regular API
@@ -805,15 +806,14 @@ EOF
 
 fi
 
-
-if test "$has_js" != "no" ; then
+if test "$new_js_api" = "no" ; then
+  if test "$has_js" != "no" ; then
     if test "$linux" = "yes" ; then
         if test "$cpu" != "sh4"; then
-
             #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
             #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
             #in the header, it was enabled in the build
-            if grep "MOZILLA_1_8_BRANCH" $js_inc/jsapi.h > /dev/null 2>&1 ; then
+            if grep MOZILLA_1_8_BRANCH $js_inc/jsapi.h > /dev/null 2>&1 ; then
                 js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
                 echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
                 echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
@@ -821,6 +821,7 @@ if test "$has_js" != "no" ; then
 
         fi
     fi
+  fi
 fi
 
 #fi
@@ -1199,7 +1200,18 @@ fi
 
 
 
-#look for MAD support
+#look for FREENECT support
+freenect_flags=""
+freenect_ld="-lfreenect"
+
+if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+  freenect_flags=`$pkg_config --cflags libfreenect`
+  freenect_libs=`$pkg_config --libs libfreenect`
+  has_freenect="system"
+  freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags" 
+
+else
+
 has_freenect="no"
 cat > $TMPC << EOF
 #include <libfreenect/libfreenect.h>
@@ -1212,13 +1224,19 @@ if test "$cross_prefix" = "" ; then
     elif test "$alt_macosx_dir" != "" ; then
         if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfreenect 2> /dev/null ; then
             has_freenect="system"
+            freenect_flags=-I$alt_macosx_dir/include
+            freenect_ld=-L$alt_macosx_dir/lib -lfreenect
         fi
     fi
 fi
 if test "$has_freenect" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lfreenect 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC -I$local_inc/freenect -L$local_lib -lfreenect 2> /dev/null  ; then
         has_freenect="local"
+        freenect_flags=-I$local_inc/freenect
+        freenect_ld=-L$local_lib -lfreenect
     fi
+fi
+
 fi
 
 
@@ -2454,6 +2472,11 @@ echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "CONFIG_A52=$has_a52" >> config.mak
 echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
 echo "CONFIG_FREENECT=$has_freenect" >> config.mak
+if test "$has_freenect" != "no"
+then
+    echo "FREENECT_CFLAGS=$freenect_flags" >> config.mak
+    echo "FREENECT_LDLAGS=$freenect_ld" >> config.mak
+fi
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "DISABLE_LOADER_BT=$disable_loader_bt" >> config.mak

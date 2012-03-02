@@ -29,9 +29,19 @@
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
+#ifdef FREENECT_FLAT_HEADERS
+#include <libfreenect.h>
+#else
 #include <libfreenect/libfreenect.h>
+#endif
 
 #include <gpac/thread.h>
+
+
+#ifndef FREENECT_RESOLUTION_MEDIUM
+#define FREENECT_MINIMAL
+#endif
+
 
 typedef struct
 {
@@ -240,9 +250,10 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 
 	if (!vcap->f_ctx) {
 		int i;
-		Bool use_depth = 1;
+#ifndef FREENECT_MINIMAL
 		freenect_frame_mode frame_mode;
 		freenect_resolution frame_format = FREENECT_RESOLUTION_MEDIUM;
+#endif
 		char *name, *params;
 		int res = freenect_init(&vcap->f_ctx, NULL);
 		if (res < 0) {
@@ -251,8 +262,9 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 		}
 		freenect_set_log_level(vcap->f_ctx, FREENECT_LOG_DEBUG);
 		freenect_set_log_callback(vcap->f_ctx, Freenect_Logs);
+#ifndef FREENECT_MINIMAL
 		freenect_select_subdevices(vcap->f_ctx, FREENECT_DEVICE_CAMERA);
-
+#endif
 		res = freenect_num_devices (vcap->f_ctx);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] %d devices found\n", res));
 		if (res<1) {
@@ -273,7 +285,6 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 		if (name) name += 3;
 
 		if (!stricmp(name, "color")) {
-			use_depth = 0;
 		}
 
 		if (params) {
@@ -287,12 +298,14 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Set camera option %s\n", params));
 
 			if (!strnicmp(params, "resolution=", 11)) {
+#ifndef FREENECT_MINIMAL
 				u32 w, h;
 				if (sscanf(params+11, "%dx%d", &w, &h)==2) {
 					if ((w<=320) || (h<=240)) frame_format = FREENECT_RESOLUTION_LOW;
 					else if ((w<=640) || (h<=480)) frame_format = FREENECT_RESOLUTION_MEDIUM;
 					else frame_format = FREENECT_RESOLUTION_HIGH;
 				}
+#endif
 			}
 			else if (!strnicmp(params, "format=", 7)) {
 				if (!stricmp(params+7, "standard")) vcap->depth_format = 0;
@@ -312,13 +325,20 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 			params = sep+1;
 		}
 
+#ifndef FREENECT_MINIMAL
 		frame_mode = freenect_find_video_mode(frame_format, FREENECT_VIDEO_RGB);
 		res = freenect_set_video_mode(vcap->f_dev, frame_mode);
 		res = freenect_set_depth_mode(vcap->f_dev, freenect_find_depth_mode(frame_format, FREENECT_DEPTH_11BIT));
-
 		vcap->width = frame_mode.width;
 		vcap->height = frame_mode.height;
 		vcap->fps = frame_mode.framerate;
+#else
+		freenect_set_video_format(vcap->f_dev, FREENECT_VIDEO_RGB);
+		res = freenect_set_depth_format(vcap->f_dev, FREENECT_DEPTH_11BIT);
+		vcap->width = FREENECT_FRAME_W;
+		vcap->height = FREENECT_FRAME_H;
+		vcap->fps = 30;
+#endif
 		/*currently hardcoded*/
 		vcap->color_pixel_format = GF_PIXEL_RGB_24;
 		vcap->color_stride = 3*vcap->width;
@@ -353,7 +373,7 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 
 		res = freenect_set_video_buffer(vcap->f_dev, vcap->vid_buf);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] Device configured - resolution %dx%d - Frame Rate %d - Depth Pixel Format %s\n", vcap->width, vcap->height, vcap->fps, gf_4cc_to_str(vcap->depth_pixel_format) ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] Device configured - resolution %dx%d - Frame Rate %d - Depth Pixel Format %s\n", vcap->width, vcap->height, vcap->fps, gf_4cc_to_str(vcap->depth_pixel_format) ));
 
 
 		for (i=0; i<2048; i++) {

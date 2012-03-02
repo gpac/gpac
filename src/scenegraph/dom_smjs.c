@@ -182,7 +182,7 @@ static void define_dom_exception(JSContext *c, JSObject *global)
 	DEF_EXC(TYPE_MISMATCH_ERR);
 #undef  DEF_EXC
 
-	JS_AliasProperty(c, global, "DOMException", "e");
+	//JS_AliasProperty(c, global, "DOMException", "e");
 	obj = JS_DefineObject(c, global, "EventException", NULL, 0, 0);
 	JS_DefineProperty(c, obj, "UNSPECIFIED_EVENT_TYPE_ERR", INT_TO_JSVAL(0), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, obj, "DISPATCH_REQUEST_ERR", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -523,7 +523,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *on_node)
 	GF_SceneGraph *sg = NULL;
 	JSFunction*fun = NULL;
 	GF_Node *n = NULL;
-	jsval funval = 0;
+	jsval funval = JSVAL_NULL;
 	JSObject *evt_handler;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -597,7 +597,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *on_node)
 
 		if (!callback) {
 			handler->js_fun = fun;
-			handler->js_fun_val = funval;
+			handler->js_fun_val = *(u64 *) &funval;
 			if (handler->js_fun_val) {
 				handler->js_context = c;
 				/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
@@ -665,7 +665,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 	u32 evtType, i, count;
 	char *inNS = NULL;
 	GF_Node *node = NULL;
-	jsval funval = 0;
+	jsval funval = JSVAL_NULL;
 	GF_SceneGraph *sg = NULL;
 	GF_DOMEventTarget *target = NULL;
 	SMJS_OBJ
@@ -712,7 +712,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 			funval = argv[of+1];
 		}
 	}
-	if (!callback && !funval) goto err_exit;
+	if (!callback && JSVAL_IS_NULL(funval) ) goto err_exit;
 
 	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==GF_EVENT_UNKNOWN) goto err_exit;
@@ -732,8 +732,8 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 		if (!info.far_ptr) continue;
 		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
-		if (funval) {
-			if (funval != (jsval) hdl->js_fun_val) continue;
+		if (! JSVAL_IS_NULL(funval) ) {
+			if (*(u64 *) &funval != hdl->js_fun_val) continue;
 		} else if (hdl->children) {
 			txt = (GF_DOMText *) hdl->children->node;
 			if (txt->sgprivate->tag != TAG_DOMText) continue;
@@ -3915,7 +3915,7 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)
 {
 	JSObject *obj = JS_DefineObject(c, global, "evt", &dom_rt->domEventClass, 0, 0 );
-	JS_AliasProperty(c, global, "evt", "event");
+	//JS_AliasProperty(c, global, "evt", "event");
 	return obj;
 }
 

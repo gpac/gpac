@@ -429,7 +429,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 
 		
 		wi->scene_obj = JS_DefineObject(c, global, "widget", &wm->widgetClass, 0, 0);
-		JS_AliasProperty(c, global, "widget", "MPEGWidget");
+		//JS_AliasProperty(c, global, "widget", "MPEGWidget");
 		JS_SetPrivate(c, wi->scene_obj, wi);
 		/*and remember the script*/
 		wi->scene_context = c;

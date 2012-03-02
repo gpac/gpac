@@ -762,7 +762,7 @@ static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
-	if (gjs->evt_fun) return JS_TRUE;
+	if (JSVAL_IS_NULL(gjs->evt_fun) ) return JS_TRUE;
 
 	gjs->evt_fun = argv[0];
 	gjs->evt_filter_obj = obj;
