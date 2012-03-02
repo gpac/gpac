@@ -1613,7 +1613,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	if (eg->solid) mesh->flags |= MESH_IS_SOLID;
 #ifndef GPAC_DISABLE_X3D
 	if (colorRGBA) mesh->flags |= MESH_HAS_ALPHA;
-#endif	gf_mesh_build_aabbtree(mesh);
+#endif
+	gf_mesh_build_aabbtree(mesh);
 }
 
 
