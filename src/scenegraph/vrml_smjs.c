@@ -1152,8 +1152,8 @@ JSBool gf_sg_script_eventout_set_prop(JSContext *c, JSObject *obj, SMJS_PROP_SET
 	GF_ScriptField *sf;
 	GF_FieldInfo info;
 	jsval idval;
-	JS_IdToValue(c, id, &idval);
 	JSString *str;
+	JS_IdToValue(c, id, &idval);
 	if (! SMJS_ID_IS_STRING(id)) return JS_FALSE;
 	str = SMJS_ID_TO_STRING(id);
 	if (!str) return JS_FALSE;
