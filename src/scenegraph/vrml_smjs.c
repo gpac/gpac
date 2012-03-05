@@ -286,6 +286,16 @@ static void gf_sg_unload_script_modules()
 }
 
 
+#ifdef NO_JS_RUNTIMETHREAD
+void JS_SetRuntimeThread(JSRuntime *jsr)
+{
+}
+void JS_ClearRuntimeThread(JSRuntime *jsr)
+{
+}
+#endif
+
+
 #ifdef __SYMBIAN32__
 const long MAX_HEAP_BYTES = 256 * 1024L;
 #else
