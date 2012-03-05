@@ -809,22 +809,28 @@ EOF
 
 fi
 
-if test "$new_js_api" = "no" ; then
-  if test "$has_js" != "no" ; then
+if test "$has_js" != "no" ; then
     if test "$linux" = "yes" ; then
         if test "$cpu" != "sh4"; then
             #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
             #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
             #in the header, it was enabled in the build
-            if grep MOZILLA_1_8_BRANCH $js_inc/jsapi.h > /dev/null 2>&1 ; then
-                js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
-                echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
-                echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
+            if test "$new_js_api" = "no" ; then
+              if grep MOZILLA_1_8_BRANCH $js_inc/jsapi.h > /dev/null 2>&1 ; then
+                  js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
+                  echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
+                  echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
+              fi
+            else
+              #check presence of ***RuntimeThread
+              if grep RuntimeThread $js_inc/jsapi.h > /dev/null 2>&1 ; then
+                js_flags="$js_flags"
+              else
+                  js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
+              fi
             fi
-
         fi
     fi
-  fi
 fi
 
 #fi
