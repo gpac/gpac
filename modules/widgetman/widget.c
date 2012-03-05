@@ -22,7 +22,13 @@
 //
 //Copyright (c) 2009.
 //
+// Alternatively, this software module may be redistributed and/or modified
+//  it under the terms of the GNU Lesser General Public License as published by
+//  the Free Software Foundation; either version 2, or (at your option)
+//  any later version.
+//
 /////////////////////////////////////////////////////////////////////////////////
+
 
 /////////////////////////////////////////////////////////////////////////////////
 //
