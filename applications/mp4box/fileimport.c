@@ -1847,7 +1847,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {
-#ifdef GPAC_DISABLE_BIFS
+#ifdef GPAC_DISABLE_BIFS_ENC
 	fprintf(stdout, "BIFS is not supported in this build of GPAC\n");
 	return GF_NOT_SUPPORTED;
 #else
