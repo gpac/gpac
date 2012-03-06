@@ -32,6 +32,17 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+#include <gpac/xml.h>
+
+typedef struct 
+{
+	const char *root_file;
+	const char *dir;
+	GF_List *imports;
+} WGTEnum;
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
 extern Bool keep_sys_tracks;
@@ -1566,7 +1577,9 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	GF_SceneLoader load;
 	GF_SceneManager *ctx;
 	GF_SceneGraph *sg;
+#ifndef GPAC_DISABLE_SCENE_STATS
 	GF_StatManager *statsman = NULL;
+#endif
 	
 	sg = gf_sg_new();
 	ctx = gf_sm_new(sg);
@@ -1586,6 +1599,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 
+#ifndef GPAC_DISABLE_SCENE_STATS
 	if (opts->auto_quant) {
 		fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
 		statsman = gf_sm_stats_new();
@@ -1656,6 +1670,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 #endif
 		}
 	}
+#endif /*GPAC_DISABLE_SCENE_STATS*/
 
 	if (e<0) {
 		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
@@ -1677,7 +1692,9 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ISOM, 1);
 
 err_exit:
+#ifndef GPAC_DISABLE_SCENE_STATS
 	if (statsman) gf_sm_stats_del(statsman);
+#endif
 	gf_sm_del(ctx);
 	gf_sg_del(sg);
 	return e;
@@ -1847,8 +1864,8 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {
-#ifdef GPAC_DISABLE_BIFS_ENC
-	fprintf(stdout, "BIFS is not supported in this build of GPAC\n");
+#if defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)
+	fprintf(stdout, "BIFS encoding is not supported in this build of GPAC\n");
 	return GF_NOT_SUPPORTED;
 #else
 	GF_Err e;
@@ -1934,11 +1951,15 @@ exit:
 		gf_sm_del(ctx);
 		gf_sg_del(sg);
 	}
+
 	return e;
-#endif
+
+#endif /*defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)*/
+
 }
 
-#include <gpac/xml.h>
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
+
 
 void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
@@ -1960,13 +1981,6 @@ void sax_node_start(void *sax_cbck, const char *node_name, const char *name_spac
 		gf_list_add(imports, gf_strdup(att->value) );
 	}
 }
-
-typedef struct 
-{
-	const char *root_file;
-	const char *dir;
-	GF_List *imports;
-} WGTEnum;
 
 static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path)
 {

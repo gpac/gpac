@@ -6811,6 +6811,41 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	return gf_import_message(importer, e, "Unknown input file type");
 }
 
+
+GF_EXPORT
+GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
+{
+	u32 i, count, stype;
+	GF_Err e;
+	GF_AVCConfig *avcc;
+
+	stype = gf_isom_get_media_subtype(file, track, 1);
+	switch (stype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+		break;
+	default:
+		return GF_OK;
+	}
+
+	avcc = gf_isom_avc_config_get(file, track, 1);
+	if (level) avcc->AVCLevelIndication = level;
+	if (profile) avcc->AVCProfileIndication = profile;
+	count = gf_list_count(avcc->sequenceParameterSets);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, i);
+		if (profile) slc->data[1] = profile;
+		if (level) slc->data[3] = level;
+	}
+	e = gf_isom_avc_config_update(file, track, 1, avcc);
+	assert (e == GF_OK);
+	gf_odf_avc_cfg_del(avcc);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
+
+
 GF_EXPORT
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 {
@@ -6862,37 +6897,3 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	}
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
 }
-
-
-GF_EXPORT
-GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
-{
-	u32 i, count, stype;
-	GF_Err e;
-	GF_AVCConfig *avcc;
-
-	stype = gf_isom_get_media_subtype(file, track, 1);
-	switch (stype) {
-	case GF_ISOM_SUBTYPE_AVC_H264:
-	case GF_ISOM_SUBTYPE_AVC2_H264:
-		break;
-	default:
-		return GF_OK;
-	}
-
-	avcc = gf_isom_avc_config_get(file, track, 1);
-	if (level) avcc->AVCLevelIndication = level;
-	if (profile) avcc->AVCProfileIndication = profile;
-	count = gf_list_count(avcc->sequenceParameterSets);
-	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, i);
-		if (profile) slc->data[1] = profile;
-		if (level) slc->data[3] = level;
-	}
-	e = gf_isom_avc_config_update(file, track, 1, avcc);
-	assert (e == GF_OK);
-	gf_odf_avc_cfg_del(avcc);
-	return GF_OK;
-}
-
-#endif /*GPAC_DISABLE_MEDIA_IMPORT*/

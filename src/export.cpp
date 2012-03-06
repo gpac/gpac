@@ -563,10 +563,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timed_meta_data_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del) )
-#ifndef GPAC_DISABLE_SCENE_ENCODER
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
-#endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )
@@ -1055,13 +1053,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_make_psp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
-#endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_rewrite_samples) )
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1643,6 +1639,9 @@
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_end) )
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
+#endif
 #endif
 
 /* dvb_mpe.h */

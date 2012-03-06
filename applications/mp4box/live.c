@@ -31,6 +31,14 @@
 #include <gpac/scene_engine.h>
 #include <gpac/rtp_streamer.h>
 
+#if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
+
+#error "Cannot compile MP4Box if GPAC is not built with ISO File Format support"
+
+#else
+
+#ifndef GPAC_DISABLE_STREAMING
+
 void PrintStreamerUsage()
 {
 	fprintf(stdout, "File Streamer Options\n"
@@ -797,3 +805,6 @@ exit:
 }
 
 
+#endif /*GPAC_DISABLE_STREAMING*/
+
+#endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/

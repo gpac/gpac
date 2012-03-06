@@ -2509,7 +2509,9 @@ fi
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
 echo "OGL_INCLS=$INCL3D" >> config.mak
 
-echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
+if test "$disable_isoff" = "yes" -o "$disable_isoff_write" = "yes" ; then
+	echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
+fi
 
 echo "HAS_OPENGL=$has_opengl" >> config.mak
 

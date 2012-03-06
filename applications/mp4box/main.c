@@ -46,18 +46,19 @@
 
 /*in fileimport.c*/
 #ifndef GPAC_DISABLE_ISOM_WRITE
-void convert_file_info(char *inName, u32 trackID);
+
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, Bool adjust_split_end, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat);
 
-#ifndef GPAC_DISABLE_SCENE_ENCODER
+#if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_SCENE_ENCODER)
+void convert_file_info(char *inName, u32 trackID);
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 #endif
 
-
 GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt);
+
 #endif
 
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
@@ -109,10 +110,10 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num,
 #ifndef GPAC_DISABLE_STREAMING
 void PrintStreamerUsage();
 int stream_file_rtp(int argc, char **argv);
-#endif
-
 int live_session(int argc, char **argv);
 void PrintLiveUsage();
+#endif
+
 int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
@@ -1203,8 +1204,10 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	GF_SMEncodeOptions opts;
 #endif
-	Double InterleavingTime, split_duration, split_start, import_fps, dash_duration;
+#ifndef GPAC_DISABLE_STREAMING
 	SDPLine sdp_lines[MAX_CUMUL_OPS];
+#endif
+	Double InterleavingTime, split_duration, split_start, import_fps, dash_duration;
 	MetaAction metas[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
@@ -1793,7 +1796,7 @@ int mp4boxMain(int argc, char **argv)
 			nb_track_act++;
 			i++;
 		}
-#ifndef GPAC_DISABLE_MEDIA_EXPORT
+#if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 		else if (!stricmp(arg, "-dref")) import_flags |= GF_IMPORT_USE_DATAREF;
 		else if (!stricmp(arg, "-no-drop") || !stricmp(arg, "-nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
 		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
@@ -1816,7 +1819,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-keep-all") || !stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
-#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
+#endif /*!defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT*/
 		else if (!stricmp(arg, "-keep-sys") || !stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
@@ -1854,12 +1857,14 @@ int mp4boxMain(int argc, char **argv)
 			opts.resolution = atoi(argv[i+1]);
 			i++;
 		}
+#ifndef GPAC_DISABLE_SCENE_STATS
 		else if (!stricmp(arg, "-auto-quant")) {
 			CHECK_NEXT_ARG
 			opts.resolution = atoi(argv[i+1]);
 			opts.auto_quant = 1;
 			i++;
 		}
+#endif
 		else if (!stricmp(arg, "-coord-bits")) {
 			CHECK_NEXT_ARG
 			opts.coord_bits = atoi(argv[i+1]);
@@ -2095,8 +2100,10 @@ int mp4boxMain(int argc, char **argv)
 			else if (!strcmp(argv[i+1], "crypt")) PrintEncryptUsage();
 			else if (!strcmp(argv[i+1], "meta")) PrintMetaUsage();
 			else if (!strcmp(argv[i+1], "swf")) PrintSWFUsage();
+#ifndef GPAC_DISABLE_STREAMING
 			else if (!strcmp(argv[i+1], "rtp")) PrintStreamerUsage();
 			else if (!strcmp(argv[i+1], "live")) PrintLiveUsage	();
+#endif
 			else if (!strcmp(argv[i+1], "all")) {
 				PrintGeneralUsage();
 				PrintExtractUsage();
@@ -2108,8 +2115,10 @@ int mp4boxMain(int argc, char **argv)
 				PrintEncryptUsage();
 				PrintMetaUsage();
 				PrintSWFUsage();
+#ifndef GPAC_DISABLE_STREAMING
 				PrintStreamerUsage();
 				PrintLiveUsage	();
+#endif
 			}
 			else PrintUsage();
 			return 0;
@@ -2131,10 +2140,10 @@ int mp4boxMain(int argc, char **argv)
 		return 1;
 	}
 
+#ifndef GPAC_DISABLE_STREAMING
 	if (live_scene) {
 		return live_session(argc, argv);
 	}
-#ifndef GPAC_DISABLE_STREAMING
 	if (stream_rtp) {
 		return stream_file_rtp(argc, argv);
 	}
@@ -2357,7 +2366,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
-#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER)
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	else if (chunk_mode) {
 		if (!inName) {
 			fprintf(stdout, "chunk encoding syntax: [-outctx outDump] -inctx inScene auFile\n");
@@ -2369,7 +2378,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 	else if (encode) {
-#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER)
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 		FILE *logs = NULL;
 		if (do_log) {
 			char logfile[5000];
@@ -2470,6 +2479,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && !dump_mode) {
 		/*************************************************************************************************/
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)
 				{
 					GF_MediaImporter import;
@@ -2486,6 +2496,7 @@ int mp4boxMain(int argc, char **argv)
 						return 1;
 					}
 				}
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 				if (dash_duration) {
 					if (subsegs_per_sidx<0) subsegs_per_sidx = 0;
@@ -2503,14 +2514,14 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPEG2TS
 					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
 #endif
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 				} else {
 					convert_file_info(inName, info_track_id);
+#endif
 				}
 				return 0;
 			}
-				
-		
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 			else if (open_edit) {
 				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
 				if (!outName && file) outName = inName;
@@ -2640,7 +2651,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !(definedGPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size) {
 		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, adjust_split_end, tmpdir);
 		/*never save file when splitting is desired*/
@@ -2825,6 +2836,7 @@ int mp4boxMain(int argc, char **argv)
 				strcat(outfile, ".m21");
 			}
 		}
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
 			fprintf(stdout, "Converting to ISMA Audio-Video MP4 file...\n");
 			/*keep ESIDs when doing ISMACryp*/
@@ -2844,6 +2856,7 @@ int mp4boxMain(int argc, char **argv)
 			if (e) goto err_exit;
 			needSave = 1;
 		}
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {
 			u32 major_brand = 0;
 
@@ -3280,7 +3293,12 @@ int mp4boxMain(int argc, char **argv)
 			if (nb_dash_inputs>1) {
 				fprintf(stdout, "DASHing file %s\n", dash_inputs[i]);
 			}
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg, i+1);
+#else
+			fprintf(stderr, "GPAC was compiled without fragment support\n");
+			e = GF_NOT_SUPPORTED;
+#endif
 			if (e) {
 				fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 				break;
@@ -3301,6 +3319,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_delete(file);
 		gf_sys_close();
 		return (e!=GF_OK) ? 1 : 0;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	} else if (Frag) {
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
@@ -3314,6 +3333,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		gf_sys_close();
 		return (e!=GF_OK) ? 1 : 0;
+#endif
 	}
 	
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -3380,8 +3400,13 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 	if (chap_file) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		e = gf_media_import_chapters(file, chap_file, import_fps);
 		needSave = 1;
+#else
+		fprintf(stdout, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");
+		e = GF_NOT_SUPPORTED;
+#endif
 		if (e) goto err_exit;
 	}
 
