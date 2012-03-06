@@ -568,8 +568,13 @@ void PrintNode(const char *name, u32 graph_type)
 		fprintf(stdout, "SVG node printing is not supported\n");
 		return;
 	} else if (graph_type==1) {
+#ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(name);
 		std_name = "X3D";
+#else
+                fprintf(stdout, "X3D node printing is not supported (X3D support disabled)\n");
+                return;
+#endif
 	} else {
 		tag = gf_node_mpeg4_type_by_class_name(name);
 		std_name = "MPEG4";
@@ -676,12 +681,12 @@ void PrintBuiltInNodes(u32 graph_type)
 	u32 i, nb_in, nb_not_in, start_tag, end_tag;
 
 	if (graph_type==1) {
-#ifdef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D)
+                start_tag = GF_NODE_RANGE_FIRST_X3D;
+                end_tag = TAG_LastImplementedX3D;
+#else
 		fprintf(stdout, "X3D scene graph disabled in this build of GPAC\n");
 		return;
-#else
-		start_tag = GF_NODE_RANGE_FIRST_X3D;
-		end_tag = TAG_LastImplementedX3D;
 #endif
 	} else if (graph_type==2) {
 #ifdef GPAC_DISABLE_SVG

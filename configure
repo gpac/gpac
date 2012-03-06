@@ -2502,7 +2502,9 @@ if test "$has_libxml2" = "yes"; then
     echo "XML2_CFLAGS=$libxml2_cflags" >> config.mak
     echo "XML2_LIBS=$libxml2_lib_flags" >> config.mak
 fi
-
+if test "$disable_m2ts_mux" = "yes" -o "$disable_m2ts" = "yes" ; then
+    echo "DISABLE_M2TS=yes" >> config.mak
+fi
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
 echo "OGL_INCLS=$INCL3D" >> config.mak
