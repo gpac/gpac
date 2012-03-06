@@ -24,7 +24,7 @@
 
 #include <gpac/scene_manager.h>
 
-#ifdef GPAC_DISABLE_ISOM
+#if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
 
 #error "Cannot compile MP4Box if GPAC is not built with ISO File Format support"
 
@@ -48,7 +48,7 @@ extern u32 get_file_type_by_ext(char *inName);
 
 void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist);
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
 #endif
 
@@ -180,8 +180,14 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	/*SAF*/
 	else if (ftype==6) {
 		load.isom = gf_isom_open("saf_conv", GF_ISOM_WRITE_EDIT, NULL);
-		if (load.isom) e = import_file(load.isom, file, 0, 0, 0);
-		else e = gf_isom_last_error(NULL);
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+		if (load.isom)
+			e = import_file(load.isom, file, 0, 0, 0);
+		else
+#else
+		fprintf(stderr, "Warning: GPAC was compiled without Media Import support\n");
+#endif
+			e = gf_isom_last_error(NULL);
 
 		if (e) {
 			fprintf(stdout, "Error importing file: %s\n", gf_error_to_string(e));
@@ -1765,7 +1771,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 }
 
-#endif /*GPAC_DISABLE_ISOM*/
+#endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -2386,18 +2392,24 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 	char duration_string[100];
 	char buffer_string[100];
 	u32 bandwidth, i;
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 	GF_MediaImporter import;
+#endif
 	char szCodecs[1000];
 	u32 width, height, sample_rate, nb_channels, langCode;
 	GF_Err e;
 	FILE *mpd = index_info->mpd_file;
 
 	/*get codecs*/	
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 	memset(&import, 0, sizeof(GF_MediaImporter));
 	import.trackID = 0;
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	import.in_name = (char *)media_file_name;
 	e = gf_media_import(&import);
+#else
+	fprintf(stdout, "Warning: generating MPD without media import support\n");
+#endif
 	strcpy(szCodecs, "");
 	width = height = sample_rate = nb_channels = langCode = 0;
 
@@ -2416,6 +2428,7 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 	}
 
 	if (!e) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		for (i=0; i<import.nb_tracks;i++) {
 			if (strlen(import.tk_info[i].szCodecProfile)) {
 				if (strlen(szCodecs)) strcat(szCodecs, ",");
@@ -2434,9 +2447,8 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 			}
 			if (!langCode && import.tk_info[i].lang) langCode = import.tk_info[i].lang;
 		}
+#endif
 	}
-
-
 
 	fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"video/mp2t\" codecs=\"%s\"", index_info->represantation_idx+1, szCodecs);
 	if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
@@ -2612,6 +2624,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 		dumper.index_info.index_file = NULL;
 		dumper.index_info.index_bs = NULL;
 		if (dumper.index_info.use_url_template!=2) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			dumper.index_info.index_file = gf_f64_open(dumper.index_info.index_file_name, "wb");
 			dumper.index_info.index_bs = gf_bs_from_file(dumper.index_info.index_file, GF_BITSTREAM_WRITE);
 			{
@@ -2625,6 +2638,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 				gf_isom_box_write((GF_Box *)styp, dumper.index_info.index_bs);
 				gf_isom_box_del((GF_Box *)styp);
 			}
+#endif
 		}
 	}
 	/*PES dumping*/
