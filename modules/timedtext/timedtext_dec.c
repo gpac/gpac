@@ -63,7 +63,7 @@
 
 	The decoder only accepts complete timed text units TTU(1). In band reconfig (TTU(5) is not supported,
 	nor fragmented TTUs (2, 3, 4).
-	UTF16 support should workbut MP4Box does not support it at encoding time.
+	UTF16 support should work but MP4Box does not support it at encoding time.
 */
 
 typedef struct

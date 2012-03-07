@@ -38,7 +38,11 @@ extern "C" {
 /*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
 only, since the OTI used when emulated is not standard...*/
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
+#endif
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
 #endif
 
 
@@ -246,10 +250,6 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level);
 GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size_in_bits, u32 new_size_in_bits);
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
-
-
-/*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
-GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
