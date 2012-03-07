@@ -6846,6 +6846,7 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 {
@@ -6897,3 +6898,4 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	}
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
 }
+#endif /*GPAC_DISABLE_ISOM_WRITE*/

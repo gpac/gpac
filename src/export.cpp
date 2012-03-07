@@ -563,8 +563,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timed_meta_data_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del) )
+#ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
+#endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )
@@ -656,6 +658,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_meta_xml) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_xml) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_movie) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
@@ -785,7 +789,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_text_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_text_sample) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_delete_text_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_add_text) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_add_style) )
@@ -817,8 +820,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml_memory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_xml) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_xml) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_set_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_next_alternate_group_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ipod_compatible) )
@@ -868,6 +869,7 @@
 
 /*isomedia_dev.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_parse_texte_sample) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_delete_text_sample) )
 
 #ifndef GPAC_DISABLE_STREAMING
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_new) )
@@ -1057,8 +1059,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_rewrite_samples) )
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
-
+#endif
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_sps_info) )

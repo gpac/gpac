@@ -30,6 +30,13 @@
 #include <gpac/mpegts.h>
 
 
+#ifdef GPAC_DISABLE_ISOM
+
+#error "Cannot compile MP42TS if GPAC is not built with ISO File Format support"
+
+#else
+
+
 #define DEFAULT_PCR_OFFSET	18000
 
 #define UDP_BUFFER_SIZE	0x40000
@@ -405,7 +412,11 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 		ifce->sl_config->timestampResolution = 90000;
 	}
 	
+#ifdef GPAC_DISABLE_ISOM_WRITE
+	fprintf(stdout, "Warning: GPAC was compiled without ISOM Write support, can't set SL Config!\n");
+#else
 	gf_isom_set_extraction_slc(mp4, track_num, 1, ifce->sl_config);
+#endif
 
 	ifce->input_ctrl = mp4_input_ctrl;
 	if (priv != ifce->input_udta){
@@ -2197,3 +2208,4 @@ exit:
 	return 1;
 }
 
+#endif /*GPAC_DISABLE_ISOM*/

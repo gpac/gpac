@@ -73,7 +73,7 @@ static Bool is_same_path(const char *p1, const char *p2, u32 len)
 
 static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackageResource *res)
 {
-	u32 i, count;
+	u32 i;
 
 	if (wpack->is_zip) {
 		unz_global_info gi;
@@ -115,7 +115,9 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 			break;
 		}
 		unzClose(uf);
+#ifndef GPAC_DISABLE_ISOM
 	} else {
+		u32 count;
 		GF_ISOFile *isom = gf_isom_open(wpack->package_path, GF_ISOM_OPEN_READ, 0);
 		if (!isom ) return;
 
@@ -134,6 +136,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 			break;
 		}
 		gf_isom_close(isom);
+#endif /*GPAC_DISABLE_ISOM*/
 	}
 
 }
@@ -228,8 +231,13 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 	return 0;
 }
 
+
 static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 {
+#ifdef GPAC_DISABLE_ISOM
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Widgetman] GPAC was compiled without ISO File Format support\n"));
+	return NULL;
+#else
 	GF_WidgetPackageResource *pack_res;
 	char szPath[GF_MAX_PATH];
 	const char *dir;
@@ -311,6 +319,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	gf_list_add(wm->term->uri_relocators, wzip);
 	gf_mx_v(wm->term->net_mx);
 	return wzip;
+#endif /*GPAC_DISABLE_ISOM*/
 }
 
 static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
@@ -410,10 +419,12 @@ GF_WidgetPackage *widget_package_new(GF_WidgetManager *wm, const char *path)
 	if (gf_unzip_probe(path)) {
 		return widget_zip_new(wm, path);
 	}
+#ifndef GPAC_DISABLE_ISOM
 	/*ISOFF-based packaged widget */
 	else if (gf_isom_probe_file(path)) {
 		return widget_isom_new(wm, path);
 	}
+#endif
 	return NULL;
 }
 
