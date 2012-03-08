@@ -256,12 +256,14 @@ Bool gf_net_is_ipv6(const char *address)
 }
 
 #ifdef GPAC_HAS_IPV6
+#define MAX_PEER_NAME_LEN 1024
 static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber, int family, int flags, int sock_type)
 {
 	struct	addrinfo *res=NULL;
 	struct	addrinfo hints;
-	char node[50], portstring[20], *service, *dest;
-
+	char node[MAX_PEER_NAME_LEN], portstring[20];
+	char *service, *dest;
+	service = dest = NULL;
 #ifdef WIN32
 		if (!wsa_init) {
 			WSADATA Data;
@@ -281,11 +283,12 @@ static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber
 		service = (char *)portstring;
 	}
 	if (PeerName) {
- 		strcpy(node, PeerName);
+ 		strncpy(node, PeerName, MAX_PEER_NAME_LEN);
  		if (node[0]=='[') {
  			node[strlen(node)-1] = 0;
- 			strcpy(node, &node[1]);
+ 			strncpy(node, &node[1], MAX_PEER_NAME_LEN);
  		}
+		node[MAX_PEER_NAME_LEN - 1] = 0;
 		dest = (char *) node;
 	}
 	if (getaddrinfo((const char *)dest, (const char *)service, &hints, &res) != 0) return NULL;

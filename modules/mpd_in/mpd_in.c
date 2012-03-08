@@ -1691,9 +1691,10 @@ restart_period:
 				}
 			}
 
-			if (e == GF_OK || group->segment_must_be_streamed) {
+			if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
 				gf_mx_p(mpdin->dl_mutex);
 				assert(group->nb_cached_segments<group->max_cached_segments);
+				assert( local_file_name );
 				group->cached[group->nb_cached_segments].cache = gf_strdup(local_file_name);
 				group->cached[group->nb_cached_segments].url = gf_strdup( resource_name );
 				group->cached[group->nb_cached_segments].start_range = 0;
