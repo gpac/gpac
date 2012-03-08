@@ -209,10 +209,12 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
     if ((param->msg_type == GF_NETIO_PARSE_HEADER) && !strcmp(param->name, "Content-Type")) {
 		if (!group->service_mime) {
 			group->service_mime = gf_strdup(param->value);
-		} else if (strcmp(group->service_mime, param->value)) {
+		} else if (stricmp(group->service_mime, param->value)) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 			if (! MPD_GetMimeType(NULL, rep, group->adaptation_set) ) rep->mime_type = gf_strdup(param->value);
 			rep->disabled = 1;
+			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE,
+				("[MPD_IN] Disabling representation since mime does not match: expected %s, but had %s for %s!\n", group->service_mime, param->value, gf_dm_sess_get_resource_name(group->segment_dnload)));
 			group->force_switch_bandwidth = 1;
 			gf_dm_sess_abort(group->segment_dnload);
 			return;
