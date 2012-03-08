@@ -213,7 +213,7 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 			if (! MPD_GetMimeType(NULL, rep, group->adaptation_set) ) rep->mime_type = gf_strdup(param->value);
 			rep->disabled = 1;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE,
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE,
 				("[MPD_IN] Disabling representation since mime does not match: expected %s, but had %s for %s!\n", group->service_mime, param->value, gf_dm_sess_get_resource_name(group->segment_dnload)));
 			group->force_switch_bandwidth = 1;
 			gf_dm_sess_abort(group->segment_dnload);
@@ -906,6 +906,7 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 		}
 	}
 
+	assert(min_rep_sel);
 	if (!rep_sel) {
 		rep_sel = min_rep_sel;
 		min_bandwidth_selected = 1;
