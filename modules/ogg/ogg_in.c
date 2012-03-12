@@ -390,7 +390,8 @@ void OGG_SignalEndOfStream(OGGReader *read, OGGStream *st)
 	}
 }
 
-GFINLINE void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
+/*GFINLINE*/
+void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
 {
 	GF_SLHeader slh;
 	memset(&slh, 0, sizeof(GF_SLHeader));

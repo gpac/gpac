@@ -1142,7 +1142,7 @@ int mymkdir(dirname)
 }
 
 int makedir (newdir)
-    char *newdir;
+    const char *newdir;
 {
   char *buffer ;
   char *p;
