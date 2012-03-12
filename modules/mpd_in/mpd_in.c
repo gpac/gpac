@@ -906,7 +906,6 @@ static void MPD_SwitchGroupRepresentation(GF_MPD_In *mpd, GF_MPD_Group *group)
 		}
 	}
 
-	assert(min_rep_sel);
 	if (!rep_sel) {
 		rep_sel = min_rep_sel;
 		min_bandwidth_selected = 1;
