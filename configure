@@ -2504,6 +2504,8 @@ if test "$has_libxml2" = "yes"; then
 fi
 if test "$disable_m2ts_mux" = "yes" -o "$disable_m2ts" = "yes" ; then
     echo "DISABLE_M2TS=yes" >> config.mak
+else
+    echo "DISABLE_M2TS=no" >> config.mak
 fi
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
@@ -2511,6 +2513,8 @@ echo "OGL_INCLS=$INCL3D" >> config.mak
 
 if test "$disable_isoff" = "yes" -o "$disable_isoff_write" = "yes" ; then
 	echo "DISABLE_ISOFF=yes" >> config.mak
+else
+        echo "DISABLE_ISOFF=no" >> config.mak
 fi
 
 echo "HAS_OPENGL=$has_opengl" >> config.mak
