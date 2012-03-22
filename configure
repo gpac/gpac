@@ -692,9 +692,13 @@ EOF
                 if test "$has_js" = "no" ; then
                     js_inc="/usr/include/$i"
                     js_flags="-DXP_UNIX -I$js_inc"
-                    js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnss3"
+                    js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnssutil3 -lnss3"
                     if $cpp -o $TMPO $TMPCPP $js_flags $js_lib 2> /dev/null  ; then
                         has_js="$i"
+                    elif $cpp -o $TMPO $TMPCPP $js_flags -lnssutil3 $js_lib -lssl3 2> /dev/null  ; then
+                        #firefox 11 compatibility
+                        has_js="$i"
+                        js_lib="-lnssutil3 $js_lib -lssl3"
                     fi
                 fi
             done
