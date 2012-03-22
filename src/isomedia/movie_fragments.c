@@ -1507,6 +1507,9 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	ent->Duration = Duration;
 	ent->size = sample->dataLength;
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
+	if (sample->IsRAP) {
+		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, 0);
+	}
 	gf_list_add(trun->entries, ent);
 	
 	trun->sample_count += 1;
@@ -1601,6 +1604,8 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 	GF_Err e;
 	GF_TrackBox *trak;
 	GF_TrackFragmentBox *traf;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentRunBox *trun;
 	if (!dest->moof || !(dest->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
 	traf = GetTraf(dest, TrackID);
@@ -1608,6 +1613,25 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 
 	trak = gf_isom_get_track_from_file(orig, track);
 	if (!trak) return GF_BAD_PARAM;
+
+	/*modify depends flags*/
+	if (trak->Media->information->sampleTable->SampleDep) {
+		u32 dependsOn, dependedOn, redundant;
+
+		dependsOn = dependedOn = redundant = 0;
+		count = gf_list_count(traf->TrackRuns);
+		if (!count) return GF_BAD_PARAM;
+		trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
+		count = gf_list_count(trun->entries);
+		if (!count) return GF_BAD_PARAM;
+
+		ent = (GF_TrunEntry *)gf_list_get(trun->entries, count-1);
+		e = stbl_GetSampleDepType(trak->Media->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		if (e) return e;
+
+		GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
+		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, dependsOn, dependedOn, redundant);
+	}
 
 	/*copy subsample info if any*/
 	if ( gf_isom_sample_get_subsample_entry(orig, track, sampleNumber, &sub_sample)) {
