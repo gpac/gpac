@@ -2039,6 +2039,9 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 #define GF_ISOM_GET_FRAG_SYNC(flag) ( ! ( ( (flag) >> 16) & 0x1))
 #define GF_ISOM_GET_FRAG_DEG(flag)	(flag) & 0x7FFF
 
+#define GF_ISOM_GET_FRAG_DEPEND_FLAGS(lead, depends, depended, redundant) ( (lead<<26) | (depends<<24) | (depended<<22) | (redundant<<20) )
+#define GF_ISOM_RESET_FRAG_DEPEND_FLAGS(flags) flags = flags & 0xFFFFF
+
 GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID);
 #endif
 
