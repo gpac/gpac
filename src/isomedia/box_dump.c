@@ -3235,7 +3235,7 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 			break;
 		default:
 			if (strcmp(name, "Unknown")) {
-				if (itune->data->data[0]) {
+				if (itune->data && itune->data->data[0]) {
 					fprintf(trace, " value=\"%s\" ", itune->data->data);
 				} else {
 					fprintf(trace, " value=\"");
@@ -3247,7 +3247,8 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 		}
 	}
 	fprintf(trace, ">\n");
-	gf_full_box_dump((GF_Box *)itune->data, trace);
+	if (itune->data)
+		gf_full_box_dump((GF_Box *)itune->data, trace);
 	DumpBox(a, trace);
 	fprintf(trace, "</%sBox>\n", name);
 	return GF_OK;
