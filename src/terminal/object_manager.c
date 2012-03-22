@@ -585,10 +585,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			return;
 		}
 		odm->net_service = serv;
+		assert(odm->OD);
 		if (!odm->OD->URLString) 
 			odm->net_service->nb_odm_users++;
 	}	
 	/*if this is a remote OD, we need a new manager and a new service...*/
+	assert(odm->OD);
 	if (odm->OD->URLString) {
 		GF_ClientService *parent = odm->net_service;
 		char *url = odm->OD->URLString;
