@@ -1910,7 +1910,7 @@ if test "$has_xul" = "no" ; then
     else
         #xulrunner directories are sometimes included through js/xul/ff packages
         if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
-            if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
+            if $cc -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
                 xul_flags=`$pkg_config --cflags mozilla-js`
                 has_xul="$has_js"
             fi
