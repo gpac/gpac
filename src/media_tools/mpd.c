@@ -891,6 +891,8 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 			mpd->max_subsegment_duration = gf_mpd_parse_duration(att->value);
 		}
 	}
+	if (mpd->type == GF_MPD_TYPE_STATIC)
+		mpd->minimum_update_period = 0;
 
 	child_index = 0;
 	while (1) {
