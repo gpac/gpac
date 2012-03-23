@@ -1896,7 +1896,7 @@ fi
 
 if test "$has_xul" = "no" ; then
     if $pkg_config --exists libxul 2> /dev/null ; then
-        if $cc -o $TMPO $TMPCPP `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
+        if $cpp -o $TMPO $TMPCPP `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
             has_xul="system"
             xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
         fi
