@@ -5,7 +5,6 @@
    Copyright (C) 1998-2005 Gilles Vollant
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +24,9 @@
 #endif
 
 #endif
+
+//hack: prevent mozilla to redifine z functions
+#define MOZZCONF_H
 
 #include "unzip.h"
 #include <gpac/tools.h>
