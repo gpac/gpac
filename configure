@@ -1892,16 +1892,27 @@ EOF
 if $cc -o $TMPO $TMPCPP -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
     has_xul="system"
     xul_flags="-I$xulsdk_path $xul_flags"
-else
+fi
+
+if test "$has_xul" = "no" ; then
+    if $pkg_config --exists libxul 2> /dev/null ; then
+        if $cc -o $TMPO $TMPCPP `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
+            has_xul="system"
+            xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
+        fi
+    fi
+fi
+
+if test "$has_xul" = "no" ; then
     if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS 2> /dev/null  ; then
         has_xul="local"
         xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
     else
-        #xulrunner directories are sometimes included through js packages
-        if test "$has_js" = "system"  ;then
+        #xulrunner directories are sometimes included through js/xul/ff packages
+        if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
             if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
                 xul_flags=`$pkg_config --cflags mozilla-js`
-                has_xul="system"
+                has_xul="$has_js"
             fi
         fi
     fi
