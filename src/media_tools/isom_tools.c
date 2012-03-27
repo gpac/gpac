@@ -609,6 +609,7 @@ remove_track:
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 {
 	u32 i, count;
@@ -1565,6 +1566,7 @@ err_exit:
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
+GF_EXPORT
 GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Double period_duration)
 {
 	u32 h, m;
@@ -1627,6 +1629,7 @@ GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bo
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_media_mpd_end(char *mpd_name)
 {
 	FILE *mpd = fopen(mpd_name, "a+t");

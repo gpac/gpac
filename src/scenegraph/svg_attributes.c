@@ -166,6 +166,7 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_DOM },
 };
 
+GF_EXPORT
 u32 gf_dom_event_type_by_name(const char *name)
 {
 	u32 i, count;
@@ -408,6 +409,9 @@ static const struct predef_keyid {u32 key_code;  const char *name; } predefined_
 	{ GF_KEY_RECORD, "Record" },
 	{ GF_KEY_BEGINPAGE, "BeginPage" }
 };
+
+
+GF_EXPORT
 const char *gf_dom_get_key_name(u32 key_identifier)
 {
 	u32 count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
@@ -3071,6 +3075,7 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 }
 
 /* Parse an SVG attribute */
+GF_EXPORT
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
     /* for all attributes, except strings, apply some sort of white space normalization*/

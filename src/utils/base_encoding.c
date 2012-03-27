@@ -182,6 +182,7 @@ u32 gf_base16_decode(char *in, u32 inSize, char *out, u32 outSize)
 
 #define ZLIB_COMPRESS_SAFE	4
 
+GF_EXPORT
 GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
 {
     z_stream stream;
@@ -224,6 +225,7 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
     return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
 {
 	z_stream d_stream;

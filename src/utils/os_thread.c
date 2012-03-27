@@ -103,6 +103,7 @@ static const char *log_th_name(u32 id)
 #endif
 
 
+GF_EXPORT
 GF_Thread *gf_th_new(const char *name)
 {
 	GF_Thread *tmp = gf_malloc(sizeof(GF_Thread));
@@ -213,6 +214,7 @@ exit:
 #endif
 }
 
+GF_EXPORT
 GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 {
 #ifdef WIN32
@@ -286,6 +288,7 @@ void gf_th_stop(GF_Thread *t)
 	Thread_Stop(t, 0);
 }
 
+GF_EXPORT
 void gf_th_del(GF_Thread *t)
 {
 	Thread_Stop(t, 0);
@@ -372,6 +375,7 @@ u32 gf_th_status(GF_Thread *t)
 }
 
 
+GF_EXPORT
 u32 gf_th_id()
 {
 #ifdef WIN32
@@ -401,6 +405,7 @@ struct __tag_mutex
 };
 
 
+GF_EXPORT
 GF_Mutex *gf_mx_new(const char *name)
 {
 #ifndef WIN32
@@ -436,6 +441,7 @@ GF_Mutex *gf_mx_new(const char *name)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_mx_del(GF_Mutex *mx)
 {
 #ifdef WIN32
@@ -456,6 +462,7 @@ void gf_mx_del(GF_Mutex *mx)
 	gf_free(mx);
 }
 
+GF_EXPORT
 void gf_mx_v(GF_Mutex *mx)
 {
 	u32 caller;
@@ -488,6 +495,7 @@ void gf_mx_v(GF_Mutex *mx)
 	}
 }
 
+GF_EXPORT
 u32 gf_mx_p(GF_Mutex *mx)
 {
 #ifndef WIN32
@@ -546,6 +554,7 @@ s32 gf_mx_get_num_locks(GF_Mutex *mx)
 	return -1;
 }
 
+GF_EXPORT
 Bool gf_mx_try_lock(GF_Mutex *mx)
 {
 	u32 caller;
@@ -601,7 +610,7 @@ struct __tag_semaphore
 #endif
 };
 
-
+GF_EXPORT
 GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 {
 	GF_Semaphore *tmp = gf_malloc(sizeof(GF_Semaphore));
@@ -644,6 +653,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_sema_del(GF_Semaphore *sm)
 {
 #if defined(WIN32)
@@ -660,6 +670,7 @@ void gf_sema_del(GF_Semaphore *sm)
 	gf_free(sm);
 }
 
+GF_EXPORT
 u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 {
 	u32 prevCount;
@@ -702,6 +713,7 @@ void gf_sema_wait(GF_Semaphore *sm)
 #endif
 }
 
+GF_EXPORT
 Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 {
 #ifdef WIN32

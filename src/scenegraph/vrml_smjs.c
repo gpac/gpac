@@ -37,6 +37,7 @@
 
 
 /*fixes for JS > 1.8.0rc1 where GC routines have changed*/
+GF_EXPORT
 Bool gf_js_add_root(JSContext *cx, void *rp, u32 type)
 {
 #if (JS_VERSION>=185)
@@ -83,6 +84,8 @@ Bool gf_js_add_named_root(JSContext *cx, void *rp, u32 type, const char *name)
 	return (JS_AddNamedRoot(cx, rp, name)==JS_TRUE) ? 1 : 0;
 #endif
 }
+
+GF_EXPORT
 Bool gf_js_remove_root(JSContext *cx, void *rp, u32 type)
 {
 #if (JS_VERSION>=185)
@@ -355,6 +358,8 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 	}
 }
 
+
+GF_EXPORT
 #if (JS_VERSION>=185)
 JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj,const jsval *val, JSBool *vp)
 #else
@@ -4744,6 +4749,7 @@ void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_ac
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+GF_EXPORT
 GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 {
 #ifndef GPAC_DISABLE_VRML
@@ -4794,6 +4800,7 @@ Bool gf_sg_javascript_initialized()
  * (mozilla doc is wrong here)
  *
  * */
+GF_EXPORT
 void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 {
 	if (!js_rt) return;
@@ -4823,6 +4830,7 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 	}
 }
 
+GF_EXPORT
 Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 {
 	assert(cx);

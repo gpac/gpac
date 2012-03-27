@@ -718,6 +718,7 @@ SVGAttribute *gf_node_create_attribute_from_datatype(u32 data_type, u32 attribut
 	return att;
 }
 
+GF_EXPORT
 GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
 {
 	u32 attribute_tag = gf_xml_get_attribute_tag(node, name, xmlns_code);

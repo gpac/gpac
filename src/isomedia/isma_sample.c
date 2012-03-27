@@ -333,6 +333,7 @@ GF_Err gf_isom_remove_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char *scheme_uri, char *kms_uri)
 {
 	GF_TrackBox *trak;

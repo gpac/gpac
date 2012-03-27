@@ -29,6 +29,8 @@
 
 #include <gpac/internal/laser_dev.h>
 
+
+GF_EXPORT
 GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 {
 	GF_Command *ptr;
@@ -872,6 +874,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_CommandField *gf_sg_command_field_new(GF_Command *com)
 {
 	GF_CommandField *ptr;

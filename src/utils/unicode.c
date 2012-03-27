@@ -35,8 +35,8 @@ Acknowledgement
    Internet Society.
  */
 
-u32 
-utf8_to_ucs4(u32 * ucs4_buf, u32 utf8_len, unsigned char *utf8_buf)
+GF_EXPORT
+u32 utf8_to_ucs4(u32 * ucs4_buf, u32 utf8_len, unsigned char *utf8_buf)
 {
 	const unsigned char *utf8_endbuf = utf8_buf + utf8_len;
 	u32             ucs_len = 0;

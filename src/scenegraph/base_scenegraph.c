@@ -42,6 +42,7 @@ static void node_modif_stub(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info
 {
 }
 
+GF_EXPORT
 GF_SceneGraph *gf_sg_new()
 {
 	GF_SceneGraph *tmp;
@@ -522,6 +523,7 @@ void gf_sg_set_private(GF_SceneGraph *sg, void *ptr)
 	if (sg) sg->userpriv = ptr;
 }
 
+GF_EXPORT
 void *gf_sg_get_private(GF_SceneGraph *sg)
 {
 	return sg ? sg->userpriv : NULL;
@@ -1977,6 +1979,7 @@ static GF_Err gf_node_get_field_by_name_enum(GF_Node *node, char *name, GF_Field
 	return GF_BAD_PARAM;
 }
 
+GF_EXPORT
 GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 {
 	s32 res = -1;
@@ -2135,6 +2138,7 @@ u32 gf_xml_get_namespace_id(char *name)
 	return GF_XMLNS_UNDEFINED;
 }
 
+GF_EXPORT
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 {
 	u32 id;
@@ -2241,6 +2245,7 @@ const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id)
 }
 
 
+GF_EXPORT
 char *gf_node_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 {
 #ifndef GPAC_DISABLE_SVG

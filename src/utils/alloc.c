@@ -96,6 +96,12 @@ CDECL void   scalable_free(void* ptr);
 #define CDECL	
 #endif
 
+#ifndef SYMBOL_EXPORT
+#if defined(__GNUC__) && __GNUC__ >= 4
+#define SYMBOL_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
+
 #if (USE_MALLOC==DL_MALLOC)
 
 CDECL void * dlmalloc(size_t size);
@@ -169,7 +175,6 @@ char *gf_strdup(const char *str)
 #else
 
 
-CDECL
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
 
@@ -294,27 +299,31 @@ static void *(*gf_mem_realloc_proto)(void *ptr, size_t size, char *filename, int
 static void (*gf_mem_free_proto)(void *ptr, char *filename, int line) = gf_mem_free_basic;
 static char *(*gf_mem_strdup_proto)(const char *str, char *filename, int line) = gf_mem_strdup_basic;
 
-CDECL
+SYMBOL_EXPORT CDECL
 void *gf_mem_malloc(size_t size, char *filename, int line)
 {
 	return gf_mem_malloc_proto(size, filename, line);
 }
-CDECL
+
+SYMBOL_EXPORT CDECL
 void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line)
 {
 	return gf_mem_calloc_proto(num, size_of, filename, line);
 }
-CDECL
+
+SYMBOL_EXPORT CDECL
 void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line)
 {
 	return gf_mem_realloc_proto(ptr, size, filename, line);
 }
-CDECL
+
+SYMBOL_EXPORT CDECL
 void gf_mem_free(void *ptr, char *filename, int line)
 {
 	gf_mem_free_proto(ptr, filename, line);
 }
-CDECL
+
+SYMBOL_EXPORT CDECL
 char *gf_mem_strdup(const char *str, char *filename, int line)
 {
 	return gf_mem_strdup_proto(str, filename, line);

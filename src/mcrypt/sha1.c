@@ -306,6 +306,7 @@ void gf_sha1_finish(GF_SHA1Context *ctx, u8 output[20] )
 /*
  * Output = SHA-1( file contents )
  */
+GF_EXPORT
 s32 gf_sha1_file( const char *path, u8 output[20] )
 {
     FILE *f;

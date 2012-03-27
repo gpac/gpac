@@ -1750,6 +1750,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	return browse_parent_for_focus(compositor, (GF_Node*)par, prev_focus);
 }
 
+GF_EXPORT
 u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, u32 force_focus)
 {
 	Bool current_focus = 1;

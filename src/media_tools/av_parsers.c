@@ -2777,6 +2777,7 @@ static const u32 ac3_mod_to_chans[] = {
   2, 1, 2, 3, 3, 4, 4, 5
 };
 
+GF_EXPORT
 u32 gf_ac3_get_channels(u32 acmod)
 {
 	u32 nb_ch;
@@ -2784,6 +2785,7 @@ u32 gf_ac3_get_channels(u32 acmod)
 	return nb_ch;
 }
 
+GF_EXPORT
 u32 gf_ac3_get_bitrate(u32 brcode)
 {
 	return ac3_sizecod_to_bitrate[brcode];
@@ -2842,6 +2844,7 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr, Bool full_p
 }
 
 
+GF_EXPORT
 Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 {
 	u32 fscod, frmsizecod, bsid, ac3_mod, freq, framesize, bsmod;

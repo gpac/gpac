@@ -3700,6 +3700,7 @@ exit:
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 new_size)
 {
 	u32 i, count, di, remain, msize;

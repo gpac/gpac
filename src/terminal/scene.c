@@ -82,7 +82,7 @@ static void inline_on_media_event(GF_Scene *scene, u32 type)
 	gf_term_service_media_event(scene->scene_codec->odm, type); 
 }
 
-
+GF_EXPORT
 GF_Scene *gf_scene_new(GF_Scene *parentScene)
 {
 	GF_Scene *tmp;

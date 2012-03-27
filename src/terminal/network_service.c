@@ -889,6 +889,7 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	return serv;
 }
 
+GF_EXPORT
 Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check)
 {
 	GF_InputService *ifce;

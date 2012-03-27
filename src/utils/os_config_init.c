@@ -480,6 +480,7 @@ static void check_modules_dir(GF_Config *cfg)
 	}
 }
 
+GF_EXPORT
 GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 {
 	GF_Config *cfg;

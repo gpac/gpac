@@ -3107,6 +3107,7 @@ static void dump_data(FILE *trace, char *name, char *data, u32 data_size)
 	fprintf(trace, "\" ");
 }
 
+GF_EXPORT
 GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, FILE * trace)
 {
 	u32 i, count;
@@ -3139,6 +3140,7 @@ GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, F
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 SampleNum, FILE * trace)
 {
 	GF_ISOSample *samp;

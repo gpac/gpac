@@ -288,6 +288,7 @@ GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info)
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_sg_script_event_in(GF_Node *node, GF_FieldInfo *in_field)
 {
 	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->UserPrivate;

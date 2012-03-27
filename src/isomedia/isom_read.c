@@ -1992,6 +1992,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range)
 {
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2295,6 +2296,7 @@ GF_Err gf_isom_get_track_layout_info(GF_ISOFile *movie, u32 trackNumber, u32 *wi
 
 
 /*returns total amount of media bytes in track*/
+GF_EXPORT
 u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 {
 	u32 i, size;
@@ -2614,6 +2616,7 @@ GF_Err gf_isom_get_timed_meta_data_info(GF_ISOFile *file, u32 track, u32 sampleD
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_isom_get_next_alternate_group_id(GF_ISOFile *movie)
 {
 	u32 id = 0;
@@ -2650,6 +2653,7 @@ GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumb
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 *rvc_predefined, char **data, u32 *size, const char **mime)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
@@ -2696,6 +2700,7 @@ Bool gf_isom_moov_first(GF_ISOFile *movie)
 	return 0;
 }
 
+GF_EXPORT
 void gf_isom_reset_fragment_info(GF_ISOFile *movie)
 {
 	u32 i;

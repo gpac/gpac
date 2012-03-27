@@ -586,6 +586,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
     GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] Cannot find URL %s, cache file won't be deleted.\n", url));
 }
 
+GF_EXPORT
 void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
     if (sess && sess->dm && url) {
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Requesting deletion for %s\n", url));
@@ -624,6 +625,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
         gf_mx_v(sess->mx);
 }
 
+GF_EXPORT
 void gf_dm_sess_del(GF_DownloadSession *sess)
 {
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p)\n", sess ));
@@ -707,6 +709,7 @@ Bool gf_dm_is_thread_dead(GF_DownloadSession *sess)
     return (sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD) ? 1 : 0;
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 {
     if (!sess) return GF_BAD_PARAM;
@@ -878,6 +881,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
     return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 {
 	Bool socket_changed = 0;
@@ -986,6 +990,7 @@ static u32 gf_dm_session_thread(void *par)
 }
 
 
+GF_EXPORT
 GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *url, u32 dl_flags,
         gf_dm_user_io user_io,
         void *usr_cbk,
@@ -1018,6 +1023,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
     return sess;
 }
 
+GF_EXPORT
 GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
                                    gf_dm_user_io user_io,
                                    void *usr_cbk,
@@ -1282,7 +1288,7 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
     return sess->cache_entry;
 }
 
-
+GF_EXPORT
 const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
 {
     DownloadedCacheEntry entry;
@@ -1298,6 +1304,7 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
     return gf_cache_get_mime_type( sess->cache_entry );
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range)
 {
 	if (!sess) return GF_BAD_PARAM;
@@ -1309,6 +1316,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 {
     Bool go;
@@ -1404,6 +1412,8 @@ static void gf_cache_cleanup_cache(GF_DownloadManager * dm) {
 }
 #endif
 
+
+GF_EXPORT
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 {
     const char *opt;
@@ -1474,6 +1484,7 @@ void gf_dm_set_auth_callback(GF_DownloadManager *dm,
     }
 }
 
+GF_EXPORT
 void gf_dm_del(GF_DownloadManager *dm)
 {
     if (!dm)
@@ -1734,6 +1745,7 @@ Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess)
     return gf_cache_get_content_length(sess->cache_entry) != 0;
 }
 
+GF_EXPORT
 void gf_dm_sess_abort(GF_DownloadSession * sess)
 {
     assert(sess);
@@ -2613,7 +2625,9 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 }
 
 
-GF_Err gf_dm_wget(const char *url, const char *filename){
+GF_EXPORT
+GF_Err gf_dm_wget(const char *url, const char *filename)
+{
 	GF_Err e;
 	GF_DownloadManager * dm = NULL;
 	dm = gf_dm_new(NULL);
@@ -2652,6 +2666,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime)
 {
 	GF_Err e;
@@ -2709,6 +2724,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 	return e;
 }
 
+GF_EXPORT
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
 {
 	return dnload ? dnload->orig_url : NULL;
@@ -2906,6 +2922,7 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_byte_per_sec)
 	}
 }
 
+GF_EXPORT
 u32 gf_dm_get_data_rate(GF_DownloadManager *dm)
 {
 	return dm->limit_data_rate;
