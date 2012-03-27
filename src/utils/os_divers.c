@@ -75,6 +75,8 @@ static u32 sys_start_time = 0;
 
 
 #ifndef WIN32
+
+GF_EXPORT
 u32 gf_sys_clock()
 {
 	struct timeval now;
@@ -84,6 +86,7 @@ u32 gf_sys_clock()
 #endif
 
 
+GF_EXPORT
 void gf_sleep(u32 ms)
 {
 #ifdef WIN32
@@ -277,6 +280,7 @@ void CE_CharToWide(char *str, unsigned short *w_str)
 
 #endif
 
+GF_EXPORT
 GF_Err gf_delete_file(const char *fileName)
 {
 #if defined(_WIN32_WCE)
@@ -329,6 +333,7 @@ u32 gf_rand()
 #include <sys/stat.h>
 #endif
 
+GF_EXPORT
 u64 gf_file_modification_time(const char *filename)
 {
 #if defined(_WIN32_WCE) 
@@ -362,6 +367,7 @@ u64 gf_file_modification_time(const char *filename)
 	return 0;
 }
 
+GF_EXPORT
 FILE *gf_temp_file_new()
 {
 #if defined(_WIN32_WCE)
@@ -389,7 +395,7 @@ FILE *gf_temp_file_new()
 #endif
 }
 
-
+GF_EXPORT
 void gf_utc_time_since_1970(u32 *sec, u32 *msec)
 {
 #if defined (WIN32) && !defined(_WIN32_WCE)
@@ -430,6 +436,7 @@ void gf_get_user_name(char *buf, u32 buf_size)
 
 
 /*enumerate directories*/
+GF_EXPORT
 GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck, const char *filter)
 {
 	char item_path[GF_MAX_PATH];
@@ -637,6 +644,7 @@ next:
 
 
 #ifndef WIN32
+GF_EXPORT
 char * my_str_upr(char *str)
 {
 	u32 i;
@@ -645,6 +653,8 @@ char * my_str_upr(char *str)
 	}
 	return str;
 }
+
+GF_EXPORT
 char * my_str_lwr(char *str)
 {
 	u32 i;
@@ -655,6 +665,7 @@ char * my_str_lwr(char *str)
 }
 #endif
 
+GF_EXPORT
 u64 gf_f64_tell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
@@ -672,6 +683,7 @@ u64 gf_f64_tell(FILE *fp)
 #endif
 }
 
+GF_EXPORT
 u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 {
 #if defined(_WIN32_WCE)
@@ -689,6 +701,7 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 #endif
 }
 
+GF_EXPORT
 FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 #if defined(WIN32)
@@ -705,6 +718,8 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 #if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE)
 #define HAVE_STRERROR_R 1
 #endif
+
+GF_EXPORT
 size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, 
                        FILE *stream)
 {
@@ -759,10 +774,12 @@ Bool gf_prompt_has_input()
 {
 	return kbhit();
 }
+
 char gf_prompt_get_char()
 {
 	return getchar();
 }
+
 void gf_prompt_set_echo_off(Bool echo_off) 
 {
 	DWORD flags;
@@ -809,6 +826,7 @@ void gf_prompt_set_echo_off(Bool echo_off)
 	close_keyboard(0);
 }
 
+GF_EXPORT
 Bool gf_prompt_has_input()
 {
 	u8 ch;
@@ -829,6 +847,7 @@ Bool gf_prompt_has_input()
 	return 0;
 }
 
+GF_EXPORT
 char gf_prompt_get_char()
 {
 	char ch;
@@ -998,6 +1017,7 @@ void gf_mem_enable_tracker();
 
 static u64 memory_at_gpac_startup = 0;
 
+GF_EXPORT
 void gf_sys_init(Bool enable_memory_tracker)
 {
 	if (!sys_init) {
@@ -1093,6 +1113,7 @@ void gf_sys_init(Bool enable_memory_tracker)
 	}
 }
 
+GF_EXPORT
 void gf_sys_close()
 {
 	if (sys_init > 0) {
@@ -1392,9 +1413,9 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #include <mach/shared_memory_server.h>
 #endif
 #include <mach/mach_error.h>
-	
+
 static u64 total_physical_memory = 0;
-	
+
 Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	size_t length;
@@ -1675,7 +1696,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 #endif
 
-
+GF_EXPORT
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	Bool res = gf_sys_get_rti_os(refresh_time_ms, rti, flags);
@@ -1701,8 +1722,7 @@ char * gf_get_default_cache_directory(){
 }
 
 
-
-
+GF_EXPORT
 Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32*level, u32 *batteryLifeTime, u32 *batteryFullLifeTime) 
 {
 #if defined(_WIN32_WCE)

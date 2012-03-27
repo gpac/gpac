@@ -125,6 +125,7 @@ GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
 	return gf_list_add(evt_target->evt_list, listener);
 }
 
+GF_EXPORT
 GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 {
 	if (!node || !listener) return GF_BAD_PARAM;
@@ -143,6 +144,7 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 	return gf_sg_listener_add(listener, node->sgprivate->interact->dom_evt);
 }
 
+GF_EXPORT
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target)
 {
 	GF_FieldInfo info;
@@ -713,6 +715,7 @@ void gf_smil_setup_events(GF_Node *node)
 		gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
 }
 
+GF_EXPORT
 void gf_dom_set_textContent(GF_Node *n, char *text)
 {
 	GF_ParentNode *par = (GF_ParentNode *)n;
@@ -721,6 +724,7 @@ void gf_dom_set_textContent(GF_Node *n, char *text)
 	if (text) gf_dom_add_text_node(n, gf_strdup( text) );
 }
 
+GF_EXPORT
 GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data)
 {
 	GF_DOMText *text;
@@ -742,6 +746,7 @@ GF_DOMText *gf_dom_new_text_node(GF_SceneGraph *sg)
 	return text;
 }
 
+GF_EXPORT
 char *gf_dom_flatten_textContent(GF_Node *n)
 {
 	u32 len = 0;

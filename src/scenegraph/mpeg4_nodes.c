@@ -37996,6 +37996,7 @@ u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node)
 }
 
 
+GF_EXPORT
 u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 {
 	if(!node_name) return 0;

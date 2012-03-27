@@ -64,6 +64,7 @@ u32 gf_isom_has_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *outName, Bool *is_binary)
 {
 	u32 i, count;
@@ -189,6 +190,7 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name, char **out_data, u32 *out_size, const char **out_mime )
 {
 	GF_BitStream *item_bs;
@@ -285,6 +287,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name)
 {
 	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL);
@@ -295,6 +298,7 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track
 	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_mime);
 }
 
+GF_EXPORT
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -306,6 +310,7 @@ u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
+GF_EXPORT
 GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 metaType)
 {
 	char szName[20];
@@ -363,6 +368,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	u32 i;
@@ -382,6 +388,7 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML)
 {
 	GF_Err e;
@@ -614,6 +621,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN)
 {
 	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, mime_type, content_encoding, URL, URN, NULL, 0);
@@ -624,6 +632,7 @@ GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_
 	return gf_isom_add_meta_item_extended(file, root_meta, track_num, 0, NULL, item_name, mime_type, content_encoding, NULL, NULL, data, data_len);
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id)
 {
 	GF_ItemInfoEntryBox *iinf;
@@ -653,6 +662,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id)
 {
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);

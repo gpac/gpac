@@ -60,6 +60,7 @@ static Bool gf_term_check_odm(GF_Terminal *term, GF_ObjectManager *odm)
 
 
 /*returns top-level OD of the presentation*/
+GF_EXPORT
 GF_ObjectManager *gf_term_get_root_object(GF_Terminal *term)
 {
 	if (!term) return NULL;
@@ -68,6 +69,7 @@ GF_ObjectManager *gf_term_get_root_object(GF_Terminal *term)
 }
 
 /*returns number of sub-ODs in the current root. scene_od must be an inline OD*/
+GF_EXPORT
 u32 gf_term_get_object_count(GF_Terminal *term, GF_ObjectManager *scene_od)
 {
 	if (!term || !scene_od) return 0;
@@ -77,6 +79,7 @@ u32 gf_term_get_object_count(GF_Terminal *term, GF_ObjectManager *scene_od)
 }
 
 /*returns indexed (0-based) OD manager in the scene*/
+GF_EXPORT
 GF_ObjectManager *gf_term_get_object(GF_Terminal *term, GF_ObjectManager *scene_od, u32 index)
 {
 	if (!term || !scene_od) return NULL;
@@ -85,6 +88,7 @@ GF_ObjectManager *gf_term_get_object(GF_Terminal *term, GF_ObjectManager *scene_
 	return (GF_ObjectManager *) gf_list_get(scene_od->subscene->resources, index);
 }
 
+GF_EXPORT
 u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm)
 {
 	if (!term || !odm) return 0;
@@ -106,6 +110,7 @@ void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm)
 	gf_scene_select_object(term->root_scene, odm);
 }
 
+GF_EXPORT
 u32 gf_term_get_current_service_id(GF_Terminal *term)
 {
 	SFURL *the_url;
@@ -131,6 +136,7 @@ static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 	info->total_dec_time = dec->total_dec_time;
 }
 
+GF_EXPORT
 GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info)
 {
 	GF_Channel *ch;
@@ -268,7 +274,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	return GF_OK;
 }
 
-
+GF_EXPORT
 Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec)
 {
 	GF_DownloadSession * sess;
@@ -283,6 +289,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 	return 1;
 }
 
+GF_EXPORT
 Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code)
 {
 	GF_Channel *ch;
@@ -305,6 +312,7 @@ Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 
 	return 1;
 }
 
+GF_EXPORT
 GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netinfo)
 {
 	GF_Err e;
@@ -317,7 +325,7 @@ GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInf
 	return e;
 }
 
-
+GF_EXPORT
 const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions)
 {
 	GF_Node *info;
@@ -351,7 +359,7 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 	return "GPAC";
 }
 
-
+GF_EXPORT
 GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_protos, GF_ObjectManager *scene_od)
 {
 #ifndef GPAC_DISABLE_SCENE_DUMP

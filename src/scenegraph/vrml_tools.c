@@ -33,6 +33,7 @@
 #include <gpac/internal/bifs_dev.h>
 
 
+GF_EXPORT
 Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
 {
 	if (!tag) return 0;
@@ -652,6 +653,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 /*********************************************************************
 		MF Fields manipulation (alloc, gf_realloc, GetAt)
 *********************************************************************/
+GF_EXPORT
 const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
 {
 	switch (EventType) {
@@ -663,6 +665,7 @@ const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
 	}
 }
 
+GF_EXPORT
 const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType)
 {
 
@@ -753,6 +756,7 @@ u32 gf_sg_field_type_by_name(char *fieldType)
 
 void gf_sg_sfurl_del(SFURL url) { if (url.url) gf_free(url.url); }
 
+GF_EXPORT
 Bool gf_sg_vrml_is_sf_field(u32 FieldType)
 {
 	return (FieldType<GF_SG_VRML_FIRST_MF);
@@ -859,6 +863,7 @@ u32 gf_sg_vrml_get_sf_size(u32 FieldType)
 	}
 }
 
+GF_EXPORT
 u32 gf_sg_vrml_get_sf_type(u32 FieldType)
 {
 	switch (FieldType) {
@@ -1038,6 +1043,7 @@ GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sg_vrml_mf_get_item(void *mf, u32 FieldType, void **new_ptr, u32 ItemPos)
 {
 	u32 FieldSize;

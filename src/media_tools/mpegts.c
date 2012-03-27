@@ -46,6 +46,8 @@
 
 #define DEBUG_TS_PACKET 0
 
+
+GF_EXPORT
 const char *gf_m2ts_get_stream_name(u32 streamType)
 {
 	switch (streamType) {
@@ -2232,6 +2234,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	return;
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 {
 	u32 pos;
@@ -2329,6 +2332,7 @@ void gf_m2ts_set_segment_switch(GF_M2TS_Demuxer *ts)
 	}
 }
 
+GF_EXPORT
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 {
 	u32 i;
@@ -2391,6 +2395,7 @@ static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION
 {
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Setting pes framing mode of PID %d to %d\n", pes->pid, mode) );
@@ -2452,6 +2457,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_M2TS_Demuxer *gf_m2ts_demux_new()
 {
 	GF_M2TS_Demuxer *ts;
@@ -2480,6 +2486,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	return ts;
 }
 
+GF_EXPORT
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts){
 
 	char* temp_dir;
@@ -2504,6 +2511,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts){
 
 }
 
+GF_EXPORT
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 {
 	u32 i;
@@ -2908,6 +2916,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, const char *url, const char *chan_pat
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 {
 	FILE *channels_config_file;
@@ -3003,6 +3012,7 @@ static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
 
 }
 
+GF_EXPORT
 GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 {
 	char szURL[2048];
@@ -3041,6 +3051,7 @@ GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 	return GF_NOT_SUPPORTED;
 }
 
+GF_EXPORT
 GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[TSDemux] Destroying demuxer\n"));
@@ -3059,7 +3070,7 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts){
 
 	/*set the state variable outside the TS thread. If inside, we may get called for shutdown before the TS thread has started

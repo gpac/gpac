@@ -969,6 +969,7 @@ void gf_sc_lock(GF_Compositor *compositor, Bool doLock)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 {
 	Bool lock_ok;
@@ -1279,6 +1280,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	gf_sc_lock(compositor, 0);
 }
 
+GF_EXPORT
 GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 {
 	GF_Err e;
@@ -1622,6 +1624,7 @@ void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixe
 }
 
 
+GF_EXPORT
 GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 depth_dump_mode)
 {
 	GF_Err e;
@@ -1656,6 +1659,7 @@ GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fr
 }
 
 
+GF_EXPORT
 GF_Err gf_sc_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer)
 {
 	GF_Err e;
@@ -1671,6 +1675,7 @@ GF_Err gf_sc_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *f
 	return e;
 }
 
+GF_EXPORT
 Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 {
 	Double fps;
@@ -2703,6 +2708,7 @@ Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
 	}
 }
 
+GF_EXPORT
 void gf_sc_register_extra_graph(GF_Compositor *compositor, GF_SceneGraph *extra_scene, Bool do_remove)
 {
 	gf_sc_lock(compositor, 1);

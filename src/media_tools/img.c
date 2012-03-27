@@ -519,6 +519,7 @@ void gf_png_flush(png_structp png)
 }
 
 /* write a png file */
+GF_EXPORT
 GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
 {
 	GFpng udta;

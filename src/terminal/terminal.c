@@ -782,6 +782,7 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 	gf_term_send_event(term, &evt);
 }
 
+GF_EXPORT
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 {
 	u32 i, j;
@@ -1223,6 +1224,7 @@ void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)
 }
 
 /*locks media quaue*/
+GF_EXPORT
 void gf_term_lock_media_queue(GF_Terminal *term, Bool LockIt)
 {
 	if (LockIt) {
@@ -1337,6 +1339,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 }
 
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
+GF_EXPORT
 Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url) 
 {
 	u32 i, count;
@@ -1810,18 +1813,21 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_term_get_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer)
 {
 	if (!term) return GF_BAD_PARAM;
 	return gf_sc_get_screen_buffer(term->compositor, framebuffer, 0);
 }
 
+GF_EXPORT
 GF_Err gf_term_get_offscreen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer, u32 view_idx, u32 depth_buffer_type)
 {
 	if (!term) return GF_BAD_PARAM;
 	return gf_sc_get_offscreen_buffer(term->compositor, framebuffer, view_idx, depth_buffer_type);
 }
 
+GF_EXPORT
 GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer)
 {
 	if (!term) return GF_BAD_PARAM;
@@ -1899,6 +1905,7 @@ Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef)
 {
 	GF_Err e;
@@ -1911,6 +1918,7 @@ GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef)
 {
 	if (!terminal || !ef || !terminal->event_filters) return GF_BAD_PARAM;
@@ -1975,6 +1983,7 @@ static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
 	}
 }
 
+GF_EXPORT
 void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
 	Double fps;
@@ -2006,6 +2015,7 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	gf_sc_set_fps(term->compositor, fps);
 }
 
+GF_EXPORT
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 {
 	GF_Event evt;
@@ -2243,6 +2253,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	}
 }
 
+GF_EXPORT
 void gf_term_switch_quality(GF_Terminal *term, Bool up)
 {
 	gf_scene_switch_quality(term->root_scene, up);

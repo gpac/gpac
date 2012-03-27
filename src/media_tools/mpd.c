@@ -653,7 +653,7 @@ static GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_MPD *gf_mpd_new()
 {
 	GF_MPD *mpd;
@@ -826,6 +826,7 @@ void gf_mpd_period_free(void *_item)
 	gf_free(ptr);
 }
 
+GF_EXPORT
 void gf_mpd_del(GF_MPD *mpd)
 {
 	gf_mpd_del_list(mpd->program_infos, gf_mpd_prog_info_free, 0);
@@ -838,6 +839,7 @@ void gf_mpd_del(GF_MPD *mpd)
 	gf_free(mpd);
 }
 
+GF_EXPORT
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
 {
 	GF_Err e;
@@ -922,6 +924,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					  const char *mpd_file,
 					  u32 reload_count, char *mimeTypeForM3U8Segments, GF_ClientService *service, Bool do_import, Bool use_mpd_templates)

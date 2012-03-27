@@ -710,6 +710,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 }
 
 //add an SDP line to the SDP container at the track level (media-specific SDP info)
+GF_EXPORT
 GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const char *text)
 {
 	GF_TrackBox *trak;
@@ -784,6 +785,7 @@ GF_Err gf_isom_sdp_clean_track(GF_ISOFile *the_file, u32 trackNumber)
 
 //add an SDP line to the SDP container at the movie level (presentation SDP info)
 //NOTE: the \r\n end of line for SDP is automatically inserted
+GF_EXPORT
 GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 {
 	GF_UserDataMap *map;
@@ -845,6 +847,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 
 
 //remove all SDP info at the movie level
+GF_EXPORT
 GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 {
 	GF_UserDataMap *map;

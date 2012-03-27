@@ -167,6 +167,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	return GF_OK;
 } 
 
+GF_EXPORT
 GF_Err gf_isom_streamer_write_sdp(GF_ISOMRTPStreamer *streamer, char*sdpfilename) 
 {
 	return gf_isom_streamer_setup_sdp(streamer, sdpfilename, NULL);
@@ -198,6 +199,7 @@ void gf_isom_streamer_reset(GF_ISOMRTPStreamer *streamer, Bool is_loop)
 	if (is_loop) streamer->timelineOrigin = 0;
 }
 
+GF_EXPORT
 GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_ahead_delay, s32 max_sleep_time) 
 {
 	GF_Err e = GF_OK;
@@ -330,6 +332,7 @@ static u16 check_next_port(GF_ISOMRTPStreamer *streamer, u16 first_port)
 	return first_port;
 }
 
+GF_EXPORT
 GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_dest, u16 port, Bool loop, Bool force_mpeg4, u32 path_mtu, u32 ttl, char *ifce_addr)
 {
 	GF_ISOMRTPStreamer *streamer;
@@ -503,6 +506,7 @@ exit:
 	return NULL;
 } 
 
+GF_EXPORT
 void gf_isom_streamer_del(GF_ISOMRTPStreamer *streamer) 
 {
 	GF_RTPTrack *track = streamer->stream;

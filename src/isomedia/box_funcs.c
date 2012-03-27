@@ -256,6 +256,7 @@ GF_Err gf_isom_full_box_get_size(GF_Box *ptr)
 }
 
 
+GF_EXPORT
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 {
 	if (! bs || !ptr) return GF_BAD_PARAM;
@@ -324,6 +325,7 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
 {
 	GF_Box *a;
@@ -580,6 +582,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 }
 
 
+GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
 	if (!a) return;
@@ -1063,6 +1066,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
 	switch (a->type) {
@@ -1296,6 +1300,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 }
 
 
+GF_EXPORT
 GF_Err gf_isom_box_size(GF_Box *a)
 {
 	switch (a->type) {

@@ -307,6 +307,7 @@ static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, const char *address, 
 #endif
 
 
+GF_EXPORT
 GF_Err gf_sk_get_host_name(char *buffer)
 {
 	s32 ret = gethostname(buffer, GF_MAX_IP_NAME_LEN);
@@ -346,6 +347,7 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 }
 
 
+GF_EXPORT
 GF_Socket *gf_sk_new(u32 SocketType)
 {
 	GF_Socket *tmp;
@@ -374,6 +376,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	return tmp;
 }
 
+GF_EXPORT
 GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 {
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
@@ -386,6 +389,7 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
 {
 	s32 res;
@@ -447,6 +451,7 @@ static void gf_sk_free(GF_Socket *sock)
 }
 
 
+GF_EXPORT
 void gf_sk_del(GF_Socket *sock)
 {
 	assert( sock );
@@ -602,6 +607,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
+GF_EXPORT
 GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *peer_name, u16 peer_port, u32 options)
 {
 #ifdef GPAC_HAS_IPV6
@@ -804,6 +810,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 }
 
 //send length bytes of a buffer
+GF_EXPORT
 GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 {
 	u32 count;
@@ -866,6 +873,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 }
 
 
+GF_EXPORT
 u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 {
 #ifdef GPAC_HAS_IPV6
@@ -894,6 +902,7 @@ u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 #endif
 }
 
+GF_EXPORT
 GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
 {
 	s32 ret;
@@ -1079,6 +1088,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 //fetch nb bytes on a socket and fill the buffer from startFrom
 //length is the allocated size of the receiving buffer
 //BytesRead is the number of bytes read from the network
+GF_EXPORT
 GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
 {
 	s32 res;

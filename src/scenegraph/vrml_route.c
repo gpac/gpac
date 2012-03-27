@@ -351,6 +351,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 }
 
 
+GF_EXPORT
 void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 {
 	u32 i;

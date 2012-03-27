@@ -88,7 +88,7 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 	return gf_strdup(pathName);
 }
 
-
+GF_EXPORT
 char *gf_url_concatenate(const char *parentName, const char *pathName)
 {
 	u32 pathSepCount, i, prot_type;

@@ -15348,6 +15348,7 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 }
 
 
+GF_EXPORT
 u32 gf_node_x3d_type_by_class_name(const char *node_name)
 {
 	if(!node_name) return 0;

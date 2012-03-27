@@ -1569,6 +1569,7 @@ static void gf_m2ts_stream_set_default_slconfig(GF_M2TS_Mux_Stream *stream)
 	}
 }
 
+GF_EXPORT
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes)
 {
 	GF_M2TS_Mux_Stream *stream, *st;
@@ -1696,6 +1697,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	return stream;
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale)
 {
 	GF_M2TS_Mux_Stream *stream = (GF_M2TS_Mux_Stream *)_self->output_udta;
@@ -1706,7 +1708,7 @@ GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_sc
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling)
 {
 	GF_M2TS_Mux_Program *program;
@@ -1732,6 +1734,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	return program;
 }
 
+GF_EXPORT
 GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 {
 	GF_BitStream *bs;
@@ -1804,6 +1807,7 @@ void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 	gf_free(prog);
 }
 
+GF_EXPORT
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux)
 {
 	while (mux->programs) {
@@ -1838,6 +1842,7 @@ void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux)
 	}
 }
 
+GF_EXPORT
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 {
 	GF_M2TS_Mux_Program *prog;
@@ -1875,11 +1880,13 @@ void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 	}
 }
 
+GF_EXPORT
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer)
 {
 	return gf_sys_clock() - muxer->init_sys_time;
 }
 
+GF_EXPORT
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer)
 {
 	u32 now, init;
@@ -1888,6 +1895,7 @@ u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer)
 	return now-init;
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, Bool strict_au_pes_mode)
 {
 	if (!muxer) return GF_BAD_PARAM;
@@ -1895,6 +1903,7 @@ GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, Bool strict_au_pes
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value)
 {
 	if (!muxer) return GF_BAD_PARAM;
@@ -1902,6 +1911,7 @@ GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value)
 	return GF_OK;
 }
 
+GF_EXPORT
 const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 {
 	GF_M2TS_Mux_Program *program;

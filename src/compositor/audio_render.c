@@ -635,6 +635,8 @@ u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 	if (ar->Frozen) return ar->FreezeTime - ar->startTime;
 	return gf_sys_clock() - ar->startTime;
 }
+
+GF_EXPORT
 void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 {
 	GF_AudioRenderer *ar = compositor->audio_renderer;

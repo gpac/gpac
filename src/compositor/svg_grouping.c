@@ -1397,6 +1397,7 @@ GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink)
 	return NULL;
 }
 
+GF_EXPORT
 GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node)
 {
 	SVGlinkStack *stack;

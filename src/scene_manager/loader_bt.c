@@ -3755,7 +3755,7 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 }
 
 
-
+GF_EXPORT
 GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, Bool force_wrl)
 {
 	GF_SceneLoader ctx;
