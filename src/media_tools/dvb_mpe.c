@@ -425,14 +425,13 @@ void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 mpe_pid, unsigned char *
 
 Bool gf_m2ts_compare_ip(u8 rx_ip_adress[4], u8 ip_adress_bootstrap[4])
 {
-	Bool Bootstrap_ip;
 	u8 i;
-	for (i=0; i<sizeof(rx_ip_adress)/sizeof(u8); i++)
+	for (i=0; i<4; i++)
 	{
 		if (rx_ip_adress[i] != ip_adress_bootstrap[i])
-			return Bootstrap_ip = 0;
+			return 0;
 	}
-	return Bootstrap_ip = 1;
+	return 1;
 }
 
 
@@ -1096,7 +1095,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 	}
 
 	// ********************************************************
-	// Envoi des données
+	// Envoi des donnï¿½es
 	// ********************************************************
 
 	e = gf_sk_send(Sock_Struct->sock, ip_packet->data, ip_packet->u32_udp_data_size - 8);
