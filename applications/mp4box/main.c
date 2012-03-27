@@ -107,7 +107,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num,
 #endif 
 
 
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 void PrintStreamerUsage();
 int stream_file_rtp(int argc, char **argv);
 int live_session(int argc, char **argv);
@@ -823,7 +823,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_AV_PARSERS)
 
 static void check_media_profile(GF_ISOFile *file, u32 track)
 {
@@ -913,7 +913,7 @@ void remove_systems_tracks(GF_ISOFile *file)
 	gf_isom_set_pl_indication(file, GF_ISOM_PL_INLINE, 0);
 }
 
-#endif
+#endif /*!defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
 /*return value:
 	0: not supported 
@@ -1204,7 +1204,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	GF_SMEncodeOptions opts;
 #endif
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	SDPLine sdp_lines[MAX_CUMUL_OPS];
 #endif
 	Double InterleavingTime, split_duration, split_start, import_fps, dash_duration;
@@ -1386,15 +1386,14 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
-
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		else if (!stricmp(arg, "-rtp")) {
 			stream_rtp = 1;
 		}
-#endif
 		else if (!stricmp(arg, "-live")) {
 			live_scene = 1;
 		}
+#endif
 		else if (!stricmp(arg, "-diod")) {
 			dump_iod = 1;
 		}
@@ -1590,6 +1589,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-mtu")) { CHECK_NEXT_ARG MTUSize = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-cardur")) { CHECK_NEXT_ARG car_dur = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-rate")) { CHECK_NEXT_ARG rtp_rate = atoi(argv[i+1]); i++; }
+#ifndef GPAC_DISABLE_SENG
 		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
 			char *id;
 			CHECK_NEXT_ARG
@@ -1616,6 +1616,7 @@ int mp4boxMain(int argc, char **argv)
 			nb_sdp_ex++;
 			i++;
 		}
+#endif /*GPAC_DISABLE_SENG*/
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 		else if (!stricmp(arg, "-single")) {
@@ -2100,7 +2101,7 @@ int mp4boxMain(int argc, char **argv)
 			else if (!strcmp(argv[i+1], "crypt")) PrintEncryptUsage();
 			else if (!strcmp(argv[i+1], "meta")) PrintMetaUsage();
 			else if (!strcmp(argv[i+1], "swf")) PrintSWFUsage();
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 			else if (!strcmp(argv[i+1], "rtp")) PrintStreamerUsage();
 			else if (!strcmp(argv[i+1], "live")) PrintLiveUsage	();
 #endif
@@ -2115,7 +2116,7 @@ int mp4boxMain(int argc, char **argv)
 				PrintEncryptUsage();
 				PrintMetaUsage();
 				PrintSWFUsage();
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 				PrintStreamerUsage();
 				PrintLiveUsage	();
 #endif
@@ -2140,14 +2141,14 @@ int mp4boxMain(int argc, char **argv)
 		return 1;
 	}
 
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	if (live_scene) {
 		return live_session(argc, argv);
 	}
 	if (stream_rtp) {
 		return stream_file_rtp(argc, argv);
 	}
-#endif /*GPAC_DISABLE_STREAMING*/
+#endif
 
 	if (raw_cat) {
 		char chunk[4096];
@@ -2786,7 +2787,9 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	if (remove_sys_tracks) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		remove_systems_tracks(file);
+#endif
 		needSave = 1;
 		if (conv_type < GF_ISOM_CONV_TYPE_ISMA_EX) conv_type = 0;
 	}
@@ -3215,6 +3218,7 @@ int mp4boxMain(int argc, char **argv)
 							u32 k, l, sps_id1, sps_id2;
 							GF_AVCConfig *avccfg1 = gf_isom_avc_config_get(in, j+1, 1);
 							GF_AVCConfig *avccfg2 = gf_isom_avc_config_get(init_seg, track, 1);
+#ifndef GPAC_DISABLE_AV_PARSERS
 							for (k=0; k<gf_list_count(avccfg2->sequenceParameterSets); k++) {
 								GF_AVCConfigSlot *slc = gf_list_get(avccfg2->sequenceParameterSets, k);
 								gf_avc_get_sps_info(slc->data, slc->size, &sps_id1, NULL, NULL, NULL, NULL);
@@ -3227,6 +3231,7 @@ int mp4boxMain(int argc, char **argv)
 									}
 								}
 							}
+#endif
 							/*no conflicts in SPS ids, merge all SPS in a single sample desc*/
 							if (do_merge) {
 								while (gf_list_count(avccfg1->sequenceParameterSets)) {
@@ -3363,7 +3368,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (e) goto err_exit;
 
-#ifndef GPAC_DISABLE_ISOM_HINTING
+#if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)
 	for (i=0; i<nb_sdp_ex; i++) {
 		if (sdp_lines[i].trackID) {
 			u32 track = gf_isom_get_track_by_id(file, sdp_lines[i].trackID);
@@ -3392,7 +3397,7 @@ int mp4boxMain(int argc, char **argv)
 			needSave = 1;
 		}
 	}
-#endif /*GPAC_DISABLE_ISOM_HINTING*/
+#endif /*!defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)*/
 
 	if (cprt) {
 		e = gf_isom_set_copyright(file, "und", cprt);

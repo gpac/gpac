@@ -5,7 +5,9 @@ APPDIRS=mp4client
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box
 ifeq ($(DISABLE_M2TS), no)
+ifeq ($(DISABLE_SENG), no)
 APPDIRS+=mp42ts
+endif
 endif
 endif
 
