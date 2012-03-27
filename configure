@@ -2351,7 +2351,7 @@ fi
 
 ldir=`pwd`
 CFLAGS="$CFLAGS -fvisibility=\"hidden\" -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
-CPPFLAGS="$CPPFLAGS -fvisibility=\"hidden\" -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
+CPPFLAGS="$CPPFLAGS"
 
 
 echo "Creating config.mak"
@@ -2521,6 +2521,9 @@ if test "$disable_m2ts_mux" = "yes" -o "$disable_m2ts" = "yes" ; then
     echo "DISABLE_M2TS=yes" >> config.mak
 else
     echo "DISABLE_M2TS=no" >> config.mak
+fi
+if test "$disable_beng" = "no"; then
+    echo "echo DISABLE_SENG=no" >> config.mak
 fi
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak

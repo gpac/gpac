@@ -37,7 +37,7 @@
 
 #else
 
-#ifndef GPAC_DISABLE_STREAMING
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 
 void PrintStreamerUsage()
 {
@@ -805,6 +805,6 @@ exit:
 }
 
 
-#endif /*GPAC_DISABLE_STREAMING*/
+#endif /*!defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)*/
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
