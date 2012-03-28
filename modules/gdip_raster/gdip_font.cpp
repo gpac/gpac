@@ -364,6 +364,7 @@ void gdip_delete_font_driver(GF_FontReader *dr)
 extern "C" {
 #endif
 
+GF_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -374,6 +375,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType==GF_FONT_READER_INTERFACE) return (GF_BaseInterface *)gdip_new_font_driver();
@@ -381,6 +383,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

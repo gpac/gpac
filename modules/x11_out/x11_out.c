@@ -1440,6 +1440,7 @@ DeleteX11VideoOutput (GF_VideoOutput * vout)
 /*
  * interface query
  */
+GF_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -1453,8 +1454,8 @@ const u32 *QueryInterfaces()
 /*
  * interface create
  */
-GF_BaseInterface *
-LoadInterface (u32 InterfaceType)
+GF_EXPORT
+GF_BaseInterface *LoadInterface (u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE)
 		return (GF_BaseInterface *) NewX11VideoOutput ();
@@ -1465,8 +1466,8 @@ LoadInterface (u32 InterfaceType)
 /*
  * interface destroy
  */
-void
-ShutdownInterface (GF_BaseInterface *ifce)
+GF_EXPORT
+void ShutdownInterface (GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType)
 	{

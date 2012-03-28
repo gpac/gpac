@@ -495,6 +495,7 @@ const u32 *QueryInterfaces()
 	};
 	return si;
 }
+
 /*interface create*/
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
@@ -504,6 +505,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *) EPOC_codec_new();
 	return NULL;
 }
+
 /*interface destroy*/
 GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)

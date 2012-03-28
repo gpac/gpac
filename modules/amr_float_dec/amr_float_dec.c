@@ -323,6 +323,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -332,6 +333,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
