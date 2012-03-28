@@ -50,6 +50,7 @@ void SDLOUT_CloseSDL()
 
 
 /*interface query*/
+GF_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -59,14 +60,18 @@ const u32 *QueryInterfaces()
 	};
 	return si; 
 }
+
 /*interface create*/
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return SDL_NewVideo();
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return SDL_NewAudio();
 	return NULL;
 }
+
 /*interface destroy*/
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

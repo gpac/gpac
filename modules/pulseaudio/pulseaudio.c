@@ -320,6 +320,7 @@ DeletePulseAudioOutput (void *ifce)
  * ********************************************************************
  * interface
  */
+GF_EXPORT
 const u32 *QueryInterfaces(u32 InterfaceType)
 {
     static u32 si [] = {
@@ -329,16 +330,16 @@ const u32 *QueryInterfaces(u32 InterfaceType)
     return si;
 }
 
-GF_BaseInterface *
-LoadInterface (u32 InterfaceType)
+GF_EXPORT
+GF_BaseInterface *LoadInterface (u32 InterfaceType)
 {
     if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
         return NewPulseAudioOutput ();
     return NULL;
 }
 
-void
-ShutdownInterface (GF_BaseInterface * ifce)
+GF_EXPORT
+void ShutdownInterface (GF_BaseInterface * ifce)
 {
     if (ifce->InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
         DeletePulseAudioOutput ((GF_AudioOutput *) ifce);

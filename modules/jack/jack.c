@@ -545,6 +545,7 @@ DeleteJackOutput (void *ifce)
  * interface
  */
 
+GF_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -554,8 +555,8 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_BaseInterface *
-LoadInterface (u32 InterfaceType)
+GF_EXPORT
+GF_BaseInterface *LoadInterface (u32 InterfaceType)
 {
   if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
     {
@@ -564,8 +565,8 @@ LoadInterface (u32 InterfaceType)
   return NULL;
 }
 
-void
-ShutdownInterface (GF_BaseInterface * ifce)
+GF_EXPORT
+void ShutdownInterface (GF_BaseInterface * ifce)
 {
   if (ifce->InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
     DeleteJackOutput ((GF_AudioOutput *) ifce);
