@@ -1335,6 +1335,7 @@ typedef struct
 	void (*on_audio_reconfig)(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_channel, u32 channel_cfg);
 } GF_AudioListener;
 
+/*adds a new audio listener - the on_audio_reconfig callback will be called before this function returns*/
 GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 

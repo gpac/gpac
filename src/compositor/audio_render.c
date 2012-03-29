@@ -282,11 +282,9 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		while ((l = gf_list_enum(ar->audio_listeners, &k))) {
 			l->on_audio_reconfig(l->udta, in_freq, in_bps, in_ch, in_cfg);
 		}
-	}
-	
+	}	
 	return GF_OK;
 }
-
 
 
 static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
@@ -658,13 +656,22 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 
 GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al)
 {
+	GF_AudioMixer *mixer;
+	u32 sr, ch, bps, ch_cfg;
 	if (!compositor || !al || !al->on_audio_frame || !al->on_audio_reconfig) return GF_BAD_PARAM;
 	if (!compositor->audio_renderer) return GF_NOT_SUPPORTED;
 
-	gf_mixer_lock(compositor->audio_renderer->mixer, 1);
+	mixer = compositor->audio_renderer->mixer;
+	gf_mixer_lock(mixer, 1);
+
 	if (!compositor->audio_renderer->audio_listeners) compositor->audio_renderer->audio_listeners = gf_list_new();
 	gf_list_add(compositor->audio_renderer->audio_listeners, al);
-	gf_mixer_lock(compositor->audio_renderer->mixer, 0);
+
+	gf_mixer_get_config(mixer, &sr, &ch, &bps, &ch_cfg);
+
+	al->on_audio_reconfig(al->udta, sr, bps, ch, ch_cfg);
+
+	gf_mixer_lock(mixer, 0);
 	return GF_OK;
 }
 
