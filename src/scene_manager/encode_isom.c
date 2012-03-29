@@ -414,6 +414,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	GF_ISOSample *samp;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
+	GF_MuxInfo *mux;
 #ifndef GPAC_DISABLE_BIFS_ENC
 	GF_BifsEncoder *bifs_enc;
 #endif
@@ -895,6 +896,14 @@ force_scene_rap:
 		/*if offset add edit list*/
 		gf_sm_finalize_mux(mp4, esd, (u32) init_offset);
 		gf_isom_set_last_sample_duration(mp4, track, 0);
+
+		mux = gf_sm_get_mux_info(esd);
+		if (mux && mux->duration) {
+			u64 tot_dur = mux->duration * esd->slConfig->timestampResolution / 1000;
+			u64 dur = gf_isom_get_media_duration(mp4, track);
+			if (dur <= tot_dur)
+				gf_isom_set_last_sample_duration(mp4, track, (u32) (tot_dur - dur));
+		}
 
 		if (delete_desc) {
 			gf_odf_desc_del((GF_Descriptor *) esd);

@@ -859,26 +859,24 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 	ent = (GF_SttsEntry*) &stts->entries[stts->nb_entries-1];
 
 	mdur -= ent->sampleDelta;
-	if (duration) {
-		mdur += duration;
-		//we only have one sample
-		if (ent->sampleCount == 1) {
-			ent->sampleDelta = duration;
-		} else {
-			if (ent->sampleDelta == duration) return GF_OK;
-			ent->sampleCount -= 1;
+	mdur += duration;
+	//we only have one sample
+	if (ent->sampleCount == 1) {
+		ent->sampleDelta = duration;
+	} else {
+		if (ent->sampleDelta == duration) return GF_OK;
+		ent->sampleCount -= 1;
 
-			if (stts->nb_entries==stts->alloc_size) {
-				stts->alloc_size++;
-				stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
-				if (!stts->entries) return GF_OUT_OF_MEM;
-			}
-			stts->entries[stts->nb_entries].sampleCount = 1;
-			stts->entries[stts->nb_entries].sampleDelta = duration;
-			stts->nb_entries++;
-			//and update the write cache
-			stts->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
+		if (stts->nb_entries==stts->alloc_size) {
+			stts->alloc_size++;
+			stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
+			if (!stts->entries) return GF_OUT_OF_MEM;
 		}
+		stts->entries[stts->nb_entries].sampleCount = 1;
+		stts->entries[stts->nb_entries].sampleDelta = duration;
+		stts->nb_entries++;
+		//and update the write cache
+		stts->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
 	}
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	trak->Media->mediaHeader->duration = mdur;
