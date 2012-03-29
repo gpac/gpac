@@ -1241,6 +1241,7 @@ if test "$cross_prefix" = "" ; then
             freenect_ld=-L$alt_macosx_dir/lib -lfreenect
         fi
     fi
+echo "looking for freenect $LDFLAGS : $has_freenect"
 fi
 if test "$has_freenect" = "no" ; then
     if $cc -o $TMPO $TMPC -I$local_inc/freenect -L$local_lib -lfreenect 2> /dev/null  ; then
@@ -2523,7 +2524,7 @@ else
     echo "DISABLE_M2TS=no" >> config.mak
 fi
 if test "$disable_beng" = "no"; then
-    echo "echo DISABLE_SENG=no" >> config.mak
+    echo "DISABLE_SENG=no" >> config.mak
 fi
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
