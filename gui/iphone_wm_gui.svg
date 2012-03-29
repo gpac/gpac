@@ -482,6 +482,11 @@
             <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">Scan</text>
             <handler ev:event="click">on_dir_scan();</handler>
         </g>
+        <g id="get" transform="translate(130, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="36" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">GetW</text>
+            <handler ev:event="click">on_get_widget();</handler>
+        </g>
     </g>
     <rect id="screen" width="320" height="480" fill="white" stroke="black" x="0" y="60"/>
 
