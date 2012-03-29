@@ -167,7 +167,7 @@ l_inf = 2;
 l_deb = 3;
 
 /*default log level*/
-log_level = l_err;
+log_level = l_deb;
 
 whiteSpaceRegExp = new RegExp(' ', 'g');
 
@@ -891,7 +891,10 @@ function wmjs_get_mpegu_service_providers(index) {
 
 function wmjs_create_standard_service() {
     //alert("create_standard_service");
-    WidgetManager.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:standard-service:widget-manager:1", "MPEG-U@"+gpac.hostname);
+    var name = "MPEG-U";
+    var option = gpac.getOption('General', 'DeviceName');
+    if (option) name = option;
+    WidgetManager.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:standard-service:widget-manager:1", name+"@"+gpac.hostname);
     WidgetManager.device.enabled = 1;
     /* implement the response to a external call (messageOut of another widget) */
     WidgetManager.device.OnAction = wmjs_widget_standard_service_process_action;
