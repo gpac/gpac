@@ -1241,7 +1241,6 @@ if test "$cross_prefix" = "" ; then
             freenect_ld=-L$alt_macosx_dir/lib -lfreenect
         fi
     fi
-echo "looking for freenect $LDFLAGS : $has_freenect"
 fi
 if test "$has_freenect" = "no" ; then
     if $cc -o $TMPO $TMPC -I$local_inc/freenect -L$local_lib -lfreenect 2> /dev/null  ; then
