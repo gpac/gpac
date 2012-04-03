@@ -4804,10 +4804,11 @@ GF_EXPORT
 void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 {
 	if (!js_rt) return;
-	assert(cx);
+
 	if (LockIt) {
 		gf_mx_p(js_rt->mx);
 #ifdef JS_THREADSAFE
+		assert(cx);
 		if (gf_mx_get_num_locks(js_rt->mx)==1) {
 #if (JS_VERSION>=185)
 			JS_SetRuntimeThread(js_rt->js_runtime);
@@ -4818,6 +4819,7 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 #endif
 	} else {
 #ifdef JS_THREADSAFE
+		assert(cx);
 		if (gf_mx_get_num_locks(js_rt->mx)==1) {
 			JS_EndRequest(cx);
 #if (JS_VERSION>=185)
