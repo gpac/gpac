@@ -929,6 +929,7 @@ void AAC_Delete(void *ifce)
 }
 
 #endif
+#endif
 
 #ifndef DONT_USE_TERMINAL_MODULE_API
 
@@ -981,5 +982,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
-#endif
 #endif
