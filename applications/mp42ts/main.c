@@ -30,11 +30,13 @@
 #include <gpac/mpegts.h>
 
 
-#if defined(GPAC_DISABLE_ISOM)
+#ifdef GPAC_DISABLE_ISOM
 
 #error "Cannot compile MP42TS if GPAC is not built with ISO File Format support"
 
-#else if defined (GPAC_DISABLE_MPEG2TS_MUX)
+#endif
+
+#ifdef GPAC_DISABLE_MPEG2TS_MUX
 
 #error "Cannot compile MP42TS if GPAC is not built with MPEG2-TS Muxing support"
 
@@ -444,6 +446,7 @@ static GF_Err seng_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_STREAMING
 typedef struct
 {
 	/*RTP channel*/
@@ -501,6 +504,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	}
 	return GF_OK;
 }
+#endif
 
 static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
@@ -915,7 +919,7 @@ static Bool seng_output(void *param)
 	return e ? 1 : 0;
 }
 
-
+#ifndef GPAC_DISABLE_STREAMING
 static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
 {
 	GF_ESIRTP *rtp = (GF_ESIRTP*)udta;
@@ -1031,6 +1035,7 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	}
 	fprintf(stderr, "RTP interface initialized\n");
 }
+#endif /*GPAC_DISABLE_STREAMING*/
 
 void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 period)
 {
@@ -1064,7 +1069,9 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 
 static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mpeg4_signaling, char *update, char *audio_input_ip, u16 audio_input_port, char *video_buffer, Bool force_real_time, u32 bifs_use_pes)
 {
+#ifndef GPAC_DISABLE_STREAMING
 	GF_SDPInfo *sdp;
+#endif
 	u32 i;
 	GF_Err e;
 	
@@ -1216,6 +1223,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 		return 1;
 	}
 
+#ifndef GPAC_DISABLE_STREAMING
 	/*open SDP file*/
 	if (strstr(src, ".sdp")) {
 		GF_X_Attribute *att;
@@ -1284,8 +1292,9 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 		gf_sdp_info_del(sdp);
 
 		return 2;
-	} 
-	else if (strstr(src, ".bt")) //open .bt file
+	} else 
+#endif /*GPAC_DISABLE_STREAMING*/
+	if (strstr(src, ".bt")) //open .bt file
 	{
 		u32 load_type=0;
 		prog->seng = gf_seng_init(prog, src, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
@@ -1793,9 +1802,11 @@ int main(int argc, char **argv)
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
 	GF_Socket *ts_output_udp_sk = NULL, *audio_input_udp_sk = NULL;
+#ifndef GPAC_DISABLE_STREAMING
 	GF_RTPChannel *ts_output_rtp = NULL;
 	GF_RTSPTransport tr;
 	GF_RTPHeader hdr;
+#endif
 	char *video_buffer;
 	u32 video_buffer_size;
 	u16 output_port = 0, audio_input_port = 0;
@@ -1827,11 +1838,13 @@ int main(int argc, char **argv)
 	last_video_time = 0;
 	audio_input_type = 0;
 	ts_output_udp_sk = NULL;
-	ts_output_rtp = NULL;
-	src_name = NULL;
-	ts_out = NULL;
 	udp_out = NULL;
+#ifndef GPAC_DISABLE_STREAMING
+	ts_output_rtp = NULL;
 	rtp_out = NULL;
+#endif
+	ts_out = NULL;
+	src_name = NULL;
 	nb_progs = 0;
 	mux_rate = 0;
 	run_time = 0;
@@ -1917,6 +1930,7 @@ int main(int argc, char **argv)
 			goto exit;
 		}
 	}
+#ifndef GPAC_DISABLE_STREAMING
 	if (rtp_out != NULL) {
 		ts_output_rtp = gf_rtp_new();
 		gf_rtp_set_ports(ts_output_rtp, output_port);
@@ -1952,6 +1966,7 @@ int main(int argc, char **argv)
 		hdr.SSRC = tr.SSRC;
 		hdr.Marker = 0;
 	}
+#endif /*GPAC_DISABLE_STREAMING*/
 
 	/************************************/
 	/*   create streaming audio input   */
@@ -2112,6 +2127,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Error %s sending UDP packet\n", gf_error_to_string(e));
 				}
 			}
+#ifndef GPAC_DISABLE_STREAMING
 			if (ts_output_rtp != NULL) {
 				hdr.SequenceNumber++;
 				/*muxer clock at 90k*/
@@ -2124,6 +2140,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Error %s sending RTP packet\n", gf_error_to_string(e));
 				}
 			}
+#endif
 			if (status>=GF_M2TS_STATE_PADDING) {
 				break;
 			}
@@ -2177,13 +2194,17 @@ exit:
 	}
 	if (ts_output_file) fclose(ts_output_file);
 	if (ts_output_udp_sk) gf_sk_del(ts_output_udp_sk);
+#ifndef GPAC_DISABLE_STREAMING
 	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);
+#endif
 	if (ts_out) gf_free(ts_out);
 	if (audio_input_udp_sk) gf_sk_del(audio_input_udp_sk);
 	if (audio_input_buffer) gf_free (audio_input_buffer);
 	if (video_buffer) gf_free(video_buffer);
 	if (udp_out) gf_free(udp_out);
+#ifndef GPAC_DISABLE_STREAMING
 	if (rtp_out) gf_free(rtp_out);
+#endif
 	if (aac_reader) AAC_Reader_del(aac_reader);
 	if (muxer) gf_m2ts_mux_del(muxer);
 	
