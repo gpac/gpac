@@ -2517,6 +2517,9 @@ if test "$has_libxml2" = "yes"; then
     echo "XML2_CFLAGS=$libxml2_cflags" >> config.mak
     echo "XML2_LIBS=$libxml2_lib_flags" >> config.mak
 fi
+if test "$disable_parsers" = "yes" ; then
+    disable_m2ts_mux="yes"
+fi
 if test "$disable_m2ts_mux" = "yes" -o "$disable_m2ts" = "yes" ; then
     echo "DISABLE_M2TS=yes" >> config.mak
 else
