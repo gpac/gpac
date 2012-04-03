@@ -893,8 +893,10 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	/*nothing to do on unload*/
 	if (unload) {
 		gjs->nb_loaded--;
-		if (!gjs->nb_loaded && gjs->evt_filter.udta) {
+		/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
+		if ((gjs->c==c) && gjs->evt_filter.udta) {
 			gf_term_remove_event_filter(gjs->term, &gjs->evt_filter);
+			gjs->evt_filter.udta = NULL;
 		}
 		return;
 	}
