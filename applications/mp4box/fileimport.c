@@ -932,6 +932,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			/*track done*/
 			if ((tki->stop_state==2) || (!is_last && (tki->sample_count == tki->last_sample)) ) {
 				if (tki->has_non_raps) last_rap_sample_time = 0;
+				time = (Double) (s64) ( gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1) - tki->firstDTS);
+				time /= tki->time_scale;
+				if (file_split_dur==(Double)GF_MAX_FLOAT || file_split_dur<time) file_split_dur = time;
 				continue;
 			}
 
