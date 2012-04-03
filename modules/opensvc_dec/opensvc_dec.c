@@ -81,10 +81,12 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		count = gf_list_count(cfg->sequenceParameterSets);
         SetCommandLayer(Layer, 255, 0, &i, 0);//bufindex can be reset without pb
 		for (i=0; i<count; i++) {
-			u32 w, h, par_n, par_d;
+			u32 w=0, h=0, par_n=0, par_d=0;
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 			gf_avc_get_sps_info(slc->data, slc->size, &slc->id, &w, &h, &par_n, &par_d);
+#endif
 			/*by default use the base layer*/
 			if (!i) {
 				if ((ctx->width<w) || (ctx->height<h)) {

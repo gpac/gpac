@@ -30,11 +30,15 @@
 #include <gpac/mpegts.h>
 
 
-#ifdef GPAC_DISABLE_ISOM
+#if defined(GPAC_DISABLE_ISOM)
 
 #error "Cannot compile MP42TS if GPAC is not built with ISO File Format support"
 
-#else
+#else if defined (GPAC_DISABLE_MPEG2TS_MUX)
+
+#error "Cannot compile MP42TS if GPAC is not built with MPEG2-TS Muxing support"
+
+#endif
 
 
 #define DEFAULT_PCR_OFFSET	18000
@@ -2208,4 +2212,3 @@ exit:
 	return 1;
 }
 
-#endif /*GPAC_DISABLE_ISOM*/
