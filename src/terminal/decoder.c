@@ -75,6 +75,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 	tmp->odm = odm;
 	tmp->flags = codec->flags | GF_ESM_CODEC_IS_USE;
 	tmp->decio = codec->decio;
+	tmp->process = codec->process;
 	return tmp;
 }
 
