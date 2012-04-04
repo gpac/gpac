@@ -658,7 +658,7 @@ enum
 	kOSMOZILLA_ID_METHOD_QUALITY_SWITCH,
 	kOSMOZILLA_ID_METHOD_SET_URL,
 	
-	kOSMOZILLA_NUM_METHODS,
+	kOSMOZILLA_NUM_METHODS
 };
 
 NPIdentifier    v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_NUM_METHODS];
@@ -768,12 +768,37 @@ bool OSMOZILLA_InvokeDefault(NPObject *npobj, const NPVariant *args, uint32_t ar
 bool OSMOZILLA_HasProperty(NPObject* obj, NPIdentifier name)
 {
 	bool result = 0;
+	if ( sBrowserFunctions->identifierisstring(name) )
+	{
+		NPUTF8 *val = sBrowserFunctions->utf8fromidentifier(name);
+
+		if ( !strcmp(val, "DownloadProgress") )
+		{
+			result = 1;
+		}
+
+		sBrowserFunctions->memfree(val);
+	}
 	/*nothing exposed yet*/
 	return result;
 }
 
 bool OSMOZILLA_GetProperty(NPObject* obj, NPIdentifier name, NPVariant* result)
 {
+	OsmozillaObject *npo = (OsmozillaObject *)obj;
+	if (!npo->osmo) return 0;
+	if ( sBrowserFunctions->identifierisstring(name) )
+	{
+		NPUTF8 *val = sBrowserFunctions->utf8fromidentifier(name);
+
+		if ( !strcmp(val, "DownloadProgress") )
+		{
+			int val = Osmozilla_GetDownloadProgress(npo->osmo);
+			INT32_TO_NPVARIANT(val, *result);
+		}
+
+		sBrowserFunctions->memfree(val);
+	}
 	return 1;
 }
 

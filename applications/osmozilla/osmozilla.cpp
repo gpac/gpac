@@ -81,11 +81,18 @@ Bool Osmozilla_EventProc(void *opaque, GF_Event *evt)
 	case GF_EVENT_PROGRESS:
 		if (evt->progress.done == evt->progress.total) {
 			Osmozilla_SetStatus(osmo->np_instance, "");
+			osmo->download_progress = 100;
 		} else {
 			char *szTitle = (char *)"";
 			if (evt->progress.progress_type==0) szTitle = (char *)"Buffer ";
-			else if (evt->progress.progress_type==1) szTitle = (char *)"Download ";
+			else 
+			if (evt->progress.progress_type==1) 
+			{
+				szTitle = (char *)"Download ";
+				osmo->download_progress = (int) (100.0*evt->progress.done) / evt->progress.total;
+			}
 			else if (evt->progress.progress_type==2) szTitle = (char *)"Import ";
+			
 			sprintf(msg, "(GPAC) %s: %02.2f", szTitle, (100.0*evt->progress.done) / evt->progress.total);
 			Osmozilla_SetStatus(osmo->np_instance, msg);
 		}
@@ -511,4 +518,11 @@ void Osmozilla_SetURL(Osmozilla *osmo, const char *url)
 		osmo->url = gf_strdup(url);
 		gf_term_connect(osmo->term, osmo->url);
 	}
+}
+
+int Osmozilla_GetDownloadProgress(Osmozilla *osmo)
+{
+	if (osmo->term)
+		return osmo->download_progress;
+	return 0;
 }

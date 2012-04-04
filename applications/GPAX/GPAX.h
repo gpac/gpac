@@ -78,6 +78,8 @@ void __RPC_USER MIDL_user_free( void __RPC_FAR * );
 
 #define	DISPID_AutoStart	( 101 )
 
+#define	DISPID_DownloadProgress	( 102 )
+
 #define	DISPID_PlayEvent	( 100 )
 
 #define	DISPID_PauseEvent	( 101 )
@@ -129,6 +131,12 @@ EXTERN_C const IID IID_IGPAX;
         
         virtual /* [helpstring][propput][id] */ HRESULT STDMETHODCALLTYPE put_AutoStart( 
             /* [in] */ VARIANT_BOOL autoplay) = 0;
+
+		virtual /* [helpstring][propget][id] */ HRESULT STDMETHODCALLTYPE get_DownloadProgress( 
+			/* [retval][out] */ INT __RPC_FAR *downloadProgress) = 0;
+
+		virtual /* [helpstring][propput][id] */ HRESULT STDMETHODCALLTYPE put_DownloadProgress( 
+			/* [in] */ INT downloadProgress) = 0;
         
     };
     
@@ -403,6 +411,29 @@ void __RPC_STUB IGPAX_put_AutoStart_Stub(
     IRpcChannelBuffer *_pRpcChannelBuffer,
     PRPC_MESSAGE _pRpcMessage,
     DWORD *_pdwStubPhase);
+
+/* [helpstring][propget][id] */ HRESULT STDMETHODCALLTYPE IGPAX_get_DownloadProgress_Proxy( 
+	IGPAX __RPC_FAR * This,
+	/* [retval][out] */ INT __RPC_FAR *autoplay);
+
+
+void __RPC_STUB IGPAX_get_DownloadProgress_Stub(
+	IRpcStubBuffer *This,
+	IRpcChannelBuffer *_pRpcChannelBuffer,
+	PRPC_MESSAGE _pRpcMessage,
+	DWORD *_pdwStubPhase);
+
+
+/* [helpstring][propput][id] */ HRESULT STDMETHODCALLTYPE IGPAX_put_DownloadProgress_Proxy( 
+	IGPAX __RPC_FAR * This,
+	/* [in] */ INT autoplay);
+
+
+void __RPC_STUB IGPAX_put_DownloadProgress_Stub(
+	IRpcStubBuffer *This,
+	IRpcChannelBuffer *_pRpcChannelBuffer,
+	PRPC_MESSAGE _pRpcMessage,
+	DWORD *_pdwStubPhase);
 
 
 
