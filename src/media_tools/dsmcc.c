@@ -278,7 +278,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		}
 	case DOWNLOAD_DATA_BLOCK:
 		{				
-			u32 data_shift,modules_count,i;
+			u32 data_shift, modules_count, i;
 			GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock;
 			GF_SAFEALLOC(DownloadDataBlock,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK);
 			DataMessage->dataMessagePayload = DownloadDataBlock;
@@ -357,14 +357,11 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 
 		}
 	case DOWNLOAD_SERVER_INITIATE:
-
 		{
-			u32 localbyteshift;
 			GF_Err e;
 			GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit;
 			GF_SAFEALLOC(DownloadServerInit,GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT);
 			DataMessage->dataMessagePayload = DownloadServerInit;
-			localbyteshift = (u32)(gf_bs_get_position(bs));
 			gf_bs_read_data(bs,DownloadServerInit->serverId,20);			
 			gf_m2ts_dsmcc_process_compatibility_descriptor(&DownloadServerInit->CompatibilityDescr,data,bs,data_shift);
 			DownloadServerInit->privateDataLength = gf_bs_read_int(bs,16);
@@ -942,7 +939,6 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
 	GF_M2TS_DSMCC_FILE* File;
 	FILE* pFile;
-	char* FileType;
 	u8* descr_tag;
 
 	GF_SAFEALLOC(BIOP_File,GF_M2TS_DSMCC_BIOP_FILE);
@@ -971,7 +967,6 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 				case CONTENT_TYPE_DESCRIPTOR:
 					{
 						GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr = (GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR*)gf_list_get(BIOP_File->descriptor,0);						
-						FileType = strdup(ContentTypeDescr->content_type_data_byte);						
 					}
 				default:
 					{
@@ -1020,8 +1015,6 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 
 	GF_M2TS_DSMCC_BIOP_DIRECTORY* BIOP_Directory;
 	GF_M2TS_DSMCC_DIR* Dir;
-	char* ParentName;
-	char* FileType;
 	u32 i;
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
 
@@ -1043,7 +1036,6 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 		ServiceGateway->objectKey_data = BIOP_Directory->Header->objectKey_data;
 		ServiceGateway->parent = NULL;			
 		ServiceGateway->name = (char*)gf_strdup(dsmcc_overlord->root_dir);
-		ParentName = ServiceGateway->name;			
 	}else{
 		/* get the dir related to the payload */
 		Dir = dsmcc_get_directory(ServiceGateway->Dir,BIOP_Directory->Header->objectKey_data);		
@@ -1113,7 +1105,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 					case CONTENT_TYPE_DESCRIPTOR:
 						{
 							GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr = (GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR*)gf_list_get(BIOP_Directory->Name[i].descriptor ,j);						
-							FileType = strdup(ContentTypeDescr->content_type_data_byte);						
+							break;
 						}
 					default:
 						{
@@ -1168,7 +1160,7 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 	u32 i;		
 	GF_M2TS_DSMCC_BIOP_STREAM_EVENT* BIOP_StreamEvent;
 	//GF_M2TS_DSMCC_FILE* File;	
-	u32 eventdata,Info_length;
+	u32 eventdata;
 
 	GF_SAFEALLOC(BIOP_StreamEvent,GF_M2TS_DSMCC_BIOP_STREAM_EVENT);
 
@@ -1201,10 +1193,8 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 		}
 	}
 
-	Info_length = BIOP_StreamEvent->Header->objectInfo_length - (BIOP_StreamEvent->Info.aDescription_length + 14 + BIOP_StreamEvent->eventNames_count + eventdata);
-
 	BIOP_StreamEvent->serviceContextList_count = gf_bs_read_int(bs,8);
-	if(BIOP_StreamEvent->serviceContextList_count){
+	if (BIOP_StreamEvent->serviceContextList_count) {
 		BIOP_StreamEvent->ServiceContext = (GF_M2TS_DSMCC_SERVICE_CONTEXT*)gf_calloc(BIOP_StreamEvent->serviceContextList_count,sizeof(GF_M2TS_DSMCC_SERVICE_CONTEXT));
 		dsmcc_biop_get_context(bs,BIOP_StreamEvent->ServiceContext,BIOP_StreamEvent->serviceContextList_count);
 	}	
@@ -1212,7 +1202,7 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 	BIOP_StreamEvent->messageBody_length = gf_bs_read_int(bs,32);
 	BIOP_StreamEvent->taps_count = gf_bs_read_int(bs,8);
 	BIOP_StreamEvent->Taps = (GF_M2TS_DSMCC_BIOP_TAPS*)gf_calloc(BIOP_StreamEvent->taps_count,sizeof(GF_M2TS_DSMCC_BIOP_TAPS));
-	for(i=0;i<BIOP_StreamEvent->taps_count;i++){
+	for (i=0;i<BIOP_StreamEvent->taps_count;i++) {
 		BIOP_StreamEvent->Taps[i].id = gf_bs_read_int(bs,16);		
 		BIOP_StreamEvent->Taps[i].use = gf_bs_read_int(bs,16);		
 		BIOP_StreamEvent->Taps[i].assocTag = gf_bs_read_int(bs,16);
@@ -1241,12 +1231,9 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header,GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway){
 
 	u32 i;		
-	GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE* BIOP_StreamMessage;	
-	u32 eventdata,Info_length;
+	GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE* BIOP_StreamMessage;
 
 	GF_SAFEALLOC(BIOP_StreamMessage,GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE);
-
-	eventdata = 0;
 
 	BIOP_StreamMessage->Header = BIOP_Header;
 	/* Get Info */
@@ -1261,9 +1248,6 @@ static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_B
 	BIOP_StreamMessage->Info.video = gf_bs_read_int(bs,8);
 	BIOP_StreamMessage->Info.data = gf_bs_read_int(bs,8);
 	
-
-	Info_length = BIOP_StreamMessage->Header->objectInfo_length - (BIOP_StreamMessage->Info.aDescription_length + 10);
-
 	BIOP_StreamMessage->serviceContextList_count = gf_bs_read_int(bs,8);
 	if(BIOP_StreamMessage->serviceContextList_count){
 		BIOP_StreamMessage->ServiceContext = (GF_M2TS_DSMCC_SERVICE_CONTEXT*)gf_calloc(BIOP_StreamMessage->serviceContextList_count,sizeof(GF_M2TS_DSMCC_SERVICE_CONTEXT));
@@ -1857,18 +1841,15 @@ static void dsmcc_free_biop_ior(GF_M2TS_DSMCC_IOR* IOR)
 	gf_list_del(IOR->taggedProfile);
 }
 
-static void dsmcc_free_biop_descriptor(GF_List* list){
+static void dsmcc_free_biop_descriptor(GF_List* list)
+{
 	u8* descr_tag;
-	u32 descr_count;
 
-	descr_count = gf_list_count(list);
-
-
-	while(gf_list_count(list)){
+	while(gf_list_count(list)) {
 
 		descr_tag = (u8*)gf_list_get(list,0);		
 
-		switch(*descr_tag){
+		switch(*descr_tag) {
 
 				case CACHING_PRIORITY_DESCRIPTOR:
 					{

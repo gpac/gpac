@@ -875,7 +875,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	Bool first_frag_in_subseg;
 	Bool no_sidx = 0;
 	u32 count, idx, cur_dur, sidx_dur, sidx_idx, idx_offset, frag_count;
-	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end, prev_earliest_cts, prev_earliest_dts;
+	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end, prev_earliest_cts;
 	GF_TrackBox *trak = NULL;
 	GF_Err e;
 	/*number of subsegment in this segment (eg nb references in the first SIDX found)*/
@@ -945,7 +945,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	frags_per_subsidx = 0;
 	
 	prev_earliest_cts = 0;
-	prev_earliest_dts = ref_track_decode_time;
 
 	if (daisy_chain_sidx)
 		daisy_sidx = gf_list_new();

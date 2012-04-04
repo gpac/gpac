@@ -262,7 +262,6 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 	case GF_EVENT_METADATA:
 		if (m_pTerm->root_scene) {
 			char szName[1024];
-			const char *artist;
 			NetInfoCommand com;
 			memset(&com, 0, sizeof(NetInfoCommand));
 
@@ -272,12 +271,12 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 				if (com.name) { strcat(szName, com.name); strcat(szName, " "); }
 				if (com.album) { strcat(szName, "("); strcat(szName, com.album); strcat(szName, ")"); }
 
-				artist = "Unknown";
+				/*const char *artist = "Unknown";
 				if (com.artist) artist = com.artist;
 				else if (com.writer) artist = com.writer;
 				else if (com.composer) artist = com.composer;
 
-				//MRSetMediaInfo(0, szName, com.artist ? com.artist : "Unknown");
+				MRSetMediaInfo(0, szName, com.artist ? com.artist : "Unknown");*/
 			}
 		}
 		break;

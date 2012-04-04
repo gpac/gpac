@@ -157,10 +157,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	BITMAPINFOHEADER fi;
 	FILE *fout;
 	u32 j, i;
-	char *ptr, *prev;
-
-	prev = strrchr(rad_name, '.');
-	//if (prev) prev[0] = '\0'; 
+	char *ptr;
 
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) sprintf(str, "%s_%d_depth.bmp", rad_name, img_num);
 	else sprintf(str, "%s_%d.bmp", rad_name, img_num);
@@ -259,7 +256,6 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
 	FILE *fout;
  	u32 i, j;
- 	char val;
 	unsigned char *depth;
 
 	depth = (unsigned char *) fb->video_buffer;
@@ -270,10 +266,10 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 		for (i=0;i<fb->width; i++) {
 
 #ifdef GPAC_USE_TINYGL
-			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short)], fout);
-			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short) + 1], fout);
+			fputc(depth[2*i+j*fb->width*sizeof(unsigned short)], fout);
+			fputc(depth[2*i+j*fb->width*sizeof(unsigned short) + 1], fout);
 #else
-			val = fputc(depth[i+j*fb->width], fout);
+			fputc(depth[i+j*fb->width], fout);
 #endif
 		}
 	}
@@ -285,7 +281,6 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 
 	FILE *fout;
  	u32 i, j;
- 	char val;
 	unsigned char *buf;
 
 	buf = (unsigned char *) fb->video_buffer;
@@ -297,7 +292,7 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 	if (!fout) return;
 	for (j=0; j<fb->height;  j++) {
 		for (i=0;i<fb->width*4; i++) {
-			val = fputc(buf[i+j*fb->pitch_y], fout);
+			fputc(buf[i+j*fb->pitch_y], fout);
 		}
 	}
 	fclose(fout);

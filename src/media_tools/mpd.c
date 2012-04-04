@@ -159,6 +159,7 @@ GF_Err gf_mpd_parse_base_url(GF_List *container, GF_XMLNode *node)
 	GF_SAFEALLOC(url, GF_MPD_BaseURL);
 	if (! url) return GF_OUT_OF_MEM;
 	e = gf_list_add(container, url);
+	if (e) return GF_OUT_OF_MEM;
 
 	i = 0;
 	while ( (att = gf_list_enum(node->attributes, &i))) {

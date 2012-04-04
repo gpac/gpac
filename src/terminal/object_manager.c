@@ -284,7 +284,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	u32 od_type;
 	char *ext;
 	char *sub_url = (char *) service_sub_url;
-	GF_Terminal *term;
 	GF_Descriptor *desc;
 
 	if (odm->flags & GF_ODM_DESTROYED) {
@@ -292,8 +291,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		return;
 	}
 //	assert(odm->OD==NULL);
-
-	term = odm->term;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Setting up root object for %s\n", odm->net_service->url));
 
