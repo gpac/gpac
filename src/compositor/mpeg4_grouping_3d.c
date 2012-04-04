@@ -251,6 +251,7 @@ static void TraverseBillboard(GF_Node *n, void *rs, Bool is_destroy)
 		DestroyTransform(n);
 		return;
 	}
+	if (! tr_state->camera) return;
 
 	/*can't cache the matrix here*/
 	gf_mx_init(st->mx);
@@ -347,7 +348,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
-
+	if (!tr_state->camera) return;
 
 
 	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
