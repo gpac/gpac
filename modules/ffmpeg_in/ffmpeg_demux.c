@@ -478,6 +478,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 	}
 }
 
+#ifndef USE_PRE_0_7
 static int ff_url_read(void *h, unsigned char *buf, int size)
 {
 	u32 retry = 10;
@@ -528,6 +529,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 #endif
 	return full_size ? (int) full_size : -1;
 }
+#endif /*USE_PRE_0_7*/
 
 
 static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)

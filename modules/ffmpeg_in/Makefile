@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ffmpeg_in
 
-CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
+CFLAGS=$(OPTFLAGS) -Wno-deprecated-declarations -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
