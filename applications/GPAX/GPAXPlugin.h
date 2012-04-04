@@ -84,6 +84,7 @@ public:
 		m_bIsConnected = 0;
 		m_bUse3D = 0;
 		m_bUseGUI = 0;
+		m_iDownload_progress = 0;
 		m_AR = GF_ASPECT_RATIO_KEEP;
 		m_url[0] = 0;
 		m_pLogs = NULL;
@@ -219,6 +220,8 @@ public:
     STDMETHODIMP put_src(BSTR url);
     STDMETHODIMP get_AutoStart(VARIANT_BOOL *as);
     STDMETHODIMP put_AutoStart(VARIANT_BOOL as);
+	STDMETHODIMP get_DownloadProgress(INT *dp);
+	STDMETHODIMP put_DownloadProgress(INT dp);
 
 	//Customed Window Message functions: OnCreate and OnDestroy are called when a window
 	//is created or destroyed. OnDraw is to establish inital connection.
@@ -254,6 +257,7 @@ private:
 
 	u32 m_width, m_height, m_AR;
 	Bool m_bIsConnected, m_bInitialDraw, m_bAutoStart, m_bUse3D, m_bLoop, m_bUseGUI;
+	int m_iDownload_progress;
 	FILE *m_pLogs;
 
 };

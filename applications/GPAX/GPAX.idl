@@ -23,8 +23,9 @@ library GPAXLib
     interface IGPAX;
     dispinterface IGPAXEvents;
 
-    const int DISPID_SRC        = 100;
-    const int DISPID_AutoStart  = 101;
+    const int DISPID_SRC				= 100;
+    const int DISPID_AutoStart			= 101;
+	const int DISPID_DownloadProgress	= 102;
 
 
 	//IDispatch interface
@@ -57,6 +58,11 @@ library GPAXLib
         HRESULT AutoStart([out, retval] VARIANT_BOOL* autoplay);
         [id(DISPID_AutoStart), propput, helpstring("Get/Set automatic playback upon load")]
         HRESULT AutoStart([in] VARIANT_BOOL autoplay);
+
+		[id(DISPID_DownloadProgress), propget, helpstring("Get/Set download progress")]
+        HRESULT DownloadProgress([out, retval] INT* downloadProgress);
+        [id(DISPID_DownloadProgress), propput, helpstring("Get/Set download progress")]
+        HRESULT DownloadProgress([in] INT downloadProgress);
 	};
 
 

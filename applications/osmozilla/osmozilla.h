@@ -57,6 +57,7 @@ typedef struct __tag_osmozilla
 	double duration;
 	char can_seek;
 	int use_gui;
+	int download_progress;
 
 	/*log file if any*/
 	FILE *logs;

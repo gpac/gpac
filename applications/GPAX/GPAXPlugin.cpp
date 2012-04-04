@@ -29,6 +29,7 @@
 #include <gpac/network.h>
 #include <gpac/utf.h>
 #include <shlobj.h>
+#include <math.h>
 
 #ifndef _WIN32_WCE
 #include <direct.h>
@@ -81,10 +82,16 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 	case GF_EVENT_PROGRESS:
 		if (evt->progress.done == evt->progress.total) {
 			SetStatusText(NULL);
+			m_iDownload_progress = 100;
 		} else {
 			char *szTitle = "";
 			if (evt->progress.progress_type==0) szTitle = "Buffer ";
-			else if (evt->progress.progress_type==1) szTitle = "Download ";
+			else 
+			if (evt->progress.progress_type==1) 
+			{
+				szTitle = "Download ";
+				m_iDownload_progress = (int)floor((100.0*evt->progress.done) / evt->progress.total);
+			}
 			else if (evt->progress.progress_type==2) szTitle = "Import ";
 			sprintf(msg, "(GPAC) %s: %02.2f", szTitle, (100.0*evt->progress.done) / evt->progress.total);
 			SetStatusText(msg);
@@ -643,6 +650,17 @@ STDMETHODIMP CGPAXPlugin::put_AutoStart(VARIANT_BOOL as)
 {
     m_bAutoStart = (as !=VARIANT_FALSE) ? TRUE: FALSE;
     return S_OK;
+}
+
+STDMETHODIMP CGPAXPlugin::get_DownloadProgress(INT *dp)
+{
+	if (dp==NULL) return E_POINTER;
+	*dp = m_iDownload_progress;
+	return S_OK;
+}
+STDMETHODIMP CGPAXPlugin::put_DownloadProgress(INT dp)
+{
+	return S_OK;
 }
 
 STDMETHODIMP CGPAXPlugin::GetInterfaceSafetyOptions(      
