@@ -748,9 +748,6 @@ static Bool seng_output(void *param)
 	u32 period, ts_delta;
 	u16 es_id, aggregate_on_stream;
 	e = GF_OK;
-	if (prog->rate){
-		has_carousel = 1;
-	}
 	gf_sleep(2000); /*TODO: events instead? What are we waiting for?*/
 	gf_seng_encode_context(seng, SampleCallBack);
 	
