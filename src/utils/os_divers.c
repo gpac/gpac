@@ -1849,7 +1849,7 @@ struct _GF_GlobalLock_opaque {
 };
 #endif
 
-
+GF_EXPORT
 GF_GlobalLock * gf_global_resource_lock(const char * resourceName){
 #ifdef WIN32
 #ifdef _WIN32_WCE
@@ -1896,6 +1896,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName){
  * \param lock The resource to unlock
  * \return GF_OK if evertything went fine
  */
+GF_EXPORT
 GF_Err gf_global_resource_unlock(GF_GlobalLock * lock){
 	if (!lock)
 		return GF_BAD_PARAM;

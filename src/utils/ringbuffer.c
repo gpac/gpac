@@ -23,6 +23,7 @@
  */
 #include <gpac/ringbuffer.h>
 
+GF_EXPORT
 GF_Ringbuffer * gf_ringbuffer_new(u32 sz)
 {
   GF_Ringbuffer *rb;
@@ -40,6 +41,7 @@ GF_Ringbuffer * gf_ringbuffer_new(u32 sz)
   return rb;
 }
 
+GF_EXPORT
 void gf_ringbuffer_del(GF_Ringbuffer * ringbuffer){
     if (!ringbuffer)
       return;
@@ -71,6 +73,7 @@ static u32 gf_ringbuffer_available_for_write (GF_Ringbuffer * rb)
   }
 }
 
+GF_EXPORT
 u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb)
 {
   size_t w, r;
@@ -85,6 +88,7 @@ u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb)
   }
 }
 
+GF_EXPORT
 u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u8 *dest, u32 szDest)
 {
  u32 free_sz, sz2, to_read, n1, n2;
@@ -118,6 +122,7 @@ u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u8 *dest, u32 szDest)
   return to_read; 
 }
 
+GF_EXPORT
 u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u8 *src, u32 sz)
 {
   u32 free_sz, sz2, to_write, n1, n2;

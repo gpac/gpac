@@ -846,6 +846,8 @@ static void load_line_YUV420SP(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_p
 
 static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_);
 
+//#define COLORKEY_MPEG4_STRICT
+
 GF_EXPORT
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *key, GF_ColorMatrix *cmat)
 {
@@ -1045,6 +1047,30 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 						}
 						the_row = src_row - 1;
+
+						if (cmat) {
+							for (i=0; i<2*src_w; i++) {
+								u32 idx = 4*i;
+								gf_cmx_apply_argb(cmat, &tmp[idx+3], &tmp[idx], &tmp[idx+1], &tmp[idx+2]);
+							}
+						}
+						if (key) {
+							for (i=0; i<2*src_w; i++) {
+								u32 idx = 4*i;
+								s32 thres, v;
+								v = tmp[idx]-kr; thres = ABS(v);
+								v = tmp[idx+1]-kg; thres += ABS(v);
+								v = tmp[idx+2]-kb; thres += ABS(v);
+								thres/=3;
+#ifdef COLORKEY_MPEG4_STRICT
+								if (thres < kl) tmp[idx+3] = 0;
+								else if (thres <= kh) tmp[idx+3] = (thres-kl)*ka / (kh-kl);
+#else
+								if (thres < kh) tmp[idx+3] = 0;
+#endif
+								else tmp[idx+3] = ka;
+							}
+						}
 					}
 					rows = flip ? tmp : tmp + src_w * 4;
 				} else {
@@ -1071,7 +1097,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 							v = tmp[idx+1]-kg; thres += ABS(v);
 							v = tmp[idx+2]-kb; thres += ABS(v);
 							thres/=3;
-#if 0
+#ifdef COLORKEY_MPEG4_STRICT
 							if (thres < kl) tmp[idx+3] = 0;
 							else if (thres <= kh) tmp[idx+3] = (thres-kl)*ka / (kh-kl);
 #else
@@ -1099,7 +1125,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						v = tmp[idx+1]-kg; thres += ABS(v);
 						v = tmp[idx+2]-kb; thres += ABS(v);
 						thres/=3;
-#if 0
+#ifdef COLORKEY_MPEG4_STRICT
 						if (thres < kl) tmp[idx+3] = 0;
 						else if (thres <= kh) tmp[idx+3] = (thres-kl)*ka / (kh-kl);
 #else
