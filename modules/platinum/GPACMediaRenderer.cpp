@@ -120,14 +120,18 @@ GPAC_MediaRenderer::SetupServices(PLT_DeviceData& data)
         m_pAVService->SetStateVariable("AbsoluteCounterPosition", "2147483647"); // means NOT_IMPLEMENTED
 
         // disable indirect eventing for certain state variables
-        PLT_StateVariable* var;
-        var = m_pAVService->FindStateVariable("RelativeTimePosition");
+        //PLT_StateVariable* var;
+        //var = 
+			m_pAVService->FindStateVariable("RelativeTimePosition");
         //if (var) var->DisableIndirectEventing();
-        var = m_pAVService->FindStateVariable("AbsoluteTimePosition");
+        //var = 
+			m_pAVService->FindStateVariable("AbsoluteTimePosition");
         //if (var) var->DisableIndirectEventing();
-        var = m_pAVService->FindStateVariable("RelativeCounterPosition");
+        //var = 
+			m_pAVService->FindStateVariable("RelativeCounterPosition");
         //if (var) var->DisableIndirectEventing();
-        var = m_pAVService->FindStateVariable("AbsoluteCounterPosition");
+        //var = 
+			m_pAVService->FindStateVariable("AbsoluteCounterPosition");
         //if (var) var->DisableIndirectEventing();
 
         // GetTransportInfo

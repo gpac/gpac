@@ -740,7 +740,6 @@ static Bool seng_output(void *param)
 {
 	GF_Err e;
 	u64 last_src_modif, mod_time;
-	Bool has_carousel=0;
 	M2TSProgram *prog = (M2TSProgram *)param;
 	GF_SceneEngine *seng = prog->seng;
 	GF_SimpleDataDescriptor *audio_desc;

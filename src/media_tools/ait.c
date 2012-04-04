@@ -393,18 +393,14 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 
 static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait){
 
-	u32 nb_app_desc,k,desc_id;
-
-	u32 nb_of_app,j,i;
+	u32 nb_app_desc, k, desc_id, nb_of_app, j;
 	GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo;
-	char* url_base;
-	char* url_appli_path;
+	char *url_base, *url_appli_path;
 
 	nb_of_app = gf_list_count(ait->application_decoded);
 	url_base = NULL;
 	url_appli_path = NULL;
-	j=0;	
-	i=0;
+	j=0;
 
 	/* Link the AIT and the channel */
 	ChanAppInfo = gf_m2ts_get_channel_application_info(ts->ChannelAppList,ait->service_id);	

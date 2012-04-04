@@ -715,7 +715,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	GF_Err e;
 	char sOpt[100], sKey[100];
 	char szCodecs[200], szCodec[100];
-	u32 cur_seg, fragment_index, nb_fragments, max_sap_type;
+	u32 cur_seg, fragment_index, max_sap_type;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -1070,7 +1070,6 @@ restart_fragmentation_pass:
 
 
 	max_segment_duration = 0;
-	nb_fragments=0;
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 
@@ -1418,7 +1417,6 @@ restart_fragmentation_pass:
 	if (dash_mode) {
 		char buffer[1000];
 		u32 h, m;
-		Double s;
 
 		/*flush last segment*/
 		if (!switch_segment) {
@@ -1452,7 +1450,6 @@ restart_fragmentation_pass:
 		period_duration += file_duration;
 		h = (u32) (period_duration/3600);
 		m = (u32) (period_duration-h*60)/60;
-		s = period_duration - h*3600 - m*60;
 		bandwidth = (u32) (file_size * 8 / file_duration);
 
 		fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"%s/mp4\" codecs=\"%s\"", rep_idx ? rep_idx : 1, audio_only ? "audio" : "video", szCodecs);

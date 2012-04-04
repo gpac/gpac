@@ -5484,7 +5484,6 @@ void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 {
 	GF_Err e;
 	u32 sc_pos, start;
-	char *data;
 	GF_BitStream *bs;
 	GF_ISOSample *samp;
 	u32 count = gf_isom_get_sample_count(import->dest, tsimp->track);
@@ -5494,7 +5493,6 @@ void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 	sc_pos = 1;
 	start = 0;
 	bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_WRITE);
-	data = samp->data;
 	while (1) {
 		if (!samp->data[start+sc_pos] && !samp->data[start+sc_pos+1] && !samp->data[start+sc_pos+2] && (samp->data[start+sc_pos+3]==1)) {
 			gf_bs_seek(bs, start);

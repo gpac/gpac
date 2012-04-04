@@ -1272,7 +1272,7 @@ static void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *od
 void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec)
 {
 #ifndef GPAC_DISABLE_SVG
-	u32 i, count, min_buffer, min_time, transport;
+	u32 i, count, min_buffer, min_time;
 	Bool locked;
 	GF_DOMMediaEvent media_event;
 	GF_DOM_Event evt;
@@ -1291,7 +1291,6 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 
 
 	memset(&media_event, 0, sizeof(GF_DOMMediaEvent));
-	transport = 0;
 	media_event.bufferValid = 0;
 	media_event.session_name = odm->net_service->url;
 
