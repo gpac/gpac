@@ -322,15 +322,25 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		gf_sg_load_script_modules(sg);
 	}
 	js_rt->nb_inst++;
+
+	gf_mx_p(js_rt->mx);
+#if defined(JS_THREADSAFE) && (JS_VERSION>=185)
+	if (gf_mx_get_num_locks(js_rt->mx)==1) {
+		JS_SetRuntimeThread(js_rt->js_runtime);
+	}
+#endif
+
 	ctx = JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);
 	JS_SetOptions(ctx, JS_GetOptions(ctx) | JSOPTION_WERROR);
 
-#ifdef JS_THREADSAFE
-#if (JS_VERSION>=185)
+#if defined(JS_THREADSAFE) && (JS_VERSION>=185)
 	JS_ClearContextThread(ctx);
-	JS_ClearRuntimeThread(js_rt->js_runtime);
+	if (gf_mx_get_num_locks(js_rt->mx)==1) {
+		JS_ClearRuntimeThread(js_rt->js_runtime);
+	}
 #endif
-#endif
+	gf_mx_v(js_rt->mx);
+
 	return ctx;
 }
 
@@ -4426,12 +4436,14 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 	return 0;
 }
 
+
+
+GF_EXPORT
 static void JSScript_LoadVRML(GF_Node *node)
 {
 	char *str;
 	JSBool ret;
 	u32 i;
-	Bool do_lock = gf_sg_javascript_initialized();
 	Bool local_script;
 	jsval rval, fval;
 	M_Script *script = (M_Script *)node;
@@ -4458,15 +4470,14 @@ static void JSScript_LoadVRML(GF_Node *node)
 	}
 	local_script = str ? 1 : 0;
 
-	if (do_lock) gf_sg_lock_javascript(priv->js_ctx, 1);
+	/*lock runtime and set current thread before creating the context*/
 	priv->js_ctx = gf_sg_ecmascript_new(node->sgprivate->scenegraph);
 	if (!priv->js_ctx) {
-		if (do_lock) gf_sg_lock_javascript(priv->js_ctx, 0);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Cannot allocate ECMAScript context for node\n"));
 		return;
 	}
 
-	if (!do_lock) gf_sg_lock_javascript(priv->js_ctx, 1);
+	gf_sg_lock_javascript(priv->js_ctx, 1);
 
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
@@ -4782,13 +4793,6 @@ Bool gf_sg_has_scripting()
 #endif
 }
 
-Bool gf_sg_javascript_initialized()
-{
-#ifdef GPAC_HAS_SPIDERMONKEY
-	if (js_rt) return 1;
-#endif
-	return 0;
-}
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 

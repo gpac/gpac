@@ -665,7 +665,7 @@ fi
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
 
-    cat > $TMPCPP << EOF
+cat > $TMPCPP << EOF
 #include <jsapi.h>
 int main( void ) { JSContext *cx; jsval *rp; return JS_AddValueRoot(cx, rp); }
 EOF
@@ -826,12 +826,15 @@ if test "$has_js" != "no" ; then
                   echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
               fi
             else
-              #check presence of ***RuntimeThread
-              if grep RuntimeThread $js_inc/jsapi.h > /dev/null 2>&1 ; then
+cat > $TMPCPP << EOF
+#include <jsapi.h>
+int main( void ) { JSContext *cx; JS_SetRuntimeThread(cx); }
+EOF
+               if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lmozjs 2> /dev/null  ; then
                 js_flags="$js_flags"
-              else
-                  js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
-              fi
+               else
+                js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
+               fi
             fi
         fi
     fi

@@ -762,6 +762,7 @@ static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+
 	if (! JSVAL_IS_NULL(gjs->evt_fun) ) return JS_TRUE;
 
 	gjs->evt_fun = argv[0];
@@ -959,6 +960,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		
 		JS_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
 		JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
+
+		gjs->evt_fun = JSVAL_NULL;
 		}
 }
 
