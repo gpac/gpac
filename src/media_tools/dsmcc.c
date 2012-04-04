@@ -966,7 +966,7 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 		switch(*descr_tag){
 				case CONTENT_TYPE_DESCRIPTOR:
 					{
-						GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr = (GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR*)gf_list_get(BIOP_File->descriptor,0);						
+						//GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr = (GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR*)gf_list_get(BIOP_File->descriptor,0);						
 					}
 				default:
 					{
@@ -1104,8 +1104,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 			switch(*descr_tag){
 					case CONTENT_TYPE_DESCRIPTOR:
 						{
-							GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr = (GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR*)gf_list_get(BIOP_Directory->Name[i].descriptor ,j);						
-							break;
+							//GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr = (GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR*)gf_list_get(BIOP_Directory->Name[i].descriptor ,j);						
 						}
 					default:
 						{
