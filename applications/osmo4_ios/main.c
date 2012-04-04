@@ -1094,6 +1094,15 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 	}
+	if (!logfile) {
+		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
+		if (opt) {
+			logfile = gf_f64_open(opt, "wt");
+			if (logfile) 
+				gf_log_set_callback(logfile, on_gpac_log);
+		}
+	}
+		
 	if (dump_mode && !url_arg) {
 		fprintf(stdout, "Missing argument for dump\n");
 		PrintUsage();
