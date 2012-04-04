@@ -100,7 +100,7 @@ OrderedGroup {
 									Shape {
 										appearance Appearance { 
 #										 material Material { emissiveColor 0 1 0}
-                     texture ImageTexture { url './../auxiliary_files/logo.jpg"}
+                     texture ImageTexture { url "./../auxiliary_files/logo.jpg"}
                     }
 										geometry Box { size 20 20 20}
 									}
