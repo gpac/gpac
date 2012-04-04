@@ -4437,8 +4437,6 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 }
 
 
-
-GF_EXPORT
 static void JSScript_LoadVRML(GF_Node *node)
 {
 	char *str;
