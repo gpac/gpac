@@ -348,8 +348,6 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
-	if (!tr_state->camera) return;
-
 
 	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
 	if (gf_node_get_tag(node) == TAG_MPEG4_LOD) {
@@ -367,27 +365,32 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 	if (!children) return;
 	nb_children = gf_node_list_get_count(children);
 	
-	/*can't cache the matric here*/
-	usr = tr_state->camera->position;
-	pos = center;
-	gf_mx_copy(mx, tr_state->model_matrix);
-	gf_mx_inverse(&mx);
-	gf_mx_apply_vec(&mx, &usr);
-	gf_vec_diff(pos, pos, usr);
-	dist = gf_vec_len(pos);
-	for (which_child=0; which_child<ranges->count; which_child++) {
-		if (dist<ranges->vals[which_child]) break;
-	}
-	if (which_child>=nb_children) which_child = nb_children-1;
+	if (!tr_state->camera) {
+		do_all = 1;
+		which_child = 0;
+	} else {
+		/*can't cache the matrix here*/
+		usr = tr_state->camera->position;
+		pos = center;
+		gf_mx_copy(mx, tr_state->model_matrix);
+		gf_mx_inverse(&mx);
+		gf_mx_apply_vec(&mx, &usr);
+		gf_vec_diff(pos, pos, usr);
+		dist = gf_vec_len(pos);
+		for (which_child=0; which_child<ranges->count; which_child++) {
+			if (dist<ranges->vals[which_child]) break;
+		}
+		if (which_child>=nb_children) which_child = nb_children-1;
 
-	/*check if we're traversing the same child or not for audio rendering*/
-	do_all = 0;
-	if (gf_node_dirty_get(node)) {
-		gf_node_dirty_clear(node, 0);
-		do_all = 1;
-	} else if ((s32) which_child != *prev_child) {
-		*prev_child = which_child;
-		do_all = 1;
+		/*check if we're traversing the same child or not for audio rendering*/
+		do_all = 0;
+		if (gf_node_dirty_get(node)) {
+			gf_node_dirty_clear(node, 0);
+			do_all = 1;
+		} else if ((s32) which_child != *prev_child) {
+			*prev_child = which_child;
+			do_all = 1;
+		}
 	}
 	
 	if (do_all) {
