@@ -1429,7 +1429,7 @@ IN6_IS_ADDR_MULTICAST( (struct in6_addr *) 0);
 }
 EOF
 
-if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC $LDFLAGS $extralibs > /dev/null 2>&1  ; then
     has_ipv6="yes"
 fi
 
