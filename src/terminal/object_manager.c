@@ -1883,6 +1883,7 @@ GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName)
 {
 	GF_Segment *desc;
 	u32 i = 0;
+	if (!odm->OD) return NULL;
 	while ( (desc = (GF_Segment *)gf_list_enum(odm->OD->OCIDescriptors, &i)) ){
 		if (desc->tag != GF_ODF_SEGMENT_TAG) continue;
 		if (!stricmp(desc->SegmentName, descName)) return desc;
