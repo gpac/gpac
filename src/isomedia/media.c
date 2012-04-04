@@ -425,6 +425,10 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	Media_GetSampleDesc(mdia, StreamDescIndex, &se, &drefIndex);
 	if (!drefIndex) return 0;
 	a = (GF_FullBox*)gf_list_get(mdia->information->dataInformation->dref->boxList, drefIndex - 1);
+	if (!a) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] broken file: Data reference index set to %d but no data reference entry found\n", drefIndex));
+		return 0;
+	}
 	if (a->flags & 1) return 1;
 	/*QT specific*/
 	if (a->type == GF_4CC('a', 'l', 'i', 's')) return 1;
