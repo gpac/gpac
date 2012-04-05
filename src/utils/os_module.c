@@ -334,6 +334,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
 		inst->name = gf_strdup("gm_gpac_js.dylib");
+		gf_list_add(pm->plug_list, inst);
 	}
 	{
 		ModuleInstance *inst;
@@ -403,7 +404,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dylib");
 #endif
 #else
-        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dir));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dir));
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".so");
 #endif
 
