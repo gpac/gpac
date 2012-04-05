@@ -3274,7 +3274,7 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, js
 	GF_DOMFullNode *n;
 	GF_DOM_Event evt;
 	char *str;
-	jsval readonly;
+	jsval readonly=0;
 	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
