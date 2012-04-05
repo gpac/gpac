@@ -278,7 +278,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		}
 	case DOWNLOAD_DATA_BLOCK:
 		{				
-			u32 data_shift, modules_count, i;
+			u32 modules_count, i;
 			GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock;
 			GF_SAFEALLOC(DownloadDataBlock,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK);
 			DataMessage->dataMessagePayload = DownloadDataBlock;
@@ -312,7 +312,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 						return GF_CORRUPTED_DATA;
 					}
 					DownloadDataBlock->blockDataByte = (char*)gf_calloc(DownloadDataBlock->dataBlocksize,sizeof(char));
-					data_shift = (u32)(gf_bs_get_position(bs));
+					*data_shift = (u32)(gf_bs_get_position(bs));
 					gf_bs_read_data(bs,DownloadDataBlock->blockDataByte,DownloadDataBlock->dataBlocksize);
 					memcpy(dsmcc_module->buffer+dsmcc_module->byte_sift,DownloadDataBlock->blockDataByte,DownloadDataBlock->dataBlocksize*sizeof(char));
 					dsmcc_module->byte_sift += DownloadDataBlock->dataBlocksize;									

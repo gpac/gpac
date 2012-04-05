@@ -1416,7 +1416,6 @@ restart_fragmentation_pass:
 
 	if (dash_mode) {
 		char buffer[1000];
-		u32 h;
 
 		/*flush last segment*/
 		if (!switch_segment) {
@@ -1448,8 +1447,8 @@ restart_fragmentation_pass:
 		}
 
 		period_duration += file_duration;
-		h = (u32) (period_duration/3600);
-		//m = (u32) (period_duration-h*60)/60;
+		//u32 h = (u32) (period_duration/3600);
+		//u32 m = (u32) (period_duration-h*60)/60;
 		bandwidth = (u32) (file_size * 8 / file_duration);
 
 		fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"%s/mp4\" codecs=\"%s\"", rep_idx ? rep_idx : 1, audio_only ? "audio" : "video", szCodecs);
