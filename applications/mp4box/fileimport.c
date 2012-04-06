@@ -558,7 +558,7 @@ typedef struct
 	u32 stop_state;
 } TKInfo;
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, const char *tmpdir)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, const char *tmpdir)
 {
 	u32 i, count, nb_tk, needs_rap_sync, cur_file, conv_type, nb_tk_done, nb_samp, nb_done, di;
 	Double max_dur, cur_file_time;
@@ -764,6 +764,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 		if (chunk_extraction) {
 			sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+split_dur), ext);
+			if (outName) strcpy(szFile, outName);
 		} else {
 			sprintf(szFile, "%s_%03d%s", szName, cur_file+1, ext);
 		}
@@ -1038,7 +1039,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		}
 
 		if (chunk_extraction) {
-			fprintf(stdout, "Extracting chunk %s - duration %02.2f seconds\n", szFile, file_split_dur);
+			fprintf(stdout, "Extracting chunk %s - duration %02.2fs (%02.2fs->%02.2fs)\n", szFile, file_split_dur, chunk_start, (chunk_start+split_dur));
 		} else {
 			fprintf(stdout, "Storing split-file %s - duration %02.2f seconds\n", szFile, file_split_dur);
 		}
