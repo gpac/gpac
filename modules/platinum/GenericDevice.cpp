@@ -39,7 +39,7 @@ GPAC_ServiceItem::GPAC_ServiceItem(GPAC_DeviceItem *device, PLT_Service *service
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	obj = NULL;
-	on_event = 0;
+	on_event = JSVAL_NULL;
 	m_StateListeners = gf_list_new();
 	m_ArgListeners = gf_list_new();
 	subscribed = 0;
@@ -64,9 +64,9 @@ void GPAC_ServiceItem::DetachJS()
 		JS_SetPrivate(js_ctx, obj, NULL);
 		obj = NULL;
 	}
-	if (on_event) {
+	if (JSVAL_IS_NULL(on_event)) {
 		gf_js_remove_root(js_ctx, &on_event, GF_JSGC_VAL);
-		on_event = NULL;
+		on_event = JSVAL_NULL;
 	}
 	while (gf_list_count(m_StateListeners)) {
 		GPAC_StateVariableListener *svl = (GPAC_StateVariableListener *)gf_list_get(m_StateListeners, 0);
@@ -129,8 +129,9 @@ static JSBool SMJS_FUNCTION(upnp_service_set_listener)
 	if (!service || !argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
 	if (argc<1) {
-		if (service->on_event) gf_js_remove_root(c, &service->on_event, GF_JSGC_VAL);
-		service->on_event = NULL;
+		if (JSVAL_IS_NULL(service->on_event))
+			gf_js_remove_root(c, &service->on_event, GF_JSGC_VAL);
+		service->on_event = JSVAL_NULL;
 		if (!JSVAL_IS_NULL(argv[0])) {
 			service->on_event = argv[0];
 			gf_js_add_root(c, &service->on_event, GF_JSGC_VAL);
@@ -156,7 +157,8 @@ static JSBool SMJS_FUNCTION(upnp_service_set_listener)
 		svl->var = service->m_service->FindStateVariable(name);
 		gf_list_add(service->m_StateListeners, svl);
 	}
-	if (svl->on_event) gf_js_remove_root(c, &svl->on_event, GF_JSGC_VAL);
+	if (JSVAL_IS_NULL(svl->on_event))
+		gf_js_remove_root(c, &svl->on_event, GF_JSGC_VAL);
 	if (JSVAL_IS_NULL(argv[0])) {
 		gf_list_del_item(service->m_StateListeners, svl);
 		delete svl;
@@ -220,7 +222,8 @@ static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 		gf_list_add(service->m_ArgListeners, argl);
 	}
 	argl->action = action;
-	if (argl->on_event) gf_js_remove_root(c, &argl->on_event, GF_JSGC_VAL);
+	if (JSVAL_IS_NULL(argl->on_event))
+		gf_js_remove_root(c, &argl->on_event, GF_JSGC_VAL);
 	if (JSVAL_IS_NULL(argv[1])) {
 		gf_list_del_item(service->m_ArgListeners, argl);
 		delete argl;
@@ -683,7 +686,7 @@ NPT_Result GPAC_GenericController::OnEventNotify(PLT_Service* service, NPT_List<
 	}
 	if (!serv) return NPT_SUCCESS;
 
-	if (serv->on_event) {
+	if (JSVAL_IS_NULL(serv->on_event)) {
 		jsval rval;
 		m_pUPnP->LockJavascript(1);
 		serv->vars = vars;
@@ -794,12 +797,15 @@ GPAC_GenericDevice::~GPAC_GenericDevice()
 void GPAC_GenericDevice::DetachJS(JSContext *c)
 {
 	u32 i, count;
-	if (obj) gf_js_remove_root(c, &obj, GF_JSGC_OBJECT);
+	if (obj)
+		gf_js_remove_root(c, &obj, GF_JSGC_OBJECT);
 	obj = NULL;
-	if (run_proc) gf_js_remove_root(c, &run_proc, GF_JSGC_VAL);
-	run_proc = NULL;
-	if (act_proc) gf_js_remove_root(c, &act_proc, GF_JSGC_VAL);
-	act_proc = NULL;
+	if (JSVAL_IS_NULL(run_proc))
+		gf_js_remove_root(c, &run_proc, GF_JSGC_VAL);
+	run_proc = JSVAL_NULL;
+	if (JSVAL_IS_NULL(act_proc))
+		gf_js_remove_root(c, &act_proc, GF_JSGC_VAL);
+	act_proc = JSVAL_NULL;
 
 	count = gf_list_count(m_pServices);
 	for (i=0; i<count; i++) {
@@ -924,7 +930,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Action %s called (thread %d)\n", (char *) name, gf_th_id() ));
 	
 #ifdef GPAC_HAS_SPIDERMONKEY
-	if (!act_proc) {
+	if (!JSVAL_IS_NULL(act_proc)) {
 		gf_mx_v(m_pMutex);
 		return NPT_SUCCESS;
 	}

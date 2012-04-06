@@ -73,7 +73,7 @@ class GPAC_StateVariableListener
 {
 public:
 	GPAC_StateVariableListener() {
-		on_event = NULL;
+		on_event = JSVAL_NULL;
 		name = "";
 		var = NULL;
 	}
@@ -87,7 +87,7 @@ class GPAC_ActionArgListener
 {
 public:
 	GPAC_ActionArgListener() {
-		on_event = NULL;
+		on_event = JSVAL_NULL;
 		arg = NULL;
 		action = NULL;
 	}
@@ -100,7 +100,7 @@ public:
 class GPAC_ActionUDTA 
 {
 public:
-	GPAC_ActionUDTA() { m_Reserved = NULL; udta = 0;}
+	GPAC_ActionUDTA() { m_Reserved = NULL; udta = JSVAL_NULL;}
 	/*members*/
 
 	/*this is used to differentiate browse request from JS (using BrowseDataReference)
