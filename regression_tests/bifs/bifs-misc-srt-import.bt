@@ -62,6 +62,7 @@ AT 0 {
      ES_Descriptor {
       ES_ID 4
       OCR_ES_ID 1
+      dependsOn_ES_ID 1
       muxInfo MuxInfo {
        fileName "../auxiliary_files/subtitle.srt"
        textNode "TXT"
