@@ -333,8 +333,6 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 	ctx = JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);
 	JS_SetOptions(ctx, JS_GetOptions(ctx) | JSOPTION_WERROR);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript context allocated %p\n", ctx));
-
 #if defined(JS_THREADSAFE) && (JS_VERSION>=185)
 	JS_ClearContextThread(ctx);
 	if (gf_mx_get_num_locks(js_rt->mx)==1) {
@@ -506,7 +504,7 @@ static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 
 static void script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)\n", msg, jserr->lineno, jserr->linebuf));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
 }
 
 static JSBool SMJS_FUNCTION(JSPrint)
@@ -1287,7 +1285,7 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr, Boo
 		SpiderMonkey GC may call an object finalizer on ANY context, not the one in which the object
 		was created !! We therefore keep a pointer to the parent context to remove GC'ed objects from the context cache
 		*/
-		if ( (ptr->obj && is_js_call) || (ptr->js_list && is_js_call)) {
+		if (ptr->obj && is_js_call) {
 			GF_ScriptPriv *priv;
 			if (ptr->js_ctx) c = ptr->js_ctx;
 			priv = JS_GetScriptStack(c);
@@ -1458,7 +1456,7 @@ static void node_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 			&& ptr->node->sgprivate->num_instances
 			) {
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Unregistering node %s (%s)\n", ptr->js_ctx, gf_node_get_name(ptr->node), gf_node_get_class_name(ptr->node)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s (%s)\n", gf_node_get_name(ptr->node), gf_node_get_class_name(ptr->node)));
 			//gf_node_unregister(ptr->node, (ptr->node==parent) ? NULL : parent);
 			gf_node_unregister(ptr->node, NULL);
 		}
@@ -2524,12 +2522,7 @@ static void setup_js_array(JSContext *c, JSObject *obj, GF_JSField *ptr, uintN a
 {
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	ptr->obj = obj;
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Registering MFField %s %d\n", c, ptr->field.name, ptr->field.fieldType));
-
 	ptr->js_list = JS_NewArrayObject(c, (jsint) argc, argv);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Created MFField %p\n", c, ptr->js_list));
 
 	gf_js_add_root(c, &ptr->js_list, GF_JSGC_OBJECT);
 	ptr->is_rooted = 1;
@@ -2585,16 +2578,11 @@ static void array_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 
 	if (!ptr) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Unregistering MFField %s %d %p\n", c, ptr->field.name, ptr->field.fieldType, ptr->js_list));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering MFField %s\n", ptr->field.name));
 
-	{
-		GF_ScriptPriv* priv = JS_GetScriptStack(c);
-
-		// If the object is in our cache, remove the root
-		if (ptr->js_list && ptr->is_rooted && gf_list_find(priv->js_cache, obj) != -1) {
-			gf_js_remove_root(c, &ptr->js_list, GF_JSGC_OBJECT);
-		}
-	}	
+	if (ptr->js_list && ptr->is_rooted) {
+		gf_js_remove_root(c, &ptr->js_list, GF_JSGC_OBJECT);
+	}
 
 	/*MFNode*/
 	if (ptr->temp_list) {
@@ -2931,11 +2919,9 @@ static JSBool SMJS_FUNCTION(MFVec2fConstructor)
 	JSObject *item;
 	u32 i;
 	SMJS_ARGS
-	GF_JSField *ptr;
+	GF_JSField *ptr = NewJSField(c);
 	SMJS_OBJ_CONSTRUCTOR
 
-	ptr = NewJSField(c);
-	ptr->field.fieldType = GF_SG_VRML_MFVEC2F;
 	setup_js_array(c, obj, ptr, 0, 0);
 	JS_SetArrayLength(c, ptr->js_list, argc);
 	JS_SetPrivate(c, obj, ptr);
@@ -3570,7 +3556,6 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		gf_sg_vrml_mf_alloc(field->far_ptr, field->fieldType, len);
 		changed = 1;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Assigning MF field, %s %d\n", c, field->name, field->fieldType) );
 	/*assign each slot*/
 	for (i=0; i<len; i++) {
 		JS_GetElement(c, p->js_list, (jsint) i, &item);
@@ -4192,7 +4177,7 @@ static void JS_PreDestroy(GF_Node *node)
 	GF_ScriptPriv *priv = node->sgprivate->UserPrivate;
 	if (!priv) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[Script][%p] Destroying script node %s\n", priv->js_ctx, gf_node_get_log_name(node) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[Script] Destroying script node %s", gf_node_get_log_name(node) ));
 
 	/*"shutdown" is no longer supported, as it is typically called when one of a parent node is destroyed through 
 	a GC call. Calling JS_LookupProperty or JS_CallFunctionValue when GC is running will crash SpiderMonkey*/
@@ -4314,8 +4299,6 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 		gf_sg_lock_javascript(priv->js_ctx, 0);
 		return;
 	}
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] EventIN %s \n", priv->js_ctx, sf->name));
 
 	argv[0] = gf_sg_script_to_smjs_field(priv, in_field, node, 1);
 
@@ -4496,7 +4479,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Built-in classes initialized\n", priv->js_ctx));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
 #ifndef GPAC_DISABLE_SVG
 	/*initialize DOM*/
 	dom_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
@@ -4511,7 +4494,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	/*setup fields interfaces*/
 	JS_InitScriptFields(priv, node);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] script fields initialized\n", priv->js_ctx));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] script fields initialized\n"));
 
 	priv->JS_PreDestroy = JS_PreDestroy;
 	priv->JS_EventIn = JS_EventIn;
@@ -4522,7 +4505,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 		return;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS][%p] Evaluating script %s\n", priv->js_ctx, str));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Evaluating script %s\n", str));
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
 	if (ret==JS_TRUE) {
@@ -4707,11 +4690,10 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	hdl = (SVG_handlerElement *) node;
 	if (!hdl->js_fun_val && !hdl->evt_listen_obj) return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from VRML handler\n"));
+
 	priv = JS_GetScriptStack(hdl->js_context);
 	prev_event = JS_GetPrivate(priv->js_ctx, priv->event);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events][%p] Executing script code from VRML handler\n", priv->js_ctx));
-
 	/*break loops*/
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target))
 		return;
@@ -4721,7 +4703,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	evt = gf_dom_new_event(priv->js_ctx);
 	if (!evt) {
 		gf_sg_lock_javascript(priv->js_ctx, 0);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM Events][%p] Cannot create JavaScript dom event for event type %d\n", priv->js_ctx, event->type));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM Events] Cannot create JavaScript dom event for event type %d\n", event->type));
 		return;
 	}
 
@@ -4827,7 +4809,6 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 
 	if (LockIt) {
 		gf_mx_p(js_rt->mx);
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Locking context %p\n", cx));
 #ifdef JS_THREADSAFE
 		assert(cx);
 		if (gf_mx_get_num_locks(js_rt->mx)==1) {
@@ -4849,7 +4830,6 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 #endif
 		}
 #endif
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Unocking context %p\n", cx));
 		gf_mx_v(js_rt->mx);
 	}
 }
