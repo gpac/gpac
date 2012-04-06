@@ -1585,7 +1585,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 				count = gf_list_count(upnp->m_Devices);
 				for (i=0; i<count; i++) {
 					GPAC_GenericDevice *device = (GPAC_GenericDevice *)gf_list_get(upnp->m_Devices, i);
-					if (device->run_proc) {
+					if (JSVAL_IS_NULL(device->run_proc)) {
 						if (!arg_set) {
 							argv[0] = DOUBLE_TO_JSVAL( JS_NewDouble(upnp->m_pJSCtx, (Double)now / 1000.0) );
 							arg_set = 1;
