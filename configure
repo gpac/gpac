@@ -2261,7 +2261,7 @@ if test "$linux" = "yes" ; then
     echo "DVB Support: $has_dvb4linux"
 fi
 
-echo "XMLPRC Support: $has_xmlrpc"
+echo "XMLRPC Support: $has_xmlrpc"
 
 if test "$wx_too_old" = "yes" ; then
     has_wx="no"
