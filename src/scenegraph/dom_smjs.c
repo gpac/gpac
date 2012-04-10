@@ -3545,6 +3545,10 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{0, 0, 0, 0, 0}
 		};
 		dom_rt->dom_node_proto = JS_InitClass(c, global, 0, &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
+		if (!dom_rt->dom_node_proto) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOMCore] Not enough memory to initialize JS node class\n"));
+			return;
+		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] node class initialized\n"));
 
 		JS_DefineProperty(c, dom_rt->dom_node_proto, "ELEMENT_NODE", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);

@@ -302,7 +302,7 @@ void JS_ClearRuntimeThread(JSRuntime *jsr)
 #ifdef __SYMBIAN32__
 const long MAX_HEAP_BYTES = 256 * 1024L;
 #else
-const long MAX_HEAP_BYTES = 4*1024 * 1024L;
+const long MAX_HEAP_BYTES = 32*1024*1024L;
 #endif
 const long STACK_CHUNK_BYTES = 8*1024L;
 
