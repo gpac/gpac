@@ -540,9 +540,9 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	{
 
 		if (!dd->fullscreen && (dd->os_hwnd==dd->fs_hwnd)) {
-			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->width+dd->off_w, dd->height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 		}
-		e = InitDirectDraw(dr, dd->width, dd->height);
+		e = InitDirectDraw(dr, dd->store_width, dd->store_height);
 	}
 
 	if (bOn) {

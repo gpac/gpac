@@ -655,7 +655,8 @@ GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bo
 		compositor->scene_height = Height;
 		compositor->scene_width = Width;
 	}
-	if (force_size) compositor->has_size_info = 1;
+	if (force_size)
+		compositor->has_size_info = 1;
 	return GF_OK;
 }
 
@@ -990,7 +991,6 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight) ) {
 		compositor->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
 	}
-
 	if (lock_ok) gf_sc_lock(compositor, 0);
 
 	return GF_OK;

@@ -547,7 +547,6 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	}
 #endif /* versions prior to 1.2.10 do not have the size of screen */
 
-	SDLVid_ResizeWindow(dr, 100, 100);
 	if (!ctx->os_handle) SDLVid_SetCaption();
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height)); 
 	return 1;
@@ -1030,7 +1029,15 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		which we don't want to do since the setup MUST occur in the rendering thread for some configs (openGL)*/
 		return GF_NOT_SUPPORTED;
 	case GF_EVENT_SIZE:
-		SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
+	{
+		SDLVID();
+		if (ctx->fullscreen) {
+			ctx->store_width = evt->size.width;
+			ctx->store_height = evt->size.height;
+		} else {
+			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
+		}
+	}
 		break;
 	case GF_EVENT_MOVE:
 		break;
