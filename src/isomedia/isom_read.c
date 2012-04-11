@@ -107,6 +107,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	case GF_ISOM_BOX_TYPE_MDAT:
 	case GF_ISOM_BOX_TYPE_FTYP:
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
 #endif
 	case GF_ISOM_BOX_TYPE_FREE:
