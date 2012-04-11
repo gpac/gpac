@@ -7859,6 +7859,80 @@ GF_Err sidx_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *pcrb_New()
+{
+	GF_PcrInfoBox *tmp;
+	
+	GF_SAFEALLOC(tmp, GF_PcrInfoBox);
+	if (tmp == NULL) return NULL;
+	tmp->type = GF_ISOM_BOX_TYPE_PCRB;
+	return (GF_Box *)tmp;
+}
+
+void pcrb_del(GF_Box *s)
+{
+	GF_PcrInfoBox *ptr = (GF_PcrInfoBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->pcr_values) gf_free(ptr->pcr_values);
+	gf_free(ptr);
+}
+
+GF_Err pcrb_Read(GF_Box *s,GF_BitStream *bs)
+{
+	u32 i;
+	GF_PcrInfoBox *ptr = (GF_PcrInfoBox*) s;
+
+	ptr->subsegment_count = gf_bs_read_u32(bs);
+	ptr->size -= 4;
+
+	ptr->pcr_values = gf_malloc(sizeof(u64)*ptr->subsegment_count);
+	for (i=0; i<ptr->subsegment_count; i++) {
+		u64 data1 = gf_bs_read_u32(bs);
+		u64 data2 = gf_bs_read_u32(bs);
+		ptr->size -= 8;
+		ptr->pcr_values[i] = (data1 << 10) | (data2 >> 22);
+
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err pcrb_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_PcrInfoBox *ptr = (GF_PcrInfoBox*) s;
+	
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->subsegment_count);
+
+	for (i=0; i<ptr->subsegment_count; i++ ) {
+		u32 data1 = (u32) (ptr->pcr_values[i] >> 10);
+		u32 data2 = (u32) ((ptr->pcr_values[i]& 0x3FF) << 22);
+
+		gf_bs_write_u32(bs, data1);
+		gf_bs_write_u32(bs, data2);
+	}
+	return GF_OK;
+}
+
+GF_Err pcrb_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_PcrInfoBox *ptr = (GF_PcrInfoBox*) s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+
+	ptr->size += 4;
+	ptr->size += ptr->subsegment_count * 8;
+	
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 GF_Box *subs_New()
