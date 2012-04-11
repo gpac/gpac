@@ -1844,6 +1844,10 @@ typedef struct
 	u64 last_SAP_PTS;
 	u32 last_SAP_offset;
 
+	/*Interpolated PCR value for the pcrb*/
+	u64 interpolated_pcr_value;
+	u64 last_pcr_value;
+
 	/* information about the first PAT found in the subsegment */
 	u32 last_pat_position;
 	u32 first_pat_position;
@@ -1873,6 +1877,9 @@ typedef struct
 
 	//GF_List *sidxs;
 	GF_SegmentIndexBox *sidx;
+	
+	//GF_List *pcrbs;
+	GF_PcrInfoBox *pcrb;
 } GF_M2TS_IndexingInfo;
 
 typedef struct
@@ -1929,6 +1936,14 @@ static void m2ts_sidx_add_entry(GF_SegmentIndexBox *sidx, Bool ref_type,
 	ref->SAP_delta_time = (sap_type ? RAP_delta_time: 0);
 }
 
+static void m2ts_pcrb_add_entry(GF_PcrInfoBox *pcrb, u64 interpolatedPCR)
+{
+	pcrb->subsegment_count++;
+	pcrb->pcr_values = gf_realloc(pcrb->pcr_values, pcrb->subsegment_count*sizeof(u64));
+	
+	pcrb->pcr_values[pcrb->subsegment_count-1] = interpolatedPCR;
+}
+
 static void m2ts_sidx_update_prev_entry_duration(GF_SegmentIndexBox *sidx, u32 duration)
 {
 	GF_SIDXReference *ref;
@@ -1960,6 +1975,10 @@ static void m2ts_sidx_flush_entry(GF_M2TS_IndexingInfo *index_info)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Segment: Reference PID: %d, EPTime: "LLU", Start Offset: %d bytes\n", index_info->reference_pid, index_info->base_PTS, index_info->base_offset));
 		index_info->sidx = m2ts_sidx_new(index_info->reference_pid, index_info->base_PTS, index_info->base_offset);
 	}
+	
+	if (!index_info->pcrb) {
+		index_info->pcrb = (GF_PcrInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PCRB);
+	}
 
 	/* determine the end of the current index */
 	if (index_info->segment_at_rap) {
@@ -1976,6 +1995,7 @@ static void m2ts_sidx_flush_entry(GF_M2TS_IndexingInfo *index_info)
 	SAP_delta_time= (u32)(index_info->first_SAP_PTS - index_info->base_PTS);
 	SAP_offset = (u32)(index_info->first_SAP_offset - index_info->base_offset);
 	m2ts_sidx_add_entry(index_info->sidx, 0, size, duration, index_info->first_pes_sap, index_info->SAP_type, SAP_delta_time);
+	m2ts_pcrb_add_entry(index_info->pcrb, index_info->interpolated_pcr_value);
 
 	/* adjust the previous index duration */
 	if (index_info->sidx->nb_refs > 0 && (index_info->base_PTS < index_info->prev_last_PTS) ) {
@@ -2260,19 +2280,23 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (gf_list_count(ts->programs)>1 && pck->stream->program->number != dumper->prog_number)
 			break;
 		if (dumper->has_seen_pat) {
-			if (dumper->timestamps_info_file) {
-				GF_M2TS_PES *pes = pck->stream;
-				/*FIXME : not used GF_M2TS_Program *prog = pes->program; */
-				/* Interpolated PCR value for the TS packet containing the PES header start */
-				u64 interpolated_pcr_value = 0;
-				if (pes->last_pcr_value && pes->before_last_pcr_value && pes->last_pcr_value > pes->before_last_pcr_value) {
-					u32 delta_pcr_pck_num = pes->last_pcr_value_pck_number - pes->before_last_pcr_value_pck_number;
-					u32 delta_pts_pcr_pck_num = pes->pes_start_packet_number - pes->last_pcr_value_pck_number;
-					u64 delta_pcr_value = pes->last_pcr_value - pes->before_last_pcr_value; 
-					/* we can compute the interpolated pcr value for the packet containing the PES header */
-					interpolated_pcr_value = pes->last_pcr_value + (u64)((delta_pcr_value*delta_pts_pcr_pck_num*1.0)/delta_pcr_pck_num);
-				}
 
+			/*We need the interpolated PCR for the pcrb, hence moved this calculus out, and saving the calculated value in index_info to put it in the pcrb*/
+			GF_M2TS_PES *pes = pck->stream;
+			/*FIXME : not used GF_M2TS_Program *prog = pes->program; */
+			/* Interpolated PCR value for the TS packet containing the PES header start */
+			u64 interpolated_pcr_value = 0;
+			if (pes->last_pcr_value && pes->before_last_pcr_value && pes->last_pcr_value > pes->before_last_pcr_value) {
+				u32 delta_pcr_pck_num = pes->last_pcr_value_pck_number - pes->before_last_pcr_value_pck_number;
+				u32 delta_pts_pcr_pck_num = pes->pes_start_packet_number - pes->last_pcr_value_pck_number;
+				u64 delta_pcr_value = pes->last_pcr_value - pes->before_last_pcr_value; 
+				/* we can compute the interpolated pcr value for the packet containing the PES header */
+				interpolated_pcr_value = pes->last_pcr_value + (u64)((delta_pcr_value*delta_pts_pcr_pck_num*1.0)/delta_pcr_pck_num);
+				index_info->interpolated_pcr_value = interpolated_pcr_value;
+				index_info->last_pcr_value = pes->last_pcr_value;
+			}
+			
+			if (dumper->timestamps_info_file) {
 				fprintf(dumper->timestamps_info_file, "%u\t%d\t", pck->stream->pes_start_packet_number, pck->stream->pid);
 				if (interpolated_pcr_value) fprintf(dumper->timestamps_info_file, "%f", interpolated_pcr_value/(300.0 * 90000));
 				fprintf(dumper->timestamps_info_file, "\t");
@@ -2629,7 +2653,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 			dumper.index_info.index_bs = gf_bs_from_file(dumper.index_info.index_file, GF_BITSTREAM_WRITE);
 			{
 				GF_SegmentTypeBox *styp = (GF_SegmentTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_STYP);
-				styp->majorBrand = GF_4CC('s','i','s','x');
+				styp->majorBrand = GF_4CC('r','i','s','x');
 				styp->minorVersion = 0;
 				styp->altBrand = (u32*)gf_malloc(sizeof(u32));
 				styp->altBrand[0] = styp->majorBrand;
@@ -2747,6 +2771,14 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 		gf_isom_box_size((GF_Box *)dumper.index_info.sidx);
 		if (dumper.index_info.index_bs) gf_isom_box_write((GF_Box *)dumper.index_info.sidx, dumper.index_info.index_bs);
 		gf_isom_box_del((GF_Box *)dumper.index_info.sidx);
+		}
+	
+		// ToDo: Should be configurable by some switch
+		if (dumper.index_info.pcrb) {
+		gf_isom_box_size((GF_Box *)dumper.index_info.pcrb);
+		if (dumper.index_info.index_bs) gf_isom_box_write((GF_Box *)dumper.index_info.pcrb, dumper.index_info.index_bs);
+		gf_isom_box_del((GF_Box *)dumper.index_info.pcrb);
+
 	}
 	if (dumper.index_info.mpd_file) fclose(dumper.index_info.mpd_file);
 	if (dumper.index_info.index_file) fclose(dumper.index_info.index_file);

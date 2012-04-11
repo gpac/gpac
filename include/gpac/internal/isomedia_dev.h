@@ -189,6 +189,7 @@ enum
 	GF_ISOM_BOX_TYPE_STYP	= GF_4CC( 's', 't', 'y', 'p' ),
 	GF_ISOM_BOX_TYPE_TFDT	= GF_4CC( 't', 'f', 'd', 't' ),
 	GF_ISOM_BOX_TYPE_SIDX	= GF_4CC( 's', 'i', 'd', 'x' ),
+	GF_ISOM_BOX_TYPE_PCRB	= GF_4CC( 'p', 'c', 'r', 'b' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -1888,6 +1889,13 @@ typedef struct __sidx_box
 	GF_SIDXReference *refs;
 } GF_SegmentIndexBox;
 
+typedef struct __pcrInfo_box
+{
+	GF_ISOM_BOX
+	u32	subsegment_count;
+	u64 *pcr_values;
+} GF_PcrInfoBox;
+
 
 
 /***********************************************************
@@ -3414,6 +3422,13 @@ GF_Err sidx_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err sidx_Size(GF_Box *s);
 GF_Err sidx_dump(GF_Box *a, FILE * trace);
+
+GF_Box *pcrb_New();
+void pcrb_del(GF_Box *s);
+GF_Err pcrb_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err pcrb_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err pcrb_Size(GF_Box *s);
+GF_Err pcrb_dump(GF_Box *a, FILE * trace);
 
 GF_Box *subs_New();
 void subs_del(GF_Box *);

@@ -431,6 +431,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return lsrc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SIDX:
 		return sidx_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PCRB:
+		return pcrb_dump(a, trace);
 
 	default: return defa_dump(a, trace);
 	}
@@ -455,7 +457,6 @@ GF_EXPORT
 GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 {
 	GF_Err gf_box_dump(void *ptr, FILE * trace);
-	void BadTopBoxErr(GF_Box *a, FILE * trace);
 	u32 i;
 	GF_Box *box;
 	if (!mov || !trace) return GF_BAD_PARAM;
@@ -478,6 +479,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_MOOF:
 		case GF_ISOM_BOX_TYPE_STYP:
 		case GF_ISOM_BOX_TYPE_SIDX:
+		case GF_ISOM_BOX_TYPE_PCRB:
 #endif
 			break;
 
@@ -3516,6 +3518,20 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}
 	fprintf(trace, "</SegmentIndexBox>\n");
+	return GF_OK;
+}
+
+GF_Err pcrb_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_PcrInfoBox *p = (GF_PcrInfoBox *)a;
+	fprintf(trace, "<MPEG2TSPCRInfoBox subsegment_count=\"%d\">\n", p->subsegment_count);
+	DumpBox(a, trace);
+	
+	for (i=0; i<p->subsegment_count; i++) {
+		fprintf(trace, "<PCRInfo PCR=\""LLU"\" />\n", p->pcr_values[i]);
+	}
+	fprintf(trace, "</MPEG2TSPCRInfoBox>\n");
 	return GF_OK;
 }
 
