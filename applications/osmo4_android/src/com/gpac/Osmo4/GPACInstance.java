@@ -233,6 +233,8 @@ public class GPACInstance implements GPACInstanceInterface {
         Log.i(LOG_LIB, "Resizing to " + width + "x" + height); //$NON-NLS-1$ //$NON-NLS-2$
         gpacresize(width, height);
     }
+    
+    private boolean touched = false;
 
     /**
      * Call this when a motion event occurs
@@ -246,15 +248,32 @@ public class GPACInstance implements GPACInstanceInterface {
         switch (event.getAction()) {
             // not in 1.6 case MotionEvent.ACTION_POINTER_1_DOWN:
             case MotionEvent.ACTION_DOWN:
-                gpaceventmousemove(x, y);
-                gpaceventmousedown(x, y);
-                break;
+               gpaceventmousemove(x, y);
+               gpaceventmousedown(x, y);
+               touched = true;
+               break;
             // not in 1.6 case MotionEvent.ACTION_POINTER_1_UP:
             case MotionEvent.ACTION_UP:
-                gpaceventmouseup(x, y);
-                break;
+            	if ( !touched )
+            		break;
+            	gpaceventmouseup(x, y);
+              touched = false;
+              break;
             case MotionEvent.ACTION_MOVE:
-                gpaceventmousemove(x, y);
+            	gpaceventmousemove(x, y);
+            	if ( !touched ) {
+            		touched = true;
+            		//Log.i("Osmo4", "Mouse down: " + x +"," + y);
+            		gpaceventmousedown(x, y);
+            	}
+            	break;
+            case MotionEvent.ACTION_CANCEL:
+            	if ( !touched )
+            		break;
+            	//Log.i("Osmo4", "Mouse up: " + x +"," + y);
+              gpaceventmouseup(x, y);
+              touched = false;
+              break;
         }
     }
 
