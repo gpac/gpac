@@ -626,9 +626,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 
 	e = ODM_ValidateOD(odm, &hasInline);
 	if (e) {
-		gf_term_message(odm->term, odm->net_service->url, "MPEG-4 Service Error", e);
+		GF_Terminal *term = odm->term;
+		gf_term_message(term, odm->net_service->url, "MPEG-4 Service Error", e);
 		gf_odm_disconnect(odm, 1);
-		gf_term_lock_net(odm->term, 0);
+		gf_term_lock_net(term, 0);
 		return;
 	}
 
