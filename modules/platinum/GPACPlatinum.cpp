@@ -544,6 +544,10 @@ static JSBool upnpdevice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETT
 	else if (!strcmp(prop_name, "PresentationURL")) {
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->m_PresentationURL) );
 	}
+	else if (!strcmp(prop_name, "ServicesCount")) {
+		u32 count = gf_list_count(dev->m_Services);
+		*vp = INT_TO_JSVAL(count);
+	}
 	SMJS_FREE(c, prop_name);	
 	return JS_TRUE;
 }
@@ -579,6 +583,24 @@ static JSBool SMJS_FUNCTION(upnp_device_find_service)
 
 	GPAC_ServiceItem *serv = item->FindService(service_uuid);
 	SMJS_FREE(c, service_uuid);
+	if (!serv) {
+		SMJS_SET_RVAL( JSVAL_NULL );
+		return JS_TRUE;
+	}
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(serv->obj) );
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(upnp_device_get_service)
+{
+	u32 service_index;
+	SMJS_OBJ
+	SMJS_ARGS
+	GPAC_DeviceItem *item = (GPAC_DeviceItem *)JS_GetPrivate(c, obj);
+	if (!item || !argc || !JSVAL_IS_INT(argv[0])) return JS_FALSE;
+	service_index = JSVAL_TO_INT(argv[0]);
+
+	GPAC_ServiceItem *serv = (GPAC_ServiceItem*)gf_list_get(item->m_Services, service_index);
 	if (!serv) {
 		SMJS_SET_RVAL( JSVAL_NULL );
 		return JS_TRUE;
@@ -1485,6 +1507,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 	};
 	JSFunctionSpec upnpDeviceClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("FindService", upnp_device_find_service, 0),
+		SMJS_FUNCTION_SPEC("GetService", upnp_device_get_service, 0),
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 	JS_SETUP_CLASS(upnpGenericDeviceClass, "UPNPDEVICE", JSCLASS_HAS_PRIVATE, upnpdevice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
