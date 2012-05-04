@@ -1769,6 +1769,25 @@ restart_period:
 					time /= bytes_per_sec;
 	
 					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Downloaded segment %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1024, (u32) bitrate, 8*bytes_per_sec/1024));
+
+					if (rep->bandwidth < 8*bytes_per_sec) {
+						u32 k;
+						/*find highest bandwidth that fits our bitrate*/
+						GF_MPD_Representation *new_rep = NULL;
+						for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+							GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+							if (8*bytes_per_sec > arep->bandwidth) {
+								if (!new_rep) new_rep = arep;
+								else if (arep->bandwidth > new_rep->bandwidth) {
+									new_rep = arep;
+								}
+							}
+						}
+						if (new_rep) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Switching to new representation bitrate %d kbps\n", new_rep->bandwidth/1024));
+							MPD_SetGroupRepresentation(group, new_rep);
+						}
+					}
 				}
 			}
 
