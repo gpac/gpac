@@ -385,7 +385,8 @@ static GF_MPD_SegmentTemplate *gf_mpd_parse_segment_template(GF_XMLNode *root)
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
 		if (!strcmp(att->name, "media")) seg->media = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "index")) seg->index = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "initialization")) seg->initialization = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "initialization") ) seg->initialization = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "initialisation") ) seg->initialization = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "bitstreamSwitching")) seg->bitstream_switching = gf_mpd_parse_string(att->value);
 	}
 	gf_mpd_parse_multiple_segment_base((GF_MPD_MultipleSegmentBase *)seg, root);
