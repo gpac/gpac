@@ -333,10 +333,6 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 	}
 	gf_odm_lock(cb->odm, 1);
 
-	if (cu->TS < cb->input->TS)
-		cu = cu;
-
-
 	if (codec_reordering) {
 		cb->input = cb->input->next;
 	} else {
