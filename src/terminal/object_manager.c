@@ -761,7 +761,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 		if (odm->parentscene==odm->term->root_scene) {
 			gf_term_lock_net(odm->term, 0);
-			gf_mx_v(odm->term->net_mx);
+
 			evt.type = GF_EVENT_STREAMLIST;
 			gf_term_send_event(odm->term,&evt);
 	
