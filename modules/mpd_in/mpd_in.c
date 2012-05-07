@@ -243,15 +243,16 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 				if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
 
 				if (download_rate && (download_rate < group->active_bitrate)) {
+					u32 set_idx = gf_list_find(group->period->adaptation_sets, group->adaptation_set)+1;
 					group->nb_bw_check ++;
 					if (group->min_bandwidth_selected) {
-						fprintf(stdout, "Downloading from group %s at rate %d kbps but media bitrate is %d kbps - no lower bitrate available ...\n", group->adaptation_set->id, download_rate/1024, group->active_bitrate/1024);
+						fprintf(stdout, "Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - no lower bitrate available ...\n", set_idx, download_rate/1024, group->active_bitrate/1024);
 					} else if (group->nb_bw_check>2) {
-						fprintf(stdout, "Downloading from group %s at rate %d kbps but media bitrate is %d kbps - switching\n", group->adaptation_set->id, download_rate/1024, group->active_bitrate/1024);
+						fprintf(stdout, "Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - switching\n", set_idx, download_rate/1024, group->active_bitrate/1024);
 						group->force_switch_bandwidth = 1;
 						gf_dm_sess_abort(group->segment_dnload);
 					} else {
-						fprintf(stdout, "Downloading from set %s at rate %d kbps but media bitrate is %d kbps\n", group->adaptation_set->id, download_rate/1024, group->active_bitrate/1024);
+						fprintf(stdout, "Downloading from set #%ds at rate %d kbps but media bitrate is %d kbps\n", set_idx, download_rate/1024, group->active_bitrate/1024);
 					}
 				} else {
 					group->nb_bw_check = 0;
@@ -2250,7 +2251,7 @@ GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot start: missing segments\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		if (!group_i) {
+
 		group->input_module = NULL;
 		if (strcmp(M3U8_UNKOWN_MIME_TYPE, mime_type)) {
 			e = MPD_LoadMediaService(mpdin, group, mime_type, NULL);
@@ -2259,8 +2260,6 @@ GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Ignoring mime type %s, wait for first file...\n", mime_type));
 		}
 		group->selected = 1;
-
-		}
 	}
 
 	/*and seek if needed*/
