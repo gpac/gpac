@@ -14,17 +14,13 @@
         android:targetSdkVersion="8" />
 
     <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
+        android:name="android.hardware.camera" />
     <uses-feature
-        android:name="android.hardware.camera.autofocus"
-        android:required="false" />
+        android:name="android.hardware.camera.autofocus" />
     <uses-feature
-        android:name="android.hardware.sensor.gyroscope"
-        android:required="false" />
+        android:name="android.hardware.sensor.gyroscope" />
     <uses-feature
-        android:name="android.hardware.sensor.accelerometer"
-        android:required="false" />
+        android:name="android.hardware.sensor.accelerometer" />
 
     <application
         android:debuggable="true"
