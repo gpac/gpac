@@ -824,12 +824,12 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 
 				if (ck) break;
 
-				odm_par = odm->parentscene->root_od->parentscene ? odm->parentscene->root_od->parentscene->root_od : NULL;
+				odm_par = (odm_par->parentscene && odm_par->parentscene->root_od->parentscene ) ? odm_par->parentscene->root_od->parentscene->root_od : NULL;
 			}
 		}
 		if (ck)
 			goto clock_setup;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ODM] Cannot inherit timeline from parent scene for scene %s\n", odm->net_service->url));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] Cannot inherit timeline from parent scene for scene %s - new clock will be created\n", odm->net_service->url));
 	}
 
 	/*get clocks namespace (eg, parent scene)*/
@@ -884,6 +884,10 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	ck = gf_clock_attach(ck_namespace, scene, clockID, esd->ESID, flag);
 	if (!ck) return GF_OUT_OF_MEM;
 	esd->OCRESID = ck->clockID;
+	/*special case for non-dynamic scenes forcing clock share of all subscene, we assign the
+	parent scene clock to the first clock created in the sunscenes*/
+	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline && !scene->root_od->parentscene->dyn_ck)
+		scene->root_od->parentscene->dyn_ck = ck;
 
 clock_setup:
 	/*create a channel for this stream*/

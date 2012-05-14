@@ -159,6 +159,9 @@ struct _scene
 	This allows preventing OD/BIFS streams shutdown/startup when seeking.*/
 	Bool static_media_ressources;
 
+	/*set to 1 to force all sub-resources to share the timeline of this scene*/
+	Bool force_single_timeline;
+
 
 	/*callback to call to dispatch SVG MediaEvent - this is a pointer to function only because of linking issues
 	with static libgpac (avoids depending on SpiderMonkey and OpenGL32 if not needed)*/
