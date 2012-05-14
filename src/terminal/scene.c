@@ -332,6 +332,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	odm->parentscene = scene;
 	odm->term = scene->root_od->term;
 	root_od = scene->root_od;
+	if (scene->force_single_timeline) lock_timelines = 1;
 
 	url = mo->URLs.vals[0].url;
 	if (url) {
@@ -672,6 +673,10 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 	if (!OD_ID) return NULL;
 
 	gf_term_lock_net(scene->root_od->term, 1);
+
+	/*we may have overriden the time lines in parent scene, thus all objects in this scene have the same clock*/
+	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline) 
+		lock_timelines = 1;
 
 	/*the first pass is needed to detect objects already inserted and registered with the given nodes, regardless of 
 	the force_new_if_not_attached flag. This ty^pically occurs when a resource is first created then linked to an animation/inline*/
@@ -1552,7 +1557,8 @@ void gf_scene_generate_views(GF_Scene *scene, char *url)
 #endif
 	GF_Event evt;
 	gf_sg_reset(scene->graph);
-
+	
+	scene->force_single_timeline = 1;
 	n1 = is_create_node(scene->graph, TAG_MPEG4_OrderedGroup, NULL);
 	gf_sg_set_root_node(scene->graph, n1);
 	gf_node_register(n1, NULL);
