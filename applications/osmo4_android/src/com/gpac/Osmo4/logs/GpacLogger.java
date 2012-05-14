@@ -13,8 +13,8 @@ import java.util.Date;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import android.util.Log;
-import com.gpac.Osmo4.GpacConfig;
 import com.gpac.Osmo4.GpacCallback.GF_Log_Module;
+import com.gpac.Osmo4.GpacConfig;
 
 /**
  * This class handles logging.
@@ -97,9 +97,9 @@ public class GpacLogger {
      */
     public void onLog(int level, int module, String message) {
         GF_Log_Module gModule = GF_Log_Module.getModule(module);
-    	doLog(gModule, level, message);
+        doLog(gModule, level, message);
     }
-    
+
     private void doLog(GF_Log_Module module, int level, String message) {
         Log.println(4, module.name(), message);
         if (enableLogOnDisk) {
@@ -149,4 +149,4 @@ public class GpacLogger {
 
     private volatile PrintStream writer;
 
-};
+}

@@ -32,9 +32,14 @@ public class GpacConfig {
         File osmo = new File(rootCfg, "osmo"); //$NON-NLS-1$
         gpacConfigDirectory = osmo.getAbsolutePath() + '/';
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacConfigDirectory + " for osmo"); //$NON-NLS-1$ //$NON-NLS-2$
-        gpacCacheDirectory = new File(osmo, "cache").getAbsolutePath() + '/'; //$NON-NLS-1$
+        // gpacCacheDirectory = Environment.getDownloadCacheDirectory().getAbsolutePath();
+        // if (Build.VERSION.SDK_INT > 7){
+        gpacCacheDirectory = context.getCacheDir().getAbsolutePath();
+        // } else {
+        // gpacCacheDirectory =
+        // }
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacCacheDirectory + " for cache"); //$NON-NLS-1$ //$NON-NLS-2$
-        //gpacModulesDirectory = (new File(Environment.getDataDirectory() + "/data", "com.gpac.Osmo4")).getAbsolutePath() + '/'; //$NON-NLS-1$ //$NON-NLS-2$
+        //
         //Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
         String dataDir;
         try {
@@ -151,7 +156,7 @@ public class GpacConfig {
      * @return the file
      */
     public File getGpacLastRevFile() {
-        return new File(getGpacCacheDirectory(), "lastRev.txt"); //$NON-NLS-1$
+        return new File(getGpacConfigDirectory(), "lastRev.txt"); //$NON-NLS-1$
     }
 
     /**
