@@ -86,9 +86,9 @@ BASEPATH=$(pwd)
 
 cd $BUILDPATH
 echo -n "Buiding all libs from $BUILDPATH..."
-ndk-build clean
 if [ $REBUILD -eq 1 ]
 then
+ndk-build clean
 ndk-build -B
 else
 ndk-build

@@ -33,7 +33,7 @@ public interface GPACInstanceInterface {
             super(msg);
         }
 
-    };
+    }
 
     /**
      * Call this method to disconnect
@@ -61,12 +61,10 @@ public interface GPACInstanceInterface {
      */
     public void setGpacPreference(String category, String name, String value);
 
-    
     /**
      * Set a GPAC debug level for a given tool
      * 
-     * @param tools Debug tools (0 - 23)
-     * @param level Debug level (0 - 4)
+     * @param tools_at_levels a ":" separated debugspec with debugspec := tool@debug_level
      */
     public void setGpacLogs(String tools_at_levels);
 }

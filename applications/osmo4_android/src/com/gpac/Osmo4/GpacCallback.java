@@ -121,7 +121,7 @@ public interface GpacCallback {
 
         GF_Err(int x) {
             this.value = x;
-        };
+        }
 
         /**
          * Get a GPAC Error code from its value
@@ -148,7 +148,7 @@ public interface GpacCallback {
         /** Log message from the core library (init, threads, network calls, etc) */
         GF_LOG_CORE(0),
         /** Log message from a raw media parser (BIFS, LASeR, A/V formats) */
-        GF_LOG_CODING(1 ),
+        GF_LOG_CODING(1),
         /** Log message from a bitstream parser (IsoMedia, MPEG-2 TS, OGG, ...) */
         GF_LOG_CONTAINER(2),
         /** Log message from the network/service stack (messages & co) */
@@ -196,7 +196,7 @@ public interface GpacCallback {
          * Unknown Log subsystem
          */
         GF_LOG_UNKNOWN(30);
-        
+
         int value;
 
         /**
@@ -204,7 +204,7 @@ public interface GpacCallback {
          */
         private GF_Log_Module(int x) {
             this.value = x;
-        };
+        }
 
         /**
          * Finds a module from its module_code
@@ -221,8 +221,6 @@ public interface GpacCallback {
         }
     }
 
-    
-    
     /**
      * Display a message
      * 

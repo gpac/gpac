@@ -76,15 +76,18 @@ static void jni_destroy_env_func(void * env) {
 static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
     const JNINativeMethod* gMethods, int numMethods)
 {
+    int res;
     jclass clazz;
     clazz = env->FindClass(className);
     if (clazz == NULL) {
         LOGE("Native registration unable to find class '%s'\n", className);
         return -1;
     }
-    if (env->RegisterNatives(clazz, gMethods, numMethods) < 0) {
+    LOGI("Registering %d methods...\n", numMethods );
+    res = env->RegisterNatives(clazz, gMethods, numMethods);
+    if (res < 0) {
         LOGE("RegisterNatives failed for '%s'\n", className);
-        return -1;
+        return res;
     }
     return 0;
 }
@@ -123,7 +126,7 @@ static JNINativeMethod sMethods[] = {
       "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
       (void*)Java_com_gpac_Osmo4_GPACInstance_setGpacPreference},
     {"setGpacLogs",
-    "(Ljava/lang/String)V",
+    "(Ljava/lang/String;)V",
 	  (void*)Java_com_gpac_Osmo4_GPACInstance_setGpacLogs},
       NULL
 };
@@ -138,26 +141,46 @@ jint JNI_OnUnLoad(JavaVM* vm, void* reserved){
   jni_thread_env_key = NULL;
 }
 
+#define NUM_JNI_VERSIONS 4
 //---------------------------------------------------------------------------------------------------
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
+	int res;
+	int jniV;
+	int allowedVersions[NUM_JNI_VERSIONS];
         const char * className = "com/gpac/Osmo4/GPACInstance";
+	allowedVersions[0] = JNI_VERSION_1_6;
+	allowedVersions[1] = JNI_VERSION_1_4;
+	allowedVersions[2] = JNI_VERSION_1_2;
+	allowedVersions[3] = JNI_VERSION_1_1;
         JNIEnv * env;
         if (!vm)
           return -1;
-        if (vm->GetEnv((void**)(&env), JNI_VERSION_1_2) != JNI_OK)
-          return -1;
+	for (int i = 0 ; i < NUM_JNI_VERSIONS; i++){
+		jniV = allowedVersions[i];
+		if (vm->GetEnv((void**)(&env), jniV) == JNI_OK){
+			LOGI("Selected JNI VERSION[%d]\n", i);
+			break;
+		} else {
+			if (i == NUM_JNI_VERSIONS - 1){
+				LOGW("Failed to find any supported JNI VERSION of the %d proposed.", NUM_JNI_VERSIONS);
+				return -1;
+			}
+		}
+		
+	}
         javaVM = vm;
         LOGI("Registering %s natives\n", className);
-        if (jniRegisterNativeMethods(env, className, sMethods, sizeof(sMethods)/sizeof(JNINativeMethod)) < 0){
-          LOGE("Failed to register native methods for %s !\n", className);
-          return -1;
+	res = jniRegisterNativeMethods(env, className, sMethods, (sizeof(sMethods) - 1)/sizeof(JNINativeMethod));
+        if (res < 0){
+          LOGE("Failed to register native methods, result was = %d, try to continue anyway...\n", res);
+          /*return -1;*/
         }
         LOGI("Registering natives DONE, now registering pthread_keys with destructor=%p\n", &jni_destroy_env_func);
         int ret = pthread_key_create(&jni_thread_env_key, &jni_destroy_env_func);
         if (ret){
           LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
         }
-        return JNI_VERSION_1_2;
+        return jniV;
 }
 
 //---------------------------------------------------------------------------------------------------

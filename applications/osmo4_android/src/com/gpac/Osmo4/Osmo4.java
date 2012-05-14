@@ -35,10 +35,11 @@ import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -55,8 +56,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
-import android.hardware.SensorManager;
-
 import com.gpac.Osmo4.extra.FileChooserActivity;
 import com.gpac.Osmo4.logs.GpacLogger;
 
@@ -106,7 +105,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     /**
      * List of all extensions recognized by Osmo
      */
-    public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png,*.wrl"; //$NON-NLS-1$
+    public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png,*.wrl,*.mpd"; //$NON-NLS-1$
 
     private PowerManager.WakeLock wl = null;
 
@@ -122,9 +121,8 @@ public class Osmo4 extends Activity implements GpacCallback {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_PROGRESS);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-		
-		MPEGVSensor.mySensorManager = (SensorManager)getSystemService(
-        		Context.SENSOR_SERVICE);
+
+        MPEGVSensor.initSensorManager((SensorManager) getSystemService(Context.SENSOR_SERVICE));
 
         final String toOpen;
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
@@ -139,9 +137,11 @@ public class Osmo4 extends Activity implements GpacCallback {
             toOpen = null;
         if (gpacConfig == null) {
             gpacConfig = new GpacConfig(this);
-            if (gpacConfig == null)
+            if (gpacConfig == null) {
                 Log.e(LOG_OSMO_TAG, "Failed to load GPAC config"); //$NON-NLS-1$
-            else
+                displayPopup(getResources().getString(R.string.failedToLoadGPACConfig),
+                             getResources().getString(R.string.failedToLoadGPACConfig));
+            } else
                 gpacConfig.ensureAllDirectoriesExist();
         }
         if (logger == null)
@@ -189,6 +189,23 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             }
         });
+        // creates no media files if it does not exist
+        service.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                for (String s : new String[] { gpacConfig.getGpacConfigDirectory(), gpacConfig.getGpacCacheDirectory() }) {
+                    File noMedia = new File(s, ".nomedia"); //$NON-NLS-1$
+                    if (!noMedia.exists()) {
+                        try {
+                            noMedia.createNewFile();
+                        } catch (IOException e) {
+                            Log.w(LOG_OSMO_TAG, "Failed to create " + noMedia.getAbsolutePath(), e); //$NON-NLS-1$
+                        }
+                    }
+                }
+            }
+        });
 
     }
 
@@ -232,56 +249,56 @@ public class Osmo4 extends Activity implements GpacCallback {
         final AutoCompleteTextView textView = new AutoCompleteTextView(this);
         textView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
 
-        builder.setMessage("Please enter an URL to connect to...") //$NON-NLS-1$
+        builder.setMessage(R.string.pleaseEnterAnURLtoConnectTo)
                .setCancelable(true)
-               .setPositiveButton("Open URL", new DialogInterface.OnClickListener() { //$NON-NLS-1$
+               .setPositiveButton(R.string.open_url, new DialogInterface.OnClickListener() {
 
-                                      public void onClick(DialogInterface dialog, int id) {
-                                          dialog.cancel();
-                                          final String newURL = textView.getText().toString();
-                                          openURLasync(newURL);
-                                          service.execute(new Runnable() {
+                   @Override
+                   public void onClick(DialogInterface dialog, int id) {
+                       dialog.cancel();
+                       final String newURL = textView.getText().toString();
+                       openURLasync(newURL);
+                       service.execute(new Runnable() {
 
-                                              @Override
-                                              public void run() {
-                                                  addAllRecentURLs(Collections.singleton(newURL));
-                                                  File tmp = new File(getRecentURLsFile() + ".tmp"); //$NON-NLS-1$
-                                                  BufferedWriter w = null;
-                                                  try {
-                                                      w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmp),
-                                                                                                    DEFAULT_ENCODING),
-                                                                             DEFAULT_BUFFER_SIZE);
-                                                      Collection<String> toWrite = getAllRecentURLs();
-                                                      for (String s : toWrite) {
-                                                          w.write(s);
-                                                          w.write("\n"); //$NON-NLS-1$
-                                                      }
-                                                      w.close();
-                                                      w = null;
-                                                      if (tmp.renameTo(new File(getRecentURLsFile())))
-                                                          Log.e(LOG_OSMO_TAG,
-                                                                "Failed to rename " + tmp + " to " + getRecentURLsFile()); //$NON-NLS-1$//$NON-NLS-2$
+                           @Override
+                           public void run() {
+                               addAllRecentURLs(Collections.singleton(newURL));
+                               File tmp = new File(getRecentURLsFile() + ".tmp"); //$NON-NLS-1$
+                               BufferedWriter w = null;
+                               try {
+                                   w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmp),
+                                                                                 DEFAULT_ENCODING), DEFAULT_BUFFER_SIZE);
+                                   Collection<String> toWrite = getAllRecentURLs();
+                                   for (String s : toWrite) {
+                                       w.write(s);
+                                       w.write("\n"); //$NON-NLS-1$
+                                   }
+                                   w.close();
+                                   w = null;
+                                   if (tmp.renameTo(new File(getRecentURLsFile())))
+                                       Log.e(LOG_OSMO_TAG, "Failed to rename " + tmp + " to " + getRecentURLsFile()); //$NON-NLS-1$//$NON-NLS-2$
 
-                                                  } catch (IOException e) {
-                                                      Log.e(LOG_OSMO_TAG, "Failed to write recent URLs to " + tmp, e); //$NON-NLS-1$
-                                                      try {
-                                                          if (w != null)
-                                                              w.close();
-                                                      } catch (IOException ex) {
-                                                          Log.e(LOG_OSMO_TAG, "Failed to close stream " + tmp, ex); //$NON-NLS-1$
-                                                      }
-                                                  }
+                               } catch (IOException e) {
+                                   Log.e(LOG_OSMO_TAG, "Failed to write recent URLs to " + tmp, e); //$NON-NLS-1$
+                                   try {
+                                       if (w != null)
+                                           w.close();
+                                   } catch (IOException ex) {
+                                       Log.e(LOG_OSMO_TAG, "Failed to close stream " + tmp, ex); //$NON-NLS-1$
+                                   }
+                               }
 
-                                              }
-                                          });
-                                      }
-                                  })
-               .setNegativeButton("Cancel", new DialogInterface.OnClickListener() { //$NON-NLS-1$
+                           }
+                       });
+                   }
+               })
+               .setNegativeButton(R.string.cancel_button, new DialogInterface.OnClickListener() {
 
-                                      public void onClick(DialogInterface dialog, int id) {
-                                          dialog.cancel();
-                                      }
-                                  });
+                   @Override
+                   public void onClick(DialogInterface dialog, int id) {
+                       dialog.cancel();
+                   }
+               });
 
         textView.setText("http://"); //$NON-NLS-1$
         builder.setView(textView);
@@ -354,12 +371,13 @@ public class Osmo4 extends Activity implements GpacCallback {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
                        .setCancelable(true)
-                       .setPositiveButton("Close", new DialogInterface.OnClickListener() { //$NON-NLS-1$
+                       .setPositiveButton(R.string.cancel_button, new DialogInterface.OnClickListener() {
 
-                                              public void onClick(DialogInterface dialog, int id) {
-                                                  dialog.cancel();
-                                              }
-                                          });
+                           @Override
+                           public void onClick(DialogInterface dialog, int id) {
+                               dialog.cancel();
+                           }
+                       });
                 AlertDialog alert = builder.create();
                 alert.show();
                 return false;
@@ -416,7 +434,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     // ---------------------------------------
 
     private int last_orientation = 0;
-    
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -432,37 +450,31 @@ public class Osmo4 extends Activity implements GpacCallback {
                 showKeyboard(!keyboardIsVisible);
                 return true;
             case R.id.reloadFile:
-            	openURLasync(currentURL);
-            	return true;
+                openURLasync(currentURL);
+                return true;
             case R.id.autoRotate:
-            	if (item.isChecked())
-            	{
-            		item.setChecked(false);
-            		last_orientation = this.getRequestedOrientation();
-            		int ornt = getResources().getConfiguration().orientation;
-            		if ( ornt == Configuration.ORIENTATION_PORTRAIT)
-            			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            		else
-            			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-            	}
-            	else
-            	{
-            		item.setChecked(true);
-            		this.setRequestedOrientation(last_orientation);
-            	}
-            	return true;
+                if (item.isChecked()) {
+                    item.setChecked(false);
+                    last_orientation = this.getRequestedOrientation();
+                    int ornt = getResources().getConfiguration().orientation;
+                    if (ornt == Configuration.ORIENTATION_PORTRAIT)
+                        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    else
+                        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                } else {
+                    item.setChecked(true);
+                    this.setRequestedOrientation(last_orientation);
+                }
+                return true;
             case R.id.enableDebug:
-            	if (item.isChecked())
-            	{
-            		item.setChecked(false);
-            		mGLView.setGpacLogs("all@error");
-            	}
-            	else
-            	{
-            		item.setChecked(true);
-            		mGLView.setGpacLogs("all@debug");
-            	}
-            	return true;
+                if (item.isChecked()) {
+                    item.setChecked(false);
+                    mGLView.setGpacLogs("all@error"); //$NON-NLS-1$
+                } else {
+                    item.setChecked(true);
+                    mGLView.setGpacLogs("all@debug"); //$NON-NLS-1$
+                }
+                return true;
             case R.id.setAsStartupFile: {
                 AlertDialog.Builder b = new AlertDialog.Builder(this);
                 b.setTitle(R.string.setAsStartupFileTitle);
@@ -530,7 +542,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
                 return true;
             case R.id.quit:
-            	mGLView.disconnect();
+                mGLView.disconnect();
                 this.finish();
                 return true;
             default:
@@ -538,6 +550,11 @@ public class Osmo4 extends Activity implements GpacCallback {
         }
     }
 
+    /**
+     * Cleans GPAC cache
+     * 
+     * @return true if successful
+     */
     protected boolean cleanCache() {
         final CharSequence oldTitle = getTitle();
         runOnUiThread(new Runnable() {
@@ -609,7 +626,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     // ---------------------------------------
     @Override
     protected void onDestroy() {
-    	deleteConfigIfNeeded();
+        deleteConfigIfNeeded();
         service.shutdown();
         logger.onDestroy();
         synchronized (this) {
@@ -624,32 +641,31 @@ public class Osmo4 extends Activity implements GpacCallback {
         deleteConfigIfNeeded();
         super.onDestroy();
     }
-    
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        //Handle the back button
-        if(keyCode == KeyEvent.KEYCODE_BACK) {
-            //Ask the user if they want to quit
-            new AlertDialog.Builder(this)
-            .setIcon(android.R.drawable.ic_dialog_alert)
-            .setTitle(R.string.quit)
-            .setMessage(R.string.really_quit)
-            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+        // Handle the back button
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            // Ask the user if they want to quit
+            new AlertDialog.Builder(this).setIcon(android.R.drawable.ic_dialog_alert)
+                                         .setTitle(R.string.quit)
+                                         .setMessage(R.string.really_quit)
+                                         .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
 
-                public void onClick(DialogInterface dialog, int which) {
+                                             @Override
+                                             public void onClick(DialogInterface dialog, int which) {
 
-                    //Stop the activity
-                	mGLView.disconnect();
-                    Osmo4.this.finish();
-                }
+                                                 // Stop the activity
+                                                 mGLView.disconnect();
+                                                 Osmo4.this.finish();
+                                             }
 
-            })
-            .setNegativeButton(R.string.no, null)
-            .show();
+                                         })
+                                         .setNegativeButton(R.string.no, null)
+                                         .show();
 
             return true;
-        }
-        else {
+        } else {
             return super.onKeyDown(keyCode, event);
         }
 
@@ -820,7 +836,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private String lastDisplayedMessage;
 
-    private void displayPopup(CharSequence message, CharSequence title) {
+    private void displayPopup(final CharSequence message, final CharSequence title) {
         final String fullMsg = getResources().getString(R.string.displayPopupFormat, title, message);
         synchronized (this) {
             if (fullMsg.equals(lastDisplayedMessage))
@@ -843,9 +859,10 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void displayMessage(final String message, final String title, final int status) {
-        if (status == GF_Err.GF_OK.value)
-            displayPopup(message, title);
-        else {
+        if (status == GF_Err.GF_OK.value) {
+            // displayPopup(message, title);
+            Log.d(LOG_OSMO_TAG, message);
+        } else {
             runOnUiThread(new Runnable() {
 
                 @Override
@@ -1004,13 +1021,14 @@ public class Osmo4 extends Activity implements GpacCallback {
         if (keyboardIsVisible == showKeyboard)
             return;
         this.keyboardIsVisible = showKeyboard;
-        
+
         runOnUiThread(new Runnable() {
+
             @Override
             public void run() {
-            	InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
-            	mgr.toggleSoftInputFromWindow(mGLView.getWindowToken(), 0, 0);
-            	mGLView.requestFocus();
+                InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
+                mgr.toggleSoftInputFromWindow(mGLView.getWindowToken(), 0, 0);
+                mGLView.requestFocus();
             }
         });
     }
