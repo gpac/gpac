@@ -61,7 +61,7 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 	GF_SceneGraph *scene;
 	JSObject *global = JS_GetGlobalObject(c);
 	assert(global);
-	scene = JS_GetPrivate(c, global);
+	scene = SMJS_GET_PRIVATE(c, global);
 	assert(scene);
 	return scene;
 }
@@ -200,14 +200,14 @@ JSBool dom_throw_exception(JSContext *c, u32 code)
 
 GF_Node *dom_get_node(JSContext *c, JSObject *obj)
 {
-	GF_Node *n = obj ? JS_GetPrivate(c, obj) : NULL;
+	GF_Node *n = obj ? SMJS_GET_PRIVATE(c, obj) : NULL;
 	if (n && n->sgprivate) return n;
 	return NULL;
 }
 
 GF_Node *dom_get_element(JSContext *c, JSObject *obj)
 {
-	GF_Node *n = JS_GetPrivate(c, obj);
+	GF_Node *n = SMJS_GET_PRIVATE(c, obj);
 	if (!n || !n->sgprivate) return NULL;
 	if (n->sgprivate->tag==TAG_DOMText) return NULL;
 	return n;
@@ -215,7 +215,7 @@ GF_Node *dom_get_element(JSContext *c, JSObject *obj)
 
 GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj)
 {
-	GF_SceneGraph *sg = JS_GetPrivate(c, obj);
+	GF_SceneGraph *sg = SMJS_GET_PRIVATE(c, obj);
 	if (sg && !sg->__reserved_null) return sg;
 	return NULL;
 }
@@ -237,7 +237,7 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 	if (!jsclass) jsclass = &dom_rt->domDocumentClass;
 
 	new_obj = JS_NewObject(c, jsclass, 0, 0);
-	JS_SetPrivate(c, new_obj, sg);
+	SMJS_SET_PRIVATE(c, new_obj, sg);
 	sg->document = new_obj;
 	return OBJECT_TO_JSVAL(new_obj);
 }
@@ -272,7 +272,7 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 
 	gf_node_register(n, NULL);
 	new_obj = JS_NewObject(c, _class, 0, 0);
-	JS_SetPrivate(c, new_obj, n);
+	SMJS_SET_PRIVATE(c, new_obj, n);
 
 	if (!n->sgprivate->interact) GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
 	if (!n->sgprivate->interact->js_binding) {
@@ -409,7 +409,7 @@ static jsval dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 
 	gf_node_register((GF_Node*)n, NULL);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
-	JS_SetPrivate(c, new_obj, nl);
+	SMJS_SET_PRIVATE(c, new_obj, nl);
 	return OBJECT_TO_JSVAL(new_obj);
 }
 
@@ -419,7 +419,7 @@ static void dom_nodelist_finalize(JSContext *c, JSObject *obj)
 	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) )
 		return;
 
-	nl = (DOMNodeList *) JS_GetPrivate(c, obj);
+	nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
 	if (!nl) return;
 
 	if (nl->owner) {
@@ -449,7 +449,7 @@ static JSBool SMJS_FUNCTION(dom_nodelist_item)
 	if ((argc!=1) || !JSVAL_IS_INT(argv[0]))
 		return JS_TRUE;
 
-	nl = (DOMNodeList *)JS_GetPrivate(c, obj);
+	nl = (DOMNodeList *)SMJS_GET_PRIVATE(c, obj);
 	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
 	idx = JSVAL_TO_INT(argv[0]);
 	if ((idx<0) || ((u32) idx>=count)) {
@@ -472,7 +472,7 @@ static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GE
 
 	switch (SMJS_ID_TO_INT(id)) {
 	case 0:
-		nl = (DOMNodeList *) JS_GetPrivate(c, obj);
+		nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
 		*vp = INT_TO_JSVAL( gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child) );
 		return JS_TRUE;
 	}
@@ -763,12 +763,12 @@ JSBool SMJS_FUNCTION(dom_event_remove_listener)
 /*dom3 node*/
 static void dom_node_finalize(JSContext *c, JSObject *obj)
 {
-	GF_Node *n = (GF_Node *) JS_GetPrivate(c, obj);
+	GF_Node *n = (GF_Node *) SMJS_GET_PRIVATE(c, obj);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!n) return;
 	if (!n->sgprivate) return;
 
-	JS_SetPrivate(c, obj, NULL);
+	SMJS_SET_PRIVATE(c, obj, NULL);
 	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 
 	dom_js_pre_destroy(c, n->sgprivate->scenegraph, n);
@@ -1353,11 +1353,11 @@ void dom_document_finalize(JSContext *c, JSObject *obj)
 {
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 
-	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
+	sg = (GF_SceneGraph*) SMJS_GET_PRIVATE(c, obj);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!sg) return;
 
-	JS_SetPrivate(c, sg->document, NULL);
+	SMJS_SET_PRIVATE(c, sg->document, NULL);
 	sg->document = NULL;
 	if (sg->RootNode) {
 		gf_node_unregister(sg->RootNode, NULL);
@@ -1546,7 +1546,7 @@ static JSBool SMJS_FUNCTION(xml_document_elements_by_tag)
 	if (name && !strcmp(name, "*")) name = NULL;
 	xml_doc_gather_nodes((GF_ParentNode*)sg->RootNode, name, nl);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
-	JS_SetPrivate(c, new_obj, nl);
+	SMJS_SET_PRIVATE(c, new_obj, nl);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj));
 	SMJS_FREE(c, name);
 	return JS_TRUE;
@@ -2051,7 +2051,7 @@ static JSBool SMJS_FUNCTION(xml_element_elements_by_tag)
 	}
 	xml_doc_gather_nodes((GF_ParentNode*)n, name, nl);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
-	JS_SetPrivate(c, new_obj, nl);
+	SMJS_SET_PRIVATE(c, new_obj, nl);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj) );
 	
 	SMJS_FREE(c, name);
@@ -2150,7 +2150,7 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER
 static JSBool SMJS_FUNCTION(event_stop_propagation)
 {
 	SMJS_OBJ
-	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
+	GF_DOM_Event *evt = SMJS_GET_PRIVATE(c, obj);
 	if (!evt) return JS_TRUE;
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
 	return JS_TRUE;
@@ -2158,7 +2158,7 @@ static JSBool SMJS_FUNCTION(event_stop_propagation)
 static JSBool SMJS_FUNCTION(event_stop_immediate_propagation)
 {
 	SMJS_OBJ
-	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
+	GF_DOM_Event *evt = SMJS_GET_PRIVATE(c, obj);
 	if (!evt) return JS_TRUE;
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL_ALL;
 	return JS_TRUE;
@@ -2166,7 +2166,7 @@ static JSBool SMJS_FUNCTION(event_stop_immediate_propagation)
 static JSBool SMJS_FUNCTION(event_prevent_default)
 {
 	SMJS_OBJ
-	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
+	GF_DOM_Event *evt = SMJS_GET_PRIVATE(c, obj);
 	if (!evt) return JS_TRUE;
 	evt->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
 	return JS_TRUE;
@@ -2175,7 +2175,7 @@ static JSBool SMJS_FUNCTION(event_prevent_default)
 static JSBool event_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	JSString *s;
-	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
+	GF_DOM_Event *evt = SMJS_GET_PRIVATE(c, obj);
 	if (evt==NULL) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
@@ -2531,7 +2531,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 {
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (ctx) {
 		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
 		xml_http_reset(ctx);
@@ -2547,7 +2547,7 @@ static JSBool SMJS_FUNCTION(xml_http_constructor)
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	p->c = c;
 	p->_this = obj;
-	JS_SetPrivate(c, obj, p);
+	SMJS_SET_PRIVATE(c, obj, p);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
 	return JS_TRUE;
 }
@@ -2588,7 +2588,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	SMJS_ARGS
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	/*reset*/
@@ -2657,7 +2657,7 @@ static JSBool SMJS_FUNCTION(xml_http_set_header)
 	SMJS_ARGS
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	if (ctx->readyState!=1) return JS_TRUE;
@@ -2896,7 +2896,7 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	SMJS_ARGS
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	if (ctx->readyState!=1) return JS_TRUE;
@@ -3000,7 +3000,7 @@ static JSBool SMJS_FUNCTION(xml_http_abort)
 	SMJS_OBJ
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	sess = ctx->sess;
@@ -3019,7 +3019,7 @@ static JSBool SMJS_FUNCTION(xml_http_get_all_headers)
 	SMJS_OBJ
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	/*must be received or loaded*/
@@ -3053,7 +3053,7 @@ static JSBool SMJS_FUNCTION(xml_http_get_header)
 	SMJS_OBJ
 	SMJS_ARGS
 	if (!argc || !JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
@@ -3086,7 +3086,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER
 	JSString *s;
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	if (SMJS_ID_IS_INT(id)) {
@@ -3145,7 +3145,7 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER
 {
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	if (SMJS_ID_IS_INT(id)) {
@@ -3433,7 +3433,7 @@ static JSBool SMJS_FUNCTION(dcci_search_property)
 	GF_SAFEALLOC(nl, DOMNodeList);
 	dcci_prop_collect(nl, n, ns, name, deep, 1);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
-	JS_SetPrivate(c, new_obj, nl);
+	SMJS_SET_PRIVATE(c, new_obj, nl);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj) );
 	SMJS_FREE(c, ns);
 	SMJS_FREE(c, name);
@@ -3837,7 +3837,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 	if (n) {
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
 			JSObject *obj = n->sgprivate->interact->js_binding->node;
-			JS_SetPrivate(c, obj, NULL);
+			SMJS_SET_PRIVATE(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			if (gf_list_del_item(sg->objects, obj)>=0) {
 				gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node), GF_JSGC_OBJECT);
@@ -3853,7 +3853,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		JSObject *obj = gf_list_get(sg->objects, 0);
 		n = dom_get_node(c, obj);
 		if (n) {
-			JS_SetPrivate(c, obj, NULL);
+			SMJS_SET_PRIVATE(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			gf_node_unregister(n, NULL);
 			gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node), GF_JSGC_OBJECT);
@@ -3907,7 +3907,7 @@ static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGr
 
 	obj = JS_DefineObject(c, global, name, __class, 0, 0 );
 	gf_node_register(doc->RootNode, NULL);
-	JS_SetPrivate(c, obj, doc);
+	SMJS_SET_PRIVATE(c, obj, doc);
 	doc->document = obj;
 }
 
