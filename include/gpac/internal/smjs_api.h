@@ -93,6 +93,7 @@ typedef double jsdouble;
 #define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__obj, __val)
 #define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__obj)
 #define JS_GET_CLASS(__ctx, __obj) JS_GetClass(__obj)
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, __parent)
 
 #else
 
@@ -103,11 +104,12 @@ typedef double jsdouble;
 #ifdef USE_FFDEV_11
 #define JS_ClearContextThread(__ctx)
 #define JS_SetContextThread(__ctx)
-#endif
-
-#endif
-
 #define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, __parent)
+#else
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, 0, __parent)
+#endif
+
+#endif
 
 
 #else
