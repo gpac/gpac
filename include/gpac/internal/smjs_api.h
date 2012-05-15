@@ -43,6 +43,14 @@
 /*new APIs*/
 #if (JS_VERSION>=185)
 
+
+#ifdef USE_FFDEV_12
+typedef unsigned uintN;
+typedef uint32_t jsuint;
+typedef int jsint;
+typedef double jsdouble;
+#endif
+
 #define JS_NewDouble(c, v)	v
 #define JS_PropertyStub_forSetter JS_StrictPropertyStub
 #define SMJS_PROP_SETTER jsid id, JSBool strict
@@ -77,7 +85,26 @@
 #define JS_THREADSAFE
 #endif
 
+
+#ifdef USE_FFDEV_12
+#define JS_ClearContextThread(__ctx)
+#define JS_SetContextThread(__ctx)
+#define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__obj)
+#define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__obj, __val)
+#define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__obj)
+#define JS_GET_CLASS(__ctx, __obj) JS_GetClass(__obj)
+#endif
+
+#ifdef USE_FFDEV_11
+#define JS_ClearContextThread(__ctx)
+#define JS_SetContextThread(__ctx)
+#endif
+
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, __parent)
+
+
 #else
+
 #define SMJS_PROP_SETTER jsval id
 #define SMJS_PROP_GETTER jsval id
 #define JS_PropertyStub_forSetter JS_PropertyStub
@@ -100,6 +127,11 @@
 #define SMJS_ID_TO_STRING		JSVAL_TO_STRING
 #define SMJS_ID_IS_INT	JSVAL_IS_INT
 #define SMJS_ID_TO_INT		JSVAL_TO_INT
+
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, 0, __parent)
+#define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__ctx, __obj)
+#define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__ctx, __obj, __val)
+#define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__ctx, __obj)
 
 #endif
 

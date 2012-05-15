@@ -79,7 +79,7 @@ typedef struct
 
 static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
 {
-	GF_GPACJSExt *ext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	return ext ? ext->term : NULL;
 }
 
@@ -187,12 +187,12 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, fps) );
 	}
 	else if (!strcmp(prop_name, "cpu_load")) {
-		GF_GPACJSExt *ext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
 		*vp = INT_TO_JSVAL(ext->rti.process_cpu_usage);
 	}
 	else if (!strcmp(prop_name, "memory")) {
-		GF_GPACJSExt *ext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
 		*vp = INT_TO_JSVAL(ext->rti.process_memory);
 	}
@@ -664,7 +664,7 @@ static JSBool SMJS_FUNCTION(gpac_migrate_url)
 
 static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
-	GF_GPACJSExt *gjs = JS_GetPrivate(c, obj);
+	GF_GPACJSExt *gjs = SMJS_GET_PRIVATE(c, obj);
 	GF_Event *evt = gjs->evt;
 	if (!evt) return 0;
 
@@ -738,11 +738,11 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 
 	rval = JSVAL_VOID;
 	gjs->evt = evt;
-	JS_SetPrivate(gjs->c, gjs->evt_obj, gjs);
+	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
 	rval = JSVAL_VOID;
 	JS_CallFunctionValue(gjs->c, gjs->evt_filter_obj, gjs->evt_fun, 1, argv, &rval);
-	JS_SetPrivate(gjs->c, gjs->evt_obj, NULL);
+	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
 
 	res = 0;
@@ -760,7 +760,7 @@ static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 {
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
 	if (! JSVAL_IS_NULL(gjs->evt_fun) ) return JS_TRUE;
@@ -810,7 +810,7 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	GF_Scene *scene=NULL;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	if (!gjs || !argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
 	elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
@@ -835,7 +835,7 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 
 
 	scene_obj = JS_NewObject(c, &gjs->anyClass, 0, 0);
-	JS_SetPrivate(c, scene_obj, scene);
+	SMJS_SET_PRIVATE(c, scene_obj, scene);
 	gf_sg_get_scene_size_info(scene->graph, &w, &h);
 	JS_DefineProperty(c, scene_obj, "width", INT_TO_JSVAL(w), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, scene_obj, "height", INT_TO_JSVAL(h), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);	
@@ -918,7 +918,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 				gjs->term = par.term;
 			}
 		}
-		JS_SetPrivate(c, gjs->gpac_obj, gjs);
+		SMJS_SET_PRIVATE(c, gjs->gpac_obj, gjs);
 	} else {
 		JS_DefineProperty(c, global, "gpac", OBJECT_TO_JSVAL(gjs->gpac_obj), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	}

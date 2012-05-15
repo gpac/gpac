@@ -47,7 +47,7 @@ JSBool SMJS_FUNCTION(widget_has_feature)
 	char *feat_name;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
@@ -65,7 +65,7 @@ JSBool SMJS_FUNCTION(widget_open_url)
 	GF_Event evt;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid || !argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
 	memset(&evt, 0, sizeof(GF_Event));
@@ -81,7 +81,7 @@ JSBool SMJS_FUNCTION(widget_get_attention)
 {
 	jsval fval;
 	SMJS_OBJ
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return JS_TRUE;
 
 	if ((JS_LookupProperty(c, wid->widget->wm->obj, "getAttention", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
@@ -97,7 +97,7 @@ JSBool SMJS_FUNCTION(widget_show_notification)
 	jsval fval;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return JS_TRUE;
 
 	if ((JS_LookupProperty(c, wid->widget->wm->obj, "showNotification", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
@@ -121,7 +121,7 @@ static JSBool SMJS_FUNCTION(widget_call_message_reply_callback)
 	u32 i, count;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetMessage *msg = JS_GetPrivate(c, obj);
+	GF_WidgetMessage *msg = SMJS_GET_PRIVATE(c, obj);
 	if (!msg || !argc || !JSVAL_IS_OBJECT(argv[0]) ) return JS_FALSE;
 
 	if ((JS_LookupProperty(c, obj, "replyCallback", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
@@ -144,7 +144,7 @@ static JSBool SMJS_FUNCTION(widget_message_handler_factory)
 	u32 i, count;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!bifce) return JS_FALSE;
 
 	if (!argc) return JS_FALSE;
@@ -159,7 +159,7 @@ static JSBool SMJS_FUNCTION(widget_message_handler_factory)
 		GF_WidgetMessage *msg = gf_list_get(bifce->ifce->messages, i);
 		if (!strcmp(msg->name, msg_name)) {
 			JSObject *an_obj = JS_NewObject(c, &bifce->wid->widget->wm->widgetAnyClass, 0, 0);
-			JS_SetPrivate(c, an_obj, msg);
+			SMJS_SET_PRIVATE(c, an_obj, msg);
 			JS_DefineProperty(c, an_obj, "msgName", STRING_TO_JSVAL( JS_NewStringCopyZ(c, msg->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineProperty(c, an_obj, "interfaceHandler", OBJECT_TO_JSVAL( obj ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineFunction(c, an_obj, "onInvokeReply", widget_call_message_reply_callback, 1, 0);
@@ -179,14 +179,14 @@ static JSBool SMJS_FUNCTION(widget_invoke_message)
 	GF_WidgetMessage *msg = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!bifce) return JS_FALSE;
 
 	SMJS_SET_RVAL( JSVAL_NULL );
 
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	if (JSVAL_IS_NULL(argv[0])) return JS_FALSE;
-	msg = (GF_WidgetMessage *)JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]) );
+	msg = (GF_WidgetMessage *)SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(argv[0]) );
 	if (!msg) return JS_FALSE;
 
 	/*look for JS Callback "invoke" in the widget manager script*/
@@ -205,14 +205,14 @@ static JSBool SMJS_FUNCTION(widget_invoke_message_reply)
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_WidgetMessage *msg = NULL;
-	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!bifce) return JS_FALSE;
 
 	SMJS_SET_RVAL( JSVAL_NULL );
 
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	if (JSVAL_IS_NULL(argv[0])) return JS_FALSE;
-	msg = (GF_WidgetMessage *)JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]) );
+	msg = (GF_WidgetMessage *)SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(argv[0]) );
 	if (!msg) return JS_FALSE;
 
 	/*look for JS Callback "invokeReply" in the widget manager script*/
@@ -228,7 +228,7 @@ static void widget_interface_js_bind(JSContext *c, GF_WidgetInterfaceInstance *i
 {
 	if (!ifce->obj) {
 		ifce->obj = JS_NewObject(c, &ifce->wid->widget->wm->widgetAnyClass, 0, 0);
-		JS_SetPrivate(c, ifce->obj, ifce);
+		SMJS_SET_PRIVATE(c, ifce->obj, ifce);
 		gf_js_add_root(c, &ifce->obj, GF_JSGC_OBJECT);
 		JS_DefineProperty(c, ifce->obj, "type", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->ifce->type) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, ifce->obj, "bound", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->hostname) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -247,7 +247,7 @@ static JSBool SMJS_FUNCTION(widget_get_interfaces)
 	jsval v;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
@@ -277,7 +277,7 @@ static JSBool SMJS_FUNCTION_EXT(widget_activate_component, Bool is_deactivate)
 	char *comp_id;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
@@ -331,7 +331,7 @@ JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *
 {
 	const char *opt;
 	char *prop_name;
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
+	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
@@ -407,7 +407,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 		for (i=0; i<count; i++) {
 			GF_WidgetInterfaceInstance *ifce = gf_list_get(wi->bound_ifces, i);
 			if (ifce->obj) {
-				JS_SetPrivate(c, ifce->obj, NULL);
+				SMJS_SET_PRIVATE(c, ifce->obj, NULL);
 				gf_js_remove_root(c, &ifce->obj, GF_JSGC_OBJECT);
 				ifce->obj = NULL;
 			}
@@ -436,7 +436,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 		
 		wi->scene_obj = JS_DefineObject(c, global, "widget", &wm->widgetClass, 0, 0);
 		//JS_AliasProperty(c, global, "widget", "MPEGWidget");
-		JS_SetPrivate(c, wi->scene_obj, wi);
+		SMJS_SET_PRIVATE(c, wi->scene_obj, wi);
 		/*and remember the script*/
 		wi->scene_context = c;
 		wi->scene_global = global;

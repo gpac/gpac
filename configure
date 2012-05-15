@@ -665,7 +665,7 @@ fi
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
 
-cat > $TMPCPP << EOF
+cat > $TMPC << EOF
 #include <jsapi.h>
 int main( void ) { JSContext *cx; jsval *rp; return JS_AddValueRoot(cx, rp); }
 EOF
@@ -673,7 +673,7 @@ EOF
     #try local
     js_inc="$local_inc/js"
     js_flags="-DXP_UNIX -I$local_inc/js"
-    if $cpp -o $TMPO $TMPCPP $js_flags -L$local_lib -ljs -lpthread 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs -lpthread 2> /dev/null  ; then
         has_js="local"
         #dc added
     else
@@ -681,7 +681,7 @@ EOF
         if $pkg_config --exists mozilla-js 2> /dev/null  ; then
             js_flags=`$pkg_config --cflags mozilla-js`
             js_lib_pkg=`$pkg_config --libs mozilla-js`
-            if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
+            if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                 has_js="system"
                 js_lib=`$pkg_config --libs mozilla-js`
             fi
@@ -692,10 +692,10 @@ EOF
                 if test "$has_js" = "no" ; then
                     js_inc="/usr/include/$i"
                     js_flags="-DXP_UNIX -I$js_inc"
-                    js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnssutil3 -lnss3"
-                    if $cpp -o $TMPO $TMPCPP $js_flags $js_lib 2> /dev/null  ; then
+                    js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnssutil3 -lnss3 -lnspr4 -lsmime3"
+                    if $cc -o $TMPO $TMPC $js_flags $js_lib 2> /dev/null  ; then
                         has_js="$i"
-                    elif $cpp -o $TMPO $TMPCPP $js_flags -lnssutil3 $js_lib -lssl3 2> /dev/null  ; then
+                    elif $cpp -o $TMPO $TMPC $js_flags -lnssutil3 $js_lib -lssl3 2> /dev/null  ; then
                         #firefox 11 compatibility
                         has_js="$i"
                         js_lib="-lnssutil3 $js_lib -lssl3"
@@ -708,14 +708,14 @@ EOF
             #try prefix (DC)
             js_inc="$prefix/include/js"
             js_flags="-DXP_UNIX -I$prefix/include/js"
-            if $cpp -o $TMPO $TMPCPP $js_flags -L$prefix/lib -ljs -lpthread 2> /dev/null  ; then
+            if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs -lpthread 2> /dev/null  ; then
                 has_js="prefix"
                 #dc added end
             else
-                if $cpp -o $TMPO $TMPCPP $js_flags $LDFLAGS -ljs -lpthread 2> /dev/null  ; then
+                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -ljs -lpthread 2> /dev/null  ; then
                     js_inc="/usr/include"
                     has_js="system"
-                elif $cpp -o $TMPO $TMPCPP -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs -lpthread 2> /dev/null ; then
+                elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs -lpthread 2> /dev/null ; then
                     has_js="system"
                     js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
                     js_lib="-L$alt_macosx_dir/lib -ljs"
@@ -724,14 +724,14 @@ EOF
                     #debian spidermonkey (smjs)
                     js_flags="-DXP_UNIX -I/usr/include/smjs"
                     js_inc="/usr/include/smjs"
-                    if $cpp -o $TMPO $TMPCPP $js_flags $LDFLAGS -lsmjs -lpthread 2> /dev/null  ; then
+                    if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lsmjs -lpthread 2> /dev/null  ; then
                         has_js="system"
                         js_lib="-lsmjs"
                     else
                         #debian spidermonkey (mozjs)
                         js_flags="-DXP_UNIX -I/usr/include/mozjs"
                         js_inc="/usr/include/mozjs"
-                        if $cpp -o $TMPO $TMPCPP $js_flags $LDFLAGS -lmozjs -lpthread 2> /dev/null  ; then
+                        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lmozjs -lpthread 2> /dev/null  ; then
                             has_js="system"
                             js_lib="-lmozjs"
                         fi
@@ -828,12 +828,28 @@ if test "$has_js" != "no" ; then
             else
 cat > $TMPC << EOF
 #include <jsapi.h>
-int main( void ) { JSContext *cx; JS_SetRuntimeThread(cx); }
+int main( void ) { JSObject *obj; JS_GetPrivate(obj); }
 EOF
                 if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
-                    js_flags="$js_flags"
+                    js_flags="-DUSE_FFDEV_12 $js_flags"
                 else
-                    js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
+cat > $TMPC << EOF
+#include <jsapi.h>
+int main( void ) { JSContext *cx; JS_SetContextThread(cx); }
+EOF
+		        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
+cat > $TMPC << EOF
+#include <jsapi.h>
+int main( void ) { JSContext *cx; JS_SetRuntimeThread(cx); }
+EOF
+			        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
+			            js_flags="$js_flags"
+			        else
+			            js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
+			        fi
+		        else
+		            js_flags="-DUSE_FFDEV_11 $js_flags"
+		        fi
                 fi
             fi
         fi
