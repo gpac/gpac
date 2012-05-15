@@ -121,6 +121,9 @@ typedef struct __mpd_module {
        Used to detect when audio service connection request is made on the same URL as video */
     char *url;
 
+	/*interface to mpd parser*/
+	GF_FileDownload getter;
+
     u32 option_max_cached;
     u32 auto_switch_count;
     Bool keep_files, disable_switching;
@@ -349,7 +352,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 
     /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
     if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
-        gf_m3u8_to_mpd(local_url, purl, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, mpdin->service, 0, M3U8_TO_MPD_USE_TEMPLATE);
+        gf_m3u8_to_mpd(local_url, purl, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &mpdin->getter);
     } else if (!MPD_is_MPD_mime(mime)) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
         gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
@@ -2292,6 +2295,29 @@ exit:
     return e;
 }
 
+
+static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
+{
+    GF_MPD_In *mpdin = (GF_MPD_In*) getter->udta;
+	GF_DownloadSession *sess = gf_term_download_new(mpdin->service, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
+	if (!sess) return GF_IO_ERR;
+	getter->session = sess;
+	return gf_dm_sess_process(sess);
+}
+
+static void http_ifce_clean(GF_FileDownload *getter)
+{
+    GF_MPD_In *mpdin = (GF_MPD_In*) getter->udta;
+	if (getter->session) gf_term_download_del(getter->session);
+}
+
+static const char *http_ifce_cache_name(GF_FileDownload *getter)
+{
+    GF_MPD_In *mpdin = (GF_MPD_In*) getter->udta;
+	if (getter->session) return gf_dm_sess_get_cache_name(getter->session);
+	return NULL;
+}
+
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
@@ -2313,6 +2339,13 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
       gf_free(mpdin->url);
     mpdin->url = gf_strdup(url);
     mpdin->option_max_cached = 0;
+
+	mpdin->getter.udta = mpdin;
+	mpdin->getter.new_session = http_ifce_get;
+	mpdin->getter.del_session = http_ifce_clean;
+	mpdin->getter.get_cache_name = http_ifce_cache_name;
+	mpdin->getter.session = NULL;
+
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments");
     if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments", "3");
@@ -2404,10 +2437,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 			if (sep) sep[0]=0;
 			strcat(local_path, ".mpd");
 
-	        gf_m3u8_to_mpd(local_url, url, local_path, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, mpdin->service, 0, M3U8_TO_MPD_USE_TEMPLATE);
+	        gf_m3u8_to_mpd(local_url, url, local_path, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &mpdin->getter);
 			local_url = local_path;
 		} else {
-	        gf_m3u8_to_mpd(local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, mpdin->service, 0, M3U8_TO_MPD_USE_TEMPLATE);
+	        gf_m3u8_to_mpd(local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &mpdin->getter);
 		}
     }
 

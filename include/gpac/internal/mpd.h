@@ -28,8 +28,6 @@
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
-#include <gpac/internal/terminal_dev.h>
-
 
 /*TODO*/
 typedef struct 
@@ -318,7 +316,20 @@ void gf_mpd_del(GF_MPD *mpd);
 /*frees a SegmentURL*/
 void gf_mpd_segment_url_free(void *_item);
 
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, GF_ClientService *service, Bool do_import, Bool use_mpd_templates);
+typedef struct _gf_file_get GF_FileDownload;
+struct _gf_file_get
+{
+	GF_Err (*new_session)(GF_FileDownload *getter, char *url);
+	void (*del_session)(GF_FileDownload *getter);
+	const char *(*get_cache_name)(GF_FileDownload *getter);
+
+	void *udta;
+	/*created by udta after new_session*/
+	void *session;
+};
+
+/*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter);
 
 #endif // _MPD_H_
 
