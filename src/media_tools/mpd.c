@@ -929,7 +929,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 GF_EXPORT
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					  const char *mpd_file,
-					  u32 reload_count, char *mimeTypeForM3U8Segments, GF_ClientService *service, Bool do_import, Bool use_mpd_templates)
+					  u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter)
 {
 	GF_Err e;
 	char *sep, *template_base, *template_ext;
@@ -990,7 +990,18 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
 				continue;
 			}
-			if (service) {
+			if (getter && getter->new_session && getter->del_session && getter->get_cache_name) {
+				e = getter->new_session(getter, suburl);
+				if (e) {
+					gf_free(suburl);
+					break;
+				}
+				if (e==GF_OK) {
+					e = parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, prog, pe);
+				}
+				getter->del_session(getter);
+
+#if 0
 				GF_DownloadSession *sess = gf_term_download_new(service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
 				if (!sess) {
 					gf_free(suburl);
@@ -1001,6 +1012,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
 				}
 				gf_term_download_del(sess);
+#endif
 				gf_free(suburl);
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://") && !strstr(suburl, "://") ) {
