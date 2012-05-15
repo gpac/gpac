@@ -695,7 +695,7 @@ EOF
                     js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnssutil3 -lnss3 -lnspr4 -lsmime3"
                     if $cc -o $TMPO $TMPC $js_flags $js_lib 2> /dev/null  ; then
                         has_js="$i"
-                    elif $cpp -o $TMPO $TMPC $js_flags -lnssutil3 $js_lib -lssl3 2> /dev/null  ; then
+                    elif $cc -o $TMPO $TMPC $js_flags -lnssutil3 $js_lib -lssl3 2> /dev/null  ; then
                         #firefox 11 compatibility
                         has_js="$i"
                         js_lib="-lnssutil3 $js_lib -lssl3"
