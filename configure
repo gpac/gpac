@@ -101,7 +101,6 @@ has_ipv6="no"
 has_dvb4linux="no"
 has_xmlrpc="no"
 has_openjpeg="no"
-has_libxml2="no"
 gprof_build="no"
 static_build="no"
 want_pic="no"
@@ -117,7 +116,7 @@ disable_od="no"
 disable_bifs="no"
 disable_bifs_enc="no"
 disable_laser="no"
-disable_beng="no"
+disable_seng="no"
 disable_qtvr="no"
 disable_avi="no"
 disable_m2ps="no"
@@ -143,6 +142,8 @@ disable_isoff_frag="no"
 disable_isoff_hint="no"
 disable_isoff_frag="no"
 disable_streaming="no"
+disable_player="no"
+disable_scenegraph="no"
 enable_depth_compositor="no"
 enable_renoir="no"
 has_avcap="no"
@@ -243,7 +244,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-bifs           disable BIFS
   --disable-bifs-enc       disable BIFS coder
   --disable-laser          disable LASeR coder
-  --disable-beng           disable scene encoder engine
+  --disable-seng           disable scene encoder engine
   --disable-qtvr           disable import of Cubic QTVR files
   --disable-avi            disable AVI
   --disable-ogg            disable OGG
@@ -269,6 +270,8 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-isoff-hint     disable ISO File Format hinting
   --disable-isoff-frag     disable fragments in ISO File Format
   --disable-streaming      disable RTP/RTSP/SDP
+  --disable-player         disable player (terminal and compositor)
+  --disable-scenegraph     disable scenegraph, scene parsers and player (terminal and compositor)
 
 Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
   --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
@@ -1418,18 +1421,6 @@ EOF
 fi
 #end wx test
 
-#if svg isn't disabled
-if test "$disable_svg" != "yes"; then
-    #then check libxm2 presence via pkg-config
-    if $pkg_config libxml-2.0 --exists > /dev/null 2>&1  ; then
-        libxml2_cflags=`$pkg_config libxml-2.0 --cflags`
-        libxml2_lib_flags=`$pkg_config libxml-2.0 --libs`
-        has_libxml2="yes"
-    fi
-fi
-
-
-
 #look for IPv6
 cat > $TMPC << EOF
 #include <sys/types.h>
@@ -1697,7 +1688,7 @@ for opt do
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
 
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"
             ;;
 
         --disable-3d) disable_3d="yes"
@@ -1732,9 +1723,9 @@ for opt do
             ;;
         --enable-laser) disable_laser="no"
             ;;
-        --disable-beng) disable_beng="yes"
+        --disable-seng) disable_seng="yes"
             ;;
-        --enable-beng) disable_beng="no"
+        --enable-seng) disable_seng="no"
             ;;
         --disable-qtvr) disable_qtvr="yes"
             ;;
@@ -1834,7 +1825,14 @@ for opt do
             ;;
         --enable-streaming) disable_streaming="no"
             ;; 
-
+        --disable-player) disable_player="yes"
+            ;;
+        --enable-player) disable_player="no"
+            ;; 
+        --disable-scenegraph) disable_scenegraph="yes"
+            ;;
+        --enable-scenegraph) disable_scenegraph="no"
+            ;; 
 
     esac
 done
@@ -2065,7 +2063,27 @@ if test "$cpu" = "sh4"; then
     fi
 fi
 
-
+if test "$disable_scenegraph" = "yes" ; then
+disable_3d="yes"
+disable_svg="yes"
+disable_vrml="yes"
+disable_x3d="yes"
+disable_od="no"
+disable_bifs="yes"
+disable_bifs_enc="yes"
+disable_laser="yes"
+disable_seng="yes"
+disable_qtvr="yes"
+disable_swf="yes"
+disable_scene_stats="yes"
+disable_scene_dump="yes"
+disable_scene_encode="yes"
+disable_loader_isoff="yes"
+disable_loader_bt="yes"
+disable_loader_xmt="yes"
+disable_streaming="yes"
+disable_player="yes"
+fi
 
 #prepare for config.h writing
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
@@ -2114,6 +2132,7 @@ echo "IPV6 Support: $has_ipv6"
 if test "$disable_svg" = "yes" ; then
     echo "SVG disabled"
     echo "#define GPAC_DISABLE_SVG" >> $TMPH
+    disable_laser="yes"
 fi
 if test "$disable_vrml" = "yes" ; then
     echo "MPEG-4/VRML/X3D disabled"
@@ -2139,7 +2158,7 @@ if test "$disable_laser" = "yes" ; then
     echo "LASeR coder disabled"
     echo "#define GPAC_DISABLE_LASER" >> $TMPH
 fi
-if test "$disable_beng" = "yes" ; then
+if test "$disable_seng" = "yes" ; then
     echo "Scene encoder engine disabled"
     echo "#define GPAC_DISABLE_SENG" >> $TMPH
 fi
@@ -2529,13 +2548,23 @@ then
     echo "FREENECT_LDLAGS=$freenect_ld" >> config.mak
 fi
 
+echo "DISABLE_PLAYER=$disable_player" >> config.mak
+echo "DISABLE_STREAMING=$disable_streaming" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak
+echo "DISABLE_LASER=$disable_laser" >> config.mak
+echo "DISABLE_BIFS=$disable_bifs" >> config.mak
+echo "DISABLE_SENG=$disable_seng" >> config.mak
+echo "DISABLE_LOADER_ISOFF=$disable_loader_isoff" >> config.mak
 echo "DISABLE_LOADER_BT=$disable_loader_bt" >> config.mak
-echo "HAS_LIBXML2=$has_libxml2" >> config.mak
-if test "$has_libxml2" = "yes"; then
-    echo "XML2_CFLAGS=$libxml2_cflags" >> config.mak
-    echo "XML2_LIBS=$libxml2_lib_flags" >> config.mak
-fi
+echo "DISABLE_LOADER_XMT=$disable_loader_xmt" >> config.mak
+echo "DISABLE_LOADER_QTVR=$disable_qtvr" >> config.mak
+echo "DISABLE_LOADER_SWF=$disable_swf" >> config.mak
+echo "DISABLE_SCENE_STATS=$disable_scene_stats" >> config.mak
+echo "DISABLE_SCENE_DUMP=$disable_scene_dump" >> config.mak
+echo "DISABLE_SCENE_ENCODE=$disable_scene_encode" >> config.mak
+echo "DISABLE_SCENEGRAPH=$disable_scenegraph" >> config.mak
+echo "DISABLE_MCRYPT=$disable_mcrypt" >> config.mak
+
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
 fi
@@ -2544,9 +2573,7 @@ if test "$disable_m2ts_mux" = "yes" -o "$disable_m2ts" = "yes" ; then
 else
     echo "DISABLE_M2TS=no" >> config.mak
 fi
-if test "$disable_beng" = "no"; then
-    echo "DISABLE_SENG=no" >> config.mak
-fi
+
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
 echo "OGL_INCLS=$INCL3D" >> config.mak
