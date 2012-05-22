@@ -639,8 +639,12 @@ GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc)
 GF_EXPORT
 GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *cfg)
 {
-	u32 i, j;
-	Bool has_alt_format, has_sd;
+	u32 i;
+	Bool has_alt_format;
+#ifndef GPAC_DISABLE_ISOM
+	Bool has_sd;
+	u32 j;
+#endif
 	GF_Err e;
 	GF_BitStream *bs;
 	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
@@ -657,7 +661,11 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 	cfg->timescale = gf_bs_read_int(bs, 24);
 	has_alt_format = gf_bs_read_int(bs, 1);
 	cfg->sampleDescriptionFlags = gf_bs_read_int(bs, 2);
+#ifndef GPAC_DISABLE_ISOM
 	has_sd = gf_bs_read_int(bs, 1);
+#else
+	gf_bs_read_int(bs, 1);
+#endif
 	cfg->has_vid_info = gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 3);
 	cfg->layer = gf_bs_read_int(bs, 8);
@@ -717,7 +725,9 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		cfg->vert_offset = gf_bs_read_int(bs, 16);
 	}
 	
+#ifndef GPAC_DISABLE_ISOM
 exit:
+#endif
 	gf_bs_del(bs);
 	if (e) ResetTextConfig(cfg);
 	return e;

@@ -1729,10 +1729,10 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node)
 {
 	if (top_node && !compositor->root_visual_setup) {
-		Bool force_navigate=0;
 		GF_SceneGraph *scene = compositor->scene;
 		u32 node_tag;
 #ifndef GPAC_DISABLE_3D
+		Bool force_navigate=0;
 		Bool was_3d = compositor->visual->type_3d;
 #endif
 		compositor->root_visual_setup = 1;

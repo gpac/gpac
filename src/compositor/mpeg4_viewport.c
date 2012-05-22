@@ -416,10 +416,10 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	SFVec3f start, end;
 	Fixed scale;
+	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 #endif
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	M_NavigationInfo *ni = (M_NavigationInfo *) node;
-	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 
 	if (is_destroy) {
 		DestroyViewStack(node);

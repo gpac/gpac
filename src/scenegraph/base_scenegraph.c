@@ -622,7 +622,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	u32 j;
 	GF_Route *r;
 #endif
+#ifdef GPAC_HAS_SPIDERMONKEY
 	Bool detach=0;
+#endif
 	GF_SceneGraph *pSG;
 
 	if (!pNode) return GF_OK;
@@ -641,7 +643,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 				if (prev) prev->next = nlist->next;
 				else pNode->sgprivate->parents = nlist->next;
 				gf_free(nlist);
+#ifdef GPAC_HAS_SPIDERMONKEY
 				if (pNode->sgprivate->parents==NULL) detach=1;
+#endif
 				break;
 			}
 		}

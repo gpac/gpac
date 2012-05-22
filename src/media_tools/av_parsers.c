@@ -1561,10 +1561,10 @@ static u32 avc_emulation_bytes_add_count(unsigned char *buffer, u32 nal_size)
 	while (i < nal_size) {
 		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
 		other than the following sequences shall not occur at any byte-aligned position:
-		– 0x00000300
-		– 0x00000301
-		– 0x00000302
-		– 0x00000303"
+		\96 0x00000300
+		\96 0x00000301
+		\96 0x00000302
+		\96 0x00000303"
 		*/
 		if (num_zero == 2 && buffer[i] < 0x04) {
 			/*emulation code found*/
@@ -1622,10 +1622,10 @@ static u32 avc_emulation_bytes_remove_count(unsigned char *buffer, u32 nal_size)
 	{
 		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
 		  other than the following sequences shall not occur at any byte-aligned position:
-		  – 0x00000300
-		  – 0x00000301
-		  – 0x00000302
-		  – 0x00000303"
+		  \96 0x00000300
+		  \96 0x00000301
+		  \96 0x00000302
+		  \96 0x00000303"
 		*/
 		if (num_zero == 2
 			&& buffer[i] == 0x03
@@ -1750,8 +1750,8 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 			u8 separate_colour_plane_flag = gf_bs_read_int(bs, 1);
 			/*
 			Depending on the value of separate_colour_plane_flag, the value of the variable ChromaArrayType is assigned as follows.
-			–	If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
-			–	Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
+			\96	If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
+			\96	Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
 			*/
 			if (separate_colour_plane_flag) ChromaArrayType = 0;
 		}
@@ -2583,6 +2583,8 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	return (written>1) ? written : 0;
 }
 
+#ifndef GPAC_DISABLE_ISOM
+
 static u8 avc_get_sar_idx(u32 w, u32 h)
 {
 	u32 i;
@@ -2592,7 +2594,6 @@ static u8 avc_get_sar_idx(u32 w, u32 h)
 	return 0xFF;
 }
 
-#ifndef GPAC_DISABLE_ISOM
 GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 {
 	GF_BitStream *orig, *mod;
