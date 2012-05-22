@@ -30,7 +30,10 @@ LIBGPAC_BIFS=bifs/arith_decoder.o bifs/bifs_codec.o bifs/bifs_node_tables.o bifs
 endif
 
 ## libgpac objects gathering: src/isomedia
-LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple.o isomedia/box_code_base.o isomedia/box_code_isma.o isomedia/box_code_meta.o isomedia/box_dump.o isomedia/box_funcs.o isomedia/data_map.o isomedia/hint_track.o isomedia/hinting.o isomedia/isma_sample.o isomedia/isom_intern.o isomedia/isom_read.o isomedia/isom_store.o isomedia/isom_write.o isomedia/media.o isomedia/media_odf.o isomedia/meta.o isomedia/movie_fragments.o isomedia/sample_descs.o isomedia/stbl_read.o isomedia/stbl_write.o isomedia/track.o isomedia/tx3g.o 
+LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple.o isomedia/box_code_base.o isomedia/box_code_isma.o isomedia/box_code_meta.o isomedia/box_dump.o isomedia/box_funcs.o isomedia/data_map.o isomedia/isma_sample.o isomedia/isom_intern.o isomedia/isom_read.o isomedia/isom_store.o isomedia/isom_write.o isomedia/media.o isomedia/media_odf.o isomedia/meta.o isomedia/movie_fragments.o isomedia/sample_descs.o isomedia/stbl_read.o isomedia/stbl_write.o isomedia/track.o isomedia/tx3g.o 
+ifeq ($(DISABLE_ISOFF_HINT), no)
+LIBGPAC_ISOM+=isomedia/hint_track.o isomedia/hinting.o
+endif
 
 ## libgpac objects gathering: src/odf
 LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump.o odf/ipmpx_parse.o odf/oci_codec.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/odf_dump.o odf/odf_parse.o odf/qos.o odf/slc.o 
@@ -45,10 +48,38 @@ LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o
 endif
 
 ## libgpac objects gathering: src/media tools
-LIBGPAC_MEDIATOOLS=media_tools/ait.o media_tools/av_parsers.o media_tools/avilib.o media_tools/dsmcc.o media_tools/dvb.o media_tools/gpac_ogg.o media_tools/img.o media_tools/ismacryp.o media_tools/isom_hinter.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpeg2_ps.o media_tools/text_import.o media_tools/saf.o media_tools/mpegts.o media_tools/dvb_mpe.o  media_tools/reedsolomon.o media_tools/vobsub.o media_tools/m2ts_mux.o media_tools/m3u8.o media_tools/mpd.o
+LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/img.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpegts.o media_tools/m2ts_mux.o media_tools/m3u8.o media_tools/mpd.o
 ifeq ($(DISABLE_STREAMING), no)
 LIBGPAC_MEDIATOOLS+=media_tools/filestreamer.o
 endif
+ifeq ($(DISABLE_DVBX), no)
+LIBGPAC_MEDIATOOLS+=media_tools/ait.o media_tools/dsmcc.o media_tools/dvb_mpe.o media_tools/reedsolomon.o
+endif
+ifeq ($(DISABLE_AVILIB), no)
+LIBGPAC_MEDIATOOLS+=media_tools/avilib.o
+endif
+ifeq ($(DISABLE_M2PS), no)
+LIBGPAC_MEDIATOOLS+=media_tools/mpeg2_ps.o
+endif
+ifeq ($(DISABLE_OGG), no)
+LIBGPAC_MEDIATOOLS+=media_tools/gpac_ogg.o
+endif
+ifeq ($(DISABLE_MCRYPT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/ismacryp.o
+endif
+ifeq ($(DISABLE_ISOFF_HINT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/isom_hinter.o
+endif
+ifeq ($(DISABLE_SAF), no)
+LIBGPAC_MEDIATOOLS+=media_tools/saf.o
+endif
+ifeq ($(DISABLE_VOBSUB), no)
+LIBGPAC_MEDIATOOLS+=media_tools/vobsub.o
+endif
+ifeq ($(DISABLE_TTXT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/text_import.o
+endif
+
 
 ## libgpac objects gathering: src/scene_manager
 LIBGPAC_SCENEMANAGER=

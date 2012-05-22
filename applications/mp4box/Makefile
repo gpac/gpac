@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/mp4box
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS= $(OPTFLAGS) -DGPAC_HAVE_CONFIG_H -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -12,15 +12,6 @@ endif
 ifeq ($(GPROFBUILD), yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
-endif
-
-#file format is read-only
-ifeq ($(GPACREADONLY), yes)
-CFLAGS+= -DGPAC_READ_ONLY
-endif
-
-ifeq ($(DISABLE_SVG), yes)
-CFLAGS+=-DGPAC_DISABLE_SVG
 endif
 
 #common obj

@@ -105,6 +105,10 @@ endif
 
 endif
 
+ifeq ($(DISABLE_PLAYER), yes)
+PLUGDIRS=
+endif
+
 
 all: plugs
 

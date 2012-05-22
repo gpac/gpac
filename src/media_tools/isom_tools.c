@@ -28,6 +28,72 @@
 #include <gpac/constants.h>
 #include <gpac/config_file.h>
 
+
+GF_EXPORT
+GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]) 
+{
+	u8 block[1024];
+	u32 read;
+	u64 size, tot;
+	FILE *in;
+	GF_SHA1Context *ctx;
+#ifndef GPAC_DISABLE_ISOM
+	GF_BitStream *bs = NULL;
+	Bool is_isom = gf_isom_probe_file(file);
+#endif
+
+	in = gf_f64_open(file, "rb");
+	gf_f64_seek(in, 0, SEEK_END);
+	size = gf_f64_tell(in);
+	gf_f64_seek(in, 0, SEEK_SET);
+
+	ctx = gf_sha1_starts();
+	tot = 0;
+#ifndef GPAC_DISABLE_ISOM
+	if (is_isom) bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
+#endif
+
+	while (tot<size) {
+#ifndef GPAC_DISABLE_ISOM
+		if (is_isom) {
+			u64 box_size = gf_bs_peek_bits(bs, 32, 0);
+			u32 box_type = gf_bs_peek_bits(bs, 32, 4);
+
+			/*till end of file*/
+			if (!box_size) box_size = size-tot;
+			/*64-bit size*/
+			else if (box_size==1) box_size = gf_bs_peek_bits(bs, 64, 8);
+
+			/*skip all MutableDRMInformation*/
+			if (box_type==GF_4CC('m','d','r','i')) {
+				gf_bs_skip_bytes(bs, box_size);
+				tot += box_size;
+			} else {
+				u32 bsize = 0;
+				while (bsize<box_size) {
+					u32 to_read = (u32) ((box_size-bsize<1024) ? (box_size-bsize) : 1024);
+					gf_bs_read_data(bs, block, to_read);
+					gf_sha1_update(ctx, block, to_read);
+					bsize += to_read;
+				}
+				tot += box_size;
+			}
+		} else
+#endif
+		{
+			read = fread(block, 1, 1024, in);
+			gf_sha1_update(ctx, block, read);
+			tot += read;
+		}
+	}
+	gf_sha1_finish(ctx, hash);
+#ifndef GPAC_DISABLE_ISOM
+	if (bs) gf_bs_del(bs);
+#endif
+	fclose(in);
+	return GF_OK;
+}
+
 #ifndef GPAC_DISABLE_ISOM
 
 GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec)

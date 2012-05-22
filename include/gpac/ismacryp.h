@@ -37,9 +37,6 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 
 /*loads key and salt for MPEG4IP protected files*/
 Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
-
-/*computes file hash. If file is ISO-based, computre hash according to OMA (P)DCF (without MutableDRMInformation box)*/
-GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
 	
 enum
 {
