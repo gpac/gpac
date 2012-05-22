@@ -32,6 +32,8 @@
 #include <gpac/crypt.h>
 
 
+#if !defined(GPAC_DISABLE_MCRYPT)
+
 typedef struct 
 {
 	GF_List *tcis;
@@ -257,7 +259,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	return 0;
 }
 
-#if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static GFINLINE void resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 {
@@ -892,7 +894,8 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	return e;
 }
 
-#endif /*!defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
+#endif /* !defined(GPAC_DISABLE_ISOM_WRITE)*/
+#endif /* !defined(GPAC_DISABLE_MCRYPT)*/
 
 GF_EXPORT
 GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]) 
