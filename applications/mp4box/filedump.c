@@ -22,7 +22,7 @@
  *
  */
 
-#include <gpac/scene_manager.h>
+#include <gpac/tools.h>
 
 #if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
 
@@ -30,8 +30,12 @@
 
 #else
 
+#ifndef GPAC_DISABLE_X3D
 #include <gpac/nodes_x3d.h>
+#endif
+#ifndef GPAC_DISABLE_BIFS
 #include <gpac/internal/bifs_dev.h>
+#endif
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 #include <gpac/media_tools.h>
@@ -682,6 +686,7 @@ void PrintNode(const char *name, u32 graph_type)
 
 void PrintBuiltInNodes(u32 graph_type)
 {
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 	GF_Node *node;
 	GF_SceneGraph *sg;
 	u32 i, nb_in, nb_not_in, start_tag, end_tag;
@@ -740,6 +745,9 @@ void PrintBuiltInNodes(u32 graph_type)
 	} else {
 		fprintf(stdout, "\n%d nodes supported - %d nodes not supported\n", nb_in, nb_not_in);
 	}
+#else
+	fprintf(stdout, "\nNo scene graph enabled in this MP4Box build\n");
+#endif
 }
 
 #ifndef GPAC_DISABLE_ISOM_DUMP

@@ -1117,8 +1117,7 @@ GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_sc
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 
 /******************* Demux DVB ****************************/
-#include <gpac/ait.h>
-#include <gpac/dsmcc.h>
+
 
 #define UDP_BUFFER_SIZE	0x40000
 #define M2TS_BUFFER_MAX 400

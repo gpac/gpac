@@ -23,7 +23,7 @@
  */
 
 
-#include <gpac/user.h>
+#include <gpac/tools.h>
 #include <gpac/constants.h>
 #include <gpac/color.h>
 
