@@ -3735,10 +3735,6 @@
 				>
 			</File>			
 			<File
-				RelativePath="..\..\src\media_tools\dvb.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\media_tools\dvb_mpe.c"
 				>
 			</File>

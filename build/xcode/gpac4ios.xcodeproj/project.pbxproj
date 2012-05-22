@@ -504,7 +504,6 @@
 		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
 		979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		97FBAAE913BB61D700800B2F /* dvb.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FBAAE813BB61D700800B2F /* dvb.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
 /* End PBXBuildFile section */
 
@@ -982,7 +981,6 @@
 		9747B6EE14864C6400280D95 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = events_constants.h; sourceTree = "<group>"; };
 		9747B6F214864C7800280D95 /* ait.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ait.c; sourceTree = "<group>"; };
 		9747B6F314864C7800280D95 /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
-		97FBAAE813BB61D700800B2F /* dvb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dvb.c; sourceTree = "<group>"; };
 		97FF065F138CE4C400D6C707 /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1747,7 +1745,6 @@
 			children = (
 				9747B6F214864C7800280D95 /* ait.c */,
 				9747B6F314864C7800280D95 /* dsmcc.c */,
-				97FBAAE813BB61D700800B2F /* dvb.c */,
 				970A26C713434D2C0007362C /* m3u8.c */,
 				970A26C813434D2C0007362C /* mpd.c */,
 				71CCF1CE1277045100339E12 /* av_parsers.c */,
@@ -3193,7 +3190,6 @@
 				970A26D713434DAC0007362C /* ringbuffer.c in Sources */,
 				970A26D813434DAC0007362C /* unicode.c in Sources */,
 				97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */,
-				97FBAAE913BB61D700800B2F /* dvb.c in Sources */,
 				9747B6F414864C7800280D95 /* ait.c in Sources */,
 				9747B6F514864C7800280D95 /* dsmcc.c in Sources */,
 			);

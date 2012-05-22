@@ -629,7 +629,6 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\dsmcc.c" />
-    <ClCompile Include="..\..\src\media_tools\dvb.c" />
     <ClCompile Include="..\..\src\media_tools\dvb_mpe.c" />
     <ClCompile Include="..\..\src\media_tools\filestreamer.c" />
     <ClCompile Include="..\..\src\media_tools\gpac_ogg.c">
