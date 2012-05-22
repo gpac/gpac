@@ -18,10 +18,16 @@ endif
 LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/uni_bidi.o utils/url.o utils/utf.o utils/xml_parser.o utils/alloc.o utils/ringbuffer.o utils/unicode.o
 
 ## libgpac objects gathering: src/ietf
+LIBGPAC_IETF=
+ifeq ($(DISABLE_STREAMING), no)
 LIBGPAC_IETF=ietf/rtcp.o ietf/rtp.o ietf/rtp_packetizer.o ietf/rtp_pck_3gpp.o ietf/rtp_pck_mpeg12.o ietf/rtp_pck_mpeg4.o ietf/rtsp_command.o ietf/rtsp_common.o ietf/rtsp_response.o ietf/rtsp_session.o ietf/sdp.o ietf/rtp_depacketizer.o ietf/rtp_streamer.o
+endif
 
 ## libgpac objects gathering: src/bifs
+LIBGPAC_BIFS=
+ifeq ($(DISABLE_BIFS), no)
 LIBGPAC_BIFS=bifs/arith_decoder.o bifs/bifs_codec.o bifs/bifs_node_tables.o bifs/com_dec.o bifs/com_enc.o bifs/conditional.o bifs/field_decode.o bifs/field_encode.o bifs/memory_decoder.o bifs/predictive_mffield.o bifs/quantize.o bifs/script_dec.o bifs/script_enc.o bifs/unquantize.o
+endif
 
 ## libgpac objects gathering: src/isomedia
 LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple.o isomedia/box_code_base.o isomedia/box_code_isma.o isomedia/box_code_meta.o isomedia/box_dump.o isomedia/box_funcs.o isomedia/data_map.o isomedia/hint_track.o isomedia/hinting.o isomedia/isma_sample.o isomedia/isom_intern.o isomedia/isom_read.o isomedia/isom_store.o isomedia/isom_write.o isomedia/media.o isomedia/media_odf.o isomedia/meta.o isomedia/movie_fragments.o isomedia/sample_descs.o isomedia/stbl_read.o isomedia/stbl_write.o isomedia/track.o isomedia/tx3g.o 
@@ -33,13 +39,49 @@ LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o
 
 ## libgpac objects gathering: src/mcrypt
-LIBGPAC_MCRYPT=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o mcrypt/sha1.o 
+LIBGPAC_MCRYPT=mcrypt/sha1.o
+ifeq ($(DISABLE_MCRYPT), no)
+LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o 
+endif
 
 ## libgpac objects gathering: src/media tools
-LIBGPAC_MEDIATOOLS=media_tools/ait.o media_tools/av_parsers.o media_tools/avilib.o media_tools/dsmcc.o media_tools/dvb.o media_tools/filestreamer.o media_tools/gpac_ogg.o media_tools/img.o media_tools/ismacryp.o media_tools/isom_hinter.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpeg2_ps.o media_tools/text_import.o media_tools/saf.o media_tools/mpegts.o media_tools/dvb_mpe.o  media_tools/reedsolomon.o media_tools/vobsub.o media_tools/m2ts_mux.o media_tools/m3u8.o media_tools/mpd.o
+LIBGPAC_MEDIATOOLS=media_tools/ait.o media_tools/av_parsers.o media_tools/avilib.o media_tools/dsmcc.o media_tools/dvb.o media_tools/gpac_ogg.o media_tools/img.o media_tools/ismacryp.o media_tools/isom_hinter.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpeg2_ps.o media_tools/text_import.o media_tools/saf.o media_tools/mpegts.o media_tools/dvb_mpe.o  media_tools/reedsolomon.o media_tools/vobsub.o media_tools/m2ts_mux.o media_tools/m3u8.o media_tools/mpd.o
+ifeq ($(DISABLE_STREAMING), no)
+LIBGPAC_MEDIATOOLS+=media_tools/filestreamer.o
+endif
 
 ## libgpac objects gathering: src/scene_manager
-LIBGPAC_SCENEMANAGER=scene_manager/loader_bt.o scene_manager/loader_isom.o scene_manager/loader_qt.o scene_manager/loader_xmt.o scene_manager/scene_dump.o scene_manager/scene_manager.o scene_manager/scene_stats.o scene_manager/swf_parse.o scene_manager/swf_bifs.o scene_manager/text_to_bifs.o scene_manager/scene_engine.o scene_manager/encode_isom.o scene_manager/loader_svg.o
+LIBGPAC_SCENEMANAGER=
+ifeq ($(DISABLE_LOADER_BT), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_bt.o scene_manager/text_to_bifs.o
+endif
+ifeq ($(DISABLE_LOADER_XMT), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_xmt.o
+endif
+ifeq ($(DISABLE_LOADER_ISOFF), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_isom.o
+endif
+ifeq ($(DISABLE_LOADER_QTVR), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_qt.o
+endif
+ifeq ($(DISABLE_SVG), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg.o 
+endif
+ifeq ($(DISABLE_LOADER_SWF), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/swf_parse.o scene_manager/swf_bifs.o 
+endif
+ifeq ($(DISABLE_SCENE_DUMP), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_dump.o
+endif
+ifeq ($(DISABLE_SCENE_STATS), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_stats.o
+endif
+ifeq ($(DISABLE_SENG), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_engine.o 
+endif
+ifeq ($(DISABLE_SCENE_ENCODE), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_manager.o scene_manager/encode_isom.o
+endif
 
 ## libgpac objects gathering: src/terminal
 LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/mpeg4_inline.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/scene.o terminal/terminal.o terminal/svg_external.o
@@ -47,9 +89,19 @@ LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal
 ## libgpac objects gathering: src/compositor
 LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/font_engine.o compositor/hc_flash_shape.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_filters.o compositor/svg_font.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o
 
+ifeq ($(DISABLE_PLAYER), yes)
+LIBGPAC_COMPOSITOR=
+LIBGPAC_TERMINAL=
+endif
+ifeq ($(DISABLE_SCENEGRAPH), yes)
+LIBGPAC_SCENE=
+endif
+
+
+
 ## libgpac objects gathering: src/laser
 LIBGPAC_LASER=
-ifeq ($(DISABLE_SVG), no)
+ifeq ($(DISABLE_LASER), no)
 LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
