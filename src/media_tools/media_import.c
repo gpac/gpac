@@ -25,9 +25,15 @@
 
 
 #include <gpac/internal/media_dev.h>
+#ifndef GPAC_DISABLE_AVILIB
 #include <gpac/internal/avilib.h>
+#endif
+#ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
+#endif
+#ifndef GPAC_DISABLE_VOBSUB
 #include <gpac/internal/vobsub.h>
+#endif
 #include <gpac/xml.h>
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
