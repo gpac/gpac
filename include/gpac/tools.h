@@ -831,6 +831,27 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *out_size);
 GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size);
 
 
+/*SHA1*/
+typedef struct __sha1_context GF_SHA1Context;
+
+/*
+ * Core SHA-1 functions
+ */
+void gf_sha1_starts(GF_SHA1Context *ctx );
+void gf_sha1_update(GF_SHA1Context *ctx, u8 *input, u32 length);
+void gf_sha1_finish(GF_SHA1Context *ctx, u8 digest[20] );
+
+/*
+ * Output SHA-1(file contents), returns 0 if successful.
+ */
+int gf_sha1_file(const char *filename, u8 digest[20]);
+
+/*
+ * Output SHA-1(buf)
+ */
+void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[20]);
+
+
 #ifdef GPAC_ANDROID
 typedef void (*fm_callback_func)(void *cbk_obj, u32 type, u32 param, int *value);
 extern void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func);
