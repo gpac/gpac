@@ -154,6 +154,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/utf.c \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/cache.c \
+	../../../../src/utils/sha1.c \
 	../../../../src/bifs/predictive_mffield.c \
 	../../../../src/bifs/script_dec.c \
 	../../../../src/bifs/memory_decoder.c \
@@ -209,7 +210,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/mcrypt/ofb.c \
 	../../../../src/mcrypt/tripledes.c \
 	../../../../src/mcrypt/cfb.c \
-	../../../../src/mcrypt/sha1.c \
 	../../../../src/mcrypt/stream.c \
 	../../../../src/mcrypt/rijndael-256.c \
 	../../../../src/mcrypt/ncfb.c \

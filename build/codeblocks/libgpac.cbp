@@ -545,9 +545,6 @@
 		<Unit filename="../../src/mcrypt/rijndael-256.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../src/mcrypt/sha1.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../../src/mcrypt/stream.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -842,6 +839,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../src/utils/url.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../src/utils/sha1.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../src/utils/utf.c">
