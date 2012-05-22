@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/uni_bidi.o utils/url.o utils/utf.o utils/xml_parser.o utils/alloc.o utils/ringbuffer.o utils/unicode.o
+LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/uni_bidi.o utils/url.o utils/utf.o utils/xml_parser.o utils/alloc.o utils/ringbuffer.o utils/unicode.o utils/sha1.o
 
 ## libgpac objects gathering: src/ietf
 LIBGPAC_IETF=
@@ -39,7 +39,7 @@ LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o
 
 ## libgpac objects gathering: src/mcrypt
-LIBGPAC_MCRYPT=mcrypt/sha1.o
+LIBGPAC_MCRYPT=
 ifeq ($(DISABLE_MCRYPT), no)
 LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o 
 endif
