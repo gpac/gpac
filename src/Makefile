@@ -83,6 +83,9 @@ endif
 
 ## libgpac objects gathering: src/scene_manager
 LIBGPAC_SCENEMANAGER=
+ifeq ($(DISABLE_SMGR), no)
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_manager.o
+endif
 ifeq ($(DISABLE_LOADER_BT), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_bt.o scene_manager/text_to_bifs.o
 endif
@@ -111,7 +114,7 @@ ifeq ($(DISABLE_SENG), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_engine.o 
 endif
 ifeq ($(DISABLE_SCENE_ENCODE), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/scene_manager.o scene_manager/encode_isom.o
+LIBGPAC_SCENEMANAGER+=scene_manager/encode_isom.o
 endif
 
 ## libgpac objects gathering: src/terminal
