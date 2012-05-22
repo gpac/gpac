@@ -2159,6 +2159,11 @@ echo "fixed-point version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
 
 
+if test "$disable_player" = "yes" ; then
+    echo "Player disabled"
+    echo "#define GPAC_DISABLE_PLAYER" >> $TMPH
+    disable_laser="yes"
+fi
 if test "$disable_svg" = "yes" ; then
     echo "SVG disabled"
     echo "#define GPAC_DISABLE_SVG" >> $TMPH
