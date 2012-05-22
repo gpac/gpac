@@ -25,9 +25,15 @@
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
-#include <gpac/ietf.h>
-#include <gpac/scene_engine.h>
 #include <gpac/mpegts.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+#include <gpac/ietf.h>
+#endif
+
+#ifndef GPAC_DISABLE_SENG
+#include <gpac/scene_engine.h>
+#endif
 
 
 #ifdef GPAC_DISABLE_ISOM
@@ -104,7 +110,9 @@ typedef struct
 	u32 nb_streams, pcr_idx;
 	GF_ESInterface streams[40];
 	GF_Descriptor *iod;
+#ifndef GPAC_DISABLE_SENG
 	GF_SceneEngine *seng;
+#endif
 	GF_Thread *th;
 	char *src_name;
 	u32 rate;
@@ -153,7 +161,10 @@ typedef struct
 } GF_SimpleDataDescriptor;
 
 //TODO: find a clean way to save this data
+#ifndef GPAC_DISABLE_PLAYER
 static u32 audio_OD_stream_id = (u32)-1;
+#endif
+
 #define AUDIO_OD_ESID	100
 #define AUDIO_DATA_ESID	101
 #define VIDEO_DATA_ESID	105
@@ -164,7 +175,9 @@ enum
 	GF_MP42TS_FILE, /*open mpeg2ts file*/
 	GF_MP42TS_UDP,  /*open udp socket*/
 	GF_MP42TS_RTP,  /*open rtp socket*/
+#ifndef GPAC_DISABLE_PLAYER
 	GF_MP42TS_HTTP,	/*open http downloader*/
+#endif
 };
 
 static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -433,6 +446,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 }
 
 
+#ifndef GPAC_DISABLE_SENG
 static GF_Err seng_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	if (act_type==GF_ESI_INPUT_DESTROY) {
@@ -445,6 +459,8 @@ static GF_Err seng_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 	return GF_OK;
 }
+#endif
+
 
 #ifndef GPAC_DISABLE_STREAMING
 typedef struct
@@ -512,6 +528,8 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 }
 
 /*AAC import features*/
+#ifndef GPAC_DISABLE_PLAYER
+
 void *audio_prog = NULL;
 static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts);
 #define DONT_USE_TERMINAL_MODULE_API
@@ -557,6 +575,9 @@ static GF_Err encode_audio_desc(GF_ESD *esd, GF_SimpleDataDescriptor *audio_desc
 	return GF_OK;
 }
 
+#endif
+
+
 static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {		
 	u32 i;
@@ -565,6 +586,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 	if (calling_object) {
 		M2TSProgram *prog = (M2TSProgram *)calling_object;
 
+#ifndef GPAC_DISABLE_PLAYER
 		if (ESID == AUDIO_DATA_ESID) {
 			if (audio_OD_stream_id != (u32)-1) {
 				/*this is the first time we get some audio data. Therefore we are sure we can retrieve the audio descriptor. Then we'll
@@ -641,7 +663,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 			/*overwrite timing as it is flushed to 0 on discontinuities*/
 			ts += audio_discontinuity_offset;
 		}
-
+#endif
 		i=0;
 		while (i<prog->nb_streams){
 			if (prog->streams[i].output_ctrl==NULL) {
@@ -683,6 +705,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 
 static volatile Bool run = 1;
 
+#ifndef GPAC_DISABLE_SENG
 static GF_ESIStream * set_broadcast_params(M2TSProgram *prog, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
 {
 	u32 i=0;
@@ -732,9 +755,11 @@ static GF_ESIStream * set_broadcast_params(M2TSProgram *prog, u16 esid, u32 peri
 	} else {
 		esi->repeat_rate = 0;
 	}
-
 	return priv;
 }
+#endif
+
+#ifndef GPAC_DISABLE_SENG
 
 static Bool seng_output(void *param)
 {
@@ -914,6 +939,8 @@ static Bool seng_output(void *param)
 	
 	return e ? 1 : 0;
 }
+#endif
+
 
 #ifndef GPAC_DISABLE_STREAMING
 static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
@@ -1033,6 +1060,7 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 }
 #endif /*GPAC_DISABLE_STREAMING*/
 
+#ifndef GPAC_DISABLE_SENG
 void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 period)
 {
 	GF_Err e = GF_OK;
@@ -1062,6 +1090,7 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 	ifce->input_ctrl = seng_input_ctrl;
 
 }
+#endif
 
 static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mpeg4_signaling, char *update, char *audio_input_ip, u16 audio_input_port, char *video_buffer, Bool force_real_time, u32 bifs_use_pes)
 {
@@ -1069,7 +1098,6 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 	GF_SDPInfo *sdp;
 #endif
 	u32 i;
-	GF_Err e;
 	
 	memset(prog, 0, sizeof(M2TSProgram));
 	prog->mpeg4_signaling = mpeg4_signaling;
@@ -1225,6 +1253,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 		GF_X_Attribute *att;
 		char *sdp_buf;
 		u32 sdp_size;
+		GF_Err e;
 		FILE *_sdp = fopen(src, "rt");
 		if (!_sdp) {
 			fprintf(stderr, "Error opening %s - no such file\n", src);
@@ -1290,6 +1319,8 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 		return 2;
 	} else 
 #endif /*GPAC_DISABLE_STREAMING*/
+
+#ifndef GPAC_DISABLE_SENG
 	if (strstr(src, ".bt")) //open .bt file
 	{
 		u32 load_type=0;
@@ -1430,7 +1461,9 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 		prog->src_name = update;
 		gf_th_run(prog->th, seng_output, prog);
 		return 1;
-	} else {
+	} else
+#endif
+	{
 		FILE *f = fopen(src, "rt");
 		if (f) {
 			fclose(f);
@@ -1510,8 +1543,10 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					*audio_input_type = GF_MP42TS_UDP;
 				else if (!strnicmp(arg, "rtp://", 6))
 					*audio_input_type = GF_MP42TS_RTP;
+#ifndef GPAC_DISABLE_PLAYER
 				else if (!strnicmp(arg, "http://", 7))
 					*audio_input_type = GF_MP42TS_HTTP;
+#endif
 				/*http needs to get the complete URL*/
 				switch(*audio_input_type) {
 					case GF_MP42TS_UDP:
@@ -1527,11 +1562,13 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 							*audio_input_ip = gf_strdup(arg+6);
 						}
 						break;
+#ifndef GPAC_DISABLE_PLAYER
 					case GF_MP42TS_HTTP:
 						/* No need to dup since it may come from argv */
 						*audio_input_ip = arg;
 						assert(audio_input_port != 0);
 						break;
+#endif
 					default:
 						assert(0);
 				}
@@ -1855,7 +1892,9 @@ int main(int argc, char **argv)
 	prev_seg_time.sec = 0;
 	prev_seg_time.nanosec = 0;
 	video_buffer_size = 0;
+#ifndef GPAC_DISABLE_PLAYER
 	aac_reader = AAC_Reader_new();
+#endif
 	muxer = NULL;
 	single_au_pes = 0;
 	bifs_use_pes = 0;
@@ -1991,10 +2030,12 @@ int main(int argc, char **argv)
 			/*TODO: not implemented*/
 			assert(0);
 			break;
+#ifndef GPAC_DISABLE_PLAYER
 		case GF_MP42TS_HTTP:
 			audio_prog = (void*)&progs[nb_progs-1];
 			aac_download_file(aac_reader, audio_input_ip);
 			break;
+#endif
 		case GF_MP42TS_FILE:
 			assert(0); /*audio live input is restricted to realtime/streaming*/
 			break;
@@ -2042,7 +2083,7 @@ int main(int argc, char **argv)
 	/*****************/
 	last_print_time = gf_sys_clock();
 	while (run) {
-		u32 ts, status;
+		u32 status;
 
 		/*check for some audio input from the network*/
 		if (audio_input_ip) {
@@ -2055,6 +2096,7 @@ int main(int argc, char **argv)
 						SampleCallBack((void*)&progs[nb_progs-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_m2ts_get_sys_clock(muxer));
 					}
 					break;
+#ifndef GPAC_DISABLE_PLAYER
 				case GF_MP42TS_HTTP:
 					/*nothing to do: AAC_OnLiveData is called automatically*/
 					/*check we're still alive*/
@@ -2070,6 +2112,7 @@ int main(int argc, char **argv)
 						gf_odf_desc_del((GF_Descriptor *)esd);
 					}
 					break;
+#endif
 				default:
 					assert(0);
 			}
@@ -2125,6 +2168,7 @@ int main(int argc, char **argv)
 			}
 #ifndef GPAC_DISABLE_STREAMING
 			if (ts_output_rtp != NULL) {
+				u32 ts;
 				hdr.SequenceNumber++;
 				/*muxer clock at 90k*/
 				ts = muxer->time.sec*90000 + muxer->time.nanosec*9/100000;
@@ -2201,7 +2245,9 @@ exit:
 #ifndef GPAC_DISABLE_STREAMING
 	if (rtp_out) gf_free(rtp_out);
 #endif
+#ifndef GPAC_DISABLE_PLAYER
 	if (aac_reader) AAC_Reader_del(aac_reader);
+#endif
 	if (muxer) gf_m2ts_mux_del(muxer);
 	
 	for (i=0; i<nb_progs; i++) {
@@ -2219,10 +2265,12 @@ exit:
 		}
 		if (progs[i].iod) gf_odf_desc_del((GF_Descriptor*)progs[i].iod);
 		if (progs[i].mp4) gf_isom_close(progs[i].mp4);
+#ifndef GPAC_DISABLE_SENG
 		if (progs[i].seng){
 		    gf_seng_terminate(progs[i].seng);
 		    progs[i].seng = NULL;
 		}
+#endif
 		if (progs[i].th) gf_th_del(progs[i].th);
 	}
 	gf_sys_close();
