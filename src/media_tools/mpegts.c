@@ -43,6 +43,10 @@
 #include <gpac/dvb_mpe.h>
 #endif
 
+#ifndef GPAC_DISABLE_DSMCC
+#include <gpac/ait.h>
+#endif
+
 #define DEBUG_TS_PACKET 0
 
 
