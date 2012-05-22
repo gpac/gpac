@@ -1,6 +1,10 @@
 include ../config.mak
 
-APPDIRS=mp4client 
+APPDIRS=
+
+ifeq ($(DISABLE_PLAYER), no)
+APPDIRS+=mp4client 
+endif
 
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box

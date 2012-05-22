@@ -5130,6 +5130,7 @@ exit:
 
 GF_Err gf_import_saf(GF_MediaImporter *import)
 {
+#ifndef GPAC_DISABLE_SAF
 	GF_Err e;
 	u32 track;
 	u64 tot;
@@ -5300,8 +5301,10 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 	gf_set_progress("Importing SAF", tot, tot);
 	MP4T_RecomputeBitRate(import->dest, track);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
-
 
 typedef struct
 {
@@ -6271,6 +6274,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 GF_Err gf_import_vobsub(GF_MediaImporter *import)
 {
+#ifndef GPAC_DISABLE_VOBSUB
 	static const u8 null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
 	char		  filename[GF_MAX_PATH];
 	FILE		 *file = NULL;
@@ -6522,6 +6526,9 @@ error:
 	}
 
 	return err;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -6658,7 +6665,9 @@ exit:
 GF_EXPORT
 GF_Err gf_media_import(GF_MediaImporter *importer)
 {
+#ifndef GPAC_DISABLE_TTXT
 	GF_Err gf_import_timed_text(GF_MediaImporter *import);
+#endif
 	GF_Err e;
 	char *ext, *xml_type;
 	char *fmt = "";
@@ -6776,8 +6785,13 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_saf(importer);
 	/*text subtitles*/
 	if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5)
-		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") )
-		return gf_import_timed_text(importer);
+		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") ) {
+#ifndef GPAC_DISABLE_TTXT
+			return gf_import_timed_text(importer);
+#else
+			return GF_NOT_SUPPORTED;
+#endif
+	}
 	/*VobSub*/
 	if (!strnicmp(ext, ".idx", 4) || !stricmp(fmt, "VOBSUB"))
 		return gf_import_vobsub(importer);
@@ -6794,7 +6808,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (xml_type) {
 		if (!stricmp(xml_type, "TextStream") || !stricmp(xml_type, "text3GTrack") ) {
 			gf_free(xml_type);
+#ifndef GPAC_DISABLE_TTXT
 			return gf_import_timed_text(importer);
+#else
+			return GF_NOT_SUPPORTED;
+#endif
 		}
 		else if (!stricmp(xml_type, "NHNTStream")) {
 			gf_free(xml_type);

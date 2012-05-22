@@ -29,9 +29,19 @@
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 
+#ifndef GPAC_DISABLE_AVILIB
 #include <gpac/internal/avilib.h>
+#endif
+
+#ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
+#endif
+
+#ifndef GPAC_DISABLE_VOBSUB
 #include <gpac/internal/vobsub.h>
+#endif
+
+
 #include <zlib.h>
 
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc);
@@ -439,6 +449,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 
 static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, char *dsi, u32 dsiSize)
 {
+#ifndef GPAC_DISABLE_VOBSUB
 	FILE			*fidx, *fsub;
 	u32				 width, height, i, count, di;
 	GF_ISOSample	*samp;
@@ -554,6 +565,9 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	fclose(fidx);
 
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 /*QCP codec GUIDs*/
@@ -1813,6 +1827,7 @@ typedef struct
 
 GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 {
+#ifndef GPAC_DISABLE_SAF
 	u32 count, i, s_count, di, tot_samp, samp_done;
 	char out_file[GF_MAX_PATH];
 	GF_SAFMuxer *mux;
@@ -1914,6 +1929,9 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 	gf_saf_mux_del(mux);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 #ifndef GPAC_DISABLE_MPEG2TS

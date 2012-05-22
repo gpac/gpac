@@ -37,10 +37,9 @@
 #include <unistd.h>
 #endif
 
-#define DUMP_MPE_IP_DATAGRAMS
 //#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 #include <gpac/dvb_mpe.h>
 #endif
 
@@ -811,7 +810,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
 
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 		if (es->flags & GF_M2TS_ES_IS_MPE)
 			gf_dvb_mpe_section_del(es);
 #endif
@@ -841,22 +840,27 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 {
 	if (!sec->process_section) {
 		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) ) {				
+#ifndef GPAC_DISABLE_DSMCC
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			//ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
 			on_ait_section(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
+#endif
 		} else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA	|| sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE ||
 			sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_PRIVATE)) ) {				
+
+#ifndef GPAC_DISABLE_DSMCC
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			on_dsmcc_section(ts,GF_M2TS_EVT_DSMCC_FOUND,&pck); 
 			//ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
+#endif
 		}
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 		else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -1278,7 +1282,22 @@ static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es,
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] NIT table processing (not yet implemented)"));
 }
 
-extern void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day);
+/* decodes an Modified Julian Date (MJD) into a Co-ordinated Universal Time (UTC)
+See annex C of DVB-SI ETSI EN 300468 */
+static void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day)
+{
+    u32 yp, mp, k;
+    yp = (u32)((date - 15078.2)/365.25);
+    mp = (u32)((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
+    *day = (u32)(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
+    if (mp == 14 || mp == 15) k = 1;
+    else k = 0;
+    *year = yp + k + 1900;
+    *month = mp - 1 - k*12;
+	assert(*year>=1900 && *year<=2100 && *month && *month<=12 && *day && *day<=31);
+}
+
+
 static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt_tot_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	unsigned char *data;
@@ -1551,7 +1570,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		case GF_M2TS_MPE_SECTIONS:
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type MPE found : pid = %d \n", pid));
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 			es = gf_dvb_mpe_section_new();
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
 				/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
@@ -2476,7 +2495,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
 	ts->tdt_tot = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot, 1);
 
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 	gf_dvb_mpe_init(ts);
 #endif
 
@@ -2548,11 +2567,12 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->tdt_tot)
 	gf_list_del(ts->SDTs);
 
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 	gf_dvb_mpe_shutdown(ts);
 #endif
 
 	if(gf_list_count(ts->dsmcc_controler)){
+#ifndef GPAC_DISABLE_DSMCC
 		GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)gf_list_get(ts->dsmcc_controler,0);	
 		gf_cleanup_dir(dsmcc_overlord->root_dir);
 		gf_rmdir(dsmcc_overlord->root_dir);	
@@ -2560,12 +2580,15 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 		if(ts->dsmcc_root_dir){
 			gf_free(ts->dsmcc_root_dir);
 		}
+#endif
 	}
 
 	while(gf_list_count(ts->ChannelAppList)){
+#ifndef GPAC_DISABLE_DSMCC
 		GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo = (GF_M2TS_CHANNEL_APPLICATION_INFO*)gf_list_get(ts->ChannelAppList,0);
 		gf_m2ts_delete_channel_application_info(ChanAppInfo);
 		gf_list_rem(ts->ChannelAppList,0);
+#endif
 	}
 	gf_list_del(ts->ChannelAppList);
 
@@ -2574,7 +2597,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 {
-#ifdef DUMP_MPE_IP_DATAGRAMS
+#ifndef GPAC_DISABLE_MPE
 	gf_m2ts_print_mpe_info(ts);
 #endif
 }

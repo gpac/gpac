@@ -33,6 +33,8 @@ extern "C" {
 #include <gpac/isomedia.h>
 #include <gpac/avparse.h>
 
+/*computes file hash. If file is ISO-based, computre hash according to OMA (P)DCF (without MutableDRMInformation box)*/
+GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
 
 #ifndef GPAC_DISABLE_ISOM
 /*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback

@@ -45,14 +45,18 @@
 #define BUFFSIZE	8192
 
 /*in fileimport.c*/
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+void convert_file_info(char *inName, u32 trackID);
+#endif
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat);
 
-#if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_SCENE_ENCODER)
-void convert_file_info(char *inName, u32 trackID);
+#if !defined(GPAC_DISABLE_SCENE_ENCODER)
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 #endif
@@ -1214,10 +1218,18 @@ int mp4boxMain(int argc, char **argv)
 	s32 subsegs_per_sidx;
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
-	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, single_group;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, single_group;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
+
+#ifndef GPAC_DISABLE_SCENE_ENCODER
+	Bool chunk_mode=0;
+#endif
+#ifndef GPAC_DISABLE_ISOM_HINTING
+	Bool HintCopy=0;
+	u32 MTUSize = 1450;
+#endif
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
@@ -1248,9 +1260,8 @@ int mp4boxMain(int argc, char **argv)
 	import_flags = 0;
 	split_size = 0;
 	movie_time = 0;
-	MTUSize = 1450;
-	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
-	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
+	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
+	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	subsegs_per_sidx = 0;
 	track_dump_type = 0;
