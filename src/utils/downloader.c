@@ -30,7 +30,6 @@
 #include <gpac/thread.h>
 #include <gpac/list.h>
 #include <gpac/base_coding.h>
-#include <gpac/crypt.h>
 #include <gpac/tools.h>
 #include <gpac/cache.h>
 

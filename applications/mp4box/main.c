@@ -23,8 +23,11 @@
  */
 
 
-#include <gpac/scene_manager.h>
 #include <gpac/download.h>
+
+#ifndef GPAC_DISABLE_SMGR
+#include <gpac/scene_manager.h>
+#endif
 
 #ifdef GPAC_DISABLE_ISOM
 
@@ -33,9 +36,16 @@
 #else
 
 #include <gpac/media_tools.h>
+
 /*RTP packetizer flags*/
+#ifndef GPAC_DISABLE_STREAMING
 #include <gpac/ietf.h>
+#endif
+
+#ifndef GPAC_DISABLE_MCRYPT
 #include <gpac/ismacryp.h>
+#endif
+
 #include <gpac/constants.h>
 
 #include <gpac/internal/mpd.h>
@@ -1280,7 +1290,9 @@ int mp4boxMain(int argc, char **argv)
 	do_flat = 0;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
 
+#ifndef GPAC_DISABLE_SWF_IMPORT
 	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
+#endif
 	swf_flatten_angle = 0.0f;
 	tmpdir = NULL;
 	
@@ -1472,7 +1484,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 		}
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#ifndef GPAC_DISABLE_SWF_IMPORT
 		/*SWF importer options*/
 		else if (!stricmp(arg, "-global")) swf_flags |= GF_SM_SWF_STATIC_DICT;
 		else if (!stricmp(arg, "-no-ctrl")) swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
@@ -1489,6 +1501,8 @@ int mp4boxMain(int argc, char **argv)
 			swf_flatten_angle = (Float) atof(argv[i+1]);
 			i++;
 		}
+#endif
+#ifndef GPAC_DISABLE_ISOM_WRITE
 		else if (!stricmp(arg, "-isma")) { conv_type = GF_ISOM_CONV_TYPE_ISMA; open_edit = 1; }
 		else if (!stricmp(arg, "-3gp")) { conv_type = GF_ISOM_CONV_TYPE_3GPP; open_edit = 1; }
 		else if (!stricmp(arg, "-ipod")) { conv_type = GF_ISOM_CONV_TYPE_IPOD; open_edit = 1; }

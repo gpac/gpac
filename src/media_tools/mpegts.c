@@ -1541,13 +1541,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			}
 			break;
 
-		
-		
-			/*to refine with generic private section redispatching to AIT or other afterwards*/
-			es = gf_ait_section_new(pmt->program->number);
-			ses = (GF_M2TS_SECTION_ES *)es;
-			ses->sec = gf_m2ts_section_filter_new(NULL, 0);
-			break;
 		case GF_M2TS_13818_6_ANNEX_A:
 		case GF_M2TS_13818_6_ANNEX_B:
 		case GF_M2TS_13818_6_ANNEX_C:

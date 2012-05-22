@@ -117,6 +117,7 @@ disable_bifs="no"
 disable_bifs_enc="no"
 disable_laser="no"
 disable_saf="no"
+disable_smgr="no"
 disable_seng="no"
 disable_qtvr="no"
 disable_avi="no"
@@ -277,6 +278,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-streaming      disable RTP/RTSP/SDP
   --disable-dvb            disable DVB-specific tools (MPE, FEC, DSM-CC)
   --disable-vobsub         disable VobSub support
+  --disable-sman           disable scene manager
   --disable-ttxt           disable TTXT (3GPP / MPEG-4 Timed Text) support
   --disable-player         disable player (terminal and compositor)
   --disable-scenegraph     disable scenegraph, scene parsers and player (terminal and compositor)
@@ -1696,7 +1698,7 @@ for opt do
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
 
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_ttxt="yes"; disable_saf="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"
             ;;
 
         --disable-3d) disable_3d="yes"
@@ -1856,6 +1858,10 @@ for opt do
         --disable-saf) disable_saf="yes"
             ;;
         --enable-saf) disable_saf="no"
+            ;; 
+        --disable-smgr) disable_smgr="yes"
+            ;;
+        --enable-smgr) disable_smgr="no"
             ;; 
 
     esac
@@ -2299,6 +2305,10 @@ if test "$disable_ttxt" = "yes" ; then
     echo "TimedText disabled"
     echo "#define GPAC_DISABLE_TTXT" >> $TMPH
 fi
+if test "$disable_smgr" = "yes" ; then
+    echo "Scene Manager disabled"
+    echo "#define GPAC_DISABLE_SMGR" >> $TMPH
+fi
 
 if test "$enable_depth_compositor" = "yes" ; then
     echo "Depth Compositor enabled"
@@ -2613,6 +2623,7 @@ echo "DISABLE_OGG=$disable_ogg" >> config.mak
 echo "DISABLE_ISOFF_HINT=$disable_isoff_hint" >> config.mak
 echo "DISABLE_VOBSUB=$disable_vobsub" >> config.mak
 echo "DISABLE_TTXT=$disable_ttxt" >> config.mak
+echo "DISABLE_SMGR=$disable_smgr" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"

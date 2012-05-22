@@ -25,11 +25,16 @@
  */
 
 
-#include <gpac/filestreamer.h>
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>
+
+#ifndef GPAC_DISABLE_SENG
 #include <gpac/scene_engine.h>
+#endif
+#ifndef GPAC_DISABLE_STREAMING
+#include <gpac/filestreamer.h>
 #include <gpac/rtp_streamer.h>
+#endif
 
 #if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
 

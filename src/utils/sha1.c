@@ -2,7 +2,7 @@
 #define _CRT_SECURE_NO_DEPRECATE 1
 #endif
 
-#include <gpac/crypt.h>
+#include <gpac/tools.h>
 
 #ifndef PUT_UINT32_BE
 #define PUT_UINT32_BE(n,b,i)                            \
