@@ -362,10 +362,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\utils\sha1.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\utils\base_encoding.c"
 				>
 				<FileConfiguration
@@ -1023,6 +1019,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\utils\ringbuffer.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\utils\sha1.c"
 				>
 			</File>
 			<File
@@ -4459,10 +4459,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\media_tools\dsmcc.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\media_tools\dvb.c"
 				>
 			</File>
 			<File
