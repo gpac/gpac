@@ -64,8 +64,10 @@ struct __sha1_context
 /*
  * SHA-1 context setup
  */
-void gf_sha1_starts(GF_SHA1Context *ctx )
+GF_SHA1Context *gf_sha1_starts()
 {
+	GF_SHA1Context *ctx;
+	GF_SAFEALLOC(ctx, GF_SHA1Context);
     ctx->total[0] = 0;
     ctx->total[1] = 0;
 
@@ -74,6 +76,7 @@ void gf_sha1_starts(GF_SHA1Context *ctx )
     ctx->state[2] = 0x98BADCFE;
     ctx->state[3] = 0x10325476;
     ctx->state[4] = 0xC3D2E1F0;
+	return ctx;
 }
 
 static void sha1_process(GF_SHA1Context *ctx, u8 data[64] )
@@ -311,6 +314,8 @@ void gf_sha1_finish(GF_SHA1Context *ctx, u8 output[20] )
     PUT_UINT32_BE( ctx->state[2], output,  8 );
     PUT_UINT32_BE( ctx->state[3], output, 12 );
     PUT_UINT32_BE( ctx->state[4], output, 16 );
+
+	gf_free(ctx);
 }
 #else
 
@@ -594,8 +599,10 @@ static void SHA1PadMessage(GF_SHA1Context *context)
  *  Comments:
  *
  */
-void gf_sha1_starts(GF_SHA1Context *context )
+GF_SHA1Context *gf_sha1_starts()
 {
+	GF_SHA1Context *context;
+	GF_SAFEALLOC(context, GF_SHA1Context);
     context->Length_Low             = 0;
     context->Length_High            = 0;
     context->Message_Block_Index    = 0;
@@ -608,6 +615,7 @@ void gf_sha1_starts(GF_SHA1Context *context )
 
     context->Computed   = 0;
     context->Corrupted  = 0;
+	return context;
 }
 
 void gf_sha1_update(GF_SHA1Context *context, u8 *message_array, u32 length )
@@ -668,6 +676,8 @@ void gf_sha1_finish(GF_SHA1Context *context, u8 output[20] )
     PUT_UINT32_BE( context->Message_Digest[2], output,  8 );
     PUT_UINT32_BE( context->Message_Digest[3], output, 12 );
     PUT_UINT32_BE( context->Message_Digest[4], output, 16 );
+
+	gf_free(context);
 }
 
 #endif
@@ -680,18 +690,18 @@ s32 gf_sha1_file( const char *path, u8 output[20] )
 {
     FILE *f;
     size_t n;
-   GF_SHA1Context ctx;
+    GF_SHA1Context *ctx;
     u8 buf[1024];
 
     if( ( f = gf_f64_open( path, "rb" ) ) == NULL )
         return( 1 );
 
-    gf_sha1_starts( &ctx );
+    ctx  = gf_sha1_starts();
 
     while( ( n = fread( buf, 1, sizeof( buf ), f ) ) > 0 )
-        gf_sha1_update( &ctx, buf, (s32) n );
+        gf_sha1_update(ctx, buf, (s32) n );
 
-    gf_sha1_finish( &ctx, output );
+    gf_sha1_finish(ctx, output );
 
     fclose( f );
     return( 0 );
@@ -702,11 +712,11 @@ s32 gf_sha1_file( const char *path, u8 output[20] )
  */
 void gf_sha1_csum( u8 *input, u32 ilen, u8 output[20] )
 {
-   GF_SHA1Context ctx;
+   GF_SHA1Context *ctx;
 
-    gf_sha1_starts( &ctx );
-    gf_sha1_update( &ctx, input, ilen );
-    gf_sha1_finish( &ctx, output );
+    ctx = gf_sha1_starts();
+    gf_sha1_update(ctx, input, ilen );
+    gf_sha1_finish(ctx, output );
 }
 
 

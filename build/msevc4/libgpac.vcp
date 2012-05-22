@@ -105,6 +105,18 @@ NODEP_CPP_BASE_=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\utils\sha1.c
+DEP_CPP_SHA1_=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SHA1_=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\utils\bitstream.c
 DEP_CPP_BITST=\
 	"..\..\include\gpac\bitstream.h"\
@@ -3458,21 +3470,6 @@ DEP_CPP_RIJNDAE=\
 NODEP_CPP_RIJNDAE=\
 	"..\..\include\gpac\config.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\mcrypt\sha1.c
-DEP_CPP_SHA1_=\
-	"..\..\include\gpac\configuration.h"\
-	"..\..\include\gpac\crypt.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_SHA1_=\
-	"..\..\include\gpac\config.h"\
-	
-# End Source File
-# Begin Source File
 
 SOURCE=..\..\src\mcrypt\stream.c
 DEP_CPP_STREA=\

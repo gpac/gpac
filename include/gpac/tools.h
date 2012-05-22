@@ -837,7 +837,7 @@ typedef struct __sha1_context GF_SHA1Context;
 /*
  * Core SHA-1 functions
  */
-void gf_sha1_starts(GF_SHA1Context *ctx );
+GF_SHA1Context *gf_sha1_starts();
 void gf_sha1_update(GF_SHA1Context *ctx, u8 *input, u32 length);
 void gf_sha1_finish(GF_SHA1Context *ctx, u8 digest[20] );
 

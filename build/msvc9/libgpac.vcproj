@@ -362,6 +362,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\sha1.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\base_encoding.c"
 				>
 				<FileConfiguration
@@ -5860,10 +5864,6 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\mcrypt\sha1.c"
-				>
 			</File>
 			<File
 				RelativePath="..\..\src\mcrypt\stream.c"

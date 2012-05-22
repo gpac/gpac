@@ -56,6 +56,7 @@ SOURCE uni_bidi.c
 SOURCE url.c
 SOURCE utf.c
 SOURCE xml_parser.c
+SOURCE sha1.c
 // zlib symbian on sybian SDKs doesn't come with gzio
 SOURCE gzio.cpp
 //SOURCE zutil.c
@@ -186,7 +187,6 @@ SOURCE rijndael-192.c
 SOURCE rijndael-256.c
 SOURCE stream.c
 SOURCE tripledes.c
-SOURCE sha1.c
 
 //media tools
 SOURCEPATH ..\..\src\media_tools

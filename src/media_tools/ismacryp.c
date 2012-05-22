@@ -904,7 +904,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	u32 read;
 	u64 size, tot;
 	FILE *in;
-	GF_SHA1Context ctx;
+	GF_SHA1Context *ctx;
 #ifndef GPAC_DISABLE_ISOM
 	GF_BitStream *bs = NULL;
 	Bool is_isom = gf_isom_probe_file(file);
@@ -915,7 +915,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	size = gf_f64_tell(in);
 	gf_f64_seek(in, 0, SEEK_SET);
 
-	gf_sha1_starts(&ctx);
+	ctx = gf_sha1_starts();
 	tot = 0;
 #ifndef GPAC_DISABLE_ISOM
 	if (is_isom) bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
@@ -941,7 +941,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 				while (bsize<box_size) {
 					u32 to_read = (u32) ((box_size-bsize<1024) ? (box_size-bsize) : 1024);
 					gf_bs_read_data(bs, block, to_read);
-					gf_sha1_update(&ctx, block, to_read);
+					gf_sha1_update(ctx, block, to_read);
 					bsize += to_read;
 				}
 				tot += box_size;
@@ -950,11 +950,11 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 		{
 			read = fread(block, 1, 1024, in);
-			gf_sha1_update(&ctx, block, read);
+			gf_sha1_update(ctx, block, read);
 			tot += read;
 		}
 	}
-	gf_sha1_finish(&ctx, hash);
+	gf_sha1_finish(ctx, hash);
 #ifndef GPAC_DISABLE_ISOM
 	if (bs) gf_bs_del(bs);
 #endif
