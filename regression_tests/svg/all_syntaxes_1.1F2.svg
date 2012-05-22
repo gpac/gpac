@@ -176,7 +176,7 @@
                font-variant="normal"
                font-weight="all"
                font-stretch="all"
-               font-size="all"
+               font-size="12"
                unicode-range="U+0-7FFFFFFF, U+0-7FFFFFFF"
                units-per-em="2048"
                panose-1="0 1 2 3 4 5 6 7 8 9"
