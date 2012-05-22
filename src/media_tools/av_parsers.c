@@ -23,10 +23,12 @@
  */
 
 #include <gpac/internal/media_dev.h>
-#include <gpac/internal/ogg.h>
 #include <gpac/constants.h>
 #include <gpac/math.h>
 
+#ifndef GPAC_DISABLE_OGG
+#include <gpac/internal/ogg.h>
+#endif
 
 GF_EXPORT
 const char *gf_m4v_get_profile_name(u8 video_pl)
