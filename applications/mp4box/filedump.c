@@ -45,6 +45,9 @@
 #include <gpac/iso639.h>
 #include <gpac/mpegts.h>
 
+#ifndef GPAC_DISABLE_SMGR
+#include <gpac/scene_manager.h>
+#endif
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
