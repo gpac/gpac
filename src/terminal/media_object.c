@@ -33,6 +33,7 @@
 #include <gpac/nodes_svg.h>
 
 
+#ifndef GPAC_DISABLE_SVG
 static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_type, GF_Node *orig_ref, Bool *post_pone)
 {
 	MFURL mfurl;
@@ -51,14 +52,11 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 		else ref = gf_sg_find_node_by_name(scene->graph, iri->string);
 
 		if (ref) {
-#ifndef GPAC_DISABLE_SVG
 			GF_FieldInfo info;
-#endif
 			/*safety check, break cyclic references*/
 			if (ref==orig_ref) return NULL;
 
 			switch (ref->sgprivate->tag) {
-#ifndef GPAC_DISABLE_SVG
 			case TAG_SVG_audio:
 				o_type = GF_MEDIA_OBJECT_AUDIO; 
 				if (gf_node_get_attribute_by_tag(ref, TAG_XLINK_ATT_href, 0, 0, &info)==GF_OK) {
@@ -71,7 +69,6 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 					return get_sync_reference(scene, info.far_ptr, o_type, orig_ref ? orig_ref : ref, post_pone);
 				}
 				return NULL;
-#endif
 			default:
 				return NULL;
 			}
@@ -87,6 +84,8 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 	if (!res) *post_pone = 1;
 	return res;
 }
+#endif
+
 
 GF_EXPORT
 GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, Bool force_new_res)

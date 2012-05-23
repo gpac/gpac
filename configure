@@ -2164,6 +2164,20 @@ if test "$disable_player" = "yes" ; then
     echo "#define GPAC_DISABLE_PLAYER" >> $TMPH
     disable_laser="yes"
 fi
+if test "$disable_smgr" = "yes" ; then
+disable_seng="yes"
+disable_qtvr="yes"
+disable_swf="yes"
+disable_scene_stats="yes"
+disable_scene_dump="yes"
+disable_scene_encode="yes"
+disable_loader_isoff="yes"
+disable_loader_bt="yes"
+disable_loader_xmt="yes"
+disable_svg="yes"
+    echo "Scene Manager disabled"
+    echo "#define GPAC_DISABLE_SMGR" >> $TMPH
+fi
 if test "$disable_svg" = "yes" ; then
     echo "SVG disabled"
     echo "#define GPAC_DISABLE_SVG" >> $TMPH
@@ -2309,10 +2323,6 @@ fi
 if test "$disable_ttxt" = "yes" ; then
     echo "TimedText disabled"
     echo "#define GPAC_DISABLE_TTXT" >> $TMPH
-fi
-if test "$disable_smgr" = "yes" ; then
-    echo "Scene Manager disabled"
-    echo "#define GPAC_DISABLE_SMGR" >> $TMPH
 fi
 
 if test "$enable_depth_compositor" = "yes" ; then

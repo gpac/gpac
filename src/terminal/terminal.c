@@ -1243,6 +1243,7 @@ void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 	}
 }
 
+#ifndef GPAC_DISABLE_SVG
 static void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer)
 {
 	u32 i=0;
@@ -1268,6 +1269,7 @@ static void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *od
 		}
 	}
 }
+#endif
 
 void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec)
 {
@@ -1704,6 +1706,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 GF_EXPORT
 GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 {
+#ifndef GPAC_DISABLE_SMGR
 	GF_Err e;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
@@ -1810,6 +1813,9 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	}
 	gf_sm_del(load.ctx);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_EXPORT

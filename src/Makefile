@@ -194,10 +194,6 @@ endif
 
 ## libgpac compositor compilation options
 COMPOSITOR_CFLAGS=
-## SVG disabled
-ifeq ($(DISABLE_SVG), yes)
-COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
-endif
 
 ## Add prefix before every lib
 ifneq ($(prefix), /usr/local)
