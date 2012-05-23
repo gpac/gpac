@@ -236,7 +236,6 @@
 		71CCF2CE1277045100339E12 /* rijndael-128.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1C71277045100339E12 /* rijndael-128.c */; };
 		71CCF2CF1277045100339E12 /* rijndael-192.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1C81277045100339E12 /* rijndael-192.c */; };
 		71CCF2D01277045100339E12 /* rijndael-256.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1C91277045100339E12 /* rijndael-256.c */; };
-		71CCF2D11277045100339E12 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1CA1277045100339E12 /* sha1.c */; };
 		71CCF2D21277045100339E12 /* stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1CB1277045100339E12 /* stream.c */; };
 		71CCF2D31277045100339E12 /* tripledes.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1CC1277045100339E12 /* tripledes.c */; };
 		71CCF2D41277045100339E12 /* av_parsers.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1CE1277045100339E12 /* av_parsers.c */; };
@@ -504,6 +503,7 @@
 		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
 		979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
+		97DDAFEF1569631900528219 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DDAFEE1569631900528219 /* sha1.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
 /* End PBXBuildFile section */
 
@@ -758,7 +758,6 @@
 		71CCF1C71277045100339E12 /* rijndael-128.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "rijndael-128.c"; sourceTree = "<group>"; };
 		71CCF1C81277045100339E12 /* rijndael-192.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "rijndael-192.c"; sourceTree = "<group>"; };
 		71CCF1C91277045100339E12 /* rijndael-256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "rijndael-256.c"; sourceTree = "<group>"; };
-		71CCF1CA1277045100339E12 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		71CCF1CB1277045100339E12 /* stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stream.c; sourceTree = "<group>"; };
 		71CCF1CC1277045100339E12 /* tripledes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tripledes.c; sourceTree = "<group>"; };
 		71CCF1CE1277045100339E12 /* av_parsers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = av_parsers.c; sourceTree = "<group>"; };
@@ -981,6 +980,7 @@
 		9747B6EE14864C6400280D95 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = events_constants.h; sourceTree = "<group>"; };
 		9747B6F214864C7800280D95 /* ait.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ait.c; sourceTree = "<group>"; };
 		9747B6F314864C7800280D95 /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
+		97DDAFEE1569631900528219 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		97FF065F138CE4C400D6C707 /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1732,7 +1732,6 @@
 				71CCF1C71277045100339E12 /* rijndael-128.c */,
 				71CCF1C81277045100339E12 /* rijndael-192.c */,
 				71CCF1C91277045100339E12 /* rijndael-256.c */,
-				71CCF1CA1277045100339E12 /* sha1.c */,
 				71CCF1CB1277045100339E12 /* stream.c */,
 				71CCF1CC1277045100339E12 /* tripledes.c */,
 			);
@@ -1874,6 +1873,7 @@
 		71CCF2291277045100339E12 /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				97DDAFEE1569631900528219 /* sha1.c */,
 				97FF065F138CE4C400D6C707 /* os_config_init.c */,
 				970A26D513434DAC0007362C /* ringbuffer.c */,
 				970A26D613434DAC0007362C /* unicode.c */,
@@ -3075,7 +3075,6 @@
 				71CCF2CE1277045100339E12 /* rijndael-128.c in Sources */,
 				71CCF2CF1277045100339E12 /* rijndael-192.c in Sources */,
 				71CCF2D01277045100339E12 /* rijndael-256.c in Sources */,
-				71CCF2D11277045100339E12 /* sha1.c in Sources */,
 				71CCF2D21277045100339E12 /* stream.c in Sources */,
 				71CCF2D31277045100339E12 /* tripledes.c in Sources */,
 				71CCF2D41277045100339E12 /* av_parsers.c in Sources */,
@@ -3192,6 +3191,7 @@
 				97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */,
 				9747B6F414864C7800280D95 /* ait.c in Sources */,
 				9747B6F514864C7800280D95 /* dsmcc.c in Sources */,
+				97DDAFEF1569631900528219 /* sha1.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
