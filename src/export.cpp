@@ -87,9 +87,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
 
-/* Font */
-#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
-
 /* Memory */
 #ifdef GPAC_MEMORY_TRACKING
 #pragma comment (linker, EXPORT_SYMBOL(gf_mem_malloc) )
@@ -900,6 +897,7 @@
 
 
 /*plugin_network.h exports*/
+#ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_on_message) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_on_connect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_on_disconnect) )
@@ -926,7 +924,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_remove_event_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_media_queue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
-
+#endif
 
 /*ietf.h exports*/
 #ifndef GPAC_DISABLE_STREAMING
@@ -1133,12 +1131,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_decrypt_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_encrypt_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_decrypt_track) )
-#endif
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_gpac_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_mpeg4ip_get_info) )
-	
+
+#endif
+
 /*scene_manager.h exports*/
+
 #ifndef GPAC_DISABLE_SCENE_STATS
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stats_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stats_del) )
@@ -1149,6 +1148,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stats_for_command) )
 #endif
 
+#ifndef GPAC_DISABLE_SMGR
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stream_new) )
@@ -1162,6 +1162,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_run) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_suspend) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_import_bifs_subtitle) )
+#endif
+
 #ifndef GPAC_DISABLE_LOADER_BT
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_bt_from_string) )
 #endif
@@ -1233,6 +1235,7 @@
 #endif
 #endif /*GPAC_DISABLE_BIFS*/
 
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 
 /*scenegraph.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_tag) )
@@ -1302,6 +1305,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_del_child_idx) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dump_attribute) )
+
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dom_listener_add) )
@@ -1434,7 +1438,10 @@
 
 #endif /*GPAC_DISABLE_VRML*/
 
+#endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 
+
+#ifndef GPAC_DISABLE_PLAYER
 /*terminal.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_del) )
@@ -1485,7 +1492,30 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_compositor) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_switch_quality) )
 
+/*terminal_dev exports*/
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_get_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_attach_to_compositor) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_find_odm) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_set_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_setup_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_register_extra_graph) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_force_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_process_anchor) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_disconnect) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odm_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odm_setup_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odm_disconnect) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odm_setup_es) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odm_remove_es) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_node_callback) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_message) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_clock_time) )
 
+#endif
+
+#ifndef GPAC_DISABLE_PLAYER
 /*compositor.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_del) )
@@ -1543,26 +1573,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_audio_stop) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_audio_restart) )
 
-/*terminal_dev exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_get_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_attach_to_compositor) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_find_odm) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_set_duration) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_setup_object) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_register_extra_graph) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_force_size) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_process_anchor) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_scene_disconnect) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odm_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odm_setup_object) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odm_disconnect) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odm_setup_es) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odm_remove_es) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_node_callback) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_message) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_clock_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_set_font) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_create_span) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
+
+#endif
 
 /*mpegts.h exports*/
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -1576,12 +1592,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 
 /* carousel.h */
+#ifndef GPAC_DISABLE_DSMCC
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_channel_application_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_dsmcc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_dmscc_overlord) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_dmscc_init) )
-
+#endif
 
 
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
@@ -1629,11 +1646,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_laser_encoder_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_laser_encoder_get_rap) )
 #endif /*GPAC_DISABLE_LASER*/
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_set_font) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_create_span) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
 
 /*download.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
