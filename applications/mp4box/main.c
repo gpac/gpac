@@ -2244,6 +2244,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	if (dash_duration && !nb_dash_inputs) {
+		dash_inputs = realloc(dash_inputs, sizeof(char *) * (nb_dash_inputs+1) );
 		dash_inputs[nb_dash_inputs] = inName;
 		nb_dash_inputs++;
 	}
