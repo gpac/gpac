@@ -841,10 +841,10 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		SVG_Length *w, *h;
 		SVG_ViewBox *vb;
 		Bool is_svg = 0;
-#endif
-		const char *opt;
 		u32 tag;
 		GF_Node *top_node;
+#endif
+		const char *opt;
 		Bool had_size_info = compositor->has_size_info;
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(compositor->scene, &width, &height);
@@ -858,11 +858,11 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		/*default back color is black*/
 		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFF000000;
 
+#ifndef GPAC_DISABLE_SVG
 		top_node = gf_sg_get_root_node(compositor->scene);
 		tag = 0;
 		if (top_node) tag = gf_node_get_tag(top_node);
 
-#ifndef GPAC_DISABLE_SVG
 		w = h = NULL;
 		vb = NULL;
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
