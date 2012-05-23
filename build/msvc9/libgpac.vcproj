@@ -7046,6 +7046,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\modules\hardcoded_proto.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\ietf.h"
 				>
 			</File>

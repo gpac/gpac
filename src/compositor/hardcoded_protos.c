@@ -28,6 +28,9 @@
 #include "offscreen_cache.h"
 #include "mpeg4_grouping.h"
 
+#include <gpac/modules/hardcoded_proto.h>
+#include <gpac/internal/terminal_dev.h>
+
 #ifndef GPAC_DISABLE_VRML
 
 #ifndef GPAC_DISABLE_3D
@@ -984,7 +987,8 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
 	MFURL *proto_url;
 	GF_Proto *proto;
-	u32 i;
+	u32 i, j;
+	GF_HardcodedProto *ifce;
 
 	proto = gf_node_get_proto(node);
 	if (!proto) return;
@@ -1033,6 +1037,16 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		if (!strcmp(url, "urn:inet:gpac:builtin:FlashShape")) {
 			compositor_init_hc_flashshape(compositor, node);
 			return;
+		}
+
+		/*check proto modules*/
+		if (compositor->proto_modules) {
+			j = 0;
+			while ( ifce = (GF_HardcodedProto *)gf_list_enum(compositor->proto_modules, &j) ) {
+				if ( ifce->can_load_proto(url) && ifce->init(compositor, node) ) {
+					return;
+				}
+			}
 		}
 	}
 

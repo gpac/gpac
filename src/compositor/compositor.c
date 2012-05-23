@@ -27,6 +27,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/options.h>
 #include <gpac/utf.h>
+#include <gpac/modules/hardcoded_proto.h>
 
 #include "nodes_stacks.h"
 
@@ -457,7 +458,6 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 {
 	GF_Err e;
 	GF_Compositor *tmp;
-	
 
 	GF_SAFEALLOC(tmp, GF_Compositor);
 	if (!tmp){
@@ -467,7 +467,17 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	tmp->user = user;
 	tmp->term = term;
 	tmp->mx = gf_mx_new("Compositor");
-	
+
+	/*load proto modules*/
+	if (user) {
+		u32 i;
+		tmp->proto_modules = gf_list_new();
+		for (i=0; i< gf_modules_get_count(user->modules); i++) {
+			GF_HardcodedProto *ifce = (GF_HardcodedProto *) gf_modules_load_interface(user->modules, i, GF_HARDCODED_PROTO_INTERFACE);
+			if (ifce) gf_list_add(tmp->proto_modules, ifce);
+		}
+	}
+
 
 	if (self_threaded) {
 
@@ -568,6 +578,15 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->audio_renderer) gf_sc_ar_del(compositor->audio_renderer);
 	compositor->audio_renderer = NULL;
 
+	/*unload proto modules*/
+	if (compositor->proto_modules) {
+		u32 i;
+		for (i=0; i< gf_list_count(compositor->proto_modules); i++) {
+			GF_HardcodedProto *ifce = gf_list_get(compositor->proto_modules, i);
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
+		}
+		gf_list_del(compositor->proto_modules);
+	}
 #ifdef GF_SR_EVENT_QUEUE
 	gf_mx_p(compositor->ev_mx);
 	while (gf_list_count(compositor->events)) {

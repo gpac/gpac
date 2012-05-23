@@ -167,6 +167,9 @@ struct __tag_compositor
 	/*compositor exclusive access to the scene and display*/
 	GF_Mutex *mx;
 
+	/*list of modules containing hardcoded proto implementations*/
+	GF_List *proto_modules;
+
 	/*the main scene graph*/
 	GF_SceneGraph *scene;
 	/*extra scene graphs (OSD, etc), always registered in draw order. That's the module responsability

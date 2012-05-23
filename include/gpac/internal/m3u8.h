@@ -1,7 +1,8 @@
 /**
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005
+ *					Authors: Pierre Souchay
+ *			Copyright (c) Telecom ParisTech 2010-2012
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -19,7 +20,6 @@
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  Written by Pierre Souchay for VizionR SAS
  *
  */
 #ifndef M3U8_PLAYLIST_H

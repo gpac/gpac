@@ -45,7 +45,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state; 
 	tr_state = (GF_TraverseState *)rs;
 	children = NULL;
-	/* souchay : be sure to be initialized, -1 seems reasonable since we check if (whichChoice>=0)  */
+
 	whichChoice = -1;
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
