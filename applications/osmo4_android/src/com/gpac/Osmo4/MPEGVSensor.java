@@ -8,8 +8,7 @@ import android.hardware.SensorManager;
 /**
  * Handle Physical sensors
  * 
- * @copyright VizionR, 2009-2010
- * @author Pierre Souchay <pierre.souchay@vizionr.fr> (last changed by $LastChangedBy$)
+ * @authors Ivica Arsov (ivica.arsov@it-sudparis.eu) - Pierre Souchay <pierre.souchay@vizionr.fr> (last changed by $LastChangedBy$)
  * @version $Revision$
  * 
  */

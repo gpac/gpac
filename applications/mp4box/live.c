@@ -455,7 +455,6 @@ int live_session(int argc, char **argv)
 	u32 period, ts_delta, signal_critical;
 	u16 es_id;
 	e = GF_OK;
-	/* souchay : needs to initialize those two vars... */
 	aggregate_au = 1;
 	es_id = 0;
 	no_rap = 0;
