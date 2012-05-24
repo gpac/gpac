@@ -244,7 +244,6 @@ static JSBool SMJS_FUNCTION(upnp_service_get_scpd)
 
 	service->m_service->GetSCPDXML(name);
 	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, name) ) );
-	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
