@@ -152,7 +152,7 @@ void FFDEC_Delete(void *ifce);
 
 //#define FFMPEG_DUMP_REMOTE
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 102, 0)
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 113, 1)
 #define USE_PRE_0_7 1
 #endif
 
