@@ -61,7 +61,7 @@ void GPAC_ServiceItem::DetachJS()
 {
 	if (obj) {
 		gf_js_remove_root(js_ctx, &obj, GF_JSGC_OBJECT);
-		JS_SetPrivate(js_ctx, obj, NULL);
+		SMJS_SET_PRIVATE(js_ctx, obj, NULL);
 		obj = NULL;
 	}
 	if (!JSVAL_IS_NULL(on_event)) {
@@ -106,7 +106,7 @@ GPAC_DeviceItem::~GPAC_DeviceItem()
 void GPAC_DeviceItem::DetachJS() {
 	if (obj) {
 		gf_js_remove_root(js_ctx, &obj, GF_JSGC_OBJECT);
-		JS_SetPrivate(js_ctx, obj, NULL);
+		SMJS_SET_PRIVATE(js_ctx, obj, NULL);
 		obj = NULL;
 	}
 	while (gf_list_count(m_Services)) {
@@ -125,7 +125,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_listener)
 	u32 i;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service || !argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
 	if (argc<1) {
@@ -184,7 +184,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 	u32 i;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service || (argc<2) || !JSVAL_IS_STRING(argv[0]) || !JSVAL_IS_OBJECT(argv[1])) return JS_FALSE;
 	
 	name = SMJS_CHARS(c, argv[0]);
@@ -238,7 +238,7 @@ static JSBool SMJS_FUNCTION(upnp_service_get_scpd)
 {
 	NPT_String name;
 	SMJS_OBJ
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service ) 
 		return JS_FALSE;
 
@@ -250,7 +250,7 @@ static JSBool SMJS_FUNCTION(upnp_service_get_scpd)
 JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	char *prop_name;
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service) return JS_FALSE;
 
 	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
@@ -274,7 +274,7 @@ static JSBool SMJS_FUNCTION(upnp_service_has_var)
 	char *name = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service || !argc || !JSVAL_IS_STRING(argv[0]) ) 
 		return JS_FALSE;
 
@@ -290,7 +290,7 @@ static JSBool SMJS_FUNCTION(upnp_service_has_action)
 	char *name = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service || !argc || !JSVAL_IS_STRING(argv[0]) )
 		return JS_FALSE;
 
@@ -315,7 +315,7 @@ static JSBool SMJS_FUNCTION(upnp_service_call_action)
 	char *action_name = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 
 	action_name = SMJS_CHARS(c, argv[0]);
@@ -426,7 +426,7 @@ GPAC_ServiceItem *GPAC_DeviceItem::FindService(const char *type)
 	serv->js_ctx = js_ctx;
 	serv->obj = JS_NewObject(serv->js_ctx, &m_pUPnP->upnpServiceClass, 0, obj);
 	gf_js_add_root(serv->js_ctx, &serv->obj, GF_JSGC_OBJECT);
-	JS_SetPrivate(serv->js_ctx, serv->obj, serv);
+	SMJS_SET_PRIVATE(serv->js_ctx, serv->obj, serv);
 	JS_DefineProperty(serv->js_ctx, serv->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, service->GetServiceID()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(serv->js_ctx, serv->obj, "Type", STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, service->GetServiceType()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(serv->js_ctx, serv->obj, "Hostname", STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, m_device->GetURLBase().GetHost() ) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -519,7 +519,7 @@ static JSBool SMJS_FUNCTION(upnp_action_get_argument_value)
 	char *arg_name = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
-	PLT_Action *action = (PLT_Action *) JS_GetPrivate(c, obj);
+	PLT_Action *action = (PLT_Action *) SMJS_GET_PRIVATE(c, obj);
 	if (!action || !argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 
 	arg_name = SMJS_CHARS(c, argv[0]);
@@ -534,7 +534,7 @@ static JSBool SMJS_FUNCTION(upnp_action_get_error_code)
 {
 	NPT_String res;
 	SMJS_OBJ
-	PLT_Action *action = (PLT_Action *) JS_GetPrivate(c, obj);
+	PLT_Action *action = (PLT_Action *) SMJS_GET_PRIVATE(c, obj);
 	if (!action ) return JS_FALSE;
 	SMJS_SET_RVAL( INT_TO_JSVAL( action->GetErrorCode() ));
 	return JS_TRUE;
@@ -545,7 +545,7 @@ static JSBool SMJS_FUNCTION(upnp_action_get_error)
 	NPT_String res;
 	unsigned int code;
 	SMJS_OBJ
-	PLT_Action *action = (PLT_Action *) JS_GetPrivate(c, obj);
+	PLT_Action *action = (PLT_Action *) SMJS_GET_PRIVATE(c, obj);
 	if (!action ) return JS_FALSE;
 	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, action->GetError( code ) ) ) );
 	return JS_TRUE;
@@ -641,7 +641,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s\n", (char *) action->GetActionDesc().GetName()));
 
 			act_obj = JS_NewObject(serv->js_ctx, &item->m_pUPnP->upnpDeviceClass, 0, item->obj);
-			JS_SetPrivate(serv->js_ctx, act_obj, (void *)action.AsPointer() );
+			SMJS_SET_PRIVATE(serv->js_ctx, act_obj, (void *)action.AsPointer() );
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetArgumentValue", upnp_action_get_argument_value, 1, 0);
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetErrorCode", upnp_action_get_error_code, 1, 0);
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetError", upnp_action_get_error, 1, 0);
@@ -761,7 +761,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_state_variable)
 	char *name, *val;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_Service* service = (GPAC_Service*) JS_GetPrivate(c, obj);
+	GPAC_Service* service = (GPAC_Service*) SMJS_GET_PRIVATE(c, obj);
 	if (!service) return JS_FALSE;
 
 	name = SMJS_CHARS(c, argv[0]);
@@ -784,7 +784,7 @@ void GPAC_Service::SetupJS(JSContext *c, GF_UPnP *upnp, JSObject *parent)
 	m_pCtx = c;
 	m_pObj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, parent);
 	gf_js_add_root(m_pCtx, &m_pObj, GF_JSGC_OBJECT);
-	JS_SetPrivate(c, m_pObj, this);
+	SMJS_SET_PRIVATE(c, m_pObj, this);
 	JS_DefineFunction(c, m_pObj, "SetStateVariable", upnp_service_set_state_variable, 2, 0);
 
 }
@@ -861,7 +861,7 @@ static JSBool SMJS_FUNCTION(upnp_action_get_argument)
 	char *act_name;
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_GenericDevice *device = (GPAC_GenericDevice *)JS_GetPrivate(c, obj);
+	GPAC_GenericDevice *device = (GPAC_GenericDevice *)SMJS_GET_PRIVATE(c, obj);
 	if (!device || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 
 	act_name = SMJS_CHARS(c, argv[0]);
@@ -877,7 +877,7 @@ static JSBool SMJS_FUNCTION(upnp_action_send_reply)
 {
 	SMJS_OBJ
 	SMJS_ARGS
-	GPAC_GenericDevice *device = (GPAC_GenericDevice *)JS_GetPrivate(c, obj);
+	GPAC_GenericDevice *device = (GPAC_GenericDevice *)SMJS_GET_PRIVATE(c, obj);
 	if (!device) return JS_FALSE;
 	
 	if (argc && JSVAL_IS_OBJECT(argv[0]) ) {
@@ -965,7 +965,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 
 	JSObject *js_action = JS_NewObject(m_pUPnP->m_pJSCtx, &m_pUPnP->upnpDeviceClass, 0, 0);
 	argv[0] = OBJECT_TO_JSVAL(js_action);
-	JS_SetPrivate(m_pUPnP->m_pJSCtx, js_action, this);
+	SMJS_SET_PRIVATE(m_pUPnP->m_pJSCtx, js_action, this);
 	
 	act_ref = action;
 
@@ -980,7 +980,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 
 	jsval rval;
 	JS_CallFunctionValue(m_pUPnP->m_pJSCtx, obj, act_proc, 1, argv, &rval);
-	JS_SetPrivate(m_pUPnP->m_pJSCtx, js_action, NULL);
+	SMJS_SET_PRIVATE(m_pUPnP->m_pJSCtx, js_action, NULL);
 	m_pUPnP->LockJavascript(0);
 
 	if (JSVAL_IS_INT(rval) && (JSVAL_TO_INT(rval) != 0)) {
