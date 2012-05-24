@@ -59,6 +59,7 @@ public:
 	GF_UPnP *m_pUPnP;
 
 	GPAC_ServiceItem *FindService(const char *type);
+	void RefreshServiceList();
 
 	GF_List *m_Services;
 #ifdef GPAC_HAS_SPIDERMONKEY

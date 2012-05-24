@@ -234,6 +234,20 @@ static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 	return JS_TRUE;
 }
 
+static JSBool SMJS_FUNCTION(upnp_service_get_scpd)
+{
+	NPT_String name;
+	SMJS_OBJ
+	GPAC_ServiceItem *service = (GPAC_ServiceItem *)JS_GetPrivate(c, obj);
+	if (!service ) 
+		return JS_FALSE;
+
+	service->m_service->GetSCPDXML(name);
+	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, name) ) );
+	SMJS_FREE(c, name);
+	return JS_TRUE;
+}
+
 JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	char *prop_name;
@@ -381,6 +395,16 @@ static JSBool SMJS_FUNCTION(upnp_service_call_action)
 
 #endif
 
+void GPAC_DeviceItem::RefreshServiceList()
+{
+	u32 i;
+	NPT_Array<PLT_Service*> services = m_device->GetServices();
+
+	for (i=0; i<services.GetItemCount(); i++) {
+		PLT_Service *serv = services[i];
+		FindService(serv->GetServiceType());
+	}
+}
 
 GPAC_ServiceItem *GPAC_DeviceItem::FindService(const char *type)
 {
@@ -412,6 +436,7 @@ GPAC_ServiceItem *GPAC_DeviceItem::FindService(const char *type)
 	JS_DefineFunction(serv->js_ctx, serv->obj, "HasAction", upnp_service_has_action, 2, 0);
 	JS_DefineFunction(serv->js_ctx, serv->obj, "CallAction", upnp_service_call_action, 2, 0);
 	JS_DefineFunction(serv->js_ctx, serv->obj, "SetActionListener", upnp_service_set_action_listener, 2, 0);
+	JS_DefineFunction(serv->js_ctx, serv->obj, "GetSCPD", upnp_service_get_scpd, 1, 0);
 	
 #endif
 

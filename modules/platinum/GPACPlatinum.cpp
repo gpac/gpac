@@ -546,6 +546,10 @@ static JSBool upnpdevice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETT
 	}
 	else if (!strcmp(prop_name, "ServicesCount")) {
 		u32 count = gf_list_count(dev->m_Services);
+		if (!count) {
+			dev->RefreshServiceList();
+			count = gf_list_count(dev->m_Services);
+		}
 		*vp = INT_TO_JSVAL(count);
 	}
 	SMJS_FREE(c, prop_name);	
