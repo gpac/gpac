@@ -2128,12 +2128,16 @@ version_minor=`grep '#define GPAC_VERSION_MINOR ' $source_path/include/gpac/tool
 version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/tools.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
 soname_version="${version_major}.${version_minor}.${version_micro}"
 
-if which svnversion >/dev/null
-then
+if [ -d ".svn" ]; then
+ if which svnversion >/dev/null
+ then
     revision="`svnversion \"$source_path\"`"
     echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
-else
+ else
     echo "Cannot find SVN revision"
+ fi
+else
+    echo "#define GPAC_SVN_REVISION	\"4065\"" > $source_path/include/gpac/version.h
 fi
 
 echo ""
