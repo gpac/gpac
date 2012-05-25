@@ -23,7 +23,7 @@ Package: libgpac-dev
 Architecture: any
 Section: libdevel
 Depends: gpac
-Replaces: gpac (<= 0.4.5)
+Replaces: gpac (<= 0.5.0)
 Description: multimedia framework based on the MPEG-4 Systems standard
  The main development goal is to provide a clean (a.k.a. readable by as many
  people as possible), small and flexible alternative to the MPEG-4 Systems

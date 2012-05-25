@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.5 on windows CE platform
-last modified: Mai 2007
+Installation instructions for GPAC on windows CE platform
+last modified: Mai 2012
 
 0 Foreword
   
@@ -7,12 +7,12 @@ last modified: Mai 2007
   
 	Compilation has only been tested with evc4 and ARM platforms
 	
-	GPAC 0.4.5 should be stable on most devices running PocketPC/SmartPhone 2003. It has know bugs with higher versions
+	GPAC should be stable on most devices running PocketPC/SmartPhone 2003. It has know bugs with higher versions
 	of the Windows Mobile OS, but should still be stable.
 
 	The output directory for all plugins and applications for Windows PocketPC 2003 is
-		gpac/bin/arm_ppc03_deb in debug mode
-		gpac/bin/arm_ppc03_rel in release mode
+		gpac/bin/Smartphone 2003/Debug in debug mode
+		gpac/bin/Smartphone 2003/Release in release mode
 	
 	As of 0.2.2, GPAC cannot be compiled without ZLIB. You'd better make sure it is installed locally or on your system (zlib is provided in gpac_extra_libs package)
 	
@@ -22,7 +22,8 @@ I Extra lib installation
 
 
 II GPAC compilation
-	open /build/msevc4/GPAC.dsw (GPAC workspace) with MS eVC4
+	open /build/msvc8/gpac.sln (GPAC workspace) with MSVC 2005
+	open /build/msvc9/gpac.sln (GPAC workspace) with MSVC 2008
 	
 	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE
 	

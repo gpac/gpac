@@ -61,7 +61,7 @@ extern "C" {
  * NO SPACE in GPAC_VERSION for proper install
  * SONAME versions must be digits (not strings)
  */
-#define GPAC_VERSION          "0.4.6-DEV"
+#define GPAC_VERSION          "0.5.0"
 #define GPAC_VERSION_MAJOR    2
 #define GPAC_VERSION_MINOR    0
 #define GPAC_VERSION_MICRO    0

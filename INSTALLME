@@ -1,6 +1,8 @@
-Installation instructions for latest GPAC svn version:
+Installation instructions for latest GPAC svn version and GPAC release 0.5.0 - May 2012:
 
 For Windows, Linux and Mac OS X versions, follow the instructions on http://gpac.sourceforge.net/home_download.php
+
+For Android, follow the instructions in gpac/build/android/README
 
 For WindowsMobile platform, get the latest package of gpac extra libs available on GPAC svn:
 http://gpac.svn.sourceforge.net/viewvc/gpac/trunk/gpac_extra_libs/gpac_extra_libs.zip
@@ -9,7 +11,7 @@ and follow the instructions in gpac/doc/INSTALL.wCE
 
 
 
-Installation instructions for GPAC 0.4.5 - December 2008:
+Other Installation instructions for GPAC
 
 
 * Foreword
@@ -18,7 +20,9 @@ Installation instructions for GPAC 0.4.5 - December 2008:
 limited (no still image, no audio, no video, no text, no scripting). It is therefore recommended to download the 
 extra lib package available at http://sourceforge.net/projects/gpac. Compilation instructions for these libraries 
 are provided per library in the package. 
-	The current extra_lib package to use with gpac 0.4.5 is gpac_extra_libs 0.4.5.
+
+	The current extra_lib package to use with gpac 0.5.0 is gpac_extra_libs available at sourceforge: 
+http://gpac.svn.sourceforge.net/viewvc/gpac/trunk/gpac_extra_libs/gpac_extra_libs.zip?view=log	
 
 	In case you have some of these libs already installed on your system, the detailed list of dependencies is
 	* freetype2 from version 2.1.4 on.
@@ -32,19 +36,17 @@ are provided per library in the package.
 	* faad2, version 2.0 or above (2.6.1 working)
 	* liba52, version 0.7.4
 	* OpenJPEG, version 1.3
-
-	Windows user are invited to download and install the Microsoft Platform SDK at
-		http://www.microsoft.com/msdownload/platformsdk/sdkupdate
-	If you don't have enough bandwidth (it's big) the GDIplus SDK is also included in the gpac_extra_lib package
+	* OpenSVCDecoder, version 1.3
 
 * Installing GPAC
 
 /!\ GPAC won't compile if the 'svnversion' command (shipped with every Subversion package) is not in your path /!\
 
+!!OUTDATED - please see online instructions instead!!
 Detailed instruction for Win32 MSVC Compilation are available in gpac/doc/INSTALL.w32
 
 Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL.wCE
-
+s
 Detailed instruction for GCC Compilation are available in gpac/doc/INSTALL.gcc
 
 Detailed instruction for GCC cross-compilation for familiar+GPE systems are available in gpac/doc/INSTALL.gpe

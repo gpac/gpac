@@ -196,12 +196,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Osmo4-GPAC"
-            VALUE "FileVersion", "0.4.5"
+            VALUE "FileVersion", "0.5.0"
             VALUE "InternalName", "Osmo4"
-            VALUE "LegalCopyright", "Copyright (C) 2005"
+            VALUE "LegalCopyright", "Copyright (C) Telecom ParisTech 2005-2012"
             VALUE "OriginalFilename", "Osmo4.EXE"
             VALUE "ProductName", "Osmo4-GPAC"
-            VALUE "ProductVersion", "0.4.5"
+            VALUE "ProductVersion", "0.5.0"
         END
     END
     BLOCK "VarFileInfo"

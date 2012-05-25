@@ -26,7 +26,7 @@
 /*
 	DO NOT MOFIFY - File generated on GMT Tue May 15 11:18:46 2007
 
-	BY SVGGen for GPAC Version 0.4.3-DEV
+	BY SVGGen for GPAC Version 0.5.0
 */
 
 

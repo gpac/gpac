@@ -1,14 +1,23 @@
-27/08/09:
-  - Added overwrite of profile and level of AVC streams when adding tracks in mp4box(from ISOFF or .264). Use ":profile=X" and ":level=Z" when importing
-  - Fixed chapters and text tracks handling for iTunes. Using the -ipd option in MP4Box should fix all subtitles tracks.
-    When adding a track (including subtitle), it is now possible to override the track layout. For example:
-      MP4Box -add test.srt:layout=0x20x0x-1 test.mp4
-     will set the track box to be max width of the file tracks, 20 pixels height, translated by 0 pixels left and aligned to the bottom (max height - 20)
-    To add a chapter track, you simply have to add ":chap" in the -add command. 
-  - Added modular compilation of most libgpac features. See configure or include/gpac/configuration
-  - Fixed streaming interoperability with Live555 
-  - More fixed and speed improvement in VRML/BIFS scripting
-  - Added support for PBuffers on Win32/DirectX
+Full Changelog is available here:
+https://sourceforge.net/apps/trac/gpac/log/
+
+25/05/2012: GPAC 0.5.0
+  - MPEG-DASH and Apple HLS support in GPAC Clients
+  - MPEG-DASH segmenter for ISO files and MPEG-2 TS in MP4Box
+  - MP42TS generator now supports HLS output
+  - Support for MPEG-U and W3C widgets
+  - UPnP and DLNA support in the player through Platinum libraries, interfaced in JavaScript
+  - Better support for AVC and SVC muxing in MP4
+  - Support for OpenSVC decoder
+  - Stereo and Multi-view renderer for auto-stereoscopic screens
+  - iOS and Android support (but Symbian support has been dropped)
+  - Camera input through "camera://default" URLs on Windows, OSX 32bit, Linux V4L v1 and Android 
+  - experimental audio filters
+  - Better T-DMB support 
+  - experimental DVB-MPE and DSM-CC support
+  - BIFS ExtendedCore2D profile support
+  - more work on GUI
+  - and many many fixes and improvements in players and MP4Box 
 
 02/12/08: GPAC 0.4.5
   - Support for AC3 in ISO Media, AC3 decoder (liba52) RTP hinting

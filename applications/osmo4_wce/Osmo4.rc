@@ -135,14 +135,14 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Osmo4-GPAC\0"
-            VALUE "FileVersion", "0.4.5\0"
+            VALUE "FileVersion", "0.5.0\0"
             VALUE "InternalName", "Osmo4\0"
-            VALUE "LegalCopyright", "Copyright (C) ENST 2005-2007\0"
+            VALUE "LegalCopyright", "Copyright (C) Telecom ParisTech 2005-2012\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "Osmo4.EXE\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "Osmo4-0.4.5\0"
-            VALUE "ProductVersion", "0.4.5\0"
+            VALUE "ProductName", "Osmo4-0.5.0\0"
+            VALUE "ProductVersion", "0.5.0\0"
             VALUE "SpecialBuild", "\0"
         END
     END

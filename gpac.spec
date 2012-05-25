@@ -1,11 +1,11 @@
 # $Id: gpac.spec,v 1.5 2008-12-02 18:04:42 jeanlf Exp $
 Summary: GPAC is a multimedia framework covering MPEG-4, VRML/X3D and SVG.
 Name: gpac
-Version: 0.4.5
-Release: DEV
+Version: 0.5.0
+Release: 0.5.0
 License: LGPL
 Group: Applications/Multimedia
-Source0: gpac-0.4.5.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip}
+Source0: gpac-0.5.0.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip}
 URL: http://gpac.sourceforge.net/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL
@@ -36,19 +36,18 @@ standard (ISO/IEC 14496-1) developed from scratch in C.
 The main development goal is to provide a clean (a.k.a. readable by as many
 people as possible), small and flexible alternative to the MPEG-4 Systems 
 reference software (known as IM1 and distributed in ISO/IEC 14496-5). 
+GPAC covers a very large part of the MPEG-4 standard, and features what can probably 
+be seen as the most advanced and robust 2D MPEG-4 Player available worldwide, as well as 
+a decent 3D MPEG-4/VRML player.
 
 The second development goal is to achieve integration of recent multimedia 
-standards (SVG/SMIL, VRML, X3D, SWF, etc) into a single framework. 
-GPAC already supports most of VRML97 and SVG Tiny 1.2, as well as some X3D and simple SWF support.
-
-GPAC already features 2D and 3D multimedia playback, MPEG-4 Systems 
-encoders/multiplexers and publishing tools for content distribution.
+standards for content playback (SVG/SMIL, VRML, X3D, SWF, etc) and content delivery into a single framework.
+GPAC features 2D and 3D multimedia playback, MPEG-4 Systems (BIFS and LASeR) encoders, multiplexers and 
+publishing tools for content distribution, such as RTP streamers, MPEG-2 TS muxers, ISO Base Media File (MP4 & 3GP a.k.a. ISO/IEC 14496-12) 
+and MPEG DASH muxers.
 
 GPAC is licensed under the GNU Lesser General Public License.
 
-The current GPAC release (0.4.5) already covers a very large part of the MPEG-4 standard,
-and features what can probably be seen as the most advanced and robust 2D MPEG-4 
-Player available worldwide, as well as a decent 3D MPEG-4/VRML player.
 
 Available rpmbuild rebuild options :
 --without : js freetype faad a52 jpeg png mad xvid ffmpeg
