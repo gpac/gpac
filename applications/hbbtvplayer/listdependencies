@@ -34,7 +34,7 @@ libgdk-pixbuf2.0-0
 libgl1-mesa-dev
 libglib2.0-0
 libglib2.0-dev
-libgpac0.4.5
+libgpac0.5.0
 libgstreamer0.10-0
 libgstreamer-plugins-base0.10-0
 libgtk2.0-dev

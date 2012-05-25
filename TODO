@@ -1,27 +1,7 @@
-todo items as of version 0.4.5:
-	* more refinement for several top scenes support (display overlays & co).
-
-utopic roadmap
-v0.5.0:
-	* maybe support for glyph-based texturing rather than string-based
-	* SMIL support ?
+todo items as of version 0.5.0:
+	* more work on DASH support
+	* improve stereo/multiview renderer and texture+depth support
+	* more work on DIMS/RME and scene generation support
+	* rearchitecture of modules
+	* more SVG support (filter , SVG 2.0)
 	
-v0.6.0:
-	* M4Flex (ex FlexMux) support
-	* Flexible IPMP integration
-	* JNI interfacing and MPEG-J APIs
-	* native SWF support in client ?
-
-v1.0.0:
-	* full rendering (MPEG-4 AFX ?)
-
-Future work on authoring tools is not still well defined. The current state has bt/vrml/XMT-A support, it could be interesting to have XMT-O support. The SWF converter
-still needs lots of work to support ActionScript and co but this will likely not be developed by your servitor. Other graphics converter are more-or-less droped.
-The main authoring focus should now be a better V4Studio-like app, to create simple content as well as act as a live studio.
-
-
-droped items:
-* Hardware accelerated 2D raster: from most doc on OpenGL and co, there is no waranty of any kind that backbuffer content is not altered when swaping buffers. 
-This is a big issue since the 2D renderer main strength is to compute diffs between frames... 2D acceleration is however available with the 3D renderer
-* MatteTexture fix: given the lack of acceleration in 2D, the matteTexture in the 2D renderer will be just to slow to be usable, and therefore won't be fixed
-for a while... MatteTexture with the 3D renderer will be fixed however, trying to use openGL texenv stuff and multitexturing

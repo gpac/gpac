@@ -1,4 +1,4 @@
-Codes used in GPAC are according to ISO/IEC 639-2/T as of GPAC 0.4.6-DEV internal rev. 6
+Codes used in GPAC are according to ISO/IEC 639-2/T 
 
 	"Abkhazian","abk","ab",
 	"Achinese","ace","",

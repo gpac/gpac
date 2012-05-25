@@ -85,14 +85,14 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "ENST\0"
             VALUE "FileDescription", "GPAX\0"
-            VALUE "FileVersion", "0.4.5\0"
+            VALUE "FileVersion", "0.5.0\0"
             VALUE "InternalName", "GPAX\0"
-            VALUE "LegalCopyright", "Copyright © 2007\0"
+            VALUE "LegalCopyright", "Copyright © 2012\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "GPAX.dll\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "ENST GPAX\0"
-            VALUE "ProductVersion", "0.4.5\0"
+            VALUE "ProductName", "Telecom ParisTech GPAX\0"
+            VALUE "ProductVersion", "0.5.0\0"
             VALUE "SpecialBuild", "\0"
         END
     END

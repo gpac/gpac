@@ -1,12 +1,12 @@
-Installation instructions for GPAC 0.4.5 on windows platform
-last modified: December 2008
+Installation instructions for GPAC on windows platform
+last modified: May 2012
 
 0 Foreword
-	Compilation has only been tested with MSVC 6 and VS2005 (VC8). 
+	For any question on the installation procedure, please refer to http://gpac.sourceforge.net/home_download.php
 
 	The output directory for all plugins and applications is
-		gpac/bin/w32_deb in debug mode
-		gpac/bin/w32_rel in release mode
+		gpac/bin/win32/debug in debug mode
+		gpac/bin/win32/release in release mode
 	
 	As of 0.2.2, GPAC cannot be compiled without ZLIB. You'd better make sure it is installed locally or on your system (zlib is provided in gpac_extra_libs package)
 	
@@ -19,7 +19,8 @@ II GPAC compilation
 
 	open the GPAC workspace: 
     gpac/build/msvc6/GPAC.dsw with MSVC6
-    gpac/build/msvc8/gpac.sln with VS2005
+    gpac/build/msvc8/gpac.sln with VS2005 
+    gpac/build/msvc9/gpac.sln with VS2008
 	
 	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE, AS DEPENDENCY RULES WILL BE BROKEN
 	

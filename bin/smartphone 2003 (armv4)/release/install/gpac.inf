@@ -1,5 +1,5 @@
 ;[Version]
-;Provider = "GPAC 0.4.6"
+;Provider = "GPAC 0.5.0"
 Signature = "$Windows NT$"
 CESignature = "$Windows CE$"
 

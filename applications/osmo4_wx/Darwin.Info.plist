@@ -7,21 +7,21 @@
 	<key>CFBundleExecutable</key>
 	<string>Osmo4</string>
 	<key>CFBundleGetInfoString</key>
-	<string>Osmo4 0.4.2</string>
+	<string>Osmo4 0.5.0</string>
 	<key>CFBundleIconFile</key>
 	<string>Osmo</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.gpac.Osmo4</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>0.4.2</string>
+	<string>0.5.0</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.2</string>
+	<string>0.5.0</string>
 	<key>CFBundleSignature</key>
 	<string>Omo4</string>
 	<key>CFBundleVersion</key>
-	<string>0.4.2</string>
+	<string>0.5.0</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (c) 2003-2005 gpac</string>
 	<key>NSMainNibFile</key>

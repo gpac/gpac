@@ -2,6 +2,8 @@ Installation instructions for GPAC 0.4.5 on Symbian 9.1 (S60 3rd Edition) platfo
 last modified: December 2008
 
 0 Foreword
+    ! GPAC versions later than 0.4.5 are no longer supported on Symbian ! 
+    
 	Compilation has only been tested with GCCE & Nokia S60 SDK
 	In order to fully compile, you must get:
   - the complete S60 3rd edition SDK (maintainance release) 
