@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 #include <gpac/tools.h>
-#include <gpac/module.h>
+#include <gpac/config_file.h>
 #include <gpac/cache.h>
 
 

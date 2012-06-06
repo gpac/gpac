@@ -27,10 +27,9 @@
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
+#include <string.h>
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/math.h>
-#include <string.h>
 #include <gpac/download.h>
 
 #ifdef GPAC_CONFIG_LINUX

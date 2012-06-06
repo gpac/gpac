@@ -16,7 +16,7 @@ endif
 
 #common obj
 OBJS=main.o filedump.o fileimport.o 
-ifeq ($(GPAC_DISABLE_STREAMING),no)
+ifeq ($(DISABLE_STREAMING),no)
 OBJS+=live.o
 endif
 

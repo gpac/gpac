@@ -33,6 +33,7 @@ extern "C" {
 #include <gpac/mpeg4_odf.h>
 #include <gpac/events.h>
 #include <gpac/download.h>
+#include <gpac/module.h>
 
 /*handle to service*/
 typedef struct _net_service GF_ClientService;
