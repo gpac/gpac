@@ -15,7 +15,10 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= main.o filedump.o fileimport.o live.o
+OBJS=main.o filedump.o fileimport.o 
+ifeq ($(GPAC_DISABLE_STREAMING),no)
+OBJS+=live.o
+endif
 
 LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
 
