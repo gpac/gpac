@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/url.o utils/xml_parser.o utils/alloc.o utils/unicode.o utils/sha1.o utils/token.o
+LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/url.o utils/xml_parser.o utils/utf.o utils/alloc.o utils/unicode.o utils/sha1.o utils/token.o
 
 ifeq ($(DISABLE_PLAYER), no)
 LIBGPAC_UTILS+=utils/color.o utils/os_module.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/utf.o utils/ringbuffer.o 
