@@ -28,20 +28,11 @@
 #include <gpac/color.h>
 
 
-/* original YUV table code from XviD colorspace module */
-
-/*****************************************************************************
- *
- *  XVID MPEG-4 VIDEO CODEC
- *  - colorspace conversion module -
- *
- *  Copyright(C) 2002 Peter Ross <pross@xvid.org>
- *               2002 Michael Militzer <isibaar@xvid.org>
- *
- *  follows the usual GPL license terms
- ****************************************************************************/
+/* YUV -> RGB conversion loading two lines at each call */
 
 #define col_clip(a) MAX(0, MIN(255, a))
+#define SCALEBITS_OUT	13
+#define FIX_OUT(x)		((unsigned short) ((x) * (1L<<SCALEBITS_OUT) + 0.5))
 
 static s32 RGB_Y[256];
 static s32 B_U[256];
@@ -49,19 +40,14 @@ static s32 G_U[256];
 static s32 G_V[256];
 static s32 R_V[256];
 
-#define SCALEBITS_OUT	13
-#define FIX_OUT(x)		((unsigned short) ((x) * (1L<<SCALEBITS_OUT) + 0.5))
 
-
-static s32 is_init = 0;
-
-/**/
+static s32 yuv2rgb_is_init = 0;
 static void yuv2rgb_init(void)
 {
 	s32 i;
-	if (is_init) return;
+	if (yuv2rgb_is_init) return;
+	yuv2rgb_is_init = 1;
 
-	is_init = 1;
 	for(i = 0; i < 256; i++) {
 		RGB_Y[i] = FIX_OUT(1.164) * (i - 16);
 		B_U[i] = FIX_OUT(2.018) * (i - 128);

@@ -27,6 +27,7 @@
 
 #ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
+#include <gpac/math.h>
 #endif
 
 GF_EXPORT
