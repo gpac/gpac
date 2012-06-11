@@ -37,6 +37,10 @@
 #ifndef GPAC_DISABLE_BIFS
 #include <gpac/bifs.h>
 #endif
+#ifndef GPAC_DISABLE_VRML
+#include <gpac/nodes_mpeg4.h>
+#endif
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #include <gpac/xml.h>
