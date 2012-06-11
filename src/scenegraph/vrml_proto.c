@@ -352,7 +352,9 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	GF_Node *node, *child;
 	GF_ChildNodeItem *list, *last;
 	GF_Route *r1, *r2;
+#ifndef GPAC_DISABLE_BIFS
 	void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig);
+#endif
 	GF_ProtoInstance *proto;
 	GF_Proto *proto_node;
 	GF_FieldInfo field_orig, field;
@@ -457,9 +459,13 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		}
 	}
 
+#ifndef GPAC_DISABLE_BIFS
 	/*init node before creating ISed routes so the eventIn handler are in place*/
-	if (node->sgprivate->tag == TAG_MPEG4_Conditional) BIFS_SetupConditionalClone(node, orig);
-	else if (node->sgprivate->tag != TAG_ProtoNode) gf_node_init(node);
+	if (node->sgprivate->tag == TAG_MPEG4_Conditional)
+		BIFS_SetupConditionalClone(node, orig);
+	else 
+#endif
+		if (node->sgprivate->tag != TAG_ProtoNode) gf_node_init(node);
 
 	if (!inScene->pOwningProto) return node;
 	proto = inScene->pOwningProto;

@@ -73,6 +73,10 @@ LIBGPAC_MEDIATOOLS+=media_tools/ismacryp.o
 endif
 ifeq ($(DISABLE_ISOFF_HINT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/isom_hinter.o
+else
+ifeq ($(DISABLE_STREAMING), no)
+LIBGPAC_MEDIATOOLS+=media_tools/isom_hinter.o
+endif
 endif
 ifeq ($(DISABLE_SAF), no)
 LIBGPAC_MEDIATOOLS+=media_tools/saf.o
@@ -88,10 +92,10 @@ endif
 ## libgpac objects gathering: src/scene_manager
 LIBGPAC_SCENEMANAGER=
 ifeq ($(DISABLE_SMGR), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/scene_manager.o
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_manager.o scene_manager/text_to_bifs.o
 endif
 ifeq ($(DISABLE_LOADER_BT), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/loader_bt.o scene_manager/text_to_bifs.o
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_bt.o
 endif
 ifeq ($(DISABLE_LOADER_XMT), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_xmt.o
