@@ -31,7 +31,6 @@
 #include <gpac/nodes_x3d.h>
 /*for key codes...*/
 #include <gpac/user.h>
-#include <gpac/base_coding.h>
 #include <gpac/network.h>
 
 
@@ -42,6 +41,7 @@
 /*since 0.2.2, we use zlib for bt reading to handle wrl.gz files*/
 #include <zlib.h>
 
+void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName);
 
 void load_bt_done(GF_SceneLoader *load);
 

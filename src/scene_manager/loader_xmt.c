@@ -30,10 +30,9 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
 
-void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName);
-
 #ifndef GPAC_DISABLE_LOADER_XMT
 
+void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName);
 
 /*for QP types*/
 #include "../bifs/quant.h"
