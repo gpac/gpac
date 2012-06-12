@@ -2137,7 +2137,9 @@ if [ -d ".svn" ]; then
     echo "Cannot find SVN revision"
  fi
 else
+ if [ ! -e "$source_path/include/gpac/version.h" ]; then
     echo "#define GPAC_SVN_REVISION	\"4065\"" > $source_path/include/gpac/version.h
+ fi
 fi
 
 echo ""
