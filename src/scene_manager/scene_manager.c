@@ -732,6 +732,8 @@ GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
 	return GF_OK;
 }
 
+#if !defined(GPAC_DISABLE_LOADER_BT) || !defined(GPAC_DISABLE_LOADER_XMT)
+#include <gpac/base_coding.h>
 void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 {
 	u32 data_size = 0;
@@ -796,4 +798,6 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 	}
 
 }
+#endif //!defined(GPAC_DISABLE_LOADER_BT) || !defined(GPAC_DISABLE_LOADER_XMT)
+
 
