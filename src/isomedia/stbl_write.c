@@ -219,6 +219,11 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 	sampNum = 0;
 	for (i=0; i<ctts->nb_entries; i++) {
 		for (j = 0; j<ctts->entries[i].sampleCount; j++) {
+			if (sampNum > stbl->SampleSize->sampleCount) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Too many CTS Offset entries for %d samples\n", stbl->SampleSize->sampleCount ));
+				gf_free(CTSs);
+				return GF_ISOM_INVALID_FILE;
+			}
 			if (sampNum+1==sampleNumber) {
 				CTSs[sampNum] = CTSoffset;
 				sampNum ++;
