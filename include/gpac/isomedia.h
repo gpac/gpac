@@ -1905,7 +1905,7 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-/*3GPP Alternate Group API - (c) 2007 ENST & ResonateMP4*/
+/*3GPP Alternate Group API - (c) 2007 Telecom ParisTech*/
 
 /*gets the number of switching groups declared in this track if any:
 trackNumber: track number

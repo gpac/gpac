@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
- *  GPAC is gf_free software; you can redistribute it and/or modify
+ *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the gf_free Software Foundation; either version 2, or (at your option)
  *  any later version.

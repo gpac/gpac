@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / mp4box application
  *
- *  GPAC is gf_free software; you can redistribute it and/or modify
+ *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -1291,6 +1291,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 							}
 						}
 						if (!found) {
+							fprintf(stdout, "WARNING: Concatenating track ID %d with different SPS - result file might be broken\n", tk_id);
 							gf_list_rem(avc_src->sequenceParameterSets, j);
 							j--;
 							gf_list_add(avc_dst->sequenceParameterSets, slc);
@@ -1309,15 +1310,14 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 							}
 						}
 						if (!found) {
+							fprintf(stdout, "WARNING: Concatenating track ID %d with different PPS - result file might be broken\n", tk_id);
 							gf_list_rem(avc_src->pictureParameterSets, j);
 							j--;
 							gf_list_add(avc_dst->pictureParameterSets, slc);
 						}
 					}
-
 					gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
 				}
-
 
 				gf_odf_avc_cfg_del(avc_src);
 				gf_odf_avc_cfg_del(avc_dst);
