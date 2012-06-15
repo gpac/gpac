@@ -28,10 +28,66 @@
 #include <gpac/constants.h>
 #include <gpac/config_file.h>
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_EXPORT
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
+{
+	u32 tk_w, tk_h, stype;
+	GF_Err e;
+
+	e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
+	if (e) return e;
+
+	stype = gf_isom_get_media_subtype(file, track, 1);
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) || (stype==GF_ISOM_SUBTYPE_AVC2_H264) ) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
+		AVC_ChangePAR(avcc, ar_num, ar_den);
+		e = gf_isom_avc_config_update(file, track, 1, avcc);
+		gf_odf_avc_cfg_del(avcc);
+		if (e) return e;
+#endif
+	}
+	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
+		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
+		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
+			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
+			return GF_NOT_SUPPORTED;
+		}
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
+			e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
+			if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			if (e) return e;
+		}
+#endif
+	} else {
+		return GF_BAD_PARAM;
+	}
+
+	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den);
+	if (e) return e;
+
+	if ((ar_den>=0) && (ar_num>=0)) {
+		if (ar_den) tk_w = tk_w * ar_num / ar_den;
+		else if (ar_num) tk_h = tk_h * ar_den / ar_num;
+	}
+	/*revert to full frame for track layout*/
+	else {
+		e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
+		if (e) return e;
+	}
+	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
 GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]) 
 {
+#ifdef GPAC_DISABLE_CORE_TOOLS
+	return GF_NOT_SUPPORTED;
+#else
 	u8 block[1024];
 	u32 read;
 	u64 size, tot;
@@ -92,6 +148,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 	fclose(in);
 	return GF_OK;
+#endif
 }
 
 #ifndef GPAC_DISABLE_ISOM
