@@ -1,7 +1,11 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in ac3_in audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in mpegts_in ismacryp mpd_in
+PLUGDIRS=aac_in ac3_in audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp mpd_in
+
+ifeq ($(DISABLE_MEDIA_IMPORT), no)
+PLUGDIRS+=mpegts_in 
+endif
 
 ifeq ($(DISABLE_SMGR), no)
 PLUGDIRS+=ctx_load svg_in
