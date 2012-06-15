@@ -1976,6 +1976,7 @@ exit:
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	char szCheck[100];
@@ -2185,6 +2186,14 @@ exit:
 	}
 	return file;
 }
+#else
+GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt)
+{
+	fprintf(stdout, "XML Not supported in this build of GPAC - cannot package file\n");
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_CORE_TOOLS
+
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

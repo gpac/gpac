@@ -108,6 +108,7 @@ has_joystick="no"
 has_xul="no"
 enable_joystick="no"
 static_mp4box="no"
+disable_core_tools="no"
 disable_3d="no"
 disable_svg="no"
 disable_vrml="no"
@@ -136,8 +137,10 @@ disable_loader_isoff="no"
 disable_loader_bt="no"
 disable_loader_xmt="no"
 disable_od_dump="no"
+disable_od_parse="no"
 disable_isom_dump="no"
 disable_mcrypt="no"
+disable_mpd="no"
 disable_isoff="no"
 disable_isoff_write="no"
 disable_isoff_frag="no"
@@ -646,13 +649,8 @@ fi
 if test "$has_zlib" = "no" ; then
   if $cc -o $TMPO $TMPC -I"$local_inc/zlib" -L$local_lib -lz 2> /dev/null  ; then
     has_zlib="local"
-  else
-    echo "error: zlib not found on system or in local libs"
-    exit 1
   fi
 fi
-
-
 
 #check dlopen
 cat > $TMPC << EOF
@@ -664,11 +662,6 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1 ; then
     dlopen="yes"
 elif $cc -o $TMPE $TMPC $LDFLAGS -ldl > /dev/null 2>&1 ; then
     GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
-else
-    if test "$win32" = "no"; then
-        echo "error: dlopen not found on system"
-        exit 1
-    fi
 fi
 
 
@@ -1698,7 +1691,7 @@ for opt do
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
 
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"
             ;;
 
         --disable-3d) disable_3d="yes"
@@ -1807,6 +1800,10 @@ for opt do
             ;;
         --enable-od-dump) disable_od_dump="no"
             ;;
+        --disable-od-parse) disable_od_parse="yes"
+            ;;
+        --enable-od-parse) disable_od_parse="no"
+            ;;
         --disable-isom-dump) disable_isom_dump="yes"
             ;;
         --enable-isom-dump) disable_isom_dump="no"
@@ -1863,11 +1860,34 @@ for opt do
             ;;
         --enable-smgr) disable_smgr="no"
             ;; 
-
+        --disable-dash) disable_mpd="yes"
+            ;;
+        --enable-dash) disable_mpd="no"
+            ;; 
+        --disable-core) disable_core_tools="yes"
+            ;;
+        --enable-core) disable_core_tools="no"
+            ;; 
     esac
 done
 
 
+
+if test "$disable_core_tools" = "no"; then
+  if test "$has_zlib" = "no" ; then
+    echo "error: zlib not found on system or in local libs"
+    exit 1
+  fi
+  if test "$dlopen" = "no"; then
+    if test "$win32" = "no"; then
+      echo "error: dlopen not found on system"
+      exit 1
+    fi
+  fi
+else
+GPAC_SH_FLAGS=""
+has_ssl="no"
+fi
 
 #look for OpenGL support or for TinyGL support
 LINK3D=""
@@ -2098,7 +2118,6 @@ disable_3d="yes"
 disable_svg="yes"
 disable_vrml="yes"
 disable_x3d="yes"
-disable_od="no"
 disable_bifs="yes"
 disable_bifs_enc="yes"
 disable_laser="yes"
@@ -2113,6 +2132,12 @@ disable_loader_bt="yes"
 disable_loader_xmt="yes"
 disable_streaming="yes"
 disable_player="yes"
+has_js="no"
+fi
+
+if test "$disable_parsers" = "yes" ; then
+has_jpeg="no"
+has_png="no"
 fi
 
 #prepare for config.h writing
@@ -2184,6 +2209,10 @@ disable_svg="yes"
     echo "Scene Manager disabled"
     echo "#define GPAC_DISABLE_SMGR" >> $TMPH
 fi
+if test "$disable_core_tools" = "yes" ; then
+    echo "Core tools disabled"
+    echo "#define GPAC_DISABLE_CORE_TOOLS" >> $TMPH
+fi
 if test "$disable_svg" = "yes" ; then
     echo "SVG disabled"
     echo "#define GPAC_DISABLE_SVG" >> $TMPH
@@ -2200,6 +2229,10 @@ fi
 if test "$disable_od" = "yes" ; then
     echo "OD Full support disabled"
     echo "#define GPAC_MINIMAL_ODF" >> $TMPH
+fi
+if test "$disable_od_parse" = "yes" ; then
+    echo "OD Parsing disabled"
+    echo "#define GPAC_DISABLE_OD_PARSE" >> $TMPH
 fi
 if test "$disable_bifs" = "yes" ; then
     echo "BIFS coder disabled"
@@ -2334,6 +2367,11 @@ fi
 if test "$enable_depth_compositor" = "yes" ; then
     echo "Depth Compositor enabled"
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
+fi
+
+if test "$disable_mpd" = "yes" ; then
+    echo "DASH & HLS Reader Disabled"
+    echo "#define GPAC_DISABLE_MPD" >> $TMPH
 fi
 
 echo ""
@@ -2645,6 +2683,14 @@ echo "DISABLE_ISOFF_HINT=$disable_isoff_hint" >> config.mak
 echo "DISABLE_VOBSUB=$disable_vobsub" >> config.mak
 echo "DISABLE_TTXT=$disable_ttxt" >> config.mak
 echo "DISABLE_SMGR=$disable_smgr" >> config.mak
+echo "DISABLE_AV_PARSERS=$disable_parsers" >> config.mak
+echo "DISABLE_MEDIA_IMPORT=$disable_import" >> config.mak
+echo "DISABLE_MEDIA_EXPORT=$disable_export" >> config.mak
+echo "DISABLE_MPD=$disable_mpd" >> config.mak
+echo "DISABLE_CORE_TOOLS=$disable_core_tools" >> config.mak
+echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
+echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
+
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"

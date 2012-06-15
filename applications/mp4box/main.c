@@ -1230,9 +1230,12 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_rem = NULL;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, single_group;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, single_group;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
 
+#ifndef GPAC_DISABLE_MPD
+	Bool do_mpd = 0;
+#endif
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	Bool chunk_mode=0;
 #endif
@@ -1270,7 +1273,7 @@ int mp4boxMain(int argc, char **argv)
 	import_flags = 0;
 	split_size = 0;
 	movie_time = 0;
-	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
+	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	subsegs_per_sidx = 0;
@@ -1836,12 +1839,14 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-saf")) { do_saf = 1; }
 		else if (!stricmp(arg, "-log")) { do_log = 1; }
+#ifndef GPAC_DISABLE_MPD
 		else if (!stricmp(arg, "-mpd")) { 
 			do_mpd = 1; 
 			CHECK_NEXT_ARG 
 			outName = argv[i+1]; 
 			i++; 
 		}
+#endif
 		
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
@@ -2216,6 +2221,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
+#ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
 		Bool remote = 0;
 		char *mpd_base_url = gf_strdup(inName);
@@ -2242,7 +2248,7 @@ int mp4boxMain(int argc, char **argv)
 			MP4BOX_EXIT_WITH_CODE(0);
 		}
 	}
-
+#endif
 	if (dash_duration && !nb_dash_inputs) {
 		dash_inputs = realloc(dash_inputs, sizeof(char *) * (nb_dash_inputs+1) );
 		dash_inputs[nb_dash_inputs] = inName;

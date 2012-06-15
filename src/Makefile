@@ -15,7 +15,10 @@ LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/configfile.o utils/cache.o utils/downloader.o utils/error.o utils/url.o utils/xml_parser.o utils/utf.o utils/alloc.o utils/unicode.o utils/sha1.o utils/token.o
+LIBGPAC_UTILS=utils/os_divers.o utils/list.o utils/bitstream.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o 
+ifeq ($(DISABLE_CORE_TOOLS), no)
+LIBGPAC_UTILS+=utils/sha1.o  utils/base_encoding.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/xml_parser.o utils/utf.o utils/unicode.o utils/token.o 
+endif
 
 ifeq ($(DISABLE_PLAYER), no)
 LIBGPAC_UTILS+=utils/color.o utils/os_module.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/ringbuffer.o 
@@ -40,7 +43,13 @@ LIBGPAC_ISOM+=isomedia/hint_track.o isomedia/hinting.o
 endif
 
 ## libgpac objects gathering: src/odf
-LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump.o odf/ipmpx_parse.o odf/oci_codec.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/odf_dump.o odf/odf_parse.o odf/qos.o odf/slc.o 
+LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/oci_codec.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/qos.o odf/slc.o 
+ifeq ($(DISABLE_OD_DUMP), no)
+LIBGPAC_ODF+=odf/odf_dump.o odf/ipmpx_dump.o
+endif
+ifeq ($(DISABLE_OD_PARSE), no)
+LIBGPAC_ODF+=odf/odf_parse.o odf/ipmpx_parse.o
+endif
 
 ## libgpac objects gathering: src/scenegraph
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o
@@ -52,7 +61,19 @@ LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o
 endif
 
 ## libgpac objects gathering: src/media tools
-LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/img.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpegts.o media_tools/m2ts_mux.o media_tools/m3u8.o media_tools/mpd.o
+LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/av_parsers.o
+ifeq ($(DISABLE_AV_PARSERS), no)
+LIBGPAC_MEDIATOOLS+=media_tools/img.o
+endif
+ifeq ($(DISABLE_MEDIA_IMPORT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/media_import.o media_tools/mpegts.o
+endif
+ifeq ($(DISABLE_MPD), no)
+LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
+endif
+ifeq ($(DISABLE_MEDIA_EXPORT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/media_export.o media_tools/m2ts_mux.o
+endif
 ifeq ($(DISABLE_STREAMING), no)
 LIBGPAC_MEDIATOOLS+=media_tools/filestreamer.o
 endif
@@ -155,6 +176,8 @@ LINKLIBS=
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=
 
+ifeq ($(DISABLE_CORE_TOOLS), no)
+
 #1 - zlib support
 ifeq ($(CONFIG_ZLIB), local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
@@ -175,6 +198,8 @@ ifeq ($(CONFIG_JS),local)
 NEED_LOCAL_LIB="yes"
 endif
 LINKLIBS+=$(JS_LIBS)
+endif
+
 endif
 
 #4 - JPEG support
