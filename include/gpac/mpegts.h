@@ -27,31 +27,159 @@
 #define _GF_MPEG_TS_H_
 
 #include <gpac/list.h>
-
-#ifndef GPAC_DISABLE_MPEG2TS
-
-#include <gpac/internal/odf_dev.h>
 #include <gpac/network.h>
-#include <gpac/esi.h>
 #include <gpac/thread.h>
-#include <time.h>
+#include <gpac/internal/odf_dev.h>
 
-typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
-typedef struct tag_m2ts_es GF_M2TS_ES;
-typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 
-#ifdef GPAC_HAS_LINUX_DVB
-typedef struct __gf_dvb_tuner GF_Tuner;
-#endif
 
-/*Maximum number of streams in a TS*/
-#define GF_M2TS_MAX_STREAMS	8192
+/*MPEG-2 Descriptor tags*/
+enum
+{
+	/* ... */
+	GF_M2TS_VIDEO_STREAM_DESCRIPTOR							= 0x02,
+	GF_M2TS_AUDIO_STREAM_DESCRIPTOR							= 0x03,
+	GF_M2TS_HIERARCHY_DESCRIPTOR							= 0x04,
+	GF_M2TS_REGISTRATION_DESCRIPTOR							= 0x05,
+	GF_M2TS_DATA_STREAM_ALIGNEMENT_DESCRIPTOR				= 0x06,
+	GF_M2TS_TARGET_BACKGROUND_GRID_DESCRIPTOR				= 0x07,
+	GF_M2TS_VIEW_WINDOW_DESCRIPTOR							= 0x08,
+	GF_M2TS_CA_DESCRIPTOR									= 0x09,
+	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR						= 0x0A,
+	GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR				= 0x0C,
+	GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR	= 0x0D,
+	GF_M2TS_DVB_TARGET_IP_SLASH_DESCRIPTOR			= 0x0F,
+	/* ... */
+	GF_M2TS_DVB_STREAM_LOCATION_DESCRIPTOR        =0x13,
+	/* ... */
+	GF_M2TS_STD_DESCRIPTOR					= 0x17,
+	/* ... */
+	GF_M2TS_MPEG4_VIDEO_DESCRIPTOR				= 0x1B,
+	GF_M2TS_MPEG4_AUDIO_DESCRIPTOR				= 0x1C,
+	GF_M2TS_MPEG4_IOD_DESCRIPTOR				= 0x1D,
+	GF_M2TS_MPEG4_SL_DESCRIPTOR				= 0x1E,
+	GF_M2TS_MPEG4_FMC_DESCRIPTOR				= 0x1F,
+	/* ... */
+	GF_M2TS_AVC_VIDEO_DESCRIPTOR				= 0x28,
+	/* ... */	
+	GF_M2TS_AVC_TIMING_HRD_DESCRIPTOR			= 0x2A,
+	/* ... */
+	GF_M2TS_MPEG4_ODUPDATE_DESCRIPTOR			= 0x35,
 
-/*Maximum number of service in a TS*/
-#define GF_M2TS_MAX_SERVICES	65535
+	/* 0x2D - 0x3F - ISO/IEC 13818-6 values */
+	/* 0x40 - 0xFF - User Private values */
+	GF_M2TS_DVB_NETWORK_NAME_DESCRIPTOR			= 0x40,
+	GF_M2TS_DVB_SERVICE_LIST_DESCRIPTOR			= 0x41,
+	GF_M2TS_DVB_STUFFING_DESCRIPTOR				= 0x42,
+	GF_M2TS_DVB_SAT_DELIVERY_SYSTEM_DESCRIPTOR		= 0x43,
+	GF_M2TS_DVB_CABLE_DELIVERY_SYSTEM_DESCRIPTOR		= 0x44,
+	GF_M2TS_DVB_VBI_DATA_DESCRIPTOR				= 0x45,
+	GF_M2TS_DVB_VBI_TELETEXT_DESCRIPTOR			= 0x46,
+	GF_M2TS_DVB_BOUQUET_NAME_DESCRIPTOR			= 0x47,
+	GF_M2TS_DVB_SERVICE_DESCRIPTOR				= 0x48,
+	GF_M2TS_DVB_COUNTRY_AVAILABILITY_DESCRIPTOR		= 0x49,
+	GF_M2TS_DVB_LINKAGE_DESCRIPTOR				= 0x4A,
+	GF_M2TS_DVB_NVOD_REFERENCE_DESCRIPTOR			= 0x4B,
+	GF_M2TS_DVB_TIME_SHIFTED_SERVICE_DESCRIPTOR		= 0x4C,
+	GF_M2TS_DVB_SHORT_EVENT_DESCRIPTOR			= 0x4D,
+	GF_M2TS_DVB_EXTENDED_EVENT_DESCRIPTOR			= 0x4E,
+	GF_M2TS_DVB_TIME_SHIFTED_EVENT_DESCRIPTOR		= 0x4F,
+	GF_M2TS_DVB_COMPONENT_DESCRIPTOR			= 0x50,
+	GF_M2TS_DVB_MOSAIC_DESCRIPTOR				= 0x51,
+	GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR		= 0x52,
+	GF_M2TS_DVB_CA_IDENTIFIER_DESCRIPTOR			= 0x53,
+	GF_M2TS_DVB_CONTENT_DESCRIPTOR				= 0x54,
+	GF_M2TS_DVB_PARENTAL_RATING_DESCRIPTOR			= 0x55,
+	GF_M2TS_DVB_TELETEXT_DESCRIPTOR				= 0x56,
+	/* ... */
+	GF_M2TS_DVB_LOCAL_TIME_OFFSET_DESCRIPTOR		= 0x58,
+	GF_M2TS_DVB_SUBTITLING_DESCRIPTOR			= 0x59,
+	GF_M2TS_DVB_PRIVATE_DATA_SPECIFIER_DESCRIPTOR = 0x5F,
+	/* ... */
+	GF_M2TS_DVB_DATA_BROADCAST_DESCRIPTOR			= 0x64,
+	/* ... */
+	GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR		= 0x66,
+	/* ... */
+	GF_M2TS_DVB_AC3_DESCRIPTOR				= 0x6A,
+	/* ... */
+	GF_M2TS_DVB_TIME_SLICE_FEC_DESCRIPTOR 		   = 0x77,
+	/* ... */
+	GF_M2TS_DVB_EAC3_DESCRIPTOR				= 0x7A,
+	GF_M2TS_DVB_LOGICAL_CHANNEL_DESCRIPTOR = 0x83,		
+};
 
-/*Maximum size of the buffer in UDP */
-#define UDP_BUFFER_SIZE	0x40000
+/* Reserved PID values */
+enum {
+	GF_M2TS_PID_PAT			= 0x0000,
+	GF_M2TS_PID_CAT			= 0x0001,
+	GF_M2TS_PID_TSDT		= 0x0002,
+	/* reserved 0x0003 to 0x000F */ 
+	GF_M2TS_PID_NIT_ST		= 0x0010,
+	GF_M2TS_PID_SDT_BAT_ST	= 0x0011,
+	GF_M2TS_PID_EIT_ST_CIT	= 0x0012,
+	GF_M2TS_PID_RST_ST		= 0x0013,
+	GF_M2TS_PID_TDT_TOT_ST	= 0x0014,
+	GF_M2TS_PID_NET_SYNC	= 0x0015,
+	GF_M2TS_PID_RNT			= 0x0016,
+	/* reserved 0x0017 to 0x001B */ 
+	GF_M2TS_PID_IN_SIG		= 0x001C,
+	GF_M2TS_PID_MEAS		= 0x001D,
+	GF_M2TS_PID_DIT			= 0x001E,
+	GF_M2TS_PID_SIT			= 0x001F
+};
+
+/* max size includes first header, second header, payload and CRC */
+enum {
+	GF_M2TS_TABLE_ID_PAT			= 0x00,
+	GF_M2TS_TABLE_ID_CAT			= 0x01, 
+	GF_M2TS_TABLE_ID_PMT			= 0x02, 
+	GF_M2TS_TABLE_ID_TSDT			= 0x03, /* max size for section 1024 */
+	GF_M2TS_TABLE_ID_MPEG4_BIFS		= 0x04, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_MPEG4_OD		= 0x05, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_METADATA		= 0x06, 
+	GF_M2TS_TABLE_ID_IPMP_CONTROL	= 0x07, 
+	/* 0x08 - 0x37 reserved */
+	/* 0x38 - 0x3D DSM-CC defined */
+	GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA		= 0x3A, 
+	GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE				= 0x3B, /* used for MPE (only, not MPE-FEC) */
+	GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE	= 0x3C, /* used for MPE (only, not MPE-FEC) */
+	GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION		= 0x3D, /* used for MPE (only, not MPE-FEC) */
+	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE					= 0x3E, /* used for MPE (only, not MPE-FEC) */
+	/* 0x3F DSM-CC defined */
+	GF_M2TS_TABLE_ID_NIT_ACTUAL		= 0x40, /* max size for section 1024 */
+	GF_M2TS_TABLE_ID_NIT_OTHER		= 0x41,
+	GF_M2TS_TABLE_ID_SDT_ACTUAL		= 0x42, /* max size for section 1024 */
+	/* 0x43 - 0x45 reserved */
+	GF_M2TS_TABLE_ID_SDT_OTHER		= 0x46, /* max size for section 1024 */
+	/* 0x47 - 0x49 reserved */
+	GF_M2TS_TABLE_ID_BAT			= 0x4a, /* max size for section 1024 */
+	/* 0x4b	reserved */
+	GF_M2TS_TABLE_ID_INT			= 0x4c, /* max size for section 4096 */
+	/* 0x4d reserved */
+	
+	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF	= 0x4E, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_EIT_OTHER_PF	= 0x4F,
+	/* 0x50 - 0x6f EIT SCHEDULE */
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN	= 0x50,
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX= 0x5F,
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX	= 0x6F,
+
+	GF_M2TS_TABLE_ID_TDT			= 0x70, /* max size for section 1024 */
+	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
+	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_TOT			= 0x73, /* max size for section 1024 */
+	GF_M2TS_TABLE_ID_AIT			= 0x74,
+	GF_M2TS_TABLE_ID_CONT			= 0x75,
+	GF_M2TS_TABLE_ID_RC				= 0x76,
+	GF_M2TS_TABLE_ID_CID			= 0x77,
+	GF_M2TS_TABLE_ID_MPE_FEC		= 0x78,
+	GF_M2TS_TABLE_ID_RES_NOT		= 0x79,
+	/* 0x7A - 0x7D reserved */
+	GF_M2TS_TABLE_ID_DIT			= 0x7E,
+	GF_M2TS_TABLE_ID_SIT			= 0x7F, /* max size for section 4096 */
+	/* 0x80 - 0xfe reserved */
+	/* 0xff reserved */
+};
 
 /*MPEG-2 TS Media types*/
 enum
@@ -91,6 +219,35 @@ enum
 	GF_M2TS_DVB_VBI					= 0x153,
 	GF_M2TS_DVB_SUBTITLE			= 0x154,
 };
+
+
+#define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
+#define SECTION_ADDITIONAL_HEADER_LENGTH 5 /* header from the last bit of the section_length field to the payload */
+#define	CRC_LENGTH 4
+
+
+
+#ifndef GPAC_DISABLE_MPEG2TS
+
+#include <time.h>
+
+typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
+typedef struct tag_m2ts_es GF_M2TS_ES;
+typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
+
+#ifdef GPAC_HAS_LINUX_DVB
+typedef struct __gf_dvb_tuner GF_Tuner;
+#endif
+
+/*Maximum number of streams in a TS*/
+#define GF_M2TS_MAX_STREAMS	8192
+
+/*Maximum number of service in a TS*/
+#define GF_M2TS_MAX_SERVICES	65535
+
+/*Maximum size of the buffer in UDP */
+#define UDP_BUFFER_SIZE	0x40000
+
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
 
@@ -665,159 +822,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 
 u32 gf_m2ts_crc32_check(char *data, u32 len);
 
-/*MPEG-2 Descriptor tags*/
-enum
-{
-	/* ... */
-	GF_M2TS_VIDEO_STREAM_DESCRIPTOR							= 0x02,
-	GF_M2TS_AUDIO_STREAM_DESCRIPTOR							= 0x03,
-	GF_M2TS_HIERARCHY_DESCRIPTOR							= 0x04,
-	GF_M2TS_REGISTRATION_DESCRIPTOR							= 0x05,
-	GF_M2TS_DATA_STREAM_ALIGNEMENT_DESCRIPTOR				= 0x06,
-	GF_M2TS_TARGET_BACKGROUND_GRID_DESCRIPTOR				= 0x07,
-	GF_M2TS_VIEW_WINDOW_DESCRIPTOR							= 0x08,
-	GF_M2TS_CA_DESCRIPTOR									= 0x09,
-	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR						= 0x0A,
-	GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR				= 0x0C,
-	GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR	= 0x0D,
-	GF_M2TS_DVB_TARGET_IP_SLASH_DESCRIPTOR			= 0x0F,
-	/* ... */
-	GF_M2TS_DVB_STREAM_LOCATION_DESCRIPTOR        =0x13,
-	/* ... */
-	GF_M2TS_STD_DESCRIPTOR					= 0x17,
-	/* ... */
-	GF_M2TS_MPEG4_VIDEO_DESCRIPTOR				= 0x1B,
-	GF_M2TS_MPEG4_AUDIO_DESCRIPTOR				= 0x1C,
-	GF_M2TS_MPEG4_IOD_DESCRIPTOR				= 0x1D,
-	GF_M2TS_MPEG4_SL_DESCRIPTOR				= 0x1E,
-	GF_M2TS_MPEG4_FMC_DESCRIPTOR				= 0x1F,
-	/* ... */
-	GF_M2TS_AVC_VIDEO_DESCRIPTOR				= 0x28,
-	/* ... */	
-	GF_M2TS_AVC_TIMING_HRD_DESCRIPTOR			= 0x2A,
-	/* ... */
-	GF_M2TS_MPEG4_ODUPDATE_DESCRIPTOR			= 0x35,
 
-	/* 0x2D - 0x3F - ISO/IEC 13818-6 values */
-	/* 0x40 - 0xFF - User Private values */
-	GF_M2TS_DVB_NETWORK_NAME_DESCRIPTOR			= 0x40,
-	GF_M2TS_DVB_SERVICE_LIST_DESCRIPTOR			= 0x41,
-	GF_M2TS_DVB_STUFFING_DESCRIPTOR				= 0x42,
-	GF_M2TS_DVB_SAT_DELIVERY_SYSTEM_DESCRIPTOR		= 0x43,
-	GF_M2TS_DVB_CABLE_DELIVERY_SYSTEM_DESCRIPTOR		= 0x44,
-	GF_M2TS_DVB_VBI_DATA_DESCRIPTOR				= 0x45,
-	GF_M2TS_DVB_VBI_TELETEXT_DESCRIPTOR			= 0x46,
-	GF_M2TS_DVB_BOUQUET_NAME_DESCRIPTOR			= 0x47,
-	GF_M2TS_DVB_SERVICE_DESCRIPTOR				= 0x48,
-	GF_M2TS_DVB_COUNTRY_AVAILABILITY_DESCRIPTOR		= 0x49,
-	GF_M2TS_DVB_LINKAGE_DESCRIPTOR				= 0x4A,
-	GF_M2TS_DVB_NVOD_REFERENCE_DESCRIPTOR			= 0x4B,
-	GF_M2TS_DVB_TIME_SHIFTED_SERVICE_DESCRIPTOR		= 0x4C,
-	GF_M2TS_DVB_SHORT_EVENT_DESCRIPTOR			= 0x4D,
-	GF_M2TS_DVB_EXTENDED_EVENT_DESCRIPTOR			= 0x4E,
-	GF_M2TS_DVB_TIME_SHIFTED_EVENT_DESCRIPTOR		= 0x4F,
-	GF_M2TS_DVB_COMPONENT_DESCRIPTOR			= 0x50,
-	GF_M2TS_DVB_MOSAIC_DESCRIPTOR				= 0x51,
-	GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR		= 0x52,
-	GF_M2TS_DVB_CA_IDENTIFIER_DESCRIPTOR			= 0x53,
-	GF_M2TS_DVB_CONTENT_DESCRIPTOR				= 0x54,
-	GF_M2TS_DVB_PARENTAL_RATING_DESCRIPTOR			= 0x55,
-	GF_M2TS_DVB_TELETEXT_DESCRIPTOR				= 0x56,
-	/* ... */
-	GF_M2TS_DVB_LOCAL_TIME_OFFSET_DESCRIPTOR		= 0x58,
-	GF_M2TS_DVB_SUBTITLING_DESCRIPTOR			= 0x59,
-	GF_M2TS_DVB_PRIVATE_DATA_SPECIFIER_DESCRIPTOR = 0x5F,
-	/* ... */
-	GF_M2TS_DVB_DATA_BROADCAST_DESCRIPTOR			= 0x64,
-	/* ... */
-	GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR		= 0x66,
-	/* ... */
-	GF_M2TS_DVB_AC3_DESCRIPTOR				= 0x6A,
-	/* ... */
-	GF_M2TS_DVB_TIME_SLICE_FEC_DESCRIPTOR 		   = 0x77,
-	/* ... */
-	GF_M2TS_DVB_EAC3_DESCRIPTOR				= 0x7A,
-	GF_M2TS_DVB_LOGICAL_CHANNEL_DESCRIPTOR = 0x83,		
-};
-
-/* Reserved PID values */
-enum {
-	GF_M2TS_PID_PAT			= 0x0000,
-	GF_M2TS_PID_CAT			= 0x0001,
-	GF_M2TS_PID_TSDT		= 0x0002,
-	/* reserved 0x0003 to 0x000F */ 
-	GF_M2TS_PID_NIT_ST		= 0x0010,
-	GF_M2TS_PID_SDT_BAT_ST	= 0x0011,
-	GF_M2TS_PID_EIT_ST_CIT	= 0x0012,
-	GF_M2TS_PID_RST_ST		= 0x0013,
-	GF_M2TS_PID_TDT_TOT_ST	= 0x0014,
-	GF_M2TS_PID_NET_SYNC	= 0x0015,
-	GF_M2TS_PID_RNT			= 0x0016,
-	/* reserved 0x0017 to 0x001B */ 
-	GF_M2TS_PID_IN_SIG		= 0x001C,
-	GF_M2TS_PID_MEAS		= 0x001D,
-	GF_M2TS_PID_DIT			= 0x001E,
-	GF_M2TS_PID_SIT			= 0x001F
-};
-
-/* max size includes first header, second header, payload and CRC */
-enum {
-	GF_M2TS_TABLE_ID_PAT			= 0x00,
-	GF_M2TS_TABLE_ID_CAT			= 0x01, 
-	GF_M2TS_TABLE_ID_PMT			= 0x02, 
-	GF_M2TS_TABLE_ID_TSDT			= 0x03, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_MPEG4_BIFS		= 0x04, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_MPEG4_OD		= 0x05, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_METADATA		= 0x06, 
-	GF_M2TS_TABLE_ID_IPMP_CONTROL	= 0x07, 
-	/* 0x08 - 0x37 reserved */
-	/* 0x38 - 0x3D DSM-CC defined */
-	GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA		= 0x3A, 
-	GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE				= 0x3B, /* used for MPE (only, not MPE-FEC) */
-	GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE	= 0x3C, /* used for MPE (only, not MPE-FEC) */
-	GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION		= 0x3D, /* used for MPE (only, not MPE-FEC) */
-	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE					= 0x3E, /* used for MPE (only, not MPE-FEC) */
-	/* 0x3F DSM-CC defined */
-	GF_M2TS_TABLE_ID_NIT_ACTUAL		= 0x40, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_NIT_OTHER		= 0x41,
-	GF_M2TS_TABLE_ID_SDT_ACTUAL		= 0x42, /* max size for section 1024 */
-	/* 0x43 - 0x45 reserved */
-	GF_M2TS_TABLE_ID_SDT_OTHER		= 0x46, /* max size for section 1024 */
-	/* 0x47 - 0x49 reserved */
-	GF_M2TS_TABLE_ID_BAT			= 0x4a, /* max size for section 1024 */
-	/* 0x4b	reserved */
-	GF_M2TS_TABLE_ID_INT			= 0x4c, /* max size for section 4096 */
-	/* 0x4d reserved */
-	
-	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF	= 0x4E, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_EIT_OTHER_PF	= 0x4F,
-	/* 0x50 - 0x6f EIT SCHEDULE */
-	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN	= 0x50,
-	GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX= 0x5F,
-	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX	= 0x6F,
-
-	GF_M2TS_TABLE_ID_TDT			= 0x70, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_TOT			= 0x73, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_AIT			= 0x74,
-	GF_M2TS_TABLE_ID_CONT			= 0x75,
-	GF_M2TS_TABLE_ID_RC				= 0x76,
-	GF_M2TS_TABLE_ID_CID			= 0x77,
-	GF_M2TS_TABLE_ID_MPE_FEC		= 0x78,
-	GF_M2TS_TABLE_ID_RES_NOT		= 0x79,
-	/* 0x7A - 0x7D reserved */
-	GF_M2TS_TABLE_ID_DIT			= 0x7E,
-	GF_M2TS_TABLE_ID_SIT			= 0x7F, /* max size for section 4096 */
-	/* 0x80 - 0xfe reserved */
-	/* 0xff reserved */
-};
-
-
-
-#define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
-#define SECTION_ADDITIONAL_HEADER_LENGTH 5 /* header from the last bit of the section_length field to the payload */
-#define	CRC_LENGTH 4
 
 typedef struct
 {
@@ -865,7 +870,13 @@ typedef struct
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
+
+#endif /*GPAC_DISABLE_MPEG2TS*/
+
+
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
+
+#include <gpac/esi.h>
 
 /*
 	MPEG-2 TS Multiplexer
@@ -1147,11 +1158,13 @@ struct __gf_dvb_tuner {
 };
 
 
-#define DVB_BUFFER_SIZE 3760							// DVB buffer size 188x20
+// DVB buffer size 188x20
+#define DVB_BUFFER_SIZE 3760							
 
-#endif
+#endif //GPAC_HAS_LINUX_DVB
 
 
+#ifndef GPAC_DISABLE_MPEG2TS
 GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop);
 GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts);
 GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts);

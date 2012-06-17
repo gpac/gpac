@@ -2691,15 +2691,11 @@ echo "DISABLE_CORE_TOOLS=$disable_core_tools" >> config.mak
 echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
 
-
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
 fi
-if test "$disable_m2ts_mux" = "yes" -o "$disable_m2ts" = "yes" ; then
-    echo "DISABLE_M2TS=yes" >> config.mak
-else
-    echo "DISABLE_M2TS=no" >> config.mak
-fi
+echo "DISABLE_M2TS_MUX=$disable_m2ts_mux" >> config.mak
+echo "DISABLE_M2TS=$disable_m2ts" >> config.mak
 
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak

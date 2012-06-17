@@ -66,13 +66,19 @@ ifeq ($(DISABLE_AV_PARSERS), no)
 LIBGPAC_MEDIATOOLS+=media_tools/img.o
 endif
 ifeq ($(DISABLE_MEDIA_IMPORT), no)
-LIBGPAC_MEDIATOOLS+=media_tools/media_import.o media_tools/mpegts.o
+LIBGPAC_MEDIATOOLS+=media_tools/media_import.o
+endif
+ifeq ($(DISABLE_M2TS), no)
+LIBGPAC_MEDIATOOLS+=media_tools/mpegts.o
 endif
 ifeq ($(DISABLE_MPD), no)
 LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
 endif
 ifeq ($(DISABLE_MEDIA_EXPORT), no)
-LIBGPAC_MEDIATOOLS+=media_tools/media_export.o media_tools/m2ts_mux.o
+LIBGPAC_MEDIATOOLS+=media_tools/media_export.o
+endif
+ifeq ($(DISABLE_M2TS_MUX), no)
+LIBGPAC_MEDIATOOLS+=media_tools/m2ts_mux.o
 endif
 ifeq ($(DISABLE_STREAMING), no)
 LIBGPAC_MEDIATOOLS+=media_tools/filestreamer.o

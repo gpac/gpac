@@ -8,7 +8,7 @@ endif
 
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box
-ifeq ($(DISABLE_M2TS), no)
+ifeq ($(DISABLE_M2TS_MUX), no)
 APPDIRS+=mp42ts
 endif
 endif

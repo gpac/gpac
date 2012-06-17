@@ -215,6 +215,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	char str[GF_MAX_PATH];
 	FILE *fout;
 	u32 dst_size;
@@ -246,6 +247,7 @@ void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	}
 
 	gf_free(dst);
+#endif //GPAC_DISABLE_AV_PARSERS
 }
 
 
