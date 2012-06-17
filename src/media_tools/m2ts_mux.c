@@ -26,7 +26,7 @@
 #include <gpac/constants.h>
 #include <gpac/media_tools.h>
 
-#if !defined(GPAC_DISABLE_MPEG2TS_MUX) && !defined(GPAC_DISABLE_MPEG2TS)
+#if !defined(GPAC_DISABLE_MPEG2TS_MUX)
 
 /*num ms between PCR*/
 #define PCR_UPDATE_MS	200

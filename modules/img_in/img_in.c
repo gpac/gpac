@@ -69,10 +69,12 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 	if (read->img_type == IMG_BMP)
 		esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
 	else {
-		u8 OTI;
+		u8 OTI=0;
 		u32 mtype, w, h;
 		GF_BitStream *bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
+#ifndef GPAC_DISABLE_AV_PARSERS
 		gf_img_parse(bs, &OTI, &mtype, &w, &h, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+#endif
 		gf_bs_del(bs);
 
 		if (!OTI) {

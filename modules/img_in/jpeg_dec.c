@@ -101,6 +101,7 @@ static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	JPEGCTX();
 
@@ -111,6 +112,9 @@ static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg,
 	}
 	ctx->out_size = *outBufferLength;
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif //GPAC_DISABLE_AV_PARSERS
 }
 
 static const char *JPEG_GetCodecName(GF_BaseDecoder *dec)

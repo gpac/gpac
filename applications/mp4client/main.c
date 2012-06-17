@@ -1687,6 +1687,7 @@ force_input:
 					fprintf(stdout, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
 					nb_pass = 0;
 				} else {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					u32 dst_size = fb.width*fb.height*4;
 					char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
 
@@ -1707,6 +1708,7 @@ force_input:
 					}
 					if (dst) gf_free(dst);
 					gf_term_release_screen_buffer(term, &fb);
+#endif //GPAC_DISABLE_AV_PARSERS
 				}
 			}
 			fprintf(stdout, "Done: %s\n", szFileName);

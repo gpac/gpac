@@ -279,6 +279,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 
 		/*decode cacheTexture data */
 		if ((ct->data || ct->image.buffer) && !txh->data) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			u32 out_size;
 			GF_Err e;
 
@@ -323,6 +324,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					break;
 				}
 			}
+#endif // GPAC_DISABLE_AV_PARSERS
 
 			/*cacheURL is specified, store the image*/
 			if (ct->cacheURL.buffer) {

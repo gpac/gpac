@@ -115,6 +115,7 @@ static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	PNGCTX();
 
@@ -137,6 +138,9 @@ static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg,
 	}
 	ctx->out_size = *outBufferLength;
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif //GPAC_DISABLE_AV_PARSERS
 }
 
 static const char *PNG_GetCodecName(GF_BaseDecoder *dec)

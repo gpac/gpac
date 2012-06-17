@@ -2090,6 +2090,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		fclose(file);
 
 	if (version==3) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		char *dst, *raw;
 		u8 oti;
 		u32 osize, w, h, j, pf;
@@ -2135,6 +2136,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		fclose(file);
 		
 		gf_free(raw);
+#endif //GPAC_DISABLE_AV_PARSERS
 	}
 	gf_free(buf);
 
