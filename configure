@@ -279,7 +279,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-isoff-hint     disable ISO File Format hinting
   --disable-isoff-frag     disable fragments in ISO File Format
   --disable-streaming      disable RTP/RTSP/SDP
-  --disable-dvb            disable DVB-specific tools (MPE, FEC, DSM-CC)
+  --disable-dvbx           disable DVB-specific tools (MPE, FEC, DSM-CC)
   --disable-vobsub         disable VobSub support
   --disable-sman           disable scene manager
   --disable-ttxt           disable TTXT (3GPP / MPEG-4 Timed Text) support
