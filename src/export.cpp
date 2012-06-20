@@ -7,19 +7,8 @@
  *
  *  This file is part of GPAC 
  *
- *  GPAC is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *   
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Proprietary Licence granted to DTS Licensing Limited by Telecom ParisTech
+ * Exported revision 4079 on 06-20-2012
  *
  */
 
@@ -108,11 +97,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_asprintf) )
 
 /* Ring Buffer */
+#ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_read ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_del) )
+#endif
 
 /* List */
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_new) )
@@ -247,6 +238,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_filename) )
 
 
+#ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_refresh) )
@@ -259,12 +251,15 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_set_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_config) )
+#endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_wcstombs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_mbstowcs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_wcslen) )
+#ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_right_to_left) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
+#endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )
@@ -355,6 +350,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_asin) )
 #endif /*GPAC_FIXED_POINT*/
 
+#ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_angle_diff) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_v2d_len) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_v2d_from_polar) )
@@ -477,6 +473,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_polygone2d_get_convexity) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_path_get_outline) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_path_point_over) )
+
+#endif //GPAC_DISABLE_PLAYER
 
 /*mpeg4_odf.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_new) )
