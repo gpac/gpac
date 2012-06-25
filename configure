@@ -2932,7 +2932,7 @@ echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
 #pkg-config
 echo "prefix=$prefix"				 > gpac.pc
 echo "exec_prefix=\${prefix}"			>> gpac.pc
-echo "libdir=\${exec_prefix}/lib"		>> gpac.pc
+echo "libdir=\${exec_prefix}/$libdir"		>> gpac.pc
 echo "includedir=\${exec_prefix}/include"	>> gpac.pc
 echo ""						>> gpac.pc
 echo "Name: gpac"				>> gpac.pc
