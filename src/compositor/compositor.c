@@ -1267,6 +1267,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (!strcmp(sOpt, "OffAxis")) compositor->visual->camera_layout = GF_3D_CAMERA_OFFAXIS;
 	else compositor->visual->camera_layout = GF_3D_CAMERA_STRAIGHT;
 
+	compositor->interoccular_distance = FLT2FIX(6.3f);
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EyeSeparation");
+	if (sOpt) compositor->interoccular_distance = FLT2FIX( atof(sOpt)) ;
+	else gf_cfg_set_key(compositor->user->config, "Compositor", "EyeSeparation", "6.3");
+
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ReverseViews");
 	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = 1;
 
