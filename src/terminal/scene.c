@@ -1548,6 +1548,7 @@ GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i)
 void gf_scene_generate_views(GF_Scene *scene, char *url)
 {
 	char *url_search;
+	Bool use_old_syntax = 1;
 	GF_Node *n1, *switcher;
 #if USE_TEXTURES
 	GF_Node *n2;
@@ -1568,16 +1569,24 @@ void gf_scene_generate_views(GF_Scene *scene, char *url)
 	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, switcher);
 	((M_Switch*)switcher)->whichChoice = -2;
 
+	if (strstr(url, "::")) use_old_syntax = 0;
+
 	url_search = url;
 	while (1) {
-		char *sep = strchr(url_search, ':');
-		/*if :// or :\ is found, skip it*/
-		if (sep && ( ((sep[1] == '/') && (sep[2] == '/')) || (sep[1] == '\\') ) ) {
-			url_search = sep+1;
-			continue;
+		char *sep;
+		
+		if (use_old_syntax) {
+			sep = strchr(url_search, ':');
+			/*if :// or :\ is found, skip it*/
+			if (sep && ( ((sep[1] == '/') && (sep[2] == '/')) || (sep[1] == '\\') ) ) {
+				url_search = sep+1;
+				continue;
+			}
+		} else {
+			sep = strstr(url_search, "::");
 		}
-
 		if (sep) sep[0] = 0;
+
 #if USE_TEXTURES
 		/*create a shape and bitmap node*/
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
@@ -1613,7 +1622,11 @@ void gf_scene_generate_views(GF_Scene *scene, char *url)
 
 		if (!sep) break;
 		sep[0] = ':';
-		url = sep+1;
+		if (use_old_syntax) {
+			url = sep+1;
+		} else {
+			url = sep+2;
+		}
 		url_search = url;
 	}
 

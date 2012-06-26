@@ -356,7 +356,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		Fixed interocular_dist_pixel;
 		Fixed delta = 0;
 
-		interocular_dist_pixel = FLT2FIX(6.8f) + tr_state->visual->compositor->interoccular_offset;
+		interocular_dist_pixel = tr_state->visual->compositor->interoccular_distance + tr_state->visual->compositor->interoccular_offset;
 
 		view_idx = tr_state->visual->current_view;
 		view_idx -= tr_state->visual->nb_views/2;

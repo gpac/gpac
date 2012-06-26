@@ -504,7 +504,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
 					compositor->interoccular_offset += FLT2FIX(0.5) * key_inv;
-					fprintf(stdout, "AutoStereo interoccular distance %f\n", FIX2FLT(compositor->interoccular_offset)+6.8);
+					fprintf(stdout, "AutoStereo interoccular distance %f\n", FIX2FLT(compositor->interoccular_distance + compositor->interoccular_offset));
 					cam->flags |= CAM_IS_DIRTY;
 					gf_sc_invalidate(compositor, NULL);
 					return 1;

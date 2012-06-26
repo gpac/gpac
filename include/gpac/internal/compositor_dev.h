@@ -476,6 +476,7 @@ struct __tag_compositor
 
 	Fixed depth_gl_scale, depth_gl_strips_filter;
 	u32 depth_gl_type;
+	Fixed interoccular_distance;
 	/*increase/decrease the standard interoccular offset by the specified distance in cm*/
 	Fixed interoccular_offset;
 	/*increase/decrease the view distance by the specified distance in cm*/
