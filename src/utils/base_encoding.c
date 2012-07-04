@@ -134,7 +134,8 @@ u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
 
 
 /*
- *			Copyright (c) ENST 2004  - Philippe de Cuetos 
+ *			Authors: Philippe de Cuetos 
+ *			Copyright (c) ENST 2004 
  */
 
 static const char base_16[] = "0123456789abcdef";
