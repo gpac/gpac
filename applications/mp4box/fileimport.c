@@ -250,7 +250,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
 		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
 		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
-		else if (!strnicmp(ext+1, "ext=", 4)) import.force_ext = gf_strdup(ext+5);
+		else if (!strnicmp(ext+1, "ext=", 4)) {
+			/*extensions begin with '.'*/
+			if (*(ext+5) == '.')
+				import.force_ext = gf_strdup(ext+5);
+			else {
+				import.force_ext = gf_calloc(1+strlen(ext+5)+1, 1);
+				import.force_ext[0] = '.';
+				strcat(import.force_ext+1, ext+5);
+			}
+		}
 		else if (!strnicmp(ext+1, "disable", 7)) disable = 1;
 		else if (!strnicmp(ext+1, "group=", 6)) {
 			group = atoi(ext+7);
