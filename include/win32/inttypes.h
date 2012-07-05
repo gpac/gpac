@@ -14,9 +14,4 @@ typedef signed __int64   int64_t;
 typedef unsigned __int64 uint64_t;
 
 
-
-#ifdef	__cplusplus
-}
-#endif
-
 #endif /* ndef _INTTYPES_H */
