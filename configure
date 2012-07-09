@@ -667,6 +667,7 @@ fi
 
 
 #look for spidermonkey JS support
+has_mozjs_pkgcfg="no"
 
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
@@ -685,6 +686,7 @@ EOF
     else
         #try pkg-config
         if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+            has_mozjs_pkgcfg="yes"
             js_flags=`$pkg_config --cflags mozilla-js`
             js_lib_pkg=`$pkg_config --libs mozilla-js`
             if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
@@ -780,6 +782,7 @@ EOF
             #dc added end
         else
             if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+		has_mozjs_pkgcfg="yes"
                 js_flags=`$pkg_config --cflags mozilla-js`
                 js_lib_pkg=`$pkg_config --libs mozilla-js`
                 if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
@@ -1978,8 +1981,10 @@ if test "$has_xul" = "no" ; then
         #xulrunner directories are sometimes included through js/xul/ff packages
         if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
             if $cc -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
-                xul_flags=`$pkg_config --cflags mozilla-js`
-                has_xul="$has_js"
+                if test "$has_mozjs_pkgcfg" = "yes" ; then
+                    xul_flags=`$pkg_config --cflags mozilla-js`
+                    has_xul="$has_js"
+                fi
             fi
         fi
     fi
