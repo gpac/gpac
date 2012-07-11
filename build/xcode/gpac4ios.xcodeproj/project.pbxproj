@@ -2750,7 +2750,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if which svnversion 2>/dev/null; then echo \"#define GPAC_SVN_REVISION \\\"`svnversion`\\\"\" > ../../include/gpac/version.h ; else  echo \"No SVN Version found\"; fi\n";
+			shellScript = "if which svnversion 2>/dev/null; then echo \"#define GPAC_SVN_REVISION \\\"`svnversion`\\\"\" > ../../include/gpac/revision.h ; else  echo \"No SVN Version found\"; fi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

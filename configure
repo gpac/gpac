@@ -2162,13 +2162,13 @@ if [ -d ".svn" ]; then
  if which svnversion >/dev/null
  then
     revision="`svnversion \"$source_path\"`"
-    echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
+    echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/revision.h
  else
     echo "Cannot find SVN revision"
  fi
 else
- if [ ! -e "$source_path/include/gpac/version.h" ]; then
-    echo "#define GPAC_SVN_REVISION	\"4065\"" > $source_path/include/gpac/version.h
+ if [ ! -e "$source_path/include/gpac/revision.h" ]; then
+    echo "#define GPAC_SVN_REVISION	\"4065\"" > $source_path/include/gpac/revision.h
  fi
 fi
 

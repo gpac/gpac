@@ -74,6 +74,7 @@
 				AdditionalOptions="/r "
 				PreprocessorDefinitions="UNDER_CE=$(CEVER),_WIN32_WCE=$(CEVER),DEBUG,UNICODE,_UNICODE,$(CePlatform),ARM,_ARM_,ARMV4"
 				Culture="1033"
+				AdditionalIncludeDirectories="../../include"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -184,6 +185,7 @@
 				AdditionalOptions="/r "
 				PreprocessorDefinitions="UNDER_CE=$(CEVER),_WIN32_WCE=$(CEVER),DEBUG,UNICODE,_UNICODE,$(CePlatform),ARM,_ARM_,ARMV4"
 				Culture="1033"
+				AdditionalIncludeDirectories="../../include"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -283,6 +285,7 @@
 				AdditionalOptions="/r "
 				PreprocessorDefinitions="UNDER_CE=$(CEVER),_WIN32_WCE=$(CEVER),NDEBUG,UNICODE,_UNICODE,$(CePlatform),ARM,_ARM_,ARMV4"
 				Culture="1033"
+				AdditionalIncludeDirectories="../../include"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -388,6 +391,7 @@
 				AdditionalOptions="/r "
 				PreprocessorDefinitions="UNDER_CE=$(CEVER),_WIN32_WCE=$(CEVER),NDEBUG,UNICODE,_UNICODE,$(CePlatform),ARM,_ARM_,ARMV4"
 				Culture="1033"
+				AdditionalIncludeDirectories="../../include"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"

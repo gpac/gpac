@@ -11,7 +11,7 @@ all:	version
 	$(MAKE) -C modules all
 
 version:
-	@if [ -d ".svn" ]; then if which svnversion >/dev/null; then echo "#define GPAC_SVN_REVISION	\"$(shell svnversion $(SRC_PATH) )\"" > $(SRC_PATH)/include/gpac/version.h ; else  echo "No SVN Version found"; fi; fi
+	@if [ -d ".svn" ]; then if which svnversion >/dev/null; then echo "#define GPAC_SVN_REVISION	\"$(shell svnversion $(SRC_PATH) )\"" > $(SRC_PATH)/include/gpac/revision.h ; else  echo "No SVN Version found"; fi; fi
 
 lib:	version
 	$(MAKE) -C src all
