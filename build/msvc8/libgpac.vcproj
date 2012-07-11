@@ -6554,11 +6554,15 @@
 				RelativePath="..\..\include\gpac\utf.h"
 				>
 			</File>
-			<File
+      <File
 				RelativePath="..\..\include\gpac\version.h"
 				>
-			</File>
-			<File
+      </File>
+      <File
+				RelativePath="..\..\include\gpac\revision.h"
+				>
+      </File>
+      <File
 				RelativePath="..\..\include\gpac\modules\video_out.h"
 				>
 			</File>

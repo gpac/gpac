@@ -1127,6 +1127,7 @@
     <ClInclude Include="..\..\include\gpac\user.h" />
     <ClInclude Include="..\..\include\gpac\utf.h" />
     <ClInclude Include="..\..\include\gpac\version.h" />
+    <ClInclude Include="..\..\include\gpac\revision.h" />
     <ClInclude Include="..\..\include\gpac\modules\video_out.h" />
     <ClInclude Include="..\..\include\gpac\xml.h" />
   </ItemGroup>

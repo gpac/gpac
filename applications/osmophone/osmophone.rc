@@ -9,6 +9,8 @@
 //
 #include "newres.h"
 
+#include <gpac/version.h>
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -326,7 +328,7 @@ CAPTION "About Osmophone"
 FONT 8, "System"
 BEGIN
     ICON            IDI_ICON,IDC_STATIC,1,0,16,16
-    CTEXT           "Osmo4/GPAC\n""0.5.0"" ",IDC_NAMECTRL,23,1,65,17
+    CTEXT           "Osmo4/GPAC\n"GPAC_VERSION" ",IDC_NAMECTRL,23,1,65,17
     CTEXT           "Copyright (c) 2007 ENST\nAll Rights Reserved\nLicensed under LGPL",IDC_STATIC,2,44,111,33
 END
 
@@ -362,14 +364,14 @@ BEGIN
     BEGIN
         BLOCK "040c04b0"
         BEGIN
-            VALUE "CompanyName", "ENST"
+            VALUE "CompanyName", "Telecom ParisTech"
             VALUE "FileDescription", "osmophone"
-            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "FileVersion", GPAC_VERSION
             VALUE "InternalName", "osmophone"
-            VALUE "LegalCopyright", "Copyright © 2008"
+            VALUE "LegalCopyright", "Copyright © Telecom ParisTech 2008"
             VALUE "OriginalFilename", "osmophone.exe"
-            VALUE "ProductName", "ENST GPAC"
-            VALUE "ProductVersion", "1, 0, 0, 1"
+            VALUE "ProductName", "Osmo4-GPAC"
+            VALUE "ProductVersion", GPAC_VERSION
         END
     END
     BLOCK "VarFileInfo"
