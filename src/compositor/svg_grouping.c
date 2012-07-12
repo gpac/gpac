@@ -332,7 +332,10 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_copy(vb_bck, tr_state->vb_transform);
 
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) gf_mx_copy(bck_mx, tr_state->model_matrix);
+	//commented to get rid of GCC warning
+        //if (tr_state->visual->type_3d)
+	  gf_mx_copy(bck_mx, tr_state->model_matrix);
+	 
 #endif
 	
 	invalidate_flag = tr_state->invalidate_all;

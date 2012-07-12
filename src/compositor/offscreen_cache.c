@@ -335,6 +335,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	gf_mx2d_copy(backup, tr_state->transform);
 	gf_mx2d_init(tr_state->transform);
 #else
+	gf_mx2d_copy(backup, tr_state->transform);
 	if (auto_fit_vp) {
 		if ((tr_state->vp_size.x != cache->orig_vp.x) || (tr_state->vp_size.y != cache->orig_vp.y)) {
 			GF_Matrix2D m;
