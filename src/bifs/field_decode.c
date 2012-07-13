@@ -923,10 +923,14 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		break;
 	}
 
+	/*proto is initialized upon the first traversal to have the same behavior as wth BT/XMT loading*/
+#if 0
 	/*if new node is a proto and we're in the top scene, load proto code*/
 	if (proto && (codec->scenegraph == codec->current_graph)) {
 		codec->LastError = gf_sg_proto_load_code(new_node);
 	}
+#endif
+
 	return new_node;
 }
 
