@@ -1504,23 +1504,29 @@ u32 AVC_NextStartCode(GF_BitStream *bs)
 	return (u32) (end-start);
 }
 
+Bool AVC_SliceIsIntra(AVCState *avc) 
+{
+	switch (avc->s_info.slice_type) {
+		case GF_AVC_TYPE_I:
+		case GF_AVC_TYPE2_I:
+		case GF_AVC_TYPE_SI:
+		case GF_AVC_TYPE2_SI:
+			return 1;
+		default:
+			return 0;
+	}
+}
+
 Bool AVC_SliceIsIDR(AVCState *avc) 
 {
-  if (avc->sei.recovery_point.valid)
-  {
-	  avc->sei.recovery_point.valid = 0;
-	  return 1;
-  }
-  if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE) return 0;
-  switch (avc->s_info.slice_type) {
-  case GF_AVC_TYPE_I:
-  case GF_AVC_TYPE2_I:
-  case GF_AVC_TYPE_SI:
-  case GF_AVC_TYPE2_SI:
-	  return 1;
-  default:
-	  return 0;
-  }
+	if (avc->sei.recovery_point.valid)
+	{
+		avc->sei.recovery_point.valid = 0;
+		return 1;
+	}
+	if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE)
+		return 0;
+	return AVC_SliceIsIntra(avc);
 }
 
 static const struct { u32 w, h; } avc_sar[14] =
