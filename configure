@@ -958,15 +958,15 @@ if test "$cross_prefix" = "" ; then
     if $cc $CFLAGS_DIR -o $TMPO $TMPC $ft_cflags $ft_lflags $LDFLAGS 2> /dev/null  ; then
         has_ft="system"
     else
-        ft_cflags="`freetype-config --cflags`"
-        ft_lflags="`freetype-config --libs`"
+        ft_cflags="`freetype-config --cflags 2> /dev/null`"
+        ft_lflags="`freetype-config --libs 2> /dev/null`"
         if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags $LDFLAGS 2> /dev/null  ; then
             has_ft="system"
         fi
     fi
 fi
 if test "$has_ft" = "no" ; then
-    if test "`which freetype-config`" != ""; then
+    if test "`which freetype-config 2> /dev/null`" != ""; then
         ft_cflags="-I$local_inc/freetype"
         ft_lflags="-L$local_lib -lfreetype"
         if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
@@ -1013,7 +1013,7 @@ if test "$cross_prefix" = "" ; then
         if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2> /dev/null ; then
             has_jpeg="system"
         fi
-    elif test "`which $prefix/bin/jpeg-config`" != ""; then
+    elif test "`which $prefix/bin/jpeg-config 2> /dev/null`" != ""; then
         jpeg_cflags="`$prefix/bin/jpeg-config --cflags`"
         jpeg_lflags="`$prefix/bin/jpeg-config --libs`"
         if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags $LDFLAGS 2> /dev/null  ; then
@@ -2159,7 +2159,7 @@ version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/tool
 soname_version="${version_major}.${version_minor}.${version_micro}"
 
 if [ -d ".svn" ]; then
- if which svnversion >/dev/null
+ if which svnversion 2>/dev/null
  then
     revision="`svnversion \"$source_path\"`"
     echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/revision.h
