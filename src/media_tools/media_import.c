@@ -4300,10 +4300,22 @@ restart_import:
 				SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
 				if (first_nal) {
 					first_nal = 0;
-					if (avc.sei.recovery_point.valid) {
+					if (avc.sei.recovery_point.valid || (import->flags & GF_IMPORT_FORCE_SYNC)) {
+						Bool bIntraSlice = AVC_SliceIsIntra(&avc);
+						assert(avc.s_info.nal_unit_type!=GF_AVC_NALU_IDR_SLICE || bIntraSlice);
+
 						sei_recovery_frame_count = avc.sei.recovery_point.frame_cnt;
+
+						/*we allow to mark I-frames as sync on open-GOPs (with sei_recovery_frame_count=0) when forcing sync even when the SEI RP is not available*/
+						if (!avc.sei.recovery_point.valid && bIntraSlice) {
+							sei_recovery_frame_count = 0;
+							if (use_opengop_gdr == 1) {
+								use_opengop_gdr = 2; /*avoid message flooding*/
+								GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] No valid SEI Recovery Point found although needed - forcing\n"));
+							}
+						}
 						avc.sei.recovery_point.valid = 0;
-						if ((import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) 
+						if (bIntraSlice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) 
 							slice_force_ref = 1;
 					}
 					sample_is_rap = AVC_SliceIsIDR(&avc);
