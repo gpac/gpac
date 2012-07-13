@@ -59,6 +59,7 @@
 #endif
 
 /*common win32 redefs*/
+#undef EAGAIN
 #define EAGAIN				WSAEWOULDBLOCK
 #define EISCONN				WSAEISCONN
 #define ENOTCONN			WSAENOTCONN
@@ -66,7 +67,9 @@
 #define EMSGSIZE			WSAEMSGSIZE
 #define ECONNABORTED		WSAECONNABORTED
 #define ENETDOWN			WSAENETDOWN
+#undef EINTR
 #define EINTR				WSAEINTR
+#undef EBADF
 #define EBADF				WSAEBADF
 
 #define LASTSOCKERROR WSAGetLastError()
