@@ -252,6 +252,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
 	char szName[1000], szEXT[10], szNum[1000], *dsi;
+	char *ext_start = NULL;
 	FILE *out;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
@@ -403,10 +404,18 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	}
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
+	ext_start = strrchr(dumper->out_name, '.');
+
 	if (dumper->sample_num) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
 		if (!samp) return GF_BAD_PARAM;
-		sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
+		if (ext_start) {
+			ext_start[0]=0;
+			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, ext_start+1);
+			ext_start[0]='.';
+		} else {
+			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
+		}
 		out = gf_f64_open(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (is_mj2k) 
@@ -425,10 +434,20 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
 		if (!samp) break;
 
-		if (count>=1000) {
-			sprintf(szName, "%s_%08d%s", dumper->out_name, i+1, szEXT);
+		if (ext_start) {
+			ext_start[0]=0;
+			if (count>=1000) {
+				sprintf(szName, "%s_%08d%s", dumper->out_name, dumper->sample_num, ext_start+1);
+			} else {
+				sprintf(szName, "%s_%03d%s", dumper->out_name, dumper->sample_num, ext_start+1);
+			}
+			ext_start[0]='.';
 		} else {
-			sprintf(szName, "%s_%03d%s", dumper->out_name, i+1, szEXT);
+			if (count>=1000) {
+				sprintf(szName, "%s_%08d%s", dumper->out_name, i+1, szEXT);
+			} else {
+				sprintf(szName, "%s_%03d%s", dumper->out_name, i+1, szEXT);
+			}
 		}
 		out = gf_f64_open(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
@@ -582,6 +601,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	return GF_NOT_SUPPORTED;
 #else
 	GF_Err e = GF_OK;
+	Bool add_ext;
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
 	char szName[1000], szEXT[5], GUID[16];
@@ -618,6 +638,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) 
 		dcfg = gf_isom_get_decoder_config(dumper->file, track, 1);
 
+	add_ext = (dumper->out_name && strrchr(dumper->out_name , '.')==NULL) ? 1 : 0;
 	strcpy(szName, dumper->out_name ? dumper->out_name : "");
 	if (dcfg) {
 		switch (dcfg->streamType) {
@@ -627,16 +648,19 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
-				strcat(szName, ".cmp");
+				if (add_ext) 
+					strcat(szName, ".cmp");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Visual stream to cmp");
 				break;
 			case GPAC_OTI_VIDEO_AVC:
 				avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
-				strcat(szName, ".h264");
+				if (add_ext) 
+					strcat(szName, ".h264");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
 				break;
 			case GPAC_OTI_VIDEO_MPEG1:
-				strcat(szName, ".m1v");
+				if (add_ext) 
+					strcat(szName, ".m1v");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Visual stream to m1v");
 				break;
 			case GPAC_OTI_VIDEO_MPEG2_SIMPLE: 
@@ -645,19 +669,23 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			case GPAC_OTI_VIDEO_MPEG2_SPATIAL: 
 			case GPAC_OTI_VIDEO_MPEG2_HIGH: 
 			case GPAC_OTI_VIDEO_MPEG2_422: 
-				strcat(szName, ".m2v");
+				if (add_ext) 
+					strcat(szName, ".m2v");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Visual stream to m2v");
 				break;
 			case GPAC_OTI_IMAGE_JPEG:
-				strcat(szName, ".jpg");
+				if (add_ext) 
+					strcat(szName, ".jpg");
 				gf_export_message(dumper, GF_OK, "Extracting JPEG image");
 				break;
 			case GPAC_OTI_IMAGE_PNG:
-				strcat(szName, ".png");
+				if (add_ext) 
+					strcat(szName, ".png");
 				gf_export_message(dumper, GF_OK, "Extracting PNG image");
 				break;
 			case GPAC_OTI_MEDIA_OGG:
-				strcat(szName, ".ogg");
+				if (add_ext) 
+					strcat(szName, ".ogg");
 				gf_export_message(dumper, GF_OK, "Extracting Ogg video");
 				is_ogg = 1;
 				break;
@@ -674,7 +702,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
-				strcat(szName, ".aac");
+				if (add_ext) 
+					strcat(szName, ".aac");
 				is_aac = 1;
 				aac_type = dcfg->objectTypeIndication - GPAC_OTI_AUDIO_AAC_MPEG2_MP;
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 AAC");
@@ -689,21 +718,25 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
 				is_aac = 2;
-				strcat(szName, ".aac");
+				if (add_ext) 
+					strcat(szName, ".aac");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AAC");
 				break;
 			case GPAC_OTI_AUDIO_MPEG2_PART3:
 			case GPAC_OTI_AUDIO_MPEG1:
-				strcat(szName, ".mp3");
+				if (add_ext) 
+					strcat(szName, ".mp3");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-1/2 Audio (MP3)");
 				break;
 			case GPAC_OTI_MEDIA_OGG:
-				strcat(szName, ".ogg");
+				if (add_ext) 
+					strcat(szName, ".ogg");
 				is_ogg = 1;
 				gf_export_message(dumper, GF_OK, "Extracting Ogg audio");
 				break;
 			case GPAC_OTI_AUDIO_13K_VOICE:
-				strcat(szName, ".qcp"); qcp_type = 1;
+				if (add_ext) 
+					strcat(szName, ".qcp"); qcp_type = 1;
 				memcpy(GUID, QCP_QCELP_GUID_1, sizeof(char)*16);
 				gf_export_message(dumper, GF_OK, "Extracting QCELP-13K (QCP file)");
 				break;
@@ -739,7 +772,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
-				strcat(szName, ".idx");
+				if (add_ext) 
+					strcat(szName, ".idx");
 				gf_export_message(dumper, GF_OK, "Extracting NeroDigital VobSub subpicture stream");
 				break;
 			default:
@@ -754,13 +788,16 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		gf_odf_desc_del((GF_Descriptor *) dcfg);
 	} else {
 		if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR) {
-			strcat(szName, ".amr");
+			if (add_ext) 
+				strcat(szName, ".amr");
 			gf_export_message(dumper, GF_OK, "Extracting AMR Audio");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR_WB) {
-			strcat(szName, ".awb");
+			if (add_ext) 
+				strcat(szName, ".awb");
 			gf_export_message(dumper, GF_OK, "Extracting AMR WideBand Audio");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_QCELP) {
-			strcat(szName, ".qcp"); qcp_type = 1;
+			if (add_ext) 
+				strcat(szName, ".qcp"); qcp_type = 1;
 			memcpy(GUID, QCP_QCELP_GUID_1, sizeof(char)*16);
 			gf_export_message(dumper, GF_OK, "Extracting QCELP-13K (QCP file)");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_EVRC) {
@@ -773,22 +810,28 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_H263) {
 			gf_export_message(dumper, GF_OK, "Extracting H263 Video");
-			strcat(szName, ".263");
+			if (add_ext) 
+				strcat(szName, ".263");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
 			return gf_media_export_nhml(dumper, 1);
 		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) || (m_stype==GF_ISOM_SUBTYPE_SVC_H264) ) {
 			avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
-			strcat(szName, ".h264");
+			if (add_ext) 
+				strcat(szName, ".h264");
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
 		} else if (m_type==GF_ISOM_MEDIA_FLASH) {
 			gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie");
-			strcat(szName, ".swf");
+			if (add_ext) 
+				strcat(szName, ".swf");
 		} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 			gf_export_message(dumper, GF_OK, "Extracting AC3 Audio");
-			strcat(szName, ".ac3");
+			if (add_ext) 
+				strcat(szName, ".ac3");
 		} else {
-			strcat(szName, ".");
-			strcat(szName, gf_4cc_to_str(m_stype));
+			if (add_ext) {
+				strcat(szName, ".");
+				strcat(szName, gf_4cc_to_str(m_stype));
+			}
 			udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
 			if (udesc) {
 				dsi = udesc->extension_buf; udesc->extension_buf = NULL;
@@ -816,13 +859,16 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 	if (qcp_type>1) {
 		if (dumper->flags & GF_EXPORT_USE_QCP) {
-			strcat(szName, ".qcp");
+			if (add_ext) 
+				strcat(szName, ".qcp");
 			gf_export_message(dumper, GF_OK, "Extracting %s audio (QCP file)", (qcp_type==2) ? "SMV" : "EVRC");
 		} else if (qcp_type==2) {
-			strcat(szName, ".smv");
+			if (add_ext) 
+				strcat(szName, ".smv");
 			gf_export_message(dumper, GF_OK, "Extracting SMV audio");
 		} else {
-			strcat(szName, ".evc");
+			if (add_ext) 
+				strcat(szName, ".evc");
 			gf_export_message(dumper, GF_OK, "Extracting EVRC audio");
 		}
 	}
@@ -1081,6 +1127,9 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		}
 		gf_export_message(dumper, GF_OK, "Extracting AVI video (format %s) to %s", comp, szOutFile);
 
+		if (strrchr(dumper->out_name, '.')) {
+			strcpy(szOutFile, dumper->out_name);
+		} 
 		fout = gf_f64_open(szOutFile, "wb");
 
 		max_size = 0;
@@ -1441,10 +1490,13 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		dumper->flags |= GF_EXPORT_MERGE;
 		return GF_OK;
 	}
-	ext = (char *) gf_isom_get_filename(dumper->file);
-	if (ext) ext = strrchr(ext, '.');
-	sprintf(szName, "%s%s", dumper->out_name, ext ? ext : ".mp4");
-
+	if (strrchr(dumper->out_name, '.')) {
+		strcpy(szName, dumper->out_name);
+	} else {	
+		ext = (char *) gf_isom_get_filename(dumper->file);
+		if (ext) ext = strrchr(ext, '.');
+		sprintf(szName, "%s%s", dumper->out_name, ext ? ext : ".mp4");
+	}
 	add_to_iod = 1;
 	mode = GF_ISOM_WRITE_EDIT;
 	if (dumper->flags & GF_EXPORT_MERGE) {
@@ -1513,7 +1565,11 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	}
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
-	sprintf(szName, "%s.avi", dumper->out_name);
+	if (strrchr(dumper->out_name, '.')) {
+		strcpy(szName, dumper->out_name);
+	} else {
+		sprintf(szName, "%s.avi", dumper->out_name);
+	}
 	avi_out = AVI_open_output_file(szName);
 	if (!avi_out) {
 		gf_odf_desc_del((GF_Descriptor *)esd);
