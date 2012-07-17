@@ -25,7 +25,17 @@
 
 #ifndef _GF_VERSION_H
 
-#define GPAC_VERSION          "0.5.0"
+/*!
+ *	\brief GPAC Version
+ *	\hideinitializer
+ *
+ *	Macro giving GPAC version expressed as a printable string
+*/
+/* KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE & CONFIGURE & CO)
+ * NO SPACE in GPAC_VERSION / GPAC_FULL_VERSION for proper install
+ * SONAME versions must be digits (not strings)
+ */
+#define GPAC_VERSION          "0.5.1-DEV"
 #define GPAC_VERSION_MAJOR    2
 #define GPAC_VERSION_MINOR    0
 #define GPAC_VERSION_MICRO    0

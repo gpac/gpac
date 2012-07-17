@@ -65,7 +65,7 @@ echo Copying GUI
 rsync -r --exclude=.svn $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
 
 echo Building DMG
-version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
+version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
 
 cur_dir=`pwd`
 cd $source_path

@@ -7218,6 +7218,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\version.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\modules\video_out.h"
 				>
 			</File>

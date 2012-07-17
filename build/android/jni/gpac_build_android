@@ -157,13 +157,13 @@ echo -e "\nBuiding Osmo4.apk"
 cd $BASEPATH/applications/osmo4_android/
 ant release
 
-if [ -f $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/tools.h | cut -d "\"" -f 2 )-r$version.apk ]
+if [ -f $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk ]
 then
 echo -e "\nOld Osmo4.apk found. Removing it ..." 
-rm $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/tools.h | cut -d "\"" -f 2 )-r$version.apk
+rm $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
 fi  
 
-zipalign -v 4 bin/Osmo4-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/tools.h | cut -d "\"" -f 2 )-r$version.apk
+zipalign -v 4 bin/Osmo4-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
 rm bin/Osmo4-*
 echo -e "\n[OK] success."
 fi
