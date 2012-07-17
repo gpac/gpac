@@ -30,6 +30,7 @@ extern "C" {
 #endif
 
 #include <gpac/setup.h>
+#include <gpac/version.h>
 
 
 /*! \file "gpac/tools.h"
@@ -50,32 +51,6 @@ extern "C" {
  *	This section documents some very basic functions and core definitions of the GPAC framework.
  *	@{
  */
-
-/*!
- *	\brief GPAC Version
- *	\hideinitializer
- *
- *	Macro giving GPAC version expressed as a printable string
-*/
-/* KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)
- * NO SPACE in GPAC_VERSION for proper install
- * SONAME versions must be digits (not strings)
- */
-#define GPAC_VERSION          "0.5.0"
-#define GPAC_VERSION_MAJOR    2
-#define GPAC_VERSION_MINOR    0
-#define GPAC_VERSION_MICRO    0
-
-#include <gpac/version.h>
-#define GPAC_FULL_VERSION       GPAC_VERSION"-rev"GPAC_SVN_REVISION
-
-/*!
- *	\brief GPAC Version
- *	\hideinitializer
- *
- *	Macro giving GPAC version expressed as an integer, where version X.Y.Z is coded as 0x00XXYYZZ
-*/
-#define GPAC_VERSION_INT	0x00000406
 
 /*!
  *	\brief Stringizer

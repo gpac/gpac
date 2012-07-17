@@ -47,7 +47,7 @@ distclean:
 dep:	depend
 
 # tar release (use 'make -k tar' on a checkouted tree)
-FILE=gpac-$(shell grep "\#define GPAC_VERSION " include/gpac/tools.h | \
+FILE=gpac-$(shell grep "\#define GPAC_VERSION " include/gpac/version.h | \
                     cut -d "\"" -f 2 )
 
 tar:

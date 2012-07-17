@@ -3,7 +3,7 @@
 cd "`dirname $0`"
 
 echo "*** Set version within Info.plist application file ***"
-version=`grep '#define GPAC_VERSION ' ../../include/gpac/tools.h | cut -d '"' -f 2`
+version=`grep '#define GPAC_VERSION ' ../../include/gpac/version.h | cut -d '"' -f 2`
 rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 if [ "$rev" != "" ]
 then

@@ -20,7 +20,7 @@ endif
 CFLAGS = -Wall -g
 LDFLAGS= --as-needed
 
-VERSION=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
+VERSION=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
 
 CC:=ccache $(CC)
 CXX:=ccache $(CXX)
