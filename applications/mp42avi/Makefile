@@ -33,11 +33,6 @@ all: $(PROG)
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/$(TARGET_BIN_DIR) -lgpac -lz
 
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
