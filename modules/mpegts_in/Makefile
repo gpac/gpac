@@ -35,10 +35,6 @@ ifeq ($(STATICBUILD),yes)
 endif
 
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 

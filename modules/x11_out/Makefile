@@ -68,12 +68,6 @@ ifeq ($(STATICBUILD),yes)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.$(DYN_LIB_SUFFIX) $(OBJS) -lX11 -L../../bin/gcc -lgpac_static $(EXTRALIBS)
 endif
 
-#static-bin:
-#	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.$(DYN_LIB_SUFFIX) $(OBJS) -lX11 -L../../bin/gcc -lgpac_static
-                                                                                               
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)

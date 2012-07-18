@@ -38,9 +38,6 @@ all: $(PROG)
 MP4Client$(EXE): $(OBJS)
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LINKLIBS)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 

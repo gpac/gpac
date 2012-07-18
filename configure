@@ -56,6 +56,7 @@ debuginfo="no"
 sdl_path=""
 sdl_local="no"
 sdl_static="no"
+verbose="no"
 xulsdk_path="/usr/lib/xulrunner/sdk/include"
 xul_flags=""
 libdir="lib"
@@ -196,6 +197,7 @@ GPAC configuration options:
   --prefix=PREFIX          install in PREFIX [$prefix]
   --mandir=DIR             man documentation in DIR [PREFIX/man]
 
+  --verbose                enable verbose building [$verbose]
   --source-path=PATH       path of source code [$source_path]
   --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]
   --cc =CC                 use C   compiler CC  [$cc]
@@ -336,6 +338,8 @@ for opt do
         --disable-opt) no_gcc_opt="yes"
             ;;
         --enable-pic) want_pic="yes";
+            ;;
+        --verbose) verbose="yes";
             ;;
     esac
 done
@@ -2519,11 +2523,23 @@ echo "moddir_path=$prefix/$libdir/gpac" >> config.mak
 echo "mandir=$mandir" >> config.mak
 echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
+
+if test "$verbose" = "yes" ; then
 echo "CC=$cc_naked" >> config.mak
 echo "AR=$ar" >> config.mak
 echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
 echo "INSTALL=$install" >> config.mak
+echo "LIBTOOL=libtool" >> config.mak
+else
+echo "CC=@$cc_naked" >> config.mak
+echo "AR=@$ar" >> config.mak
+echo "RANLIB=@$ranlib" >> config.mak
+echo "STRIP=@$strip" >> config.mak
+echo "INSTALL=@$install" >> config.mak
+echo "LIBTOOL=@libtool" >> config.mak
+fi
+
 echo "INSTFLAGS=$instflags" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak
 echo "CPPFLAGS=$CPPFLAGS" >> config.mak
@@ -2931,8 +2947,24 @@ if [ ! -d "./bin/gcc/temp" ] ; then
     mkdir ./bin/gcc/temp
 fi
 
+
 echo '%.opic : %.c' >> config.mak
+if test "$verbose" = "no" ; then
+echo '	@echo "  CC $<"' >> config.mak
+fi
 echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
+
+echo '%.o : %.c' >> config.mak
+if test "$verbose" = "no" ; then
+echo '	@echo "  CC $<"' >> config.mak
+fi
+echo '	$(CC) $(CFLAGS) -c -o $@ $<' >> config.mak
+
+echo '%.o: %.cpp' >> config.mak
+if test "$verbose" = "no" ; then
+echo '	@echo "  CC $<"' >> config.mak
+fi
+echo '	$(CXX) $(CFLAGS) -c -o $@ $<' >> config.mak
 
 #pkg-config
 echo "prefix=$prefix"				 > gpac.pc

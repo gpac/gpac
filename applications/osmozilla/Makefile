@@ -65,9 +65,6 @@ else
 endif
 	@echo $(USER_ROOT)
 
-%.o: %.cpp
-	$(CXX) $(CFLAGS) -c -o $@ $< 
-
 clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB) ../../bin/gcc/nposmozilla.xpt
 ifeq ($(CONFIG_WIN32),yes)

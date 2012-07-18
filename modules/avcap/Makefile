@@ -31,11 +31,6 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CXX) -w $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKLIBS)
 
-
-%.o: %.cpp
-	$(CXX) $(CFLAGS) -c -o $@ $< 
-
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
