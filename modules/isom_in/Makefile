@@ -34,11 +34,6 @@ ifeq ($(STATICBUILD),yes)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_isom_in-static.$(DYN_LIB_SUFFIX) $(OBJS) -L../../bin/gcc -lgpac_static $(EXTRALIBS) 
 endif
 
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 

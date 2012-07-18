@@ -318,18 +318,16 @@ mediatools: $(LIBGPAC_MEDIATOOLS)
 compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
 compositor: $(LIBGPAC_COMPOSITOR)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
 
 $(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph mediatools mcrypt $(OBJS)
+	@echo "Linking libgpac"
 ifeq ($(CONFIG_DARWIN),yes)
-	libtool -s -o ../bin/gcc/libgpac_static.a $(OBJS)
-	ranlib ../bin/gcc/libgpac_static.a
+	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
+	$(RANLIB) ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJS) $(EXTRALIBS) 
 else
-	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
-	ranlib ../bin/gcc/libgpac_static.a
+	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
+	$(RANLIB) ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJS) $(EXTRALIBS)
 ifeq (,$(findstring yes, $(CONFIG_WIN32)))
 	mv ../bin/gcc/$@ ../bin/gcc/$@.$(VERSION_SONAME)

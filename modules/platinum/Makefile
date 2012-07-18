@@ -44,11 +44,6 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
 
-
-%.o: %.cpp
-	$(CXX) $(CFLAGS) -c -o $@ $< 
-
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 

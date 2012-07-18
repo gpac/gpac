@@ -41,10 +41,6 @@ $(LIB): $(OBJS)
 	windres "$(SRC_PATH)/modules/dx_hw/dx_hw.rc" dw_hw.o
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) dw_hw.o $(LDFLAGS_DX) -L../../bin/gcc -lgpac $(EXTRALIBS) 
 
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 ifeq ($(CONFIG_WIN32),yes)

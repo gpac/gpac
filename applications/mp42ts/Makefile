@@ -35,11 +35,6 @@ all: $(PROG)
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
 
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< 
-
-
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
