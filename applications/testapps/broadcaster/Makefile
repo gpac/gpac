@@ -28,10 +28,6 @@ all: broadcaster
 broadcaster: $(OBJS) *.h
 	$(CC) $(LDFLAGS) -o $(APPNAME) $(OBJS) $(LINKFLAG)
 
-.c.o:
-	$(CC) -Wall -g -c $(CFLAGS) $*.c
-
-
 clean:
 	-rm -f $(OBJS) $(APPNAME) *~
 

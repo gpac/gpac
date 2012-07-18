@@ -2529,16 +2529,14 @@ echo "CC=$cc_naked" >> config.mak
 echo "AR=$ar" >> config.mak
 echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
-echo "INSTALL=$install" >> config.mak
-echo "LIBTOOL=libtool" >> config.mak
 else
 echo "CC=@$cc_naked" >> config.mak
 echo "AR=@$ar" >> config.mak
 echo "RANLIB=@$ranlib" >> config.mak
 echo "STRIP=@$strip" >> config.mak
-echo "INSTALL=@$install" >> config.mak
-echo "LIBTOOL=@libtool" >> config.mak
 fi
+echo "INSTALL=$install" >> config.mak
+echo "LIBTOOL=libtool" >> config.mak
 
 echo "INSTFLAGS=$instflags" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak

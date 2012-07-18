@@ -78,12 +78,12 @@ ifeq ($(USER_NAME), root)
 	@echo "*** Exit root mode and reinstall mozilla plugin! ***"
 else
 	$(MAKE) $(LIB)
-	install -D -m 755 ../../bin/gcc/$(LIB) "$(HOME)/.mozilla/plugins/$(LIB)"
-	install -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(HOME)/.mozilla/components/nposmozilla.xpt"
+	$(INSTALL) -D -m 755 ../../bin/gcc/$(LIB) "$(HOME)/.mozilla/plugins/$(LIB)"
+	$(INSTALL) -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(HOME)/.mozilla/components/nposmozilla.xpt"
 endif
 else
-	install -D -m 755 ../../bin/gcc/$(LIB) "$(MOZILLA_DIR)/components/$(LIB)"
-	install -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(MOZILLA_DIR)/components/nposmozilla.xpt"
+	$(INSTALL) -D -m 755 ../../bin/gcc/$(LIB) "$(MOZILLA_DIR)/components/$(LIB)"
+	$(INSTALL) -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(MOZILLA_DIR)/components/nposmozilla.xpt"
 endif
 
 uninstall:
