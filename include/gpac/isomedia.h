@@ -189,6 +189,13 @@ enum
 	GF_ISOM_ISMACRYP_SCHEME	= GF_4CC( 'i', 'A', 'E', 'C' )
 };
 
+/* Encryption Scheme Type in the SchemeTypeInfoBox */
+enum 
+{
+	GF_ISOM_OMADRM_SCHEME	= GF_4CC('o','d','k','m')
+};
+
+
 /*specific media sub-types - you shall make sure the media sub type is what you expect*/
 enum
 {
@@ -689,7 +696,7 @@ typedef struct
 
 	/*video codecs only*/
 	u32 temporal_quality;
-	u32 spacial_quality;
+	u32 spatial_quality;
 	u16 width, height;
 	u32 h_res, v_res;
 	u16 depth;
@@ -1156,6 +1163,9 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
 @media_segment_type: 0 if no segments, 1 if regular segment, 2 if single segment*/
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, u32 media_segment_type);
 
+/*sets the duration of the movie in case of movie fragments*/
+GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration);
+
 /*starts a new movie fragment - if force_cache is set, fragment metadata will be written before
 fragment media data for all tracks*/
 GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first);
@@ -1222,6 +1232,11 @@ CANNOT be used with OD tracks*/
 GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, char *data, u32 data_size, u8 PaddingBits);
 
 void gf_isom_reset_fragment_info(GF_ISOFile *movie);
+
+/*return the duration of the movie+fragments if known, 0 if error*/
+u64 gf_isom_get_fragmented_duration(GF_ISOFile *movie);
+/*returns the number */
+u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 

@@ -55,6 +55,16 @@ GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID)
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
+{
+	if (!movie->moov->mvex) return GF_BAD_PARAM;
+	if (!movie->moov->mvex->mehd) {
+		movie->moov->mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MEHD);
+	}
+	movie->moov->mvex->mehd->fragment_duration = duration;
+	movie->moov->mvhd->duration = 0;
+	return GF_OK;
+}
 
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 {
@@ -82,8 +92,19 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 	if (store_file) {
 		/*"dash" brand: this is a DASH Initialization Segment*/
 		gf_isom_modify_alternate_brand(movie, GF_4CC('d','a','s','h'), 1);
-		//update durations
-		gf_isom_get_duration(movie);
+
+		if (!movie->moov->mvex->mehd || !movie->moov->mvex->mehd->fragment_duration) {
+			//update durations
+			gf_isom_get_duration(movie);
+		} 
+
+		i=0;
+		while ((trex = (GF_TrackExtendsBox *)gf_list_enum(movie->moov->mvex->TrackExList, &i))) {
+			if (movie->moov->mvex->mehd && movie->moov->mvex->mehd->fragment_duration) {
+				trex->track->Header->duration = 0;
+				Media_SetDuration(trex->track);
+			}
+		}
 
 		//write movie
 		e = WriteToFile(movie);
@@ -191,6 +212,9 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID,
 		moov_AddBox((GF_Box*)movie->moov, (GF_Box *) mvex);
 	} else {
 		mvex = movie->moov->mvex;
+	}
+	if (!mvex->mehd) {
+		mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MEHD);
 	}
 
 	trex = GetTrex(movie->moov, TrackID);
@@ -619,7 +643,10 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
 	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
 		j=0;
 		while ((ent = gf_list_enum(trun->entries, &j))) {
-			duration += ent->Duration;
+			if (ent->flags & GF_ISOM_TRAF_SAMPLE_DUR) 
+				duration += ent->Duration;
+			else 
+				duration += traf->trex->def_sample_duration;
 		}
 	}
 	return duration;

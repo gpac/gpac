@@ -26,8 +26,19 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr)
+{
+	if (ptr->protections) gf_isom_box_array_del(ptr->protections);
+}
+
+void gf_isom_sample_entry_init(GF_SampleEntryBox *ent)
+{
+	ent->protections = gf_list_new();
+}
+
 void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent)
 {
+	gf_isom_sample_entry_init((GF_SampleEntryBox*)ent);
 	ent->horiz_res = ent->vert_res = 0x00480000;
 	ent->frames_per_sample = 1;
 	ent->bit_depth = 0x18;
@@ -44,7 +55,7 @@ GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStrea
 	ptr->revision = gf_bs_read_u16(bs);
 	ptr->vendor = gf_bs_read_u32(bs);
 	ptr->temporal_quality  = gf_bs_read_u32(bs);
-	ptr->spacial_quality = gf_bs_read_u32(bs);
+	ptr->spatial_quality = gf_bs_read_u32(bs);
 	ptr->Width = gf_bs_read_u16(bs);
 	ptr->Height = gf_bs_read_u16(bs);
 	ptr->horiz_res = gf_bs_read_u32(bs);
@@ -69,7 +80,7 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 	gf_bs_write_u16(bs, ptr->revision);
 	gf_bs_write_u32(bs, ptr->vendor);
 	gf_bs_write_u32(bs, ptr->temporal_quality);
-	gf_bs_write_u32(bs, ptr->spacial_quality);
+	gf_bs_write_u32(bs, ptr->spatial_quality);
 	gf_bs_write_u16(bs, ptr->Width);
 	gf_bs_write_u16(bs, ptr->Height);
 	gf_bs_write_u32(bs, ptr->horiz_res);
@@ -92,6 +103,8 @@ void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent)
 
 void gf_isom_audio_sample_entry_init(GF_AudioSampleEntryBox *ptr)
 {
+	gf_isom_sample_entry_init((GF_SampleEntryBox*)ptr);
+
 	ptr->channel_count = 2;
 	ptr->bitspersample = 16;
 }

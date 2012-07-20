@@ -158,7 +158,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	GF_ESD *esd;
 	GF_AVCConfig *avcc;
 	GF_AVCConfigSlot *sps;
-	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
+	u32 subtype = gf_isom_is_media_encrypted(movie, track, 1);
+	if (!subtype) subtype = gf_isom_get_media_subtype(movie, track, 1);
 
 	switch (subtype) {
 	case GF_ISOM_SUBTYPE_MPEG4:
@@ -864,6 +865,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	FILE *mpd_segs = NULL;
 	char *SegName = NULL;
 	const char *opt;
+	Double max_track_duration = 0;
 	GF_Config *dash_ctx = NULL;
 	Bool store_dash_params = 0;
 	Bool dash_moov_setup = 0;
@@ -995,7 +997,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 						defaultSize, (u8) defaultRandomAccess,
 						defaultPadding, defaultDegradationPriority);
 			if (e) goto err_exit;
-
 		} else {
 			gf_isom_get_fragment_defaults(output, TrackNum,
 									 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
@@ -1012,6 +1013,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 		tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
 		tf->MediaType = gf_isom_get_media_type(input, i+1);
 		tf->DefaultDuration = defaultDuration;
+
+		if (max_track_duration < gf_isom_get_track_duration(input, i+1)) {
+			max_track_duration = (Double) gf_isom_get_track_duration(input, i+1);
+		}
 
 		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) { 
 			tfref = tf;
@@ -1124,6 +1129,13 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
 	if (tfref->all_sample_raps) split_seg_at_rap = 1;
+
+
+	if (!dash_moov_setup) {
+		max_track_duration /= gf_isom_get_timescale(input);
+		max_track_duration *= gf_isom_get_timescale(output);
+		gf_isom_set_movie_duration(output, (u64) max_track_duration);
+	}
 
 	//flush movie
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS

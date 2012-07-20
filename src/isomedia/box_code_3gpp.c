@@ -30,8 +30,9 @@ void gppa_del(GF_Box *s)
 {
 	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
 	if (ptr == NULL) return;
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
+
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
-	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	gf_free(ptr);
 }
 
@@ -100,8 +101,8 @@ void gppv_del(GF_Box *s)
 {
 	GF_3GPPVisualSampleEntryBox *ptr = (GF_3GPPVisualSampleEntryBox *)s;
 	if (ptr == NULL) return;
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
-	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	gf_free(ptr);
 }
 
@@ -340,6 +341,8 @@ GF_Box *text_New()
 void text_del(GF_Box *s)
 {
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
+
 	if (ptr->textName)
 		gf_free(ptr->textName);
 	gf_free(ptr);
@@ -358,6 +361,9 @@ GF_Box *tx3g_New()
 void tx3g_del(GF_Box *s)
 {
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
+	
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
+
 	if (ptr->font_table)
 		gf_isom_box_del((GF_Box *)ptr->font_table);
 	gf_free(ptr);
@@ -1261,9 +1267,10 @@ GF_Box *dims_New()
 void dims_del(GF_Box *s)
 {
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
+
 	if (p->config) gf_isom_box_del((GF_Box *)p->config);
 	if (p->bitrate ) gf_isom_box_del((GF_Box *)p->bitrate);
-	if (p->protection_info) gf_isom_box_del((GF_Box *)p->protection_info);
 	if (p->scripts) gf_isom_box_del((GF_Box *)p->scripts);
 	gf_free(p);
 }
@@ -1285,8 +1292,7 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 		p->bitrate = (GF_MPEG4BitRateBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
-		if (p->protection_info) return GF_ISOM_INVALID_FILE;
-		p->protection_info = (GF_ProtectionInfoBox*)a;
+		gf_list_add(p->protections, a);
 		break;
 	default:
 		gf_isom_box_del(a);
@@ -1323,11 +1329,7 @@ GF_Err dims_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)p->bitrate, bs);
 		if (e) return e;
 	}
-	if (p->protection_info) {
-		e = gf_isom_box_write((GF_Box *)p->protection_info, bs);
-		if (e) return e;
-	}
-	return GF_OK;
+	return gf_isom_box_array_write(s, p->protections, bs);
 }
 
 GF_Err dims_Size(GF_Box *s)
@@ -1342,11 +1344,6 @@ GF_Err dims_Size(GF_Box *s)
 		if (e) return e;
 		p->size += p->config->size;
 	}
-	if (p->protection_info) {
-		e = gf_isom_box_size((GF_Box *) p->protection_info); 
-		if (e) return e;
-		p->size += p->protection_info->size;
-	}
 	if (p->bitrate) {
 		e = gf_isom_box_size((GF_Box *) p->bitrate); 
 		if (e) return e;
@@ -1357,7 +1354,7 @@ GF_Err dims_Size(GF_Box *s)
 		if (e) return e;
 		p->size += p->scripts->size;
 	}
-	return GF_OK;
+	return gf_isom_box_array_size(s, p->protections);
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

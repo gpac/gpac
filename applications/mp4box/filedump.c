@@ -984,6 +984,10 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 static char *format_duration(u64 dur, u32 timescale, char *szDur)
 {
 	u32 h, m, s, ms;
+	if ((dur==(u64) -1) || (dur==(u32) -1))  {
+		strcpy(szDur, "Unknown");
+		return szDur;
+	}
 	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
 	h = (u32) (dur / 3600000);
 	m = (u32) (dur/ 60000) - h*60;
@@ -1680,8 +1684,14 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 
 	timescale = gf_isom_get_timescale(file);
-	fprintf(stdout, "* Movie Info *\n\tTimescale %d - Duration %s\n\tFragmented File %s - %d track(s)\n",
-		timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_is_fragmented(file) ? "yes" : "no", gf_isom_get_track_count(file));
+	fprintf(stdout, "* Movie Info *\n\tTimescale %d - Duration %s\n\t%d track(s)\n",
+		timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_get_track_count(file));
+	
+	if (gf_isom_is_fragmented(file)) {
+		fprintf(stdout, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, 0) , gf_isom_get_fragments_count(file, 1) );
+	} else {
+		fprintf(stdout, "\tFragmented File: no\n");
+	}
 
 	if (gf_isom_moov_first(file))
 		fprintf(stdout, "\tFile suitable for progressive download (moov before mdat)\n");
