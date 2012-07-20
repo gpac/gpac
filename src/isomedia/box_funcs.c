@@ -402,6 +402,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_New();
 	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_New();
 	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_New();
+	case GF_ISOM_BOX_TYPE_SAIZ: return saiz_New();
+	case GF_ISOM_BOX_TYPE_SAIO: return saio_New();
+	case GF_ISOM_BOX_TYPE_PSSH: return pssh_New();
+	case GF_ISOM_BOX_TYPE_TENC: return tenc_New();
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
@@ -659,6 +663,10 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PDIN: pdin_del(a); return;
 	case GF_ISOM_BOX_TYPE_SBGP: sbgp_del(a); return;
 	case GF_ISOM_BOX_TYPE_SGPD: sgpd_del(a); return;
+	case GF_ISOM_BOX_TYPE_SAIZ: saiz_del(a); return;
+	case GF_ISOM_BOX_TYPE_SAIO: saio_del(a); return;
+	case GF_ISOM_BOX_TYPE_PSSH: pssh_del(a); return;
+	case GF_ISOM_BOX_TYPE_TENC: tenc_del(a); return;
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -762,8 +770,11 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCA: 
 	case GF_ISOM_BOX_TYPE_ENCV:
 	case GF_ISOM_BOX_TYPE_ENCS:
-		a->type = ((GF_SampleEntryBox *)a)->protection_info->original_format->data_format;
-		gf_isom_box_del(a); 
+		{
+			GF_ProtectionInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
+			a->type = sinf->original_format->data_format;
+			gf_isom_box_del(a); 
+		}
 		return;
 	case GF_ISOM_BOX_TYPE_UUID:
 		uuid_del(a);
@@ -900,6 +911,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SAIZ: return saiz_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SAIO: return saio_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PSSH: return pssh_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TENC: return tenc_Read(a, bs);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Read(a, bs);
@@ -1136,6 +1151,10 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SAIZ: return saiz_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SAIO: return saio_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_PSSH: return pssh_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_TENC: return tenc_Write(a, bs);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Write(a, bs);
@@ -1370,6 +1389,10 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Size(a);
 	case GF_ISOM_BOX_TYPE_SBGP: return sbgp_Size(a);
 	case GF_ISOM_BOX_TYPE_SGPD: return sgpd_Size(a);
+	case GF_ISOM_BOX_TYPE_SAIZ: return saiz_Size(a);
+	case GF_ISOM_BOX_TYPE_SAIO: return saio_Size(a);
+	case GF_ISOM_BOX_TYPE_PSSH: return pssh_Size(a);
+	case GF_ISOM_BOX_TYPE_TENC: return tenc_Size(a);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Size(a);

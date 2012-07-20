@@ -234,6 +234,7 @@ GF_Box *schi_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_SchemeInformationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_SCHI;
+	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -243,6 +244,9 @@ void schi_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->ikms) gf_isom_box_del((GF_Box *)ptr->ikms);
 	if (ptr->isfm) gf_isom_box_del((GF_Box *)ptr->isfm);
+	if (ptr->okms) gf_isom_box_del((GF_Box *)ptr->okms);
+	if (ptr->tenc) gf_isom_box_del((GF_Box *)ptr->tenc);
+	if (ptr->other_boxes) gf_isom_box_array_del(ptr->other_boxes);
 	gf_free(ptr);
 }
 
@@ -262,8 +266,12 @@ GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->okms) return GF_ISOM_INVALID_FILE;
 		ptr->okms = (GF_OMADRMKMSBox*)a;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_TENC:
+		if (ptr->tenc) return GF_ISOM_INVALID_FILE;
+		ptr->tenc = (GF_TrackEncryptionBox *)a;
+		return GF_OK;
 	default:
-		gf_isom_box_del(a);
+		gf_list_add(ptr->other_boxes, a);
 		return GF_OK;
 	}
 }
@@ -294,7 +302,11 @@ GF_Err schi_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->okms, bs);
 		if (e) return e;
 	}
-	return GF_OK;
+	if (ptr->tenc) {
+		e = gf_isom_box_write((GF_Box *) ptr->tenc, bs);
+		if (e) return e;
+	}
+	return gf_isom_box_array_write(s, ptr->other_boxes, bs);
 }
 
 GF_Err schi_Size(GF_Box *s)
@@ -320,7 +332,12 @@ GF_Err schi_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->okms->size;
 	}
-	return GF_OK;
+	if (ptr->tenc) {
+		e = gf_isom_box_size((GF_Box *) ptr->tenc);
+		if (e) return e;
+		ptr->size += ptr->tenc->size;
+	}
+	return gf_isom_box_array_size(s, ptr->other_boxes);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

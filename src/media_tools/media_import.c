@@ -2652,7 +2652,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			sdesc.vendor_code = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
 		else if (!stricmp(att->name, "temporalQuality")) sdesc.temporal_quality = atoi(att->value);
-		else if (!stricmp(att->name, "spatialQuality")) sdesc.spacial_quality = atoi(att->value);
+		else if (!stricmp(att->name, "spatialQuality")) sdesc.spatial_quality = atoi(att->value);
 		else if (!stricmp(att->name, "horizontalResolution")) sdesc.h_res = atoi(att->value);
 		else if (!stricmp(att->name, "verticalResolution")) sdesc.v_res = atoi(att->value);
 		else if (!stricmp(att->name, "bitDepth")) sdesc.depth = atoi(att->value);

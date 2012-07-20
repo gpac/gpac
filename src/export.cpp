@@ -576,6 +576,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragmented_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragments_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_release_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_segment) )

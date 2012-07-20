@@ -438,6 +438,7 @@ u32 gf_isom_get_timescale(GF_ISOFile *movie)
 	return movie->moov->mvhd->timeScale;
 }
 
+
 //return the duration of the movie, 0 if error
 GF_EXPORT
 u64 gf_isom_get_duration(GF_ISOFile *movie)
@@ -2076,7 +2077,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->revision = entry->revision;
 		udesc->vendor_code = entry->vendor;
 		udesc->temporal_quality = entry->temporal_quality;
-		udesc->spacial_quality = entry->spacial_quality;
+		udesc->spatial_quality = entry->spatial_quality;
 		udesc->width = entry->Width;
 		udesc->height = entry->Height;
 		udesc->h_res = entry->horiz_res;
@@ -2188,7 +2189,6 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_ENCA:
-		if (entry->protection_info && (entry->protection_info->original_format->data_format!= GF_ISOM_BOX_TYPE_MP4A)) return GF_ISOM_INVALID_MEDIA;
 	case GF_ISOM_BOX_TYPE_MP4A:
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -2778,5 +2778,36 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 	return GF_OK;
 }
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+//return the duration of the movie+fragments if known, 0 if error
+GF_EXPORT
+u64 gf_isom_get_fragmented_duration(GF_ISOFile *movie)
+{
+	if (movie->moov->mvex && movie->moov->mvex->mehd)
+		return movie->moov->mvex->mehd->fragment_duration;
+
+	return 0;
+}
+//return the duration of the movie+fragments if known, 0 if error
+GF_EXPORT
+u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only)
+{
+	u32 i=0;
+	u32 nb_frags = 0;
+	GF_Box *b;
+	while ((b=gf_list_enum(movie->TopBoxes, &i))) {
+		if (segments_only) {
+			if (b->type==GF_ISOM_BOX_TYPE_SIDX) 
+				nb_frags++;
+		} else {
+			if (b->type==GF_ISOM_BOX_TYPE_MOOF) 
+				nb_frags++;
+		}
+	}
+	return nb_frags;
+}
+
+#endif
 
 #endif /*GPAC_DISABLE_ISOM*/

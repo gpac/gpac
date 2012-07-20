@@ -2334,7 +2334,7 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest)
 	return GF_OK;
 }
 
-static GF_Err clone_box(GF_Box *src, GF_Box **dst)
+GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 {
 	GF_Err e;
 	char *data;
@@ -2370,7 +2370,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		gf_list_del_item(dest_file->TopBoxes, dest_file->brand);
 		gf_isom_box_del((GF_Box *)dest_file->brand);
 		dest_file->brand = NULL;
-		clone_box((GF_Box *)orig_file->brand, (GF_Box **)&dest_file->brand);
+		gf_isom_clone_box((GF_Box *)orig_file->brand, (GF_Box **)&dest_file->brand);
 		if (dest_file->brand) gf_list_add(dest_file->TopBoxes, dest_file->brand);
 	}
 
@@ -2379,7 +2379,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		gf_isom_box_del((GF_Box *)dest_file->meta);
 		dest_file->meta = NULL;
 		/*fixme - check imports*/
-		clone_box((GF_Box *)orig_file->meta, (GF_Box **)dest_file->meta);
+		gf_isom_clone_box((GF_Box *)orig_file->meta, (GF_Box **)dest_file->meta);
 		if (dest_file->meta) gf_list_add(dest_file->TopBoxes, dest_file->meta);
 	}
 	if (orig_file->moov) {
@@ -2390,7 +2390,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		orig_file->moov->trackList = tracks;
 		iods = (GF_Box*)orig_file->moov->iods;
 		orig_file->moov->iods = NULL;
-		clone_box((GF_Box *)orig_file->moov, (GF_Box **)&dest_file->moov);
+		gf_isom_clone_box((GF_Box *)orig_file->moov, (GF_Box **)&dest_file->moov);
 		orig_file->moov->trackList = old_tracks;
 		gf_list_del(tracks);
 		orig_file->moov->iods = (GF_ObjectDescriptorBox*)iods;
@@ -2404,7 +2404,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 				}
 			}
 			if (iods) 
-				clone_box((GF_Box *)orig_file->moov->iods, (GF_Box **)dest_file->moov->iods);
+				gf_isom_clone_box((GF_Box *)orig_file->moov->iods, (GF_Box **)dest_file->moov->iods);
 		} else {
 			dest_file->moov->mvhd->nextTrackID = 1;
 			gf_isom_clone_pl_indications(orig_file, dest_file);
@@ -2639,7 +2639,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->version = udesc->version;
 		entry->revision = udesc->revision;
 		entry->temporal_quality = udesc->temporal_quality;
-		entry->spacial_quality = udesc->spacial_quality;
+		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
 		strcpy(entry->compressor_name, udesc->compressor_name);
@@ -2740,7 +2740,7 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		entry->version = udesc->version;
 		entry->revision = udesc->revision;
 		entry->temporal_quality = udesc->temporal_quality;
-		entry->spacial_quality = udesc->spacial_quality;
+		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
 		strcpy(entry->compressor_name, udesc->compressor_name);
