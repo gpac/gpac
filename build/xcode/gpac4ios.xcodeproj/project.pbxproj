@@ -497,6 +497,7 @@
 		970A28621344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
 		970A28631344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
 		970A28641344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
+		973B2E3115BAAE3D00394854 /* generic_subtitle.c in Sources */ = {isa = PBXBuildFile; fileRef = 973B2E3015BAAE3D00394854 /* generic_subtitle.c */; };
 		9747B6EF14864C6400280D95 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EC14864C6400280D95 /* ait.h */; };
 		9747B6F014864C6400280D95 /* dsmcc.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6ED14864C6400280D95 /* dsmcc.h */; };
 		9747B6F114864C6400280D95 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EE14864C6400280D95 /* events_constants.h */; };
@@ -975,6 +976,7 @@
 		970A270D1343540C0007362C /* libgcc_s.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgcc_s.1.dylib; path = usr/lib/libgcc_s.1.dylib; sourceTree = SDKROOT; };
 		970A283F134462AE0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = "build/Release-iphonesimulator/libgpac_dynamic.dylib"; sourceTree = SOURCE_ROOT; };
 		970A28521344632F0007362C /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgpac_dynamic.dylib; path = ../../bin/iOS/osmo4ios.app/libgpac_dynamic.dylib; sourceTree = SOURCE_ROOT; };
+		973B2E3015BAAE3D00394854 /* generic_subtitle.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = generic_subtitle.c; sourceTree = "<group>"; };
 		9747B6EC14864C6400280D95 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ait.h; sourceTree = "<group>"; };
 		9747B6ED14864C6400280D95 /* dsmcc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dsmcc.h; sourceTree = "<group>"; };
 		9747B6EE14864C6400280D95 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = events_constants.h; sourceTree = "<group>"; };
@@ -1676,6 +1678,7 @@
 		71CCF19F1277045100339E12 /* isomedia */ = {
 			isa = PBXGroup;
 			children = (
+				973B2E3015BAAE3D00394854 /* generic_subtitle.c */,
 				71CCF1A01277045100339E12 /* avc_ext.c */,
 				71CCF1A11277045100339E12 /* box_code_3gpp.c */,
 				71CCF1A21277045100339E12 /* box_code_apple.c */,
@@ -3192,6 +3195,7 @@
 				9747B6F414864C7800280D95 /* ait.c in Sources */,
 				9747B6F514864C7800280D95 /* dsmcc.c in Sources */,
 				97DDAFEF1569631900528219 /* sha1.c in Sources */,
+				973B2E3115BAAE3D00394854 /* generic_subtitle.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
