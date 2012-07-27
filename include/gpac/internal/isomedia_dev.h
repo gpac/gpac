@@ -2633,6 +2633,13 @@ struct _3gpp_text_sample
 GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs);
 GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength);
 
+struct _generic_subtitle_sample
+{
+	char *text;
+	u32 len;
+};
+GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample(GF_BitStream *bs);
+GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(char *data, u32 dataLength);
 
 
 /*

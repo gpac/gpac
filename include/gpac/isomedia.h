@@ -162,6 +162,7 @@ enum
 	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_MEDIA_META		= GF_4CC( 'm', 'e', 't', 'a' ),
 	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
+	GF_ISOM_MEDIA_SUBM		= GF_4CC( 's', 'u', 'b', 'm' ),
 	/*subtitle code point used on ipod - same as text*/
 	GF_ISOM_MEDIA_SUBT		= GF_4CC( 's', 'b', 't', 'l' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
@@ -1594,6 +1595,13 @@ GF_TextSample *gf_isom_new_text_sample();
 /*destroy text sample handle*/
 void gf_isom_delete_text_sample(GF_TextSample *tx_samp);
 
+/*generic subtitle sample formatting*/
+typedef struct _generic_subtitle_sample GF_GenericSubtitleSample;
+/*creates generic subtitle sample handle*/
+GF_GenericSubtitleSample *gf_isom_new_generic_subtitle_sample();
+/*destroy generic subtitle sample handle*/
+void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_subtitle_samp);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*Create a new TextSampleDescription in the file. 
@@ -1659,6 +1667,12 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample * samp, u8 wrap_flags);
 /*formats sample as a regular GF_ISOSample. The resulting sample will always be marked as random access
 text sample content is kept untouched*/
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
+
+
+GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
+GF_Err gf_isom_new_generic_subtitle_description(GF_ISOFile *movie, u32 trackNumber, char *content_encoding, char *xml_schema_loc, char*mime_type_or_namespace, Bool is_xml, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
+GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1969,6 +1983,8 @@ typedef struct
 	const char *textEncoding;
 	const char *contentEncoding;
 	const char *content_script_types;
+    const char *mime_type;
+    const char *xml_schema_loc;
 } GF_DIMSDescription;
 
 GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_DIMSDescription *desc);

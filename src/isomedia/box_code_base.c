@@ -7123,9 +7123,11 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_data(bs, ptr->mime_type_or_namespace, strlen(ptr->mime_type_or_namespace));
 	gf_bs_write_u8(bs, 0);
 	
-	if (ptr->xml_schema_loc) 
-		gf_bs_write_data(bs, ptr->xml_schema_loc, strlen(ptr->xml_schema_loc));
-	gf_bs_write_u8(bs, 0);
+	if (ptr->type == GF_ISOM_BOX_TYPE_METX) { 
+	    if (ptr->xml_schema_loc) 
+		    gf_bs_write_data(bs, ptr->xml_schema_loc, strlen(ptr->xml_schema_loc));
+	    gf_bs_write_u8(bs, 0);
+    }
 
 	if (ptr->bitrate) {
 		e = gf_isom_box_write((GF_Box *)ptr->bitrate, bs);
@@ -7147,9 +7149,11 @@ GF_Err metx_Size(GF_Box *s)
 	if (ptr->mime_type_or_namespace)
 		ptr->size += strlen(ptr->mime_type_or_namespace);
 	ptr->size++;
-	if (ptr->xml_schema_loc)
-		ptr->size += strlen(ptr->xml_schema_loc);
-	ptr->size++;
+	if (ptr->type == GF_ISOM_BOX_TYPE_METX) {
+        if (ptr->xml_schema_loc)
+		    ptr->size += strlen(ptr->xml_schema_loc);
+	    ptr->size++;
+    }
 
 	if (ptr->bitrate) {
 		e = gf_isom_box_size((GF_Box *)ptr->bitrate);

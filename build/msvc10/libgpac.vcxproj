@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -116,6 +116,7 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\isomedia\generic_subtitle.c" />
     <ClCompile Include="..\..\src\utils\alloc.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\base_encoding.c" />
