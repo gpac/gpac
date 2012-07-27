@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) ENST 2000-200X
+ *			Authors: Jean Le Feuvre, Cyril Concolato, Romain Bouqueau
+ *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4-to-ts (mp42ts) application

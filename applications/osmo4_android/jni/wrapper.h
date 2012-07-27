@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) ENST 2009-
  *				Authors: Jean Le Feuvre
+ *				Copyright (c) Telecom ParisTech 2009-
  *					All rights reserved
  *
  *	Created by NGO Van Luyen, Ivica ARSOV / ARTEMIS / Telecom SudParis /Institut TELECOM on Oct, 2010

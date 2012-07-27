@@ -1,7 +1,8 @@
 /*
  *					GPAC Multimedia Framework
  *
- *				Copyright (c) 2005-20XX Telecom-Paristech
+ *			Authors: Romain Bouqueau - Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2010-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectFB video output module

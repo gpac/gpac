@@ -23,7 +23,7 @@
 	<key>CFBundleVersion</key>
 	<string>0.5.0</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (c) 2003-2005 gpac</string>
+	<string>Copyright (c) 2003-2005 TelecomParisTech</string>
 	<key>NSMainNibFile</key>
 	<string>NSMainNibFile</string>
 	<key>NSPrincipalClass</key>

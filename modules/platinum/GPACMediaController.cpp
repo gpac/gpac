@@ -2,8 +2,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean le Feuvre
- *			Copyright (c) 2009- Telecom ParisTech
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2009-2012
  *			All rights reserved
  *
  *  This file is part of GPAC / Platinum UPnP module 

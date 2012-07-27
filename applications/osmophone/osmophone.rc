@@ -329,7 +329,7 @@ FONT 8, "System"
 BEGIN
     ICON            IDI_ICON,IDC_STATIC,1,0,16,16
     CTEXT           "Osmo4/GPAC\n"GPAC_VERSION" ",IDC_NAMECTRL,23,1,65,17
-    CTEXT           "Copyright (c) 2007 ENST\nAll Rights Reserved\nLicensed under LGPL",IDC_STATIC,2,44,111,33
+    CTEXT           "Copyright (c) 2007 Telecom ParisTech\nAll Rights Reserved\nLicensed under LGPL",IDC_STATIC,2,44,111,33
 END
 
 IDD_FILEDIALOG DIALOG  0, 0, 104, 86

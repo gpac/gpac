@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
- *			Copyright (c) ENST 2008 - 
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC 
@@ -1603,7 +1603,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 
 /* carousel.h */
-#ifndef GPAC_DISABLE_DSMCC
+#ifdef GPAC_ENABLE_DSMCC
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_channel_application_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_dsmcc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord) )

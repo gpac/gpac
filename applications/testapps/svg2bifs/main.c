@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) ENST 2000-200X
+ *			Authors: Cyril COncolato
+ *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / svg2bifs application

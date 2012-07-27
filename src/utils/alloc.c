@@ -3,7 +3,6 @@
  *
  *          Authors: Romain Bouqueau - Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2010-20XX 
- *                    
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project

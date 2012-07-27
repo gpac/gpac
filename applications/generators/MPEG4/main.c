@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2004-2012 
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG4 Scene Graph Generator sub-project
@@ -35,8 +36,8 @@
 #include <time.h>
 
 
-#define COPYRIGHT_SCENE "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Copyright (c) Jean Le Feuvre 2000-2005\n *					All rights reserved\n *\n *  This file is part of GPAC / Scene Graph sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
-#define COPYRIGHT_BIFS "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Copyright (c) Jean Le Feuvre 2000-2005\n *					All rights reserved\n *\n *  This file is part of GPAC / BIFS codec sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
+#define COPYRIGHT_SCENE "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Authors: Jean Le Feuvre\n *			Copyright (c) Telecom ParisTech 2000-2012\n *					All rights reserved\n *\n *  This file is part of GPAC / Scene Graph sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
+#define COPYRIGHT_BIFS "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Authors: Jean Le Feuvre\n *			Copyright (c) Telecom ParisTech 2000-2012\n *					All rights reserved\n *\n *  This file is part of GPAC / BIFS codec sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
 
 static char *CurrentLine;
 
@@ -48,7 +49,7 @@ void PrintUsage()
 			"Template files MUST be fed in order\n"
 			"\n"
 			"Generated Files are directly updated in the GPAC distribution - do NOT try to change this\n\n"
-			"Written by Jean Le Feuvre - (c) 2000-2005\n"
+			"Written by Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2012\n"
 			);
 }
 

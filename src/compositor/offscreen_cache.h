@@ -1,9 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Yi-Zhen Zhang, Jean Le Feuvre
- *
- *			Copyright (c) ENST 2005-200X
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project

@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) ENST 2009-
- *				Authors: Jean Le Feuvre
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2009-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / Dummy input module

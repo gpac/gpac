@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Cyril Concolato 2000-2006
+ *			Authors: Cyril Concolato
+ *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / load&compare application

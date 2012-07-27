@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -170,7 +171,7 @@ u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
 void PrintVersion()
 {
 	fprintf(stdout, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
-		"GPAC Copyright: (c) Jean Le Feuvre 2000-2005\n\t\t(c) ENST 2005-200X\n"
+		"GPAC Copyright (c) Telecom ParisTech 2000-2012\n"
 		"GPAC Configuration: " GPAC_CONFIGURATION "\n"
 		"Features: %s\n", gpac_features());
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) 2010 Telecom ParisTech
+ *			Copyright (c) Telecom ParisTech 2010-2012
  *			All rights reserved
  *
  *  This file is part of GPAC / Test Suite Validator Recorder sub-project

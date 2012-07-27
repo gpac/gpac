@@ -86,9 +86,9 @@ BEGIN
     CTEXT           "Osmo4 player\nGPAC MPEG-4 SDK",IDC_ABT_TEXT,44,4,64,17
     CTEXT           "This program is free software and may be distributed according to the terms of the GNU Lesser General Public License",
                     IDC_STATIC,3,24,131,24
-    CTEXT           "GPAC Copyright (C) 2000 - 2005 by Jean Le Feuvre All Rights Reserved http://gpac.sourceforge.net",
+    CTEXT           "GPAC Copyright (C) Telecom ParisTech 2000 - 2012 - All Rights Reserved http://gpac.sourceforge.net",
                     IDC_STATIC,4,52,129,26
-    LTEXT           "GPAC (Osmo4 (C) 2002-2005)",IDC_STATIC,11,100,109,8
+					LTEXT           "Authors: Jean Le Feuvre, Cyril Concolato",IDC_STATIC,11,100,109,8
     LTEXT           "Mozilla SpiderMonkey (JavaScript)",IDC_STATIC,11,110,
                     109,8
     LTEXT           "The FreeType Project",IDC_STATIC,11,120,70,8

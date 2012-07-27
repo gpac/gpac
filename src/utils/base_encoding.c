@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -131,12 +132,6 @@ u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
 	}
 	return j;
 }
-
-
-/*
- *			Authors: Philippe de Cuetos 
- *			Copyright (c) ENST 2004 
- */
 
 static const char base_16[] = "0123456789abcdef";
 

@@ -20,7 +20,7 @@
 //
 //This copyright notice must be included in all copies or derivative works.
 //
-//Copyright (c) 2009.
+//Copyright (c) 2009 Telecom ParisTech.
 //
 // Alternatively, this software module may be redistributed and/or modified
 //  it under the terms of the GNU Lesser General Public License as published by
