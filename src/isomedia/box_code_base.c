@@ -1552,14 +1552,14 @@ GF_Err hinf_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err hinf_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_HintInfoBox *ptr = (GF_HintInfoBox *)s;
+//	GF_HintInfoBox *ptr = (GF_HintInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err hinf_Size(GF_Box *s)
 {
-	GF_HintInfoBox *ptr = (GF_HintInfoBox *)s;
+//	GF_HintInfoBox *ptr = (GF_HintInfoBox *)s;
 	return gf_isom_box_get_size(s);
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/	
@@ -6470,13 +6470,13 @@ GF_Box *tref_New()
 
 GF_Err tref_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
+//	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
 	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err tref_Size(GF_Box *s)
 {
-	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
+//	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
 	return gf_isom_box_get_size(s);
 }
 

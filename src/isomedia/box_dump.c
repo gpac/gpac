@@ -79,7 +79,7 @@ GF_Err DumpBox(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-static GF_Err gf_box_dump(void *ptr, FILE * trace)
+GF_Err gf_box_dump(void *ptr, FILE * trace)
 {
 	GF_Box *a = (GF_Box *) ptr;
 
@@ -491,7 +491,6 @@ void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace)
 GF_EXPORT
 GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 {
-	GF_Err gf_box_dump(void *ptr, FILE * trace);
 	u32 i;
 	GF_Box *box;
 	if (!mov || !trace) return GF_BAD_PARAM;
@@ -3818,7 +3817,6 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	if (ptr->cenc_data) {
-		GF_Err e = GF_EOS;
 		u32 i, j;
 		for (i=0; i<ptr->sample_count; i++) {
 			GF_CENCSampleInfo *cenc_sample = gf_isom_cenc_get_sample(ptr->traf->trex->track, ptr->traf, i+1);

@@ -72,7 +72,7 @@ GF_Box *ilst_New()
 GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
+//	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -84,7 +84,7 @@ GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err ilst_Size(GF_Box *s)
 {
 	GF_Err e;
-	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
+//	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 	
 	e = gf_isom_box_get_size(s);
 	if (e) return e;

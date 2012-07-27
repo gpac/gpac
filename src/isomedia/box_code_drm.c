@@ -689,7 +689,7 @@ GF_Err mdri_Read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err mdri_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_OMADRMMutableInformationBox*ptr = (GF_OMADRMMutableInformationBox*)s;
+//	GF_OMADRMMutableInformationBox*ptr = (GF_OMADRMMutableInformationBox*)s;
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	return GF_OK;
@@ -698,7 +698,7 @@ GF_Err mdri_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err mdri_Size(GF_Box *s)
 {
 	GF_Err e;
-	GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox *)s;
+//	GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
