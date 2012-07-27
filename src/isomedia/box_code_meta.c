@@ -34,13 +34,11 @@ GF_Box *meta_New()
 	memset(tmp, 0, sizeof(GF_MetaBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
 	tmp->type = GF_ISOM_BOX_TYPE_META;
-	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
 void meta_del(GF_Box *s)
 {
-	u32 count, i;
 	GF_MetaBox *ptr = (GF_MetaBox *)s;
 	if (ptr == NULL) return;
 	gf_isom_box_del((GF_Box *)ptr->handler);
@@ -50,12 +48,6 @@ void meta_del(GF_Box *s)
 	if (ptr->protections) gf_isom_box_del((GF_Box *)ptr->protections);
 	if (ptr->item_infos) gf_isom_box_del((GF_Box *)ptr->item_infos);
 	if (ptr->IPMP_control) gf_isom_box_del((GF_Box *)ptr->IPMP_control);
-	count = gf_list_count(ptr->other_boxes);
-	for (i = 0; i < count; i++) {
-		GF_Box *a = (GF_Box *)gf_list_get(ptr->other_boxes, i);
-		gf_isom_box_del(a);
-	}
-	gf_list_del(ptr->other_boxes);
 	gf_free(ptr);
 }
 
@@ -91,10 +83,8 @@ GF_Err meta_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_XML: 
 	case GF_ISOM_BOX_TYPE_BXML: 
 	case GF_ISOM_BOX_TYPE_ILST: 
-		gf_list_add(ptr->other_boxes, a); break;
 	default: 
-		gf_isom_box_del(a); 
-		break;
+		return gf_isom_box_add_default(s, a); 
 	}
 	return GF_OK;
 }
@@ -114,7 +104,6 @@ GF_Err meta_Read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err meta_Write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 count, i;
 	GF_Err e;
 	GF_MetaBox *ptr = (GF_MetaBox *)s;
 	if (!s) return GF_BAD_PARAM;
@@ -146,19 +135,11 @@ GF_Err meta_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->IPMP_control, bs);
 		if (e) return e;
 	}
-	if ((count = gf_list_count(ptr->other_boxes))) {
-		for (i = 0; i < count; i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(ptr->other_boxes, i);
-			e = gf_isom_box_write(a, bs);
-			if (e) return e;
-		}
-	}
 	return GF_OK;
 }
 
 GF_Err meta_Size(GF_Box *s)
 {
-	u32 i, count;
 	GF_Err e;
 	GF_MetaBox *ptr = (GF_MetaBox *)s;
 	if (!s) return GF_BAD_PARAM;
@@ -196,14 +177,6 @@ GF_Err meta_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->IPMP_control);
 		if (e) return e;
 		ptr->size += ptr->IPMP_control->size;
-	}
-	if ((count = gf_list_count(ptr->other_boxes))) {
-		for (i = 0; i < count; i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(ptr->other_boxes, i);
-			e = gf_isom_box_size(a);
-			if (e) return e;
-			ptr->size += a->size;
-		}
 	}
 	return GF_OK;
 }
@@ -520,10 +493,9 @@ GF_Err ipro_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_ItemProtectionBox *ptr = (GF_ItemProtectionBox *)s;
 	if (a->type == GF_ISOM_BOX_TYPE_SINF) 
-		gf_list_add(ptr->protection_information, a);
+		return gf_list_add(ptr->protection_information, a);
 	else 
-		gf_isom_box_del(a);
-	return GF_OK;
+		return gf_isom_box_add_default(s, a);
 }
 GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs)
 {

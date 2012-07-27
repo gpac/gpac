@@ -200,14 +200,14 @@
 		71CCF2AA1277045100339E12 /* box_code_3gpp.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A11277045100339E12 /* box_code_3gpp.c */; };
 		71CCF2AB1277045100339E12 /* box_code_apple.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A21277045100339E12 /* box_code_apple.c */; };
 		71CCF2AC1277045100339E12 /* box_code_base.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A31277045100339E12 /* box_code_base.c */; };
-		71CCF2AD1277045100339E12 /* box_code_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A41277045100339E12 /* box_code_isma.c */; };
+		71CCF2AD1277045100339E12 /* box_code_drm.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A41277045100339E12 /* box_code_drm.c */; };
 		71CCF2AE1277045100339E12 /* box_code_meta.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A51277045100339E12 /* box_code_meta.c */; };
 		71CCF2AF1277045100339E12 /* box_dump.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A61277045100339E12 /* box_dump.c */; };
 		71CCF2B01277045100339E12 /* box_funcs.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A71277045100339E12 /* box_funcs.c */; };
 		71CCF2B11277045100339E12 /* data_map.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A81277045100339E12 /* data_map.c */; };
 		71CCF2B21277045100339E12 /* hint_track.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1A91277045100339E12 /* hint_track.c */; };
 		71CCF2B31277045100339E12 /* hinting.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1AA1277045100339E12 /* hinting.c */; };
-		71CCF2B41277045100339E12 /* isma_sample.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1AB1277045100339E12 /* isma_sample.c */; };
+		71CCF2B41277045100339E12 /* drm_sample.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1AB1277045100339E12 /* drm_sample.c */; };
 		71CCF2B51277045100339E12 /* isom_intern.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1AC1277045100339E12 /* isom_intern.c */; };
 		71CCF2B61277045100339E12 /* isom_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1AD1277045100339E12 /* isom_read.c */; };
 		71CCF2B71277045100339E12 /* isom_store.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1AE1277045100339E12 /* isom_store.c */; };
@@ -722,14 +722,14 @@
 		71CCF1A11277045100339E12 /* box_code_3gpp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_3gpp.c; sourceTree = "<group>"; };
 		71CCF1A21277045100339E12 /* box_code_apple.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_apple.c; sourceTree = "<group>"; };
 		71CCF1A31277045100339E12 /* box_code_base.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_base.c; sourceTree = "<group>"; };
-		71CCF1A41277045100339E12 /* box_code_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_isma.c; sourceTree = "<group>"; };
+		71CCF1A41277045100339E12 /* box_code_drm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_drm.c; sourceTree = "<group>"; };
 		71CCF1A51277045100339E12 /* box_code_meta.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_meta.c; sourceTree = "<group>"; };
 		71CCF1A61277045100339E12 /* box_dump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_dump.c; sourceTree = "<group>"; };
 		71CCF1A71277045100339E12 /* box_funcs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_funcs.c; sourceTree = "<group>"; };
 		71CCF1A81277045100339E12 /* data_map.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = data_map.c; sourceTree = "<group>"; };
 		71CCF1A91277045100339E12 /* hint_track.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hint_track.c; sourceTree = "<group>"; };
 		71CCF1AA1277045100339E12 /* hinting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hinting.c; sourceTree = "<group>"; };
-		71CCF1AB1277045100339E12 /* isma_sample.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isma_sample.c; sourceTree = "<group>"; };
+		71CCF1AB1277045100339E12 /* drm_sample.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = drm_sample.c; sourceTree = "<group>"; };
 		71CCF1AC1277045100339E12 /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		71CCF1AD1277045100339E12 /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
 		71CCF1AE1277045100339E12 /* isom_store.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_store.c; sourceTree = "<group>"; };
@@ -1680,14 +1680,14 @@
 				71CCF1A11277045100339E12 /* box_code_3gpp.c */,
 				71CCF1A21277045100339E12 /* box_code_apple.c */,
 				71CCF1A31277045100339E12 /* box_code_base.c */,
-				71CCF1A41277045100339E12 /* box_code_isma.c */,
+				71CCF1A41277045100339E12 /* box_code_drm.c */,
 				71CCF1A51277045100339E12 /* box_code_meta.c */,
 				71CCF1A61277045100339E12 /* box_dump.c */,
 				71CCF1A71277045100339E12 /* box_funcs.c */,
 				71CCF1A81277045100339E12 /* data_map.c */,
 				71CCF1A91277045100339E12 /* hint_track.c */,
 				71CCF1AA1277045100339E12 /* hinting.c */,
-				71CCF1AB1277045100339E12 /* isma_sample.c */,
+				71CCF1AB1277045100339E12 /* drm_sample.c */,
 				71CCF1AC1277045100339E12 /* isom_intern.c */,
 				71CCF1AD1277045100339E12 /* isom_read.c */,
 				71CCF1AE1277045100339E12 /* isom_store.c */,
@@ -3039,14 +3039,14 @@
 				71CCF2AA1277045100339E12 /* box_code_3gpp.c in Sources */,
 				71CCF2AB1277045100339E12 /* box_code_apple.c in Sources */,
 				71CCF2AC1277045100339E12 /* box_code_base.c in Sources */,
-				71CCF2AD1277045100339E12 /* box_code_isma.c in Sources */,
+				71CCF2AD1277045100339E12 /* box_code_drm.c in Sources */,
 				71CCF2AE1277045100339E12 /* box_code_meta.c in Sources */,
 				71CCF2AF1277045100339E12 /* box_dump.c in Sources */,
 				71CCF2B01277045100339E12 /* box_funcs.c in Sources */,
 				71CCF2B11277045100339E12 /* data_map.c in Sources */,
 				71CCF2B21277045100339E12 /* hint_track.c in Sources */,
 				71CCF2B31277045100339E12 /* hinting.c in Sources */,
-				71CCF2B41277045100339E12 /* isma_sample.c in Sources */,
+				71CCF2B41277045100339E12 /* drm_sample.c in Sources */,
 				71CCF2B51277045100339E12 /* isom_intern.c in Sources */,
 				71CCF2B61277045100339E12 /* isom_read.c in Sources */,
 				71CCF2B71277045100339E12 /* isom_store.c in Sources */,

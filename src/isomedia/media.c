@@ -36,9 +36,9 @@ GF_Err Media_GetSampleDesc(GF_MediaBox *mdia, u32 SampleDescIndex, GF_SampleEntr
 
 	stsd = mdia->information->sampleTable->SampleDescription;
 	if (!stsd) return GF_ISOM_INVALID_FILE;
-	if (!SampleDescIndex || (SampleDescIndex > gf_list_count(stsd->boxList)) ) return GF_BAD_PARAM;
+	if (!SampleDescIndex || (SampleDescIndex > gf_list_count(stsd->other_boxes)) ) return GF_BAD_PARAM;
 
-	entry = (GF_SampleEntryBox*)gf_list_get(stsd->boxList, SampleDescIndex - 1);
+	entry = (GF_SampleEntryBox*)gf_list_get(stsd->other_boxes, SampleDescIndex - 1);
 	if (!entry) return GF_ISOM_INVALID_FILE;
 
 	if (out_entry) *out_entry = entry;
@@ -60,7 +60,7 @@ GF_Err Media_GetSampleDescIndex(GF_MediaBox *mdia, u64 DTS, u32 *sampleDescIndex
 
 	if (!sampleNumber && !prevSampleNumber) {
 		//we have to assume the track was created to be used... If we have a sampleDesc, OK
-		if (gf_list_count(mdia->information->sampleTable->SampleDescription->boxList)) {
+		if (gf_list_count(mdia->information->sampleTable->SampleDescription->other_boxes)) {
 			(*sampleDescIndex) = 1;
 			return GF_OK;
 		}		
@@ -153,11 +153,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	GF_SampleDescriptionBox *stsd = mdia->information->sampleTable->SampleDescription;
 	
 	*out_esd = NULL;
-	if (!stsd || !stsd->boxList || !sampleDescIndex || (sampleDescIndex > gf_list_count(stsd->boxList)) )
+	if (!stsd || !stsd->other_boxes || !sampleDescIndex || (sampleDescIndex > gf_list_count(stsd->other_boxes)) )
 		return GF_BAD_PARAM;
 
 	esd = NULL;
-	entry = (GF_MPEGSampleEntryBox*)gf_list_get(stsd->boxList, sampleDescIndex - 1);
+	entry = (GF_MPEGSampleEntryBox*)gf_list_get(stsd->other_boxes, sampleDescIndex - 1);
 	if (! entry) return GF_ISOM_INVALID_MEDIA;
 
 	*out_esd = NULL;
@@ -396,9 +396,9 @@ GF_Err Media_CheckDataEntry(GF_MediaBox *mdia, u32 dataEntryIndex)
 	GF_DataEntryURLBox *entry;
 	GF_DataMap *map;
 	GF_Err e;
-	if (!mdia || !dataEntryIndex || dataEntryIndex > gf_list_count(mdia->information->dataInformation->dref->boxList)) return GF_BAD_PARAM;
+	if (!mdia || !dataEntryIndex || dataEntryIndex > gf_list_count(mdia->information->dataInformation->dref->other_boxes)) return GF_BAD_PARAM;
 
-	entry = (GF_DataEntryURLBox*)gf_list_get(mdia->information->dataInformation->dref->boxList, dataEntryIndex - 1);
+	entry = (GF_DataEntryURLBox*)gf_list_get(mdia->information->dataInformation->dref->other_boxes, dataEntryIndex - 1);
 	if (!entry) return GF_ISOM_INVALID_FILE;
 	if (entry->flags == 1) return GF_OK;
 	
@@ -424,7 +424,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 
 	Media_GetSampleDesc(mdia, StreamDescIndex, &se, &drefIndex);
 	if (!drefIndex) return 0;
-	a = (GF_FullBox*)gf_list_get(mdia->information->dataInformation->dref->boxList, drefIndex - 1);
+	a = (GF_FullBox*)gf_list_get(mdia->information->dataInformation->dref->other_boxes, drefIndex - 1);
 	if (!a) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] broken file: Data reference index set to %d but no data reference entry found\n", drefIndex));
 		return 0;
@@ -488,7 +488,7 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 	if (!dref) return GF_BAD_PARAM;
 	*dataRefIndex = 0;
 	i=0;
-	while ((entry = (GF_DataEntryURLBox*)gf_list_enum(dref->boxList, &i))) {
+	while ((entry = (GF_DataEntryURLBox*)gf_list_enum(dref->other_boxes, &i))) {
 		if (entry->type == GF_ISOM_BOX_TYPE_URL) {
 			//self-contained case
 			if (entry->flags == 1) {
@@ -614,7 +614,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		entry->flags |= 1;
 		e = dref_AddDataEntry(dref, (GF_Box *)entry);
 		if (e) return e;
-		*dataRefIndex = gf_list_count(dref->boxList);
+		*dataRefIndex = gf_list_count(dref->other_boxes);
 		return GF_OK;
 	} else if (!URNname && URLname) {
 		//THIS IS URL
@@ -628,7 +628,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		strcpy(entry->location, URLname);
 		e = dref_AddDataEntry(dref, (GF_Box *)entry);
 		if (e) return e;
-		*dataRefIndex = gf_list_count(dref->boxList);
+		*dataRefIndex = gf_list_count(dref->other_boxes);
 		return GF_OK;
 	} else {
 		//THIS IS URN
@@ -651,7 +651,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		}
 		e = dref_AddDataEntry(dref, (GF_Box *)entry);
 		if (e) return e;
-		*dataRefIndex = gf_list_count(dref->boxList);
+		*dataRefIndex = gf_list_count(dref->other_boxes);
 		return GF_OK;
 	}
 	return GF_OK;
@@ -769,8 +769,6 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 	GF_DataEntryURLBox *Dentry;
 	GF_SampleTableBox *stbl;
 
-	GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
-
 	if (!mdia || !sample || !sampleNumber || !mdia->mediaTrack->moov->mov->editFileMap)
 		return GF_BAD_PARAM;
 	
@@ -789,7 +787,7 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 	//then check the data ref
 	e = Media_GetSampleDesc(mdia, descIndex, NULL, &drefIndex);
 	if (e) return e;
-	Dentry = (GF_DataEntryURLBox*)gf_list_get(mdia->information->dataInformation->dref->boxList, drefIndex - 1);
+	Dentry = (GF_DataEntryURLBox*)gf_list_get(mdia->information->dataInformation->dref->other_boxes, drefIndex - 1);
 	if (!Dentry) return GF_ISOM_INVALID_FILE;
 
 	if (Dentry->flags != 1) return GF_BAD_PARAM;
@@ -814,7 +812,6 @@ GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSa
 	u8 isEdited;
 	GF_DataEntryURLBox *Dentry;
 	GF_SampleTableBox *stbl;
-	GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
 
 	if (!mdia) return GF_BAD_PARAM;
 	stbl = mdia->information->sampleTable;
@@ -830,7 +827,7 @@ GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSa
 	//then check the data ref
 	e = Media_GetSampleDesc(mdia, descIndex, NULL, &drefIndex);
 	if (e) return e;
-	Dentry = (GF_DataEntryURLBox*)gf_list_get(mdia->information->dataInformation->dref->boxList, drefIndex - 1);
+	Dentry = (GF_DataEntryURLBox*)gf_list_get(mdia->information->dataInformation->dref->other_boxes, drefIndex - 1);
 	if (!Dentry) return GF_ISOM_INVALID_FILE;
 
 	//we only modify self-contained data

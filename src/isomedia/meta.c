@@ -153,7 +153,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->item_ID==iinf->item_ID) {
 			if (iloc->data_reference_index) {
-				GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->boxList, iloc->data_reference_index-1);
+				GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->other_boxes, iloc->data_reference_index-1);
 				if (a->type==GF_ISOM_BOX_TYPE_URL) {
 					if (item_url) (*item_url) = ((GF_DataEntryURLBox*)a)->location;
 				} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
@@ -226,7 +226,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 	/*FIXME*/
 	if (location_entry->data_reference_index) {
 		char *item_url = NULL, *item_urn = NULL;
-		GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->boxList, location_entry->data_reference_index-1);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->other_boxes, location_entry->data_reference_index-1);
 		if (a->type==GF_ISOM_BOX_TYPE_URL) {
 			item_url = ((GF_DataEntryURLBox*)a)->location;
 		} else if (a->type==GF_ISOM_BOX_TYPE_URN) {

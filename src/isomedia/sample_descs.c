@@ -176,7 +176,7 @@ GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	if (!trak || !StreamDescriptionIndex) return NULL;
 
 	config = NULL;
-	entry = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, StreamDescriptionIndex-1);
+	entry = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
 	if (!entry) return NULL;
 	switch (entry->type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -210,7 +210,7 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !StreamDescriptionIndex) return NULL;
 
-	entry = (GF_AC3SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, StreamDescriptionIndex-1);
+	entry = (GF_AC3SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
 	if (!entry || !entry->info || (entry->type!=GF_ISOM_BOX_TYPE_AC3) || (entry->info->type!=GF_ISOM_BOX_TYPE_DAC3) ) return NULL;
 
 	res = (GF_AC3Config*)gf_malloc(sizeof(GF_AC3Config));
@@ -287,8 +287,8 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		memcpy(&entry->info->cfg, cfg, sizeof(GF_3GPConfig));
 		entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
 		entry->dataReferenceIndex = dataRefIndex;
-		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, entry);
-		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
+		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
@@ -302,8 +302,8 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		}
 		memcpy(&entry->info->cfg, cfg, sizeof(GF_3GPConfig));
 		entry->dataReferenceIndex = dataRefIndex;
-		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, entry);
-		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
+		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}
 		break;
 	}
@@ -324,7 +324,7 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 	if (!trak || !trak->Media || !param || !DescriptionIndex) return GF_BAD_PARAM;
 
 	cfg = NULL;
-	entry = (GF_3GPPAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	entry = (GF_3GPPAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	switch (entry->type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -378,8 +378,8 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	memcpy(&entry->info->cfg, cfg, sizeof(GF_AC3Config));
 	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
 	entry->dataReferenceIndex = dataRefIndex;
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, entry);
-	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
+	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	return e;
 }
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
@@ -394,7 +394,7 @@ GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !descriptionIndex || !desc) return GF_BAD_PARAM;
 
-	dims = (GF_DIMSSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex-1);
+	dims = (GF_DIMSSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex-1);
 	if (!dims) return GF_BAD_PARAM;
 	if (dims->type != GF_ISOM_BOX_TYPE_DIMS) return GF_BAD_PARAM;
 
@@ -442,8 +442,8 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 
 	dims = (GF_DIMSSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMS);
 	dims->dataReferenceIndex = dataRefIndex;
-	gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, dims);
-	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, dims);
+	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
 	dims->config = (GF_DIMSSceneConfigBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMC);
 	dims->config->profile = desc->profile;
@@ -476,7 +476,7 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc || !DescriptionIndex) return GF_BAD_PARAM;
 
-	dims = (GF_DIMSSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	dims = (GF_DIMSSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!dims) return GF_BAD_PARAM;
 	if (dims->type != GF_ISOM_BOX_TYPE_DIMS) return GF_BAD_PARAM;
 	if (!dims->config)

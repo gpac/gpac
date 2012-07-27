@@ -31,7 +31,6 @@ void ilst_del(GF_Box *s)
 {
 	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 	if (ptr == NULL) return;
-	gf_isom_box_array_del(ptr->tags);
 	gf_free(ptr);
 }
 
@@ -49,7 +48,7 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 			if (e) return e;
 			if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
 			ptr->size -= a->size;
-			gf_list_add(ptr->tags, a);
+			gf_list_add(ptr->other_boxes, a);
 		} else {
 			gf_bs_read_u32(bs);
 			ptr->size -= 4;
@@ -64,7 +63,7 @@ GF_Box *ilst_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_ItemListBox));
 	tmp->type = GF_ISOM_BOX_TYPE_ILST;
-	tmp->tags = gf_list_new();
+	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -78,7 +77,7 @@ GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	return gf_isom_box_array_write(s, ptr->tags, bs);
+	return GF_OK;
 }
 
 
@@ -90,7 +89,7 @@ GF_Err ilst_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 
-	return gf_isom_box_array_size(s, ptr->tags);
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -286,8 +285,8 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
 	if (!map) return NULL;
 
-	for(i = 0; i < gf_list_count(map->boxList); i++){
-		meta = (GF_MetaBox*)gf_list_get(map->boxList, i);
+	for(i = 0; i < gf_list_count(map->other_boxes); i++){
+		meta = (GF_MetaBox*)gf_list_get(map->other_boxes, i);
 
 		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
 	}
@@ -312,8 +311,8 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
 	if (map){
-		for(i = 0; i < gf_list_count(map->boxList); i++){
-			meta = (GF_MetaBox*)gf_list_get(map->boxList, i);
+		for(i = 0; i < gf_list_count(map->other_boxes); i++){
+			meta = (GF_MetaBox*)gf_list_get(map->other_boxes, i);
 
 			if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
 		}
@@ -328,6 +327,7 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 			return NULL;
 		}
 		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
+		if (!meta->other_boxes) meta->other_boxes = gf_list_new();
 		gf_list_add(meta->other_boxes, gf_isom_box_new(GF_ISOM_BOX_TYPE_ILST));
 		udta_AddBox(mov->moov->udta, (GF_Box *)meta);
 	}

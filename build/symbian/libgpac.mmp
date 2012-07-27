@@ -108,14 +108,14 @@ SOURCE avc_ext.c
 SOURCE box_code_3gpp.c
 SOURCE box_code_apple.c
 SOURCE box_code_base.c
-SOURCE box_code_isma.c
+SOURCE box_code_drm.c
 SOURCE box_code_meta.c
 SOURCE box_dump.c
 SOURCE box_funcs.c
 SOURCE data_map.c
 SOURCE hint_track.c
 SOURCE hinting.c
-SOURCE isma_sample.c
+SOURCE drm_sample.c
 SOURCE isom_intern.c
 SOURCE isom_read.c
 SOURCE isom_store.c
