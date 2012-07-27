@@ -102,6 +102,8 @@ enum
 	/*internal descriptor for LASeR config input description*/
 	GF_ODF_LASER_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 6,
 
+	GF_ODF_GEN_SUB_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 7,
+
 	GF_ODF_USER_END_TAG		= 0xFE,
 
 	GF_ODF_OCI_BEGIN_TAG	= 0x40,
@@ -486,6 +488,35 @@ typedef struct
 	s16 horiz_offset;
 	s16 vert_offset;
 } GF_TextConfig;
+
+typedef struct
+{
+	/*this is defined as a descriptor for parsing*/
+	BASE_DESCRIPTOR
+
+	/*unused in isomedia but needed for streamingText*/
+	u8 sample_index;
+} GF_GenericSubtitleSampleDescriptor;
+
+typedef struct
+{
+	BASE_DESCRIPTOR
+	u32 timescale;
+	/*More negative layer values are towards the viewer*/
+	s16 layer;
+	/*text track width & height*/
+	u16 text_width;
+	u16 text_height;
+	/*defined in isomedia.h*/
+	GF_List *sample_descriptions;
+
+	/*if true info below are valid (cf 3GPP for their meaning)*/
+	Bool has_vid_info;
+	u16 video_width;
+	u16 video_height;
+	s16 horiz_offset;
+	s16 vert_offset;
+} GF_GenericSubtitleConfig;
 
 
 /*MuxInfo descriptor - parsing only, stored in ESD:extDescr*/
