@@ -685,7 +685,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 		/*and set sample descriptions*/
 		count = gf_list_count(cfg->sample_descriptions);
 		for (i=0; i<count; i++) {
-			GF_GenericSubtitleSampleDescriptor *sd= (GF_GenericSubtitleSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
+//			GF_GenericSubtitleSampleDescriptor *sd= (GF_GenericSubtitleSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
 			gf_isom_new_generic_subtitle_description(import->dest, track, content_encoding, xml_schema_loc, mime_ns, is_xml, NULL, NULL, &state);
 		}
 		gf_import_message(import, GF_OK, "WebVTT import - text track %d x %d", cfg->text_width, cfg->text_height);
@@ -777,7 +777,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 
         case 1:
             /* TODO: fix the parsing of time stamps to be compliant */
-			if (sscanf(szLine, "%u:%u:%u.%u --> %u:%u:%u.%u %s", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems, &szSettings) < 8) {
+			if (sscanf(szLine, "%u:%u:%u.%u --> %u:%u:%u.%u %s", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems, szSettings) < 8) {
 				e = gf_import_message(import, GF_CORRUPTED_DATA, "Error scanning WebVTT cue timing for cue %d", curCue);
 				goto exit;
 			} else {
