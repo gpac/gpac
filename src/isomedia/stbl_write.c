@@ -1080,7 +1080,7 @@ GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits)
 	if (SampleNumber > stbl->SampleSize->sampleCount) return GF_BAD_PARAM;
 
 	//create the table
-	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FADB);
+	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_PADB);
 
 	//alloc
 	if (!stbl->PaddingBits->padbits || !stbl->PaddingBits->SampleCount) {
@@ -1420,7 +1420,7 @@ void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)
 {
 	u32 i;
 	u8 *pad_bits;
-	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FADB);
+	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_PADB);
 
 	pad_bits = (u8*)gf_malloc(sizeof(u8) * stbl->SampleSize->sampleCount);
 	if (!pad_bits) return;

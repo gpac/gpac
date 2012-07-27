@@ -59,10 +59,7 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *ilst_New()
 {
-	GF_ItemListBox *tmp = (GF_ItemListBox *) gf_malloc(sizeof(GF_ItemListBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ItemListBox));
-	tmp->type = GF_ISOM_BOX_TYPE_ILST;
+	ISOM_DECL_BOX_ALLOC(GF_ItemListBox, GF_ISOM_BOX_TYPE_ILST);
 	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
@@ -138,13 +135,7 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 
 GF_Box *ListItem_New(u32 type)
 {
-	GF_ListItemBox *tmp;
-	
-	tmp = (GF_ListItemBox *) gf_malloc(sizeof(GF_ListItemBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ListItemBox));
-
-	tmp->type = type;
+	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, type);
 
 	tmp->data = (GF_DataBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DATA);
 
@@ -230,14 +221,9 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 
 GF_Box *data_New()
 {
-	GF_DataBox *tmp;
-	
-	tmp = (GF_DataBox *) gf_malloc(sizeof(GF_DataBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_DataBox));
+	ISOM_DECL_BOX_ALLOC(GF_DataBox, GF_ISOM_BOX_TYPE_DATA);
 
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_DATA;
 
 	return (GF_Box *)tmp;
 }
