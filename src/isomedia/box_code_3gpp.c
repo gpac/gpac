@@ -51,11 +51,8 @@ GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *gppa_New(u32 type)
 {
-	GF_3GPPAudioSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, GF_3GPPAudioSampleEntryBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_3GPPAudioSampleEntryBox, type);
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
-	tmp->type = type;
 	return (GF_Box *)tmp;
 }
 
@@ -90,11 +87,8 @@ GF_Err gppa_Size(GF_Box *s)
 
 GF_Box *gppv_New(u32 type)
 {
-	GF_3GPPVisualSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, GF_3GPPVisualSampleEntryBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_3GPPVisualSampleEntryBox, type);
 	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox *)tmp);
-	tmp->type = type;
 	return (GF_Box *)tmp;
 }
 void gppv_del(GF_Box *s)
@@ -149,10 +143,7 @@ GF_Err gppv_Size(GF_Box *s)
 
 GF_Box *gppc_New(u32 type)
 {
-	GF_3GPPConfigBox *tmp = (GF_3GPPConfigBox *) gf_malloc(sizeof(GF_3GPPConfigBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_3GPPConfigBox));
-	tmp->type = type;
+	ISOM_DECL_BOX_ALLOC(GF_3GPPConfigBox, type);
 	return (GF_Box *)tmp;
 }
 
@@ -253,10 +244,7 @@ GF_Err gppc_Size(GF_Box *s)
 
 GF_Box *ftab_New()
 {
-	GF_FontTableBox *tmp;
-	GF_SAFEALLOC(tmp, GF_FontTableBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_FTAB;
+	ISOM_DECL_BOX_ALLOC(GF_FontTableBox, GF_ISOM_BOX_TYPE_FTAB);
 	return (GF_Box *) tmp;
 }
 void ftab_del(GF_Box *s)
@@ -330,11 +318,7 @@ GF_Err ftab_Size(GF_Box *s)
 
 GF_Box *text_New()
 {
-	GF_TextSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, GF_TextSampleEntryBox);
-	if (!tmp)
-		return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_TEXT;
+	ISOM_DECL_BOX_ALLOC(GF_TextSampleEntryBox, GF_ISOM_BOX_TYPE_TEXT);
 	return (GF_Box *) tmp;
 }
 
@@ -350,11 +334,7 @@ void text_del(GF_Box *s)
 
 GF_Box *tx3g_New()
 {
-	GF_Tx3gSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, GF_Tx3gSampleEntryBox);
-	if (!tmp)
-		return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_TX3G;
+	ISOM_DECL_BOX_ALLOC(GF_Tx3gSampleEntryBox, GF_ISOM_BOX_TYPE_TX3G);
 	return (GF_Box *) tmp;
 }
 
@@ -586,10 +566,7 @@ GF_Err text_Size(GF_Box *s)
 
 GF_Box *styl_New()
 {
-	GF_TextStyleBox *tmp;
-	GF_SAFEALLOC(tmp, GF_TextStyleBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_STYL;
+	ISOM_DECL_BOX_ALLOC(GF_TextStyleBox, GF_ISOM_BOX_TYPE_STYL);
 	return (GF_Box *) tmp;
 }
 
@@ -641,10 +618,7 @@ GF_Err styl_Size(GF_Box *s)
 
 GF_Box *hlit_New()
 {
-	GF_TextHighlightBox *tmp;
-	GF_SAFEALLOC(tmp, GF_TextHighlightBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_HLIT;
+	ISOM_DECL_BOX_ALLOC(GF_TextHighlightBox, GF_ISOM_BOX_TYPE_HLIT);
 	return (GF_Box *) tmp;
 }
 
@@ -685,10 +659,7 @@ GF_Err hlit_Size(GF_Box *s)
 
 GF_Box *hclr_New()
 {
-	GF_TextHighlightColorBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextHighlightColorBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_HCLR;
+	ISOM_DECL_BOX_ALLOC(GF_TextHighlightColorBox, GF_ISOM_BOX_TYPE_HCLR);
 	return (GF_Box *) tmp;
 }
 
@@ -727,10 +698,7 @@ GF_Err hclr_Size(GF_Box *s)
 
 GF_Box *krok_New()
 {
-	GF_TextKaraokeBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextKaraokeBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_KROK;
+	ISOM_DECL_BOX_ALLOC(GF_TextKaraokeBox, GF_ISOM_BOX_TYPE_KROK);
 	return (GF_Box *) tmp;
 }
 
@@ -791,10 +759,7 @@ GF_Err krok_Size(GF_Box *s)
 
 GF_Box *dlay_New()
 {
-	GF_TextScrollDelayBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextScrollDelayBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_DLAY;
+	ISOM_DECL_BOX_ALLOC(GF_TextScrollDelayBox, GF_ISOM_BOX_TYPE_DLAY);
 	return (GF_Box *) tmp;
 }
 
@@ -833,10 +798,7 @@ GF_Err dlay_Size(GF_Box *s)
 
 GF_Box *href_New()
 {
-	GF_TextHyperTextBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextHyperTextBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_HREF;
+	ISOM_DECL_BOX_ALLOC(GF_TextHyperTextBox, GF_ISOM_BOX_TYPE_HREF);
 	return (GF_Box *) tmp;
 }
 
@@ -913,10 +875,7 @@ GF_Err href_Size(GF_Box *s)
 
 GF_Box *tbox_New()
 {
-	GF_TextBoxBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextBoxBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_TBOX;
+	ISOM_DECL_BOX_ALLOC(GF_TextBoxBox, GF_ISOM_BOX_TYPE_TBOX);
 	return (GF_Box *) tmp;
 }
 
@@ -956,10 +915,7 @@ GF_Err tbox_Size(GF_Box *s)
 
 GF_Box *blnk_New()
 {
-	GF_TextBlinkBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextBlinkBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_BLNK;
+	ISOM_DECL_BOX_ALLOC(GF_TextBlinkBox, GF_ISOM_BOX_TYPE_BLNK);
 	return (GF_Box *) tmp;
 }
 
@@ -1000,10 +956,7 @@ GF_Err blnk_Size(GF_Box *s)
 
 GF_Box *twrp_New()
 {
-	GF_TextWrapBox*tmp;
-	GF_SAFEALLOC(tmp, GF_TextWrapBox);
-	if (!tmp) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_TWRP;
+	ISOM_DECL_BOX_ALLOC(GF_TextWrapBox, GF_ISOM_BOX_TYPE_TWRP);
 	return (GF_Box *) tmp;
 }
 
@@ -1070,13 +1023,8 @@ GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 
 GF_Box *tsel_New()
 {
-	GF_TrackSelectionBox *tmp;
-	
-	tmp = (GF_TrackSelectionBox *) gf_malloc(sizeof(GF_TrackSelectionBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_TrackSelectionBox));
+	ISOM_DECL_BOX_ALLOC(GF_TrackSelectionBox, GF_ISOM_BOX_TYPE_TSEL);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_TSEL;
 	return (GF_Box *)tmp;
 }
 
@@ -1115,12 +1063,8 @@ GF_Err tsel_Size(GF_Box *s)
 
 GF_Box *dimC_New()
 {
-	GF_DIMSSceneConfigBox *tmp;
-	
-	GF_SAFEALLOC(tmp, GF_DIMSSceneConfigBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_DIMSSceneConfigBox, GF_ISOM_BOX_TYPE_DIMC);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_DIMC;
 	return (GF_Box *)tmp;
 }
 void dimC_del(GF_Box *s)
@@ -1201,11 +1145,7 @@ GF_Err dimC_Size(GF_Box *s)
 
 GF_Box *diST_New()
 {
-	GF_DIMSScriptTypesBox *tmp;
-	
-	GF_SAFEALLOC(tmp, GF_DIMSScriptTypesBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_DIST;
+	ISOM_DECL_BOX_ALLOC(GF_DIMSScriptTypesBox, GF_ISOM_BOX_TYPE_DIST);
 	return (GF_Box *)tmp;
 }
 void diST_del(GF_Box *s)
@@ -1259,9 +1199,7 @@ GF_Err diST_Size(GF_Box *s)
 
 GF_Box *dims_New()
 {
-	GF_DIMSSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, GF_DIMSSampleEntryBox);
-	tmp->type = GF_ISOM_BOX_TYPE_DIMS;
+	ISOM_DECL_BOX_ALLOC(GF_DIMSSampleEntryBox, GF_ISOM_BOX_TYPE_DIMS);
 	return (GF_Box*)tmp;
 }
 void dims_del(GF_Box *s)

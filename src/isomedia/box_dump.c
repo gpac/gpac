@@ -250,7 +250,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_FTYP: 
 	case GF_ISOM_BOX_TYPE_STYP: 
         return ftyp_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_FADB:
+	case GF_ISOM_BOX_TYPE_PADB:
 		return padb_dump(a, trace);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1057,9 +1057,7 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 
 GF_Err dref_dump(GF_Box *a, FILE * trace)
 {
-	GF_DataReferenceBox *p;
-
-	p = (GF_DataReferenceBox *)a;
+//	GF_DataReferenceBox *p = (GF_DataReferenceBox *)a;
 	fprintf(trace, "<DataReferenceBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
@@ -1069,8 +1067,7 @@ GF_Err dref_dump(GF_Box *a, FILE * trace)
 
 GF_Err stsd_dump(GF_Box *a, FILE * trace)
 {
-	GF_SampleDescriptionBox *p;
-	p = (GF_SampleDescriptionBox *)a;
+//	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
 	fprintf(trace, "<SampleDescriptionBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
@@ -1393,9 +1390,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 
 GF_Err tref_dump(GF_Box *a, FILE * trace)
 {
-	GF_TrackReferenceBox *p;
-
-	p = (GF_TrackReferenceBox *)a;
+//	GF_TrackReferenceBox *p = (GF_TrackReferenceBox *)a;
 	fprintf(trace, "<TrackReferenceBox>\n");
 	DumpBox(a, trace);
 	gf_box_dump_done("TrackReferenceBox", a, trace);
@@ -1404,9 +1399,7 @@ GF_Err tref_dump(GF_Box *a, FILE * trace)
 
 GF_Err mdia_dump(GF_Box *a, FILE * trace)
 {
-	GF_MediaBox *p;
-
-	p = (GF_MediaBox *)a;
+	GF_MediaBox *p = (GF_MediaBox *)a;
 	fprintf(trace, "<MediaBox>\n");
 	DumpBox(a, trace);
 	gf_box_dump(p->mediaHeader, trace);
@@ -1918,9 +1911,7 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 
 GF_Err hinf_dump(GF_Box *a, FILE * trace)
 {
-	GF_HintInfoBox *p;
-
-	p = (GF_HintInfoBox *)a;
+//	GF_HintInfoBox *p  = (GF_HintInfoBox *)a;
 	fprintf(trace, "<HintInfoBox>\n");
 	DumpBox(a, trace);
 	gf_box_dump_done("HintInfoBox", a, trace);
@@ -1929,9 +1920,7 @@ GF_Err hinf_dump(GF_Box *a, FILE * trace)
 
 GF_Err trpy_dump(GF_Box *a, FILE * trace)
 {
-	GF_TRPYBox *p;
-
-	p = (GF_TRPYBox *)a;
+	GF_TRPYBox *p = (GF_TRPYBox *)a;
 	fprintf(trace, "<LargeTotalRTPBytesBox RTPBytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
 	gf_box_dump_done("LargeTotalRTPBytesBox", a, trace);
@@ -3373,7 +3362,7 @@ GF_Err grpi_dump(GF_Box *a, FILE * trace)
 }
 GF_Err mdri_dump(GF_Box *a, FILE * trace)
 {
-	GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox*)a;
+	//GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox*)a;
 	fprintf(trace, "<OMADRMMutableInformationBox>\n");
 	gf_box_dump((GF_Box *)a, trace);
 	gf_box_dump_done("OMADRMMutableInformationBox", a, trace);

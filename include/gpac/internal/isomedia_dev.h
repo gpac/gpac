@@ -71,6 +71,13 @@ typedef struct
 	GF_ISOM_UUID_BOX
 } GF_UUIDBox;
 
+
+#define ISOM_DECL_BOX_ALLOC(__TYPE, __4cc)	__TYPE *tmp; \
+	GF_SAFEALLOC(tmp, __TYPE);	\
+	if (tmp==NULL) return NULL;	\
+	tmp->type = __4cc;
+
+
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
 
@@ -86,12 +93,15 @@ GF_Err gf_isom_read_box_list(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_B
 GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
 
+#define gf_isom_full_box_init(__pre)
+
+//void gf_isom_full_box_init(GF_Box *ptr);
+
 GF_Err gf_isom_box_get_size(GF_Box *ptr);
 GF_Err gf_isom_full_box_get_size(GF_Box *ptr);
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
-void gf_isom_full_box_init(GF_Box *ptr);
 void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
@@ -139,7 +149,7 @@ enum
 	GF_ISOM_BOX_TYPE_UDTA	= GF_4CC( 'u', 'd', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_VMHD	= GF_4CC( 'v', 'm', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_FTYP	= GF_4CC( 'f', 't', 'y', 'p' ),
-	GF_ISOM_BOX_TYPE_FADB	= GF_4CC( 'p', 'a', 'd', 'b' ),
+	GF_ISOM_BOX_TYPE_PADB	= GF_4CC( 'p', 'a', 'd', 'b' ),
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
 	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
 

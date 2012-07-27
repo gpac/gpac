@@ -30,10 +30,7 @@
 /* ProtectionInfo Box */
 GF_Box *sinf_New()
 {
-	GF_ProtectionInfoBox *tmp = (GF_ProtectionInfoBox *) gf_malloc(sizeof(GF_ProtectionInfoBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ProtectionInfoBox));
-	tmp->type = GF_ISOM_BOX_TYPE_SINF;
+	ISOM_DECL_BOX_ALLOC(GF_ProtectionInfoBox, GF_ISOM_BOX_TYPE_SINF);
 	return (GF_Box *)tmp;
 }
 
@@ -117,10 +114,7 @@ GF_Err sinf_Size(GF_Box *s)
 /* OriginalFormat Box */
 GF_Box *frma_New()
 {
-	GF_OriginalFormatBox *tmp = (GF_OriginalFormatBox *) gf_malloc(sizeof(GF_OriginalFormatBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_OriginalFormatBox));
-	tmp->type = GF_ISOM_BOX_TYPE_FRMA;
+	ISOM_DECL_BOX_ALLOC(GF_OriginalFormatBox, GF_ISOM_BOX_TYPE_FRMA);
 	return (GF_Box *)tmp;
 }
 
@@ -165,11 +159,8 @@ GF_Err frma_Size(GF_Box *s)
 /* SchemeType Box */
 GF_Box *schm_New()
 {
-	GF_SchemeTypeBox *tmp = (GF_SchemeTypeBox *) gf_malloc(sizeof(GF_SchemeTypeBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_SchemeTypeBox));
+	ISOM_DECL_BOX_ALLOC(GF_SchemeTypeBox, GF_ISOM_BOX_TYPE_SCHM);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_SCHM;
 	return (GF_Box *)tmp;
 }
 
@@ -229,10 +220,7 @@ GF_Err schm_Size(GF_Box *s)
 /* SchemeInformation Box */
 GF_Box *schi_New()
 {
-	GF_SchemeInformationBox *tmp = (GF_SchemeInformationBox *) gf_malloc(sizeof(GF_SchemeInformationBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_SchemeInformationBox));
-	tmp->type = GF_ISOM_BOX_TYPE_SCHI;
+	ISOM_DECL_BOX_ALLOC(GF_SchemeInformationBox, GF_ISOM_BOX_TYPE_SCHI);
 	return (GF_Box *)tmp;
 }
 
@@ -359,11 +347,8 @@ GF_Err schi_Size(GF_Box *s)
 /* ISMAKMS Box */
 GF_Box *iKMS_New()
 {
-	GF_ISMAKMSBox *tmp = (GF_ISMAKMSBox *) gf_malloc(sizeof(GF_ISMAKMSBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ISMAKMSBox));
+	ISOM_DECL_BOX_ALLOC(GF_ISMAKMSBox, GF_ISOM_BOX_TYPE_IKMS);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_IKMS;
 	return (GF_Box *)tmp;
 }
 
@@ -417,11 +402,8 @@ GF_Err iKMS_Size(GF_Box *s)
 /* ISMASampleFormat Box */
 GF_Box *iSFM_New()
 {
-	GF_ISMASampleFormatBox *tmp = (GF_ISMASampleFormatBox *) gf_malloc(sizeof(GF_ISMASampleFormatBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ISMASampleFormatBox));
+	ISOM_DECL_BOX_ALLOC(GF_ISMASampleFormatBox, GF_ISOM_BOX_TYPE_ISFM);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_ISFM;
 	return (GF_Box *)tmp;
 }
 
@@ -479,11 +461,8 @@ GF_Err iSFM_Size(GF_Box *s)
 /* OMADRMCommonHeader Box */
 GF_Box *ohdr_New()
 {
-	GF_OMADRMCommonHeaderBox *tmp;
-	GF_SAFEALLOC(tmp, GF_OMADRMCommonHeaderBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_OMADRMCommonHeaderBox, GF_ISOM_BOX_TYPE_OHDR);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_OHDR;
 	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
@@ -588,11 +567,8 @@ GF_Err ohdr_Size(GF_Box *s)
 /* OMADRMGroupID Box */
 GF_Box *grpi_New()
 {
-	GF_OMADRMGroupIDBox *tmp;
-	GF_SAFEALLOC(tmp, GF_OMADRMGroupIDBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_OMADRMGroupIDBox, GF_ISOM_BOX_TYPE_GRPI);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_GRPI;
 	return (GF_Box *)tmp;
 }
 
@@ -667,10 +643,7 @@ GF_Err grpi_Size(GF_Box *s)
 /* OMADRMMutableInformation Box */
 GF_Box *mdri_New()
 {
-	GF_OMADRMMutableInformationBox *tmp;
-	GF_SAFEALLOC(tmp, GF_OMADRMMutableInformationBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_MDRI;
+	ISOM_DECL_BOX_ALLOC(GF_OMADRMMutableInformationBox, GF_ISOM_BOX_TYPE_MDRI);
 	return (GF_Box *)tmp;
 }
 
@@ -711,11 +684,8 @@ GF_Err mdri_Size(GF_Box *s)
 /* OMADRMTransactionTracking Box */
 GF_Box *odtt_New()
 {
-	GF_OMADRMTransactionTrackingBox *tmp;
-	GF_SAFEALLOC(tmp, GF_OMADRMTransactionTrackingBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_OMADRMTransactionTrackingBox, GF_ISOM_BOX_TYPE_ODTT);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_ODTT;
 	return (GF_Box *)tmp;
 }
 
@@ -765,11 +735,8 @@ GF_Err odtt_Size(GF_Box *s)
 /* OMADRMRightsObject Box */
 GF_Box *odrb_New()
 {
-	GF_OMADRMRightsObjectBox *tmp;
-	GF_SAFEALLOC(tmp, GF_OMADRMRightsObjectBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_OMADRMRightsObjectBox, GF_ISOM_BOX_TYPE_ODRB);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_ODRB;
 	return (GF_Box *)tmp;
 }
 
@@ -824,11 +791,8 @@ GF_Err odrb_Size(GF_Box *s)
 /* OMADRMKMS Box */
 GF_Box *odkm_New()
 {
-	GF_OMADRMKMSBox *tmp;
-	GF_SAFEALLOC(tmp, GF_OMADRMKMSBox);
-	if (tmp == NULL) return NULL;
+	ISOM_DECL_BOX_ALLOC(GF_OMADRMKMSBox, GF_ISOM_BOX_TYPE_ODKM);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_ODKM;
 	return (GF_Box *)tmp;
 }
 
@@ -912,10 +876,7 @@ GF_Err odkm_Size(GF_Box *s)
 
 GF_Box *pssh_New()
 {
-	GF_ProtectionSystemHeaderBox*tmp;
-	GF_SAFEALLOC(tmp, GF_ProtectionSystemHeaderBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_PSSH;
+	ISOM_DECL_BOX_ALLOC(GF_ProtectionSystemHeaderBox, GF_ISOM_BOX_TYPE_PSSH);
 	return (GF_Box *)tmp;
 }
 
@@ -1007,10 +968,7 @@ GF_Err pssh_Size(GF_Box *s)
 
 GF_Box *tenc_New()
 {
-	GF_TrackEncryptionBox *tmp;
-	GF_SAFEALLOC(tmp, GF_TrackEncryptionBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_TENC;
+	ISOM_DECL_BOX_ALLOC(GF_TrackEncryptionBox, GF_ISOM_BOX_TYPE_TENC);
 	return (GF_Box *)tmp;
 }
 
@@ -1063,10 +1021,7 @@ GF_Err tenc_Size(GF_Box *s)
 
 GF_Box *piff_tenc_New()
 {
-	GF_PIFFTrackEncryptionBox *tmp;
-	GF_SAFEALLOC(tmp, GF_PIFFTrackEncryptionBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_UUID;
+	ISOM_DECL_BOX_ALLOC(GF_PIFFTrackEncryptionBox, GF_ISOM_BOX_TYPE_UUID);
 	tmp->internal_4cc = GF_ISOM_BOX_UUID_TENC;
 	return (GF_Box *)tmp;
 }
@@ -1125,10 +1080,7 @@ GF_Err piff_tenc_Size(GF_Box *s)
 
 GF_Box *piff_psec_New()
 {
-	GF_PIFFSampleEncryptionBox*tmp;
-	GF_SAFEALLOC(tmp, GF_PIFFSampleEncryptionBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_UUID;
+	ISOM_DECL_BOX_ALLOC(GF_PIFFSampleEncryptionBox, GF_ISOM_BOX_TYPE_UUID);
 	tmp->internal_4cc = GF_ISOM_BOX_UUID_PSEC;
 	return (GF_Box *)tmp;
 }
@@ -1209,10 +1161,7 @@ GF_Err piff_psec_Size(GF_Box *s)
 
 GF_Box *piff_pssh_New()
 {
-	GF_PIFFProtectionSystemHeaderBox *tmp;
-	GF_SAFEALLOC(tmp, GF_PIFFProtectionSystemHeaderBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_UUID;
+	ISOM_DECL_BOX_ALLOC(GF_PIFFProtectionSystemHeaderBox, GF_ISOM_BOX_TYPE_UUID);
 	tmp->internal_4cc = GF_ISOM_BOX_UUID_PSSH;
 	return (GF_Box *)tmp;
 }

@@ -29,11 +29,8 @@
 
 GF_Box *meta_New()
 {
-	GF_MetaBox *tmp = (GF_MetaBox *) gf_malloc(sizeof(GF_MetaBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_MetaBox));
+	ISOM_DECL_BOX_ALLOC(GF_MetaBox, GF_ISOM_BOX_TYPE_META);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_META;
 	return (GF_Box *)tmp;
 }
 
@@ -184,11 +181,8 @@ GF_Err meta_Size(GF_Box *s)
 
 GF_Box *xml_New()
 {
-	GF_XMLBox *tmp = (GF_XMLBox *) gf_malloc(sizeof(GF_XMLBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_XMLBox));
+	ISOM_DECL_BOX_ALLOC(GF_XMLBox, GF_ISOM_BOX_TYPE_XML);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_XML;
 	return (GF_Box *)tmp;
 }
 
@@ -240,11 +234,8 @@ GF_Err xml_Size(GF_Box *s)
 
 GF_Box *bxml_New()
 {
-	GF_BinaryXMLBox *tmp = (GF_BinaryXMLBox *) gf_malloc(sizeof(GF_BinaryXMLBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_BinaryXMLBox));
+	ISOM_DECL_BOX_ALLOC(GF_BinaryXMLBox, GF_ISOM_BOX_TYPE_BXML);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_BXML;
 	return (GF_Box *)tmp;
 }
 
@@ -295,11 +286,8 @@ GF_Err bxml_Size(GF_Box *s)
 
 GF_Box *iloc_New()
 {
-	GF_ItemLocationBox *tmp = (GF_ItemLocationBox *) gf_malloc(sizeof(GF_ItemLocationBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ItemLocationBox));
+	ISOM_DECL_BOX_ALLOC(GF_ItemLocationBox, GF_ISOM_BOX_TYPE_ILOC);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_ILOC;
 	tmp->location_entries = gf_list_new();
 	return (GF_Box *)tmp;
 }
@@ -415,11 +403,8 @@ GF_Err iloc_Size(GF_Box *s)
 
 GF_Box *pitm_New()
 {
-	GF_PrimaryItemBox *tmp = (GF_PrimaryItemBox *) gf_malloc(sizeof(GF_PrimaryItemBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_PrimaryItemBox));
+	ISOM_DECL_BOX_ALLOC(GF_PrimaryItemBox, GF_ISOM_BOX_TYPE_PITM);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_PITM;
 	return (GF_Box *)tmp;
 }
 
@@ -466,11 +451,8 @@ GF_Err pitm_Size(GF_Box *s)
 
 GF_Box *ipro_New()
 {
-	GF_ItemProtectionBox *tmp = (GF_ItemProtectionBox *) gf_malloc(sizeof(GF_ItemProtectionBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ItemProtectionBox));
+	ISOM_DECL_BOX_ALLOC(GF_ItemProtectionBox, GF_ISOM_BOX_TYPE_IPRO);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_IPRO;
 	tmp->protection_information = gf_list_new();
 	return (GF_Box *)tmp;
 }
@@ -549,11 +531,8 @@ GF_Err ipro_Size(GF_Box *s)
 
 GF_Box *infe_New()
 {
-	GF_ItemInfoEntryBox *tmp = (GF_ItemInfoEntryBox *) gf_malloc(sizeof(GF_ItemInfoEntryBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ItemInfoEntryBox));
+	ISOM_DECL_BOX_ALLOC(GF_ItemInfoEntryBox, GF_ISOM_BOX_TYPE_INFE);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_INFE;
 	return (GF_Box *)tmp;
 }
 
@@ -654,11 +633,8 @@ GF_Err infe_Size(GF_Box *s)
 
 GF_Box *iinf_New()
 {
-	GF_ItemInfoBox *tmp = (GF_ItemInfoBox *) gf_malloc(sizeof(GF_ItemInfoBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_ItemInfoBox));
+	ISOM_DECL_BOX_ALLOC(GF_ItemInfoBox, GF_ISOM_BOX_TYPE_IINF);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_IINF;
 	tmp->item_infos = gf_list_new();
 	return (GF_Box *)tmp;
 }

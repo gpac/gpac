@@ -208,6 +208,7 @@ GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs)
 	return GF_OK;
 }
 
+/*
 void gf_isom_full_box_init(GF_Box *a)
 {
 	GF_FullBox *ptr = (GF_FullBox *)a;
@@ -215,7 +216,7 @@ void gf_isom_full_box_init(GF_Box *a)
 	ptr->flags = 0;
 	ptr->version = 0;
 }
-
+*/
 
 void gf_isom_box_array_del(GF_List *other_boxes)
 {
@@ -423,7 +424,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
         a = ftyp_New();
         if (a) a->type = boxType;
         return a;
-	case GF_ISOM_BOX_TYPE_FADB: return padb_New();
+	case GF_ISOM_BOX_TYPE_PADB: return padb_New();
 	case GF_ISOM_BOX_TYPE_VOID: return void_New();
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_New();
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_New();
@@ -704,7 +705,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STYP: 
         ftyp_del(a); 
         return;
-	case GF_ISOM_BOX_TYPE_FADB: padb_del(a); return;
+	case GF_ISOM_BOX_TYPE_PADB: padb_del(a); return;
 	case GF_ISOM_BOX_TYPE_VOID: void_del(a); return;
 	case GF_ISOM_BOX_TYPE_STSF: stsf_del(a); return;
 	case GF_ISOM_BOX_TYPE_PDIN: pdin_del(a); return;
@@ -967,7 +968,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_FTYP: 
 	case GF_ISOM_BOX_TYPE_STYP: 
         return ftyp_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_FADB: return padb_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PADB: return padb_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_VOID: return void_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Read(a, bs);
@@ -1214,7 +1215,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_FTYP: 
 	case GF_ISOM_BOX_TYPE_STYP: 
         return ftyp_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_FADB: return padb_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_PADB: return padb_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_VOID: return void_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Write(a, bs);
@@ -1470,7 +1471,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_FTYP: 
 	case GF_ISOM_BOX_TYPE_STYP: 
         return ftyp_Size(a);
-	case GF_ISOM_BOX_TYPE_FADB: return padb_Size(a);
+	case GF_ISOM_BOX_TYPE_PADB: return padb_Size(a);
 	case GF_ISOM_BOX_TYPE_VOID: return void_Size(a);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Size(a);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Size(a);
