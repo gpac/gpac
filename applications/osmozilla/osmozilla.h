@@ -1,7 +1,8 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
-*			Copyright (c) ENST 2000-200X
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2000-2012
 *					All rights reserved
 *
 *  This file is part of GPAC / Osmozilla NPAPI plugin

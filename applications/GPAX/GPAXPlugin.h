@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Y.XI, X. ZHAO, J. Le Feuvre
- *			Copyright (c) ENST 2006-200x
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / ActiveX control

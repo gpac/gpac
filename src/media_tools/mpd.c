@@ -1,8 +1,8 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
-*			Authors: Cyril Concolato - Jean Le Feuvre
-*			Copyright (c) Telecom ParisTech 2010-
+ *			Authors: Jean Le Feuvre, Cyril COncolato
+ *			Copyright (c) Telecom ParisTech 2000-2012
 *					All rights reserved
 *
 *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module

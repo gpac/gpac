@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato - Jean Le Feuvre
- *    Copyright (c)2004-200X ENST - All rights reserved
+ *			Authors: Cyril Concolato
+ *    Copyright (c)2004-2012 Telecom ParisTech - All rights reserved
  *
  *  This file is part of GPAC / XBL Elements 
  *

@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Walid B.H - Jean Le Feuvre
- *    Copyright (c)2006-200X ENST - All rights reserved
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2005-2012
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -38,11 +38,11 @@
 
 //#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 #include <gpac/dvb_mpe.h>
 #endif
 
-#ifndef GPAC_DISABLE_DSMCC
+#ifdef GPAC_ENABLE_DSMCC
 #include <gpac/ait.h>
 #endif
 
@@ -813,7 +813,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
 
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 		if (es->flags & GF_M2TS_ES_IS_MPE)
 			gf_dvb_mpe_section_del(es);
 #endif
@@ -843,7 +843,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 {
 	if (!sec->process_section) {
 		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) ) {				
-#ifndef GPAC_DISABLE_DSMCC
+#ifdef GPAC_ENABLE_DSMCC
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
@@ -854,7 +854,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		} else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA	|| sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE ||
 			sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_PRIVATE)) ) {				
 
-#ifndef GPAC_DISABLE_DSMCC
+#ifdef GPAC_ENABLE_DSMCC
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
@@ -863,7 +863,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			//ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
 #endif
 		}
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 		else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -1566,7 +1566,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		case GF_M2TS_MPE_SECTIONS:
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type MPE found : pid = %d \n", pid));
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 			es = gf_dvb_mpe_section_new();
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
 				/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
@@ -2491,7 +2491,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
 	ts->tdt_tot = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot, 1);
 
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 	gf_dvb_mpe_init(ts);
 #endif
 
@@ -2563,12 +2563,12 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->tdt_tot)
 	gf_list_del(ts->SDTs);
 
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 	gf_dvb_mpe_shutdown(ts);
 #endif
 
 	if(gf_list_count(ts->dsmcc_controler)){
-#ifndef GPAC_DISABLE_DSMCC
+#ifdef GPAC_ENABLE_DSMCC
 		GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)gf_list_get(ts->dsmcc_controler,0);	
 		gf_cleanup_dir(dsmcc_overlord->root_dir);
 		gf_rmdir(dsmcc_overlord->root_dir);	
@@ -2580,7 +2580,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 
 	while(gf_list_count(ts->ChannelAppList)){
-#ifndef GPAC_DISABLE_DSMCC
+#ifdef GPAC_ENABLE_DSMCC
 		GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo = (GF_M2TS_CHANNEL_APPLICATION_INFO*)gf_list_get(ts->ChannelAppList,0);
 		gf_m2ts_delete_channel_application_info(ChanAppInfo);
 		gf_list_rem(ts->ChannelAppList,0);
@@ -2593,7 +2593,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 {
-#ifndef GPAC_DISABLE_MPE
+#ifdef GPAC_ENABLE_MPE
 	gf_m2ts_print_mpe_info(ts);
 #endif
 }

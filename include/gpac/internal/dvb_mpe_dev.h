@@ -2,7 +2,8 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Walid B.H - Jean Le Feuvre
- *    Copyright (c)2006-200X ENST - All rights reserved
+ *			Copyright (c) Telecom ParisTech 2000-2012
+ *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *

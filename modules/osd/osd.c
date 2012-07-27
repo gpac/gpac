@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean le Feuvre
- *			Copyright (c) 2011-20XX ENST
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2011-2012
  *			All rights reserved
  *
  *  This file is part of GPAC / User Event Recorder sub-project

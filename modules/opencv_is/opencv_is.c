@@ -1,11 +1,11 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) ENST 2009-
- *				Authors: Jean Le Feuvre
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2009-2012
  *					All rights reserved
  *
- *  This file is part of GPAC / Dummy input module
+ *  This file is part of GPAC / OpenCV demo module
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by

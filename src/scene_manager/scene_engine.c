@@ -1,8 +1,8 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Cyril Concolato - Jean le Feuvre
- *				Copyright (c) 2005-200X ENST
+ *			Authors: Jean Le Feuvre, Cyril Concolato
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project

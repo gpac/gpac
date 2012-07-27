@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Cyril Concolato / Jean Le Feuvre 2000-2005
+ *			Authors: Jean Le Feuvre, Cyril Concolato 
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4 simple streamer application

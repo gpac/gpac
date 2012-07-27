@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Ivica Arsov
- *			Copyright (c) Institut Telecom 2011-20XX
+ *			Authors: Ivica Arsov, Jean Le Feuvre
+ *			Copyright (c) Mines-Telecom 2009-
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-V Input sensor for android

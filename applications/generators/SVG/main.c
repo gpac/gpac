@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Cyril Concolato 2004-2005
+ *			Authors: Cyril Concolato
+ *			Copyright (c) Telecom ParisTech 2004-2012 
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph Generator sub-project

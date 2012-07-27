@@ -55,7 +55,7 @@ BEGIN
             VALUE "FileOpenName", "GPAC Plugin|AAC Music|VRML World|X3D/VRML World|X3D/XML World|SVG Document|MPEG Video|WindowsMedia Movies|AVI Movies|MPEG-4 Videos|MPEG-4 Movies|MPEG-4 Music|3GPP Movies|3GPP Music|3GPP2 Movies|3GPP2 Music|MP3 Music|OGG Movies|SDP Session\0"
             VALUE "FileVersion", GPAC_VERSION"-rev"GPAC_SVN_REVISION"\0"
             VALUE "InternalName", "nposmozilla\0"
-            VALUE "LegalCopyright", "Copyright © GPAC 2005-2007\0"
+            VALUE "LegalCopyright", "Copyright © Telecom ParisTech 2005-2007\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "MIMEType", "application/x-gpac|audio/aac|model/vrml|model/x3d+vrml|model/x3d+xml|image/svg+xml|video/mpeg|video/x-ms-asf|video/avi|video/mp4|application/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gpp2|audio/3gpp2|audio/mpeg|application/ogg|application/sdp\0"
             VALUE "OriginalFilename", "nposmozilla.dll\0"

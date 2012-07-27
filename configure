@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre (c) 2005-20XX Telecom ParisTech
+# GPAC MPEG-4 SDK configure script (c) 2003-2012 Telecom ParisTech - Authors: Jean Le Feuvre, Romain Bouqueau
 #      inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
 #set -v
 
@@ -150,7 +150,7 @@ disable_isoff_frag="no"
 disable_streaming="no"
 disable_player="no"
 disable_scenegraph="no"
-disable_dvbx="no"
+disable_dvbx="yes"
 disable_vobsub="no"
 disable_ttxt="no"
 enable_depth_compositor="no"
@@ -2359,10 +2359,10 @@ if test "$disable_streaming" = "yes" ; then
     echo "RTP/RTSP/SDP streaming disabled"
     echo "#define GPAC_DISABLE_STREAMING" >> $TMPH
 fi
-if test "$disable_dvbx" = "yes" ; then
+if test "$disable_dvbx" = "no" ; then
     echo "DVB MPE and DSM-CC disabled"
-    echo "#define GPAC_DISABLE_MPE" >> $TMPH
-    echo "#define GPAC_DISABLE_DSMCC" >> $TMPH
+    echo "#define GPAC_ENABLE_MPE" >> $TMPH
+    echo "#define GPAC_ENABLE_DSMCC" >> $TMPH
 fi
 if test "$disable_vobsub" = "yes" ; then
     echo "VobSub disabled"

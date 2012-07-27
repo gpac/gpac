@@ -3,7 +3,7 @@
  *  mp4client
  *
  *  Created by bouqueau on 17/06/10.
- *  Copyright 2010 __MyCompanyName__. All rights reserved.
+ *  Copyright 2010 Telecom ParisTech. All rights reserved.
  *
  */
 

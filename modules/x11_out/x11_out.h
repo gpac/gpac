@@ -1,8 +1,8 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: DINH Anh Min - Jean le Feuvre
- *				Copyright (c) 2005-200X ENST
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / X11 video output module

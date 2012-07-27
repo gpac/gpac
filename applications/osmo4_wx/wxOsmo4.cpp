@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / Osmo4 wxWidgets GUI
@@ -1398,8 +1399,8 @@ AboutDlg::AboutDlg(wxWindow *parent)
 		wxT("be distributed according to the terms\n")
 		wxT("of the GNU Lesser General Public License\n")
 		wxT("\n")
-		wxT("Copyright (c) Jean Le Feuvre 2000-2005\n")
-		wxT("(c) ENST 2005-200X\n")
+		wxT("Authors: Jean Le Feuvre\n")
+		wxT("(c) Telecom ParisTech 2005-2012\n")
 		wxT("All Rights Reserved\n")
 		wxT("http://gpac.sourceforge.net\n")
 		wxT("\n")

@@ -1,8 +1,9 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato - Jean Le Feuvre
- *    Copyright (c)2008-200X ENST - All rights reserved
+ *			Authors: Jean Le Feuvre - Cyril Concolato
+ *			Copyright (c) Telecom ParisTech 2000-2012
+ *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
  *

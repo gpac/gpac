@@ -1,7 +1,7 @@
 /**
 *			GPAC - Multimedia Framework C SDK
 *
-*					Authors: Pierre Souchay, Jean Le Feuvre
+*			Authors: Pierre Souchay, Jean Le Feuvre
 *			Copyright (c) Telecom ParisTech 2010-2012
 *					All rights reserved
 *

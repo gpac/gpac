@@ -3,8 +3,7 @@
 #include <string.h>
 
 
-#ifndef GPAC_DISABLE_MPEG2TS
-
+#ifdef GPAC_ENABLE_MPE
 
 static void gf_m2ts_Delete_IpPacket(GF_M2TS_IP_Packet *ip_packet);
 
@@ -1320,4 +1319,4 @@ void setErrorIndicator(u32 * data , u32 offset, u32 length)
 }*/
 
 
-#endif //GPAC_DISABLE_MPEG2TS
+#endif //GPAC_ENABLE_MPE
