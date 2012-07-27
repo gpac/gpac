@@ -1608,8 +1608,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_dsmcc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_dmscc_overlord) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_dmscc_init) )
 #endif
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_dmscc_init) )
 
 
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
