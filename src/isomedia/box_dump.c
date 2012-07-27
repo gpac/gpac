@@ -1078,16 +1078,19 @@ GF_Err stsd_dump(GF_Box *a, FILE * trace)
 GF_Err stts_dump(GF_Box *a, FILE * trace)
 {
 	GF_TimeToSampleBox *p;
-	u32 i;
+	u32 i, nb_samples;
 
 	p = (GF_TimeToSampleBox *)a;
 	fprintf(trace, "<TimeToSampleBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
+	nb_samples = 0;
 	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<TimeToSampleEntry SampleDelta=\"%d\" SampleCount=\"%d\"/>\n", p->entries[i].sampleDelta, p->entries[i].sampleCount);
+		nb_samples += p->entries[i].sampleCount;
 	}
+	fprintf(trace, "<!-- counted %d samples in STTS entries -->\n", nb_samples);
 	gf_box_dump_done("TimeToSampleBox", a, trace);
 	return GF_OK;
 }
@@ -1095,15 +1098,18 @@ GF_Err stts_dump(GF_Box *a, FILE * trace)
 GF_Err ctts_dump(GF_Box *a, FILE * trace)
 {
 	GF_CompositionOffsetBox *p;
-	u32 i;
+	u32 i, nb_samples;
 	p = (GF_CompositionOffsetBox *)a;
 	fprintf(trace, "<CompositionOffsetBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
+	nb_samples = 0;
 	for (i=0; i<p->nb_entries;i++) {
 		fprintf(trace, "<CompositionOffsetEntry CompositionOffset=\"%d\" SampleCount=\"%d\"/>\n", p->entries[i].decodingOffset, p->entries[i].sampleCount);
+		nb_samples += p->entries[i].sampleCount;
 	}
+	fprintf(trace, "<!-- counted %d samples in CTTS entries -->\n", nb_samples);
 	gf_box_dump_done("CompositionOffsetBox", a, trace);
 	return GF_OK;
 }
@@ -1148,16 +1154,23 @@ GF_Err elst_dump(GF_Box *a, FILE * trace)
 GF_Err stsc_dump(GF_Box *a, FILE * trace)
 {
 	GF_SampleToChunkBox *p;
-	u32 i;
+	u32 i, nb_samples;
 
 	p = (GF_SampleToChunkBox *)a;
 	fprintf(trace, "<SampleToChunkBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
+	nb_samples = 0;
 	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<SampleToChunkEntry FirstChunk=\"%d\" SamplesPerChunk=\"%d\" SampleDescriptionIndex=\"%d\"/>\n", p->entries[i].firstChunk, p->entries[i].samplesPerChunk, p->entries[i].sampleDescriptionIndex);
+		if (i+1<p->nb_entries) {
+			nb_samples += (p->entries[i+1].firstChunk - p->entries[i].firstChunk) * p->entries[i].samplesPerChunk;
+		} else {
+			nb_samples += p->entries[i].samplesPerChunk;
+		}
 	}
+	fprintf(trace, "<!-- counted %d samples in STSC entries (could be less than sample count) -->\n", nb_samples);
 	gf_box_dump_done("SampleToChunkBox", a, trace);
 	return GF_OK;
 }
