@@ -1295,8 +1295,7 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 		gf_list_add(p->protections, a);
 		break;
 	default:
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }

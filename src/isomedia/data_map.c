@@ -52,7 +52,7 @@ void gf_isom_datamap_close(GF_MediaInformationBox *minf)
 	GF_DataEntryBox *ent;
 	if (!minf || !minf->dataHandler) return;
 
-	ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->boxList, minf->dataEntryIndex - 1);
+	ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->other_boxes, minf->dataEntryIndex - 1);
 
 	//if ent NULL, the data entry was not used (should never happen)
 	if (ent == NULL) return;
@@ -166,10 +166,10 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 
 	minf = mdia->information;
 
-	if (dataRefIndex > gf_list_count(minf->dataInformation->dref->boxList))
+	if (dataRefIndex > gf_list_count(minf->dataInformation->dref->other_boxes))
 		return GF_BAD_PARAM;
 
-	ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->boxList, dataRefIndex - 1);
+	ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->other_boxes, dataRefIndex - 1);
 	if (ent == NULL) return GF_ISOM_INVALID_MEDIA;
 
 	//if the current dataEntry is the desired one, and not self contained, return

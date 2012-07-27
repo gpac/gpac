@@ -712,9 +712,9 @@ GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->dref) return GF_ISOM_INVALID_FILE;
 		ptr->dref = (GF_DataReferenceBox *)a;
 		return GF_OK;		
+	default:
+		return gf_isom_box_add_default(s, a);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-	gf_isom_box_del(a);
 	return GF_OK;		
 }
 
@@ -767,37 +767,28 @@ void dref_del(GF_Box *s)
 {
 	GF_DataReferenceBox *ptr = (GF_DataReferenceBox *) s;
 	if (ptr == NULL) return;
-	gf_isom_box_array_del(ptr->boxList);
 	gf_free(ptr);
 }
 
 
 GF_Err dref_AddDataEntry(GF_DataReferenceBox *ptr, GF_Box *entry)
 {
-	return gf_list_add(ptr->boxList, entry);
+	return gf_isom_box_add_default((GF_Box *)ptr, entry);
 }
 
 GF_Err dref_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 count, i;
-	GF_Box *a;
+	u32 count;
 	GF_DataReferenceBox *ptr = (GF_DataReferenceBox *)s;
 	
 	if (ptr == NULL) return GF_BAD_PARAM;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	count = gf_bs_read_u32(bs);
+	ptr->size -= 4;
 
-	for ( i = 0; i < count; i++ ) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-		e = gf_list_add(ptr->boxList, a);
-		if (e) return e;
-		ptr->size -= a->size;
-	}
-	return GF_OK;
+	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
 }
 
 GF_Box *dref_New()
@@ -807,11 +798,6 @@ GF_Box *dref_New()
 	memset(tmp, 0, sizeof(GF_DataReferenceBox));
 
 	gf_isom_full_box_init((GF_Box *) tmp);
-	tmp->boxList = gf_list_new();
-	if (!tmp->boxList) {
-		gf_free(tmp);
-		return NULL;
-	}
 	tmp->type = GF_ISOM_BOX_TYPE_DREF;
 	return (GF_Box *)tmp;
 }
@@ -828,9 +814,9 @@ GF_Err dref_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	count = gf_list_count(ptr->boxList);
+	count = ptr->other_boxes ? gf_list_count(ptr->other_boxes) : 0;
 	gf_bs_write_u32(bs, count);
-	return gf_isom_box_array_write(s, ptr->boxList, bs);
+	return GF_OK;
 }
 
 GF_Err dref_Size(GF_Box *s)
@@ -842,8 +828,6 @@ GF_Err dref_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 4;
-	e = gf_isom_box_array_size(s, ptr->boxList);
-	if (e) return e;
 	return GF_OK;
 }
 
@@ -864,9 +848,9 @@ GF_Err edts_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->editList) return GF_BAD_PARAM;
 		ptr->editList = (GF_EditListBox *)a;
 		return GF_OK;
+	} else {
+		return gf_isom_box_add_default(s, a);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-	gf_isom_box_del(a);
 	return GF_OK;		
 }
 
@@ -1527,8 +1511,6 @@ GF_Err hdlr_Size(GF_Box *s)
 void hinf_del(GF_Box *s)
 {
 	GF_HintInfoBox *hinf = (GF_HintInfoBox *)s;
-	gf_isom_box_array_del(hinf->boxList);
-	gf_list_del(hinf->dataRates);
 	gf_free(hinf);
 }
 
@@ -1538,17 +1520,7 @@ GF_Box *hinf_New()
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_HintInfoBox));
 
-	tmp->boxList = gf_list_new();
-	if (!tmp->boxList) {
-		gf_free(tmp);
-		return NULL;
-	}
-	tmp->dataRates = gf_list_new();
-	if (!tmp->dataRates) {
-		gf_list_del(tmp->boxList);
-		gf_free(tmp);
-		return NULL;
-	}
+	tmp->other_boxes = gf_list_new();
 	tmp->type = GF_ISOM_BOX_TYPE_HINF;
 	return (GF_Box *)tmp;
 }
@@ -1561,15 +1533,13 @@ GF_Err hinf_AddBox(GF_Box *s, GF_Box *a)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_MAXR:
 		i=0;
-		while ((maxR = (GF_MAXRBox *)gf_list_enum(hinf->dataRates, &i))) {
-			if (maxR->granularity == ((GF_MAXRBox *)a)->granularity) return GF_ISOM_INVALID_FILE;
+		while ((maxR = (GF_MAXRBox *)gf_list_enum(hinf->other_boxes, &i))) {
+			if ((maxR->type==GF_ISOM_BOX_TYPE_MAXR) && (maxR->granularity == ((GF_MAXRBox *)a)->granularity))
+				return GF_ISOM_INVALID_FILE;
 		}
-		gf_list_add(hinf->dataRates, a);
-		break;
-	default:
 		break;
 	}
-	return gf_list_add(hinf->boxList, a);
+	return gf_isom_box_add_default(s, a);
 }
 
 
@@ -1582,21 +1552,15 @@ GF_Err hinf_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err hinf_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_HintInfoBox *ptr = (GF_HintInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	return gf_isom_box_array_write(s, ptr->boxList, bs);
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err hinf_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_HintInfoBox *ptr = (GF_HintInfoBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	return gf_isom_box_array_size(s, ptr->boxList);
+	return gf_isom_box_get_size(s);
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/	
 
@@ -1670,8 +1634,8 @@ GF_Box *hnti_New()
 	GF_HintTrackInfoBox *tmp = (GF_HintTrackInfoBox *)gf_malloc(sizeof(GF_HintTrackInfoBox));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_HintTrackInfoBox));
-	tmp->boxList = gf_list_new();
-	if (!tmp->boxList) {
+	tmp->hints = gf_list_new();
+	if (!tmp->hints) {
 		gf_free(tmp);
 		return NULL;
 	}
@@ -1684,8 +1648,8 @@ void hnti_del(GF_Box *a)
 	GF_Box *t;
 	GF_RTPBox *rtp;
 	GF_HintTrackInfoBox *ptr = (GF_HintTrackInfoBox *)a;
-	while (gf_list_count(ptr->boxList)) {
-		t = (GF_Box*)gf_list_get(ptr->boxList, 0);
+	while (gf_list_count(ptr->hints)) {
+		t = (GF_Box*)gf_list_get(ptr->hints, 0);
 		if (t->type != GF_ISOM_BOX_TYPE_RTP) {
 			gf_isom_box_del(t);
 		} else {
@@ -1693,9 +1657,9 @@ void hnti_del(GF_Box *a)
 			if (rtp->sdpText) gf_free(rtp->sdpText);
 			gf_free(rtp);
 		}
-		gf_list_rem(ptr->boxList, 0);
+		gf_list_rem(ptr->hints, 0);
 	}
-	gf_list_del(ptr->boxList);
+	gf_list_del(ptr->hints);
 	gf_free(ptr);
 }
 
@@ -1713,7 +1677,7 @@ GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a)
 	default:
 		break;
 	}
-	return gf_list_add(hnti->boxList, a);
+	return gf_list_add(hnti->hints, a);
 }
 
 GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs)
@@ -1787,9 +1751,9 @@ GF_Err hnti_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	count = gf_list_count(ptr->boxList);
+	count = gf_list_count(ptr->hints);
 	for (i = 0; i < count; i ++) {
-		a = (GF_Box*)gf_list_get(ptr->boxList, i);
+		a = (GF_Box*)gf_list_get(ptr->hints, i);
 		if (a->type != GF_ISOM_BOX_TYPE_RTP) {
 			e = gf_isom_box_write(a, bs);
 			if (e) return e;
@@ -1820,9 +1784,9 @@ GF_Err hnti_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 
-	count = gf_list_count(ptr->boxList);
+	count = gf_list_count(ptr->hints);
 	for (i = 0; i < count; i ++) {
-		a = (GF_Box*)gf_list_get(ptr->boxList, i);
+		a = (GF_Box*)gf_list_get(ptr->hints, i);
 		if (a->type != GF_ISOM_BOX_TYPE_RTP) {
 			e = gf_isom_box_size(a);
 			if (e) return e;
@@ -2901,9 +2865,9 @@ GF_Err mdia_AddBox(GF_Box *s, GF_Box *a)
 	   if (ptr->information) return GF_ISOM_INVALID_FILE;
 	   ptr->information = (GF_MediaInformationBox *)a;
 	   return GF_OK;
+	default:
+		return gf_isom_box_add_default(s, a);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-	gf_isom_box_del(a);
 	return GF_OK;		
 }
 
@@ -3048,7 +3012,6 @@ void minf_del(GF_Box *s)
 	if (ptr->InfoHeader) gf_isom_box_del((GF_Box *)ptr->InfoHeader);
 	if (ptr->dataInformation) gf_isom_box_del((GF_Box *)ptr->dataInformation);
 	if (ptr->sampleTable) gf_isom_box_del((GF_Box *)ptr->sampleTable);
-	gf_isom_box_array_del(ptr->boxes);
 	gf_free(ptr);
 }
 
@@ -3075,7 +3038,7 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a)
 		ptr->sampleTable = (GF_SampleTableBox *)a;
 		return GF_OK;
 	default:
-		return gf_list_add(ptr->boxes, a);
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -3092,7 +3055,6 @@ GF_Box *minf_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_MediaInformationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_MINF;
-	tmp->boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -3123,7 +3085,7 @@ GF_Err minf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->sampleTable, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_write(s, ptr->boxes, bs);
+	return GF_OK;
 }
 
 GF_Err minf_Size(GF_Box *s)
@@ -3148,7 +3110,7 @@ GF_Err minf_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->sampleTable->size;
 	}	
-	return gf_isom_box_array_size(s, ptr->boxes);
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -3162,7 +3124,6 @@ void moof_del(GF_Box *s)
 
 	if (ptr->mfhd) gf_isom_box_del((GF_Box *) ptr->mfhd);
 	gf_isom_box_array_del(ptr->TrackList);
-	gf_isom_box_array_del(ptr->other_boxes);
 	if (ptr->mdat) gf_free(ptr->mdat);
 	gf_free(ptr);
 }
@@ -3178,11 +3139,8 @@ GF_Err moof_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF:
 		return gf_list_add(ptr->TrackList, a);
 	case GF_ISOM_BOX_TYPE_PSSH:
-		return gf_list_add(ptr->other_boxes, a);
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		return GF_OK;		
+		return gf_isom_box_add_default(s, a);
 	}
 }
 
@@ -3198,7 +3156,6 @@ GF_Box *moof_New()
 	memset(tmp, 0, sizeof(GF_MovieFragmentBox));
 	tmp->type = GF_ISOM_BOX_TYPE_MOOF;
 	tmp->TrackList = gf_list_new();
-	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -3219,8 +3176,6 @@ GF_Err moof_Write(GF_Box *s, GF_BitStream *bs)
 		if (e) return e;
 	}
 	//then the track list
-	e = gf_isom_box_array_write(s, ptr->other_boxes, bs);
-	if (e) return e;
 	return gf_isom_box_array_write(s, ptr->TrackList, bs);
 }
 
@@ -3237,8 +3192,6 @@ GF_Err moof_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->mfhd->size;
 	}
-	e = gf_isom_box_array_size(s, ptr->other_boxes);
-	if (e) return e;
 	return gf_isom_box_array_size(s, ptr->TrackList);
 }
 
@@ -3262,7 +3215,6 @@ void moov_del(GF_Box *s)
 #endif
 
 	gf_isom_box_array_del(ptr->trackList);
-	gf_isom_box_array_del(ptr->boxes);
 	gf_free(ptr);
 }
 
@@ -3309,9 +3261,8 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 		((GF_TrackBox *)a)->moov = ptr;
 		return gf_list_add(ptr->trackList, a);
 	case GF_ISOM_BOX_TYPE_PSSH:
-		return gf_list_add(ptr->boxes, a);
 	default:
-		return gf_list_add(ptr->boxes, a);
+		return gf_isom_box_add_default(s, a);
 	}
 }
 
@@ -3328,12 +3279,6 @@ GF_Box *moov_New()
 	memset(tmp, 0, sizeof(GF_MovieBox));
 	tmp->trackList = gf_list_new();
 	if (!tmp->trackList) {
-		gf_free(tmp);
-		return NULL;
-	}
-	tmp->boxes = gf_list_new();
-	if (!tmp->boxes) {
-		gf_list_del(tmp->trackList);
 		gf_free(tmp);
 		return NULL;
 	}
@@ -3380,7 +3325,7 @@ GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->udta, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_write(s, ptr->boxes, bs);
+	return GF_OK;
 }
 
 GF_Err moov_Size(GF_Box *s)
@@ -3418,9 +3363,7 @@ GF_Err moov_Size(GF_Box *s)
 	}
 #endif
 
-	e = gf_isom_box_array_size(s, ptr->trackList);
-	if (e) return e;
-	return gf_isom_box_array_size(s, ptr->boxes);
+	return gf_isom_box_array_size(s, ptr->trackList);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -3470,9 +3413,7 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 		}
 		break;
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -3583,9 +3524,7 @@ GF_Err mp4s_AddBox(GF_Box *s, GF_Box *a)
 		gf_list_add(ptr->protections, a);
 		break;
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -3712,9 +3651,7 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 		ptr->rvcc = (GF_RVCConfigurationBox *)a;
 		break;
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -3901,9 +3838,9 @@ GF_Err mvex_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->mehd) break;
 		ptr->mehd = (GF_MovieExtendsHeaderBox*)a;
 		return GF_OK;
+	default:
+		return gf_isom_box_add_default(s, a);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-	gf_isom_box_del(a);
 	return GF_OK;		
 }
 
@@ -4589,9 +4526,7 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 		break;
 
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default((GF_Box *)ptr, a);
 	}
 	return GF_OK;
 }
@@ -5071,7 +5006,6 @@ void stsd_del(GF_Box *s)
 {
 	GF_SampleDescriptionBox *ptr = (GF_SampleDescriptionBox *)s;
 	if (ptr == NULL) return;
-	gf_isom_box_array_del(ptr->boxList);
 	gf_free(ptr);
 }
 
@@ -5100,7 +5034,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_DIMS:
 	case GF_ISOM_BOX_TYPE_AC3:
 	case GF_ISOM_BOX_TYPE_LSR1:
-		return gf_list_add(ptr->boxList, a);
+		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -5109,12 +5043,12 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 	{
 		((GF_3GPPAudioSampleEntryBox *)a)->info->cfg.type = a->type;
-		return gf_list_add(ptr->boxList, a);
+		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	{
 		((GF_3GPPVisualSampleEntryBox *)a)->info->cfg.type = a->type;
-		return gf_list_add(ptr->boxList, a);
+		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	}
 
 	//unknown sample description: we need a specific box to handle the data ref index
@@ -5126,7 +5060,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 			gf_isom_box_del(a);
 			return GF_OK;
 		}
-		return gf_list_add(ptr->boxList, a);
+		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	}
 }
 
@@ -5157,11 +5091,7 @@ GF_Box *stsd_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_SampleDescriptionBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->boxList = gf_list_new();
-	if (! tmp->boxList) {
-		gf_free(tmp);
-		return NULL;
-	}
+	tmp->other_boxes = gf_list_new();
 	tmp->type = GF_ISOM_BOX_TYPE_STSD;
 	return (GF_Box *)tmp;
 }
@@ -5177,9 +5107,9 @@ GF_Err stsd_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	nb_entries = gf_list_count(ptr->boxList);
+	nb_entries = gf_list_count(ptr->other_boxes);
 	gf_bs_write_u32(bs, nb_entries);
-	return gf_isom_box_array_write(s, ptr->boxList, bs);
+	return GF_OK;
 }
 
 GF_Err stsd_Size(GF_Box *s)
@@ -5189,7 +5119,7 @@ GF_Err stsd_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 4;
-	return gf_isom_box_array_size(s, ptr->boxList);
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -6056,13 +5986,12 @@ void traf_del(GF_Box *s)
 	if (ptr->sdtp) gf_isom_box_del((GF_Box *) ptr->sdtp);
 	if (ptr->subs) gf_isom_box_del((GF_Box *) ptr->subs);
 	if (ptr->tfdt) gf_isom_box_del((GF_Box *) ptr->tfdt);
+	if (ptr->piff_sample_encryption) gf_isom_box_del((GF_Box *) ptr->piff_sample_encryption);
 	gf_isom_box_array_del(ptr->TrackRuns);
 	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
 	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
 	if (ptr->sai_sizes) gf_isom_box_array_del(ptr->sai_sizes);
 	if (ptr->sai_offsets) gf_isom_box_array_del(ptr->sai_offsets);
-	if (ptr->other_boxes) gf_isom_box_array_del(ptr->other_boxes);
-	
 	gf_free(ptr);
 }
 
@@ -6100,15 +6029,22 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SAIZ:
 		if (!ptr->sai_sizes) ptr->sai_sizes = gf_list_new();
 		gf_list_add(ptr->sai_sizes, a);
-		return GF_OK;		
+		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SAIO:
 		if (!ptr->sai_offsets) ptr->sai_offsets = gf_list_new();
 		gf_list_add(ptr->sai_offsets, a);
 		return GF_OK;		
+	case GF_ISOM_BOX_TYPE_UUID:
+		if ( ((GF_UUIDBox *)a)->internal_4cc==GF_ISOM_BOX_UUID_PSEC) {
+			if (ptr->piff_sample_encryption) return GF_ISOM_INVALID_FILE;
+			ptr->piff_sample_encryption = (GF_PIFFSampleEncryptionBox *)a;
+			ptr->piff_sample_encryption->traf = ptr;
+			return GF_OK;
+		} else {
+			return gf_isom_box_add_default(s, a);
+		}
 	default:
-		if (!ptr->other_boxes) ptr->other_boxes = gf_list_new();
-		gf_list_add(ptr->other_boxes, a);
-		return GF_OK;		
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;		
 }
@@ -6175,14 +6111,14 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_array_write(s, ptr->sai_offsets, bs);
 		if (e) return e;
 	}
-	if (ptr->other_boxes) {
-		e = gf_isom_box_array_write(s, ptr->other_boxes, bs);
-		if (e) return e;
-	}
 	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
 	if (e) return e;
 
-	return e;
+	if (ptr->piff_sample_encryption) {
+		e = gf_isom_box_write((GF_Box *) ptr->piff_sample_encryption, bs);
+		if (e) return e;
+	}
+	return GF_OK;
 }
 
 GF_Err traf_Size(GF_Box *s)
@@ -6196,6 +6132,11 @@ GF_Err traf_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->tfhd);
 		if (e) return e;
 		ptr->size += ptr->tfhd->size;
+	}
+	if (ptr->piff_sample_encryption) {
+		e = gf_isom_box_size((GF_Box *) ptr->piff_sample_encryption);
+		if (e) return e;
+		ptr->size += ptr->piff_sample_encryption->size;
 	}
 	if (ptr->subs) {
 		e = gf_isom_box_size((GF_Box *) ptr->subs);
@@ -6229,11 +6170,6 @@ GF_Err traf_Size(GF_Box *s)
 		e = gf_isom_box_array_size(s, ptr->sai_offsets);
 		if (e) return e;
 	}
-	if (ptr->other_boxes) {
-		e = gf_isom_box_array_size(s, ptr->other_boxes);
-		if (e) return e;
-	}
-
 	return gf_isom_box_array_size(s, ptr->TrackRuns);
 }
 
@@ -6255,7 +6191,6 @@ void trak_del(GF_Box *s)
 	if (ptr->References) gf_isom_box_del((GF_Box *)ptr->References);
 	if (ptr->editBox) gf_isom_box_del((GF_Box *)ptr->editBox);
 	if (ptr->meta) gf_isom_box_del((GF_Box *)ptr->meta);
-	gf_isom_box_array_del(ptr->boxes);
 	if (ptr->name) gf_free(ptr->name); 
 	gf_free(ptr);
 }
@@ -6270,7 +6205,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	u32 i;
 
 	i=0;
-	while ((a = (GF_UnknownBox*)gf_list_enum(trak->Media->information->sampleTable->SampleDescription->boxList, &i))) {
+	while ((a = (GF_UnknownBox*)gf_list_enum(trak->Media->information->sampleTable->SampleDescription->other_boxes, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MP4S:
 		case GF_ISOM_BOX_TYPE_ENCS:
@@ -6305,7 +6240,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		switch (trak->Media->handler->handlerType) {
 		case GF_ISOM_MEDIA_VISUAL:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i-1);
+			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
 			genv = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			genv->size = a->size;
@@ -6319,11 +6254,11 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genv->size = a->size;
 			genv->EntryType = a->type;
 			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, genv, i-1);
+			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genv, i-1);
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i-1);
+			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
 			gena = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
 			gena->size = a->size;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
@@ -6337,12 +6272,12 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gena->size = a->size;
 			gena->EntryType = a->type;
 			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, gena, i-1);
+			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, gena, i-1);
 			break;
 
 		default:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i-1);
+			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
 			genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
 			genm->size = a->size;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
@@ -6357,7 +6292,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genm->size = a->size;
 			genm->EntryType = a->type;
 			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, genm, i-1);
+			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genm, i-1);
 			break;
 		}
 
@@ -6396,9 +6331,7 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 		((GF_MediaBox *)a)->mediaTrack = ptr;
 		return GF_OK;
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		return GF_OK;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -6420,7 +6353,6 @@ GF_Box *trak_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_TrackBox));
 	tmp->type = GF_ISOM_BOX_TYPE_TRAK;
-	tmp->boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -6458,7 +6390,7 @@ GF_Err trak_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->udta, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_write(s, ptr->boxes, bs);
+	return GF_OK;
 }
 
 GF_Err trak_Size(GF_Box *s)
@@ -6499,30 +6431,28 @@ GF_Err trak_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->meta->size;
 	}
-	return gf_isom_box_array_size(s, ptr->boxes);
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+GF_Err tref_AddBox(GF_Box *ptr, GF_Box *a)
+{
+	return gf_isom_box_add_default(ptr, a);
+}
+
 void tref_del(GF_Box *s)
 {
 	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
 	if (ptr == NULL) return;
-	gf_isom_box_array_del(ptr->boxList);
 	gf_free(ptr);
 }
 
 
-GF_Err tref_AddBox(GF_Box *s, GF_Box *a)
-{
-	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
-	return gf_list_add(ptr->boxList, a);
-}
-
 GF_Err tref_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list_ex(s, bs, tref_AddBox, s->type);
+	return gf_isom_read_box_list_ex(s, bs, gf_isom_box_add_default, s->type);
 }
 
 GF_Box *tref_New()
@@ -6530,11 +6460,6 @@ GF_Box *tref_New()
 	GF_TrackReferenceBox *tmp = (GF_TrackReferenceBox *) gf_malloc(sizeof(GF_TrackReferenceBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_TrackReferenceBox));
-	tmp->boxList = gf_list_new();
-	if (!tmp->boxList) {
-		gf_free(tmp);
-		return NULL;
-	}
 	tmp->type = GF_ISOM_BOX_TYPE_TREF;
 	return (GF_Box *)tmp;
 }
@@ -6545,20 +6470,14 @@ GF_Box *tref_New()
 
 GF_Err tref_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	return gf_isom_box_array_write(s, ptr->boxList, bs);
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err tref_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_TrackReferenceBox *ptr = (GF_TrackReferenceBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	return gf_isom_box_array_size(s, ptr->boxList);
+	return gf_isom_box_get_size(s);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -6953,7 +6872,7 @@ void udta_del(GF_Box *s)
 	if (ptr == NULL) return;
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
-		gf_isom_box_array_del(map->boxList);
+		gf_isom_box_array_del(map->other_boxes);
 		gf_free(map);
 	}
 	gf_list_del(ptr->recordList);
@@ -6991,15 +6910,15 @@ GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a)
 		map->boxType = a->type;
 		if (a->type == GF_ISOM_BOX_TYPE_UUID) 
 			memcpy(map->uuid, ((GF_UUIDBox *)a)->uuid, 16);
-		map->boxList = gf_list_new();
-		if (!map->boxList) {
+		map->other_boxes = gf_list_new();
+		if (!map->other_boxes) {
 			gf_free(map);
 			return GF_OUT_OF_MEM;
 		}
 		e = gf_list_add(ptr->recordList, map);
 		if (e) return e;
 	}
-	return gf_list_add(map->boxList, a);
+	return gf_list_add(map->other_boxes, a);
 }
 
 
@@ -7057,7 +6976,7 @@ GF_Err udta_Write(GF_Box *s, GF_BitStream *bs)
 	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		//warning: here we are not passing the actual "parent" of the list
 		//but the UDTA box. The parent itself is not an box, we don't care about it
-		e = gf_isom_box_array_write(s, map->boxList, bs);
+		e = gf_isom_box_array_write(s, map->other_boxes, bs);
 		if (e) return e;
     }
 	return GF_OK;
@@ -7076,7 +6995,7 @@ GF_Err udta_Size(GF_Box *s)
 	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		//warning: here we are not passing the actual "parent" of the list
 		//but the UDTA box. The parent itself is not an box, we don't care about it
-		e = gf_isom_box_array_size(s, map->boxList);
+		e = gf_isom_box_array_size(s, map->other_boxes);
 		if (e) return e;
 	}
 	return GF_OK;
@@ -7406,9 +7325,7 @@ GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
 		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
 		break;
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -7730,9 +7647,7 @@ GF_Err lsr1_AddBox(GF_Box *s, GF_Box *a)
 		ptr->descr = (GF_MPEG4ExtensionDescriptorsBox *)a;
 		break;
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning box %s unknown type - discarding\n", gf_4cc_to_str(a->type)));
-		gf_isom_box_del(a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -8011,8 +7926,8 @@ void subs_del(GF_Box *s)
 	if (ptr == NULL) return;	
 
 	while (gf_list_count(ptr->Samples)) {
-		GF_SampleEntry *pSamp;
-		pSamp = (GF_SampleEntry*)gf_list_get(ptr->Samples, 0);
+		GF_SubSampleInfoEntry *pSamp;
+		pSamp = (GF_SubSampleInfoEntry*)gf_list_get(ptr->Samples, 0);
 		while (gf_list_count(pSamp->SubSamples)) {
 			GF_SubSampleEntry *pSubSamp;
 			pSubSamp = (GF_SubSampleEntry*) gf_list_get(pSamp->SubSamples, 0);
@@ -8035,7 +7950,7 @@ GF_Err subs_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 i, j, entry_count;
 	u16 subsample_count;
-	GF_SampleEntry *pSamp;
+	GF_SubSampleInfoEntry *pSamp;
 	GF_SubSampleEntry *pSubSamp;
 	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) s;
 
@@ -8046,7 +7961,7 @@ GF_Err subs_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, entry_count);
 	
 	for (i=0; i<entry_count; i++) {
-		pSamp = (GF_SampleEntry*) gf_list_get(ptr->Samples, i);
+		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
 		subsample_count = gf_list_count(pSamp->SubSamples);
 		gf_bs_write_u32(bs, pSamp->sample_delta);
 		gf_bs_write_u16(bs, subsample_count);
@@ -8070,7 +7985,7 @@ GF_Err subs_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) s;
-	GF_SampleEntry *pSamp;
+	GF_SubSampleInfoEntry *pSamp;
 	u32 entry_count, i;
 	u16 subsample_count;
 
@@ -8082,7 +7997,7 @@ GF_Err subs_Size(GF_Box *s)
 	ptr->size += 4;
 	entry_count = gf_list_count(ptr->Samples);
 	for (i=0; i<entry_count; i++) {
-		pSamp = (GF_SampleEntry*) gf_list_get(ptr->Samples, i);
+		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
 		subsample_count = gf_list_count(pSamp->SubSamples);
 		// 4 byte for sample_delta, 2 byte for subsample_count
 		// and 6 + (4 or 2) bytes for each subsample
@@ -8107,10 +8022,10 @@ GF_Err subs_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->size -= 4;
 
 	for (i=0; i<entry_count; i++) {
-		GF_SampleEntry *pSamp = (GF_SampleEntry*) gf_malloc(sizeof(GF_SampleEntry));
+		GF_SubSampleInfoEntry *pSamp = (GF_SubSampleInfoEntry*) gf_malloc(sizeof(GF_SubSampleInfoEntry));
 		if (!pSamp) return GF_OUT_OF_MEM;
 
-		memset(pSamp, 0, sizeof(GF_SampleEntry));
+		memset(pSamp, 0, sizeof(GF_SubSampleInfoEntry));
 		pSamp->SubSamples = gf_list_new();
 		pSamp->sample_delta = gf_bs_read_u32(bs);
 		subsample_count = gf_bs_read_u16(bs);
@@ -8727,161 +8642,6 @@ GF_Err saio_Size(GF_Box *s)
 	if (ptr->flags & 1) ptr->size += 8;
 	ptr->size += 4;
 	ptr->size += ((ptr->version==1) ? 8 : 4) * ptr->entry_count;
-	return GF_OK;
-}
-#endif //GPAC_DISABLE_ISOM_WRITE
-
-
-
-GF_Box *pssh_New()
-{
-	GF_ProtectionSystemHeaderBox*tmp;
-	GF_SAFEALLOC(tmp, GF_ProtectionSystemHeaderBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_PSSH;
-	return (GF_Box *)tmp;
-}
-
-void pssh_del(GF_Box *s)
-{
-	GF_ProtectionSystemHeaderBox *ptr = (GF_ProtectionSystemHeaderBox*)s;
-	if (ptr == NULL) return;
-	if (ptr->private_data) gf_free(ptr->private_data);
-	if (ptr->KIDs) gf_free(ptr->KIDs);
-	gf_free(ptr);
-}
-
-GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_ProtectionSystemHeaderBox *ptr = (GF_ProtectionSystemHeaderBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
-
-	gf_bs_read_data(bs, ptr->SystemID, 16);
-	ptr->size -= 16;
-	if (ptr->version > 0) {
-		ptr->KID_count = gf_bs_read_u32(bs);
-		ptr->size -= 4;
-		if (ptr->KID_count) {
-			u32 i;
-			ptr->KIDs = gf_malloc(sizeof(bin128));
-			for (i=0; i<ptr->KID_count; i++) {
-				gf_bs_read_data(bs, ptr->KIDs[i], 16);
-				ptr->size -= 16;
-			}
-		}
-	}
-	ptr->private_data_size = gf_bs_read_u32(bs);
-	ptr->size -= 4;
-	if (ptr->private_data_size) {
-		ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
-		gf_bs_read_data(bs, ptr->private_data, ptr->private_data_size);
-		ptr->size -= ptr->private_data_size;
-	}
-	return GF_OK;
-}
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err pssh_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_ProtectionSystemHeaderBox *ptr = (GF_ProtectionSystemHeaderBox *) s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_bs_write_data(bs, ptr->SystemID, 16);
-	if (ptr->version > 0) {
-		u32 i;
-		gf_bs_write_u32(bs, ptr->KID_count);
-		for (i=0; i<ptr->KID_count; i++) 
-			gf_bs_write_data(bs, ptr->KIDs[i], 16);
-	}
-	if (ptr->private_data) {
-		gf_bs_write_u32(bs, ptr->private_data_size);
-		gf_bs_write_data(bs, ptr->private_data, ptr->private_data_size);
-	} else 
-		gf_bs_write_u32(bs, 0);
-	return GF_OK;
-}
-
-GF_Err pssh_Size(GF_Box *s)
-{
-	GF_Err e;
-	GF_ProtectionSystemHeaderBox *ptr = (GF_ProtectionSystemHeaderBox*)s;
-
-	if (ptr->KID_count && !ptr->version) {
-		ptr->version = 1;
-	}
-
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
-
-	ptr->size += 16;
-	if (ptr->version) ptr->size += 4 + 16*ptr->KID_count;
-	ptr->size += 4 + ptr->private_data ? ptr->private_data_size : 0;
-	return GF_OK;
-}
-#endif //GPAC_DISABLE_ISOM_WRITE
-
-
-GF_Box *tenc_New()
-{
-	GF_ProtectionSystemHeaderBox*tmp;
-	GF_SAFEALLOC(tmp, GF_ProtectionSystemHeaderBox);
-	if (tmp == NULL) return NULL;
-	tmp->type = GF_ISOM_BOX_TYPE_PSSH;
-	return (GF_Box *)tmp;
-}
-
-void tenc_del(GF_Box *s)
-{
-	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
-	if (ptr == NULL) return;
-	gf_free(ptr);
-}
-
-GF_Err tenc_Read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
-
-	ptr->IsEncrypted = gf_bs_read_int(bs, 24);
-	ptr->IV_size = gf_bs_read_u8(bs);
-	gf_bs_read_data(bs, ptr->KID, 16);
-	ptr->size -= 20;
-	return GF_OK;
-}
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err tenc_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox *) s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_bs_write_int(bs, ptr->IsEncrypted, 24);
-	gf_bs_write_u8(bs, ptr->IV_size);
-	gf_bs_write_data(bs, ptr->KID, 16);
-	return GF_OK;
-}
-
-GF_Err tenc_Size(GF_Box *s)
-{
-	GF_Err e;
-	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
-	ptr->size += 20;
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE

@@ -1184,7 +1184,7 @@ NODEP_CPP_BOX_COD=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\isomedia\box_code_isma.c
+SOURCE=..\..\src\isomedia\box_code_drm.c
 DEP_CPP_BOX_CODE=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\configuration.h"\
@@ -1312,7 +1312,7 @@ NODEP_CPP_HINTI=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\isomedia\isma_sample.c
+SOURCE=..\..\src\isomedia\drm_sample.c
 DEP_CPP_ISMA_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\configuration.h"\

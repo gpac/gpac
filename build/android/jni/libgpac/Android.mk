@@ -183,7 +183,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/ietf/rtp_packetizer.c \
 	../../../../src/isomedia/avc_ext.c \
 	../../../../src/isomedia/box_dump.c \
-	../../../../src/isomedia/box_code_isma.c \
+	../../../../src/isomedia/box_code_drm.c \
 	../../../../src/isomedia/track.c \
 	../../../../src/isomedia/box_funcs.c \
 	../../../../src/isomedia/isom_read.c \
@@ -196,7 +196,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/box_code_3gpp.c \
 	../../../../src/isomedia/isom_intern.c \
 	../../../../src/isomedia/isom_write.c \
-	../../../../src/isomedia/isma_sample.c \
+	../../../../src/isomedia/drm_sample.c \
 	../../../../src/isomedia/tx3g.c \
 	../../../../src/isomedia/hint_track.c \
 	../../../../src/isomedia/stbl_write.c \

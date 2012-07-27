@@ -51,10 +51,32 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 	return ret;
 }
 
+u32 gf_isom_solve_uuid_box(char *UUID)
+{
+	u32 i;
+	char strUUID[33], strChar[3];
+	strUUID[0] = 0;
+	for (i=0; i<16; i++) {
+		sprintf(strChar, "%02X", (unsigned char) UUID[i]);
+		strcat(strUUID, strChar);
+	}
+	if (!strnicmp(strUUID, "8974dbce7be74c5184f97148f9882554", 32)) 
+		return GF_ISOM_BOX_UUID_TENC;
+	if (!strnicmp(strUUID, "D4807EF2CA3946958E5426CB9E46A79F", 32)) 
+		return GF_ISOM_BOX_UUID_TFRF;
+	if (!strnicmp(strUUID, "6D1D9B0542D544E680E2141DAFF757B2", 32)) 
+		return GF_ISOM_BOX_UUID_TFXD;
+	if (!strnicmp(strUUID, "A2394F525A9B4F14A2446C427C648DF4", 32)) 
+		return GF_ISOM_BOX_UUID_PSEC;
+	if (!strnicmp(strUUID, "D08A4F1810F34A82B6C832D8ABA183D3", 32)) 
+		return GF_ISOM_BOX_UUID_PSSH;
+	return 0;
+}
+
 
 GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type)
 {
-	u32 type, hdr_size;
+	u32 type, uuid_type, hdr_size;
 	u64 size, start, end;
 	char uuid[16];
 	GF_Err e;
@@ -65,6 +87,7 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type)
 
 	start = gf_bs_get_position(bs);
 
+	uuid_type = 0;
 	size = (u64) gf_bs_read_u32(bs);
 	hdr_size = 4;
 	/*fix for some boxes found in some old hinted files*/
@@ -99,6 +122,7 @@ proceed_box:
 	if (type == GF_ISOM_BOX_TYPE_UUID ) {
 		gf_bs_read_data(bs, uuid, 16);
 		hdr_size += 16;
+		uuid_type = gf_isom_solve_uuid_box(uuid);
 	}
 	
 	//handle large box
@@ -119,12 +143,15 @@ proceed_box:
 		((GF_TrackReferenceTypeBox*)newBox)->reference_type = type;
 	} else {
 		//OK, create the box based on the type
-		newBox = gf_isom_box_new(type);
+		newBox = gf_isom_box_new(uuid_type ? uuid_type : type);
 		if (!newBox) return GF_OUT_OF_MEM;
 	}
 
 	//OK, init and read this box
-	if (type==GF_ISOM_BOX_TYPE_UUID) memcpy(((GF_UUIDBox *)newBox)->uuid, uuid, 16);
+	if (type==GF_ISOM_BOX_TYPE_UUID) {
+		memcpy(((GF_UUIDBox *)newBox)->uuid, uuid, 16);
+		((GF_UnknownUUIDBox *)newBox)->internal_4cc = uuid_type;
+	}
 
 	if (!newBox->type) newBox->type = type; 
 
@@ -190,17 +217,17 @@ void gf_isom_full_box_init(GF_Box *a)
 }
 
 
-void gf_isom_box_array_del(GF_List *boxList)
+void gf_isom_box_array_del(GF_List *other_boxes)
 {
 	u32 count, i;
 	GF_Box *a;
-	if (!boxList) return;
-	count = gf_list_count(boxList); 
+	if (!other_boxes) return;
+	count = gf_list_count(other_boxes); 
 	for (i = 0; i < count; i++) {
-		a = (GF_Box *)gf_list_get(boxList, i);
+		a = (GF_Box *)gf_list_get(other_boxes, i);
 		if (a) gf_isom_box_del(a);
 	}
-	gf_list_del(boxList);
+	gf_list_del(other_boxes);
 }
 
 GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type)
@@ -512,7 +539,14 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_ENCA: return enca_New();
 	case GF_ISOM_BOX_TYPE_ENCV: return encv_New();
 	case GF_ISOM_BOX_TYPE_ENCS: return encs_New();
-	case GF_ISOM_BOX_TYPE_UUID: return uuid_New();
+
+	case GF_ISOM_BOX_UUID_TENC: return piff_tenc_New();
+	case GF_ISOM_BOX_UUID_PSEC: return piff_psec_New();
+	case GF_ISOM_BOX_UUID_PSSH: return piff_pssh_New();
+	case GF_ISOM_BOX_UUID_TFRF: 
+	case GF_ISOM_BOX_UUID_TFXD: 
+	case GF_ISOM_BOX_TYPE_UUID: 
+		return uuid_New();
 
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_New();
@@ -586,11 +620,24 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	}
 }
 
+GF_EXPORT
+GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox)
+{
+	if (!a->other_boxes) {
+		a->other_boxes = gf_list_new();
+		if (!a->other_boxes) return GF_OUT_OF_MEM;
+	}
+	return gf_list_add(a->other_boxes, subbox);
+}
 
 GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
 	if (!a) return;
+	if (a->other_boxes) {
+		gf_isom_box_array_del(a->other_boxes);
+		a->other_boxes = NULL;
+	}
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		reftype_del(a);
@@ -777,7 +824,22 @@ void gf_isom_box_del(GF_Box *a)
 		}
 		return;
 	case GF_ISOM_BOX_TYPE_UUID:
-		uuid_del(a);
+		switch (((GF_UnknownUUIDBox *)a)->internal_4cc) {
+		case GF_ISOM_BOX_UUID_TENC: 
+			piff_tenc_del(a);
+			return; 
+		case GF_ISOM_BOX_UUID_PSEC: 
+			piff_psec_del(a);
+			return; 
+		case GF_ISOM_BOX_UUID_PSSH: 
+			piff_pssh_del(a);
+			return; 
+		case GF_ISOM_BOX_UUID_TFRF: 
+		case GF_ISOM_BOX_UUID_TFXD: 
+		default:
+			uuid_del(a);
+			return;
+		}
 		return;
 
 	/* Apple extensions */
@@ -1016,8 +1078,16 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_UUID: return uuid_Read(a, bs);
-	
+	case GF_ISOM_BOX_TYPE_UUID: 
+		switch (((GF_UnknownUUIDBox *)a)->internal_4cc) {
+		case GF_ISOM_BOX_UUID_TENC: return piff_tenc_Read(a, bs); 
+		case GF_ISOM_BOX_UUID_PSEC: return piff_psec_Read(a, bs);
+		case GF_ISOM_BOX_UUID_PSSH: return piff_pssh_Read(a, bs);
+		case GF_ISOM_BOX_UUID_TFRF: 
+		case GF_ISOM_BOX_UUID_TFXD: 
+		default:
+			return uuid_Read(a, bs);
+		}
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_Read(a, bs);
 
@@ -1084,8 +1154,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_EXPORT
-GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
+GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 {
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
@@ -1256,7 +1325,16 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_UUID: return uuid_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_UUID: 
+		switch ( ((GF_UnknownUUIDBox *)a)->internal_4cc) {
+		case GF_ISOM_BOX_UUID_TENC: return piff_tenc_Write(a, bs);
+		case GF_ISOM_BOX_UUID_PSEC: return piff_psec_Write(a, bs);
+		case GF_ISOM_BOX_UUID_PSSH: return piff_pssh_Write(a, bs);
+		case GF_ISOM_BOX_UUID_TFRF: 
+		case GF_ISOM_BOX_UUID_TFXD: 
+		default:
+			return uuid_Write(a, bs);
+		}
 
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_Write(a, bs);
@@ -1322,9 +1400,18 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	}
 }
 
-
 GF_EXPORT
-GF_Err gf_isom_box_size(GF_Box *a)
+GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
+{
+	GF_Err e = gf_isom_box_write_listing(a, bs);
+	if (e) return e;
+	if (a->other_boxes) {
+		return gf_isom_box_array_write(a, a->other_boxes, bs);
+	}
+	return GF_OK;
+}
+
+static GF_Err gf_isom_box_size_listing(GF_Box *a)
 {
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
@@ -1494,7 +1581,16 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Size(a);
-	case GF_ISOM_BOX_TYPE_UUID: return uuid_Size(a);
+	case GF_ISOM_BOX_TYPE_UUID:
+		switch ( ((GF_UnknownUUIDBox *)a)->internal_4cc) {
+		case GF_ISOM_BOX_UUID_TENC: return piff_tenc_Size(a);
+		case GF_ISOM_BOX_UUID_PSEC: return piff_psec_Size(a);
+		case GF_ISOM_BOX_UUID_PSSH: return piff_pssh_Size(a);
+		case GF_ISOM_BOX_UUID_TFRF: 
+		case GF_ISOM_BOX_UUID_TFXD: 
+		default:
+			return uuid_Size(a);
+		}
 
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_Size(a);
@@ -1557,6 +1653,18 @@ GF_Err gf_isom_box_size(GF_Box *a)
 
 	default: return defa_Size(a);
 	}
+}
+
+GF_EXPORT
+GF_Err gf_isom_box_size(GF_Box *a)
+{
+	GF_Err e = gf_isom_box_size_listing(a);
+	if (e) return e;
+	if (a->other_boxes) {
+		e = gf_isom_box_array_size(a, a->other_boxes);
+		if (e) return e;
+	}
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/ 

@@ -513,5 +513,89 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void gf_isom_cenc_sample_del(GF_CENCSampleInfo *samp)
+{
+	if (samp->subsamples) gf_free(samp->subsamples);
+	gf_free(samp);
+}
+
+static GF_Err gf_isom_cenc_parse_sample(GF_CENCSampleInfo *cenc_sample, GF_BitStream *bs, u32 sample_number, Bool use_subsample)
+{
+	u32 i=0, k;
+	if ((cenc_sample->IV_size!=0) && (cenc_sample->IV_size!=8) && (cenc_sample->IV_size!=16) ) return GF_ISOM_INVALID_FILE;
+
+	while (gf_bs_available(bs)) {
+		i++;
+		if (i == sample_number) {
+			gf_bs_read_data(bs, cenc_sample->IV, cenc_sample->IV_size);
+
+			if (use_subsample) {
+				cenc_sample->subsample_count = gf_bs_read_u16(bs);
+				cenc_sample->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)* cenc_sample->subsample_count);
+				for (k=0; k<cenc_sample->subsample_count; k++) {
+					cenc_sample->subsamples[k].bytes_clear_data = gf_bs_read_u16(bs);
+					cenc_sample->subsamples[k].bytes_encrypted_data = gf_bs_read_u32(bs);
+				}
+			}
+			return GF_OK;
+		} else {
+			gf_bs_skip_bytes(bs, cenc_sample->IV_size);
+			if (use_subsample) {
+				u32 subcount = gf_bs_read_u16(bs);
+				gf_bs_skip_bytes(bs, subcount * 6);
+			}
+		}
+	}
+	return GF_ISOM_INVALID_FILE;
+}
+
+GF_CENCSampleInfo *gf_isom_cenc_get_sample(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number)
+{
+	GF_Err e;
+	Bool use_subsample = 0;
+	GF_CENCSampleInfo *cenc_sample;
+	GF_ProtectionInfoBox *sinf;
+	GF_SampleEntryBox *sentry;
+	u32 sample_desc_idx;
+	GF_BitStream *bs;
+
+	if (!sample_number) return NULL;
+
+	sample_desc_idx = traf->tfhd->sample_desc_index;
+	if (!sample_desc_idx) sample_desc_idx = traf->trex->def_sample_desc_index;
+
+	sentry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sample_desc_idx - 1);
+	sinf = sentry ? gf_list_get(sentry->protections, 0) : NULL;
+
+	/*PIFF*/
+	if (sinf && sinf->scheme_type && sinf->info->piff_tenc) {
+		/*TODO !!*/
+		if (!traf->piff_sample_encryption) return NULL;
+
+		GF_SAFEALLOC(cenc_sample, GF_CENCSampleInfo);
+		memcpy(cenc_sample->keyID, sinf->info->piff_tenc->KID, 16);
+		cenc_sample->IV_size = sinf->info->piff_tenc->IV_size;
+		cenc_sample->algo_id = sinf->info->piff_tenc->AlgorithmID;
+		
+		if (traf->piff_sample_encryption->flags & 1) {
+			memcpy(cenc_sample->keyID, traf->piff_sample_encryption->KID, 16);
+			cenc_sample->IV_size = traf->piff_sample_encryption->IV_size;
+			cenc_sample->algo_id = traf->piff_sample_encryption->AlgorithmID;
+			cenc_sample->is_alt_info = 1;
+		}
+
+		use_subsample = (traf->piff_sample_encryption->flags & 2) ? 1 : 0;
+
+		bs = gf_bs_new(traf->piff_sample_encryption->cenc_data, traf->piff_sample_encryption->cenc_data_size, GF_BITSTREAM_READ);
+		e = gf_isom_cenc_parse_sample(cenc_sample, bs, sample_number, use_subsample);
+		gf_bs_del(bs);
+		if (e) {
+			gf_isom_cenc_sample_del(cenc_sample);
+			return NULL;
+		}
+		return cenc_sample;
+	}
+	return NULL;
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

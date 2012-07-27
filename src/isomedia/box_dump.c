@@ -49,6 +49,15 @@ static void DumpData(FILE *trace, char *data, u32 dataLength)
 	}
 }
 
+static void DumpDataHex(FILE *trace, char *data, u32 dataLength)
+{
+	u32 i;
+	fprintf(trace, "0x");
+	for (i=0; i<dataLength; i++) {
+		fprintf(trace, "%02X", (unsigned char) data[i]);
+	}
+}
+
 GF_Err DumpBox(GF_Box *a, FILE * trace)
 {
 	if (a->size > 0xFFFFFFFF) {
@@ -70,8 +79,7 @@ GF_Err DumpBox(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-
-GF_Err gf_box_dump(void *ptr, FILE * trace)
+static GF_Err gf_box_dump(void *ptr, FILE * trace)
 {
 	GF_Box *a = (GF_Box *) ptr;
 
@@ -442,10 +450,21 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_PCRB:
 		return pcrb_dump(a, trace);
 
-	default: return defa_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_UUID:
+		switch ( ((GF_UnknownUUIDBox *)a)->internal_4cc) {
+		case GF_ISOM_BOX_UUID_TENC: return piff_tenc_dump(a, trace);
+		case GF_ISOM_BOX_UUID_PSEC: return piff_psec_dump(a, trace);
+		case GF_ISOM_BOX_UUID_PSSH: return piff_pssh_dump(a, trace);
+		case GF_ISOM_BOX_UUID_TFRF: 
+		case GF_ISOM_BOX_UUID_TFXD: 
+		default:
+			return defa_dump(a, trace);
+		}
+		
+	default: 
+		return defa_dump(a, trace);
 	}
 }
-
 
 GF_Err gf_box_array_dump(GF_List *list, FILE * trace)
 {
@@ -459,6 +478,14 @@ GF_Err gf_box_array_dump(GF_List *list, FILE * trace)
 	return GF_OK;
 }
 
+void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace)
+{
+	if (ptr && ptr->other_boxes) {
+		gf_box_array_dump(ptr->other_boxes, trace);
+	}
+	if (name) 
+		fprintf(trace, "</%s>\n", name);
+}
 
 
 GF_EXPORT
@@ -489,6 +516,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_SIDX:
 		case GF_ISOM_BOX_TYPE_PCRB:
 #endif
+		case GF_ISOM_BOX_TYPE_MFRA:
 			break;
 
 		default:
@@ -535,7 +563,10 @@ GF_Err reftype_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->trackIDCount; i++) fprintf(trace, " %d", p->trackIDs[i]);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
+
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sTrackReferenceBox>\n", s);
+
 	p->type = GF_ISOM_BOX_TYPE_REFT;
 	return GF_OK;
 }
@@ -547,7 +578,7 @@ GF_Err free_dump(GF_Box *a, FILE * trace)
 	p = (GF_FreeSpaceBox *)a;
 	fprintf(trace, "<FreeSpaceBox size=\"%d\">\n", p->dataSize);
 	DumpBox(a, trace);
-	fprintf(trace, "</FreeSpaceBox>\n");
+	gf_box_dump_done("FreeSpaceBox", a, trace);
 	return GF_OK;
 }
 
@@ -558,7 +589,7 @@ GF_Err mdat_dump(GF_Box *a, FILE * trace)
 	p = (GF_MediaDataBox *)a;
 	fprintf(trace, "<MediaDataBox dataSize=\""LLD"\">\n", LLD_CAST p->dataSize);
 	DumpBox(a, trace);
-	fprintf(trace, "</MediaDataBox>\n");
+	gf_box_dump_done("MediaDataBox", a, trace);
 	return GF_OK;
 }
 
@@ -579,8 +610,7 @@ GF_Err moov_dump(GF_Box *a, FILE * trace)
 
 	gf_box_array_dump(p->trackList, trace);
 	if (p->udta) gf_box_dump(p->udta, trace);
-	gf_box_array_dump(p->boxes, trace);
-	fprintf(trace, "</MovieBox>\n");
+	gf_box_dump_done("MovieBox", a, trace);
 	return GF_OK;
 }
 
@@ -600,7 +630,7 @@ GF_Err mvhd_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	fprintf(trace, "</MovieHeaderBox>");
+	gf_box_dump_done("MovieHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -619,7 +649,7 @@ GF_Err mdhd_dump(GF_Box *a, FILE * trace)
 
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</MediaHeaderBox>\n");
+	gf_box_dump_done("MediaHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -628,7 +658,7 @@ GF_Err vmhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<VideoMediaHeaderBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</VideoMediaHeaderBox>\n");
+	gf_box_dump_done("VideoMediaHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -637,7 +667,7 @@ GF_Err smhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SoundMediaHeaderBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</SoundMediaHeaderBox>\n");
+	gf_box_dump_done("SoundMediaHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -656,7 +686,7 @@ GF_Err hmhd_dump(GF_Box *a, FILE * trace)
 
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</HintMediaHeaderBox>\n");
+	gf_box_dump_done("HintMediaHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -665,7 +695,7 @@ GF_Err nmhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<MPEGMediaHeaderBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</MPEGMediaHeaderBox>\n");
+	gf_box_dump_done("MPEGMediaHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -692,7 +722,7 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 
-	fprintf(trace, "</SampleTableBox>\n");
+	gf_box_dump_done("SampleTableBox", a, trace);
 	return GF_OK;
 }
 
@@ -703,7 +733,7 @@ GF_Err dinf_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<DataInformationBox>");
 	DumpBox(a, trace);
 	gf_box_dump(p->dref, trace);
-	fprintf(trace, "</DataInformationBox>\n");
+	gf_box_dump_done("DataInformationBox", a, trace);
 	return GF_OK;
 }
 
@@ -725,7 +755,7 @@ GF_Err url_dump(GF_Box *a, FILE * trace)
 	}
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</URLDataEntryBox>\n");
+	gf_box_dump_done("URLDataEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -741,7 +771,7 @@ GF_Err urn_dump(GF_Box *a, FILE * trace)
 
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</URNDataEntryBox>\n");
+	gf_box_dump_done("URNDataEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -753,7 +783,7 @@ GF_Err cprt_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<CopyrightBox LanguageCode=\"%s\" CopyrightNotice=\"%s\">\n", p->packedLanguageCode, p->notice);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</CopyrightBox>\n");
+	gf_box_dump_done("CopyrightBox", a, trace);
 	return GF_OK;
 }
 
@@ -788,7 +818,7 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<Chapter name=\"%s\" startTime=\"%s\" />\n", ce->name, format_duration(ce->start_time, 1000*10000, szDur));
 	}
 
-	fprintf(trace, "</ChapterListBox>\n");
+	gf_box_dump_done("ChapterListBox", a, trace);
 	return GF_OK;
 }
 
@@ -803,7 +833,7 @@ GF_Err dpin_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->count; i++) {
 		fprintf(trace, "<DownloadInfo rate=\"%d\" estimatedTime=\"%d\" />\n", p->rates[i], p->times[i]);
 	}
-	fprintf(trace, "</ProgressiveDownloadBox>\n");
+	gf_box_dump_done("ProgressiveDownloadBox", a, trace);
 	return GF_OK;
 }
 
@@ -822,7 +852,7 @@ GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</HandlerBox>\n");
+	gf_box_dump_done("HandlerBox", a, trace);
 	return GF_OK;
 }
 
@@ -844,7 +874,7 @@ GF_Err iods_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<!--WARNING: Object Descriptor not present-->\n");
 	}
-	fprintf(trace, "</ObjectDescriptorBox>\n");
+	gf_box_dump_done("ObjectDescriptorBox", a, trace);
 	return GF_OK;
 }
 
@@ -865,8 +895,7 @@ GF_Err trak_dump(GF_Box *a, FILE * trace)
 	if (p->editBox) gf_box_dump(p->editBox, trace);
 	if (p->Media) gf_box_dump(p->Media, trace);
 	if (p->udta) gf_box_dump(p->udta, trace);
-	gf_box_array_dump(p->boxes, trace);
-	fprintf(trace, "</TrackBox>\n");
+	gf_box_dump_done("TrackBox", a, trace);
 	return GF_OK;
 }
 
@@ -885,7 +914,7 @@ GF_Err mp4s_dump(GF_Box *a, FILE * trace)
 	if (a->type == GF_ISOM_BOX_TYPE_ENCS) {
 		gf_box_array_dump(p->protections, trace);
 	}
-	fprintf(trace, "</MPEGSystemsSampleDescriptionBox>\n");
+	gf_box_dump_done("MPEGSystemsSampleDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -926,6 +955,7 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 	if (p->pasp) gf_box_dump(p->pasp, trace);
 	if (p->rvcc) gf_box_dump(p->rvcc, trace);
 
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n", name);
 	return GF_OK;
 }
@@ -955,7 +985,7 @@ GF_Err mp4a_dump(GF_Box *a, FILE * trace)
 	if (a->type == GF_ISOM_BOX_TYPE_ENCA) {
 		gf_box_array_dump(p->protections, trace);
 	}
-	fprintf(trace, "</MPEGAudioSampleDescriptionBox>\n");
+	gf_box_dump_done("MPEGAudioSampleDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -966,7 +996,7 @@ GF_Err gnrm_dump(GF_Box *a, FILE * trace)
 	a->type = p->EntryType;
 	DumpBox(a, trace);
 	a->type = GF_ISOM_BOX_TYPE_GNRM;
-	fprintf(trace, "</SampleDescriptionBox>\n");
+	gf_box_dump_done("SampleDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -978,7 +1008,7 @@ GF_Err gnrv_dump(GF_Box *a, FILE * trace)
 	a->type = p->EntryType;
 	DumpBox(a, trace);
 	a->type = GF_ISOM_BOX_TYPE_GNRV;
-	fprintf(trace, "</VisualSampleDescriptionBox>\n");
+	gf_box_dump_done("VisualSampleDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -990,7 +1020,7 @@ GF_Err gnra_dump(GF_Box *a, FILE * trace)
 	a->type = p->EntryType;
 	DumpBox(a, trace);
 	a->type = GF_ISOM_BOX_TYPE_GNRA;
-	fprintf(trace, "</AudioSampleDescriptionBox>\n");
+	gf_box_dump_done("AudioSampleDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -1002,7 +1032,7 @@ GF_Err edts_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<EditBox>\n");
 	DumpBox(a, trace);
 	gf_box_dump(p->editList, trace);
-	fprintf(trace, "</EditBox>\n");
+	gf_box_dump_done("EditBox", a, trace);
 	return GF_OK;
 }
 
@@ -1019,10 +1049,10 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
 		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType));
-		gf_box_array_dump(map->boxList, trace);
+		gf_box_array_dump(map->other_boxes, trace);
 		fprintf(trace, "</UDTARecord>\n");
 	}
-	fprintf(trace, "</UserDataBox>\n");
+	gf_box_dump_done("UserDataBox", a, trace);
 	return GF_OK;
 }
 
@@ -1034,8 +1064,7 @@ GF_Err dref_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<DataReferenceBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	gf_box_array_dump(p->boxList, trace);
-	fprintf(trace, "</DataReferenceBox>\n");
+	gf_box_dump_done("DataReferenceBox", a, trace);
 	return GF_OK;
 }
 
@@ -1046,8 +1075,7 @@ GF_Err stsd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SampleDescriptionBox>\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	gf_box_array_dump(p->boxList, trace);
-	fprintf(trace, "</SampleDescriptionBox>\n");
+	gf_box_dump_done("SampleDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -1064,7 +1092,7 @@ GF_Err stts_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<TimeToSampleEntry SampleDelta=\"%d\" SampleCount=\"%d\"/>\n", p->entries[i].sampleDelta, p->entries[i].sampleCount);
 	}
-	fprintf(trace, "</TimeToSampleBox>\n");
+	gf_box_dump_done("TimeToSampleBox", a, trace);
 	return GF_OK;
 }
 
@@ -1080,7 +1108,7 @@ GF_Err ctts_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->nb_entries;i++) {
 		fprintf(trace, "<CompositionOffsetEntry CompositionOffset=\"%d\" SampleCount=\"%d\"/>\n", p->entries[i].decodingOffset, p->entries[i].sampleCount);
 	}
-	fprintf(trace, "</CompositionOffsetBox>\n");
+	gf_box_dump_done("CompositionOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -1098,7 +1126,7 @@ GF_Err stsh_dump(GF_Box *a, FILE * trace)
 	while ((t = (GF_StshEntry *)gf_list_enum(p->entries, &i))) {
 		fprintf(trace, "<SyncShadowEntry ShadowedSample=\"%d\" SyncSample=\"%d\"/>\n", t->shadowedSampleNumber, t->syncSampleNumber);
 	}
-	fprintf(trace, "</SyncShadowBox>\n");
+	gf_box_dump_done("SyncShadowBox", a, trace);
 	return GF_OK;
 }
 
@@ -1117,7 +1145,7 @@ GF_Err elst_dump(GF_Box *a, FILE * trace)
 	while ((t = (GF_EdtsEntry *)gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u\"/>\n", LLD_CAST t->segmentDuration, LLD_CAST t->mediaTime, t->mediaRate);
 	}
-	fprintf(trace, "</EditListBox>\n");
+	gf_box_dump_done("EditListBox", a, trace);
 	return GF_OK;
 }
 
@@ -1134,7 +1162,7 @@ GF_Err stsc_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<SampleToChunkEntry FirstChunk=\"%d\" SamplesPerChunk=\"%d\" SampleDescriptionIndex=\"%d\"/>\n", p->entries[i].firstChunk, p->entries[i].samplesPerChunk, p->entries[i].sampleDescriptionIndex);
 	}
-	fprintf(trace, "</SampleToChunkBox>\n");
+	gf_box_dump_done("SampleToChunkBox", a, trace);
 	return GF_OK;
 }
 
@@ -1166,6 +1194,7 @@ GF_Err stsz_dump(GF_Box *a, FILE * trace)
 			}
 		}
 	}
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sBox>\n", (a->type == GF_ISOM_BOX_TYPE_STSZ) ? "SampleSize" : "CompactSampleSize");
 	return GF_OK;
 }
@@ -1187,7 +1216,7 @@ GF_Err stco_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<ChunkEntry offset=\"%d\"/>\n", p->offsets[i]);
 		}
 	}
-	fprintf(trace, "</ChunkOffsetBox>\n");
+	gf_box_dump_done("ChunkOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -1208,7 +1237,7 @@ GF_Err stss_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%d\"/>\n", p->sampleNumbers[i]);
 		}
 	}
-	fprintf(trace, "</SyncSampleBox>\n");
+	gf_box_dump_done("SyncSampleBox", a, trace);
 	return GF_OK;
 }
 
@@ -1229,7 +1258,7 @@ GF_Err stdp_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<DegradationPriorityEntry DegradationPriority=\"%d\"/>\n", p->priorities[i]);
 		}
 	}
-	fprintf(trace, "</DegradationPriorityBox>\n");
+	gf_box_dump_done("DegradationPriorityBox", a, trace);
 	return GF_OK;
 }
 
@@ -1270,7 +1299,7 @@ GF_Err sdtp_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, " />\n");
 		}
 	}
-	fprintf(trace, "</SampleDependencyTypeBox>\n");
+	gf_box_dump_done("SampleDependencyTypeBox", a, trace);
 	return GF_OK;
 }
 
@@ -1290,7 +1319,7 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 		for (i=0; i<p->nb_entries; i++)
 			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", LLD_CAST p->offsets[i]);
 	}
-	fprintf(trace, "</ChunkLargeOffsetBox>\n");
+	gf_box_dump_done("ChunkLargeOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -1312,7 +1341,7 @@ GF_Err esds_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<!--INVALID MP4 FILE: ESD not present in MPEG Sample Description or corrupted-->\n");
 	}
-	fprintf(trace, "</MPEG4ESDescriptorBox>\n");
+	gf_box_dump_done("MPEG4ESDescriptorBox", a, trace);
 	return GF_OK;
 }
 
@@ -1327,7 +1356,7 @@ GF_Err minf_dump(GF_Box *a, FILE * trace)
 	gf_box_dump(p->InfoHeader, trace);
 	gf_box_dump(p->dataInformation, trace);
 	gf_box_dump(p->sampleTable, trace);
-	fprintf(trace, "</MediaInformationBox>\n");
+	gf_box_dump_done("MediaInformationBox", a, trace);
 	return GF_OK;
 }
 
@@ -1359,7 +1388,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	fprintf(trace, "</TrackHeaderBox>\n");
+	gf_box_dump_done("TrackHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -1370,8 +1399,7 @@ GF_Err tref_dump(GF_Box *a, FILE * trace)
 	p = (GF_TrackReferenceBox *)a;
 	fprintf(trace, "<TrackReferenceBox>\n");
 	DumpBox(a, trace);
-	gf_box_array_dump(p->boxList, trace);
-	fprintf(trace, "</TrackReferenceBox>\n");
+	gf_box_dump_done("TrackReferenceBox", a, trace);
 	return GF_OK;
 }
 
@@ -1385,7 +1413,7 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 	gf_box_dump(p->mediaHeader, trace);
 	gf_box_dump(p->handler, trace);
 	gf_box_dump(p->information, trace);
-	fprintf(trace, "</MediaBox>\n");
+	gf_box_dump_done("MediaBox", a, trace);
 	return GF_OK;
 }
 
@@ -1415,6 +1443,7 @@ GF_Err ftyp_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->altCount; i++) {
 		fprintf(trace, "<BrandEntry AlternateBrand=\"%s\"/>\n", gf_4cc_to_str(p->altBrand[i]));
 	}
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n",(a->type == GF_ISOM_BOX_TYPE_FTYP ? "FileTypeBox" : "SegmentTypeBox"));
 	return GF_OK;
 }
@@ -1430,7 +1459,7 @@ GF_Err padb_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->SampleCount; i+=1) {
 		fprintf(trace, "<PaddingBitsEntry PaddingBits=\"%d\"/>\n", p->padbits[i]);
 	}
-	fprintf(trace, "</PaddingBitsBox>\n");
+	gf_box_dump_done("PaddingBitsBox", a, trace);
 	return GF_OK;
 }
 
@@ -1453,7 +1482,7 @@ GF_Err stsf_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "</SampleFragmentEntry>\n");
 	}
 
-	fprintf(trace, "</SampleFragmentBox>\n");
+	gf_box_dump_done("SampleFragmentBox", a, trace);
 	return GF_OK;
 }
 
@@ -1480,6 +1509,7 @@ GF_Err gppa_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<!--INVALID 3GPP FILE: Config not present in Sample Description-->\n");
 	}
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sBox>\n", szName);
 	return GF_OK;
 }
@@ -1502,6 +1532,7 @@ GF_Err gppv_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<!--INVALID 3GPP FILE: Config not present in Sample Description-->\n");
 	}
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sBox>\n", szName);
 	return GF_OK;
 }
@@ -1517,29 +1548,29 @@ GF_Err gppc_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " FramesPerSample=\"%d\" SupportedModes=\"%x\" ModeRotating=\"%d\"", p->cfg.frames_per_sample, p->cfg.AMR_mode_set, p->cfg.AMR_mode_change_period);
 		fprintf(trace, ">\n");
 		DumpBox(a, trace);
-		fprintf(trace, "</AMRConfigurationBox>\n");
+		gf_box_dump_done("AMRConfigurationBox", a, trace);
 		break;
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 		fprintf(trace, "<EVRCConfigurationBox Vendor=\"%s\" Version=\"%d\" FramesPerSample=\"%d\" >\n", name, p->cfg.decoder_version, p->cfg.frames_per_sample);
 		DumpBox(a, trace);
-		fprintf(trace, "</EVRCConfigurationBox>\n");
+		gf_box_dump_done("EVRCConfigurationBox", a, trace);
 		break;
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 		fprintf(trace, "<QCELPConfigurationBox Vendor=\"%s\" Version=\"%d\" FramesPerSample=\"%d\" >\n", name, p->cfg.decoder_version, p->cfg.frames_per_sample);
 		DumpBox(a, trace);
-		fprintf(trace, "</QCELPConfigurationBox>\n");
+		gf_box_dump_done("QCELPConfigurationBox", a, trace);
 		break;
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 		fprintf(trace, "<SMVConfigurationBox Vendor=\"%s\" Version=\"%d\" FramesPerSample=\"%d\" >\n", name, p->cfg.decoder_version, p->cfg.frames_per_sample);
 		DumpBox(a, trace);
-		fprintf(trace, "</SMVConfigurationBox>\n");
+		gf_box_dump_done("SMVConfigurationBox", a, trace);
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		fprintf(trace, "<H263ConfigurationBox Vendor=\"%s\" Version=\"%d\"", name, p->cfg.decoder_version);
 		fprintf(trace, " Profile=\"%d\" Level=\"%d\"", p->cfg.H263_profile, p->cfg.H263_level);
 		fprintf(trace, ">\n");
 		DumpBox(a, trace);
-		fprintf(trace, "</H263ConfigurationBox>\n");
+		gf_box_dump_done("H263ConfigurationBox", a, trace);
 		break;
 	default:
 		break;
@@ -1579,6 +1610,7 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
 
 	DumpBox(a, trace);
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sConfigurationBox>\n", name);
 	return GF_OK;
 }
@@ -1599,7 +1631,7 @@ GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 #endif
 	}
 	DumpBox(a, trace);
-	fprintf(trace, "</MPEG4ExtensionDescriptorsBox>\n");
+	gf_box_dump_done("MPEG4ExtensionDescriptorsBox", a, trace);
 	return GF_OK;
 }
 
@@ -1608,7 +1640,7 @@ GF_Err btrt_dump(GF_Box *a, FILE * trace)
 	GF_MPEG4BitRateBox *p = (GF_MPEG4BitRateBox*)a;
 	fprintf(trace, "<MPEG4BitRateBox BufferSizeDB=\"%d\" avgBitRate=\"%d\" maxBitRate=\"%d\">\n", p->bufferSizeDB, p->avgBitrate, p->maxBitrate);
 	DumpBox(a, trace);
-	fprintf(trace, "</MPEG4BitRateBox>\n");
+	gf_box_dump_done("MPEG4BitRateBox", a, trace);
 	return GF_OK;
 }
 
@@ -1621,7 +1653,7 @@ GF_Err ftab_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->entry_count; i++) {
 		fprintf(trace, "<FontRecord ID=\"%d\" name=\"%s\"/>\n", p->fonts[i].fontID, p->fonts[i].fontName ? p->fonts[i].fontName : "NULL");
 	}
-	fprintf(trace, "</FontTableBox>\n");
+	gf_box_dump_done("FontTableBox", a, trace);
 	return GF_OK;
 }
 
@@ -1664,12 +1696,12 @@ GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "<DefaultBox>\n");
 	gpp_dump_box(trace, &p->default_box);
-	fprintf(trace, "</DefaultBox>\n");
+	gf_box_dump_done("DefaultBox", a, trace);
 	fprintf(trace, "<DefaultStyle>\n");
 	gpp_dump_style(trace, &p->default_style);
 	fprintf(trace, "</DefaultStyle>\n");
 	gf_box_dump(p->font_table, trace);
-	fprintf(trace, "</Tx3gSampleEntryBox>\n");
+	gf_box_dump_done("Tx3gSampleEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -1687,8 +1719,8 @@ GF_Err text_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "<DefaultBox>\n");
 	gpp_dump_box(trace, &p->default_box);
-	fprintf(trace, "</DefaultBox>\n");
-	fprintf(trace, "</TextSampleEntryBox>\n");
+	gf_box_dump_done("DefaultBox", a, trace);
+	gf_box_dump_done("TextSampleEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -1699,7 +1731,7 @@ GF_Err styl_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TextStyleBox>\n");
 	DumpBox(a, trace);
 	for (i=0; i<p->entry_count; i++) gpp_dump_style(trace, &p->styles[i]);
-	fprintf(trace, "</TextStyleBox>\n");
+	gf_box_dump_done("TextStyleBox", a, trace);
 	return GF_OK;
 }
 GF_Err hlit_dump(GF_Box *a, FILE * trace)
@@ -1707,17 +1739,17 @@ GF_Err hlit_dump(GF_Box *a, FILE * trace)
 	GF_TextHighlightBox*p = (GF_TextHighlightBox*)a;
 	fprintf(trace, "<TextHighlightBox startcharoffset=\"%d\" endcharoffset=\"%d\">\n", p->startcharoffset, p->endcharoffset);
 	DumpBox(a, trace);
-	fprintf(trace, "</TextHighlightBox>\n");
+	gf_box_dump_done("TextHighlightBox", a, trace);
 	return GF_OK;
 }
 GF_Err hclr_dump(GF_Box *a, FILE * trace)
 {
 	GF_TextHighlightColorBox*p = (GF_TextHighlightColorBox*)a;
-	fprintf(trace, "<TextHighlightBox ");
+	fprintf(trace, "<TextHighlightColorBox ");
 	gpp_dump_rgba8(trace, "highlight_color", p->hil_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
-	fprintf(trace, "</TextHighlightBox>\n");
+	gf_box_dump_done("TextHighlightColorBox", a, trace);
 	return GF_OK;
 }
 
@@ -1730,7 +1762,7 @@ GF_Err krok_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<KaraokeRecord highlight_endtime=\"%d\" start_charoffset=\"%d\" end_charoffset=\"%d\"/>\n", p->records[i].highlight_endtime, p->records[i].start_charoffset, p->records[i].end_charoffset);
 	}
-	fprintf(trace, "</TextKaraokeBox>\n");
+	gf_box_dump_done("TextKaraokeBox", a, trace);
 	return GF_OK;
 }
 GF_Err dlay_dump(GF_Box *a, FILE * trace)
@@ -1738,7 +1770,7 @@ GF_Err dlay_dump(GF_Box *a, FILE * trace)
 	GF_TextScrollDelayBox*p = (GF_TextScrollDelayBox*)a;
 	fprintf(trace, "<TextScrollDelayBox scroll_delay=\"%d\">\n", p->scroll_delay);
 	DumpBox(a, trace);
-	fprintf(trace, "</TextScrollDelayBox>\n");
+	gf_box_dump_done("TextScrollDelayBox", a, trace);
 	return GF_OK;
 }
 GF_Err href_dump(GF_Box *a, FILE * trace)
@@ -1746,7 +1778,7 @@ GF_Err href_dump(GF_Box *a, FILE * trace)
 	GF_TextHyperTextBox*p = (GF_TextHyperTextBox*)a;
 	fprintf(trace, "<TextHyperTextBox startcharoffset=\"%d\" startcharoffset=\"%d\" URL=\"%s\" altString=\"%s\">\n", p->startcharoffset, p->endcharoffset, p->URL ? p->URL : "NULL", p->URL_hint ? p->URL_hint : "NULL");
 	DumpBox(a, trace);
-	fprintf(trace, "</TextHyperTextBox>\n");
+	gf_box_dump_done("TextHyperTextBox", a, trace);
 	return GF_OK;
 }
 GF_Err tbox_dump(GF_Box *a, FILE * trace)
@@ -1755,7 +1787,7 @@ GF_Err tbox_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TextBoxBox>\n");
 	gpp_dump_box(trace, &p->box);
 	DumpBox(a, trace);
-	fprintf(trace, "</TextBoxBox>\n");
+	gf_box_dump_done("TextBoxBox", a, trace);
 	return GF_OK;
 }
 GF_Err blnk_dump(GF_Box *a, FILE * trace)
@@ -1763,7 +1795,7 @@ GF_Err blnk_dump(GF_Box *a, FILE * trace)
 	GF_TextBlinkBox*p = (GF_TextBlinkBox*)a;
 	fprintf(trace, "<TextBlinkBox start_charoffset=\"%d\" end_charoffset=\"%d\">\n", p->startcharoffset, p->endcharoffset);
 	DumpBox(a, trace);
-	fprintf(trace, "</TextBlinkBox>\n");
+	gf_box_dump_done("TextBlinkBox", a, trace);
 	return GF_OK;
 }
 GF_Err twrp_dump(GF_Box *a, FILE * trace)
@@ -1771,7 +1803,7 @@ GF_Err twrp_dump(GF_Box *a, FILE * trace)
 	GF_TextWrapBox*p = (GF_TextWrapBox*)a;
 	fprintf(trace, "<TextWrapBox wrap_flag=\"%s\">\n", p->wrap_flag ? ( (p->wrap_flag>1) ? "Reserved" : "Automatic" ) : "No Wrap");
 	DumpBox(a, trace);
-	fprintf(trace, "</TextWrapBox>\n");
+	gf_box_dump_done("TextWrapBox", a, trace);
 	return GF_OK;
 }
 
@@ -1791,9 +1823,7 @@ GF_Err meta_dump(GF_Box *a, FILE * trace)
 	if (p->protections) gf_box_dump(p->protections, trace);
 	if (p->item_infos) gf_box_dump(p->item_infos, trace);
 	if (p->IPMP_control) gf_box_dump(p->IPMP_control, trace);
-
-	gf_box_array_dump(p->other_boxes, trace);
-	fprintf(trace, "</MetaBox>\n");
+	gf_box_dump_done("MetaBox", a, trace);
 	return GF_OK;
 }
 
@@ -1807,7 +1837,7 @@ GF_Err xml_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<![CDATA[\n");
 	gf_fwrite(p->xml, p->xml_length, 1, trace);
 	fprintf(trace, "]]>\n");
-	fprintf(trace, "</XMLBox>\n");
+	gf_box_dump_done("XMLBox", a, trace);
 	return GF_OK;
 }
 
@@ -1818,7 +1848,7 @@ GF_Err bxml_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<BinaryXMLBox binarySize=\"%d\">\n", p->data_length);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</BinaryXMLBox>\n");
+	gf_box_dump_done("BinaryXMLBox", a, trace);
 	return GF_OK;
 }
 
@@ -1829,7 +1859,7 @@ GF_Err pitm_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<PrimaryItemBox item_ID=\"%d\">\n", p->item_ID);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</PrimaryItemBox>\n");
+	gf_box_dump_done("PrimaryItemBox", a, trace);
 	return GF_OK;
 }
 
@@ -1840,7 +1870,7 @@ GF_Err ipro_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	gf_box_array_dump(p->protection_information, trace);
-	fprintf(trace, "</ItemProtectionBox>\n");
+	gf_box_dump_done("ItemProtectionBox", a, trace);
 	return GF_OK;
 }
 
@@ -1850,7 +1880,7 @@ GF_Err infe_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<ItemInfoEntryBox item_ID=\"%d\" item_protection_index=\"%d\" item_name=\"%s\" content_type=\"%s\" content_encoding=\"%s\">\n", p->item_ID, p->item_protection_index, p->item_name, p->content_type, p->content_encoding);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</ItemInfoEntryBox>\n");
+	gf_box_dump_done("ItemInfoEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -1861,7 +1891,7 @@ GF_Err iinf_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	gf_box_array_dump(p->item_infos, trace);
-	fprintf(trace, "</ItemInfoBox>\n");
+	gf_box_dump_done("ItemInfoBox", a, trace);
 	return GF_OK;
 }
 
@@ -1882,7 +1912,7 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", LLD_CAST iee->extent_offset, LLD_CAST iee->extent_length);
 		}
 	}
-	fprintf(trace, "</ItemLocationBox>\n");
+	gf_box_dump_done("ItemLocationBox", a, trace);
 	return GF_OK;
 }
 
@@ -1894,8 +1924,7 @@ GF_Err hinf_dump(GF_Box *a, FILE * trace)
 	p = (GF_HintInfoBox *)a;
 	fprintf(trace, "<HintInfoBox>\n");
 	DumpBox(a, trace);
-	gf_box_array_dump(p->boxList, trace);
-	fprintf(trace, "</HintInfoBox>\n");
+	gf_box_dump_done("HintInfoBox", a, trace);
 	return GF_OK;
 }
 
@@ -1906,7 +1935,7 @@ GF_Err trpy_dump(GF_Box *a, FILE * trace)
 	p = (GF_TRPYBox *)a;
 	fprintf(trace, "<LargeTotalRTPBytesBox RTPBytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</LargeTotalRTPBytesBox>\n");
+	gf_box_dump_done("LargeTotalRTPBytesBox", a, trace);
 	return GF_OK;
 }
 
@@ -1917,7 +1946,7 @@ GF_Err totl_dump(GF_Box *a, FILE * trace)
 	p = (GF_TOTLBox *)a;
 	fprintf(trace, "<TotalRTPBytesBox RTPBytesSent=\"%d\">\n", p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</TotalRTPBytesBox>\n");
+	gf_box_dump_done("TotalRTPBytesBox", a, trace);
 	return GF_OK;
 }
 
@@ -1928,7 +1957,7 @@ GF_Err nump_dump(GF_Box *a, FILE * trace)
 	p = (GF_NUMPBox *)a;
 	fprintf(trace, "<LargeTotalPacketBox PacketsSent=\""LLD"\">\n", LLD_CAST p->nbPackets);
 	DumpBox(a, trace);
-	fprintf(trace, "</LargeTotalPacketBox>\n");
+	gf_box_dump_done("LargeTotalPacketBox", a, trace);
 	return GF_OK;
 }
 
@@ -1939,7 +1968,7 @@ GF_Err npck_dump(GF_Box *a, FILE * trace)
 	p = (GF_NPCKBox *)a;
 	fprintf(trace, "<TotalPacketBox packetsSent=\"%d\">\n", p->nbPackets);
 	DumpBox(a, trace);
-	fprintf(trace, "</TotalPacketBox>\n");
+	gf_box_dump_done("TotalPacketBox", a, trace);
 	return GF_OK;
 }
 
@@ -1950,7 +1979,7 @@ GF_Err tpyl_dump(GF_Box *a, FILE * trace)
 	p = (GF_NTYLBox *)a;
 	fprintf(trace, "<LargeTotalMediaBytesBox BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</LargeTotalMediaBytesBox>\n");
+	gf_box_dump_done("LargeTotalMediaBytesBox", a, trace);
 	return GF_OK;
 }
 
@@ -1961,7 +1990,7 @@ GF_Err tpay_dump(GF_Box *a, FILE * trace)
 	p = (GF_TPAYBox *)a;
 	fprintf(trace, "<TotalMediaBytesBox BytesSent=\"%d\">\n", p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</TotalMediaBytesBox>\n");
+	gf_box_dump_done("TotalMediaBytesBox", a, trace);
 	return GF_OK;
 }
 
@@ -1971,7 +2000,7 @@ GF_Err maxr_dump(GF_Box *a, FILE * trace)
 	p = (GF_MAXRBox *)a;
 	fprintf(trace, "<MaxDataRateBox MaxDataRate=\"%d\" Granularity=\"%d\">\n", p->maxDataRate, p->granularity);
 	DumpBox(a, trace);
-	fprintf(trace, "</MaxDataRateBox>\n");
+	gf_box_dump_done("MaxDataRateBox", a, trace);
 	return GF_OK;
 }
 
@@ -1982,7 +2011,7 @@ GF_Err dmed_dump(GF_Box *a, FILE * trace)
 	p = (GF_DMEDBox *)a;
 	fprintf(trace, "<BytesFromMediaTrackBox BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</BytesFromMediaTrackBox>\n");
+	gf_box_dump_done("BytesFromMediaTrackBox", a, trace);
 	return GF_OK;
 }
 
@@ -1993,7 +2022,7 @@ GF_Err dimm_dump(GF_Box *a, FILE * trace)
 	p = (GF_DIMMBox *)a;
 	fprintf(trace, "<ImmediateDataBytesBox BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</ImmediateDataBytesBox>\n");
+	gf_box_dump_done("ImmediateDataBytesBox", a, trace);
 	return GF_OK;
 }
 
@@ -2004,7 +2033,7 @@ GF_Err drep_dump(GF_Box *a, FILE * trace)
 	p = (GF_DREPBox *)a;
 	fprintf(trace, "<RepeatedDataBytesBox RepeatedBytes=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
-	fprintf(trace, "</RepeatedDataBytesBox>\n");
+	gf_box_dump_done("RepeatedDataBytesBox", a, trace);
 	return GF_OK;
 }
 
@@ -2015,7 +2044,7 @@ GF_Err tmin_dump(GF_Box *a, FILE * trace)
 	p = (GF_TMINBox *)a;
 	fprintf(trace, "<MinTransmissionTimeBox MinimumTransmitTime=\"%d\">\n", p->minTime);
 	DumpBox(a, trace);
-	fprintf(trace, "</MinTransmissionTimeBox>\n");
+	gf_box_dump_done("MinTransmissionTimeBox", a, trace);
 	return GF_OK;
 }
 
@@ -2026,7 +2055,7 @@ GF_Err tmax_dump(GF_Box *a, FILE * trace)
 	p = (GF_TMAXBox *)a;
 	fprintf(trace, "<MaxTransmissionTimeBox MaximumTransmitTime=\"%d\">\n", p->maxTime);
 	DumpBox(a, trace);
-	fprintf(trace, "</MaxTransmissionTimeBox>\n");
+	gf_box_dump_done("MaxTransmissionTimeBox", a, trace);
 	return GF_OK;
 }
 
@@ -2037,7 +2066,7 @@ GF_Err pmax_dump(GF_Box *a, FILE * trace)
 	p = (GF_PMAXBox *)a;
 	fprintf(trace, "<MaxPacketSizeBox MaximumSize=\"%d\">\n", p->maxSize);
 	DumpBox(a, trace);
-	fprintf(trace, "</MaxPacketSizeBox>\n");
+	gf_box_dump_done("MaxPacketSizeBox", a, trace);
 	return GF_OK;
 }
 
@@ -2048,7 +2077,7 @@ GF_Err dmax_dump(GF_Box *a, FILE * trace)
 	p = (GF_DMAXBox *)a;
 	fprintf(trace, "<MaxPacketDurationBox MaximumDuration=\"%d\">\n", p->maxDur);
 	DumpBox(a, trace);
-	fprintf(trace, "</MaxPacketDurationBox>\n");
+	gf_box_dump_done("MaxPacketDurationBox", a, trace);
 	return GF_OK;
 }
 
@@ -2059,7 +2088,7 @@ GF_Err payt_dump(GF_Box *a, FILE * trace)
 	p = (GF_PAYTBox *)a;
 	fprintf(trace, "<PayloadTypeBox PayloadID=\"%d\" PayloadString=\"%s\">\n", p->payloadCode, p->payloadString);
 	DumpBox(a, trace);
-	fprintf(trace, "</PayloadTypeBox>\n");
+	gf_box_dump_done("PayloadTypeBox", a, trace);
 	return GF_OK;
 }
 
@@ -2070,7 +2099,7 @@ GF_Err name_dump(GF_Box *a, FILE * trace)
 	p = (GF_NameBox *)a;
 	fprintf(trace, "<NameBox Name=\"%s\">\n", p->string);
 	DumpBox(a, trace);
-	fprintf(trace, "</NameBox>\n");
+	gf_box_dump_done("NameBox", a, trace);
 	return GF_OK;
 }
 
@@ -2081,7 +2110,7 @@ GF_Err rely_dump(GF_Box *a, FILE * trace)
 	p = (GF_RelyHintBox *)a;
 	fprintf(trace, "<RelyTransmissionBox Prefered=\"%d\" required=\"%d\">\n", p->prefered, p->required);
 	DumpBox(a, trace);
-	fprintf(trace, "</RelyTransmissionBox>\n");
+	gf_box_dump_done("RelyTransmissionBox", a, trace);
 	return GF_OK;
 }
 
@@ -2092,7 +2121,7 @@ GF_Err snro_dump(GF_Box *a, FILE * trace)
 	p = (GF_SeqOffHintEntryBox *)a;
 	fprintf(trace, "<PacketSequenceOffsetBox SeqNumOffset=\"%d\">\n", p->SeqOffset);
 	DumpBox(a, trace);
-	fprintf(trace, "</PacketSequenceOffsetBox>\n");
+	gf_box_dump_done("PacketSequenceOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -2103,7 +2132,7 @@ GF_Err tims_dump(GF_Box *a, FILE * trace)
 	p = (GF_TSHintEntryBox *)a;
 	fprintf(trace, "<RTPTimeScaleBox TimeScale=\"%d\">\n", p->timeScale);
 	DumpBox(a, trace);
-	fprintf(trace, "</RTPTimeScaleBox>\n");
+	gf_box_dump_done("RTPTimeScaleBox", a, trace);
 	return GF_OK;
 }
 
@@ -2114,7 +2143,7 @@ GF_Err tsro_dump(GF_Box *a, FILE * trace)
 	p = (GF_TimeOffHintEntryBox *)a;
 	fprintf(trace, "<TimeStampOffsetBox TimeStampOffset=\"%d\">\n", p->TimeOffset);
 	DumpBox(a, trace);
-	fprintf(trace, "</TimeStampOffsetBox>\n");
+	gf_box_dump_done("TimeStampOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -2129,7 +2158,7 @@ GF_Err ghnt_dump(GF_Box *a, FILE * trace)
 
 	DumpBox(a, trace);
 	gf_box_array_dump(p->HintDataTable, trace);
-	fprintf(trace, "</GenericHintSampleEntryBox>\n");
+	gf_box_dump_done("GenericHintSampleEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -2145,17 +2174,17 @@ GF_Err hnti_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	i=0;
-	while ((ptr = (GF_Box *)gf_list_enum(p->boxList, &i))) {
+	while ((ptr = (GF_Box *)gf_list_enum(p->other_boxes, &i))) {
 		if (ptr->type !=GF_ISOM_BOX_TYPE_RTP) {
 			gf_box_dump(ptr, trace);
 		} else {
 			rtp = (GF_RTPBox *)ptr;
 			fprintf(trace, "<RTPInfoBox subType=\"%s\">\n", gf_4cc_to_str(rtp->subType));
 			fprintf(trace, "<!-- sdp text: %s -->\n", rtp->sdpText);
-			fprintf(trace, "</RTPInfoBox>\n");
+			gf_box_dump_done("RTPInfoBox", a, trace);
 		}
 	}
-	fprintf(trace, "</HintTrackInfoBox>\n");
+	gf_box_dump_done("HintTrackInfoBox", NULL, trace);
 	return GF_OK;
 }
 
@@ -2167,7 +2196,7 @@ GF_Err sdp_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SDPBox>\n");
 	DumpBox(a, trace);
 	fprintf(trace, "<!-- sdp text: %s -->\n", p->sdpText);
-	fprintf(trace, "</SDPBox>\n");
+	gf_box_dump_done("SDPBox", a, trace);
 	return GF_OK;
 }
 
@@ -2178,7 +2207,7 @@ GF_Err rtpo_dump(GF_Box *a, FILE * trace)
 	p = (GF_RTPOBox *)a;
 	fprintf(trace, "<RTPTimeOffsetBox PacketTimeOffset=\"%d\">\n", p->timeOffset);
 	DumpBox(a, trace);
-	fprintf(trace, "</RTPTimeOffsetBox>\n");
+	gf_box_dump_done("RTPTimeOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -2195,7 +2224,7 @@ GF_Err mvex_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->mehd) gf_box_dump(p->mehd, trace);
 	gf_box_array_dump(p->TrackExList, trace);
-	fprintf(trace, "</MovieExtendsBox>\n");
+	gf_box_dump_done("MovieExtendsBox", a, trace);
 	return GF_OK;
 }
 
@@ -2205,7 +2234,7 @@ GF_Err mehd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<MovieExtendsHeaderBox fragmentDuration=\""LLD"\" >\n", LLD_CAST p->fragment_duration);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</MovieExtendsHeaderBox>\n");
+	gf_box_dump_done("MovieExtendsHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -2223,7 +2252,7 @@ GF_Err trex_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</TrackExtendsBox>\n");
+	gf_box_dump_done("TrackExtendsBox", a, trace);
 	return GF_OK;
 }
 
@@ -2237,7 +2266,7 @@ GF_Err moof_dump(GF_Box *a, FILE * trace)
 
 	if (p->mfhd) gf_box_dump(p->mfhd, trace);
 	gf_box_array_dump(p->TrackList, trace);
-	fprintf(trace, "</MovieFragmentBox>\n");
+	gf_box_dump_done("MovieFragmentBox", a, trace);
 	return GF_OK;
 }
 
@@ -2249,7 +2278,7 @@ GF_Err mfhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<MovieFragmentHeaderBox FragmentSequenceNumber=\"%d\">\n", p->sequence_number);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</MovieFragmentHeaderBox>\n");
+	gf_box_dump_done("MovieFragmentHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -2266,9 +2295,9 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	if (p->tfdt) gf_box_dump(p->tfdt, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
-	if (p->other_boxes) gf_box_array_dump(p->other_boxes, trace);
 	gf_box_array_dump(p->TrackRuns, trace);
-	fprintf(trace, "</TrackFragmentBox>\n");
+	if (p->piff_sample_encryption) gf_box_dump(p->piff_sample_encryption, trace);
+	gf_box_dump_done("TrackFragmentBox", a, trace);
 	return GF_OK;
 }
 
@@ -2297,7 +2326,7 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</TrackFragmentHeaderBox>\n");
+	gf_box_dump_done("TrackFragmentHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -2341,7 +2370,7 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<!-- all default values used -->\n");
 	}
-	fprintf(trace, "</TrackRunBox>\n");
+	gf_box_dump_done("TrackRunBox", a, trace);
 	return GF_OK;
 }
 
@@ -2545,7 +2574,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		return GF_BAD_PARAM;
 	}
 
-	txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+	txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
 		break;
@@ -2564,9 +2593,9 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 #endif
 	fprintf(dump, "<TextStreamHeader width=\"%d\" height=\"%d\" layer=\"%d\" translation_x=\"%d\" translation_y=\"%d\">\n", trak->Header->width >> 16 , trak->Header->height >> 16, trak->Header->layer, trak->Header->matrix[6] >> 16, trak->Header->matrix[7] >> 16);
 
-	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	for (i=0; i<nb_descs; i++) {
-		GF_Tx3gSampleEntryBox *txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+		GF_Tx3gSampleEntryBox *txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
 
 		fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
 		switch (txt->horizontal_justification) {
@@ -2838,7 +2867,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		txt = gf_isom_parse_texte_sample(bs);
 		gf_bs_del(bs);
 
-		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, di-1);
+		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, di-1);
 
 		if (!txt->len) {
 			fprintf(dump, "\n");
@@ -3042,7 +3071,7 @@ GF_Err sinf_dump(GF_Box *a, FILE * trace)
 	gf_box_dump(p->original_format, trace);
 	gf_box_dump(p->scheme_type, trace);
 	gf_box_dump(p->info, trace);
-	fprintf(trace, "</ProtectionInfoBox>\n");
+	gf_box_dump_done("ProtectionInfoBox", a, trace);
 	return GF_OK;
 }
 
@@ -3052,7 +3081,7 @@ GF_Err frma_dump(GF_Box *a, FILE * trace)
 	p = (GF_OriginalFormatBox *)a;
 	fprintf(trace, "<OriginalFormatBox data_format=\"%s\">\n", gf_4cc_to_str(p->data_format));
 	DumpBox(a, trace);
-	fprintf(trace, "</OriginalFormatBox>\n");
+	gf_box_dump_done("OriginalFormatBox", a, trace);
 	return GF_OK;
 }
 
@@ -3066,7 +3095,7 @@ GF_Err schm_dump(GF_Box *a, FILE * trace)
 
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</SchemeTypeBox>\n");
+	gf_box_dump_done("SchemeTypeBox", a, trace);
 	return GF_OK;
 }
 
@@ -3080,8 +3109,7 @@ GF_Err schi_dump(GF_Box *a, FILE * trace)
 	if (p->isfm) gf_box_dump(p->isfm, trace);
 	if (p->okms) gf_box_dump(p->okms, trace);
 	if (p->tenc) gf_box_dump(p->tenc, trace);
-	gf_box_array_dump(p->other_boxes, trace);
-	fprintf(trace, "</SchemeInformationBox>\n");
+	gf_box_dump_done("SchemeInformationBox", a, trace);
 	return GF_OK;
 }
 
@@ -3093,7 +3121,7 @@ GF_Err iKMS_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	fprintf(trace, "</ISMAKMSBox>\n");
+	gf_box_dump_done("ISMAKMSBox", a, trace);
 	return GF_OK;
 
 }
@@ -3107,6 +3135,7 @@ GF_Err iSFM_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n", name);
 	return GF_OK;
 }
@@ -3264,6 +3293,7 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 	if (itune->data)
 		gf_full_box_dump((GF_Box *)itune->data, trace);
 	DumpBox(a, trace);
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sBox>\n", name);
 	return GF_OK;
 }
@@ -3279,11 +3309,11 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	i=0;
-	while ( (tag = gf_list_enum(ptr->tags, &i))) {
+	while ( (tag = gf_list_enum(ptr->other_boxes, &i))) {
 		e = apple_tag_dump(tag, trace);
 		if(e) return e;
 	}
-	fprintf(trace, "</ItemListBox>\n");
+	gf_box_dump_done("ItemListBox", NULL, trace);
 	return GF_OK;
 }
 
@@ -3329,8 +3359,7 @@ GF_Err ohdr_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, ">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
-	gf_box_array_dump(ptr->ExtendedHeaders, trace);
-	fprintf(trace, "</OMADRMCommonHeaderBox>\n");
+	gf_box_dump_done("OMADRMCommonHeaderBox", a, trace);
 	return GF_OK;
 }
 GF_Err grpi_dump(GF_Box *a, FILE * trace)
@@ -3340,7 +3369,7 @@ GF_Err grpi_dump(GF_Box *a, FILE * trace)
 	DumpData(trace, ptr->GroupKey, ptr->GKLength);
 	fprintf(trace, ">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
-	fprintf(trace, "</OMADRMGroupIDBox>\n");
+	gf_box_dump_done("OMADRMGroupIDBox", a, trace);
 	return GF_OK;
 }
 GF_Err mdri_dump(GF_Box *a, FILE * trace)
@@ -3348,8 +3377,7 @@ GF_Err mdri_dump(GF_Box *a, FILE * trace)
 	GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox*)a;
 	fprintf(trace, "<OMADRMMutableInformationBox>\n");
 	gf_box_dump((GF_Box *)a, trace);
-	gf_box_array_dump(ptr->boxes, trace);
-	fprintf(trace, "</OMADRMMutableInformationBox>\n");
+	gf_box_dump_done("OMADRMMutableInformationBox", a, trace);
 	return GF_OK;
 }
 GF_Err odtt_dump(GF_Box *a, FILE * trace)
@@ -3359,7 +3387,7 @@ GF_Err odtt_dump(GF_Box *a, FILE * trace)
 	DumpData(trace, ptr->TransactionID, 16);
 	fprintf(trace, "\">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
-	fprintf(trace, "</OMADRMTransactionTrackingBox>\n");
+	gf_box_dump_done("OMADRMTransactionTrackingBox", a, trace);
 	return GF_OK;
 }
 GF_Err odrb_dump(GF_Box *a, FILE * trace)
@@ -3369,7 +3397,7 @@ GF_Err odrb_dump(GF_Box *a, FILE * trace)
 	DumpData(trace, ptr->oma_ro, ptr->oma_ro_size);
 	fprintf(trace, "\">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
-	fprintf(trace, "</OMADRMRightsObjectBox>\n");
+	gf_box_dump_done("OMADRMRightsObjectBox", a, trace);
 	return GF_OK;
 }
 GF_Err odkm_dump(GF_Box *a, FILE * trace)
@@ -3379,7 +3407,7 @@ GF_Err odkm_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump((GF_Box *)a, trace);
 	if (ptr->hdr) gf_box_dump((GF_Box *)ptr->hdr, trace);
 	if (ptr->fmt) gf_box_dump((GF_Box *)ptr->fmt, trace);
-	fprintf(trace, "</OMADRMKMSBox>\n");
+	gf_box_dump_done("OMADRMKMSBox", a, trace);
 	return GF_OK;
 }
 
@@ -3389,7 +3417,7 @@ GF_Err pasp_dump(GF_Box *a, FILE * trace)
 	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox*)a;
 	fprintf(trace, "<PixelAspectRatioBox hSpacing=\"%d\" vSpacing=\"%d\" >\n", ptr->hSpacing, ptr->vSpacing);
 	DumpBox((GF_Box *)a, trace);
-	fprintf(trace, "</PixelAspectRatioBox>\n");
+	gf_box_dump_done("PixelAspectRatioBox", a, trace);
 	return GF_OK;
 }
 
@@ -3405,7 +3433,7 @@ GF_Err tsel_dump(GF_Box *a, FILE * trace)
 	}
 	fprintf(trace, "\">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
-	fprintf(trace, "</TrackSelectionBox>\n");
+	gf_box_dump_done("TrackSelectionBox", a, trace);
 	return GF_OK;
 }
 
@@ -3428,6 +3456,7 @@ GF_Err metx_dump(GF_Box *a, FILE * trace)
 	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
 	gf_box_array_dump(ptr->protections, trace);
 
+	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n", name);
 	return GF_OK;
 }
@@ -3443,7 +3472,7 @@ GF_Err dims_dump(GF_Box *a, FILE * trace)
 	if (p->scripts) gf_box_dump(p->scripts, trace);
 	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	gf_box_array_dump(p->protections, trace);
-	fprintf(trace, "</DIMSSampleEntryBox>\n");
+	gf_box_dump_done("DIMSSampleEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -3453,7 +3482,7 @@ GF_Err diST_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "<DIMSScriptTypesBox types=\"%s\">\n", p->content_script_types);
 	DumpBox(a, trace);
-	fprintf(trace, "</DIMSScriptTypesBox>\n");
+	gf_box_dump_done("DIMSScriptTypesBox", a, trace);
 	return GF_OK;
 }
 GF_Err dimC_dump(GF_Box *a, FILE * trace)
@@ -3463,7 +3492,7 @@ GF_Err dimC_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<DIMSSceneConfigBox profile=\"%d\" level=\"%d\" pathComponents=\"%d\" useFullRequestHosts=\"%d\" streamType=\"%d\" containsRedundant=\"%d\" textEncoding=\"%s\" contentEncoding=\"%s\" >\n",
 		p->profile, p->level, p->pathComponents, p->fullRequestHost, p->streamType, p->containsRedundant, p->textEncoding, p->contentEncoding);
 	DumpBox(a, trace);
-	fprintf(trace, "</DIMSSceneConfigBox>\n");
+	gf_box_dump_done("DIMSSceneConfigBox", a, trace);
 	return GF_OK;
 }
 
@@ -3475,19 +3504,19 @@ GF_Err dac3_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<AC3SpecificBox fscod=\"%d\" bsid=\"%d\" bsmod=\"%d\" acmod=\"%d\" lfon=\"%d\" bit_rate_code=\"%d\">\n",
 		p->cfg.fscod, p->cfg.bsid, p->cfg.bsmod, p->cfg.acmod, p->cfg.lfon, p->cfg.brcode);
 	DumpBox(a, trace);
-	fprintf(trace, "</AC3SpecificBox>\n");
+	gf_box_dump_done("AC3SpecificBox", a, trace);
 	return GF_OK;
 }
 
 GF_Err ac3_dump(GF_Box *a, FILE * trace)
 {
 	GF_AC3SampleEntryBox *p = (GF_AC3SampleEntryBox *)a;
-	fprintf(trace, "<AC3SampleEntry");
+	fprintf(trace, "<AC3SampleEntryBox");
 	base_audio_entry_dump((GF_AudioSampleEntryBox *)p, trace);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_box_dump(p->info, trace);
-	fprintf(trace, "</AC3SampleEntry>\n");
+	gf_box_dump_done("AC3SampleEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -3499,19 +3528,19 @@ GF_Err lsrc_dump(GF_Box *a, FILE * trace)
 	dump_data(trace, "LASeRHeader", p->hdr, p->hdr_size);
 	fprintf(trace, ">");
 	DumpBox(a, trace);
-	fprintf(trace, "</LASeRConfigurationBox>");
+	gf_box_dump_done("LASeRConfigurationBox", a, trace);
 	return GF_OK;
 }
 
 GF_Err lsr1_dump(GF_Box *a, FILE * trace)
 {
 	GF_LASeRSampleEntryBox *p = (GF_LASeRSampleEntryBox*)a;
-	fprintf(trace, "<LASeRSampleEntry DataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
+	fprintf(trace, "<LASeRSampleEntryBox DataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
 	DumpBox(a, trace);
 	if (p->lsr_config) gf_box_dump(p->lsr_config, trace);
 	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	if (p->descr) gf_box_dump(p->descr, trace);
-	fprintf(trace, "</LASeRSampleEntry>\n");
+	gf_box_dump_done("LASeRSampleEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -3527,7 +3556,7 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->nb_refs; i++) {
 		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}
-	fprintf(trace, "</SegmentIndexBox>\n");
+	gf_box_dump_done("SegmentIndexBox", a, trace);
 	return GF_OK;
 }
 
@@ -3541,7 +3570,7 @@ GF_Err pcrb_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<p->subsegment_count; i++) {
 		fprintf(trace, "<PCRInfo PCR=\""LLU"\" />\n", p->pcr_values[i]);
 	}
-	fprintf(trace, "</MPEG2TSPCRInfoBox>\n");
+	gf_box_dump_done("MPEG2TSPCRInfoBox", a, trace);
 	return GF_OK;
 }
 
@@ -3549,7 +3578,7 @@ GF_Err subs_dump(GF_Box *a, FILE * trace)
 {
 	u32 entry_count, i, j;
 	u16 subsample_count;
-	GF_SampleEntry *pSamp;
+	GF_SubSampleInfoEntry *pSamp;
 	GF_SubSampleEntry *pSubSamp;
 	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) a;
 
@@ -3560,7 +3589,7 @@ GF_Err subs_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	for (i=0; i<entry_count; i++) {
-		pSamp = (GF_SampleEntry*) gf_list_get(ptr->Samples, i);
+		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
 
 		subsample_count = gf_list_count(pSamp->SubSamples);
 
@@ -3573,7 +3602,7 @@ GF_Err subs_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "</SampleEntry>\n");
 	} 
 
-	fprintf(trace, "</SubSampleInformationBox>\n");
+	gf_box_dump_done("SubSampleInformationBox", a, trace);
 	return GF_OK;
 }
 
@@ -3586,7 +3615,7 @@ GF_Err tfdt_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackFragmentBaseMediaDecodeTimeBox baseMediaDecodeTime=\""LLD"\">\n", ptr->baseMediaDecodeTime);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "</TrackFragmentBaseMediaDecodeTimeBox>\n");
+	gf_box_dump_done("TrackFragmentBaseMediaDecodeTimeBox", a, trace);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -3600,7 +3629,7 @@ GF_Err rvcc_dump(GF_Box *a, FILE * trace)
 	if (! ptr->predefined_rvc_config) fprintf(trace, " rvc_meta_idx=\"%d\"", ptr->rvc_meta_idx);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
-	fprintf(trace, "</RVCConfigurationBox>\n");
+	gf_box_dump_done("RVCConfigurationBox", a, trace);
 	return GF_OK;
 }
 
@@ -3618,7 +3647,7 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<ptr->entry_count; i++) {
 		fprintf(trace, "<SampleGroupBoxEntry sample_count=\"%d\" group_description_index=\"%d\"/>\n", ptr->sample_entries[i].sample_count, ptr->sample_entries[i].group_description_index );
 	}
-	fprintf(trace, "</SampleGroupBox>\n");
+	gf_box_dump_done("SampleGroupBox", a, trace);
 	return GF_OK;
 }
 
@@ -3650,7 +3679,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "\"/>\n");
 		}
 	}
-	fprintf(trace, "</SampleGroupDescriptionBox>\n");
+	gf_box_dump_done("SampleGroupDescriptionBox", a, trace);
 	return GF_OK;
 }
 
@@ -3661,7 +3690,7 @@ GF_Err saiz_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<SampleAuxiliaryInfoSizeBox default_sample_info_size=\"%d\" sample_count=\"%d\"", ptr->default_sample_info_size, ptr->sample_count);
-	if (ptr->flags & 1) fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type_parameter);
+	if (ptr->flags & 1) fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type, ptr->aux_info_type_parameter);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -3670,7 +3699,7 @@ GF_Err saiz_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<SAISize size=\"%d\" />\n", ptr->sample_info_size[i]);
 		}
 	}
-	fprintf(trace, "</SampleAuxiliaryInfoSizeBox>\n");
+	gf_box_dump_done("SampleAuxiliaryInfoSizeBox", a, trace);
 	return GF_OK;
 }
 
@@ -3681,7 +3710,7 @@ GF_Err saio_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<SampleAuxiliaryInfoOffsetBox entry_count=\"%d\"", ptr->entry_count);
-	if (ptr->flags & 1) fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type_parameter);
+	if (ptr->flags & 1) fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type, ptr->aux_info_type_parameter);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -3697,7 +3726,7 @@ GF_Err saio_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<SAIChunkOffset offset=\""LLD"\"/>\n", ptr->offsets_large[i]);
 		}
 	}
-	fprintf(trace, "</SampleAuxiliaryInfoOffsetBox>\n");
+	gf_box_dump_done("SampleAuxiliaryInfoOffsetBox", a, trace);
 	return GF_OK;
 }
 
@@ -3725,7 +3754,7 @@ GF_Err pssh_dump(GF_Box *a, FILE * trace)
 		DumpData(trace, ptr->private_data, ptr->private_data_size);
 		fprintf(trace, "\"/>\n");
 	}
-	fprintf(trace, "</ProtectionSystemHeaderBox>\n");
+	gf_box_dump_done("ProtectionSystemHeaderBox", a, trace);
 	return GF_OK;
 }
 
@@ -3739,7 +3768,82 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
-	fprintf(trace, "</TrackEncryptionBox>\n");
+	gf_box_dump_done("TrackEncryptionBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err piff_pssh_dump(GF_Box *a, FILE * trace)
+{
+	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<PIFFProtectionSystemHeaderBox SystemID=\"");
+	DumpDataHex(trace, ptr->SystemID, 16);
+	fprintf(trace, "\" PrivateData=\"");
+	DumpDataHex(trace, ptr->private_data, ptr->private_data_size);
+	fprintf(trace, "\">\n");
+	DumpBox(a, trace);
+	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
+	gf_box_dump_done("PIFFProtectionSystemHeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
+{
+	GF_PIFFTrackEncryptionBox *ptr = (GF_PIFFTrackEncryptionBox*) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<PIFFTrackEncryptionBox AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
+	DumpData(trace, ptr->KID, 16);
+	fprintf(trace, "\">\n");
+	DumpBox(a, trace);
+	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
+	gf_box_dump_done("PIFFTrackEncryptionBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
+{
+	u32 IV_size = 0;
+	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *) a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<PIFFSampleEncryptionBox sampleCount=\"%d\"", ptr->sample_count);
+	if (ptr->flags & 1) {
+		fprintf(trace, " default_AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
+		DumpData(trace, ptr->KID, 16);
+		fprintf(trace, "\"");
+		IV_size = 0;
+	}
+	fprintf(trace, ">\n");
+	DumpBox(a, trace);
+	if (ptr->cenc_data) {
+		GF_Err e = GF_EOS;
+		u32 i, j;
+		for (i=0; i<ptr->sample_count; i++) {
+			GF_CENCSampleInfo *cenc_sample = gf_isom_cenc_get_sample(ptr->traf->trex->track, ptr->traf, i+1);
+
+			if (cenc_sample) {
+				fprintf(trace, "<PIFFSampleEncryptionEntry IV=\"");
+				DumpDataHex(trace, cenc_sample->IV, IV_size);
+				fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
+				if (cenc_sample->is_alt_info) {
+					fprintf(trace, " AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", cenc_sample->algo_id, cenc_sample->IV_size);
+					DumpDataHex(trace, cenc_sample->keyID, 16);
+					fprintf(trace, "\"");
+				}
+				fprintf(trace, ">\n");
+				
+				for (j=0; j<cenc_sample->subsample_count; j++) {
+					fprintf(trace, "<PIFFSubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
+				}
+				fprintf(trace, "</PIFFSampleEncryptionEntry>\n");
+	
+				gf_isom_cenc_sample_del(cenc_sample);
+			}
+		}
+	}
+	gf_box_dump_done("PIFFSampleEncryptionBox", a, trace);
 	return GF_OK;
 }
 

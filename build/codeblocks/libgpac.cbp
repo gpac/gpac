@@ -437,7 +437,7 @@
 		<Unit filename="../../src/isomedia/box_code_base.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../src/isomedia/box_code_isma.c">
+		<Unit filename="../../src/isomedia/box_code_drm.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../src/isomedia/box_code_meta.c">
@@ -458,7 +458,7 @@
 		<Unit filename="../../src/isomedia/hinting.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../src/isomedia/isma_sample.c">
+		<Unit filename="../../src/isomedia/drm_sample.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../src/isomedia/isom_intern.c">

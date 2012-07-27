@@ -51,7 +51,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 		return GF_BAD_PARAM;
 	}
 
-	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex - 1);
+	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
@@ -113,8 +113,8 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 
 	txt = (GF_Tx3gSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TX3G);
 	txt->dataReferenceIndex = dataRefIndex;
-	gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, txt);
-	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, txt);
+	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
 	txt->back_color = desc->back_color; 
 	txt->default_box = desc->default_pos;
@@ -370,10 +370,10 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 		return GF_BAD_PARAM;
 	}
 
-	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	for (i=0; i<count; i++) {
 		Bool same_fonts;
-		txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+		txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
 		if (!txt) continue;
 		if ((txt->type != GF_ISOM_BOX_TYPE_TX3G) && (txt->type != GF_ISOM_BOX_TYPE_TEXT)) continue;
 		if (txt->back_color != desc->back_color) continue;
@@ -592,7 +592,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	GF_TrackBox *tk;
 
 	*out_esd = NULL;
-	sampleDesc = mdia->information->sampleTable->SampleDescription->boxList;
+	sampleDesc = mdia->information->sampleTable->SampleDescription->other_boxes;
 	count = gf_list_count(sampleDesc);
 	if (!count) return GF_ISOM_INVALID_MEDIA;
 	
@@ -705,7 +705,7 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
-	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sidx-1);
+	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sidx-1);
 	if (!a) return GF_BAD_PARAM;
 	if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT)) return GF_BAD_PARAM;
 	

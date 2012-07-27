@@ -1626,7 +1626,7 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSam
 GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber)
 {
 	u32 i, count, last_sample;
-	GF_SampleEntry *sub_sample;
+	GF_SubSampleInfoEntry *sub_sample;
 	GF_Err e;
 	GF_TrackBox *trak;
 	GF_TrackFragmentBox *traf;

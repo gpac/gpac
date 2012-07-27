@@ -316,7 +316,7 @@ GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceType
 	}
 	ref = trak->References;
 	i=0;
-	while ((a = (GF_TrackReferenceTypeBox *)gf_list_enum(ref->boxList, &i))) {
+	while ((a = (GF_TrackReferenceTypeBox *)gf_list_enum(ref->other_boxes, &i))) {
 		if (a->reference_type == ReferenceType) {
 			*dpnd = a;
 			return GF_OK;
@@ -600,10 +600,10 @@ GF_Err Track_RemoveRef(GF_TrackBox *trak, u32 ReferenceType)
 	if (! trak->References) return GF_OK;
 	ref = trak->References;
 	i=0;
-	while ((a = (GF_Box *)gf_list_enum(ref->boxList, &i))) {
+	while ((a = (GF_Box *)gf_list_enum(ref->other_boxes, &i))) {
 		if (a->type == ReferenceType) {
 			gf_isom_box_del(a);
-			gf_list_rem(ref->boxList, i-1);
+			gf_list_rem(ref->other_boxes, i-1);
 			return GF_OK;
 		}
 	}
@@ -848,7 +848,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 
 	//we have a streamDescritpionIndex, use it
 	if (StreamDescriptionIndex) {
-		entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, StreamDescriptionIndex - 1);
+		entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex - 1);
 		if (!entry) return GF_ISOM_INVALID_FILE;
 
 		switch (entry->type) {
@@ -886,9 +886,9 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		}
 	} else {
 		//need to check we're not in URL mode where only ONE description is allowed...
-		StreamDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+		StreamDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 		if (StreamDescriptionIndex) {
-			entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, StreamDescriptionIndex - 1);
+			entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex - 1);
 			if (!entry) return GF_ISOM_INVALID_FILE;
 			if (entry->esd && entry->esd->desc->URLString) return GF_BAD_PARAM;
 		}
@@ -936,7 +936,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		//and add the entry to our table...
 		e = stsd_AddBox(trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry);
 		if (e) return e;
-		if(outStreamIndex) *outStreamIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+		if(outStreamIndex) *outStreamIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}
 	return GF_OK;
 }
