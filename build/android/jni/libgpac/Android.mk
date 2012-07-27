@@ -197,6 +197,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/isom_intern.c \
 	../../../../src/isomedia/isom_write.c \
 	../../../../src/isomedia/drm_sample.c \
+	../../../../src/isomedia/drm_sample.c \
+	../../../../src/isomedia/generic_subtitle.c \
 	../../../../src/isomedia/tx3g.c \
 	../../../../src/isomedia/hint_track.c \
 	../../../../src/isomedia/stbl_write.c \
