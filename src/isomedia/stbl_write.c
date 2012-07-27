@@ -202,6 +202,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 		ctts->entries[ctts->nb_entries].decodingOffset = CTSoffset;
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
 		ctts->nb_entries++;
+		ctts->w_LastSampleNumber++;
 		return GF_OK;
 	}
 	//check if we're working in order...
@@ -904,8 +905,8 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 	//first case, we're removing a sample that was not added yet
 	if (sampleNumber > ctts->w_LastSampleNumber) return GF_OK;
 
+	memmove(&ctts->entries[sampleNumber-1], &ctts->entries[sampleNumber], sizeof(GF_DttsEntry)* (ctts->nb_entries-sampleNumber) );
 	ctts->nb_entries--;
-	memmove(&ctts->entries[sampleNumber-1], &ctts->entries[sampleNumber], sizeof(GF_DttsEntry)*ctts->nb_entries);
 
 	ctts->w_LastSampleNumber -= 1;
 	return GF_OK;
