@@ -2655,7 +2655,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 
 
 	if (dash_duration) {
-		char *c, *f;
+		char *c, *f, *basename;
 		dumper.index_info.segment_duration = dash_duration;
 		dumper.index_info.segment_at_rap = seg_at_rap;
 		dumper.index_info.subsegs_per_segment = subseg_per_seg;
@@ -2664,12 +2664,16 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 		dumper.index_info.single_segment = single_segment;
 		dumper.index_info.seg_name = seg_name;
 		dumper.index_info.seg_ext = seg_ext ? seg_ext : "ts";
-		
-		c = strrchr(mpeg2ts_file, '.');
+	
+		basename = out_name ? out_name : mpeg2ts_file;
+		c = strrchr(basename, '.');
 		if (c) *c = 0;
-		f = strrchr(mpeg2ts_file, '/');
-		if (!f) f = strrchr(mpeg2ts_file, '\\');
-		sprintf(dumper.index_info.index_file_name, "%s_index.%s", f ? f+1 : mpeg2ts_file, (seg_ext?seg_ext:"didx"));
+		f = NULL;
+		if (!out_name) {
+			f = strrchr(basename, '/');
+			if (!f) f = strrchr(basename, '\\');
+		}
+		sprintf(dumper.index_info.index_file_name, "%s_index.%s", f ? f+1 : basename, (seg_ext?seg_ext:"didx"));
 		if (c) *c = '.';
 		
 		dumper.index_info.index_file = NULL;
@@ -2756,6 +2760,10 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num,
 			dumper.index_info.mpd_file = gf_f64_open(dumper.index_info.mpd_file_name, "wt");
 		} else {
 			dumper.index_info.mpd_file = gf_f64_open(dumper.index_info.mpd_file_name, "a+t");
+		}
+		if (!dumper.index_info.mpd_file) {
+			fprintf(stderr, "Cannot open file %s\n", dumper.index_info.mpd_file_name);
+			return;
 		}
 		dumper.index_info.represantation_idx = representation_idx;
 	}

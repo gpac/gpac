@@ -911,6 +911,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 			output = gf_isom_open(SegName, GF_ISOM_OPEN_WRITE, NULL);
 		}
 		if (!output) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOBMF DASH] Cannot open %s for writing\n", opt ? opt : SegName));
 			e = gf_isom_last_error(NULL);
 			goto err_exit;
 		}
@@ -1686,8 +1687,10 @@ err_exit:
 		}
 		gf_list_del(fragmenters);
 	}
-	if (e) gf_isom_delete(output);
-	else gf_isom_close(output);
+	if (output) {
+		if (e) gf_isom_delete(output);
+		else gf_isom_close(output);
+	}
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
 	if (SegName) gf_free(SegName);
 	if (mpd) fclose(mpd);
@@ -1704,7 +1707,10 @@ GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bo
 	u32 h, m;
 	Double s;
 	FILE *mpd = fopen(mpd_name, "wt");
-	if (!mpd) return GF_IO_ERR;
+	if (!mpd) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MPD] Cannot open MPD file %s for writing\n", mpd_name));
+		return GF_IO_ERR;
+	}
 
 	h = (u32) (period_duration/3600);
 	m = (u32) (period_duration-h*60)/60;

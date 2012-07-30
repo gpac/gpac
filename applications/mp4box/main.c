@@ -3295,9 +3295,9 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (!seg_name) use_url_template = 0;
 
-		gf_media_mpd_start(szMPD, (char *)gf_isom_get_filename(file), use_url_template, single_segment, dash_ctx, init_seg, period_duration);
+		e = gf_media_mpd_start(szMPD, (char *)gf_isom_get_filename(file), use_url_template, single_segment, dash_ctx, init_seg, period_duration);
 
-		for (i=0; i<nb_dash_inputs; i++) {
+		for (i=0; i<nb_dash_inputs && !e; i++) {
 			char szSegName[GF_MAX_PATH], *segment_name;
 			GF_ISOFile *in = file;
 			if (i) in = gf_isom_open(dash_inputs[i], GF_ISOM_OPEN_READ, NULL);
@@ -3335,14 +3335,16 @@ int mp4boxMain(int argc, char **argv)
 			if (i) gf_isom_close(in);
 		}
 		/*close MPD*/
-		gf_media_mpd_end(szMPD);
+		if (!e) e = gf_media_mpd_end(szMPD);
 		
-		/*if init segment shared, write to file*/
-		if (nb_dash_inputs>1) {
-			gf_isom_close(init_seg);
-		} else {
-			gf_isom_delete(init_seg);
-			gf_delete_file(szInit);
+		if (!e) {
+			/*if init segment shared, write to file*/
+			if (nb_dash_inputs>1) {
+				gf_isom_close(init_seg);
+			} else {
+				gf_isom_delete(init_seg);
+				gf_delete_file(szInit);
+			}
 		}
 
 		gf_isom_delete(file);
