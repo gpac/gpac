@@ -3821,6 +3821,7 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (ptr->cenc_data) {
 		u32 i, j;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		for (i=0; i<ptr->sample_count; i++) {
 			GF_CENCSampleInfo *cenc_sample = gf_isom_cenc_get_sample(ptr->traf->trex->track, ptr->traf, i+1);
 
@@ -3843,6 +3844,7 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 				gf_isom_cenc_sample_del(cenc_sample);
 			}
 		}
+#endif //	GPAC_DISABLE_ISOM_FRAGMENTS
 	}
 	gf_box_dump_done("PIFFSampleEncryptionBox", a, trace);
 	return GF_OK;

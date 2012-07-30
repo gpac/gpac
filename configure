@@ -2122,6 +2122,10 @@ if test "$cpu" = "sh4"; then
     fi
 fi
 
+if test "$disable_player" = "yes" ; then
+disable_scenegraph="yes"
+fi
+
 if test "$disable_scenegraph" = "yes" ; then
 disable_3d="yes"
 disable_svg="yes"
@@ -2141,7 +2145,15 @@ disable_loader_bt="yes"
 disable_loader_xmt="yes"
 disable_streaming="yes"
 disable_player="yes"
+disable_smgr="yes"
 has_js="no"
+fi
+
+
+if test "$disable_od_parse" = "yes" ; then
+disable_loader_isoff="yes"
+disable_loader_bt="yes"
+disable_loader_xmt="yes"
 fi
 
 if test "$disable_parsers" = "yes" ; then

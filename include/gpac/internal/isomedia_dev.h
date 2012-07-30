@@ -2083,8 +2083,10 @@ typedef struct __cenc_sample_info
 	GF_CENCSubSampleEntry *subsamples;
 } GF_CENCSampleInfo;
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_CENCSampleInfo *gf_isom_cenc_get_sample(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number);
 void gf_isom_cenc_sample_del(GF_CENCSampleInfo *samp);
+#endif
 
 
 typedef struct __piff_sample_enc_box
@@ -2101,8 +2103,10 @@ typedef struct __piff_sample_enc_box
 	u32 cenc_data_size;
 	char *cenc_data;
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*pointer to container traf*/
 	GF_TrackFragmentBox *traf;
+#endif
 } GF_PIFFSampleEncryptionBox;
 
 /*
@@ -2111,7 +2115,7 @@ typedef struct __piff_sample_enc_box
 
 /*regular file IO*/
 #define GF_ISOM_DATA_FILE			0x01
-/*File Mapaing object, read-only mode on complete files (no download)*/
+/*File Maping object, read-only mode on complete files (no download)*/
 #define GF_ISOM_DATA_FILE_MAPPING		0x02
 /*External file object. Needs implementation*/
 #define GF_ISOM_DATA_FILE_EXTERN		0x03

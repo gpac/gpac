@@ -1688,11 +1688,13 @@ void DumpMovieInfo(GF_ISOFile *file)
 	fprintf(stdout, "* Movie Info *\n\tTimescale %d - Duration %s\n\t%d track(s)\n",
 		timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_get_track_count(file));
 	
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_is_fragmented(file)) {
 		fprintf(stdout, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, 0) , gf_isom_get_fragments_count(file, 1) );
 	} else {
 		fprintf(stdout, "\tFragmented File: no\n");
 	}
+#endif
 
 	if (gf_isom_moov_first(file))
 		fprintf(stdout, "\tFile suitable for progressive download (moov before mdat)\n");
