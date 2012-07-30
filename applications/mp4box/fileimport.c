@@ -1598,6 +1598,9 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs) 
 {
+#ifdef GPAC_DISABLE_SMGR
+	return GF_NOT_SUPPORTED;
+#else
 	GF_Err e;
 	GF_SceneLoader load;
 	GF_SceneManager *ctx;
@@ -1723,6 +1726,8 @@ err_exit:
 	gf_sm_del(ctx);
 	gf_sg_del(sg);
 	return e;
+
+#endif /*GPAC_DISABLE_SMGR*/
 }
 #endif /*GPAC_DISABLE_SCENE_ENCODER*/
 
@@ -1739,6 +1744,7 @@ static u32 GetNbBits(u32 MaxVal)
 	return k;
 }
 
+#ifndef GPAC_DISABLE_SMGR
 GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCallback)(GF_ISOSample *))
 {
 	GF_Err			e;
@@ -1876,6 +1882,8 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	gf_bifs_encoder_del(bifsenc);
 	return e;
 }
+#endif /*GPAC_DISABLE_SMGR*/
+
 
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
@@ -1889,7 +1897,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {
-#if defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)
+#if defined(GPAC_DISABLE_SMGR) || defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)
 	fprintf(stdout, "BIFS encoding is not supported in this build of GPAC\n");
 	return GF_NOT_SUPPORTED;
 #else

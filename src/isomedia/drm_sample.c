@@ -513,6 +513,11 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+
+
 void gf_isom_cenc_sample_del(GF_CENCSampleInfo *samp)
 {
 	if (samp->subsamples) gf_free(samp->subsamples);
@@ -597,5 +602,8 @@ GF_CENCSampleInfo *gf_isom_cenc_get_sample(GF_TrackBox *trak, GF_TrackFragmentBo
 	}
 	return NULL;
 }
+
+#endif //	GPAC_DISABLE_ISOM_FRAGMENTS
+
 
 #endif /*GPAC_DISABLE_ISOM*/
