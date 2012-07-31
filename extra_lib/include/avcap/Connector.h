@@ -31,7 +31,11 @@
 
 #ifdef AVCAP_LINUX
 # include <linux/types.h>
-# include <linux/videodev.h>
+# ifdef AVCAP_HAVE_V4L2
+#  include <linux/videodev2.h>
+# else
+#  include <linux/videodev.h>
+# endif
 #endif
 
 #include <string>
@@ -73,7 +77,7 @@ namespace avcap
 	public:
 		//! The Constructor. Objects of this class are created by the ConnectorManager.
 		inline Connector(DeviceDescriptor *dd, int index, const std::string& name, int type=0, int audioset=0):
-			mDeviceDescriptor(dd), mIndex(index), mAudioset(audioset), mType(type), mName(name)
+			mDeviceDescriptor(dd), mIndex(index), mName(name), mType(type), mAudioset(audioset)
 			{}
 
 		//! The Destructor. 

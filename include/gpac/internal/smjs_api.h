@@ -43,6 +43,17 @@
 /*new APIs*/
 #if (JS_VERSION>=185)
 
+#ifdef USE_FFDEV_14
+#define USE_FFDEV_12
+#define JS_FinalizeStub	NULL
+
+#define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, __classp, __args)
+
+#else
+
+#define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, __args)
+
+#endif
 
 #ifdef USE_FFDEV_12
 typedef unsigned uintN;
@@ -70,8 +81,8 @@ typedef double jsdouble;
 #define SMJS_FREE(__c, __str)	if (__str) JS_free(__c, __str)
 
 
-#define SMJS_OBJ_CONSTRUCTOR	\
-	JSObject *obj = JS_NewObjectForConstructor(c, argsvp);	\
+#define SMJS_OBJ_CONSTRUCTOR(__classp)	\
+	JSObject *obj = JS_NEW_OBJ_FOR_CONS(c, __classp, argsvp);	\
 	SMJS_SET_RVAL(OBJECT_TO_JSVAL(obj));\
 
 #define JS_GetFunctionName(_v) (JS_GetFunctionId(_v)!=NULL) ? SMJS_CHARS_FROM_STRING(c, JS_GetFunctionId(_v)) : NULL
@@ -122,7 +133,7 @@ typedef double jsdouble;
 #define SMJS_FUNCTION_EXT(__name, __ext) __name(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, __ext)
 #define SMJS_ARGS
 #define SMJS_OBJ	
-#define SMJS_OBJ_CONSTRUCTOR
+#define SMJS_OBJ_CONSTRUCTOR(__classp)
 #define SMJS_GET_RVAL rval
 #define SMJS_SET_RVAL(__rval) *rval = __rval
 #define SMJS_CALL_ARGS	c, obj, argc, argv, rval
@@ -166,7 +177,7 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 	the_class.enumerate = JS_EnumerateStub;	\
 	the_class.resolve = JS_ResolveStub;		\
 	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;	\
+	the_class.finalize = (JSFinalizeOp) fin;	\
 	the_class.hasInstance = gf_sg_js_has_instance;
 
 

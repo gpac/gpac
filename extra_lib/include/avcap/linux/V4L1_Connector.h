@@ -26,12 +26,17 @@
 #define V4L1_CONNECTOR_H_
 
 #include <linux/types.h>
-#include <linux/videodev.h>
 
 #include <string>
 #include <list>
 
 #include "Connector.h"
+
+#ifdef AVCAP_HAVE_V4L2
+#include <linux/videodev2.h>
+#else
+#include <linux/videodev.h>
+#endif
 
 namespace avcap
 {	

@@ -26,7 +26,16 @@
 
 #include <string>
 #include <list>
+
+#if !defined(_MSC_VER) && !defined(USE_PREBUILD_LIBS)
+# include "avcap-config.h"
+#endif
+
+#ifdef AVCAP_HAVE_V4L2
+#include <linux/videodev2.h>
+#else
 #include <linux/videodev.h>
+#endif
 
 namespace avcap
 {

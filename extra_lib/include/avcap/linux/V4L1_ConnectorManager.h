@@ -25,10 +25,15 @@
 #ifndef V4L1_CONNECTORMANAGER_H_
 #define V4L1_CONNECTORMANAGER_H_
 
-#include <linux/videodev.h>
 #include <list>
 
 #include "ConnectorManager.h"
+
+#ifdef AVCAP_HAVE_V4L2
+#include <linux/videodev2.h>
+#else
+#include <linux/videodev.h>
+#endif
 
 namespace avcap
 {	
