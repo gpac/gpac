@@ -37,7 +37,11 @@
 
 #ifdef AVCAP_LINUX
 # include <linux/types.h>
-# include <linux/videodev.h>
+# ifdef AVCAP_HAVE_V4L2
+#  include <linux/videodev2.h>
+# else
+#  include <linux/videodev.h>
+# endif
 #endif // AVCAP_LINUX
 
 #ifdef _WIN32
@@ -282,7 +286,7 @@ class DeviceDescriptor;
 
 		//! Get the current framerate.
 		/*! The default implementation returns -1
-		 *! \return the frames per second */
+		/*! \return the frames per second */
 		virtual int getFramerate();
 
 		//! Get the STL-list of avaliable video standards described by VideoStandard objects.

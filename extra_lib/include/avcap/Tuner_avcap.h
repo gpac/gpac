@@ -128,7 +128,7 @@ namespace avcap
 		
 		//! Get the current automatic frequency control (AFC) value.  
 		/*! If the afc value is negative, the frequency is too low, if positive it is too high. 
-		 *! The default implementation is noop and returns -1.
+		/*! The default implementation is noop and returns -1.
 		 * \return afc */
 		virtual inline int getAFCValue() const
 			{ return -1; }

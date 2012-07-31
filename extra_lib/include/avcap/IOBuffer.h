@@ -113,7 +113,7 @@ namespace avcap
 
 		//! Set the state of the buffer.
 		/*! This method should not be used by applications.
-		 *! \param state : the new state */
+		/*! \param state : the new state */
 		inline void setState(State state) 
 			{ mState = state; }
 

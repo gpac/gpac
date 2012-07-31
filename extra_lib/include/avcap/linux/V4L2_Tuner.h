@@ -26,11 +26,15 @@
 #define V4L2_TUNER_H_
 
 #include <linux/types.h>
-#include <linux/videodev.h>
 #include <sys/types.h>
 #include <string>
 
 #include "Tuner_avcap.h"
+#ifdef AVCAP_HAVE_V4L2
+#include <linux/videodev2.h>
+#else
+#include <linux/videodev.h>
+#endif
 
 namespace avcap
 {

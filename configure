@@ -844,7 +844,16 @@ cat > $TMPC << EOF
 int main( void ) { JSObject *obj; JS_GetPrivate(obj); }
 EOF
                 if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
-                    js_flags="-DUSE_FFDEV_12 $js_flags"
+
+cat > $TMPC << EOF
+#include <jsapi.h>
+int main( void ) { jsval *vp; JSObject *obj = JS_NewObjectForConstructor(c, vp); }
+EOF
+	                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
+	                    js_flags="-DUSE_FFDEV_12 $js_flags"
+	                else
+	                    js_flags="-DUSE_FFDEV_14 $js_flags"
+			fi
                 else
 cat > $TMPC << EOF
 #include <jsapi.h>

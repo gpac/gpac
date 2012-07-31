@@ -35,8 +35,6 @@
 #include <gpac/internal/smjs_api.h>
 
 
-
-
 /*fixes for JS > 1.8.0rc1 where GC routines have changed*/
 GF_EXPORT
 Bool gf_js_add_root(JSContext *cx, void *rp, u32 type)
@@ -90,22 +88,21 @@ GF_EXPORT
 Bool gf_js_remove_root(JSContext *cx, void *rp, u32 type)
 {
 #if (JS_VERSION>=185)
-	JSBool ret;
 	switch (type) {
 	case GF_JSGC_STRING:
-		ret = JS_RemoveStringRoot(cx, rp);
+		JS_RemoveStringRoot(cx, rp);
 		break;
 	case GF_JSGC_OBJECT:
-		ret = JS_RemoveObjectRoot(cx, rp);
+		JS_RemoveObjectRoot(cx, rp);
 		break;
 	case GF_JSGC_VAL:
-		ret = JS_RemoveValueRoot(cx, rp);
+		JS_RemoveValueRoot(cx, rp);
 		break;
 	default:
-		ret = JS_RemoveGCThingRoot(cx, rp);
+		JS_RemoveGCThingRoot(cx, rp);
 		break;
 	}
-	return (ret == JS_TRUE) ? 1 : 0;
+	return 1;
 #else
 	return (JS_RemoveRoot(cx, rp)==JS_TRUE) ? 1 : 0;
 #endif
@@ -415,7 +412,11 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 void gf_sg_js_call_gc(JSContext *c)
 {
 	gf_sg_lock_javascript(c, 1);
+#ifdef 	USE_FFDEV_14
+	JS_GC(js_rt->js_runtime);
+#else
 	JS_GC(c);
+#endif
 	gf_sg_lock_javascript(c, 0);
 }
 
@@ -1371,7 +1372,7 @@ static JSBool SMJS_FUNCTION(SFNodeConstructor)
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	M_Script *sc = JS_GetScript(c);
 	SMJS_ARGS
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->SFNodeClass)
 	tag = 0;
 	if (!argc) {
 		field = NewJSField(c);
@@ -1673,7 +1674,7 @@ static JSBool SMJS_FUNCTION(SFImageConstructor)
 	u32 w, h, nbComp;
 	MFInt32 *pixels;
 	SMJS_ARGS
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->SFImageClass)
 	if (argc<4) return 0;
 	if (!JSVAL_IS_INT(argv[0]) || !JSVAL_IS_INT(argv[1]) || !JSVAL_IS_INT(argv[2])) return JS_FALSE;
 	if (!JSVAL_IS_OBJECT(argv[3]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[3]), &js_rt->MFInt32Class, NULL)) return JS_FALSE;
@@ -1789,7 +1790,7 @@ static JSBool SMJS_FUNCTION(SFVec2fConstructor)
 {
 	jsdouble x = 0.0, y = 0.0;
 	SMJS_ARGS
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->SFVec2fClass)
 	if (argc > 0) JS_ValueToNumber(c, argv[0], &x);
 	if (argc > 1) JS_ValueToNumber(c, argv[1], &y);
 	SFVec2f_Create(c, obj, FLT2FIX( x), FLT2FIX( y));
@@ -1978,7 +1979,7 @@ static JSBool SMJS_FUNCTION(SFVec3fConstructor)
 {
 	SMJS_ARGS
 	jsdouble x = 0.0, y = 0.0, z = 0.0;
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->SFVec3fClass)
 	if (argc > 0) JS_ValueToNumber(c, argv[0], &x);
 	if (argc > 1) JS_ValueToNumber(c, argv[1], &y);
 	if (argc > 2) JS_ValueToNumber(c, argv[2], &z);
@@ -2191,7 +2192,7 @@ static JSBool SMJS_FUNCTION(SFRotationConstructor)
 	Fixed l1, l2, dot;
 	SMJS_ARGS
 	jsdouble x = 0.0, y = 0.0, z = 0.0, a = 0.0;
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->SFRotationClass)
 
 	if (argc == 0) {
 		SFRotation_Create(c, obj, FLT2FIX(x), FLT2FIX(y), FIX_ONE, FLT2FIX(a) );
@@ -2423,7 +2424,7 @@ static JSBool SMJS_FUNCTION(SFColorConstructor)
 {
 	SMJS_ARGS
 	jsdouble r = 0.0, g = 0.0, b = 0.0;
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->SFColorClass)
 	if (argc > 0) JS_ValueToNumber(c, argv[0], &r);
 	if (argc > 1) JS_ValueToNumber(c, argv[1], &g);
 	if (argc > 2) JS_ValueToNumber(c, argv[2], &b);
@@ -2530,10 +2531,10 @@ static void setup_js_array(JSContext *c, JSObject *obj, GF_JSField *ptr, uintN a
 	gf_list_add(priv->js_cache, obj);
 }
 
-#define MFARRAY_CONSTRUCTOR(_fieldType)	\
+#define MFARRAY_CONSTRUCTOR(__classp, _fieldType)	\
 	GF_JSField *ptr;	\
 	SMJS_ARGS	\
-	SMJS_OBJ_CONSTRUCTOR	\
+	SMJS_OBJ_CONSTRUCTOR(__classp)	\
 	ptr = NewJSField(c);	\
 	ptr->field.fieldType = _fieldType;	\
 	setup_js_array(c, obj, ptr, (jsint) argc, argv);	\
@@ -2543,31 +2544,31 @@ static void setup_js_array(JSContext *c, JSObject *obj, GF_JSField *ptr, uintN a
 
 static JSBool SMJS_FUNCTION(MFBoolConstructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFBOOL);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFBoolClass, GF_SG_VRML_MFBOOL);
 }
 static JSBool SMJS_FUNCTION(MFInt32Constructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFINT32);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFInt32Class, GF_SG_VRML_MFINT32);
 }
 static JSBool SMJS_FUNCTION(MFFloatConstructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFFLOAT);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFFloatClass, GF_SG_VRML_MFFLOAT);
 }
 static JSBool SMJS_FUNCTION(MFTimeConstructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFTIME);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFTimeClass, GF_SG_VRML_MFTIME);
 }
 static JSBool SMJS_FUNCTION(MFStringConstructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFSTRING);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFStringClass, GF_SG_VRML_MFSTRING);
 }
 static JSBool SMJS_FUNCTION(MFURLConstructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFURL);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFUrlClass, GF_SG_VRML_MFURL);
 }
 static JSBool SMJS_FUNCTION(MFNodeConstructor)
 {
-	MFARRAY_CONSTRUCTOR(GF_SG_VRML_MFNODE);
+	MFARRAY_CONSTRUCTOR(&js_rt->MFNodeClass, GF_SG_VRML_MFNODE);
 }
 
 
@@ -2921,7 +2922,7 @@ static JSBool SMJS_FUNCTION(MFVec2fConstructor)
 	u32 i;
 	SMJS_ARGS
 	GF_JSField *ptr = NewJSField(c);
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->MFVec2fClass)
 
 	setup_js_array(c, obj, ptr, 0, 0);
 	JS_SetArrayLength(c, ptr->js_list, argc);
@@ -2948,7 +2949,7 @@ static JSBool SMJS_FUNCTION(MFVec3fConstructor)
 	u32 i;
 	SMJS_ARGS
 	GF_JSField *ptr;
-	SMJS_OBJ_CONSTRUCTOR	
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->MFVec3fClass)	
 	
 	ptr = NewJSField(c);
 	ptr->field.fieldType = GF_SG_VRML_MFVEC3F;
@@ -2977,7 +2978,7 @@ static JSBool SMJS_FUNCTION(MFRotationConstructor)
 	u32 i;
 	SMJS_ARGS
 	GF_JSField *ptr;
-	SMJS_OBJ_CONSTRUCTOR	
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->MFRotationClass)	
 	
 	ptr = NewJSField(c);
 	ptr->field.fieldType = GF_SG_VRML_MFROTATION;
@@ -3006,7 +3007,7 @@ static JSBool SMJS_FUNCTION(MFColorConstructor)
 	u32 i;
 	SMJS_ARGS
 	GF_JSField *ptr;
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&js_rt->MFColorClass)
 
 	ptr = NewJSField(c);
 	ptr->field.fieldType = GF_SG_VRML_MFCOLOR;
@@ -3067,10 +3068,25 @@ static JSBool SMJS_FUNCTION(vrml_dom3_not_implemented)
 
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 {
-	/*GCC port: classes are declared within code since JS_PropertyStub and co are exported symbols
-	from JS runtime lib, so with non-constant addresses*/
+#if 1
 	JS_SETUP_CLASS(js_rt->globalClass, "global", JSCLASS_HAS_PRIVATE,
 		JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
+
+#else
+	/*only used to debug JS_SETUP_CLASS at each of the numerous changes of JSAPI ............ */
+	memset(&js_rt->globalClass, 0, sizeof(js_rt->globalClass));
+	js_rt->globalClass.name = "global";	
+	js_rt->globalClass.flags = JSCLASS_HAS_PRIVATE;	
+	js_rt->globalClass.addProperty = JS_PropertyStub;	
+	js_rt->globalClass.delProperty = JS_PropertyStub;	
+	js_rt->globalClass.getProperty = JS_PropertyStub;	
+	js_rt->globalClass.setProperty = JS_PropertyStub_forSetter;	
+	js_rt->globalClass.enumerate = JS_EnumerateStub;	
+	js_rt->globalClass.resolve = JS_ResolveStub;		
+	js_rt->globalClass.convert = JS_ConvertStub;		
+	js_rt->globalClass.finalize = JS_FinalizeStub;	
+	js_rt->globalClass.hasInstance = gf_sg_js_has_instance;
+#endif
 
 	JS_SETUP_CLASS(js_rt->AnyClass, "AnyClass", JSCLASS_HAS_PRIVATE,
 	  JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);

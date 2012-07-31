@@ -2541,7 +2541,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 static JSBool SMJS_FUNCTION(xml_http_constructor)
 {
 	XMLHTTPContext *p;
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&dom_rt->xmlHTTPRequestClass)
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	GF_SAFEALLOC(p, XMLHTTPContext);
@@ -3454,7 +3454,7 @@ static JSBool storage_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER,
 
 static JSBool SMJS_FUNCTION(storage_constructor)
 {
-	SMJS_OBJ_CONSTRUCTOR
+	SMJS_OBJ_CONSTRUCTOR(&dom_rt->storageClass)
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
