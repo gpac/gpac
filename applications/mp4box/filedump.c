@@ -1821,10 +1821,10 @@ typedef struct
 	u32 segment_index;
 
 	FILE *index_file;
-	char index_file_name[100];
+	char index_file_name[GF_MAX_PATH];
 	GF_BitStream *index_bs;
 
-	char mpd_file_name[100];
+	char mpd_file_name[GF_MAX_PATH];
 	FILE *mpd_file;
 	/* temporary file to store the MPD segment description before writing the header */
 	FILE *mpd_segs;
