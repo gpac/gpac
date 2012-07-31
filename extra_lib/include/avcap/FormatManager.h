@@ -286,7 +286,7 @@ class DeviceDescriptor;
 
 		//! Get the current framerate.
 		/*! The default implementation returns -1
-		/*! \return the frames per second */
+		 *! \return the frames per second */
 		virtual int getFramerate();
 
 		//! Get the STL-list of avaliable video standards described by VideoStandard objects.
