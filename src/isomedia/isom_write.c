@@ -3135,6 +3135,7 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 	return found_cfg ? GF_OK : GF_NOT_SUPPORTED;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 newTS)
 {
 	Double scale;
