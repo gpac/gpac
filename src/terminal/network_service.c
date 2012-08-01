@@ -1124,7 +1124,8 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s received %d / %d\n", szURI, bytes_done, total_size));
 		gf_term_service_media_event_with_download(serv->owner, GF_EVENT_MEDIA_PROGRESS, bytes_done, total_size, bytes_per_sec);
 
-		if ( (serv->download_rebuffer || serv->auto_rebuffer) && serv->owner && !(serv->owner->flags & GF_ODM_DESTROYED) && serv->owner->duration) {
+		/*JLF fix this*/
+		if (0&& (serv->download_rebuffer || serv->auto_rebuffer) && serv->owner && !(serv->owner->flags & GF_ODM_DESTROYED) && serv->owner->duration) {
 			GF_Clock *ck = gf_odm_get_media_clock(serv->owner);
 			Double download_percent, playback_percent, adj_percent;
 			download_percent = 100 * bytes_done; 

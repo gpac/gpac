@@ -38,6 +38,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 {
+	GF_Err e;
 	u32 i, j;
 	u64 MaxDur;
 	GF_TrackFragmentBox *traf;
@@ -46,9 +47,15 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	MaxDur = 0;
 
 	//we shall have a MOOV and its MVEX BEFORE any MOOF
-	if (!mov->moov || !mov->moov->mvex) return GF_ISOM_INVALID_FILE;
+	if (!mov->moov || !mov->moov->mvex) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: %s not received before merging frament\n", mov->moov ? "mvex" : "moov" ));
+		return GF_ISOM_INVALID_FILE;
+	}
 	//and all fragments must be continous
-	if (mov->NextMoofNumber && (mov->NextMoofNumber >= moof->mfhd->sequence_number)) return GF_ISOM_INVALID_FILE;
+	if (mov->NextMoofNumber && (mov->NextMoofNumber >= moof->mfhd->sequence_number)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: wrong sequence number: got %d but last one was %d\n", moof->mfhd->sequence_number, mov->NextMoofNumber));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
@@ -63,9 +70,14 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 				traf->trex = NULL;
 			}
 		}
-		if (!trak || !traf->trex) return GF_ISOM_INVALID_FILE;
 
-		MergeTrack(trak, traf, mov->current_top_box_start, !mov->first_moof_merged);
+		if (!trak || !traf->trex) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: Cannot find fragment track with ID %d\n", traf->tfhd->trackID));
+			return GF_ISOM_INVALID_FILE;
+		}
+
+		e = MergeTrack(trak, traf, mov->current_top_box_start, !mov->first_moof_merged);
+		if (e) return e;
 
 		//update trak duration
 		SetTrackDuration(trak);
@@ -250,9 +262,6 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				/*merge all info*/
 				e = MergeFragment((GF_MovieFragmentBox *)a, mov);
 				gf_isom_box_del(a);
-				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error merging fragment: %s\n", gf_error_to_string(e) ));
-				}
 			}
 			break;
 #endif

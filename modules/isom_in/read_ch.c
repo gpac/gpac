@@ -75,6 +75,11 @@ static void check_segment_switch(ISOMReader *read)
 		if (param.url_query.discontinuity_type==2)
 			gf_isom_reset_fragment_info(read->mov);
 
+		if (param.url_query.next_url_init_or_switch_segment) {
+			if (read->mov) gf_isom_close(read->mov);
+			e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
+		}
+
 		e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
 
 #ifndef GPAC_DISABLE_LOG
@@ -91,6 +96,9 @@ static void check_segment_switch(ISOMReader *read)
 			ISOMChannel *ch = gf_list_get(read->channels, i);
 			ch->wait_for_segment_switch = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+			if (param.url_query.next_url_init_or_switch_segment) {
+				ch->needs_codec_update = 1;
+			}
 		}
 	} else {
 		/*consider we are done*/
@@ -312,6 +320,47 @@ fetch_next:
 			gf_isom_ismacryp_delete_sample(ismasamp);
 		} else {
 			ch->current_slh.isma_encrypted = 0;
+		}
+	}
+
+	/*this is ugly we need a rearchitecture of the streaming part of GPAC to handle code changes properly !! */
+	if (ch->sample && ch->needs_codec_update) {
+		GF_AVCConfig *avccfg, *svccfg;
+		GF_AVCConfigSlot *slc;
+		GF_BitStream *bs;
+		u32 i; 
+		ch->needs_codec_update = 0;
+
+		switch (gf_isom_get_media_subtype(ch->owner->mov, ch->track, 1)) {
+		case GF_ISOM_SUBTYPE_AVC_H264:
+		case GF_ISOM_SUBTYPE_AVC2_H264:
+		case GF_ISOM_SUBTYPE_SVC_H264:
+			avccfg = gf_isom_avc_config_get(ch->owner->mov, ch->track, 1);
+			svccfg = gf_isom_avc_config_get(ch->owner->mov, ch->track, 1);
+
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			if (avccfg) {
+				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
+					slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					gf_bs_write_int(bs, slc->size, avccfg->nal_unit_size*8);
+					gf_bs_write_data(bs, slc->data, slc->size);
+				}
+			}
+			if (svccfg) {
+				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
+					slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					gf_bs_write_int(bs, slc->size, avccfg->nal_unit_size*8);
+					gf_bs_write_data(bs, slc->data, slc->size);
+				}
+			}
+			gf_bs_write_data(bs, ch->sample->data, ch->sample->dataLength);
+			gf_free(ch->sample->data);
+			ch->sample->data = 0;
+			gf_bs_get_content(bs, &ch->sample->data, &ch->sample->dataLength);
+			gf_bs_del(bs);
+			break;
+		default:
+			break;
 		}
 	}
 }

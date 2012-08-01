@@ -206,7 +206,8 @@ typedef struct {
 
 	/*GPAC playback implementation*/
 	Bool disabled;
-
+	char *cached_init_segment_url;
+	u64 init_start_range, init_end_range;
 } GF_MPD_Representation;
 
 
