@@ -1148,9 +1148,9 @@ err_exit:
 	return e;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat);
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines);
 
-GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat)
+GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
@@ -1160,8 +1160,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	u32 dst_tk, tk_id, mtype;
 	u64 insert_dts;
 	GF_ISOSample *samp;
+	Double aligned_to_DTS = 0;
 
-	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat);
+	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines);
 
 	e = GF_OK;
 	if (!gf_isom_probe_file(fileName)) {
@@ -1213,6 +1214,19 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	}
 	dest_orig_dur /= gf_isom_get_timescale(dest);
 
+	if (align_timelines) {
+		u32 idx;
+		aligned_to_DTS = 0;
+		for (idx=0; idx<gf_isom_get_track_count(dest); idx++) {
+			Double track_dur = (Double) gf_isom_get_media_duration(dest, idx+1);
+			track_dur /= gf_isom_get_media_timescale(dest, idx+1);
+			if (aligned_to_DTS < track_dur) {
+				aligned_to_DTS = track_dur;
+			}
+		}
+	}
+
+
 	fprintf(stdout, "Appending file %s\n", fileName);
 	nb_done = 0;
 	for (i=0; i<nb_tracks; i++) {
@@ -1241,6 +1255,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			if (!gf_isom_is_self_contained(orig, i+1, 1)) continue;
 			break;
 		}
+
 		dst_tk = 0;
 		tk_id = gf_isom_get_track_id(orig, i+1);
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
@@ -1378,6 +1393,25 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
+
+			if (align_timelines) {
+				u32 max_timescale = 0;
+				u32 dst_timescale = 0;
+				u32 idx;
+				for (idx=0; idx<nb_tracks; idx++) {
+					if (max_timescale < gf_isom_get_media_timescale(orig, idx+1)) 
+						max_timescale = gf_isom_get_media_timescale(orig, idx+1); 
+				}
+				if (dst_timescale < max_timescale) {
+					dst_timescale = gf_isom_get_media_timescale(dest, dst_tk); 
+					idx = max_timescale / dst_timescale;
+					if (dst_timescale * idx < max_timescale) idx ++;
+					dst_timescale *= idx;
+
+					gf_isom_set_media_timescale(dest, dst_tk, max_timescale);
+				}
+			}
+
 			/*remove cloned edit list, as it will be rewritten after import*/
 			gf_isom_remove_edit_segments(dest, dst_tk);
 		} else {
@@ -1385,9 +1419,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 
 		dest_track_dur_before_cat = gf_isom_get_media_duration(dest, dst_tk);
-
 		count = gf_isom_get_sample_count(dest, dst_tk);
-		if (use_ts_dur && (count>1)) {
+
+		if (align_timelines) {
+			insert_dts = (u64) (aligned_to_DTS * gf_isom_get_media_timescale(dest, dst_tk));
+		} else if (use_ts_dur && (count>1)) {
 			insert_dts = 2*gf_isom_get_sample_dts(dest, dst_tk, count) - gf_isom_get_sample_dts(dest, dst_tk, count-1);
 		} else {
 			insert_dts = dest_track_dur_before_cat;
@@ -1533,7 +1569,7 @@ typedef struct
 	Double force_fps;
 	u32 frames_per_sample;
 	char *tmp_dir;
-	Bool force_cat;
+	Bool force_cat, align_timelines;
 } CATEnum;
 
 Bool cat_enumerate(void *cbk, char *szName, char *szPath)
@@ -1549,12 +1585,12 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath)
 	strcpy(szFileName, szName);
 	strcat(szFileName, cat_enum->szOpt);
 
-	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat);
+	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines);
 	if (e) return 1;
 	return 0;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat)
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines)
 {
 	CATEnum cat_enum;
 	char *sep;
@@ -1565,6 +1601,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 	cat_enum.frames_per_sample = frames_per_sample;
 	cat_enum.tmp_dir = tmp_dir;
 	cat_enum.force_cat = force_cat;
+	cat_enum.align_timelines = align_timelines;
 
 	strcpy(cat_enum.szPath, fileName);
 	sep = strrchr(cat_enum.szPath, GF_PATH_SEPARATOR);
