@@ -58,6 +58,9 @@ typedef struct
     char *cache;
     char *url;
 	u64 start_range, end_range;
+	/*representation index in adaptation_set->representations*/
+	u32 representation_index;
+	Bool do_not_delete;
 } segment_cache_entry;
 
 /*this structure Group is the implementation of the adaptationSet element of the MPD.*/
@@ -70,6 +73,10 @@ typedef struct __mpd_group
 
 	/*active representation index in adaptation_set->representations*/
 	u32 active_rep_index;
+
+	u32 prev_active_rep_index;
+
+	Bool bitstream_switching, dont_delete_first_segment;
 
 	Bool selected;
 	Bool done;
@@ -127,6 +134,8 @@ typedef struct __mpd_module {
     u32 option_max_cached;
     u32 auto_switch_count;
     Bool keep_files, disable_switching;
+	/*0: min bandwith 1: max bandwith 2: min quality 3: max quality*/
+	u32 first_select_mode;
 
 	/* MPD downloader*/
     GF_DownloadSession *mpd_dnload;
@@ -629,12 +638,19 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 					group->urlToDeleteNext = NULL;
 				}
 				assert( group->cached[0].url );
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
-				group->urlToDeleteNext = gf_strdup( group->cached[0].url );
+
+				if (group->dont_delete_first_segment) {
+					group->dont_delete_first_segment = 0;
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
+					group->urlToDeleteNext = gf_strdup( group->cached[0].url );
+				}
+
 				gf_free(group->cached[0].cache);
 				gf_free(group->cached[0].url);
 				group->cached[0].url = NULL;
 				group->cached[0].cache = NULL;
+				group->cached[0].representation_index = 0;
 			}
 			memmove(&group->cached[0], &group->cached[1], sizeof(segment_cache_entry)*(group->nb_cached_segments-1));
 			memset(&(group->cached[group->nb_cached_segments-1]), 0, sizeof(segment_cache_entry));
@@ -644,6 +660,18 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         param->url_query.next_url = group->cached[0].cache;
 		param->url_query.start_range = group->cached[0].start_range;
 		param->url_query.end_range = group->cached[0].end_range;
+
+		if (group->cached[0].representation_index != group->prev_active_rep_index) {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
+			param->url_query.next_url_init_or_switch_segment = rep->cached_init_segment_url;
+			param->url_query.switch_start_range = rep->init_start_range;
+			param->url_query.switch_end_range = rep->init_end_range;
+		} else {
+			param->url_query.next_url_init_or_switch_segment = NULL;
+			param->url_query.switch_start_range = param->url_query.switch_end_range = 0;
+		}
+		group->prev_active_rep_index = group->cached[0].representation_index;
+
         gf_mx_v(mpdin->dl_mutex);
         {
             u32 timer2 = gf_sys_clock() - timer ;
@@ -651,10 +679,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
             }
 			if (group->cached[0].end_range) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tMedia Range: "LLD"-"LLD"\n\tElements in cache: %u/%u\n", group->cached[0].url, timer2, group->cached[0].start_range, group->cached[0].end_range, group->nb_cached_segments, group->max_cached_segments));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to %s (Media Range: "LLD"-"LLD")\n", group->cached[0].url, group->cached[0].start_range, group->cached[0].end_range));
 			} else {
-	            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[0].url, timer2, group->cached[0].cache, group->nb_cached_segments, group->max_cached_segments));
+	            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to %s\n", group->cached[0].url));
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache URL: %s\n", timer2, group->nb_cached_segments, group->max_cached_segments, group->cached[0].cache));
         }
     } else {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Client Query request (%d) from terminal\n", param->command_type));
@@ -1340,7 +1369,7 @@ GF_Err MPD_ResolveURL(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adaptation
 			strcat(solved_template, second_sep+1);
 		if (first_sep) first_sep[0] = '$';
 	}
-	*out_url = gf_url_concatenate(url, solved_template);
+	*out_url = gf_url_base_concatenate(url, solved_template);
 	gf_free(url);
 	gf_free(solved_template);
 	return GF_OK;
@@ -1383,12 +1412,17 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
 			return e;
 		}
 		nb_segment_read = 1;
+	} else if (!group->bitstream_switching) {
+		group->dont_delete_first_segment = 1;
 	}
 
 	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7)) {
         assert(!group->nb_cached_segments);
         group->cached[0].cache = gf_strdup(base_init_url);
         group->cached[0].url = gf_strdup(base_init_url);
+        group->cached[0].representation_index = group->active_rep_index;
+		group->prev_active_rep_index = group->active_rep_index;
+		
         group->nb_cached_segments = 1;
 		/*do not erase local files*/
 		group->local_files = 1;
@@ -1396,7 +1430,11 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
         group->segment_local_url = group->cached[0].cache;
 		group->local_url_start_range = start_range;
 		group->local_url_end_range = end_range;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Setup initialization segment %s \n", group->segment_local_url));
+        rep->cached_init_segment_url = gf_strdup(group->segment_local_url);
+		rep->init_start_range = start_range;
+		rep->init_end_range = end_range;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Setup initialization segment %s \n", group->segment_local_url));
 		if (!group->input_module) {
 			const char *mime_type = MPD_GetMimeType(NULL, rep, group->adaptation_set);
 			e = MPD_LoadMediaService(mpdin, group, mime_type, group->segment_local_url);
@@ -1489,6 +1527,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
 				return GF_BAD_PARAM;
 			}
         }
+
         if (group->segment_must_be_streamed ) {
             group->segment_local_url = gf_dm_sess_get_resource_name(group->segment_dnload);
             e = GF_OK;
@@ -1502,17 +1541,53 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Group *group)
             gf_mx_v(mpdin->dl_mutex);
             gf_free(base_init_url);
             return GF_BAD_PARAM;
-        } else {
-            assert(!group->nb_cached_segments);
-            group->cached[0].cache = gf_strdup(group->segment_local_url);
-            group->cached[0].url = gf_strdup(gf_dm_sess_get_resource_name(group->segment_dnload));
-            group->nb_cached_segments = 1;
-            group->download_segment_index += nb_segment_read;
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", group->segment_local_url, group->cached[0].url ));
-            gf_mx_v(mpdin->dl_mutex);
-            gf_free(base_init_url);
-            return GF_OK;
-        }
+        } 
+
+        assert(!group->nb_cached_segments);
+        group->cached[0].cache = gf_strdup(group->segment_local_url);
+        group->cached[0].url = gf_strdup(gf_dm_sess_get_resource_name(group->segment_dnload));
+		group->cached[0].representation_index = group->active_rep_index;
+        rep->cached_init_segment_url = gf_strdup(group->segment_local_url);
+		rep->init_start_range = 0;
+		rep->init_end_range = 0;
+
+        group->nb_cached_segments = 1;
+        group->download_segment_index += nb_segment_read;
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", group->segment_local_url, group->cached[0].url ));
+        gf_mx_v(mpdin->dl_mutex);
+        gf_free(base_init_url);
+
+		/*finally download all init segments if any*/
+		if (!group->bitstream_switching) {
+			u32 k;
+			for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+				char *a_base_init_url = NULL;
+				u64 a_start, a_end, a_dur;
+				GF_MPD_Representation *a_rep = gf_list_get(group->adaptation_set->representations, k);
+				if (a_rep==rep) continue;
+				if (a_rep->disabled) continue;
+
+				e = MPD_ResolveURL(mpdin->mpd, a_rep, group->adaptation_set, group->period, mpdin->url, GF_MPD_RESOLVE_URL_INIT, 0, &a_base_init_url, &a_start, &a_end, &a_dur);
+				if (!e && a_base_init_url) {
+					e = MPD_downloadWithRetry(mpdin->service, &(group->segment_dnload), a_base_init_url, MPD_NetIO_Segment, group, a_start, a_end, 1);
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Cannot retrieve initialization segment %s for representation: %s - discarding representation\n", a_base_init_url, gf_error_to_string(e) ));
+						a_rep->disabled = 1;
+					} else {
+			            a_rep->cached_init_segment_url = gf_strdup(gf_dm_sess_get_cache_name(group->segment_dnload));
+						rep->init_start_range = 0;
+						rep->init_end_range = 0;
+					}
+					gf_free(a_base_init_url);
+				} else if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Cannot solve initialization segment for representation: %s - discarding representation\n", gf_error_to_string(e) ));
+					a_rep->disabled = 1;
+				}
+
+			}
+		}
+
+		return GF_OK;
     }
 }
 
@@ -1787,7 +1862,7 @@ restart_period:
 								}
 							}
 						}
-						if (new_rep) {
+						if (!mpdin->disable_switching && new_rep) {
 							GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Switching to new representation bitrate %d kbps\n", new_rep->bandwidth/1024));
 							MPD_SetGroupRepresentation(group, new_rep);
 						}
@@ -1803,12 +1878,13 @@ restart_period:
 				group->cached[group->nb_cached_segments].url = gf_strdup( resource_name );
 				group->cached[group->nb_cached_segments].start_range = 0;
 				group->cached[group->nb_cached_segments].end_range = 0;
+				group->cached[group->nb_cached_segments].representation_index = group->active_rep_index;
 				if (group->local_files && use_byterange) {
 					group->cached[group->nb_cached_segments].start_range = start_range;
 					group->cached[group->nb_cached_segments].end_range = end_range;
 				}
 				if (!group->local_files) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", group->cached[group->nb_cached_segments].url, group->cached[group->nb_cached_segments].cache, group->nb_cached_segments+1, group->max_cached_segments));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
 				}
 				group->nb_cached_segments++;
 				group->download_segment_index++;
@@ -2172,7 +2248,9 @@ GF_Err MPD_SetupGroups(GF_MPD_In *mpdin)
 			group->mpd_in = mpdin;
 			group->adaptation_set = set;
 			group->period = period;
-			group->period = period;
+		
+			group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? 1 : 0;
+
 			group->max_cached_segments = mpdin->option_max_cached;
 			group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
 			memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
@@ -2202,7 +2280,7 @@ GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin)
 
 	for (group_i=0; group_i<gf_list_count(mpdin->groups); group_i++) {
 		GF_MPD_Representation *rep_sel;
-		u32 active_rep;
+		u32 active_rep, nb_rep;
 		const char *mime_type;
 		GF_MPD_Group *group = gf_list_get(mpdin->groups, group_i);
 
@@ -2214,21 +2292,32 @@ GF_Err MPD_SetupPeriod(GF_MPD_In *mpdin)
 			break;
 		}
 
+		nb_rep = gf_list_count(group->adaptation_set->representations);
 		/* Select the appropriate representation in the given period */
 		active_rep = 0;
-		for (rep_i = 0; rep_i < gf_list_count(group->adaptation_set->representations); rep_i++) {
+		for (rep_i = 0; rep_i < nb_rep; rep_i++) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
 			rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
 
-			if (rep_i && ( !rep->codecs || !rep_sel->codecs || strcmp(rep->codecs, rep_sel->codecs) ) ) continue;
-
-			/*by default tune to best quality and/or full bandwith*/
-			if (rep->quality_ranking > rep_sel->quality_ranking) {
+			if (rep_i) {
+				Bool ok;
+				char *sep;
+				if ( !rep->codecs || !rep_sel->codecs ) continue;
+				sep = strchr(rep_sel->codecs, '.');
+				if (sep) sep[0] = 0;
+				ok = !strnicmp(rep->codecs, rep_sel->codecs, strlen(rep_sel->codecs) );
+				if (sep) sep[0] = '.';
+				if (!ok) continue;
+			}
+			if ((mpdin->first_select_mode==0) && (rep->bandwidth < rep_sel->bandwidth)) {
 				active_rep = rep_i;
-			} else if (rep->bandwidth < rep_sel->bandwidth) {
+			} else if ((mpdin->first_select_mode==1) && (rep->bandwidth > rep_sel->bandwidth)) {
+				active_rep = rep_i;
+			} else if ((mpdin->first_select_mode==2) && (rep->quality_ranking < rep_sel->quality_ranking)) {
+				active_rep = rep_i;
+			} else if ((mpdin->first_select_mode==3) && (rep->quality_ranking > rep_sel->quality_ranking)) {
 				active_rep = rep_i;
 			}
-
 		}
 
 		rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
@@ -2365,6 +2454,17 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DisableSwitching");
     if (opt && !strcmp(opt, "yes")) mpdin->disable_switching = 1;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation", "minBandwidth");
+		opt = "minBandwidth";
+	}
+	if (opt && !strcmp(opt, "maxBandwidth")) mpdin->first_select_mode = 1;
+    else if (opt && !strcmp(opt, "minQuality")) mpdin->first_select_mode = 2;
+    else if (opt && !strcmp(opt, "maxQuality")) mpdin->first_select_mode = 3;
+    else mpdin->first_select_mode = 0;
+	
 	
 	if (mpdin->mpd_dnload) gf_term_download_del(mpdin->mpd_dnload);
     mpdin->mpd_dnload = NULL;
@@ -2610,6 +2710,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 						group->nb_cached_segments--;
 						gf_free(group->cached[group->nb_cached_segments].url);
 						group->cached[group->nb_cached_segments].url = NULL;
+						group->cached[group->nb_cached_segments].representation_index = 0;
 						group->cached[group->nb_cached_segments].start_range = 0;
 						group->cached[group->nb_cached_segments].end_range = 0;
 						assert(group->download_segment_index>1);

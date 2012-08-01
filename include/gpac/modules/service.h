@@ -324,6 +324,9 @@ typedef struct
 		2: time discontinuity - seeking has occured and some segments were skipped
 	*/
 	u32 discontinuity_type;
+	/*out: initialization/switching segment of next URL to play, if different from previous init segment*/
+	const char *next_url_init_or_switch_segment;
+	u64 switch_start_range, switch_end_range;
 } GF_NetURLQuery;
 
 /*GF_NET_SERVICE_QUALITY_SWITCH*/

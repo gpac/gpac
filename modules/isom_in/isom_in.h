@@ -74,8 +74,7 @@ typedef struct
 	ISOMReader *owner;
 	u64 duration;
 
-	Bool wait_for_segment_switch;
-
+	Bool wait_for_segment_switch, needs_codec_update;
 	/*current sample*/
 	GF_ISOSample *sample;
 	GF_SLHeader current_slh;

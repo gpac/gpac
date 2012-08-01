@@ -78,6 +78,18 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath);
  */
 char *gf_url_concatenate(const char *parentName, const char *pathName);
 
+/*concatenates URL with baseURL and gets back full URL - returned string must be freed by user*/
+/*!
+ *\brief URL and URL-base concatenation
+ *
+ *Concatenates a relative URL with its parent base URL
+ *\param base URL 
+ *\param pathName URL of the service
+ *\return absolute path name of the service, or NULL if bad paths are provided or if the service path is already an absolute one.
+ \note the returned string must be freed by user
+ */
+char *gf_url_base_concatenate(const char *base_url, const char *pathName);
+
 /*!
  *\brief URL encodin
  *

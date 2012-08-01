@@ -89,8 +89,7 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 	return gf_strdup(pathName);
 }
 
-GF_EXPORT
-char *gf_url_concatenate(const char *parentName, const char *pathName)
+static char *gf_url_concatenator(const char *parentName, const char *pathName, Bool is_base_url)
 {
 	u32 pathSepCount, i, prot_type;
 	char *outPath, *name, *rad;
@@ -203,26 +202,34 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if (!name) name = (char *) pathName;
 
 	strcpy(tmp, parentName);
-	for (i = strlen(parentName); i > 0; i--) {
-		//break our path at each separator
-		if ((parentName[i-1] == GF_PATH_SEPARATOR) || (parentName[i-1] == '/'))  {
-			tmp[i-1] = 0;
-			if (!pathSepCount) break;
-			pathSepCount--;
-		}
+	while (strchr(" \r\n\t", tmp[strlen(tmp)-1])) {
+		tmp[strlen(tmp)-1] = 0;
 	}
-	//if i==0, the parent path was relative, just return the pathName
-	if (!i) {
-		tmp[i] = 0;
-		while (pathSepCount) {
-			strcat(tmp, "../");
-			pathSepCount--;
+
+	/*do not trim last '/' in the url if we are doing base URL concatenation and no relative path is used in the target path
+	if we do regular path concatenation, remove the last /*/
+	if (!is_base_url || pathSepCount) {
+		for (i = strlen(parentName); i > 0; i--) {
+			//break our path at each separator
+			if ((parentName[i-1] == GF_PATH_SEPARATOR) || (parentName[i-1] == '/'))  {
+				tmp[i-1] = 0;
+				if (!pathSepCount) break;
+				pathSepCount--;
+			}
 		}
-/*		outPath = gf_strdup(pathName);
-		goto check_spaces;
-		*/	
-	} else {
-		strcat(tmp, "/");
+		//if i==0, the parent path was relative, just return the pathName
+		if (!i) {
+			tmp[i] = 0;
+			while (pathSepCount) {
+				strcat(tmp, "../");
+				pathSepCount--;
+			}
+	/*		outPath = gf_strdup(pathName);
+			goto check_spaces;
+			*/	
+		} else {
+			strcat(tmp, "/");
+		}
 	}
 
 	i = strlen(tmp);
@@ -250,6 +257,18 @@ check_spaces:
 		i++;
 	}
 	return outPath;
+}
+
+GF_EXPORT
+char *gf_url_concatenate(const char *parentName, const char *pathName)
+{
+	return gf_url_concatenator(parentName, pathName, 0);
+}
+
+GF_EXPORT
+char *gf_url_base_concatenate(const char *base_url, const char *pathName)
+{
+	return gf_url_concatenator(base_url, pathName, 1);
 }
 
 GF_EXPORT
