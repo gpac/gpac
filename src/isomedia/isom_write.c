@@ -3200,8 +3200,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_ENCA:
 		case GF_ISOM_BOX_TYPE_ENCV:
 		case GF_ISOM_BOX_TYPE_ENCS:
-			Media_GetESD(trak1->Media, sdesc_index1 , &esd1, 1);
-			Media_GetESD(trak2->Media, sdesc_index2 , &esd2, 1);
+			Media_GetESD(trak1->Media, sdesc_index1 ? sdesc_index1 : i+1, &esd1, 1);
+			Media_GetESD(trak2->Media, sdesc_index2 ? sdesc_index2 : i+1, &esd2, 1);
 			if (!esd1 || !esd2) continue;
 			need_memcmp = 0;
 			if (esd1->decoderConfig->streamType != esd2->decoderConfig->streamType) return 0;
