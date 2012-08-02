@@ -870,6 +870,13 @@ typedef struct
 
 	/*for SVC*/
 	u8 complete_representation;
+
+	/*for high profiles*/
+	u8 chroma_format;
+	u8 luma_bit_depth;
+	u8 chroma_bit_depth;
+	/*may be NULL*/
+	GF_List *extendedSequenceParameterSets;
 } GF_AVCConfig;
 
 

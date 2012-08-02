@@ -1703,7 +1703,7 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	AVC_SPS *sps;
 	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height, sps_id = -1;
-	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb;
+	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb, luma_bd, chroma_bd;
 	GF_BitStream *bs;
 	char *sps_data_without_emulation_bytes = NULL;
 	u32 sps_data_without_emulation_bytes_size = 0;
@@ -1736,6 +1736,7 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 		goto exit;
 	}
 
+	chroma_format_idc = luma_bd = chroma_bd = 0;
 	sps = &avc->sps[sps_id];
 	sps->state |= subseq_sps ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
 
@@ -1764,8 +1765,8 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 			*/
 			if (separate_colour_plane_flag) ChromaArrayType = 0;
 		}
-		/*bit_depth_luma_minus8 = */ avc_get_ue(bs);
-		/*bit_depth_chroma_minus8 = */ avc_get_ue(bs);
+		luma_bd = avc_get_ue(bs);
+		chroma_bd = avc_get_ue(bs);
 		/*qpprime_y_zero_transform_bypass_flag = */ gf_bs_read_int(bs, 1);
 		/*seq_scaling_matrix_present_flag*/
 		if (gf_bs_read_int(bs, 1)) {
@@ -1792,6 +1793,9 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	sps->prof_compat = pcomp;
 	sps->log2_max_frame_num = avc_get_ue(bs) + 4;
 	sps->poc_type = avc_get_ue(bs);
+	sps->chroma_format = chroma_format_idc;
+	sps->luma_bit_depth_m8 = luma_bd;
+	sps->chroma_bit_depth_m8 = chroma_bd;
 
 	if (sps->poc_type == 0) {
 		sps->log2_max_poc_lsb = avc_get_ue(bs) + 4;
@@ -2021,6 +2025,27 @@ exit:
 	gf_bs_del(bs);
 	gf_free(pps_data_without_emulation_bytes);
 	return pps_id;
+}
+
+s32 AVC_ReadSeqParamSetExtId(char *spse_data, u32 spse_size)
+{
+	GF_BitStream *bs;
+	char *spse_data_without_emulation_bytes = NULL;
+	u32 spse_data_without_emulation_bytes_size = 0;
+	s32 sps_id;
+
+	/*PPS still contains emulation bytes*/
+	spse_data_without_emulation_bytes = gf_malloc(spse_size*sizeof(char));
+	spse_data_without_emulation_bytes_size = avc_remove_emulation_bytes(spse_data, spse_data_without_emulation_bytes, spse_size);
+	bs = gf_bs_new(spse_data_without_emulation_bytes, spse_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	
+	sps_id = -1;
+	if (bs) 
+		sps_id = avc_get_ue(bs);
+
+	gf_bs_del(bs);
+	gf_free(spse_data_without_emulation_bytes);
+	return sps_id;
 }
 
 static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHeader)

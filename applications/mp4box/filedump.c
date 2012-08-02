@@ -1209,6 +1209,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 								fprintf(stdout, "\tPixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
 							}
 						}
+						if (avccfg->chroma_bit_depth) {
+							fprintf(stdout, "\tChroma format %d - Luma bit depth %d - chroma bot depth %d\n", avccfg->chroma_format, avccfg->luma_bit_depth, avccfg->chroma_bit_depth);
+						}
 						gf_odf_avc_cfg_del(avccfg);
 					}
 					if (svccfg) {

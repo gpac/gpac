@@ -3961,6 +3961,10 @@ restart_import:
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
 				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
+				dstcfg->chroma_format = avc.sps[idx].chroma_format;
+				dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
+				dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
 				slc->id = idx;
@@ -4123,6 +4127,28 @@ restart_import:
 			break;
 
 		case GF_AVC_NALU_SEQ_PARAM_EXT:
+			idx = AVC_ReadSeqParamSetExtId(buffer+1/*skip NALU type*/, nal_size-1);
+			if (idx<0) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Sequence Param Extension");
+				goto exit;
+			}
+
+			if (! (avc.sps[idx].state & AVC_SPS_EXT_DECLARED)) {
+				avc.sps[idx].state |= AVC_SPS_EXT_DECLARED;
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				if (!avccfg->extendedSequenceParameterSets)
+					avccfg->extendedSequenceParameterSets = gf_list_new();
+
+				gf_list_add(avccfg->extendedSequenceParameterSets, slc);
+			}
+			break;
+
 		case GF_AVC_NALU_SLICE_AUX:
 
 		default:

@@ -67,6 +67,8 @@ enum
 	AVC_SUBSPS_PARSED = 1<<2,
 	/*SUB-SPS has been declared to the upper layer*/
 	AVC_SUBSPS_DECLARED = 1<<3,
+	/*SPS extension has been parsed*/
+	AVC_SPS_EXT_DECLARED = 1<<4,
 };
 
 typedef struct 
@@ -105,6 +107,9 @@ typedef struct
 	s32 delta_pic_order_always_zero_flag;
 	s32 offset_for_non_ref_pic, offset_for_top_to_bottom_field;
 	Bool frame_mbs_only_flag;
+	u8 chroma_format;
+	u8 luma_bit_depth_m8;
+	u8 chroma_bit_depth_m8;
 
 	s16 offset_for_ref_frame[256];
 
@@ -193,6 +198,8 @@ typedef struct
 s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
 s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc);
+/*return sps ID or -1 if error*/
+s32 AVC_ReadSeqParamSetExtId(char *spse_data, u32 spse_size);
 /*is slice an IDR*/
 Bool AVC_SliceIsIDR(AVCState *avc);
 /*is slice containing intra MB only*/
