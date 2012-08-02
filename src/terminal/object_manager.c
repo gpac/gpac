@@ -745,7 +745,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 		if (force_play) {
 			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast or input service - forcing play\n", odm->OD->objectDescriptorID));
 			gf_odm_start(odm, 2);
 		}
 	}

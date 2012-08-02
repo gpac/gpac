@@ -84,8 +84,8 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
-	if (drift + (s32) (audio_delay_ms + resync_delay) < 0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early %d (CTS %d)\n", drift + audio_delay_ms + resync_delay, ts));
+	if (drift + (s32) (audio_delay_ms + resync_delay) + MIN_RESYNC_TIME < 0) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %d at OTB %d)\n", drift + audio_delay_ms + resync_delay, ts, obj_time));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;
