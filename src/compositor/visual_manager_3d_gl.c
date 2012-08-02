@@ -1116,7 +1116,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 	if (color_array) gf_free(color_array);
-	if (!mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
+	if (tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		glMatrixMode(GL_TEXTURE);
 		glPopMatrix();
 		glMatrixMode(GL_MODELVIEW);

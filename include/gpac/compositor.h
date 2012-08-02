@@ -160,6 +160,9 @@ Bool gf_sc_script_action(GF_Compositor *sr, u32 type, GF_Node *n, GF_JSAPIParam 
 
 void gf_sc_reload_audio_filters(GF_Compositor *compositor);
 
+Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri);
+
+
 #ifdef __cplusplus
 }
 #endif

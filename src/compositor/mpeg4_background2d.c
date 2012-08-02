@@ -174,13 +174,13 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 
 	visual_3d_set_background_state(tr_state->visual, 1);
 
+	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
 	visual_3d_matrix_push(tr_state->visual);
 
 /*	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
 	gf_sc_texture_get_transform(&st->txh, NULL, &mx, 0);
 	visual_3d_matrix_load(tr_state->visual, mx.m);
 */	
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
 
 	/*little opt: if we clear the main visual clear it entirely */
 	if (! tr_state->is_layer) {

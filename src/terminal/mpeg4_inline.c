@@ -329,14 +329,15 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 }
 
 
-static Bool gf_inline_is_hardcoded_proto(MFURL *url, GF_Config *cfg)
+static Bool gf_inline_is_hardcoded_proto(GF_Terminal *term, MFURL *url)
 {
 	u32 i;
-	const char *sOpt = gf_cfg_get_key(cfg, "Systems", "hardcoded_protos");
 	for (i=0; i<url->count; i++) {
 		if (!url->vals[i].url) continue;
 		if (strstr(url->vals[i].url, "urn:inet:gpac:builtin")) return 1;
-		if (sOpt && strstr(sOpt, url->vals[i].url)) return 1;
+
+		if (gf_sc_uri_is_hardcoded_proto(term->compositor, url->vals[i].url)) 
+			return 1;
 	}
 	return 0;
 }
@@ -348,7 +349,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	GF_Scene *scene = (GF_Scene *) _is;
 	if (!scene || !lib_url->count) return NULL;
 
-	if (gf_inline_is_hardcoded_proto(lib_url, scene->root_od->term->user->config)) return GF_SG_INTERNAL_PROTO;
+	if (gf_inline_is_hardcoded_proto(scene->root_od->term, lib_url)) return GF_SG_INTERNAL_PROTO;
 
 	i=0;
 	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i))) {
@@ -396,7 +397,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	if (!lib_url || !lib_url->count) return NULL;
 
 	/*internal, don't waste ressources*/
-	if (gf_inline_is_hardcoded_proto(lib_url, scene->root_od->term->user->config)) return NULL;
+	if (gf_inline_is_hardcoded_proto(scene->root_od->term, lib_url)) return NULL;
 	
 	i=0;
 	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i)) ) {
