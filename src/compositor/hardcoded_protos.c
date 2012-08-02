@@ -1044,13 +1044,28 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		if (compositor->proto_modules) {
 			j = 0;
 			while ( (ifce = (GF_HardcodedProto *)gf_list_enum(compositor->proto_modules, &j) )) {
-				if ( ifce->can_load_proto(url) && ifce->init(compositor, node) ) {
+				if ( ifce->can_load_proto(url) && ifce->init(compositor, node, url) ) {
 					return;
 				}
 			}
 		}
 	}
 
+}
+
+Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri)
+{
+	/*check proto modules*/
+	if (compositor && compositor->proto_modules ) {
+		u32 j = 0;
+		GF_HardcodedProto *ifce;
+		while ( (ifce = (GF_HardcodedProto *)gf_list_enum(compositor->proto_modules, &j) )) {
+			if ( ifce->can_load_proto(uri)) {
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 
 #endif /*GPAC_DISABLE_VRML*/

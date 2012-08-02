@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Ivica Arsov, Jean Le Feuvre
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2012
  *					All rights reserved
  *
@@ -36,23 +36,24 @@ extern "C" {
 #include <gpac/compositor.h>
 
 /*interface name and version for Built-in proto User Extensions*/
-#define GF_HARDCODED_PROTO_INTERFACE		GF_4CC('G','H','P', '1')
+#define GF_HARDCODED_PROTO_INTERFACE		GF_4CC('G','H','P', '2')
 
 typedef struct _hc_proto_mod
 {
 	/* interface declaration*/
 	GF_DECL_MODULE_INTERFACE
 
-	/*load hardcoded proto
-	 compositor: compositor used for loading
-	 node: proto node to be loaded
+	/*Initialize hardcoded proto node.
+	 compositor: GPAC compositor
+	 node: node to be loaded - this node is always a PROTO instance
+	 proto_uri: the proto URI
 	*/
-	Bool (*init)(GF_Compositor* compositor, GF_Node* node);
+	Bool (*init)(GF_Compositor* compositor, GF_Node* node, const char *proto_uri);
 
 	/*check if the module can load a proto
-	 url: url to check
+	 uri: proto uri to check for support
 	*/
-	Bool (*can_load_proto)(const char* url);
+	Bool (*can_load_proto)(const char* uri);
 
 	/*module private*/
 	void *udta;
