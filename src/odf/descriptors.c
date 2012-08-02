@@ -510,10 +510,10 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 	}
 	gf_list_del(cfg->pictureParameterSets);
 
-	if (cfg->extendedSequenceParameterSets) {
-		while (gf_list_count(cfg->extendedSequenceParameterSets)) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->extendedSequenceParameterSets, 0);
-			gf_list_rem(cfg->extendedSequenceParameterSets, 0);
+	if (cfg->sequenceParameterSetExtensions) {
+		while (gf_list_count(cfg->sequenceParameterSetExtensions)) {
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSetExtensions, 0);
+			gf_list_rem(cfg->sequenceParameterSetExtensions, 0);
 			if (sl->data) gf_free(sl->data);
 			gf_free(sl);
 		}
@@ -560,10 +560,10 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 		gf_bs_write_int(bs, 0xFF, 5);
 		gf_bs_write_int(bs, cfg->chroma_bit_depth - 8, 3);
 
-		count = cfg->extendedSequenceParameterSets ? gf_list_count(cfg->extendedSequenceParameterSets) : 0;
+		count = cfg->sequenceParameterSetExtensions ? gf_list_count(cfg->sequenceParameterSetExtensions) : 0;
 		gf_bs_write_u8(bs, count);
 		for (i=0; i<count; i++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_list_get(cfg->extendedSequenceParameterSets, i);
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_list_get(cfg->sequenceParameterSetExtensions, i);
 			gf_bs_write_u16(bs, sl->size);
 			gf_bs_write_data(bs, sl->data, sl->size);
 		}
@@ -619,13 +619,13 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 
 		count = gf_bs_read_int(bs, 8);
 		if (count) {
-			avcc->extendedSequenceParameterSets = gf_list_new();
+			avcc->sequenceParameterSetExtensions = gf_list_new();
 			for (i=0; i<count; i++) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 				sl->size = gf_bs_read_u16(bs);
 				sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 				gf_bs_read_data(bs, sl->data, sl->size);
-				gf_list_add(avcc->extendedSequenceParameterSets, sl);
+				gf_list_add(avcc->sequenceParameterSetExtensions, sl);
 			}
 		}
 		break;

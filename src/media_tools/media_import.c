@@ -4142,10 +4142,10 @@ restart_import:
 				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 
-				if (!avccfg->extendedSequenceParameterSets)
-					avccfg->extendedSequenceParameterSets = gf_list_new();
+				if (!avccfg->sequenceParameterSetExtensions)
+					avccfg->sequenceParameterSetExtensions = gf_list_new();
 
-				gf_list_add(avccfg->extendedSequenceParameterSets, slc);
+				gf_list_add(avccfg->sequenceParameterSetExtensions, slc);
 			}
 			break;
 

@@ -26,6 +26,10 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+#include <gpac/internal/media_dev.h>
+#endif
+
 #ifndef GPAC_DISABLE_ISOM
 
 static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
@@ -63,16 +67,16 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		gf_list_add(cfg_new->pictureParameterSets, p2);
 	}
 
-	if (cfg->extendedSequenceParameterSets) {
-		cfg_new->extendedSequenceParameterSets = gf_list_new();
-		count = gf_list_count(cfg->extendedSequenceParameterSets);
+	if (cfg->sequenceParameterSetExtensions) {
+		cfg_new->sequenceParameterSetExtensions = gf_list_new();
+		count = gf_list_count(cfg->sequenceParameterSetExtensions);
 		for (i=0; i<count; i++) {
-			p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->extendedSequenceParameterSets, i);
+			p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSetExtensions, i);
 			p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 			p2->size = p1->size;
 			p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
 			memcpy(p2->data, p1->data, sizeof(char)*p1->size);
-			gf_list_add(cfg_new->extendedSequenceParameterSets, p2);
+			gf_list_add(cfg_new->sequenceParameterSetExtensions, p2);
 		}
 	}
 	return cfg_new;	
@@ -480,12 +484,15 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
 
+	ptr->size -= 7; //including 2nd count
+
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_u16(bs);
 		sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->sequenceParameterSets, sl);
+		ptr->size -= 2+sl->size;
 	}
 
 	count = gf_bs_read_u8(bs);
@@ -495,14 +502,35 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 		sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->pictureParameterSets, sl);
+		ptr->size -= 2+sl->size;
 	}
 
 	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+
 		switch (ptr->config->AVCProfileIndication) {
 		case 100:
 		case 110:
 		case 122:
 		case 144:
+			if (!ptr->size) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+				AVCState avc;
+				s32 idx, vui_flag_pos;
+				GF_AVCConfigSlot *sl = gf_list_get(ptr->config->sequenceParameterSets, 0);
+				idx = AVC_ReadSeqInfo(sl->data+1, sl->size-1, &avc, 0, &vui_flag_pos);
+				if (idx>=0) {
+					ptr->config->chroma_format = avc.sps[idx].chroma_format;
+					ptr->config->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
+					ptr->config->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+				}
+#else
+				/*set default values ...*/
+				ptr->config->chroma_format = 1;
+				ptr->config->luma_bit_depth = 8;
+				ptr->config->chroma_bit_depth = 8;
+#endif
+				return GF_OK;
+			}
 			gf_bs_read_int(bs, 6);
 			ptr->config->chroma_format = gf_bs_read_int(bs, 2);
 			gf_bs_read_int(bs, 5);
@@ -513,13 +541,13 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 			count = gf_bs_read_int(bs, 8);
 			ptr->size -= 4;
 			if (count) {
-				ptr->config->extendedSequenceParameterSets = gf_list_new();
+				ptr->config->sequenceParameterSetExtensions = gf_list_new();
 				for (i=0; i<count; i++) {
 					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 					sl->size = gf_bs_read_u16(bs);
 					sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 					gf_bs_read_data(bs, sl->data, sl->size);
-					gf_list_add(ptr->config->extendedSequenceParameterSets, sl);
+					gf_list_add(ptr->config->sequenceParameterSetExtensions, sl);
 					ptr->size -= sl->size + 2;
 				}
 			}
@@ -590,10 +618,10 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 			gf_bs_write_int(bs, 0xFF, 5);
 			gf_bs_write_int(bs, ptr->config->chroma_bit_depth - 8, 3);
 
-			count = ptr->config->extendedSequenceParameterSets ? gf_list_count(ptr->config->extendedSequenceParameterSets) : 0;
+			count = ptr->config->sequenceParameterSetExtensions ? gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			gf_bs_write_u8(bs, count);
 			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_list_get(ptr->config->extendedSequenceParameterSets, i);
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_list_get(ptr->config->sequenceParameterSetExtensions, i);
 				gf_bs_write_u16(bs, sl->size);
 				gf_bs_write_data(bs, sl->data, sl->size);
 			}
@@ -629,9 +657,9 @@ GF_Err avcc_Size(GF_Box *s)
 		case 122:
 		case 144:
 			ptr->size += 4;
-			count = ptr->config->extendedSequenceParameterSets ?gf_list_count(ptr->config->extendedSequenceParameterSets) : 0;
+			count = ptr->config->sequenceParameterSetExtensions ?gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			for (i=0; i<count; i++)	
-				ptr->size += 2 + ((GF_AVCConfigSlot *)gf_list_get(ptr->config->extendedSequenceParameterSets, i))->size;
+				ptr->size += 2 + ((GF_AVCConfigSlot *)gf_list_get(ptr->config->sequenceParameterSetExtensions, i))->size;
 			break;
 		}
 	}

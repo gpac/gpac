@@ -1597,22 +1597,45 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 
 	if (p->type==GF_ISOM_BOX_TYPE_SVCC) 
 		fprintf(trace, " complete_representation=\"%d\"", p->config->complete_representation);
+
+	if (p->type==GF_ISOM_BOX_TYPE_AVCC) {
+		switch (p->config->AVCProfileIndication) {
+		case 100:
+		case 110:
+		case 122:
+		case 144:
+			fprintf(trace, " chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\"", p->config->chroma_format, p->config->luma_bit_depth, p->config->chroma_bit_depth);
+			break;
+		}
+	}
+
 	fprintf(trace, ">\n");
 
 	count = gf_list_count(p->config->sequenceParameterSets);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->sequenceParameterSets, i);
-		fprintf(trace, "<sequenceParameterSet size=\"%d\" content=\"", c->size);
+		fprintf(trace, "<SequenceParameterSet size=\"%d\" content=\"", c->size);
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
 	}
 	count = gf_list_count(p->config->pictureParameterSets);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->pictureParameterSets, i);
-		fprintf(trace, "<pictureParameterSet size=\"%d\" content=\"", c->size);
+		fprintf(trace, "<PictureParameterSet size=\"%d\" content=\"", c->size);
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
 	}
+
+	if (p->config->sequenceParameterSetExtensions) {
+		count = gf_list_count(p->config->sequenceParameterSetExtensions);
+		for (i=0; i<count; i++) {
+			GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->sequenceParameterSetExtensions, i);
+			fprintf(trace, "<SequenceParameterSetExtensions size=\"%d\" content=\"", c->size);
+			DumpData(trace, c->data, c->size);
+			fprintf(trace, "\"/>\n");
+		}
+	}
+
 	fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
 
 	DumpBox(a, trace);

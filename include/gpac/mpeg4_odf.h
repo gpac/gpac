@@ -876,7 +876,7 @@ typedef struct
 	u8 luma_bit_depth;
 	u8 chroma_bit_depth;
 	/*may be NULL*/
-	GF_List *extendedSequenceParameterSets;
+	GF_List *sequenceParameterSetExtensions;
 } GF_AVCConfig;
 
 
