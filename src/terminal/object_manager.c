@@ -1188,7 +1188,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 		com.play.start_range /= 1000;
 		com.play.end_range = -1.0;
 		gf_term_service_command(ch->service, &com);
-		if (dec && (dec->Status!=GF_ESM_CODEC_PLAY)) gf_term_start_codec(dec);
+		if (dec && (dec->Status!=GF_ESM_CODEC_PLAY)) gf_term_start_codec(dec, 0);
 		gf_term_lock_net(ch->odm->term, 0);
 	}
 	return GF_OK;
@@ -1355,6 +1355,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	u32 nb_failure;
 	u64 range_end;
 	Bool skip_od_st;
+	Bool media_control_paused = 0;
 	GF_NetworkCommand com;
 #ifndef GPAC_DISABLE_VRML
 	MediaControlStack *ctrl;
@@ -1450,6 +1451,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if ((ch->esd->ESID!=ch->clock->clockID) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range) && (ck_time<com.play.end_range)) {
 				com.play.start_range = ck_time;
 			}
+			if (ctrl->paused) media_control_paused = 1;
+
 			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
 			/*if requested seek time AND media control, adjust start range to current play time*/
 			if (odm->media_start_time) {
@@ -1505,20 +1508,23 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
 	if (odm->codec) {
-		gf_term_start_codec(odm->codec);
+		gf_term_start_codec(odm->codec, 0);
 	} else if (odm->subscene) {
-		if (odm->subscene->scene_codec) gf_term_start_codec(odm->subscene->scene_codec);
-		if (!skip_od_st && odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec);
+		if (odm->subscene->scene_codec) gf_term_start_codec(odm->subscene->scene_codec, 0);
+		if (!skip_od_st && odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec, 0);
 
 		if (odm->flags & GF_ODM_REGENERATE_SCENE) {
 			odm->flags &= ~GF_ODM_REGENERATE_SCENE;
 			gf_scene_regenerate(odm->subscene);
 		}
 	}
-	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec);
+	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec, 0);
 #ifndef GPAC_MINIMAL_ODF
-	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec);
+	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec, 0);
 #endif
+
+	if (media_control_paused)
+		gf_odm_pause(odm);
 }
 
 Bool gf_odm_owns_clock(GF_ObjectManager *odm, GF_Clock *ck) 
@@ -1579,7 +1585,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 			gf_es_stop(ch);
 		}
-		gf_term_stop_codec(odm->codec);
+		gf_term_stop_codec(odm->codec, 0);
 		/*and wait until frame has been consumed by the renderer
 		we don't use semaphore wait as the raw channel may already be pending on the semaphore*/
 		while (odm->codec->CB->UnitCount) {
@@ -1598,21 +1604,21 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (force_close && odm->mo) odm->mo->flags |= GF_MO_DISPLAY_REMOVE;
 	/*stop codecs*/
 	if (odm->codec) {
-		gf_term_stop_codec(odm->codec);
+		gf_term_stop_codec(odm->codec, 0);
 	} else if (odm->subscene) {
 		u32 i=0;
 		GF_ObjectManager *sub_odm;
-		if (odm->subscene->scene_codec) gf_term_stop_codec(odm->subscene->scene_codec);
-		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec);
+		if (odm->subscene->scene_codec) gf_term_stop_codec(odm->subscene->scene_codec, 0);
+		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec, 0);
 
 		/*stops all resources of the subscene as well*/
 		while ((sub_odm=(GF_ObjectManager *)gf_list_enum(odm->subscene->resources, &i))) {
 			gf_odm_stop(sub_odm, force_close);
 		}
 	}
-	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec);
+	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec, 0);
 #ifndef GPAC_MINIMAL_ODF
-	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec);
+	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec, 0);
 #endif
 
 //	gf_term_lock_net(odm->term, 1);
@@ -1781,18 +1787,18 @@ void gf_odm_pause(GF_ObjectManager *odm)
 
 	/*stop codecs, and update status for media codecs*/
 	if (odm->codec) {
-		gf_term_stop_codec(odm->codec);
+		gf_term_stop_codec(odm->codec, 1);
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_PAUSE);
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
 			gf_codec_set_status(odm->subscene->scene_codec, GF_ESM_CODEC_PAUSE);
-			gf_term_stop_codec(odm->subscene->scene_codec);
+			gf_term_stop_codec(odm->subscene->scene_codec, 1);
 		}
-		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec);
+		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec, 1);
 	}
-	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec);
+	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec, 1);
 #ifndef GPAC_MINIMAL_ODF
-	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec);
+	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec, 1);
 #endif
 
 	com.command_type = GF_NET_CHAN_PAUSE;
@@ -1801,6 +1807,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 		gf_clock_pause(ch->clock);
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 	}
 
 #ifndef GPAC_DISABLE_VRML
@@ -1823,6 +1830,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	GF_Channel *ch;
 #ifndef GPAC_DISABLE_VRML
 	MediaSensorStack *media_sens;
+	MediaControlStack *ctrl;
 #endif
 
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
@@ -1830,26 +1838,33 @@ void gf_odm_resume(GF_ObjectManager *odm)
 
 	/*start codecs, and update status for media codecs*/
 	if (odm->codec) {
-		gf_term_start_codec(odm->codec);
+		gf_term_start_codec(odm->codec, 1);
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_PLAY);
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
 			gf_codec_set_status(odm->subscene->scene_codec, GF_ESM_CODEC_PLAY);
-			gf_term_start_codec(odm->subscene->scene_codec);
+			gf_term_start_codec(odm->subscene->scene_codec, 1);
 		}
-		if (odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec);
+		if (odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec, 1);
 	}
-	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec);
+	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec, 1);
 #ifndef GPAC_MINIMAL_ODF
-	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec);
+	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec, 1);
 #endif
 
+	ctrl = gf_odm_get_mediacontrol(odm);
 	com.command_type = GF_NET_CHAN_RESUME;
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ){
 		gf_clock_resume(ch->clock);
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+
+		/*override speed with MC*/
+		if (ctrl) {
+			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
+		}
 	}
 
 #ifndef GPAC_DISABLE_VRML

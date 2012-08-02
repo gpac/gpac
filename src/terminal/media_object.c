@@ -829,7 +829,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	/*special case for 3GPP text: if not playing and user node changed, force removing it*/
 	if (ret && mo->odm && !mo->num_open && (mo->type == GF_MEDIA_OBJECT_TEXT)) {
 		mo->flags |= GF_MO_DISPLAY_REMOVE;
-		gf_term_stop_codec(mo->odm->codec);
+		gf_term_stop_codec(mo->odm->codec, 0);
 	}
 	return ret;
 }

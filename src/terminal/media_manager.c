@@ -416,7 +416,7 @@ u32 RunSingleDec(void *ptr)
 /*NOTE: when starting/stoping a decoder we only lock the decoder mutex, NOT the media manager. This
 avoids deadlocking in case a system codec waits for the scene graph and the compositor requests 
 a stop/start on a media*/
-void gf_term_start_codec(GF_Codec *codec)
+void gf_term_start_codec(GF_Codec *codec, Bool is_resume)
 {
 	GF_CodecCapability cap;
 	CodecEntry *ce;
@@ -430,13 +430,15 @@ void gf_term_start_codec(GF_Codec *codec)
 	/*clean decoder memory and wait for RAP*/
 	if (codec->CB) gf_cm_reset(codec->CB);
 
-	cap.CapCode = GF_CODEC_WAIT_RAP;
-	gf_codec_set_capability(codec, cap);
-
-	if (codec->decio && (codec->decio->InterfaceType == GF_SCENE_DECODER_INTERFACE)) {
-		cap.CapCode = GF_CODEC_SHOW_SCENE;
-		cap.cap.valueInt = 1;
+	if (!is_resume) {
+		cap.CapCode = GF_CODEC_WAIT_RAP;
 		gf_codec_set_capability(codec, cap);
+
+		if (codec->decio && (codec->decio->InterfaceType == GF_SCENE_DECODER_INTERFACE)) {
+			cap.CapCode = GF_CODEC_SHOW_SCENE;
+			cap.cap.valueInt = 1;
+			gf_codec_set_capability(codec, cap);
+		}
 	}
 
 	gf_codec_set_status(codec, GF_ESM_CODEC_PLAY);
@@ -456,7 +458,7 @@ void gf_term_start_codec(GF_Codec *codec)
 		gf_mx_v(ce->mx);
 }
 
-void gf_term_stop_codec(GF_Codec *codec)
+void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 {
 	GF_CodecCapability cap;
 	Bool locked = 0;
@@ -478,15 +480,17 @@ void gf_term_stop_codec(GF_Codec *codec)
 		locked = gf_mx_try_lock(term->mm_mx);
 	}
 
-	cap.CapCode = GF_CODEC_ABORT;
-	cap.cap.valueInt = 0;
-	gf_codec_set_capability(codec, cap);
-	
-	if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
-		cap.CapCode = GF_CODEC_SHOW_SCENE;
+	if (!is_pause) {
+		cap.CapCode = GF_CODEC_ABORT;
 		cap.cap.valueInt = 0;
 		gf_codec_set_capability(codec, cap);
-		codec->odm->mo->flags &= ~GF_MO_DISPLAY_REMOVE;
+		
+		if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
+			cap.CapCode = GF_CODEC_SHOW_SCENE;
+			cap.cap.valueInt = 0;
+			gf_codec_set_capability(codec, cap);
+			codec->odm->mo->flags &= ~GF_MO_DISPLAY_REMOVE;
+		}
 	}
 
 	/*set status directly and don't touch CB state*/
