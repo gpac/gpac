@@ -430,8 +430,8 @@ GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode);
 void gf_term_stop_scheduler(GF_Terminal *term);
 void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec);
 void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec);
-void gf_term_start_codec(GF_Codec *codec);
-void gf_term_stop_codec(GF_Codec *codec);
+void gf_term_start_codec(GF_Codec *codec, Bool is_resume);
+void gf_term_stop_codec(GF_Codec *codec, Bool is_pause);
 void gf_term_set_threading(GF_Terminal *term, u32 mode);
 void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 

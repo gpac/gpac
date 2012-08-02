@@ -224,6 +224,7 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 	u32 i;
 	Double duration;
 	GF_Segment *last_seg, *prev_seg;
+
 	if (gf_list_count(ctrl->seg)) {
 		GF_Segment *desc = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (!desc) {
@@ -293,7 +294,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 
 	need_restart = (stack->changed==2) ? 1 : 0;
 	shall_restart = (stack->control->mediaStartTime>=0) ? 1 : 0;
-
+	
 	/*check url target*/
 	if (stack->stream) {
 		if (MC_URLChanged(&stack->url, &stack->control->url)) {
@@ -315,6 +316,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 				/*remove from prev*/
 				if (prev && prev->odm && (prev != stack->stream)) gf_odm_remove_mediacontrol(prev->odm, stack);
 				/*register with new*/
+				/*if we assigned the media control to an exiting object - force the state of the object*/
 				gf_odm_set_mediacontrol((GF_ObjectManager *) stack->stream->odm, stack);
 				
 				while (gf_list_count(stack->seg)) gf_list_rem(stack->seg, 0);
@@ -536,7 +538,12 @@ void gf_odm_remove_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 {
 	gf_list_del_item(odm->mc_stack, ctrl);
 	/*removed. Note the spec doesn't say what to do in this case...*/
-	if (odm->media_ctrl == ctrl) gf_odm_set_mediacontrol(odm, NULL);
+	if (odm->media_ctrl == ctrl) {
+		/*we're about to release the media control from this object - if paused, force a resume (as if no MC was set)*/
+		if (ctrl->paused) 
+			mediacontrol_resume(odm);
+		gf_odm_set_mediacontrol(odm, NULL);
+	}
 }
 
 Bool gf_odm_switch_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)

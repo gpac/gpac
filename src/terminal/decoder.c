@@ -384,7 +384,7 @@ check_unit:
 			cap.cap.valueInt = 0;
 			sdec->GetCapabilities(codec->decio, &cap);
 			if (!cap.cap.valueInt) {
-				gf_term_stop_codec(codec);
+				gf_term_stop_codec(codec, 0);
 				if ((codec->type==GF_STREAM_OD) && (codec->nb_dec_frames==1)) {
 					/*this is just by safety, since seeking is only allowed when a single clock is present
 					in the scene*/
@@ -511,7 +511,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->Muted) return GF_OK;
 
 	if (codec->Status == GF_ESM_CODEC_EOS) {
-		gf_term_stop_codec(codec);
+		gf_term_stop_codec(codec, 0);
 		return GF_OK;
 	}
 
@@ -671,7 +671,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
 				if (e==GF_OK) e = UnlockCompositionUnit(codec, CU, unit_size);
 			}
-			gf_term_stop_codec(codec);
+			gf_term_stop_codec(codec, 0);
 			if (codec->CB) gf_cm_set_eos(codec->CB);
 		}
 		/*if no data, and channel not buffering, ABORT CB buffer (data timeout or EOS not detectable)*/
@@ -977,7 +977,7 @@ GF_Err gf_codec_process_ocr(GF_Codec *codec, u32 TimeAvailable)
 	if (!AU || !ch) {
 		/*if the codec is in EOS state, move to STOP*/
 		if (codec->Status == GF_ESM_CODEC_EOS) {
-			gf_term_stop_codec(codec);
+			gf_term_stop_codec(codec, 0);
 #ifndef GPAC_DISABLE_VRML
 			/*if a mediacontrol is ruling this OCR*/
 			if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) mediacontrol_restart(codec->odm);
