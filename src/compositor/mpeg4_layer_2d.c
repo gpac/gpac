@@ -98,6 +98,8 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Node *back;
 	Bool prev_layer;
 	GF_Matrix2D backup;
+	GF_IRect prev_clip;
+	GF_Rect rc;
 	SFVec2f prev_vp;
 
 #ifndef GPAC_DISABLE_3D
@@ -177,9 +179,6 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 				gf_node_traverse(back, tr_state);
 			}
 
-			/*sort all children without transform, and use current transform when flushing contexts*/
-			gf_mx_init(tr_state->model_matrix);
-
 			/*apply viewport*/
 			if (viewport) {
 				tr_state->traversing_mode = TRAVERSE_BINDABLE;
@@ -217,9 +216,6 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		} else 
 #endif
 		{
-			GF_IRect prev_clip;
-			GF_Rect rc;
-
 			gf_mx2d_copy(backup, tr_state->transform);
 
 			prev_clip = tr_state->visual->top_clipper;
