@@ -1590,7 +1590,7 @@ restart_fragmentation_pass:
 
 		fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"%s/mp4\" codecs=\"%s\"", rep_idx ? rep_idx : 1, audio_only ? "audio" : "video", szCodecs);
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
-		if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
+		if (sample_rate) fprintf(mpd, " audioSamplingRate=\"%d\"", sample_rate);
 		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
 		if (segments_start_with_sap || split_seg_at_rap) {
 			fprintf(mpd, " startWithSAP=\"%d\"", max_sap_type);
@@ -1601,6 +1601,9 @@ restart_fragmentation_pass:
 		
 		fprintf(mpd, " bandwidth=\"%d\"", bandwidth);		
 		fprintf(mpd, ">\n");
+
+		if (nb_channels) 
+			fprintf(mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>", nb_channels);
 
 		if (dash_ctx) {
 			Double seg_dur;
