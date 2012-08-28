@@ -2506,11 +2506,13 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool on_demand, const ch
 
 	fprintf(mpd, "   <Representation id=\"%d\" mimeType=\"video/mp2t\" codecs=\"%s\"", index_info->represantation_idx+1, szCodecs);
 	if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
-	if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
+	if (sample_rate) fprintf(mpd, " audioSamplingRate=\"%d\"", sample_rate);
 	if (langCode) fprintf(mpd, " lang=\"%s\"", gf_4cc_to_str(langCode) );
 	fprintf(mpd, " startWithRAP=\"%s\"", split_seg_at_rap ? "1" : "false");
 	fprintf(mpd, " bandwidth=\"%d\"", bandwidth);
 	fprintf(mpd, ">\n");
+	if (nb_channels) 
+		fprintf(mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>", nb_channels);
 
 }
 
