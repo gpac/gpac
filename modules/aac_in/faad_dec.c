@@ -101,14 +101,13 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			case GF_M4A_AAC_PS:
 				s_base_object_type = gf_stringizer(GF_M4A_AAC_PS);
 				base_object_type_error: /*error case*/
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error: unsupported %s format for stream %d\n", s_base_object_type, esd->ESID));
-				return GF_NOT_SUPPORTED;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error: unsupported %s format for stream %d - defaulting to AAC LC\n", s_base_object_type, esd->ESID));
 			default:
 				break;
 		}
 		a_cfg.base_object_type = GF_M4A_AAC_LC;
 		a_cfg.has_sbr = 0;
-		a_cfg.nb_chan = 1;
+		a_cfg.nb_chan = a_cfg.nb_chan > 2 ? 1 : a_cfg.nb_chan;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
 		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);

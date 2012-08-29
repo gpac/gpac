@@ -934,6 +934,8 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_m4a_get_config(stream->ifce->decoder_config, stream->ifce->decoder_config_size, &cfg);
 
+			if (cfg.base_object_type>=5) cfg.base_object_type = GF_M4A_AAC_LC;
+
 			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
 			gf_bs_write_int(bs, 0, 1);/*mpeg2 aac*/
 			gf_bs_write_int(bs, 0, 2); /*layer*/
@@ -1377,11 +1379,11 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		u64 pcr = 0;
 		if (needs_pcr) {
 			u32 now = gf_sys_clock();
-			/*compute PCR*/
-			if (stream->program->mux->real_time) {
+			/*compute PCR - we disabled real-time clock for now and only insert PCR based on DTS / CTS*/
+			if (0 && stream->program->mux->real_time) {
 				pcr = gf_m2ts_get_pcr(stream->program);
 			} else {
-				pcr = (stream->curr_pck.dts - stream->program->pcr_offset) * 300;
+				pcr = ( ((stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts) - stream->program->pcr_offset) * 300;
 				if (pcr>stream->program->pcr_init_time) pcr -= stream->program->pcr_init_time;
 				else pcr = 0;
 			}
@@ -1389,7 +1391,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 			//fprintf(stdout, "PCR Diff in ms %d - sys clock diff in ms %d - DTS diff %d\n", (u32) (pcr - stream->program->last_pcr) / 27000, now - stream->program->last_sys_clock, (stream->curr_pck.dts - stream->program->last_dts)/90);
 
 			stream->program->last_sys_clock = now;
-			stream->program->last_dts = stream->curr_pck.dts;
+			/*if stream does not use DTS, use CTS as base time for PCR*/
+			stream->program->last_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts;
 			stream->program->last_pcr = pcr;
 			stream->pcr_priority = 0;
 		}

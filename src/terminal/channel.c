@@ -643,7 +643,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 	if (!ch->clock->clock_init) {
 		if (!ch->clock->use_ocr) {
 			gf_clock_set_time(ch->clock, ch->CTS);
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d CTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->CTS));
 			ch->IsClockInit = 1;
 		} 
 	}
@@ -1102,7 +1102,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	if (ch->AULength == OldLength + payload_size) EndAU = 1;
 	if (EndAU) ch->NextIsAUStart = 1;
 
-	if (EndAU && !ch->IsClockInit) gf_es_check_timing(ch);
+	if (EndAU && !ch->IsClockInit && !ch->skip_time_check_for_pending) {
+		ch->skip_time_check_for_pending = 0;
+		gf_es_check_timing(ch);
+	}
 
 	/* we need to skip all the packets of the current AU in the carousel scenario */
 	if (ch->skip_carousel_au == 1) return;

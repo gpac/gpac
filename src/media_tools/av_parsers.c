@@ -2564,7 +2564,9 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 		case 16: /*progressive refinement segment start*/
 		case 17: /*progressive refinement segment end*/
 		case 18: /*motion constrained slice group*/
+			break;
 		default: /*reserved*/
+			do_copy = 0;
 			break;
 		}
 
@@ -2604,11 +2606,17 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	if (written) {
 		var = avc_emulation_bytes_add_count(new_buffer, written);
 		if (var) {
-			assert(written+var<=nal_size);
-			written = avc_add_emulation_bytes(new_buffer, buffer, written);
+			if (written+var<=nal_size) {
+				written = avc_add_emulation_bytes(new_buffer, buffer, written);
+			} else {
+				written = 0;
+			}
 		} else {
-			assert(written<=nal_size);
-			memcpy(buffer, new_buffer, sizeof(char)*written);
+			if (written<=nal_size) {
+				memcpy(buffer, new_buffer, sizeof(char)*written);
+			} else {
+				written = 0;
+			}
 		}
 	}
 	gf_free(new_buffer);

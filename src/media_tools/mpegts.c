@@ -1946,13 +1946,16 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 #endif
 
 				pes->PTS = pesh.PTS;
-				if (!pesh.DTS) pesh.DTS = pesh.PTS;
-
+				if (!pesh.DTS) {
+					pesh.DTS = pesh.PTS;
+				}
 #ifndef GPAC_DISABLE_LOG
-				if (pesh.DTS==pes->DTS) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS) );
-				} if (pesh.DTS<pes->DTS) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS) );
+				else {
+					if (pesh.DTS==pes->DTS) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS) );
+					} if (pesh.DTS<pes->DTS) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS) );
+					}
 				}
 #endif
 				pes->DTS = pesh.DTS;

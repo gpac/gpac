@@ -4332,7 +4332,8 @@ restart_import:
 					is_paff = 1;
 
 				slice_is_ref = (avc.s_info.nal_unit_type==GF_AVC_NALU_IDR_SLICE);
-				if (slice_is_ref) nb_idr++;
+				if (slice_is_ref) 
+					nb_idr++;
 				slice_force_ref = 0;
 
 				/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
@@ -4422,7 +4423,7 @@ restart_import:
 				}
 
 				/*compute max delay (applicable when B slice are present)*/
-				if (poc_diff && (s32)(cur_samp-(ref_frame-1)-last_poc/poc_diff)>(s32)max_total_delay) {
+				if (ref_frame && poc_diff && (s32)(cur_samp-(ref_frame-1)-last_poc/poc_diff)>(s32)max_total_delay) {
 					max_total_delay = cur_samp - (ref_frame-1) - last_poc/poc_diff;
 				}
 			}
