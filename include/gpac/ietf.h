@@ -1270,7 +1270,9 @@ enum
 	/*ISMACryp stuff*/
 	GF_RTP_HAS_ISMACRYP = (1<<5),
 	GF_RTP_ISMA_SEL_ENC = (1<<6),
-	GF_RTP_ISMA_HAS_KEY_IDX = (1<<7)
+	GF_RTP_ISMA_HAS_KEY_IDX = (1<<7),
+	
+	GF_RTP_AVC_USE_ANNEX_B = (1<<8)
 };
 
 /*
