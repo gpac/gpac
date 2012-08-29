@@ -332,17 +332,31 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     mpdin->mpd->minimum_update_period = 0;
 
     if (!mpdin->mpd_dnload) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing downloader\n"));
-        return GF_BAD_PARAM;
-    }
+		if (!gf_list_count(mpdin->mpd->locations)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: no HTTP source for MPD could be found\n"));
+			return GF_BAD_PARAM;
+		}
+		purl = gf_strdup(gf_list_get(mpdin->mpd->locations, 0));
+	} else {
+		local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
+		if (!local_url) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: wrong cache file %s\n", local_url));
+			return GF_IO_ERR;
+		}
+		gf_delete_file(local_url);
+		purl = gf_strdup(gf_dm_sess_get_resource_name(mpdin->mpd_dnload));
+	}
 
-    local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
-    if (!local_url) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: wrong cache file %s\n", local_url));
-        return GF_IO_ERR;
-    }
-    gf_delete_file(local_url);
-    purl = gf_strdup(gf_dm_sess_get_resource_name(mpdin->mpd_dnload));
+	/*if update location is specified, update - spec does not say whether location is a relative or absoute URL*/
+	if (gf_list_count(mpdin->mpd->locations)) {
+		char *update_loc = gf_list_get(mpdin->mpd->locations, 0);
+		char *update_url = gf_url_concatenate(purl, update_loc);
+		if (update_url) {
+			gf_free(purl);
+			purl = update_url;
+		}
+	}
+
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Updating Playlist %s...\n", purl));
 	/*use non-persistent connection for MPD*/
     e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), purl, MPD_NetIO, mpdin, 0, 0, 0);
@@ -363,11 +377,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
         gf_m3u8_to_mpd(local_url, purl, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &mpdin->getter);
     } else if (!MPD_is_MPD_mime(mime)) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
-        gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
-        gf_free(purl);
-        purl = NULL;
-        return GF_BAD_PARAM;
+        GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
     }
 
     gf_free(purl);
