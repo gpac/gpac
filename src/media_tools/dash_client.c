@@ -1503,12 +1503,15 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				gf_dash_get_segment_duration(gf_list_get(set->representations, j), set, period, dash->mpd, &nb_seg, &dur);
 				if (dur>seg_dur) seg_dur = dur;
 			}
-			group->max_cached_segments = 1;
-			while (group->max_cached_segments * seg_dur < dash->max_cache_duration)
-				group->max_cached_segments ++;
 
-			/*we need one more entry in cache for segment being currently played*/
-			group->max_cached_segments ++;
+			group->max_cached_segments = 1;
+			if (seg_dur) {
+				while (group->max_cached_segments * seg_dur < dash->max_cache_duration)
+					group->max_cached_segments ++;
+
+				/*we need one more entry in cache for segment being currently played*/
+				group->max_cached_segments ++;
+			}
 
 			group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
 			memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
@@ -2256,7 +2259,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		goto exit;
     }
 
-	gf_dash_reset_groups(dash);
+//	gf_dash_reset_groups(dash);
 
 	/* Get the right period from the given time */
     dash->active_period_index = gf_dash_period_index_from_time(dash, 0);
