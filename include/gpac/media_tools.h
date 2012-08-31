@@ -258,8 +258,8 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size_i
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*starts MPD file */
-GF_Err gf_media_mpd_start(char *mpd_name, char *title, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Double period_duration);
-GF_Err gf_media_mpd_end(char *mpd_name);
+GF_Err gf_media_mpd_start(char *mpd_name, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id);
+GF_Err gf_media_mpd_end(char *mpd_name, Bool last_adaptation_set);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*save file as fragmented movie

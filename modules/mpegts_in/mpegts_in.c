@@ -787,7 +787,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
-	if (opt && !strcmp(opt, "true")) {
+	if (opt && !strcmp(opt, "yes")) {
 		gf_m2ts_demux_dmscc_init(m2ts->ts);
 	}
 

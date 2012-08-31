@@ -947,7 +947,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 	e = parse_root_playlist(m3u8_file, &pl, base_url);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
 		if (pl) variant_playlist_del(pl);
 		pl = NULL;
 		return e;
@@ -989,7 +989,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			if (!suburl || !strcmp(base_url, suburl)) {
 				if (suburl) gf_free(suburl);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
 				continue;
 			}
 			if (getter && getter->new_session && getter->del_session && getter->get_cache_name) {
@@ -1053,15 +1053,15 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 	if (is_end || ((the_pe->elementType == TYPE_PLAYLIST) && the_pe->element.playlist.is_ended)) {
 		update_interval = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] NO NEED to refresh playlist !\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] NO NEED to refresh playlist !\n"));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, the_pe->durationInfo));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, the_pe->durationInfo));
 	}
 
 	assert( mpd_file );
 	fmpd = gf_f64_open(mpd_file, "wt");
 	if (!fmpd){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD Generator] Cannot write to temp file %s!\n", mpd_file));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD Generator] Cannot write to temp file %s!\n", mpd_file));
 		variant_playlist_del(pl);
 		return GF_IO_ERR;
 	}

@@ -3,7 +3,7 @@ include ../config.mak
 #all OS and lib independent
 PLUGDIRS=aac_in ac3_in audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp
 
-ifeq ($(DISABLE_MPD), no)
+ifeq ($(DISABLE_DASH_CLIENT), no)
 PLUGDIRS+=mpd_in
 endif
 

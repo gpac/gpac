@@ -165,6 +165,9 @@ void PrintUsage()
 #ifdef GPAC_MEMORY_TRACKING
 		"\t        \"mem\"        : GPAC memory tracker\n"
 #endif
+#ifndef GPAC_DISABLE_DASH_CLIENT
+		"\t        \"dash\"       : HTTP streaming logs\n"
+#endif
 		"\t        \"module\"     : GPAC modules debugging\n"
 		"\t        \"mutex\"      : mutex\n"
 		"\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
