@@ -1,0 +1,217 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre 
+ *			Copyright (c) Telecom ParisTech 2012
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / Adaptive HTTP Streaming sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+
+#ifndef _GF_DASH_H_
+#define _GF_DASH_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <gpac/tools.h>
+
+#ifndef GPAC_DISABLE_DASH_CLIENT
+
+/*!
+ * All the possible Mime-types for MPD files
+ */
+static const char * GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", NULL };
+
+/*!
+ * All the possible Mime-types for M3U8 files
+ */
+static const char * GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
+
+typedef enum 
+{
+	/*event sent if an error occurs when setting up manifest*/
+	GF_DASH_EVENT_MANIFEST_INIT_ERROR,
+	/*event sent before groups first segment is fetched - user shall decide which group to select at this point*/
+	GF_DASH_EVENT_SELECT_GROUPS,
+	/*event sent if an error occurs during period setup - the download thread will exit at this point*/
+	GF_DASH_EVENT_PERIOD_SETUP_ERROR,
+	/*event sent once the first segment of each selected group is fetched - user should load playback chain(s) at this point*/
+	GF_DASH_EVENT_CREATE_PLAYBACK,
+	/*event sent when reseting groups at period switch or at exit - user should unload playback chain(s) at this point*/
+	GF_DASH_EVENT_DESTROY_PLAYBACK,
+} GF_DASHEventType;
+
+/*structure used for all IO operations for DASH*/
+typedef struct _gf_dash_io GF_DASHFileIO;
+typedef void *GF_DASHFileIOSession;
+
+struct _gf_dash_io
+{
+	/*user private data*/
+	void *udta;
+	
+	/*signals errors or specific actions to perform*/
+	GF_Err (*on_dash_event)(GF_DASHFileIO *dashio, GF_DASHEventType evt, GF_Err setup_error);
+
+	/*called whenever a file has to be deleted*/
+	void (*delete_cache_file)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url);
+
+	/*create a file download session for the given resource*/
+	GF_DASHFileIOSession (*create)(GF_DASHFileIO *dashio, Bool persistent, const char *url);
+	/*delete a file download session*/
+	void (*del)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*aborts downloading in the given file session*/
+	void (*abort)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*resetup the file session with a new resource to get - this allows persistent connection usage with HTTP servers*/
+	GF_Err (*setup_from_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url);
+	/*set download range for the file session*/
+	GF_Err (*set_range)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range);
+	/*initialize the file session - all the headers shall be fetched before returning*/
+	GF_Err (*init)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*download the content - synchronous call: all the file shall be fetched before returning*/
+	GF_Err (*run)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+
+	/*get URL of the file - i tmay be different from the original one if resource relocation happened*/
+	const char *(*get_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*get the name of the cache file. If NULL is returned, the file cannot be cached and its associated UTL will be used when 
+	the client request file to play*/
+	const char *(*get_cache_name)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*get the MIME type of the file*/
+	const char *(*get_mime)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*get the average download rate for the session*/
+	u32 (*get_bytes_per_sec)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*get the totla size on bytes for the session*/
+	u32 (*get_total_size)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+};
+
+typedef struct __dash_client GF_DashClient;
+
+typedef enum
+{
+	GF_DASH_SELECT_QUALITY_LOWEST,
+	GF_DASH_SELECT_QUALITY_HIGHEST,
+	GF_DASH_SELECT_BANDWIDTH_LOWEST,
+	GF_DASH_SELECT_BANDWIDTH_HIGHEST
+} GF_DASHInitialSelectionMode;
+
+/*create a new DASH client:
+	@dash_io: DASH callbacks to the user
+	@max_cache_duration_sec: maximum duration in seconds for the cached media
+	@auto_switch_count: forces representation switching every auto_switch_count segments
+	@keep_files: do not delete files from the cache
+	@disable_switching: turn off bandwidth switching algorithm
+	@first_select_mode: indicates which representation to select upon startup
+*/
+GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, 
+						   u32 max_cache_duration_sec, 
+						   u32 auto_switch_count, 
+						   Bool keep_files, 
+						   Bool disable_switching, 
+						   GF_DASHInitialSelectionMode first_select_mode);
+
+/*delete the DASH client*/
+void gf_dash_del(GF_DashClient *dash);
+
+/*open the DASH client for the specific manifest file*/
+GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url);
+/*closes the dash client*/
+void gf_dash_close(GF_DashClient *dash);
+
+/*returns URL of the DASH manifest file*/
+const char *gf_dash_get_url(GF_DashClient *dash);
+
+/*get title and source for this MPD*/
+void gf_dash_get_info(GF_DashClient *dash, const char **title, const char **source);
+
+/*switches quality up or down*/
+void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up);
+
+/*indicates whether the DASH client is running or not. For the moment, the DASH client is always run by an internal thread*/
+Bool gf_dash_is_running(GF_DashClient *dash);
+
+/*get duration of the presentation*/
+Double gf_dash_get_duration(GF_DashClient *dash);
+/*check that the given file has the right XML root element*/
+Bool gf_dash_check_mpd_root_type(const char *local_url);
+
+
+/*returns the number of groups. A group is a set of media resources that are alternate of each other in terms of bandwidth/quality.*/
+u32 gf_dash_get_group_count(GF_DashClient *dash);
+/*associate user data (or NULL) with this group*/
+GF_Err gf_dash_set_group_udta(GF_DashClient *dash, u32 group_index, void *udta);
+/*returns the user data associated with this group*/
+void *gf_dash_get_group_udta(GF_DashClient *dash, u32 group_index);
+/*indicates whether a group is selected for playback or not. Currently groups cannot be selected during playback*/
+Bool gf_dash_is_group_selected(GF_DashClient *dash, u32 group_index);
+
+/*selects a group for playback. If other groups are alternate to this group (through the @group attribute), they are automatically deselected*/
+void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select);
+
+/*returns the mime type of the media resources in this group*/
+const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx);
+/*returns the URL of tyhe first media resource to play (init segment or first media segment depending on format). start_range and end_range are optional*/
+const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64 *start_range, u64 *end_range);
+
+/*returns the URL and byte range of the next media resource to play in this group. 
+If switching occured and no bitstream switching is possible, also set the url and byte range of the media file required to intialize the playback
+original_url is optional and may be used to het the URI of the segment
+*/
+GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, 
+											const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, 
+											const char **original_url);
+/*discards the first media resource in the queue of this group*/
+void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx);
+/*get the number of media resources available in the cache for this group*/
+u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *group_is_done);
+/*get the maximum number of media resources  that can be put in the cache for this group*/
+u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 idx);
+/*indicates to the DASH engine that the group playback has been stopped by the user*/
+void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done);
+
+/*returns 1 if the playback position is in the last period of the presentation*/
+Bool gf_dash_in_last_period(GF_DashClient *dash);
+/*return value: 
+	1 if the period switching has been requested (due to seeking), 
+	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stoped and restarted)
+	0 if no switching is requested
+*/
+u32 gf_dash_get_period_switch_status(GF_DashClient *dash);
+/*request period switch - this is typically called when the media engine signals that no more data is available for playback*/
+void gf_dash_request_period_switch(GF_DashClient *dash);
+/*returns 1 if the DASH engine is currently setting up a period (creating groups and fetching initial segments)*/
+Bool gf_dash_in_period_setup(GF_DashClient *dash);
+/*seeks playback to the given time. If period changes, all playback is stopped and restarted*/
+void gf_dash_seek(GF_DashClient *dash, Double start_range);
+/*gets playback start range for the first segment to play after the seek has been done. This is the amount of data to skip from the first segment to be played*/
+Double gf_dash_get_playback_start_range(GF_DashClient *dash);
+/*when seeking, this flag is set when the seek is outside of the previously playing segment.*/
+Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
+
+
+#endif //GPAC_DISABLE_DASH_CLIENT
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif	/*_GF_DASH_H_*/
+

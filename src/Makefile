@@ -74,6 +74,9 @@ endif
 ifeq ($(DISABLE_MPD), no)
 LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
 endif
+ifeq ($(DISABLE_DASH_CLIENT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o
+endif
 ifeq ($(DISABLE_MEDIA_EXPORT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/media_export.o
 endif

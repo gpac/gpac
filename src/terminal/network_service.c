@@ -219,7 +219,7 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 		if (service->subservice_disconnect) {
 			if (service->owner && service->subservice_disconnect==1) {
 				GF_Scene *scene = service->owner->subscene ? service->owner->subscene : service->owner->parentscene;
-				/*destrou all media*/
+				/*destroy all media*/
 				gf_scene_disconnect(scene, 1);
 			}
 			return;
@@ -731,7 +731,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug));
 			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
 			if (force_module && ifce && !strstr(ifce->module_name, force_module)) {
 				gf_modules_close_interface((GF_BaseInterface *) ifce);

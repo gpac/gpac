@@ -67,7 +67,7 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
 	return GF_OK;
 }
 
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 {
 	GF_Err e;
 	u32 i;
@@ -130,7 +130,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 	//ok we are fine - note the data map is created at the begining
 	if (i) movie->FragmentsFlags |= GF_ISOM_FRAG_WRITE_READY;
 
-	if (use_segments) {
+	if (media_segment_type) {
 		movie->use_segments = 1;
 		movie->moof_list = gf_list_new();
 	}
@@ -1755,7 +1755,7 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u
 
 #else
 
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file)
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, u32 media_segment_type)
 {
 	return GF_NOT_SUPPORTED;
 }

@@ -109,6 +109,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/dvb_mpe.c \
 	../../../../src/media_tools/m2ts_mux.c \
 	../../../../src/media_tools/reedsolomon.c \
+	../../../../src/media_tools/dash_client.c \
 	../../../../src/media_tools/mpd.c \
 	../../../../src/media_tools/m3u8.c \
 	../../../../src/media_tools/ait.c \

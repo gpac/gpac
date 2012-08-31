@@ -272,6 +272,10 @@ void PrintGeneralUsage()
 			"                       Ignored if segments are stored in the output file.\n"
 			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
 			" -single-segment      Uses a single segment for the whole file (OnDemand profile). \n"
+			" -no-bs-switching     Disables bitstream switching merging.\n" 
+			" -mpd-title string    Sets MPD title.\n"
+			" -mpd-source string   Sets MPD source.\n"
+			" -mpd-info-url string Sets MPD info url.\n"
 			" -dash-ctx FILE       Stores/restore DASH timing from FILE.\n"
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
@@ -636,6 +640,8 @@ void PrintUsage()
 			" -v                   verbose mode\n"
 			" -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 			" -version             gets build version\n"
+			" -- INPUT             escape option if INPUT starts with - character\n"
+			"\n"
 			);
 }
 
@@ -1215,6 +1221,14 @@ enum
 	if (dash_inputs) free(dash_inputs); \
 	return __ret_code; \
 
+
+typedef struct 
+{
+	char *file_name;
+	u32 adaptation_set;
+	u32 group_id;
+} DashInput;
+
 int mp4boxMain(int argc, char **argv)
 {
 	char outfile[5000];
@@ -1233,7 +1247,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_rem = NULL;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_bitstream_switching;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
 
 #ifndef GPAC_DISABLE_MPD
@@ -1256,10 +1270,13 @@ int mp4boxMain(int argc, char **argv)
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
 	Bool adjust_split_end = 0;
-	char **dash_inputs = NULL;
+	DashInput *dash_inputs = NULL;
 	u32 nb_dash_inputs = 0;
 	char *gf_logs = NULL;
 	char *seg_ext = NULL;
+	const char *dash_title = NULL;
+	const char *dash_source = NULL;
+	const char *dash_more_info = NULL;
 
 	if (argc < 2) {
 		PrintUsage();
@@ -1279,6 +1296,7 @@ int mp4boxMain(int argc, char **argv)
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = align_cat = pack_wgt = 0;
+	dash_bitstream_switching = 1;
 	subsegs_per_sidx = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -1305,29 +1323,36 @@ int mp4boxMain(int argc, char **argv)
 	/*parse our args*/
 	for (i = 1; i < (u32) argc ; i++) {
 		arg = argv[i];
-		/*main file*/
-//		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
-		if (arg[0] != '-') {
+		/*input file(s)*/
+		if ((arg[0] != '-') || !stricmp(arg, "--")) {
+			char *arg_val = arg;
+			if (!stricmp(arg, "--")) {
+				CHECK_NEXT_ARG
+				arg_val = argv[i+1];
+				i++;
+			}
 			if (argc < 3) {
 				fprintf(stdout, "Error - only one input file found as argument, please check usage\n"); 
 				MP4BOX_EXIT_WITH_CODE(1); 
 			} else if (inName) { 
 				if (dash_duration) {
 					if (!nb_dash_inputs) {
-						dash_inputs = realloc(dash_inputs, sizeof(char *) * (nb_dash_inputs+1) );
-						dash_inputs[nb_dash_inputs] = inName;
+						dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (nb_dash_inputs+1) );
+						memset(&dash_inputs[nb_dash_inputs], 0, sizeof(DashInput) );
+						dash_inputs[nb_dash_inputs].file_name = inName;
 						nb_dash_inputs++;
 					}
-					dash_inputs = realloc(dash_inputs, sizeof(char *) * (nb_dash_inputs+1) );
+					dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (nb_dash_inputs+1) );
 
-					dash_inputs[nb_dash_inputs] = arg;
+					memset(&dash_inputs[nb_dash_inputs], 0, sizeof(DashInput) );
+					dash_inputs[nb_dash_inputs].file_name = arg_val;
 					nb_dash_inputs++;					
 				} else {
 					fprintf(stdout, "Error - 2 input names specified, please check usage\n");
 					MP4BOX_EXIT_WITH_CODE(1); 
 				}
 			} else {
-				inName = arg;
+				inName = arg_val;
 			}
 		}
 		else if (!stricmp(arg, "-?")) { PrintUsage(); MP4BOX_EXIT_WITH_CODE(0); }
@@ -1564,7 +1589,13 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			seg_ext = argv[i+1];
 			i++;
-		} else if (!stricmp(arg, "-dash-ctx")) {
+		} else if (!stricmp(arg, "-no-bs-switching")) {
+			dash_bitstream_switching = 0;
+		}
+		else if (!stricmp(arg, "-mpd-title")) { CHECK_NEXT_ARG dash_title = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-mpd-source")) { CHECK_NEXT_ARG dash_source = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-mpd-info-url")) { CHECK_NEXT_ARG dash_more_info = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-dash-ctx")) {
 			CHECK_NEXT_ARG
 			dash_ctx = argv[i+1];
 			i++;
@@ -2254,8 +2285,9 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 	if (dash_duration && !nb_dash_inputs) {
-		dash_inputs = realloc(dash_inputs, sizeof(char *) * (nb_dash_inputs+1) );
-		dash_inputs[nb_dash_inputs] = inName;
+		dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (nb_dash_inputs+1) );
+		memset(&dash_inputs[nb_dash_inputs], 0, sizeof(DashInput));
+		dash_inputs[nb_dash_inputs].file_name = inName;
 		nb_dash_inputs++;
 	}
 
@@ -2530,7 +2562,7 @@ int mp4boxMain(int argc, char **argv)
 					if (subsegs_per_sidx<0) subsegs_per_sidx = 0;
 #ifndef GPAC_DISABLE_MPEG2TS
 					for (i=0; i<nb_dash_inputs; i++) {
-						dump_mpeg2_ts(dash_inputs[i], outName, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
+						dump_mpeg2_ts(dash_inputs[i].file_name, outName, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
 							seg_name, seg_ext, use_url_template, single_segment, i, (i+1 == nb_dash_inputs) ? 1 : 0);
 					}
 #endif
@@ -3177,7 +3209,10 @@ int mp4boxMain(int argc, char **argv)
 	if (dash_duration) {
 		char szMPD[GF_MAX_PATH];
 		char szInit[GF_MAX_PATH];
-		GF_ISOFile *init_seg;
+		u32 j, k, cur_adaptation_set;
+		GF_ISOFile *init_seg = NULL;
+		u32 max_adaptation_set = 0;
+		u32 cur_group_id = 0;
 		Bool sps_merge_failed = 0;
 		Double period_duration = 0;
 
@@ -3195,161 +3230,291 @@ int mp4boxMain(int argc, char **argv)
 		fprintf(stdout, "\n");
 		if (seg_at_rap) fprintf(stdout, "Spliting segments at GOP boundaries\n");
 
+		/*classify all input in possible adaptation sets*/
+		for (k=0; k<nb_dash_inputs; k++) {
+			GF_ISOFile *set_file;
+			/*this file already belongs to an adaptation set*/
+			if (dash_inputs[k].adaptation_set) continue;
+
+			max_adaptation_set ++;
+			dash_inputs[k].adaptation_set = max_adaptation_set;
+			set_file = gf_isom_open(dash_inputs[k].file_name, GF_ISOM_OPEN_READ, NULL);
+
+			for (i=k+1; i<nb_dash_inputs; i++) {
+				Bool valid_in_adaptation_set = 1;
+				Bool assign_to_group = 1;
+				GF_ISOFile *in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
+
+				for (j=0; j<gf_isom_get_track_count(set_file); j++) {
+					u32 mtype, msub_type;
+					Bool same_codec = 1;
+					u32 track = gf_isom_get_track_by_id(in, gf_isom_get_track_id(set_file, j+1));
+
+					if (!track) {
+						valid_in_adaptation_set = 0;
+						assign_to_group = 0;
+						break;
+					}
+					mtype = gf_isom_get_media_type(set_file, j+1);
+					if (mtype != gf_isom_get_media_type(in, j+1)) {
+						valid_in_adaptation_set = 0;
+						assign_to_group = 0;
+						break;
+					}
+					msub_type = gf_isom_get_media_subtype(set_file, j+1, 1);
+					if (msub_type != gf_isom_get_media_subtype(in, j+1, 1)) same_codec = 0;
+					if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) 
+						|| (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) 
+						|| (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
+						|| (msub_type==GF_ISOM_SUBTYPE_AVC2_H264)
+						|| (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
+						|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
+					) {
+						GF_DecoderConfig *dcd1 = gf_isom_get_decoder_config(set_file, j+1, 1);
+						GF_DecoderConfig *dcd2 = gf_isom_get_decoder_config(in, j+1, 1);
+						if (dcd1 && dcd2 && (dcd1->streamType==dcd2->streamType) && (dcd1->objectTypeIndication==dcd2->objectTypeIndication)) {
+							same_codec = 1;
+						} else {
+							same_codec = 0;
+						}
+						if (dcd1) gf_odf_desc_del((GF_Descriptor *)dcd1);
+						if (dcd2) gf_odf_desc_del((GF_Descriptor *)dcd2);
+					}
+
+					if (!same_codec) {
+						valid_in_adaptation_set = 0;
+						break;
+					}
+
+					if (mtype==GF_ISOM_MEDIA_AUDIO) {
+						char szLang1[4], szLang2[4];
+						szLang1[3] = szLang2[3] = 0;
+						gf_isom_get_media_language(set_file, j+1, szLang1);
+						gf_isom_get_media_language(in, j+1, szLang2);
+						if (stricmp(szLang1, szLang2)) {
+							valid_in_adaptation_set = 0;
+							break;
+						}
+					}
+					if (mtype==GF_ISOM_MEDIA_VISUAL) {
+						u32 w1, h1, w2, h2;
+						gf_isom_get_track_layout_info(set_file, j+1, &w1, &h1, NULL, NULL, NULL);
+						gf_isom_get_track_layout_info(in, j+1, &w2, &h2, NULL, NULL, NULL);
+						
+						if (h1*w2 != h2*w1) {
+							valid_in_adaptation_set = 0;
+							break;
+						}
+
+					}
+				}
+				gf_isom_close(in);
+				if (valid_in_adaptation_set) {
+					dash_inputs[i].adaptation_set = max_adaptation_set;
+				} else if (assign_to_group) {
+					if (!dash_inputs[k].group_id) {
+						cur_group_id++;
+						dash_inputs[k].group_id = cur_group_id;
+					}
+					dash_inputs[i].group_id = cur_group_id;						
+				}
+
+			}
+		}
+
+
 		strcpy(outfile, outName ? outName : inName);
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
 
-		strcpy(szInit, outfile);
-		strcat(szInit, "_init.mp4");
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
 
-		init_seg = gf_isom_open(szInit, GF_ISOM_OPEN_WRITE, tmpdir);
-		for (i=0; i<nb_dash_inputs; i++) {
-			u32 j;
-			Double dur;
-			GF_ISOFile *in = file;
-			if (i) {
-				in = gf_isom_open(dash_inputs[i], GF_ISOM_OPEN_READ, NULL);
-				if (!in) {
-					fprintf(stdout, "Error while opening %s: %s\n", dash_inputs[i], gf_error_to_string( gf_isom_last_error(NULL) ));
-					gf_isom_delete(file);
-					gf_sys_close();
-					MP4BOX_EXIT_WITH_CODE(0);
-				}
-			}
-			for (j=0; j<gf_isom_get_track_count(in); j++) {
-				u32 track = gf_isom_get_track_by_id(init_seg, gf_isom_get_track_id(in, j+1));
-				if (track) {					
-					u32 outDescIndex;
-					assert( gf_isom_get_sample_description_count(in, j+1) == 1);
+		for (cur_adaptation_set=0; cur_adaptation_set < max_adaptation_set; cur_adaptation_set++) {
+			u32 first_rep_in_set=0;
+			while (dash_inputs[first_rep_in_set].adaptation_set!=cur_adaptation_set+1)
+				first_rep_in_set++;
 
-					/*if not the same sample desc we might need to clone it*/
-					if (! gf_isom_is_same_sample_description(in, j+1, 1, init_seg, track, 1)) {
-						Bool do_merge = 1;
-						u32 stype1, stype2;
-						stype1 = gf_isom_get_media_subtype(in, j+1, 1);
-						stype2 = gf_isom_get_media_subtype(init_seg, track, 1);
-						if (stype1 != stype2) do_merge = 0;
-						switch (stype1) {
-						case GF_4CC( 'a', 'v', 'c', '1'):
-						case GF_4CC( 'a', 'v', 'c', '2'):
-						case GF_4CC( 's', 'v', 'c', '1'):
-							break;
-						default:
-							do_merge = 0;
-							break;
-						}
-						if (do_merge) {
-							u32 k, l, sps_id1, sps_id2;
-							GF_AVCConfig *avccfg1 = gf_isom_avc_config_get(in, j+1, 1);
-							GF_AVCConfig *avccfg2 = gf_isom_avc_config_get(init_seg, track, 1);
-#ifndef GPAC_DISABLE_AV_PARSERS
-							for (k=0; k<gf_list_count(avccfg2->sequenceParameterSets); k++) {
-								GF_AVCConfigSlot *slc = gf_list_get(avccfg2->sequenceParameterSets, k);
-								gf_avc_get_sps_info(slc->data, slc->size, &sps_id1, NULL, NULL, NULL, NULL);
-								for (l=0; l<gf_list_count(avccfg1->sequenceParameterSets); l++) {
-									GF_AVCConfigSlot *slc_orig = gf_list_get(avccfg1->sequenceParameterSets, l);
-									gf_avc_get_sps_info(slc_orig->data, slc_orig->size, &sps_id2, NULL, NULL, NULL, NULL);
-									if (sps_id2==sps_id1) {
-										do_merge = 0;
-										break;
-									}
-								}
-							}
-#endif
-							/*no conflicts in SPS ids, merge all SPS in a single sample desc*/
-							if (do_merge) {
-								while (gf_list_count(avccfg1->sequenceParameterSets)) {
-									GF_AVCConfigSlot *slc = gf_list_get(avccfg1->sequenceParameterSets, 0);
-									gf_list_rem(avccfg1->sequenceParameterSets, 0);
-									gf_list_add(avccfg2->sequenceParameterSets, slc);
-								}
-								while (gf_list_count(avccfg1->pictureParameterSets)) {
-									GF_AVCConfigSlot *slc = gf_list_get(avccfg1->pictureParameterSets, 0);
-									gf_list_rem(avccfg1->pictureParameterSets, 0);
-									gf_list_add(avccfg2->pictureParameterSets, slc);
-								}
-								gf_isom_avc_config_update(init_seg, track, 1, avccfg2);
-							} else {
-								sps_merge_failed = 1;
-							}
-							gf_odf_avc_cfg_del(avccfg1);
-							gf_odf_avc_cfg_del(avccfg2);
-						}
-
-						/*cannot merge, clone*/
-						if (!do_merge)
-							gf_isom_clone_sample_description(init_seg, track, in, j+1, 1, NULL, NULL, &outDescIndex);
-					}
-				} else {
-					gf_isom_clone_track(in, j+1, init_seg, 0, &track);
-				}
-				dur = (Double) gf_isom_get_track_duration(in, j+1);
-				dur /= gf_isom_get_timescale(in);
-				if (dur>period_duration) period_duration = dur;
-			}
-
-			if (i) gf_isom_close(in);
-		}
-		if (sps_merge_failed) {
-			fprintf(stdout, "Couldnt merge AVC|H264 SPS from different files (same SPS ID used) - different sample descriptions will be used\n");
-		}
-		if (!seg_name) use_url_template = 0;
-
-		e = gf_media_mpd_start(szMPD, (char *)gf_isom_get_filename(file), use_url_template, single_segment, dash_ctx, init_seg, period_duration);
-
-		for (i=0; i<nb_dash_inputs && !e; i++) {
-			char szSegName[GF_MAX_PATH], *segment_name;
-			GF_ISOFile *in = file;
-			if (i) in = gf_isom_open(dash_inputs[i], GF_ISOM_OPEN_READ, NULL);
-
-			segment_name = seg_name;
-
-			if (nb_dash_inputs>1) {
-				char *sep = strrchr(dash_inputs[i], '/');
-				if (!sep) sep = strrchr(dash_inputs[i], '\\');
-				if (sep) strcpy(outfile, sep+1);
-				else strcpy(outfile, dash_inputs[i]);
-				sep = strrchr(outfile, '.');
-				if (sep) sep[0] = 0;
-	
-				if (seg_name) {
-					if (strstr(seg_name, "%s")) sprintf(szSegName, seg_name, outfile);
-					else strcpy(szSegName, seg_name);
-					segment_name = szSegName;
-				}
-				strcat(outfile, "_dash");
-			}
-			if (nb_dash_inputs>1) {
-				fprintf(stdout, "DASHing file %s\n", dash_inputs[i]);
-			}
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-			e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg, i+1);
-#else
-			fprintf(stderr, "GPAC was compiled without fragment support\n");
-			e = GF_NOT_SUPPORTED;
-#endif
-			if (e) {
-				fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
-				break;
-			}
-			if (i) gf_isom_close(in);
-		}
-		/*close MPD*/
-		if (!e) e = gf_media_mpd_end(szMPD);
-		
-		if (!e) {
-			/*if init segment shared, write to file*/
-			if (nb_dash_inputs>1) {
-				gf_isom_close(init_seg);
+			if (max_adaptation_set==1) {
+				strcpy(szInit, outfile);
+				strcat(szInit, "_init.mp4");
 			} else {
-				gf_isom_delete(init_seg);
-				gf_delete_file(szInit);
+				sprintf(szInit, "%s_set%d_init.mp4", outfile, cur_adaptation_set+1);
+			}
+
+			if (! dash_bitstream_switching) {
+				/*we still need to open the first file to dash so that we can list ContentComponents in the MPD*/
+				init_seg = gf_isom_open(dash_inputs[first_rep_in_set].file_name, GF_ISOM_OPEN_READ, NULL);
+			} else {
+				init_seg = gf_isom_open(szInit, GF_ISOM_OPEN_WRITE, tmpdir);
+				for (i=0; i<nb_dash_inputs; i++) {
+					u32 j;
+					Double dur;
+					GF_ISOFile *in;
+					
+					if (dash_inputs[i].adaptation_set!=cur_adaptation_set+1)
+						continue;
+
+					in = file;
+					if (i) {
+						in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
+						if (!in) {
+							fprintf(stdout, "Error while opening %s: %s\n", dash_inputs[i].file_name, gf_error_to_string( gf_isom_last_error(NULL) ));
+							gf_isom_delete(file);
+							gf_sys_close();
+							MP4BOX_EXIT_WITH_CODE(0);
+						}
+					}
+					for (j=0; j<gf_isom_get_track_count(in); j++) {
+						u32 track = gf_isom_get_track_by_id(init_seg, gf_isom_get_track_id(in, j+1));
+						if (track) {
+							u32 outDescIndex;
+							if ( gf_isom_get_sample_description_count(in, j+1) != 1) {
+								fprintf(stdout, "Cannot merge track with multiple sample descriptions (file %s) - try disabling bitstream switching\n", dash_inputs[i].file_name );
+								gf_isom_delete(init_seg);
+								gf_isom_delete(in);
+								gf_sys_close();
+								MP4BOX_EXIT_WITH_CODE(0);
+							}
+
+							/*if not the same sample desc we might need to clone it*/
+							if (! gf_isom_is_same_sample_description(in, j+1, 1, init_seg, track, 1)) {
+								Bool do_merge = 1;
+								u32 stype1, stype2;
+								stype1 = gf_isom_get_media_subtype(in, j+1, 1);
+								stype2 = gf_isom_get_media_subtype(init_seg, track, 1);
+								if (stype1 != stype2) do_merge = 0;
+								switch (stype1) {
+								case GF_4CC( 'a', 'v', 'c', '1'):
+								case GF_4CC( 'a', 'v', 'c', '2'):
+								case GF_4CC( 's', 'v', 'c', '1'):
+									break;
+								default:
+									do_merge = 0;
+									break;
+								}
+								if (do_merge) {
+									u32 k, l, sps_id1, sps_id2;
+									GF_AVCConfig *avccfg1 = gf_isom_avc_config_get(in, j+1, 1);
+									GF_AVCConfig *avccfg2 = gf_isom_avc_config_get(init_seg, track, 1);
+	#ifndef GPAC_DISABLE_AV_PARSERS
+									for (k=0; k<gf_list_count(avccfg2->sequenceParameterSets); k++) {
+										GF_AVCConfigSlot *slc = gf_list_get(avccfg2->sequenceParameterSets, k);
+										gf_avc_get_sps_info(slc->data, slc->size, &sps_id1, NULL, NULL, NULL, NULL);
+										for (l=0; l<gf_list_count(avccfg1->sequenceParameterSets); l++) {
+											GF_AVCConfigSlot *slc_orig = gf_list_get(avccfg1->sequenceParameterSets, l);
+											gf_avc_get_sps_info(slc_orig->data, slc_orig->size, &sps_id2, NULL, NULL, NULL, NULL);
+											if (sps_id2==sps_id1) {
+												do_merge = 0;
+												break;
+											}
+										}
+									}
+	#endif
+									/*no conflicts in SPS ids, merge all SPS in a single sample desc*/
+									if (do_merge) {
+										while (gf_list_count(avccfg1->sequenceParameterSets)) {
+											GF_AVCConfigSlot *slc = gf_list_get(avccfg1->sequenceParameterSets, 0);
+											gf_list_rem(avccfg1->sequenceParameterSets, 0);
+											gf_list_add(avccfg2->sequenceParameterSets, slc);
+										}
+										while (gf_list_count(avccfg1->pictureParameterSets)) {
+											GF_AVCConfigSlot *slc = gf_list_get(avccfg1->pictureParameterSets, 0);
+											gf_list_rem(avccfg1->pictureParameterSets, 0);
+											gf_list_add(avccfg2->pictureParameterSets, slc);
+										}
+										gf_isom_avc_config_update(init_seg, track, 1, avccfg2);
+									} else {
+										sps_merge_failed = 1;
+									}
+									gf_odf_avc_cfg_del(avccfg1);
+									gf_odf_avc_cfg_del(avccfg2);
+								}
+
+								/*cannot merge, clone*/
+								if (!do_merge)
+									gf_isom_clone_sample_description(init_seg, track, in, j+1, 1, NULL, NULL, &outDescIndex);
+							}
+						} else {
+							gf_isom_clone_track(in, j+1, init_seg, 0, &track);
+						}
+						dur = (Double) gf_isom_get_track_duration(in, j+1);
+						dur /= gf_isom_get_timescale(in);
+						if (dur>period_duration) period_duration = dur;
+					}
+					gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','5'), 1);
+					gf_isom_modify_alternate_brand(init_seg, GF_4CC('d','a','s','h'), 1);
+					if (i) gf_isom_close(in);
+				}
+				if (sps_merge_failed) {
+					fprintf(stdout, "Couldnt merge AVC|H264 SPS from different files (same SPS ID used) - different sample descriptions will be used\n");
+				}
+			}
+			if (!seg_name) use_url_template = 0;
+
+			e = gf_media_mpd_start(szMPD, dash_title, dash_source, cprt, dash_more_info, use_url_template, single_segment, dash_ctx, init_seg, dash_bitstream_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id);
+
+			if (! dash_bitstream_switching) {
+				gf_isom_close(init_seg);
+				init_seg = NULL;
+			}
+
+			for (i=0; i<nb_dash_inputs && !e; i++) {
+				char szSegName[GF_MAX_PATH], *segment_name;
+				GF_ISOFile *in;
+				
+				if (dash_inputs[i].adaptation_set!=cur_adaptation_set+1)
+					continue;
+
+				in = file;
+				if (i) in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
+
+				segment_name = seg_name;
+
+				if (nb_dash_inputs>1) {
+					char *sep = strrchr(dash_inputs[i].file_name, '/');
+					if (!sep) sep = strrchr(dash_inputs[i].file_name, '\\');
+					if (sep) strcpy(outfile, sep+1);
+					else strcpy(outfile, dash_inputs[i].file_name);
+					sep = strrchr(outfile, '.');
+					if (sep) sep[0] = 0;
+		
+					if (seg_name) {
+						if (strstr(seg_name, "%s")) sprintf(szSegName, seg_name, outfile);
+						else strcpy(szSegName, seg_name);
+						segment_name = szSegName;
+					}
+					strcat(outfile, "_dash");
+				}
+				if (nb_dash_inputs>1) {
+					fprintf(stdout, "DASHing file %s\n", dash_inputs[i]);
+				}
+	#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg, i+1);
+	#else
+				fprintf(stderr, "GPAC was compiled without fragment support\n");
+				e = GF_NOT_SUPPORTED;
+	#endif
+				if (e) {
+					fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
+					break;
+				}
+				if (i) gf_isom_close(in);
+			}
+			/*close MPD*/
+			if (!e) e = gf_media_mpd_end(szMPD, (cur_adaptation_set+1==max_adaptation_set) ? 1 : 0);
+			
+			if (!e) {
+				/*if init segment shared, write to file*/
+				if (nb_dash_inputs>1) {
+					gf_isom_close(init_seg);
+				} else {
+					gf_isom_delete(init_seg);
+					gf_delete_file(szInit);
+				}
 			}
 		}
-
 		gf_isom_delete(file);
 		gf_sys_close();
 		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );

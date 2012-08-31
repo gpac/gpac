@@ -67,7 +67,7 @@ static void check_segment_switch(ISOMReader *read)
 	}
 	/*close current segment*/
 	gf_isom_release_segment(read->mov, 1);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Done playing segment - querying new one\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - querying new one\n"));
 
 	/*update current fragment if any*/
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
@@ -76,6 +76,7 @@ static void check_segment_switch(ISOMReader *read)
 			gf_isom_reset_fragment_info(read->mov);
 
 		if (param.url_query.next_url_init_or_switch_segment) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
 			if (read->mov) gf_isom_close(read->mov);
 			e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
 		}
@@ -84,18 +85,18 @@ static void check_segment_switch(ISOMReader *read)
 
 #ifndef GPAC_DISABLE_LOG
 		if (e<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
 		} else if (param.url_query.end_range) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
 		}
 #endif
 
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
 			ch->wait_for_segment_switch = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 			if (param.url_query.next_url_init_or_switch_segment) {
 				ch->needs_codec_update = 1;
 			}
@@ -103,7 +104,7 @@ static void check_segment_switch(ISOMReader *read)
 	} else {
 		/*consider we are done*/
 		read->frag_type = 2;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] No more segments - done playing file\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
 	}
 	gf_mx_v(read->segment_mutex);
 }
@@ -271,17 +272,17 @@ fetch_next:
 			if (ch->owner->frag_type==1) {
 				if (!ch->wait_for_segment_switch) {
 					ch->wait_for_segment_switch = 1;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
 				ch->last_state = GF_OK;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
 			}
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
 		if (ch->wait_for_segment_switch)
 			check_segment_switch(ch->owner);
@@ -303,7 +304,7 @@ fetch_next:
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 		ch->last_state = GF_EOS;
 	}
 
@@ -323,7 +324,8 @@ fetch_next:
 		}
 	}
 
-	/*this is ugly we need a rearchitecture of the streaming part of GPAC to handle code changes properly !! */
+	/*this is ugly we need a rearchitecture of the streaming part of GPAC to handle codec changes properly - fortunately in DASH we cannot switch codec on
+	the fly (not in the same representation)!! */
 	if (ch->sample && ch->needs_codec_update) {
 		GF_AVCConfig *avccfg, *svccfg;
 		GF_AVCConfigSlot *slc;

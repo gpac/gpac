@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <gpac/network.h>
 
-/*#define MYLOG(xx) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, xx )*/
+/*#define MYLOG(xx) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, xx )*/
 //#define MYLOG(xx) printf xx
 #define MYLOG(xx)
 
@@ -469,7 +469,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 					attributes->byteRangeStart = begin;
 					attributes->byteRangeEnd = begin + size - 1;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,("[M3U8] Invalid byte range %s\n", ret[0]));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid byte range %s\n", ret[0]));
 				}
 			}
 		}
@@ -495,7 +495,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 	s_accumulated_attributes attribs;
 	f = gf_f64_open(file, "rt");
 	if (!f) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
 		return GF_SERVICE_ERROR;
 	}
 	if (*playlist == NULL) {
@@ -532,7 +532,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 			if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
 				fclose(f);
 				variant_playlist_del(pl);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
 				return GF_STREAM_NOT_FOUND;
 			}
 			continue;

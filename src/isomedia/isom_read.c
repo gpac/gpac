@@ -1771,7 +1771,7 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 			davg += chunk_dur;
 			if (smin>chunk_size) smin = chunk_size;
 			if (smax<chunk_size) smax = chunk_size;
-			savg += chunk_dur;
+			savg += chunk_size;
 			
 			tot_chunks ++;
 			sample_idx += stsc->entries[i].samplesPerChunk;
@@ -1780,8 +1780,10 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 			if (stsc->entries[i].firstChunk + nb_chunk == stsc->entries[i+1].firstChunk) break;
 		}
 	}
-	if (tot_chunks) davg /= tot_chunks;
-
+	if (tot_chunks) {
+		davg /= tot_chunks;
+		savg /= tot_chunks;
+	}
 	if (dur_min) *dur_min = dmin;
 	if (dur_avg) *dur_avg = (u32) davg;
 	if (dur_max) *dur_max = dmax;

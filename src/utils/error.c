@@ -152,6 +152,7 @@ static struct log_tool_info {u32 type;  const char *name; u32 level; } global_lo
 	{ GF_LOG_AUDIO, "audio", GF_LOG_WARNING },
 	{ GF_LOG_MODULE, "module", GF_LOG_WARNING },
 	{ GF_LOG_MUTEX, "mutex", GF_LOG_WARNING },
+	{ GF_LOG_DASH, "dash", GF_LOG_WARNING },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO }
 };
 

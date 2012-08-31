@@ -142,6 +142,7 @@ disable_od_parse="no"
 disable_isom_dump="no"
 disable_mcrypt="no"
 disable_mpd="no"
+disable_dash="no"
 disable_isoff="no"
 disable_isoff_write="no"
 disable_isoff_frag="no"
@@ -1707,7 +1708,7 @@ for opt do
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
 
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"
             ;;
 
         --disable-3d) disable_3d="yes"
@@ -1876,9 +1877,13 @@ for opt do
             ;;
         --enable-smgr) disable_smgr="no"
             ;; 
-        --disable-dash) disable_mpd="yes"
+        --disable-mpd) disable_mpd="yes"
             ;;
-        --enable-dash) disable_mpd="no"
+        --enable-mpd) disable_mpd="no"
+            ;; 
+        --disable-dash) disable_dash="yes"
+            ;;
+        --enable-dash) disable_dash="no"
             ;; 
         --disable-core) disable_core_tools="yes"
             ;;
@@ -2158,6 +2163,9 @@ disable_smgr="yes"
 has_js="no"
 fi
 
+if test "$disable_mpd" = "yes"; then
+disable_dash="yes"
+fi
 
 if test "$disable_od_parse" = "yes" ; then
 disable_loader_isoff="yes"
@@ -2400,8 +2408,12 @@ if test "$enable_depth_compositor" = "yes" ; then
 fi
 
 if test "$disable_mpd" = "yes" ; then
-    echo "DASH & HLS Reader Disabled"
-    echo "#define GPAC_DISABLE_MPD" >> $TMPH
+    echo "HLS and DASH Manifest Disabled"
+fi
+
+if test "$disable_dash" = "yes" ; then
+    echo "Adaptive HTTP Streaming Client disabled"
+    echo "#define GPAC_DISABLE_DASH_CLIENT" >> $TMPH
 fi
 
 echo ""
@@ -2727,6 +2739,7 @@ echo "DISABLE_AV_PARSERS=$disable_parsers" >> config.mak
 echo "DISABLE_MEDIA_IMPORT=$disable_import" >> config.mak
 echo "DISABLE_MEDIA_EXPORT=$disable_export" >> config.mak
 echo "DISABLE_MPD=$disable_mpd" >> config.mak
+echo "DISABLE_DASH_CLIENT=$disable_dash" >> config.mak
 echo "DISABLE_CORE_TOOLS=$disable_core_tools" >> config.mak
 echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
