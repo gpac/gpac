@@ -327,8 +327,8 @@ void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind)
 
 }
 
-JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *rval)
-{
+SMJS_FUNC_PROP_GET(widget_getProperty)
+
 	const char *opt;
 	char *prop_name;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
@@ -339,41 +339,41 @@ JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "viewMode")) {
-		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "floating") );
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "floating") );
 	}
 	else if (!strcmp(prop_name, "locale")) {
 		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, "Systems", "Language2CC");
 		if (!opt) opt = "und";
-		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, opt) );
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, opt) );
 	}
 	else if (!strcmp(prop_name, "identifier")) {
-		if (wid->widget->identifier) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->identifier) );
+		if (wid->widget->identifier) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->identifier) );
 	}
 	else if (!strcmp(prop_name, "authorName")) {
-		if (wid->widget->authorName) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->authorName) );
+		if (wid->widget->authorName) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->authorName) );
 	}
 	else if (!strcmp(prop_name, "authorEmail")) {
-		if (wid->widget->authorEmail) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->authorEmail) );
+		if (wid->widget->authorEmail) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->authorEmail) );
 	}
 	else if (!strcmp(prop_name, "authorHref")) {
-		if (wid->widget->authorHref) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->authorHref) );
+		if (wid->widget->authorHref) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->authorHref) );
 	}
 	else if (!strcmp(prop_name, "name")) {
-		if (wid->widget->name) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->name) );
+		if (wid->widget->name) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->name) );
 	}
 	else if (!strcmp(prop_name, "version")) {
-		if (wid->widget->version) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->version) );
+		if (wid->widget->version) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->version) );
 	}
 	else if (!strcmp(prop_name, "description")) {
-		if (wid->widget->description) *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->description) );
+		if (wid->widget->description) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->description) );
 	}
 	else if (!strcmp(prop_name, "width")) {
 		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, "width");
-		*rval = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
+		*vp = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 	}
 	else if (!strcmp(prop_name, "height")) {
 		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, "height");
-		*rval = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
+		*vp = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 	}
 	else if (!strcmp(prop_name, "preferences")) {
 	}
@@ -381,8 +381,11 @@ JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *
 	return JS_TRUE;
 }
 
-JSBool widget_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+SMJS_FUNC_PROP_SET( widget_setProperty) 
+
+	/*avoids GCC warning*/
+	if (!obj) obj = NULL;
+	if (!id) id=0;
 	return JS_TRUE;
 }
 

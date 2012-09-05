@@ -173,7 +173,6 @@ static JSBool SMJS_FUNCTION(upnp_service_set_listener)
 	return JS_TRUE;
 }
 
-
 static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 {
 	PLT_ActionDesc *action;
@@ -247,8 +246,12 @@ static JSBool SMJS_FUNCTION(upnp_service_get_scpd)
 	return JS_TRUE;
 }
 
-JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
+SMJS_DECL_FUNC_PROP_GET( upnpservice_getProperty)
 {
+#ifdef USE_FFDEV_15
+	JSObject *obj = (JSObject *) __hobj;
+	jsid id = (jsid) __hid;
+#endif
 	char *prop_name;
 	GPAC_ServiceItem *service = (GPAC_ServiceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!service) return JS_FALSE;

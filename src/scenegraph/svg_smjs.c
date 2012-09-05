@@ -46,8 +46,13 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 
 
 jsval dom_element_construct(JSContext *c, GF_Node *n);
+#ifdef USE_FFDEV_15
+void dom_element_finalize(JSFreeOp *fop, JSObject *obj);
+void dom_document_finalize(JSFreeOp *fop, JSObject *obj);
+#else
 void dom_element_finalize(JSContext *c, JSObject *obj);
 void dom_document_finalize(JSContext *c, JSObject *obj);
+#endif
 
 GF_Node *dom_get_element(JSContext *c, JSObject *obj);
 GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj);
@@ -221,8 +226,8 @@ static void svg_define_udom_exception(JSContext *c, JSObject *global)
 	JS_DefineProperty(c, obj, "NAV_UP_LEFT", INT_TO_JSVAL(11), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 }
 
-static JSBool global_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( global_getProperty)
+
 	GF_SceneGraph *sg;
 	if (!JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) )
 		return JS_TRUE;
@@ -293,8 +298,8 @@ static GF_Node *get_corresponding_use(GF_Node *n)
 	/*otherwise recursively get up the tree*/
 	return get_corresponding_use(gf_node_get_parent(n, 0));
 }
-static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( svg_doc_getProperty)
+
 	u32 prop_id;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
@@ -309,8 +314,8 @@ static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER,
 	return JS_TRUE;
 }
 
-static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET(svg_element_getProperty)
+
 	u32 prop_id;
 	GF_JSAPIParam par;
 	JSString *s;
@@ -407,8 +412,8 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GET
 	return JS_TRUE;
 }
 
-static JSBool svg_element_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( svg_element_setProperty)
+
 	GF_JSAPIParam par;
 	jsdouble d;
 	u32 prop_id;
@@ -1536,14 +1541,16 @@ static JSFunctionSpec connectionFuncs[] = {
 };
 #endif /*GPAC_UNUSED_FUNC*/
 
-static void baseCI_finalize(JSContext *c, JSObject *obj)
-{
+static DECL_FINALIZE( baseCI_finalize)
+
+	/*avoids GCC warning*/
+	if (!c) c=NULL;
 	void *data = SMJS_GET_PRIVATE(c, obj);
 	if (data) gf_free(data);
 }
 
-static JSBool rgb_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET(rgb_getProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		rgbCI *col = SMJS_GET_PRIVATE(c, obj);
@@ -1558,8 +1565,8 @@ static JSBool rgb_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsv
 	}
 	return JS_TRUE;
 }
-static JSBool rgb_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( rgb_setProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		rgbCI *col = SMJS_GET_PRIVATE(c, obj);
@@ -1575,8 +1582,8 @@ static JSBool rgb_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsv
 }
 
 
-static JSBool rect_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET(rect_getProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->rectClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		rectCI *rc = SMJS_GET_PRIVATE(c, obj);
@@ -1599,8 +1606,8 @@ static JSBool rect_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 	}
 	return JS_TRUE;
 }
-static JSBool rect_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( rect_setProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->rectClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		jsdouble d;
@@ -1618,8 +1625,8 @@ static JSBool rect_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, js
 	return JS_TRUE;
 }
 
-static JSBool point_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( point_getProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->pointClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		pointCI *pt = SMJS_GET_PRIVATE(c, obj);
@@ -1638,8 +1645,8 @@ static JSBool point_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, j
 	}
 	return JS_TRUE;
 }
-static JSBool point_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( point_setProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->pointClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		jsdouble d;
@@ -1710,8 +1717,8 @@ static void pathCI_finalize(JSContext *c, JSObject *obj)
 	}
 }
 
-static JSBool path_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( path_getProperty)
+
 	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		pathCI *p = SMJS_GET_PRIVATE(c, obj);
@@ -1944,8 +1951,8 @@ static JSBool SMJS_FUNCTION(svg_path_close)
 	return JS_TRUE;
 }
 
-static JSBool matrix_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( matrix_getProperty)
+
 	GF_Matrix2D *mx;
 	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx = SMJS_GET_PRIVATE(c, obj);
@@ -1963,8 +1970,8 @@ static JSBool matrix_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, 
 	}
 	return JS_TRUE;
 }
-static JSBool matrix_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( matrix_setProperty)
+
 	jsdouble d;
 	GF_Matrix2D *mx;
 	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;

@@ -525,8 +525,13 @@ void GF_UPnP::OnMediaServerAdd(PLT_DeviceDataReference& device, int added)
 	LockJavascript(0);
 }
 
-static JSBool upnpdevice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
+static SMJS_DECL_FUNC_PROP_GET(  upnpdevice_getProperty)
 {
+#ifdef USE_FFDEV_15
+	JSObject *obj = (JSObject *) __hobj;
+	jsid id = (jsid) __hid;
+#endif
+
 	char *prop_name;
 	GPAC_DeviceItem *dev = (GPAC_DeviceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!dev) return JS_FALSE;
@@ -641,8 +646,14 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 	LockJavascript(0);
 }
 
-static JSBool upnp_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
+static SMJS_DECL_FUNC_PROP_GET(  upnp_getProperty)
 {
+#ifdef USE_FFDEV_15
+	JSObject *obj = (JSObject *) __hobj;
+	jsid id = (jsid) __hid;
+#endif
+
+
 	char *prop_name;
 	GF_UPnP *upnp = (GF_UPnP *)SMJS_GET_PRIVATE(c, obj);
 	if (!upnp) return JS_FALSE;
@@ -673,8 +684,12 @@ static JSBool upnp_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 	return JS_TRUE;
 }
 
-static JSBool upnp_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
+static SMJS_DECL_FUNC_PROP_SET(upnp_setProperty)
 {
+#ifdef USE_FFDEV_15
+	JSObject *obj = (JSObject *) __hobj;
+	jsid id = (jsid) __hid;
+#endif
 	char *prop_name;
 	GF_UPnP *upnp = (GF_UPnP *)SMJS_GET_PRIVATE(c, obj);
 	if (!upnp) return JS_FALSE;

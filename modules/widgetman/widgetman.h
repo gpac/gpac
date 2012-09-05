@@ -336,8 +336,8 @@ JSBool SMJS_FUNCTION(widget_open_url);
 JSBool SMJS_FUNCTION(widget_get_attention);
 JSBool SMJS_FUNCTION(widget_show_notification);
 JSBool SMJS_FUNCTION(widget_get_interface);
-JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp);
-JSBool widget_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp);
+SMJS_DECL_FUNC_PROP_GET(widget_getProperty);
+SMJS_DECL_FUNC_PROP_SET(widget_setProperty);
 
 void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind);
 

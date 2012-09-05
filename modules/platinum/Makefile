@@ -18,7 +18,7 @@ LINKLIBS= -lgpac -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRendere
 LOCAL_LIB=../../bin/gcc -L../../extra_lib/lib/gcc
 
 #common objects
-OBJS=GPACFileMediaServer.o GPACMediaController.o GPACMediaRenderer.o GenericDevice.o GPACPlatinum.o
+OBJS=GPACFileMediaServer.o GPACMediaController.o GPACMediaRenderer.o GenericDevice.o GPACPlatinum.o 
 
 ifeq ($(CONFIG_JS),no)
 else

@@ -7,19 +7,8 @@
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
  *
- *  GPAC is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *   
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Proprietary Licence granted to Expway by Telecom ParisTech
+ * Exported revision 4133 on 09-04-2012
  *
  */
 
@@ -54,10 +43,12 @@ GF_Err gf_odf_dump_com(void *p, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_esd_update((GF_ESDUpdate *)com, trace, indent, XMTDump);
 	case GF_ODF_ESD_REMOVE_TAG:
 		return gf_odf_dump_esd_remove((GF_ESDRemove *)com, trace, indent, XMTDump);
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_dump_ipmp_update((GF_IPMPUpdate *)com, trace, indent, XMTDump);
 	case GF_ODF_IPMP_REMOVE_TAG:
 		return gf_odf_dump_ipmp_remove((GF_IPMPRemove *)com, trace, indent, XMTDump);
+#endif
 	default:
 		return gf_odf_dump_base_command((GF_BaseODCom *) com, trace, indent, XMTDump);
 	}
@@ -110,6 +101,17 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_dcd((GF_DecoderConfig *)desc, trace, indent, XMTDump);
 	case GF_ODF_SLC_TAG:
 		return gf_odf_dump_slc((GF_SLConfig *)desc, trace, indent, XMTDump);
+	case GF_ODF_ESD_INC_TAG:
+		return gf_odf_dump_esd_inc((GF_ES_ID_Inc *)desc, trace, indent, XMTDump);
+	case GF_ODF_ESD_REF_TAG:
+		return gf_odf_dump_esd_ref((GF_ES_ID_Ref *)desc, trace, indent, XMTDump);
+	case GF_ODF_ISOM_IOD_TAG:
+		return gf_odf_dump_isom_iod((GF_IsomInitialObjectDescriptor *)desc, trace, indent, XMTDump);
+	case GF_ODF_ISOM_OD_TAG:
+		return gf_odf_dump_isom_od((GF_IsomObjectDescriptor *)desc, trace, indent, XMTDump);
+	case GF_ODF_OD_TAG:
+		return gf_odf_dump_od((GF_ObjectDescriptor *)desc, trace, indent, XMTDump);
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_CC_TAG:
 		return gf_odf_dump_cc((GF_CCDescriptor *)desc, trace, indent, XMTDump);
 	case GF_ODF_CC_DATE_TAG:
@@ -118,10 +120,6 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_cc_name((GF_CC_Name *)desc, trace, indent, XMTDump);
 	case GF_ODF_CI_TAG:
 		return gf_odf_dump_ci((GF_CIDesc *)desc, trace, indent, XMTDump);
-	case GF_ODF_ESD_INC_TAG:
-		return gf_odf_dump_esd_inc((GF_ES_ID_Inc *)desc, trace, indent, XMTDump);
-	case GF_ODF_ESD_REF_TAG:
-		return gf_odf_dump_esd_ref((GF_ES_ID_Ref *)desc, trace, indent, XMTDump);
 	case GF_ODF_TEXT_TAG:
 		return gf_odf_dump_exp_text((GF_ExpandedTextual *)desc, trace, indent, XMTDump);
 	case GF_ODF_EXT_PL_TAG:
@@ -137,12 +135,6 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_kw((GF_KeyWord *)desc, trace, indent, XMTDump);
 	case GF_ODF_LANG_TAG:
 		return gf_odf_dump_lang((GF_Language *)desc, trace, indent, XMTDump);
-	case GF_ODF_ISOM_IOD_TAG:
-		return gf_odf_dump_isom_iod((GF_IsomInitialObjectDescriptor *)desc, trace, indent, XMTDump);
-	case GF_ODF_ISOM_OD_TAG:
-		return gf_odf_dump_isom_od((GF_IsomObjectDescriptor *)desc, trace, indent, XMTDump);
-	case GF_ODF_OD_TAG:
-		return gf_odf_dump_od((GF_ObjectDescriptor *)desc, trace, indent, XMTDump);
 	case GF_ODF_OCI_DATE_TAG:
 		return gf_odf_dump_oci_date((GF_OCI_Data *)desc, trace, indent, XMTDump);
 	case GF_ODF_OCI_NAME_TAG:
@@ -165,6 +157,11 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_segment((GF_Segment *)desc, trace, indent, XMTDump);
 	case GF_ODF_MEDIATIME_TAG:
 		return gf_odf_dump_mediatime((GF_MediaTime *)desc, trace, indent, XMTDump);
+	case GF_ODF_IPMP_TL_TAG:
+		return gf_odf_dump_ipmp_tool_list((GF_IPMP_ToolList*)desc, trace, indent, XMTDump);
+	case GF_ODF_IPMP_TOOL_TAG:
+		return gf_odf_dump_ipmp_tool((GF_IPMP_Tool*)desc, trace, indent, XMTDump);
+#endif //GPAC_MINIMAL_ODF
 	case GF_ODF_TEXT_CFG_TAG:
 		return gf_odf_dump_txtcfg((GF_TextConfig *)desc, trace, indent, XMTDump);
 	case GF_ODF_MUXINFO_TAG:
@@ -175,10 +172,6 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_laser_cfg((GF_LASERConfig *)desc, trace, indent, XMTDump);
 	case GF_ODF_UI_CFG_TAG:
 		return gf_odf_dump_ui_cfg((GF_UIConfig *)desc, trace, indent, XMTDump);
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_dump_ipmp_tool_list((GF_IPMP_ToolList*)desc, trace, indent, XMTDump);
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_dump_ipmp_tool((GF_IPMP_Tool*)desc, trace, indent, XMTDump);
 	case GF_ODF_AUX_VIDEO_DATA:
 		return gf_odf_dump_aux_vid((GF_AuxVideoDescriptor *)desc, trace, indent, XMTDump);
 	default:
@@ -298,6 +291,7 @@ static void DumpIntHex(FILE *trace, const char *attName, u32  val, u32 indent, B
 	EndAttribute(trace, indent, XMTDump);
 }
 
+#ifndef GPAC_MINIMAL_ODF
 static void DumpFloat(FILE *trace, const char *attName, Float val, u32 indent, Bool XMTDump)
 {
 	StartAttribute(trace, attName, indent, XMTDump);
@@ -311,6 +305,23 @@ static void DumpDouble(FILE *trace, const char *attName, Double val, u32 indent,
 	fprintf(trace, "%g", val);
 	EndAttribute(trace, indent, XMTDump);
 }
+static void DumpBin128(FILE *trace, const char *name, char *data, u32 indent, Bool XMTDump)
+{
+	u32 i;
+	if (!name ||!data) return;
+	StartAttribute(trace, name, indent, XMTDump);
+	fprintf(trace, "0x");
+	i=0;
+	while (!data[i] && (i<16)) i++;
+	if (i==16) {
+		fprintf(trace, "00");
+	} else {
+		for (; i<16; i++) fprintf(trace, "%02X", (unsigned char) data[i]);
+	}
+	EndAttribute(trace, indent, XMTDump);
+}
+
+#endif
 
 static void DumpBool(FILE *trace, const char *attName, u32  val, u32 indent, Bool XMTDump)
 {
@@ -343,22 +354,6 @@ static void DumpData(FILE *trace, const char *name, char *data, u64 dataLength, 
 	}
 	EndAttribute(trace, indent, XMTDump);
 }
-static void DumpBin128(FILE *trace, const char *name, char *data, u32 indent, Bool XMTDump)
-{
-	u32 i;
-	if (!name ||!data) return;
-	StartAttribute(trace, name, indent, XMTDump);
-	fprintf(trace, "0x");
-	i=0;
-	while (!data[i] && (i<16)) i++;
-	if (i==16) {
-		fprintf(trace, "00");
-	} else {
-		for (; i<16; i++) fprintf(trace, "%02X", (unsigned char) data[i]);
-	}
-	EndAttribute(trace, indent, XMTDump);
-}
-
 
 GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, const char *ListName, Bool XMTDump, Bool no_skip_empty)
 {
@@ -1028,6 +1023,58 @@ GF_Err gf_odf_dump_slc(GF_SLConfig *sl, FILE *trace, u32 indent, Bool XMTDump)
 	return GF_OK;
 }
 
+GF_Err gf_odf_dump_default(GF_DefaultDescriptor *dd, FILE *trace, u32 indent, Bool XMTDump)
+{
+	if (dd->tag == GF_ODF_DSI_TAG) {
+		StartDescDump(trace, "DecoderSpecificInfo", indent, XMTDump);
+		indent++;
+		if (XMTDump) {
+			DumpString(trace, "type", "auto", indent, XMTDump);
+			DumpData(trace, "src", dd->data, dd->dataLength, indent, XMTDump);
+		} else {
+			DumpData(trace, "info", dd->data, dd->dataLength, indent, XMTDump);
+		}
+		indent--;
+		if (XMTDump) {
+			EndSubElement(trace, indent, 1);
+		} else {
+			EndDescDump(trace, "", indent, 0);
+		}
+	} else {
+		StartDescDump(trace, "DefaultDescriptor", indent, XMTDump);
+		indent++;
+		DumpData(trace, "data", dd->data, dd->dataLength, indent, XMTDump);
+		indent--;
+		EndSubElement(trace, indent, XMTDump);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_dump_esd_inc(GF_ES_ID_Inc *esd_inc, FILE *trace, u32 indent, Bool XMTDump)
+{
+	StartDescDump(trace, "ES_ID_Inc", indent, XMTDump);
+	indent++;
+	DumpInt(trace, "trackID", esd_inc->trackID, indent, XMTDump);
+	indent--;
+	EndAttributes(trace, indent, XMTDump);
+	EndDescDump(trace, "ES_ID_Inc", indent, XMTDump);
+	return GF_OK;
+}
+
+GF_Err gf_odf_dump_esd_ref(GF_ES_ID_Ref *esd_ref, FILE *trace, u32 indent, Bool XMTDump)
+{
+	StartDescDump(trace, "ES_ID_Ref", indent, XMTDump);
+	indent++;
+	DumpInt(trace, "trackRef", esd_ref->trackRef, indent, XMTDump);
+	indent--;
+	EndAttributes(trace, indent, XMTDump);
+	EndDescDump(trace, "ES_ID_Ref", indent, XMTDump);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_MINIMAL_ODF
+
 GF_Err gf_odf_dump_cc(GF_CCDescriptor *ccd, FILE *trace, u32 indent, Bool XMTDump)
 {
 	StartDescDump(trace, "ContentClassificationDescriptor", indent, XMTDump);
@@ -1092,54 +1139,6 @@ GF_Err gf_odf_dump_ci(GF_CIDesc *cid, FILE *trace, u32 indent, Bool XMTDump)
 	return GF_OK;
 }
 
-GF_Err gf_odf_dump_default(GF_DefaultDescriptor *dd, FILE *trace, u32 indent, Bool XMTDump)
-{
-	if (dd->tag == GF_ODF_DSI_TAG) {
-		StartDescDump(trace, "DecoderSpecificInfo", indent, XMTDump);
-		indent++;
-		if (XMTDump) {
-			DumpString(trace, "type", "auto", indent, XMTDump);
-			DumpData(trace, "src", dd->data, dd->dataLength, indent, XMTDump);
-		} else {
-			DumpData(trace, "info", dd->data, dd->dataLength, indent, XMTDump);
-		}
-		indent--;
-		if (XMTDump) {
-			EndSubElement(trace, indent, 1);
-		} else {
-			EndDescDump(trace, "", indent, 0);
-		}
-	} else {
-		StartDescDump(trace, "DefaultDescriptor", indent, XMTDump);
-		indent++;
-		DumpData(trace, "data", dd->data, dd->dataLength, indent, XMTDump);
-		indent--;
-		EndSubElement(trace, indent, XMTDump);
-	}
-	return GF_OK;
-}
-
-GF_Err gf_odf_dump_esd_inc(GF_ES_ID_Inc *esd_inc, FILE *trace, u32 indent, Bool XMTDump)
-{
-	StartDescDump(trace, "ES_ID_Inc", indent, XMTDump);
-	indent++;
-	DumpInt(trace, "trackID", esd_inc->trackID, indent, XMTDump);
-	indent--;
-	EndAttributes(trace, indent, XMTDump);
-	EndDescDump(trace, "ES_ID_Inc", indent, XMTDump);
-	return GF_OK;
-}
-
-GF_Err gf_odf_dump_esd_ref(GF_ES_ID_Ref *esd_ref, FILE *trace, u32 indent, Bool XMTDump)
-{
-	StartDescDump(trace, "ES_ID_Ref", indent, XMTDump);
-	indent++;
-	DumpInt(trace, "trackRef", esd_ref->trackRef, indent, XMTDump);
-	indent--;
-	EndAttributes(trace, indent, XMTDump);
-	EndDescDump(trace, "ES_ID_Ref", indent, XMTDump);
-	return GF_OK;
-}
 
 GF_Err gf_odf_dump_exp_text(GF_ExpandedTextual *etd, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -1289,6 +1288,7 @@ GF_Err gf_odf_dump_lang(GF_Language *ld, FILE *trace, u32 indent, Bool XMTDump)
 	if (!XMTDump) EndDescDump(trace, "LanguageDescriptor", indent, XMTDump);
 	return GF_OK;
 }
+#endif// GPAC_MINIMAL_ODF
 
 GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -1465,6 +1465,7 @@ GF_Err gf_odf_dump_isom_od(GF_IsomObjectDescriptor *od, FILE *trace, u32 indent,
 	return GF_OK;
 }
 
+#ifndef GPAC_MINIMAL_ODF
 GF_Err gf_odf_dump_oci_date(GF_OCI_Data *ocd, FILE *trace, u32 indent, Bool XMTDump)
 {
 	StartDescDump(trace, "OCICreationDateDescriptor", indent, XMTDump);
@@ -1669,6 +1670,7 @@ GF_Err gf_odf_dump_mediatime(GF_MediaTime *mt, FILE *trace, u32 indent, Bool XMT
 	return GF_OK;
 }
 
+#endif //GPAC_MINIMAL_ODF
 
 GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -1720,6 +1722,7 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 	return GF_OK;
 }
 
+#ifndef GPAC_MINIMAL_ODF
 GF_Err gf_odf_dump_ipmp_tool_list(GF_IPMP_ToolList *tl, FILE *trace, u32 indent, Bool XMTDump)
 {
 	StartDescDump(trace, "IPMP_ToolListDescriptor", indent, XMTDump);
@@ -1749,6 +1752,7 @@ GF_Err gf_odf_dump_ipmp_tool(GF_IPMP_Tool*t, FILE *trace, u32 indent, Bool XMTDu
 	EndDescDump(trace, "IPMP_Tool", indent, XMTDump);
 	return GF_OK;
 }
+#endif //GPAC_MINIMAL_ODF
 
 
 GF_Err gf_odf_dump_od_update(GF_ODUpdate *com, FILE *trace, u32 indent, Bool XMTDump)
@@ -1847,6 +1851,7 @@ GF_Err gf_odf_dump_esd_remove(GF_ESDRemove *com, FILE *trace, u32 indent, Bool X
 	return GF_OK;
 }
 
+#ifndef GPAC_MINIMAL_ODF
 GF_Err gf_odf_dump_ipmp_update(GF_IPMPUpdate *com, FILE *trace, u32 indent, Bool XMTDump)
 {
 	if (XMTDump) {
@@ -1879,6 +1884,7 @@ GF_Err gf_odf_dump_ipmp_remove(GF_IPMPRemove *com, FILE *trace, u32 indent, Bool
 	EndSubElement(trace, indent, XMTDump);
 	return GF_OK;
 }
+#endif //GPAC_MINIMAL_ODF
 
 GF_Err gf_odf_dump_base_command(GF_BaseODCom *com, FILE *trace, u32 indent, Bool XMTDump)
 {

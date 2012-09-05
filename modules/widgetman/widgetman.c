@@ -1638,8 +1638,8 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 }
 
 
-static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
+
 	JSString *s;
 	char *prop_name;
 	const char *opt;
@@ -1893,8 +1893,9 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTE
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
-static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+
+static SMJS_FUNC_PROP_SET( wm_widget_setProperty)
+
 	char szVal[32];
 	jsdouble val;
 	char *prop_name;
@@ -2304,8 +2305,8 @@ static JSBool SMJS_FUNCTION(wm_unload)
 
 
 
-static JSBool wm_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( wm_getProperty)
+
 	char *prop_name;
 	GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
 	if (!wm) return JS_FALSE;
@@ -2325,8 +2326,10 @@ static JSBool wm_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsva
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
-static JSBool wm_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+
+
+static SMJS_FUNC_PROP_SET( wm_setProperty)
+
 	char *prop_name;
 	GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
 	if (!wm) return JS_FALSE;
