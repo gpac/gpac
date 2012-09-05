@@ -2965,6 +2965,7 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 	if (compositor->hit_text==n) compositor->hit_text = NULL;
 }
 
+GF_EXPORT
 GF_Err gf_sc_add_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 {
 	if (!sc|| !vl || !vl->on_video_frame || !vl->on_video_reconfig) return GF_BAD_PARAM;
@@ -2976,6 +2977,7 @@ GF_Err gf_sc_add_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sc_remove_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 {
 	if (!sc|| !vl) return GF_BAD_PARAM;
