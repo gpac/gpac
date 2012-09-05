@@ -82,7 +82,7 @@ typedef double jsdouble;
 #define SMJS_DECL_FUNC_PROP_GET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsid id, jsval *vp) 
 #define SMJS_FUNC_PROP_GET(func_name) SMJS_DECL_FUNC_PROP_GET(func_name) { 
 #define SMJS_CALL_PROP_STUB() JS_PropertyStub(c, obj, id, vp)
-#define DECL_FINALIZE(func_name) void func_name(JSContext *c, JS_ARG_OBJ) {
+#define DECL_FINALIZE(func_name) void func_name(JSContext *c, JSObject *obj) {
 
 #endif
 
