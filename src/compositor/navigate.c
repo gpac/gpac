@@ -210,6 +210,7 @@ Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 		return 0;
 	}
 	memset(&tr_state, 0, sizeof(GF_TraverseState));
+	gf_mx_init(tr_state.model_matrix);
 	tr_state.traversing_mode = TRAVERSE_GET_BOUNDS;
 	tr_state.visual = compositor->visual;
 	gf_node_traverse(top, &tr_state);
