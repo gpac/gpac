@@ -28,6 +28,8 @@
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
 
+/*for asctime and gmtime*/
+#include <time.h>
 
 static Bool gf_mpd_parse_bool(char *attr)
 {
@@ -75,7 +77,19 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(char *attr)
 
 static u64 gf_mpd_parse_date(char *attr)
 {
-	fprintf(stdout, "error: mpd parse date not implemented\n");
+	struct tm _t;
+	u32 year, month, day, h, m, s;
+	if (sscanf(attr, "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &h, &m, &s) == 6) {
+		_t.tm_year = (year > 1900) ? year - 1900 : 0;
+		_t.tm_mon = month ? month - 1 : 0;
+		_t.tm_mday = day;
+		_t.tm_hour = h;
+		_t.tm_min = m;
+		_t.tm_sec = s;
+		return mktime(&_t);
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse MPD date %s\n", attr));
+	}
 	return 0;
 }
 

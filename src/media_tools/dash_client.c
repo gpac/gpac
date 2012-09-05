@@ -404,6 +404,12 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			return GF_BAD_PARAM;
 		}
 		purl = gf_strdup(gf_list_get(dash->mpd->locations, 0));
+
+		/*if no absolute URL, use <Location> to get MPD in case baseURL is relative...*/
+		if (!strstr(dash->base_url, "://")) {
+			gf_free(dash->base_url);
+			dash->base_url = gf_strdup(purl);
+		} 
 	} else {
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
 		if (!local_url) {
@@ -599,12 +605,17 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 							}
 						}
 
-						/*copy over a few things from former rep*/
+
+						/*switch all intertnal GPAC stuff*/
 						new_rep->disabled = rep->disabled;
 						if (!new_rep->mime_type) {
 							new_rep->mime_type = rep->mime_type;
 							rep->mime_type = NULL;
 						}
+						new_rep->init_start_range = rep->init_start_range;
+						new_rep->init_end_range = rep->init_end_range;
+						new_rep->cached_init_segment_url = rep->cached_init_segment_url;
+						if (rep->cached_init_segment_url) rep->cached_init_segment_url = NULL;
 					}
 					/*update group/period to new period*/
 					j = gf_list_find(group->period->adaptation_sets, group->adaptation_set);
@@ -886,6 +897,7 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapt
 
 	/*resolve base URLs from document base (download location) to representation (media)*/
 	url = gf_strdup(mpd_url);
+
 	url_child = gf_list_get(mpd->base_URLs, 0);
 	if (url_child) {
 		char *t_url = gf_url_concatenate(url, url_child->URL);
@@ -1168,6 +1180,8 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapt
 					GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, k);
 					if (item_index>cur_idx+ent->repeat_count) {
 						cur_idx += 1 + ent->repeat_count;
+						if (ent->start_time) start_time = ent->start_time;
+
 						start_time += ent->duration * (1 + ent->repeat_count);
 						continue;
 					}
@@ -1677,7 +1691,7 @@ restart_period:
         /*wait until next segment is needed*/
         while (!dash->mpd_stop_request) {
             u32 timer = gf_sys_clock() - dash->last_update_time;
-            Bool shouldParsePlaylist = dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period);
+            Bool shouldParsePlaylist = dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period); 
 
 			if (shouldParsePlaylist) {
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Next segment in cache, but it is time to update the playlist (%u ms/%u)\n", timer, dash->mpd->minimum_update_period));
@@ -2131,8 +2145,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
     if (!dash || !manifest_url) return GF_BAD_PARAM;
 
-	dash->base_url = gf_strdup(manifest_url);
-
 	memset( dash->lastMPDSignature, 0, sizeof(dash->last_update_time));
     dash->reload_count = 0;
 
@@ -2250,8 +2262,13 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
         GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
 		goto exit;
     }
-
-//	gf_dash_reset_groups(dash);
+	if (is_local && dash->mpd->minimum_update_period) {
+		e = gf_dash_update_manifest(dash);
+		if (e != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update MPD: %s\n", gf_error_to_string(e)));
+			goto exit;
+		}
+	}
 
 	/* Get the right period from the given time */
     dash->active_period_index = gf_dash_period_index_from_time(dash, 0);

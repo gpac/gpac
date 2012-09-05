@@ -688,6 +688,14 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		gf_es_drop_au(ch);
 		return GF_BAD_PARAM;
 	}
+	/*we are still flushing our CB - keep the current pending AU and wait for CB resize*/
+	if (codec->forec_cb_resize) {
+		if (codec->CB->UnitCount>1) {
+			return GF_OK;
+		}
+		ResizeCompositionBuffer(codec, codec->forec_cb_resize);
+		codec->forec_cb_resize=0;
+	}
 
 	/*image codecs*/
 	if (codec->CB->Capacity == 1) {
@@ -802,6 +810,12 @@ scalable_retry:
 		case GF_BUFFER_TOO_SMALL:
 			/*release but no dispatch*/
 			UnlockCompositionUnit(codec, CU, 0);
+
+			/*if we have pending media do wait! - this shoud be fixed by avoiding to destroy the CB ... */
+			if (codec->CB->UnitCount>1) {
+				codec->forec_cb_resize = unit_size;
+				return GF_OK;
+			}
 			ResizeCompositionBuffer(codec, unit_size);
 			continue;
 

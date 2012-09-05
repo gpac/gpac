@@ -800,6 +800,9 @@ struct _generic_codec
 	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough 
 	since we use ms and not microsec TSs*/
 	u32 cur_audio_bytes, cur_video_frames;
+
+	/*Number of active units*/
+	u32 forec_cb_resize;
 };
 
 GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e);
