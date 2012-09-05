@@ -3492,14 +3492,14 @@ int mp4boxMain(int argc, char **argv)
 					strcat(outfile, "_dash");
 				}
 				if (nb_dash_inputs>1) {
-					fprintf(stdout, "DASHing file %s\n", dash_inputs[i]);
+					fprintf(stdout, "DASHing file %s\n", dash_inputs[i].file_name);
 				}
-	#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg, i+1);
-	#else
+#else
 				fprintf(stderr, "GPAC was compiled without fragment support\n");
 				e = GF_NOT_SUPPORTED;
-	#endif
+#endif
 				if (e) {
 					fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 					break;

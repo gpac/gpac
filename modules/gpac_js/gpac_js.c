@@ -83,8 +83,8 @@ static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
 	return ext ? ext->term : NULL;
 }
 
-static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( gpac_getProperty)
+
 	const char *res;
 	char *prop_name;
 	GF_Terminal *term = gpac_get_term(c, obj);
@@ -201,8 +201,8 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
-static JSBool gpac_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( gpac_setProperty)
+
 	char *prop_name, *prop_val;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
@@ -662,8 +662,8 @@ static JSBool SMJS_FUNCTION(gpac_migrate_url)
 	return JS_TRUE;
 }
 
-static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( gpacevt_getProperty)
+
 	GF_GPACJSExt *gjs = SMJS_GET_PRIVATE(c, obj);
 	GF_Event *evt = gjs->evt;
 	if (!evt) return 0;

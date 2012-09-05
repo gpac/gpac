@@ -413,8 +413,8 @@ static jsval dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 	return OBJECT_TO_JSVAL(new_obj);
 }
 
-static void dom_nodelist_finalize(JSContext *c, JSObject *obj)
-{
+static DECL_FINALIZE(dom_nodelist_finalize)
+
 	DOMNodeList *nl;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) )
 		return;
@@ -461,8 +461,8 @@ static JSBool SMJS_FUNCTION(dom_nodelist_item)
 	return JS_TRUE;
 }
 
-static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( dom_nodelist_getProperty)
+
 	DOMNodeList *nl;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)
 	)
@@ -478,8 +478,10 @@ static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GE
 	}
 	return JS_TRUE;
 }
-static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( dom_nodelist_setProperty)
+
+	/*avoids gcc warning*/
+	if (!obj) obj=NULL;
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 	/*no write prop*/
 	return JS_TRUE;
@@ -761,8 +763,8 @@ JSBool SMJS_FUNCTION(dom_event_remove_listener)
 }
 
 /*dom3 node*/
-static void dom_node_finalize(JSContext *c, JSObject *obj)
-{
+static DECL_FINALIZE( dom_node_finalize)
+
 	GF_Node *n = (GF_Node *) SMJS_GET_PRIVATE(c, obj);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!n) return;
@@ -1103,8 +1105,8 @@ static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 }
 #endif /*GPAC_UNUSED_FUNC*/
 
-static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( dom_node_getProperty)
+
 	u32 tag;
 	GF_Node *n;
 	GF_SceneGraph *sg = NULL;
@@ -1302,8 +1304,8 @@ void dom_node_set_textContent(GF_Node *n, char *text)
 	gf_node_changed(n, &info);
 }
 
-static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( dom_node_setProperty)
+
 	u32 tag;
 	GF_Node *n;
 
@@ -1349,8 +1351,8 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER
 
 /*don't attempt to do anything with the scenegraph, it may be destroyed
 fortunately a sg cannot be created like that...*/
-void dom_document_finalize(JSContext *c, JSObject *obj)
-{
+DECL_FINALIZE(dom_document_finalize)
+
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 
 	sg = (GF_SceneGraph*) SMJS_GET_PRIVATE(c, obj);
@@ -1369,8 +1371,8 @@ void dom_document_finalize(JSContext *c, JSObject *obj)
 	}
 }
 
-static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( dom_document_getProperty )
+
 	u32 prop_id;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
@@ -1409,8 +1411,8 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GE
 	return JS_TRUE;
 }
 
-static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET(dom_document_setProperty)
+
 	u32 prop_id;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
@@ -1583,13 +1585,13 @@ static JSBool SMJS_FUNCTION(xml_document_element_by_id)
 }
 
 /*dom3 element*/
-void dom_element_finalize(JSContext *c, JSObject *obj)
-{
+DECL_FINALIZE( dom_element_finalize)
+
 	dom_node_finalize(c, obj);
 }
 
-static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( dom_element_getProperty) 
+
 	u32 prop_id;
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
@@ -2098,8 +2100,8 @@ static JSBool SMJS_FUNCTION(xml_element_set_id)
 
 /*dom3 character/text/comment*/
 
-static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( dom_text_getProperty) 
+
 	u32 prop_id;
 	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
 	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
@@ -2124,8 +2126,8 @@ static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER
 	}
 	return JS_TRUE;
 }
-static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( dom_text_setProperty)
+
 	u32 prop_id;
 	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
 	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
@@ -2172,8 +2174,8 @@ static JSBool SMJS_FUNCTION(event_prevent_default)
 	return JS_TRUE;
 }
 
-static JSBool event_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( event_getProperty)
+
 	JSString *s;
 	GF_DOM_Event *evt = SMJS_GET_PRIVATE(c, obj);
 	if (evt==NULL) return JS_TRUE;
@@ -2527,8 +2529,8 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 	ctx->html_status = 0;
 }
 
-static void xml_http_finalize(JSContext *c, JSObject *obj)
-{
+static DECL_FINALIZE( xml_http_finalize)
+
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
@@ -3081,8 +3083,8 @@ static JSBool SMJS_FUNCTION(xml_http_get_header)
 	return JS_TRUE;
 }
 
-static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( xml_http_getProperty)
+
 	JSString *s;
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
@@ -3137,12 +3139,11 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER
 			return JS_TRUE;
 		}
 	}
-	return JS_PropertyStub(c, obj, id, vp);
-	return JS_TRUE;
+	return SMJS_CALL_PROP_STUB();
 }
 
-static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( xml_http_setProperty)
+
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
@@ -3179,8 +3180,8 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER
 }
 
 
-static JSBool dcci_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET(dcci_getProperty)
+
 	GF_DOMFullAttribute *att;
 	GF_ChildNodeItem *child;
 	GF_DOMFullNode *n;
@@ -3265,16 +3266,17 @@ static JSBool dcci_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 			return JS_TRUE;
 		}
 	}
-	return JS_PropertyStub(c, obj, id, vp);
+	return SMJS_CALL_PROP_STUB();
 }
 
-static JSBool dcci_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( dcci_setProperty)
+
 	GF_ChildNodeItem *child;
 	GF_DOMFullNode *n;
+	GF_DOMFullAttribute*att;
 	GF_DOM_Event evt;
 	char *str;
-	jsval readonly=JSVAL_NULL;
+	Bool readonly;
 	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
@@ -3286,12 +3288,16 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, js
 		switch (SMJS_ID_TO_INT(id)) {
 		/*value*/
 		case 0:
-#if (JS_VERSION>=185)
-			dcci_getProperty(c, obj, (jsint) (3), &readonly);
-#else
-			dcci_getProperty(c, obj, INT_TO_JSVAL(3), &readonly);
-#endif
-			if (JSVAL_TO_BOOLEAN(readonly) == JS_TRUE) break;
+			readonly = 0;
+			att = (GF_DOMFullAttribute*) n->attributes;
+			while (att) {
+				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp(att->data, "true")) {
+					readonly = 1;
+					break;
+				}
+				att = (GF_DOMFullAttribute*) att->next;
+			}
+			if (readonly) break;
 			child = n->children;
 			while (child) {
 				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
@@ -3440,14 +3446,18 @@ static JSBool SMJS_FUNCTION(dcci_search_property)
 	return JS_TRUE;
 }
 
-static JSBool storage_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_GET( storage_getProperty)
+
+	/*avoids gcc warning*/
+	if (!id) id=0;
 	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
 }
 
-static JSBool storage_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
-{
+static SMJS_FUNC_PROP_SET( storage_setProperty)
+
+	/*avoids gcc warning*/
+	if (!id) id=0;
 	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
 }
@@ -3460,8 +3470,10 @@ static JSBool SMJS_FUNCTION(storage_constructor)
 	return JS_TRUE;
 }
 
-static void storage_finalize(JSContext *c, JSObject *obj)
-{
+static DECL_FINALIZE( storage_finalize)
+
+	/*avoids GCC warning*/
+	if (!c) c=NULL;
 }
 
 void dom_js_define_storage(JSContext *c, JSObject *parent_obj, const char *name)
@@ -3876,7 +3888,11 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		}
 	}
 	if (sg->document) {
+#ifdef USE_FFDEV_15
+		dom_document_finalize(NULL, sg->document);
+#else
 		dom_document_finalize(c, sg->document);
+#endif
 	}
 }
 

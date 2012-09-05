@@ -853,7 +853,11 @@ EOF
 	                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
 	                    js_flags="-DUSE_FFDEV_12 $js_flags"
 	                else
-	                    js_flags="-DUSE_FFDEV_14 $js_flags"
+		            if grep JSHandleObject $js_inc/jsapi.h > /dev/null 2>&1 ; then
+	                    	js_flags="-DUSE_FFDEV_15 $js_flags"
+	                    else
+				js_flags="-DUSE_FFDEV_14 $js_flags"
+			    fi
 			fi
                 else
 cat > $TMPC << EOF
@@ -2743,6 +2747,7 @@ echo "DISABLE_DASH_CLIENT=$disable_dash" >> config.mak
 echo "DISABLE_CORE_TOOLS=$disable_core_tools" >> config.mak
 echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
+echo "MINIMAL_OD=$disable_od" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"

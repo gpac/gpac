@@ -43,16 +43,17 @@
 /*new APIs*/
 #if (JS_VERSION>=185)
 
+#ifdef USE_FFDEV_15
+#define JSVAL_IS_OBJECT(__v) JSVAL_IS_OBJECT_OR_NULL_IMPL(JSVAL_TO_IMPL(__v))
+#define USE_FFDEV_14
+#endif
+
 #ifdef USE_FFDEV_14
 #define USE_FFDEV_12
 #define JS_FinalizeStub	NULL
-
 #define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, __classp, __args)
-
 #else
-
 #define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, __args)
-
 #endif
 
 #ifdef USE_FFDEV_12
@@ -64,8 +65,28 @@ typedef double jsdouble;
 
 #define JS_NewDouble(c, v)	v
 #define JS_PropertyStub_forSetter JS_StrictPropertyStub
-#define SMJS_PROP_SETTER jsid id, JSBool strict
-#define SMJS_PROP_GETTER jsid id
+
+#ifdef USE_FFDEV_15
+
+#define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSHandleObject __hobj, JSHandleId __hid, JSBool strict, jsval *vp) 
+#define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) { JSObject *obj = *(__hobj._); jsid id = *(__hid._);
+#define SMJS_DECL_FUNC_PROP_GET(func_name) JSBool func_name(JSContext *c, JSHandleObject __hobj, JSHandleId __hid, jsval *vp)
+#define SMJS_FUNC_PROP_GET(func_name) SMJS_DECL_FUNC_PROP_GET( func_name ) { JSObject *obj = *(__hobj._); jsid id = *(__hid._);
+#define SMJS_CALL_PROP_STUB() JS_PropertyStub(c, __hobj, __hid, vp)
+#define DECL_FINALIZE(func_name) void func_name(JSFreeOp *fop, JSObject *obj) { void *c = NULL;
+
+#else
+
+#define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+#define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET( func_name) {
+#define SMJS_DECL_FUNC_PROP_GET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsid id, jsval *vp) 
+#define SMJS_FUNC_PROP_GET(func_name) SMJS_DECL_FUNC_PROP_GET(func_name) { 
+#define SMJS_CALL_PROP_STUB() JS_PropertyStub(c, obj, id, vp)
+#define DECL_FINALIZE(func_name) void func_name(JSContext *c, JS_ARG_OBJ) {
+
+#endif
+
+
 #define SMJS_FUNCTION_SPEC(__name, __fun, __argc) {__name, __fun, __argc, 0}
 #define SMJS_FUNCTION(__name) __name(JSContext *c, uintN argc, jsval *argsvp)
 #define SMJS_FUNCTION_EXT(__name, __ext) __name(JSContext *c, uintN argc, jsval *argsvp, __ext)
@@ -103,7 +124,15 @@ typedef double jsdouble;
 #define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__obj)
 #define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__obj, __val)
 #define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__obj)
+
+
+#ifdef USE_FFDEV_15
+#define JS_GET_CLASS(__ctx, __obj) JS_GetClass(* __obj._)
+#else
 #define JS_GET_CLASS(__ctx, __obj) JS_GetClass(__obj)
+#endif
+
+
 #define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, __parent)
 
 #else
@@ -125,6 +154,13 @@ typedef double jsdouble;
 
 #else
 
+#define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+#define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) {
+#define SMJS_DECL_FUNC_PROP_GET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsval id, jsval *vp) 
+#define SMJS_FUNC_PROP_GET(func_name) SMJS_DECL_FUNC_PROP_GET( func_name) { 
+#define DECL_FINALIZE(func_name) void func_name(JSContext *c, JS_ARG_OBJ) {
+
+#define SMJS_CALL_PROP_STUB() JS_PropertyStub(c, obj, id, vp)
 #define SMJS_PROP_SETTER jsval id
 #define SMJS_PROP_GETTER jsval id
 #define JS_PropertyStub_forSetter JS_PropertyStub
@@ -161,7 +197,11 @@ extern "C" {
 #endif
 
 #if (JS_VERSION>=185)
+#ifdef USE_FFDEV_15
+JSBool gf_sg_js_has_instance(JSContext *c, JSHandleObject obj,const jsval *val, JSBool *vp);
+#else
 JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj,const jsval *val, JSBool *vp);
+#endif
 #else
 JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
 #endif

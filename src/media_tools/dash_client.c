@@ -25,7 +25,6 @@
 
 #include <gpac/thread.h>
 #include <gpac/network.h>
-#include <gpac/math.h>
 #include <gpac/dash.h>
 #include <gpac/internal/mpd.h>
 #include <gpac/internal/m3u8.h>
@@ -389,14 +388,13 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
     GF_Err e;
     u32 group_idx, rep_idx, i, j;
-    Bool seg_found = 0;
     GF_DOMParser *mpd_parser;
     GF_MPD_Period *period, *new_period;
     const char *local_url;
     char mime[128];
     char * purl;
-    Bool is_m3u8 = 0;
-	u32 oldUpdateTime = dash->mpd->minimum_update_period;
+    u32 oldUpdateTime = dash->mpd->minimum_update_period;
+
     /*reset update time - if any error occurs, we will no longer attempt to update the MPD*/
     dash->mpd->minimum_update_period = 0;
 
@@ -716,7 +714,8 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 			nb_seg /= 1000;
 			nb_seg *= timescale;
 			nb_seg /= duration;
-			*nb_segments = (u32) ceil(nb_seg);
+			*nb_segments = (u32) nb_seg;
+			if (*nb_segments < nb_seg) (*nb_segments)++;
 		}
 	}
 }
@@ -724,13 +723,11 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 
 static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Representation *rep)
 {
-	u64 duration = 0;
-	u64 mediaDuration = 0;
 #ifndef GPAC_DISABLE_LOG
 	u32 width=0, height=0, samplerate=0;
 	GF_MPD_Fractional *framerate=NULL;
 #endif
-	u32 k, timescale = 1;
+	u32 k;
 	GF_MPD_AdaptationSet *set;
 	GF_MPD_Period *period;
 	u32 i = gf_list_find(group->adaptation_set->representations, rep);
@@ -863,6 +860,7 @@ static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 	else if (mbase_set && mbase_set->duration) *out_duration = mbase_set->duration;
 	else if (mbase_period && mbase_period->duration) *out_duration = mbase_period->duration;
 
+	/*TODO FIX CASE FOR SegmentTimeline*/
 }
 
 typedef enum
@@ -1302,7 +1300,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
         return e;
     } else {
         char mime[128];
-		const char *mime_type;
+	const char *mime_type;
         u32 count = group->nb_segments_in_rep + 1;
         if (count < group->max_cached_segments) {
             if (count < 1) {
@@ -1317,22 +1315,22 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
         }
 
 		/* Mime-Type check */
-		mime_type = dash->dash_io->get_mime(dash->dash_io, group->segment_download) ;
-		strcpy(mime, mime_type ? mime_type : "");
+	mime_type = dash->dash_io->get_mime(dash->dash_io, group->segment_download) ;
+	strcpy(mime, mime_type ? mime_type : "");
         strlwr(mime);
 
-		if (dash->mimeTypeForM3U8Segments) 
+	if (dash->mimeTypeForM3U8Segments) 
 	        gf_free(dash->mimeTypeForM3U8Segments);
         dash->mimeTypeForM3U8Segments = gf_strdup( mime );
-		if (!rep->mime_type) {
+	if (!rep->mime_type) {
 	        rep->mime_type = gf_strdup( mime );
-		}
-		mime_type = gf_dash_get_mime_type(NULL, rep, group->adaptation_set);
-        if (!mime || (stricmp(mime, mime_type))) {
+	}
+	mime_type = gf_dash_get_mime_type(NULL, rep, group->adaptation_set);
+        if (stricmp(mime, mime_type)) {
 			Bool valid = 0;
 			char *stype1, *stype2;
 			stype1 = strchr(mime_type, '/');
-			stype2 = mime ? strchr(mime, '/') : NULL;
+			stype2 = strchr(mime, '/');
 			if (stype1 && stype2 && !strcmp(stype1, stype2)) valid = 1;
 
 			if (!valid && 0) {
@@ -1616,7 +1614,6 @@ static u32 dash_main_thread_proc(void *par)
 {
     GF_Err e;
     GF_DashClient *dash = (GF_DashClient*) par;
-    GF_MPD_Period *period;
     GF_MPD_Representation *rep;
     u32 i, group_count, ret = 0;
 	Bool go_on = 1;
@@ -1638,7 +1635,6 @@ restart_period:
 	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, GF_OK);
 
 	e = GF_OK;
-    period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 	group_count = gf_list_count(dash->groups);
 	for (i=0; i<group_count; i++) {
 	    GF_DASH_Group *group = gf_list_get(dash->groups, i);
@@ -1729,9 +1725,6 @@ restart_period:
             break;
         }
 
-        /* Continue the processing (no stop request) */
-        period = gf_list_get(dash->mpd->periods, dash->active_period_index);
-
 		/*for each selected groups*/
 		for (i=0; i<group_count; i++) {		
 			u64 start_range, end_range;
@@ -1762,7 +1755,6 @@ restart_period:
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error updating MPD %s\n", gf_error_to_string(e)));
 					}
 					group_count = gf_list_count(dash->groups);
-					period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 					rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 				} else {
 					gf_sleep(16);

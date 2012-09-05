@@ -140,7 +140,7 @@ public:
 };
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp);
+SMJS_DECL_FUNC_PROP_GET( upnpservice_getProperty);
 #endif
 
 void format_time_string(char *str, Double dur);
