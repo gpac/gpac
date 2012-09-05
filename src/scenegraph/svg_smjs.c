@@ -1544,8 +1544,8 @@ static JSFunctionSpec connectionFuncs[] = {
 static DECL_FINALIZE( baseCI_finalize)
 
 	/*avoids GCC warning*/
-	if (!c) c=NULL;
 	void *data = SMJS_GET_PRIVATE(c, obj);
+	if (!c) c=NULL;
 	if (data) gf_free(data);
 }
 
