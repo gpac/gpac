@@ -1358,6 +1358,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
     return sess->last_error;
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
 {
     Bool go;
