@@ -3340,6 +3340,11 @@ int mp4boxMain(int argc, char **argv)
 			while (dash_inputs[first_rep_in_set].adaptation_set!=cur_adaptation_set+1)
 				first_rep_in_set++;
 
+			strcpy(outfile, outName ? outName : inName);
+			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
+			outfile[strlen(outfile)-1] = 0;
+			if (!outName) strcat(outfile, "_dash");
+
 			if (max_adaptation_set==1) {
 				strcpy(szInit, outfile);
 				strcat(szInit, "_init.mp4");
