@@ -654,7 +654,7 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 	gf_mixer_lock(ar->mixer, 0);
 }
 
-
+GF_EXPORT
 GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al)
 {
 	GF_AudioMixer *mixer;
@@ -676,6 +676,7 @@ GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al)
 {
 	if (!compositor || !al) return GF_BAD_PARAM;

@@ -284,6 +284,7 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 	t->status = GF_THREAD_STATUS_DEAD;
 }
 
+GF_EXPORT
 void gf_th_stop(GF_Thread *t)
 {
 	Thread_Stop(t, 0);
