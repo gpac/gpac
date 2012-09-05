@@ -58,7 +58,7 @@ OrderedGroup {
   DEF SCRIPT Script {
    eventIn SFTime act
    field SFNode n USE TEXT
-   url ["javascript: function act(value, timestamp) {n.string[0] = 'EventIn Value: ' + value;//n.string[1] = 'Script Timestamp: ' + timestamp;n.string[2] = 'Diff: ' + (timestamp-value);
+   url ["javascript: function act(value, timestamp) {n.string[0] = 'EventIn Value: ' + value;n.string[1] = 'Script Timestamp: ' + timestamp;n.string[2] = 'Diff: ' + (timestamp-value);
 }"   ]
   }
  ]
