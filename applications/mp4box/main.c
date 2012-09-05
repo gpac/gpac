@@ -2658,8 +2658,12 @@ int mp4boxMain(int argc, char **argv)
 	if (!HintIt && print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
 #endif
 	if (print_info) {
-		if (info_track_id) DumpTrackInfo(file, info_track_id, 1);
-		else DumpMovieInfo(file);
+		if (!file) {
+			fprintf(stdout, "Cannot print info on a non ISOM file (%s)\n", inName);
+		} else {
+			if (info_track_id) DumpTrackInfo(file, info_track_id, 1);
+			else DumpMovieInfo(file);
+		}
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : outfile);
