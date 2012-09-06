@@ -162,7 +162,7 @@ void *gf_dash_get_group_udta(GF_DashClient *dash, u32 group_index);
 /*indicates whether a group is selected for playback or not. Currently groups cannot be selected during playback*/
 Bool gf_dash_is_group_selected(GF_DashClient *dash, u32 group_index);
 
-/*selects a group for playback. If other groups are alternate to this group (through the @group attribute), they are automatically deselected*/
+/*selects a group for playback. If other groups are alternate to this group (through the @group attribute), they are automatically deselected. */
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select);
 
 /*returns the mime type of the media resources in this group*/
@@ -205,6 +205,8 @@ Double gf_dash_get_playback_start_range(GF_DashClient *dash);
 /*when seeking, this flag is set when the seek is outside of the previously playing segment.*/
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
 
+/*returns the start_time of the first segment in the queue (usually the one being played)*/
+Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

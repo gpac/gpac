@@ -76,16 +76,17 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
-		e = MergeTrack(trak, traf, mov->current_top_box_start, !mov->first_moof_merged);
+		e = MergeTrack(trak, traf, mov->current_top_box_start, !trak->first_traf_merged);
 		if (e) return e;
 
 		//update trak duration
 		SetTrackDuration(trak);
 		if (trak->Header->duration > MaxDur) 
 			MaxDur = trak->Header->duration;
+
+		trak->first_traf_merged = 1;
 	}
 
-	mov->first_moof_merged = 1;
 	mov->NextMoofNumber = moof->mfhd->sequence_number;
 	//update movie duration
 	if (mov->moov->mvhd->duration < MaxDur) mov->moov->mvhd->duration = MaxDur;
@@ -240,17 +241,19 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
                 u32 k;
 				gf_list_add(mov->TopBoxes, a);
 				/*also update pointers to trex for debug*/
-				for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
-					GF_TrackFragmentBox *traf = gf_list_get(mov->moof->TrackList, k);
-					if (traf->tfhd) {
-						GF_TrackBox *trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
-						u32 j=0;
-						while ((traf->trex = (GF_TrackExtendsBox*)gf_list_enum(mov->moov->mvex->TrackExList, &j))) {
-							if (traf->trex->trackID == traf->tfhd->trackID) {
-								if (!traf->trex->track) traf->trex->track = trak;
-								break;
+				if (mov->moov) {
+					for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
+						GF_TrackFragmentBox *traf = gf_list_get(mov->moof->TrackList, k);
+						if (traf->tfhd) {
+							GF_TrackBox *trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
+							u32 j=0;
+							while ((traf->trex = (GF_TrackExtendsBox*)gf_list_enum(mov->moov->mvex->TrackExList, &j))) {
+								if (traf->trex->trackID == traf->tfhd->trackID) {
+									if (!traf->trex->track) traf->trex->track = trak;
+									break;
+								}
+								traf->trex = NULL;
 							}
-							traf->trex = NULL;
 						}
 					}
 				}

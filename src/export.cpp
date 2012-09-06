@@ -1711,6 +1711,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_seek) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_playback_start_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_segment_switch_forced) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_current_segment_start_time) )
 
 #endif
 

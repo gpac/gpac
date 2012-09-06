@@ -1958,6 +1958,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+		trak->first_traf_merged = 0;
 		if (trak->Media->information->dataHandler == movie->movieFileMap) {
 			trak->Media->information->dataHandler = NULL;
 		}
@@ -1990,7 +1991,6 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		}
 	}
 
-	movie->first_moof_merged = 0;
 	gf_isom_datamap_del(movie->movieFileMap);
 	movie->movieFileMap = NULL;
 #endif

@@ -124,7 +124,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		const char *src_url;
 		Bool discard_first_cache_entry = 1;
         u32 timer = gf_sys_clock();
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Query Next request from terminal\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Query Next request from input service %s\n", ifce->module_name));
 
 
 		param->url_query.discontinuity_type = 0;
@@ -198,6 +198,8 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			} else {
 	            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s\n", src_url));
 			}
+            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] segment start time %g sec\n", gf_dash_group_current_segment_start_time(mpdin->dash, group_idx) ));
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url ));
         }
 	    return GF_OK;
@@ -631,38 +633,41 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
+		/*don't seek if this command is the first PLAY request of objects declared by the subservice*/
+		if (!com->play.initial_broadcast_play) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
-		if (!gf_dash_in_period_setup(mpdin->dash) && !com->play.dash_segment_switch && ! mpdin->in_seek) {
-			Bool skip_seek;
-			
-			mpdin->in_seek = 1;
-			
-			/*if start range request is the same as previous one, don't process it
-			- this happens at period switch when new objects are declared*/
-			skip_seek = (mpdin->previous_start_range==com->play.start_range) ? 1 : 0;
-			mpdin->previous_start_range = com->play.start_range;
+			if (!gf_dash_in_period_setup(mpdin->dash) && !com->play.dash_segment_switch && ! mpdin->in_seek) {
+				Bool skip_seek;
+				
+				mpdin->in_seek = 1;
+				
+				/*if start range request is the same as previous one, don't process it
+				- this happens at period switch when new objects are declared*/
+				skip_seek = (mpdin->previous_start_range==com->play.start_range) ? 1 : 0;
+				mpdin->previous_start_range = com->play.start_range;
 
-			gf_dash_seek(mpdin->dash, com->play.start_range);
-		} 
-		/*For MPEG-2 TS or formats not using Init Seg: since objects are declared and started once the first
-		segment is playing, we will stay in playback_start_range!=-1 until next segment (because we won't have a query_next),
-		which will prevent seeking until then ... we force a reset of playback_start_range to allow seeking asap*/
-		else if (mpdin->in_seek && (com->play.start_range==0)) {
-//			mpdin->in_seek = 0;
+				gf_dash_seek(mpdin->dash, com->play.start_range);
+			} 
+			/*For MPEG-2 TS or formats not using Init Seg: since objects are declared and started once the first
+			segment is playing, we will stay in playback_start_range!=-1 until next segment (because we won't have a query_next),
+			which will prevent seeking until then ... we force a reset of playback_start_range to allow seeking asap*/
+			else if (mpdin->in_seek && (com->play.start_range==0)) {
+//				mpdin->in_seek = 0;
+			}
+			else if (gf_dash_in_period_setup(mpdin->dash) && (com->play.start_range==0)) {
+				com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
+			}
+
+			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+			if (idx>=0) {
+				gf_dash_set_group_done(mpdin->dash, idx, 0);
+				com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
+			}
+
+			/*don't forward commands, we are killing the service anyway ...*/
+			if (gf_dash_get_period_switch_status(mpdin->dash) ) return GF_OK;
 		}
-		else if (gf_dash_in_period_setup(mpdin->dash) && (com->play.start_range==0)) {
-			com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
-		}
-
-		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
-		if (idx>=0) {
-			gf_dash_set_group_done(mpdin->dash, idx, 0);
-			com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
-		}
-
-		/*don't forward commands, we are killing the service anyway ...*/
-		if (gf_dash_get_period_switch_status(mpdin->dash) ) return GF_OK;
 
 		return segment_ifce->ServiceCommand(segment_ifce, com);
 

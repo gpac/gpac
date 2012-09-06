@@ -28,8 +28,10 @@
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
 
-/*for asctime and gmtime*/
+#ifndef _WIN32_WCE
+/*for mktime*/
 #include <time.h>
+#endif
 
 static Bool gf_mpd_parse_bool(char *attr)
 {
@@ -62,6 +64,13 @@ static u32 gf_mpd_parse_int(char *attr)
 	return atoi(attr);
 }
 
+static u64 gf_mpd_parse_long_int(char *attr)
+{
+	u64 longint;
+	sscanf(attr, LLU, &longint);
+	return longint;
+}
+
 static Double gf_mpd_parse_double(char *attr)
 {
 	return atof(attr);
@@ -77,20 +86,51 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(char *attr)
 
 static u64 gf_mpd_parse_date(char *attr)
 {
-	struct tm _t;
-	u32 year, month, day, h, m, s;
-	if (sscanf(attr, "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &h, &m, &s) == 6) {
+#ifdef _WIN32_WCE
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Parsing MPD date (%s) is not supported on Windows CE\n", attr));
+	return 0;
+#else
+	Bool ok = 0;
+	Bool neg_time_zone = 0;
+	u32 year, month, day, h, m;
+	s32 oh, om;
+	Double s;
+
+	h = m = 0;
+	s = 0;
+	oh = om = 0;
+	if (strchr(attr, 'Z')) {
+		if (sscanf(attr, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &s) == 6) 
+			ok = 1;
+		else if (sscanf(attr, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &s, &oh, &om) == 8) {
+			neg_time_zone = 1;
+			ok = 1;
+		} else if (sscanf(attr, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &s, &oh, &om) == 8) 
+			ok = 1;
+		
+		/*there are many other formats ...*/
+	}
+	if (ok) {
+		u64 res;
+		struct tm _t;
 		_t.tm_year = (year > 1900) ? year - 1900 : 0;
 		_t.tm_mon = month ? month - 1 : 0;
 		_t.tm_mday = day;
 		_t.tm_hour = h;
 		_t.tm_min = m;
-		_t.tm_sec = s;
-		return mktime(&_t);
+		_t.tm_sec = (u32) s;
+		res = mktime(&_t);
+		if (om || oh) {
+			s32 diff = (60*oh + om)*60;
+			if (neg_time_zone) diff = -diff;
+			res = res + diff;
+		}
+		return res;
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse MPD date %s\n", attr));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse MPD date %s - format not supported\n", attr));
 	}
 	return 0;
+#endif
 }
 
 static u32 gf_mpd_parse_duration(char *duration) {
@@ -296,9 +336,12 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_XMLNode *root)
 
 			j = 0;
 			while ( (att = gf_list_enum(child->attributes, &j)) ) {
-				if (!strcmp(att->name, "t")) segent->start_time = gf_mpd_parse_int(att->value);
-				else if (!strcmp(att->name, "d")) segent->duration = gf_mpd_parse_int(att->value);
-				else if (!strcmp(att->name, "r")) segent->repeat_count = gf_mpd_parse_int(att->value);
+				if (!strcmp(att->name, "t")) 
+					segent->start_time = gf_mpd_parse_long_int(att->value);
+				else if (!strcmp(att->name, "d")) 
+					segent->duration = gf_mpd_parse_int(att->value);
+				else if (!strcmp(att->name, "r")) 
+					segent->repeat_count = gf_mpd_parse_int(att->value);
 			}
 		}
 	}
@@ -369,8 +412,8 @@ static GF_MPD_SegmentList *gf_mpd_parse_segment_list(GF_XMLNode *root)
 
 	i = 0;
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
-		if (strstr(att->name, "href") || strstr(att->name, "actuate")) {
-		} 
+		if (strstr(att->name, "href")) seg->xlink_href = gf_mpd_parse_string(att->value);
+		else if (strstr(att->name, "actuate")) seg->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
 	}
 	gf_mpd_parse_multiple_segment_base((GF_MPD_MultipleSegmentBase *)seg, root);
 
@@ -548,8 +591,8 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_List *container, GF_XMLNode *root)
 
 	i = 0;
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
-		if (strstr(att->name, "href") || strstr(att->name, "actuate")) {
-		} 
+		if (strstr(att->name, "href")) set->xlink_href = gf_mpd_parse_string(att->value);
+		else if (strstr(att->name, "actuate")) set->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
 		else if (!strcmp(att->name, "id")) set->id = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "group")) set->group = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lang")) set->lang = gf_mpd_parse_string(att->value);
@@ -635,8 +678,8 @@ static GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 
 	i = 0;
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
-		if (strstr(att->name, "href") || strstr(att->name, "actuate")) {
-		} 
+		if (strstr(att->name, "href")) period->xlink_href = gf_mpd_parse_string(att->value);
+		else if (strstr(att->name, "actuate")) period->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
 		else if (!strcmp(att->name, "id")) period->ID = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "start")) period->start = gf_mpd_parse_duration(att->value);
 		else if (!strcmp(att->name, "duration")) period->duration = gf_mpd_parse_duration(att->value);
@@ -717,9 +760,8 @@ void gf_mpd_prog_info_free(void *_item)
 	if (ptr->more_info_url) gf_free(ptr->more_info_url);
 	gf_free(ptr);
 }
-void gf_mpd_segment_url_free(void *_item)
+void gf_mpd_segment_url_free(GF_MPD_SegmentURL*ptr)
 {
-	GF_MPD_SegmentURL *ptr = (GF_MPD_SegmentURL*)_item;
 	if (ptr->index) gf_free(ptr->index);
 	if (ptr->index_range) gf_free(ptr->index_range);
 	if (ptr->media) gf_free(ptr->media);
@@ -748,6 +790,7 @@ void gf_mpd_segment_timeline_free(void *_item)
 void gf_mpd_segment_list_free(void *_item)
 {
 	GF_MPD_SegmentList *ptr = (GF_MPD_SegmentList *)_item;
+	if (ptr->xlink_href) gf_free(ptr->xlink_href);
 	if (ptr->initialization_segment) gf_mpd_url_free(ptr->initialization_segment);
 	if (ptr->bitstream_switching_url) gf_mpd_url_free(ptr->bitstream_switching_url);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
@@ -801,7 +844,7 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->dependency_id) gf_free(ptr->dependency_id);
 	if (ptr->media_stream_structure_id) gf_free(ptr->media_stream_structure_id);
 
-	if (ptr->cached_init_segment_url) gf_free(ptr->cached_init_segment_url);
+	if (ptr->playback.cached_init_segment_url) gf_free(ptr->playback.cached_init_segment_url);
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->sub_representations, NULL/*TODO*/, 0);
@@ -818,6 +861,7 @@ void gf_mpd_adaptation_set_free(void *_item)
 	if (ptr->lang) gf_free(ptr->lang);
 	if (ptr->content_type) gf_free(ptr->content_type);
 	if (ptr->par) gf_free(ptr->par);
+	if (ptr->xlink_href) gf_free(ptr->xlink_href);
 	gf_mpd_del_list(ptr->accessibility, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->role, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->rating, gf_mpd_descriptor_free, 0);
@@ -834,6 +878,7 @@ void gf_mpd_period_free(void *_item)
 {
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
 	if (ptr->ID) gf_free(ptr->ID);
+	if (ptr->xlink_href) gf_free(ptr->xlink_href);
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
@@ -875,6 +920,8 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 	mpd->metrics = gf_list_new();
 	/*setup some defaults*/
 	mpd->type = GF_MPD_TYPE_STATIC;
+	/*infinite by default*/
+	mpd->time_shift_buffer_depth = (u32) -1;
 
 	att_index = 0;
 	child_index = gf_list_count(root->attributes);
@@ -911,8 +958,8 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 			mpd->max_subsegment_duration = gf_mpd_parse_duration(att->value);
 		}
 	}
-	if (mpd->type == GF_MPD_TYPE_STATIC)
-		mpd->minimum_update_period = 0;
+	if (mpd->type == GF_MPD_TYPE_STATIC) 
+		mpd->minimum_update_period = mpd->time_shift_buffer_depth = 0;
 
 	child_index = 0;
 	while (1) {
