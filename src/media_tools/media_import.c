@@ -3973,8 +3973,8 @@ restart_import:
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
 				/*disable frame rate scan, most bitstreams have wrong values there*/
 				if (detect_fps && avc.sps[idx].vui.timing_info_present_flag && avc.sps[idx].vui.fixed_frame_rate_flag
-					/*if detected FPS is greater than 120, assume wrong timing info*/
-					&& (avc.sps[idx].vui.time_scale <= 120*avc.sps[idx].vui.num_units_in_tick)
+					/*if detected FPS is greater than 1000, assume wrong timing info*/
+					&& (avc.sps[idx].vui.time_scale <= 1000*avc.sps[idx].vui.num_units_in_tick)
 					) {
 					/*ISO/IEC 14496-10 n11084 Table E-6*/
 /* not used :				u8 DeltaTfiDivisorTable[] = {1,1,1,2,2,2,2,3,3,4,6}; */

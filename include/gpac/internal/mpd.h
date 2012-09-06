@@ -54,10 +54,9 @@ typedef struct
 	u32 dummy;
 } GF_MPD_Subset;
 
-/*TODO*/
 typedef struct 
 {
-	u32 start_time;
+	u64 start_time;
 	u32 duration; /*MANDATORY*/
 	u32 repeat_count;
 } GF_MPD_SegmentTimelineEntry;
@@ -132,6 +131,9 @@ typedef struct
 	GF_MPD_MULTIPLE_SEGMENT_BASE	
 	/*list of segments - can be NULL if no segment*/
 	GF_List *segment_URLs;
+
+	char *xlink_href;
+	Bool xlink_actuate_on_load;
 } GF_MPD_SegmentList;
 
 typedef struct 
@@ -187,6 +189,12 @@ typedef struct {
 	char *content_components;
 } GF_MPD_SubRepresentation;
 
+typedef struct
+{
+	Bool disabled;
+	char *cached_init_segment_url;
+	u64 init_start_range, init_end_range;
+} GF_DASH_RepresentationPlayback;
 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
@@ -205,9 +213,7 @@ typedef struct {
 	GF_List *sub_representations;
 
 	/*GPAC playback implementation*/
-	Bool disabled;
-	char *cached_init_segment_url;
-	u64 init_start_range, init_end_range;
+	GF_DASH_RepresentationPlayback playback;
 } GF_MPD_Representation;
 
 
@@ -248,6 +254,8 @@ typedef struct
 
 	GF_List *representations;
 
+	char *xlink_href;
+	Bool xlink_actuate_on_load;
 } GF_MPD_AdaptationSet;
 
 
@@ -265,6 +273,8 @@ typedef struct
 
 	GF_List *adaptation_sets;
 	GF_List *subsets;
+	char *xlink_href;
+	Bool xlink_actuate_on_load;
 } GF_MPD_Period;
 
 typedef struct 
@@ -315,7 +325,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url)
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
 /*frees a SegmentURL*/
-void gf_mpd_segment_url_free(void *_item);
+void gf_mpd_segment_url_free(GF_MPD_SegmentURL*ptr);
 
 typedef struct _gf_file_get GF_FileDownload;
 struct _gf_file_get

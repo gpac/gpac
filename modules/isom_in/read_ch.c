@@ -99,6 +99,8 @@ static void check_segment_switch(ISOMReader *read)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 			if (param.url_query.next_url_init_or_switch_segment) {
 				ch->needs_codec_update = 1;
+				/*we changed our moov structure, sample_num now starts from 0*/
+				ch->sample_num = 0;
 			}
 		}
 	} else {
@@ -333,12 +335,14 @@ fetch_next:
 		u32 i; 
 		ch->needs_codec_update = 0;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Codec configuration changed - rewriting sample\n"));
+
 		switch (gf_isom_get_media_subtype(ch->owner->mov, ch->track, 1)) {
 		case GF_ISOM_SUBTYPE_AVC_H264:
 		case GF_ISOM_SUBTYPE_AVC2_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
 			avccfg = gf_isom_avc_config_get(ch->owner->mov, ch->track, 1);
-			svccfg = gf_isom_avc_config_get(ch->owner->mov, ch->track, 1);
+			svccfg = gf_isom_svc_config_get(ch->owner->mov, ch->track, 1);
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avccfg) {
@@ -347,13 +351,25 @@ fetch_next:
 					gf_bs_write_int(bs, slc->size, avccfg->nal_unit_size*8);
 					gf_bs_write_data(bs, slc->data, slc->size);
 				}
-			}
-			if (svccfg) {
-				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
-					slc = gf_list_get(avccfg->sequenceParameterSets, i);
+				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
+					slc = gf_list_get(avccfg->pictureParameterSets, i);
 					gf_bs_write_int(bs, slc->size, avccfg->nal_unit_size*8);
 					gf_bs_write_data(bs, slc->data, slc->size);
 				}
+				gf_odf_avc_cfg_del(avccfg);
+			}
+			if (svccfg) {
+				for (i=0; i<gf_list_count(svccfg->sequenceParameterSets); i++) {
+					slc = gf_list_get(svccfg->sequenceParameterSets, i);
+					gf_bs_write_int(bs, slc->size, avccfg->nal_unit_size*8);
+					gf_bs_write_data(bs, slc->data, slc->size);
+				}
+				for (i=0; i<gf_list_count(svccfg->pictureParameterSets); i++) {
+					slc = gf_list_get(svccfg->pictureParameterSets, i);
+					gf_bs_write_int(bs, slc->size, avccfg->nal_unit_size*8);
+					gf_bs_write_data(bs, slc->data, slc->size);
+				}
+				gf_odf_avc_cfg_del(svccfg);
 			}
 			gf_bs_write_data(bs, ch->sample->data, ch->sample->dataLength);
 			gf_free(ch->sample->data);
