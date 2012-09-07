@@ -94,7 +94,7 @@ static u64 gf_mpd_parse_date(char *attr)
 	Bool neg_time_zone = 0;
 	u32 year, month, day, h, m;
 	s32 oh, om;
-	Double s;
+	Float s;
 
 	h = m = 0;
 	s = 0;
@@ -760,8 +760,9 @@ void gf_mpd_prog_info_free(void *_item)
 	if (ptr->more_info_url) gf_free(ptr->more_info_url);
 	gf_free(ptr);
 }
-void gf_mpd_segment_url_free(GF_MPD_SegmentURL*ptr)
+void gf_mpd_segment_url_free(void *_ptr)
 {
+	GF_MPD_SegmentURL *ptr = (GF_MPD_SegmentURL *)_ptr;
 	if (ptr->index) gf_free(ptr->index);
 	if (ptr->index_range) gf_free(ptr->index_range);
 	if (ptr->media) gf_free(ptr->media);
