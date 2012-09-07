@@ -297,6 +297,7 @@ GF_Err gf_delete_file(const char *fileName)
 #endif
 }
 
+GF_EXPORT
 GF_Err gf_move_file(const char *fileName, const char *newFileName)
 {
 #if defined(_WIN32_WCE)

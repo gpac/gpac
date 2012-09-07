@@ -732,7 +732,7 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
   if (!xWin->glx_context) return GF_IO_ERR;
 
  XSync(xWin->display, False);
- GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Activating GLContext on GLPixmap - this may crash !!\n");
+ GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Activating GLContext on GLPixmap - this may crash !!\n"));
  glXMakeCurrent(xWin->display, xWin->gl_offscreen, xWin->glx_context);
   }
 
