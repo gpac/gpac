@@ -392,7 +392,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 		if (!sOK || !strlen(szLine)) {
-			state = 0;
 			rec.style_flags = 0;
 			rec.startCharOffset = rec.endCharOffset = 0;
 			if (txt_line) {
@@ -400,20 +399,24 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					GF_TextSample * empty_samp = gf_isom_new_text_sample();
 					s = gf_isom_text_to_sample(empty_samp);
 					gf_isom_delete_text_sample(empty_samp);
-					s->DTS = (u64) ((timescale*prev_end)/1000);
+					if (state<=2) {
+						s->DTS = (u64) ((timescale*prev_end)/1000);
+						s->IsRAP = 1;
+						gf_isom_add_sample(import->dest, track, 1, s);
+						nb_samp++;
+					}
+					gf_isom_sample_del(&s);
+				}
+
+				s = gf_isom_text_to_sample(samp);
+				if (state<=2) {
+					s->DTS = (u64) ((timescale*start)/1000);
 					s->IsRAP = 1;
 					gf_isom_add_sample(import->dest, track, 1, s);
 					gf_isom_sample_del(&s);
 					nb_samp++;
+					prev_end = end;
 				}
-
-				s = gf_isom_text_to_sample(samp);
-				s->DTS = (u64) ((timescale*start)/1000);
-				s->IsRAP = 1;
-				gf_isom_add_sample(import->dest, track, 1, s);
-				gf_isom_sample_del(&s);
-				nb_samp++;
-				prev_end = end;
 				txt_line = 0;
 				char_len = 0;
 				set_start_char = set_end_char = 0;
@@ -424,6 +427,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				gf_set_progress("Importing SRT", gf_f64_tell(srt_in), file_size);
 				if (duration && (end >= duration)) break;
 			}
+			state = 0;
 			if (!sOK) break;
 			continue;
 		}
@@ -445,7 +449,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			}
 			start = (3600*sh + 60*sm + ss)*1000 + sms;
 			if (start<end) {
-				gf_import_message(import, GF_OK, "WARNING: corrupted SRT frame %d - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps", curLine, start, end);
+				gf_import_message(import, GF_OK, "WARNING: overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps", curLine, start, end);
 				start = end;
 			}
 
@@ -460,6 +464,11 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			}
 			rec.style_flags = 0;
 			state = 2;			
+			if (end<=prev_end) {
+				gf_import_message(import, GF_OK, "WARNING: overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing", curLine, end, prev_end);
+				start = end;
+				state = 3;			
+			}
 			break;
 
 		default:

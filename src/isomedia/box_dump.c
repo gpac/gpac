@@ -2880,6 +2880,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 				end = next->DTS;
 				gf_isom_sample_del(&next);
 			}
+		} else {
+			end = gf_isom_get_media_duration(the_file, track) ;
 		}
 		cur_frame++;
 		fprintf(dump, "%d\n", cur_frame);
