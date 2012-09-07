@@ -74,18 +74,18 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
         /*    case GF_ESI_INPUT_DATA_PULL:
                 gf_mx_p(ts->encodingMutex);
                 if (ts->frameTimeEncoded > ts->frameTimeSentOverTS) {
-                    //printf("Data PULL, avr=%p, avr->video=%p, encoded="LLU", sent over TS="LLU"\n", avr, &avr->video, avr->frameTimeEncoded, avr->frameTimeSentOverTS);
+                    //fprintf(stderr, "Data PULL, avr=%p, avr->video=%p, encoded="LLU", sent over TS="LLU"\n", avr, &avr->video, avr->frameTimeEncoded, avr->frameTimeSentOverTS);
                     ts->video->output_ctrl( ts->video, GF_ESI_OUTPUT_DATA_DISPATCH, &(ts->videoCurrentTSPacket));
                     ts->frameTimeSentOverTS = ts->frameTime;
                 } else {
-                    //printf("Data PULL IGNORED : encoded = "LLU", sent on TS="LLU"\n", avr->frameTimeEncoded, avr->frameTimeSentOverTS);
+                    //fprintf(stderr, "Data PULL IGNORED : encoded = "LLU", sent on TS="LLU"\n", avr->frameTimeEncoded, avr->frameTimeSentOverTS);
                 }
                 gf_mx_v(avr->encodingMutex);
                 break;*/
     case GF_ESI_INPUT_DATA_RELEASE:
         break;
     default:
-        printf("Asking unknown : %u\n", act_type);
+        fprintf(stderr, "Asking unknown : %u\n", act_type);
     }
     return GF_OK;
 }
@@ -100,11 +100,8 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer * ts, AVFrame * encodedFrame, uint
         ts->videoCurrentTSPacket.dts = ts->videoCurrentTSPacket.cts = gf_m2ts_get_sys_clock(ts->muxer);
         ts->videoCurrentTSPacket.data = data;
         ts->videoCurrentTSPacket.data_len = encoded;
-        //printf("\rSending frame DTS="LLU", CTS="LLU", len=%u, FPS=%u, delta=%u...", ts->videoCurrentTSPacket.dts, avr->videoCurrentTSPacket.cts, avr->videoCurrentTSPacket.data_len, fps, currentFrameTimeProcessed - lastEncodedFrameTime);
-        fflush(stdout);
         ts->videoCurrentTSPacket.flags = GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
         //if (ts_packets_sent == 0) {
-        //    printf("First Packet !\n");
         ts->videoCurrentTSPacket.flags|=GF_ESI_DATA_AU_START|GF_ESI_DATA_AU_END ;
         //}
         void_input_ctrl(ts->video, GF_ESI_INPUT_DATA_PULL, NULL);

@@ -1176,7 +1176,7 @@ int makedir (newdir)
       *p = 0;
       if ((mymkdir(buffer) == -1) && (errno == ENOENT))
         {
-          printf("couldn't create directory %s\n",buffer);
+          fprintf(stderr, "couldn't create directory %s\n",buffer);
           gf_free(buffer);
           return 0;
         }
@@ -1211,7 +1211,7 @@ int do_extract_currentfile(uf)
 
     if (err!=UNZ_OK)
     {
-        printf("error %d with zipfile in unzGetCurrentFileInfo\n",err);
+        fprintf(stderr, "error %d with zipfile in unzGetCurrentFileInfo\n",err);
         return err;
     }
 
@@ -1219,7 +1219,7 @@ int do_extract_currentfile(uf)
     buf = (void*)gf_malloc(size_buf);
     if (buf==NULL)
     {
-        printf("Error allocating memory\n");
+        fprintf(stderr, "Error allocating memory\n");
         return UNZ_INTERNALERROR;
     }
 
@@ -1234,7 +1234,7 @@ int do_extract_currentfile(uf)
     if ((*filename_withoutpath)=='\0')
     {
 #ifndef _WIN32_WCE
-		printf("creating directory: %s\n",filename_inzip);
+		fprintf(stderr, "creating directory: %s\n",filename_inzip);
            mymkdir(filename_inzip);
 #endif
 	}
@@ -1248,7 +1248,7 @@ int do_extract_currentfile(uf)
 		err = unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
         if (err!=UNZ_OK)
         {
-            printf("error %d with zipfile in unzOpenCurrentFilePassword\n",err);
+            fprintf(stderr, "error %d with zipfile in unzOpenCurrentFilePassword\n",err);
         }
 
         if ((skip==0) && (err==UNZ_OK))
@@ -1267,26 +1267,26 @@ int do_extract_currentfile(uf)
 
             if (fout==NULL)
             {
-                printf("error opening %s\n",write_filename);
+                fprintf(stderr, "error opening %s\n",write_filename);
             }
         }
 
         if (fout!=NULL)
         {
-            printf(" extracting: %s\n",write_filename);
+            fprintf(stderr, " extracting: %s\n",write_filename);
 
             do
             {
                 err = unzReadCurrentFile(uf,buf,size_buf);
                 if (err<0)
                 {
-                    printf("error %d with zipfile in unzReadCurrentFile\n",err);
+                    fprintf(stderr, "error %d with zipfile in unzReadCurrentFile\n",err);
                     break;
                 }
                 if (err>0)
                     if (gf_fwrite(buf,err,1,fout)!=1)
                     {
-                        printf("error in writing extracted file\n");
+                        fprintf(stderr, "error in writing extracted file\n");
                         err=UNZ_ERRNO;
                         break;
                     }
@@ -1301,7 +1301,7 @@ int do_extract_currentfile(uf)
             err = unzCloseCurrentFile (uf);
             if (err!=UNZ_OK)
             {
-                printf("error %d with zipfile in unzCloseCurrentFile\n",err);
+                fprintf(stderr, "error %d with zipfile in unzCloseCurrentFile\n",err);
             }
         }
         else
@@ -1324,20 +1324,20 @@ int gf_unzip_archive(const char *zipfilename, const char *dirname)
     uf = unzOpen2(zipfilename, NULL);
     if (uf==NULL)
     {
-        printf("Cannot open %s\n", zipfilename);
+        fprintf(stderr, "Cannot open %s\n", zipfilename);
         return 1;
     }
 #ifndef _WIN32_WCE
 	if (chdir(dirname)) 
     {
-      printf("Error changing into %s, aborting\n", dirname);
+      fprintf(stderr, "Error changing into %s, aborting\n", dirname);
       exit(-1);
     }
 #endif
 
     err = unzGetGlobalInfo (uf,&gi);
     if (err!=UNZ_OK)
-        printf("error %d with zipfile in unzGetGlobalInfo \n",err);
+        fprintf(stderr, "error %d with zipfile in unzGetGlobalInfo \n",err);
 
     for (i=0;i<gi.number_entry;i++)
     {
@@ -1349,7 +1349,7 @@ int gf_unzip_archive(const char *zipfilename, const char *dirname)
             err = unzGoToNextFile(uf);
             if (err!=UNZ_OK)
             {
-                printf("error %d with zipfile in unzGoToNextFile\n",err);
+                fprintf(stderr, "error %d with zipfile in unzGoToNextFile\n",err);
                 break;
             }
         }

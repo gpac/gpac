@@ -441,10 +441,10 @@ correct_errors_erasures (unsigned char codeword[],
  print_parity (void)  
  {   
    int i;  
-   printf("Parity Bytes: ");  
+   fprintf(stderr, "Parity Bytes: ");  
    for (i = 0; i < NPAR; i++)   
-     printf("[%d]:%x, ",i,pBytes[i]);  
-   printf("\n");  
+     fprintf(stderr, "[%d]:%x, ",i,pBytes[i]);  
+   fprintf(stderr, "\n");  
  }  
    
    
@@ -452,10 +452,10 @@ correct_errors_erasures (unsigned char codeword[],
  print_syndrome (void)  
  {   
    int i;  
-   printf("Syndrome Bytes: ");  
+   fprintf(stderr, "Syndrome Bytes: ");  
    for (i = 0; i < NPAR; i++)   
-     printf("[%d]:%x, ",i,synBytes[i]);  
-   printf("\n");  
+     fprintf(stderr, "[%d]:%x, ",i,synBytes[i]);  
+   fprintf(stderr, "\n");  
  }  
    
  /* Append the parity bytes onto the end of the message */  
@@ -510,7 +510,7 @@ correct_errors_erasures (unsigned char codeword[],
    int i;  
        
    for (i = 0; i < 3; i++) {  
-     printf(" inv log S[%d]/S[%d] = %d\n", i, i+1,   
+     fprintf(stderr, " inv log S[%d]/S[%d] = %d\n", i, i+1,   
         glog[gmult(synBytes[i], ginv(synBytes[i+1]))]);  
    }  
  }  

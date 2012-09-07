@@ -959,9 +959,9 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		memset(blank, 0, sizeof(char)*1024*1024);
 		while (i<count) {
 			u32 res = gf_bs_write_data(bs, blank, 1024*1024);
-			if (res != 1024*1024) fprintf(stdout, "error writing to disk: only %d bytes written\n", res);
+			if (res != 1024*1024) fprintf(stderr, "error writing to disk: only %d bytes written\n", res);
 			i++;
-			fprintf(stdout, "writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count);
+			fprintf(stderr, "writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count);
 		}
 		gf_free(blank);
 	}
@@ -1255,12 +1255,17 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
 		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
 	} else {
+		Bool is_stdout = 0;
+		if (!strcmp(movie->finalName, "std"))
+			is_stdout = 1;
+
 		//OK, we need a new bitstream
-		stream = gf_f64_open(movie->finalName, "w+b");
+		stream = is_stdout ? stdout : gf_f64_open(movie->finalName, "w+b");
 		if (!stream) return GF_IO_ERR;
 		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
 		if (!bs) {
-			fclose(stream);
+			if (!is_stdout)
+				fclose(stream);
 			return GF_OUT_OF_MEM;
 		}
 
@@ -1281,7 +1286,8 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 		}
 		
 		gf_bs_del(bs);
-		fclose(stream);
+		if (!is_stdout)
+			fclose(stream);
 	}
 	if (mw.buffer) gf_free(mw.buffer);
 	if (mw.nb_done<mw.total_samples) {

@@ -2083,7 +2083,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	/*reassemble*/
 	if (pes->data){
 		pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
-		//printf("[MPEG-2 TS] REALLOC \n");
+		//fprintf(stderr, "[MPEG-2 TS] REALLOC \n");
 	}else{
 		pes->data = (char*)gf_malloc(data_size);
 	}
@@ -2159,7 +2159,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 //#if DEBUG_TS_PACKET
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 //#endif
-	//printf("[MPEG-2 TS] Packet PID %d\n", hdr.pid);
+
 	paf = NULL;
 	payload_size = 184;
 	pos = 4;

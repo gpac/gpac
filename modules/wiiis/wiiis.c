@@ -102,7 +102,6 @@ static u32 WII_Run(void *par)
 	/*locate the wiimotes*/
 	count = wiiuse_find(wii->wiimotes, wii->nb_wiimotes, scan_delay); 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[Wii] Found %d wiimotes\n", count));
-	fprintf(stdout, "found %d wiimotes", count);
 	count = wiiuse_connect(wii->wiimotes, wii->nb_wiimotes);
 	if (count) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[Wii] Connected to %d connected wiimotes\n", count));

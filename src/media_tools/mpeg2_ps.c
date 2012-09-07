@@ -497,7 +497,7 @@ static void copy_bytes_to_pes_buffer (mpeg2ps_stream_t *sptr,
 	    to_move);
     sptr->pes_buffer_size = to_move;
     sptr->pes_buffer_on = 0;
-    //printf("moving %d bytes\n", to_move);
+    //fprintf(stderr, "moving %d bytes\n", to_move);
     if (to_move + pes_len > sptr->pes_buffer_size_max) {
       sptr->pes_buffer = (u8 *)gf_realloc(sptr->pes_buffer, 
 					    to_move + pes_len + 2048);
@@ -507,7 +507,7 @@ static void copy_bytes_to_pes_buffer (mpeg2ps_stream_t *sptr,
   file_read_bytes(sptr->m_fd, sptr->pes_buffer + sptr->pes_buffer_size, pes_len);
   sptr->pes_buffer_size += pes_len;
 #if 0
-  printf("copying %u bytes - on %u size %u\n",
+  fprintf(stderr, "copying %u bytes - on %u size %u\n",
 	 pes_len, sptr->pes_buffer_on, sptr->pes_buffer_size);
 #endif
 }
@@ -556,7 +556,7 @@ static Bool read_to_next_pes_header (FILE *fd,
     *stream_id = hdr & 0xff;
     *pes_len = convert16(local + 4);
 #if 0
-    printf("loc: "X64" %x len %u\n", file_location(fd) - 6,
+    fprintf(stderr, "loc: "X64" %x len %u\n", file_location(fd) - 6,
 	   local[3],
 	   *pes_len);
 #endif
@@ -613,7 +613,7 @@ static Bool read_pes_header_data (FILE *fd,
     }
     ts->have_pts = 1;
     ts->pts = ts->dts = read_pts(local);
-    //printf("mpeg1 pts "U64"\n", ts->pts);
+    //fprintf(stderr, "mpeg1 pts "U64"\n", ts->pts);
     *have_ts = 1;
     pes_len -= 4;
   } else if ((*local & 0xf0) == 0x30) {
@@ -798,7 +798,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
     sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = 0;
   }
 #if 0
-  printf("header %x at %d\n", scode, sptr->pes_buffer_on);
+  fprintf(stderr, "header %x at %d\n", scode, sptr->pes_buffer_on);
 #endif
 
   if (scode == MPEG12_PICTURE_START_CODE) {
@@ -823,7 +823,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
       sptr->pict_header_offset += sptr->pes_buffer_on;
     } else {
 #if 0
-      printf("2header %x at %d\n", scode, start);
+      fprintf(stderr, "2header %x at %d\n", scode, start);
 #endif
 
       start += offset;
@@ -884,7 +884,7 @@ static Bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
   }
   while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
 #if 0
-    printf("don't have enough - on %u size %u %u %u\n", sptr->pes_buffer_on, 
+    fprintf(stderr, "don't have enough - on %u size %u %u %u\n", sptr->pes_buffer_on, 
 	   sptr->pes_buffer_size,
 	   sptr->pes_buffer_size - sptr->pes_buffer_on, 
 	   sptr->frame_len);
@@ -937,7 +937,7 @@ static Bool mpeg2ps_stream_find_mp3_frame (mpeg2ps_stream_t *sptr)
   }
   while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
 #if 0
-    printf("don't have enough - on %u size %u %u %u\n", sptr->pes_buffer_on, 
+    fprintf(stderr, "don't have enough - on %u size %u %u %u\n", sptr->pes_buffer_on, 
 	   sptr->pes_buffer_size,
 	   sptr->pes_buffer_size - sptr->pes_buffer_on, 
 	   sptr->frame_len);
@@ -1334,7 +1334,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
    * Now, we go to close to the end, and try to find the last 
    * dts that we can
    */
-  //  printf("to end "X64"\n", end - orig_check);
+  //  fprintf(stderr, "to end "X64"\n", end - orig_check);
   file_seek_to(ps->fd, ps->end_loc - orig_check);
 
   while (read_to_next_pes_header(ps->fd, &stream_id, &pes_len)) {
@@ -1370,10 +1370,10 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 	sptr->end_dts_loc = loc;
       }
 #if 0
-      printf("loc "X64" stream %x %x", loc, stream_id, substream);
-      if (ts.have_pts) printf(" pts "U64, ts.pts);
-      if (ts.have_dts) printf(" dts "U64, ts.dts);
-      printf("\n");
+      fprintf(stderr, "loc "X64" stream %x %x", loc, stream_id, substream);
+      if (ts.have_pts) fprintf(stderr, " pts "U64, ts.pts);
+      if (ts.have_dts) fprintf(stderr, " dts "U64, ts.dts);
+      fprintf(stderr, "\n");
 #endif
       file_skip_bytes(ps->fd, pes_left);
     }

@@ -782,7 +782,6 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 		/*when using temporal scalability make sure we can decode*/
 		if (ch->esd->dependsOnESID && (codec->last_unit_dts > AU->DTS)){
-//			printf("SCALABLE STREAM DEAD!!\n");
 			goto drop;
 		}
 

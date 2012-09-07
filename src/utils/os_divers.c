@@ -297,18 +297,20 @@ GF_Err gf_delete_file(const char *fileName)
 #endif
 }
 
-void gf_move_file(const char *fileName, const char *newFileName)
+GF_Err gf_move_file(const char *fileName, const char *newFileName)
 {
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	TCHAR swzNewName[MAX_PATH];
 	CE_CharToWide((char*)fileName, swzName);
 	CE_CharToWide((char*)newFileName, swzNewName);
-	MoveFile(swzName, swzNewName);
+	return (MoveFile(swzName, swzNewName) == 0 ) ? GF_IO_ERR : GF_OK;
 #elif defined(WIN32)
-	MoveFile(fileName, newFileName);
+	/* success if != 0 */
+	return (MoveFile(fileName, newFileName) == 0 ) ? GF_IO_ERR : GF_OK;
 #else
-	rename(fileName, newFileName);
+	/* success is == 0 */
+	return ( rename(fileName, newFileName) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 }
 
@@ -816,7 +818,7 @@ static void init_keyboard()
 static void close_keyboard(Bool new_line)
 {
 	tcsetattr(0,TCSANOW, &t_orig);
-	if (new_line) fprintf(stdout, "\n");
+	if (new_line) fprintf(stderr, "\n");
 }
 
 void gf_prompt_set_echo_off(Bool echo_off) 

@@ -497,7 +497,7 @@ void GPAC_FileMediaServer::ShareVirtualResource(const char *res_uri, const char 
 	GPAC_VirtualFile vres(the_uri, res_val, res_mime, temporary);
 
 	m_VirtualFiles.Add(vres);
-	fprintf(stdout, "sharing virtual file %s as %s\n", res_uri, (const char *)the_uri);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[UPnP] sharing virtual file %s as %s\n", res_uri, (const char *)the_uri));
 }
 
 NPT_Result 
@@ -518,7 +518,7 @@ GPAC_FileMediaServer::ServeVirtualFile(NPT_HttpResponse& response,
         return NPT_SUCCESS;
 	}
 
-	fprintf(stdout, "Serving virtual file %s\n", vfile->m_Content.GetChars());
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[UPnP] Serving virtual file %s\n", vfile->m_Content.GetChars()));
 
 	NPT_HttpEntity* entity = new NPT_HttpEntity();
 	entity->SetContentLength(total_len);

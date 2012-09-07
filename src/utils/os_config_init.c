@@ -361,7 +361,7 @@ static GF_Config *create_default_config(char *file_path)
 
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
 		gf_delete_file(szPath);
-		fprintf(stdout, "default modules not found\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
 		return NULL;
 	}
 
@@ -500,16 +500,16 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 	}
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
 	if (!cfg) {
-		fprintf(stdout, "GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath);
+		fprintf(stderr, "GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath);
 		cfg = create_default_config(szPath);
 	}
 
 	if (!cfg) {
-		fprintf(stdout, "Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
+		fprintf(stderr, "Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
 		return NULL;
 	}
 
-	fprintf(stdout, "Using config file in %s directory\n", szPath);
+	fprintf(stderr, "Using config file in %s directory\n", szPath);
 
 	check_modules_dir(cfg);
 

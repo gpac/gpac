@@ -149,10 +149,10 @@ static Bool audio_encoding_thread_run(void *param)
         goto exit;
     }
 
-    printf("******* Audio Codec Context = %d/%d, start="LLU", frame_size=%u\n", ctx->time_base.num, ctx->time_base.den, ctx->timecode_frame_start, ctx->frame_size);
+    fprintf(stderr, "******* Audio Codec Context = %d/%d, start="LLU", frame_size=%u\n", ctx->time_base.num, ctx->time_base.den, ctx->timecode_frame_start, ctx->frame_size);
     samplesReaden = ctx->frame_size * ctx->channels;
 
-    //printf("SETUP input sample size=%u, output samplesize=%u, buffsize=%u, samplesReaden=%u\n", ctx->input_sample_size, ctx->frame_size, sizeof(outbuf), samplesReaden);
+    //fprintf(stderr, "SETUP input sample size=%u, output samplesize=%u, buffsize=%u, samplesReaden=%u\n", ctx->input_sample_size, ctx->frame_size, sizeof(outbuf), samplesReaden);
     // 2 chars are needed for each short
     toRead = samplesReaden * 2;
     inBuffSize = toRead;
@@ -242,7 +242,7 @@ static Bool video_encoding_thread_run(void *param)
     if (!ctx) {
         goto exit;
     }
-    printf("******* Video Codec Context = %d/%d, start="LLU"\n", ctx->time_base.num, ctx->time_base.den, ctx->timecode_frame_start);
+    fprintf(stderr, "******* Video Codec Context = %d/%d, start="LLU"\n", ctx->time_base.num, ctx->time_base.den, ctx->timecode_frame_start);
     while (avr->is_running) {
         {
             gf_mx_p(avr->frameMutex);
@@ -280,7 +280,7 @@ static Bool video_encoding_thread_run(void *param)
                     int written;
                     //u32 sysclock = gf_sys_clock();
                     avr->YUVpicture->pts = currentFrameTimeProcessed;
-                    //printf("Encoding frame PTS="LLU", frameNum=%u, time=%u...", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number, currentFrameTimeProcessed);
+                    //fprintf(stderr, "Encoding frame PTS="LLU", frameNum=%u, time=%u...", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number, currentFrameTimeProcessed);
                     written = avcodec_encode_video ( ctx, avr->videoOutbuf, avr->videoOutbufSize, avr->YUVpicture );
                     //ctx->coded_frame->pts = currentFrameTimeProcessed;
                     if ( written < 0 )
@@ -530,7 +530,7 @@ static Bool ts_thread_run(void *param)
         gf_sleep(1);
         gf_mx_p(avr->tsMutex);
     }
-    printf("avr->frameTimeEncoded="LLU"\n", avr->frameTimeEncoded);
+    fprintf(stderr, "avr->frameTimeEncoded="LLU"\n", avr->frameTimeEncoded);
 
     while (avr->is_running) {
         e = sendTSMux(avr);
@@ -680,7 +680,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                     char *endPtr = NULL;
                     unsigned int x = strtoul(opt, &endPtr, 10);
                     if (endPtr == opt || x > 65536) {
-                        printf("Failed to parse : %s\n", opt);
+                        fprintf(stderr, "Failed to parse : %s\n", opt);
                         opt = NULL;
                     } else
                         avr->udp_port = (u16) x;

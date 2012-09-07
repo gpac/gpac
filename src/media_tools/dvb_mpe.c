@@ -44,7 +44,7 @@ static void on_dvb_mpe_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				gf_m2ts_process_mpe(ts, mpe, data, u32_data_size, u32_table_id);
 			}
 			else {
-				//printf("Time Slice Parameters for MPE-FEC have not been found yet \n");
+				//fprintf(stderr, "Time Slice Parameters for MPE-FEC have not been found yet \n");
 			}
 			break;				
 		default:
@@ -141,16 +141,16 @@ void gf_dvb_mpe_section_del(GF_M2TS_ES *es)
 	u32 i;
 	for (i = 0; i < length; i ++) {
 		if (i%line_length == 0) { 
-			printf("%2d: ", i/line_length); 
+			fprintf(stderr, "%2d: ", i/line_length); 
 		} else if (i%8 == 0) {
-			printf(" "); 
+			fprintf(stderr, " "); 
 		}
-		printf("%02x", data[i]);
+		fprintf(stderr, "%02x", data[i]);
 		if ((i+1)%line_length == 0) { 
-			printf("\n"); 
+			fprintf(stderr, "\n"); 
 		}
 	}
-	if (last_line) printf("\n"); 
+	if (last_line) fprintf(stderr, "\n"); 
 }
 */
 
@@ -169,7 +169,7 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 
 	i_streams = 0;
 
-//	printf("Processing MPE/MPE-FEC data PID %d (%d/%d)\n",mpe->pid, data[6],data[7]);
+//	fprintf(stderr, "Processing MPE/MPE-FEC data PID %d (%d/%d)\n",mpe->pid, data[6],data[7]);
 	
 	if (!gf_m2ts_crc32_check(data, data_size - 4)) {
 		 GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("CRC error in the MPE/MPE-FEC data \n"));
@@ -178,12 +178,12 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	/*get number of rows of mpe_fec_frame from descriptor*/
 	section_number = data[6];		
 	last_section_number = data[7];
-	//printf( "table_id: %x section_length: %d section_number: %d last : %d \n", data[0], (data[1] & 0xF)<<8|data[2], section_number, last_section_number);	
+	//fprintf(stderr,  "table_id: %x section_length: %d section_number: %d last : %d \n", data[0], (data[1] & 0xF)<<8|data[2], section_number, last_section_number);	
 	
 	if (ts->direct_mpe) {
 		if (table_id != GF_M2TS_TABLE_ID_DSM_CC_PRIVATE) return;
 		if (section_number != last_section_number) {
-			fprintf(stdout, "MPE IP datagram on several section not supported\n");
+			fprintf(stderr, "MPE IP datagram on several section not supported\n");
 			return;
 		}
 		/* send the IP data :
@@ -270,7 +270,7 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 			//data += (mff->rows +12+4 );
 			break;
 		default:
-		//	printf ("Unknown table id %x \n", table_id );
+		//	fprintf(stderr, "Unknown table id %x \n", table_id );
 			len_left = 0; 
 		}
 		
@@ -349,13 +349,13 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 			socket_simu(ip_packet,ts, 1);
 
 			if(ip_packet->u8_rx_adr[3] == 8){
-			 printf("\n");
+			 fprintf(stderr, "\n");
 			}
 
 			/* compare the destination ip adress and the ESG Bootstrap adress */
 			Boostrap_ip = gf_m2ts_compare_ip(ip_packet->u8_rx_adr,ip_adress_bootstrap);
 			if(Boostrap_ip){
-				printf("ESG Bootstrap found !\n");		
+				fprintf(stderr, "ESG Bootstrap found !\n");		
 			}		 
 		 }else{
 			 offset += (ip_packet->u32_total_length);
@@ -469,7 +469,7 @@ u32 gf_m2ts_ipdatagram_reader(u8 *datagram,GF_M2TS_IP_Packet *ip_packet, u32 off
 	/*ip_packet->data = gf_malloc((ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));
 	memcpy(ip_packet->data,datagram+offset+20,(ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));*/
 
-	printf("TX addr: %d.%d.%d.%d RX addr : %d.%d.%d.%d port:%d(0x%x) \n",ip_packet->u8_tx_adr[0],ip_packet->u8_tx_adr[1],ip_packet->u8_tx_adr[2],ip_packet->u8_tx_adr[3],ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1],ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3],ip_packet->u32_rx_udp_port,ip_packet->u32_rx_udp_port);
+	fprintf(stderr, "TX addr: %d.%d.%d.%d RX addr : %d.%d.%d.%d port:%d(0x%x) \n",ip_packet->u8_tx_adr[0],ip_packet->u8_tx_adr[1],ip_packet->u8_tx_adr[2],ip_packet->u8_tx_adr[3],ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1],ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3],ip_packet->u32_rx_udp_port,ip_packet->u32_rx_udp_port);
 
 	return 1;
 
@@ -505,17 +505,17 @@ void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_table, unsi
 
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform ; 
 	assert( ts );
-//	fprintf(stdout, "Processing IP/MAC Notification table (PID %d) %s\n", ip_table->pid, (status==GF_M2TS_TABLE_REPEAT)?"repeated":"");
+//	fprintf(stderr, "Processing IP/MAC Notification table (PID %d) %s\n", ip_table->pid, (status==GF_M2TS_TABLE_REPEAT)?"repeated":"");
 	//if ( status == GF_M2TS_TABLE_REPEAT ) return ; 
 	if ( ip_platform == NULL ) 
 	{
 		GF_SAFEALLOC(ip_platform,GF_M2TS_IP_PLATFORM );
 		ip_platform->ip_streams= gf_list_new();
-		//printf ( " \n initialize the Iip_platform \n");
+		//fprintf(stderr,  " \n initialize the Iip_platform \n");
 		section_DSMCC_INT (ip_platform, data, data_size);
 		ts->ip_platform = ip_platform;
 	}
-	//printf ("processing the INT table \n");
+	//fprintf(stderr, "processing the INT table \n");
 
 
 
@@ -595,12 +595,12 @@ u32  platform_descriptorDSMCC_INT_UNT(GF_M2TS_IP_PLATFORM* ip_platform, u8 *data
 	 
   case GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR:
 	  {
-		  //printf (" Information on the ip platform found \n");
+		  //fprintf(stderr, " Information on the ip platform found \n");
 		  gf_ip_platform_descriptor(ip_platform, data);
 	  }break;
   case GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR:
 	  {
-		  //printf (" Information on the ip platform found \n");
+		  //fprintf(stderr, " Information on the ip platform found \n");
 		  gf_ip_platform_provider_descriptor(ip_platform, data);
 	  }break; 
 
@@ -756,8 +756,8 @@ void encode_fec(MPE_FEC_FRAME * mff)
 		/* ************** */
 		/* Encode data into codeword, adding NPAR parity bytes */
 		encode_data(adt_rs_en_buffer, cols, adt_rs_en_buffer);
-		printf("Encoded data is   : \"%s\"\n", adt_rs_en_buffer);
-		printf("data with error is: \"%s\"\n", adt_rs_en_buffer);
+		fprintf(stderr, "Encoded data is   : \"%s\"\n", adt_rs_en_buffer);
+		fprintf(stderr, "data with error is: \"%s\"\n", adt_rs_en_buffer);
 		/*set a row of RS into RS table*/
 		setRowRS ( mff, i , (unsigned char *)(adt_rs_en_buffer + cols) );
 	}
@@ -771,7 +771,7 @@ void decode_fec(MPE_FEC_FRAME * mff)
 	u8 *data;
 	u8 linebuffer[255];
 
-	//printf("Starting FEC decoding ...\n");
+	//fprintf(stderr, "Starting FEC decoding ...\n");
 	
 	data = gf_malloc((mff->rows*191)*sizeof(char));
 	memset(data,0,sizeof(data));
@@ -781,12 +781,12 @@ void decode_fec(MPE_FEC_FRAME * mff)
 	memset(linebuffer, 0, 255);
 	offset = 0;
 
-	/*printf("ADT data\n");
+	/*fprintf(stderr, "ADT data\n");
 	print_bytes(mff->p_adt, 32, 1, 0);
 	print_bytes(mff->p_adt+512, 32, 1, 0);
 	print_bytes(mff->p_adt+512+512, 32, 1, 0);
 	print_bytes(mff->p_adt+512+512+512, 32, 1, 1);
-	printf("RS data\n");
+	fprintf(stderr, "RS data\n");
 	print_bytes(mff->p_rs, 32, 1, 0);
 	print_bytes(mff->p_rs+512, 32, 1, 0);
 	print_bytes(mff->p_rs+512+512, 32, 1, 0);
@@ -808,7 +808,7 @@ void decode_fec(MPE_FEC_FRAME * mff)
 			/* TODO: set the erasures and errors based on the MFF */
 			if(correct_errors_erasures (linebuffer, ML, nerasures,  erasures) == 0)
 			{
-				//printf("Correction Error line %d \n", i);
+				//fprintf(stderr, "Correction Error line %d \n", i);
 			}		
 
 			/* TODO: replace the current line in MFF */
@@ -817,7 +817,7 @@ void decode_fec(MPE_FEC_FRAME * mff)
 	memcpy(data+offset,linebuffer,sizeof(data));
 	offset += 191;
 	}
-	//printf("FEC decoding done.\n");
+	//fprintf(stderr, "FEC decoding done.\n");
 	memcpy(mff->p_adt,data,sizeof(data));
 	//gf_m2ts_ipdatagram_reader(mff->p_adt,ip_datagram);
 
@@ -938,7 +938,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	if (!ts->ip_platform) return;
 
 	/* provider and ip platform name */
-	printf(" IP Platform : %s provided by %s \n",ip_platform->name,ip_platform->provider_name);
+	fprintf(stderr, " IP Platform : %s provided by %s \n",ip_platform->name,ip_platform->provider_name);
 
 	i_streams = 0;
 	i_targets = 0;
@@ -949,8 +949,8 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	for(i=0;i<i_streams;i++)
 	{
 		ip_stream_buff=gf_list_get(ip_platform->ip_streams, i);
-		printf("PID:%d \n",ip_stream_buff->PID);
-		printf("Target IP Adress : \n");	
+		fprintf(stderr, "PID:%d \n",ip_stream_buff->PID);
+		fprintf(stderr, "Target IP Adress : \n");	
 		/*Print the target IP adress  */
 		i_targets = gf_list_count(ip_stream_buff->targets);
 		for(j=0;j<i_targets;j++)
@@ -960,73 +960,73 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 			l=0;
 						
 			ip_adress = ip_targets->address;
-			printf("%d.%d.%d.%d/%d ",ip_adress[0],ip_adress[1],ip_adress[2],ip_adress[3],ip_targets->slash_mask);
-			printf("RX port :");
+			fprintf(stderr, "%d.%d.%d.%d/%d ",ip_adress[0],ip_adress[1],ip_adress[2],ip_adress[3],ip_targets->slash_mask);
+			fprintf(stderr, "RX port :");
 			while(ip_targets->rx_port[l] != 0)
 			{
-				printf(" %d ",ip_targets->rx_port[l]);
+				fprintf(stderr, " %d ",ip_targets->rx_port[l]);
 				l++;
 			}
-			printf("\n");
+			fprintf(stderr, "\n");
 			
 			
 		}
 
 		/*Print the time slice fec descriptor */
-		printf("Time Slice Fec Descriptor : \n");
+		fprintf(stderr, "Time Slice Fec Descriptor : \n");
 
 		if(ip_stream_buff->time_slice_fec.time_slicing==0)
 		{
-			printf(" No Time Slicing \n");
+			fprintf(stderr, " No Time Slicing \n");
 		}else 
 		{
-				printf(" Time Slicing\n");
+				fprintf(stderr, " Time Slicing\n");
 		}
 
 		if(ip_stream_buff->time_slice_fec.mpe_fec==0)
 		{
-			printf(" No MPE FEC used \n");
+			fprintf(stderr, " No MPE FEC used \n");
 		}else 
 		{
-				printf(" MPE FEC used \n");
+				fprintf(stderr, " MPE FEC used \n");
 		}
 		
 			switch(ip_stream_buff->time_slice_fec.frame_size)
 			{
 			case 0:
 				{
-					printf(" Frame size : 256 rows \n");
-					printf(" Max Burst Duration 512 kbits\n");
+					fprintf(stderr, " Frame size : 256 rows \n");
+					fprintf(stderr, " Max Burst Duration 512 kbits\n");
 				}break;
 			case 1:
 				{
-					printf(" Frame size : 512 rows \n");
-					printf(" Max Burst Duration 1024 kbits\n");
+					fprintf(stderr, " Frame size : 512 rows \n");
+					fprintf(stderr, " Max Burst Duration 1024 kbits\n");
 				}break;
 			case 2:
 				{
-					printf(" Frame size : 768 rows \n");
-					printf(" Max Burst Duration 1536 kbits\n");
+					fprintf(stderr, " Frame size : 768 rows \n");
+					fprintf(stderr, " Max Burst Duration 1536 kbits\n");
 				}break;
 			case 3:
 				{
-					printf(" Frame size : 1024 rows \n");
-					printf(" Max Burst Duration 2048 kbits\n");
+					fprintf(stderr, " Frame size : 1024 rows \n");
+					fprintf(stderr, " Max Burst Duration 2048 kbits\n");
 				}break;
 			default:
 				break;
 			}
 
-			printf(" Time Slice Fec ID : %x\n",ip_stream_buff->time_slice_fec.time_slice_fec_id);
+			fprintf(stderr, " Time Slice Fec ID : %x\n",ip_stream_buff->time_slice_fec.time_slice_fec_id);
 
 			/* Locayion descriptor */
 
-			printf("Location Descriptor \n");
-			printf("Network ID:%d \n",ip_stream_buff->location.network_id);
-			printf("Original Network ID:%d \n",ip_stream_buff->location.original_network_id);
-			printf("Transport Stream ID:%d \n",ip_stream_buff->location.transport_stream_id);
-			printf("Service ID:%d \n",ip_stream_buff->location.service_id);
-			printf("Component Tag:%d \n",ip_stream_buff->location.component_tag);		
+			fprintf(stderr, "Location Descriptor \n");
+			fprintf(stderr, "Network ID:%d \n",ip_stream_buff->location.network_id);
+			fprintf(stderr, "Original Network ID:%d \n",ip_stream_buff->location.original_network_id);
+			fprintf(stderr, "Transport Stream ID:%d \n",ip_stream_buff->location.transport_stream_id);
+			fprintf(stderr, "Service ID:%d \n",ip_stream_buff->location.service_id);
+			fprintf(stderr, "Component Tag:%d \n",ip_stream_buff->location.component_tag);		
 
 
 			getchar(); // attendre l'appuie d'une touche
@@ -1099,7 +1099,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 
 	e = gf_sk_send(Sock_Struct->sock, ip_packet->data, ip_packet->u32_udp_data_size - 8);
 	if (e != GF_OK){ 
-		fprintf(stdout, "Error sending to \n");
+		fprintf(stderr, "Error sending to \n");
 	}
 	if (yield) gf_sleep(10);
 
@@ -1122,7 +1122,7 @@ Bool init_frame(MPE_FEC_FRAME * mff, u32 rows)
 	mff->p_rs = (u8 *)gf_calloc(MPE_RS_COLS*rows,sizeof(u8));
 
 
-	printf("MPE_RS_COLS*rows :%d \n",MPE_RS_COLS*rows);
+	fprintf(stderr, "MPE_RS_COLS*rows :%d \n",MPE_RS_COLS*rows);
 
 	mff->capacity_total = mff->col_adt*rows;				 
 	mff->p_error_adt = (u32 *)gf_calloc(mff->col_adt*rows,sizeof(u32)); 
@@ -1131,7 +1131,7 @@ Bool init_frame(MPE_FEC_FRAME * mff, u32 rows)
 	mff->current_offset_rs = 0;
 	mff->ADT_done = 0;
 	mff->PID = 0;
-//	printf("MFF: rows: %d, adt_col: %d, rs_col : %d, capacity : %d\n", mff->rows, mff->col_adt, mff->col_rs, mff->capacity_total );
+//	fprintf(stderr, "MFF: rows: %d, adt_col: %d, rs_col : %d, capacity : %d\n", mff->rows, mff->col_adt, mff->col_rs, mff->capacity_total );
 	 mff->mpe_holes = gf_list_new();
 	mff->initialized = 1;
 	return 1;
@@ -1194,7 +1194,7 @@ void setRowRS(MPE_FEC_FRAME *mff, u32 index, u8 *p_rs)
 void addPadding(MPE_FEC_FRAME *mff , u32 offset)
 {
 	u32 i = 0; 
-	printf("add paddings from %d to the end %d\n", offset, mff->capacity_total );
+	fprintf(stderr, "add paddings from %d to the end %d\n", offset, mff->capacity_total );
 	for ( i = offset ; i <mff->capacity_total; i ++ )
 	mff -> p_adt [i] = 0xff ; 
 }
@@ -1206,13 +1206,13 @@ static void print_bytes2(u8 * data, u32 length ) /*print_bytes2 */
 	u32 k = 0; 
 	for ( i = 0; i < length ; i ++ ) {
 		if (k == 0) {
-			printf("%x0  : ", row_num); 
+			fprintf(stderr, "%x0  : ", row_num); 
 			k = 0;  
 		}
-		printf("%#x ", data[i]);
+		fprintf(stderr, "%#x ", data[i]);
 		k++;
 		if (k == 16) {
-			printf("\n");
+			fprintf(stderr, "\n");
 			k = 0;
 			row_num ++;
 		}
@@ -1229,17 +1229,17 @@ void setIpDatagram(MPE_FEC_FRAME * mff, u32 offset, u8* dgram, u32 length )
 	
 
 	if (offset >= mff->capacity_total) {
-		printf ("Offset %d bigger than capacity %d \n", offset, mff->capacity_total );
+		fprintf(stderr, "Offset %d bigger than capacity %d \n", offset, mff->capacity_total );
 	}
 	if (offset+length >= mff->capacity_total) {
-		printf ("Offset+length %d+%d bigger than capacity %d \n", offset, length, mff->capacity_total );
+		fprintf(stderr, "Offset+length %d+%d bigger than capacity %d \n", offset, length, mff->capacity_total );
 	}
 	if (mff->current_offset_adt != offset) {
 		if (mff->current_offset_adt > offset) {
-			printf ("We missed an offset reset (%d to %d)\n", mff->current_offset_adt, offset);
+			fprintf(stderr, "We missed an offset reset (%d to %d)\n", mff->current_offset_adt, offset);
 			mff->current_offset_adt = offset; 
 		} else {
-			printf ("there is an error hole in the ADT from %d to %d \n", mff->current_offset_adt, offset);
+			fprintf(stderr, "there is an error hole in the ADT from %d to %d \n", mff->current_offset_adt, offset);
 		}
 		setErrorIndicator( mff->p_error_adt , mff->current_offset_adt , (offset - mff->current_offset_adt)*sizeof(u32)  ) ;
 		mpe_error_holes->offset = mff->current_offset_adt;
@@ -1256,7 +1256,7 @@ void setIpDatagram(MPE_FEC_FRAME * mff, u32 offset, u8* dgram, u32 length )
 void setColRS( MPE_FEC_FRAME * mff, u32 offset, u8 * pds, u32 length ) 
 {
 	if ( mff->current_offset_rs != offset)	{
-		printf ("there is an error hole in the RS from %d to %d \n", mff->current_offset_rs, offset );
+		fprintf(stderr, "there is an error hole in the RS from %d to %d \n", mff->current_offset_rs, offset );
 		setErrorIndicator( mff->p_error_rs , mff->current_offset_rs , (offset - mff->current_offset_rs)*sizeof(u32));
 		mff->current_offset_rs = offset;	
 	} 
@@ -1300,21 +1300,21 @@ u32  getErrasurePositions( MPE_FEC_FRAME *mff , u32 row, u32 *errasures)
 		}
 		base += mff->rows ; 
 	}
-	printf (" the erasure locations is:\n");
+	fprintf(stderr, " the erasure locations is:\n");
 	for ( i = 0; i < nb ; i ++ )
-		printf("%d ", errasures[i]);
+		fprintf(stderr, "%d ", errasures[i]);
 	return nb;
 }
 
 void setErrorIndicator(u32 * data , u32 offset, u32 length)
 {
-//	printf("setting the error indication \n");
+//	fprintf(stderr, "setting the error indication \n");
 	memset(data+offset, 1, length);
 }
 
 
 /*void descriptor_PRIVATE (u8 *b, DTAG_SCOPE tag_scope){
-	printf ("private descriptor \n");
+	fprintf(stderr, "private descriptor \n");
 	return ;
 }*/
 

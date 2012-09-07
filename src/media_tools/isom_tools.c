@@ -1493,12 +1493,12 @@ restart_fragmentation_pass:
 
 #if 0
 				if (split_seg_at_rap) has_rap = 0;
-				fprintf(stdout, "Seg#%d: Duration %d%s - Track times (ms): ", nb_segments, SegmentDuration, (has_rap == 2) ? " - Starts with RAP" : ((has_rap == 1) ? " - Contains RAP" : "") );
+				fprintf(stderr, "Seg#%d: Duration %d%s - Track times (ms): ", nb_segments, SegmentDuration, (has_rap == 2) ? " - Starts with RAP" : ((has_rap == 1) ? " - Contains RAP" : "") );
 				for (i=0; i<count; i++) {
 					tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
-					fprintf(stdout, "%d ", (u32) ( (tf->last_sample_cts*1000.0)/tf->TimeScale) );
+					fprintf(stderr, "%d ", (u32) ( (tf->last_sample_cts*1000.0)/tf->TimeScale) );
 				}
-				fprintf(stdout, "\n ");
+				fprintf(stderr, "\n ");
 #endif
 				force_switch_segment=0;
 				switch_segment=1;

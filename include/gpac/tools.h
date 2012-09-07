@@ -375,7 +375,7 @@ void gf_log_set_tool_level(u32 tool, u32 level);
 /*!
  *	\brief Log Message Callback
  *
- * The gf_log_cbk type is the type for the callback of the \ref gf_log_set_callback function. By default all logs are redirected to stdout
+ * The gf_log_cbk type is the type for the callback of the \ref gf_log_set_callback function. By default all logs are redirected to stderr
  *	\param cbck Opaque user data.
  *	\param log_level level of the log. This value is not guaranteed in multi-threaded context.
  *	\param log_tool tool emitting the log. This value is not guaranteed in multi-threaded context.
@@ -388,7 +388,7 @@ typedef void (*gf_log_cbk)(void *cbck, u32 log_level, u32 log_tool, const char* 
 /*!
  *	\brief Log overwrite
  *
- *	Assigns a user-defined callback for printing log messages. By default all logs are redirected to stdout
+ *	Assigns a user-defined callback for printing log messages. By default all logs are redirected to stderr
  *	\param usr_cbk Opaque user data
  *	\param cbk  callback log function
  *	\return previous callback function
@@ -536,7 +536,7 @@ GF_Err gf_delete_file(const char *fileName);
  *	\param fileName absolute path of the file / directory to move or rename
  *	\param newFileName absolute new path/name of the file / directory
 */
-void gf_move_file(const char *fileName, const char *newFileName);
+GF_Err gf_move_file(const char *fileName, const char *newFileName);
 
 /*!
  *	\brief Temporary File Creation
@@ -583,7 +583,7 @@ typedef void (*gf_on_progress_cbk)(const void *cbck, const char *title, u64 done
  *
  *	Iverwrites the progress signaling function by a user-defined one.
  *	\param user_cbk Opaque user data
- *	\param prog_cbk new callback function to use. Passing NULL restore default GPAC stdout notification.
+ *	\param prog_cbk new callback function to use. Passing NULL restore default GPAC stderr notification.
  */
 void gf_set_progress_callback(void *user_cbk, gf_on_progress_cbk prog_cbk);
 

@@ -101,8 +101,6 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	res = sess->CurrentSize - sess->CurrentPos;
 	if (!res) return gf_rtsp_fill_buffer(sess);
 
-//	printf("Forcing reading\n");
-	
 	ptr = (char *)gf_malloc(sizeof(char) * res);
 	memcpy(ptr, sess->TCPBuffer+sess->CurrentPos, res);
 	memcpy(sess->TCPBuffer, ptr, res);

@@ -2627,7 +2627,7 @@ void JSScript_LoadSVG(GF_Node *node)
 #ifdef DUMP_DEF_AND_ROOT
 void dump_root(const char *name, void *rp, void *data)
 {
-	if (name[0]=='_') fprintf(stdout, "\t%s\n", name);
+	if (name[0]=='_') fprintf(stderr, "\t%s\n", name);
 }
 #endif
 
@@ -2746,14 +2746,14 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 #ifdef DUMP_DEF_AND_ROOT
 	if ((event->type==GF_EVENT_CLICK) || (event->type==GF_EVENT_MOUSEOVER)) {
 		NodeIDedItem *reg_node;
-		fprintf(stdout, "Node registry\n");
+		fprintf(stderr, "Node registry\n");
 		reg_node = node->sgprivate->scenegraph->id_node;
 		while (reg_node) {
-			fprintf(stdout, "\t%s\n", reg_node->NodeName);
+			fprintf(stderr, "\t%s\n", reg_node->NodeName);
 			reg_node = reg_node->next;
 		}
 
-		fprintf(stdout, "\n\nNamed roots:\n");
+		fprintf(stderr, "\n\nNamed roots:\n");
 		JS_DumpNamedRoots(JS_GetRuntime(svg_js->js_ctx), dump_root, NULL);
 	}
 #endif

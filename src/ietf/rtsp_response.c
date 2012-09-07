@@ -703,7 +703,7 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//send buffer
 	e = gf_rtsp_send_data(sess, buffer, size);
 	if (e) return e;
-//	printf("RTSP Send Response\n\n%s\n\n", buffer);
+//	fprintf(stderr, "RTSP Send Response\n\n%s\n\n", buffer);
 
 exit:
 	if (buffer) gf_free(buffer);

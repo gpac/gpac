@@ -883,7 +883,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		} else if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFURL) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFSTRING)) {
 			e = GF_OK;
 		} else {
-//			printf("error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType)));
 			return GF_SG_INVALID_PROTO;
 		}
 	}
@@ -963,7 +963,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		} else if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFURL) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFSTRING)) {
 			e = GF_OK;
 		} else {
-//			printf("error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType)));
 			return GF_SG_INVALID_PROTO;
 		}
 	}

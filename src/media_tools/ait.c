@@ -255,7 +255,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 						GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte;
 						GF_SAFEALLOC(Transport_http_selector_byte, GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE);					
 						Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
-						//printf("Transport_http_selector_byte->URL_base_length %d \n",Transport_http_selector_byte->URL_base_length);
+						//fprintf(stderr, "Transport_http_selector_byte->URL_base_length %d \n",Transport_http_selector_byte->URL_base_length);
 						Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length+1,sizeof(char));
 						gf_bs_read_data(bs,Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
 						Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;

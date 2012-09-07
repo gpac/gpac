@@ -47,7 +47,7 @@
 
 void PrintStreamerUsage()
 {
-	fprintf(stdout, "File Streamer Options\n"
+	fprintf(stderr, "File Streamer Options\n"
 			"\n"
 			"MP4Box can stream ISO files to RTP. The streamer currently doesn't support\n"
 			"data carrouselling and will therefore not handle BIFS and OD streams properly.\n"
@@ -83,7 +83,7 @@ int stream_file_rtp(int argc, char **argv)
 		char *arg = argv[i];
 
 		if (arg[0] != '-') {
-			if (inName) { fprintf(stdout, "Error - 2 input names specified, please check usage\n"); return 1; }
+			if (inName) { fprintf(stderr, "Error - 2 input names specified, please check usage\n"); return 1; }
 			inName = arg;
 		}
 		else if (!stricmp(arg, "-noloop")) loop = 0;
@@ -97,7 +97,7 @@ int stream_file_rtp(int argc, char **argv)
 	}
 
 	if (!gf_isom_probe_file(inName)) {
-		fprintf(stdout, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
+		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
 		return 1;
 	}
 
@@ -107,10 +107,10 @@ int stream_file_rtp(int argc, char **argv)
 
 	file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
 	if (!file_streamer) {
-		fprintf(stdout, "Cannot create file streamer\n");
+		fprintf(stderr, "Cannot create file streamer\n");
 	} else {
 		u32 check = 50;
-		fprintf(stdout, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
+		fprintf(stderr, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
 		gf_isom_streamer_write_sdp(file_streamer, sdp_file);
 
 		while (1) {
@@ -133,7 +133,7 @@ int stream_file_rtp(int argc, char **argv)
 
 void PrintLiveUsage()
 {
-	fprintf(stdout, 
+	fprintf(stderr, 
 
 		"Live scene encoder options:\n"
 		"-dst=IP    destination IP - default: NULL\n"
@@ -245,7 +245,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 				rtpch->carousel_size = size;
 				rtpch->carousel_ts = ts;
 				rtpch->time_at_carousel_store = gf_sys_clock();
-				fprintf(stdout, "\nStream %d: Storing new carousel TS "LLD", %d bytes\n", ESID, ts, size);
+				fprintf(stderr, "\nStream %d: Storing new carousel TS "LLD", %d bytes\n", ESID, ts, size);
 			}
 			/*send data*/
 			else {
@@ -258,7 +258,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 
 				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, critical);
 
-				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
+				fprintf(stderr, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
 				rtpch->rap = rtpch->critical = 0;
 
 				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0);
@@ -278,7 +278,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 
 			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 			ch->last_carousel_time = now - livesess->start_time;
-			fprintf(stdout, "Stream %d: Sending carousel at TS "LLD", %d bytes\n", ch->ESID, ts, ch->carousel_size);
+			fprintf(stderr, "Stream %d: Sending carousel at TS "LLD", %d bytes\n", ch->ESID, ts, ch->carousel_size);
 
 			if (ch->manual_rtcp) {
 				ts = ch->carousel_ts + ch->timescale * ( gf_sys_clock() - ch->init_time + ch->ts_delta)/1000;
@@ -296,7 +296,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 				}
 				gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 				ch->last_carousel_time = now - livesess->start_time;
-				fprintf(stdout, "Stream %d: Sending carousel at TS "LLD"	, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+				fprintf(stderr, "Stream %d: Sending carousel at TS "LLD"	, %d bytes\n", ch->ESID, ts, ch->carousel_size);
 
 				if (ch->manual_rtcp) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
@@ -481,7 +481,7 @@ int live_session(int argc, char **argv)
         else if (!strnicmp(arg, "-tcp=", 5)) { sk_port = atoi(arg+5); udp = 0; }		
 	}
 	if (!filename) {
-		fprintf(stdout, "Missing filename\n");
+		fprintf(stderr, "Missing filename\n");
 		PrintLiveUsage();
 		return 1;
 	}
@@ -490,7 +490,7 @@ int live_session(int argc, char **argv)
 
 	livesess.seng = gf_seng_init(&livesess, filename, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
     if (!livesess.seng) {
-		fprintf(stdout, "Cannot create scene engine\n");
+		fprintf(stderr, "Cannot create scene engine\n");
 		return 1;
     }
 	if (livesess.streams) live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
@@ -521,7 +521,7 @@ int live_session(int argc, char **argv)
 				sscanf(arg, "-rap=ESID=%u:%u", &id, &period);
 				e = gf_seng_enable_aggregation(livesess.seng, id, 1);
 				if (e) {
-					fprintf(stdout, "Cannot enable aggregation on stream %u: %s\n", id, gf_error_to_string(e));
+					fprintf(stderr, "Cannot enable aggregation on stream %u: %s\n", id, gf_error_to_string(e));
 					goto exit;
 				}
 			} else {
@@ -573,7 +573,7 @@ int live_session(int argc, char **argv)
 				{
 					GF_Err e;
 					char szCom[8192];
-					fprintf(stdout, "Enter command to send:\n");
+					fprintf(stderr, "Enter command to send:\n");
 					szCom[0] = 0;
 					if (1 > scanf("%[^\t\n]", szCom)){
 					    fprintf(stderr, "No command entered properly, aborting.\n");
@@ -582,7 +582,7 @@ int live_session(int argc, char **argv)
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szCom, live_session_callback);
-					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 					livesess.critical = 0;
 					update_context = 1;
@@ -594,7 +594,7 @@ int live_session(int argc, char **argv)
 				{
 					GF_Err e;
 					char szCom[8192];
-					fprintf(stdout, "Enter command to send:\n");
+					fprintf(stderr, "Enter command to send:\n");
 					szCom[0] = 0;
 					if (1 > scanf("%[^\t\n]", szCom)){
 					    printf("No command entered properly, aborting.\n");
@@ -603,7 +603,7 @@ int live_session(int argc, char **argv)
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szCom, live_session_callback);
-					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					livesess.critical = 0;				
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 
@@ -613,13 +613,13 @@ int live_session(int argc, char **argv)
 				case 'p':
 				{
 					char rad[GF_MAX_PATH];
-					fprintf(stdout, "Enter output file name - \"std\" for stdout: ");
+					fprintf(stderr, "Enter output file name - \"std\" for stderr: ");
 					if (1 > scanf("%s", rad)){
 					    fprintf(stderr, "No ouput file name entered, aborting.\n");
 					    break;
 					}
 					e = gf_seng_save_context(livesess.seng, !strcmp(rad, "std") ? NULL : rad);
-					fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
+					fprintf(stderr, "Dump done (%s)\n", gf_error_to_string(e));
 				}
 					break;
 				case 'F':
@@ -638,7 +638,7 @@ int live_session(int argc, char **argv)
 			if (mod_time != last_src_modif) {
 				FILE *srcf;
 				char flag_buf[201], *flag;
-				fprintf(stdout, "Update file modified - processing\n");
+				fprintf(stderr, "Update file modified - processing\n");
 				last_src_modif = mod_time;
 
 				srcf = gf_f64_open(src_name, "rt");
@@ -690,7 +690,7 @@ int live_session(int argc, char **argv)
 				}
 
 				e = gf_seng_encode_from_file(livesess.seng, es_id, aggregate_au ? 0 : 1, src_name, live_session_callback);
-				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+				if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 				e = gf_seng_aggregate_context(livesess.seng, 0);
 
 				update_context = no_rap ? 0 : 1;
@@ -767,7 +767,7 @@ int live_session(int argc, char **argv)
 
 				if (update_length) {
 					e = gf_seng_encode_from_string(livesess.seng, es_id, aggregate_au ? 0 : 1, update_buffer, live_session_callback);
-					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 
 					update_context = 1;

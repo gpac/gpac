@@ -821,7 +821,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 	} else {
 		gf_path_get_bounds(ctx->drawable->path, &store_orig_bounds);
 	}
-    //if (store_orig_bounds) printf("store_orig_bounds: %d\n", (int) store_orig_bounds.width );
+    //if (store_orig_bounds) fprintf(stderr, "store_orig_bounds: %d\n", (int) store_orig_bounds.width );
 	ctx->bi->unclip = store_orig_bounds;
 	gf_mx2d_apply_rect(&tr_state->transform, &ctx->bi->unclip);
 
