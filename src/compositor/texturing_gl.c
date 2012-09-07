@@ -941,7 +941,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 #else
 
 /*To remove: gcc 4.6 introduces this warning*/
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 6
+#if __GNUC__ == 4 && __GNUC_MINOR__ >= 6
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
 #endif
@@ -1033,9 +1033,9 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
 		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,1,1,0,GL_RGBA,GL_UNSIGNED_BYTE,texture);
 		
-		/* fin de la génération de la texture donnée par la fraction ! */
+		/* fin de la g\E9n\E9ration de la texture donn\E9e par la fraction ! */
 		
-		/* mélange effectif des textures ! } */
+		/* m\E9lange effectif des textures ! } */
 		glActiveTexture(GL_TEXTURE1);
 		tx_bind(b_surf);
 
@@ -1103,7 +1103,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	}
 	/* end INVERT */
 
-	/* opération REPLACE_ALPHA */
+	/* op\E9ration REPLACE_ALPHA */
 	if (!strcmp(action,"REPLACE_ALPHA")) {
 		glActiveTexture(GL_TEXTURE0);
 		tx_bind(b_surf);
