@@ -934,7 +934,7 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") );
 		dump = gf_f64_open(szBuf, "wt");
 	} else {
-		dump = stderr;
+		dump = stdout;
 	}
 	e = gf_isom_text_dump(file, track, dump, dump_type);
 	if (inName) fclose(dump);
