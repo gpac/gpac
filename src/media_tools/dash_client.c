@@ -527,23 +527,19 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group)
 		return start_time;
 	}
 	if (rep->segment_list || set->segment_list || period->segment_list) {
-		GF_List *segments = NULL;
 		if (period->segment_list) {
 			if (period->segment_list->duration) duration = period->segment_list->duration;
 			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
-			if (period->segment_list->segment_URLs) segments = period->segment_list->segment_URLs;
 			if (period->segment_list->segment_timeline) timeline = period->segment_list->segment_timeline;
 		}
 		if (set->segment_list) {
 			if (set->segment_list->duration) duration = set->segment_list->duration;
 			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
-			if (set->segment_list->segment_URLs) segments = set->segment_list->segment_URLs;
 			if (set->segment_list->segment_timeline) timeline = set->segment_list->segment_timeline;
 		}
 		if (rep->segment_list) {
 			if (rep->segment_list->duration) duration = rep->segment_list->duration;
 			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
-			if (rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
 			if (rep->segment_list->segment_timeline) timeline = rep->segment_list->segment_timeline;
 		}
 		if (! timescale) timescale=1;
@@ -629,7 +625,7 @@ static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 static GF_Err gf_dash_merge_segment_timeline(GF_MPD_SegmentList *old_list, GF_MPD_SegmentTemplate *old_template, GF_MPD_SegmentList *new_list, GF_MPD_SegmentTemplate *new_template, Double min_start_time)
 {
 	GF_MPD_SegmentTimeline *old_timeline, *new_timeline;
-	u32 idx, time_scale;
+	u32 idx;
 	u64 start_time;
 	GF_MPD_SegmentTimelineEntry *first_new_entry;
 
@@ -641,7 +637,6 @@ static GF_Err gf_dash_merge_segment_timeline(GF_MPD_SegmentList *old_list, GF_MP
 		}
 		old_timeline = old_list->segment_timeline;
 		new_timeline = new_list->segment_timeline;
-		time_scale = old_list->timescale;
 	} else if (old_template && old_template->segment_timeline) {
 		if (!new_template || !new_template->segment_timeline) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: segment timeline not present in new MPD segmentTemplate\n"));
@@ -649,7 +644,6 @@ static GF_Err gf_dash_merge_segment_timeline(GF_MPD_SegmentList *old_list, GF_MP
 		}
 		old_timeline = old_template->segment_timeline;
 		new_timeline = new_template->segment_timeline;
-		time_scale = old_template->timescale;
 	}
 	if (!old_timeline && !new_timeline) return GF_OK;
 
