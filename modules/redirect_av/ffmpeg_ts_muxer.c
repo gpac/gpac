@@ -87,8 +87,7 @@ static Bool ts_interleave_thread_run(void *param) {
                 audioKbps = audioSize * 8000 / (now-start) / 1024;
                 audioSize = videoSize = 0;
                 start = now;
-                printf("\rPTS audio="LLU" ("LLU"kbps), video="LLU" ("LLU"kbps)", audio_pts, audioKbps, video_pts, videoKbps);
-                fflush(stdout);
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("\rPTS audio="LLU" ("LLU"kbps), video="LLU" ("LLU"kbps)", audio_pts, audioKbps, video_pts, videoKbps));
             }
         }
         /* write interleaved audio and video frames */
@@ -325,7 +324,7 @@ Bool ts_encode_audio_frame(GF_AbstractTSMuxer * ts, uint8_t * data, int encoded,
     pkt->stream_index= ts->audio_st->index;
     pkt->data = data;
     pkt->size = encoded;
-    //printf("AUDIO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, pts, pl);
+    //fprintf(stderr, "AUDIO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, pts, pl);
     gf_mx_p(ts->audioMx);
     if (!ts->audioPackets)
         ts->audioPackets = pl;
@@ -360,7 +359,7 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
     pkt->stream_index= ts->video_st->index;
     pkt->data= data;
     pkt->size= encoded;
-    //printf("VIDEO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, ts->video_st->codec->coded_frame->pts, pl);
+    //fprintf(stderr, "VIDEO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, ts->video_st->codec->coded_frame->pts, pl);
     gf_mx_p(ts->videoMx);
     if (!ts->videoPackets)
         ts->videoPackets = pl;

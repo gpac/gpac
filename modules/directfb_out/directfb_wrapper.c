@@ -553,7 +553,7 @@ u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *f
 						*button = GF_MOUSE_MIDDLE;
 						break;
 					default:
-						printf("in here for others\n");
+						//fprintf(stderr, "in here for others\n");
 						break;
 				}
 				break;
@@ -618,47 +618,47 @@ u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf)
  **/
 void directfb_translate_key(DFBInputDeviceKeyIdentifier DirectFBkey, u32 *flags, u32 *key_code)
 {
-	//~ printf("DirectFBkey=%d\n", DirectFBkey);
+	//~ fprintf(stderr, "DirectFBkey=%d\n", DirectFBkey);
 
 	switch (DirectFBkey) {
 		case DIKI_BACKSPACE:
 			*key_code = GF_KEY_BACKSPACE; 
-			//~ printf("DIKI_BACKSPACE\n"); 
+			//~ fprintf(stderr, "DIKI_BACKSPACE\n"); 
 			break;
 		case DIKI_TAB:
 			*key_code = GF_KEY_TAB; 
-			//~ printf("DIKI_TAB\n"); 
+			//~ fprintf(stderr, "DIKI_TAB\n"); 
 			break;
 		case DIKI_ENTER:
 			*key_code = GF_KEY_ENTER; 
-			//~ printf("DIKI_ENTER\n"); 
+			//~ fprintf(stderr, "DIKI_ENTER\n"); 
 			break;
 		case DIKI_ESCAPE:
 			*key_code = GF_KEY_ESCAPE; 
-			//~ printf("DIKI_ESCAPE\n"); 
+			//~ fprintf(stderr, "DIKI_ESCAPE\n"); 
 			break;
 		case DIKI_SPACE:
 			*key_code = GF_KEY_SPACE; 
-			//~ printf("DIKI_SPACE\n"); 
+			//~ fprintf(stderr, "DIKI_SPACE\n"); 
 			break;
 		case DIKI_SHIFT_L:
 		case DIKI_SHIFT_R:
 			*key_code = GF_KEY_SHIFT; 
-			//~ printf("DIKI_SHIFT_R/DIKI_SHIFT_L\n"); 
+			//~ fprintf(stderr, "DIKI_SHIFT_R/DIKI_SHIFT_L\n"); 
 			break;
 		case DIKI_CONTROL_L:
 		case DIKI_CONTROL_R:
 			*key_code = GF_KEY_CONTROL; 
-			//~ printf("DIKI_CONTROL_L/DIKI_CONTROL_R\n"); 
+			//~ fprintf(stderr, "DIKI_CONTROL_L/DIKI_CONTROL_R\n"); 
 			break;
 		case DIKI_ALT_L:
 		case DIKI_ALT_R:
 			*key_code = GF_KEY_ALT; 
-			//~ printf("DIKI_ALT_L/DIKI_ALT_R\n"); 
+			//~ fprintf(stderr, "DIKI_ALT_L/DIKI_ALT_R\n"); 
 			break;
 		case DIKI_CAPS_LOCK:
 			*key_code = GF_KEY_CAPSLOCK; 
-			//~ printf("DIKI_CAPS_LOCK\n"); 
+			//~ fprintf(stderr, "DIKI_CAPS_LOCK\n"); 
 			break;
 		case DIKI_META_L:
 		case DIKI_META_R:
@@ -672,23 +672,23 @@ void directfb_translate_key(DFBInputDeviceKeyIdentifier DirectFBkey, u32 *flags,
 		/* alphabets */
 		case DIKI_A:
 			*key_code = GF_KEY_A; 
-			//~ printf("DIKI_A\n"); 
+			//~ fprintf(stderr, "DIKI_A\n"); 
 			break;
 		case DIKI_B:
 			*key_code = GF_KEY_B; 
-			//~ printf("DIKI_B\n"); 
+			//~ fprintf(stderr, "DIKI_B\n"); 
 			break;
 		case DIKI_C:
 			*key_code = GF_KEY_C; 
-			//~ printf("DIKI_C\n"); 
+			//~ fprintf(stderr, "DIKI_C\n"); 
 			break;
 		case DIKI_D:
 			*key_code = GF_KEY_D; 
-			//~ printf("DIKI_D\n"); 
+			//~ fprintf(stderr, "DIKI_D\n"); 
 			break;
 		case DIKI_E:
 			*key_code = GF_KEY_E; 
-			//~ printf("DIKI_E\n"); 
+			//~ fprintf(stderr, "DIKI_E\n"); 
 			break;
 		case DIKI_F:
 			*key_code = GF_KEY_F; break;

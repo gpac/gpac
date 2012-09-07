@@ -45,7 +45,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 	hdr_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 	aux_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 
-//	printf("parsing packet %d size %d ts %d M %d\n", hdr->SequenceNumber, size, hdr->TimeStamp, hdr->Marker);
+//	fprintf(stderr, "parsing packet %d size %d ts %d M %d\n", hdr->SequenceNumber, size, hdr->TimeStamp, hdr->Marker);
 
 	/*global AU header len*/
 	au_hdr_size = 0;

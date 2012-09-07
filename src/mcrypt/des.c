@@ -432,7 +432,7 @@ static u32 f(DES_KEY * key, register u32 r, register char *subkey)
 	register int er;
 
 #ifdef	TRACE
-	printf("f(%08lx, %02x %02x %02x %02x %02x %02x %02x %02x) = ",
+	fprintf(stderr, "f(%08lx, %02x %02x %02x %02x %02x %02x %02x %02x) = ",
 	       r,
 	       subkey[0], subkey[1], subkey[2],
 	       subkey[3], subkey[4], subkey[5], subkey[6], subkey[7]);
@@ -471,7 +471,7 @@ static u32 f(DES_KEY * key, register u32 r, register char *subkey)
 	rt |= (r & 1) << 5;
 	rval |= spp[((int) rt ^ *subkey) & 0x3f];
 #ifdef	TRACE
-	printf(" %08lx\n", rval);
+	fprintf(stderr, " %08lx\n", rval);
 #endif
 	return rval;
 }
@@ -555,7 +555,7 @@ static void spinit(DES_KEY * key)
 			key->sp[s][i] = val;
 
 #ifdef DEBUG
-			printf("sp[%d][%2d] = %08lx\n", s, i,
+			fprintf(stderr, "sp[%d][%2d] = %08lx\n", s, i,
 			       key->sp[s][i]);
 #endif
 		}

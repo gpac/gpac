@@ -104,7 +104,7 @@ void detect_and_draw_objects(GF_InputSensorDevice *ifce, IplImage* image,
                              (theRealY+theRealHeight)*scale),
                      CV_RGB(0,255,0), 3, 8, 0 );
 
-	fprintf(stdout, "translation selon X : %d - translation selon Y : %d\n", (theRealX - prev_x0), (theRealY -prev_y0) );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[OpenCV] translation selon X : %d - translation selon Y : %d\n", (theRealX - prev_x0), (theRealY -prev_y0) ));
 
 	/*send data frame to GPAC*/
 	{

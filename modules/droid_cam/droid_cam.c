@@ -41,8 +41,8 @@
 #else
 #  define QUOTEME_(x) #x
 #  define QUOTEME(x) QUOTEME_(x)
-#  define LOGI(...) printf("I/" LOG_TAG " (" __FILE__ ":" QUOTEME(__LINE__) "): " __VA_ARGS__)
-#  define LOGE(...) printf("E/" LOG_TAG "(" ")" __VA_ARGS__)
+#  define LOGI(...) fprintf(stderr, "I/" LOG_TAG " (" __FILE__ ":" QUOTEME(__LINE__) "): " __VA_ARGS__)
+#  define LOGE(...) fprintf(stderr, "E/" LOG_TAG "(" ")" __VA_ARGS__)
 #endif
 
 static JavaVM* javaVM = 0;

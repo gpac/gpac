@@ -328,12 +328,22 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		break;
 	///we open the file in READ/WRITE mode, in case 
 	case GF_ISOM_DATA_MAP_WRITE:
+		if (!strcmp(sPath, "std")) {
+			tmp->stream = stdout;
+			tmp->is_stdout = 1;
+		}
+
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "w+b");
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "wb");
 		bs_mode = GF_BITSTREAM_WRITE;
 		break;
 	///we open the file in CAT mode, in case 
 	case GF_ISOM_DATA_MAP_CAT:
+		if (!strcmp(sPath, "std")) {
+			tmp->stream = stdout;
+			tmp->is_stdout = 1;
+		}
+
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "a+b");
 		if (tmp->stream) gf_f64_seek(tmp->stream, 0, SEEK_END);
 		bs_mode = GF_BITSTREAM_WRITE;
@@ -359,7 +369,7 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 {
 	if (!ptr || (ptr->type != GF_ISOM_DATA_FILE)) return;
 	if (ptr->bs) gf_bs_del(ptr->bs);
-	if (ptr->stream) fclose(ptr->stream);
+	if (ptr->stream && !ptr->is_stdout) fclose(ptr->stream);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->temp_file) {

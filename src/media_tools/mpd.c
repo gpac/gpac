@@ -200,7 +200,7 @@ static GF_Err gf_mpd_parse_location(GF_MPD *mpd, GF_XMLNode *child)
 
 static GF_Err gf_mpd_parse_metrics(GF_MPD *mpd, GF_XMLNode *child)
 {
-	fprintf(stdout, "mpd metrics not implemented yet\n");
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Metrics not implemented yet\n"));
 	return GF_OK;
 }
 
@@ -814,13 +814,13 @@ void gf_mpd_segment_template_free(void *_item)
 }
 void gf_mpd_descriptor_free(void *item)
 {
-	fprintf(stdout, "error: descriptor not implemented\n");
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] descriptor not implemented\n"));
 	gf_free(item);
 }
 
 void gf_mpd_content_component_free(void *item)
 {
-	fprintf(stdout, "error: content component not implemented\n");
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] content component not implemented\n"));
 	gf_free(item);
 }
 
@@ -1307,9 +1307,9 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			pe = gf_list_get(prog->bitrates, j);
 			
 			if (pe->elementType == TYPE_STREAM) {
-				fprintf(stdout, "NOT SUPPORTED: M3U8 Stream\n");
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Stream\n"));
 			} else if (pe->elementType != TYPE_PLAYLIST) {
-				fprintf(stdout, "NOT SUPPORTED: M3U8 unknown type\n");
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type\n"));
 			}
 
 			count3 = gf_list_count(pe->element.playlist.elements);

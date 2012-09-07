@@ -1438,7 +1438,6 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 			} else {
 				sprintf(szFormat, "%d", start_number + item_index);
 			}
-			fprintf(stdout, "%d: start num %d - item_index %d\n", start_number + item_index, start_number, item_index);
 			strcat(solved_template, szFormat);
 		}
 		else if (!strcmp(first_sep+1, "Bandwidth")) {

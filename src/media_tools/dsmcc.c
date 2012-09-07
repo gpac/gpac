@@ -172,8 +172,8 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMC
 	}
 	*first_section_received = 1;*/
 	dsmcc->last_section_number = gf_bs_read_int(bs,8);	
-	//printf("\nsection_number %d last_section_number %d\n",dsmcc->section_number,dsmcc->last_section_number);
-	//printf("dsmcc->table_id %d \n",dsmcc->table_id);
+	//fprintf(stderr, "\nsection_number %d last_section_number %d\n",dsmcc->section_number,dsmcc->last_section_number);
+	//fprintf(stderr, "dsmcc->table_id %d \n",dsmcc->table_id);
 	switch (dsmcc->table_id) {
 		case GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA:
 			{
@@ -227,7 +227,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 	gf_m2ts_dsmcc_process_message_header(&DataMessage->DownloadDataHeader,data,bs,data_shift,1);
 	dsmcc->DSMCC_Extension = DataMessage;
 
-	//printf("DataMessage->DownloadDataHeader.messageId %d \n",DataMessage->DownloadDataHeader.messageId);
+	//fprintf(stderr, "DataMessage->DownloadDataHeader.messageId %d \n",DataMessage->DownloadDataHeader.messageId);
 
 	switch (DataMessage->DownloadDataHeader.messageId)
 	{
@@ -314,7 +314,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 
 
 			DownloadDataBlock->moduleId = gf_bs_read_int(bs,16);
-			//printf("DownloadDataBlock->moduleId %d \n",DownloadDataBlock->moduleId);
+			//fprintf(stderr, "DownloadDataBlock->moduleId %d \n",DownloadDataBlock->moduleId);
 			DownloadDataBlock->moduleVersion = gf_bs_read_int(bs,8); 
 			DownloadDataBlock->reserved = gf_bs_read_int(bs,8);
 			if(DownloadDataBlock->reserved != 0xFF){
@@ -327,7 +327,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 				GF_M2TS_DSMCC_MODULE* dsmcc_module = gf_list_get(dsmcc_overlord->dsmcc_modules,i);
 				/* Test if the data are compatible with the module configuration */
 				if(!dsmcc_download_data_validation(dsmcc_overlord,DownloadDataBlock,dsmcc_module,DataMessage->DownloadDataHeader.downloadId)){
-					//printf("DownloadDataBlock->blockNumber %d \n\n",DownloadDataBlock->blockNumber);
+					//fprintf(stderr, "DownloadDataBlock->blockNumber %d \n\n",DownloadDataBlock->blockNumber);
 					DownloadDataBlock->dataBlocksize = (DataMessage->DownloadDataHeader.messageLength - 6);					
 					if(dsmcc_module->block_size < DownloadDataBlock->dataBlocksize){
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error block_size should be >= to DownloadDataBlock->dataBlocksize , abording the processing \n"));
@@ -469,7 +469,7 @@ static GF_Err gf_m2ts_dsmcc_process_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HE
 	} else if (mode == 1) {
 		MessageHeader->downloadId = gf_bs_read_int(bs,32);
 	}
-	//printf("MessageHeader->downloadId %d \n",MessageHeader->downloadId);
+	//fprintf(stderr, "MessageHeader->downloadId %d \n",MessageHeader->downloadId);
 	MessageHeader->reserved = gf_bs_read_int(bs,8);
 	if (MessageHeader->reserved != 0xFF) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] DataHeader reserved slot does not have the correct value, abording the processing \n"));

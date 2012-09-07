@@ -74,85 +74,85 @@ void convert_file_info(char *inName, u32 trackID)
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	e = gf_media_import(&import);
 	if (e) {
-		fprintf(stdout, "Error probing file %s: %s\n", inName, gf_error_to_string(e));
+		fprintf(stderr, "Error probing file %s: %s\n", inName, gf_error_to_string(e));
 		return;
 	}
 	if (trackID) {
-		fprintf(stdout, "Import probing results for track %s#%d:\n", inName, trackID);
+		fprintf(stderr, "Import probing results for track %s#%d:\n", inName, trackID);
 	} else {
-		fprintf(stdout, "Import probing results for %s:\n", inName);
+		fprintf(stderr, "Import probing results for %s:\n", inName);
 		if (!import.nb_tracks) {
-			fprintf(stdout, "File has no selectable tracks\n");
+			fprintf(stderr, "File has no selectable tracks\n");
 			return;
 		}
-		fprintf(stdout, "File has %d tracks\n", import.nb_tracks);
+		fprintf(stderr, "File has %d tracks\n", import.nb_tracks);
 	}
 	found = 0;
 	for (i=0; i<import.nb_tracks; i++) {
 		if (trackID && (trackID != import.tk_info[i].track_num)) continue;
-		if (!trackID) fprintf(stdout, "\tTrack %d type: ", import.tk_info[i].track_num);
-		else fprintf(stdout, "Track type: ");
+		if (!trackID) fprintf(stderr, "\tTrack %d type: ", import.tk_info[i].track_num);
+		else fprintf(stderr, "Track type: ");
 
 		switch (import.tk_info[i].type) {
-		case GF_ISOM_MEDIA_VISUAL: fprintf(stdout, "Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_OD: fprintf(stdout, "OD (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		default: fprintf(stdout, "Other (4CC: %s)", gf_4cc_to_str(import.tk_info[i].type)); break;
+		case GF_ISOM_MEDIA_VISUAL: fprintf(stderr, "Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_AUDIO: fprintf(stderr, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_TEXT: fprintf(stderr, "Text (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_SCENE: fprintf(stderr, "Scene (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_OD: fprintf(stderr, "OD (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		default: fprintf(stderr, "Other (4CC: %s)", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 
-		if (import.tk_info[i].lang) fprintf(stdout, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
+		if (import.tk_info[i].lang) fprintf(stderr, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
 
-		if (import.tk_info[i].mpeg4_es_id) fprintf(stdout, " - MPEG-4 ESID %d", import.tk_info[i].mpeg4_es_id);
+		if (import.tk_info[i].mpeg4_es_id) fprintf(stderr, " - MPEG-4 ESID %d", import.tk_info[i].mpeg4_es_id);
 
 		if (import.tk_info[i].prog_num) {
 			if (!import.nb_progs) {
-				fprintf(stdout, " - Program %d", import.tk_info[i].prog_num);
+				fprintf(stderr, " - Program %d", import.tk_info[i].prog_num);
 			} else {
 				u32 j;
 				for (j=0; j<import.nb_progs; j++) {
 					if (import.tk_info[i].prog_num != import.pg_info[j].number) continue;
-					fprintf(stdout, " - Program %s", import.pg_info[j].name);
+					fprintf(stderr, " - Program %s", import.pg_info[j].name);
 					break;
 				}
 			}
 		}
-		fprintf(stdout, "\n");
+		fprintf(stderr, "\n");
 		if (!trackID) continue;
 
 		if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) 
 			&& import.tk_info[i].video_info.width 
 			&& import.tk_info[i].video_info.height
 			) {
-			fprintf(stdout, "Source: %s %dx%d", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].video_info.width, import.tk_info[i].video_info.height);
-			if (import.tk_info[i].video_info.FPS) fprintf(stdout, " @ %g FPS", import.tk_info[i].video_info.FPS);
-			if (import.tk_info[i].video_info.par) fprintf(stdout, " PAR: %d:%d", import.tk_info[i].video_info.par >> 16, import.tk_info[i].video_info.par & 0xFFFF);
-			fprintf(stdout, "\n");
+			fprintf(stderr, "Source: %s %dx%d", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].video_info.width, import.tk_info[i].video_info.height);
+			if (import.tk_info[i].video_info.FPS) fprintf(stderr, " @ %g FPS", import.tk_info[i].video_info.FPS);
+			if (import.tk_info[i].video_info.par) fprintf(stderr, " PAR: %d:%d", import.tk_info[i].video_info.par >> 16, import.tk_info[i].video_info.par & 0xFFFF);
+			fprintf(stderr, "\n");
 		}
 		else if ((import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO) && import.tk_info[i].audio_info.sample_rate) {
-			fprintf(stdout, "Source: %s - SampleRate %d - %d channels\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
+			fprintf(stderr, "Source: %s - SampleRate %d - %d channels\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
 		} else {
-			fprintf(stdout, "Source: %s\n", gf_4cc_to_str(import.tk_info[i].media_type));
+			fprintf(stderr, "Source: %s\n", gf_4cc_to_str(import.tk_info[i].media_type));
 		}
 			
 
-		fprintf(stdout, "\nImport Capabilities:\n");
-		if (import.tk_info[i].flags & GF_IMPORT_USE_DATAREF) fprintf(stdout, "\tCan use data referencing\n");
-		if (import.tk_info[i].flags & GF_IMPORT_NO_FRAME_DROP) fprintf(stdout, "\tCan use fixed FPS import\n");
-		if (import.tk_info[i].flags & GF_IMPORT_FORCE_PACKED) fprintf(stdout, "\tCan force packed bitstream import\n");
-		if (import.tk_info[i].flags & GF_IMPORT_OVERRIDE_FPS) fprintf(stdout, "\tCan override source frame rate\n");
-		if (import.tk_info[i].flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) fprintf(stdout, "\tCan use AAC-SBR signaling\n");
-		if (import.tk_info[i].flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) fprintf(stdout, "\tCan use AAC-PS signaling\n");
-		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stdout, "\tCan force MPEG-4 Systems signaling\n");
-		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stdout, "\tCan use 3GPP frame aggregation\n");
-		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stdout, "\tCannot use duration-based import\n");
+		fprintf(stderr, "\nImport Capabilities:\n");
+		if (import.tk_info[i].flags & GF_IMPORT_USE_DATAREF) fprintf(stderr, "\tCan use data referencing\n");
+		if (import.tk_info[i].flags & GF_IMPORT_NO_FRAME_DROP) fprintf(stderr, "\tCan use fixed FPS import\n");
+		if (import.tk_info[i].flags & GF_IMPORT_FORCE_PACKED) fprintf(stderr, "\tCan force packed bitstream import\n");
+		if (import.tk_info[i].flags & GF_IMPORT_OVERRIDE_FPS) fprintf(stderr, "\tCan override source frame rate\n");
+		if (import.tk_info[i].flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) fprintf(stderr, "\tCan use AAC-SBR signaling\n");
+		if (import.tk_info[i].flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) fprintf(stderr, "\tCan use AAC-PS signaling\n");
+		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stderr, "\tCan force MPEG-4 Systems signaling\n");
+		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stderr, "\tCan use 3GPP frame aggregation\n");
+		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stderr, "\tCannot use duration-based import\n");
 
 		found = 1;
 		break;
 	}
-	fprintf(stdout, "\n");
-	if (!found && trackID) fprintf(stdout, "Cannot find track %d in file\n", trackID);
+	fprintf(stderr, "\n");
+	if (!found && trackID) fprintf(stderr, "Cannot find track %d in file\n", trackID);
 }
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
@@ -173,7 +173,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	strcpy(szName, inName);
 	ext = strrchr(inName, '.');
 	if (!ext) {
-		fprintf(stdout, "Unknown input file type\n");
+		fprintf(stderr, "Unknown input file type\n");
 		return GF_BAD_PARAM;
 	}
 
@@ -399,7 +399,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 						//u64 seg_dur = (-delay)*gf_isom_get_media_timescale(import.dest, i+1) / 1000;
 						gf_isom_append_edit_segment(import.dest, i+1, tk_dur-to_skip, to_skip, GF_ISOM_EDIT_NORMAL);
 					} else {
-						fprintf(stdout, "Warning: request negative delay longer than track duration - ignoring\n");
+						fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
 					}
 				}
 			}
@@ -482,7 +482,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 						u64 media_time = (-delay)*gf_isom_get_media_timescale(import.dest, track) / 1000;
 						gf_isom_append_edit_segment(import.dest, i+1, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
 					} else {
-						fprintf(stdout, "Warning: request negative delay longer than track duration - ignoring\n");
+						fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
 					}
 				}
 			}
@@ -547,9 +547,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_set_rvc_config(import.dest, track, 1, rvc_predefined, NULL, NULL, 0);
 			}
 		}
-		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
-		else if (do_video) fprintf(stdout, "WARNING: Video track not found\n");
-		else if (do_audio) fprintf(stdout, "WARNING: Audio track not found\n");
+		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
+		else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
+		else if (do_audio) fprintf(stderr, "WARNING: Audio track not found\n");
 	}
 
 exit:
@@ -660,12 +660,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		case GF_ISOM_MEDIA_MPEGJ:
 		case GF_ISOM_MEDIA_MPEG7:
 		case GF_ISOM_MEDIA_FLASH:
-			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
+			fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
 			continue;
 		default:
 			/*for all other track types, only split if more than one sample*/
 			if (gf_isom_get_sample_count(mp4, i+1)==1) {
-				fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
+				fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
 				continue;
 			}
 			tks[nb_tk].can_duplicate = 1;
@@ -687,7 +687,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		if (tks[nb_tk].has_non_raps) {
 			/*we don't support that*/
 			if (needs_rap_sync) {
-				fprintf(stdout, "More than one track has non-sync points - cannot split file\n");
+				fprintf(stderr, "More than one track has non-sync points - cannot split file\n");
 				gf_free(tks);
 				return GF_NOT_SUPPORTED;
 			}
@@ -697,24 +697,24 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		nb_tk++;
 	}
 	if (!nb_tk) {
-		fprintf(stdout, "No suitable tracks found for spliting file\n");
+		fprintf(stderr, "No suitable tracks found for spliting file\n");
 		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (chunk_start>=max_dur) {
-		fprintf(stdout, "Input file (%f) shorter than requested split start offset (%f)\n", max_dur, chunk_start);
+		fprintf(stderr, "Input file (%f) shorter than requested split start offset (%f)\n", max_dur, chunk_start);
 		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (!rap_split && (max_dur<=split_dur)) {
-		fprintf(stdout, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
+		fprintf(stderr, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
 		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (needs_rap_sync) {
 		tki = &tks[needs_rap_sync-1];
 		if ((gf_isom_get_sync_point_count(mp4, tki->tk)==1) && (chunk_start != 0.0f)) {
-			fprintf(stdout, "Not enough Random Access points in input file - cannot split\n");
+			fprintf(stderr, "Not enough Random Access points in input file - cannot split\n");
 			gf_free(tks);
 			return GF_NOT_SUPPORTED;
 		}
@@ -736,14 +736,14 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			} else  {
 				e = gf_isom_get_sample_for_media_time(mp4, tki->tk, (u64) (chunk_start*tki->time_scale), &di, GF_ISOM_SEARCH_SYNC_BACKWARD, &samp, &sample_num);
 				if (e!=GF_OK) {
-					fprintf(stdout, "Cannot locate RAP in track ID %d for chunk extraction from %02.2f sec\n", gf_isom_get_track_id(mp4, tki->tk), chunk_start);
+					fprintf(stderr, "Cannot locate RAP in track ID %d for chunk extraction from %02.2f sec\n", gf_isom_get_track_id(mp4, tki->tk), chunk_start);
 					gf_free(tks);
 					return GF_NOT_SUPPORTED;
 				}
 				start = (Double) (s64) samp->DTS;
 				start /= tki->time_scale;
 				gf_isom_sample_del(&samp);
-				fprintf(stdout, "Adjusting chunk start time to previous random access at %02.2f sec\n", start);
+				fprintf(stderr, "Adjusting chunk start time to previous random access at %02.2f sec\n", start);
 				split_dur += (chunk_start - start);
 				chunk_start = start;
 			}
@@ -798,7 +798,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 			e = gf_isom_clone_track(mp4, tki->tk, dest, 0, &tki->dst_tk);
 			if (e) {
-				fprintf(stdout, "Error cloning track %d\n", tki->tk);
+				fprintf(stderr, "Error cloning track %d\n", tki->tk);
 				goto err_exit;
 			}
 			/*use non-packet CTS offsets (faster add/remove)*/
@@ -882,7 +882,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				gf_set_progress("Splitting", nb_done, nb_samp);
 				nb_done++;
 				if (e) {
-					fprintf(stdout, "Error cloning track %d sample %d\n", tki->tk, tki->last_sample);
+					fprintf(stderr, "Error cloning track %d sample %d\n", tki->tk, tki->last_sample);
 					goto err_exit;
 				}
 	
@@ -970,12 +970,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 		}
 		if (file_split_dur == (Double) GF_MAX_FLOAT) {
-			fprintf(stdout, "Cannot split file (duration too small or size too small)\n");
+			fprintf(stderr, "Cannot split file (duration too small or size too small)\n");
 			goto err_exit;
 		}
 		if (chunk_extraction) {
 			if (adjust_split_end) {
-				fprintf(stdout, "Adjusting chunk end time to previous random access at %02.2f sec\n", chunk_start + last_rap_sample_time);
+				fprintf(stderr, "Adjusting chunk end time to previous random access at %02.2f sec\n", chunk_start + last_rap_sample_time);
 				file_split_dur = last_rap_sample_time;
 				sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+file_split_dur), ext);
 				gf_isom_set_final_name(dest, szFile);
@@ -985,7 +985,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 		/*don't split if eq to copy...*/
 		if (is_last && !cur_file && !chunk_start) {
-			fprintf(stdout, "Cannot split file (Not enough sync samples, duration too large or size too big)\n");
+			fprintf(stderr, "Cannot split file (Not enough sync samples, duration too large or size too big)\n");
 			goto err_exit;
 		}
 
@@ -1060,9 +1060,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		}
 
 		if (chunk_extraction) {
-			fprintf(stdout, "Extracting chunk %s - duration %02.2fs (%02.2fs->%02.2fs)\n", szFile, file_split_dur, chunk_start, (chunk_start+split_dur));
+			fprintf(stderr, "Extracting chunk %s - duration %02.2fs (%02.2fs->%02.2fs)\n", szFile, file_split_dur, chunk_start, (chunk_start+split_dur));
 		} else {
-			fprintf(stdout, "Storing split-file %s - duration %02.2f seconds\n", szFile, file_split_dur);
+			fprintf(stderr, "Storing split-file %s - duration %02.2f seconds\n", szFile, file_split_dur);
 		}
 
 		/*repack CTSs*/
@@ -1086,7 +1086,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			new_track_dur = gf_isom_get_track_duration(dest, tki->dst_tk);
 			count = gf_isom_get_edit_segment_count(mp4, tki->tk);
 			if (count>2) {
-				fprintf(stdout, "Warning: %d edit segments - not supported while splitting (max 2) - ignoring extra\n", count);
+				fprintf(stderr, "Warning: %d edit segments - not supported while splitting (max 2) - ignoring extra\n", count);
 				count=2;
 			}
 			for (j=0; j<count; j++) {
@@ -1095,7 +1095,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			
 				gf_isom_get_edit_segment(mp4, tki->tk, j+1, &editTime, &segDur, &MediaTime, &mode);
 				if (!j && (mode!=GF_ISOM_EDIT_EMPTY) ) {
-					fprintf(stdout, "Warning: Edit list doesn't look like a track delay scheme - ignoring\n");
+					fprintf(stderr, "Warning: Edit list doesn't look like a track delay scheme - ignoring\n");
 					break;
 				}
 				if (mode==GF_ISOM_EDIT_NORMAL) {
@@ -1137,7 +1137,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		gf_isom_clone_pl_indications(mp4, dest);
 		e = gf_isom_close(dest);
 		dest = NULL;
-		if (e) fprintf(stdout, "Error storing file %s\n", gf_error_to_string(e));
+		if (e) fprintf(stderr, "Error storing file %s\n", gf_error_to_string(e));
 		if (is_last || chunk_extraction) break;
 		cur_file++;
 	}
@@ -1182,7 +1182,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_HINT:
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_FLASH:
-			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
+			fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
 			continue;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
@@ -1204,7 +1204,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 	}
 	if (!nb_samp) {
-		fprintf(stdout, "No suitable media tracks to cat in %s - skipping\n", fileName);
+		fprintf(stderr, "No suitable media tracks to cat in %s - skipping\n", fileName);
 		goto err_exit;
 	}
 	
@@ -1227,7 +1227,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	}
 
 
-	fprintf(stdout, "Appending file %s\n", fileName);
+	fprintf(stderr, "Appending file %s\n", fileName);
 	nb_done = 0;
 	for (i=0; i<nb_tracks; i++) {
 		u64 last_DTS, dest_track_dur_before_cat;
@@ -1288,10 +1288,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
 				
 				if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) {
-					fprintf(stdout, "Cannot concatenate files: Different AVC Level Indication between source (%d) and destination (%d)\n", avc_src->AVCLevelIndication, avc_dst->AVCLevelIndication);
+					fprintf(stderr, "Cannot concatenate files: Different AVC Level Indication between source (%d) and destination (%d)\n", avc_src->AVCLevelIndication, avc_dst->AVCLevelIndication);
 					dst_tk = 0;
 				} else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) {
-					fprintf(stdout, "Cannot concatenate files: Different AVC Profile Indication between source (%d) and destination (%d)\n", avc_src->AVCProfileIndication, avc_dst->AVCProfileIndication);
+					fprintf(stderr, "Cannot concatenate files: Different AVC Profile Indication between source (%d) and destination (%d)\n", avc_src->AVCProfileIndication, avc_dst->AVCProfileIndication);
 					dst_tk = 0;
 				}
 				else {
@@ -1316,7 +1316,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 							}
 						}
 						if (!found) {
-							fprintf(stdout, "WARNING: Concatenating track ID %d with different SPS - result file might be broken\n", tk_id);
+							fprintf(stderr, "WARNING: Concatenating track ID %d with different SPS - result file might be broken\n", tk_id);
 							gf_list_rem(avc_src->sequenceParameterSets, j);
 							j--;
 							gf_list_add(avc_dst->sequenceParameterSets, slc);
@@ -1335,7 +1335,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 							}
 						}
 						if (!found) {
-							fprintf(stdout, "WARNING: Concatenating track ID %d with different PPS - result file might be broken\n", tk_id);
+							fprintf(stderr, "WARNING: Concatenating track ID %d with different PPS - result file might be broken\n", tk_id);
 							gf_list_rem(avc_src->pictureParameterSets, j);
 							j--;
 							gf_list_add(avc_dst->pictureParameterSets, slc);
@@ -1350,7 +1350,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 			if (!dst_tk && force_cat) {
 				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
-				fprintf(stdout, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
+				fprintf(stderr, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
 			}
 		}
 
@@ -1389,7 +1389,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 		/*looks like a new file*/
 		if (!dst_tk) {
-			fprintf(stdout, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype));
+			fprintf(stderr, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype));
 			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
@@ -1658,7 +1658,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	e = gf_sm_load_init(&load);
 	if (e<0) {
 		gf_sm_load_done(&load);
-		fprintf(stdout, "Cannot load context %s - %s\n", in, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load context %s - %s\n", in, gf_error_to_string(e));
 		goto err_exit;
 	}
 	e = gf_sm_load_run(&load);
@@ -1666,7 +1666,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 
 #ifndef GPAC_DISABLE_SCENE_STATS
 	if (opts->auto_quant) {
-		fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
+		fprintf(stderr, "Analysing Scene for Automatic Quantization\n");
 		statsman = gf_sm_stats_new();
 		e = gf_sm_stats_for_scene(statsman, ctx);
 		if (!e) {
@@ -1674,24 +1674,24 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 			/*LASeR*/
 			if (opts->auto_quant==1) {
 				if (opts->resolution > (s32)stats->frac_res_2d) {
-					fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
+					fprintf(stderr, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
 					opts->resolution = stats->frac_res_2d;
 				} else if (stats->int_res_2d + opts->resolution <= 0) {
-					fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
+					fprintf(stderr, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
 					opts->resolution = 1 - stats->int_res_2d;
 				}				
 				opts->coord_bits = stats->int_res_2d + opts->resolution;
-				fprintf(stdout, " Coordinates & Lengths encoded using ");
-				if (opts->resolution < 0) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
-				else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+				fprintf(stderr, " Coordinates & Lengths encoded using ");
+				if (opts->resolution < 0) fprintf(stderr, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
+				else fprintf(stderr, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
 
-				fprintf(stdout, " Matrix Scale & Skew Coefficients ");
+				fprintf(stderr, " Matrix Scale & Skew Coefficients ");
 				if (opts->coord_bits - 8 < stats->scale_int_res_2d) {
 					opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits + 8;
-					fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
+					fprintf(stderr, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
 				} else  {
 					opts->scale_bits = 0;
-					fprintf(stdout, "encoded using a %d.8 representation\n", opts->coord_bits - 8);
+					fprintf(stderr, "encoded using a %d.8 representation\n", opts->coord_bits - 8);
 				}
 			} 
 #ifndef GPAC_DISABLE_VRML
@@ -1738,7 +1738,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 #endif /*GPAC_DISABLE_SCENE_STATS*/
 
 	if (e<0) {
-		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
+		fprintf(stderr, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
 	} else {
 		gf_log_cbk prev_logs = NULL;
@@ -1872,15 +1872,15 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		/*NO CHANGE TO BIFSC otherwise the generated update will not match the input context*/
 		nbb = GetNbBits(ctx->max_node_id);
 		if (!bcfg->nodeIDbits) bcfg->nodeIDbits=nbb;
-		if (bcfg->nodeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
+		if (bcfg->nodeIDbits<nbb) fprintf(stderr, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
 
 		nbb = GetNbBits(ctx->max_route_id);
 		if (!bcfg->routeIDbits) bcfg->routeIDbits = nbb;
-		if (bcfg->routeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
+		if (bcfg->routeIDbits<nbb) fprintf(stderr, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
 
 		nbb = GetNbBits(ctx->max_proto_id);
 		if (!bcfg->protoIDbits) bcfg->protoIDbits=nbb;
-		if (bcfg->protoIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
+		if (bcfg->protoIDbits<nbb) fprintf(stderr, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
 
 		/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/
 		encode_names = 0;
@@ -1935,7 +1935,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {
 #if defined(GPAC_DISABLE_SMGR) || defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)
-	fprintf(stdout, "BIFS encoding is not supported in this build of GPAC\n");
+	fprintf(stderr, "BIFS encoding is not supported in this build of GPAC\n");
 	return GF_NOT_SUPPORTED;
 #else
 	GF_Err e;
@@ -1955,7 +1955,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (e) {
-		fprintf(stdout, "Cannot load context %s - %s\n", inputContext, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load context %s - %s\n", inputContext, gf_error_to_string(e));
 		goto exit;
 	}
 
@@ -1972,10 +1972,10 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (e) {
-		fprintf(stdout, "Cannot load chunk context %s - %s\n", chunkFile, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load chunk context %s - %s\n", chunkFile, gf_error_to_string(e));
 		goto exit;
 	}
-	fprintf(stdout, "Context and chunks loaded\n");
+	fprintf(stderr, "Context and chunks loaded\n");
 
 	/* Assumes that the first AU contains only one command a SceneReplace and 
 	   that is not part of the current chunk */
@@ -2084,12 +2084,12 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 
 	type = gf_xml_get_root_type(file_name, &e);
 	if (!type) {
-		fprintf(stdout, "Cannot process XML file %s: %s\n", file_name, gf_error_to_string(e) );
+		fprintf(stderr, "Cannot process XML file %s: %s\n", file_name, gf_error_to_string(e) );
 		return NULL;
 	}
 	if (make_wgt) {
 		if (strcmp(type, "widget")) {
-			fprintf(stdout, "XML Root type %s differs from \"widget\" \n", type);
+			fprintf(stderr, "XML Root type %s differs from \"widget\" \n", type);
 			gf_free(type);
 			return NULL;
 		}
@@ -2138,7 +2138,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		else if (!stricmp(type, "xmt-a")) mtype = ascii ? GF_4CC('x','m','t','a') : GF_4CC('x','m','t','z');
 	}
 	if (!mtype) {
-		fprintf(stdout, "Missing 4CC code for meta name - please use ABCD:fileName\n");
+		fprintf(stderr, "Missing 4CC code for meta name - please use ABCD:fileName\n");
 		e = GF_BAD_PARAM;
 		goto exit;
 	}
@@ -2160,7 +2160,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 			fclose(test);
 			if (gf_isom_probe_file(item)) {
 				if (isom_src) {
-					fprintf(stdout, "Cannot package several IsoMedia files together\n");
+					fprintf(stderr, "Cannot package several IsoMedia files together\n");
 					e = GF_NOT_SUPPORTED;
 					goto exit;
 				}
@@ -2244,7 +2244,7 @@ exit:
 #else
 GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt)
 {
-	fprintf(stdout, "XML Not supported in this build of GPAC - cannot package file\n");
+	fprintf(stderr, "XML Not supported in this build of GPAC - cannot package file\n");
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_CORE_TOOLS

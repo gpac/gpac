@@ -87,7 +87,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	op.b_o_s = 1;
 	op.e_o_s = 0;
 
-	out = gf_f64_open(szName, "wb");
+	out = szName ? gf_f64_open(szName, "wb") : stdout;
 	if (!out) return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	theora_kgs = 0;
@@ -179,7 +179,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 		gf_fwrite(og.body, 1, og.body_len, out);
 	}
     ogg_stream_clear(&os);
-	fclose(out);
+	if (szName) fclose(out);
 	return GF_OK;
 #endif
 }
@@ -255,6 +255,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	char szName[1000], szEXT[10], szNum[1000], *dsi;
 	char *ext_start = NULL;
 	FILE *out;
+	Bool is_stdout=0;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
 
@@ -407,6 +408,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 
 	ext_start = strrchr(dumper->out_name, '.');
 
+	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
+		is_stdout = 1;
+
 	if (dumper->sample_num) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
 		if (!samp) return GF_BAD_PARAM;
@@ -417,7 +421,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		} else {
 			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
 		}
-		out = gf_f64_open(szName, "wb");
+		out = is_stdout ? stdout : gf_f64_open(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (is_mj2k) 
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
@@ -425,8 +429,11 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_bs_del(bs);
-		fclose(out);
-		if (dsi) gf_free(dsi);
+		
+		if (!is_stdout)
+			fclose(out);
+		if (dsi)
+			gf_free(dsi);
 		return GF_OK;
 	}
 
@@ -450,7 +457,8 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 				sprintf(szName, "%s_%03d%s", dumper->out_name, i+1, szEXT);
 			}
 		}
-		out = gf_f64_open(szName, "wb");
+
+		out = is_stdout ? stdout : gf_f64_open(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (dsi) gf_bs_write_data(bs, dsi, dsi_size);
 		if (is_mj2k) 
@@ -460,7 +468,8 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		gf_bs_del(bs);
-		fclose(out);
+		if (!is_stdout)
+			fclose(out);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	if (dsi) gf_free(dsi);
@@ -616,6 +625,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	u32 aac_type, is_aac;
 	char *dsi;
 	QCPRateTable rtable[8];
+	Bool is_stdout=0;
 
 	dsi_size = 0;
 	dsi = NULL;
@@ -629,6 +639,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	m_type = gf_isom_get_media_type(dumper->file, track);
 	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
 	has_qcp_pad = 0;
+	if (dumper->out_name && !strcmp(dumper->out_name, "std")) 
+		is_stdout = 1;
 
 	is_aac = aac_type = 0;
 	qcp_type = 0;
@@ -854,7 +866,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		return GF_OK;
 	}
 
-	if (is_ogg) return gf_dump_to_ogg(dumper, szName, track);
+	if (is_ogg) return gf_dump_to_ogg(dumper, is_stdout ? NULL : szName, track);
 
 	if (is_vobsub) return gf_dump_to_vobsub(dumper, szName, track, dsi, dsi_size);
 
@@ -874,7 +886,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		}
 	}
 
-	if (dumper->out_name && (dumper->flags & GF_EXPORT_MERGE)) {
+	if (is_stdout) {
+		out = stdout;
+	} else if (dumper->out_name && (dumper->flags & GF_EXPORT_MERGE)) {
 		out = gf_f64_open(dumper->out_name, "a+b");
 		if (out) gf_f64_seek(out, 0, SEEK_END);
 	} else {
@@ -1085,7 +1099,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	gf_bs_del(bs);
-	fclose(out);
+	if (!is_stdout) 
+		fclose(out);
 	return e;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 }
@@ -1474,7 +1489,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 {
 	GF_ISOFile *outfile;
 	GF_Err e;
-	Bool add_to_iod;
+	Bool add_to_iod, is_stdout;
 	char szName[1000], *ext;
 	u32 track;
 	u8 mode;
@@ -1498,9 +1513,10 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		if (ext) ext = strrchr(ext, '.');
 		sprintf(szName, "%s%s", dumper->out_name, ext ? ext : ".mp4");
 	}
+	is_stdout = (dumper->out_name && !strcmp(dumper->out_name, "std")) ? 1 : 0;
 	add_to_iod = 1;
 	mode = GF_ISOM_WRITE_EDIT;
-	if (dumper->flags & GF_EXPORT_MERGE) {
+	if (!is_stdout && (dumper->flags & GF_EXPORT_MERGE)) {
 		FILE *t = gf_f64_open(szName, "rb");
 		if (t) {
 			add_to_iod = 0;
@@ -1508,7 +1524,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 			fclose(t);
 		}
 	}
-	outfile = gf_isom_open(szName, mode, NULL);
+	outfile = gf_isom_open(is_stdout ? "std" : szName, mode, NULL);
 
 	if (mode == GF_ISOM_WRITE_EDIT) {
 		gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, 0xFF);
@@ -1890,6 +1906,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	GF_SAFMuxer *mux;
 	char *data;
 	u32 size;
+	Bool is_stdout = 0;
 	FILE *saf_f;
 	SAFInfo safs[1024];
 
@@ -1952,9 +1969,11 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	}
 	gf_export_message(dumper, GF_OK, "SAF: Multiplexing %d tracks", s_count);
 
+	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
+		is_stdout = 1;
 	strcpy(out_file, dumper->out_name);
 	strcat(out_file, ".saf");
-	saf_f = gf_f64_open(out_file, "wb");
+	saf_f = is_stdout ? stdout : gf_f64_open(out_file, "wb");
 
 	samp_done = 0;
 	while (samp_done<tot_samp) {
@@ -1982,7 +2001,8 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		gf_fwrite(data, size, 1, saf_f);
 		gf_free(data);
 	}
-	fclose(saf_f);
+	if (!is_stdout)
+		fclose(saf_f);
 
 	gf_saf_mux_del(mux);
 	return GF_OK;
@@ -2017,6 +2037,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	GF_M2TS_PES *stream;
 	u32 i;
 	u64 size, fsize, fdone;
+	Bool is_stdout=0;
 	GF_M2TS_Demuxer *ts;
 	FILE *src, *dst;
 
@@ -2100,12 +2121,17 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_export_message(dumper, GF_OK, "Extracting Unknown stream to raw");
 		break;
 	}
-	dst = gf_f64_open(szFile, "wb");
+
+	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
+		is_stdout=1;
+
+	dst = is_stdout ? stdout : gf_f64_open(szFile, "wb");
 	if (!dst) {
 		fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_IO_ERR, "Cannot open file %s for writing", szFile);
 	}
+
 	gf_m2ts_reset_parsers(ts);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
@@ -2121,7 +2147,9 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	gf_set_progress("MPEG-2 TS Extract", fsize, fsize);
-	fclose(dst);
+
+	if (!is_stdout)
+		fclose(dst);
 	fclose(src);
 	gf_m2ts_demux_del(ts);
 	return GF_OK;

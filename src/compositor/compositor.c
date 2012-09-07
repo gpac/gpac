@@ -2058,7 +2058,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 					if (gf_sys_get_rti(500, &sys_rti, GF_RTI_ALL_PROCESSES_TIMES)) {
 						evt.type = GF_EVENT_CPU;
 						evt.cpu_percentage = sys_rti.total_cpu_usage;
-						//printf("%d\n",sys_rti.total_cpu_usage);
+						//fprintf(stderr, "%d\n",sys_rti.total_cpu_usage);
 						gf_dom_event_fire(root, NULL, &evt);
 					} 
 				} else if (l->event.type == GF_EVENT_BATTERY) { //&& l->observer.target == (SVG_SA_Element *)node) {

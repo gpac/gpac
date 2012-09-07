@@ -435,7 +435,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	}
 	
 #ifdef GPAC_DISABLE_ISOM_WRITE
-	fprintf(stdout, "Warning: GPAC was compiled without ISOM Write support, can't set SL Config!\n");
+	fprintf(stderr, "Warning: GPAC was compiled without ISOM Write support, can't set SL Config!\n");
 #else
 	gf_isom_set_extraction_slc(mp4, track_num, 1, ifce->sl_config);
 #endif
@@ -1159,7 +1159,7 @@ static Bool seng_output(void *param)
 				case 'p':
 				{
 					char rad[GF_MAX_PATH];
-					fprintf(stderr, "Enter output file name - \"std\" for stdout: ");
+					fprintf(stderr, "Enter output file name - \"std\" for stderr: ");
 					if (1 > scanf("%s", rad)){
 					    fprintf(stderr, "No outfile name has been entered, aborting.\n");
 					    break;
@@ -1709,7 +1709,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			gf_sys_init(1);
 			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_DEBUG);
 #else
-			fprintf(stdout, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
 #endif
 		} else if (!strnicmp(arg, "-rate=", 6)) {
 			if (rate_found) {
@@ -1930,7 +1930,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		return GF_OK;
 	} else {
 		if (remove(manifest_name)) {
-			fprintf(stdout, "Error removing file %s\n", manifest_name);
+			fprintf(stderr, "Error removing file %s\n", manifest_name);
 			return GF_IO_ERR;
 		} else if (rename(tmp_manifest, manifest_name)) {
 			fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
@@ -2136,7 +2136,7 @@ int main(int argc, char **argv)
 				e = gf_sk_bind(audio_input_udp_sk, NULL, audio_input_port, (char *)audio_input_ip, audio_input_port, GF_SOCK_REUSE_PORT);
 			}
 			if (e) {
-				fprintf(stdout, "Error initializing UDP socket for %s:%d : %s\n", audio_input_ip, audio_input_port, gf_error_to_string(e));
+				fprintf(stderr, "Error initializing UDP socket for %s:%d : %s\n", audio_input_ip, audio_input_port, gf_error_to_string(e));
 				goto exit;
 			}
 			gf_sk_set_buffer_size(audio_input_udp_sk, 0, UDP_BUFFER_SIZE);
@@ -2343,8 +2343,8 @@ int main(int argc, char **argv)
 	{
 		u64 bits = muxer->tot_pck_sent*8*188;
 		u32 dur_sec = gf_m2ts_get_ts_clock(muxer) / 1000;
-		fprintf(stdout, "Done muxing - %d sec - average rate %d kbps "LLD" packets written\n", dur_sec, (u32) (bits/dur_sec/1000), muxer->tot_pck_sent);
-		fprintf(stdout, "\tPadding: "LLD" packets - "LLD" PES padded bytes (%g kbps)\n", muxer->tot_pad_sent, muxer->tot_pes_pad_bytes, (Double) (muxer->tot_pes_pad_bytes*8.0/dur_sec/1000) );
+		fprintf(stderr, "Done muxing - %d sec - average rate %d kbps "LLD" packets written\n", dur_sec, (u32) (bits/dur_sec/1000), muxer->tot_pck_sent);
+		fprintf(stderr, "\tPadding: "LLD" packets - "LLD" PES padded bytes (%g kbps)\n", muxer->tot_pad_sent, muxer->tot_pes_pad_bytes, (Double) (muxer->tot_pes_pad_bytes*8.0/dur_sec/1000) );
 	}
 
 exit:

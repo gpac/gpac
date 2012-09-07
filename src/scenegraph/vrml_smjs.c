@@ -2882,8 +2882,9 @@ static SMJS_FUNC_PROP_SET( array_setLength)
 			if (n) gf_node_unregister(n, ptr->owner);
 			c--;
 		}
-		if (len>c)
-			fprintf(stdout, "NOT SUPPORTED!!!\n");
+		if (len>c) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML] MFARRAY EXPANSION NOT SUPPORTED!!!\n"));
+		}
 	}
 		return JS_TRUE;
 	}
@@ -3780,7 +3781,7 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSObject *obj
 			too costly to handle in script*/
 			if (gf_node_list_get_count(f)==count) return;
 
-			fprintf(stdout, "rewriting MFNode cache\n");
+			fprintf(stderr, "rewriting MFNode cache\n");
 			while (f) {
 				slot = NULL;
 				/*first look in the original array*/

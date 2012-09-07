@@ -119,7 +119,7 @@ static void SAF_Regulate(SAFIn *read)
 			if (com.buffer.occupancy) min_occ = MIN(min_occ, com.buffer.occupancy - ch->buffer_min);
 		}
 		if (min_occ == (u32) -1) break;
-		//fprintf(stdout, "Regulating SAF demux - sleeping for %d ms\n", min_occ);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[SAF] Regulating SAF demux - sleeping for %d ms\n", min_occ));
 		gf_sleep(min_occ);
 	}
 }

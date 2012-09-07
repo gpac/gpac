@@ -1598,7 +1598,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 		if (!opt) {
 #ifdef GPAC_CONFIG_DARWIN
 			opt = "no";
-			fprintf(stdout, "Disabling UPnP - to enable it, modify section [UPnP] key \"Enabled\" in /Users/yourname/.gpacrc");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Disabling UPnP - to enable it, modify section [UPnP] key \"Enabled\" in /Users/yourname/.gpacrc"));
 #else
 			opt = "yes";
 #endif

@@ -2154,6 +2154,7 @@ typedef struct
 {
 	GF_ISOM_BASE_DATA_HANDLER
 	FILE *stream;
+	Bool is_stdout;
 	Bool last_acces_was_read;
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	char *temp_file;

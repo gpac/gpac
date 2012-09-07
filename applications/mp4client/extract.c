@@ -342,8 +342,8 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 
 	/*lock it*/
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
-	if (e) fprintf(stdout, "Error grabbing depth buffer: %s\n", gf_error_to_string(e));
-	else  fprintf(stdout, "OK\n");
+	if (e) fprintf(stderr, "Error grabbing depth buffer: %s\n", gf_error_to_string(e));
+	else  fprintf(stderr, "OK\n");
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
@@ -411,7 +411,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 		}
 #ifndef GPAC_DISABLE_AVILIB
 		if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
-			printf("Error writing frame\n");
+			fprintf(stderr, "Error writing frame\n");
 #endif
 		break;
 	case 2:
@@ -446,7 +446,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	if (dump_type==5 || dump_type==6) e = gf_sc_get_screen_buffer(term->compositor, &fb, 2);
 	else if (dump_type== 9 || dump_type==10) e = gf_sc_get_screen_buffer(term->compositor, &fb, 3);
 	else e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
-	if (e) fprintf(stdout, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
+	if (e) fprintf(stderr, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
 
 	/*export frame*/
 	switch (dump_type) {
@@ -551,10 +551,10 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 #ifndef GPAC_DISABLE_AVILIB
 		if (dump_type!=5 && dump_type!= 10) { 
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
-			printf("Error writing frame\n");
+			fprintf(stderr, "Error writing frame\n");
 		} else {
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
-			printf("Error writing frame\n");				
+			fprintf(stderr, "Error writing frame\n");				
 		}
 #endif
 		break;
@@ -596,7 +596,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 	prev = strrchr(szPath, '.');
 	if (prev) prev[0] = 0;
 
-	fprintf(stdout, "Opening URL %s\n", url);
+	fprintf(stderr, "Opening URL %s\n", url);
 	/*connect in pause mode*/
 	gf_term_connect_from_time(term, url, 0, 1);
 
@@ -614,14 +614,14 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		gf_term_process_flush(term);
 	} 
 #ifndef GPAC_USE_TINYGL
-        printf("not tinygl\n");
+        fprintf(stderr, "not tinygl\n");
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 #else
-        printf("tinygl\n");
+        fprintf(stderr, "tinygl\n");
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
 #endif
 	if (e != GF_OK) {
-		fprintf(stdout, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
+		fprintf(stderr, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
 		return 0;
 	}
 	width = fb.width;
@@ -637,7 +637,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 
 	/*we work in RGB24, and we must make sure the pitch is %4*/
 	if ((width*3)%4) {
-		fprintf(stdout, "Adjusting width (%d) to have a stride multiple of 4\n", width);
+		fprintf(stderr, "Adjusting width (%d) to have a stride multiple of 4\n", width);
 		while ((width*3)%4) width--;
 
 		gf_term_set_size(term, width, height);
@@ -651,7 +651,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 
 	if (dump_mode==1 || dump_mode==5 || dump_mode==8 || dump_mode==10) {
 #ifdef GPAC_DISABLE_AVILIB
-		fprintf(stdout, "AVILib is disabled in this build of GPAC\n");
+		fprintf(stderr, "AVILib is disabled in this build of GPAC\n");
 		return 0;
 #else
 		u32 time, prev_time, nb_frames, dump_dur;
@@ -664,14 +664,14 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		strcat(szPath, ".avi");
 		avi_out = AVI_open_output_file(szPath);
 		if (!avi_out) {
-			fprintf(stdout, "Error creating AVI file %s\n", szPath);
+			fprintf(stderr, "Error creating AVI file %s\n", szPath);
 			return 1;
 		}
 		if (dump_mode==8) {
 			strcat(szPath_depth, "_depth.avi");
 			depth_avi_out = AVI_open_output_file(szPath_depth);
 			if (!depth_avi_out) {
-				fprintf(stdout, "Error creating AVI file %s\n", szPath);
+				fprintf(stderr, "Error creating AVI file %s\n", szPath);
 				return 1;
 			}	
 		}
@@ -687,7 +687,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			dump_dur = times[0] ? times[0] : Duration;
 		}
 		if (!dump_dur) {
-			fprintf(stdout, "Warning: file has no duration, defaulting to 1 sec\n");
+			fprintf(stderr, "Warning: file has no duration, defaulting to 1 sec\n");
 			dump_dur = 1000;
 		}
 
@@ -703,7 +703,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 				gf_term_process_flush(term);
 			}
-			fprintf(stdout, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
+			fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
 
 			if (dump_mode==8) {
 				/*we'll dump both buffers at once*/
@@ -721,14 +721,14 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			prev_time = time;
 
 			if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
-				fprintf(stdout, "Aborting dump\n");
+				fprintf(stderr, "Aborting dump\n");
 				break;
 			}
 		}
 		AVI_close(avi_out);
 		if (dump_mode==8) AVI_close(depth_avi_out);
 		gf_free(conv_buf);
-		fprintf(stdout, "AVI Extraction 100/100\n");
+		fprintf(stderr, "AVI Extraction 100/100\n");
 #endif /*GPAC_DISABLE_AVILIB*/
 	} else {
 		if (times[0]) gf_term_step_clocks(term, times[0]);

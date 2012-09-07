@@ -348,9 +348,9 @@ GF_Err LIBPLAYER_CloseService(GF_InputService *plug)
 	// only disconnect if 
 	if (read->player_type == PLAYER_FILE) {
 		player_playback_stop(read->player);
-		printf("[LibPlayerIN]player_playback_stop for instance %d\n", read->player_id);
+		fprintf(stderr, "[LibPlayerIN]player_playback_stop for instance %d\n", read->player_id);
 		player_uninit(read->player);
-		printf("[LibPlayerIN]player_uninit for instance %d\n", read->player_id);
+		fprintf(stderr, "[LibPlayerIN]player_uninit for instance %d\n", read->player_id);
 		read->player = NULL;
 		libplayer_id--;
 		
@@ -539,7 +539,7 @@ static GF_Err LIBPLAYER_Control(GF_PrivateMediaDecoder *dec, Bool mute, GF_Windo
 	//! unfortunately, saving data would not be a good solution for Mosaic Mode in ESG Application since the position changes everytime user 
 	//! uses the navigation button
 	//~ if (read->player_id == 1 && save_data_instance1 == 1) {
-		//~ printf("in here for save data instance\n");
+		//~ fprintf(stderr, "in here for save data instance\n");
 		//~ player_video_io_windows_set(read->player, &in_instance1, &out_instance1);
 		//~ 
 		//~ return GF_OK;
@@ -552,8 +552,8 @@ static GF_Err LIBPLAYER_Control(GF_PrivateMediaDecoder *dec, Bool mute, GF_Windo
 	
 
 	if((width != read->width) || (height != read->height))	{
-		printf("in here for video size changed\t");
-		printf("width %d read->width %d height %d read->height %d\n", width, read->width, height, read->height);
+		fprintf(stderr, "in here for video size changed\t");
+		fprintf(stderr, "width %d read->width %d height %d read->height %d\n", width, read->width, height, read->height);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerDEC] video size changed to width %d - height %d\n", width, height));
 		if (width && height) {
 			read->width = width;

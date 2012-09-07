@@ -1388,7 +1388,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 				else pcr = 0;
 			}
 
-			//fprintf(stdout, "PCR Diff in ms %d - sys clock diff in ms %d - DTS diff %d\n", (u32) (pcr - stream->program->last_pcr) / 27000, now - stream->program->last_sys_clock, (stream->curr_pck.dts - stream->program->last_dts)/90);
+			//fprintf(stderr, "PCR Diff in ms %d - sys clock diff in ms %d - DTS diff %d\n", (u32) (pcr - stream->program->last_pcr) / 27000, now - stream->program->last_sys_clock, (stream->curr_pck.dts - stream->program->last_dts)/90);
 
 			stream->program->last_sys_clock = now;
 			/*if stream does not use DTS, use CTS as base time for PCR*/
@@ -2074,7 +2074,7 @@ send_pck:
 				drift += (muxer->time.sec - time.sec)*1000;
 				assert(muxer->time.sec > time.sec);
 			}
-//			fprintf(stdout, "\nMux time - Packet PID %d time: %d ms\n", stream_to_process->pid, drift);
+//			fprintf(stderr, "\nMux time - Packet PID %d time: %d ms\n", stream_to_process->pid, drift);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Send %s from PID %d at %d:%09d - mux time %d:%09d\n", stream_to_process->tables ? "table" : "PES", stream_to_process->pid, time.sec, time.nanosec, muxer->time.sec, muxer->time.nanosec));
 #endif

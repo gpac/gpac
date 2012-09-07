@@ -502,7 +502,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			}
 		}
 		gf_mx_v(term->mm_mx);
-//		fprintf(stdout, "Buffer occupancy %d\n", com->buffer.occupancy);
+//		fprintf(stderr, "Buffer occupancy %d\n", com->buffer.occupancy);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 		return;
 	}

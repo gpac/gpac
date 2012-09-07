@@ -336,11 +336,11 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 				}
 /*				if (1) {
 					GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
-					fprintf(stdout, "Dumping text tree:\n");
+					fprintf(stderr, "Dumping text tree:\n");
 					while (child) {
 						switch (gf_node_get_tag(child->node)) {
-						case TAG_SVG_tbreak: fprintf(stdout, "\ttbreak\n"); break;
-						case TAG_DOMText: fprintf(stdout, "\ttext: %s\n", ((GF_DOMText *)child->node)->textContent); break;
+						case TAG_SVG_tbreak: fprintf(stderr, "\ttbreak\n"); break;
+						case TAG_DOMText: fprintf(stderr, "\ttext: %s\n", ((GF_DOMText *)child->node)->textContent); break;
 						}
 						child = child->next;
 					}

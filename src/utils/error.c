@@ -75,7 +75,7 @@ static const char *szProg[] =
 
 static u64 prev_pos = 0;
 static u64 prev_pc = 0;
-static void gf_on_progress_stdout(const char *_title, u64 done, u64 total)
+static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 {
 	Double prog;
 	u32 pos;
@@ -90,16 +90,16 @@ static void gf_on_progress_stdout(const char *_title, u64 done, u64 total)
 	}
 	if (done==total) {
 		u32 len = strlen(szT) + 40;
-		while (len) { fprintf(stdout, " "); len--; };
-		fprintf(stdout, "\r");
+		while (len) { fprintf(stderr, " "); len--; };
+		fprintf(stderr, "\r");
 	}
 	else {
 		u32 pc = (u32) ( 100 * prog);
 		if ((pos!=prev_pos) || (pc!=prev_pc)) {
 			prev_pos = pos;
 			prev_pc = pc;
-			fprintf(stdout, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
-			fflush(stdout);
+			fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
+			fflush(stderr);
 		}
 	}
 }
@@ -115,7 +115,7 @@ void gf_set_progress(const char *title, u64 done, u64 total)
 	}
 #ifndef _WIN32_WCE
 	else {
-		gf_on_progress_stdout(title, done, total);
+		gf_on_progress_std(title, done, total);
 	}
 #endif
 }
@@ -326,7 +326,7 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
 {
 #ifndef _WIN32_WCE
-    vfprintf(stdout, fmt, vlist);
+    vfprintf(stderr, fmt, vlist);
 #endif
 }
 
