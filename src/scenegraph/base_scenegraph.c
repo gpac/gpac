@@ -292,7 +292,10 @@ void gf_sg_reset(GF_SceneGraph *sg)
 {
 	GF_SceneGraph *par;
 	GF_List *gc;
-	u32 type, count;
+#ifndef GPAC_DISABLE_SVG
+	u32 type;
+#endif
+	u32 count;
 	NodeIDedItem *reg_node;
 	if (!sg) return;
 
@@ -391,8 +394,9 @@ restart:
 		This will take care of nodes referencing themselves*/
 		{
 		GF_ParentList *nlist = node->sgprivate->parents;
+#ifndef GPAC_DISABLE_SVG
 		type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
-
+#endif
 		while (nlist) {
 			GF_ParentList *next = nlist->next;
 #if 0
@@ -866,7 +870,9 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 /*get all parents of the node and replace, the instance of the node and finally destroy the node*/
 GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup)
 {
+#ifndef GPAC_DISABLE_SVG
 	u32 type;
+#endif
 #ifndef GPAC_DISABLE_VRML
 	Bool replace_proto;
 #endif
@@ -879,8 +885,8 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	if (node == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
 #endif
 
-	type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
 #ifndef GPAC_DISABLE_SVG
+	type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
 	if (type) {
 		Replace_IRI(pSG, node, new_node);
 	}

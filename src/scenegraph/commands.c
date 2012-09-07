@@ -145,6 +145,7 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 	gf_node_changed(node, field);
 }
 
+#ifndef GPAC_DISABLE_SVG
 static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildNodeItem *child)
 {
 	GF_ChildNodeItem *cur;
@@ -156,6 +157,7 @@ static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildN
 		gf_free(cur);
 	}
 }
+#endif
 
 
 GF_EXPORT
