@@ -324,8 +324,8 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url)
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
-/*frees a SegmentURL*/
-void gf_mpd_segment_url_free(GF_MPD_SegmentURL*ptr);
+/*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
+void gf_mpd_segment_url_free(void *ptr);
 
 typedef struct _gf_file_get GF_FileDownload;
 struct _gf_file_get
