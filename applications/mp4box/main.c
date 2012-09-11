@@ -323,7 +323,7 @@ void PrintFormats()
 			" VRML                 .wrl .wrl.gz\n"
 			" X3D-XML              .x3d .x3d.gz\n"
 			" X3D-VRML             .x3dv .x3dv.gz\n"
-			" MacroMedia Flash     .swf (very limitted import support only)\n"
+			" MacroMedia Flash     .swf (very limited import support only)\n"
 			"\n"
 		);
 }
