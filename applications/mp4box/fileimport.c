@@ -1188,39 +1188,20 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	if (opts && (opts[1]=='\\')) 
 		opts = strchr(fileName, ':');
 
-	if (opts) {
-		opts[0] = 0;
-		opts = &opts[1];
-	}
 	e = GF_OK;
 
-	is_isom = gf_isom_probe_file(fileName);
+	/*if options are specified, reimport the file*/
+	is_isom = opts ? 0 : gf_isom_probe_file(fileName);
 
-	if (!is_isom) {
+	if (!is_isom || opts) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample);
 		if (e) return e;
 	} else {
 		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
 		orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
-
-		while (opts) {
-			char *sep = strchr(opts, ':');
-			if (sep) sep[0]=0;
-
-			/*single chapter*/
-			if (!strnicmp(opts, "chapter=", 8)) {
-				e = gf_isom_add_chapter(orig, 0, 0, opts+8);
-			}
-			/*chapter file*/
-			else if (!strnicmp(opts, "chapfile=", 9)) {
-				e = gf_media_import_chapters(orig, opts+9, 0);
-			}
-			if (!sep) break;
-			sep[0]=':';
-			opts = sep+1;
-		}
 	}
+
 	while (multi_cat) {
 		char *sep = strchr(multi_cat, '+');
 		if (sep) sep[0] = 0;
