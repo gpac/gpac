@@ -6719,6 +6719,251 @@ exit:
 }
 #endif
 
+GF_EXPORT
+GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
+{
+	int readen=0;
+	GF_Err e;
+	u32 state, offset;
+	u32 cur_chap;
+	u64 ts;
+	u32 i, h, m, s, ms, fr, fps;
+	char line[1024];
+	char szTitle[1024];
+	FILE *f = gf_f64_open(import->in_name, "rt");
+	if (!f) return GF_URL_ERROR;
+
+	readen = fread(line, 1, 4, f);
+	if (readen < 4){
+		e = GF_URL_ERROR;
+		goto err_exit;
+	}
+	offset = 0;
+	if ((line[0]==(char)(0xFF)) && (line[1]==(char)(0xFE))) {
+		if (!line[2] && !line[3]){
+			e = GF_NOT_SUPPORTED;
+			goto err_exit;
+		}
+		offset = 2;
+	} else if ((line[0]==(char)(0xFE)) && (line[1]==(char)(0xFF))) {
+		if (!line[2] && !line[3]){
+			e = GF_NOT_SUPPORTED;
+			goto err_exit;
+		}
+		offset = 2;
+	} else if ((line[0]==(char)(0xEF)) && (line[1]==(char)(0xBB)) && (line[2]==(char)(0xBF))) {
+		/*we handle UTF8 as asci*/
+		offset = 3;
+	} else {
+		offset = 0;
+	}
+	gf_f64_seek(f, offset, SEEK_SET);
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		Bool is_chap_or_sub = 0;
+		import->nb_tracks = 0;
+		while (!is_chap_or_sub && (fgets(line, 1024, f) != NULL)) {
+			char *sep;
+			strlwr(line);
+
+			if (strstr(line, "addchapter(")) is_chap_or_sub = 1;
+			else if (strstr(line, "-->")) is_chap_or_sub = 1;
+			else if ((sep = strstr(line, "chapter")) != NULL) {
+				sep+=7;
+				if (!strncmp(sep+1, "name", 4)) is_chap_or_sub = 1;
+				else if (!strncmp(sep+2, "name", 4)) is_chap_or_sub = 1;
+				else if (!strncmp(sep+3, "name", 4)) is_chap_or_sub = 1;
+			}
+		}
+		fclose(f);
+		if (is_chap_or_sub) {
+			import->nb_tracks = 1;
+			import->tk_info[0].media_type = GF_4CC('C','H','A','P');
+			import->tk_info[0].type = GF_4CC('t','e','x','t');
+			return GF_OK;
+		}
+		return GF_NOT_SUPPORTED;
+	}
+
+	e = gf_isom_remove_chapter(import->dest, 0, 0);
+	if (e) goto err_exit;
+
+	if (!import->video_fps) {
+		/*try to figure out the frame rate*/
+		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
+			GF_ISOSample *samp;
+			u32 ts, inc;
+			if (gf_isom_get_media_type(import->dest, i+1) != GF_ISOM_MEDIA_VISUAL) continue;
+			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
+			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
+			inc = (u32) samp->DTS;
+			if (!inc) inc=1;
+			ts = gf_isom_get_media_timescale(import->dest, i+1);
+			import->video_fps = ts;
+			import->video_fps /= inc;
+			gf_isom_sample_del(&samp);
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %g (%u:%u)\n", import->video_fps, ts, inc));
+			break;
+		}
+		if (!import->video_fps) 
+			import->video_fps = 25;
+	}
+
+	cur_chap = 0;
+	ts = 0;
+	state = 0;
+	while (fgets(line, 1024, f) != NULL) {
+		char *title = NULL;
+		u32 off = 0;
+		char *sL;
+		while (1) {
+			u32 len = strlen(line);
+			if (!len) break;
+			switch (line[len-1]) {
+			case '\n': case '\t': case '\r': case ' ':
+				line[len-1] = 0;
+				continue;
+			}
+			break;
+		}
+
+		while (line[off]==' ') off++;
+		if (!strlen(line+off)) continue;
+		sL = line+off;
+
+		szTitle[0] = 0;
+		/*ZoomPlayer chapters*/
+		if (!strnicmp(sL, "AddChapter(", 11)) {
+			u32 nb_fr;
+			sscanf(sL, "AddChapter(%u,%s)", &nb_fr, szTitle);
+			ts = nb_fr;
+			ts *= 1000;
+			ts = (u64) (((s64) ts ) / import->video_fps);
+			sL = strchr(sL, ','); strcpy(szTitle, sL+1); sL = strrchr(szTitle, ')'); if (sL) sL[0] = 0;
+		} else if (!strnicmp(sL, "AddChapterBySecond(", 19)) {
+			u32 nb_s;
+			sscanf(sL, "AddChapterBySecond(%u,%s)", &nb_s, szTitle);
+			ts = nb_s;
+			ts *= 1000;
+			sL = strchr(sL, ','); strcpy(szTitle, sL+1); sL = strrchr(szTitle, ')'); if (sL) sL[0] = 0;
+		} else if (!strnicmp(sL, "AddChapterByTime(", 17)) {
+			u32 h, m, s;
+			sscanf(sL, "AddChapterByTime(%u,%u,%u,%s)", &h, &m, &s, szTitle);
+			ts = 3600*h + 60*m + s;
+			ts *= 1000;
+			sL = strchr(sL, ',');
+			if (sL) sL = strchr(sL+1, ',');
+			if (sL) sL = strchr(sL+1, ',');
+			strcpy(szTitle, sL+1); sL = strrchr(szTitle, ')'); if (sL) sL[0] = 0;
+		}
+		/*regular or SMPTE time codes*/
+		else if ((strlen(sL)>=8) && (sL[2]==':') && (sL[5]==':')) {
+			title = NULL;
+			if (strlen(sL)==8) {
+				sscanf(sL, "%02u:%02u:%02u", &h, &m, &s);
+				ts = (h*3600 + m*60+s)*1000;
+			}
+			else {
+				char szTS[20], *tok;
+				strncpy(szTS, sL, 18);
+				tok = strrchr(szTS, ' ');
+				if (tok) {
+					title = strchr(sL, ' ') + 1;
+					while (title[0]==' ') title++;
+					if (strlen(title)) strcpy(szTitle, title);
+					tok[0] = 0;
+				}
+				ts = 0;
+				h = m = s = ms = 0;
+
+				if (sscanf(szTS, "%u:%u:%u;%u/%u", &h, &m, &s, &fr, &fps)==5) {
+					ts = (h*3600 + m*60+s)*1000 + 1000*fr/fps;
+				} else if (sscanf(szTS, "%u:%u:%u;%u", &h, &m, &s, &fr)==4) {
+					ts = (h*3600 + m*60+s);
+					ts = (s64) (((import->video_fps*((s64)ts) + fr) * 1000 ) / import->video_fps);
+				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					ts = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					ts = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(szTS, "%u:%u:%u:%u", &h, &m, &s, &ms) == 4) {
+					ts = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(szTS, "%u:%u:%u", &h, &m, &s) == 3) {
+					ts = (h*3600 + m*60+s) * 1000;
+				}
+			}
+		}
+		/*CHAPTERX= and CHAPTERXNAME=*/
+		else if (!strnicmp(sL, "CHAPTER", 7)) {
+			u32 idx;
+			char szTemp[20], *str;
+			strncpy(szTemp, sL, 19);
+			str = strrchr(szTemp, '=');
+			if (!str) continue;
+			str[0] = 0;
+			strlwr(szTemp);
+			idx = cur_chap;
+			str = strchr(sL, '=');
+			str++;
+			if (strstr(szTemp, "name")) {
+				sscanf(szTemp, "chapter%uname", &idx);
+				strcpy(szTitle, str);
+				if (idx!=cur_chap) {
+					cur_chap=idx;
+					state = 0;
+				}
+				state++;
+			} else {
+				sscanf(szTemp, "chapter%u", &idx);
+				if (idx!=cur_chap) {
+					cur_chap=idx;
+					state = 0;
+				}
+				state++;
+
+				ts = 0;
+				h = m = s = ms = 0;
+				if (sscanf(str, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					ts = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(str, "%u:%u:%u:%u", &h, &m, &s, &ms) == 4) {
+					ts = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(str, "%u:%u:%u", &h, &m, &s) == 3) {
+					ts = (h*3600 + m*60+s) * 1000;
+				}
+			}
+			if (state==2) {
+				e = gf_isom_add_chapter(import->dest, 0, ts, szTitle);
+				if (e) goto err_exit;
+				state = 0;
+			}
+			continue;
+		}
+		else continue;
+
+		if (strlen(szTitle)) {
+			e = gf_isom_add_chapter(import->dest, 0, ts, szTitle);
+		} else {
+			e = gf_isom_add_chapter(import->dest, 0, ts, NULL);
+		}
+		if (e) goto err_exit;
+	}
+
+
+err_exit:
+	fclose(f);
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps)
+{
+	GF_MediaImporter import;
+	memset(&import, 0, sizeof(GF_MediaImporter));
+	import.dest = file;
+	import.in_name = chap_file;
+	import.video_fps = import_fps;
+	import.streamFormat = "CHAP";
+	return gf_media_import(&import);
+}
 
 GF_EXPORT
 GF_Err gf_media_import(GF_MediaImporter *importer)
@@ -6860,6 +7105,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	/*DIMS*/
 	if (!strnicmp(ext, ".dml", 4) || !stricmp(fmt, "DIMS") )
 		return gf_import_nhml_dims(importer, 1);
+
+	if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") )
+		return gf_media_import_chapters_file(importer);
 
 	/*try XML things*/
 	xml_type = gf_xml_get_root_type(importer->in_name, &e);

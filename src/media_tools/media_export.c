@@ -1109,6 +1109,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 {
 	GF_Err e;
+	Bool is_stdout = 0;
 	u32 max_size, tot_size, num_samples, i;
 	s32 size;
 	char *comp, *frame;
@@ -1143,10 +1144,13 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		}
 		gf_export_message(dumper, GF_OK, "Extracting AVI video (format %s) to %s", comp, szOutFile);
 
-		if (strrchr(dumper->out_name, '.')) {
+		if (!strcmp(dumper->out_name, "std"))
+			is_stdout = 1;
+		else if (strrchr(dumper->out_name, '.')) {
 			strcpy(szOutFile, dumper->out_name);
 		} 
-		fout = gf_f64_open(szOutFile, "wb");
+
+		fout = is_stdout ? stdout : gf_f64_open(szOutFile, "wb");
 
 		max_size = 0;
 		frame = NULL;
@@ -1166,7 +1170,8 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 			gf_set_progress("AVI Extract", i+1, num_samples);
 		}
 		gf_free(frame);
-		fclose(fout);
+		if(!is_stdout)
+			fclose(fout);
 		fout = NULL;
 		goto exit;
 	}
@@ -1201,7 +1206,14 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	}
 	sprintf(szOutFile, "%s.%s", dumper->out_name, comp);
 	gf_export_message(dumper, GF_OK, "Extracting AVI %s audio", comp);
-	fout = gf_f64_open(szOutFile, "wb");
+
+	if (!strcmp(dumper->out_name, "std")) {
+		is_stdout = 1;
+	} else if (strrchr(dumper->out_name, '.')) {
+		strcpy(szOutFile, dumper->out_name);
+	} 
+
+	fout = is_stdout ? stdout : gf_f64_open(szOutFile, "wb");
 	num_samples = 0;
 	while (1) {
 		Bool continuous;
@@ -1215,7 +1227,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 
 
 exit:
-	if (fout) fclose(fout);
+	if (fout && !is_stdout) fclose(fout);
 	AVI_close(in);
 	return e;
 }

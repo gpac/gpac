@@ -160,13 +160,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, timescale, track, stype, profile, level;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty;
-	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, keep_handler;
+	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, is_chap_file, keep_handler;
 	u32 group, handler, rvc_predefined;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *handler_name, *rvc_config;
+	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
 	rvc_predefined = 0;
+	chapter_name = NULL;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -176,7 +177,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		fprintf(stderr, "Unknown input file type\n");
 		return GF_BAD_PARAM;
 	}
-
+	is_chap_file = 0;
 	handler = 0;
 	disable = 0;
 	chap_ref = 0;
@@ -282,7 +283,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!strnicmp(ext+1, "profile=", 8)) profile = atoi(ext+9);
 		else if (!strnicmp(ext+1, "level=", 6)) level = atoi(ext+7);
-
+		else if (!strnicmp(ext+1, "chapter=", 8)) chapter_name = gf_strdup(ext+9);
+		else if (!strnicmp(ext+1, "chapfile=", 9)) {
+			chapter_name = gf_strdup(ext+10);
+			is_chap_file=1;
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 		 ext = ext2;
@@ -552,8 +557,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (do_audio) fprintf(stderr, "WARNING: Audio track not found\n");
 	}
 
+	if (chapter_name) {
+		if (is_chap_file) {
+			e = gf_media_import_chapters(import.dest, chapter_name, 0);
+		} else {
+			e = gf_isom_add_chapter(import.dest, 0, 0, chapter_name);
+		}
+	}
 exit:
 	if (handler_name) gf_free(handler_name);
+	if (chapter_name ) gf_free(chapter_name );
 	if (import.fontName) gf_free(import.fontName);
 	if (import.streamFormat) gf_free(import.streamFormat);
 	if (import.force_ext) gf_free(import.force_ext);
@@ -1155,23 +1168,71 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
 	GF_Err e;
+	char *opts, *multi_cat;
 	Float ts_scale;
 	Double dest_orig_dur;
 	u32 dst_tk, tk_id, mtype;
 	u64 insert_dts;
+	Bool is_isom;
 	GF_ISOSample *samp;
 	Double aligned_to_DTS = 0;
 
 	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines);
+	
+	multi_cat = strchr(fileName, '+');
+	if (multi_cat) {
+		multi_cat[0] = 0;
+		multi_cat = &multi_cat[1];
+	}
+	opts = strchr(fileName, ':');
+	if (opts && (opts[1]=='\\')) 
+		opts = strchr(fileName, ':');
 
+	if (opts) {
+		opts[0] = 0;
+		opts = &opts[1];
+	}
 	e = GF_OK;
-	if (!gf_isom_probe_file(fileName)) {
+
+	is_isom = gf_isom_probe_file(fileName);
+
+	if (!is_isom) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample);
 		if (e) return e;
 	} else {
 		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
 		orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
+
+		while (opts) {
+			char *sep = strchr(opts, ':');
+			if (sep) sep[0]=0;
+
+			/*single chapter*/
+			if (!strnicmp(opts, "chapter=", 8)) {
+				e = gf_isom_add_chapter(orig, 0, 0, opts+8);
+			}
+			/*chapter file*/
+			else if (!strnicmp(opts, "chapfile=", 9)) {
+				e = gf_media_import_chapters(orig, opts+9, 0);
+			}
+			if (!sep) break;
+			sep[0]=':';
+			opts = sep+1;
+		}
+	}
+	while (multi_cat) {
+		char *sep = strchr(multi_cat, '+');
+		if (sep) sep[0] = 0;
+		
+		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample);
+		if (e) {
+			gf_isom_delete(orig);
+			return e;
+		}
+		if (!sep) break;
+		sep[0]=':';
+		multi_cat = sep+1;
 	}
 
 	nb_samp = 0;
@@ -1214,18 +1275,14 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	}
 	dest_orig_dur /= gf_isom_get_timescale(dest);
 
-	if (align_timelines) {
-		u32 idx;
-		aligned_to_DTS = 0;
-		for (idx=0; idx<gf_isom_get_track_count(dest); idx++) {
-			Double track_dur = (Double) gf_isom_get_media_duration(dest, idx+1);
-			track_dur /= gf_isom_get_media_timescale(dest, idx+1);
-			if (aligned_to_DTS < track_dur) {
-				aligned_to_DTS = track_dur;
-			}
+	aligned_to_DTS = 0;
+	for (i=0; i<gf_isom_get_track_count(dest); i++) {
+		Double track_dur = (Double) gf_isom_get_media_duration(dest, i+1);
+		track_dur /= gf_isom_get_media_timescale(dest, i+1);
+		if (aligned_to_DTS < track_dur) {
+			aligned_to_DTS = track_dur;
 		}
 	}
-
 
 	fprintf(stderr, "Appending file %s\n", fileName);
 	nb_done = 0;
