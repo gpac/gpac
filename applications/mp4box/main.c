@@ -367,6 +367,10 @@ void PrintImportUsage()
 			" \":stype=4CC\"         forces the sample description type to a different value\n"
 			"                         !! THIS MAY BREAK THE FILE WRITING !!\n"
 			" \":chap\"              specifies the track is a chapter track\n"
+			" \":chapter=NAME\"      adds a single chapter (old nero format) with given name lasting the entire file\n"
+			"                         This command can be used in -cat as well\n"
+			" \":chapfile=file\"     adds a chapter file (old nero format)\n"
+			"                         This command can be used in -cat as well\n"
 			" \":layout=WxHxXxY\"    specifies the track layout\n"
 			"                         - if W (resp H) = 0, the max width (resp height) of\n"
 			"                         the tracks in the file are used.\n"
@@ -377,6 +381,8 @@ void PrintImportUsage()
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"
 			"                         * Note: creates tracks if needed\n"
+			"                         * Note: new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
+			"                        where ADD_COMMAND is a regular -add syntax\n"
 			" -align-cat             aligns initial timestamp of file to be concatenated\n"
 			"                         * Note: may change timescale of tracks and introduce variable FPS\n"
 			" -force-cat             skips media configuration check when concatenating file\n"
@@ -1325,7 +1331,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 	swf_flatten_angle = 0.0f;
 	tmpdir = NULL;
-	
+
 	/*parse our args*/
 	for (i = 1; i < (u32) argc ; i++) {
 		arg = argv[i];
@@ -2650,12 +2656,18 @@ int mp4boxMain(int argc, char **argv)
 		mdump.in_name = inName;
 		mdump.flags = GF_EXPORT_AVI_NATIVE;
 		mdump.trackID = trackID;
-		if (trackID>2) {
+		if (dump_std) {
+			mdump.out_name = "std";
+		} else if (outName) {
+			mdump.out_name = outName;
+		} else if (trackID>2) {
 			sprintf(szFile, "%s_audio%d", outfile, trackID-1);
+			mdump.out_name = szFile;
 		} else {
 			sprintf(szFile, "%s_%s", outfile, (trackID==1) ? "video" : "audio");
+			mdump.out_name = szFile;
 		}
-		mdump.out_name = szFile;
+
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
 		MP4BOX_EXIT_WITH_CODE(0);

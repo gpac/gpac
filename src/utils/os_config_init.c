@@ -488,6 +488,15 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 
 	if (file) {
 		cfg = gf_cfg_new(NULL, file);
+		/*force creation of a new config*/
+		if (!cfg) {
+			FILE *fcfg = fopen(file, "wt");
+			if (fcfg) {
+				fclose(fcfg);
+				cfg = gf_cfg_new(NULL, file);
+				*new_cfg = 1;
+			}
+		}
 		if (cfg) {
 			check_modules_dir(cfg);
 			return cfg;
