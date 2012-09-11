@@ -1058,7 +1058,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 
 				//the initialization segment is not yet setup for fragmentation
 				if (! gf_isom_is_track_fragmented(sample_descs, tf->TrackID)) {
-					e = gf_isom_setup_track_fragment(sample_descs, sample_descs_track,
+					e = gf_isom_setup_track_fragment(sample_descs, tf->TrackID,
 								defaultDescriptionIndex, defaultDuration,
 								defaultSize, (u8) defaultRandomAccess,
 								defaultPadding, defaultDegradationPriority);
@@ -1070,7 +1070,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 											 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 					if (e) goto err_exit;
 
-					e = gf_isom_change_track_fragment_defaults(output, TrackNum,
+					e = gf_isom_change_track_fragment_defaults(output, tf->TrackID,
 											 defaultDescriptionIndex, defaultDuration, defaultSize, defaultRandomAccess, defaultPadding, defaultDegradationPriority);
 					if (e) goto err_exit;
 				}
