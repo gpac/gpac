@@ -38,8 +38,11 @@
 
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
-	GF_DASH_STATE_RUNNING,
+	/*period setup and playback chain creation*/
+	GF_DASH_STATE_SETUP,
+	/*request to start playback chain*/
 	GF_DASH_STATE_CONNECTING,
+	GF_DASH_STATE_RUNNING,
 } GF_DASH_STATE;
 
 
@@ -85,8 +88,8 @@ struct __dash_client
 	/*mutex for group->cache file name access and MPD update*/
 	GF_Mutex *dl_mutex;
 
-	/* 0 not started, 1 download in progress */
-	GF_DASH_STATE mpd_is_running;
+	/* one of the above state*/
+	GF_DASH_STATE dash_state;
 	Bool mpd_stop_request;
 	Bool in_period_setup;
 
@@ -409,6 +412,8 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 
 	/*single segment*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
+		*max_seg_duration = mpd->media_presentation_duration;
+		*max_seg_duration /= 1000;
 		return;
 	}
 	if (rep->segment_list || set->segment_list || period->segment_list) {
@@ -1380,6 +1385,7 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 
 	if (!media_url) {
 		GF_MPD_BaseURL *base = gf_list_get(rep->base_URLs, 0);
+		if (!base) return GF_BAD_PARAM;
 		media_url = base->URL;
 	}
 	url_to_solve = NULL;
@@ -1410,6 +1416,7 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 
 	first_sep = strchr(url_to_solve, '$');
 	while (first_sep) {
+		char szPrintFormat[50];
 		char szFormat[100];
 		char *format_tag;
 		char *second_sep = strchr(first_sep+1, '$');
@@ -1420,7 +1427,13 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 		}
 		second_sep[0] = 0;
 		format_tag = strchr(first_sep+1, '%');
-		if (format_tag) format_tag[0] = 0;
+		
+		if (format_tag) {
+			strcpy(szPrintFormat, format_tag);
+			format_tag[0] = 0;
+		} else {
+			strcpy(szPrintFormat, "%d");
+		}
 		/* identifier is $$ -> replace by $*/
 		if (!strlen(first_sep+1)) {
 			strcat(solved_template, "$");
@@ -1429,27 +1442,11 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 			strcat(solved_template, rep->id);
 		}
 		else if (!strcmp(first_sep+1, "Number")) {
-			if (format_tag) {
-				char szPrintFormat[20];
-				strcpy(szPrintFormat, "%");
-				strcat(szPrintFormat, format_tag+1);
-				strcat(szPrintFormat, "d");
-				sprintf(szFormat, szPrintFormat, start_number + item_index);
-			} else {
-				sprintf(szFormat, "%d", start_number + item_index);
-			}
+			sprintf(szFormat, szPrintFormat, start_number + item_index);
 			strcat(solved_template, szFormat);
 		}
 		else if (!strcmp(first_sep+1, "Bandwidth")) {
-			if (format_tag) {
-				char szPrintFormat[20];
-				strcpy(szPrintFormat, "%");
-				strcat(szPrintFormat, format_tag+1);
-				strcat(szPrintFormat, "d");
-				sprintf(szFormat, format_tag+1, rep->bandwidth);
-			} else {
-				sprintf(szFormat, "%d", rep->bandwidth);
-			}
+			sprintf(szFormat, szPrintFormat, rep->bandwidth);
 			strcat(solved_template, szFormat);
 		}
 		else if (!strcmp(first_sep+1, "Time")) {
@@ -1474,7 +1471,11 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 					nb_repeat = item_index - cur_idx;
 					time = ent->start_time ? ent->start_time : start_time;
 					time += nb_repeat * ent->duration;
-					sprintf(szFormat, ""LLD"", time);
+
+					/*replace final 'd' with LLD (%lld or I64d)*/
+					szPrintFormat[strlen(szPrintFormat)-1] = 0;
+					strcat(szPrintFormat, &LLD[1]);
+					sprintf(szFormat, szPrintFormat, time);
 					strcat(solved_template, szFormat);
 					break;
 				}
@@ -1556,6 +1557,28 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		rep->playback.init_start_range = start_range;
 		rep->playback.init_end_range = end_range;
 
+
+		/*finally download all init segments if any*/
+		if (!group->bitstream_switching) {
+			u32 k;
+			for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+				char *a_base_init_url = NULL;
+				u64 a_start, a_end, a_dur;
+				GF_MPD_Representation *a_rep = gf_list_get(group->adaptation_set->representations, k);
+				if (a_rep==rep) continue;
+				if (a_rep->playback.disabled) continue;
+
+				e = gf_dash_resolve_url(dash->mpd, a_rep, group, dash->base_url, GF_DASH_RESOLVE_URL_INIT, 0, &a_base_init_url, &a_start, &a_end, &a_dur);
+				if (!e && a_base_init_url) {
+					a_rep->playback.cached_init_segment_url = a_base_init_url;
+					rep->playback.init_start_range = a_start;
+					rep->playback.init_end_range =a_end ;
+				} else if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot solve initialization segment for representation: %s - discarding representation\n", gf_error_to_string(e) ));
+					a_rep->playback.disabled = 1;
+				}
+			}
+		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] First segment is %s \n", group->segment_local_url));
 		gf_mx_v(dash->dl_mutex);
 		gf_free(base_init_url);
@@ -1762,6 +1785,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 	GF_Err e;
 	u32 i, j, count;
 	GF_MPD_Period *period;
+
 	if (!dash->groups) {
 		dash->groups = gf_list_new();
 		if (!dash->groups) return GF_OUT_OF_MEM;
@@ -1772,6 +1796,9 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 	count = gf_list_count(period->adaptation_sets);
 	for (i=0; i<count; i++) {
+		u32 cache_duration;
+		Double seg_dur;
+		GF_DASH_Group *group;
 		Bool found = 0;
 		GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, i);
 		for (j=0; j<gf_list_count(dash->groups); j++) {
@@ -1781,50 +1808,53 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				break;
 			}
 		}
-		if (!found) {
-			u32 cache_duration;
-			Double seg_dur;
-			GF_DASH_Group *group;
-			GF_SAFEALLOC(group, GF_DASH_Group);
-			if (!group) return GF_OUT_OF_MEM;
-			group->dash = dash;
-			group->adaptation_set = set;
-			group->period = period;
 
-			group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? 1 : 0;
+		if (found) continue;
 
-			seg_dur = 0;
-			for (j=0; j<gf_list_count(set->representations); j++) {
-				Double dur;
-				u32 nb_seg;
-				gf_dash_get_segment_duration(gf_list_get(set->representations, j), set, period, dash->mpd, &nb_seg, &dur);
-				if (dur>seg_dur) seg_dur = dur;
-			}
 
-			cache_duration = dash->max_cache_duration * 1000;
-			if (dash->mpd->min_buffer_time)
-				cache_duration = dash->mpd->min_buffer_time;
-			group->max_cached_segments = 1;
-			if (seg_dur) {
-				while (group->max_cached_segments * seg_dur * 1000 < cache_duration)
-					group->max_cached_segments ++;
+		GF_SAFEALLOC(group, GF_DASH_Group);
+		if (!group) return GF_OUT_OF_MEM;
+		group->dash = dash;
+		group->adaptation_set = set;
+		group->period = period;
 
-				/*we need one more entry in cache for segment being currently played*/
+		group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? 1 : 0;
+
+		seg_dur = 0;
+		for (j=0; j<gf_list_count(set->representations); j++) {
+			Double dur;
+			u32 nb_seg;
+			gf_dash_get_segment_duration(gf_list_get(set->representations, j), set, period, dash->mpd, &nb_seg, &dur);
+			if (dur>seg_dur) seg_dur = dur;
+		}
+
+		if (!seg_dur) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot compute default segment duration\n"));
+		}
+
+		cache_duration = dash->max_cache_duration * 1000;
+		if (dash->mpd->min_buffer_time)
+			cache_duration = dash->mpd->min_buffer_time;
+		group->max_cached_segments = 1;
+		if (seg_dur) {
+			while (group->max_cached_segments * seg_dur * 1000 < cache_duration)
 				group->max_cached_segments ++;
-			}
 
-			group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
-			memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
-			if (!group->cached) {
-				gf_free(group);
-				return GF_OUT_OF_MEM;
-			}
-			e = gf_list_add(dash->groups, group);
-			if (e) {
-				gf_free(group->cached);
-				gf_free(group);
-				return e;
-			}
+			/*we need one more entry in cache for segment being currently played*/
+			group->max_cached_segments ++;
+		}
+
+		group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
+		memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
+		if (!group->cached) {
+			gf_free(group);
+			return GF_OUT_OF_MEM;
+		}
+		e = gf_list_add(dash->groups, group);
+		if (e) {
+			gf_free(group->cached);
+			gf_free(group);
+			return e;
 		}
 	}
 	return GF_OK;
@@ -1940,12 +1970,13 @@ static u32 dash_main_thread_proc(void *par)
 		return 1;
 	}
 
+restart_period:
+
 	/* Setting the download status in exclusive code */
 	gf_mx_p(dash->dl_mutex);
-	dash->mpd_is_running = GF_DASH_STATE_CONNECTING;
+	dash->dash_state = GF_DASH_STATE_SETUP;
 	gf_mx_v(dash->dl_mutex);
 
-restart_period:
 	dash->in_period_setup = 1;
 
 	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, GF_OK);
@@ -1971,7 +2002,7 @@ restart_period:
 	dash->last_update_time = gf_sys_clock();
 
 	gf_mx_p(dash->dl_mutex);
-	dash->mpd_is_running = GF_DASH_STATE_CONNECTING;
+	dash->dash_state = GF_DASH_STATE_CONNECTING;
 	gf_mx_v(dash->dl_mutex);
 
 
@@ -1981,10 +2012,14 @@ restart_period:
 		ret = 1;
 		goto exit;
 	}
+	if (dash->mpd_stop_request) {
+		ret = 1;
+		goto exit;
+	}
 
 	gf_mx_p(dash->dl_mutex);
 	dash->in_period_setup = 0;
-	dash->mpd_is_running = GF_DASH_STATE_RUNNING;
+	dash->dash_state = GF_DASH_STATE_RUNNING;
 	gf_mx_v(dash->dl_mutex);
 
 	while (go_on) {
@@ -2224,7 +2259,12 @@ restart_period:
 exit:
 	/* Signal that the download thread has ended */
 	gf_mx_p(dash->dl_mutex);
-	dash->mpd_is_running = GF_DASH_STATE_STOPPED;
+
+	/*an error occured during playback chain creation and we couldn't release our plyayback chain in time, do it now*/
+	if (dash->dash_state == GF_DASH_STATE_CONNECTING)
+		gf_dash_reset_groups(dash);
+
+	dash->dash_state = GF_DASH_STATE_STOPPED;
 	gf_mx_v(dash->dl_mutex);
 	return ret;
 }
@@ -2261,14 +2301,14 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 	}
 	/* stop the download thread */
 	gf_mx_p(dash->dl_mutex);
-	if (dash->mpd_is_running != GF_DASH_STATE_STOPPED) {
+	if (dash->dash_state != GF_DASH_STATE_STOPPED) {
 		dash->mpd_stop_request = 1;
 		gf_mx_v(dash->dl_mutex);
 		while (1) {
 			/* waiting for the download thread to stop */
 			gf_sleep(16);
 			gf_mx_p(dash->dl_mutex);
-			if (dash->mpd_is_running != GF_DASH_STATE_RUNNING) {
+			if (dash->dash_state != GF_DASH_STATE_RUNNING) {
 				/* it's stopped we can continue */
 				gf_mx_v(dash->dl_mutex);
 				break;
@@ -2540,6 +2580,8 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		return GF_URL_ERROR;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] parsing MPD %s\n", local_url));
+
 	/* parse the MPD */
 	mpd_parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
@@ -2565,6 +2607,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
 		goto exit;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH client initialized from MPD\n"));
 	if (is_local && dash->mpd->minimum_update_period) {
 		e = gf_dash_update_manifest(dash);
 		if (e != GF_OK) {
@@ -2585,8 +2628,9 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	e = gf_dash_setup_period(dash);
 	if (e) goto exit;
 
-	return gf_th_run(dash->dash_thread, dash_main_thread_proc, dash);
-
+	e = gf_th_run(dash->dash_thread, dash_main_thread_proc, dash);
+	gf_sleep(0);
+	return e;
 exit:
 	dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 	dash->mpd_dnload = NULL;
@@ -2603,8 +2647,8 @@ void gf_dash_close(GF_DashClient *dash)
 	assert( dash );
 
 	gf_dash_download_stop(dash);
-	gf_dash_reset_groups(dash);
 
+	gf_mx_p(dash->dl_mutex);
 	if (dash->mpd_dnload) {
 		dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 		dash->mpd_dnload = NULL;
@@ -2612,6 +2656,11 @@ void gf_dash_close(GF_DashClient *dash)
 	if (dash->mpd)
 		gf_mpd_del(dash->mpd);
 	dash->mpd = NULL;
+
+	gf_mx_v(dash->dl_mutex);
+
+	if (dash->dash_state != GF_DASH_STATE_CONNECTING)
+		gf_dash_reset_groups(dash);
 }
 
 GF_EXPORT
@@ -2631,6 +2680,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u
 	dash->keep_files = keep_files;
 	dash->disable_switching = disable_switching;
 	dash->first_select_mode = first_select_mode;	
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Client created\n"));
 	return dash;
 }
 
@@ -2816,7 +2866,7 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 GF_EXPORT
 Bool gf_dash_is_running(GF_DashClient *dash) 
 {
-	return dash->mpd_is_running;
+	return dash->dash_state;
 }
 
 GF_EXPORT
@@ -2956,6 +3006,8 @@ GF_EXPORT
 void gf_dash_seek(GF_DashClient *dash, Double start_range)
 {
 	gf_mx_p(dash->dl_mutex);	
+	
+	dash->playback_start_range = start_range;
 	/*first check if we seek to another period*/
 	if (! gf_dash_seek_periods(dash)) {
 		/*if no, seek in group*/

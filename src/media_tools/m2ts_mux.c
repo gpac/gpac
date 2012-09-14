@@ -1232,7 +1232,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 	gf_bs_write_int(bs, 0x2, 2); // reserved
 	gf_bs_write_int(bs, 0x0, 2); // scrambling
 	gf_bs_write_int(bs, 0x0, 1); // priority
-	gf_bs_write_int(bs, 0x1, 1); // alignment indicator
+	gf_bs_write_int(bs, stream->pck_offset ? 0 : 1, 1); // alignment indicator - we could also check start codes to see if we are aligned at slice/video packet level
 	gf_bs_write_int(bs, 0x0, 1); // copyright
 	gf_bs_write_int(bs, 0x0, 1); // original or copy
 	

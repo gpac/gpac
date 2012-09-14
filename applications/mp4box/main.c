@@ -121,9 +121,11 @@ void PrintLanguages();
 const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
-void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, 
-				   Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
-				   char *seg_name, char *seg_ext, Bool use_url_template, Bool single_segment, u32 representation_idx, Bool last_rep);
+void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num);
+
+void dash_mpeg2_ts(char *mpeg2ts_file, char *mpd_name, Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
+				   char *seg_name, char *seg_ext, Bool use_url_template, Bool single_segment, u32 rep_first_or_last, char *rep_id, u32 dash_profile,
+				   const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url);
 #endif 
 
 
@@ -261,7 +263,7 @@ void PrintGeneralUsage()
 			"\n"
 			" -dash dur            enables DASH-ing of the file with a segment duration of DUR\n"
 			"                       Note: the duration of a fragment (subsegment) is set\n"
-			"						using the interleaver (-inter) switch.\n"
+			"						using the -frag switch.\n"
 			"                       Note: You can specify -rap switch to split segments at RAP boundaries\n"
 			"                       Note: when single-segment is used, this specifies the duration of a subsegment\n"
 			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
@@ -272,11 +274,12 @@ void PrintGeneralUsage()
 			"                       \"-dash\" since raw video data is not modified\n"
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
-			" -segment-ext name    sets the segment extension. Default is m4s\n"
+			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
 			" -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
 			"                       Ignored if segments are stored in the output file.\n"
 			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
 			" -single-segment      Uses a single segment for the whole file (OnDemand profile). \n"
+			" -single-file         Uses a single file for the whole file (default). \n"
 			" -no-bs-switching     Disables bitstream switching merging.\n" 
 			" -mpd-title string    Sets MPD title.\n"
 			" -mpd-source string   Sets MPD source.\n"
@@ -1239,7 +1242,39 @@ typedef struct
 	char *file_name;
 	u32 adaptation_set;
 	u32 group_id;
+	char szID[100];
 } DashInput;
+
+DashInput *set_dash_input(DashInput *dash_inputs, char *name, u32 *nb_dash_inputs)
+{
+	DashInput *di;
+	char *sep = strchr(name, ':');
+	if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
+
+	dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (*nb_dash_inputs + 1) );
+	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(DashInput) );
+	di = &dash_inputs[*nb_dash_inputs];
+	(*nb_dash_inputs)++;
+
+	if (sep) {
+		char *opts = sep+1;
+		sep[0] = 0;
+		while (opts) {
+			sep = strchr(opts, ':');
+			if (sep) sep[0] = 0;
+			if (!strnicmp(opts, "id=", 3)) strncpy(di->szID, opts+3, 99);
+			
+			if (!sep) break;
+			sep[0] = ':';
+			opts = sep+1;
+		}
+	}
+	di->file_name = name;
+	if (!strlen(di->szID)) sprintf(di->szID, "%d", *nb_dash_inputs);
+
+	return dash_inputs;
+}
+
 
 int mp4boxMain(int argc, char **argv)
 {
@@ -1279,6 +1314,8 @@ int mp4boxMain(int argc, char **argv)
 	Bool dump_iod=0;
 	Bool daisy_chain_sidx=0;
 	Bool single_segment=0;
+	Bool single_file=0;
+	GF_DashProfile dash_profile = GF_DASH_PROFILE_FULL;
 	Bool use_url_template=0;
 	Bool seg_at_rap =0;
 	Bool adjust_split_end = 0;
@@ -1349,16 +1386,9 @@ int mp4boxMain(int argc, char **argv)
 			} else if (inName) { 
 				if (dash_duration) {
 					if (!nb_dash_inputs) {
-						dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (nb_dash_inputs+1) );
-						memset(&dash_inputs[nb_dash_inputs], 0, sizeof(DashInput) );
-						dash_inputs[nb_dash_inputs].file_name = inName;
-						nb_dash_inputs++;
+						dash_inputs = set_dash_input(dash_inputs, inName, &nb_dash_inputs);
 					}
-					dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (nb_dash_inputs+1) );
-
-					memset(&dash_inputs[nb_dash_inputs], 0, sizeof(DashInput) );
-					dash_inputs[nb_dash_inputs].file_name = arg_val;
-					nb_dash_inputs++;					
+					dash_inputs = set_dash_input(dash_inputs, arg_val, &nb_dash_inputs);
 				} else {
 					fprintf(stderr, "Error - 2 input names specified, please check usage\n");
 					MP4BOX_EXIT_WITH_CODE(1); 
@@ -1558,7 +1588,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-tmp")) {
 			CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; 
 		}
-		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; open_edit = 1; }
+		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; if (!dash_duration) open_edit = 1; }
 		else if (!stricmp(arg, "-chap")) { CHECK_NEXT_ARG chap_file = argv[i+1]; i++; open_edit = 1; }
 		else if (!strcmp(arg, "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
@@ -1616,6 +1646,15 @@ int mp4boxMain(int argc, char **argv)
 			daisy_chain_sidx = 1;
 		} else if (!stricmp(arg, "-single-segment")) {
 			single_segment = 1;
+		} else if (!stricmp(arg, "-single-file")) {
+			single_file = 1;
+		} else if (!stricmp(arg, "-dash-profile")) {
+			CHECK_NEXT_ARG
+			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
+			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
+			else if (!stricmp(argv[i+1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
+			else dash_profile = GF_DASH_PROFILE_FULL;
+			i++;
 		} else if (!strnicmp(arg, "-url-template", 13)) {
 			use_url_template = 1;
 			if ((arg[13]=='=') && arg[14]) {
@@ -2322,10 +2361,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 	if (dash_duration && !nb_dash_inputs) {
-		dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (nb_dash_inputs+1) );
-		memset(&dash_inputs[nb_dash_inputs], 0, sizeof(DashInput));
-		dash_inputs[nb_dash_inputs].file_name = inName;
-		nb_dash_inputs++;
+		dash_inputs = set_dash_input(dash_inputs, inName, &nb_dash_inputs);
 	}
 
 
@@ -2599,17 +2635,22 @@ int mp4boxMain(int argc, char **argv)
 					if (subsegs_per_sidx<0) subsegs_per_sidx = 0;
 #ifndef GPAC_DISABLE_MPEG2TS
 					for (i=0; i<nb_dash_inputs; i++) {
-						dump_mpeg2_ts(dash_inputs[i].file_name, outName, program_number, dash_duration, seg_at_rap, subsegs_per_sidx,
-							seg_name, seg_ext, use_url_template, single_segment, i, (i+1 == nb_dash_inputs) ? 1 : 0);
+						u32 rep_first_or_last = 0;
+						if (!i) rep_first_or_last |= 1;
+						if (i+1 == nb_dash_inputs) rep_first_or_last |= 1<<1;
+
+						dash_mpeg2_ts(dash_inputs[i].file_name, outName, dash_duration, seg_at_rap, subsegs_per_sidx,
+							seg_name, seg_ext, use_url_template, (single_segment||single_file) ? 1 : 0, rep_first_or_last, dash_inputs[i].szID, 
+							dash_profile, cprt, dash_title, dash_source, dash_more_info);
 					}
 #endif
 				} else if (dump_m2ts) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number);
 #endif
 				} else if (dump_ts) { /* dump_ts means dump time stamp information */
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number);
 #endif
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				} else {
@@ -3254,28 +3295,16 @@ int mp4boxMain(int argc, char **argv)
 
 	/*split file*/
 	if (dash_duration) {
-		char szMPD[GF_MAX_PATH];
+		u32 segment_mode;
+		char *sep, szMPD[GF_MAX_PATH];
 		char szInit[GF_MAX_PATH];
 		u32 j, k, cur_adaptation_set;
 		GF_ISOFile *init_seg = NULL;
 		u32 max_adaptation_set = 0;
 		u32 cur_group_id = 0;
+		u32 max_sap_type = 0;
 		Bool sps_merge_failed = 0;
 		Double period_duration = 0;
-
-		if (single_segment) {
-			fprintf(stderr, "DASH-ing file%s with single segment\nSubsegment duration %.3f - Fragment duration: %.3f secs\n", (nb_dash_inputs>1) ? "s" : "", dash_duration, InterleavingTime);
-			subsegs_per_sidx = 0;
-			seg_name = seg_ext = NULL;
-		} else {
-			if (!seg_ext) seg_ext = "m4s";
-			fprintf(stderr, "DASH-ing file with %.3f secs segments - fragments: %.3f secs\n", dash_duration, InterleavingTime);
-			if (subsegs_per_sidx<0) fprintf(stderr, "No sidx used");
-			else if (subsegs_per_sidx) fprintf(stderr, "%d subsegments per sidx", subsegs_per_sidx);
-			else fprintf(stderr, "Single sidx used");
-		}
-		fprintf(stderr, "\n");
-		if (seg_at_rap) fprintf(stderr, "Spliting segments at GOP boundaries\n");
 
 		/*classify all input in possible adaptation sets*/
 		for (k=0; k<nb_dash_inputs; k++) {
@@ -3345,6 +3374,9 @@ int mp4boxMain(int argc, char **argv)
 					}
 					if (mtype==GF_ISOM_MEDIA_VISUAL) {
 						u32 w1, h1, w2, h2;
+						Bool rap, roll;
+						u32 roll_dist, sap_type;
+
 						gf_isom_get_track_layout_info(set_file, j+1, &w1, &h1, NULL, NULL, NULL);
 						gf_isom_get_track_layout_info(in, j+1, &w2, &h2, NULL, NULL, NULL);
 						
@@ -3353,6 +3385,12 @@ int mp4boxMain(int argc, char **argv)
 							break;
 						}
 
+						gf_isom_get_sample_rap_roll_info(in, j+1, 0, &rap, &roll, &roll_dist);
+						if (roll_dist>0) sap_type = 4;
+						else if (roll) sap_type = 3;
+						else if (rap) sap_type = 1;
+						else sap_type = 1;
+						if (max_sap_type<sap_type) max_sap_type = sap_type;
 					}
 				}
 				gf_isom_close(in);
@@ -3369,10 +3407,56 @@ int mp4boxMain(int argc, char **argv)
 			}
 		}
 
+		/*check requested profiles can be generated, or adjust them*/
+		if (max_sap_type>=3) {
+			if (dash_profile)
+				fprintf(stderr, "WARNING! Max SAP type %d detected\n\tswitching to FULL profile\n", max_sap_type);
+			dash_profile = 0;
+		}
+		if ((dash_profile==GF_DASH_PROFILE_LIVE) && !seg_name) {
+			fprintf(stderr, "WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n");
+			seg_name = "%s_dash";
+		}
+		/*adjust params based on profiles*/
+		switch (dash_profile) {
+		case GF_DASH_PROFILE_LIVE:
+			seg_at_rap = 1;
+			use_url_template = 1;
+			single_segment = single_file = 0;
+			break;
+		case GF_DASH_PROFILE_ONDEMAND:
+			seg_at_rap = 1;
+			single_segment = 1;
+			/*BS switching is meaningless in onDemand profile*/
+			dash_bitstream_switching = 0;
+			use_url_template = single_file = 0;
+			break;
+		case GF_DASH_PROFILE_MAIN:
+			seg_at_rap = 1;
+			single_segment = 0;
+			break;
+		}
+
+		segment_mode = single_segment ? 1 : (single_file ? 2 : 0);
+
+		if (single_segment) {
+			fprintf(stderr, "DASH-ing file%s - single segment\nSubsegment duration %.3f - Fragment duration: %.3f secs\n", (nb_dash_inputs>1) ? "s" : "", dash_duration, InterleavingTime);
+			subsegs_per_sidx = 0;
+//			seg_name = seg_ext = NULL;
+		} else {
+			if (!seg_ext) seg_ext = "m4s";
+			fprintf(stderr, "DASH-ing file%s: %.2fs segments %.2fs fragments ", (nb_dash_inputs>1) ? "s" : "", dash_duration, InterleavingTime);
+			if (subsegs_per_sidx<0) fprintf(stderr, "no sidx used");
+			else if (subsegs_per_sidx) fprintf(stderr, "%d subsegments per sidx", subsegs_per_sidx);
+			else fprintf(stderr, "single sidx per segment");
+			fprintf(stderr, "\n");
+		}
+		if (seg_at_rap) fprintf(stderr, "Spliting segments at GOP boundaries\n");
+
 
 		strcpy(outfile, outName ? outName : inName);
-		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
-		outfile[strlen(outfile)-1] = 0;
+		sep = strrchr(outfile, '.');
+		if (sep) sep[0] = 0;
 		if (!outName) strcat(outfile, "_dash");
 
 		strcpy(szMPD, outfile);
@@ -3380,12 +3464,14 @@ int mp4boxMain(int argc, char **argv)
 
 		for (cur_adaptation_set=0; cur_adaptation_set < max_adaptation_set; cur_adaptation_set++) {
 			u32 first_rep_in_set=0;
+			Bool is_first_rep=0;
+
 			while (dash_inputs[first_rep_in_set].adaptation_set!=cur_adaptation_set+1)
 				first_rep_in_set++;
 
 			strcpy(outfile, outName ? outName : inName);
-			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
-			outfile[strlen(outfile)-1] = 0;
+			sep = strrchr(outfile, '.');
+			if (sep) sep[0] = 0;
 			if (!outName) strcat(outfile, "_dash");
 
 			if (max_adaptation_set==1) {
@@ -3398,6 +3484,11 @@ int mp4boxMain(int argc, char **argv)
 			if (! dash_bitstream_switching) {
 				/*we still need to open the first file to dash so that we can list ContentComponents in the MPD*/
 				init_seg = gf_isom_open(dash_inputs[first_rep_in_set].file_name, GF_ISOM_OPEN_READ, NULL);
+				for (j=0; j<gf_isom_get_track_count(init_seg); j++) {
+					Double dur = (Double) gf_isom_get_track_duration(init_seg, j+1);
+					dur /= gf_isom_get_timescale(init_seg);
+					if (dur>period_duration) period_duration = dur;
+				}
 			} else {
 				init_seg = gf_isom_open(szInit, GF_ISOM_OPEN_WRITE, tmpdir);
 				for (i=0; i<nb_dash_inputs; i++) {
@@ -3505,13 +3596,14 @@ int mp4boxMain(int argc, char **argv)
 			}
 			if (!seg_name) use_url_template = 0;
 
-			e = gf_media_mpd_start(szMPD, dash_title, dash_source, cprt, dash_more_info, use_url_template, single_segment, dash_ctx, init_seg, dash_bitstream_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id);
+			e = gf_media_mpd_start(szMPD, dash_profile, dash_title, dash_source, cprt, dash_more_info, use_url_template, segment_mode, dash_ctx, init_seg, dash_bitstream_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id);
 
 			if (! dash_bitstream_switching) {
 				gf_isom_close(init_seg);
 				init_seg = NULL;
 			}
 
+			is_first_rep = 1;
 			for (i=0; i<nb_dash_inputs && !e; i++) {
 				char szSegName[GF_MAX_PATH], *segment_name;
 				GF_ISOFile *in;
@@ -3543,7 +3635,7 @@ int mp4boxMain(int argc, char **argv)
 					fprintf(stderr, "DASHing file %s\n", dash_inputs[i].file_name);
 				}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, single_segment, dash_ctx, init_seg, i+1);
+				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, segment_mode, dash_ctx, init_seg, dash_inputs[i].szID, is_first_rep);
 #else
 				fprintf(stderr, "GPAC was compiled without fragment support\n");
 				e = GF_NOT_SUPPORTED;
@@ -3553,6 +3645,7 @@ int mp4boxMain(int argc, char **argv)
 					break;
 				}
 				if (i) gf_isom_close(in);
+				is_first_rep = 0;
 			}
 			/*close MPD*/
 			if (!e) e = gf_media_mpd_end(szMPD, (cur_adaptation_set+1==max_adaptation_set) ? 1 : 0);
@@ -3575,7 +3668,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL, 0);
+		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL, 0, 0);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
