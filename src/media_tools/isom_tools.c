@@ -1760,7 +1760,7 @@ restart_fragmentation_pass:
 
 		fprintf(mpd, "   <Representation ");
 		if (rep_id) fprintf(mpd, "id=\"%s\"", rep_id);
-		else fprintf(mpd, "id=\"%d\"", (u32) output);
+		else fprintf(mpd, "id=\"%p\"", output);
 		fprintf(mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", audio_only ? "audio" : "video", szCodecs);
 		if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 		if (sample_rate) fprintf(mpd, " audioSamplingRate=\"%d\"", sample_rate);

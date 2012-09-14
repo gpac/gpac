@@ -3435,6 +3435,8 @@ int mp4boxMain(int argc, char **argv)
 			seg_at_rap = 1;
 			single_segment = 0;
 			break;
+		default:
+			break;
 		}
 
 		segment_mode = single_segment ? 1 : (single_file ? 2 : 0);
