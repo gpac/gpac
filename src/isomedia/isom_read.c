@@ -2722,6 +2722,7 @@ void gf_isom_reset_fragment_info(GF_ISOFile *movie)
 #endif
 }
 
+GF_EXPORT
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance)
 {
 	GF_TrackBox *trak;
@@ -2734,6 +2735,32 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 	if (!trak->Media->information->sampleTable->sampleGroups) return GF_OK;
+
+	if (!sample_number) {
+		count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
+		for (i=0; i<count; i++) {
+			GF_SampleGroupDescriptionBox *sgdesc = gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+			switch (sgdesc->grouping_type) {
+			case GF_4CC('r','a','p',' '):
+				if (is_rap) *is_rap = 1;
+				break;
+			case GF_4CC('r','o','l','l'):
+				if (has_roll) *has_roll = 1;
+				if (roll_distance) {
+					s32 max_roll = 0;
+					u32 j;
+					for (j=0; j<gf_list_count(sgdesc->group_descriptions);j++) {
+						GF_RollRecoveryEntry *roll_entry = gf_list_get(sgdesc->group_descriptions, j);
+						if (max_roll < roll_entry->roll_distance) 
+							max_roll = roll_entry->roll_distance;
+					}
+					if (*roll_distance < max_roll) *roll_distance = max_roll;
+				}
+				break;
+			}
+		}
+		return GF_OK;
+	}
 
 	count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
 	for (i=0; i<count; i++) {
@@ -2751,7 +2778,7 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 				continue;
 			}
 			/*we found our sample*/
-			group_desc_index = sg->sample_entries[j].group_description_index;
+			group_desc_index = 1 + sg->sample_entries[j].group_description_index;
 			break;
 		}
 		/*no sampleGroup info associated*/

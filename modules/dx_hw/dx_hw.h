@@ -126,6 +126,7 @@ typedef struct
 	Bool fullscreen;
 	Bool systems_memory;
 	Bool force_alpha;
+	Bool offscreen_yuv_to_rgb;
 
 	u32 width, height;
 	u32 fs_width, fs_height;

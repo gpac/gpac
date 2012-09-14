@@ -864,7 +864,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	/*we don't write anything between sidx and following moov*/
 	movie->root_sidx->first_offset = 0;
 
-	/*for now we only store one ref per subsegment*/
+	/*for now we only store one ref per subsegment and don't support daisy-chaining*/
 	movie->root_sidx->nb_refs = nb_segs;
 
 	movie->root_sidx->refs = gf_malloc(sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
@@ -1002,6 +1002,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			frags_per_subseg = count;
 			frags_per_subsidx = count;
 			subseg_per_sidx = 1;
+			daisy_chain_sidx = 0;
 
 			idx_offset = movie->root_sidx_index;
 			sidx_end = gf_bs_get_position(movie->editFileMap->bs);

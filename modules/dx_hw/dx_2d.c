@@ -403,7 +403,13 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 
 	if (src->is_yuv && dd->force_video_mem_for_yuv && dd->systems_memory) return GF_IO_ERR;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit src w=%d,h=%d to dst w=%d,h=%d - result: %08x\n", src_w, src_h, dst_w, dst_h, hr));
+#ifndef GPAC_DISABLE_LOG
+	if (hr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX Out] Failed blitting %s %s memory: error %08x\n", src->is_yuv ? "YUV" : "RGB", dd->systems_memory ? "systems" : "hardware", hr));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] %s blit %s memory %dx%d -> %dx%d\n", src->is_yuv ? "YUV" : "RGB", dd->systems_memory ? "systems" : "hardware", src_w, src_h, dst_w, dst_h));
+	}
+#endif
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
@@ -440,7 +446,8 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 			ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
 
 			ddsd.ddsCaps.dwCaps = DDSCAPS_VIDEOMEMORY;
-			if (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY)
+
+			if (!dd->offscreen_yuv_to_rgb && (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY))
 				ddsd.ddsCaps.dwCaps |= DDSCAPS_OVERLAY;
 
 			ddsd.ddpfPixelFormat.dwFlags = DDPF_FOURCC;
@@ -452,7 +459,21 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 			if (FAILED(hr) ) {
 				if (!check_caps) return NULL;
 
-				/*try withou overlay cap*/
+				/*try without offscreen yuv->rgbcap*/
+				if (dd->offscreen_yuv_to_rgb) {
+					dd->offscreen_yuv_to_rgb = 0;
+					if (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) {
+						ddsd.ddsCaps.dwCaps |= DDSCAPS_OVERLAY;
+						hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL);
+						if( FAILED(hr) ) {
+							return NULL;
+						}
+					} else {
+						return NULL;
+					}
+				}
+
+				/*try without overlay cap*/
 				if (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) {
 					dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV_OVERLAY;
 					ddsd.ddsCaps.dwCaps = DDSCAPS_VIDEOMEMORY;
@@ -785,7 +806,7 @@ rem_fmt:
 		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
 	}
 	if (opt && strcmp(opt, "yes")) dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
-
+	else dd->offscreen_yuv_to_rgb = 1;
 
 	/*get YUV overlay key*/
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey");

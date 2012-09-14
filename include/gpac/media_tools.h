@@ -257,14 +257,37 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size_i
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+typedef enum
+{
+	GF_DASH_PROFILE_FULL = 0,
+	/*live for ISOFF, SIMPLE for M2TS*/
+	GF_DASH_PROFILE_LIVE,
+	GF_DASH_PROFILE_ONDEMAND,
+	GF_DASH_PROFILE_MAIN,
+} GF_DashProfile;
+
 /*starts MPD file */
-GF_Err gf_media_mpd_start(char *mpd_name, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, Bool single_segment, char *dash_ctx, GF_ISOFile *init_segment, Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id);
+GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_segment_mode, char *dash_ctx, GF_ISOFile *init_segment,  Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id);
 GF_Err gf_media_mpd_end(char *mpd_name, Bool last_adaptation_set);
+
+typedef enum
+{
+	GF_DASH_TEMPLATE_SEGMENT = 0,
+	GF_DASH_TEMPLATE_INITIALIZATION,
+	GF_DASH_TEMPLATE_TEMPLATE,
+	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
+	GF_DASH_TEMPLATE_REPINDEX,
+} GF_DashTemplateSegmentType;
+
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *seg_rad_name, char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*save file as fragmented movie
 @dash_mode: 0 = DASH not used, 1 = DASH used without GOP spliting, 2 = DASH used with GOP spliting, */
-GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file_radical, const char *mpd_name, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool use_single_segment, const char *dash_ctx, GF_ISOFile *sample_descs, u32 rep_id);
+GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, 
+							  u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, 
+							  s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, 
+							  const char *dash_ctx_file, GF_ISOFile *sample_descs, char *rep_id, Bool first_in_set);
 #endif
 
 #endif
