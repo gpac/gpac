@@ -605,7 +605,7 @@ single_source_mix:
 		buffer_size -= size;
 		ptr += size;
 		single_source->src->ReleaseFrame(single_source->src->callback, size);
-		delay = 0;
+		delay += size * 8000 / am->bits_per_sample / am->sample_rate / am->nb_channels;
 	}
 
 	/*not completely filled*/
@@ -691,7 +691,7 @@ do_mix:
 		for (i=0; i<count; i++) {
 			in = (MixerInput *)gf_list_get(am->sources, i);
 			if (in->out_samples_to_write>in->out_samples_written) {
-				gf_mixer_fetch_input(am, in, in->out_samples_written ? 0 : delay);
+				gf_mixer_fetch_input(am, in, delay + 8000 * i / am->bits_per_sample / am->sample_rate / am->nb_channels);
 				if (in->out_samples_to_write>in->out_samples_written) nb_to_fill++;
 			}
 		}
