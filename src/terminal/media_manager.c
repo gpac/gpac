@@ -138,6 +138,8 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 
 	GF_SAFEALLOC(cd, CodecEntry);
 	cd->dec = codec;
+	if (!cd->dec->Priority) 
+		cd->dec->Priority = 1;
 
 	cap.CapCode = GF_CODEC_WANTS_THREAD;
 	cap.cap.valueInt = 0;

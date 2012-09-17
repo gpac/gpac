@@ -61,6 +61,8 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 
 	if (tmp->type==GF_STREAM_PRIVATE_MEDIA) tmp->type = GF_STREAM_VISUAL;
 
+	tmp->Priority = base_layer->streamPriority ? base_layer->streamPriority : 1;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Codec] Found decoder %s for stream type %s\n", tmp->decio ? tmp->decio->module_name : "RAW", gf_esd_get_textual_description(base_layer) ));
 	return tmp;
 }
@@ -242,7 +244,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	Also assign codec priority here*/
 	if (!ch->esd->dependsOnESID || !codec->ck) {
 		codec->ck = ch->clock;
-		codec->Priority = ch->esd->streamPriority;
 		/*insert base layer first - note we are sure this is a stream of the same type
 		as the codec (other streams - OCI, MPEG7, MPEGJ - are not added that way)*/
 		return gf_list_insert(codec->inChannels, ch, 0);
@@ -792,8 +793,10 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				AU->CTS = codec->last_unit_cts + ch->ts_offset + (u32) (codec->cur_video_frames * 1000 / codec->fps);
 			}
 		}
-		if ( LockCompositionUnit(codec, AU->CTS, &CU, &unit_size) == GF_OUT_OF_MEM)
+		if ( LockCompositionUnit(codec, AU->CTS, &CU, &unit_size) == GF_OUT_OF_MEM) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more space in composition buffer\n", codec->decio->module_name ));
 			return GF_OK;
+		}
 
 scalable_retry:
 
@@ -805,8 +808,10 @@ scalable_retry:
 		else
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		now = gf_term_get_time(codec->odm->term) - now;
-		if (codec->Status == GF_ESM_CODEC_STOP) return GF_OK;
-
+		if (codec->Status == GF_ESM_CODEC_STOP) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because codec has been stopped\n", codec->decio->module_name));
+			return GF_OK;
+		}
 		/*input is too small, resize composition memory*/
 		switch (e) {
 		case GF_BUFFER_TOO_SMALL:
@@ -826,7 +831,7 @@ scalable_retry:
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
 			/*in seek don't dispatch any output*/
-			if (mmlevel	== GF_CODEC_LEVEL_SEEK)
+			if (mmlevel	>= GF_CODEC_LEVEL_DROP)
 				unit_size = 0;
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
@@ -904,6 +909,7 @@ drop:
 
 		if (e) {
 			UnlockCompositionUnit(codec, CU, unit_size);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because error %s\n", codec->decio->module_name, gf_error_to_string(e) ));
 			return e;
 		}
 
@@ -915,22 +921,25 @@ drop:
 		}
 
 		/*in seek don't dispatch any output*/
-		if (mmlevel	== GF_CODEC_LEVEL_SEEK)
+		if (mmlevel	>= GF_CODEC_LEVEL_DROP)
 			unit_size = 0;
 
 		UnlockCompositionUnit(codec, CU, unit_size);
-		if (!ch || !AU) return GF_OK;
-
+		if (!ch || !AU) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
+			return GF_OK;
+		}
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
 			now = gf_term_get_time(codec->odm->term);
 			if (now - entryTime >= TimeAvailable) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because time is up: %d vs %d available\n", codec->decio->module_name, now - entryTime, TimeAvailable));
 				return GF_OK;
 			}
 		}
 		Decoder_GetNextAU(codec, &ch, &AU);
 		if (!ch || !AU) return GF_OK;
-	}
+		}
 	return GF_OK;
 }
 

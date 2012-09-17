@@ -25,10 +25,7 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-//#define ENABLE_EARLY_FRAME_DETECTION
-
-/*diff time in ms to consider an audio frame too early and insert silence*/
-#define MIN_RESYNC_TIME		500
+#define ENABLE_EARLY_FRAME_DETECTION
 
 /*diff time in ms to consider an audio frame too late and drop it - we should try to dynamically figure this out
 since the drift may be high on TS for example, where PTS-PCR>500ms is quite common*/
@@ -56,7 +53,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 {
 	char *frame;
 	u32 obj_time, ts;
-	s32 drift, resync_delay;
+	s32 drift;
 	Fixed speed;
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
@@ -75,7 +72,6 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	ai->need_release = 1;
 
 	speed = gf_mo_get_current_speed(ai->stream);
-	resync_delay = FIX2INT(speed*ai->is_open);
 
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
@@ -84,8 +80,8 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
-	if (drift + (s32) (audio_delay_ms + resync_delay) + MIN_RESYNC_TIME < 0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %d at OTB %d)\n", drift + audio_delay_ms + resync_delay, ts, obj_time));
+	if (drift < 0) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %d at OTB %d with audio delay %d ms)\n", drift + audio_delay_ms, ts, obj_time, audio_delay_ms));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;
@@ -93,7 +89,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 #endif
 	/*adjust drift*/
 	if (audio_delay_ms) {
-		resync_delay = FIX2INT(speed * MAX_RESYNC_TIME);
+		s32 resync_delay = FIX2INT(speed * MAX_RESYNC_TIME);
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>resync_delay) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
@@ -113,8 +109,6 @@ static void gf_audio_input_release_frame(void *callback, u32 nb_bytes)
 	if (!ai->stream) return;
 	gf_mo_release_data(ai->stream, nb_bytes, 1);
 	ai->need_release = 0;
-	/*as soon as we have released a frame for this audio stream, update resync tolerance*/
-	ai->is_open = MIN_RESYNC_TIME;
 }
 
 static Fixed gf_audio_input_get_speed(void *callback)

@@ -641,6 +641,7 @@ void PrintUsage()
 			" -h format            supported formats help\n"
 			" -h rtp               file streamer help\n"
 			" -h live              BIFS streamer help\n"
+			" -h all               all options are printed\n"
 			"\n"
 			" -nodes               lists supported MPEG4 nodes\n"
 			" -node NodeName       gets MPEG4 node syntax and QP info\n"
