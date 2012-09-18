@@ -60,8 +60,8 @@ struct __dash_client
 	u32 max_cache_duration;
 	u32 auto_switch_count;
 	Bool keep_files, disable_switching;
-	/*0: min bandwith 1: max bandwith 2: min quality 3: max quality*/
-	u32 first_select_mode;
+
+	GF_DASHInitialSelectionMode first_select_mode;
 
 	/* MPD downloader*/
 	GF_DASHFileIOSession mpd_dnload;
@@ -414,6 +414,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 	if (rep->segment_base || set->segment_base || period->segment_base) {
 		*max_seg_duration = mpd->media_presentation_duration;
 		*max_seg_duration /= 1000;
+		*nb_segments = 1;
 		return;
 	}
 	if (rep->segment_list || set->segment_list || period->segment_list) {
@@ -584,18 +585,29 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group)
 	return start_time;
 }
 
-static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, GF_MPD_SegmentTimeline **out_segment_timeline)
+static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline)
 {
 	u32 timescale = 0;
+	u64 pts_offset = 0;
 	GF_MPD_SegmentTimeline *segment_timeline;
 	GF_MPD_MultipleSegmentBase *mbase_rep, *mbase_set, *mbase_period;
 
 	if (out_segment_timeline) *out_segment_timeline = NULL;
+	if (out_pts_offset) *out_pts_offset = 0;
 
 	/*single media segment - duration is not known unless indicated in period*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
 		*out_duration = period ? period->duration : 0;
-		*out_timescale = 1000;
+		timescale = 0;
+		if (rep->segment_base && rep->segment_base->presentation_time_offset) pts_offset = rep->segment_base->presentation_time_offset;
+		if (rep->segment_base && rep->segment_base->timescale) timescale = rep->segment_base->timescale;
+		if (!pts_offset && set->segment_base && set->segment_base->presentation_time_offset) pts_offset = set->segment_base->presentation_time_offset;
+		if (!timescale && set->segment_base && set->segment_base->timescale) timescale = set->segment_base->timescale;
+		if (!pts_offset && period->segment_base && period->segment_base->presentation_time_offset) pts_offset = period->segment_base->presentation_time_offset;
+		if (!timescale && period->segment_base && period->segment_base->timescale) timescale = period->segment_base->timescale;
+
+		if (out_pts_offset) *out_pts_offset = pts_offset;
+		*out_timescale = timescale ? timescale : 1;
 		return;
 	}
 	/*we have a segment template list or template*/
@@ -613,6 +625,13 @@ static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 	if (!timescale && mbase_period && mbase_period->timescale) timescale  = mbase_period->timescale;
 	if (!timescale) timescale = 1;
 	*out_timescale = timescale;
+
+	if (out_pts_offset) {
+		pts_offset = mbase_rep ? mbase_rep->presentation_time_offset : 0;
+		if (!pts_offset && mbase_set && mbase_set->presentation_time_offset) pts_offset = mbase_set->presentation_time_offset;
+		if (!pts_offset && mbase_period && mbase_period->presentation_time_offset) pts_offset = mbase_period->presentation_time_offset;
+		*out_pts_offset = pts_offset;
+	}
 
 	if (mbase_rep && mbase_rep->duration) *out_duration = mbase_rep->duration;
 	else if (mbase_set && mbase_set->duration) *out_duration = mbase_set->duration;
@@ -690,7 +709,7 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
 	if (!min_start_time) return 0;
-	gf_dash_resolve_duration(rep, group->adaptation_set, group->period, &duration, &time_scale, &timeline);
+	gf_dash_resolve_duration(rep, group->adaptation_set, group->period, &duration, &time_scale, NULL, &timeline);
 	if (!timeline) return 0;
 
 	min_start = (u64) (min_start_time*time_scale);
@@ -1212,7 +1231,7 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 		url = t_url;
 	}
 
-	gf_dash_resolve_duration(rep, set, period, segment_duration, &timescale, NULL);
+	gf_dash_resolve_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
 	*segment_duration = (u32) ((Double) (*segment_duration) * 1000.0 / timescale);
 
 	/*single URL*/
@@ -1909,14 +1928,30 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 					continue;
 				}
 			}
-			if ((dash->first_select_mode==0) && (rep->bandwidth < rep_sel->bandwidth)) {
-				active_rep = rep_i;
-			} else if ((dash->first_select_mode==1) && (rep->bandwidth > rep_sel->bandwidth)) {
-				active_rep = rep_i;
-			} else if ((dash->first_select_mode==2) && (rep->quality_ranking < rep_sel->quality_ranking)) {
-				active_rep = rep_i;
-			} else if ((dash->first_select_mode==3) && (rep->quality_ranking > rep_sel->quality_ranking)) {
-				active_rep = rep_i;
+
+			switch (dash->first_select_mode) {
+			case GF_DASH_SELECT_QUALITY_LOWEST:
+				if (rep->quality_ranking && (rep->quality_ranking < rep_sel->quality_ranking)) {
+					active_rep = rep_i;
+					break;
+				}/*fallthrough if quality is not indicated*/
+			case GF_DASH_SELECT_BANDWIDTH_LOWEST:
+				if (rep->bandwidth < rep_sel->bandwidth) {
+					active_rep = rep_i;
+				}
+				break;
+			case GF_DASH_SELECT_QUALITY_HIGHEST:
+				if (rep->quality_ranking > rep_sel->quality_ranking) {
+					active_rep = rep_i;
+					break;
+				}/*fallthrough if quality is not indicated*/
+			case GF_DASH_SELECT_BANDWIDTH_HIGHEST:
+				if (rep->bandwidth > rep_sel->bandwidth) {
+					active_rep = rep_i;
+				}
+				break;
+			default:
+				break;
 			}
 		}
 
@@ -2664,7 +2699,7 @@ void gf_dash_close(GF_DashClient *dash)
 }
 
 GF_EXPORT
-GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u32 auto_switch_count, Bool keep_files, Bool disable_switching, u32 first_select_mode)
+GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u32 auto_switch_count, Bool keep_files, Bool disable_switching, GF_DASHInitialSelectionMode first_select_mode)
 {
 	GF_DashClient *dash;
 	GF_SAFEALLOC(dash, GF_DashClient);
@@ -2967,7 +3002,19 @@ void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done)
 		group->done = done;
 		if (done && group->segment_download) dash->dash_io->abort(dash->dash_io, group->segment_download);
 	}
+}
 
+GF_EXPORT
+GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, u64 *presentation_time_offset, u32 *timescale)
+{
+	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	if (group) {
+		u64 duration;
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+		gf_dash_resolve_duration(rep, group->adaptation_set, group->period, &duration, timescale, presentation_time_offset, NULL);
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
 }
 
 GF_EXPORT
@@ -2975,8 +3022,12 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 {
 	GF_DASH_Group *group;
 
-	*url = *switching_url = NULL;
-	*start_range = *end_range = *switching_start_range = *switching_end_range = 0;
+	*url = NULL;
+	if (switching_url) *switching_url = NULL;
+	if (start_range) *start_range = 0;
+	if (end_range) *end_range = 0;
+	if (switching_start_range) *switching_start_range = 0;
+	if (switching_end_range) *switching_end_range = 0;
 	if (original_url) *original_url = NULL;
 
 	gf_mx_p(dash->dl_mutex);	
@@ -2986,15 +3037,20 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 		return GF_BAD_PARAM;
 	}
 	*url = group->cached[0].cache;
-	*start_range = group->cached[0].start_range;
-	*end_range = group->cached[0].end_range;
+	if (start_range) 
+		*start_range = group->cached[0].start_range;
+	if (end_range)
+		*end_range = group->cached[0].end_range;
 	if (original_url) *original_url = group->cached[0].url;
 
 	if (group->cached[0].representation_index != group->prev_active_rep_index) {
 		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
-		*switching_start_range = rep->playback.init_start_range;
-		*switching_end_range = rep->playback.init_end_range;
-		*switching_url = rep->playback.cached_init_segment_url;
+		if (switching_start_range)
+			*switching_start_range = rep->playback.init_start_range;
+		if (switching_end_range)
+			*switching_end_range = rep->playback.init_end_range;
+		if (switching_url)
+			*switching_url = rep->playback.cached_init_segment_url;
 	}
 	group->force_segment_switch = 0;
 	group->prev_active_rep_index = group->cached[0].representation_index;

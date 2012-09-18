@@ -393,6 +393,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			}
 			gf_bs_get_content(bs, (char **) &priv->dsi, &priv->dsi_size);
 			gf_bs_del(bs);
+			gf_odf_avc_cfg_del(avccfg);
 #endif
 			priv->nalu_delim[3] = 1;
 			priv->nalu_delim[4] = 0; /*this will be nal header*/

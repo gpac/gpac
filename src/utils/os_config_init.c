@@ -494,7 +494,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 			if (fcfg) {
 				fclose(fcfg);
 				cfg = gf_cfg_new(NULL, file);
-				*new_cfg = 1;
+				if (new_cfg) *new_cfg = 1;
 			}
 		}
 		if (cfg) {

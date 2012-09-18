@@ -185,6 +185,8 @@ u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *gro
 u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 idx);
 /*indicates to the DASH engine that the group playback has been stopped by the user*/
 void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done);
+/*gets presentationTimeOffset and timescale for the active representation*/
+GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, u64 *presentation_time_offset, u32 *timescale);
 
 /*returns 1 if the playback position is in the last period of the presentation*/
 Bool gf_dash_in_last_period(GF_DashClient *dash);

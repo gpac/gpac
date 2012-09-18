@@ -298,37 +298,44 @@ static void *(*gf_mem_realloc_proto)(void *ptr, size_t size, char *filename, int
 static void (*gf_mem_free_proto)(void *ptr, char *filename, int line) = gf_mem_free_basic;
 static char *(*gf_mem_strdup_proto)(const char *str, char *filename, int line) = gf_mem_strdup_basic;
 
-SYMBOL_EXPORT CDECL
-void *gf_mem_malloc(size_t size, char *filename, int line)
+#ifndef MY_GF_EXPORT
+#if defined(__GNUC__) && __GNUC__ >= 4
+#define GF_EXPORT __attribute__((visibility("default")))
+#else
+/*use def files for windows or let compiler decide*/
+#define MY_GF_EXPORT
+#endif
+#endif
+
+MY_GF_EXPORT void *gf_mem_malloc(size_t size, char *filename, int line)
 {
 	return gf_mem_malloc_proto(size, filename, line);
 }
 
-SYMBOL_EXPORT CDECL
-void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line)
+MY_GF_EXPORT void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line)
 {
 	return gf_mem_calloc_proto(num, size_of, filename, line);
 }
 
-SYMBOL_EXPORT CDECL
+MY_GF_EXPORT 
 void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line)
 {
 	return gf_mem_realloc_proto(ptr, size, filename, line);
 }
 
-SYMBOL_EXPORT CDECL
+MY_GF_EXPORT 
 void gf_mem_free(void *ptr, char *filename, int line)
 {
 	gf_mem_free_proto(ptr, filename, line);
 }
 
-SYMBOL_EXPORT CDECL
+MY_GF_EXPORT 
 char *gf_mem_strdup(const char *str, char *filename, int line)
 {
 	return gf_mem_strdup_proto(str, filename, line);
 }
 
-CDECL
+MY_GF_EXPORT 
 void gf_mem_enable_tracker()
 {
 	gf_mem_malloc_proto = gf_mem_malloc_tracker;
