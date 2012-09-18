@@ -1449,7 +1449,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 			pos += payload_to_copy;
 			copy_next = payload_length - payload_to_copy;
 			/*we might need a more than one*/
-			while (1) {
+			while (stream->pes_data_remain) {
 				u32 remain = 0;
 				Bool res = stream->process(stream->program->mux, stream);
 				if (!res) {

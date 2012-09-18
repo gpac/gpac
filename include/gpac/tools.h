@@ -356,6 +356,8 @@ enum
 	GF_LOG_DASH,
 	/*! Log for all messages coming from GF_Terminal or script alert()*/
 	GF_LOG_CONSOLE,
+	/*! Log for all messages coming the application, not used by libgpac or the modules*/
+	GF_LOG_APP,
 
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,

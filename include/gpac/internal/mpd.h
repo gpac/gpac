@@ -93,7 +93,7 @@ typedef struct
 
 #define GF_MPD_SEGMENT_BASE	\
 	u32 timescale;	\
-	u32 presentation_time_offset;	\
+	u64 presentation_time_offset;	\
 	u32 index_range;	\
 	Bool index_range_exact;	\
 	GF_MPD_URL *initialization_segment;	\

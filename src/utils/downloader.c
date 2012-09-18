@@ -650,18 +650,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     }
 
     if (sess->dm) gf_list_del_item(sess->dm->sessions, sess);
-    /*
-             TODO: something to clean an cache files ?
-    	if (sess->cache_name && !sess->use_cache_extension && !(sess->flags & GF_NETIO_SESSION_KEEP_CACHE) ) {
-            if (sess->dm)
-                opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "CleanCache");
-            else
-                opt = NULL;
-            if (!opt || !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
-    		gf_free(sess->cache_name);
-    	}
-    */
-    gf_dm_remove_cache_entry_from_session(sess);
+
+	gf_dm_remove_cache_entry_from_session(sess);
     sess->cache_entry = NULL;
     if (sess->orig_url) gf_free(sess->orig_url);
     if (sess->orig_url_before_redirect) gf_free(sess->orig_url_before_redirect);
@@ -673,6 +663,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     if (sess->init_data) gf_free(sess->init_data);
     sess->orig_url = sess->server_name = sess->remote_path;
     sess->creds = NULL;
+	if (sess->sock) 
+		gf_sk_del(sess->sock);
     gf_free(sess);
     GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
 }
