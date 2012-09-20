@@ -2380,7 +2380,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		gf_isom_box_del((GF_Box *)dest_file->meta);
 		dest_file->meta = NULL;
 		/*fixme - check imports*/
-		gf_isom_clone_box((GF_Box *)orig_file->meta, (GF_Box **)dest_file->meta);
+		gf_isom_clone_box((GF_Box *)orig_file->meta, (GF_Box **)&dest_file->meta);
 		if (dest_file->meta) gf_list_add(dest_file->TopBoxes, dest_file->meta);
 	}
 	if (orig_file->moov) {
