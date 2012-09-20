@@ -2198,7 +2198,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		flush_time = gf_sys_clock();
 #endif
 
-		if(compositor->user->init_flags & GF_TERM_INIT_HIDE) compositor->skip_flush = 1;
+		if(compositor->user->init_flags & GF_TERM_INIT_HIDE)
+			compositor->skip_flush = 1;
 
 		if (compositor->skip_flush!=1) {
 			rc.x = rc.y = 0; 
