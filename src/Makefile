@@ -153,7 +153,7 @@ ifeq ($(DISABLE_SVG), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg.o 
 endif
 ifeq ($(DISABLE_LOADER_SWF), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/swf_parse.o scene_manager/swf_bifs.o 
+LIBGPAC_SCENEMANAGER+=scene_manager/swf_parse.o scene_manager/swf_bifs.o scene_manager/swf_svg.o 
 endif
 ifeq ($(DISABLE_SCENE_DUMP), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_dump.o

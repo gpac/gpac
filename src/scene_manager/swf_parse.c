@@ -33,15 +33,6 @@
 #ifndef GPAC_DISABLE_SWF_IMPORT
 
 
-/*display list item (one per layer only)*/
-typedef struct
-{
-	GF_Matrix2D mat;
-	GF_ColorMatrix cmat;
-	u32 depth;
-	u32 char_id;
-} DispShape;
-
 enum
 {
 	SWF_END = 0,
@@ -2485,7 +2476,11 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 		read->no_as = 1;
 	}
 
-	e = swf_to_bifs_init(read);
+    if (!(load->swf_import_flags & GF_SM_SWF_USE_SVG)) {
+        e = swf_to_bifs_init(read);
+    } else {
+        e = swf_to_svg_init(read);
+    }
 	if (e) goto exit;
 
 	/*parse all tags*/

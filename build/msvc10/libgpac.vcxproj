@@ -117,6 +117,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\isomedia\generic_subtitle.c" />
+    <ClCompile Include="..\..\src\scene_manager\swf_svg.c" />
     <ClCompile Include="..\..\src\utils\alloc.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\base_encoding.c" />

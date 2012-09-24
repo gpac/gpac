@@ -48,6 +48,14 @@ enum
 	SWF_MOVE,
 };
 
+/*display list item (one per layer only)*/
+typedef struct
+{
+	GF_Matrix2D mat;
+	GF_ColorMatrix cmat;
+	u32 depth;
+	u32 char_id;
+} DispShape;
 
 struct SWFReader
 {
@@ -160,6 +168,11 @@ struct SWFReader
 	GF_List *btn_over, *btn_not_over, *btn_active, *btn_not_active;
 
 	/* </BIFS conversion state> */
+
+    /* SVG conversion state */
+    FILE *svg_output;
+    /* end of SVG conversion state */
+
 };
 
 
@@ -169,6 +182,7 @@ GF_Err swf_parse_sprite(SWFReader *read);
 
 
 GF_Err swf_to_bifs_init(SWFReader *read);
+GF_Err swf_to_svg_init(SWFReader *read);
 
 
 

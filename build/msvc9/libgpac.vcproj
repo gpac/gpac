@@ -5332,6 +5332,9 @@
 			<File
 				RelativePath="..\..\src\scene_manager\swf_bifs.c"
 				>
+			<File
+				RelativePath="..\..\src\scene_manager\swf_svg.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\internal\swf_dev.h"
