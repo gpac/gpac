@@ -65,7 +65,7 @@ typedef struct tagBITMAPINFOHEADER{
 
 extern Bool is_connected;
 extern GF_Terminal *term;
-extern u32 Duration;
+extern u64 Duration;
 extern GF_Err last_error;
 
 static GFINLINE u8 colmask(s32 a, s32 n)
