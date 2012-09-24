@@ -1,7 +1,9 @@
 #!/bin/sh
 #
-# GPAC MPEG-4 SDK configure script (c) 2003-2012 Telecom ParisTech - Authors: Jean Le Feuvre, Romain Bouqueau
-#      inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
+# GPAC configure script 
+#     (c) 2003-2012 Telecom ParisTech 
+#     Authors: Jean Le Feuvre, Romain Bouqueau
+#
 #set -v
 
 

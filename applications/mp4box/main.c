@@ -384,10 +384,10 @@ void PrintImportUsage()
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"
 			"                         * Note: creates tracks if needed\n"
+			"                         * Note: aligns initial timestamp of the file to be concatenated."
 			"                         * Note: new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
 			"                        where ADD_COMMAND is a regular -add syntax\n"
-			" -align-cat             aligns initial timestamp of file to be concatenated\n"
-			"                         * Note: may change timescale of tracks and introduce variable FPS\n"
+			" -unalign-cat           does not attempt to align timestamps of samples inbetween tracks\n"
 			" -force-cat             skips media configuration check when concatenating file\n"
 			"                         !!! THIS MAY BREAK THE CONCATENATED TRACK(S) !!!\n"
 			" -keep-sys              keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
@@ -1345,8 +1345,10 @@ int mp4boxMain(int argc, char **argv)
 	movie_time = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = align_cat = pack_wgt = 0;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	dash_bitstream_switching = 1;
+	/*align cat is the new default behaviour for -cat*/
+	align_cat = 1;
 	subsegs_per_sidx = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -1769,6 +1771,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-force-cat")) force_cat = 1;
 		else if (!stricmp(arg, "-align-cat")) align_cat = 1;
+		else if (!stricmp(arg, "-unalign-cat")) align_cat = 0;
 		else if (!stricmp(arg, "-raw-cat")) {
 			CHECK_NEXT_ARG
 			raw_cat = argv[i+1];

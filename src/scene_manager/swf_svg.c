@@ -429,6 +429,7 @@ static GF_Err swf_svg_define_edit_text(SWFReader *read, SWFEditText *text)
     return GF_OK;
 }
 
+#if 0
 /*called upon end of sprite or clip*/
 static void swf_svg_end_of_clip(SWFReader *read)
 {
@@ -462,6 +463,7 @@ static void swf_svg_end_of_clip(SWFReader *read)
     //  gf_list_insert(au->commands, com, i);
     //}
 }
+#endif
 
 static Bool swf_svg_allocate_depth(SWFReader *read, u32 depth)
 {
