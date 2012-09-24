@@ -185,6 +185,8 @@ enum
 	GF_SM_SWF_REUSE_APPEARANCE = (1<<9),
 	/*enable IndexedCurve2D proto*/
 	GF_SM_SWF_USE_IC2D = (1<<10),
+	/*enable SVG output*/
+	GF_SM_SWF_USE_SVG = (1<<11),
 };
 
 /*general loader flags*/

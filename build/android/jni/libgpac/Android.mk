@@ -128,6 +128,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/scene_manager/text_to_bifs.c \
 	../../../../src/scene_manager/loader_isom.c \
 	../../../../src/scene_manager/swf_bifs.c \
+	../../../../src/scene_manager/swf_svg.c \
 	../../../../src/scene_manager/loader_xmt.c \
 	../../../../src/scene_manager/loader_svg.c \
 	../../../../src/utils/alloc.c \

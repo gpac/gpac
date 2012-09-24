@@ -175,6 +175,9 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	load.fileName = file;
 	load.ctx = ctx;
 	load.swf_import_flags = swf_flags;
+    if (dump_mode == GF_SM_DUMP_SVG) {
+        load.swf_import_flags |= GF_SM_SWF_USE_SVG;
+    }
 	load.swf_flatten_limit = swf_flatten_angle;
 
 	ftype = get_file_type_by_ext(file);
