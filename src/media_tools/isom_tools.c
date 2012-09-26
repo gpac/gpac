@@ -1374,11 +1374,11 @@ restart_fragmentation_pass:
 					}
 
 					if (!use_url_template) {
-						fprintf(mpd_segs, "     <SegmentURL media=\"%s\"/>\n", SegmentName);	
+						fprintf(mpd_segs, "    <SegmentURL media=\"%s\"/>\n", SegmentName);	
 						if (dash_ctx) {
 							char szKey[100], szVal[4046];
 							sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
-							sprintf(szVal, "<SegmentURL sourceURL=\"%s\"/>", SegmentName);
+							sprintf(szVal, "<SegmentURL media=\"%s\"/>", SegmentName);
 							gf_cfg_set_key(dash_ctx, "URLs", szKey, szVal);
 						}
 					}
