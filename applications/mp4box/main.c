@@ -3471,6 +3471,7 @@ int mp4boxMain(int argc, char **argv)
 		for (cur_adaptation_set=0; cur_adaptation_set < max_adaptation_set; cur_adaptation_set++) {
 			u32 first_rep_in_set=0;
 			Bool is_first_rep=0;
+			Bool skip_init_segment_creation = 0;
 
 			while (dash_inputs[first_rep_in_set].adaptation_set!=cur_adaptation_set+1)
 				first_rep_in_set++;
@@ -3487,9 +3488,26 @@ int mp4boxMain(int argc, char **argv)
 				sprintf(szInit, "%s_set%d_init.mp4", outfile, cur_adaptation_set+1);
 			}
 
+			init_seg = NULL;
 			if (! dash_bitstream_switching) {
+				skip_init_segment_creation = 1;
+			}
+			/*fixme - dash context should be cleaned up
+			if we already wrote the InitializationSegment, get rid of it`(no overwrite) and let the dashing routine open it*/
+			else if (dash_ctx) {
+				const char *init_seg_name;
+				GF_Config *dctx = gf_cfg_new(NULL, dash_ctx);
+				if (dctx && ((init_seg_name = gf_cfg_get_key(dctx, "DASH", "InitializationSegment")) != NULL)) {
+					skip_init_segment_creation = 1;
+					init_seg = gf_isom_open(init_seg_name, GF_ISOM_OPEN_READ, NULL);
+				}
+				gf_cfg_del(dctx);
+			}
+
+			if (skip_init_segment_creation) {
 				/*we still need to open the first file to dash so that we can list ContentComponents in the MPD*/
-				init_seg = gf_isom_open(dash_inputs[first_rep_in_set].file_name, GF_ISOM_OPEN_READ, NULL);
+				if (!init_seg)
+					init_seg = gf_isom_open(dash_inputs[first_rep_in_set].file_name, GF_ISOM_OPEN_READ, NULL);
 				for (j=0; j<gf_isom_get_track_count(init_seg); j++) {
 					Double dur = (Double) gf_isom_get_track_duration(init_seg, j+1);
 					dur /= gf_isom_get_timescale(init_seg);
@@ -3604,7 +3622,7 @@ int mp4boxMain(int argc, char **argv)
 
 			e = gf_media_mpd_start(szMPD, dash_profile, dash_title, dash_source, cprt, dash_more_info, use_url_template, segment_mode, dash_ctx, init_seg, dash_bitstream_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id);
 
-			if (! dash_bitstream_switching) {
+			if (skip_init_segment_creation) {
 				gf_isom_close(init_seg);
 				init_seg = NULL;
 			}
@@ -3658,12 +3676,16 @@ int mp4boxMain(int argc, char **argv)
 			
 			if (!e) {
 				/*if init segment shared, write to file*/
-				if (nb_dash_inputs>1) {
+//				if (nb_dash_inputs>1) 
+				{
 					gf_isom_close(init_seg);
-				} else {
+				} 
+/*
+				else {
 					gf_isom_delete(init_seg);
 					gf_delete_file(szInit);
 				}
+*/
 			}
 		}
 		gf_isom_delete(file);

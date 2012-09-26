@@ -17,7 +17,7 @@ else
 fi
 
 
-#thanks to ffmpeg for this
+#remember the ./configure command line
 for v in "$@"; do
     r="${v#*=}"
     l="${v%$r}"
