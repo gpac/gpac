@@ -1044,7 +1044,18 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 		}
 
 		if (store_dash_params) {
-			gf_cfg_set_key(dash_ctx, "DASH", "InitializationSegment", SegmentName);
+			const char *name = SegmentName;
+			if (bs_switch_segment) name = gf_isom_get_filename(bs_switch_segment);
+			gf_cfg_set_key(dash_ctx, "DASH", "InitializationSegment", name);
+
+			if (is_bs_switching)
+				gf_cfg_set_key(dash_ctx, "DASH", "BitstreamSwitching", "yes");
+		} else {
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "BitstreamSwitching");
+			if (opt && !strcmp(opt, "yes")) {
+				is_bs_switching = 1;
+				bs_switch_segment = output;
+			}
 		}
 		mpd = gf_f64_open(mpd_name, "a+t");
 		mpd_segs = gf_temp_file_new();
@@ -1238,14 +1249,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 			opt = (char *)gf_cfg_get_key(dash_ctx, sKey, "NextDecodingTime");
 			if (opt) tf->InitialTSOffset = atoi(opt);
 		}
-	
+
+		/*get language, width/height/layout info, audio info*/
 		switch (mtype) {
 		case GF_ISOM_MEDIA_TEXT:
 			gf_isom_get_media_language(input, i+1, langCode);
 		case GF_ISOM_MEDIA_VISUAL:
-			if (!tfref && (count >=10)) {
-				tfref = tf;
-			}
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_DIMS:
 			gf_isom_get_track_layout_info(input, i+1, &_w, &_h, NULL, NULL, NULL);

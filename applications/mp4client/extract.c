@@ -654,7 +654,8 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		fprintf(stderr, "AVILib is disabled in this build of GPAC\n");
 		return 0;
 #else
-		u32 time, prev_time, nb_frames, dump_dur;
+		u32 time, prev_time, nb_frames;
+		u64 dump_dur;
 		char *conv_buf;
 		avi_t *avi_out = NULL; 
 		avi_t *depth_avi_out = NULL; 
