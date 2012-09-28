@@ -157,7 +157,7 @@ void convert_file_info(char *inName, u32 trackID)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, timescale, track, stype, profile, level;
+	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty;
 	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, is_chap_file, keep_handler;
@@ -168,6 +168,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
 	rvc_predefined = 0;
 	chapter_name = NULL;
+	new_timescale = 1;
+	rescale = 0;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -216,6 +218,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				force_fps /= dts_inc;
 			}
 			else force_fps = atof(ext+5);
+		}
+		else if (!strnicmp(ext+1, "timescale=", 10)) {
+			new_timescale = atoi(ext+11);
+		}
+		else if (!strnicmp(ext+1, "rescale=", 8)) {
+			rescale = atoi(ext+9);
 		}
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
@@ -528,6 +536,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_mpeg4_subtype(import.dest, track, 1))
 				keep_sys_tracks = 1;
+
+			if (new_timescale>1) {
+				gf_isom_set_media_timescale(import.dest, track, new_timescale, 0);
+			}
+			if (rescale>1) {
+				switch (gf_isom_get_media_type(import.dest, track)) {
+				case GF_ISOM_MEDIA_AUDIO:
+					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
+					break;
+				default:
+					gf_isom_set_media_timescale(import.dest, track, rescale, 1);
+					break;
+				}
+			}
 
 			if (rvc_config) {
 				FILE *f = gf_f64_open(rvc_config, "rb");
@@ -1446,7 +1468,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 					if (dst_timescale * idx < max_timescale) idx ++;
 					dst_timescale *= idx;
 
-					gf_isom_set_media_timescale(dest, dst_tk, max_timescale);
+					gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
 				}
 			}
 
