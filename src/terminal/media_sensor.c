@@ -116,6 +116,24 @@ void MS_Modified(GF_Node *node)
 	gf_term_invalidate_compositor(st->parent->root_od->term);
 }
 
+
+static void media_sensor_activate(MediaSensorStack *media_sens, GF_Segment *desc)
+{
+	media_sens->sensor->isActive = 1;
+	gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
+	/*set info*/
+	gf_sg_vrml_mf_reset(& media_sens->sensor->info, GF_SG_VRML_MFSTRING);
+	gf_sg_vrml_mf_alloc(& media_sens->sensor->info, GF_SG_VRML_MFSTRING, 1);
+	media_sens->sensor->info.vals[0] = desc->SegmentName ? gf_strdup(desc->SegmentName) : NULL;
+	gf_node_event_out((GF_Node *) media_sens->sensor, 5/*"info"*/);
+	/*set duration*/
+	media_sens->sensor->mediaDuration = desc->Duration;
+	gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
+	/*set seg start time*/
+	media_sens->sensor->streamObjectStartTime = desc->startTime;
+	gf_node_event_out((GF_Node *) media_sens->sensor, 2/*"streamObjectStartTime"*/);
+}
+
 void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 {
 	GF_Segment *desc;
@@ -153,6 +171,8 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 
 			if (!is_eos && !media_sens->sensor->isActive) {
 				media_sens->sensor->isActive = 1;
+				gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
+
 				gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 				if (odm->subscene) {
 					media_sens->sensor->mediaDuration = (Double) (s64)odm->subscene->duration;
@@ -196,7 +216,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Deactivating media sensor at time %g - segment %s\n", odm->OD->objectDescriptorID, time, desc->SegmentName));
 				}
-				break;
+				continue;
 			}
 			if (desc->startTime + desc->Duration < time) continue;
 			if (desc->startTime + desc->Duration == time) {
@@ -209,22 +229,11 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 			}
 
 			if (!media_sens->sensor->isActive) {
-				media_sens->sensor->isActive = 1;
-				gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
-				/*set info*/
-				gf_sg_vrml_mf_reset(& media_sens->sensor->info, GF_SG_VRML_MFSTRING);
-				gf_sg_vrml_mf_alloc(& media_sens->sensor->info, GF_SG_VRML_MFSTRING, 1);
-				media_sens->sensor->info.vals[0] = desc->SegmentName ? gf_strdup(desc->SegmentName) : NULL;
-				gf_node_event_out((GF_Node *) media_sens->sensor, 5/*"info"*/);
-				/*set duration*/
-				media_sens->sensor->mediaDuration = desc->Duration;
-				gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
-				/*set seg start time*/
-				media_sens->sensor->streamObjectStartTime = desc->startTime;
-				gf_node_event_out((GF_Node *) media_sens->sensor, 2/*"streamObjectStartTime"*/);
+				media_sensor_activate(media_sens, desc);
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Activating media sensor time %g - segment %s\n", odm->OD->objectDescriptorID, time, desc->SegmentName));
 			}
+
 			/*set media time - relative to segment start time*/
 			time -= desc->startTime;
 			if (media_sens->sensor->mediaCurrentTime != time) {

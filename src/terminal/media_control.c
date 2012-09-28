@@ -392,7 +392,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->is_init = 1;
 		/*the object has already been started, and media start time is not 0, restart*/
 		if (stack->stream->num_open) {
-			if (stack->media_start > 0) {
+			if ( (stack->media_start > 0) || (gf_list_count(stack->seg)>0 ) ) {
 				mediacontrol_restart(odm);
 			} else if (stack->media_speed == 0) {
 				mediacontrol_pause(odm);
