@@ -1050,7 +1050,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 
 			if (is_bs_switching)
 				gf_cfg_set_key(dash_ctx, "DASH", "BitstreamSwitching", "yes");
-		} else {
+		} else if (dash_ctx) {
 			opt = gf_cfg_get_key(dash_ctx, "DASH", "BitstreamSwitching");
 			if (opt && !strcmp(opt, "yes")) {
 				is_bs_switching = 1;
