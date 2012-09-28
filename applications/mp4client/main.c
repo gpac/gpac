@@ -35,6 +35,9 @@
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
 
+#include <gpac/internal/terminal_dev.h>
+
+
 #ifndef WIN32
 #include <dlfcn.h>
 #include <pwd.h>
@@ -1230,12 +1233,24 @@ int main (int argc, char **argv)
 
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
-		if (ext && strncmp("http:", the_url, 5) && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+			GF_Err e = GF_OK;
 			fprintf(stderr, "Opening Playlist %s\n", the_url);
-			playlist = gf_f64_open(the_url, "rt");
+	
+			strcpy(pl_path, the_url);
+			/*this is not clean, we need to have a plugin handle playlist for ourselves*/
+			if (!strncmp("http:", the_url, 5)) {
+				GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, the_url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+				if (sess) {
+					e = gf_dm_sess_process(sess);
+					if (!e) strcpy(the_url, gf_dm_sess_get_cache_name(sess));
+					gf_dm_sess_del(sess);
+				}
+			}
+			
+			playlist = e ? NULL : gf_f64_open(the_url, "rt");
 			readonly_playlist = 1;
 			if (playlist) {
-				strcpy(pl_path, the_url);
 				if (1 > fscanf(playlist, "%s", the_url))
 				  fprintf(stderr, "Cannot read any URL from playlist\n");
 				else {
@@ -1243,6 +1258,8 @@ int main (int argc, char **argv)
 				  gf_term_connect_with_path(term, the_url, pl_path);
 				}
 			} else {
+				if (e) 
+					fprintf(stderr, "Failed to open playlist %s: %s\n", the_url, gf_error_to_string(e) );
 				fprintf(stderr, "Hit 'h' for help\n\n");
 			}
 		} else {

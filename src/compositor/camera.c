@@ -185,7 +185,7 @@ void camera_set_2d(GF_Camera *cam)
 #endif
 }
 
-void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camera_layout)
+void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, u32 camera_layout)
 {
 	Fixed vlen, h, w, ar;
 	SFVec3f corner, center;
@@ -202,7 +202,7 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 			Fixed left, right, top, bottom, shift, wd2, ndfl, viewing_distance;
 			SFVec3f eye, pos, tar, disp;
 
-			viewing_distance = (nominal_view_distance + view_distance_offset);
+			viewing_distance = nominal_view_distance;
 
 			wd2 = cam->z_near * gf_tan(cam->fieldOfView/2);
 			ndfl = gf_divfix(cam->z_near, viewing_distance);
@@ -231,7 +231,6 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 
 			gf_vec_diff(center, cam->world_bbox.center, cam->position);
 			vlen = gf_vec_len(center);
-			vlen += view_distance_offset * (vlen/nominal_view_distance);
 			shift = horizontal_shift * vlen / viewing_distance;
 
 			pos = gf_vec_scale(disp, shift);
@@ -316,13 +315,12 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 
 	if (camera_layout == GF_3D_CAMERA_CIRCULAR) {
 		GF_Matrix mx;
-		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
+		Fixed viewing_distance = nominal_view_distance;
 		SFVec3f pos, target;
 		Fixed angle;
 
 		gf_vec_diff(center, cam->world_bbox.center, cam->position);
 		vlen = gf_vec_len(center);
-		vlen += view_distance_offset * (vlen/nominal_view_distance);
 
 		gf_vec_diff(pos, cam->target, cam->position);
 		gf_vec_norm(&pos);
@@ -340,12 +338,11 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 
 		gf_mx_lookat(&cam->modelview, pos, target, cam->up);
 	} else if (camera_layout == GF_3D_CAMERA_LINEAR) {
-		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
+		Fixed viewing_distance = nominal_view_distance;
 		GF_Vec eye, disp, pos, tar;
 
 		gf_vec_diff(center, cam->world_bbox.center, cam->position);
 		vlen = gf_vec_len(center);
-		vlen += view_distance_offset * (vlen/nominal_view_distance);
 
 		gf_vec_diff(eye, cam->target, cam->position);
 		gf_vec_norm(&eye);

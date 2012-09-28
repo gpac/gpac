@@ -466,9 +466,10 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 
 	if (!strnicmp(URL, "views://", 8)) {
 		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
-		gf_scene_generate_views(term->root_scene, (char *) URL+8);
+		gf_scene_generate_views(term->root_scene, (char *) URL+8, (char*)parent_path);
 		return;
 	}
+
 	/*connect - we don't have any parentID */
 	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
 }

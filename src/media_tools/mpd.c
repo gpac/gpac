@@ -1031,7 +1031,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			u32 k;
 			char *suburl;
 
-			if (!pe->url || !strstr(pe->url, ".m3u8")) 
+			if (!pe->url ) 
 				continue;
 
 			/*filter out duplicated entries (seen on M6 m3u8)*/
@@ -1046,6 +1046,11 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			the_pe = pe;
 			suburl = NULL;
+
+			/*not HLS*/
+			if ( !strstr(pe->url, ".m3u8")) 
+				continue;
+
 			if (strcmp(base_url, pe->url))
 				suburl = gf_url_concatenate(base_url, pe->url);
 

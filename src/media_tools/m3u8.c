@@ -528,14 +528,14 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 			continue;
 		if (currentLineNumber == 1) {
 			/* Playlist MUST start with #EXTM3U */
-			if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
+/*			if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
 				fclose(f);
 				variant_playlist_del(pl);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
 				return GF_STREAM_NOT_FOUND;
 			}
 			continue;
-		}
+*/		}
 		if (currentLine[0] == '#') {
 			/* A comment or a directive */
 			if (strncmp("#EXT", currentLine, 4)==0) {

@@ -1546,7 +1546,7 @@ GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i)
 
 #define USE_TEXTURES	0
 
-void gf_scene_generate_views(GF_Scene *scene, char *url)
+void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 {
 	char *url_search;
 	Bool use_old_syntax = 1;
@@ -1610,7 +1610,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url)
 
 		gf_sg_vrml_mf_reset(&mt->url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, NULL);
-		mt->url.vals[0].url = gf_strdup(url);
+		mt->url.vals[0].url = gf_url_concatenate(parent_path, url);
 #else
 		inl = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, NULL);
 		gf_node_list_add_child( &((M_Switch *)switcher)->choice, (GF_Node *)inl);
@@ -1618,7 +1618,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url)
 
 		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_mf_append(&inl->url, GF_SG_VRML_MFURL, NULL);
-		inl->url.vals[0].url = gf_strdup(url);
+		inl->url.vals[0].url = gf_url_concatenate(parent_path, url);
 #endif
 
 		if (!sep) break;

@@ -368,9 +368,9 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		if (tr_state->visual->reverse_views) delta = - delta;
 
 		tr_state->camera->flags |= CAM_IS_DIRTY;
-		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance, tr_state->visual->compositor->view_distance_offset, tr_state->visual->camera_layout);
+		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance + tr_state->visual->compositor->view_distance_offset, tr_state->visual->camera_layout);
 	} else {
-		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, 0, 0, 0, GF_3D_CAMERA_STRAIGHT);
+		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, 0, 0, GF_3D_CAMERA_STRAIGHT);
 	}
 
 	/*setup projection/modelview*/

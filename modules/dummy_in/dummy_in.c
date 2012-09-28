@@ -43,6 +43,7 @@ typedef struct
 	GF_ClientService *service;
 	char *url;
 	u32 oti;
+	Bool is_views_url;
 	GF_List *channels;
 
 	/*file downloader*/
@@ -124,6 +125,9 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 		if (cgi_par) cgi_par[0] = '?';
 		if (ok) return 1;
 	}
+	/*views:// internal URI*/
+	if (!strnicmp(url, "views://", 8)) 
+		return 1;
 
 	if (!strncmp(url, "\\\\", 2)) return 0;
 
@@ -227,6 +231,13 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	}
 	read->service = serv;
 
+	if (!strnicmp(url, "views://", 8)) {
+		read->is_views_url = 1;
+		gf_term_on_connect(serv, NULL, GF_OK);
+		read->is_service_connected = 1;
+		return GF_OK;
+	}
+
 	if (ext) {
 		char *cgi_par = NULL;
 		ext += 1;
@@ -319,6 +330,11 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	iod->audio_profileAndLevel = 0xFE;
 	iod->visual_profileAndLevel = 0xFE;
 	iod->objectDescriptorID = 1;
+
+	if (read->is_views_url) {
+		iod->URLString = gf_strdup(read->url);
+		return (GF_Descriptor *)iod;
+	}
 
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = 1000;
