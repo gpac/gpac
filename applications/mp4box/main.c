@@ -380,6 +380,8 @@ void PrintImportUsage()
 			"                         - if Y=-1, the layout is moved to the bottom of the\n"
 			"                         track area\n"
 			"                         - X and Y can be omitted (:layout=WxH)\n"
+			" \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
+			" \":timescale=TS\"      sets import timescale to TS\n"
 			"\n"
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"

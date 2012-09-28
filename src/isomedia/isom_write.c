@@ -3136,7 +3136,7 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 newTS)
+GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 newTS, Bool force_rescale)
 {
 	Double scale;
 	GF_TrackBox *trak;
@@ -3147,11 +3147,27 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	scale = newTS;
 	scale /= trak->Media->mediaHeader->timeScale;
 	trak->Media->mediaHeader->timeScale = newTS;
-	if (trak->editBox) {
-		GF_EdtsEntry *ent;
-		u32 i=0;
-		while ((ent = (GF_EdtsEntry*)gf_list_enum(trak->editBox->editList->entryList, &i))) {
-			ent->mediaTime = (u32) (scale*ent->mediaTime);
+	if (!force_rescale) {
+		if (trak->editBox) {
+			GF_EdtsEntry *ent;
+			u32 i=0;
+			while ((ent = (GF_EdtsEntry*)gf_list_enum(trak->editBox->editList->entryList, &i))) {
+				ent->mediaTime = (u32) (scale*ent->mediaTime);
+			}
+		}
+		if (trak->Media->information->sampleTable) {
+			u32 i;
+			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
+			if (stbl->TimeToSample) {
+				for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
+					stbl->TimeToSample->entries[i].sampleDelta = (u32) (scale * stbl->TimeToSample->entries[i].sampleDelta);
+				}
+			}
+			if (stbl->CompositionOffset) {
+				for (i=0; i<stbl->CompositionOffset->nb_entries; i++) {
+					stbl->CompositionOffset->entries[i].decodingOffset = (u32) (scale * stbl->CompositionOffset->entries[i].decodingOffset);
+				}
+			}
 		}
 	}
 	return SetTrackDuration(trak);
