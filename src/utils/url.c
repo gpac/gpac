@@ -95,7 +95,9 @@ static char *gf_url_concatenator(const char *parentName, const char *pathName, B
 	char *outPath, *name, *rad;
 	char tmp[GF_MAX_PATH];
 
-	if (!pathName || !parentName) return NULL;
+	if (!pathName && !parentName) return NULL;
+	if (!pathName) return gf_strdup(parentName);
+	if (!parentName) return gf_strdup(pathName);
 
 	if ( (strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH) ) return NULL;
 

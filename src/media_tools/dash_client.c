@@ -1558,7 +1558,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		group->dont_delete_first_segment = 1;
 	}
 
-	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7)) {
+	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "views://", 8)) {
 		assert(!group->nb_cached_segments);
 		group->cached[0].cache = gf_strdup(base_init_url);
 		group->cached[0].url = gf_strdup(base_init_url);
@@ -1893,7 +1893,9 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		const char *mime_type;
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_i);
 
-		if (!group->adaptation_set->segment_alignment) {
+		nb_rep = gf_list_count(group->adaptation_set->representations);
+
+		if ((nb_rep>1) && !group->adaptation_set->segment_alignment) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - ignoring because not supported\n"));
 			continue;
 		}
@@ -1902,7 +1904,6 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			continue;
 		}
 
-		nb_rep = gf_list_count(group->adaptation_set->representations);
 		/* Select the appropriate representation in the given period */
 		active_rep = 0;
 		for (rep_i = 0; rep_i < nb_rep; rep_i++) {

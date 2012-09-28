@@ -1052,7 +1052,7 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 /*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
 u32 gf_mo_get_od_id(MFURL *url);
 
-void gf_scene_generate_views(GF_Scene *scene, char *url);
+void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
 
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 

@@ -283,7 +283,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url)
 {
 	u32 od_type;
-	char *ext;
+	char *ext, *redirect_url;
 	char *sub_url = (char *) service_sub_url;
 	GF_Descriptor *desc;
 
@@ -335,6 +335,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		}
 	}
 
+	redirect_url = NULL;
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG:
 	{
@@ -350,6 +351,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		odm->Visual_PL = the_iod->visual_profileAndLevel;
 		odm->flags |= GF_ODM_HAS_PROFILES;
 		if (the_iod->inlineProfileFlag) odm->flags |= GF_ODM_INLINE_PROFILES;
+		redirect_url = the_iod->URLString;
+		odm->OD->URLString = NULL;
 		gf_odf_desc_del((GF_Descriptor *) the_iod->IPMPToolList);
 		gf_free(the_iod);
 	}
@@ -357,6 +360,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	case GF_ODF_OD_TAG:
 		odm->Audio_PL = odm->Graphics_PL = odm->OD_PL = odm->Scene_PL = odm->Visual_PL = (u8) -1;
 		odm->OD = (GF_ObjectDescriptor *)desc;
+		redirect_url = odm->OD->URLString;
+		odm->OD->URLString = NULL;
 		break;
 	default:
 		gf_term_message(odm->term, odm->net_service->url, "MPEG4 Service Setup Failure", GF_ODF_INVALID_DESCRIPTOR);
@@ -365,10 +370,17 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	
 	gf_odm_setup_object(odm, odm->net_service);
 
+	if (redirect_url && !strnicmp(redirect_url, "views://", 8)) {
+		
+		gf_scene_generate_views(odm->subscene ? odm->subscene : odm->parentscene , (char *) redirect_url + 8, (char*)odm->parentscene ? odm->parentscene->root_od->net_service->url : NULL);
+	}
 	/*it may happen that this object was inserted in a dynamic scene from a service through a URL redirect. In which case, 
 	the scene regeneration might not have been completed since the redirection was not done yet - force a scene regenerate*/
-	if (odm->parentscene && odm->parentscene->is_dynamic_scene)
+	else if (odm->parentscene && odm->parentscene->is_dynamic_scene)
 		gf_scene_regenerate(odm->parentscene);
+
+
+	gf_free(redirect_url);
 	return;
 
 err_exit:
@@ -378,6 +390,8 @@ err_exit:
 		evt.connect.is_connected = 0;
 		gf_term_send_event(odm->term, &evt);
 	}
+	if (redirect_url)
+		gf_free(redirect_url);
 
 }
 
@@ -592,6 +606,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (odm->OD->URLString) {
 		GF_ClientService *parent = odm->net_service;
 		char *url = odm->OD->URLString;
+		char *parent_url = NULL;
 		odm->OD->URLString = NULL;
 		/*store original OD ID */
 		if (!odm->current_time) odm->current_time = odm->OD->objectDescriptorID;
@@ -609,7 +624,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->subscene = gf_scene_new(odm->parentscene);
 			odm->subscene->root_od = odm;
 		}
-		gf_term_post_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
+		parent_url = parent ? parent->url : NULL;
+		if (parent_url && !strnicmp(parent_url, "views://", 8))
+			parent_url = NULL;
+
+		gf_term_post_connect_object(odm->term, odm, url, parent_url);
 		gf_free(url);
 		gf_term_lock_net(odm->term, 0);
 		return;
