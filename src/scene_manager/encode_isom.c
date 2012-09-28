@@ -269,6 +269,10 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	e = gf_media_import(&import);
 	if (e) return e;
 
+	if (src->OCRESID) {
+		gf_isom_set_track_reference(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_ISOM_REF_OCR, src->OCRESID);
+	}
+
 	i=0;
 	while ((d = gf_list_enum(src->extensionDescriptors, &i))) {
 		if (d->tag == GF_ODF_AUX_VIDEO_DATA) {
