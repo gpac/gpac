@@ -185,7 +185,7 @@ void camera_set_2d(GF_Camera *cam)
 #endif
 }
 
-void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, u32 camera_layout)
+void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camera_layout)
 {
 	Fixed vlen, h, w, ar;
 	SFVec3f corner, center;
@@ -338,12 +338,13 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 
 		gf_mx_lookat(&cam->modelview, pos, target, cam->up);
 	} else if (camera_layout == GF_3D_CAMERA_LINEAR) {
-		Fixed viewing_distance = nominal_view_distance;
+		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
 		GF_Vec eye, disp, pos, tar;
 
 		gf_vec_diff(center, cam->world_bbox.center, cam->position);
 		vlen = gf_vec_len(center);
-
+		vlen += view_distance_offset * (vlen/nominal_view_distance);
+	
 		gf_vec_diff(eye, cam->target, cam->position);
 		gf_vec_norm(&eye);
 		tar = gf_vec_scale(eye, vlen);
@@ -368,6 +369,10 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 	cam->flags &= ~CAM_IS_DIRTY;
 }
 
+void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords)
+{
+	camera_update_stereo(cam, user_transform, center_coords, 0, 0, 0, GF_3D_CAMERA_STRAIGHT);
+}
 void camera_set_vectors(GF_Camera *cam, SFVec3f pos, SFRotation ori, Fixed fov)
 {
 	Fixed sin_a, cos_a, icos_a, tmp;

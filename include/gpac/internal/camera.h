@@ -168,7 +168,9 @@ typedef struct _camera
 /*invalidate camera to force recompute of all params*/
 void camera_invalidate(GF_Camera *cam);
 /*updates camera. user transform is only used in 2D to set global user zoom/pan/translate*/
-void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, u32 camera_layout);
+void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords);
+/*updates camera. user transform is only used in 2D to set global user zoom/pan/translate + stereo param*/
+void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, Fixed viewing_distance_offset, u32 camera_layout);
 /*reset to last viewport*/
 void camera_reset_viewpoint(GF_Camera *cam, Bool animate);
 /*move camera to given vp*/
