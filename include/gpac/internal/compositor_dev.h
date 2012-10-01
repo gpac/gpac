@@ -480,9 +480,8 @@ struct __tag_compositor
 	Fixed interoccular_distance;
 	/*increase/decrease the standard interoccular offset by the specified distance in cm*/
 	Fixed interoccular_offset;
-	/*increase/decrease the view distance by the specified distance in cm*/
-	Fixed view_distance_offset;
-
+	/*specifies distance the camera focal point and the screen plane : <0 is behind the screen, >0 is in front*/
+	Fixed focus_distance;
 #endif
 	
 	u32 networks_time;

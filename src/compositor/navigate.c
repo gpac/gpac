@@ -463,9 +463,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 				compositor->visual->camera.start_zoom = compositor->zoom;
 				compositor->zoom = FIX_ONE;
 				compositor->interoccular_offset = 0;
-				compositor->view_distance_offset = 0;
+				compositor->focus_distance = 0;
 				compositor->interoccular_offset = 0;
-				compositor->view_distance_offset = 0;
+				compositor->focus_distance = 0;
 				compositor_3d_reset_camera(compositor);
 			}
 			break;
@@ -481,9 +481,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
 					/*+ or - 10 cm*/
-					compositor->view_distance_offset += INT2FIX(key_inv * 10);
+					compositor->focus_distance += INT2FIX(key_inv);
 					cam->flags |= CAM_IS_DIRTY;
-					fprintf(stderr, "AutoStereo view distance %f\n", FIX2FLT(compositor->view_distance_offset + compositor->video_out->view_distance)/100);
+					fprintf(stderr, "AutoStereo view distance %f - focus %f\n", FIX2FLT(compositor->video_out->view_distance)/100, FIX2FLT(compositor->focus_distance)/100);
 					gf_sc_invalidate(compositor, NULL);
 					return 1;
 				}

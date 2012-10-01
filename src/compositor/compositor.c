@@ -1296,6 +1296,13 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ViewDistance");
 		compositor->video_out->view_distance = FLT2FIX( sOpt ? (Float) atof(sOpt) : 50.0f ); 
 	}
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusDistance");
+	compositor->focus_distance = 0;
+	if (sOpt) 
+		compositor->focus_distance = FLT2FIX( atof(sOpt) ); 
+	else
+		gf_cfg_set_key(compositor->user->config, "Compositor", "FocusDistance", "0");
 #endif
 
 
