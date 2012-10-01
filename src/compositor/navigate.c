@@ -257,29 +257,37 @@ Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 	return 1;
 }
 
+//#define SCALE_NAV
+
 static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event *ev)
 {
 	Fixed x, y, trans_scale;
 	Fixed dx, dy, key_trans, key_pan, key_exam;
 	s32 key_inv;
 	u32 keys;
+#ifdef SCALE_NAV
 	Bool is_pixel_metrics;
+#endif
 	GF_Camera *cam;
 	Fixed zoom = compositor->zoom;
 
 	cam = NULL;
-	if (compositor->active_layer) {
 #ifndef GPAC_DISABLE_VRML
+	if (compositor->active_layer) {
 		cam = compositor_layer3d_get_camera(compositor->active_layer);
-		is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(compositor->active_layer));
+#ifdef SCALE_NAV
+	is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(compositor->active_layer));
 #endif
 	} 
+#endif
 
 	if (!cam) {
 		cam = &compositor->visual->camera;
 		assert(compositor);
 		assert(compositor->scene);
+#ifdef SCALE_NAV
 		is_pixel_metrics = compositor->traverse_state->pixel_metrics;
+#endif
 	}
 
 	keys = compositor->key_states;
@@ -294,11 +302,14 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	dx = (x - compositor->grab_x); 
 	dy = (compositor->grab_y - y);
 
-/*	trans_scale = is_pixel_metrics ? cam->width/2 : INT2FIX(10);
+#ifdef SCALE_NAV
+	trans_scale = is_pixel_metrics ? cam->width/2 : INT2FIX(10);
 	key_trans = is_pixel_metrics ? INT2FIX(10) : cam->avatar_size.x;
-*/
+#else
 	trans_scale = cam->width/20;
 	key_trans = cam->avatar_size.x/2;
+#endif
+
 	if (cam->world_bbox.is_set && (key_trans*5 > cam->world_bbox.radius)) {
 		key_trans = cam->world_bbox.radius / 100;
 	}
