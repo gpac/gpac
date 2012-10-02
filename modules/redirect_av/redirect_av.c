@@ -58,8 +58,9 @@
 #include "ts_muxer.h"
 
 #define USE_GPAC_MPEG2TS
-#undef USE_GPAC_MPEG2TS
+#undef  USE_GPAC_MPEG2TS
 
+//#define MULTITHREAD_REDIRECT_AV
 #define REDIRECT_AV_AUDIO_ENABLED 1
 
 #ifdef USE_GPAC_MPEG2TS
@@ -257,7 +258,7 @@ static Bool video_encoding_thread_run(void *param)
             assert( currentFrameTimeProcessed != avr->frameTime);
             currentFrameTimeProcessed = avr->frameTime;
             {
-                avpicture_fill ( ( AVPicture * ) avr->RGBpicture, avr->frame, PIX_FMT_RGB24, avr->srcWidth, avr->srcHeight );
+				avpicture_fill ( ( AVPicture * ) avr->RGBpicture, avr->frame, PIX_FMT_RGB24, avr->srcWidth, avr->srcHeight );
                 assert( avr->swsContext );
                 sws_scale ( avr->swsContext,
 #ifdef USE_AVCODEC2
@@ -278,20 +279,20 @@ static Bool video_encoding_thread_run(void *param)
                 if (avr->encode)
                 {
                     int written;
-                    //u32 sysclock = gf_sys_clock();
+                    u32 sysclock_begin = gf_sys_clock(), sysclock_end=0;
                     avr->YUVpicture->pts = currentFrameTimeProcessed;
-                    //fprintf(stderr, "Encoding frame PTS="LLU", frameNum=%u, time=%u...", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number, currentFrameTimeProcessed);
-                    written = avcodec_encode_video ( ctx, avr->videoOutbuf, avr->videoOutbufSize, avr->YUVpicture );
-                    //ctx->coded_frame->pts = currentFrameTimeProcessed;
-                    if ( written < 0 )
-                    {
+                    written = avcodec_encode_video ( ctx, avr->videoOutbuf, avr->videoOutbufSize, avr->YUVpicture);
+					sysclock_end = gf_sys_clock();
+                    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Encoding frame PTS="LLD", frameNum=%u, time="LLU", size=%d\t in %ums\n", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number, currentFrameTimeProcessed, written, sysclock_end-sysclock_begin));
+                    ctx->coded_frame->pts = currentFrameTimeProcessed;
+
+                    if (written<0) {
                         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while encoding video frame =%d\n", written ) );
-                    } else
-                        if ( written > 0 )
-                        {
+					} else {
+                        if (written>0)
                             ts_encode_video_frame(avr->ts_implementation, avr->videoOutbuf, written);
-                        }
-                    lastEncodedFrameTime = currentFrameTimeProcessed;
+                        lastEncodedFrameTime = currentFrameTimeProcessed;
+					}
                 }
             }
         }
@@ -335,7 +336,7 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
 #endif /* AVR_DUMP_RAW_AVI */
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Initializing...\n"));
     if (!avr->pcmAudio)
-        avr->pcmAudio = gf_ringbuffer_new(32768);
+        avr->pcmAudio = gf_ringbuffer_new(48000*2*2); //1s of 16b stereo 48000Hz
 
     /* Setting up the video encoding ... */
     {
@@ -460,6 +461,7 @@ static void avr_on_video_frame ( void *udta, u32 time )
     GF_Err e;
     GF_VideoSurface fb;
     GF_AVRedirect *avr = ( GF_AVRedirect * ) udta;
+
     if (start_if_needed(avr))
         return;
     gf_mx_p(avr->frameMutex);
@@ -469,20 +471,25 @@ static void avr_on_video_frame ( void *udta, u32 time )
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error grabing frame buffer %s\n", gf_error_to_string ( e ) ) );
         return;
     }
-    /*convert frame*/
-    for ( i=0; i<fb.height; i++ )
-    {
-        char *dst = avr->frame + i * fb.width * 3;
-        char *src = fb.video_buffer + i * fb.pitch_y;
-        for ( j=0; j<fb.width; j++ )
-        {
-            dst[0] = src[2];
-            dst[1] = src[1];
-            dst[2] = src[0];
-            src+=4;
-            dst += 3;
-        }
-    }
+    /*convert colorspace for input frame*/
+	if (fb.pixel_format == GF_PIXEL_ARGB) {
+		/*ARGB -> RGB24*/
+		for (i=0; i<fb.height; i++) {
+			char *dst = avr->frame + i * fb.width * 3;
+			char *src = fb.video_buffer + i * fb.pitch_y;
+			for (j=0; j<fb.width; j++) {
+				dst[0] = src[2];
+				dst[1] = src[1];
+				dst[2] = src[0];
+				src+=4;
+				dst += 3;
+			}
+		}
+	} else {
+		assert(fb.pixel_format == GF_PIXEL_RGB_24);
+		for (i=0; i<fb.height; i++)
+			memcpy(avr->frame+i*fb.width*3, fb.video_buffer+i*fb.pitch_y, fb.width*3);
+	}
     avr->frameTime = time;
     gf_mx_v(avr->frameMutex);
     gf_sc_release_screen_buffer ( avr->term->compositor, &fb );
