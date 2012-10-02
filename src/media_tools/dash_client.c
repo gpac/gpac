@@ -1641,17 +1641,17 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	} else {
 		char mime[128];
 		const char *mime_type;
-		u32 count = group->nb_segments_in_rep + 1;
-		if (count < group->max_cached_segments) {
-			if (count < 1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] 0 representations, aborting\n"));
+		if (!group->nb_segments_in_rep) {
+			if (dash->mpd->type==GF_MPD_TYPE_STATIC) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] 0 segments in static representation, aborting\n"));
 				gf_free(base_init_url);
 				gf_mx_v(dash->dl_mutex);
 				return GF_BAD_PARAM;
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Resizing to %u max_cached_segments elements instead of %u.\n", count, group->max_cached_segments));
+		} else if (group->nb_segments_in_rep < group->max_cached_segments) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Resizing to %u max_cached_segments elements instead of %u.\n", group->nb_segments_in_rep, group->max_cached_segments));
 			/* OK, we have a problem, it may ends download */
-			group->max_cached_segments = count;
+			group->max_cached_segments = group->nb_segments_in_rep;
 		}
 
 		/* Mime-Type check */
@@ -2132,7 +2132,7 @@ restart_period:
 
 			/* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
 			we need to check if a new playlist is ready */
-			if (group->download_segment_index>=group->nb_segments_in_rep) {
+			if (group->nb_segments_in_rep && (group->download_segment_index>=group->nb_segments_in_rep)) {
 				u32 timer = gf_sys_clock() - dash->last_update_time;
 				/* update of the playlist, only if indicated */
 				if (dash->mpd->minimum_update_period && timer > dash->mpd->minimum_update_period) {
