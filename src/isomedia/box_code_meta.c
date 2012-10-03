@@ -106,8 +106,10 @@ GF_Err meta_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	e = gf_isom_box_write((GF_Box *) ptr->handler, bs);
-	if (e) return e;
+	if (ptr->handler) {
+		e = gf_isom_box_write((GF_Box *) ptr->handler, bs);
+		if (e) return e;
+	}
 	if (ptr->primary_resource) {
 		e = gf_isom_box_write((GF_Box *) ptr->primary_resource, bs);
 		if (e) return e;
@@ -142,9 +144,11 @@ GF_Err meta_Size(GF_Box *s)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	e = gf_isom_box_size((GF_Box *) ptr->handler);
-	if (e) return e;
-	ptr->size += ptr->handler->size;
+	if (ptr->handler) {
+		e = gf_isom_box_size((GF_Box *) ptr->handler);
+		if (e) return e;
+		ptr->size += ptr->handler->size;
+	}
 	if (ptr->primary_resource) {
 		e = gf_isom_box_size((GF_Box *) ptr->primary_resource);
 		if (e) return e;

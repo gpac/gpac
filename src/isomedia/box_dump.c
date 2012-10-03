@@ -3304,7 +3304,7 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, " IsGapeless=\"%s\" ", itune->data->data[0] ? "yes" : "no");
 			break;
 		default:
-			if (strcmp(name, "Unknown")) {
+			if (strcmp(name, "Unknown") && itune->data->data) {
 				if (itune->data && itune->data->data[0]) {
 					fprintf(trace, " value=\"%s\" ", itune->data->data);
 				} else {

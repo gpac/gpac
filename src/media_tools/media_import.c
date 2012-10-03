@@ -1772,17 +1772,23 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				goto exit;
 			}
 			/*if not first sample and same DTS as previous sample, force DTS++*/
-			if (i && (samp->DTS==sampDTS)) {
-				samp->DTS++;
+			if (i && (samp->DTS<=sampDTS)) {
+				if (i+1 < num_samples) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] 0-duration sample detected at DTS %d - adjusting\n", samp->DTS));
+				}
+				samp->DTS = sampDTS + 1;
 			}
 			e = gf_isom_add_sample(import->dest, track, di, samp);
+			if (e)
+				e = e;
 		}
 		sampDTS = samp->DTS;
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 		if (duration && (sampDTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
-		if (e) goto exit;
+		if (e)
+			goto exit;
 	}
 
 	if (import->esd) {
