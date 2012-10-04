@@ -1460,16 +1460,18 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
 		u32 br = 0;
 		Bool lfe = 0;
+		Bool is_ec3 = 0;
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
-			nb_ch = gf_ac3_get_channels(ac3->acmod);
-			br = gf_ac3_get_bitrate(ac3->brcode);
-			lfe = ac3->lfon;
+			nb_ch = gf_ac3_get_channels(ac3->streams[0].acmod);
+			lfe = ac3->streams[0].lfon;
+			br = ac3->is_ec3 ? ac3->brcode : gf_ac3_get_bitrate(ac3->brcode);
+			is_ec3 = ac3->is_ec3;
 			gf_free(ac3);
 		}
 #endif
-		fprintf(stderr, "\tAC3 stream - Sample Rate %d - %d%s channel(s) - bitrate %d\n", sr, nb_ch, lfe ? ".1" : "", br);
+		fprintf(stderr, "\t%s stream - Sample Rate %d - %d%s channel(s) - bitrate %d\n", ac3->is_ec3 ? "EC-3" : "AC-3", sr, nb_ch, lfe ? ".1" : "", br);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_SMV) {
 		fprintf(stderr, "\t3GPP SMV stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_DIMS) {

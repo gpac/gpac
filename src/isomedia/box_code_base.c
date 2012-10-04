@@ -7168,9 +7168,11 @@ GF_Err metx_Size(GF_Box *s)
 
 
 
-GF_Box *dac3_New()
+GF_Box *dac3_New(u32 boxType)
 {
 	ISOM_DECL_BOX_ALLOC(GF_AC3ConfigBox, GF_ISOM_BOX_TYPE_DAC3);
+	if (boxType==GF_ISOM_BOX_TYPE_DEC3)
+		tmp->cfg.is_ec3 = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -7186,13 +7188,34 @@ GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs)
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 
-	ptr->cfg.fscod = gf_bs_read_int(bs, 2);
-	ptr->cfg.bsid = gf_bs_read_int(bs, 5);
-	ptr->cfg.bsmod = gf_bs_read_int(bs, 3);
-	ptr->cfg.acmod = gf_bs_read_int(bs, 3);
-	ptr->cfg.lfon = gf_bs_read_int(bs, 1);
-	ptr->cfg.brcode = gf_bs_read_int(bs, 5);
-	gf_bs_read_int(bs, 5);
+	if (ptr->cfg.is_ec3) {
+		u32 i;
+		ptr->cfg.brcode = gf_bs_read_int(bs, 13);
+		ptr->cfg.nb_streams = gf_bs_read_int(bs, 3) + 1;
+		for (i=0; i<ptr->cfg.nb_streams; i++) {
+			ptr->cfg.streams[i].fscod = gf_bs_read_int(bs, 2);
+			ptr->cfg.streams[i].bsid = gf_bs_read_int(bs, 5);
+			ptr->cfg.streams[i].bsmod = gf_bs_read_int(bs, 5);
+			ptr->cfg.streams[i].acmod = gf_bs_read_int(bs, 3);
+			ptr->cfg.streams[i].lfon = gf_bs_read_int(bs, 1);
+			gf_bs_read_int(bs, 3);
+			ptr->cfg.streams[i].nb_dep_sub = gf_bs_read_int(bs, 4);
+			if (ptr->cfg.streams[i].nb_dep_sub) {
+				ptr->cfg.streams[i].chan_loc = gf_bs_read_int(bs, 9);
+			} else {
+				gf_bs_read_int(bs, 1);
+			}
+		}
+	} else {
+		ptr->cfg.nb_streams = 1;
+		ptr->cfg.streams[0].fscod = gf_bs_read_int(bs, 2);
+		ptr->cfg.streams[0].bsid = gf_bs_read_int(bs, 5);
+		ptr->cfg.streams[0].bsmod = gf_bs_read_int(bs, 3);
+		ptr->cfg.streams[0].acmod = gf_bs_read_int(bs, 3);
+		ptr->cfg.streams[0].lfon = gf_bs_read_int(bs, 1);
+		ptr->cfg.brcode = gf_bs_read_int(bs, 5);
+		gf_bs_read_int(bs, 5);
+	}
 	return GF_OK;
 }
 
@@ -7203,25 +7226,60 @@ GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
+
+	if (ptr->cfg.is_ec3) s->type = GF_ISOM_BOX_TYPE_DEC3;
 	e = gf_isom_box_write_header(s, bs);
+	if (ptr->cfg.is_ec3) s->type = GF_ISOM_BOX_TYPE_DAC3;
 	if (e) return e;
 
-	gf_bs_write_int(bs, ptr->cfg.fscod, 2);
-	gf_bs_write_int(bs, ptr->cfg.bsid, 5);
-	gf_bs_write_int(bs, ptr->cfg.bsmod, 3);
-	gf_bs_write_int(bs, ptr->cfg.acmod, 3);
-	gf_bs_write_int(bs, ptr->cfg.lfon, 1);
-	gf_bs_write_int(bs, ptr->cfg.brcode, 5);
-	gf_bs_write_int(bs, 0, 5);
+	if (ptr->cfg.is_ec3) {
+		u32 i;
+		gf_bs_write_int(bs, ptr->cfg.brcode, 13);
+		gf_bs_write_int(bs, ptr->cfg.nb_streams - 1, 3);
+		for (i=0; i<ptr->cfg.nb_streams; i++) {
+			gf_bs_write_int(bs, ptr->cfg.streams[i].fscod, 2);
+			gf_bs_write_int(bs, ptr->cfg.streams[i].bsid, 5);
+			gf_bs_write_int(bs, ptr->cfg.streams[i].bsmod, 5);
+			gf_bs_write_int(bs, ptr->cfg.streams[i].acmod, 3);
+			gf_bs_write_int(bs, ptr->cfg.streams[i].lfon, 1);
+			gf_bs_write_int(bs, 0, 3);
+			gf_bs_write_int(bs, ptr->cfg.streams[i].nb_dep_sub, 4);
+			if (ptr->cfg.streams[i].nb_dep_sub) {
+				gf_bs_write_int(bs, ptr->cfg.streams[i].chan_loc, 9);
+			} else {
+				gf_bs_write_int(bs, 0, 1);
+			}
+		}
+	} else {
+		gf_bs_write_int(bs, ptr->cfg.streams[0].fscod, 2);
+		gf_bs_write_int(bs, ptr->cfg.streams[0].bsid, 5);
+		gf_bs_write_int(bs, ptr->cfg.streams[0].bsmod, 3);
+		gf_bs_write_int(bs, ptr->cfg.streams[0].acmod, 3);
+		gf_bs_write_int(bs, ptr->cfg.streams[0].lfon, 1);
+		gf_bs_write_int(bs, ptr->cfg.brcode, 5);
+		gf_bs_write_int(bs, 0, 5);
+	}
 	return GF_OK;
 }
 
 GF_Err dac3_Size(GF_Box *s)
 {
+	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	GF_Err e;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	s->size += 3;
+
+	if (ptr->cfg.is_ec3) {
+		u32 i;
+		s->size += 2;
+		for (i=0; i<ptr->cfg.nb_streams; i++) {
+			s->size += 3;
+			if (ptr->cfg.streams[i].nb_dep_sub) 
+				s->size += 1;
+		}
+	} else {
+		s->size += 3;
+	}
 	return GF_OK;
 }
 
@@ -7251,10 +7309,12 @@ GF_Err ac3_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *ac3_New()
+GF_Box *ac3_New(u32 boxType)
 {
 	ISOM_DECL_BOX_ALLOC(GF_AC3SampleEntryBox, GF_ISOM_BOX_TYPE_AC3);
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
+	if (boxType==GF_ISOM_BOX_TYPE_EC3)
+		tmp->is_ec3 = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -7265,7 +7325,9 @@ GF_Err ac3_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
+	if (ptr->is_ec3) s->type = GF_ISOM_BOX_TYPE_EC3;
 	e = gf_isom_box_write_header(s, bs);
+	if (ptr->is_ec3) s->type = GF_ISOM_BOX_TYPE_AC3;
 	if (e) return e;
 	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
 	return gf_isom_box_write((GF_Box *)ptr->info, bs);

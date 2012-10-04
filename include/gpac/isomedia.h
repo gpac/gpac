@@ -1996,16 +1996,25 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 
 
 
-
-/*AC3 config record*/
-typedef struct 
+struct __ec3_stream
 {
 	u8 fscod;
 	u8 bsid;
 	u8 bsmod;
 	u8 acmod;
 	u8 lfon;
-	u8 brcode;
+	/*only for EC3*/
+	u8 nb_dep_sub;
+	u8 chan_loc;
+};
+
+/*AC3 config record*/
+typedef struct 
+{
+	u8 is_ec3;
+	u8 nb_streams; //1 for AC3, max 8 for EC3
+	u16 brcode; //if AC3 is bitrate code, otherwise cumulated datarate of EC3 streams
+	struct __ec3_stream streams[8];
 } GF_AC3Config;
 
 GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex);
@@ -2013,6 +2022,7 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 
 /*returns the number of subsamples in the given sample */

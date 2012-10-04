@@ -6664,12 +6664,14 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
 	import->esd->decoderConfig->decoderSpecificInfo = NULL;
 
-	cfg.acmod = hdr.acmod;
+	cfg.is_ec3 = 0;
+	cfg.nb_streams = 1;
 	cfg.brcode = hdr.brcode;
-	cfg.bsid = hdr.bsid;
-	cfg.bsmod = hdr.bsmod;
-	cfg.fscod = hdr.fscod;
-	cfg.lfon = hdr.lfon;
+	cfg.streams[0].acmod = hdr.acmod;
+	cfg.streams[0].bsid = hdr.bsid;
+	cfg.streams[0].bsmod = hdr.bsmod;
+	cfg.streams[0].fscod = hdr.fscod;
+	cfg.streams[0].lfon = hdr.lfon;
 
 	gf_isom_ac3_config_new(import->dest, track, &cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16);
