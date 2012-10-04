@@ -601,8 +601,12 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_METT:
 		return metx_New(boxType);
 
-	case GF_ISOM_BOX_TYPE_AC3: return ac3_New();
-	case GF_ISOM_BOX_TYPE_DAC3: return dac3_New();
+	case GF_ISOM_BOX_TYPE_AC3: 
+	case GF_ISOM_BOX_TYPE_EC3: 
+		return ac3_New(boxType);
+	case GF_ISOM_BOX_TYPE_DAC3: 
+	case GF_ISOM_BOX_TYPE_DEC3: 
+		return dac3_New(boxType);
 	
 	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_New();
 	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_New();

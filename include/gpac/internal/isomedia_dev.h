@@ -335,6 +335,8 @@ enum
 
 	GF_ISOM_BOX_TYPE_AC3	= GF_4CC( 'a', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
+	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
+	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
 
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
@@ -933,10 +935,9 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_AUDIO_SAMPLE_ENTRY
+	Bool is_ec3;
 	GF_AC3ConfigBox *info;
 } GF_AC3SampleEntryBox;
-
-
 
 
 typedef struct
@@ -3559,14 +3560,14 @@ GF_Err diST_Size(GF_Box *s);
 GF_Err diST_dump(GF_Box *a, FILE * trace);
 
 
-GF_Box *ac3_New();
+GF_Box *ac3_New(u32 boxType);
 void ac3_del(GF_Box *s);
 GF_Err ac3_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err ac3_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ac3_Size(GF_Box *s);
 GF_Err ac3_dump(GF_Box *a, FILE * trace);
 
-GF_Box *dac3_New();
+GF_Box *dac3_New(u32 boxType);
 void dac3_del(GF_Box *s);
 GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs);

@@ -301,7 +301,7 @@ static u32 AC3_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd,
 	/*media type query*/
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 	switch (esd->decoderConfig->objectTypeIndication) {
-	case 0xA5:
+	case GPAC_OTI_AUDIO_AC3:
 		return GF_CODEC_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;
