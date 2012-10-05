@@ -318,6 +318,9 @@ typedef struct {
 	GF_List *metrics;
 	/*list of GF_MPD_Period */
     GF_List *periods;
+
+	/*set during parsing*/
+	const char *xml_namespace;
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);

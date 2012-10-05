@@ -404,6 +404,7 @@ static void gf_dash_get_timeline_duration(GF_MPD_SegmentTimeline *timeline, u32 
 static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, GF_MPD *mpd, u32 *nb_segments, Double *max_seg_duration)
 {
 	Double mediaDuration;
+	Bool single_segment = 0;
 	u32 timescale;
 	u64 duration;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -453,22 +454,34 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 		return;
 	}
 
+	single_segment = 1;
 	if (period->segment_template) {
+		single_segment = 0;
 		if (period->segment_template->duration) duration = period->segment_template->duration;
 		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
 	}
 	if (set->segment_template) {
+		single_segment = 0;
 		if (set->segment_template->duration) duration = set->segment_template->duration;
 		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
 	}
 	if (rep->segment_template) {
+		single_segment = 0;
 		if (rep->segment_template->duration) duration = rep->segment_template->duration;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 	}
 	if (!timescale) timescale=1;
+
+	/*if no SegmentXXX is found, this is a single segment representation (onDemand profile)*/
+	if (single_segment) {
+		*max_seg_duration = mpd->media_presentation_duration;
+		*max_seg_duration /= 1000;
+		*nb_segments = 1;
+		return;
+	}
 
 	if (timeline) {
 		gf_dash_get_timeline_duration(timeline, nb_segments, max_seg_duration);
@@ -1464,6 +1477,11 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 			sprintf(szFormat, szPrintFormat, start_number + item_index);
 			strcat(solved_template, szFormat);
 		}
+		else if (!strcmp(first_sep+1, "Index")) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Wrong template identifier Index detected - using Number instead\n\n"));
+			sprintf(szFormat, szPrintFormat, start_number + item_index);
+			strcat(solved_template, szFormat);
+		}
 		else if (!strcmp(first_sep+1, "Bandwidth")) {
 			sprintf(szFormat, szPrintFormat, rep->bandwidth);
 			strcat(solved_template, szFormat);
@@ -1500,6 +1518,14 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 				}
 			}
 		}
+		else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Unknown template identifier %s - disabling rep\n\n", first_sep+1));
+			*out_url = NULL;
+			gf_free(url);
+			gf_free(solved_template);
+			group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		if (format_tag) format_tag[0] = '%';
 		second_sep[0] = '$';
 		/*look for next keyword - copy over remaining text if any*/
@@ -1509,8 +1535,6 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 			strcat(solved_template, second_sep+1);
 		if (first_sep) first_sep[0] = '$';
 	}
-	/*To check with the group, the commented version should just be a hack for bad sources*/
-	//	*out_url = gf_url_base_concatenate(url, solved_template);
 	*out_url = gf_url_concatenate(url, solved_template);
 	gf_free(url);
 	gf_free(solved_template);
@@ -1662,10 +1686,13 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		if (dash->mimeTypeForM3U8Segments) 
 			gf_free(dash->mimeTypeForM3U8Segments);
 		dash->mimeTypeForM3U8Segments = gf_strdup( mime );
-		if (!rep->mime_type) {
-			rep->mime_type = gf_strdup( mime );
-		}
 		mime_type = gf_dash_get_mime_type(NULL, rep, group->adaptation_set);
+
+		if (!rep->mime_type) {
+			rep->mime_type = gf_strdup( mime_type ? mime_type : mime );
+			mime_type = gf_dash_get_mime_type(NULL, rep, group->adaptation_set);
+		}
+
 		if (stricmp(mime, mime_type)) {
 			Bool valid = 0;
 			char *stype1, *stype2;
@@ -1895,7 +1922,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		nb_rep = gf_list_count(group->adaptation_set->representations);
 
-		if ((nb_rep>1) && !group->adaptation_set->segment_alignment) {
+		if ((nb_rep>1) && !group->adaptation_set->segment_alignment && !group->adaptation_set->subsegment_alignment) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - ignoring because not supported\n"));
 			continue;
 		}
