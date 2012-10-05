@@ -1339,7 +1339,7 @@ int mp4boxMain(int argc, char **argv)
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
-	InterleavingTime = 0.5;
+	InterleavingTime = 0.0;
 	dash_duration = 0.0;
 	import_fps = 0;
 	import_flags = 0;
@@ -2260,6 +2260,14 @@ int mp4boxMain(int argc, char **argv)
 	if (!strcmp(inName, "stdb")) {
 		inName = "std";
 		dump_std = 1;
+	}
+
+	if (!InterleavingTime) {
+		/*by default use single fragment per dash segment*/
+		if (dash_duration) 
+			InterleavingTime = dash_duration;
+		else
+			InterleavingTime = 0.5;
 	}
 
 	if (dump_std) 

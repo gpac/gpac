@@ -44,6 +44,14 @@ static char *gf_mpd_parse_string(char *attr)
 	return gf_strdup(attr);
 }
 
+static Bool gf_mpd_valid_child(GF_MPD *mpd, GF_XMLNode *child)
+{
+	if (child->type != GF_XML_NODE_TYPE) return 0;
+	if (!mpd->xml_namespace && !child->ns) return 1;
+	if (mpd->xml_namespace && child->ns && !strcmp(mpd->xml_namespace, child->ns) ) return 1;
+	return 0;
+}
+
 static char *gf_mpd_parse_text_content(GF_XMLNode *child)
 {
 	u32 child_index = 0;
@@ -87,7 +95,7 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(char *attr)
 static u64 gf_mpd_parse_date(char *attr)
 {
 #ifdef _WIN32_WCE
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Parsing MPD date (%s) is not supported on Windows CE\n", attr));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Parsing MPD date (%s) is not supported on Windows CE\n", attr));
 	return 0;
 #else
 	Bool ok = 0;
@@ -99,17 +107,15 @@ static u64 gf_mpd_parse_date(char *attr)
 	h = m = 0;
 	s = 0;
 	oh = om = 0;
-	if (strchr(attr, 'Z')) {
-		if (sscanf(attr, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &s) == 6) 
-			ok = 1;
-		else if (sscanf(attr, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &s, &oh, &om) == 8) {
-			neg_time_zone = 1;
-			ok = 1;
-		} else if (sscanf(attr, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &s, &oh, &om) == 8) 
-			ok = 1;
-		
-		/*there are many other formats ...*/
+	if (sscanf(attr, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &s) == 6) 
+		ok = 1;
+	else if (sscanf(attr, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &s, &oh, &om) == 8) {
+		neg_time_zone = 1;
+		ok = 1;
+	} else if (sscanf(attr, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &s, &oh, &om) == 8) {
+		ok = 1;
 	}
+
 	if (ok) {
 		u64 res;
 		struct tm _t;
@@ -127,7 +133,7 @@ static u64 gf_mpd_parse_date(char *attr)
 		}
 		return res;
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse MPD date %s - format not supported\n", attr));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Failed to parse MPD date %s - format not supported\n", attr));
 	}
 	return 0;
 #endif
@@ -292,7 +298,7 @@ static GF_MPD_URL *gf_mpd_parse_url(GF_XMLNode *root)
 	return url;
 }
 
-static void gf_mpd_parse_segment_base_generic(GF_MPD_SegmentBase *seg, GF_XMLNode *root)
+static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *seg, GF_XMLNode *root)
 {
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
@@ -310,13 +316,13 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD_SegmentBase *seg, GF_XMLNod
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "Initialization")) seg->initialization_segment = gf_mpd_parse_url(child);
 		else if (!strcmp(child->name, "RepresentationIndex")) seg->representation_index = gf_mpd_parse_url(child);
 	}
 }
 
-static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_XMLNode *root)
+static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XMLNode *root)
 {
 	u32 i, j;
 	GF_XMLAttribute *att;
@@ -328,7 +334,7 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_XMLNode *root)
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "S")) {
 			GF_MPD_SegmentTimelineEntry *segent;
 			GF_SAFEALLOC(segent, GF_MPD_SegmentTimelineEntry);
@@ -348,22 +354,22 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_XMLNode *root)
 	return seg;
 }
 
-static GF_MPD_SegmentBase *gf_mpd_parse_segment_base(GF_XMLNode *root)
+static GF_MPD_SegmentBase *gf_mpd_parse_segment_base(GF_MPD *mpd, GF_XMLNode *root)
 {
 	GF_MPD_SegmentBase *seg;
 	GF_SAFEALLOC(seg, GF_MPD_SegmentBase);
 	if (!seg) return NULL;
-	gf_mpd_parse_segment_base_generic(seg, root);
+	gf_mpd_parse_segment_base_generic(mpd, seg, root);
 	return seg;
 }
 
-void gf_mpd_parse_multiple_segment_base(GF_MPD_MultipleSegmentBase *seg, GF_XMLNode *root)
+void gf_mpd_parse_multiple_segment_base(GF_MPD *mpd, GF_MPD_MultipleSegmentBase *seg, GF_XMLNode *root)
 {
 	u32 i;
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
 
-	gf_mpd_parse_segment_base_generic((GF_MPD_SegmentBase*)seg, root);
+	gf_mpd_parse_segment_base_generic(mpd, (GF_MPD_SegmentBase*)seg, root);
 	seg->start_number = (u32) -1;
 
 	i = 0;
@@ -374,8 +380,8 @@ void gf_mpd_parse_multiple_segment_base(GF_MPD_MultipleSegmentBase *seg, GF_XMLN
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
-		if (!strcmp(child->name, "SegmentTimeline")) seg->segment_timeline = gf_mpd_parse_segment_timeline(child);
+		if (!gf_mpd_valid_child(mpd, child)) continue;
+		if (!strcmp(child->name, "SegmentTimeline")) seg->segment_timeline = gf_mpd_parse_segment_timeline(mpd, child);
 		else if (!strcmp(child->name, "BitstreamSwitching")) seg->bitstream_switching_url = gf_mpd_parse_url(child);
 	}
 }
@@ -399,7 +405,7 @@ static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 	}
 }
 
-static GF_MPD_SegmentList *gf_mpd_parse_segment_list(GF_XMLNode *root)
+static GF_MPD_SegmentList *gf_mpd_parse_segment_list(GF_MPD *mpd, GF_XMLNode *root)
 {
 	u32 i;
 	GF_MPD_SegmentList *seg;
@@ -415,11 +421,11 @@ static GF_MPD_SegmentList *gf_mpd_parse_segment_list(GF_XMLNode *root)
 		if (strstr(att->name, "href")) seg->xlink_href = gf_mpd_parse_string(att->value);
 		else if (strstr(att->name, "actuate")) seg->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
 	}
-	gf_mpd_parse_multiple_segment_base((GF_MPD_MultipleSegmentBase *)seg, root);
+	gf_mpd_parse_multiple_segment_base(mpd, (GF_MPD_MultipleSegmentBase *)seg, root);
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "SegmentURL")) gf_mpd_parse_segment_url(seg->segment_URLs, child);
 	}
 	if (!gf_list_count(seg->segment_URLs)) {
@@ -429,7 +435,7 @@ static GF_MPD_SegmentList *gf_mpd_parse_segment_list(GF_XMLNode *root)
 	return seg;
 }
 
-static GF_MPD_SegmentTemplate *gf_mpd_parse_segment_template(GF_XMLNode *root)
+static GF_MPD_SegmentTemplate *gf_mpd_parse_segment_template(GF_MPD *mpd, GF_XMLNode *root)
 {
 	u32 i;
 	GF_MPD_SegmentTemplate *seg;
@@ -443,10 +449,13 @@ static GF_MPD_SegmentTemplate *gf_mpd_parse_segment_template(GF_XMLNode *root)
 		if (!strcmp(att->name, "media")) seg->media = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "index")) seg->index = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "initialization") ) seg->initialization = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "initialisation") ) seg->initialization = gf_mpd_parse_string(att->value);
+		else if (!stricmp(att->name, "initialisation") || !stricmp(att->name, "initialization") ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Wrong spelling: got %s but expected \"initialization\" \n", att->name ));
+			seg->initialization = gf_mpd_parse_string(att->value);
+		}
 		else if (!strcmp(att->name, "bitstreamSwitching")) seg->bitstream_switching = gf_mpd_parse_string(att->value);
 	}
-	gf_mpd_parse_multiple_segment_base((GF_MPD_MultipleSegmentBase *)seg, root);
+	gf_mpd_parse_multiple_segment_base(mpd, (GF_MPD_MultipleSegmentBase *)seg, root);
 	return seg;
 }
 
@@ -460,7 +469,7 @@ static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
 	return GF_OK;
 }
 
-static void gf_mpd_parse_common_representation(GF_MPD_CommonAttributes *com, GF_XMLNode *root)
+static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttributes *com, GF_XMLNode *root)
 {
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
@@ -494,7 +503,7 @@ static void gf_mpd_parse_common_representation(GF_MPD_CommonAttributes *com, GF_
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "FramePacking")) {
 			gf_mpd_parse_content_component(com->frame_packing, child);
 		}
@@ -513,7 +522,7 @@ static void gf_mpd_init_common_attributes(GF_MPD_CommonAttributes *com)
 	com->content_protection = gf_list_new();
 	com->frame_packing = gf_list_new();
 }
-static GF_Err gf_mpd_parse_representation(GF_List *container, GF_XMLNode *root)
+static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
 	GF_MPD_Representation *rep;
@@ -537,23 +546,23 @@ static GF_Err gf_mpd_parse_representation(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "dependencyId")) rep->dependency_id = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "mediaStreamStructureId")) rep->media_stream_structure_id = gf_mpd_parse_string(att->value);
 	}
-	gf_mpd_parse_common_representation((GF_MPD_CommonAttributes*)rep, root);
+	gf_mpd_parse_common_representation(mpd, (GF_MPD_CommonAttributes*)rep, root);
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "BaseURL")) {
 			e = gf_mpd_parse_base_url(rep->base_URLs, child);
 			if (e) return e;
 		}
 		else if (!strcmp(child->name, "SegmentBase")) {
-			rep->segment_base = gf_mpd_parse_segment_base(child);
+			rep->segment_base = gf_mpd_parse_segment_base(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentList")) {
-			rep->segment_list = gf_mpd_parse_segment_list(child);
+			rep->segment_list = gf_mpd_parse_segment_list(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentTemplate")) {
-			rep->segment_template = gf_mpd_parse_segment_template(child);
+			rep->segment_template = gf_mpd_parse_segment_template(mpd, child);
 		}
 		else if (!strcmp(child->name, "SubRepresentation")) {
 /*TODO
@@ -565,7 +574,7 @@ static GF_Err gf_mpd_parse_representation(GF_List *container, GF_XMLNode *root)
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_parse_adaptation_set(GF_List *container, GF_XMLNode *root)
+static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
 	GF_MPD_AdaptationSet *set;
@@ -614,11 +623,11 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_List *container, GF_XMLNode *root)
 			else set->subsegment_starts_with_sap = gf_mpd_parse_int(att->value);
 		}
 	}
-	gf_mpd_parse_common_representation((GF_MPD_CommonAttributes*)set, root);
+	gf_mpd_parse_common_representation(mpd, (GF_MPD_CommonAttributes*)set, root);
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "Accessibility")) {
 			e = gf_mpd_parse_descriptor(set->accessibility, child);
 			if (e) return e;
@@ -644,16 +653,16 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_List *container, GF_XMLNode *root)
 			if (e) return e;
 		}
 		else if (!strcmp(child->name, "SegmentBase")) {
-			set->segment_base = gf_mpd_parse_segment_base(child);
+			set->segment_base = gf_mpd_parse_segment_base(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentList")) {
-			set->segment_list = gf_mpd_parse_segment_list(child);
+			set->segment_list = gf_mpd_parse_segment_list(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentTemplate")) {
-			set->segment_template = gf_mpd_parse_segment_template(child);
+			set->segment_template = gf_mpd_parse_segment_template(mpd, child);
 		}
 		else if (!strcmp(child->name, "Representation")) {
-			e = gf_mpd_parse_representation(set->representations, child);
+			e = gf_mpd_parse_representation(mpd, set->representations, child);
 			if (e) return e;
 		}
 	}
@@ -688,22 +697,22 @@ static GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
-		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "BaseURL")) {
 			e = gf_mpd_parse_base_url(period->base_URLs, child);
 			if (e) return e;
 		}
 		else if (!strcmp(child->name, "SegmentBase")) {
-			period->segment_base = gf_mpd_parse_segment_base(child);
+			period->segment_base = gf_mpd_parse_segment_base(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentList")) {
-			period->segment_list = gf_mpd_parse_segment_list(child);
+			period->segment_list = gf_mpd_parse_segment_list(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentTemplate")) {
-			period->segment_template = gf_mpd_parse_segment_template(child);
+			period->segment_template = gf_mpd_parse_segment_template(mpd, child);
 		}
 		else if (!strcmp(child->name, "AdaptationSet")) {
-			e = gf_mpd_parse_adaptation_set(period->adaptation_sets, child);
+			e = gf_mpd_parse_adaptation_set(mpd, period->adaptation_sets, child);
 			if (e) return e;
 		}
 		else if (!strcmp(child->name, "SubSet")) {
@@ -907,6 +916,7 @@ GF_EXPORT
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
 {
 	GF_Err e;
+	Bool ns_ok = 0;
 	u32 att_index, child_index;
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
@@ -924,8 +934,32 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 	/*infinite by default*/
 	mpd->time_shift_buffer_depth = (u32) -1;
 
+	mpd->xml_namespace = NULL;
 	att_index = 0;
 	child_index = gf_list_count(root->attributes);
+	for (att_index = 0 ; att_index < child_index; att_index++) {
+		att = gf_list_get(root->attributes, att_index);
+		if (!att) continue;
+		if (!strcmp(att->name, "xmlns")) {
+			if (!root->ns && !strcmp(att->value, "urn:mpeg:DASH:schema:MPD:2011")) {
+				ns_ok = 1;
+				break;
+			}
+		}
+		else if (!strncmp(att->name, "xmlns:", 6)) {
+			if (root->ns && !strcmp(att->name+6, root->ns) && !strcmp(att->value, "urn:mpeg:DASH:schema:MPD:2011")) {
+				ns_ok = 1;
+				mpd->xml_namespace = root->ns;
+				break;
+			}
+		}
+	}
+
+	if (!ns_ok) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Wrong namespacve found for DASH MPD - cannot parse\n"));
+	}
+
+	att_index = 0;
 	for (att_index = 0 ; att_index < child_index; att_index++) {
 		att = gf_list_get(root->attributes, att_index);
 		if (!att) {
@@ -967,7 +1001,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 		child = gf_list_get(root->content, child_index);
 		if (!child) {
 			break;
-		} else if (child->type == GF_XML_NODE_TYPE) {
+		} else if (gf_mpd_valid_child(mpd, child) ) {
 			if (!strcmp(child->name, "ProgramInformation")) {
 				e = gf_mpd_parse_program_info(mpd, child);
 				if (e) return e;

@@ -202,7 +202,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), (u8) sps->data[1], (u8) sps->data[2], (u8) sps->data[3]);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
-
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 		sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
@@ -798,7 +797,8 @@ typedef struct
 	u32 finalSampleDescriptionIndex;
 	u32 TimeScale, MediaType, DefaultDuration, InitialTSOffset;
 	u64 last_sample_cts, next_sample_dts;
-	Bool all_sample_raps;
+	Bool all_sample_raps, splitable;
+	u32 split_sample_dts_shift;
 } TrackFragmenter;
 
 static u64 get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -1253,6 +1253,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 		/*get language, width/height/layout info, audio info*/
 		switch (mtype) {
 		case GF_ISOM_MEDIA_TEXT:
+			tf->splitable = 1;
 			gf_isom_get_media_language(input, i+1, langCode);
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
@@ -1313,6 +1314,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const 
 
 restart_fragmentation_pass:
 
+	for (i=0; i<gf_list_count(fragmenters); i++) {
+		tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
+		tf->split_sample_dts_shift = 0;
+	}
 	segment_start_time = 0;
 	nb_segments = 0;
 
@@ -1415,6 +1420,7 @@ restart_fragmentation_pass:
 			for (i=0; i<count; i++) {
 				tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
 				if (tf->done) continue;
+				/*FIXME - we need a way in the spec to specify "past" DTS for splitted sample*/
 				gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->InitialTSOffset + tf->next_sample_dts);
 			}
 		
@@ -1446,6 +1452,7 @@ restart_fragmentation_pass:
 			//ok write samples
 			while (1) {
 				Bool stop_frag = 0;
+				u32 split_sample_duration = 0;
 
 				/*first sample*/
 				if (!sample) {
@@ -1453,6 +1460,9 @@ restart_fragmentation_pass:
 					if (!sample) {
 						e = gf_isom_last_error(input);
 						goto err_exit;
+					}
+					if (tf->split_sample_dts_shift) {
+						sample->DTS += tf->split_sample_dts_shift;
 					}
 
 					/*also get SAP type - this is not needed if sample is not NULL as SAP tye was computed for "next sample" in previous loop*/
@@ -1476,6 +1486,22 @@ restart_fragmentation_pass:
 					defaultDuration = tf->DefaultDuration;
 				}
 
+				if (tf->splitable) {
+					if (tfref==tf) {
+						u32 frag_dur = (tf->FragmentLength + defaultDuration) * 1000 / tf->TimeScale;
+						/*if media segment about to be produced is longer than max segment length, force segment split*/
+						if (SegmentDuration + frag_dur > MaxSegmentDuration) {
+							split_sample_duration = defaultDuration;
+							defaultDuration = tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / 1000 - tf->FragmentLength;
+							split_sample_duration -= defaultDuration;
+						}
+					} else if ((tf->last_sample_cts + defaultDuration) * tfref_timescale >= last_ref_cts * tf->TimeScale) {
+						split_sample_duration = defaultDuration;
+						defaultDuration = (u32) ( (last_ref_cts * tf->TimeScale)/tfref_timescale - tf->last_sample_cts );
+						split_sample_duration -= defaultDuration;
+					}
+				}
+
 				if (tf==tfref) {
 					if (segments_start_with_sap && first_sample_in_segment ) {
 						first_sample_in_segment = 0;
@@ -1486,6 +1512,9 @@ restart_fragmentation_pass:
 
 					if (next) {
 						u64 next_cts = next->DTS + next->CTS_Offset;
+						if (split_sample_duration) 
+							next_cts -= split_sample_duration;
+
 						if (ref_track_next_cts<next_cts) {
 							ref_track_next_cts = next_cts;
 						}
@@ -1520,10 +1549,16 @@ restart_fragmentation_pass:
 				tf->last_sample_cts = sample->DTS + sample->CTS_Offset;
 				tf->next_sample_dts = sample->DTS + defaultDuration;
 
-				gf_isom_sample_del(&sample);
-				sample = next;
+				if (split_sample_duration) {
+					gf_isom_sample_del(&next);
+					sample->DTS += defaultDuration;
+				} else {
+					gf_isom_sample_del(&sample);
+					sample = next;
+					tf->SampleNum += 1;
+					tf->split_sample_dts_shift = 0;
+				}
 				tf->FragmentLength += defaultDuration;
-				tf->SampleNum += 1;
 
 				/*compute SAP type*/
 				if (sample) {
@@ -1543,17 +1578,23 @@ restart_fragmentation_pass:
 
 				if (next && SAP_type) {
 					if (tf==tfref) {
-						if (split_seg_at_rap) {
+						if (split_sample_duration) {
+							stop_frag = 1;
+						}
+						else if (split_seg_at_rap) {
 							u64 next_sap_time;
+							u32 frag_dur, next_dur;
+							next_dur = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum + 1);
+							if (!next_dur) next_dur = defaultDuration;
 							/*duration of fragment if we add this rap*/
-							u32 frag_dur = (tf->FragmentLength+defaultDuration)*1000/tf->TimeScale;
+							frag_dur = (tf->FragmentLength+next_dur)*1000/tf->TimeScale;
 							next_sample_rap = 1;
 							next_sap_time = get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
 								u32 scaler;
 								/*this is the fragment duration from last sample added to next SAP*/
-								frag_dur += (u32) (next_sap_time - tf->next_sample_dts - defaultDuration)*1000/tf->TimeScale;
+								frag_dur += (u32) (next_sap_time - tf->next_sample_dts - next_dur)*1000/tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
 								if (SegmentDuration + frag_dur > MaxSegmentDuration) {
 									split_at_rap = 1;
@@ -1561,13 +1602,14 @@ restart_fragmentation_pass:
 									force_switch_segment = 1;
 								}
 
-								/*if adding this SAP will result in stoping the fragment "soon" after it, stop now and start with SAP
-								if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
-								otherwise, take 3 samples (should be refined of course)*/
-								scaler = 3;
-								if (tf->all_sample_raps) scaler = 1;
-								if ( (tf->FragmentLength + scaler*defaultDuration)*1000 >= MaxFragmentDuration * tf->TimeScale)
-									stop_frag = 1;
+								if (tf->all_sample_raps) {
+									/*if adding this SAP will result in stoping the fragment "soon" after it, stop now and start with SAP
+									if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
+									otherwise, take 3 samples (should be refined of course)*/
+									scaler = 3;
+									if ( (tf->FragmentLength + scaler * next_dur)*1000 >= MaxFragmentDuration * tf->TimeScale)
+										stop_frag = 1;
+								}
 							}
 							if (split_at_rap && !tf->all_sample_raps) {
 								stop_frag = 1;
@@ -1598,12 +1640,14 @@ restart_fragmentation_pass:
 				}
 
 				if (stop_frag) {
-					gf_isom_sample_del(&next);
+					gf_isom_sample_del(&sample);
 					sample = next = NULL;
 					if (maxFragDurationOverSegment<=tf->FragmentLength*1000/tf->TimeScale) {
 						maxFragDurationOverSegment = tf->FragmentLength*1000/tf->TimeScale;
 					}
 					tf->FragmentLength = 0;
+					if (split_sample_duration)
+						tf->split_sample_dts_shift += defaultDuration;
 
 					if (tf==tfref) last_ref_cts = tf->last_sample_cts;
 

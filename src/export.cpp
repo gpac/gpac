@@ -217,7 +217,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_is_local) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_absolute_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_concatenate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_url_base_concatenate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )

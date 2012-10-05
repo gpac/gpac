@@ -53,8 +53,8 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	}
 	//and all fragments must be continous
 	if (mov->NextMoofNumber && (mov->NextMoofNumber >= moof->mfhd->sequence_number)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: wrong sequence number: got %d but last one was %d\n", moof->mfhd->sequence_number, mov->NextMoofNumber));
-		return GF_ISOM_INVALID_FILE;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Error: wrong sequence number: got %d but last one was %d\n", moof->mfhd->sequence_number, mov->NextMoofNumber));
+//		return GF_ISOM_INVALID_FILE;
 	}
 
 	i=0;
