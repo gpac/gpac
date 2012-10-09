@@ -842,6 +842,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_rvc_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_rap_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_roll_group) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_composition_offset_mode) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

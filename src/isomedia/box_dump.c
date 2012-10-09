@@ -155,6 +155,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return stts_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_CTTS:
 		return ctts_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_CSLG:
+		return cslg_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_STSH:
 		return stsh_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_ELST:
@@ -709,6 +711,7 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	gf_box_dump(p->SampleDescription, trace);
 	gf_box_dump(p->TimeToSample, trace);
 	if (p->CompositionOffset) gf_box_dump(p->CompositionOffset, trace);
+	if (p->CompositionToDecode) gf_box_dump(p->CompositionToDecode, trace);
 	if (p->SyncSample) gf_box_dump(p->SyncSample, trace);
 	if (p->ShadowSync) gf_box_dump(p->ShadowSync, trace);
 	gf_box_dump(p->SampleToChunk, trace);
@@ -721,7 +724,7 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->Fragments) gf_box_dump(p->Fragments, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
-
+	
 	gf_box_dump_done("SampleTableBox", a, trace);
 	return GF_OK;
 }
@@ -1112,6 +1115,23 @@ GF_Err ctts_dump(GF_Box *a, FILE * trace)
 	}
 	fprintf(trace, "<!-- counted %d samples in CTTS entries -->\n", nb_samples);
 	gf_box_dump_done("CompositionOffsetBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err cslg_dump(GF_Box *a, FILE * trace)
+{
+	GF_CompositionToDecodeBox *p;
+
+	p = (GF_CompositionToDecodeBox *)a;
+	fprintf(trace, "<CompositionToDecodeBox>\n");
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "<CompositionToDTSShift=\"%d\"/>\n", p->compositionToDTSShift);
+	fprintf(trace, "<LeastDecodeToDisplayDelta=\"%d\"/>\n", p->leastDecodeToDisplayDelta);
+	fprintf(trace, "<GreatestDecodeToDisplayDelta=\"%d\"/>\n", p->greatestDecodeToDisplayDelta);
+	fprintf(trace, "<CompositionStartTime=\"%d\"/>\n", p->compositionStartTime);
+	fprintf(trace, "<CompositionEndTime=\"%d\"/>\n", p->compositionEndTime);
+	gf_box_dump_done("CompositionToDecodeBox", a, trace);
 	return GF_OK;
 }
 

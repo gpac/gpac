@@ -4279,6 +4279,105 @@ GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'o', 'l', 'l' ), &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
 }
 
+static GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, GF_TrackBox *trak)
+{
+	u32 i, shift;
+	u64 duration;
+	GF_CompositionOffsetBox *ctts;
+	GF_CompositionToDecodeBox *cslg;
+	s32 leastCTTS, greatestCTTS;
+
+	ctts = trak->Media->information->sampleTable->CompositionOffset;
+	shift = ctts->entries[0].decodingOffset;
+	leastCTTS = 0;
+	greatestCTTS = 0; 
+	for (i=0; i<ctts->nb_entries; i++) {
+		ctts->entries[i].decodingOffset -= shift;
+		if ((s32)ctts->entries[i].decodingOffset < leastCTTS)
+			leastCTTS = ctts->entries[i].decodingOffset;
+		if ((s32)ctts->entries[i].decodingOffset > greatestCTTS)
+			greatestCTTS = ctts->entries[i].decodingOffset;
+	}
+	ctts->version = 1;
+
+
+	if (!trak->Media->information->sampleTable->CompositionToDecode)
+		trak->Media->information->sampleTable->CompositionToDecode = (GF_CompositionToDecodeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CSLG);
+
+	cslg = trak->Media->information->sampleTable->CompositionToDecode;
+
+	cslg->compositionToDTSShift = -leastCTTS;
+	cslg->leastDecodeToDisplayDelta = leastCTTS;
+	cslg->greatestDecodeToDisplayDelta = greatestCTTS;
+	cslg->compositionStartTime = 0;
+	/*for our use case (first CTS set to 0), the composition end time is the media duration if it fits on 32 bits*/
+	duration = gf_isom_get_media_duration(file, track);
+	cslg->compositionEndTime = (duration<0x7FFFFFFF) ? (s32) duration : 0;
+
+	gf_isom_set_brand_info(file, GF_ISOM_BRAND_ISO4, 0);
+	return GF_OK;
+}
+
+static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
+{
+	u32 i;
+	s32 shift;
+	GF_CompositionOffsetBox *ctts;
+	GF_CompositionToDecodeBox *cslg;
+
+	ctts = trak->Media->information->sampleTable->CompositionOffset;
+	
+	if (!trak->Media->information->sampleTable->CompositionToDecode) 
+	{
+		shift = 0;
+		for (i=0; i<ctts->nb_entries; i++) {
+			if (-ctts->entries[i].decodingOffset > shift)
+				shift = -ctts->entries[i].decodingOffset;
+		}
+		if (shift > 0)
+		{
+			for (i=0; i<ctts->nb_entries; i++) {
+				ctts->entries[i].decodingOffset += shift;
+			}
+		}
+	}
+	else
+	{
+		cslg = trak->Media->information->sampleTable->CompositionToDecode;
+		shift = cslg->compositionToDTSShift;
+		for (i=0; i<ctts->nb_entries; i++) {
+			ctts->entries[i].decodingOffset += shift;
+		}
+		gf_isom_box_del((GF_Box *)cslg);
+		trak->Media->information->sampleTable->CompositionToDecode = NULL;
+	}
+	ctts->version = 0;
+	gf_isom_set_brand_info(file, GF_ISOM_BRAND_ISOM, 1);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use_negative_offsets)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_CompositionOffsetBox *ctts;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	ctts = trak->Media->information->sampleTable->CompositionOffset;
+	if (use_negative_offsets) {
+		if (ctts->version==1) return GF_OK;
+		return gf_isom_set_ctts_v1(file, track, trak);
+	} else {
+		if (ctts->version==0) return GF_OK;
+		return gf_isom_set_ctts_v0(file, trak);
+	}
+}
 
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/

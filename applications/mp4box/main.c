@@ -383,6 +383,7 @@ void PrintImportUsage()
 			" \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
 			" \":timescale=TS\"      sets import timescale to TS\n"
 			"\n"
+			" \":negctts\"           uses negative CTS-DTS offsets (ISO4 brand)\n"
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"
 			"                         * Note: creates tracks if needed\n"
@@ -2063,8 +2064,13 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
-			sscanf(argv[i+1], "%lf:%lf", &split_start, &split_duration);
-			split_duration -= split_start; 
+			if (strstr(argv[i+1], "end")) {
+				sscanf(argv[i+1], "%lf:end", &split_start);
+				split_duration = -2; 
+			} else {
+				sscanf(argv[i+1], "%lf:%lf", &split_start, &split_duration);
+				split_duration -= split_start; 
+			}
 			split_size = 0;
 			if (!stricmp(arg, "-splitz")) adjust_split_end = 1;
 			i++;

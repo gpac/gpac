@@ -153,6 +153,7 @@ enum
 	GF_ISOM_BOX_TYPE_PADB	= GF_4CC( 'p', 'a', 'd', 'b' ),
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
 	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
+	GF_ISOM_BOX_TYPE_CSLG	= GF_4CC( 'c', 's', 'l', 'g' ),
 
 	GF_ISOM_BOX_TYPE_SBGP	= GF_4CC( 's', 'b', 'g', 'p' ),
 	GF_ISOM_BOX_TYPE_SGPD	= GF_4CC( 's', 'g', 'p', 'd' ),
@@ -188,6 +189,7 @@ enum
 	GF_ISOM_BOX_TYPE_MP4S	= GF_4CC( 'm', 'p', '4', 's' ),
 	GF_ISOM_BOX_TYPE_MP4A	= GF_4CC( 'm', 'p', '4', 'a' ),
 	GF_ISOM_BOX_TYPE_MP4V	= GF_4CC( 'm', 'p', '4', 'v' ),
+
 
 	/*AVC / H264 extension*/
 	GF_ISOM_BOX_TYPE_AVCC	= GF_4CC( 'a', 'v', 'c', 'C' ),
@@ -662,7 +664,7 @@ typedef struct
 typedef struct
 {
 	u32 sampleCount;
-	u32 decodingOffset;
+	s32 decodingOffset;
 } GF_DttsEntry;
 
 typedef struct
@@ -1107,11 +1109,24 @@ u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleN
 GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 #endif
 
+/* Use to relate the composition and decoding timeline when signed composition is used*/
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+	s32 compositionToDTSShift; 
+	s32 leastDecodeToDisplayDelta; 
+	s32 greatestDecodeToDisplayDelta;
+	s32 compositionStartTime; 
+	s32 compositionEndTime;
+} GF_CompositionToDecodeBox;
+
 typedef struct
 {
 	GF_ISOM_BOX
 	GF_TimeToSampleBox *TimeToSample;
 	GF_CompositionOffsetBox *CompositionOffset;
+	GF_CompositionToDecodeBox *CompositionToDecode;
 	GF_SyncSampleBox *SyncSample;
 	GF_SampleDescriptionBox *SampleDescription;
 	GF_SampleSizeBox *SampleSize;
@@ -1983,6 +1998,7 @@ typedef struct
 {
 	s16 roll_distance; 
 } GF_RollRecoveryEntry;
+
 
 typedef struct
 {
@@ -3688,6 +3704,14 @@ GF_Err piff_pssh_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err piff_pssh_Size(GF_Box *s);
 GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err piff_pssh_dump(GF_Box *a, FILE * trace);
+
+
+GF_Box *cslg_New();
+void cslg_del(GF_Box *);
+GF_Err cslg_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err cslg_Size(GF_Box *s);
+GF_Err cslg_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err cslg_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 
