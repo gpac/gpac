@@ -316,12 +316,15 @@ GF_Err ctts_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	ptr->nb_entries = gf_bs_read_u32(bs);
 	ptr->alloc_size = ptr->nb_entries;
-	ptr->entries = gf_malloc(sizeof(GF_DttsEntry)*ptr->alloc_size);
+	ptr->entries = (GF_DttsEntry *)gf_malloc(sizeof(GF_DttsEntry)*ptr->alloc_size);
 	if (!ptr->entries) return GF_OUT_OF_MEM;
 	sampleCount = 0;
 	for (i=0; i<ptr->nb_entries; i++) {
 		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
-		ptr->entries[i].decodingOffset = gf_bs_read_u32(bs);
+		if (ptr->version)
+			ptr->entries[i].decodingOffset = gf_bs_read_int(bs, 32);
+		else
+			ptr->entries[i].decodingOffset = (s32) gf_bs_read_u32(bs);
 		sampleCount += ptr->entries[i].sampleCount;
 	}
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -353,7 +356,11 @@ GF_Err ctts_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->nb_entries);
 	for (i=0; i<ptr->nb_entries; i++ ) {
 		gf_bs_write_u32(bs, ptr->entries[i].sampleCount);
-		gf_bs_write_u32(bs, ptr->entries[i].decodingOffset);
+		if (ptr->version) {
+			gf_bs_write_int(bs, ptr->entries[i].decodingOffset, 32);
+		} else {
+			gf_bs_write_u32(bs, (u32) ptr->entries[i].decodingOffset);
+		}
 	}
 	return GF_OK;
 }
@@ -366,6 +373,67 @@ GF_Err ctts_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 4 + (8 * ptr->nb_entries);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+void cslg_del(GF_Box *s)
+{
+	GF_CompositionToDecodeBox *ptr = (GF_CompositionToDecodeBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+	return;
+}
+
+GF_Err cslg_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_CompositionToDecodeBox *ptr = (GF_CompositionToDecodeBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ptr->compositionToDTSShift = gf_bs_read_int(bs, 32);
+	ptr->leastDecodeToDisplayDelta = gf_bs_read_int(bs, 32);
+	ptr->greatestDecodeToDisplayDelta = gf_bs_read_int(bs, 32);
+	ptr->compositionStartTime = gf_bs_read_int(bs, 32);
+	ptr->compositionEndTime = gf_bs_read_int(bs, 32);
+	return GF_OK;
+}
+
+GF_Box *cslg_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_CompositionToDecodeBox, GF_ISOM_BOX_TYPE_CSLG);
+
+	gf_isom_full_box_init((GF_Box *) tmp);
+	return (GF_Box *) tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err cslg_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_CompositionToDecodeBox *ptr = (GF_CompositionToDecodeBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_int(bs, ptr->compositionToDTSShift, 32);
+	gf_bs_write_int(bs, ptr->leastDecodeToDisplayDelta, 32);
+	gf_bs_write_int(bs, ptr->greatestDecodeToDisplayDelta, 32);
+	gf_bs_write_int(bs, ptr->compositionStartTime, 32);
+	gf_bs_write_int(bs, ptr->compositionEndTime, 32);
+	return GF_OK;
+}
+
+GF_Err cslg_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_CompositionToDecodeBox *ptr = (GF_CompositionToDecodeBox *)s;
+	
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 20;
 	return GF_OK;
 }
 
@@ -4229,6 +4297,7 @@ void stbl_del(GF_Box *s)
 
 	if (ptr->ChunkOffset) gf_isom_box_del(ptr->ChunkOffset);
 	if (ptr->CompositionOffset) gf_isom_box_del((GF_Box *) ptr->CompositionOffset);
+	if (ptr->CompositionToDecode) gf_isom_box_del((GF_Box *) ptr->CompositionToDecode);
 	if (ptr->DegradationPriority) gf_isom_box_del((GF_Box *) ptr->DegradationPriority);
 	if (ptr->SampleDescription) gf_isom_box_del((GF_Box *) ptr->SampleDescription);
 	if (ptr->SampleSize) gf_isom_box_del((GF_Box *) ptr->SampleSize);
@@ -4260,6 +4329,10 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CTTS:
 		if (ptr->CompositionOffset) return GF_ISOM_INVALID_FILE;
 		ptr->CompositionOffset = (GF_CompositionOffsetBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_CSLG:
+		if (ptr->CompositionToDecode) return GF_ISOM_INVALID_FILE;
+		ptr->CompositionToDecode = (GF_CompositionToDecodeBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_STSS:
 		if (ptr->SyncSample) return GF_ISOM_INVALID_FILE;
@@ -4417,6 +4490,10 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->CompositionOffset, bs);
 		if (e) return e;
 	}
+	if (ptr->CompositionToDecode)	{
+		e = gf_isom_box_write((GF_Box *) ptr->CompositionToDecode, bs);
+		if (e) return e;
+	}
 	if (ptr->SyncSample) {
 		e = gf_isom_box_write((GF_Box *) ptr->SyncSample, bs);
 		if (e) return e;
@@ -4519,6 +4596,11 @@ GF_Err stbl_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->CompositionOffset);
 		if (e) return e;
 		ptr->size += ptr->CompositionOffset->size;
+	}
+	if (ptr->CompositionToDecode)	{
+		e = gf_isom_box_size((GF_Box *) ptr->CompositionToDecode);
+		if (e) return e;
+		ptr->size += ptr->CompositionToDecode->size;
 	}
 	if (ptr->DegradationPriority) {
 		e = gf_isom_box_size((GF_Box *) ptr->DegradationPriority);

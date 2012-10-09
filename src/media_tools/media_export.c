@@ -1632,7 +1632,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 		/*compute VfW delay*/
 		if (gf_isom_has_time_offset(dumper->file, track)) {
-			u32 max_CTSO;
+			s32 max_CTSO;
 			u64 DTS;
 			DTS = max_CTSO = 0;
 			for (i=0; i<count; i++) {

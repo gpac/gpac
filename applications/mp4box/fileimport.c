@@ -160,7 +160,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty;
-	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, is_chap_file, keep_handler;
+	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
 	u32 group, handler, rvc_predefined;
 	const char *szLan;
 	GF_Err e;
@@ -190,6 +190,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	group = 0;
 	stype = 0;
 	profile = level = 0;
+	negative_cts_offset = 0;
 
 	tw = th = tx = ty = 0;
 	par_d = par_n = -2;
@@ -296,6 +297,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			chapter_name = gf_strdup(ext+10);
 			is_chap_file=1;
 		}
+		/*force all composition offsets to be positive*/
+		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
+
 		/*unrecognized, assume name has colon in it*/
 		else {
 		 ext = ext2;
@@ -453,6 +457,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_media_subtype(import.dest, i+1, 1)== GF_4CC( 'm', 'p', '4', 's' ))
 				keep_sys_tracks = 1;
+
+			gf_isom_set_composition_offset_mode(import.dest, i+1, negative_cts_offset);
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -573,6 +579,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			} else if (rvc_predefined>0) {
 				gf_isom_set_rvc_config(import.dest, track, 1, rvc_predefined, NULL, NULL, 0);
 			}
+			
+			gf_isom_set_composition_offset_mode(import.dest, track, negative_cts_offset);
 		}
 		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
@@ -618,7 +626,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 {
 	u32 i, count, nb_tk, needs_rap_sync, cur_file, conv_type, nb_tk_done, nb_samp, nb_done, di;
 	Double max_dur, cur_file_time;
-	Bool do_add, all_duplicatable, size_exceeded, chunk_extraction, rap_split;
+	Bool do_add, all_duplicatable, size_exceeded, chunk_extraction, rap_split, split_until_end;
 	GF_ISOFile *dest;
 	GF_ISOSample *samp;
 	GF_Err e;
@@ -627,10 +635,16 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	Double chunk_start = (Double) chunk_start_time;
 
 	chunk_extraction = (chunk_start>=0) ? 1 : 0;
-
+	split_until_end = 0;
 	rap_split = 0;
 	if (split_size_kb==(u32) -1) rap_split = 1;
 	if (split_dur==-1) rap_split = 1;
+	else if (split_dur==-2) {
+		split_size_kb = 0;
+		split_until_end = 1;
+		split_dur = 0;
+	}
+
 	if (rap_split) {
 		split_size_kb = 0;
 		split_dur = (double) GF_MAX_FLOAT;
@@ -741,7 +755,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
-	if (!rap_split && (max_dur<=split_dur)) {
+	if (split_until_end) {
+		split_dur = max_dur;
+	} else if (!rap_split && (max_dur<=split_dur)) {
 		fprintf(stderr, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
 		gf_free(tks);
 		return GF_NOT_SUPPORTED;

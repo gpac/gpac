@@ -52,7 +52,7 @@ typedef struct
 	/*decoding time*/
 	u64 DTS;
 	/*relative offset for composition if needed*/
-	u32 CTS_Offset;
+	s32 CTS_Offset;
 	/*Random Access Point flag:
 	 0: not random access
 	 1: regular RAP, 
@@ -287,6 +287,8 @@ enum
 	GF_ISOM_BRAND_AVC1 = GF_4CC('a', 'v', 'c', '1'),
 	/* file complying to ISO/IEC 21000-9:2005 (MPEG-21 spec)*/
 	GF_ISOM_BRAND_MP21 = GF_4CC('m', 'p', '2', '1'),
+	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12) + support for version 1*/
+	GF_ISOM_BRAND_ISO4 =  GF_4CC( 'i', 's', 'o', '4' )
 };
 
 
@@ -564,8 +566,12 @@ u8 gf_isom_has_sync_points(GF_ISOFile *the_file, u32 trackNumber);
 /*returns number of sync points*/
 u32 gf_isom_get_sync_point_count(GF_ISOFile *the_file, u32 trackNumber);
 
-/*returns 1 if one sample of the track is found to have a composition time offset (DTS<CTS)*/
-Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber);
+/*
+returns 1 if the track uses unsigned compositionTime offsets (B-frames or similar)
+returns 2 if the track uses signed compositionTime offsets (B-frames or similar) 
+returns 0 if the track does not use compositionTime offsets (CTS == DTS) 
+*/
+u32 gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber);
 
 /*returns 1 if the track has sync shadow samples*/
 Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber);
@@ -2058,7 +2064,12 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_num
 /*sets roll_distance info for sample_number (number of frames before (<0) or after (>0) this sample to have a complete refresh of the decoded data (used by GDR in AVC)
 - currently sample group info MUST be added in order (no insertion in the tables)*/
 GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance);
+
+GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use_negative_offsets);
+
 #endif
+
+
 
 #endif /*GPAC_DISABLE_ISOM*/
 

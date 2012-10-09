@@ -401,6 +401,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_STSD: return stsd_New();
 	case GF_ISOM_BOX_TYPE_STTS: return stts_New();
 	case GF_ISOM_BOX_TYPE_CTTS: return ctts_New();
+	case GF_ISOM_BOX_TYPE_CSLG: return cslg_New();
 	case GF_ISOM_BOX_TYPE_STSH: return stsh_New();
 	case GF_ISOM_BOX_TYPE_ELST: return elst_New();
 	case GF_ISOM_BOX_TYPE_STSC: return stsc_New();
@@ -689,6 +690,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STSD: stsd_del(a); return;
 	case GF_ISOM_BOX_TYPE_STTS: stts_del(a); return;
 	case GF_ISOM_BOX_TYPE_CTTS: ctts_del(a); return;
+	case GF_ISOM_BOX_TYPE_CSLG: cslg_del(a); return;
 	case GF_ISOM_BOX_TYPE_STSH: stsh_del(a); return;
 	case GF_ISOM_BOX_TYPE_ELST: elst_del(a); return;
 	case GF_ISOM_BOX_TYPE_STSC: stsc_del(a); return;
@@ -953,6 +955,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STSD: return stsd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STTS: return stts_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CTTS: return ctts_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CSLG: return cslg_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSH: return stsh_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ELST: return elst_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSC: return stsc_Read(a, bs);
@@ -1201,6 +1204,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STSD: return stsd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STTS: return stts_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_CTTS: return ctts_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_CSLG: return cslg_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSH: return stsh_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ELST: return elst_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSC: return stsc_Write(a, bs);
@@ -1458,6 +1462,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STSD: return stsd_Size(a);
 	case GF_ISOM_BOX_TYPE_STTS: return stts_Size(a);
 	case GF_ISOM_BOX_TYPE_CTTS: return ctts_Size(a);
+	case GF_ISOM_BOX_TYPE_CSLG: return cslg_Size(a);
 	case GF_ISOM_BOX_TYPE_STSH: return stsh_Size(a);
 	case GF_ISOM_BOX_TYPE_ELST: return elst_Size(a);
 	case GF_ISOM_BOX_TYPE_STSC: return stsc_Size(a);

@@ -831,10 +831,11 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 
 	has_error = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {	
-		Bool has_cts_offset = gf_isom_has_time_offset(file, i+1);
+		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
 		fprintf(dump, "#dumping track ID %d timing: Num DTS CTS Size RAP\n", gf_isom_get_track_id(file, i+1));
 		count = gf_isom_get_sample_count(file, i+1);
+
 		for (j=0; j<count; j++) {
 			u64 dts, cts;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, NULL, NULL);

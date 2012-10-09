@@ -68,7 +68,8 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 		bw += 8*samp->dataLength;
 		
 		//get the CTS delta
-		if (samp->CTS_Offset > *maxCTSDelta) *maxCTSDelta = samp->CTS_Offset;
+		if ((samp->CTS_Offset>=0) && ((u32)samp->CTS_Offset > *maxCTSDelta))
+			*maxCTSDelta = samp->CTS_Offset;
 		gf_isom_sample_del(&samp);
 	}
 	if (count>1) *TimeDelta = (u32) (tdelta/ (count-1) );

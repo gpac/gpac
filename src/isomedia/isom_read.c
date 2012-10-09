@@ -1044,7 +1044,7 @@ u32 gf_isom_get_constant_sample_size(GF_ISOFile *the_file, u32 trackNumber)
 }
 
 GF_EXPORT
-Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
+u32 gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 {
 	u32 i;
 	GF_CompositionOffsetBox *ctts;
@@ -1055,7 +1055,7 @@ Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 	//return true at the first offset found
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
 	for (i=0; i<ctts->nb_entries; i++) {
-		if (ctts->entries[i].decodingOffset && ctts->entries[i].sampleCount) return 1;
+		if (ctts->entries[i].decodingOffset && ctts->entries[i].sampleCount) return ctts->version ? 2 : 1;
 	}
 	return 0;
 }

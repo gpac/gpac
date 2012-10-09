@@ -1779,14 +1779,18 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				samp->DTS = sampDTS + 1;
 			}
 			e = gf_isom_add_sample(import->dest, track, di, samp);
-			if (e)
-				e = e;
 		}
 		sampDTS = samp->DTS;
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 		if (duration && (sampDTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
+		if (e)
+			goto exit;
+	}
+
+	if (gf_isom_has_time_offset(import->orig, track_in)==2) {
+		e = gf_isom_set_composition_offset_mode(import->dest, track, 1);
 		if (e)
 			goto exit;
 	}
