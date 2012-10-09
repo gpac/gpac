@@ -4370,6 +4370,8 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 	if (!trak) return GF_BAD_PARAM;
 
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
+	if (!ctts) return GF_OK;
+
 	if (use_negative_offsets) {
 		if (ctts->version==1) return GF_OK;
 		return gf_isom_set_ctts_v1(file, track, trak);
