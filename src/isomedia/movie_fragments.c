@@ -1436,8 +1436,7 @@ u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 
 
 GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample *sample, u32 DescIndex, 
-								 u32 Duration,
-								 u8 PaddingBits, u16 DegradationPriority)
+								 u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding)
 {
 	u32 count, buffer_size;
 	char *buffer;
@@ -1536,7 +1535,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	ent->size = sample->dataLength;
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
 	if (sample->IsRAP) {
-		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, 0);
+		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, (redundant_coding ? 1 : 0) );
 	}
 	gf_list_add(trun->entries, ent);
 	
@@ -1783,8 +1782,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *the_file, u32 free_data_insert_size)
 }
 
 GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSample *sample, u32 DescIndex, 
-								 u32 Duration,
-								 u8 PaddingBits, u16 DegradationPriority)
+								 u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redCoded)
 {
 	return GF_NOT_SUPPORTED;
 }

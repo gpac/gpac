@@ -165,6 +165,9 @@ Bool gf_dash_is_group_selected(GF_DashClient *dash, u32 group_index);
 /*selects a group for playback. If other groups are alternate to this group (through the @group attribute), they are automatically deselected. */
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select);
 
+/*performs selection of representations based on language code*/
+void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_3cc);
+
 /*returns the mime type of the media resources in this group*/
 const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx);
 /*returns the URL of tyhe first media resource to play (init segment or first media segment depending on format). start_range and end_range are optional*/

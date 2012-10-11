@@ -96,6 +96,26 @@ char *gf_url_percent_encode(const char *path);
  */
 void gf_url_to_fs_path(char *url);
 
+
+/*!
+ *\brief Extract resource name from URL
+ *
+ *Ectracts the reource name from the URL
+ *\param url input url 
+ *\return resource name.
+ */
+const char *gf_url_get_resource_name(const char *url);
+
+/*!
+ *\brief Extract resource path from URL
+ *
+ *Ectracts the reource path from the URL
+ *\param url input url 
+ *\param res_path buffer for resulting path storage
+ *\return 1 if path was extracted, 0 if url is a single file name.
+ */
+Bool gf_url_get_resource_path(const char *url, char *res_path);
+
 /*!
  *\brief gets UTC time 
  *

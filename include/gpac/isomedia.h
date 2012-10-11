@@ -1227,13 +1227,13 @@ Note: because of the interleaved nature of the meta/media data, the sample durat
 MUST be provided (in case of regular tracks, this was computed internally by the lib)
 *PaddingBits: padding bits for the sample, or 0
 *DegradationPriority for the sample, or 0
+*redundantCoding: indicates this is samples acts as a sync shadow point
 
 */
 
 GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSample *sample, 
 								 u32 StreamDescriptionIndex, 
-								 u32 Duration,
-								 u8 PaddingBits, u16 DegradationPriority);
+								 u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundantCoding);
 
 /*appends data into last sample of track for video fragments/other media
 CANNOT be used with OD tracks*/

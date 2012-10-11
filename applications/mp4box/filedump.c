@@ -2908,10 +2908,10 @@ void dash_mpeg2_ts(char *mpeg2ts_file, char *mpd_name, Double dash_duration, Boo
 		gf_isom_box_size((GF_Box *)dumper.index_info.sidx);
 		if (dumper.index_info.index_bs) gf_isom_box_write((GF_Box *)dumper.index_info.sidx, dumper.index_info.index_bs);
 		gf_isom_box_del((GF_Box *)dumper.index_info.sidx);
-		}
+	}
 	
-		// ToDo: Should be configurable by some switch
-		if (dumper.index_info.pcrb) {
+	// ToDo: Should be configurable by some switch
+	if (dumper.index_info.pcrb) {
 		gf_isom_box_size((GF_Box *)dumper.index_info.pcrb);
 		if (dumper.index_info.index_bs) gf_isom_box_write((GF_Box *)dumper.index_info.pcrb, dumper.index_info.index_bs);
 		gf_isom_box_del((GF_Box *)dumper.index_info.pcrb);

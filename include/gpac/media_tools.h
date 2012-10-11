@@ -207,7 +207,8 @@ typedef struct __track_import
 	/*for text import*/
 	u32 fontSize;
 	char *fontName;
-	u32 twidth, theight;
+	u32 text_track_width, text_track_height, text_width, text_height;
+	s32 text_x, text_y;
 
 	/*Initial offset of the first AU to import*/
 	Double initial_time_offset;
@@ -267,7 +268,7 @@ typedef enum
 } GF_DashProfile;
 
 /*starts MPD file */
-GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_segment_mode, char *dash_ctx, GF_ISOFile *init_segment,  Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id);
+GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_segment_mode, char *dash_ctx, GF_ISOFile *init_segment,  Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang);
 GF_Err gf_media_mpd_end(char *mpd_name, Bool last_adaptation_set);
 
 typedef enum
@@ -287,7 +288,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, 
 							  u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, 
 							  s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, 
-							  const char *dash_ctx_file, GF_ISOFile *sample_descs, char *rep_id, Bool first_in_set);
+							  const char *dash_ctx_file, GF_ISOFile *sample_descs, char *rep_id, Bool first_in_set, Bool variable_seg_rad_name);
 #endif
 
 #endif
@@ -427,7 +428,10 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
 if force_end_of_session is set, this flushes the SAF Session - no more operations will be allowed on the muxer*/
 GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size);
 
-
+/*reduces input width/height to common aspect ration num/denum values*/
+void gf_media_reduce_aspect_ratio(u32 *width, u32 *height);
+/*reduces input FPS to a more compact value (eg 25000/1000 -> 25/1)*/
+void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur);
 
 #ifdef __cplusplus
 }

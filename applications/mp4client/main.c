@@ -877,6 +877,30 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 	}
 }
 
+void set_cfg_option(char *opt_string)
+{
+	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
+	sep = strchr(opt_string, ':');
+	if (!sep) {
+		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
+		return;
+	}
+	sep[0] = 0;
+	strcpy(szSec, opt_string);
+	sep[0] = ':'; sep ++;
+	sep2 = strchr(sep, '=');
+	if (!sep2) {
+		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
+		return;
+	}
+	sep2[0] = 0;
+	strcpy(szKey, sep);
+	strcpy(szVal, sep2+1);
+	sep2[0] = '='; 
+	if (!stricmp(szVal, "null")) szVal[0]=0;
+	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
+}
+
 #ifdef WIN32
 #include <wincon.h>
 #endif
@@ -1068,22 +1092,7 @@ int main (int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 		else if (!strcmp(arg, "-opt")) {
-			char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
-			sep = strchr(argv[i+1], ':');
-			if (sep) {
-				sep[0] = 0;
-				strcpy(szSec, argv[i+1]);
-				sep[0] = ':'; sep ++;
-				sep2 = strchr(sep, '=');
-				if (sep2) {
-					sep2[0] = 0;
-					strcpy(szKey, sep);
-					strcpy(szVal, sep2+1);
-					sep2[0] = '='; 
-					if (!stricmp(szVal, "null")) szVal[0]=0;
-					gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
-				}
-			}
+			set_cfg_option(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-views")) {
@@ -1669,6 +1678,20 @@ force_input:
 
 		case 'B':
 			switch_bench();
+			break;
+
+		case 'Y':
+		{
+			char szOpt[8192];
+			fprintf(stderr, "Enter option to set (Section:Name=Value):\n");
+			fflush(stdin);
+			szOpt[0] = 0;
+			if (1 > scanf("%[^\t\n]", szOpt)){
+			    fprintf(stderr, "Cannot read option\n");
+			    break;
+			}
+			set_cfg_option(szOpt);
+		}
 			break;
 
 		/*extract to PNG*/
