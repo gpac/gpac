@@ -2767,10 +2767,6 @@ u32 gf_dash_get_group_count(GF_DashClient *dash)
 	return gf_list_count(dash->groups);
 }
 
-static GF_DASH_Group *gf_dash_group_get(GF_DashClient *dash, u32 idx)
-{
-	return gf_list_get(dash->groups, idx);
-}
 
 GF_EXPORT
 void *gf_dash_get_group_udta(GF_DashClient *dash, u32 idx)
