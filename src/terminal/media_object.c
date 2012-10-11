@@ -869,7 +869,7 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 	ctrl = gf_odm_get_mediacontrol(mo->odm);
 	if (ctrl) return;
 #endif
-	if (mo->odm->net_service && (mo->odm->net_service->owner->flags & GF_ODM_INHERIT_TIMELINE))
+	if (mo->odm->net_service && mo->odm->net_service->owner && (mo->odm->net_service->owner->flags & GF_ODM_INHERIT_TIMELINE))
 		return;
 	gf_odm_set_speed(mo->odm, speed);
 }

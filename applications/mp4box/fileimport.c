@@ -159,8 +159,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 {
 	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale;
 	s32 par_d, par_n, prog_id, delay;
-	s32 tw, th, tx, ty;
-	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
+	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
+	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
 	u32 group, handler, rvc_predefined;
 	const char *szLan;
 	GF_Err e;
@@ -170,6 +170,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	chapter_name = NULL;
 	new_timescale = 1;
 	rescale = 0;
+	text_layout = 0;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -192,7 +193,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	profile = level = 0;
 	negative_cts_offset = 0;
 
-	tw = th = tx = ty = 0;
+	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
@@ -285,6 +286,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			} else if ( sscanf(ext+8, "%dx%d", &tw, &th)==2) {
 				track_layout = 1;
 				tx = ty = 0;
+			}
+		}
+		else if (!strnicmp(ext+1, "text_layout=", 12)) {
+			if ( sscanf(ext+13, "%dx%dx%dx%d", &txtw, &txth, &txtx, &txty)==4) {
+				text_layout = 1;
+			} else if ( sscanf(ext+8, "%dx%d", &txtw, &txth)==2) {
+				track_layout = 1;
+				txtx = txty = 0;
 			}
 		}
 		else if (!strnicmp(ext+1, "stype=", 6)) {
@@ -382,10 +391,18 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (!tw) tw = w;
 			if (!th) th = h;
 			if (ty==-1) ty = (h>(u32)th) ? h-th : 0;
-			import.twidth = tw;
-			import.theight = th;
+			import.text_width = tw;
+			import.text_height = th;
 		}
 		if (is_chap && chap_ref) import_flags |= GF_IMPORT_NO_TEXT_FLUSH;
+	}
+	if (text_layout && txtw && txth) {
+		import.text_track_width = import.text_width ? import.text_width : txtw;
+		import.text_track_height = import.text_height ? import.text_height : txth;
+		import.text_width = txtw;
+		import.text_height = txth;
+		import.text_x = txtx;
+		import.text_y = txty;
 	}
 
 

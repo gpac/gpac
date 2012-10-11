@@ -31,6 +31,40 @@
 #include <gpac/math.h>
 #endif
 
+static const struct { u32 w, h; } std_par[ ] =
+{
+	{ 4, 3}, {3, 2}, {16, 9}, {5, 3}, {5, 4}, {8, 5}, 
+	{0, 0},
+};
+
+GF_EXPORT
+void gf_media_reduce_aspect_ratio(u32 *width, u32 *height)
+{
+	u32 i=0;
+	u32 w = *width;
+	u32 h = *height;
+	while (std_par[i].w) {
+		if (std_par[i].w * h == std_par[i].h * w) {
+			*width = std_par[i].w;
+			*height = std_par[i].h;
+			return;
+		}
+		i++;
+	}
+}
+
+GF_EXPORT
+void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur)
+{
+	u32 res;
+	if (! *sample_dur) return;
+	res = *timescale / *sample_dur;
+	if (res * *sample_dur == *timescale) {
+		*timescale = res;
+		*sample_dur = 1;
+	}
+}
+
 GF_EXPORT
 const char *gf_m4v_get_profile_name(u8 video_pl)
 {
@@ -1537,6 +1571,7 @@ static const struct { u32 w, h; } avc_sar[14] =
 	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
 	{ 64, 33 }, { 160,99 },
 };
+
 
 /*ISO 14496-10 (N11084) E.1.2*/
 static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)

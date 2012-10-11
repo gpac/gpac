@@ -2775,7 +2775,7 @@ static GF_DASH_Group *gf_dash_group_get(GF_DashClient *dash, u32 idx)
 GF_EXPORT
 void *gf_dash_get_group_udta(GF_DashClient *dash, u32 idx)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
 	return group->udta;
 }
@@ -2783,7 +2783,7 @@ void *gf_dash_get_group_udta(GF_DashClient *dash, u32 idx)
 GF_EXPORT
 GF_Err gf_dash_set_group_udta(GF_DashClient *dash, u32 idx, void *udta)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
 	group->udta = udta;
 	return GF_OK;
@@ -2792,7 +2792,7 @@ GF_Err gf_dash_set_group_udta(GF_DashClient *dash, u32 idx, void *udta)
 GF_EXPORT
 Bool gf_dash_is_group_selected(GF_DashClient *dash, u32 idx)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return 0;
 	return (group->selection == GF_DASH_GROUP_SELECTED) ? 1 : 0;
 }
@@ -2880,7 +2880,7 @@ GF_EXPORT
 const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx)
 {
 	GF_MPD_Representation *rep;
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
 
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
@@ -2890,7 +2890,7 @@ const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx)
 GF_EXPORT
 const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64 *start_range, u64 *end_range)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
 
 	if (start_range) *start_range = group->local_url_start_range;
@@ -2901,7 +2901,7 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 GF_EXPORT
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return;
 	if (group->selection == GF_DASH_GROUP_NOT_SELECTABLE)
 		return;
@@ -2911,7 +2911,7 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 	if (select && (group->adaptation_set->group>=0)) {
 		u32 i;
 		for (i=0; i<gf_dash_get_group_count(dash); i++) {
-			GF_DASH_Group *agroup = gf_dash_group_get(dash, i);
+			GF_DASH_Group *agroup = gf_list_get(dash->groups, i);
 			if (agroup==group) continue;
 
 			/*either one Representation from group 0, if present,*/
@@ -2925,6 +2925,19 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 	}
 }
 
+GF_EXPORT
+void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_3cc)
+{
+	u32 i;
+	if (!lang_3cc) return;
+	for (i=0; i<gf_list_count(dash->groups); i++) {
+		GF_DASH_Group *group = gf_list_get(dash->groups, i);
+		if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE) continue;
+		if (group->adaptation_set->lang && !stricmp(group->adaptation_set->lang, lang_3cc)) {
+			gf_dash_group_select(dash, i, 1);
+		}
+	}
+}
 
 GF_EXPORT
 Bool gf_dash_is_running(GF_DashClient *dash) 
@@ -2956,7 +2969,7 @@ Bool gf_dash_in_period_setup(GF_DashClient *dash)
 GF_EXPORT
 u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 idx)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return group->max_cached_segments;
 }
 
@@ -2967,7 +2980,7 @@ u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *gro
 	GF_DASH_Group *group;
 
 	gf_mx_p(dash->dl_mutex);
-	group = gf_dash_group_get(dash, idx);
+	group = gf_list_get(dash->groups, idx);
 
 	*group_is_done = 0;
 	if (!group) {
@@ -2986,7 +2999,7 @@ void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx)
 	GF_DASH_Group *group;
 
 	gf_mx_p(dash->dl_mutex);
-	group = gf_dash_group_get(dash, idx);
+	group = gf_list_get(dash->groups, idx);
 
 	if (!group->nb_cached_segments) {
 		gf_mx_v(dash->dl_mutex);	
@@ -3025,7 +3038,7 @@ void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx)
 GF_EXPORT
 void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (group) {
 		group->done = done;
 		if (done && group->segment_download) dash->dash_io->abort(dash->dash_io, group->segment_download);
@@ -3035,7 +3048,7 @@ void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done)
 GF_EXPORT
 GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, u64 *presentation_time_offset, u32 *timescale)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (group) {
 		u64 duration;
 		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
@@ -3059,7 +3072,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 	if (original_url) *original_url = NULL;
 
 	gf_mx_p(dash->dl_mutex);	
-	group = gf_dash_group_get(dash, idx);
+	group = gf_list_get(dash->groups, idx);
 	if (!group->nb_cached_segments) {
 		gf_mx_v(dash->dl_mutex);	
 		return GF_BAD_PARAM;
@@ -3109,14 +3122,14 @@ Double gf_dash_get_playback_start_range(GF_DashClient *dash)
 GF_EXPORT
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return group->force_segment_switch;
 }
 
 GF_EXPORT
 Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx)
 {
-	GF_DASH_Group *group = gf_dash_group_get(dash, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return gf_dash_get_segment_start_time(group);
 }
 

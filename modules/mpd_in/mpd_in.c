@@ -35,6 +35,7 @@ typedef struct __mpd_module
 {
     /* GPAC Service object (i.e. how this module is seen by the terminal)*/
     GF_ClientService *service;
+	GF_InputService *plug;
 	
 	GF_DashClient *dash;
 
@@ -386,10 +387,15 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
+		const char *opt;
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
-			/*totdo: select groups based on user criteria*/
+			/*todo: select groups based on user criteria*/
 			gf_dash_group_select(mpdin->dash, i, 1);
 		}
+		opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Systems", "Language3CC");
+		if (opt && strcmp(opt, "und"))
+			gf_dash_groups_set_language(mpdin->dash, opt);
+
 		return GF_OK;
 	}
 
@@ -768,6 +774,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     plug->ChannelReleaseSLP = MPD_ChannelReleaseSLP;
     GF_SAFEALLOC(mpdin, GF_MPD_In);
     plug->priv = mpdin;
+	mpdin->plug = plug;
     return (GF_BaseInterface *)plug;
 }
 

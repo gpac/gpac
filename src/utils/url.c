@@ -309,3 +309,27 @@ char *gf_url_percent_encode(const char *path)
 	}
 	return outpath;
 }
+
+GF_EXPORT
+const char *gf_url_get_resource_name(const char *sURL)
+{
+	char *sep = strrchr(sURL, '/');
+	if (!sep) sep = strrchr(sURL, '\\');
+	if (sep) return sep+1;
+	return sURL;
+}
+
+GF_EXPORT
+Bool gf_url_get_resource_path(const char *sURL, char *res_path)
+{
+	char *sep;
+	strcpy(res_path, sURL);
+	sep = strrchr(res_path, '/');
+	if (!sep) sep = strrchr(res_path, '\\');
+	if (sep) {
+		sep[1] = 0;
+		return 1;
+	}
+	return 0;
+}
+

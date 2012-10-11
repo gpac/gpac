@@ -217,6 +217,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_is_local) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_absolute_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_concatenate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_path) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
@@ -906,6 +908,8 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_map_esd) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_get_file_hash) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_reduce_aspect_ratio) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_get_reduced_frame_rate) )
 
 #endif /*GPAC_DISABLE_ISOM*/
 
@@ -1700,6 +1704,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_groups_set_language) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_in_last_period) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_switch_status) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_request_period_switch) )

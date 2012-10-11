@@ -133,9 +133,16 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 #define TTXT_DEFAULT_HEIGHT	60
 #define TTXT_DEFAULT_FONT_SIZE	18
 
-static void gf_text_get_video_size(GF_ISOFile *dest, u32 *width, u32 *height)
+static void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *height)
 {
 	u32 w, h, f_w, f_h, i;
+	GF_ISOFile *dest = import->dest;
+
+	if (import->text_track_width && import->text_track_height) {
+		(*width) = import->text_track_width;
+		(*height) = import->text_track_height;
+		return;
+	}
 
 	f_w = f_h = 0;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
@@ -337,7 +344,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	} else {
 		u32 w, h;
 		GF_TextSampleDescriptor *sd;
-		gf_text_get_video_size(import->dest, &w, &h);
+		gf_text_get_video_size(import, &w, &h);
 
 		/*have to work with default - use max size (if only one video, this means the text region is the
 		entire display, and with bottom alignment things should be fine...*/
@@ -359,9 +366,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
 		} else {
 			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
-				sd->default_pos.top = sd->default_pos.left = 0;
-				sd->default_pos.right = import->twidth ? import->twidth : w;
-				sd->default_pos.bottom = import->theight ? import->theight : h;
+				sd->default_pos.left = import->text_x;
+				sd->default_pos.top = import->text_y;
+				sd->default_pos.right = (import->text_width ? import->text_width : w) + sd->default_pos.left;
+				sd->default_pos.bottom = (import->text_height ? import->text_height : h) + sd->default_pos.top;
 			}
 		}
 
@@ -444,8 +452,11 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			break;
 		case 1:
 			if (sscanf(szLine, "%u:%u:%u,%u --> %u:%u:%u,%u", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
-				e = gf_import_message(import, GF_CORRUPTED_DATA, "Error scanning SRT frame %d timing", curLine);
-				goto exit;
+				sh = eh = 0;
+				if (sscanf(szLine, "%u:%u,%u --> %u:%u,%u", &sm, &ss, &sms, &em, &es, &ems) != 6) {
+					e = gf_import_message(import, GF_CORRUPTED_DATA, "Error scanning SRT frame %d timing", curLine);
+					goto exit;
+				}
 			}
 			start = (3600*sh + 60*sm + ss)*1000 + sms;
 			if (start<end) {
@@ -704,7 +715,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 		u32                     w;
         u32                     h;
 
-        gf_text_get_video_size(import->dest, &w, &h);
+        gf_text_get_video_size(import, &w, &h);
 		gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, 0, 0, 0);
 
         gf_isom_new_generic_subtitle_description(import->dest, track, content_encoding, xml_schema_loc, mime_ns, is_xml, NULL, NULL, &state);
@@ -934,7 +945,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	} else {
 		u32 w, h;
 		GF_TextSampleDescriptor *sd;
-		gf_text_get_video_size(import->dest, &w, &h);
+		gf_text_get_video_size(import, &w, &h);
 
 		/*have to work with default - use max size (if only one video, this means the text region is the
 		entire display, and with bottom alignment things should be fine...*/
@@ -956,9 +967,10 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
 		} else {
 			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
-				sd->default_pos.top = sd->default_pos.left = 0;
-				sd->default_pos.right = import->twidth ? import->twidth : w;
-				sd->default_pos.bottom = import->theight ? import->theight : h;
+				sd->default_pos.left = import->text_x;
+				sd->default_pos.top = import->text_y;
+				sd->default_pos.right = (import->text_width ? import->text_width : w) + sd->default_pos.left;
+				sd->default_pos.bottom = (import->text_height ? import->text_height : h) + sd->default_pos.top;
 			}
 		}
 

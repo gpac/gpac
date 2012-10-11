@@ -1176,7 +1176,9 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 	for (i=0; i<span->nb_glyphs; i++) {
 		GF_Rect g_rc;
 		Bool end_of_line = 0;
-		Fixed advance = sx * span->glyphs[i]->horiz_advance;
+		Fixed advance;
+		if (!span->glyphs[i]) continue;
+		advance = sx * span->glyphs[i]->horiz_advance;
 		if (span->dx) dx = span->dx[i];
 		if (span->dy) dy = span->dy[i];
 		if (dx + advance/2 < rc->x) {
