@@ -856,7 +856,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	char tmp[100];
 	strcpy(segment_name, "");
 
-	if (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")) 
+	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$"))) 
 		needs_init = 0;
 	
 	if (!seg_rad_name) {
