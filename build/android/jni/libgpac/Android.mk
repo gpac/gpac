@@ -94,7 +94,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/avilib.c \
 	../../../../src/media_tools/filestreamer.c \
 	../../../../src/media_tools/isom_tools.c \
-	../../../../src/media_tools/dash_fragmenter.c \
+	../../../../src/media_tools/dash_segmenter.c \
 	../../../../src/media_tools/mpeg2_ps.c \
 	../../../../src/media_tools/vobsub.c \
 	../../../../src/media_tools/media_import.c \
