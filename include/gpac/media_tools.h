@@ -288,7 +288,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, 
 							  u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, 
 							  s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, 
-							  const char *dash_ctx_file, GF_ISOFile *sample_descs, char *rep_id, Bool first_in_set, Bool variable_seg_rad_name);
+							  const char *dash_ctx_file, GF_ISOFile *sample_descs, char *rep_id, Bool first_in_set, Bool variable_seg_rad_name, Bool fragments_start_with_rap);
 #endif
 
 #endif
