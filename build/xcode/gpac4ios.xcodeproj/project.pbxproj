@@ -505,6 +505,7 @@
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
 		97793E5115E6370D005123E1 /* dash_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 97793E5015E6370D005123E1 /* dash_client.c */; };
 		979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
+		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
 		97DDAFEF1569631900528219 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DDAFEE1569631900528219 /* sha1.c */; };
 		97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E08C68160F684B00BBDC34 /* swf_svg.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
@@ -985,6 +986,7 @@
 		9747B6F214864C7800280D95 /* ait.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ait.c; sourceTree = "<group>"; };
 		9747B6F314864C7800280D95 /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
 		97793E5015E6370D005123E1 /* dash_client.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_client.c; sourceTree = "<group>"; };
+		97DB67C41627B22F00A7E054 /* dash_segmenter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_segmenter.c; sourceTree = "<group>"; };
 		97DDAFEE1569631900528219 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		97E08C68160F684B00BBDC34 /* swf_svg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = swf_svg.c; sourceTree = "<group>"; };
 		97FF065F138CE4C400D6C707 /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
@@ -1749,6 +1751,7 @@
 		71CCF1CD1277045100339E12 /* media_tools */ = {
 			isa = PBXGroup;
 			children = (
+				97DB67C41627B22F00A7E054 /* dash_segmenter.c */,
 				97793E5015E6370D005123E1 /* dash_client.c */,
 				9747B6F214864C7800280D95 /* ait.c */,
 				9747B6F314864C7800280D95 /* dsmcc.c */,
@@ -3204,6 +3207,7 @@
 				973B2E3115BAAE3D00394854 /* generic_subtitle.c in Sources */,
 				97793E5115E6370D005123E1 /* dash_client.c in Sources */,
 				97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */,
+				97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
