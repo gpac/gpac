@@ -948,7 +948,7 @@ GF_EXPORT
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, const char *mpd_name, Double max_duration_sec, 
 							  u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, 
 							  s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, u32 single_file_mode, 
-							  const char *dash_ctx_file, GF_ISOFile *bs_switch_segment, char *rep_id, Bool first_in_set, Bool variable_seg_rad_name)
+							  const char *dash_ctx_file, GF_ISOFile *bs_switch_segment, char *rep_id, Bool first_in_set, Bool variable_seg_rad_name, Bool fragments_start_with_rap)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -1520,7 +1520,7 @@ restart_fragmentation_pass:
 							defaultDuration = tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / 1000 - tf->FragmentLength;
 							split_sample_duration -= defaultDuration;
 						}
-					} else if ((tf->last_sample_cts + defaultDuration) * tfref_timescale >= last_ref_cts * tf->TimeScale) {
+					} else if ((tf->last_sample_cts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale) {
 						split_sample_duration = defaultDuration;
 						defaultDuration = (u32) ( (last_ref_cts * tf->TimeScale)/tfref_timescale - tf->last_sample_cts );
 						split_sample_duration -= defaultDuration;
@@ -1636,11 +1636,6 @@ restart_fragmentation_pass:
 										stop_frag = 1;
 								}
 							}
-							if (split_at_rap && !tf->all_sample_raps) {
-								stop_frag = 1;
-								/*override fragment duration for the rest of this fragment*/
-								MaxFragmentDuration = tf->FragmentLength*1000/tf->TimeScale;
-							}
 						} else if (!has_rap) {
 							if (tf->FragmentLength == defaultDuration) has_rap = 2;
 							else has_rap = 1;
@@ -1654,8 +1649,11 @@ restart_fragmentation_pass:
 					stop_frag = 1;
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
-                    if (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale)
-						stop_frag = 1;
+					if (!fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
+						if (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale) {
+							stop_frag = 1;
+						}
+					}
 				}
 				/*do not abort fragment if ref track is done, put everything in the last fragment*/
 				else if (!flush_all_samples) {
@@ -1755,7 +1753,10 @@ restart_fragmentation_pass:
 			} 
 			/*next fragment will exceed segment length, abort fragment at next rap (possibly after MaxSegmentDuration)*/
 			if (split_seg_at_rap && SegmentDuration && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
-				split_at_rap = 1;
+				if (!split_at_rap) {
+					split_at_rap = 1;
+					MaxFragmentDuration = MaxSegmentDuration - SegmentDuration;
+				}
 			}
 		}
 		

@@ -281,7 +281,10 @@ void PrintDASHUsage()
 			"\n"
 			" -rap                 segments begin with random access points\n"
 			"                       Note: segment duration may not be exactly what asked by\n"
-			"                       \"-dash\" since raw video data is not modified\n"
+			"                       \"-dash\" since encoded video data is not modified\n"
+			" -frag-rap            All fragments begin with random access points\n"
+			"                       Note: fragment duration may not be exactly what is asked by\n"
+			"                       \"-frag\" since encoded video data is not modified\n"
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
@@ -1341,7 +1344,8 @@ int mp4boxMain(int argc, char **argv)
 	Bool single_file=0;
 	GF_DashProfile dash_profile = GF_DASH_PROFILE_FULL;
 	Bool use_url_template=0;
-	Bool seg_at_rap =0;
+	Bool seg_at_rap=0;
+	Bool frag_at_rap=0;
 	Bool adjust_split_end = 0;
 	DashInput *dash_inputs = NULL;
 	u32 nb_dash_inputs = 0;
@@ -1705,6 +1709,9 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-rap")) {
 			hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
 			seg_at_rap=1;
+		}
+		else if (!stricmp(arg, "-frag-rap")) {
+			frag_at_rap=1;
 		}
 		else if (!stricmp(arg, "-ts")) hint_flags |= GP_RTP_PCK_SIGNAL_TS;
 		else if (!stricmp(arg, "-size")) hint_flags |= GP_RTP_PCK_SIGNAL_SIZE;
@@ -3501,7 +3508,9 @@ int mp4boxMain(int argc, char **argv)
 			else fprintf(stderr, "single sidx per segment");
 			fprintf(stderr, "\n");
 		}
-		if (seg_at_rap) fprintf(stderr, "Spliting segments at GOP boundaries\n");
+		if (seg_at_rap) {
+			fprintf(stderr, "Spliting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : "");
+		}
 
 		szSegName[0] = 0;
 		if (outName && seg_name) {
@@ -3778,7 +3787,7 @@ int mp4boxMain(int argc, char **argv)
 					fprintf(stderr, "DASHing file %s\n", dash_inputs[i].file_name);
 				}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, segment_mode, dash_ctx, init_seg, dash_inputs[i].szID, is_first_rep, variable_seg_rad_name);
+				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, segment_mode, dash_ctx, init_seg, dash_inputs[i].szID, is_first_rep, variable_seg_rad_name, frag_at_rap);
 #else
 				fprintf(stderr, "GPAC was compiled without fragment support\n");
 				e = GF_NOT_SUPPORTED;
@@ -3815,7 +3824,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL, 0, 0, 0);
+		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
