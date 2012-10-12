@@ -3508,6 +3508,8 @@ int mp4boxMain(int argc, char **argv)
 			else fprintf(stderr, "single sidx per segment");
 			fprintf(stderr, "\n");
 		}
+		if (frag_at_rap) seg_at_rap = 1;
+
 		if (seg_at_rap) {
 			fprintf(stderr, "Spliting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : "");
 		}
@@ -3787,7 +3789,7 @@ int mp4boxMain(int argc, char **argv)
 					fprintf(stderr, "DASHing file %s\n", dash_inputs[i].file_name);
 				}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				e = gf_media_fragment_file(in, outfile, szMPD, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, segment_mode, dash_ctx, init_seg, dash_inputs[i].szID, is_first_rep, variable_seg_rad_name, frag_at_rap);
+				e = gf_media_segment_file(in, outfile, InterleavingTime, szMPD, seg_at_rap ? 2 : 1, dash_duration, segment_name, seg_ext, subsegs_per_sidx, daisy_chain_sidx, use_url_template, segment_mode, dash_ctx, init_seg, dash_inputs[i].szID, is_first_rep, variable_seg_rad_name, frag_at_rap);
 #else
 				fprintf(stderr, "GPAC was compiled without fragment support\n");
 				e = GF_NOT_SUPPORTED;
@@ -3824,7 +3826,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, NULL, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
