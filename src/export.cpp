@@ -1675,6 +1675,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_format_segment_name) )
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_segment_file) )
 #endif
 #endif
 

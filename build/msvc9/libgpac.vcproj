@@ -4502,6 +4502,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\media_tools\dash_segmenter.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\media_tools\dsmcc.c"
 				>
 			</File>
@@ -5334,10 +5338,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\scene_manager\swf_svg.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\include\gpac\internal\swf_dev.h"
 				>
 			</File>
@@ -5380,6 +5380,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\scene_manager\swf_svg.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\src\scene_manager\text_to_bifs.c"
