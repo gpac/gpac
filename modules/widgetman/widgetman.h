@@ -76,14 +76,14 @@ typedef struct _widget_manager
 {
 	JSContext *ctx;
 	/*widget manager class*/
-	JSClass widmanClass;
+	GF_JSClass widmanClass;
 	/*widget class used by the widget manager*/
-	JSClass wmWidgetClass;
+	GF_JSClass wmWidgetClass;
 
 	/*widget class used by the widget scripts*/
-	JSClass widgetClass;
+	GF_JSClass widgetClass;
 
-	JSClass widgetAnyClass;
+	GF_JSClass widgetAnyClass;
 
 	JSObject *obj;
 	GF_Terminal *term;

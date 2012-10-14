@@ -114,10 +114,10 @@ public:
 	u32 m_nbJSInstances;
 	JSContext *m_pJSCtx;
 	JSObject *m_pObj;
-	JSClass upnpClass;
-	JSClass upnpDeviceClass;
-	JSClass upnpGenericDeviceClass;
-	JSClass upnpServiceClass;
+	GF_JSClass upnpClass;
+	GF_JSClass upnpDeviceClass;
+	GF_JSClass upnpGenericDeviceClass;
+	GF_JSClass upnpServiceClass;
 
 	GF_List *m_Devices;
 	u32 last_time, upnp_init_time;

@@ -427,7 +427,7 @@ GPAC_ServiceItem *GPAC_DeviceItem::FindService(const char *type)
 	
 #ifdef GPAC_HAS_SPIDERMONKEY
 	serv->js_ctx = js_ctx;
-	serv->obj = JS_NewObject(serv->js_ctx, &m_pUPnP->upnpServiceClass, 0, obj);
+	serv->obj = JS_NewObject(serv->js_ctx, &m_pUPnP->upnpServiceClass._class, 0, obj);
 	gf_js_add_root(serv->js_ctx, &serv->obj, GF_JSGC_OBJECT);
 	SMJS_SET_PRIVATE(serv->js_ctx, serv->obj, serv);
 	JS_DefineProperty(serv->js_ctx, serv->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, service->GetServiceID()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -643,7 +643,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s\n", (char *) action->GetActionDesc().GetName()));
 
-			act_obj = JS_NewObject(serv->js_ctx, &item->m_pUPnP->upnpDeviceClass, 0, item->obj);
+			act_obj = JS_NewObject(serv->js_ctx, &item->m_pUPnP->upnpDeviceClass._class, 0, item->obj);
 			SMJS_SET_PRIVATE(serv->js_ctx, act_obj, (void *)action.AsPointer() );
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetArgumentValue", upnp_action_get_argument_value, 1, 0);
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetErrorCode", upnp_action_get_error_code, 1, 0);
@@ -785,7 +785,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_state_variable)
 void GPAC_Service::SetupJS(JSContext *c, GF_UPnP *upnp, JSObject *parent)
 {
 	m_pCtx = c;
-	m_pObj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, parent);
+	m_pObj = JS_NewObject(c, &upnp->upnpDeviceClass._class, 0, parent);
 	gf_js_add_root(m_pCtx, &m_pObj, GF_JSGC_OBJECT);
 	SMJS_SET_PRIVATE(c, m_pObj, this);
 	JS_DefineFunction(c, m_pObj, "SetStateVariable", upnp_service_set_state_variable, 2, 0);
@@ -966,7 +966,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 
 	m_pUPnP->LockJavascript(1);
 
-	JSObject *js_action = JS_NewObject(m_pUPnP->m_pJSCtx, &m_pUPnP->upnpDeviceClass, 0, 0);
+	JSObject *js_action = JS_NewObject(m_pUPnP->m_pJSCtx, &m_pUPnP->upnpDeviceClass._class, 0, 0);
 	argv[0] = OBJECT_TO_JSVAL(js_action);
 	SMJS_SET_PRIVATE(m_pUPnP->m_pJSCtx, js_action, this);
 	

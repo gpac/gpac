@@ -60,9 +60,9 @@ typedef struct
 	u32 nb_loaded;
 	GF_Terminal *term;
 
-	JSClass gpacClass;
-	JSClass gpacEvtClass;
-	JSClass anyClass;
+	GF_JSClass gpacClass;
+	GF_JSClass gpacEvtClass;
+	GF_JSClass anyClass;
 
 	jsval evt_fun;
 	GF_TermEventFilter evt_filter;
@@ -834,7 +834,7 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	if (!scene) return JS_TRUE;
 
 
-	scene_obj = JS_NewObject(c, &gjs->anyClass, 0, 0);
+	scene_obj = JS_NewObject(c, &gjs->anyClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, scene_obj, scene);
 	gf_sg_get_scene_size_info(scene->graph, &w, &h);
 	JS_DefineProperty(c, scene_obj, "width", INT_TO_JSVAL(w), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -910,8 +910,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	JS_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
 
 	if (!gjs->gpac_obj) {
-		JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
-		gjs->gpac_obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
+		GF_JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
+		gjs->gpac_obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass._class, 0, 0);
 
 		if (scene->script_action) {
 			if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par)) {
@@ -925,8 +925,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 	if (!gjs->evt_obj) {
 		JS_SETUP_CLASS(gjs->gpacEvtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
-		JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
-		gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass, 0, 0);
+		GF_JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
+		gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass._class, 0, 0);
 
 #define DECLARE_GPAC_CONST(name) \
 		JS_DefineProperty(c, global, #name, INT_TO_JSVAL(name), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -959,7 +959,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_3D);
 		
 		JS_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
-		JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
+		GF_JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
 
 		gjs->evt_fun = JSVAL_NULL;
 		}

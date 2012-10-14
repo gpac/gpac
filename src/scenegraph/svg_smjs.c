@@ -88,15 +88,15 @@ typedef struct
 {
 	u32 nb_inst;
 	/*SVG uDOM classes*/
-	JSClass svgElement;
-	JSClass svgDocument;
-	JSClass globalClass;
-	JSClass connectionClass;
-	JSClass rgbClass;
-	JSClass rectClass;
-	JSClass pointClass;
-	JSClass pathClass;
-	JSClass matrixClass;
+	GF_JSClass svgElement;
+	GF_JSClass svgDocument;
+	GF_JSClass globalClass;
+	GF_JSClass connectionClass;
+	GF_JSClass rgbClass;
+	GF_JSClass rectClass;
+	GF_JSClass pointClass;
+	GF_JSClass pathClass;
+	GF_JSClass matrixClass;
 } GF_SVGuDOM;
 static GF_SVGuDOM *svg_rt = NULL;
 
@@ -143,7 +143,7 @@ static JSBool SMJS_FUNCTION(svg_nav_to_location)
 	GF_SceneGraph *sg;
 	SMJS_OBJ
 	SMJS_ARGS
-	if ((argc!=1) || !JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
+	if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
 	sg = SMJS_GET_PRIVATE(c, obj);
 	par.uri.url = SMJS_CHARS(c, argv[0]);
 	par.uri.nb_params = 0;
@@ -187,7 +187,7 @@ static JSBool SMJS_FUNCTION(svg_echo)
 	GF_SceneGraph *sg;
 	SMJS_OBJ
 	SMJS_ARGS
-	if ((argc!=1) || !JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
+	if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
 	sg = SMJS_GET_PRIVATE(c, obj);
 	if (!sg) return JS_TRUE;
 
@@ -229,7 +229,7 @@ static void svg_define_udom_exception(JSContext *c, JSObject *global)
 static SMJS_FUNC_PROP_GET( global_getProperty)
 
 	GF_SceneGraph *sg;
-	if (!JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) )
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) )
 		return JS_TRUE;
 
 	sg = SMJS_GET_PRIVATE(c, obj);
@@ -353,7 +353,7 @@ static SMJS_FUNC_PROP_GET(svg_element_getProperty)
 	case 7:/*currentTranslate*/
 		if (n->sgprivate->tag!=TAG_SVG_svg) return JS_TRUE;
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_TRANSLATE, (GF_Node *)n, &par)) {
-			JSObject *r = JS_NewObject(c, &svg_rt->pointClass, 0, 0);
+			JSObject *r = JS_NewObject(c, &svg_rt->pointClass._class, 0, 0);
 			pointCI *rc = gf_malloc(sizeof(pointCI));
 			rc->x = FIX2FLT(par.pt.x);
 			rc->y = FIX2FLT(par.pt.y);
@@ -366,7 +366,7 @@ static SMJS_FUNC_PROP_GET(svg_element_getProperty)
 	case 8:/*viewport*/
 		if (n->sgprivate->tag!=TAG_SVG_svg) return JS_TRUE;
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_VIEWPORT, (GF_Node *)n, &par)) {
-			JSObject *r = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
+			JSObject *r = JS_NewObject(c, &svg_rt->rectClass._class, 0, 0);
 			rectCI *rc = gf_malloc(sizeof(rectCI));
 			rc->x = FIX2FLT(par.rc.x);
 			rc->y = FIX2FLT(par.rc.y);
@@ -842,7 +842,7 @@ JSBool SMJS_FUNCTION(svg_udom_get_matrix_trait)
 
 	if (info.fieldType==SVG_Transform_datatype) {
 		GF_Matrix2D *mx = gf_malloc(sizeof(GF_Matrix2D));
-		mO = JS_NewObject(c, &svg_rt->matrixClass, 0, 0);
+		mO = JS_NewObject(c, &svg_rt->matrixClass._class, 0, 0);
 		gf_mx2d_init(*mx);
 		gf_mx2d_copy(*mx, ((SVG_Transform*)info.far_ptr)->mat);
 
@@ -874,7 +874,7 @@ JSBool SMJS_FUNCTION(svg_udom_get_rect_trait)
 	if (info.fieldType==SVG_ViewBox_datatype) {
 		rectCI *rc;
 		SVG_ViewBox *v = (SVG_ViewBox *)info.far_ptr;
-		newObj = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
+		newObj = JS_NewObject(c, &svg_rt->rectClass._class, 0, 0);
 		GF_SAFEALLOC(rc, rectCI);
 		rc->x = FIX2FLT(v->x);
 		rc->y = FIX2FLT(v->y);
@@ -936,7 +936,7 @@ JSBool SMJS_FUNCTION(svg_udom_get_rgb_color_trait)
 		SVG_Color *col = (SVG_Color *)info.far_ptr;
 		if (col->type == SVG_COLOR_CURRENTCOLOR) return JS_TRUE;
 		if (col->type == SVG_COLOR_INHERIT) return JS_TRUE;
-		newObj = JS_NewObject(c, &svg_rt->rgbClass, 0, 0);
+		newObj = JS_NewObject(c, &svg_rt->rgbClass._class, 0, 0);
 		GF_SAFEALLOC(rgb, rgbCI);
 		rgb->r = (u8) (255*FIX2FLT(col->red)) ;
 		rgb->g = (u8) (255*FIX2FLT(col->green)) ;
@@ -950,7 +950,7 @@ JSBool SMJS_FUNCTION(svg_udom_get_rgb_color_trait)
 	{
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
 		if (1 || paint->type==SVG_PAINT_COLOR) {
-			newObj = JS_NewObject(c, &svg_rt->rgbClass, 0, 0);
+			newObj = JS_NewObject(c, &svg_rt->rgbClass._class, 0, 0);
 			GF_SAFEALLOC(rgb, rgbCI);
 			rgb->r = (u8) (255*FIX2FLT(paint->color.red) );
 			rgb->g = (u8) (255*FIX2FLT(paint->color.green) );
@@ -1093,7 +1093,7 @@ JSBool SMJS_FUNCTION(svg_udom_set_matrix_trait)
 
 	if (JSVAL_IS_NULL(argv[1]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	mO = JSVAL_TO_OBJECT(argv[1]);
-	if (!JS_InstanceOf(c, mO, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, mO, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx = SMJS_GET_PRIVATE(c, mO);
 	if (!mx) return JS_TRUE;
 
@@ -1126,7 +1126,7 @@ JSBool SMJS_FUNCTION(svg_udom_set_rect_trait)
 
 	if (JSVAL_IS_NULL(argv[1]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	rO = JSVAL_TO_OBJECT(argv[1]);
-	if (!JS_InstanceOf(c, rO, &svg_rt->rectClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, rO, &svg_rt->rectClass, NULL) ) return JS_TRUE;
 	rc = SMJS_GET_PRIVATE(c, rO);
 	if (!rc) return JS_TRUE;
 
@@ -1162,7 +1162,7 @@ JSBool SMJS_FUNCTION(svg_udom_set_path_trait)
 	if (!JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 	if (JSVAL_IS_NULL(argv[1]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	pO = JSVAL_TO_OBJECT(argv[1]);
-	if (!JS_InstanceOf(c, pO, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, pO, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	path = SMJS_GET_PRIVATE(c, pO);
 	if (!path) return JS_TRUE;
 	
@@ -1229,7 +1229,7 @@ JSBool SMJS_FUNCTION(svg_udom_set_rgb_color_trait)
 	if (!JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	colO = JSVAL_TO_OBJECT(argv[1]);
 	if (!colO) return JS_TRUE;
-	if (!JS_InstanceOf(c, colO, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, colO, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
 	rgb = SMJS_GET_PRIVATE(c, colO);
 	if (!rgb) return JS_TRUE;
 
@@ -1275,7 +1275,7 @@ static JSBool SMJS_FUNCTION_EXT(svg_get_bbox, Bool get_screen)
 	par.bbox.is_set = 0;
 	if (ScriptAction(n->sgprivate->scenegraph, get_screen ? GF_JSAPI_OP_GET_SCREEN_BBOX : GF_JSAPI_OP_GET_LOCAL_BBOX, (GF_Node *)n, &par) ) {
 		if (par.bbox.is_set) {
-			JSObject *rO = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
+			JSObject *rO = JS_NewObject(c, &svg_rt->rectClass._class, 0, 0);
 			rectCI *rc = gf_malloc(sizeof(rectCI));
 			rc->sg = NULL;
 			rc->x = FIX2FLT(par.bbox.min_edge.x);
@@ -1309,7 +1309,7 @@ JSBool SMJS_FUNCTION(svg_udom_get_screen_ctm)
 	if (!n || argc) return JS_TRUE;
 
 	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_TRANSFORM, (GF_Node *)n, &par)) {
-		JSObject *mO = JS_NewObject(c, &svg_rt->matrixClass, 0, 0);
+		JSObject *mO = JS_NewObject(c, &svg_rt->matrixClass._class, 0, 0);
 		GF_Matrix2D *mx = gf_malloc(sizeof(GF_Matrix2D));
 		gf_mx2d_from_mx(mx, &par.mx);
 		SMJS_SET_PRIVATE(c, mO, mx);
@@ -1343,7 +1343,7 @@ JSBool SMJS_FUNCTION(svg_udom_create_matrix_components)
 	mx->m[2] = FLT2FIX(v);
 	JS_ValueToNumber(c, argv[5], &v);
 	mx->m[5] = FLT2FIX(v);
-	mat = JS_NewObject(c, &svg_rt->matrixClass, 0, 0);
+	mat = JS_NewObject(c, &svg_rt->matrixClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, mat, mx);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(mat) );
 	return JS_TRUE;
@@ -1357,7 +1357,7 @@ JSBool SMJS_FUNCTION(svg_udom_create_rect)
 	if (!n || argc) return JS_TRUE;
 
 	GF_SAFEALLOC(rc, rectCI);
-	r = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
+	r = JS_NewObject(c, &svg_rt->rectClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, r, rc);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(r) );
 	return JS_TRUE;
@@ -1371,7 +1371,7 @@ JSBool SMJS_FUNCTION(svg_udom_create_point)
 	if (!n || argc) return JS_TRUE;
 
 	GF_SAFEALLOC(pt, pointCI);
-	r = JS_NewObject(c, &svg_rt->pointClass, 0, 0);
+	r = JS_NewObject(c, &svg_rt->pointClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, r, pt);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(r) );
 	return JS_TRUE;
@@ -1385,7 +1385,7 @@ JSBool SMJS_FUNCTION(svg_udom_create_path)
 	if (!n || argc) return JS_TRUE;
 
 	GF_SAFEALLOC(path, pathCI);
-	p = JS_NewObject(c, &svg_rt->pathClass, 0, 0);
+	p = JS_NewObject(c, &svg_rt->pathClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, p, path);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(p) );
 	return JS_TRUE;
@@ -1404,7 +1404,7 @@ JSBool SMJS_FUNCTION(svg_udom_create_color)
 	col->r = JSVAL_TO_INT(argv[0]);
 	col->g = JSVAL_TO_INT(argv[1]);
 	col->b = JSVAL_TO_INT(argv[2]);
-	p = JS_NewObject(c, &svg_rt->rgbClass, 0, 0);
+	p = JS_NewObject(c, &svg_rt->rgbClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, p, col);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(p) );
 	return JS_TRUE;
@@ -1551,7 +1551,7 @@ static DECL_FINALIZE( baseCI_finalize)
 
 static SMJS_FUNC_PROP_GET(rgb_getProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		rgbCI *col = SMJS_GET_PRIVATE(c, obj);
 		if (!col) return JS_TRUE;
@@ -1567,7 +1567,7 @@ static SMJS_FUNC_PROP_GET(rgb_getProperty)
 }
 static SMJS_FUNC_PROP_SET( rgb_setProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->rgbClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		rgbCI *col = SMJS_GET_PRIVATE(c, obj);
 		if (!col) return JS_TRUE;
@@ -1584,7 +1584,7 @@ static SMJS_FUNC_PROP_SET( rgb_setProperty)
 
 static SMJS_FUNC_PROP_GET(rect_getProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->rectClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->rectClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		rectCI *rc = SMJS_GET_PRIVATE(c, obj);
 		if (!rc) return JS_TRUE;
@@ -1608,7 +1608,7 @@ static SMJS_FUNC_PROP_GET(rect_getProperty)
 }
 static SMJS_FUNC_PROP_SET( rect_setProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->rectClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->rectClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		jsdouble d;
 		rectCI *rc = SMJS_GET_PRIVATE(c, obj);
@@ -1627,7 +1627,7 @@ static SMJS_FUNC_PROP_SET( rect_setProperty)
 
 static SMJS_FUNC_PROP_GET( point_getProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->pointClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pointClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		pointCI *pt = SMJS_GET_PRIVATE(c, obj);
 		if (!pt) return JS_TRUE;
@@ -1647,7 +1647,7 @@ static SMJS_FUNC_PROP_GET( point_getProperty)
 }
 static SMJS_FUNC_PROP_SET( point_setProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->pointClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pointClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		jsdouble d;
 		pointCI *pt = SMJS_GET_PRIVATE(c, obj);
@@ -1690,7 +1690,7 @@ static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 			p->pts[i].y = FIX2FLT(pt->y);
 		}
 	}
-	obj = JS_NewObject(c, &svg_rt->pathClass, 0, 0);
+	obj = JS_NewObject(c, &svg_rt->pathClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, obj, p);
 	return obj;
 #endif
@@ -1719,7 +1719,7 @@ static void pathCI_finalize(JSContext *c, JSObject *obj)
 
 static SMJS_FUNC_PROP_GET( path_getProperty)
 
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		pathCI *p = SMJS_GET_PRIVATE(c, obj);
 		if (!p) return JS_TRUE;
@@ -1736,7 +1736,7 @@ static JSBool SMJS_FUNCTION(svg_path_get_segment)
 	u32 idx;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if ((argc!=1) || !JSVAL_IS_INT(argv[0])) return JS_TRUE;
@@ -1763,7 +1763,7 @@ static JSBool SMJS_FUNCTION(svg_path_get_segment_param)
 	SMJS_OBJ
 	SMJS_ARGS
 	u32 i, idx, param_idx, pt_idx;
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if ((argc!=2) || !JSVAL_IS_INT(argv[0]) || !JSVAL_IS_INT(argv[1])) return JS_TRUE;
@@ -1852,7 +1852,7 @@ static JSBool SMJS_FUNCTION(svg_path_move_to)
 	u32 nb_pts;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if ((argc!=2) || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1])) return JS_TRUE;
@@ -1873,7 +1873,7 @@ static JSBool SMJS_FUNCTION(svg_path_line_to)
 	u32 nb_pts;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if ((argc!=2) || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1])) return JS_TRUE;
@@ -1895,7 +1895,7 @@ static JSBool SMJS_FUNCTION(svg_path_quad_to)
 	u32 nb_pts;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if ((argc!=4) || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1]) || !JSVAL_IS_NUMBER(argv[2]) || !JSVAL_IS_NUMBER(argv[3])) return JS_TRUE;
@@ -1918,7 +1918,7 @@ static JSBool SMJS_FUNCTION(svg_path_curve_to)
 	u32 nb_pts;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if ((argc!=6) || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1]) || !JSVAL_IS_NUMBER(argv[2]) || !JSVAL_IS_NUMBER(argv[3]) || !JSVAL_IS_NUMBER(argv[4]) || !JSVAL_IS_NUMBER(argv[5])) return JS_TRUE;
@@ -1941,7 +1941,7 @@ static JSBool SMJS_FUNCTION(svg_path_close)
 {
 	pathCI *p;
 	SMJS_OBJ
-	if (!JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	p = SMJS_GET_PRIVATE(c, obj);
 	if (!p) return JS_TRUE;
 	if (argc) return JS_TRUE;
@@ -1954,7 +1954,7 @@ static JSBool SMJS_FUNCTION(svg_path_close)
 static SMJS_FUNC_PROP_GET( matrix_getProperty)
 
 	GF_Matrix2D *mx;
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx = SMJS_GET_PRIVATE(c, obj);
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
@@ -1974,7 +1974,7 @@ static SMJS_FUNC_PROP_SET( matrix_setProperty)
 
 	jsdouble d;
 	GF_Matrix2D *mx;
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx = SMJS_GET_PRIVATE(c, obj);
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
@@ -1995,7 +1995,7 @@ static JSBool SMJS_FUNCTION(svg_mx2d_get_component)
 	GF_Matrix2D *mx;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx = SMJS_GET_PRIVATE(c, obj);
 	if (!mx || (argc!=1)) return JS_TRUE;
 	if (!JSVAL_IS_INT(argv[0])) return JS_TRUE;
@@ -2016,12 +2016,12 @@ static JSBool SMJS_FUNCTION(svg_mx2d_multiply)
 	GF_Matrix2D *mx1, *mx2;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx1 = SMJS_GET_PRIVATE(c, obj);
 	if (!mx1 || (argc!=1)) return JS_TRUE;
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 	mat = JSVAL_TO_OBJECT(argv[0]);
-	if (!JS_InstanceOf(c, mat, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, mat, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx2 = SMJS_GET_PRIVATE(c, mat);
 	if (!mx2) return JS_TRUE;
 	gf_mx2d_add_matrix(mx1, mx2);
@@ -2033,7 +2033,7 @@ static JSBool SMJS_FUNCTION(svg_mx2d_inverse)
 {
 	GF_Matrix2D *mx1;
 	SMJS_OBJ
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx1 = SMJS_GET_PRIVATE(c, obj);
 	if (!mx1) return JS_TRUE;
 	gf_mx2d_inverse(mx1);
@@ -2047,7 +2047,7 @@ static JSBool SMJS_FUNCTION(svg_mx2d_translate)
 	GF_Matrix2D *mx1, mx2;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx1 = SMJS_GET_PRIVATE(c, obj);
 	if (!mx1 || (argc!=2)) return JS_TRUE;
 	JS_ValueToNumber(c, argv[0], &x);
@@ -2067,7 +2067,7 @@ static JSBool SMJS_FUNCTION(svg_mx2d_scale)
 	GF_Matrix2D *mx1, mx2;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx1 = SMJS_GET_PRIVATE(c, obj);
 	if (!mx1 || (argc!=1)) return JS_TRUE;
 	JS_ValueToNumber(c, argv[0], &scale);
@@ -2084,7 +2084,7 @@ static JSBool SMJS_FUNCTION(svg_mx2d_rotate)
 	GF_Matrix2D *mx1, mx2;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
+	if (!GF_JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx1 = SMJS_GET_PRIVATE(c, obj);
 	if (!mx1 || (argc!=1)) return JS_TRUE;
 	JS_ValueToNumber(c, argv[0], &angle);
@@ -2097,7 +2097,7 @@ static JSBool SMJS_FUNCTION(svg_mx2d_rotate)
 
 jsval svg_udom_new_rect(JSContext *c, Fixed x, Fixed y, Fixed width, Fixed height)
 {
-	JSObject *r = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
+	JSObject *r = JS_NewObject(c, &svg_rt->rectClass._class, 0, 0);
 	rectCI *rc = gf_malloc(sizeof(rectCI));
 	rc->x = FIX2FLT(x);
 	rc->y = FIX2FLT(y);
@@ -2110,7 +2110,7 @@ jsval svg_udom_new_rect(JSContext *c, Fixed x, Fixed y, Fixed width, Fixed heigh
 
 jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
 {
-	JSObject *p = JS_NewObject(c, &svg_rt->pointClass, 0, 0);
+	JSObject *p = JS_NewObject(c, &svg_rt->pointClass._class, 0, 0);
 	pointCI *pt = gf_malloc(sizeof(pointCI));
 	pt->x = FIX2FLT(x);
 	pt->y = FIX2FLT(y);
@@ -2138,7 +2138,6 @@ void *svg_get_document_class(GF_SceneGraph *sg)
 
 static void svg_init_js_api(GF_SceneGraph *scene)
 {
-	JSObject *proto;
 	JS_SetContextPrivate(scene->svg_js->js_ctx, scene);
 	JS_SetErrorReporter(scene->svg_js->js_ctx, svg_script_error);
 
@@ -2186,7 +2185,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{0, 0, 0, 0, 0}
 		};
 		JSObject *doc_proto = dom_js_get_document_proto(scene->svg_js->js_ctx);
-		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, doc_proto, &svg_rt->svgDocument, 0, 0, svgDocumentProps, 0, 0, 0);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, doc_proto, &svg_rt->svgDocument, 0, 0, svgDocumentProps, 0, 0, 0);
 	}
 
 	/*SVGElement class*/
@@ -2266,7 +2265,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{0, 0, 0, 0, 0}
 		};
 		JSObject *elt_proto = dom_js_get_element_proto(scene->svg_js->js_ctx);
-		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, elt_proto, &svg_rt->svgElement, 0, 0, svgElementProps, svgElementFuncs, 0, 0);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, elt_proto, &svg_rt->svgElement, 0, 0, svgElementProps, svgElementFuncs, 0, 0);
 
 	}
 
@@ -2278,7 +2277,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"blue",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
-		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rgbClass, 0, 0, rgbClassProps, 0, 0, 0);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rgbClass, 0, 0, rgbClassProps, 0, 0, 0);
 	}
 	/*SVGRect class*/
 	{
@@ -2289,7 +2288,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"height",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
-		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rectClass, 0, 0, rectClassProps, 0, 0, 0);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rectClass, 0, 0, rectClassProps, 0, 0, 0);
 	}
 	/*SVGPoint class*/
 	{
@@ -2298,7 +2297,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"y",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
-		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pointClass, 0, 0, pointClassProps, 0, 0, 0);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pointClass, 0, 0, pointClassProps, 0, 0, 0);
 	}
 	/*SVGMatrix class*/
 	{
@@ -2320,7 +2319,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"f",	5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
-		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->matrixClass, 0, 0, matrixClassProps, matrixClassFuncs, 0, 0);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->matrixClass, 0, 0, matrixClassProps, matrixClassFuncs, 0, 0);
 	}
 	/*SVGPath class*/
 	{
@@ -2338,12 +2337,12 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"numberOfSegments",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
-		proto = JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pathClass, 0, 0, pathClassProps, pathClassFuncs, 0, 0);
-		JS_DefineProperty(scene->svg_js->js_ctx, proto, "MOVE_TO", INT_TO_JSVAL(77), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(scene->svg_js->js_ctx, proto, "LINE_TO", INT_TO_JSVAL(76), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(scene->svg_js->js_ctx, proto, "CURVE_TO", INT_TO_JSVAL(67), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(scene->svg_js->js_ctx, proto, "QUAD_TO", INT_TO_JSVAL(81), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(scene->svg_js->js_ctx, proto, "CLOSE", INT_TO_JSVAL(90), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pathClass, 0, 0, pathClassProps, pathClassFuncs, 0, 0);
+		JS_DefineProperty(scene->svg_js->js_ctx, svg_rt->pathClass._proto, "MOVE_TO", INT_TO_JSVAL(77), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(scene->svg_js->js_ctx, svg_rt->pathClass._proto, "LINE_TO", INT_TO_JSVAL(76), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(scene->svg_js->js_ctx, svg_rt->pathClass._proto, "CURVE_TO", INT_TO_JSVAL(67), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(scene->svg_js->js_ctx, svg_rt->pathClass._proto, "QUAD_TO", INT_TO_JSVAL(81), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(scene->svg_js->js_ctx, svg_rt->pathClass._proto, "CLOSE", INT_TO_JSVAL(90), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
 	}
 	/*we have our own constructors*/
