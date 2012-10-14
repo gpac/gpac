@@ -1387,7 +1387,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_message_param)
 	}
 
 	if (par) {
-		JSObject *obj = JS_NewObject(c, &msg->ifce->content->widget->wm->widgetAnyClass, 0, 0);
+		JSObject *obj = JS_NewObject(c, &msg->ifce->content->widget->wm->widgetAnyClass._class, 0, 0);
 		SMJS_SET_PRIVATE(c, obj, par);
 		JS_DefineProperty(c, obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, par->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, obj, "is_input", BOOLEAN_TO_JSVAL( (par->type == GF_WM_PARAM_OUTPUT) ? JS_FALSE : JS_TRUE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1432,7 +1432,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_message)
 		SMJS_FREE(c, name);
 	}
 	if (msg) {
-		JSObject *obj = JS_NewObject(c, &ifce->content->widget->wm->widgetAnyClass, 0, 0);
+		JSObject *obj = JS_NewObject(c, &ifce->content->widget->wm->widgetAnyClass._class, 0, 0);
 		SMJS_SET_PRIVATE(c, obj, msg);
 		JS_DefineProperty(c, obj, "num_params", INT_TO_JSVAL( gf_list_count(msg->params) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, msg->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1503,7 +1503,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_interface)
 
 	if (ifce) {
 		if (!ifce->obj) {
-			ifce->obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass, 0, 0);
+			ifce->obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
 			SMJS_SET_PRIVATE(c, ifce->obj, ifce);
 			JS_DefineProperty(c, ifce->obj, "num_messages", INT_TO_JSVAL( gf_list_count(ifce->messages) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineProperty(c, ifce->obj, "type", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->type) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1693,7 +1693,7 @@ static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 			if (icon) {
 				char *abs_reloc_url;
 				jsval icon_obj_val;
-				JSObject *icon_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass, 0, 0);
+				JSObject *icon_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
 				SMJS_SET_PRIVATE(c, icon_obj, icon);
 				JS_DefineProperty(c, icon_obj, "src", STRING_TO_JSVAL( JS_NewStringCopyZ(c, icon->src) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 				if (strlen(icon->relocated_src)) abs_reloc_url = gf_url_concatenate(wid->widget->url, icon->relocated_src);
@@ -1717,7 +1717,7 @@ static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 			GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
 			if (pref) {
 				jsval pref_obj_val;
-				JSObject *pref_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass, 0, 0);
+				JSObject *pref_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
 				SMJS_SET_PRIVATE(c, pref_obj, pref);
 				JS_DefineProperty(c, pref_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, pref->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 				JS_DefineProperty(c, pref_obj, "value", STRING_TO_JSVAL( JS_NewStringCopyZ(c, pref->value) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1737,7 +1737,7 @@ static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 			GF_WidgetFeature *feat = gf_list_get(wid->widget->features, i);
 			if (feat) {
 				jsval feat_obj_val;
-				JSObject *feat_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass, 0, 0);
+				JSObject *feat_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
 				SMJS_SET_PRIVATE(c, feat_obj, feat);
 				JS_DefineProperty(c, feat_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, feat->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 				JS_DefineProperty(c, feat_obj, "required", BOOLEAN_TO_JSVAL( (feat->required? JS_TRUE : JS_FALSE) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1748,7 +1748,7 @@ static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 					params_arr = JS_NewArrayObject(c, pcount, NULL);
 					for (j=0; j < pcount; j++) {
 						GF_WidgetFeatureParam *param = gf_list_get(feat->params, j);
-						JSObject *param_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass, 0, 0);
+						JSObject *param_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
 						jsval param_obj_val;
 						SMJS_SET_PRIVATE(c, param_obj, param);
 						JS_DefineProperty(c, param_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -2106,7 +2106,7 @@ static void wm_widget_jsbind(GF_WidgetManager *wm, GF_WidgetInstance *wid)
 {
 	if (wid->obj)
 		return;
-	wid->obj = JS_NewObject(wm->ctx, &wm->wmWidgetClass, 0, 0);
+	wid->obj = JS_NewObject(wm->ctx, &wm->wmWidgetClass._class, 0, 0);
 	SMJS_SET_PRIVATE(wm->ctx, wid->obj, wid);
 	/*protect from GC*/
 	gf_js_add_root(wm->ctx, &wid->obj, GF_JSGC_OBJECT);
@@ -2223,7 +2223,7 @@ static JSBool SMJS_FUNCTION(wm_load)
 	url = NULL;
 	if ((argc==2) && ! JSVAL_IS_NULL(argv[1]) && JSVAL_IS_OBJECT(argv[1])) {
 		GF_WidgetInstance *parent_widget;
-		if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[1]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
+		if (!GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[1]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
 		parent_widget = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(argv[1]) );
 		
 		if (parent_widget->widget->url) url = gf_url_concatenate(parent_widget->widget->url, manifest);
@@ -2289,7 +2289,7 @@ static JSBool SMJS_FUNCTION(wm_unload)
 	GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 
-	if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
+	if (!GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
 	wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(argv[0]) );
 	if (!wid) return JS_TRUE;
 
@@ -3537,8 +3537,8 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	/*setup JS bindings*/
 	JS_SETUP_CLASS(wm->widmanClass, "WIDGETMANAGER", JSCLASS_HAS_PRIVATE, wm_getProperty, wm_setProperty, JS_FinalizeStub);
 
-	JS_InitClass(c, global, 0, &wm->widmanClass, 0, 0, wmClassProps, wmClassFuncs, 0, 0);
-	wm->obj = JS_DefineObject(c, global, "WidgetManager", &wm->widmanClass, 0, 0);
+	GF_JS_InitClass(c, global, 0, &wm->widmanClass, 0, 0, wmClassProps, wmClassFuncs, 0, 0);
+	wm->obj = JS_DefineObject(c, global, "WidgetManager", &wm->widmanClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, wm->obj, wm);
 	gf_js_add_root(c, &wm->obj, GF_JSGC_OBJECT);
 
@@ -3566,10 +3566,10 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	};
 	/*setup JS bindings*/
 	JS_SETUP_CLASS(wm->wmWidgetClass, "WMWIDGET", JSCLASS_HAS_PRIVATE, wm_widget_getProperty, wm_widget_setProperty, JS_FinalizeStub);
-	JS_InitClass(c, global, 0, &wm->wmWidgetClass, 0, 0, wmWidgetClassProps, wmWidgetClassFuncs, 0, 0);
+	GF_JS_InitClass(c, global, 0, &wm->wmWidgetClass, 0, 0, wmWidgetClassProps, wmWidgetClassFuncs, 0, 0);
 
 	JS_SETUP_CLASS(wm->widgetAnyClass, "WIDGETANY", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	JS_InitClass(c, global, 0, &wm->widgetAnyClass, 0, 0, 0, 0, 0, 0);
+	GF_JS_InitClass(c, global, 0, &wm->widgetAnyClass, 0, 0, 0, 0, 0, 0);
 	}
 
 	JS_SETUP_CLASS(wm->widgetClass, "MPEGWidget", JSCLASS_HAS_PRIVATE, widget_getProperty, widget_setProperty, JS_FinalizeStub);

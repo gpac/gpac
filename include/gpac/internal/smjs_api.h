@@ -40,8 +40,21 @@
 #define JS_VERSION 170
 #endif
 
+
+typedef struct
+{
+	JSClass _class;
+	JSObject *_proto;
+} GF_JSClass;
+
+
+
 /*new APIs*/
 #if (JS_VERSION>=185)
+
+#ifdef USE_FFDEV_16
+#define USE_FFDEV_15
+#endif
 
 #ifdef USE_FFDEV_15
 #define JSVAL_IS_OBJECT(__v) JSVAL_IS_OBJECT_OR_NULL_IMPL(JSVAL_TO_IMPL(__v))
@@ -50,8 +63,14 @@
 
 #ifdef USE_FFDEV_14
 #define USE_FFDEV_12
+
 #define JS_FinalizeStub	NULL
+#ifdef USE_FFDEV_16
+#define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, &(__classp)->_class, __args)
+#else
 #define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, __classp, __args)
+#endif
+
 #else
 #define JS_NEW_OBJ_FOR_CONS(__c, __classp, __args)	JS_NewObjectForConstructor(__c, __args)
 #endif
@@ -132,8 +151,11 @@ typedef double jsdouble;
 #define JS_GET_CLASS(__ctx, __obj) JS_GetClass(__obj)
 #endif
 
-
-#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, __parent)
+#ifdef USE_FFDEV_16
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_New(__ctx, JS_GetConstructor(__ctx, (__class)->_proto), 0, NULL)
+#else
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, &(__class)->_class, __parent)
+#endif
 
 #else
 
@@ -144,9 +166,9 @@ typedef double jsdouble;
 #ifdef USE_FFDEV_11
 #define JS_ClearContextThread(__ctx)
 #define JS_SetContextThread(__ctx)
-#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, __parent)
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, &(__class)->_class, __parent)
 #else
-#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, 0, __parent)
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, &(__class)->_class, 0, __parent)
 #endif
 
 #endif
@@ -184,7 +206,7 @@ typedef double jsdouble;
 #define SMJS_ID_IS_INT	JSVAL_IS_INT
 #define SMJS_ID_TO_INT		JSVAL_TO_INT
 
-#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, __class, 0, __parent)
+#define SMJS_CONSTRUCT_OBJECT(__ctx, __class, __parent)	JS_ConstructObject(__ctx, &(__class)->_class, 0, __parent)
 #define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__ctx, __obj)
 #define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__ctx, __obj, __val)
 #define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__ctx, __obj)
@@ -208,23 +230,28 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 
 #define JS_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
 	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = JS_PropertyStub;	\
-	the_class.delProperty = JS_PropertyStub;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = JS_EnumerateStub;	\
-	the_class.resolve = JS_ResolveStub;		\
-	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = (JSFinalizeOp) fin;	\
-	the_class.hasInstance = gf_sg_js_has_instance;
+	the_class._class.name = cname;	\
+	the_class._class.flags = flag;	\
+	the_class._class.addProperty = JS_PropertyStub;	\
+	the_class._class.delProperty = JS_PropertyStub;	\
+	the_class._class.getProperty = getp;	\
+	the_class._class.setProperty = setp;	\
+	the_class._class.enumerate = JS_EnumerateStub;	\
+	the_class._class.resolve = JS_ResolveStub;		\
+	the_class._class.convert = JS_ConvertStub;		\
+	the_class._class.finalize = (JSFinalizeOp) fin;	\
+	the_class._class.hasInstance = gf_sg_js_has_instance;
 
 
 #define JS_MAKE_DOUBLE(__c, __double)	DOUBLE_TO_JSVAL(JS_NewDouble(__c, __double) ) 
 
 
-JSObject *gf_sg_js_global_object(JSContext *cx, JSClass *__class);
+#define GF_JS_InstanceOf(_a, _b, __class, _d) JS_InstanceOf(_a, _b, & (__class)->_class, NULL)
+
+#define GF_JS_InitClass(cx, obj, parent_proto, clasp, constructor, nargs, ps, fs, static_ps, static_fs) \
+		(clasp)->_proto = JS_InitClass(cx, obj, parent_proto, &(clasp)->_class, constructor, nargs, ps, fs, static_ps, static_fs);
+
+JSObject *gf_sg_js_global_object(JSContext *cx, GF_JSClass *__class);
 
 #ifdef __cplusplus
 }

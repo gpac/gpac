@@ -38,7 +38,7 @@
 #include <gpac/thread.h>
 
 
-#ifndef FREENECT_COUNTS_PER_G
+#ifndef FREENECT_RESOLUTION_MEDIUM
 #define FREENECT_MINIMAL
 #endif
 

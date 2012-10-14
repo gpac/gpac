@@ -630,7 +630,7 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 
 	if (added) {
 		item->js_ctx = m_pJSCtx;
-		item->obj = JS_NewObject(m_pJSCtx, &upnpGenericDeviceClass, 0, 0);
+		item->obj = JS_NewObject(m_pJSCtx, &upnpGenericDeviceClass._class, 0, 0);
 		item->m_pUPnP = this;
 		gf_js_add_root(m_pJSCtx, &item->obj, GF_JSGC_OBJECT);
 		SMJS_SET_PRIVATE(item->js_ctx, item->obj, item);
@@ -736,7 +736,7 @@ static JSBool SMJS_FUNCTION(upnp_get_device)
 	if (!device) return JS_FALSE;
 	if (!device->obj) {
 		device->js_ctx = upnp->m_pJSCtx;
-		device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpGenericDeviceClass, 0, 0);
+		device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpGenericDeviceClass._class, 0, 0);
 		device->m_pUPnP = upnp;
 		gf_js_add_root(upnp->m_pJSCtx, &device->obj, GF_JSGC_OBJECT);
 		SMJS_SET_PRIVATE(device->js_ctx, device->obj, device);
@@ -982,7 +982,7 @@ static JSBool SMJS_FUNCTION(upnp_get_renderer)
 	}
 	if (!mr) return JS_FALSE;
 
-	s_obj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, 0);
+	s_obj = JS_NewObject(c, &upnp->upnpDeviceClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, s_obj, upnp);
 
 	JS_DefineProperty(c, s_obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, mr->m_device->GetFriendlyName()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1102,7 +1102,7 @@ static JSBool SMJS_FUNCTION(upnp_server_get_file)
 	server->m_BrowseResults->Get(id, mo);
 	if (!mo) return JS_TRUE;
 
-	f_obj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, 0);
+	f_obj = JS_NewObject(c, &upnp->upnpDeviceClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, f_obj, mo);
 
 	JS_DefineProperty(c, f_obj, "ObjectID", STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_ObjectID)), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1164,7 +1164,7 @@ static JSBool SMJS_FUNCTION(upnp_get_server)
 		SMJS_FREE(c, uuid);
 	}
 	if (!ms) return JS_FALSE;
-	s_obj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, 0);
+	s_obj = JS_NewObject(c, &upnp->upnpDeviceClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, s_obj, upnp);
 
 	JS_DefineProperty(c, s_obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ms->m_device->GetFriendlyName()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1389,7 +1389,7 @@ static GPAC_GenericDevice *upnp_create_generic_device(GF_UPnP *upnp, JSObject*gl
 	device->m_pUPnP = upnp;
 	device->js_source = "";
 
-	device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpDeviceClass, 0, global);
+	device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpDeviceClass._class, 0, global);
 	gf_js_add_root(upnp->m_pJSCtx, &device->obj, GF_JSGC_OBJECT);
 
 	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1514,8 +1514,8 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 	/*setup JS bindings*/
 	JS_SETUP_CLASS(upnpClass, "UPNPMANAGER", JSCLASS_HAS_PRIVATE, upnp_getProperty, upnp_setProperty, JS_FinalizeStub);
 
-	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpClass, 0, 0, upnpClassProps, upnpClassFuncs, 0, 0);
-	m_pObj = JS_DefineObject(m_pJSCtx, (JSObject*)param->global, "UPnP", &upnpClass, 0, 0);
+	GF_JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpClass, 0, 0, upnpClassProps, upnpClassFuncs, 0, 0);
+	m_pObj = JS_DefineObject(m_pJSCtx, (JSObject*)param->global, "UPnP", &upnpClass._class, 0, 0);
 	SMJS_SET_PRIVATE(m_pJSCtx, m_pObj, this);
 
 	JS_SETUP_CLASS(upnpDeviceClass, "UPNPAVDEVICE", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
@@ -1530,10 +1530,10 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 	JS_SETUP_CLASS(upnpGenericDeviceClass, "UPNPDEVICE", JSCLASS_HAS_PRIVATE, upnpdevice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpGenericDeviceClass, 0, 0, upnpDeviceClassProps, upnpDeviceClassFuncs, 0, 0);
+	GF_JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpGenericDeviceClass, 0, 0, upnpDeviceClassProps, upnpDeviceClassFuncs, 0, 0);
 	
 	JS_SETUP_CLASS(upnpServiceClass, "UPNPSERVICEDEVICE", JSCLASS_HAS_PRIVATE, upnpservice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpServiceClass, 0, 0, 0, 0, 0, 0);
+	GF_JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpServiceClass, 0, 0, 0, 0, 0, 0);
 
 	m_nbJSInstances=1;
 	

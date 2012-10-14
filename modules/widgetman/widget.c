@@ -158,7 +158,7 @@ static JSBool SMJS_FUNCTION(widget_message_handler_factory)
 	for (i=0; i<count; i++) {
 		GF_WidgetMessage *msg = gf_list_get(bifce->ifce->messages, i);
 		if (!strcmp(msg->name, msg_name)) {
-			JSObject *an_obj = JS_NewObject(c, &bifce->wid->widget->wm->widgetAnyClass, 0, 0);
+			JSObject *an_obj = JS_NewObject(c, &bifce->wid->widget->wm->widgetAnyClass._class, 0, 0);
 			SMJS_SET_PRIVATE(c, an_obj, msg);
 			JS_DefineProperty(c, an_obj, "msgName", STRING_TO_JSVAL( JS_NewStringCopyZ(c, msg->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineProperty(c, an_obj, "interfaceHandler", OBJECT_TO_JSVAL( obj ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -227,7 +227,7 @@ static JSBool SMJS_FUNCTION(widget_invoke_message_reply)
 static void widget_interface_js_bind(JSContext *c, GF_WidgetInterfaceInstance *ifce)
 {
 	if (!ifce->obj) {
-		ifce->obj = JS_NewObject(c, &ifce->wid->widget->wm->widgetAnyClass, 0, 0);
+		ifce->obj = JS_NewObject(c, &ifce->wid->widget->wm->widgetAnyClass._class, 0, 0);
 		SMJS_SET_PRIVATE(c, ifce->obj, ifce);
 		gf_js_add_root(c, &ifce->obj, GF_JSGC_OBJECT);
 		JS_DefineProperty(c, ifce->obj, "type", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->ifce->type) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -434,10 +434,10 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 
-		JS_InitClass(c, global, 0, &wm->widgetClass, 0, 0,widgetClassProps, widgetClassFuncs, 0, 0);
+		GF_JS_InitClass(c, global, 0, &wm->widgetClass, 0, 0,widgetClassProps, widgetClassFuncs, 0, 0);
 
 		
-		wi->scene_obj = JS_DefineObject(c, global, "widget", &wm->widgetClass, 0, 0);
+		wi->scene_obj = JS_DefineObject(c, global, "widget", &wm->widgetClass._class, 0, 0);
 		//JS_AliasProperty(c, global, "widget", "MPEGWidget");
 		SMJS_SET_PRIVATE(c, wi->scene_obj, wi);
 		/*and remember the script*/
