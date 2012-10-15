@@ -379,6 +379,15 @@ GF_Err gf_media_segment_file(GF_ISOFile *input, const char *output_file, Double 
 	if (! dash_moov_setup) {
 		e = gf_isom_clone_movie(input, output, 0, 0);
 		if (e) goto err_exit;
+
+		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
+		gf_isom_set_brand_info(output, GF_4CC('i','s','o','5'), 1);
+		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','m'), 0);
+		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','1'), 0);
+		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','2'), 0);
+		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','3'), 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP41, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP42, 0);
 	}
 
 	MaxFragmentDuration = (u32) (max_duration_sec * 1000);	
@@ -614,6 +623,9 @@ GF_Err gf_media_segment_file(GF_ISOFile *input, const char *output_file, Double 
 		max_track_duration *= gf_isom_get_timescale(output);
 		gf_isom_set_movie_duration(output, (u64) max_track_duration);
 	}
+
+	//if single segment, add msix brand if we use indexes
+	gf_isom_modify_alternate_brand(output, GF_4CC('m','s','i','x'), ((single_file_mode==1) && (subsegs_per_sidx>=0)) ? 1 : 0);
 
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, dash_mode ? 1 : 0);
@@ -1224,7 +1236,6 @@ restart_fragmentation_pass:
 				fprintf(mpd, "/>\n");
 			}
 		}
-
 
 		gf_f64_seek(mpd_segs, 0, SEEK_SET);
 		while (!feof(mpd_segs)) {
