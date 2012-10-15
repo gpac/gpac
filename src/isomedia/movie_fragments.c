@@ -389,7 +389,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 
 #ifndef USE_BASE_DATA_OFFSET
 	if (movie->use_segments) {
-		traf->tfhd->flags = 0;
+		traf->tfhd->flags = GF_ISOM_MOOF_BASE_OFFSET;
 	} else 
 #endif
 	{
@@ -950,7 +950,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	}
 
 	/*write STYP if we write to a different file or if we write the last segment*/
-	if ((!movie->append_segment && !movie->segment_start) || last_segment) {
+	if (!movie->append_segment && !movie->segment_start ) {
 
 		/*modify brands STYP*/
 
@@ -1360,7 +1360,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 	} else {
 		assert(gf_list_count(movie->moof_list) == 0);
 		movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
-		/*if movieFileMap is not null, we are concatenating segments to the original move, force a copy*/
+		/*if movieFileMap is not null, we are concatenating segments to the original movie, force a copy*/
 		if (movie->movieFileMap)
 			movie->append_segment = 1;
 	}

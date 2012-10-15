@@ -288,6 +288,7 @@ void PrintDASHUsage()
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
+			" -mpd-base-url string Sets MPD base url. Can be used several times.\n"
 			" -mpd-title string    Sets MPD title.\n"
 			" -mpd-source string   Sets MPD source.\n"
 			" -mpd-info-url string Sets MPD info url.\n"

@@ -537,7 +537,7 @@ GF_Err gf_full_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_FullBox *p;
 	p = (GF_FullBox *)a;
-	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", p->version, p->flags);
+	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"0x%X\"/>\n", p->version, p->flags);
 	return GF_OK;
 }
 
@@ -2367,6 +2367,8 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " SampleSync=\"%d\"", GF_ISOM_GET_FRAG_SYNC(p->def_sample_flags));
 		fprintf(trace, " SampleDegradationPriority=\"%d\"", GF_ISOM_GET_FRAG_DEG(p->def_sample_flags));
 	}
+	fprintf(trace, " BaseDataOffset=\"%s\"", (p->flags & GF_ISOM_MOOF_BASE_OFFSET) ? "moof" : ((p->flags & GF_ISOM_TRAF_BASE_OFFSET) ? "traf" : "file") );
+
 	fprintf(trace, ">\n");
 
 	DumpBox(a, trace);
