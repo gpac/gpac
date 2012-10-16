@@ -674,7 +674,8 @@ fi
 
 
 #look for spidermonkey JS support
-has_mozjs_pkgcfg="no"
+mozjs_pkgcfg="no"
+
 
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
@@ -693,12 +694,19 @@ EOF
     else
         #try pkg-config
         if $pkg_config --exists mozilla-js 2> /dev/null  ; then
-            has_mozjs_pkgcfg="yes"
-            js_flags=`$pkg_config --cflags mozilla-js`
-            js_lib_pkg=`$pkg_config --libs mozilla-js`
+            mozjs_pkgcfg="mozilla-js"
+        elif $pkg_config --exists mozjs 2> /dev/null  ; then
+            mozjs_pkgcfg="mozjs"
+        elif $pkg_config --exists mozjs185 2> /dev/null  ; then
+            mozjs_pkgcfg="mozjs185"
+	fi
+
+        if test $mozjs_pkgcfg != "no" ; then
+            js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
+            js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
             if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                 has_js="system"
-                js_lib=`$pkg_config --libs mozilla-js`
+                js_lib=`$pkg_config --libs $mozjs_pkgcfg`
             fi
         #try firefox folders (starting at ubuntu 11.10, no pkg-config)
         elif ls -d /usr/lib/firefox* > /dev/null 2>&1 ; then
@@ -789,12 +797,19 @@ EOF
             #dc added end
         else
             if $pkg_config --exists mozilla-js 2> /dev/null  ; then
-		has_mozjs_pkgcfg="yes"
-                js_flags=`$pkg_config --cflags mozilla-js`
-                js_lib_pkg=`$pkg_config --libs mozilla-js`
+		mozjs_pkgcfg="mozilla-js"
+            elif $pkg_config --exists mozjs 2> /dev/null  ; then
+		mozjs_pkgcfg="mozjs"
+            elif $pkg_config --exists mozjs185 2> /dev/null  ; then
+		mozjs_pkgcfg="mozjs185"
+	    fi
+
+	    if test mozjs_pkgcfg != "no" ; then
+                js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
+                js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
                 if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
                     has_js="system"
-                    js_lib=`$pkg_config --libs mozilla-js`
+                    js_lib=`$pkg_config --libs $mozjs_pkgcfg`
                 fi
             fi
             if test "$has_js" = "no" ; then
@@ -2005,8 +2020,8 @@ if test "$has_xul" = "no" ; then
         #xulrunner directories are sometimes included through js/xul/ff packages
         if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
             if $cc -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
-                if test "$has_mozjs_pkgcfg" = "yes" ; then
-                    xul_flags=`$pkg_config --cflags mozilla-js`
+                if test "$mozjs_pkgcfg" != "no" ; then
+                    xul_flags=`$pkg_config --cflags $mozjs_pkgcfg`
                     has_xul="$has_js"
                 fi
             fi
