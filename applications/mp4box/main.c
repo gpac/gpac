@@ -125,7 +125,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num);
 
 void dash_mpeg2_ts(char *mpeg2ts_file, char *mpd_name, Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
 				   char *seg_name, char *seg_ext, Bool use_url_template, Bool single_segment, u32 rep_first_or_last, char *rep_id, u32 dash_profile,
-				   const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url);
+				   const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url, const char **mpd_base_urls, u32 nb_mpd_base_urls);
 #endif 
 
 
@@ -288,7 +288,7 @@ void PrintDASHUsage()
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
-			" -mpd-base-url string Sets MPD base url. Can be used several times.\n"
+			" -base-url string     Sets Base url at MPD level. Can be used several times.\n"
 			" -mpd-title string    Sets MPD title.\n"
 			" -mpd-source string   Sets MPD source.\n"
 			" -mpd-info-url string Sets MPD info url.\n"
@@ -1252,6 +1252,7 @@ enum
 };
 
 #define MP4BOX_EXIT_WITH_CODE(__ret_code)	\
+	if (mpd_base_urls) free(mpd_base_urls);	\
 	if (sdp_lines) free(sdp_lines); \
 	if (metas) free(metas); \
 	if (tracks) free(tracks); \
@@ -1324,6 +1325,9 @@ int mp4boxMain(int argc, char **argv)
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
+
+	char **mpd_base_urls = NULL;
+	u32 nb_mpd_base_urls=0;
 
 #ifndef GPAC_DISABLE_MPD
 	Bool do_mpd = 0;
@@ -1673,6 +1677,15 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-mpd-title")) { CHECK_NEXT_ARG dash_title = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mpd-source")) { CHECK_NEXT_ARG dash_source = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mpd-info-url")) { CHECK_NEXT_ARG dash_more_info = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-base-url")) { 
+			CHECK_NEXT_ARG 
+			dash_more_info = argv[i+1]; 
+			mpd_base_urls = realloc(mpd_base_urls, (nb_mpd_base_urls+1)*sizeof(char**));
+			mpd_base_urls[nb_mpd_base_urls] = argv[i+1];
+			nb_mpd_base_urls++;
+			i++; 
+		}
+		
 		else if (!stricmp(arg, "-dash-ctx")) {
 			CHECK_NEXT_ARG
 			dash_ctx = argv[i+1];
@@ -2695,7 +2708,7 @@ int mp4boxMain(int argc, char **argv)
 
 						dash_mpeg2_ts(dash_inputs[i].file_name, outName, dash_duration, seg_at_rap, subsegs_per_sidx,
 							seg_name, seg_ext, use_url_template, (single_segment||single_file) ? 1 : 0, rep_first_or_last, dash_inputs[i].szID, 
-							dash_profile, cprt, dash_title, dash_source, dash_more_info);
+							dash_profile, cprt, dash_title, dash_source, dash_more_info, mpd_base_urls, nb_mpd_base_urls);
 					}
 #endif
 				} else if (dump_m2ts) {
@@ -3744,7 +3757,7 @@ int mp4boxMain(int argc, char **argv)
 					sprintf(szFPS, "%d", fps_num);
 			}
 
-			e = gf_media_mpd_start(szMPD, dash_profile, dash_title, dash_source, cprt, dash_more_info, use_url_template, segment_mode, dash_ctx, init_seg, use_bs_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id, max_width, max_height, szFPS, szLang);
+			e = gf_media_mpd_start(szMPD, dash_profile, dash_title, dash_source, cprt, dash_more_info, use_url_template, segment_mode, dash_ctx, init_seg, use_bs_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id, max_width, max_height, szFPS, szLang, mpd_base_urls, nb_mpd_base_urls);
 
 			if (skip_init_segment_creation) {
 				gf_isom_close(init_seg);
