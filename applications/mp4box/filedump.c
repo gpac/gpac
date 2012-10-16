@@ -2447,7 +2447,7 @@ static void mpd_duration(Double duration, char *duration_string)
 
 static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool on_demand, const char *media_file_name, 
 			   Double file_duration, Bool split_seg_at_rap, u64 file_size, Double bufferTime, u32 dash_profile,
-				const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url)
+				const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url, const char **mpd_base_urls, u32 nb_mpd_base_urls)
 {
 	char duration_string[100];
 	char buffer_string[100];
@@ -2494,6 +2494,12 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool 
 		if (copyright)
 			fprintf(mpd, "  <Copyright>%s</Copyright>\n", copyright);
 		fprintf(mpd, " </ProgramInformation>\n");
+
+		for (i=0; i<nb_mpd_base_urls; i++) {
+			fprintf(mpd, " <BaseURL>%s</BaseURL>\n", mpd_base_urls[i]);
+		}
+		fprintf(mpd, "\n");
+
 		fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\" minBufferTime=\"%s\">\n", duration_string, buffer_string);	
 		fprintf(mpd, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"true\" subsegmentAlignment=\"true\">\n");
 	}
@@ -2748,7 +2754,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 void dash_mpeg2_ts(char *mpeg2ts_file, char *mpd_name, Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
 				   char *seg_name, char *seg_ext, Bool use_url_template, Bool single_segment, u32 rep_first_or_last, char *rep_id, u32 dash_profile,
-				   const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url)
+				   const char *copyright, const char *mpd_title, const char *mpd_source, const char *mpd_info_url, const char **mpd_base_urls, u32 nb_mpd_base_urls)
 {
 	char data[188], szSegmentName[GF_MAX_PATH];
 	char *c, *f, *basename;
@@ -2895,7 +2901,7 @@ void dash_mpeg2_ts(char *mpeg2ts_file, char *mpd_name, Double dash_duration, Boo
 	bandwidth = (u32) (file_size * 8 / file_duration);	
 
 	mpd_start(&dumper.index_info, (rep_first_or_last & 1), 1, mpeg2ts_file, (dumper.index_info.last_PTS-dumper.index_info.first_PTS)/90000.0, dumper.index_info.segment_at_rap, file_size, dumper.index_info.segment_duration/4, 
-		dash_profile, copyright, mpd_title, mpd_source, mpd_info_url);
+		dash_profile, copyright, mpd_title, mpd_source, mpd_info_url, mpd_base_urls, nb_mpd_base_urls);
 
 	write_mpd_segment_info(&dumper.index_info, mpeg2ts_file, bandwidth);
 	mpd_end(dumper.index_info.mpd_file, (rep_first_or_last & 2) ? 1 : 0);

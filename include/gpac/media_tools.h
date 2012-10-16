@@ -268,7 +268,7 @@ typedef enum
 } GF_DashProfile;
 
 /*starts MPD file */
-GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_segment_mode, char *dash_ctx, GF_ISOFile *init_segment,  Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang);
+GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_segment_mode, char *dash_ctx, GF_ISOFile *init_segment,  Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char **mpd_base_urls, u32 nb_mpd_base_urls);
 GF_Err gf_media_mpd_end(char *mpd_name, Bool last_adaptation_set);
 
 typedef enum

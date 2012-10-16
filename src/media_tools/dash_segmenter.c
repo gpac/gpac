@@ -1292,9 +1292,9 @@ err_exit:
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 GF_EXPORT
-GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_file_mode, char *dash_ctx, GF_ISOFile *init_segment, Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang)
+GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_file_mode, char *dash_ctx, GF_ISOFile *init_segment, Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char **mpd_base_urls, u32 nb_mpd_base_urls)
 {
-	u32 h, m;
+	u32 h, m, i;
 	Double s;
 	FILE *mpd = fopen(mpd_name, first_adaptation_set ? "wt" : "a+t");
 	if (!mpd) {
@@ -1334,6 +1334,11 @@ GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *ti
 		if (copyright)
 			fprintf(mpd, "  <Copyright>%s</Copyright>\n", copyright);
 		fprintf(mpd, " </ProgramInformation>\n");
+
+		for (i=0; i<nb_mpd_base_urls; i++) {
+			fprintf(mpd, " <BaseURL>%s</BaseURL>\n", mpd_base_urls[i]);
+		}
+		fprintf(mpd, "\n");
 
 		fprintf(mpd, " <Period start=\"PT0S\" duration=\"PT%dH%dM%.2fS\">\n", h, m, s);	
 	}
