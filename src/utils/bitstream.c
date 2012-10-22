@@ -168,6 +168,13 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
 	return GF_OK;
 }
 
+
+GF_EXPORT
+GF_Err gf_bs_get_output_buffering(GF_BitStream *bs, u32 size)
+{
+	return bs ? bs->buffer_io_size : 0;
+}
+
 GF_EXPORT
 void gf_bs_del(GF_BitStream *bs)
 {
