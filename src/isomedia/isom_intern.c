@@ -323,7 +323,6 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 	return GF_OK;
 }
 
-
 GF_ISOFile *gf_isom_new_movie()
 {
 	GF_ISOFile *mov = (GF_ISOFile*)gf_malloc(sizeof(GF_ISOFile));

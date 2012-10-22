@@ -216,14 +216,107 @@ GF_Err gf_cleanup_dir(char* DirPathName)
 #ifndef gettimeofday
 #ifdef _WIN32_WCE
 
+#include <time.h>
+//#include <wce_time.h>
+
 /*
-	Conversion code for WinCE from pthreads WinCE
-	(FILETIME in Win32 is from jan 1, 1601)
+ * Author of first version (timeval.h): by Wu Yongwei
+ * Author of Windows CE version: Mateusz Loskot (mateusz@loskot.net)
+ *
+ * All code here is considered in the public domain though we do wish our names
+ * could be retained if anyone uses them.
+ /
+
+/*
+ * Constants used internally by time functions.
+ */
+
+#ifndef _TM_DEFINED
+struct tm
+{
+	int tm_sec;     /* seconds after the minute - [0,59] */
+	int tm_min;     /* minutes after the hour - [0,59] */
+	int tm_hour;	/* hours since midnight - [0,23] */
+	int tm_mday;	/* day of the month - [1,31] */
+	int tm_mon;     /* months since January - [0,11] */
+	int tm_year;	/* years since 1900 */
+	int tm_wday;	/* days since Sunday - [0,6] */
+	int tm_yday;	/* days since January 1 - [0,365] */
+	int tm_isdst;	/* daylight savings time flag */
+};
+#define _TM_DEFINED
+#endif /* _TM_DEFINED */
+
+#ifndef _TIMEZONE_DEFINED
+struct timezone
+{
+    int tz_minuteswest; /* minutes W of Greenwich */
+    int tz_dsttime;     /* type of dst correction */
+};
+#define _TIMEZONE_DEFINED
+#endif /* _TIMEZONE_DEFINED */
+
+
+#if defined(_MSC_VER) || defined(__BORLANDC__)
+#define EPOCHFILETIME (116444736000000000i64)
+#else
+#define EPOCHFILETIME (116444736000000000LL)
+#endif
+
+int gettimeofday(struct timeval *tp, struct timezone *tzp)
+{
+    SYSTEMTIME      st;
+    FILETIME        ft;
+    LARGE_INTEGER   li;
+    TIME_ZONE_INFORMATION tzi;
+    __int64         t;
+    static int      tzflag;
+
+    if (NULL != tp)
+    {
+        GetSystemTime(&st);
+        SystemTimeToFileTime(&st, &ft);
+        li.LowPart  = ft.dwLowDateTime;
+        li.HighPart = ft.dwHighDateTime;
+        t  = li.QuadPart;       /* In 100-nanosecond intervals */
+        t -= EPOCHFILETIME;     /* Offset to the Epoch time */
+        t /= 10;                /* In microseconds */
+        tp->tv_sec  = (long)(t / 1000000);
+        tp->tv_usec = (long)(t % 1000000);
+    }
+
+    if (NULL != tzp)
+    {   
+        GetTimeZoneInformation(&tzi);
+
+        tzp->tz_minuteswest = tzi.Bias;
+        if (tzi.StandardDate.wMonth != 0)
+        {
+            tzp->tz_minuteswest += tzi.StandardBias * 60;
+        }
+
+        if (tzi.DaylightDate.wMonth != 0)
+        {
+            tzp->tz_dsttime = 1;
+        }
+        else
+        {
+            tzp->tz_dsttime = 0;
+        }
+    }
+
+    return 0;
+}
+
+
+#if 0
+/*
 	time between jan 1, 1601 and jan 1, 1970 in units of 100 nanoseconds 
+	FILETIME in Win32 is from jan 1, 1601
 */
 #define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
 
-s32 gettimeofday(struct timeval *tp, void *tz)
+s32 __gettimeofday(struct timeval *tp, void *tz)
 {
 	FILETIME ft;
 	SYSTEMTIME st;
@@ -238,6 +331,8 @@ s32 gettimeofday(struct timeval *tp, void *tz)
 	tp->tv_usec = val;
 	return 0;
 }
+#endif
+
 
 #elif defined(WIN32)
 

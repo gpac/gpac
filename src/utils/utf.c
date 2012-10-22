@@ -25,14 +25,39 @@
 
 #include <gpac/utf.h>
 
- 
- /*
- * Original code from the GNU UTF-8 Library
- */
+GF_EXPORT
+size_t gf_utf8_wcslen (const unsigned short *s)
+{
+  const unsigned short* ptr;
+  for (ptr = s; *ptr != (unsigned short)'\0'; ptr++) {
+  }
+  return ptr - s;
+}
+
+
+#if 1
 
 GF_EXPORT
 size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
+	return wcstombs(dest,  *srcp, len);
+}
+
+GF_EXPORT
+size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
+{
+	return mbstowcs(dest, *srcp, len);
+}
+
+
+#else
+
+GF_EXPORT
+size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
+{
+	/*
+	* Original code from the GNU UTF-8 Library
+	*/
 	size_t count;
 	const unsigned short * src = *srcp;
 
@@ -176,14 +201,4 @@ bad_input:
 	return (size_t)(-1);
 }
 
-
-GF_EXPORT
-size_t gf_utf8_wcslen (const unsigned short *s)
-{
-  const unsigned short* ptr;
-  for (ptr = s; *ptr != (unsigned short)'\0'; ptr++) {
-  }
-  return ptr - s;
-}
-
-
+#endif

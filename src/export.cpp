@@ -167,6 +167,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_position) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_refreshed_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_set_output_buffering) )
 
 /* Thread */
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_new) )
@@ -845,6 +846,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_rap_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_roll_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_composition_offset_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_output_buffering) )
+
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

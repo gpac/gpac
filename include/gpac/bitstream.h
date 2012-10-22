@@ -90,6 +90,16 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode);
 void gf_bs_del(GF_BitStream *bs);
 
 /*!
+ *	\brief sets bitstream write cache size
+ *
+ * Sets the write cache size for file-based bitstreams.  
+ *	\param bs the target bitstream 
+ *	\param size size of the write cache in bytes
+ *	\return error if any.
+ */
+GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
+
+/*!
  *	\brief integer reading
  *
  *	Reads an integer coded on a number of bit.

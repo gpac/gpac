@@ -340,6 +340,11 @@ u64 gf_isom_get_file_size(GF_ISOFile *the_file);
 
 Bool gf_isom_moov_first(GF_ISOFile *movie);
 
+/*sets write cache size for files when creating them. If size is 0, writing
+only relies on the underlying OS fwrite/fgetc
+If movie is NULL, assigns the default write cache size for any new movie*/
+GF_Err gf_isom_set_output_buffering(GF_ISOFile *movie, u32 size);
+
 /********************************************************************
 				STREAMING API FUNCTIONS
 ********************************************************************/
