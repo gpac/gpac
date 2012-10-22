@@ -1060,35 +1060,46 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 
 
 #ifdef GPAC_HAS_SSL
-/*pattern comp taken from wget*/
-#define ASTERISK_EXCLUDES_DOT	/* mandated by rfc2818 */
 
-#define TOLOWER(x) ('A' <= (x) && (x) <= 'Z' ? (x) - 32 : (x))
+#define LWR(x) ('A' <= (x) && (x) <= 'Z' ? (x) - 32 : (x))
 
-static Bool pattern_match(const char *pattern, const char *string)
+static Bool rfc2818_match(const char *pattern, const char *string)
 {
-    const char *p = pattern, *n = string;
-    char c;
-    for (; (c = TOLOWER (*p++)) != '\0'; n++) {
-        if (c == '*') {
-            for (c = TOLOWER (*p); c == '*'; c = TOLOWER (*++p))
-                ;
-            for (; *n != '\0'; n++)
-                if (TOLOWER (*n) == c && pattern_match (p, n))
+    char c, d;
+	u32 i=0, k=0;
+	while (1) {
+		c = LWR(pattern[i]);
+		if (c == '\0') break;
+
+		if (c=='*') {
+			/*remove *** patterns*/
+			while (c == '*') {
+				i++;
+				c = LWR(pattern[i]);
+			}
+			/*look for same c character*/
+			while (1) {
+				d = LWR(string[k]);  
+				if (d == '\0') break;
+				/*matched c character, check following substrings*/
+                if ((d == c) && rfc2818_match (&pattern[i], &string[k]))
                     return 1;
-#ifdef ASTERISK_EXCLUDES_DOT
-                else if (*n == '.')
+                else if (d == '.')
                     return 0;
-#endif
-            return c == '\0';
-        } else {
-            if (c != TOLOWER (*n))
-                return 0;
-        }
-    }
-    return *n == '\0';
+
+				k++;
+			}
+			return (c == '\0') ? 1 : 0;
+		} else {
+			if (c != LWR(string[k]))
+				return 0;
+		}
+		i++;
+		k++;
+	}
+	return (string[k]=='\0') ? 1 : 0;
 }
-#undef TOLOWER
+#undef LWR
 
 #endif
 
@@ -1203,7 +1214,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
                 else {
                     common_name[0] = 0;
                     X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
-                    if (!pattern_match(common_name, sess->server_name)) success = 0;
+                    if (!rfc2818_match(common_name, sess->server_name)) success = 0;
                 }
                 X509_free(cert);
 

@@ -205,6 +205,7 @@ void PrintGeneralUsage()
 			"                       * Note: By default input (MP4,3GP) file is overwritten\n"
 			" -tmp dirname         specifies directory for temporary file creation\n"
 			"                       * Note: Default temp dir is OS-dependent\n"
+			" -write-buffer SIZE   specifies write buffer in bytes for ISOBMF files\n"
 			" -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
 			"                       * Note: Set by default whith '-add' and '-cat'\n"
 			" -no-iod              removes InitialObjectDescriptor from file\n"
@@ -1623,6 +1624,11 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-tmp")) {
 			CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; 
 		}
+		else if (!stricmp(arg, "-write-buffer")) {
+			CHECK_NEXT_ARG 
+			gf_isom_set_output_buffering(NULL, atoi(argv[i+1]));
+			i++; 
+		}
 		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; if (!dash_duration) open_edit = 1; }
 		else if (!stricmp(arg, "-chap")) { CHECK_NEXT_ARG chap_file = argv[i+1]; i++; open_edit = 1; }
 		else if (!strcmp(arg, "-mem-track")) {
@@ -2708,7 +2714,7 @@ int mp4boxMain(int argc, char **argv)
 
 						dash_mpeg2_ts(dash_inputs[i].file_name, outName, dash_duration, seg_at_rap, subsegs_per_sidx,
 							seg_name, seg_ext, use_url_template, (single_segment||single_file) ? 1 : 0, rep_first_or_last, dash_inputs[i].szID, 
-							dash_profile, cprt, dash_title, dash_source, dash_more_info, mpd_base_urls, nb_mpd_base_urls);
+							dash_profile, cprt, dash_title, dash_source, dash_more_info, (const char **) mpd_base_urls, nb_mpd_base_urls);
 					}
 #endif
 				} else if (dump_m2ts) {
@@ -3757,7 +3763,7 @@ int mp4boxMain(int argc, char **argv)
 					sprintf(szFPS, "%d", fps_num);
 			}
 
-			e = gf_media_mpd_start(szMPD, dash_profile, dash_title, dash_source, cprt, dash_more_info, use_url_template, segment_mode, dash_ctx, init_seg, use_bs_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id, max_width, max_height, szFPS, szLang, mpd_base_urls, nb_mpd_base_urls);
+			e = gf_media_mpd_start(szMPD, dash_profile, dash_title, dash_source, cprt, dash_more_info, use_url_template, segment_mode, dash_ctx, init_seg, use_bs_switching, period_duration, cur_adaptation_set ? 0 : 1, dash_inputs[first_rep_in_set].group_id, max_width, max_height, szFPS, szLang, (const char **) mpd_base_urls, nb_mpd_base_urls);
 
 			if (skip_init_segment_creation) {
 				gf_isom_close(init_seg);

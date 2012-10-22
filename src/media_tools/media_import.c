@@ -6785,6 +6785,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				if (!strncmp(sep+1, "name", 4)) is_chap_or_sub = 1;
 				else if (!strncmp(sep+2, "name", 4)) is_chap_or_sub = 1;
 				else if (!strncmp(sep+3, "name", 4)) is_chap_or_sub = 1;
+				else if (strstr(line, "Zoom") || strstr(line, "zoom")) is_chap_or_sub = 1;
 			}
 		}
 		fclose(f);

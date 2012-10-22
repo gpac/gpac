@@ -1893,9 +1893,8 @@ error:
 	return GF_BAD_PARAM;
 }
 
-/* adapted from http://svn.assembla.com/svn/legend/segmenter/segmenter.c */
-static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_duration, char *segment_prefix, char *http_prefix, 
-							u32 first_segment, u32 last_segment, Bool end) {
+static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_duration, char *segment_prefix, char *http_prefix, u32 first_segment, u32 last_segment, Bool end) 
+{
 	FILE *manifest_fp;
 	u32 i;
 	char manifest_tmp_name[GF_MAX_PATH];

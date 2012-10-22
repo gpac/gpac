@@ -28,6 +28,21 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+
+static u32 default_write_buffering_size = 0;
+
+GF_EXPORT
+GF_Err gf_isom_set_output_buffering(GF_ISOFile *movie, u32 size)
+{
+	if (!movie) {
+		default_write_buffering_size = size;
+		return GF_OK;
+	}
+	if (!movie->editFileMap) return GF_BAD_PARAM;
+	return gf_bs_set_output_buffering(movie->editFileMap->bs, size);
+}
+
+
 void gf_isom_datamap_del(GF_DataMap *ptr)
 {
 	if (!ptr) return;
@@ -297,6 +312,11 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 		gf_free(tmp);
 		return NULL;
 	}
+
+	if (default_write_buffering_size) {
+		gf_bs_set_output_buffering(tmp->bs, default_write_buffering_size);
+	}
+
 	return (GF_DataMap *)tmp;
 }
 
@@ -361,6 +381,9 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		fclose(tmp->stream);
 		gf_free(tmp);
 		return NULL;
+	}
+	if (default_write_buffering_size) {
+		gf_bs_set_output_buffering(tmp->bs, default_write_buffering_size);
 	}
 	return (GF_DataMap *)tmp;
 }
