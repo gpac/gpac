@@ -1234,6 +1234,7 @@ exit:
 	return e;
 }
 
+extern u32 default_write_buffering_size;
 
 GF_Err WriteToFile(GF_ISOFile *movie)
 {
@@ -1255,6 +1256,7 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
 		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
 	} else {
+		u32 buffer_size = movie->editFileMap ? gf_bs_get_output_buffering(movie->editFileMap->bs) : 0;
 		Bool is_stdout = 0;
 		if (!strcmp(movie->finalName, "std"))
 			is_stdout = 1;
@@ -1267,6 +1269,10 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 			if (!is_stdout)
 				fclose(stream);
 			return GF_OUT_OF_MEM;
+		}
+
+		if (buffer_size) {
+			gf_bs_set_output_buffering(bs, buffer_size);
 		}
 
 		switch (movie->storageMode) {
