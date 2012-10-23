@@ -358,10 +358,10 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 GF_EXPORT
 size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
-	const UTF8** sourceStart = srcp;
-	const UTF8* sourceEnd = *srcp + strlen( *srcp); 
-	UTF16* targetStart = dest;
-	UTF16* targetEnd = dest + len;
+	const UTF8** sourceStart = (const UTF8**) srcp;
+	const UTF8* sourceEnd = (const UTF8*) ( *srcp + strlen( *srcp) ); 
+	UTF16* targetStart = (UTF16* ) dest;
+	UTF16* targetEnd = (UTF16* ) (dest + len);
 	ConversionFlags flags = strictConversion;
 	ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 	if (res != conversionOK) return (size_t)-1;

@@ -170,7 +170,7 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
 
 
 GF_EXPORT
-GF_Err gf_bs_get_output_buffering(GF_BitStream *bs, u32 size)
+u32 gf_bs_get_output_buffering(GF_BitStream *bs, u32 size)
 {
 	return bs ? bs->buffer_io_size : 0;
 }
