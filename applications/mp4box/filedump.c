@@ -2482,7 +2482,7 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool 
 		fprintf(mpd, "<?xml version=\"1.0\"?>\n");
 		fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" -->\n");
 
-		fprintf(mpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:DASH:schema:MPD:2011\" profiles=\"%s\" minBufferTime=\"%s\" mediaPresentationDuration=\"%s\">\n", (on_demand ? "static": "dynamic"), (dash_profile==GF_DASH_PROFILE_LIVE) ? "urn:mpeg:dash:profile:mp2t-simple:2011" : "urn:mpeg:dash:profile:mp2t-main:2011", buffer_string, duration_string);
+		fprintf(mpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:dash:schema:mpd:2011\" profiles=\"%s\" minBufferTime=\"%s\" mediaPresentationDuration=\"%s\">\n", (on_demand ? "static": "dynamic"), (dash_profile==GF_DASH_PROFILE_LIVE) ? "urn:mpeg:dash:profile:mp2t-simple:2011" : "urn:mpeg:dash:profile:mp2t-main:2011", buffer_string, duration_string);
 		fprintf(mpd, " <ProgramInformation moreInformationURL=\"%s\">\n", mpd_info_url ? mpd_info_url : "http://gpac.sourceforge.net");
 		if (mpd_title) 
 			fprintf(mpd, "  <Title>mpd_title</Title>\n");
@@ -2500,7 +2500,7 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool 
 		}
 		fprintf(mpd, "\n");
 
-		fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\" minBufferTime=\"%s\">\n", duration_string, buffer_string);	
+		fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\">\n", duration_string, buffer_string);	
 		fprintf(mpd, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"true\" subsegmentAlignment=\"true\">\n");
 	}
 
@@ -2515,12 +2515,16 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool 
 			if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) {
 				if (!width) width = import.tk_info[i].video_info.width;
 				if (!height) height = import.tk_info[i].video_info.height;
-				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"video\"/>\n", import.tk_info[i].track_num);
+
+				if (is_first_rep) 
+					fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"video\"/>\n", import.tk_info[i].track_num);
 			}
 			else if (import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO) {
 				if (!sample_rate) sample_rate = import.tk_info[i].audio_info.sample_rate;
 				if (!nb_channels) nb_channels = import.tk_info[i].audio_info.nb_channels;
-				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"audio\"/>\n", import.tk_info[i].track_num);
+
+				if (is_first_rep) 
+					fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"audio\"/>\n", import.tk_info[i].track_num);
 			}
 			if (!langCode && import.tk_info[i].lang) langCode = import.tk_info[i].lang;
 		}
@@ -2531,7 +2535,7 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool 
 	if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
 	if (sample_rate) fprintf(mpd, " audioSamplingRate=\"%d\"", sample_rate);
 	if (langCode) fprintf(mpd, " lang=\"%s\"", gf_4cc_to_str(langCode) );
-	fprintf(mpd, " startWithRAP=\"%s\"", split_seg_at_rap ? "1" : "false");
+	fprintf(mpd, " startWithSAP=\"%s\"", split_seg_at_rap ? "1" : "false");
 	fprintf(mpd, " bandwidth=\"%d\"", bandwidth);
 	fprintf(mpd, ">\n");
 	if (nb_channels) 
@@ -2565,7 +2569,7 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *mpeg2
 		}
 
 		fprintf(index_info->mpd_file, "    <SegmentBase>\n");
-		fprintf(index_info->mpd_file, "     <RepresentationIndex>%s</RepresentationIndex>\n", index_info->index_file_name);
+		fprintf(index_info->mpd_file, "     <RepresentationIndex sourceURL=\"%s\"/>\n", index_info->index_file_name);
 		fprintf(index_info->mpd_file, "    </SegmentBase>\n");
 		/*we reweite the file*/
 		if (index_info->segment_name) {
@@ -2595,7 +2599,7 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *mpeg2
 	if (index_info->init_seg_name) {
 		fprintf(index_info->mpd_file, "     <Initialization sourceURL=\"%s\"/>\n", index_info->init_seg_name);
 	}
-	fprintf(index_info->mpd_file, "     <RepresentationIndex>%s</RepresentationIndex>\n", index_info->index_file_name); 
+	fprintf(index_info->mpd_file, "     <RepresentationIndex sourceURL=\"%s\"/>\n", index_info->index_file_name); 
 
 	if (!index_info->segment_name) {
 		start=index_info->sidx->first_offset;

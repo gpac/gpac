@@ -1114,7 +1114,12 @@ restart_fragmentation_pass:
 				file_size = gf_isom_get_file_size(output);
 				end_range = file_size - 1;
 				if (single_file_mode!=1) {
-					fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\" indexRange=\""LLD"-"LLD"\"/>\n", start_range, end_range, idx_start_range, idx_end_range);	
+					fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);
+					if (idx_start_range || idx_end_range) {
+						fprintf(mpd_segs, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);
+					}
+					fprintf(mpd_segs, "/>\n");
+
 					if (dash_ctx) {
 						char szKey[100], szVal[4046];
 						sprintf(szKey, "UrlInfo%d", gf_cfg_get_key_count(dash_ctx, "URLs") + 1 );
@@ -1173,13 +1178,13 @@ restart_fragmentation_pass:
 
 		}
 		if (sample_rate) fprintf(mpd, " audioSamplingRate=\"%d\"", sample_rate);
-		if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
 		if (segments_start_with_sap || split_seg_at_rap) {
 			fprintf(mpd, " startWithSAP=\"%d\"", max_sap_type);
 		} else {
 			fprintf(mpd, " startWithSAP=\"false\"");
 		}
-		if ((single_file_mode==1) && segments_start_with_sap) fprintf(mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
+		//only appears at AdaptationSet level - need to rewrite the DASH segementer to allow writing this at the proper place
+//		if ((single_file_mode==1) && segments_start_with_sap) fprintf(mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
 		
 		fprintf(mpd, " bandwidth=\"%d\"", bandwidth);		
 		fprintf(mpd, ">\n");
@@ -1311,7 +1316,7 @@ GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *ti
 		fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" -->\n");
 
 		/*TODO what should we put for minBufferTime */
-		fprintf(mpd, "<MPD type=\"static\" xmlns=\"urn:mpeg:DASH:schema:MPD:2011\" minBufferTime=\"PT1.5S\" mediaPresentationDuration=\"PT%dH%dM%.2fS\" ", 
+		fprintf(mpd, "<MPD type=\"static\" xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT1.5S\" mediaPresentationDuration=\"PT%dH%dM%.2fS\" ", 
 			h, m, s);
 
 		if (profile==GF_DASH_PROFILE_LIVE) 
@@ -1358,6 +1363,10 @@ GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *ti
 	if (szLang && szLang[0]) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
+	/*this should be fixed to use info collected during segmentation process*/
+	if (profile==GF_DASH_PROFILE_ONDEMAND) 
+		fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
+
 	fprintf(mpd, ">\n");
 	
 	if (init_segment) {
@@ -1365,28 +1374,40 @@ GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *ti
 		char langCode[4];
 		langCode[3] = 0;
 
+		if (bitstream_switching_mode) {
+			for (i=0; i<gf_isom_get_track_count(init_segment); i++) {
+				u32 sr, nb_ch;
+				if (gf_isom_get_media_type(init_segment, i+1) == GF_ISOM_MEDIA_AUDIO) {
+					gf_isom_get_audio_info(init_segment, i+1, 1, &sr, &nb_ch, NULL);
+					fprintf(mpd, "   <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_ch);
+				}
+			}
+		}
+
 		for (i=0; i<gf_isom_get_track_count(init_segment); i++) {
-			u32 sr, nb_ch;
 			u32 trackID = gf_isom_get_track_id(init_segment, i+1);
 
 			gf_isom_get_media_language(init_segment, i+1, langCode);
 
 			switch (gf_isom_get_media_type(init_segment, i+1) ) {
 			case GF_ISOM_MEDIA_TEXT:
-				fprintf(mpd, "    <ContentComponent id=\"%d\" contentType=\"text\" lang=\"%s\"/>\n", trackID, langCode);
+				fprintf(mpd, "    <ContentComponent id=\"%d\" contentType=\"text\" ", trackID);
+				if (!szLang || !szLang[0]) fprintf(mpd, " lang=\"%s\"", langCode);
+				fprintf(mpd, "/>\n");
 				break;
 			case GF_ISOM_MEDIA_VISUAL:
 				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"video\"/>\n", trackID);
 				break;
 			case GF_ISOM_MEDIA_SCENE:
 			case GF_ISOM_MEDIA_DIMS:
-				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"application\" lang=\"%s\"/>\n", trackID, langCode);
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"application\"", trackID, langCode);
+				if (!szLang || !szLang[0]) fprintf(mpd, " lang=\"%s\"", langCode);
+				fprintf(mpd, "/>\n");
 				break;
 			case GF_ISOM_MEDIA_AUDIO:
-				gf_isom_get_audio_info(init_segment, i+1, 1, &sr, &nb_ch, NULL);
-				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"audio\" lang=\"%s\"/>\n", trackID, langCode);
-				if (bitstream_switching_mode)
-					fprintf(mpd, "   <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_ch);
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"audio\" ", trackID);
+				if (!szLang || !szLang[0]) fprintf(mpd, " lang=\"%s\"", langCode);
+				fprintf(mpd, "/>\n");
 				break;
 			}
 		}

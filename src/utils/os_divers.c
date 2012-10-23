@@ -225,7 +225,7 @@ GF_Err gf_cleanup_dir(char* DirPathName)
  *
  * All code here is considered in the public domain though we do wish our names
  * could be retained if anyone uses them.
- /
+ */
 
 /*
  * Constants used internally by time functions.

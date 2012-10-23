@@ -99,6 +99,16 @@ void gf_bs_del(GF_BitStream *bs);
  */
 GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
 
+
+/*!
+ *	\brief gets bitstream write cache size
+ *
+ * Gets the write cache size for file-based bitstreams.  
+ *	\param bs the target bitstream 
+ *	\return size of the write cache in bytes, 0 if no cache
+ */
+u32 gf_bs_get_output_buffering(GF_BitStream *bs);
+
 /*!
  *	\brief integer reading
  *
