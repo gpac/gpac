@@ -5900,13 +5900,12 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_Box *a;
 
 	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *)s;
 
 	while (ptr->size) {
-		e = gf_isom_parse_box(&a, bs);
+		GF_Err e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
 
 
@@ -5939,7 +5938,7 @@ GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 		e = traf_AddBox((GF_Box*)ptr, a);
 		if (e) return e;
 	}
-	return e;
+	return GF_OK;
 }
 
 GF_Box *traf_New()
