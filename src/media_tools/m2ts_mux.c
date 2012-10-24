@@ -401,7 +401,7 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 	/*MPEG-4 tables are input streams for the mux, the bitrate is updated when fetching AUs*/
 }
 
-static u32 gf_m2ts_add_adaptation(GF_BitStream *bs, u16 pid,  
+static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u16 pid,  
 				   Bool has_pcr, u64 pcr_time, 
 				   Bool is_rap, 
 				   u32 padding_length)
@@ -426,10 +426,13 @@ static u32 gf_m2ts_add_adaptation(GF_BitStream *bs, u16 pid,
 		gf_bs_write_int(bs,	0, 6); // reserved
 		PCR_ext = pcr_time - PCR_base*300;
 		gf_bs_write_long_int(bs, PCR_ext, 9);
-
+		if (prog->last_pcr > pcr_time) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Sending PCR "LLD" earlier than previous PCR "LLD" - drift %f sec\n", pid, pcr_time, prog->last_pcr, (prog->last_pcr - pcr_time) /27000000.0 ));
+		}
+		prog->last_pcr = pcr_time;
 
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding adaptation field size %d - RAP %d - Padding %d - PCR %d\n", pid, adaptation_length, is_rap, padding_length, pcr_time));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding adaptation field size %d - RAP %d - Padding %d - PCR "LLD"\n", pid, adaptation_length, is_rap, padding_length, pcr_time));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding adaptation field size %d - RAP %d - Padding %d\n", pid, adaptation_length, is_rap, padding_length));
 #endif
@@ -496,7 +499,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 	else stream->continuity_counter=0;
 
 	if (adaptation_field_control != GF_M2TS_ADAPTATION_NONE)
-		gf_m2ts_add_adaptation(bs, stream->pid, 0, 0, 0, padding_length);
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length);
 
 	/*pointer field*/
 	if (!stream->current_section_offset) {
@@ -703,6 +706,10 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is less than initial DTS "LLD" - adjusting\n", stream->pid, *dts, stream->program->initial_ts));
 		stream->program->initial_ts = *dts;
 	}
+	else if (*dts < stream->last_dts) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is less than last sent DTS "LLD"\n", stream->pid, *dts, stream->last_dts));
+		stream->last_dts = *dts;
+	}
 
 	/*offset our timestamps*/
 	*cts += stream->program->pcr_offset;
@@ -786,7 +793,6 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 
 	if (!(stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS))
 		stream->curr_pck.dts = stream->curr_pck.cts;
-
 
 	/*initializing the PCR*/
 	if (!stream->program->pcr_init_time) {
@@ -1393,11 +1399,10 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 			stream->program->last_sys_clock = now;
 			/*if stream does not use DTS, use CTS as base time for PCR*/
 			stream->program->last_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts;
-			stream->program->last_pcr = pcr;
 			stream->pcr_priority = 0;
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? 1 : 0;
-		gf_m2ts_add_adaptation(bs, stream->pid, needs_pcr, pcr, is_rap, padding_length);
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length);
 	
 		if (padding_length) 
 			stream->program->mux->tot_pes_pad_bytes += padding_length;

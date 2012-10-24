@@ -5900,7 +5900,45 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = gf_isom_read_box_list(s, bs, traf_AddBox);
+	GF_Err e;
+	GF_Box *a;
+
+	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *)s;
+
+	while (ptr->size) {
+		e = gf_isom_parse_box(&a, bs);
+		if (e) return e;
+
+
+		//we need to read the DegPriority in a different way...
+		if ((a->type == GF_ISOM_BOX_TYPE_STDP) || (a->type == GF_ISOM_BOX_TYPE_SDTP)) { 
+			u32 nb_samples=0, i=0;
+			u64 s = a->size;
+			for (i=0; i<gf_list_count(ptr->TrackRuns); i++) {
+				GF_TrackFragmentRunBox *trun = gf_list_get(ptr->TrackRuns, i);
+				nb_samples+=trun->sample_count;
+			}
+			if (a->type == GF_ISOM_BOX_TYPE_STDP) {
+				if (nb_samples) ((GF_DegradationPriorityBox *)a)->nb_entries = nb_samples;
+				e = stdp_Read(a, bs);
+			} else {
+				if (nb_samples) ((GF_SampleDependencyTypeBox *)a)->sampleCount = nb_samples;
+				e = sdtp_Read(a, bs);
+			}
+			if (e) {
+				gf_isom_box_del(a);
+				return e;
+			}
+			a->size = s;
+		}
+		if (ptr->size<a->size) {
+			gf_isom_box_del(a);
+			return GF_ISOM_INVALID_FILE;
+		}
+		ptr->size -= a->size;
+		e = traf_AddBox((GF_Box*)ptr, a);
+		if (e) return e;
+	}
 	return e;
 }
 
