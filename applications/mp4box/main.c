@@ -25,6 +25,7 @@
 
 
 #include <gpac/download.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_SMGR
 #include <gpac/scene_manager.h>
