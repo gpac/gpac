@@ -2188,6 +2188,8 @@ restart_period:
 			}
 			gf_mx_p(dash->dl_mutex);
 
+			/*todo for live - check we don't attempt to request segments before their availabilityStartTime !*/
+
 			/* At this stage, there are some segments left to be downloaded */
 			e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration);
 			gf_mx_v(dash->dl_mutex);
@@ -2226,7 +2228,7 @@ restart_period:
 					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
 				}
 
-				/*TODO decide what is te best, fetch from another representation or ignore ...*/
+				/*TODO decide what is the best, fetch from another representation or ignore ...*/
 				if (e != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
 					group->download_segment_index++;

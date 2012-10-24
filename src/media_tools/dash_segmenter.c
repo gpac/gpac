@@ -1400,7 +1400,7 @@ GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *ti
 				break;
 			case GF_ISOM_MEDIA_SCENE:
 			case GF_ISOM_MEDIA_DIMS:
-				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"application\"", trackID, langCode);
+				fprintf(mpd, "   <ContentComponent id=\"%d\" contentType=\"application\"", trackID);
 				if (!szLang || !szLang[0]) fprintf(mpd, " lang=\"%s\"", langCode);
 				fprintf(mpd, "/>\n");
 				break;

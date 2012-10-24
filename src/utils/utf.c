@@ -352,6 +352,7 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 	ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 	if (res != conversionOK) return (size_t)-1;
 	*targetStart = 0;
+	*srcp=NULL;
 	return strlen(dest);
 }
 
@@ -366,6 +367,7 @@ size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 	ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 	if (res != conversionOK) return (size_t)-1;
 	*targetStart = 0;
+	*srcp=NULL;
 	return gf_utf8_wcslen(dest);
 }
 

@@ -989,7 +989,7 @@ typedef struct __m2ts_mux_stream {
 	/*avg bitrate compute*/
 	u64 last_br_time;
 	u32 bytes_since_last_time, pes_since_last_time;
-
+	u64 last_dts;
 	/*MPEG-4 over MPEG-2*/
 	u8 table_id;
 	GF_SLHeader sl_header;

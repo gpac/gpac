@@ -2500,7 +2500,7 @@ static void mpd_start(GF_M2TS_IndexingInfo *index_info, Bool is_first_rep, Bool 
 		}
 		fprintf(mpd, "\n");
 
-		fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\">\n", duration_string, buffer_string);	
+		fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\">\n", duration_string);	
 		fprintf(mpd, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"true\" subsegmentAlignment=\"true\">\n");
 	}
 
