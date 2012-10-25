@@ -2321,10 +2321,15 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			/*FIXME : not used GF_M2TS_Program *prog = pes->program; */
 			/* Interpolated PCR value for the TS packet containing the PES header start */
 			u64 interpolated_pcr_value = 0;
-			if (pes->last_pcr_value && pes->before_last_pcr_value && pes->last_pcr_value > pes->before_last_pcr_value) {
+			if (pes->last_pcr_value && pes->before_last_pcr_value_pck_number && pes->last_pcr_value > pes->before_last_pcr_value) {
 				u32 delta_pcr_pck_num = pes->last_pcr_value_pck_number - pes->before_last_pcr_value_pck_number;
 				u32 delta_pts_pcr_pck_num = pes->pes_start_packet_number - pes->last_pcr_value_pck_number;
 				u64 delta_pcr_value = pes->last_pcr_value - pes->before_last_pcr_value; 
+				if ((pes->pes_start_packet_number > pes->last_pcr_value_pck_number)
+					&& (pes->last_pcr_value > pes->before_last_pcr_value)) {
+					
+						pes->last_pcr_value = pes->before_last_pcr_value;
+				}
 				/* we can compute the interpolated pcr value for the packet containing the PES header */
 				interpolated_pcr_value = pes->last_pcr_value + (u64)((delta_pcr_value*delta_pts_pcr_pck_num*1.0)/delta_pcr_pck_num);
 				index_info->interpolated_pcr_value = interpolated_pcr_value;
@@ -2332,11 +2337,20 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 			
 			if (dumper->timestamps_info_file) {
+				Double diff;
 				fprintf(dumper->timestamps_info_file, "%u\t%d\t", pck->stream->pes_start_packet_number, pck->stream->pid);
 				if (interpolated_pcr_value) fprintf(dumper->timestamps_info_file, "%f", interpolated_pcr_value/(300.0 * 90000));
 				fprintf(dumper->timestamps_info_file, "\t");
 				if (pck->DTS) fprintf(dumper->timestamps_info_file, "%f", (pck->DTS / 90000.0));
-				fprintf(dumper->timestamps_info_file, "\t%f\t%d\t%d\n", pck->PTS / 90000.0, (pck->flags & GF_M2TS_PES_PCK_RAP ? 1 : 0), (pck->flags & GF_M2TS_PES_PCK_DISCONTINUITY ? 1 : 0));
+				fprintf(dumper->timestamps_info_file, "\t%f\t%d\t%d", pck->PTS / 90000.0, (pck->flags & GF_M2TS_PES_PCK_RAP ? 1 : 0), (pck->flags & GF_M2TS_PES_PCK_DISCONTINUITY ? 1 : 0));
+				if (interpolated_pcr_value) {
+					diff = (pck->DTS ? pck->DTS : pck->PTS) / 90000.0;
+					diff -= pes->last_pcr_value / (300.0 * 90000);
+					fprintf(dumper->timestamps_info_file, "\t%f\n", diff);
+					if (diff<0) fprintf(stderr, "Warning: detected PTS/DTS value less than current PCR of %g sec\n", diff);
+				} else {
+					fprintf(dumper->timestamps_info_file, "\t\n");
+				}
 			}
 		}
 		if (index_info->start_indexing) {
@@ -2679,6 +2693,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	}
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
+	ts->notify_pes_timing = 1;
 	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
 	ts->user = &dumper;
 	dumper.prog_number = prog_num;
@@ -2723,7 +2738,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 			fprintf(stderr, "Cannot open file %s\n", dumper.timestamps_info_name);
 			return;
 		}
-		fprintf(dumper.timestamps_info_file, "PCK#\tPID\tPCR\tDTS\tPTS\tRAP\tDiscontinuity\n");
+		fprintf(dumper.timestamps_info_file, "PCK#\tPID\tPCR\tDTS\tPTS\tRAP\tDiscontinuity\tDTS-PCR Diff\n");
 	}
 
 	gf_m2ts_reset_parsers(ts);
@@ -2778,6 +2793,7 @@ void dash_mpeg2_ts(char *mpeg2ts_file, char *mpd_name, Double dash_duration, Boo
 	}
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
+	ts->notify_pes_timing = 1;
 	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
 	ts->user = &dumper;
 

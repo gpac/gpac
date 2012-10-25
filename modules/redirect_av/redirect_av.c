@@ -617,8 +617,10 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Failed to lock global resource 'AVRedirect:output', another GPAC instance must be running, disabling AVRedirect\n"));
             return 0;
         }
+#ifndef AVIO_FLAG_WRITE
         /* must be called before using avcodec lib */
-        avcodec_init();
+        av_codec_init();
+#endif
 
         /* register all the codecs */
         avcodec_register_all();

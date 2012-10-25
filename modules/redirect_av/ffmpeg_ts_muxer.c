@@ -1,6 +1,19 @@
 #include "ts_muxer.h"
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+
+#ifdef AVIO_FLAG_WRITE
+#include <libavutil/samplefmt.h>
+#define url_fopen avio_open
+#define url_fclose avio_close
+#define URL_WRONLY	AVIO_FLAG_WRITE
+#define av_write_header(__a)	avformat_write_header(__a, NULL)
+#define dump_format av_dump_format
+
+#define SAMPLE_FMT_S16 AV_SAMPLE_FMT_S16
+#endif
+
+
 #define STREAM_FRAME_RATE 25 /* 25 images/s */
 #define STREAM_NB_FRAMES  ((int)(STREAM_DURATION * STREAM_FRAME_RATE))
 #define STREAM_PIX_FMT PIX_FMT_YUV420P /* default pix_fmt */
@@ -221,13 +234,17 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 
     }
     //av_set_pts_info(ts->audio_st, 33, 1, audioBitRateInBitsPerSec);
-    /* set the output parameters (must be done even if no
+
+#ifndef AVIO_FLAG_WRITE
+	/* set the output parameters (must be done even if no
        parameters). */
     if (av_set_parameters(ts->oc, NULL) < 0) {
         fprintf(stderr, "Invalid output format parameters\n");
         return NULL;
     }
-    dump_format(ts->oc, 0, avr->destination, 1);
+#endif
+	
+	dump_format(ts->oc, 0, avr->destination, 1);
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] DUMPING to %s...\n", ts->destination));
 
     if (avcodec_open(ts->video_st->codec, avr->videoCodec) < 0) {
