@@ -619,7 +619,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
         }
 #ifndef AVIO_FLAG_WRITE
         /* must be called before using avcodec lib */
-        av_codec_init();
+        avcodec_init();
 #endif
 
         /* register all the codecs */
