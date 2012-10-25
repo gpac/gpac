@@ -1195,7 +1195,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 			}
 		}
 		else if (!strnicmp(szSlot, "trackID=", 8) || !strchr(szSlot, '=') ) {
-			__tsel_list = realloc(__tsel_list, sizeof(TSELAction) * (*nb_tsel_act + 1));
+			__tsel_list = gf_realloc(__tsel_list, sizeof(TSELAction) * (*nb_tsel_act + 1));
 			tsel_list = *__tsel_list;
 
 			tsel_act = &tsel_list[*nb_tsel_act];
@@ -1254,14 +1254,14 @@ enum
 };
 
 #define MP4BOX_EXIT_WITH_CODE(__ret_code)	\
-	if (mpd_base_urls) free(mpd_base_urls);	\
-	if (sdp_lines) free(sdp_lines); \
-	if (metas) free(metas); \
-	if (tracks) free(tracks); \
-	if (tsel_acts) free(tsel_acts); \
-	if (brand_add) free(brand_add); \
-	if (brand_rem) free(brand_rem); \
-	if (dash_inputs) free(dash_inputs); \
+	if (mpd_base_urls) gf_free(mpd_base_urls);	\
+	if (sdp_lines) gf_free(sdp_lines); \
+	if (metas) gf_free(metas); \
+	if (tracks) gf_free(tracks); \
+	if (tsel_acts) gf_free(tsel_acts); \
+	if (brand_add) gf_free(brand_add); \
+	if (brand_rem) gf_free(brand_rem); \
+	if (dash_inputs) gf_free(dash_inputs); \
 	return __ret_code; \
 
 
@@ -1282,7 +1282,7 @@ DashInput *set_dash_input(DashInput *dash_inputs, char *name, u32 *nb_dash_input
 	char *sep = strchr(name, ':');
 	if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
 
-	dash_inputs = realloc(dash_inputs, sizeof(DashInput) * (*nb_dash_inputs + 1) );
+	dash_inputs = gf_realloc(dash_inputs, sizeof(DashInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(DashInput) );
 	di = &dash_inputs[*nb_dash_inputs];
 	(*nb_dash_inputs)++;
@@ -1687,7 +1687,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-base-url")) { 
 			CHECK_NEXT_ARG 
 			dash_more_info = argv[i+1]; 
-			mpd_base_urls = realloc(mpd_base_urls, (nb_mpd_base_urls+1)*sizeof(char**));
+			mpd_base_urls = gf_realloc(mpd_base_urls, (nb_mpd_base_urls+1)*sizeof(char**));
 			mpd_base_urls[nb_mpd_base_urls] = argv[i+1];
 			nb_mpd_base_urls++;
 			i++; 
@@ -1764,7 +1764,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
 			char *id;
 			CHECK_NEXT_ARG
-			sdp_lines = realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex+1) );
+			sdp_lines = gf_realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex+1) );
 
 			id = strchr(argv[i+1], ':');
 			if (id) {
@@ -1834,7 +1834,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-rem") || !stricmp(arg, "-disable") || !stricmp(arg, "-enable")) {
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = 6;
 			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = 7;
@@ -1847,7 +1847,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-par")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			tracks[nb_track_act].act_type = 4;
 			strcpy(szTK, argv[i+1]);
@@ -1870,7 +1870,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-lang")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			tracks[nb_track_act].act_type = 1;
 			tracks[nb_track_act].lang[3] = 0;
@@ -1894,7 +1894,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-delay")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
@@ -1913,7 +1913,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-ref")) {
 			char *szTK, *ext;
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			szTK = argv[i+1];
 			ext = strchr(szTK, ':');
@@ -1939,7 +1939,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-name")) {
 			char szTK[GF_MAX_PATH], *ext;
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
@@ -2071,7 +2071,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-set-kms")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-			tracks = realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			strncpy(szTK, argv[i+1], 19);
 			ext = strchr(szTK, '=');
@@ -2129,7 +2129,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		/*meta*/
 		else if (!stricmp(arg, "-set-meta")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 0;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2138,7 +2138,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-add-item")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 1;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2147,7 +2147,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-rem-item")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 2;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2156,7 +2156,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-set-primary")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 3;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2165,7 +2165,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-set-xml")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 4;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2174,7 +2174,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-rem-xml")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 6;
 			if (parse_meta_args(&metas[nb_meta_act], argv[i+1])) i++;
@@ -2182,7 +2182,7 @@ int mp4boxMain(int argc, char **argv)
 			open_edit = 1;
 		}
 		else if (!stricmp(arg, "-dump-xml")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 7;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2190,7 +2190,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-dump-item")) { 
-			metas = realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 
 			metas[nb_meta_act].act_type = 8;
 			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
@@ -2237,7 +2237,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-ab")) { 
 			char *b = argv[i+1];
 			CHECK_NEXT_ARG 
-			brand_add = realloc(brand_add, sizeof(u32) * (nb_alt_brand_add+1));
+			brand_add = gf_realloc(brand_add, sizeof(u32) * (nb_alt_brand_add+1));
 
 			brand_add[nb_alt_brand_add] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_add++;
@@ -2247,7 +2247,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-rb")) { 
 			char *b = argv[i+1];
 			CHECK_NEXT_ARG 
-			brand_rem = realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem+1));
+			brand_rem = gf_realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem+1));
 
 			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_rem++;
