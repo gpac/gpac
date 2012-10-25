@@ -5565,7 +5565,7 @@ void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 	start = 0;
 	bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_WRITE);
 	while (1) {
-		if (!samp->data[start+sc_pos] && !samp->data[start+sc_pos+1] && !samp->data[start+sc_pos+2] && (samp->data[start+sc_pos+3]==1)) {
+		if (!samp->data[sc_pos] && !samp->data[sc_pos+1] && !samp->data[sc_pos+2] && (samp->data[sc_pos+3]==1)) {
 			gf_bs_seek(bs, start);
 			gf_bs_write_u32(bs, (u32) sc_pos-start-4);
 			start = sc_pos;
@@ -6311,7 +6311,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		if (tsimp.track) {
 			MP4T_RecomputeBitRate(import->dest, tsimp.track);
 			/* creation of the edit lists */
-			if (es->first_dts != es->program->first_dts) {
+			if ((es->first_dts != es->program->first_dts) && gf_isom_get_sample_count(import->dest, tsimp.track) ){
 				u32 media_ts, moov_ts, offset;
 				u64 dur;
 				media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);

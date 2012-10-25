@@ -112,6 +112,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
 {
 	Bool au_start_in_pes=0;
+	Bool prev_is_au_delim=0;
 	Bool force_new_au=0;
 	Bool start_code_found = 0;
 	Bool short_start_code = 0;
@@ -204,20 +205,29 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 #endif
 			/*check AU start type*/
 			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
-				if (au_start_in_pes) {
-					/*FIXME - we should check the AVC framerate to update the timing ...*/
-					pck.DTS += 3000;
-					pck.PTS += 3000;
-//					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
+				if (!prev_is_au_delim) {
+					if (au_start_in_pes) {
+						/*FIXME - we should check the AVC framerate to update the timing ...*/
+						pck.DTS += 3000;
+						pck.PTS += 3000;
+//						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
+					}
+					pck.flags = GF_M2TS_PES_PCK_AU_START;
+					force_new_au = 0;
+					au_start_in_pes = 1;
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					prev_is_au_delim=1;
 				}
-				pck.flags = GF_M2TS_PES_PCK_AU_START;
-				force_new_au = 0;
-				au_start_in_pes = 1;
 			} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
 				pck.flags = GF_M2TS_PES_PCK_RAP;
+				ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+				prev_is_au_delim=0;
 			} 
-			else pck.flags = 0;
-			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+			else {
+				pck.flags = 0;
+				ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+				prev_is_au_delim=0;
+			}
 
 			data += sc_pos;
 			data_len -= sc_pos;
@@ -1891,6 +1901,8 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 		pesh->DTS = gf_m2ts_get_pts(data);
 		data+=5;
 		len_check += 5;
+	} else {
+		pesh->DTS = pesh->PTS;
 	}
 	if (len_check < pesh->hdr_data_len) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Skipping %d bytes in pes header\n", pes->pid, pesh->hdr_data_len - len_check));
@@ -1919,7 +1931,7 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 			gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
 			
 			/*send PES timing*/
-			{
+			if (ts->notify_pes_timing) {
 				GF_M2TS_PES_PCK pck;
 				memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
 				pck.PTS = pesh.PTS;
@@ -1946,12 +1958,9 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 #endif
 
 				pes->PTS = pesh.PTS;
-				if (!pesh.DTS) {
-					pesh.DTS = pesh.PTS;
-				}
 #ifndef GPAC_DISABLE_LOG
-				else {
-					if (pesh.DTS==pes->DTS) {
+				{
+					if (pes->DTS && (pesh.DTS==pes->DTS)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS) );
 					} if (pesh.DTS<pes->DTS) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS) );
@@ -2247,6 +2256,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
 		es->program->last_pcr_value_pck_number = ts->pck_number;
 		es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
+		if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
 		pck.PTS = es->program->last_pcr_value;
 		pck.stream = (GF_M2TS_PES *)es;
 		if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
@@ -2392,6 +2402,12 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 			if (pes->buf) gf_free(pes->buf);
 			pes->buf = NULL;
 			pes->buf_len = 0;
+			pes->before_last_pcr_value = pes->before_last_pcr_value_pck_number = 0;
+			pes->last_pcr_value = pes->last_pcr_value_pck_number = 0;
+			if (pes->program->pcr_pid==pes->pid) {
+				pes->program->last_pcr_value = pes->program->last_pcr_value_pck_number = 0;
+				pes->program->before_last_pcr_value = pes->program->before_last_pcr_value_pck_number = 0;
+			}
 		}
 //		gf_free(es);
 //		ts->ess[i] = NULL;

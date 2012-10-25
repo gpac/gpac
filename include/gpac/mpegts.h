@@ -782,6 +782,7 @@ struct tag_m2ts_demux
 	Bool direct_mpe;
 
 	Bool dvb_h_demux;
+	Bool notify_pes_timing;
 	
 	/*user callback - MUST NOT BE NULL*/
 	void (*on_mpe_event)(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
