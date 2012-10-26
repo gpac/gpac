@@ -118,6 +118,7 @@
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Culture>0x040c</Culture>
+      <AdditionalIncludeDirectories>../../include</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
       <OutputFile>../../bin/$(Platform)\$(Configuration)/Osmo4.exe</OutputFile>
