@@ -363,6 +363,9 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	if (dcd->decoderSpecificInfo && dcd->decoderSpecificInfo->dataLength) {
 		switch (dcd->objectTypeIndication) {
 		case GPAC_OTI_AUDIO_AAC_MPEG4:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 			ifce->decoder_config = gf_malloc(sizeof(char)*dcd->decoderSpecificInfo->dataLength);
 			ifce->decoder_config_size = dcd->decoderSpecificInfo->dataLength;
 			memcpy(ifce->decoder_config, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
