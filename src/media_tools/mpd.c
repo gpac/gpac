@@ -941,13 +941,13 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 		att = gf_list_get(root->attributes, att_index);
 		if (!att) continue;
 		if (!strcmp(att->name, "xmlns")) {
-			if (!root->ns && !strcmp(att->value, "urn:mpeg:dash:schema:mpd:2011")) {
+			if (!root->ns && (!strcmp(att->value, "urn:mpeg:dash:schema:mpd:2011") || !strcmp(att->value, "urn:mpeg:DASH:schema:MPD:2011")) ) {
 				ns_ok = 1;
 				break;
 			}
 		}
 		else if (!strncmp(att->name, "xmlns:", 6)) {
-			if (root->ns && !strcmp(att->name+6, root->ns) && !strcmp(att->value, "urn:mpeg:dash:schema:mpd:2011")) {
+			if (root->ns && !strcmp(att->name+6, root->ns) && (!strcmp(att->value, "urn:mpeg:dash:schema:mpd:2011") || !strcmp(att->value, "urn:mpeg:DASH:schema:MPD:2011")) ) {
 				ns_ok = 1;
 				mpd->xml_namespace = root->ns;
 				break;
@@ -1269,7 +1269,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		}
 	}
 
-	fprintf(fmpd, "  <AdaptationSet>\n");
+	fprintf(fmpd, "  <AdaptationSet segmentAlignment=\"true\">\n");
 
 	/*if we use templates, put the SegmentTemplate element at the adaptationSet level*/
 	if (use_template) {
