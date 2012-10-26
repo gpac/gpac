@@ -23,14 +23,29 @@
 
 #include <stdarg.h>
 #include "avutil.h"
+#include "attributes.h"
+
+typedef enum {
+    AV_CLASS_CATEGORY_NA = 0,
+    AV_CLASS_CATEGORY_INPUT,
+    AV_CLASS_CATEGORY_OUTPUT,
+    AV_CLASS_CATEGORY_MUXER,
+    AV_CLASS_CATEGORY_DEMUXER,
+    AV_CLASS_CATEGORY_ENCODER,
+    AV_CLASS_CATEGORY_DECODER,
+    AV_CLASS_CATEGORY_FILTER,
+    AV_CLASS_CATEGORY_BITSTREAM_FILTER,
+    AV_CLASS_CATEGORY_SWSCALER,
+    AV_CLASS_CATEGORY_SWRESAMPLER,
+    AV_CLASS_CATEGORY_NB, ///< not part of ABI/API
+}AVClassCategory;
 
 /**
- * Describes the class of an AVClass context structure. That is an
+ * Describe the class of an AVClass context structure. That is an
  * arbitrary struct of which the first field is a pointer to an
  * AVClass struct (e.g. AVCodecContext, AVFormatContext etc.).
  */
-typedef struct AVCLASS AVClass;
-struct AVCLASS {
+typedef struct AVClass {
     /**
      * The name of the class; usually it is the same name as the
      * context structure type to which the AVClass is associated.
@@ -39,7 +54,7 @@ struct AVCLASS {
 
     /**
      * A pointer to a function which returns the name of a context
-     * instance \p ctx associated with the class.
+     * instance ctx associated with the class.
      */
     const char* (*item_name)(void* ctx);
 
@@ -49,7 +64,57 @@ struct AVCLASS {
      * @see av_set_default_options()
      */
     const struct AVOption *option;
-};
+
+    /**
+     * LIBAVUTIL_VERSION with which this structure was created.
+     * This is used to allow fields to be added without requiring major
+     * version bumps everywhere.
+     */
+
+    int version;
+
+    /**
+     * Offset in the structure where log_level_offset is stored.
+     * 0 means there is no such variable
+     */
+    int log_level_offset_offset;
+
+    /**
+     * Offset in the structure where a pointer to the parent context for loging is stored.
+     * for example a decoder that uses eval.c could pass its AVCodecContext to eval as such
+     * parent context. And a av_log() implementation could then display the parent context
+     * can be NULL of course
+     */
+    int parent_log_context_offset;
+
+    /**
+     * Return next AVOptions-enabled child or NULL
+     */
+    void* (*child_next)(void *obj, void *prev);
+
+    /**
+     * Return an AVClass corresponding to next potential
+     * AVOptions-enabled child.
+     *
+     * The difference between child_next and this is that
+     * child_next iterates over _already existing_ objects, while
+     * child_class_next iterates over _all possible_ children.
+     */
+    const struct AVClass* (*child_class_next)(const struct AVClass *prev);
+
+    /**
+     * Category used for visualization (like color)
+     * This is only set if the category is equal for all objects using this class.
+     * available since version (51 << 16 | 56 << 8 | 100)
+     */
+    AVClassCategory category;
+
+    /**
+     * Callback to return the category.
+     * available since version (51 << 16 | 59 << 8 | 100)
+     */
+    AVClassCategory (*get_category)(void* ctx);
+} AVClass;
 
 /* av_log API */
 
@@ -87,8 +152,10 @@ struct AVCLASS {
  */
 #define AV_LOG_DEBUG    48
 
+#define AV_LOG_MAX_OFFSET (AV_LOG_DEBUG - AV_LOG_QUIET)
+
 /**
- * Sends the specified message to the log if the level is less than or equal
+ * Send the specified message to the log if the level is less than or equal
  * to the current av_log_level. By default, all logging messages are sent to
  * stderr. This behavior can be altered by setting a different av_vlog callback
  * function.
@@ -101,16 +168,46 @@ struct AVCLASS {
  * subsequent arguments are converted to output.
  * @see av_vlog
  */
-#ifdef __GNUC__
-void av_log(void*, int level, const char *fmt, ...) __attribute__ ((__format__ (__printf__, 3, 4)));
-#else
-void av_log(void*, int level, const char *fmt, ...);
-#endif
+void av_log(void *avcl, int level, const char *fmt, ...) av_printf_format(3, 4);
 
-void av_vlog(void*, int level, const char *fmt, va_list);
+void av_vlog(void *avcl, int level, const char *fmt, va_list);
 int av_log_get_level(void);
 void av_log_set_level(int);
 void av_log_set_callback(void (*)(void*, int, const char*, va_list));
 void av_log_default_callback(void* ptr, int level, const char* fmt, va_list vl);
+const char* av_default_item_name(void* ctx);
+AVClassCategory av_default_get_category(void *ptr);
+
+/**
+ * Format a line of log the same way as the default callback.
+ * @param line          buffer to receive the formated line
+ * @param line_size     size of the buffer
+ * @param print_prefix  used to store whether the prefix must be printed;
+ *                      must point to a persistent integer initially set to 1
+ */
+void av_log_format_line(void *ptr, int level, const char *fmt, va_list vl,
+                        char *line, int line_size, int *print_prefix);
+
+/**
+ * av_dlog macros
+ * Useful to print debug messages that shouldn't get compiled in normally.
+ */
+
+#ifdef DEBUG
+#    define av_dlog(pctx, ...) av_log(pctx, AV_LOG_DEBUG, __VA_ARGS__)
+#else
+#    define av_dlog(pctx, ...) do { if (0) av_log(pctx, AV_LOG_DEBUG, __VA_ARGS__); } while (0)
+#endif
+
+/**
+ * Skip repeated messages, this requires the user app to use av_log() instead of
+ * (f)printf as the 2 would otherwise interfere and lead to
+ * "Last message repeated x times" messages below (f)printf messages with some
+ * bad luck.
+ * Also to receive the last, "last repeated" line if any, the user app must
+ * call av_log(NULL, AV_LOG_QUIET, "%s", ""); at the end
+ */
+#define AV_LOG_SKIP_REPEATED 1
+void av_log_set_flags(int arg);
 
 #endif /* AVUTIL_LOG_H */
