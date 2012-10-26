@@ -700,6 +700,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
 		if (!ffd->seekable) {
 			av_close_input_file(ffd->ctx);
+			ffd->ctx = NULL;
 			open_file(&ffd->ctx, szName, av_in);
 			av_find_stream_info(ffd->ctx);
 		}
