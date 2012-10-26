@@ -277,7 +277,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="avformat-52.lib avcodec-52.lib avutil-50.lib swscale-0.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

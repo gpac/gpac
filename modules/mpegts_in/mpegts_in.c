@@ -191,6 +191,9 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 		break;
 	case GF_M2TS_AUDIO_LATM_AAC:
 	case GF_M2TS_AUDIO_AAC:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 		if (!dsi) {
 			/*turn on parsing to get AAC config
 				NB: we removed "no file regulation" since we may get broken files where PMT declares an AAC stream but no AAC PID is in the MUX

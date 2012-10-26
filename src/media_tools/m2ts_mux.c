@@ -1653,6 +1653,9 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG2;
 			break;
 		case GPAC_OTI_AUDIO_AAC_MPEG4:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
