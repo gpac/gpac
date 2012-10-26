@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2005 Michael Niedermayer <michaelni@gmx.at>
+ * copyright (c) 2006 Michael Niedermayer <michaelni@gmx.at>
  *
  * This file is part of FFmpeg.
  *
@@ -18,23 +18,34 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVUTIL_INTFLOAT_READWRITE_H
-#define AVUTIL_INTFLOAT_READWRITE_H
+#ifndef AVUTIL_MD5_H
+#define AVUTIL_MD5_H
 
 #include <stdint.h>
+
 #include "attributes.h"
+#include "version.h"
 
-/* IEEE 80 bits extended float */
-typedef struct AVExtFloat  {
-    uint8_t exponent[2];
-    uint8_t mantissa[8];
-} AVExtFloat;
+/**
+ * @defgroup lavu_md5 MD5
+ * @ingroup lavu_crypto
+ * @{
+ */
 
-attribute_deprecated double av_int2dbl(int64_t v) av_const;
-attribute_deprecated float av_int2flt(int32_t v) av_const;
-attribute_deprecated double av_ext2dbl(const AVExtFloat ext) av_const;
-attribute_deprecated int64_t av_dbl2int(double d) av_const;
-attribute_deprecated int32_t av_flt2int(float d) av_const;
-attribute_deprecated AVExtFloat av_dbl2ext(double d) av_const;
+#if FF_API_CONTEXT_SIZE
+extern attribute_deprecated const int av_md5_size;
+#endif
 
-#endif /* AVUTIL_INTFLOAT_READWRITE_H */
+struct AVMD5;
+
+struct AVMD5 *av_md5_alloc(void);
+void av_md5_init(struct AVMD5 *ctx);
+void av_md5_update(struct AVMD5 *ctx, const uint8_t *src, const int len);
+void av_md5_final(struct AVMD5 *ctx, uint8_t *dst);
+void av_md5_sum(uint8_t *dst, const uint8_t *src, const int len);
+
+/**
+ * @}
+ */
+
+#endif /* AVUTIL_MD5_H */
