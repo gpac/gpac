@@ -86,7 +86,7 @@ typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} 
 typedef struct s_playlistElement {
     int durationInfo;
     u64 byteRangeStart, byteRangeEnd;
-    int bandwidth;
+    int bandwidth, width, height;
     char * title;
 	char * codecs;
     char * url;

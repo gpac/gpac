@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 			m3u8_local_name = url;
 			is_local = 1;
 		} else {
-			e = gf_dm_wget(url, m3u8_local_name);
+			e = gf_dm_wget(url, m3u8_local_name, 0, 0);
 			if (e != GF_OK) return -1;
 		}
 

@@ -954,6 +954,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSExArray")
 	}
 	if (svccfg) {
+		if (!nalh_size) nalh_size = avccfg->nal_unit_size;
 		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray")
 		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
 	}

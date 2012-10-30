@@ -290,13 +290,14 @@ void PrintDASHUsage()
 			"                       \"-frag\" since encoded video data is not modified\n"
 			" -segment-name name   sets the segment name for generated segments\n"
 			"                       If not set (default), segments are concatenated in output file\n"
+			"                        except in \"live\" profile where dash_%%s is used\n"
 			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
-			" -base-url string     Sets Base url at MPD level. Can be used several times.\n"
-			" -mpd-title string    Sets MPD title.\n"
-			" -mpd-source string   Sets MPD source.\n"
-			" -mpd-info-url string Sets MPD info url.\n"
+			" -base-url string     sets Base url at MPD level. Can be used several times.\n"
+			" -mpd-title string    sets MPD title.\n"
+			" -mpd-source string   sets MPD source.\n"
+			" -mpd-info-url string sets MPD info url.\n"
 			" -cprt string         adds copyright string to MPD\n"
-			" -dash-ctx FILE       Stores/restore DASH timing from FILE.\n"
+			" -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 			"\n"
 			"Advanced Options, should not be needed when using -dash-profile:\n"
 			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
@@ -304,10 +305,10 @@ void PrintDASHUsage()
 			"                       If -1, no SIDX box is used\n"
 			" -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
 			"                       Ignored if segments are stored in the output file.\n"
-			" -daisy-chain         Uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
-			" -single-segment      Uses a single segment for the whole file (OnDemand profile). \n"
-			" -single-file         Uses a single file for the whole file (default). \n"
-			" -bs-switching MODE   Sets bitstream switching to \"yes\" (default), \"no\" or \"single\" to test with single input.\n" 
+			" -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
+			" -single-segment      uses a single segment for the whole file (OnDemand profile). \n"
+			" -single-file         uses a single file for the whole file (default). \n"
+			" -bs-switching MODE   sets bitstream switching to \"yes\" (default), \"no\" or \"single\" to test with single input.\n" 
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
@@ -2419,7 +2420,7 @@ int mp4boxMain(int argc, char **argv)
 		Bool remote = 0;
 		char *mpd_base_url = gf_strdup(inName);
 		if (!strnicmp(inName, "http://", 7)) {
-			e = gf_dm_wget(inName, "tmp_main.m3u8");
+			e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0);
 			if (e != GF_OK) {
 				fprintf(stderr, "Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e));
 				gf_free(mpd_base_url);

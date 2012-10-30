@@ -50,7 +50,7 @@
 #define SESSION_RETRY_COUNT	20
 
 #define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_FULL_VERSION
-#define GF_DOWNLOAD_BUFFER_SIZE		8192
+#define GF_DOWNLOAD_BUFFER_SIZE		8193
 #define GF_WAIT_REPLY_SLEEP	20
 
 
@@ -1044,18 +1044,22 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
         return GF_BAD_PARAM;
 #ifdef GPAC_HAS_SSL
     if (sess->ssl) {
-        u32 size = SSL_read(sess->ssl, data, data_size);
-        e = GF_OK;
-        data[size] = 0;
-        if (!size) e = GF_IP_NETWORK_EMPTY;
-        *out_read = size;
-    } else
+        s32 size = SSL_read(sess->ssl, data, data_size);
+        if (size < 0) 
+			e = GF_IO_ERR;
+        else if (!size) 
+			e = GF_IP_NETWORK_EMPTY;
+		else {
+			e = GF_OK;
+	        data[size] = 0;
+		    *out_read = size;
+		}
+	    return e;
+    } 
 #endif
-        if (!sess->sock)
-            return GF_NETIO_DISCONNECTED;
-    e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
-
-    return e;
+    if (!sess->sock)
+        return GF_NETIO_DISCONNECTED;
+    return gf_sk_receive(sess->sock, data, data_size, 0, out_read);
 }
 
 
@@ -1200,7 +1204,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
             X509 *cert;
             Bool success = 1;
 
-            sess->ssl = SSL_new(sess->dm->ssl_ctx);
+			sess->ssl = SSL_new(sess->dm->ssl_ctx);
             SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
             SSL_set_connect_state(sess->ssl);
             ret = SSL_connect(sess->ssl);
@@ -1209,13 +1213,27 @@ static void gf_dm_connect(GF_DownloadSession *sess)
             cert = SSL_get_peer_certificate(sess->ssl);
             /*if we have a cert, check it*/
             if (cert) {
+					SSL_set_verify_result(sess->ssl, 0);
                 vresult = SSL_get_verify_result(sess->ssl);
-                if (vresult != X509_V_OK) success = 0;
-                else {
+				
+				if (vresult == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
+                    GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SSL] Cannot locate issuer's certificate on the local system, will not attempt to validate\n"));
+					SSL_set_verify_result(sess->ssl, 0);
+	                vresult = SSL_get_verify_result(sess->ssl);
+				}
+
+				if (vresult == X509_V_OK) {
                     common_name[0] = 0;
                     X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
-                    if (!rfc2818_match(common_name, sess->server_name)) success = 0;
-                }
+					if (!rfc2818_match(common_name, sess->server_name)) {
+						success = 0;
+						GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Mismatch in certificate names: got %s expected %s\n", common_name, sess->server_name));
+					}
+				} else {
+					success = 0;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Error verifying certificate %x\n", vresult));
+				}
+
                 X509_free(cert);
 
                 if (!success) {
@@ -1994,8 +2012,10 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 #ifdef GPAC_HAS_SSL
         if (sess->ssl) {
-            e = GF_IP_NETWORK_FAILURE;
-            if (!SSL_write(sess->ssl, tmp_buf, len+par.size)) e = GF_OK;
+            u32 writelen = len+par.size;
+			e = GF_OK;
+			if (writelen != SSL_write(sess->ssl, tmp_buf, writelen))
+				e = GF_IP_NETWORK_FAILURE;
         } else
 #endif
             e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
@@ -2006,9 +2026,11 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 #ifdef GPAC_HAS_SSL
         if (sess->ssl) {
-            e = GF_IP_NETWORK_FAILURE;
-            if (!SSL_write(sess->ssl, sHTTP, strlen(sHTTP))) e = GF_OK;
-        } else
+            u32 len = strlen(sHTTP);
+			e = GF_OK;
+			if (len != SSL_write(sess->ssl, sHTTP, len))
+				e = GF_IP_NETWORK_FAILURE;
+         } else
 #endif
             e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
 
@@ -2051,7 +2073,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
             }
         }
 #endif
-        e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
+        e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE-1, &size);
         if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
             if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && (gf_sys_clock() - sess->start_time > 5000))) {
                 sess->total_size = sess->bytes_done;
@@ -2116,7 +2138,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     new_location = NULL;
     sess->use_cache_file = 1;
     while (1) {
-        e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
+        e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - 1 - bytesRead, &res);
         switch (e) {
         case GF_IP_NETWORK_EMPTY:
             if (!bytesRead) return GF_OK;
@@ -2629,20 +2651,20 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 
 GF_EXPORT
-GF_Err gf_dm_wget(const char *url, const char *filename)
+GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range)
 {
 	GF_Err e;
 	GF_DownloadManager * dm = NULL;
 	dm = gf_dm_new(NULL);
 	if (!dm)
 		return GF_OUT_OF_MEM;
-	e = gf_dm_wget_with_cache(dm, url, filename);
+	e = gf_dm_wget_with_cache(dm, url, filename, start_range, end_range);
 	gf_dm_del(dm);
 	return e;
 }
 
 GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
-				const char *url, const char *filename)
+				const char *url, const char *filename, u64 start_range, u64 end_range)
 {
 	GF_Err e;
 	FILE * f;
@@ -2660,6 +2682,11 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	}
 	dnload->use_cache_file = 1;
 	dnload->force_data_write_callback = 1;
+	if (end_range) {
+		dnload->range_start = start_range;
+		dnload->range_end = end_range;
+	    dnload->needs_range = 1;
+	}
 	if (e == GF_OK) {
 		e = gf_dm_sess_process(dnload);
 	}
@@ -2901,6 +2928,7 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 	}
 #endif
 
+	if (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL) flags |= GF_DOWNLOAD_SESSION_USE_SSL;
 	sess->flags = flags;
 	sess->user_proc = user_io;
 	sess->usr_cbk = cbk;
