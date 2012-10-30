@@ -414,7 +414,7 @@ extern "C" {
      * \return GF_OK if everything went fine, an error otherwise
      */
     GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
-                                const char *url, const char *filename);
+                                const char *url, const char *filename, u64 start_range, u64 end_range);
 
     /*!
      * \brief Same as gf_dm_wget_with_cache, but initializes the GF_DownloadManager by itself.
@@ -423,7 +423,7 @@ extern "C" {
      * \param filename The filename to download
      * \return GF_OK if everything went fine, an error otherwise
      */
-    GF_Err gf_dm_wget(const char *url, const char *filename);
+    GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range);
 
     /*!
      *\brief Reset session

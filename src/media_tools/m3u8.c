@@ -315,6 +315,7 @@ typedef struct _s_accumulated_attributes {
 	char * title;
 	int durationInSeconds;
 	int bandwidth;
+	int width, height;
 	int programId;
 	char * codecs;
 	int targetDurationInSeconds;
@@ -432,7 +433,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 		/* Not Supported for now */
 		return ret;
 	}
-	ret = extractAttributes("#EXT-X-STREAM-INF:", line, 3);
+	ret = extractAttributes("#EXT-X-STREAM-INF:", line, 10);
 	if (ret) {
 		/* #EXT-X-STREAM-INF:[attribute=value][,attribute=value]* */
 		i = 0;
@@ -452,6 +453,13 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 				intValue = strlen(ret[i]);
 				if (ret[i][intValue-1] == '"') {
 					attributes->codecs = gf_strdup(&(ret[i][7]));
+				}
+			} else if (safe_start_equals("RESOLUTION=", ret[i])) {
+				u32 w, h;
+				utility = &(ret[i][11]);
+				if ((sscanf(utility, "%dx%d", &w, &h)==2) || (sscanf(utility, "%dx%d,", &w, &h)==2)) {
+					attributes->width = w;
+					attributes->height = h;
 				}
 			}
 			i++;
@@ -643,6 +651,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 					currentPlayList->title = attribs.title ? gf_strdup(attribs.title):NULL;
 					currentPlayList->codecs = attribs.codecs ? gf_strdup(attribs.codecs):NULL;
 					gf_list_add(program->bitrates, currentPlayList);
+					currentPlayList->width = attribs.width;
+					currentPlayList->height = attribs.height;
 				} else {
 					/* Normal Playlist */
 					assert( pl->programs);

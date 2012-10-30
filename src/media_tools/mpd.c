@@ -1119,8 +1119,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 #endif
 				gf_free(suburl);
 			} else { /* for use in MP4Box */
-				if (strstr(suburl, "://") && !strstr(suburl, "://") ) {
-					e = gf_dm_wget(suburl, "tmp.m3u8");
+				if (strstr(suburl, "://") ) {
+					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0);
 					if (e==GF_OK) {
 						e = parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
 					}
@@ -1300,7 +1300,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			tmp_file = strrchr(elt->url, '/');
 			if (!tmp_file) tmp_file = strrchr(elt->url, '\\');
 			if (tmp_file) {
-				e = gf_dm_wget(elt->url, tmp_file);
+				e = gf_dm_wget(elt->url, tmp_file, 0, 0);
 				if (e==GF_OK) {
 					import.in_name = tmp_file;
 					e = gf_media_import(&import);
@@ -1343,6 +1343,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		count2 = gf_list_count(prog->bitrates);
 		for (j = 0; j<count2; j++) {
 			char *base_url;
+			Bool import_file = do_import;
+			Bool is_aac = 0;
 			char *byte_range_media_file = NULL;
 			pe = gf_list_get(prog->bitrates, j);
 			
@@ -1363,10 +1365,23 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				strncpy(pe->codecs, pe->codecs+1, len-1);
 				pe->codecs[len-2] = 0;
 			}
+			if (pe->bandwidth && pe->codecs && pe->width && pe->height) {
+				import_file = 0;
+			}
 
-			width = height = samplerate = num_channels = 0;
+			/*get rid of level 0 aac*/
+			elt = gf_list_get(pe->element.playlist.elements, 0);
+			if (elt && strstr(elt->url, ".aac"))
+				is_aac = 1;
+
+			if (is_aac) 
+				fprintf(fmpd, "<!-- \n");
+
+			width = pe->width;
+			height = pe->height;
+			samplerate = num_channels = 0;
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-			if (do_import) {
+			if (import_file) {
 				GF_Err e;
 				GF_MediaImporter import;
 				char *tmp_file = NULL;
@@ -1379,7 +1394,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					tmp_file = strrchr(elt->url, '/');
 					if (!tmp_file) tmp_file = strrchr(elt->url, '\\');
 					if (tmp_file) {
-						e = gf_dm_wget(elt->url, tmp_file);
+						tmp_file++;
+						e = gf_dm_wget(elt->url, tmp_file, elt->byteRangeStart, elt->byteRangeEnd);
 						if (e==GF_OK) {
 							import.in_name = tmp_file;
 						}
@@ -1458,6 +1474,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				} else
 					fprintf(fmpd, "/>\n");
 
+				if (is_aac) 
+					fprintf(fmpd, " -->");
 				continue;
 			}
 
@@ -1502,6 +1520,9 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			fprintf(fmpd, "    </SegmentList>\n");
 			fprintf(fmpd, "   </Representation>\n");
 			gf_free(base_url);
+
+			if (is_aac) 
+				fprintf(fmpd, " -->\n");
 		}
 	}
 
