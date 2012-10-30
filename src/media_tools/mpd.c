@@ -36,6 +36,7 @@
 static Bool gf_mpd_parse_bool(char *attr)
 {
 	if (!strcmp(attr, "true")) return 1;
+	if (!strcmp(attr, "1")) return 1;
 	return 0;
 }
 

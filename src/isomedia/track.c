@@ -464,8 +464,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			//add chunk on first sample
 			if (!j) {
 				data_offset = base_offset;
-				//aggregated offset
-				if (!(traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET)) data_offset += chunk_size;
+				//aggregated offset if base-data-offset-present is not set AND if default-base-is-moof is not set
+				if (!(traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) && !(traf->tfhd->flags & GF_ISOM_MOOF_BASE_OFFSET) ) 
+					data_offset += chunk_size;
 
 				if (trun->flags & GF_ISOM_TRUN_DATA_OFFSET) {
 					data_offset += trun->data_offset;
