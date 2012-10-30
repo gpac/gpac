@@ -362,10 +362,12 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	}
 	//get the payload...
 	bytes = gf_isom_datamap_get_data(map, mw->buffer, size, offset);
-	if (bytes != size) return GF_IO_ERR;
+	if (bytes != size) 
+		return GF_IO_ERR;
 	//write it to our stream...
 	bytes = gf_bs_write_data(bs, mw->buffer, size);
-	if (bytes != size) return GF_IO_ERR;
+	if (bytes != size) 
+		return GF_IO_ERR;
 
 	mw->nb_done++;
 	gf_set_progress("ISO File Writing", mw->nb_done, mw->total_samples);
@@ -1263,7 +1265,8 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 		//OK, we need a new bitstream
 		stream = is_stdout ? stdout : gf_f64_open(movie->finalName, "w+b");
-		if (!stream) return GF_IO_ERR;
+		if (!stream) 
+			return GF_IO_ERR;
 		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
 		if (!bs) {
 			if (!is_stdout)

@@ -814,7 +814,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 }
 #endif
 
-void dump_file_ts(GF_ISOFile *file, char *inName)
+void dump_file_timestamps(GF_ISOFile *file, char *inName)
 {
 	u32 i, j, k, count;
 	Bool has_error;
@@ -870,6 +870,142 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 	}
 	if (inName) fclose(dump);
 	if (has_error) fprintf(stderr, "\tFile has CTTS table errors\n");
+}
+
+
+static void dump_nalu_type_name(FILE *dump, char *ptr, Bool is_svc)
+{
+	u8 type = ptr[0] & 0x1F;
+
+	fprintf(dump, "code=\"%d\" type=\"", type);
+	switch (type) {
+	case GF_AVC_NALU_NON_IDR_SLICE: fputs("Non IDR slice", dump); break;
+	case GF_AVC_NALU_DP_A_SLICE: fputs("DP Type A slice", dump); break;
+	case GF_AVC_NALU_DP_B_SLICE: fputs("DP Type B slice", dump); break;
+	case GF_AVC_NALU_DP_C_SLICE: fputs("DP Type C slice", dump); break;
+	case GF_AVC_NALU_IDR_SLICE: fputs("IDR slice", dump); break;
+	case GF_AVC_NALU_SEI: fputs("SEI Message", dump); break;
+	case GF_AVC_NALU_SEQ_PARAM: fputs("SequenceParameterSet", dump); break;
+	case GF_AVC_NALU_PIC_PARAM: fputs("PictureParameterSet", dump); break;
+	case GF_AVC_NALU_ACCESS_UNIT: fputs("AccessUnit delimiter", dump); break;
+	case GF_AVC_NALU_END_OF_SEQ: fputs("EndOfSequence", dump); break;
+	case GF_AVC_NALU_END_OF_STREAM: fputs("EndOfStream", dump); break;
+	case GF_AVC_NALU_FILLER_DATA: fputs("Filler data", dump); break;
+	case GF_AVC_NALU_SEQ_PARAM_EXT: fputs("SequenceParameterSetExtension", dump); break;
+	case GF_AVC_NALU_SVC_PREFIX_NALU: fputs("SVCPrefix", dump); break;
+	case GF_AVC_NALU_SVC_SUBSEQ_PARAM: fputs("SVCSubsequenceParameterSet", dump); break;
+	case GF_AVC_NALU_SLICE_AUX: fputs("Auxiliary Slice", dump); break;
+
+	case GF_AVC_NALU_SVC_SLICE: fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump); break;
+	case 30: fputs("SVCAggregator", dump); break;
+	case 31: fputs("SVCExtractor", dump); break;
+
+	default:
+		fputs("UNKNOWN", dump); break;
+	}
+	fputs("\"", dump);
+}
+
+void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
+{
+	u32 i, count, track, nalh_size;
+	FILE *dump;
+#ifndef GPAC_DISABLE_AV_PARSERS
+	GF_AVCConfig *avccfg, *svccfg;
+	GF_AVCConfigSlot *slc;
+#endif
+
+	if (inName) {
+		char szBuf[GF_MAX_PATH];
+		strcpy(szBuf, inName);
+		sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
+		dump = gf_f64_open(szBuf, "wt");
+	} else {
+		dump = stderr;
+	}
+	track = gf_isom_get_track_by_id(file, trackID);
+
+	count = gf_isom_get_sample_count(file, track);
+
+	fprintf(dump, "<NALUTrack trackID=\"%d\" SampleCount=\"%d\">\n", trackID, count);
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	avccfg = gf_isom_avc_config_get(file, track, 1);
+	svccfg = gf_isom_svc_config_get(file, track, 1);
+	fprintf(dump, " <NALUConfig>\n");
+
+#define DUMP_ARRAY(arr, name)\
+	if (arr) {\
+		for (i=0; i<gf_list_count(arr); i++) {\
+			slc = gf_list_get(arr, i);\
+			fprintf(dump, "  <%s number=\"%d\" ", name, i+1);\
+			dump_nalu_type_name(dump, slc->data , svccfg ? 1 : 0);\
+			fprintf(dump, ">\n");\
+		}\
+	}\
+
+	nalh_size = 0;
+
+	if (avccfg) {
+		nalh_size = avccfg->nal_unit_size;
+
+		DUMP_ARRAY(avccfg->sequenceParameterSets, "AVCSPSArray")
+		DUMP_ARRAY(avccfg->pictureParameterSets, "AVCPPSArray")
+		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSExArray")
+	}
+	if (svccfg) {
+		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray")
+		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
+	}
+#endif
+	fprintf(dump, " </NALUConfig>\n");
+
+	fprintf(dump, " <NALUSamples>\n");
+	for (i=0; i<count; i++) {
+		u64 dts, cts;
+		u32 size, nal_size, idx;
+		char *ptr;
+		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+		dts = samp->DTS;
+		cts = dts + (s32) samp->CTS_Offset;
+
+		fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
+		if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n"); 
+	
+		idx = 1;
+		ptr = samp->data;
+		size = samp->dataLength;
+		while (size) {
+			u32 v = nalh_size;
+			nal_size = 0;
+			while (v) {
+				nal_size |= (u8) *ptr;
+				ptr++;
+				v-=1;
+				if (v) nal_size<<=8;
+			}
+			if (nalh_size + nal_size > size) {
+				fprintf(dump, "   <!-- NALU number %d is corrupted: size is %d but only %d remains -->\n", idx, nal_size, size);
+				break;
+			} else {
+				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
+				dump_nalu_type_name(dump, ptr, svccfg ? 1 : 0);
+				fprintf(dump, "/>\n");
+			}
+			idx++;
+			ptr+=nal_size;
+			size -= nal_size + nalh_size;
+		}
+		fprintf(dump, "  </Sample>\n");
+		gf_isom_sample_del(&samp);
+
+		fprintf(dump, "\n");
+		gf_set_progress("Analysing Track NALUs", i+1, count);
+	}
+	fprintf(dump, " </NALUSamples>\n");
+	fprintf(dump, "</NALUTrack>\n");
+
+	if (inName) fclose(dump);
 }
 
 #ifndef GPAC_DISABLE_ISOM_DUMP

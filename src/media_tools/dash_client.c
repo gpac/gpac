@@ -1950,6 +1950,11 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 					rep->playback.disabled = 1;
 					continue;
 				}
+				if (rep->dependency_id) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation dependent on representation %d - not supported\n", rep->dependency_id));
+					rep->playback.disabled = 1;
+					continue;
+				}
 				if (rep->segment_list && rep->segment_list->xlink_href) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling because not supported\n", rep->segment_list->xlink_href));
 					rep->playback.disabled = 1;
