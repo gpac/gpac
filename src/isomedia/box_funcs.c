@@ -551,6 +551,14 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_UUID: 
 		return uuid_New();
 
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/* Adobe extensions */
+	case GF_ISOM_BOX_TYPE_ABST: return abst_New();
+	case GF_ISOM_BOX_TYPE_AFRA: return afra_New();
+	case GF_ISOM_BOX_TYPE_ASRT: return asrt_New();
+	case GF_ISOM_BOX_TYPE_AFRT: return afrt_New();
+#endif
+
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_New();
 	
@@ -850,6 +858,14 @@ void gf_isom_box_del(GF_Box *a)
 		}
 		return;
 
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/* Adobe extensions */
+	case GF_ISOM_BOX_TYPE_ABST: abst_del(a); return;
+	case GF_ISOM_BOX_TYPE_AFRA: afra_del(a); return;
+	case GF_ISOM_BOX_TYPE_ASRT: asrt_del(a); return;
+	case GF_ISOM_BOX_TYPE_AFRT: afrt_del(a); return;
+#endif
+
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: ilst_del(a); return;
 	
@@ -1097,6 +1113,15 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		default:
 			return uuid_Read(a, bs);
 		}
+
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/* Adobe extensions */
+	case GF_ISOM_BOX_TYPE_ABST: return abst_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AFRA: return afra_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ASRT: return asrt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AFRT: return afrt_Read(a, bs);
+#endif
+
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_Read(a, bs);
 
@@ -1345,6 +1370,14 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		default:
 			return uuid_Write(a, bs);
 		}
+
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/* Adobe extensions */
+	case GF_ISOM_BOX_TYPE_ABST: return abst_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_AFRA: return afra_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ASRT: return asrt_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_AFRT: return afrt_Write(a, bs);
+#endif
 
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_Write(a, bs);
@@ -1602,6 +1635,14 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		default:
 			return uuid_Size(a);
 		}
+
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/* Adobe extensions */
+	case GF_ISOM_BOX_TYPE_ABST: return abst_Size(a);
+	case GF_ISOM_BOX_TYPE_AFRA: return afra_Size(a);
+	case GF_ISOM_BOX_TYPE_ASRT: return asrt_Size(a);
+	case GF_ISOM_BOX_TYPE_AFRT: return afrt_Size(a);
+#endif
 
 	/* Apple extensions */
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_Size(a);

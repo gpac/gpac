@@ -110,6 +110,11 @@ Bool gf_isom_probe_file(const char *fileName)
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/*Adobe specific*/
+	case GF_ISOM_BOX_TYPE_AFRA:
+	case GF_ISOM_BOX_TYPE_ABST:
+#endif
 #endif
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:

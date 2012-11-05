@@ -288,6 +288,14 @@ enum
 	/*internal type for track references*/
 	GF_ISOM_BOX_TYPE_REFT	= GF_4CC( 'R', 'E', 'F', 'T' ),
 
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/* Adobe extensions */
+	GF_ISOM_BOX_TYPE_ABST	= GF_4CC( 'a', 'b', 's', 't' ),
+	GF_ISOM_BOX_TYPE_AFRA	= GF_4CC( 'a', 'f', 'r', 'a' ),
+	GF_ISOM_BOX_TYPE_ASRT	= GF_4CC( 'a', 's', 'r', 't' ),
+	GF_ISOM_BOX_TYPE_AFRT	= GF_4CC( 'a', 'f', 'r', 't' ),
+#endif
+
 	/* Apple extensions */
 
 	GF_ISOM_BOX_TYPE_ILST	= GF_4CC( 'i', 'l', 's', 't' ),
@@ -1949,6 +1957,96 @@ typedef struct __pcrInfo_box
 	u64 *pcr_values;
 } GF_PcrInfoBox;
 
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+
+/*Adobe specific boxes*/
+typedef struct
+{
+	u64 time;
+	u64 offset;
+} GF_AfraEntry;
+
+typedef struct
+{
+	u64 time;
+	u32 segment;
+	u32 fragment;
+	u64 afra_offset;
+	u64 offset_from_afra;
+} GF_GlobalAfraEntry;
+
+typedef struct __adobe_frag_random_access_box
+{
+	GF_ISOM_FULL_BOX
+	Bool long_ids;
+	Bool long_offsets;
+	Bool global_entries;
+	u8 reserved;
+	u32 time_scale;
+	u32 entry_count;
+	GF_List *local_access_entries;
+	u32 global_entry_count;
+	GF_List *global_access_entries;
+} GF_AdobeFragRandomAccessBox;
+
+typedef struct __adobe_bootstrap_info_box
+{
+	GF_ISOM_FULL_BOX
+	u32 bootstrapinfo_version;
+	u8 profile;
+	Bool live;
+	Bool update;
+	u8 reserved;
+	u32 time_scale;
+	u64 current_media_time;
+	u64 smpte_time_code_offset;
+	char *movie_identifier;
+	u8 server_entry_count;
+	GF_List *server_entry_table;
+	u8 quality_entry_count;
+	GF_List *quality_entry_table;
+	char *drm_data;
+	char *meta_data;
+	u8 segment_run_table_count;
+	GF_List *segment_run_table_entries;
+	u8 fragment_run_table_count;
+	GF_List *fragment_run_table_entries;
+} GF_AdobeBootstrapInfoBox;
+
+typedef struct
+{
+	u32 first_segment;
+	u32 fragment_per_segment;
+} GF_AdobeSegmentRunEntry;
+
+typedef struct __adobe_segment_run_table_box
+{
+	GF_ISOM_FULL_BOX
+	u8 quality_entry_count;
+	GF_List *quality_segment_url_modifiers;
+	u32 segment_run_entry_count;
+	GF_List *segment_run_entry_table;
+} GF_AdobeSegmentRunTableBox;
+
+typedef struct
+{
+	u32 first_fragment;
+	u64 first_fragment_timestamp;
+	u32 fragment_duration;
+	u8 discontinuity_indicator;
+} GF_AdobeFragmentRunEntry;
+
+typedef struct __adobe_fragment_run_table_box
+{
+	GF_ISOM_FULL_BOX
+	u32 timescale;
+	u8 quality_entry_count;
+	GF_List *quality_segment_url_modifiers;
+	u32 fragment_run_entry_count;
+	GF_List *fragment_run_entry_table;
+} GF_AdobeFragmentRunTableBox;
+
+#endif /*GPAC_DISABLE_ISOM_ADOBE*/
 
 
 /***********************************************************
@@ -3324,6 +3422,32 @@ GF_Err iKMS_Size(GF_Box *s);
 GF_Err iSFM_Size(GF_Box *s);
 #endif
 
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+/* Adobe extensions */
+void abst_del(GF_Box *s);
+GF_Err abst_Read(GF_Box *s, GF_BitStream *bs);
+GF_Box *abst_New();
+void afra_del(GF_Box *s);
+GF_Err afra_Read(GF_Box *s, GF_BitStream *bs);
+GF_Box *afra_New();
+void asrt_del(GF_Box *s);
+GF_Err asrt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Box *asrt_New();
+void afrt_del(GF_Box *s);
+GF_Err afrt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Box *afrt_New();
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err abst_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err abst_Size(GF_Box *s);
+GF_Err afra_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err afra_Size(GF_Box *s);
+GF_Err asrt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err asrt_Size(GF_Box *s);
+GF_Err afrt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err afrt_Size(GF_Box *s);
+#endif
+#endif /*GPAC_DISABLE_ISOM_ADOBE*/
+
 /* Apple extensions */
 void ilst_del(GF_Box *s);
 void ListItem_del(GF_Box *s);
@@ -3476,6 +3600,14 @@ GF_Err sinf_dump(GF_Box *a, FILE * trace);
 GF_Err frma_dump(GF_Box *a, FILE * trace);
 GF_Err schm_dump(GF_Box *a, FILE * trace);
 GF_Err schi_dump(GF_Box *a, FILE * trace);
+
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+/*Adobe extensions*/
+GF_Err abst_dump(GF_Box *a, FILE * trace);
+GF_Err afra_dump(GF_Box *a, FILE * trace);
+GF_Err asrt_dump(GF_Box *a, FILE * trace);
+GF_Err afrt_dump(GF_Box *a, FILE * trace);
+#endif
 
 /*Apple extensions*/
 GF_Err ilst_dump(GF_Box *a, FILE * trace);
