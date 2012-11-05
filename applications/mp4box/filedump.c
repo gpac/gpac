@@ -1232,7 +1232,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
 	Bool is_od_track = 0;
-	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups;
+	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits;
 	u64 time_slice, dur, size;
 	u8 bps;
 	GF_ESD *esd;
@@ -1245,7 +1245,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	timescale = gf_isom_get_media_timescale(file, trackNum);
-	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d - Duration %s\n", trackNum, trackID, timescale, format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
+	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d - Media Duration %s\n", trackNum, trackID, timescale, format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
+	nb_edits = gf_isom_get_edit_segment_count(file, trackNum);
+	if (nb_edits)
+		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
+
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stderr, "Track is present in Root OD\n");
 	if (!gf_isom_is_track_enabled(file, trackNum))  fprintf(stderr, "Track is disabled\n");
 	gf_isom_get_media_language(file, trackNum, sType);
