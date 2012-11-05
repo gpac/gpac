@@ -24,11 +24,23 @@
  */
 
 
+#include <avcap/avcap.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/modules/service.h>
 #include <gpac/modules/codec.h>
 /*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
 #include <gpac/download.h>
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #if !defined(__GNUC__)&& (defined(_WIN32_WCE) || defined (WIN32))
 #  pragma comment(lib, "strmiids")
@@ -43,8 +55,6 @@
 #endif
 
 
-
-#include <avcap/avcap.h>
 using namespace avcap;
 
 class GPACCaptureHandler : public CaptureHandler
