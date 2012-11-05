@@ -488,7 +488,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 	if (ar->audio_out) {
 		/*kill audio thread*/
 		if (!ar->audio_out->SelfThreaded) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] stoping audio thread\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] stopping audio thread\n"));
 			ar->audio_th_state = 2;
 			while (ar->audio_th_state != 3) {
 				gf_sleep(33);

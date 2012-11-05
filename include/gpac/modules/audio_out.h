@@ -103,7 +103,7 @@ typedef struct _audiooutput
 	/*if not using private thread, this should perform sleep & fill of HW buffer
 		the audio render loop in this case is: while (run) {driver->WriteAudio(); if (reconf) Reconfig();}
 	the driver must therefore give back the hand to the renderer as often as possible - the usual way is:
-		gf_sleep untill hw data can be written
+		gf_sleep until hw data can be written
 		write HW data
 		return
 	*/

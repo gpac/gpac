@@ -329,14 +329,14 @@ void DS_WriteAudio(GF_AudioOutput *dr)
 
 	/*wait for end of current play buffer*/
 	if (ctx->pOutput->lpVtbl->GetCurrentPosition(ctx->pOutput, &in_play, NULL) != DS_OK ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] error getting sound buffer poitions\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] error getting sound buffer positions\n"));
 		return;
 	}
 	in_play = (in_play / ctx->buffer_size);
 	retry = 6;
 	while (retry) {
 		if (ctx->pOutput->lpVtbl->GetCurrentPosition(ctx->pOutput, &cur_play, NULL) != DS_OK ) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] error getting sound buffer poitions\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] error getting sound buffer positions\n"));
 			return;
 		}
 		cur_play = (cur_play / ctx->buffer_size);
