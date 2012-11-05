@@ -192,6 +192,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/isom_read.c \
 	../../../../src/isomedia/box_code_meta.c \
 	../../../../src/isomedia/box_code_base.c \
+	../../../../src/isomedia/box_code_adobe.c \
 	../../../../src/isomedia/box_code_apple.c \
 	../../../../src/isomedia/sample_descs.c \
 	../../../../src/isomedia/meta.c \

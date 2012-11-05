@@ -406,6 +406,17 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_COVR:
 	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
 		return apple_tag_dump(a, trace);
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+	/*Adobe extensions*/
+	case GF_ISOM_BOX_TYPE_ABST:
+		return abst_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AFRA:
+		return afra_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ASRT:
+		return asrt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AFRT:
+		return afrt_dump(a, trace);
+#endif
 	/*Apple extensions*/
 	case GF_ISOM_BOX_TYPE_ILST:
 		return ilst_dump(a, trace);
@@ -517,6 +528,11 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_STYP:
 		case GF_ISOM_BOX_TYPE_SIDX:
 		case GF_ISOM_BOX_TYPE_PCRB:
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+		/*Adobe specific*/
+		case GF_ISOM_BOX_TYPE_AFRA:
+		case GF_ISOM_BOX_TYPE_ABST:
+#endif
 #endif
 		case GF_ISOM_BOX_TYPE_MFRA:
 			break;
@@ -3344,6 +3360,116 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "</%sBox>\n", name);
 	return GF_OK;
 }
+
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+
+GF_Err abst_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_AdobeBootstrapInfoBox *p = (GF_AdobeBootstrapInfoBox*)a;
+	fprintf(trace, "<AdobeBootstrapBox BootstrapinfoVersion=\"%u\" Profile=\"%u\" Live=\"%u\" Update=\"%u\" TimeScale=\"%u\" CurrentMediaTime=\""LLU"\" SmpteTimeCodeOffset=\""LLU"\" ",
+		p->bootstrapinfo_version, p->profile, p->live, p->update, p->time_scale, p->current_media_time, p->smpte_time_code_offset);
+	if (p->movie_identifier)
+		fprintf(trace, "MovieIdentifier=\"%s\" ", p->movie_identifier);
+	if (p->drm_data)
+		fprintf(trace, "DrmData=\"%s\" ", p->drm_data);
+	if (p->meta_data)
+		fprintf(trace, "MetaData=\"%s\" ", p->meta_data);
+	fprintf(trace, ">\n");
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+
+	for (i=0; i<p->server_entry_count; i++) {
+		char *str = (char*)gf_list_get(p->server_entry_table, i);
+		fprintf(trace, "<ServerEntry>%s</ServerEntry>\n", str);
+	}
+
+	for (i=0; i<p->quality_entry_count; i++) {
+		char *str = (char*)gf_list_get(p->quality_entry_table, i);
+		fprintf(trace, "<QualityEntry>%s</QualityEntry>\n", str);
+	}
+
+	for (i=0; i<p->segment_run_table_count; i++)
+		gf_box_dump(gf_list_get(p->segment_run_table_entries, i), trace);
+
+	for (i=0; i<p->fragment_run_table_count; i++)
+		gf_box_dump(gf_list_get(p->fragment_run_table_entries, i), trace);
+
+	gf_box_dump_done("AdobeBootstrapBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err afra_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_AdobeFragRandomAccessBox *p = (GF_AdobeFragRandomAccessBox*)a;
+	fprintf(trace, "<AdobeFragmentRandomAccessBox LongIDs=\"%u\" LongOffsets=\"%u\" TimeScale=\"%u\">\n", p->long_ids, p->long_offsets, p->time_scale);
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+
+	for (i=0; i<p->entry_count; i++) {
+		GF_AfraEntry *ae = (GF_AfraEntry *)gf_list_get(p->local_access_entries, i);
+		fprintf(trace, "<LocalAccessEntry Time=\""LLU"\" Offset=\""LLU"\"/>\n", ae->time, ae->offset);
+	}
+
+	for (i=0; i<p->global_entry_count; i++) {
+		GF_GlobalAfraEntry *gae = (GF_GlobalAfraEntry *)gf_list_get(p->global_access_entries, i);
+		fprintf(trace, "<GlobalAccessEntry Time=\""LLU"\" Segment=\"%u\" Fragment=\"%u\" AfraOffset=\""LLU"\" OffsetFromAfra=\""LLU"\"/>\n",
+				gae->time, gae->segment, gae->fragment, gae->afra_offset, gae->offset_from_afra);
+	}
+
+	gf_box_dump_done("AdobeFragmentRandomAccessBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err afrt_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_AdobeFragmentRunTableBox *p = (GF_AdobeFragmentRunTableBox*)a;
+	fprintf(trace, "<AdobeFragmentRunTableBox TimeScale=\"%u\">\n", p->timescale);
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+
+	for (i=0; i<p->quality_entry_count; i++) {
+		char *str = (char*)gf_list_get(p->quality_segment_url_modifiers, i);
+		fprintf(trace, "<QualityEntry>%s</QualityEntry>\n", str);
+	}
+
+	for (i=0; i<p->fragment_run_entry_count; i++) {
+		GF_AdobeFragmentRunEntry *fre = (GF_AdobeFragmentRunEntry *)gf_list_get(p->fragment_run_entry_table, i);
+		fprintf(trace, "<FragmentRunEntry FirstFragment=\"%u\" FirstFragmentTimestamp=\""LLU"\" FirstFragmentDuration=\"%u\"", fre->first_fragment, fre->first_fragment_timestamp, fre->fragment_duration);
+		if (!fre->fragment_duration)
+			fprintf(trace, " DiscontinuityIndicator=\"%u\"", fre->discontinuity_indicator);
+		fprintf(trace, "/>\n");
+	}
+
+	gf_box_dump_done("AdobeFragmentRunTableBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err asrt_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_AdobeSegmentRunTableBox *p = (GF_AdobeSegmentRunTableBox*)a;
+	fprintf(trace, "<AdobeSegmentRunTableBox>\n");
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	
+	for (i=0; i<p->quality_entry_count; i++) {
+		char *str = (char*)gf_list_get(p->quality_segment_url_modifiers, i);
+		fprintf(trace, "<QualityEntry>%s</QualityEntry>\n", str);
+	}
+
+	for (i=0; i<p->segment_run_entry_count; i++) {
+		GF_AdobeSegmentRunEntry *sre = (GF_AdobeSegmentRunEntry *)gf_list_get(p->segment_run_entry_table, i);
+		fprintf(trace, "<SegmentRunEntry FirstSegment=\"%u\" FragmentsPerSegment=\"%u\"/>\n", sre->first_segment, sre->fragment_per_segment);
+	}
+
+	gf_box_dump_done("AdobeSegmentRunTableBox", a, trace);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_ADOBE*/
 
 GF_Err ilst_dump(GF_Box *a, FILE * trace)
 {

@@ -2386,6 +2386,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\isomedia\box_code_adobe.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\isomedia\box_code_apple.c"
 				>
 				<FileConfiguration
