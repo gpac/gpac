@@ -1574,6 +1574,12 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 
 		if (merge_edits) {
+			/*convert from media time to track time*/
+			Double rescale = (Float) gf_isom_get_timescale(dest);
+			rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
+			/*convert from orig to dst time scale*/
+			rescale *= ts_scale;
+
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
 				u64 editTime, segmentDuration, mediaTime;
@@ -1581,14 +1587,18 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_get_edit_segment(dest, dst_tk, j, &editTime, &segmentDuration, &mediaTime, &editMode);
 
 				if (editMode==GF_ISOM_EDIT_NORMAL) {
+					Double prev_dur = (Double) (s64) dest_track_dur_before_cat;
 					Double dur = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
-					/*convert to dst time scale*/
-					dur *= ts_scale;
 
-					/*convert to track time scale*/
-					ts_scale = (Float) gf_isom_get_timescale(dest);
-					ts_scale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
-					dur *= ts_scale;
+					dur *= rescale;
+					prev_dur *= rescale;
+					
+					/*safety test: some files have broken edit lists. If no more than 2 entries, check that the segment duration 
+					is less or equal to the movie duration*/
+					if (prev_dur < segmentDuration) {
+						fprintf(stderr, "Warning: suspicious edit list entry found: duration %g sec but longest track duration before cat is %g - fixing it\n", (Double) (s64) segmentDuration/1000.0, prev_dur/1000);
+						segmentDuration = (u64) (s64) ( (Double) (s64) (dest_track_dur_before_cat - mediaTime) * rescale ); 
+					}
 
 					segmentDuration += (u64) (s64) dur;
 					gf_isom_modify_edit_segment(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
