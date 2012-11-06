@@ -2363,6 +2363,8 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks)
 {
 	GF_Err e;
+	u32 i;
+	GF_Box *box;
 	
 	e = CanAccessMovie(dest_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -2412,6 +2414,33 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		}
 		dest_file->moov->mov = dest_file;
 	}
+
+	//duplicate other boxes
+	i=0;
+	while (box = gf_list_get(orig_file->TopBoxes, i++)) {
+		switch(box->type) {
+			case GF_ISOM_BOX_TYPE_MOOV:
+			case GF_ISOM_BOX_TYPE_META:
+			case GF_ISOM_BOX_TYPE_MDAT:
+			case GF_ISOM_BOX_TYPE_FTYP:
+			case GF_ISOM_BOX_TYPE_PDIN:
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+			case GF_ISOM_BOX_TYPE_STYP:
+			case GF_ISOM_BOX_TYPE_SIDX:
+			case GF_ISOM_BOX_TYPE_MOOF:
+#endif
+			case GF_4CC('j','P',' ',' '):
+				break;
+			default:
+				{
+					GF_Box *box2 = NULL;
+					gf_isom_clone_box(box, &box2);
+					gf_list_add(dest_file->TopBoxes, box2);
+				}
+				break;
+		}
+	}
+
 	return GF_OK;
 }
 
