@@ -163,7 +163,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	
 	ptr->fragment_run_table_count = gf_bs_read_u8(bs);
-	for (i=0; i<ptr->segment_run_table_count; i++) {
+	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_AdobeFragmentRunTableBox *afrt;	
 		e = gf_isom_parse_box((GF_Box **)&afrt, bs);
 		if (e) return e;
@@ -232,13 +232,13 @@ GF_Err abst_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u8(bs, 0);
 
 	gf_bs_write_u8(bs, ptr->segment_run_table_count);
-	for (i=0; i<ptr->server_entry_count; i++) {
+	for (i=0; i<ptr->segment_run_table_count; i++) {
 		e = gf_isom_box_write((GF_Box *)gf_list_get(ptr->segment_run_table_entries, i), bs);
 		if (e) return e;
 	}
 
 	gf_bs_write_u8(bs, ptr->fragment_run_table_count);
-	for (i=0; i<ptr->server_entry_count; i++) {
+	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		e = gf_isom_box_write((GF_Box *)gf_list_get(ptr->fragment_run_table_entries, i), bs);
 		if (e) return e;
 	}
@@ -257,7 +257,7 @@ GF_Err abst_Size(GF_Box *s)
 	if (e) return e;
 
 	s->size += 25
-			+ (ptr->movie_identifier ? (strlen(ptr->movie_identifier) + 1) : 0)
+			+ (ptr->movie_identifier ? (strlen(ptr->movie_identifier) + 1) : 1)
 			+ 1;
 
 	for (i=0; i<ptr->server_entry_count; i++)
@@ -268,8 +268,8 @@ GF_Err abst_Size(GF_Box *s)
 	for (i=0; i<ptr->quality_entry_count; i++)
 			s->size += strlen(gf_list_get(ptr->quality_entry_table, i)) + 1;
 
-	s->size += (ptr->drm_data ? (strlen(ptr->drm_data) + 1) : 0)
-			+ (ptr->meta_data ? (strlen(ptr->meta_data) + 1) : 0)
+	s->size += (ptr->drm_data ? (strlen(ptr->drm_data) + 1) : 1)
+			+ (ptr->meta_data ? (strlen(ptr->meta_data) + 1) : 1)
 			+ 1;
 
 	for (i=0; i<ptr->segment_run_table_count; i++) {
@@ -279,6 +279,7 @@ GF_Err abst_Size(GF_Box *s)
 		s->size += box->size;
 	}
 		
+	s->size += 1;
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_Box *box = (GF_Box *)gf_list_get(ptr->fragment_run_table_entries, i);
 		e = gf_isom_box_size(box);
@@ -656,7 +657,7 @@ GF_Err afrt_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err afrt_Size(GF_Box *s)
 {
-	int i;
+	u32 i;
 	GF_Err e;
 	GF_AdobeFragmentRunTableBox *ptr = (GF_AdobeFragmentRunTableBox *)s;
 
@@ -668,12 +669,14 @@ GF_Err afrt_Size(GF_Box *s)
 	for (i=0; i<ptr->quality_entry_count; i++)
 		s->size += strlen(gf_list_get(ptr->quality_segment_url_modifiers, i)) + 1;
 
-	for (i=0; i<ptr->quality_entry_count; i++) {
+	s->size += 4;
+
+	for (i=0; i<ptr->fragment_run_entry_count; i++) {
 		GF_AdobeFragmentRunEntry *fre = (GF_AdobeFragmentRunEntry *)gf_list_get(ptr->fragment_run_entry_table, i);
-		if (!fre->fragment_duration)
-			s->size += sizeof(GF_AdobeFragmentRunEntry);
-		if (!fre->fragment_duration)
-			s->size += sizeof(GF_AdobeFragmentRunEntry) - 1;
+		if (fre->fragment_duration)
+			s->size += 16;
+		else
+			s->size += 17;
 	}
 
 	return GF_OK;
