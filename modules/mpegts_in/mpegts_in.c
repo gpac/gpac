@@ -1158,8 +1158,8 @@ void DeleteM2TSReader(void *ifce)
 			gf_free(prog);
 		}
 		gf_list_del(m2ts->ts->requested_progs);
+		m2ts->ts->requested_progs = NULL;
 	}
-	m2ts->ts->requested_progs = NULL;
 	if( m2ts->ts->requested_pids ){
 		count = gf_list_count(m2ts->ts->requested_pids);
 		for (i = 0; i < count; i++) {
@@ -1167,8 +1167,8 @@ void DeleteM2TSReader(void *ifce)
 			gf_free(prog);
 		}
 		gf_list_del(m2ts->ts->requested_pids);
+		m2ts->ts->requested_pids = NULL;
 	}
-	m2ts->ts->requested_pids = NULL;
 	if (m2ts->network_buffer)
 		gf_free(m2ts->network_buffer);
 	m2ts->network_buffer = NULL;

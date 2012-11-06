@@ -2607,6 +2607,16 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 	gf_list_del(ts->ChannelAppList);
 
+	if (ts->requested_progs) {
+		assert(!gf_list_count(ts->requested_progs));
+		gf_list_del(ts->requested_progs);
+	}
+
+	if (ts->requested_pids) {
+		assert(!gf_list_count(ts->requested_pids));
+		gf_list_del(ts->requested_pids);
+	}
+
 	gf_free(ts);
 }
 
