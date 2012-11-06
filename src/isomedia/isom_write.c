@@ -2417,7 +2417,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 
 	//duplicate other boxes
 	i=0;
-	while (box = gf_list_get(orig_file->TopBoxes, i++)) {
+	while ((box = (GF_Box*)gf_list_get(orig_file->TopBoxes, i++))) {
 		switch(box->type) {
 			case GF_ISOM_BOX_TYPE_MOOV:
 			case GF_ISOM_BOX_TYPE_META:
