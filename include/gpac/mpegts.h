@@ -251,6 +251,9 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
 
+/*returns 1 if file is an MPEG-2 TS */
+Bool gf_m2ts_probe_file(const char *fileName);
+
 /*PES data framing modes*/
 enum
 {

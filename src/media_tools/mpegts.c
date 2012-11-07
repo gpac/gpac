@@ -802,9 +802,12 @@ static void gf_m2ts_reset_sections(GF_List *sections)
 	}
 }
 
-static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
+static void gf_m2ts_section_filter_reset(GF_M2TS_SectionFilter *sf)
 {
-	if (sf->section) gf_free(sf->section);
+	if (sf->section) {
+		gf_free(sf->section);
+		sf->section = NULL;
+	}
 	while (sf->table) {
 		GF_M2TS_Table *t = sf->table;
 		sf->table = t->next;
@@ -812,6 +815,12 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 		gf_list_del(t->sections);
 		gf_free(t);
 	}
+	sf->cc = -1;
+	sf->length = sf->received = 0;
+}
+static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
+{
+	gf_m2ts_section_filter_reset(sf);
 	gf_free(sf);
 }
 
@@ -2374,18 +2383,7 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 
 		if (es->flags & GF_M2TS_ES_IS_SECTION) {
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
-			ses->sec->cc = -1;
-			ses->sec->length = 0;
-			ses->sec->received = 0;
-			gf_free(ses->sec->section);
-			ses->sec->section = NULL;
-			while (ses->sec->table) {
-				GF_M2TS_Table *t = ses->sec->table;
-				ses->sec->table = t->next;
-				gf_m2ts_reset_sections(t->sections);
-				gf_list_del(t->sections);
-				gf_free(t);
-			}
+			gf_m2ts_section_filter_reset(ses->sec);
 		} else {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
@@ -2412,20 +2410,14 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 //		gf_free(es);
 //		ts->ess[i] = NULL;
 	}
-/*
-	if (ts->pat) {
-		ts->pat->cc = -1;
-		ts->pat->length = 0;
-		ts->pat->received = 0;
-		gf_free(ts->pat->section);
-		while (ts->pat->table) {
-			GF_M2TS_Table *t = ts->pat->table;
-			ts->pat->table = t->next;
-			if (t->data) gf_free(t->data);
-			gf_free(t);
-		}
-	}
-*/
+
+	gf_m2ts_section_filter_reset(ts->cat);
+	gf_m2ts_section_filter_reset(ts->pat);
+	gf_m2ts_section_filter_reset(ts->sdt);
+	gf_m2ts_section_filter_reset(ts->nit);
+	gf_m2ts_section_filter_reset(ts->eit);
+	gf_m2ts_section_filter_reset(ts->tdt_tot);
+
 }
 
 static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
@@ -3137,6 +3129,26 @@ GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts){
 }
 
 
+Bool gf_m2ts_probe_file(const char *fileName)
+{
+	char buf[188];
+	u32 count = 10;
+	FILE *t = gf_f64_open(fileName, "rb");
+	while (t && count) {
+		u32 read = fread(buf, 1, 188, t);
+		if (!read) {
+			count = 0;
+			break;
+		}
+		if (buf[0] != 0x47)
+			break;
+		if (read<188) 
+			count = 0;
+		else count--;
+	}
+	fclose(t);
+	return count ? 0 : 1;
+}
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 

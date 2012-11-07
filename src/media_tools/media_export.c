@@ -2096,7 +2096,6 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot find PID %d in transport stream", dumper->trackID);
 	}
-	gf_m2ts_reset_parsers(ts);
 
 	sprintf(szFile, "%s_pid%d", dumper->out_name ? dumper->out_name : "", stream->pid);
 	switch (stream->stream_type) {
