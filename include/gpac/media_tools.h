@@ -256,7 +256,12 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size_i
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+typedef struct 
+{
+	char *file_name;
+	char representationID[100];
+	char periodID[100];
+} GF_DashSegmenterInput;
 
 typedef enum
 {
@@ -267,31 +272,20 @@ typedef enum
 	GF_DASH_PROFILE_MAIN,
 } GF_DashProfile;
 
-/*starts MPD file */
-GF_Err gf_media_mpd_start(char *mpd_name, GF_DashProfile profile, const char *title, const char *source, const char *copyright, const char *moreInfoURL, Bool use_url_template, u32 single_segment_mode, char *dash_ctx, GF_ISOFile *init_segment,  Bool bitstream_switching_mode, Double period_duration, Bool first_adaptation_set, u32 group_id, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char **mpd_base_urls, u32 nb_mpd_base_urls);
-GF_Err gf_media_mpd_end(char *mpd_name, Bool last_adaptation_set);
+GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile, 
+							   const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
+							   const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, 
+							   Bool use_url_template, Bool single_segment, Bool single_file, Bool bitstream_switching_mode,
+							   Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext,
+							   Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,  
+							   char *dash_ctx, Bool dash_dynamic, u32 time_shift_depth);
 
-typedef enum
-{
-	GF_DASH_TEMPLATE_SEGMENT = 0,
-	GF_DASH_TEMPLATE_INITIALIZATION,
-	GF_DASH_TEMPLATE_TEMPLATE,
-	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
-	GF_DASH_TEMPLATE_REPINDEX,
-} GF_DashTemplateSegmentType;
-
-GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *seg_rad_name, char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number);
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-/*save file as fragmented movie
-@dash_mode: 0 = DASH not used, 1 = DASH used without GOP spliting, 2 = DASH used with GOP spliting, */
-GF_Err gf_media_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, const char *mpd_name,
-							  u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, 
-							  s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_url_template, Bool single_segment_mode, 
-							  const char *dash_ctx_file, GF_ISOFile *sample_descs, char *rep_id, Bool first_in_set, Bool variable_seg_rad_name, Bool fragments_start_with_rap);
-
-
+/*save file as fragmented movie*/
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec);
+
 
 #endif
 

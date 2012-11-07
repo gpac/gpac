@@ -1673,14 +1673,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_start) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_end) )
+/*to be removed once TS fragmenter is moved to libgpac */
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_format_segment_name) )
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_segment_file) )
 #endif
 #endif
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_segment_files) )
 
 /* dvb_mpe.h */
 #ifdef GPAC_ENST_PRIVATE
@@ -1724,6 +1724,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_segment_switch_forced) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_current_segment_start_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
+
 
 #endif
 

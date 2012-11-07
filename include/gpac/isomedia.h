@@ -35,43 +35,6 @@ extern "C" {
 
 #include <gpac/tools.h>
 
-#ifndef GPAC_DISABLE_ISOM
-
-#include <gpac/mpeg4_odf.h>
-
-/*the isomedia file*/
-typedef struct __tag_isom GF_ISOFile;
-
-/*media sample object*/
-typedef struct
-{
-	/*data size*/
-	u32 dataLength;
-	/*data with padding if requested*/
-	char *data;
-	/*decoding time*/
-	u64 DTS;
-	/*relative offset for composition if needed*/
-	s32 CTS_Offset;
-	/*Random Access Point flag:
-	 0: not random access
-	 1: regular RAP, 
-	 2: sample is a redundant RAP. If set when adding the sample, this will create a sample dependency entry
-	*/
-	u8 IsRAP;
-} GF_ISOSample;
-
-
-/*creates a new empty sample*/
-GF_ISOSample *gf_isom_sample_new();
-
-/*delete a sample. NOTE:the buffer content will be destroyed by default.
-if you wish to keep the buffer, set dataLength to 0 in the sample 
-before deleting it
-the pointer is set to NULL after deletion*/
-void gf_isom_sample_del(GF_ISOSample **samp);
-
-
 
 /********************************************************************
 				FILE FORMAT CONSTANTS
@@ -305,6 +268,41 @@ enum
 	GF_ISOM_PL_INLINE,
 };
 
+#ifndef GPAC_DISABLE_ISOM
+
+#include <gpac/mpeg4_odf.h>
+
+/*the isomedia file*/
+typedef struct __tag_isom GF_ISOFile;
+
+/*media sample object*/
+typedef struct
+{
+	/*data size*/
+	u32 dataLength;
+	/*data with padding if requested*/
+	char *data;
+	/*decoding time*/
+	u64 DTS;
+	/*relative offset for composition if needed*/
+	s32 CTS_Offset;
+	/*Random Access Point flag:
+	 0: not random access
+	 1: regular RAP, 
+	 2: sample is a redundant RAP. If set when adding the sample, this will create a sample dependency entry
+	*/
+	u8 IsRAP;
+} GF_ISOSample;
+
+
+/*creates a new empty sample*/
+GF_ISOSample *gf_isom_sample_new();
+
+/*delete a sample. NOTE:the buffer content will be destroyed by default.
+if you wish to keep the buffer, set dataLength to 0 in the sample 
+before deleting it
+the pointer is set to NULL after deletion*/
+void gf_isom_sample_del(GF_ISOSample **samp);
 
 /********************************************************************
 				GENERAL API FUNCTIONS
