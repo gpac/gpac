@@ -313,7 +313,9 @@ char *gf_url_percent_encode(const char *path)
 GF_EXPORT
 const char *gf_url_get_resource_name(const char *sURL)
 {
-	char *sep = strrchr(sURL, '/');
+	char *sep;
+	if (!sURL) return NULL;
+	sep = strrchr(sURL, '/');
 	if (!sep) sep = strrchr(sURL, '\\');
 	if (sep) return sep+1;
 	return sURL;

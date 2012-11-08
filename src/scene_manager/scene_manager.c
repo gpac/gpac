@@ -29,6 +29,7 @@
 #include <gpac/bifs.h>
 #include <gpac/xml.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/network.h>
 
 
 GF_EXPORT

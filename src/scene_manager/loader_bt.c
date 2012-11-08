@@ -32,7 +32,6 @@
 #include <gpac/nodes_x3d.h>
 /*for key codes...*/
 #include <gpac/user.h>
-#include <gpac/network.h>
 
 
 #ifndef GPAC_DISABLE_LOADER_BT
