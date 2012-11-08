@@ -1960,9 +1960,9 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 
 				for (i=0; i <= vui_ext_num_entries_minus1; i++) {
 					u8 vui_ext_nal_hrd_parameters_present_flag, vui_ext_vcl_hrd_parameters_present_flag, vui_ext_timing_info_present_flag;
-					/*u8 vui_ext_dependency_id = */gf_bs_read_int(bs, 3);
-					/*u8 vui_ext_quality_id = */gf_bs_read_int(bs, 4);
-					/*u8 vui_ext_temporal_id = */gf_bs_read_int(bs, 3);
+					/*u8 vui_ext_dependency_id =*/ gf_bs_read_int(bs, 3);
+					/*u8 vui_ext_quality_id =*/ gf_bs_read_int(bs, 4);
+					/*u8 vui_ext_temporal_id =*/ gf_bs_read_int(bs, 3);
 					vui_ext_timing_info_present_flag = gf_bs_read_int(bs, 1);
 					if (vui_ext_timing_info_present_flag) {
 						/*u32 vui_ext_num_units_in_tick = */gf_bs_read_int(bs, 32);

@@ -104,7 +104,10 @@ enum
 	/*ref type for Hint tracks*/
 	GF_ISOM_REF_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	/*ref type for QT Chapter tracks*/
-	GF_ISOM_REF_CHAP		= GF_4CC( 'c', 'h', 'a', 'p' )
+	GF_ISOM_REF_CHAP		= GF_4CC( 'c', 'h', 'a', 'p' ),
+	/*ref type for the SVC tracks*/
+	GF_ISOM_REF_BASE = GF_4CC( 's', 'b', 'a', 's' ),
+	GF_ISOM_REF_SCAL = GF_4CC( 's', 'c', 'a', 'l' )
 };
 
 /*Track Edition flag*/
@@ -1560,6 +1563,10 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg);
 /*updates SVC config. If is_additional is set, the SVCConfig will be added to the AVC sample description, otherwise the sample description will be SVC-only*/
 GF_Err gf_isom_svc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, Bool is_additional);
+/*creates new SVC config*/
+GF_Err gf_isom_svc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
+/*deletes SVC config*/
+GF_Err gf_isom_svc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

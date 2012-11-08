@@ -157,7 +157,7 @@ void convert_file_info(char *inName, u32 trackID)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale;
+	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
@@ -171,6 +171,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	new_timescale = 1;
 	rescale = 0;
 	text_layout = 0;
+	/*0: merge all 
+	  1: split base and all SVC in two tracks
+	  2: split all base and SVC layers in dedicated tracks
+	 */
+	svc_mode = 0;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -308,6 +313,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		/*force all composition offsets to be positive*/
 		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
+		/*split SVC layers*/
+		else if (!strnicmp(ext+1, "svcmode=", 8)) {
+			if (!stricmp(ext+9, "splitall"))
+				svc_mode = 2;
+			else if (!stricmp(ext+9, "splitbase"))
+				svc_mode = 1;
+			else if (!stricmp(ext+9, "merged"))
+				svc_mode = 0;
+		}
 
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -611,6 +625,19 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			e = gf_isom_add_chapter(import.dest, 0, 0, chapter_name);
 		}
 	}
+
+	if (svc_mode) {
+		for (i=0; i < gf_isom_get_track_count(import.dest); i++) {
+			e = gf_media_split_svc(import.dest, i+1, gf_isom_get_media_timescale(import.dest, track), (svc_mode==2) ? 1 : 0);
+			if (e) goto exit;
+		}
+	} else {
+		for (i=0; i < gf_isom_get_track_count(import.dest); i++) {
+			e = gf_media_merge_svc(import.dest, i+1, gf_isom_get_media_timescale(import.dest, track), 1);
+			if (e) goto exit;
+		}
+	}
+
 exit:
 	if (handler_name) gf_free(handler_name);
 	if (chapter_name ) gf_free(chapter_name );
