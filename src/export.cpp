@@ -662,6 +662,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_ismacryp_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ismacryp_delete_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_ismacryp_sample) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_avc_svc_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )

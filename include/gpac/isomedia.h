@@ -1553,8 +1553,17 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 
 /*gets uncompressed AVC config - user is responsible for deleting it*/
 GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
-/*gets uncompressed AVC config - user is responsible for deleting it*/
+/*gets uncompressed SVC config - user is responsible for deleting it*/
 GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+typedef enum
+{
+	GF_ISOM_AVCTYPE_NONE=0,
+	GF_ISOM_AVCTYPE_AVC_ONLY,
+	GF_ISOM_AVCTYPE_AVC_SVC,
+	GF_ISOM_AVCTYPE_SVC_ONLY,
+} GF_ISOMAVCType;
+u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*creates new AVC config*/
