@@ -1076,6 +1076,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_rewrite_samples) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_split_svc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

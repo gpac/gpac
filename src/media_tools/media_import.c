@@ -171,8 +171,6 @@ static void get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 	}
 }
 
-
-
 static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_allowed)
 {
 	GF_BitStream *bs;
@@ -3933,7 +3931,6 @@ restart_import:
 		}
 		switch (nal_type) {
 		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			is_subseq = 1;
 		case GF_AVC_NALU_SEQ_PARAM:
 			idx = AVC_ReadSeqInfo(buffer+1/*skip NALU type*/, nal_size-1, &avc, is_subseq, NULL);
@@ -3953,6 +3950,10 @@ restart_import:
 					add_sps = 1;
 				}
 				dstcfg = svccfg;
+				if (import->flags & GF_IMPORT_SVC_NONE) {
+					add_sps = 0;
+					skip_nal = 1;
+				}
 			} else {
 				if ((avc.sps[idx].state & AVC_SPS_PARSED) && !(avc.sps[idx].state & AVC_SPS_DECLARED)) {
 					avc.sps[idx].state |= AVC_SPS_DECLARED;
@@ -3963,7 +3964,11 @@ restart_import:
 			when concatenated bitstreams). Since we cannot put two SPS with the same idx in the decoder config, we keep them in the
 			video bitstream*/
 			if (avc.sps[idx].state & AVC_SUBSPS_DECLARED) {
-				copy_size = nal_size;
+				if (import->flags & GF_IMPORT_SVC_NONE) {
+					copy_size = 0;
+				} else {
+					copy_size = nal_size;
+				}
 			}
 
 			if (add_sps) {
@@ -4108,7 +4113,10 @@ restart_import:
 			break;
 
 		case GF_AVC_NALU_SVC_PREFIX_NALU:
-			if (import->flags & GF_IMPORT_SVC_NONE) break;
+			if (import->flags & GF_IMPORT_SVC_NONE) {
+				copy_size = 0;
+				break;
+			}
 			assert(prev_nalu_prefix_size==0);
 			copy_size = nal_size;
 			break;
@@ -4125,7 +4133,11 @@ restart_import:
 					}
 				}				
 			}
-			if (import->flags & GF_IMPORT_SVC_NONE) break;
+			if (import->flags & GF_IMPORT_SVC_NONE) {
+				skip_nal = 0;
+				copy_size = 0;
+				break;
+			}
 			if (! skip_nal) {
 				copy_size = nal_size;
 				switch (avc.s_info.slice_type) {
@@ -4570,7 +4582,7 @@ restart_import:
 	if (gf_list_count(avccfg->sequenceParameterSets) || !gf_list_count(svccfg->sequenceParameterSets) ) {
 		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
 		if (gf_list_count(svccfg->sequenceParameterSets)) {
-			gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
+				gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
 		}
 	} else {
 		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 0);

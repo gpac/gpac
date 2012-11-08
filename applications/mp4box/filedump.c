@@ -876,7 +876,10 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 static void dump_nalu_type_name(FILE *dump, char *ptr, Bool is_svc)
 {
 	u8 type = ptr[0] & 0x1F;
-
+	u8 dependency_id, quality_id, temporal_id;
+	u8 track_ref_index;
+	u32 data_offset;
+	
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE: fputs("Non IDR slice", dump); break;
@@ -896,9 +899,20 @@ static void dump_nalu_type_name(FILE *dump, char *ptr, Bool is_svc)
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM: fputs("SVCSubsequenceParameterSet", dump); break;
 	case GF_AVC_NALU_SLICE_AUX: fputs("Auxiliary Slice", dump); break;
 
-	case GF_AVC_NALU_SVC_SLICE: fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump); break;
+	case GF_AVC_NALU_SVC_SLICE: 
+		fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
+		dependency_id = (ptr[2] & 0x70) >> 4;
+		quality_id = (ptr[2] & 0x0F);
+		temporal_id = (ptr[3] & 0xE0) >> 5;
+		fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
+		break;
 	case 30: fputs("SVCAggregator", dump); break;
-	case 31: fputs("SVCExtractor", dump); break;
+	case 31:
+		fputs("SVCExtractor", dump); 
+		track_ref_index = (u8) ptr[4];
+		data_offset = (ptr[6] << 12) + (ptr[7] << 8) + (ptr[8] << 4) + ptr[9];
+		fprintf(dump, "\" track_ref_index=\"%d\" data_offset=\"%d", track_ref_index, data_offset);
+		break;
 
 	default:
 		fputs("UNKNOWN", dump); break;
@@ -954,7 +968,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSExArray")
 	}
 	if (svccfg) {
-		if (!nalh_size) nalh_size = avccfg->nal_unit_size;
+		if (!nalh_size) nalh_size = svccfg->nal_unit_size;
 		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray")
 		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
 	}

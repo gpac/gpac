@@ -253,6 +253,12 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level);
 /*rewrite AVC samples if nalu size_length has to be changed*/
 GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size_in_bits, u32 new_size_in_bits);
 
+/* Split SVC layers */
+GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool splitAll);
+
+/* Merge SVC layers*/
+GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool mergeAll);
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 

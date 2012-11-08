@@ -194,6 +194,16 @@ typedef struct
 	Bool is_svc;
 } AVCState;
 
+typedef struct
+{
+	u32 NALUnitHeader;
+	u8 track_ref_index;
+	s8 sample_offset;
+	u32 data_offset;
+	u32 data_length;
+} SVC_Extractor;
+
+
 /*return sps ID or -1 if error*/
 s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
