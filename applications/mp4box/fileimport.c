@@ -161,7 +161,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
-	u32 group, handler, rvc_predefined;
+	u32 group, handler, rvc_predefined, check_track_for_svc;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
@@ -419,6 +419,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		import.text_y = txty;
 	}
 
+	check_track_for_svc = 0;
 
 	import.dest = dest;
 	import.video_fps = force_fps;
@@ -490,6 +491,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				keep_sys_tracks = 1;
 
 			gf_isom_set_composition_offset_mode(import.dest, i+1, negative_cts_offset);
+
+			/*when importing SVC we ALWAYS have AVC+SVC single track mode*/
+			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)==GF_ISOM_AVCTYPE_AVC_SVC)
+				check_track_for_svc = i+1;
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -612,6 +617,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			
 			gf_isom_set_composition_offset_mode(import.dest, track, negative_cts_offset);
+
+			/*when importing SVC we ALWAYS have AVC+SVC single track mode*/
+			if (gf_isom_get_avc_svc_type(import.dest, track, 1)==GF_ISOM_AVCTYPE_AVC_SVC)
+				check_track_for_svc = track;
 		}
 		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
@@ -626,14 +635,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 	}
 
-	if (svc_mode) {
-		for (i=0; i < gf_isom_get_track_count(import.dest); i++) {
-			e = gf_media_split_svc(import.dest, i+1, gf_isom_get_media_timescale(import.dest, track), (svc_mode==2) ? 1 : 0);
+	if (check_track_for_svc) {
+		if (svc_mode) {
+			e = gf_media_split_svc(import.dest, check_track_for_svc, (svc_mode==2) ? 1 : 0);
 			if (e) goto exit;
-		}
-	} else {
-		for (i=0; i < gf_isom_get_track_count(import.dest); i++) {
-			e = gf_media_merge_svc(import.dest, i+1, gf_isom_get_media_timescale(import.dest, track), 1);
+		} else {
+			e = gf_media_merge_svc(import.dest, check_track_for_svc, 1);
 			if (e) goto exit;
 		}
 	}

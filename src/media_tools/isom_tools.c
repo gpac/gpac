@@ -932,7 +932,7 @@ static u32 gf_isom_get_track_id_max(GF_ISOFile *file)
 
 /* Split SVC layers */
 GF_EXPORT
-GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool splitAll)
+GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 {
 	GF_AVCConfig *avccfg, *svccfg;
 	u32 num_svc_track, num_sample, svc_track, dst_track, ref_trackID, ref_trackNum, max_id;
@@ -962,7 +962,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool split
 	s8 sample_offset;
 	u32 data_offset;
 	u32 data_length;
-	u32 count;
+	u32 count, timescale;
 
 	avccfg = gf_isom_avc_config_get(file, track, 1);
 	svccfg = gf_isom_svc_config_get(file, track, 1);
@@ -972,6 +972,8 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool split
 	/*if we have not any SVC -> stop*/
 	if (!svccfg)
 		return GF_OK;
+
+	timescale = gf_isom_get_media_timescale(file, track);
 
 	num_sps = gf_list_count(svccfg->sequenceParameterSets);
 	num_pps = gf_list_count(svccfg->pictureParameterSets);
@@ -983,7 +985,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool split
 			return GF_OK;
 		/*use 'base' mode -> merge SVC tracks*/
 		else
-			return gf_media_merge_svc(file, track, timescale, 0);
+			return gf_media_merge_svc(file, track, 0);
 	}
 	num_svc_track = splitAll ? num_sps : 1;
 	max_id = gf_isom_get_track_id_max(file);
@@ -1314,20 +1316,20 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool split
 
 /* Merge SVC layers*/
 GF_EXPORT
-GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool mergeAll)
+GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 {
 	GF_AVCConfig *avccfg, *svccfg, *cfg;
 	u32 merge_track;
 	u32 num_track, num_sample;
 	GF_ISOSample *avc_samp, *samp, *dst_samp;
 	GF_BitStream *bs, *dst_bs;
+	GF_Err e;
 	u32 size;
 	u32 i, t;
 	u32 di = 0;
 	char *buffer;
 	u32 max_size = 4096;
 	u32 nalu_size_length;
-	GF_Err e;
 	u32 ref_trackNum, ref_trackID;
 	s32 *DQId;
 	u32 count;
@@ -1342,14 +1344,21 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 	Bool first_sample;
 	u64 first_DTS, offset, dur;
 	u32 max_id;
+	u32 timescale;
 	u8 nal_type;
+
+	avc_samp = samp = NULL;
 
 	avccfg = gf_isom_avc_config_get(file, track, 1);
 	if (!avccfg && mergeAll)
 		return GF_BAD_PARAM;
+	timescale = gf_isom_get_media_timescale(file, track);
+
 	num_track = gf_isom_get_track_count(file);
-	if (num_track == 1)
+	if (num_track == 1) {
+		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		return GF_OK;
+	}
 
 	/*create a new merged track*/
 	max_id = gf_isom_get_track_id_max(file);
@@ -1362,16 +1371,12 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 	svccfg = gf_odf_avc_cfg_new();
 	svccfg->complete_representation = 1; 
 	e = gf_isom_svc_config_new(file, merge_track, svccfg, NULL, NULL, &di);
-	if (e)
-		return e;
+	if (e) goto exit;
 
-	if (avccfg)
-	{
+	if (avccfg) {
 		ref_trackNum = track;
 		ref_trackID = gf_isom_get_track_id(file, track);
-	}
-	else
-	{
+	} else {
 		gf_isom_get_reference(file, track, GF_ISOM_REF_BASE, 1, &ref_trackNum);
 		ref_trackID = gf_isom_get_track_id(file, ref_trackNum);
 	}
@@ -1379,15 +1384,16 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 	list_track_sorted = (u32 *) gf_malloc(num_track * sizeof(u32));
 	DQId = (s32 *) gf_malloc(num_track * sizeof(s32));
 	count = 0;
-	for (t = 1; t <= num_track; t++)
-	{
+	for (t = 1; t <= num_track; t++) {
 		u32 pos = 0;
 		s32 track_DQId = gf_get_DQId(file, t);
-		if (track_DQId < 0)
-			return GF_ISOM_INVALID_MEDIA;
+		if (track_DQId < 0) {
+			e = GF_ISOM_INVALID_MEDIA;
+			goto exit;
+		}
 		if ((t != track) && !gf_isom_has_track_reference(file, t, GF_ISOM_REF_BASE, ref_trackID))
 			continue;
-		while ((pos < count) && (DQId[pos] <= track_DQId))
+		while ((pos < count ) && (DQId[pos] <= track_DQId))
 			pos++;
 		for (i = count; i > pos; i--)
 		{
@@ -1435,6 +1441,8 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 			gf_isom_svc_config_update(file, merge_track, 1, svccfg, 1);
 		else
 			gf_isom_svc_config_update(file, merge_track, 1, svccfg, 0);
+		
+		gf_odf_avc_cfg_del(cfg);
 	}
 
 	cur_sample = (u32 *) gf_malloc(count * sizeof(u32));
@@ -1458,8 +1466,8 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 			for (i = 1; i <= nb_EditList; i++)
 			{
 				e = gf_isom_get_edit_segment(file, list_track_sorted[t], i, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
-				if (e)
-					return e;
+				if (e) goto exit;
+
 				if (!EditMode)
 				{
 					DTS_offset[t] = SegmentDuration * media_ts / moov_ts;
@@ -1499,16 +1507,20 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 		buffer = (char*)gf_malloc(sizeof(char) * max_size);
 
 		avc_samp = gf_isom_get_sample(file, ref_trackNum, i, &di);
-		if (!avc_samp)
-			return GF_IO_ERR;
+		if (!avc_samp) {
+			e = gf_isom_last_error(file);
+			goto exit;
+		}
 
 		for (t = 0; t < count; t++)
 		{
 			if (cur_sample[t] > max_sample[t])
 				continue;
 			samp = gf_isom_get_sample(file, list_track_sorted[t], cur_sample[t], &di);
-			if (!samp)
-				return GF_IO_ERR;
+			if (!samp) {
+				e = gf_isom_last_error(file);
+				goto exit;
+			}
 
 			if ((samp->DTS + DTS_offset[t]) != avc_samp->DTS)
 				continue;
@@ -1550,11 +1562,14 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 			dst_samp->IsRAP = avc_samp->IsRAP;
 			gf_bs_get_content(dst_bs, &dst_samp->data, &dst_samp->dataLength);
 			e = gf_isom_add_sample(file, merge_track, 1, dst_samp);
-			if (e)
-				return e;
 			gf_bs_del(dst_bs);
 			dst_bs = NULL;
+			gf_isom_sample_del(&dst_samp);
+			if (e)
+				goto exit;
 		}
+		gf_isom_sample_del(&avc_samp);
+		avc_samp = NULL;
 	}
 
 	/*Add EditList if nessessary*/
@@ -1578,7 +1593,12 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, u32 timescale, Bool merge
 		t--;
 	}
 
-	return GF_OK;
+exit:
+	if (avc_samp) gf_isom_sample_del(&avc_samp);
+	if (samp) gf_isom_sample_del(&samp);
+	if (avccfg) gf_odf_avc_cfg_del(avccfg);
+	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+	return e;
 }
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
