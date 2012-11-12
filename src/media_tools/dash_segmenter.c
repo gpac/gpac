@@ -498,7 +498,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	}
 
 	MaxFragmentDuration = (u32) (max_duration_sec * 1000);	
-	MaxSegmentDuration = (u32) (dash_cfg->segment_duration * 1000);
+	MaxSegmentDuration = (u32) (1000 * (dash_cfg ? dash_cfg->segment_duration : max_duration_sec));
 
 	if (dash_cfg) {
 		/*in single segment mode, only one big SIDX is written between the end of the moov and the first fragment. 
@@ -1068,7 +1068,7 @@ restart_fragmentation_pass:
 					stop_frag = 1;
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
-					if (!dash_cfg->fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
+					if (!(dash_cfg ? dash_cfg->fragments_start_with_rap : 0) || ( (next && next->IsRAP) || split_at_rap) ) {
 						if (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale) {
 							stop_frag = 1;
 						}
