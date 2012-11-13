@@ -278,7 +278,12 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_avc_config_get(movie, track, 1);
 		sps = gf_list_get(avcc->sequenceParameterSets, 0);
-		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), (u8) sps->data[1], (u8) sps->data[2], (u8) sps->data[3]);
+		if (sps)
+			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), (u8) sps->data[1], (u8) sps->data[2], (u8) sps->data[3]);
+		else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AVC/SVC SPS not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
+			sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
+		}
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
 	default:

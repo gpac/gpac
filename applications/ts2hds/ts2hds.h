@@ -38,6 +38,7 @@ GF_Err adobe_gen_multirate_manifest(AdobeMultirate* am, char *bootstrap, size_t 
 typedef struct
 {
 	u64 curr_time;
+	u32 segnum;
 	char *bootstrap;
 	size_t bootstrap_size;
 	AdobeMultirate *multirate_manifest;

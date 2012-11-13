@@ -677,6 +677,10 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			case GF_ISOM_BOX_TYPE_META:
 			case GF_ISOM_BOX_TYPE_FTYP:
 			case GF_ISOM_BOX_TYPE_PDIN:
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+			case GF_ISOM_BOX_TYPE_AFRA:
+			case GF_ISOM_BOX_TYPE_ABST:
+#endif
 				break;
 			case GF_ISOM_BOX_TYPE_MDAT:
 				//in case we're capturing
@@ -706,6 +710,21 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		//OK, write the movie box.
 		e = WriteMoovAndMeta(movie, writers, bs);
 		if (e) goto exit;
+
+#ifndef GPAC_DISABLE_ISOM_ADOBE
+		i=0;
+		while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+			switch (a->type) {
+			case GF_ISOM_BOX_TYPE_AFRA:
+			case GF_ISOM_BOX_TYPE_ABST:
+				e = gf_isom_box_size(a);
+				if (e) goto exit;
+				e = gf_isom_box_write(a, bs);
+				if (e) goto exit;
+				break;
+			}
+		}
+#endif
 
 		/*if data has been written, update mdat size*/
 		if (totSize) {

@@ -55,13 +55,13 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 	afra->version = 0;
 	afra->flags = 0;
 	afra->long_ids = 1;
-	afra->long_offsets = 100000;
+	afra->long_offsets = 1;
 	afra->global_entries = 0;
 	afra->time_scale = gf_isom_get_timescale(isom_file);
 
 	afra->entry_count = 1;
 	ae->time = init_seg_time;
-	ae->offset = 0;
+	ae->offset = 31663;
 	gf_list_add(afra->local_access_entries, ae);
 
 	afra->global_entries = 0;
