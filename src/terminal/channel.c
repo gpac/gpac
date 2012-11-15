@@ -1209,6 +1209,8 @@ void gf_es_on_eos(GF_Channel *ch)
 	
 	/*flush buffer*/
 	ch_buffer_off(ch);
+	if (ch->len)
+		Channel_DispatchAU(ch, 0);
 
 	gf_odm_on_eos(ch->odm, ch);
 }

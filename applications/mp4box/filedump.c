@@ -2239,6 +2239,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		gf_m2ts_process_data(ts, data, size);
 		if (dumper.has_seen_pat) break;
 	}
+	dumper.has_seen_pat = 1;
 
 	if (prog_num) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);

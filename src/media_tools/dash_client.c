@@ -59,7 +59,7 @@ struct __dash_client
 
 	u32 max_cache_duration;
 	u32 auto_switch_count;
-	Bool keep_files, disable_switching;
+	Bool keep_files, disable_switching, allow_local_mpd_update;
 
 	GF_DASHInitialSelectionMode first_select_mode;
 
@@ -783,19 +783,29 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	char * purl;
 
 	if (!dash->mpd_dnload) {
+		local_url = purl = NULL;
 		if (!gf_list_count(dash->mpd->locations)) {
-			/*we will no longer attempt to update the MPD ...*/
-			dash->mpd->minimum_update_period = 0;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: no HTTP source for MPD could be found\n"));
-			return GF_BAD_PARAM;
+			FILE *t = fopen(dash->base_url, "rt");
+			if (t) {
+				local_url = dash->base_url;
+				fclose(t);
+			}
+			if (!local_url) {
+				/*we will no longer attempt to update the MPD ...*/
+				dash->mpd->minimum_update_period = 0;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: no HTTP source for MPD could be found\n"));
+				return GF_BAD_PARAM;
+			}
 		}
-		purl = gf_strdup(gf_list_get(dash->mpd->locations, 0));
+		if (!local_url) {
+			purl = gf_strdup(gf_list_get(dash->mpd->locations, 0));
 
-		/*if no absolute URL, use <Location> to get MPD in case baseURL is relative...*/
-		if (!strstr(dash->base_url, "://")) {
-			gf_free(dash->base_url);
-			dash->base_url = gf_strdup(purl);
-		} 
+			/*if no absolute URL, use <Location> to get MPD in case baseURL is relative...*/
+			if (!strstr(dash->base_url, "://")) {
+				gf_free(dash->base_url);
+				dash->base_url = gf_strdup(purl);
+			} 
+		}
 	} else {
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
 		if (!local_url) {
@@ -816,31 +826,33 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating Playlist %s...\n", purl));
-	/*use non-persistent connection for MPD*/
-	e = gf_dash_download_resource(dash->dash_io, &(dash->mpd_dnload), purl, 0, 0, 0, NULL);
-	if (e!=GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: download problem %s for MPD file\n", gf_error_to_string(e)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating Playlist %s...\n", purl ? purl : local_url));
+	if (purl) {
+		/*use non-persistent connection for MPD*/
+		e = gf_dash_download_resource(dash->dash_io, &(dash->mpd_dnload), purl, 0, 0, 0, NULL);
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: download problem %s for MPD file\n", gf_error_to_string(e)));
+			gf_free(purl);
+			return e;
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist %s updated with success\n", purl));
+		}
+		strcpy(mime, dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload) );
+		strlwr(mime);
+
+		/*in case the session has been restarted, local_url may have been destroyed - get it back*/
+		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
+
+		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
+		if (gf_dash_is_m3u8_mime(mime) || strstr(purl, ".m3u8")) {
+			gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter);
+		} else if (!gf_dash_is_dash_mime(mime)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] mime '%s' should be m3u8 or mpd\n", mime));
+		}
+
 		gf_free(purl);
-		return e;
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist %s updated with success\n", purl));
+		purl = NULL;
 	}
-	strcpy(mime, dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload) );
-	strlwr(mime);
-
-	/*in case the session has been restarted, local_url may have been destroyed - get it back*/
-	local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
-
-	/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
-	if (gf_dash_is_m3u8_mime(mime) || strstr(purl, ".m3u8")) {
-		gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter);
-	} else if (!gf_dash_is_dash_mime(mime)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] mime '%s' should be m3u8 or mpd\n", mime));
-	}
-
-	gf_free(purl);
-	purl = NULL;
 
 	if (!gf_dash_check_mpd_root_type(local_url)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
@@ -2975,6 +2987,7 @@ u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 idx)
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return group->max_cached_segments;
 }
+
 
 GF_EXPORT
 u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *group_is_done)

@@ -515,6 +515,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_SL_PCK:
 		MP2TS_SendSLPacket(m2ts, param);
 		break;
+	case GF_M2TS_EVT_EOS:
+		gf_term_on_sl_packet(m2ts->service, ((GF_M2TS_PES *)param)->user, NULL, 0, NULL, GF_EOS);
+		break;
 	case GF_M2TS_EVT_AAC_CFG:
 	{
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
