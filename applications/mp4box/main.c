@@ -70,7 +70,7 @@ void convert_file_info(char *inName, u32 trackID);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir);
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines);
 
 #if !defined(GPAC_DISABLE_SCENE_ENCODER)
@@ -265,7 +265,7 @@ void PrintGeneralUsage()
 void PrintDASHUsage()
 {
 	fprintf(stderr, "DASH Options:\n"
-			" -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR\n"
+			" -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
 			"                       Note: the duration of a fragment (subsegment) is set\n"
 			"						using the -frag switch.\n"
 			"                       Note: for onDemand profile, sets duration of a subsegment\n"
@@ -275,8 +275,9 @@ void PrintDASHUsage()
 			"                       * Note: By default input (MP4,3GP) file is overwritten\n"
 			" -tmp dirname         specifies directory for temporary file creation\n"
 			"                       * Note: Default temp dir is OS-dependent\n"
-			" -dash-profile NAME   specifies the target DASH profile: \"onDemand\", \"live\", \"main\", \"simple\", \"full\"\n"
+			" -profile NAME   specifies the target DASH profile: \"onDemand\", \"live\", \"main\", \"simple\", \"full\"\n"
 			"                       * This will set default option values to ensure conformance to the desired profile\n"
+			"                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
 			"\n"
 			" -rap                 segments begin with random access points\n"
 			"                       Note: segment duration may not be exactly what asked by\n"
@@ -293,7 +294,14 @@ void PrintDASHUsage()
 			" -mpd-source string   sets MPD source.\n"
 			" -mpd-info-url string sets MPD info url.\n"
 			" -cprt string         adds copyright string to MPD\n"
+			" -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionnally writing live context to F\n" 
+			"                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
 			" -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
+			" -dynamic             uses dynamic MPD type instead of static.\n"
+			" -mpd-refresh TIME    specifies MPD update time in seconds.\n"
+			" -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
+			" -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
+			"                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
 			"\n"
 			"Advanced Options, should not be needed when using -dash-profile:\n"
 			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
@@ -1282,7 +1290,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			sep = strchr(opts, ':');
 			if (sep) sep[0] = 0;
 			if (!strnicmp(opts, "id=", 3)) strncpy(di->representationID, opts+3, 99);
-			if (!strnicmp(opts, "period=", 7)) strncpy(di->periodID, opts+7, 99);
+			else if (!strnicmp(opts, "period=", 7)) strncpy(di->periodID, opts+7, 99);
+			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			
 			if (!sep) break;
 			sep[0] = ':';
@@ -1304,7 +1313,7 @@ int mp4boxMain(int argc, char **argv)
 	GF_SMEncodeOptions opts;
 #endif
 	SDPLine *sdp_lines = NULL;
-	Double InterleavingTime, split_duration, split_start, import_fps, dash_duration;
+	Double interleaving_time, split_duration, split_start, import_fps, dash_duration, dash_subduration;
 	MetaAction *metas = NULL;
 	TrackAction *tracks = NULL;
 	TSELAction *tsel_acts = NULL;
@@ -1314,8 +1323,8 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_rem = NULL;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, bitstream_switching_mode, dump_nal, time_shift_depth;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_dynamic;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_dynamic, dash_live;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
@@ -1331,6 +1340,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 MTUSize = 1450;
 #endif
 	GF_ISOFile *file;
+	u32 mpd_update_time = 0;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
 	Bool enable_mem_tracker = 0;
@@ -1338,7 +1348,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool daisy_chain_sidx=0;
 	Bool single_segment=0;
 	Bool single_file=0;
-	GF_DashProfile dash_profile = GF_DASH_PROFILE_FULL;
+	GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
 	Bool use_url_template=0;
 	Bool seg_at_rap=0;
 	Bool frag_at_rap=0;
@@ -1360,8 +1370,8 @@ int mp4boxMain(int argc, char **argv)
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
-	InterleavingTime = 0.0;
-	dash_duration = 0.0;
+	interleaving_time = 0.0;
+	dash_duration = dash_subduration = 0.0;
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
@@ -1369,17 +1379,17 @@ int mp4boxMain(int argc, char **argv)
 	dump_nal = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_dynamic = 0;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_dynamic = dash_live = 0;
 	bitstream_switching_mode = 1;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
 	subsegs_per_sidx = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
-	time_shift_depth = (u32) -1;
+	time_shift_depth = 0;
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
-	seg_name = dash_ctx = NULL;
+	seg_name = dash_ctx_file = NULL;
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	memset(&opts, 0, sizeof(opts));
@@ -1638,21 +1648,24 @@ int mp4boxMain(int argc, char **argv)
 			gf_log_set_strict_error(1);
 		} else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
-			InterleavingTime = atof(argv[i+1]) / 1000;
+			interleaving_time = atof(argv[i+1]) / 1000;
 			open_edit = 1;
 			needSave = 1;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
 			i++;
 		} else if (!stricmp(arg, "-frag")) {
 			CHECK_NEXT_ARG
-			InterleavingTime = atof(argv[i+1]) / 1000;
+			interleaving_time = atof(argv[i+1]) / 1000;
 			needSave = 1;
 			i++;
 			Frag = 1;
 		} else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
 			dash_duration = atof(argv[i+1]) /	 1000;
-			needSave = 1;
+			i++;
+		} else if (!stricmp(arg, "-subdur")) {
+			CHECK_NEXT_ARG
+			dash_subduration = atof(argv[i+1]) /	 1000;
 			i++;
 		} else if (!stricmp(arg, "-dash-ts-prog")) {
 			CHECK_NEXT_ARG
@@ -1678,7 +1691,22 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-dynamic")) { dash_dynamic = 1; }
-		else if (!stricmp(arg, "-time-shift")) { CHECK_NEXT_ARG time_shift_depth = atoi(argv[i+1]); i++;  }
+		else if (!strnicmp(arg, "-dash-live", 10)) {
+			dash_dynamic = 1;
+			dash_live = 1;
+			if (arg[10]=='=') {
+				dash_ctx_file = arg+11;
+			}
+			CHECK_NEXT_ARG
+			dash_duration = atof(argv[i+1]) / 1000;
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-refresh")) { CHECK_NEXT_ARG mpd_update_time = atoi(argv[i+1]); i++;   }
+		else if (!stricmp(arg, "-time-shift")) { 
+			CHECK_NEXT_ARG 
+			time_shift_depth = (u32) atoi(argv[i+1]);
+			i++;
+		}
 		else if (!stricmp(arg, "-mpd-title")) { CHECK_NEXT_ARG dash_title = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mpd-source")) { CHECK_NEXT_ARG dash_source = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mpd-info-url")) { CHECK_NEXT_ARG dash_more_info = argv[i+1]; i++; }
@@ -1693,7 +1721,7 @@ int mp4boxMain(int argc, char **argv)
 		
 		else if (!stricmp(arg, "-dash-ctx")) {
 			CHECK_NEXT_ARG
-			dash_ctx = argv[i+1];
+			dash_ctx_file = argv[i+1];
 			i++;
 		} else if (!stricmp(arg, "-daisy-chain")) {
 			daisy_chain_sidx = 1;
@@ -1701,7 +1729,7 @@ int mp4boxMain(int argc, char **argv)
 			single_segment = 1;
 		} else if (!stricmp(arg, "-single-file")) {
 			single_file = 1;
-		} else if (!stricmp(arg, "-dash-profile")) {
+		} else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
 			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
@@ -2320,12 +2348,12 @@ int mp4boxMain(int argc, char **argv)
 		dump_std = 1;
 	}
 
-	if (!InterleavingTime) {
+	if (!interleaving_time) {
 		/*by default use single fragment per dash segment*/
 		if (dash_duration) 
-			InterleavingTime = dash_duration;
+			interleaving_time = dash_duration;
 		else
-			InterleavingTime = 0.5;
+			interleaving_time = 0.5;
 	}
 
 	if (dump_std) 
@@ -2633,7 +2661,7 @@ int mp4boxMain(int argc, char **argv)
 
 	if (dash_duration) {
 		char szMPD[GF_MAX_PATH], *sep;
-
+		GF_Config *dash_ctx = NULL;
 		gf_log_set_tool_level(GF_LOG_DASH, GF_LOG_INFO);
 		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 		sep = strrchr(outfile, '.');
@@ -2642,12 +2670,50 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
 
-		e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
-									(const char **) mpd_base_urls, nb_mpd_base_urls, 
-								   use_url_template, single_segment, single_file, bitstream_switching_mode, 
-								   seg_at_rap, dash_duration, seg_name, seg_ext,
-								   InterleavingTime, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-								   dash_ctx, dash_dynamic, time_shift_depth);
+		if (!dash_ctx_file && dash_live) {
+			dash_ctx = gf_cfg_new(NULL, NULL);
+		} else if (dash_ctx_file) {
+			if (force_new) 
+				gf_delete_file(dash_ctx_file);
+
+			dash_ctx = gf_cfg_force_new(NULL, dash_ctx_file);
+		}
+
+		if (dash_profile==GF_DASH_PROFILE_UNKNOWN)
+			dash_profile = dash_dynamic ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
+
+		if (!dash_dynamic) {
+			time_shift_depth = 0;
+			mpd_update_time = 0;
+		} else if ((dash_profile>=GF_DASH_PROFILE_MAIN) && !use_url_template && !mpd_update_time) {
+			/*use a default MPD update of dash_duration sec*/
+			mpd_update_time = (u32)  (dash_subduration ? dash_subduration : dash_duration);
+			fprintf(stderr, "Using default MPD refresh of %d seconds\n", mpd_update_time);
+		}
+
+		while (1) {
+			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
+										(const char **) mpd_base_urls, nb_mpd_base_urls, 
+									   use_url_template, single_segment, single_file, bitstream_switching_mode, 
+									   seg_at_rap, dash_duration, seg_name, seg_ext,
+									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
+									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration);
+			if (e) break;
+
+			if (dash_live) {
+				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+				if (gf_prompt_has_input()) {
+					char c = (char) gf_prompt_get_char(); 
+					if (c=='q') break;
+				}
+				fprintf(stderr, "sleep for %d ms\n", sleep_for);
+				gf_sleep(sleep_for);
+			} else {
+				break;
+			}
+		}
+
+		if (dash_ctx) gf_cfg_del(dash_ctx);
 
 		gf_sys_close();
 		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
@@ -2885,7 +2951,7 @@ int mp4boxMain(int argc, char **argv)
 
 #if !(definedGPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size) {
-		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, adjust_split_end, outName, tmpdir);
+		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir);
 		/*never save file when splitting is desired*/
 		open_edit = 0;
 		needSave = 0;
@@ -3377,34 +3443,12 @@ int mp4boxMain(int argc, char **argv)
 		needSave = 1;
 	}
 
-	/*split file*/
-	if (dash_duration) {
-		char szMPD[GF_MAX_PATH], *sep;
-
-		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
-		sep = strrchr(outfile, '.');
-		if (sep) sep[0] = 0;
-		if (!outName) strcat(outfile, "_dash");
-		strcpy(szMPD, outfile);
-		strcat(szMPD, ".mpd");
-
-		gf_isom_delete(file);
-
-		e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
-									(const char **) mpd_base_urls, nb_mpd_base_urls, 
-								   use_url_template, single_segment, single_file, bitstream_switching_mode, 
-								   seg_at_rap, dash_duration, seg_name, seg_ext,
-								   InterleavingTime, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-								   dash_ctx, dash_dynamic, time_shift_depth);
-
-		gf_sys_close();
-		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	} else if (Frag) {
-		if (!InterleavingTime) InterleavingTime = 0.5;
+	if (Frag) {
+		if (!interleaving_time) interleaving_time = 0.5;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
-		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime);
+		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", interleaving_time);
+		e = gf_media_fragment_file(file, outfile, interleaving_time);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
@@ -3413,8 +3457,8 @@ int mp4boxMain(int argc, char **argv)
 		}
 		gf_sys_close();
 		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
-#endif
 	}
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (HintIt) {
@@ -3431,14 +3475,14 @@ int mp4boxMain(int argc, char **argv)
 	/*full interleave (sample-based) if just hinted*/
 	if (FullInter) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
-	} else if (!InterleavingTime) {
+	} else if (!interleaving_time) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_STREAMABLE);
 		needSave = 1;
 	} else if (do_flat) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_FLAT);
 		needSave = 1;
 	} else {
-		e = gf_isom_make_interleave(file, InterleavingTime);
+		e = gf_isom_make_interleave(file, interleaving_time);
 		if (!e && !old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_DRIFT_INTERLEAVED);
 	}
 	if (e) goto err_exit;
@@ -3515,8 +3559,8 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (HintIt && FullInter) fprintf(stderr, "Hinted file - Full Interleaving\n");
 		else if (FullInter) fprintf(stderr, "Full Interleaving\n");
-		else if (do_flat || !InterleavingTime) fprintf(stderr, "Flat storage\n");
-		else fprintf(stderr, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
+		else if (do_flat || !interleaving_time) fprintf(stderr, "Flat storage\n");
+		else fprintf(stderr, "%.3f secs Interleaving%s\n", interleaving_time, old_interleave ? " - no drift control" : "");
 
 		e = gf_isom_close(file);
 

@@ -254,6 +254,11 @@ const char *gf_m2ts_get_stream_name(u32 streamType);
 /*returns 1 if file is an MPEG-2 TS */
 Bool gf_m2ts_probe_file(const char *fileName);
 
+/*shifts all timing by the given value 
+@is_pes: array of GF_M2TS_MAX_STREAMS u8 set to 1 for PES PIDs to be restamped
+*/
+GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes);
+
 /*PES data framing modes*/
 enum
 {
@@ -352,6 +357,7 @@ enum
 	GF_M2TS_EVT_AIT_FOUND,
 	/*DSCM-CC has been found (carousel) */
 	GF_M2TS_EVT_DSMCC_FOUND,
+	GF_M2TS_EVT_EOS,
 
 };
 
@@ -460,16 +466,18 @@ typedef struct
 /*ES flags*/
 enum
 {
+	/*ES is a PES stream*/
+	GF_M2TS_ES_IS_PES = 1,
 	/*ES is a section stream*/
-	GF_M2TS_ES_IS_SECTION = 1,
+	GF_M2TS_ES_IS_SECTION = 1<<1,
 	/*ES is an mpeg-4 flexmux stream*/
-	GF_M2TS_ES_IS_FMC = 1<<1,
+	GF_M2TS_ES_IS_FMC = 1<<2,
 	/*ES is an mpeg-4 SL-packetized stream*/
-	GF_M2TS_ES_IS_SL = 1<<2,
+	GF_M2TS_ES_IS_SL = 1<<3,
 	/*ES is an mpeg-4 Object Descriptor SL-packetized stream*/
-	GF_M2TS_ES_IS_MPEG4_OD = 1<<3,
+	GF_M2TS_ES_IS_MPEG4_OD = 1<<4,
 	/*ES is a DVB MPE stream*/
-	GF_M2TS_ES_IS_MPE = 1<<4,
+	GF_M2TS_ES_IS_MPE = 1<<5,
 	
 	/*all flags above this mask are used by importers & co*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,

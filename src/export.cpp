@@ -237,6 +237,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_force_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_remove) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_save) )
@@ -1614,6 +1615,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_set_pes_framing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_restamp) )
+
 
 /* carousel.h */
 #ifdef GPAC_ENABLE_DSMCC
@@ -1684,6 +1687,7 @@
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_segment_files) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
 
 /* dvb_mpe.h */
 #ifdef GPAC_ENST_PRIVATE
@@ -1727,7 +1731,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_segment_switch_forced) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_current_segment_start_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
-
 
 #endif
 

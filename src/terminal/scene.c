@@ -271,6 +271,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
+	scene->simulation_time = 0;
 	
 
 	/*reset statc ressource flag since we destroyed scene objects*/

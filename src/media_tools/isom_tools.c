@@ -954,7 +954,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	s32 *sps_track, *sps, *pps;
 	u32 num_pps, num_sps;
 	u64 offset;
-	Bool is_splited, first_pps;
+	Bool is_splited;
 	Bool *first_sample_track;
 	u64 *first_DTS_track;
 	u32 NALUnitHeader;
@@ -1107,7 +1107,6 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			cfg->AVCProfileIndication = avc.sps[sps_id].profile_idc;
 			cfg->nal_unit_size = svccfg->nal_unit_size;
 			gf_list_add(cfg->sequenceParameterSets,  gf_list_get(svccfg->sequenceParameterSets, sps_track[t]));
-			first_pps = 1;
 			for (j = 0; j < num_pps; j++)
 			{
 				pps_id = pps[j];

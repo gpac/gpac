@@ -201,6 +201,11 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 {
 	GF_Config *tmp = (GF_Config *)gf_malloc(sizeof(GF_Config));
 	memset((void *)tmp, 0, sizeof(GF_Config));
+	if (!filePath && !file_name) {
+		tmp->sections = gf_list_new();
+		return tmp;
+	}
+
 	if (gf_cfg_parse_config_file(tmp, filePath, file_name)){
 	    gf_free( tmp );
 	    tmp = NULL;
@@ -225,6 +230,7 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 	FILE *file;
 
 	if (!iniFile->hasChanged) return GF_OK;
+	if (!iniFile->fileName) return GF_OK;
 
 	file = gf_f64_open(iniFile->fileName, "wt");
 	if (!file) return GF_IO_ERR;

@@ -1538,11 +1538,13 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_SUBTITLE_DVB:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			pes->cc = -1;
+			pes->flags = GF_M2TS_ES_IS_PES;
 			es = (GF_M2TS_ES *)pes;
 			break;
 		case GF_M2TS_PRIVATE_DATA:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			pes->cc = -1;
+			pes->flags = GF_M2TS_ES_IS_PES;
 			es = (GF_M2TS_ES *)pes;
 			break;
 		/* Sections */
@@ -1855,7 +1857,7 @@ static void gf_m2ts_process_cat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
 }
 
-static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
+u64 gf_m2ts_get_pts(unsigned char *data)
 {
     u64 pts;
     u32 val;
@@ -1867,7 +1869,7 @@ static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
     return pts;
 }
 
-static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
+void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
 	u32 has_pts, has_dts;
 	u32 len_check;
@@ -1920,7 +1922,7 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 	}
 }
 
-static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr)
+static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 {
 	GF_M2TS_PESHeader pesh;
 
@@ -2026,8 +2028,8 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: unknown stream ID %08X\n", pes->pid, stream_id));
 		}
-	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Bad PES Header, discarding packet (maybe stream is encrypted ?)\n", hdr->pid));
+	} else if (pes->data) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Bad PES Header, discarding packet (maybe stream is encrypted ?)\n", pes->pid));
 	}
 	if (pes->data) gf_free(pes->data);
 	pes->data = NULL;
@@ -2039,14 +2041,17 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Hea
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
 	u8 expect_cc;
-	Bool disc;
+	Bool disc=0;
 	Bool flush_pes = 0;
 
-	/*duplicated packet, NOT A DISCONTINUITY, discard the packet*/
-	if (hdr->continuity_counter==pes->cc) return;
-
-	expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
-	disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
+	/*duplicated packet, NOT A DISCONTINUITY, we should discard the packet - however we may encounter this configuration in DASH at segment boundaries. 
+	If payload start is set, ignore duplication*/
+	if (hdr->continuity_counter==pes->cc) {
+		if (!hdr->payload_start || (hdr->adaptation_field!=3) ) return;
+	} else {
+		expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
+		if (expect_cc != hdr->continuity_counter) disc = 1;
+	}
 	pes->cc = hdr->continuity_counter;
 
 	if (disc) {
@@ -2055,15 +2060,21 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 			disc = 0;
 		}
 		if (disc) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Packet discontinuity (%d expected - got %d- - trashing PES packet\n", pes->pid, expect_cc, hdr->continuity_counter));
-			if (pes->data) {
-				gf_free(pes->data);
-				pes->data = NULL;
+			if (hdr->payload_start) {
+				if (pes->data) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Packet discontinuity (%d expected - got %d) - may have lost end of previous PES\n", pes->pid, expect_cc, hdr->continuity_counter));
+				}
+			} else {
+				if (pes->data) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Packet discontinuity (%d expected - got %d) - trashing PES packet\n", pes->pid, expect_cc, hdr->continuity_counter));
+					gf_free(pes->data);
+					pes->data = NULL;
+				}
+				pes->data_len = 0;
+				pes->pes_len = 0;
+				pes->cc = -1;
+				return;
 			}
-			pes->data_len = 0;
-			pes->pes_len = 0;
-			pes->cc = -1;
-			return;
 		}
 	}
 
@@ -2076,7 +2087,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pes->before_last_pcr_value_pck_number = pes->program->before_last_pcr_value_pck_number;
 		pes->last_pcr_value = pes->program->last_pcr_value;
 		pes->last_pcr_value_pck_number = pes->program->last_pcr_value_pck_number;
-	} else if (pes->pes_len && (pes->data_len + data_size  == pes->pes_len + 6)) {
+	} else if (pes->pes_len && (pes->data_len + data_size == pes->pes_len + 6)) {
 		/* 6 = startcode+stream_id+length*/
 		/*reassemble pes*/
 		if (pes->data) pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
@@ -2090,7 +2101,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 	/*PES first fragment: flush previous packet*/
 	if (flush_pes && pes->data) {
-		gf_m2ts_flush_pes(ts, pes, hdr);
+		gf_m2ts_flush_pes(ts, pes);
 		if (!data_size) return;
 	}
 	/*we need to wait for first packet of PES*/
@@ -2114,7 +2125,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Got PES packet len %d\n", pes->pid, pes->pes_len));
 
 		if (pes->pes_len + 6 == pes->data_len) {
-			gf_m2ts_flush_pes(ts, pes, hdr);
+			gf_m2ts_flush_pes(ts, pes);
 		}
 	}
 }
@@ -2732,7 +2743,18 @@ restart_file:
 				gf_sleep(3000);
             }
 		}
-		if (feof(ts->file)) GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
+		if (feof(ts->file)) {
+			u32 i;
+			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+				if (ts->ess[i]) {
+					if (ts->ess[i]->flags & GF_M2TS_ES_IS_PES) {
+						gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) ts->ess[i]);
+						ts->on_event(ts, GF_M2TS_EVT_EOS, (GF_M2TS_PES *) ts->ess[i]);
+					} 
+				}
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
+		}
 
 next_segment_setup:
 		if (ts->run_state && ts->query_next) {
@@ -3146,8 +3168,116 @@ Bool gf_m2ts_probe_file(const char *fileName)
 			count = 0;
 		else count--;
 	}
-	fclose(t);
+	if (t) fclose(t);
 	return count ? 0 : 1;
+}
+
+static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
+{
+	ptr[0] &= 0xf1;
+	ptr[0] |= (unsigned char)((TS&0x1c0000000)>>29);
+	ptr[1]  = (unsigned char)((TS&0x03fc00000)>>22);
+	ptr[2] &= 0x1;
+	ptr[2] |= (unsigned char)((TS&0x0003f8000)>>14);
+	ptr[3]  = (unsigned char)((TS&0x000007f80)>>7);
+	ptr[4] &= 0x1;
+	ptr[4] |= (unsigned char)((TS&0x00000007f)<<1);
+
+	assert(((u64)(ptr[0]&0xe)<<29) + ((u64)ptr[1]<<22) + ((u64)(ptr[2]&0xfe)<<14) + ((u64)ptr[3]<<7) + ((ptr[4]&0xfe)>>1) == TS);
+}
+
+#define ADJUST_TIMESTAMP(_TS) \
+	if (_TS < (u64) -ts_shift) _TS = pcr_mod + _TS + ts_shift; \
+	else _TS = _TS + ts_shift; \
+	while (_TS > pcr_mod) _TS -= pcr_mod; \
+
+
+GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
+{
+	u32 done = 0;
+	u64 pcr_mod;
+//	if (!ts_shift) return GF_OK;
+
+	pcr_mod = 0x80000000;
+	pcr_mod*=4;
+	while (done + 188 <= size) {
+		char *pesh;
+		u8 *pck;
+		u64 pcr_base=0, pcr_ext=0;
+		u16 pid;
+		u8 adaptation_field, adaptation_field_length;
+
+		pck = buffer+done;
+		if (pck[0]!=0x47) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS Restamp] Invalid sync byte %X\n", pck[0]));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		pid = ((pck[1] & 0x1f) <<8 ) + pck[2];
+
+		adaptation_field_length = 0;
+		adaptation_field = (pck[3] >> 4) & 0x3;
+		if ((adaptation_field==2) || (adaptation_field==3)) {
+			adaptation_field_length = pck[4];
+			if ( pck[5]&0x10 /*PCR_flag*/) {
+				pcr_base = (((u64)pck[6])<<25) + (pck[7]<<17) + (pck[8]<<9) + (pck[9]<<1) + (pck[10]>>7);
+				pcr_ext  = ((pck[10]&1)<<8) + pck[11];
+
+				ADJUST_TIMESTAMP(pcr_base);
+
+				pck[6]  = (unsigned char)(0xff&(pcr_base>>25));
+				pck[7]  = (unsigned char)(0xff&(pcr_base>>17));
+				pck[8]  = (unsigned char)(0xff&(pcr_base>>9));
+				pck[9]  = (unsigned char)(0xff&(pcr_base>>1));
+				pck[10] = (unsigned char)(((0x1&pcr_base)<<7) | 0x7e | ((0x100&pcr_ext)>>8));
+				if (pcr_ext != ((pck[10]&1)<<8) + pck[11]) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS Restamp] Sanity check failed for PCR restamping\n"));
+					return GF_IO_ERR;
+				}
+				pck[11] = (unsigned char)(0xff&pcr_ext);
+			}
+		}
+		if (!is_pes[pid] || !(pck[1]&0x40)) {
+			done+=188;
+			continue;
+		}
+		if (adaptation_field_length)
+			adaptation_field_length++; /*add adaptation_field_length field*/
+
+		pesh = &pck[4+adaptation_field_length];
+
+		if ((pesh[0]==0x00) && (pesh[1]==0x00) && (pesh[2]==0x01)) {
+			Bool has_pts, has_dts;
+			if ((pesh[6]&0xc0)!=0x80) {
+				done+=188;
+				continue;
+			}
+			has_pts = (pesh[7]&0x80);
+			has_dts = has_pts ? (pesh[7]&0x40) : 0;
+
+			if (has_pts) {
+				u64 PTS;
+				if (((pesh[9]&0xe0)>>4)!=0x2) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS Restamp] PID %4d: Wrong PES header, PTS decoding: '0010' expected\n", pid));
+					done+=188;
+					continue;
+				}
+
+				PTS = gf_m2ts_get_pts(pesh + 9);
+				ADJUST_TIMESTAMP(PTS);
+				rewrite_pts_dts(pesh+9, PTS);
+			}
+
+			if (has_dts) {
+				u64 DTS = gf_m2ts_get_pts(pesh + 14);
+				ADJUST_TIMESTAMP(DTS);
+				rewrite_pts_dts(pesh+14, DTS);
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS Restamp] PID %4d: Wrong PES not beginning with start code\n", pid));
+		}
+		done+=188;	
+	}
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS*/

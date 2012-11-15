@@ -33,6 +33,7 @@ extern "C" {
 
 #include <gpac/isomedia.h>
 #include <gpac/avparse.h>
+#include <gpac/config_file.h>
 
 /*computes file hash. If file is ISO-based, computre hash according to OMA (P)DCF (without MutableDRMInformation box)*/
 GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
@@ -267,6 +268,7 @@ typedef struct
 	char *file_name;
 	char representationID[100];
 	char periodID[100];
+	u32 bandwidth;
 } GF_DashSegmenterInput;
 
 typedef enum
@@ -276,6 +278,9 @@ typedef enum
 	GF_DASH_PROFILE_LIVE,
 	GF_DASH_PROFILE_ONDEMAND,
 	GF_DASH_PROFILE_MAIN,
+
+	/*internal use only*/
+	GF_DASH_PROFILE_UNKNOWN
 } GF_DashProfile;
 
 GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile, 
@@ -284,7 +289,10 @@ GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inpu
 							   Bool use_url_template, Bool single_segment, Bool single_file, Bool bitstream_switching_mode,
 							   Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext,
 							   Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,  
-							   char *dash_ctx, Bool dash_dynamic, u32 time_shift_depth);
+							   GF_Config *dash_ctx, Bool dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration);
+
+/*returns time to wait until end of currently generated segments*/
+u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

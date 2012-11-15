@@ -722,9 +722,18 @@ Specifies minimum cache duration in seconds. Default is 30 sec</.p>
 <b>KeepFiles</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Specifies whether downloaded files should not be deleted.</p>
-<b>AutoSwitchCount</b> [value: <i>yes, no</i>]
+<b>AutoSwitchCount</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 For debug purposes, instructs the player to switch representation every N segments. If 0 (default), switching is disabled.</p>
+<b>DisableSwitching</b> [value: <i>yes, no</i>]
+<p style="text-indent: 5%">
+Disables automatic adaptation logic. Default is no</p>
+<b>KeepFiles</b> [value: <i>yes, no</i>]
+<p style="text-indent: 5%">
+Forces files to be kept on disk. Default is no</p>
+<b>StartRepresentation</b> [value: <i>minBandwidth, maxBandwidth, minQuality, maxQuality</i>]
+<p style="text-indent: 5%">
+Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.</p>
 
 <br/><br/>
 
