@@ -141,8 +141,7 @@ int main(int argc, char **argv)
 	e = GF_OK;
 	memset(&ctx, 0, sizeof(ctx));
 	
-	ctx.multirate_manifest = adobe_alloc_multirate_manifest(output);
-	ctx.curr_time = 6000;
+	ctx.curr_time = 0;
 	ctx.segnum = 1;
 
 	/*********************************************/
@@ -152,6 +151,8 @@ int main(int argc, char **argv)
 		usage(argv[0]);
 		goto exit;
 	}
+
+	ctx.multirate_manifest = adobe_alloc_multirate_manifest(output);
 
 #if 0 /*'moov' conversion tests*/
 	{
