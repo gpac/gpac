@@ -61,7 +61,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 
 	afra->entry_count = 1;
 	ae->time = init_seg_time;
-	ae->offset = 31663;
+	ae->offset = 3999;
 	gf_list_add(afra->local_access_entries, ae);
 
 	afra->global_entries = 0;
@@ -101,7 +101,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 		asrt->flags = 0;
 		asrt->segment_run_entry_count = 1;
 		{
-			asre->first_segment = 1;
+			asre->first_segment = ctx->segnum;
 			asre->fragment_per_segment = 1;
 		}
 		e = gf_list_add(asrt->segment_run_entry_table, asre);
@@ -124,7 +124,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 		afrt->type = GF_4CC('a', 'f', 'r', 't');
 		afrt->version = 0;
 		afrt->flags = 0;
-		afrt->timescale = 1000;
+		afrt->timescale = gf_isom_get_timescale(isom_file);
 		afrt->fragment_run_entry_count = 1;
 		{
 			afre->first_fragment = 1;
