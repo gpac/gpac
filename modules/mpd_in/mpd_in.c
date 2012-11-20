@@ -549,14 +549,17 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Description request from terminal for %s\n", sub_url));
 	for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+		GF_Descriptor *desc;
 		GF_MPDGroup *mudta;
 		if (!gf_dash_is_group_selected(mpdin->dash, i))
 			continue;
 		mudta = gf_dash_get_group_udta(mpdin->dash, i);
 		if (!mudta) continue;
 		if (mudta->service_descriptor_fetched) continue;
-		mudta->service_descriptor_fetched = 1;
-		return mudta->segment_ifce->GetServiceDescriptor(mudta->segment_ifce, expect_type, sub_url);
+
+		desc = mudta->segment_ifce->GetServiceDescriptor(mudta->segment_ifce, expect_type, sub_url);
+		if (desc) mudta->service_descriptor_fetched = 1;
+		return desc;
 	}
 	return NULL;
 }
