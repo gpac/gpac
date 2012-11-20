@@ -3405,8 +3405,8 @@ int mp4boxMain(int argc, char **argv)
 				n = t = 0;
 				memset(_t, 0, sizeof(char)*8);
 				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
-				if (sscanf(val, "%u/%u", &n, &t) == 2) { _t[3]=n; _t[5]=t;}
-				else if (sscanf(val, "%u", &n) == 1) { _t[3]=n;}
+				if (sscanf(val, "%u/%u", &n, &t) == 2) { _t[3]=n; _t[2]=n>>8; _t[5]=t; _t[4]=t>>8; }
+				else if (sscanf(val, "%u", &n) == 1) { _t[3]=n; _t[2]=n>>8;}
 				else tlen = 0;
 				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
 			}

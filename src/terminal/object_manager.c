@@ -314,9 +314,22 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	}
 
 	desc = odm->net_service->ifce->GetServiceDescriptor(odm->net_service->ifce, od_type, sub_url); 
-	if (odm->OD) return;
+
+	/*entry point is already setup (bad design in GPAC, happens with BIFS TS and DASH*/
+	if (odm->OD) {
+		if (!desc) return;
+		if (gf_list_count(odm->OD->ESDescriptors)) {
+			gf_odf_desc_del(desc);
+			return;
+		}
+		gf_odf_desc_del((GF_Descriptor *) odm->OD);
+		odm->OD=NULL;
+	}
 
 	if (!desc) {
+		if (odm->OD && !gf_list_count(odm->OD->ESDescriptors)) 
+			return;
+
 		/*if desc is NULL for a media, the media will be declared later by the service (gf_term_media_add)*/
 		if (od_type != GF_MEDIA_OBJECT_SCENE) {
 			return;

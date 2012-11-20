@@ -894,6 +894,9 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 				return desc;
 			}
 		}
+		/*if we expect scene, return NULL and repost a connection ack when we get the PMT*/
+		if (expect_type==GF_MEDIA_OBJECT_SCENE) 
+			return NULL;
 		if (m2ts->epg_requested) {
 			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
 			m2ts->epg_requested = 0;
