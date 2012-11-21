@@ -46,12 +46,7 @@ js32.dll = 1
 gm_aac_in.dll = 1
 gm_bifs_dec.dll = 1
 gm_ctx_load.dll = 1
-gm_dummy_in.dll = 1
-gm_ffmpeg_in.dll = 1
-avcodec-52.dll = 1
-avformat-52.dll = 1
-avutil-50.dll = 1
-swscale-0.dll = 1
+gm_dummy_in.dll = 1 
 gm_ft_font.dll = 1
 gm_gapi.dll = 1
 gm_gpac_js.dll = 1
@@ -71,7 +66,12 @@ gm_wav_out.dll = 1
 gm_widgetman.dll = 1
 gm_xvid_dec.dll = 1
 gm_ogg.dll = 1
-
+;commenting out ffmpeg since we no longer have a recent version (and no one uses smartphone 2003 anymore ...)
+;gm_ffmpeg_in.dll = 1
+;avcodec-52.dll = 1
+;avformat-52.dll = 1
+;avutil-50.dll = 1
+;swscale-0.dll = 1
 
 ;==================================================
 
