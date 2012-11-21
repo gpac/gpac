@@ -2451,6 +2451,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	GF_TrackBox *trak, *new_tk;
 	GF_BitStream *bs;
 	char *data;
+	const char *buffer;
 	u32 data_size;
 	Double ts_scale;
 	GF_Err e;
@@ -2509,6 +2510,12 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	}
 
 	moov_AddBox((GF_Box*)dest_file->moov, (GF_Box *)new_tk);
+
+	/*set originalID*/
+	new_tk->originalID = trak->Header->trackID;
+	/*set originalFile*/
+	buffer = gf_isom_get_filename(orig_file);
+	new_tk->originalFile = gf_crc_32(buffer, sizeof(buffer));
 
 	/*rewrite edit list segmentDuration to new movie timescale*/
 	ts_scale = dest_file->moov->mvhd->timeScale;
@@ -2974,6 +2981,32 @@ GF_Err gf_isom_set_track_id(GF_ISOFile *movie, u32 trackNumber, u32 trackID)
 	return GF_OK;
 }
 
+/*force to rewrite all dependencies when the trackID of referenced track changes*/
+GF_EXPORT
+GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_TrackReferenceTypeBox *ref;
+	GF_TrackBox *trak, *a_trak;
+	u32 i, k;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak)
+		return GF_BAD_PARAM;
+	if (!trak->References) 
+		return GF_OK;
+
+	i=0;
+	while ((ref = (GF_TrackReferenceTypeBox *)gf_list_enum(trak->References->other_boxes, &i))) {
+		for (k=0; k < ref->trackIDCount; k++) {
+			a_trak = gf_isom_get_track_from_original_id(movie->moov, ref->trackIDs[k], trak->originalFile);
+			if (!a_trak)
+				return GF_BAD_PARAM;
+			ref->trackIDs[k] = a_trak->Header->trackID;
+		}
+	}
+
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset)

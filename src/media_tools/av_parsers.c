@@ -2792,6 +2792,31 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_avc_get_pps_info(char *pps_data, u32 pps_size, u32 *pps_id, u32 *sps_id)
+{
+	GF_BitStream *bs;
+	char *pps_data_without_emulation_bytes = NULL;
+	u32 pps_data_without_emulation_bytes_size = 0;
+	GF_Err e = GF_OK;
+
+	/*PPS still contains emulation bytes*/
+	pps_data_without_emulation_bytes = gf_malloc(pps_size*sizeof(char));
+	pps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(pps_data, pps_data_without_emulation_bytes, pps_size);
+	bs = gf_bs_new(pps_data_without_emulation_bytes, pps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	if (!bs) {
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		goto exit;
+	}
+	*pps_id = avc_get_ue(bs);  
+	*sps_id = avc_get_ue(bs);
+
+exit:
+	gf_bs_del(bs);
+	gf_free(pps_data_without_emulation_bytes);
+	return e;
+}
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 

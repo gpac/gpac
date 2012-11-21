@@ -528,6 +528,9 @@ typedef struct
 	char *name;
 	/*private for editing*/
 	Bool is_unpacked;
+	/*private for checking dependency*/
+	u32 originalFile;
+	u32 originalID;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u64 dts_at_seg_start;
@@ -788,6 +791,7 @@ typedef struct
 	GF_SLConfig *slc;
 } GF_LASeRSampleEntryBox;
 
+/*rewrites avcC based on the given esd - this destroys the esd*/
 GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd);
 
 typedef struct
@@ -2416,6 +2420,7 @@ GF_ISOFile *gf_isom_new_movie();
 GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *the_file, u32 trackNumber);
 GF_TrackBox *gf_isom_get_track(GF_MovieBox *moov, u32 trackNumber);
 GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, u32 trackID);
+GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalID, u32 originalFile);
 u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID);
 /*open a movie*/
 GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir);
@@ -2575,6 +2580,7 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a);
 GF_Err mdia_AddBox(GF_Box *s, GF_Box *a);
 GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
 
+/*rewrites avcC based on the given esd - this destroys the esd*/
 GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);

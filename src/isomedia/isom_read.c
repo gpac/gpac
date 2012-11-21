@@ -405,6 +405,16 @@ u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID)
 	return 0;
 }
 
+GF_EXPORT
+u32 gf_isom_get_track_original_ID(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+	if (!movie) return 0;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return 0;
+	return trak->originalID;
+}
+
 //return the timescale of the movie, 0 if error
 GF_EXPORT
 Bool gf_isom_has_movie(GF_ISOFile *file)
@@ -622,10 +632,35 @@ GF_Err gf_isom_get_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceTy
 	return GF_OK;
 }
 
-//Return the number of track references of a track for a given ReferenceType
+//Return the referenced track ID for a track and a given ReferenceType and Index
+//return -1 if error, 0 if the reference is a NULL one, or the trackNumber
+GF_EXPORT
+GF_Err gf_isom_get_reference_ID(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 referenceIndex, u32 *refTrackID)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_TrackReferenceTypeBox *dpnd;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+
+	*refTrackID = 0;
+	if (!trak || !trak->References) return GF_BAD_PARAM;
+
+	dpnd = NULL;
+	e = Track_FindRef(trak, referenceType, &dpnd);
+	if (e) return e;
+	if (!dpnd) return GF_BAD_PARAM;
+
+	if (referenceIndex > dpnd->trackIDCount) return GF_BAD_PARAM;
+
+	*refTrackID = dpnd->trackIDs[referenceIndex-1];
+
+	return GF_OK;
+}
+
+//Return referenceIndex if the given track has a reference to the given TreckID of a given ReferenceType
 //return -1 if error
 GF_EXPORT
-Bool gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID)
+u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID)
 {
 	u32 i;
 	GF_TrackBox *trak;
@@ -638,7 +673,7 @@ Bool gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referen
 	if ( (movie->LastError = Track_FindRef(trak, referenceType, &dpnd)) ) return 0;
 	if (!dpnd) return 0;
 	for (i=0; i<dpnd->trackIDCount; i++) {
-		if (dpnd->trackIDs[i]==refTrackID) return 1;
+		if (dpnd->trackIDs[i]==refTrackID) return i+1;
 	}
 	return 0;
 }
