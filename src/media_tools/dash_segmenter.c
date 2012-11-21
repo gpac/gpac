@@ -2448,6 +2448,8 @@ static GF_Err dasher_mp2t_get_components_info(GF_DashSegInput *dash_input, GF_DA
 	return GF_OK;
 }
 
+#define NB_TSPCK_IO_BYTES 18800
+
 static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenterOptions *dash_cfg, Bool first_in_set)
 {	
 	GF_TSSegmenter ts_seg;
@@ -2517,10 +2519,11 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			sscanf(opt, LLU, &offset);
 
 			while (!feof(ts_seg.src) && !ts_seg.has_seen_pat) {
-				char data[188];
-				u32 size = fread(data, 1, 188, ts_seg.src);
-				if (size<188) break;
+				char data[NB_TSPCK_IO_BYTES];
+				u32 size = fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
 				gf_m2ts_process_data(ts_seg.ts, data, size);
+
+				if (size<NB_TSPCK_IO_BYTES) break;
 			}
 			gf_m2ts_reset_parsers(ts_seg.ts);
 
@@ -2535,10 +2538,10 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 	/*index the file*/
 	while (!feof(ts_seg.src) && !ts_seg.suspend_indexing) {
-		char data[188];
-		u32 size = fread(data, 1, 188, ts_seg.src);
-		if (size<188) break;
+		char data[NB_TSPCK_IO_BYTES];
+		u32 size = fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
 		gf_m2ts_process_data(ts_seg.ts, data, size);
+		if (size<NB_TSPCK_IO_BYTES) break;
 	}
 	if (feof(ts_seg.src)) ts_seg.suspend_indexing = 0;
 
@@ -2618,9 +2621,6 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 		if (dash_input->components[i].sample_rate) 
 			fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", dash_input->components[i].sample_rate);
-
-		if (dash_input->components[i].szLang[0]) 
-			fprintf(dash_cfg->mpd, " lang=\"%s\"", dash_input->components[i].szLang);
 	}
 	if (strlen(szCodecs))
 		fprintf(dash_cfg->mpd, " codecs=\"%s\"", szCodecs);
@@ -2658,7 +2658,8 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			}
 		} else {
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index);
-			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", dash_cfg->seg_rad_name ? SegName : dash_input->file_name);
+			if (dash_cfg->single_file_mode)
+				fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", dash_cfg->seg_rad_name ? SegName : dash_input->file_name);
 			fprintf(dash_cfg->mpd, "    <SegmentList timescale=\"90000\" duration=\"%d\"", (u32) (90000*dash_cfg->segment_duration)); 
 			if (dash_cfg->time_shift_depth>=0) 
 				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", ts_seg.sidx->earliest_presentation_time + pcr_shift); 
@@ -2670,7 +2671,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		}
 
 		/*rewrite previous SegmentList entries*/
-		if ((dash_cfg->single_file_mode==2) || (!dash_cfg->single_file_mode && !dash_cfg->use_url_template)) {
+		if ( dash_cfg->dash_ctx && ((dash_cfg->single_file_mode==2) || (!dash_cfg->single_file_mode && !dash_cfg->use_url_template))) {
 			/*rewrite previous URLs*/
 			const char *opt;
 			u32 count, i;
@@ -2699,7 +2700,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			src = gf_f64_open(dash_input->file_name, "rb");
 			start = ts_seg.sidx->first_offset;
 			for (i=0; i<ts_seg.sidx->nb_refs; i++) {
-				char buf[4096];
+				char buf[NB_TSPCK_IO_BYTES];
 				GF_SIDXReference *ref = &ts_seg.sidx->refs[i];
 
 				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "ts", 0, bandwidth, segment_index);
@@ -2719,8 +2720,8 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					end = start+ref->reference_size;
 					while (pos<end) {
 						u32 res;
-						u32 to_read = 3760;
-						if (pos+3760 >= end) {
+						u32 to_read = NB_TSPCK_IO_BYTES;
+						if (pos+NB_TSPCK_IO_BYTES >= end) {
 							to_read = (u32) (end-pos);
 						}
 						res = fread(buf, 1, to_read, src);
@@ -2762,15 +2763,15 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 	if (rewrite_input) {
 		FILE *in, *out;
-		char buf[3760];
+		char buf[NB_TSPCK_IO_BYTES];
 
 		in = gf_f64_open(dash_input->file_name, "rb");
 		out = gf_f64_open(SegName, "wb");
 		while (1) {
-			u32 read = fread(buf, 1, 3760, in);
-			if (!read) break;
+			u32 read = fread(buf, 1, NB_TSPCK_IO_BYTES, in);
 			gf_m2ts_restamp(buf, read, pcr_shift, is_pes);
 			fwrite(buf, 1, read, out);
+			if (read<NB_TSPCK_IO_BYTES) break;
 		}
 		fclose(in);
 		fclose(out);
@@ -3000,8 +3001,6 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	
 	if (first_rep) {
 		u32 i;
-		char langCode[4];
-		langCode[3] = 0;
 
 		if (bitstream_switching_mode) {
 			for (i=0; i<first_rep->nb_components; i++) {
@@ -3034,7 +3033,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 				}
 				/*if lang not specified at adaptationSet level, put it here*/
 				if ((!szLang || !szLang[0]) && comp->szLang[0]) {
-					fprintf(mpd, " lang=\"%s\"", langCode);
+					fprintf(mpd, " lang=\"%s\"", comp->szLang);
 				}
 				fprintf(mpd, "/>\n");
 			}

@@ -3235,13 +3235,13 @@ GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 				}
 				pck[11] = (unsigned char)(0xff&pcr_ext);
 			}
+			/*add adaptation_field_length field*/
+			adaptation_field_length++;
 		}
 		if (!is_pes[pid] || !(pck[1]&0x40)) {
 			done+=188;
 			continue;
 		}
-		if (adaptation_field_length)
-			adaptation_field_length++; /*add adaptation_field_length field*/
 
 		pesh = &pck[4+adaptation_field_length];
 
