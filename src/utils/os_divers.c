@@ -309,7 +309,7 @@ int gettimeofday(struct timeval *tp, struct timezone *tzp)
 }
 
 
-#if 0
+#if _GPAC_UNUSED
 /*
 	time between jan 1, 1601 and jan 1, 1970 in units of 100 nanoseconds 
 	FILETIME in Win32 is from jan 1, 1601
