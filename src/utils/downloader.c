@@ -1039,8 +1039,10 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 
 static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
 {
+#ifdef GPAC_HAS_SSL
     GF_Err e;
-    if (!sess)
+#endif
+	if (!sess)
         return GF_BAD_PARAM;
 #ifdef GPAC_HAS_SSL
     if (sess->ssl) {

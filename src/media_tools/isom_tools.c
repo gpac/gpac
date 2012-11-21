@@ -890,7 +890,7 @@ static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 	u32 max_size = 4096;
 	u32 size, nalu_size_length;
 	u8 nal_type;
-	s32 DQId;
+	s32 DQId=0;
 
 	samp = NULL;
 	bs = NULL;
@@ -984,6 +984,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	is_splited = (gf_isom_get_avc_svc_type(file, track, 1) == GF_ISOM_AVCTYPE_AVC_SVC) ? 0 : 1;
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	cfg = NULL;
+	num_svc_track=0;
 	num_sps = gf_list_count(svccfg->sequenceParameterSets);
 	num_pps = gf_list_count(svccfg->pictureParameterSets);
 
