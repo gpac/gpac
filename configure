@@ -144,6 +144,7 @@ disable_isoff_write="no"
 disable_isoff_frag="no"
 disable_isoff_hint="no"
 disable_isoff_frag="no"
+disable_isoff_hds="no"
 disable_streaming="no"
 disable_player="no"
 disable_scenegraph="no"
@@ -277,6 +278,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-isoff-write    disable ISO File Format edit/write
   --disable-isoff-hint     disable ISO File Format hinting
   --disable-isoff-frag     disable fragments in ISO File Format
+  --disable-isoff-hds      disable HDS support in ISO File Format
   --disable-streaming      disable RTP/RTSP/SDP
   --disable-dvbx           disable DVB-specific tools (MPE, FEC, DSM-CC)
   --disable-vobsub         disable VobSub support
@@ -1723,7 +1725,7 @@ for opt do
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
 
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds = "yes"
             ;;
 
         --disable-3d) disable_3d="yes"
@@ -1859,6 +1861,10 @@ for opt do
         --disable-isoff-frag) disable_isoff_frag="yes"
             ;;
         --enable-isoff-frag) disable_isoff_frag="no"
+            ;;
+        --disable-isoff-hds) disable_isoff_hds="yes"
+            ;;
+        --enable-isoff-hds) disable_isoff_hds="no"
             ;;
         --disable-streaming) disable_streaming="yes"
             ;;
@@ -2399,6 +2405,11 @@ if test "$disable_isoff_frag" = "yes" ; then
     echo "ISO File Format fragments disabled"
     echo "#define GPAC_DISABLE_ISOM_FRAGMENTS" >> $TMPH
 fi
+if test "$disable_isoff_hds" = "yes" ; then
+    echo "ISO File Format Adobe HDS disabled"
+    echo "#define GPAC_DISABLE_ISOM_ADOBE" >> $TMPH
+fi
+
 if test "$disable_streaming" = "yes" ; then
     echo "RTP/RTSP/SDP streaming disabled"
     echo "#define GPAC_DISABLE_STREAMING" >> $TMPH
@@ -2759,6 +2770,7 @@ echo "DISABLE_CORE_TOOLS=$disable_core_tools" >> config.mak
 echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
 echo "MINIMAL_OD=$disable_od" >> config.mak
+echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
