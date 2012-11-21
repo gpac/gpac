@@ -18,13 +18,7 @@ fi
 
 
 #remember the ./configure command line
-for v in "$@"; do
-    r="${v#*=}"
-    l="${v%$r}"
-    test "$r" = "${r#* }" || r="'$r'"
-    GPAC_CONFIGURATION="${GPAC_CONFIGURATION# } ${l}${r}"
-done
-
+GPAC_CONFIGURATION="$@"
 
 TMPC="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"

@@ -1419,7 +1419,7 @@ GF_EXPORT
 GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 {
 	GF_AVCConfig *svccfg, *cfg;
-	u32 merge_track,  num_track, num_sample, size, i, t, di, max_size, nalu_size_length, ref_trackNum, ref_trackID, count, width, height, nb_EditList, media_ts, moov_ts, timescale;
+	u32 merge_track,  num_track, num_sample, size, i, t, di, max_size, nalu_size_length, ref_trackNum, ref_trackID, count, width, height, nb_EditList, media_ts, moov_ts;
 	GF_ISOSample *avc_samp, *samp, *dst_samp;
 	GF_BitStream *bs, *dst_bs;
 	GF_Err e;
@@ -1447,8 +1447,6 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	
 	if (gf_isom_get_avc_svc_type(file, track, 1) == GF_ISOM_AVCTYPE_AVC_SVC)
 		goto exit;
-
-	timescale = gf_isom_get_media_timescale(file, track);
 
 	num_track = gf_isom_get_track_count(file);
 	if (num_track == 1) 
