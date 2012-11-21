@@ -690,7 +690,7 @@ GF_Err gf_cleanup_dir(char* DirPathName);
  *	\param size buffer size
  *	\return computed CRC32
  */
-u32 gf_crc_32(char *data, u32 size);
+u32 gf_crc_32(const char *data, u32 size);
 
 
 /*!\brief run-time system info object

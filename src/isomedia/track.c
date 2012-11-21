@@ -887,7 +887,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 			
 		default:
-			gf_odf_desc_del((GF_Descriptor *) esd);
+			//gf_odf_desc_del((GF_Descriptor *) esd);
 			break;
 		}
 	} else {

@@ -183,8 +183,8 @@ GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 			if (avc->avc_config->config) gf_odf_avc_cfg_del(avc->avc_config->config);
 			avc->avc_config->config = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		}
-		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
+	gf_odf_desc_del((GF_Descriptor *)esd);
 	AVC_RewriteESDescriptor(avc);
 	return GF_OK;
 }

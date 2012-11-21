@@ -37,7 +37,7 @@
 //#define GPAC_FIXED_POINT
 
 /*automatic tracking is disabled by default, causes too many problems when reusing parts of gpac*/
-#if 0
+#if 1
 /*enables GPAC memory tracking*/
 #if defined(DEBUG) || defined(_DEBUG)
 #define GPAC_MEMORY_TRACKING

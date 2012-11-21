@@ -635,6 +635,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_decoder_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_reference_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_reference) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_reference_ID) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_brand_info) )
@@ -694,6 +695,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_rvc_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_rap_roll_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_fragment_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_original_ID) )
 
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
@@ -723,6 +725,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_creation_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_rewrite_track_dependencies) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_shadow) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_append_sample_data) )
@@ -1088,6 +1091,7 @@
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_sps_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_pps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_profile_name) )
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

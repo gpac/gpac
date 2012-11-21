@@ -413,6 +413,9 @@ u32 gf_isom_get_track_id(GF_ISOFile *the_file, u32 trackNumber);
 /*return the track number of the track of specified ID, or 0 if error*/
 u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID);
 
+/*return the original trackID of the track number n, or 0 if error*/
+u32 gf_isom_get_track_original_ID(GF_ISOFile *movie, u32 trackNumber);
+
 /*gets the enable flag of a track 0: NO, 1: yes, 2: error*/
 u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber);
 
@@ -625,8 +628,13 @@ return -1 if error, 0 if the reference is a NULL one, or the trackNumber
 */
 GF_Err gf_isom_get_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 referenceIndex, u32 *refTrack);
 
-/*Return 1 if the given track has a reference to the given TreckID of a given ReferenceType, 0 otherwise*/
-Bool gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID);
+/*Return the referenced track ID for a track and a given ReferenceType and Index
+return -1 if error, 0 if the reference is a NULL one, or the trackNumber
+*/
+GF_Err gf_isom_get_reference_ID(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 referenceIndex, u32 *refTrackID);
+
+/*Return referenceIndex if the given track has a reference to the given TreckID of a given ReferenceType, 0 otherwise*/
+u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID);
 
 u8 gf_isom_get_pl_indication(GF_ISOFile *the_file, u8 PL_Code);
 
@@ -793,6 +801,9 @@ GF_Err gf_isom_set_track_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 ti
 /*changes the trackID - all track references present in the file are updated
 returns error if trackID is already in used in the file*/
 GF_Err gf_isom_set_track_id(GF_ISOFile *the_file, u32 trackNumber, u32 trackID);
+
+/*force to rewrite all dependencies when trackID changes*/
+GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber);
 
 /*Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample);

@@ -220,6 +220,7 @@ u32 gf_ac3_get_channels(u32 acmod);
 u32 gf_ac3_get_bitrate(u32 brcode);
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
 const char *gf_avc_get_profile_name(u8 video_prof);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

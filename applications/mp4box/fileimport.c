@@ -425,7 +425,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
-
+	
 	if (!import.nb_tracks) {
 		u32 count, o_count;
 		o_count = gf_isom_get_track_count(import.dest);
@@ -492,8 +492,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			gf_isom_set_composition_offset_mode(import.dest, i+1, negative_cts_offset);
 
-			/*when importing SVC we ALWAYS have AVC+SVC single track mode*/
-			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)==GF_ISOM_AVCTYPE_AVC_SVC)
+			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = i+1;
 		}
 	} else {
@@ -618,8 +617,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			
 			gf_isom_set_composition_offset_mode(import.dest, track, negative_cts_offset);
 
-			/*when importing SVC we ALWAYS have AVC+SVC single track mode*/
-			if (gf_isom_get_avc_svc_type(import.dest, track, 1)==GF_ISOM_AVCTYPE_AVC_SVC)
+			if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = track;
 		}
 		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
@@ -633,6 +631,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		} else {
 			e = gf_isom_add_chapter(import.dest, 0, 0, chapter_name);
 		}
+	}
+
+	/*force to rewrite all dependencies*/
+	for (i = 1; i <= gf_isom_get_track_count(import.dest); i++)
+	{
+		e = gf_isom_rewrite_track_dependencies(import.dest, i);
+		if (e)
+			//goto exit;
+			fprintf(stderr, "Warning: track ID %d references to a track not imported\n", gf_isom_get_track_id(import.dest, i));
 	}
 
 	if (check_track_for_svc) {

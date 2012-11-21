@@ -118,7 +118,7 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 	esd->decoderConfig->avgBitrate = 0;
 	esd->decoderConfig->maxBitrate = 0;
 	rate = max_rate = avg_rate = time_wnd = 0;
-
+	
 	timescale = gf_isom_get_media_timescale(file, track);
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
@@ -4475,7 +4475,7 @@ restart_import:
 		}
 		nal_start = gf_bs_get_position(bs);
 	}
-
+	
 	/*final flush*/
 	if (sample_data) {
 		GF_ISOSample *samp = gf_isom_sample_new();
