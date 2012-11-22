@@ -52,7 +52,7 @@ struct _dash_component
 	/*for audio*/
 	u32 sample_rate, channels;
 	/*for anything*/
-	char szLang[4];
+	char szLang[5];
 };	
 
 typedef struct
@@ -3395,7 +3395,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 	}
 
-
 	/*check requested profiles can be generated, or adjust them*/
 	if (max_sap_type>=3) {
 		if (dash_profile) {
@@ -3416,7 +3415,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			seg_name = szSegName;
 		}
 	}
-
 
 	/*adjust params based on profiles*/
 	switch (dash_profile) {
@@ -3464,7 +3462,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Spliting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : ""));
 	}
 
-
 	dash_opts.mpd_name = mpdfile;
 	dash_opts.segments_start_with_rap = seg_at_rap;
 	dash_opts.segment_duration = dash_duration;
@@ -3479,7 +3476,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.dash_ctx = dash_ctx;
 	dash_opts.time_shift_depth = (s32) time_shift_depth;
 	dash_opts.subduration = subduration;
-
 	for (cur_period=0; cur_period<max_period; cur_period++) {
 		u32 first_in_period = 0;
 		Double period_duration=0;
