@@ -2479,17 +2479,23 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	ts_seg.bandwidth = (u32) (ts_seg.file_size * 8 / dash_input->duration);	
 
 	/*create bitstreams*/
-	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0);	
 
 	segment_index = 1;
 	startNumberRewind = 0;
-
 	ts_seg.index_file = NULL;
 	ts_seg.index_bs = NULL;
 	if (!dash_cfg->dash_ctx && (dash_cfg->use_url_template != 2)) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		GF_SegmentTypeBox *styp;
+
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0);	
+
 		ts_seg.index_file = gf_f64_open(IdxName, "wb");
+		if (!ts_seg.index_file) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create index file %s\n", IdxName));
+			e = GF_IO_ERR;
+			goto exit;
+		}
 		ts_seg.index_bs = gf_bs_from_file(ts_seg.index_file, GF_BITSTREAM_WRITE);
 
 		styp = (GF_SegmentTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_STYP);
@@ -2503,6 +2509,8 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		gf_isom_box_del((GF_Box *)styp);
 #endif
 	}
+
+	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0);	
 
 	ts_seg.PCR_DTS_initial_diff = (u64) -1;
 	ts_seg.subduration = (u32) (dash_cfg->subduration * 90000);
@@ -2631,14 +2639,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 	if (dash_cfg->single_file_mode==1) {
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index);
-		fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", dash_cfg->seg_rad_name ? SegName : dash_input->file_name);
+		fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", SegName);
 
 		fprintf(dash_cfg->mpd, "    <SegmentBase>\n");
 		fprintf(dash_cfg->mpd, "     <RepresentationIndex sourceURL=\"%s\"/>\n", IdxName);
 		fprintf(dash_cfg->mpd, "    </SegmentBase>\n");
 
 		/*we rewrite the file*/
-		if (dash_cfg->seg_rad_name) rewrite_input = 1;
+		rewrite_input = 1;
 	} else {
 		if (dash_cfg->seg_rad_name && dash_cfg->use_url_template) {
 			if (dash_cfg->variable_seg_rad_name) {
@@ -2659,7 +2667,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		} else {
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index);
 			if (dash_cfg->single_file_mode)
-				fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", dash_cfg->seg_rad_name ? SegName : dash_input->file_name);
+				fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n",SegName);
 			fprintf(dash_cfg->mpd, "    <SegmentList timescale=\"90000\" duration=\"%d\"", (u32) (90000*dash_cfg->segment_duration)); 
 			if (dash_cfg->time_shift_depth>=0) 
 				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", ts_seg.sidx->earliest_presentation_time + pcr_shift); 
@@ -2691,7 +2699,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				fprintf(dash_cfg->mpd, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"/>\n", start, start+ref->reference_size-1);
 				start += ref->reference_size;
 			}
-			if (dash_cfg->seg_rad_name) rewrite_input = 1;
+			rewrite_input = 1;
 
 		} else {
 			FILE *src, *dst;
@@ -2703,12 +2711,18 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				char buf[NB_TSPCK_IO_BYTES];
 				GF_SIDXReference *ref = &ts_seg.sidx->refs[i];
 
-				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "ts", 0, bandwidth, segment_index);
+				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "ts", 0, bandwidth, segment_index);
 
 				/*warning - we may introduce repeated sequence number when concatenating files. We should use switching 
 				segments to force reset of the continuity counter for all our pids - we don't because most players don't car ...*/
 				if (dash_cfg->use_url_template != 2) {
 					dst = gf_f64_open(SegName, "wb");
+					if (!dst) {
+						fclose(src);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
+						e = GF_IO_ERR;
+						goto exit;
+					}
 
 					gf_dasher_store_segment_info(dash_cfg, SegName, current_time);
 					dur = ref->subsegment_duration;
@@ -2738,9 +2752,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					fclose(dst);
 				}
 				start += ref->reference_size;
-				segment_index++;
 
 				if (!dash_cfg->use_url_template) {
+					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "ts", 0, bandwidth, segment_index);
 					fprintf(dash_cfg->mpd, "     <SegmentURL media=\"%s\"/>\n", SegName);
 
 					if (dash_cfg->dash_ctx) {
@@ -2751,6 +2765,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					}
 				}
 
+				segment_index++;
 				gf_set_progress("Extracting segment ", i+1, ts_seg.sidx->nb_refs);
 			}
 			fclose(src);
@@ -2763,14 +2778,27 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 	if (rewrite_input) {
 		FILE *in, *out;
+		u64 fsize, done;
 		char buf[NB_TSPCK_IO_BYTES];
 
-		in = gf_f64_open(dash_input->file_name, "rb");
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, dash_cfg->seg_rad_name ? basename : szOutName, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index);
 		out = gf_f64_open(SegName, "wb");
+		if (!out) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
+			e = GF_IO_ERR;
+			goto exit;
+		}
+		in = gf_f64_open(dash_input->file_name, "rb");
+		gf_f64_seek(in, 0, SEEK_END);
+		fsize = gf_f64_tell(in);
+		gf_f64_seek(in, 0, SEEK_SET);
+		done = 0;
 		while (1) {
 			u32 read = fread(buf, 1, NB_TSPCK_IO_BYTES, in);
 			gf_m2ts_restamp(buf, read, pcr_shift, is_pes);
 			fwrite(buf, 1, read, out);
+			done+=read;
+			gf_set_progress("Extracting segment ", done/188, fsize/188);
 			if (read<NB_TSPCK_IO_BYTES) break;
 		}
 		fclose(in);
@@ -2811,13 +2839,13 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		gf_isom_box_write((GF_Box *)ts_seg.pcrb, ts_seg.index_bs);
 	}
 
+exit:
 	if (ts_seg.sidx) gf_isom_box_del((GF_Box *)ts_seg.sidx);
 	if (ts_seg.pcrb) gf_isom_box_del((GF_Box *)ts_seg.pcrb);
 	if (ts_seg.index_file) fclose(ts_seg.index_file);
 	if (ts_seg.index_bs) gf_bs_del(ts_seg.index_bs);
 	dasher_del_ts_demux(&ts_seg);
-
-	return GF_OK;
+	return e;
 }
 
 #endif //GPAC_DISABLE_MPEG2TS
