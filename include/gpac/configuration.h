@@ -58,6 +58,9 @@
 #define MOZILLA_1_8_BRANCH
 #endif
 
+/*zlib enabled*/
+#define GPAC_DISABLE_ZLIB
+
 /*libjpeg enabled*/
 #define GPAC_HAS_JPEG
 

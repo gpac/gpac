@@ -174,6 +174,9 @@ u32 gf_base16_decode(char *in, u32 inSize, char *out, u32 outSize)
 	return j;
 }
 
+
+#ifndef GPAC_DISABLE_ZLIB
+
 #include <zlib.h>
 
 #define ZLIB_COMPRESS_SAFE	4
@@ -266,3 +269,5 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	}
 	return e;
 }
+
+#endif /*GPAC_DISABLE_ZLIB*/

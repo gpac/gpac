@@ -84,8 +84,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crc_32) )
+#ifndef GPAC_DISABLE_ZLIB
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
+#endif
 
 /* Memory */
 #ifdef GPAC_MEMORY_TRACKING

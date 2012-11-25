@@ -28,10 +28,10 @@
 #include <gpac/internal/swf_dev.h>
 #include <gpac/avparse.h>
 
+#if !defined(GPAC_DISABLE_SWF_IMPORT) && !defined(GPAC_DISABLE_ZLIB)
+
+
 #include <zlib.h>
-
-#ifndef GPAC_DISABLE_SWF_IMPORT
-
 
 enum
 {

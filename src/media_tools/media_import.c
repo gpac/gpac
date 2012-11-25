@@ -38,8 +38,6 @@
 #include <gpac/xml.h>
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
-/*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
-#include <zlib.h>
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -2478,6 +2476,12 @@ exit:
 	return e;
 }
 
+
+#ifndef GPAC_DISABLE_ZLIB
+
+/*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
+#include <zlib.h>
+
 #define ZLIB_COMPRESS_SAFE	4
 
 static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dict, u32 offset)
@@ -2533,6 +2537,8 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 	deflateEnd(&stream);
 	return GF_OK;
 }
+
+#endif /*GPAC_DISABLE_ZLIB*/
 
 static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 {
@@ -3003,6 +3009,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 
 		if (compress) {
+#ifndef GPAC_DISABLE_ZLIB
 			e = compress_sample_data(samp, &max_size, use_dict ? &dictionary : NULL, is_dims ? 3 : 0);
 			if (e) goto exit;
 			if (is_dims) {
@@ -3010,6 +3017,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				gf_bs_write_u16(bs, samp->dataLength-2);
 				gf_bs_del(bs);
 			}
+#else
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compile with no libz support. Abort."));
+			e = GF_NOT_SUPPORTED;
+			goto exit;
+#endif
 		}
 		if (is_dims && (samp->dataLength > 0xFFFF)) {
 			e = gf_import_message(import, GF_BAD_PARAM, "DIMS import failure: sample data is too long - maximum size allowed: 65532 bytes");
