@@ -417,10 +417,16 @@ start:
 	assert(fsize < 1<<31);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
 	if (compress_dims) {
+#ifndef GPAC_DISABLE_ZLIB
 		dims_header |= GF_DIMS_UNIT_C;
 		e = gf_gz_compress_payload(&buffer, buffer_len, &buffer_len);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len)); 
 		if (e) goto exit;
+#else
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compile with no libz support. Abort."));
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+#endif
 	}
     GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\n")); 
 

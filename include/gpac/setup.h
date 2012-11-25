@@ -425,6 +425,11 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 	
 /*safety checks on macros*/
 
+#ifdef GPAC_DISABLE_ZLIB
+# define GPAC_DISABLE_LOADER_BT
+# define GPAC_DISABLE_SWF_IMPORT
+#endif
+
 #ifdef GPAC_DISABLE_VRML
 # ifndef GPAC_DISABLE_BIFS
 # define GPAC_DISABLE_BIFS

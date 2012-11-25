@@ -42,8 +42,9 @@
 #include <gpac/internal/vobsub.h>
 #endif
 
-
+#ifndef GPAC_DISABLE_ZLIB
 #include <zlib.h>
+#endif
 
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc);
 
@@ -1848,6 +1849,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 				if (flags & GF_DIMS_UNIT_C) fprintf(nhml, " compressed=\"yes\"");
 				fprintf(nhml, ">");
 				if (uncompress && (flags & GF_DIMS_UNIT_C)) {
+#ifndef GPAC_DISABLE_ZLIB
 					char svg_data[2049];
 					int err;
 					u32 done = 0;
@@ -1874,6 +1876,14 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 						}
 						inflateEnd(&d_stream);
 					}
+#else
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compile with no libz support."));
+					gf_bs_del(bs);
+					gf_isom_sample_del(&samp);
+					if (med) fclose(med);
+					fclose(nhml);
+					return GF_NOT_SUPPORTED;
+#endif
 				} else {
 					gf_fwrite(samp->data+pos+3, size-1, 1, nhml);
 				}

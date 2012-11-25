@@ -26,11 +26,16 @@
 
 #include <gpac/xml.h>
 #include <gpac/utf.h>
+
+#ifndef GPAC_DISABLE_ZLIB
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 #pragma comment(lib, "zlib")
+#endif
+#else
+#define NO_GZIP
 #endif
 
 
@@ -1294,7 +1299,11 @@ GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
 {
 	u32 state, att_len, alloc_size;
+#ifdef NO_GZIP
+	u64 pos;
+#else
 	z_off_t pos;
+#endif
 	Bool from_buffer;
 	Bool dobreak=0;
 	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
