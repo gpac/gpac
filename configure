@@ -290,7 +290,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
 Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
   --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
   --use-ft=OPT             force FreeType OPT=[no,local]
-  --use-zlib=OPT           force ZLIB OPT=[no,local]
+  --use-zlib=OPT           force ZLIB OPT=[no,system,local]
   --use-jpeg=OPT           force JPEG OPT=[no,local]
   --use-png=OPT            force PNG OPT=[no,local]
   --use-faad=OPT           force FAAD OPT=[no,local]
@@ -1710,7 +1710,7 @@ for opt do
                     fi
                 fi
             fi
-            has_png=$tmp_has_png
+            has_zlib=$tmp_has_zlib
             ;;
         --use-ogg=*) has_ogg=${opt#--use-ogg=}
             ;;
