@@ -215,6 +215,7 @@ typedef double jsdouble;
 #define SMJS_PROP_GETTER jsval id
 #define JS_PropertyStub_forSetter JS_PropertyStub
 #define SMJS_FUNCTION_SPEC(__name, __fun, __argc) {__name, __fun, __argc, 0, 0}
+#define SMJS_PROPERTY_SPEC(__name, __tinyid, __flags, __getter, __setter) {__name, __tinyid, __flags, __getter, __setter}
 #define SMJS_FUNCTION(__name) __name(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 #define SMJS_FUNCTION_EXT(__name, __ext) __name(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, __ext)
 #define SMJS_ARGS
