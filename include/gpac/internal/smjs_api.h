@@ -107,7 +107,7 @@ typedef double jsdouble;
 
 #else
 
-#ifdef USE_FFDEV_15)
+#ifdef USE_FFDEV_15
 
 #define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSHandleObject __hobj, JSHandleId __hid, JSBool strict, jsval *vp) 
 #define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) { JSObject *obj = *(__hobj._); jsid id = *(__hid._);
@@ -126,6 +126,7 @@ typedef double jsdouble;
 #define DECL_FINALIZE(func_name) void func_name(JSContext *c, JSObject *obj) {
 
 #endif
+
 #define SMJS_FUNC_PROP_SET_NOVP	SMJS_FUNC_PROP_SET
 
 #define SMJS_FUNCTION_SPEC(__name, __fun, __argc) {__name, __fun, __argc, 0}
