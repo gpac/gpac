@@ -141,6 +141,15 @@ public:
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 SMJS_DECL_FUNC_PROP_GET( upnpservice_getProperty);
+
+#ifdef USE_FFDEV_17
+	#define VPASSIGN(__b) __vp.set( __b )
+	#define VPGET() (jsval) __vp
+#else
+	#define VPASSIGN(__b) *vp = __b
+	#define VPGET() *vp
+#endif
+
 #endif
 
 void format_time_string(char *str, Double dur);

@@ -386,6 +386,7 @@ SMJS_FUNC_PROP_SET( widget_setProperty)
 	/*avoids GCC warning*/
 	if (!obj) obj = NULL;
 	if (!id) id=0;
+	if (!vp) vp=0;
 	return JS_TRUE;
 }
 
@@ -419,7 +420,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 	} else {
 
 		JSPropertySpec widgetClassProps[] = {
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec widgetClassFuncs[] = {
 			/*W3C*/

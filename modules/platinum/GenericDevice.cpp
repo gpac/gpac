@@ -261,10 +261,10 @@ SMJS_DECL_FUNC_PROP_GET( upnpservice_getProperty)
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "Device")) {
-		*vp = OBJECT_TO_JSVAL(service->m_device->obj);
+		VPASSIGN( OBJECT_TO_JSVAL(service->m_device->obj) );
 	}
 	else if (!strcmp(prop_name, "ModifiedStateVariablesCount")) {
-		*vp = INT_TO_JSVAL(service->vars ? service->vars->GetItemCount() : 0);
+		VPASSIGN( INT_TO_JSVAL(service->vars ? service->vars->GetItemCount() : 0) );
 	}
 
 	SMJS_FREE(c, prop_name);

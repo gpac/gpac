@@ -1523,8 +1523,8 @@ static JSBool svg_connection_close(JSContext *c, JSObject *obj, uintN argc, jsva
 }
 
 static JSPropertySpec connectionProps[] = {
-	{"connected",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-	{0, 0, 0, 0, 0}
+	SMJS_PROPERTY_SPEC("connected",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+	SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 };
 static JSFunctionSpec connectionFuncs[] = {
 	/*eventTarget interface*/
@@ -2149,9 +2149,9 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	SMJS_SET_PRIVATE(scene->svg_js->js_ctx, scene->svg_js->global, scene);
 	{
 		JSPropertySpec globalClassProps[] = {
-			{"connected",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{"parent",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("connected",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("parent",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec globalClassFuncs[] = {
 			SMJS_FUNCTION_SPEC("createConnection", svg_connection_create, 0),
@@ -2180,9 +2180,8 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 
 		JSPropertySpec svgDocumentProps[] = {
 			/*in our implementation, defaultView is just an alias to the global Window object*/
-			{"defaultView",			0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("defaultView",			0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSObject *doc_proto = dom_js_get_document_proto(scene->svg_js->js_ctx);
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, doc_proto, &svg_rt->svgDocument, 0, 0, svgDocumentProps, 0, 0, 0);
@@ -2248,21 +2247,21 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 
 		JSPropertySpec svgElementProps[] = {
 			/*svgElement interface*/
-			{"id",						0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			SMJS_PROPERTY_SPEC("id",						0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 			/*svgSVGElement interface*/
-			{"currentScale",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"currentRotate",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"currentTranslate",		7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{"viewport",				8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{"currentTime",				9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			SMJS_PROPERTY_SPEC("currentScale",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("currentRotate",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("currentTranslate",		7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("viewport",				8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("currentTime",				9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 			/*timeControl interface*/
-			{"isPaused",				10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			SMJS_PROPERTY_SPEC("isPaused",				10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			/*old SVG1.1 stuff*/
-			{"ownerSVGElement",			11,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			SMJS_PROPERTY_SPEC("ownerSVGElement",			11,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			/*SVGElementInstance*/
-			{"correspondingElement",	12, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{"correspondingUseElement",	13, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("correspondingElement",	12, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("correspondingUseElement",	13, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSObject *elt_proto = dom_js_get_element_proto(scene->svg_js->js_ctx);
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, elt_proto, &svg_rt->svgElement, 0, 0, svgElementProps, svgElementFuncs, 0, 0);
@@ -2272,30 +2271,30 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	/*RGBColor class*/
 	{
 		JSPropertySpec rgbClassProps[] = {
-			{"red",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"green",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"blue",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("red",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("green",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("blue",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rgbClass, 0, 0, rgbClassProps, 0, 0, 0);
 	}
 	/*SVGRect class*/
 	{
 		JSPropertySpec rectClassProps[] = {
-			{"x",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"y",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"width",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"height",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("x",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("y",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("width",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("height",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rectClass, 0, 0, rectClassProps, 0, 0, 0);
 	}
 	/*SVGPoint class*/
 	{
 		JSPropertySpec pointClassProps[] = {
-			{"x",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"y",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("x",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("y",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pointClass, 0, 0, pointClassProps, 0, 0, 0);
 	}
@@ -2311,13 +2310,13 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec matrixClassProps[] = {
-			{"a",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"b",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"c",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"d",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"e",	4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"f",	5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("a",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("b",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("c",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("d",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("e",	4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("f",	5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->matrixClass, 0, 0, matrixClassProps, matrixClassFuncs, 0, 0);
 	}
@@ -2334,8 +2333,8 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec pathClassProps[] = {
-			{"numberOfSegments",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("numberOfSegments",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pathClass, 0, 0, pathClassProps, pathClassFuncs, 0, 0);
 		JS_DefineProperty(scene->svg_js->js_ctx, svg_rt->pathClass._proto, "MOVE_TO", INT_TO_JSVAL(77), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);

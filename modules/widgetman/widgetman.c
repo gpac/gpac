@@ -3497,7 +3497,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 
 	GF_JSAPIParam par;
 	JSPropertySpec wmClassProps[] = {
-		{0, 0, 0, 0, 0}
+		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec wmClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("initialize", wm_initialize, 0),
@@ -3545,7 +3545,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 
 	{
 	JSPropertySpec wmWidgetClassProps[] = {
-		{0, 0, 0, 0, 0}
+		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec wmWidgetClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("activate", wm_widget_activate, 1),

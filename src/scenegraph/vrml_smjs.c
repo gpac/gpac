@@ -291,6 +291,7 @@ static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 		if (!ext) continue;
 		gf_list_add(js_rt->extensions, ext);
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[ECMAScript] found %d JS extensions for %d modules\n", gf_list_count(js_rt->extensions), count));
 }
 
 static void gf_sg_unload_script_modules()
@@ -3119,17 +3120,17 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 #else
 	/*only used to debug JS_SETUP_CLASS at each of the numerous changes of JSAPI ............ */
 	memset(&js_rt->SFNodeClass, 0, sizeof(js_rt->SFNodeClass));
-	js_rt->SFNodeClass.name = "SFNode";
-	js_rt->SFNodeClass.flags = JSCLASS_HAS_PRIVATE;
-	js_rt->SFNodeClass.addProperty = JS_PropertyStub;
-	js_rt->SFNodeClass.delProperty = JS_PropertyStub;
-	js_rt->SFNodeClass.getProperty = node_getProperty;
-	js_rt->SFNodeClass.setProperty = node_setProperty;
-	js_rt->SFNodeClass.enumerate = JS_EnumerateStub;
-	js_rt->SFNodeClass.resolve = JS_ResolveStub;
-	js_rt->SFNodeClass.convert = JS_ConvertStub;
-	js_rt->SFNodeClass.finalize = node_finalize;
-	js_rt->SFNodeClass.hasInstance = gf_sg_js_has_instance;
+	js_rt->SFNodeClass._class.name = "SFNode";
+	js_rt->SFNodeClass._class.flags = JSCLASS_HAS_PRIVATE;
+	js_rt->SFNodeClass._class.addProperty = JS_PropertyStub;
+	js_rt->SFNodeClass._class.delProperty = JS_PropertyStub;
+	js_rt->SFNodeClass._class.getProperty = node_getProperty;
+	js_rt->SFNodeClass._class.setProperty = node_setProperty;
+	js_rt->SFNodeClass._class.enumerate = JS_EnumerateStub;
+	js_rt->SFNodeClass._class.resolve = JS_ResolveStub;
+	js_rt->SFNodeClass._class.convert = JS_ConvertStub;
+	js_rt->SFNodeClass._class.finalize = node_finalize;
+	js_rt->SFNodeClass._class.hasInstance = gf_sg_js_has_instance;
 #endif
 
 	JS_SETUP_CLASS(js_rt->SFVec2fClass , "SFVec2f", JSCLASS_HAS_PRIVATE,
@@ -3244,16 +3245,16 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec SFNodeProps[] = {
-			{"__dummy",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("__dummy",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFNodeClass, SFNodeConstructor, 1, SFNodeProps, SFNodeMethods, 0, 0);
 	}
 	{
 		JSPropertySpec SFVec2fProps[] = {
-			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec SFVec2fMethods[] = {
 			SMJS_FUNCTION_SPEC("add",			vec2f_add,      1),
@@ -3271,10 +3272,10 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	}
 	{
 		JSPropertySpec SFVec3fProps[] = {
-			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"z",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("z",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec SFVec3fMethods[] = {
 			SMJS_FUNCTION_SPEC("add",             vec3f_add,      1),
@@ -3293,11 +3294,11 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	}
 	{
 		JSPropertySpec SFRotationProps[] = {
-			{"xAxis",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"yAxis",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"zAxis",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"angle",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("xAxis",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("yAxis",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("zAxis",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("angle",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec SFRotationMethods[] = {
 			SMJS_FUNCTION_SPEC("getAxis",         rot_getAxis,      1),
@@ -3313,10 +3314,10 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	}
 	{
 		JSPropertySpec SFColorProps[] = {
-			{"r",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"g",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"b",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("r",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("g",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("b",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec SFColorMethods[] = {
 			SMJS_FUNCTION_SPEC("setHSV",          color_setHSV,   3),
@@ -3328,20 +3329,20 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	}
 	{
 		JSPropertySpec SFImageProps[] = {
-			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"comp",    2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{"array",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_PROPERTY_SPEC("x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("comp",    2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("array",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFImageClass, SFImageConstructor, 0, SFImageProps, 0, 0, 0);
 	}
 
 	{
 		JSPropertySpec MFArrayProp[] = {
-			{ "length", 0, JSPROP_PERMANENT | JSPROP_SHARED, array_getLength, array_setLength },
-			{ "assign", 1, JSPROP_PERMANENT | JSPROP_SHARED, array_getElement, array_setElement},
-			{ 0, 0, 0, 0, 0 }
+			SMJS_PROPERTY_SPEC( "length", 0, JSPROP_PERMANENT | JSPROP_SHARED, array_getLength, array_setLength ),
+			SMJS_PROPERTY_SPEC( "assign", 1, JSPROP_PERMANENT | JSPROP_SHARED, array_getElement, array_setElement),
+			SMJS_PROPERTY_SPEC( 0, 0, 0, 0, 0 )
 		};
 		JSFunctionSpec MFArrayMethods[] = {
 			SMJS_FUNCTION_SPEC("toString",        field_toString,       0),

@@ -865,6 +865,8 @@ int main( void ) { jsval *vp; JSObject *obj = JS_NewObjectForConstructor(c, vp);
 EOF
 	                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
 	                    js_flags="-DUSE_FFDEV_12 $js_flags"
+	                elif grep JSMutableHandleValue $js_inc/jsapi.h > /dev/null 2>&1 ; then
+	                    	js_flags="-DUSE_FFDEV_17 $js_flags"
 	                elif ! grep JS_ConstructObject $js_inc/jsapi.h > /dev/null 2>&1 ; then
 	                    	js_flags="-DUSE_FFDEV_16 $js_flags"
 	                elif grep JSHandleObject $js_inc/jsapi.h > /dev/null 2>&1 ; then

@@ -541,13 +541,13 @@ static SMJS_DECL_FUNC_PROP_GET(  upnpdevice_getProperty)
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "Name")) {
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->GetFriendlyName()) );
+		VPASSIGN( STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->GetFriendlyName()) ) );
 	}
 	else if (!strcmp(prop_name, "UUID")) {
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->GetUUID()) );
+		VPASSIGN( STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->GetUUID()) ) );
 	}
 	else if (!strcmp(prop_name, "PresentationURL")) {
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->m_PresentationURL) );
+		VPASSIGN( STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->m_PresentationURL) )  );
 	}
 	else if (!strcmp(prop_name, "ServicesCount")) {
 		u32 count = gf_list_count(dev->m_Services);
@@ -555,7 +555,7 @@ static SMJS_DECL_FUNC_PROP_GET(  upnpdevice_getProperty)
 			dev->RefreshServiceList();
 			count = gf_list_count(dev->m_Services);
 		}
-		*vp = INT_TO_JSVAL(count);
+		VPASSIGN( INT_TO_JSVAL(count)  );
 	}
 	SMJS_FREE(c, prop_name);	
 	return JS_TRUE;
@@ -663,22 +663,22 @@ static SMJS_DECL_FUNC_PROP_GET(  upnp_getProperty)
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "MediaRendererEnabled")) {
-		*vp = BOOLEAN_TO_JSVAL( upnp->m_pMediaRenderer ? JS_TRUE : JS_FALSE );
+		VPASSIGN( BOOLEAN_TO_JSVAL( upnp->m_pMediaRenderer ? JS_TRUE : JS_FALSE ) );
 	}
 	else if (!strcmp(prop_name, "MediaServerEnabled")) {
-		*vp = BOOLEAN_TO_JSVAL( upnp->m_pMediaServer ? JS_TRUE : JS_FALSE);
+		VPASSIGN( BOOLEAN_TO_JSVAL( upnp->m_pMediaServer ? JS_TRUE : JS_FALSE)	);
 	}
 	else if (!strcmp(prop_name, "MediaControlEnabled")) {
-		*vp = BOOLEAN_TO_JSVAL( upnp->m_pAVCtrlPoint ? JS_TRUE : JS_FALSE);
+		VPASSIGN( BOOLEAN_TO_JSVAL( upnp->m_pAVCtrlPoint ? JS_TRUE : JS_FALSE)	);
 	}
 	else if (!strcmp(prop_name, "MediaServersCount")) {
-		*vp = INT_TO_JSVAL( upnp->m_pAVCtrlPoint ? gf_list_count(upnp->m_pAVCtrlPoint->m_MediaServers) : 0);
+		VPASSIGN( INT_TO_JSVAL( upnp->m_pAVCtrlPoint ? gf_list_count(upnp->m_pAVCtrlPoint->m_MediaServers) : 0)	);
 	}
 	else if (!strcmp(prop_name, "MediaRenderersCount")) {
-		*vp = INT_TO_JSVAL( upnp->m_pAVCtrlPoint ? gf_list_count(upnp->m_pAVCtrlPoint->m_MediaRenderers) : 0);
+		VPASSIGN( INT_TO_JSVAL( upnp->m_pAVCtrlPoint ? gf_list_count(upnp->m_pAVCtrlPoint->m_MediaRenderers) : 0) );
 	}
 	else if (!strcmp(prop_name, "DevicesCount")) {
-		*vp = INT_TO_JSVAL( upnp->m_pGenericController ? gf_list_count(upnp->m_pGenericController->m_Devices) : 0);
+		VPASSIGN( INT_TO_JSVAL( upnp->m_pGenericController ? gf_list_count(upnp->m_pGenericController->m_Devices) : 0) );
 	}
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
@@ -699,18 +699,18 @@ static SMJS_DECL_FUNC_PROP_SET(upnp_setProperty)
 	if (!prop_name) return JS_FALSE;
 
 	if (upnp->m_pMediaRenderer ) {
-		if (!strcmp(prop_name, "MovieDuration") && JSVAL_IS_DOUBLE(*vp)) {
+		if (!strcmp(prop_name, "MovieDuration") && JSVAL_IS_DOUBLE( VPGET() )) {
 			jsdouble d;
-			JS_ValueToNumber(c, *vp, &d);
+			JS_ValueToNumber(c, VPGET(), &d);
 			upnp->m_pMediaRenderer->SetDuration(d, 1);
 		}
-		else if (!strcmp(prop_name, "MovieTime") && JSVAL_IS_DOUBLE(*vp)) {
+		else if (!strcmp(prop_name, "MovieTime") && JSVAL_IS_DOUBLE( VPGET() )) {
 			jsdouble d;
-			JS_ValueToNumber(c, *vp, &d);
+			JS_ValueToNumber(c, VPGET(), &d);
 			upnp->m_pMediaRenderer->SetTime(d);
 		}
-		else if (!strcmp(prop_name, "MovieURL") && JSVAL_IS_STRING(*vp) ) {
-			char *url = SMJS_CHARS(c, *vp);
+		else if (!strcmp(prop_name, "MovieURL") && JSVAL_IS_STRING( VPGET() ) ) {
+			char *url = SMJS_CHARS(c, VPGET() );
 			if (url) upnp->m_pMediaRenderer->SetConnected(url);
 			SMJS_FREE(c, url);
 		}
@@ -1454,7 +1454,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 {
 	u32 i, count;
 	JSPropertySpec upnpClassProps[] = {
-		{0, 0, 0, 0, 0}
+		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec upnpClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("BindRenderer", upnp_bind_renderer, 0),
@@ -1522,7 +1522,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 	
 	/*setup JS bindings*/
 	JSPropertySpec upnpDeviceClassProps[] = {
-		{0, 0, 0, 0, 0}
+		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec upnpDeviceClassFuncs[] = {
 		SMJS_FUNCTION_SPEC("FindService", upnp_device_find_service, 0),
