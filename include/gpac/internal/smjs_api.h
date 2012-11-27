@@ -52,6 +52,10 @@ typedef struct
 /*new APIs*/
 #if (JS_VERSION>=185)
 
+#ifdef USE_FFDEV_17
+#define USE_FFDEV_16
+#endif
+
 #ifdef USE_FFDEV_16
 #define USE_FFDEV_15
 #endif
@@ -85,7 +89,25 @@ typedef double jsdouble;
 #define JS_NewDouble(c, v)	v
 #define JS_PropertyStub_forSetter JS_StrictPropertyStub
 
-#ifdef USE_FFDEV_15
+#if defined(USE_FFDEV_17)
+
+#define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSHandleObject __hobj, JSHandleId __hid, JSBool strict, JSMutableHandleValue __vp) 
+#define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) { JSObject *obj = *(__hobj._); jsid id = *(__hid._); jsval *vp = __vp._;
+#define SMJS_FUNC_PROP_SET_NOVP(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) { JSObject *obj = *(__hobj._); jsid id = *(__hid._);
+
+#define SMJS_DECL_FUNC_PROP_GET(func_name) JSBool func_name(JSContext *c, JSHandleObject __hobj, JSHandleId __hid, JSMutableHandleValue __vp)
+#define SMJS_FUNC_PROP_GET(func_name) SMJS_DECL_FUNC_PROP_GET( func_name ) { JSObject *obj = *(__hobj._); jsid id = *(__hid._); jsval *vp = __vp._;
+#define SMJS_CALL_PROP_STUB() JS_PropertyStub(c, __hobj, __hid, __vp)
+#define DECL_FINALIZE(func_name) void func_name(JSFreeOp *fop, JSObject *obj) { void *c = NULL;
+
+#define SMJS_FUNCTION_SPEC(__name, __fun, __argc) JS_FS(__name, __fun, __argc, 0)
+#define SMJS_PROPERTY_SPEC(__name, __tinyid, __flags, __getter, __setter) \
+    {__name, __tinyid, __flags, JSOP_WRAPPER(__getter), JSOP_WRAPPER(__setter)}
+
+
+#else
+
+#ifdef USE_FFDEV_15)
 
 #define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSHandleObject __hobj, JSHandleId __hid, JSBool strict, jsval *vp) 
 #define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) { JSObject *obj = *(__hobj._); jsid id = *(__hid._);
@@ -104,9 +126,14 @@ typedef double jsdouble;
 #define DECL_FINALIZE(func_name) void func_name(JSContext *c, JSObject *obj) {
 
 #endif
-
+#define SMJS_FUNC_PROP_SET_NOVP	SMJS_FUNC_PROP_SET
 
 #define SMJS_FUNCTION_SPEC(__name, __fun, __argc) {__name, __fun, __argc, 0}
+#define SMJS_PROPERTY_SPEC(__name, __tinyid, __flags, __getter, __setter) \
+    {__name, __tinyid, __flags, __getter, __setter}
+
+#endif
+
 #define SMJS_FUNCTION(__name) __name(JSContext *c, uintN argc, jsval *argsvp)
 #define SMJS_FUNCTION_EXT(__name, __ext) __name(JSContext *c, uintN argc, jsval *argsvp, __ext)
 #define SMJS_ARGS	jsval *argv = JS_ARGV(c, argsvp);
@@ -178,6 +205,7 @@ typedef double jsdouble;
 
 #define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 #define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) {
+#define SMJS_FUNC_PROP_SET_NOVP	SMJS_FUNC_PROP_SET
 #define SMJS_DECL_FUNC_PROP_GET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsval id, jsval *vp) 
 #define SMJS_FUNC_PROP_GET(func_name) SMJS_DECL_FUNC_PROP_GET( func_name) { 
 #define DECL_FINALIZE(func_name) void func_name(JSContext *c, JSObject *obj) {
