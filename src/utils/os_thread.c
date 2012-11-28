@@ -700,6 +700,7 @@ u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 	return (u32) prevCount;
 }
 
+GF_EXPORT
 void gf_sema_wait(GF_Semaphore *sm)
 {
 #ifdef WIN32
