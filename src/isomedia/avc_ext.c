@@ -48,10 +48,9 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
  * mode = 1: streaming
  */
 GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry)
-//GF_Err gf_isom_avc_rewrite_extractors(GF_ISOFile *file, u32 trackNumber, u32 sampleNumber, GF_BitStream *bs, u32 mode)
 {
 	GF_Err e = GF_OK;
-	GF_ISOSample *samp, *ref_samp;
+	GF_ISOSample *ref_samp;
 	GF_BitStream *src_bs, *ref_bs, *dst_bs;
 	u64 offset;
 	u32 ref_nalu_size, data_offset, data_length, copy_size, nal_size, max_size, di, nal_unit_size_field;
@@ -61,7 +60,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
 
 	src_bs = ref_bs = dst_bs = NULL;
-	samp = ref_samp = NULL;
+	ref_samp = NULL;
 	buffer = NULL;
 
 	if (mdia->mediaTrack->extractor_mode == GF_ISOM_NALU_EXTRACT_INSPECT) return GF_OK;
@@ -80,7 +79,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	if (!nal_unit_size_field) return GF_ISOM_INVALID_FILE;
 
 	dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	src_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 	max_size = 4096;
 	buffer = (char *)gf_malloc(sizeof(char)*max_size);
 	while (gf_bs_available(src_bs))
@@ -162,9 +161,9 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 	}
 	/*done*/
-	gf_free(samp->data);
-	samp->data = NULL;
-	gf_bs_get_content(dst_bs, &samp->data, &samp->dataLength);
+	gf_free(sample->data);
+	sample->data = NULL;
+	gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
 
 exit:
 	if (ref_samp) gf_isom_sample_del(&ref_samp);
