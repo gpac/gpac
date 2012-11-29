@@ -532,6 +532,9 @@ typedef struct
 	u32 originalFile;
 	u32 originalID;
 
+	/*private for SVC/MVC extractors resolution*/
+	s32 extractor_mode;
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u64 dts_at_seg_start;
 	u32 sample_count_at_seg_start;
@@ -865,6 +868,8 @@ typedef struct
 
 } GF_MPEGVisualSampleEntryBox;
 
+Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry);
+GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry);
 
 /*this is the default visual sdst (to handle unknown media)*/
 typedef struct

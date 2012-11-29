@@ -373,6 +373,10 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		e = Media_RewriteODFrame(mdia, *samp);
 		if (e) return e;
 	}
+	else if (gf_isom_is_nalu_based_entry(mdia, entry)) {
+		e = gf_isom_nalu_sample_rewrite(mdia, *samp, sampleNumber, (GF_MPEGVisualSampleEntryBox *)entry);
+		if (e) return e;
+	} 
 	else if (mdia->mediaTrack->moov->mov->convert_streaming_text 
 		&& ((mdia->handler->handlerType == GF_ISOM_MEDIA_TEXT) || (mdia->handler->handlerType == GF_ISOM_MEDIA_SUBT)) 
 	) {

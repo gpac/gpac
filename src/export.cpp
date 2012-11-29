@@ -697,7 +697,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_rvc_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_rap_roll_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_fragment_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_original_ID) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_original_id) )
 
 
 # ifndef GPAC_DISABLE_ISOM_DUMP

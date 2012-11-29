@@ -339,6 +339,8 @@ enum
 	GF_EXPORT_USE_QCP = (1<<11),
 	/*indicates full NHML dump*/
 	GF_EXPORT_NHML_FULL = (1<<11),
+	/**/
+	GF_EXPORT_SVC_LAYER = (1<<12),
 	/*ony probes extraction format*/
 	GF_EXPORT_PROBE_ONLY = (1<<30),
 	/*when set by user during export, will abort*/

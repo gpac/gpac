@@ -406,7 +406,7 @@ u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID)
 }
 
 GF_EXPORT
-u32 gf_isom_get_track_original_ID(GF_ISOFile *movie, u32 trackNumber)
+u32 gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	if (!movie) return 0;
@@ -578,7 +578,7 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char *t
 
 
 //Return the number of track references of a track for a given ReferenceType
-//return -1 if error
+//return 0 if error
 GF_EXPORT
 s32 gf_isom_get_reference_count(GF_ISOFile *movie, u32 trackNumber, u32 referenceType)
 {
@@ -2879,5 +2879,14 @@ u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only)
 }
 
 #endif
+
+GF_EXPORT
+GF_Err gf_isom_set_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber, u32 nalu_extract_mode)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	trak->extractor_mode = nalu_extract_mode;
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

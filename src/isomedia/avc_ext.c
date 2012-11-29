@@ -32,6 +32,149 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+
+Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
+{
+	GF_MPEGVisualSampleEntryBox *entry;
+	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return 0;
+	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
+	if (!entry) return 0;
+	if (entry->avc_config || entry->svc_config) return 1;
+	return 0;
+}
+
+/* Rewrite mode:
+ * mode = 0: playback
+ * mode = 1: streaming
+ */
+GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry)
+//GF_Err gf_isom_avc_rewrite_extractors(GF_ISOFile *file, u32 trackNumber, u32 sampleNumber, GF_BitStream *bs, u32 mode)
+{
+	GF_Err e = GF_OK;
+	GF_ISOSample *samp, *ref_samp;
+	GF_BitStream *src_bs, *ref_bs, *dst_bs;
+	u64 offset;
+	u32 ref_nalu_size, data_offset, data_length, copy_size, nal_size, max_size, di, nal_unit_size_field;
+	u8 ref_track_ID, ref_track_num;
+	s8 sample_offset, nal_hdr, nal_type;
+	char *buffer;
+	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
+
+	src_bs = ref_bs = dst_bs = NULL;
+	samp = ref_samp = NULL;
+	buffer = NULL;
+
+	if (mdia->mediaTrack->extractor_mode == GF_ISOM_NALU_EXTRACT_INSPECT) return GF_OK;
+
+	if (!entry) return GF_BAD_PARAM;
+	nal_unit_size_field = 0;
+	/*if svc rewrire*/
+	if (entry->svc_config && entry->svc_config->config) nal_unit_size_field = entry->svc_config->config->nal_unit_size;
+	/*if mvc rewrire*/
+
+	/*otherwise do nothing*/
+	else {
+		return GF_OK;
+	}
+
+	if (!nal_unit_size_field) return GF_ISOM_INVALID_FILE;
+
+	dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	src_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+	max_size = 4096;
+	buffer = (char *)gf_malloc(sizeof(char)*max_size);
+	while (gf_bs_available(src_bs))
+	{
+		nal_size = gf_bs_read_int(src_bs, 8*nal_unit_size_field);
+		if (nal_size>max_size) {
+			buffer = (char*) gf_realloc(buffer, sizeof(char)*nal_size);
+			max_size = nal_size;
+		}
+		nal_hdr = gf_bs_read_u8(src_bs);
+		nal_type = nal_hdr & 0x1F;
+				
+
+		//extractor
+		if (nal_type == 31) {
+			switch (mdia->mediaTrack->extractor_mode) {
+			case 0:
+				gf_bs_read_int(src_bs, 24); //3 bytes of NALUHeader in extractor
+				ref_track_ID = gf_bs_read_u8(src_bs);
+				sample_offset = (s8) gf_bs_read_int(src_bs, 8);
+				data_offset = gf_bs_read_u32(src_bs);
+				data_length = gf_bs_read_u32(src_bs);
+
+				ref_track_num = gf_isom_get_track_by_id(file, ref_track_ID);
+				if (!ref_track_num) {
+					e = GF_BAD_PARAM;
+					goto exit;
+				}
+				ref_samp = gf_isom_get_sample(file, ref_track_num, sampleNumber+sample_offset, &di);
+				if (!ref_samp) {
+					e = GF_IO_ERR;
+					goto exit;
+				}
+				ref_bs = gf_bs_new(ref_samp->data, ref_samp->dataLength, GF_BITSTREAM_READ);
+				offset = 0;
+				while (gf_bs_available(ref_bs)) {
+					if (gf_bs_get_position(ref_bs) < data_offset) {
+						ref_nalu_size = gf_bs_read_int(ref_bs, 8*nal_unit_size_field);
+						offset += ref_nalu_size + nal_unit_size_field;
+						if ((offset > data_offset) || (offset >= gf_bs_get_size(ref_bs))) {
+							e = GF_BAD_PARAM;
+							goto exit;
+						}
+
+						e = gf_bs_seek(ref_bs, offset);
+						if (e)
+							goto exit;
+						continue;
+					}
+					ref_nalu_size = gf_bs_read_int(ref_bs, 8*nal_unit_size_field);
+					copy_size = data_length ? data_length : ref_nalu_size;
+					assert(copy_size <= ref_nalu_size);
+					nal_hdr = gf_bs_read_u8(ref_bs); //rewrite NAL type
+					if ((copy_size-1)>max_size) {
+						buffer = (char*)gf_realloc(buffer, sizeof(char)*(copy_size-1));
+						max_size = copy_size-1;
+					}			
+					gf_bs_read_data(ref_bs, buffer, copy_size-1);
+
+					gf_bs_write_int(dst_bs, copy_size, 8*nal_unit_size_field);
+					gf_bs_write_u8(dst_bs, nal_hdr);
+					gf_bs_write_data(dst_bs, buffer, copy_size-1);
+				}
+
+				gf_isom_sample_del(&ref_samp);
+				ref_samp = NULL;
+				gf_bs_del(ref_bs);
+				ref_bs = NULL;
+				break;
+			case 1:
+				gf_bs_read_data(src_bs, buffer, nal_size-1); //parse to end of this NALU
+				continue;
+			}
+		} else {
+			gf_bs_read_data(src_bs, buffer, nal_size-1);
+			gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+			gf_bs_write_u8(dst_bs, nal_hdr);
+			gf_bs_write_data(dst_bs, buffer, nal_size-1);
+		}
+	}
+	/*done*/
+	gf_free(samp->data);
+	samp->data = NULL;
+	gf_bs_get_content(dst_bs, &samp->data, &samp->dataLength);
+
+exit:
+	if (ref_samp) gf_isom_sample_del(&ref_samp);
+	if (src_bs) gf_bs_del(src_bs);
+	if (ref_bs) gf_bs_del(ref_bs);
+	if (dst_bs) gf_bs_del(dst_bs);
+	if (buffer) gf_free(buffer);
+	return e;
+}
+
 static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 {
 	u32 i, count;
@@ -389,6 +532,9 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	if (gf_isom_get_avc_svc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_AVCTYPE_NONE)
+		return NULL;
+
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	//if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return NULL;
@@ -403,11 +549,14 @@ GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	if (gf_isom_get_avc_svc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_AVCTYPE_NONE)
+		return NULL;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (!entry->svc_config) return NULL;
 	return AVC_DuplicateConfig(entry->svc_config->config);
 }
+
 
 GF_EXPORT
 u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
@@ -416,6 +565,7 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_AVCTYPE_NONE;
+	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_ISOM_AVCTYPE_NONE;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return GF_ISOM_AVCTYPE_NONE;
 	switch (entry->type) {

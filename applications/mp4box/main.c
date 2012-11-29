@@ -563,6 +563,7 @@ void PrintExtractUsage()
 			" -saf                 remux file to SAF multiplex\n"
 			" -dvbhdemux           demux DVB-H file into IP Datagrams\n"
 			"                       * Note: can be used when encoding scene descriptions\n"
+			" -raw-layer ID        same as -raw but skips SVC/MVC extractors when extracting\n" 
 			" -diod                extracts file IOD in raw format when supported\n" 
 			"\n");
 }
@@ -1465,6 +1466,12 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-raw")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE;
+			trackID = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-raw-layer")) {
+			CHECK_NEXT_ARG
+				track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
 			trackID = atoi(argv[i+1]);
 			i++;
 		}
