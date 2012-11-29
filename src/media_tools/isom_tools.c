@@ -1437,7 +1437,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 		else
 		{
-			s32 seq_id;
+			s32 seq_id=0;
 			
 			for (i = 0; i < gf_list_count(svccfg->sequenceParameterSets); i++)
 			{

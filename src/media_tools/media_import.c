@@ -1540,7 +1540,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, stype, w, h, sr, sbr_sr, ch, mstype;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype;
 	s32 trans_x, trans_y;
 	s16 layer;
 	u8 bps;
@@ -1640,8 +1640,6 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	gf_odf_desc_del((GF_Descriptor *) iod);
-
-	stype = gf_isom_get_media_subtype(import->orig, track_in, 1);
 
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, (import->flags & GF_IMPORT_USE_DATAREF), &track);
 	if (e) goto exit;
