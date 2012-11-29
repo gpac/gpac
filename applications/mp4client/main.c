@@ -1155,7 +1155,13 @@ int main (int argc, char **argv)
 
 	fprintf(stderr, "Loading modules\n");
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
-	assert( str );
+	if (! str ) {
+		fprintf(stderr, "Mmodule directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n");
+		gf_cfg_del(cfg_file);
+		gf_sys_close();
+		if (logfile) fclose(logfile);
+		return 1;
+	}
 
 	user.modules = gf_modules_new((const unsigned char *) str, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
