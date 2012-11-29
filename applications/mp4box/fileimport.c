@@ -1366,8 +1366,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	for (i=0; i<nb_tracks; i++) {
 		u64 last_DTS, dest_track_dur_before_cat;
 		u32 nb_edits = 0;
+		Bool skip_lang_test = 1;
 		Bool use_ts_dur = 1;
 		Bool merge_edits = 0;
+		Bool new_track = 0;
 		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_HINT:
@@ -1391,8 +1393,56 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 
 		dst_tk = 0;
-		tk_id = gf_isom_get_track_id(orig, i+1);
+		/*if we had a temporary import of the file, check if the original track ID matches the dst one. If so, skip all language detection code*/
+		tk_id = gf_isom_get_track_original_id(orig, i+1);
+		if (!tk_id) {
+			tk_id = gf_isom_get_track_id(orig, i+1);
+			skip_lang_test = 0;
+		}
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+
+
+		if (dst_tk) {
+			if (mtype != gf_isom_get_media_type(dest, dst_tk))
+				dst_tk = 0;
+			else if (gf_isom_get_media_subtype(dest, dst_tk, 1) != gf_isom_get_media_subtype(orig, i+1, 1))
+				dst_tk = 0;
+		}
+
+		if (!dst_tk) {
+			for (j=0; j<gf_isom_get_track_count(dest); j++) {
+				if (mtype != gf_isom_get_media_type(dest, j+1)) continue;
+				if (gf_isom_is_same_sample_description(orig, i+1, 0, dest, j+1, 0)) {
+					if (mtype==GF_ISOM_MEDIA_VISUAL) {
+						u32 w, h, ow, oh;
+						gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
+						gf_isom_get_visual_info(dest, j+1, 1, &w, &h);
+						if ((ow==w) && (oh==h)) {
+							dst_tk = j+1;
+							break;
+						}
+					}
+					/*check language code*/
+					else if (!skip_lang_test && (mtype==GF_ISOM_MEDIA_AUDIO)) {
+						u32 lang_src, lang_dst;
+						char lang[4];
+						lang[3]=0;
+						gf_isom_get_media_language(orig, i+1, lang);
+						lang_src = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+						gf_isom_get_media_language(dest, j+1, lang);
+						lang_dst = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+						if (lang_dst==lang_src) {
+							dst_tk = j+1;
+							break;
+						}
+					} else {
+						dst_tk = j+1;
+						break;
+					}
+				}
+			}
+		}
+
 		if (dst_tk) {
 			u32 stype = gf_isom_get_media_subtype(dest, dst_tk, 1);
 			/*we MUST have the same codec*/
@@ -1488,45 +1538,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			}
 		}
 
-		if (!dst_tk) {
-			for (j=0; j<gf_isom_get_track_count(dest); j++) {
-				if (mtype != gf_isom_get_media_type(dest, j+1)) continue;
-				if (gf_isom_is_same_sample_description(orig, i+1, 0, dest, j+1, 0)) {
-					if (mtype==GF_ISOM_MEDIA_VISUAL) {
-						u32 w, h, ow, oh;
-						gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
-						gf_isom_get_visual_info(dest, j+1, 1, &w, &h);
-						if ((ow==w) && (oh==h)) {
-							dst_tk = j+1;
-							break;
-						}
-					}
-					/*check language code*/
-					else if (mtype==GF_ISOM_MEDIA_AUDIO) {
-						u32 lang_src, lang_dst;
-						char lang[4];
-						lang[3]=0;
-						gf_isom_get_media_language(orig, i+1, lang);
-						lang_src = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
-						gf_isom_get_media_language(dest, j+1, lang);
-						lang_dst = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
-						if (lang_dst==lang_src) {
-							dst_tk = j+1;
-							break;
-						}
-					} else {
-						dst_tk = j+1;
-						break;
-					}
-				}
-			}
-		}
-		/*looks like a new file*/
+		/*looks like a new track*/
 		if (!dst_tk) {
 			fprintf(stderr, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype));
 			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
+			new_track = 1;
 
 			if (align_timelines) {
 				u32 max_timescale = 0;
@@ -1591,7 +1609,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			u32 di;
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
 			last_DTS = samp->DTS;
-			samp->DTS =  (u64) (ts_scale * samp->DTS + insert_dts);
+			samp->DTS =  (u64) (ts_scale * samp->DTS + (new_track ? 0 : insert_dts));
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
@@ -1614,7 +1632,18 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			gf_isom_set_last_sample_duration(dest, dst_tk, (u32) insert_dts);
 		}
 
-		if (merge_edits) {
+		if (new_track && insert_dts) {
+			u64 media_dur = gf_isom_get_media_duration(orig, i+1);
+			/*convert from media time to track time*/
+			Double rescale = (Float) gf_isom_get_timescale(dest);
+			rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
+			/*convert from orig to dst time scale*/
+			rescale *= ts_scale;
+
+			gf_isom_set_edit_segment(dest, dst_tk, 0, (u64) (s64) (insert_dts*rescale), 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit_segment(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
+		}
+		else if (merge_edits) {
 			/*convert from media time to track time*/
 			Double rescale = (Float) gf_isom_get_timescale(dest);
 			rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);

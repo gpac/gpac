@@ -618,7 +618,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	char szName[1000], szEXT[5], GUID[16];
 	FILE *out;
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
-	GF_AVCConfig *avccfg;
+	GF_AVCConfig *avccfg, *svccfg;
 	GF_M4ADecSpecInfo a_cfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
@@ -631,7 +631,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	dsi_size = 0;
 	dsi = NULL;
 	avccfg = NULL;
-
+	svccfg = NULL;
+	
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
 		return GF_BAD_PARAM;
@@ -668,6 +669,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				break;
 			case GPAC_OTI_VIDEO_AVC:
 				avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
+				svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
 				if (add_ext) 
 					strcat(szName, ".h264");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
@@ -830,6 +832,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			return gf_media_export_nhml(dumper, 1);
 		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) || (m_stype==GF_ISOM_SUBTYPE_SVC_H264) ) {
 			avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
+			svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
 			if (add_ext) 
 				strcat(szName, ".h264");
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
@@ -864,8 +867,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
 		if (dsi) gf_free(dsi);
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
+		if (svccfg) gf_odf_avc_cfg_del(svccfg);
 		return GF_OK;
 	}
+	if (dumper->flags & GF_EXPORT_SVC_LAYER)
+		gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
 
 	if (is_ogg) return gf_dump_to_ogg(dumper, is_stdout ? NULL : szName, track);
 
@@ -898,6 +904,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	if (!out) {
 		if (dsi) gf_free(dsi);
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
+		if (svccfg) gf_odf_avc_cfg_del(svccfg);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 	bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
@@ -922,6 +929,78 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		count = gf_list_count(avccfg->pictureParameterSets);
 		for (i=0;i<count;i++) {
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avccfg->pictureParameterSets, i);
+			gf_bs_write_u32(bs, 1);
+			gf_bs_write_data(bs, sl->data, sl->size);
+		}
+	}
+	if (svccfg) {
+		if (!(dumper->flags & GF_EXPORT_SVC_LAYER))
+		{
+			GF_AVCConfig *cfg;
+			u32 ref_track = 0, t;
+			s32 countRef;
+
+			// copy avcC and svcC from base layer
+			gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_BASE, 1, &ref_track);
+			cfg = gf_isom_avc_config_get(dumper->file, ref_track, 1);
+			if (cfg)
+			{
+				count = gf_list_count(cfg->sequenceParameterSets);
+				for (i  =0; i < count; i++) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
+					gf_bs_write_u32(bs, 1);
+					gf_bs_write_data(bs, sl->data, sl->size);
+				}
+				count = gf_list_count(cfg->pictureParameterSets);
+				for (i = 0; i < count; i++) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
+					gf_bs_write_u32(bs, 1);
+					gf_bs_write_data(bs, sl->data, sl->size);
+				}
+				gf_odf_avc_cfg_del(cfg);
+				cfg = NULL;
+			}
+
+			// copy avcC and svcC from lower layer
+			countRef = gf_isom_get_reference_count(dumper->file, track, GF_ISOM_REF_SCAL);
+			if (countRef < 0)
+			{
+				e = gf_isom_last_error(dumper->file);
+				goto exit;
+			}
+			for (t = 2; t <= (u32) countRef; t++) // referenceIndex 1 is the base layer
+			{
+				gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_SCAL, t, &ref_track);
+				cfg = gf_isom_svc_config_get(dumper->file, ref_track, 1);
+				if (cfg)
+				{
+					count = gf_list_count(cfg->sequenceParameterSets);
+					for (i  = 0; i < count; i++) {
+						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
+						gf_bs_write_u32(bs, 1);
+						gf_bs_write_data(bs, sl->data, sl->size);
+					}
+					count = gf_list_count(cfg->pictureParameterSets);
+					for (i = 0; i < count; i++) {
+						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
+						gf_bs_write_u32(bs, 1);
+						gf_bs_write_data(bs, sl->data, sl->size);
+					}
+					gf_odf_avc_cfg_del(cfg);
+					cfg = NULL;
+				}
+			}
+		}
+
+		count = gf_list_count(svccfg->sequenceParameterSets);
+		for (i=0;i<count;i++) {
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
+			gf_bs_write_u32(bs, 1);
+			gf_bs_write_data(bs, sl->data, sl->size);
+		}
+		count = gf_list_count(svccfg->pictureParameterSets);
+		for (i=0;i<count;i++) {
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, i);
 			gf_bs_write_u32(bs, 1);
 			gf_bs_write_data(bs, sl->data, sl->size);
 		}
@@ -1040,19 +1119,20 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			break;
 		}
 		/*AVC sample to NALU*/
-		if (avccfg) {
-			u32 j, nal_size, remain;
+		if (avccfg || svccfg) {
+			u32 j, nal_size, remain, nal_unit_size;
 			char *ptr = samp->data;
+			nal_unit_size = avccfg ? avccfg->nal_unit_size : svccfg->nal_unit_size;
 			remain = samp->dataLength;
 			while (remain) {
 				nal_size = 0;
-				if (remain<avccfg->nal_unit_size){
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Sample %d (size %d): Corrupted NAL Unit: header size %d - bytes left %d\n", i+1, samp->dataLength, avccfg->nal_unit_size, remain) );
+				if (remain<nal_unit_size){
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Sample %d (size %d): Corrupted NAL Unit: header size %d - bytes left %d\n", i+1, samp->dataLength, nal_unit_size, remain) );
 					break;
 				}
-				for (j=0; j<avccfg->nal_unit_size; j++) {
+				for (j=0; j<nal_unit_size; j++) {
 					nal_size |= ((u8) *ptr);
-					if (j+1<avccfg->nal_unit_size) nal_size<<=8;
+					if (j+1<nal_unit_size) nal_size<<=8;
 					remain--;
 					ptr++;
 				}
@@ -1091,14 +1171,15 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg) gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (!avccfg && !svccfg) gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	if (has_qcp_pad) gf_bs_write_u8(bs, 0);
-
+exit:
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
+	if (svccfg) gf_odf_avc_cfg_del(svccfg);
 	gf_bs_del(bs);
 	if (!is_stdout) 
 		fclose(out);

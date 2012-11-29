@@ -414,7 +414,7 @@ u32 gf_isom_get_track_id(GF_ISOFile *the_file, u32 trackNumber);
 u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID);
 
 /*return the original trackID of the track number n, or 0 if error*/
-u32 gf_isom_get_track_original_ID(GF_ISOFile *movie, u32 trackNumber);
+u32 gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber);
 
 /*gets the enable flag of a track 0: NO, 1: yes, 2: error*/
 u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber);
@@ -1574,7 +1574,21 @@ typedef enum
 	GF_ISOM_AVCTYPE_AVC_SVC,
 	GF_ISOM_AVCTYPE_SVC_ONLY,
 } GF_ISOMAVCType;
+
 u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+
+enum
+{
+	/*all extractors are rewritten*/
+	GF_ISOM_NALU_EXTRACT_DEFAULT = 0,
+	/*all extractors are skipped but NALU data from this track is kept*/
+	GF_ISOM_NALU_EXTRACT_LAYER_ONLY,
+	/*all extractors are kept (untouched sample) - used for dumping modes*/
+	GF_ISOM_NALU_EXTRACT_INSPECT,
+};
+
+GF_Err gf_isom_set_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber, u32 nalu_extract_mode);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*creates new AVC config*/

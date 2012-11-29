@@ -931,6 +931,35 @@ exit:
 	if (bs) gf_bs_del(bs);
 	return DQId;;
 }
+
+static Bool gf_isom_has_svc_explicit(GF_ISOFile *file, u32 track)
+{
+	GF_AVCConfig *svccfg;
+	GF_AVCConfigSlot *slc;
+	u32 i;
+	u8 type;
+	Bool ret = 0;
+
+	svccfg = gf_isom_svc_config_get(file, track, 1);
+	if (!svccfg)
+		return 0;
+
+	for (i = 0; i < gf_list_count(svccfg->sequenceParameterSets); i++)
+	{
+		slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
+		type = slc->data[0] & 0x1F;
+		if (type == GF_AVC_NALU_SEQ_PARAM)
+		{
+			ret = 1;
+			break;
+		}
+	}
+
+	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+	return ret;
+}
+
+
 static u32 gf_isom_get_track_id_max(GF_ISOFile *file)
 {
 	u32 num_track, i, trackID;
@@ -952,7 +981,7 @@ GF_EXPORT
 GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 {
 	GF_AVCConfig *svccfg, *cfg;
-	u32 num_svc_track, num_sample, svc_track, dst_track, ref_trackID, ref_trackNum, max_id, di, width, height, size, nalu_size_length, i, j, t, max_size, num_pps, num_sps, NALUnitHeader, data_offset, data_length, count, timescale;
+	u32 num_svc_track, num_sample, svc_track, dst_track, ref_trackID, ref_trackNum, max_id, di, width, height, size, nalu_size_length, i, j, t, max_size, num_pps, num_sps, num_subseq, NALUnitHeader, data_offset, data_length, count, timescale;
 	GF_Err e; 
 	GF_AVCConfigSlot *slc, *sl;
 	AVCState avc;
@@ -981,12 +1010,26 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	first_sample_track = NULL;
 	buffer = NULL;
 	prev_layer = NULL;
-	is_splited = (gf_isom_get_avc_svc_type(file, track, 1) == GF_ISOM_AVCTYPE_AVC_SVC) ? 0 : 1;
-	svccfg = gf_isom_svc_config_get(file, track, 1);
 	cfg = NULL;
 	num_svc_track=0;
+	svccfg = gf_isom_svc_config_get(file, track, 1);
+	if (!svccfg)
+	{
+		e = GF_OK;
+		goto exit;
+	}
 	num_sps = gf_list_count(svccfg->sequenceParameterSets);
+	if (!num_sps)
+	{
+		e = GF_OK;
+		goto exit;
+	}
 	num_pps = gf_list_count(svccfg->pictureParameterSets);
+	if ((gf_isom_get_avc_svc_type(file, track, 1) == GF_ISOM_AVCTYPE_SVC_ONLY) && !gf_isom_has_svc_explicit(file, track))
+		is_splited = 1;
+	else
+		is_splited = 0;
+	num_subseq = gf_isom_has_svc_explicit(file, track) ? num_sps - 1 : num_sps;
 
 	if (is_splited)
 	{
@@ -1010,16 +1053,17 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	}
 
 	timescale = gf_isom_get_media_timescale(file, track);
-	num_svc_track = splitAll ? num_sps : 1;
+	num_svc_track = splitAll ? num_subseq : 1;
 	max_id = gf_isom_get_track_id_max(file);
 	di = 0;
 	
 	memset(&avc, 0, sizeof(AVCState));
 	avc.sps_active_idx = -1;
 	nalu_size_length = 8 * svccfg->nal_unit_size;
-	/*read all sps*/
-	sps =  (s32 *) gf_malloc(num_sps * sizeof(s32));
-	sps_track = (s32 *) gf_malloc(num_sps * sizeof(s32));
+	/*read all sps, but we need only the subset sequence parameter sets*/
+	sps =  (s32 *) gf_malloc(num_subseq * sizeof(s32));
+	sps_track = (s32 *) gf_malloc(num_subseq * sizeof(s32));
+	count = 0;
 	for (i = 0; i < num_sps; i++)
 	{
 		slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
@@ -1028,9 +1072,16 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
 		}
-		sps[i] = sps_id;
-		sps_track[i] = i;
+		nal_type = slc->data[0] & 0x1F;
+		if (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM)
+		{
+			sps[count] = sps_id;
+			sps_track[count] = i;
+			count++;
+		}
 	}
+	/*for testing*/
+	assert(count == num_subseq);
 	/*read all pps*/
 	pps =  (s32 *) gf_malloc(num_pps * sizeof(s32));
 	for (j = 0; j < num_pps; j++)
@@ -1084,7 +1135,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			/*verify the order of SPS, reorder if necessary*/
 			if (avc.s_info.pps->sps_id != sps[count])
 			{
-				for (i = count+1; i < num_sps; i++)
+				for (i = count+1; i < num_subseq; i++)
 				{
 					/*swap two SPS*/
 					if (avc.s_info.pps->sps_id == sps[i])
@@ -1164,7 +1215,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 		else
 		{
-			for (i = 0; i < num_sps; i++)
+			for (i = 0; i < num_subseq; i++)
 			{
 				sps_id = sps[i];
 				width = avc.sps[sps_id].width;
@@ -1187,12 +1238,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				gf_list_add(cfg->sequenceParameterSets, sl);
 				for (j = 0; j < num_pps; j++)
 				{
-					slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, t);
-					pps_id = AVC_ReadPictParamSet(slc->data+1, slc->size-1, &avc);
-					if (pps_id < 0) {
-						e = GF_NON_COMPLIANT_BITSTREAM;
-						goto exit;
-					}
+					pps_id = pps[j];
 					if (avc.pps[pps_id].sps_id == sps_id)
 					{
 						slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, j);
@@ -1264,7 +1310,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 					dst_track = 0;
 					if (splitAll)
 					{
-						for (t = 0; t < num_svc_track; t++) // num_svc_track == num_pps
+						for (t = 0; t < num_svc_track; t++)
 						{
 							if (sps[t] == (avc.s_info.pps)->sps_id)
 							{
@@ -1381,10 +1427,58 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 	}
 	
-	/*if this is a merged file: delete SVC config*/
+	/*if this is a merged file*/
 	if (!is_splited)
 	{
-		gf_isom_svc_config_del(file, track, 1);
+		/*a normal stream: delete SVC config*/
+		if (!gf_isom_has_svc_explicit(file, track))
+		{
+			gf_isom_svc_config_del(file, track, 1);
+		}
+		else
+		{
+			s32 seq_id;
+			
+			for (i = 0; i < gf_list_count(svccfg->sequenceParameterSets); i++)
+			{
+				slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
+				sps_id = AVC_ReadSeqInfo(slc->data+1, slc->size-1, &avc, 0, NULL);
+				if (sps_id < 0) {
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
+				nal_type = slc->data[0] & 0x1F;
+				if (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM)
+				{
+					gf_list_rem(svccfg->sequenceParameterSets, i);
+					gf_free(slc->data);
+					gf_free(slc);
+					i--;
+				}
+				else
+					seq_id = sps_id;
+			}
+
+			for (j = 0; j < gf_list_count(svccfg->pictureParameterSets); j++)
+				{
+					slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, j);
+					pps_id = AVC_ReadPictParamSet(slc->data+1, slc->size-1, &avc);
+					if (pps_id < 0) {
+						e = GF_NON_COMPLIANT_BITSTREAM;
+						goto exit;
+					}
+					if (avc.pps[pps_id].sps_id != seq_id)
+					{
+						gf_list_rem(svccfg->pictureParameterSets, j);
+						gf_free(slc->data);
+						gf_free(slc);
+						j--;
+					}
+				}
+			e = gf_isom_svc_config_update(file, track, 1, svccfg, 0);
+			if (e)
+				goto exit;
+		}
 	}
 	/*if this is as splited file: delete this track*/
 	else
