@@ -1589,6 +1589,7 @@ enum
 };
 
 GF_Err gf_isom_set_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber, u32 nalu_extract_mode);
+u32 gf_isom_get_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*creates new AVC config*/

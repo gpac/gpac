@@ -884,7 +884,7 @@ static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 {
 	GF_AVCConfig *svccfg;
 	GF_ISOSample *samp;
-	u32 di = 0;
+	u32 di = 0, cur_extract_mode;
 	char *buffer;
 	GF_BitStream *bs;
 	u32 max_size = 4096;
@@ -894,6 +894,8 @@ static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 
 	samp = NULL;
 	bs = NULL;
+	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
+	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	if (!svccfg)
@@ -929,6 +931,7 @@ exit:
 	if (samp) gf_isom_sample_del(&samp);
 	if (buffer) gf_free(buffer);
 	if (bs) gf_bs_del(bs);
+	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	return DQId;;
 }
 
@@ -981,7 +984,7 @@ GF_EXPORT
 GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 {
 	GF_AVCConfig *svccfg, *cfg;
-	u32 num_svc_track, num_sample, svc_track, dst_track, ref_trackID, ref_trackNum, max_id, di, width, height, size, nalu_size_length, i, j, t, max_size, num_pps, num_sps, num_subseq, NALUnitHeader, data_offset, data_length, count, timescale;
+	u32 num_svc_track, num_sample, svc_track, dst_track, ref_trackID, ref_trackNum, max_id, di, width, height, size, nalu_size_length, i, j, t, max_size, num_pps, num_sps, num_subseq, NALUnitHeader, data_offset, data_length, count, timescale, cur_extract_mode;
 	GF_Err e; 
 	GF_AVCConfigSlot *slc, *sl;
 	AVCState avc;
@@ -1012,6 +1015,8 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	prev_layer = NULL;
 	cfg = NULL;
 	num_svc_track=0;
+	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
+	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	if (!svccfg)
 	{
@@ -1505,6 +1510,7 @@ exit:
 	if (first_DTS_track) gf_free(first_DTS_track);
 	if (buffer) gf_free(buffer);
 	if (prev_layer) gf_free(prev_layer);
+	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	return e;
 }
 
@@ -1545,7 +1551,6 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	num_track = gf_isom_get_track_count(file);
 	if (num_track == 1) 
 		goto exit;
-
 	gf_isom_get_reference(file, track, GF_ISOM_REF_BASE, 1, &ref_trackNum);
 	ref_trackID = gf_isom_get_track_id(file, ref_trackNum);
 	if (!ref_trackID)
@@ -1553,7 +1558,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 		e = GF_ISOM_INVALID_MEDIA;
 		goto exit;
 	}
-
+	
 	list_track_sorted = (u32 *) gf_malloc(num_track * sizeof(u32));
 	DQId = (s32 *) gf_malloc(num_track * sizeof(s32));
 	count = 0;
@@ -1675,6 +1680,8 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	first_sample = 1;
 	first_DTS = 0;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
+	for (t = 1; t <= num_track; t++)
+		gf_isom_set_nalu_extract_mode(file, t, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 1; i <= num_sample; i++)
 	{
 		dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1810,6 +1817,8 @@ exit:
 	if (cur_sample) gf_free(cur_sample);
 	if (max_sample) gf_free(max_sample);
 	if (DTS_offset) gf_free(DTS_offset);
+	for (t = 1; t <= gf_isom_get_track_count(file); t++)
+		gf_isom_set_nalu_extract_mode(file, t, GF_ISOM_NALU_EXTRACT_DEFAULT);
 	return e;
 }
 

@@ -934,7 +934,7 @@ static void dump_nalu(FILE *dump, char *ptr, Bool is_svc)
 
 void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 {
-	u32 i, count, track, nalh_size, timescale;
+	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
 	FILE *dump;
 	s32 countRef;
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -956,6 +956,8 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 
 	timescale = gf_isom_get_media_timescale(file, track);
 
+	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
+
 	fprintf(dump, "<NALUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -969,7 +971,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "  <%s number=\"%d\" ", name, i+1);\
 			dump_nalu(dump, slc->data , svccfg ? 1 : 0);\
-			fprintf(dump, ">\n");\
+			fprintf(dump, "/>\n");\
 		}\
 	}\
 
@@ -999,13 +1001,14 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		for (i = 1; i <= (u32) countRef; i++)
 		{
 			gf_isom_get_reference_ID(file, track, GF_ISOM_REF_SCAL, i, &refTrackID);
-			fprintf(dump, "  <SCALReference number=\"%d\" refTrackID=\"%d\" >\n", i, refTrackID);
+			fprintf(dump, "  <SCALReference number=\"%d\" refTrackID=\"%d\"/>\n", i, refTrackID);
 		}
 			
 		fprintf(dump, " </SCALReferences>\n");
 	}
 
 	fprintf(dump, " <NALUSamples>\n");
+	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
 		u32 size, nal_size, idx;
@@ -1053,6 +1056,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	if (inName) fclose(dump);
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
 #ifndef GPAC_DISABLE_ISOM_DUMP

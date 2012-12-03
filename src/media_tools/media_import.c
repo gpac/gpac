@@ -1540,7 +1540,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
 	u8 bps;
@@ -1587,6 +1587,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	ps = 0;
 	sbr = 0;
 	sbr_sr = 0;
+	cur_extract_mode = gf_isom_get_nalu_extract_mode(import->orig, track_in);
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(import->orig);
 	if (iod && (iod->tag != GF_ODF_IOD_TAG)) {
 		gf_odf_desc_del((GF_Descriptor *) iod);
@@ -1686,7 +1687,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
-
+	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 	for (i=0; i<num_samples; i++) {
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -1741,6 +1742,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 exit:
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
+	gf_isom_set_nalu_extract_mode(import->orig, track_in, cur_extract_mode);
 	return e;
 }
 

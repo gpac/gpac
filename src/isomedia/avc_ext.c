@@ -53,7 +53,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	GF_ISOSample *ref_samp;
 	GF_BitStream *src_bs, *ref_bs, *dst_bs;
 	u64 offset;
-	u32 ref_nalu_size, data_offset, data_length, copy_size, nal_size, max_size, di, nal_unit_size_field;
+	u32 ref_nalu_size, data_offset, data_length, copy_size, nal_size, max_size, di, nal_unit_size_field, cur_extract_mode;
 	u8 ref_track_ID, ref_track_num;
 	s8 sample_offset, nal_hdr, nal_type;
 	char *buffer;
@@ -108,6 +108,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					e = GF_BAD_PARAM;
 					goto exit;
 				}
+				cur_extract_mode = gf_isom_get_nalu_extract_mode(file, ref_track_num);
+				gf_isom_set_nalu_extract_mode(file, ref_track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 				ref_samp = gf_isom_get_sample(file, ref_track_num, sampleNumber+sample_offset, &di);
 				if (!ref_samp) {
 					e = GF_IO_ERR;
@@ -148,6 +150,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				ref_samp = NULL;
 				gf_bs_del(ref_bs);
 				ref_bs = NULL;
+				gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
 				break;
 			case 1:
 				gf_bs_read_data(src_bs, buffer, nal_size-1); //parse to end of this NALU
