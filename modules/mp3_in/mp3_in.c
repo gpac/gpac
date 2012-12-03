@@ -131,13 +131,35 @@ static void mp3_setup_object(MP3Reader *read)
 	}
 }
 
-
-static Bool MP3_ConfigureFromFile(MP3Reader *read)
+/**
+ * Returns TRUE if file is ready to be read, FALSE otherwise
+ * @param read Reader
+ * @param minSizeToRead How much bytes do we need to start reading at minimum
+ */
+static Bool MP3_ConfigureFromFile(MP3Reader *read, int * minSizeToRead)
 {
+	unsigned char id3v2[10];
 	u32 hdr, size;
 	u64 pos;
 	if (!read->stream) return 0;
-
+	/* ID3VVFFFFSIZE = 13bytes
+         * ID3 string
+	 * VV = Version
+         * F = Flags
+         * SIZE = 32bits size with first Most Significant bit set to 0 -> 28 bits
+	 * Size starts AFTER this header, meaning we have to add 10 bytes
+	 */
+	pos = fread(id3v2, sizeof(unsigned char), 10, read->stream);
+	*minSizeToRead = 0;
+	if (pos == 10){
+		/* Did we read an ID3v2 ? */
+		if (id3v2[0] == 'I' && id3v2[1] == 'D' && id3v2[2] == '3'){
+			int sz = 10 + ((id3v2[9] & 0x7f) + ((id3v2[8] & 0x7f) << 7) + ((id3v2[7] & 0x7f) << 14) + ((id3v2[6] & 0x7f) << 21));
+			//printf("Size of id3v2 header = %d\n", sz);
+			*minSizeToRead = sz;
+		}
+	}
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	hdr = gf_mp3_get_next_header(read->stream);
 	if (!hdr) return 0;
 	read->sample_rate = gf_mp3_sampling_rate(hdr);
@@ -318,14 +340,15 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			read->stream = gf_f64_open((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
+				int minSizeToRead = 0;
 				/*if full file at once (in cache) parse duration*/
 				if (e==GF_EOS) read->is_remote = 0;
 				e = GF_OK;
 				/*not enough data*/
-				if (!MP3_ConfigureFromFile(read)) {
+				if (!MP3_ConfigureFromFile(read, &minSizeToRead)) {
 					gf_dm_sess_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
 					/*bad data - there's likely some ID3 around...*/
-					if (bytes_done>100*1024) {
+					if (bytes_done>(100*1024 + minSizeToRead)) {
 						e = GF_CORRUPTED_DATA;
 					} else {
 						fclose(read->stream);
@@ -366,6 +389,7 @@ void mp3_download_file(GF_InputService *plug, char *url)
 static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
+	int minSizeToRead = 0;
 	char *ext;
 	GF_Err reply;
 	MP3Reader *read = plug->priv;
@@ -389,7 +413,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	read->stream = gf_f64_open(szURL, "rb");
 	if (!read->stream) {
 		reply = GF_URL_ERROR;
-	} else if (!MP3_ConfigureFromFile(read)) {
+	} else if (!MP3_ConfigureFromFile(read, &minSizeToRead)) {
 		fclose(read->stream);
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
@@ -532,7 +556,8 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			read->done = 0;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
-				MP3_ConfigureFromFile(read);
+				int minSizeToRead = 0;
+				MP3_ConfigureFromFile(read, &minSizeToRead);
 				if (read->duration) {
 					GF_NetworkCommand rcfg;
 					rcfg.base.on_channel = read->ch;
