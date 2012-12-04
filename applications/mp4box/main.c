@@ -271,13 +271,20 @@ void PrintDASHUsage()
 			"                       Note: for onDemand profile, sets duration of a subsegment\n"
 			" -frag time_in_ms     Specifies a fragment duration of time_in_ms.\n"
 			"                       * Note: By default, this is the DASH duration\n"
-			" -out filename        specifies output file name\n"
-			"                       * Note: By default input (MP4,3GP) file is overwritten\n"
+			" -out filename        specifies output MPD file name.\n"
 			" -tmp dirname         specifies directory for temporary file creation\n"
 			"                       * Note: Default temp dir is OS-dependent\n"
 			" -profile NAME   specifies the target DASH profile: \"onDemand\", \"live\", \"main\", \"simple\", \"full\"\n"
 			"                       * This will set default option values to ensure conformance to the desired profile\n"
 			"                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
+			"\n"
+			"Input media files to dash can use the following modifiers\n"
+			" \":id=NAME\"         sets the representation ID to NAME\n"
+			" \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
+			"                       period appear in the MPD in the same order as specified with this option\n"
+			" \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
+			" \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
+			"                       media with different roles belong to different adaptation sets.\n"
 			"\n"
 			" -rap                 segments begin with random access points\n"
 			"                       Note: segment duration may not be exactly what asked by\n"
@@ -1293,6 +1300,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			if (!strnicmp(opts, "id=", 3)) strncpy(di->representationID, opts+3, 99);
 			else if (!strnicmp(opts, "period=", 7)) strncpy(di->periodID, opts+7, 99);
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
+			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
 			
 			if (!sep) break;
 			sep[0] = ':';

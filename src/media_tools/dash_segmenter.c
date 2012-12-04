@@ -85,6 +85,7 @@ struct _dash_segment_input
 	char *file_name;
 	char representationID[100];
 	char periodID[100];
+	char role[100];
 	u32 bandwidth;
 
 	/*if 0, input is disabled*/
@@ -1547,6 +1548,9 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 		if (strcmp(dash_inputs[input_idx].szMime, dash_inputs[i].szMime))
 			continue;
 
+		if (strcmp(dash_inputs[input_idx].role, dash_inputs[i].role))
+			continue;
+
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 
 		for (j=0; j<gf_isom_get_track_count(set_file); j++) {
@@ -1798,6 +1802,9 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 			continue;
 
 		if (strcmp(dash_inputs[input_idx].szMime, dash_inputs[i].szMime))
+			continue;
+
+		if (strcmp(dash_inputs[input_idx].role, dash_inputs[i].role))
 			continue;
 
 		memset(&probe, 0, sizeof(GF_MediaImporter));
@@ -3038,6 +3045,18 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 				}
 			}
 		}
+
+		/*set role*/
+		if (strlen(first_rep->role)) {
+			if (!strcmp(first_rep->role, "caption") || !strcmp(first_rep->role, "subtitle") || !strcmp(first_rep->role, "main")
+				 || !strcmp(first_rep->role, "alternate") || !strcmp(first_rep->role, "supplementary") || !strcmp(first_rep->role, "commentary")
+				 || !strcmp(first_rep->role, "dub")
+			) {
+				fprintf(mpd, "   <Role schemeIdUri=\"urn:mpeg:dash:role:2011\" value=\"%s\"/>\n", first_rep->role);
+			}
+		}
+
+
 		if (first_rep->nb_components>1) {
 			for (i=0; i<first_rep->nb_components; i++) {
 				struct _dash_component *comp = &first_rep->components[i];
@@ -3294,6 +3313,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	u32 max_sap_type = 0;
 	Bool none_supported = 1;
 	Bool has_mpeg2 = 0;
+	Bool has_role = 0;
 	Double presentation_duration = 0;
 	GF_Err e = GF_OK;
 	FILE *mpd = NULL;
@@ -3334,7 +3354,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		dash_inputs[i].file_name = inputs[i].file_name;
 		strcpy(dash_inputs[i].representationID, inputs[i].representationID);
 		strcpy(dash_inputs[i].periodID, inputs[i].periodID);
+		strcpy(dash_inputs[i].role, inputs[i].role);
 		dash_inputs[i].bandwidth = inputs[i].bandwidth;
+
+		if (strlen(inputs[i].role) && strcmp(inputs[i].role, "main"))
+			has_role = 1;
 
 		if (!strlen(dash_inputs[i].periodID)) {
 			max_period = 1;
@@ -3348,6 +3372,14 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		if (!strcmp(dash_inputs[i].szMime, "video/mp2t")) has_mpeg2 = 1;
  	}
 	memset(&dash_opts, 0, sizeof(GF_DASHSegmenterOptions));
+
+	/*set all default roles to main if needed*/
+	if (has_role) {
+		for (i=0; i<nb_dash_inputs; i++) {
+			if (!strlen(dash_inputs[i].role))
+				strcpy(dash_inputs[i].role, "main");
+		}
+	}
 
 	for (i=0; i<nb_dash_inputs; i++) {
 		if (dash_inputs[i].period) 
