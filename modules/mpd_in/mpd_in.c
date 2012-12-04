@@ -45,6 +45,8 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
     Double previous_start_range;
+	/*max width & height in all active representations*/
+	u32 width, height;
 } GF_MPD_In;
 
 typedef struct 
@@ -404,8 +406,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
-			const char *mime, *init_segment;
-			
+			const char *mime, *init_segment;			
 			if (!gf_dash_is_group_selected(mpdin->dash, i))
 				continue;
 
@@ -422,7 +423,14 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Unable to connect input service to %s\n", init_segment));
 					gf_dash_group_select(mpdin->dash, i, 0);
 				} else {
+					u32 w, h;
 					group->service_connected = 1;
+					w = h = 0;
+					gf_dash_group_get_video_info(mpdin->dash, i, &w, &h);
+					if (w && h && w>mpdin->width && h>mpdin->height) {
+						mpdin->width = w;
+						mpdin->height = h;
+					}
 				}
 			}
 		}
@@ -614,6 +622,11 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		    return segment_ifce->ServiceCommand(segment_ifce, com);
 		}
         return GF_NOT_SUPPORTED;
+
+	case GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE:
+		com->par.width = mpdin->width;
+		com->par.height = mpdin->height;
+        return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_SWITCH:
 		gf_dash_switch_quality(mpdin->dash, com->switch_quality.up);

@@ -94,6 +94,9 @@ typedef enum
 	GF_NET_SERVICE_INFO,
 	/*checks if there is an audio stream in the service - term->net only*/
 	GF_NET_SERVICE_HAS_AUDIO,
+
+	/*checks if there is a forced video size  - if yes, info is stored in GF_NetComPixelAR - term->net only*/
+	GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE,
 	/*instructs the service to get the migration info - term->net only*/
 	GF_NET_SERVICE_MIGRATION_INFO,
 

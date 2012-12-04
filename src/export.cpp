@@ -1738,6 +1738,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_segment_switch_forced) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_current_segment_start_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_video_info) )
+
 
 #endif
 
