@@ -209,6 +209,8 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range);
 Double gf_dash_get_playback_start_range(GF_DashClient *dash);
 /*when seeking, this flag is set when the seek is outside of the previously playing segment.*/
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
+/*get video info for this group if video*/
+GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);
 
 /*returns the start_time of the first segment in the queue (usually the one being played)*/
 Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx);

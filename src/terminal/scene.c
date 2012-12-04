@@ -1372,7 +1372,15 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
 	
 	if (scene->root_od->term->root_scene == scene) {
+		GF_NetworkCommand com;
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
+		gf_term_service_command(scene->root_od->net_service, &com);
+		if (com.par.width && com.par.height) {
+			gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+		}
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));
