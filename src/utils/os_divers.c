@@ -406,7 +406,9 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	return (MoveFile(fileName, newFileName) == 0 ) ? GF_IO_ERR : GF_OK;
 #else
 	/* success is == 0 */
-	return ( rename(fileName, newFileName) == 0) ? GF_OK : GF_IO_ERR;
+	char cmd[1024];
+	snprintf(cmd, sizeof(cmd)-1, "mv %s %s", fileName, newFileName);
+	return ( system(cmd) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 }
 
