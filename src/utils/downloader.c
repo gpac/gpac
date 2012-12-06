@@ -858,8 +858,8 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
     /* builds orig_url */
     /* We dont't want orig_url to contain user/passwords for security reasons or mismatch in cache hit */
     {
-        char port[7];
-        snprintf(port, 7, ":%d", info->port);
+        char port[8];
+        snprintf(port, sizeof(port)-1, ":%d", info->port);
         info->canonicalRepresentation = gf_malloc(strlen(info->protocol)+strlen(info->server_name)+1+strlen(port)+strlen(info->remotePath));
         strcpy(info->canonicalRepresentation, info->protocol);
         strcat(info->canonicalRepresentation, info->server_name);
