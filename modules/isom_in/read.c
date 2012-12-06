@@ -56,6 +56,7 @@ static void isor_delete_channel(ISOMReader *reader, ISOMChannel *ch)
 static GFINLINE Bool isor_is_local(const char *url)
 {
 	if (!strnicmp(url, "file://", 7)) return 1;
+	if (!strnicmp(url, "gmem://", 7)) return 1;
 	if (strstr(url, "://")) return 0;
 	/*the rest is local (mounted on FS)*/
 	return 1;

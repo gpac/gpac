@@ -130,6 +130,10 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 #else
 		return GF_NOT_SUPPORTED;
 #endif
+	} else if (!strncmp(location, "gmem://", 7)) {
+		*outDataMap = gf_isom_fdm_new(location, GF_ISOM_DATA_MAP_READ);
+		if (! (*outDataMap)) return GF_IO_ERR;
+		return GF_OK;
 	}
 
 	extern_file = !gf_url_is_local(location);
@@ -340,6 +344,18 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		bs_mode = GF_BITSTREAM_READ;
 	}
 #endif
+	if (!strncmp(sPath, "gmem://", 7)) {
+		u32 size;
+		void *mem_address;
+		if (sscanf(sPath, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2)
+			return NULL;
+		tmp->bs = gf_bs_new((const char *)mem_address, size, GF_BITSTREAM_READ);
+		if (!tmp->bs) {
+			gf_free(tmp);
+			return NULL;
+		}
+		return (GF_DataMap *)tmp;
+	}
 
 	switch (mode) {
 	case GF_ISOM_DATA_MAP_READ:
@@ -426,7 +442,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u6
 		//rewind to original (if seek fails, return 0 cause this means:
 		//1- no support for seek on the platform
 		//2- corrupted file for the OS
-		fflush(ptr->stream);
+		if (ptr->stream) fflush(ptr->stream);
 		gf_bs_seek(ptr->bs, ptr->curPos);
 	}
 	ptr->last_acces_was_read = 1;
@@ -472,7 +488,7 @@ GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
 	}
 	ptr->curPos = gf_bs_get_position(ptr->bs);
 	//flush the stream !!
-	fflush(ptr->stream);
+	if (ptr->stream) fflush(ptr->stream);
 	return GF_OK;
 }
 

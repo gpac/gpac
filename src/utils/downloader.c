@@ -471,7 +471,7 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
  * \param url The full URL
  * \return The DownloadedCacheEntry
  */
-DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range);
+DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range, Bool mem_storage);
 
 /*!
  * Removes a session for a DownloadedCacheEntry
@@ -528,7 +528,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     gf_dm_remove_cache_entry_from_session(sess);
     entry = gf_dm_find_cached_entry_by_url(sess);
     if (!entry) {
-		entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end);
+		entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? 1 : 0);
         gf_mx_p( sess->dm->cache_mx );
         gf_list_add(sess->dm->cache_entries, entry);
         gf_mx_v( sess->dm->cache_mx );
@@ -1395,7 +1395,8 @@ GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
                 gf_sleep(16);
             break;
         case GF_NETIO_WAIT_FOR_REPLY:
-            gf_sleep(16);
+//            gf_sleep(16);
+              gf_sleep(1);
         case GF_NETIO_CONNECTED:
             sess->do_requests(sess);
             break;

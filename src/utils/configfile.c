@@ -207,7 +207,8 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	}
 
 	if (gf_cfg_parse_config_file(tmp, filePath, file_name)){
-	    gf_free( tmp );
+		gf_cfg_clear(tmp);
+		gf_free(tmp);
 	    tmp = NULL;
 	}
 	return tmp;

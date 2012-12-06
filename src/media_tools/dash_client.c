@@ -64,6 +64,7 @@ struct __dash_client
 	u32 max_cache_duration;
 	u32 auto_switch_count;
 	Bool keep_files, disable_switching, allow_local_mpd_update;
+	Bool is_m3u8;
 
 	GF_DASHInitialSelectionMode first_select_mode;
 
@@ -211,6 +212,64 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 		}
 	}
 	return 0;
+}
+
+static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
+{
+	u32 sec, frac;
+#ifndef _WIN32_WCE
+	time_t gtime;
+	struct tm *_t;
+#endif
+	u64 current_time;
+	
+	if (mpd->type==GF_MPD_TYPE_STATIC) 
+		return;
+	
+	/*M3U8 does not use NTP sync */
+	if (group->dash->is_m3u8)
+		return;
+
+	gf_net_get_ntp(&sec, &frac);
+
+#ifndef _WIN32_WCE
+	gtime = sec - GF_NTP_SEC_1900_TO_1970;
+	_t = gmtime(&gtime);
+	current_time = mktime(_t);
+#else
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
+#endif
+	if (current_time < mpd->availabilityStartTime) current_time = 0;
+	else current_time -= mpd->availabilityStartTime;
+
+	if (current_time < group->period->start) current_time = 0;
+	else current_time -= group->period->start;
+
+#if 0
+	{
+		s32 diff = (s32) current_time - (s32) (mpd->media_presentation_duration/1000);
+		if (ABS(diff)>10) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Broken UTC timing in client or server - got Media URL is not set in segment list\n"));
+				
+		}
+		current_time = mpd->media_presentation_duration/1000;
+	}
+#endif
+
+	frac = mpd->time_shift_buffer_depth/1000;
+	if (current_time < frac) current_time = 0;
+	else current_time -= frac;
+
+
+	if (group->segment_duration) {
+		Double nb_seg = (Double) current_time;
+		nb_seg /= group->segment_duration;
+		frac = (u32) nb_seg;
+		group->download_segment_index = frac;
+		group->nb_segments_in_rep = frac + 10;
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment duration unknown - cannot estimate current startNumber\n"));
+	}
 }
 
 void gf_dash_group_check_switch(GF_DASHFileIO *dash_io, GF_DASH_Group *group, Bool download_active)
@@ -781,7 +840,6 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
 	GF_Err e;
-	u64 previous_availability_start_time;
 	u32 group_idx, rep_idx, i, j;
 	GF_DOMParser *mpd_parser;
 	GF_MPD_Period *period, *new_period;
@@ -832,7 +890,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			purl = update_url;
 		}
 	}
-	previous_availability_start_time = dash->mpd->availabilityStartTime;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating Playlist %s...\n", purl ? purl : local_url));
 	if (purl) {
@@ -943,10 +1000,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				for (group_idx=0; group_idx<gf_list_count(dash->groups); group_idx++) {
 					GF_MPD_AdaptationSet *set, *new_set;
 					GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
-
-					if (previous_availability_start_time != dash->mpd->availabilityStartTime) {
-						group->timeline_setup = 0;
-					}
 
 					if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 					set = group->adaptation_set;
@@ -1088,6 +1141,10 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 						}
 					}
 
+					if (new_mpd->availabilityStartTime != dash->mpd->availabilityStartTime) {
+						gf_dash_group_timeline_setup(new_mpd, group);
+					}
+
 					/*update number of segments in active rep*/
 					gf_dash_get_segment_duration(gf_list_get(group->adaptation_set->representations, group->active_rep_index), group->adaptation_set, group->period, new_mpd, &group->nb_segments_in_rep, NULL);
 
@@ -1223,6 +1280,7 @@ typedef enum
 } GF_DASHURLResolveType;
 
 
+
 GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Group *group, char *mpd_url, GF_DASHURLResolveType resolve_type, u32 item_index, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration)
 {
 	GF_MPD_BaseURL *url_child;
@@ -1239,56 +1297,12 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 	*out_url = NULL;
 
 
-	/*todo for live - check we don't attempt to request segments before their availabilityStartTime !*/
 	if (!group->timeline_setup) {
-		u32 sec, frac;
-#ifndef _WIN32_WCE
-		time_t gtime;
-		struct tm *_t;
-#endif
-		u64 current_time;
-		gf_net_get_ntp(&sec, &frac);
-
-#ifndef _WIN32_WCE
-		gtime = sec - GF_NTP_SEC_1900_TO_1970;
-		_t = gmtime(&gtime);
-		current_time = mktime(_t);
-#else
-		current_time = sec - GF_NTP_SEC_1900_TO_1970;
-#endif
-		if (current_time < mpd->availabilityStartTime) current_time = 0;
-		else current_time -= mpd->availabilityStartTime;
-
-		if (current_time < group->period->start) current_time = 0;
-		else current_time -= group->period->start;
-
-#if 0
-		{
-			s32 diff = (s32) current_time - (s32) (mpd->media_presentation_duration/1000);
-			if (ABS(diff)>10) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Broken UTC timing in client or server - got Media URL is not set in segment list\n"));
-					
-			}
-			current_time = mpd->media_presentation_duration/1000;
-		}
-#endif
-
-		frac = mpd->time_shift_buffer_depth/1000;
-		if (current_time < frac) current_time = 0;
-		else current_time -= frac;
-
-
-		if (segment_duration) {
-			Double nb_seg = (Double) current_time;
-			nb_seg /= group->segment_duration;
-			frac = (u32) nb_seg;
-			group->download_segment_index = frac;
-			group->nb_segments_in_rep = frac + 10;
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment duration unknown - cannot estimate current startNumber\n"));
-		}
+		gf_dash_group_timeline_setup(mpd, group);
 		group->timeline_setup = 1;
 	}
+
+
 
 
 	/*resolve base URLs from document base (download location) to representation (media)*/
@@ -2180,9 +2194,8 @@ restart_period:
 		/*wait until next segment is needed*/
 		while (!dash->mpd_stop_request) {
 			u32 timer = gf_sys_clock() - dash->last_update_time;
-			Bool shouldParsePlaylist = dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period); 
 
-			if (shouldParsePlaylist) {
+			if (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period)) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Time to update the playlist (%u ms ellapsed since last refresh and min reoad rate is %u)\n", timer, dash->mpd->minimum_update_period));
 				e = gf_dash_update_manifest(dash);
 				group_count = gf_list_count(dash->groups);
@@ -2250,8 +2263,16 @@ restart_period:
 			we need to check if a new playlist is ready */
 			if (group->nb_segments_in_rep && (group->download_segment_index>=group->nb_segments_in_rep)) {
 				u32 timer = gf_sys_clock() - dash->last_update_time;
+				Bool update_playlist = 0;
 				/* update of the playlist, only if indicated */
-				if (dash->mpd->minimum_update_period && timer > dash->mpd->minimum_update_period) {
+				if (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period)) {
+					update_playlist = 1;
+				}
+				/* if media_presentation_duration is 0 and we are in live, force a refresh (not in the spec but safety check*/
+				else if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->mpd->media_presentation_duration) {
+					update_playlist = 1;
+				}
+				if (update_playlist) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in current playlist downloaded, checking updates after %u ms\n", timer));
 					e = gf_dash_update_manifest(dash);
 					if (e) {
@@ -2264,8 +2285,8 @@ restart_period:
 				}
 				/* Now that the playlist is up to date, we can check again */
 				if (group->download_segment_index >= group->nb_segments_in_rep) {
-					if (dash->mpd->minimum_update_period) {
-						/* if there is a specified update period, we redo the whole process */
+					/* if there is a specified update period, we redo the whole process */
+					if (dash->mpd->minimum_update_period ) {
 						continue;
 					} else {
 						/* if not, we are really at the end of the playlist, we can quit */
@@ -2636,7 +2657,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	GF_Err e;
 	GF_MPD_Period *period;
 	GF_DOMParser *mpd_parser;
-	Bool is_m3u8 = 0;
 	Bool is_local = 0;
 
 	if (!dash || !manifest_url) return GF_BAD_PARAM;
@@ -2663,7 +2683,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		local_url = manifest_url + 7;
 		is_local = 1;
 		if (strstr(manifest_url, ".m3u8")) {
-			is_m3u8 = 1;
+			dash->is_m3u8 = 1;
 		}
 	} else if (strstr(manifest_url, "://")) {
 		const char *reloc_url, *mtype;
@@ -2683,7 +2703,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		reloc_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
 		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
 		if (gf_dash_is_m3u8_mime(mime) || strstr(reloc_url, ".m3u8") || strstr(reloc_url, ".M3U8")) {
-			is_m3u8 = 1;
+			dash->is_m3u8 = 1;
 		} else if (!gf_dash_is_dash_mime(mime) && !strstr(reloc_url, ".mpd") && !strstr(reloc_url, ".MPD")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] mime '%s' for '%s' should be m3u8 or mpd\n", mime, reloc_url));
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
@@ -2702,7 +2722,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		local_url = manifest_url;
 		is_local = 1;
 		if (strstr(manifest_url, ".m3u8"))
-			is_m3u8 = 1;
+			dash->is_m3u8 = 1;
 	}
 
 	if (is_local) {
@@ -2711,7 +2731,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		fclose(f);
 	}
 
-	if (is_m3u8) {
+	if (dash->is_m3u8) {
 		if (is_local) {
 			char *sep;
 			strcpy(local_path, local_url);
@@ -2825,7 +2845,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u
 
 	dash->dash_thread = gf_th_new("MPD Segment Downloader Thread");
 	dash->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
-	dash->mimeTypeForM3U8Segments = gf_strdup( M3U8_UNKOWN_MIME_TYPE );
+	dash->mimeTypeForM3U8Segments = gf_strdup( "video/mp2t" );
 
 	dash->max_cache_duration = max_cache_duration_sec;
 

@@ -495,20 +495,30 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist)
 {
 	int len, i, currentLineNumber;
-	FILE * f;
+	FILE * f=NULL;
+	char *m3u8_payload;
+	u32 m3u8_size, m3u8pos;
 	VariantPlaylist * pl;
 	char currentLine[M3U8_BUF_SIZE];
 	char ** attributes = NULL;
 	s_accumulated_attributes attribs;
-	f = gf_f64_open(file, "rt");
-	if (!f) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
-		return GF_SERVICE_ERROR;
+
+	if (!strncmp(file, "gmem://", 7)) {
+		if (sscanf(file, "gmem://0x%08X@0x%016X", &m3u8_size, &m3u8_payload) != 2) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 source %s for reading\n", file));
+			return GF_SERVICE_ERROR;
+		}
+	} else {
+		f = gf_f64_open(file, "rt");
+		if (!f) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
+			return GF_SERVICE_ERROR;
+		}
 	}
 	if (*playlist == NULL) {
 		*playlist = variant_playlist_new();
 		if (!(*playlist)) {
-			fclose(f);
+			if (f) fclose(f);
 			return GF_OUT_OF_MEM;
 		}
 	}
@@ -522,8 +532,26 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 	attribs.isPlaylistEnded = 0;
 	attribs.minMediaSequence = 0;
 	attribs.currentMediaSequence = 0;
-	while (fgets(currentLine, sizeof(currentLine), f)) {
+	m3u8pos=0;
+	while (1) {
 		char * eof;
+		if (f) {
+			if (!fgets(currentLine, sizeof(currentLine), f))
+				break;
+		} else {
+			u32 __idx=0;
+			if (m3u8pos>=m3u8_size)
+				break;
+			while (1) {
+				currentLine[__idx] = m3u8_payload[m3u8pos];
+				__idx++;
+				m3u8pos++;
+				if ((currentLine[__idx-1]=='\n') || (currentLine[__idx-1]=='\r')) {
+					currentLine[__idx]=0;
+					break;
+				}
+			}
+		}
 		currentLineNumber++;
 		eof = strchr(currentLine, '\r');
 		if (eof)
@@ -601,7 +629,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 					if (program == NULL) {
 						/* OUT of memory */
 						variant_playlist_del(*playlist);
-						fclose(f);
+						if (f) fclose(f);
 						playlist = NULL;
 						return GF_OUT_OF_MEM;
 					}
@@ -643,7 +671,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						/* OUT of memory */
 						variant_playlist_del(*playlist);
 						playlist = NULL;
-						fclose(f);
+						if (f) fclose(f);
 						return GF_OUT_OF_MEM;
 					}
 					assert( fullURL);
@@ -671,7 +699,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							/* OUT of memory */
 							variant_playlist_del(*playlist);
 							playlist = NULL;
-							fclose(f);
+							if (f) fclose(f);
 							return GF_OUT_OF_MEM;
 						}
 						assert(currentPlayList->element.playlist.elements);
@@ -690,7 +718,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							variant_playlist_del(*playlist);
 							playlist_element_del(currentPlayList);
 							playlist = NULL;
-							fclose(f);
+							if (f) fclose(f);
 							return GF_OUT_OF_MEM;
 						}
 						gf_list_add(currentPlayList->element.playlist.elements, subElement);
@@ -717,7 +745,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							variant_playlist_del(*playlist);
 							playlist_element_del(currentPlayList);
 							playlist = NULL;
-							fclose(f);
+							if (f) fclose(f);
 							return GF_OUT_OF_MEM;
 						}
 						gf_list_add(currentPlayList->element.playlist.elements, subElement);
@@ -763,7 +791,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 			}
 		}
 	}
-	fclose(f);
+	if (f) fclose(f);
 
 	for (i=0; i < (int) gf_list_count(pl->programs); i++) {
 		u32 j;

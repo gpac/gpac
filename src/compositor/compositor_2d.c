@@ -783,6 +783,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 {
+	u32 old_vp_width, old_vp_height;
+	Bool changed = 0;
 	Double ratio;
 	GF_Event evt;
 	GF_Err e;
@@ -792,6 +794,9 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	compositor->output_height = compositor->scene_height;
 	compositor->vp_x = compositor->vp_y = 0;
 	scaleX = scaleY = FIX_ONE;
+
+	old_vp_width = compositor->vp_width;
+	old_vp_height = compositor->vp_height;
 
 	/*force complete clean*/
 	compositor->traverse_state->invalidate_all = 1;
@@ -892,21 +897,32 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	}
 #endif
 
+	if (compositor->was_system_memory != evt.setup.system_memory) changed = 1;
+	else if (old_vp_width != compositor->vp_width) changed=1;
+	else if (old_vp_height != compositor->vp_height) changed=1;
+	else if (compositor->was_opengl != evt.setup.opengl_mode) changed=1;
+	
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring display size %d x %d - opengl %s - use %s memory\n", evt.setup.width, evt.setup.height,
-		(evt.setup.opengl_mode==2) ? "Offscreen" : (evt.setup.opengl_mode==1) ? "yes" : "no", evt.setup.system_memory ? "systems" : "video"
-		));
+	if (changed) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring display size %d x %d - opengl %s - use %s memory\n", evt.setup.width, evt.setup.height,
+			(evt.setup.opengl_mode==2) ? "Offscreen" : (evt.setup.opengl_mode==1) ? "yes" : "no", evt.setup.system_memory ? "systems" : "video"
+			));
 
-	e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-	if (e) return e;
+		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
+		if (e) return e;
 
-	if (compositor->has_size_info) {
-		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
-		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
-	} else {
-		compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
-		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
+		if (compositor->has_size_info) {
+			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
+			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+		} else {
+			compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
+			compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
+		}
+		compositor->was_opengl = evt.setup.opengl_mode;
+		compositor->was_system_memory = evt.setup.system_memory;
+		
 	}
+
 	/*set scale factor*/
 	compositor_set_ar_scale(compositor, scaleX, scaleY);
 	return GF_OK;

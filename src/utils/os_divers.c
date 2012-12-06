@@ -486,8 +486,13 @@ FILE *gf_temp_file_new()
 	char tmp[MAX_PATH], t_file[100];
 	FILE *res = tmpfile();
 	if (res) return res;
+	{
+		u32 err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): %08x\n", err));
+	}
 	/*tmpfile() may fail under vista ...*/
-	if (!GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) return NULL;
+	if (!GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) 
+		return NULL;
 	sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
 	strcat(tmp, t_file);
 	return gf_f64_open(tmp, "w+b");
@@ -806,7 +811,13 @@ GF_EXPORT
 FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 #if defined(WIN32)
-	return fopen(file_name, mode);
+	FILE *res = fopen(file_name, mode);
+	if (res) return res;
+	if (strchr(mode, 'w') || strchr(mode, 'a')) {
+		u32 err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for file opening of %s in mode %s: %08x\n", file_name, mode, err));
+	}
+	return NULL;
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
 	return fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))

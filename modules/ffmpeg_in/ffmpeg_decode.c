@@ -696,87 +696,103 @@ redecode:
 	w = ctx->width;
 	h = ctx->height;
 
-	if (ffd->check_h264_isma) {
-		/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
-		doesn't put back nalu size, do it ourselves...*/
-		if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
-			u32 nalu_size;
-			char *start, *end, *bufferEnd;
+	/*we have a valid frame not yet dispatched*/
+	if (ffd->had_pic) {
+		ffd->had_pic = 0;
+		gotpic = 1;
+	} else {
+		if (ffd->check_h264_isma) {
+			/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
+			doesn't put back nalu size, do it ourselves...*/
+			if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
+				u32 nalu_size;
+				char *start, *end, *bufferEnd;
 
-			start = inBuffer;
-			end = inBuffer + 4;
-			bufferEnd = inBuffer + inBufferLength;
-			/* FIXME : SOUCHAY : not sure of exact behaviour, but old one was reading non-allocated memory */
-			while ((end+3) < bufferEnd) {
-				if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
-					nalu_size = end - start - 4;
-					start[0] = (nalu_size>>24)&0xFF;
-					start[1] = (nalu_size>>16)&0xFF;
-					start[2] = (nalu_size>>8)&0xFF;
-					start[3] = (nalu_size)&0xFF;
-					start = end;
-					end = start+4;
-					continue;
+				start = inBuffer;
+				end = inBuffer + 4;
+				bufferEnd = inBuffer + inBufferLength;
+				/* FIXME : SOUCHAY : not sure of exact behaviour, but old one was reading non-allocated memory */
+				while ((end+3) < bufferEnd) {
+					if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
+						nalu_size = end - start - 4;
+						start[0] = (nalu_size>>24)&0xFF;
+						start[1] = (nalu_size>>16)&0xFF;
+						start[2] = (nalu_size>>8)&0xFF;
+						start[3] = (nalu_size)&0xFF;
+						start = end;
+						end = start+4;
+						continue;
+					}
+					end++;
 				}
-				end++;
+				nalu_size = (inBuffer+inBufferLength) - start - 4;
+				start[0] = (nalu_size>>24)&0xFF;
+				start[1] = (nalu_size>>16)&0xFF;
+				start[2] = (nalu_size>>8)&0xFF;
+				start[3] = (nalu_size)&0xFF;
+				ffd->check_h264_isma = 2;
 			}
-			nalu_size = (inBuffer+inBufferLength) - start - 4;
-			start[0] = (nalu_size>>24)&0xFF;
-			start[1] = (nalu_size>>16)&0xFF;
-			start[2] = (nalu_size>>8)&0xFF;
-			start[3] = (nalu_size)&0xFF;
-			ffd->check_h264_isma = 2;
-		}
-		/*if we had ISMA E&A and lost it this is likely due to a pck loss - do NOT switch back to regular*/
-		else if (ffd->check_h264_isma == 1) {
-			ffd->check_h264_isma = 0;
-		}
-	}
-
-#ifdef USE_AVCODEC2
-	if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
-#else
-	if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
-#endif
-		if (!ffd->check_short_header) {
-			return GF_NON_COMPLIANT_BITSTREAM;
+			/*if we had ISMA E&A and lost it this is likely due to a pck loss - do NOT switch back to regular*/
+			else if (ffd->check_h264_isma == 1) {
+				ffd->check_h264_isma = 0;
+			}
 		}
 
-		/*switch to H263 (ffmpeg MPEG-4 codec doesn't understand short headers)*/
-		{
-			u32 old_codec = (*codec)->id;
-			ffd->check_short_header = 0;
-			/*OK we loose the DSI stored in the codec context, but H263 doesn't need any, and if we're
-			here this means the DSI was broken, so no big deal*/
-			avcodec_close(ctx);
-			*codec = avcodec_find_decoder(CODEC_ID_H263);
-			if (! (*codec) || (avcodec_open(ctx, *codec)<0)) return GF_NON_COMPLIANT_BITSTREAM;
-#if USE_AVCODEC2
-			if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
-#else
-			if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
-#endif
-				/*nope, stay in MPEG-4*/
-				avcodec_close(ctx);
-				*codec = avcodec_find_decoder(old_codec);
-				assert(*codec);
-				avcodec_open(ctx, *codec);
+	#ifdef USE_AVCODEC2
+		if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
+	#else
+		if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
+	#endif
+			if (!ffd->check_short_header) {
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
+
+			/*switch to H263 (ffmpeg MPEG-4 codec doesn't understand short headers)*/
+			{
+				u32 old_codec = (*codec)->id;
+				ffd->check_short_header = 0;
+				/*OK we loose the DSI stored in the codec context, but H263 doesn't need any, and if we're
+				here this means the DSI was broken, so no big deal*/
+				avcodec_close(ctx);
+				*codec = avcodec_find_decoder(CODEC_ID_H263);
+				if (! (*codec) || (avcodec_open(ctx, *codec)<0)) return GF_NON_COMPLIANT_BITSTREAM;
+	#if USE_AVCODEC2
+				if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
+	#else
+				if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
+	#endif
+					/*nope, stay in MPEG-4*/
+					avcodec_close(ctx);
+					*codec = avcodec_find_decoder(old_codec);
+					assert(*codec);
+					avcodec_open(ctx, *codec);
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+			}
+		}
+
+	/*
+		if (!gotpic && (!ctx->width || !ctx->height) ) {
+			ctx->width = w;
+			ctx->height = h;
+			return GF_OK;
+		}
+	*/
+		/*some streams use odd width/height frame values*/
+		if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
+			if (ctx->width%2) ctx->width++;
+			if (ctx->height%2) ctx->height++;
 		}
 	}
 
-	if (!gotpic && (!ctx->width || !ctx->height) ) {
-		ctx->width = w;
-		ctx->height = h;
-		return GF_OK;
+	/*we have a picture and need resize, do it*/
+	if (gotpic && ffd->needs_output_resize) {
+		ffd->needs_output_resize=0;
+		ffd->had_pic = 1;
+		*outBufferLength = ffd->out_size;
+		return GF_BUFFER_TOO_SMALL;
 	}
 
-	/*some streams use odd width/height frame values*/
-	if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
-		if (ctx->width%2) ctx->width++;
-		if (ctx->height%2) ctx->height++;
-	}
 
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)) {
@@ -787,6 +803,17 @@ redecode:
 			ffd->yuv_size = 3 * ctx->width * ctx->height / 2;
 		}
 		ffd->out_size = outsize;
+
+		if (!ffd->no_par_update && ctx->sample_aspect_ratio.num && ctx->sample_aspect_ratio.den) {
+			ffd->previous_par = (ctx->sample_aspect_ratio.num<<16) | ctx->sample_aspect_ratio.den;
+		}
+
+		/*we didn't get any picture: wait for a picture before resizing output buffer, otherwise we will have no 
+		video in the output buffer*/
+		if (!gotpic) {
+			ffd->needs_output_resize = 1;
+			return GF_OK;
+		}
 		*outBufferLength = ffd->out_size;
 		if (ffd->check_h264_isma) {
 			inBuffer[0] = inBuffer[1] = inBuffer[2] = 0;
@@ -798,17 +825,21 @@ redecode:
 			*cached_sws = NULL;
 		}
 #endif
-		if (!ffd->no_par_update && ctx->sample_aspect_ratio.num && ctx->sample_aspect_ratio.den) {
-			ffd->previous_par = (ctx->sample_aspect_ratio.num<<16) | ctx->sample_aspect_ratio.den;
-		}
+		ffd->had_pic = 1;
 		return GF_BUFFER_TOO_SMALL;
 	}
 	/*check PAR in case on-the-fly change*/
 	if (!ffd->no_par_update && ctx->sample_aspect_ratio.num && ctx->sample_aspect_ratio.den) {
 		u32 new_par = (ctx->sample_aspect_ratio.num<<16) | ctx->sample_aspect_ratio.den;
-		if (new_par != ffd->previous_par) {
+		if (ffd->previous_par && (new_par != ffd->previous_par)) {
 			ffd->previous_par = new_par;
+
+			if (!gotpic) {
+				ffd->needs_output_resize = 1;
+				return GF_OK;
+			}
 			*outBufferLength = ffd->out_size;
+			ffd->had_pic = 1;
 			return GF_BUFFER_TOO_SMALL;
 		}
 	}

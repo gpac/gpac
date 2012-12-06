@@ -384,7 +384,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u32 tfref_timescale = 0;
 	u32 bandwidth = 0;
 	GF_ISOMTrackFragmenter *tf, *tfref;
-	FILE *mpd_segs = NULL;
+	GF_BitStream *mpd_bs = NULL;
+	char szMPDTempLine[2048];
 	char SegmentName[GF_MAX_PATH];
 	char RepSecName[200];
 	char RepURLsSecName[200];
@@ -504,12 +505,12 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "Bandwidth");
 			if (opt) sscanf(opt, "%u", &bandwidth);
 		}
-		mpd_segs = gf_temp_file_new();
+		mpd_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	} else {
 		output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 		if (!output) return gf_isom_last_error(NULL);
 	}
-	
+
 	nb_sync = 0;
 	nb_samp = 0;
 	fragmenters = gf_list_new();
@@ -825,7 +826,8 @@ restart_fragmentation_pass:
 		for (i=0; i<count; i++) {
 			const char *key_name = gf_cfg_get_key_name(dash_cfg->dash_ctx, RepURLsSecName, i);
 			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepURLsSecName, key_name);
-			fprintf(mpd_segs, "     %s\n", opt);	
+			sprintf(szMPDTempLine, "     %s\n", opt);	
+			gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
 		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
@@ -890,7 +892,8 @@ restart_fragmentation_pass:
 
 					if (!use_url_template) {
 						const char *name = gf_url_get_resource_name(SegmentName);
-						fprintf(mpd_segs, "     <SegmentURL media=\"%s\"/>\n", name );	
+						sprintf(szMPDTempLine, "     <SegmentURL media=\"%s\"/>\n", name );	
+						gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
 						if (dash_cfg->dash_ctx) {
 							char szKey[100], szVal[4046];
 							sprintf(szKey, "UrlInfo%d", cur_seg );
@@ -1202,11 +1205,14 @@ restart_fragmentation_pass:
 						file_size = gf_isom_get_file_size(output);
 						end_range = file_size - 1;
 						if (dash_cfg->single_file_mode!=1) {
-							fprintf(mpd_segs, "      <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);	
+							sprintf(szMPDTempLine, "      <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);	
+							gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
 							if (idx_start_range || idx_end_range) {
-								fprintf(mpd_segs, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);	
+								sprintf(szMPDTempLine, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);	
+								gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
 							}
-							fprintf(mpd_segs, "/>\n");	
+							gf_bs_write_data(mpd_bs, "/>\n", 3);
+
 							if (dash_cfg->dash_ctx) {
 								char szKey[100], szVal[4046];
 								sprintf(szKey, "UrlInfo%d", cur_seg );
@@ -1250,8 +1256,6 @@ restart_fragmentation_pass:
 	}
 
 	if (dash_cfg) {
-		char buffer[1000];
-
 		/*flush last segment*/
 		if (!switch_segment) {
 			u64 idx_start_range, idx_end_range;
@@ -1270,11 +1274,13 @@ restart_fragmentation_pass:
 				file_size = gf_isom_get_file_size(output);
 				end_range = file_size - 1;
 				if (dash_cfg->single_file_mode!=1) {
-					fprintf(mpd_segs, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);
+					sprintf(szMPDTempLine, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);
+					gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
 					if (idx_start_range || idx_end_range) {
-						fprintf(mpd_segs, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);
+						sprintf(szMPDTempLine, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);
+						gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
 					}
-					fprintf(mpd_segs, "/>\n");
+					gf_bs_write_data(mpd_bs, "/>\n", 3);
 
 					if (dash_cfg->dash_ctx) {
 						char szKey[100], szVal[4046];
@@ -1409,11 +1415,12 @@ restart_fragmentation_pass:
 				fprintf(dash_cfg->mpd, "/>\n");
 			}
 		}
-
-		gf_f64_seek(mpd_segs, 0, SEEK_SET);
-		while (!feof(mpd_segs)) {
-			u32 r = fread(buffer, 1, 100, mpd_segs);
-			gf_fwrite(buffer, 1, r, dash_cfg->mpd);
+		if (mpd_bs) {
+			char *mpd_seg_info = NULL;
+			u32 size;
+			gf_bs_get_content(mpd_bs, &mpd_seg_info, &size);
+			gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
+			gf_free(mpd_seg_info);
 		}
 
 		if (!use_url_template && (dash_cfg->single_file_mode!=1)) {
@@ -1484,7 +1491,7 @@ err_exit:
 	if (!bs_switching_is_output && bs_switch_segment) 
 		gf_isom_delete(bs_switch_segment);
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
-	if (mpd_segs) fclose(mpd_segs);
+	if (mpd_bs) gf_bs_del(mpd_bs);
 	return e;
 }
 
@@ -2928,7 +2935,7 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 		}
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		t = gmtime(&gtime);
-		fprintf(mpd, " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+		fprintf(mpd, " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 #endif
 
 		if ((s32)time_shift_depth>=0) {
@@ -3095,7 +3102,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	return GF_OK;
 }
 
-static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, Bool *dynamic, u32 *timeShiftBufferDepth, const char *periodID)
+static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, u32 *dynamic, u32 *timeShiftBufferDepth, const char *periodID)
 {
 	const char *opt;
 	char szVal[100];
@@ -3112,11 +3119,13 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, Bool *dynamic, u32 *ti
 	if (!opt) {
 		first_run = 1;
 		sprintf(szVal, "%d", *timeShiftBufferDepth);
-		gf_cfg_set_key(dash_ctx, "DASH", "SessionType", *dynamic ? "dynamic" : "static");
+		gf_cfg_set_key(dash_ctx, "DASH", "SessionType", (*dynamic==2) ? "dynamic-debug" : ( *dynamic ? "dynamic" : "static" ) );
 		gf_cfg_set_key(dash_ctx, "DASH", "TimeShiftBufferDepth", szVal);
 		gf_cfg_set_key(dash_ctx, "DASH", "StoreParams", "yes");
 	} else {
-		*dynamic = !strcmp(opt, "dynamic") ? 1 : 0;
+		*dynamic = 0;
+		if (!strcmp(opt, "dynamic")) *dynamic = 1;
+		else if (!strcmp(opt, "dynamic-debug")) *dynamic = 2;
 		opt = gf_cfg_get_key(dash_ctx, "DASH", "TimeShiftBufferDepth");
 		*timeShiftBufferDepth = atoi(opt);
 		gf_cfg_set_key(dash_ctx, "DASH", "StoreParams", "no");
@@ -3204,7 +3213,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time)
 }
 
 /*peform all file cleanup*/
-static Bool gf_dasher_cleanup(GF_Config *dash_ctx, Bool dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double dash_duration)
+static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double dash_duration)
 {
 	Double max_dur = 0;
 	Double ellapsed = 0;
@@ -3233,18 +3242,22 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, Bool dash_dynamic, u32 mpd_up
 	if (!max_dur) return 1;
 	gf_net_get_ntp(&ntp_sec, &frac);
 
-	ellapsed = ntp_sec;
-	ellapsed -= prev_sec;
-	/*check if we need to generate */
-	if (ellapsed < max_dur - safety_dur ) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
-		return 0;
-	}
-	if (ellapsed > max_dur) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Generating segments and MPD %g seconds too late\n", ellapsed - (u32) max_dur));
+	if (dash_dynamic==2) {
+		ellapsed = (u32)-1;
 	} else {
-		/*generate as if max_dur has been reached*/
-		ellapsed = max_dur;
+		ellapsed = ntp_sec;
+		ellapsed -= prev_sec;
+		/*check if we need to generate */
+		if (ellapsed < max_dur - safety_dur ) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
+			return 0;
+		}
+		if (ellapsed > max_dur) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Generating segments and MPD %g seconds too late\n", ellapsed - (u32) max_dur));
+		} else {
+			/*generate as if max_dur has been reached*/
+			ellapsed = max_dur;
+		}
 	}
 
 	/*cleanup old segments*/
@@ -3301,7 +3314,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 							   Bool use_url_template, Bool single_segment, Bool single_file, Bool bitstream_switching_mode, 
 							   Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext,
 							   Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
-							   GF_Config *dash_ctx, Bool dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration)
+							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH];

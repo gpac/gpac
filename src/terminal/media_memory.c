@@ -414,6 +414,7 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	if (!cb->no_allocation) {
 		my_large_gf_free(cu->data);
 		cu->data = (char*) my_large_alloc(newCapacity);
+		cu->dataLength = 0;
 	} else {
 		cu->data = NULL;
 		if (cu->dataLength && cb->odm->raw_frame_sema) {
@@ -429,9 +430,12 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 		} else {
 			cu->data = NULL;
 		}
+		cu->dataLength = 0;
 		cu = cu->next;
-	}
-
+	}	
+	
+	cb->UnitCount = 0;
+	cb->output = cb->input;
 	gf_odm_lock(cb->odm, 0);
 }
 

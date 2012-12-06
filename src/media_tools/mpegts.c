@@ -2686,8 +2686,9 @@ static u32 TSDemux_DemuxRun(void *_p)
 			 gf_dm_sess_process(ts->dnload); 	 
 			 gf_sleep(1); 	 
 		 }
-	 } else if (ts->file) {
+	 } else if (ts->file || ts->ts_data_chunk) {
 		u32 pos = 0;
+		GF_BitStream *ts_bs = NULL;
 
 		if (ts->segment_switch) {
 			ts->segment_switch = 0;
@@ -2703,19 +2704,23 @@ static u32 TSDemux_DemuxRun(void *_p)
 				pos = 0;
 			}
 		}
-		gf_f64_seek(ts->file, pos, SEEK_SET);
 
-restart_file:
-		gf_f64_seek(ts->file, ts->start_byterange, SEEK_SET);
+restart_stream:
 
-		while (ts->run_state && !feof(ts->file)) {
+		if (ts->file)
+			ts_bs = gf_bs_from_file(ts->file, GF_BITSTREAM_READ);
+		else
+			ts_bs = gf_bs_new(ts->ts_data_chunk, ts->ts_data_chunk_size, GF_BITSTREAM_READ);
+
+		gf_bs_seek(ts_bs, ts->start_byterange);
+
+		while (ts->run_state && gf_bs_available(ts_bs)) {
 			/*m2ts chunks by chunks*/
-			size = fread(data, 1, 188, ts->file);
+			size = gf_bs_read_data(ts_bs, data, 188);
 			if (!size && (ts->loop_demux == 1)) {
-				gf_f64_seek(ts->file, pos, SEEK_SET);
+				gf_bs_seek(ts_bs, pos);
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
-                gf_sleep(500);
-				size = fread(data, 1, 188, ts->file);
+				size = gf_bs_read_data(ts_bs, data, 188);
 			}
 			if (!size) break;
 			if (size != 188) {
@@ -2725,9 +2730,7 @@ restart_file:
 			gf_m2ts_process_data(ts, data, size);
 
 			ts->nb_pck++;
-			//fprintf(stderr, "TS packet #%d\r", ts->nb_pck);
-
-			if (ts->end_byterange && (gf_f64_tell(ts->file)>=ts->end_byterange))
+			if (ts->end_byterange && (gf_bs_get_position(ts_bs) >= ts->end_byterange))
 				break;
 
 			//gf_sleep(0);
@@ -2737,13 +2740,13 @@ restart_file:
 				continue;
 			}
 
-            if(feof(ts->file) && ts->loop_demux == 1){
-                gf_f64_seek(ts->file, pos, SEEK_SET);
+            if (!gf_bs_available(ts_bs) && ts->loop_demux == 1){
+                gf_bs_seek(ts_bs, pos);
                 GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
 				gf_sleep(3000);
             }
 		}
-		if (feof(ts->file)) {
+		if (!gf_bs_available(ts_bs)) {
 			u32 i;
 			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 				if (ts->ess[i]) {
@@ -2757,16 +2760,30 @@ restart_file:
 		}
 
 next_segment_setup:
+		gf_bs_del(ts_bs);
+		ts_bs = NULL;
 		if (ts->run_state && ts->query_next) {
 			const char *next_url = NULL;
 			ts->query_next(ts->query_udta, 0, &next_url, &ts->start_byterange, &ts->end_byterange);
 			if (next_url) {
-				fclose(ts->file);
-				ts->file = gf_f64_open(next_url, "rb");
 				gf_m2ts_set_segment_switch(ts);
 
-				if (ts->file) goto restart_file;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
+				if (!strncmp(next_url, "gmem://", 7)) {
+					u32 size;
+					void *mem_address;
+					if (sscanf(next_url, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
+					} else {
+						ts->ts_data_chunk_size = size;
+						ts->ts_data_chunk = mem_address;
+						if (ts->ts_data_chunk_size) goto restart_stream;
+					}
+				} else {
+					if (ts->file) fclose(ts->file);
+					ts->file = gf_f64_open(next_url, "rb");
+					if (ts->file) goto restart_stream;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
+				}
 			}
 		}
 	}
@@ -3052,16 +3069,28 @@ static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] TS file already being processed: %s\n", url));
 		return GF_IO_ERR;
 	}
-
-	ts->file = gf_f64_open(url, "rb"); 
-	if (!ts->file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));		
-		return GF_IO_ERR;
-	}
 	strcpy(ts->filename, url);
 
-	gf_f64_seek(ts->file, 0, SEEK_END);
-	ts->file_size = gf_f64_tell(ts->file);
+	if (!strncmp(url, "gmem://", 7)) {
+		u32 size;
+		void *mem_address;
+		if (sscanf(url, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2)
+			return GF_IO_ERR;
+		ts->ts_data_chunk_size = size;
+		ts->ts_data_chunk = mem_address;
+	} else {
+
+		ts->file = gf_f64_open(url, "rb"); 
+		if (!ts->file) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));		
+			return GF_IO_ERR;
+		}
+		strcpy(ts->filename, url);
+
+		gf_f64_seek(ts->file, 0, SEEK_END);
+		ts->file_size = gf_f64_tell(ts->file);
+
+	}
 
 	/* reinitialization for seek */
 	ts->end_range = ts->start_range = 0;
@@ -3131,6 +3160,7 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 
 	if (ts->file) fclose(ts->file);
 	ts->file = NULL;
+	ts->ts_data_chunk = NULL;
 
 	return GF_OK;
 }
@@ -3155,7 +3185,25 @@ Bool gf_m2ts_probe_file(const char *fileName)
 {
 	char buf[188];
 	u32 count = 10;
-	FILE *t = gf_f64_open(fileName, "rb");
+	FILE *t;
+
+	if (!strncmp(fileName, "gmem://", 7)) {
+		u32 size;
+		u8 *mem_address;
+		if (sscanf(fileName, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2) {
+			return GF_URL_ERROR;
+		} 
+		while (size>188 && count) {
+			if (mem_address[0] != 0x47)
+				return 0;
+			mem_address+=188;
+			size-=188;
+			count--;
+		}
+		return 1;
+	}
+
+	t = gf_f64_open(fileName, "rb");
 	while (t && count) {
 		u32 read = fread(buf, 1, 188, t);
 		if (!read) {

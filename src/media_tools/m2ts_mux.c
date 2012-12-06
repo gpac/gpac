@@ -1739,6 +1739,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	}
 	program->pmt = gf_m2ts_stream_new(pmt_pid);
 	program->pmt->program = program;
+	program->pmt->table_needs_update = 1;
 	muxer->pat->table_needs_update = 1;
 	program->pmt->process = gf_m2ts_stream_process_pmt;
 	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : (u32) -1;
