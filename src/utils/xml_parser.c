@@ -1183,6 +1183,40 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 #endif
 	unsigned char szLine[6];
 
+	parser->on_progress = OnProgress;
+
+	if (!strncmp(fileName, "gmem://", 7)) {
+		u32 size;
+		u8 *xml_mem_address;
+		if (sscanf(fileName, "gmem://0x%08X@0x%016X", &size, &xml_mem_address) != 2) {
+			return GF_URL_ERROR;
+		} 
+		parser->file_size = size;
+
+		memcpy(szLine, xml_mem_address, 3);
+		szLine[4] = szLine[5] = 0;
+		e = gf_xml_sax_init(parser, szLine);
+		if (e) return e;
+		parser->file_pos = 4;
+		parser->elt_start_pos = 0;
+		parser->current_pos = 0;
+
+
+		e = gf_xml_sax_parse(parser, xml_mem_address+3);
+		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
+
+		parser->elt_start_pos = parser->elt_end_pos = 0;
+		parser->elt_name_start = parser->elt_name_end = 0;
+		parser->att_name_start = 0;
+		parser->current_pos = 0;
+		parser->line_size = 0;
+		parser->att_sep = 0;
+		parser->file_pos = 0;
+		parser->file_size = 0;
+		parser->line_size = 0;
+		return e;
+	} 
+
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
 	test = gf_f64_open(fileName, "rb");
 	if (!test) return GF_URL_ERROR;
@@ -1191,7 +1225,6 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	parser->file_size = (u32) gf_f64_tell(test);
 	fclose(test);
 
-	parser->on_progress = OnProgress;
 
 #ifdef NO_GZIP
 	parser->f_in = gf_f64_open(fileName, "rt");

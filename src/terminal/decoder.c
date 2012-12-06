@@ -939,7 +939,7 @@ drop:
 		}
 		Decoder_GetNextAU(codec, &ch, &AU);
 		if (!ch || !AU) return GF_OK;
-		}
+	}
 	return GF_OK;
 }
 

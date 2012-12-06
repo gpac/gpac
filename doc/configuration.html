@@ -728,9 +728,12 @@ For debug purposes, instructs the player to switch representation every N segmen
 <b>DisableSwitching</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Disables automatic adaptation logic. Default is no</p>
-<b>KeepFiles</b> [value: <i>yes, no</i>]
+<b>MemoryStorage</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
-Forces files to be kept on disk. Default is no</p>
+Files are only stored in memory and destroyed after playback, no disk IO is used. Default is no</p>
+<b>UseMaxResolution</b> [value: <i>yes, no</i>]
+<p style="text-indent: 5%">
+Forces the player to set the output video resolution to the max resolution available instead of resizing the window. Default is yes</p>
 <b>StartRepresentation</b> [value: <i>minBandwidth, maxBandwidth, minQuality, maxQuality</i>]
 <p style="text-indent: 5%">
 Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.</p>

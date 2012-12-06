@@ -994,7 +994,7 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 
 	if (scene->root_od->term->root_scene == scene) {
 		//if (scene->graph_attached) gf_sc_set_scene(scene->root_od->term->compositor, NULL);
-		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+		//gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 	}
 }
 
@@ -1373,13 +1373,17 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	
 	if (scene->root_od->term->root_scene == scene) {
 		GF_NetworkCommand com;
-		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+
+		gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 		gf_term_service_command(scene->root_od->net_service, &com);
 		if (com.par.width && com.par.height) {
 			gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+		} else {
+			/*need output resize*/
+			gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 		}
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {

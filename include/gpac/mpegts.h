@@ -758,6 +758,8 @@ struct tag_m2ts_demux
 	u32 stb_at_last_pcr;
 	u32 nb_pck;
 	Bool loop_demux;
+	const char *ts_data_chunk;
+	u32 ts_data_chunk_size;
 
 	/* "Network" =  "MobileIP", "DefaultMCastInterface" */
 	Bool MobileIPEnabled;

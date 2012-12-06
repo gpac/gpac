@@ -246,7 +246,7 @@ struct __tag_compositor
 	/*options*/
 	u32 aspect_ratio, antiAlias, texture_text_mode;
 	Bool high_speed, stress_mode;
-	Bool force_opengl_2d;
+	Bool force_opengl_2d, was_opengl;
 #ifdef OPENGL_RASTER
 	Bool opengl_raster;
 #endif
@@ -331,7 +331,7 @@ struct __tag_compositor
 	/*screen buffer for direct access*/
 	GF_VideoSurface hw_surface;
 	/*output buffer is configured in video memory*/
-	Bool video_memory, request_video_memory;
+	Bool video_memory, request_video_memory, was_system_memory;
 	/*indicate if overlays were prezsent in the previous frame*/
 	Bool last_had_overlays;
 	GF_RasterCallback raster_callbacks;

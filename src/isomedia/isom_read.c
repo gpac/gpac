@@ -92,17 +92,28 @@ void gf_isom_sample_del(GF_ISOSample **samp)
 GF_EXPORT
 Bool gf_isom_probe_file(const char *fileName)
 {
-	unsigned char data[4];
-	u32 type;
-	FILE *f = gf_f64_open(fileName, "rb");
-	if (!f) return 0;
-	type = 0;
-	if (fread(data, 1, 4, f) == 4) {
+	u32 type = 0;
+
+	if (!strncmp(fileName, "gmem://", 7)) {
+		u32 size;
+		u8 *mem_address;
+		if (sscanf(fileName, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2) {
+			return GF_URL_ERROR;
+		} 
+		if (size>8)
+			type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
+	} else {
+		unsigned char data[4];
+		FILE *f = gf_f64_open(fileName, "rb");
+		if (!f) return 0;
+		type = 0;
 		if (fread(data, 1, 4, f) == 4) {
-			type = GF_4CC(data[0], data[1], data[2], data[3]);
+			if (fread(data, 1, 4, f) == 4) {
+				type = GF_4CC(data[0], data[1], data[2], data[3]);
+			}
 		}
+		fclose(f);
 	}
-	fclose(f);
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_MOOV:
 	case GF_ISOM_BOX_TYPE_MDAT:

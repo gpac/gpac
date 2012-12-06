@@ -177,14 +177,12 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	/*check init flag*/
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
-		/*if we had a texture this means the object has changed - delete texture and force next frame 
-		composition (this will take care of OD reuse)*/
+		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
+		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
 		if (txh->tx_io) {
 			gf_sc_texture_release(txh);
 			txh->data = NULL;
 			txh->needs_refresh = 1;
-			gf_sc_invalidate(txh->compositor, NULL);
-			return;
 		}
 		if (gf_mo_is_private_media(txh->stream)) {
 			setup_texture_object(txh, 1);
@@ -195,6 +193,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	/*if no frame or muted don't draw*/
 	if (!txh->data || !size) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("No output frame available\n"));
 		/*TODO - check if this is needed */
 		if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
 			//txh->needs_refresh = 1;

@@ -107,6 +107,8 @@ typedef struct
 	u32 oti, st;
 	u32 previous_par;
 	Bool no_par_update;
+	Bool needs_output_resize;
+	Bool had_pic;
 
 	Bool check_short_header;
 	u32 pix_fmt;
