@@ -1924,7 +1924,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	{
 		int sz = 100;
 		char * buf = gf_malloc( sz );
-		sz = snprintf(buf, sz, "%ld\n", (long) getpid());
+		sz = snprintf(buf, sz-1, "%ld\n", (long) getpid());
 		if (write(fd, buf, sz) != sz){
 			gf_free(buf);
 			goto exit;

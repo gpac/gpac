@@ -431,7 +431,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 
 	{
 		char name[1024];
-		snprintf(name, 1024, "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
+		snprintf(name, sizeof(name)-1, "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
 #ifdef ENABLE_WRITE_MX
 		entry->write_mutex = gf_mx_new(name);
 		assert( entry->write_mutex);
