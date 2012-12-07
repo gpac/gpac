@@ -1188,7 +1188,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *xml_mem_address;
-		if (sscanf(fileName, "gmem://0x%08X@0x%016X", &size, &xml_mem_address) != 2) {
+		if (sscanf(fileName, "gmem://%d@%p", &size, &xml_mem_address) != 2) {
 			return GF_URL_ERROR;
 		} 
 		parser->file_size = size;

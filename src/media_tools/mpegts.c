@@ -2771,7 +2771,7 @@ next_segment_setup:
 				if (!strncmp(next_url, "gmem://", 7)) {
 					u32 size;
 					void *mem_address;
-					if (sscanf(next_url, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2) {
+					if (sscanf(next_url, "gmem://%d@%p", &size, &mem_address) != 2) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
 					} else {
 						ts->ts_data_chunk_size = size;
@@ -3074,7 +3074,7 @@ static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
 	if (!strncmp(url, "gmem://", 7)) {
 		u32 size;
 		void *mem_address;
-		if (sscanf(url, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2)
+		if (sscanf(url, "gmem://%d@%p", &size, &mem_address) != 2)
 			return GF_IO_ERR;
 		ts->ts_data_chunk_size = size;
 		ts->ts_data_chunk = mem_address;
@@ -3190,7 +3190,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (sscanf(fileName, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2) {
+		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
 			return GF_URL_ERROR;
 		} 
 		while (size>188 && count) {

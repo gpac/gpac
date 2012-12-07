@@ -97,7 +97,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (sscanf(fileName, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2) {
+		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
 			return GF_URL_ERROR;
 		} 
 		if (size>8)

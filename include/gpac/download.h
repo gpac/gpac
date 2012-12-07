@@ -170,8 +170,8 @@ extern "C" {
         GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
 		/*indicates that the connection to the server should be kept once the download is successfully completed*/
         GF_NETIO_SESSION_PERSISTENT =	1<<2,
-		/*file is stored in memory, and the cache name is set to gpac://0%016X@%016A, where X is the memory adress (64bits) of a u32 containing the size in bytes and A is 
-		the memory adress (64 bits) of the pointer to the memory. Memory cached files are destroyed upon downloader destruction*/
+		/*file is stored in memory, and the cache name is set to gpac://%u@%p, where %d is the size in bytes and %d is the the pointer to the memory.
+		Memory cached files are destroyed upon downloader destruction*/
         GF_NETIO_SESSION_MEMORY_CACHE	=	1<<3,
     };
 

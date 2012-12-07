@@ -449,7 +449,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	entry->sessions = gf_list_new();
 
 	if (entry->memory_stored) {
-		entry->cache_filename = gf_malloc ( strlen ("gmem://0x") + 8 + strlen("@0x") + 16 + 1);
+		entry->cache_filename = gf_malloc ( strlen ("gmem://") + 8 + strlen("@") + 16 + 1);
 	} else {
 		/* Sizeof cache directory + hash + possible extension */
 		entry->cache_filename = gf_malloc ( strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1);
@@ -466,7 +466,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	}
 
 	if (entry->memory_stored) {
-		sprintf(entry->cache_filename, "gmem://0x%08X@0x%016X", entry->contentLength, entry->mem_storage);
+		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 		return entry;	
 	}
 
@@ -592,7 +592,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to create memory storage for file %s\n", entry->url));
 			return GF_OUT_OF_MEM;
 		}
-		sprintf(entry->cache_filename, "gmem://0x%08X@0x%016X", entry->contentLength, entry->mem_storage);
+		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 		return GF_OK;
 	}
 
@@ -625,7 +625,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			entry->mem_storage = gf_realloc(entry->mem_storage, (entry->mem_allocated+size+2));
 			entry->mem_allocated += size;
-			sprintf(entry->cache_filename, "gmem://0x%08X@0x%016X", entry->contentLength, entry->mem_storage);
+			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 		}
 		memcpy(entry->mem_storage + entry->written_in_cache, data, size);
 		entry->written_in_cache += size;
