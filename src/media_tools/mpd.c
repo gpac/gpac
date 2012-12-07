@@ -311,7 +311,7 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
 		if (!strcmp(att->name, "timescale")) seg->timescale = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "presentationTimeOffset")) seg->presentation_time_offset = gf_mpd_parse_long_int(att->value);
-		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
 		else if (!strcmp(att->name, "indexRangeExact")) seg->index_range_exact = gf_mpd_parse_bool(att->value);
 	}
 
@@ -784,6 +784,7 @@ void gf_mpd_segment_base_free(void *_item)
 	GF_MPD_SegmentBase *ptr = (GF_MPD_SegmentBase *)_item;
 	if (ptr->initialization_segment) gf_mpd_url_free(ptr->initialization_segment);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
+	if (ptr->index_range) gf_free(ptr->index_range);
 	gf_free(ptr);
 }
 

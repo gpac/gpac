@@ -321,9 +321,10 @@ extern "C" {
      *\param sess the download session
      *\param start_range HTTP download start range in byte 
      *\param end_range HTTP download end range in byte 
+     *\param discontinue If set, forces a new cache entry if byte range are not continuous. Otherwise a single cache entry is used to reconstruct the file
      *\note this can only be used when the session is not threaded
      */
-	GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range);
+	GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache);
     /*!
      *\brief get cache file name
      *

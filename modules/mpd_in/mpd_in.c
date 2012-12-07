@@ -45,7 +45,7 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
 	Bool memory_storage;
-	Bool use_max_res;
+	Bool use_max_res, immediate_switch;
     Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -339,9 +339,9 @@ GF_Err mpdin_dash_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession 
 {
 	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url);
 }
-GF_Err mpdin_dash_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range)
+GF_Err mpdin_dash_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
 {
-	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range);
+	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range, discontinue_cache);
 }
 GF_Err mpdin_dash_io_init(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
@@ -541,6 +541,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution", "yes");
 	mpdin->use_max_res = (!opt || !strcmp(opt, "yes")) ? 1 : 0;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
+	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	
 	
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
@@ -641,7 +646,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_SWITCH:
-		gf_dash_switch_quality(mpdin->dash, com->switch_quality.up);
+		gf_dash_switch_quality(mpdin->dash, com->switch_quality.up, mpdin->immediate_switch);
         return GF_OK;
 	}
 	/*not supported*/
