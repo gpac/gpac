@@ -504,7 +504,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 	s_accumulated_attributes attribs;
 
 	if (!strncmp(file, "gmem://", 7)) {
-		if (sscanf(file, "gmem://0x%08X@0x%016X", &m3u8_size, &m3u8_payload) != 2) {
+		if (sscanf(file, "gmem://%d@%p", &m3u8_size, &m3u8_payload) != 2) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 source %s for reading\n", file));
 			return GF_SERVICE_ERROR;
 		}

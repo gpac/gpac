@@ -347,7 +347,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!strncmp(sPath, "gmem://", 7)) {
 		u32 size;
 		void *mem_address;
-		if (sscanf(sPath, "gmem://0x%08X@0x%016X", &size, &mem_address) != 2)
+		if (sscanf(sPath, "gmem://%d@%p", &size, &mem_address) != 2)
 			return NULL;
 		tmp->bs = gf_bs_new((const char *)mem_address, size, GF_BITSTREAM_READ);
 		if (!tmp->bs) {
