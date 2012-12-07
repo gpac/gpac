@@ -94,7 +94,7 @@ typedef struct
 #define GF_MPD_SEGMENT_BASE	\
 	u32 timescale;	\
 	u64 presentation_time_offset;	\
-	u32 index_range;	\
+	GF_MPD_ByteRange *index_range;	\
 	Bool index_range_exact;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
@@ -124,6 +124,7 @@ typedef struct
 	GF_MPD_ByteRange *media_range;
 	char *index;
 	GF_MPD_ByteRange *index_range;
+	u64 duration;
 } GF_MPD_SegmentURL;
 
 typedef struct 
@@ -329,6 +330,7 @@ GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
 /*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
 void gf_mpd_segment_url_free(void *ptr);
+void gf_mpd_segment_base_free(void *ptr);
 
 typedef struct _gf_file_get GF_FileDownload;
 struct _gf_file_get

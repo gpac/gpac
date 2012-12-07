@@ -883,7 +883,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	if (e) return e;
 
 	if (start_range) *start_range = (u32) movie->root_sidx_offset;
-	if (end_range) *end_range = (u32) gf_bs_get_position(bs);
+	if (end_range) *end_range = (u32) gf_bs_get_position(bs)-1;
 
 	return GF_OK;
 }

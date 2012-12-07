@@ -83,7 +83,7 @@ struct _gf_dash_io
 	/*resetup the file session with a new resource to get - this allows persistent connection usage with HTTP servers*/
 	GF_Err (*setup_from_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url);
 	/*set download range for the file session*/
-	GF_Err (*set_range)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range);
+	GF_Err (*set_range)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache);
 	/*initialize the file session - all the headers shall be fetched before returning*/
 	GF_Err (*init)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*download the content - synchronous call: all the file shall be fetched before returning*/
@@ -142,7 +142,7 @@ const char *gf_dash_get_url(GF_DashClient *dash);
 void gf_dash_get_info(GF_DashClient *dash, const char **title, const char **source);
 
 /*switches quality up or down*/
-void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up);
+void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool force_immediate_switch);
 
 /*indicates whether the DASH client is running or not. For the moment, the DASH client is always run by an internal thread*/
 Bool gf_dash_is_running(GF_DashClient *dash);

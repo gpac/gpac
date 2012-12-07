@@ -117,6 +117,9 @@ struct __gf_download_session
     u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
     u32 bytes_per_sec;
 
+	Bool is_range_continuation;
+	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases*/
+	u32 needs_cache_reconfig;
     /* Range information if needed for the download (cf flag) */
     Bool needs_range;
     u64 range_start, range_end;
@@ -240,6 +243,9 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
  * \return cache file pointer or NULL
  */
 FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry) ;
+
+/*modify end range when chaining byte-range requests*/
+void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end);
 
 /**
  * Find a User's credentials for a given site
@@ -455,8 +461,13 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
         url = gf_cache_get_url(e);
         assert( url );
         if (strcmp(url, sess->orig_url)) continue;
-		if (sess->range_start != gf_cache_get_start_range(e)) continue;
-		if (sess->range_end != gf_cache_get_end_range(e)) continue;
+		if (sess->needs_cache_reconfig==2)
+			continue;
+
+		if (! sess->is_range_continuation) {
+			if (sess->range_start != gf_cache_get_start_range(e)) continue;
+			if (sess->range_end != gf_cache_get_end_range(e)) continue;
+		}
 		/*OK that's ours*/
 		gf_mx_v( sess->dm->cache_mx );
 		return e;
@@ -532,6 +543,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
         gf_mx_p( sess->dm->cache_mx );
         gf_list_add(sess->dm->cache_entries, entry);
         gf_mx_v( sess->dm->cache_mx );
+		sess->is_range_continuation = 0;
     }
     assert( entry );
     sess->cache_entry = entry;
@@ -598,7 +610,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 {
     assert( sess );
     if (sess->status >= GF_NETIO_DISCONNECTED)
-	return;
+		return;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] gf_dm_disconnect(%p)\n", sess ));
     if (sess->mx)
         gf_mx_p(sess->mx);
@@ -878,12 +890,16 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	Bool socket_changed = 0;
     GF_Err e;
     GF_URL_Info info;
+
+	if (!url) return GF_BAD_PARAM;
+
     gf_dm_url_info_init(&info);
-    e = gf_dm_get_url_info(url, &info, sess->remote_path);
-	if (e) return e;
     
 	if (!sess->sock) socket_changed = 1;
 	else if (sess->status>GF_NETIO_DISCONNECTED) socket_changed = 1;
+
+    e = gf_dm_get_url_info(url, &info, sess->remote_path);
+	if (e) return e;
 
 	if (sess->port != info.port) {
 		socket_changed = 1;
@@ -939,8 +955,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	if (sess->sock && !socket_changed) {
 		sess->status = GF_NETIO_CONNECTED;
 	    sess->num_retry = SESSION_RETRY_COUNT;
-		/*this should be done when building HTTP GET request in case we have range directives*/
-		gf_dm_configure_cache(sess);
+		sess->needs_cache_reconfig = 1;
 	} else {
 		if (sess->sock) gf_sk_del(sess->sock);
 		sess->sock = NULL;
@@ -1327,11 +1342,33 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
 }
 
 GF_EXPORT
-GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range)
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache)
 {
 	if (!sess) return GF_BAD_PARAM;
-	if (sess->cache_entry) return GF_BAD_PARAM;
-	if (sess->status != GF_NETIO_SETUP) return GF_BAD_PARAM;
+	if (sess->cache_entry) {
+		if (!discontinue_cache) {
+			if (gf_cache_get_end_range(sess->cache_entry) + 1 != start_range) 
+				return GF_NOT_SUPPORTED;
+		}
+		if (!sess->sock)
+			return GF_BAD_PARAM;
+		if (sess->status != GF_NETIO_CONNECTED) {
+			if (sess->status != GF_NETIO_DISCONNECTED) {
+				return GF_BAD_PARAM;
+			}
+		}
+		sess->status = GF_NETIO_CONNECTED;
+	    sess->num_retry = SESSION_RETRY_COUNT;
+		if (!discontinue_cache) {
+			gf_cache_set_end_range(sess->cache_entry, end_range);
+			/*remember this in case we get disconnected*/
+			sess->is_range_continuation = 1;
+		} else {
+			sess->needs_cache_reconfig=2;
+		}
+	} else {
+		if (sess->status != GF_NETIO_SETUP) return GF_BAD_PARAM;
+	}
 	sess->range_start = start_range;
 	sess->range_end = end_range;
     sess->needs_range = 1;
@@ -1826,6 +1863,13 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
     const char *param_string;
     Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile, has_mime;
     assert (sess->status == GF_NETIO_CONNECTED);
+
+
+	if (sess->needs_cache_reconfig) {
+		gf_dm_configure_cache(sess);
+		sess->needs_cache_reconfig = 0;
+	}
+
     /*setup authentification*/
     strcpy(pass_buf, "");
     sess->creds = gf_find_user_credentials_for_site( sess->dm, sess->server_name );

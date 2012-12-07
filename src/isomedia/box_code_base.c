@@ -8188,7 +8188,7 @@ static void	sgpd_del_entry(u32 grouping_type, void *entry)
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
 		if (ptr->data) gf_free(ptr->data);
-		gf_free(ptr->data);
+		gf_free(ptr);
 	}
 
 	}
