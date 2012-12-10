@@ -1786,6 +1786,8 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 }
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 input_idx, u32 *current_group_id, u32 *max_sap_type)
 {
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
@@ -1880,6 +1882,10 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 	return GF_OK;
 }
 
+#endif
+
+#ifndef GPAC_DISABLE_MPEG2TS
+
 static GF_Err dasher_generic_get_components_info(GF_DashSegInput *input, GF_DASHSegmenterOptions *opts)
 {
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
@@ -1911,6 +1917,8 @@ static GF_Err dasher_generic_get_components_info(GF_DashSegInput *input, GF_DASH
 #endif
 	return GF_OK;
 }
+#endif
+
 
 #ifndef GPAC_DISABLE_MPEG2TS
 

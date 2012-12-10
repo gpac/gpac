@@ -1344,7 +1344,9 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		count2 = gf_list_count(prog->bitrates);
 		for (j = 0; j<count2; j++) {
 			char *base_url;
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			Bool import_file = do_import;
+#endif
 			Bool is_aac = 0;
 			char *byte_range_media_file = NULL;
 			pe = gf_list_get(prog->bitrates, j);
@@ -1366,9 +1368,11 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				strncpy(pe->codecs, pe->codecs+1, len-1);
 				pe->codecs[len-2] = 0;
 			}
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (pe->bandwidth && pe->codecs && pe->width && pe->height) {
 				import_file = 0;
 			}
+#endif
 
 			/*get rid of level 0 aac*/
 			elt = gf_list_get(pe->element.playlist.elements, 0);
