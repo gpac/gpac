@@ -38,7 +38,7 @@
 #include <gpac/thread.h>
 
 
-#ifndef FREENECT_DEVICE_CAMERA
+#if !defined(FREENECT_DEVICE_CAMERA) && defined(FREENECT_FRAME_W)
 #define FREENECT_MINIMAL
 #endif
 
