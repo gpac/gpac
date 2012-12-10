@@ -2023,6 +2023,9 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bool seperate_index, u64 sidx_offset)
 {
+#ifdef GPAC_DISABLE_ISOM
+	return GF_NOT_SUPPORTED;
+#else
 	u64 anchor_position, prev_pos;
 	GF_SegmentIndexBox *sidx = NULL;
 	u32 i, size, type;
@@ -2074,6 +2077,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	gf_isom_box_del((GF_Box*)sidx);
 	gf_bs_seek(bs, prev_pos);
 	return e;
+#endif
 }
 
 static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Representation *rep, const char *cache_name, Bool seperate_index, Bool needs_mov_range)
@@ -2154,7 +2158,6 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 	GF_Err e;
 	char *init_url = NULL;
 	char *index_url = NULL;
-	u32 nb_failed = 0;
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
 	
 	if (rep->segment_template || group->adaptation_set->segment_template || group->period->segment_template) return GF_OK;
@@ -2359,10 +2362,11 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 				}
 				break;
 			case GF_DASH_SELECT_QUALITY_HIGHEST:
+				/*fallthrough if quality is not indicated*/
 				if (rep->quality_ranking > rep_sel->quality_ranking) {
 					active_rep = rep_i;
 					break;
-				}/*fallthrough if quality is not indicated*/
+				}
 			case GF_DASH_SELECT_BANDWIDTH_HIGHEST:
 				if (rep->bandwidth > rep_sel->bandwidth) {
 					active_rep = rep_i;
