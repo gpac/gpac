@@ -2483,6 +2483,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 	case GF_AVC_NALU_PIC_PARAM:
+	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		return 0;
 	default:
 		if (avc->s_info.nal_unit_type <= GF_AVC_NALU_IDR_SLICE) ret = 1;

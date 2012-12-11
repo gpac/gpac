@@ -4024,6 +4024,9 @@ restart_import:
 				  they will be moved to the SVC layer upon analysis of SVC slice. */
 				dstcfg = avccfg;
 
+				if (import->flags & GF_IMPORT_SVC_EXPLICIT)
+					dstcfg = svccfg;
+
 				gf_list_add(dstcfg->pictureParameterSets, slc);
 			}
 			break;
