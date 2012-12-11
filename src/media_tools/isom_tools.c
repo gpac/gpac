@@ -1362,6 +1362,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				case GF_AVC_NALU_PIC_PARAM:
 					pps_id = AVC_ReadPictParamSet(buffer+1, size-1, &avc);;
 					j = 0;
+					dst_track = 0;
 					while (j < num_pps)
 					{
 						if (pps_id == pps[j])
@@ -1384,8 +1385,6 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 						else
 							dst_track = 1;
 					}
-					else
-						dst_track = 0;
 					dst_bs = sample_bs[dst_track];
 					break;
 				case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
