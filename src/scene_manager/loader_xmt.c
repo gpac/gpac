@@ -607,19 +607,29 @@ static u32 xmt_get_next_node_id(GF_XMTParser *parser)
 }
 static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 {
-	GF_Node *n;
-	u32 ID;
+	GF_Node *n = NULL;
+	u32 ID = 0;
 	if (sscanf(name, "N%u", &ID) == 1) {
-		ID ++;
-		n = gf_sg_find_node(parser->load->scene_graph, ID);
-		if (n) {
-			u32 nID = xmt_get_next_node_id(parser);
-			xmt_report(parser, GF_OK, "WARNING: changing node \"%s\" ID from %d to %d", gf_node_get_name(n), gf_node_get_id(n)-1, nID-1);
-			gf_node_set_id(n, nID, gf_node_get_name(n));
+		u32 k=1;
+		while (name[k]) {
+			if (strchr("0123456789", name[k])==0) {
+				ID = 0;
+				break;
+			}
+			k++;
 		}
-		if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
-	} else {
-		ID = xmt_get_next_node_id(parser);
+		if (ID) {
+			ID ++;
+			n = gf_sg_find_node(parser->load->scene_graph, ID);
+			if (!n) {
+				if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
+				return ID;
+			}
+		}
+	} 
+	ID = xmt_get_next_node_id(parser);
+	if (n) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XMT Parsing] (line %d) Binary ID %s already assigned to %s - keeping internal ID %d\n", gf_xml_sax_get_line(parser->sax_parser), name, gf_node_get_name(n), ID));
 	}
 	return ID;
 }

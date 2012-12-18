@@ -319,7 +319,7 @@ void PrintDASHUsage()
 			" -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
 			" -single-segment      uses a single segment for the whole file (OnDemand profile). \n"
 			" -single-file         uses a single file for the whole file (default). \n"
-			" -bs-switching MODE   sets bitstream switching to \"yes\" (default), \"no\" or \"single\" to test with single input.\n" 
+			" -bs-switching MODE   sets bitstream switching to \"yes\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
@@ -1330,7 +1330,8 @@ int mp4boxMain(int argc, char **argv)
 	s32 subsegs_per_sidx;
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, bitstream_switching_mode, dump_nal, time_shift_depth, dash_dynamic;
+	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
@@ -1389,7 +1390,6 @@ int mp4boxMain(int argc, char **argv)
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
-	bitstream_switching_mode = 1;
 	dash_dynamic = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
@@ -1701,9 +1701,11 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		} else if (!stricmp(arg, "-bs-switching")) {
 			CHECK_NEXT_ARG
-			if (!stricmp(argv[i+1], "no") || !stricmp(argv[i+1], "off")) bitstream_switching_mode = 0;
-			else if (!stricmp(argv[i+1], "single"))  bitstream_switching_mode = 2;
-			else bitstream_switching_mode = 1;
+			if (!stricmp(argv[i+1], "no") || !stricmp(argv[i+1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
+			else if (!stricmp(argv[i+1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
+			else if (!stricmp(argv[i+1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
+			else if (!stricmp(argv[i+1], "single_merge"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE_MERGED;
+			else bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 			i++;
 		}
 		else if (!stricmp(arg, "-dynamic")) { dash_dynamic = 1; }
@@ -2558,11 +2560,30 @@ int mp4boxMain(int argc, char **argv)
 		}
 		for (i=0; i<(u32) argc; i++) {
 			if (!strcmp(argv[i], "-add")) {
-				e = import_file(file, argv[i+1], import_flags, import_fps, agg_samples);
+				char *src = argv[i+1];
+
+				e = import_file(file, src, import_flags, import_fps, agg_samples);
 				if (e) {
-					fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
-					gf_isom_delete(file);
-					MP4BOX_EXIT_WITH_CODE(1);
+					while (src) {
+						char *sep = strchr(src, '+');
+						if (sep) sep[0] = 0;
+
+						e = import_file(file, src, import_flags, import_fps, agg_samples);
+
+						if (sep) {
+							sep[0] = '+';
+							src = sep+1;
+						} else {
+							src= NULL;
+						}
+						if (e)
+							break;
+					}
+					if (e) {
+						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
+						gf_isom_delete(file);
+						MP4BOX_EXIT_WITH_CODE(1);
+					}
 				}
 				i++;
 			}
@@ -3192,6 +3213,8 @@ int mp4boxMain(int argc, char **argv)
 					switch (gf_isom_get_media_subtype(file, i+1, 1)) {
 					case GF_ISOM_SUBTYPE_AVC_H264:
 					case GF_ISOM_SUBTYPE_AVC2_H264:
+					case GF_ISOM_SUBTYPE_AVC3_H264:
+					case GF_ISOM_SUBTYPE_AVC4_H264:
 						fprintf(stderr, "Forcing AVC/H264 SAR to 1:1...\n");
 						gf_media_change_par(file, i+1, 1, 1);
 						break;

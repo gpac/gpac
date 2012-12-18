@@ -155,6 +155,27 @@ void convert_file_info(char *inName, u32 trackID)
 	if (!found && trackID) fprintf(stderr, "Cannot find track %d in file\n", trackID);
 }
 
+static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
+{
+	u64 ref_duration, chap_duration;
+	Double scale;
+
+	gf_isom_set_track_reference(file, chapter_ref_trak, GF_4CC('c','h','a','p'), gf_isom_get_track_id(file, track) );
+	gf_isom_set_track_enabled(file, track, 0);
+
+	ref_duration = gf_isom_get_media_duration(file, chapter_ref_trak);
+	chap_duration = gf_isom_get_media_duration(file, track);
+	scale = (Double) (s64) gf_isom_get_media_timescale(file, track);
+	scale /= gf_isom_get_media_timescale(file, chapter_ref_trak);
+	ref_duration = (u64) (ref_duration * scale);
+
+	if (chap_duration < ref_duration) {
+		chap_duration -= gf_isom_get_sample_duration(file, track, gf_isom_get_sample_count(file, track));
+		chap_duration = ref_duration - chap_duration;
+		gf_isom_set_last_sample_duration(file, track, (u32) chap_duration);
+	}
+}
+
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode;
@@ -480,8 +501,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_set_media_subtype(import.dest, i+1, 1, stype);
 
 			if (is_chap && chap_ref) {
-				gf_isom_set_track_reference(import.dest, chap_ref, GF_4CC('c','h','a','p'), gf_isom_get_track_id(import.dest, i+1) );
-				gf_isom_set_track_enabled(import.dest, i+1, 0);
+				set_chapter_track(import.dest, i+1, chap_ref);
 			}
 
 			if (profile || level) 
@@ -568,8 +588,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_set_media_subtype(import.dest, track, 1, stype);
 
 			if (is_chap && chap_ref) {
-				gf_isom_set_track_reference(import.dest, chap_ref, GF_4CC('c','h','a','p'), gf_isom_get_track_id(import.dest, i+1) );
-				gf_isom_set_track_enabled(import.dest, track, 0);
+				set_chapter_track(import.dest, track, chap_ref);
 			}
 
 			if (profile || level) 
@@ -637,9 +656,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	for (i = 1; i <= gf_isom_get_track_count(import.dest); i++)
 	{
 		e = gf_isom_rewrite_track_dependencies(import.dest, i);
-		if (e)
-			//goto exit;
-			fprintf(stderr, "Warning: track ID %d references to a track not imported\n", gf_isom_get_track_id(import.dest, i));
+		if (e) {
+			fprintf(stderr, "Warning: track ID %d has references to a track not imported\n", gf_isom_get_track_id(import.dest, i));
+			e = GF_OK;
+		}
 	}
 
 	if (check_track_for_svc) {
@@ -1464,7 +1484,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			}
 
 			/*merge AVC config if possible*/
-			if (!dst_tk && ((stype == GF_ISOM_SUBTYPE_AVC_H264) || (stype == GF_ISOM_SUBTYPE_AVC2_H264))  ) {
+			if (!dst_tk && ((stype == GF_ISOM_SUBTYPE_AVC_H264) || (stype == GF_ISOM_SUBTYPE_AVC2_H264) || (stype == GF_ISOM_SUBTYPE_AVC3_H264) || (stype == GF_ISOM_SUBTYPE_AVC4_H264))  ) {
 				GF_AVCConfig *avc_src, *avc_dst;
 				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 				

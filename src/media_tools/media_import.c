@@ -69,7 +69,9 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 	if (e) return e;
 
 	stype = gf_isom_get_media_subtype(file, track, 1);
-	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) || (stype==GF_ISOM_SUBTYPE_AVC2_H264) ) {
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) || (stype==GF_ISOM_SUBTYPE_AVC2_H264)
+		|| (stype==GF_ISOM_SUBTYPE_AVC3_H264) || (stype==GF_ISOM_SUBTYPE_AVC4_H264)
+	) {
 		s32 par_n, par_d;
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		GF_AVCConfigSlot *slc = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, 0);
@@ -3717,7 +3719,7 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-GF_Err gf_import_h264(GF_MediaImporter *import)
+static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
 	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
@@ -3786,7 +3788,7 @@ restart_import:
 	sei_recovery_frame_count = -1;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
-	if (!AVC_IsStartCode(bs)) {
+	if (!gf_media_nalu_is_start_code(bs)) {
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Cannot find H264 start code");
 		goto exit;
 	}
@@ -3842,7 +3844,7 @@ restart_import:
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
-		nal_size = AVC_NextStartCode(bs);
+		nal_size = gf_media_nalu_next_start_code_bs(bs);
 
 		if (nal_size>max_size) {
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*nal_size);
@@ -3864,7 +3866,7 @@ restart_import:
 			avc.is_svc = 1;
 		}
 
-		switch (AVC_ParseNALU(bs, nal_hdr, &avc)) {
+		switch (gf_media_avc_parse_nalu(bs, nal_hdr, &avc)) {
 		case 1:
 			flush_sample = 1;
 			break;
@@ -3882,7 +3884,7 @@ restart_import:
 		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			is_subseq = 1;
 		case GF_AVC_NALU_SEQ_PARAM:
-			idx = AVC_ReadSeqInfo(buffer+1/*skip NALU type*/, nal_size-1, &avc, is_subseq, NULL);
+			idx = gf_media_avc_read_sps(buffer, nal_size, &avc, is_subseq, NULL);
 			if (idx<0) {
 				if (avc.sps[0].profile_idc) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Error parsing SeqInfo"));
@@ -3999,7 +4001,7 @@ restart_import:
 			}
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
-			idx = AVC_ReadPictParamSet(buffer+1/*skip NALU type*/, nal_size-1, &avc);
+			idx = gf_media_avc_read_pps(buffer, nal_size, &avc);
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
@@ -4032,7 +4034,7 @@ restart_import:
 			break;
 		case GF_AVC_NALU_SEI:
 			if (avc.sps_active_idx != -1) {
-				copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
+				copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &avc);
 				if (copy_size)
 					nb_sei++;
 			}
@@ -4101,7 +4103,7 @@ restart_import:
 			break;
 
 		case GF_AVC_NALU_SEQ_PARAM_EXT:
-			idx = AVC_ReadSeqParamSetExtId(buffer+1/*skip NALU type*/, nal_size-1);
+			idx = gf_media_avc_read_sps_ext(buffer, nal_size);
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Sequence Param Extension");
 				goto exit;
@@ -4315,7 +4317,7 @@ restart_import:
 				if (first_nal) {
 					first_nal = 0;
 					if (avc.sei.recovery_point.valid || (import->flags & GF_IMPORT_FORCE_SYNC)) {
-						Bool bIntraSlice = AVC_SliceIsIntra(&avc);
+						Bool bIntraSlice = gf_media_avc_slice_is_intra(&avc);
 						assert(avc.s_info.nal_unit_type!=GF_AVC_NALU_IDR_SLICE || bIntraSlice);
 
 						sei_recovery_frame_count = avc.sei.recovery_point.frame_cnt;
@@ -4332,7 +4334,7 @@ restart_import:
 						if (bIntraSlice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) 
 							slice_force_ref = 1;
 					}
-					sample_is_rap = AVC_SliceIsIDR(&avc);
+					sample_is_rap = gf_media_avc_slice_is_IDR(&avc);
 				}
 
 				if (avc.s_info.poc<poc_shift) {
@@ -4415,12 +4417,12 @@ restart_import:
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 
 		/*consume next start code*/
-		nal_start = AVC_NextStartCode(bs);
+		nal_start = gf_media_nalu_next_start_code_bs(bs);
 		if (nal_start) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size (%u)? Skipping "LLU" bytes to reach next start code\n", nal_size, nal_start));
 			gf_bs_skip_bytes(bs, nal_start);
 		}
-		nal_start = AVC_IsStartCode(bs);
+		nal_start = gf_media_nalu_is_start_code(bs);
 		if (!nal_start) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] error: no start code found ("LLU" bytes read out of "LLU") - leaving\n", gf_bs_get_position(bs), gf_bs_get_size(bs)));
 			break;
@@ -4590,6 +4592,748 @@ exit:
 	if (sample_data) gf_bs_del(sample_data);
 	gf_odf_avc_cfg_del(avccfg);
 	gf_odf_avc_cfg_del(svccfg);
+	gf_free(buffer);
+	gf_bs_del(bs);
+	fclose(mdia);
+	return e;
+}
+
+
+static GF_Err gf_import_hevc(GF_MediaImporter *import)
+{
+	u64 nal_start, nal_end, total_size;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
+	s32 idx, sei_recovery_frame_count;
+	u64 duration;
+	GF_Err e;
+	FILE *mdia;
+	HEVCState hevc;
+	GF_AVCConfigSlot *slc;
+	GF_HEVCConfig *hevccfg;
+	GF_HEVCParamArray *spss, *ppss, *vpss;
+	GF_BitStream *bs;
+	GF_BitStream *sample_data;
+	Bool flush_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
+	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
+	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
+	Bool first_avc;
+	Bool use_opengop_gdr = 0;
+
+	Double FPS;
+	char *buffer;
+	u32 max_size = 4096;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->nb_tracks = 1;
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
+		import->tk_info[0].flags = GF_IMPORT_OVERRIDE_FPS | GF_IMPORT_FORCE_PACKED;
+		return GF_OK;
+	}
+
+	set_subsamples = (import->flags & GF_IMPORT_SET_SUBSAMPLES) ? 1 : 0;
+
+	mdia = gf_f64_open(import->in_name, "rb");
+	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
+
+	detect_fps = 1;
+	FPS = (Double) import->video_fps;
+	if (!FPS) {
+		FPS = GF_IMPORT_DEFAULT_FPS;
+	} else {
+		if (import->video_fps == GF_IMPORT_AUTO_FPS)
+			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
+		else
+			detect_fps = 0;								/*fps is forced by the caller*/
+	}
+	get_video_timing(FPS, &timescale, &dts_inc);
+
+	poc_diff = 0;
+
+
+//restart_import:
+
+	memset(&hevc, 0, sizeof(HEVCState));
+	hevc.sps_active_idx = -1;
+	hevccfg = gf_odf_hevc_cfg_new();
+	buffer = (char*)gf_malloc(sizeof(char) * max_size);
+	sample_data = NULL;
+	first_avc = 1;
+	sei_recovery_frame_count = -1;
+	spss = ppss = vpss = NULL;
+
+	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
+	if (!gf_media_nalu_is_start_code(bs)) {
+		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Cannot find H264 start code");
+		goto exit;
+	}
+
+	/*NALU size packing disabled*/
+	if (!(import->flags & GF_IMPORT_FORCE_PACKED)) size_length = 32;
+	/*if import in edit mode, use smallest NAL size and adjust on the fly*/
+	else if (gf_isom_get_mode(import->dest)!=GF_ISOM_OPEN_WRITE) size_length = 8;
+	else size_length = 32;
+
+	trackID = 0;
+	e = GF_OK;
+	if (import->esd) trackID = import->esd->ESID;
+
+	track = gf_isom_new_track(import->dest, trackID, GF_ISOM_MEDIA_VISUAL, timescale);
+	if (!track) {
+		e = gf_isom_last_error(import->dest);
+		goto exit;
+	}
+	gf_isom_set_track_enabled(import->dest, track, 1);
+	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	if (import->esd && import->esd->dependsOnESID) {
+		gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
+	}
+
+	e = gf_isom_hevc_config_new(import->dest, track, hevccfg, NULL, NULL, &di);
+	if (e) goto exit;
+
+	sample_data = NULL;
+	sample_is_rap = 0;
+	sample_has_islice = 0;
+	cur_samp = 0;
+	is_paff = 0;
+	total_size = gf_bs_get_size(bs);
+	nal_start = gf_bs_get_position(bs);
+	duration = (u64) ( ((Double)import->duration) * timescale / 1000.0);
+
+	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = 0;
+	max_w = max_h = 0;
+	first_nal = 1;
+	ref_frame = 0;
+	last_poc = max_last_poc = max_last_b_poc = prev_last_poc = 0;
+	max_total_delay = 0;
+
+	gf_isom_set_cts_packing(import->dest, track, 1);
+	has_cts_offset = 0;
+	min_poc = 0;
+	poc_shift = 0;
+
+	while (gf_bs_available(bs)) {
+		s32 res;
+		u8 nal_unit_type, temporal_id;
+		Bool skip_nal, add_sps, is_slice;
+		nal_size = gf_media_nalu_next_start_code_bs(bs);
+
+		if (nal_size>max_size) {
+			buffer = (char*)gf_realloc(buffer, sizeof(char)*nal_size);
+			max_size = nal_size;
+		}
+
+		/*read the file, and work on a memory buffer*/
+		gf_bs_read_data(bs, buffer, nal_size);
+
+		gf_bs_seek(bs, nal_start);
+
+		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id);
+
+		skip_nal = 0;
+		copy_size = flush_sample = 0;
+		is_slice = 0;
+
+		switch (res) {
+		case 1:
+			flush_sample = 1;
+			break;
+		case -1:
+			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
+			skip_nal = 1;
+			break;
+		case -2:
+			skip_nal = 1;
+			break;
+		default:
+			break;
+		}
+		switch (nal_unit_type) {
+		case GF_HEVC_NALU_VID_PARAM:
+			idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+			if (idx<0) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
+				goto exit;
+			}
+			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
+			if (hevc.vps[idx].state == 2) {
+				copy_size = nal_size;
+				assert(vpss);
+				vpss->array_completeness = 0;
+			}
+
+			if (hevc.vps[idx].state==1) {
+				hevc.vps[idx].state = 2;
+
+				hevccfg->avgFrameRate = hevc.vps[idx].rates[0].avg_pic_rate;
+				hevccfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
+				hevccfg->numTemporalLayers = hevc.vps[idx].max_sub_layer;
+
+				if (!vpss) {
+					GF_SAFEALLOC(vpss, GF_HEVCParamArray);
+					vpss->nalus = gf_list_new();
+					gf_list_add(hevccfg->param_array, vpss);
+					vpss->array_completeness = 1;
+					vpss->type = GF_HEVC_NALU_VID_PARAM;
+				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				gf_list_add(vpss->nalus, slc);
+			}
+			break;
+		case GF_HEVC_NALU_SEQ_PARAM:
+			idx = gf_media_hevc_read_sps(buffer, nal_size, &hevc);
+			if (idx<0) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
+				goto exit;
+			}
+			add_sps = 0;
+			if ((hevc.sps[idx].state & AVC_SPS_PARSED) && !(hevc.sps[idx].state & AVC_SPS_DECLARED)) {
+				hevc.sps[idx].state |= AVC_SPS_DECLARED;
+				add_sps = 1;
+			}
+
+			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
+			if (hevc.sps[idx].state & AVC_SUBSPS_DECLARED) {
+				if (import->flags & GF_IMPORT_SVC_NONE) {
+					copy_size = 0;
+				} else {
+					copy_size = nal_size;
+					assert(spss);
+					spss->array_completeness = 0;
+				}
+			}
+
+			if (add_sps) {
+				hevccfg->configurationVersion = 1;
+				hevccfg->profile_space = hevc.sps[idx].ptl.profile_space;
+				hevccfg->profile_idc = hevc.sps[idx].ptl.profile_idc;
+				hevccfg->constraint_indicator_flags = 0;
+				hevccfg->level_idc = hevc.sps[idx].ptl.level_idc;
+				hevccfg->profile_compatibility_indications = hevc.sps[idx].ptl.profile_compatibility_flag;
+				hevccfg->chromaFormat = hevc.sps[idx].chroma_format_idc;
+				hevccfg->luma_bit_depth = hevc.sps[idx].bit_depth_luma;
+				hevccfg->chroma_bit_depth = hevc.sps[idx].bit_depth_chroma;
+
+				/*
+				todo FPS detection
+					
+					timescale = 2 * avc.sps[idx].vui.time_scale;
+					dts_inc =   2 * avc.sps[idx].vui.num_units_in_tick * DeltaTfiDivisorIdx;
+					FPS = (Double)timescale / dts_inc;
+					detect_fps = 0;
+					gf_isom_remove_track(import->dest, track);
+					if (sample_data) gf_bs_del(sample_data);
+					gf_odf_avc_cfg_del(avccfg);
+					avccfg = NULL;
+					gf_free(buffer);
+					buffer = NULL;
+					gf_bs_del(bs);
+					bs = NULL;
+					gf_f64_seek(mdia, 0, SEEK_SET);
+					goto restart_import;
+				}
+			*/
+
+				if (!spss) {
+					GF_SAFEALLOC(spss, GF_HEVCParamArray);
+					spss->nalus = gf_list_new();
+					gf_list_add(hevccfg->param_array, spss);
+					spss->array_completeness = 1;
+					spss->type = GF_HEVC_NALU_SEQ_PARAM;
+				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				gf_list_add(spss->nalus, slc);
+
+				if (first_avc) {
+					first_avc = 0;
+					gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
+				}
+
+				if ((max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
+					max_w = hevc.sps[idx].width;
+					max_h = hevc.sps[idx].height;
+				}
+			}
+			break;
+
+		case GF_HEVC_NALU_PIC_PARAM:
+			idx = gf_media_hevc_read_pps(buffer, nal_size, &hevc);
+			if (idx<0) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
+				goto exit;
+			}
+			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
+			if (hevc.pps[idx].state == 2) {
+				copy_size = nal_size;
+				assert(ppss);
+				ppss->array_completeness = 0;
+			}
+
+			if (hevc.pps[idx].state==1) {
+				hevc.pps[idx].state = 2;
+
+				if (!ppss) {
+					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
+					ppss->nalus = gf_list_new();
+					gf_list_add(hevccfg->param_array, ppss);
+					ppss->array_completeness = 1;
+					ppss->type = GF_HEVC_NALU_PIC_PARAM;
+				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				gf_list_add(ppss->nalus, slc);
+			}
+			break;
+		case GF_HEVC_NALU_SEI_PREFIX:
+			if (hevc.sps_active_idx != -1) {
+				/*TODO*/
+				//copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &hevc);
+				copy_size = nal_size;
+				if (copy_size)
+					nb_sei++;
+			}
+			break;
+
+		/*slice_layer_rbsp*/
+//		case GF_HEVC_NALU_SLICE_STSA_N:
+//		case GF_HEVC_NALU_SLICE_STSA_R:
+		case GF_HEVC_NALU_SLICE_RADL_N:
+//		case GF_HEVC_NALU_SLICE_RADL_R:
+		case GF_HEVC_NALU_SLICE_RASL_N:
+//		case GF_HEVC_NALU_SLICE_RASL_R:		
+			is_slice = 1;
+			if (! skip_nal) {
+				copy_size = nal_size;
+			}
+			break;
+
+		/*slice_segment_layer_rbsp*/
+		case GF_HEVC_NALU_SLICE_STSA_N:
+		case GF_HEVC_NALU_SLICE_STSA_R:
+		case GF_HEVC_NALU_SLICE_RADL_R:
+		case GF_HEVC_NALU_SLICE_RASL_R:		
+		case GF_HEVC_NALU_SLICE_TRAIL_N:
+		case GF_HEVC_NALU_SLICE_TRAIL_R:
+		case GF_HEVC_NALU_SLICE_TSA_N:
+		case GF_HEVC_NALU_SLICE_TSA_R:
+		case GF_HEVC_NALU_SLICE_BLA_W_LP:
+		case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+		case GF_HEVC_NALU_SLICE_BLA_N_LP:
+		case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+		case GF_HEVC_NALU_SLICE_IDR_N_LP:
+		case GF_HEVC_NALU_SLICE_CRA:
+			is_slice = 1;
+			if (! skip_nal) {
+				copy_size = nal_size;
+				switch (hevc.s_info.slice_type) {
+				case GF_HEVC_TYPE_P: nb_p++; break;
+				case GF_HEVC_TYPE_I: nb_i++; 
+					sample_has_islice = 1;
+					break;
+				case GF_HEVC_TYPE_B: nb_b++; break;
+				}
+			}
+			break;
+
+		/*remove*/
+		case GF_HEVC_NALU_ACCESS_UNIT:
+		case GF_HEVC_NALU_FILLER_DATA:
+		case GF_HEVC_NALU_END_OF_SEQ:
+		case GF_HEVC_NALU_END_OF_STREAM:
+			break;
+
+		default:
+			gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_unit_type);
+			copy_size = nal_size;
+			break;
+		}
+
+		if (!nal_size) break;
+
+		if (flush_sample && sample_data) {
+			GF_ISOSample *samp = gf_isom_sample_new();
+			samp->DTS = (u64)dts_inc*cur_samp;
+			samp->IsRAP = sample_is_rap;
+			if (!sample_is_rap) {
+				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
+					samp->IsRAP = 1;
+					if (!use_opengop_gdr) {
+						use_opengop_gdr = 1;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISO conformant\n"));
+					}
+				}
+			}
+			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
+			gf_bs_del(sample_data);
+			sample_data = NULL;
+
+
+
+			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
+			store the POC as the CTS offset and update the whole table at the end*/
+			samp->CTS_Offset = last_poc - poc_shift;
+			assert(last_poc >= poc_shift);
+			e = gf_isom_add_sample(import->dest, track, di, samp);
+			if (e) goto exit;
+
+			cur_samp++;
+
+			/*write sampleGroups info*/
+			if (!samp->IsRAP && (sei_recovery_frame_count>=0)) {
+				/*generic GDR*/
+				if (sei_recovery_frame_count) {
+					if (!use_opengop_gdr) use_opengop_gdr = 1;
+					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
+				} 
+				/*open-GOP*/
+				else if (sample_has_islice) {
+					if (!use_opengop_gdr) use_opengop_gdr = 2;
+					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
+				}
+				if (e) goto exit;
+			}
+
+			gf_isom_sample_del(&samp);
+			gf_set_progress("Importing AVC-H264", (u32) (nal_start/1024), (u32) (total_size/1024) );
+			first_nal = 1;
+
+			if (min_poc > last_poc)
+				min_poc = last_poc;
+
+			sample_has_islice = 0;
+			sei_recovery_frame_count = -1;
+		}
+
+		if (copy_size) {
+			if ((size_length<32) && ( (u32) (1<<size_length)-1 < copy_size)) {
+				u32 diff_size = 8;
+				while ((size_length<32) && ( (u32) (1<<(size_length+diff_size))-1 < copy_size)) diff_size+=8;
+				/*only 8bits, 16bits and 32 bits*/
+				if (size_length+diff_size == 24) diff_size+=8;
+
+				gf_import_message(import, GF_OK, "Adjusting AVC SizeLength to %d bits", size_length+diff_size);
+				gf_media_avc_rewrite_samples(import->dest, track, size_length, size_length+diff_size);
+
+				/*rewrite current sample*/
+				if (sample_data) {
+					char *sd;
+					u32 sd_l;
+					GF_BitStream *prev_sd;
+					gf_bs_get_content(sample_data, &sd, &sd_l);
+					gf_bs_del(sample_data);
+					sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					prev_sd = gf_bs_new(sd, sd_l, GF_BITSTREAM_READ);
+					while (gf_bs_available(prev_sd)) {
+						char *buf;
+						u32 s = gf_bs_read_int(prev_sd, size_length);
+						gf_bs_write_int(sample_data, s, size_length+diff_size);
+						buf = (char*)gf_malloc(sizeof(char)*s);
+						gf_bs_read_data(prev_sd, buf, s);
+						gf_bs_write_data(sample_data, buf, s);
+						gf_free(buf);
+					}
+					gf_bs_del(prev_sd);
+					gf_free(sd);
+				}
+				size_length+=diff_size;
+
+			}
+			if (!sample_data) sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_int(sample_data, copy_size, size_length);
+			gf_bs_write_data(sample_data, buffer, copy_size);
+
+			if (set_subsamples) {
+				/* use the res and priority value of last prefix NALU */
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 0, 0, 0);
+			}
+
+			if (is_slice) {
+				slice_is_ref = gf_media_hevc_slice_is_IDR(&hevc);
+				if (slice_is_ref) 
+					nb_idr++;
+				slice_force_ref = 0;
+
+				/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
+				SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
+				if (first_nal) {
+					first_nal = 0;
+					if (hevc.sei.recovery_point.valid || (import->flags & GF_IMPORT_FORCE_SYNC)) {
+						Bool bIntraSlice = gf_media_hevc_slice_is_intra(&hevc);
+						assert(hevc.s_info.nal_unit_type!=GF_AVC_NALU_IDR_SLICE || bIntraSlice);
+
+						sei_recovery_frame_count = hevc.sei.recovery_point.frame_cnt;
+
+						/*we allow to mark I-frames as sync on open-GOPs (with sei_recovery_frame_count=0) when forcing sync even when the SEI RP is not available*/
+						if (!hevc.sei.recovery_point.valid && bIntraSlice) {
+							sei_recovery_frame_count = 0;
+							if (use_opengop_gdr == 1) {
+								use_opengop_gdr = 2; /*avoid message flooding*/
+								GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] No valid SEI Recovery Point found although needed - forcing\n"));
+							}
+						}
+						hevc.sei.recovery_point.valid = 0;
+						if (bIntraSlice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) 
+							slice_force_ref = 1;
+					}
+					sample_is_rap = gf_media_hevc_slice_is_IDR(&hevc);
+				}
+
+				if (hevc.s_info.poc<poc_shift) {
+					u32 j;
+					if (ref_frame) {
+						for (j=ref_frame; j<=cur_samp; j++) {
+							GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, j, NULL, NULL);
+							if (!samp) break;
+							samp->CTS_Offset += poc_shift;
+							samp->CTS_Offset -= hevc.s_info.poc;
+							gf_isom_modify_cts_offset(import->dest, track, j, samp->CTS_Offset);
+							gf_isom_sample_del(&samp);
+						}
+					}
+					poc_shift = hevc.s_info.poc;
+				}
+
+				/*if #pics, compute smallest POC increase*/
+				if (hevc.s_info.poc != last_poc) {
+					if (!poc_diff || (poc_diff > abs(hevc.s_info.poc-last_poc))) {
+						poc_diff = abs(hevc.s_info.poc - last_poc);/*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
+					}
+					last_poc = hevc.s_info.poc;
+				}
+
+				/*ref slice, reset poc*/
+				if (slice_is_ref) {
+					ref_frame = cur_samp+1;
+					max_last_poc = last_poc = max_last_b_poc = 0;
+					poc_shift = 0;
+				}
+				/*forced ref slice*/
+				else if (slice_force_ref) {
+					ref_frame = cur_samp+1;	
+					/*adjust POC shift as sample will now be marked as sync, so wo must store poc as if IDR (eg POC=0) for our CTS offset computing to be correct*/
+					poc_shift = hevc.s_info.poc;
+				}
+				/*strictly less - this is a new P slice*/
+				else if (max_last_poc<last_poc) {
+					max_last_b_poc = 0;
+					prev_last_poc = max_last_poc;
+					max_last_poc = last_poc;
+				}
+				/*stricly greater*/
+				else if (max_last_poc>last_poc) {
+					/*need to store TS offsets*/
+					has_cts_offset = 1;
+					switch (hevc.s_info.slice_type) {
+					case GF_AVC_TYPE_B:
+					case GF_AVC_TYPE2_B:
+						if (!max_last_b_poc) {
+							max_last_b_poc = last_poc;
+						}
+						/*if same poc than last max, this is a B-slice*/
+						else if (last_poc>max_last_b_poc) {
+							max_last_b_poc = last_poc;
+						}
+						/*otherwise we had a B-slice reference: do nothing*/
+
+						break;
+					}
+				}
+
+				/*compute max delay (applicable when B slice are present)*/
+				if (ref_frame && poc_diff && (s32)(cur_samp-(ref_frame-1)-last_poc/poc_diff)>(s32)max_total_delay) {
+					max_total_delay = cur_samp - (ref_frame-1) - last_poc/poc_diff;
+				}
+			}
+		}
+
+		gf_bs_align(bs);
+		nal_end = gf_bs_get_position(bs);
+		assert(nal_start <= nal_end);
+		assert(nal_end <= nal_start + nal_size);
+		if (nal_end != nal_start + nal_size)
+			gf_bs_seek(bs, nal_start + nal_size);
+
+		if (!gf_bs_available(bs)) break;
+		if (duration && (dts_inc*cur_samp > duration)) break;
+		if (import->flags & GF_IMPORT_DO_ABORT) break;
+
+		/*consume next start code*/
+		nal_start = gf_media_nalu_next_start_code_bs(bs);
+		if (nal_start) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size (%u)? Skipping "LLU" bytes to reach next start code\n", nal_size, nal_start));
+			gf_bs_skip_bytes(bs, nal_start);
+		}
+		nal_start = gf_media_nalu_is_start_code(bs);
+		if (!nal_start) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] error: no start code found ("LLU" bytes read out of "LLU") - leaving\n", gf_bs_get_position(bs), gf_bs_get_size(bs)));
+			break;
+		}
+		nal_start = gf_bs_get_position(bs);
+	}
+	
+	/*final flush*/
+	if (sample_data) {
+		GF_ISOSample *samp = gf_isom_sample_new();
+		samp->DTS = (u64)dts_inc*cur_samp;
+		samp->IsRAP = sample_is_rap;
+		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
+			samp->IsRAP = 1;
+		}
+		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
+		samp->CTS_Offset = last_poc - poc_shift;
+		gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
+		gf_bs_del(sample_data);
+		sample_data = NULL;
+		e = gf_isom_add_sample(import->dest, track, di, samp);
+		if (e) goto exit;
+		gf_isom_sample_del(&samp);
+		gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp+1);
+		cur_samp++;
+	}
+
+
+	/*recompute all CTS offsets*/
+	if (has_cts_offset) {
+		u32 i, last_cts_samp;
+		u64 last_dts, max_cts;
+		if (!poc_diff) poc_diff = 1;
+		/*no b-frame references, no need to cope with negative poc*/
+		if (!max_total_delay) {
+			min_poc=0;
+			max_total_delay = 1;
+		}
+		cur_samp = gf_isom_get_sample_count(import->dest, track);
+		min_poc *= -1;
+		last_dts = 0;
+		max_cts = 0;
+		last_cts_samp = 0;
+
+		for (i=0; i<cur_samp; i++) {
+			u64 cts;
+			/*not using descIdx and data_offset will only fecth DTS, CTS and RAP which is all we need*/
+			GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, i+1, NULL, NULL);
+			/*poc re-init (RAP and POC to 0, otherwise that's SEI recovery), update base DTS*/
+			if (samp->IsRAP /*&& !samp->CTS_Offset*/)
+				last_dts = samp->DTS * (1+is_paff);
+
+			/*CTS offset is frame POC (refers to last IDR)*/
+			cts = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) last_dts;
+
+			/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
+			if (is_paff) {
+				cts /= 2;
+				/*in some cases the poc is not on the top field - if that is the case, round up*/
+				if (cts%dts_inc) {
+					cts = ((cts/dts_inc)+1)*dts_inc;
+				}
+			}
+
+			/*B-frames offset*/
+			cts += (u32) (max_total_delay*dts_inc);
+
+			samp->CTS_Offset = (u32) (cts - samp->DTS);
+
+			if (max_cts < samp->DTS + samp->CTS_Offset) {
+				max_cts = samp->DTS + samp->CTS_Offset;
+				last_cts_samp = i;
+			}
+			/*this should never happen, however some streams seem to do weird POC increases (cf sorenson streams, last 2 frames),
+			this should hopefully take care of some bugs and ensure proper CTS...*/
+			if ((s32)samp->CTS_Offset<0) {
+				u32 j, k;
+				samp->CTS_Offset = 0;
+				gf_isom_modify_cts_offset(import->dest, track, i+1, samp->CTS_Offset);
+				for (j=last_cts_samp; j<i; j++) {
+					GF_ISOSample *asamp = gf_isom_get_sample_info(import->dest, track, j+1, NULL, NULL);
+					for (k=j+1; k<=i; k++) {
+						GF_ISOSample *bsamp = gf_isom_get_sample_info(import->dest, track, k+1, NULL, NULL);
+						if (asamp->CTS_Offset+asamp->DTS==bsamp->CTS_Offset+bsamp->DTS) {
+							max_cts += dts_inc;
+							bsamp->CTS_Offset = (u32) (max_cts - bsamp->DTS);
+							gf_isom_modify_cts_offset(import->dest, track, k+1, bsamp->CTS_Offset);
+						}
+						gf_isom_sample_del(&bsamp);
+					}
+					gf_isom_sample_del(&asamp);
+				}
+				max_cts = samp->DTS + samp->CTS_Offset;
+			} else {
+				gf_isom_modify_cts_offset(import->dest, track, i+1, samp->CTS_Offset);
+			}
+			gf_isom_sample_del(&samp);
+		}
+		/*and repack table*/
+		gf_isom_set_cts_packing(import->dest, track, 0);
+	} else {
+		gf_isom_remove_cts_info(import->dest, track);
+	}
+
+	gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp);
+
+	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
+	hevccfg->nal_unit_size = size_length/8;
+
+	gf_isom_hevc_config_update(import->dest, track, 1, hevccfg);
+	gf_media_update_par(import->dest, track);
+	MP4T_RecomputeBitRate(import->dest, track);
+
+//	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
+	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_ISO4, 1);
+	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_ISOM, 0);
+	gf_isom_modify_alternate_brand(import->dest, GF_4CC('h','v','c','1'), 1);
+
+	if (!vpss || !ppss || !spss) {
+		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
+	} else {
+		if (nb_sp || nb_si) {
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+				cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+		} else {
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
+				cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
+		}
+
+		if (max_total_delay>1) {
+			gf_import_message(import, GF_OK, "Stream uses forward prediction - stream CTS offset: %d frames", max_total_delay);
+		}
+	}
+
+	if (use_opengop_gdr==2) {
+		gf_import_message(import, GF_OK, "OpenGOP detected - adjusting file brand");
+		gf_isom_modify_alternate_brand(import->dest, GF_4CC('i', 's', 'o', '6'), 1);
+	}
+
+	/*rewrite ESD*/
+	if (import->esd) {
+		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig*) gf_odf_desc_new(GF_ODF_SLC_TAG);
+		import->esd->slConfig->predefined = 2;
+		import->esd->slConfig->timestampResolution = timescale;
+		if (import->esd->decoderConfig) gf_odf_desc_del((GF_Descriptor *)import->esd->decoderConfig);
+		import->esd->decoderConfig = gf_isom_get_decoder_config(import->dest, track, 1);
+		gf_isom_change_mpeg4_description(import->dest, track, 1, import->esd);
+	}
+
+exit:
+	if (sample_data) gf_bs_del(sample_data);
+	gf_odf_hevc_cfg_del(hevccfg);
 	gf_free(buffer);
 	gf_bs_del(bs);
 	fclose(mdia);
@@ -5347,6 +6091,9 @@ typedef struct
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AVCConfig *avccfg;
 	AVCState avc;
+
+	GF_HEVCConfig *hevccfg;
+	HEVCState hevc;
 #endif
 	Bool force_next_au_start;
 	Bool stream_setup;
@@ -5549,6 +6296,34 @@ void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 	gf_isom_sample_del(&samp);
 }
 
+static void hevc_cfg_add_nalu(GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u32 data_len)
+{
+	u32 i, count;
+	GF_AVCConfigSlot *sl;
+	GF_HEVCParamArray *ar = NULL;
+	count = gf_list_count(hevccfg->param_array);
+	for (i=0; i<count; i++) {
+		ar = gf_list_get(hevccfg->param_array, i);
+		if (ar->type == nal_type) break;
+		ar = NULL;
+	}
+	if (!ar) {
+		GF_SAFEALLOC(ar, GF_HEVCParamArray);
+		ar->array_completeness = 1;
+		ar->type = nal_type;
+		ar->nalus = gf_list_new();
+	}
+	GF_SAFEALLOC(sl, GF_AVCConfigSlot);
+	if (data) {
+		sl->data = gf_malloc(sizeof(char)*data_len);
+		sl->size = data_len;
+		memcpy(sl->data, data, data_len);
+		gf_list_add(ar->nalus, ar);
+	} else {
+		ar->array_completeness = 0;
+	}
+}
+
 void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 	GF_Err e;
@@ -5635,6 +6410,13 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					break;
 				case GF_M2TS_VIDEO_H264:
 					import->tk_info[idx].media_type = GF_4CC('H','2','6','4');
+					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
+					import->tk_info[idx].lang = pes->lang;
+					import->nb_tracks++;
+					tsimp->nb_video++;
+					break;
+				case GF_M2TS_VIDEO_HEVC:
+					import->tk_info[idx].media_type = GF_4CC('h','e','v','c');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
@@ -5765,6 +6547,12 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				oti = GPAC_OTI_VIDEO_AVC;
 				tsimp->avccfg = gf_odf_avc_cfg_new();
 				break;
+			case GF_M2TS_VIDEO_HEVC:
+				mtype = GF_ISOM_MEDIA_VISUAL;
+				stype = GF_STREAM_VISUAL; 
+				oti = GPAC_OTI_VIDEO_HEVC;
+				tsimp->hevccfg = gf_odf_hevc_cfg_new();
+				break;
 			case GF_M2TS_AUDIO_MPEG1:
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				stype = GF_STREAM_AUDIO; 
@@ -5881,7 +6669,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 					is_subseq = 1;
 				case GF_AVC_NALU_SEQ_PARAM:
-					idx = AVC_ReadSeqInfo(pck->data+5, pck->data_len-5, &tsimp->avc, is_subseq, NULL);
+					idx = gf_media_avc_read_sps(pck->data+4, pck->data_len-4, &tsimp->avc, is_subseq, NULL);
 
 					add_sps = 0;
 					if (idx>=0) {
@@ -5917,7 +6705,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 					return;
 				case GF_AVC_NALU_PIC_PARAM:
-					idx = AVC_ReadPictParamSet(pck->data+5, pck->data_len-5, &tsimp->avc);
+					idx = gf_media_avc_read_pps(pck->data+4, pck->data_len-4, &tsimp->avc);
 					if ((idx>=0) && (tsimp->avc.pps[idx].status==1)) {
 						tsimp->avc.pps[idx].status = 2;
 						slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
@@ -5939,7 +6727,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_AVC_NALU_SEI:
 					break;
 					if (tsimp->avc.sps_active_idx != -1) {
-						idx = AVC_ReformatSEI_NALU(pck->data+4, pck->data_len-4, &tsimp->avc);
+						idx = gf_media_avc_reformat_sei(pck->data+4, pck->data_len-4, &tsimp->avc);
 						if (idx>0) pck->data_len = idx+4;
 					}
 					break;
@@ -5950,6 +6738,94 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->force_next_au_start = 0;
 				}
 			}
+
+			/*avc data for the current sample is stored in annex-B, as we don't know the size of each nal
+			when called back (depending on PES packetization, the end of the nal could be in following pes)*/
+			else if (tsimp->hevccfg && !pck->data[0] && !pck->data[1]) {
+				s32 idx;
+				Bool add_sps, is_subseq = 0;
+				u32 nal_type = (pck->data[4] & 0x7E) >> 1;
+
+				switch (nal_type) {
+				case GF_HEVC_NALU_SEQ_PARAM:
+					idx = gf_media_hevc_read_sps(pck->data+4, pck->data_len-4, &tsimp->hevc);
+					add_sps = 0;
+					if (idx>=0) {
+						if (is_subseq) {
+							if ((tsimp->hevc.sps[idx].state & AVC_SUBSPS_PARSED) && !(tsimp->hevc.sps[idx].state & AVC_SUBSPS_DECLARED)) {
+								tsimp->hevc.sps[idx].state |= AVC_SUBSPS_DECLARED;
+								add_sps = 1;
+							}
+						} else {
+							if ((tsimp->hevc.sps[idx].state & AVC_SPS_PARSED) && !(tsimp->hevc.sps[idx].state & AVC_SPS_DECLARED)) {
+								tsimp->hevc.sps[idx].state |= AVC_SPS_DECLARED;
+								add_sps = 1;
+							}
+						}
+						if (add_sps) {
+							/*always store nalu size on 4 bytes*/
+							tsimp->hevccfg->nal_unit_size = 4;
+							tsimp->hevccfg->configurationVersion = 1;
+
+							tsimp->hevccfg->configurationVersion = 1;
+							tsimp->hevccfg->profile_space = tsimp->hevc.sps[idx].ptl.profile_space;
+							tsimp->hevccfg->profile_idc = tsimp->hevc.sps[idx].ptl.profile_idc;
+							tsimp->hevccfg->constraint_indicator_flags = 0;
+							tsimp->hevccfg->level_idc = tsimp->hevc.sps[idx].ptl.level_idc;
+							tsimp->hevccfg->profile_compatibility_indications = tsimp->hevc.sps[idx].ptl.profile_compatibility_flag;
+							tsimp->hevccfg->chromaFormat = tsimp->hevc.sps[idx].chroma_format_idc;
+							tsimp->hevccfg->luma_bit_depth = tsimp->hevc.sps[idx].bit_depth_luma;
+							tsimp->hevccfg->chroma_bit_depth = tsimp->hevc.sps[idx].bit_depth_chroma;
+
+							hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+
+							if (pck->stream->vid_w < tsimp->avc.sps[idx].width)
+								pck->stream->vid_w = tsimp->avc.sps[idx].width;
+							if (pck->stream->vid_h < tsimp->avc.sps[idx].height)
+								pck->stream->vid_h = tsimp->avc.sps[idx].height;
+						}
+					}
+					return;
+				case GF_HEVC_NALU_PIC_PARAM:
+					idx = gf_media_hevc_read_pps(pck->data+4, pck->data_len-4, &tsimp->hevc);
+					if ((idx>=0) && (tsimp->hevc.pps[idx].state==1)) {
+						tsimp->hevc.pps[idx].state = 2;
+						hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+					}
+					return;
+				case GF_HEVC_NALU_VID_PARAM:
+					idx = gf_media_hevc_read_vps(pck->data+4, pck->data_len-4, &tsimp->hevc);
+					if ((idx>=0) && (tsimp->hevc.vps[idx].state==1)) {
+						tsimp->hevc.vps[idx].state = 2;
+						tsimp->hevccfg->avgFrameRate = tsimp->hevc.vps[idx].rates[0].avg_pic_rate;
+						tsimp->hevccfg->constantFrameRate = tsimp->hevc.vps[idx].rates[0].constand_pic_rate_idc;
+						tsimp->hevccfg->numTemporalLayers = tsimp->hevc.vps[idx].max_sub_layer;
+						hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+					}
+					return;
+				/*remove*/
+				case GF_HEVC_NALU_ACCESS_UNIT:
+					tsimp->force_next_au_start = 1;
+					return;
+				case GF_HEVC_NALU_FILLER_DATA:
+				case GF_HEVC_NALU_END_OF_SEQ:
+				case GF_HEVC_NALU_END_OF_STREAM:
+					return;
+				case GF_HEVC_NALU_SEI_PREFIX:
+/*TODO					if (tsimp->avc.sps_active_idx != -1) {
+						idx = gf_media_avc_reformat_sei(pck->data+4, pck->data_len-4, &tsimp->avc);
+						if (idx>0) pck->data_len = idx+4;
+					}
+*/
+					break;
+				}
+
+				if (tsimp->force_next_au_start) {
+					is_au_start = 1;
+					tsimp->force_next_au_start = 0;
+				}
+			}
+
 			if (!is_au_start) {
 				e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 				if (e) {
@@ -5980,6 +6856,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_M2TS_VIDEO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_VIDEO_MPEG4: gf_import_message(import, GF_OK, "MPEG-4 Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_VIDEO_H264: gf_import_message(import, GF_OK, "MPEG-4 AVC/H264 Video import (TS PID %d)", pck->stream->pid); break;
+				case GF_M2TS_VIDEO_HEVC: gf_import_message(import, GF_OK, "MPEG-H HEVC Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_AUDIO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_AAC: gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
@@ -7038,7 +7915,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)
 		|| !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
 		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
-		return gf_import_h264(importer);
+		return gf_import_avc_h264(importer);
+	/*HEVC video*/
+	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4)
+		|| !stricmp(fmt, "HEVC") || !stricmp(fmt, "H265") )
+		return gf_import_hevc(importer);
 	/*AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
 		return gf_import_ac3(importer);
@@ -7123,6 +8004,8 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 	switch (stype) {
 	case GF_ISOM_SUBTYPE_AVC_H264:
 	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
 		break;
 	default:
 		return GF_OK;

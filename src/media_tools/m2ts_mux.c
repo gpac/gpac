@@ -1619,9 +1619,17 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			break;
 		case GPAC_OTI_VIDEO_AVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_H264;
-			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (AU delim) + 4 byte start code + first nal header*/
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (start code + 1 nal hdr + AU delim) 
+			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 11;
 			break;
+		case GPAC_OTI_VIDEO_HEVC:
+			stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC;
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
+			+ 4 byte start code + first nal header*/
+			stream->min_bytes_copy_from_next = 12;
+			break;
+			
 		case GPAC_OTI_VIDEO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
 			break;

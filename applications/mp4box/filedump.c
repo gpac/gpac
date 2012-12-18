@@ -873,13 +873,51 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 }
 
 
-static void dump_nalu(FILE *dump, char *ptr, Bool is_svc)
+static void dump_nalu(FILE *dump, char *ptr, Bool is_svc, Bool is_hevc)
 {
-	u8 type = ptr[0] & 0x1F;
+	u8 type;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
 	u32 data_offset, sps_id, pps_id;
 	
+	if (is_hevc) {
+		type = (ptr[0]  & 0x7E) >> 1;
+		fprintf(dump, "code=\"%d\" type=\"", type);
+		switch (type) {
+		case GF_HEVC_NALU_SLICE_TRAIL_N: fputs("TRAIL_N slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_TRAIL_R: fputs("TRAIL_R slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_TSA_N: fputs("TSA_N slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_TSA_R: fputs("TSA_R slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_STSA_N: fputs("STSA_N slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_STSA_R: fputs("STSA_R slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_RADL_N: fputs("RADL_N slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_RADL_R: fputs("RADL_R slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_RASL_N: fputs("RASL_N slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_RASL_R: fputs("RASL_R slice segment", dump); break;
+		case GF_HEVC_NALU_SLICE_BLA_W_LP: fputs("Broken link access slice (W LP)", dump); break;
+		case GF_HEVC_NALU_SLICE_BLA_W_DLP: fputs("Broken link access slice (W DLP)", dump); break;
+		case GF_HEVC_NALU_SLICE_BLA_N_LP: fputs("Broken link access slice (N LP)", dump); break;
+		case GF_HEVC_NALU_SLICE_IDR_W_DLP: fputs("IDR slice (W DLP)", dump); break;
+		case GF_HEVC_NALU_SLICE_IDR_N_LP: fputs("IDR slice (N LP)", dump); break;
+		case GF_HEVC_NALU_SLICE_CRA: fputs("CRA slice", dump); break;
+
+		case GF_HEVC_NALU_VID_PARAM: fputs("Video Parameter Set", dump); break;
+		case GF_HEVC_NALU_SEQ_PARAM: fputs("Sequence Parameter Set", dump); break;
+		case GF_HEVC_NALU_PIC_PARAM: fputs("Picture Parameter Set", dump); break;
+		case GF_HEVC_NALU_ACCESS_UNIT: fputs("AU Delimiter", dump); break;
+		case GF_HEVC_NALU_END_OF_SEQ: fputs("End of Sequence", dump); break;
+		case GF_HEVC_NALU_END_OF_STREAM: fputs("End of Stream", dump); break;
+		case GF_HEVC_NALU_FILLER_DATA: fputs("Filler Data", dump); break;
+		case GF_HEVC_NALU_SEI_PREFIX: fputs("SEI Prefix", dump); break;
+		case GF_HEVC_NALU_SEI_SUFFIX: fputs("SEI Suffix", dump); break;
+		default:
+			fputs("UNKNOWN", dump); break;
+		}
+		fputs("\"", dump);
+		return;
+	} 
+	
+	type = ptr[0] & 0x1F;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE: fputs("Non IDR slice", dump); break;
@@ -935,10 +973,12 @@ static void dump_nalu(FILE *dump, char *ptr, Bool is_svc)
 void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 {
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
+	Bool is_hevc = 0;
 	FILE *dump;
 	s32 countRef;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AVCConfig *avccfg, *svccfg;
+	GF_HEVCConfig *hevccfg;
 	GF_AVCConfigSlot *slc;
 #endif
 
@@ -963,6 +1003,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 #ifndef GPAC_DISABLE_AV_PARSERS
 	avccfg = gf_isom_avc_config_get(file, track, 1);
 	svccfg = gf_isom_svc_config_get(file, track, 1);
+	hevccfg = gf_isom_hevc_config_get(file, track, 1);
 	fprintf(dump, " <NALUConfig>\n");
 
 #define DUMP_ARRAY(arr, name)\
@@ -970,7 +1011,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "  <%s number=\"%d\" ", name, i+1);\
-			dump_nalu(dump, slc->data , svccfg ? 1 : 0);\
+			dump_nalu(dump, slc->data , svccfg ? 1 : 0, is_hevc);\
 			fprintf(dump, "/>\n");\
 		}\
 	}\
@@ -988,6 +1029,21 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		if (!nalh_size) nalh_size = svccfg->nal_unit_size;
 		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray")
 		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
+	}
+	if (hevccfg) {
+		nalh_size = hevccfg->nal_unit_size;
+		is_hevc = 1;
+		for (i=0; i<gf_list_count(hevccfg->param_array); i++) {
+			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
+			if (ar->type==GF_HEVC_NALU_SEQ_PARAM)
+				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
+			else if (ar->type==GF_HEVC_NALU_PIC_PARAM)
+				DUMP_ARRAY(ar->nalus, "HEVCPPSArray")
+			else if (ar->type==GF_HEVC_NALU_VID_PARAM)
+				DUMP_ARRAY(ar->nalus, "HEVCVPSArray")
+			else 
+				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray")
+		}
 	}
 #endif
 	fprintf(dump, " </NALUConfig>\n");
@@ -1037,7 +1093,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 				break;
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
-				dump_nalu(dump, ptr, svccfg ? 1 : 0);
+				dump_nalu(dump, ptr, svccfg ? 1 : 0, is_hevc);
 				fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -1336,8 +1392,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		|| (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) 
 		|| (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
 		|| (msub_type==GF_ISOM_SUBTYPE_AVC2_H264)
+		|| (msub_type==GF_ISOM_SUBTYPE_AVC3_H264)
+		|| (msub_type==GF_ISOM_SUBTYPE_AVC4_H264)
 		|| (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
 		|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
+		|| (msub_type==GF_ISOM_SUBTYPE_HVC1)
+		|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
 	)  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
 		if (!esd) {
@@ -1405,7 +1465,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							}
 						}
 						if (avccfg->chroma_bit_depth) {
-							fprintf(stderr, "\tChroma format %d - Luma bit depth %d - chroma bot depth %d\n", avccfg->chroma_format, avccfg->luma_bit_depth, avccfg->chroma_bit_depth);
+							fprintf(stderr, "\tChroma format %d - Luma bit depth %d - chroma bit depth %d\n", avccfg->chroma_format, avccfg->luma_bit_depth, avccfg->chroma_bit_depth);
 						}
 						gf_odf_avc_cfg_del(avccfg);
 					}
@@ -1428,7 +1488,42 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						gf_odf_avc_cfg_del(svccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
+
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+					GF_HEVCConfig *hevccfg;
+#endif
+
+					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+					if (full_dump) fprintf(stderr, "\t");
+					fprintf(stderr, "HEVC Video - Visual Size %d x %d\n", w, h);
+#ifndef GPAC_DISABLE_AV_PARSERS
+					hevccfg = gf_isom_hevc_config_get(file, trackNum, 1);
+					if (!hevccfg ) {
+						fprintf(stderr, "\n\n\tNon-compliant HEVC track: hvcC not found in sample description\n");
+					} else {
+						u32 k;
+						fprintf(stderr, "\tHEVC Info: Profile IDC %d - Level IDC %d - Chroma Format %d\n", hevccfg->profile_idc, hevccfg->level_idc, hevccfg->chromaFormat);
+						fprintf(stderr, "\tNAL Unit length bits: %d - profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->profile_compatibility_indications);
+						fprintf(stderr, "\tParameter Sets: ");
+						for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
+							GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
+							if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+								fprintf(stderr, "%d SPS ", gf_list_count(ar->nalus));
+							}
+							else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+								fprintf(stderr, "%d PPS ", gf_list_count(ar->nalus));
+							}
+							if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+								fprintf(stderr, "%d VPS ", gf_list_count(ar->nalus));
+							}
+						}
+						fprintf(stderr, "\n\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
+						gf_odf_hevc_cfg_del(hevccfg);
+					}
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 				} 
+
 				/*OGG media*/
 				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_OGG) {
 					char *szName;

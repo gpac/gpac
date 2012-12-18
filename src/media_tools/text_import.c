@@ -1960,7 +1960,10 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	u32 fmt;
 	e = gf_text_guess_format(import->in_name, &fmt);
 	if (e) return e;
-	if (!fmt) return GF_NOT_SUPPORTED;
+	if (!fmt) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTXT Import] Input %s does not look like a supported text format - ignoring\n", import->in_name));
+		return GF_NOT_SUPPORTED;
+	}
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		if (fmt==GF_TEXT_IMPORT_SUB) import->flags |= GF_IMPORT_OVERRIDE_FPS;
 		return GF_OK;

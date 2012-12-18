@@ -198,8 +198,13 @@ enum
 	GF_ISOM_BOX_TYPE_PASP	= GF_4CC( 'p', 'a', 's', 'p' ),
 	GF_ISOM_BOX_TYPE_AVC1	= GF_4CC( 'a', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_AVC2	= GF_4CC( 'a', 'v', 'c', '2' ),
+	GF_ISOM_BOX_TYPE_AVC3	= GF_4CC( 'a', 'v', 'c', '3' ),
+	GF_ISOM_BOX_TYPE_AVC4	= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_BOX_TYPE_SVCC	= GF_4CC( 's', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_SVC1	= GF_4CC( 's', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_HVCC	= GF_4CC( 'h', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_HEV1	= GF_4CC( 'h', 'e', 'v', '1' ),
 
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
@@ -850,6 +855,12 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_BOX
+	GF_HEVCConfig *config;
+} GF_HEVCConfigurationBox;
+
+typedef struct
+{
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
 	GF_ESDBox *esd;
 	/*used for Publishing*/
@@ -858,6 +869,9 @@ typedef struct
 	/*avc extensions - we merged with regular 'mp4v' box to handle isma E&A signaling of AVC*/
 	GF_AVCConfigurationBox *avc_config;
 	GF_AVCConfigurationBox *svc_config;
+	/*hevc extension*/
+	GF_HEVCConfigurationBox *hevc_config;
+
 	GF_MPEG4BitRateBox *bitrate;
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
@@ -2586,8 +2600,10 @@ GF_Err mdia_AddBox(GF_Box *s, GF_Box *a);
 GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
 
 /*rewrites avcC based on the given esd - this destroys the esd*/
-GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
+GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
+void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
+
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 
 GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
@@ -3261,7 +3277,11 @@ GF_Err avcc_Size(GF_Box *s);
 
 GF_Box *avc1_New();
 GF_Box *avc2_New();
+GF_Box *avc3_New();
+GF_Box *avc4_New();
 GF_Box *svc1_New();
+GF_Box *hvc1_New();
+GF_Box *hev1_New();
 
 GF_Box *m4ds_New();
 void m4ds_del(GF_Box *s);
@@ -3856,6 +3876,13 @@ GF_Err cslg_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err cslg_Size(GF_Box *s);
 GF_Err cslg_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err cslg_dump(GF_Box *a, FILE * trace);
+
+GF_Box *hvcc_New();
+void hvcc_del(GF_Box *);
+GF_Err hvcc_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err hvcc_Size(GF_Box *s);
+GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err hvcc_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

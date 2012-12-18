@@ -562,6 +562,7 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	ch->channel = channel;
 	gf_list_add(read->channels, ch);
 	ch->track = track;
+	ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 	switch (gf_isom_get_media_type(ch->owner->mov, ch->track)) {
 	case GF_ISOM_MEDIA_OCR:
 		ch->streamType = GF_STREAM_OCR;

@@ -880,6 +880,36 @@ typedef struct
 } GF_AVCConfig;
 
 
+
+/*used for SPS/PPS/VPS/SEI*/
+typedef struct
+{
+	u8 type;
+	u8 array_completeness;
+	GF_List *nalus;
+} GF_HEVCParamArray;
+
+
+typedef struct 
+{
+	u8 configurationVersion;
+	u8 profile_space;
+	u8 profile_idc;
+	u8 constraint_indicator_flags;
+	u8 level_idc;
+	u32 profile_compatibility_indications;
+	u8 chromaFormat;
+	u8 luma_bit_depth;
+	u8 chroma_bit_depth;
+	u16 avgFrameRate;
+	u8 constantFrameRate;
+	u8 numTemporalLayers;
+
+	u8 nal_unit_size;
+	
+	GF_List *param_array;
+} GF_HEVCConfig;
+
 /************************************************************
 				Media Control Extensions
 ************************************************************/
@@ -1072,6 +1102,14 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg);
 GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size);
 /*writes GF_AVCConfig as MPEG-4 DSI*/
 GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize);
+
+
+GF_HEVCConfig *gf_odf_hevc_cfg_new();
+void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg);
+GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
+GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize);
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs);
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size);
 
 /*destroy the descriptors in a list but not the list*/
 GF_Err gf_odf_desc_list_del(GF_List *descList);

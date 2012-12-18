@@ -69,12 +69,12 @@ typedef struct
 
 typedef struct
 {
-	u32 track;
+	u32 track, track_id;
 	LPNETCHANNEL channel;
 	ISOMReader *owner;
 	u64 duration;
 
-	Bool wait_for_segment_switch, needs_codec_update;
+	Bool wait_for_segment_switch;
 	/*current sample*/
 	GF_ISOSample *sample;
 	GF_SLHeader current_slh;

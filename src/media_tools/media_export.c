@@ -288,8 +288,12 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 Visual sample%s", szNum);
 				break;
 			case GPAC_OTI_VIDEO_AVC:
-				strcpy(szEXT, ".h264");
+				strcpy(szEXT, ".264");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
+				break;
+			case GPAC_OTI_VIDEO_HEVC:
+				strcpy(szEXT, ".hvc");
+				gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
 				break;
 			case GPAC_OTI_IMAGE_JPEG:
 				strcpy(szEXT, ".jpg");
@@ -375,9 +379,19 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 		gf_export_message(dumper, GF_OK, "Extracting AC3 sample%s", szNum);
 		strcpy(szEXT, ".ac3");
-	} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) || (m_stype==GF_ISOM_SUBTYPE_SVC_H264) ) {
+	} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) 
+			|| (m_stype==GF_ISOM_SUBTYPE_AVC2_H264)
+			|| (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
+			|| (m_stype==GF_ISOM_SUBTYPE_AVC4_H264)
+			|| (m_stype==GF_ISOM_SUBTYPE_SVC_H264)
+		) {
 		strcpy(szEXT, ".h264");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
+	} else if ((m_stype==GF_ISOM_SUBTYPE_HVC1) 
+			|| (m_stype==GF_ISOM_SUBTYPE_HEV1)
+		) {
+		strcpy(szEXT, ".hvc");
+		gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
 	} else if (m_type==GF_ISOM_MEDIA_FLASH) {
 		gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie sample%s", szNum);
 		strcpy(szEXT, ".swf");
@@ -619,6 +633,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	FILE *out;
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
 	GF_AVCConfig *avccfg, *svccfg;
+	GF_HEVCConfig *hevccfg;
 	GF_M4ADecSpecInfo a_cfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
@@ -630,6 +645,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 	dsi_size = 0;
 	dsi = NULL;
+	hevccfg = NULL;
 	avccfg = NULL;
 	svccfg = NULL;
 	
@@ -673,6 +689,12 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				if (add_ext) 
 					strcat(szName, ".h264");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
+				break;
+			case GPAC_OTI_VIDEO_HEVC:
+				hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
+				if (add_ext) 
+					strcat(szName, ".hvc");
+				gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
 				break;
 			case GPAC_OTI_VIDEO_MPEG1:
 				if (add_ext) 
@@ -830,12 +852,24 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				strcat(szName, ".263");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
 			return gf_media_export_nhml(dumper, 1);
-		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) || (m_stype==GF_ISOM_SUBTYPE_SVC_H264) ) {
+		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) 
+				|| (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) 
+				|| (m_stype==GF_ISOM_SUBTYPE_AVC3_H264) 
+				|| (m_stype==GF_ISOM_SUBTYPE_AVC4_H264) 
+				|| (m_stype==GF_ISOM_SUBTYPE_SVC_H264)
+			) {
 			avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
 			svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
 			if (add_ext) 
 				strcat(szName, ".h264");
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
+		} else if ((m_stype==GF_ISOM_SUBTYPE_HEV1) 
+				|| (m_stype==GF_ISOM_SUBTYPE_HVC1) 
+			) {
+			hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
+			if (add_ext) 
+				strcat(szName, ".hvc");
+			gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
 		} else if (m_type==GF_ISOM_MEDIA_FLASH) {
 			gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie");
 			if (add_ext) 
@@ -868,6 +902,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (dsi) gf_free(dsi);
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		if (svccfg) gf_odf_avc_cfg_del(svccfg);
+		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 		return GF_OK;
 	}
 	if (dumper->flags & GF_EXPORT_SVC_LAYER)
@@ -905,6 +940,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (dsi) gf_free(dsi);
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		if (svccfg) gf_odf_avc_cfg_del(svccfg);
+		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 	bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
@@ -1003,6 +1039,20 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, i);
 			gf_bs_write_u32(bs, 1);
 			gf_bs_write_data(bs, sl->data, sl->size);
+		}
+	}
+
+
+	if (hevccfg) {
+		count = gf_list_count(hevccfg->param_array);
+		for (i=0;i<count;i++) {
+			u32 j;
+			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
+			for (j=0; j<gf_list_count(ar->nalus); j++) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+				gf_bs_write_u32(bs, 1);
+				gf_bs_write_data(bs, sl->data, sl->size);
+			}
 		}
 	}
 
@@ -1119,10 +1169,13 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			break;
 		}
 		/*AVC sample to NALU*/
-		if (avccfg || svccfg) {
+		if (avccfg || svccfg || hevccfg) {
 			u32 j, nal_size, remain, nal_unit_size;
 			char *ptr = samp->data;
-			nal_unit_size = avccfg ? avccfg->nal_unit_size : svccfg->nal_unit_size;
+			nal_unit_size = 0;
+			if (avccfg) nal_unit_size= avccfg->nal_unit_size;
+			else if (svccfg) nal_unit_size = svccfg->nal_unit_size;
+			else if (hevccfg) nal_unit_size = hevccfg->nal_unit_size;
 			remain = samp->dataLength;
 			while (remain) {
 				nal_size = 0;
@@ -1171,7 +1224,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg && !svccfg) gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (!avccfg && !svccfg && !hevccfg) gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
@@ -1511,7 +1564,11 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 
 	if (msubtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 		esd = gf_isom_get_esd(infile, inTrackNum, 1);
-	} else if ((msubtype == GF_ISOM_SUBTYPE_AVC_H264) || (msubtype == GF_ISOM_SUBTYPE_AVC2_H264) ) {
+	} else if ((msubtype == GF_ISOM_SUBTYPE_AVC_H264) 
+		|| (msubtype == GF_ISOM_SUBTYPE_AVC2_H264) 
+		|| (msubtype == GF_ISOM_SUBTYPE_AVC3_H264) 
+		|| (msubtype == GF_ISOM_SUBTYPE_AVC4_H264) 
+	) {
 		return gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, 0x0F);
 	} 
 	/*likely 3gp or any non-MPEG-4 isomedia file*/
@@ -2119,6 +2176,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
+	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->segment_switch = 1;
 }
 void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
@@ -2164,11 +2222,12 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_m2ts_process_data(ts, data, (u32)size);
 		if (!ts->user) break;
 	}
-	if (ts->user) {
+	if (!ts->segment_switch && ts->user) {
 		fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
 	}
+	ts->segment_switch = 0;
 
 	stream = NULL;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
@@ -2217,6 +2276,10 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	case GF_M2TS_VIDEO_H264:
 		strcat(szFile, ".264");
 		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC/H264 Visual stream to h264");
+		break;
+	case GF_M2TS_VIDEO_HEVC:
+		strcat(szFile, ".hvc");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC Visual stream to hvc");
 		break;
 	default:
 		strcat(szFile, ".raw");

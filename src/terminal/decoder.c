@@ -669,8 +669,12 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM)
 					return GF_OK;
 				assert( CU );
+				unit_size = 0;
 				e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
-				if (e==GF_OK) e = UnlockCompositionUnit(codec, CU, unit_size);
+				if (e==GF_OK) {
+					e = UnlockCompositionUnit(codec, CU, unit_size);
+					if (unit_size) return GF_OK;
+				}
 			}
 			gf_term_stop_codec(codec, 0);
 			if (codec->CB) gf_cm_set_eos(codec->CB);

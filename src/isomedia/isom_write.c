@@ -1171,7 +1171,11 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		((GF_VisualSampleEntryBox*)entry)->Width = Width;
 		((GF_VisualSampleEntryBox*)entry)->Height = Height;
 		trak->Header->width = Width<<16;
@@ -1215,7 +1219,11 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -2999,9 +3007,13 @@ GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber)
 	while ((ref = (GF_TrackReferenceTypeBox *)gf_list_enum(trak->References->other_boxes, &i))) {
 		for (k=0; k < ref->trackIDCount; k++) {
 			a_trak = gf_isom_get_track_from_original_id(movie->moov, ref->trackIDs[k], trak->originalFile);
-			if (!a_trak)
-				return GF_BAD_PARAM;
-			ref->trackIDs[k] = a_trak->Header->trackID;
+			if (a_trak) {
+				ref->trackIDs[k] = a_trak->Header->trackID;
+			} else {
+				a_trak = gf_isom_get_track_from_id(movie->moov, ref->trackIDs[k]);
+				/*we should have a track with no original ID (not imported) - should we rewrite the dependency ?*/
+				if (! a_trak || a_trak->originalID) return GF_BAD_PARAM;
+			}
 		}
 	}
 
@@ -3292,21 +3304,25 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			break;
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:
+		case GF_ISOM_BOX_TYPE_AVC3:
+		case GF_ISOM_BOX_TYPE_AVC4:
 		case GF_ISOM_BOX_TYPE_SVC1:
+		case GF_ISOM_BOX_TYPE_HVC1:
+		case GF_ISOM_BOX_TYPE_HEV1:
 		{
 			GF_MPEGVisualSampleEntryBox *avc1 = (GF_MPEGVisualSampleEntryBox *)ent1;
 			GF_MPEGVisualSampleEntryBox *avc2 = (GF_MPEGVisualSampleEntryBox *)ent2;
 			data1 = data2 = NULL;
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			a = (GF_Box *)avc1->avc_config;
+			a = avc1->hevc_config ? (GF_Box *) avc1->hevc_config : (GF_Box *) avc1->avc_config;
 			gf_isom_box_size(a);
 			gf_isom_box_write(a, bs);
 			gf_bs_get_content(bs, &data1, &data1_size);
 			gf_bs_del(bs);
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			a = (GF_Box *)avc2->avc_config;
+			a = avc2->hevc_config ? (GF_Box *) avc2->hevc_config : (GF_Box *) avc2->avc_config;
 			gf_isom_box_size(a);
 			gf_isom_box_write(a, bs);
 			gf_bs_get_content(bs, &data2, &data2_size);
@@ -4133,8 +4149,12 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_AVC1: 
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		break;
 	default:
 		return GF_BAD_PARAM;
