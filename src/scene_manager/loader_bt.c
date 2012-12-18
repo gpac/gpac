@@ -1094,7 +1094,7 @@ u32 gf_bt_get_next_proto_id(GF_BTParser *parser)
 
 u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 {
-	GF_Node *n;
+	GF_Node *n=NULL;
 	u32 ID=0;
 	if (sscanf(defName, "N%u", &ID) == 1) {
 		u32 k=1;

@@ -4613,7 +4613,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
@@ -4636,15 +4636,17 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
-	detect_fps = 1;
+	//detect_fps = 1;
 	FPS = (Double) import->video_fps;
 	if (!FPS) {
 		FPS = GF_IMPORT_DEFAULT_FPS;
 	} else {
-		if (import->video_fps == GF_IMPORT_AUTO_FPS)
+		if (import->video_fps == GF_IMPORT_AUTO_FPS) {
 			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
-		else
-			detect_fps = 0;								/*fps is forced by the caller*/
+		} else {
+			/*fps is forced by the caller*/
+			//detect_fps = 0;
+		}	
 	}
 	get_video_timing(FPS, &timescale, &dts_inc);
 
