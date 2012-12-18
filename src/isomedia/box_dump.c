@@ -305,13 +305,19 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_AVCC: 
 	case GF_ISOM_BOX_TYPE_SVCC: 
 		return avcc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HVCC: 
+		return hvcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_BTRT:
 		return btrt_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_M4DS:
 		return m4ds_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_AVC1: 
 	case GF_ISOM_BOX_TYPE_AVC2: 
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1: 
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_dump(a, trace);
@@ -962,6 +968,7 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 	if (p->esd) {
 		gf_box_dump(p->esd, trace);
 	} else {
+		if (p->hevc_config) gf_box_dump(p->hevc_config, trace);
 		if (p->avc_config) gf_box_dump(p->avc_config, trace);
 		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_box_dump(p->descr, trace);
@@ -1677,6 +1684,43 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%sConfigurationBox>\n", name);
+	return GF_OK;
+}
+
+GF_Err hvcc_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, count;
+	GF_HEVCConfigurationBox *p = (GF_HEVCConfigurationBox *) a;
+
+	fprintf(trace, "<HEVCConfigurationBox>\n");
+
+	fprintf(trace, "<HEVCDecoderConfigurationRecord nal_unit_size=\"%d\" configurationVersion=\"%d\" profile_space=\"%d\" profile_idc=\"%d\" constraint_indicator_flags=\"%d\" ",
+					p->config->nal_unit_size, p->config->configurationVersion, p->config->profile_space, p->config->profile_idc, p->config->constraint_indicator_flags);
+	fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\"",
+		p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers);
+
+	fprintf(trace, ">\n");
+
+	count = gf_list_count(p->config->param_array);
+	for (i=0; i<count; i++) {
+		u32 nalucount, j;
+		GF_HEVCParamArray *ar = gf_list_get(p->config->param_array, i);
+		fprintf(trace, "<ParameterSetArray nalu_type=\"%d\" complete_set=\"%d\">\n", ar->type, ar->array_completeness);
+		nalucount = gf_list_count(ar->nalus);
+		for (j=0; j<nalucount; j++) {
+			GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+			fprintf(trace, "<ParameterSet size=\"%d\" content=\"", c->size);
+			DumpData(trace, c->data, c->size);
+			fprintf(trace, "\"/>\n");
+		}
+		fprintf(trace, "</ParameterSetArray>\n");
+	}
+
+	fprintf(trace, "</HEVCDecoderConfigurationRecord>\n");
+
+	DumpBox(a, trace);
+	gf_box_dump_done(NULL, a, trace);
+	fprintf(trace, "</HEVCConfigurationBox>\n");
 	return GF_OK;
 }
 

@@ -40,10 +40,14 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	if (e) return e;
 
 	stype = gf_isom_get_media_subtype(file, track, 1);
-	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) || (stype==GF_ISOM_SUBTYPE_AVC2_H264) ) {
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) 
+		|| (stype==GF_ISOM_SUBTYPE_AVC2_H264) 
+		|| (stype==GF_ISOM_SUBTYPE_AVC3_H264) 
+		|| (stype==GF_ISOM_SUBTYPE_AVC4_H264) 
+	) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
-		AVC_ChangePAR(avcc, ar_num, ar_den);
+		gf_media_avc_change_par(avcc, ar_num, ar_den);
 		e = gf_isom_avc_config_update(file, track, 1, avcc);
 		gf_odf_avc_cfg_del(avcc);
 		if (e) return e;
@@ -543,6 +547,8 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				break;
 			case GF_ISOM_SUBTYPE_AVC_H264:
 			case GF_ISOM_SUBTYPE_AVC2_H264:
+			case GF_ISOM_SUBTYPE_AVC3_H264:
+			case GF_ISOM_SUBTYPE_AVC4_H264:
 			case GF_ISOM_SUBTYPE_SVC_H264:
 				nb_vid++;
 				nb_avc++;
@@ -748,10 +754,14 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_MPEG4_CRYP:
 	case GF_ISOM_SUBTYPE_AVC_H264:
 	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
 	case GF_ISOM_SUBTYPE_SVC_H264:
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_HEV1:
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
@@ -1070,7 +1080,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	{
 		slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
 		nal_type = slc->data[0] & 0x1F;
-		sps_id = AVC_ReadSeqInfo(slc->data+1, slc->size-1, &avc, 0, NULL);
+		sps_id = gf_media_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
 		if (sps_id < 0) {
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
@@ -1089,7 +1099,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	for (j = 0; j < num_pps; j++)
 	{
 		slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, j);
-		pps_id = AVC_ReadPictParamSet(slc->data+1, slc->size-1, &avc);
+		pps_id = gf_media_avc_read_pps(slc->data, slc->size, &avc);
 		if (pps_id < 0) {
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
@@ -1127,7 +1137,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 		nal_hdr = gf_bs_read_u8(bs);
 		nal_type = nal_hdr & 0x1F;
-		AVC_ParseNALU(bs, nal_hdr, &avc);
+		gf_media_avc_parse_nalu(bs, nal_hdr, &avc);
 		e = gf_bs_seek(bs, offset+nalu_size_length/8);
 		if (e)
 			goto exit;
@@ -1351,7 +1361,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			}
 			nal_hdr = gf_bs_read_u8(bs);
 			nal_type = nal_hdr & 0x1F;
-			AVC_ParseNALU(bs, nal_hdr, &avc);
+			gf_media_avc_parse_nalu(bs, nal_hdr, &avc);
 			e = gf_bs_seek(bs, offset+nalu_size_length/8);
 			if (e)
 				goto exit;
@@ -1360,7 +1370,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 					
 			switch (nal_type) {
 				case GF_AVC_NALU_PIC_PARAM:
-					pps_id = AVC_ReadPictParamSet(buffer+1, size-1, &avc);;
+					pps_id = gf_media_avc_read_pps(buffer, size, &avc);;
 					j = 0;
 					dst_track = 0;
 					while (j < num_pps)
@@ -1388,7 +1398,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 					dst_bs = sample_bs[dst_track];
 					break;
 				case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-					sps_id = AVC_ReadSeqInfo(buffer+1, size-1, &avc, 0, NULL);
+					sps_id = gf_media_avc_read_sps(buffer, size, &avc, 0, NULL);
 					dst_track = 0;
 					if (splitAll)
 					{
@@ -1495,7 +1505,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			for (i = 0; i < gf_list_count(svccfg->sequenceParameterSets); i++)
 			{
 				slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
-				sps_id = AVC_ReadSeqInfo(slc->data+1, slc->size-1, &avc, 0, NULL);
+				sps_id = gf_media_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
 				if (sps_id < 0) {
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
@@ -1513,7 +1523,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			for (j = 0; j < gf_list_count(svccfg->pictureParameterSets); j++)
 				{
 					slc = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, j);
-					pps_id = AVC_ReadPictParamSet(slc->data+1, slc->size-1, &avc);
+					pps_id = gf_media_avc_read_pps(slc->data, slc->size, &avc);
 					if (pps_id < 0) {
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						goto exit;

@@ -342,6 +342,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
 		case GF_ISOM_SUBTYPE_AVC2_H264:
+		case GF_ISOM_SUBTYPE_AVC3_H264:
+		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
 		{
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/

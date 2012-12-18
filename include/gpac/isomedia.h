@@ -179,7 +179,11 @@ enum
 	GF_AVCConfig to MPEG-4 ESD*/
 	GF_ISOM_SUBTYPE_AVC_H264		= GF_4CC( 'a', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_AVC2_H264		= GF_4CC( 'a', 'v', 'c', '2' ),
+	GF_ISOM_SUBTYPE_AVC3_H264		= GF_4CC( 'a', 'v', 'c', '3' ),
+	GF_ISOM_SUBTYPE_AVC4_H264		= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_SUBTYPE_SVC_H264		= GF_4CC( 's', 'v', 'c', '1' ),
+	GF_ISOM_SUBTYPE_HVC1			= GF_4CC( 'h', 'v', 'c', '1' ),
+	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
 
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
@@ -1567,6 +1571,9 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 /*gets uncompressed SVC config - user is responsible for deleting it*/
 GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
+/*gets uncompressed HEVC config - user is responsible for deleting it*/
+GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
 typedef enum
 {
 	GF_ISOM_AVCTYPE_NONE=0,
@@ -1586,6 +1593,10 @@ enum
 	GF_ISOM_NALU_EXTRACT_LAYER_ONLY,
 	/*all extractors are kept (untouched sample) - used for dumping modes*/
 	GF_ISOM_NALU_EXTRACT_INSPECT,
+	/*above mode is applied and PPS/SPS/... are appended in the front of every IDR*/
+	GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG = 1<<16,
+	/*above mode is applied and all start codes are rewritten*/
+	GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG = 2<<16,
 };
 
 GF_Err gf_isom_set_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber, u32 nalu_extract_mode);
@@ -1602,6 +1613,16 @@ GF_Err gf_isom_svc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 GF_Err gf_isom_svc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 /*deletes SVC config*/
 GF_Err gf_isom_svc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+/*sets avc3 entry type (inband SPS/PPS) instead of of avc1 (SPS/PPS in avcC box)*/
+GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+
+/*creates new AVC config*/
+GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
+/*updates AVC config*/
+GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

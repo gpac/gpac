@@ -173,7 +173,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4A:

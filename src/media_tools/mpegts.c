@@ -62,6 +62,7 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_AUDIO_AAC: return "AAC Audio";
 	case GF_M2TS_VIDEO_MPEG4: return "MPEG-4 Video";
 	case GF_M2TS_VIDEO_H264: return "MPEG-4/H264 Video";
+	case GF_M2TS_VIDEO_HEVC: return "MPEG-H HEVC Video";
 
 	case GF_M2TS_AUDIO_AC3: return "Dolby AC3 Audio";
 	case GF_M2TS_AUDIO_DTS: return "Dolby DTS Audio";
@@ -109,7 +110,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	return 0;
 }
 
-static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
+static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, Bool is_hevc)
 {
 	Bool au_start_in_pes=0;
 	Bool prev_is_au_delim=0;
@@ -186,47 +187,94 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			}
 			start_code_found = short_start_code ? 2 : 1;
 
-			nal_type = pck.data[4] & 0x1F;
+			if (is_hevc) {
+				nal_type = (pck.data[4] & 0x7E) >> 1;
 
-			/*check for SPS and update stream info*/
+				/*check for SPS and update stream info*/
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (!pes->vid_w && (nal_type==GF_AVC_NALU_SEQ_PARAM)) {
-				AVCState avc;
-				s32 idx;
-				memset(&avc, 0, sizeof(AVCState));
-				avc.sps_active_idx = -1;
-				idx = AVC_ReadSeqInfo(data+5, sc_pos-5, &avc, 0, NULL);
+				if (!pes->vid_w && (nal_type==GF_HEVC_NALU_SEQ_PARAM)) {
+					HEVCState hevc;
+					s32 idx;
+					memset(&hevc, 0, sizeof(HEVCState));
+					hevc.sps_active_idx = -1;
+					idx = gf_media_hevc_read_sps(data+4, sc_pos-4, &hevc);
 
-				if (idx>=0) {
-					pes->vid_w = avc.sps[idx].width;
-					pes->vid_h = avc.sps[idx].height;
-				}
-			}
-#endif
-			/*check AU start type*/
-			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
-				if (!prev_is_au_delim) {
-					if (au_start_in_pes) {
-						/*FIXME - we should check the AVC framerate to update the timing ...*/
-						pck.DTS += 3000;
-						pck.PTS += 3000;
-//						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
+					if (idx>=0) {
+						pes->vid_w = hevc.sps[idx].width;
+						pes->vid_h = hevc.sps[idx].height;
 					}
-					pck.flags = GF_M2TS_PES_PCK_AU_START;
-					force_new_au = 0;
-					au_start_in_pes = 1;
-					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-					prev_is_au_delim=1;
 				}
-			} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
-				pck.flags = GF_M2TS_PES_PCK_RAP;
-				ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-				prev_is_au_delim=0;
-			} 
-			else {
-				pck.flags = 0;
-				ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-				prev_is_au_delim=0;
+#endif
+				/*check AU start type*/
+				if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
+					if (!prev_is_au_delim) {
+						if (au_start_in_pes) {
+							/*FIXME - we should check the AVC framerate to update the timing ...*/
+							pck.DTS += 3000;
+							pck.PTS += 3000;
+	//						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
+						}
+						pck.flags = GF_M2TS_PES_PCK_AU_START;
+						force_new_au = 0;
+						au_start_in_pes = 1;
+						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+						prev_is_au_delim=1;
+					}
+				} else if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP)
+					|| (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)
+				) {
+					pck.flags = GF_M2TS_PES_PCK_RAP;
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					prev_is_au_delim=0;
+				} 
+				else {
+					pck.flags = 0;
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					prev_is_au_delim=0;
+				}
+			} else {
+				nal_type = pck.data[4] & 0x1F;
+
+				/*check for SPS and update stream info*/
+#ifndef GPAC_DISABLE_AV_PARSERS
+				if (!pes->vid_w && (nal_type==GF_AVC_NALU_SEQ_PARAM)) {
+					AVCState avc;
+					s32 idx;
+					memset(&avc, 0, sizeof(AVCState));
+					avc.sps_active_idx = -1;
+					idx = gf_media_avc_read_sps(data+4, sc_pos-4, &avc, 0, NULL);
+
+					if (idx>=0) {
+						pes->vid_w = avc.sps[idx].width;
+						pes->vid_h = avc.sps[idx].height;
+					}
+				}
+#endif
+				/*check AU start type*/
+				if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
+					if (!prev_is_au_delim) {
+						if (au_start_in_pes) {
+							/*FIXME - we should check the AVC framerate to update the timing ...*/
+							pck.DTS += 3000;
+							pck.PTS += 3000;
+	//						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
+						}
+						pck.flags = GF_M2TS_PES_PCK_AU_START;
+						force_new_au = 0;
+						au_start_in_pes = 1;
+						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+						prev_is_au_delim=1;
+					}
+				} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
+					pck.flags = GF_M2TS_PES_PCK_RAP;
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					prev_is_au_delim=0;
+				} 
+				else {
+					pck.flags = 0;
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					prev_is_au_delim=0;
+				}
 			}
 
 			data += sc_pos;
@@ -243,8 +291,10 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	}
 	/*we did not consume all data*/
 	if (!start_code_found) {
+		u32 min_size = is_hevc ? 6 : 5;
 		/*if not enough data to locate start code, store it*/
-		if (data_len<5) return data_len;
+		if (data_len < min_size ) 
+			return data_len;
 		/*otherwise this is the middle of a frame, let's dispatch it*/
 	}
 
@@ -273,6 +323,16 @@ static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	}
 	/*we consumed all data*/
 	return 0;
+}
+
+static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
+{
+	return gf_m2ts_reframe_nalu_video(ts, pes, same_pts, data, data_len, 0);
+}
+
+static u32 gf_m2ts_reframe_hevc(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
+{
+	return gf_m2ts_reframe_nalu_video(ts, pes, same_pts, data, data_len, 1);
 }
 
 static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
@@ -1533,6 +1593,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_MPEG4:
 		case GF_M2TS_SYSTEMS_MPEG4_PES:
 		case GF_M2TS_VIDEO_H264:
+		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_DTS:
 		case GF_M2TS_SUBTITLE_DVB:
@@ -2477,6 +2538,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			break;
 		case GF_M2TS_VIDEO_H264:
 			pes->reframe = gf_m2ts_reframe_avc_h264;
+			break;
+		case GF_M2TS_VIDEO_HEVC:
+			pes->reframe = gf_m2ts_reframe_hevc;
 			break;
 		case GF_M2TS_AUDIO_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_adts;

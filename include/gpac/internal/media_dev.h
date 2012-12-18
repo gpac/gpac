@@ -49,9 +49,15 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
 
 /*returns 0 if not a start code, or size of start code (3 or 4 bytes). If start code, bitstream
 is positionned AFTER start code*/
-u32 AVC_IsStartCode(GF_BitStream *bs);
+u32 gf_media_nalu_is_start_code(GF_BitStream *bs);
+
 /*returns size of chunk between current and next startcode (excluding startcode sizes), 0 if no more startcodes (eos)*/
-u32 AVC_NextStartCode(GF_BitStream *bs);
+u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs);
+
+/*return nb bytes from current data until the next start code and set the size of the next start code (3 or 4 bytes)
+returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
+u32 gf_media_nalu_next_start_code(u8 *data, u32 data_len, u32 *sc_size);
+
 /*returns NAL unit type - bitstream must be sync'ed!!*/
 u8 AVC_NALUType(GF_BitStream *bs);
 Bool SVC_NALUIsSlice(u8 type);
@@ -133,6 +139,7 @@ typedef struct
 	u32 slice_group_count;			/* num_slice_groups_minus1 + 1*/
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 status;
+
 } AVC_PPS;
 
 typedef struct 
@@ -205,28 +212,162 @@ typedef struct
 
 
 /*return sps ID or -1 if error*/
-s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
+s32 gf_media_avc_read_sps(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
-s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc);
+s32 gf_media_avc_read_pps(char *pps_data, u32 pps_size, AVCState *avc);
 /*return sps ID or -1 if error*/
-s32 AVC_ReadSeqParamSetExtId(char *spse_data, u32 spse_size);
+s32 gf_media_avc_read_sps_ext(char *spse_data, u32 spse_size);
 /*is slice an IDR*/
-Bool AVC_SliceIsIDR(AVCState *avc);
+Bool gf_media_avc_slice_is_IDR(AVCState *avc);
 /*is slice containing intra MB only*/
-Bool AVC_SliceIsIntra(AVCState *avc);
+Bool gf_media_avc_slice_is_intra(AVCState *avc);
 /*parses NALU, updates avc state and returns:
 	1 if NALU part of new frame
 	0 if NALU part of prev frame
 	-1 if bitstream error
 */
-s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc);
+s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 /*nota: 'buffer' remains unmodified but cannot be set const*/
-u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
+u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
-GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
+GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
 #endif
+
+
+
+typedef struct
+{
+	Bool profile_present_flag, level_present_flag, tier_flag;
+	u8 profile_space;
+	u8 profile_idc;
+	u32 profile_compatibility_flag;
+	u8 level_idc;
+} HEVC_SublayerPTL;
+
+typedef struct
+{
+	u8 profile_space, tier_flag, profile_idc, level_idc;
+	u32 profile_compatibility_flag;
+	
+	HEVC_SublayerPTL sub_ptl[8];
+} HEVC_ProfileTierLevel;
+
+typedef struct
+{
+	u32 num_negative_pics;
+	u32 num_positive_pics;
+	s32 delta_poc[16];
+} HEVC_ReferencePictureSets;
+
+typedef struct
+{
+	s32 id, vps_id; 
+	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
+	u32 state;
+	u32 width, height;
+
+	HEVC_ProfileTierLevel ptl;
+
+	u8 chroma_format_idc;
+	Bool cw_flag ;
+	u32 cw_left, cw_right, cw_top, cw_bottom;
+	u8 bit_depth_luma;
+	u8 bit_depth_chroma;
+	u8 log2_max_pic_order_cnt_lsb;
+	Bool separate_colour_plane_flag;
+
+	u32 max_CU_width, max_CU_height, max_CU_depth;
+	u32 bitsSliceSegmentAddress;
+
+	u32 num_short_term_ref_pic_sets, num_long_term_ref_pic_sps;
+	HEVC_ReferencePictureSets rps[64];
+} HEVC_SPS;
+
+typedef struct
+{
+	s32 id; 
+	u32 sps_id; 
+	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
+	u32 state;
+
+	Bool dependent_slice_segments_enabled_flag, tiles_enabled_flag, uniform_spacing_flag;
+	u32 num_extra_slice_header_bits;
+	Bool slice_segment_header_extension_present_flag, output_flag_present_flag;
+} HEVC_PPS;
+
+typedef struct
+{
+	u16 avg_bit_rate, max_bit_rate, avg_pic_rate;
+	u8 constand_pic_rate_idc;
+} HEVC_RateInfo;
+
+typedef struct
+{
+	s32 id; 
+	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
+	u32 state;
+	u8 max_sub_layer;
+	HEVC_ProfileTierLevel ptl;
+
+	HEVC_SublayerPTL sub_ptl[8];
+	HEVC_RateInfo rates[8];
+
+} HEVC_VPS;
+
+typedef struct
+{
+	AVCSeiRecoveryPoint recovery_point;
+	AVCSeiPicTiming pic_timing;
+
+} HEVC_SEI;
+
+typedef struct
+{
+	u8 nal_unit_type;
+	s8 temporal_id;
+
+	u32 frame_num, poc_lsb, slice_type;
+
+	s32 redundant_pic_cnt;
+
+	s32 poc;
+	u32 poc_msb, poc_msb_prev, poc_lsb_prev, frame_num_prev;
+	s32 frame_num_offset, frame_num_offset_prev;
+
+	HEVC_SPS *sps;
+	HEVC_PPS *pps;
+} HEVCSliceInfo;
+
+typedef struct
+{
+	HEVC_SPS sps[16]; /* range allowed in the spec is 0..15 */
+	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
+
+	HEVC_PPS pps[64];
+
+	HEVC_VPS vps[16];
+
+	HEVCSliceInfo s_info;
+	HEVC_SEI sei;
+
+	Bool is_svc;
+} HEVCState;
+
+enum
+{
+	GF_HEVC_TYPE_B = 0,
+	GF_HEVC_TYPE_P = 1,
+	GF_HEVC_TYPE_I = 2,
+};
+s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc);
+s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc);
+s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc);
+s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id);
+Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
+Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
+
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

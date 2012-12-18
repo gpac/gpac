@@ -2208,8 +2208,12 @@ GF_Err gf_isom_get_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3: 
+	case GF_ISOM_BOX_TYPE_AVC4: 
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_GNRV:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		*Width = ((GF_VisualSampleEntryBox*)entry)->Width;
 		*Height = ((GF_VisualSampleEntryBox*)entry)->Height;
 		return GF_OK;
@@ -2284,8 +2288,12 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3: 
+	case GF_ISOM_BOX_TYPE_AVC4: 
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_GNRV:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		*hSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->hSpacing : 0;
 		*vSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->vSpacing : 0;
 		return GF_OK;
@@ -2463,8 +2471,12 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 			case GF_ISOM_SUBTYPE_3GP_EVRC: nb_evrc++; break;
 			case GF_ISOM_SUBTYPE_3GP_QCELP: nb_qcelp++; break;
 			case GF_ISOM_SUBTYPE_3GP_SMV: nb_smv++; break;
-			case GF_ISOM_SUBTYPE_AVC_H264: nb_avc++; break;
-			case GF_ISOM_SUBTYPE_AVC2_H264: nb_avc++; break;
+			case GF_ISOM_SUBTYPE_AVC_H264:
+			case GF_ISOM_SUBTYPE_AVC2_H264: 
+			case GF_ISOM_SUBTYPE_AVC3_H264: 
+			case GF_ISOM_SUBTYPE_AVC4_H264: 
+				nb_avc++; 
+				break;
 			case GF_ISOM_SUBTYPE_SVC_H264: nb_avc++; break;
 			case GF_ISOM_SUBTYPE_MPEG4:
 			case GF_ISOM_SUBTYPE_MPEG4_CRYP:
@@ -2727,8 +2739,12 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_AVC1: 
 	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_HVC1: 
+	case GF_ISOM_BOX_TYPE_HEV1: 
 		break;
 	default:
 		return GF_BAD_PARAM;

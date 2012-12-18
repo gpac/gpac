@@ -1095,22 +1095,30 @@ u32 gf_bt_get_next_proto_id(GF_BTParser *parser)
 u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 {
 	GF_Node *n;
-	u32 ID;
+	u32 ID=0;
 	if (sscanf(defName, "N%u", &ID) == 1) {
-		ID ++;
-		n = gf_sg_find_node(parser->load->scene_graph, ID);
-		/*if an existing node use*/
-		if (n) {
-			u32 id;
-			u32 nID = gf_bt_get_next_node_id(parser);
-			const char *name = gf_node_get_name_and_id(n, &id);
-			gf_bt_report(parser, GF_OK, "changing node \"%s\" Binary ID from %d to %d", name, id -1, nID-1);
-			gf_node_set_id(n, nID, name);
+		u32 k=1;
+		while (defName[k]) {
+			if (strchr("0123456789", defName[k])==0) {
+				ID = 0;
+				break;
+			}
+			k++;
 		}
-		if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
-	} else {
-		ID = gf_bt_get_next_node_id(parser);
-	}
+		if (ID) {
+			ID ++;
+			n = gf_sg_find_node(parser->load->scene_graph, ID);
+			if (!n) {
+				if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
+				return ID;
+			}
+		}
+	} 
+
+	ID = gf_bt_get_next_node_id(parser);
+	if (n) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[BT Parsing] (line %d) Binary ID %d already assigned to %s - keeping internal ID %d", parser->line, gf_node_get_name(n), ID));
+	} 
 	return ID;
 }
 

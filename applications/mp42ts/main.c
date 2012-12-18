@@ -36,6 +36,8 @@
 #include <gpac/scene_engine.h>
 #endif
 
+#define USE_ISOBMF_REWRITE
+
 
 #ifdef GPAC_DISABLE_ISOM
 
@@ -137,13 +139,16 @@ typedef struct
 	u32 image_repeat_ms, nb_repeat_last;
 	void *dsi;
 	u32 dsi_size;
-	u32 nalu_size;
+
 	void *dsi_and_rap;
 	Bool loop;
 	Bool is_repeat;
 	u64 ts_offset;
 	M2TSProgram *prog;
-	char nalu_delim[6];
+
+#ifndef USE_ISOBMF_REWRITE
+	u32 nalu_size;
+#endif
 } GF_ESIMP4;
 
 typedef struct
@@ -215,6 +220,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
 		}
 
+#ifndef USE_ISOBMF_REWRITE
 		if (priv->nalu_size) {
 			Bool nalu_delim_sent = 0;
 			u32 remain = priv->sample->dataLength;
@@ -271,7 +277,10 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				ptr += size;
 			}
 
-		} else {
+		} else 
+#endif //USE_ISOBMF_REWRITE
+		
+		{
 
 			if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
 				pck.data = priv->dsi;
@@ -375,14 +384,21 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			priv->dsi_size = dcd->decoderSpecificInfo->dataLength;
 			memcpy(priv->dsi, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
 			break;
+		case GPAC_OTI_VIDEO_HEVC:
+			gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
+			break;
 		case GPAC_OTI_VIDEO_AVC:
 		{
-#ifndef GPAC_DISABLE_AV_PARSERS
+#ifdef USE_ISOBMF_REWRITE
+			gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
+
+#elif !defined(GPAC_DISABLE_AV_PARSERS)
 			GF_AVCConfigSlot *slc;
 			u32 i;
 			GF_BitStream *bs;
 			GF_AVCConfig *avccfg = gf_isom_avc_config_get(mp4, track_num, 1);
 			priv->nalu_size = avccfg->nal_unit_size;
+
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets);i++) {
 				slc = gf_list_get(avccfg->sequenceParameterSets, i);
@@ -398,9 +414,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avccfg);
 #endif
-			priv->nalu_delim[3] = 1;
-			priv->nalu_delim[4] = 0; /*this will be nal header*/
-			priv->nalu_delim[5] = 0xF0 /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
+
 		}
 			break;
 		}

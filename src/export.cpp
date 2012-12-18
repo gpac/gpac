@@ -670,6 +670,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_info) )
@@ -1740,6 +1741,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_video_info) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code) )
 
 #endif
 
