@@ -1035,14 +1035,15 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		is_hevc = 1;
 		for (i=0; i<gf_list_count(hevccfg->param_array); i++) {
 			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
-			if (ar->type==GF_HEVC_NALU_SEQ_PARAM)
+			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
-			else if (ar->type==GF_HEVC_NALU_PIC_PARAM)
+			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 				DUMP_ARRAY(ar->nalus, "HEVCPPSArray")
-			else if (ar->type==GF_HEVC_NALU_VID_PARAM)
+			} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 				DUMP_ARRAY(ar->nalus, "HEVCVPSArray")
-			else 
+			} else { 
 				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray")
+			}
 		}
 	}
 #endif

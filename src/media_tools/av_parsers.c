@@ -2872,6 +2872,7 @@ Bool gf_media_hevc_slice_is_intra(HEVCState *hevc)
 		return 0;
 	}
 }
+
 Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc) 
 {
 	if (hevc->sei.recovery_point.valid)
@@ -2893,7 +2894,6 @@ static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSlice
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
 	s32 pps_id;
-	u32 sliceSegmentAddress = 0, bitsSliceSegmentAddress = 0;
 	Bool dependent_slice_segment_flag = 0;
 	Bool first_slice_segment_in_pic_flag = gf_bs_read_int(bs, 1);
 	Bool RapPicFlag = 0;
@@ -2914,7 +2914,7 @@ static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSlice
 	}
 
 	if (RapPicFlag) {
-		Bool no_output_of_prior_pics_flag = gf_bs_read_int(bs, 1);
+		/*Bool no_output_of_prior_pics_flag = */gf_bs_read_int(bs, 1);
 	}
 	pps_id = bs_get_ue(bs);
 	if (pps_id>=64) return -1;
@@ -2929,10 +2929,8 @@ static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSlice
 	}
 
 	{
-//		u32 maxParts = (1 << (sps->max_CU_depth <<1) );		
-		u32 slice_segment_address = 0;
 		if (!first_slice_segment_in_pic_flag) {
-			slice_segment_address = gf_bs_read_int(bs, sps->bitsSliceSegmentAddress);
+			/*slice_segment_address = */gf_bs_read_int(bs, sps->bitsSliceSegmentAddress);
 		}
 	}
 	
@@ -3157,11 +3155,10 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	u8 max_sub_layers_minus1;
 	u32 i;
 	u32 log2_diff_max_min_luma_coding_block_size;
-	u32 log2_min_transform_block_size, log2_max_transform_block_size;
+	u32 log2_min_transform_block_size;
 
-	Bool temporal_id_nesting_flag, sps_sub_layer_ordering_info_present_flag;
+	Bool sps_sub_layer_ordering_info_present_flag;
 	HEVC_SPS *sps;
-	HEVC_VPS *vps;
 	HEVC_ProfileTierLevel ptl;
 
 	/*still contains emulation bytes*/
@@ -3174,10 +3171,9 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 
 	vps_id = gf_bs_read_int(bs, 4);
 	if (vps_id>=16) goto exit;
-	vps = &hevc->vps[vps_id];
 
 	max_sub_layers_minus1 = gf_bs_read_int(bs, 3);
-	temporal_id_nesting_flag = gf_bs_read_int(bs, 1);
+	/*temporal_id_nesting_flag = */gf_bs_read_int(bs, 1);
 	memset(&ptl, 0, sizeof(ptl));
 	profile_tier_level(bs, 1, max_sub_layers_minus1, &ptl);
 
@@ -3222,12 +3218,12 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	}
 
 	log2_min_transform_block_size = 2 + bs_get_ue(bs);
-	log2_max_transform_block_size = log2_min_transform_block_size  + bs_get_ue(bs);
+	/*log2_max_transform_block_size = log2_min_transform_block_size  + */bs_get_ue(bs);
 
 	{
 		u32 nb_CTUs;
-		u32 max_transform_hierarchy_depth_inter = bs_get_ue(bs);
-		u32 max_transform_hierarchy_depth_intra = bs_get_ue(bs);
+		/*u32 max_transform_hierarchy_depth_inter = */bs_get_ue(bs);
+		/*u32 max_transform_hierarchy_depth_intra = */bs_get_ue(bs);
 		u32 depth = 0;
 		while( (u32) ( sps->max_CU_width >> log2_diff_max_min_luma_coding_block_size ) > (u32) ( 1 << ( log2_min_transform_block_size + depth )  ) )
 		{
@@ -3272,7 +3268,6 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	/*strong_intra_smoothing_enable_flag*/gf_bs_read_int(bs, 1);
 	if (/*vui_parameters_present_flag*/gf_bs_read_int(bs, 1)) {
 		//vui param
-		u32 i = 0;
 	}
 	if (/*sps_extension_flag*/gf_bs_read_int(bs, 1)) {
 		while (gf_bs_available(bs)) {
