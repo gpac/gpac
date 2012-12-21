@@ -407,7 +407,9 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 #else
 	/* success is == 0 */
 	char cmd[1024];
-	snprintf(cmd, sizeof(cmd)-1, "mv %s %s", fileName, newFileName);
+	if (!fileName || !newFileName)
+		return GF_IO_ERR;
+	snprintf(cmd, sizeof(cmd)-1, "mv %s %s > /dev/null 2>&1", fileName, newFileName);
 	return ( system(cmd) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 }
