@@ -3153,9 +3153,9 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	u32 data_without_emulation_bytes_size = 0;
 	s32 vps_id, sps_id = -1;
 	u8 max_sub_layers_minus1;
-	u32 i;
+	u32 i, nb_CTUs, depth;
 	u32 log2_diff_max_min_luma_coding_block_size;
-	u32 log2_min_transform_block_size;
+	u32 log2_min_transform_block_size, log2_min_luma_coding_block_size;
 
 	Bool sps_sub_layer_ordering_info_present_flag;
 	HEVC_SPS *sps;
@@ -3210,33 +3210,29 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 		/*max_latency_increase = */ bs_get_ue(bs);
 	}
 
-	{
-		u32 log2_min_luma_coding_block_size = 3 + bs_get_ue(bs);
-		log2_diff_max_min_luma_coding_block_size = bs_get_ue(bs);
-		sps->max_CU_width = ( 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size) );
-		sps->max_CU_height = ( 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size) );
-	}
+	log2_min_luma_coding_block_size = 3 + bs_get_ue(bs);
+	log2_diff_max_min_luma_coding_block_size = bs_get_ue(bs);
+	sps->max_CU_width = ( 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size) );
+	sps->max_CU_height = ( 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size) );
 
 	log2_min_transform_block_size = 2 + bs_get_ue(bs);
 	/*log2_max_transform_block_size = log2_min_transform_block_size  + */bs_get_ue(bs);
 
+	depth = 0;
+	/*u32 max_transform_hierarchy_depth_inter = */bs_get_ue(bs);
+	/*u32 max_transform_hierarchy_depth_intra = */bs_get_ue(bs);
+	while( (u32) ( sps->max_CU_width >> log2_diff_max_min_luma_coding_block_size ) > (u32) ( 1 << ( log2_min_transform_block_size + depth )  ) )
 	{
-		u32 nb_CTUs;
-		/*u32 max_transform_hierarchy_depth_inter = */bs_get_ue(bs);
-		/*u32 max_transform_hierarchy_depth_intra = */bs_get_ue(bs);
-		u32 depth = 0;
-		while( (u32) ( sps->max_CU_width >> log2_diff_max_min_luma_coding_block_size ) > (u32) ( 1 << ( log2_min_transform_block_size + depth )  ) )
-		{
-			depth++;
-		}
-		sps->max_CU_depth = log2_diff_max_min_luma_coding_block_size + depth; 
-
-		nb_CTUs = ((sps->width + sps->max_CU_width -1) / sps->max_CU_width) * ((sps->height + sps->max_CU_height-1) / sps->max_CU_height);
-		sps->bitsSliceSegmentAddress = 0;
-		while (nb_CTUs > (u32) (1 << sps->bitsSliceSegmentAddress)) {
-			sps->bitsSliceSegmentAddress++;
-		}
+		depth++;
 	}
+	sps->max_CU_depth = log2_diff_max_min_luma_coding_block_size + depth; 
+
+	nb_CTUs = ((sps->width + sps->max_CU_width -1) / sps->max_CU_width) * ((sps->height + sps->max_CU_height-1) / sps->max_CU_height);
+	sps->bitsSliceSegmentAddress = 0;
+	while (nb_CTUs > (u32) (1 << sps->bitsSliceSegmentAddress)) {
+		sps->bitsSliceSegmentAddress++;
+	}
+
 	if (/*scaling_list_enable_flag = */ gf_bs_read_int(bs, 1)) { 
 		if (/*sps_scaling_list_data_present_flag=*/gf_bs_read_int(bs, 1) ) {
 			//scaling_list_data( )
