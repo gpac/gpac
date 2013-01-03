@@ -7,7 +7,7 @@ mozilla SpiderMonkey javascript engine.
 GPAC currently supports local playback, http progressive download, Adaptive HTTP Streaming (MPEG-DASH, HLS), RTP/RTSP streaming over UDP (unicast or multicast) or TCP and TS demuxing (from file, IP or DVB4Linux).
 GPAC also features MP4Box, a multimedia swiss-army knife for the prompt.
 
-For compilation and installation instruction, check INSTALL file
+For compilation and installation instruction, check INSTALLME file
 
 For GPAC configuration instruction, check gpac/doc/configuration.html or gpac/doc/man/gpac.1 (man gpac when installed)
 
