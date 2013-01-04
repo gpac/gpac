@@ -947,7 +947,6 @@ void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, 
 }
 
 
-
 static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 {
 	u32 pixel_ar;
@@ -1384,6 +1383,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		} else {
 			/*need output resize*/
 			gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+			gf_sc_set_size(scene->root_od->term->compositor, width, height);
 		}
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
