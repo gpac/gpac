@@ -2343,6 +2343,19 @@ GF_Err mehd_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+void sample_flags_dump(const char *name, u32 sample_flags, FILE * trace)
+{
+	fprintf(trace, "<%s", name);
+	fprintf(trace, " IsLeading=\"%d\"", GF_ISOM_GET_FRAG_LEAD(sample_flags) );
+	fprintf(trace, " SampleDependsOn=\"%d\"", GF_ISOM_GET_FRAG_DEPENDS(sample_flags) );
+	fprintf(trace, " SampleIsDependedOn=\"%d\"", GF_ISOM_GET_FRAG_DEPENDED(sample_flags) );
+	fprintf(trace, " SampleHasRedundancy=\"%d\"", GF_ISOM_GET_FRAG_REDUNDANT(sample_flags) );
+	fprintf(trace, " SamplePadding=\"%d\"", GF_ISOM_GET_FRAG_PAD(sample_flags) );
+	fprintf(trace, " SampleSync=\"%d\"", GF_ISOM_GET_FRAG_SYNC(sample_flags));
+	fprintf(trace, " SampleDegradationPriority=\"%d\"", GF_ISOM_GET_FRAG_DEG(sample_flags));
+	fprintf(trace, "/>\n");
+}
+
 GF_Err trex_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackExtendsBox *p;
@@ -2351,10 +2364,8 @@ GF_Err trex_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackExtendsBox TrackID=\"%d\"", p->trackID);
 
 	fprintf(trace, " SampleDescriptionIndex=\"%d\" SampleDuration=\"%d\" SampleSize=\"%d\"", p->def_sample_desc_index, p->def_sample_duration, p->def_sample_size);
-	fprintf(trace, " SamplePadding=\"%d\" SampleSync=\"%d\" SampleDegradationPriority=\"%d\"",
-		GF_ISOM_GET_FRAG_PAD(p->def_sample_flags), GF_ISOM_GET_FRAG_SYNC(p->def_sample_flags), GF_ISOM_GET_FRAG_DEG(p->def_sample_flags));
-
 	fprintf(trace, ">\n");
+	sample_flags_dump("DefaultSampleFlags", p->def_sample_flags, trace);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	gf_box_dump_done("TrackExtendsBox", a, trace);
@@ -2446,10 +2457,11 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 
 	if (p->flags & GF_ISOM_TRUN_DATA_OFFSET)
 		fprintf(trace, " DataOffset=\"%d\"", p->data_offset);
-	if (p->flags & GF_ISOM_TRUN_FIRST_FLAG) {
-		fprintf(trace, " FirstSamplePadding=\"%d\" FirstSampleSync=\"%d\" FirstSampleDegradationPriority=\"%d\"", GF_ISOM_GET_FRAG_PAD(p->first_sample_flags), GF_ISOM_GET_FRAG_SYNC(p->first_sample_flags), GF_ISOM_GET_FRAG_DEG(p->first_sample_flags));
-	}
 	fprintf(trace, ">\n");
+
+	if (p->flags & GF_ISOM_TRUN_FIRST_FLAG) {
+		sample_flags_dump("FirstSampleFlags", p->first_sample_flags, trace);
+	}
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 

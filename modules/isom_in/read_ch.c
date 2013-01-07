@@ -99,6 +99,14 @@ static void check_segment_switch(ISOMReader *read)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 			if (param.url_query.next_url_init_or_switch_segment) {
 				ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+				if (!ch->track) {
+					if (gf_isom_get_track_count(read->mov)==1) {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Mismatch between track IDs of different representations\n"));
+						ch->track = 1;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Mismatch between track IDs of different representations\n"));
+					}
+				}
 
 				/*rewrite all upcoming SPS/PPS into the samples*/
 				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
