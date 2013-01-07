@@ -693,6 +693,16 @@ s32 gf_sha1_file( const char *path, u8 output[20] )
     GF_SHA1Context *ctx;
     u8 buf[1024];
 
+	if (!strncmp(path, "gmem://", 7)) {
+		u32 size;
+		u8 *mem_address;
+		if (sscanf(path, "gmem://%d@%p", &size, &mem_address) != 2) {
+			return GF_IO_ERR;
+		} 
+		gf_sha1_csum(mem_address, size, output);
+		return 0;
+	}
+
     if( ( f = gf_f64_open( path, "rb" ) ) == NULL )
         return( 1 );
 

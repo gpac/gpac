@@ -324,6 +324,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		}
 		gf_odf_desc_del((GF_Descriptor *) odm->OD);
 		odm->OD=NULL;
+		odm->subscene->is_dynamic_scene = 0;
 	}
 
 	if (!desc) {

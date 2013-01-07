@@ -594,7 +594,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	entry->write_session = sess;
 	if (!entry->continue_file) {
 		assert( ! entry->writeFilePtr);
-		assert( ! entry->mem_storage);
+
 		entry->written_in_cache = 0;
 	}
 
