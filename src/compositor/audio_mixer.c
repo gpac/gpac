@@ -52,6 +52,8 @@ typedef struct
 
 	Fixed speed;
 	Fixed pan[6];
+
+	Bool muted;
 } MixerInput;
 
 struct __audiomix
@@ -578,6 +580,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 		return 0;
 	}
 
+	single_source->muted = single_source->src->IsMuted(single_source->src->callback);
 	/*this happens if input SR cannot be mapped to output audio hardware*/
 	if (single_source->src->samplerate != am->sample_rate) goto do_mix;
 	/*note we don't check output cfg: if the number of channel is the same then the channel cfg is the 
@@ -590,7 +593,7 @@ single_source_mix:
 
 	ptr = (char *)buffer;
 	in_size = buffer_size;
-	is_muted = single_source->src->IsMuted(single_source->src->callback);
+	is_muted = single_source->muted;
 
 	while (buffer_size) {
 		data = single_source->src->FetchFrame(single_source->src->callback, &size, delay);
@@ -631,7 +634,8 @@ do_mix:
 	single_source = NULL;
 	for (i=0; i<count; i++) {
 		in = (MixerInput *)gf_list_get(am->sources, i);
-		if (in->src->IsMuted(in->src->callback)) continue;
+		in->muted = in->src->IsMuted(in->src->callback);
+		if (in->muted) continue;
 
 		if (in->buffer_size < nb_samples) { 
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
@@ -690,6 +694,10 @@ do_mix:
 		/*fill*/
 		for (i=0; i<count; i++) {
 			in = (MixerInput *)gf_list_get(am->sources, i);
+			if (in->muted) {
+				in->out_samples_to_write = 0;
+				continue;
+			}
 			if (in->out_samples_to_write>in->out_samples_written) {
 				gf_mixer_fetch_input(am, in, delay + 8000 * i / am->bits_per_sample / am->sample_rate / am->nb_channels);
 				if (in->out_samples_to_write>in->out_samples_written) nb_to_fill++;
@@ -698,6 +706,7 @@ do_mix:
 		/*release - this is done in 2 steps in case 2 audio object use the same source...*/
 		for (i=0; i<count; i++) {
 			in = (MixerInput *)gf_list_get(am->sources, i);
+			if (in->muted) continue;
 			if (in->in_bytes_used) in->src->ReleaseFrame(in->src->callback, in->in_bytes_used-1);
 			in->in_bytes_used = 0;
 		}
