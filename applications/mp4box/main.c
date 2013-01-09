@@ -1896,7 +1896,8 @@ int mp4boxMain(int argc, char **argv)
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 
 			tracks[nb_track_act].act_type = 4;
-			strcpy(szTK, argv[i+1]);
+			assert(strlen(argv[i+1])+1 <= sizeof(szTK));
+			strncpy(szTK, argv[i+1], sizeof(szTK));
 			ext = strchr(szTK, '=');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i+1]);
@@ -1905,7 +1906,13 @@ int mp4boxMain(int argc, char **argv)
 			if (!stricmp(ext+1, "none")) {
 				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = -1;
 			} else {
-				sscanf(ext+1, "%d:%d", &tracks[nb_track_act].par_num, &tracks[nb_track_act].par_den);
+				sscanf(ext+1, "%d", &tracks[nb_track_act].par_num);
+				ext = strchr(ext+1, ':');
+				if (!ext) {
+					fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i+1]);
+					MP4BOX_EXIT_WITH_CODE(1);
+				}
+				sscanf(ext+1, "%d", &tracks[nb_track_act].par_den);
 			}
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
