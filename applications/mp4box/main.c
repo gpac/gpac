@@ -213,6 +213,7 @@ void PrintGeneralUsage()
 			"                       * Note 1: some tracks may be removed in the process\n"
 			"                       * Note 2: always on for *.3gp *.3g2 *.3gpp\n"
 			" -ipod                rewrites the file for iPod\n"
+			" -psp                 rewrites the file for PSP devices\n" 
 			" -brand ABCD[:v]      sets major brand of file, with optional version\n"
 			" -ab ABCD             adds given brand to file's alternate brand list\n"
 			" -rb ABCD             removes given brand from file's alternate brand list\n"
@@ -1639,6 +1640,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-isma")) { conv_type = GF_ISOM_CONV_TYPE_ISMA; open_edit = 1; }
 		else if (!stricmp(arg, "-3gp")) { conv_type = GF_ISOM_CONV_TYPE_3GPP; open_edit = 1; }
 		else if (!stricmp(arg, "-ipod")) { conv_type = GF_ISOM_CONV_TYPE_IPOD; open_edit = 1; }
+		else if (!stricmp(arg, "-psp")) { conv_type = GF_ISOM_CONV_TYPE_PSP; open_edit = 1; }
 		else if (!stricmp(arg, "-ismax")) { conv_type = GF_ISOM_CONV_TYPE_ISMA_EX; open_edit = 1; }
 
 		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) { remove_sys_tracks = 1; open_edit = 1; }

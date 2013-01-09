@@ -140,15 +140,23 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	cd->dec = codec;
 	if (!cd->dec->Priority) 
 		cd->dec->Priority = 1;
-
-	cap.CapCode = GF_CODEC_WANTS_THREAD;
-	cap.cap.valueInt = 0;
-	gf_codec_get_capability(codec, &cap);
-	threaded = cap.cap.valueInt;
+	
+	/*we force audio codecs to be threaded in free mode, so that we avoid waiting in the audio renderer if another decoder is locking the main mutex
+	this can happen when the audio decoder is running late*/
+	if (codec->type==GF_STREAM_AUDIO) {
+		threaded = 1;
+	} else {
+		cap.CapCode = GF_CODEC_WANTS_THREAD;
+		cap.cap.valueInt = 0;
+		gf_codec_get_capability(codec, &cap);
+		threaded = cap.cap.valueInt;
+	}
+	
 	if (threaded) cd->flags |= GF_MM_CE_REQ_THREAD;
 
+
 	if (term->flags & GF_TERM_MULTI_THREAD) {
-		if ((codec->type==0x04) || (codec->type==0x05)) threaded = 1;
+		if ((codec->type==GF_STREAM_AUDIO) || (codec->type==GF_STREAM_VISUAL)) threaded = 1;
 	} else if (term->flags & GF_TERM_SINGLE_THREAD) {
 		threaded = 0;
 	}
