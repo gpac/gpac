@@ -1608,7 +1608,9 @@ static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 {
 	int i, cpb_cnt_minus1;
 
-	cpb_cnt_minus1 = bs_get_ue(bs);	/*cpb_cnt_minus1*/
+	cpb_cnt_minus1 = bs_get_ue(bs);		/*cpb_cnt_minus1*/
+	if (cpb_cnt_minus1 > 31)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] invalid cpb_cnt_minus1 value: %d (expected in [0;31])\n", cpb_cnt_minus1));
 	gf_bs_read_int(bs, 4);				/*bit_rate_scale*/
 	gf_bs_read_int(bs, 4);				/*cpb_size_scale*/
 
@@ -2740,14 +2742,15 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 		/*copy over till vui flag*/
-		while (bit_offset) {
+		assert(bit_offset>=8);
+		while (bit_offset-8/*bit_offset doesn't take care of the first byte (NALU type)*/) {
 			flag = gf_bs_read_int(orig, 1);
 			gf_bs_write_int(mod, flag, 1);
 			bit_offset--;
 		}
 		/*check VUI*/
 		flag = gf_bs_read_int(orig, 1);
-		gf_bs_write_int(mod, 1, 1);
+		gf_bs_write_int(mod, 1, 1); /*vui_parameters_present_flag*/
 		if (flag) {
 			/*aspect_ratio_info_present_flag*/
 			if (gf_bs_read_int(orig, 1)) {
