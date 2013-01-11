@@ -449,13 +449,15 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_SVC_H264:
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
+			GF_AVCConfig *svcc = gf_isom_svc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			hintType = GF_RTP_PAYT_H264_AVC;
 			streamType = GF_STREAM_VISUAL;
-			avc_nalu_size = avcc->nal_unit_size;
+			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc->nal_unit_size;
 			oti = GPAC_OTI_VIDEO_AVC;
 			PL_ID = 0x0F;
 			gf_odf_avc_cfg_del(avcc);
+			gf_odf_avc_cfg_del(svcc);
 		}
 			break;
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
@@ -757,7 +759,51 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	return GF_OK;
 }
 
+static u32 write_nalu_config_array(char *sdpLine, GF_List *nalus)
+{
+	u32 i, count, b64s;
+	char b64[200];
 
+	count = gf_list_count(nalus);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(nalus, i);
+		b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
+		b64[b64s]=0;
+		strcat(sdpLine, b64);
+		if (i+1<count) strcat(sdpLine, ",");
+	}
+	return count;
+}
+
+static void write_avc_config(char *sdpLine, GF_AVCConfig *avcc, GF_AVCConfig *svcc)
+{
+	u32 count = 0;
+
+	if (avcc) count += gf_list_count(avcc->sequenceParameterSets) + gf_list_count(avcc->pictureParameterSets) + gf_list_count(avcc->sequenceParameterSetExtensions);
+	if (svcc) count += gf_list_count(svcc->sequenceParameterSets) + gf_list_count(svcc->pictureParameterSets);
+	if (!count) return;
+
+	strcat(sdpLine, "; sprop-parameter-sets=");
+
+	if (avcc) {
+		count = write_nalu_config_array(sdpLine, avcc->sequenceParameterSets);
+		if (count) strcat(sdpLine, ",");
+		count = write_nalu_config_array(sdpLine, avcc->sequenceParameterSetExtensions);
+		if (count) strcat(sdpLine, ",");
+		count = write_nalu_config_array(sdpLine, avcc->pictureParameterSets);
+		if (count) strcat(sdpLine, ",");
+	}
+		
+	if (svcc) {
+		count = write_nalu_config_array(sdpLine, svcc->sequenceParameterSets);
+		if (count) strcat(sdpLine, ",");
+		count = write_nalu_config_array(sdpLine, svcc->pictureParameterSets);
+		if (count) strcat(sdpLine, ",");
+	}
+	count = strlen(sdpLine);
+	if (sdpLine[count-1] == ',')
+		sdpLine[count-1] = 0;
+}
 
 GF_EXPORT
 GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
@@ -819,31 +865,20 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	/*H264/AVC*/
 	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_AVC) {
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(tkHint->file, tkHint->TrackNum, 1);
-		sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
-		if (gf_list_count(avcc->pictureParameterSets) || gf_list_count(avcc->sequenceParameterSets)) {
-			u32 i, count, b64s;
-			char b64[200];
-			strcat(sdpLine, "; sprop-parameter-sets=");
-			count = gf_list_count(avcc->sequenceParameterSets);
-			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, i);
-				b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
-				b64[b64s]=0;
-				strcat(sdpLine, b64);
-				if (i+1<count) strcat(sdpLine, ",");
-			}
-			if (i) strcat(sdpLine, ",");
-			count = gf_list_count(avcc->pictureParameterSets);
-			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avcc->pictureParameterSets, i);
-				b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
-				b64[b64s]=0;
-				strcat(sdpLine, b64);
-				if (i+1<count) strcat(sdpLine, ",");
-			}
+		GF_AVCConfig *svcc = gf_isom_svc_config_get(tkHint->file, tkHint->TrackNum, 1);
+		/*TODO - check syntax for SVC (might be some extra signaling)*/
+
+		if (avcc) {
+			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+		} else {
+			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, svcc->AVCProfileIndication, svcc->profile_compatibility, svcc->AVCLevelIndication);
 		}
+
+		write_avc_config(sdpLine, avcc, svcc);
+
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 		gf_odf_avc_cfg_del(avcc);
+		gf_odf_avc_cfg_del(svcc);
 	}
 	/*MPEG-4 decoder config*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_MPEG4) {

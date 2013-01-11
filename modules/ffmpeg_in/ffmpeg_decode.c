@@ -986,6 +986,9 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 				GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				if (!cfg) return GF_CODEC_SUPPORTED;
 
+				if (esd->has_ref_base)
+					is_svc = 1;
+
 				/*decode all NALUs*/
 				count = gf_list_count(cfg->sequenceParameterSets);
 				for (i=0; i<count; i++) {

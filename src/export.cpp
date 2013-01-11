@@ -1740,6 +1740,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_current_segment_start_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_video_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_representation_info) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )

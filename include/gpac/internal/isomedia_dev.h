@@ -539,6 +539,7 @@ typedef struct
 
 	/*private for SVC/MVC extractors resolution*/
 	s32 extractor_mode;
+	Bool has_base_layer;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u64 dts_at_seg_start;
@@ -2472,6 +2473,9 @@ GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromTime, u32 *sa
 GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample);
 GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex);
 Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex);
+
+
+GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, u32 TrackID);
 
 /*check the TimeToSample for the given time and return the Sample number
 if the entry is not found, return the closest sampleNumber in prevSampleNumber and 0 in sampleNumber

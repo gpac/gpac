@@ -70,6 +70,9 @@ typedef struct
 typedef struct
 {
 	u32 track, track_id;
+	/*base track if scalable media, 0 otherwise*/
+	u32 base_track;
+	u32 next_track;
 	LPNETCHANNEL channel;
 	ISOMReader *owner;
 	u64 duration;

@@ -182,12 +182,15 @@ static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 	switch (capability.CapCode) {
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
+
 		if (capability.cap.valueInt) {
-			// set layer up (command=1)
-			UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
+			if (ctx->CurrDqId < ctx->MaxDqId)
+				// set layer up (command=1)
+				UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
 		} else {
-			// set layer down (command=0)
-			UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
+			if (ctx->CurrDqId > 0)
+				// set layer down (command=0)
+				UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
 		}
 		return GF_OK;
 	}
@@ -207,6 +210,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	OPENSVCFRAME pic;
     int Layer[4];
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
+	u32 curMaxDqId = ctx->MaxDqId;
 
 	if (!ES_ID || (ES_ID!=ctx->ES_ID) || !ctx->codec) {
 		*outBufferLength = 0;
@@ -217,24 +221,36 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_BUFFER_TOO_SMALL;
 	}
 
+	ctx->MaxDqId = GetDqIdMax(inBuffer, inBufferLength, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
+	if(!ctx->InitParseAU){
+		if (ctx->MaxDqId == -1) {
+			//AVC stream in a h264 file 
+			ctx->MaxDqId = 0;
+		} else {
+			//Firts time only, we parse the first AU to know the file configuration
+			//does not need to ba called again ever after, unless SPS or PPS changed
+			ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, ctx->nalu_size_length ? 1 : 0);
+		}
+		ctx->InitParseAU = 1;
+	}
+/*
+	if (curMaxDqId != ctx->MaxDqId)
+	{
+		if (ctx->MaxDqId == -1)
+			ctx->MaxDqId = 0;
+		else
+			ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, ctx->nalu_size_length ? 1 : 0);
+		ctx->CurrDqId = ctx->MaxDqId;
+	}
+//	SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrDqId, &ctx->TemporalCom, ctx->TemporalId);
+*/
+	ctx->TemporalCom = 0;
+	SetCommandLayer(Layer, ctx->MaxDqId, ctx->MaxDqId, &ctx->TemporalCom, 0);
+
 	got_pic = 0;
 	if (ctx->nalu_size_length) {
 		u32 i, nalu_size = 0;
 		u8 *ptr = inBuffer;
-
-		ctx->MaxDqId = GetDqIdMax(inBuffer, inBufferLength, ctx->nalu_size_length, ctx->DqIdTable, 1);
-		if(!ctx->InitParseAU){
-			if (ctx->MaxDqId == -1) {
-				//AVC stream in a h264 file 
-				ctx->MaxDqId = 0;
-			} else {
-				//Firts time only, we parse the first AU to know the file configuration
-				//does not need to ba called again ever after, unless SPS or PPS changed
-				ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, 1);
-			}
-			ctx->InitParseAU = 1;
-		}
-        SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrDqId, &ctx->TemporalCom, ctx->TemporalId);
 
 		while (inBufferLength) {
 			for (i=0; i<ctx->nalu_size_length; i++) {
@@ -256,7 +272,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	}
 	if (got_pic!=1) return GF_OK;
 
-	if ((pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
+	if ((curMaxDqId != ctx->MaxDqId) || (pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
 		ctx->width = pic.Width;
 		ctx->stride = pic.Width + 32;
 		ctx->height = pic.Height;
@@ -288,6 +304,9 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 			u32 i, count;
 			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			if (!cfg) return GF_CODEC_NOT_SUPPORTED;
+
+			if (esd->has_ref_base)
+				is_svc = 1;
 
 			/*decode all NALUs*/
 			count = gf_list_count(cfg->sequenceParameterSets);

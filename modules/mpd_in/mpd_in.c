@@ -169,12 +169,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 							gf_dash_request_period_switch(mpdin->dash);
 							break;
 						}
-						gf_sleep(20);
+						gf_sleep(30);
 					}
 				} 
 				return GF_EOS;
 			}
-            gf_sleep(16);
+            gf_sleep(30);
         }
 	
 		nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
@@ -190,7 +190,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		}
 
 		gf_dash_group_get_next_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, &param->url_query.start_range, &param->url_query.end_range, 
-								&param->url_query.next_url_init_or_switch_segment, &param->url_query.switch_start_range , &param->url_query.switch_end_range,
+								NULL, &param->url_query.next_url_init_or_switch_segment, &param->url_query.switch_start_range , &param->url_query.switch_end_range,
 								&src_url);
 
         {

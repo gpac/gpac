@@ -174,11 +174,13 @@ const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx);
 const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64 *start_range, u64 *end_range);
 
 /*returns the URL and byte range of the next media resource to play in this group. 
-If switching occured and no bitstream switching is possible, also set the url and byte range of the media file required to intialize the playback
+If switching occured, sets switching_index to the new representation index.
+If no bitstream switching is possible, also set the url and byte range of the media file required to intialize 
+the playback of the next segment
 original_url is optional and may be used to het the URI of the segment
 */
 GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, 
-											const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, 
+											s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, 
 											const char **original_url);
 /*discards the first media resource in the queue of this group*/
 void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx);
@@ -217,6 +219,9 @@ Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx);
 
 /*allow reloading of MPD on the local file system - usefull for testing live generators*/
 void gf_dash_allow_local_mpd_update(GF_DashClient *dash, Bool allow_local_mpd_update);
+
+/*gets media info for representation*/
+GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs);
 
 
 #endif //GPAC_DISABLE_DASH_CLIENT
