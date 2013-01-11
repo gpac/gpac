@@ -498,7 +498,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 
 GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
-	u32 ESID;
+	u32 ESID, base_track, count, i;
 	ISOMChannel *ch;
 	GF_NetworkCommand com;
 	u32 track;
@@ -569,6 +569,27 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		break;
 	case GF_ISOM_MEDIA_SCENE:
 		ch->streamType = GF_STREAM_SCENE;
+		break;
+	case GF_ISOM_MEDIA_VISUAL:
+		count = gf_isom_get_track_count(ch->owner->mov);
+		base_track = 0;
+		for (i = 0; i < count; i++)
+		{
+			gf_isom_get_reference(ch->owner->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
+			if (base_track)
+				break;
+		}
+		ch->base_track = base_track;
+		ch->next_track = 0;
+
+		/*set track to last layer (hopefully max quality)*/
+		for (i = 0; i < count; i++) {
+			gf_isom_get_reference(ch->owner->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
+			if (base_track==ch->base_track)
+				ch->track = i+1;
+		}
+		/*in scalable mode add SPS/PPS in-band*/
+		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		break;
 	}
 
@@ -700,11 +721,64 @@ static u64 check_round(ISOMChannel *ch, u64 val_ts, Double val_range, Bool make_
 	return val_ts;
 }
 
+/*switch channel quality. Return next channel or current channel if error*/
+static
+u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch_up)
+{
+	u32 i, count, next_track, trackID, cur_track;
+	s32 ref_count;
+
+	cur_track = ch->next_track ? ch->next_track : ch->track;
+	count = gf_isom_get_track_count(the_file);
+	trackID = gf_isom_get_track_id(the_file, cur_track);
+	next_track = 0;
+
+	if (switch_up)
+	{
+		for (i = 0; i < count; i++)
+		{
+			ref_count = gf_isom_get_reference_count(the_file, i+1, GF_ISOM_REF_SCAL);
+			if (ref_count < 0)
+				return cur_track; //error
+			else if (ref_count == 0)
+				continue;
+			/*next track is the one that has the last reference of type GF_ISOM_REF_SCAL refers to this current track*/
+			else if ((u32)ref_count == gf_isom_has_track_reference(the_file, i+1, GF_ISOM_REF_SCAL, trackID))
+			{
+				next_track = i+1;
+				break;
+			}
+		}
+		/*this is the highest quality*/ 
+		if (!next_track)
+			return cur_track;
+	}
+	else
+	{
+		if (cur_track == ch->base_track)
+			return cur_track;
+		ref_count = gf_isom_get_reference_count(the_file, cur_track, GF_ISOM_REF_SCAL);
+		if (ref_count < 0)
+			return cur_track;
+		gf_isom_get_reference(the_file, cur_track, GF_ISOM_REF_SCAL, ref_count, &next_track);
+		if (!next_track)
+			return cur_track;
+	}
+
+	/*in scalable mode add SPS/PPS in-band*/
+	gf_isom_set_nalu_extract_mode(the_file, next_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+
+	return next_track;
+}
+
+
 GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	Double track_dur, media_dur;
 	ISOMChannel *ch;
 	ISOMReader *read;
+	u32 count, i;
+
 	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 
@@ -737,6 +811,20 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_NOT_SUPPORTED;
 	}
+
+	if (com->command_type == GF_NET_SERVICE_QUALITY_SWITCH)
+	{
+		count = gf_list_count(read->channels);
+		for (i = 0; i < count; i++)
+		{
+			ch = (ISOMChannel *)gf_list_get(read->channels, i);
+			if (ch->base_track) {
+				ch->next_track = gf_channel_switch_quality(ch, read->mov, com->switch_quality.up);
+			}
+		}
+		return GF_OK;
+	}
+
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
 	ch = isor_get_channel(read, com->base.on_channel);
@@ -820,8 +908,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 			gf_odf_desc_del((GF_Descriptor *) dcd);
 		}
-	}
 		return GF_OK;
+	}
 	}
 	return GF_NOT_SUPPORTED;
 }

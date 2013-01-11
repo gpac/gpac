@@ -274,6 +274,12 @@ fetch_next:
 			ch->sample_num++;
 			goto fetch_next;
 		}
+		if (ch->sample && ch->sample->IsRAP && ch->next_track) {
+			ch->track = ch->next_track;
+			ch->next_track = 0;
+			gf_isom_sample_del(&ch->sample);
+			goto fetch_next;
+		}
 	}
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/

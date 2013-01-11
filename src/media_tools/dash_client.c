@@ -2549,7 +2549,7 @@ restart_period:
 					goto restart_period;
 				}
 
-				gf_sleep(16);
+				gf_sleep(30);
 			}
 		}
 
@@ -3294,8 +3294,8 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 					group->cached[group->nb_cached_segments].representation_index = 0;
 					group->cached[group->nb_cached_segments].start_range = 0;
 					group->cached[group->nb_cached_segments].end_range = 0;
-					assert(group->download_segment_index>1);
-					group->download_segment_index--;
+					if (group->download_segment_index>1)
+						group->download_segment_index--;
 				}
 			}
 			gf_mx_v(dash->dl_mutex);
@@ -3509,7 +3509,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url)
+GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url)
 {
 	GF_DASH_Group *group;
 
@@ -3520,6 +3520,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 	if (switching_start_range) *switching_start_range = 0;
 	if (switching_end_range) *switching_end_range = 0;
 	if (original_url) *original_url = NULL;
+	if (switching_index) *switching_index = -1;
 
 	gf_mx_p(dash->dl_mutex);	
 	group = gf_list_get(dash->groups, idx);
@@ -3536,6 +3537,8 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 
 	if (group->cached[0].representation_index != group->prev_active_rep_index) {
 		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
+		if (switching_index)
+			*switching_index = group->cached[0].representation_index;
 		if (switching_start_range)
 			*switching_start_range = rep->playback.init_start_range;
 		if (switching_end_range)
@@ -3591,6 +3594,24 @@ GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width
 
 	*max_width = group->adaptation_set->max_width;
 	*max_height = group->adaptation_set->max_height;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	GF_MPD_Representation *rep;
+	if (!group) return GF_BAD_PARAM;
+	rep = gf_list_get(group->adaptation_set->representations, representation_idx);
+	if (!rep) return GF_BAD_PARAM;
+
+	if (width) *width = rep->width ? rep->width : group->adaptation_set->width;
+	if (height) *width = rep->height ? rep->height : group->adaptation_set->height;
+	if (codecs) *codecs = rep->codecs ? rep->codecs : group->adaptation_set->codecs;
+	if (bandwidth) *bandwidth = rep->bandwidth;
+	if (audio_samplerate) *audio_samplerate = rep->samplerate ? rep->samplerate : group->adaptation_set->samplerate;
+
 	return GF_OK;
 }
 

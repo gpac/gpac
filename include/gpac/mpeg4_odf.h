@@ -697,6 +697,9 @@ typedef struct
 	GF_List *IPIDataSet;
 	GF_List *IPMPDescriptorPointers;
 	GF_List *extensionDescriptors;
+
+	/* 1 if this stream is referenced by type GF_ISOM_REF_BASE, 0 otherwise*/
+	Bool has_ref_base;
 } GF_ESD;
 
 

@@ -43,6 +43,41 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	return 0;
 }
 
+
+static void rewrite_nalus_list(GF_List *nalus, GF_BitStream *bs, Bool rewrite_start_codes, u32 nal_unit_size_field)
+{
+	u32 i, count = gf_list_count(nalus);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = gf_list_get(nalus, i);
+		if (rewrite_start_codes) gf_bs_write_u32(bs, 1);
+		else gf_bs_write_int(bs, sl->size, 8*nal_unit_size_field);
+		gf_bs_write_data(bs, sl->data, sl->size);
+	}				
+}
+
+static void merge_nalus_list(GF_List  *src, GF_List *dst)
+{
+	u32 i, count = gf_list_count(src);
+	for (i=0; i<count; i++) {
+		void *p = gf_list_get(src, i);
+		if (p) gf_list_insert(dst, p, 0);
+	}
+}
+
+static void merge_nalus(GF_MPEGVisualSampleEntryBox *entry, GF_List *sps, GF_List *pps)
+{
+	if (entry->avc_config) {
+		merge_nalus_list(entry->avc_config->config->sequenceParameterSets, sps);
+		merge_nalus_list(entry->avc_config->config->sequenceParameterSetExtensions, sps);
+		merge_nalus_list(entry->avc_config->config->pictureParameterSets, pps);
+	}
+	if (entry->svc_config) {
+		merge_nalus_list(entry->svc_config->config->sequenceParameterSets, sps);
+		merge_nalus_list(entry->svc_config->config->pictureParameterSets, pps);
+	}
+}
+
+
 /* Rewrite mode:
  * mode = 0: playback
  * mode = 1: streaming
@@ -120,16 +155,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			u32 i, count;
 			count = gf_list_count(entry->hevc_config->config->param_array);
 			for (i=0; i<count; i++) {
-				u32 j, c2;
 				GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
-				c2 = gf_list_count(ar->nalus);
-				for (j=0; j<c2; j++) {
-					GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-
-					if (rewrite_start_codes) gf_bs_write_u32(dst_bs, 1);
-					else gf_bs_write_int(dst_bs, sl->size, 8*nal_unit_size_field);
-					gf_bs_write_data(dst_bs, sl->data, sl->size);
-				}				
+				rewrite_nalus_list(ar->nalus, dst_bs, rewrite_start_codes, nal_unit_size_field);
 			}
 
 			/*little optimization if we are not asked to start codes: copy over the sample*/
@@ -143,32 +170,74 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				return GF_OK;
 			}
 		} else {
-			u32 i, count;
-			count = gf_list_count(entry->avc_config->config->sequenceParameterSets);
-			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = gf_list_get(entry->avc_config->config->sequenceParameterSets, i);
-				if (rewrite_start_codes) gf_bs_write_u32(dst_bs, 1);
-				else gf_bs_write_int(dst_bs, sl->size, 8*nal_unit_size_field);
-				
-				gf_bs_write_data(dst_bs, sl->data, sl->size);
-			}
-			count = gf_list_count(entry->avc_config->config->pictureParameterSets);
-			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = gf_list_get(entry->avc_config->config->pictureParameterSets, i);
-				if (rewrite_start_codes) gf_bs_write_u32(dst_bs, 1);
-				else gf_bs_write_int(dst_bs, sl->size, 8*nal_unit_size_field);
 
-				gf_bs_write_data(dst_bs, sl->data, sl->size);
-			}
-			/*little optimization if we are not asked to rewrite extractors or start codes: copy over the sample*/
-			if (!entry->svc_config && !rewrite_start_codes) {
-				gf_bs_write_data(dst_bs, sample->data, sample->dataLength);
-				gf_free(sample->data);
-				sample->data = NULL;
-				gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
-				gf_bs_del(src_bs);
-				gf_bs_del(dst_bs);
-				return GF_OK;
+			/*this is an SVC track: get all SPS/PPS from this track down to the base layer and rewrite them*/
+			if (mdia->mediaTrack->has_base_layer) {
+				u32 j;
+				GF_List *nalu_sps = gf_list_new();
+				GF_List *nalu_pps = gf_list_new();
+				GF_TrackReferenceTypeBox *dpnd = NULL;
+				Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_SCAL, &dpnd);
+
+#if 0
+				/*get all upper layers with SCAL reference to this track*/
+				for (j = 0; j < gf_isom_get_track_count(file); j++) {
+					if (gf_isom_has_track_reference(file, j+1, GF_ISOM_REF_SCAL, mdia->mediaTrack->Header->trackID)) {
+						u32 tkID;
+						GF_TrackBox *base_track;
+						GF_MPEGVisualSampleEntryBox *base_entry;
+						gf_isom_get_reference_ID(file, j+1, GF_ISOM_REF_SCAL, 1, &tkID);
+						
+						base_track = GetTrackbyID(mdia->mediaTrack->moov, tkID);
+						base_entry = base_track ? gf_list_get(base_track->Media->information->sampleTable->SampleDescription->other_boxes, 0) : NULL;
+						if (base_entry)
+							merge_nalus(base_entry, nalu_sps, nalu_pps);
+					}
+				}
+
+#endif
+
+				merge_nalus(entry, nalu_sps, nalu_pps);
+				if (dpnd) {
+					for (j=0; j<dpnd->trackIDCount; j++) {
+						GF_TrackBox *base_track = GetTrackbyID(mdia->mediaTrack->moov, dpnd->trackIDs[j]);
+						GF_MPEGVisualSampleEntryBox *base_entry = base_track ? gf_list_get(base_track->Media->information->sampleTable->SampleDescription->other_boxes, 0) : NULL;
+						if (base_entry)
+							merge_nalus(base_entry, nalu_sps, nalu_pps);
+					}
+				}
+
+				//rewrite nalus
+				rewrite_nalus_list(nalu_sps, dst_bs, rewrite_start_codes, nal_unit_size_field);
+				rewrite_nalus_list(nalu_pps, dst_bs, rewrite_start_codes, nal_unit_size_field);
+
+				gf_list_del(nalu_sps);
+				gf_list_del(nalu_pps);
+			} else {
+
+				if (entry->avc_config) {
+					rewrite_nalus_list(entry->avc_config->config->sequenceParameterSets, dst_bs, rewrite_start_codes, nal_unit_size_field);
+					rewrite_nalus_list(entry->avc_config->config->pictureParameterSets, dst_bs, rewrite_start_codes, nal_unit_size_field);
+					rewrite_nalus_list(entry->avc_config->config->sequenceParameterSetExtensions, dst_bs, rewrite_start_codes, nal_unit_size_field);
+				}
+
+				/*add svc config */
+				if (entry->svc_config) {
+					rewrite_nalus_list(entry->svc_config->config->sequenceParameterSets, dst_bs, rewrite_start_codes, nal_unit_size_field);
+					rewrite_nalus_list(entry->svc_config->config->pictureParameterSets, dst_bs, rewrite_start_codes, nal_unit_size_field);
+				}
+
+				/*little optimization if we are not asked to rewrite extractors or start codes: copy over the sample*/
+				if (!entry->svc_config && !rewrite_start_codes) {
+					gf_bs_write_data(dst_bs, sample->data, sample->dataLength);
+					gf_free(sample->data);
+					sample->data = NULL;
+					gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
+					gf_bs_del(src_bs);
+					gf_bs_del(dst_bs);
+					return GF_OK;
+				}
+			
 			}
 		}
 	}
@@ -214,7 +283,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 		//extractor
 		if (nal_type == 31) {
-			switch (mdia->mediaTrack->extractor_mode) {
+			switch (extractor_mode) {
 			case 0:
 				gf_bs_read_int(src_bs, 24); //3 bytes of NALUHeader in extractor
 				ref_track_ID = gf_bs_read_u8(src_bs);
@@ -275,8 +344,9 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				ref_bs = NULL;
 				gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
 				break;
-			case 1:
-				gf_bs_read_data(src_bs, buffer, nal_size-1); //parse to end of this NALU
+			default:
+				//skip to end of this NALU
+				gf_bs_skip_bytes(src_bs, nal_size-1);
 				continue;
 			}
 		} else {
