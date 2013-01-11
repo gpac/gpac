@@ -652,11 +652,16 @@ do_mix:
 
 		/*if cfg unknown or changed (AudioBuffer child...) invalidate cfg settings*/
 		if (!in->src->GetConfig(in->src, 0)) {
-			nb_act_src = 0;
-			am->must_reconfig = 1;
-			/*if main mixer reconfig asap*/
-			if (am->ar) gf_mixer_reconfig(am);
-			break;
+			if (!am->must_reconfig) {
+				am->must_reconfig = 1;
+				/*if main mixer reconfig asap*/
+				if (am->ar) gf_mixer_reconfig(am);
+			}
+			//however keep the current mixer config and output some audio ...
+//			nb_act_src = 0;
+//			break;
+			in->muted = 1;
+			continue;
 		} else if (in->speed==0) {
 			in->out_samples_to_write = 0;
 		} else {

@@ -108,6 +108,7 @@ struct __gf_download_session
     gf_user_credentials_struct * creds;
     char cookie[GF_MAX_PATH];
     DownloadedCacheEntry cache_entry;
+	Bool reused_cache_entry;
 
     GF_Socket *sock;
     u32 num_retry, status;
@@ -148,6 +149,7 @@ struct __gf_download_session
     /*callback for data reception - may not be NULL*/
     gf_dm_user_io user_proc;
     void *usr_cbk;
+	Bool reassigned;
 
     /*private extension*/
     void *ext;
@@ -246,6 +248,9 @@ FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry) ;
 
 /*modify end range when chaining byte-range requests*/
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end);
+
+/*returns 1 if cache is currently open for write*/
+Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry);
 
 /**
  * Find a User's credentials for a given site
@@ -547,6 +552,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     }
     assert( entry );
     sess->cache_entry = entry;
+	sess->reused_cache_entry = 	gf_cache_is_in_progress(entry);
     gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
@@ -1364,7 +1370,8 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 			/*remember this in case we get disconnected*/
 			sess->is_range_continuation = 1;
 		} else {
-			sess->needs_cache_reconfig=2;
+			sess->needs_cache_reconfig = 2;
+			sess->reused_cache_entry = 0;
 		}
 	} else {
 		if (sess->status != GF_NETIO_SETUP) return GF_BAD_PARAM;
@@ -1706,18 +1713,6 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, const char *d
         }
     }
 
-    if (sess->total_size && (sess->bytes_done == sess->total_size)) {
-        gf_dm_disconnect(sess, 0);
-        par.msg_type = GF_NETIO_DATA_TRANSFERED;
-        par.error = GF_OK;
-        gf_dm_sess_user_io(sess, &par);
-        if (sess->use_cache_file) {
-            gf_cache_close_write_cache(sess->cache_entry, sess, 1);
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
-                   ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
-        }
-        return;
-    }
     /*update state if not done*/
     if (rcv) {
         runtime = gf_sys_clock() - sess->start_time;
@@ -1726,6 +1721,21 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, const char *d
         } else {
             sess->bytes_per_sec = (1000 * sess->bytes_done) / runtime;
         }
+    }
+
+	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
+        gf_dm_disconnect(sess, 0);
+        par.msg_type = GF_NETIO_DATA_TRANSFERED;
+        par.error = GF_OK;
+
+		
+		gf_dm_sess_user_io(sess, &par);
+        if (sess->use_cache_file) {
+            gf_cache_close_write_cache(sess->cache_entry, sess, 1);
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
+                   ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
+        }
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in %d ms (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
     }
 }
 
@@ -2666,6 +2676,15 @@ exit:
 void http_do_requests(GF_DownloadSession *sess)
 {
     char sHTTP[GF_DOWNLOAD_BUFFER_SIZE];
+
+	if (sess->reused_cache_entry) {
+		if (!gf_cache_is_in_progress(sess->cache_entry)) {
+			sess->status = GF_NETIO_DISCONNECTED;
+			sess->reused_cache_entry = 0;
+		}
+		return;
+	}
+
     switch (sess->status) {
     case GF_NETIO_CONNECTED:
         http_send_headers(sess, sHTTP);
@@ -2674,6 +2693,21 @@ void http_do_requests(GF_DownloadSession *sess)
         wait_for_header_and_parse(sess, sHTTP);
         break;
     case GF_NETIO_DATA_EXCHANGE:
+		/*session has been reassigned, resend data retrieved in first GET reply to user but don't write to cache*/
+		if (sess->reassigned) {
+
+			if (sess->icy_metaint > 0) {
+				gf_icy_skip_data(sess, sess->icy_metaint, sess->init_data, sess->init_data_size);
+			} else {
+			    GF_NETIO_Parameter par;
+				par.msg_type = GF_NETIO_DATA_EXCHANGE;
+				par.error = GF_OK;
+				par.data = sess->init_data;
+				par.size = sess->init_data_size;
+				gf_dm_sess_user_io(sess, &par);
+			}
+			sess->reassigned = 0;
+		}
         http_parse_remaining_body(sess, sHTTP);
         break;
     }
@@ -2979,7 +3013,7 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 	sess->flags = flags;
 	sess->user_proc = user_io;
 	sess->usr_cbk = cbk;
-
+	sess->reassigned = sess->init_data ? 1 : 0;
 	sess->num_retry = SESSION_RETRY_COUNT;
 
 	if (sess->status==GF_NETIO_DISCONNECTED)

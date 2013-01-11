@@ -597,6 +597,8 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 
 		entry->written_in_cache = 0;
 	}
+	entry->flags &= ~CORRUPTED;
+
 
 	if (entry->memory_stored) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
@@ -830,17 +832,15 @@ Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry)
 			entry->contentLength = strtoul( keyValue, &endPtr, 10);
 			if (*endPtr!='\0' || entry->contentLength != entry->cacheSize) {
 				entry->flags |= CORRUPTED;
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, cached file and cache info size mismatch.\n", __LINE__));
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, Cache corrupted: file and cache info size mismatch.\n", __LINE__));
 			}
-		} else
+		} else {
 			entry->flags |= CORRUPTED;
-
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, CACHE is corrupted !\n", __LINE__));
+		}
 	} else {
 		entry->flags |= CORRUPTED;
 	}
-	if (entry->flags & CORRUPTED)
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, CACHE is corrupted !\n", __LINE__));
-
 	return entry->flags & CORRUPTED;
 }
 
@@ -906,6 +906,7 @@ FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry)
 	return NULL;
 }
 
+
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end)
 {
 	entry->previousRangeContentLength = entry->contentLength;
@@ -913,3 +914,11 @@ void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end)
 	entry->continue_file = 1;
 }
 
+Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
+{
+	if (!entry) return 0;
+	if (entry->writeFilePtr) return 1;
+	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength) ) 
+		return 1;
+	return 0;
+}
