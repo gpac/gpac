@@ -3396,7 +3396,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			if (opt) {
 				Double seg_dur = atof(opt);
 				if (seg_dur != dash_duration) {
-					gf_cfg_del(dash_ctx);
 					return GF_NOT_SUPPORTED;
 				}
 			} else {

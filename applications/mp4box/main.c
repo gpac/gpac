@@ -2764,6 +2764,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (dash_ctx) gf_cfg_del(dash_ctx);
+		if (e) fprintf(stderr, "Error DASHing file: %s\n", gf_error_to_string(e));
 
 		gf_sys_close();
 		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
