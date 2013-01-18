@@ -220,6 +220,13 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 static u64 gf_dash_get_utc_clock()
 {
 	u32 sec, frac;
+	/*FIXME - finad a safe way to estimate timezone this does not work !!*/
+#ifdef GPAC_ANDROID
+	s32 t_timezone;
+	struct tm t_gmt, t_local;
+	time_t t_time;
+#endif
+
 #ifndef _WIN32_WCE
 	time_t gtime;
 	struct tm *_t;
@@ -231,7 +238,19 @@ static u64 gf_dash_get_utc_clock()
 #ifndef _WIN32_WCE
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	_t = gmtime(&gtime);
+
+#ifdef GPAC_ANDROID
+	t_time = time(NULL);
+	t_gmt = *gmtime(&t_time);
+	t_local = *localtime(&t_time);
+	
+	t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600;
+	current_time = mktime(_t) - t_timezone;
+
+#else
 	current_time = mktime(_t) - timezone;
+#endif
+
 #else
 	current_time = sec - GF_NTP_SEC_1900_TO_1970;
 #endif
