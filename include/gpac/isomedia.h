@@ -547,6 +547,9 @@ sampleNumber is optional and gives the number of the sample in the media
 */
 GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber);
 
+/*return 1 if true edit list, 0 if no edit list or if time-shifting only edit list, in which case mediaOffset is set to the DTS offset value (e.g., your app should add mediaOffset to all sample DTS)*/
+Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *mediaOffset);
+
 /*get the number of edited segment*/
 u32 gf_isom_get_edit_segment_count(GF_ISOFile *the_file, u32 trackNumber);
 

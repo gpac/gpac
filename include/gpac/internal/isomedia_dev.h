@@ -454,8 +454,6 @@ typedef struct
 {
 	GF_ISOM_BOX
 	GF_EditListBox *editList;
-
-	Bool last_is_empty;
 } GF_EditBox;
 
 

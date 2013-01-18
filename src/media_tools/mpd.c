@@ -120,13 +120,14 @@ static u64 gf_mpd_parse_date(char *attr)
 	if (ok) {
 		u64 res;
 		struct tm _t;
+		memset(&_t, 0, sizeof(struct tm));
 		_t.tm_year = (year > 1900) ? year - 1900 : 0;
 		_t.tm_mon = month ? month - 1 : 0;
 		_t.tm_mday = day;
 		_t.tm_hour = h;
 		_t.tm_min = m;
 		_t.tm_sec = (u32) s;
-		res = mktime(&_t);
+		res = mktime(&_t) - timezone;
 		if (om || oh) {
 			s32 diff = (60*oh + om)*60;
 			if (neg_time_zone) diff = -diff;

@@ -281,7 +281,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) || (ffd->oti == GPAC_OTI_VIDEO_AVC)) {
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
-			if (esd->decoderConfig->decoderSpecificInfo->data) {
+			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 
 				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
 				if (ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
@@ -844,7 +844,7 @@ redecode:
 		}
 	}
 
-	if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
+//	if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 	if (!gotpic) return GF_OK;
 

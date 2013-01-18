@@ -261,8 +261,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 		if (is_hevc) {
 			/*we already wrote this stuff*/
-			if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) 
+			if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
+				gf_bs_skip_bytes(src_bs, nal_size-2);
 				continue;
+			}
 
 			/*rewrite nal*/
 			gf_bs_read_data(src_bs, buffer, nal_size-2);
@@ -278,8 +280,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		} 
 		
 		/*we already wrote this stuff*/
-		if (nal_type==GF_AVC_NALU_ACCESS_UNIT)
+		if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
+			gf_bs_skip_bytes(src_bs, nal_size-1);
 			continue;
+		}
 
 		//extractor
 		if (nal_type == 31) {

@@ -479,3 +479,12 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	gf_free(keyValue);
 	return NULL;
 }
+
+GF_EXPORT
+GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
+{
+	if (!fileName) return GF_OK;
+	if (iniFile->fileName) gf_free(iniFile->fileName);
+	iniFile->fileName = gf_strdup(fileName);
+	return iniFile->fileName ? GF_OK : GF_OUT_OF_MEM;
+}

@@ -295,6 +295,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_H264_AVC;
 			PL_ID = 0x0F;
 			break;
+		/*H264-SVC*/
+		case GPAC_OTI_VIDEO_SVC:
+			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+			rtp_type = GF_RTP_PAYT_H264_SVC;
+			PL_ID = 0x0F;
+			break;
 		}
 		break;
 
@@ -574,7 +580,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 		sprintf(sdpLine, "a=fmtp:%d maxptime=%d\n", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
 	}
 	/*H264/AVC*/
-	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC) {
+	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC || rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_SVC) {
 		GF_AVCConfig *avcc = dsi ? gf_odf_avc_cfg_read(dsi, dsi_len) : NULL;
 
 		if (avcc) {
@@ -674,6 +680,42 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 } 
 
 GF_EXPORT
+GF_Err gf_rtp_streamer_append_sdp_decoding_dependency(GF_ISOFile *isofile, u32 isotrack, u8 *payload_type, char **out_sdp_buffer) 
+{
+	u32 size, i, ref_track;
+	s32 count;
+	char sdp[20000], sdpLine[10000];
+
+	sprintf(sdp, "a=mid:L%d\n", isotrack);
+
+	count = gf_isom_get_reference_count(isofile, isotrack, GF_ISOM_REF_SCAL);
+	if (count > 0)
+	{
+		sprintf(sdpLine, "a=depend:%d lay", payload_type[isotrack-1]);
+		strcat(sdp, sdpLine);
+		for (i = 0; i < (u32) count; i++) 
+		{
+			gf_isom_get_reference(isofile, isotrack, GF_ISOM_REF_SCAL, i+1, &ref_track);
+			sprintf(sdpLine, " L%d:%d", ref_track, payload_type[ref_track-1]);
+			strcat(sdp, sdpLine);
+		}
+		strcat(sdp, "\n");
+	}
+
+	size = strlen(sdp) + (*out_sdp_buffer ? strlen(*out_sdp_buffer) : 0) + 1;
+	if ( !*out_sdp_buffer) {
+		*out_sdp_buffer = gf_malloc(sizeof(char)*size);
+		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
+		strcpy(*out_sdp_buffer, sdp);
+	} else {
+		*out_sdp_buffer = gf_realloc(*out_sdp_buffer, sizeof(char)*size);
+		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
+		strcat(*out_sdp_buffer, sdp);
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
 char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64)
 {
 	u64 size;
@@ -743,6 +785,12 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 {
 	if (force_ts) streamer->channel->last_pck_ts = rtp_ts;
 	return gf_rtp_send_rtcp_report(streamer->channel, NULL, NULL);
+}
+
+GF_EXPORT
+u8 gf_rtp_streamer_get_payload_type(GF_RTPStreamer *streamer)
+{
+	return streamer->packetizer->PayloadType;
 }
 
 #endif /*GPAC_DISABLE_STREAMING && GPAC_DISABLE_ISOM*/

@@ -514,6 +514,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 	u64 firstDTS;
 #endif
 	u32 i;
+	Bool last_is_empty = 0;
 	u64 time, lastSampleTime;
 	s64 mtime;
 	GF_EdtsEntry *ent;
@@ -563,7 +564,25 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 				goto ent_found;
 		}
 		time += ent->segmentDuration;
+		last_is_empty = ent->segmentDuration ? 0 : 1;
 	}
+
+	if (last_is_empty) {
+		ent = (GF_EdtsEntry *)gf_list_last(trak->editBox->editList->entryList);
+		if (ent->mediaRate==1) {
+			*MediaTime = movieTime + ent->mediaTime;
+		} else {
+			ent = (GF_EdtsEntry *)gf_list_get(trak->editBox->editList->entryList, 0);
+			if (ent->mediaRate==-1) {
+				u64 dur = (u64) (ent->segmentDuration * scale_ts);
+				*MediaTime = (movieTime > dur) ? (movieTime-dur) : 0;
+			}
+		}
+		*useEdit = 0;
+		return GF_OK;
+	}
+
+
 	//we had nothing in the list (strange file but compliant...)
 	//return the 1 to 1 mapped vale of the last media sample
 	if (!ent) {

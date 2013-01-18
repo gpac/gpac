@@ -310,6 +310,8 @@ void PrintDASHUsage()
 			" -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 			" -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 			"                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
+			" -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
+			" -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
 			"\n"
 			"Advanced Options, should not be needed when using -dash-profile:\n"
 			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
@@ -320,7 +322,7 @@ void PrintDASHUsage()
 			" -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
 			" -single-segment      uses a single segment for the whole file (OnDemand profile). \n"
 			" -single-file         uses a single file for the whole file (default). \n"
-			" -bs-switching MODE   sets bitstream switching to \"yes\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
+			" -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
@@ -868,6 +870,10 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		bw = gf_hinter_track_get_bandwidth(hinter);
 		tot_bw += bw;
 		flags = gf_hinter_track_get_flags(hinter);
+	
+		//set extraction mode for AVC/SVC
+		gf_isom_set_nalu_extract_mode(file, i+1, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
+
 		gf_hinter_track_get_payload_name(hinter, szPayload);
 		fprintf(stderr, "Hinting track ID %d - Type \"%s:%s\" (%s) - BW %d kbps\n", gf_isom_get_track_id(file, i+1), gf_4cc_to_str(mtype), gf_4cc_to_str(mtype), szPayload, bw);
 		if (flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) fprintf(stderr, "\tMPEG-4 Systems stream carousel enabled\n");
@@ -1336,7 +1342,8 @@ int mp4boxMain(int argc, char **argv)
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
-
+	Double min_buffer = 1.5;
+	u32 ast_shift_sec = 1;
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
 
@@ -1706,7 +1713,7 @@ int mp4boxMain(int argc, char **argv)
 			if (!stricmp(argv[i+1], "no") || !stricmp(argv[i+1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
 			else if (!stricmp(argv[i+1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
 			else if (!stricmp(argv[i+1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
-			else if (!stricmp(argv[i+1], "single_merge"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE_MERGED;
+			else if (!stricmp(argv[i+1], "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 			else bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 			i++;
 		}
@@ -1725,6 +1732,17 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-time-shift")) { 
 			CHECK_NEXT_ARG 
 			time_shift_depth = (u32) atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-min-buffer")) { 
+			CHECK_NEXT_ARG 
+			min_buffer = atoi(argv[i+1]);
+			min_buffer /= 1000;
+			i++;
+		}
+		else if (!stricmp(arg, "-ast-offset")) { 
+			CHECK_NEXT_ARG 
+			ast_shift_sec = (u32) atoi(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-mpd-title")) { CHECK_NEXT_ARG dash_title = argv[i+1]; i++; }
@@ -2708,6 +2726,7 @@ int mp4boxMain(int argc, char **argv)
 	if (dash_duration) {
 		char szMPD[GF_MAX_PATH], *sep;
 		GF_Config *dash_ctx = NULL;
+		u32 do_abort = 0;
 		gf_log_set_tool_level(GF_LOG_DASH, GF_LOG_INFO);
 		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 		sep = strrchr(outfile, '.');
@@ -2715,6 +2734,8 @@ int mp4boxMain(int argc, char **argv)
 		if (!outName) strcat(outfile, "_dash");
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
+
+		fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
 		if (!dash_ctx_file && dash_live) {
 			dash_ctx = gf_cfg_new(NULL, NULL);
@@ -2737,33 +2758,47 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Using default MPD refresh of %d seconds\n", mpd_update_time);
 		}
 
-		while (1) {
+		while (!do_abort) {
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
 										(const char **) mpd_base_urls, nb_mpd_base_urls, 
 									   use_url_template, single_segment, single_file, bitstream_switching_mode, 
 									   seg_at_rap, dash_duration, seg_name, seg_ext,
 									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration);
+									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec);
 			if (e) break;
 
 			if (dash_live) {
 				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
-				if (gf_prompt_has_input()) {
-					char c = (char) gf_prompt_get_char(); 
-					if (c=='q') break;
-				}
-				if (sleep_for) {
-					if (dash_dynamic != 2) {
-						fprintf(stderr, "sleep for %d ms\n", sleep_for);
-						gf_sleep(sleep_for);
+				fprintf(stderr, "sleep for %d ms\n", sleep_for);
+				while (1) {
+					if (gf_prompt_has_input()) {
+						char c = (char) gf_prompt_get_char(); 
+						if (c=='q') { do_abort = 1; break; }
+						if (c=='s') { do_abort = 2; break; }
 					}
+					if (sleep_for<100) break;
+
+					if (dash_dynamic != 2) {
+						gf_sleep(100);
+					}
+					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
 				}
 			} else {
 				break;
 			}
 		}
-
-		if (dash_ctx) gf_cfg_del(dash_ctx);
+		
+		if (dash_ctx) {
+			if (do_abort==2) {
+				char szName[1024];
+				fprintf(stderr, "Enter file name to save dash context:\n");
+				if (scanf("%s", szName) == 1) {
+					gf_cfg_set_filename(dash_ctx, szName);
+					gf_cfg_save(dash_ctx);
+				}
+			}
+			gf_cfg_del(dash_ctx);
+		}
 		if (e) fprintf(stderr, "Error DASHing file: %s\n", gf_error_to_string(e));
 
 		gf_sys_close();
