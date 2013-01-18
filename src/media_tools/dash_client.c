@@ -178,6 +178,7 @@ struct __dash_group
 	u32 nb_segments_done;
 
 	Bool segment_must_be_streamed;
+	Bool broken_timing;
 
 	u32 force_representation_idx_plus_one;
 
@@ -216,13 +217,32 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 	return 0;
 }
 
-static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
+static u64 gf_dash_get_utc_clock()
 {
 	u32 sec, frac;
 #ifndef _WIN32_WCE
 	time_t gtime;
 	struct tm *_t;
 #endif
+	u64 current_time;
+
+	gf_net_get_ntp(&sec, &frac);
+
+#ifndef _WIN32_WCE
+	gtime = sec - GF_NTP_SEC_1900_TO_1970;
+	_t = gmtime(&gtime);
+	current_time = mktime(_t) - timezone;
+#else
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
+#endif
+	return current_time;
+}
+
+static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
+{
+	GF_MPD_SegmentTimeline *timeline = NULL;
+	GF_MPD_Representation *rep = NULL;
+	u32 shift, timescale;
 	u64 current_time;
 	
 	if (mpd->type==GF_MPD_TYPE_STATIC) 
@@ -232,20 +252,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 	if (group->dash->is_m3u8)
 		return;
 
-	gf_net_get_ntp(&sec, &frac);
+	current_time = gf_dash_get_utc_clock();
 
-#ifndef _WIN32_WCE
-	gtime = sec - GF_NTP_SEC_1900_TO_1970;
-	_t = gmtime(&gtime);
-	current_time = mktime(_t);
-#else
-	current_time = sec - GF_NTP_SEC_1900_TO_1970;
-#endif
 	if (current_time < mpd->availabilityStartTime) current_time = 0;
 	else current_time -= mpd->availabilityStartTime;
 
-	if (current_time < group->period->start) current_time = 0;
-	else current_time -= group->period->start;
+	if (current_time < group->period->start/1000) current_time = 0;
+	else current_time -= group->period->start/1000;
 
 #if 0
 	{
@@ -258,17 +271,79 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 	}
 #endif
 
-	frac = mpd->time_shift_buffer_depth/1000;
-	if (current_time < frac) current_time = 0;
-	else current_time -= frac;
+	if (0 && ((s32) mpd->time_shift_buffer_depth>=0)) {
+		shift = mpd->time_shift_buffer_depth/1000;
+		if (current_time < shift) current_time = 0;
+		else current_time -= shift;
+	}
 
+	timeline = NULL;
+	timescale=1;
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+
+	if (group->period->segment_list) {
+		if (group->period->segment_list->segment_timeline) timeline = group->period->segment_list->segment_timeline;
+		if (group->period->segment_list->timescale) timescale = group->period->segment_list->timescale;
+	}
+	if (group->adaptation_set->segment_list) {
+		if (group->adaptation_set->segment_list->segment_timeline) timeline = group->adaptation_set->segment_list->segment_timeline;
+		if (group->adaptation_set->segment_list->timescale) timescale = group->adaptation_set->segment_list->timescale;
+	}
+	if (rep->segment_list) {
+		if (rep->segment_list->segment_timeline) timeline = rep->segment_list->segment_timeline;
+		if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
+	}
+
+	if (group->period->segment_template) {
+		if (group->period->segment_template->segment_timeline) timeline = group->period->segment_template->segment_timeline;
+		if (group->period->segment_template->timescale) timescale = group->period->segment_template->timescale;
+	}
+	if (group->adaptation_set->segment_template) {
+		if (group->adaptation_set->segment_template->segment_timeline) timeline = group->adaptation_set->segment_template->segment_timeline;
+		if (group->adaptation_set->segment_template->timescale) timescale = group->adaptation_set->segment_template->timescale;
+	}
+	if (rep->segment_template) {
+		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
+		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+	}
+
+	if (timeline) {
+		u64 start_segtime = 0;
+		u64 segtime = 0;
+		u32 i, seg_idx = 0;
+		current_time *= timescale;
+		for (i=0; i<gf_list_count(timeline->entries); i++) {
+			u32 repeat;
+			GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
+			if (!segtime) start_segtime = segtime = ent->start_time;
+
+			repeat = 1+ent->repeat_count;
+			while (repeat) {
+				if ((current_time >= segtime) && (current_time < segtime + ent->duration)) {
+					group->download_segment_index = seg_idx;
+					group->nb_segments_in_rep = seg_idx + 10;
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found segment %d for current time "LLU" is in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time, segtime, segtime + ent->duration));
+					return;
+				}
+				segtime += ent->duration;
+				repeat--;
+				seg_idx++;
+			}
+		}
+		//NOT FOUND !!
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is NOT in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time, start_segtime, segtime));
+		group->download_segment_index = 0;
+		group->nb_segments_in_rep = 10;
+		group->broken_timing = 1;
+		return;
+	}
 
 	if (group->segment_duration) {
 		Double nb_seg = (Double) current_time;
 		nb_seg /= group->segment_duration;
-		frac = (u32) nb_seg;
-		group->download_segment_index = frac;
-		group->nb_segments_in_rep = frac + 10;
+		shift = (u32) nb_seg;
+		group->download_segment_index = shift;
+		group->nb_segments_in_rep = shift + 10;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment duration unknown - cannot estimate current startNumber\n"));
 	}
@@ -575,7 +650,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 	}
 }
 
-static u64 gf_dash_segment_timeline_start(GF_MPD_SegmentTimeline *timeline, u32 segment_index)
+static u64 gf_dash_segment_timeline_start(GF_MPD_SegmentTimeline *timeline, u32 segment_index, u64 *segment_duration)
 {
 	u64 start_time = 0;
 	u32 i, idx, k;
@@ -584,8 +659,11 @@ static u64 gf_dash_segment_timeline_start(GF_MPD_SegmentTimeline *timeline, u32 
 		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
 		if (ent->start_time) start_time = ent->start_time;		
 		for (k=0; k<ent->repeat_count+1; k++) {
-			if (idx==segment_index) 
+			if (idx==segment_index) {
+				if (segment_duration) 
+					*segment_duration = ent->duration;
 				return start_time;
+			}
 			idx ++;
 			start_time += ent->duration;
 		}
@@ -593,7 +671,7 @@ static u64 gf_dash_segment_timeline_start(GF_MPD_SegmentTimeline *timeline, u32 
 	return start_time;
 }
 
-static Double gf_dash_get_segment_start_time(GF_DASH_Group *group)
+static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segment_duration)
 {
 	GF_MPD_Representation *rep;
 	GF_MPD_AdaptationSet *set;
@@ -609,7 +687,9 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group)
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	set = group->adaptation_set;
 	period = group->period;
-	segment_index = group->download_segment_index - group->nb_cached_segments;
+	segment_index = 0;
+	if (group->download_segment_index >= group->nb_cached_segments)
+		segment_index = group->download_segment_index - group->nb_cached_segments;
 
 	/*single segment: return nothing*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
@@ -634,11 +714,15 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group)
 		if (! timescale) timescale=1;
 
 		if (timeline) {
-			start_time = (Double) gf_dash_segment_timeline_start(timeline, segment_index);
+			start_time = (Double) gf_dash_segment_timeline_start(timeline, segment_index, &duration);
 		} else {
 			start_time = segment_index * (Double) duration;
 		}
 		start_time /= timescale;
+		if (segment_duration) {
+			*segment_duration = (Double) duration; 
+			*segment_duration /= timescale; 
+		}
 		return start_time;
 	}
 
@@ -660,12 +744,28 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group)
 	if (!timescale) timescale=1;
 
 	if (timeline) {
-		start_time = (Double) gf_dash_segment_timeline_start(timeline, segment_index);
+		start_time = (Double) gf_dash_segment_timeline_start(timeline, segment_index, &duration);
 	} else {
 		start_time = segment_index * (Double) duration;
 	}
 	start_time /= timescale;
+	if (segment_duration) {
+		*segment_duration = (Double) duration; 
+		*segment_duration /= timescale; 
+	}
+
 	return start_time;
+}
+
+u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *group, u32 segment_index)
+{
+	Double seg_ast, seg_dur;
+	seg_ast = gf_dash_get_segment_start_time(group, &seg_dur);
+
+	seg_ast += seg_dur;
+	seg_ast += group->period->start/1000;
+	seg_ast += mpd->availabilityStartTime;
+	return (u64) seg_ast;
 }
 
 static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline)
@@ -990,7 +1090,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 					for (group_idx=0; group_idx<gf_list_count(dash->groups); group_idx++) {
 						GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
-						Double group_start = gf_dash_get_segment_start_time(group);
+						Double group_start = gf_dash_get_segment_start_time(group, NULL);
 						if (!group_idx || (timeline_start_time > group_start) ) timeline_start_time = group_start;
 					}
 					/*we can rewind our segments from timeshift*/
@@ -2604,7 +2704,7 @@ restart_period:
 				/* Now that the playlist is up to date, we can check again */
 				if (group->download_segment_index >= group->nb_segments_in_rep) {
 					/* if there is a specified update period, we redo the whole process */
-					if (dash->mpd->minimum_update_period ) {
+					if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 						continue;
 					} else {
 						/* if not, we are really at the end of the playlist, we can quit */
@@ -2622,6 +2722,18 @@ restart_period:
 				i--;
 				gf_mx_v(dash->dl_mutex);
 				continue;
+			}
+
+			/*check availablity start time of segment in Live !!*/
+			if (!group->broken_timing && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->is_m3u8) {
+				u64 segment_ast = gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index);
+				u64 now = gf_dash_get_utc_clock();
+				/*if segment AST is greater than now, it is not yet available ...*/
+				if (segment_ast > now ) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Next segment %d is not yet available on server - requesting later (in %d ms)\n", group->download_segment_index, segment_ast - now));
+					gf_mx_v(dash->dl_mutex);
+					continue;
+				}
 			}
 
 			/* At this stage, there are some segments left to be downloaded */
@@ -3583,7 +3695,7 @@ GF_EXPORT
 Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	return gf_dash_get_segment_start_time(group);
+	return gf_dash_get_segment_start_time(group, NULL);
 }
 
 GF_EXPORT

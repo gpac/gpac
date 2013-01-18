@@ -208,6 +208,14 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
  */
 char * gf_cfg_get_filename(GF_Config *iniFile);
 
+/*!
+ * Set the full filename associated with this config file
+ * \param iniFile The Configuration
+ * \param fileName new filename for the config
+ * \return erroro code
+ */
+GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
+
 #ifdef __cplusplus
 }
 #endif

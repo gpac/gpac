@@ -178,11 +178,12 @@ static void init_reader(ISOMChannel *ch)
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 		} else if (ch->sample_num) {
 			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
+			ch->to_init = 0;
 		}
 	} else {
 		ch->sample_time = ch->sample->DTS;
+		ch->to_init = 0;
 	}
-	ch->to_init = 0;
 	ch->current_slh.decodingTimeStamp = ch->start;
 	ch->current_slh.compositionTimeStamp = ch->start;
 	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
@@ -220,23 +221,28 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			} else {
 				/*if we get the same sample, figure out next interesting time (current sample + DTS gap to next sample should be a good bet)*/
 				if (prev_sample == ch->sample_num) {
-					u32 time_diff = 2;
-					u32 sample_num = ch->sample_num ? ch->sample_num : 1;
-					GF_ISOSample *s1 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num, NULL);
-					GF_ISOSample *s2 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num+1, NULL);
+					if (ch->owner->frag_type && (ch->sample_num==gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
+						if (ch->sample) 
+							gf_isom_sample_del(&ch->sample);
+					} else {
+						u32 time_diff = 2;
+						u32 sample_num = ch->sample_num ? ch->sample_num : 1;
+						GF_ISOSample *s1 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num, NULL);
+						GF_ISOSample *s2 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num+1, NULL);
 
-					gf_isom_sample_del(&ch->sample);
+						gf_isom_sample_del(&ch->sample);
 
-					if (s2 && s1) {
-						assert(s2->DTS >= s1->DTS);
-						time_diff = (u32) (s2->DTS - s1->DTS);
-						e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
-					} else if (s1 && !s2) {
-						e = GF_EOS;
+						if (s2 && s1) {
+							assert(s2->DTS >= s1->DTS);
+							time_diff = (u32) (s2->DTS - s1->DTS);
+							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
+						} else if (s1 && !s2) {
+							e = GF_EOS;
+						}
+						gf_isom_sample_del(&s1);
+						gf_isom_sample_del(&s2);
+
 					}
-					gf_isom_sample_del(&s1);
-					gf_isom_sample_del(&s2);
-
 				}
 
 				/*we jumped to another segment - if RAP is needed look for closest rap in decoding order and
@@ -279,6 +285,13 @@ fetch_next:
 			ch->next_track = 0;
 			gf_isom_sample_del(&ch->sample);
 			goto fetch_next;
+		}
+		if (ch->sample && ch->dts_offset) {
+			if ( (ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset)) {
+				ch->sample->DTS = 0;
+			} else {
+				ch->sample->DTS += ch->dts_offset;
+			}
 		}
 	}
 	if (!ch->sample) {

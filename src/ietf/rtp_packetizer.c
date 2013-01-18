@@ -519,7 +519,11 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 	case GF_RTP_PAYT_AC3: 
 		strcpy(szMediaName, "audio"); 
 		strcpy(szPayloadName, "ac3"); 
-		return 1; 
+		return 1;
+	case GF_RTP_PAYT_H264_SVC:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "H264-SVC");
+		return 1;
 	default:
 		strcpy(szMediaName, "");
 		strcpy(szPayloadName, "");

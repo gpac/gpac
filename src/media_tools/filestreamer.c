@@ -82,6 +82,9 @@ struct __isom_rtp_streamer
 
 	/*to sync looping sessions with tracks of # length*/
 	u32 duration_ms;
+
+	/*base track if this stream contains a media decoding dependancy, 0 otherwise*/
+	u32 base_track;
 };
 
 
@@ -92,6 +95,8 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	FILE *sdp_out;
 	char filename[GF_MAX_PATH];
 	char sdpLine[20000];
+	u32 t, count;
+	u8 *payload_type;
 
 	strcpy(filename, sdpfilename ? sdpfilename : "videosession.sdp");
 	sdp_out = gf_f64_open(filename, "wt");
@@ -114,9 +119,34 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "t=0 0");
 		fprintf(sdp_out, "%s\n", sdpLine);
-		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC (C)2000-200X - http://gpac.sourceforge.net\n");
+		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC (C)2000-200X - http://gpac.sourceforge.net");
 		fprintf(sdp_out, "%s\n", sdpLine);
+		if (streamer->base_track)
+		{
+			sprintf(sdpLine, "a=group:DDP L%d", streamer->base_track);
+			fprintf(sdp_out, "%s", sdpLine);
+			count = gf_isom_get_track_count(streamer->isom);
+			for (t = 0; t < count; t++)
+			{
+				if (gf_isom_has_track_reference(streamer->isom, t+1, GF_ISOM_REF_BASE, gf_isom_get_track_id(streamer->isom, streamer->base_track)))
+				{
+					sprintf(sdpLine, " L%d", t+1);
+					fprintf(sdp_out, "%s", sdpLine);
+				}
+			}
+			fprintf(sdp_out, "\n");
+		}
 	}
+
+	/*prepare array of payload type*/
+	count = gf_isom_get_track_count(streamer->isom);
+	payload_type = (u8 *)gf_malloc(count * sizeof(u8));
+	track = streamer->stream;
+	while (track) {
+		payload_type[track->track_num-1] = gf_rtp_streamer_get_payload_type(track->rtp);
+		track = track->next;
+	}
+
 
 	track = streamer->stream;
 	while (track) {
@@ -140,6 +170,8 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 
 	        /*TODO retrieve DIMS content encoding from track to set the flags */
 		gf_rtp_streamer_append_sdp_extended(track->rtp, gf_isom_get_track_id(streamer->isom, track->track_num), dsi, dsi_len, streamer->isom, track->track_num, (char *)KMS, w, h, &sdp_media);
+		if (streamer->base_track)
+			gf_rtp_streamer_append_sdp_decoding_dependency(streamer->isom, track->track_num, payload_type, &sdp_media);
 		if (sdp_media) {
 			fprintf(sdp_out, "%s", sdp_media);
 			gf_free(sdp_media);
@@ -165,6 +197,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		(*out_sdp_buffer)[size]=0;
 	}
 
+	gf_free(payload_type);
 	return GF_OK;
 } 
 
@@ -347,6 +380,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	u16 first_port;
 	u32 nb_tracks;
 	u32 sess_data_size;
+	u32 base_track;
 
 	if (!ip_dest) ip_dest = "127.0.0.1";
 	if (!port) port = 7000;
@@ -464,11 +498,24 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
 		{
-			GF_AVCConfig *avcc = gf_isom_avc_config_get(streamer->isom, track->track_num, 1);
-			track->avc_nalu_size = avcc->nal_unit_size;
-			gf_odf_avc_cfg_del(avcc);
-			streamType = GF_STREAM_VISUAL;
-			oti = GPAC_OTI_VIDEO_AVC;
+			GF_AVCConfig *avcc, *svcc;
+			avcc = gf_isom_avc_config_get(streamer->isom, track->track_num, 1);
+			if (avcc)
+			{
+				track->avc_nalu_size = avcc->nal_unit_size;
+				gf_odf_avc_cfg_del(avcc);
+				streamType = GF_STREAM_VISUAL;
+				oti = GPAC_OTI_VIDEO_AVC;
+			}
+			svcc = gf_isom_svc_config_get(streamer->isom, track->track_num, 1);
+			if (svcc)
+			{
+				track->avc_nalu_size = svcc->nal_unit_size;
+				gf_odf_avc_cfg_del(svcc);
+				streamType = GF_STREAM_VISUAL;
+				oti = GPAC_OTI_VIDEO_SVC;
+			}
+			break;
 		}
 			break;
 		default:
@@ -501,6 +548,11 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		payt++;
 		track->microsec_ts_scale = 1000000;
 		track->microsec_ts_scale /= gf_isom_get_media_timescale(streamer->isom, track->track_num);
+
+		/*does this stream have the decoding dependency ?*/
+		gf_isom_get_reference(streamer->isom, track->track_num, GF_ISOM_REF_BASE, 1, &base_track);
+		if (base_track)
+			streamer->base_track = base_track;
 	}
 	return streamer;
 

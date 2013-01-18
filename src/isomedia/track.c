@@ -367,21 +367,16 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 	//if we have an edit list, the duration is the sum of all the editList 
 	//entries' duration (always expressed in MovieTimeScale)
-	if (trak->editBox && !trak->editBox->last_is_empty && trak->editBox->editList) {
+	if (trak->editBox && trak->editBox->editList) {
 		trackDuration = 0;
 		elst = trak->editBox->editList;
 		i=0;
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
 			trackDuration += ent->segmentDuration;
-			if (ent->mediaRate && !ent->segmentDuration) {
-				trak->editBox->last_is_empty = 1;
-			}
 		}
-
-		if (trak->editBox->last_is_empty) {
-			ent = (GF_EdtsEntry*) gf_list_last(elst->entryList);
-			ent->segmentDuration = trackDuration;
-		}
+	}
+	if (!trackDuration) {
+		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
 	}
 	trak->Header->duration = trackDuration;
 	trak->Header->modificationTime = gf_isom_get_mp4time();

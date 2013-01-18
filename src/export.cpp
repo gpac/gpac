@@ -253,7 +253,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_insert_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del_section) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_filename) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_set_filename) )
 
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )
@@ -622,6 +622,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_sync) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_list_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_segment_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_edit_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_copyright_count) )
@@ -902,12 +903,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp_extended) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp_decoding_dependency) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_au_with_sn) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_format_sdp_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_disable_auto_rtcp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_rtcp) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_get_payload_type) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_new) )

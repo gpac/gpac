@@ -933,13 +933,16 @@ drop:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
 			return GF_OK;
 		}
+		now = gf_term_get_time(codec->odm->term) - entryTime;
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
-			now = gf_term_get_time(codec->odm->term);
-			if (now - entryTime >= TimeAvailable) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because time is up: %d vs %d available\n", codec->decio->module_name, now - entryTime, TimeAvailable));
+			if (now >= TimeAvailable) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because time is up: %d vs %d available\n", codec->decio->module_name, now, TimeAvailable));
 				return GF_OK;
 			}
+		} else if (now >= 10*TimeAvailable) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because running for too long: %d vs %d available\n", codec->decio->module_name, now, TimeAvailable));
+			return GF_OK;
 		}
 		Decoder_GetNextAU(codec, &ch, &AU);
 		if (!ch || !AU) return GF_OK;

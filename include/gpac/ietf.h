@@ -1068,6 +1068,8 @@ enum
 	GF_RTP_PAYT_3GPP_DIMS,
 	/*use AC3 audio format*/
 	GF_RTP_PAYT_AC3,
+	/*use H264-SVC transport*/
+	GF_RTP_PAYT_H264_SVC,
 };
 
 

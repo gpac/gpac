@@ -873,7 +873,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 }
 
 
-static void dump_nalu(FILE *dump, char *ptr, Bool is_svc, Bool is_hevc)
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc)
 {
 	u8 type;
 	u8 dependency_id, quality_id, temporal_id;
@@ -928,12 +928,12 @@ static void dump_nalu(FILE *dump, char *ptr, Bool is_svc, Bool is_hevc)
 	case GF_AVC_NALU_SEI: fputs("SEI Message", dump); break;
 	case GF_AVC_NALU_SEQ_PARAM: 
 		fputs("SequenceParameterSet", dump); 
-		gf_avc_get_sps_info(ptr, strlen(ptr), &sps_id, NULL, NULL, NULL, NULL);
+		gf_avc_get_sps_info(ptr, ptr_size, &sps_id, NULL, NULL, NULL, NULL);
 		fprintf(dump, "\" sps_id=\"%d", sps_id);
 		break;
 	case GF_AVC_NALU_PIC_PARAM: 
 		fputs("PictureParameterSet", dump);
-		gf_avc_get_pps_info(ptr+1, strlen(ptr)-1, &pps_id, &sps_id);
+		gf_avc_get_pps_info(ptr, ptr_size, &pps_id, &sps_id);
 		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", pps_id, sps_id);
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT: fputs("AccessUnit delimiter", dump); break;
@@ -944,7 +944,7 @@ static void dump_nalu(FILE *dump, char *ptr, Bool is_svc, Bool is_hevc)
 	case GF_AVC_NALU_SVC_PREFIX_NALU: fputs("SVCPrefix", dump); break;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM: 
 		fputs("SVCSubsequenceParameterSet", dump); 
-		gf_avc_get_sps_info(ptr, strlen(ptr), &sps_id, NULL, NULL, NULL, NULL);
+		gf_avc_get_sps_info(ptr, ptr_size, &sps_id, NULL, NULL, NULL, NULL);
 		fprintf(dump, "\" sps_id=\"%d", sps_id);
 		break;
 	case GF_AVC_NALU_SLICE_AUX: fputs("Auxiliary Slice", dump); break;
@@ -1011,7 +1011,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "  <%s number=\"%d\" size=\"%d\"", name, i+1, slc->size);\
-			dump_nalu(dump, slc->data , svccfg ? 1 : 0, is_hevc);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc);\
 			fprintf(dump, "/>\n");\
 		}\
 	}\
@@ -1094,7 +1094,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 				break;
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
-				dump_nalu(dump, ptr, svccfg ? 1 : 0, is_hevc);
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc);
 				fprintf(dump, "/>\n");
 			}
 			idx++;

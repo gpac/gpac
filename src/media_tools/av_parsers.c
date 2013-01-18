@@ -2847,6 +2847,8 @@ GF_Err gf_avc_get_pps_info(char *pps_data, u32 pps_size, u32 *pps_id, u32 *sps_i
 		e = GF_NON_COMPLIANT_BITSTREAM;
 		goto exit;
 	}
+	/*nal hdr*/ gf_bs_read_int(bs, 8);
+
 	*pps_id = bs_get_ue(bs);  
 	*sps_id = bs_get_ue(bs);
 
