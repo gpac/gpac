@@ -127,7 +127,23 @@ static u64 gf_mpd_parse_date(char *attr)
 		_t.tm_hour = h;
 		_t.tm_min = m;
 		_t.tm_sec = (u32) s;
+
+#ifdef GPAC_ANDROID
+		{
+		/*FIXME - finad a safe way to estimate timezone this does not work !!*/
+		s32 t_timezone;
+		struct tm t_gmt, t_local;
+		time_t t_time;
+		t_time = time(NULL);
+		t_gmt = *gmtime(&t_time);
+		t_local = *localtime(&t_time);
+		
+		t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600;
+		res = mktime(&_t) - t_timezone;
+		}
+#else
 		res = mktime(&_t) - timezone;
+#endif
 		if (om || oh) {
 			s32 diff = (60*oh + om)*60;
 			if (neg_time_zone) diff = -diff;
