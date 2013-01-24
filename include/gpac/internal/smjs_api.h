@@ -52,6 +52,10 @@ typedef struct
 /*new APIs*/
 #if (JS_VERSION>=185)
 
+#ifdef USE_FFDEV_18
+#define USE_FFDEV_17
+#endif
+
 #ifdef USE_FFDEV_17
 #define USE_FFDEV_16
 #endif
@@ -249,7 +253,9 @@ extern "C" {
 #endif
 
 #if (JS_VERSION>=185)
-#ifdef USE_FFDEV_15
+#if defined(USE_FFDEV_18)
+JSBool gf_sg_js_has_instance(JSContext *cx, JSHandleObject obj, JSMutableHandleValue vp, JSBool *bp);
+#elif defined(USE_FFDEV_15)
 JSBool gf_sg_js_has_instance(JSContext *c, JSHandleObject obj,const jsval *val, JSBool *vp);
 #else
 JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj,const jsval *val, JSBool *vp);
