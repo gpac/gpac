@@ -387,7 +387,9 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 
 GF_EXPORT
 #if (JS_VERSION>=185)
-#ifdef USE_FFDEV_15
+#if defined(USE_FFDEV_18)
+JSBool gf_sg_js_has_instance(JSContext *c, JSHandleObject obj, JSMutableHandleValue __val, JSBool *vp)
+#elif defined(USE_FFDEV_15)
 JSBool gf_sg_js_has_instance(JSContext *c, JSHandleObject obj,const jsval *val, JSBool *vp)
 #else
 JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj,const jsval *val, JSBool *vp)
@@ -396,6 +398,9 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj,const jsval *val, JSBoo
 JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 #endif
 {
+#ifdef USE_FFDEV_18
+	jsval       *val = __val._;
+#endif
 	*vp = JS_FALSE;
 #if (JS_VERSION>=185)
 	if (val && JSVAL_IS_OBJECT(*val)) {
