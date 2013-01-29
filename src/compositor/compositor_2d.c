@@ -911,16 +911,15 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 		if (e) return e;
 
-		if (compositor->has_size_info) {
-			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
-			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
-		} else {
-			compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
-			compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
-		}
 		compositor->was_opengl = evt.setup.opengl_mode;
-		compositor->was_system_memory = evt.setup.system_memory;
-		
+		compositor->was_system_memory = evt.setup.system_memory;		
+	}
+	if (compositor->has_size_info) {
+		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
+		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+	} else {
+		compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
+		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
 	}
 
 	/*set scale factor*/
