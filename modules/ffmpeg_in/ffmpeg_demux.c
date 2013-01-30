@@ -53,6 +53,14 @@
 #define AVERROR_NOFMT AVERROR(EINVAL)
 #endif /* AVERROR_NOFMT */
 
+
+#if (LIBAVFORMAT_VERSION_MAJOR >= 54) && (LIBAVFORMAT_VERSION_MINOR >= 20)
+#define av_find_stream_info(__c)	avformat_find_stream_info(__c, NULL)
+#define FF_API_FORMAT_PARAMETERS	1
+#endif
+
+
+
 static u32 FFDemux_Run(void *par)
 {
 	AVPacket pkt;
