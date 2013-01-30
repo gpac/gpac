@@ -55,8 +55,12 @@
 
 
 #if (LIBAVFORMAT_VERSION_MAJOR >= 54) && (LIBAVFORMAT_VERSION_MINOR >= 20)
+
 #define av_find_stream_info(__c)	avformat_find_stream_info(__c, NULL)
+#ifndef FF_API_FORMAT_PARAMETERS
 #define FF_API_FORMAT_PARAMETERS	1
+#endif
+
 #endif
 
 
