@@ -38,6 +38,10 @@
 #undef USE_AVCODEC2
 #endif
 
+#if (LIBAVCODEC_VERSION_MAJOR >= 54) && (LIBAVCODEC_VERSION_MINOR >= 35)
+#define USE_AVCTX3
+#endif
+
 
 
 /**
@@ -170,7 +174,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		frame = &ffd->base_frame;
 	}
 	if (!(*ctx)){
+
+#ifdef USE_AVCTX3
+	  *ctx = avcodec_alloc_context3(NULL);
+#else
 	  *ctx = avcodec_alloc_context();
+#endif
 	}
 
 	/*private FFMPEG DSI*/
@@ -318,7 +327,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		(*ctx)->pix_fmt = ffd->raw_pix_fmt;
 		if ((*ctx)->extradata && strstr((*ctx)->extradata, "BottomUp")) ffd->flipped = 1;
 	} else {
+#ifdef USE_AVCTX3
+		if (avcodec_open2((*ctx), (*codec), NULL )<0) return GF_NON_COMPLIANT_BITSTREAM;
+#else
 		if (avcodec_open((*ctx), (*codec) )<0) return GF_NON_COMPLIANT_BITSTREAM;
+#endif
 	}
 
 	/*setup audio streams*/
@@ -755,7 +768,13 @@ redecode:
 				here this means the DSI was broken, so no big deal*/
 				avcodec_close(ctx);
 				*codec = avcodec_find_decoder(CODEC_ID_H263);
+
+#ifdef USE_AVCTX3
+				if (! (*codec) || (avcodec_open2(ctx, *codec, NULL)<0)) return GF_NON_COMPLIANT_BITSTREAM;
+#else
 				if (! (*codec) || (avcodec_open(ctx, *codec)<0)) return GF_NON_COMPLIANT_BITSTREAM;
+#endif
+
 	#if USE_AVCODEC2
 				if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
 	#else
@@ -765,7 +784,11 @@ redecode:
 					avcodec_close(ctx);
 					*codec = avcodec_find_decoder(old_codec);
 					assert(*codec);
+#ifdef USE_AVCTX3
+					avcodec_open2(ctx, *codec, NULL);
+#else
 					avcodec_open(ctx, *codec);
+#endif
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
 			}
