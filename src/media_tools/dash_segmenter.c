@@ -1222,7 +1222,7 @@ restart_fragmentation_pass:
 							if (segment_timeline_repeat_count) {
 								sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
 							} else {
-								sprintf(szMPDTempLine, "/>\n", segment_timeline_repeat_count);
+								sprintf(szMPDTempLine, "/>\n");
 							}
 							gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
 						}
@@ -1359,7 +1359,7 @@ restart_fragmentation_pass:
 						if (segment_timeline_repeat_count) {
 							sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
 						} else {
-							sprintf(szMPDTempLine, "/>\n", segment_timeline_repeat_count);
+							sprintf(szMPDTempLine, "/>\n");
 						}
 						gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
 					}
