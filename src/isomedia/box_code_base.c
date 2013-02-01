@@ -25,6 +25,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+
+
 #ifndef GPAC_DISABLE_ISOM
 
 void co64_del(GF_Box *s)
@@ -747,7 +749,8 @@ GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 	GF_DataInformationBox *ptr = (GF_DataInformationBox *)s;
 	switch(a->type) {
 	case GF_ISOM_BOX_TYPE_DREF:
-		if (ptr->dref) return GF_ISOM_INVALID_FILE;
+		if (ptr->dref) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 		ptr->dref = (GF_DataReferenceBox *)a;
 		return GF_OK;		
 	default:
@@ -2781,17 +2784,20 @@ GF_Err mdia_AddBox(GF_Box *s, GF_Box *a)
 	GF_MediaBox *ptr = (GF_MediaBox *)s;
 	switch(a->type) {
 	case GF_ISOM_BOX_TYPE_MDHD:
-	   if (ptr->mediaHeader) return GF_ISOM_INVALID_FILE;
+	   if (ptr->mediaHeader) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 	   ptr->mediaHeader = (GF_MediaHeaderBox *)a;
 	   return GF_OK;
    
 	case GF_ISOM_BOX_TYPE_HDLR:
-	   if (ptr->handler) return GF_ISOM_INVALID_FILE;
+	   if (ptr->handler) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 	   ptr->handler = (GF_HandlerBox *)a;
 	   return GF_OK;
    
 	case GF_ISOM_BOX_TYPE_MINF:
-	   if (ptr->information) return GF_ISOM_INVALID_FILE;
+	   if (ptr->information) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 	   ptr->information = (GF_MediaInformationBox *)a;
 	   return GF_OK;
 	default:
@@ -2947,17 +2953,20 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SMHD:
 	case GF_ISOM_BOX_TYPE_HMHD:
 	case GF_ISOM_BOX_TYPE_GMHD:
-		if (ptr->InfoHeader) return GF_ISOM_INVALID_FILE;
+		if (ptr->InfoHeader) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 		ptr->InfoHeader = a;
 		return GF_OK;
 	
 	case GF_ISOM_BOX_TYPE_DINF:
-		if (ptr->dataInformation ) return GF_ISOM_INVALID_FILE;
+		if (ptr->dataInformation) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		
 		ptr->dataInformation = (GF_DataInformationBox *)a;
 		return GF_OK;
 		
 	case GF_ISOM_BOX_TYPE_STBL:
-		if (ptr->sampleTable ) return GF_ISOM_INVALID_FILE;
+		if (ptr->sampleTable ) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 		ptr->sampleTable = (GF_SampleTableBox *)a;
 		return GF_OK;
 	default:
@@ -3053,7 +3062,8 @@ GF_Err moof_AddBox(GF_Box *s, GF_Box *a)
 	GF_MovieFragmentBox *ptr = (GF_MovieFragmentBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_MFHD:
-		if (ptr->mfhd) return GF_ISOM_INVALID_FILE;
+		if (ptr->mfhd) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
 		ptr->mfhd = (GF_MovieFragmentHeaderBox *) a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TRAF:
@@ -3141,7 +3151,7 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 	GF_MovieBox *ptr = (GF_MovieBox *)s;
 	switch (a->type ) {
 	case GF_ISOM_BOX_TYPE_IODS:
-		if (ptr->iods) return GF_ISOM_INVALID_FILE;
+		if (ptr->iods) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->iods = (GF_ObjectDescriptorBox *)a;
 		//if no IOD, delete the box
 		if (!ptr->iods->descriptor) {
@@ -3151,25 +3161,25 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 		return GF_OK;
 		
 	case GF_ISOM_BOX_TYPE_MVHD:
-		if (ptr->mvhd) return GF_ISOM_INVALID_FILE;
+		if (ptr->mvhd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->mvhd = (GF_MovieHeaderBox *)a;
 		return GF_OK;
 		
 	case GF_ISOM_BOX_TYPE_UDTA:
-		if (ptr->udta) return GF_ISOM_INVALID_FILE;
+		if (ptr->udta) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->udta = (GF_UserDataBox *)a;
 		return GF_OK;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX:
-		if (ptr->mvex) return GF_ISOM_INVALID_FILE;
+		if (ptr->mvex) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->mvex = (GF_MovieExtendsBox *)a;
 		ptr->mvex->mov = ptr->mov;
 		return GF_OK;
 #endif
 
 	case GF_ISOM_BOX_TYPE_META:
-		if (ptr->meta) return GF_ISOM_INVALID_FILE;
+		if (ptr->meta) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->meta = (GF_MetaBox *)a;
 		return GF_OK;
 		
@@ -3298,14 +3308,14 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
-		if (ptr->esd) return GF_ISOM_INVALID_FILE;
+		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->esd = (GF_ESDBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
 		break;
 	case GF_4CC('w','a','v','e'):
-		if (ptr->esd) return GF_ISOM_INVALID_FILE;
+		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		/*HACK for QT files: get the esds box from the track*/
 		{
 			GF_UnknownBox *wave = (GF_UnknownBox *)a;
@@ -3427,7 +3437,7 @@ GF_Err mp4s_AddBox(GF_Box *s, GF_Box *a)
 	GF_MPEGSampleEntryBox *ptr = (GF_MPEGSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
-		if (ptr->esd) return GF_ISOM_INVALID_FILE;
+		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->esd = (GF_ESDBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
@@ -3522,42 +3532,42 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
-		if (ptr->esd) return GF_ISOM_INVALID_FILE;
+		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->esd = (GF_ESDBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
 		break;
 	case GF_ISOM_BOX_TYPE_AVCC:
-		if (ptr->avc_config) return GF_ISOM_INVALID_FILE;
+		if (ptr->avc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->avc_config = (GF_AVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_HVCC:
-		if (ptr->hevc_config) return GF_ISOM_INVALID_FILE;
+		if (ptr->hevc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->hevc_config = (GF_HEVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SVCC:
-		if (ptr->svc_config) return GF_ISOM_INVALID_FILE;
+		if (ptr->svc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->svc_config = (GF_AVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
-		if (ptr->bitrate) return GF_ISOM_INVALID_FILE;
+		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_M4DS:
-		if (ptr->descr) return GF_ISOM_INVALID_FILE;
+		if (ptr->descr) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->descr = (GF_MPEG4ExtensionDescriptorsBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_UUID:
-		if (ptr->ipod_ext) return GF_ISOM_INVALID_FILE;
+		if (ptr->ipod_ext) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->ipod_ext = (GF_UnknownUUIDBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_PASP:
-		if (ptr->pasp) return GF_ISOM_INVALID_FILE;
+		if (ptr->pasp) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->pasp = (GF_PixelAspectRatioBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_RVCC:
-		if (ptr->rvcc) return GF_ISOM_INVALID_FILE;
+		if (ptr->rvcc) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->rvcc = (GF_RVCConfigurationBox *)a;
 		break;
 	default:
@@ -4365,36 +4375,36 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 	if (!a) return GF_OK;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_STTS:
-		if (ptr->TimeToSample) return GF_ISOM_INVALID_FILE;
+		if (ptr->TimeToSample) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->TimeToSample = (GF_TimeToSampleBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_CTTS:
-		if (ptr->CompositionOffset) return GF_ISOM_INVALID_FILE;
+		if (ptr->CompositionOffset) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->CompositionOffset = (GF_CompositionOffsetBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_CSLG:
-		if (ptr->CompositionToDecode) return GF_ISOM_INVALID_FILE;
+		if (ptr->CompositionToDecode) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->CompositionToDecode = (GF_CompositionToDecodeBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_STSS:
-		if (ptr->SyncSample) return GF_ISOM_INVALID_FILE;
+		if (ptr->SyncSample) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->SyncSample = (GF_SyncSampleBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_STSD:
-		if (ptr->SampleDescription) return GF_ISOM_INVALID_FILE;
+		if (ptr->SampleDescription) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->SampleDescription  =(GF_SampleDescriptionBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_STZ2:
 	case GF_ISOM_BOX_TYPE_STSZ:
-		if (ptr->SampleSize) return GF_ISOM_INVALID_FILE;
+		if (ptr->SampleSize) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->SampleSize = (GF_SampleSizeBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_STSC:
-		if (ptr->SampleToChunk) return GF_ISOM_INVALID_FILE;
+		if (ptr->SampleToChunk) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->SampleToChunk = (GF_SampleToChunkBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_PADB:
-		if (ptr->PaddingBits) return GF_ISOM_INVALID_FILE;
+		if (ptr->PaddingBits) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->PaddingBits = (GF_PaddingBitsBox *) a;
 		break;
 
@@ -4407,25 +4417,25 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 		ptr->ChunkOffset = a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_STSH:
-		if (ptr->ShadowSync) return GF_ISOM_INVALID_FILE;
+		if (ptr->ShadowSync) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->ShadowSync = (GF_ShadowSyncBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_STDP:
-		if (ptr->DegradationPriority) return GF_ISOM_INVALID_FILE;
+		if (ptr->DegradationPriority) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->DegradationPriority = (GF_DegradationPriorityBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SDTP:
-		if (ptr->SampleDep) return GF_ISOM_INVALID_FILE;
+		if (ptr->SampleDep) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->SampleDep= (GF_SampleDependencyTypeBox *)a;
 		break;
 
 	case GF_ISOM_BOX_TYPE_STSF:
-		if (ptr->Fragments) return GF_ISOM_INVALID_FILE;
+		if (ptr->Fragments) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->Fragments = (GF_SampleFragmentBox *)a;
 		break;
 	
 	case GF_ISOM_BOX_TYPE_SUBS:
-		if (ptr->SubSamples) return GF_ISOM_INVALID_FILE;
+		if (ptr->SubSamples) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->SubSamples = (GF_SubSampleInformationBox *)a;
 		break;
 
@@ -5895,21 +5905,21 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 	
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_TFHD:
-		if (ptr->tfhd) return GF_ISOM_INVALID_FILE;
+		if (ptr->tfhd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->tfhd = (GF_TrackFragmentHeaderBox *) a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TRUN:
 		return gf_list_add(ptr->TrackRuns, a);
 	case GF_ISOM_BOX_TYPE_SDTP:
-		if (ptr->sdtp) return GF_ISOM_INVALID_FILE;
+		if (ptr->sdtp) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->sdtp = (GF_SampleDependencyTypeBox *)a;
 		return GF_OK;
     case GF_ISOM_BOX_TYPE_TFDT:
-        if (ptr->tfdt) return GF_ISOM_INVALID_FILE;
+        if (ptr->tfdt) ERROR_ON_DUPLICATED_BOX(a, ptr)
         ptr->tfdt = (GF_TFBaseMediaDecodeTimeBox*) a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SUBS:
-		if (ptr->subs) return GF_ISOM_INVALID_FILE;
+		if (ptr->subs) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->subs = (GF_SubSampleInformationBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SBGP:
@@ -5930,7 +5940,7 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 		return GF_OK;		
 	case GF_ISOM_BOX_TYPE_UUID:
 		if ( ((GF_UUIDBox *)a)->internal_4cc==GF_ISOM_BOX_UUID_PSEC) {
-			if (ptr->piff_sample_encryption) return GF_ISOM_INVALID_FILE;
+			if (ptr->piff_sample_encryption) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->piff_sample_encryption = (GF_PIFFSampleEncryptionBox *)a;
 			ptr->piff_sample_encryption->traf = ptr;
 			return GF_OK;
@@ -6238,27 +6248,27 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 	if (!a) return GF_OK;
 	switch(a->type) {
 	case GF_ISOM_BOX_TYPE_TKHD:
-		if (ptr->Header) return GF_ISOM_INVALID_FILE;
+		if (ptr->Header) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->Header = (GF_TrackHeaderBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_EDTS:
-		if (ptr->editBox) return GF_ISOM_INVALID_FILE;
+		if (ptr->editBox) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->editBox = (GF_EditBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_UDTA:
-		if (ptr->udta) return GF_ISOM_INVALID_FILE;
+		if (ptr->udta) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->udta = (GF_UserDataBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_META:
-		if (ptr->meta) return GF_ISOM_INVALID_FILE;
+		if (ptr->meta) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->meta = (GF_MetaBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TREF:
-		if (ptr->References) return GF_ISOM_INVALID_FILE;
+		if (ptr->References) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->References = (GF_TrackReferenceBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_MDIA:
-		if (ptr->Media) return GF_ISOM_INVALID_FILE;
+		if (ptr->Media) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->Media = (GF_MediaBox *)a;
 		((GF_MediaBox *)a)->mediaTrack = ptr;
 		return GF_OK;
@@ -7220,7 +7230,7 @@ GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
 		gf_list_add(ptr->protections, a);
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
-		if (ptr->bitrate) return GF_ISOM_INVALID_FILE;
+		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
 		break;
 	default:
@@ -7591,15 +7601,15 @@ GF_Err lsr1_AddBox(GF_Box *s, GF_Box *a)
 	GF_LASeRSampleEntryBox *ptr = (GF_LASeRSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_LSRC:
-		if (ptr->lsr_config) return GF_ISOM_INVALID_FILE;
+		if (ptr->lsr_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->lsr_config = (GF_LASERConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
-		if (ptr->bitrate) return GF_ISOM_INVALID_FILE;
+		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_M4DS:
-		if (ptr->descr) return GF_ISOM_INVALID_FILE;
+		if (ptr->descr) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->descr = (GF_MPEG4ExtensionDescriptorsBox *)a;
 		break;
 	default:

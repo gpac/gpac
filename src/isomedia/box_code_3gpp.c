@@ -1216,22 +1216,22 @@ void dims_del(GF_Box *s)
 
 static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 {
-	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox  *)s;
+	GF_DIMSSampleEntryBox *ptr = (GF_DIMSSampleEntryBox  *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_DIMC:
-		if (p->config) return GF_ISOM_INVALID_FILE;
-		p->config = (GF_DIMSSceneConfigBox*)a;
+		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->config = (GF_DIMSSceneConfigBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_DIST:
-		if (p->scripts) return GF_ISOM_INVALID_FILE;
-		p->scripts = (GF_DIMSScriptTypesBox*)a;
+		if (ptr->scripts) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->scripts = (GF_DIMSScriptTypesBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
-		if (p->bitrate) return GF_ISOM_INVALID_FILE;
-		p->bitrate = (GF_MPEG4BitRateBox*)a;
+		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->bitrate = (GF_MPEG4BitRateBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
-		gf_list_add(p->protections, a);
+		gf_list_add(ptr->protections, a);
 		break;
 	default:
 		return gf_isom_box_add_default(s, a);
