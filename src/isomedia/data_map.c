@@ -189,6 +189,7 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 	count = gf_list_count(minf->dataInformation->dref->other_boxes);
 	if (!count) {
 		SelfCont = 1;
+		ent = NULL;
 	} else {
 		if (dataRefIndex > gf_list_count(minf->dataInformation->dref->other_boxes))
 			return GF_BAD_PARAM;

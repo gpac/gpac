@@ -242,7 +242,7 @@ static void gf_dash_buffer_on(GF_DASH_Group *group, GF_DashClient *dash)
 	}
 }
 
-
+GF_EXPORT
 void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered)
 {
 	if (dash->nb_buffering) {
