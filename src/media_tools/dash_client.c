@@ -354,12 +354,14 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 
 	current_time = group->dash->mpd_fetch_time;
 
+#if 0
 	{
 		struct tm t1, t2;
 		t1 = * gmtime(&current_time);
 		t2 = * gmtime(&mpd->availabilityStartTime);
 		t1.tm_year = t2.tm_year;
 	}
+#endif
 
 	if (current_time < mpd->availabilityStartTime) current_time = 0;
 	else current_time -= mpd->availabilityStartTime;	
