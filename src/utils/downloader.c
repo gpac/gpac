@@ -2186,7 +2186,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     u32 res;
     s32 LinePos, Pos;
     u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
-    char buf[1024];
+    char buf[1025];
     char comp[400];
     GF_Err e;
     char * new_location;
@@ -2510,7 +2510,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     case 404:
         /* File not found */
         gf_dm_sess_user_io(sess, &par);
-        e = GF_URL_ERROR;
+		if ((BodyStart < (s32) bytesRead)) {
+			sHTTP[bytesRead] = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Failure: %s\n", sHTTP + BodyStart));
+		}
+		e = GF_URL_ERROR;
         goto exit;
         break;
     case 416:

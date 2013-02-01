@@ -1351,7 +1351,7 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 			before one starts playing*/
 			while ( (ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 				gf_es_start(ch);
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d starting channel\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u starting channel\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
 			}
 			skip_register = 0;
 		}
@@ -1526,7 +1526,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 		} else {
 			gf_term_service_command(ch->service, &com);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
 		}
 	}
 //	odm->media_start_time = 0;
@@ -1672,7 +1672,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		if (ch->service) {
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH %d At OTB %d requesting STOP\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
 		}
 	}
 	gf_term_service_media_event(odm, GF_EVENT_ABORT);
@@ -1840,7 +1840,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 		gf_clock_pause(ch->clock);
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 	}
 
 #ifndef GPAC_DISABLE_VRML
@@ -1892,7 +1892,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 		gf_clock_resume(ch->clock);
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 
 		/*override speed with MC*/
 		if (ctrl) {

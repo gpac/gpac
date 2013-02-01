@@ -179,38 +179,44 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 {
 	GF_DataEntryBox *ent;
 	GF_MediaInformationBox *minf;
-	u32 SelfCont;
+	u32 SelfCont, count;
 	GF_Err e = GF_OK;
 	if ((mdia == NULL) || (! mdia->information) || !dataRefIndex)
 		return GF_ISOM_INVALID_MEDIA;
 
 	minf = mdia->information;
 
-	if (dataRefIndex > gf_list_count(minf->dataInformation->dref->other_boxes))
-		return GF_BAD_PARAM;
+	count = gf_list_count(minf->dataInformation->dref->other_boxes);
+	if (!count) {
+		SelfCont = 1;
+	} else {
+		if (dataRefIndex > gf_list_count(minf->dataInformation->dref->other_boxes))
+			return GF_BAD_PARAM;
 
-	ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->other_boxes, dataRefIndex - 1);
-	if (ent == NULL) return GF_ISOM_INVALID_MEDIA;
+		ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->other_boxes, dataRefIndex - 1);
+		if (ent == NULL) return GF_ISOM_INVALID_MEDIA;
 
-	//if the current dataEntry is the desired one, and not self contained, return
-	if ((minf->dataEntryIndex == dataRefIndex) && (ent->flags != 1)) {
-		return GF_OK;
+		//if the current dataEntry is the desired one, and not self contained, return
+		if ((minf->dataEntryIndex == dataRefIndex) && (ent->flags != 1)) {
+			return GF_OK;
+		}
+
+		SelfCont = 0;
+		switch (ent->type) {
+		case GF_ISOM_BOX_TYPE_URL:
+		case GF_ISOM_BOX_TYPE_URN:
+			if (ent->flags == 1) SelfCont = 1;
+			break;
+		default:
+			SelfCont = 1;
+			break;
+		}
 	}
 
 	//we need to open a new one
 	//first close the existing one
 	if (minf->dataHandler) gf_isom_datamap_close(minf);
 
-	SelfCont = 0;
-	switch (ent->type) {
-	case GF_ISOM_BOX_TYPE_URL:
-	case GF_ISOM_BOX_TYPE_URN:
-		if (ent->flags == 1) SelfCont = 1;
-		break;
-	default:
-		SelfCont = 1;
-		break;
-	}
 	//if self-contained, assign the input file
 	if (SelfCont) {
 		//if no edit, open the input file
@@ -408,7 +414,8 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 {
 	if (!ptr || (ptr->type != GF_ISOM_DATA_FILE)) return;
 	if (ptr->bs) gf_bs_del(ptr->bs);
-	if (ptr->stream && !ptr->is_stdout) fclose(ptr->stream);
+	if (ptr->stream && !ptr->is_stdout)
+		fclose(ptr->stream);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->temp_file) {

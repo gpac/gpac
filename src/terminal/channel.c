@@ -692,9 +692,9 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 		if (ch->MinBuffer && (ch->is_raw_channel==2)) {
 			ch->clock->clock_init = 0;
 			gf_clock_set_time(ch->clock, cts);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %d but frame TS is %d ms - adjusting clock\n", ch->odm->OD->objectDescriptorID, now, cts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - adjusting clock\n", ch->odm->OD->objectDescriptorID, now, cts));
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %d but frame TS is %d ms - DROPPING\n", ch->odm->OD->objectDescriptorID, now, cts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - DROPPING\n", ch->odm->OD->objectDescriptorID, now, cts));
 		}
 		return;
 	}
@@ -815,7 +815,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			u32 ck;
 			u32 OCR_TS = (u32) ( hdr.objectClockReference / 27000);
 			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d - OCR Discontinuity OCR: adjusting to %d (original TS "LLD") - original clock %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, ck));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u - OCR Discontinuity OCR: adjusting to %d (original TS "LLD") - original clock %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, ck));
 //			gf_clock_set_time(ch->clock, (u32) OCR_TS);
 		}
 		/*compute clock drift*/
@@ -828,7 +828,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
 			}
 			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d (original TS "LLD") - diff %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u adjusting OCR to %d (original TS "LLD") - diff %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck));
 //			gf_clock_set_time(ch->clock, (u32) OCR_TS);
 		}
 #else
@@ -841,7 +841,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
 			}
 			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d got OCR %d (original TS "LLD") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
 		}
 #endif
 		if (!payload_size) return;

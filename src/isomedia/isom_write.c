@@ -2405,6 +2405,8 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		orig_file->moov->trackList = old_tracks;
 		gf_list_del(tracks);
 		orig_file->moov->iods = (GF_ObjectDescriptorBox*)iods;
+		gf_list_add(dest_file->TopBoxes, dest_file->moov);
+
 		if (clone_tracks) { 
 			for (i=0; i<gf_list_count(orig_file->moov->trackList); i++) {
 				GF_TrackBox *trak = gf_list_get( orig_file->moov->trackList, i);

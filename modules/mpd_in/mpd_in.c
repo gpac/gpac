@@ -152,10 +152,14 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			return GF_SERVICE_ERROR;
 		}
 
+		if (discard_first_cache_entry) {
+			gf_dash_group_discard_segment(mpdin->dash, group_idx);
+		}
+
 		while (gf_dash_is_running(mpdin->dash) ) {
 			group_done=0;
 			nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
-			if (nb_segments_cached>=2) 
+			if (nb_segments_cached>=1) 
 				break;
 
 			if (group_done) {
@@ -178,16 +182,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         }
 	
 		nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
-        if (nb_segments_cached < 2) {
+        if (nb_segments_cached < 1) {
             GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] No more file in cache, EOS\n"));
             return GF_EOS;
         } else {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Had to wait for %u ms for the only cache file to be downloaded\n", (gf_sys_clock() - timer)));
         }
-
-		if (discard_first_cache_entry) {
-			gf_dash_group_discard_segment(mpdin->dash, group_idx);
-		}
 
 		gf_dash_group_get_next_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, &param->url_query.start_range, &param->url_query.end_range, 
 								NULL, &param->url_query.next_url_init_or_switch_segment, &param->url_query.switch_start_range , &param->url_query.switch_end_range,
@@ -467,8 +467,14 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			gf_dash_set_group_udta(mpdin->dash, i, NULL);
 		}
 		mpdin->service->subservice_disconnect = 0;
+		return GF_OK;
 	}
 
+	if (dash_evt==GF_DASH_EVENT_BUFFERING) {
+		u32 tot, done;
+		gf_dash_get_buffer_info_buffering(mpdin->dash, &tot, &done);
+		fprintf(stderr, "DASH: Buffering %g%% out of %d ms\n", (100.0*done)/tot, tot);
+	}
 	return GF_OK;
 }
 
@@ -480,7 +486,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     GF_Err e;
 	u32 max_cache_duration, auto_switch_count;
 	GF_DASHInitialSelectionMode first_select_mode;
-	Bool keep_files, disable_switching;
+	Bool keep_files, disable_switching, enable_buffering;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
@@ -546,11 +552,14 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
 	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 	
-	
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering", "yes");
+	enable_buffering = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
 
-	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode);
+	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, enable_buffering);
 
 	if (!mpdin->dash) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot create DASH Client for %s\n", url));
