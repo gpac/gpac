@@ -410,7 +410,7 @@ typedef enum
 	GF_DASH_TEMPLATE_REPINDEX,
 } GF_DashTemplateSegmentType;
 
-GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number);
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);
 
 #endif		/*_GF_MEDIA_DEV_H_*/
 

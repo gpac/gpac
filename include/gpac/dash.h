@@ -57,6 +57,9 @@ typedef enum
 	GF_DASH_EVENT_CREATE_PLAYBACK,
 	/*event sent when reseting groups at period switch or at exit - user should unload playback chain(s) at this point*/
 	GF_DASH_EVENT_DESTROY_PLAYBACK,
+
+	GF_DASH_EVENT_BUFFERING,
+	GF_DASH_EVENT_BUFFER_DONE,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -125,7 +128,8 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io,
 						   u32 auto_switch_count, 
 						   Bool keep_files, 
 						   Bool disable_switching, 
-						   GF_DASHInitialSelectionMode first_select_mode);
+						   GF_DASHInitialSelectionMode first_select_mode,
+						   Bool enable_buffering);
 
 /*delete the DASH client*/
 void gf_dash_del(GF_DashClient *dash);
@@ -223,6 +227,7 @@ void gf_dash_allow_local_mpd_update(GF_DashClient *dash, Bool allow_local_mpd_up
 /*gets media info for representation*/
 GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs);
 
+void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

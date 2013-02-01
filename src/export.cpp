@@ -1744,6 +1744,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_video_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_representation_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info_buffering) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )

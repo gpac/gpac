@@ -228,7 +228,7 @@ u32 gf_clock_real_time(GF_Clock *ck)
 u32 gf_clock_time(GF_Clock *ck)
 {
 	u32 time = gf_clock_real_time(ck);
-	if ((s32) time < ck->drift) return 0;
+	if ((ck->drift>0) && (time < (u32) ck->drift)) return 0;
 	return time - ck->drift;
 }
 
