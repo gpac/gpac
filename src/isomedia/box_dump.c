@@ -1146,14 +1146,9 @@ GF_Err cslg_dump(GF_Box *a, FILE * trace)
 	GF_CompositionToDecodeBox *p;
 
 	p = (GF_CompositionToDecodeBox *)a;
-	fprintf(trace, "<CompositionToDecodeBox>\n");
+	fprintf(trace, "<CompositionToDecodeBox compositionToDTSShift=\"%d\" leastDecodeToDisplayDelta=\"%d\" compositionStartTime=\"%d\" compositionEndTime=\"%d\">\n", p->leastDecodeToDisplayDelta, p->greatestDecodeToDisplayDelta, p->compositionStartTime, p->compositionEndTime);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "<CompositionToDTSShift=\"%d\"/>\n", p->compositionToDTSShift);
-	fprintf(trace, "<LeastDecodeToDisplayDelta=\"%d\"/>\n", p->leastDecodeToDisplayDelta);
-	fprintf(trace, "<GreatestDecodeToDisplayDelta=\"%d\"/>\n", p->greatestDecodeToDisplayDelta);
-	fprintf(trace, "<CompositionStartTime=\"%d\"/>\n", p->compositionStartTime);
-	fprintf(trace, "<CompositionEndTime=\"%d\"/>\n", p->compositionEndTime);
 	gf_box_dump_done("CompositionToDecodeBox", a, trace);
 	return GF_OK;
 }

@@ -351,6 +351,12 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 	/*M3U8 does not use NTP sync */
 	if (group->dash->is_m3u8)
 		return;
+	
+	/*if no AST, do not use NTP sync */
+	if (! group->dash->mpd->availabilityStartTime) {
+		group->broken_timing = 1;
+		return;
+	}
 
 	current_time = group->dash->mpd_fetch_time;
 
@@ -1171,6 +1177,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	} 
 
 	if (! memcmp( signature, dash->lastMPDSignature, sizeof(dash->lastMPDSignature))) {
+
 		dash->reload_count++;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] MPD file did not change for %d consecutive reloads\n", dash->reload_count));
 		/*if the MPD did not change, we should refresh "soon" but cannot wait a full refresh cycle in case of 
@@ -2906,7 +2913,8 @@ restart_period:
 				}
 				/* if media_presentation_duration is 0 and we are in live, force a refresh (not in the spec but safety check*/
 				else if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->mpd->media_presentation_duration) {
-					update_playlist = 1;
+					if (group->segment_duration && (timer > group->segment_duration*1000))
+						update_playlist = 1;
 				}
 				if (update_playlist) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in current playlist downloaded, checking updates after %u ms\n", timer));

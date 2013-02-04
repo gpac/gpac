@@ -809,9 +809,18 @@ void dref_del(GF_Box *s)
 }
 
 
-GF_Err dref_AddDataEntry(GF_DataReferenceBox *ptr, GF_Box *entry)
+GF_Err dref_AddDataEntry(GF_Box *ptr, GF_Box *entry)
 {
-	return gf_isom_box_add_default((GF_Box *)ptr, entry);
+	if (entry->type==GF_4CC('a','l','i','s')) {
+		GF_DataEntryURLBox *urle = (GF_DataEntryURLBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
+		urle->flags = 1;
+		gf_isom_box_del(entry);
+		gf_isom_box_add_default(ptr, (GF_Box *)urle);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Apple \'alis\' box found, not supported - converting to self-pointing \'url \' \n" ));
+	} else {
+		return gf_isom_box_add_default(ptr, entry);
+	}
+	return GF_OK;
 }
 
 GF_Err dref_Read(GF_Box *s, GF_BitStream *bs)
@@ -827,7 +836,7 @@ GF_Err dref_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_u32(bs);
 	ptr->size -= 4;
 
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_read_box_list(s, bs, dref_AddDataEntry);
 }
 
 GF_Box *dref_New()
