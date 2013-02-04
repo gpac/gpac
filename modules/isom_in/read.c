@@ -583,10 +583,12 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		ch->next_track = 0;
 
 		/*set track to last layer (hopefully max quality)*/
-		for (i = 0; i < count; i++) {
-			gf_isom_get_reference(ch->owner->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
-			if (base_track==ch->base_track)
-				ch->track = i+1;
+		if (base_track) {
+			for (i = 0; i < count; i++) {
+				gf_isom_get_reference(ch->owner->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
+				if (base_track==ch->base_track)
+					ch->track = i+1;
+			}
 		}
 		/*in scalable mode add SPS/PPS in-band*/
 		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);

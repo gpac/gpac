@@ -519,7 +519,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		mpd_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		if (first_in_set && dash_cfg->use_segment_timeline) {
 			mpd_timeline_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			sprintf(szMPDTempLine, "   <SegmentTimeline>\n");
+			sprintf(szMPDTempLine, "    <SegmentTimeline>\n");
 			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
 		}
 		
@@ -1228,10 +1228,10 @@ restart_fragmentation_pass:
 						}
 						previous_segment_duration = SegmentDuration;
 						if (first_segment_in_timeline) {
-							sprintf(szMPDTempLine, "    <S t=\""LLU"\" d=\""LLU"\"", (u64) (segment_start_time*timeline_timescale), (u64) SegmentDuration );
+							sprintf(szMPDTempLine, "     <S t=\""LLU"\" d=\""LLU"\"", (u64) (segment_start_time*timeline_timescale), (u64) SegmentDuration );
 							first_segment_in_timeline = 0;
 						} else {
-							sprintf(szMPDTempLine, "    <S d=\""LLU"\"", (u64) SegmentDuration);
+							sprintf(szMPDTempLine, "     <S d=\""LLU"\"", (u64) SegmentDuration);
 						}
 						gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
 						segment_timeline_repeat_count = 0;
@@ -1348,33 +1348,33 @@ restart_fragmentation_pass:
 			} else {
 				file_size += gf_isom_get_file_size(output);
 			}
-
-			if (mpd_timeline_bs) {
-				if (previous_segment_duration == SegmentDuration) {
-					segment_timeline_repeat_count ++;
-					sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
-					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
-				} else {
-					if (previous_segment_duration) {
-						if (segment_timeline_repeat_count) {
-							sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
-						} else {
-							sprintf(szMPDTempLine, "/>\n");
-						}
-						gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+		}
+		if (mpd_timeline_bs) {
+			if (previous_segment_duration == SegmentDuration) {
+				segment_timeline_repeat_count ++;
+				sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
+				gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+			} else {
+				if (previous_segment_duration) {
+					if (segment_timeline_repeat_count) {
+						sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
+					} else {
+						sprintf(szMPDTempLine, "/>\n");
 					}
+					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+				}
+				if (SegmentDuration) {
 					if (first_segment_in_timeline) {
-						sprintf(szMPDTempLine, "    <S t=\""LLU"\" d=\""LLU"\"/>\n", (u64) (segment_start_time*timeline_timescale), (u64) SegmentDuration );
+						sprintf(szMPDTempLine, "     <S t=\""LLU"\" d=\""LLU"\"/>\n", (u64) (segment_start_time*timeline_timescale), (u64) SegmentDuration );
 						first_segment_in_timeline = 0;
 					} else {
-						sprintf(szMPDTempLine, "    <S d=\""LLU"\"/>\n", (u64) SegmentDuration);
+						sprintf(szMPDTempLine, "     <S d=\""LLU"\"/>\n", (u64) SegmentDuration);
 					}
 					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
 				}
 			}
-		}
-		if (mpd_timeline_bs) {
-			sprintf(szMPDTempLine, "   </SegmentTimeline>\n");
+
+			sprintf(szMPDTempLine, "    </SegmentTimeline>\n");
 			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
 		}
 
@@ -1434,7 +1434,7 @@ restart_fragmentation_pass:
 			char *mpd_seg_info = NULL;
 			u32 size;
 
-			fprintf(dash_cfg->mpd, "    <SegmentList>\n");
+			fprintf(dash_cfg->mpd, "   <SegmentList>\n");
 
 			gf_bs_get_content(mpd_timeline_bs, &mpd_seg_info, &size);
 			gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
