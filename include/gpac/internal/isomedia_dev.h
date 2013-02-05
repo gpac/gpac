@@ -906,7 +906,8 @@ typedef struct
 	u16 compression_id;				\
 	u16 packet_size;				\
 	u16 samplerate_hi;				\
-	u16 samplerate_lo;
+	u16 samplerate_lo;				\
+	u8 extensions[36];				\
 
 
 typedef struct 

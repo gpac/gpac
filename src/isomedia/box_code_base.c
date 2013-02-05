@@ -816,7 +816,7 @@ GF_Err dref_AddDataEntry(GF_Box *ptr, GF_Box *entry)
 		urle->flags = 1;
 		gf_isom_box_del(entry);
 		gf_isom_box_add_default(ptr, (GF_Box *)urle);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Apple \'alis\' box found, not supported - converting to self-pointing \'url \' \n" ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Apple \'alis\' box found, not supported - converting to self-pointing \'url \' \n" ));
 	} else {
 		return gf_isom_box_add_default(ptr, entry);
 	}

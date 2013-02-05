@@ -951,7 +951,7 @@ void base_visual_entry_dump(GF_VisualSampleEntryBox *p, FILE * trace)
 	//dump reserved info
 	fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	if (strlen((const char*)p->compressor_name) )
-		fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
+		fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name+1);
 
 }
 
@@ -1030,7 +1030,7 @@ GF_Err gnrv_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericVisualSampleEntryBox *p = (GF_GenericVisualSampleEntryBox *)a;
 	fprintf(trace, "<VisualSampleDescriptionBox DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" TemporalQuality=\"%d\" SpacialQuality=\"%d\" Width=\"%d\" Height=\"%d\" HorizontalResolution=\"%d\" VerticalResolution=\"%d\" CompressorName=\"%s\" BitDepth=\"%d\">\n",
-		p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, p->compressor_name, p->bit_depth);
+		p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, p->compressor_name+1, p->bit_depth);
 	a->type = p->EntryType;
 	DumpBox(a, trace);
 	a->type = GF_ISOM_BOX_TYPE_GNRV;
