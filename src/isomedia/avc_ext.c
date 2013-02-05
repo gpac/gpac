@@ -37,6 +37,7 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
 	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return 0;
+	if (_entry->type==GF_ISOM_BOX_TYPE_GNRV) return 0;
 	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
 	if (!entry) return 0;
 	if (entry->avc_config || entry->svc_config || entry->hevc_config) return 1;

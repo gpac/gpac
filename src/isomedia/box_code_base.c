@@ -4505,8 +4505,14 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 				gf_isom_box_del(a);
 				return e;
 			}
+
+			if (a->size>8) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(a->type), a->size));
+				gf_bs_skip_bytes(bs, a->size-8);
+			}
 			a->size = s;
 		}
+
 		if (ptr->size<a->size) {
 			gf_isom_box_del(a);
 			return GF_ISOM_INVALID_FILE;
@@ -4821,6 +4827,7 @@ GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs)
 	for (entry = 0; entry < ptr->nb_entries; entry++) {
 		ptr->priorities[entry] = gf_bs_read_u16(bs);
 	}
+	ptr->size -= 2*ptr->nb_entries;
 	return GF_OK;
 }
 
