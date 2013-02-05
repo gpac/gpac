@@ -391,6 +391,7 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 	(*chunkNumber) = (*descIndex) = 0;
 	(*isEdited) = 0;
 	if (!stbl || !sampleNumber) return GF_BAD_PARAM;
+	if (!stbl->ChunkOffset) return GF_ISOM_INVALID_FILE;
 
 	if (stbl->SampleToChunk->nb_entries == stbl->SampleSize->sampleCount) {
 		ent = &stbl->SampleToChunk->entries[sampleNumber-1];

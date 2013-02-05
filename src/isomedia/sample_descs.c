@@ -129,11 +129,11 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 	ptr->size -= 28;
 	if (ptr->version==1) {
 		if (ptr->size<16) return GF_ISOM_INVALID_FILE;
-		gf_bs_skip_bytes(bs, 16);
+		gf_bs_read_data(bs, ptr->extensions, 16);
 		ptr->size-=16;
 	} else if (ptr->version==2) {
 		if (ptr->size<36) return GF_ISOM_INVALID_FILE;
-		gf_bs_skip_bytes(bs, 36);
+		gf_bs_read_data(bs, ptr->extensions, 36);
 		ptr->size -= 36;
 	}
 	return GF_OK;
@@ -155,11 +155,21 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->packet_size);
 	gf_bs_write_u16(bs, ptr->samplerate_hi);
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
+	if (ptr->version==1) {
+		gf_bs_write_data(bs, ptr->extensions, 16);
+	} else if (ptr->version==2) {
+		gf_bs_write_data(bs, ptr->extensions, 36);
+	}
 }
 
 void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 {
 	ptr->size += 28;
+	if (ptr->version==1) {
+		ptr->size+=16;
+	} else if (ptr->version==2) {
+		ptr->size += 36;
+	}
 }
 
 
