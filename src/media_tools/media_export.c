@@ -379,6 +379,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 		gf_export_message(dumper, GF_OK, "Extracting AC3 sample%s", szNum);
 		strcpy(szEXT, ".ac3");
+	} else if (m_stype==GF_4CC('x','d','v','b') ) {
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 sample%s", szNum);
+		strcpy(szEXT, ".m2v");
 	} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) 
 			|| (m_stype==GF_ISOM_SUBTYPE_AVC2_H264)
 			|| (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
@@ -850,6 +853,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting H263 Video");
 			if (add_ext) 
 				strcat(szName, ".263");
+		} else if (m_stype==GF_4CC('x','d','v','b')) {
+			gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Video");
+			if (add_ext) 
+				strcat(szName, ".m2v");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
 			return gf_media_export_nhml(dumper, 1);
 		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) 
