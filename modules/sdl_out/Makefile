@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKFLAGS=$(SDL_LIBS)
+LINKFLAGS=-L../../bin/gcc -lgpac $(SDL_LIBS)
 
 #common obj
 OBJS=sdl_out.o audio.o video.o
@@ -31,7 +31,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
