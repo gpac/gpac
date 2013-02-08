@@ -888,13 +888,80 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	return GF_OK;
 }
 
+
+static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
+{
+	GF_Err e = GF_OK;
+	/*write STYP if we write to a different file or if we write the last segment*/
+	if (!movie->append_segment && !movie->segment_start && !movie->styp_written) {
+
+		/*modify brands STYP*/
+
+		/*"msix" brand: this is a DASH Initialization Segment*/
+		gf_isom_modify_alternate_brand(movie, GF_4CC('m','s','i','x'), 1);
+		if (last_segment) {
+			/*"lmsg" brand: this is the last DASH Segment*/
+			gf_isom_modify_alternate_brand(movie, GF_4CC('l','m','s','g'), 1);
+		}
+
+		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
+		e = gf_isom_box_size((GF_Box *) movie->brand);
+		if (e) return e;
+		e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
+		if (e) return e;
+
+		movie->styp_written = 1;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
+{
+	GF_Err e;
+		
+	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
+
+	/*flush our fragment (store in mem)*/
+	if (movie->moof) {
+		e = StoreFragment(movie, 1, 0, NULL);
+		if (e) return e;
+	}
+
+	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
+	gf_bs_truncate(movie->editFileMap->bs);
+
+	/*write styp to file if needed*/
+	e = gf_isom_write_styp(movie, last_segment);
+	if (e) return e;
+
+	/*write all pending fragments to file*/
+	while (gf_list_count(movie->moof_list)) {
+		s32 offset_diff;
+		u32 moof_size;
+
+		movie->moof = gf_list_get(movie->moof_list, 0);
+		gf_list_rem(movie->moof_list, 0);
+
+		offset_diff = (s32) (gf_bs_get_position(movie->editFileMap->bs) - movie->moof->fragment_offset);
+		movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
+
+		e = StoreFragment(movie, 0, offset_diff, &moof_size);
+
+		gf_isom_box_del((GF_Box *) movie->moof);
+		movie->moof = NULL;
+	}
+	movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
+	return GF_OK;
+}
+
 typedef struct
 {
 	GF_SegmentIndexBox *sidx;
 	u64 start_offset, end_offset;
 } SIDXEntry;
 
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u64 *index_start_range, u64 *index_end_range)
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
@@ -927,13 +994,21 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	count = gf_list_count(movie->moov->mvex->TrackExList);
 	if (!count) return GF_BAD_PARAM;
 
-	count = gf_list_count(movie->moof_list);
-	if (!count) return GF_OK;
 	/*store fragment*/
 	if (movie->moof) {
 		e = StoreFragment(movie, 1, 0, NULL);
 		if (e) return e;
 	}
+	count = gf_list_count(movie->moof_list);
+	if (!count) {
+		/*append segment marker box*/
+		if (segment_marker_4cc) {
+			gf_bs_write_u32(movie->editFileMap->bs, 8);	//write size field
+			gf_bs_write_u32(movie->editFileMap->bs, segment_marker_4cc); //write box type field
+		}
+		return GF_OK;
+	}
+
 	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
 	gf_bs_truncate(movie->editFileMap->bs);
 
@@ -949,24 +1024,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		no_sidx = 1;
 	}
 
-	/*write STYP if we write to a different file or if we write the last segment*/
-	if (!movie->append_segment && !movie->segment_start ) {
-
-		/*modify brands STYP*/
-
-		/*"msix" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_4CC('m','s','i','x'), 1);
-		if (last_segment) {
-			/*"lmsg" brand: this is the last DASH Segment*/
-			gf_isom_modify_alternate_brand(movie, GF_4CC('l','m','s','g'), 1);
-		}
-
-		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
-		e = gf_isom_box_size((GF_Box *) movie->brand);
-		if (e) return e;
-		e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
-		if (e) return e;
-	}
+	e = gf_isom_write_styp(movie, last_segment);
+	if (e) return e;
 
 	frags_per_subseg = 0;
 	subseg_per_sidx = 0;
@@ -1257,6 +1316,12 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		movie->moof = NULL;
 	}
 
+	/*append segment marker box*/
+	if (segment_marker_4cc) {
+		gf_bs_write_u32(movie->editFileMap->bs, 8);	//write size field
+		gf_bs_write_u32(movie->editFileMap->bs, segment_marker_4cc); //write box type field
+	}
+
 	if (movie->root_sidx) {
 		if (last_segment) {
 			assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
@@ -1334,7 +1399,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, 1, NULL, NULL);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, 1, 0, NULL, NULL);
 	} else {
 		return StoreFragment(movie, 0, 0, NULL);
 	}
@@ -1356,6 +1421,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 		gf_isom_datamap_del(movie->editFileMap);
 		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
 		movie->segment_start = 0;
+		movie->styp_written = 0;
 		if (e) return e;
 	} else {
 		assert(gf_list_count(movie->moof_list) == 0);

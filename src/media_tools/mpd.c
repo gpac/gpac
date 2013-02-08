@@ -324,13 +324,19 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 
 	/*setup some defaults*/
 	seg->timescale = 1;
+	/*infinite by default*/
+	seg->time_shift_buffer_depth = (u32) -1;
 
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
 		if (!strcmp(att->name, "timescale")) seg->timescale = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "presentationTimeOffset")) seg->presentation_time_offset = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
 		else if (!strcmp(att->name, "indexRangeExact")) seg->index_range_exact = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "timeShiftBufferDepth")) seg->time_shift_buffer_depth = gf_mpd_parse_duration(att->value);
 	}
+
+	if (mpd->type == GF_MPD_TYPE_STATIC) 
+		seg->time_shift_buffer_depth = 0;
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {

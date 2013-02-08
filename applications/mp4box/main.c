@@ -297,6 +297,8 @@ void PrintDASHUsage()
 			"                       If not set (default), segments are concatenated in output file\n"
 			"                        except in \"live\" profile where dash_%%s is used\n"
 			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
+			" -segment-timeline    Uses SegmentTimeline when generating segments. NOT SUPPORTED BY LIVE/CTX MODE YET.\n"
+			" -segment-marker MARK Adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
 			" -base-url string     sets Base url at MPD level. Can be used several times.\n"
 			" -mpd-title string    sets MPD title.\n"
 			" -mpd-source string   sets MPD source.\n"
@@ -1369,6 +1371,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool single_segment=0;
 	Bool single_file=0;
 	Bool segment_timeline=0;
+	u32 segment_marker = 0;
 	GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
 	Bool use_url_template=0;
 	Bool seg_at_rap=0;
@@ -1795,6 +1798,11 @@ int mp4boxMain(int argc, char **argv)
 			}
 		} else if (!stricmp(arg, "-segment-timeline")) {
 			segment_timeline = 1;
+		} else if (!stricmp(arg, "-segment-marker")) {
+			char *m;
+			CHECK_NEXT_ARG
+			m = argv[i+1];
+			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 		} else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
@@ -2781,8 +2789,8 @@ int mp4boxMain(int argc, char **argv)
 
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
 										(const char **) mpd_base_urls, nb_mpd_base_urls, 
-									   use_url_template, segment_timeline,  single_segment, single_file, bitstream_switching_mode,
-									   seg_at_rap, dash_duration, seg_name, seg_ext,
+									   use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
+									   seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec);
 			if (e) break;
