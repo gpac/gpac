@@ -659,7 +659,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     if (sess->th) {
         while (!(sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD))
             gf_sleep(1);
-        gf_th_stop(sess->th);
+        gf_th_wait(sess->th);
         gf_th_del(sess->th);
         if (sess->mx)
           gf_mx_del(sess->mx);

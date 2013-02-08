@@ -763,7 +763,7 @@ void avr_delete ( GF_BaseInterface *ifce )
     gf_mx_p(avr->frameMutex);
     gf_mx_v(avr->frameMutex);
     gf_sleep(200);
-    gf_th_stop(avr->encodingThread);
+    gf_th_wait(avr->encodingThread);
     gf_mx_del(avr->frameMutex);
     avr->frameMutex = NULL;
     gf_th_del(avr->encodingThread);
