@@ -152,6 +152,8 @@ struct __dash_group
 
 	GF_DASHGroupSelection selection;
 
+	/*may be mpd@time_shift_buffer_depth or rep@time_shift_buffer_depth*/
+	u32 time_shift_buffer_depth;
 
 	Bool bitstream_switching, dont_delete_first_segment;
 
@@ -1464,6 +1466,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	GF_MPD_Fractional *framerate=NULL;
 #endif
 	u32 k;
+	s32 timeshift;
 	GF_MPD_AdaptationSet *set;
 	GF_MPD_Period *period;
 	u32 nb_segs;
@@ -1511,6 +1514,15 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	/*if broken indication in duration restore previous seg count*/
 	if (group->dash->ignore_mpd_duration)
 		group->nb_segments_in_rep = nb_segs;
+
+
+	timeshift = -1;
+	timeshift = (s32) (rep->segment_base ? rep->segment_base->time_shift_buffer_depth : (rep->segment_list ? rep->segment_list->time_shift_buffer_depth : (rep->segment_template ? rep->segment_template->time_shift_buffer_depth : 0) ) );
+	if (timeshift == -1) timeshift = (s32) (set->segment_base ? set->segment_base->time_shift_buffer_depth : (set->segment_list ? set->segment_list->time_shift_buffer_depth : (set->segment_template ? set->segment_template->time_shift_buffer_depth : 0) ) );
+	if (timeshift == -1) timeshift = (s32) (period->segment_base ? period->segment_base->time_shift_buffer_depth : (period->segment_list ? period->segment_list->time_shift_buffer_depth : (period->segment_template ? period->segment_template->time_shift_buffer_depth : 0) ) );
+
+	if (timeshift == -1) timeshift = (s32) group->dash->mpd->time_shift_buffer_depth;
+	group->time_shift_buffer_depth = (u32) timeshift;
 }
 
 static void gf_dash_switch_group_representation(GF_DashClient *mpd, GF_DASH_Group *group)
@@ -2982,7 +2994,7 @@ restart_period:
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms ellapsed since previous segment download\n", clock_time - group->last_segment_time));
 					}
 					/*check if we are in the segment availability end time*/
-					if (now < segment_ast + (seg_dur_ms + group->dash->mpd->time_shift_buffer_depth) /1000 )
+					if (now < segment_ast + (seg_dur_ms + group->time_shift_buffer_depth) /1000 )
 						in_segment_avail_time = 1;
 				}
 			}
