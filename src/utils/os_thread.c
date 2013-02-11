@@ -285,7 +285,7 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 }
 
 GF_EXPORT
-void gf_th_wait(GF_Thread *t)
+void gf_th_stop(GF_Thread *t)
 {
 	Thread_Stop(t, 0);
 }
