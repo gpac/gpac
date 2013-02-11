@@ -272,7 +272,7 @@ void ts_amux_del(GF_AbstractTSMuxer * muxerToDelete) {
         return;
     muxerToDelete->encode = 0;
     gf_sleep(100);
-    gf_th_wait(muxerToDelete->tsEncodingThread);
+    gf_th_stop(muxerToDelete->tsEncodingThread);
     muxerToDelete->tsEncodingThread = NULL;
 #if REDIRECT_AV_AUDIO_ENABLED
     gf_mx_del(muxerToDelete->audioMx);

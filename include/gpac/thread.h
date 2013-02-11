@@ -104,16 +104,13 @@ typedef u32 (*gf_thread_run)(void *par);
  *\note A thread may be run several times but cannot be run twice in the same time.
  */
 GF_Err gf_th_run(GF_Thread *th, gf_thread_run run, void *par);
-
 /*!
- *\brief Wait for a thread termination
+ *\brief thread stoping
  *
- * Waits for the given thread until it returns
- *
+ *Waits for the thread exit until return
  *\param th the thread object
  */
-void gf_th_wait(GF_Thread *th);
-
+void gf_th_stop(GF_Thread *th);
 /*!
  *\brief thread status query
  *
