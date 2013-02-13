@@ -536,7 +536,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                   {
                       JavaEnvTh * env = ptr->getEnv();
                       if (!env || !env->cbk_showKeyboard)
-                              return 0;
+                              return GF_FALSE;
                       LOGI("Needs to display/hide the Virtual Keyboard (%d)", evt->type);
                       env->env->CallVoidMethod(env->cbk_obj, env->cbk_showKeyboard, GF_EVENT_TEXT_EDITING_START == evt->type);
                       LOGV("Done showing virtual keyboard (%d)", evt->type);
@@ -557,12 +557,12 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                     LOGI("Unknown Message %d", evt->type);
                 }
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 void CNativeWrapper::navigate( GF_Event* evt)
 {	
-	if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, 1)) 
+	if (gf_term_is_supported_url(m_term, evt->navigate.to_url, GF_TRUE, GF_TRUE)) 
 	{
 		gf_term_navigate_to(m_term, evt->navigate.to_url);
 	} 
@@ -701,7 +701,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
         }
 
         LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
-    	gf_sys_init(0);
+    	gf_sys_init(GF_FALSE);
 	gf_fm_request_set_callback(this, on_fm_request);
 	SetupLogs();
 	m_term = gf_term_new(&m_user);
@@ -753,7 +753,7 @@ int CNativeWrapper::connect(const char *url)
 		}
 		if( url )
 		{
-			gf_term_connect_from_time(m_term, url, 0, false);		
+			gf_term_connect_from_time(m_term, url, 0, GF_FALSE);		
 		}
 	}
 	debug_log("connected ...");
