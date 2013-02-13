@@ -1052,7 +1052,7 @@ struct __m2ts_mux_program {
 	GF_Descriptor *iod;
 	/*list of GF_M2TSDescriptor to add to the program descriptor loop. By default set to NULL, if non null will be reset and destroyed upon cleanup*/
 	GF_List *loop_descriptors;
-	Bool mpeg4_signaling;
+	u32 mpeg4_signaling;
 	Bool mpeg4_signaling_for_scene_only;
 
 	/*

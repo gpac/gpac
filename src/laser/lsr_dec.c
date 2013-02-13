@@ -2954,7 +2954,7 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVG_Element *parent)
 static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVG_Element *parent)
 {
 	u32 type;
-	Bool flag;
+	u32 flag;
 	GF_FieldInfo info;
 	GF_Node *elt= gf_node_new(lsr->sg, TAG_SVG_animateTransform);
 	lsr_read_id(lsr, elt);

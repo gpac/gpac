@@ -313,7 +313,10 @@ typedef u8 bin128[16];
 #endif
 
 #ifndef Bool
-typedef u32 Bool;
+typedef enum {
+	TRUE = 0,
+	FALSE
+} Bool;
 #endif
 
 
