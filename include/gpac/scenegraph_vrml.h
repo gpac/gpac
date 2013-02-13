@@ -97,7 +97,7 @@ enum
 u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode);
 
 /*		SF Types	*/
-typedef Bool SFBool;
+typedef u32 SFBool;
 typedef s32 SFInt32;
 typedef s32 SFInt;
 typedef Fixed SFFloat;
