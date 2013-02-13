@@ -95,7 +95,7 @@ GF_Err gdip_set_gradient_mode(GF_STENCIL _this, GF_GradientMode mode)
 	GPSTEN();
 	CHECK2_RET(GF_STENCIL_LINEAR_GRADIENT, GF_STENCIL_RADIAL_GRADIENT);
 	_sten->spread = mode;
-	_sten->needs_rebuild = 1;
+	_sten->needs_rebuild = GF_TRUE;
 	return GF_OK;
 }
 
@@ -114,7 +114,7 @@ GF_Err gdip_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y,
 	GdipCreateLineBrush(&_sten->start, &_sten->end, 0xFF000000, 0xFFFFFFFF, WrapModeTile, &_sten->pLinear);
 	if (!_sten->pLinearMat) GdipCreateMatrix(&_sten->pLinearMat);
 	GdipGetLineTransform(_sten->pLinear, _sten->pLinearMat);
-	_sten->needs_rebuild = 1;
+	_sten->needs_rebuild = GF_TRUE;
 	return GF_OK;
 }
 
@@ -126,7 +126,7 @@ void gdip_recompute_line_gradient(GF_STENCIL _this)
 	GPSTEN();
 
 	if (!_sten->needs_rebuild) return;
-	_sten->needs_rebuild = 0;
+	_sten->needs_rebuild = GF_FALSE;
 
 	if (_sten->pLinear) GdipDeleteBrush(_sten->pLinear);
 	GdipCreateLineBrush(&_sten->start, &_sten->end, 0xFFFF0000, 0xFFFF00FF, WrapModeTile, &_sten->pLinear);
@@ -191,7 +191,7 @@ void gdip_recompute_radial_gradient(GF_STENCIL _this)
 
 
 	if (!_sten->needs_rebuild) return;
-	_sten->needs_rebuild = 0;
+	_sten->needs_rebuild = GF_FALSE;
 
 
 	if (_sten->pRadial) {
@@ -324,7 +324,7 @@ GF_Err gdip_set_radial_gradient(GF_STENCIL _this, Fixed cx, Fixed cy, Fixed fx, 
 	_sten->center.Y = FIX2FLT(cy);
 	_sten->focal.X = FIX2FLT(fx);
 	_sten->focal.Y = FIX2FLT(fy);
-	_sten->needs_rebuild = 1;
+	_sten->needs_rebuild = GF_TRUE;
 	return GF_OK;
 }
 
@@ -343,7 +343,7 @@ GF_Err gdip_set_gradient_interpolation(GF_STENCIL _this, Fixed *pos, GF_Color *c
 	for (i=0; i<count; i++) _sten->pos[i] = FIX2FLT(pos[i]);
 	memcpy(_sten->cols, col, sizeof(ARGB)*count);
 	_sten->num_pos = count;
-	_sten->needs_rebuild = 1;
+	_sten->needs_rebuild = GF_TRUE;
 	return GF_OK;
 }
 

@@ -22,7 +22,7 @@ Sliders::Sliders(CWnd* pParent /*=NULL*/)
 	//{{AFX_DATA_INIT(Sliders)
 	//}}AFX_DATA_INIT
 
-	m_grabbed = 0;
+	m_grabbed = GF_FALSE;
 }
 
 
@@ -62,7 +62,7 @@ void Sliders::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		case TB_THUMBTRACK:
 		case TB_TOP:
 		case TB_BOTTOM:
-			m_grabbed = 1;
+			m_grabbed = GF_TRUE;
 			break;
 		case TB_ENDTRACK:
 			if (!app->can_seek || !app->m_isopen) {
@@ -71,7 +71,7 @@ void Sliders::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 				u32 seek_to = m_PosSlider.GetPos();
 				app->PlayFromTime(seek_to);
 			}
-			m_grabbed = 0;
+			m_grabbed = GF_FALSE;
 			break;
 		}
 	}

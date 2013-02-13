@@ -1356,7 +1356,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 				if (!parser->is_wrl) {
 					/*we ignore 'solid' for MPEG4 box/cone/etc*/
 					if (!strcmp(str, "solid")) {
-						Bool b;
+						SFBool b;
 						gf_bt_parse_bool(parser, "solid", &b);
 						parser->last_error = GF_OK;
 						continue;
@@ -1378,7 +1378,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 						parser->last_error = gf_node_get_field_by_name(node, str, &info);
 					}
 					else if (!strcmp(str, "enabled")) {
-						Bool b;
+						SFBool b;
 						gf_bt_parse_bool(parser, "collide", &b);
 						parser->last_error = GF_OK;
 						continue;
@@ -1397,7 +1397,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					else 
 #endif
 					if (!strcmp(str, "collide")) {
-						Bool b;
+						SFBool b;
 						gf_bt_parse_bool(parser, "enabled", &b);
 						parser->last_error = GF_OK;
 						continue;

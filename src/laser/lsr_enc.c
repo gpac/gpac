@@ -3543,7 +3543,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 		old_bs = lsr->bs;
 		lsr->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
-	assert(count>=first_implicit);
+	assert(count>= (u32) (first_implicit ? 1 : 0) );
 
 	lsr_write_vluimsbf5(lsr, count-first_implicit, "occ0");
 

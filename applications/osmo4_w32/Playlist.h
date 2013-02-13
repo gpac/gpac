@@ -34,7 +34,7 @@ public:
 	Playlist();
 	virtual ~Playlist();
 	
-	virtual Bool Create() {
+	virtual BOOL Create() {
 		/*use desktop window to enable playlist behind player*/
 		return CDialog::Create(IDD_PLAYLIST, GetDesktopWindow());
 	}

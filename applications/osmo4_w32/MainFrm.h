@@ -94,7 +94,8 @@ public:
 	COptions *m_pOpt;
 	Playlist *m_pPlayList;
 	CChildView *m_pWndView;
-	Bool m_bFullScreen, m_bRestoreFS;
+	Bool m_bFullScreen;
+	u32 m_RestoreFS;
 	u32 m_timer_on;
 	CString console_message;
 	CString console_service;

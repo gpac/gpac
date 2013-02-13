@@ -120,7 +120,7 @@ static const char * AVR_VIDEO_CODEC_OPTION = "VideoCodec";
  * This thread sends the frame to TS mux
  * \param Parameter The GF_AVRedirect pointer
  */
-static Bool audio_encoding_thread_run(void *param)
+static u32 audio_encoding_thread_run(void *param)
 {
     u8 * inBuff;
     u8 * outBuff;
@@ -229,7 +229,7 @@ exit:
  * This thread sends the frame to TS mux
  * \param Parameter The GF_AVRedirect pointer
  */
-static Bool video_encoding_thread_run(void *param)
+static u32 video_encoding_thread_run(void *param)
 {
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
     u64 currentFrameTimeProcessed = 0, lastEncodedFrameTime = 0;

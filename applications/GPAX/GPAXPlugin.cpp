@@ -68,7 +68,7 @@ void CGPAXPlugin::SetStatusText(char *msg)
 Bool CGPAXPlugin::EventProc(GF_Event *evt)
 {
 	char msg[1024];
-	if (!m_term) return 0;
+	if (!m_term) return GF_FALSE;
 
     switch (evt->type) {
 	case GF_EVENT_MESSAGE:
@@ -131,9 +131,9 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 		SetStatusText(msg);
 		break;
 	case GF_EVENT_NAVIGATE:
-		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, 1)) {
+		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, GF_TRUE, GF_TRUE)) {
 			gf_term_navigate_to(m_term, evt->navigate.to_url);
-			return 1;
+			return GF_TRUE;
 		} 
 #ifndef _WIN32_WCE
 		else if (m_pBrowser) {
@@ -158,12 +158,12 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 			sz_ptr = & evt->navigate.to_url;
 			gf_utf8_mbstowcs(w_szURL, 1024, (const char **)sz_ptr);
 			m_pBrowser->Navigate((BSTR) w_szURL, &flags, &target, NULL, NULL);;
-			return 1;
+			return GF_TRUE;
 		}
 #endif
 		break;
     }
-    return 0;
+    return GF_FALSE;
 }
 
 Bool GPAX_EventProc(void *ptr, GF_Event *evt)
@@ -178,7 +178,7 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
 {
     VARIANT v;
     HRESULT hr;
-    Bool retval=0;
+    Bool retval = GF_FALSE;
 
     v.vt = VT_EMPTY;
     v.bstrVal = NULL;
@@ -193,7 +193,7 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
 			u32 len = gf_utf8_wcstombs(buf, bufsize, &srcp);
 			if (len>=0) {
 				buf[len] = 0;
-				retval=1;
+				retval = GF_TRUE;
 			}
         }
         VariantClear(&v);
@@ -312,7 +312,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 
     if (m_hWnd==NULL) return 0;
 
-	gf_sys_init(0);
+	gf_sys_init(GF_FALSE);
 
 	//Create a structure m_user for initialize the terminal. the parameters to set:
 	//1)config file path
@@ -414,7 +414,7 @@ LRESULT CGPAXPlugin::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
 HRESULT CGPAXPlugin::OnDraw(ATL_DRAWINFO& di)
 {
 	if (m_term && m_bInitialDraw) {
-		m_bInitialDraw = FALSE;
+		m_bInitialDraw = GF_FALSE;
 		if (m_bAutoStart) Play();
 	}
     return S_OK;
@@ -433,10 +433,10 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
 	    ReadParamString(pPropBag,pErrorLog,L"data", m_url, MAXLEN_URL);
 
     if (ReadParamString(pPropBag,pErrorLog,L"autostart", szOpt, 1024))
-		m_bAutoStart = (!stricmp(szOpt, "false") || !stricmp(szOpt, "no")) ? 0 : 1;
+		m_bAutoStart = (!stricmp(szOpt, "false") || !stricmp(szOpt, "no")) ? GF_FALSE : GF_TRUE;
 
     if (ReadParamString(pPropBag,pErrorLog,L"use3d", szOpt, 1024))
-		m_bUse3D = (!stricmp(szOpt, "true") || !stricmp(szOpt, "yes")) ? 1 : 0;
+		m_bUse3D = (!stricmp(szOpt, "true") || !stricmp(szOpt, "yes")) ? GF_TRUE : GF_FALSE;
 
     if (ReadParamString(pPropBag,pErrorLog,L"aspectratio", szOpt, 1024)) {
 		if (!stricmp(szOpt, "keep")) m_AR = GF_ASPECT_RATIO_KEEP;
@@ -446,10 +446,10 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
 	}
 
     if (ReadParamString(pPropBag,pErrorLog,L"loop", szOpt, 1024))
-		m_bLoop = !stricmp(szOpt, "true") ? 0 : 1;
+		m_bLoop = !stricmp(szOpt, "true") ? GF_FALSE : GF_TRUE;
 
 	if (ReadParamString(pPropBag,pErrorLog,L"gui", szOpt, 1024))
-		m_bUseGUI = (!stricmp(szOpt, "true") || !stricmp(szOpt, "yes")) ? 1 : 0;
+		m_bUseGUI = (!stricmp(szOpt, "true") || !stricmp(szOpt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	UpdateURL();
 
@@ -566,7 +566,7 @@ STDMETHODIMP CGPAXPlugin::Stop()
 
 STDMETHODIMP CGPAXPlugin::QualitySwitch(int switch_up)
 {
-	if (m_term) gf_term_switch_quality(m_term, switch_up ? 1 : 0);     
+	if (m_term) gf_term_switch_quality(m_term, switch_up ? GF_TRUE : GF_FALSE);     
     return S_OK;
 }
 
@@ -648,7 +648,7 @@ STDMETHODIMP CGPAXPlugin::get_AutoStart(VARIANT_BOOL *as)
 }
 STDMETHODIMP CGPAXPlugin::put_AutoStart(VARIANT_BOOL as)
 {
-    m_bAutoStart = (as !=VARIANT_FALSE) ? TRUE: FALSE;
+    m_bAutoStart = (as !=VARIANT_FALSE) ? GF_TRUE : GF_FALSE;
     return S_OK;
 }
 

@@ -44,21 +44,21 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	gdip_cmat_reset(&_sten->cmat);
 	isBGR = 0;
 	BPP = 4;
-	copy = 0;
-	is_yuv = 0;
+	copy = GF_FALSE;
+	is_yuv = GF_FALSE;
 	/*is pixel format supported ?*/
 	switch (pixelFormat) {
 	case GF_PIXEL_GREYSCALE:
 		pFormat = PixelFormat24bppRGB;
 		BPP = 1;
 		/*no support for 8bit greyscale not indexed in GDIPlus ...*/
-		copy = 1;
+		copy = GF_TRUE;
 		break;
 	case GF_PIXEL_ALPHAGREY:
 		pFormat = PixelFormat32bppARGB;
 		BPP = 2;
 		/*cannot get it to work without using 32bpp argb*/
-		copy = 1;
+		copy = GF_TRUE;
 		break;
 	case GF_PIXEL_RGB_555:
 		pFormat = PixelFormat16bppRGB555;
@@ -90,7 +90,7 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	case GF_PIXEL_RGBA:
 		pFormat = PixelFormat32bppARGB;
 		BPP = 4;
-		copy = 1;
+		copy = GF_TRUE;
 		_sten->orig_buf = (unsigned char *) pixels;
 		break;
 	case GF_PIXEL_YV12:
@@ -98,11 +98,11 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	case GF_PIXEL_I420:
 		if ( (width*3)%4) return GF_NOT_SUPPORTED;
 		_sten->orig_format = GF_PIXEL_YV12;
-		is_yuv = 1;
+		is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_YUVA:
 		_sten->orig_format = GF_PIXEL_YUVA;
-		is_yuv = 1;
+		is_yuv = GF_TRUE;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -116,18 +116,18 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	if (is_yuv) {
 		_sten->orig_buf = (unsigned char*)pixels;
 		_sten->orig_stride = stride;
-		_sten->is_converted = 0;
+		_sten->is_converted = GF_FALSE;
 		return GF_OK;
 	}
 
-	_sten->is_converted = 1;
+	_sten->is_converted = GF_TRUE;
 	_sten->format = pFormat;
 
 	/*GDIplus limitation : horiz_stride shall be multiple of 4 and no support for pure grayscale without palette*/
 	if (!copy && pixels && !(stride%4)) {
 		if (no_copy && isBGR) return GF_NOT_SUPPORTED;
 		GdipCreateBitmapFromScan0(_sten->width, _sten->height, stride, pFormat, (unsigned char*)pixels, &_sten->pBitmap);
-		_sten->invert_br = isBGR;
+		_sten->invert_br = isBGR ? GF_TRUE : GF_FALSE;
 	}
 	/*all other cases: create a local bitmap in desired format*/
 	else {
@@ -235,7 +235,7 @@ GF_Err gdip_create_texture(GF_STENCIL _this, u32 width, u32 height, GF_PixelForm
 	_sten->pBitmap = NULL;
 	_sten->width = width;
 	_sten->height = height;
-	_sten->is_converted = 1;
+	_sten->is_converted = GF_TRUE;
 	_sten->format = pFormat;
 	GdipCreateBitmapFromScan0(_sten->width, _sten->height, 0, pFormat, NULL, &_sten->pBitmap);
 	return GF_OK;
@@ -266,7 +266,7 @@ GF_Err gdip_set_color_matrix(GF_STENCIL _this, GF_ColorMatrix *cmat)
 	GPSTEN();
 	if (!cmat || cmat->identity) {
 		_sten->texture_invalid = _sten->has_cmat;
-		_sten->has_cmat = 0;
+		_sten->has_cmat = GF_FALSE;
 	} else {
 		if (_sten->invert_br) {
 			GF_ColorMatrix fin, rev;
@@ -282,9 +282,9 @@ GF_Err gdip_set_color_matrix(GF_STENCIL _this, GF_ColorMatrix *cmat)
 		} else {
 			cmat_gpac_to_gdip(cmat, &_sten->cmat);
 		}
-		_sten->has_cmat = 1;
+		_sten->has_cmat = GF_TRUE;
 	}
-	_sten->texture_invalid = 1;
+	_sten->texture_invalid = GF_TRUE;
 	return GF_OK;
 }
 
@@ -294,7 +294,7 @@ GF_Err gdip_set_alpha(GF_STENCIL _this, u8 alpha)
 	GPSTEN();
 	if (_sten->alpha != alpha) {
 		_sten->alpha = alpha;
-		_sten->texture_invalid = 1;
+		_sten->texture_invalid = GF_TRUE;
 	}
 	return GF_OK;
 }
@@ -385,9 +385,9 @@ void gdip_texture_modified(GF_STENCIL _this)
 {
 	GPSTEN();
 	if (_sten->orig_buf && (_sten->format == PixelFormat32bppARGB)) {
-		gdip_set_texture(_this, (char *) _sten->orig_buf, _sten->width, _sten->height, _sten->width * 4, GF_PIXEL_RGBA, GF_PIXEL_RGBA, 0);
+		gdip_set_texture(_this, (char *) _sten->orig_buf, _sten->width, _sten->height, _sten->width * 4, GF_PIXEL_RGBA, GF_PIXEL_RGBA, GF_FALSE);
 	}
-	_sten->texture_invalid = 1;
+	_sten->texture_invalid = GF_TRUE;
 }
 
 void gdip_init_driver_texture(GF_Raster2D *driver)
@@ -435,11 +435,11 @@ void gdip_convert_texture(struct _stencil *sten)
 	dst.pitch_y = BPP*sten->width;
 	dst.video_buffer = (char*)sten->conv_buf;
 
-	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, GF_FALSE, NULL, NULL);
 
 	if (sten->pBitmap) GdipDisposeImage(sten->pBitmap);
 	GdipCreateBitmapFromScan0(sten->width, sten->height, BPP*sten->width, format, sten->conv_buf, &sten->pBitmap);
-	sten->is_converted = 1;
+	sten->is_converted = GF_TRUE;
 }
 
 void gdip_load_texture(struct _stencil *sten)
@@ -453,7 +453,7 @@ void gdip_load_texture(struct _stencil *sten)
 	}
 	/*nothing to do*/
 	if (sten->is_converted && sten->pTexture) return;
-	sten->texture_invalid = 0;
+	sten->texture_invalid = GF_FALSE;
 
 	/*convert*/
 	if (!sten->is_converted) gdip_convert_texture(sten);

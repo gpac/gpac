@@ -534,7 +534,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 
 
 
-Bool gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
+u32 gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
 	if (stream->table_needs_update) { /* generate table payload */
 		GF_M2TS_Mux_Program *prog;
@@ -564,7 +564,7 @@ Bool gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 	return 0;
 }
 
-Bool gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
+u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
 	if (stream->table_needs_update) { /* generate table payload */
 		GF_M2TS_Mux_Stream *es;

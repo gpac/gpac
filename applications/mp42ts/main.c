@@ -1020,7 +1020,7 @@ static GF_ESIStream * set_broadcast_params(M2TSProgram *prog, u16 esid, u32 peri
 
 #ifndef GPAC_DISABLE_SENG
 
-static Bool seng_output(void *param)
+static u32 seng_output(void *param)
 {
 	GF_Err e;
 	u64 last_src_modif, mod_time;

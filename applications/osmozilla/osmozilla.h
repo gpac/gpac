@@ -49,7 +49,7 @@ typedef struct __tag_osmozilla
 	GF_Terminal *term;
 
 	/*general options*/
-	char loop, auto_start, is_connected, use_3d, disable_mime;
+	unsigned int loop, auto_start, is_connected, use_3d, disable_mime;
 	unsigned int aspect_ratio;
 
 	/*the URL we are connected to*/

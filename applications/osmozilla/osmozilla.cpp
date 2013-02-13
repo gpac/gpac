@@ -67,11 +67,11 @@ Bool Osmozilla_EventProc(void *opaque, GF_Event *evt)
 {
 	char msg[1024];
 	Osmozilla *osmo = (Osmozilla *)opaque;
-	if (!osmo->term) return 0;
+	if (!osmo->term) return GF_FALSE;
 
 	switch (evt->type) {
 	case GF_EVENT_MESSAGE:
-		if (!evt->message.message) return 0;
+		if (!evt->message.message) return GF_FALSE;
 		if (evt->message.error)
 			sprintf((char *)msg, "GPAC: %s (%s)", evt->message.message, gf_error_to_string(evt->message.error));
 		else
@@ -124,9 +124,9 @@ Bool Osmozilla_EventProc(void *opaque, GF_Event *evt)
 		Osmozilla_SetStatus(osmo->np_instance, msg);
 		break;
 	case GF_EVENT_NAVIGATE:
-		if (gf_term_is_supported_url(osmo->term, evt->navigate.to_url, 1, osmo->disable_mime)) {
+		if (gf_term_is_supported_url(osmo->term, evt->navigate.to_url, GF_TRUE, osmo->disable_mime ? GF_TRUE : GF_FALSE)) {
 			gf_term_navigate_to(osmo->term, evt->navigate.to_url);
-			return 1;
+			return GF_TRUE;
 		} else {
 			u32 i;
 			char *target = (char *)"_self";
@@ -139,11 +139,11 @@ Bool Osmozilla_EventProc(void *opaque, GF_Event *evt)
 				else if (!strnicmp(evt->navigate.parameters[i], "_target=", 8)) target = (char *) evt->navigate.parameters[i]+8;
 			}
 			Osmozilla_GetURL(osmo->np_instance, evt->navigate.to_url, target);
-			return 1;
+			return GF_TRUE;
 		}
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char* argv[])
@@ -183,16 +183,16 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
 	handled by gecko */
 	if (osmo->url) {
-		Bool absolute_url = 0;
-		if (strstr(osmo->url, "://")) absolute_url = 1;
+		Bool absolute_url = GF_FALSE;
+		if (strstr(osmo->url, "://")) absolute_url = GF_TRUE;
 		else if (osmo->url[0] == '/') {
 			FILE *test = gf_f64_open(osmo->url, "rb");
 			if (test) {	
-				absolute_url = 1;
+				absolute_url = GF_TRUE;
 				fclose(test);
 			}
 		}
-		else if ((osmo->url[1] == ':') && ((osmo->url[2] == '\\') || (osmo->url[2] == '/'))) absolute_url = 1;
+		else if ((osmo->url[1] == ':') && ((osmo->url[2] == '\\') || (osmo->url[2] == '/'))) absolute_url = GF_TRUE;
 
 		if (!absolute_url) {
 			char *url = osmo->url;
@@ -509,7 +509,7 @@ void Osmozilla_Update(Osmozilla *osmo, const char *type, const char *commands)
 void Osmozilla_QualitySwitch(Osmozilla *osmo, int switch_up)
 {
 	if (osmo->term)
-		gf_term_switch_quality(osmo->term, switch_up ? 1 : 0);
+		gf_term_switch_quality(osmo->term, switch_up ? GF_TRUE : GF_FALSE);
 }
 
 void Osmozilla_SetURL(Osmozilla *osmo, const char *url)

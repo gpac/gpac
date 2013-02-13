@@ -77,13 +77,13 @@ class ATL_NO_VTABLE CGPAXPlugin :
 public:
     CGPAXPlugin() {
 		m_term = NULL;
-		m_bAutoStart = TRUE;
-		m_bInitialDraw = TRUE;
-		m_bWindowOnly = TRUE;  //to declare that the control is a window control in order
+		m_bAutoStart = GF_TRUE;
+		m_bInitialDraw = GF_TRUE;
+		m_bWindowOnly = GF_TRUE;  //to declare that the control is a window control in order
 							   //to inherit the member variable m_hWnd which contains the window handler
-		m_bIsConnected = 0;
-		m_bUse3D = 0;
-		m_bUseGUI = 0;
+		m_bIsConnected = GF_FALSE;
+		m_bUse3D = GF_FALSE;
+		m_bUseGUI = GF_FALSE;
 		m_iDownload_progress = 0;
 		m_AR = GF_ASPECT_RATIO_KEEP;
 		m_url[0] = 0;

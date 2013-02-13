@@ -786,7 +786,7 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 }
 
 
-GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_width, u32 *screen_height)
+GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_width, u32 *screen_height)
 {
 	u32 bpp, pref_bpp;
 	SDLVID();
@@ -904,7 +904,7 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format, Bool force_alpha)
 	}
 }
 
-static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, u32 do_lock)
+static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, Bool do_lock)
 {
 	SDLVID();
 	if (!ctx->back_buffer) return GF_BAD_PARAM;
