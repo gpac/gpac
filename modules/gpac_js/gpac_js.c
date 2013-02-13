@@ -125,7 +125,7 @@ static SMJS_FUNC_PROP_GET( gpac_getProperty)
 		*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
 	}
 	else if (!strcmp(prop_name, "batteryCharging")) {
-		Bool on_charge = 0;
+		u32 on_charge = 0;
 		gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
 		*vp = BOOLEAN_TO_JSVAL( on_charge ? JS_TRUE : JS_FALSE );
 	}

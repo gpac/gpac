@@ -124,8 +124,8 @@ Bool UserPassDialog::GetPassword(const char *site_url, char *user, char *passwor
 {
 	m_site_url = site_url;
 	m_user = user;
-	if (DoModal() != IDOK) return 0;
-	return 1;
+	if (DoModal() != IDOK) return GF_FALSE;
+	return GF_TRUE;
 }
 
 
@@ -155,7 +155,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	Osmo4 *gpac = (Osmo4 *) priv;
 	CMainFrame *pFrame = (CMainFrame *) gpac->m_pMainWnd;
 	/*shutdown*/
-	if (!pFrame) return 0;
+	if (!pFrame) return GF_FALSE;
 
 	switch (evt->type) {
 	case GF_EVENT_DURATION:
@@ -188,9 +188,9 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 				/*any error before connection confirm is a service connection error*/
 				if (!gpac->m_isopen) pFrame->m_pPlayList->SetDead();
 			}
-			return 0;
+			return GF_FALSE;
 		}
-		if (gpac->m_NoConsole) return 0;
+		if (gpac->m_NoConsole) return GF_FALSE;
 
 		/*process user message*/
 		pFrame->console_err = GF_OK;
@@ -230,18 +230,18 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVENT_CONNECT:
 //		if (pFrame->m_bStartupFile) return 0;
 
-		pFrame->BuildStreamList(1);
+		pFrame->BuildStreamList(GF_TRUE);
 		if (evt->connect.is_connected) {
-			pFrame->BuildChapterList(0);
-			gpac->m_isopen = 1;
+			pFrame->BuildChapterList(GF_FALSE);
+			gpac->m_isopen = GF_TRUE;
 			//resetting sliders when opening a new file creates a deadlock on the window thread which is disconnecting
 			pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, gpac->m_isopen ? 4 : 3);
 			pFrame->m_Sliders.m_PosSlider.SetPos(0);
-			pFrame->SetProgTimer(1);
+			pFrame->SetProgTimer(GF_TRUE);
 		} else {
 			gpac->max_duration = 0;
-			gpac->m_isopen = 0;
-			pFrame->BuildChapterList(1);
+			gpac->m_isopen = GF_FALSE;
+			pFrame->BuildChapterList(GF_TRUE);
 		}
 		if (!pFrame->m_bFullScreen) {
 			pFrame->SetFocus();
@@ -276,11 +276,11 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 			break;
 		case GF_KEY_H:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && gpac->m_isopen)
-				gf_term_switch_quality(gpac->m_term, 1);
+				gf_term_switch_quality(gpac->m_term, GF_TRUE);
 			break;
 		case GF_KEY_L:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && gpac->m_isopen)
-				gf_term_switch_quality(gpac->m_term, 0);
+				gf_term_switch_quality(gpac->m_term, GF_FALSE);
 			break;
 		}
 		break;
@@ -289,26 +289,26 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		/*store URL since it may be destroyed, and post message*/
 		gpac->m_navigate_url = evt->navigate.to_url;
 		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);
-		return 1;
+		return GF_TRUE;
 	case GF_EVENT_VIEWPOINTS:
 		pFrame->BuildViewList();
-		return 0;
+		return GF_FALSE;
 	case GF_EVENT_STREAMLIST:
-		pFrame->BuildStreamList(0);
-		return 0;
+		pFrame->BuildStreamList(GF_FALSE);
+		return GF_FALSE;
 	case GF_EVENT_SET_CAPTION:
 		pFrame->SetWindowText(evt->caption.caption);
 		break;
 	case GF_EVENT_DBLCLICK:
 		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
-		return 0;
+		return GF_FALSE;
 	case GF_EVENT_AUTHORIZATION:
 	{
 		UserPassDialog passdlg;
 		return passdlg.GetPassword(evt->auth.site_url, evt->auth.user, evt->auth.password);
 	}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -347,12 +347,12 @@ BOOL Osmo4::InitInstance()
 	while (szApplicationPath[strlen((char *) szApplicationPath)-1] != '\\') szApplicationPath[strlen((char *) szApplicationPath)-1] = 0;
 	if (szApplicationPath[strlen((char *) szApplicationPath)-1] != '\\') strcat(szApplicationPath, "\\");
 
-	gf_sys_init(0);
+	gf_sys_init(GF_FALSE);
 
 	/*setup user*/
 	memset(&m_user, 0, sizeof(GF_User));
 
-	Bool first_launch = 0;
+	Bool first_launch = GF_FALSE;
 	/*init config and modules*/
 	m_user.config = gf_cfg_init(NULL, &first_launch);
 	if (!m_user.config) {
@@ -368,7 +368,7 @@ BOOL Osmo4::InitInstance()
 	gf_free(name);
 
 	const char *opt = gf_cfg_get_key(m_user.config, "General", "SingleInstance");
-	m_SingleInstance = (opt && !stricmp(opt, "yes")) ? 1 : 0;
+	m_SingleInstance = (opt && !stricmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	m_hMutex = NULL;
 	if (m_SingleInstance) {
@@ -476,7 +476,7 @@ BOOL Osmo4::InitInstance()
 	m_user.os_window_handler = pFrame->m_pWndView->m_hWnd;
 	m_user.EventProc = Osmo4_EventProc;
 
-	m_reset = 0;
+	m_reset = GF_FALSE;
 	orig_width = 320;
 	orig_height = 240;
 
@@ -633,15 +633,15 @@ void CAboutDlg::OnGogpac()
 void Osmo4::SetOptions()
 {
 	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
-	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "LookForSubtitles");
-	m_LookForSubtitles = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_LookForSubtitles = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "ConsoleOff");
-	m_NoConsole = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_NoConsole = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "ViewXMT");
-	m_ViewXMTA  = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_ViewXMTA  = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "NoMIMETypeFetch");
-	m_NoMimeFetch = (!sOpt || !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_NoMimeFetch = (!sOpt || !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 }
 
 
@@ -705,7 +705,7 @@ CString Osmo4::GetFileFilter()
 		sFiles += sDesc;
 		sFiles += "|";
 
-		first = 1;
+		first = GF_TRUE;
 
 		sOpt = CString(szKeyList);
 		while (1) {
@@ -717,7 +717,7 @@ CString Osmo4::GetFileFilter()
 				if (!first) {
 					sFiles += ";";
 				} else {
-					first = 0;
+					first = GF_FALSE;
 				}
 				sFiles += "*.";
 				sFiles += ext;
@@ -808,11 +808,11 @@ void Osmo4::OnUpdateFileStep(CCmdUI* pCmdUI)
 void Osmo4::PlayFromTime(u32 time)
 {
 	Bool do_pause;
-	if (start_mode==1) do_pause = 1;
-	else if (start_mode==2) do_pause = 0;
-	else do_pause = /*!m_AutoPlay*/0;
+	if (start_mode==1) do_pause = GF_TRUE;
+	else if (start_mode==2) do_pause = GF_FALSE;
+	else do_pause = /*!m_AutoPlay*/GF_FALSE;
 	gf_term_play_from_time(m_term, time, do_pause);
-	m_reset = 0;
+	m_reset = GF_FALSE;
 }
 
 
@@ -844,9 +844,9 @@ void Osmo4::OnFilePlay()
 {
 	if (m_isopen) {
 		if (m_reset) {
-			m_reset = 0;
+			m_reset = GF_FALSE;
 			PlayFromTime(0);
-			((CMainFrame *)m_pMainWnd)->SetProgTimer(1);
+			((CMainFrame *)m_pMainWnd)->SetProgTimer(GF_TRUE);
 		} else {
 			Pause();
 		}
@@ -880,9 +880,9 @@ void Osmo4::OnFileStop()
 	CMainFrame *pFrame = (CMainFrame *) m_pMainWnd;
 	if (m_reset) return;
 	if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) Pause();
-	m_reset = 1;
+	m_reset = GF_TRUE;
 	pFrame->m_Sliders.m_PosSlider.SetPos(0);
-	pFrame->SetProgTimer(0);
+	pFrame->SetProgTimer(GF_FALSE);
 	pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 3);
 	start_mode = 2;
 }
@@ -895,7 +895,7 @@ void Osmo4::OnUpdateFileStop(CCmdUI* pCmdUI)
 void Osmo4::OnSwitchRender() 
 {
 	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
-	Bool use_gl = (opt && !stricmp(opt, "yes")) ? 1 : 0;
+	Bool use_gl = (opt && !stricmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 	gf_cfg_set_key(m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes");
 
 	gf_term_set_option(m_term, GF_OPT_USE_OPENGL, !use_gl);

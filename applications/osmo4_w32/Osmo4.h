@@ -56,7 +56,7 @@ public:
 
 	void SetOptions();
 	void UpdateRenderSwitch();
-	void UpdatePlayButton(Bool force_play = 0);
+	void UpdatePlayButton(Bool force_play = GF_FALSE);
 
 	/*general options*/
 	Bool m_Loop, m_LookForSubtitles, m_NoConsole, m_ViewXMTA, m_SingleInstance, m_NoMimeFetch;

@@ -234,15 +234,15 @@ void COptGen::SaveOptions()
 {
 	Osmo4 *gpac = GetApp();
 
-	gpac->m_Loop = m_Loop.GetCheck();
+	gpac->m_Loop = (Bool) m_Loop.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "Loop", gpac->m_Loop ? "yes" : "no");
-	gpac->m_LookForSubtitles = m_LookForSubs.GetCheck();
+	gpac->m_LookForSubtitles = (Bool) m_LookForSubs.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "LookForSubtitles",  gpac->m_LookForSubtitles ? "yes" : "no");
-	gpac->m_NoConsole = m_NoConsole.GetCheck();
+	gpac->m_NoConsole = (Bool) m_NoConsole.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "ConsoleOff", gpac->m_NoConsole ? "yes" : "no");
-	gpac->m_ViewXMTA = m_ViewXMT.GetCheck();
+	gpac->m_ViewXMTA = (Bool) m_ViewXMT.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "ViewXMT", gpac->m_ViewXMTA ? "yes" : "no");
-	gpac->m_SingleInstance = m_SingleInstance.GetCheck();
+	gpac->m_SingleInstance = (Bool) m_SingleInstance.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "SingleInstance", gpac->m_SingleInstance ? "yes" : "no");
 }
 
@@ -586,7 +586,7 @@ Bool COptRender::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Raster2D", str);
 
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ForceOpenGL", m_Use3DRender.GetCheck() ? "yes" : "no");
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -1340,16 +1340,16 @@ BOOL COptStream::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Streaming", "DefaultPort");
 	u32 port = 554;
-	Bool force_rtsp = 0;;
+	Bool force_rtsp = GF_FALSE;
 	if (sOpt) port = atoi(sOpt);
 	switch (port) {
 	case 8080:
 		m_Port.SetCurSel(3);
-		force_rtsp = 1;
+		force_rtsp = GF_TRUE;
 		break;
 	case 80:
 		m_Port.SetCurSel(2);
-		force_rtsp = 1;
+		force_rtsp = GF_TRUE;
 		break;
 	case 7070:
 		m_Port.SetCurSel(1);
@@ -1359,9 +1359,9 @@ BOOL COptStream::OnInitDialog()
 		break;
 	}
 
-	Bool use_rtsp = 0;
+	Bool use_rtsp = GF_FALSE;
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Streaming", "RTPoverRTSP");
-	if (sOpt && !stricmp(sOpt, "yes")) use_rtsp = 1;
+	if (sOpt && !stricmp(sOpt, "yes")) use_rtsp = GF_TRUE;
 
 	if (force_rtsp) {
 		m_UseRTSP.SetCheck(1);
@@ -1482,16 +1482,16 @@ void COptStream::OnUpdateBuffer()
 void COptStream::SaveOptions()
 {
 	Osmo4 *gpac = GetApp();
-	Bool force_rtsp = 0;
+	Bool force_rtsp = GF_FALSE;
 	s32 sel = m_Port.GetCurSel();
 	switch (sel) {
 	case 3:
 		gf_cfg_set_key(gpac->m_user.config, "Streaming", "DefaultPort", "8080");
-		force_rtsp = 1;
+		force_rtsp = GF_TRUE;
 		break;
 	case 2:
 		gf_cfg_set_key(gpac->m_user.config, "Streaming", "DefaultPort", "80");
-		force_rtsp = 1;
+		force_rtsp = GF_TRUE;
 		break;
 	case 1:
 		gf_cfg_set_key(gpac->m_user.config, "Streaming", "DefaultPort", "7070");
@@ -1725,9 +1725,9 @@ void OptFiles::SetSelection(u32 sel)
 	sprintf(sText, "Module: %s", sKey+2);
 	m_PlugName.SetWindowText(sText);
 
-	Bool has_asso, need_asso, go = 1;
+	Bool has_asso, need_asso, go = GF_TRUE;
 	sKey = cur_ext;
-	need_asso = has_asso = 0;
+	need_asso = has_asso = GF_FALSE;
 
 	HKEY hKey;
 	DWORD dwSize;
@@ -1735,7 +1735,7 @@ void OptFiles::SetSelection(u32 sel)
 		Bool ok;
 		char szExt[50], szReg[60], c;
 		char *tmp = strchr(sKey, ' ');
-		if (!tmp) { go = 0;}
+		if (!tmp) { go = GF_FALSE;}
 		else { c = tmp[0]; tmp[0] = 0; }
 		sprintf(szExt, ".%s", sKey);
 		sprintf(szReg, "GPAC\\%s", sKey);
@@ -1743,12 +1743,12 @@ void OptFiles::SetSelection(u32 sel)
 
 		if (RegOpenKeyEx(HKEY_CLASSES_ROOT, szExt, 0, KEY_READ, &hKey ) == ERROR_SUCCESS) {
 			dwSize = 200;
-			ok = 1;
-			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = 0;
+			ok = GF_TRUE;
+			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = GF_FALSE;
 			RegCloseKey(hKey);
-			if (ok && !stricmp((char *)sDesc, szReg)) has_asso = 1;
-			else need_asso = 1;
-		} else need_asso = 1;
+			if (ok && !stricmp((char *)sDesc, szReg)) has_asso = GF_TRUE;
+			else need_asso = GF_TRUE;
+		} else need_asso = GF_TRUE;
 		sKey = tmp;
 
 	}
@@ -1770,7 +1770,7 @@ void OptFiles::OnAssociate()
 	strcat((char *) szApp, "Osmo4.exe \"%L\"");
 
 	if (m_DoAssociate.GetCheck()) {
-		Bool go = 1;
+		Bool go = GF_TRUE;
 		sKey = cur_ext;
 
 		HKEY hKey;
@@ -1779,7 +1779,7 @@ void OptFiles::OnAssociate()
 			Bool ok;
 			char szExt[50], szReg[60], szOld[80], szPath[1024], c;
 			char *tmp = strchr(sKey, ' ');
-			if (!tmp) { go = 0;}
+			if (!tmp) { go = GF_FALSE;}
 			else { c = tmp[0]; tmp[0] = 0; }
 			sprintf(szExt, ".%s", sKey);
 			sprintf(szReg, "GPAC\\%s", sKey);
@@ -1787,8 +1787,8 @@ void OptFiles::OnAssociate()
 
 			RegOpenKeyEx(HKEY_CLASSES_ROOT, szExt, 0, 0, &hKey );
 			dwSize = 200;
-			ok = 1;
-			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = 0;
+			ok = GF_TRUE;
+			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = GF_FALSE;
 			RegCloseKey(hKey);
 			strcpy(szOld, "");
 			if (ok && stricmp((char *)sDesc, szReg)) strcpy(szOld, sDesc);
@@ -1817,7 +1817,7 @@ void OptFiles::OnAssociate()
 			sKey = tmp;
 		}
 	} else {
-		Bool go = 1;
+		Bool go = GF_TRUE;
 		sKey = cur_ext;
 
 		HKEY hKey;
@@ -1826,7 +1826,7 @@ void OptFiles::OnAssociate()
 			Bool ok;
 			char szExt[50], szReg[60], szPath[1024], c;
 			char *tmp = strchr(sKey, ' ');
-			if (!tmp) { go = 0;}
+			if (!tmp) { go = GF_FALSE;}
 			else { c = tmp[0]; tmp[0] = 0; }
 			sprintf(szExt, ".%s", sKey);
 			sprintf(szReg, "GPAC\\%s", sKey);
@@ -1835,8 +1835,8 @@ void OptFiles::OnAssociate()
 			strcpy(szPath, szReg); strcat(szPath, "\\Backup");
 			RegOpenKeyEx(HKEY_CLASSES_ROOT, szPath, 0, 0, &hKey );
 			dwSize = 200;
-			ok = 1;
-			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = 0;
+			ok = GF_TRUE;
+			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = GF_FALSE;
 			RegCloseKey(hKey);
 			if (ok && strlen((char *)sDesc)) {
 				RegCreateKeyEx(HKEY_CLASSES_ROOT, szExt, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);

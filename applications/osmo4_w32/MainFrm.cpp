@@ -160,19 +160,20 @@ CMainFrame::CMainFrame()
 {
 	m_icoerror = AfxGetApp()->LoadIcon(IDI_ERR);
 	m_icomessage = AfxGetApp()->LoadIcon(IDI_MESSAGE);
-	m_bFullScreen = m_bRestoreFS = 0;	
+	m_bFullScreen = GF_FALSE;	
+	m_RestoreFS = 0;
 	m_aspect_ratio = GF_ASPECT_RATIO_KEEP;
 	m_pProps = NULL;
 	m_pOpt = NULL;
 	m_pPlayList = NULL;
 	m_pWndView = new CChildView();
-	m_bInitShow = TRUE;
-	m_bStartupFile = TRUE;
+	m_bInitShow = GF_TRUE;
+	m_bStartupFile = GF_TRUE;
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 	m_last_prog = -1;
 	m_timer_on = 0;
-	m_show_rti = 0;
+	m_show_rti = GF_FALSE;
 	nb_viewpoints = 0;
 }
 
@@ -207,7 +208,7 @@ void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 
 		if (pFrame->m_show_rti && !pFrame->m_timer_on) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-						gf_term_get_framerate(app->m_term, 0), rti.total_cpu_usage, rti.process_cpu_usage, rti.gpac_memory/1024);
+						gf_term_get_framerate(app->m_term, GF_FALSE), rti.total_cpu_usage, rti.process_cpu_usage, rti.gpac_memory/1024);
 			pFrame->m_wndStatusBar.SetPaneText(1, szMsg);
 		}
 	}
@@ -359,11 +360,11 @@ void CMainFrame::Dump(CDumpContext& dc) const
 void CMainFrame::OnSetFocus(CWnd* pOldWnd)
 {
 	m_pWndView->SetFocus();
-	if (m_bRestoreFS==1) {
-		m_bRestoreFS=2;
+	if (m_RestoreFS==1) {
+		m_RestoreFS=2;
 	}
-	else if (m_bRestoreFS==2) {
-		m_bRestoreFS = 0;
+	else if (m_RestoreFS==2) {
+		m_RestoreFS = 0;
 		SetFullscreen();
 	}
 }
@@ -430,7 +431,7 @@ LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 		m_Sliders.m_PosSlider.EnableWindow(FALSE);
 		m_pWndView->ShowWindow(SW_SHOW);
 		ShowWindow(SW_SHOW);
-		m_bInitShow = FALSE;
+		m_bInitShow = GF_FALSE;
 	}
 
 	RECT winRect;
@@ -526,16 +527,16 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	Bool do_pause;
 	Osmo4 *app = GetApp();
 	CString txt, url;
-	m_bStartupFile = FALSE;
+	m_bStartupFile = GF_FALSE;
 	txt = "Osmo4 - ";
 	txt += m_pPlayList->GetDisplayName();
 
 	url = m_pPlayList->GetURL();
 	m_Address.m_Address.SetWindowText(url);
 	SetWindowText(txt);
-	if (app->start_mode==1) do_pause = 1;
-	else if (app->start_mode==2) do_pause = 0;
-	else do_pause = /*!app->m_AutoPlay*/0;
+	if (app->start_mode==1) do_pause = GF_TRUE;
+	else if (app->start_mode==2) do_pause = GF_FALSE;
+	else do_pause = /*!app->m_AutoPlay*/GF_FALSE;
 	gf_term_connect_from_time(app->m_term, (LPCSTR) url, app->m_reconnect_time, do_pause);
 	app->m_reconnect_time = 0;
 	app->start_mode = 0;
@@ -546,10 +547,10 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 
 LONG CMainFrame::NewInstanceOpened(WPARAM wParam, LPARAM lParam)
 {
-	Bool queue_only = 0;
+	Bool queue_only = GF_FALSE;
 	char *url = (char *) static_gpac_get_url();
 	if (!strnicmp(url, "-queue ", 7)) {
-		queue_only = 1;
+		queue_only = GF_TRUE;
 		url += 7;
 	}
 	m_pPlayList->QueueURL(url);
@@ -587,7 +588,7 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 		::DragQueryFile(hDropInfo, 0, fileName, MAX_PATH);
 		char *ext = strrchr(fileName, '.');
 		if (ext && ( !stricmp(ext, ".srt") || !stricmp(ext, ".sub") || !stricmp(ext, ".ttxt") || !stricmp(ext, ".xml") ) ) {
-			AddSubtitle(fileName, 1);
+			AddSubtitle(fileName, GF_TRUE);
 			return;
 		}
 	}
@@ -657,10 +658,10 @@ void CMainFrame::SetFullscreen()
 	if (!m_bFullScreen) {
 //		GetWindowRect(&backup_wnd_rc);
 		if (gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, 1) == GF_OK) 
-			m_bFullScreen = 1;
+			m_bFullScreen = GF_TRUE;
 	} else {
 		if (gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, 0) == GF_OK) 
-			m_bFullScreen = 0;
+			m_bFullScreen = GF_FALSE;
 //		SetWindowPos(NULL, backup_wnd_rc.left, backup_wnd_rc.top, backup_wnd_rc.right-backup_wnd_rc.left, backup_wnd_rc.bottom-backup_wnd_rc.top, SWP_NOZORDER);
 	}
 }
@@ -777,7 +778,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		return 0;
 	}
 
-	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, 1, gpac->m_NoMimeFetch)) {
+	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, GF_TRUE, gpac->m_NoMimeFetch)) {
 		char *str = gf_url_concatenate(m_pPlayList->GetURL(), gpac->m_navigate_url);
 		if (str) {
 			m_pPlayList->Truncate();
@@ -791,7 +792,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	
 	if (m_bFullScreen) {
 		SetFullscreen();
-		m_bRestoreFS = 1;
+		m_RestoreFS = 1;
 	}
 
 	console_message = gpac->m_navigate_url;
@@ -939,7 +940,7 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 	while (pMenu->GetMenuItemCount()) pMenu->DeleteMenu(0, MF_BYPOSITION);
 
 	if (reset_only) {
-		m_bFirstStreamQuery = 1;
+		m_bFirstStreamQuery = GF_TRUE;
 		return;
 	}
 	if (!app->m_isopen || !gf_term_get_option(app->m_term, GF_OPT_CAN_SELECT_STREAMS)) return;
@@ -998,7 +999,7 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 		}
 	}
 	if (m_bFirstStreamQuery) {
-		m_bFirstStreamQuery = 0;
+		m_bFirstStreamQuery = GF_FALSE;
 		if (!nb_subs && app->m_LookForSubtitles) LookForSubtitles();
 	}
 
@@ -1115,12 +1116,12 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT ID, BOOL bSys)
 			u32 id = pPopupMenu->GetMenuItemID(i) - ID_SETCHAP_FIRST;
 			pPopupMenu->EnableMenuItem(i, MF_BYPOSITION);
 
-			Bool is_current = 0;
+			Bool is_current = GF_FALSE;
 			if (m_chapters_start[id]<=now) {
 				if (id+1<m_num_chapters) {
-					if (m_chapters_start[id+1]>now) is_current = 1;
+					if (m_chapters_start[id+1]>now) is_current = GF_TRUE;
 				} else {
-					is_current = 1;
+					is_current = GF_TRUE;
 				}
 			}
 			pPopupMenu->CheckMenuItem(i, MF_BYPOSITION | (is_current ? MF_CHECKED : MF_UNCHECKED));
@@ -1170,7 +1171,7 @@ void CMainFrame::OnUpdateCollideReg(CCmdUI* pCmdUI)
 void CMainFrame::OnHeadlight() 
 {
 	Osmo4 *app = GetApp();
-	Bool val = !gf_term_get_option(app->m_term, GF_OPT_HEADLIGHT);
+	Bool val = gf_term_get_option(app->m_term, GF_OPT_HEADLIGHT) ? GF_FALSE : GF_TRUE;
 	gf_term_set_option(app->m_term, GF_OPT_HEADLIGHT, val);
 }
 
@@ -1189,7 +1190,7 @@ void CMainFrame::OnUpdateHeadlight(CCmdUI* pCmdUI)
 void CMainFrame::OnGravity() 
 {
 	Osmo4 *app = GetApp();
-	Bool val = gf_term_get_option(app->m_term, GF_OPT_GRAVITY) ? 0 : 1;
+	Bool val = gf_term_get_option(app->m_term, GF_OPT_GRAVITY) ? GF_FALSE : GF_TRUE;
 	gf_term_set_option(app->m_term, GF_OPT_GRAVITY, val);
 }
 
@@ -1297,12 +1298,12 @@ void CMainFrame::OnUpdateViewPlaylist(CCmdUI* pCmdUI)
 }
 void CMainFrame::OnPlaylistLoop() 
 {
-	GetApp()->m_Loop = !GetApp()->m_Loop;
+	GetApp()->m_Loop = GetApp()->m_Loop ? GF_FALSE : GF_TRUE;
 }
 
 void CMainFrame::OnUpdatePlaylistLoop(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(GetApp()->m_Loop ? 1 : 0);
+	pCmdUI->SetCheck(GetApp()->m_Loop ? GF_TRUE : GF_FALSE);
 }
 
 void CMainFrame::OnAddSubtitle() 
@@ -1310,7 +1311,7 @@ void CMainFrame::OnAddSubtitle()
 	CFileDialog fd(TRUE,NULL,NULL, OFN_HIDEREADONLY | OFN_FILEMUSTEXIST, "All Subtitles|*.srt;*.sub;*.ttxt;*.xml|SRT Subtitles|*.srt|SUB Subtitles|*.sub|3GPP TimedText|*.ttxt|QuckTime TeXML|*.xml|");
 	if (fd.DoModal() != IDOK) return;
 
-	AddSubtitle(fd.GetPathName(), 1);
+	AddSubtitle(fd.GetPathName(), GF_TRUE);
 }
 
 void CMainFrame::AddSubtitle(const char *fileName, Bool auto_play)
@@ -1321,8 +1322,8 @@ void CMainFrame::AddSubtitle(const char *fileName, Bool auto_play)
 static Bool subs_enum_dir_item(void *cbck, char *item_name, char *item_path)
 {
 	CMainFrame *_this = (CMainFrame *)cbck;
-	_this->AddSubtitle(item_path, 0);
-	return 0;
+	_this->AddSubtitle(item_path, GF_FALSE);
+	return GF_FALSE;
 }
 
 void CMainFrame::LookForSubtitles()
@@ -1334,7 +1335,7 @@ void CMainFrame::LookForSubtitles()
 	if (!sep) ::GetCurrentDirectory(GF_MAX_PATH, dir);
 	else sep[0] = 0;
 
-	gf_enum_directory(dir, 0, subs_enum_dir_item, this, "ttxt;srt");
+	gf_enum_directory(dir, GF_FALSE, subs_enum_dir_item, this, "ttxt;srt");
 }
 
 void CMainFrame::OnCacheEnable()
@@ -1444,7 +1445,7 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 
 void CMainFrame::OnViewCPU()
 {
-	m_show_rti = !m_show_rti;
+	m_show_rti = m_show_rti ? GF_FALSE : GF_TRUE;
 }
 
 void CMainFrame::OnUpdateViewCPU(CCmdUI* pCmdUI) 
@@ -1457,7 +1458,7 @@ void CMainFrame::OnUpdateViewCPU(CCmdUI* pCmdUI)
 void CMainFrame::OnFileCopy()
 {
 	u32 len;
-	const char *text = gf_term_get_text_selection(GetApp()->m_term, 0);
+	const char *text = gf_term_get_text_selection(GetApp()->m_term, GF_FALSE);
 	if (!text) return;
 
 	if (!IsClipboardFormatAvailable(CF_TEXT)) return;
@@ -1481,7 +1482,7 @@ void CMainFrame::OnUpdateFileCopy(CCmdUI* pCmdUI)
 	Osmo4 *app = GetApp();
 	if (IsClipboardFormatAvailable(CF_TEXT)
 		&& app->m_term 
-		&& (gf_term_get_text_selection(app->m_term, 1)!=NULL)
+		&& (gf_term_get_text_selection(app->m_term, GF_TRUE)!=NULL)
 	) {
 		pCmdUI->Enable(TRUE);
 	} else {
@@ -1498,7 +1499,7 @@ void CMainFrame::OnFilePaste()
 	HGLOBAL hglbCopy = GetClipboardData(CF_TEXT);
 	if (hglbCopy) {
 		LPTSTR lptstrCopy = (char *) GlobalLock(hglbCopy);
-		gf_term_paste_text(GetApp()->m_term, lptstrCopy, 0);
+		gf_term_paste_text(GetApp()->m_term, lptstrCopy, GF_FALSE);
 		GlobalUnlock(hglbCopy); 
 	}
 	CloseClipboard(); 
@@ -1509,7 +1510,7 @@ void CMainFrame::OnUpdateFilePaste(CCmdUI* pCmdUI)
 	Osmo4 *app = GetApp();
 	if (IsClipboardFormatAvailable(CF_TEXT)
 		&& app->m_term 
-		&& (gf_term_paste_text(app->m_term, NULL, 1)==GF_OK)
+		&& (gf_term_paste_text(app->m_term, NULL, GF_TRUE)==GF_OK)
 	) {
 		pCmdUI->Enable(TRUE);
 	} else {

@@ -365,7 +365,7 @@ void CFileProps::OnViewsg()
 	strcpy(szOutRadname, gpac->szUserPath);
 	strcat(szOutRadname, "scene_dump");
 
-	GF_Err e = gf_term_dump_scene(gpac->m_term, (char *) szOutRadname, &pFilename, gpac->m_ViewXMTA, 0, current_odm);
+	GF_Err e = gf_term_dump_scene(gpac->m_term, (char *) szOutRadname, &pFilename, gpac->m_ViewXMTA, GF_FALSE, current_odm);
 
 	if (e) {
 		MessageBox(gf_error_to_string(e), "Error while dumping");
@@ -479,7 +479,7 @@ void CFileProps::SetStreamsInfo()
 		strcat(info, buf);
 		strcat(info, "\r\n");
 	}
-	is_media = 0;
+	is_media = GF_FALSE;
 	count = gf_list_count(odi.od->ESDescriptors);
 
 	for (i=0; i<count; i++) {

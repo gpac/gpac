@@ -67,7 +67,7 @@ static AVPacketList * wait_for_packet(GF_AbstractTSMuxer* ts, GF_Mutex * mx, AVP
 }
 
 
-static Bool ts_interleave_thread_run(void *param) {
+static u32 ts_interleave_thread_run(void *param) {
     GF_AbstractTSMuxer * mux = (GF_AbstractTSMuxer *) param;
     AVStream * video_st = mux->video_st;
     AVStream * audio_st = mux->audio_st;
