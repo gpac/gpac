@@ -407,7 +407,7 @@ NPT_String GPAC_FileMediaServer::GetResourceURI(const char *url, const char *for
 
 	/*url was absolute, add its root directory*/
 	if (!strcmp(abs_url, url)) {
-		Bool found = 0;
+		Bool found = GF_FALSE;
 		NPT_String newdir;
 		/*if the path is /my/example/path/test.ext, we want to share the parent directory
 			/my/example/, otherwise we will loose the ability to browse for resource in the parent dir
@@ -437,11 +437,11 @@ NPT_String GPAC_FileMediaServer::GetResourceURI(const char *url, const char *for
 			GPAC_MediaDirectory *dir;
 			m_Directories.Get(i, dir);
 			if (!strcmp(newdir, dir->m_Path)) {
-				found = 1;
+				found = GF_TRUE;
 			}
 		}
 		if (!found)
-			AddSharedDirectory(newdir, NULL, 1);
+			AddSharedDirectory(newdir, NULL, GF_TRUE);
 	}
 
 	path = abs_url;

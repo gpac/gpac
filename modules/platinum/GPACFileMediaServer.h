@@ -47,7 +47,7 @@ public:
 	if is_hidden is set, directory is not visible during BrowseDirectChildren
 	if alias is NULL, a CRC32 of the path name will be used
 	*/
-	GPAC_MediaDirectory(const char *alias, const char *path, Bool is_hidden = 0)  
+	GPAC_MediaDirectory(const char *alias, const char *path, Bool is_hidden = GF_FALSE)
 	{
 		m_Path = path;
 		m_Path.Replace('/', NPT_FilePath::Separator);
@@ -66,7 +66,7 @@ public:
 class GPAC_VirtualFile
 {
 public:
-	GPAC_VirtualFile(const char *uri="", const char *val="", const char *mime="", Bool temporary=0) 
+	GPAC_VirtualFile(const char *uri="", const char *val="", const char *mime="", Bool temporary= GF_FALSE)
 	{
 		m_URI = uri;
 		m_Content = val;
@@ -92,10 +92,10 @@ public:
 						NPT_UInt16   port = 0);
 
 
-	void AddSharedDirectory(const char *path, const char *alias, Bool is_hidden = 0);
+	void AddSharedDirectory(const char *path, const char *alias, Bool is_hidden = GF_FALSE);
 
     NPT_String GetResourceURI(const char *file_path, const char *for_host);
-    void ShareVirtualResource(const char *res_uri, const char *res_val, const char *res_mime, Bool temporary = 0);
+    void ShareVirtualResource(const char *res_uri, const char *res_val, const char *res_mime, Bool temporary = GF_FALSE);
 
 protected:
     virtual NPT_Result OnBrowseDirectChildren(PLT_ActionReference&          action, 
