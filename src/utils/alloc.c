@@ -300,7 +300,7 @@ static char *(*gf_mem_strdup_proto)(const char *str, char *filename, int line) =
 
 #ifndef MY_GF_EXPORT
 #if defined(__GNUC__) && __GNUC__ >= 4
-#define GF_EXPORT __attribute__((visibility("default")))
+#define MY_GF_EXPORT __attribute__((visibility("default")))
 #else
 /*use def files for windows or let compiler decide*/
 #define MY_GF_EXPORT
