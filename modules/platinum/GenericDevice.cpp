@@ -42,7 +42,7 @@ GPAC_ServiceItem::GPAC_ServiceItem(GPAC_DeviceItem *device, PLT_Service *service
 	on_event = JSVAL_NULL;
 	m_StateListeners = gf_list_new();
 	m_ArgListeners = gf_list_new();
-	subscribed = 0;
+	subscribed = GF_FALSE;
 	vars=NULL;
 #endif
 }
@@ -137,7 +137,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_listener)
 			gf_js_add_root(c, &service->on_event, GF_JSGC_VAL);
 			if (!service->subscribed) {
 				service->m_device->m_pUPnP->m_pGenericController->m_CtrlPoint->Subscribe(service->m_service);
-				service->subscribed = 1;
+				service->subscribed = GF_TRUE;
 			}
 		}
 		return JS_TRUE;
@@ -167,7 +167,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_listener)
 	gf_js_add_root(c, &svl->on_event, GF_JSGC_VAL);
 	if (!service->subscribed) {
 		service->m_device->m_pUPnP->m_pGenericController->m_CtrlPoint->Subscribe(service->m_service);
-		service->subscribed = 1;
+		service->subscribed = GF_TRUE;
 	}
 	SMJS_FREE(c, name);
 	return JS_TRUE;
@@ -179,7 +179,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 	PLT_ArgumentDesc *desc;
 	GPAC_ActionArgListener *argl  = NULL;
 	char *name;
-	Bool script_callback = 0;
+	Bool script_callback = GF_FALSE;
 	u32 i;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -197,7 +197,7 @@ static JSBool SMJS_FUNCTION(upnp_service_set_action_listener)
 	desc = NULL;
 	if (argc==3) {
 		if (JSVAL_IS_BOOLEAN(argv[2])) {
-			script_callback = 1;
+			script_callback = GF_TRUE;
 		} else {
 			if (!JSVAL_IS_STRING(argv[2]) ) return JS_FALSE;
 			name = SMJS_CHARS(c, argv[2]);
@@ -625,10 +625,10 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 			jsval argv[1], rval;
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s argument %s\n", (char *) action->GetActionDesc().GetName(), (char *) argl->arg->GetName() ));
-			m_pUPnP->LockJavascript(1);
+			m_pUPnP->LockJavascript(GF_TRUE);
 			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, value) );
 			JS_CallFunctionValue(serv->js_ctx, serv->obj, argl->on_event, 1, argv, &rval);
-			m_pUPnP->LockJavascript(0);
+			m_pUPnP->LockJavascript(GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] %s Response: couldn't get argument %s value\n", (char *) action->GetActionDesc().GetName(), (char *) argl->arg->GetName() ));
 		}
@@ -636,7 +636,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 
 	if (act_l) {
 		jsval rval;
-		m_pUPnP->LockJavascript(1);
+		m_pUPnP->LockJavascript(GF_TRUE);
 		if (act_l->is_script) {
 			JSObject *act_obj;
 			jsval argv[2];
@@ -667,7 +667,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 		else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] response %s has error %d\n", (char *) action->GetActionDesc().GetName(), res ));
 		}
-		m_pUPnP->LockJavascript(0);
+		m_pUPnP->LockJavascript(GF_FALSE);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Done processing response %s\n", (char *) action->GetActionDesc().GetName()));
 
@@ -715,10 +715,10 @@ NPT_Result GPAC_GenericController::OnEventNotify(PLT_Service* service, NPT_List<
 
 	if (!JSVAL_IS_NULL(serv->on_event)) {
 		jsval rval;
-		m_pUPnP->LockJavascript(1);
+		m_pUPnP->LockJavascript(GF_TRUE);
 		serv->vars = vars;
 		JS_CallFunctionValue(serv->js_ctx, serv->obj, serv->on_event, 0, 0, &rval);
-		m_pUPnP->LockJavascript(0);
+		m_pUPnP->LockJavascript(GF_FALSE);
 		serv->vars = NULL;
 	}
 
@@ -727,10 +727,10 @@ NPT_Result GPAC_GenericController::OnEventNotify(PLT_Service* service, NPT_List<
 		/*check if we can find our var in this list*/
 		if (vars->Contains(svl->var)) {
 			jsval argv[1], rval;
-			m_pUPnP->LockJavascript(1);
+			m_pUPnP->LockJavascript(GF_TRUE);
 			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, svl->var->GetValue() ) );
 			JS_CallFunctionValue(serv->js_ctx, serv->obj, svl->on_event, 1, argv, &rval);
-			m_pUPnP->LockJavascript(0);
+			m_pUPnP->LockJavascript(GF_FALSE);
 		}
 
 	}
@@ -964,7 +964,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 
 	jsval argv[2];
 
-	m_pUPnP->LockJavascript(1);
+	m_pUPnP->LockJavascript(GF_TRUE);
 
 	JSObject *js_action = JS_NewObject(m_pUPnP->m_pJSCtx, &m_pUPnP->upnpDeviceClass._class, 0, 0);
 	argv[0] = OBJECT_TO_JSVAL(js_action);
@@ -984,7 +984,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 	jsval rval;
 	JS_CallFunctionValue(m_pUPnP->m_pJSCtx, obj, act_proc, 1, argv, &rval);
 	SMJS_SET_PRIVATE(m_pUPnP->m_pJSCtx, js_action, NULL);
-	m_pUPnP->LockJavascript(0);
+	m_pUPnP->LockJavascript(GF_FALSE);
 
 	if (JSVAL_IS_INT(rval) && (JSVAL_TO_INT(rval) != 0)) {
 	    action->SetError(JSVAL_TO_INT(rval), "Action Failed");

@@ -54,7 +54,7 @@ GPAC_MediaRenderer::GPAC_MediaRenderer(GF_UPnP *upnp, const char*  friendly_name
 {
 	m_mediaHistoryList = gf_list_new();
 	m_pUPnP = upnp;
-	m_connected = 0;
+	m_connected = GF_FALSE;
 	m_Duration = m_Time = 0;
 }
 
@@ -444,7 +444,7 @@ NPT_Result GPAC_MediaRenderer::OnSetAVTransportURI(PLT_ActionReference& action)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Request: change media\n"));
 
 	if (m_connected) {
-		m_connected = 0;
+		m_connected = GF_FALSE;
 		m_pUPnP->OnStop(m_ip_src);
 	}
 	const char *ext = strrchr(MediaUri, '.');
@@ -460,7 +460,7 @@ NPT_Result GPAC_MediaRenderer::OnSetAVTransportURI(PLT_ActionReference& action)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Opening URL %s\n", the_url));
 	m_track_pos = gf_list_count(m_mediaHistoryList);
 
-	m_connected = 1;
+	m_connected = GF_TRUE;
 	m_pUPnP->OnConnect(the_url, m_ip_src);
 	/* Set UPnP datas */
     m_pAVService->SetStateVariable("TransportState", "PLAYING");
@@ -477,7 +477,7 @@ NPT_Result GPAC_MediaRenderer::OnPause(PLT_ActionReference& action)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Request: change state : PAUSE\n"));
     m_pAVService->SetStateVariable("TransportState", "PAUSED_PLAYBACK");
-	m_pUPnP->OnPause(0, m_ip_src);
+	m_pUPnP->OnPause(GF_FALSE, m_ip_src);
     return NPT_SUCCESS;
 }
 
@@ -488,14 +488,14 @@ NPT_Result GPAC_MediaRenderer::OnPlay(PLT_ActionReference& action)
 	/* if nothing playing, connect to first media of mediaHistoryList */
 	if (m_connected) {
 	    m_pAVService->SetStateVariable("TransportState", "PLAYING");
-		m_pUPnP->OnPause(1, m_ip_src);
+		m_pUPnP->OnPause(GF_TRUE, m_ip_src);
 	} else if (gf_list_count(m_mediaHistoryList) >= 1) {
 		char *track = (char *) gf_list_get(m_mediaHistoryList, 0);
 		m_track_pos = 1;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Reading first media : %s\n", track));
 	    m_pAVService->SetStateVariable("TransportState", "PLAYING");
-		m_connected = 1;
+		m_connected = GF_TRUE;
 		m_pUPnP->OnConnect(track, m_ip_src);
 		//MRSetTrack(track, upnph->TrackPosition);
 	}
@@ -583,5 +583,5 @@ void GPAC_MediaRenderer::SetConnected(const char *url)
     m_pAVService->SetStateVariable("AVTransportURI", url);
     m_pAVService->SetStateVariable("CurrentTrackURI", url);
     m_pAVService->SetStateVariable("TransportState", "PLAYING");
-	m_connected = url ? 1 : 0;
+	m_connected = url ? GF_TRUE : GF_FALSE;
 }

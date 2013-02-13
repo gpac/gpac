@@ -46,7 +46,7 @@ GF_UPnP::GF_UPnP()
 	m_pMediaRenderer = NULL;
 	m_pMediaServer = NULL;
 	m_pAVCtrlPoint = NULL;
-	m_renderer_bound = 0;
+	m_renderer_bound = GF_FALSE;
 	m_pGenericController = NULL;	
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -77,14 +77,14 @@ void GF_UPnP::OnStop(const char *src_url)
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaStop", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			jsval argv[1];
 			argv[0] = GetUPnPDevice(src_url);
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 1, argv, &rval);
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	} else {
 //		gf_term_disconnect(m_pTerm);
@@ -99,7 +99,7 @@ NPT_String GF_UPnP::OnMigrate()
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return res;
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, "onMigrate", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 0, NULL, &rval);
@@ -109,7 +109,7 @@ NPT_String GF_UPnP::OnMigrate()
 				SMJS_FREE(m_pJSCtx, _res);
 			}
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	} else {
 		GF_NetworkCommand com;
@@ -140,7 +140,7 @@ void GF_UPnP::OnConnect(const char *url, const char *src_url)
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
 
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaConnect", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			jsval argv[2];
@@ -148,7 +148,7 @@ void GF_UPnP::OnConnect(const char *url, const char *src_url)
 			argv[1] = GetUPnPDevice(src_url);
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	} else {
 		gf_term_navigate_to(m_pTerm, url);
@@ -160,14 +160,14 @@ void GF_UPnP::OnPause(Bool do_resume, const char *src_url)
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, do_resume ? "onMediaPlay" : "onMediaPause", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			jsval argv[1];
 			argv[0] = GetUPnPDevice(src_url);
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 1, argv, &rval);
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	} else {
 		gf_term_set_option(m_pTerm, GF_OPT_PLAY_STATE, do_resume ? GF_STATE_PLAYING : GF_STATE_PAUSED);
@@ -180,14 +180,14 @@ void GF_UPnP::OnSeek(Double time)
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaSeek", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			jsval argv[1];
 			argv[0] = DOUBLE_TO_JSVAL( JS_NewDouble(m_pJSCtx, time) );
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	} else {
 		/* CanSeek and Duration set for each media by event_proc */
@@ -211,7 +211,7 @@ void GF_UPnP::onTimeChanged(s32 renderer_idx, Double time)
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaTimeChanged", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			jsval argv[2];
@@ -219,7 +219,7 @@ void GF_UPnP::onTimeChanged(s32 renderer_idx, Double time)
 			argv[1] = DOUBLE_TO_JSVAL( JS_NewDouble(m_pJSCtx, time) );
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	}
 }
@@ -230,7 +230,7 @@ void GF_UPnP::onDurationChanged(s32 renderer_idx, Double dur)
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
-		LockJavascript(1);
+		LockJavascript(GF_TRUE);
 		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaDurationChanged", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
 			jsval argv[2];
@@ -238,7 +238,7 @@ void GF_UPnP::onDurationChanged(s32 renderer_idx, Double dur)
 			argv[1] = DOUBLE_TO_JSVAL( JS_NewDouble(m_pJSCtx, dur) );
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
-		LockJavascript(0);
+		LockJavascript(GF_FALSE);
 #endif
 	}
 }
@@ -246,7 +246,7 @@ void GF_UPnP::onDurationChanged(s32 renderer_idx, Double dur)
 
 Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 {
-	if (!m_pMediaRenderer) return 0;
+	if (!m_pMediaRenderer) return GF_FALSE;
 	switch (evt->type) {
 	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
@@ -281,21 +281,21 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 		}
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 Bool upnp_on_term_event(void *udta, GF_Event *evt, Bool consumed)
 {
 	GF_UPnP *upnp = (GF_UPnP *) udta;
 	if (!consumed && upnp) return upnp->ProcessEvent(evt);
-	return 0;
+	return GF_FALSE;
 }
 
 void GF_UPnP::Load(GF_Terminal *term)
 {
 	u16 port = 0;
-	Bool save_uuids=0;
-	Bool ignore_local_devices=0;
+	Bool save_uuids=GF_FALSE;
+	Bool ignore_local_devices=GF_FALSE;
 	const char *uuid, *opt, *name;
 	char hostname[100], friendly_name[1024];
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Starting UPnP\n"));
@@ -317,7 +317,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices");
 	if (!opt || !strcmp(opt, "yes")) {
-		ignore_local_devices = 1;
+		ignore_local_devices = GF_TRUE;
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices", "yes");
 	}
 
@@ -325,13 +325,13 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices");
 	if (!opt || !strcmp(opt, "yes")) {
-		ignore_local_devices = 1;
+		ignore_local_devices = GF_TRUE;
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices", "yes");
 	}
 
 
 	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "SaveUUIDs");
-	if (opt && !strcmp(opt, "yes")) save_uuids = 1;	
+	if (opt && !strcmp(opt, "yes")) save_uuids = GF_TRUE;
 	
 	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererEnabled");
 	if (!opt || !strcmp(opt, "yes")) {
@@ -399,14 +399,14 @@ void GF_UPnP::Load(GF_Terminal *term)
 			m_pMediaServer->AddSharedDirectory("/", "all");
 		} else {
 			while (media_root) {
-				Bool is_hidden = 0;
+				Bool is_hidden = GF_FALSE;
 				char *sep1 = (char *)strchr(media_root, ':');
 				if (!sep1) break;
 				char *sep2 = (char *)strchr(sep1, ';');
 
 				if (!strncmp(media_root, "(h)", 3)) {
 					media_root+=3;
-					is_hidden = 1;
+					is_hidden = GF_TRUE;
 				}
 				sep1[0] = 0;
 				if (sep2) sep2[0] = 0;
@@ -490,7 +490,7 @@ void GF_UPnP::OnMediaRendererAdd(PLT_DeviceDataReference& device, int added)
 
 	if (m_IPFilter.GetLength() && (strstr((const char*)m_IPFilter, (const char*)device->GetURLBase().GetHost()) == NULL) ) return;
 
-	LockJavascript(1);
+	LockJavascript(GF_TRUE);
 
 	JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaRendererAdd", &funval);
 	if (JSVAL_IS_OBJECT(funval)) {
@@ -501,7 +501,7 @@ void GF_UPnP::OnMediaRendererAdd(PLT_DeviceDataReference& device, int added)
 		
 		JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 3, argv, &rval);
 	}
-	LockJavascript(0);
+	LockJavascript(GF_FALSE);
 }
 
 
@@ -512,7 +512,7 @@ void GF_UPnP::OnMediaServerAdd(PLT_DeviceDataReference& device, int added)
 
 	if (m_IPFilter.GetLength() && (strstr((const char*)m_IPFilter, (const char*)device->GetURLBase().GetHost()) == NULL) ) return;
 
-	LockJavascript(1);
+	LockJavascript(GF_TRUE);
 	JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaServerAdd", &funval);
 	if (JSVAL_IS_OBJECT(funval)) {
 		jsval argv[3];
@@ -522,7 +522,7 @@ void GF_UPnP::OnMediaServerAdd(PLT_DeviceDataReference& device, int added)
 		
 		JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 3, argv, &rval);
 	}
-	LockJavascript(0);
+	LockJavascript(GF_FALSE);
 }
 
 static SMJS_DECL_FUNC_PROP_GET(  upnpdevice_getProperty)
@@ -626,7 +626,7 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 
 	if (m_IPFilter.GetLength() && (strstr((const char*)m_IPFilter, (const char*)item->m_device->GetURLBase().GetHost()) == NULL) ) return;
 
-	LockJavascript(1);
+	LockJavascript(GF_TRUE);
 
 	if (added) {
 		item->js_ctx = m_pJSCtx;
@@ -643,7 +643,7 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 		argv[1] = BOOLEAN_TO_JSVAL( added ? JS_TRUE : JS_FALSE);
 		JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 3, argv, &rval);
 	}
-	LockJavascript(0);
+	LockJavascript(GF_FALSE);
 }
 
 static SMJS_DECL_FUNC_PROP_GET(  upnp_getProperty)
@@ -702,7 +702,7 @@ static SMJS_DECL_FUNC_PROP_SET(upnp_setProperty)
 		if (!strcmp(prop_name, "MovieDuration") && JSVAL_IS_DOUBLE( VPGET() )) {
 			jsdouble d;
 			JS_ValueToNumber(c, VPGET(), &d);
-			upnp->m_pMediaRenderer->SetDuration(d, 1);
+			upnp->m_pMediaRenderer->SetDuration(d, GF_TRUE);
 		}
 		else if (!strcmp(prop_name, "MovieTime") && JSVAL_IS_DOUBLE( VPGET() )) {
 			jsdouble d;
@@ -1185,7 +1185,7 @@ static JSBool SMJS_FUNCTION(upnp_bind_renderer)
 	SMJS_OBJ
 	GF_UPnP *upnp = (GF_UPnP *)SMJS_GET_PRIVATE(c, obj);
 	if (!upnp) return JS_TRUE;
-	upnp->m_renderer_bound = 1;
+	upnp->m_renderer_bound = GF_TRUE;
 
 	/*remove ourselves from the event filters since we will only be called through JS*/
 	gf_term_remove_event_filter(upnp->m_pTerm, &upnp->evt_filter);
@@ -1219,7 +1219,7 @@ static JSBool SMJS_FUNCTION(upnp_share_resource)
 
 static JSBool SMJS_FUNCTION(upnp_share_virtual_resource)
 {
-	Bool temp = 0;
+	Bool temp = GF_FALSE;
 	char *res_url, *res_val, *mime;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -1234,7 +1234,7 @@ static JSBool SMJS_FUNCTION(upnp_share_virtual_resource)
 	}
 	mime = NULL;
 	if (argc==3) mime = SMJS_CHARS(c, argv[2]);
-	if ((argc==4) && JSVAL_IS_BOOLEAN(argv[3]) && (JSVAL_TO_BOOLEAN(argv[3])==JS_TRUE) ) temp = 1;;
+	if ((argc==4) && JSVAL_IS_BOOLEAN(argv[3]) && (JSVAL_TO_BOOLEAN(argv[3])==JS_TRUE) ) temp = GF_TRUE;;
 
 	upnp->m_pMediaServer->ShareVirtualResource(res_url, res_val, mime ? mime : "application/octet-stream", temp);
 	SMJS_FREE(c, res_url);
@@ -1496,18 +1496,18 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 				m_pJSCtx = NULL;
 			}
 		}
-		return 0;
+		return GF_FALSE;
 	}
 	if (m_nbJSInstances) {
 		/*FIXME - this was possible in previous version of SpiderMonkey, don't know how to fix that for new ones*/
 #if (JS_VERSION>=185)
 		m_nbJSInstances++;
-		return 0;
+		return GF_FALSE;
 #else
 		JS_DefineProperty((JSContext*)param->ctx, (JSObject*)param->global, "UPnP", OBJECT_TO_JSVAL(m_pObj), 0, 0, 0);
 		m_nbJSInstances++;
 #endif
-		return 0;
+		return GF_FALSE;
 	}
 
 	m_pJSCtx = (JSContext*)param->ctx;
@@ -1582,7 +1582,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		fclose(f);
 		gf_free(buf);
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 #endif
@@ -1606,9 +1606,9 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 		}
 		if (!strcmp(opt, "yes")) {
 			upnp->Load((GF_Terminal *)param);
-			return 1;
+			return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 
 	case GF_TERM_EXT_STOP:
 		upnp->Unload();
@@ -1622,7 +1622,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 			if (now - upnp->last_time > 200) {
 				u32 i, count, arg_set; 
 				jsval argv[1], rval;
-				upnp->LockJavascript(1);
+				upnp->LockJavascript(GF_TRUE);
 				arg_set = 0;
 				count = gf_list_count(upnp->m_Devices);
 				for (i=0; i<count; i++) {
@@ -1635,7 +1635,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 						JS_CallFunctionValue(upnp->m_pJSCtx, device->obj, device->run_proc, 1, argv, &rval);
 					}
 				}
-				upnp->LockJavascript(0);
+				upnp->LockJavascript(GF_FALSE);
 				upnp->last_time = now;
 			}
 		}
@@ -1647,7 +1647,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 		return upnp->LoadJS((GF_TermExtJS*)param);
 #endif
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
