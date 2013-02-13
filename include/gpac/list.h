@@ -55,6 +55,7 @@ typedef struct _tag_array GF_List;
  *	\return new list object
  */
 GF_List *gf_list_new();
+
 /*!
  *	\brief list destructor
  *
@@ -63,6 +64,7 @@ GF_List *gf_list_new();
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 void gf_list_del(GF_List *ptr);
+
 /*!
  *	\brief get count
  *
@@ -71,6 +73,7 @@ void gf_list_del(GF_List *ptr);
  *	\return number of items in the list
  */
 u32 gf_list_count(const GF_List *ptr);
+
 /*!
  *	\brief add item
  *
@@ -79,6 +82,7 @@ u32 gf_list_count(const GF_List *ptr);
  *	\param item item to add
  */
 GF_Err gf_list_add(GF_List *ptr, void* item);
+
 /*!
  *	\brief inserts item
  *
@@ -88,6 +92,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item);
  *	\param position insertion position. It is expressed between 0 and gf_list_count-1, and any bigger value is equivalent to gf_list_add
  */
 GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position);
+
 /*!
  *	\brief removes item
  *
@@ -97,6 +102,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position);
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 GF_Err gf_list_rem(GF_List *ptr, u32 position);
+
 /*!
  *	\brief gets item
  *
@@ -105,6 +111,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 position);
  *	\param position position of the item to get. It is expressed between 0 and gf_list_count-1.
  */
 void *gf_list_get(GF_List *ptr, u32 position);
+
 /*!
  *	\brief finds item
  *
@@ -114,6 +121,7 @@ void *gf_list_get(GF_List *ptr, u32 position);
  *	\return 0-based item position in the list, or -1 if the item could not be found.
  */
 s32 gf_list_find(GF_List *ptr, void *item);
+
 /*!
  *	\brief deletes item
  *
@@ -123,6 +131,7 @@ s32 gf_list_find(GF_List *ptr, void *item);
  *	\return 0-based item position in the list before removal, or -1 if the item could not be found.
  */
 s32 gf_list_del_item(GF_List *ptr, void *item);
+
 /*!
  *	\brief resets list
  *
@@ -131,6 +140,7 @@ s32 gf_list_del_item(GF_List *ptr, void *item);
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 void gf_list_reset(GF_List *ptr);
+
 /*!
  *	\brief gets last item
  *
@@ -138,6 +148,7 @@ void gf_list_reset(GF_List *ptr);
  *	\param ptr target list object
  */
 void *gf_list_last(GF_List *ptr);
+
 /*!
  *	\brief removes last item
  *
