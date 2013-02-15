@@ -60,6 +60,8 @@ typedef struct
 	u16 CUDuration;
 	u64 startDTS;
 	u64 startCTS;
+
+	Bool no_dts_signaling;
 } GF_SLConfig;
 
 /***************************************

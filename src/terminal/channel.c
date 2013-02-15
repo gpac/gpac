@@ -77,7 +77,8 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 
 	ch->ts_offset = 0;
 	ch->seed_ts = 0;
-
+	ch->min_ts_inc = 0;
+	ch->min_computed_cts = 0;
 	ch_buffer_off(ch);
 
 	if (ch->buffer) gf_free(ch->buffer);
@@ -122,6 +123,7 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 	if (!esd->slConfig->OCRResolution) esd->slConfig->OCRResolution = esd->slConfig->timestampResolution;
 
 	tmp->ts_res = esd->slConfig->timestampResolution;
+	tmp->recompute_dts = esd->slConfig->no_dts_signaling;
 
 	tmp->ocr_scale = 0;
 	if (esd->slConfig->OCRResolution) {
@@ -153,6 +155,7 @@ void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc, Bool use_m2ts_sections)
 	if (!ch->esd->slConfig->OCRResolution) ch->esd->slConfig->OCRResolution = ch->esd->slConfig->timestampResolution;
 
 	ch->ts_res = ch->esd->slConfig->timestampResolution;
+	ch->recompute_dts = ch->esd->slConfig->no_dts_signaling;
 	ch->ocr_scale = 0;
 	if (ch->esd->slConfig->OCRResolution) {
 		ch->ocr_scale = 1000;
@@ -386,7 +389,7 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 			if (ch->clock->speed != FIX_ONE) {
 				ch->BufferTime = FIX2INT( gf_divfix( INT2FIX(ch->AU_buffer_last->DTS - ch->AU_buffer_first->DTS) , ch->clock->speed)) ;
 			}
-		} else {
+		} else {	
 			ch->BufferTime = 0;
 		}
 	}
@@ -462,7 +465,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		ch->AU_buffer_last = au;
 		ch->AU_Count = 1;
 	} else {
-		if (ch->AU_buffer_last->DTS<=au->DTS) {
+		if (!ch->recompute_dts && (ch->AU_buffer_last->DTS<=au->DTS)) {
 			ch->AU_buffer_last->next = au;
 			ch->AU_buffer_last = ch->AU_buffer_last->next;
 		}
@@ -470,32 +473,103 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		HOWEVER, we must recompute a monotone increasing DTS in case the decoder does perform frame reordering
 		in which case the DTS is used for presentation time!!*/
 		else if (ch->esd->decoderConfig->streamType!=GF_STREAM_AUDIO) {
-#if 0
-			GF_DBUnit *au_prev, *ins_au;
-			u32 DTS;
-#endif
-			au->DTS = 0;
 			/*append AU*/
 			ch->AU_buffer_last->next = au;
 			ch->AU_buffer_last = ch->AU_buffer_last->next;
 
+			if (ch->recompute_dts) {
 #if 0
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
+				if (au->DTS > au->CTS)
+					au->DTS = au->CTS;
 
-			DTS = au->DTS;
-			au_prev = ch->AU_buffer_first;
-			/*locate first AU in buffer with DTS greater than new unit CTS*/
-			while (au_prev->next && (au_prev->DTS < DTS) ) au_prev = au_prev->next;
-			/*remember insertion point*/
-			ins_au = au_prev;
-			/*shift all following frames DTS*/
-			while (au_prev->next) {
-				au_prev->next->DTS = au_prev->DTS;
-				au_prev = au_prev->next;
-			}
-			/*and apply*/
-			ins_au->DTS = DTS;
+#else
+				au->CTS = au->DTS = ch->CTS;
+
+#if 0
+				GF_DBUnit *au_prev, *ins_au;
+				u32 DTS, dts_shift;
+				u32 minDIFF = (u32) -1;
+				u32 minCTS = (u32) -1;
+				DTS = (u32) -1;
+
+
+				/*compute min CTS and min CTS diff */
+				au_prev = ch->AU_buffer_first;
+				while (au_prev->next) {
+					s32 TS_diff;
+					if (au_prev->CTS > au_prev->next->CTS) {
+						TS_diff = au_prev->CTS - au_prev->next->CTS;
+					} else {
+						TS_diff = au_prev->next->CTS - au_prev->CTS;
+					}
+					if (TS_diff && (TS_diff<minDIFF)) 
+						minDIFF = TS_diff;
+					
+					if (au_prev->DTS < minCTS)
+						minCTS = au_prev->CTS;
+
+					au_prev = au_prev->next;
+				}
+				ch->min_ts_inc = minDIFF;
+				if (!ch->min_computed_cts) {
+					ch->min_computed_cts = au->CTS;
+				}
+
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID));
+
+				dts_shift = 0;
+				DTS = au->DTS;
+				au_prev = ch->AU_buffer_first;
+				/*locate first AU in buffer with DTS greater than new unit CTS*/
+				while (au_prev->next && (au_prev->DTS < DTS) ) {
+					if (au_prev->DTS > au_prev->CTS) {
+						u32 au_dts_shift = au_prev->DTS - au_prev->CTS;
+						if (au_dts_shift > dts_shift) dts_shift = au_dts_shift;
+					}
+					au_prev = au_prev->next;
+				}
+				/*remember insertion point*/
+				ins_au = au_prev;
+				/*shift all following frames DTS*/
+				while (au_prev->next) {
+					au_prev->next->DTS = au_prev->DTS;
+					if (au_prev->next->DTS > au_prev->next->CTS) {
+						u32 au_dts_shift = au_prev->next->DTS - au_prev->next->CTS;
+						if (au_dts_shift > dts_shift ) dts_shift = au_dts_shift;
+					}
+					au_prev = au_prev->next;
+				}
+				/*and apply*/
+				ins_au->DTS = DTS;
+				if (ins_au->DTS > ins_au->CTS) {
+					u32 au_dts_shift = ins_au->DTS - ins_au->CTS;
+					if (au_dts_shift > dts_shift ) dts_shift = au_dts_shift;
+				}
+				
+				if (dts_shift) {
+					au_prev = ch->AU_buffer_first;
+					/*locate first AU in buffer with DTS greater than new unit CTS*/
+					while (au_prev ) {
+						if (au_prev->DTS > dts_shift) {
+							au_prev->DTS -= dts_shift;
+						} else {
+							au_prev->DTS = 0;
+						}
+						/*FIXME - there is still a bug in DTS recomputation ...*/
+//						assert(au_prev->DTS<= au_prev->CTS);
+						if (au_prev->DTS> au_prev->CTS)
+							au_prev->DTS = au_prev->CTS;
+						au_prev = au_prev->next;
+					}
+				}
 #endif
+
+#endif
+
+			} else {
+				au->DTS = 0;
+			}
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Audio deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
 			/*de-interleaving of AUs*/
@@ -733,6 +807,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	GF_SLHeader hdr;
 	u32 nbAU, OldLength, size, AUSeqNum;
 	Bool EndAU, NewAU;
+	Bool init_ts = 0;
 
 	if (ch->bypass_sl_and_db) {
 		GF_SceneDecoder *sdec;
@@ -907,24 +982,20 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		NewAU = 1;
 		ch->NextIsAUStart = 0;
 		ch->skip_carousel_au = 0;
-
-		/*if we have a pending AU, add it*/
-		if (ch->buffer) {
-			if (ch->esd->slConfig->useAccessUnitEndFlag) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
-			}
-			if (ch->codec_resilient) {
-				if (!ch->IsClockInit && !ch->skip_time_check_for_pending) gf_es_check_timing(ch);
-				Channel_DispatchAU(ch, 0);
-			} else {
-				gf_free(ch->buffer);
-				ch->buffer = NULL;
-				ch->AULength = 0;
-				ch->len = ch->allocSize = 0;
-			}
-		}
 		ch->skip_time_check_for_pending = 0;
 		AUSeqNum = hdr.AU_sequenceNumber;
+		init_ts = 1;
+	}
+	/*if not first packet but about to force a clock init, do init timestamps*/
+	else if (!ch->IsClockInit) {
+		/*don't process anything until the clock is initialized*/
+		if (ch->esd->dependsOnESID && !gf_es_owns_clock(ch)) 
+			return;
+		if (hdr.compositionTimeStampFlag)
+			init_ts = 1;
+	}
+
+	if (init_ts) {
 		/*Get CTS */
 		if (ch->esd->slConfig->useTimestampsFlag) {
 			if (hdr.compositionTimeStampFlag) {
@@ -1093,6 +1164,23 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		}
 	}
 
+
+	/*if we had a previous buffer, add or discard it, depending on codec resilience*/
+	if (hdr.accessUnitStartFlag && ch->buffer) {
+		if (ch->esd->slConfig->useAccessUnitEndFlag) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
+		}
+		if (ch->codec_resilient) {
+			if (!ch->IsClockInit && !ch->skip_time_check_for_pending) gf_es_check_timing(ch);
+			Channel_DispatchAU(ch, 0);
+		} else {
+			gf_free(ch->buffer);
+			ch->buffer = NULL;
+			ch->AULength = 0;
+			ch->len = ch->allocSize = 0;
+		}
+	}
+
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
 
@@ -1196,7 +1284,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 	if (EndAU) Channel_DispatchAU(ch, hdr.au_duration);
 
-
 	gf_es_lock(ch, 0);
 }
 
@@ -1229,7 +1316,10 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		/*we must update buffering before fetching in order to stop buffering for streams with very few
 		updates (especially streams with one update, like most of OD streams)*/
 		if (ch->BufferOn) Channel_UpdateBuffering(ch, 0);
-		if (ch->first_au_fetched && ch->BufferOn) return NULL;
+		if (ch->BufferOn) {
+			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next)
+				return NULL;
+		}
 		return ch->AU_buffer_first;
 	}
 
@@ -1346,7 +1436,12 @@ void gf_es_drop_au(GF_Channel *ch)
 	ch->first_au_fetched = 1;
 
 	au = ch->AU_buffer_first;
+//	ch->min_computed_cts = au->CTS;
 	ch->AU_buffer_first = au->next;
+
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM%d] ES%d Droping AU CTS %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, au->CTS));
+
 	au->next = NULL;
 	gf_db_unit_del(au);
 	ch->AU_Count -= 1;
@@ -1355,6 +1450,7 @@ void gf_es_drop_au(GF_Channel *ch)
 		ch->AU_buffer_first = NULL;
 	}
 	if (!ch->AU_buffer_first) ch->AU_buffer_last = NULL;
+
 
 	Channel_UpdateBufferTime(ch);
 

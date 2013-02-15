@@ -85,6 +85,8 @@ struct __isom_rtp_streamer
 
 	/*base track if this stream contains a media decoding dependancy, 0 otherwise*/
 	u32 base_track;
+
+	Bool first_RTCP_sent;
 };
 
 
@@ -251,12 +253,15 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	time = gf_sys_clock();
 
 	/*init session timeline - all sessions are sync'ed for packet scheduling purposes*/
-	if (!streamer->timelineOrigin)
+	if (!streamer->timelineOrigin) {
 		streamer->timelineOrigin = time*1000;
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[FileStreamer] RTP session %s initialized - time origin set to %d\n", gf_isom_get_filename(streamer->isom), time));
+	}
 
 	track = streamer->stream;
 	while (track) {
 		/*load next AU*/
+		gf_isom_set_nalu_extract_mode(streamer->isom, track->track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
 		if (!track->au) {
 			if (track->current_au >= track->nb_aus) {
 				Double scale;
@@ -291,6 +296,25 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 
 	/*no input data ...*/
 	if( !to_send) return GF_EOS;
+
+	
+	/*we are about to send scalable base: trigger RTCP reports with the same NTP. This avoids
+	NTP drift due to system clock precision which could break sync decoding*/
+	if (!streamer->first_RTCP_sent || (streamer->base_track && streamer->base_track==to_send->track_num)) {
+		u32 ntp_sec, ntp_frac;
+		/*force sending RTCP SR every RAP ? - not really compliant but we cannot perform scalable tuning otherwise*/
+		u32 ntp_type = to_send->au->IsRAP ? 2 : 1;
+		gf_net_get_ntp(&ntp_sec, &ntp_frac);
+		track = streamer->stream;
+		while (track) {
+			u32 ts = (u32) (track->au->DTS + track->au->CTS_Offset + track->ts_offset);
+			gf_rtp_streamer_send_rtcp(track->rtp, GF_TRUE, ts, ntp_type, ntp_sec, ntp_frac);
+			track = track->next;
+		}
+
+		streamer->first_RTCP_sent = 1;
+	}
+
 	min_ts /= 1000;
 
 	if (max_sleep_time) {
@@ -298,6 +322,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 		if (diff>max_sleep_time) 
 			return GF_OK;
 	}
+
 
 	/*sleep until TS is mature*/
 	while (1) {
@@ -314,10 +339,11 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	}
 
 	/*send packets*/
-
 	dts = to_send->au->DTS + to_send->ts_offset;
 	cts = to_send->au->DTS + to_send->au->CTS_Offset + to_send->ts_offset;
 	duration = gf_isom_get_sample_duration(streamer->isom, to_send->track_num, to_send->current_au);
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[FileStreamer] Sending RTP packets for track %d AU %d/%d DTS "LLU" - CTS "LLU" - RTP TS "LLU" - size %d - RAP %d\n", to_send->track_num, to_send->current_au, to_send->nb_aus, to_send->au->DTS, to_send->au->DTS+to_send->au->CTS_Offset, cts, to_send->au->dataLength, to_send->au->IsRAP ) );
 
 	/*unpack nal units*/
 	if (to_send->avc_nalu_size) {
@@ -553,6 +579,15 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		gf_isom_get_reference(streamer->isom, track->track_num, GF_ISOM_REF_BASE, 1, &base_track);
 		if (base_track)
 			streamer->base_track = base_track;
+	}
+
+	/*if scalable coding is found, disable auto RTCP reports and send them ourselves*/
+	if (streamer->base_track) {
+		GF_RTPTrack *track = streamer->stream;
+		while (track) {
+			gf_rtp_streamer_disable_auto_rtcp(track->rtp);
+			track = track->next;
+		}
 	}
 	return streamer;
 

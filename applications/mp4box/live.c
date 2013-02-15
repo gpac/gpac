@@ -65,6 +65,13 @@ void PrintStreamerUsage()
 		);
 }
 
+static void on_logs(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+{
+	FILE *logs = cbk;
+	vfprintf(logs, fmt, list);
+	fflush(logs);
+}
+
 int stream_file_rtp(int argc, char **argv) 
 {
 	GF_ISOMRTPStreamer *file_streamer;
@@ -72,9 +79,12 @@ int stream_file_rtp(int argc, char **argv)
 	char *ip_dest = "127.0.0.1";
 	char *ifce_addr = NULL;
 	char *inName = NULL;
+	char *logs=NULL; 
+	FILE *logfile=NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = 1;
+	Bool mem_track = 0;
 	Bool force_mpeg4 = 0;
 	u32 path_mtu = 1450;
 	u32 i;
@@ -94,16 +104,26 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
+		else if (!stricmp(arg, "-mem-track")) mem_track = 1;
+		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
+		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_f64_open(arg+4, "wt");
+	}
+
+	gf_sys_init(mem_track);
+	if (logs) 
+		gf_log_set_tools_levels(logs);
+	else 
+		gf_log_set_tool_level(GF_LOG_RTP, GF_LOG_INFO); //set to debug to have packet list
+	if (logfile) {
+		gf_log_set_callback(logfile, on_logs);
 	}
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
+		if (logfile) fclose(logfile);
+		gf_sys_close();
 		return 1;
 	}
-
-	gf_sys_init(0);
-
-	gf_log_set_tool_level(GF_LOG_RTP, GF_LOG_WARNING);	//set to debug to have packet list
 
 	file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
 	if (!file_streamer) {
@@ -126,6 +146,7 @@ int stream_file_rtp(int argc, char **argv)
 		}
 		gf_isom_streamer_del(file_streamer);
 	}
+	if (logfile) fclose(logfile);
 	gf_sys_close();
 	return 0;
 }
@@ -261,7 +282,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 				fprintf(stderr, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
 				rtpch->rap = rtpch->critical = 0;
 
-				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0);
+				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0, 0, 0, 0);
 			}
 			return;
 		}
@@ -282,7 +303,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 
 			if (ch->manual_rtcp) {
 				ts = ch->carousel_ts + ch->timescale * ( gf_sys_clock() - ch->init_time + ch->ts_delta)/1000;
-				gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts);
+				gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts, 0, 0, 0);
 			}
 		}
 	} else {
@@ -300,7 +321,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 
 				if (ch->manual_rtcp) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
-					gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts);
+					gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts, 0, 0, 0);
 				}
 			}
 		}

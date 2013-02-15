@@ -366,8 +366,8 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 
 static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
-	u32 ESID;
-	RTPStream *ch;
+	u32 ESID, i;
+	RTPStream *ch, *next_ch;
 	RTSPSession *sess;
 	char *es_url;
 	RTPClient *priv = (RTPClient *)plug->priv;
@@ -387,6 +387,17 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		ch = RP_FindChannel(priv, NULL, ESID, NULL, 0);
 		/*this should not happen, the sdp must describe all streams in the service*/
 		if (!ch) return GF_STREAM_NOT_FOUND;
+
+		/*search for next stream*/
+		ch->next_stream = 0;
+		for (i = 0; i < gf_list_count(priv->channels); i++) {
+			next_ch = (RTPStream *)gf_list_get(priv->channels, i);
+			if (next_ch->prev_stream == ch->mid)
+			{
+				ch->next_stream = next_ch->mid;
+				break;
+			}
+		}
 
 		/*assign app channel*/
 		ch->channel = channel;
@@ -450,6 +461,74 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	return GF_OK;
 }
 
+static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
+{
+	u32 i,count, cur_mid;
+	RTPStream *ch, *cur_ch;
+	
+	count = gf_list_count(rtp->channels);
+	/*find the current stream*/
+	for (i = 0; i < count; i++) {
+		cur_ch = (RTPStream *) gf_list_get(rtp->channels, i);
+		if (cur_ch->mid != rtp->cur_mid) continue;
+		cur_mid = cur_ch->mid;
+		break;
+	}
+
+	if (switch_up)
+	{
+		/*this is the highest stream*/
+		if (!cur_ch->next_stream)
+		{
+			cur_ch->status = RTP_Running;
+			return;
+		}
+		else
+		{
+			for (i = 0; i < count; i++) {
+				ch = (RTPStream *) gf_list_get(rtp->channels, i);
+				if (ch->mid == cur_ch->next_stream)
+				{
+					cur_ch->status = RTP_Connected;
+					ch->status = RTP_Running;
+					rtp->cur_mid = ch->mid;
+					break;
+				}
+			
+			}
+		}	
+	}
+	else
+	{
+		/*this is the lowest stream i.e base layer*/
+		if (!cur_ch->prev_stream)
+		{
+			cur_ch->status = RTP_Running;
+			return;
+		}
+		else
+		{
+			for (i = 0; i < count; i++) {
+				ch = (RTPStream *) gf_list_get(rtp->channels, i);
+				if (ch->mid == cur_ch->prev_stream)
+				{
+					cur_ch->status = RTP_Connected;
+					ch->status = RTP_Running;
+					/*ch->channel = channel;
+					gf_mx_p(rtp->mx);
+					RP_InitStream(ch, (ch->flags & RTP_CONNECTED) ? 1 : 0);
+					gf_mx_v(rtp->mx);
+					gf_rtp_set_info_rtp(ch->rtp_ch, 0, 0, 0);*/
+					rtp->cur_mid = ch->mid;
+					break;
+				}		
+			}
+		}	
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Switch from ES%d to ES %d\n", cur_ch->mid, ch->mid));
+	return;
+}
+
 static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	RTPStream *ch;
@@ -474,6 +553,12 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			return GF_OK;
 		}
 		return GF_NOT_SUPPORTED;
+	}
+
+	if (com->command_type == GF_NET_SERVICE_QUALITY_SWITCH)
+	{
+		gf_rtp_switch_quality(priv, com->switch_quality.up);
+		return GF_OK;
 	}
 
 	/*ignore commands other than channels one*/
@@ -544,10 +629,13 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			RP_UserCommand(ch->rtsp, ch, com);
 		} else {
 			ch->status = RTP_Running;
+			if (!ch->next_stream)
+				priv->cur_mid = ch->mid;
+
 			if (ch->rtp_ch) {
 				/*technically we shouldn't attempt to synchronize streams based on RTP, we should use RTCP/ However it
 				may happen that the RTCP traffic is absent ...*/
-				ch->check_rtp_time = RTP_SET_TIME_RTP;
+				//ch->check_rtp_time = RTP_SET_TIME_RTP;
 				ch->rtcp_init = 0;
 				gf_mx_p(priv->mx);
 				RP_InitStream(ch, (ch->flags & RTP_CONNECTED) ? 1 : 0);

@@ -272,6 +272,14 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 
 	is_sr = ch->pck_sent_since_last_sr ? 1 : 0;
 
+	if (ch->forced_ntp_sec) {
+		sec = ch->forced_ntp_sec;
+		frac = ch->forced_ntp_frac;
+		is_sr = 1;
+	} else {
+		gf_net_get_ntp(&sec, &frac);
+	}
+
 	//common header
 	//version
 	gf_bs_write_int(bs, 2, 2);
@@ -293,7 +301,6 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 
 	size = 8;
 
-	gf_net_get_ntp(&sec, &frac);
 
 	//SenderReport part
 	if (is_sr) {
@@ -494,14 +501,15 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 	char *report_buf;
 	GF_Err e = GF_OK;
 
-	if (ch->first_SR) return GF_OK;
-	Time = gf_rtp_get_report_time();
+	/*skip first SR when acting as a receiver*/
+	if (!ch->forced_ntp_sec && ch->first_SR) return GF_OK;
+	Time = gf_rtp_get_report_time();	
 	if ( Time < ch->next_report_time) return GF_OK;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	//pck were received/sent send the RR/SR
-	if (ch->last_num_pck_rcv || ch->pck_sent_since_last_sr) {
+	if (ch->last_num_pck_rcv || ch->pck_sent_since_last_sr || ch->forced_ntp_sec) {
 		RTCP_FormatReport(ch, bs, Time);
 	}
 

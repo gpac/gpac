@@ -951,6 +951,20 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 		gf_isom_box_del((GF_Box *) movie->moof);
 		movie->moof = NULL;
 	}
+
+	/*append mode: store fragment at the end of the regular movie bitstream, and delete the temp bitstream*/
+	if (movie->append_segment) {
+		char bloc[1024];
+		u32 seg_size = (u32) gf_bs_get_size(movie->editFileMap->bs);
+		gf_bs_seek(movie->editFileMap->bs, 0);
+		while (seg_size) {
+			u32 size = gf_bs_read_data(movie->editFileMap->bs, bloc, (seg_size>1024) ? 1024 : seg_size);
+			gf_bs_write_data(movie->movieFileMap->bs, bloc, size);
+			seg_size -= size;
+		}
+		gf_isom_datamap_del(movie->editFileMap);
+		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
+	}
 	movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
 	return GF_OK;
 }

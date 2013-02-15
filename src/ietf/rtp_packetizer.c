@@ -105,6 +105,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	case GF_RTP_PAYT_3GPP_TEXT:
 		return gp_rtp_builder_do_tx3g(builder, data, data_size, IsAUEnd, FullAUSize, duration, descIndex);
 	case GF_RTP_PAYT_H264_AVC:
+	case GF_RTP_PAYT_H264_SVC:
 		return gp_rtp_builder_do_avc(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_QCELP:
 		return gp_rtp_builder_do_qcelp(builder, data, data_size, IsAUEnd, FullAUSize);

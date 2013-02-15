@@ -114,7 +114,16 @@ void RP_DeleteStream(RTPStream *ch)
 
 static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
 {
+	u64 cts, dts;
 	RTPStream *ch = (RTPStream *)udta;
+
+	if (!ch->rtcp_init) return;
+	if (ch->ts_offset) {
+		cts = hdr->compositionTimeStamp;
+		dts = hdr->decodingTimeStamp;
+		hdr->compositionTimeStamp += ch->ts_offset;
+		hdr->decodingTimeStamp += ch->ts_offset;
+	}
 
 	if (ch->rtp_ch->packet_loss) e = GF_REMOTE_SERVICE_ERROR;
 
@@ -123,6 +132,10 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 			gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
 	} else {
 		gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
+	}
+	if (ch->ts_offset) {
+		hdr->compositionTimeStamp = cts;
+		hdr->decodingTimeStamp = dts;
 	}
 }
 
@@ -144,6 +157,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	char *ctrl;
 	GF_SDPConnection *conn;
 	GF_RTSPTransport trans;
+	u32 mid, prev_stream, base_stream;
 
 	//extract all relevant info from the GF_SDPMedia
 	Start = 0.0;
@@ -155,6 +169,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	range = NULL;
 	s_port_first = s_port_last = 0;
 	ssrc = rtp_seq = rtp_time = 0;
+	mid = prev_stream = base_stream = 0;
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
@@ -173,6 +188,15 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 			rvc_predef = atoi(att->Value);
 		} else if (!stricmp(att->Name, "rvc-config")) { 
 			rvc_config_att = att->Value;
+		} else if (!stricmp(att->Name, "mid")) {
+			sscanf(att->Value, "L%d", &mid);
+		} else if (!stricmp(att->Name, "depend")) {
+			char buf[3000];
+			memset(buf, 0, 3000);
+			sscanf(att->Value, "%*d lay L%d %*s %s", &base_stream, buf);
+			if (!strlen(buf))
+				sscanf(att->Value, "%*d lay %s", buf);
+			sscanf(buf, "L%d", &prev_stream);
 		}
 	}
 
@@ -226,6 +250,9 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	if (ctrl) tmp->control = gf_strdup(ctrl);
 	tmp->ES_ID = ESID;
 	tmp->OD_ID = ODID;
+	tmp->mid = mid;
+	tmp->prev_stream = prev_stream;
+	tmp->base_stream = base_stream;
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = media->Profile;
@@ -420,31 +447,53 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 
 	/*update sync if on pure RTP*/
 	if (!ch->rtcp_init && has_sr) {
+		Double ntp_clock;
+
+		ntp_clock = ch->rtp_ch->last_SR_NTP_sec;
+		ntp_clock += ((Double)ch->rtp_ch->last_SR_NTP_frac)/0xFFFFFFFF;
+			
+		if (!ch->owner->last_ntp) {
+			//add safety in case this RTCP report is received before another report 
+			//that was supposed to come in earlier (with earlier NTP)
+			Double safety_offset, time = ch->rtp_ch->last_SR_rtp_time;
+			time /= ch->rtp_ch->TimeScale;
+			safety_offset = time/2;			
+			ch->owner->last_ntp = ntp_clock - safety_offset;	
+		}
+
+		if (ntp_clock >= ch->owner->last_ntp) {
+			ntp_clock -= ch->owner->last_ntp;
+		} else {
+			ntp_clock = 0;
+		}
+
+		assert(ch->rtp_ch->last_SR_rtp_time >= (u64) (ntp_clock * ch->rtp_ch->TimeScale));
+		ch->ts_offset = ch->rtp_ch->last_SR_rtp_time;
+		ch->ts_offset -= (s64) (ntp_clock * ch->rtp_ch->TimeScale);
+
+#if 0
 		GF_NetworkCommand com;
 		memset(&com, 0, sizeof(com));
 		com.command_type = GF_NET_CHAN_MAP_TIME;
 		com.base.on_channel = ch->channel;
-		com.map_time.media_time = ch->rtp_ch->last_SR_NTP_sec;
-		com.map_time.media_time += ((Double)ch->rtp_ch->last_SR_NTP_frac)/0xFFFFFFFF;
-
-		if (!ch->owner->last_ntp) {
-			ch->owner->last_ntp = com.map_time.media_time;
-		}
+		com.map_time.media_time = ntp;
+		
 		if (com.map_time.media_time >= ch->owner->last_ntp) {
 			com.map_time.media_time -= ch->owner->last_ntp;
 		} else {
 			com.map_time.media_time = 0;
 		}
 		com.map_time.timestamp = ch->rtp_ch->last_SR_rtp_time;
-		com.map_time.reset_buffers = 0;
+		com.map_time.reset_buffers = 1;
+		gf_term_on_command(ch->owner->service, &com, GF_OK);
+#endif
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] At %d Using Sender Report to map RTP TS %d to NTP clock %g - new TS offset "LLD" \n",
+			gf_sys_clock(), ch->rtp_ch->last_SR_rtp_time, ntp_clock, ch->ts_offset
+		));
+
 		ch->rtcp_init = 1;
 		ch->check_rtp_time = RTP_SET_TIME_NONE;
-		gf_term_on_command(ch->owner->service, &com, GF_OK);
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] Using Sender Report to map RTP Time TS %d Media Time %g\n",
-			com.map_time.timestamp, com.map_time.media_time
-			));
-
 	}
 
 	if (e == GF_EOS) {
@@ -485,14 +534,7 @@ void RP_ReadStream(RTPStream *ch)
 	packet reading per RTP reading loop
 	NOTE2: a better implementation would be to use select() to get woken up...
 	*/
-
 	tot_size = 0;
-	while (1) {
-		size = gf_rtp_read_rtp(ch->rtp_ch, ch->buffer, RTP_BUFFER_SIZE);
-		if (!size) break;
-		tot_size += size;
-		RP_ProcessRTP(ch, ch->buffer, size);
-	}
 
 	while (1) {
 		size = gf_rtp_read_rtcp(ch->rtp_ch, ch->buffer, RTP_BUFFER_SIZE);
@@ -501,6 +543,12 @@ void RP_ReadStream(RTPStream *ch)
 		RP_ProcessRTCP(ch, ch->buffer, size);
 	}
 
+	while (1) {
+		size = gf_rtp_read_rtp(ch->rtp_ch, ch->buffer, RTP_BUFFER_SIZE);
+		if (!size) break;
+		tot_size += size;
+		RP_ProcessRTP(ch, ch->buffer, size);
+	}
 	/*and send the report*/
 	if (ch->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(ch->rtp_ch, SendTCPData, ch);
 	
