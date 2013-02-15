@@ -93,6 +93,10 @@ typedef struct
 	Double last_ntp;
 	
 	Bool session_migration;
+
+	Bool is_svc;
+
+	u32 cur_mid;
 } RTPClient;
 
 enum
@@ -243,6 +247,16 @@ typedef struct
 	/*RTP stats*/
 	u32 rtp_bytes, rtcp_bytes, stat_start_time, stat_stop_time;
 	u32 ts_res;
+
+	/*stream id*/
+	u32 mid;
+	
+	u32 prev_stream;
+	u32 next_stream;
+	u32 base_stream;
+
+	u64 ts_offset;
+
 } RTPStream;
 
 GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration);
@@ -356,5 +370,3 @@ void RP_SaveSessionState(RTPClient *rtp);
 #endif /*GPAC_DISABLE_STREAMING*/
 
 #endif
-
-

@@ -337,7 +337,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
 		/*split SVC layers*/
 		else if (!strnicmp(ext+1, "svcmode=", 8)) {
-			if (!stricmp(ext+9, "splitall"))
+			if (!stricmp(ext+9, "splitall") || !stricmp(ext+9, "split"))
 				svc_mode = 2;
 			else if (!stricmp(ext+9, "splitbase"))
 				svc_mode = 1;

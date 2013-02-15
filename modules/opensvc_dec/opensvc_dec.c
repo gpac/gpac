@@ -39,20 +39,16 @@
 typedef struct
 {
 	u16 ES_ID;
-	u32 width, stride, height, out_size, pixel_ar, layer;
-	Bool first_frame;
+	u32 width, stride, height, out_size, pixel_ar;
 
 	u32 nalu_size_length;
+	Bool init_layer_set;
 
 	/*OpenSVC things*/
 	void *codec;
-	int InitParseAU;
-	int svc_init_done;
-	int save_Width;
-	int save_Height;
-	int CurrDqId;
+	int CurrentDqId;
 	int MaxDqId;
-	int DqIdTable [8];
+	int DqIdTable[8];
     int TemporalId;
     int TemporalCom;
 } OSVCDec;
@@ -65,17 +61,19 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	int Layer[4];
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 
-	/*not supported in this version*/
-	if (esd->dependsOnESID) return GF_NOT_SUPPORTED;
-	
-	ctx->ES_ID = esd->ESID;
-	ctx->width = ctx->height = ctx->out_size = 0;
-	
+	/*todo: we should check base layer of this stream is indeed our base layer*/ 	
+	if (!ctx->ES_ID) {
+		ctx->ES_ID = esd->ESID;
+	 	ctx->width = ctx->height = ctx->out_size = 0;
+	}
+
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
-		ctx->nalu_size_length = cfg->nal_unit_size;
-		if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
+		if (!esd->dependsOnESID) {
+			ctx->nalu_size_length = cfg->nal_unit_size;
+			if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
+		}
 
 		/*decode all NALUs*/
 		count = gf_list_count(cfg->sequenceParameterSets);
@@ -113,12 +111,16 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 		gf_odf_avc_cfg_del(cfg);
 	} else {
+		if (ctx->nalu_size_length) {
+			return GF_NOT_SUPPORTED;
+		}
 		ctx->nalu_size_length = 0;
-		if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
+		if (!esd->dependsOnESID) {
+			if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
+		}
 	}
 	ctx->stride = ctx->width + 32;
-	ctx->layer = 0;
-	ctx->CurrDqId = ctx->layer;
+	ctx->CurrentDqId = ctx->MaxDqId = 0;
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 	return GF_OK;
 }
@@ -184,13 +186,13 @@ static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 
 		if (capability.cap.valueInt) {
-			if (ctx->CurrDqId < ctx->MaxDqId)
+			if (ctx->CurrentDqId < ctx->MaxDqId)
 				// set layer up (command=1)
-				UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
+				UpdateLayer( ctx->DqIdTable, &ctx->CurrentDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
 		} else {
-			if (ctx->CurrDqId > 0)
+			if (ctx->CurrentDqId > 0)
 				// set layer down (command=0)
-				UpdateLayer( ctx->DqIdTable, &ctx->CurrDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
+				UpdateLayer( ctx->DqIdTable, &ctx->CurrentDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
 		}
 		return GF_OK;
 	}
@@ -212,7 +214,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 	u32 curMaxDqId = ctx->MaxDqId;
 
-	if (!ES_ID || (ES_ID!=ctx->ES_ID) || !ctx->codec) {
+	if (!ES_ID || !ctx->codec) {
 		*outBufferLength = 0;
 		return GF_OK;
 	}
@@ -222,30 +224,16 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	ctx->MaxDqId = GetDqIdMax(inBuffer, inBufferLength, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
-	if(!ctx->InitParseAU){
-		if (ctx->MaxDqId == -1) {
-			//AVC stream in a h264 file 
+	if (!ctx->init_layer_set) {
+		//AVC stream in a h264 file 
+		if (ctx->MaxDqId == -1) 
 			ctx->MaxDqId = 0;
-		} else {
-			//Firts time only, we parse the first AU to know the file configuration
-			//does not need to ba called again ever after, unless SPS or PPS changed
-			ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, ctx->nalu_size_length ? 1 : 0);
-		}
-		ctx->InitParseAU = 1;
+		
+		ctx->CurrentDqId = ctx->MaxDqId;
+		ctx->init_layer_set = 1;
 	}
-/*
-	if (curMaxDqId != ctx->MaxDqId)
-	{
-		if (ctx->MaxDqId == -1)
-			ctx->MaxDqId = 0;
-		else
-			ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, ctx->nalu_size_length ? 1 : 0);
-		ctx->CurrDqId = ctx->MaxDqId;
-	}
-//	SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrDqId, &ctx->TemporalCom, ctx->TemporalId);
-*/
-	ctx->TemporalCom = 0;
-	SetCommandLayer(Layer, ctx->MaxDqId, ctx->MaxDqId, &ctx->TemporalCom, 0);
+	/*decode only current layer*/
+	SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrentDqId, &ctx->TemporalCom, ctx->TemporalId);
 
 	got_pic = 0;
 	if (ctx->nalu_size_length) {
@@ -270,7 +258,10 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	} else {
 	}
-	if (got_pic!=1) return GF_OK;
+	if (got_pic!=1) {
+		*outBufferLength = 0;
+		return GF_OK;
+	}
 
 	if ((curMaxDqId != ctx->MaxDqId) || (pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
 		ctx->width = pic.Width;

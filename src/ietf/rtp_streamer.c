@@ -580,7 +580,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 		sprintf(sdpLine, "a=fmtp:%d maxptime=%d\n", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
 	}
 	/*H264/AVC*/
-	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC || rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_SVC) {
+	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_SVC)) {
 		GF_AVCConfig *avcc = dsi ? gf_odf_avc_cfg_read(dsi, dsi_len) : NULL;
 
 		if (avcc) {
@@ -781,9 +781,13 @@ void gf_rtp_streamer_disable_auto_rtcp(GF_RTPStreamer *streamer)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts)
+GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts, u32 force_ntp_type, u32 ntp_sec, u32 ntp_frac)
 {
 	if (force_ts) streamer->channel->last_pck_ts = rtp_ts;
+	streamer->channel->forced_ntp_sec = force_ntp_type ? ntp_sec : 0;
+	streamer->channel->forced_ntp_frac = force_ntp_type ? ntp_frac : 0;
+	if (force_ntp_type==2)
+		streamer->channel->next_report_time = 0;
 	return gf_rtp_send_rtcp_report(streamer->channel, NULL, NULL);
 }
 

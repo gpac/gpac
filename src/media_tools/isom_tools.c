@@ -1649,8 +1649,6 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	/*rewrite svccfg*/
 	svccfg = gf_odf_avc_cfg_new();
 	svccfg->complete_representation = 1; 
-	e = gf_isom_svc_config_new(file, merge_track, svccfg, NULL, NULL, &di);
-	if (e) goto exit;
 	/*rewrite visual info*/
 	if (!mergeAll)
 	{
@@ -1693,7 +1691,9 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 			gf_list_add(svccfg->pictureParameterSets, sl);
 		}
 		if (mergeAll)
+		{
 			gf_isom_svc_config_update(file, merge_track, 1, svccfg, 1);
+		}
 		else
 			gf_isom_svc_config_update(file, merge_track, 1, svccfg, 0);
 		gf_odf_avc_cfg_del(cfg);

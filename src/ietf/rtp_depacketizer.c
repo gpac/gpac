@@ -658,7 +658,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->on_sl_packet(rtp->udta, nalhdr, 4, &rtp->sl_hdr, GF_OK);
 
 		rtp->sl_hdr.accessUnitStartFlag = 0;
-		rtp->sl_hdr.compositionTimeStampFlag = 0;
+		rtp->sl_hdr.compositionTimeStampFlag = 1;
+		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 		rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
 
 		/*send NAL payload*/
@@ -914,6 +915,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "H264")) return GF_RTP_PAYT_H264_AVC;
 	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
+	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else return 0;
 }
 
@@ -930,7 +932,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 
 	/*PL (not needed when IOD is here)*/
 	if (!stricmp(param_name, "Profile-level-id")) {
-		if (rtp->payt == GF_RTP_PAYT_H264_AVC) {
+		if (rtp->payt == GF_RTP_PAYT_H264_AVC || rtp->payt == GF_RTP_PAYT_H264_SVC) {
 			sscanf(param_val, "%x", &rtp->sl_map.PL_ID);
 		} else {
 			rtp->sl_map.PL_ID = atoi(param_val);
@@ -1325,6 +1327,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		break;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_H264_AVC:
+	case GF_RTP_PAYT_H264_SVC:
 	{
 		GF_SDP_FMTP *fmtp;
 		GF_AVCConfig *avcc = gf_odf_avc_cfg_new();
@@ -1361,12 +1364,12 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 					b64_d[ret] = 0;
 
 					nalt = b64_d[0] & 0x1F;
-					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08)) {
+					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08) || /*SSPS*/(nalt==0x0F)) {
 						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 						sl->size = ret;
 						sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 						memcpy(sl->data, b64_d, sizeof(char)*sl->size);
-						if (nalt==0x07) {
+						if (nalt==0x07 || nalt==0x0F) {
 							gf_list_add(avcc->sequenceParameterSets, sl);
 						} else {
 							gf_list_add(avcc->pictureParameterSets, sl);
@@ -1499,6 +1502,7 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 	}
 	/*AUSeqNum is only signaled if streamState is used (eg for carrouselling); otherwise we ignore it*/
 	slc->AUSeqNumLength = rtp->sl_map.StreamStateIndication;
+	slc->no_dts_signaling = rtp->sl_map.DTSDeltaLength ? 0 : 1;
 
 
 	/*RTP SN is on 16 bits*/

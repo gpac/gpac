@@ -650,6 +650,9 @@ struct _es_channel
 	struct _object_clock *clock;
 	/*flag for clock init. Only a channel owning the clock will set this flag on clock init*/
 	Bool IsClockInit;
+	/*indicates that no DTS is signaled and that they should be recomputed if needed (video only)*/
+	Bool recompute_dts;
+	u32 min_ts_inc, min_computed_cts;
 
 	/*duration of last received AU if any, 0 if not known (most of the time)*/
 	u32 au_duration;
@@ -780,6 +783,11 @@ struct _generic_codec
 	u32 last_unit_dts;
 	/*last processed CTS on base layer - seeking detection*/
 	u32 last_unit_cts;
+	/*minimum non-0 CTS(k) - CTS(j) used to reconstruct CTS timing when codec handles reordering internally...*/
+	u32 min_au_duration;
+	/*recomputed CTS for next dispatch*/
+	u32 recomputed_cts;
+	Bool first_frame_dispatched, first_frame_processed;
 	/*SHA signature for the last processed unit. Only for images (Capacity==1)*/
 	u8 last_unit_signature[20];
 	/*in case the codec performs temporal re-ordering itself*/
@@ -787,6 +795,7 @@ struct _generic_codec
 	u32 prev_au_size;
 	u32 bytes_per_sec;
 	Double fps;
+	u32 nb_dispatch_skipped;
 
 	/*statistics*/
 	u32 last_stat_start, cur_bit_size;

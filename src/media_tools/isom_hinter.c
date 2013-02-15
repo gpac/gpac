@@ -452,6 +452,8 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			GF_AVCConfig *svcc = gf_isom_svc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			hintType = GF_RTP_PAYT_H264_AVC;
+			if (TrackMediaSubType==GF_ISOM_SUBTYPE_SVC_H264)
+				hintType = GF_RTP_PAYT_H264_SVC;
 			streamType = GF_STREAM_VISUAL;
 			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc->nal_unit_size;
 			oti = GPAC_OTI_VIDEO_AVC;
@@ -863,7 +865,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*H264/AVC*/
-	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_AVC) {
+	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_AVC) || (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_SVC))  {
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(tkHint->file, tkHint->TrackNum, 1);
 		GF_AVCConfig *svcc = gf_isom_svc_config_get(tkHint->file, tkHint->TrackNum, 1);
 		/*TODO - check syntax for SVC (might be some extra signaling)*/

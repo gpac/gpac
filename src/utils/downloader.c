@@ -2397,6 +2397,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         /*redirection: extract the new location*/
     case 301:
     case 302:
+    case 307:
         if (!new_location || !strlen(new_location) ) {
             gf_dm_sess_user_io(sess, &par);
             e = GF_URL_ERROR;

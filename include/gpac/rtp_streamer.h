@@ -103,7 +103,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 
 void gf_rtp_streamer_disable_auto_rtcp(GF_RTPStreamer *streamer);
 
-GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts);
+GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts, u32 force_ntp_type, u32 ntp_sec, u32 ntp_frac);
 
 u8 gf_rtp_streamer_get_payload_type(GF_RTPStreamer *streamer);
 

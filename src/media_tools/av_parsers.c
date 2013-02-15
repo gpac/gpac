@@ -1539,6 +1539,7 @@ u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs)
 	return (u32) (end-start);
 }
 
+GF_EXPORT
 u32 gf_media_nalu_next_start_code(u8 *data, u32 data_len, u32 *sc_size)
 {
 	u32 v, bpos;
@@ -3000,12 +3001,13 @@ void profile_tier_level(GF_BitStream *bs, Bool ProfilePresentFlag, u8 MaxNumSubL
 
 		ptl->profile_compatibility_flag = gf_bs_read_int(bs, 32);
 
-		/*general_reserved_zero_16bits  = */gf_bs_read_int(bs, 16);
+		gf_bs_read_int(bs, 16); // XXX_reserved_zero_48bits[0..15]
+		gf_bs_read_int(bs, 16); // XXX_reserved_zero_48bits[16..31]
+		gf_bs_read_int(bs, 16); // XXX_reserved_zero_48bits[32..47]
 	}
 	ptl->level_idc = gf_bs_read_int(bs, 8);
 	for (i=0; i<MaxNumSubLayersMinus1; i++) {
-		if (ProfilePresentFlag)
-			ptl->sub_ptl[i].profile_present_flag = gf_bs_read_int(bs, 1);
+        ptl->sub_ptl[i].profile_present_flag = gf_bs_read_int(bs, 1);
 		ptl->sub_ptl[i].level_present_flag = gf_bs_read_int(bs, 1);
 		if (ProfilePresentFlag && ptl->sub_ptl[i].profile_present_flag) {
 			ptl->sub_ptl[i].profile_space = gf_bs_read_int(bs, 2);
@@ -3062,11 +3064,11 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 		vps->state = 1;
 	}
 
-	/*vps_temporal_id_nesting_flag = */ gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 2);
-	gf_bs_read_int(bs, 6);
+	gf_bs_read_int(bs, 2); // vps_reserved_three_2bits
+	gf_bs_read_int(bs, 6); // vps_reserved_zero_6bits
 	vps->max_sub_layer = gf_bs_read_int(bs, 3) + 1;
-	gf_bs_read_int(bs, 16);
+	/*vps_temporal_id_nesting_flag = */ gf_bs_read_int(bs, 1);
+	gf_bs_read_int(bs, 16); // vps_reserved_ffff_16bits
 	profile_tier_level(bs, 1, vps->max_sub_layer-1, &vps->ptl);
 	bit_rate_pic_rate_info(bs, 0, vps->max_sub_layer-1, vps);
 
@@ -3150,7 +3152,7 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 	}
 	return 1;
 }
-
+GF_EXPORT
 s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 {
 	GF_BitStream *bs;
@@ -3281,6 +3283,7 @@ exit:
 	return sps_id;
 }
 
+GF_EXPORT
 s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 {
 	u32 i;
@@ -3311,6 +3314,8 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	hevc->sps_active_idx = pps->sps_id; /*set active sps*/
 	pps->dependent_slice_segments_enabled_flag = gf_bs_read_int(bs, 1);
 
+	pps->output_flag_present_flag = gf_bs_read_int(bs, 1);
+	pps->num_extra_slice_header_bits = gf_bs_read_int(bs, 3);
 	/*sign_data_hiding_flag = */gf_bs_read_int(bs, 1);
 	/*cabac_init_present_flag = */gf_bs_read_int(bs, 1);
 	/*num_ref_idx_l0_default_active_minus1 = */bs_get_ue(bs);
@@ -3326,7 +3331,6 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	/*pic_slice_chroma_qp_offsets_present_flag = */gf_bs_read_int(bs, 1);
 	/*weighted_pred_flag = */gf_bs_read_int(bs, 1);
 	/*weighted_bipred_flag = */gf_bs_read_int(bs, 1);
-	pps->output_flag_present_flag = gf_bs_read_int(bs, 1);
 	/*transquant_bypass_enable_flag = */gf_bs_read_int(bs, 1);
 	pps->tiles_enabled_flag = gf_bs_read_int(bs, 1);
 	/*entropy_coding_sync_enabled_flag = */gf_bs_read_int(bs, 1);
@@ -3358,7 +3362,6 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	}
 	/*lists_modification_present_flag	= */gf_bs_read_int(bs, 1);
 	/*log2_parallel_merge_level_minus2 = */bs_get_ue(bs);
-	pps->num_extra_slice_header_bits = gf_bs_read_int(bs, 3);
 	pps->slice_segment_header_extension_present_flag = gf_bs_read_int(bs, 1);
 	if ( /*pps_extension_flag= */gf_bs_read_int(bs, 1) ) {
 		while (gf_bs_available(bs) ) {

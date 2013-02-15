@@ -56,6 +56,8 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 		/*session migration*/
 		else if (!strcmp(att->Name, "x-session-name")) url = att->Value;
 		else if (!strcmp(att->Name, "x-session-id")) session_id = att->Value;
+		/*we have the H264-SVC streams*/
+		else if (!strcmp(att->Name, "group") && !strncmp(att->Value, "DDP", 3)) rtp->is_svc = 1;
 	}
 	if (range) {
 		Start = range->start;
@@ -165,20 +167,21 @@ static u32 get_stream_type_from_hint(u32 ht)
 	}
 }
 
-static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
+static GF_ESD *RP_GetChannelESD(RTPStream *ch, u32 ch_idx)
 {
 	GF_ESD *esd;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 
 	if (!ch->ES_ID) ch->ES_ID = ch_idx + 1;
-	od->objectDescriptorID = ch->OD_ID ? ch->OD_ID : ch->ES_ID;
 
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = gf_rtp_get_clockrate(ch->rtp_ch);
 	esd->slConfig->useRandomAccessPointFlag = 1;
 	esd->slConfig->useTimestampsFlag = 1;
+	esd->slConfig->no_dts_signaling = ch->depacketizer->sl_map.DTSDeltaLength ? 0 : 1;
 	esd->ESID = ch->ES_ID;
 	esd->OCRESID = 0;
+	if (ch->mid)
+		esd->has_ref_base = 1;
 
 	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;
@@ -196,7 +199,42 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 		ch->depacketizer->sl_map.rvc_config = NULL;
 		ch->depacketizer->sl_map.rvc_config_size = 0;
 	}
+
+	return esd;
+}
+
+static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
+{
+	GF_ESD *esd;
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+
+	esd = RP_GetChannelESD(ch, ch_idx);
+
+	od->objectDescriptorID = ch->OD_ID ? ch->OD_ID : ch->ES_ID;
+
 	gf_list_add(od->ESDescriptors, esd);
+
+	// for each channel depending on this channel, get esd, set esd->dependsOnESID and add to od
+	if (ch->owner->is_svc)
+	{
+		u32 i, count;
+
+		count = gf_list_count(ch->owner->channels);
+		for (i = 0; i < count; i++)
+		{
+			RTPStream *the_channel;
+			GF_ESD *the_esd;
+
+			the_channel = (RTPStream *)gf_list_get(ch->owner->channels, i);
+			if (the_channel->base_stream == ch->mid) 
+			{
+				the_esd = RP_GetChannelESD(the_channel, i);
+				the_esd->dependsOnESID = the_channel->prev_stream;
+				gf_list_add(od->ESDescriptors, the_esd);
+			}
+		}
+	}
+	
 	return od;
 }
 
@@ -243,6 +281,7 @@ void RP_SetupObjects(RTPClient *rtp)
 	i=0;
 	while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 		if (ch->control && !strnicmp(ch->control, "data:", 5)) continue;
+		if (ch->prev_stream) continue;
 
 		if (!rtp->media_type) {
 			od = RP_GetChannelOD(ch, i);

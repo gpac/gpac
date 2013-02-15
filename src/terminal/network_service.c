@@ -529,28 +529,45 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	/*time mapping (TS to media-time)*/
 	case GF_NET_CHAN_MAP_TIME:
-		ch->seed_ts = com->map_time.timestamp;
-		ch->ts_offset = (u32) (com->map_time.media_time*1000);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: mapping TS "LLD" to media time %f - current time %d\n", ch->esd->ESID, com->map_time.timestamp, com->map_time.media_time, gf_clock_time(ch->clock)));
 
-		if (com->map_time.reset_buffers) {
-			gf_es_reset_buffers(ch);
-		}
-		/*if we were reassembling an AU, do not perform clock init check when dispatching it since we computed its timestamps 
-		according to the previous clock origin*/
-		else {
-			gf_mx_p(ch->mx);
-			ch->skip_time_check_for_pending = 1;
-			gf_mx_v(ch->mx);
-		}
-		/*if the channel is the clock, force a re-init*/
-		if (gf_es_owns_clock(ch)) {
-			ch->IsClockInit = 0;
-			gf_clock_reset(ch->clock);
-		}
-		else if (ch->odm->flags & GF_ODM_INHERIT_TIMELINE) {
-			ch->IsClockInit = 0;
-//			ch->ts_offset -= ch->seed_ts*1000/ch->ts_res;
+		if (ch->esd->dependsOnESID) {
+			//ignore everything
+		} else {
+			u32 i;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: before mapping: seed TS %d - TS offset %d\n", ch->esd->ESID, ch->seed_ts, ch->ts_offset));
+			ch->seed_ts = com->map_time.timestamp;
+			ch->ts_offset = (u32) (com->map_time.media_time*1000);
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: mapping TS "LLD" to media time %f - current time %d\n", ch->esd->ESID, com->map_time.timestamp, com->map_time.media_time, gf_clock_time(ch->clock)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: after mapping: seed TS %d - TS offset %d\n", ch->esd->ESID, ch->seed_ts, ch->ts_offset));
+
+			if (com->map_time.reset_buffers) {
+				gf_es_reset_buffers(ch);
+			}
+			/*if we were reassembling an AU, do not perform clock init check when dispatching it since we computed its timestamps 
+			according to the previous clock origin*/
+			else {
+				gf_mx_p(ch->mx);
+				ch->skip_time_check_for_pending = 1;
+				gf_mx_v(ch->mx);
+			}
+			/*if the channel is the clock, force a re-init*/
+			if (gf_es_owns_clock(ch)) {
+				ch->IsClockInit = 0;
+				gf_clock_reset(ch->clock);
+			}
+			else if (ch->odm->flags & GF_ODM_INHERIT_TIMELINE) {
+				ch->IsClockInit = 0;
+//				ch->ts_offset -= ch->seed_ts*1000/ch->ts_res;
+			}
+
+			for (i=0; i<gf_list_count(ch->odm->channels); i++) {
+				GF_Channel *a_ch = gf_list_get(ch->odm->channels, i);
+				if (ch==a_ch) continue;
+				if (! a_ch->esd->dependsOnESID) continue;
+				a_ch->seed_ts = ch->seed_ts;
+				a_ch->IsClockInit = 0;
+				a_ch->ts_offset = ch->ts_offset;
+			}
 		}
 		break;
 	/*duration changed*/
