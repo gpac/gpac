@@ -805,7 +805,7 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
 {
 	GF_SLHeader hdr;
-	u32 nbAU, OldLength, size, AUSeqNum;
+	u32 nbAU, OldLength, size;
 	Bool EndAU, NewAU;
 	Bool init_ts = 0;
 
@@ -983,7 +983,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		ch->NextIsAUStart = 0;
 		ch->skip_carousel_au = 0;
 		ch->skip_time_check_for_pending = 0;
-		AUSeqNum = hdr.AU_sequenceNumber;
 		init_ts = 1;
 	}
 	/*if not first packet but about to force a clock init, do init timestamps*/
@@ -1043,6 +1042,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				ch->no_timestamps = 1;
 			}
 		} else {
+			u32 AUSeqNum = hdr.AU_sequenceNumber;
 			/*use CU duration*/
 			if (!ch->IsClockInit)
 				ch->DTS = ch->CTS = ch->ts_offset;
@@ -1064,6 +1064,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				ch->CTS += nbAU * ch->esd->slConfig->CUDuration;
 			}
 		}
+	}
+
+	if (hdr.accessUnitStartFlag) {
+		u32 AUSeqNum = hdr.AU_sequenceNumber;
 
 		/*if the AU Length is carried in SL, get its size*/
 		if (ch->esd->slConfig->AULength > 0) {

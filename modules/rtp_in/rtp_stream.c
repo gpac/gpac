@@ -118,12 +118,10 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	RTPStream *ch = (RTPStream *)udta;
 
 	if (!ch->rtcp_init) return;
-	if (ch->ts_offset) {
-		cts = hdr->compositionTimeStamp;
-		dts = hdr->decodingTimeStamp;
-		hdr->compositionTimeStamp += ch->ts_offset;
-		hdr->decodingTimeStamp += ch->ts_offset;
-	}
+	cts = hdr->compositionTimeStamp;
+	dts = hdr->decodingTimeStamp;
+	hdr->compositionTimeStamp += ch->ts_offset;
+	hdr->decodingTimeStamp += ch->ts_offset;
 
 	if (ch->rtp_ch->packet_loss) e = GF_REMOTE_SERVICE_ERROR;
 
@@ -133,10 +131,8 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	} else {
 		gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
 	}
-	if (ch->ts_offset) {
-		hdr->compositionTimeStamp = cts;
-		hdr->decodingTimeStamp = dts;
-	}
+	hdr->compositionTimeStamp = cts;
+	hdr->decodingTimeStamp = dts;
 }
 
 
