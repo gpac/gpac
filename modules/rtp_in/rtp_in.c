@@ -468,12 +468,17 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 	
 	count = gf_list_count(rtp->channels);
 	/*find the current stream*/
+	ch = cur_ch = NULL;
 	for (i = 0; i < count; i++) {
 		cur_ch = (RTPStream *) gf_list_get(rtp->channels, i);
-		if (cur_ch->mid != rtp->cur_mid) continue;
+		if (cur_ch->mid != rtp->cur_mid) {
+			cur_ch=NULL;
+			continue;
+		}
 		cur_mid = cur_ch->mid;
 		break;
 	}
+	if (!cur_ch) return;
 
 	if (switch_up)
 	{
