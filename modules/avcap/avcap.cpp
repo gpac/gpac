@@ -161,7 +161,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		}
 
 		if (!vcap->device_desc) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture]�Failed to instanciate AVCap\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Failed to instanciate AVCap\n"));
 			gf_term_on_connect(serv, NULL, GF_REMOTE_SERVICE_ERROR);
 			return GF_OK;
 		}
@@ -179,7 +179,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		}
 		vcap->device = vcap->device_desc->getDevice();
 		if (!vcap->device) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture]�Failed to initialize capture device\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Failed to initialize capture device\n"));
 			vcap->device_desc->close();
 			gf_term_on_connect(serv, NULL, GF_SERVICE_ERROR);
 			return GF_OK;
@@ -196,14 +196,14 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 				u32 w, h;
 				if (sscanf(params+11, "%dx%d", &w, &h)==2) {
 					vcap->device->getFormatMgr()->setResolution(w, h);
-					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture]�Set resolution to %dx%d\n", w, h));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Set resolution to %dx%d\n", w, h));
 				}
 			}
 			else if (!strnicmp(params, "fps=", 4)) {
 				u32 fps;
 				if (sscanf(params+4, "%d", &fps)==1) {
 					vcap->device->getFormatMgr()->setFramerate(fps);
-					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture]�Set framerate to %d\n", fps));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Set framerate to %d\n", fps));
 				}
 			}
 			else if (!strnicmp(params, "stereo=", 7)) {
@@ -228,12 +228,12 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 			vcap->out_size = 2*vcap->width*vcap->height;
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture]�Unsupported 4CC %s (%08x) from capture device\n", gf_4cc_to_str(format->getFourcc()), format->getFourcc()));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Unsupported 4CC %s (%08x) from capture device\n", gf_4cc_to_str(format->getFourcc()), format->getFourcc()));
 			vcap->device_desc->close();
 			gf_term_on_connect(serv, NULL, GF_NOT_SUPPORTED);
 			return GF_OK;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture]�Device configured - resolution %dx%d - Frame Rate %d - Pixel Format %s (Device 4CC %08x) \n", vcap->width, vcap->height, vcap->fps, gf_4cc_to_str(vcap->pixel_format), format->getFourcc()));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Device configured - resolution %dx%d - Frame Rate %d - Pixel Format %s (Device 4CC %08x) \n", vcap->width, vcap->height, vcap->fps, gf_4cc_to_str(vcap->pixel_format), format->getFourcc()));
 	}
 
 	/*ACK connection is OK*/
