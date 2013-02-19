@@ -654,6 +654,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\map.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\math.c"
 				>
 				<FileConfiguration
