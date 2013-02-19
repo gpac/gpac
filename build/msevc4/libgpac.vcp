@@ -210,6 +210,18 @@ NODEP_CPP_LIST_=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\utils\map.c
+DEP_CPP_MAP_=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MAP_=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\utils\math.c
 DEP_CPP_MATH_=\
 	"..\..\include\gpac\configuration.h"\
