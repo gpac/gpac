@@ -463,7 +463,7 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 {
-	u32 i,count, cur_mid;
+	u32 i,count;
 	RTPStream *ch, *cur_ch;
 	
 	count = gf_list_count(rtp->channels);
@@ -475,7 +475,6 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 			cur_ch=NULL;
 			continue;
 		}
-		cur_mid = cur_ch->mid;
 		break;
 	}
 	if (!cur_ch) return;

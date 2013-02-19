@@ -152,6 +152,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			break;
 		default:
 			min = max = 0;
+			break;
 		}
 		if ((codec->type==GF_STREAM_AUDIO) && (max<2)) max = 2;
 
@@ -377,7 +378,6 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 {
 	GF_Channel *ch;
 	GF_DBUnit *AU;
-	Bool has_upper_layer = 0;
 	u32 count, minDTS, i;
 	count = gf_list_count(codec->inChannels);
 	*nextAU = NULL;
@@ -408,9 +408,6 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 		/*we use <= to make sure we first fetch data on base layer if same
 		DTS (which is possible in spatial scalability)*/
 		if (!minDTS || (AU->DTS == minDTS)) {
-			if ((AU->DTS == minDTS) && (i<count))
-				has_upper_layer = 1;
-
 			minDTS = AU->DTS;
 			*activeChannel = ch;
 			*nextAU = AU;
