@@ -810,6 +810,9 @@
 		<Unit filename="../../src/utils/math.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../src/utils/map.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../src/utils/module.c">
 			<Option compilerVar="CC" />
 		</Unit>
