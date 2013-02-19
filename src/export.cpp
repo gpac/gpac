@@ -134,6 +134,17 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_swap) )
 
+
+/* Map */
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_reset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_find) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_insert) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_rem) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_has_key) )
+
 /* Bitstream */
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_from_file) )
