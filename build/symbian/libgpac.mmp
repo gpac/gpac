@@ -47,6 +47,7 @@ SOURCE configfile.c
 SOURCE downloader.c
 SOURCE error.c
 SOURCE list.c
+SOURCE map.c
 SOURCE math.c
 SOURCE module.c
 SOURCE path2d.c
