@@ -67,19 +67,19 @@ static HWND g_hwnd_disp = NULL;
 static HWND g_hwnd_menu = NULL;
 static HWND g_hwnd_status = NULL;
 static HINSTANCE g_hinst = NULL;
-static Bool is_ppc = 0;
+static Bool is_ppc = GF_FALSE;
 
-static Bool is_connected = 0;
-static Bool navigation_on = 0;
-static Bool playlist_navigation_on = 1;
+static Bool is_connected = GF_FALSE;
+static Bool navigation_on = GF_FALSE;
+static Bool playlist_navigation_on = GF_TRUE;
 
 static u32 log_level = GF_LOG_ERROR;
 
 static u32 Duration;
-static Bool CanSeek = 0;
+static Bool CanSeek = GF_FALSE;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH] = "";
-static Bool NavigateTo = 0;
+static Bool NavigateTo = GF_FALSE;
 static char the_next_url[GF_MAX_PATH];
 static GF_Terminal *term;
 static GF_User user;
@@ -90,20 +90,20 @@ static u32 screen_h = 0;
 static u32 menu_h = 0;
 static u32 caption_h = 0;
 static u32 ratio_h = 1;
-static Bool backlight_off = 0;
+static Bool backlight_off = GF_FALSE;
 static u32 prev_batt_bl, prev_ac_bl;
-static Bool show_status = 1;
-static Bool reset_status = 1;
+static Bool show_status = GF_TRUE;
+static Bool reset_status = GF_TRUE;
 static u32 last_state_time = 0;
-static Bool loop = 0;
-static Bool full_screen = 0;
-static Bool force_2d_gl = 0;
-static Bool ctrl_mod_down = 0;
-static Bool view_cpu = 1;
-static Bool use_low_fps = 0;
-static Bool use_svg_prog = 0;
+static Bool loop = GF_FALSE;
+static Bool full_screen = GF_FALSE;
+static Bool force_2d_gl = GF_FALSE;
+static Bool ctrl_mod_down = GF_FALSE;
+static Bool view_cpu = GF_TRUE;
+static Bool use_low_fps = GF_FALSE;
+static Bool use_svg_prog = GF_FALSE;
 
-static Bool log_rti = 0;
+static Bool log_rti = GF_FALSE;
 static FILE *log_file = NULL;
 static u32 rti_update_time_ms = 200;
 
@@ -556,29 +556,29 @@ void set_backlight_state(Bool disable)
 #endif
 }
 
-static Bool do_resume = 0;
+static Bool do_resume = GF_FALSE;
 static Bool prev_backlight_state;
 void gf_freeze_display(Bool do_gf_freeze)
 {
 	if (do_gf_freeze) {
 		prev_backlight_state = backlight_off;
-		do_resume = 0;
+		do_resume = GF_FALSE;
 		if (0 && is_connected && gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
-			do_resume= 1;
+			do_resume= GF_TRUE;
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 		}
 		/*gf_freeze display*/
 		gf_term_set_option(term, GF_OPT_FREEZE_DISPLAY, 1);
 		
-		set_backlight_state(0);
+		set_backlight_state(GF_FALSE);
 		gf_sleep(100);
 	} else {
-		if (prev_backlight_state) set_backlight_state(1);
+		if (prev_backlight_state) set_backlight_state(GF_TRUE);
 		gf_term_set_option(term, GF_OPT_FREEZE_DISPLAY, 0);
 
 		if (do_resume) {
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
-			set_backlight_state(1);
+			set_backlight_state(GF_TRUE);
 		}	
 	}
 }
