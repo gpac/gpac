@@ -81,7 +81,7 @@ static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers,
 		return GF_IO_ERR;
 	}
 	sdl_close_audio();
-	ctx->is_init = 1;
+	ctx->is_init = GF_TRUE;
 	ctx->num_buffers = num_buffers;
 	ctx->total_duration = total_duration;
 	return GF_OK;
@@ -94,7 +94,7 @@ static void SDLAud_Shutdown(GF_AudioOutput *dr)
 	if (ctx->is_init) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		SDLOUT_CloseSDL();
-		ctx->is_init = 0;
+		ctx->is_init = GF_FALSE;
 	}
 }
 
@@ -122,7 +122,7 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	SDLAUD();
 
 	sdl_close_audio();
-	ctx->is_running = 0;
+	ctx->is_running = GF_FALSE;
 
 	memset(&want_format, 0, sizeof(SDL_AudioSpec));
 	want_format.freq = *SampleRate;
@@ -144,7 +144,7 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	while (want_format.samples*2<nb_samples) want_format.samples *= 2;
 
 	if ( SDL_OpenAudio(&want_format, &got_format) < 0 ) return GF_IO_ERR;
-	ctx->is_running = 1;
+	ctx->is_running = GF_TRUE;
 	ctx->delay_ms = (got_format.samples * 1000) / got_format.freq;
 	ctx->total_size = got_format.samples;
 	*SampleRate = got_format.freq;
