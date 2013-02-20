@@ -25,19 +25,19 @@
 
 #include "sdl_out.h"
 
-static Bool is_init = 0;
+static Bool is_init = GF_FALSE;
 static u32 num_users = 0;
 
 Bool SDLOUT_InitSDL()
 {
 	if (is_init) {
 		num_users++;
-		return 1;
+		return GF_TRUE;
 	}
-	if (SDL_Init(0) < 0) return 0;
-	is_init = 1;
+	if (SDL_Init(0) < 0) return GF_FALSE;
+	is_init = GF_TRUE;
 	num_users++;
-	return 1;
+	return GF_TRUE;
 }
 
 void SDLOUT_CloseSDL()

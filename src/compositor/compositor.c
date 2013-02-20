@@ -262,7 +262,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual->GetSurfaceAccess = compositor_2d_get_video_access;
 	compositor->visual->ReleaseSurfaceAccess = compositor_2d_release_video_access;
 	if (compositor->video_out->FlushRectangles)
-		compositor->visual->direct_flush = 1;
+		compositor->visual->direct_flush = GF_TRUE;
 
 	compositor_2d_init_callbacks(compositor);
 
@@ -286,7 +286,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 	/*default collision mode*/
 	compositor->collide_mode = GF_COLLISION_DISPLACEMENT; //GF_COLLISION_NORMAL
-	compositor->gravity_on = 1;
+	compositor->gravity_on = GF_TRUE;
 
 	/*create default unit sphere and box for bounds*/
 	compositor->unit_bbox = new_mesh();
