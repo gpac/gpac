@@ -2560,11 +2560,11 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 		retry--;
 		gf_sleep(1);
 		if (!retry) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	ret = gf_sc_exec_event(compositor, event);
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 
 	if (!from_user) {
 	}
@@ -2587,7 +2587,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
 	/*not assigned yet*/
-	if (!compositor || !compositor->visual) return 0;
+	if (!compositor || !compositor->visual) return GF_FALSE;
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
@@ -2595,7 +2595,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			if (event->setup.back_buffer) 
 				compositor->recompute_ar = 1;
 		}
-		return 0;
+		return GF_FALSE;
 	}
 	switch (event->type) {
 	case GF_EVENT_MOVE:
@@ -2626,7 +2626,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_SIZE:
 		/*user consummed the resize event, do nothing*/
 		if ( gf_term_send_event(compositor->term, event) ) 
-			return 1;
+			return GF_TRUE;
 
 		/*not consummed and compositor "owns" the output window (created by the output module), resize*/
 		if (!compositor->user->os_window_handler) {
@@ -2643,9 +2643,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				/*remove pending resize notif*/
 				compositor->msg_type = 0;
 			}
-			if (lock_ok) gf_sc_lock(compositor, 0);
+			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}
-		return 0;
+		return GF_FALSE;
 
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_KEYUP:
@@ -2676,11 +2676,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		
 		}	
 	
-		ret = 0;
+		ret = GF_FALSE;
 		event->key.flags |= compositor->key_states;
 		/*key sensor*/
 		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-			ret = gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? 1 : 0);
+			ret = gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? GF_TRUE : GF_FALSE);
 		}			
 		ret += gf_sc_handle_event_intern(compositor, event, from_user);
 		return ret;
@@ -2693,7 +2693,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
 	case GF_EVENT_SHOWHIDE:
-		compositor->is_hidden = event->show.show_type ? 0 : 1;
+		compositor->is_hidden = event->show.show_type ? GF_FALSE : GF_TRUE;
 		break;
 
 	case GF_EVENT_SET_CAPTION:
@@ -2723,12 +2723,12 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return gf_term_send_event(compositor->term, event);
 	}
 	/*if we get here, event has been consumed*/
-	return 1;
+	return GF_TRUE;
 }
 
 static Bool gf_sc_on_event(void *cbck, GF_Event *event)
 {
-	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, 0);
+	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, GF_FALSE);
 }
 
 Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
@@ -2738,19 +2738,19 @@ Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
 	case GF_EVENT_MOVE:
 	case GF_EVENT_SET_CAPTION:
 		compositor->video_out->ProcessEvent(compositor->video_out, event);
-		return 0;
+		return GF_FALSE;
 	default:
-		return gf_sc_on_event_ex(compositor, event, 1);
+		return gf_sc_on_event_ex(compositor, event, GF_TRUE);
 	}
 }
 
 GF_EXPORT
 void gf_sc_register_extra_graph(GF_Compositor *compositor, GF_SceneGraph *extra_scene, Bool do_remove)
 {
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 	if (do_remove) gf_list_del_item(compositor->extra_scenes, extra_scene);
 	else if (gf_list_find(compositor->extra_scenes, extra_scene)<0) gf_list_add(compositor->extra_scenes, extra_scene);
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 }
 
 
@@ -2763,28 +2763,28 @@ u32 gf_sc_get_audio_delay(GF_Compositor *compositor)
 Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
 	switch (type) {
-	case GF_JSAPI_OP_GET_SCALE: param->val = compositor->zoom; return 1;
-	case GF_JSAPI_OP_SET_SCALE: compositor_2d_set_user_transform(compositor, param->val, compositor->trans_x, compositor->trans_y, 0); return 1;
-	case GF_JSAPI_OP_GET_ROTATION: param->val = gf_divfix(180*compositor->rotation, GF_PI); return 1;
-	case GF_JSAPI_OP_SET_ROTATION: compositor->rotation = gf_mulfix(GF_PI, param->val/180); compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, 0); return 1;
-	case GF_JSAPI_OP_GET_TRANSLATE: param->pt.x = compositor->trans_x; param->pt.y = compositor->trans_y; return 1;
-	case GF_JSAPI_OP_SET_TRANSLATE: compositor_2d_set_user_transform(compositor, compositor->zoom, param->pt.x, param->pt.y, 0); return 1;
+	case GF_JSAPI_OP_GET_SCALE: param->val = compositor->zoom; return GF_TRUE;
+	case GF_JSAPI_OP_SET_SCALE: compositor_2d_set_user_transform(compositor, param->val, compositor->trans_x, compositor->trans_y, GF_FALSE); return GF_TRUE;
+	case GF_JSAPI_OP_GET_ROTATION: param->val = gf_divfix(180*compositor->rotation, GF_PI); return GF_TRUE;
+	case GF_JSAPI_OP_SET_ROTATION: compositor->rotation = gf_mulfix(GF_PI, param->val/180); compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, GF_FALSE); return GF_TRUE;
+	case GF_JSAPI_OP_GET_TRANSLATE: param->pt.x = compositor->trans_x; param->pt.y = compositor->trans_y; return GF_TRUE;
+	case GF_JSAPI_OP_SET_TRANSLATE: compositor_2d_set_user_transform(compositor, compositor->zoom, param->pt.x, param->pt.y, GF_FALSE); return GF_TRUE;
 	/*FIXME - better SMIL timelines support*/
-	case GF_JSAPI_OP_GET_TIME: param->time = gf_node_get_scene_time(n); return 1;
-	case GF_JSAPI_OP_SET_TIME: /*seek_to(param->time);*/ return 0;
+	case GF_JSAPI_OP_GET_TIME: param->time = gf_node_get_scene_time(n); return GF_TRUE;
+	case GF_JSAPI_OP_SET_TIME: /*seek_to(param->time);*/ return GF_FALSE;
 	/*FIXME - this will not work for inline docs, we will have to store the clipper at the <svg> level*/
 	case GF_JSAPI_OP_GET_VIEWPORT: 
 #ifndef GPAC_DISABLE_SVG
-		if (compositor_svg_get_viewport(n, &param->rc)) return 1;
+		if (compositor_svg_get_viewport(n, &param->rc)) return GF_TRUE;
 #endif
 		param->rc = gf_rect_center(compositor->traverse_state->vp_size.x, compositor->traverse_state->vp_size.y); 
 		if (!compositor->visual->center_coords) {
 			param->rc.x = 0;
 			param->rc.y = 0;
 		}
-		return 1;
-	case GF_JSAPI_OP_SET_FOCUS: compositor->focus_node = param->node; return 1;
-	case GF_JSAPI_OP_GET_FOCUS: param->node = compositor->focus_node; return 1;
+		return GF_TRUE;
+	case GF_JSAPI_OP_SET_FOCUS: compositor->focus_node = param->node; return GF_TRUE;
+	case GF_JSAPI_OP_GET_FOCUS: param->node = compositor->focus_node; return GF_TRUE;
 
 	/*same routine: traverse tree from root to target, collecting both bounds and transform matrix*/
 	case GF_JSAPI_OP_GET_LOCAL_BBOX:
@@ -2797,7 +2797,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		tr_state.visual = compositor->visual;
 		tr_state.vp_size = compositor->traverse_state->vp_size;
 		tr_state.for_node = n;
-		tr_state.ignore_strike = 1;
+		tr_state.ignore_strike = GF_TRUE;
 		tr_state.min_hsize = compositor->traverse_state->min_hsize;
 		tr_state.pixel_metrics = compositor->traverse_state->pixel_metrics;
 		gf_mx2d_init(tr_state.transform);
@@ -2808,7 +2808,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 #ifndef GPAC_DISABLE_SVG
 			GF_SAFEALLOC(tr_state.svg_props, SVGPropertiesPointers);
 			gf_svg_properties_init_pointers(tr_state.svg_props);
-			tr_state.abort_bounds_traverse=1;
+			tr_state.abort_bounds_traverse = GF_TRUE;
 			gf_node_traverse(n, &tr_state);
 			gf_svg_properties_reset_pointers(tr_state.svg_props);
 			gf_free(tr_state.svg_props);
@@ -2817,7 +2817,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
 		}
 		if (!tr_state.bounds.height && !tr_state.bounds.width && !tr_state.bounds.x && !tr_state.bounds.height)
-			tr_state.abort_bounds_traverse=0;
+			tr_state.abort_bounds_traverse = GF_FALSE;
 
 		gf_mx2d_pre_multiply(&tr_state.mx_at_node, &compositor->traverse_state->transform);
 
@@ -2829,27 +2829,27 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			gf_mx2d_apply_rect(&tr_state.mx_at_node, &tr_state.bounds);
 			gf_bbox_from_rect(&param->bbox, &tr_state.bounds);
 		}
-		if (!tr_state.abort_bounds_traverse) param->bbox.is_set = 0;
+		if (!tr_state.abort_bounds_traverse) param->bbox.is_set = GF_FALSE;
 	}
-		return 1;
+		return GF_TRUE;
 	case GF_JSAPI_OP_LOAD_URL:
 	{
 #ifndef GPAC_DISABLE_VRML
 		GF_Node *target;
 		char *sub_url = strrchr(param->uri.url, '#');
-		if (!sub_url) return 0;
+		if (!sub_url) return GF_FALSE;
 		target = gf_sg_find_node_by_name(gf_node_get_graph(n), sub_url+1);
 		if (target && (gf_node_get_tag(target)==TAG_MPEG4_Viewport) ) {
 			((M_Viewport *)target)->set_bind = 1;
 			((M_Viewport *)target)->on_set_bind(n, NULL);
-			return 1;
+			return GF_TRUE;
 		}
 #endif
-		return 0;
+		return GF_FALSE;
 	}
 	case GF_JSAPI_OP_GET_FPS:
-		param->time = gf_sc_get_fps(compositor, 0);
-		return 1;
+		param->time = gf_sc_get_fps(compositor, GF_FALSE);
+		return GF_TRUE;
 	case GF_JSAPI_OP_GET_SPEED:
 		param->time = 0;
 #ifndef GPAC_DISABLE_3D
@@ -2857,41 +2857,41 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			param->time = FIX2FLT(compositor->visual->camera.speed);
 		}
 #endif
-		return 1;
+		return GF_TRUE;
 	case GF_JSAPI_OP_PAUSE_SVG:
 		if (n) {
 			u32 tag = gf_node_get_tag(n);
 			switch(tag) {
 #ifndef GPAC_DISABLE_SVG
-			case TAG_SVG_audio: svg_pause_audio(n, 1); break;
-			case TAG_SVG_video: svg_pause_video(n, 1); break;
-			case TAG_SVG_animation: svg_pause_animation(n, 1); break;
+			case TAG_SVG_audio: svg_pause_audio(n, GF_TRUE); break;
+			case TAG_SVG_video: svg_pause_video(n, GF_TRUE); break;
+			case TAG_SVG_animation: svg_pause_animation(n, GF_TRUE); break;
 #endif
 			}
 		} else {
-			return 0;
+			return GF_FALSE;
 		}
-		return 1;
+		return GF_TRUE;
 	case GF_JSAPI_OP_RESUME_SVG:
 		{
 			u32 tag = gf_node_get_tag(n);
 			switch(tag) {
 #ifndef GPAC_DISABLE_SVG
-			case TAG_SVG_audio: svg_pause_audio(n, 0); break;
-			case TAG_SVG_video: svg_pause_video(n, 0); break;
-			case TAG_SVG_animation: svg_pause_animation(n, 0); break;
+			case TAG_SVG_audio: svg_pause_audio(n, GF_FALSE); break;
+			case TAG_SVG_video: svg_pause_video(n, GF_FALSE); break;
+			case TAG_SVG_animation: svg_pause_animation(n, GF_FALSE); break;
 #endif
 			}
 		}
-		return 1;
+		return GF_TRUE;
 	case GF_JSAPI_OP_GET_DPI_X: 
 		param->opt = compositor->video_out->dpi_x;
-		return 1;
+		return GF_TRUE;
 	case GF_JSAPI_OP_GET_DPI_Y: 
 		param->opt = compositor->video_out->dpi_y;
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
@@ -2905,9 +2905,9 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
 		gf_mx_inverse(&mx);
 		r = tr_state->ray;
 		gf_mx_apply_ray(&mx, &r);
-		if (!compositor_get_2d_plane_intersection(&r, &pos)) return 0;
+		if (!compositor_get_2d_plane_intersection(&r, &pos)) return GF_FALSE;
 		if ( (pos.x < clip->x) || (pos.y > clip->y) 
-			|| (pos.x > clip->x + clip->width) || (pos.y < clip->y - clip->height) ) return 0;
+			|| (pos.x > clip->x + clip->width) || (pos.y < clip->y - clip->height) ) return GF_FALSE;
 
 	} else 
 #endif
@@ -2919,15 +2919,15 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
 		pt.y = tr_state->ray.orig.y;
 
 		if ( (pt.x < rc.x) || (pt.y > rc.y) 
-			|| (pt.x > rc.x + rc.width) || (pt.y < rc.y - rc.height) ) return 0;
+			|| (pt.x > rc.x + rc.width) || (pt.y < rc.y - rc.height) ) return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 
 Bool gf_sc_has_text_selection(GF_Compositor *compositor)
 {
-	return (compositor->store_text_state==GF_SC_TSEL_FROZEN) ? 1 : 0;
+	return (compositor->store_text_state==GF_SC_TSEL_FROZEN) ? GF_TRUE : GF_FALSE;
 }
 
 const char *gf_sc_get_selected_text(GF_Compositor *compositor)
@@ -2936,7 +2936,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	u32 len;
 	if (compositor->store_text_state != GF_SC_TSEL_FROZEN) return NULL;
 
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 
 	compositor->traverse_state->traversing_mode = TRAVERSE_GET_TEXT;
 	if (compositor->sel_buffer) {
@@ -2954,7 +2954,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	len = gf_utf8_wcstombs(compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
 	if ((s32)len<0) len = 0;
 	compositor->selected_text[len] = 0;
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 
 	return compositor->selected_text;
 }
@@ -2968,7 +2968,7 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 	if (compositor->focus_node==n) {
 		compositor->focus_node = NULL;
 		compositor->focus_text_type = 0;
-		compositor->focus_uses_dom_events = 0;
+		compositor->focus_uses_dom_events = GF_FALSE;
 		gf_list_reset(compositor->focus_ancestors);
 		gf_list_reset(compositor->focus_use_stack);
 	}
@@ -2981,10 +2981,10 @@ GF_Err gf_sc_add_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 {
 	if (!sc|| !vl || !vl->on_video_frame || !vl->on_video_reconfig) return GF_BAD_PARAM;
 
-	gf_sc_lock(sc, 1);
+	gf_sc_lock(sc, GF_TRUE);
 	if (!sc->video_listeners) sc->video_listeners = gf_list_new();
 	gf_list_add(sc->video_listeners, vl);
-	gf_sc_lock(sc, 0);
+	gf_sc_lock(sc, GF_FALSE);
 	return GF_OK;
 }
 
@@ -2993,12 +2993,12 @@ GF_Err gf_sc_remove_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 {
 	if (!sc|| !vl) return GF_BAD_PARAM;
 
-	gf_sc_lock(sc, 1);
+	gf_sc_lock(sc, GF_TRUE);
 	gf_list_del_item(sc->video_listeners, vl);
 	if (!gf_list_count(sc->video_listeners)) {
 		gf_list_del(sc->video_listeners);
 		sc->video_listeners = NULL;
 	}
-	gf_sc_lock(sc, 0);
+	gf_sc_lock(sc, GF_FALSE);
 	return GF_OK;
 }
