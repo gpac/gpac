@@ -314,11 +314,11 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 
 	src->w = src->h = 0;
 	dst->w = dst->h = 0;
-	if (disable_blit) *disable_blit = 0;
-	if (has_scale) *has_scale = 0;
+	if (disable_blit) *disable_blit = GF_FALSE;
+	if (has_scale) *has_scale = GF_FALSE;
 
-	if (final.width<=0 || final.height <=0) return 0;
-	if (txh->width==0 || txh->height==0) return 0;
+	if (final.width<=0 || final.height <=0) return GF_FALSE;
+	if (txh->width==0 || txh->height==0) return GF_FALSE;
 
 
 	w_scale = final.width / txh->width;
@@ -423,14 +423,14 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 	if (src->w>txh->width) src->w=txh->width;
 	if (src->h>txh->height) src->h=txh->height;
 
-	if (!src->w || !src->h) return 0;
+	if (!src->w || !src->h) return GF_FALSE;
 
 	/*make sure we lie in src bounds*/
 	if (src->x + src->w>txh->width) src->w = txh->width - src->x;
 	if (src->y + src->h>txh->height) src->h = txh->height - src->y;
 
-	if (disable_blit) *disable_blit = use_blit ? 0 : 1;
-	return 1;
+	if (disable_blit) *disable_blit = use_blit ? GF_FALSE : GF_TRUE;
+	return GF_TRUE;
 }
 
 static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key, GF_TraverseState *tr_state, Bool force_soft_blt)
@@ -443,7 +443,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	u32 output_width, output_height, hw_caps;
 
 
-	if (!txh->data) return 1;
+	if (!txh->data) return GF_TRUE;
 
 	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE)
 		&& (visual->compositor->override_size_flags & 1)
@@ -454,25 +454,25 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			visual->compositor->scene_width = txh->width;
 			visual->compositor->scene_height = txh->height;
 			visual->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
-			return 1;
+			return GF_TRUE;
 		}
 	}
 
-	if (!compositor_texture_rectangles(visual, txh, clip, unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return 1;
+	if (!compositor_texture_rectangles(visual, txh, clip, unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return GF_TRUE;
 	
 	/*can we use hardware blitter ?*/
 	hw_caps = visual->compositor->video_out->hw_caps;
 	overlay_type = 0;
-	flush_video = 0;
-	use_soft_stretch = 1;
+	flush_video = GF_FALSE;
+	use_soft_stretch = GF_TRUE;
 
 	output_width = visual->compositor->vp_width;
 	output_height = visual->compositor->vp_height;
 
 	if (!(hw_caps & GF_VIDEO_HW_HAS_STRETCH)) {
-		if (has_scale) force_soft_blt = 1;
+		if (has_scale) force_soft_blt = GF_TRUE;
 	}
-	if (visual->compositor->disable_hardware_blit) force_soft_blt = 1;
+	if (visual->compositor->disable_hardware_blit) force_soft_blt = GF_TRUE;
 
 	if (!force_soft_blt) {
 
@@ -489,14 +489,14 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 //		case GF_PIXEL_RGB_555:
 //		case GF_PIXEL_RGB_565:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGB)
-				use_soft_stretch = 0;
+				use_soft_stretch = GF_FALSE;
 			break;
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
 		case GF_PIXEL_RGBAS:
 		case GF_PIXEL_RGBDS:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
-				use_soft_stretch = 0;
+				use_soft_stretch = GF_FALSE;
 			break;
 		case GF_PIXEL_YV12:
 		case GF_PIXEL_IYUV:
@@ -504,7 +504,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_YVYU:
 		case GF_PIXEL_YUY2:
 		case GF_PIXEL_YUVD:
-			if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = 0;
+			if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = GF_FALSE;
 			else if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
 			break;
 		default:
@@ -514,16 +514,16 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (!visual->compositor->enable_yuv_hw
 			|| (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit)
 			) {
-			use_soft_stretch = 1;
+			use_soft_stretch = GF_TRUE;
 			overlay_type = 0;
 		}
 		if (visual->compositor->disable_partial_hw_blit && ((src_wnd.w!=txh->width) || (src_wnd.h!=txh->height) )) {
-			use_soft_stretch = 1;
+			use_soft_stretch = GF_TRUE;
 		}
 
 		/*disable HW color keying - not compatible with MPEG-4 MaterialKey*/
 		if (col_key) {
-			use_soft_stretch = 1;
+			use_soft_stretch = GF_TRUE;
 			overlay_type = 0;
 		}
 
@@ -590,7 +590,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			o_rc.width = dst_wnd.w;
 			o_rc.height = dst_wnd.h;
 			visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
-			visual->has_overlays = 1;
+			visual->has_overlays = GF_TRUE;
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 
@@ -598,7 +598,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			but not allocating it*/
 			if (tr_state->immediate_draw)
 				visual_2d_get_drawable_context(visual);
-			return 1;
+			return GF_TRUE;
 		}
 		/*top level overlay*/
 		if (flush_video) {
@@ -617,11 +617,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (!e) {
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
-			visual->has_overlays = 1;
-			return 1;
+			visual->has_overlays = GF_TRUE;
+			return GF_TRUE;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during overlay blit - trying with soft one\n"));
-		visual->compositor->skip_flush = 0;
+		visual->compositor->skip_flush = GF_FALSE;
 	}
 
 	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
@@ -632,7 +632,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 0);
 		/*HW pb, try soft*/
 		if (e) {
-			use_soft_stretch = 1;
+			use_soft_stretch = GF_TRUE;
 			if (visual->compositor->video_memory==1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - will use soft one\n"));
 				visual->compositor->video_memory = 2;
@@ -640,33 +640,33 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			/*force a reconfigure of video output*/
 			else if (visual->compositor->video_memory!=2) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring video output to use video memory\n"));
-				visual->compositor->request_video_memory = 1;
-				visual->compositor->root_visual_setup = 0;
+				visual->compositor->request_video_memory = GF_TRUE;
+				visual->compositor->root_visual_setup = GF_FALSE;
 				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 			}
 		}
 	}
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
-		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 1);
+		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
 			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, 0, col_key, ctx->col_mat);
-			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
+			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 			if (is_attached) visual_2d_init_raster(visual);
-			return 0;
+			return GF_FALSE;
 		}
 		if (!visual->compositor->video_memory) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring video output to use video memory\n"));
-			visual->compositor->video_memory = 1;
-			visual->compositor->root_visual_setup = 0;
+			visual->compositor->video_memory = GF_TRUE;
+			visual->compositor->root_visual_setup = GF_FALSE;
 			gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 		}
 	}
-	visual->has_modif = 1;
+	visual->has_modif = GF_TRUE;
 	if (is_attached) visual_2d_init_raster(visual);
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -724,13 +724,13 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 		/*using OpenGL to render depth images*/
 		if (visual->compositor->depth_gl_type) {
 			gf_sc_set_option(visual->compositor, GF_OPT_USE_OPENGL, 2);
-			return 1;
+			return GF_TRUE;
 		}
 #endif
 		break;
 	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 
 	/*direct drawing, no clippers */
@@ -743,10 +743,10 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 				, 0, 0
 #endif
 				))
-				return 0;
+				return GF_FALSE;
 		} else {
 			if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0))
-				return 0;
+				return GF_FALSE;
 		}
 	}
 	/*draw bitmap for all dirty rects*/
