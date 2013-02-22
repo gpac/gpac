@@ -432,7 +432,7 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	"frame dropping" is done by preventing the compositor from redrawing after an update and decoding following AU
 	so that the compositor is always woken up once all late systems AUs are decoded. This flag is overriden when
 	seeking*/
-	check_next_unit = (codec->odm->term->flags & GF_TERM_SYSDEC_RESYNC) ? 1 : 0;
+	check_next_unit = (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) ? 1 : 0;
 
 check_unit:
 
@@ -729,6 +729,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_CMUnit *CU;
 	GF_DBUnit *AU;
 	GF_Channel *ch, *prev_ch;
+	Bool drop_late_frames = 0;
 	u32 mmlevel, cts;
 	u32 first, entryTime, now, obj_time, unit_size;
 	GF_MediaDecoder *mdec = (GF_MediaDecoder*)codec->decio;
@@ -740,6 +741,8 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->Muted && (codec->type==GF_STREAM_VISUAL) ) return GF_OK;
 
 	entryTime = gf_term_get_time(codec->odm->term);
+	if (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) 
+		drop_late_frames = 1;
 
 	/*fetch next AU in DTS order for this codec*/
 	MediaDecoder_GetNextAU(codec, &ch, &AU);
@@ -913,7 +916,7 @@ scalable_retry:
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
 			/*in seek don't dispatch any output*/
-			if (mmlevel	>= GF_CODEC_LEVEL_DROP)
+			if (drop_late_frames && (mmlevel >= GF_CODEC_LEVEL_DROP))
 				unit_size = 0;
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
@@ -1006,7 +1009,7 @@ scalable_retry:
 		}
 
 		/*in seek don't dispatch any output*/
-		if (mmlevel	>= GF_CODEC_LEVEL_DROP)
+		if (drop_late_frames && (mmlevel >= GF_CODEC_LEVEL_DROP))
 			unit_size = 0;
 
 		UnlockCompositionUnit(codec, CU, unit_size);

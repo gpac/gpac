@@ -56,7 +56,7 @@
 
 #define UDP_BUFFER_SIZE	0x40000
 
-#define MP42TS_PRINT_FREQ 634 /*refresh printed info every CLOCK_REFRESH ms*/
+#define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
 static GFINLINE void usage(const char * progname) 
@@ -1764,6 +1764,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		} else if (!stricmp(arg, "-rap")) {
 			*split_rap = 1;
 		}
+		else if (!strnicmp(arg, "-dst-udp=", 9)) {
+			*real_time = 1;
+		}
 	}
 	if (*real_time) force_real_time = 1;
 	rate_found = 1;
@@ -2335,14 +2338,19 @@ int main(int argc, char **argv)
 		}
 
 		if (real_time) {
-			/*refresh every MP42TS_PRINT_FREQ ms*/
+			/*refresh every MP42TS_PRINT_TIME_MS ms*/
 			u32 now=gf_sys_clock();
-			if (now/MP42TS_PRINT_FREQ != last_print_time/MP42TS_PRINT_FREQ) {
+			if (now > last_print_time + MP42TS_PRINT_TIME_MS) {
 				last_print_time = now;
 				fprintf(stderr, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->avg_br);
+
+				if (gf_prompt_has_input()) {
+					char c = gf_prompt_get_char();
+					if (c=='q') break;
+				}
 			}
 			/*cpu load regulation*/
-			gf_sleep(1);
+			gf_sleep(0);
 		}
 
 
