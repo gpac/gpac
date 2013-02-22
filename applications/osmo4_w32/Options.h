@@ -452,7 +452,7 @@ public:
 	enum { IDD = IDD_OPT_SYSTEMS };
 	CButton	m_ForceDuration;
 	CComboBox	m_Threading;
-	CButton	m_BifsAlwaysDrawn;
+	CButton	m_LateFramesAlwaysDrawn;
 	CComboBox	m_Lang;
 	//}}AFX_DATA
 

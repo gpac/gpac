@@ -320,11 +320,11 @@ BOOL COptSystems::OnInitDialog()
 	} else {
 		m_ForceDuration.SetCheck(0);
 	}
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "AlwaysDrawBIFS");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "DrawLateFrames");
 	if (sOpt && !stricmp(sOpt, "yes")) {
-		m_BifsAlwaysDrawn.SetCheck(1);
+		m_LateFramesAlwaysDrawn.SetCheck(1);
 	} else {
-		m_BifsAlwaysDrawn.SetCheck(0);
+		m_LateFramesAlwaysDrawn.SetCheck(0);
 	}
 
 	
@@ -353,7 +353,7 @@ void COptSystems::SaveOptions()
 	sel = m_Threading.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "ThreadingPolicy", (sel==0) ? "Single" : ( (sel==1) ? "Multi" : "Free"));
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "ForceSingleClock", m_ForceDuration.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Systems", "AlwaysDrawBIFS", m_BifsAlwaysDrawn.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "DrawLateFrames", m_LateFramesAlwaysDrawn.GetCheck() ? "yes" : "no");
 }
 
 

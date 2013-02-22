@@ -307,11 +307,11 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	
 	/*reload term part*/
 
-	sOpt = gf_cfg_get_key(term->user->config, "Systems", "AlwaysDrawBIFS");
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "DrawLateFrames");
 	if (sOpt && !stricmp(sOpt, "yes"))
-		term->flags &= ~GF_TERM_SYSDEC_RESYNC;
+		term->flags &= ~GF_TERM_DROP_LATE_FRAMES;
 	else
-		term->flags |= GF_TERM_SYSDEC_RESYNC;
+		term->flags |= GF_TERM_DROP_LATE_FRAMES;
 
 	sOpt = gf_cfg_get_key(term->user->config, "Systems", "ForceSingleClock");
 	if (sOpt && !stricmp(sOpt, "yes")) 
