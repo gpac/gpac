@@ -1031,10 +1031,11 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
 	}
 	if (hevccfg) {
+		u32 idx;
 		nalh_size = hevccfg->nal_unit_size;
 		is_hevc = 1;
-		for (i=0; i<gf_list_count(hevccfg->param_array); i++) {
-			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
+		for (idx=0; idx<gf_list_count(hevccfg->param_array); idx++) {
+			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
