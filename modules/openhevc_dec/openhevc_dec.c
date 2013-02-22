@@ -46,7 +46,7 @@ typedef struct
 	u32 had_pic;
 } HEVCDec;
 
-static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
@@ -89,7 +89,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	return GF_OK;
 }
 
-static GF_Err OSVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
+static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
@@ -101,7 +101,7 @@ static GF_Err OSVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	return GF_OK;
 }
 
-static GF_Err OSVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
+static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
@@ -147,7 +147,7 @@ static GF_Err OSVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	}
 	return GF_OK;
 }
-static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
+static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	switch (capability.CapCode) {
@@ -163,7 +163,7 @@ static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 }
 
-static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg, 
+static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
 		char *outBuffer, u32 *outBufferLength,
@@ -286,7 +286,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	return GF_OK;
 }
 
-static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
+static u32 HEVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
 
@@ -300,7 +300,7 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	return GF_CODEC_NOT_SUPPORTED;
 }
 
-static const char *OSVC_GetCodecName(GF_BaseDecoder *dec)
+static const char *HEVC_GetCodecName(GF_BaseDecoder *dec)
 {
 	return libDecoderVersion();;
 }
@@ -312,18 +312,18 @@ GF_BaseDecoder *NewHEVCDec()
 	
 	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
 	GF_SAFEALLOC(dec, HEVCDec);
-	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "OpenSVC Decoder", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "HEVC Decoder", "gpac distribution")
 
 	ifcd->privateStack = dec;
 
 	/*setup our own interface*/	
-	ifcd->AttachStream = OSVC_AttachStream;
-	ifcd->DetachStream = OSVC_DetachStream;
-	ifcd->GetCapabilities = OSVC_GetCapabilities;
-	ifcd->SetCapabilities = OSVC_SetCapabilities;
-	ifcd->GetName = OSVC_GetCodecName;
-	ifcd->CanHandleStream = OSVC_CanHandleStream;
-	ifcd->ProcessData = OSVC_ProcessData;
+	ifcd->AttachStream = HEVC_AttachStream;
+	ifcd->DetachStream = HEVC_DetachStream;
+	ifcd->GetCapabilities = HEVC_GetCapabilities;
+	ifcd->SetCapabilities = HEVC_SetCapabilities;
+	ifcd->GetName = HEVC_GetCodecName;
+	ifcd->CanHandleStream = HEVC_CanHandleStream;
+	ifcd->ProcessData = HEVC_ProcessData;
 	return (GF_BaseDecoder *) ifcd;
 }
 
