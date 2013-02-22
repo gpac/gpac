@@ -218,9 +218,9 @@ Specifies the user prefered language as expressed in ISO 639-2. This is used to 
 <p style="text-indent: 5%">
 Specifies the user prefered language as expressed in ISO 639-1. This is used to select streams in case of alternate content in an audio object.
 </p>
-<b>AlwaysDrawBIFS</b> [value: <i>"yes" "no"</i>]
+<b>DrawLateFrames</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
-If set, late BIFS frame will still be drawn. If not set, the scene won't be redrawn untill BIFS streams are back in sync. This is by default off to keep better sync, but may be usefull when testing heavy content or slow renderers.
+If set, late frames will still be drawn. If not set, the late frames are droped (or executed for systems decoders) untill the decoder output is back in sync. This is by default off to keep better sync, but may be usefull when testing heavy content or slow renderers.
 </p>
 <b>ForceSingleClock</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">

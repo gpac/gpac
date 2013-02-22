@@ -261,7 +261,7 @@ void COptSystems::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(COptSystems)
 	DDX_Control(pDX, IDC_FORCE_DURATION, m_ForceDuration);
 	DDX_Control(pDX, IDC_DEC_THREAD, m_Threading);
-	DDX_Control(pDX, IDC_BIFSDROP, m_BifsAlwaysDrawn);
+	DDX_Control(pDX, IDC_BIFSDROP, m_LateFramesAlwaysDrawn);
 	DDX_Control(pDX, IDC_LANG, m_Lang);
 	//}}AFX_DATA_MAP
 }
