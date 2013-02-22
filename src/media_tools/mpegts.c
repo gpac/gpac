@@ -2283,7 +2283,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		payload_size = 0;
 		/*no payload and no PCR, return*/
-		if (! paf->PCR_flag) return;
+		if (! paf->PCR_flag) 
+			return;
 		break;
 	/*reserved*/
 	case 0:
@@ -2302,6 +2303,20 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		return;
 	} else {
 		es = ts->ess[hdr.pid];
+
+		if (paf && paf->PCR_flag && es) {
+			GF_M2TS_PES_PCK pck;
+			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+			es->program->before_last_pcr_value = es->program->last_pcr_value;
+			es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
+			es->program->last_pcr_value_pck_number = ts->pck_number;
+			es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
+			if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
+			pck.PTS = es->program->last_pcr_value;
+			pck.stream = (GF_M2TS_PES *)es;
+			if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
+			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+		}
 
 		/*check for DVB reserved PIDs*/
 		if (!es) {
@@ -2330,19 +2345,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			if (pes->reframe && payload_size) gf_m2ts_process_pes(ts, pes, &hdr, data, payload_size, paf);
 		}
 	}
-	if (paf && paf->PCR_flag && es) {
-		GF_M2TS_PES_PCK pck;
-		memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-		es->program->before_last_pcr_value = es->program->last_pcr_value;
-		es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
-		es->program->last_pcr_value_pck_number = ts->pck_number;
-		es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
-		if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
-		pck.PTS = es->program->last_pcr_value;
-		pck.stream = (GF_M2TS_PES *)es;
-		if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
-		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
-	}
+
 	return;
 }
 

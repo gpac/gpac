@@ -1281,7 +1281,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 {
 	GF_BitStream *bs;
-	Bool needs_pcr, first_pass;
+	Bool needs_pcr, first_pass, is_rap=0;
 	u32 adaptation_field_control, payload_length, payload_to_copy, padding_length, hdr_len, pos, copy_next;
 
 	assert(stream->pid);
@@ -1303,7 +1303,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
 		payload_length = 184 - hdr_len;
 		payload_to_copy = padding_length = 0;
-		needs_pcr = (hdr_len && stream->pcr_priority ) ? 1 : 0;
+		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)) ? GF_TRUE : GF_FALSE;
+		needs_pcr = (hdr_len && (stream->pcr_priority || is_rap)) ? 1 : 0;
 
 		/*if we forced inserting PAT/PMT before new RAP, also insert PCR here*/
 		if (stream->program->force_pat_pmt_state == 3) {
