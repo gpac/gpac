@@ -659,7 +659,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			break;
 		}
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 #ifdef	SDL_WINDOW_THREAD
@@ -801,7 +801,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 
 	if (ctx->fullscreen) {
 		u32 flags;
-		Bool switch_res = 0;
+		Bool switch_res = GF_FALSE;
 		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
 		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
 		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = 1;

@@ -251,7 +251,11 @@ typedef enum
 	/*! Authentication with the remote host has failed*/
 	GF_AUTHENTICATION_FAILURE				= -50,
 	/*! Script not ready for playback */
-	GF_SCRIPT_NOT_READY						= -51
+	GF_SCRIPT_NOT_READY						= -51,
+	/*! Bad configuration for the current contex */
+	GF_INVALID_CONFIGURATION				= -52,
+	/*! The element has not been found */
+	GF_NOT_FOUND							= -53
 } GF_Err;
 
 /*!

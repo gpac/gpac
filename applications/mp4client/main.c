@@ -59,22 +59,22 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
 
-static Bool gui_mode = 0;
+static Bool gui_mode = GF_FALSE;
 
-static Bool restart = 0;
-static Bool reload = 0;
+static Bool restart = GF_FALSE;
+static Bool reload = GF_FALSE;
 #if defined(__DARWIN__) || defined(__APPLE__)
 //we keep no decoder thread because of JS_GC deadlocks between threads ...
 static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
 #else
 static u32 threading_flags = 0;
 #endif
-static Bool no_audio = 0;
-static Bool term_step = 0;
-static Bool no_regulation = 0;
-static Bool bench_mode = 0;
-Bool is_connected = 0;
-Bool startup_file = 0;
+static Bool no_audio = GF_FALSE;
+static Bool term_step = GF_FALSE;
+static Bool no_regulation = GF_FALSE;
+static Bool bench_mode = GF_FALSE;
+Bool is_connected = GF_FALSE;
+Bool startup_file = GF_FALSE;
 GF_User user;
 GF_Terminal *term;
 u64 Duration;
@@ -82,20 +82,20 @@ GF_Err last_error = GF_OK;
 
 static Fixed bench_speed = FLT2FIX(20);
 
-static Bool request_next_playlist_item = 0;
+static Bool request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
-static Bool readonly_playlist = 0;
+static Bool readonly_playlist = GF_FALSE;
 
 static GF_Config *cfg_file;
-static Bool display_rti = 0;
+static Bool display_rti = GF_FALSE;
 static Bool Run;
-static Bool CanSeek = 0;
+static Bool CanSeek = GF_FALSE;
 static char the_url[GF_MAX_PATH];
 static char pl_path[GF_MAX_PATH];
-static Bool no_mime_check = 1;
-static Bool be_quiet = 0;
+static Bool no_mime_check = GF_TRUE;
+static Bool be_quiet = GF_FALSE;
 static u32 log_time_start = 0;
-static Bool loop_at_end = 0;
+static Bool loop_at_end = GF_FALSE;
 static u32 forced_width=0;
 static u32 forced_height=0;
 
@@ -937,7 +937,7 @@ int main (int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	dump_mode = 0;
-	fill_ar = visible = 0;
+	fill_ar = visible = GF_FALSE;
 	url_arg = the_cfg = rti_file = views = NULL;
 	nb_times = 0;
 	times[0] = 0;
@@ -965,7 +965,7 @@ int main (int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
 	gf_sys_init(enable_mem_tracker);
 #else
-	gf_sys_init(0);
+	gf_sys_init(GF_FALSE);
 #endif
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
@@ -979,7 +979,7 @@ int main (int argc, char **argv)
 	}
 
 	if( gf_cfg_get_key(cfg_file, "General", "Logs") != NULL ){
-		logs_set = 1;
+		logs_set = GF_TRUE;
 	}
 
 	for (i=1; i<(u32) argc; i++) {
@@ -996,11 +996,11 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-rtix")) {
 			rti_file = argv[i+1];
 			i++;
-			use_rtix = 1;
+			use_rtix = GF_TRUE;
 		} else if (!strcmp(arg, "-fill")) {
-			fill_ar = 1;
+			fill_ar = GF_TRUE;
 		} else if (!strcmp(arg, "-gui")) {
-			gui_mode = 1;
+			gui_mode = GF_TRUE;
 		} else if (!strcmp(arg, "-guid")) {
 			gui_mode = 2;
 		} else if (!strcmp(arg, "-show")) {

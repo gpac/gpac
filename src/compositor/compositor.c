@@ -95,7 +95,7 @@ thread accessing the HW ressources
 static void gf_sc_reconfig_task(GF_Compositor *compositor)
 {
 	GF_Event evt;
-	Bool notif_size=0;
+	Bool notif_size=GF_FALSE;
 	u32 width,height;
 	
 	/*reconfig audio if needed (non-threaded compositors)*/
@@ -204,7 +204,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor)
 	gf_sc_simulation_tick(compositor);
 	if (compositor->frame_draw_type) return 1;
 	if (compositor->fonts_pending) return 1;
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -237,7 +237,7 @@ static Bool gf_sc_set_check_raster2d(GF_Compositor *compositor, GF_Raster2D *ifc
 	if (!ifce->surface_clear || !ifce->surface_set_path || !ifce->surface_fill) return 0;
 	/*check we can init a surface with the current driver (the rest is optional)*/
 	if (ifce->surface_attach_to_buffer) return 1;
-	return 0;
+	return GF_FALSE;
 }
 
 static GF_Err gf_sc_load(GF_Compositor *compositor)
@@ -505,7 +505,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	}
 	
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
-		tmp->no_regulation = 1;
+		tmp->no_regulation = GF_TRUE;
 
 
 	/*set default size if owning output*/
@@ -514,7 +514,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	}
 	/*try to load GL extensions*/
 #ifndef GPAC_DISABLE_3D
-	gf_sc_load_opengl_extensions(tmp, 0);
+	gf_sc_load_opengl_extensions(tmp, GF_FALSE);
 #endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
@@ -527,15 +527,15 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (!compositor) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroying\n"));
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 
 	if (compositor->VisualThread) {
 		if (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
 			compositor->video_th_state = GF_COMPOSITOR_THREAD_ABORTING;
 			while (compositor->video_th_state != GF_COMPOSITOR_THREAD_DONE) {
-				gf_sc_lock(compositor, 0);
+				gf_sc_lock(compositor, GF_FALSE);
 				gf_sleep(1);
-				gf_sc_lock(compositor, 1);
+				gf_sc_lock(compositor, GF_TRUE);
 			}
 		}
 		gf_th_del(compositor->VisualThread);
@@ -612,7 +612,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->extra_scenes) gf_list_del(compositor->extra_scenes);
 	if (compositor->video_listeners) gf_list_del(compositor->video_listeners);
 	
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 	gf_mx_del(compositor->mx);
 	gf_free(compositor);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroyed\n"));

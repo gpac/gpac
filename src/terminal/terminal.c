@@ -1579,7 +1579,7 @@ GF_EXPORT
 Bool gf_term_user_event(GF_Terminal * term, GF_Event *evt)
 {
 	if (term) return gf_sc_user_event(term->compositor, evt);
-	return 0;
+	return GF_FALSE;
 }
 
 
