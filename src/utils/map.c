@@ -31,11 +31,67 @@ struct _tag_map
 	GF_List** pairs;
 };
 
-/* Pair structure */
-typedef struct {
-	char *key;
-	void *value;
-} GF_Pair;
+struct _it_map
+{
+	/* The current map*/
+	GF_Map* map;
+
+	/* The current pair */
+	GF_Pair* pair;
+
+	/* The current list */
+	u32 ilist;
+
+	/* The current index in the hasmap*/
+	u32 hash;
+};
+
+GF_EXPORT
+GF_It_Map* gf_it_map_new(GF_Map* map){
+	GF_It_Map* new_it;
+
+	/* Iterator must be associated to a map */
+	if (!map) return NULL;
+
+	/* Allocate space for a new iterator */
+	GF_SAFEALLOC(new_it, GF_It_Map);
+	if (!new_it) return NULL;
+
+	/* Associate iterator to the beginning of the map */
+	new_it->map = map;
+	new_it->ilist = 0;
+	new_it->hash = 0;
+
+	return new_it;
+}
+
+GF_EXPORT
+void gf_map_it_del(GF_It_Map* it){
+	gf_free(it);
+}
+
+GF_EXPORT
+void* gf_map_it_has_next(GF_It_Map* it){
+	GF_Pair* next_pair = NULL;
+
+	/* No iterator or iterator out of map */
+	if (!it || !(it->hash < it->map->hash_capacity)) return NULL;
+
+	next_pair = (GF_Pair*)gf_list_get(it->map->pairs[it->hash], it->ilist);
+	
+	if (next_pair){
+		/* Next element founds in the same hash */
+		it->ilist++;
+		return next_pair->value;
+	}
+
+	/* Take the next hash */
+	it->hash++;
+	it->ilist = 0;
+	return gf_map_it_has_next(it);
+}
+
+
 
 GF_Pair* gf_pair_new(const char* key, u32 key_len, void* item){
 	GF_Pair* new_pair;
@@ -69,7 +125,7 @@ static GF_Pair* gf_pair_get(GF_List* pairs, const char *key)
 	GF_Pair *pair;
 	u32 index = 0;
 
-	while ((pair = gf_list_get(pairs, index))) {
+	while ((pair = (GF_Pair*)gf_list_get(pairs, index))) {
 		if (pair->key && !strcmp(pair->key, key)) return pair;
 		index++;
 	}
@@ -84,7 +140,7 @@ static Bool gf_pair_rem(GF_List* pairs, const char *key)
 	GF_Pair* pair;
 	u32 index = 0;
 
-	while ((pair = gf_list_get(pairs, index))) {
+	while ((pair = (GF_Pair*)gf_list_get(pairs, index))) {
 		if (pair->key && !strcmp(pair->key, key)){
 			gf_list_rem(pairs, index);
 			gf_pair_del(pair);

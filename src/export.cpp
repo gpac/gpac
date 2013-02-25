@@ -144,6 +144,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_rem) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_has_key) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_it_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_it_has_next) )
 
 /* Bitstream */
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_new) )

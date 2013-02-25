@@ -46,7 +46,37 @@ extern "C" {
 
 #include <gpac/tools.h>
 
+
+/**
+ * \struct GF_Map
+ * \brief Map Object.
+ *
+ * A GF_Map associate key to values.
+ */
 typedef struct _tag_map GF_Map;
+
+
+/**
+ * \struct GF_Iterator
+ * \brief Map iterator Object.
+ *
+ * Allows to go through each pair key/value in the map.
+ */
+typedef struct _it_map GF_It_Map;
+
+/* Pair structure */
+
+/**
+ * \struct GF_Pair
+ * \brief Pair structure.
+ *
+ * Define the association Key/value.
+ */
+typedef struct {
+	char *key;
+	void *value;
+} GF_Pair;
+
 
 /*!
  *	\brief map constructor
@@ -68,6 +98,33 @@ GF_Map *gf_map_new(u32 hash_capacity);
  *	\note The caller is only responsible to destroy the content of the map, not the key
  */
 void gf_map_del(GF_Map *ptr);
+
+/*!
+ *	\brief map iterator constructor
+ *
+ *	Constructs a new map iterator object
+ *
+ *	\param map the map associated to the iterator
+ *	\return the new map iterator object
+ */
+GF_It_Map* gf_it_map_new(GF_Map* map);
+
+/*!
+ *	\brief map iterator destructor
+ *
+ *	Destructs a map iterator object
+ *	\param ptr map iterator object to destruct
+ */
+void gf_map_it_del(GF_It_Map *ptr);
+
+/*!
+ *	\brief return the next value in the map
+ *
+ *	Return the next value of a GF_Pair in the map
+ *	\param it  the map iterator object
+ *  \return the next value of the map if exists, otherwise NULL
+ */
+void* gf_map_it_has_next(GF_It_Map* it);
 
 /*!
  *	\brief get count
@@ -130,6 +187,7 @@ Bool gf_map_has_key(GF_Map *ptr, const char* key);
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 void gf_map_reset(GF_Map *ptr);
+
 
 /*! @} */
 
