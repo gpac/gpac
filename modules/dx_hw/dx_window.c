@@ -955,7 +955,7 @@ HWND DD_GetGlobalHWND()
 	return ((DDContext*)the_video_output->opaque)->os_hwnd;
 }
 
-u32 get_sys_col(int idx)
+static u32 get_sys_col(int idx)
 {
 	u32 res;
 	DWORD val = GetSysColor(idx);

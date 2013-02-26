@@ -27,6 +27,17 @@
 
 #ifdef GPAC_HAS_JP2
 
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  if defined(_DEBUG)
+#   pragma comment(lib, "LibOpenJPEGd")
+#  else
+#   pragma comment(lib, "LibOpenJPEG")
+#  endif
+# endif
+#endif
+
+
 #include <openjpeg.h>
 
 typedef struct

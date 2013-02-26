@@ -120,6 +120,51 @@ GF_BaseInterface *MyDecoderInterfaceLoad() {
 	_ifce->author_name = _ifce_author ? _ifce_author : "gpac distribution";	\
 	
 /*!
+ *\brief module interface function export. Modules that can be compiled in libgpac rather than in sharde libraries shall use this macro to declare the 3 exported functions
+ *\hideinitializer
+ *
+*/
+#ifdef GPAC_STATIC_MODULES
+#define GPAC_MODULE_EXPORT	static
+#else
+#define GPAC_MODULE_EXPORT	GF_EXPORT
+#endif
+
+/*!
+ *\brief Interface Registry
+ *
+ *This structure represent a base interface loader, when not using dynamic / shared libraries
+ */
+typedef struct
+{
+	const char *name;
+	const u32 *(*QueryInterfaces) ();
+	void * (*LoadInterface) (u32 InterfaceType);
+	void (*ShutdownInterface) (void *interface_obj);
+} GF_InterfaceRegister;
+
+/*!
+ *\brief module interface function export. Modules that can be compiled in libgpac rather than in sharde libraries shall use this macro to declare the 3 exported functions
+ *\hideinitializer
+ *
+*/
+#ifdef GPAC_STATIC_MODULES
+
+#define GPAC_MODULE_STATIC_DELARATION(__name)	\
+	GF_InterfaceRegister *gf_register_module_##__name()	{	\
+		GF_InterfaceRegister *reg;	\
+		GF_SAFEALLOC(reg, GF_InterfaceRegister);	\
+		reg->name = "gsm_" #__name;	\
+		reg->QueryInterfaces = QueryInterfaces;	\
+		reg->LoadInterface = LoadInterface;	\
+		reg->ShutdownInterface = ShutdownInterface;	\
+		return reg;\
+	}	\
+
+#else
+#define GPAC_MODULE_STATIC_DELARATION(__name)
+#endif
+/*!
  *\brief module manager construtcor
  *
  *Constructs a module manager object.

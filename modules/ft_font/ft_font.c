@@ -29,6 +29,15 @@
 #include <gpac/utf.h>
 #include <gpac/tools.h>
 
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
+#  pragma comment(lib, "freetype")
+# elif defined (WIN32)
+#  pragma comment(lib, "freetype")
+# endif
+#endif
+
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
@@ -691,7 +700,7 @@ void ft_delete(GF_BaseInterface *ifce)
 
 #ifndef GPAC_STANDALONE_RENDER_2D
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -701,14 +710,14 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_FONT_READER_INTERFACE) return (GF_BaseInterface *)ft_load();
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -717,6 +726,8 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( ftfont )
 
 #endif
 

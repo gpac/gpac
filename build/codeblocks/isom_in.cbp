@@ -38,7 +38,7 @@
 			<Add library="gpac" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
 		</Linker>
-		<Unit filename="..\..\modules\isom_in\cache.c">
+		<Unit filename="..\..\modules\isom_in\isom_cache.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="..\..\modules\isom_in\isom_in.def" />

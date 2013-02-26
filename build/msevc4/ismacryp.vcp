@@ -98,7 +98,7 @@ LINK32=link.exe
 # Name "ismacryp - Win32 (WCE ARMV4) Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\ismacryp\ismacryp.c
+SOURCE=..\..\modules\ismacryp\isma_ea.c
 DEP_CPP_ISMAC=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\

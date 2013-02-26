@@ -403,7 +403,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\ismacryp\ismacryp.c"
+			RelativePath="..\..\modules\ismacryp\isma_ea.c"
 			>
 			<FileConfiguration
 				Name="Release|Win32"

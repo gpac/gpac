@@ -995,7 +995,7 @@ void gjs_delete(GF_BaseInterface *ifce)
 #endif
 
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -1007,7 +1007,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -1016,7 +1016,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -1027,3 +1027,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( gpac_js )

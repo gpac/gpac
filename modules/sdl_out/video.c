@@ -991,7 +991,7 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 
 
 #ifdef WIN32
-u32 get_sys_col(int idx)
+static u32 get_sys_col(int idx)
 {
 	u32 res;
 	DWORD val = GetSysColor(idx);

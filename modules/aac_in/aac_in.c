@@ -934,7 +934,7 @@ void AAC_Delete(void *ifce)
 
 #ifndef DONT_USE_TERMINAL_MODULE_API
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -955,7 +955,7 @@ GF_BaseDecoder *NewFAADDec();
 void DeleteFAADDec(GF_BaseDecoder *ifcg);
 #endif
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -967,7 +967,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -983,4 +983,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( aac_in )
+
 #endif

@@ -45,6 +45,62 @@ GF_EXPORT void gf_iphone_set_sdl_audio_module(void* (*SDL_Module) (void)) {
 #endif
 
 
+static void load_all_modules(GF_ModuleManager *mgr)
+{
+#define LOAD_PLUGIN(	__name	)	{ \
+	GF_InterfaceRegister *gf_register_module_##__name();	\
+	pr = gf_register_module_##__name();\
+	if (!pr) {\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module ##__name\n"));\
+	} else {\
+		gf_list_add(mgr->plugin_registry, pr);	\
+	}	\
+	}	
+
+#ifdef GPAC_STATIC_MODULES
+	GF_InterfaceRegister *pr;
+
+	LOAD_PLUGIN(aac_in);
+	LOAD_PLUGIN(ac3);
+	LOAD_PLUGIN(audio_filter);
+	LOAD_PLUGIN(bifs);
+	LOAD_PLUGIN(ctx_load);
+	LOAD_PLUGIN(dummy_in);
+	LOAD_PLUGIN(ftfont);
+	LOAD_PLUGIN(gpac_js);
+	LOAD_PLUGIN(isma_ea);
+	LOAD_PLUGIN(laser);
+	LOAD_PLUGIN(mp3_in);
+	LOAD_PLUGIN(mpd_in);
+	LOAD_PLUGIN(mpegts_in);
+	LOAD_PLUGIN(odf_dec);
+	LOAD_PLUGIN(openhevc);
+	LOAD_PLUGIN(opensvc);
+	LOAD_PLUGIN(raw_out);
+	LOAD_PLUGIN(redirect_av);
+	LOAD_PLUGIN(saf_in);
+	LOAD_PLUGIN(svg_in);
+	LOAD_PLUGIN(timedtext);
+	LOAD_PLUGIN(validator);
+	LOAD_PLUGIN(wave_out);
+	LOAD_PLUGIN(xvid);
+	LOAD_PLUGIN(dx_out);
+	LOAD_PLUGIN(img_in);
+	LOAD_PLUGIN(rtp_in);
+	LOAD_PLUGIN(isom);
+	LOAD_PLUGIN(soft_raster);
+	LOAD_PLUGIN(ffmpeg);
+	LOAD_PLUGIN(widgetman);
+	LOAD_PLUGIN(ogg_in);
+	LOAD_PLUGIN(sdl_out);
+
+#endif //GPAC_STATIC_MODULES
+
+#undef LOAD_PLUGIN
+	
+}
+
+
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
@@ -64,17 +120,28 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 
 	tmp->plug_list = gf_list_new();
 	if (!tmp->plug_list) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of modules !!!\n", directory));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of modules !!!\n"));
 		gf_free(tmp);
 		return NULL;
 	}
+	tmp->plugin_registry = gf_list_new();
+	if (!tmp->plugin_registry) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of static module registers !!!\n"));
+		gf_list_del(tmp->plug_list);
+		gf_free(tmp);
+		return NULL;
+	}
+
 	tmp->cfg = config;
 	opt = gf_cfg_get_key(config, "Systems", "ModuleUnload");
 	if (opt && !strcmp(opt, "no")) {
 		tmp->no_unload = 1;
 	}
+	load_all_modules(tmp);
+
 	loadedModules = gf_modules_refresh(tmp);
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Loaded %d modules from directory %s.\n", loadedModules, directory));
+
 	return tmp;
 }
 
@@ -318,4 +385,6 @@ const char *gf_module_get_file_name(GF_BaseInterface *ifce)
 	if (!inst) return NULL;
 	return inst->name;
 }
+
+
 

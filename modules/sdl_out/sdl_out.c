@@ -25,6 +25,14 @@
 
 #include "sdl_out.h"
 
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
+#  pragma comment(lib, "SDL")
+# elif defined (WIN32)
+#  pragma comment(lib, "SDL")
+# endif
+#endif
+
 static Bool is_init = GF_FALSE;
 static u32 num_users = 0;
 
@@ -51,7 +59,7 @@ void SDLOUT_CloseSDL()
 
 
 /*interface query*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -63,7 +71,7 @@ const u32 *QueryInterfaces()
 }
 
 /*interface create*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return SDL_NewVideo();
@@ -72,7 +80,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 }
 
 /*interface destroy*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -84,3 +92,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( sdl_out )

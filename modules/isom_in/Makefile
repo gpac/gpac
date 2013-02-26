@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= load.o read.o read_ch.o cache.o
+OBJS= load.o read.o read_ch.o isom_cache.o
 
 SRCS := $(OBJS:.o=.c) 
 

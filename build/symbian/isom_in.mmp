@@ -5,7 +5,7 @@ TARGET gm_isom_in.dll
 
 //source
 SOURCEPATH ..\..\modules\isom_in
-SOURCE cache.c
+SOURCE isom_cache.c
 SOURCE load.c
 SOURCE read.c
 SOURCE read_ch.c

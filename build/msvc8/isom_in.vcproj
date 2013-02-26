@@ -405,7 +405,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\isom_in\cache.c"
+			RelativePath="..\..\modules\isom_in\isom_cache.c"
 			>
 			<FileConfiguration
 				Name="Debug|Win32"

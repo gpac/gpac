@@ -176,7 +176,7 @@ GF_BaseDecoder *NewBIFSDec()
 #endif /*GPAC_DISABLE_BIFS*/
 
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -188,7 +188,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -201,7 +201,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -213,3 +213,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
+GPAC_MODULE_STATIC_DELARATION( bifs )

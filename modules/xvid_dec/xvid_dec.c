@@ -31,7 +31,14 @@
 /*if we don't have M4V (A)SP parser, we con't get width and height and xvid is then unusable ...*/
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-#include "xvid.h"
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "libxvidcore")
+# endif
+#endif
+
+
+#include <xvid.h>
 
 #ifndef XVID_DEC_FRAME
 #define XVID_DEC_FRAME xvid_dec_frame_t
@@ -467,7 +474,7 @@ void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -479,7 +486,7 @@ const u32 *QueryInterfaces()
 	return si; 
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -488,7 +495,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -499,3 +506,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( xvid )

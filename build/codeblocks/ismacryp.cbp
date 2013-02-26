@@ -38,7 +38,7 @@
 			<Add library="gpac" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
 		</Linker>
-		<Unit filename="..\..\modules\ismacryp\ismacryp.c">
+		<Unit filename="..\..\modules\ismacryp\isma_ea.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="..\..\modules\ismacryp\ismacryp.def" />

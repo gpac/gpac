@@ -784,7 +784,7 @@ Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	}
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
     static u32 si [] = {
@@ -794,7 +794,7 @@ const u32 *QueryInterfaces()
     return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
     GF_MPD_In *mpdin;
@@ -820,7 +820,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     return (GF_BaseInterface *)plug;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_MPD_In *mpdin;
@@ -836,5 +836,8 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	gf_free(mpdin);
 	gf_free(bi);
 }
+
+
+GPAC_MODULE_STATIC_DELARATION( mpd_in )
 
 #endif //GPAC_DISABLE_DASH_CLIENT
