@@ -91,6 +91,15 @@ void* gf_map_it_has_next(GF_It_Map* it){
 	return gf_map_it_has_next(it);
 }
 
+GF_EXPORT
+GF_Err gf_map_it_reset(GF_It_Map* it){
+	if (!it) return GF_BAD_PARAM;
+
+	it->hash = 0;
+	it->ilist = 0;
+
+	return GF_OK;
+}
 
 
 GF_Pair* gf_pair_new(const char* key, u32 key_len, void* item){

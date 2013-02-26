@@ -127,6 +127,15 @@ void gf_map_it_del(GF_It_Map *ptr);
 void* gf_map_it_has_next(GF_It_Map* it);
 
 /*!
+ *	\brief Reset the iterator in the map
+ *
+ *	Reinitalize the iterator to the beginning of the map
+ *	\param it  the map iterator object
+ *  \return GF_OK if the iterator has been correctly reinitialize, otherwise a GF_Err
+ */
+GF_Err gf_map_it_reset(GF_It_Map* it);
+
+/*!
  *	\brief get count
  *
  *	Returns number of items in the map
