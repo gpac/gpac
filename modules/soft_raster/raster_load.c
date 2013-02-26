@@ -74,7 +74,7 @@ void EVG_ShutdownRenderer(GF_Raster2D *dr)
 
 #ifndef GPAC_STANDALONE_RENDER_2D
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -84,7 +84,7 @@ const u32 *QueryInterfaces()
 	return si; 
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType==GF_RASTER_2D_INTERFACE) {
@@ -93,12 +93,14 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	if (ifce->InterfaceType == GF_RASTER_2D_INTERFACE) {
 		EVG_ShutdownRenderer((GF_Raster2D *)ifce);
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( soft_raster )
 
 #endif

@@ -6,6 +6,6 @@ LOCAL_MODULE		:= gm_ismacryp
 
 include $(LOCAL_PATH)/base.mk
 
-LOCAL_SRC_FILES := ../../../../modules/ismacryp/ismacryp.c
+LOCAL_SRC_FILES := ../../../../modules/ismacryp/isma_ea.c
 
 include $(BUILD_SHARED_LIBRARY)

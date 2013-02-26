@@ -456,7 +456,7 @@ Bool DC_CanHandleURLInService(GF_InputService *plug, const char *url)
 	return 0;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -466,7 +466,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	DCReader *read;
@@ -494,7 +494,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return (GF_BaseInterface *)plug;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_InputService *ifcn = (GF_InputService*)bi;
@@ -507,3 +507,5 @@ void ShutdownInterface(GF_BaseInterface *bi)
 		gf_free(bi);
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( dummy_in )

@@ -383,7 +383,7 @@ static GF_Err SVG_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap)
 }
 
 /*interface create*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	SVGIn *svgin;
@@ -410,7 +410,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 
 /*interface destroy*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	SVGIn *svgin;
@@ -429,7 +429,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 
 
 /*interface create*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	return NULL;
@@ -437,7 +437,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 
 /*interface destroy*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 }
@@ -445,7 +445,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 
 /*interface query*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -456,3 +456,5 @@ const u32 *QueryInterfaces()
 	};
 	return si;
 }
+
+GPAC_MODULE_STATIC_DELARATION( svg_in )

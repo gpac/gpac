@@ -49,12 +49,14 @@ void gf_modules_free_module(ModuleInstance *inst)
 #else
 	if (inst->lib_handle) dlclose(inst->lib_handle);
 #endif
-        if (inst->interfaces)
-          gf_list_del(inst->interfaces);
-        inst->interfaces = NULL;
-        if (inst->name)
-          gf_free(inst->name);
-        inst->name = NULL;
+	if (inst->interfaces)
+		gf_list_del(inst->interfaces);
+	inst->interfaces = NULL;
+	
+	if (inst->name && !inst->ifce_reg) {
+		gf_free(inst->name);
+		inst->name = NULL;
+	}
 	gf_free(inst);
 }
 
@@ -78,6 +80,14 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #endif
 
 	if (inst->lib_handle) return 1;
+
+	if (inst->ifce_reg) {
+		inst->load_func = inst->ifce_reg->LoadInterface;
+		inst->query_func = inst->ifce_reg->QueryInterfaces;
+		inst->destroy_func = inst->ifce_reg->ShutdownInterface;
+		return 1;
+	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->name));
 
 #if _WIN32_WINNT >= 0x0502
@@ -236,15 +246,38 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	inst->interfaces = gf_list_new();
 	inst->plugman = pm;
 	inst->name = gf_strdup(item_name);
-        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
 	gf_list_add(pm->plug_list, inst);
 	return 0;
+}
+
+static void load_static_modules(GF_ModuleManager *pm)
+{
+	ModuleInstance *inst;
+	u32 i, count;
+	count = gf_list_count(pm->plugin_registry);
+	for (i=0; i<count; i++) {
+		GF_InterfaceRegister *ifce_reg = gf_list_get(pm->plugin_registry, i);
+		if (gf_module_is_loaded(pm, (char *) ifce_reg->name) ) continue;
+
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = (char *) ifce_reg->name;
+		inst->ifce_reg = ifce_reg;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added static module %s.\n", inst->name));
+		gf_list_add(pm->plug_list, inst);
+	}
 }
 
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
 	if (!pm) return 0;
+
+	/*load all static modules*/
+	load_static_modules(pm);
+
 #ifdef WIN32
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)

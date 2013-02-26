@@ -412,44 +412,8 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\ismacryp\ismacryp.c"
+			RelativePath="..\..\modules\ismacryp\isma_ea.c"
 			>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCLCompilerTool"
-					AdditionalIncludeDirectories=""
-					PreprocessorDefinitions=""
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Release|Smartphone 2003 (ARMV4)"
-				>
-				<Tool
-					Name="VCCLCompilerTool"
-					AdditionalIncludeDirectories=""
-					PreprocessorDefinitions=""
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug|Win32"
-				>
-				<Tool
-					Name="VCCLCompilerTool"
-					AdditionalIncludeDirectories=""
-					PreprocessorDefinitions=""
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug|Smartphone 2003 (ARMV4)"
-				>
-				<Tool
-					Name="VCCLCompilerTool"
-					AdditionalIncludeDirectories=""
-					PreprocessorDefinitions=""
-				/>
-			</FileConfiguration>
 		</File>
 		<File
 			RelativePath="..\..\modules\modules_export.cpp"

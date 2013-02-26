@@ -653,7 +653,7 @@ GF_BaseDecoder *NewAC3Dec();
 void DeleteAC3Dec(GF_BaseDecoder *ifcg);
 #endif
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 static u32 si [] = {
@@ -669,7 +669,7 @@ static u32 si [] = {
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -681,7 +681,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -697,3 +697,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( ac3 )

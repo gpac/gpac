@@ -100,7 +100,7 @@ LINK32=link.exe
 # Name "isom_in - Win32 (WCE ARMV4) Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\isom_in\cache.c
+SOURCE=..\..\modules\isom_in\isom_cache.c
 DEP_CPP_CACHE=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\

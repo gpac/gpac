@@ -260,7 +260,7 @@ void DeleteAudioFilter(void *ifce)
  * ********************************************************************
  * interface
  */
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -270,7 +270,7 @@ const u32 *QueryInterfaces()
 	return si; 
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_AUDIO_FILTER_INTERFACE) 
@@ -278,9 +278,11 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	if (ifce->InterfaceType==GF_AUDIO_FILTER_INTERFACE)
 		DeleteAudioFilter((GF_AudioFilter*)ifce);
 }
+
+GPAC_MODULE_STATIC_DELARATION( audio_filter )

@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS=ismacryp.o
+OBJS=isma_ea.o
 
 SRCS := $(OBJS:.o=.c) 
 

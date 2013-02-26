@@ -234,7 +234,6 @@ static GF_Err ISOW_ChannelReleaseSLP(GF_StreamingCache *mc, LPNETCHANNEL channel
 	return GF_OK;
 }
 
-
 GF_BaseInterface *isow_load_cache()
 {
 	ISOMReader *cache;

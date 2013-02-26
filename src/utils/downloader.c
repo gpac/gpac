@@ -38,6 +38,12 @@
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+#pragma comment(lib, "ssleay32")
+#pragma comment(lib, "libeay32")
+#endif
+
 #endif
 
 #ifdef __USE_POSIX

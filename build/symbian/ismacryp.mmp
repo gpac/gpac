@@ -4,5 +4,5 @@ TARGET gm_ismacryp.dll
 
 //source
 SOURCEPATH ..\..\modules\ismacryp
-SOURCE ismacryp.c
+SOURCE isma_ea.c
 

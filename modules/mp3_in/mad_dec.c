@@ -35,7 +35,14 @@
 #endif
 #endif
 
-#include "mad.h"
+#include <mad.h>
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "libmad")
+# endif
+#endif
+
 
 typedef struct
 {

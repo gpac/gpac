@@ -28,6 +28,13 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #endif
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "libfaad")
+# endif
+#endif
+
 #include <faad.h>
 
 #include <gpac/modules/codec.h>
@@ -410,4 +417,3 @@ void DeleteFAADDec(GF_BaseDecoder *ifcg)
 
 
 #endif
-

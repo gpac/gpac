@@ -41,6 +41,9 @@ typedef struct
 	char *name;
 	GF_List *interfaces;
 	
+	/*for static modules*/
+	GF_InterfaceRegister *ifce_reg;
+
 	/*library is loaded only when an interface is attached*/
 	void *lib_handle;
 	QueryInterfaces query_func;
@@ -58,6 +61,9 @@ struct __tag_mod_man
 	Bool no_unload;
 	/*the one and only ssl instance used throughout the client engine*/
 	void *ssl_inst;
+
+	/*all static modules store their InterfaceRegistry here*/
+	GF_List *plugin_registry;
 };
 
 #ifdef __cplusplus
