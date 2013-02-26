@@ -3001,9 +3001,10 @@ void profile_tier_level(GF_BitStream *bs, Bool ProfilePresentFlag, u8 MaxNumSubL
 
 		ptl->profile_compatibility_flag = gf_bs_read_int(bs, 32);
 
-		gf_bs_read_int(bs, 16); // XXX_reserved_zero_48bits[0..15]
-		gf_bs_read_int(bs, 16); // XXX_reserved_zero_48bits[16..31]
-		gf_bs_read_int(bs, 16); // XXX_reserved_zero_48bits[32..47]
+		/* XXX_reserved_zero_48bits[0..15] = */ gf_bs_read_int(bs, 16);
+		/* XXX_reserved_zero_48bits[16..31] = */ gf_bs_read_int(bs, 16);
+		/* XXX_reserved_zero_48bits[32..47] = */ gf_bs_read_int(bs, 16);
+
 	}
 	ptl->level_idc = gf_bs_read_int(bs, 8);
 	for (i=0; i<MaxNumSubLayersMinus1; i++) {
@@ -3064,11 +3065,11 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 		vps->state = 1;
 	}
 
-	gf_bs_read_int(bs, 2); // vps_reserved_three_2bits
-	gf_bs_read_int(bs, 6); // vps_reserved_zero_6bits
+	/* vps_reserved_three_2bits = */ gf_bs_read_int(bs, 2);
+	/* vps_reserved_zero_6bits = */ gf_bs_read_int(bs, 6);
 	vps->max_sub_layer = gf_bs_read_int(bs, 3) + 1;
 	/*vps_temporal_id_nesting_flag = */ gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 16); // vps_reserved_ffff_16bits
+	/* vps_reserved_ffff_16bits = */ gf_bs_read_int(bs, 16);
 	profile_tier_level(bs, 1, vps->max_sub_layer-1, &vps->ptl);
 	bit_rate_pic_rate_info(bs, 0, vps->max_sub_layer-1, vps);
 
@@ -3365,7 +3366,7 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	pps->slice_segment_header_extension_present_flag = gf_bs_read_int(bs, 1);
 	if ( /*pps_extension_flag= */gf_bs_read_int(bs, 1) ) {
 		while (gf_bs_available(bs) ) {
-			//pps_extension_data_flag	u(1)
+			/*pps_extension_data_flag */	gf_bs_read_int(bs, 1);
 		}
 	}
 
