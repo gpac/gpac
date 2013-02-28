@@ -2012,6 +2012,7 @@ int main(int argc, char **argv)
 	/*   initialisations   */
 	/***********************/
 	real_time = 0;	
+	is_stdout = 0;
 	ts_output_file = NULL;
 	video_buffer = NULL;
 	last_video_time = 0;
