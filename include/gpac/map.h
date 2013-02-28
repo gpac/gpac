@@ -105,9 +105,10 @@ void gf_map_del(GF_Map *ptr);
  *	Constructs a new map iterator object
  *
  *	\param map the map associated to the iterator
- *	\return the new map iterator object
+ *	\param it the resulting iterator
+ *	\return GF_OK if iterator has been properly generated, otherwiise a GF_Err
  */
-GF_It_Map* gf_it_map_new(GF_Map* map);
+GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it);
 
 /*!
  *	\brief map iterator destructor

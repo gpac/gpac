@@ -47,22 +47,23 @@ struct _it_map
 };
 
 GF_EXPORT
-GF_It_Map* gf_it_map_new(GF_Map* map){
+GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it){
 	GF_It_Map* new_it;
 
 	/* Iterator must be associated to a map */
-	if (!map) return NULL;
+	if (!map) return GF_BAD_PARAM;
 
 	/* Allocate space for a new iterator */
 	GF_SAFEALLOC(new_it, GF_It_Map);
-	if (!new_it) return NULL;
+	if (!new_it) return GF_OUT_OF_MEM;
 
 	/* Associate iterator to the beginning of the map */
 	new_it->map = map;
 	new_it->ilist = 0;
 	new_it->hash = 0;
+	*it = new_it;
 
-	return new_it;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -212,7 +213,7 @@ void gf_map_del(GF_Map *ptr)
 
 		/* Iterate through the bucket and delete pairs */
 		j = 0;
-		while ((pair = gf_list_get(bucket, j))) {
+		while ((pair = (GF_Pair*)gf_list_get(bucket, j))) {
 			gf_pair_del(pair);
 			j++;
 		}
@@ -241,7 +242,7 @@ void gf_map_reset(GF_Map *ptr){
 
 		/* Iterate through the bucket and delete pairs */
 		j = 0;
-		while ((pair = gf_list_get(bucket, j))) {
+		while ((pair = (GF_Pair*)gf_list_get(bucket, j))) {
 			gf_pair_del(pair);
 			j++;
 		}
@@ -354,7 +355,7 @@ Bool gf_map_has_key(GF_Map *ptr, const char* key){
 	GF_List *bucket;
 
 	/* Need a map  and key */
-	if (!ptr || !key) return GF_BAD_PARAM;
+	if (!ptr || !key) return GF_FALSE;
 
 	index = hash(key) % ptr->hash_capacity;
 	bucket = ptr->pairs[index];
