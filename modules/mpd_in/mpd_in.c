@@ -484,7 +484,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
     const char *opt;
     GF_Err e;
-	u32 max_cache_duration, auto_switch_count;
+	u32 max_cache_duration, auto_switch_count, init_timeshift;
 	GF_DASHInitialSelectionMode first_select_mode;
 	Bool keep_files, disable_switching, enable_buffering;
 
@@ -559,7 +559,12 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
 
-	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, enable_buffering);
+	init_timeshift = 0;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
+	if (opt) init_timeshift = atoi(opt);
+
+	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, enable_buffering, init_timeshift);
 
 	if (!mpdin->dash) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot create DASH Client for %s\n", url));

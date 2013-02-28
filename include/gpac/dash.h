@@ -129,7 +129,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io,
 						   Bool keep_files, 
 						   Bool disable_switching, 
 						   GF_DASHInitialSelectionMode first_select_mode,
-						   Bool enable_buffering);
+						   Bool enable_buffering, u32 initial_time_shift_percent);
 
 /*delete the DASH client*/
 void gf_dash_del(GF_DashClient *dash);
