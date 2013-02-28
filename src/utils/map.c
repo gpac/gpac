@@ -51,7 +51,7 @@ GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it){
 	GF_It_Map* new_it;
 
 	/* Iterator must be associated to a map */
-	if (!map) return GF_BAD_PARAM;
+	if (!map || !it) return GF_BAD_PARAM;
 
 	/* Allocate space for a new iterator */
 	GF_SAFEALLOC(new_it, GF_It_Map);
@@ -68,6 +68,7 @@ GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it){
 
 GF_EXPORT
 void gf_map_it_del(GF_It_Map* it){
+	if (!it) return;
 	gf_free(it);
 }
 
