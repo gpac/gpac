@@ -580,6 +580,9 @@ local_interface_ip: local interface address to use for multicast. If NULL, defau
 */
 GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_interface_ip);
 
+/* stop the RTP channel: destrpys RTP and RTCP sockets as well as packet reorderer*/
+GF_Err gf_rtp_stop(GF_RTPChannel *ch);
+
 /*init the RTP info after a PLAY or PAUSE, rtp_time is the rtp TimeStamp of the RTP packet
 with seq_num sequence number. This info is needed to compute the CurrentTime of the RTP channel 
 ssrc may not be known if sender hasn't indicated it (use 0 then)*/

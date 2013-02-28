@@ -1102,8 +1102,11 @@ struct __m2ts_mux {
 	Bool one_au_per_pes;
 
 	Bool eos_found;
-	u32 pck_sent_over_br_window, last_br_time, avg_br;
+	u32 pck_sent_over_br_window, last_br_time;
 	u64 tot_pck_sent, tot_pad_sent, tot_pes_pad_bytes;
+
+
+	u32 average_birate_kbps;
 };
 
 
@@ -1128,7 +1131,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);	
 void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux);
 
-const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status);
+const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next);
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 

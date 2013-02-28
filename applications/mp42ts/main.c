@@ -79,9 +79,7 @@ static GFINLINE void usage(const char * progname)
 					"\t-prog=filename         specifies an input file used for a TS service\n"
 					"\t                        * currently only supports ISO files and SDP files\n"
 					"\t                        * can be used several times, once for each program\n"
-					"\t-audio=url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
-					"\t-video=url             shall be a raw h264 frame\n"
-					"\t-src=filename          update file: must be either an .sdp or a .bt file\n\n"
+					"\t-nb-pack=N             specifies to pack N TS packets together before sending on network or writing to file\n"
 					"\tDST : Destinations, at least one is mandatory\n"
 					"\t  -dst-udp             UDP_address:port (multicast or unicast)\n"
 					"\t  -dst-rtp             RTP_address:port\n"
@@ -98,6 +96,10 @@ static GFINLINE void usage(const char * progname)
                     "\t-4over2                same as -4on2 and uses PMT to carry OD Updates\n"
                     "\t-bifs-pes              carries BIFS over PES instead of sections\n"
                     "\t-bifs-pes-ex           carries BIFS over PES without writing timestamps in SL\n"
+					"\tMisc options\n"
+					"\t-audio=url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
+					"\t-video=url             shall be a raw h264 frame\n"
+					"\t-src=filename          update file: must be either an .sdp or a .bt file\n\n"
 					"\t\n"
 					"\t-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 					"\t-h or -help            print this screen\n"
@@ -1619,7 +1621,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 								  Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
 								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
 								  u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port, 
-								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, Bool *split_rap)
+								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, Bool *split_rap, u32 *nb_pck_pack)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0, 
 		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
@@ -1736,7 +1738,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				goto error;
 			}
 			rate_found = 1;
-			*mux_rate = 1024*atoi(arg+6);
+			*mux_rate = 1000*atoi(arg+6);
 		} else if (!strnicmp(arg, "-mpeg4-carousel=", 16)) {
 			if (mpeg4_carousel_found) {
 				error_msg = "multiple '-mpeg4-carousel' found";
@@ -1827,7 +1829,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				src_found = 1;
 				*src_name = arg+5;
 			}
-			else if (!strnicmp(arg, "-dst-file=", 10)) {
+			else if (!strnicmp(arg, "-nb-pack=", 9)) {
+				*nb_pck_pack = atoi(arg+9);
+			} else if (!strnicmp(arg, "-dst-file=", 10)) {
 				dst_found = 1;
 				*ts_out = gf_strdup(arg+10);
 			}
@@ -1967,11 +1971,13 @@ int main(int argc, char **argv)
 	/*   declarations   */
 	/********************/
 	const char *ts_pck;
+	char *ts_pack_buffer = NULL;
 	GF_Err e;
 	u32 run_time;
-	Bool real_time, single_au_pes, split_rap;
+	Bool real_time, single_au_pes, split_rap, is_stdout;
 	u64 pcr_init_val=0;
-	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate;
+	u32 usec_till_next;
+	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate, nb_pck_pack, nb_pck_in_pack;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
 	GF_Socket *ts_output_udp_sk = NULL, *audio_input_udp_sk = NULL;
@@ -2032,6 +2038,7 @@ int main(int argc, char **argv)
 	prev_seg_time.sec = 0;
 	prev_seg_time.nanosec = 0;
 	video_buffer_size = 0;
+	nb_pck_pack = 1;
 #ifndef GPAC_DISABLE_PLAYER
 	aac_reader = AAC_Reader_new();
 #endif
@@ -2049,7 +2056,7 @@ int main(int argc, char **argv)
 							&real_time, &run_time, &video_buffer, &video_buffer_size,
 							&audio_input_type, &audio_input_ip, &audio_input_port,
 							&output_type, &ts_out, &udp_out, &rtp_out, &output_port, 
-							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap)) {
+							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap, &nb_pck_pack)) {
 		goto exit;
 	}
 	
@@ -2087,7 +2094,13 @@ int main(int argc, char **argv)
 			}
 			//write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index, 0, 0);
 		} 
-		ts_output_file = fopen(ts_out, "wb");
+		if (!strcmp(ts_out, "stdout") || !strcmp(ts_out, "-") ) {
+			ts_output_file = stdout;
+			is_stdout = GF_TRUE;
+		} else {
+			ts_output_file = fopen(ts_out, "wb");
+			is_stdout = GF_FALSE;
+		}
 		if (!ts_output_file) {
 			fprintf(stderr, "Error opening %s\n", ts_out);
 			goto exit;
@@ -2217,6 +2230,10 @@ int main(int argc, char **argv)
 	}
 
 	gf_m2ts_mux_update_config(muxer, 1);
+	
+	if (nb_pck_pack>1) {
+		ts_pack_buffer = gf_malloc(sizeof(char) * 188 * nb_pck_pack);
+	}
 
 	/*****************/
 	/*   main loop   */
@@ -2259,9 +2276,24 @@ int main(int argc, char **argv)
 		}
 
 		/*flush all packets*/
-		while ((ts_pck = gf_m2ts_mux_process(muxer, &status)) != NULL) {
+		nb_pck_in_pack=0;
+		while ((ts_pck = gf_m2ts_mux_process(muxer, &status, &usec_till_next)) != NULL) {
+
+do_flush:
+			if (ts_pack_buffer ) {
+				memcpy(ts_pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
+				nb_pck_in_pack++;
+
+				if (nb_pck_in_pack < nb_pck_pack)
+					continue;
+
+				ts_pck = (const char *) ts_pack_buffer;
+			} else {
+				nb_pck_in_pack = 1;
+			}
+
 			if (ts_output_file != NULL) {
-				gf_fwrite(ts_pck, 1, 188, ts_output_file); 
+				gf_fwrite(ts_pck, 1, 188 * nb_pck_in_pack, ts_output_file); 
 				if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
 					prev_seg_time = muxer->time;
 					fclose(ts_output_file);
@@ -2301,7 +2333,7 @@ int main(int argc, char **argv)
 			}
 
 			if (ts_output_udp_sk != NULL) {
-				e = gf_sk_send(ts_output_udp_sk, (char*)ts_pck, 188); 
+				e = gf_sk_send(ts_output_udp_sk, (char*)ts_pck, 188 * nb_pck_in_pack); 
 				if (e) {
 					fprintf(stderr, "Error %s sending UDP packet\n", gf_error_to_string(e));
 				}
@@ -2315,12 +2347,15 @@ int main(int argc, char **argv)
 				/*FIXME - better discontinuity check*/
 				hdr.Marker = (ts < hdr.TimeStamp) ? 1 : 0;
 				hdr.TimeStamp = ts;
-				e = gf_rtp_send_packet(ts_output_rtp, &hdr, (char*)ts_pck, 188, 0);
+				e = gf_rtp_send_packet(ts_output_rtp, &hdr, (char*)ts_pck, 188 * nb_pck_in_pack, 0);
 				if (e) {
 					fprintf(stderr, "Error %s sending RTP packet\n", gf_error_to_string(e));
 				}
 			}
 #endif
+
+			nb_pck_in_pack = 0;
+
 			if (status>=GF_M2TS_STATE_PADDING) {
 				break;
 			}
@@ -2342,15 +2377,20 @@ int main(int argc, char **argv)
 			u32 now=gf_sys_clock();
 			if (now > last_print_time + MP42TS_PRINT_TIME_MS) {
 				last_print_time = now;
-				fprintf(stderr, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->avg_br);
+				fprintf(stderr, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->average_birate_kbps);
 
 				if (gf_prompt_has_input()) {
 					char c = gf_prompt_get_char();
 					if (c=='q') break;
 				}
 			}
-			/*cpu load regulation*/
-			gf_sleep(0);
+			if (status == GF_M2TS_STATE_IDLE) {
+				/*wait till next packet is ready to be sent*/
+				if (usec_till_next>1000) {
+					//fprintf(stderr, "%d usec till next packet\n", usec_till_next);
+					gf_sleep(usec_till_next / 1000);
+				}
+			}
 		}
 
 
@@ -2361,6 +2401,8 @@ int main(int argc, char **argv)
 			}
 		}
 		if (status==GF_M2TS_STATE_EOS) {
+			if (ts_pack_buffer) 
+				goto do_flush;
 			break;
 		}
 	}
@@ -2373,11 +2415,12 @@ int main(int argc, char **argv)
 	}
 
 exit:
+	if (ts_pack_buffer) gf_free(ts_pack_buffer);
 	run = 0;
 	if (segment_duration) {
 		write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
 	}
-	if (ts_output_file) fclose(ts_output_file);
+	if (ts_output_file && !is_stdout) fclose(ts_output_file);
 	if (ts_output_udp_sk) gf_sk_del(ts_output_udp_sk);
 #ifndef GPAC_DISABLE_STREAMING
 	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);

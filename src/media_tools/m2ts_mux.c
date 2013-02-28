@@ -1933,7 +1933,7 @@ GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value)
 }
 
 GF_EXPORT
-const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
+const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next)
 {
 	GF_M2TS_Mux_Program *program;
 	GF_M2TS_Mux_Stream *stream, *stream_to_process;
@@ -1944,9 +1944,9 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
+	*usec_till_next = 0;
 
 	now = gf_sys_clock();
-
 	if (muxer->real_time) {
 		if (!muxer->init_sys_time) {
 			muxer->init_sys_time = now;
@@ -1955,8 +1955,19 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 			u32 diff = now - muxer->init_sys_time;
 			GF_M2TS_Time now = muxer->init_ts_time;
 			gf_m2ts_time_inc(&now, diff, 1000);
-			if (gf_m2ts_time_less(&now, &muxer->time)) 
+			if (gf_m2ts_time_less(&now, &muxer->time)) {
+				u32 diff = muxer->time.sec - now.sec;
+				diff *= 1000000;
+				if (now.nanosec <= muxer->time.nanosec) {
+					diff += (muxer->time.nanosec - now.nanosec) / 1000;				
+				} else {
+					assert(diff);
+					diff -= 1000000;
+					diff += (1000000000 + muxer->time.nanosec - now.nanosec) / 1000;				
+				}
+				*usec_till_next = diff;
 				return NULL;
+			}
 		}
 	}
 
@@ -2112,9 +2123,9 @@ send_pck:
 		}
 
 		muxer->pck_sent_over_br_window++;
-		if (now - muxer->last_br_time > 500) {
-			u64 size = 8*188*muxer->pck_sent_over_br_window*1000;
-			muxer->avg_br = (u32) (size/(now - muxer->last_br_time));
+		if (now - muxer->last_br_time > 1000) {
+			u64 size = 8*188*muxer->pck_sent_over_br_window;
+			muxer->average_birate_kbps = (u32) (size /(now - muxer->last_br_time));
 			muxer->last_br_time = now;
 			muxer->pck_sent_over_br_window=0;
 		}

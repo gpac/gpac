@@ -27,6 +27,7 @@
 #include <gpac/modules/codec.h>
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
+#include <gpac/internal/media_dev.h>
 
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
@@ -43,6 +44,7 @@ typedef struct
 
 	u32 nalu_size_length;
 	Bool init_layer_set;
+	Bool state_found;
 
 	/*OpenSVC things*/
 	void *codec;
@@ -108,7 +110,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
 			}
 		}
-
+		ctx->state_found = 1;
 		gf_odf_avc_cfg_del(cfg);
 	} else {
 		if (ctx->nalu_size_length) {
@@ -211,6 +213,8 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	s32 got_pic;
 	OPENSVCFRAME pic;
     int Layer[4];
+	u32 i, nalu_size, sc_size;
+	u8 *ptr;
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 	u32 curMaxDqId = ctx->MaxDqId;
 
@@ -232,32 +236,69 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->CurrentDqId = ctx->MaxDqId;
 		ctx->init_layer_set = 1;
 	}
+	if (curMaxDqId != ctx->MaxDqId)
+		ctx->CurrentDqId = ctx->MaxDqId;
 	/*decode only current layer*/
 	SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrentDqId, &ctx->TemporalCom, ctx->TemporalId);
 
 	got_pic = 0;
-	if (ctx->nalu_size_length) {
-		u32 i, nalu_size = 0;
-		u8 *ptr = inBuffer;
+	nalu_size = 0;
+	ptr = inBuffer;
 
-		while (inBufferLength) {
+	if (!ctx->nalu_size_length) {
+		u32 size;
+		sc_size = 0;
+		size = gf_media_nalu_next_start_code(inBuffer, inBufferLength, &sc_size);
+		if (sc_size) {
+			ptr += size+sc_size;
+			assert(inBufferLength >= size+sc_size);
+			inBufferLength -= size+sc_size;
+		} else {
+			/*no annex-B start-code found, discard */
+			*outBufferLength = 0;
+			return GF_OK;
+		}
+	}
+
+	while (inBufferLength) {
+		if (ctx->nalu_size_length) {
 			for (i=0; i<ctx->nalu_size_length; i++) {
 				nalu_size = (nalu_size<<8) + ptr[i];
 			}
 			ptr += ctx->nalu_size_length;
+		} else {
+			u32 sc_size;
+			nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
+		}
 
+		if (!ctx->state_found) {
+			u8 nal_type = (ptr[0] & 0x1F) ;
+			switch (nal_type) {
+			case GF_AVC_NALU_SEQ_PARAM:
+			case GF_AVC_NALU_PIC_PARAM:
+				ctx->state_found = 1;
+				break;
+			}
+		}
+
+		if (ctx->state_found) {
 			if (!got_pic) 
 				got_pic = decodeNAL(ctx->codec, ptr, nalu_size, &pic, Layer);
 			else
 				decodeNAL(ctx->codec, ptr, nalu_size, &pic, Layer);
-
-			ptr += nalu_size;
-			if (inBufferLength < nalu_size + ctx->nalu_size_length) break;
-
-			inBufferLength -= nalu_size + ctx->nalu_size_length;
 		}
-	} else {
+
+		ptr += nalu_size;
+		if (ctx->nalu_size_length) {
+			if (inBufferLength < nalu_size + ctx->nalu_size_length) break;
+			inBufferLength -= nalu_size + ctx->nalu_size_length;
+		} else {
+			if (!sc_size || (inBufferLength < nalu_size + sc_size)) break;
+			inBufferLength -= nalu_size + sc_size;
+			ptr += sc_size;
+		}
 	}
+
 	if (got_pic!=1) {
 		*outBufferLength = 0;
 		return GF_OK;

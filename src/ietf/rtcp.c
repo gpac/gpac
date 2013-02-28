@@ -74,23 +74,27 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 		rtcp_hdr.Padding = gf_bs_read_int(bs, 1);
 		rtcp_hdr.Count = gf_bs_read_int(bs, 5);
 		rtcp_hdr.PayloadType = gf_bs_read_u8(bs);
-		rtcp_hdr.Length = gf_bs_read_u16(bs);	
+		rtcp_hdr.Length = 1 + gf_bs_read_u16(bs);	
 
 		//check pck size
-		if (pck_size < (u32) (rtcp_hdr.Length + 1) * 4) {
+		if (pck_size < (u32) rtcp_hdr.Length * 4) {
 			gf_bs_del(bs);
 			//we return OK
 			return GF_CORRUPTED_DATA;
 		}
 		//substract this RTCP pck size
-		pck_size -= (rtcp_hdr.Length + 1) * 4;
+		pck_size -= rtcp_hdr.Length * 4;
+
+		/*we read the RTCP header*/
+		rtcp_hdr.Length -= 1;	
+
 		//in all RTCP Compounds (>1 pck), the first RTCP report SHALL be SR or RR without padding
 		if (first) {
 			if ( ( (rtcp_hdr.PayloadType!=200) && (rtcp_hdr.PayloadType!=201) )
 				|| rtcp_hdr.Padding
 			) {
 				gf_bs_del(bs);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 2001 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 201 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
 				return GF_CORRUPTED_DATA;
 			}
 			first = 0;
@@ -386,21 +390,20 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 {
 	u32 length, padd;
 
-	//one item (type, len, data) + \0 marker at the end of the item
-	length = 2+strlen(ch->CName) + 1;
-//	length = 2+strlen(ch->CName);
+	//we start with header and SSRC: 2x32 bits word
+	length = 8;
+	//ten only send one CName item is type (1byte) , len (1byte), data (len byte) +  NULL marker (0 on 1 byte) at the end of the item list
+	length += 2+strlen(ch->CName) + 1;
+	//we padd the end of the content to 32-bit boundary, and set length to the number of 32 bit words
 	padd = length % 4;
-	if (padd*4 != length) {
+	if (padd*4 != 0) {
 		//padding octets
 		padd = 4 - padd;
-		//header length
 		length = length/4 + 1;
 	} else {
 		padd = 0;
 		length = length/4;
 	}
-	//add SSRC
-	length += 1;
 	
 	//common part as usual
 	gf_bs_write_int(bs, 2, 2);
@@ -409,11 +412,12 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 	//encrypted as a whole" -> we write it without notifying it (this is a bit messy in 
 	//the spec IMO)
 	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, 1, 5);
+	//report count is one
+	gf_bs_write_int(bs, 1, 5); 
 	//SDES pck type
 	gf_bs_write_u8(bs, 202);
-	//length
-	gf_bs_write_u16(bs, length);
+	//write length minus one
+	gf_bs_write_u16(bs, length - 1);
 
 	//SSRC
 	gf_bs_write_u32(bs, ch->SSRC);
