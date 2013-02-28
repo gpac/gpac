@@ -90,6 +90,7 @@ struct __dash_client
 	u64 start_time_in_active_period;
 
 	Bool ignore_mpd_duration;
+	u32 initial_time_shift_percent;
 
 	/*list of groups in the active period*/
 	GF_List *groups;
@@ -388,8 +389,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 	}
 #endif
 
-	if (0 && ((s32) mpd->time_shift_buffer_depth>=0)) {
+	if ( ((s32) mpd->time_shift_buffer_depth>=0)) {
 		shift = mpd->time_shift_buffer_depth/1000;
+		shift *= group->dash->initial_time_shift_percent;
+		shift /= 100;
+
 		if (current_time < shift) current_time = 0;
 		else current_time -= shift;
 	}
@@ -1455,6 +1459,9 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 //	dash->mpd->minimum_update_period = 3000;
 
+	if (gf_list_count(dash->mpd->periods)>1) {
+		fprintf(stderr, "DASH has multiple periods");
+	}
 	return GF_OK;
 }
 
@@ -3552,7 +3559,7 @@ void gf_dash_close(GF_DashClient *dash)
 }
 
 GF_EXPORT
-GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u32 auto_switch_count, Bool keep_files, Bool disable_switching, GF_DASHInitialSelectionMode first_select_mode, Bool enable_buffering)
+GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u32 auto_switch_count, Bool keep_files, Bool disable_switching, GF_DASHInitialSelectionMode first_select_mode, Bool enable_buffering, u32 initial_time_shift_percent)
 {
 	GF_DashClient *dash;
 	GF_SAFEALLOC(dash, GF_DashClient);
@@ -3564,6 +3571,8 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration_sec, u
 
 	dash->max_cache_duration = max_cache_duration_sec;
 	dash->enable_buffering = enable_buffering;
+	dash->initial_time_shift_percent = initial_time_shift_percent;
+	if (initial_time_shift_percent>100) dash->initial_time_shift_percent = 100;
 
 	dash->auto_switch_count = auto_switch_count;
 	dash->keep_files = keep_files;

@@ -354,22 +354,27 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 		}
 	}
 
-	/*FIXME - we're breaking sync (couple of frames delay)*/
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
-		u32 CTS = (*nextAU)->CTS;
-		/*reordering !!*/
-		u32 prev_ts_diff;
-		u32 diff = 0;
-		if (codec->recomputed_cts && (codec->recomputed_cts > (*nextAU)->CTS)) {
-			diff = codec->recomputed_cts - CTS;
+		if ((*activeChannel)->esd->slConfig->no_dts_signaling) {
+			u32 CTS = (*nextAU)->CTS;
+			/*reordering !!*/
+			u32 prev_ts_diff;
+			u32 diff = 0;
+			if (codec->recomputed_cts && (codec->recomputed_cts > (*nextAU)->CTS)) {
+				diff = codec->recomputed_cts - CTS;
+			}
+
+			prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);			
+			if (!diff) diff = prev_ts_diff;
+			else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
+
+			if (!codec->min_au_duration || (diff < codec->min_au_duration)) 
+				codec->min_au_duration = diff;
+		} else {
+			codec->min_au_duration = 0;
+			/*FIXME - we're breaking sync (couple of frames delay)*/
+			(*nextAU)->CTS = (*nextAU)->DTS;
 		}
-
-		prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);			
-		if (!diff) diff = prev_ts_diff;
-		else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
-
-		if (!codec->min_au_duration || (diff < codec->min_au_duration)) 
-			codec->min_au_duration = diff;
 	}
 }
 
@@ -666,7 +671,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 			dec->recomputed_cts = CU->TS;
 			dec->first_frame_dispatched = 1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d reordering mode - first frame dispatch - CTS %d - min TS diff %d\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, dec->recomputed_cts, dec->min_au_duration));
-		} else {
+		} else if (dec->min_au_duration) {
 			dec->recomputed_cts += dec->min_au_duration;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d reordering mode - original CTS %d recomputed CTS %d - min TS diff %d\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, CU->TS, dec->recomputed_cts, dec->min_au_duration));
 			CU->TS = dec->recomputed_cts;
@@ -739,6 +744,9 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	/*if video codec muted don't decode (try to saves ressources)
 	if audio codec muted we dispatch to keep sync in place*/
 	if (codec->Muted && (codec->type==GF_STREAM_VISUAL) ) return GF_OK;
+
+	if ( (codec->CB->UnitCount > 1) && (codec->CB->Capacity == codec->CB->UnitCount) )
+		return GF_OK;
 
 	entryTime = gf_term_get_time(codec->odm->term);
 	if (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) 
