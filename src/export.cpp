@@ -1026,6 +1026,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_setup_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_enable_nat_keepalive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_initialize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_stop) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_set_info_rtp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_get_current_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reset_buffers) )

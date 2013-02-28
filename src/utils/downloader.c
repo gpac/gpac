@@ -2293,20 +2293,14 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             if (hdr_sep) hdr_sep[0] = 0;
         }
 
-		/*header signaling is moved after response processing*/
-#if 0
-		par.error = 0;
-        par.msg_type = GF_NETIO_PARSE_HEADER;
-        par.name = hdr;
-        par.value = hdr_val;
-        gf_dm_sess_user_io(sess, &par);
-#endif
-
  //       GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Processing header %s: %s\n", hdr, hdr_val));
 
         if (!stricmp(hdr, "Content-Length") ) {
             ContentLength = (u32) atoi(hdr_val);
-            gf_cache_set_content_length(sess->cache_entry, ContentLength);
+            
+			if (rsp_code<300)
+				gf_cache_set_content_length(sess->cache_entry, ContentLength);
+			
 			/*Ivica patch*/
 			if (ContentLength==0)
 				sess->use_cache_file = 0;
@@ -2324,8 +2318,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             }
             hdr = strchr(mime_type, ';');
             if (hdr) hdr[0] = 0;
-	    strlwr(mime_type);
-            gf_cache_set_mime_type(sess->cache_entry, mime_type);
+
+			strlwr(mime_type);
+			if (rsp_code<300)
+	            gf_cache_set_mime_type(sess->cache_entry, mime_type);
             gf_free(mime_type);
         }
         else if (!stricmp(hdr, "Content-Range")) {
@@ -2358,10 +2354,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         else if (!stricmp(hdr, "Cache-Control")) {
         }
         else if (!stricmp(hdr, "ETag")) {
-            gf_cache_set_etag_on_server(sess->cache_entry, hdr_val);
+			if (rsp_code<300)
+	            gf_cache_set_etag_on_server(sess->cache_entry, hdr_val);
         }
         else if (!stricmp(hdr, "Last-Modified")) {
-            gf_cache_set_last_modified_on_server(sess->cache_entry, hdr_val);
+			if (rsp_code<300)
+	            gf_cache_set_last_modified_on_server(sess->cache_entry, hdr_val);
         }
         else if (!stricmp(hdr, "X-UserProfileID") ) {
             if (sess->dm && sess->dm->cfg)
@@ -2372,7 +2370,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
         if (sep) sep[0]=':';
         if (hdr_sep) hdr_sep[0] = '\r';
-
 
         if (sess->status==GF_NETIO_DISCONNECTED) return GF_OK;
     }

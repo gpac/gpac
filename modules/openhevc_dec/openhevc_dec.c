@@ -41,6 +41,7 @@ typedef struct
 	u32 width, stride, height, out_size, pixel_ar, layer;
 
 	Bool is_init;
+	Bool state_found;
 
 	u32 nalu_size_length;
 	u32 had_pic;
@@ -83,6 +84,7 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 				}
 			}
 		}
+		ctx->state_found = 1;
 		gf_odf_hevc_cfg_del(cfg);
 	} else {
 		ctx->nalu_size_length = 0;
@@ -232,24 +234,37 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 			}
 
-			if (!got_pic) {
-				got_pic = libDecoderDecode(ptr, nalu_size, &temp_id);
+			if (!ctx->state_found) {
+				u8 nal_type = (ptr[0] & 0x7E) >> 1;
+				switch (nal_type) {
+				case GF_HEVC_NALU_VID_PARAM:
+				case GF_HEVC_NALU_SEQ_PARAM:
+				case GF_HEVC_NALU_PIC_PARAM:
+					ctx->state_found = 1;
+					break;
+				}
+			}
 
-				/*the HM is a weird beast: 
-				    "... design fault in the decoder, whereby
-			 * the process of reading a new slice that is the first slice of a new frame
-			 * requires the TDecTop::decode() method to be called again with the same
-			 * nal unit. "
+			if (ctx->state_found) {
+				if (!got_pic) {
+					got_pic = libDecoderDecode(ptr, nalu_size, &temp_id);
 
-				*/
-				if (got_pic) {
-					temporal_id = temp_id;
+					/*the HM is a weird beast: 
+						"... design fault in the decoder, whereby
+				 * the process of reading a new slice that is the first slice of a new frame
+				 * requires the TDecTop::decode() method to be called again with the same
+				 * nal unit. "
 
+					*/
+					if (got_pic) {
+						temporal_id = temp_id;
+
+						libDecoderDecode(ptr, nalu_size, &temp_id);
+					}
+
+				} else {
 					libDecoderDecode(ptr, nalu_size, &temp_id);
 				}
-
-			} else {
-				libDecoderDecode(ptr, nalu_size, &temp_id);
 			}
 
 			ptr += nalu_size;

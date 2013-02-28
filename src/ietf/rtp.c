@@ -149,6 +149,19 @@ GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssr
 }
 
 GF_EXPORT
+GF_Err gf_rtp_stop(GF_RTPChannel *ch)
+{
+	if (!ch) return GF_BAD_PARAM;
+	if (ch->rtp) gf_sk_del(ch->rtp);
+	ch->rtp = NULL;
+	if (ch->rtcp) gf_sk_del(ch->rtcp);
+	ch->rtcp = NULL;
+	if (ch->po) gf_rtp_reorderer_del(ch->po);
+	ch->po = NULL;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_ip)
 {
 	u16 port;

@@ -493,7 +493,10 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 				ch = (RTPStream *) gf_list_get(rtp->channels, i);
 				if (ch->mid == cur_ch->next_stream)
 				{
-					cur_ch->status = RTP_Connected;
+					/*resume streaming next channel*/
+					gf_mx_p(rtp->mx);
+					RP_InitStream(ch, 0);
+					gf_mx_v(rtp->mx);
 					ch->status = RTP_Running;
 					rtp->cur_mid = ch->mid;
 					break;
@@ -516,13 +519,9 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 				ch = (RTPStream *) gf_list_get(rtp->channels, i);
 				if (ch->mid == cur_ch->prev_stream)
 				{
+					/*stop streaming current channel*/
+					gf_rtp_stop(cur_ch->rtp_ch);
 					cur_ch->status = RTP_Connected;
-					ch->status = RTP_Running;
-					/*ch->channel = channel;
-					gf_mx_p(rtp->mx);
-					RP_InitStream(ch, (ch->flags & RTP_CONNECTED) ? 1 : 0);
-					gf_mx_v(rtp->mx);
-					gf_rtp_set_info_rtp(ch->rtp_ch, 0, 0, 0);*/
 					rtp->cur_mid = ch->mid;
 					break;
 				}		
