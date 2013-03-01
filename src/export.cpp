@@ -136,6 +136,7 @@
 
 
 /* Map */
+#ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_reset) )
@@ -148,7 +149,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_it_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_it_has_next) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_it_reset) )
-
+#endif
 
 /* Bitstream */
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_new) )
