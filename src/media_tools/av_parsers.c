@@ -3001,10 +3001,15 @@ void profile_tier_level(GF_BitStream *bs, Bool ProfilePresentFlag, u8 MaxNumSubL
 
 		ptl->profile_compatibility_flag = gf_bs_read_int(bs, 32);
 
+
+		/* general_progressive_source_flag = */ gf_bs_read_int(bs, 1);
+		/* general_interlaced_source_flag = */ gf_bs_read_int(bs, 1);
+		/* general_non_packed_constraint_flag = */ gf_bs_read_int(bs, 1);
+		/* general_frame_only_constraint_flag = */ gf_bs_read_int(bs, 1);
+
 		/* XXX_reserved_zero_48bits[0..15] = */ gf_bs_read_int(bs, 16);
 		/* XXX_reserved_zero_48bits[16..31] = */ gf_bs_read_int(bs, 16);
-		/* XXX_reserved_zero_48bits[32..47] = */ gf_bs_read_int(bs, 16);
-
+		/* XXX_reserved_zero_48bits[32..43] = */ gf_bs_read_int(bs, 12);
 	}
 	ptl->level_idc = gf_bs_read_int(bs, 8);
 	for (i=0; i<MaxNumSubLayersMinus1; i++) {

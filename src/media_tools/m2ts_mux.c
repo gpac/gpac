@@ -1956,16 +1956,18 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 			GF_M2TS_Time now = muxer->init_ts_time;
 			gf_m2ts_time_inc(&now, diff, 1000);
 			if (gf_m2ts_time_less(&now, &muxer->time)) {
-				u32 diff = muxer->time.sec - now.sec;
-				diff *= 1000000;
-				if (now.nanosec <= muxer->time.nanosec) {
-					diff += (muxer->time.nanosec - now.nanosec) / 1000;				
-				} else {
-					assert(diff);
-					diff -= 1000000;
-					diff += (1000000000 + muxer->time.nanosec - now.nanosec) / 1000;				
+				if (usec_till_next) {
+					u32 diff = muxer->time.sec - now.sec;
+					diff *= 1000000;
+					if (now.nanosec <= muxer->time.nanosec) {
+						diff += (muxer->time.nanosec - now.nanosec) / 1000;				
+					} else {
+						assert(diff);
+						diff -= 1000000;
+						diff += (1000000000 + muxer->time.nanosec - now.nanosec) / 1000;				
+					}
+					*usec_till_next = diff;
 				}
-				*usec_till_next = diff;
 				return NULL;
 			}
 		}
