@@ -3952,13 +3952,3 @@ exit:
 
 
 
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec)
-{
-	return gf_media_isom_segment_file(input, output_file, max_duration_sec, NULL, NULL, 0);
-}
-
-#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
-
-

@@ -529,7 +529,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_codec_get_com) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_afx_get_type_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_esd_get_textual_description) )
 
@@ -540,6 +539,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_laser_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_encode_ui_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sl_depacketize) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
 #ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_write) )
@@ -571,7 +575,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_codec_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_codec_decode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_codec_get_event) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sl_packetize) )
@@ -1118,9 +1121,16 @@
 #endif
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_sps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_pps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_profile_name) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps) )
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
@@ -1766,14 +1776,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_video_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_representation_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info_buffering) )
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code) )
 
 #endif
 
