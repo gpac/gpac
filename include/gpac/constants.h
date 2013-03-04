@@ -566,7 +566,7 @@ enum
 #define GF_AVC_TYPE2_SP 8
 #define GF_AVC_TYPE2_SI 9
 
-
+#ifndef GPAC_DISABLE_HEVC
 
 /*HEVC NAL unit types*/
 enum {
@@ -599,6 +599,13 @@ enum {
 	GF_HEVC_NALU_SEI_PREFIX = 39,
 	GF_HEVC_NALU_SEI_SUFFIX = 40,
 };
+
+#else
+enum {
+	GF_HEVC_NALU_ACCESS_UNIT = 35
+};
+
+#endif
 
 
 /*rate sizes - note that these sizes INCLUDE the rate_type header byte*/

@@ -2860,6 +2860,9 @@ exit:
 }
 
 
+
+#ifndef GPAC_DISABLE_HEVC
+
 /**********
 HEVC parsing
 **********/
@@ -3470,6 +3473,7 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	return ret;
 }
 
+#endif //GPAC_DISABLE_HEVC
 
 static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
 {
