@@ -67,6 +67,7 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 {
 	GF_Err e;
@@ -184,7 +185,7 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID, 
 							 u32 DefaultSampleDescriptionIndex,
 							 u32 DefaultSampleDuration,
@@ -915,6 +916,7 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 {
 	GF_Err e;
@@ -975,6 +977,7 @@ typedef struct
 	u64 start_offset, end_offset;
 } SIDXEntry;
 
+GF_EXPORT
 GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
 {
 	GF_SegmentIndexBox *sidx=NULL;
@@ -1415,6 +1418,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
@@ -1424,6 +1428,7 @@ GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 {
 	GF_Err e;
@@ -1452,7 +1457,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 {
 	u32 i, count;
@@ -1519,7 +1524,7 @@ u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 	return size;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample *sample, u32 DescIndex, 
 								 u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding)
 {
