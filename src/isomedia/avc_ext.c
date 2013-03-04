@@ -597,7 +597,7 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
