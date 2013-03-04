@@ -881,6 +881,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	u32 data_offset, sps_id, pps_id;
 	
 	if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
 		type = (ptr[0]  & 0x7E) >> 1;
 		fprintf(dump, "code=\"%d\" type=\"", type);
 		switch (type) {
@@ -914,6 +915,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 			fputs("UNKNOWN", dump); break;
 		}
 		fputs("\"", dump);
+#endif //GPAC_DISABLE_HEVC
 		return;
 	} 
 	
@@ -1031,6 +1033,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
 	}
 	if (hevccfg) {
+#ifndef GPAC_DISABLE_HEVC
 		u32 idx;
 		nalh_size = hevccfg->nal_unit_size;
 		is_hevc = 1;
@@ -1046,6 +1049,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray")
 			}
 		}
+#endif
 	}
 #endif
 	fprintf(dump, " </NALUConfig>\n");
@@ -1492,14 +1496,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 					GF_HEVCConfig *hevccfg;
 #endif
 
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stderr, "\t");
 					fprintf(stderr, "HEVC Video - Visual Size %d x %d\n", w, h);
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 					hevccfg = gf_isom_hevc_config_get(file, trackNum, 1);
 					if (!hevccfg ) {
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: hvcC not found in sample description\n");
@@ -1523,7 +1527,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\n\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
 						gf_odf_hevc_cfg_del(hevccfg);
 					}
-#endif /*GPAC_DISABLE_AV_PARSERS*/
+#endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/
 				} 
 
 				/*OGG media*/

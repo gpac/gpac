@@ -188,6 +188,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 			start_code_found = short_start_code ? 2 : 1;
 
 			if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
 				nal_type = (pck.data[4] & 0x7E) >> 1;
 
 				/*check for SPS and update stream info*/
@@ -227,7 +228,9 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					prev_is_au_delim=0;
 				} 
-				else {
+				else
+#endif //GPAC_DISABLE_HEVC
+				{
 					pck.flags = 0;
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					prev_is_au_delim=0;

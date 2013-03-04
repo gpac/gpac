@@ -4601,6 +4601,9 @@ exit:
 
 static GF_Err gf_import_hevc(GF_MediaImporter *import)
 {
+#ifdef GPAC_DISABLE_HEVC
+	return GF_NOT_SUPPORTED;
+#else
 	u64 nal_start, nal_end, total_size;
 	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
 	s32 idx, sei_recovery_frame_count;
@@ -5340,6 +5343,7 @@ exit:
 	gf_bs_del(bs);
 	fclose(mdia);
 	return e;
+#endif //GPAC_DISABLE_HEVC
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
@@ -6094,8 +6098,11 @@ typedef struct
 	GF_AVCConfig *avccfg;
 	AVCState avc;
 
+#ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hevccfg;
 	HEVCState hevc;
+#endif //GPAC_DISABLE_HEVC
+
 #endif
 	Bool force_next_au_start;
 	Bool stream_setup;
@@ -6298,6 +6305,7 @@ void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 	gf_isom_sample_del(&samp);
 }
 
+#ifndef GPAC_DISABLE_HEVC
 static void hevc_cfg_add_nalu(GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u32 data_len)
 {
 	u32 i, count;
@@ -6325,6 +6333,7 @@ static void hevc_cfg_add_nalu(GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u
 		ar->array_completeness = 0;
 	}
 }
+#endif //GPAC_DISABLE_HEVC
 
 void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
@@ -6553,7 +6562,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				stype = GF_STREAM_VISUAL; 
 				oti = GPAC_OTI_VIDEO_HEVC;
+#ifndef GPAC_DISABLE_HEVC
 				tsimp->hevccfg = gf_odf_hevc_cfg_new();
+#endif //GPAC_DISABLE_HEVC
 				break;
 			case GF_M2TS_AUDIO_MPEG1:
 				mtype = GF_ISOM_MEDIA_AUDIO;
@@ -6743,6 +6754,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 			/*avc data for the current sample is stored in annex-B, as we don't know the size of each nal
 			when called back (depending on PES packetization, the end of the nal could be in following pes)*/
+#ifndef GPAC_DISABLE_HEVC
 			else if (tsimp->hevccfg && !pck->data[0] && !pck->data[1]) {
 				s32 idx;
 				Bool add_sps, is_subseq = 0;
@@ -6827,6 +6839,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->force_next_au_start = 0;
 				}
 			}
+#endif //GPAC_DISABLE_HEVC
 
 			if (!is_au_start) {
 				e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
