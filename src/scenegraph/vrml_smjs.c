@@ -881,15 +881,19 @@ static JSBool SMJS_FUNCTION(addRoute)
 	/*route to object*/
 	else {
 		u32 i = 0;
-		GF_RouteToFunction *r;
+		GF_RouteToFunction *r = NULL;
 		if (!JSVAL_IS_OBJECT(argv[3]) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[3])) ) return JS_FALSE;
 
-		if ( n1->sgprivate->interact && n1->sgprivate->interact->routes )
-			while ( r = (GF_RouteToFunction*)gf_list_enum(n1->sgprivate->interact->routes, &i) ) {
-				if ( r->FromNode == n1 && r->FromField.fieldIndex == f_id1 
-					&& r->ToNode == (GF_Node*)JS_GetScript(c) && !stricmp(r->ToField.name, JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) )))
+		if ( n1->sgprivate->interact && n1->sgprivate->interact->routes ) {
+			while ( (r = (GF_RouteToFunction*)gf_list_enum(n1->sgprivate->interact->routes, &i) )) {
+				if ( (r->FromNode == n1) 
+				&& (r->FromField.fieldIndex == f_id1)
+				&& (r->ToNode == (GF_Node*)JS_GetScript(c))
+				&& !stricmp(r->ToField.name, JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) ))
+			)
 					break;
 			}
+		}
 
 		if ( !r ) {
 			GF_SAFEALLOC(r, GF_RouteToFunction)
