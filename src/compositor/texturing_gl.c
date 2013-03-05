@@ -217,7 +217,7 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_VRML
-	u32 i, count;
+	u32 i, j, count;
 #endif
 
 //	compositor->gl_caps.yuv_texture = 0;
@@ -233,11 +233,11 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_Background2D) return 1;
 	/*if a bitmap is using the texture force using RECT*/
 	for (i=0; i<count; i++) {
-		GF_Node *n = gf_node_get_parent(txh->owner, 0);
+		GF_Node *n = gf_node_get_parent(txh->owner, i);
 		if (gf_node_get_tag(n)==TAG_MPEG4_Appearance) {
 			count = gf_node_get_parent_count(n);
-			for (i=0; i<count; i++) {
-				M_Shape *s = (M_Shape *) gf_node_get_parent(n, 0);
+			for (j=0; j<count; j++) {
+				M_Shape *s = (M_Shape *) gf_node_get_parent(n, j);
 				if (s->geometry && (gf_node_get_tag((GF_Node *)s)==TAG_MPEG4_Shape) && (gf_node_get_tag(s->geometry)==TAG_MPEG4_Bitmap)) return 1;
 			}
 		}
@@ -295,6 +295,10 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		if (!is_pow2) txh->tx_io->flags = TX_MUST_SCALE;
 		break;
 	case GF_PIXEL_RGB_24:
+		txh->tx_io->gl_format = GL_RGB;
+		txh->tx_io->nb_comp = 3;
+		break;
+	case GF_PIXEL_BGR_24:
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
 		break;
@@ -461,6 +465,9 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 			bpp = 4;
 			break;
 		}
+	case GF_PIXEL_BGR_24:
+		bpp = 3;
+		break;
 	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_RGB_24:
@@ -489,6 +496,7 @@ assert(txh->data );
 		return 1;
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_NV21:
+	case GF_PIXEL_I420:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
 			txh->tx_io->conv_format = GF_PIXEL_YVYU;
 			txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
@@ -540,6 +548,8 @@ assert(txh->data );
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_NV21:
+	case GF_PIXEL_I420:
+	case GF_PIXEL_BGR_24:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
 		/*stretch and flip*/
 		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);

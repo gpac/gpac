@@ -1319,7 +1319,7 @@ typedef struct
 	/*called when new video frame is ready to be flushed on screen. time is the terminal global clock in ms*/
 	void (*on_video_frame)(void *udta, u32 time);
 	/*called when video output has been resized*/
-	void (*on_video_reconfig)(void *udta, u32 width, u32 height);
+	void (*on_video_reconfig)(void *udta, u32 width, u32 height, u8 bpp);
 } GF_VideoListener;
 
 GF_Err gf_sc_add_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);

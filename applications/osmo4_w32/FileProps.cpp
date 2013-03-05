@@ -363,6 +363,9 @@ void CFileProps::OnViewsg()
 	Osmo4 *gpac = GetApp();
 
 	strcpy(szOutRadname, gpac->szUserPath);
+	if ( szOutRadname[strlen(szOutRadname)-1] != '\\'
+		&& szOutRadname[strlen(szOutRadname)-1] != '/')
+		strcat(szOutRadname, "\\");
 	strcat(szOutRadname, "scene_dump");
 
 	GF_Err e = gf_term_dump_scene(gpac->m_term, (char *) szOutRadname, &pFilename, gpac->m_ViewXMTA, GF_FALSE, current_odm);

@@ -178,7 +178,10 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		u32 k=0;
 		GF_VideoListener *l;
 		while ((l = gf_list_enum(compositor->video_listeners, &k))) {
-			l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height);
+			if ( compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) )
+				l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 4);
+			else
+				l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 3);
 		}
 	}
 
@@ -2194,7 +2197,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			traverse_time = gf_sys_clock() - traverse_time;
 #endif
 
-			if (compositor->video_listeners && !compositor->skip_flush) {
+			if (compositor->video_listeners && compositor->skip_flush!=1) {
 				u32 k=0;
 				GF_VideoListener *l;
 				while ((l = gf_list_enum(compositor->video_listeners, &k))) {
@@ -2816,7 +2819,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		} else {
 			gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
 		}
-		if (!tr_state.bounds.height && !tr_state.bounds.width && !tr_state.bounds.x && !tr_state.bounds.height)
+		if (!tr_state.bounds.height && !tr_state.bounds.width && !tr_state.bounds.x && !tr_state.bounds.y)
 			tr_state.abort_bounds_traverse = GF_FALSE;
 
 		gf_mx2d_pre_multiply(&tr_state.mx_at_node, &compositor->traverse_state->transform);

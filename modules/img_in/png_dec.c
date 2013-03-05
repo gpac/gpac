@@ -98,6 +98,9 @@ static GF_Err PNG_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 	case GF_CODEC_PAR:
 		capability->cap.valueInt = 0;
 		break;
+	case GF_CODEC_REORDER:
+		capability->cap.valueInt = 0;
+		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}

@@ -40,7 +40,10 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 	/*make sure we don't define a proto already defined in this scope*/
 	if (!unregistered) {
 		tmp = gf_sg_find_proto(inScene, ProtoID, name);
-		if (tmp) return NULL;
+		if (tmp) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scenegraph] PROTO %s redefined - skipping loading\n", name));
+			return NULL;
+		}
 	}
 
 	GF_SAFEALLOC(tmp, GF_Proto)
@@ -450,7 +453,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 			if (orig->sgprivate->tag == TAG_ProtoNode) {
 				if (gf_sg_proto_field_is_sftime_offset(orig, &field_orig))
 					*((SFTime *)field.far_ptr) += inScene->GetSceneTime(inScene->userpriv);
-			} else if (!stricmp(field_orig.name, "startTime") || !stricmp(field_orig.name, "startTime") ) {
+			} else if (!stricmp(field.name, "startTime") || !stricmp(field_orig.name, "startTime") ) {
 				*((SFTime *)field.far_ptr) += inScene->GetSceneTime(inScene->userpriv);
 			}
 			break;
@@ -683,6 +686,11 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 /*		assert(route->is_setup);
 		if ((route->FromField.eventType == GF_SG_EVENT_OUT) || (route->FromField.eventType == GF_SG_EVENT_IN) ) continue;
 */		
+
+		if (route->is_setup) {
+			if ((route->ToField.eventType == GF_SG_EVENT_IN) && (route->FromField.eventType == GF_SG_EVENT_IN) ) continue;
+		}
+
 		if ((route->ToNode->sgprivate->tag==TAG_MPEG4_Script) 
 #ifndef GPAC_DISABLE_X3D
 			|| (route->ToNode->sgprivate->tag==TAG_X3D_Script) 

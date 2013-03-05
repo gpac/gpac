@@ -204,15 +204,15 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 
 			viewing_distance = nominal_view_distance;
 
-			wd2 = cam->z_near * gf_tan(cam->fieldOfView/2);
+			wd2 = gf_mulfix(cam->z_near, gf_tan(cam->fieldOfView/2));
 			ndfl = gf_divfix(cam->z_near, viewing_distance);
 			/*compute h displacement*/
 			shift = gf_mulfix(horizontal_shift, ndfl);
 
 			top = wd2;
 			bottom = -top;
-			left = -ar * wd2 - shift;
-			right = ar * wd2 - shift;
+			left = -gf_mulfix(ar, wd2) - shift;
+			right = gf_mulfix(ar, wd2) - shift;
 
 			gf_mx_init(cam->projection);
 			cam->projection.m[0] = gf_divfix(2*cam->z_near, (right-left));
@@ -231,7 +231,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 
 			gf_vec_diff(center, cam->world_bbox.center, cam->position);
 			vlen = gf_vec_len(center);
-			shift = horizontal_shift * vlen / viewing_distance;
+			shift = gf_mulfix(horizontal_shift, gf_divfix(vlen, viewing_distance));
 
 			pos = gf_vec_scale(disp, shift);
 			gf_vec_add(pos, pos, cam->position);
@@ -247,7 +247,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		}
 
 		if (!center_coords) {
-			gf_mx_add_scale(&post_model_view, 1, -1, 1);
+			gf_mx_add_scale(&post_model_view, FIX_ONE, -FIX_ONE, FIX_ONE);
 			gf_mx_add_translation(&post_model_view, -cam->width / 2, -cam->height / 2, 0);
 		}
 
@@ -282,7 +282,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 #endif
 
 		if (!center_coords) {
-			gf_mx_add_scale(&post_model_view, 1, -1, 1);
+			gf_mx_add_scale(&post_model_view, FIX_ONE, -FIX_ONE, FIX_ONE);
 			gf_mx_add_translation(&post_model_view, -hw, -hh, 0);
 		}
 		if (user_transform) {
@@ -321,6 +321,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 
 		gf_vec_diff(center, cam->world_bbox.center, cam->position);
 		vlen = gf_vec_len(center);
+		vlen += gf_mulfix(view_distance_offset, gf_divfix(vlen, nominal_view_distance));
 
 		gf_vec_diff(pos, cam->target, cam->position);
 		gf_vec_norm(&pos);
@@ -343,7 +344,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 
 		gf_vec_diff(center, cam->world_bbox.center, cam->position);
 		vlen = gf_vec_len(center);
-		vlen += view_distance_offset * (vlen/nominal_view_distance);
+		vlen += gf_mulfix(view_distance_offset, gf_divfix(vlen, nominal_view_distance));
 	
 		gf_vec_diff(eye, cam->target, cam->position);
 		gf_vec_norm(&eye);
@@ -353,7 +354,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		disp = gf_vec_cross(eye, cam->up);
 		gf_vec_norm(&disp);
 
-		disp= gf_vec_scale(disp, vlen*horizontal_shift/viewing_distance);
+		disp= gf_vec_scale(disp, gf_divfix(gf_mulfix(vlen, horizontal_shift), viewing_distance));
 		gf_vec_add(pos, cam->position, disp);
 
 		gf_mx_lookat(&cam->modelview, pos, tar, cam->up);

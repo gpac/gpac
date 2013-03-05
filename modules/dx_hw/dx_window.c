@@ -617,6 +617,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			}
 		}
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+		
+		if ( !ctx->ctrl_down && !ctx->alt_down
+			&& evt.key.key_code != GF_KEY_CONTROL && evt.key.key_code != GF_KEY_ALT )
+			ret = 1;
 		break;
 
 	case WM_UNICHAR:

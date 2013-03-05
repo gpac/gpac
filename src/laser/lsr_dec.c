@@ -4051,7 +4051,7 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
     case SMIL_KeySplines_datatype/*ITYPE_float*/:
 	case SVG_StrokeDashArray_datatype:
 	case SVG_ViewBox_datatype:
- 		f_val = (Fixed*)gf_malloc(sizeof(u8));
+ 		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
 		*f_val = lsr_read_fixed_16_8(lsr, "floatValue");
         return f_val;
     case SMIL_KeyTimes_datatype/*ITYPE_keyTime*/:

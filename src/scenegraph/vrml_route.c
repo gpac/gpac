@@ -30,12 +30,16 @@
 
 #ifndef GPAC_DISABLE_VRML
 
+GF_Route* gf_sg_route_exists(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField);
 
 GF_EXPORT
 GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField)
 {
 	GF_Route *r;
 	if (!sg || !toNode || !fromNode) return NULL;
+
+	if ( r = gf_sg_route_exists(sg, fromNode, fromField, toNode, toField) )
+		return r;
 
 	GF_SAFEALLOC(r, GF_Route)
 	if (!r) return NULL;
@@ -52,6 +56,19 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	return r;
 }
 
+GF_Route* gf_sg_route_exists(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField)
+{
+	u32 i = 0;
+	GF_Route* rt;
+	if ( !fromNode->sgprivate->interact || !fromNode->sgprivate->interact->routes )
+		return NULL;
+	while ( rt = (GF_Route*)gf_list_enum(fromNode->sgprivate->interact->routes, &i) )
+	{
+		if ( rt->FromField.fieldIndex == fromField && rt->ToNode == toNode && rt->ToField.fieldIndex == toField )
+			return rt;
+	}
+	return NULL;
+}
 
 void gf_sg_route_del(GF_Route *r)
 {
@@ -226,7 +243,7 @@ void gf_sg_route_setup(GF_Route *r)
 }
 
 /*send event out of proto - all ISed fields are ignored*/
-static void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex)
+void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex)
 {
 	u32 i;
 	GF_Route *r;
@@ -257,6 +274,14 @@ Bool gf_sg_route_activate(GF_Route *r)
 		if (r->IS_route) {
 			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
 			if (r->ToField.eventType == GF_SG_EVENT_OUT) return 0;
+		}
+		if (r->IS_route && ((r->ToNode->sgprivate->tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+			|| (r->ToNode->sgprivate->tag==TAG_X3D_Script)
+#endif
+			) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/)
+			&& r->FromField.eventType==GF_SG_EVENT_IN) {
+				return 0;
 		}
 	}
 #ifndef GPAC_DISABLE_LOG

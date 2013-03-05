@@ -496,7 +496,7 @@ static void avr_on_video_frame ( void *udta, u32 time )
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ( "[AVRedirect] Writing video frame\n" ) );
 }
 
-static void avr_on_video_reconfig ( void *udta, u32 width, u32 height )
+static void avr_on_video_reconfig ( void *udta, u32 width, u32 height, u8 bpp )
 {
 
     GF_AVRedirect *avr = ( GF_AVRedirect * ) udta;

@@ -937,11 +937,11 @@ static const char *GetXMTFieldTypeName(u32 fieldType)
 	case GF_SG_VRML_MFBOOL: return "Booleans";
 	case GF_SG_VRML_MFINT32: return "Integers";
 	case GF_SG_VRML_MFCOLOR: return "Colors";
-	case GF_SG_VRML_MFVEC2F: return "Vector2s";
+	case GF_SG_VRML_MFVEC2F: return "Vector2Array";
 	case GF_SG_VRML_MFIMAGE: return "Images";
 	case GF_SG_VRML_MFTIME: return "Times";
 	case GF_SG_VRML_MFFLOAT: return "Floats";
-	case GF_SG_VRML_MFVEC3F: return "Vector3s";
+	case GF_SG_VRML_MFVEC3F: return "Vector3Array";
 	case GF_SG_VRML_MFROTATION: return "Rotations";
 	case GF_SG_VRML_MFSTRING: return "Strings";
 	case GF_SG_VRML_MFNODE: return "Nodes";
@@ -952,7 +952,7 @@ static const char *GetXMTFieldTypeValueName(u32 fieldType)
 {
 	switch (fieldType) {
 	case GF_SG_VRML_SFBOOL: return "booleanValue";
-	case GF_SG_VRML_SFINT32: return "integerValue";
+	case GF_SG_VRML_SFINT32: return "intValue";
 	case GF_SG_VRML_SFCOLOR: return "colorValue";
 	case GF_SG_VRML_SFVEC2F: return "vector2Value";
 	case GF_SG_VRML_SFIMAGE: return "imageValue";
@@ -962,7 +962,7 @@ static const char *GetXMTFieldTypeValueName(u32 fieldType)
 	case GF_SG_VRML_SFROTATION: return "rotationValue";
 	case GF_SG_VRML_SFSTRING: return "stringValue";
 	case GF_SG_VRML_MFBOOL: return "booleanArrayValue";
-	case GF_SG_VRML_MFINT32: return "integerArrayValue";
+	case GF_SG_VRML_MFINT32: return "intArrayValue";
 	case GF_SG_VRML_MFCOLOR: return "colorArrayValue";
 	case GF_SG_VRML_MFVEC2F: return "vector2ArrayValue";
 	case GF_SG_VRML_MFIMAGE: return "imageArrayValue";

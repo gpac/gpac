@@ -1618,7 +1618,7 @@ GF_Err gf_isom_get_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 Segme
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	if (!trak || !trak->editBox ||
+	if (!trak->editBox ||
 		!trak->editBox->editList ||
 		(SegmentIndex > gf_list_count(trak->editBox->editList->entryList)) ||
 		!SegmentIndex)

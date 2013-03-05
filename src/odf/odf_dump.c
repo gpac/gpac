@@ -291,6 +291,13 @@ static void DumpInt(FILE *trace, const char *attName, u32  val, u32 indent, Bool
 	EndAttribute(trace, indent, XMTDump);
 }
 
+static void DumpIntForce(FILE *trace, const char *attName, u32  val, u32 indent, Bool XMTDump)
+{
+	StartAttribute(trace, attName, indent, XMTDump);
+	fprintf(trace, "%d", val);
+	EndAttribute(trace, indent, XMTDump);
+}
+
 static void DumpIntHex(FILE *trace, const char *attName, u32  val, u32 indent, Bool XMTDump, Bool single_byte)
 {
 	StartAttribute(trace, attName, indent, XMTDump);
@@ -531,6 +538,12 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 	if (esd->slConfig) {
 		StartElement(trace, "slConfigDescr" , indent, XMTDump, 0);
 		gf_odf_dump_desc(esd->slConfig, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		EndElement(trace, "slConfigDescr" , indent, XMTDump, 0);
+	}else{
+		StartElement(trace, "slConfigDescr" , indent, XMTDump, 0);
+		StartDescDump(trace, "SLConfigDescriptor", indent, XMTDump);
+		EndAttributes(trace, indent, XMTDump);
+		EndDescDump(trace, "SLConfigDescriptor", indent, XMTDump);
 		EndElement(trace, "slConfigDescr" , indent, XMTDump, 0);
 	}
 	if (esd->ipiPtr) {
@@ -950,7 +963,7 @@ GF_Err gf_odf_dump_dcd(GF_DecoderConfig *dcd, FILE *trace, u32 indent, Bool XMTD
 	StartDescDump(trace, "DecoderConfigDescriptor", indent, XMTDump);
 	indent++;
 
-	DumpInt(trace, "objectTypeIndication", dcd->objectTypeIndication, indent, XMTDump);
+	DumpIntForce(trace, "objectTypeIndication", dcd->objectTypeIndication, indent, XMTDump);
 	DumpInt(trace, "streamType", dcd->streamType, indent, XMTDump);
 	DumpInt(trace, "upStream", dcd->upstream, indent, XMTDump);
 	DumpInt(trace, "bufferSizeDB", dcd->bufferSizeDB, indent, XMTDump);

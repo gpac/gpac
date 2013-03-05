@@ -211,7 +211,7 @@ static void validator_on_video_frame(void *udta, u32 time)
     }
 }
 
-static void validator_on_video_reconfig(void *udta, u32 width, u32 height)
+static void validator_on_video_reconfig(void *udta, u32 width, u32 height, u8 bpp)
 {
 }
 

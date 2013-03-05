@@ -287,6 +287,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 #elif !defined(_WIN32_WCE)
     PIXELFORMATDESCRIPTOR pfd; 
     s32 pixelformat;
+	int bits_depth = 24;
 	u32 i;
 
 	/*already setup*/
@@ -314,7 +315,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 32;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
-	pfd.cDepthBits = sOpt ? atoi(sOpt) : 16;
+	if (sOpt) bits_depth = atoi(sOpt);
+	pfd.cDepthBits = bits_depth;
 	/*we need alpha support for composite textures...*/
 	pfd.cAlphaBits = 8;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
@@ -351,9 +353,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			WGL_RED_BITS_ARB, 8,
 			WGL_GREEN_BITS_ARB, 8,
 			WGL_BLUE_BITS_ARB, 8, 
-/*
-			WGL_DEPTH_BITS_ARB, 16,
-			WGL_BIND_TO_TEXTURE_RGBA_ARB, TRUE,
+
+			WGL_DEPTH_BITS_ARB, bits_depth,
+/*			WGL_BIND_TO_TEXTURE_RGBA_ARB, TRUE,
 			WGL_COLOR_BITS_ARB,24,
 			WGL_DEPTH_BITS_ARB, 0,
 			WGL_STENCIL_BITS_ARB,0,

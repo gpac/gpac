@@ -1944,7 +1944,6 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
-	*usec_till_next = 0;
 
 	now = gf_sys_clock();
 	if (muxer->real_time) {

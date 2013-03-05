@@ -1401,7 +1401,7 @@ static u32 SizeGF_IPMPX_SelectiveDecryptionInit(GF_IPMPX_Data *_p)
 }
 static GF_Err WriteGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Data *_p)
 {
-	u32 count, i;
+	u32 count, i, j;
 	GF_IPMPX_SelectiveDecryptionInit*p = (GF_IPMPX_SelectiveDecryptionInit*)_p;
 
 	gf_bs_write_int(bs, p->mediaTypeExtension, 8);
@@ -1447,7 +1447,7 @@ static GF_Err WriteGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_D
 				gf_bs_write_int(bs, 0, 6);
 				if (sf->mappingTable) {
 					gf_bs_write_int(bs, sf->mappingTableSize, 16);
-					for (i=0; i<sf->mappingTableSize; i++) gf_bs_write_int(bs, sf->mappingTable[i], 16);
+					for (j=0; j<sf->mappingTableSize; j++) gf_bs_write_int(bs, sf->mappingTable[j], 16);
 				}
 				if (sf->shuffleSpecificInfo) GF_IPMPX_WriteByteArray(bs, sf->shuffleSpecificInfo);
 			}

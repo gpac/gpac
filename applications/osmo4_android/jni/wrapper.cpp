@@ -506,7 +506,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                           strcat(msg, gf_error_to_string(evt->message.error));
 
                           ptr->debug_log(msg);
-                          ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
+                          //ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
                           ptr->debug_log("GPAC_EventProc end");
                   };
                   break;
