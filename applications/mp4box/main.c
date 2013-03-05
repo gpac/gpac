@@ -1258,6 +1258,7 @@ typedef struct
 	6: enables track
 	7: disables track
 	8: referenceTrack
+	9: raw extraction
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -1267,6 +1268,7 @@ typedef struct
 	const char *kms;
 	const char *hdl_name;
 	s32 par_num, par_den;
+	u32 dump_type, sample_num;
 } TrackAction;
 
 enum
@@ -1506,19 +1508,31 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-raw")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE;
-			trackID = atoi(argv[i+1]);
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE;
+			nb_track_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-raw-layer")) {
 			CHECK_NEXT_ARG
-				track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
-			trackID = atoi(argv[i+1]);
+			track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
+			nb_track_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-qcp")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP;
-			trackID = atoi(argv[i+1]);
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP;
+			nb_track_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-aviraw")) {
@@ -1530,39 +1544,56 @@ int mp4boxMain(int argc, char **argv)
 			}
 			else { fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n"); MP4BOX_EXIT_WITH_CODE(1); }
 			track_dump_type = GF_EXPORT_AVI_NATIVE;
+
 			i++;
 		}
 		else if (!stricmp(arg, "-raws")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_RAW_SAMPLES;
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
 			if (strchr(argv[i+1], ':')) {
-				sscanf(argv[i+1], "%u:%u", &trackID, &raw_sample_num);
+				sscanf(argv[i+1], "%u:%u", &tracks[nb_track_act].trackID, &tracks[nb_track_act].sample_num);
 			} else {
-				trackID = atoi(argv[i+1]);
+				tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			}
+			tracks[nb_track_act].dump_type = GF_EXPORT_RAW_SAMPLES;
+			nb_track_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-nhnt")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NHNT;
-			trackID = atoi(argv[i+1]);
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_NHNT;
+			nb_track_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-nhml")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NHML;
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].dump_type = GF_EXPORT_NHML;
 			if (argv[i+1][0]=='+') {
 				track_dump_type |= GF_EXPORT_NHML_FULL;
-				trackID = atoi(argv[i+1] + 1);
+				tracks[nb_track_act].trackID = atoi(argv[i+1] + 1);
 			} else {
-				trackID = atoi(argv[i+1]);
+				tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			}
+			nb_track_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-avi")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_AVI;
-			trackID = atoi(argv[i+1]);
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_AVI;
+			nb_track_act++;
 			i++;
 		}
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
@@ -1879,7 +1910,11 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_MP4;
-			trackID = atoi(argv[i+1]);
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_MP4;
+			nb_track_act++;
 			i++;
 #endif
 		}
@@ -2979,13 +3014,27 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (!open_edit && !gf_isom_probe_file(inName) && track_dump_type) {
 		GF_MediaExporter mdump;
-		memset(&mdump, 0, sizeof(mdump));
-		mdump.in_name = inName;
-		mdump.flags = track_dump_type;
-		mdump.trackID = trackID;
-		mdump.out_name = outfile;
-		e = gf_media_export(&mdump);
-		if (e) goto err_exit;
+		char szFile[1024];
+		for (i=0; i<nb_track_act; i++) {
+			TrackAction *tka = &tracks[i];
+			if (tka->act_type != 9) continue;
+			memset(&mdump, 0, sizeof(mdump));
+			mdump.in_name = inName;
+			mdump.flags = tka->dump_type;
+			mdump.trackID = tka->trackID;
+			mdump.sample_num = raw_sample_num;
+			if (outName) {
+				mdump.out_name = outName;
+				mdump.flags |= GF_EXPORT_MERGE;
+			} else if (nb_track_act>1) {
+				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
+				mdump.out_name = szFile;
+			} else {
+				mdump.out_name = outfile;
+			}
+			e = gf_media_export(&mdump);
+			if (e) goto err_exit;
+		}
 		MP4BOX_EXIT_WITH_CODE(0);
 	} 
 
@@ -3075,25 +3124,33 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
-	if (do_saf || track_dump_type) {
+	if (track_dump_type) {
 		char szFile[1024];
 		GF_MediaExporter mdump;
-		memset(&mdump, 0, sizeof(mdump));
-		mdump.file = file;
-		mdump.flags = do_saf ? GF_EXPORT_SAF : track_dump_type;
-		if (!do_saf) {
-			mdump.trackID = trackID;
+		for (i=0; i<nb_track_act; i++) {
+			TrackAction *tka = &tracks[i];
+			if (tka->act_type != 9) continue;
+			memset(&mdump, 0, sizeof(mdump));
+			mdump.file = file;
+			mdump.flags = tka->dump_type;
+			mdump.trackID = tka->trackID;
 			mdump.sample_num = raw_sample_num;
 			if (outName) {
 				mdump.out_name = outName;
 				mdump.flags |= GF_EXPORT_MERGE;
 			} else {
-				sprintf(szFile, "%s_track%d", outfile, trackID);
+				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
 				mdump.out_name = szFile;
 			}
-		} else {
-			mdump.out_name = outfile;
+			e = gf_media_export(&mdump);
+			if (e) goto err_exit;
 		}
+	} else if (do_saf) {
+		GF_MediaExporter mdump;
+		memset(&mdump, 0, sizeof(mdump));
+		mdump.file = file;
+		mdump.flags = GF_EXPORT_SAF;
+		mdump.out_name = outfile;
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
 	}
