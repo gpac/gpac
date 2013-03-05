@@ -4507,7 +4507,7 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 			}
 
 			if (a->size>8) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(a->type), a->size));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(a->type), a->size));
 				gf_bs_skip_bytes(bs, a->size-8);
 			}
 			a->size = s;

@@ -178,6 +178,8 @@ struct __dash_group
 	u32 nb_segments_purged;
 
 	u32 nb_retry_on_last_segment;
+	u32 start_number_at_last_ast;
+	u64 ast_at_init;
 
 	/*next file (cached) to delete at next GF_NET_SERVICE_QUERY_NEXT for this group*/
 	char * urlToDeleteNext;
@@ -341,12 +343,13 @@ static u64 gf_dash_get_utc_clock()
 	return current_time;
 }
 
-static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
+static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
 {
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	GF_MPD_Representation *rep = NULL;
 	u32 shift, timescale;
 	u64 current_time;
+	u32 ast_diff, start_number;
 	
 	if (mpd->type==GF_MPD_TYPE_STATIC) 
 		return;
@@ -361,7 +364,9 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 		return;
 	}
 
-	current_time = group->dash->mpd_fetch_time;
+	ast_diff = (u32) (mpd->availabilityStartTime - group->dash->mpd->availabilityStartTime);
+	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
+	current_time = fetch_time;
 
 #if 0
 	{
@@ -400,32 +405,39 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 
 	timeline = NULL;
 	timescale=1;
+	start_number=0;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
 	if (group->period->segment_list) {
 		if (group->period->segment_list->segment_timeline) timeline = group->period->segment_list->segment_timeline;
 		if (group->period->segment_list->timescale) timescale = group->period->segment_list->timescale;
+		if (group->period->segment_list->start_number) start_number = group->period->segment_list->start_number;
 	}
 	if (group->adaptation_set->segment_list) {
 		if (group->adaptation_set->segment_list->segment_timeline) timeline = group->adaptation_set->segment_list->segment_timeline;
 		if (group->adaptation_set->segment_list->timescale) timescale = group->adaptation_set->segment_list->timescale;
+		if (group->adaptation_set->segment_list->start_number) start_number = group->adaptation_set->segment_list->start_number;
 	}
 	if (rep->segment_list) {
 		if (rep->segment_list->segment_timeline) timeline = rep->segment_list->segment_timeline;
 		if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
+		if (rep->segment_list->start_number) start_number = rep->segment_list->start_number;
 	}
 
 	if (group->period->segment_template) {
 		if (group->period->segment_template->segment_timeline) timeline = group->period->segment_template->segment_timeline;
 		if (group->period->segment_template->timescale) timescale = group->period->segment_template->timescale;
+		if (group->period->segment_template->start_number) start_number = group->period->segment_template->start_number;
 	}
 	if (group->adaptation_set->segment_template) {
 		if (group->adaptation_set->segment_template->segment_timeline) timeline = group->adaptation_set->segment_template->segment_timeline;
 		if (group->adaptation_set->segment_template->timescale) timescale = group->adaptation_set->segment_template->timescale;
+		if (group->adaptation_set->segment_template->start_number) start_number = group->adaptation_set->segment_template->start_number;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+		if (rep->segment_template->start_number) start_number = rep->segment_template->start_number;
 	}
 
 	if (timeline) {
@@ -464,7 +476,26 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group)
 		Double nb_seg = (Double) current_time;
 		nb_seg /= group->segment_duration;
 		shift = (u32) nb_seg;
-		group->download_segment_index = shift;
+		if (!group->start_number_at_last_ast) {
+			group->download_segment_index = shift;
+			group->start_number_at_last_ast = start_number;
+			group->ast_at_init = mpd->availabilityStartTime;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
+		} else {
+			group->download_segment_index += start_number;
+			if (group->download_segment_index > group->start_number_at_last_ast) {
+				group->download_segment_index -= group->start_number_at_last_ast;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d: Updating Timeline: startNumber=%d segmentNumber=%d downloadSegmentIndex=%d segmentDuration=%g\n", current_time, start_number, shift, group->download_segment_index, group->segment_duration));
+			} else {
+				group->download_segment_index = shift;
+				group->ast_at_init = mpd->availabilityStartTime;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time %d: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
+			}
+			group->start_number_at_last_ast = start_number;
+
+
+		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] UTC time indicates first segment in period is %d, MPD indicates %d segments are available ...\n", group->download_segment_index , group->nb_segments_in_rep));
 
@@ -903,7 +934,8 @@ u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *grou
 
 	seg_ast += seg_dur;
 	seg_ast += group->period->start/1000;
-	seg_ast += mpd->availabilityStartTime;
+//	seg_ast += mpd->availabilityStartTime;
+	seg_ast += group->ast_at_init;
 	return (u64) seg_ast;
 }
 
@@ -1409,7 +1441,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 
 		if (new_mpd->availabilityStartTime != dash->mpd->availabilityStartTime) {
-			gf_dash_group_timeline_setup(new_mpd, group);
+			gf_dash_group_timeline_setup(new_mpd, group, fetch_time);
 		}
 
 		group->maybe_end_of_stream = 0;
@@ -1615,7 +1647,7 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 
 
 	if (!group->timeline_setup) {
-		gf_dash_group_timeline_setup(mpd, group);
+		gf_dash_group_timeline_setup(mpd, group, 0);
 		group->timeline_setup = 1;
 	}
 
@@ -2858,7 +2890,7 @@ restart_period:
 
 				/*wait if nothing is ready to be downloaded*/
 				if (min_wait) {
-					u32 sleep_for = min_wait/2;
+					u32 sleep_for = MIN(min_wait, 1000) /2;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep\n", sleep_for));
 					gf_sleep(sleep_for);
 				}
