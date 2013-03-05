@@ -38,7 +38,7 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	GF_Route *r;
 	if (!sg || !toNode || !fromNode) return NULL;
 
-	if ( r = gf_sg_route_exists(sg, fromNode, fromField, toNode, toField) )
+	if ( (r = gf_sg_route_exists(sg, fromNode, fromField, toNode, toField)) )
 		return r;
 
 	GF_SAFEALLOC(r, GF_Route)
@@ -62,8 +62,8 @@ GF_Route* gf_sg_route_exists(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField
 	GF_Route* rt;
 	if ( !fromNode->sgprivate->interact || !fromNode->sgprivate->interact->routes )
 		return NULL;
-	while ( rt = (GF_Route*)gf_list_enum(fromNode->sgprivate->interact->routes, &i) )
-	{
+
+	while ( (rt = (GF_Route*)gf_list_enum(fromNode->sgprivate->interact->routes, &i) )) {
 		if ( rt->FromField.fieldIndex == fromField && rt->ToNode == toNode && rt->ToField.fieldIndex == toField )
 			return rt;
 	}

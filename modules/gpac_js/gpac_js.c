@@ -846,7 +846,6 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 
 static JSBool SMJS_FUNCTION(gpac_show_keyboard)
 {
-	GF_Node *elt;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
