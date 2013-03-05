@@ -880,35 +880,45 @@ static JSBool SMJS_FUNCTION(addRoute)
 	}
 	/*route to object*/
 	else {
+		u32 i = 0;
 		GF_RouteToFunction *r;
 		if (!JSVAL_IS_OBJECT(argv[3]) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[3])) ) return JS_FALSE;
 
-		GF_SAFEALLOC(r, GF_RouteToFunction)
-		if (!r) return JS_FALSE;
-		r->FromNode = n1;
-		r->FromField.fieldIndex = f_id1;
-		gf_node_get_field(r->FromNode, f_id1, &r->FromField);
+		if ( n1->sgprivate->interact && n1->sgprivate->interact->routes )
+			while ( r = (GF_RouteToFunction*)gf_list_enum(n1->sgprivate->interact->routes, &i) ) {
+				if ( r->FromNode == n1 && r->FromField.fieldIndex == f_id1 
+					&& r->ToNode == (GF_Node*)JS_GetScript(c) && !stricmp(r->ToField.name, JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) )))
+					break;
+			}
 
-		r->ToNode = (GF_Node*)JS_GetScript(c);
-		r->ToField.fieldType = GF_SG_VRML_SCRIPT_FUNCTION;
-		r->ToField.on_event_in = on_route_to_object;
-		r->ToField.eventType = GF_SG_EVENT_IN;
-		r->ToField.far_ptr = NULL;
-		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
+		if ( !r ) {
+			GF_SAFEALLOC(r, GF_RouteToFunction)
+			if (!r) return JS_FALSE;
+			r->FromNode = n1;
+			r->FromField.fieldIndex = f_id1;
+			gf_node_get_field(r->FromNode, f_id1, &r->FromField);
 
-		r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
-//		gf_js_add_root(c, & r->obj);
+			r->ToNode = (GF_Node*)JS_GetScript(c);
+			r->ToField.fieldType = GF_SG_VRML_SCRIPT_FUNCTION;
+			r->ToField.on_event_in = on_route_to_object;
+			r->ToField.eventType = GF_SG_EVENT_IN;
+			r->ToField.far_ptr = NULL;
+			r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 
-		r->fun = argv[3];
-//		gf_js_add_root(c, &r->fun);
+			r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
+	//		gf_js_add_root(c, & r->obj);
 
-		r->is_setup = 1;
-		r->graph = n1->sgprivate->scenegraph;
+			r->fun = argv[3];
+	//		gf_js_add_root(c, &r->fun);
 
-		if (!n1->sgprivate->interact) GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
-		if (!n1->sgprivate->interact->routes) n1->sgprivate->interact->routes = gf_list_new();
-		gf_list_add(n1->sgprivate->interact->routes, r);
-		gf_list_add(n1->sgprivate->scenegraph->Routes, r);
+			r->is_setup = 1;
+			r->graph = n1->sgprivate->scenegraph;
+
+			if (!n1->sgprivate->interact) GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
+			if (!n1->sgprivate->interact->routes) n1->sgprivate->interact->routes = gf_list_new();
+			gf_list_add(n1->sgprivate->interact->routes, r);
+			gf_list_add(n1->sgprivate->scenegraph->Routes, r);
+		}
 	}
 
 	return JS_TRUE;
@@ -1144,6 +1154,8 @@ static JSBool SMJS_FUNCTION(setOption)
 	return JS_TRUE;
 }
 
+void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex);
+
 void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner, GF_FieldInfo *field)
 {
 	GF_ScriptPriv *priv;
@@ -1176,9 +1188,11 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 			return;
 		}
 		/*field has changed, set routes...*/
-		if (parent->sgprivate->tag == TAG_ProtoNode)
+		if (parent->sgprivate->tag == TAG_ProtoNode) {
 			gf_sg_proto_propagate_event(parent, field->fieldIndex, (GF_Node*)JS_GetScript(c));
-		else {
+			/* Node exposedField can also be routed to another field */
+			gf_node_event_out_proto(parent, field->fieldIndex);
+		}else{
 			gf_node_event_out(parent, field->fieldIndex);
 			gf_node_changed_internal(parent, field, 0);
 		}
@@ -1273,7 +1287,7 @@ static GFINLINE void sffield_toString(char *str, void *f_ptr, u32 fieldType)
 	case GF_SG_VRML_SFCOLOR:
 	{
 		SFColor val = * ((SFColor *) f_ptr);
-		sprintf(temp, "%f %f %f", val.red, val.green, val.blue);
+		sprintf(temp, "%f %f %f", FIX2FLT(val.red), FIX2FLT(val.green), FIX2FLT(val.blue));
 		strcat(str, temp);
 		break;
 	}
@@ -4336,6 +4350,8 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	GF_FieldInfo t_info;
 	GF_ScriptPriv *priv;
 	u32 i;
+	uintN attr;
+	JSBool found;
 	priv = node->sgprivate->UserPrivate;
 
 	/*no support for change of static fields*/
@@ -4353,7 +4369,8 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	gf_sg_lock_javascript(priv->js_ctx, 1);
 
 	//locate function
-	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval) || JSVAL_IS_VOID(fval)) {
+	if (!JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval) || JSVAL_IS_VOID(fval) ||
+		!JS_GetPropertyAttributes(priv->js_ctx, priv->js_obj, sf->name, &attr, &found) || found != JS_TRUE ){
 		gf_sg_lock_javascript(priv->js_ctx, 0);
 		return;
 	}
@@ -4402,6 +4419,8 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	JSBool ret;
 	jsval rval, fval;
 	GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
+	uintN attr;
+	JSBool found;
 
 	jsf = gf_f64_open(file, "rb");
 	if (!jsf) return 0;
@@ -4417,11 +4436,12 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, sizeof(char)*(size_t)fsize, 0, 0, &rval);
 	if (ret==JS_FALSE) success = 0;
 
-	if (success && primary_script && JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval)) {
-		if (! JSVAL_IS_VOID(fval)) {
+	if (success && primary_script
+		&& JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval)
+		&& JS_GetPropertyAttributes(priv->js_ctx, priv->js_obj, "initialize", &attr, &found) && found == JS_TRUE) {
+		
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 			gf_js_vrml_flush_event_out((GF_Node *)script, priv);
-		}
 	}
 	gf_free(jsscript);
 	return success;
@@ -4504,6 +4524,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	jsval rval, fval;
 	M_Script *script = (M_Script *)node;
 	GF_ScriptPriv *priv = (GF_ScriptPriv *) node->sgprivate->UserPrivate;
+	uintN attr;
+	JSBool found;
 
 	if (!priv || priv->is_loaded) return;
 	if (!script->url.count) return;
@@ -4569,10 +4591,11 @@ static void JSScript_LoadVRML(GF_Node *node)
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
 	if (ret==JS_TRUE) {
 		/*call initialize if present*/
-		if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval))
+		if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval)
+			&& JS_GetPropertyAttributes(priv->js_ctx, priv->js_obj, "initialize", &attr, &found) && found == JS_TRUE)
+			
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
-
-		gf_js_vrml_flush_event_out(node, priv);
+			gf_js_vrml_flush_event_out(node, priv);
 	}
 #endif
 

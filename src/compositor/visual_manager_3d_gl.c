@@ -2340,15 +2340,15 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 
 		scale = FIX2FLT(visual->compositor->depth_gl_scale);
 		inc = 1;
-		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 		x = 0;
-		y = 1; y*=txh->height/2;
-		if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+		y = 1; y = gf_mulfix(y, INT2FIX(txh->height/2));
+		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		glBegin(GL_POINTS);
 		for (h=0; h<txh->height; h++) {
-			x = -1; x *= txh->width/2;
-			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+			x = -1; x = gf_mulfix(x, INT2FIX(txh->width/2));
+			if (!tr_state->pixel_metrics) x = gf_divfix(x, tr_state->min_hsize);
 			for (w=0; w<txh->width; w++) {
 				u8 *p = data + h*stride + w*4;
 				r = p[0]; r /= 255;
@@ -2390,16 +2390,16 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 restart:
 		scale = FIX2FLT(visual->compositor->depth_gl_scale);
 		inc = 1;
-		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 		x = 0;
-		y = 1; y*=txh->height/2;
-		if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+		y = 1; y = gf_mulfix(y, INT2FIX(txh->height/2));;
+		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		in_strip = 0;
 		for (h=0; h<txh->height - 1; h++) {
 			char *src = data + h*stride;
-			x = -1; x *= txh->width/2;
-			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+			x = -1; x = gf_mulfix(x, INT2FIX(txh->width/2));
+			if (!tr_state->pixel_metrics) x  = gf_divfix(x, tr_state->min_hsize);
 
 			for (w=0; w<txh->width; w++) {
 				u8 *p1 = src + w*4;
@@ -2477,18 +2477,18 @@ restart:
 		stack->mesh = new_mesh();
 		stack->mesh->vbo_dynamic = 1;
 		inc = 1;
-		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 		x = 0;
-		y = 1; y*=txh->height/2;
-		if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+		y = 1; y = gf_mulfix(y, FLT2FIX(txh->height/2));
+		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		for (h=0; h<txh->height; h++) {
 			u32 idx_offset = h ? ((h-1)*txh->width) : 0;
-			x = -1; x *= txh->width/2;
-			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+			x = -1; x = gf_mulfix(x, FLT2FIX(txh->width/2));
+			if (!tr_state->pixel_metrics) x = gf_divfix(x, tr_state->min_hsize);
 
 			for (w=0; w<txh->width; w++) {
-				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w) / (txh->width-1), INT2FIX(txh->height - h  -1) / (txh->height-1) );
+				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w / (txh->width-1)), INT2FIX((txh->height - h  -1) / (txh->height-1)) );
 				x += FLT2FIX(inc);
 
 				/*set triangle*/

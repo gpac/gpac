@@ -10,7 +10,7 @@
             android:layout_height="wrap_content" android:orientation="vertical">
             <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/aboutCopyright1"
                 android:text="@string/aboutCopyright1" android:layout_gravity="right"/>
-            <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/aboutCopyright1"
+            <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/aboutCopyright2"
                 android:text="@string/aboutCopyright2" android:layout_gravity="right"/>
             <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/aboutLicence"
                 android:text="@string/aboutLicence" android:layout_gravity="right"/>

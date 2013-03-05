@@ -457,7 +457,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 
 void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field)
 {
-	if ((field->fieldType==GF_SG_VRML_MFNODE) || (field->fieldType==GF_SG_VRML_MFNODE)) node->sgprivate->flags |= GF_SG_CHILD_DIRTY;
+	if (field->fieldType==GF_SG_VRML_MFNODE) node->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 	/*signal node modif*/
 	gf_node_changed(node, field);
 	/*Notify eventOut in all cases to handle protos*/

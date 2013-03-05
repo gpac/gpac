@@ -124,7 +124,7 @@ void osd_on_resize(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
 		gf_node_dirty_set((GF_Node *) osd->ct2d, GF_SG_NODE_DIRTY, 1);
 
 		if (osd->transform) {
-			osd->transform->translation.y = INT2FIX( (event->screen_rect.height - osd->ct2d->pixelHeight) ) / 2;
+			osd->transform->translation.y = INT2FIX( (FIX2INT(event->screen_rect.height) - osd->ct2d->pixelHeight) / 2 ) ;
 			gf_node_dirty_set((GF_Node *) osd->transform, GF_SG_NODE_DIRTY, 1);
 		}
 	}

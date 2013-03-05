@@ -147,7 +147,7 @@ void compositor_audioclip_modified(GF_Node *node)
 	st->failure = 0;
 
 	/*MPEG4 spec is not clear about that , so this is not forbidden*/
-	if (st->input.is_open && st->input.is_open) {
+	if (st->input.is_open) {
 		if (gf_sc_audio_check_url(&st->input, &ac->url)) {
 			gf_sc_audio_stop(&st->input);
 			gf_sc_audio_open(&st->input, &ac->url, 0, -1, 0);

@@ -539,6 +539,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_laser_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_encode_ui_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sl_depacketize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_stream_type_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_stream_type_by_name) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_new) )
@@ -546,15 +550,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
 #ifndef GPAC_MINIMAL_ODF
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_write) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_add_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_list_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_list_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_list_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_list_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_stream_type_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_stream_type_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_qos_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_qos_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_qos_add_qualif) )
@@ -980,6 +980,39 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_remove_event_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_media_queue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
+
+/*mediaobject.h exports*/
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_register) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_unregister) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_play) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_stop) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_restart) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_pause) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_resume) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_speed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_speed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_loop) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_should_deactivate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_url_changed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_fetch_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_release_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_object_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_muted) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_done) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_adjust_clock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_last_frame_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_visual_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_audio_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_current_speed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_has_audio) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_private_media) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_position) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_flags) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_flag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_load_xlink_resource) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_unload_xlink_resource) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_scenegraph) )
 #endif
 
 /*ietf.h exports*/
@@ -1581,6 +1614,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_node_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_message) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_clock_time) )
+//for Ivica
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_get_media_object_ex) )
 
 #endif
 

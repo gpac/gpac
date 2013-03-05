@@ -332,7 +332,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 #endif
 
 			/*default viewpoint*/
-			pos.x = pos.y = 0; pos.z = 10 * FIX_ONE;
+			pos.x = pos.y = 0; pos.z = INT2FIX(10);
 			center.x = center.y = center.z = 0;
 			r.q = r.x = r.z = 0; r.y = FIX_ONE;
 			/*this takes care of pixelMetrics*/
@@ -533,8 +533,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
 		
-		tr_state->camera->vp.width /= tr_state->visual->nb_views;
-		tr_state->camera->vp.x += tr_state->visual->current_view * tr_state->camera->vp.width;
+		tr_state->camera->vp.width = gf_divfix(tr_state->camera->vp.width, INT2FIX(tr_state->visual->nb_views));
+		tr_state->camera->vp.x += gf_mulfix(INT2FIX(tr_state->visual->current_view), tr_state->camera->vp.width);
 
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
@@ -551,8 +551,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
 		
-		tr_state->camera->vp.height /= tr_state->visual->nb_views;
-		tr_state->camera->vp.y += tr_state->visual->current_view * tr_state->camera->vp.height;
+		tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.height, INT2FIX(tr_state->visual->nb_views));
+		tr_state->camera->vp.y += gf_mulfix(INT2FIX(tr_state->visual->current_view), tr_state->camera->vp.height);
 //		tr_state->camera->vp.y = orig_vp.height - tr_state->camera->vp.height - tr_state->camera->vp.y;
 		if (tr_state->visual->compositor->visual==tr_state->visual)
 			tr_state->camera->vp.y = tr_state->visual->compositor->output_height - tr_state->camera->vp.y - tr_state->camera->vp.height;

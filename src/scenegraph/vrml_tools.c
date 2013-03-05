@@ -82,7 +82,10 @@ static void Node_on_add_children(GF_Node *node, GF_Route *route)
 	field.eventType = GF_SG_EVENT_EXPOSED_FIELD;
 	field.fieldType = GF_SG_VRML_MFNODE;
 	field.NDTtype = -1;
-	field.fieldIndex = 2;
+	if ( node->sgprivate->tag == TAG_MPEG4_Transform )
+		field.fieldIndex = 3;
+	else
+		field.fieldIndex = 2;
 	field.far_ptr = & n->children;
 	gf_node_event_out(node, field.fieldIndex);
 	gf_node_changed(node, &field);
@@ -121,7 +124,10 @@ static void Node_on_remove_children(GF_Node *node, GF_Route *route)
 	field.eventType = GF_SG_EVENT_EXPOSED_FIELD;
 	field.fieldType = GF_SG_VRML_MFNODE;
 	field.NDTtype = -1;
-	field.fieldIndex = 2;
+	if ( node->sgprivate->tag == TAG_MPEG4_Transform )
+		field.fieldIndex = 3;
+	else
+		field.fieldIndex = 2;
 	field.far_ptr = & n->children;
 	gf_node_event_out(node, field.fieldIndex);
 	gf_node_changed(node, &field);

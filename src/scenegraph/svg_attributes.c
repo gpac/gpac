@@ -4348,7 +4348,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		break;
 	case SVG_SpreadMethod_datatype:
 		if (intVal==SVG_SPREAD_REFLECT) return gf_strdup("reflect");
-		else if (intVal==SVG_SPREAD_REFLECT) return gf_strdup("repeat");
+		else if (intVal==SVG_SPREAD_REPEAT) return gf_strdup("repeat");
 		else return gf_strdup("pad");
 		break;
 

@@ -843,6 +843,25 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(scene_obj) );
 	return JS_TRUE;
 }
+
+static JSBool SMJS_FUNCTION(gpac_show_keyboard)
+{
+	GF_Node *elt;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!argc) return JS_FALSE;
+
+	if (JSVAL_IS_BOOLEAN(argv[0])) {
+		Bool show = JSVAL_TO_BOOLEAN(argv[0])==JS_TRUE;
+		GF_Event evt;
+        memset(&evt, 0, sizeof(GF_Event));
+	  	evt.type = show ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END;
+        gf_term_user_event(term, &evt);
+	} 
+	return JS_TRUE;
+}
+
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
 	GF_GPACJSExt *gjs;
@@ -885,6 +904,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("set_focus",			gpac_set_focus, 1),
 		SMJS_FUNCTION_SPEC("get_scene",			gpac_get_scene, 1),
 		SMJS_FUNCTION_SPEC("error_string",		gpac_error_string, 1),
+		SMJS_FUNCTION_SPEC("show_keyboard",		gpac_show_keyboard, 1),
 		
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)

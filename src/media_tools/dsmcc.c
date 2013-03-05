@@ -1393,7 +1393,7 @@ static void dsmcc_biop_get_context(GF_BitStream* bs,GF_M2TS_DSMCC_SERVICE_CONTEX
 
 static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 {
-	u32 i,left_lite_component;
+	u32 i,j,left_lite_component;
 	/* IOR */
 	left_lite_component = 0;
 	IOR->type_id_length = gf_bs_read_int(bs,32);
@@ -1545,14 +1545,13 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 						}
 		}
 		taggedProfile->LiteComponent = (GF_M2TS_DSMCC_BIOP_LITE_COMPONENT*)gf_calloc(left_lite_component,sizeof(GF_M2TS_DSMCC_BIOP_LITE_COMPONENT));
-		for(i = 0; i<left_lite_component ; i++){
-			taggedProfile->LiteComponent[i].componentId_tag = gf_bs_read_int(bs,32);						
-			taggedProfile->LiteComponent[i].component_data_length = gf_bs_read_int(bs,8);
-			if(taggedProfile->LiteComponent[i].component_data_length != 0){
-				taggedProfile->LiteComponent[i].component_data_byte = (char*)gf_calloc(taggedProfile->ServiceLocation->initialContext_length,sizeof(char));
-				gf_bs_read_data(bs,taggedProfile->LiteComponent[i].component_data_byte,(u32)(taggedProfile->LiteComponent[i].component_data_length));
-			}
-
+		for(j = 0; j<left_lite_component ; j++){
+			taggedProfile->LiteComponent[j].componentId_tag = gf_bs_read_int(bs,32);						
+			taggedProfile->LiteComponent[j].component_data_length = gf_bs_read_int(bs,8);
+			if(taggedProfile->LiteComponent[j].component_data_length != 0){
+				taggedProfile->LiteComponent[j].component_data_byte = (char*)gf_calloc(taggedProfile->ServiceLocation->initialContext_length,sizeof(char));
+				gf_bs_read_data(bs,taggedProfile->LiteComponent[j].component_data_byte,(u32)(taggedProfile->LiteComponent[j].component_data_length));
+ 			}
 		}
 
 	}

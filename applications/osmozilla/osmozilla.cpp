@@ -313,7 +313,11 @@ void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
 {
 	if (!osmo->user) return;
 
+	if ( osmo->url && !strcmp(url, osmo->url))
+		return;
+
 	fprintf(stdout, "Osmozilla connecting to %s\n", url);
+
 	if (osmo->url) gf_free(osmo->url);	
 	osmo->url = gf_strdup(url);
 

@@ -77,13 +77,13 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	compositor_adjust_scale(txh->owner, &sx, &sy);
 
 	/*check size change*/
-	size.x = txh->width*sx;
-	size.y = txh->height*sy;
+	size.x = gf_mulfix(INT2FIX(txh->width),sx);
+	size.y =  gf_mulfix(INT2FIX(txh->height),sy);
 	/*if we have a PAR update it!!*/
 	if (txh->pixel_ar) {
 		u32 n = (txh->pixel_ar>>16) & 0xFFFF;
 		u32 d = (txh->pixel_ar) & 0xFFFF;
-		size.x = ( (txh->width * n) / d) * sx;
+		size.x = gf_mulfix(INT2FIX( (txh->width * n) / d),sx);
 	}
 
 

@@ -1168,10 +1168,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		update_interval = the_pe->durationInfo;
 		break;
 	case 1:
-		update_interval = the_pe->durationInfo/2;
+		update_interval = (Double)the_pe->durationInfo/2;
 		break;
 	case 2:
-		update_interval = 3*(the_pe->durationInfo/2);
+		update_interval = 3*((Double)the_pe->durationInfo/2);
 		break;
 	default:
 		update_interval = 3*(the_pe->durationInfo);
@@ -1386,7 +1386,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			base_url = gf_strdup(pe->url);
 			sep = strrchr(base_url, '/');
 
-			if (pe->codecs && (pe->codecs[0] = '\"')) {
+			if (pe->codecs && (pe->codecs[0] == '\"')) {
 				u32 len = strlen(pe->codecs);
 				strncpy(pe->codecs, pe->codecs+1, len-1);
 				pe->codecs[len-2] = 0;

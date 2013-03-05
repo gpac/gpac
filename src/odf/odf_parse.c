@@ -376,7 +376,6 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_BIFSConfig *bcd = (GF_BIFSConfig*)desc;
 		if (!stricmp(val, "auto")) return GF_OK;
 		if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hu", &bcd->nodeIDbits);
-		else if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hu", &bcd->nodeIDbits);
 		else if (!stricmp(fieldName, "routeIDbits")) ret += sscanf(val, "%hu", &bcd->routeIDbits);
 		else if (!stricmp(fieldName, "protoIDbits")) ret += sscanf(val, "%hu", &bcd->protoIDbits);
 		else if (!stricmp(fieldName, "isCommandStream")) { /*GET_BOOL(bcd->isCommandStream)*/ ret = 1; }

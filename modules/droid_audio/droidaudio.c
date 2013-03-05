@@ -55,7 +55,8 @@ static jmethodID mGetMinBufferSize;
 static jmethodID mPlay;
 static jmethodID mStop;
 static jmethodID mRelease;
-static jmethodID mWrite;
+static jmethodID mWriteB;
+static jmethodID mWriteS;
 static jmethodID mFlush;
 
 #include <android/log.h>
@@ -90,8 +91,8 @@ typedef struct
 	u32 channelConfig; //AudioFormat.CHANNEL_OUT_MONO
 	u32 audioFormat; //AudioFormat.ENCODING_PCM_16BIT
 	s32 mbufferSizeInBytes;
-        u32 volume;
-        u32 pan;
+		u32 volume;
+		u32 pan;
 	jarray buff;
 } DroidContext;
 
@@ -102,23 +103,23 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = GetEnv();
-    	int channels;
-    	int bytes;
-        LOGV("[Android Audio] Setup for %d buffers", num_buffers);
+	int channels;
+	int bytes;
+	LOGV("[Android Audio] Setup for %d buffers", num_buffers);
 
 	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
 	ctx->cfg_num_buffers = num_buffers;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
 	ctx->cfg_duration = total_duration;
 	if (!ctx->force_config) ctx->num_buffers = 1;
-        ctx->volume = 100;
-        ctx->pan = 50;
+		ctx->volume = 100;
+		ctx->pan = 50;
 
 	if (!cAudioTrack){
 		cAudioTrack = (*env)->FindClass(env, "android/media/AudioTrack");
-        	if (!cAudioTrack) {
-            		return GF_NOT_SUPPORTED;
-        	}
+		if (!cAudioTrack) {
+				return GF_NOT_SUPPORTED;
+		}
 
 		cAudioTrack = (*env)->NewGlobalRef(env, cAudioTrack);
 
@@ -127,7 +128,8 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 		mPlay = (*env)->GetMethodID(env, cAudioTrack, "play", "()V");
 		mStop = (*env)->GetMethodID(env, cAudioTrack, "stop", "()V");
 		mRelease = (*env)->GetMethodID(env, cAudioTrack, "release", "()V");
-		mWrite = (*env)->GetMethodID(env, cAudioTrack, "write", "([BII)I");
+		mWriteB = (*env)->GetMethodID(env, cAudioTrack, "write", "([BII)I");
+		mWriteS = (*env)->GetMethodID(env, cAudioTrack, "write", "([SII)I");
 		mFlush = (*env)->GetMethodID(env, cAudioTrack, "flush", "()V");
 		setStereoVolume = (*env)->GetMethodID(env, cAudioTrack, "setStereoVolume", "(FF)I");
 	}
@@ -139,14 +141,30 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 static void WAV_Shutdown(GF_AudioOutput *dr)
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
-	JNIEnv* env = ctx->env;
+	JNIEnv* env = NULL;
+	jint res = 0;
+
+	LOGV("[Android Audio] Shutdown START.", 0);
+
+	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+	}
 
 	(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mStop);
 	(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mRelease);
 
 	(*env)->PopLocalFrame(env, NULL);
 
-	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
+	(*env)->DeleteGlobalRef(env, ctx->buff);
+	(*env)->DeleteGlobalRef(env, mtrack);
+	(*env)->DeleteGlobalRef(env, cAudioTrack);
+
+	//if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
+	//}
+
+	LOGV("[Android Audio] Shutdown DONE.", 0);
 }
 
 
@@ -170,13 +188,17 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	ctx->env = env;
 	LOGV("[Android Audio] SampleRate : %d",ctx->sampleRateInHz);
-        LOGV("[Android Audio] BitPerSample : %d", *nbBitsPerSample);
+	LOGV("[Android Audio] BitPerSample : %d", *nbBitsPerSample);
 
 	(*env)->PushLocalFrame(env, 2);
 
 	ctx->num_buffers = 1;
 	ctx->mbufferSizeInBytes = (*env)->CallStaticIntMethod(env, cAudioTrack, mGetMinBufferSize,
-			ctx->sampleRateInHz, ctx->channelConfig, ctx->audioFormat);
+		ctx->sampleRateInHz, ctx->channelConfig, ctx->audioFormat);
+
+	//ctx->mbufferSizeInBytes *= 3;
+
+	LOGV("[Android Audio] Buffer Size : %d", ctx->mbufferSizeInBytes);
 
 	i = 1;
 	if ( ctx->channelConfig == CHANNEL_CONFIGURATION_STEREO )
@@ -186,22 +208,35 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 
 	ctx->total_length_ms =  1000 * ctx->num_buffers * ctx->mbufferSizeInBytes / i / ctx->sampleRateInHz;
 
+	LOGV("[Android Audio] Buffer Length ms : %d", ctx->total_length_ms);
+
 	/*initial delay is full buffer size*/
 	ctx->delay = ctx->total_length_ms;
 
 	mtrack = (*env)->NewObject(env, cAudioTrack, mAudioTrack, STREAM_MUSIC, ctx->sampleRateInHz,
 		ctx->channelConfig, ctx->audioFormat, ctx->mbufferSizeInBytes, MODE_STREAM); //AudioTrack.MODE_STREAM
-        if (mtrack){
-          mtrack = (*env)->NewGlobalRef(env, mtrack);
-          ctx->mtrack = mtrack;
-          (*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
-        }  else {
+	if (mtrack){
+	  mtrack = (*env)->NewGlobalRef(env, mtrack);
+	  ctx->mtrack = mtrack;
+	  (*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
+//	  (*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mStop);
+	}  else {
 		LOGV("[Android Audio] mtrack = %p", mtrack);
 		return GF_NOT_SUPPORTED;
 	}
 
-	ctx->buff = (*env)->NewByteArray(env, ctx->mbufferSizeInBytes);
-        LOGV("[Android Audio] ConfigureOutput DONE.", *NbChannels);
+	if ( ctx->audioFormat == ENCODING_PCM_8BIT )
+		ctx->buff = (*env)->NewByteArray(env, ctx->mbufferSizeInBytes);
+	else
+		ctx->buff = (*env)->NewShortArray(env, ctx->mbufferSizeInBytes/2);
+	if ( ctx->buff ){
+		ctx->buff = (*env)->NewGlobalRef(env, ctx->buff);
+	} else {
+		LOGV("[Android Audio] ctx->buff = %p", ctx->buff );
+		return GF_NOT_SUPPORTED;
+	}
+
+	LOGV("[Android Audio] ConfigureOutput DONE.", *nbBitsPerSample);
 	return GF_OK;
 }
 
@@ -209,15 +244,15 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 static void WAV_WriteAudio(GF_AudioOutput *dr)
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
-        if (!ctx)
-          return;
+		if (!ctx)
+		  return;
 	JNIEnv* env = ctx->env;
 	u32 written;
 	void* pBuffer;
-        if (!env)
-          return;
+		if (!env)
+		  return;
 #ifdef DROID_EXTREME_LOGS
-        LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
+		LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
 #endif /* DROID_EXTREME_LOGS */
 	pBuffer = (*env)->GetPrimitiveArrayCritical(env, ctx->buff, NULL);
 	if (pBuffer)
@@ -226,7 +261,10 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 		(*env)->ReleasePrimitiveArrayCritical(env, ctx->buff, pBuffer, 0);
 		if (written)
 		{
-			(*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, mWrite, ctx->buff, 0, ctx->mbufferSizeInBytes);
+			if ( ctx->audioFormat == ENCODING_PCM_8BIT )
+				(*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, mWriteB, ctx->buff, 0, ctx->mbufferSizeInBytes);
+			else
+				(*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, mWriteS, ctx->buff, 0, ctx->mbufferSizeInBytes/2);
 		}
 	}
 	else
@@ -248,56 +286,57 @@ static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 
 	switch ( PlayType )
 	{
-	case 0:
-		// Stop playing
-		(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mStop);
-		// Clear the internal buffers
-		(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mFlush);
-		break;
-	case 1:
-	case 2:
-		(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
-		break;
-        default:
-                LOGW("[Android Audio] Unknown Play method=%d.\n", PlayType);
+		case 0:
+			// Stop playing
+			(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mStop);
+			// Clear the internal buffers
+			(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mFlush);
+			break;
+		case 2:
+			(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mFlush);
+		case 1:
+			(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
+			break;
+		default:
+			LOGW("[Android Audio] Unknown Play method=%d.\n", PlayType);
 	}
 	LOGV("[Android Audio] Play DONE (%d).\n", PlayType);
 }
 
 static void WAV_UpdateVolume(DroidContext *ctx){
-        float lV, rV;
-        JNIEnv* env = GetEnv();
-        if (!ctx)
-          return;
-        if (ctx->pan > 100)
-          ctx->pan = 100;
-        lV =rV = ctx->volume / 100.0;
-        if (ctx->pan > 50){
-          float m = (100 - ctx->pan) / 50.0;
-          lV*=m;
-        } else if (ctx->pan < 50){
-          float m = ctx->pan / 50.0;
-          rV*=m;
-        }
-        if (env && setStereoVolume && mtrack && cAudioTrack){
-          int success;
-          if (0!= (success=((*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, setStereoVolume, lV, rV))))
-            LOGE3("SetVolume(%f,%f) returned Error code %d", lV, rV, success );
-        } else {
-            LOGD2("SetVolume(%f,%f)", lV, rV );
-        }
+		float lV, rV;
+		JNIEnv* env = GetEnv();
+		if (!ctx)
+			return;
+		if (ctx->pan > 100)
+			ctx->pan = 100;
+		lV =rV = ctx->volume / 100.0;
+		if (ctx->pan > 50){
+			float m = (100 - ctx->pan) / 50.0;
+			lV*=m;
+		} else if (ctx->pan < 50){
+			float m = ctx->pan / 50.0;
+			rV*=m;
+		}
+		if (env && setStereoVolume && mtrack && cAudioTrack){
+			int success;
+			if (0!= (success=((*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, setStereoVolume, lV, rV))))
+				LOGE3("SetVolume(%f,%f) returned Error code %d", lV, rV, success );
+		} else {
+			LOGD2("SetVolume(%f,%f)", lV, rV );
+		}
 }
 
 static void WAV_SetVolume(GF_AudioOutput *dr, u32 Volume) {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
-        ctx->volume = Volume;
-        WAV_UpdateVolume(ctx);
+	ctx->volume = Volume;
+	WAV_UpdateVolume(ctx);
 }
 
 static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan)
 {
-        DroidContext *ctx = (DroidContext *)dr->opaque;
-        WAV_UpdateVolume(ctx);
+	DroidContext *ctx = (DroidContext *)dr->opaque;
+	WAV_UpdateVolume(ctx);
 }
 
 /* Called by the audio thread */
@@ -419,8 +458,8 @@ void *NewWAVRender()
 void DeleteWAVRender(void *ifce)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
-        if (!ifce)
-          return;
+	if (!ifce)
+		return;
 	gf_free(dr);
 }
 //----------------------------------------------------------------------

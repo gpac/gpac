@@ -84,6 +84,9 @@ static GF_Err JPEG_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	case GF_CODEC_PAR:
 		capability->cap.valueInt = 0;
 		break;
+	case GF_CODEC_REORDER:
+		capability->cap.valueInt = 0;
+		break;
 	default:
 		capability->cap.valueInt = 0;
 		return GF_NOT_SUPPORTED;

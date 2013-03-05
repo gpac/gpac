@@ -130,7 +130,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node, AABSplitParam
 	}
 	do_split = 1;
 
-	gf_vec_diff(extend, node->max, node->max);
+	gf_vec_diff(extend, node->max, node->min);
 	extend = gf_vec_scale(extend, FIX_ONE/2);
 	axis = gf_vec_main_axis(extend);
 

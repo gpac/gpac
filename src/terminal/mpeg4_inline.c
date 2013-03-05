@@ -629,7 +629,7 @@ char *storage_serialize_sf(void *ptr, u32 fieldType)
 void gf_storage_save(M_Storage *storage)
 {
 	char szID[20];
-	u32 i;
+	u32 i, j;
 	GF_Config *cfg = storage_get_cfg(storage);
 	char *section = storage_get_section(storage);
 	if (!cfg || !section) return;
@@ -662,8 +662,8 @@ void gf_storage_save(M_Storage *storage)
 			char *slotval;
 			void *slot;
 			val = NULL;
-			for (i=0; i<((GenMFField *)info.far_ptr)->count; i++) {
-				if (gf_sg_vrml_mf_get_item(info.far_ptr, info.fieldType, &slot, i) != GF_OK) break;
+			for (j=0; j<((GenMFField *)info.far_ptr)->count; j++) {
+				if (gf_sg_vrml_mf_get_item(info.far_ptr, info.fieldType, &slot, j) != GF_OK) break;
 				slotval = storage_serialize_sf(info.far_ptr, info.fieldType);
 				if (!slotval) break;
 				if (val) {

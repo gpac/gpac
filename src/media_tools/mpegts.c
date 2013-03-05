@@ -1584,8 +1584,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		desc_len = ((data[3] & 0xf) << 8) | data[4];
 		reg_desc_format = 0;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("stream_type :%d \n",stream_type));
 		switch (stream_type) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("stream_type :%d \n",stream_type));
+			
 		/* PES */
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
