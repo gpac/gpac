@@ -187,7 +187,7 @@ proceed_box:
 		gf_bs_seek(bs, start+size);
 	} else if (end-start < size) {
 		u32 to_skip = (u32) (size-(end-start));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(type), to_skip));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(type), to_skip));
 		gf_bs_skip_bytes(bs, to_skip);
 	}
 	*outBox = newBox;
