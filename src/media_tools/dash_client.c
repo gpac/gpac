@@ -486,11 +486,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->download_segment_index += start_number;
 			if (group->download_segment_index > group->start_number_at_last_ast) {
 				group->download_segment_index -= group->start_number_at_last_ast;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d: Updating Timeline: startNumber=%d segmentNumber=%d downloadSegmentIndex=%d segmentDuration=%g\n", current_time, start_number, shift, group->download_segment_index, group->segment_duration));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d: Updating Timeline: startNumber=%d segmentNumber=%d downloadSegmentIndex=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->download_segment_index, group->segment_duration, ast_diff));
 			} else {
 				group->download_segment_index = shift;
 				group->ast_at_init = mpd->availabilityStartTime;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time %d: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time %d: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->segment_duration, ast_diff));
 			}
 			group->start_number_at_last_ast = start_number;
 
