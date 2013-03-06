@@ -881,7 +881,7 @@ static JSBool SMJS_FUNCTION(addRoute)
 	/*route to object*/
 	else {
 		u32 i = 0;
-		char *fun_name;
+		const char *fun_name;
 		GF_RouteToFunction *r = NULL;
 		if (!JSVAL_IS_OBJECT(argv[3]) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[3])) ) return JS_FALSE;
 

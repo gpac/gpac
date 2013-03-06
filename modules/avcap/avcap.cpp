@@ -61,18 +61,33 @@ class GPACCaptureHandler : public CaptureHandler
 {
 public:
 	GPACCaptureHandler(GF_ClientService *service, LPNETCHANNEL channel) 
-		: m_pService(service), m_pChannel(channel)
+		: m_pService(service), m_pChannel(channel), m_data(NULL)
 	{
 		memset(&m_pSLHeader, 0, sizeof(GF_SLHeader));
 		m_pSLHeader.compositionTimeStampFlag = 1;
 	}
-	virtual ~GPACCaptureHandler() {}
+	virtual ~GPACCaptureHandler() {
+		if (m_data != NULL) {
+			gf_free(m_data);
+			m_data=NULL;
+		}
+	}
 
 	GF_ClientService *m_pService;
 	LPNETCHANNEL m_pChannel;
 	GF_SLHeader m_pSLHeader;
 
+	u32 m_height;
+	u32 m_stride;
+
+	char* m_data;
+
 public:
+	void AllocData(u32 height, u32 stride) {
+		m_height = height;
+		m_stride = stride;
+		m_data = (char*)gf_malloc(m_height * m_stride);
+	}
 	/* This method is called by the CaptureManager, when new data was captured.
 	 * \param io_buf The buffer, that contains the captured data. */
 	void handleCaptureEvent(IOBuffer* io_buf);
@@ -82,7 +97,16 @@ public:
 void GPACCaptureHandler::handleCaptureEvent(IOBuffer* io_buf)
 {
 	m_pSLHeader.compositionTimeStamp = io_buf->getTimestamp();
-	gf_term_on_sl_packet(m_pService, m_pChannel, (char *) io_buf->getPtr(), io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+
+	if (m_data) {
+		char* data = (char*)io_buf->getPtr();
+		for (u32 i=0; i<m_height; i++) {
+			memcpy(m_data + (m_height - 1 - i) * m_stride, data + i*m_stride, m_stride);
+		}
+		gf_term_on_sl_packet(m_pService, m_pChannel, m_data, io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+	} else {
+		gf_term_on_sl_packet(m_pService, m_pChannel, (char *) io_buf->getPtr(), io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+	}
 	io_buf->release();
 }
 
@@ -123,6 +147,8 @@ typedef struct
 	GPACCaptureHandler *audio_handler;
 
 	u32 width, height, pixel_format, stride, out_size, fps;
+	u32 default_4cc;
+	Bool flip_video;
 } AVCapIn;
 
 
@@ -139,6 +165,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 	GF_ESD *esd;
 	GF_BitStream *bs;
 	GF_ObjectDescriptor *od;
+	const char *opt;
 	AVCapIn *vcap = (AVCapIn *) plug->priv;
 
 	if (!vcap || !serv || !url) return GF_BAD_PARAM;
@@ -146,8 +173,12 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 	vcap->state = 0;
 	vcap->service = serv;
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "AVCap", "FlipVideo");
+	if (opt && !strcmp(opt, "yes"))	vcap->flip_video = GF_TRUE;
+
 	if (!vcap->device_desc) {
 		Format *format;
+		u32 default_4cc;
 		char *name;
 		char *params = (char *) strchr(url, '?');
 		if (params) params[0] = 0;
@@ -186,6 +217,14 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		}
 		vcap->device->getFormatMgr()->setFramerate(30);
 
+		default_4cc = 0;
+		opt = gf_modules_get_option((GF_BaseInterface *)plug, "AVCap", "Default4CC");
+		if (opt) {
+			default_4cc = GF_4CC(opt[0], opt[1], opt[2], opt[3]);
+			vcap->device->getFormatMgr()->setFormat(default_4cc);
+		}
+
+
 		while (params) {
 			char *sep = (char *) strchr(params, '&');
 			if (sep) sep[0] = 0;
@@ -210,15 +249,30 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 			}
 			else if (!strnicmp(params, "mode=", 5)) {
 			}
+			else if (!strnicmp(params, "fmt=", 4)) {
+				if (!strnicmp(params+4, "rgb", 3)) {
+					default_4cc = GF_4CC('3', 'B', 'G', 'R');
+				}
+				else if (!strnicmp(params+4, "yuv", 3)) {
+					default_4cc = GF_4CC('V', 'Y', 'U', 'Y');
+				}
+				else if (strlen(params+4)>=4) {
+					default_4cc = GF_4CC(params[4], params[5], params[6], params[7]);
+				}
+			}
 
 			if (!sep) break;
 			sep[0] = '&';
 			params = sep+1;
 		}
+
 		vcap->width = vcap->device->getFormatMgr()->getWidth();
 		vcap->height = vcap->device->getFormatMgr()->getHeight();
 		vcap->fps = vcap->device->getFormatMgr()->getFramerate();
-		
+
+		if (default_4cc )
+			vcap->device->getFormatMgr()->setFormat(default_4cc );
+	
 		format = vcap->device->getFormatMgr()->getFormat();
 		switch (format->getFourcc()) {
 		case GF_4CC('V', 'Y', 'U', 'Y'):
@@ -226,6 +280,16 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 			vcap->pixel_format = GF_PIXEL_YUY2;
 			vcap->stride = 2*vcap->width;
 			vcap->out_size = 2*vcap->width*vcap->height;
+			break;
+		case GF_4CC('2', '1', 'U', 'Y'):
+			vcap->pixel_format = GF_PIXEL_I420;
+			vcap->stride = vcap->device->getFormatMgr()->getBytesPerLine();//1.5*vcap->width;//
+			vcap->out_size = vcap->device->getFormatMgr()->getImageSize();//1.5*vcap->width*vcap->height;//
+			break;
+		case GF_4CC('3', 'B', 'G', 'R'):
+			vcap->pixel_format = GF_PIXEL_BGR_24;
+			vcap->stride = vcap->device->getFormatMgr()->getBytesPerLine();//1.5*vcap->width;//
+			vcap->out_size = vcap->device->getFormatMgr()->getImageSize();//1.5*vcap->width*vcap->height;//
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Unsupported 4CC %s (%08x) from capture device\n", gf_4cc_to_str(format->getFourcc()), format->getFourcc()));
@@ -347,6 +411,10 @@ GF_Err AVCap_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const c
 	if (ESID == 1) {
 		/*video connect*/
 		vcap->video_handler = new GPACCaptureHandler(vcap->service, channel);
+
+		if (vcap->flip_video)
+			vcap->video_handler->AllocData(vcap->height, vcap->stride);
+
 		gf_term_on_connect(vcap->service, channel, GF_OK);
 	} else if (ESID == 2) {
 		/*audio connect*/

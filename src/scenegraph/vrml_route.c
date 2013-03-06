@@ -362,10 +362,14 @@ Bool gf_sg_route_activate(GF_Route *r)
 	//check if ISed or not - this will notify the node of any changes
 	else {
 		gf_sg_proto_propagate_event(r->ToNode, r->ToField.fieldIndex, r->FromNode);
+		/*if not an ISed field, propagate (otherwise ROUTE is executed just below)*/
+		if (r->ToField.eventType != GF_SG_EVENT_EXPOSED_FIELD)
+			gf_sg_proto_propagate_event(r->ToNode, r->ToField.fieldIndex, r->FromNode);
 		/*only happen on proto, an eventOut may route to an eventOut*/
 		if (r->IS_route && r->ToField.eventType==GF_SG_EVENT_OUT) 
 			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 	}
+
 	/*and signal routes on exposed fields if field changed*/
 	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD){
 		if (r->IS_route)

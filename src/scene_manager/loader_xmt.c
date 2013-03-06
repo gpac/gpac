@@ -1844,6 +1844,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	if (!parser->parsing_proto && (tag || proto) )
 		gf_node_init(node);
 
+	/*For Ivica: load proto as soon as found when in playback mode*/
+	if ( (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && proto && !parser->parsing_proto) {
+		parser->last_error = gf_sg_proto_load_code(node);
+	}
 	return node;
 }
 
