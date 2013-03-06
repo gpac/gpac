@@ -154,7 +154,8 @@ static struct log_tool_info {u32 type;  const char *name; u32 level; } global_lo
 	{ GF_LOG_MUTEX, "mutex", GF_LOG_WARNING },
 	{ GF_LOG_DASH, "dash", GF_LOG_WARNING },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
-	{ GF_LOG_APP, "app", GF_LOG_INFO }
+	{ GF_LOG_APP, "app", GF_LOG_INFO },
+	{ GF_LOG_SCHEDULER, "scheduler", GF_LOG_INFO },
 };
 
 GF_EXPORT
