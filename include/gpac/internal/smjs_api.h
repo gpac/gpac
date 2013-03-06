@@ -32,16 +32,12 @@
 #ifndef XP_UNIX
 #define XP_UNIX
 #endif
-#include <jsconfig.h>
 #endif
 
 #include <jsapi.h>
 
 #ifndef JS_VERSION
-#include <jsversion.h>
-#ifndef JS_VERSION
 #define JS_VERSION 170
-#endif
 #endif
 
 
