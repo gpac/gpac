@@ -881,15 +881,17 @@ static JSBool SMJS_FUNCTION(addRoute)
 	/*route to object*/
 	else {
 		u32 i = 0;
+		char *fun_name;
 		GF_RouteToFunction *r = NULL;
 		if (!JSVAL_IS_OBJECT(argv[3]) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[3])) ) return JS_FALSE;
 
-		if ( n1->sgprivate->interact && n1->sgprivate->interact->routes ) {
+		fun_name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
+		if (fun_name && n1->sgprivate->interact && n1->sgprivate->interact->routes ) {
 			while ( (r = (GF_RouteToFunction*)gf_list_enum(n1->sgprivate->interact->routes, &i) )) {
 				if ( (r->FromNode == n1) 
 				&& (r->FromField.fieldIndex == f_id1)
 				&& (r->ToNode == (GF_Node*)JS_GetScript(c))
-				&& !stricmp(r->ToField.name, JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) ))
+				&& !stricmp(r->ToField.name, fun_name)
 			)
 					break;
 			}
@@ -907,7 +909,7 @@ static JSBool SMJS_FUNCTION(addRoute)
 			r->ToField.on_event_in = on_route_to_object;
 			r->ToField.eventType = GF_SG_EVENT_IN;
 			r->ToField.far_ptr = NULL;
-			r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
+			r->ToField.name = fun_name;
 
 			r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
 	//		gf_js_add_root(c, & r->obj);
