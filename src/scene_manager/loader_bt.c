@@ -1517,6 +1517,10 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			gf_list_add(parser->scripts, node);
 		}
 	}
+	/*For Ivica: load proto as soon as found when in playback mode*/
+	if ( (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && proto && !parser->parsing_proto) {
+		parser->last_error = gf_sg_proto_load_code(node);
+	}
 	return node;
 
 err:

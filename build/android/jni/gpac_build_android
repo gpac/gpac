@@ -105,46 +105,59 @@ cd ../libs/
 #echo
 #echo "[OK] success." 
 
-LIBS_DIR="$BASEPATH/applications/osmo4_android/libs/"
+LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+mkdir -p $LIBS_DIR
 echo "Copying libs to libs dir $LIBS_DIR ..."
 for i in $(find . -name '*.so')
 do
 	echo -n " Copy $i"
+	TMP_DIR=$(dirname $i)
+	echo $TMP_DIR
+	mkdir -p "$LIBS_DIR/$TMP_DIR"
 	cp "$i" "$LIBS_DIR/$i"
 done
 echo
 echo "[OK] success module for Osmo4."
 
 
-LIBS_DIR="$BASEPATH/applications/mp4box_android/libs/"
+LIBS_DIR="$BASEPATH/applications/mp4box_android/libs"
+mkdir -p $LIBS_DIR
 echo "Copying libs to libs dir $LIBS_DIR ..."
 for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
 do
-echo " Copy $i"
-cp "$i" "$LIBS_DIR/$i"
+	echo " Copy $i"
+	TMP_DIR=$(dirname $i)
+	mkdir -p "$LIBS_DIR/$TMP_DIR"
+	cp "$i" "$LIBS_DIR/$i"
 done
 echo
 echo "[OK] success module for MP4box."
 
 
-LIBS_DIR="$BASEPATH/applications/osmo4_android/libs/"
+LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
 for i in $(find . -name '*.so')
 do
-echo " Copy $i"
-cp "$i" "$LIBS_DIR/$i"
+	echo " Copy $i"
+	TMP_DIR=$(dirname $i)
+	mkdir -p "$LIBS_DIR/$TMP_DIR"
+	cp "$i" "$LIBS_DIR/$i"
 done
 echo "[OK] success extra lib for Osmo4."
 
-LIBS_DIR="$BASEPATH/applications/mp4box_android/libs/"
+LIBS_DIR="$BASEPATH/applications/mp4box_android/libs"
+mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
 
 for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
 do
-echo " Copy $i"
-cp "$i" "$LIBS_DIR/$i"
+	echo " Copy $i"
+	TMP_DIR=$(dirname $i)
+	mkdir -p "$LIBS_DIR/$TMP_DIR"
+	cp "$i" "$LIBS_DIR/$i"
 done
 echo "[OK] success extra lib MP4box."
 

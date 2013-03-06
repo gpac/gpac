@@ -25,6 +25,7 @@
 
 #include <gpac/terminal.h>
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/modules/codec.h>
 #include <gpac/constants.h>
 #include <gpac/modules/service.h>
@@ -483,25 +484,25 @@ void Java_com_gpac_Osmo4_Preview_processFrameBuf( JNIEnv* env, jobject thiz, jby
 	jbyte *jdata;
 	jsize len;
 
-	if ( ctx->started )
+	if ( ctx->started && ctx->term && ctx->term->compositor && ctx->term->compositor->audio_renderer)
 	{
 		len = (*env)->GetArrayLength(env, arr);
 		jdata = (*env)->GetByteArrayElements(env,arr,0);
 
-		convTime = gf_term_get_time(ctx->term);
+		//convTime = gf_term_get_time(ctx->term);
 
 		data = (u8*)jdata;//(u8*)decodeYUV420SP((char*)jdata, ctx->width, ctx->height); //
 		datasize = len;//ctx->width * ctx->height * CAM_PIXEL_SIZE;//
 
 		cts = gf_term_get_time(ctx->term);
 
-		convTime = cts - convTime;
+		//convTime = cts - convTime;
 
 		memset(&hdr, 0, sizeof(hdr));
 		hdr.compositionTimeStampFlag = 1;
 		hdr.compositionTimeStamp = cts;
 		gf_term_on_sl_packet(ctx->service, ctx->channel, (void*)data, datasize, &hdr, GF_OK);
-
+		
 		//gf_free(data);
 
 		(*env)->ReleaseByteArrayElements(env,arr,jdata,JNI_ABORT);
