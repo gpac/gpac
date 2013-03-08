@@ -7,7 +7,6 @@ LOCAL_MODULE		:= gm_aac_in
 include $(LOCAL_PATH)/base.mk
 
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/
-LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
 LOCAL_LDLIBS    += -lfaad
 
 #LOCAL_STATIC_LIBRARIES := libfaad
