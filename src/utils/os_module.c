@@ -82,9 +82,9 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	if (inst->lib_handle) return 1;
 
 	if (inst->ifce_reg) {
-		inst->load_func = inst->ifce_reg->LoadInterface;
-		inst->query_func = inst->ifce_reg->QueryInterfaces;
-		inst->destroy_func = inst->ifce_reg->ShutdownInterface;
+		inst->query_func = (QueryInterfaces) inst->ifce_reg->QueryInterfaces;
+		inst->load_func = (LoadInterface) inst->ifce_reg->LoadInterface;
+		inst->destroy_func = (ShutdownInterface) inst->ifce_reg->ShutdownInterface;
 		return 1;
 	}
 
