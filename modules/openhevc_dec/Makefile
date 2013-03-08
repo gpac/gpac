@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-EXTRALIBS+=-L../../bin/gcc -L. -lgpac -llibWrapper -lTLibDecoder -lTLibCommon -llibmd5$(OSVC_LDFLAGS)
+EXTRALIBS+=-L../../bin/gcc -L. -lgpac -lTLibDecoderStatic -lTLibCommonStatic -lTLibWrapperStatic
 
 #common obj
 OBJS= openhevc_dec.o
