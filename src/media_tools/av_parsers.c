@@ -878,6 +878,7 @@ const char *gf_m4a_get_profile_name(u8 audio_pl)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+GF_EXPORT
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 {
 	switch (cfg->base_object_type) {
