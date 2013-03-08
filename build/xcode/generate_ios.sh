@@ -14,35 +14,26 @@ then
 fi
 
 echo "*** Clean previous build files ***"
-xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
+#xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
 xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
-
-echo "*** Compile libgpac for iOS (arm) ***"
-xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
-./script_libgpac.sh Release
-#xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
-
-echo "*** Compile modules for iOS (arm) ***"
-xcodebuild -alltargets -parallelizeTargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
-./script_modules.sh Release
 
 echo "*** Compile osmo4ios for iOS (arm) ***"
 #link must occur at debug to avoid optimizing that leads to freezes
-xcodebuild -target osmo4ios -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj
+#xcodebuild -target osmo4ios -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj
+xcodebuild -target osmo4ios -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
 
 echo "*** Copy the generated libs (arm only) ***"
-cp build/Release-iphoneos/*.dylib ../../bin/iOS/osmo4ios.app/
-cp build/Debug-iphoneos/osmo4ios.app/osmo4ios ../../bin/iOS/osmo4ios.app/
-cp build/Debug-iphoneos/osmo4ios.app/PkgInfo ../../bin/iOS/osmo4ios.app/
-cp build/Debug-iphoneos/osmo4ios.app/Info.plist ../../bin/iOS/osmo4ios.app/
+cp build/Release-iphoneos/osmo4ios.app/osmo4ios ../../bin/iOS/osmo4ios.app/
+cp build/Release-iphoneos/osmo4ios.app/PkgInfo ../../bin/iOS/osmo4ios.app/
+cp build/Release-iphoneos/osmo4ios.app/Info.plist ../../bin/iOS/osmo4ios.app/
 cp build/Release-iphoneos/osmo4ios.app/ResourceRules.plist ../../bin/iOS/osmo4ios.app/
 
 echo "*** Test the presence of target files ***"
-if [ `ls ../../bin/iOS/osmo4ios.app/ | wc -l` -ne 24 ]
-then
-	echo "Error: target files number not correct (expected 24, got `ls ../../bin/iOS/osmo4ios.app/ | wc -l`)"
-	exit 1
-fi
+#if [ `ls ../../bin/iOS/osmo4ios.app/ | wc -l` -ne 5 ]
+#then
+#	echo "Error: target files number not correct (expected 24, got `ls ../../bin/iOS/osmo4ios.app/ | wc -l`)"
+#	exit 1
+#fi
 
 #echo "*** Build archive name ***"
 cd ../..
@@ -59,7 +50,7 @@ cd bin/iOS
 mkdir osmo4ios.app/gui
 mkdir osmo4ios.app/gui/icons
 mkdir osmo4ios.app/gui/extensions
-cp ../../applications/osmo4_ios/Resources/icon.png osmo4ios.app/
+cp ../../applications/osmo4_ios/Resources/icon*.png osmo4ios.app/
 cp ../../gui/gui*.bt osmo4ios.app/gui/
 cp ../../gui/gui*.js osmo4ios.app/gui/
 cp ../../gui/gwlib.js osmo4ios.app/gui/

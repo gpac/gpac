@@ -485,7 +485,7 @@ void EPOC_codec_del(void *ifcg);
 void *EPOC_codec_new();
 	
 /*interface query*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -498,7 +498,7 @@ const u32 *QueryInterfaces()
 }
 
 /*interface create*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) EPOC_vout_new();
@@ -508,7 +508,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 }
 
 /*interface destroy*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VideoOutput *dd = (GF_VideoOutput *)ifce;
@@ -524,6 +524,8 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( epoc_vout )
 
 #ifdef __cplusplus
 }

@@ -535,7 +535,7 @@ void set_backlight_state(Bool disable)
 		dwSize = 4;
 		dwValue = 0xefff ;
 		RegSetValueEx( hKey, _T("ACTimeout"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
-		backlight_off = 1;
+		backlight_off = GF_TRUE;
 	} else {
 		if (prev_batt_bl) {
 			dwSize = 4;
@@ -545,7 +545,7 @@ void set_backlight_state(Bool disable)
 			dwSize = 4;
 			RegSetValueEx(hKey, _T("ACTimeout"), NULL, REG_DWORD,(unsigned char *)&prev_ac_bl, dwSize);
 		}
-		backlight_off = 0;
+		backlight_off = GF_FALSE;
 	}
 	RegCloseKey(hKey);
 	hBL = CreateEvent(NULL, FALSE, FALSE, _T("BackLightChangeEvent"));
@@ -799,7 +799,7 @@ void do_copy_paste()
 			char szString[1024];
 			LPCTSTR paste_string = (LPCTSTR) GlobalLock(hglbCopy);
 			CE_WideToChar((u16 *) paste_string, szString);
-			gf_term_paste_text(term, szString, 0);
+			gf_term_paste_text(term, szString, GF_FALSE);
 #else
 			char *szString = (char *)GlobalLock(hglbCopy);
 			gf_term_paste_text(term, szString, GF_FALSE);
@@ -1308,9 +1308,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				   int nShowCmd 
 ) {
 	MSG 	msg;
-#ifdef _WIN32_WCE
-	TCHAR wzExePath[GF_MAX_PATH];
-#endif
 
 	HWND 	hwndOld = NULL;	
 	const char *str;
@@ -1346,8 +1343,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 #ifdef _WIN32_WCE
 	TCHAR      szBuf[MAX_PATH];
 	SystemParametersInfo(SPI_GETPLATFORMTYPE, MAX_PATH, szBuf, 0);
-	if (! lstrcmp(szBuf, __TEXT("PocketPC"))) is_ppc = 1;
-	else if (! lstrcmp(szBuf, __TEXT("Palm PC2"))) is_ppc = 1;
+	if (! lstrcmp(szBuf, __TEXT("PocketPC"))) is_ppc = GF_TRUE;
+	else if (! lstrcmp(szBuf, __TEXT("Palm PC2"))) is_ppc = GF_TRUE;
 #endif
 
 

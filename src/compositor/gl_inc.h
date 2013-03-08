@@ -42,10 +42,16 @@
 #ifdef GPAC_ANDROID
 #include "GLES/gl.h"
 #else
+#ifdef GPAC_IPHONE
+#include "OpenGLES/ES1/gl.h"
+#include "OpenGLES/ES1/glext.h"
+#include "glues.h"
+#else
 #include "GLES/egl.h"
 #endif
+#endif
 
-#ifdef GPAC_HAS_GLU
+#if defined(GPAC_HAS_GLU) && !defined (GPAC_IPHONE)
 /*WARNING - this is NOT a standard include, GLU is not supported by GLES*/
 #include <GLES/glu.h>
 #endif

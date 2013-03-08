@@ -23,7 +23,22 @@
  *
  */
 
-#include "libgpac_symbols.h"
+/*includes both terminal and od browser*/
+#include <gpac/terminal.h>
+#include <gpac/term_info.h>
+#include <gpac/constants.h>
+#include <gpac/options.h>
+#include <gpac/modules/service.h>
+
+/*ISO 639 languages*/
+#include <gpac/iso639.h>
+#include "dlfcn.h"
+
+
+/*exports for dlopen*/
+#include <gpac/internal/avilib.h>
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 #ifdef WIN32
 #include <windows.h>

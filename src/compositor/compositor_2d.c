@@ -469,9 +469,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	output_width = visual->compositor->vp_width;
 	output_height = visual->compositor->vp_height;
 
-	if (!(hw_caps & GF_VIDEO_HW_HAS_STRETCH)) {
-		if (has_scale) force_soft_blt = GF_TRUE;
-	}
 	if (visual->compositor->disable_hardware_blit) force_soft_blt = GF_TRUE;
 
 	if (!force_soft_blt) {
@@ -548,7 +545,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				overlay_type = 0;
 			}
 		}
+	}
 
+	if (has_scale && !(hw_caps & GF_VIDEO_HW_HAS_STRETCH) && !overlay_type) {
+		force_soft_blt = use_soft_stretch = GF_TRUE;
 	}
 
 	video_src.height = txh->height;

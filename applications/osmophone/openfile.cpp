@@ -17,8 +17,8 @@ static TCHAR w_current_dir[GF_MAX_PATH] = _T("\\");
 static u8 current_dir[GF_MAX_PATH] = "\\";
 static const char *extension_list = NULL;
 static char *out_url = NULL;
-Bool bViewUnknownTypes = 0;
-Bool playlist_mode = 0;
+Bool bViewUnknownTypes = GF_FALSE;
+Bool playlist_mode = GF_FALSE;
 GF_Config *cfg;
 
 
@@ -66,7 +66,7 @@ Bool enum_dirs(void *cbk, char *name, char *path)
 	wcscat(w_str_name, w_name);
     int iRes = SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) w_str_name);
 	SendMessage(hList, LB_SETITEMDATA, iRes, (LPARAM) 1);
-	return 0;
+	return GF_FALSE;
 }
 
 Bool enum_files(void *cbk, char *name, char *path)
@@ -75,11 +75,11 @@ Bool enum_files(void *cbk, char *name, char *path)
 
 	if (!bViewUnknownTypes && extension_list) {
 		char *ext = strrchr(name, '.');
-		if (!ext || !strstr(extension_list, ext+1)) return 0;
+		if (!ext || !strstr(extension_list, ext+1)) return GF_FALSE;
 	}
 	CE_CharToWide(name, (u16 *) w_name);
     SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) w_name);
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -97,9 +97,9 @@ void set_directory(TCHAR *dir)
 	}
 
 	/*enum directories*/
-	gf_enum_directory((const char *) current_dir, 1, enum_dirs, NULL, NULL);
+	gf_enum_directory((const char *) current_dir, GF_TRUE, enum_dirs, NULL, NULL);
 	/*enum files*/
-	gf_enum_directory((char *) current_dir, 0, enum_files, NULL, NULL);
+	gf_enum_directory((char *) current_dir, GF_FALSE, enum_files, NULL, NULL);
     SendMessage(hList, LB_SETCURSEL, 0, 0);
 	SetFocus(hList);
 }
@@ -184,10 +184,10 @@ Bool add_files(void *cbk, char *name, char *path)
 {
 	if (!bViewUnknownTypes && extension_list) {
 		char *ext = strrchr(name, '.');
-		if (!ext || !strstr(extension_list, ext+1)) return 0;
+		if (!ext || !strstr(extension_list, ext+1)) return GF_FALSE;
 	}
 	gf_cfg_set_key(cfg, "Playlist", path, "");
-	return 0;
+	return GF_FALSE;
 }
 
 void process_list_change(HWND hWnd, Bool add_to_pl)
@@ -216,7 +216,7 @@ void process_list_change(HWND hWnd, Bool add_to_pl)
 				wcscat(wdir, sTxt+2);
 				wcscat(wdir, _T("\\"));
 				CE_WideToChar((u16 *) wdir, (char *) dir);
-				gf_enum_directory(dir, 0, add_files, NULL, NULL);
+				gf_enum_directory(dir, GF_FALSE, add_files, NULL, NULL);
 			} else {
 				wcscat(w_current_dir, sTxt+2);
 				wcscat(w_current_dir, _T("\\"));
@@ -321,25 +321,25 @@ BOOL CALLBACK FileDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPara
     case WM_COMMAND:
 		if (LOWORD(wParam) == IDC_FILELIST) {
 			if (HIWORD(wParam) == LBN_DBLCLK) {
-		        process_list_change(hWnd, 0);
+		        process_list_change(hWnd, GF_FALSE);
 			} else {
 	            bProcessedMsg = FALSE;
 			}
 		} else {
 			switch (LOWORD(wParam)) {
 			case IDOK:
-				process_list_change(hWnd, 0);
+				process_list_change(hWnd, GF_FALSE);
 				break;
 			case IDCANCEL:
 				EndDialog(hWnd, 0);
 				break;
 			case IDM_OF_VIEW_ALL:
-				bViewUnknownTypes = !bViewUnknownTypes;
+				bViewUnknownTypes = (Bool) !bViewUnknownTypes;
 				refresh_menu_states();
 				set_directory(w_current_dir);
 				break;
 			case IDM_OF_PLAYLIST:
-				playlist_mode = !playlist_mode;
+				playlist_mode = (Bool) !playlist_mode;
 				if (playlist_mode) refresh_playlist();
 				else set_directory(w_current_dir);
 				switch_menu_pl();
@@ -348,7 +348,7 @@ BOOL CALLBACK FileDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPara
 				if (playlist_mode) {
 					playlist_act(0);
 				} else {
-					process_list_change(hWnd, 1);
+					process_list_change(hWnd, GF_TRUE);
 				}
 				break;
 			case IDM_OF_PL_UP:
@@ -396,8 +396,8 @@ Bool gf_file_dialog(HINSTANCE inst, HWND parent, char *url, const char *ext_list
 	g_hInst = inst;
 	cfg = gpac_cfg;
 	int iResult = DialogBox(inst, MAKEINTRESOURCE(IDD_FILEDIALOG), parent,(DLGPROC)FileDialogProc);
-	if (iResult>0) return 1;
-	return 0;
+	if (iResult>0) return GF_TRUE;
+	return GF_FALSE;
 }
 
 

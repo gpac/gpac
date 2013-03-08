@@ -23,97 +23,23 @@
  *
  */
 
+/*includes both terminal and od browser*/
+#include <gpac/terminal.h>
+#include <gpac/term_info.h>
+#include <gpac/constants.h>
+#include <gpac/options.h>
+#include <gpac/modules/service.h>
 
-#include "libgpac_symbols.h"
- 
-void (*gf_log_lt)(u32 ll, u32 lt);
-int (*AVI_close)(avi_t *AVI);
-GF_Err (*gf_term_del)(GF_Terminal *term);
-void (*gf_sleep)(u32 ms);
-GF_Err (*gf_sc_release_screen_buffer)(GF_Compositor *sr, GF_VideoSurface *framebuffer);
-char (*gf_prompt_get_char)();
-void (*gf_set_progress)(char *title, u32 done, u32 total);
-GF_Terminal *(*gf_term_new)(GF_User *user);
-GF_Err (*gf_term_process_step)(GF_Terminal *term);
-GF_Err (*gf_sc_get_screen_buffer)(GF_Compositor *sr, GF_VideoSurface *framebuffer, Bool depth_buffer);
-void (*gf_iphone_set_sdl_audio_module)(void* (*SDL_Module) (void));
-GF_Err (*gf_term_step_clocks)(GF_Terminal * term, u32 ms_diff);
-void (*gf_prompt_set_echo_off)(Bool echo_off);
-u32 (*gf_log_tool_level_on)();
-GF_Err (*gf_cfg_set_key)(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue);
-u32 (*gf_cfg_get_section_count)(GF_Config *cfgFile);
-GF_Err (*gf_term_get_service_info)(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netcom);
-GF_Err (*gf_term_set_size)(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
-Bool (*gf_sys_get_rti)(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
-u32 (*gf_term_play_from_time)(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
-void *(*gf_malloc)(size_t size);
-void (*gf_log_set_tools_levels)(const char *);
-void (*gf_log_set_tool_level)(u32, u32);
-void (*gf_log_modify_tools_level)(const char *);
-void (*gf_iphone_set_sdl_video_module)(void* (*SDL_Module) (void));
-u32 (*gf_term_get_option)(GF_Terminal *term, u32 opt_type);
-Bool (*gf_term_user_event)(GF_Terminal *term, GF_Event *event);
-const char *(*gf_modules_get_file_name)(GF_ModuleManager *pm, u32 index);
-GF_Mutex *(*gf_mx_new)(const char *name);
-u32 (*gf_list_count)(GF_List *ptr);
-void (*gf_free)(void *ptr);
-const char *(*gf_term_get_world_info)(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions);
-const char *(*gf_cfg_get_section_name)(GF_Config *cfgFile, u32 secIndex);
-void (*gf_term_navigate_to)(GF_Terminal *term, const char *toURL);
-void (*gf_modules_del)(GF_ModuleManager *pm);
-GF_ModuleManager *(*gf_modules_new)(const char *directory, GF_Config *cfgFile);
-void (*gf_sys_init)(Bool enable_memory_tracker);
-void (*gf_log)(const char *fmt, ...);
-GF_Err (*gf_term_get_object_info)(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info);
-u32 (*gf_mx_p)(GF_Mutex *mx);
-u32 (*gf_mx_v)(GF_Mutex *mx);
-void (*gf_mx_del)(GF_Mutex *mx);
-GF_Err (*gf_term_process_flush)(GF_Terminal *term);
-const char *(*gf_cfg_get_key_name)(GF_Config *cfgFile, const char *secName, u32 keyIndex);
-int (*AVI_write_frame)(avi_t *AVI, char *data, long bytes, int keyframe);
-void (*gf_cfg_del)(GF_Config *iniFile);
-Bool (*gf_term_get_channel_net_info)(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code);
-void (*gf_term_process_shortcut)(GF_Terminal *term, GF_Event *ev);
-GF_Config *(*gf_cfg_init)(const char *fileName, Bool *is_new);
-Bool (*gf_term_get_download_info)(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
-u32 (*gf_sys_clock)();
-GF_ObjectManager *(*gf_term_get_object)(GF_Terminal *term, GF_ObjectManager *scene_od, u32 index);
-GF_Err (*gf_term_set_option)(GF_Terminal *term, u32 opt_type, u32 opt_value);
-void (*gf_sys_close)();
-void (*gf_term_connect_from_time)(GF_Terminal *term, const char *URL, u64 time_in_ms, Bool pause_at_first_frame);
-avi_t* (*AVI_open_output_file)(char * filename);
-const char *(*gf_cfg_get_key)(GF_Config *cfgFile, const char *secName, const char *keyName);
-void (*AVI_set_video)(avi_t *AVI, int width, int height, double fps, char *compressor);
-void (*gf_term_set_speed)(GF_Terminal *term, Fixed speed);
-u32 (*gf_cfg_get_key_count)(GF_Config *cfgFile, const char *secName);
-u32 (*gf_term_object_subscene_type)(GF_Terminal *term, GF_ObjectManager *odm);
-Double (*gf_term_get_framerate)(GF_Terminal *term, Bool absoluteFPS);
-const char *(*gf_error_to_string)(GF_Err e);
-GF_Err (*gf_stretch_bits)(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
-void (*gf_list_del)(GF_List *ptr);
-void *(*gf_list_get)(GF_List *ptr, u32 itemNumber);
-void (*gf_term_disconnect)(GF_Terminal *term);
-Bool (*gf_term_is_supported_url)(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check);
-GF_List *(*gf_list_new)(void);
-const char *(*gf_modules_get_option)(GF_BaseInterface *interface_obj, const char *secName, const char *keyName);
-GF_Err (*gf_term_dump_scene)(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);
-Bool (*gf_prompt_has_input)();
-GF_Err (*gf_term_scene_update)(GF_Terminal *term, char *type, char *com);
-void (*gf_term_connect)(GF_Terminal *term, const char *URL);
-u32 (*gf_term_get_object_count)(GF_Terminal *term, GF_ObjectManager *scene_od);
-u32 (*gf_modules_get_count)(GF_ModuleManager *pm);
-GF_ObjectManager *(*gf_term_get_root_object)(GF_Terminal *term);
-u32 (*gf_term_get_time_in_ms)(GF_Terminal *term);
-void (*gf_term_connect_with_path)(GF_Terminal *term, const char *URL, const char *parent_URL);
-gf_log_cbk (*gf_log_set_callback)(void *usr_cbk, gf_log_cbk cbk);
-GF_Err (*gf_log_modify_tools_levels)(const char *val);
-void (*gf_term_switch_quality)(GF_Terminal *term, Bool up);
-GF_Err (*gf_term_release_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
-GF_Err (*gf_term_get_screen_buffer)(GF_Terminal *term, GF_VideoSurface *framebuffer);
-FILE *(*gf_f64_open)(const char *file_name, const char *mode);
-size_t (*gf_fwrite)(const void *ptr, size_t size, size_t nmemb, FILE *stream);
-GF_Err (*gf_img_png_enc)(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
-u32 (*utf8_to_ucs4)(u32 *ucs4_buf, u32 utf8_len, unsigned char *utf8_buf);
+/*ISO 639 languages*/
+#include <gpac/iso639.h>
+#include "dlfcn.h"
+
+
+/*exports for dlopen*/
+#include <gpac/internal/avilib.h>
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
+
 
 #ifndef WIN32
 #include <pwd.h>
@@ -842,7 +768,7 @@ int main (int argc, char *argv[])
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
-	Bool start_fs = 0;
+	Bool start_fs = 1;
 	Bool use_rtix = 0;
 	Bool rgbds_dump = 0;
 	Bool rgbd_dump = 0;
@@ -856,99 +782,29 @@ int main (int argc, char *argv[])
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
-	int *libgpac_so = NULL;
-	
-	libgpac_so = dlopen("/Applications/osmo4ios.app/libgpac_dynamic.dylib", RTLD_LAZY);
-	fprintf(stderr, "dlopen libgpac_so: %p\n", libgpac_so);
-	fprintf(stderr, "dlsym: %p gf_log_lt\n", gf_log_lt = dlsym(libgpac_so, "gf_log_lt"));
-	fprintf(stderr, "dlsym: %p AVI_close\n", AVI_close = dlsym(libgpac_so, "AVI_close"));
-	fprintf(stderr, "dlsym: %p gf_sleep\n", gf_sleep = dlsym(libgpac_so, "gf_sleep"));
-	fprintf(stderr, "dlsym: %p gf_term_del\n", gf_term_del = dlsym(libgpac_so, "gf_term_del"));
-	fprintf(stderr, "dlsym: %p gf_sc_release_screen_buffer\n", gf_sc_release_screen_buffer = dlsym(libgpac_so, "gf_sc_release_screen_buffer"));
-	fprintf(stderr, "dlsym: %p gf_prompt_get_char\n", gf_prompt_get_char = dlsym(libgpac_so, "gf_prompt_get_char"));
-	fprintf(stderr, "dlsym: %p gf_set_progress\n", gf_set_progress = dlsym(libgpac_so, "gf_set_progress"));
-	fprintf(stderr, "dlsym: %p gf_term_new\n", gf_term_new = dlsym(libgpac_so, "gf_term_new"));
-	fprintf(stderr, "dlsym: %p gf_term_process_step\n", gf_term_process_step = dlsym(libgpac_so, "gf_term_process_step"));
-	fprintf(stderr, "dlsym: %p gf_sc_get_screen_buffer\n", gf_sc_get_screen_buffer = dlsym(libgpac_so, "gf_sc_get_screen_buffer"));
-	fprintf(stderr, "dlsym: %p gf_iphone_set_sdl_audio_module\n", gf_iphone_set_sdl_audio_module = dlsym(libgpac_so, "gf_iphone_set_sdl_audio_module"));
-	fprintf(stderr, "dlsym: %p gf_term_step_clocks\n", gf_term_step_clocks = dlsym(libgpac_so, "gf_term_step_clocks"));
-	fprintf(stderr, "dlsym: %p gf_prompt_set_echo_off\n", gf_prompt_set_echo_off = dlsym(libgpac_so, "gf_prompt_set_echo_off"));
-	fprintf(stderr, "dlsym: %p gf_log_tool_level_on\n", gf_log_tool_level_on = dlsym(libgpac_so, "gf_log_tool_level_on"));
-	fprintf(stderr, "dlsym: %p gf_cfg_set_key\n", gf_cfg_set_key = dlsym(libgpac_so, "gf_cfg_set_key"));
-	fprintf(stderr, "dlsym: %p gf_cfg_get_section_count\n", gf_cfg_get_section_count = dlsym(libgpac_so, "gf_cfg_get_section_count"));
-	fprintf(stderr, "dlsym: %p gf_term_get_service_info\n", gf_term_get_service_info = dlsym(libgpac_so, "gf_term_get_service_info"));
-	fprintf(stderr, "dlsym: %p gf_term_set_size\n", gf_term_set_size = dlsym(libgpac_so, "gf_term_set_size"));
-	fprintf(stderr, "dlsym: %p gf_sys_get_rti\n", gf_sys_get_rti = dlsym(libgpac_so, "gf_sys_get_rti"));
-	fprintf(stderr, "dlsym: %p gf_term_play_from_time\n", gf_term_play_from_time = dlsym(libgpac_so, "gf_term_play_from_time"));
-	fprintf(stderr, "dlsym: %p gf_malloc\n", gf_malloc = dlsym(libgpac_so, "gf_malloc"));
-	fprintf(stderr, "dlsym: %p gf_log_set_tool_level\n", gf_log_set_tool_level = dlsym(libgpac_so, "gf_log_set_tool_level"));
-	fprintf(stderr, "dlsym: %p gf_log_set_tools_levels\n", gf_log_set_tools_levels = dlsym(libgpac_so, "gf_log_set_tools_levels"));
-	fprintf(stderr, "dlsym: %p gf_log_modify_tools_levels\n", gf_log_modify_tools_levels = dlsym(libgpac_so, "gf_log_modify_tools_levels"));
-	fprintf(stderr, "dlsym: %p gf_iphone_set_sdl_video_module\n", gf_iphone_set_sdl_video_module = dlsym(libgpac_so, "gf_iphone_set_sdl_video_module"));
-	fprintf(stderr, "dlsym: %p gf_term_get_option\n", gf_term_get_option = dlsym(libgpac_so, "gf_term_get_option"));
-	fprintf(stderr, "dlsym: %p gf_term_user_event\n", gf_term_user_event = dlsym(libgpac_so, "gf_term_user_event"));
-	fprintf(stderr, "dlsym: %p gf_modules_get_file_name\n", gf_modules_get_file_name = dlsym(libgpac_so, "gf_modules_get_file_name"));
-	fprintf(stderr, "dlsym: %p gf_mx_new\n", gf_mx_new = dlsym(libgpac_so, "gf_mx_new"));
-	fprintf(stderr, "dlsym: %p gf_list_count\n", gf_list_count = dlsym(libgpac_so, "gf_list_count"));
-	fprintf(stderr, "dlsym: %p gf_free\n", gf_free = dlsym(libgpac_so, "gf_free"));
-	fprintf(stderr, "dlsym: %p gf_term_get_world_info\n", gf_term_get_world_info = dlsym(libgpac_so, "gf_term_get_world_info"));
-	fprintf(stderr, "dlsym: %p gf_cfg_get_section_name\n", gf_cfg_get_section_name = dlsym(libgpac_so, "gf_cfg_get_section_name"));
-	fprintf(stderr, "dlsym: %p gf_term_navigate_to\n", gf_term_navigate_to = dlsym(libgpac_so, "gf_term_navigate_to"));
-	fprintf(stderr, "dlsym: %p gf_modules_del\n", gf_modules_del = dlsym(libgpac_so, "gf_modules_del"));
-	fprintf(stderr, "dlsym: %p gf_modules_new\n", gf_modules_new = dlsym(libgpac_so, "gf_modules_new"));
-	fprintf(stderr, "dlsym: %p gf_sys_init\n", gf_sys_init = dlsym(libgpac_so, "gf_sys_init"));
-	fprintf(stderr, "dlsym: %p gf_log\n", gf_log = dlsym(libgpac_so, "gf_log"));
-	fprintf(stderr, "dlsym: %p gf_term_get_object_info\n", gf_term_get_object_info = dlsym(libgpac_so, "gf_term_get_object_info"));
-	fprintf(stderr, "dlsym: %p gf_mx_p\n", gf_mx_p = dlsym(libgpac_so, "gf_mx_p"));
-	fprintf(stderr, "dlsym: %p gf_mx_v\n", gf_mx_v = dlsym(libgpac_so, "gf_mx_v"));
-	fprintf(stderr, "dlsym: %p gf_mx_del\n", gf_mx_del = dlsym(libgpac_so, "gf_mx_del"));
-	fprintf(stderr, "dlsym: %p gf_term_process_flush\n", gf_term_process_flush = dlsym(libgpac_so, "gf_term_process_flush"));
-	fprintf(stderr, "dlsym: %p gf_cfg_get_key_name\n", gf_cfg_get_key_name = dlsym(libgpac_so, "gf_cfg_get_key_name"));
-	fprintf(stderr, "dlsym: %p AVI_write_frame\n", AVI_write_frame = dlsym(libgpac_so, "AVI_write_frame"));
-	fprintf(stderr, "dlsym: %p gf_cfg_del\n", gf_cfg_del = dlsym(libgpac_so, "gf_cfg_del"));
-	fprintf(stderr, "dlsym: %p gf_term_get_channel_net_info\n", gf_term_get_channel_net_info = dlsym(libgpac_so, "gf_term_get_channel_net_info"));
-	fprintf(stderr, "dlsym: %p gf_term_process_shortcut\n", gf_term_process_shortcut = dlsym(libgpac_so, "gf_term_process_shortcut"));
-	fprintf(stderr, "dlsym: %p gf_cfg_init\n", gf_cfg_init = dlsym(libgpac_so, "gf_cfg_init"));
-	fprintf(stderr, "dlsym: %p gf_term_get_download_info\n", gf_term_get_download_info = dlsym(libgpac_so, "gf_term_get_download_info"));
-	fprintf(stderr, "dlsym: %p gf_sys_clock\n", gf_sys_clock = dlsym(libgpac_so, "gf_sys_clock"));
-	fprintf(stderr, "dlsym: %p gf_term_get_object\n", gf_term_get_object = dlsym(libgpac_so, "gf_term_get_object"));
-	fprintf(stderr, "dlsym: %p gf_term_set_option\n", gf_term_set_option = dlsym(libgpac_so, "gf_term_set_option"));
-	fprintf(stderr, "dlsym: %p gf_sys_close\n", gf_sys_close = dlsym(libgpac_so, "gf_sys_close"));
-	fprintf(stderr, "dlsym: %p gf_term_connect_from_time\n", gf_term_connect_from_time = dlsym(libgpac_so, "gf_term_connect_from_time"));
-	fprintf(stderr, "dlsym: %p AVI_open_output_file\n", AVI_open_output_file = dlsym(libgpac_so, "AVI_open_output_file"));
-	fprintf(stderr, "dlsym: %p gf_cfg_get_key\n", gf_cfg_get_key = dlsym(libgpac_so, "gf_cfg_get_key"));
-	fprintf(stderr, "dlsym: %p AVI_set_video\n", AVI_set_video = dlsym(libgpac_so, "AVI_set_video"));
-	fprintf(stderr, "dlsym: %p gf_term_set_speed\n", gf_term_set_speed = dlsym(libgpac_so, "gf_term_set_speed"));
-	fprintf(stderr, "dlsym: %p gf_cfg_get_key_count\n", gf_cfg_get_key_count = dlsym(libgpac_so, "gf_cfg_get_key_count"));
-	fprintf(stderr, "dlsym: %p gf_term_object_subscene_type\n", gf_term_object_subscene_type = dlsym(libgpac_so, "gf_term_object_subscene_type"));
-	fprintf(stderr, "dlsym: %p gf_term_get_framerate\n", gf_term_get_framerate = dlsym(libgpac_so, "gf_term_get_framerate"));
-	fprintf(stderr, "dlsym: %p gf_error_to_string\n", gf_error_to_string = dlsym(libgpac_so, "gf_error_to_string"));
-	fprintf(stderr, "dlsym: %p gf_stretch_bits\n", gf_stretch_bits = dlsym(libgpac_so, "gf_stretch_bits"));
-	fprintf(stderr, "dlsym: %p gf_list_del\n", gf_list_del = dlsym(libgpac_so, "gf_list_del"));
-	fprintf(stderr, "dlsym: %p gf_list_get\n", gf_list_get = dlsym(libgpac_so, "gf_list_get"));
-	fprintf(stderr, "dlsym: %p gf_term_disconnect\n", gf_term_disconnect = dlsym(libgpac_so, "gf_term_disconnect"));
-	fprintf(stderr, "dlsym: %p gf_term_is_supported_url\n", gf_term_is_supported_url = dlsym(libgpac_so, "gf_term_is_supported_url"));
-	fprintf(stderr, "dlsym: %p gf_list_new\n", gf_list_new = dlsym(libgpac_so, "gf_list_new"));
-	fprintf(stderr, "dlsym: %p gf_modules_get_option\n", gf_modules_get_option = dlsym(libgpac_so, "gf_modules_get_option"));
-	fprintf(stderr, "dlsym: %p gf_term_dump_scene\n", gf_term_dump_scene = dlsym(libgpac_so, "gf_term_dump_scene"));
-	fprintf(stderr, "dlsym: %p gf_prompt_has_input\n", gf_prompt_has_input = dlsym(libgpac_so, "gf_prompt_has_input"));
-	fprintf(stderr, "dlsym: %p gf_term_scene_update\n", gf_term_scene_update = dlsym(libgpac_so, "gf_term_scene_update"));
-	fprintf(stderr, "dlsym: %p gf_term_connect\n", gf_term_connect = dlsym(libgpac_so, "gf_term_connect"));
-	fprintf(stderr, "dlsym: %p gf_term_get_object_count\n", gf_term_get_object_count = dlsym(libgpac_so, "gf_term_get_object_count"));
-	fprintf(stderr, "dlsym: %p gf_modules_get_count\n", gf_modules_get_count = dlsym(libgpac_so, "gf_modules_get_count"));
-	fprintf(stderr, "dlsym: %p gf_term_get_root_object\n", gf_term_get_root_object = dlsym(libgpac_so, "gf_term_get_root_object"));
-	fprintf(stderr, "dlsym: %p gf_term_get_time_in_ms\n", gf_term_get_time_in_ms = dlsym(libgpac_so, "gf_term_get_time_in_ms"));
-	fprintf(stderr, "dlsym: %p gf_term_connect_with_path\n", gf_term_connect_with_path = dlsym(libgpac_so, "gf_term_connect_with_path"));
-	fprintf(stderr, "dlsym: %p gf_log_set_callback\n", gf_log_set_callback = dlsym(libgpac_so, "gf_log_set_callback"));
-	fprintf(stderr, "dlsym: %p gf_term_switch_quality\n", gf_term_switch_quality = dlsym(libgpac_so, "gf_term_switch_quality"));
-	fprintf(stderr, "dlsym: %p gf_term_release_screen_buffer\n", gf_term_release_screen_buffer = dlsym(libgpac_so, "gf_term_release_screen_buffer"));
-	fprintf(stderr, "dlsym: %p gf_term_get_screen_buffer\n", gf_term_get_screen_buffer = dlsym(libgpac_so, "gf_term_get_screen_buffer"));
-	fprintf(stderr, "dlsym: %p gf_f64_open\n", gf_f64_open = dlsym(libgpac_so, "gf_f64_open"));
-	fprintf(stderr, "dlsym: %p gf_fwrite\n", gf_fwrite = dlsym(libgpac_so, "gf_fwrite"));
-	fprintf(stderr, "dlsym: %p gf_img_png_enc\n", gf_img_png_enc = dlsym(libgpac_so, "gf_img_png_enc"));
-	fprintf(stderr, "dlsym: %p utf8_to_ucs4\n", utf8_to_ucs4 = dlsym(libgpac_so, "utf8_to_ucs4"));
-
-	/*by default use current dir*/
+    
+/*    char *buf;
+    char *res;
+    buf = (char*)malloc(PATH_MAX);
+    fprintf(stderr, "Testing for symlinc\n");
+    res = realpath("/var/mobile", buf);
+    if (res) {
+        fprintf(stderr,"This source is at %s.\n", buf);
+        strcat(buf, "/.test");
+    } else
+        strcpy(buf, "/var/mobile/.test");
+    
+    fprintf(stderr, "Creating test: %s\n", buf);
+    logfile = fopen(buf, "wt");
+    if (logfile) {
+        fprintf(stderr, "Create test successfull\n");
+        fclose(logfile);
+    }
+    else
+        fprintf(stderr, "Error: creating .gpacrc\n");
+    free(buf);
+  */  
+    /*by default use current dir*/
 	strcpy(the_url, ".");
 
 	memset(&user, 0, sizeof(GF_User));
@@ -970,8 +826,6 @@ int main (int argc, char *argv[])
 	}
 
 	gf_sys_init(enable_mem_tracker);
-	gf_iphone_set_sdl_video_module(SDL_NewVideo);
-	gf_iphone_set_sdl_audio_module(SDL_NewAudio);
 	
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {

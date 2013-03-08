@@ -321,9 +321,9 @@ Specifies whether scalable zoom should be used or not. When scalable zoom is ena
 Disables YUV hardware support (YUV hardware support may not be available for the current video output module).</p>
 
 
-<b>ForceOpenGL</b> [value: <i>"yes"  "no"</i>]
+<b>ForceOpenGL</b> [value: <i>"yes", "no", "raster"</i>]
 <p style="text-indent: 5%">
-Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms.</p>
+Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation).</p>
 <b>DefaultNavigationMode</b> [value: <i>"Walk", "Fly", "Examine"</i>]
 <p style="text-indent: 5%">
 Overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine).</p>

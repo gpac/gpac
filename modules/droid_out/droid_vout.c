@@ -636,7 +636,7 @@ void DeleteVideoOutput(void *ifce)
 }
 
 /*interface query*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -646,14 +646,14 @@ const u32 *QueryInterfaces()
 	return si;
 }
 /*interface create*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewRawVideoOutput();
 	return NULL;
 }
 /*interface destroy*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -662,3 +662,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( droid_vidgl )

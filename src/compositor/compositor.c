@@ -1144,6 +1144,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #ifdef OPENGL_RASTER
 	compositor->opengl_raster = (sOpt && !strcmp(sOpt, "raster")) ? 1 : 0;
+	if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
 #endif
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");

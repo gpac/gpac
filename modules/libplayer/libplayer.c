@@ -590,7 +590,7 @@ static GF_Err LIBPLAYER_Control(GF_PrivateMediaDecoder *dec, Bool mute, GF_Windo
 }
 
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -601,7 +601,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) {
@@ -644,7 +644,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
 	if (bi->InterfaceType==GF_NET_CLIENT_INTERFACE) {
@@ -656,3 +656,5 @@ void ShutdownInterface(GF_BaseInterface *bi)
 		gf_free(bi);
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( libplayer )

@@ -360,7 +360,7 @@ void DeleteMPEGVSInputSensor(GF_InputSensorDevice* dev)
 }
 
 /*interface query*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -371,7 +371,7 @@ const u32 *QueryInterfaces()
 }
 
 /*interface create*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_INPUT_DEVICE_INTERFACE) return (GF_BaseInterface *) NewMPEGVSInputSesor();
@@ -379,7 +379,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 }
 
 /*interface destroy*/
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -389,3 +389,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
+GPAC_MODULE_STATIC_DELARATION( droid_mpegv )

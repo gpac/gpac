@@ -45,7 +45,11 @@
 #elif (defined(__DARWIN__) || defined(__APPLE__) )
 #include <mach-o/dyld.h> /*for _NSGetExecutablePath */
 
+#ifdef GPAC_IPHONE
+#define TEST_MODULE     "osmo4ios"
+#else
 #define TEST_MODULE		"gm_dummy_in.dylib"
+#endif
 #define CFG_FILE_NAME	".gpacrc"
 
 #else
@@ -230,10 +234,20 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
 	if (path_type==GF_PATH_CFG) {
 		char *user_home = getenv("HOME");
+#ifdef GPAC_IPHONE
+        char buf[PATH_MAX];
+        char *res;
+#endif
 		if (!user_home) return 0;
-		strcpy(file_path, user_home);
+#ifdef GPAC_IPHONE
+        res = realpath(user_home, buf);
+        if (res) {
+            strcpy(file_path, buf);
+        } else
+#endif
+        strcpy(file_path, user_home);
 		if (file_path[strlen(file_path)-1] == '/') file_path[strlen(file_path)-1] = 0;
-		return 1;
+        return 1;
 	}
 
 	if (path_type==GF_PATH_APP) {
@@ -355,6 +369,7 @@ static GF_Config *create_default_config(char *file_path)
 	}
 	/*Create the config file*/
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+    fprintf(stderr, "Trying to create config file: %s", szPath);
 	f = gf_f64_open(szPath, "wt");
 	if (!f) return NULL;
 	fclose(f);

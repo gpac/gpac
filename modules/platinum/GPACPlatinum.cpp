@@ -1688,7 +1688,7 @@ void upnp_delete(GF_BaseInterface *ifce)
 extern "C" {
 #endif
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -1698,14 +1698,14 @@ const u32 *QueryInterfaces()
 	return si; 
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)upnp_new();
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -1714,6 +1714,8 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( platinum )
 
 #ifdef __cplusplus
 }

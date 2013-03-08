@@ -557,7 +557,7 @@ void DeleteAESReader(void *ifce)
 
 
 #ifdef GPAC_AMR_IN_STANDALONE
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -567,7 +567,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -576,12 +576,15 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 	case GF_NET_CLIENT_INTERFACE:  DeleteAESReader(ifce); break;
 	}
 }
+
+GPAC_MODULE_STATIC_DELARATION( amr_in )
+
 #endif
 
