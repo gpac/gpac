@@ -77,7 +77,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="SDL.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -104,101 +103,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="Release|Win32"
-			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
-			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
-			ConfigurationType="2"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\obj/sdl_out_rel/sdl_out.tlb"
-				HeaderFileName=""
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include/SDL"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
-				StringPooling="true"
-				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
-				AssemblerListingLocation="$(IntDir)\"
-				ObjectFile="$(IntDir)\"
-				ProgramDataBaseFileName="$(IntDir)\"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1036"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="SDL.lib"
-				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
-				LinkIncremental="1"
-				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				ModuleDefinitionFile=""
-				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
-				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
-				TargetMachine="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-				SuppressStartupBanner="true"
-				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -308,6 +212,101 @@
 				AdditionalFiles=""
 			/>
 			<DebuggerTool
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="1"
+				TypeLibraryName=".\obj/sdl_out_rel/sdl_out.tlb"
+				HeaderFileName=""
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				InlineFunctionExpansion="1"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include/SDL"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
+				StringPooling="true"
+				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1036"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="SDL.lib"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
+				LinkIncremental="1"
+				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				ModuleDefinitionFile=""
+				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
@@ -428,7 +427,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Release|Win32"
+				Name="Debug|Smartphone 2003 (ARMV4)"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -437,7 +436,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Debug|Smartphone 2003 (ARMV4)"
+				Name="Release|Win32"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -468,7 +467,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Release|Win32"
+				Name="Debug|Smartphone 2003 (ARMV4)"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -477,7 +476,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Debug|Smartphone 2003 (ARMV4)"
+				Name="Release|Win32"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -512,7 +511,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Release|Win32"
+				Name="Debug|Smartphone 2003 (ARMV4)"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -521,7 +520,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Debug|Smartphone 2003 (ARMV4)"
+				Name="Release|Win32"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -556,7 +555,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Release|Win32"
+				Name="Debug|Smartphone 2003 (ARMV4)"
 				>
 				<Tool
 					Name="VCCLCompilerTool"
@@ -565,7 +564,7 @@
 				/>
 			</FileConfiguration>
 			<FileConfiguration
-				Name="Debug|Smartphone 2003 (ARMV4)"
+				Name="Release|Win32"
 				>
 				<Tool
 					Name="VCCLCompilerTool"

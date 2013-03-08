@@ -23,6 +23,7 @@
  *
  */
 
+#include "math.h"
 #include "quant.h"
 
 #ifndef GPAC_DISABLE_BIFS_ENC

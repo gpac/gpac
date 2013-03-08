@@ -41,7 +41,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 
 	/*success, overwrite SL config*/
 	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.command_type = GF_NET_CHAN_RECONFIG;
+	com.command_type =	GF_NET_CHAN_RECONFIG;
 	com.base.on_channel = ch->channel;
 
 	gf_rtp_depacketizer_get_slconfig(ch->depacketizer, &com.cfg.sl_config);

@@ -216,7 +216,7 @@ static void WII_Stop(struct __input_device *ifce)
 }
 
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -226,7 +226,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	GF_WiiMote *wii;
@@ -246,7 +246,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return (GF_BaseInterface *)plug;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_WiiMote *wii;
@@ -260,3 +260,5 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	gf_free(wii);
 	gf_free(bi);
 }
+
+GPAC_MODULE_STATIC_DELARATION( wiiis )

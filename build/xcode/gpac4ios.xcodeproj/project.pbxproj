@@ -3,24 +3,52 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 45;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		71179CA31292E7BA00A83216 /* libfaad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45012830B1400C384DE /* libfaad.a */; };
-		71179CAE1292E7F700A83216 /* libmad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45512830B1400C384DE /* libmad.a */; };
+		0496F07716DD1A18009D9D8D /* libfaad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45012830B1400C384DE /* libfaad.a */; };
+		0496F07816DD1A18009D9D8D /* libfreetype.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45112830B1400C384DE /* libfreetype.a */; };
+		0496F07916DD1A18009D9D8D /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45312830B1400C384DE /* libjpeg.a */; };
+		0496F07A16DD1A18009D9D8D /* libjs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45412830B1400C384DE /* libjs.a */; };
+		0496F07B16DD1A18009D9D8D /* libmad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45512830B1400C384DE /* libmad.a */; };
+		0496F07C16DD1A18009D9D8D /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45612830B1400C384DE /* libpng.a */; };
+		0496F07E16DD1A19009D9D8D /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0496F07D16DD1A18009D9D8D /* libSDL2.a */; };
+		0496F08216DD1AE7009D9D8D /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0496F08116DD1AE7009D9D8D /* Default-568h@2x.png */; };
+		0496F08316DE122A009D9D8D /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199991278778800ACFF58 /* audio.c */; };
+		0496F08416DE122A009D9D8D /* cursors.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999A1278778800ACFF58 /* cursors.c */; };
+		0496F08516DE122A009D9D8D /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999C1278778800ACFF58 /* sdl_out.c */; };
+		0496F08616DE122A009D9D8D /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999E1278778800ACFF58 /* video.c */; };
+		0496F08716DE122A009D9D8D /* video2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999F1278778800ACFF58 /* video2d.c */; };
+		0496F08816DE35C9009D9D8D /* gm_aac_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478491278654000917298 /* gm_aac_in.a */; };
+		0496F08916DE35C9009D9D8D /* gm_bifs_dec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478651278658A00917298 /* gm_bifs_dec.a */; };
+		0496F08A16DE35C9009D9D8D /* gm_ctx_load.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847841127864AC00917298 /* gm_ctx_load.a */; };
+		0496F08B16DE35C9009D9D8D /* gm_dummy_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478381278647200917298 /* gm_dummy_in.a */; };
+		0496F08C16DE35C9009D9D8D /* gm_ft_font.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7184789F1278661700917298 /* gm_ft_font.a */; };
+		0496F08D16DE35C9009D9D8D /* gm_gpac_js.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7184786C127865A200917298 /* gm_gpac_js.a */; };
+		0496F08E16DE35C9009D9D8D /* gm_hyb_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.a */; };
+		0496F08F16DE35C9009D9D8D /* gm_img_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7184785E1278657F00917298 /* gm_img_in.a */; };
+		0496F09016DE35C9009D9D8D /* gm_isom_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847873127865B700917298 /* gm_isom_in.a */; };
+		0496F09116DE35C9009D9D8D /* gm_laser_dec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7184787A127865CB00917298 /* gm_laser_dec.a */; };
+		0496F09216DE35C9009D9D8D /* gm_mp3_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478571278656E00917298 /* gm_mp3_in.a */; };
+		0496F09416DE35C9009D9D8D /* gm_mpegts_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478981278660400917298 /* gm_mpegts_in.a */; };
+		0496F09516DE35C9009D9D8D /* gm_odf_dec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847881127865D600917298 /* gm_odf_dec.a */; };
+		0496F09616DE35C9009D9D8D /* gm_rtp_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847891127865F700917298 /* gm_rtp_in.a */; };
+		0496F09716DE35C9009D9D8D /* gm_sdl_out.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478B11278666100917298 /* gm_sdl_out.a */; };
+		0496F09816DE35C9009D9D8D /* gm_soft_raster.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478311278645B00917298 /* gm_soft_raster.a */; };
+		0496F09916DE35C9009D9D8D /* gm_svg_in.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478501278655800917298 /* gm_svg_in.a */; };
+		0496F09A16DE35C9009D9D8D /* gm_widgetman.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 718478A61278662F00917298 /* gm_widgetman.a */; };
+		0496F09B16DE35C9009D9D8D /* libgpac_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71CCF1311277037A00339E12 /* libgpac_static.a */; };
+		0496F09C16DE36BC009D9D8D /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
+		04E81B0D16E4D1C8004796EF /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 04E81B0C16E4D1C8004796EF /* icon.png */; };
+		04E81B0F16E4D24A004796EF /* icon_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 04E81B0E16E4D24A004796EF /* icon_retina.png */; };
+		04E81B1116E4D325004796EF /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 04E81B1016E4D325004796EF /* icon_ipad.png */; };
+		04E81B1316E4D32A004796EF /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 04E81B1216E4D32A004796EF /* icon_ipad_retina.png */; };
+		04EFB63516E51E4200D1D44A /* libglues.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 04EFB63416E51E4200D1D44A /* libglues.a */; };
 		71179CC91292EC5200A83216 /* mpd_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 71179CBF1292EC1800A83216 /* mpd_in.c */; };
-		71179CF31292EDED00A83216 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
 		712986C312928421003B02A1 /* extract.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A19B411279713300ACFF58 /* extract.c */; };
-		712986C41292843B003B02A1 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199991278778800ACFF58 /* audio.c */; };
-		712986C51292843B003B02A1 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999E1278778800ACFF58 /* video.c */; };
-		712986D8129284BD003B02A1 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999C1278778800ACFF58 /* sdl_out.c */; };
 		7141FF301292CB9200FCB27D /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7141FF2F1292CB9200FCB27D /* alloc.c */; };
 		7147426012B918C900DB5A59 /* cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 7147425F12B918C900DB5A59 /* cache.c */; };
-		718477E4127817B700917298 /* libgpac_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71CCF1311277037A00339E12 /* libgpac_static.a */; };
-		718477FA12781DEB00917298 /* empty.c in Sources */ = {isa = PBXBuildFile; fileRef = 718477F912781DEB00917298 /* empty.c */; };
-		71847812127860F000917298 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71847814127860F000917298 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
 		71A1990A1278765600ACFF58 /* aac_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199071278765600ACFF58 /* aac_in.c */; };
 		71A1990B1278765600ACFF58 /* faad_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199081278765600ACFF58 /* faad_dec.c */; };
 		71A199101278767B00ACFF58 /* bifs_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1990E1278767B00ACFF58 /* bifs_dec.c */; };
@@ -67,31 +95,12 @@
 		71A199951278777A00ACFF58 /* widget.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998D1278777A00ACFF58 /* widget.c */; };
 		71A199961278777A00ACFF58 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		71A199971278777A00ACFF58 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
-		71A19A1A12787BFB00ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A2112787C3200ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A2C12787C6800ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A3F12787CB800ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A4512787CDB00ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A4912787CF000ACFF58 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
-		71A19A5212787D0E00ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A5B12787D2A00ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A6112787D4000ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A6712787D8300ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A6D12787D9800ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A7712787DC100ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A7D12787DD700ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A8312787DED00ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19A8912787E0400ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19AA612795BE100ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19AAF12795C3100ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
-		71A19AB312795C4900ACFF58 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
-		71A19ABE12795C7E00ACFF58 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
 		71A19B2112796B6F00ACFF58 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A19B2012796B6F00ACFF58 /* main.c */; };
 		71A19B4012796FCC00ACFF58 /* module_av_generic.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A19B3F12796FCC00ACFF58 /* module_av_generic.c */; };
 		71A19BB212797D1B00ACFF58 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BB112797D1B00ACFF58 /* OpenGLES.framework */; };
 		71A19BB912797D4800ACFF58 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BB812797D4800ACFF58 /* AudioToolbox.framework */; };
 		71A19BC412797D9200ACFF58 /* libobjc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BC312797D9200ACFF58 /* libobjc.dylib */; };
-		71A19BCD12797DBA00ACFF58 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BCC12797DBA00ACFF58 /* UIKit.framework */; };
+		71A19BCD12797DBA00ACFF58 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BCC12797DBA00ACFF58 /* UIKit.framework */; settings = {ATTRIBUTES = (Required, ); }; };
 		71A19C3B12797E4000ACFF58 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C3A12797E4000ACFF58 /* CoreGraphics.framework */; };
 		71A19C3D12797E4000ACFF58 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C3C12797E4000ACFF58 /* Foundation.framework */; };
 		71A19C3F12797E4000ACFF58 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C3E12797E4000ACFF58 /* QuartzCore.framework */; };
@@ -431,17 +440,7 @@
 		71EB6E5614C5B92200B7EDA7 /* fm_fake_push.c in Sources */ = {isa = PBXBuildFile; fileRef = 71EB6E5014C5B92200B7EDA7 /* fm_fake_push.c */; };
 		71EB6E5814C5B92200B7EDA7 /* hyb_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 71EB6E5214C5B92200B7EDA7 /* hyb_in.c */; };
 		71EB6E5914C5B92200B7EDA7 /* hyb_in.h in Headers */ = {isa = PBXBuildFile; fileRef = 71EB6E5314C5B92200B7EDA7 /* hyb_in.h */; };
-		71EB6EAF14C5C2F700B7EDA7 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		71EB6EB014C5C30000B7EDA7 /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		71EB6EB114C5C30500B7EDA7 /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		71EB6EB214C5C32B00B7EDA7 /* libc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847811127860F000917298 /* libc.dylib */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
-		71F2A45E12830B5300C384DE /* libjs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45412830B1400C384DE /* libjs.a */; };
-		71F2A46E12830BE200C384DE /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45312830B1400C384DE /* libjpeg.a */; };
-		71F2A46F12830BE800C384DE /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45612830B1400C384DE /* libpng.a */; };
-		71F2A4BA12830E3000C384DE /* libfreetype.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45112830B1400C384DE /* libfreetype.a */; };
-		71F2A4C512830E5A00C384DE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
-		71F2A4D012830E7400C384DE /* libSDL.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45712830B1400C384DE /* libSDL.a */; };
 		970A26C913434D2C0007362C /* m3u8.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C713434D2C0007362C /* m3u8.c */; };
 		970A26CA13434D2C0007362C /* mpd.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C813434D2C0007362C /* mpd.c */; };
 		970A26CD13434D780007362C /* m3u8.h in Headers */ = {isa = PBXBuildFile; fileRef = 970A26CB13434D780007362C /* m3u8.h */; };
@@ -451,51 +450,6 @@
 		970A26D413434D960007362C /* unicode.h in Headers */ = {isa = PBXBuildFile; fileRef = 970A26D113434D960007362C /* unicode.h */; };
 		970A26D713434DAC0007362C /* ringbuffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26D513434DAC0007362C /* ringbuffer.c */; };
 		970A26D813434DAC0007362C /* unicode.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26D613434DAC0007362C /* unicode.c */; };
-		970A270E1343540C0007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E2134377400007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E3134377430007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E4134377440007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E5134377480007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E6134377490007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E71343774A0007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E81343774B0007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A27E91343774C0007362C /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
-		970A2840134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2841134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2842134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2843134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2844134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2845134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2846134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2847134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2848134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2849134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A284A134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A284B134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A284C134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A284D134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A284E134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A284F134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2850134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A2851134462AF0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A283F134462AE0007362C /* libgpac_dynamic.dylib */; };
-		970A28531344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28541344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28551344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28561344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28571344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28581344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28591344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A285A1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A285B1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A285C1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A285D1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A285E1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A285F1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28601344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28611344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28621344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28631344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
-		970A28641344632F0007362C /* libgpac_dynamic.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A28521344632F0007362C /* libgpac_dynamic.dylib */; };
 		970D981C16D6D0AE00FB0325 /* isom_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 970D981B16D6D0AE00FB0325 /* isom_cache.c */; };
 		97116F211646E38D00BD1AD0 /* box_code_adobe.c in Sources */ = {isa = PBXBuildFile; fileRef = 97116F201646E38D00BD1AD0 /* box_code_adobe.c */; };
 		973B2E3115BAAE3D00394854 /* generic_subtitle.c in Sources */ = {isa = PBXBuildFile; fileRef = 973B2E3015BAAE3D00394854 /* generic_subtitle.c */; };
@@ -505,7 +459,6 @@
 		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
 		97793E5115E6370D005123E1 /* dash_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 97793E5015E6370D005123E1 /* dash_client.c */; };
-		979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 970A270D1343540C0007362C /* libgcc_s.1.dylib */; };
 		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
 		97DDAFEF1569631900528219 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DDAFEE1569631900528219 /* sha1.c */; };
 		97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E08C68160F684B00BBDC34 /* swf_svg.c */; };
@@ -513,6 +466,146 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		047ACFD316DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71CCF1301277037A00339E12;
+			remoteInfo = libgpac_static;
+		};
+		047ACFD516DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478301278645B00917298;
+			remoteInfo = soft_raster;
+		};
+		047ACFD716DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478371278647200917298;
+			remoteInfo = dummy_in;
+		};
+		047ACFD916DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71847840127864AC00917298;
+			remoteInfo = ctx_load;
+		};
+		047ACFDB16DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478481278654000917298;
+			remoteInfo = aac_in;
+		};
+		047ACFDD16DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7184784F1278655800917298;
+			remoteInfo = svg_in;
+		};
+		047ACFDF16DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478561278656E00917298;
+			remoteInfo = mp3_in;
+		};
+		047ACFE116DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7184785D1278657F00917298;
+			remoteInfo = img_in;
+		};
+		047ACFE316DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478641278658A00917298;
+			remoteInfo = bifs_dec;
+		};
+		047ACFE516DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7184786B127865A200917298;
+			remoteInfo = gpac_js;
+		};
+		047ACFE716DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71847872127865B700917298;
+			remoteInfo = isom_in;
+		};
+		047ACFE916DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71847879127865CB00917298;
+			remoteInfo = laser_dec;
+		};
+		047ACFEB16DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71847880127865D600917298;
+			remoteInfo = odf_dec;
+		};
+		047ACFED16DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71847890127865F700917298;
+			remoteInfo = rtp_in;
+		};
+		047ACFEF16DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478971278660400917298;
+			remoteInfo = mpegts_in;
+		};
+		047ACFF116DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7184789E1278661700917298;
+			remoteInfo = ft_font;
+		};
+		047ACFF316DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478A51278662F00917298;
+			remoteInfo = widgetman;
+		};
+		047ACFF516DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 718478B01278666100917298;
+			remoteInfo = sdl_out;
+		};
+		047ACFF916DF56BF00F2BF65 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71EB6E4714C5B6F500B7EDA7;
+			remoteInfo = hyb_in;
+		};
+		0496F07F16DD1A6B009D9D8D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71CCF1301277037A00339E12;
+			remoteInfo = libgpac_static;
+		};
 		713FD6E31393868200E8102E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
@@ -520,41 +613,116 @@
 			remoteGlobalIDString = 718478371278647200917298;
 			remoteInfo = dummy_in;
 		};
-		718477D4127814D600917298 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 71CCF1301277037A00339E12;
-			remoteInfo = libgpac_static;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0432EDE016DF9E4F001FE8B8 /* osmo4ios.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = osmo4ios.entitlements; sourceTree = "<group>"; };
+		0496F07D16DD1A18009D9D8D /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = "<group>"; };
+		0496F08116DD1AE7009D9D8D /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
+		04E81AC016E0FF0A004796EF /* applications-system.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "applications-system.svg"; sourceTree = "<group>"; };
+		04E81AC116E0FF0A004796EF /* init.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = init.js; sourceTree = "<group>"; };
+		04E81AC216E0FF0A004796EF /* gui.bt */ = {isa = PBXFileReference; lastKnownFileType = text; path = gui.bt; sourceTree = "<group>"; };
+		04E81AC316E0FF0A004796EF /* gui.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = gui.js; sourceTree = "<group>"; };
+		04E81AC416E0FF0A004796EF /* gui_old.bt */ = {isa = PBXFileReference; lastKnownFileType = text; path = gui_old.bt; sourceTree = "<group>"; };
+		04E81AC516E0FF0A004796EF /* gui_old.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = gui_old.js; sourceTree = "<group>"; };
+		04E81AC616E0FF0A004796EF /* gwlib.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = gwlib.js; sourceTree = "<group>"; };
+		04E81AC816E0FF0A004796EF /* applications-internet.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "applications-internet.svg"; sourceTree = "<group>"; };
+		04E81AC916E0FF0A004796EF /* applications-multimedia.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "applications-multimedia.svg"; sourceTree = "<group>"; };
+		04E81ACA16E0FF0A004796EF /* applications-system.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "applications-system.svg"; sourceTree = "<group>"; };
+		04E81ACB16E0FF0A004796EF /* audio-volume-high.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "audio-volume-high.svg"; sourceTree = "<group>"; };
+		04E81ACC16E0FF0A004796EF /* audio-volume-low.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "audio-volume-low.svg"; sourceTree = "<group>"; };
+		04E81ACD16E0FF0A004796EF /* audio-volume-medium.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "audio-volume-medium.svg"; sourceTree = "<group>"; };
+		04E81ACE16E0FF0A004796EF /* audio-volume-muted.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "audio-volume-muted.svg"; sourceTree = "<group>"; };
+		04E81ACF16E0FF0A004796EF /* audio-x-generic.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "audio-x-generic.svg"; sourceTree = "<group>"; };
+		04E81AD016E0FF0A004796EF /* battery-caution.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "battery-caution.svg"; sourceTree = "<group>"; };
+		04E81AD116E0FF0A004796EF /* camera-photo.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "camera-photo.svg"; sourceTree = "<group>"; };
+		04E81AD216E0FF0A004796EF /* camera-video.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "camera-video.svg"; sourceTree = "<group>"; };
+		04E81AD316E0FF0A004796EF /* dialog-error.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "dialog-error.svg"; sourceTree = "<group>"; };
+		04E81AD416E0FF0A004796EF /* dialog-information.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "dialog-information.svg"; sourceTree = "<group>"; };
+		04E81AD516E0FF0A004796EF /* dialog-warning.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "dialog-warning.svg"; sourceTree = "<group>"; };
+		04E81AD616E0FF0A004796EF /* document-new.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "document-new.svg"; sourceTree = "<group>"; };
+		04E81AD716E0FF0A004796EF /* document-print-preview.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "document-print-preview.svg"; sourceTree = "<group>"; };
+		04E81AD816E0FF0A004796EF /* document-print.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "document-print.svg"; sourceTree = "<group>"; };
+		04E81AD916E0FF0A004796EF /* document-save-as.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "document-save-as.svg"; sourceTree = "<group>"; };
+		04E81ADA16E0FF0A004796EF /* document-save.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "document-save.svg"; sourceTree = "<group>"; };
+		04E81ADB16E0FF0A004796EF /* edit-find.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "edit-find.svg"; sourceTree = "<group>"; };
+		04E81ADC16E0FF0A004796EF /* emblem-symbolic-link.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "emblem-symbolic-link.svg"; sourceTree = "<group>"; };
+		04E81ADD16E0FF0A004796EF /* emblem-unreadable.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "emblem-unreadable.svg"; sourceTree = "<group>"; };
+		04E81ADE16E0FF0A004796EF /* face-surprise.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "face-surprise.svg"; sourceTree = "<group>"; };
+		04E81ADF16E0FF0A004796EF /* folder-open.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "folder-open.svg"; sourceTree = "<group>"; };
+		04E81AE016E0FF0A004796EF /* folder.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = folder.svg; sourceTree = "<group>"; };
+		04E81AE116E0FF0A004796EF /* go-bottom.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-bottom.svg"; sourceTree = "<group>"; };
+		04E81AE216E0FF0A004796EF /* go-down.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-down.svg"; sourceTree = "<group>"; };
+		04E81AE316E0FF0A004796EF /* go-first.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-first.svg"; sourceTree = "<group>"; };
+		04E81AE416E0FF0A004796EF /* go-home.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-home.svg"; sourceTree = "<group>"; };
+		04E81AE516E0FF0A004796EF /* go-jump.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-jump.svg"; sourceTree = "<group>"; };
+		04E81AE616E0FF0A004796EF /* go-last.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-last.svg"; sourceTree = "<group>"; };
+		04E81AE716E0FF0A004796EF /* go-next.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-next.svg"; sourceTree = "<group>"; };
+		04E81AE816E0FF0A004796EF /* go-previous.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-previous.svg"; sourceTree = "<group>"; };
+		04E81AE916E0FF0A004796EF /* go-top.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-top.svg"; sourceTree = "<group>"; };
+		04E81AEA16E0FF0B004796EF /* go-up.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "go-up.svg"; sourceTree = "<group>"; };
+		04E81AEB16E0FF0B004796EF /* image-missing.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "image-missing.svg"; sourceTree = "<group>"; };
+		04E81AEC16E0FF0B004796EF /* left_arrow.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = left_arrow.svg; sourceTree = "<group>"; };
+		04E81AED16E0FF0B004796EF /* list-add.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "list-add.svg"; sourceTree = "<group>"; };
+		04E81AEE16E0FF0B004796EF /* list-remove.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "list-remove.svg"; sourceTree = "<group>"; };
+		04E81AEF16E0FF0B004796EF /* media-eject.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-eject.svg"; sourceTree = "<group>"; };
+		04E81AF016E0FF0B004796EF /* media-playback-pause.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-playback-pause.svg"; sourceTree = "<group>"; };
+		04E81AF116E0FF0B004796EF /* media-playback-start.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-playback-start.svg"; sourceTree = "<group>"; };
+		04E81AF216E0FF0B004796EF /* media-playback-stop.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-playback-stop.svg"; sourceTree = "<group>"; };
+		04E81AF316E0FF0B004796EF /* media-record.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-record.svg"; sourceTree = "<group>"; };
+		04E81AF416E0FF0B004796EF /* media-seek-backward.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-seek-backward.svg"; sourceTree = "<group>"; };
+		04E81AF516E0FF0B004796EF /* media-seek-forward.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-seek-forward.svg"; sourceTree = "<group>"; };
+		04E81AF616E0FF0B004796EF /* media-skip-backward.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-skip-backward.svg"; sourceTree = "<group>"; };
+		04E81AF716E0FF0B004796EF /* media-skip-forward.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "media-skip-forward.svg"; sourceTree = "<group>"; };
+		04E81AF816E0FF0B004796EF /* preferences-desktop-remote-desktop.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "preferences-desktop-remote-desktop.svg"; sourceTree = "<group>"; };
+		04E81AF916E0FF0B004796EF /* preferences-system-windows.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "preferences-system-windows.svg"; sourceTree = "<group>"; };
+		04E81AFA16E0FF0B004796EF /* process-stop.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "process-stop.svg"; sourceTree = "<group>"; };
+		04E81AFB16E0FF0B004796EF /* right_arrow.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = right_arrow.svg; sourceTree = "<group>"; };
+		04E81AFC16E0FF0B004796EF /* tennis_ball.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = tennis_ball.svg; sourceTree = "<group>"; };
+		04E81AFD16E0FF0B004796EF /* tennis_black.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = tennis_black.svg; sourceTree = "<group>"; };
+		04E81AFE16E0FF0B004796EF /* tennis_racket.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = tennis_racket.svg; sourceTree = "<group>"; };
+		04E81AFF16E0FF0B004796EF /* tennis_racket_color.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = tennis_racket_color.svg; sourceTree = "<group>"; };
+		04E81B0016E0FF0B004796EF /* user-trash.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "user-trash.svg"; sourceTree = "<group>"; };
+		04E81B0116E0FF0B004796EF /* video-display.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "video-display.svg"; sourceTree = "<group>"; };
+		04E81B0216E0FF0B004796EF /* video-x-generic.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "video-x-generic.svg"; sourceTree = "<group>"; };
+		04E81B0316E0FF0B004796EF /* view-fullscreen.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "view-fullscreen.svg"; sourceTree = "<group>"; };
+		04E81B0416E0FF0B004796EF /* iphone_wm_gui.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = iphone_wm_gui.js; sourceTree = "<group>"; };
+		04E81B0516E0FF0B004796EF /* iphone_wm_gui.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = iphone_wm_gui.svg; sourceTree = "<group>"; };
+		04E81B0616E0FF0B004796EF /* mpegu-core.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "mpegu-core.js"; sourceTree = "<group>"; };
+		04E81B0716E0FF0B004796EF /* mpegu-wm.bt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "mpegu-wm.bt"; sourceTree = "<group>"; };
+		04E81B0816E0FF0B004796EF /* mpegu-wm.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "mpegu-wm.js"; sourceTree = "<group>"; };
+		04E81B0916E0FF0B004796EF /* mpegu-wm.xmt */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "mpegu-wm.xmt"; sourceTree = "<group>"; };
+		04E81B0A16E0FF0B004796EF /* tv_wm_gui.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = tv_wm_gui.js; sourceTree = "<group>"; };
+		04E81B0B16E0FF0B004796EF /* tv_wm_gui.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = tv_wm_gui.svg; sourceTree = "<group>"; };
+		04E81B0C16E4D1C8004796EF /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon.png; sourceTree = "<group>"; };
+		04E81B0E16E4D24A004796EF /* icon_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_retina.png; sourceTree = "<group>"; };
+		04E81B1016E4D325004796EF /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_ipad.png; sourceTree = "<group>"; };
+		04E81B1216E4D32A004796EF /* icon_ipad_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_ipad_retina.png; sourceTree = "<group>"; };
+		04EFB63416E51E4200D1D44A /* libglues.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglues.a; path = ../../extra_lib/lib/iOS/libglues.a; sourceTree = "<group>"; };
 		71179CBF1292EC1800A83216 /* mpd_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpd_in.c; sourceTree = "<group>"; };
-		71179CC41292EC3400A83216 /* gm_mpd_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_mpd_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		71179CC41292EC3400A83216 /* gm_mpd_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_mpd_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		7141FF2F1292CB9200FCB27D /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		7147425F12B918C900DB5A59 /* cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache.c; sourceTree = "<group>"; };
-		718477D0127814B200917298 /* libgpac_dynamic.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgpac_dynamic.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		718477F912781DEB00917298 /* empty.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = empty.c; sourceTree = "<group>"; };
 		71847811127860F000917298 /* libc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libc.dylib; path = usr/lib/libc.dylib; sourceTree = SDKROOT; };
 		71847813127860F000917298 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
-		718478311278645B00917298 /* gm_soft_raster.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_soft_raster.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478381278647200917298 /* gm_dummy_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_dummy_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		71847841127864AC00917298 /* gm_ctx_load.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_ctx_load.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478491278654000917298 /* gm_aac_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_aac_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478501278655800917298 /* gm_svg_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_svg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478571278656E00917298 /* gm_mp3_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_mp3_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		7184785E1278657F00917298 /* gm_img_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_img_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478651278658A00917298 /* gm_bifs_dec.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_bifs_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		7184786C127865A200917298 /* gm_gpac_js.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_gpac_js.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		71847873127865B700917298 /* gm_isom_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_isom_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		7184787A127865CB00917298 /* gm_laser_dec.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_laser_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		71847881127865D600917298 /* gm_odf_dec.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_odf_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		71847891127865F700917298 /* gm_rtp_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_rtp_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478981278660400917298 /* gm_mpegts_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_mpegts_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		7184789F1278661700917298 /* gm_ft_font.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_ft_font.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478A61278662F00917298 /* gm_widgetman.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_widgetman.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		718478B11278666100917298 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478311278645B00917298 /* gm_soft_raster.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_soft_raster.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478381278647200917298 /* gm_dummy_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_dummy_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		71847841127864AC00917298 /* gm_ctx_load.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_ctx_load.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478491278654000917298 /* gm_aac_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_aac_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478501278655800917298 /* gm_svg_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_svg_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478571278656E00917298 /* gm_mp3_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_mp3_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		7184785E1278657F00917298 /* gm_img_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_img_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478651278658A00917298 /* gm_bifs_dec.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_bifs_dec.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		7184786C127865A200917298 /* gm_gpac_js.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_gpac_js.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		71847873127865B700917298 /* gm_isom_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_isom_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		7184787A127865CB00917298 /* gm_laser_dec.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_laser_dec.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		71847881127865D600917298 /* gm_odf_dec.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_odf_dec.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		71847891127865F700917298 /* gm_rtp_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_rtp_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478981278660400917298 /* gm_mpegts_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_mpegts_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		7184789F1278661700917298 /* gm_ft_font.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_ft_font.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478A61278662F00917298 /* gm_widgetman.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_widgetman.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		718478B11278666100917298 /* gm_sdl_out.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_sdl_out.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		71A199071278765600ACFF58 /* aac_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aac_in.c; sourceTree = "<group>"; };
 		71A199081278765600ACFF58 /* faad_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = faad_dec.c; sourceTree = "<group>"; };
 		71A1990E1278767B00ACFF58 /* bifs_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bifs_dec.c; sourceTree = "<group>"; };
@@ -954,7 +1122,7 @@
 		71CCF3AE12770A8C00339E12 /* user.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = user.h; sourceTree = "<group>"; };
 		71CCF3AF12770A8C00339E12 /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utf.h; sourceTree = "<group>"; };
 		71CCF3B012770A8C00339E12 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xml.h; sourceTree = "<group>"; };
-		71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.dylib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_hyb_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = gm_hyb_in.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		71EB6E4F14C5B92200B7EDA7 /* fm_fake_pull.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fm_fake_pull.c; sourceTree = "<group>"; };
 		71EB6E5014C5B92200B7EDA7 /* fm_fake_push.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fm_fake_push.c; sourceTree = "<group>"; };
 		71EB6E5214C5B92200B7EDA7 /* hyb_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hyb_in.c; sourceTree = "<group>"; };
@@ -999,24 +1167,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71179CF31292EDED00A83216 /* libc.dylib in Frameworks */,
-				970A2850134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28631344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				979D587014C53556000F5831 /* libgcc_s.1.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		718477CE127814B200917298 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				718477E4127817B700917298 /* libgpac_static.a in Frameworks */,
-				71847812127860F000917298 /* libc.dylib in Frameworks */,
-				71847814127860F000917298 /* libz.dylib in Frameworks */,
-				71F2A45E12830B5300C384DE /* libjs.a in Frameworks */,
-				71F2A46E12830BE200C384DE /* libjpeg.a in Frameworks */,
-				71F2A46F12830BE800C384DE /* libpng.a in Frameworks */,
-				970A270E1343540C0007362C /* libgcc_s.1.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1024,10 +1174,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A1A12787BFB00ACFF58 /* libc.dylib in Frameworks */,
-				970A27E2134377400007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A2840134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28531344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1035,9 +1181,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A2112787C3200ACFF58 /* libc.dylib in Frameworks */,
-				970A2841134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28541344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1045,10 +1188,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A2C12787C6800ACFF58 /* libc.dylib in Frameworks */,
-				970A27E3134377430007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A2843134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28561344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1056,11 +1195,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A3F12787CB800ACFF58 /* libc.dylib in Frameworks */,
-				71179CA31292E7BA00A83216 /* libfaad.a in Frameworks */,
-				970A27E4134377440007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A2842134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28551344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1068,10 +1202,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A4512787CDB00ACFF58 /* libc.dylib in Frameworks */,
-				71A19A4912787CF000ACFF58 /* libz.dylib in Frameworks */,
-				970A2844134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28571344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1079,11 +1209,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A5212787D0E00ACFF58 /* libc.dylib in Frameworks */,
-				71179CAE1292E7F700A83216 /* libmad.a in Frameworks */,
-				970A27E5134377480007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A2845134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28581344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1091,9 +1216,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A5B12787D2A00ACFF58 /* libc.dylib in Frameworks */,
-				970A2846134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28591344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1101,9 +1223,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A6112787D4000ACFF58 /* libc.dylib in Frameworks */,
-				970A2847134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A285A1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1111,9 +1230,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A6712787D8300ACFF58 /* libc.dylib in Frameworks */,
-				970A2848134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A285B1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1121,10 +1237,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A6D12787D9800ACFF58 /* libc.dylib in Frameworks */,
-				970A27E6134377490007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A2849134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A285C1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1132,9 +1244,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A7712787DC100ACFF58 /* libc.dylib in Frameworks */,
-				970A284A134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A285D1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1142,9 +1251,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A7D12787DD700ACFF58 /* libc.dylib in Frameworks */,
-				970A284B134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A285E1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1152,10 +1258,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A8312787DED00ACFF58 /* libc.dylib in Frameworks */,
-				970A27E71343774A0007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A284D134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28601344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1163,10 +1265,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19A8912787E0400ACFF58 /* libc.dylib in Frameworks */,
-				970A27E81343774B0007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A284C134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A285F1344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1174,12 +1272,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19AA612795BE100ACFF58 /* libc.dylib in Frameworks */,
-				71F2A4BA12830E3000C384DE /* libfreetype.a in Frameworks */,
-				71F2A4C512830E5A00C384DE /* libz.dylib in Frameworks */,
-				970A27E91343774C0007362C /* libgcc_s.1.dylib in Frameworks */,
-				970A284E134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28611344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1187,10 +1279,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19AAF12795C3100ACFF58 /* libc.dylib in Frameworks */,
-				71A19AB312795C4900ACFF58 /* libz.dylib in Frameworks */,
-				970A284F134462AE0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28621344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1198,9 +1286,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71A19ABE12795C7E00ACFF58 /* libc.dylib in Frameworks */,
-				970A2851134462AF0007362C /* libgpac_dynamic.dylib in Frameworks */,
-				970A28641344632F0007362C /* libgpac_dynamic.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1208,6 +1293,34 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04EFB63516E51E4200D1D44A /* libglues.a in Frameworks */,
+				0496F09C16DE36BC009D9D8D /* libz.dylib in Frameworks */,
+				0496F08816DE35C9009D9D8D /* gm_aac_in.a in Frameworks */,
+				0496F08916DE35C9009D9D8D /* gm_bifs_dec.a in Frameworks */,
+				0496F08A16DE35C9009D9D8D /* gm_ctx_load.a in Frameworks */,
+				0496F08B16DE35C9009D9D8D /* gm_dummy_in.a in Frameworks */,
+				0496F08C16DE35C9009D9D8D /* gm_ft_font.a in Frameworks */,
+				0496F08D16DE35C9009D9D8D /* gm_gpac_js.a in Frameworks */,
+				0496F08E16DE35C9009D9D8D /* gm_hyb_in.a in Frameworks */,
+				0496F08F16DE35C9009D9D8D /* gm_img_in.a in Frameworks */,
+				0496F09016DE35C9009D9D8D /* gm_isom_in.a in Frameworks */,
+				0496F09116DE35C9009D9D8D /* gm_laser_dec.a in Frameworks */,
+				0496F09216DE35C9009D9D8D /* gm_mp3_in.a in Frameworks */,
+				0496F09416DE35C9009D9D8D /* gm_mpegts_in.a in Frameworks */,
+				0496F09516DE35C9009D9D8D /* gm_odf_dec.a in Frameworks */,
+				0496F09616DE35C9009D9D8D /* gm_rtp_in.a in Frameworks */,
+				0496F09716DE35C9009D9D8D /* gm_sdl_out.a in Frameworks */,
+				0496F09816DE35C9009D9D8D /* gm_soft_raster.a in Frameworks */,
+				0496F09916DE35C9009D9D8D /* gm_svg_in.a in Frameworks */,
+				0496F09A16DE35C9009D9D8D /* gm_widgetman.a in Frameworks */,
+				0496F09B16DE35C9009D9D8D /* libgpac_static.a in Frameworks */,
+				0496F07E16DD1A19009D9D8D /* libSDL2.a in Frameworks */,
+				0496F07716DD1A18009D9D8D /* libfaad.a in Frameworks */,
+				0496F07816DD1A18009D9D8D /* libfreetype.a in Frameworks */,
+				0496F07916DD1A18009D9D8D /* libjpeg.a in Frameworks */,
+				0496F07A16DD1A18009D9D8D /* libjs.a in Frameworks */,
+				0496F07B16DD1A18009D9D8D /* libmad.a in Frameworks */,
+				0496F07C16DD1A18009D9D8D /* libpng.a in Frameworks */,
 				71A19BB212797D1B00ACFF58 /* OpenGLES.framework in Frameworks */,
 				71A19BB912797D4800ACFF58 /* AudioToolbox.framework in Frameworks */,
 				71A19BC412797D9200ACFF58 /* libobjc.dylib in Frameworks */,
@@ -1216,7 +1329,6 @@
 				71A19C3D12797E4000ACFF58 /* Foundation.framework in Frameworks */,
 				71A19C3F12797E4000ACFF58 /* QuartzCore.framework in Frameworks */,
 				71A19C4112797E4000ACFF58 /* libdl.dylib in Frameworks */,
-				71F2A4D012830E7400C384DE /* libSDL.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1231,19 +1343,131 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71EB6EAF14C5C2F700B7EDA7 /* libgcc_s.1.dylib in Frameworks */,
-				71EB6EB014C5C30000B7EDA7 /* libgpac_dynamic.dylib in Frameworks */,
-				71EB6EB114C5C30500B7EDA7 /* libgpac_dynamic.dylib in Frameworks */,
-				71EB6EB214C5C32B00B7EDA7 /* libc.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		04E81ABD16E0FF0A004796EF /* gui */ = {
+			isa = PBXGroup;
+			children = (
+				04E81ABE16E0FF0A004796EF /* extensions */,
+				04E81AC216E0FF0A004796EF /* gui.bt */,
+				04E81AC316E0FF0A004796EF /* gui.js */,
+				04E81AC416E0FF0A004796EF /* gui_old.bt */,
+				04E81AC516E0FF0A004796EF /* gui_old.js */,
+				04E81AC616E0FF0A004796EF /* gwlib.js */,
+				04E81AC716E0FF0A004796EF /* icons */,
+				04E81B0416E0FF0B004796EF /* iphone_wm_gui.js */,
+				04E81B0516E0FF0B004796EF /* iphone_wm_gui.svg */,
+				04E81B0616E0FF0B004796EF /* mpegu-core.js */,
+				04E81B0716E0FF0B004796EF /* mpegu-wm.bt */,
+				04E81B0816E0FF0B004796EF /* mpegu-wm.js */,
+				04E81B0916E0FF0B004796EF /* mpegu-wm.xmt */,
+				04E81B0A16E0FF0B004796EF /* tv_wm_gui.js */,
+				04E81B0B16E0FF0B004796EF /* tv_wm_gui.svg */,
+			);
+			name = gui;
+			path = ../../gui;
+			sourceTree = "<group>";
+		};
+		04E81ABE16E0FF0A004796EF /* extensions */ = {
+			isa = PBXGroup;
+			children = (
+				04E81ABF16E0FF0A004796EF /* widget_manager */,
+			);
+			path = extensions;
+			sourceTree = "<group>";
+		};
+		04E81ABF16E0FF0A004796EF /* widget_manager */ = {
+			isa = PBXGroup;
+			children = (
+				04E81AC016E0FF0A004796EF /* applications-system.svg */,
+				04E81AC116E0FF0A004796EF /* init.js */,
+			);
+			path = widget_manager;
+			sourceTree = "<group>";
+		};
+		04E81AC716E0FF0A004796EF /* icons */ = {
+			isa = PBXGroup;
+			children = (
+				04E81AC816E0FF0A004796EF /* applications-internet.svg */,
+				04E81AC916E0FF0A004796EF /* applications-multimedia.svg */,
+				04E81ACA16E0FF0A004796EF /* applications-system.svg */,
+				04E81ACB16E0FF0A004796EF /* audio-volume-high.svg */,
+				04E81ACC16E0FF0A004796EF /* audio-volume-low.svg */,
+				04E81ACD16E0FF0A004796EF /* audio-volume-medium.svg */,
+				04E81ACE16E0FF0A004796EF /* audio-volume-muted.svg */,
+				04E81ACF16E0FF0A004796EF /* audio-x-generic.svg */,
+				04E81AD016E0FF0A004796EF /* battery-caution.svg */,
+				04E81AD116E0FF0A004796EF /* camera-photo.svg */,
+				04E81AD216E0FF0A004796EF /* camera-video.svg */,
+				04E81AD316E0FF0A004796EF /* dialog-error.svg */,
+				04E81AD416E0FF0A004796EF /* dialog-information.svg */,
+				04E81AD516E0FF0A004796EF /* dialog-warning.svg */,
+				04E81AD616E0FF0A004796EF /* document-new.svg */,
+				04E81AD716E0FF0A004796EF /* document-print-preview.svg */,
+				04E81AD816E0FF0A004796EF /* document-print.svg */,
+				04E81AD916E0FF0A004796EF /* document-save-as.svg */,
+				04E81ADA16E0FF0A004796EF /* document-save.svg */,
+				04E81ADB16E0FF0A004796EF /* edit-find.svg */,
+				04E81ADC16E0FF0A004796EF /* emblem-symbolic-link.svg */,
+				04E81ADD16E0FF0A004796EF /* emblem-unreadable.svg */,
+				04E81ADE16E0FF0A004796EF /* face-surprise.svg */,
+				04E81ADF16E0FF0A004796EF /* folder-open.svg */,
+				04E81AE016E0FF0A004796EF /* folder.svg */,
+				04E81AE116E0FF0A004796EF /* go-bottom.svg */,
+				04E81AE216E0FF0A004796EF /* go-down.svg */,
+				04E81AE316E0FF0A004796EF /* go-first.svg */,
+				04E81AE416E0FF0A004796EF /* go-home.svg */,
+				04E81AE516E0FF0A004796EF /* go-jump.svg */,
+				04E81AE616E0FF0A004796EF /* go-last.svg */,
+				04E81AE716E0FF0A004796EF /* go-next.svg */,
+				04E81AE816E0FF0A004796EF /* go-previous.svg */,
+				04E81AE916E0FF0A004796EF /* go-top.svg */,
+				04E81AEA16E0FF0B004796EF /* go-up.svg */,
+				04E81AEB16E0FF0B004796EF /* image-missing.svg */,
+				04E81AEC16E0FF0B004796EF /* left_arrow.svg */,
+				04E81AED16E0FF0B004796EF /* list-add.svg */,
+				04E81AEE16E0FF0B004796EF /* list-remove.svg */,
+				04E81AEF16E0FF0B004796EF /* media-eject.svg */,
+				04E81AF016E0FF0B004796EF /* media-playback-pause.svg */,
+				04E81AF116E0FF0B004796EF /* media-playback-start.svg */,
+				04E81AF216E0FF0B004796EF /* media-playback-stop.svg */,
+				04E81AF316E0FF0B004796EF /* media-record.svg */,
+				04E81AF416E0FF0B004796EF /* media-seek-backward.svg */,
+				04E81AF516E0FF0B004796EF /* media-seek-forward.svg */,
+				04E81AF616E0FF0B004796EF /* media-skip-backward.svg */,
+				04E81AF716E0FF0B004796EF /* media-skip-forward.svg */,
+				04E81AF816E0FF0B004796EF /* preferences-desktop-remote-desktop.svg */,
+				04E81AF916E0FF0B004796EF /* preferences-system-windows.svg */,
+				04E81AFA16E0FF0B004796EF /* process-stop.svg */,
+				04E81AFB16E0FF0B004796EF /* right_arrow.svg */,
+				04E81AFC16E0FF0B004796EF /* tennis_ball.svg */,
+				04E81AFD16E0FF0B004796EF /* tennis_black.svg */,
+				04E81AFE16E0FF0B004796EF /* tennis_racket.svg */,
+				04E81AFF16E0FF0B004796EF /* tennis_racket_color.svg */,
+				04E81B0016E0FF0B004796EF /* user-trash.svg */,
+				04E81B0116E0FF0B004796EF /* video-display.svg */,
+				04E81B0216E0FF0B004796EF /* video-x-generic.svg */,
+				04E81B0316E0FF0B004796EF /* view-fullscreen.svg */,
+			);
+			path = icons;
+			sourceTree = "<group>";
+		};
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				04EFB63416E51E4200D1D44A /* libglues.a */,
+				04E81B1216E4D32A004796EF /* icon_ipad_retina.png */,
+				04E81B1016E4D325004796EF /* icon_ipad.png */,
+				04E81B0E16E4D24A004796EF /* icon_retina.png */,
+				04E81B0C16E4D1C8004796EF /* icon.png */,
+				04E81ABD16E0FF0A004796EF /* gui */,
+				0432EDE016DF9E4F001FE8B8 /* osmo4ios.entitlements */,
+				0496F08116DD1AE7009D9D8D /* Default-568h@2x.png */,
+				0496F07D16DD1A18009D9D8D /* libSDL2.a */,
 				71EB6E4E14C5B92200B7EDA7 /* hyb_in */,
 				71179CB91292EC1800A83216 /* mpd_in */,
 				71A199061278765600ACFF58 /* aac_in */,
@@ -1514,27 +1738,26 @@
 			isa = PBXGroup;
 			children = (
 				71CCF1311277037A00339E12 /* libgpac_static.a */,
-				718477D0127814B200917298 /* libgpac_dynamic.dylib */,
-				718478311278645B00917298 /* gm_soft_raster.dylib */,
-				718478381278647200917298 /* gm_dummy_in.dylib */,
-				71847841127864AC00917298 /* gm_ctx_load.dylib */,
-				718478491278654000917298 /* gm_aac_in.dylib */,
-				718478501278655800917298 /* gm_svg_in.dylib */,
-				718478571278656E00917298 /* gm_mp3_in.dylib */,
-				7184785E1278657F00917298 /* gm_img_in.dylib */,
-				718478651278658A00917298 /* gm_bifs_dec.dylib */,
-				7184786C127865A200917298 /* gm_gpac_js.dylib */,
-				71847873127865B700917298 /* gm_isom_in.dylib */,
-				7184787A127865CB00917298 /* gm_laser_dec.dylib */,
-				71847881127865D600917298 /* gm_odf_dec.dylib */,
-				71847891127865F700917298 /* gm_rtp_in.dylib */,
-				718478981278660400917298 /* gm_mpegts_in.dylib */,
-				7184789F1278661700917298 /* gm_ft_font.dylib */,
-				718478A61278662F00917298 /* gm_widgetman.dylib */,
-				718478B11278666100917298 /* gm_sdl_out.dylib */,
+				718478311278645B00917298 /* gm_soft_raster.a */,
+				718478381278647200917298 /* gm_dummy_in.a */,
+				71847841127864AC00917298 /* gm_ctx_load.a */,
+				718478491278654000917298 /* gm_aac_in.a */,
+				718478501278655800917298 /* gm_svg_in.a */,
+				718478571278656E00917298 /* gm_mp3_in.a */,
+				7184785E1278657F00917298 /* gm_img_in.a */,
+				718478651278658A00917298 /* gm_bifs_dec.a */,
+				7184786C127865A200917298 /* gm_gpac_js.a */,
+				71847873127865B700917298 /* gm_isom_in.a */,
+				7184787A127865CB00917298 /* gm_laser_dec.a */,
+				71847881127865D600917298 /* gm_odf_dec.a */,
+				71847891127865F700917298 /* gm_rtp_in.a */,
+				718478981278660400917298 /* gm_mpegts_in.a */,
+				7184789F1278661700917298 /* gm_ft_font.a */,
+				718478A61278662F00917298 /* gm_widgetman.a */,
+				718478B11278666100917298 /* gm_sdl_out.a */,
 				71A19B1A12796B5600ACFF58 /* osmo4ios.app */,
-				71179CC41292EC3400A83216 /* gm_mpd_in.dylib */,
-				71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.dylib */,
+				71179CC41292EC3400A83216 /* gm_mpd_in.a */,
+				71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2064,13 +2287,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		718477CC127814B200917298 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		7184782D1278645B00917298 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -2333,25 +2549,7 @@
 			);
 			name = mpd_in;
 			productName = mpd_in;
-			productReference = 71179CC41292EC3400A83216 /* gm_mpd_in.dylib */;
-			productType = "com.apple.product-type.library.static";
-		};
-		718477CF127814B200917298 /* libgpac_dynamic */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 718477D3127814D100917298 /* Build configuration list for PBXNativeTarget "libgpac_dynamic" */;
-			buildPhases = (
-				718477CC127814B200917298 /* Headers */,
-				718477CD127814B200917298 /* Sources */,
-				718477CE127814B200917298 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				718477D5127814D600917298 /* PBXTargetDependency */,
-			);
-			name = libgpac_dynamic;
-			productName = libgpac_dynamic;
-			productReference = 718477D0127814B200917298 /* libgpac_dynamic.dylib */;
+			productReference = 71179CC41292EC3400A83216 /* gm_mpd_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478301278645B00917298 /* soft_raster */ = {
@@ -2369,7 +2567,7 @@
 			);
 			name = soft_raster;
 			productName = soft_raster;
-			productReference = 718478311278645B00917298 /* gm_soft_raster.dylib */;
+			productReference = 718478311278645B00917298 /* gm_soft_raster.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478371278647200917298 /* dummy_in */ = {
@@ -2383,10 +2581,11 @@
 			buildRules = (
 			);
 			dependencies = (
+				0496F08016DD1A6B009D9D8D /* PBXTargetDependency */,
 			);
 			name = dummy_in;
 			productName = dummy_in;
-			productReference = 718478381278647200917298 /* gm_dummy_in.dylib */;
+			productReference = 718478381278647200917298 /* gm_dummy_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		71847840127864AC00917298 /* ctx_load */ = {
@@ -2403,7 +2602,7 @@
 			);
 			name = ctx_load;
 			productName = ctx_load;
-			productReference = 71847841127864AC00917298 /* gm_ctx_load.dylib */;
+			productReference = 71847841127864AC00917298 /* gm_ctx_load.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478481278654000917298 /* aac_in */ = {
@@ -2420,7 +2619,7 @@
 			);
 			name = aac_in;
 			productName = aac_in;
-			productReference = 718478491278654000917298 /* gm_aac_in.dylib */;
+			productReference = 718478491278654000917298 /* gm_aac_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		7184784F1278655800917298 /* svg_in */ = {
@@ -2437,7 +2636,7 @@
 			);
 			name = svg_in;
 			productName = svg_in;
-			productReference = 718478501278655800917298 /* gm_svg_in.dylib */;
+			productReference = 718478501278655800917298 /* gm_svg_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478561278656E00917298 /* mp3_in */ = {
@@ -2454,7 +2653,7 @@
 			);
 			name = mp3_in;
 			productName = mp3_in;
-			productReference = 718478571278656E00917298 /* gm_mp3_in.dylib */;
+			productReference = 718478571278656E00917298 /* gm_mp3_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		7184785D1278657F00917298 /* img_in */ = {
@@ -2471,7 +2670,7 @@
 			);
 			name = img_in;
 			productName = img_in;
-			productReference = 7184785E1278657F00917298 /* gm_img_in.dylib */;
+			productReference = 7184785E1278657F00917298 /* gm_img_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478641278658A00917298 /* bifs_dec */ = {
@@ -2488,7 +2687,7 @@
 			);
 			name = bifs_dec;
 			productName = bifs_dec;
-			productReference = 718478651278658A00917298 /* gm_bifs_dec.dylib */;
+			productReference = 718478651278658A00917298 /* gm_bifs_dec.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		7184786B127865A200917298 /* gpac_js */ = {
@@ -2505,7 +2704,7 @@
 			);
 			name = gpac_js;
 			productName = gpac_js;
-			productReference = 7184786C127865A200917298 /* gm_gpac_js.dylib */;
+			productReference = 7184786C127865A200917298 /* gm_gpac_js.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		71847872127865B700917298 /* isom_in */ = {
@@ -2522,7 +2721,7 @@
 			);
 			name = isom_in;
 			productName = isom_in;
-			productReference = 71847873127865B700917298 /* gm_isom_in.dylib */;
+			productReference = 71847873127865B700917298 /* gm_isom_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		71847879127865CB00917298 /* laser_dec */ = {
@@ -2539,7 +2738,7 @@
 			);
 			name = laser_dec;
 			productName = laser_dec;
-			productReference = 7184787A127865CB00917298 /* gm_laser_dec.dylib */;
+			productReference = 7184787A127865CB00917298 /* gm_laser_dec.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		71847880127865D600917298 /* odf_dec */ = {
@@ -2556,7 +2755,7 @@
 			);
 			name = odf_dec;
 			productName = odf_dec;
-			productReference = 71847881127865D600917298 /* gm_odf_dec.dylib */;
+			productReference = 71847881127865D600917298 /* gm_odf_dec.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		71847890127865F700917298 /* rtp_in */ = {
@@ -2573,7 +2772,7 @@
 			);
 			name = rtp_in;
 			productName = rtp_in;
-			productReference = 71847891127865F700917298 /* gm_rtp_in.dylib */;
+			productReference = 71847891127865F700917298 /* gm_rtp_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478971278660400917298 /* mpegts_in */ = {
@@ -2590,7 +2789,7 @@
 			);
 			name = mpegts_in;
 			productName = mpegts_in;
-			productReference = 718478981278660400917298 /* gm_mpegts_in.dylib */;
+			productReference = 718478981278660400917298 /* gm_mpegts_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		7184789E1278661700917298 /* ft_font */ = {
@@ -2607,7 +2806,7 @@
 			);
 			name = ft_font;
 			productName = ft_font;
-			productReference = 7184789F1278661700917298 /* gm_ft_font.dylib */;
+			productReference = 7184789F1278661700917298 /* gm_ft_font.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478A51278662F00917298 /* widgetman */ = {
@@ -2624,7 +2823,7 @@
 			);
 			name = widgetman;
 			productName = widgetman;
-			productReference = 718478A61278662F00917298 /* gm_widgetman.dylib */;
+			productReference = 718478A61278662F00917298 /* gm_widgetman.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		718478B01278666100917298 /* sdl_out */ = {
@@ -2641,7 +2840,7 @@
 			);
 			name = sdl_out;
 			productName = sdl_out;
-			productReference = 718478B11278666100917298 /* gm_sdl_out.dylib */;
+			productReference = 718478B11278666100917298 /* gm_sdl_out.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		71A19B1912796B5600ACFF58 /* osmo4ios */ = {
@@ -2655,6 +2854,25 @@
 			buildRules = (
 			);
 			dependencies = (
+				047ACFD416DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFD616DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFD816DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFDA16DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFDC16DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFDE16DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFE016DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFE216DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFE416DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFE616DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFE816DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFEA16DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFEC16DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFEE16DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFF016DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFF216DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFF416DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFF616DF56BF00F2BF65 /* PBXTargetDependency */,
+				047ACFFA16DF56BF00F2BF65 /* PBXTargetDependency */,
 			);
 			name = osmo4ios;
 			productName = osmo4ios;
@@ -2665,7 +2883,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 71CCF1351277037B00339E12 /* Build configuration list for PBXNativeTarget "libgpac_static" */;
 			buildPhases = (
-				970AE51B1340DD1100501CF4 /* ShellScript */,
 				71CCF12D1277037A00339E12 /* Headers */,
 				71CCF12E1277037A00339E12 /* Sources */,
 				71CCF12F1277037A00339E12 /* Frameworks */,
@@ -2693,7 +2910,7 @@
 			);
 			name = hyb_in;
 			productName = hyb_in;
-			productReference = 71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.dylib */;
+			productReference = 71EB6E4814C5B6F500B7EDA7 /* gm_hyb_in.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -2701,8 +2918,11 @@
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0460;
+			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "gpac4ios" */;
-			compatibilityVersion = "Xcode 3.1";
+			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
@@ -2717,7 +2937,6 @@
 			projectRoot = "";
 			targets = (
 				71CCF1301277037A00339E12 /* libgpac_static */,
-				718477CF127814B200917298 /* libgpac_dynamic */,
 				718478301278645B00917298 /* soft_raster */,
 				718478371278647200917298 /* dummy_in */,
 				71847840127864AC00917298 /* ctx_load */,
@@ -2748,26 +2967,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
+				0496F08216DD1AE7009D9D8D /* Default-568h@2x.png in Resources */,
+				04E81B0D16E4D1C8004796EF /* icon.png in Resources */,
+				04E81B0F16E4D24A004796EF /* icon_retina.png in Resources */,
+				04E81B1116E4D325004796EF /* icon_ipad.png in Resources */,
+				04E81B1316E4D32A004796EF /* icon_ipad_retina.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		970AE51B1340DD1100501CF4 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "if which svnversion 2>/dev/null; then echo \"#define GPAC_SVN_REVISION \\\"`svnversion`\\\"\" > ../../include/gpac/revision.h ; else  echo \"No SVN Version found\"; fi\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		71179CC11292EC3400A83216 /* Sources */ = {
@@ -2775,14 +2983,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				71179CC91292EC5200A83216 /* mpd_in.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		718477CD127814B200917298 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				718477FA12781DEB00917298 /* empty.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2942,6 +3142,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0496F08316DE122A009D9D8D /* audio.c in Sources */,
+				0496F08416DE122A009D9D8D /* cursors.c in Sources */,
+				0496F08516DE122A009D9D8D /* sdl_out.c in Sources */,
+				0496F08616DE122A009D9D8D /* video.c in Sources */,
+				0496F08716DE122A009D9D8D /* video2d.c in Sources */,
 				71A19B4012796FCC00ACFF58 /* module_av_generic.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2952,9 +3157,6 @@
 			files = (
 				71A19B2112796B6F00ACFF58 /* main.c in Sources */,
 				712986C312928421003B02A1 /* extract.c in Sources */,
-				712986C41292843B003B02A1 /* audio.c in Sources */,
-				712986C51292843B003B02A1 /* video.c in Sources */,
-				712986D8129284BD003B02A1 /* sdl_out.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3228,15 +3430,110 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		047ACFD416DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71CCF1301277037A00339E12 /* libgpac_static */;
+			targetProxy = 047ACFD316DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFD616DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478301278645B00917298 /* soft_raster */;
+			targetProxy = 047ACFD516DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFD816DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478371278647200917298 /* dummy_in */;
+			targetProxy = 047ACFD716DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFDA16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71847840127864AC00917298 /* ctx_load */;
+			targetProxy = 047ACFD916DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFDC16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478481278654000917298 /* aac_in */;
+			targetProxy = 047ACFDB16DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFDE16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7184784F1278655800917298 /* svg_in */;
+			targetProxy = 047ACFDD16DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFE016DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478561278656E00917298 /* mp3_in */;
+			targetProxy = 047ACFDF16DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFE216DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7184785D1278657F00917298 /* img_in */;
+			targetProxy = 047ACFE116DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFE416DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478641278658A00917298 /* bifs_dec */;
+			targetProxy = 047ACFE316DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFE616DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7184786B127865A200917298 /* gpac_js */;
+			targetProxy = 047ACFE516DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFE816DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71847872127865B700917298 /* isom_in */;
+			targetProxy = 047ACFE716DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFEA16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71847879127865CB00917298 /* laser_dec */;
+			targetProxy = 047ACFE916DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFEC16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71847880127865D600917298 /* odf_dec */;
+			targetProxy = 047ACFEB16DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFEE16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71847890127865F700917298 /* rtp_in */;
+			targetProxy = 047ACFED16DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFF016DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478971278660400917298 /* mpegts_in */;
+			targetProxy = 047ACFEF16DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFF216DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7184789E1278661700917298 /* ft_font */;
+			targetProxy = 047ACFF116DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFF416DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478A51278662F00917298 /* widgetman */;
+			targetProxy = 047ACFF316DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFF616DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 718478B01278666100917298 /* sdl_out */;
+			targetProxy = 047ACFF516DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		047ACFFA16DF56BF00F2BF65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71EB6E4714C5B6F500B7EDA7 /* hyb_in */;
+			targetProxy = 047ACFF916DF56BF00F2BF65 /* PBXContainerItemProxy */;
+		};
+		0496F08016DD1A6B009D9D8D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71CCF1301277037A00339E12 /* libgpac_static */;
+			targetProxy = 0496F07F16DD1A6B009D9D8D /* PBXContainerItemProxy */;
+		};
 		713FD6E41393868200E8102E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 718478371278647200917298 /* dummy_in */;
 			targetProxy = 713FD6E31393868200E8102E /* PBXContainerItemProxy */;
-		};
-		718477D5127814D600917298 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 71CCF1301277037A00339E12 /* libgpac_static */;
-			targetProxy = 718477D4127814D600917298 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -3246,24 +3543,19 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_mpd_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = mpd_in;
 			};
 			name = Debug;
@@ -3273,74 +3565,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_mpd_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = mpd_in;
-				ZERO_LINK = NO;
-			};
-			name = Release;
-		};
-		718477D1127814B300917298 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
-				EXECUTABLE_PREFIX = "";
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
-				);
-				MACH_O_TYPE = mh_dylib;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/libgpac_dynamic.dylib",
-				);
-				PREBINDING = NO;
-				PRODUCT_NAME = libgpac_dynamic;
-			};
-			name = Debug;
-		};
-		718477D2127814B300917298 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
-				EXECUTABLE_PREFIX = "";
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
-				);
-				MACH_O_TYPE = mh_dylib;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/libgpac_dynamic.dylib",
-				);
-				PREBINDING = NO;
-				PRODUCT_NAME = libgpac_dynamic;
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -3350,27 +3586,22 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
+				MACH_O_TYPE = staticlib;
 				OTHER_CFLAGS = "-fgnu89-inline";
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_soft_raster.dylib",
-				);
-				PREBINDING = NO;
 				PRODUCT_NAME = soft_raster;
 			};
 			name = Debug;
@@ -3380,24 +3611,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_soft_raster.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = soft_raster;
 				ZERO_LINK = NO;
 			};
@@ -3408,25 +3633,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_dummy_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = dummy_in;
 			};
 			name = Debug;
@@ -3436,24 +3656,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_dummy_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = dummy_in;
 				ZERO_LINK = NO;
 			};
@@ -3464,25 +3678,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_ctx_load.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = ctx_load;
 			};
 			name = Debug;
@@ -3492,24 +3701,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_ctx_load.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = ctx_load;
 				ZERO_LINK = NO;
 			};
@@ -3520,7 +3723,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -3535,19 +3738,14 @@
 					../../include,
 					../../extra_lib/include/faad,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_aac_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = aac_in;
 			};
 			name = Debug;
@@ -3557,9 +3755,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
@@ -3571,19 +3768,14 @@
 					../../include,
 					../../extra_lib/include/faad,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_aac_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = aac_in;
 				ZERO_LINK = NO;
 			};
@@ -3594,25 +3786,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_svg_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = svg_in;
 			};
 			name = Debug;
@@ -3622,24 +3809,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_svg_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = svg_in;
 				ZERO_LINK = NO;
 			};
@@ -3650,7 +3831,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -3665,19 +3846,14 @@
 					../../include,
 					../../extra_lib/include/mad,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_mp3_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = mp3_in;
 			};
 			name = Debug;
@@ -3687,9 +3863,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
@@ -3701,19 +3876,14 @@
 					../../include,
 					../../extra_lib/include/mad,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_mp3_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = mp3_in;
 				ZERO_LINK = NO;
 			};
@@ -3724,25 +3894,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_img_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = img_in;
 			};
 			name = Debug;
@@ -3752,24 +3917,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_img_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = img_in;
 				ZERO_LINK = NO;
 			};
@@ -3780,25 +3939,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_bifs_dec.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = bifs_dec;
 			};
 			name = Debug;
@@ -3808,24 +3962,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_bifs_dec.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = bifs_dec;
 				ZERO_LINK = NO;
 			};
@@ -3836,7 +3984,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -3852,19 +4000,14 @@
 					../../include,
 					../../extra_lib/include/js,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_gpac_js.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = gpac_js;
 			};
 			name = Debug;
@@ -3874,9 +4017,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
@@ -3889,19 +4031,14 @@
 					../../include,
 					../../extra_lib/include/js,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_gpac_js.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = gpac_js;
 				ZERO_LINK = NO;
 			};
@@ -3912,25 +4049,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_isom_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = isom_in;
 			};
 			name = Debug;
@@ -3940,24 +4072,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_isom_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = isom_in;
 				ZERO_LINK = NO;
 			};
@@ -3968,25 +4094,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_laser_dec.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = laser_dec;
 			};
 			name = Debug;
@@ -3996,24 +4117,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_laser_dec.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = laser_dec;
 				ZERO_LINK = NO;
 			};
@@ -4024,25 +4139,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_odf_dec.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = odf_dec;
 			};
 			name = Debug;
@@ -4052,24 +4162,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_odf_dec.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = odf_dec;
 				ZERO_LINK = NO;
 			};
@@ -4080,25 +4184,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_rtp_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = rtp_in;
 			};
 			name = Debug;
@@ -4108,24 +4207,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_rtp_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = rtp_in;
 				ZERO_LINK = NO;
 			};
@@ -4136,25 +4229,20 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_mpegts_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = mpegts_in;
 			};
 			name = Debug;
@@ -4164,24 +4252,18 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_mpegts_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = mpegts_in;
 				ZERO_LINK = NO;
 			};
@@ -4192,7 +4274,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -4201,19 +4283,14 @@
 					../../extra_lib/include/freetype,
 					../../include,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_ft_font.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = ft_font;
 			};
 			name = Debug;
@@ -4223,27 +4300,21 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../extra_lib/include/freetype,
 					../../include,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_ft_font.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = ft_font;
 				ZERO_LINK = NO;
 			};
@@ -4254,7 +4325,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -4263,19 +4334,14 @@
 					../../include,
 					../../extra_lib/include/js,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_widgetman.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = widgetman;
 			};
 			name = Debug;
@@ -4285,27 +4351,21 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/js,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_widgetman.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = widgetman;
 				ZERO_LINK = NO;
 			};
@@ -4316,28 +4376,23 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
-					../../extra_lib/include/SDL,
+					../../extra_lib/include/SDL2,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_sdl_out.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = sdl_out;
 			};
 			name = Debug;
@@ -4347,27 +4402,21 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
-					../../extra_lib/include/SDL,
+					../../extra_lib/include/SDL2,
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 					"\"$(SRCROOT)/build/Release-iphonesimulator\"",
 					"\"$(SRCROOT)/../../bin/iOS\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_sdl_out.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = sdl_out;
 				ZERO_LINK = NO;
 			};
@@ -4377,7 +4426,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_ENTITLEMENTS = osmo4ios.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer: Ivica Arsov (L38E7BXKTN)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
@@ -4387,19 +4437,18 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					../../extra_lib/include/SDL,
-				);
+				HEADER_SEARCH_PATHS = ../../include;
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
-				INSTALL_PATH = "$(HOME)/Applications";
+				INSTALL_PATH = /Applications;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				OTHER_CFLAGS = "";
+				OTHER_CPLUSPLUSFLAGS = "";
 				OTHER_LDFLAGS = "";
-				PREBINDING = NO;
 				PRODUCT_NAME = osmo4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
@@ -4411,26 +4460,24 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CODE_SIGN_ENTITLEMENTS = osmo4ios.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					../../extra_lib/include/SDL,
-				);
+				HEADER_SEARCH_PATHS = ../../include;
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
-				INSTALL_PATH = "$(HOME)/Applications";
+				INSTALL_PATH = /Applications;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "";
-				PREBINDING = NO;
 				PRODUCT_NAME = osmo4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
@@ -4456,16 +4503,15 @@
 					../../extra_lib/include/js,
 					../../extra_lib/include/zlib,
 					../../modules/sdl_out,
-					../../extra_lib/include/SDL,
+					../../extra_lib/include/glues,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../extra_lib/lib/iOS/Debug-iphonesimulator\"",
-				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CFLAGS = "-fms-extensions";
-				PREBINDING = NO;
+				OTHER_CFLAGS = (
+					"-fms-extensions",
+					"-D__IPHONEOS__",
+				);
 				PRODUCT_NAME = libgpac_static;
 			};
 			name = Debug;
@@ -4476,7 +4522,6 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
 				EXECUTABLE_PREFIX = "";
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_THUMB_SUPPORT = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
@@ -4487,19 +4532,16 @@
 					../../extra_lib/include/js,
 					../../extra_lib/include/zlib,
 					../../modules/sdl_out,
-					../../extra_lib/include/SDL,
+					../../extra_lib/include/glues,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../extra_lib/lib/iOS/Debug-iphonesimulator\"",
-				);
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-fms-extensions",
 					"-DNS_BLOCK_ASSERTIONS=1",
+					"-D__IPHONEOS__",
 				);
-				PREBINDING = NO;
 				PRODUCT_NAME = libgpac_static;
 				ZERO_LINK = NO;
 			};
@@ -4510,13 +4552,14 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_BUILTIN_FUNCTIONS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
@@ -4525,13 +4568,7 @@
 					"\"$(SRCROOT)/build/Release-iphoneos\"",
 					"\"$(SRCROOT)/../../bin/iOS/osmo4ios.app\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_hyb_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = hyb_in;
 				SDKROOT = iphoneos;
 			};
@@ -4543,12 +4580,12 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				EXECUTABLE_EXTENSION = dylib;
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_BUILTIN_FUNCTIONS = YES;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
@@ -4557,13 +4594,7 @@
 					"\"$(SRCROOT)/build/Release-iphoneos\"",
 					"\"$(SRCROOT)/../../bin/iOS/osmo4ios.app\"",
 				);
-				MACH_O_TYPE = mh_dylib;
-				OTHER_LDFLAGS = (
-					"-dynamic",
-					"-install_name",
-					"@loader_path/gm_hyb_in.dylib",
-				);
-				PREBINDING = NO;
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = hyb_in;
 				SDKROOT = iphoneos;
 				ZERO_LINK = NO;
@@ -4574,8 +4605,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_FAST_OBJC_DISPATCH = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = NO;
@@ -4589,7 +4620,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
 				ONLY_ACTIVE_ARCH = NO;
-				PREBINDING = NO;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -4601,8 +4631,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_FAST_OBJC_DISPATCH = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = NO;
@@ -4617,7 +4647,6 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
-				PREBINDING = NO;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -4633,15 +4662,6 @@
 			buildConfigurations = (
 				71179CC51292EC3500A83216 /* Debug */,
 				71179CC61292EC3500A83216 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		718477D3127814D100917298 /* Build configuration list for PBXNativeTarget "libgpac_dynamic" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				718477D1127814B300917298 /* Debug */,
-				718477D2127814B300917298 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

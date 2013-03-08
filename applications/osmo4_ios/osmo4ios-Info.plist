@@ -6,8 +6,28 @@
 	<string>English</string>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIconFiles</key>
+	<array>
+		<string>icon.png</string>
+		<string>icon_retina.png</string>
+		<string>icon_ipad.png</string>
+		<string>icon_ipad_retina.png</string>
+	</array>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>icon.png</string>
+				<string>icon_retina.png</string>
+				<string>icon_ipad.png</string>
+				<string>icon_ipad_retina.png</string>
+			</array>
+		</dict>
+	</dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.gpac.${PRODUCT_NAME:identifier}</string>
+	<string>${PRODUCT_NAME:identifier}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -15,10 +35,10 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>9.9.9</string><!-- VERSION_REV_REPLACE -->
+	<string>0.5.0</string>
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleVersion</key>
-	<string>9999</string><!-- BUILD_REV_REPLACE --> 
+	<string>0000</string>
 </dict>
 </plist>

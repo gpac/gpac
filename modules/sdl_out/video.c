@@ -23,18 +23,19 @@
  *		
  */
 
-#ifdef GPAC_IPHONE
-#include "libgpac_symbols.h"
-#else
 #include "sdl_out.h"
 #include <gpac/user.h>
-#endif
 
+//#include "unicode.h"
 
 #ifdef WIN32
 #include <windows.h>
 #endif
 
+#ifdef GPAC_IPHONE
+#include <OpenGLES/ES1/gl.h>
+#include <OpenGLES/ES1/glext.h>
+#endif
 
 /*cursors data*/
 static char hand_data[] = 
@@ -128,6 +129,37 @@ static u32 video_modes[] =
 };
 static u32 nb_video_modes = 8;
 
+
+	
+#if SDL_VERSION_ATLEAST(2,0,0)
+void SDLVid_SetCaption(SDL_Window* window)
+{
+	if (SDL_GetCurrentVideoDriver()) {
+		char szCap[1024];
+		sprintf(szCap, "SDL Video Output (%s)", SDL_GetCurrentVideoDriver());
+		SDL_SetWindowTitle(window, szCap);
+	} else {
+		SDL_SetWindowTitle(window, "SDL Video Output");
+	}
+}
+#else
+
+#define SDLK_KP_0	SDLK_KP0
+#define SDLK_KP_1	SDLK_KP1
+#define SDLK_KP_2	SDLK_KP2
+#define SDLK_KP_3	SDLK_KP3
+#define SDLK_KP_4	SDLK_KP4
+#define SDLK_KP_5	SDLK_KP5
+#define SDLK_KP_6	SDLK_KP6
+#define SDLK_KP_7	SDLK_KP7
+#define SDLK_KP_8	SDLK_KP8
+#define SDLK_KP_9	SDLK_KP9
+#define SDLK_NUMLOCKCLEAR SDLK_NUMLOCK
+#define SDLK_SCROLLLOCK SDLK_SCROLLOCK
+#define SDLK_APPLICATION SDLK_COMPOSE
+#define SDLK_PRINTSCREEN SDLK_PRINT
+#define SDL_WINDOW_RESIZABLE SDL_RESIZABLE
+
 void SDLVid_SetCaption()
 {
 	char szName[100];
@@ -139,6 +171,9 @@ void SDLVid_SetCaption()
 		SDL_WM_SetCaption("SDL Video Output", NULL);
 	}
 }
+#endif
+	
+
 
 SDL_Cursor *SDLVid_LoadCursor(char *maskdata)
 {
@@ -205,43 +240,43 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 		evt->key_code = GF_KEY_SLASH; 
 		break;
 
-	case SDLK_KP0: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_0: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_0: 
 		evt->key_code = GF_KEY_0; 
 		break;
-	case SDLK_KP1: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_1: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_1: 
 		evt->key_code = GF_KEY_1; 
 		break;
-	case SDLK_KP2: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_2: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_2: 
 		evt->key_code = GF_KEY_2; 
 		break;
-	case SDLK_KP3: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_3: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_3: 
 		evt->key_code = GF_KEY_3; 
 		break;
-	case SDLK_KP4: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_4: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_4: 
 		evt->key_code = GF_KEY_4; 
 		break;
-	case SDLK_KP5: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_5: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_5: 
 		evt->key_code = GF_KEY_5; 
 		break;
-	case SDLK_KP6: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_6: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_6: 
 		evt->key_code = GF_KEY_6; 
 		break;
-	case SDLK_KP7: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_7: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_7: 
 		evt->key_code = GF_KEY_7; 
 		break;
-	case SDLK_KP8: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_8: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_8: 
 		evt->key_code = GF_KEY_8; 
 		break;
-	case SDLK_KP9: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_9: evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_9: 
 		evt->key_code = GF_KEY_9; 
 		break;
@@ -301,9 +336,9 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 	case SDLK_F13: evt->key_code = GF_KEY_F13; break;
 	case SDLK_F14: evt->key_code = GF_KEY_F14; break;
 	case SDLK_F15: evt->key_code = GF_KEY_F15; break;
-	case SDLK_NUMLOCK: evt->key_code = GF_KEY_NUMLOCK; break;
+	case SDLK_NUMLOCKCLEAR: evt->key_code = GF_KEY_NUMLOCK; break;
 	case SDLK_CAPSLOCK: evt->key_code = GF_KEY_CAPSLOCK; break;
-	case SDLK_SCROLLOCK: evt->key_code = GF_KEY_SCROLL; break;
+	case SDLK_SCROLLLOCK: evt->key_code = GF_KEY_SCROLL; break;
 
 	case SDLK_RSHIFT: 
 		evt->key_code = GF_KEY_SHIFT;
@@ -338,9 +373,9 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;*/
 	case SDLK_MODE: evt->key_code = GF_KEY_MODECHANGE; break;
-	case SDLK_COMPOSE: evt->key_code = GF_KEY_COMPOSE; break;
+	case SDLK_APPLICATION: evt->key_code = GF_KEY_COMPOSE; break;
 	case SDLK_HELP: evt->key_code = GF_KEY_HELP; break;
-	case SDLK_PRINT: evt->key_code = GF_KEY_PRINTSCREEN; break;
+	case SDLK_PRINTSCREEN: evt->key_code = GF_KEY_PRINTSCREEN; break;
 
 #if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 /*
@@ -415,6 +450,16 @@ void SDLVid_SetHack(void *os_handle, Bool set_on)
 
 static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 {
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
+	ctx->back_buffer = NULL;
+	if (ctx->pool_rgb) SDL_FreeSurface(ctx->pool_rgb);
+	ctx->pool_rgb = NULL;
+	if (ctx->pool_rgba) SDL_FreeSurface(ctx->pool_rgba);
+	ctx->pool_rgba = NULL;
+	SDL_DestroyTexture(ctx->yuv_texture);
+	ctx->yuv_texture = NULL;
+#else
 	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
 	ctx->back_buffer = NULL;
 	if (ctx->pool_rgb) SDL_FreeSurface(ctx->pool_rgb);
@@ -423,9 +468,22 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 	ctx->pool_rgba = NULL;
 	SDL_FreeYUVOverlay(ctx->yuv_overlay);
 	ctx->yuv_overlay=NULL;
+#endif
 }
 
-
+#if SDL_VERSION_ATLEAST(2,0,0)
+#ifdef GPAC_IPHONE
+#define SDL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
+#define SDL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
+#define SDL_GL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
+#define SDL_GL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
+#else
+#define SDL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+#define SDL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
+#define SDL_GL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+#define SDL_GL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
+#endif
+#else
 #ifdef GPAC_IPHONE
 #define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN | SDL_NOFRAME
@@ -437,6 +495,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_GL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_FULLSCREEN
 #endif
+#endif
 
 
 GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height) 
@@ -446,6 +505,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 	/*lock X mutex to make sure the event queue is not being processed*/
 	gf_mx_p(ctx->evt_mx);
+    
+    GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Resizing window %dx%d\n", width, height));
 
 	if (ctx->output_3d_type==1) {
 		u32 flags, nb_bits;
@@ -454,10 +515,18 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			gf_mx_v(ctx->evt_mx);
 			return GF_OK;
 		}
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+		flags = SDL_GL_WINDOW_FLAGS;
+		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
+		if (ctx->fullscreen) flags |= SDL_FULLSCREEN_FLAGS;
+#else
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		if (ctx->fullscreen) flags |= SDL_FULLSCREEN_FLAGS;
 		if (!ctx->screen) ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
+#endif
+
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
@@ -472,13 +541,41 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 		assert(width);
 		assert(height);
+#if SDL_VERSION_ATLEAST(2,0,0)
+		if (!ctx->screen) {
+			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+            if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen)))
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
+			if (SDL_GL_MakeCurrent(ctx->screen, ctx->gl_context))
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot make context current: %s\n", SDL_GetError()));
+		} else {
+            if ( ctx->renderer ) {
+                SDL_DestroyRenderer(ctx->renderer);
+                ctx->renderer = NULL;
+            }
+            if ( !ctx->gl_context ) {
+                SDL_DestroyWindow(ctx->screen);
+                if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+				if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen)))
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
+				if (SDL_GL_MakeCurrent(ctx->screen, ctx->gl_context))
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot make context current: %s\n", SDL_GetError()));
+			} else
+                SDL_SetWindowSize(ctx->screen, width, height);
+		}
+				
+#else
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
+#endif
 		assert(ctx->screen);
 		ctx->width = width;
 		ctx->height = height;
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		dr->on_event(dr->evt_cbk_hdl, &evt);		
+		dr->on_event(dr->evt_cbk_hdl, &evt);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] 3D Setup done"));
 	} else {
 		u32 flags;
 #ifdef GPAC_IPHONE
@@ -489,8 +586,30 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 #else
 		flags = SDL_WINDOW_FLAGS;
 #endif
-		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
+		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
+#if SDL_VERSION_ATLEAST(2,0,0)
+		if (!ctx->screen) {
+			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+            if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, SDL_RENDERER_ACCELERATED)))
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
+		} else {
+			if ( ctx->gl_context ) {
+				SDL_GL_DeleteContext(ctx->gl_context);
+				ctx->gl_context = NULL;
+			}
+            if ( !ctx->renderer ) {
+                SDL_DestroyWindow(ctx->screen);
+                if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+                if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, SDL_RENDERER_ACCELERATED)))
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
+            }
+			SDL_SetWindowSize(ctx->screen, width, height);
+		}
+#else
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
+#endif
 	}
 	gf_mx_v(ctx->evt_mx);
 	return ctx->screen ? GF_OK : GF_IO_ERR;
@@ -500,12 +619,16 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 {
 	u32 flags;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_DisplayMode vinf;
+#else
 	const SDL_VideoInfo *vinf;
+#endif
 
 	putenv("directx");
 	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
-		if (SDL_InitSubSystem(SDL_INIT_VIDEO)<0) {
+		if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 			return 0;
 		}
 	}
@@ -513,14 +636,23 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	ctx->curs_def = SDL_GetCursor();
 	ctx->curs_hand = SDLVid_LoadCursor(hand_data);
 	ctx->curs_collide = SDLVid_LoadCursor(collide_data);
+#if SDL_VERSION_ATLEAST(2,0,0)
+
+#else
 	SDL_EnableUNICODE(1);
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+#endif
 
 	ctx->last_mouse_move = SDL_GetTicks();
 	ctx->cursor_on = 1;
 
 	/*save display resolution - SDL seems to get the screen resolution if asked for video info before
 	changing the video mode - to check on other platforms*/
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_GetDesktopDisplayMode(0,&vinf);
+	dr->max_screen_width = vinf.w;
+	dr->max_screen_height = vinf.h;
+#else
 	vinf = SDL_GetVideoInfo();
 #if SDL_VERSION_ATLEAST(1, 2, 10)
 	dr->max_screen_width = vinf->current_w;
@@ -547,8 +679,14 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		}
 	}
 #endif /* versions prior to 1.2.10 do not have the size of screen */
+#endif
 
-	if (!ctx->os_handle) SDLVid_SetCaption();
+	if (!ctx->os_handle) 
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDLVid_SetCaption(ctx->screen);
+#else
+		SDLVid_SetCaption();
+#endif
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height)); 
 	return 1;
 }
@@ -558,6 +696,14 @@ static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
 	SDLVid_DestroyObjects(ctx);
 	SDL_FreeCursor(ctx->curs_hand);
 	SDL_FreeCursor(ctx->curs_collide);
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if ( ctx->gl_context )
+		SDL_GL_DeleteContext(ctx->gl_context);
+	if ( ctx->renderer )
+		SDL_DestroyRenderer(ctx->renderer);
+	if ( ctx->screen )
+		SDL_DestroyWindow(ctx->screen);
+#endif
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -573,21 +719,43 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 
 	while (SDL_PollEvent(&sdl_evt)) {
 		switch (sdl_evt.type) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+		case SDL_WINDOWEVENT:
+		{
+			switch (sdl_evt.window.event)
+			{
+			case SDL_WINDOWEVENT_SIZE_CHANGED:
+				gpac_evt.type = GF_EVENT_SIZE;
+				gpac_evt.size.width = sdl_evt.window.data1;
+				gpac_evt.size.height = sdl_evt.window.data2;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+			case SDL_WINDOWEVENT_EXPOSED:
+			case SDL_WINDOWEVENT_SHOWN:
+			case SDL_WINDOWEVENT_MOVED:
+				gpac_evt.type = GF_EVENT_REFRESH;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+			}
+			break;
+		}		
+#else
 		case SDL_VIDEORESIZE:
 		  	gpac_evt.type = GF_EVENT_SIZE;
 			gpac_evt.size.width = sdl_evt.resize.w;
 			gpac_evt.size.height = sdl_evt.resize.h;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
-		case SDL_QUIT:
-			gpac_evt.type = GF_EVENT_QUIT;
-			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-			return 0;
-
 		case SDL_VIDEOEXPOSE:
 			gpac_evt.type = GF_EVENT_REFRESH;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
+#endif
+		case SDL_QUIT:
+			gpac_evt.type = GF_EVENT_QUIT;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			return 0;
+			
 #ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
 		/*keyboard*/
 		case SDL_TEXTINPUT: /* Since SDL 1.3, text-input is handled in a specific event */
@@ -595,7 +763,11 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			u32 len = strlen( sdl_evt.text.text);
 			u32 ucs4_len;
 			assert( len < 5 );
+#if SDL_VERSION_ATLEAST(2,0,0)
+			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));
+#else
 			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, sdl_evt.text.text);
+#endif
 			gpac_evt.type = GF_EVENT_TEXTINPUT;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);	
 			break;
@@ -657,6 +829,16 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 			}
 			break;
+#if SDL_VERSION_ATLEAST(2,0,0)
+		case SDL_MOUSEWHEEL:
+			/*SDL handling is not perfect there, it just says up/down but no info on how much
+			the wheel was rotated...*/
+			gpac_evt.mouse.wheel_pos = INT2FIX(sdl_evt.wheel.x);
+			gpac_evt.type = GF_EVENT_MOUSEWHEEL;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			break;
+#endif
+
 		}
 	}
 	return GF_TRUE;
@@ -735,7 +917,8 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->output_3d_type = 0;
 	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
 
-	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
+	if (!SDLOUT_InitSDL())
+        return GF_IO_ERR;
 
 #ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th_state = SDL_STATE_STOPPED;
@@ -745,12 +928,14 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 		gf_sleep(10);
 
 	if (ctx->sdl_th_state==SDL_STATE_STOP_REQ) {
+
 		SDLOUT_CloseSDL();
 		ctx->sdl_th_state = SDL_STATE_STOPPED;
 		return GF_IO_ERR;
 	}
 #else
 	if (!SDLVid_InitializeWindow(ctx, dr)) {
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
 		SDLOUT_CloseSDL();
 		return GF_IO_ERR;
 	}
@@ -790,6 +975,11 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 {
 	u32 bpp, pref_bpp;
 	SDLVID();
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_DisplayMode goodMode;
+	u32 numDisplayModes;
+	u32 mask;
+#endif
 
 	if (ctx->fullscreen==bFullScreenOn) return GF_OK;
 
@@ -797,7 +987,13 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 	gf_mx_p(ctx->evt_mx);
 	ctx->fullscreen = bFullScreenOn;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_GetCurrentDisplayMode(0, &goodMode);
+	SDL_PixelFormatEnumToMasks(goodMode.format, &bpp, &mask, &mask, &mask, &mask);
+	pref_bpp = bpp;
+#else
 	pref_bpp = bpp = ctx->screen->format->BitsPerPixel;
+#endif
 
 	if (ctx->fullscreen) {
 		u32 flags;
@@ -813,6 +1009,21 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 			u32 i;
 			ctx->fs_width = *screen_width;
 			ctx->fs_height = *screen_height;
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+			numDisplayModes = SDL_GetNumDisplayModes(0);
+			for(i=0; i<numDisplayModes; i++) {
+				SDL_GetDisplayMode(0, i, &goodMode);
+				if ((ctx->fs_width <= (u32) goodMode.w) && (ctx->fs_height <= (u32) goodMode.h)) {
+					s32 bppDisp;
+					ctx->fs_width = goodMode.w;
+					ctx->fs_height = goodMode.h;
+					SDL_PixelFormatEnumToMasks(goodMode.format, &bppDisp, &mask, &mask, &mask, &mask);
+					pref_bpp = bppDisp;
+					break;
+				}
+			}
+#else
 			for(i=0; i<nb_video_modes; i++) {
 				if (ctx->fs_width<=video_modes[2*i] && ctx->fs_height<=video_modes[2*i + 1]) {
 					if ((pref_bpp = SDL_VideoModeOK(video_modes[2*i], video_modes[2*i+1], bpp, flags))) {
@@ -822,11 +1033,20 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 					}
 				}
 			}
+#endif
 		} else {
+#if SDL_VERSION_ATLEAST(2,0,0)
+			SDL_GetCurrentDisplayMode(0, &goodMode);
+#endif
 			ctx->fs_width = dr->max_screen_width;
 			ctx->fs_height = dr->max_screen_height;
 		}
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_SetWindowDisplayMode(ctx->screen, &goodMode);
+		SDL_SetWindowFullscreen(ctx->screen, SDL_TRUE);
+#else
 		ctx->screen = SDL_SetVideoMode(ctx->fs_width, ctx->fs_height, pref_bpp, flags);
+#endif
 		/*we switched bpp, clean all objects*/
 		if (bpp != pref_bpp) SDLVid_DestroyObjects(ctx);
 		*screen_width = ctx->fs_width;
@@ -839,6 +1059,9 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}
 	} else {
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_SetWindowFullscreen(ctx->screen, SDL_FALSE);
+#endif
 		SDLVid_ResizeWindow(dr, ctx->store_width, ctx->store_height);
 		*screen_width = ctx->store_width;
 		*screen_height = ctx->store_height;
@@ -850,9 +1073,15 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 
 GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight, Bool system_mem)
 {
-	u32 col;
 	const char *opt;
 	SDLVID();
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_DisplayMode disp;
+	s32 bpp;
+	u32 Rmask, Gmask, Bmask, Amask;
+#else
+	u32 col;
+#endif
 	
 	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
 
@@ -866,15 +1095,27 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 
 	/*clear screen*/
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
+	SDL_RenderClear(ctx->renderer);
+	SDL_RenderPresent(ctx->renderer);
+#else
 	col = SDL_MapRGB(ctx->screen->format, 0, 0, 0);
 	SDL_FillRect(ctx->screen, NULL, col);
 	SDL_Flip(ctx->screen);
+#endif
 
 	if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
 		return GF_OK;
 	}
 	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_GetWindowDisplayMode(ctx->screen, &disp);
+	SDL_PixelFormatEnumToMasks(disp.format, &bpp, &Rmask, &Gmask, &Bmask, &Amask);
+	ctx->back_buffer = SDL_CreateRGBSurface(0, newWidth, newHeight, bpp, Rmask, Gmask, Bmask, 0);
+#else
 	ctx->back_buffer = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
+#endif
 	ctx->width = newWidth;
 	ctx->height = newHeight;
 	if (!ctx->back_buffer) return GF_IO_ERR;
@@ -915,7 +1156,7 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 		video_info->height = ctx->back_buffer->h;
 		video_info->pitch_x = 0;
 		video_info->pitch_y = ctx->back_buffer->pitch;
-		video_info->video_buffer = ctx->back_buffer->pixels;
+		video_info->video_buffer = (char*)ctx->back_buffer->pixels;
 		video_info->pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format, ctx->force_alpha);
 		video_info->is_hardware_memory = !ctx->use_systems_memory;
 	} else {
@@ -931,41 +1172,81 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	/*if resizing don't process otherwise we may deadlock*/
 	if (!ctx->screen) return GF_OK;
 
-	if (ctx->output_3d_type==1) {
+    //GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
+	
+    if (ctx->output_3d_type==1) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_GL_SwapWindow(ctx->screen);
+#else
 		SDL_GL_SwapBuffers();
+#endif
 		return GF_OK;
 	}
 	if (!ctx->back_buffer) return GF_BAD_PARAM;
 
 	if ((dest->w != (u32) ctx->back_buffer->w) || (dest->h != (u32) ctx->back_buffer->h)) {
 		GF_VideoSurface src, dst;
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_Surface* wndSurface;
+#endif
 
 		SDL_LockSurface(ctx->back_buffer);
-		SDL_LockSurface(ctx->screen);
-
 		src.height = ctx->back_buffer->h;
 		src.width = ctx->back_buffer->w;
 		src.pitch_x = 0;
 		src.pitch_y = ctx->back_buffer->pitch;
 		src.pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format, ctx->force_alpha);
-		src.video_buffer = ctx->back_buffer->pixels;
+		src.video_buffer = (char*)ctx->back_buffer->pixels;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+		wndSurface  = SDL_GetWindowSurface(ctx->screen);
+		SDL_LockSurface(wndSurface);
+		dst.height = wndSurface->h;
+		dst.width = wndSurface->w;
+		dst.pitch_x = 0;
+		dst.pitch_y = wndSurface->pitch;
+		dst.pixel_format = SDLVid_MapPixelFormat(wndSurface->format, SDL_FALSE);
+		dst.video_buffer = (char*)wndSurface->pixels;
+#else
+		SDL_LockSurface(ctx->screen);
 		dst.height = ctx->screen->h;
 		dst.width = ctx->screen->w;
 		dst.pitch_x = 0;
 		dst.pitch_y = ctx->screen->pitch;
 		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format, 0);
 		dst.video_buffer = ctx->screen->pixels;
+#endif
 
 		gf_stretch_bits(&dst, &src, dest, NULL, 0xFF, 0, NULL, NULL);
-
-		SDL_UnlockSurface(ctx->back_buffer);
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_UnlockSurface(wndSurface);
+#else
 		SDL_UnlockSurface(ctx->screen);
+#endif
+		SDL_UnlockSurface(ctx->back_buffer);
+		
 	} else {
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_Texture* tx;
+#endif
 		rc.x = dest->x; rc.y = dest->y; rc.w = dest->w; rc.h = dest->h;
+#if SDL_VERSION_ATLEAST(2,0,0)
+        SDL_ClearError();
+		if (!(tx = SDL_CreateTextureFromSurface(ctx->renderer, ctx->back_buffer))) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("SDL_GetWindowSurface failed: %s\n", SDL_GetError()));
+            SDL_ClearError();
+        }
+        SDL_RenderCopy(ctx->renderer, tx, NULL, &rc);
+        SDL_DestroyTexture(tx);
+#else
 		SDL_BlitSurface(ctx->back_buffer, NULL, ctx->screen, &rc);
+#endif
 	}
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_RenderPresent(ctx->renderer);
+#else
 	SDL_Flip(ctx->screen);
+#endif
 	return GF_OK;
 }
 
@@ -1009,6 +1290,16 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		SDLVID();
 		SDLVid_ProcessMessageQueue(ctx, dr);
 #endif		
+#if SDL_VERSION_ATLEAST(2,0,0)
+		{
+			SDLVID();
+			if (ctx->szCaption[0]) {
+//				SDL_SetWindowTitle(ctx->screen, ctx->szCaption);
+				ctx->szCaption[0]=0;
+			}
+		}
+#endif
+
 		return GF_OK;
 	}
 	switch (evt->type) {
@@ -1023,7 +1314,15 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			break;
 	}
 #endif
+#if SDL_VERSION_ATLEAST(2,0,0)
+	{
+		SDLVID();
+		strncpy(ctx->szCaption, evt->caption.caption, 99);
+		ctx->szCaption[99]=0;
+	}
+#else
 		SDL_WM_SetCaption(evt->caption.caption, NULL);
+#endif
 		break;
 	case GF_EVENT_SHOWHIDE:
 		/*the only way to have proper show/hide with SDL is to shutdown the video system and reset it up
@@ -1036,7 +1335,11 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			ctx->store_width = evt->size.width;
 			ctx->store_height = evt->size.height;
 		} else {
+#ifdef GPAC_IPHONE
+            SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
+#else
 			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
+#endif
 		}
 	}
 		break;
@@ -1050,6 +1353,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			/*force a resetup of the window*/
 			if (ctx->output_3d_type) {
 				ctx->width = ctx->height = 0;
+				ctx->output_3d_type = 0;
+		        SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 			}
 			ctx->output_3d_type = 0;
 			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
@@ -1059,7 +1364,12 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				ctx->width = ctx->height = 0;
 			}
 			ctx->output_3d_type = 1;
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
+#ifdef GPAC_IPHONE
+            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
+#else
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
+#endif
 		case 2:
 			/*find a way to do that in SDL*/
 			ctx->output_3d_type = 2;
@@ -1197,12 +1507,66 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 {
 	SDLVID();
 	u32 amask = 0;
-	u32 bpp, i;
+	u32 bpp;
+#if SDL_VERSION_ATLEAST(2,0,0)
+#else
+	u32 i;
 	u8 *dst, *src;
-	SDL_Rect srcrc, dstrc;
+#endif
+	SDL_Rect dstrc;
 	SDL_Surface **pool;
 
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
+
 	if (overlay_type) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+		u8* pixels;
+		int pitch;
+		u32 format;
+		s32 acc, w, h;
+		u8 *pY, *pU, *pV;
+		if (!video_src) {
+			if (ctx->yuv_texture) {
+				SDL_DestroyTexture(ctx->yuv_texture);
+				ctx->yuv_texture=NULL;
+			}
+			return GF_OK;
+		}
+		if (! ctx->yuv_texture ) {
+			SDL_QueryTexture(ctx->yuv_texture, &format, &acc, &w, &h);
+			if ((w != src_wnd->w) || (h != src_wnd->h) ) {
+				if (ctx->yuv_texture) SDL_DestroyTexture(ctx->yuv_texture);
+
+				ctx->yuv_texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, src_wnd->w, src_wnd->h);
+				if (!ctx->yuv_texture) return GF_NOT_SUPPORTED;
+			}
+		}
+
+		SDL_QueryTexture(ctx->yuv_texture, &format, &acc, &w, &h);
+
+		/*copy pixels*/
+		if (SDL_LockTexture(ctx->yuv_texture, NULL, (void**)&pixels, &pitch) < 0) {
+			return GF_NOT_SUPPORTED;
+		}
+
+		pY = pixels;
+		pU = pixels + h*pitch;
+		pV = pixels + 5*h*pitch/4;
+		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, video_src->video_buffer, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+
+		SDL_UnlockTexture(ctx->yuv_texture);
+
+		dstrc.w = dst_wnd->w;
+		dstrc.h = dst_wnd->h;
+		dstrc.x = dst_wnd->x;
+		dstrc.y = dst_wnd->y;
+
+        SDL_ClearError();
+		SDL_RenderCopy(ctx->renderer, ctx->yuv_texture, NULL, &dstrc);
+		SDL_RenderPresent(ctx->renderer);
+		return GF_OK;
+
+#else
 		if (!video_src) {
 			if (ctx->yuv_overlay) {
 				SDL_FreeYUVOverlay(ctx->yuv_overlay);
@@ -1231,10 +1595,12 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		dstrc.y = dst_wnd->y;
 		SDL_DisplayYUVOverlay(ctx->yuv_overlay, &dstrc);
 		return GF_OK;
+#endif
 	}
 
 	/*SDL doesn't support stretching ...*/
-	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h)) return GF_NOT_SUPPORTED;
+	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h)) 
+		return GF_NOT_SUPPORTED;
 
 	switch (video_src->pixel_format) {
 	case GF_PIXEL_RGB_24:
@@ -1243,25 +1609,52 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		break;
 	case GF_PIXEL_RGBA:
 		pool = &ctx->pool_rgba;
-		amask = 0xFF000000;
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+		amask = 0x000000FF;
+#else
+        amask = 0xFF000000;
+#endif
 		bpp = 4;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
+#if SDL_VERSION_ATLEAST(2,0,0)
+    if ((*pool)) SDL_FreeSurface((*pool));
+    (*pool) = SDL_CreateRGBSurfaceFrom(video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp,
+        src_wnd->w, src_wnd->h, 8*bpp, video_src->pitch_y,
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        0xFF000000, 0x00FF0000, 0x0000FF00, amask);
+#else
+        0x000000FF, 0x0000FF00, 0x00FF0000, amask);
+#endif
+    dstrc.w = dst_wnd->w;
+	dstrc.h = dst_wnd->h;
+	dstrc.x = dst_wnd->x;
+	dstrc.y = dst_wnd->y;
+    
+	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
 
+	
+	SDL_FreeSurface((*pool));
+    *pool = NULL;
+
+#else
 	if (! *pool || ((*pool)->w < (int) src_wnd->w) || ((*pool)->h < (int) src_wnd->h) ) {
 		if ((*pool)) SDL_FreeSurface((*pool));
+
 		(*pool) = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, 
 						src_wnd->w, src_wnd->h, 8*bpp, 
 						0x000000FF, 0x0000FF00, 0x00FF0000, amask);
+
 		if (! (*pool) ) return GF_IO_ERR;
 	}
 
 	SDL_LockSurface(*pool);
 
 	dst = (u8 *) ( (*pool)->pixels);
-	src = video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp;
+	src = (u8*)video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp;
 	for (i=0; i<src_wnd->h; i++) {
 		memcpy(dst, src, bpp * src_wnd->w);
 		src += video_src->pitch_y;
@@ -1269,17 +1662,16 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	}
 	SDL_UnlockSurface(*pool);
 
-	srcrc.w = src_wnd->w;
-	srcrc.h = src_wnd->h;
-	srcrc.x = 0;
-	srcrc.y = 0;
-
 	dstrc.w = dst_wnd->w;
 	dstrc.h = dst_wnd->h;
 	dstrc.x = dst_wnd->x;
 	dstrc.y = dst_wnd->y;
 
-	SDL_BlitSurface(*pool, &srcrc, ctx->back_buffer, &dstrc);
+	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
+#endif
+    
+    
 	return GF_OK;
 }
 
@@ -1290,11 +1682,11 @@ void *SDL_NewVideo()
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
 	
-	driv = gf_malloc(sizeof(GF_VideoOutput));
+	driv = (GF_VideoOutput*)gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution");
 
-	ctx = gf_malloc(sizeof(SDLVidCtx));
+	ctx = (SDLVidCtx*)gf_malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));
 #ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th = gf_th_new("SDLVideo");
@@ -1311,10 +1703,11 @@ void *SDL_NewVideo()
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 
 	/*no YUV hardware blitting in SDL (only overlays)*/
-	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA;
+	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA;;
 	driv->Blit = SDL_Blit;
 	driv->LockBackBuffer = SDLVid_LockBackBuffer;
 	driv->LockOSContext = NULL;
+
 
 	/*color keying with overlays are not supported in SDL ...*/
 #if 0

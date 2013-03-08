@@ -258,7 +258,7 @@ static GF_Err HYB_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 	return GF_OK;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
@@ -268,7 +268,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
  	GF_HYB_In *hyb_in;
@@ -295,7 +295,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return (GF_BaseInterface *)plug;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface %p: 1\n", ifce));
@@ -309,3 +309,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
+GPAC_MODULE_STATIC_DELARATION( hyb_in )

@@ -23,12 +23,8 @@
  *		
  */
 
-#ifdef GPAC_IPHONE
-#include "libgpac_symbols.h"
-#endif
-
 #include "sdl_out.h"
-
+	
 #define SDLAUD()	SDLAudCtx *ctx = (SDLAudCtx *)dr->opaque
 
 static void sdl_close_audio(){
@@ -41,9 +37,15 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 	GF_AudioOutput *dr = (GF_AudioOutput *)udata;
 	SDLAUD();
 	if (ctx->volume != SDL_MIX_MAXVOLUME){
-		ctx->audioBuff = gf_realloc( ctx->audioBuff, sizeof(Uint8) * len);
-		dr->FillBuffer(dr->audio_renderer, ctx->audioBuff, len);	
-		SDL_MixAudio(stream, ctx->audioBuff, len, ctx->volume);
+		u32 written;
+		if (ctx->alloc_size < (u32) len) {
+			ctx->audioBuff = gf_realloc( ctx->audioBuff, sizeof(Uint8) * len);
+			ctx->alloc_size = len;
+		}
+		memset(stream, 0, len);
+		written = dr->FillBuffer(dr->audio_renderer, ctx->audioBuff, len);	
+		if (written)
+			SDL_MixAudio(stream, ctx->audioBuff, len, ctx->volume);
 	} else {
 		dr->FillBuffer(dr->audio_renderer, stream, len);	
 	}
@@ -179,10 +181,14 @@ static u32 SDLAud_GetTotalBufferTime(GF_AudioOutput *dr)
 static void SDLAud_SetVolume(GF_AudioOutput *dr, u32 Volume)
 {
 	SDLAUD();
+#if 0
 	if (Volume > 98)
 		ctx->volume = SDL_MIX_MAXVOLUME;
 	else
 		ctx->volume = Volume * SDL_MIX_MAXVOLUME / 100;
+#else
+	ctx->volume = SDL_MIX_MAXVOLUME;
+#endif
 }
 
 static void SDLAud_SetPan(GF_AudioOutput *dr, u32 pan)

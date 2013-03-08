@@ -31,7 +31,9 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <string.h>
 
-#ifndef _WIN32_WCE
+#ifdef _WIN32_WCE
+#include <winbase.h>
+#else
 #include <time.h>
 #endif
 
@@ -337,7 +339,19 @@ static u64 gf_dash_get_utc_clock()
 #endif
 
 #else
-	current_time = sec - GF_NTP_SEC_1900_TO_1970;
+	{
+	SYSTEMTIME syst;
+	FILETIME filet;
+	GetSystemTime(&syst);
+	SystemTimeToFileTime(&syst, &filet);
+
+#define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
+
+	current_time = (u64) ((*(LONGLONG *) &filet - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
+
+#undef TIMESPEC_TO_FILETIME_OFFSET 
+	}
+
 #endif
 
 	return current_time;

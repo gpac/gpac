@@ -1370,6 +1370,8 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	if (!scene->is_dynamic_scene) return;
 	gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
 	
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing scene size to %d x %d\n", width, height));
+	
 	if (scene->root_od->term->root_scene == scene) {
 		GF_NetworkCommand com;
 

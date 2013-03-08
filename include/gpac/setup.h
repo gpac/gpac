@@ -415,7 +415,7 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 
 
 #ifndef GF_EXPORT
-#if defined(__GNUC__) && __GNUC__ >= 4
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR)
 #define GF_EXPORT __attribute__((visibility("default")))
 #else
 /*use def files for windows or let compiler decide*/
@@ -423,7 +423,9 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #endif
 #endif
 
-
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#define GPAC_STATIC_MODULES
+#endif
 
 	
 /*safety checks on macros*/

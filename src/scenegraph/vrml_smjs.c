@@ -110,9 +110,13 @@ JSObject *gf_sg_js_global_object(JSContext *cx, GF_JSClass *__class)
 
 /*define this macro to force Garbage Collection after each input to JS (script initialize/shutdown and all eventIn) 
 on latest SM, GC will crash if called from a different thread than the thread creating the contex, no clue why
+
+for iOS don't force GC (better performances according to Ivica)
 */
-#if (JS_VERSION<180)
-#define FORCE_GC
+#if !defined(GPAC_IPHONE)
+# if (JS_VERSION<180)
+#  define FORCE_GC
+# endif
 #endif
 
 

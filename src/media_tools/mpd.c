@@ -28,7 +28,9 @@
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
 
-#ifndef _WIN32_WCE
+#ifdef _WIN32_WCE
+#include <winbase.h>
+#else
 /*for mktime*/
 #include <time.h>
 #endif
@@ -95,15 +97,18 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(char *attr)
 
 static u64 gf_mpd_parse_date(char *attr)
 {
-#ifdef _WIN32_WCE
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Parsing MPD date (%s) is not supported on Windows CE\n", attr));
-	return 0;
-#else
 	Bool ok = 0;
 	Bool neg_time_zone = 0;
 	u32 year, month, day, h, m;
 	s32 oh, om;
 	Float s;
+	u64 res;
+#ifdef _WIN32_WCE
+	SYSTEMTIME syst;
+	FILETIME filet;
+#else
+	struct tm _t;
+#endif
 
 	h = m = 0;
 	s = 0;
@@ -117,44 +122,62 @@ static u64 gf_mpd_parse_date(char *attr)
 		ok = 1;
 	}
 
-	if (ok) {
-		u64 res;
-		struct tm _t;
-		memset(&_t, 0, sizeof(struct tm));
-		_t.tm_year = (year > 1900) ? year - 1900 : 0;
-		_t.tm_mon = month ? month - 1 : 0;
-		_t.tm_mday = day;
-		_t.tm_hour = h;
-		_t.tm_min = m;
-		_t.tm_sec = (u32) s;
+	if (!ok) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Failed to parse MPD date %s - format not supported\n", attr));
+		return 0;
+	}
+
+#ifdef _WIN32_WCE
+	memset(&syst, 0, sizeof(SYSTEMTIME));
+	syst.wYear = year;
+	syst.wMonth = month;
+	syst.wDay = day;
+	syst.wHour = h;
+	syst.wMinute = m;
+	syst.wSecond = (u32) s;
+	SystemTimeToFileTime(&syst, &filet);
+
+#define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
+
+	res = (u64) ((*(LONGLONG *) &filet - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
+
+#undef TIMESPEC_TO_FILETIME_OFFSET 
+
+
+#else
+	memset(&_t, 0, sizeof(struct tm));
+	_t.tm_year = (year > 1900) ? year - 1900 : 0;
+	_t.tm_mon = month ? month - 1 : 0;
+	_t.tm_mday = day;
+	_t.tm_hour = h;
+	_t.tm_min = m;
+	_t.tm_sec = (u32) s;
 
 #ifdef GPAC_ANDROID
-		{
-		/*FIXME - finad a safe way to estimate timezone this does not work !!*/
-		s32 t_timezone;
-		struct tm t_gmt, t_local;
-		time_t t_time;
-		t_time = time(NULL);
-		t_gmt = *gmtime(&t_time);
-		t_local = *localtime(&t_time);
-		
-		t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600;
-		res = mktime(&_t) - t_timezone;
-		}
-#else
-		res = mktime(&_t) - timezone;
-#endif
-		if (om || oh) {
-			s32 diff = (60*oh + om)*60;
-			if (neg_time_zone) diff = -diff;
-			res = res + diff;
-		}
-		return res;
-	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Failed to parse MPD date %s - format not supported\n", attr));
+	{
+	/*FIXME - finad a safe way to estimate timezone this does not work !!*/
+	s32 t_timezone;
+	struct tm t_gmt, t_local;
+	time_t t_time;
+	t_time = time(NULL);
+	t_gmt = *gmtime(&t_time);
+	t_local = *localtime(&t_time);
+	
+	t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600;
+	res = mktime(&_t) - t_timezone;
 	}
-	return 0;
+#else
+	res = mktime(&_t) - timezone;
 #endif
+
+#endif
+
+	if (om || oh) {
+		s32 diff = (60*oh + om)*60;
+		if (neg_time_zone) diff = -diff;
+		res = res + diff;
+	}
+	return res;
 }
 
 static u32 gf_mpd_parse_duration(char *duration) {

@@ -28,7 +28,9 @@
 #include <gpac/mpegts.h>
 #include <gpac/config_file.h>
 #include <gpac/network.h>
-#ifndef _WIN32_WCE
+#ifdef _WIN32_WCE
+#include <winbase.h>
+#else
 #include <time.h>
 #endif
 #include <gpac/internal/isomedia_dev.h>
@@ -3096,10 +3098,13 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput *dash_input)
 
 static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, u32 ast_shift_sec)
 {
-#ifndef _WIN32_WCE
-		u32 sec, frac;
-		time_t gtime;
-		struct tm *t;
+	u32 sec, frac;
+#ifdef _WIN32_WCE
+	SYSTEMTIME syst;
+	FILETIME filet;
+#else
+	time_t gtime;
+	struct tm *t;
 #endif
 	u32 h, m, i;
 	Double s;
@@ -3115,20 +3120,35 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	t = gmtime(&gtime);
 	fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec) );
+#else
+	GetSystemTime(&syst);
+	fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond) );
 #endif
 	fprintf(mpd, "-->\n");
 
 	/*TODO what should we put for minBufferTime */
 	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static"); 
 	if (dash_dynamic) {
-#ifndef _WIN32_WCE
-
 		/*otherwise timeshift is infinite, use original availability start time*/
 		if ((s32)time_shift_depth<0) {
 			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
 			sscanf(opt, "%u", &sec);
 			sec += ast_shift_sec;
 		}
+#ifdef _WIN32_WCE
+
+#define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
+
+		*(LONGLONG *) &filet = (sec - GF_NTP_SEC_1900_TO_1970) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
+
+#undef TIMESPEC_TO_FILETIME_OFFSET 
+		
+		FileTimeToSystemTime(&filet, &syst);
+		fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond) );
+
+#else
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		t = gmtime(&gtime);
 		fprintf(mpd, " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);

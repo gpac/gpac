@@ -447,7 +447,7 @@ Bool AVCap_CanHandleURLInService(GF_InputService *plug, const char *url)
 }
 
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
 {
 	static u32 si [] = {
@@ -457,7 +457,7 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) {
@@ -484,7 +484,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
 	if (bi->InterfaceType==GF_NET_CLIENT_INTERFACE) {
@@ -495,6 +495,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
+GPAC_MODULE_STATIC_DELARATION( avcap )
 
 #ifdef __cplusplus
 }

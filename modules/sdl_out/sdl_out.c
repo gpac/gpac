@@ -25,16 +25,16 @@
 
 #include "sdl_out.h"
 
-#if !defined(__GNUC__)
-# if defined(_WIN32_WCE)
-#  pragma comment(lib, "SDL")
-# elif defined (WIN32)
-#  pragma comment(lib, "SDL")
-# endif
-#endif
-
 static Bool is_init = GF_FALSE;
 static u32 num_users = 0;
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+#if SDL_VERSION_ATLEAST(2,0,0)
+#pragma comment(lib, "SDL2")
+#else
+#pragma comment(lib, "SDL")
+#endif
+#endif
 
 Bool SDLOUT_InitSDL()
 {

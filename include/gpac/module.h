@@ -139,8 +139,8 @@ typedef struct
 {
 	const char *name;
 	const u32 *(*QueryInterfaces) ();
-	void * (*LoadInterface) (u32 InterfaceType);
-	void (*ShutdownInterface) (void *interface_obj);
+	GF_BaseInterface * (*LoadInterface) (u32 InterfaceType);
+	void (*ShutdownInterface) (GF_BaseInterface *interface_obj);
 } GF_InterfaceRegister;
 
 /*!

@@ -39,6 +39,10 @@
 
 #ifdef GPAC_HAS_GLU
 
+#ifdef GPAC_IPHONE
+#define GLdouble GLfloat
+#endif
+
 
 typedef struct
 {

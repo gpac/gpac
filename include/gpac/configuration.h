@@ -36,12 +36,9 @@
 /*enables GPAC fixed point*/
 //#define GPAC_FIXED_POINT
 
-/*automatic tracking is disabled by default, causes too many problems when reusing parts of gpac*/
-#if 0
-/*enables GPAC memory tracking*/
+/*enables GPAC memory tracking in debug mode only*/
 #if defined(DEBUG) || defined(_DEBUG)
 #define GPAC_MEMORY_TRACKING
-#endif
 #endif
 
 /*platform is big endian*/
@@ -72,7 +69,7 @@
 
 /*3D compositor disabled*/
 #ifdef GPAC_CONFIG_DARWIN
-#define GPAC_DISABLE_3D
+//#define GPAC_DISABLE_3D
 #endif
 
 /*use TinyGL instead of OpenGL*/
@@ -81,6 +78,10 @@
 /*use OpenGL ES instead of OpenGL*/
 #ifdef GPAC_CONFIG_DARWIN
 #define GPAC_USE_OGL_ES
+#define GPAC_FIXED_POINT
+#ifdef GPAC_IPHONE
+#define GPAC_HAS_GLU
+#endif
 #endif
 
 

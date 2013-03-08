@@ -40,7 +40,7 @@ void SDLOUT_CloseSDL();
 
 /*when not threaded on win32, locks happen randomly when setting the window's caption*/
 #ifdef WIN32
-#define SDL_WINDOW_THREAD
+//#define SDL_WINDOW_THREAD
 #endif
 
 typedef enum {
@@ -66,11 +66,23 @@ typedef struct
 	SDL_Cursor *curs_def, *curs_hand, *curs_collide;
 	Bool use_systems_memory;
 
+	
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_GLContext gl_context;
+	SDL_Renderer *renderer;
+	SDL_Window *screen;
+	SDL_Surface *back_buffer;
+
+	SDL_Surface *pool_rgb, *pool_rgba;
+	SDL_Texture *yuv_texture;
+	char szCaption[100];
+#else
 	SDL_Surface *screen;
 	SDL_Surface *back_buffer;
 
 	SDL_Surface *pool_rgb, *pool_rgba;
 	SDL_Overlay *yuv_overlay;
+#endif
 
 	u32 width, height;
 
@@ -94,7 +106,7 @@ void *SDL_NewVideo();
 */
 typedef struct
 {
-	u32 num_buffers, total_duration, delay_ms, total_size, volume;
+	u32 num_buffers, total_duration, delay_ms, total_size, volume, alloc_size;
 	Bool is_init, is_running;
 	Uint8 * audioBuff;
 } SDLAudCtx;

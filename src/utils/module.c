@@ -28,23 +28,6 @@
 #include <gpac/tools.h>
 
 
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
-#include <gpac/modules/video_out.h>
-#include <gpac/modules/audio_out.h>
-#include "sdl_out.h"
-
-/*hack I'm not proud of. If you're young and innocent never do that*/
-void* (*SDL_Module_Load_Video) (void);
-void* (*SDL_Module_Load_Audio) (void);
-GF_EXPORT void gf_iphone_set_sdl_video_module(void* (*SDL_Module) (void)) {
-	SDL_Module_Load_Video = SDL_Module;
-}
-GF_EXPORT void gf_iphone_set_sdl_audio_module(void* (*SDL_Module) (void)) {
-	SDL_Module_Load_Audio = SDL_Module;
-}
-#endif
-
-
 static void load_all_modules(GF_ModuleManager *mgr)
 {
 #define LOAD_PLUGIN(	__name	)	{ \
@@ -60,38 +43,40 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_STATIC_MODULES
 	GF_InterfaceRegister *pr;
 
+#ifndef GPAC_IPHONE
+    LOAD_PLUGIN(ac3);
+    LOAD_PLUGIN(audio_filter);
+    LOAD_PLUGIN(isma_ea);
+    LOAD_PLUGIN(mpd_in);
+    LOAD_PLUGIN(openhevc);
+    LOAD_PLUGIN(opensvc);
+    LOAD_PLUGIN(raw_out);
+    LOAD_PLUGIN(redirect_av);
+    LOAD_PLUGIN(saf_in);
+    LOAD_PLUGIN(timedtext);
+    LOAD_PLUGIN(validator);
+    LOAD_PLUGIN(wave_out);
+    LOAD_PLUGIN(xvid);
+    LOAD_PLUGIN(dx_out);
+    LOAD_PLUGIN(ffmpeg);
+    LOAD_PLUGIN(ogg_in);
+#endif
 	LOAD_PLUGIN(aac_in);
-	LOAD_PLUGIN(ac3);
-	LOAD_PLUGIN(audio_filter);
 	LOAD_PLUGIN(bifs);
 	LOAD_PLUGIN(ctx_load);
 	LOAD_PLUGIN(dummy_in);
 	LOAD_PLUGIN(ftfont);
 	LOAD_PLUGIN(gpac_js);
-	LOAD_PLUGIN(isma_ea);
 	LOAD_PLUGIN(laser);
 	LOAD_PLUGIN(mp3_in);
-	LOAD_PLUGIN(mpd_in);
 	LOAD_PLUGIN(mpegts_in);
 	LOAD_PLUGIN(odf_dec);
-	LOAD_PLUGIN(openhevc);
-	LOAD_PLUGIN(opensvc);
-	LOAD_PLUGIN(raw_out);
-	LOAD_PLUGIN(redirect_av);
-	LOAD_PLUGIN(saf_in);
 	LOAD_PLUGIN(svg_in);
-	LOAD_PLUGIN(timedtext);
-	LOAD_PLUGIN(validator);
-	LOAD_PLUGIN(wave_out);
-	LOAD_PLUGIN(xvid);
-	LOAD_PLUGIN(dx_out);
 	LOAD_PLUGIN(img_in);
 	LOAD_PLUGIN(rtp_in);
 	LOAD_PLUGIN(isom);
 	LOAD_PLUGIN(soft_raster);
-	LOAD_PLUGIN(ffmpeg);
 	LOAD_PLUGIN(widgetman);
-	LOAD_PLUGIN(ogg_in);
 	LOAD_PLUGIN(sdl_out);
 
 #endif //GPAC_STATIC_MODULES
@@ -252,17 +237,6 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
 	/*sanity check*/
 	if (!ifce) goto err_exit;
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
-	if (!strcmp(inst->name, "gm_sdl_out.dylib")) {
-		if (InterfaceFamily == GF_VIDEO_OUTPUT_INTERFACE) {
-			ifce = SDL_Module_Load_Video();
-			fprintf(stderr, "***         Loading SDL Video: %p ***\n", ifce);
-		} else if (InterfaceFamily == GF_AUDIO_OUTPUT_INTERFACE) {
-			ifce = SDL_Module_Load_Audio();
-			fprintf(stderr, "***         Loading SDL Audio: %p ***\n", ifce);
-		}
-	}
-#endif
 	if (!ifce->module_name || (ifce->InterfaceType != InterfaceFamily)) {
 		inst->destroy_func(ifce);
 		goto err_exit;
