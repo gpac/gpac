@@ -89,7 +89,7 @@
       </ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\obj/$(Platform)/$(Configuration)/libgpac_dll/libgpac.pdb</ProgramDatabaseFile>
-      <ImportLibrary>.\obj/$(Platform)/$(Configuration)/libgpac_dll/libgpac.lib</ImportLibrary>
+      <ImportLibrary>../../bin/$(Platform)/$(Configuration)/libgpac.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <Bscmake>
