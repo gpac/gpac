@@ -42,6 +42,7 @@ cp bin/gcc/gm* tmpdmg/Osmo4.app/Contents/MacOS/modules
 cp bin/gcc/libgpac.dylib tmpdmg/Osmo4.app/Contents/MacOS/lib
 cp bin/gcc/MP4Client tmpdmg/Osmo4.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/Osmo4.app/Contents/MacOS/MP4Box
+cp bin/gcc/MP42TS tmpdmg/Osmo4.app/Contents/MacOS/MP42TS
 
 cd tmpdmg/Osmo4.app/Contents/MacOS/
 
@@ -55,8 +56,10 @@ done
 echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
+install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
+install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
 
 
 cd ../../../..
