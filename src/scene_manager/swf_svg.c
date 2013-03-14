@@ -142,21 +142,21 @@ static void swf_svg_print_matrix(SWFReader *read, GF_Matrix2D *mat)
             fprintf(read->svg_output, "transform=\"");
             if (translate.x != 0 || translate.y != 0)
             {
-                fprintf(read->svg_output, "translate(%f, %f) ", translate.x, translate.y);
+                fprintf(read->svg_output, "translate(%f, %f) ", FIX2FLT(translate.x), FIX2FLT(translate.y));
             }
             if (rotate != 0)
             {
-                fprintf(read->svg_output, "rotate(%f) ", rotate);
+                fprintf(read->svg_output, "rotate(%f) ", FIX2FLT(rotate));
             }
             if (scale.x != FIX_ONE || scale.y != FIX_ONE)
             {
-                fprintf(read->svg_output, "scale(%f, %f) ", scale.x, scale.y);
+                fprintf(read->svg_output, "scale(%f, %f) ", FIX2FLT(scale.x), FIX2FLT(scale.y));
             }
             fprintf(read->svg_output, "\" ");
         } 
         else 
         {
-            fprintf(read->svg_output, "transform=\"matrix(%f,%f,%f,%f,%f,%f)\" ", mat->m[0], mat->m[3], mat->m[1], mat->m[4], mat->m[2], mat->m[5]);
+            fprintf(read->svg_output, "transform=\"matrix(%f,%f,%f,%f,%f,%f)\" ", FIX2FLT(mat->m[0]), FIX2FLT(mat->m[3]), FIX2FLT(mat->m[1]), FIX2FLT(mat->m[4]), FIX2FLT(mat->m[2]), FIX2FLT(mat->m[5]) );
         }
     }
 }
@@ -292,7 +292,7 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
             dx = 0;
             for (j=0; j<gr->nbGlyphs; j++) 
             {
-                fprintf(read->svg_output, "<use xlink:href=\"#Font%d_Glyph%d\" transform=\"translate(%f)\" />\n", gr->fontID, gr->indexes[j], FLT2FIX(gf_divfix(dx, FLT2FIX(gr->fontSize * SWF_TEXT_SCALE))));
+                fprintf(read->svg_output, "<use xlink:href=\"#Font%d_Glyph%d\" transform=\"translate(%f)\" />\n", gr->fontID, gr->indexes[j], FIX2FLT(gf_divfix(dx, FLT2FIX(gr->fontSize * SWF_TEXT_SCALE))));
                 dx += gr->dx[j];
             }
             fprintf(read->svg_output, "</g>\n");

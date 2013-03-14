@@ -399,7 +399,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	} else {
 		strcpy ( tmp, url );
 	}
-	gf_sha1_csum ( tmp, strlen ( tmp ), hash );
+	gf_sha1_csum ((u8*) tmp, strlen ( tmp ), hash );
 	tmp[0] = 0;
 	{
 		int i;

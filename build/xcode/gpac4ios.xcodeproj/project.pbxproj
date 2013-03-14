@@ -421,6 +421,18 @@
 		92BC213A16EF8E7A000E0620 /* widget.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998D1278777A00ACFF58 /* widget.c */; };
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
+		92FA812016F233E30002629E /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA811F16F233E30002629E /* CoreLocation.framework */; };
+		92FA812416F233EE0002629E /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812316F233EE0002629E /* CoreMotion.framework */; };
+		92FA812816F233FA0002629E /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812716F233FA0002629E /* CoreMedia.framework */; };
+		92FA812C16F234060002629E /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812B16F234060002629E /* CoreVideo.framework */; };
+		92FA813016F2340F0002629E /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812F16F2340F0002629E /* AVFoundation.framework */; };
+		92FA814116F235520002629E /* ios_cam.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA813E16F235520002629E /* ios_cam.c */; };
+		92FA825A16F2549D0002629E /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825916F2549D0002629E /* validator.c */; };
+		92FA825C16F254AF0002629E /* audio_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825B16F254AF0002629E /* audio_filter.c */; };
+		92FA825E16F254C60002629E /* saf_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825D16F254C60002629E /* saf_in.c */; };
+		92FA826016F254DA0002629E /* isma_ea.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825F16F254DA0002629E /* isma_ea.c */; };
+		92FA826316F254F50002629E /* timedtext_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826116F254F50002629E /* timedtext_dec.c */; };
+		92FA826416F254F50002629E /* timedtext_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826216F254F50002629E /* timedtext_in.c */; };
 		970A26C913434D2C0007362C /* m3u8.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C713434D2C0007362C /* m3u8.c */; };
 		970A26CA13434D2C0007362C /* mpd.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C813434D2C0007362C /* mpd.c */; };
 		970A26CD13434D780007362C /* m3u8.h in Headers */ = {isa = PBXBuildFile; fileRef = 970A26CB13434D780007362C /* m3u8.h */; };
@@ -947,6 +959,20 @@
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
 		92A3A03D16F0C10C004EE581 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/osmo4_ios/extract.c; sourceTree = SOURCE_ROOT; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
+		92FA811F16F233E30002629E /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		92FA812316F233EE0002629E /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+		92FA812716F233FA0002629E /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		92FA812B16F234060002629E /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		92FA812F16F2340F0002629E /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		92FA813A16F235520002629E /* cam_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cam_wrap.h; path = ../../modules/ios_cam/cam_wrap.h; sourceTree = SOURCE_ROOT; };
+		92FA813C16F235520002629E /* CameraObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CameraObject.h; path = ../../modules/ios_cam/CameraObject.h; sourceTree = SOURCE_ROOT; };
+		92FA813E16F235520002629E /* ios_cam.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ios_cam.c; path = ../../modules/ios_cam/ios_cam.c; sourceTree = SOURCE_ROOT; };
+		92FA825916F2549D0002629E /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../../modules/validator/validator.c; sourceTree = SOURCE_ROOT; };
+		92FA825B16F254AF0002629E /* audio_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_filter.c; path = ../../modules/audio_filter/audio_filter.c; sourceTree = SOURCE_ROOT; };
+		92FA825D16F254C60002629E /* saf_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = saf_in.c; path = ../../modules/saf_in/saf_in.c; sourceTree = SOURCE_ROOT; };
+		92FA825F16F254DA0002629E /* isma_ea.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isma_ea.c; path = ../../modules/ismacryp/isma_ea.c; sourceTree = SOURCE_ROOT; };
+		92FA826116F254F50002629E /* timedtext_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = timedtext_dec.c; path = ../../modules/timedtext/timedtext_dec.c; sourceTree = SOURCE_ROOT; };
+		92FA826216F254F50002629E /* timedtext_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = timedtext_in.c; path = ../../modules/timedtext/timedtext_in.c; sourceTree = SOURCE_ROOT; };
 		970A26C713434D2C0007362C /* m3u8.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = m3u8.c; sourceTree = "<group>"; };
 		970A26C813434D2C0007362C /* mpd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpd.c; sourceTree = "<group>"; };
 		970A26CB13434D780007362C /* m3u8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = m3u8.h; sourceTree = "<group>"; };
@@ -995,6 +1021,11 @@
 				71A19C3F12797E4000ACFF58 /* QuartzCore.framework in Frameworks */,
 				71A19C4112797E4000ACFF58 /* libdl.dylib in Frameworks */,
 				92B039F716F2050100B2568F /* libSDL2.a in Frameworks */,
+				92FA812016F233E30002629E /* CoreLocation.framework in Frameworks */,
+				92FA812416F233EE0002629E /* CoreMotion.framework in Frameworks */,
+				92FA812816F233FA0002629E /* CoreMedia.framework in Frameworks */,
+				92FA812C16F234060002629E /* CoreVideo.framework in Frameworks */,
+				92FA813016F2340F0002629E /* AVFoundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1149,6 +1180,11 @@
 				71A19BCC12797DBA00ACFF58 /* UIKit.framework */,
 				71847811127860F000917298 /* libc.dylib */,
 				71847813127860F000917298 /* libz.dylib */,
+				92FA811F16F233E30002629E /* CoreLocation.framework */,
+				92FA812316F233EE0002629E /* CoreMotion.framework */,
+				92FA812716F233FA0002629E /* CoreMedia.framework */,
+				92FA812B16F234060002629E /* CoreVideo.framework */,
+				92FA812F16F2340F0002629E /* AVFoundation.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -1773,6 +1809,13 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				92FA826116F254F50002629E /* timedtext_dec.c */,
+				92FA826216F254F50002629E /* timedtext_in.c */,
+				92FA825F16F254DA0002629E /* isma_ea.c */,
+				92FA825D16F254C60002629E /* saf_in.c */,
+				92FA825B16F254AF0002629E /* audio_filter.c */,
+				92FA825916F2549D0002629E /* validator.c */,
+				92FA813816F235470002629E /* camera */,
 				71A1993D127876E300ACFF58 /* img_in */,
 				71A199531278770900ACFF58 /* isom_in */,
 				71A1996A1278774A00ACFF58 /* rtp_in */,
@@ -1796,6 +1839,16 @@
 				71A19933127876C300ACFF58 /* svg_in.c */,
 			);
 			name = modules;
+			sourceTree = "<group>";
+		};
+		92FA813816F235470002629E /* camera */ = {
+			isa = PBXGroup;
+			children = (
+				92FA813A16F235520002629E /* cam_wrap.h */,
+				92FA813C16F235520002629E /* CameraObject.h */,
+				92FA813E16F235520002629E /* ios_cam.c */,
+			);
+			name = camera;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -2011,6 +2064,13 @@
 			files = (
 				71A19B2112796B6F00ACFF58 /* main.c in Sources */,
 				92A3A03E16F0C10C004EE581 /* extract.c in Sources */,
+				92FA814116F235520002629E /* ios_cam.c in Sources */,
+				92FA825A16F2549D0002629E /* validator.c in Sources */,
+				92FA825C16F254AF0002629E /* audio_filter.c in Sources */,
+				92FA825E16F254C60002629E /* saf_in.c in Sources */,
+				92FA826016F254DA0002629E /* isma_ea.c in Sources */,
+				92FA826316F254F50002629E /* timedtext_dec.c in Sources */,
+				92FA826416F254F50002629E /* timedtext_in.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

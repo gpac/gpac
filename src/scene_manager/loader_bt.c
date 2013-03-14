@@ -986,7 +986,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		if (!gf_bt_check_code(parser, '\"')) {
 			gf_bt_report(parser, GF_BAD_PARAM, "\" expected in Script");
 		}
-		sc->script_text = (unsigned char*)gf_bt_get_string(parser, '\"');
+		sc->script_text = (char*)gf_bt_get_string(parser, '\"');
 	}
 		break;
 	case GF_SG_VRML_SFATTRREF:

@@ -101,7 +101,7 @@ static void isdev_dispatch_frame(struct __input_device *dev, u8 *data, u32 data_
 		ISPriv *is = (ISPriv *)cod->decio->privateStack;
 		if (is->type==priv->type) {
 			GF_Channel *ch = (GF_Channel *)gf_list_get(cod->inChannels, 0);
-			gf_es_receive_sl_packet(ch->service, ch, data, data_len, &slh, GF_OK);
+			gf_es_receive_sl_packet(ch->service, ch, (char *)data, data_len, &slh, GF_OK);
 		}
 	}
 }

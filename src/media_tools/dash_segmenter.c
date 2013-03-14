@@ -1759,9 +1759,9 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				}
 			}
 			if (mtype==GF_ISOM_MEDIA_VISUAL) {
-				u32 w1, h1, w2, h2;
+				u32 w1, h1, w2, h2, sap_type;
 				Bool rap, roll;
-				u32 roll_dist, sap_type;
+				s32 roll_dist;
 
 				gf_isom_get_track_layout_info(set_file, j+1, &w1, &h1, NULL, NULL, NULL);
 				gf_isom_get_track_layout_info(in, j+1, &w2, &h2, NULL, NULL, NULL);

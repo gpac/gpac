@@ -858,7 +858,7 @@ static u32 xmt_parse_script(GF_XMTParser *parser, const char *name, SFScript *va
 	if (parser->last_error) return res;
 
 	if (val->script_text) gf_free(val->script_text);
-	val->script_text = (unsigned char*)sfstr.buffer;
+	val->script_text = (char*)sfstr.buffer;
 	return res;
 }
 

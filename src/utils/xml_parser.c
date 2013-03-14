@@ -1726,7 +1726,7 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 	gf_xml_dom_reset(dom, 1);
 	dom->stack = gf_list_new();
 	dom->parser = gf_xml_sax_new(on_dom_node_start, on_dom_node_end, on_dom_text_content, dom);
-	e = gf_xml_sax_init(dom->parser, string);
+	e = gf_xml_sax_init(dom->parser, (unsigned char *) string);
 	gf_xml_dom_reset(dom, 0);
 	return e<0 ? e : GF_OK;
 }

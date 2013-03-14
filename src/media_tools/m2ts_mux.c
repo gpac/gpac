@@ -256,7 +256,7 @@ void gf_m2ts_mux_table_update_bitrate(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stream *stre
 }
 
 void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_extension,
-						   u8 *table_payload, u32 table_payload_length, 
+						   char *table_payload, u32 table_payload_length, 
 						   Bool use_syntax_indicator, Bool private_indicator,
 						   Bool increment_version_number, Bool use_checksum) 
 {
@@ -367,7 +367,7 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 		gf_bs_write_data(bs, slhdr, slhdr_size);
 		gf_free(slhdr);
 		/*write sl data*/
-		gf_bs_write_data(bs, table_payload + offset, sl_size);
+		gf_bs_write_data(bs, (char *) table_payload + offset, sl_size);
 		offset += sl_size;
 	
 		if (use_syntax_indicator) {
