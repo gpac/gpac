@@ -1815,7 +1815,7 @@ static SMJS_FUNC_PROP_SET( image_setProperty)
 			pixels = (MFInt32 *) ((GF_JSField *) SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(*vp)))->field.far_ptr;
 			if (sfi->pixels) gf_free(sfi->pixels);
 			len = sfi->width*sfi->height*sfi->numComponents;
-			sfi->pixels = (char *) gf_malloc(sizeof(char)*len);
+			sfi->pixels = (unsigned char *) gf_malloc(sizeof(char)*len);
 			len = MAX(len, pixels->count);
 			for (i=0; i<len; i++) sfi->pixels[i] = (u8) pixels->vals[i];
 			changed = 1;

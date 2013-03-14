@@ -426,7 +426,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	int num_trans;
 	png_color_16p trans_color;
  
-	if ((png_size<8) || png_sig_cmp(png, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
+	if ((png_size<8) || png_sig_cmp((png_bytep)png, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
 
 	udta.buffer = png;
 	udta.size = png_size;
@@ -497,7 +497,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	stride = png_get_rowbytes(png_ptr, info_ptr);
 	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
-		rows[i] = dst + i*stride;
+		rows[i] = (png_bytep)dst + i*stride;
 	}
 	png_read_image(png_ptr, rows);
 	png_read_end(png_ptr, NULL);
@@ -641,7 +641,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	}
 	row_pointers = gf_malloc(sizeof(png_bytep)*height);
 	for (k = 0; k < (s32)height; k++)
-		row_pointers[k] = data + k*stride;
+		row_pointers[k] = (png_bytep) data + k*stride;
 
 	png_write_image(png_ptr, row_pointers);
 	png_write_end(png_ptr, info_ptr);

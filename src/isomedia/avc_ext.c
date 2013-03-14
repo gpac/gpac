@@ -1160,7 +1160,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 				AVCState avc;
 				s32 idx, vui_flag_pos;
 				GF_AVCConfigSlot *sl = gf_list_get(ptr->config->sequenceParameterSets, 0);
-				idx = gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, &vui_flag_pos);
+				idx = gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, (u32 *) &vui_flag_pos);
 				if (idx>=0) {
 					ptr->config->chroma_format = avc.sps[idx].chroma_format;
 					ptr->config->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;

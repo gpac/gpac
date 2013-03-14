@@ -43,11 +43,11 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 			ctx->alloc_size = len;
 		}
 		memset(stream, 0, len);
-		written = dr->FillBuffer(dr->audio_renderer, ctx->audioBuff, len);	
+		written = dr->FillBuffer(dr->audio_renderer, (char *) ctx->audioBuff, (u32) len);	
 		if (written)
 			SDL_MixAudio(stream, ctx->audioBuff, len, ctx->volume);
 	} else {
-		dr->FillBuffer(dr->audio_renderer, stream, len);	
+		dr->FillBuffer(dr->audio_renderer, (char *) stream, (u32) len);	
 	}
 }
 
@@ -64,6 +64,7 @@ static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers,
 	flags = SDL_WasInit(SDL_INIT_AUDIO);
 	if (!(flags & SDL_INIT_AUDIO)) {
 		if (SDL_InitSubSystem(SDL_INIT_AUDIO)<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Audio output initialization error\n")); 
 			SDLOUT_CloseSDL();
 			return GF_IO_ERR;
 		}
@@ -80,12 +81,14 @@ static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers,
 		sdl_close_audio();
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		SDLOUT_CloseSDL();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Audio output format not supported\n")); 
 		return GF_IO_ERR;
 	}
 	sdl_close_audio();
 	ctx->is_init = GF_TRUE;
 	ctx->num_buffers = num_buffers;
 	ctx->total_duration = total_duration;
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Audio output setup\n")); 
 	return GF_OK;
 }
 
@@ -163,6 +166,7 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	}
 	/*and play*/
 	SDL_PauseAudio(0);
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Audio output setup - SampleRate %d Nb Channels %d - %d ms delay\n", got_format.freq, got_format.channels, ctx->delay_ms)); 
 	return GF_OK;
 }
 

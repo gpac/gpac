@@ -92,7 +92,7 @@ void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u16 col565 = surf->fill_565;
 	u32 col = surf->fill_col;
 	register u32 a, fin, col_no_a;
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	register s32 i;
 	u32 len;
 	s32 x;
@@ -117,7 +117,7 @@ void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	register u32 a, fin, col_no_a;
 	register s32 i;
@@ -134,7 +134,7 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	register u8 spanalpha, col_a;
 	register s32 i, x;
 	register u32 len;
@@ -178,7 +178,7 @@ GF_Err evg_surface_clear_565(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	val = GF_COL_TO_565(col);
 
 	for (y=0; y<h; y++) {
-		u8 *data = _this->pixels + (sy+y) * st + _this->pitch_x*sx;
+		u8 *data = (u8 *) _this->pixels + (sy+y) * st + _this->pitch_x*sx;
 		for (x=0; x<w; x++)  {
 			*(u16*) data = val;
 			data += _this->pitch_x;

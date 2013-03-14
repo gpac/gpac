@@ -366,14 +366,14 @@ const char *mpdin_dash_io_get_mime(GF_DASHFileIO *dashio, GF_DASHFileIOSession s
 u32 mpdin_dash_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u32 bps=0;
-	GF_DownloadSession *sess = (GF_DownloadSession *)session;
+//	GF_DownloadSession *sess = (GF_DownloadSession *)session;
     gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
 	return bps;
 }
 u32 mpdin_dash_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u32 size=0;
-	GF_DownloadSession *sess = (GF_DownloadSession *)session;
+//	GF_DownloadSession *sess = (GF_DownloadSession *)session;
     gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, &size, NULL, NULL, NULL);
 	return size;
 }

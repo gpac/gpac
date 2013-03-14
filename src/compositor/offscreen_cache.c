@@ -90,7 +90,7 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 	cache->txh.transparent = 0;
 #endif
 
-	cache->txh.data = (u8 *) gf_malloc (sizeof(char) * cache->txh.stride * cache->txh.height);
+	cache->txh.data = (char *) gf_malloc (sizeof(char) * cache->txh.stride * cache->txh.height);
 	memset(cache->txh.data, 0x0, sizeof(char) * cache->txh.stride * cache->txh.height);
 	/*the path of drawable_cache is a rectangle one that is the the bound of the object*/
 	gf_path_reset(cache->drawable->path);

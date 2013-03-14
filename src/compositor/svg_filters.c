@@ -51,7 +51,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 		Fixed amplitude = 1;
 		Fixed exponent = 1;
 		Fixed offset = 0;
-		u8 *ptr = NULL;
+		char *ptr = NULL;
 		/*FIXME: unused u32 tag = gf_node_get_tag(l->node);*/
 		GF_DOMAttribute *att = ((SVG_Element *)l->node)->attributes;
 		
@@ -233,7 +233,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 		st->data = (u8*)gf_realloc(st->data, sizeof(u8) * st->alloc_size);
 	}
 	memset(st->data, 0x0, sizeof(char) * st->txh.stride * st->txh.height);
-	st->txh.data = st->data;
+	st->txh.data = (char *) st->data;
 	/*setup geometry (rectangle matching the bounds of the object)
 	Warning, we want to center the cached bitmap at the center of the screen (main visual)*/
 	gf_path_reset(st->drawable->path);

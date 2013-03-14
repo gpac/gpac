@@ -1,4 +1,4 @@
-/*
+ /*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Romain Bouqueau
@@ -116,19 +116,6 @@ static char collide_data[] =
 
 #define SDLVID()	SDLVidCtx *ctx = (SDLVidCtx *)dr->opaque
 
-static u32 video_modes[] = 
-{
-	320, 200,
-	320, 240,
-	400, 300,
-	600, 400,
-	800, 600,
-	1024, 768,
-	1152, 864,
-	1280, 1024
-};
-static u32 nb_video_modes = 8;
-
 
 	
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -159,6 +146,19 @@ void SDLVid_SetCaption(SDL_Window* window)
 #define SDLK_APPLICATION SDLK_COMPOSE
 #define SDLK_PRINTSCREEN SDLK_PRINT
 #define SDL_WINDOW_RESIZABLE SDL_RESIZABLE
+
+static u32 video_modes[] = 
+{
+	320, 200,
+	320, 240,
+	400, 300,
+	600, 400,
+	800, 600,
+	1024, 768,
+	1152, 864,
+	1280, 1024
+};
+static u32 nb_video_modes = 8;
 
 void SDLVid_SetCaption()
 {
@@ -473,10 +473,10 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 #ifdef GPAC_IPHONE
-#define SDL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
-#define SDL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
-#define SDL_GL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
-#define SDL_GL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS
+#define SDL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
+#define SDL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
+#define SDL_GL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
+#define SDL_GL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
 #else
 #define SDL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
 #define SDL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
@@ -498,24 +498,25 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #endif
 
 
-GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height) 
+GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 {
 	SDLVID();
 	GF_Event evt;
-
+	
 	/*lock X mutex to make sure the event queue is not being processed*/
 	gf_mx_p(ctx->evt_mx);
     
     GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Resizing window %dx%d\n", width, height));
-
-	if (ctx->output_3d_type==1) {
+		
+	if (ctx->output_3d_type) {
 		u32 flags, nb_bits;
 		const char *opt;
+
 		if ((ctx->width==width) && (ctx->height==height) ) {
 			gf_mx_v(ctx->evt_mx);
 			return GF_OK;
 		}
-
+		
 #if SDL_VERSION_ATLEAST(2,0,0)
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
@@ -526,7 +527,6 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		if (ctx->fullscreen) flags |= SDL_FULLSCREEN_FLAGS;
 		if (!ctx->screen) ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 #endif
-
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
@@ -534,37 +534,34 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
-		nb_bits = opt ? atoi(opt) : 5;
+		nb_bits = opt ? atoi(opt) : 8;
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, nb_bits);
 
 		assert(width);
 		assert(height);
-#if SDL_VERSION_ATLEAST(2,0,0)
+#if SDL_VERSION_ATLEAST(2,0,0)				
 		if (!ctx->screen) {
-			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
-            if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen)))
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
-			if (SDL_GL_MakeCurrent(ctx->screen, ctx->gl_context))
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot make context current: %s\n", SDL_GetError()));
-		} else {
-            if ( ctx->renderer ) {
-                SDL_DestroyRenderer(ctx->renderer);
-                ctx->renderer = NULL;
-            }
-            if ( !ctx->gl_context ) {
-                SDL_DestroyWindow(ctx->screen);
-                if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
-				if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen)))
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
-				if (SDL_GL_MakeCurrent(ctx->screen, ctx->gl_context))
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot make context current: %s\n", SDL_GetError()));
-			} else
-                SDL_SetWindowSize(ctx->screen, width, height);
+			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags))) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+				gf_mx_v(ctx->evt_mx);
+				return GF_IO_ERR;
+			}
 		}
+		if ( !ctx->gl_context ) {
+			if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen))) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
+				gf_mx_v(ctx->evt_mx);
+				return GF_IO_ERR;
+			}
+			if (SDL_GL_MakeCurrent(ctx->screen, ctx->gl_context)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot make context current: %s\n", SDL_GetError()));
+				gf_mx_v(ctx->evt_mx);
+				return GF_IO_ERR;
+			}
+		}
+        SDL_SetWindowSize(ctx->screen, width, height);
 				
 #else
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
@@ -575,9 +572,10 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		dr->on_event(dr->evt_cbk_hdl, &evt);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] 3D Setup done"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] 3D Setup done\n"));
 	} else {
 		u32 flags;
+
 #ifdef GPAC_IPHONE
 		flags = SDL_FULLSCREEN_FLAGS;
 		//SDL readme says it would make us faster
@@ -587,29 +585,27 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		flags = SDL_WINDOW_FLAGS;
 #endif
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 		if (!ctx->screen) {
-			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
-            if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, SDL_RENDERER_ACCELERATED)))
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
-		} else {
-			if ( ctx->gl_context ) {
-				SDL_GL_DeleteContext(ctx->gl_context);
-				ctx->gl_context = NULL;
+			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags))) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+				gf_mx_v(ctx->evt_mx);
+				return GF_IO_ERR;
 			}
-            if ( !ctx->renderer ) {
-                SDL_DestroyWindow(ctx->screen);
-                if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags)))
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
-                if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, SDL_RENDERER_ACCELERATED)))
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
-            }
-			SDL_SetWindowSize(ctx->screen, width, height);
 		}
+		if ( !ctx->renderer ) {
+            if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, SDL_RENDERER_ACCELERATED))) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
+				gf_mx_v(ctx->evt_mx);
+				return GF_IO_ERR;
+			}
+        }
+        SDL_SetWindowSize(ctx->screen, width, height);
 #else
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 #endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] 2D Setup done\n"));
 	}
 	gf_mx_v(ctx->evt_mx);
 	return ctx->screen ? GF_OK : GF_IO_ERR;
@@ -691,23 +687,39 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	return 1;
 }
 
-static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
+static void SDLVid_ResetWindow(SDLVidCtx *ctx)
 {
 	SDLVid_DestroyObjects(ctx);
-	SDL_FreeCursor(ctx->curs_hand);
-	SDL_FreeCursor(ctx->curs_collide);
 #if SDL_VERSION_ATLEAST(2,0,0)
 	if ( ctx->gl_context )
 		SDL_GL_DeleteContext(ctx->gl_context);
 	if ( ctx->renderer )
 		SDL_DestroyRenderer(ctx->renderer);
-	if ( ctx->screen )
+	ctx->gl_context = NULL;
+	ctx->renderer = NULL;
+	ctx->screen = NULL;
+
+	/*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
+#ifdef GPAC_IPHONE
+	if ( ctx->screen ) {
 		SDL_DestroyWindow(ctx->screen);
+		ctx->screen=NULL;
+	}
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+	SDL_InitSubSystem(SDL_INIT_VIDEO);
 #endif
+	
+#endif
+}
+
+static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
+{
+	SDLVid_DestroyObjects(ctx);
+	SDLVid_ResetWindow(ctx);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-#if defined SDL_TEXTINPUTEVENT_TEXT_SIZE && !defined GPAC_IPHONE
+#if defined SDL_TEXTINPUTEVENT_TEXT_SIZE /*&& !defined GPAC_IPHONE*/
 #include <gpac/unicode.h>
 #endif
 
@@ -721,11 +733,9 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		switch (sdl_evt.type) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 		case SDL_WINDOWEVENT:
-		{
-			switch (sdl_evt.window.event)
-			{
+			switch (sdl_evt.window.event) {
 			case SDL_WINDOWEVENT_SIZE_CHANGED:
-				gpac_evt.type = GF_EVENT_SIZE;
+                gpac_evt.type = GF_EVENT_SIZE;
 				gpac_evt.size.width = sdl_evt.window.data1;
 				gpac_evt.size.height = sdl_evt.window.data2;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
@@ -738,7 +748,6 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				break;
 			}
 			break;
-		}		
 #else
 		case SDL_VIDEORESIZE:
 		  	gpac_evt.type = GF_EVENT_SIZE;
@@ -751,6 +760,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
 #endif
+				
 		case SDL_QUIT:
 			gpac_evt.type = GF_EVENT_QUIT;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
@@ -763,11 +773,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			u32 len = strlen( sdl_evt.text.text);
 			u32 ucs4_len;
 			assert( len < 5 );
-#if SDL_VERSION_ATLEAST(2,0,0)
 			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));
-#else
-			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, sdl_evt.text.text);
-#endif
 			gpac_evt.type = GF_EVENT_TEXTINPUT;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);	
 			break;
@@ -973,7 +979,8 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 
 GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_width, u32 *screen_height)
 {
-	u32 bpp, pref_bpp;
+	int bpp;
+	u32 pref_bpp;
 	SDLVID();
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_DisplayMode goodMode;
@@ -982,7 +989,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 #endif
 
 	if (ctx->fullscreen==bFullScreenOn) return GF_OK;
-
+	
 	/*lock to get sure the event queue is not processed under X*/
 	gf_mx_p(ctx->evt_mx);
 	ctx->fullscreen = bFullScreenOn;
@@ -1336,7 +1343,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			ctx->store_height = evt->size.height;
 		} else {
 #ifdef GPAC_IPHONE
-            SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
+//            SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
+			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
 #else
 			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
 #endif
@@ -1354,6 +1362,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			if (ctx->output_3d_type) {
 				ctx->width = ctx->height = 0;
 				ctx->output_3d_type = 0;
+				SDLVid_ResetWindow(ctx);
 		        SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 			}
 			ctx->output_3d_type = 0;
@@ -1362,11 +1371,13 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			/*force a resetup of the window*/
 			if (!ctx->output_3d_type) {
 				ctx->width = ctx->height = 0;
+				SDLVid_ResetWindow(ctx);
 			}
 			ctx->output_3d_type = 1;
             GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
 #ifdef GPAC_IPHONE
-            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
+//            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
+			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #else
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #endif
@@ -1552,7 +1563,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pY = pixels;
 		pU = pixels + h*pitch;
 		pV = pixels + 5*h*pitch/4;
-		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, video_src->video_buffer, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
 
 		SDL_UnlockTexture(ctx->yuv_texture);
 

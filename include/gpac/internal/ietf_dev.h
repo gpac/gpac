@@ -184,7 +184,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 #define RTSP_WRITE_STEPALLOC	250
 
 #define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)		\
-	if (strlen(str)+pos >= buf_size) {	\
+	if (strlen((const char *) str)+pos >= buf_size) {	\
 		buf_size += RTSP_WRITE_STEPALLOC;	\
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\

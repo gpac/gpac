@@ -231,10 +231,13 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 		SMJS_FREE(c, (char*)evt.caption.caption);
 	}
 	else if (!strcmp(prop_name, "fullscreen")) {
+		/*no fullscreen for iOS (always on)*/
+#ifndef GPAC_IPHONE
 		Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
 		if (term->compositor->fullscreen != res) {
 			gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
 		}
+#endif
 	}
 	else if (!strcmp(prop_name, "volume")) {
 		if (JSVAL_IS_NUMBER(*vp)) {

@@ -104,7 +104,7 @@ typedef struct _font_reader
 	BOLDITALIC and UNDERLINED, STRIKEOUT)*/
 	GF_Err (*set_font)(struct _font_reader *dr, const char *fontName, u32 styles);
 	/*gets font info*/
-	GF_Err (*get_font_info)(struct _font_reader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v);
+	GF_Err (*get_font_info)(struct _font_reader *dr, char **font_name, u32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v);
 
 	/*translate string to glyph sequence*/
 	GF_Err (*get_glyphs)(struct _font_reader *dr, const char *utf_string, u32 *glyph_id_buffer, u32 *io_glyph_id_buffer_size, const char *xml_lang, Bool *rev_layout);

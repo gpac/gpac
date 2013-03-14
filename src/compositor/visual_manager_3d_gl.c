@@ -718,7 +718,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glShadeModel(GL_SMOOTH);
 	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&visual->max_lights);
 #ifdef GL_MAX_CLIP_PLANES
-	glGetIntegerv(GL_MAX_CLIP_PLANES, &visual->max_clips);
+	glGetIntegerv(GL_MAX_CLIP_PLANES, (GLint*)&visual->max_clips);
 #endif
 
 	visual_3d_setup_quality(visual);

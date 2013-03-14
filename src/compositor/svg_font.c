@@ -345,7 +345,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 	if (!atts.unicode) return;
 
 	GF_SAFEALLOC(st, SVG_GlyphStack);
-	utf8 = *atts.unicode;
+	utf8 = (u8 *) *atts.unicode;
 	len = gf_utf8_mbstowcs(utf_name, 200, (const char **) &utf8);
 	/*this is a single glyph*/
 	if (len==1) {

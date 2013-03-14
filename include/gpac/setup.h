@@ -96,7 +96,6 @@ void CE_CharToWide(char *str, unsigned short *w_str);
 #define memccpy _memccpy
 
 
-
 #ifndef _PTRDIFF_T_DEFINED
 typedef int ptrdiff_t;
 #define PTRDIFF(p1, p2, type)	((p1) - (p2))

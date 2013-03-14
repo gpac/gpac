@@ -414,9 +414,9 @@ void txh_unpack_yuv(GF_TextureHandler *txh)
 	if (!txh->tx_io->conv_data) {
 		txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * 2 * txh->width * txh->height);
 	}
-	p_y = txh->data;
-	p_u = txh->data + txh->stride*txh->height;
-	p_v = txh->data + 5*txh->stride*txh->height/4;
+	p_y = (u8 *) txh->data;
+	p_u = (u8 *) txh->data + txh->stride*txh->height;
+	p_v = (u8 *) txh->data + 5*txh->stride*txh->height/4;
 
 	/*convert to UYVY and flip texture*/
 	for (i=0; i<txh->height; i++) {
@@ -424,7 +424,7 @@ void txh_unpack_yuv(GF_TextureHandler *txh)
 		y = p_y + idx*txh->stride;
 		u = p_u + (idx/2) * txh->stride/2;
 		v = p_v + (idx/2) * txh->stride/2;
-		dst = txh->tx_io->conv_data + 2*i*txh->stride;
+		dst = (u8 *) txh->tx_io->conv_data + 2*i*txh->stride;
 
 		for (j=0; j<txh->width/2;j++) {
 			*dst = *u;
@@ -580,9 +580,9 @@ assert(txh->data );
 			dst.pixel_format = GF_PIXEL_RGB_24;
 
 			for (j=0; j<txh->height; j++) {
-				u8 *src = txh->data + (txh->height-j-1)*txh->stride;
-				u8 *dst_p = txh->tx_io->conv_data + j*3*txh->width;
-				u8 *dst_d = txh->tx_io->conv_data + txh->height*3*txh->width + j*txh->width;
+				u8 *src = (u8 *) txh->data + (txh->height-j-1)*txh->stride;
+				u8 *dst_p = (u8 *) txh->tx_io->conv_data + j*3*txh->width;
+				u8 *dst_d = (u8 *) txh->tx_io->conv_data + txh->height*3*txh->width + j*txh->width;
 
 				for (i=0; i<txh->width; i++) {
 					*dst_p++ = src[i*4];

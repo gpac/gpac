@@ -871,7 +871,7 @@ GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8);
 	}
 	fprintf(trace, "reserved1=\"%d\" reserved2=\"", p->reserved1);
-	DumpData(trace, p->reserved2, 12);
+	DumpData(trace, (char *) p->reserved2, 12);
 	fprintf(trace, "\"");
 
 	fprintf(trace, ">\n");
@@ -3920,7 +3920,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
-			DumpData(trace, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+			DumpData(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			fprintf(trace, "\"/>\n");
 		}
 	}
@@ -3981,7 +3981,7 @@ GF_Err pssh_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<ProtectionSystemHeaderBox SystemID=\"");
-	DumpData(trace, ptr->SystemID, 16);
+	DumpData(trace, (char *) ptr->SystemID, 16);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -3990,13 +3990,13 @@ GF_Err pssh_dump(GF_Box *a, FILE * trace)
 		u32 i;
 		for (i=0; i<ptr->KID_count; i++) {
 			fprintf(trace, " <PSSHKey KID=\"");
-			DumpData(trace, ptr->KIDs[i], 16);
+			DumpData(trace, (char *) ptr->KIDs[i], 16);
 			fprintf(trace, "\"/>\n");
 		}
 	}
 	if (ptr->private_data_size) {
 		fprintf(trace, " <PSSHData size=\"%d\" value=\"", ptr->private_data_size);
-		DumpData(trace, ptr->private_data, ptr->private_data_size);
+		DumpData(trace, (char *) ptr->private_data, ptr->private_data_size);
 		fprintf(trace, "\"/>\n");
 	}
 	gf_box_dump_done("ProtectionSystemHeaderBox", a, trace);
@@ -4009,7 +4009,7 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<TrackEncryptionBox isEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ptr->IsEncrypted, ptr->IV_size);
-	DumpData(trace, ptr->KID, 16);
+	DumpData(trace, (char *) ptr->KID, 16);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -4023,9 +4023,9 @@ GF_Err piff_pssh_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<PIFFProtectionSystemHeaderBox SystemID=\"");
-	DumpDataHex(trace, ptr->SystemID, 16);
+	DumpDataHex(trace, (char *) ptr->SystemID, 16);
 	fprintf(trace, "\" PrivateData=\"");
-	DumpDataHex(trace, ptr->private_data, ptr->private_data_size);
+	DumpDataHex(trace, (char *) ptr->private_data, ptr->private_data_size);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
@@ -4039,7 +4039,7 @@ GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<PIFFTrackEncryptionBox AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
-	DumpData(trace, ptr->KID, 16);
+	DumpData(trace,(char *) ptr->KID, 16);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
@@ -4056,7 +4056,7 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<PIFFSampleEncryptionBox sampleCount=\"%d\"", ptr->sample_count);
 	if (ptr->flags & 1) {
 		fprintf(trace, " default_AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
-		DumpData(trace, ptr->KID, 16);
+		DumpData(trace, (char *) ptr->KID, 16);
 		fprintf(trace, "\"");
 		IV_size = 0;
 	}
@@ -4070,11 +4070,11 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 
 			if (cenc_sample) {
 				fprintf(trace, "<PIFFSampleEncryptionEntry IV=\"");
-				DumpDataHex(trace, cenc_sample->IV, IV_size);
+				DumpDataHex(trace, (char *) cenc_sample->IV, IV_size);
 				fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
 				if (cenc_sample->is_alt_info) {
 					fprintf(trace, " AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", cenc_sample->algo_id, cenc_sample->IV_size);
-					DumpDataHex(trace, cenc_sample->keyID, 16);
+					DumpDataHex(trace, (char *) cenc_sample->keyID, 16);
 					fprintf(trace, "\"");
 				}
 				fprintf(trace, ">\n");

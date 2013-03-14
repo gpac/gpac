@@ -398,7 +398,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 		count = gf_list_count(m2ts->ts->SDTs);
 		for (j=0; j<count; j++) {
 			GF_M2TS_SDT *sdt = gf_list_get(m2ts->ts->SDTs, j);
-			if (!stricmp(sdt->service, req_prog->fragment)) req_prog->id = sdt->service_id;
+			if (!stricmp((const char *) sdt->service, req_prog->fragment)) req_prog->id = sdt->service_id;
 			else if (sdt->service_id==prog_id)  req_prog->id = sdt->service_id;
 		}
 		if (req_prog->id) {
@@ -671,7 +671,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	if (evt_type==GF_M2TS_EVT_PES_PCR) {
-		M2TSIn *m2ts = ts->user;
+//		M2TSIn *m2ts = ts->user;
 		GF_M2TS_PES_PCK *pck = param;
 		if (!ts->nb_playing) {
 			ts->nb_playing = pck->stream->pid;
