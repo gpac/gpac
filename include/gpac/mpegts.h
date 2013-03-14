@@ -608,7 +608,7 @@ typedef struct
 	u32 running_status;
 	u32 free_CA_mode;
 	u8 service_type;
-	unsigned char *provider, *service;
+	char *provider, *service;
 } GF_M2TS_SDT;
 
 typedef struct

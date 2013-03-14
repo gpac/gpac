@@ -345,8 +345,8 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
 	const UTF16** sourceStart = srcp;
 	const UTF16* sourceEnd = *srcp + gf_utf8_wcslen(*srcp);
-	UTF8* targetStart = dest;
-	UTF8* targetEnd = dest + len;
+	UTF8* targetStart = (UTF8*) dest;
+	UTF8* targetEnd = (UTF8*) dest + len;
 	ConversionFlags flags = strictConversion;
 
 	ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);

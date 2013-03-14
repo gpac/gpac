@@ -1271,7 +1271,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		if (((SFScript*)dest)->script_text) gf_free(((SFScript*)dest)->script_text);		
 		((SFScript*)dest)->script_text = NULL;
 		if ( ((SFScript*)orig)->script_text)
-			((SFScript *)dest)->script_text = (u8*)gf_strdup( (char*) ((SFScript*)orig)->script_text );
+			((SFScript *)dest)->script_text = (char *)gf_strdup( (char*) ((SFScript*)orig)->script_text );
 		break;
 
 

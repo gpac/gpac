@@ -43,42 +43,56 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_STATIC_MODULES
 	GF_InterfaceRegister *pr;
 
-#ifndef GPAC_IPHONE
+	/*TODO check compil flags to inlude*/
+#if 0
+    LOAD_PLUGIN(raw_out);	
+
     LOAD_PLUGIN(ac3);
-    LOAD_PLUGIN(audio_filter);
-    LOAD_PLUGIN(isma_ea);
-    LOAD_PLUGIN(mpd_in);
-    LOAD_PLUGIN(openhevc);
-    LOAD_PLUGIN(opensvc);
-    LOAD_PLUGIN(raw_out);
-    LOAD_PLUGIN(redirect_av);
-    LOAD_PLUGIN(saf_in);
-    LOAD_PLUGIN(timedtext);
-    LOAD_PLUGIN(validator);
-    LOAD_PLUGIN(wave_out);
-    LOAD_PLUGIN(xvid);
-    LOAD_PLUGIN(dx_out);
+    
+	LOAD_PLUGIN(openhevc);
+    
+	LOAD_PLUGIN(opensvc);
+    
+	LOAD_PLUGIN(xvid);
+    
     LOAD_PLUGIN(ffmpeg);
-    LOAD_PLUGIN(ogg_in);
-#else
-    LOAD_PLUGIN(ios_cam);
-    LOAD_PLUGIN(ios_mpegv);
+    LOAD_PLUGIN(redirect_av);
+    
+	LOAD_PLUGIN(ogg_in);
 #endif
+
+	//todo fix project for iOS
+#ifdef GPAC_IPHONE
+//    LOAD_PLUGIN(ios_cam);
+//    LOAD_PLUGIN(ios_mpegv);
+#endif
+
+#ifdef WIN32 
+	LOAD_PLUGIN(dx_out);
+    LOAD_PLUGIN(wave_out);
+#endif
+
 	LOAD_PLUGIN(aac_in);
+    LOAD_PLUGIN(audio_filter);
 	LOAD_PLUGIN(bifs);
 	LOAD_PLUGIN(ctx_load);
 	LOAD_PLUGIN(dummy_in);
+    LOAD_PLUGIN(isma_ea);
 	LOAD_PLUGIN(ftfont);
 	LOAD_PLUGIN(gpac_js);
 	LOAD_PLUGIN(laser);
 	LOAD_PLUGIN(mp3_in);
+    LOAD_PLUGIN(mpd_in);
 	LOAD_PLUGIN(mpegts_in);
 	LOAD_PLUGIN(odf_dec);
+    LOAD_PLUGIN(saf_in);
 	LOAD_PLUGIN(svg_in);
 	LOAD_PLUGIN(img_in);
 	LOAD_PLUGIN(rtp_in);
 	LOAD_PLUGIN(isom);
 	LOAD_PLUGIN(soft_raster);
+    LOAD_PLUGIN(timedtext);
+    LOAD_PLUGIN(validator);
 	LOAD_PLUGIN(widgetman);
 	LOAD_PLUGIN(sdl_out);
 

@@ -83,7 +83,7 @@ static u32 gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool s
 	if (!same_pts) pck.flags |= GF_M2TS_PES_PCK_AU_START;
 	pck.DTS = pes->DTS;
 	pck.PTS = pes->PTS;
-	pck.data = data;
+	pck.data = (char *)data;
 	pck.data_len = data_len;
 	pck.stream = pes;
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
@@ -164,7 +164,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		if (!start_code_found) {
 			if (sc_pos) {
 				if (!esc_code_found) {
-					pck.data = data;
+					pck.data = (char *)data;
 					pck.data_len = sc_pos;
 					pck.flags = 0;
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
@@ -178,11 +178,11 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		} else {
 
 			if (start_code_found==2) {
-				pck.data = data-1;
+				pck.data = (char *)data-1;
 				pck.data[0]=0;
 				pck.data_len = sc_pos+1;
 			} else {
-				pck.data = data;
+				pck.data = (char *)data;
 				pck.data_len = sc_pos;
 			}
 			start_code_found = short_start_code ? 2 : 1;
@@ -198,7 +198,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					s32 idx;
 					memset(&hevc, 0, sizeof(HEVCState));
 					hevc.sps_active_idx = -1;
-					idx = gf_media_hevc_read_sps(data+4, sc_pos-4, &hevc);
+					idx = gf_media_hevc_read_sps((char *)data+4, sc_pos-4, &hevc);
 
 					if (idx>=0) {
 						pes->vid_w = hevc.sps[idx].width;
@@ -245,7 +245,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					s32 idx;
 					memset(&avc, 0, sizeof(AVCState));
 					avc.sps_active_idx = -1;
-					idx = gf_media_avc_read_sps(data+4, sc_pos-4, &avc, 0, NULL);
+					idx = gf_media_avc_read_sps((char *)data+4, sc_pos-4, &avc, 0, NULL);
 
 					if (idx>=0) {
 						pes->vid_w = avc.sps[idx].width;
@@ -303,11 +303,11 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 
 	if (data_len) {
 		pck.flags = 0;
-		pck.data = data;
+		pck.data = (char *)data;
 		pck.data_len = data_len;
 		if (start_code_found) {
 			if (start_code_found==2) {
-				pck.data = data-1;
+				pck.data = (char *)data-1;
 				pck.data[0]=0;
 				pck.data_len = data_len+1;
 			}
@@ -360,7 +360,7 @@ static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 			if (!start[3] || (start[3]==0xb3) || (start[3]==0xb8)) {
 				Bool new_au;
 				if (sc_pos) {
-					pck.data = data;
+					pck.data = (char *)data;
 					pck.data_len = sc_pos;
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					pck.flags = 0;
@@ -411,7 +411,7 @@ static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		}
 		sc_pos++;
 	}
-	pck.data = data;
+	pck.data = (char *)data;
 	pck.data_len = data_len;
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 	/*we consumed all data*/
@@ -463,7 +463,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 		pck.DTS = PTS;
 		pck.PTS = PTS;
 		pck.flags = 0;
-		pck.data = data;
+		pck.data = (char *)data;
 		pck.data_len = pes->frame_state;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 		first = 0;
@@ -488,7 +488,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			pck.DTS = PTS;
 			pck.PTS = PTS;
 			pck.flags = 0;
-			pck.data = data+start;
+			pck.data = (char *)data+start;
 			pck.data_len = sc_pos-start;
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 			if (pes->frame_state == pck.data_len) {
@@ -506,7 +506,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			return data_len-sc_pos;
 		}
 
-		bs = gf_bs_new(data + sc_pos + 1, 9, GF_BITSTREAM_READ);
+		bs = gf_bs_new((char *)data + sc_pos + 1, 9, GF_BITSTREAM_READ);
 		gf_bs_read_int(bs, 4);
 		hdr.is_mp2 = gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 2);
@@ -560,7 +560,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			pck.DTS = pck.PTS = PTS;
 		}
 		pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
-		pck.data = data + sc_pos + hdr_size;
+		pck.data = (char *)data + sc_pos + hdr_size;
 		pck.data_len = hdr.frame_size - hdr_size;
 
 		if (pck.data_len > data_len - sc_pos - hdr_size) {
@@ -623,7 +623,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 		amux_len <<= 8;
 		amux_len |= data[sc_pos+2];
 
-		bs = gf_bs_new(data+sc_pos+3, amux_len, GF_BITSTREAM_READ);
+		bs = gf_bs_new((char *)data+sc_pos+3, amux_len, GF_BITSTREAM_READ);
 
 		/*use same stream mux*/
 		if (!gf_bs_read_int(bs, 1)) {
@@ -698,14 +698,14 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 				pes->buf_len = size;
 				pes->buf = gf_realloc(pes->buf, sizeof(char)*pes->buf_len);
 			}
-			gf_bs_read_data(bs, pes->buf, size);
+			gf_bs_read_data(bs, (char *)pes->buf, size);
 
 			/*dispatch frame*/
 			pck.stream = pes;
 			pck.DTS = pes->PTS;
 			pck.PTS = pes->PTS;
 			pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
-			pck.data = pes->buf;
+			pck.data = (char *)pes->buf;
 			pck.data_len = size;
 
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
@@ -742,7 +742,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	if (remain) {
 		/*dispatch end of prev frame*/
 		pck.DTS = pck.PTS = PTS;
-		pck.data = data;
+		pck.data = (char *)data;
 		pck.data_len = (remain>data_len) ? data_len : remain;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 		if (remain>data_len) {
@@ -755,7 +755,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		remain=0;
 	}
 
-	pes->frame_state = gf_mp3_get_next_header_mem(data, data_len, &pos);
+	pes->frame_state = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
 	if (!pes->frame_state) {
 		/*we did not consumed all data*/
 		return data_len;
@@ -772,7 +772,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	while (frame_size <= data_len) {
 		/*dispatch frame*/
 		pck.DTS = pck.PTS = PTS;
-		pck.data = data;
+		pck.data = (char *)data;
 		pck.data_len = frame_size;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 
@@ -781,7 +781,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		data += frame_size;
 		data_len -= frame_size;
 		if (!data_len) break;
-		pes->frame_state = gf_mp3_get_next_header_mem(data, data_len, &pos);
+		pes->frame_state = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
 		/*resync (ID3 or error)*/
 		if (!pes->frame_state) {
 			/*we did not consumed all data*/
@@ -796,7 +796,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	}
 	if (data_len) {
 		pck.DTS = pck.PTS = PTS;
-		pck.data = data;
+		pck.data = (char *)data;
 		pck.data_len = data_len;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 		/*update PTS in case we don't get any update*/
@@ -972,7 +972,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 		status = 0;
 		/*parse header*/
-		data = sec->section;
+		data = (u8 *)sec->section;
 
 		/*look for proper table*/
 		table_id = data[0];
@@ -1024,7 +1024,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		if (has_syntax_indicator) {
 			/*remove crc32*/
 			sec->length -= 4;
-			if (gf_m2ts_crc32_check(data, sec->length)) {
+			if (gf_m2ts_crc32_check((char *)data, sec->length)) {
 				s32 cur_sec_num;
 				t->version_number = (data[5] >> 1) & 0x1f;
 				if (t->last_section_number && t->section_number && (t->version_number != t->last_version_number)) {
@@ -1354,7 +1354,7 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	nb_sections = gf_list_count(sections);
 	for (i=0; i<nb_sections; i++) {
 		section = (GF_M2TS_Section *)gf_list_get(sections, i);
-		sl_pck.data = section->data;
+		sl_pck.data = (char *)section->data;
 		sl_pck.data_len = section->data_size;
 		sl_pck.stream = (GF_M2TS_ES *)es;
 		sl_pck.version_number = version_number;
@@ -1539,7 +1539,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				u32 size;
 				GF_BitStream *iod_bs;
-				iod_bs = gf_bs_new(data+8, len-2, GF_BITSTREAM_READ);
+				iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
 				if (pmt->program->pmt_iod) gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
 				gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
 				/*remember program number for service/program selection*/
@@ -2059,7 +2059,7 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SL Packet in PES for %d - ES ID %d\n", pes->pid, pes->mpeg4_es_id));
 
 				if (pes->data_len > len) {
-					sl_pck.data = pes->data + len;
+					sl_pck.data = (char *)pes->data + len;
 					sl_pck.data_len = pes->data_len - len;
 					sl_pck.stream = (GF_M2TS_ES *)pes;
 					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
@@ -2155,8 +2155,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	} else if (pes->pes_len && (pes->data_len + data_size == pes->pes_len + 6)) {
 		/* 6 = startcode+stream_id+length*/
 		/*reassemble pes*/
-		if (pes->data) pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
-		else pes->data = (char*)gf_malloc(data_size);
+		if (pes->data) pes->data = (u8*)gf_realloc(pes->data, pes->data_len+data_size);
+		else pes->data = (u8*)gf_malloc(data_size);
 		memcpy(pes->data+pes->data_len, data, data_size);
 		pes->data_len += data_size;
 		/*force discard*/
@@ -2176,10 +2176,10 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	}
 	/*reassemble*/
 	if (pes->data){
-		pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
+		pes->data = (u8*)gf_realloc(pes->data, pes->data_len+data_size);
 		//fprintf(stderr, "[MPEG-2 TS] REALLOC \n");
 	}else{
-		pes->data = (char*)gf_malloc(data_size);
+		pes->data = (u8*)gf_malloc(data_size);
 	}
 	memcpy(pes->data+pes->data_len, data, data_size);
 	pes->data_len += data_size;
@@ -2401,7 +2401,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 			return GF_OK;
 		}
 		/*process*/		
-		gf_m2ts_process_packet(ts, ts->buffer+pos);
+		gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer+pos);
 		pos += 188;
 	}
 	return GF_OK;
@@ -3320,13 +3320,13 @@ GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 	pcr_mod = 0x80000000;
 	pcr_mod*=4;
 	while (done + 188 <= size) {
-		char *pesh;
+		u8 *pesh;
 		u8 *pck;
 		u64 pcr_base=0, pcr_ext=0;
 		u16 pid;
 		u8 adaptation_field, adaptation_field_length;
 
-		pck = buffer+done;
+		pck = (u8*) buffer+done;
 		if (pck[0]!=0x47) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS Restamp] Invalid sync byte %X\n", pck[0]));
 			return GF_NON_COMPLIANT_BITSTREAM;

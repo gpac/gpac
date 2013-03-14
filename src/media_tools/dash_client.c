@@ -2447,7 +2447,7 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 	FILE *f=NULL;
 	if (!strncmp(cache_name, "gmem://", 7)) {
 		u32 size;
-		u8 *mem_address;
+		char *mem_address;
 		if (sscanf(cache_name, "gmem://%d@%p", &size, &mem_address) != 2) {
 			return GF_IO_ERR;
 		} 

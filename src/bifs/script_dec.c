@@ -208,7 +208,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	SFS_Line(&parser);
 
 	if (script_field->script_text) gf_free(script_field->script_text);
-	script_field->script_text = (unsigned char *) gf_strdup(parser.string);
+	script_field->script_text = (char *) gf_strdup(parser.string);
 
 exit:
 	//clean up
