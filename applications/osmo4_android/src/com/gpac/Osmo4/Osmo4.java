@@ -40,25 +40,41 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.hardware.SensorManager;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.Vibrator;
 import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
+
+import com.gpac.Osmo4.Osmo4GLSurfaceView;
+import com.gpac.Osmo4.Preview;
+import com.gpac.Osmo4.R;
 import com.gpac.Osmo4.extra.FileChooserActivity;
 import com.gpac.Osmo4.logs.GpacLogger;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+
+import com.lge.real3d.Real3D;
+import com.lge.real3d.Real3DInfo;
 /**
  * The main Osmo4 activity, used to launch everything
  * 
@@ -68,6 +84,9 @@ import com.gpac.Osmo4.logs.GpacLogger;
 public class Osmo4 extends Activity implements GpacCallback {
 
     // private String[] m_modules_list;
+	
+	public boolean m3DLibraryLoaded = false;
+	private Real3D mReal3D;	
 
     private boolean shouldDeleteGpacConfig = false;
 
@@ -114,6 +133,8 @@ public class Osmo4 extends Activity implements GpacCallback {
     private GpacLogger logger;
 
     private ProgressDialog startupProgress;
+    
+    private LinearLayout gl_view;
 
     // ---------------------------------------
     @Override
@@ -121,11 +142,24 @@ public class Osmo4 extends Activity implements GpacCallback {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_PROGRESS);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
-                                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+        		WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        
+        try {
+			Class c = Class.forName("com.lge.real3d.Real3D");
+			final String LGE_3D_DISPLAY = "lge.hardware.real3d.barrier.landscape";
+			if(this.getPackageManager().hasSystemFeature(LGE_3D_DISPLAY))
+				m3DLibraryLoaded = true;
+        } 
+        catch (ClassNotFoundException e) {
+        	m3DLibraryLoaded = false;
+        }
 
+		MPEGVSensor.myAct = this;
         MPEGVSensor.initSensorManager((SensorManager) getSystemService(Context.SENSOR_SERVICE));
+		MPEGVSensor.initLocationManager((LocationManager)getSystemService(Context.LOCATION_SERVICE));
 
         final String toOpen;
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
@@ -157,14 +191,29 @@ public class Osmo4 extends Activity implements GpacCallback {
         startupProgress.setMessage(getResources().getText(R.string.osmoLoading));
         startupProgress.setTitle(R.string.osmoLoading);
         startupProgress.show();
+        
         if (mGLView != null) {
-            setContentView(mGLView);
+            setContentView(R.layout.main);
             if (toOpen != null)
                 openURLasync(toOpen);
             // OK, it means activity has already been started
             return;
         }
-        mGLView = new Osmo4GLSurfaceView(Osmo4.this);
+		
+		Preview.context = this;
+       
+        setContentView(R.layout.main);
+		
+		mGLView = new Osmo4GLSurfaceView(this);
+		
+		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
+        
+        if( m3DLibraryLoaded ) //should be checking wether the terminal is a LG one
+        {
+        	//TryLoad3DClass(true);
+        	mReal3D = new Real3D(mGLView.getHolder());
+        	mReal3D.setReal3DInfo(new Real3DInfo(true, Real3D.REAL3D_TYPE_SS, Real3D.REAL3D_ORDER_LR));
+        }
         service.submit(new Runnable() {
 
             @Override
@@ -186,7 +235,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                         Osmo4Renderer renderer = new Osmo4Renderer(Osmo4.this, gpacConfig, toOpen);
                         mGLView.setRenderer(renderer);
-                        setContentView(mGLView);
+                       
+                        gl_view.addView(mGLView);
                     }
                 });
 
@@ -545,7 +595,8 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
                 return true;
             case R.id.quit:
-                mGLView.disconnect();
+                if ( mGLView != null )
+            		mGLView.disconnect();
                 this.finish();
                 return true;
             default:
@@ -659,7 +710,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                                              public void onClick(DialogInterface dialog, int which) {
 
                                                  // Stop the activity
-                                                 mGLView.disconnect();
+                                                 if ( mGLView != null )
+                                                     mGLView.disconnect();
                                                  Osmo4.this.finish();
                                              }
 
@@ -1021,8 +1073,6 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void showKeyboard(boolean showKeyboard) {
-        if (keyboardIsVisible == showKeyboard)
-            return;
         this.keyboardIsVisible = showKeyboard;
 
         runOnUiThread(new Runnable() {
@@ -1030,7 +1080,11 @@ public class Osmo4 extends Activity implements GpacCallback {
             @Override
             public void run() {
                 InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
-                mgr.toggleSoftInputFromWindow(mGLView.getWindowToken(), 0, 0);
+                if ( Osmo4.this.keyboardIsVisible )
+                	mgr.showSoftInput(mGLView, 0);
+                else
+                	mgr.hideSoftInputFromWindow(mGLView.getWindowToken(), 0);
+                //mgr.toggleSoftInputFromWindow(mGLView.getWindowToken(), 0, 0);
                 mGLView.requestFocus();
             }
         });

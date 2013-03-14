@@ -185,7 +185,7 @@ typedef struct
 	GF_InputService *input;
 	/*the service we're responsible for*/
 	GF_ClientService *service;
-	LPNETCHANNEL* channel;
+	LPNETCHANNEL channel;
 
 	/*input file*/
 	u32 time_scale;
@@ -301,6 +301,8 @@ GF_Err CAM_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!plug || !plug->priv || !serv) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_ConnectService: %d\n", gf_th_id()));
+
 	read->input = plug;
 	read->service = serv;
 	read->base_track_id = 1;
@@ -323,9 +325,13 @@ GF_Err CAM_CloseService(GF_InputService *plug)
 	ISOMReader *read;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
+
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_CloseService: %d\n", gf_th_id()));
+
 	reply = GF_OK;
 
 	(*GetEnv())->DeleteLocalRef( GetEnv(), read->camCtrlObj ); 
+	read->camCtrlObj = NULL;
 
 	//unloadCameraControler(read);
 
@@ -397,6 +403,8 @@ GF_Err CAM_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const cha
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_ConnectChannel: %d\n", gf_th_id()));
+
 	e = GF_OK;
 	if (upstream) {
 		e = GF_ISOM_INVALID_FILE;
@@ -416,6 +424,8 @@ GF_Err CAM_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	ISOMReader *read;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
+
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_DisconnectChannel: %d\n", gf_th_id()));
 
 	e = GF_OK;
 
@@ -484,9 +494,10 @@ void Java_com_gpac_Osmo4_Preview_processFrameBuf( JNIEnv* env, jobject thiz, jby
 	jbyte *jdata;
 	jsize len;
 
-	if ( ctx->started && ctx->term && ctx->term->compositor && ctx->term->compositor->audio_renderer)
+	if ( ctx && ctx->started && ctx->term && ctx->term->compositor && ctx->term->compositor->audio_renderer)
 	{
 		len = (*env)->GetArrayLength(env, arr);
+		if ( len <= 0 ) return;
 		jdata = (*env)->GetByteArrayElements(env,arr,0);
 
 		//convTime = gf_term_get_time(ctx->term);

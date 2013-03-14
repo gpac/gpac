@@ -227,8 +227,64 @@ Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, GF_BitStr
 		AddField(dr, GF_SG_VRML_SFVEC3F, "Orientation");
 
 		rc->sensorAndroidType = 3;
-		
-		AddField(dr, GF_SG_VRML_SFVEC3F, "pos");
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "AccelerationSensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFVEC3F, "Acceleration");
+
+		rc->sensorAndroidType = 1;
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "AngularVelocitySensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFVEC3F, "AngularVelocity");
+
+		rc->sensorAndroidType = 4;
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "MagneticFieldSensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFVEC3F, "MagneticField");
+
+		rc->sensorAndroidType = 2;
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "LightSensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFFLOAT, "Light");
+
+		rc->sensorAndroidType = 5;
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "AtmosphericPressureSensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFFLOAT, "AtmosphericPressure");
+
+		rc->sensorAndroidType = 6;
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "RotationVectorSensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFVEC3F, "RotationVector");
+
+		rc->sensorAndroidType = 11;
+
+		return 1;
+	}
+	else if ( !strcmp(rc->sensor, "GlobalPositionSensorType") )
+	{
+		AddField(dr, GF_SG_VRML_SFVEC3F, "Position");
+		AddField(dr, GF_SG_VRML_SFFLOAT, "Accuracy");
+		AddField(dr, GF_SG_VRML_SFFLOAT, "Bearing");
+
+		rc->sensorAndroidType = 100;
 
 		return 1;
 	}
@@ -244,16 +300,57 @@ u32 MPEGVS_OnData(struct __input_device * dr, const char* data)
 	GF_BitStream *bs;
 	char *buf;
 	u32 buf_size;
-	float x, y, z;
+	float x, y, z, q, a, b;
+	MPEGVSCTX;
 	
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	sscanf(data, "%f;%f;%f;", &x, &y, &z);
+	if ( rc->sensorAndroidType == 1 
+			|| rc->sensorAndroidType == 2
+			|| rc->sensorAndroidType == 3
+			|| rc->sensorAndroidType == 4 )
+	{
+		sscanf(data, "%f;%f;%f;", &x, &y, &z);
+		gf_bs_write_int(bs, 1, 1);
+		gf_bs_write_float(bs, x);
+		gf_bs_write_float(bs, y);
+		gf_bs_write_float(bs, z);
+	}
+	else
+	if ( rc->sensorAndroidType == 5
+			|| rc->sensorAndroidType == 6 )
+	{
+		sscanf(data, "%f;", &x);
+		
+		gf_bs_write_int(bs, 1, 1);
+		gf_bs_write_float(bs, x);
+	}
+	else 
+	if ( rc->sensorAndroidType == 11 )
+	{
+		sscanf(data, "%f;%f;%f;", &x, &y, &z);
 
-	gf_bs_write_int(bs, 1, 1);
-	gf_bs_write_float(bs, x);
-	gf_bs_write_float(bs, y);
-	gf_bs_write_float(bs, z);
+		gf_bs_write_int(bs, 1, 1);
+		gf_bs_write_float(bs, x);
+		gf_bs_write_float(bs, y);
+		gf_bs_write_float(bs, z);
+		/*gf_bs_write_float(bs, q);*/
+	}
+	else 
+	if ( rc->sensorAndroidType == 100 )
+	{
+		sscanf(data, "%f;%f;%f;%f;%f;", &x, &y, &z, &a, &b);
+
+		gf_bs_write_int(bs, 1, 1);
+		gf_bs_write_float(bs, x);
+		gf_bs_write_float(bs, y);
+		gf_bs_write_float(bs, z);
+		gf_bs_write_int(bs, 1, 1);
+		gf_bs_write_float(bs, a);
+		gf_bs_write_int(bs, 1, 1);
+		gf_bs_write_float(bs, b);
+		/*gf_bs_write_float(bs, q);*/
+	}
 
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, &buf, &buf_size);

@@ -439,6 +439,9 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
 #endif
+#ifdef GPAC_IPHONE
+    gf_cfg_set_key(cfg, "Compositor", "DisableGLUScale", "yes");
+#endif
 
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
 	gf_cfg_set_key(cfg, "Video", "HardwareMemory", "Auto");

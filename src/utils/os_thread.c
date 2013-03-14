@@ -664,8 +664,12 @@ void gf_sema_del(GF_Semaphore *sm)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] CloseHandle when deleting semaphore failed with error code %d\n", err));
 	}
 #elif defined(__DARWIN__) || defined(__APPLE__)
+#ifdef GPAC_IPHONE
+    sem_close(sm->hSemaphore);
+#else
 	sem_destroy(sm->hSemaphore);
-	gf_free(sm->SemName);
+#endif
+    gf_free(sm->SemName);
 #else
 	sem_destroy(sm->hSemaphore);
 #endif
