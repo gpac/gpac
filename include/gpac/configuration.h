@@ -85,6 +85,13 @@
 #endif
 
 
+/*lazy definition of extra libs for iOS*/
+#if defined(GPAC_IPHONE)
+#define GPAC_HAS_FAAD
+#define GPAC_HAS_MAD
+#endif
+
+
 #if defined(_WIN32_WCE)
 
 #ifndef GPAC_FIXED_POINT

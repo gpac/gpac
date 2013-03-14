@@ -23,6 +23,8 @@
  *
  */
 
+#include <gpac/setup.h>
+
 #ifdef GPAC_HAS_FAAD
 
 #ifdef __GNUC__
@@ -80,7 +82,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	e = gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
+	e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
 #endif
 	if (faacDecInit2(ctx->codec, (unsigned char *)esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0) 
@@ -261,7 +263,7 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Decoding AU\n"));
-	buffer = faacDecDecode(ctx->codec, &ctx->info, inBuffer, inBufferLength);
+	buffer = faacDecDecode(ctx->codec, &ctx->info, (unsigned char *) inBuffer, inBufferLength);
 	if (ctx->info.error>0) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", faacDecGetErrorMessage(ctx->info.error) ));
 		*outBufferLength = 0;
@@ -362,7 +364,7 @@ static u32 FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	/*this codec currently requires AAC config in ESD*/
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_CODEC_NOT_SUPPORTED;
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_CODEC_NOT_SUPPORTED;
+	if (gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_CODEC_NOT_SUPPORTED;
 
 	switch (a_cfg.base_object_type) {
 	case GF_M4A_AAC_MAIN:

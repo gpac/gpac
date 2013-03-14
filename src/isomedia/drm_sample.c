@@ -544,7 +544,7 @@ static GF_Err gf_isom_cenc_parse_sample(GF_CENCSampleInfo *cenc_sample, GF_BitSt
 	while (gf_bs_available(bs)) {
 		i++;
 		if (i == sample_number) {
-			gf_bs_read_data(bs, cenc_sample->IV, cenc_sample->IV_size);
+			gf_bs_read_data(bs, (char *) cenc_sample->IV, cenc_sample->IV_size);
 
 			if (use_subsample) {
 				cenc_sample->subsample_count = gf_bs_read_u16(bs);

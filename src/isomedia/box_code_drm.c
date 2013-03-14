@@ -897,7 +897,7 @@ GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 
-	gf_bs_read_data(bs, ptr->SystemID, 16);
+	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->size -= 16;
 	if (ptr->version > 0) {
 		ptr->KID_count = gf_bs_read_u32(bs);
@@ -906,7 +906,7 @@ GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 			u32 i;
 			ptr->KIDs = gf_malloc(sizeof(bin128));
 			for (i=0; i<ptr->KID_count; i++) {
-				gf_bs_read_data(bs, ptr->KIDs[i], 16);
+				gf_bs_read_data(bs, (char *) ptr->KIDs[i], 16);
 				ptr->size -= 16;
 			}
 		}
@@ -915,7 +915,7 @@ GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->size -= 4;
 	if (ptr->private_data_size) {
 		ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
-		gf_bs_read_data(bs, ptr->private_data, ptr->private_data_size);
+		gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 		ptr->size -= ptr->private_data_size;
 	}
 	return GF_OK;
@@ -931,16 +931,16 @@ GF_Err pssh_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
-	gf_bs_write_data(bs, ptr->SystemID, 16);
+	gf_bs_write_data(bs, (char *) ptr->SystemID, 16);
 	if (ptr->version > 0) {
 		u32 i;
 		gf_bs_write_u32(bs, ptr->KID_count);
 		for (i=0; i<ptr->KID_count; i++) 
-			gf_bs_write_data(bs, ptr->KIDs[i], 16);
+			gf_bs_write_data(bs, (char *) ptr->KIDs[i], 16);
 	}
 	if (ptr->private_data) {
 		gf_bs_write_u32(bs, ptr->private_data_size);
-		gf_bs_write_data(bs, ptr->private_data, ptr->private_data_size);
+		gf_bs_write_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 	} else 
 		gf_bs_write_u32(bs, 0);
 	return GF_OK;
@@ -987,7 +987,7 @@ GF_Err tenc_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->IsEncrypted = gf_bs_read_int(bs, 24);
 	ptr->IV_size = gf_bs_read_u8(bs);
-	gf_bs_read_data(bs, ptr->KID, 16);
+	gf_bs_read_data(bs, (char *) ptr->KID, 16);
 	ptr->size -= 20;
 	return GF_OK;
 }
@@ -1004,7 +1004,7 @@ GF_Err tenc_Write(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_write_int(bs, ptr->IsEncrypted, 24);
 	gf_bs_write_u8(bs, ptr->IV_size);
-	gf_bs_write_data(bs, ptr->KID, 16);
+	gf_bs_write_data(bs, (char *) ptr->KID, 16);
 	return GF_OK;
 }
 
@@ -1042,7 +1042,7 @@ GF_Err piff_tenc_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->AlgorithmID = gf_bs_read_int(bs, 24);
 	ptr->IV_size = gf_bs_read_u8(bs);
-	gf_bs_read_data(bs, ptr->KID, 16);
+	gf_bs_read_data(bs, (char *) ptr->KID, 16);
 	ptr->size -= 20;
 	return GF_OK;
 }
@@ -1062,7 +1062,7 @@ GF_Err piff_tenc_Write(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_write_int(bs, ptr->AlgorithmID, 24);
 	gf_bs_write_u8(bs, ptr->IV_size);
-	gf_bs_write_data(bs, ptr->KID, 16);
+	gf_bs_write_data(bs, (char *) ptr->KID, 16);
 	return GF_OK;
 }
 
@@ -1103,7 +1103,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->flags & 1) {
 		ptr->AlgorithmID = gf_bs_read_int(bs, 24);
 		ptr->IV_size = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, ptr->KID, 16);
+		gf_bs_read_data(bs, (char *) ptr->KID, 16);
 		ptr->size -= 20;
 	}
 	ptr->sample_count = gf_bs_read_u32(bs);
@@ -1131,7 +1131,7 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->flags & 1) {
 		gf_bs_write_int(bs, ptr->AlgorithmID, 24);
 		gf_bs_write_u8(bs, ptr->IV_size);
-		gf_bs_write_data(bs, ptr->KID, 16);
+		gf_bs_write_data(bs, (char *) ptr->KID, 16);
 	}
 	gf_bs_write_u32(bs, ptr->sample_count);
 	if (ptr->cenc_data && ptr->cenc_data_size) {
@@ -1180,11 +1180,11 @@ GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->flags = gf_bs_read_u24(bs);
 	ptr->size -= 4;
 
-	gf_bs_read_data(bs, ptr->SystemID, 16);
+	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
 	ptr->size -= 20;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
-	gf_bs_read_data(bs, ptr->private_data, ptr->private_data_size);
+	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 	ptr->size -= ptr->private_data_size;
 	return GF_OK;
 }
@@ -1202,9 +1202,9 @@ GF_Err piff_pssh_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->version);
 	gf_bs_write_u24(bs, ptr->flags);
 
-	gf_bs_write_data(bs, ptr->SystemID, 16);
+	gf_bs_write_data(bs, (char *) ptr->SystemID, 16);
 	gf_bs_write_u32(bs, ptr->private_data_size);
-	gf_bs_write_data(bs, ptr->private_data, ptr->private_data_size);
+	gf_bs_write_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 	return GF_OK;
 }
 

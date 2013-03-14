@@ -30,7 +30,8 @@
 //Get the sample number
 GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
 {
-	u32 i, j, curSampNum, CTSOffset, count;
+	u32 i, j, curSampNum, count;
+	s32 CTSOffset;
 	u64 curDTS;
 	GF_SttsEntry *ent;
 	(*sampleNumber) = 0;
@@ -138,7 +139,7 @@ GF_Err stbl_GetSampleSize(GF_SampleSizeBox *stsz, u32 SampleNumber, u32 *Size)
 
 
 //Get the CTS offset of a given sample
-GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, u32 *CTSoffset)
+GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, s32 *CTSoffset)
 {
 	u32 i;
 

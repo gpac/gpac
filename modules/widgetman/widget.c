@@ -368,11 +368,11 @@ SMJS_FUNC_PROP_GET(widget_getProperty)
 		if (wid->widget->description) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->description) );
 	}
 	else if (!strcmp(prop_name, "width")) {
-		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, "width");
+		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, "width");
 		*vp = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 	}
 	else if (!strcmp(prop_name, "height")) {
-		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, "height");
+		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, "height");
 		*vp = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 	}
 	else if (!strcmp(prop_name, "preferences")) {

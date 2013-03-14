@@ -192,7 +192,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 			gf_bs_write_int(bs,	nb_sections-1, 8);
 		}
 
-		gf_bs_write_data(bs, table_payload + offset, section->length - overhead_size);
+		gf_bs_write_data(bs, (char *) table_payload + offset, section->length - overhead_size);
 		offset += section->length - overhead_size;
 	
 		if (use_syntax_indicator) {
@@ -205,7 +205,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 
 		if (use_syntax_indicator) {
 			u32 CRC;
-			CRC = gf_crc_32(section->data,section->length-CRC_LENGTH); 
+			CRC = gf_crc_32((char *) section->data,section->length-CRC_LENGTH); 
 			section->data[section->length-4] = (CRC >> 24) & 0xFF;
 			section->data[section->length-3] = (CRC >> 16) & 0xFF;
 			section->data[section->length-2] = (CRC >> 8) & 0xFF;
@@ -380,7 +380,7 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 
 		if (use_syntax_indicator) {
 			u32 CRC;
-			CRC = gf_crc_32(section->data,section->length-CRC_LENGTH); 
+			CRC = gf_crc_32((char *) section->data,section->length-CRC_LENGTH); 
 			section->data[section->length-4] = (CRC >> 24) & 0xFF;
 			section->data[section->length-3] = (CRC >> 16) & 0xFF;
 			section->data[section->length-2] = (CRC >> 8) & 0xFF;
@@ -444,7 +444,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 	return adaptation_length + ADAPTATION_LENGTH_LENGTH;
 }
 
-void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
+void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 {
 	GF_BitStream *bs;
 	GF_M2TS_Mux_Table *table;
@@ -1278,7 +1278,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream, 
 	return pes_len+4; // 4 = start code + stream_id
 }
 
-void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
+void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 {
 	GF_BitStream *bs;
 	Bool needs_pcr, first_pass, is_rap=0;

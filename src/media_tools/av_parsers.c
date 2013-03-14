@@ -333,7 +333,7 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 		switch (o_type) {
 		case M2V_SEQ_START_CODE:
 			dsi->RAP_stream = 1;
-			gf_bs_read_data(m4v->bs, p, 4);
+			gf_bs_read_data(m4v->bs,  (char *) p, 4);
 			dsi->width = (p[0] << 4) | ((p[1] >> 4) & 0xf);
 			dsi->height = ((p[1] & 0xf) << 8) | p[2];
 
@@ -363,7 +363,7 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			}
 			break;
 		case M2V_EXT_START_CODE:
-			gf_bs_read_data(m4v->bs, p, 4);
+			gf_bs_read_data(m4v->bs,  (char *) p, 4);
 			ext_type = ((p[0] >> 4) & 0xf);
 			if (ext_type == 1) {
 			  dsi->VideoPL = 0x65;
@@ -1631,7 +1631,7 @@ static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 }
 
 /*returns the nal_size without emulation prevention bytes*/
-static u32 avc_emulation_bytes_add_count(unsigned char *buffer, u32 nal_size)
+static u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -1659,7 +1659,7 @@ static u32 avc_emulation_bytes_add_count(unsigned char *buffer, u32 nal_size)
 	return emulation_bytes_count;
 }
 
-static u32 avc_add_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
+static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size) 
 { 
 
 	u32 i = 0, emulation_bytes_count = 0;
@@ -1729,7 +1729,7 @@ static u32 avc_emulation_bytes_remove_count(unsigned char *buffer, u32 nal_size)
 #endif /*GPAC_UNUSED_FUNC*/
 
 /*nal_size is updated to allow better error detection*/
-static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
+static u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size) 
 { 
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0; 
@@ -1767,7 +1767,7 @@ static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned 
 	return nal_size-emulation_bytes_count; 
 } 
 
-s32 gf_media_avc_read_sps(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
+s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
 	u32 ChromaArrayType = 0;
@@ -2037,7 +2037,7 @@ exit:
 	return sps_id;
 }
 
-s32 gf_media_avc_read_pps(char *pps_data, u32 pps_size, AVCState *avc)
+s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 {
 	GF_BitStream *bs;
 	char *pps_data_without_emulation_bytes = NULL;
@@ -2101,7 +2101,7 @@ exit:
 	return pps_id;
 }
 
-s32 gf_media_avc_read_sps_ext(char *spse_data, u32 spse_size)
+s32 gf_media_avc_read_sps_ext(const char *spse_data, u32 spse_size)
 {
 	GF_BitStream *bs;
 	char *spse_data_without_emulation_bytes = NULL;

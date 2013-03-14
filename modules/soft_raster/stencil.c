@@ -810,13 +810,13 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 		_this->orig_format = GF_PIXEL_YV12;
-		_this->orig_buf = pixels;
+		_this->orig_buf = (u8 *) pixels;
 		_this->orig_stride = stride;
 		_this->is_converted = 0;
 		break;
 	case GF_PIXEL_YUVA:
 		_this->orig_format = GF_PIXEL_YUVA;
-		_this->orig_buf = pixels;
+		_this->orig_buf = (u8 *) pixels;
 		_this->orig_stride = stride;
 		_this->is_converted = 0;
 		break;
@@ -899,14 +899,14 @@ void evg_set_texture_active(EVGStencil *st)
 	src.pitch_x = 0;
 	src.pitch_y = _this->orig_stride;
 	src.pixel_format = _this->orig_format;
-	src.video_buffer = _this->orig_buf;
+	src.video_buffer = (char *)_this->orig_buf;
 
 	dst.width = _this->width;
 	dst.height = _this->height;
 	dst.pitch_x = _this->Bpp;
 	dst.pitch_y = _this->Bpp * _this->width;
 	dst.pixel_format = _this->pixel_format;
-	dst.video_buffer = _this->conv_buf;
+	dst.video_buffer = (char *) _this->conv_buf;
 
 	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
 

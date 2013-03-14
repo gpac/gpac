@@ -3638,7 +3638,7 @@ u32 H263_NextStartCode(GF_BitStream *bs)
 			if (load_size>H263_CACHE_SIZE) load_size=H263_CACHE_SIZE;
 			bpos = 0;
 			cache_start = gf_bs_get_position(bs);
-			gf_bs_read_data(bs, h263_cache, (u32) load_size);
+			gf_bs_read_data(bs, (char *) h263_cache, (u32) load_size);
 		}
 		v = (v<<8) | h263_cache[bpos];
 		bpos++;
@@ -4369,7 +4369,7 @@ restart_import:
 			if ((nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
 				u32 res = 0;
 				u8 prio;
-				unsigned char *p = buffer;
+				unsigned char *p = (unsigned char *) buffer;
 				res |= (p[0] & 0x60) ? 0x80000000 : 0; // RefPicFlag
 				res |= 0 ? 0x40000000 : 0;             // RedPicFlag TODO: not supported, would require to parse NAL unit payload
 				res |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;  // VclNALUnitFlag

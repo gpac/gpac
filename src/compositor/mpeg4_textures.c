@@ -286,7 +286,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 
 			/*BT/XMT playback*/
 			if (ct->image.buffer) {
-				e = gf_img_file_dec(ct->image.buffer, &ct->objectTypeIndication, &txh->width, &txh->height, &txh->pixelformat, &txh->data, &out_size);
+				e = gf_img_file_dec(ct->image.buffer, (u32 *) &ct->objectTypeIndication, &txh->width, &txh->height, &txh->pixelformat, &txh->data, &out_size);
 				if (e==GF_OK) {
 					txh->needs_refresh = 1;
 					txh->stride = out_size / txh->height;
@@ -297,14 +297,14 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				switch (ct->objectTypeIndication) {
 				case GPAC_OTI_IMAGE_JPEG:
 					out_size = 0;
-					e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
+					e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
 					if (e==GF_BUFFER_TOO_SMALL) {
 						u32 BPP;
 						txh->data = gf_malloc(sizeof(char) * out_size);
 						if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
 						else BPP = 3;
 
-						e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
+						e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
 						if (e==GF_OK) {
 							txh->needs_refresh = 1;
 							txh->stride = out_size / txh->height;
@@ -313,10 +313,10 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					break;
 				case GPAC_OTI_IMAGE_PNG:
 					out_size = 0;
-					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
+					e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
 					if (e==GF_BUFFER_TOO_SMALL) {
 						txh->data = gf_malloc(sizeof(char) * out_size);
-						e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
+						e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
 						if (e==GF_OK) {
 							txh->needs_refresh = 1;
 							txh->stride = out_size / txh->height;
@@ -344,7 +344,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				strcat(szExtractName, "/");
 				src_url = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 
-				gf_sha1_csum(src_url, strlen(src_url), hash);
+				gf_sha1_csum((u8 *)src_url, strlen(src_url), hash);
 				for (i=0; i<20; i++) {
 					char t[3];
 					t[2] = 0;

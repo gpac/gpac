@@ -2231,7 +2231,7 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 			char szData[5];;
 			txt[0] = evt->detail;
 			txt[1] = 0;
-			srcp = txt;
+			srcp = (const u16 *) txt;
 			len = gf_utf8_wcstombs(szData, 5, &srcp);
 			szData[len] = 0;
 			s = JS_NewStringCopyZ(c, szData);
@@ -2851,7 +2851,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_DATA_TRANSFERED:
 		if (ctx->sax) {
 #if !USE_PROGRESSIVE_SAX
-			gf_xml_sax_init(ctx->sax, ctx->data);
+			gf_xml_sax_init(ctx->sax, (char *) ctx->data);
 #endif
 		}
 		/* No return, go till the end of the function */

@@ -8243,7 +8243,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
 		ptr->length = entry_size;
 		ptr->data = (u8 *) gf_malloc(sizeof(u8)*ptr->length);
-		gf_bs_read_data(bs, ptr->data, ptr->length);
+		gf_bs_read_data(bs, (char *) ptr->data, ptr->length);
 		*total_bytes = entry_size;
 		return ptr;
 	}
@@ -8282,7 +8282,7 @@ static void	sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	default:
 		{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
-		gf_bs_write_data(bs, ptr->data, ptr->length);
+		gf_bs_write_data(bs, (char *) ptr->data, ptr->length);
 		}
 	}
 }
@@ -8434,7 +8434,7 @@ GF_Err saiz_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->size -= 5;
 	if (ptr->default_sample_info_size == 0) {
 		ptr->sample_info_size = gf_malloc(sizeof(u8)*ptr->sample_count);
-		gf_bs_read_data(bs, ptr->sample_info_size, ptr->sample_count);
+		gf_bs_read_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
 		ptr->size -= ptr->sample_count;
 	}
 	return GF_OK;
@@ -8463,7 +8463,7 @@ GF_Err saiz_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->default_sample_info_size);
 	gf_bs_write_u32(bs, ptr->sample_count);
 	if (ptr->default_sample_info_size) {
-		gf_bs_write_data(bs, ptr->sample_info_size, ptr->sample_count);
+		gf_bs_write_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
 	}
 	return GF_OK;
 }

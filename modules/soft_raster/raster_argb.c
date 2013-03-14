@@ -96,7 +96,7 @@ void evg_bgra_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	s32 i, x;
 	u32 len;
 	u8 col_a, col_r, col_g, col_b;
@@ -128,7 +128,7 @@ void evg_bgra_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_bgra_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	s32 i;
@@ -145,7 +145,7 @@ void evg_bgra_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_bgra_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
 	s32 i, x;
 	u32 len;
@@ -203,7 +203,7 @@ GF_Err evg_surface_clear_bgra(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 
 	if (!use_memset) {
 		for (y = 0; y < h; y++) {
-			data = _this ->pixels + (sy+y)* st + _this->pitch_x*sx;
+			data = (u8 *) _this ->pixels + (sy+y)* st + _this->pitch_x*sx;
 			for (x = 0; x < w; x++) {
 				data[0] = col_b;
 				data[1] = col_g;
@@ -267,7 +267,7 @@ void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u32 col = surf->fill_col;
 	u32 fin, col_no_a, spana;
 	u8 col_r, col_g, col_b;
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	s32 i, x;
 	u32 len;
 
@@ -297,7 +297,7 @@ void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_bgrx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	s32 i;
@@ -314,7 +314,7 @@ void evg_bgrx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_bgrx_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
 	s32 i, x;
 	u32 len;
@@ -388,7 +388,7 @@ void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
 	u32 fin, col_no_a, spana;
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 r, g, b;
 	s32 i, x;
 	u32 len;
@@ -420,7 +420,7 @@ void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	s32 i;
@@ -437,7 +437,7 @@ void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
 	s32 i, x;
 	u32 len;
@@ -486,7 +486,7 @@ GF_Err evg_surface_clear_rgbx(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	b = GF_COL_B(col);
 	col = GF_COL_ARGB(0xFF, b, g, r);
 	for (y = 0; y < h; y++) {
-		u8 *data = _this ->pixels + (y + sy) * _this->pitch_y + st*sx;
+		u8 *data = (u8 *) _this ->pixels + (y + sy) * _this->pitch_y + st*sx;
 		for (x = 0; x < w; x++) {
 			data[0] = r;
 			data[1] = g;
@@ -564,8 +564,8 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u32 col = surf->fill_col;
 	u32 new_a, fin, col_no_a;
 	u8 a, r, g, b;
-	char *dst = surf->pixels + y * surf->pitch_y;
-	char *p;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
+	u8 *p;
 	s32 i;
 	u32 len;
 
@@ -597,7 +597,7 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u32 a, fin, col_no_a;
 	s32 i;
 
@@ -614,7 +614,7 @@ void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 *p;
 	u8 spanalpha, col_a;
 	s32 i;
@@ -673,7 +673,7 @@ GF_Err evg_surface_clear_rgba(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 
 	if (!use_memset) {
 		for (y = 0; y < h; y++) {
-			data = _this ->pixels + (sy+y)* st + _this->pitch_x * rc.x;
+			data = (u8 *) _this ->pixels + (sy+y)* st + _this->pitch_x * rc.x;
 			for (x = 0; x < w; x++) {
 				*(data) = r;
 				*(data+1) = g;

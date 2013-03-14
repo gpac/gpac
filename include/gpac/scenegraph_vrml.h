@@ -161,7 +161,7 @@ typedef struct {
 /*Note on SFScript: the javascript or vrml script is handled in its decompressed (textual) format
 since most JS interpreter work with text*/
 typedef struct {
-	unsigned char* script_text;
+	char* script_text;
 } SFScript;
 
 typedef struct {

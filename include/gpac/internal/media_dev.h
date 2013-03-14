@@ -212,11 +212,11 @@ typedef struct
 
 
 /*return sps ID or -1 if error*/
-s32 gf_media_avc_read_sps(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
+s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
-s32 gf_media_avc_read_pps(char *pps_data, u32 pps_size, AVCState *avc);
+s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc);
 /*return sps ID or -1 if error*/
-s32 gf_media_avc_read_sps_ext(char *spse_data, u32 spse_size);
+s32 gf_media_avc_read_sps_ext(const char *spse_data, u32 spse_size);
 /*is slice an IDR*/
 Bool gf_media_avc_slice_is_IDR(AVCState *avc);
 /*is slice containing intra MB only*/

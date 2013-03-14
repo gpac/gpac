@@ -624,8 +624,8 @@ static void wm_delete_widget_instance(GF_WidgetManager *wm, GF_WidgetInstance *w
 	if (!widg->widget->nb_instances) wm_delete_widget(wm, widg->widget);
 
 	if (!widg->permanent) {
-		gf_cfg_del_section(wm->term->user->config, widg->secname);
-		gf_cfg_set_key(wm->term->user->config, "Widgets", widg->secname, NULL);
+		gf_cfg_del_section(wm->term->user->config, (const char *)widg->secname);
+		gf_cfg_set_key(wm->term->user->config, "Widgets", (const char *)widg->secname, NULL);
 	}
 	if (widg->mpegu_context) gf_xml_dom_del(widg->mpegu_context);
 
@@ -1050,7 +1050,7 @@ static void wm_widget_set_pref_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *o
 		att = gf_node_dump_attribute(evt->target, evt->attr);
 		if (!att) return;
 	}
-	gf_cfg_set_key(wid->widget->wm->term->user->config, wid->secname, pref->name, att);
+	gf_cfg_set_key(wid->widget->wm->term->user->config, (const char *)wid->secname, pref->name, att);
 	gf_free(att);
 }
 
@@ -1100,7 +1100,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 
 
 		/*get stored value for this preference*/
-		value = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, pref->name);
+		value = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *)wid->secname, pref->name);
 		/*if none found, use preference*/
 		if (!value) value = pref->value;
 
@@ -1572,7 +1572,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<contextInformation xmlns=\"urn:mpeg:mpegu:schema:widgets:contextinfo:2010\">\n";
-	gf_bs_write_data(bs, (u8 *) str, strlen(str) );
+	gf_bs_write_data(bs, (const char *) str, strlen(str) );
 
 	count = gf_list_count(wid->widget->main->preferences);
 	for (i=0; i<count; i++) {
@@ -1584,12 +1584,12 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 		if (!(pref->flags & GF_WM_PREF_MIGRATE)) continue;
 
 		str = " <preference name=\"";
-		gf_bs_write_data(bs, (u8 *) str, strlen(str) );
+		gf_bs_write_data(bs, (const char *) str, strlen(str) );
 
-		gf_bs_write_data(bs, (u8 *) pref->name, strlen(pref->name) );
+		gf_bs_write_data(bs, (const char *) pref->name, strlen(pref->name) );
 
 		str = "\" value=\"";
-		gf_bs_write_data(bs, (u8 *) str, strlen(str) );
+		gf_bs_write_data(bs, (const char *) str, strlen(str) );
 
 		/*read from node*/
 		if (pref->connectTo && pref->connectTo->attribute) {
@@ -1600,13 +1600,13 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 #ifndef GPAC_DISABLE_SVG
 				if ((n->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) && !strcmp(pref->connectTo->attribute, "textContent")) {
 					char *txt = gf_dom_flatten_textContent(n);
-					gf_bs_write_data(bs, (u8 *) txt, strlen(txt) );
+					gf_bs_write_data(bs, (const char *) txt, strlen(txt) );
 				} else
 #endif
 				if (gf_node_get_field_by_name(n, pref->connectTo->attribute, &info)==GF_OK) {
 					att = gf_node_dump_attribute(n, &info);
 					if (att) {
-						gf_bs_write_data(bs, (u8 *) att, strlen(att) );
+						gf_bs_write_data(bs, (const char *)  att, strlen(att) );
 						gf_free(att);
 					}
 				}
@@ -1614,17 +1614,17 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 		}
 		/*read from config*/
 		else {
-			att = (char *)gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, pref->name);
+			att = (char *)gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, pref->name);
 			if (!att) att = pref->value;
 
-			if (att) gf_bs_write_data(bs, (u8 *) att, strlen(att) );
+			if (att) gf_bs_write_data(bs, (const char *) att, strlen(att) );
 		}
 
 		str = "\"/>\n";
-		gf_bs_write_data(bs, (u8 *) str, strlen(str) );
+		gf_bs_write_data(bs, (const char *)  str, strlen(str) );
 	}
 	str = "</contextInformation>\n";
-	gf_bs_write_data(bs, (u8 *) str, strlen(str) );
+	gf_bs_write_data(bs, (const char *)  str, strlen(str) );
 
 	gf_bs_write_u8(bs, 0);
 	att = NULL;
@@ -1850,7 +1850,7 @@ static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 		*vp = BOOLEAN_TO_JSVAL( wid->activated ? JS_TRUE : JS_FALSE);
 	}
 	else if (!strcmp(prop_name, "section")) {
-		s = JS_NewStringCopyZ(c, wid->secname);
+		s = JS_NewStringCopyZ(c, (const char *) wid->secname);
 		*vp = STRING_TO_JSVAL(s);
 	}
 	else if (!strcmp(prop_name, "num_instances")) {
@@ -1877,7 +1877,7 @@ static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 	else {
 		char szName[1024];
 		sprintf(szName, "WM:%s", prop_name);
-		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, szName);
+		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName);
 		if (opt) {
 			Double val=0;
 			if (!strcmp(opt, "true")) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
@@ -1932,7 +1932,7 @@ static SMJS_FUNC_PROP_SET( wm_widget_setProperty)
 		}
 
 		sprintf(szName, "WM:%s", prop_name);
-		gf_cfg_set_key(wid->widget->wm->term->user->config, wid->secname, szName, value);
+		gf_cfg_set_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName, value);
 		SMJS_FREE(c, _val);
 	}
 
@@ -2296,8 +2296,8 @@ static JSBool SMJS_FUNCTION(wm_unload)
 	/*unless explecetely requested, remove the section*/
 	if ((argc!=2) || !JSVAL_IS_BOOLEAN(argv[1]) || (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ) {
 		/*create section*/
-		gf_cfg_del_section(wm->term->user->config, wid->secname);
-		gf_cfg_set_key(wm->term->user->config, "Widgets", wid->secname, NULL);
+		gf_cfg_del_section(wm->term->user->config, (const char *) wid->secname);
+		gf_cfg_set_key(wm->term->user->config, "Widgets", (const char *) wid->secname, NULL);
 	}
 	wm_delete_widget_instance(wm, wid);
 	return JS_TRUE;
@@ -3377,10 +3377,10 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		sprintf(wi->secname, "Widget#%08X", gf_crc_32(szName, strlen(szName)));
 
 		/*create section*/
-		gf_cfg_set_key(wm->term->user->config, "Widgets", wi->secname, " ");
-		gf_cfg_set_key(wm->term->user->config, wi->secname, "WM:Manifest", wi->widget->url);
+		gf_cfg_set_key(wm->term->user->config, "Widgets", (const char *) wi->secname, " ");
+		gf_cfg_set_key(wm->term->user->config, (const char *) wi->secname, "WM:Manifest", wi->widget->url);
 		sprintf(szInst, "%d", wi->instance_id);
-		gf_cfg_set_key(wm->term->user->config, wi->secname, "WM:InstanceID", szInst);
+		gf_cfg_set_key(wm->term->user->config, (const char *) wi->secname, "WM:InstanceID", szInst);
 	}
 	gf_list_add(wm->widget_instances, wi);
 
@@ -3447,8 +3447,8 @@ static Bool wm_enum_widget(void *cbk, char *file_name, char *file_path)
 	if (wid) {
 		wm_widget_jsbind(wm, wid);
 		/*remove section info*/
-		gf_cfg_del_section(wm->term->user->config, wid->secname);
-		gf_cfg_set_key(wm->term->user->config, "Widgets", wid->secname, NULL);
+		gf_cfg_del_section(wm->term->user->config, (const char *) wid->secname);
+		gf_cfg_set_key(wm->term->user->config, "Widgets", (const char *) wid->secname, NULL);
 	}
 	return 0;
 }
@@ -3478,7 +3478,7 @@ static JSBool SMJS_FUNCTION(wm_initialize)
 				u32 instID = ID ? atoi(ID) : 0;
 				GF_WidgetInstance *wi = wm_load_widget(wm, manifest, instID, 0);
 				if (wi) {
-					strcpy(wi->secname, name);
+					strcpy(wi->secname, (const char *) name);
 					wm_widget_jsbind(wm, wi);
 				}
 			}

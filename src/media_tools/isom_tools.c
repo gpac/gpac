@@ -133,7 +133,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 				u32 bsize = 0;
 				while (bsize<box_size) {
 					u32 to_read = (u32) ((box_size-bsize<1024) ? (box_size-bsize) : 1024);
-					gf_bs_read_data(bs, block, to_read);
+					gf_bs_read_data(bs, (char *) block, to_read);
 					gf_sha1_update(ctx, block, to_read);
 					bsize += to_read;
 				}

@@ -339,7 +339,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		/* Decrypt payload */
 		if (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 			/*restore IV*/
-			if (!prev_sample_encrypted) resync_IV(mc, ismasamp->IV, tci->salt);
+			if (!prev_sample_encrypted) resync_IV(mc, ismasamp->IV, (char *) tci->salt);
 			gf_crypt_decrypt(mc, samp->data, samp->dataLength);
 		}
 		prev_sample_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED);
@@ -512,7 +512,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 		/*MPEG4IP*/
 		else if (!stricmp(KMS_URI, "AudioKey") || !stricmp(KMS_URI, "VideoKey")) {
-			if (!gf_ismacryp_mpeg4ip_get_info((char *) KMS_URI, tci.key, tci.salt)) {
+			if (!gf_ismacryp_mpeg4ip_get_info((char *) KMS_URI, (char *) tci.key, (char *) tci.salt)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Couldn't load MPEG4IP ISMACryp keys for TrackID %d\n", trackID));
 				continue;
 			}
@@ -525,7 +525,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 				continue;
 			}
 			fclose(test);
-			if (gf_ismacryp_gpac_get_info(tci.trackID, (char *) KMS_URI, tci.key, tci.salt) != GF_OK) {
+			if (gf_ismacryp_gpac_get_info(tci.trackID, (char *) KMS_URI, (char *) tci.key, (char *) tci.salt) != GF_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Couldn't load TrackID %d keys in GPAC DRM file %s\n", tci.trackID, KMS_URI));
 				continue;
 			}
@@ -725,7 +725,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		/*isma e&a stores AVC1 in AVC/H264 annex B bitstream fashion, with 0x00000001 start codes*/
 		if (avc_size_length) {
 			u32 done = 0;
-			u8 *d = samp->data;
+			u8 *d = (u8*)samp->data;
 			while (done < samp->dataLength) {
 				u32 nal_size = GF_4CC(d[0], d[1], d[2], d[3]);
 				d[0] = d[1] = d[2] = 0; d[3] = 1;
@@ -736,7 +736,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 		if (isamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 			/*resync IV*/
-			if (!prev_sample_encryped) resync_IV(mc, BSO, tci->salt);
+			if (!prev_sample_encryped) resync_IV(mc, BSO, (char *) tci->salt);
 			gf_crypt_encrypt(mc, samp->data, samp->dataLength);
 			prev_sample_encryped = 1;
 		} else {
