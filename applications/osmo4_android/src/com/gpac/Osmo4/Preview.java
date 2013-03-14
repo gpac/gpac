@@ -6,14 +6,21 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.List;
+import android.app.Activity;
+import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
+import android.widget.LinearLayout;
 
 /**
  * Manage camera preview and frame grabbing.
@@ -47,6 +54,13 @@ public class Preview {
     private int width = 0;
 
     private int height = 0;
+	
+	public static Activity context = null;
+	
+	private boolean previewRequested = false;
+	private boolean previewStarted = false;
+	
+	private CameraPreview camPreview = null;
 
     // Native functions
     private native void processFrameBuf(byte[] data);
@@ -61,7 +75,135 @@ public class Preview {
         mCamera.release();
         mCamera = null;
     }
+	
+	private class CameraPreview implements SurfaceHolder.Callback {
+		
+		private SurfaceHolder holder = null;
+		private SurfaceView mCamSV;
+		private boolean hasCallback = false;
+		//private LinearLayout cam_view;
+		
+		private ProgressDialog cameraOpening;
+ 
+		
+		public CameraPreview(final Activity context) {
+			Log.v(TAG, "CameraPreview: Constructor...");
+			
+			cameraOpening = new ProgressDialog(context);
+			cameraOpening.setCancelable(false);
+			cameraOpening.setIndeterminate(true);
+			cameraOpening.setMessage("Opening camera");
+			cameraOpening.setTitle("Osmo4 camera");
+			
+			//cam_view = (LinearLayout)context.findViewById(R.id.surface_camera);
+		        
+		    //cam_view.addView(mCamSV);
+		    
+		    context.runOnUiThread(new Runnable() {
+				
+				@Override
+				public void run() {
+					cameraOpening.show();
+				}
+			});
 
+			mCamSV = (SurfaceView)context.findViewById(R.id.surface_camera);
+			
+		    holder = mCamSV.getHolder();
+			holder.addCallback(CameraPreview.this);
+			holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+			
+			hasCallback = true;
+
+			context.runOnUiThread(new Runnable() {
+				
+				@Override
+				public void run() {
+					Log.i(TAG, "CameraPreview: Set visible...");
+					mCamSV.setVisibility(View.VISIBLE);
+					Log.i(TAG, "CameraPreview: Set visible done");
+				}
+			});
+			Log.v(TAG, "CameraPreview: Constructor done");
+		}
+		
+		public void startPreview()
+		{
+			Log.v(TAG, "CameraPreview: Start preview...");
+			mCamera.startPreview();
+			context.runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					//Log.i(TAG, "CameraPreview: Set gone...");
+					Log.i(TAG, "CameraPreview: Dismiss");
+					//mCamSV.setVisibility(View.GONE);
+					cameraOpening.dismiss();
+					//Log.i(TAG, "CameraPreview: Set gone done");
+				}
+			});
+			mPreviewHandler = new PreviewHandler("CameraPreviewHandler");
+			mPreviewing = true;
+			Log.v(TAG, "CameraPreview: Start preview done");
+		}
+		
+		public void stopPreview()
+		{
+			if ( hasCallback )
+			{
+				Log.v(TAG, "CameraPreview: Remove callback");
+				holder.removeCallback(CameraPreview.this);
+				//cam_view.removeView(mCamSV);
+				//mCamSV = null;
+				context.runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						Log.i(TAG, "CameraPreview: Set gone...");
+						mCamSV.setVisibility(View.GONE);
+						Log.i(TAG, "CameraPreview: Set gone done");
+					}
+				});
+				hasCallback = false;
+			}
+		}
+
+		@Override
+		public void surfaceChanged(SurfaceHolder holder, int format, int width,
+				int height) {
+			Log.v(TAG, "CameraPreview: Surface changed "+width+"x"+height+" ...");
+		}
+
+		@Override
+		public void surfaceCreated(SurfaceHolder holder) {
+			try {
+				Log.v(TAG, "CameraPreview: Surface created...");
+				mCamera.setPreviewDisplay(holder);
+				if ( previewRequested )	{
+					startPreview();
+					previewRequested = false;
+				}
+				else
+					previewStarted = true;
+				Log.v(TAG, "CameraPreview: Surface created done");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		@Override
+		public void surfaceDestroyed(SurfaceHolder holder) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void finalize()
+		{
+			stopPreview();
+			camPreview = null;
+		}
+	}
+		
     @Override
     protected void finalize() {
         stopCamera();
@@ -74,6 +216,7 @@ public class Preview {
      * @return True if successful.
      */
     public boolean initializeCamera(boolean isPortrait) {
+	
         this.isPortrait = isPortrait;
 
         // Open camera
@@ -86,12 +229,12 @@ public class Preview {
             }
         }
 
-        stopPreview();
+        pausePreview();
 
         // Get parameters
         mCamera.setParameters(setParameters(mCamera.getParameters()));
-        width = mCamera.getParameters().getPreviewSize().width;
-        height = mCamera.getParameters().getPreviewSize().height;
+        width = mPreviewSize.width;
+				height = mPreviewSize.height;
         if (mPreviewSize == null || mPreviewFormat == 0) {
             Log.e(TAG, "Preview size or format error"); //$NON-NLS-1$
             return false;
@@ -107,8 +250,14 @@ public class Preview {
         // Initialize frame grabbing
         // mPreviewHandler = new PreviewHandler("CameraPreviewHandler");
 
-        mCamera.startPreview();
-        mPreviewing = true;
+        context.runOnUiThread(new Runnable() {
+			
+			@Override
+			public void run() {
+				camPreview = new CameraPreview(context);
+				//camPreview.setVisibility(View.INVISIBLE);
+			}
+		});
 
         Log.d(TAG, "Camera preview started"); //$NON-NLS-1$
         return true;
@@ -163,28 +312,16 @@ public class Preview {
     public void stopCamera() {
         Log.v(TAG, "stopCamera()"); //$NON-NLS-1$
 
-        stopPreview();
+        if ( mPreviewing )
+			pausePreview();
         if (mCamera != null) {
+			camPreview.stopPreview();
+			camPreview = null;
             mCamera.release();
             mCamera = null;
-            Log.i(TAG, "Camera released"); //$NON-NLS-1$
-        }
-    }
-
-    /**
-     * Stop camera preview and frame grabbing.
-     */
-    synchronized protected void stopPreview() {
-        Log.v(TAG, "stopPreview()"); //$NON-NLS-1$
-        if (mPreviewHandler != null) {
-            Log.v(TAG, "mPreviewHandler != null"); //$NON-NLS-1$
-            mPreviewHandler.stopPreview();
-            mPreviewHandler = null;
-        }
-        if (mPreviewing) {
-            mCamera.stopPreview();
-            Log.d(TAG, "Camera preview stopped"); //$NON-NLS-1$
-            mPreviewing = false;
+            previewRequested = false;
+			previewStarted = false;
+			Log.v(TAG, "Camera released"); //$NON-NLS-1$
         }
     }
 
@@ -192,9 +329,14 @@ public class Preview {
      * Stop the processing thread
      */
     public void pausePreview() {
-        if (mPreviewHandler != null) {
-            mPreviewHandler.stopPreview();
+		Log.v(TAG, "pausePreview()");
+		if ( mPreviewing ) {
+			if ( mPreviewHandler != null )
+				mPreviewHandler.stopPreview();
             mPreviewHandler = null;
+            mCamera.stopPreview();
+            mPreviewing = false;
+			Log.v(TAG, "Camera preview stopped"); //$NON-NLS-1$
         }
     }
 
@@ -202,9 +344,13 @@ public class Preview {
      * Restart the processing thread
      */
     public void resumePreview() {
-        if (mPreviewHandler == null) {
-            mPreviewHandler = new PreviewHandler("CameraPreviewHandler"); //$NON-NLS-1$
-        }
+        Log.v(TAG, "resumePreview()");
+		if ( previewStarted ) {
+			camPreview.startPreview();
+			previewStarted = false;
+		}
+		else
+			previewRequested = true;
     }
 
     /**
@@ -221,6 +367,11 @@ public class Preview {
             throw new IllegalArgumentException("parameters must not be null"); //$NON-NLS-1$
         // Get preview size
         mPreviewSize = parameters.getPreviewSize();
+		mPreviewSize = getOptimalPreviewSize(parameters.getSupportedPreviewSizes(), 800, 480);
+		
+		parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+		
+		mPreviewSize = parameters.getPreviewSize();
         Log.d(TAG, "PreviewSize: " + mPreviewSize.width + 'x' + mPreviewSize.height); //$NON-NLS-1$
 
         // Get preview format
@@ -235,8 +386,43 @@ public class Preview {
         }
 
         parameters.setPreviewFrameRate(15);
+        parameters.setFocusMode(Parameters.FOCUS_MODE_AUTO);
 
         return parameters;
+    }
+	
+		
+	private Size getOptimalPreviewSize(List<Size> sizes, int w, int h) {
+        final double ASPECT_TOLERANCE = 0.1;
+        double targetRatio = (double) w / h;
+        if (sizes == null) return null;
+
+        Size optimalSize = null;
+        double minDiff = Double.MAX_VALUE;
+
+        int targetHeight = h;
+
+        // Try to find an size match aspect ratio and size
+        for (Size size : sizes) {
+            double ratio = (double) size.width / size.height;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
+            if (Math.abs(size.height - targetHeight) < minDiff) {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
+            }
+        }
+
+        // Cannot find the one match the aspect ratio, ignore the requirement
+        if (optimalSize == null) {
+            minDiff = Double.MAX_VALUE;
+            for (Size size : sizes) {
+                if (Math.abs(size.height - targetHeight) < minDiff) {
+                    optimalSize = size;
+                    minDiff = Math.abs(size.height - targetHeight);
+                }
+            }
+        }
+        return optimalSize;
     }
 
     /**
@@ -446,7 +632,8 @@ public class Preview {
 
         @Override
         public void onPreviewFrame(final byte[] data, final Camera camera) {
-            if (mHandler != null && camera == mCamera) {
+        	synchronized (this) {
+				if (mHandler != null && camera == mCamera) {
                 mHandler.post(new Runnable() {
 
                     @Override
@@ -460,27 +647,33 @@ public class Preview {
                     }
                 });
             }
+			}
+            
         }
 
         @Override
         synchronized protected void onLooperPrepared() {
-            Log.v(TAG, "onLooperPrepared()"); //$NON-NLS-1$
-            if (stopped == false) {
-                mHandler = new Handler();
-                Log.d(TAG, "frame processing start"); //$NON-NLS-1$
-                setPreviewCallbackWithBuffer(this);
-                // mCamera.setPreviewCallback(this);
-            }
+        	synchronized (this) {
+	            Log.v(TAG, "onLooperPrepared()"); //$NON-NLS-1$
+	            if (stopped == false) {
+	                mHandler = new Handler();
+	                Log.d(TAG, "frame processing start"); //$NON-NLS-1$
+	                setPreviewCallbackWithBuffer(this);
+	                // mCamera.setPreviewCallback(this);
+	            }
+        	}
         }
 
         synchronized private void stopPreview() {
-            stopped = true;
-            if (mHandler != null) {
-                Log.d(TAG, "frame processing stop"); //$NON-NLS-1$
-                setPreviewCallbackWithBuffer(null);
-                // mCamera.setPreviewCallback(null);
-                mHandler = null;
-            }
+        	synchronized (this) {
+		        stopped = true;
+		        if (mHandler != null) {
+		            Log.d(TAG, "frame processing stop"); //$NON-NLS-1$
+		            setPreviewCallbackWithBuffer(null);
+		            // mCamera.setPreviewCallback(null);
+		            mHandler = null;
+		        }
+        	}
         }
     }
 

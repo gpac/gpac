@@ -69,7 +69,7 @@ typedef struct
     
 } IOSCamCtx;
 
-IOSCamCtx* globReader;
+IOSCamCtx* globReader = NULL;
 
 void camStartCamera(IOSCamCtx *read);
 void camStopCamera(IOSCamCtx *read);
@@ -89,6 +89,8 @@ GF_Err CAM_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	read = (IOSCamCtx *) plug->priv;
     
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_ConnectService: %d\n", gf_th_id()));
+    
+    globReader = read;
     
 	read->input = plug;
 	read->service = serv;
@@ -388,7 +390,6 @@ GF_InputService *CAM_client_load()
     
 	GF_SAFEALLOC(reader, IOSCamCtx);
 	plug->priv = reader;
-	globReader = reader;
 	return plug;
 }
 

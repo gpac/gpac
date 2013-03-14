@@ -44,11 +44,12 @@ typedef struct _hc_proto_mod
 	GF_DECL_MODULE_INTERFACE
 
 	/*Initialize hardcoded proto node.
+	 itfs: ProtoModuleInterface
 	 compositor: GPAC compositor
 	 node: node to be loaded - this node is always a PROTO instance
 	 proto_uri: the proto URI
 	*/
-	Bool (*init)(GF_Compositor* compositor, GF_Node* node, const char *proto_uri);
+	Bool (*init)(struct _hc_proto_mod* itfs, GF_Compositor* compositor, GF_Node* node, const char *proto_uri);
 
 	/*check if the module can load a proto
 	 uri: proto uri to check for support

@@ -120,34 +120,34 @@ JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpacresize (JNIEnv * env
 //-----------------------------------
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventmousedown(JNIEnv * env, jobject obj, jfloat x, jfloat y){
         CAST_HANDLE(wr);
-        jniLOGV("mouseDown::start");
+        //jniLOGV("mouseDown::start");
         if (wr)
           wr->onMouseDown(x, y);
-        jniLOGV("mouseDown::end");
+        //jniLOGV("mouseDown::end");
 }
 //-----------------------------------
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventmouseup(JNIEnv * env, jobject obj, jfloat x, jfloat y){
         CAST_HANDLE(wr);
-        jniLOGV("mouseUp::start");
+        //jniLOGV("mouseUp::start");
         if (wr)
           wr->onMouseUp(x, y);
-        jniLOGV("mouseUp::end");
+        //jniLOGV("mouseUp::end");
 }
 //-----------------------------------
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventmousemove(JNIEnv * env, jobject obj, jfloat x, jfloat y){
         CAST_HANDLE(wr);
-        jniLOGV("mouseMouv::start");
+        //jniLOGV("mouseMouv::start");
         if (wr)
           wr->onMouseMove(x, y);
-        jniLOGV("mouseMouv::end");
+        //jniLOGV("mouseMouv::end");
 }
 //-----------------------------------
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag, jint unicode){
         CAST_HANDLE(wr);
-        jniLOGV("keypress::start");
+        //jniLOGV("keypress::start");
         if (wr)
           wr->onKeyPress(keycode, rawkeycode, up, flag, unicode);
-        jniLOGV("keypress::end");
+        //jniLOGV("keypress::end");
 }
 /*
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_getdpi(JNIEnv * env, jobject obj, jint keycode,jfloat x, jfloat y){

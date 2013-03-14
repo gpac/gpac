@@ -1044,7 +1044,7 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		if (compositor->proto_modules) {
 			j = 0;
 			while ( (ifce = (GF_HardcodedProto *)gf_list_enum(compositor->proto_modules, &j) )) {
-				if ( ifce->can_load_proto(url) && ifce->init(compositor, node, url) ) {
+				if ( ifce->can_load_proto(url) && ifce->init(ifce, compositor, node, url) ) {
 					return;
 				}
 			}

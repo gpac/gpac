@@ -147,14 +147,14 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
 	int res;
 	int jniV;
 	int allowedVersions[NUM_JNI_VERSIONS];
-        const char * className = "com/gpac/Osmo4/GPACInstance";
+	const char * className = "com/gpac/Osmo4/GPACInstance";
 	allowedVersions[0] = JNI_VERSION_1_6;
 	allowedVersions[1] = JNI_VERSION_1_4;
 	allowedVersions[2] = JNI_VERSION_1_2;
 	allowedVersions[3] = JNI_VERSION_1_1;
-        JNIEnv * env;
-        if (!vm)
-          return -1;
+	JNIEnv * env;
+	if (!vm)
+		return -1;
 	for (int i = 0 ; i < NUM_JNI_VERSIONS; i++){
 		jniV = allowedVersions[i];
 		if (vm->GetEnv((void**)(&env), jniV) == JNI_OK){
@@ -168,19 +168,19 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
 		}
 		
 	}
-        javaVM = vm;
-        LOGI("Registering %s natives\n", className);
+	javaVM = vm;
+	LOGI("Registering %s natives\n", className);
 	res = jniRegisterNativeMethods(env, className, sMethods, (sizeof(sMethods) - 1)/sizeof(JNINativeMethod));
-        if (res < 0){
-          LOGE("Failed to register native methods, result was = %d, try to continue anyway...\n", res);
-          /*return -1;*/
-        }
-        LOGI("Registering natives DONE, now registering pthread_keys with destructor=%p\n", &jni_destroy_env_func);
-        int ret = pthread_key_create(&jni_thread_env_key, &jni_destroy_env_func);
-        if (ret){
-          LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
-        }
-        return jniV;
+	if (res < 0){
+		LOGE("Failed to register native methods, result was = %d, try to continue anyway...\n", res);
+					/*return -1;*/
+	}
+	LOGI("Registering natives DONE, now registering pthread_keys with destructor=%p\n", &jni_destroy_env_func);
+	int ret = pthread_key_create(&jni_thread_env_key, &jni_destroy_env_func);
+	if (ret){
+		LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
+	}
+	return jniV;
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -311,7 +311,7 @@ JavaEnvTh * CNativeWrapper::getEnv(){
 
 //-------------------------------
 int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){
-        LOGV("MessageBox start %s", msg);
+	LOGV("MessageBox start %s", msg);
 	JavaEnvTh * env = getEnv();
 	if (!env || !env->cbk_displayMessage)
 		return 0;
@@ -320,7 +320,7 @@ int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status
 	jstring mes = env->env->NewStringUTF(msg?msg:"null");
 	env->env->CallVoidMethod(env->cbk_obj, env->cbk_displayMessage, mes, tit, status);
 	env->env->PopLocalFrame(NULL);
-        LOGV("MessageBox done %s", msg);
+	LOGV("MessageBox done %s", msg);
 	return 1;
 }
 //-------------------------------
@@ -888,76 +888,75 @@ void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag, i
         }
 }
 //-----------------------------------------------------
-void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
-	evt->flags = 0;
-	switch (keycode) {
-	case ANDROID_KEYCODE_BACK: evt->key_code = GF_KEY_BACKSPACE; break;
-	case ANDROID_KEYCODE_TAB: evt->key_code = GF_KEY_TAB; break;
-	case ANDROID_KEYCODE_CLEAR: evt->key_code = GF_KEY_CLEAR; break;
-	case ANDROID_KEYCODE_ENTER: evt->key_code = GF_KEY_ENTER; break;
-	case ANDROID_KEYCODE_SHIFT_LEFT: evt->key_code = GF_KEY_SHIFT; break;
-	case ANDROID_KEYCODE_SHIFT_RIGHT: evt->key_code = GF_KEY_SHIFT; break;
-	case ANDROID_KEYCODE_ALT_LEFT: evt->key_code = GF_KEY_ALT; break;
-	case ANDROID_KEYCODE_ALT_RIGHT: evt->key_code = GF_KEY_ALT; break;
-	case ANDROID_KEYCODE_SPACE: evt->key_code = GF_KEY_SPACE; break;
-	case ANDROID_KEYCODE_HOME: evt->key_code = GF_KEY_HOME; break;
-	case ANDROID_KEYCODE_DPAD_LEFT: evt->key_code = GF_KEY_LEFT; break;
-	case ANDROID_KEYCODE_DPAD_UP: evt->key_code = GF_KEY_UP; break;
-	case ANDROID_KEYCODE_DPAD_RIGHT: evt->key_code = GF_KEY_RIGHT; break;
-	case ANDROID_KEYCODE_DPAD_DOWN: evt->key_code = GF_KEY_DOWN; break;
-	case ANDROID_KEYCODE_DEL: evt->key_code = GF_KEY_DEL; break;
-	case ANDROID_KEYCODE_0:
-		evt->key_code = GF_KEY_0;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_1:
-		evt->key_code = GF_KEY_1;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_2:
-		evt->key_code = GF_KEY_2;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_3:
-		evt->key_code = GF_KEY_3;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_4:
-		evt->key_code = GF_KEY_4;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_5:
-		evt->key_code = GF_KEY_5;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_6:
-		evt->key_code = GF_KEY_6;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_7:
-		evt->key_code = GF_KEY_7;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_8:
-		evt->key_code = GF_KEY_8;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case ANDROID_KEYCODE_9:
-		evt->key_code = GF_KEY_9;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
+	void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
+		evt->flags = 0;
+		switch (keycode) {
+			case ANDROID_KEYCODE_BACK: evt->key_code = GF_KEY_BACKSPACE; evt->hw_code = 8; break;
+			case ANDROID_KEYCODE_TAB: evt->key_code = GF_KEY_TAB; evt->hw_code = 9; break;
+			case ANDROID_KEYCODE_CLEAR: evt->key_code = GF_KEY_CLEAR; break;
+			case ANDROID_KEYCODE_ENTER: evt->key_code = GF_KEY_ENTER; evt->hw_code = 13; break;
+			case ANDROID_KEYCODE_SHIFT_LEFT: evt->key_code = GF_KEY_SHIFT; break;
+			case ANDROID_KEYCODE_SHIFT_RIGHT: evt->key_code = GF_KEY_SHIFT; break;
+			case ANDROID_KEYCODE_ALT_LEFT: evt->key_code = GF_KEY_ALT; break;
+			case ANDROID_KEYCODE_ALT_RIGHT: evt->key_code = GF_KEY_ALT; break;
+			case ANDROID_KEYCODE_SPACE: evt->key_code = GF_KEY_SPACE; evt->hw_code = 32; break;
+			case ANDROID_KEYCODE_HOME: evt->key_code = GF_KEY_HOME; break;
+			case ANDROID_KEYCODE_DPAD_LEFT: evt->key_code = GF_KEY_LEFT; break;
+			case ANDROID_KEYCODE_DPAD_UP: evt->key_code = GF_KEY_UP; break;
+			case ANDROID_KEYCODE_DPAD_RIGHT: evt->key_code = GF_KEY_RIGHT; break;
+			case ANDROID_KEYCODE_DPAD_DOWN: evt->key_code = GF_KEY_DOWN; break;
+			case ANDROID_KEYCODE_DEL: evt->key_code = GF_KEY_BACKSPACE; evt->hw_code = 8; break;
+			case ANDROID_KEYCODE_0:
+			evt->key_code = GF_KEY_0;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_1:
+			evt->key_code = GF_KEY_1;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_2:
+			evt->key_code = GF_KEY_2;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_3:
+			evt->key_code = GF_KEY_3;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_4:
+			evt->key_code = GF_KEY_4;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_5:
+			evt->key_code = GF_KEY_5;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_6:
+			evt->key_code = GF_KEY_6;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_7:
+			evt->key_code = GF_KEY_7;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_8:
+			evt->key_code = GF_KEY_8;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
+			case ANDROID_KEYCODE_9:
+			evt->key_code = GF_KEY_9;
+			evt->flags = GF_KEY_EXT_NUMPAD;
+			break;
 	/*thru VK_9 are the same as ASCII '0' thru '9' (0x30 - 0x39) */
 	/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */
-	default:
-		if ((keycode>=ANDROID_KEYCODE_A) && (keycode<=ANDROID_KEYCODE_Z)){
-                  evt->key_code = GF_KEY_A + keycode - ANDROID_KEYCODE_A;
-                } else {
-                  evt->key_code = GF_KEY_UNIDENTIFIED;
-                }
-		break;
+			default:
+			if ((keycode>=ANDROID_KEYCODE_A) && (keycode<=ANDROID_KEYCODE_Z)){
+				evt->key_code = GF_KEY_A + keycode - ANDROID_KEYCODE_A;
+			} else {
+				evt->key_code = GF_KEY_UNIDENTIFIED;
+			}
+			break;
+		}
 	}
-	evt->hw_code = evt->key_code;
-}
 
 //-----------------------------------------------------
 void CNativeWrapper::setGpacLogs(const char *tools_at_level)
