@@ -60,6 +60,9 @@ static void load_all_modules(GF_ModuleManager *mgr)
     LOAD_PLUGIN(dx_out);
     LOAD_PLUGIN(ffmpeg);
     LOAD_PLUGIN(ogg_in);
+#else
+    LOAD_PLUGIN(ios_cam);
+    LOAD_PLUGIN(ios_mpegv);
 #endif
 	LOAD_PLUGIN(aac_in);
 	LOAD_PLUGIN(bifs);

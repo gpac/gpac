@@ -209,7 +209,7 @@ GF_MediaObject *gf_mo_new()
 
 
 GF_EXPORT
-Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat)
+Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped)
 {
 	GF_CodecCapability cap;
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return 0;
@@ -225,6 +225,13 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 		*height = cap.cap.valueInt;
 	}
 	if (mo->type==GF_MEDIA_OBJECT_TEXT) return 1;
+    
+    if (is_flipped) {
+        cap.CapCode = GF_CODEC_FLIP;
+        cap.cap.valueInt = 0;
+		gf_codec_get_capability(mo->odm->codec, &cap);
+		*is_flipped = cap.cap.valueInt ? GF_TRUE : GF_FALSE;
+    }
 
 	if (stride) {
 		cap.CapCode = GF_CODEC_STRIDE;

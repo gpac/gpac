@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'ios_mpegv' target in the 'ios_mpegv' project
+//
+
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+#endif

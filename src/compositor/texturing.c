@@ -133,12 +133,12 @@ void gf_sc_texture_restart(GF_TextureHandler *txh)
 static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 {
 	if (!txh->tx_io) {
-		gf_sc_texture_allocate(txh);
+        gf_sc_texture_allocate(txh);
 		if (!txh->tx_io) return;
 
-		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat);
-
-		if (private_media) {
+		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
+        
+        if (private_media) {
 			txh->transparent = 1;
 			txh->pixelformat = GF_PIXEL_ARGB;
 			txh->flags |= GF_SR_TEXTURE_PRIVATE_MEDIA;

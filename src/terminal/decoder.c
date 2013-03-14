@@ -1134,7 +1134,7 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 
 	if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
 		GF_BitStream *bs;
-		u32 pf, w, h, stride=0, out_size, sr, nb_ch, bpp, ch_cfg;
+		u32 pf, w, h, stride=0, out_size, sr, nb_ch, bpp, ch_cfg, is_flipped = 0;
 		GF_Channel *ch = gf_list_get(codec->odm->channels, 0);
 		if (!ch || !ch->esd->decoderConfig->decoderSpecificInfo || !ch->esd->decoderConfig->decoderSpecificInfo->data) return 0;
 		bs = gf_bs_new(ch->esd->decoderConfig->decoderSpecificInfo->data, ch->esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
@@ -1146,6 +1146,7 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 			h = gf_bs_read_u16(bs);
 			out_size = gf_bs_read_u32(bs);
 			stride = gf_bs_read_u32(bs);
+            is_flipped = gf_bs_read_u8(bs);
 		} else {
 			sr = gf_bs_read_u32(bs);
 			nb_ch = gf_bs_read_u16(bs);
@@ -1167,6 +1168,9 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 		case GF_CODEC_PIXEL_FORMAT:
 			cap->cap.valueInt = pf;
 			return GF_OK;
+        case GF_CODEC_FLIP:
+            cap->cap.valueInt = is_flipped;
+            return GF_OK;
 		case GF_CODEC_OUTPUT_SIZE:
 			cap->cap.valueInt = out_size;
 			return GF_OK;

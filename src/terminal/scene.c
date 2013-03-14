@@ -950,7 +950,7 @@ void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, 
 static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 {
 	u32 pixel_ar;
-	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL)) return;
+	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL, NULL)) return;
 	if (pixel_ar) {
 		u32 n, d;
 		n = (pixel_ar>>16) & 0x0000FFFF;
