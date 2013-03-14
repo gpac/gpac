@@ -170,7 +170,7 @@ static GF_Err gdip_set_font(GF_FontReader *dr, const char *fontName, u32 styles)
 	return GF_OK;
 }
 
-static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, U32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
+static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, u32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
 {
 	UINT16 val, em;
 	FontPriv *ctx = (FontPriv *)dr->udta;

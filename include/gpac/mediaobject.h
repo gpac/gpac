@@ -114,7 +114,7 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift);
 
 u32 gf_mo_get_last_frame_time(GF_MediaObject *mo);
 
-Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat);
+Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped);
 
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
 

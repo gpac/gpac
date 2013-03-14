@@ -302,6 +302,10 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
 		break;
+    case GF_PIXEL_BGR_32:
+        txh->tx_io->gl_format = GL_RGBA;
+        txh->tx_io->nb_comp = 4;
+        break;
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_RGBA:
 		txh->tx_io->gl_format = GL_RGBA;
@@ -468,6 +472,9 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 	case GF_PIXEL_BGR_24:
 		bpp = 3;
 		break;
+    case GF_PIXEL_BGR_32:
+        bpp = 4;
+        break;
 	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_RGB_24:
@@ -550,12 +557,14 @@ assert(txh->data );
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_BGR_24:
-		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
+    case GF_PIXEL_BGR_32:
+    	txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
 		/*stretch and flip*/
-		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
-		txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, !txh->is_flipped, NULL, NULL);
+        if ( !txh->is_flipped)
+            txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
-	case GF_PIXEL_YUVD:
+    case GF_PIXEL_YUVD:
 		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
 			src.pixel_format = GF_PIXEL_YV12;
 			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;

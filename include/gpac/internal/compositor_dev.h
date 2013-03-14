@@ -586,6 +586,7 @@ typedef struct _gf_sc_texture_handler
 	/*image data for natural media*/
 	char *data;
 	u32 width, height, stride, pixelformat, pixel_ar;
+    Bool is_flipped;
 
 #ifndef GPAC_DISABLE_VRML
 	/*if set texture has been transformed by MatteTexture -> disable blit*/

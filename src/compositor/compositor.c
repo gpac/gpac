@@ -1190,7 +1190,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else compositor->draw_normals = GF_NORMALS_NONE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableGLUScale");
-	compositor->disable_glu_scale = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;	
+    compositor->disable_glu_scale = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableRectExt");
 	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
@@ -1264,8 +1264,8 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "CameraLayout");
 	if (!sOpt) {
-		sOpt = "OffAxis";
-		gf_cfg_set_key(compositor->user->config, "Compositor", "CameraLayout", "OffAxis");
+		sOpt = "Straight";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "CameraLayout", "Straight");
 	}
 	if (!strcmp(sOpt, "Linear")) compositor->visual->camera_layout = GF_3D_CAMERA_LINEAR;
 	else if (!strcmp(sOpt, "Circular")) compositor->visual->camera_layout = GF_3D_CAMERA_CIRCULAR;
