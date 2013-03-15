@@ -499,6 +499,7 @@ enum
 			u32 pid; \
 			u32 stream_type; \
 			u32 mpeg4_es_id; \
+			GF_SLConfig *slcfg; \
 			s16 component_tag; \
 			void *user; \
 			u64 first_dts; \
