@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-EXTRALIBS+=-L../../extra_lib/lib/gcc -L../../bin/gcc -lgpac -lLibOpenHevcWrapper -lpthread
+EXTRALIBS+= -L../../bin/gcc -lgpac $(OHEVC_LDFLAGS)
 
 #common obj
 OBJS= openhevc_dec.o
