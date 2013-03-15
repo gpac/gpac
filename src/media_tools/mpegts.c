@@ -906,7 +906,6 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 		if (pes->prev_data) gf_free(pes->prev_data);
 		if (pes->buf) gf_free(pes->buf);
 	}
-	if (es->slcfg) gf_free(es->slcfg);
 	gf_free(es);
 }
 

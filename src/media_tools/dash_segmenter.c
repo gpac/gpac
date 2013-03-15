@@ -254,7 +254,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 {
 	GF_ESD *esd;
 	GF_AVCConfig *avcc;
-	GF_AVCConfigSlot *sps;
 	u32 subtype = gf_isom_is_media_encrypted(movie, track, 1);
 	if (!subtype) subtype = gf_isom_get_media_subtype(movie, track, 1);
 
@@ -296,13 +295,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AVC4_H264:
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_avc_config_get(movie, track, 1);
-		sps = gf_list_get(avcc->sequenceParameterSets, 0);
-		if (sps)
-			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), (u8) sps->data[1], (u8) sps->data[2], (u8) sps->data[3]);
-		else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AVC/SVC SPS not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
-			sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
-		}
+		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
 	default:
@@ -639,7 +632,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 									 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 		}
 
-		gf_media_get_rfc_6381_codec_name(input, i+1, szCodec);
+		gf_media_get_rfc_6381_codec_name(bs_switch_segment ? bs_switch_segment : input, i+1, szCodec);
 		if (strlen(szCodecs)) strcat(szCodecs, ",");
 		strcat(szCodecs, szCodec);
 
