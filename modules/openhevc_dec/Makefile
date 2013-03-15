@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/openhevc_dec
 
-CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include" $(OSVC_CFLAGS)
+CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-EXTRALIBS+=-L../../bin/gcc -L. -lgpac -lTLibDecoderStatic -lTLibCommonStatic -lTLibWrapperStatic
+EXTRALIBS+=-L../../extra_lib/lib/gcc -L../../bin/gcc -lgpac -lLibOpenHevcWrapper -lpthread
 
 #common obj
 OBJS= openhevc_dec.o
