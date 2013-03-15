@@ -655,7 +655,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			max_track_duration = (Double) gf_isom_get_track_duration(input, i+1);
 		}
 
-		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) { 
+		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) {
 			tfref = tf;
 			nb_sync = gf_isom_get_sync_point_count(input, i+1);
 		} else if (!gf_isom_has_sync_points(input, i+1)) {
@@ -791,11 +791,13 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	}
 
 
-	if (!tfref) tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
+	if (!tfref)
+		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
 	tfref->is_ref_track = GF_TRUE;
 	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
-	if (tfref->all_sample_raps) split_seg_at_rap = GF_TRUE;
+	if (tfref->all_sample_raps)
+		split_seg_at_rap = GF_TRUE;
 
 
 	if (!dash_moov_setup) {
@@ -975,20 +977,27 @@ restart_fragmentation_pass:
 			s32 roll_distance;
 			u32 SAP_type = 0;
 			/*start with ref*/
-			if (tfref && split_seg_at_rap ) {
+			if (tfref && split_seg_at_rap) {
 				if (i==0) {
 					tf = tfref;
-					has_rap=GF_FALSE;
+					has_rap = GF_FALSE;
 				} else {
-					tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i-1);
-					if (tf == tfref) {
-						tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
+					u32 j;
+					for (j=0; j<=i; j++) {
+						if (gf_list_get(fragmenters, j) == tfref) {
+							tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
+							break;
+						} else if (i == j) {
+							tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i-1);
+							break;
+						}
 					}
+					assert(tf);
 				}
 			} else {
 				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 				if (tf == tfref) 
-					has_rap=GF_FALSE;
+					has_rap = GF_FALSE;
 			} 
 			if (tf->done) continue;
 
@@ -1194,7 +1203,8 @@ restart_fragmentation_pass:
 					if (split_sample_duration)
 						tf->split_sample_dts_shift += defaultDuration;
 
-					if (tf==tfref) last_ref_cts = tf->last_sample_cts;
+					if (tf==tfref)
+						last_ref_cts = tf->last_sample_cts;
 
 					break;
 				}
@@ -1322,7 +1332,8 @@ restart_fragmentation_pass:
 			tf->next_sample_dts = 0;
 			tf->FragmentLength = 0;
 			tf->SampleNum = 0;
-			if (tf->is_ref_track) tfref = tf;
+			if (tf->is_ref_track)
+				tfref = tf;
 		}
 		goto restart_fragmentation_pass;
 	}
