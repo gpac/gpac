@@ -158,6 +158,7 @@ has_avcap="no"
 avcap_cflags=""
 avcap_ldflags="-lavcap"
 has_opensvc="no"
+has_openhevc="no"
 
 win32="no"
 mingw32="no"
@@ -977,6 +978,34 @@ if $cpp -o $TMPO $TMPC $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags 2> /dev/
   has_opensvc="yes"
   osvc_ldflags="-L../../$local_lib $osvc_ldflags"
 fi
+
+fi
+
+#look for openhevc support
+
+if test "$darwin" = "yes" ; then
+ohevc_cflags="-I/usr/include -I/usr/local/include"
+ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lpthread"
+else
+ohevc_cflags=""
+ohevc_ldflags="-lLibOpenHevcWrapper -lpthread"
+fi
+
+cat > $TMPC << EOF
+#include <stdio.h>
+int libOpenHevcInit();
+int main( void ) { libOpenHevcInit(); return 0; }
+EOF
+if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS $ohevc_ldflags 2> /dev/null  ; then
+  has_openhevc="yes"
+else
+  ohevc_cflags="-I$local_inc"
+  ohevc_ldflags="-lLibOpenHevcWrapper -lpthread"
+
+  if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS -L$local_lib $ohevc_ldflags 2> /dev/null  ; then
+    has_openhevc="yes"
+    ohevc_ldflags="-L../../$local_lib $ohevc_ldflags"
+  fi
 
 fi
 
@@ -2530,6 +2559,7 @@ else
 fi
 echo "A52 (AC3): $has_a52"
 echo "OpenSVCDecoder: $has_opensvc"
+echo "OpenHEVCDecoder: $has_openhevc"
 echo "Freenect: $has_freenect"
 
 if test "$enable_renoir" = "yes" ; then
@@ -2880,6 +2910,12 @@ echo "CONFIG_OPENSVC=$has_opensvc" >> config.mak
 if test "$has_opensvc" = "yes" ; then
     echo "OSVC_CFLAGS=$osvc_cflags" >> config.mak
     echo "OSVC_LDFLAGS=$osvc_ldflags" >> config.mak
+fi
+
+echo "CONFIG_OPENHEVC=$has_openhevc" >> config.mak
+if test "$has_openhevc" = "yes" ; then
+    echo "OHEVC_CFLAGS=$ohevc_cflags" >> config.mak
+    echo "OHEVC_LDFLAGS=$ohevc_ldflags" >> config.mak
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak

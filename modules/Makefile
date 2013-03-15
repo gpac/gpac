@@ -104,6 +104,10 @@ ifeq ($(CONFIG_OPENSVC),yes)
 PLUGDIRS+=opensvc_dec
 endif
 
+ifeq ($(CONFIG_OPENHEVC),yes)
+PLUGDIRS+=openhevc_dec
+endif
+
 ifeq ($(RENOIR_ENABLE),yes)
 PLUGDIRS+=viren_out
 endif
