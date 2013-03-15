@@ -560,7 +560,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	}
 	index_start_range = index_end_range = 0;	
 
-	tfref = NULL;
+	tf = tfref = NULL;
 	file_duration = 0;
 	width = height = sample_rate = nb_channels = sar_w = sar_h = fps_num = fps_denum = 0;
 	langCode[0]=0;
