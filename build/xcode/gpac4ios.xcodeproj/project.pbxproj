@@ -23,7 +23,6 @@
 		71A19BB912797D4800ACFF58 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BB812797D4800ACFF58 /* AudioToolbox.framework */; };
 		71A19BC412797D9200ACFF58 /* libobjc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BC312797D9200ACFF58 /* libobjc.dylib */; };
 		71A19BCD12797DBA00ACFF58 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BCC12797DBA00ACFF58 /* UIKit.framework */; settings = {ATTRIBUTES = (Required, ); }; };
-		71A19C3B12797E4000ACFF58 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C3A12797E4000ACFF58 /* CoreGraphics.framework */; };
 		71A19C3D12797E4000ACFF58 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C3C12797E4000ACFF58 /* Foundation.framework */; };
 		71A19C3F12797E4000ACFF58 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C3E12797E4000ACFF58 /* QuartzCore.framework */; };
 		71A19C4112797E4000ACFF58 /* libdl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19C4012797E4000ACFF58 /* libdl.dylib */; };
@@ -421,11 +420,6 @@
 		92BC213A16EF8E7A000E0620 /* widget.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998D1278777A00ACFF58 /* widget.c */; };
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
-		92FA812016F233E30002629E /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA811F16F233E30002629E /* CoreLocation.framework */; };
-		92FA812416F233EE0002629E /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812316F233EE0002629E /* CoreMotion.framework */; };
-		92FA812816F233FA0002629E /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812716F233FA0002629E /* CoreMedia.framework */; };
-		92FA812C16F234060002629E /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812B16F234060002629E /* CoreVideo.framework */; };
-		92FA813016F2340F0002629E /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92FA812F16F2340F0002629E /* AVFoundation.framework */; };
 		92FA814116F235520002629E /* ios_cam.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA813E16F235520002629E /* ios_cam.c */; };
 		92FA825A16F2549D0002629E /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825916F2549D0002629E /* validator.c */; };
 		92FA825C16F254AF0002629E /* audio_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825B16F254AF0002629E /* audio_filter.c */; };
@@ -608,7 +602,6 @@
 		71A19BB812797D4800ACFF58 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		71A19BC312797D9200ACFF58 /* libobjc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libobjc.dylib; path = usr/lib/libobjc.dylib; sourceTree = SDKROOT; };
 		71A19BCC12797DBA00ACFF58 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
-		71A19C3A12797E4000ACFF58 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		71A19C3C12797E4000ACFF58 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		71A19C3E12797E4000ACFF58 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		71A19C4012797E4000ACFF58 /* libdl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libdl.dylib; path = usr/lib/libdl.dylib; sourceTree = SDKROOT; };
@@ -959,11 +952,6 @@
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
 		92A3A03D16F0C10C004EE581 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/osmo4_ios/extract.c; sourceTree = SOURCE_ROOT; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
-		92FA811F16F233E30002629E /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
-		92FA812316F233EE0002629E /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
-		92FA812716F233FA0002629E /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
-		92FA812B16F234060002629E /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
-		92FA812F16F2340F0002629E /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		92FA813A16F235520002629E /* cam_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cam_wrap.h; path = ../../modules/ios_cam/cam_wrap.h; sourceTree = SOURCE_ROOT; };
 		92FA813C16F235520002629E /* CameraObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CameraObject.h; path = ../../modules/ios_cam/CameraObject.h; sourceTree = SOURCE_ROOT; };
 		92FA813E16F235520002629E /* ios_cam.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ios_cam.c; path = ../../modules/ios_cam/ios_cam.c; sourceTree = SOURCE_ROOT; };
@@ -1016,16 +1004,10 @@
 				71A19BB912797D4800ACFF58 /* AudioToolbox.framework in Frameworks */,
 				71A19BC412797D9200ACFF58 /* libobjc.dylib in Frameworks */,
 				71A19BCD12797DBA00ACFF58 /* UIKit.framework in Frameworks */,
-				71A19C3B12797E4000ACFF58 /* CoreGraphics.framework in Frameworks */,
 				71A19C3D12797E4000ACFF58 /* Foundation.framework in Frameworks */,
 				71A19C3F12797E4000ACFF58 /* QuartzCore.framework in Frameworks */,
 				71A19C4112797E4000ACFF58 /* libdl.dylib in Frameworks */,
 				92B039F716F2050100B2568F /* libSDL2.a in Frameworks */,
-				92FA812016F233E30002629E /* CoreLocation.framework in Frameworks */,
-				92FA812416F233EE0002629E /* CoreMotion.framework in Frameworks */,
-				92FA812816F233FA0002629E /* CoreMedia.framework in Frameworks */,
-				92FA812C16F234060002629E /* CoreVideo.framework in Frameworks */,
-				92FA813016F2340F0002629E /* AVFoundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1170,7 +1152,6 @@
 				71F2A45412830B1400C384DE /* libjs.a */,
 				71F2A45512830B1400C384DE /* libmad.a */,
 				71F2A45612830B1400C384DE /* libpng.a */,
-				71A19C3A12797E4000ACFF58 /* CoreGraphics.framework */,
 				71A19C3C12797E4000ACFF58 /* Foundation.framework */,
 				71A19C3E12797E4000ACFF58 /* QuartzCore.framework */,
 				71A19C4012797E4000ACFF58 /* libdl.dylib */,
@@ -1180,11 +1161,6 @@
 				71A19BCC12797DBA00ACFF58 /* UIKit.framework */,
 				71847811127860F000917298 /* libc.dylib */,
 				71847813127860F000917298 /* libz.dylib */,
-				92FA811F16F233E30002629E /* CoreLocation.framework */,
-				92FA812316F233EE0002629E /* CoreMotion.framework */,
-				92FA812716F233FA0002629E /* CoreMedia.framework */,
-				92FA812B16F234060002629E /* CoreVideo.framework */,
-				92FA812F16F2340F0002629E /* AVFoundation.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -2472,7 +2448,7 @@
 					../../extra_lib/include/freetype,
 					../../extra_lib/include,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
@@ -2502,7 +2478,7 @@
 					../../extra_lib/include/freetype,
 					../../extra_lib/include,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
