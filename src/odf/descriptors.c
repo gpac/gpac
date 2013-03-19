@@ -1043,6 +1043,8 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "MPEG-4 Part 2 Video";
 		case GPAC_OTI_VIDEO_AVC:
 			return "MPEG-4 AVC|H264 Video";
+		case GPAC_OTI_VIDEO_SVC:
+			return "MPEG-4 SVC Video";
 		case GPAC_OTI_VIDEO_AVC_PS:
 			return "MPEG-4 AVC|H264 Parameter Set";
 		case GPAC_OTI_MEDIA_FFMPEG:

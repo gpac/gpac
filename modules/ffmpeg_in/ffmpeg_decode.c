@@ -1002,7 +1002,7 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 	else if (StreamType==GF_STREAM_VISUAL) {
 
 		/*fixme - we should use some priority rather than declare ffmpeg can't handle svc*/
-		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
+		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC){
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 				Bool is_svc = 0;
 				u32 i, count;
@@ -1026,7 +1026,7 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 				gf_odf_avc_cfg_del(cfg);
 				return (is_svc || esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) ? GF_CODEC_MAYBE_SUPPORTED : GF_CODEC_SUPPORTED;
 			}
-			if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
+			if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config || esd->has_ref_base) return GF_CODEC_MAYBE_SUPPORTED;
 			return GF_CODEC_SUPPORTED;
 		}
 
@@ -1034,7 +1034,8 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		/*MPEG-4 v1 simple profile*/
 		case GPAC_OTI_VIDEO_MPEG4_PART2: codec_id = CODEC_ID_MPEG4; break;
 		/*H264 (not std OTI, just the way we use it internally)*/
-		case GPAC_OTI_VIDEO_AVC: codec_id = CODEC_ID_H264; break;
+		case GPAC_OTI_VIDEO_AVC:
+			codec_id = CODEC_ID_H264; break;
 		/*MPEG1 video*/
 		case GPAC_OTI_VIDEO_MPEG1:
 		/*MPEG2 video*/

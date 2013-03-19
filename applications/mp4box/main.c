@@ -929,7 +929,7 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 			GF_M4VDecSpecInfo dsi;
 			gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			if (dsi.VideoPL > PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, dsi.VideoPL);
-		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+		} else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
 			gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, 0x15);
 		} else if (!PL) {
 			gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, 0xFE);

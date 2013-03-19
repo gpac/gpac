@@ -40,6 +40,7 @@
 typedef struct
 {
 	u16 ES_ID;
+	u16 baseES_ID;
 	u32 width, stride, height, out_size, pixel_ar;
 
 	u32 nalu_size_length;
@@ -67,6 +68,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (!ctx->ES_ID) {
 		ctx->ES_ID = esd->ESID;
 	 	ctx->width = ctx->height = ctx->out_size = 0;
+		if (!esd->dependsOnESID) ctx->baseES_ID = esd->ESID;
 	}
 
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -276,7 +278,8 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
 			case GF_AVC_NALU_PIC_PARAM:
-				ctx->state_found = 1;
+				if (ctx->baseES_ID == ES_ID)
+					ctx->state_found = 1;
 				break;
 			}
 		}
@@ -331,6 +334,7 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
+	case GPAC_OTI_VIDEO_SVC:
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 			Bool is_svc = 0;
 			u32 i, count;
@@ -354,7 +358,7 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 			gf_odf_avc_cfg_del(cfg);
 			return is_svc ? GF_CODEC_SUPPORTED : GF_CODEC_MAYBE_SUPPORTED;
 		}
-		return GF_CODEC_MAYBE_SUPPORTED;
+		return esd->has_ref_base ? GF_CODEC_SUPPORTED : GF_CODEC_MAYBE_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;
 }

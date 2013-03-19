@@ -478,7 +478,15 @@ u64 gf_bs_get_size(GF_BitStream *bs);
 u64 gf_bs_get_refreshed_size(GF_BitStream *bs);
 
 
-
+/*!
+ *\brief transfer content from source bitstream to destination bitstream
+ *
+ *Returns the size of the associated buffer/file.
+ *\param dst the target bitstream
+ *\param src the source bitstream. This bitstream is empty after calling teh function
+ *\return error if any
+ */
+GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src);
 /*! @} */
 
 #ifdef __cplusplus

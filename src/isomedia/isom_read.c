@@ -2521,7 +2521,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 				switch (dcd->streamType) {
 				case GF_STREAM_VISUAL:
 					if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) nb_m4v++;
-					else if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_AVC) nb_avc++;
+					else if ((dcd->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (dcd->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) nb_avc++;
 					else nb_v++;
 					break;
 				case GF_STREAM_AUDIO:

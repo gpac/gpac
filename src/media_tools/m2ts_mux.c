@@ -571,7 +571,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 		u8 *payload;
 		u32 i;
 		u32 length, nb_streams=0;
-		u32 info_length = 0;
+		u32 info_length = 0, es_info_length = 0;
 		GF_BitStream *bs;
 
 
@@ -651,16 +651,40 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			gf_bs_write_int(bs,	0x7, 3); // reserved
 			gf_bs_write_int(bs,	es->pid, 13);
 			gf_bs_write_int(bs,	0xF, 4); // reserved
-			
-			/* Second Loop Descriptor */
+	
+			/*calculate es_info_length*/
+			if (stream->program->iod && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS))
+				es_info_length = 4;
+			else
+				es_info_length = 0;
+			/*another loop descriptors*/
+			if (es->loop_descriptors)
+			{
+				for (i=0; i<gf_list_count(es->loop_descriptors); i++)
+				{
+					GF_M2TSDescriptor *desc = gf_list_get(es->loop_descriptors, i);
+					es_info_length += 2 +desc->data_len;
+				}
+			}
+			gf_bs_write_int(bs,	es_info_length, 12);
+
 			if (stream->program->iod && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
-				gf_bs_write_int(bs,	4, 12); // ES info length = 4 :only SL Descriptor
 				gf_bs_write_int(bs,	GF_M2TS_MPEG4_SL_DESCRIPTOR, 8); 
 				gf_bs_write_int(bs,	2, 8); 
 				gf_bs_write_int(bs,	es->ifce->stream_id, 16);  // mpeg4_esid
-			} else {
-				gf_bs_write_int(bs,	0, 12);
 			}
+
+			if (es->loop_descriptors)
+			{
+				for (i=0; i<gf_list_count(es->loop_descriptors); i++)
+				{
+					GF_M2TSDescriptor *desc = (GF_M2TSDescriptor *)gf_list_get(es->loop_descriptors, i);
+					gf_bs_write_int(bs,	desc->tag, 8); 
+					gf_bs_write_int(bs,	desc->data_len, 8); 
+					gf_bs_write_data(bs, desc->data, desc->data_len);
+				}
+			}
+
 			es = es->next;
 		}
 	
@@ -1578,6 +1602,67 @@ static void gf_m2ts_stream_set_default_slconfig(GF_M2TS_Mux_Stream *stream)
 	}
 }
 
+static u32 gf_m2ts_stream_get_pid(GF_M2TS_Mux_Program *program, u32 stream_id)
+{
+	GF_M2TS_Mux_Stream *st;
+
+	st = program->streams;
+
+	while (st)
+	{
+		if (st->ifce->stream_id == stream_id)
+			return st->pid;
+		st = st->next;
+	}
+
+	return 0;
+}
+
+
+static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
+{
+	GF_M2TSDescriptor *desc;
+	GF_BitStream *bs;
+	char *data;
+	u32 data_len;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	/*reserved*/
+	gf_bs_write_int(bs, 1, 1);
+	/*temporal_scalability_flag: use the reserved value*/
+	gf_bs_write_int(bs, 1, 1);
+	/*spatial_scalability_flag: use the reserved value*/
+	gf_bs_write_int(bs, 1, 1);
+	/*quality_scalability_flag: use the reserved value*/
+	gf_bs_write_int(bs, 1, 1);
+	/*hierarchy_type: use the rerserved value*/
+	gf_bs_write_int(bs, 0, 4);
+	/*reserved*/
+	gf_bs_write_int(bs, 3, 2);
+	/*hierarchy_layer_index*/
+	gf_bs_write_int(bs, stream->pid - stream->program->pmt->pid, 6);
+	/*tref_present_flag*/
+	gf_bs_write_int(bs, 1, 1);
+	/*reserved*/
+	gf_bs_write_int(bs, 1, 1);
+	/*hierarchy_embedded_layer_index*/
+	gf_bs_write_int(bs, gf_m2ts_stream_get_pid(stream->program, stream->ifce->depends_on_stream) - stream->program->pmt->pid, 6);
+	/*reserved*/
+	gf_bs_write_int(bs, 3, 2);
+	/*hierarchy_channel*/
+	gf_bs_write_int(bs, stream->ifce->stream_id, 6);
+
+	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
+	desc->tag = (u8) GF_M2TS_HIERARCHY_DESCRIPTOR;
+	gf_bs_get_content(bs, &data, &data_len);
+	gf_bs_del(bs);
+	desc->data_len = data_len;
+	desc->data = (char *)gf_malloc(data_len*sizeof(char));
+	memcpy(desc->data, data, data_len);
+
+	gf_list_add(stream->loop_descriptors, desc);
+}
+
 GF_EXPORT
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes)
 {
@@ -1587,7 +1672,8 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->ifce = ifce;
 	stream->pid = pid;
 	stream->program = program;
-	if (is_pcr) program->pcr = stream; 
+	if (is_pcr) program->pcr = stream;
+	stream->loop_descriptors = gf_list_new();
 
 	if (program->streams) {
 		/*if PCR keep stream at the begining*/
@@ -1630,7 +1716,13 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 12;
 			break;
-			
+		case GPAC_OTI_VIDEO_SVC:
+			stream->mpeg2_stream_type = GF_M2TS_VIDEO_SVC;
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (start code + 1 nal hdr + AU delim) 
+			+ 4 byte start code + first nal header*/
+			stream->min_bytes_copy_from_next = 11;
+			gf_m2ts_stream_add_hierarchy_descriptor(stream);
+			break;	
 		case GPAC_OTI_VIDEO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
 			break;
@@ -1805,6 +1897,15 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 	}
 	if (st->curr_pck.data) gf_free(st->curr_pck.data);
 	if (st->mx) gf_mx_del(st->mx);
+	if (st->loop_descriptors) {
+		while (gf_list_count(st->loop_descriptors) ) {
+			GF_M2TSDescriptor *desc = gf_list_last(st->loop_descriptors);
+			gf_list_rem_last(st->loop_descriptors);
+			//if (desc->data) gf_free(desc->data);
+			gf_free(desc);
+		}
+		gf_list_del(st->loop_descriptors);
+	}
 	gf_free(st);
 }
 

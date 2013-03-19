@@ -64,6 +64,8 @@ enum
 	/* ... */	
 	GF_M2TS_AVC_TIMING_HRD_DESCRIPTOR			= 0x2A,
 	/* ... */
+	GF_M2TS_SVC_EXTENSION_DESCRIPTOR			= 0x30,
+	/* ... */
 	GF_M2TS_MPEG4_ODUPDATE_DESCRIPTOR			= 0x35,
 
 	/* 0x2D - 0x3F - ISO/IEC 13818-6 values */
@@ -206,6 +208,7 @@ enum
 	GF_M2TS_SYSTEMS_MPEG4_SECTIONS	= 0x13,
 
 	GF_M2TS_VIDEO_H264				= 0x1B,
+	GF_M2TS_VIDEO_SVC				= 0x1F,
 	GF_M2TS_VIDEO_HEVC				= 0x24,
 
 	GF_M2TS_AUDIO_AC3				= 0x81,
@@ -462,6 +465,7 @@ typedef struct
 	/*for hybrid use-cases we need to know if TDT has already been processed*/
 	Bool tdt_found;
 
+	u32 pid_playing;
 } GF_M2TS_Program;
 
 /*ES flags*/
@@ -503,7 +507,7 @@ enum
 			s16 component_tag; \
 			void *user; \
 			u64 first_dts; \
-			u32 service_id;
+			u32 service_id; 
 
 struct tag_m2ts_es
 {
@@ -554,6 +558,9 @@ typedef struct tag_m2ts_pes
 
 	/*object info*/
 	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch, aud_obj_type;
+
+	u32 depends_on_pid;
+
 	/*user private*/
 
 
@@ -829,6 +836,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts);
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
 GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
+void gf_m2ts_es_del(GF_M2TS_ES *es);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url);
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
@@ -1010,6 +1018,9 @@ typedef struct __m2ts_mux_stream {
 	GF_SLHeader sl_header;
 
 	u32 last_aac_time;
+
+	/*list of GF_M2TSDescriptor to add to the MPEG-2 stream. By default set to NULL*/
+	GF_List *loop_descriptors;
 } GF_M2TS_Mux_Stream;
 
 enum {

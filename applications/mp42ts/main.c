@@ -297,6 +297,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			pck.data = priv->sample->data;
 			pck.data_len = priv->sample->dataLength;
 			ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Track %d: sample %d CTS %d\n", priv->track, priv->sample_number+1, pck.cts));
 		}
 
 		gf_isom_sample_del(&priv->sample);
@@ -356,6 +357,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	char _lan[4];
 	GF_DecoderConfig *dcd;
 	u64 avg_rate, duration;
+	s32 ref_count;
 
 	GF_SAFEALLOC(priv, GF_ESIMP4);
 
@@ -392,7 +394,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
 			break;
 		case GPAC_OTI_VIDEO_AVC:
-		{
+		case GPAC_OTI_VIDEO_SVC:
 #ifdef USE_ISOBMF_REWRITE
 			gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
 
@@ -419,7 +421,6 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			gf_odf_avc_cfg_del(avccfg);
 #endif
 
-		}
 			break;
 		}
 	}
@@ -467,6 +468,14 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	  if (ifce->input_udta)
 	    gf_free(ifce->input_udta);
 	  ifce->input_udta = priv;
+	}
+
+	ref_count = gf_isom_get_reference_count(mp4, track_num, GF_ISOM_REF_SCAL);
+	if (ref_count > 0) {
+		gf_isom_get_reference_ID(mp4, track_num, GF_ISOM_REF_SCAL, (u32) ref_count, &ifce->depends_on_stream);
+	}
+	else {
+		ifce->depends_on_stream = 0;
 	}
 }
 
@@ -731,6 +740,7 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 			rtp->cat_dsi = 1;
 			break;
 		case GPAC_OTI_VIDEO_AVC:
+		case GPAC_OTI_VIDEO_SVC:
 			rtp->is_264 = 1;
 			rtp->depacketizer->flags |= GF_RTP_AVC_USE_ANNEX_B;
 		{
@@ -2472,6 +2482,6 @@ exit:
 		if (progs[i].th) gf_th_del(progs[i].th);
 	}
 	gf_sys_close();
-	return 1;
+	return 0;
 }
 

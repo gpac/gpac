@@ -63,6 +63,7 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_VIDEO_MPEG4: return "MPEG-4 Video";
 	case GF_M2TS_VIDEO_H264: return "MPEG-4/H264 Video";
 	case GF_M2TS_VIDEO_HEVC: return "MPEG-H HEVC Video";
+	case GF_M2TS_VIDEO_SVC: return "H264-SVC Video";
 
 	case GF_M2TS_AUDIO_AC3: return "Dolby AC3 Audio";
 	case GF_M2TS_AUDIO_DTS: return "Dolby DTS Audio";
@@ -240,14 +241,14 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 
 				/*check for SPS and update stream info*/
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if (!pes->vid_w && (nal_type==GF_AVC_NALU_SEQ_PARAM)) {
+				if ((nal_type==GF_AVC_NALU_SEQ_PARAM) || (nal_type==GF_AVC_NALU_SVC_SUBSEQ_PARAM)) {
 					AVCState avc;
 					s32 idx;
 					memset(&avc, 0, sizeof(AVCState));
 					avc.sps_active_idx = -1;
 					idx = gf_media_avc_read_sps((char *)data+4, sc_pos-4, &avc, 0, NULL);
 
-					if (idx>=0) {
+					if ((idx>=0) && (pes->vid_w < avc.sps[idx].width) && (pes->vid_h < avc.sps[idx].height)) {
 						pes->vid_w = avc.sps[idx].width;
 						pes->vid_h = avc.sps[idx].height;
 					}
@@ -887,6 +888,7 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 	gf_free(sf);
 }
 
+GF_EXPORT
 void gf_m2ts_es_del(GF_M2TS_ES *es)
 {
 	gf_list_del_item(es->program->streams, es);
@@ -1597,6 +1599,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_MPEG4:
 		case GF_M2TS_SYSTEMS_MPEG4_PES:
 		case GF_M2TS_VIDEO_H264:
+		case GF_M2TS_VIDEO_SVC:
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_DTS:
@@ -1738,7 +1741,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_DVB_VBI_DATA_DESCRIPTOR:
 					es->stream_type = GF_M2TS_DVB_VBI;
 					break;
-
+				case GF_M2TS_HIERARCHY_DESCRIPTOR:
+					if (pes)
+						pes->depends_on_pid = (data[4] & 0x3F) + es->program->pmt_pid;
+					break;
 				default:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping descriptor (0x%x) not supported\n", tag));
 					break;
@@ -2124,6 +2130,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 			pes->flags &= ~GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY;
 			disc = 0;
 		}
+			disc = 0;
 		if (disc) {
 			if (hdr->payload_start) {
 				if (pes->data) {
@@ -2307,7 +2314,6 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		return;
 	} else {
 		es = ts->ess[hdr.pid];
-
 		if (paf && paf->PCR_flag && es) {
 			GF_M2TS_PES_PCK pck;
 			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
@@ -2544,6 +2550,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			pes->reframe = gf_m2ts_reframe_mpeg_audio;
 			break;
 		case GF_M2TS_VIDEO_H264:
+		case GF_M2TS_VIDEO_SVC:
 			pes->reframe = gf_m2ts_reframe_avc_h264;
 			break;
 		case GF_M2TS_VIDEO_HEVC:

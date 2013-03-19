@@ -901,7 +901,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		//OK, check the handler and create the entry
 		switch (trak->Media->handler->handlerType) {
 		case GF_ISOM_MEDIA_VISUAL:
-			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+			if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)){
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
 				if (!entry_v) return GF_OUT_OF_MEM;
 				e = AVC_HEVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry_v, esd);
