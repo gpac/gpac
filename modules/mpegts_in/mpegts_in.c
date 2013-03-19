@@ -155,12 +155,10 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 	return ret;
 }
 
-static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size, u32 *streamType)
+static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size)
 {
-	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
 
-	/*create a stream description for this channel*/
 	esd = gf_odf_desc_esd_new(0);
 	esd->ESID = stream->mpeg4_es_id ? stream->mpeg4_es_id : stream->pid;
 
@@ -180,6 +178,10 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	case GF_M2TS_VIDEO_H264:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_AVC;
+		break;
+	case GF_M2TS_VIDEO_SVC:
+		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_SVC;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
@@ -238,6 +240,21 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 		esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_size;
 	}
 
+	esd->has_ref_base = GF_TRUE;
+
+	return esd;
+}
+
+static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size, u32 *streamType)
+{
+	GF_ObjectDescriptor *od;
+	GF_ESD *esd;
+	u32 cur_ES, i, count;
+
+	/*create a stream description for this channel*/
+	esd = MP2TS_GetESD(m2ts, stream, dsi, dsi_size);
+	if (!esd) return NULL;
+
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
@@ -246,6 +263,23 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	/*remember program number for service/program selection*/
 	od->ServiceID = stream->program->number;
 	od->service_ifce = m2ts->owner;
+
+	/*create a stream description for the channels depending on this channel, set esd->dependsOnESID and add to od*/
+	cur_ES = esd->ESID;
+	count = gf_list_count(stream->program->streams);
+	for (i = 0; i < count; i++) {
+		GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(stream->program->streams, i);
+		if ((es->flags & GF_M2TS_ES_IS_PES) && ( ((GF_M2TS_PES *)es)->depends_on_pid == cur_ES)) {
+			GF_ESD *the_esd;
+			the_esd = MP2TS_GetESD(m2ts, (GF_M2TS_PES *)es, dsi, dsi_size);
+			if (the_esd) {
+				the_esd->dependsOnESID = cur_ES;
+				gf_list_add(od->ESDescriptors, the_esd);
+			}
+			cur_ES = the_esd->ESID;
+		}
+	}
+
 	return od;
 }
 
@@ -280,6 +314,9 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
+		if ((es->flags & GF_M2TS_ES_IS_PES) && ((GF_M2TS_PES *)es)->depends_on_pid ) 
+			continue;
+
 		/*move to skip mode for all ES until asked for playback*/
 		if (!es->user)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
@@ -603,14 +640,14 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					while (ts->run_state) {
 						gf_term_on_command(m2ts->service, &com, GF_OK);
 						if (com.buffer.occupancy < M2TS_BUFFER_MAX) {
-							GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
 							break;
 						}
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
 #ifndef GPAC_DISABLE_LOG
 						if (!nb_sleep) {
-							GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep (buffer occupancy %d ms)\n", com.buffer.occupancy));
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep (buffer occupancy %d ms)\n", com.buffer.occupancy));
 						}
 						nb_sleep++;
 #endif
@@ -618,7 +655,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (nb_sleep) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
 					}
 #endif
 					ts->nb_pck = 0;
@@ -974,6 +1011,9 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 				pes->user = channel;
 				e = GF_OK;
 			}
+			/*we try to play the highest layer*/
+			if (pes->program->pid_playing < pes->pid)
+				pes->program->pid_playing = pes->pid;
 		}
 	}
 	gf_term_on_connect(m2ts->service, channel, e);
@@ -1003,6 +1043,38 @@ static GF_Err M2TS_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel
 	return GF_OK;
 }
 
+static void gf_m2ts_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, Bool switch_up)
+{
+	GF_M2TS_ES *es;
+	u32 i, count;
+
+	if (switch_up) {
+		for (i = 0; i < GF_M2TS_MAX_STREAMS; i++) {
+			es = ts->ess[i];
+			if (es && (es->flags & GF_M2TS_ES_IS_PES) && (((GF_M2TS_PES *)es)->depends_on_pid == prog->pid_playing)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Turn on ES%d\n", es->pid));
+				gf_m2ts_set_pes_framing((GF_M2TS_PES *)ts->ess[es->pid], GF_M2TS_PES_FRAMING_DEFAULT);
+				prog->pid_playing = es->pid;
+				return;
+			}
+		}
+	}
+	else {
+		count = gf_list_count(prog->streams);
+		if (count == 1)
+			return;
+		for (i = 0; i < count; i++) {
+			es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
+			if (es && (es->pid == prog->pid_playing)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Turn off ES%d - playing ES%d\n", es->pid, ((GF_M2TS_PES *)es)->depends_on_pid));
+				gf_m2ts_set_pes_framing((GF_M2TS_PES *)ts->ess[es->pid], GF_M2TS_PES_FRAMING_SKIP);
+				prog->pid_playing = ((GF_M2TS_PES *)es)->depends_on_pid;
+				return;
+			}
+		}
+	}
+}
+
 static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	GF_M2TS_PES *pes;
@@ -1012,6 +1084,15 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
 		char *frag = strchr(com->audio.base_url, '#');
 		if (frag && !strnicmp(frag, "#pid=", 5)) return GF_NOT_SUPPORTED;
+		return GF_OK;
+	}
+	if (com->command_type == GF_NET_SERVICE_QUALITY_SWITCH) {
+		u32 i, count;
+		count = gf_list_count(ts->programs);
+		for (i = 0; i < count; i++) {
+			GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs, i);
+			gf_m2ts_switch_quality(prog, ts, com->switch_quality.up);
+		}
 		return GF_OK;
 	}
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;

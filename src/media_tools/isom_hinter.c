@@ -403,7 +403,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					if (is_crypted) {
 						/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
 						if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) force_dts_delta = 22;
-						else if (oti==GPAC_OTI_VIDEO_AVC) {
+						else if ((oti==GPAC_OTI_VIDEO_AVC) || (oti==GPAC_OTI_VIDEO_SVC)) {
 							flags &= ~GP_RTP_PCK_USE_MULTI;
 							force_dts_delta = 22;
 						}
@@ -983,7 +983,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			sprintf(sdpLine, "a=rvc-config-predef:%d", esd->decoderConfig->predefined_rvc_config);
 		} else {
 			/*temporary ...*/
-			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+			if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
 				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_avc.xml");
 			} else {
 				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_sp.xml");

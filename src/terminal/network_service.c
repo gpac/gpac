@@ -488,6 +488,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				if (ch->service != service) continue;
 				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
 				if (/*!ch->MaxBuffer || */ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
+				//perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
+				if (ch->esd->dependsOnESID) continue;
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 				if (ch->IsClockInit && (u32) ch->BufferTime  < com->buffer.occupancy) {

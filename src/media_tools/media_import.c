@@ -6084,7 +6084,9 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			else if (st==GF_STREAM_VISUAL) {
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				switch (oti) {
-				case GPAC_OTI_VIDEO_AVC: name = "AVC/H264 Video"; stype = GF_4CC('H','2','6','4'); break;
+				case GPAC_OTI_VIDEO_AVC: 
+				case GPAC_OTI_VIDEO_SVC:
+					name = "AVC/H264 Video"; stype = GF_4CC('H','2','6','4'); break;
 				case GPAC_OTI_VIDEO_MPEG4_PART2: name = "MPEG-4 Video"; stype = GF_4CC('M','P','4','V'); break;
 				case GPAC_OTI_VIDEO_MPEG1: name = "MPEG-1 Video"; stype = GF_4CC('M','P','1','V'); break;
 				case GPAC_OTI_VIDEO_MPEG2_SIMPLE: 
@@ -6530,6 +6532,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_H264:
+				case GF_M2TS_VIDEO_SVC:
 					import->tk_info[idx].media_type = GF_4CC('H','2','6','4');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
@@ -6676,6 +6679,12 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				tsimp->hevccfg = gf_odf_hevc_cfg_new();
 #endif //GPAC_DISABLE_HEVC
 				break;
+			case GF_M2TS_VIDEO_SVC:
+				mtype = GF_ISOM_MEDIA_VISUAL;
+				stype = GF_STREAM_VISUAL; 
+				oti = GPAC_OTI_VIDEO_SVC;
+				tsimp->avccfg = gf_odf_avc_cfg_new();
+				break;
 			case GF_M2TS_AUDIO_MPEG1:
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				stype = GF_STREAM_AUDIO; 
@@ -6739,7 +6748,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							tsimp->nb_audio_configured++;
 						} else {
 							/*unpack AVC config*/
-							if ((pck->stream->stream_type==GF_M2TS_VIDEO_H264) && !pck->data[0] && !pck->data[1]) {
+							if (((pck->stream->stream_type==GF_M2TS_VIDEO_H264) || (pck->stream->stream_type==GF_M2TS_VIDEO_SVC)) && !pck->data[0] && !pck->data[1]) {
 								u32 nal_type = pck->data[4] & 0x1F;
 								if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
 									sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
@@ -6982,6 +6991,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_M2TS_VIDEO_MPEG4: gf_import_message(import, GF_OK, "MPEG-4 Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_VIDEO_H264: gf_import_message(import, GF_OK, "MPEG-4 AVC/H264 Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_VIDEO_HEVC: gf_import_message(import, GF_OK, "MPEG-H HEVC Video import (TS PID %d)", pck->stream->pid); break;
+				case GF_M2TS_VIDEO_SVC: gf_import_message(import, GF_OK, "H264-SVC Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_AUDIO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_AAC: gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;

@@ -582,7 +582,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		return GF_NOT_SUPPORTED;
 	}
 	if (esd) {
-		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) avc_size_length = 1;
+		if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) avc_size_length = 1;
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 	if (avc_size_length) {

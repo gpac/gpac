@@ -156,6 +156,8 @@ typedef struct __elementary_stream_ifce
 	/*output user data of interface - usually set during interface setup*/
 	void *output_udta;
 
+	u32 depends_on_stream;
+
 } GF_ESInterface;
 
 typedef struct __service_ifce

@@ -187,6 +187,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_refreshed_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_set_output_buffering) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_transfer) )
 
 /* Thread */
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_new) )
@@ -1691,6 +1692,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_reset_parsers) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_es_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_set_pes_framing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )

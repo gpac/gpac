@@ -288,6 +288,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 Visual sample%s", szNum);
 				break;
 			case GPAC_OTI_VIDEO_AVC:
+			case GPAC_OTI_VIDEO_SVC:
 				strcpy(szEXT, ".264");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
 				break;
@@ -687,6 +688,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Visual stream to cmp");
 				break;
 			case GPAC_OTI_VIDEO_AVC:
+			case GPAC_OTI_VIDEO_SVC:
 				avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
 				svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
 				if (add_ext) 
@@ -1730,7 +1732,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
 
 	if ((esd->decoderConfig->streamType!=GF_STREAM_VISUAL) || 
-	( (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2) && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_AVC)) ) {
+	( (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2) && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_AVC) && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_SVC)) ) {
 		gf_odf_desc_del((GF_Descriptor*)esd);
 		return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Track ID %d is not MPEG-4 Visual - cannot extract to AVI", dumper->trackID);
 	}
@@ -1761,7 +1763,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 	frame_d = 0;
 	/*AVC - FIXME dump format is probably wrong...*/
-	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+	if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)){
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		v4CC = "h264";
 	} 
@@ -2287,6 +2289,10 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	case GF_M2TS_VIDEO_HEVC:
 		strcat(szFile, ".hvc");
 		gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC Visual stream to hvc");
+		break;
+	case GF_M2TS_VIDEO_SVC:
+		strcat(szFile, ".264");
+		gf_export_message(dumper, GF_OK, "Extracting H264-SVC Visual stream to h264");
 		break;
 	default:
 		strcat(szFile, ".raw");
