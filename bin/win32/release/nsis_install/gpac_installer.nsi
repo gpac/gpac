@@ -397,6 +397,12 @@ Section "OpenSVC Decoder" SecOSVC
   File "..\gm_opensvc_dec.dll"
 SectionEnd
 
+Section "OpenHEVC Decoder" SecOHEVC
+  SectionIn 1
+  File "..\libLibOpenHevcWrapper.dll"
+  File "..\gm_openhevc_dec.dll"
+SectionEnd
+
 Section "MPEG DASH Suppport" SecDASH
   SectionIn 1
   File "..\gm_mpd_in.dll"
@@ -589,6 +595,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecXIPH} "Support for XIPP OGG, Vorbis and Theora media"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
