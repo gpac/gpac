@@ -36,8 +36,8 @@
 #include "openHevcWrapper.h"
 #endif
 
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
-#  pragma comment(lib, "libhevcdecoder")
+#if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
+#  pragma comment(lib, "libLibOpenHevcWrapper")
 #endif
 
 typedef struct
