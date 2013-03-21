@@ -49,7 +49,7 @@
 
 #undef XVID_USE_OLD_API
 
-static Bool xvid_is_init = 0;
+static Bool xvid_is_init = GF_FALSE;
 
 typedef struct
 {
