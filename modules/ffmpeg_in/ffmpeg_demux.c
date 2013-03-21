@@ -88,7 +88,7 @@ static u32 FFDemux_Run(void *par)
 	seek_to = (s64) (AV_TIME_BASE*ffd->seek_time);
 	map_video_time = !ffd->seekable;
 
-	video_init = (seek_to && ffd->video_ch) ? 0 : 1;
+	video_init = (seek_to && ffd->video_ch) ? GF_FALSE : GF_TRUE;
 	seek_audio = seek_video = 0;
 	if (ffd->seekable && (ffd->audio_st>=0)) seek_audio = (u64) (s64) (ffd->seek_time*ffd->audio_tscale.den);
 	if (ffd->seekable && (ffd->video_st>=0)) seek_video = (u64) (s64) (ffd->seek_time*ffd->video_tscale.den);
