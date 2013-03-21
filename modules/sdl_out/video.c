@@ -1543,14 +1543,16 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 			}
 			return GF_OK;
 		}
-		if (! ctx->yuv_texture ) {
+		if (ctx->yuv_texture ) {
 			SDL_QueryTexture(ctx->yuv_texture, &format, &acc, &w, &h);
 			if ((w != src_wnd->w) || (h != src_wnd->h) ) {
-				if (ctx->yuv_texture) SDL_DestroyTexture(ctx->yuv_texture);
-
-				ctx->yuv_texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, src_wnd->w, src_wnd->h);
-				if (!ctx->yuv_texture) return GF_NOT_SUPPORTED;
+				SDL_DestroyTexture(ctx->yuv_texture);
+				ctx->yuv_texture = NULL;
 			}
+		}
+		if (! ctx->yuv_texture ) {
+			ctx->yuv_texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, src_wnd->w, src_wnd->h);
+			if (!ctx->yuv_texture) return GF_NOT_SUPPORTED;
 		}
 
 		SDL_QueryTexture(ctx->yuv_texture, &format, &acc, &w, &h);

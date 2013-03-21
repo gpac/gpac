@@ -999,6 +999,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	Bool lock_ok;
 	if (!NewWidth || !NewHeight) {
 		compositor->override_size_flags &= ~2;
+		compositor->msg_type |= GF_SR_CFG_AR;
 		return GF_OK;
 	}
 	/*EXTRA CARE HERE: the caller (user app) is likely a different thread than the compositor one, and depending on window 
