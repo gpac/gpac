@@ -61,6 +61,7 @@ typedef struct
 	union {
 		u32 valueInt;
 		Float valueFloat;
+		Bool valueBool;
 	} cap;
 } GF_CodecCapability;
 

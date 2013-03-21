@@ -248,7 +248,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	inst->name = gf_strdup(item_name);
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
 	gf_list_add(pm->plug_list, inst);
-	return 0;
+	return GF_FALSE;
 }
 
 static void load_static_modules(GF_ModuleManager *pm)
@@ -279,7 +279,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	load_static_modules(pm);
 
 #ifdef WIN32
-	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dll");
+	gf_enum_directory(pm->dir, GF_FALSE, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
 #if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
 	/*we are in static build for modules by default*/
