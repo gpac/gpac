@@ -1380,8 +1380,14 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 		gf_term_service_command(scene->root_od->net_service, &com);
+
 		if (com.par.width && com.par.height) {
-			gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+			if (!scene->force_size_set) {
+				gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+				scene->force_size_set = 1;
+			} else {
+				gf_sc_set_size(scene->root_od->term->compositor, 0, 0);
+			}
 		} else {
 			/*need output resize*/
 			gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);

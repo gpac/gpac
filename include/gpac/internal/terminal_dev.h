@@ -163,6 +163,8 @@ struct _scene
 	/*set to 1 to force all sub-resources to share the timeline of this scene*/
 	Bool force_single_timeline;
 
+	/*set to 1 once the forced size has been sez*/
+	Bool force_size_set;
 
 	/*callback to call to dispatch SVG MediaEvent - this is a pointer to function only because of linking issues
 	with static libgpac (avoids depending on SpiderMonkey and OpenGL32 if not needed)*/
