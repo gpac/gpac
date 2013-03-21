@@ -970,14 +970,14 @@ restart_fragmentation_pass:
 			s32 roll_distance;
 			u32 SAP_type = 0;
 			/*start with ref*/
-			if (tfref && split_seg_at_rap) {
-				if (i==0) {
+			if (split_seg_at_rap) {
+				if (tfref && (i==0)) {
 					tf = tfref;
 					has_rap = GF_FALSE;
 				} else {
 					u32 j;
 					for (j=0; j<=i; j++) {
-						if (gf_list_get(fragmenters, j) == tfref) {
+						if (!tfref || (gf_list_get(fragmenters, j) == tfref)) {
 							tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 							break;
 						} else if (i == j) {
@@ -1043,9 +1043,11 @@ restart_fragmentation_pass:
 							defaultDuration = (u32) (tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / 1000 - tf->FragmentLength);
 							split_sample_duration -= defaultDuration;
 						}
-					} else if ((tf->last_sample_cts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale) {
+					} else if (tfref/*set to NULL after the last sample of tfref is processed*/ && next
+								&& ((tf->next_sample_dts + 1/*accuracy*/  ) * tfref_timescale < tfref->next_sample_dts * tf->TimeScale)
+								&& ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
-						defaultDuration = (u32) ( (last_ref_cts * tf->TimeScale)/tfref_timescale - tf->last_sample_cts );
+						defaultDuration = (u32) ( (tfref->next_sample_dts * tf->TimeScale)/tfref_timescale - tf->next_sample_dts );
 						split_sample_duration -= defaultDuration;
 					}
 				}
@@ -1182,7 +1184,7 @@ restart_fragmentation_pass:
 				/*do not abort fragment if ref track is done, put everything in the last fragment*/
 				else if (!flush_all_samples) {
 					/*fragmenting on "non-clock" track: drift control*/
-					if (tf->last_sample_cts * tfref_timescale >= last_ref_cts * tf->TimeScale)
+					if ((tf->next_sample_dts+1/*accuracy*/) * tfref_timescale >= ref_track_next_cts * tf->TimeScale)
 						stop_frag = GF_TRUE;
 				}
 
