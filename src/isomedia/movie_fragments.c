@@ -1826,7 +1826,7 @@ u32 gf_isom_is_fragmented(GF_ISOFile *movie)
     return 0;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time)
 {
 	GF_TrackFragmentBox *traf;
