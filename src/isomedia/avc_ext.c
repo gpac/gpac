@@ -1371,7 +1371,7 @@ GF_Err hvcc_Size(GF_Box *s)
 		ptr->size = 0;
 		return e;
 	}
-	ptr->size += 16;
+	ptr->size += 23;
 
 	count = gf_list_count(ptr->config->param_array);
 	for (i=0; i<count; i++) {
