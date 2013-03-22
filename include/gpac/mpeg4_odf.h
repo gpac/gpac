@@ -897,16 +897,27 @@ typedef struct
 {
 	u8 configurationVersion;
 	u8 profile_space;
+	u8 tier_flag;
 	u8 profile_idc;
-	u8 constraint_indicator_flags;
-	u8 level_idc;
 	u32 profile_compatibility_indications;
+
+	u8 progressive_source_flag;
+	u8 interlaced_source_flag;
+	u8 non_packed_constraint_flag;
+	u8 frame_only_constraint_flag;
+	/*only lowest 44 bits used*/
+	u64 constraint_indicator_flags;
+	u8 level_idc;
+	u16 min_spatial_segmentation_idc;
+
+	u8 parallelismType;
 	u8 chromaFormat;
 	u8 luma_bit_depth;
 	u8 chroma_bit_depth;
 	u16 avgFrameRate;
 	u8 constantFrameRate;
 	u8 numTemporalLayers;
+	u8 temporalIdNested;
 
 	u8 nal_unit_size;
 	

@@ -829,11 +829,24 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	u32 i, count;
 
 	gf_bs_write_int(bs, cfg->configurationVersion, 8);
-	gf_bs_write_int(bs, cfg->profile_space, 3);
+	gf_bs_write_int(bs, cfg->profile_space, 2);
+	gf_bs_write_int(bs, cfg->tier_flag, 1);
 	gf_bs_write_int(bs, cfg->profile_idc, 5);
-	gf_bs_write_int(bs, cfg->constraint_indicator_flags, 16);
-	gf_bs_write_int(bs, cfg->level_idc, 8);
 	gf_bs_write_int(bs, cfg->profile_compatibility_indications, 32);
+
+	gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
+	gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
+	gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
+	gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
+	/*only lowest 44 bits used*/
+	gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
+	gf_bs_write_int(bs, cfg->level_idc, 8);
+	gf_bs_write_int(bs, 0xFF, 4);
+	gf_bs_write_int(bs, cfg->min_spatial_segmentation_idc, 12);
+
+	gf_bs_write_int(bs, 0xFF, 6);
+	gf_bs_write_int(bs, cfg->parallelismType, 2);
+
 	gf_bs_write_int(bs, 0xFF, 6);
 	gf_bs_write_int(bs, cfg->chromaFormat, 2);
 	gf_bs_write_int(bs, 0xFF, 5);
@@ -843,7 +856,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	gf_bs_write_int(bs, cfg->avgFrameRate, 16);
 	gf_bs_write_int(bs, cfg->constantFrameRate, 2);
 	gf_bs_write_int(bs, cfg->numTemporalLayers, 3);
-	gf_bs_write_int(bs, 1, 1);
+	gf_bs_write_int(bs, cfg->temporalIdNested, 1);
 	gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
 
 	count = gf_list_count(cfg->param_array);
@@ -886,22 +899,37 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs)
 	u32 i, count;
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_new();
 
+
 	cfg->configurationVersion = gf_bs_read_int(bs, 8);
-	cfg->profile_space = gf_bs_read_int(bs, 3);
+	cfg->profile_space = gf_bs_read_int(bs, 2);
+	cfg->tier_flag = gf_bs_read_int(bs, 1);
 	cfg->profile_idc = gf_bs_read_int(bs, 5);
-	cfg->constraint_indicator_flags = gf_bs_read_int(bs, 16);
-	cfg->level_idc = gf_bs_read_int(bs, 8);
 	cfg->profile_compatibility_indications = gf_bs_read_int(bs, 32);
+
+	cfg->progressive_source_flag = gf_bs_read_int(bs, 1);
+	cfg->interlaced_source_flag = gf_bs_read_int(bs, 1);
+	cfg->non_packed_constraint_flag = gf_bs_read_int(bs, 1);
+	cfg->frame_only_constraint_flag = gf_bs_read_int(bs, 1);
+	/*only lowest 44 bits used*/
+	cfg->constraint_indicator_flags = gf_bs_read_long_int(bs, 44);
+	cfg->level_idc = gf_bs_read_int(bs, 8);
+	gf_bs_read_int(bs, 4);
+	cfg->min_spatial_segmentation_idc = gf_bs_read_int(bs, 12);
+
+	gf_bs_read_int(bs, 6);
+	cfg->parallelismType = gf_bs_read_int(bs, 2);
+
 	gf_bs_read_int(bs, 6);
 	cfg->chromaFormat = gf_bs_read_int(bs, 2);
 	gf_bs_read_int(bs, 5);
-	cfg->luma_bit_depth = 8 + gf_bs_read_int(bs, 3);
+	cfg->luma_bit_depth = gf_bs_read_int(bs, 3) + 8;
 	gf_bs_read_int(bs, 5);
-	cfg->chroma_bit_depth = 8 + gf_bs_read_int(bs, 3);
+	cfg->chroma_bit_depth = gf_bs_read_int(bs, 3) + 8;
 	cfg->avgFrameRate = gf_bs_read_int(bs, 16);
 	cfg->constantFrameRate = gf_bs_read_int(bs, 2);
 	cfg->numTemporalLayers = gf_bs_read_int(bs, 3);
-	gf_bs_read_int(bs, 1);
+	cfg->temporalIdNested = gf_bs_read_int(bs, 1);
+
 	cfg->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 
 	count = gf_bs_read_int(bs, 8);
