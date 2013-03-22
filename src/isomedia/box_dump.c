@@ -1689,10 +1689,23 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "<HEVCConfigurationBox>\n");
 
-	fprintf(trace, "<HEVCDecoderConfigurationRecord nal_unit_size=\"%d\" configurationVersion=\"%d\" profile_space=\"%d\" profile_idc=\"%d\" constraint_indicator_flags=\"%d\" ",
-					p->config->nal_unit_size, p->config->configurationVersion, p->config->profile_space, p->config->profile_idc, p->config->constraint_indicator_flags);
-	fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\"",
-		p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers);
+	fprintf(trace, "<HEVCDecoderConfigurationRecord nal_unit_size=\"%d\" ", p->config->nal_unit_size);
+	fprintf(trace, "configurationVersion=\"%d\" ", p->config->configurationVersion);
+	fprintf(trace, "profile_space=\"%d\" ", p->config->profile_space);
+	fprintf(trace, "tier_flag=\"%d\" ", p->config->tier_flag);
+	fprintf(trace, "profile_idc=\"%d\" ", p->config->profile_idc);
+	fprintf(trace, "profile_compatibility_indications=\"%d\" ", p->config->profile_compatibility_indications);
+	fprintf(trace, "progressive_source_flag=\"%d\" ", p->config->progressive_source_flag);
+	fprintf(trace, "interlaced_source_flag=\"%d\" ", p->config->interlaced_source_flag);
+	fprintf(trace, "non_packed_constraint_flag=\"%d\" ", p->config->non_packed_constraint_flag);
+	fprintf(trace, "frame_only_constraint_flag=\"%d\" ", p->config->frame_only_constraint_flag);
+	fprintf(trace, "constraint_indicator_flags=\""LLD"\" ", p->config->constraint_indicator_flags);
+	fprintf(trace, "level_idc=\"%d\" ", p->config->level_idc);
+	fprintf(trace, "min_spatial_segmentation_idc=\"%d\" ", p->config->min_spatial_segmentation_idc);
+	fprintf(trace, "parallelismType=\"%d\" ", p->config->parallelismType);
+
+	fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
+		p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
 
 	fprintf(trace, ">\n");
 

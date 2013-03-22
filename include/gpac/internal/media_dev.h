@@ -250,6 +250,11 @@ typedef struct
 {
 	u8 profile_space, tier_flag, profile_idc, level_idc;
 	u32 profile_compatibility_flag;
+	Bool general_progressive_source_flag;
+	Bool general_interlaced_source_flag;
+	Bool general_non_packed_constraint_flag;
+	Bool general_frame_only_constraint_flag;
+	u64 general_reserved_44bits;
 	
 	HEVC_SublayerPTL sub_ptl[8];
 } HEVC_ProfileTierLevel;
@@ -309,6 +314,7 @@ typedef struct
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u8 max_sub_layer;
+	Bool temporal_id_nesting;
 	HEVC_ProfileTierLevel ptl;
 
 	HEVC_SublayerPTL sub_ptl[8];

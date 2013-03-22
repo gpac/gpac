@@ -4885,6 +4885,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 				hevccfg->avgFrameRate = hevc.vps[idx].rates[0].avg_pic_rate;
 				hevccfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
 				hevccfg->numTemporalLayers = hevc.vps[idx].max_sub_layer;
+				hevccfg->temporalIdNested = hevc.vps[idx].temporal_id_nesting;
 
 				if (!vpss) {
 					GF_SAFEALLOC(vpss, GF_HEVCParamArray);
@@ -4929,33 +4930,26 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 			if (add_sps) {
 				hevccfg->configurationVersion = 1;
 				hevccfg->profile_space = hevc.sps[idx].ptl.profile_space;
+				hevccfg->tier_flag = hevc.sps[idx].ptl.tier_flag;
 				hevccfg->profile_idc = hevc.sps[idx].ptl.profile_idc;
-				hevccfg->constraint_indicator_flags = 0;
-				hevccfg->level_idc = hevc.sps[idx].ptl.level_idc;
 				hevccfg->profile_compatibility_indications = hevc.sps[idx].ptl.profile_compatibility_flag;
+				hevccfg->progressive_source_flag = hevc.sps[idx].ptl.general_progressive_source_flag;
+				hevccfg->interlaced_source_flag = hevc.sps[idx].ptl.general_interlaced_source_flag;
+				hevccfg->non_packed_constraint_flag = hevc.sps[idx].ptl.general_non_packed_constraint_flag;
+				hevccfg->frame_only_constraint_flag = hevc.sps[idx].ptl.general_frame_only_constraint_flag;
+
+				hevccfg->constraint_indicator_flags = hevc.sps[idx].ptl.general_reserved_44bits;
+				hevccfg->level_idc = hevc.sps[idx].ptl.level_idc;
+
 				hevccfg->chromaFormat = hevc.sps[idx].chroma_format_idc;
 				hevccfg->luma_bit_depth = hevc.sps[idx].bit_depth_luma;
 				hevccfg->chroma_bit_depth = hevc.sps[idx].bit_depth_chroma;
 
-				/*
-				todo FPS detection
-					
-					timescale = 2 * avc.sps[idx].vui.time_scale;
-					dts_inc =   2 * avc.sps[idx].vui.num_units_in_tick * DeltaTfiDivisorIdx;
-					FPS = (Double)timescale / dts_inc;
-					detect_fps = 0;
-					gf_isom_remove_track(import->dest, track);
-					if (sample_data) gf_bs_del(sample_data);
-					gf_odf_avc_cfg_del(avccfg);
-					avccfg = NULL;
-					gf_free(buffer);
-					buffer = NULL;
-					gf_bs_del(bs);
-					bs = NULL;
-					gf_f64_seek(mdia, 0, SEEK_SET);
-					goto restart_import;
-				}
-			*/
+				//need VUI for these ...
+				//u16 min_spatial_segmentation_idc;
+				//u8 parallelismType;
+				//u16 avgFrameRate;
+				//u8 constantFrameRate;
 
 				if (!spss) {
 					GF_SAFEALLOC(spss, GF_HEVCParamArray);
