@@ -1426,22 +1426,27 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				w = h = 0;
 				if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-					GF_M4VDecSpecInfo dsi;
-					gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-					if (full_dump) fprintf(stderr, "\t");
-					w = dsi.width;
-					h = dsi.height;
-					fprintf(stderr, "MPEG-4 Visual Size %d x %d - %s\n", w, h, gf_m4v_get_profile_name(dsi.VideoPL));
-					if (dsi.par_den && dsi.par_num) {
-						u32 tw, th;
-						gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
-						fprintf(stderr, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", dsi.par_num, dsi.par_den, tw, th);
-					}
+					if (!esd->decoderConfig->decoderSpecificInfo) {
 #else
-					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
-					fprintf(stderr, "MPEG-4 Visual Size %d x %d\n", w, h);
+						gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+						fprintf(stderr, "MPEG-4 Visual Size %d x %d\n", w, h);
 #endif
-
+						fprintf(stderr, "\tNon-compliant MPEG-4 Visual track: video_object_layer infos not found in sample description\n");
+#ifndef GPAC_DISABLE_AV_PARSERS
+					} else {
+						GF_M4VDecSpecInfo dsi;
+						gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+						if (full_dump) fprintf(stderr, "\t");
+						w = dsi.width;
+						h = dsi.height;
+						fprintf(stderr, "MPEG-4 Visual Size %d x %d - %s\n", w, h, gf_m4v_get_profile_name(dsi.VideoPL));
+						if (dsi.par_den && dsi.par_num) {
+							u32 tw, th;
+							gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+							fprintf(stderr, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", dsi.par_num, dsi.par_den, tw, th);
+						}
+					}
+#endif
 				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					GF_AVCConfig *avccfg, *svccfg;
