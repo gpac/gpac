@@ -680,9 +680,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		case GF_STREAM_VISUAL:
 			switch (dcfg->objectTypeIndication) {
 			case GPAC_OTI_VIDEO_MPEG4_PART2:
-				dsi = dcfg->decoderSpecificInfo->data;
-				dcfg->decoderSpecificInfo->data = NULL;
-				dsi_size = dcfg->decoderSpecificInfo->dataLength;
+				if (dcfg->decoderSpecificInfo) {
+					dsi = dcfg->decoderSpecificInfo->data;
+					dcfg->decoderSpecificInfo->data = NULL;
+					dsi_size = dcfg->decoderSpecificInfo->dataLength;
+				}
 				if (add_ext) 
 					strcat(szName, ".cmp");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Visual stream to cmp");
