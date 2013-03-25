@@ -22,7 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifdef GPAC_HAS_SPIDERMONKEY
+
 #include <gpac/modules/service.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/html5_mse.h>
@@ -353,4 +353,3 @@ void ShutdownInterface(GF_BaseInterface *bi)
     gf_free(msein);
     gf_free(bi);
 }
-#endif
