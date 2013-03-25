@@ -412,6 +412,8 @@ enum
 	/*MediaAccess events*/
 	GF_DOM_EVENT_MEDIA_ACCESS = 1<<11,
 #endif
+	/*HTML Media Source events*/
+	GF_DOM_EVENT_MEDIASOURCE = 1<<12,
 
 	/*fake events - these events are NEVER fired*/
 	GF_DOM_EVENT_FAKE = 1<<31,

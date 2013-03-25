@@ -118,6 +118,10 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\isomedia\generic_subtitle.c" />
     <ClCompile Include="..\..\src\media_tools\dash_segmenter.c" />
+    <ClCompile Include="..\..\src\media_tools\html5_media.c" />
+    <ClCompile Include="..\..\src\media_tools\html5_mse.c" />
+    <ClCompile Include="..\..\src\scenegraph\html5_media_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\html5_mse_smjs.c" />
     <ClCompile Include="..\..\src\scene_manager\swf_svg.c" />
     <ClCompile Include="..\..\src\utils\alloc.c" />
     <ClCompile Include="..\..\src\utils\map.c" />
@@ -1043,6 +1047,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\gpac\html5_media.h" />
+    <ClInclude Include="..\..\include\gpac\html5_mse.h" />
     <ClInclude Include="..\..\src\utils\module_wrap.h" />
     <ClInclude Include="..\..\include\gpac\internal\odf_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\bifs_dev.h" />

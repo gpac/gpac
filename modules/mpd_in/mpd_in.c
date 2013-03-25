@@ -120,7 +120,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		return GF_SERVICE_ERROR;
 	}
 
-	/*gets URL and byte range of next segment - if needed, adds butstream switching segment info*/
+	/*gets URL and byte range of next segment - if needed, adds bitstream switching segment info*/
 	if (param->command_type==GF_NET_SERVICE_QUERY_NEXT) {
 		Bool group_done;
 		u32 nb_segments_cached;

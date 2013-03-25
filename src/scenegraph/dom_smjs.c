@@ -36,6 +36,8 @@
 #include <gpac/network.h>
 #include <gpac/xml.h>
 
+#include <gpac/html5_media.h>
+
 #ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -118,7 +120,9 @@ typedef struct
 
 	GF_JSClass storageClass;
 
-	void *(*get_element_class)(GF_Node *n);
+    GF_JSClass htmlMediaElementClass;
+
+    void *(*get_element_class)(GF_Node *n);
 	void *(*get_document_class)(GF_SceneGraph *n);
 	GF_List *handlers;
 } GF_DOMRuntime;
@@ -174,6 +178,15 @@ static void define_dom_exception(JSContext *c, JSObject *global)
 	DEF_EXC(INVALID_ACCESS_ERR);
 	DEF_EXC(VALIDATION_ERR);
 	DEF_EXC(TYPE_MISMATCH_ERR);
+	DEF_EXC(SECURITY_ERR);
+	DEF_EXC(NETWORK_ERR);
+	DEF_EXC(ABORT_ERR);
+	DEF_EXC(URL_MISMATCH_ERR);
+	DEF_EXC(QUOTA_EXCEEDED_ERR);
+	DEF_EXC(TIMEOUT_ERR);
+	DEF_EXC(INVALID_NODE_TYPE_ERR);
+	DEF_EXC(DATA_CLONE_ERR);
+	DEF_EXC(SECURITY_ERR);
 #undef  DEF_EXC
 
 	//JS_AliasProperty(c, global, "DOMException", "e");
@@ -268,6 +281,10 @@ static jsval dom_base_node_construct(JSContext *c, GF_JSClass *_class, GF_Node *
 	new_obj = JS_NewObject(c, & _class->_class, 0, 0);
 	SMJS_SET_PRIVATE(c, new_obj, n);
 
+    if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
+    {
+        html_media_element_js_init(c, new_obj, n);
+    }
 	if (!n->sgprivate->interact) GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
 	if (!n->sgprivate->interact->js_binding) {
 		GF_SAFEALLOC(n->sgprivate->interact->js_binding, struct _node_js_binding);
@@ -1847,7 +1864,7 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 	return;
 }
 
-static void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
+void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
 {
 	GF_FieldInfo info;
 	u32 anim_value_type = 0;
@@ -1938,7 +1955,7 @@ static void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
 	}
 }
 
-static JSBool SMJS_FUNCTION(xml_element_set_attribute)
+JSBool SMJS_FUNCTION(xml_element_set_attribute)
 {
 	u32 idx;
 	char *name, *val, *ns, *_val;
@@ -2351,9 +2368,13 @@ typedef struct
 	GF_DownloadSession *sess;
 	char *data;
 	u32 size;
+	JSObject *arraybuffer; 
 	GF_Err ret_code;
 	u32 html_status;
 	char *statusText;
+	u32 timeout;
+	u32 responseType;
+	Bool withCredentials;
 
 	GF_SAXParser *sax;
 	GF_List *node_stack;
@@ -2486,8 +2507,9 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		gf_dm_sess_del(tmp);
 	}
 	if (ctx->data) {
-		gf_free(ctx->data);
+		if (!ctx->arraybuffer) gf_free(ctx->data);
 		ctx->data = NULL;
+		ctx->arraybuffer = NULL;
 	}
 	if (ctx->statusText) {
 		gf_free(ctx->statusText);
@@ -2516,10 +2538,10 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 	}
 	ctx->document = NULL;
 	ctx->size = 0;
-	ctx->async = 0;
+	ctx->async = GF_FALSE;
 	ctx->readyState = 0;
 	ctx->cur_header = 0;
-	ctx->ret_code = 0;
+	ctx->ret_code = GF_OK;
 	ctx->html_status = 0;
 }
 
@@ -2561,14 +2583,14 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	/*todo - fire XHR events*/
 
 
-	gf_sg_lock_javascript(ctx->c, 0);
+	gf_sg_lock_javascript(ctx->c, GF_FALSE);
 
 	/*Flush BIFS eventOut events*/
 #ifndef GPAC_DISABLE_VRML
-	scene = JS_GetContextPrivate(ctx->c);
+	scene = (GF_SceneGraph *)JS_GetContextPrivate(ctx->c);
 	/*this is a scene, we look for a node (if scene is used, this is DOM-based scripting not VRML*/
 	if (scene->__reserved_null == 0) return;
-	n = JS_GetContextPrivate(ctx->c);
+	n = (GF_Node *)JS_GetContextPrivate(ctx->c);
 	gf_js_vrml_flush_event_out(n, (GF_ScriptPriv *)n->sgprivate->UserPrivate);
 #endif
 }
@@ -2740,13 +2762,13 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 
 static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
-	Bool locked = 0;
+	Bool locked = GF_FALSE;
 	XMLHTTPContext *ctx = (XMLHTTPContext *)usr_cbk;
 
 	/*make sure we can grab JS and the session is not destroyed*/
 	while (ctx->sess) {
 		if (gf_sg_try_lock_javascript(ctx->c) ){
-			locked = 1;
+			locked = GF_TRUE;
 			break;
 		}
 		gf_sleep(1);
@@ -2754,12 +2776,12 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	/*if session not set, we've had an abort*/
 	if (!ctx->sess){
 		if (locked)
-			gf_sg_lock_javascript(ctx->c, 0);
+			gf_sg_lock_javascript(ctx->c, GF_FALSE);
 		return;
 	}
 
 	assert( locked );
-	gf_sg_lock_javascript(ctx->c, 0);
+	gf_sg_lock_javascript(ctx->c, GF_FALSE);
 
 	switch (parameter->msg_type) {
 	case GF_NETIO_SETUP:
@@ -2770,9 +2792,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_WAIT_FOR_REPLY:
 		/*reset send() state (data, current header) and prepare recv headers*/
-		if (ctx->data) gf_free(ctx->data);
+		if (ctx->data && !ctx->arraybuffer) gf_free(ctx->data);
 		ctx->data = NULL;
 		ctx->size = 0;
+		ctx->arraybuffer = NULL;
 		ctx->cur_header = 0;
 		ctx->html_status = 0;
 		if (ctx->statusText) {
@@ -2842,7 +2865,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				}
 			}
 #endif
-			ctx->data = gf_realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
+			ctx->data = (char *)gf_realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
 			memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
 			ctx->size += parameter->size;
 			ctx->data[ctx->size] = 0;
@@ -2917,8 +2940,12 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	}
 
 	/*reset previous text*/
-	if (ctx->data) gf_free(ctx->data);
-
+	if (ctx->data && !ctx->arraybuffer) {
+		gf_free(ctx->data);
+		ctx->data = NULL;
+		ctx->size = 0;
+		ctx->arraybuffer = NULL;
+	}
 	ctx->data = data ? gf_strdup(data) : NULL;
 	SMJS_FREE(c, data);
 
@@ -2939,9 +2966,10 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 		u64 fsize;
 		FILE * xmlf;
 		
-		if (ctx->data) gf_free(ctx->data);
+		if (ctx->data && !ctx->arraybuffer) gf_free(ctx->data);
 		ctx->data = NULL;
 		ctx->size = 0;
+		ctx->arraybuffer = NULL;
 		ctx->cur_header = 0;
 		ctx->html_status = 0;
 		if (ctx->statusText) {
@@ -2966,7 +2994,7 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 		fsize = gf_f64_tell(xmlf);
 		gf_f64_seek(xmlf, 0, SEEK_SET);
 		
-		ctx->data = gf_malloc(sizeof(char)*(size_t)(fsize+1));
+		ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 		fsize = fread(ctx->data, sizeof(char), (size_t)fsize, xmlf);
 		fclose(xmlf);
 		ctx->data[fsize] = 0;
@@ -3097,7 +3125,8 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 			return JS_TRUE;
 		/*readyState*/
 		case 1:
-			*vp = INT_TO_JSVAL(ctx->readyState); return JS_TRUE;
+			*vp = INT_TO_JSVAL(ctx->readyState); 
+			return JS_TRUE;
 		/*responseText*/
 		case 2:
 			if (ctx->readyState<3) return JS_TRUE;
@@ -3117,9 +3146,32 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 				*vp = JSVAL_VOID;
 			}
 			return JS_TRUE;
+		/*response*/
+		case 10:
+			if (ctx->readyState<3) return JS_TRUE;
+			if (ctx->data) {
+				switch(ctx->responseType)
+				{
+				case 0:
+					s =	JS_NewStringCopyZ(c, ctx->data);
+					*vp	= STRING_TO_JSVAL( s );
+					break;
+				case 1:
+					if (!ctx->arraybuffer) ctx->arraybuffer = gf_arraybuffer_js_new(c, ctx->data, ctx->size, obj);
+					*vp = OBJECT_TO_JSVAL( ctx->arraybuffer );
+					break;
+				default:
+					/*other	types not supported	*/
+					*vp = JSVAL_VOID;
+				}
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
 		/*status*/
 		case 4:
-			*vp = INT_TO_JSVAL(ctx->html_status); return JS_TRUE;
+			*vp = INT_TO_JSVAL(ctx->html_status); 
+			return JS_TRUE;
 		/*statusText*/
 		case 5:
 			if (ctx->statusText) {
@@ -3128,6 +3180,61 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 			} else {
 				*vp = JSVAL_VOID;
 			}
+			return JS_TRUE;
+        /*timeout*/
+		case 6:
+			*vp = INT_TO_JSVAL(ctx->timeout); 
+			return JS_TRUE;
+		/* withCredentials */
+        case 7:
+			*vp = BOOLEAN_TO_JSVAL(ctx->withCredentials ? JS_TRUE : JS_FALSE); 
+			return JS_TRUE;
+        /* upload */
+		case 8:
+			/* TODO */
+			return JS_TRUE;
+        /* responseType */
+		case 9:
+			switch (ctx->responseType)
+            {
+            case 0:
+				s = JS_NewStringCopyZ(c, "");
+                break;
+            case 1:
+				s = JS_NewStringCopyZ(c, "arraybuffer");
+                break;
+            case 2:
+				s = JS_NewStringCopyZ(c, "blob");
+                break;
+            case 3:
+				s = JS_NewStringCopyZ(c, "document");
+                break;
+            case 4:
+				s = JS_NewStringCopyZ(c, "json");
+                break;
+            case 5:
+				s = JS_NewStringCopyZ(c, "text");
+                break;
+            case 6:
+				s = JS_NewStringCopyZ(c, "stream");
+                break;
+            }
+			*vp = STRING_TO_JSVAL( s );
+			return JS_TRUE;
+		case 100:
+			*vp = INT_TO_JSVAL(0);
+			return JS_TRUE;
+		case 101:
+			*vp = INT_TO_JSVAL(1);
+			return JS_TRUE;
+		case 102:
+			*vp = INT_TO_JSVAL(2);
+			return JS_TRUE;
+		case 103:
+			*vp = INT_TO_JSVAL(3);
+			return JS_TRUE;
+		case 104:
+			*vp = INT_TO_JSVAL(4);
 			return JS_TRUE;
 		default:
 			return JS_TRUE;
@@ -3147,28 +3254,59 @@ static SMJS_FUNC_PROP_SET( xml_http_setProperty)
 		switch (SMJS_ID_TO_INT(id)) {
 		/*onreadystatechange*/
 		case 0:
+		    if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
+		    ctx->onreadystatechange = NULL;
+
+		    if (JSVAL_IS_VOID(*vp)) {
+			    return JS_TRUE;
+		    }
+		    else if (JSVAL_CHECK_STRING(*vp)) {
+			    jsval fval;
+			    char *callback = SMJS_CHARS(c, *vp);
+			    if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
+			    ctx->onreadystatechange = JS_ValueToFunction(c, fval);
+			    SMJS_FREE(c, callback);
+		    } else if (JSVAL_IS_OBJECT(*vp)) {
+			    ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
+		    }
+		    if (ctx->onreadystatechange) gf_js_add_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
+		    return JS_TRUE;
 			break;
+        /*timeout*/
+		case 6:
+			ctx->timeout = JSVAL_TO_INT(*vp);
+			return JS_TRUE;
+		/* withCredentials */
+        case 7:
+			ctx->withCredentials = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE);
+			return JS_TRUE;
+        /* responseType */
+		case 9:
+            { 
+                char *str = SMJS_CHARS(c, *vp);
+	            if (!str) return JS_TRUE;
+                if (!strcmp(str, "")) {
+                    ctx->responseType = 0;
+                } else if (!strcmp(str, "arraybuffer")) {
+                    ctx->responseType = 1;
+                } else if (!strcmp(str, "blob")) {
+                    ctx->responseType = 2;
+                } else if (!strcmp(str, "document")) {
+                    ctx->responseType = 3;
+                } else if (!strcmp(str, "json")) {
+                    ctx->responseType = 4;
+                } else if (!strcmp(str, "text")) {
+                    ctx->responseType = 5;
+                } else if (!strcmp(str, "stream")) {
+                    ctx->responseType = 6;
+                }
+                break;
+			    return JS_TRUE;
+            }
 		/*all other properties are read-only*/
 		default:
 			return JS_TRUE;
 		}
-		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
-		ctx->onreadystatechange = NULL;
-
-		if (JSVAL_IS_VOID(*vp)) {
-			return JS_TRUE;
-		}
-		else if (JSVAL_CHECK_STRING(*vp)) {
-			jsval fval;
-			char *callback = SMJS_CHARS(c, *vp);
-			if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
-			ctx->onreadystatechange = JS_ValueToFunction(c, fval);
-			SMJS_FREE(c, callback);
-		} else if (JSVAL_IS_OBJECT(*vp)) {
-			ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
-		}
-		if (ctx->onreadystatechange) gf_js_add_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
-		return JS_TRUE;
 	}
 	return JS_TRUE;
 }
@@ -3471,6 +3609,14 @@ static DECL_FINALIZE( storage_finalize)
 	if (!c) c=NULL;
 }
 
+static JSBool SMJS_FUNCTION(html_media_constructor)
+{
+	SMJS_OBJ_CONSTRUCTOR(&dom_rt->htmlMediaElementClass)
+
+	if (!GF_JS_InstanceOf(c, obj, &dom_rt->htmlMediaElementClass, NULL) ) return JS_TRUE;
+	return JS_TRUE;
+}
+
 void dom_js_define_storage(JSContext *c, JSObject *parent_obj, const char *name)
 {
     JS_DefineObject(c, parent_obj, name, &dom_rt->storageClass._class, 0, 0 );
@@ -3765,10 +3911,23 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		JSPropertySpec xmlHTTPRequestClassProps[] = {
 			SMJS_PROPERTY_SPEC("onreadystatechange",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 			SMJS_PROPERTY_SPEC("readyState",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("responseText",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("responseText",			2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC("responseXML",			3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC("status",				4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC("statusText",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("timeout",				6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+			SMJS_PROPERTY_SPEC("withCredentials",		7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+			SMJS_PROPERTY_SPEC("upload",				8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("responseType",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+			SMJS_PROPERTY_SPEC("response",				10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("UNSENT",			100,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("OPENED",			101,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("HEADERS_RECEIVED",	102,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("LOADING",			103,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("DONE",				104,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
+		};
+		JSPropertySpec xmlHTTPRequestStaticClassProps[] = {
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec xmlHTTPRequestClassFuncs[] = {
@@ -3781,7 +3940,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			/*todo - addEventListener and removeEventListener*/
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
-		GF_JS_InitClass(c, global, 0, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, 0, 0);
+		GF_JS_InitClass(c, global, 0, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, xmlHTTPRequestStaticClassProps, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] XMLHttpRequest class initialized\n"));
 	}
 
@@ -3835,12 +3994,18 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	}
 }
 
+void html_media_element_js_finalize(JSContext *c, GF_Node *n);
+
 void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 
 
 	if (n) {
+        if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
+        {
+            html_media_element_js_finalize(c, n);
+        }
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
 			JSObject *obj = n->sgprivate->interact->js_binding->node;
 			SMJS_SET_PRIVATE(c, obj, NULL);

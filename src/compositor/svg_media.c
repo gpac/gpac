@@ -507,7 +507,9 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->txh.is_open) { 
-			if (stack->txurl.count) svg_play_texture((SVG_video_stack*)stack, NULL);
+			if (stack->txurl.count) {
+				svg_play_texture((SVG_video_stack*)stack, NULL);
+			}
 		}
 		else if (stack->txh.stream_finished && (gf_smil_get_media_duration(rti)<0) ) { 
 			Double dur = gf_mo_get_duration(stack->txh.stream);

@@ -96,6 +96,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "validator", "validator.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "avcap", "avcap.vcxproj", "{109C4F31-781F-4C9E-B160-E788A83F9387}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mse_in", "mse_in.vcxproj", "{5016FA2B-2F78-43DA-AEC4-1A7F455E99FE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -293,6 +295,10 @@ Global
 		{109C4F31-781F-4C9E-B160-E788A83F9387}.Debug|Win32.Build.0 = Debug|Win32
 		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Win32.ActiveCfg = Release|Win32
 		{109C4F31-781F-4C9E-B160-E788A83F9387}.Release|Win32.Build.0 = Release|Win32
+		{5016FA2B-2F78-43DA-AEC4-1A7F455E99FE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5016FA2B-2F78-43DA-AEC4-1A7F455E99FE}.Debug|Win32.Build.0 = Debug|Win32
+		{5016FA2B-2F78-43DA-AEC4-1A7F455E99FE}.Release|Win32.ActiveCfg = Release|Win32
+		{5016FA2B-2F78-43DA-AEC4-1A7F455E99FE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

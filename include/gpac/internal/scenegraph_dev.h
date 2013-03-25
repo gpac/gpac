@@ -276,6 +276,7 @@ struct __tag_scene_graph
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
+	struct __tag_html_media_script_ctx *html_media_js;
 #endif
 
 #endif
@@ -990,6 +991,18 @@ typedef struct __tag_svg_script_ctx
 	Bool force_gc;
 } GF_SVGJS;
 
+typedef struct __tag_html_media_script_ctx 
+{
+	/*global script context for the scene*/
+	struct JSContext *js_ctx;
+	/*global object*/
+	struct JSObject *global;
+	/*global event object - used to update the associated DOMEvent (JS private stack) when dispatching events*/
+	struct JSObject *event;
+
+	Bool force_gc;
+} GF_HTMLMediaJS;
+
 #endif	/*GPAC_DISABLE_SVG*/
 
 /*initialize DOM Core (subset) + xmlHTTPRequest API. The global object MUST have private data storage
@@ -1035,6 +1048,15 @@ enum
 	GF_DOM_EXC_INVALID_ACCESS_ERR = 15,
 	GF_DOM_EXC_VALIDATION_ERR = 16,
 	GF_DOM_EXC_TYPE_MISMATCH_ERR = 17,
+	GF_DOM_EXC_SECURITY_ERR = 18,
+    GF_DOM_EXC_NETWORK_ERR = 19,
+    GF_DOM_EXC_ABORT_ERR = 20,
+    GF_DOM_EXC_URL_MISMATCH_ERR = 21,
+    GF_DOM_EXC_QUOTA_EXCEEDED_ERR = 22,
+    GF_DOM_EXC_TIMEOUT_ERR = 23,
+    GF_DOM_EXC_INVALID_NODE_TYPE_ERR = 24,
+    GF_DOM_EXC_DATA_CLONE_ERR = 25,
+
 };
 
 int dom_throw_exception(struct JSContext *c, u32 code);

@@ -68,7 +68,7 @@ void dom_node_set_textContent(GF_Node *n, char *text);
 
 jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only);
 
-
+void html_media_init_js_api(GF_SceneGraph *scene);
 
 #define _ScriptMessage(_sg, _msg) {\
 			GF_JSAPIParam par;	\
@@ -2119,11 +2119,17 @@ jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
 	return OBJECT_TO_JSVAL(p);
 }
 
+void *html_get_element_class(GF_Node *n);
+
 void *svg_get_element_class(GF_Node *n)
 {
 	if (!n) return NULL;
-	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG))
+	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG)) {
+        if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
+            return html_get_element_class(n);
+        }
 		return &svg_rt->svgElement;
+    }
 	return NULL;
 }
 void *svg_get_document_class(GF_SceneGraph *sg)
@@ -2454,6 +2460,9 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	sg->svg_js = svg_js;
 	/*load SVG & DOM APIs*/
 	svg_init_js_api(sg);
+
+    /* HTML */
+    html_media_init_js_api(sg);
 
 	svg_js->script_execute = svg_script_execute;
 	svg_js->handler_execute = svg_script_execute_handler;

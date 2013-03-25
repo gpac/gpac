@@ -71,51 +71,53 @@ static void check_segment_switch(ISOMReader *read)
 
 	/*update current fragment if any*/
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
-	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
-		if (param.url_query.discontinuity_type==2)
-			gf_isom_reset_fragment_info(read->mov);
+	if (read->input->query_proxy(read->input, &param)==GF_OK) {
+        if (param.url_query.next_url){
+			if (param.url_query.discontinuity_type==2)
+				gf_isom_reset_fragment_info(read->mov);
 
-		if (param.url_query.next_url_init_or_switch_segment) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
-			if (read->mov) gf_isom_close(read->mov);
-			e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
-		}
+			if (param.url_query.next_url_init_or_switch_segment) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
+				if (read->mov) gf_isom_close(read->mov);
+				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
+			}
 
-		e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
+			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
 
 #ifndef GPAC_DISABLE_LOG
-		if (e<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
-		} else if (param.url_query.end_range) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
-		}
+			if (e<0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+			} else if (param.url_query.end_range) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
+			}
 #endif
 
-		for (i=0; i<count; i++) {
-			ISOMChannel *ch = gf_list_get(read->channels, i);
-			ch->wait_for_segment_switch = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
-			if (param.url_query.next_url_init_or_switch_segment) {
-				ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
-				if (!ch->track) {
-					if (gf_isom_get_track_count(read->mov)==1) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Mismatch between track IDs of different representations\n"));
-						ch->track = 1;
-					} else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Mismatch between track IDs of different representations\n"));
+			for (i=0; i<count; i++) {
+				ISOMChannel *ch = gf_list_get(read->channels, i);
+				ch->wait_for_segment_switch = 0;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+				if (param.url_query.next_url_init_or_switch_segment) {
+					ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+					if (!ch->track) {
+						if (gf_isom_get_track_count(read->mov)==1) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Mismatch between track IDs of different representations\n"));
+							ch->track = 1;
+						} else {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Mismatch between track IDs of different representations\n"));
+						}
 					}
+
+					/*rewrite all upcoming SPS/PPS into the samples*/
+					gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+
+					/*we changed our moov structure, sample_num now starts from 0*/
+					ch->sample_num = 0;
+				} else {
+					/*no need to rewrite upcoming SPS/PPS into the samples*/
+					gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_DEFAULT);
 				}
-
-				/*rewrite all upcoming SPS/PPS into the samples*/
-				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
-
-				/*we changed our moov structure, sample_num now starts from 0*/
-				ch->sample_num = 0;
-			} else {
-				/*no need to rewrite upcoming SPS/PPS into the samples*/
-				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_DEFAULT);
 			}
 		}
 	} else {

@@ -48,7 +48,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 	//we shall have a MOOV and its MVEX BEFORE any MOOF
 	if (!mov->moov || !mov->moov->mvex) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: %s not received before merging frament\n", mov->moov ? "mvex" : "moov" ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: %s not received before merging fragment\n", mov->moov ? "mvex" : "moov" ));
 		return GF_ISOM_INVALID_FILE;
 	}
 	//and all fragments must be continous - we do not throw an error as we may still want to be able to concatenate depednent representation in DASH and
