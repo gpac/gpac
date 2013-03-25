@@ -91,7 +91,7 @@ ifeq ($(DISABLE_MPD), no)
 LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
 endif
 ifeq ($(DISABLE_DASH_CLIENT), no)
-LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o media_tools/html5_media.o html5_mse.o
+LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o media_tools/html5_media.o media_tools/html5_mse.o
 endif
 ifeq ($(DISABLE_MEDIA_EXPORT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/media_export.o
@@ -199,7 +199,7 @@ OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGP
 NEED_LOCAL_LIB="no"
 LINKLIBS=
 SCENEGRAPH_CFLAGS=
-MEDIATOOLS_CFLAGS=
+MEDIATOOLS_CFLAGS=$(JS_FLAGS)
 
 ifeq ($(DISABLE_CORE_TOOLS), no)
 
