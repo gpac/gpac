@@ -164,7 +164,7 @@ echo "[OK] success extra lib MP4box."
 if [ $ANT -eq 1 ]
 then
 echo "\nSelf-updating project"
-android update project -p "$BASEPATH/applications/osmo4_android/" --target android-14 --subprojects
+android update project -p "$BASEPATH/applications/osmo4_android/" --target "LGE:Real3D Add-On:14" --subprojects
 
 echo -e "\nBuiding Osmo4.apk" 
 cd $BASEPATH/applications/osmo4_android/
@@ -176,7 +176,7 @@ echo -e "\nOld Osmo4.apk found. Removing it ..."
 rm $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
 fi  
 
-zipalign -v 4 bin/Osmo4-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
+zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
 rm bin/Osmo4-*
 echo -e "\n[OK] success."
 fi
