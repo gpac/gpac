@@ -33,7 +33,6 @@ extern "C" {
 
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/html5_media.h>
 #include <gpac/internal/smjs_api.h>
 
@@ -164,8 +163,6 @@ typedef struct
 
 GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command);
 void gf_mse_packet_del(GF_MSE_Packet *packet);
-
-#endif
 
 #ifdef __cplusplus
 }
