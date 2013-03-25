@@ -108,6 +108,8 @@ typedef enum
 	/*When using DASH, query the media range of the url passed in COnnectService - this is only used for local 
 	playback/validation of DASH sequences*/
 	GF_NET_SERVICE_QUERY_INIT_RANGE,
+	/* When using proxy between an input module and the terminal, exchange status using this command: input -> proxy */
+	GF_NET_SERVICE_STATUS_PROXY,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -342,6 +344,17 @@ typedef struct
 	Bool up;
 } GF_NetQualitySwitch;
 
+/*GF_NET_SERVICE_STATUS_PROXY*/
+typedef struct
+{
+	u32 command_type;
+	GF_Err e;
+	LPNETCHANNEL channel;
+	Bool is_disconnect;
+	Bool is_add_media;
+	GF_Descriptor *desc;
+} GF_NetServiceStatus;
+
 typedef union __netcommand
 {
 	u32 command_type;
@@ -362,6 +375,7 @@ typedef union __netcommand
 	GF_NetComMigration migrate;
 	GF_NetURLQuery url_query;
 	GF_NetQualitySwitch switch_quality;
+	GF_NetServiceStatus status;
 } GF_NetworkCommand;
 
 /*
@@ -450,6 +464,7 @@ typedef struct _netinterface
 /*proxy stuff*/
 	GF_Err (*query_proxy)(struct _netinterface *, GF_NetworkCommand *param);
 	void *proxy_udta;
+	Bool proxy_type; /* 0 corresponds to a proxy without full command support */
 	/*!
 	 * This is needed for modules supporting mime types, when this method is called,
 	 * the module has to call gf_term_register_mime_type() for all the mime-types

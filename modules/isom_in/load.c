@@ -77,7 +77,7 @@ GF_Descriptor *isor_emulate_iod(ISOMReader *read)
 	/*generate an IOD with our private dynamic OD stream*/
 	GF_InitialObjectDescriptor *fake_iod = (GF_InitialObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 	isor_emulate_chapters(read->mov, fake_iod);
-	read->no_service_desc = 1;
+	read->no_service_desc = GF_TRUE;
 	return (GF_Descriptor *)fake_iod;
 }
 
@@ -113,17 +113,17 @@ void isor_declare_objects(ISOMReader *read)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
-			esd->has_ref_base = 0;
+			esd->has_ref_base = GF_FALSE;
 			track_id = gf_isom_get_track_id(read->mov, i+1);
 			for (j = 0; j < count; j++)
 			{
 				if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_BASE, track_id))
 				{
-					esd->has_ref_base = 1;
+					esd->has_ref_base = GF_TRUE;
 					break;
 				}
 				if (gf_isom_get_avc_svc_type(read->mov, j+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC) {
-					esd->has_ref_base = 1;
+					esd->has_ref_base = GF_TRUE;
 					break;
 				}
 			}
@@ -134,7 +134,11 @@ void isor_declare_objects(ISOMReader *read)
 			if (!ocr_es_id) ocr_es_id = esd->ESID;
 			esd->OCRESID = ocr_es_id;
 			gf_list_add(od->ESDescriptors, esd);
-			gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
+				send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
+			} else {
+				gf_term_add_media(read->service, (GF_Descriptor*)od, GF_TRUE);
+			}
 		}
 	}
 	/*if cover art, extract it in cache*/
@@ -157,7 +161,7 @@ void isor_declare_objects(ISOMReader *read)
 			t = gf_f64_open(szName, "wb");
 
 			if (t) {
-				Bool isom_contains_video = 0;
+				Bool isom_contains_video = GF_FALSE;
 
 				/*write cover data*/
 				assert(!(tlen & 0x80000000));
@@ -169,7 +173,7 @@ void isor_declare_objects(ISOMReader *read)
 					if (!gf_isom_is_track_enabled(read->mov, i+1))
 						continue;
 					if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) {
-						isom_contains_video = 1;
+						isom_contains_video = GF_TRUE;
 						break;
 					}
 				}
@@ -179,12 +183,20 @@ void isor_declare_objects(ISOMReader *read)
 					od->service_ifce = read->input;
 					od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
 					od->URLString = gf_strdup(szName);
-					gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+					if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
+						send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
+					} else {
+						gf_term_add_media(read->service, (GF_Descriptor*)od, GF_TRUE);
+					}
 				}
 			}
 		}
 	}
-	gf_term_add_media(read->service, NULL, 0);
+	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
+		send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, NULL, NULL);
+	} else {
+		gf_term_add_media(read->service, NULL, GF_FALSE);
+	} 
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

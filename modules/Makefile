@@ -4,7 +4,7 @@ include ../config.mak
 PLUGDIRS=aac_in ac3_in audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp
 
 ifeq ($(DISABLE_DASH_CLIENT), no)
-PLUGDIRS+=mpd_in
+PLUGDIRS+=mpd_in mse_in
 endif
 
 ifeq ($(DISABLE_MEDIA_IMPORT), no)

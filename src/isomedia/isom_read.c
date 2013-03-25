@@ -2055,8 +2055,11 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 			trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
 			if (trak->sample_count_at_seg_start) {
-				stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
-				trak->dts_at_seg_start += dts + dur;
+				GF_Err e;
+				e = stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
+				if (e == GF_OK) {
+					trak->dts_at_seg_start += dts + dur;
+				}
 			}
 #define RECREATE_BOX(_a, __cast)	\
 		if (_a) {	\

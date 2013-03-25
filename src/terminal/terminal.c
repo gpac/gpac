@@ -517,6 +517,21 @@ void gf_term_refresh_cache(GF_Config *cfg)
 	}
 }
 
+Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime)
+{
+	if (mime) {
+		/* TODO: handle codecs and params */
+		const char *sPlug;
+		sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime);
+		if (sPlug) {
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+		return 0;
+	}
+}
 
 GF_EXPORT
 GF_Terminal *gf_term_new(GF_User *user)
@@ -1246,7 +1261,7 @@ void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 }
 
 #ifndef GPAC_DISABLE_SVG
-static void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer)
+void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer)
 {
 	u32 i=0;
 	GF_Channel *ch;
@@ -1494,6 +1509,18 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 
 	/*remove pending download session if any*/
 	gf_term_cleanup_pending_session(term, ns);
+}
+
+GF_ClientService *gf_term_get_service_from_url(GF_Terminal *term, const char *url)
+{
+	u32 i = 0;
+	GF_ClientService *ns;
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		if (!strcmp(ns->url, url)) {
+			return ns;
+		}
+	}
+	return NULL;
 }
 
 /*connects given channel to its URL if needed*/

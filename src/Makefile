@@ -68,7 +68,7 @@ LIBGPAC_ODF+=odf/odf_parse.o
 endif
 
 ## libgpac objects gathering: src/scenegraph
-LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o
+LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o scenegraph/html5_media_smjs.o scenegraph/html5_mse_smjs.o
 
 ## libgpac objects gathering: src/mcrypt
 LIBGPAC_MCRYPT=
@@ -91,7 +91,7 @@ ifeq ($(DISABLE_MPD), no)
 LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
 endif
 ifeq ($(DISABLE_DASH_CLIENT), no)
-LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o
+LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o media_tools/html5_media.o html5_mse.o
 endif
 ifeq ($(DISABLE_MEDIA_EXPORT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/media_export.o
