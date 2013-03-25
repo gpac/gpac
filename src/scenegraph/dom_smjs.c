@@ -3113,6 +3113,7 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
+	s = NULL;
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
 		/*onreadystatechange*/
@@ -3607,14 +3608,6 @@ static DECL_FINALIZE( storage_finalize)
 
 	/*avoids GCC warning*/
 	if (!c) c=NULL;
-}
-
-static JSBool SMJS_FUNCTION(html_media_constructor)
-{
-	SMJS_OBJ_CONSTRUCTOR(&dom_rt->htmlMediaElementClass)
-
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->htmlMediaElementClass, NULL) ) return JS_TRUE;
-	return JS_TRUE;
 }
 
 void dom_js_define_storage(JSContext *c, JSObject *parent_obj, const char *name)

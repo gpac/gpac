@@ -208,6 +208,8 @@ typedef double jsdouble;
 
 #else
 
+/* Windows with extra-libs */
+
 #define SMJS_DECL_FUNC_PROP_SET(func_name) JSBool func_name(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 #define SMJS_FUNC_PROP_SET(func_name) SMJS_DECL_FUNC_PROP_SET(func_name) {
 #define SMJS_FUNC_PROP_SET_NOVP	SMJS_FUNC_PROP_SET

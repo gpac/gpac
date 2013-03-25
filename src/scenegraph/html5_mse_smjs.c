@@ -84,6 +84,8 @@ Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime);
 
 static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     GF_SceneGraph *sg;
     GF_JSAPIParam par;
     Bool isSupported;
@@ -102,6 +104,8 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 
 static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     GF_HTML_SourceBuffer    *sb;
     GF_HTML_MediaSource     *p;
     const char              *mime;
@@ -132,16 +136,22 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
 
 static JSBool SMJS_FUNCTION(mediasource_removeSourceBuffer)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(mediasource_endOfStream)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(media_source_constructor)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     GF_HTML_MediaSource *p;
     SMJS_OBJ_CONSTRUCTOR(&html_media_rt->mediaSourceClass)
 
@@ -310,6 +320,8 @@ static void gf_mse_sourcebuffer_reopen(GF_HTML_SourceBuffer *sb)
 
 static JSBool SMJS_FUNCTION(sourcebuffer_appendBuffer)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     GF_HTML_ArrayBuffer  *ab;
     JSObject             *js_ab;
 
@@ -339,6 +351,8 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendBuffer)
 
 static JSBool SMJS_FUNCTION(sourcebuffer_appendStream)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     SB_UPDATING_CHECK
     /* TODO */
     return JS_TRUE;
@@ -346,6 +360,8 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendStream)
 
 static JSBool SMJS_FUNCTION(sourcebuffer_abort)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     GF_HTML_MediaSource_AbortMode mode;
     char *smode;
     SB_BASIC_CHECK
@@ -379,6 +395,8 @@ static JSBool SMJS_FUNCTION(sourcebuffer_abort)
 
 static JSBool SMJS_FUNCTION(sourcebuffer_remove)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     jsdouble start, end;
     SB_UPDATING_CHECK
     if (argc < 2 || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1])) 
@@ -483,6 +501,8 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_tracks)
 
 static JSBool SMJS_FUNCTION(html_url_createObjectURL)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     JSObject    *js_ms;
     GF_HTML_MediaSource *ms;
     char        blobURI[256];
@@ -553,6 +573,8 @@ void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js)
 
 static JSBool SMJS_FUNCTION(arraybuffer_constructor)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     u32 length = 0;
     SMJS_OBJ_CONSTRUCTOR(&html_media_rt->arrayBufferClass)
 
