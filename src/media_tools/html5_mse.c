@@ -22,7 +22,7 @@
 *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 */
-
+#ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/html5_mse.h>
 
 GF_HTML_MediaSource *gf_mse_media_source_new()
@@ -694,4 +694,4 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
         return GF_OK;
     }
 }
-
+#endif

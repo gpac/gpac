@@ -23,8 +23,11 @@
 *
 */
 
+#ifdef GPAC_HAS_SPIDERMONKEY
+
 #include <gpac/html5_media.h>
 #include <gpac/html5_mse.h>
+
 
 GF_Err gf_media_time_ranges_add(GF_HTML_MediaTimeRanges *timeranges, double start, double end)
 {
@@ -191,3 +194,5 @@ void gf_html_mediacontroller_del(GF_HTML_MediaController *mc)
     gf_html_timeranges_del(&mc->played);
     gf_free(mc);
 }
+
+#endif
