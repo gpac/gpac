@@ -23,6 +23,8 @@
 *
 */
 
+#include <gpac/setup.h>
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #include <gpac/html5_media.h>

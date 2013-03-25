@@ -22,6 +22,8 @@
 *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 */
+#include <gpac/setup.h>
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/html5_mse.h>
 
@@ -333,9 +335,9 @@ static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
 {
     u32     i;
     u32     frame_count;
-    Bool    found_previous;
+    //Bool    found_previous;
 
-    found_previous = GF_FALSE;
+    //found_previous = GF_FALSE;
     gf_mx_p(track->buffer_mutex);
     frame_count = gf_list_count(track->buffer);
     for (i = 0; i < frame_count; i++)

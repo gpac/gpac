@@ -23,6 +23,7 @@
  *
  */
 
+
 #include <gpac/internal/scenegraph_dev.h>
 
 /*base SVG type*/
@@ -38,13 +39,14 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-#ifdef GPAC_HAS_SPIDERMONKEY
 
 #ifdef GPAC_ANDROID
 #ifndef XP_UNIX
 #define XP_UNIX
 #endif /* XP_UNIX */
 #endif
+
+#ifdef GPAC_HAS_SPIDERMONKEY
 
 #include <gpac/internal/smjs_api.h>
 #include <gpac/html5_media.h>
@@ -881,13 +883,13 @@ static SMJS_FUNC_PROP_GET(html_media_get_volume)
     SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag = TAG_SVG_video)
+    if (n->sgprivate->tag == TAG_SVG_video)
     {
         video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
         if (video_stack->audio) {
             audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
         }
-    } else if (n->sgprivate->tag = TAG_SVG_audio) {
+    } else if (n->sgprivate->tag == TAG_SVG_audio) {
         audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
     }
     if (audio_stack) {
@@ -902,13 +904,13 @@ static SMJS_FUNC_PROP_SET(html_media_set_volume)
     SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag = TAG_SVG_video)
+    if (n->sgprivate->tag == TAG_SVG_video)
     {
         video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
         if (video_stack->audio) {
             audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
         }
-    } else if (n->sgprivate->tag = TAG_SVG_audio) {
+    } else if (n->sgprivate->tag == TAG_SVG_audio) {
         audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
     }
     if (audio_stack) {
@@ -922,13 +924,13 @@ static SMJS_FUNC_PROP_GET(html_media_get_muted)
     SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag = TAG_SVG_video)
+    if (n->sgprivate->tag == TAG_SVG_video)
     {
         video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
         if (video_stack->audio) {
             audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
         }
-    } else if (n->sgprivate->tag = TAG_SVG_audio) {
+    } else if (n->sgprivate->tag == TAG_SVG_audio) {
         audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
     }
     if (audio_stack) {
@@ -941,13 +943,13 @@ static SMJS_FUNC_PROP_SET(html_media_set_muted)
     SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag = TAG_SVG_video)
+    if (n->sgprivate->tag == TAG_SVG_video)
     {
         video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
         if (video_stack->audio) {
             audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
         }
-    } else if (n->sgprivate->tag = TAG_SVG_audio) {
+    } else if (n->sgprivate->tag == TAG_SVG_audio) {
         audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
     }
     if (audio_stack) {

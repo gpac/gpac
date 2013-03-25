@@ -46,7 +46,6 @@ extern "C" {
 #include <gpac/xml.h>
 #include <gpac/internal/terminal_dev.h>
 
-#ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/smjs_api.h>
 
 typedef struct
@@ -320,9 +319,6 @@ JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js);
 
 void html_media_element_js_init(JSContext *c, JSObject *new_obj, GF_Node *n);
-
-
-#endif
 
 #ifdef __cplusplus
 }
