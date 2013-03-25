@@ -3906,6 +3906,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\scenegraph\html5_media_smjs.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\scenegraph\html5_mse_smjs.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\scenegraph\mpeg4_animators.c"
 				>
 				<FileConfiguration
@@ -4568,6 +4576,14 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\html5_media.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\html5_mse.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\src\media_tools\img.c"
@@ -7111,6 +7127,14 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\modules\hardcoded_proto.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\html5_media.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\html5_mse.h"
 				>
 			</File>
 			<File

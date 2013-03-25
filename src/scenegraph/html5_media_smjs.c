@@ -146,7 +146,7 @@ typedef enum {
     HTML_TRACK_PROP_SELECTED                    = 4,
     HTML_TRACK_PROP_ENABLED                     = 5,
     HTML_TRACK_PROP_INBANDTYPE                  = 6,
-} GF_HTML_VideoEltPropEnum;
+} GF_HTML_TrackPropEnum;
 
 #define HTML_MEDIA_JS_CHECK     GF_HTML_MediaElement *me; \
                                 GF_Node *n = (GF_Node *)SMJS_GET_PRIVATE(c, obj); \
@@ -159,8 +159,7 @@ typedef enum {
                                     return JS_TRUE; \
                                 }
 
-#define HTML_MEDIA_JS_START     jsval *rval = vp; \
-                                HTML_MEDIA_JS_CHECK
+#define HTML_MEDIA_JS_START     HTML_MEDIA_JS_CHECK
 
 
 typedef struct
@@ -259,7 +258,7 @@ void gf_html_media_controller_init_js(GF_HTML_MediaController *mc, JSContext *c)
 void gf_html_media_element_init_js(GF_HTML_MediaElement *me, JSContext *c, JSObject *node_obj)
 {
     me->c                       = c;
-    me->_this                   = JS_NewObject(c, NULL, NULL, node_obj);
+    me->_this                   = JS_NewObject(c, &html_media_rt->htmlMediaElementClass._class, NULL, node_obj);
     SMJS_SET_PRIVATE(c, me->_this, me);
 
     me->error.c                 = c;
@@ -319,7 +318,6 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
                 {
                     char id[256];
                     char *lang = "";
-                    char *mime = "";
                     GF_ESD *esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, j);
                     sprintf(id, "track%d", esd->ESID);
                     if (esd->langDesc) 
@@ -361,6 +359,8 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
 
 static JSBool SMJS_FUNCTION(html_media_load)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -372,6 +372,8 @@ static JSBool SMJS_FUNCTION(html_media_load)
 
 static JSBool SMJS_FUNCTION(html_media_canPlayType)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -382,6 +384,8 @@ static JSBool SMJS_FUNCTION(html_media_canPlayType)
 
 static JSBool SMJS_FUNCTION(html_media_fastSeek)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -392,6 +396,8 @@ static JSBool SMJS_FUNCTION(html_media_fastSeek)
 
 static JSBool SMJS_FUNCTION(html_media_addTextTrack)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     return JS_TRUE;
 }
 
@@ -468,7 +474,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_src)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "href", GF_XMLNS_XLINK, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) ) );
+        *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
         if (szAtt) gf_free(szAtt);
     }
     return JS_TRUE;
@@ -488,7 +494,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_cors)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "crossorigin", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) ) );
+        *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
         if (szAtt) gf_free(szAtt);
     }
     return JS_TRUE;
@@ -542,7 +548,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_ready_state)
     html_media_element_populate_tracks(c, me);
     mo = gf_html_media_object(n);
     html_media_get_states(mo, &readyState, &networkState);
-    SMJS_SET_RVAL( INT_TO_JSVAL( readyState ) );
+    *vp = INT_TO_JSVAL( readyState );
     return JS_TRUE;
 }
 
@@ -553,7 +559,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_network_state)
     HTML_MEDIA_JS_START
     mo = gf_html_media_object(n);
     html_media_get_states(mo, &readyState, &networkState);
-    SMJS_SET_RVAL( INT_TO_JSVAL( networkState ) );
+    *vp = INT_TO_JSVAL( networkState );
     return JS_TRUE;
 }
 
@@ -607,7 +613,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_preload)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "preload", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) ) );
+        *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
         if (szAtt) gf_free(szAtt);
     }
     return JS_TRUE;
@@ -624,14 +630,14 @@ static SMJS_FUNC_PROP_SET(html_media_set_preload)
 
 static SMJS_FUNC_PROP_GET(html_media_get_buffered)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL( me->buffered._this ) );
+    *vp = OBJECT_TO_JSVAL( me->buffered._this );
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_seeking)
     HTML_MEDIA_JS_START
     /* TODO: implement if for real */
-    SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( (me->seeking ? JS_TRUE : JS_FALSE) ) );
+    *vp = BOOLEAN_TO_JSVAL( (me->seeking ? JS_TRUE : JS_FALSE) );
     return JS_TRUE;
 }
 
@@ -643,7 +649,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_current_time)
     mo = gf_html_media_object(n);
     gf_mo_get_object_time(mo, &time_ms);
     time_s = time_ms / 1000.0;
-    SMJS_SET_RVAL( JS_MAKE_DOUBLE(c, time_s ) );
+    *vp = JS_MAKE_DOUBLE(c, time_s );
     return JS_TRUE;
 }
 
@@ -696,7 +702,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_start_date)
 
 static SMJS_FUNC_PROP_GET(html_media_get_paused)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( (me->paused ? JS_TRUE : JS_FALSE) ) );
+    *vp =( BOOLEAN_TO_JSVAL( (me->paused ? JS_TRUE : JS_FALSE) ) );
     return JS_TRUE;
 }
 
@@ -736,13 +742,13 @@ static SMJS_FUNC_PROP_SET(html_media_set_playback_rate)
 
 static SMJS_FUNC_PROP_GET(html_media_get_played)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL( me->played._this ) );
+    *vp =( OBJECT_TO_JSVAL( me->played._this ) );
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_seekable)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL( me->seekable._this ) );
+    *vp =( OBJECT_TO_JSVAL( me->seekable._this ) );
     return JS_TRUE;
 }
 
@@ -760,11 +766,11 @@ static SMJS_FUNC_PROP_GET(html_media_get_autoplay)
         char *szAtt = gf_svg_dump_attribute(n, &info);
         if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_TRUE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
         } 
         else
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_FALSE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
     }
@@ -788,11 +794,11 @@ static SMJS_FUNC_PROP_GET(html_media_get_loop)
         char *szAtt = gf_svg_dump_attribute(n, &info);
         if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_TRUE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
         } 
         else
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_FALSE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
     }
@@ -814,7 +820,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_mediagroup)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "mediagroup", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) ) );
+        *vp =( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) ) );
         if (szAtt) gf_free(szAtt);
     }
     return JS_TRUE;
@@ -850,11 +856,11 @@ static SMJS_FUNC_PROP_GET(html_media_get_controls)
         char *szAtt = gf_svg_dump_attribute(n, &info);
         if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_TRUE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
         } 
         else
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_FALSE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
     }
@@ -957,11 +963,11 @@ static SMJS_FUNC_PROP_GET(html_media_get_default_muted)
         char *szAtt = gf_svg_dump_attribute(n, &info);
         if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_TRUE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
         } 
         else
         {
-            SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_FALSE ) );
+            *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
     }
@@ -979,19 +985,19 @@ static SMJS_FUNC_PROP_SET(html_media_set_default_muted)
 
 static SMJS_FUNC_PROP_GET(html_media_get_audio_tracks)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL( me->audioTracks._this ) );
+    *vp =( OBJECT_TO_JSVAL( me->audioTracks._this ) );
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_video_tracks)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL( me->videoTracks._this ) );
+    *vp =( OBJECT_TO_JSVAL( me->videoTracks._this ) );
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_text_tracks)
     HTML_MEDIA_JS_START
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL( me->videoTracks._this ) );
+    *vp =( OBJECT_TO_JSVAL( me->videoTracks._this ) );
     return JS_TRUE;
 }
 
@@ -1022,7 +1028,7 @@ static JSBool SMJS_FUNCTION(html_time_ranges_start)
             dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
             return JS_FALSE;
         } else {
-            SMJS_SET_RVAL(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
+            *rval =(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
         }
     }
     return JS_TRUE;
@@ -1049,7 +1055,7 @@ static JSBool SMJS_FUNCTION(html_time_ranges_end)
             dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
             return JS_FALSE;
         } else {
-            SMJS_SET_RVAL(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
+            *rval =(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
         }
     }
     return JS_TRUE;
@@ -1063,6 +1069,8 @@ static SMJS_FUNC_PROP_GET(html_track_list_get_length)
 
 static JSBool SMJS_FUNCTION(html_track_list_get_track_by_id)
 {
+    SMJS_OBJ
+    SMJS_ARGS
     char *str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, argv[0]) );
     GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
     GF_HTML_Track *track = html_media_tracklist_get_track(tracklist, str);

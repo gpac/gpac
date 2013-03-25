@@ -217,7 +217,7 @@ function init() {
     var ms = new MediaSource();
 
     var bloburl = URL.createObjectURL(ms);
-    alert("Attaching Media Source " + url + " to Video");
+    alert("Attaching Media Source " + bloburl + " to Video");
     v.src = bloburl;
 
     /* GPAC hack to retrieve the MediaSource from the video when the sourceopen event is dispatched to the video */
