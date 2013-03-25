@@ -98,7 +98,7 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
     sg = mediasource_get_scenegraph(c);
     sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, NULL, &par);
     isSupported = gf_term_is_type_supported((GF_Terminal *)par.term, mime);
-    *rval = BOOLEAN_TO_JSVAL(isSupported ? JS_TRUE : JS_FALSE);
+    SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(isSupported ? JS_TRUE : JS_FALSE));
     return JS_TRUE;
 }
 
@@ -150,7 +150,6 @@ static JSBool SMJS_FUNCTION(mediasource_endOfStream)
 
 static JSBool SMJS_FUNCTION(media_source_constructor)
 {
-    SMJS_OBJ
     SMJS_ARGS
     GF_HTML_MediaSource *p;
     SMJS_OBJ_CONSTRUCTOR(&html_media_rt->mediaSourceClass)
@@ -449,7 +448,7 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_timescale)
 
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_timescale)
     SB_BASIC_CHECK
-    sb->timescale = JSVAL_TO_INT(vp);
+    sb->timescale = JSVAL_TO_INT(*vp);
     return JS_TRUE;
 }
 
@@ -507,7 +506,7 @@ static JSBool SMJS_FUNCTION(html_url_createObjectURL)
     GF_HTML_MediaSource *ms;
     char        blobURI[256];
 
-    *rval = JSVAL_NULL;
+    SMJS_SET_RVAL(JSVAL_NULL);
     if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) 
     {
         return JS_TRUE;
@@ -520,7 +519,7 @@ static JSBool SMJS_FUNCTION(html_url_createObjectURL)
     ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, js_ms);
     sprintf(blobURI, "blob:%p", ms);
     ms->blobURI = gf_strdup(blobURI);
-    *rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, blobURI));
+    SMJS_SET_RVAL(STRING_TO_JSVAL( JS_NewStringCopyZ(c, blobURI)));
     return JS_TRUE;
 }
 
@@ -573,7 +572,6 @@ void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js)
 
 static JSBool SMJS_FUNCTION(arraybuffer_constructor)
 {
-    SMJS_OBJ
     SMJS_ARGS
     u32 length = 0;
     SMJS_OBJ_CONSTRUCTOR(&html_media_rt->arrayBufferClass)
