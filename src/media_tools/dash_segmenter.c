@@ -383,7 +383,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	Bool first_segment_in_timeline = GF_TRUE;
 	u64 previous_segment_duration = 0;
 	u32 segment_timeline_repeat_count = 0;
-	u64 last_ref_cts = 0;
+	//u64 last_ref_cts = 0;
 	u64 start_range, end_range, file_size, init_seg_size, ref_track_first_dts, ref_track_next_cts;
 	u32 tfref_timescale = 0;
 	u32 bandwidth = 0;
@@ -1198,8 +1198,8 @@ restart_fragmentation_pass:
 					if (split_sample_duration)
 						tf->split_sample_dts_shift += defaultDuration;
 
-					if (tf==tfref)
-						last_ref_cts = tf->last_sample_cts;
+					//if (tf==tfref)
+						//last_ref_cts = tf->last_sample_cts;
 
 					break;
 				}
