@@ -1028,7 +1028,7 @@ static JSBool SMJS_FUNCTION(html_time_ranges_start)
             dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
             return JS_FALSE;
         } else {
-            *rval =(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
+            SMJS_SET_RVAL(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
         }
     }
     return JS_TRUE;
@@ -1055,7 +1055,7 @@ static JSBool SMJS_FUNCTION(html_time_ranges_end)
             dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
             return JS_FALSE;
         } else {
-            *rval =(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
+            SMJS_SET_RVAL(DOUBLE_TO_JSVAL(JS_NewDouble(c, *start_value)));
         }
     }
     return JS_TRUE;
@@ -1076,7 +1076,7 @@ static JSBool SMJS_FUNCTION(html_track_list_get_track_by_id)
     GF_HTML_Track *track = html_media_tracklist_get_track(tracklist, str);
     SMJS_FREE(c, str);
     if (track) {
-        *rval = OBJECT_TO_JSVAL(track->_this);
+        SMJS_SET_RVAL(OBJECT_TO_JSVAL(track->_this));
     }
     return JS_TRUE;
 }
