@@ -23,6 +23,8 @@
  *
  */
 
+#include <gpac/setup.h>
+
 #ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY

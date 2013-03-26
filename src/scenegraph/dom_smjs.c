@@ -23,6 +23,7 @@
  *
  */
 
+#include <gpac/setup.h>
 #include <gpac/internal/scenegraph_dev.h>
 
 /*base SVG type*/
