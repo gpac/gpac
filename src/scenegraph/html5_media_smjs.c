@@ -1272,7 +1272,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
         GF_SAFEALLOC(html_media_rt, GF_HTML_MediaRuntime);
 
         /* Setting up MediaError class (no constructor, no finalizer) */
-        JS_SETUP_CLASS(html_media_rt->mediaErrorClass, "MediaError", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->mediaErrorClass, "MediaError", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec mediaErrorClassProps[] = {
                 {"MEDIA_ERR_ABORTED",           MEDIA_ERROR_PROP_ABORTED,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, html_media_error_get_code, 0},
@@ -1290,7 +1290,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
         }
 
         /* Setting up TimeRanges class (no constructor, no finalizer) */
-        JS_SETUP_CLASS(html_media_rt->timeRangesClass, "TimeRanges", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->timeRangesClass, "TimeRanges", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec timeRangesClassProps[] = {
                 {"length",               0,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, html_time_ranges_get_length, 0},
@@ -1356,7 +1356,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] TextTrack class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->audioTrackListClass, "AudioTrackList", JSCLASS_HAS_PRIVATE, html_track_list_get_property, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->audioTrackListClass, "AudioTrackList", JSCLASS_HAS_PRIVATE, html_track_list_get_property, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec audioTrackListClassProps[] = {
                 {"length",               0,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, html_track_list_get_length, 0},
@@ -1373,7 +1373,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] AudioTrackList class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->videoTrackListClass, "VideoTrackList", JSCLASS_HAS_PRIVATE, html_track_list_get_property, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->videoTrackListClass, "VideoTrackList", JSCLASS_HAS_PRIVATE, html_track_list_get_property, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec videoTrackListClassProps[] = {
                 {"selectedIndex",        0,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, html_track_list_get_selected_index, 0},
@@ -1391,7 +1391,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] VideoTrackList class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->textTrackListClass, "TextTrackList", JSCLASS_HAS_PRIVATE, html_track_list_get_property, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->textTrackListClass, "TextTrackList", JSCLASS_HAS_PRIVATE, html_track_list_get_property, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec textTrackListClassProps[] = {
                 {"length",               0,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, html_track_list_get_length, 0},
@@ -1407,7 +1407,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] TextTrackList class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->mediaControllerClass, "MediaController", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->mediaControllerClass, "MediaController", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec mediaControllerClassProps[] = {
                 {0, 0, 0, 0, 0}
@@ -1419,7 +1419,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] MediaController class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->htmlMediaElementClass, "HTMLMediaElement", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+        JS_SETUP_CLASS(html_media_rt->htmlMediaElementClass, "HTMLMediaElement", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
         {
             JSPropertySpec htmlMediaElementClassProps[] = {
                 {"error",               HTML_MEDIA_PROP_ERROR,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, html_media_get_error, 0},
@@ -1496,7 +1496,7 @@ void html_media_init_js_api(GF_SceneGraph *scene)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] HTMLVideoElement class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->htmlAudioElementClass, "HTMLAudioElement", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, dom_element_finalize);
+        JS_SETUP_CLASS(html_media_rt->htmlAudioElementClass, "HTMLAudioElement", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, dom_element_finalize);
         {
             JSPropertySpec htmlAudioElementClassProps[] = {
                 {0, 0, 0, 0, 0}

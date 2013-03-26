@@ -295,16 +295,18 @@ static SMJS_FUNC_PROP_GET(sourcebufferlist_get_length)
         return JS_TRUE;\
     }\
 
+/* FIXME : Function not used, generates warning on debian
 static DECL_FINALIZE(sourcebuffer_finalize)
 
     GF_HTML_SourceBuffer *sb;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferClass, NULL) ) return;
     sb = (GF_HTML_SourceBuffer *)SMJS_GET_PRIVATE(c, obj);
     if (sb) {
-        /* TODO delete lists, remove functions */
+         TODO delete lists, remove functions
         gf_free(sb);
     }
 }
+*/
 
 static void gf_mse_sourcebuffer_reopen(GF_HTML_SourceBuffer *sb)
 {
