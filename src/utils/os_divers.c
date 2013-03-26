@@ -409,7 +409,7 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	char cmd[1024];
 	if (!fileName || !newFileName)
 		return GF_IO_ERR;
-	snprintf(cmd, sizeof(cmd)-1, "mv %s %s > /dev/null 2>&1", fileName, newFileName);
+	snprintf(cmd, sizeof(cmd)-1, "mv '%s' '%s' > /dev/null 2>&1", fileName, newFileName);
 	return ( system(cmd) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 }
@@ -817,7 +817,7 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 	if (res) return res;
 	if (strchr(mode, 'w') || strchr(mode, 'a')) {
 		u32 err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for file opening of %s in mode %s: %08x\n", file_name, mode, err));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for file opening of %s in mode %s: 0x%08x\n", file_name, mode, err));
 	}
 	return NULL;
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
