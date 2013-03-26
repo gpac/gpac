@@ -36,8 +36,6 @@
 #include <gpac/network.h>
 #include <gpac/xml.h>
 
-#include <gpac/html5_media.h>
-
 #ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -48,6 +46,7 @@
 #endif /* XP_UNIX */
 #endif
 
+#include <gpac/html5_media.h>
 #include <gpac/internal/smjs_api.h>
 
 

@@ -23,8 +23,6 @@
  *
  */
 
-#include <gpac/html5_mse.h>
-
 #ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -34,6 +32,8 @@
 #define XP_UNIX
 #endif /* XP_UNIX */
 #endif
+
+#include <gpac/html5_mse.h>
 
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 
