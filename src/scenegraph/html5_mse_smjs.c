@@ -614,7 +614,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
     if (_html_media_rt) {
         html_media_rt = _html_media_rt;
 
-        JS_SETUP_CLASS(html_media_rt->arrayBufferClass, "ArrayBuffer", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, arraybuffer_finalize);
+        JS_SETUP_CLASS(html_media_rt->arrayBufferClass, "ArrayBuffer", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, arraybuffer_finalize);
         {
             JSPropertySpec arrayBufferClassProps[] = {
                 {"byteLength",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, arraybuffer_get_byteLength, 0},
@@ -624,7 +624,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTML Media Source API] ArrayBuffer class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->mediaSourceClass, "MediaSource", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, media_source_finalize);
+        JS_SETUP_CLASS(html_media_rt->mediaSourceClass, "MediaSource", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, media_source_finalize);
         {
             JSPropertySpec htmlMediaSourceClassProps[] = {
                 {"sourceBuffers",       HTML_MEDIASOURCE_PROP_SOURCEBUFFERS,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, media_source_get_source_buffers, 0},
@@ -647,7 +647,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTML Media Source API] MediaSource class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->sourceBufferClass, "SourceBuffer", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub);
+        JS_SETUP_CLASS(html_media_rt->sourceBufferClass, "SourceBuffer", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_PropertyStub);
         {
             JSPropertySpec SourceBufferClassProps[] = {
                 {"updating",          HTML_SOURCEBUFFER_PROP_UPDATING,         JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, sourceBuffer_get_updating, 0},
@@ -672,7 +672,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTML Media Source API] SourceBuffer class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->sourceBufferListClass, "SourceBufferList", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub);
+        JS_SETUP_CLASS(html_media_rt->sourceBufferListClass, "SourceBufferList", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_PropertyStub);
         {
             JSPropertySpec SourceBufferListClassProps[] = {
                 {"length",        HTML_SOURCEBUFFERLIST_PROP_LENGTH,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, sourcebufferlist_get_length, 0},
@@ -685,7 +685,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTML Media Source API] SourceBufferList class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->URLClass, "URL", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub);
+        JS_SETUP_CLASS(html_media_rt->URLClass, "URL", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_PropertyStub);
         {
             JSPropertySpec URLClassProps[] = {
                 {0, 0, 0, 0, 0}
