@@ -291,11 +291,12 @@ void gf_html_media_element_init_js(GF_HTML_MediaElement *me, JSContext *c, JSObj
     me->seekable._this          = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, me->_this);
     SMJS_SET_PRIVATE(c, me->seekable._this, &me->seekable);
 }
-
+/*
+ * TODO : Unused, create warnings on debian
 static void html_media_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
     GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
-}
+}*/
 
 static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElement *me)
 {
@@ -362,7 +363,6 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
 static JSBool SMJS_FUNCTION(html_media_load)
 {
     SMJS_OBJ
-    SMJS_ARGS
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -375,7 +375,6 @@ static JSBool SMJS_FUNCTION(html_media_load)
 static JSBool SMJS_FUNCTION(html_media_canPlayType)
 {
     SMJS_OBJ
-    SMJS_ARGS
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -387,7 +386,6 @@ static JSBool SMJS_FUNCTION(html_media_canPlayType)
 static JSBool SMJS_FUNCTION(html_media_fastSeek)
 {
     SMJS_OBJ
-    SMJS_ARGS
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -398,8 +396,6 @@ static JSBool SMJS_FUNCTION(html_media_fastSeek)
 
 static JSBool SMJS_FUNCTION(html_media_addTextTrack)
 {
-    SMJS_OBJ
-    SMJS_ARGS
     return JS_TRUE;
 }
 
@@ -566,7 +562,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_network_state)
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_const)
-    u32 v;
+    u32 v = 0;
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL))
