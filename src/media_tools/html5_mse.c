@@ -192,8 +192,8 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
 {
     u32 i;
     u32 track_count;
-    double start;
-    double end;
+    double start= 0;
+    double end = 0;
     Bool start_set = GF_FALSE;
     Bool end_set = GF_FALSE;
 
@@ -366,6 +366,8 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
         case MEDIA_SOURCE_ABORT_MODE_OFFSET:
             sb->timestampOffset -= (frame->sl_header.compositionTimeStamp*1.0/track->timescale);
             break;
+        default:
+        	break;
         }
         sb->continuation_timestamp_flag = GF_FALSE;
         sb->abort_mode = MEDIA_SOURCE_ABORT_MODE_NONE;
@@ -557,12 +559,16 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
     }
 }
 
+/*
+FIXME : Unused function, create warnings on debian
 static void gf_mse_source_buffer_append_error(GF_HTML_SourceBuffer *sb)
 {
     sb->updating = GF_FALSE;
     gf_mse_source_buffer_reset_parser(sb);
-    /*TODO: fire events */
+    TODO: fire events
 }
+*/
+
 
 u32 gf_mse_source_buffer_remove(void *par)
 {
@@ -571,14 +577,14 @@ u32 gf_mse_source_buffer_remove(void *par)
     u32                     j;
     u32                     track_count;
     u32                     frame_count;
-    u64                     end;
-    Bool                    end_set;
+    u64                     end = 0;
+    //Bool                    end_set;
 
     track_count = gf_list_count(sb->tracks);
     for (i = 0; i < track_count; i++)
     {
         GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
-        end_set = GF_FALSE;
+        //end_set = GF_FALSE;
 
         /* find the next random access point */
         gf_mx_p(track->buffer_mutex);
@@ -591,7 +597,7 @@ u32 gf_mse_source_buffer_remove(void *par)
                  (j == frame_count - 1))
             {
                 end = frame->sl_header.compositionTimeStamp;
-                end_set = GF_TRUE;
+                //end_set = GF_TRUE;
                 break;
             }
         }
