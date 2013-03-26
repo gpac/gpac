@@ -86,7 +86,6 @@ Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime);
 
 static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 {
-    SMJS_OBJ
     SMJS_ARGS
     GF_SceneGraph *sg;
     GF_JSAPIParam par;
@@ -138,21 +137,16 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
 
 static JSBool SMJS_FUNCTION(mediasource_removeSourceBuffer)
 {
-    SMJS_OBJ
-    SMJS_ARGS
     return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(mediasource_endOfStream)
 {
-    SMJS_OBJ
-    SMJS_ARGS
     return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(media_source_constructor)
 {
-    SMJS_ARGS
     GF_HTML_MediaSource *p;
     SMJS_OBJ_CONSTRUCTOR(&html_media_rt->mediaSourceClass)
 
@@ -353,7 +347,6 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendBuffer)
 static JSBool SMJS_FUNCTION(sourcebuffer_appendStream)
 {
     SMJS_OBJ
-    SMJS_ARGS
     SB_UPDATING_CHECK
     /* TODO */
     return JS_TRUE;
@@ -502,7 +495,6 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_tracks)
 
 static JSBool SMJS_FUNCTION(html_url_createObjectURL)
 {
-    SMJS_OBJ
     SMJS_ARGS
     JSObject    *js_ms;
     GF_HTML_MediaSource *ms;
