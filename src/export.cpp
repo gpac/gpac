@@ -278,6 +278,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_refresh) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_module_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_file_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_module_get_file_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface) )

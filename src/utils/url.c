@@ -335,3 +335,15 @@ Bool gf_url_get_resource_path(const char *sURL, char *res_path)
 	return 0;
 }
 
+
+GF_EXPORT
+Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)
+{
+	strcpy(res_path, sURL);
+	if (sURL[strlen(sURL)-1] == GF_PATH_SEPARATOR){
+		res_path[strlen(sURL)-1] = 0;
+		return GF_TRUE;
+	}
+
+	return GF_FALSE;
+}

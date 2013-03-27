@@ -66,6 +66,7 @@ Bool gf_url_is_local(const char *url);
  \note the returned string must be freed by user
  */
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath);
+
 /*concatenates URL and gets back full URL - returned string must be freed by user*/
 /*!
  *\brief URL concatenation
@@ -109,12 +110,22 @@ const char *gf_url_get_resource_name(const char *url);
 /*!
  *\brief Extract resource path from URL
  *
- *Ectracts the reource path from the URL
+ *Extracts the reource path from the URL
  *\param url input url 
  *\param res_path buffer for resulting path storage
  *\return 1 if path was extracted, 0 if url is a single file name.
  */
 Bool gf_url_get_resource_path(const char *url, char *res_path);
+
+/*!
+ *\brief Remove last delimenter from URL
+ *
+ * Remove last delimenter from URL
+ *\param url input url 
+ *\param res_path buffer for resulting path storage
+ *\return GF_TRUE if delimiter was extracted, otherwise GF_FALSE.
+ */
+Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path);
 
 /*!
  *\brief gets UTC time 
