@@ -513,6 +513,7 @@ struct _object_clock
 	s32 drift;
 	u32 data_timeout;
 	Bool probe_ocr;
+	u32 last_TS_rendered;
 };
 
 /*destroys clock*/
