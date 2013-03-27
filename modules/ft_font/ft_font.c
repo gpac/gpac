@@ -95,9 +95,9 @@ static Bool isBestFontFor(const char * listOfFonts[], const char * currentBestFo
 	for (i = 0 ; listOfFonts[i]; i++){
 		const char * best = listOfFonts[i];
 		if (!stricmp(best, fontName))
-			return 1;
+			return GF_TRUE;
 		if (currentBestFont && !stricmp(best, currentBestFont))
-			return 0;
+			return GF_FALSE;
 	}
 	/* Nothing has been found, the font is the best if none has been choosen before */
 	return currentBestFont == NULL;

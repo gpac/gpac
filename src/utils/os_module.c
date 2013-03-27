@@ -79,13 +79,13 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	const char * error;
 #endif
 
-	if (inst->lib_handle) return 1;
+	if (inst->lib_handle) return GF_TRUE;
 
 	if (inst->ifce_reg) {
 		inst->query_func = (QueryInterfaces) inst->ifce_reg->QueryInterfaces;
 		inst->load_func = (LoadInterface) inst->ifce_reg->LoadInterface;
 		inst->destroy_func = (ShutdownInterface) inst->ifce_reg->ShutdownInterface;
-		return 1;
+		return GF_TRUE;
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->name));
@@ -110,16 +110,16 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #else
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s: error %d\n", path, res));
 #endif
-		return 0;
+		return GF_FALSE;
 	}
 #if defined(_WIN32_WCE)
 	inst->query_func = (QueryInterfaces) GetProcAddress(inst->lib_handle, _T("QueryInterfaces"));
 	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, _T("LoadInterface"));
 	inst->destroy_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, _T("ShutdownInterface"));
 #else
-	inst->query_func = (QueryInterfaces) GetProcAddress(inst->lib_handle, "QueryInterfaces");
-	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, "LoadInterface");
-	inst->destroy_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, "ShutdownInterface");
+	inst->query_func = (QueryInterfaces) GetProcAddress((HMODULE)inst->lib_handle, "QueryInterfaces");
+	inst->load_func = (LoadInterface) GetProcAddress((HMODULE)inst->lib_handle, "LoadInterface");
+	inst->destroy_func = (ShutdownInterface) GetProcAddress((HMODULE)inst->lib_handle, "ShutdownInterface");
 #endif
 
 #else
@@ -149,7 +149,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol ShutdownInterface in module file %s, error is %s\n", path, error));
 #endif
         GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s : DONE\n", inst->name));
-	return 1;
+	return GF_TRUE;
 }
 
 void gf_modules_unload_library(ModuleInstance *inst)
@@ -160,7 +160,7 @@ void gf_modules_unload_library(ModuleInstance *inst)
 		return;
 
 #ifdef WIN32
-	FreeLibrary(inst->lib_handle);
+	FreeLibrary((HMODULE)inst->lib_handle);
 #else
 	dlclose(inst->lib_handle);
 #endif
@@ -187,7 +187,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 
 #endif
 
-	GF_ModuleManager *pm = cbck;
+	GF_ModuleManager *pm = (GF_ModuleManager*)cbck;
 
 	if (strstr(item_name, "nposmozilla")) return 0;
 	if (strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return 0;
@@ -248,7 +248,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	inst->name = gf_strdup(item_name);
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
 	gf_list_add(pm->plug_list, inst);
-	return 0;
+	return GF_FALSE;
 }
 
 static void load_static_modules(GF_ModuleManager *pm)
@@ -257,7 +257,7 @@ static void load_static_modules(GF_ModuleManager *pm)
 	u32 i, count;
 	count = gf_list_count(pm->plugin_registry);
 	for (i=0; i<count; i++) {
-		GF_InterfaceRegister *ifce_reg = gf_list_get(pm->plugin_registry, i);
+		GF_InterfaceRegister *ifce_reg = (GF_InterfaceRegister*)gf_list_get(pm->plugin_registry, i);
 		if (gf_module_is_loaded(pm, (char *) ifce_reg->name) ) continue;
 
 		GF_SAFEALLOC(inst, ModuleInstance);
@@ -279,7 +279,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	load_static_modules(pm);
 
 #ifdef WIN32
-	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dll");
+	gf_enum_directory(pm->dir, GF_FALSE, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
 #if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
 	/*we are in static build for modules by default*/

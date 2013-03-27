@@ -109,6 +109,17 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	GF_ModuleManager *tmp;
 	u32 loadedModules;
 	const char *opt;
+
+	if (!directory){
+		/* Try to resolve directory from config file */
+		directory = gf_cfg_get_key(config, "General", "ModulesDirectory");
+	}
+	
+	if (! directory ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Module directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n"));
+		return NULL;
+	}
+
 	if (!directory || !strlen(directory) || (strlen(directory) > GF_MAX_PATH)){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
 		return NULL;
@@ -137,7 +148,7 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	tmp->cfg = config;
 	opt = gf_cfg_get_key(config, "Systems", "ModuleUnload");
 	if (opt && !strcmp(opt, "no")) {
-		tmp->no_unload = 1;
+		tmp->no_unload = GF_TRUE;
 	}
 	load_all_modules(tmp);
 
@@ -179,6 +190,11 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 	return gf_list_count(pm->plug_list);
 }
 
+GF_EXPORT
+GF_Config *gf_modules_get_cfg(GF_ModuleManager *pm){
+	if (!pm) return NULL;
+	return pm->cfg;
+}
 
 GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily)
@@ -225,7 +241,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	/*build cache*/
 	if (!opt) {
 		u32 i;
-		Bool found = 0;
+		Bool found = GF_FALSE;
 		char *key;
 		const u32 *si = inst->query_func();
 		if (!si) {
@@ -236,13 +252,13 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		i=0;
 		while (si[i]) i++;
 
-		key = gf_malloc(sizeof(char) * 10 * i);
+		key = (char*)gf_malloc(sizeof(char) * 10 * i);
 		key[0] = 0;
 		i=0;
 		while (si[i]) {
 			snprintf(szKey, 32, "%s:yes ", gf_4cc_to_str(si[i]));
 			strcat(key, szKey);
-			if (InterfaceFamily==si[i]) found = 1;
+			if (InterfaceFamily==si[i]) found = GF_TRUE;
 			i++;
 		}
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, key);
