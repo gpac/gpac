@@ -1156,14 +1156,14 @@ int main (int argc, char **argv)
 	user.modules = gf_modules_new(NULL, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
 	if (!i || !user.modules) {
-		fprintf(stderr, "Error: no modules found in %s - exiting\n", str);
+		fprintf(stderr, "Error: no modules found - exiting\n");
 		if (user.modules) gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	fprintf(stderr, "Modules Found (%d in dir %s)\n", i, str);
+	fprintf(stderr, "Modules Found (%d in dir %s)\n", i, gf_modules_get_module_directory(user.modules));
 
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;

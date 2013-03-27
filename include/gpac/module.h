@@ -175,6 +175,7 @@ typedef struct
  *\return the module manager object
 */
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *cfgFile);
+
 /*!
  *\brief module manager destructor
  *
@@ -201,13 +202,13 @@ u32 gf_modules_refresh(GF_ModuleManager *pm);
 u32 gf_modules_get_count(GF_ModuleManager *pm);
 
 /*!
- *\brief get module manager config
+ *\brief get module directory
  *
- * Gets the configuration file for the module manager
+ * Retyrb the module directory path
  *\param pm the module manager
- *\return handle to the config file
+ *\return The modules directory
  */
-GF_Config *gf_modules_get_cfg(GF_ModuleManager *pm);
+const char *gf_modules_get_module_directory(GF_ModuleManager *pm);
 
 /*!
  *\brief get module file name

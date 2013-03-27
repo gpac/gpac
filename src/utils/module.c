@@ -26,6 +26,7 @@
 #include "module_wrap.h"
 #include <gpac/config_file.h>
 #include <gpac/tools.h>
+#include <gpac/network.h>
 
 
 static void load_all_modules(GF_ModuleManager *mgr)
@@ -106,31 +107,21 @@ static void load_all_modules(GF_ModuleManager *mgr)
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
+	const char* dir;
 	GF_ModuleManager *tmp;
 	u32 loadedModules;
 	const char *opt;
 
-	if (!directory){
-		/* Try to resolve directory from config file */
-		directory = gf_cfg_get_key(config, "General", "ModulesDirectory");
-	}
-	
-	if (! directory ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Module directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n"));
-		return NULL;
-	}
+	if (!config) return NULL;
 
-	if (!directory || !strlen(directory) || (strlen(directory) > GF_MAX_PATH)){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
-		return NULL;
-	}
+	/* Try to resolve directory from config file */
 	GF_SAFEALLOC(tmp, GF_ModuleManager);
 	if (!tmp) return NULL;
-	strcpy(tmp->dir, directory);
+	tmp->cfg = config;
+	dir = gf_modules_get_module_directory(tmp);
+	if (!dir) return NULL;
 
-	/*remove the final delimiter*/
-	if (tmp->dir[strlen(tmp->dir)-1] == GF_PATH_SEPARATOR) tmp->dir[strlen(tmp->dir)-1] = 0;
-
+	/* Initialize module list */
 	tmp->plug_list = gf_list_new();
 	if (!tmp->plug_list) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of modules !!!\n"));
@@ -145,7 +136,6 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 		return NULL;
 	}
 
-	tmp->cfg = config;
 	opt = gf_cfg_get_key(config, "Systems", "ModuleUnload");
 	if (opt && !strcmp(opt, "no")) {
 		tmp->no_unload = GF_TRUE;
@@ -180,7 +170,7 @@ Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename)
 	while ( (inst = (ModuleInstance *) gf_list_enum(pm->plug_list, &i) ) ) {
 		if (!strcmp(inst->name, filename)) return 1;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -191,9 +181,27 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 GF_EXPORT
-GF_Config *gf_modules_get_cfg(GF_ModuleManager *pm){
+const char *gf_modules_get_module_directory(GF_ModuleManager *pm){
+	const char* directory;
 	if (!pm) return NULL;
-	return pm->cfg;
+	if (pm->dir) return pm->dir;
+	if (!pm->cfg) return NULL;
+	
+	/* Get directory from config file */
+	directory = gf_cfg_get_key(pm->cfg, "General", "ModulesDirectory");
+	if (! directory || !strlen(directory)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Module directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n"));
+		return NULL;
+	}
+
+	if ((strlen(directory) > GF_MAX_PATH)){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
+		return NULL;
+	}
+
+	gf_url_remove_last_delimiter(directory, pm->dir);
+
+	return pm->dir;
 }
 
 GF_EXPORT
