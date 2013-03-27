@@ -924,8 +924,12 @@ scalable_retry:
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
 			/*in seek don't dispatch any output*/
-			if (drop_late_frames && (mmlevel >= GF_CODEC_LEVEL_DROP))
-				unit_size = 0;
+			if (mmlevel >= GF_CODEC_LEVEL_DROP) {
+				if (drop_late_frames)
+					unit_size = 0;
+				else 
+					ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
+			} 
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
@@ -1017,8 +1021,12 @@ scalable_retry:
 		}
 
 		/*in seek don't dispatch any output*/
-		if (drop_late_frames && (mmlevel >= GF_CODEC_LEVEL_DROP))
-			unit_size = 0;
+		if (mmlevel >= GF_CODEC_LEVEL_DROP) {
+			if (drop_late_frames)
+				unit_size = 0;
+			else 
+				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
+		} 
 
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (!ch || !AU) {

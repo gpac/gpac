@@ -1621,10 +1621,15 @@ Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS)
 GF_EXPORT
 u32 gf_term_get_time_in_ms(GF_Terminal *term)
 {
+	GF_Clock *ck;
 	if (!term || !term->root_scene) return 0;
-	if (term->root_scene->scene_codec && term->root_scene->scene_codec->ck) return gf_clock_ellapse_time(term->root_scene->scene_codec->ck);
-	else if (term->root_scene->dyn_ck) return gf_clock_ellapse_time(term->root_scene->dyn_ck);
-	return 0;
+	ck = NULL;
+	if (term->root_scene->scene_codec && term->root_scene->scene_codec->ck) ck = term->root_scene->scene_codec->ck;
+	else if (term->root_scene->dyn_ck) ck = term->root_scene->dyn_ck;
+
+	if (!ck) return 0;
+	if (ck->last_TS_rendered) return ck->last_TS_rendered;
+	return gf_clock_ellapse_time(ck);
 }
 
 GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
