@@ -2889,7 +2889,7 @@ restart_period:
 			/*refresh MPD*/
 			if (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period)) {
 				u32 diff = gf_sys_clock();
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms ellapsed since last refresh and min reoad rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms elapsed since last refresh and min reoad rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
 				e = gf_dash_update_manifest(dash);
 				group_count = gf_list_count(dash->groups);
 				diff = gf_sys_clock() - diff;
@@ -3035,7 +3035,7 @@ restart_period:
 				if (to_wait > 0) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") is not yet available on server - requesting later in %d s\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, to_wait));
 					if (group->last_segment_time) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms ellapsed since previous segment download\n", clock_time - group->last_segment_time));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 					}
 					gf_mx_v(dash->dl_mutex);
 					if (!min_wait || ((u32) 1000*to_wait < min_wait))
@@ -3044,7 +3044,7 @@ restart_period:
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") should now be available on server since %d sec - requesting it\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, -to_wait));
 					if (group->last_segment_time) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms ellapsed since previous segment download\n", clock_time - group->last_segment_time));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 					}
 					/*check if we are in the segment availability end time*/
 					if (now < segment_ast + (seg_dur_ms + group->time_shift_buffer_depth) /1000 )

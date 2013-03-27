@@ -532,8 +532,8 @@ void gf_clock_reset(GF_Clock *ck);
 void gf_clock_stop(GF_Clock *ck);
 /*return clock time in ms*/
 u32 gf_clock_time(GF_Clock *ck);
-/*return ellapsed time in ms since start of the clock*/
-u32 gf_clock_ellapse_time(GF_Clock *ck);
+/*return elapsed time in ms since start of the clock*/
+u32 gf_clock_elapse_time(GF_Clock *ck);
 /*sets clock time - FIXME: drift updates for OCRs*/
 void gf_clock_set_time(GF_Clock *ck, u32 TS);
 /*return clock time in ms without drift adjustment - used by audio objects only*/

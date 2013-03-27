@@ -3400,7 +3400,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time)
 {
 	Double max_dur = 0;
 	Double safety_dur;
-	Double ms_ellapsed;
+	Double ms_elapsed;
 	u32 i, ntp_sec, frac, prev_sec, prev_frac;
 	const char *opt, *section;
 
@@ -3431,15 +3431,15 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time)
 	if (!max_dur) return 0;
 	gf_net_get_ntp(&ntp_sec, &frac);
 
-	ms_ellapsed = frac;
-	ms_ellapsed -= prev_frac;
-	ms_ellapsed /= 0xFFFFFFFF;
-	ms_ellapsed *= 1000;
-	ms_ellapsed += (ntp_sec - prev_sec)*1000;
+	ms_elapsed = frac;
+	ms_elapsed -= prev_frac;
+	ms_elapsed /= 0xFFFFFFFF;
+	ms_elapsed *= 1000;
+	ms_elapsed += (ntp_sec - prev_sec)*1000;
 
 	/*check if we need to generate */
-	if (ms_ellapsed < (max_dur - safety_dur)*1000 ) {
-		return (u32) (1000*max_dur - ms_ellapsed);
+	if (ms_elapsed < (max_dur - safety_dur)*1000 ) {
+		return (u32) (1000*max_dur - ms_elapsed);
 	}
 	return 0;
 }
@@ -3448,7 +3448,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time)
 static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double dash_duration, u32 ast_shift_sec)
 {
 	Double max_dur = 0;
-	Double ellapsed = 0;
+	Double elapsed = 0;
 	Double safety_dur = MAX(mpd_update_time, (u32) dash_duration);
 	u32 i, ntp_sec, frac, prev_sec;
 	const char *opt, *section;
@@ -3475,20 +3475,20 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 	gf_net_get_ntp(&ntp_sec, &frac);
 
 	if (dash_dynamic==2) {
-		ellapsed = (u32)-1;
+		elapsed = (u32)-1;
 	} else {
-		ellapsed = ntp_sec;
-		ellapsed -= prev_sec;
+		elapsed = ntp_sec;
+		elapsed -= prev_sec;
 		/*check if we need to generate */
-		if (ellapsed < max_dur - safety_dur ) {
+		if (elapsed < max_dur - safety_dur ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
 			return 0;
 		}
-		if (ellapsed > max_dur) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Generating segments and MPD %g seconds too late\n", ellapsed - (u32) max_dur));
+		if (elapsed > max_dur) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Generating segments and MPD %g seconds too late\n", elapsed - (u32) max_dur));
 		} else {
 			/*generate as if max_dur has been reached*/
-			ellapsed = max_dur;
+			elapsed = max_dur;
 		}
 	}
 
@@ -3506,7 +3506,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 			seg_time = atof(MPDTime);
 			seg_time += ast_shift_sec;
 			seg_time += dash_duration + time_shift_depth;
-			seg_time -= ellapsed;
+			seg_time -= elapsed;
 			/*safety gard of one second*/
 			if (seg_time >= -1)
 				break;
