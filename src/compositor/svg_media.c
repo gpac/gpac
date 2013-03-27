@@ -49,9 +49,9 @@ typedef struct
 static Bool svg_video_get_transform_behavior(GF_TraverseState *tr_state, SVGAllAttributes *atts, Fixed *cx, Fixed *cy, Fixed *angle)
 {
 	SFVec2f pt;
-	if (!atts->transformBehavior) return 0;
+	if (!atts->transformBehavior) return GF_FALSE;
 	if (*atts->transformBehavior == SVG_TRANSFORMBEHAVIOR_GEOMETRIC)
-		return 0;
+		return GF_FALSE;
 
 	pt.x = atts->x ? atts->x->value : 0;
 	pt.y = atts->y ? atts->y->value : 0;
@@ -73,7 +73,7 @@ static Bool svg_video_get_transform_behavior(GF_TraverseState *tr_state, SVGAllA
 		*angle = GF_PI/2;
 		break;
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -118,7 +118,7 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 	if (!txwidth || !txheight) return;
 
 	if (!atts.preserveAspectRatio) {
-		pAR.defer = 0;
+		pAR.defer = GF_FALSE;
 		pAR.meetOrSlice = SVG_MEETORSLICE_MEET;
 		pAR.align = SVG_PRESERVEASPECTRATIO_XMIDYMID;
 	} else {
@@ -217,19 +217,19 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 static void svg_play_texture(SVG_video_stack *stack, SVGAllAttributes *atts)
 {
 	SVGAllAttributes all_atts;
-	Bool lock_scene = 0;
+	Bool lock_scene = GF_FALSE;
 	if (stack->txh.is_open) gf_sc_texture_stop(&stack->txh);
 
 	if (!atts) {
 		gf_svg_flatten_attributes((SVG_Element*)stack->txh.owner, &all_atts);
 		atts = &all_atts;
 	}
-	if (atts->syncBehavior) lock_scene = (*atts->syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;
+	if (atts->syncBehavior) lock_scene = (*atts->syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? GF_TRUE : GF_FALSE;
 
 	gf_sc_texture_play_from_to(&stack->txh, &stack->txurl, 
 		atts->clipBegin ? (*atts->clipBegin) : 0.0,
 		atts->clipEnd ? (*atts->clipEnd) : -1.0,
-		0, 
+		GF_FALSE, 
 		lock_scene);
 }
 
@@ -285,7 +285,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			gf_node_unregister(stack->audio, NULL);
 			stack->audio = NULL;
 		}
-		stack->audio_dirty = 1;
+		stack->audio_dirty = GF_TRUE;
 		
 		if (stack->txurl.count) svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
@@ -323,7 +323,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props) && ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {
 			GF_Matrix mx_bck;
-			Bool restore_mx = 0;
+			Bool restore_mx = GF_FALSE;
 
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
@@ -335,7 +335,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 				gf_path_add_rect_center(stack->graph->path, cx, cy, INT2FIX(stack->txh.width), INT2FIX(stack->txh.height));
 
 				gf_mx2d_copy(mx_bck, tr_state->transform);
-				restore_mx = 1;
+				restore_mx = GF_TRUE;
 				
 				gf_mx2d_init(tr_state->transform);
 				gf_mx2d_add_rotation(&tr_state->transform, cx, cy, angle);
@@ -376,7 +376,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		}
 	}
-	if (stack->audio) svg_traverse_audio_ex(stack->audio, rs, 0, tr_state->svg_props);
+	if (stack->audio) svg_traverse_audio_ex(stack->audio, rs, GF_FALSE, tr_state->svg_props);
 
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
@@ -392,10 +392,10 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 
 	/*setup texture if needed*/
 	if (!txh->is_open && txurl->count) {
-		gf_sc_texture_play_from_to(txh, txurl, 0, -1, 0, 0);
+		gf_sc_texture_play_from_to(txh, txurl, 0, -1, GF_FALSE, GF_FALSE);
 	}
 
-	gf_sc_texture_update_frame(txh, 0);
+	gf_sc_texture_update_frame(txh, GF_FALSE);
 	/*URL is present but not opened - redraw till fetch*/
 	if (txh->stream && (!txh->tx_io || txh->needs_refresh) ) {
 		/*mark all subtrees using this image as dirty*/
@@ -422,7 +422,7 @@ void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 	stack->txh.flags = GF_SR_TEXTURE_SVG;
 
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_image);
@@ -442,7 +442,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 
 		init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
-		if (gf_node_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, GF_FALSE, GF_FALSE, &init_vis_info) == GF_OK) {
 			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
 		}
 
@@ -455,17 +455,17 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	} 
 
 	/*when fetching the first frame disable resync*/
-	gf_sc_texture_update_frame(txh, 0);
+	gf_sc_texture_update_frame(txh, GF_FALSE);
 
 	/* only when needs_refresh = 1, first frame is fetched */
 	if (!stack->first_frame_fetched) {
 		if (txh->needs_refresh) {
-			stack->first_frame_fetched = 1;
+			stack->first_frame_fetched = GF_TRUE;
 			/*stop stream if needed*/
 			if (!gf_smil_timing_is_active(txh->owner)) {
 				gf_sc_texture_stop(txh);
 				//make sure the refresh flag is not cleared
-				txh->needs_refresh = 1;
+				txh->needs_refresh = GF_TRUE;
 			}
 		}
 	}
@@ -473,17 +473,17 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	if (!stack->audio && stack->audio_dirty) {
 		u32 res = gf_mo_has_audio(stack->txh.stream);
 		if (res != 2) {
-			stack->audio_dirty = 0;
+			stack->audio_dirty = GF_FALSE;
 			if (res) {
 				GF_FieldInfo att_vid, att_aud;
 				stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
 				gf_node_register(stack->audio, NULL);
-				if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
-					gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
-					gf_svg_attributes_copy(&att_aud, &att_vid, 0);
+				if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, GF_FALSE, GF_FALSE, &att_vid)==GF_OK) {
+					gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &att_aud);
+					gf_svg_attributes_copy(&att_aud, &att_vid, GF_FALSE);
 				}
 				/*BYPASS SMIL TIMING MODULE!!*/
-				compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
+				compositor_init_svg_audio(stack->txh.compositor, stack->audio, GF_TRUE);
 			}
 		}
 	}
@@ -495,7 +495,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		gf_sc_invalidate(txh->compositor, NULL);
 
 	if (stack->stop_requested) {
-		stack->stop_requested = 0;
+		stack->stop_requested = GF_FALSE;
 		gf_sc_texture_stop(&stack->txh);
 	}
 }
@@ -522,7 +522,7 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
 	case SMIL_TIMING_EVAL_REMOVE:
-		stack->stop_requested = 1;
+		stack->stop_requested = GF_TRUE;
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
 		gf_sc_texture_restart(&stack->txh);
@@ -549,7 +549,7 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 	stack->txh.flags = GF_SR_TEXTURE_SVG;
 
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 
 	gf_smil_set_evaluation_callback(node, svg_video_smil_evaluate);
 
@@ -583,7 +583,7 @@ void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
 			gf_sc_texture_stop(&st->txh);
 		}
 	}
-	gf_node_dirty_set(node, 0, 0);
+	gf_node_dirty_set(node, 0, GF_FALSE);
 	/*and force a redraw of next frame*/
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 }
@@ -614,10 +614,10 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 		if (!stack->is_active && !stack->is_error) { 
 			if (stack->aurl.count) {
 				SVGAllAttributes atts;
-				Bool lock_timeline = 0;
+				Bool lock_timeline = GF_FALSE;
 				gf_svg_flatten_attributes((SVG_Element*) (video ? video : audio), &atts);
 
-				if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;		
+				if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? GF_TRUE : GF_FALSE;
 
 				if (gf_sc_audio_open(&stack->input, &stack->aurl,
 						atts.clipBegin ? (*atts.clipBegin) : 0.0,
@@ -625,9 +625,9 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 						lock_timeline) == GF_OK) 
 				{
 					gf_mo_set_speed(stack->input.stream, FIX_ONE);
-					stack->is_active = 1;
+					stack->is_active = GF_TRUE;
 				} else {
-					stack->is_error = 1;
+					stack->is_error = GF_TRUE;
 				}
 			}
 		}
@@ -646,17 +646,17 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
 		gf_sc_audio_stop(&stack->input);
-		stack->is_active = 0;
+		stack->is_active = GF_FALSE;
 		break;
 	case SMIL_TIMING_EVAL_REMOVE:
 		gf_sc_audio_stop(&stack->input);
-		stack->is_active = 0;
+		stack->is_active = GF_FALSE;
 		break;
 	case SMIL_TIMING_EVAL_DEACTIVATE:
 		if (stack->is_active) {
 			gf_sc_audio_stop(&stack->input);
 			gf_sc_audio_unregister(&stack->input);
-			stack->is_active = 0;
+			stack->is_active = GF_FALSE;
 		}
 		break;
 	}
@@ -697,17 +697,17 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		SVGAllAttributes atts;
-		Bool lock_timeline = 0;
+		Bool lock_timeline = GF_FALSE;
 		if (stack->is_active) 
 			gf_sc_audio_stop(&stack->input);
 
-		stack->is_error = 0;
+		stack->is_error = GF_FALSE;
 		
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
 
 		gf_svg_flatten_attributes((SVG_Element*) node, &atts);
-		if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;		
+		if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? GF_TRUE : GF_FALSE;
 
 		if (stack->aurl.count && (gf_sc_audio_open(&stack->input, &stack->aurl,
 				atts.clipBegin ? (*atts.clipBegin) : 0.0,
@@ -716,20 +716,20 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 
 		) {
 			gf_mo_set_speed(stack->input.stream, FIX_ONE);
-			stack->is_active = 1;
+			stack->is_active = GF_TRUE;
 		} else if (stack->is_active) {
 			gf_sc_audio_unregister(&stack->input);
-			stack->is_active = 0;
+			stack->is_active = GF_FALSE;
 		}
 	}
 
 	/*store mute flag*/
-	stack->input.is_muted = 0;
+	stack->input.is_muted = GF_FALSE;
 	if (tr_state->switched_off
 		|| compositor_svg_is_display_off(props)
 		|| (*(props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
 	
-		stack->input.is_muted = 1;
+		stack->input.is_muted = GF_TRUE;
 	}
 
 	stack->input.intensity = tr_state->svg_props->computed_audio_level;
@@ -752,7 +752,7 @@ void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool sl
 	gf_sc_audio_setup(&stack->input, compositor, node);
 
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 
 	if (!slaved_timing) 
 		gf_smil_set_evaluation_callback(node, svg_audio_smil_evaluate);
@@ -793,8 +793,8 @@ static void svg_updates_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_sce
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->is_open) { 
-			if (stack->resource ) gf_mo_play(stack->resource, stack->clipBegin, stack->clipEnd, 0);
-			stack->is_open = 1;
+			if (stack->resource ) gf_mo_play(stack->resource, stack->clipBegin, stack->clipEnd, GF_FALSE);
+			stack->is_open = GF_TRUE;
 		}
 		else if (gf_mo_is_done(stack->resource) && (gf_smil_get_media_duration(rti)<0) ) { 
 			Double dur = gf_mo_get_duration(stack->resource);
@@ -803,8 +803,8 @@ static void svg_updates_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_sce
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
 	case SMIL_TIMING_EVAL_REMOVE:
-		stack->is_open = 0;
-		gf_mo_set_flag(stack->resource, GF_MO_DISPLAY_REMOVE, 1);
+		stack->is_open = GF_FALSE;
+		gf_mo_set_flag(stack->resource, GF_MO_DISPLAY_REMOVE, GF_TRUE);
 		gf_mo_stop(stack->resource);
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
@@ -825,7 +825,7 @@ static void svg_traverse_updates(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		if (stack->resource) {
 			if (stack->is_open) {
-				gf_mo_set_flag(stack->resource, GF_MO_DISPLAY_REMOVE, 1);
+				gf_mo_set_flag(stack->resource, GF_MO_DISPLAY_REMOVE, GF_TRUE);
 				gf_mo_stop(stack->resource);
 			}
 			gf_mo_unregister(node, stack->resource);
@@ -848,15 +848,15 @@ static void svg_traverse_updates(GF_Node *node, void *rs, Bool is_destroy)
 		if (dirty_flags & GF_SG_SVG_XLINK_HREF_DIRTY) {
 			GF_MediaObject *new_res;
 			MFURL url;
-			Bool lock_timeline=0;
+			Bool lock_timeline=GF_FALSE;
 			url.vals = NULL;
 			url.count = 0;
 
-			if (all_atts.syncBehavior) lock_timeline = (*all_atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;		
+			if (all_atts.syncBehavior) lock_timeline = (*all_atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? GF_TRUE : GF_FALSE;
 
 			gf_term_get_mfurl_from_xlink(node, &url);
 
-			new_res = gf_mo_register(node, &url, lock_timeline, 0);
+			new_res = gf_mo_register(node, &url, lock_timeline, GF_FALSE);
 			gf_sg_mfurl_del(url);
 			
 			if (stack->resource!=new_res) {
@@ -865,7 +865,7 @@ static void svg_traverse_updates(GF_Node *node, void *rs, Bool is_destroy)
 					gf_mo_unregister(node, stack->resource);
 				}
 				stack->resource = new_res;
-				if (stack->resource && stack->is_open) gf_mo_play(stack->resource, stack->clipBegin, stack->clipEnd, 0);
+				if (stack->resource && stack->is_open) gf_mo_play(stack->resource, stack->clipBegin, stack->clipEnd, GF_FALSE);
 			}
 		}
 		gf_node_dirty_clear(node, 0);
@@ -880,7 +880,7 @@ void compositor_init_svg_updates(GF_Compositor *compositor, GF_Node *node)
 	GF_SAFEALLOC(stack, SVG_updates_stack)
 
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 
 	gf_smil_set_evaluation_callback(node, svg_updates_smil_evaluate);
 
