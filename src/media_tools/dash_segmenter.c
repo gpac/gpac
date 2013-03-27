@@ -1031,7 +1031,7 @@ restart_fragmentation_pass:
 				if (next) {
 					defaultDuration = (u32) (next->DTS - sample->DTS);
 				} else {
-					defaultDuration = tf->DefaultDuration;
+ 					defaultDuration = (u32) (gf_isom_get_media_duration(input, tf->OriginalTrack)- sample->DTS);
 				}
 
 				if (tf->splitable) {
@@ -1043,12 +1043,18 @@ restart_fragmentation_pass:
 							defaultDuration = (u32) (tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / 1000 - tf->FragmentLength);
 							split_sample_duration -= defaultDuration;
 						}
-					} else if (tfref/*set to NULL after the last sample of tfref is processed*/ && next
-								&& ((tf->next_sample_dts + 1/*accuracy*/  ) * tfref_timescale < tfref->next_sample_dts * tf->TimeScale)
+					} else if (tfref /* tfref set to NULL after the last sample of tfref is processed */ 
+								/*&& next do not split if no next sample */
+
+								/*next sample DTS */
+//								&& ((tf->next_sample_dts /*+ 1 accuracy*/  ) * tfref_timescale < tfref->next_sample_dts * tf->TimeScale)
 								&& ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
 						defaultDuration = (u32) ( (tfref->next_sample_dts * tf->TimeScale)/tfref_timescale - tf->next_sample_dts );
 						split_sample_duration -= defaultDuration;
+
+						/*since we split this sample we have to stop fragmenting afterwards*/
+						stop_frag = GF_TRUE;
 					}
 				}
 
@@ -1184,7 +1190,7 @@ restart_fragmentation_pass:
 				/*do not abort fragment if ref track is done, put everything in the last fragment*/
 				else if (!flush_all_samples) {
 					/*fragmenting on "non-clock" track: drift control*/
-					if ((tf->next_sample_dts+1/*accuracy*/) * tfref_timescale >= ref_track_next_cts * tf->TimeScale)
+					if ((tf->next_sample_dts /*+1 accuracy*/) * tfref_timescale >= ref_track_next_cts * tf->TimeScale)
 						stop_frag = GF_TRUE;
 				}
 

@@ -904,8 +904,8 @@ void gf_scene_set_duration(GF_Scene *scene)
 		GF_Event evt;
 		evt.type = GF_EVENT_DURATION;
 		evt.duration.duration = dur;
-		evt.duration.can_seek = !(scene->root_od->flags & GF_ODM_NO_TIME_CTRL);
-		if (dur<2.0) evt.duration.can_seek = 0;
+		evt.duration.can_seek = (scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ? GF_FALSE : GF_TRUE;
+		if (dur<1.0) evt.duration.can_seek = 0;
 		gf_term_send_event(scene->root_od->term,&evt);
 	}
 
@@ -1368,20 +1368,20 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 {
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
-	gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
 	
+	gf_sc_lock(scene->root_od->term->compositor, 1);
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing scene size to %d x %d\n", width, height));
 	
 	if (scene->root_od->term->root_scene == scene) {
 		GF_NetworkCommand com;
-
-		gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 		gf_term_service_command(scene->root_od->net_service, &com);
 
 		if (com.par.width && com.par.height) {
+			gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
 			if (!scene->force_size_set) {
 				gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
 				scene->force_size_set = 1;
@@ -1390,6 +1390,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			}
 		} else {
 			/*need output resize*/
+			gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
 			gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 			gf_sc_set_size(scene->root_od->term->compositor, width, height);
 		}
@@ -1403,12 +1404,15 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			}
 		}
 	}
-
-	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
+	gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);
 #endif
+
+	gf_sc_lock(scene->root_od->term->compositor, 0);
+
+	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
 }
 
 

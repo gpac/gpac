@@ -7,6 +7,7 @@
 #include <direct.h>
 #include "MainFrm.h"
 #include "OpenUrl.h"
+#include "resource.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -431,6 +432,8 @@ BOOL Osmo4::InitInstance()
 	CMainFrame* pFrame = new CMainFrame;
 	m_pMainWnd = pFrame;
 	pFrame->LoadFrame(IDR_MAINFRAME, WS_OVERLAPPEDWINDOW | FWS_ADDTOTITLE, NULL, NULL);
+	pFrame->LoadAccelTable( MAKEINTRESOURCE(IDR_MAINACCEL));
+
 	m_pMainWnd->DragAcceptFiles();
 
 	if (m_SingleInstance) static_gpac_hwnd = m_pMainWnd->m_hWnd;
@@ -528,7 +531,7 @@ BOOL Osmo4::InitInstance()
 #endif
 
 		sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "StartupFile");
-		if (sOpt) gf_term_connect(m_term, sOpt);
+		if (sOpt && !strstr(sOpt, "gui") ) gf_term_connect(m_term, sOpt);
 	}
 	pFrame->SetFocus();
 	pFrame->SetForegroundWindow();

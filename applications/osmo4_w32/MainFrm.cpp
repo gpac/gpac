@@ -186,9 +186,6 @@ CMainFrame::~CMainFrame()
 	delete m_pWndView;
 }
 
-
-
-
 #define RTI_TIMER	22
 #define RTI_REFRESH_MS		500
 

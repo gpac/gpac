@@ -9,8 +9,6 @@
 //
 #include "afxres.h"
 
-#include <gpac/version.h>
-
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -32,7 +30,7 @@ IDR_MAINFRAME MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open File\tCtrl+O",          ID_FILEOPEN
+        MENUITEM "&Open File\tCtrl+O",          ID_OPENFILE
         MENUITEM "Open &URL\tCtrl+U",           ID_OPEN_URL
         MENUITEM SEPARATOR
         MENUITEM "File Propert&ies\tCtrl+I",    ID_FILE_PROP
@@ -198,12 +196,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Osmo4-GPAC"
-            VALUE "FileVersion", GPAC_VERSION
+            VALUE "FileVersion", "0.5.1-DEV"
             VALUE "InternalName", "Osmo4"
             VALUE "LegalCopyright", "Copyright (C) Telecom ParisTech 2005-2012"
             VALUE "OriginalFilename", "Osmo4.EXE"
             VALUE "ProductName", "Osmo4-GPAC"
-            VALUE "ProductVersion", GPAC_VERSION
+            VALUE "ProductVersion", "0.5.1-DEV"
         END
     END
     BLOCK "VarFileInfo"
@@ -516,7 +514,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Presentation Properties"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    CONTROL         "Tree1",IDC_ODTREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | WS_BORDER | WS_TABSTOP | 0x400,2,2,120,114
+    CONTROL         "Tree1",IDC_ODTREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | TVS_SINGLEEXPAND | WS_BORDER | WS_TABSTOP,2,2,120,114
     EDITTEXT        IDC_ODINFO,123,17,213,130,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_OEMCONVERT | ES_READONLY | WS_VSCROLL | WS_HSCROLL,WS_EX_DLGMODALFRAME | WS_EX_STATICEDGE
     PUSHBUTTON      "Get World Info",IDC_WORLD,2,118,119,13
     PUSHBUTTON      "View Scene Graph",IDC_VIEWSG,2,134,119,13
@@ -843,6 +841,22 @@ BEGIN
     IDC_LOG_LEVEL, 0x403, 6, 0
 0x6544, 0x7562, 0x0067, 
     0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINACCEL ACCELERATORS 
+BEGIN
+    "^O",           ID_FILEOPEN,            ASCII,  NOINVERT
+    "^U",           ID_OPEN_URL,            ASCII,  NOINVERT
+    "\t",           ID_FILE_PROP,           ASCII,  NOINVERT
+    "^L",           ID_VIEW_PL,             ASCII,  NOINVERT
+    "^P",           ID_FILE_PLAY,           ASCII,  NOINVERT
+    "^S",           ID_FILE_STEP,           ASCII,  NOINVERT
 END
 
 #endif    // Français (France) resources
