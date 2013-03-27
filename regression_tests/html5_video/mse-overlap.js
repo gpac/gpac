@@ -31,7 +31,7 @@ function addMediaToTimelineAndPlay(sb, i)
                 this.sb.timestampOffset = this.timeOffset;
                 this.sb.appendBuffer(this.response);
                 if (this.index < medias.length) {
-                    addMediaToTimelineAndPlay(sb, this.index+1);
+                    addMediaToTimelineAndPlay(this.sb, this.index+1);
                 } else {
                     this.sb.v.play();
                 }
