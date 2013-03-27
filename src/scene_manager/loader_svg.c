@@ -1712,7 +1712,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 			}
 		}
 		parser->current_ns = top->current_ns;
-		if (top->has_ns) gf_xml_pop_namespaces(top->node);
+		//if (top->has_ns) gf_xml_pop_namespaces(top->node);
 		gf_free(top);
 		gf_list_rem_last(parser->node_stack);
 
