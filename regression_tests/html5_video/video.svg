@@ -8,8 +8,7 @@
   <!-- Displaying info -->
   <g id="t" transform="translate(10, 60)"/>
 
-  <!-- the video element needs an empty xlink:href attribute to work around a GPAC parsing bug -->
-  <video id="v" y="100" width="800" height="600" xlink:href=""/>
+  <video id="v" y="100" width="800" height="600"/>
 
   <!-- Fake animation to trigger periodic events (no support for setTimeout in GPAC) -->
   <g>

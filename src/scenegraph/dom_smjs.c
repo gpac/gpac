@@ -1864,16 +1864,10 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 	return;
 }
 
-void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
+void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 {
 	GF_FieldInfo info;
 	u32 anim_value_type = 0;
-	u32 ns_code = 0;
-	if (ns) {
-		ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
-	} else {
-		ns_code = gf_xml_get_element_namespace(n);
-	}
 
 	if (!strcmp(name, "attributeName")) {
 		if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_attributeName, GF_FALSE, GF_FALSE, &info) == GF_OK) {
@@ -1953,6 +1947,17 @@ void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
 		dom_node_changed(n, GF_FALSE, &info);
 		return;
 	}
+}
+
+void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
+{
+	u32 ns_code = 0;
+	if (ns) {
+		ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
+	} else {
+		ns_code = gf_xml_get_element_namespace(n);
+	}
+	gf_svg_set_attributeNS(n, ns_code, name, val);
 }
 
 JSBool SMJS_FUNCTION(xml_element_set_attribute)
