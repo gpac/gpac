@@ -66,7 +66,7 @@ void dom_document_finalize(JSContext *c, JSObject *obj);
 char *js_get_utf8(jsval val);
 
 
-void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val);
+void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val);
 
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 
@@ -482,7 +482,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_src)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/1999/xlink", "href", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_XLINK, "href", str);
     }
     return JS_TRUE;
 }
@@ -502,7 +502,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_cors)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "crossorigin", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "crossorigin", str);
     }
     return JS_TRUE;
 }
@@ -621,7 +621,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_preload)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "preload", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "preload", str);
     }
     return JS_TRUE;
 }
@@ -779,7 +779,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_autoplay)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "autoplay", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "autoplay", str);
     }
     return JS_TRUE;
 }
@@ -807,7 +807,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_loop)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "loop", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "loop", str);
         //TODO: use gf_mo_get_loop
     }
     return JS_TRUE;
@@ -828,7 +828,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_mediagroup)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "mediagroup", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "mediagroup", str);
     }
     return JS_TRUE;
 }
@@ -869,7 +869,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_controls)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "controls", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "controls", str);
     }
     return JS_TRUE;
 }
@@ -976,7 +976,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_default_muted)
     HTML_MEDIA_JS_START
     if (JSVAL_CHECK_STRING(*vp)) {
         char *str = SMJS_CHARS(c, *vp);
-        gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "muted", str);
+        gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "muted", str);
     }
     return JS_TRUE;
 }
@@ -1254,7 +1254,7 @@ static SMJS_FUNC_PROP_SET(html_video_set_property)
         case HTML_VIDEO_PROP_POSTER:
             {
                 char *str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, *vp) );
-                gf_svg_set_attribute(n, "http://www.w3.org/2000/svg", "poster", str);
+                gf_svg_set_attributeNS(n, GF_XMLNS_SVG, "poster", str);
                 SMJS_FREE(c, str);
                 return JS_TRUE;
             }
