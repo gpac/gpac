@@ -204,7 +204,7 @@ u32 gf_modules_get_count(GF_ModuleManager *pm);
 /*!
  *\brief get module directory
  *
- * Retyrb the module directory path
+ * Return the module directory path
  *\param pm the module manager
  *\return The modules directory
  */
