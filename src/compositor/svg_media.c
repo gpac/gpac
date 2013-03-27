@@ -331,7 +331,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			if (!ctx || !ctx->aspect.fill_texture ) return;
 
 			if (svg_video_get_transform_behavior(tr_state, &all_atts, &cx, &cy, &angle)) {
-				drawable_reset_path(stack->graph);			
+				drawable_reset_path(stack->graph);
 				gf_path_add_rect_center(stack->graph->path, cx, cy, INT2FIX(stack->txh.width), INT2FIX(stack->txh.height));
 
 				gf_mx2d_copy(mx_bck, tr_state->transform);
@@ -559,7 +559,7 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 
 void svg_pause_video(GF_Node *n, Bool pause)
 {
-	SVG_video_stack *st = gf_node_get_private(n);
+	SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(n);
 	if (!st) return;
 	if (pause) gf_mo_pause(st->txh.stream);
 	else gf_mo_resume(st->txh.stream);
@@ -570,7 +570,7 @@ void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
 	/*if href has been modified, stop the video (and associated audio if any) right away - we cannot wait for next traversal to
 	process this as the video could be in a hidden subtree not traversed*/
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
-		SVG_video_stack *st = gf_node_get_private(node);
+		SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(node);
 		/*WARNING - stack may be NULL at this point when inserting the video from script*/
 		if (st && st->txh.is_open) {
 			if (st->audio) {
@@ -763,7 +763,7 @@ void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool sl
 
 void svg_pause_audio(GF_Node *n, Bool pause)
 {
-	SVG_audio_stack *st = gf_node_get_private(n);
+	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(n);
 	if (!st) return;
 	if (pause) gf_mo_pause(st->input.stream);
 	else gf_mo_resume(st->input.stream);
