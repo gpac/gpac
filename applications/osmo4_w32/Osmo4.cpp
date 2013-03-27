@@ -435,8 +435,7 @@ BOOL Osmo4::InitInstance()
 
 	if (m_SingleInstance) static_gpac_hwnd = m_pMainWnd->m_hWnd;
 
-	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	m_user.modules = gf_modules_new(str, m_user.config);
+	m_user.modules = gf_modules_new(NULL, m_user.config);
 	if (!m_user.modules || ! gf_modules_get_count(m_user.modules) ) {
 		MessageBox(NULL, "No modules available - system cannot work", "Fatal Error", MB_OK);
 		m_pMainWnd->PostMessage(WM_CLOSE);
@@ -461,7 +460,7 @@ BOOL Osmo4::InitInstance()
 	}
 
 	/*check log file*/
-	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	const char *str = gf_cfg_get_key(m_user.config, "General", "LogFile");
 	if (str) {
 		m_logs = gf_f64_open(str, "wt");
 		gf_log_set_callback(m_logs, osmo4_do_log);

@@ -1365,15 +1365,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	disp_h = screen_h;
 #endif
 
-	str = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
-	if (!str) {
-		gf_cfg_del(user.config);
-		MessageBox(NULL, _T("Couldn't locate GPAC plugins"), _T("Fatal Error"), MB_OK);
-		return 0;
-	}
-
 	gf_sys_init(GF_FALSE);
-	user.modules = gf_modules_new(str, user.config);
+	user.modules = gf_modules_new(NULL, user.config);
 	if (!gf_modules_get_count(user.modules)) {
 		MessageBox(GetForegroundWindow(), _T("No modules found"), _T("GPAC Init Error"), MB_OK);
 		gf_modules_del(user.modules);

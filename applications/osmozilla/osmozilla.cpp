@@ -216,8 +216,7 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 		return 0;
 	}
 
-	str = gf_cfg_get_key(osmo->user->config, "General", "ModulesDirectory");
-	osmo->user->modules = gf_modules_new(str, osmo->user->config);
+	osmo->user->modules = gf_modules_new(NULL, osmo->user->config);
 	if (!gf_modules_get_count(osmo->user->modules)) {
 		if (osmo->user->modules) gf_modules_del(osmo->user->modules);
 		gf_free(osmo->user);
