@@ -1629,7 +1629,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 
 	if (!ck) return 0;
 	if (ck->last_TS_rendered) return ck->last_TS_rendered;
-	return gf_clock_ellapse_time(ck);
+	return gf_clock_elapse_time(ck);
 }
 
 GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)

@@ -467,7 +467,7 @@ static void layout_setup_scroll_bounds(LayoutStack *st, M_Layout *l)
 static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout *l)
 {
 	u32 i, nb_lines;
-	Fixed scrolled, rate, ellapsed, scroll_diff;
+	Fixed scrolled, rate, elapsed, scroll_diff;
 	Bool smooth, do_scroll, stop_anim;
 	Double time = 0;
 	ChildGroup *cg;
@@ -526,8 +526,8 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 		}
 
 		/*compute advance in pixels for smooth scroll*/
-		ellapsed = FLT2FIX((Float) (time - st->start_time));
-		scrolled = gf_mulfix(ellapsed, rate);
+		elapsed = FLT2FIX((Float) (time - st->start_time));
+		scrolled = gf_mulfix(elapsed, rate);
 	}
 
 	smooth = l->smoothScroll;
