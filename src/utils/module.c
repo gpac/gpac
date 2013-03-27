@@ -184,7 +184,7 @@ GF_EXPORT
 const char *gf_modules_get_module_directory(GF_ModuleManager *pm){
 	const char* directory;
 	if (!pm) return NULL;
-	if (pm->dir) return pm->dir;
+	if (strlen(pm->dir) > 0 ) return pm->dir;
 	if (!pm->cfg) return NULL;
 	
 	/* Get directory from config file */
