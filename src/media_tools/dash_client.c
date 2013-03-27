@@ -3481,6 +3481,12 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			return GF_REMOTE_SERVICE_ERROR;
 		}
 
+		/*if relocated use new URL as base URL for all requests*/
+		if (strcmp(reloc_url, manifest_url)) {
+			gf_free(dash->base_url);
+			dash->base_url = gf_strdup(reloc_url);
+		}
+
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
 		if (!local_url) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: cache problem %s\n", local_url));

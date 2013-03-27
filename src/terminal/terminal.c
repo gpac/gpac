@@ -979,7 +979,7 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 				if (!ck) return GF_STATE_PAUSED;
 			}
 			if (ck->Buffering)
-				return GF_STATE_STEP_PAUSE;
+				return GF_STATE_PLAYING;
 		}
 		if (term->play_state != GF_STATE_PLAYING) return GF_STATE_PAUSED;
 		return GF_STATE_PLAYING;

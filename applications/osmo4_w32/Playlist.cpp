@@ -289,7 +289,7 @@ void Playlist::Clear()
 
 void Playlist::ClearButPlaying()
 {
-	PLEntry *p;
+	PLEntry *p=NULL;
 	if (m_cur_entry>=0) p = (PLEntry *) gf_list_get(m_entries, m_cur_entry);
 	if (p) gf_list_rem(m_entries, m_cur_entry);
 
@@ -890,9 +890,14 @@ void Playlist::QueueURL(CString filename)
 
 void Playlist::PlayNext()
 {
+	s32 count = (s32)gf_list_count(m_entries);
+
 	RefreshCurrent();
-	if (1+m_cur_entry < (s32)gf_list_count(m_entries)) {
+	if (1+m_cur_entry < count) {
 		m_cur_entry++;
+		Play();
+	} else if ((1+m_cur_entry == count) && GetApp()->m_Loop) {
+		m_cur_entry=0;
 		Play();
 	}
 }

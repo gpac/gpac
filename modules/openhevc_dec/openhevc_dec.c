@@ -283,6 +283,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 					got_pic = libDecoderDecode(ptr, nalu_size, &temp_id);
 #else
 					got_pic = libOpenHevcDecode(ptr, nalu_size);
+					
 #endif
 
 					/*the HM is a weird beast: 
@@ -302,6 +303,9 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				} else {
 #ifdef HM
 					libDecoderDecode(ptr, nalu_size, &temp_id);
+#else
+//					libOpenHevcDecode(ptr, nalu_size);
+//					printf("%d bytes left over from frame - nal type %d\n", nalu_size, (ptr[0] & 0x7E) >> 1 );
 #endif
 				}
 			}
