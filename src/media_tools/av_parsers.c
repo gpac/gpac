@@ -3380,7 +3380,8 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	pps->slice_segment_header_extension_present_flag = gf_bs_read_int(bs, 1);
 	if ( /*pps_extension_flag= */gf_bs_read_int(bs, 1) ) {
 		while (gf_bs_available(bs) ) {
-			/*pps_extension_data_flag */	gf_bs_read_int(bs, 1);
+			/*pps_extension_data_flag */
+			gf_bs_read_int(bs, 1);
 		}
 	}
 
