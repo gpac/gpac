@@ -115,6 +115,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/m3u8.c \
 	../../../../src/media_tools/ait.c \
 	../../../../src/media_tools/dsmcc.c \
+	../../../../src/media_tools/html5_media.c \
+	../../../../src/media_tools/html5_mse.c \
 	../../../../src/laser/lsr_tables.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
@@ -264,6 +266,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/scenegraph/smil_timing.c \
 	../../../../src/scenegraph/vrml_script.c \
 	../../../../src/scenegraph/vrml_proto.c \
+	../../../../src/scenegraph/html5_media_smjs.c \
+	../../../../src/scenegraph/html5_mse_smjs.c \
 	../../../../src/odf/ipmpx_dump.c \
 	../../../../src/odf/odf_code.c \
 	../../../../src/odf/desc_private.c \
