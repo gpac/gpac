@@ -1022,7 +1022,7 @@ scalable_retry:
 
 		/*in seek don't dispatch any output*/
 		if (mmlevel >= GF_CODEC_LEVEL_DROP) {
-			if (drop_late_frames)
+			if (drop_late_frames || (mmlevel == GF_CODEC_LEVEL_SEEK) )
 				unit_size = 0;
 			else 
 				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
