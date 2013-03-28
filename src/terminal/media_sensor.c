@@ -143,6 +143,9 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 	if (!ms_count) return;
 	
 	time = odm->current_time / 1000.0;
+	//dirty hack to get timing of frame when very late (openhevc debug)
+	if (odm->subscene && odm->subscene->dyn_ck && odm->subscene->dyn_ck->last_TS_rendered)
+		time = odm->subscene->dyn_ck->last_TS_rendered / 1000.0;
 
 	for (j=0; j<ms_count; j++) {
 		MediaSensorStack *media_sens = (MediaSensorStack *)gf_list_get(odm->ms_stack, j);

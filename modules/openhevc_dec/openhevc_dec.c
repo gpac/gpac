@@ -50,21 +50,18 @@ typedef struct
 
 	u32 nalu_size_length;
 	u32 had_pic;
+
+	Bool reset_dec_on_seek;
+
+	GF_ESD *esd;
 } HEVCDec;
 
-static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
-	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
-
-	/*that's a bit crude ...*/
-	gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames", "yes");
-
-	/*not supported in this version*/
-	if (esd->dependsOnESID) return GF_NOT_SUPPORTED;
-	
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = 0;
-
+	ctx->state_found = 0;
+	
 #ifdef HM
 	libDecoderInit();
 #else
@@ -109,6 +106,31 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 	return GF_OK;
 }
+
+
+static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+{
+	const char *sOpt;
+	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
+
+	/*that's a bit crude ...*/
+	gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames", "yes");
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek");
+	if (!sOpt) {
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek", "yes");
+		ctx->reset_dec_on_seek = 1;
+	} else if (!strcmp(sOpt, "yes")) {
+		ctx->reset_dec_on_seek = 1;
+	}
+
+	/*not supported in this version*/
+	if (esd->dependsOnESID) return GF_NOT_SUPPORTED;
+
+	ctx->esd = esd;
+	return HEVC_ConfigureStream(ctx, esd);
+}
+
 
 static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
@@ -156,7 +178,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = 4;
+		capability->cap.valueInt = 2;
 		break;
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 32;
@@ -202,20 +224,32 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 
 
 	if (!inBuffer) {
-		int flushed;
+		/*because of some seeking bugs, we destroy the context and reinit when we see a flush ... */
+		if (ctx->reset_dec_on_seek) {
+			*outBufferLength = 0;
+#ifdef HM
+			libDecoderClose();
+#else
+			libOpenHevcClose();
+#endif
+			return HEVC_ConfigureStream(ctx, ctx->esd);
+		} else {
+			int flushed;
 		
-		pY = outBuffer;
-		pU = outBuffer + ctx->stride * ctx->height;
-		pV = outBuffer + 5*ctx->stride * ctx->height/4;
-//		return GF_OK;
+			pY = outBuffer;
+			pU = outBuffer + ctx->stride * ctx->height;
+			pV = outBuffer + 5*ctx->stride * ctx->height/4;
 
 #ifdef HM
-		flushed = libDecoderGetOuptut(0, pY, pU, pV, 1);
+			flushed = libDecoderGetOuptut(0, pY, pU, pV, 1);
 #else
-		flushed = libOpenHevcGetOuptutCpy(1, pY, pU, pV);
+			flushed = libOpenHevcGetOuptutCpy(1, pY, pU, pV);
 #endif
-		if (flushed) {
-			*outBufferLength = ctx->out_size;
+
+			if (flushed) {
+				*outBufferLength = ctx->out_size;
+				*outBufferLength = 0;
+			}
 		}
 		return GF_OK;
 	}
@@ -320,7 +354,10 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				ptr += sc_size;
 			}
 		}
-		if (got_pic==0) return GF_OK;
+		if (got_pic==0) {
+			*outBufferLength = 0;
+			return GF_OK;
+		}
 	}
 
 	a_w = a_h = a_stride = 0;
@@ -341,7 +378,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
 	}
-	*outBufferLength = ctx->out_size;
+	*outBufferLength = 0;
 
 	pY = outBuffer;
 	pU = outBuffer + ctx->stride * ctx->height;
@@ -354,6 +391,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 #endif
 		*outBufferLength = ctx->out_size;
 	}
+
 	return GF_OK;
 }
 
