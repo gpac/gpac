@@ -178,7 +178,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = 2;
+		capability->cap.valueInt = 3;
 		break;
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 32;
