@@ -96,7 +96,13 @@ void Sliders::OnSize(UINT nType, int cx, int cy)
 
 	m_PosSlider.GetClientRect(&rc);
 	rc.right = rc.left + cx - tw;
+	rc.top += 10;
+	rc.bottom += 10;
 	m_PosSlider.SetWindowPos(this, rc.left, rc.top, rc.right, rc.bottom, SWP_NOZORDER | SWP_NOMOVE);
+
+	const UINT nPixelsLength = 24;
+	m_PosSlider.ModifyStyle(0,TBS_FIXEDLENGTH,FALSE);
+	m_PosSlider.SendMessage(TBM_SETTHUMBLENGTH,nPixelsLength,0); 
 
 	m_AudioVol.GetClientRect(&rc2);
 	rc2.top = rc2.bottom = cy/2;

@@ -835,7 +835,7 @@ void CMainFrame::OnShortcuts()
 		"Seek -5%: Alt + right arrow\n"
 		"Seek +1min: Alt + up arrow\n"
 		"Seek -1min: Alt + down arrow\n"
-		"Fullscreen On/Off: Alt+Return or Escape\n"
+		"Fullscreen On/Off: Double-click or Escape\n"
 		"\n"
 		"Show Properties: Ctrl + I\n"
 		"Show Playlist: Ctrl + V\n"
