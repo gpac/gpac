@@ -265,7 +265,7 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 						back->backColor.blue = INT2FIX(b)/255;
 						break;
 					default:
-						back->backColor.red = back->backColor.green = back->backColor.blue = FIX_ONE;
+						back->backColor.red = back->backColor.green = back->backColor.blue = 0;
 						break;
 					}
 					gf_node_dirty_set((GF_Node *)back, 0, 1);

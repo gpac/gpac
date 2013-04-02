@@ -15,7 +15,6 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // Sliders dialog
 
-
 Sliders::Sliders(CWnd* pParent /*=NULL*/)
 	: CDialog(Sliders::IDD, pParent)
 {
@@ -47,31 +46,35 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // Sliders message handlers
 
-
 void Sliders::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	
 	Osmo4 *app = GetApp();
 	if (pScrollBar->GetDlgCtrlID() == ID_SLIDER) {
 		switch (nSBCode) {
-		case TB_LINEUP:
-		case TB_LINEDOWN:
 		case TB_PAGEUP:
 		case TB_PAGEDOWN:
-		case TB_THUMBPOSITION:
-		case TB_THUMBTRACK:
+		case TB_LINEUP:
+		case TB_LINEDOWN:
 		case TB_TOP:
 		case TB_BOTTOM:
+//			m_grabbed = GF_TRUE;
+			break;
+		case TB_THUMBPOSITION:
+		case TB_THUMBTRACK:
 			m_grabbed = GF_TRUE;
 			break;
 		case TB_ENDTRACK:
-			if (!app->can_seek || !app->m_isopen) {
-				m_PosSlider.SetPos(0);
-			} else {
-				u32 seek_to = m_PosSlider.GetPos();
-				app->PlayFromTime(seek_to);
+			if (m_grabbed) {
+				if (!app->can_seek || !app->m_isopen) {
+					m_PosSlider.SetPos(0);
+				} else {
+					u32 range = m_PosSlider.GetRangeMax() - m_PosSlider.GetRangeMin();
+					u32 seek_to = m_PosSlider.GetPos();
+					app->PlayFromTime(seek_to);
+				}
+				m_grabbed = GF_FALSE;
 			}
-			m_grabbed = GF_FALSE;
 			break;
 		}
 	}

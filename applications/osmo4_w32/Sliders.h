@@ -9,6 +9,14 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // Sliders dialog
+class MySliderCtrl : public CSliderCtrl
+{
+public:
+	MySliderCtrl () {}   // standard constructor
+
+protected:
+	afx_msg virtual void OnLButtonDown(UINT   nFlags,   CPoint   point);
+};
 
 class Sliders : public CDialog
 {
