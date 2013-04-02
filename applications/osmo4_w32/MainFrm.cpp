@@ -187,7 +187,7 @@ CMainFrame::~CMainFrame()
 }
 
 #define RTI_TIMER	22
-#define RTI_REFRESH_MS		500
+#define RTI_REFRESH_MS		250
 
 void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 {
@@ -210,13 +210,15 @@ void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 		}
 	}
 
-	u32 ms = gf_term_get_time_in_ms(app->m_term);
-	u32 h = ms / 1000 / 3600;
-	u32 m = ms / 1000 / 60 - h*60;
-	u32 s = ms / 1000 - h*3600 - m*60;
-	
-	sprintf(szMsg, "%02d:%02d.%02d", h, m, s);
-	pFrame->m_wndStatusBar.SetPaneText(0, szMsg);
+	if (! gf_term_get_option(app->m_term, GF_OPT_IS_FINISHED)) {
+		u32 ms = gf_term_get_time_in_ms(app->m_term);
+		u32 h = ms / 1000 / 3600;
+		u32 m = ms / 1000 / 60 - h*60;
+		u32 s = ms / 1000 - h*3600 - m*60;
+		
+		sprintf(szMsg, "%02d:%02d.%02d", h, m, s);
+		pFrame->m_wndStatusBar.SetPaneText(0, szMsg);
+	}
 }
 
 static UINT status_indics[] =
@@ -653,13 +655,13 @@ void CMainFrame::SetFullscreen()
 {
 	Osmo4 *gpac = GetApp();
 	if (!m_bFullScreen) {
-//		GetWindowRect(&backup_wnd_rc);
+		GetWindowRect(&backup_wnd_rc);
 		if (gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, 1) == GF_OK) 
 			m_bFullScreen = GF_TRUE;
 	} else {
 		if (gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, 0) == GF_OK) 
 			m_bFullScreen = GF_FALSE;
-//		SetWindowPos(NULL, backup_wnd_rc.left, backup_wnd_rc.top, backup_wnd_rc.right-backup_wnd_rc.left, backup_wnd_rc.bottom-backup_wnd_rc.top, SWP_NOZORDER);
+		SetWindowPos(NULL, backup_wnd_rc.left, backup_wnd_rc.top, backup_wnd_rc.right-backup_wnd_rc.left, backup_wnd_rc.bottom-backup_wnd_rc.top, SWP_NOZORDER);
 	}
 }
 
