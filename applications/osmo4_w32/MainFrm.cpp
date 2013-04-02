@@ -828,17 +828,17 @@ void CMainFrame::OnShortcuts()
 	MessageBox(
 		"Open File: Ctrl + O\n"
 		"Open URL: Ctrl + U\n"
-		"Reload File: Ctrl + R\n"
+		"Reload File: F5\n"
 		"Pause/Resume File: Ctrl + P\n"
 		"Step by Step: Ctrl + S\n"
 		"Seek +5%: Alt + left arrow\n"
 		"Seek -5%: Alt + right arrow\n"
-		"Seek +1min: Alt + up arrow\n"
-		"Seek -1min: Alt + down arrow\n"
+		"Switch quality up: Ctrl + H\n"
+		"Switch quality down: Ctrl + L\n"
 		"Fullscreen On/Off: Double-click or Escape\n"
 		"\n"
 		"Show Properties: Ctrl + I\n"
-		"Show Playlist: Ctrl + V\n"
+		"Show Playlist: F3\n"
 		"Next Playlist Item: Ctrl + right arrow\n"
 		"Previous Playlist Item: Ctrl + left arrow\n"
 		"\n"
@@ -1296,6 +1296,7 @@ void CMainFrame::OnUpdateViewPlaylist(CCmdUI* pCmdUI)
 void CMainFrame::OnPlaylistLoop() 
 {
 	GetApp()->m_Loop = GetApp()->m_Loop ? GF_FALSE : GF_TRUE;
+	gf_cfg_set_key(GetApp()->m_user.config, "General", "PlaylistLoop", GetApp()->m_Loop ? "yes" : "no");
 }
 
 void CMainFrame::OnUpdatePlaylistLoop(CCmdUI* pCmdUI) 

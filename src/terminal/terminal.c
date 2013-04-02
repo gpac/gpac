@@ -1628,7 +1628,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 	else if (term->root_scene->dyn_ck) ck = term->root_scene->dyn_ck;
 
 	if (!ck) return 0;
-	if (ck->last_TS_rendered) return ck->last_TS_rendered;
+	if (!ck->has_seen_eos && ck->last_TS_rendered) return ck->last_TS_rendered;
 	return gf_clock_elapse_time(ck);
 }
 

@@ -102,15 +102,19 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding SPS %d\n", res));
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] Attach: SPS id=\"%d\" code=\"%d\" size=\"%d\"\n", slc->id, slc->data[0] & 0x1F, slc->size));
 		}
 
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
+			u32 sps_id, pps_id;
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->pictureParameterSets, i);
+			gf_avc_get_pps_info(slc->data, slc->size, &pps_id, &sps_id);
 			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, Layer);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] Attach: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", pps_id, slc->data[0] & 0x1F, slc->size, sps_id));
 		}
 		ctx->state_found = 1;
 		gf_odf_avc_cfg_del(cfg);
@@ -122,6 +126,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (!esd->dependsOnESID) {
 			if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
 		}
+		ctx->pixel_ar = (1<<16) || 1;
 	}
 	ctx->stride = ctx->width + 32;
 	ctx->CurrentDqId = ctx->MaxDqId = 0;
@@ -272,7 +277,25 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			u32 sc_size;
 			nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 		}
-
+		switch (ptr[0] & 0x1F) {
+			case GF_AVC_NALU_SEQ_PARAM:
+			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
+				{
+					u32 sps_id;
+					gf_avc_get_sps_info((char *)ptr, nalu_size, &sps_id, NULL, NULL, NULL, NULL);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] ES%d: SPS id=\"%d\" code=\"%d\" size=\"%d\"\n", ES_ID, sps_id, ptr[0] & 0x1F, nalu_size));
+				}
+				break;
+			case GF_AVC_NALU_PIC_PARAM:
+				{
+					u32 sps_id, pps_id;
+					gf_avc_get_pps_info((char *)ptr, nalu_size, &pps_id, &sps_id);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] ES%d: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", ES_ID, pps_id, ptr[0] & 0x1F, nalu_size, sps_id));
+				}
+				break;
+			default:
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] ES%d: NALU code=\"%d\" size=\"%d\"\n", ES_ID, ptr[0] & 0x1F, nalu_size));
+		}
 		if (!ctx->state_found) {
 			u8 nal_type = (ptr[0] & 0x1F) ;
 			switch (nal_type) {
@@ -312,7 +335,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->stride = pic.Width + 32;
 		ctx->height = pic.Height;
 		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-
+		printf("resizing\n");
 		/*always force layer resize*/
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
