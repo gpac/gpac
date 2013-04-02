@@ -56,6 +56,7 @@ static void rewrite_nalus_list(GF_List *nalus, GF_BitStream *bs, Bool rewrite_st
 	}				
 }
 
+/* FIXME : unused function
 static void merge_nalus_list(GF_List  *src, GF_List *dst)
 {
 	u32 i, count = gf_list_count(src);
@@ -65,7 +66,7 @@ static void merge_nalus_list(GF_List  *src, GF_List *dst)
 	}
 }
 
-/* FIXME : unused function
+
 static void merge_nalus(GF_MPEGVisualSampleEntryBox *entry, GF_List *sps, GF_List *pps)
 {
 	if (entry->avc_config) {
