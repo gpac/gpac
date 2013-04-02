@@ -3171,20 +3171,20 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 
 		if ((s32)time_shift_depth>=0) {
 			h = (u32) (time_shift_depth/3600);
-			m = (u32) (time_shift_depth-h*60)/60;
+			m = (u32) (time_shift_depth/60 - h*60);
 			s = time_shift_depth - h*3600 - m*60;
 			fprintf(mpd, " timeShiftBufferDepth=\"PT%dH%dM%.2fS\"", h, m, s);
 		}
 		if (mpd_update_period) {
 			h = (u32) (mpd_update_period/3600);
-			m = (u32) (mpd_update_period-h*60)/60;
+			m = (u32) (mpd_update_period/60 - h*60);
 			s = mpd_update_period - h*3600 - m*60;
 			fprintf(mpd, " minimumUpdatePeriod=\"PT%dH%dM%.2fS\"", h, m, s);
 		}
 		
 	} else {
 		h = (u32) (mpd_duration/3600);
-		m = (u32) (mpd_duration-h*60)/60;
+		m = (u32) (mpd_duration/60 - h*60);
 		s = mpd_duration - h*3600 - m*60;
 		fprintf(mpd, " mediaPresentationDuration=\"PT%dH%dM%.2fS\"", h, m, s);
 	}
@@ -3230,13 +3230,13 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 	
 	if (period_start || dash_dynamic) {
 		h = (u32) (period_start/3600);
-		m = (u32) (period_start-h*60)/60;
+		m = (u32) (period_start/60 - h*60);
 		s = period_start - h*3600 - m*60;
 		fprintf(mpd, " start=\"PT%dH%dM%.2fS\"", h, m, s);	
 	}
 	if (!dash_dynamic && period_duration) {
 		h = (u32) (period_duration/3600);
-		m = (u32) (period_duration-h*60)/60;
+		m = (u32) (period_duration/60 - h*60);
 		s = period_duration - h*3600 - m*60;
 		fprintf(mpd, " duration=\"PT%dH%dM%.2fS\"", h, m, s);	
 	}
