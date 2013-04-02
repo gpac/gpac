@@ -115,7 +115,7 @@ BEGIN
             MENUITEM "",                            ID_SETCHAP_FIRST
         END
         MENUITEM SEPARATOR
-        MENUITEM "Playlist\tCtrl+L",            ID_VIEW_PL, CHECKED
+        MENUITEM "Playlist\tF3",                ID_VIEW_PL, CHECKED
         MENUITEM "&Loop Playlist",              ID_PLAYLIST_LOOP
         MENUITEM SEPARATOR
         MENUITEM "Play/Pause\tCtrl+P",          ID_FILE_PLAY
@@ -853,11 +853,11 @@ IDR_MAINACCEL ACCELERATORS
 BEGIN
     "^P",           ID_FILE_PLAY,           ASCII,  NOINVERT
     "\t",           ID_FILE_PROP,           ASCII,  NOINVERT
+    VK_F5,          ID_FILE_RELOAD,         VIRTKEY, NOINVERT
     "^S",           ID_FILE_STEP,           ASCII,  NOINVERT
     "^O",           ID_FILEOPEN,            ASCII,  NOINVERT
     "^U",           ID_OPEN_URL,            ASCII,  NOINVERT
-    "^L",           ID_VIEW_PL,             ASCII,  NOINVERT
-    VK_F5,          ID_FILE_RELOAD,         VIRTKEY, NOINVERT
+    VK_F3,          ID_VIEW_PL,             VIRTKEY, NOINVERT
 END
 
 #endif    // Français (France) resources

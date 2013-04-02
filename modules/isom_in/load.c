@@ -87,6 +87,7 @@ void isor_declare_objects(ISOMReader *read)
 	GF_ESD *esd;
 	const char *tag;
 	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
+	Bool highest_stream;
 
 	ocr_es_id = 0;
 
@@ -107,27 +108,21 @@ void isor_declare_objects(ISOMReader *read)
 			continue;
 		}
 		
-		/*we declare only the base track (i.e base_track == 0)*/
-		gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
-		if (base_track)
+		/*we declare only the highest video track (i.e the track we play)*/
+		highest_stream = GF_TRUE;
+		track_id = gf_isom_get_track_id(read->mov, i+1);
+		for (j = 0; j < count; j++) {
+			if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_SCAL, track_id) > 0) {
+				highest_stream = GF_FALSE;
+				break;
+			}
+		}
+		if ((gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
-			esd->has_ref_base = GF_FALSE;
-			track_id = gf_isom_get_track_id(read->mov, i+1);
-			for (j = 0; j < count; j++)
-			{
-				if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_BASE, track_id))
-				{
-					esd->has_ref_base = GF_TRUE;
-					break;
-				}
-				if (gf_isom_get_avc_svc_type(read->mov, j+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC) {
-					esd->has_ref_base = GF_TRUE;
-					break;
-				}
-			}
-
+			gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
+			esd->has_ref_base = base_track ? GF_TRUE : GF_FALSE;
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 			od->service_ifce = read->input;
 			od->objectDescriptorID = 0;

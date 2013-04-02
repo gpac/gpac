@@ -855,6 +855,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_change_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_update) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_set_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_update) )

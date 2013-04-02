@@ -283,6 +283,31 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && gpac->m_isopen)
 				gf_term_switch_quality(gpac->m_term, GF_FALSE);
 			break;
+		case GF_KEY_LEFT:
+		case GF_KEY_RIGHT:
+			if (gpac->m_isopen && (gf_term_get_option(gpac->m_term, GF_OPT_NAVIGATION) == GF_NAVIGATE_NONE)) {
+				if (evt->key.flags & GF_KEY_MOD_CTRL) {
+					if (evt->key.key_code==GF_KEY_LEFT) pFrame->m_pPlayList->PlayPrev();
+					else if (evt->key.key_code==GF_KEY_RIGHT) pFrame->m_pPlayList->PlayNext();
+				}
+				else if (gpac->can_seek && (evt->key.flags & GF_KEY_MOD_ALT)) {
+					u32 duration = gpac->max_duration;
+					s32 current_time = gf_term_get_time_in_ms(gpac->m_term);
+
+					if (evt->key.key_code==GF_KEY_LEFT) {
+						current_time -= 5*duration/100;
+						if (current_time<0) current_time=0;
+						gf_term_play_from_time(gpac->m_term, (u64) current_time, 0);
+					}
+					else if (evt->key.key_code==GF_KEY_RIGHT) {
+						current_time += 5*duration/100;
+						if ((u32) current_time < duration) {
+							gf_term_play_from_time(gpac->m_term, (u64) current_time, 0);
+						}
+					}
+				}
+			}
+			break;
 		}
 		break;
 	case GF_EVENT_NAVIGATE:
@@ -530,8 +555,11 @@ BOOL Osmo4::InitInstance()
 		}
 #endif
 
-		sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "StartupFile");
+		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 		if (sOpt && !strstr(sOpt, "gui") ) gf_term_connect(m_term, sOpt);
+
+		sOpt = gf_cfg_get_key(m_user.config, "General", "PlaylistLoop");
+		m_Loop = (sOpt && !strcmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	}
 	pFrame->SetFocus();
 	pFrame->SetForegroundWindow();
