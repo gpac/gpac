@@ -277,6 +277,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			u32 sc_size;
 			nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 		}
+#ifndef GPAC_DISABLE_LOG
 		switch (ptr[0] & 0x1F) {
 			case GF_AVC_NALU_SEQ_PARAM:
 			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
@@ -296,6 +297,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			default:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] ES%d: NALU code=\"%d\" size=\"%d\"\n", ES_ID, ptr[0] & 0x1F, nalu_size));
 		}
+#endif
 		if (!ctx->state_found) {
 			u8 nal_type = (ptr[0] & 0x1F) ;
 			switch (nal_type) {

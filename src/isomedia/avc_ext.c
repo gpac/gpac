@@ -92,7 +92,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	GF_BitStream *src_bs, *ref_bs, *dst_bs, *ps_bs;
 	u64 offset;
 	u32 ref_nalu_size, data_offset, data_length, copy_size, nal_size, max_size, di, nal_unit_size_field, cur_extract_mode, extractor_mode, ref_extract_mode;
-	Bool rewrite_ps, rewrite_start_codes;
+	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
 	u8 ref_track_ID, ref_track_num;
 	s8 sample_offset, nal_type;
 	u32 nal_hdr;
@@ -105,7 +105,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? 1 : 0;
 	if (! sample->IsRAP) rewrite_ps = 0;
 	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? 1 : 0;
+	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? 1 : 0;
+	if (!entry->svc_config) insert_vdrd_code = 0;
 	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
+
+	if (extractor_mode != GF_ISOM_NALU_EXTRACT_LAYER_ONLY)
+		insert_vdrd_code = 0;
 
 	if (extractor_mode == GF_ISOM_NALU_EXTRACT_INSPECT) {
 		if (!rewrite_ps && !rewrite_start_codes)
@@ -139,17 +144,26 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
-		gf_bs_write_int(dst_bs, 1, 32);
-		if (is_hevc) {
-			gf_bs_write_int(dst_bs, 0, 1);
-			gf_bs_write_int(dst_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
-			gf_bs_write_int(dst_bs, 0, 9);
-			/*pic-type - by default we signal all slice types possible*/
-			gf_bs_write_int(dst_bs, 2, 3);
-			gf_bs_write_int(dst_bs, 0, 5);
-		} else {
-			gf_bs_write_int(dst_bs, (sample->data[0] & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
-			gf_bs_write_int(dst_bs, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
+
+		//we are SVC, don't write NALU delim, only insert VDRD NALU
+		if (insert_vdrd_code) {
+			gf_bs_write_int(dst_bs, 1, 32);
+			gf_bs_write_int(dst_bs, GF_AVC_NALU_VDRD , 8);
+		}
+		//AVC/HEVC base, insert NALU delim
+		else {
+			gf_bs_write_int(dst_bs, 1, 32);
+			if (is_hevc) {
+				gf_bs_write_int(dst_bs, 0, 1);
+				gf_bs_write_int(dst_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
+				gf_bs_write_int(dst_bs, 0, 9);
+				/*pic-type - by default we signal all slice types possible*/
+				gf_bs_write_int(dst_bs, 2, 3);
+				gf_bs_write_int(dst_bs, 0, 5);
+			} else {
+				gf_bs_write_int(dst_bs, (sample->data[0] & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
+				gf_bs_write_int(dst_bs, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
+			}
 		}
 	}
 
@@ -367,6 +381,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				gf_bs_write_data(dst_bs, buffer, nal_size-1);
 		}
 	}
+
 	/*done*/
 	gf_free(sample->data);
 	sample->data = NULL;

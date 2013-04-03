@@ -34,6 +34,8 @@
 
 static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
 
+#define M2TS_BUFFER_MAX 150
+
 typedef struct {
 	char *fragment;
 	u32 id;

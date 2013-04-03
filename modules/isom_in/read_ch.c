@@ -200,6 +200,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	u32 ivar;
 	if (ch->sample) return;
 
+	if (ch->next_track) {
+		ch->track = ch->next_track;
+		ch->next_track = 0;
+	}
 	if (ch->to_init) {
 		init_reader(ch);
 	} else if (ch->has_edit_list) {

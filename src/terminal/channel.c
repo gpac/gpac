@@ -1194,7 +1194,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	if (ch->AULength == OldLength + payload_size) EndAU = 1;
 	if (EndAU) ch->NextIsAUStart = 1;
 
-	if (EndAU && !ch->IsClockInit && !ch->skip_time_check_for_pending) {
+	/*init clock if end of AU or if header is valid*/
+	if ((EndAU || init_ts) && !ch->IsClockInit && !ch->skip_time_check_for_pending) {
 		ch->skip_time_check_for_pending = 0;
 		gf_es_check_timing(ch);
 	}
