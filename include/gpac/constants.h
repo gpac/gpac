@@ -549,6 +549,7 @@ enum
 #define GF_AVC_NALU_SLICE_AUX			19
 
 #define GF_AVC_NALU_SVC_SLICE 20	//0x14
+#define GF_AVC_NALU_VDRD 24 //View and dependency representation delimiter
 
 
 /*#define GF_SVC_NALU_SLICE 0x14

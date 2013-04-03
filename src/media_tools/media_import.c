@@ -6528,7 +6528,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					break;
 				case GF_M2TS_VIDEO_H264:
 				case GF_M2TS_VIDEO_SVC:
-					import->tk_info[idx].media_type = GF_4CC('H','2','6','4');
+					import->tk_info[idx].media_type = (es->stream_type==GF_M2TS_VIDEO_SVC) ? GF_4CC('S','V','C',' ') : GF_4CC('H','2','6','4');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;

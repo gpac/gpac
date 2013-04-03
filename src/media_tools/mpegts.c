@@ -255,7 +255,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 				}
 #endif
 				/*check AU start type*/
-				if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
+				if ((nal_type==GF_AVC_NALU_ACCESS_UNIT) || (nal_type==GF_AVC_NALU_VDRD)) {
 					if (!prev_is_au_delim) {
 						if (au_start_in_pes) {
 							/*FIXME - we should check the AVC framerate to update the timing ...*/
@@ -269,12 +269,11 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 						prev_is_au_delim=1;
 					}
-				} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
+				} else if ((nal_type==GF_AVC_NALU_IDR_SLICE) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
 					pck.flags = GF_M2TS_PES_PCK_RAP;
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					prev_is_au_delim=0;
-				} 
-				else {
+				} else {
 					pck.flags = 0;
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					prev_is_au_delim=0;
