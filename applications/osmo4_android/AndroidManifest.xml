@@ -11,23 +11,22 @@
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
-	 <uses-feature android:name="lge.hardware.real3d.barrier.landscape"/> 
+	 <uses-feature android:name="lge.hardware.real3d.barrier.landscape" android:required="false"/> 
 
     <uses-sdk
         android:minSdkVersion="8"
         android:targetSdkVersion="8" />
 
     <uses-feature
-        android:name="android.hardware.camera" />
+        android:name="android.hardware.camera" android:required="false"/>
     <uses-feature
-        android:name="android.hardware.camera.autofocus" /> 
+        android:name="android.hardware.camera.autofocus" android:required="false"/> 
      <uses-feature
-        android:name="android.hardware.sensor.gyroscope" /> 
+        android:name="android.hardware.sensor.gyroscope" android:required="false"/> 
      <uses-feature
-        android:name="android.hardware.sensor.accelerometer" />
+        android:name="android.hardware.sensor.accelerometer" android:required="false"/>
 
     <application
-        android:debuggable="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name">
         <uses-library android:name="com.lge.real3d" android:required="false"/>
