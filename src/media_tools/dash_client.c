@@ -580,10 +580,13 @@ static Bool gf_dash_is_dash_mime(const char * mime) {
 * \param mime The mime-type to check
 * \return true if mime-type is OK for M3U8
 */
-static Bool gf_dash_is_m3u8_mime(const char * mime) {
+static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 	u32 i;
-	if (!mime)
+	if (!url || !mime)
 		return 0;
+	if (strstr(url, ".mpd") || strstr(url, ".MPD"))
+		return 0;
+
 	for (i = 0 ; GF_DASH_M3U8_MIME_TYPES[i] ; i++) {
 		if ( !stricmp(mime, GF_DASH_M3U8_MIME_TYPES[i]))
 			return 1;
@@ -1207,7 +1210,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
 
 		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
-		if (gf_dash_is_m3u8_mime(mime) || strstr(purl, ".m3u8")) {
+		if (gf_dash_is_m3u8_mime(purl, mime) || strstr(purl, ".m3u8")) {
 			gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter);
 		} else if (!gf_dash_is_dash_mime(mime)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] mime '%s' should be m3u8 or mpd\n", mime));
@@ -3472,7 +3475,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 		reloc_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
 		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
-		if (gf_dash_is_m3u8_mime(mime) || strstr(reloc_url, ".m3u8") || strstr(reloc_url, ".M3U8")) {
+		if (gf_dash_is_m3u8_mime(reloc_url, mime) || strstr(reloc_url, ".m3u8") || strstr(reloc_url, ".M3U8")) {
 			dash->is_m3u8 = 1;
 		} else if (!gf_dash_is_dash_mime(mime) && !strstr(reloc_url, ".mpd") && !strstr(reloc_url, ".MPD")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] mime '%s' for '%s' should be m3u8 or mpd\n", mime, reloc_url));
