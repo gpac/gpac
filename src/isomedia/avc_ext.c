@@ -235,6 +235,11 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		} 
 
 		if (is_hevc) {
+			if (ps_bs) {
+				gf_bs_transfer(dst_bs, ps_bs);
+				gf_bs_del(ps_bs);
+				ps_bs = NULL;
+			}
 			/*we already wrote this stuff*/
 			if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
 				gf_bs_skip_bytes(src_bs, nal_size-2);
