@@ -24,7 +24,7 @@
  */
 
 #include "module_wrap.h"
-#include <gpac\network.h>
+#include <gpac/network.h>
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
@@ -292,7 +292,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dylib");
 #endif
 #else
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dir));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dirs[i]));
 	gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".so");
 #endif
 	}
