@@ -107,10 +107,10 @@ static void load_all_modules(GF_ModuleManager *mgr)
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
-	const char* dir;
 	GF_ModuleManager *tmp;
 	u32 loadedModules;
 	const char *opt;
+	u32 num_dirs = 0;
 
 	if (!config) return NULL;
 
@@ -118,8 +118,8 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	GF_SAFEALLOC(tmp, GF_ModuleManager);
 	if (!tmp) return NULL;
 	tmp->cfg = config;
-	dir = gf_modules_get_module_directory(tmp);
-	if (!dir) return NULL;
+	gf_modules_get_module_directories(tmp, &num_dirs);
+	if (!num_dirs) return NULL;
 
 	/* Initialize module list */
 	tmp->plug_list = gf_list_new();
@@ -151,6 +151,7 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 GF_EXPORT
 void gf_modules_del(GF_ModuleManager *pm)
 {
+	u32 i;
 	ModuleInstance *inst;
 	if (!pm) return;
 	/*unload all modules*/
@@ -159,6 +160,12 @@ void gf_modules_del(GF_ModuleManager *pm)
 		gf_modules_free_module(inst);
 		gf_list_rem(pm->plug_list, 0);
 	}
+
+	/* Delete module directories*/
+	for (i = 0; i < pm->num_dirs; i++){
+		gf_free((void*)pm->dirs[i]);
+	}
+
 	gf_list_del(pm->plug_list);
 	gf_free(pm);
 }
@@ -181,27 +188,39 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 GF_EXPORT
-const char *gf_modules_get_module_directory(GF_ModuleManager *pm){
-	const char* directory;
+const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs){
+	char* directories;
+	char * pch;
 	if (!pm) return NULL;
-	if (strlen(pm->dir) > 0 ) return pm->dir;
+	if (pm->num_dirs > 0 ){
+		*num_dirs = pm->num_dirs;
+		return pm->dirs;
+	}
 	if (!pm->cfg) return NULL;
 	
 	/* Get directory from config file */
-	directory = gf_cfg_get_key(pm->cfg, "General", "ModulesDirectory");
-	if (! directory || !strlen(directory)) {
+	directories = (char*)gf_cfg_get_key(pm->cfg, "General", "ModulesDirectory");
+	if (! directories) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Module directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n"));
 		return NULL;
 	}
 
-	if ((strlen(directory) > GF_MAX_PATH)){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
-		return NULL;
+	pch = strtok (directories,";");
+
+	while (pch != NULL)
+	{
+		if (pm->num_dirs == MAX_MODULE_DIRS){
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Reach maximum number of module directories  - check the configuration file and the \"ModulesDirectory\" key.\n"));
+			break;
+		}
+
+		pm->dirs[pm->num_dirs] = gf_strdup(pch);
+		pm->num_dirs++;
+		pch = strtok (NULL, ";");
 	}
-
-	gf_url_remove_last_delimiter(directory, pm->dir);
-
-	return pm->dir;
+	
+	*num_dirs = pm->num_dirs;
+	return pm->dirs;
 }
 
 GF_EXPORT

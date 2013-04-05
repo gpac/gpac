@@ -29,6 +29,8 @@
 #ifndef _GF_MODULE_WRAP_H_
 #define _GF_MODULE_WRAP_H_
 
+#define MAX_MODULE_DIRS 1024
+
 /* interface api*/
 typedef const u32 *(*QueryInterfaces) ();
 typedef void * (*LoadInterface) (u32 InterfaceType);
@@ -49,13 +51,15 @@ typedef struct
 	QueryInterfaces query_func;
 	LoadInterface load_func;
 	ShutdownInterface destroy_func;
+	char* dir;
 } ModuleInstance;
 
 
 struct __tag_mod_man
 {
 	/*location of the modules*/
-	char dir[GF_MAX_PATH];
+	const char* dirs[MAX_MODULE_DIRS];
+	u32 num_dirs;
 	GF_List *plug_list;
 	GF_Config *cfg;
 	Bool no_unload;

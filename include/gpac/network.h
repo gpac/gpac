@@ -101,7 +101,7 @@ void gf_url_to_fs_path(char *url);
 /*!
  *\brief Extract resource name from URL
  *
- *Ectracts the reource name from the URL
+ * Extracts the resource name from the URL
  *\param url input url 
  *\return resource name.
  */

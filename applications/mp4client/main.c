@@ -104,7 +104,7 @@ u32 align_mode = 0;
 u32 init_w = 0;
 u32 init_h = 0;
 u32 last_x, last_y;
-Bool right_down = 0;
+Bool right_down = GF_FALSE;
 
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
 Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
@@ -911,16 +911,16 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time_in_ms = 0;
-	Bool auto_exit = 0;
-	Bool logs_set = 0;
-	Bool start_fs = 0;
-	Bool use_rtix = 0;
-	Bool rgbds_dump = 0;
-	Bool rgbd_dump = 0;
-	Bool depth_dump = 0;
-	Bool pause_at_first = 0;
+	Bool auto_exit = GF_FALSE;
+	Bool logs_set = GF_FALSE;
+	Bool start_fs = GF_FALSE;
+	Bool use_rtix = GF_FALSE;
+	Bool rgbds_dump = GF_FALSE;
+	Bool rgbd_dump = GF_FALSE;
+	Bool depth_dump = GF_FALSE;
+	Bool pause_at_first = GF_FALSE;
 #ifdef GPAC_MEMORY_TRACKING
-	Bool enable_mem_tracker = 0;
+	Bool enable_mem_tracker = GF_FALSE;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible;
@@ -951,7 +951,7 @@ int main (int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
-			enable_mem_tracker = 1;
+			enable_mem_tracker = GF_TRUE;
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
 #endif
@@ -1163,7 +1163,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	fprintf(stderr, "Modules Found (%d in dir %s)\n", i, gf_modules_get_module_directory(user.modules));
+	fprintf(stderr, "Modules Found : %d \n", i);
 
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
