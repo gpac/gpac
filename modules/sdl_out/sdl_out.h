@@ -26,13 +26,13 @@
 #ifndef _GF_SDL_OUT_H_
 #define _GF_SDL_OUT_H_
 
-/*SDL*/
-#include <SDL.h>
-
 /*driver interfaces*/
 #include <gpac/modules/audio_out.h>
 #include <gpac/modules/video_out.h>
 #include <gpac/thread.h>
+
+/*SDL*/
+#include <SDL.h>
 
 /*SDL init routines*/
 Bool SDLOUT_InitSDL();

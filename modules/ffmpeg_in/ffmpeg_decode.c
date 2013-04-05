@@ -38,7 +38,9 @@
 #undef USE_AVCODEC2
 #endif
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 54) && (LIBAVCODEC_VERSION_MINOR >= 35)
+#if (LIBAVCODEC_VERSION_MAJOR >= 55) 
+#define USE_AVCTX3
+#elif (LIBAVCODEC_VERSION_MAJOR >= 54) && (LIBAVCODEC_VERSION_MINOR >= 35)
 #define USE_AVCTX3
 #endif
 
@@ -625,10 +627,11 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		if (ffd->frame_start>inBufferLength) ffd->frame_start = 0;
 
 redecode:
-		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 #ifdef USE_AVCODEC2
+		gotpic = 0;
 		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);
 #else
+		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 		len = avcodec_decode_audio2(ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 #endif
 		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
