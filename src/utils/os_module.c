@@ -24,6 +24,7 @@
  */
 
 #include "module_wrap.h"
+#include <gpac\network.h>
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
@@ -91,14 +92,14 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->name));
 
 #if _WIN32_WINNT >= 0x0502
-	SetDllDirectory(inst->plugman->dir);
+	SetDllDirectory(inst->dir);
 #endif
 
 #ifdef _WIN32_WCE
-	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->name);
+	sprintf(s_path, "%s%c%s", inst->dir, GF_PATH_SEPARATOR, inst->name);
 	CE_CharToWide(s_path, path);
 #else
-	sprintf(path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->name);
+	sprintf(path, "%s%c%s", inst->dir, GF_PATH_SEPARATOR, inst->name);
 #endif
 
 #ifdef WIN32
@@ -246,6 +247,8 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	inst->interfaces = gf_list_new();
 	inst->plugman = pm;
 	inst->name = gf_strdup(item_name);
+	inst->dir = gf_strdup(item_path);
+	gf_url_get_resource_path(item_path, inst->dir); 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
 	gf_list_add(pm->plug_list, inst);
 	return GF_FALSE;
@@ -273,23 +276,26 @@ static void load_static_modules(GF_ModuleManager *pm)
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
+	u32 i;
 	if (!pm) return 0;
 
 	/*load all static modules*/
 	load_static_modules(pm);
 
+	for (i =0; i < pm->num_dirs; i++){
 #ifdef WIN32
-	gf_enum_directory(pm->dir, GF_FALSE, enum_modules, pm, ".dll");
+	gf_enum_directory(pm->dirs[i], GF_FALSE, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
 #if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
 	/*we are in static build for modules by default*/
 #else
-	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dylib");
+	gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dylib");
 #endif
 #else
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dir));
-	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".so");
+	gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".so");
 #endif
+	}
 
 	return gf_list_count(pm->plug_list);
 }

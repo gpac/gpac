@@ -202,13 +202,14 @@ u32 gf_modules_refresh(GF_ModuleManager *pm);
 u32 gf_modules_get_count(GF_ModuleManager *pm);
 
 /*!
- *\brief get module directory
+ *\brief get all modules directories
  *
- * Return the module directory path
+ * Update module manager with all modules directories
  *\param pm the module manager
- *\return The modules directory
+ *\param num_dirs the number of module directories
+ *\return The list of modules directories
  */
-const char *gf_modules_get_module_directory(GF_ModuleManager *pm);
+const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs);
 
 /*!
  *\brief get module file name
