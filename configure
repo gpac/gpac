@@ -2115,9 +2115,10 @@ fi
 #look for SDL support
 sdl_too_old=no
 has_sdl=no
-sdl_config="sdl-config"
+
+sdl_config="sdl2-config"
 if test "$sdl_local" = "yes"; then
-    sdl_config="$sdl_path/sdl-config"
+    sdl_config="$sdl_path/sdl2-config"
     sdl_static="yes"
 fi
 
@@ -2147,6 +2148,42 @@ EOF
             fi
         fi
     fi
+fi
+
+if test "$has_sdl" = "no" ; then
+
+  sdl_config="sdl-config"
+  if test "$sdl_local" = "yes"; then
+    sdl_config="$sdl_path/sdl-config"
+    sdl_static="yes"
+  fi
+
+  if test "$cross_prefix" = "" ; then
+    if type $sdl_config >/dev/null 2>&1; then
+
+        cat > $TMPC << EOF
+#include <SDL.h>
+#undef main
+int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
+EOF
+
+        if test "$sdl_static" = "yes"; then
+            sdl_lib_flags=`$sdl_config --static-libs`
+        else
+            sdl_lib_flags=`$sdl_config --libs`
+        fi
+        sdl_cflags=`$sdl_config --cflags`
+
+        if $cc -o $TMPO $sdl_cflags $TMPC $LDFLAGS $sdl_lib_flags  > /dev/null 2>&1  ; then
+            _sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
+            if test "$_sdlversion" -lt 121 ; then
+                sdl_too_old=yes
+            else
+                has_sdl=yes
+            fi
+        fi
+    fi
+  fi
 fi
 #end SDL check
 

@@ -120,7 +120,7 @@ typedef struct
 
 	/*for audio packed frames*/
 	u32 frame_start;
-	char audio_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+	char audio_buf[192000];
 	Bool check_h264_isma;
 
 	u32 base_ES_ID;
