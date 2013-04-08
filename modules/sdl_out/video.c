@@ -1301,7 +1301,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		{
 			SDLVID();
 			if (ctx->szCaption[0]) {
-//				SDL_SetWindowTitle(ctx->screen, ctx->szCaption);
+				SDL_SetWindowTitle(ctx->screen, ctx->szCaption);
 				ctx->szCaption[0]=0;
 			}
 		}
@@ -1364,6 +1364,10 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				ctx->output_3d_type = 0;
 				SDLVid_ResetWindow(ctx);
 		        SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
+			} else {
+#if SDL_VERSION_ATLEAST(2,0,0)
+				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
+#endif
 			}
 			ctx->output_3d_type = 0;
 			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
