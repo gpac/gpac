@@ -2049,6 +2049,9 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	now = gf_sys_clock();
 	if (muxer->real_time) {
 		if (!muxer->init_sys_time) {
+			//init TS time
+			muxer->time.sec = muxer->time.nanosec = 0;
+			gf_m2ts_time_inc(&muxer->time, (u32) muxer->init_pcr_value, 27000000);
 			muxer->init_sys_time = now;
 			muxer->init_ts_time = muxer->time;
 		} else {
