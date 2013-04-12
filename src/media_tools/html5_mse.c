@@ -88,7 +88,7 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
         sourcebuffer->parser = parser;
         parser->query_proxy = gf_mse_proxy;
         parser->proxy_udta = sourcebuffer;
-        parser->proxy_type = 1;
+        parser->proxy_type = GF_TRUE;
         return GF_OK;
     }
     else 
@@ -663,7 +663,7 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
                     /* TODO: set active tracks and send addsourcebuffer event */
                     /* TODO: send media loadedmetadata event */
                 }
-                gf_term_add_media(sb->mediasource->service, command->status.desc, (command->status.desc ? 1 : 0));
+                gf_term_add_media(sb->mediasource->service, command->status.desc, (command->status.desc ? GF_TRUE : GF_FALSE));
             }
             /* general connection/disconnection messages from the media parser (not track related) */
             else if (!command->status.channel) 
@@ -672,7 +672,7 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
                 if (!command->status.is_disconnect) {
                     if (command->status.e == GF_OK) {
                         /* nothing needs to be done. Setup is done with final add media */
-                        sb->parser_connected = 1;
+                        sb->parser_connected = GF_TRUE;
                         sb->mediasource->durationType = DURATION_INFINITY;
                         gf_mse_source_buffer_setup_tracks(sb);
                     } else {
