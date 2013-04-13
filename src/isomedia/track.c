@@ -344,6 +344,9 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 		return 1;
 	/*Timedtext is NOT an MPEG-4 stream*/
 	default:
+		/*consider xxsm as MPEG-4 handlers*/
+		if ( (((HandlerType>>8) & 0xFF)== 's') && ((HandlerType& 0xFF)== 'm'))
+			return 1;
 		return 0;
 	}
 }

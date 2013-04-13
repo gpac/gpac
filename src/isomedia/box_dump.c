@@ -2432,7 +2432,11 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	p = (GF_TrackFragmentHeaderBox *)a;
 	fprintf(trace, "<TrackFragmentHeaderBox TrackID=\"%d\"", p->trackID);
 
-	fprintf(trace, " BaseDataOffset=\"%s\"", (p->flags & GF_ISOM_MOOF_BASE_OFFSET) ? "moof" : ((p->flags & GF_ISOM_TRAF_BASE_OFFSET) ? "traf" : "file") );
+	if (p->flags & GF_ISOM_TRAF_BASE_OFFSET) {
+		fprintf(trace, " BaseDataOffset=\""LLU"\"", p->base_data_offset);
+	} else {
+		fprintf(trace, " BaseDataOffset=\"%s\"", (p->flags & GF_ISOM_MOOF_BASE_OFFSET) ? "moof" : "moof-or-previous-traf");
+	}
 
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DESC)
 		fprintf(trace, " SampleDescriptionIndex=\"%d\"", p->sample_desc_index);

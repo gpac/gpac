@@ -2594,6 +2594,91 @@ static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 	gf_set_progress("NHML Loading", done, tot);
 }
 
+#define NHML_SCAN_INT(_fmt, _value)	\
+	{\
+	if (strstr(att->value, "0x")) sscanf(att->value+2, "%x", &_value);\
+	else if (strstr(att->value, "0X")) sscanf(att->value+2, "%X", &_value);\
+	else sscanf(att->value, _fmt, &_value); \
+	}\
+
+
+static GF_Err nhml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specInfoSize)
+{
+	u32 i, j;
+	GF_XMLNode *node;
+	GF_XMLAttribute *att;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	i=0;
+	while ((node = (GF_XMLNode *) gf_list_enum(bsroot->content, &i))) {
+		u32 nb_bits = 0;
+		u32 size = 0;
+		u64 offset = 0;
+		s64 value = 0;
+		const char *szFile = NULL;
+		const char *szString = NULL;
+		if (node->type) continue;
+		if (stricmp(node->name, "BS") ) continue;
+
+		j=0;
+		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
+			if (!stricmp(att->name, "bits")) {
+				NHML_SCAN_INT("%d", nb_bits);
+			} else if (!stricmp(att->name, "value")) {
+				NHML_SCAN_INT(LLD, value);
+			} else if (!stricmp(att->name, "mediaOffset")) {
+				NHML_SCAN_INT(LLU, offset);
+			} else if (!stricmp(att->name, "dataLength")) {
+				NHML_SCAN_INT("%u", size);
+			} else if (!stricmp(att->name, "mediaFile")) {
+				szFile = att->value;
+			} else if (!stricmp(att->name, "text")) {
+				szString = att->value;
+			} else if (!stricmp(att->name, "fcc")) {
+				value = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+				nb_bits = 32;
+			}
+		}
+		if (szString) {
+			u32 len = strlen(szString);
+			if (nb_bits)
+				gf_bs_write_int(bs, len, nb_bits);
+
+			gf_bs_write_data(bs, szString, len);
+		} else if (nb_bits) {
+			if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
+			else gf_bs_write_long_int(bs, value, nb_bits);
+		} else if (szFile && size) {
+			char block[1024];
+			FILE *_tmp = gf_f64_open(szFile, "rb");
+			if (_tmp) {
+				u32 read, remain;
+				if (!size) {
+					gf_f64_seek(_tmp, 0, SEEK_END);
+					size = (u32) gf_f64_tell(_tmp);
+					//if offset only copy from offset until end
+					if ((u64) size > offset)
+						size -= (u32) offset;
+				}
+				remain = size;
+				gf_f64_seek(_tmp, offset, SEEK_SET);
+				while (remain) {
+					read = fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
+					gf_bs_write_data(bs, block, read);
+					remain -= size;
+				}
+				fclose(_tmp);
+			}
+		}
+	}
+	gf_bs_align(bs);
+	gf_bs_get_content(bs, specInfo, specInfoSize);
+	gf_bs_del(bs);
+	return GF_OK;
+
+}
+
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
 GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 {
@@ -2610,7 +2695,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
-	GF_XMLNode *root, *node;
+	GF_XMLNode *root, *node, *childnode;
 	char *szRootName, *szSampleName, *szImpName;
 
 	szRootName = dims_doc ? "DIMSStream" : "NHNTStream";
@@ -2645,6 +2730,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		return e;
 	}
 	root = gf_xml_dom_get_root(parser);
+	if (!root) {
+		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - no root node found", szImpName);
+		gf_xml_dom_del(parser);
+		return e;
+	}
 
 	mdia = NULL;
 	destroy_esd = 0;
@@ -2670,26 +2760,26 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	timescale = 1000;
 	i=0;
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
-		if (!stricmp(att->name, "streamType")) streamType = atoi(att->value);
+		if (!stricmp(att->name, "streamType")) NHML_SCAN_INT("%u", streamType)
 		else if (!stricmp(att->name, "mediaType") && (strlen(att->value)==4)) {
 			mtype = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
 		else if (!stricmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
 			sdesc.codec_tag = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
-		else if (!stricmp(att->name, "objectTypeIndication")) oti = atoi(att->value);
-		else if (!stricmp(att->name, "timeScale")) timescale = atoi(att->value);
-		else if (!stricmp(att->name, "width")) sdesc.width = atoi(att->value);
-		else if (!stricmp(att->name, "height")) sdesc.height = atoi(att->value);
-		else if (!stricmp(att->name, "parNum")) par_num = atoi(att->value);
-		else if (!stricmp(att->name, "parDen")) par_den = atoi(att->value);
-		else if (!stricmp(att->name, "sampleRate")) sdesc.samplerate = atoi(att->value);
-		else if (!stricmp(att->name, "numChannels")) sdesc.nb_channels = atoi(att->value);
+		else if (!stricmp(att->name, "objectTypeIndication")) NHML_SCAN_INT("%u", oti)
+		else if (!stricmp(att->name, "timeScale")) NHML_SCAN_INT("%u", timescale)
+		else if (!stricmp(att->name, "width")) NHML_SCAN_INT("%u", sdesc.width)
+		else if (!stricmp(att->name, "height")) NHML_SCAN_INT("%u", sdesc.height)
+		else if (!stricmp(att->name, "parNum")) NHML_SCAN_INT("%u", par_num)
+		else if (!stricmp(att->name, "parDen")) NHML_SCAN_INT("%u", par_den)
+		else if (!stricmp(att->name, "sampleRate")) NHML_SCAN_INT("%u", sdesc.samplerate)
+		else if (!stricmp(att->name, "numChannels")) NHML_SCAN_INT("%u", sdesc.nb_channels)
 		else if (!stricmp(att->name, "baseMediaFile")) strcpy(szMedia, att->value);
 		else if (!stricmp(att->name, "specificInfoFile")) strcpy(szInfo, att->value);
-		else if (!stricmp(att->name, "trackID")) tkID = atoi(att->value);
+		else if (!stricmp(att->name, "trackID")) NHML_SCAN_INT("%u", tkID)
 		else if (!stricmp(att->name, "inRootOD")) inRootOD = (!stricmp(att->value, "yes") );
-		else if (!stricmp(att->name, "DTS_increment")) dts_inc = atoi(att->value);
+		else if (!stricmp(att->name, "DTS_increment")) NHML_SCAN_INT("%u", dts_inc)
 		else if (!stricmp(att->name, "gzipSamples")) do_compress = (!stricmp(att->value, "yes")) ? 1 : 0;
 		else if (!stricmp(att->name, "gzipDictionary")) {
 			u64 d_size;
@@ -2710,22 +2800,22 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		/*unknow desc related*/
 		else if (!stricmp(att->name, "compressorName")) strcpy(sdesc.compressor_name, att->value);
-		else if (!stricmp(att->name, "codecVersion")) sdesc.version = atoi(att->value);
-		else if (!stricmp(att->name, "codecRevision")) sdesc.revision = atoi(att->value);
+		else if (!stricmp(att->name, "codecVersion")) NHML_SCAN_INT("%u", sdesc.version)
+		else if (!stricmp(att->name, "codecRevision")) NHML_SCAN_INT("%u", sdesc.revision)
 		else if (!stricmp(att->name, "codecVendor") && (strlen(att->value)==4)) {
 			sdesc.vendor_code = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
-		else if (!stricmp(att->name, "temporalQuality")) sdesc.temporal_quality = atoi(att->value);
-		else if (!stricmp(att->name, "spatialQuality")) sdesc.spatial_quality = atoi(att->value);
-		else if (!stricmp(att->name, "horizontalResolution")) sdesc.h_res = atoi(att->value);
-		else if (!stricmp(att->name, "verticalResolution")) sdesc.v_res = atoi(att->value);
-		else if (!stricmp(att->name, "bitDepth")) sdesc.depth = atoi(att->value);
-		else if (!stricmp(att->name, "bitsPerSample")) sdesc.bits_per_sample = atoi(att->value);
+		else if (!stricmp(att->name, "temporalQuality")) NHML_SCAN_INT("%u", sdesc.temporal_quality)
+		else if (!stricmp(att->name, "spatialQuality")) NHML_SCAN_INT("%u", sdesc.spatial_quality)
+		else if (!stricmp(att->name, "horizontalResolution")) NHML_SCAN_INT("%u", sdesc.h_res)
+		else if (!stricmp(att->name, "verticalResolution")) NHML_SCAN_INT("%u", sdesc.v_res)
+		else if (!stricmp(att->name, "bitDepth")) NHML_SCAN_INT("%u", sdesc.depth)
+		else if (!stricmp(att->name, "bitsPerSample")) NHML_SCAN_INT("%u", sdesc.bits_per_sample)
 
 		/*DIMS stuff*/
-		else if (!stricmp(att->name, "profile")) dims.profile = atoi(att->value);
-		else if (!stricmp(att->name, "level")) dims.level = atoi(att->value);
-		else if (!stricmp(att->name, "pathComponents")) dims.pathComponents = atoi(att->value);
+		else if (!stricmp(att->name, "profile")) NHML_SCAN_INT("%u", dims.profile)
+		else if (!stricmp(att->name, "level")) NHML_SCAN_INT("%u", dims.level)
+		else if (!stricmp(att->name, "pathComponents")) NHML_SCAN_INT("%u", dims.pathComponents)
 		else if (!stricmp(att->name, "useFullRequestHost") && !stricmp(att->value, "yes")) dims.fullRequestHost = 1;
 		else if (!stricmp(att->name, "stream_type") && !stricmp(att->value, "secondary")) dims.streamType = 0;
 		else if (!stricmp(att->name, "contains_redundant")) {
@@ -2774,6 +2864,17 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		specInfoSize = fread(specInfo, sizeof(char), specInfoSize, info);
 		fclose(info);
 	}
+
+	i=0;
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		if (stricmp(node->name, "DecoderSpecificInfo") ) continue;
+
+		e = nhml_parse_bit_sequence(node, &specInfo, &specInfoSize);
+		break;
+	}
+
+
 	/*compressing samples, remove data ref*/
 	if (do_compress) import->flags &= ~GF_IMPORT_USE_DATAREF;
 
@@ -2830,7 +2931,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		/*note we cannot import OD from NHNT*/
 		case GF_STREAM_OD: e = GF_NOT_SUPPORTED; goto exit;
 		case GF_STREAM_INTERACT: mtype = GF_ISOM_MEDIA_SCENE; break;
-		default: mtype = GF_ISOM_MEDIA_ESM; break;
+		default: if (!mtype) mtype = GF_ISOM_MEDIA_ESM; break;
 		}
 
 		track = gf_isom_new_track(import->dest, import->esd->ESID, mtype, timescale);
@@ -2906,7 +3007,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		u32 j, dims_flags;
-		Bool append, compress;
+		Bool append, compress, has_subbs ;
 		if (node->type) continue;
 		if (stricmp(node->name, szSampleName) ) continue;
 
@@ -2966,6 +3067,16 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		if (!(dims_flags & GF_DIMS_UNIT_C)) compress = 0;
 		count++;
 
+		has_subbs = GF_FALSE;
+		j=0;
+		while ((childnode = (GF_XMLNode *) gf_list_enum(node->content, &j))) {
+			if (childnode->type) continue;
+			if (stricmp(childnode->name, "BS") ) continue;
+			has_subbs = GF_TRUE;
+			break;
+		}
+
+
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			if (offset) offset = media_done;
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
@@ -2996,6 +3107,12 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
 				append = 1;
 
+		} else if (has_subbs) {
+			if (samp->data) gf_free(samp->data );
+			samp->data = 0;
+			samp->dataLength = 0;
+			e = nhml_parse_bit_sequence(node, &samp->data, &samp->dataLength);	
+			max_size = samp->dataLength;
 		} else {
 			Bool close = 0;
 			FILE *f = mdia;
