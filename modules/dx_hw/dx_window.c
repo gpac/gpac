@@ -326,8 +326,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	Bool ret = 1;
 	GF_Event evt;
 	DDContext *ctx;
+#ifdef _WIN64
+    GF_VideoOutput *vout = (GF_VideoOutput *) GetWindowLongPtr(hWnd, GWLP_USERDATA);
+#else
 	GF_VideoOutput *vout = (GF_VideoOutput *) GetWindowLong(hWnd, GWL_USERDATA);
-
+#endif
 	if (!vout) return DefWindowProc(hWnd, msg, wParam, lParam);
 	ctx = (DDContext *)vout->opaque;
 
@@ -369,7 +372,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			PostQuitMessage (0);
 		} else if (ctx->orig_wnd_proc) {
 			/*restore window proc*/
+#ifdef _WIN64
+            SetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC, ctx->orig_wnd_proc);
+#else
 			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+#endif
 			ctx->orig_wnd_proc = 0L;
 		}
 		break;
@@ -800,8 +807,11 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 			return 0;
 		}
 		ShowWindow(ctx->fs_hwnd, SW_HIDE);
-
+#ifdef _WIN64
+        SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG) vout);
+#else
 		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
+#endif
 	} else {
 		ctx->fs_hwnd = ctx->os_hwnd;
 	}
@@ -810,7 +820,11 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
 
 	ctx->switch_res = 0;
+#ifdef _WIN64
+    SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG) vout);
+#else
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) vout);
+#endif
 
 	/*load cursors*/
 	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
@@ -853,8 +867,13 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	if (ctx->os_hwnd) {
 		/*override window proc*/
 		if (!(flags & GF_TERM_NO_WINDOWPROC_OVERRIDE) ) {
+#ifdef _WIN64
+            ctx->orig_wnd_proc = GetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC);
+            SetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC, (DWORD) DD_WindowProc);
+#else
 			ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
 			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
+#endif
 		}
 		ctx->parent_wnd = GetParent(ctx->os_hwnd);
 	}
@@ -884,14 +903,23 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		dd_closewindow(ctx->os_hwnd);
 	} else if (ctx->orig_wnd_proc) {
 		/*restore window proc*/
+#ifdef _WIN64
+        SetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC, ctx->orig_wnd_proc);
+#else
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+#endif
 		ctx->orig_wnd_proc = 0L;
 	}
 
 	if (ctx->fs_hwnd != ctx->os_hwnd) {
 		dd_closewindow(ctx->fs_hwnd);
+#ifdef _WIN64
+        SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG) NULL);
+        SetWindowLongPtr(ctx->fs_hwnd, GWLP_WNDPROC, (DWORD) DefWindowProc);
+#else
 		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
 		SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
+#endif
 	}
 
 #ifndef GPAC_DISABLE_3D
@@ -908,7 +936,11 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 
 	/*special care for Firefox: the windows created by our NP plugin may still be called
 	after the shutdown of the plugin !!*/
+#ifdef _WIN64
+    SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG) NULL);
+#else
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) NULL);
+#endif
 
 #ifdef _WIN32_WCE
 	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );

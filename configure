@@ -33,6 +33,7 @@ DESTDIR=""
 prefix="/usr/local"
 mandir=""
 cross_prefix=""
+targetos=""
 dxsdk_path=""
 moz_path="local"
 cc_orig="gcc"
@@ -44,6 +45,7 @@ ranlib="ranlib"
 make="make"
 strip="strip"
 pkg_config="pkg-config"
+windres="windres"
 readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
@@ -58,6 +60,7 @@ xul_flags=""
 libdir="lib"
 
 #GPAC module config
+static_modules="no"
 js_flags="XP_UNIX"
 js_lib="-ljs"
 lm_lib=""
@@ -200,6 +203,7 @@ GPAC configuration options:
   --verbose                enable verbose building [$verbose]
   --source-path=PATH       path of source code [$source_path]
   --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]
+  --target-os=TARGETOS     use TARGETOS for compile tools [$targetos]
   --cc =CC                 use C   compiler CC  [$cc]
   --cpp=CPP                use C++ compiler CPP [$cpp]
   --make=MAKE              use specified make [$make]
@@ -219,6 +223,7 @@ GPAC configuration options:
   --enable-pic             enable Position Independant Code for shared objects
   --strip                  enable strip
   --std-allocator          uses standard lib memory allocator
+  --static-modules         uses static modules whenever possible
   --track-memory           enable tracking of all memory allocated by gpac
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
@@ -323,6 +328,8 @@ for opt do
             ;;
         --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2` && echo "\ncross-prefix detected: $cross_prefix"
             ;;
+        --target-os=*) targetos=`echo $opt | cut -d '=' -f 2` && echo "\ntarget-os detected: $targetos"
+            ;;
         --cc=*) cc=`echo $opt | cut -d '=' -f 2`
             ;;
         --make=*) make=`echo $opt | cut -d '=' -f 2`
@@ -407,13 +414,13 @@ if test -z "$CFLAGS"; then
     CFLAGS=""
 fi
 
-if test "$win32" = "yes" ; then
-    cross_prefix=""
-fi
+#if test "$win32" = "yes" ; then
+#    cross_prefix=""
+#fi
 
-if test "$mingw32" = "yes" ; then
-    cross_prefix=""
-fi
+#if test "$mingw32" = "yes" ; then
+#    cross_prefix=""
+#fi
 
 
 cc="${cross_prefix}${cc}"
@@ -423,13 +430,14 @@ cpp="${cross_prefix}${cpp}"
 ar="${cross_prefix}${ar}"
 ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
-pkg_config="${cross_prefix}${pkg_config}"
+pkg_config="${pkg_config}"
+windres="${cross_prefix}${windres}"
 
 
 #check pkg_config
 if test "$cross_prefix" = "" ; then
     if ! $pkg_config --version >/dev/null 2>&1 ; then
-        echo "$pkg_config not found, configure may detect wrong libraries"
+		pkg_config="no"
     fi
 fi
 
@@ -446,7 +454,9 @@ fi
 
 
 #OS specific
-targetos=`uname -s`
+if test "$targetos" = "" ; then
+    targetos=`uname -s`
+fi
 case $targetos in
     BeOS)
         js_flags=-DXP_BEOS
@@ -628,6 +638,9 @@ fi
 
 
 #GCC PIC
+if test "$cross_prefix" != "" ; then
+    want_pic="no"
+fi
 if test "$want_pic"  = "yes" ; then
     CFLAGS="$CFLAGS -fPIC -DPIC"
     CPPFLAGS="$CPPFLAGS -fPIC -DPIC"
@@ -647,11 +660,11 @@ cat > $TMPC << EOF
 int main( void ) { if (strcmp(zlibVersion(), ZLIB_VERSION)) { puts("zlib version differs !!!"); return 1; } return 0; }
 EOF
 has_zlib="no"
-if test "$cross_prefix" = "" ; then
+#if test "$cross_prefix" = "" ; then
   if $cc -o $TMPO $TMPC -lz $LDFLAGS 2> /dev/null  ; then
       has_zlib="system"
   fi
-fi
+#fi
 if test "$has_zlib" = "force-no" ; then
   if $cc -o $TMPO $TMPC -I"$local_inc/zlib" -L$local_lib -lz 2> /dev/null  ; then
     has_zlib="local"
@@ -690,7 +703,7 @@ EOF
     if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs -lpthread 2> /dev/null  ; then
         has_js="local"
         #dc added
-    else
+    elif test "$pkg_config" != "no"; then
         #try pkg-config
         if $pkg_config --exists mozilla-js 2> /dev/null  ; then
             mozjs_pkgcfg="mozilla-js"
@@ -788,19 +801,20 @@ EOF
         has_js="local"
         #dc added
     else
+
         #try prefix (DC)
         js_inc="$prefix/include/js"
         js_flags="-DXP_UNIX -I$prefix/include/js"
         if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
             has_js="prefix"
             #dc added end
-        else
+        elif test "$pkg_config" != "no"; then
             if $pkg_config --exists mozilla-js 2> /dev/null  ; then
-		mozjs_pkgcfg="mozilla-js"
+				mozjs_pkgcfg="mozilla-js"
             elif $pkg_config --exists mozjs 2> /dev/null  ; then
-		mozjs_pkgcfg="mozjs"
+				mozjs_pkgcfg="mozjs"
             elif $pkg_config --exists mozjs185 2> /dev/null  ; then
-		mozjs_pkgcfg="mozjs185"
+				mozjs_pkgcfg="mozjs185"
 	    fi
 
 	    if test mozjs_pkgcfg != "no" ; then
@@ -811,7 +825,8 @@ EOF
                     js_lib=`$pkg_config --libs $mozjs_pkgcfg`
                 fi
             fi
-            if test "$has_js" = "no" ; then
+        fi
+	    if test "$has_js" = "no" ; then
                 if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -ljs 2> /dev/null  ; then
                     js_inc="/usr/include"
                     has_js="system"
@@ -839,8 +854,6 @@ EOF
                 fi
             fi
         fi
-    fi
-
 fi
 
 if test "$has_js" != "no" ; then
@@ -986,8 +999,11 @@ fi
 if test "$darwin" = "yes" ; then
 ohevc_cflags="-I/usr/include -I/usr/local/include"
 ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lpthread"
-else
+elif test "$cross_prefix" = "" ; then
 ohevc_cflags=""
+ohevc_ldflags="-lLibOpenHevcWrapper -lpthread -lm"
+else
+ohevc_cflags="-I${prefix}include"
 ohevc_ldflags="-lLibOpenHevcWrapper -lpthread"
 fi
 
@@ -1006,7 +1022,6 @@ else
     has_openhevc="yes"
     ohevc_ldflags="-L../../$local_lib $ohevc_ldflags"
   fi
-
 fi
 
 
@@ -1256,13 +1271,14 @@ fi
 
 #look for FFMPEG support
 
-if $pkg_config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
+ffmpeg_cflags=""
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale"
+if test "$pkg_config" != "no"; then
+  if $pkg_config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil`
     ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
     has_ffmpeg="system"
-else
-    ffmpeg_cflags=""
-    ffmpeg_lflags="-lz -lavcodec -lavformat"
+  fi
 fi
 
 cat > $TMPC << EOF
@@ -1310,16 +1326,18 @@ fi
 #look for FREENECT support
 freenect_flags=""
 freenect_ld="-lfreenect"
-
-if $pkg_config --exists libfreenect 2> /dev/null  ; then
-  freenect_flags=`$pkg_config --cflags libfreenect`
-  freenect_libs=`$pkg_config --libs libfreenect`
-  has_freenect="system"
-  freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags" 
-
-else
-
 has_freenect="no"
+if test "$pkg_config" != "no"; then
+  if $pkg_config --exists libfreenect 2> /dev/null  ; then
+    freenect_flags=`$pkg_config --cflags libfreenect`
+    freenect_libs=`$pkg_config --libs libfreenect`
+    has_freenect="system"
+    freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags" 
+  fi 
+fi
+
+if test "$has_freenect" = "no"; then
+
 cat > $TMPC << EOF
 #include <libfreenect/libfreenect.h>
 int main( void ) { return 0; }
@@ -1635,6 +1653,8 @@ fi
 #overwrite detection with manual settings
 for opt do
     case "$opt" in
+        --static-modules) static_modules="yes"
+            ;;
         --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
             ;;
         --enable-sdl-static=*) sdl_static="yes"
@@ -2048,13 +2068,15 @@ if $cc -o $TMPO $TMPCPP -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
     xul_flags="-I$xulsdk_path $xul_flags"
 fi
 
-if test "$has_xul" = "no" ; then
+if test "$pkg_config" != "no"; then
+  if test "$has_xul" = "no" ; then
     if $pkg_config --exists libxul 2> /dev/null ; then
         if $cpp -o $TMPO $TMPCPP `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
             has_xul="system"
             xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
         fi
     fi
+  fi
 fi
 
 if test "$has_xul" = "no" ; then
@@ -2123,7 +2145,7 @@ if test "$sdl_local" = "yes"; then
 fi
 
 
-if test "$cross_prefix" = "" ; then
+#if test "$cross_prefix" = "" ; then
     if type $sdl_config >/dev/null 2>&1; then
 
         cat > $TMPC << EOF
@@ -2148,7 +2170,7 @@ EOF
             fi
         fi
     fi
-fi
+#fi
 
 if test "$has_sdl" = "no" ; then
 
@@ -2295,7 +2317,7 @@ version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/vers
 soname_version="${version_major}.${version_minor}.${version_micro}"
 
 if [ -d ".svn" ]; then
- if which svnversion 2>/dev/null
+ if which svnversion 2> /dev/null
  then
     revision="`svnversion \"$source_path\"`"
     echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/revision.h
@@ -2327,9 +2349,9 @@ echo "GProf enabled: $gprof_build"
 echo "Static build enabled: $static_build"
 echo "Memory tracking enabled: $use_memory_tracking"
 echo "Use standard memory allocator: $use_std_alloc"
-echo "fixed-point version: $use_fixed_point"
+echo "Fixed-Point Version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
-
+echo "Static Modules: $static_modules"
 
 if test "$disable_player" = "yes" ; then
     echo "Player disabled"
@@ -2676,11 +2698,13 @@ echo "CC=$cc_naked" >> config.mak
 echo "AR=$ar" >> config.mak
 echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
+echo "WINDRES=$windres" >> config.mak
 else
 echo "CC=@$cc_naked" >> config.mak
 echo "AR=@$ar" >> config.mak
 echo "RANLIB=@$ranlib" >> config.mak
 echo "STRIP=@$strip" >> config.mak
+echo "WINDRES=$windres" >> config.mak
 fi
 echo "INSTALL=$install" >> config.mak
 echo "LIBTOOL=libtool" >> config.mak
@@ -2692,6 +2716,7 @@ echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
 echo "libdir=$libdir" >> config.mak
 
+echo "STATIC_MODULES=$static_modules" >> config.mak
 
 #for cross-compilation
 if test "$cross_prefix" != "" ; then

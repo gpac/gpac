@@ -380,8 +380,11 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	/*special care for Firefox: XUL and OpenGL do not go well together, there is a stack overflow in WM_PAINT
 	for our plugin window - avoid this by overriding the WindowProc once OpenGL is setup!!*/
 	if ((dd->bound_hwnd==dd->os_hwnd) && dd->orig_wnd_proc)
+#ifdef _WIN64
+        SetWindowLongPtr(dd->os_hwnd, GWLP_WNDPROC, (DWORD) DD_WindowProc);
+#else
 		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
-
+#endif
 
 	if (dd->output_3d_type==1) {
 		memset(&evt, 0, sizeof(GF_Event));

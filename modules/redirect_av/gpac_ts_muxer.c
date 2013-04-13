@@ -158,7 +158,8 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
         gf_m2ts_program_stream_add ( program, ts->video, 101, 0 );
         gf_m2ts_program_stream_add ( program, ts->audio, 102, 1 );
 
-        assert( program->streams->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2);
+        assert(program->streams->mpeg2_stream_type == GF_M2TS_VIDEO_MPEG2 ||
+                program->streams->mpeg2_stream_type == GF_M2TS_VIDEO_DCII);
     }
     gf_m2ts_mux_update_config ( ts->muxer, 1 );
     return ts;

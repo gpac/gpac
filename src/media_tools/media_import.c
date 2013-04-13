@@ -2596,8 +2596,8 @@ static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 
 #define NHML_SCAN_INT(_fmt, _value)	\
 	{\
-	if (strstr(att->value, "0x")) sscanf(att->value+2, "%x", &_value);\
-	else if (strstr(att->value, "0X")) sscanf(att->value+2, "%X", &_value);\
+	if (strstr(att->value, "0x")) { u32 __i; sscanf(att->value+2, "%x", &__i); _value = __i; }\
+	else if (strstr(att->value, "0X")) { u32 __i; sscanf(att->value+2, "%X", &__i); _value = __i; }\
 	else sscanf(att->value, _fmt, &_value); \
 	}\
 
@@ -2769,12 +2769,12 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		else if (!stricmp(att->name, "objectTypeIndication")) NHML_SCAN_INT("%u", oti)
 		else if (!stricmp(att->name, "timeScale")) NHML_SCAN_INT("%u", timescale)
-		else if (!stricmp(att->name, "width")) NHML_SCAN_INT("%u", sdesc.width)
-		else if (!stricmp(att->name, "height")) NHML_SCAN_INT("%u", sdesc.height)
+		else if (!stricmp(att->name, "width")) NHML_SCAN_INT("%hu", sdesc.width)
+		else if (!stricmp(att->name, "height")) NHML_SCAN_INT("%hu", sdesc.height)
 		else if (!stricmp(att->name, "parNum")) NHML_SCAN_INT("%u", par_num)
 		else if (!stricmp(att->name, "parDen")) NHML_SCAN_INT("%u", par_den)
 		else if (!stricmp(att->name, "sampleRate")) NHML_SCAN_INT("%u", sdesc.samplerate)
-		else if (!stricmp(att->name, "numChannels")) NHML_SCAN_INT("%u", sdesc.nb_channels)
+		else if (!stricmp(att->name, "numChannels")) NHML_SCAN_INT("%hu", sdesc.nb_channels)
 		else if (!stricmp(att->name, "baseMediaFile")) strcpy(szMedia, att->value);
 		else if (!stricmp(att->name, "specificInfoFile")) strcpy(szInfo, att->value);
 		else if (!stricmp(att->name, "trackID")) NHML_SCAN_INT("%u", tkID)
@@ -2800,8 +2800,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		/*unknow desc related*/
 		else if (!stricmp(att->name, "compressorName")) strcpy(sdesc.compressor_name, att->value);
-		else if (!stricmp(att->name, "codecVersion")) NHML_SCAN_INT("%u", sdesc.version)
-		else if (!stricmp(att->name, "codecRevision")) NHML_SCAN_INT("%u", sdesc.revision)
+		else if (!stricmp(att->name, "codecVersion")) NHML_SCAN_INT("%hu", sdesc.version)
+		else if (!stricmp(att->name, "codecRevision")) NHML_SCAN_INT("%hu", sdesc.revision)
 		else if (!stricmp(att->name, "codecVendor") && (strlen(att->value)==4)) {
 			sdesc.vendor_code = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
@@ -2809,13 +2809,13 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		else if (!stricmp(att->name, "spatialQuality")) NHML_SCAN_INT("%u", sdesc.spatial_quality)
 		else if (!stricmp(att->name, "horizontalResolution")) NHML_SCAN_INT("%u", sdesc.h_res)
 		else if (!stricmp(att->name, "verticalResolution")) NHML_SCAN_INT("%u", sdesc.v_res)
-		else if (!stricmp(att->name, "bitDepth")) NHML_SCAN_INT("%u", sdesc.depth)
-		else if (!stricmp(att->name, "bitsPerSample")) NHML_SCAN_INT("%u", sdesc.bits_per_sample)
+		else if (!stricmp(att->name, "bitDepth")) NHML_SCAN_INT("%hu", sdesc.depth)
+		else if (!stricmp(att->name, "bitsPerSample")) NHML_SCAN_INT("%hu", sdesc.bits_per_sample)
 
 		/*DIMS stuff*/
-		else if (!stricmp(att->name, "profile")) NHML_SCAN_INT("%u", dims.profile)
-		else if (!stricmp(att->name, "level")) NHML_SCAN_INT("%u", dims.level)
-		else if (!stricmp(att->name, "pathComponents")) NHML_SCAN_INT("%u", dims.pathComponents)
+		else if (!stricmp(att->name, "profile")) NHML_SCAN_INT("%c", dims.profile)
+		else if (!stricmp(att->name, "level")) NHML_SCAN_INT("%c", dims.level)
+		else if (!stricmp(att->name, "pathComponents")) NHML_SCAN_INT("%c", dims.pathComponents)
 		else if (!stricmp(att->name, "useFullRequestHost") && !stricmp(att->value, "yes")) dims.fullRequestHost = 1;
 		else if (!stricmp(att->name, "stream_type") && !stricmp(att->value, "secondary")) dims.streamType = 0;
 		else if (!stricmp(att->name, "contains_redundant")) {
