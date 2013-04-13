@@ -215,8 +215,9 @@ static void validator_on_video_reconfig(void *udta, u32 width, u32 height, u8 bp
 {
 }
 
-Bool validator_on_event_play(GF_Validator *validator, GF_Event *event, Bool consumed_by_compositor)
+Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compositor)
 {
+	GF_Validator *validator = (GF_Validator *)udta;
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
@@ -385,9 +386,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
     gf_list_add(validator->xvs_node->content, evt_node);
 } 
 
-Bool validator_on_event_record(GF_Validator *validator, GF_Event *event, Bool consumed_by_compositor)
+Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_compositor)
 {
-    Bool rec_event = 1;
+	GF_Validator *validator = (GF_Validator *)udta;
+	Bool rec_event = 1;
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
@@ -841,21 +843,21 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		}
 
 		/* since we changed parameters of the compositor, we need to trigger a reconfiguration */
-        gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", "5.0");
-        gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", "None");
-        gf_term_set_option(validator->term, GF_OPT_RELOAD_CONFIG, 1);
+        	gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", "5.0");
+        	gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", "None");
+        	gf_term_set_option(validator->term, GF_OPT_RELOAD_CONFIG, 1);
 
 		validator->evt_filter.udta = validator;
 		if (!validator->is_recording) {
 			validator->evt_filter.on_event = validator_on_event_play;
-            termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
+        	termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
         } else {
-			validator->evt_filter.on_event = validator_on_event_record;
+		validator->evt_filter.on_event = validator_on_event_record;
         } 
-		gf_term_add_event_filter(validator->term, &validator->evt_filter);
-	    validator->video_listener.udta = validator;
-	    validator->video_listener.on_video_frame = validator_on_video_frame;
-	    validator->video_listener.on_video_reconfig = validator_on_video_reconfig;
+	gf_term_add_event_filter(validator->term, &validator->evt_filter);
+	validator->video_listener.udta = validator;
+	validator->video_listener.on_video_frame = validator_on_video_frame;
+	validator->video_listener.on_video_reconfig = validator_on_video_reconfig;
 
 		/* TODO: if start returns 0, the module is not loaded, so the above init (filter registration) is not removed,
 		   should probably return 1 all the time, to make sure stop is called */
@@ -925,7 +927,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
         /* if the time is right, dispatch the event and load the next one */
 		while (!validator->is_recording && validator->evt_loaded && validator->ck && (validator->next_time <= gf_clock_time(validator->ck) )) {
             Bool has_more_events;
-            u32 diff = gf_clock_time(validator->ck) - validator->next_time;
+            //u32 diff = gf_clock_time(validator->ck) - validator->next_time;
             //GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Time diff: evt_time=%d  clock_time = %d, diff=%d\n", validator->next_time, gf_clock_time(validator->ck), diff));
             if (validator->next_event_snapshot) {
                 Bool res;

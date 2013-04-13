@@ -31,11 +31,6 @@ else
 PLUGDIRS+=ft_font
 endif
 
-ifeq ($(CONFIG_FFMPEG), no)
-else
-PLUGDIRS+=ffmpeg_in
-endif
-
 ifeq ($(CONFIG_XVID), no)
 else
 PLUGDIRS+=xvid_dec
@@ -49,18 +44,6 @@ endif
 ifeq ($(CONFIG_FREENECT), no)
 else
 PLUGDIRS+=freenect
-endif
-
-ifeq ($(CONFIG_AMR_NB), yes)
-PLUGDIRS+=amr_dec
-endif
-
-ifeq ($(CONFIG_AMR_NB_FT), yes)
-PLUGDIRS+=amr_float_dec
-else
-ifeq ($(CONFIG_AMR_WB_FT), yes)
-PLUGDIRS+=amr_float_dec
-endif
 endif
 
 ifeq ($(CONFIG_OSS_AUDIO), no)
@@ -96,24 +79,8 @@ else
 PLUGDIRS+=gpac_js
 endif
 
-ifeq ($(CONFIG_PLATINUM),yes)
-PLUGDIRS+=platinum
-endif
-
-ifeq ($(CONFIG_AVCAP),yes)
-PLUGDIRS+=avcap
-endif
-
 ifeq ($(CONFIG_OPENSVC),yes)
 PLUGDIRS+=opensvc_dec
-endif
-
-ifeq ($(CONFIG_OPENHEVC),yes)
-PLUGDIRS+=openhevc_dec
-endif
-
-ifeq ($(RENOIR_ENABLE),yes)
-PLUGDIRS+=viren_out
 endif
 
 #w32 plugins
@@ -122,8 +89,60 @@ PLUGDIRS+=wav_out
 ifeq ($(CONFIG_DIRECTX),yes)
 PLUGDIRS+=dx_hw
 endif
-
 endif
+
+
+ifneq ($(CONFIG_FFMPEG), no)
+ifeq ($(CONFIG_OPENHEVC),no)
+PLUGDIRS+=ffmpeg_in
+endif
+endif
+
+ifeq ($(CONFIG_OPENHEVC), yes)
+ifeq ($(CONFIG_FFMPEG), no)
+PLUGDIRS+=openhevc_dec
+endif
+endif
+
+#if static modules are used, disable all previous modules (built-in in libgpac)
+ifeq ($(STATIC_MODULES), yes)
+PLUGDIRS=
+endif
+
+ifneq ($(CONFIG_FFMPEG), no)
+ifeq ($(CONFIG_OPENHEVC),yes)
+PLUGDIRS+=ffmpeg_in openhevc_dec
+endif
+endif
+
+
+#all modules below are not (yet) included in static build
+
+ifeq ($(CONFIG_AMR_NB), yes)
+PLUGDIRS+=amr_dec
+endif
+
+ifeq ($(CONFIG_AMR_NB_FT), yes)
+PLUGDIRS+=amr_float_dec
+else
+ifeq ($(CONFIG_AMR_WB_FT), yes)
+PLUGDIRS+=amr_float_dec
+endif
+endif
+
+ifeq ($(RENOIR_ENABLE),yes)
+PLUGDIRS+=viren_out
+endif
+
+
+ifeq ($(CONFIG_PLATINUM),yes)
+PLUGDIRS+=platinum
+endif
+
+ifeq ($(CONFIG_AVCAP),yes)
+PLUGDIRS+=avcap
+endif
+
 
 ifeq ($(DISABLE_PLAYER), yes)
 PLUGDIRS=

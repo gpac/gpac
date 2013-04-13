@@ -71,8 +71,6 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 static void RAW_Shutdown(GF_VideoOutput *dr)
 {
 	RAWCTX;
-        int err=0;
-
 	if (rc->pixels) gf_free(rc->pixels);
 	rc->pixels = NULL;
 }

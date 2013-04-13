@@ -145,7 +145,7 @@ static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Descriptor *MSE_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-    GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
+    //GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     //if (msein->mediasource && gf_list_count(msein->mediasource->sourceBuffers.list)) 
     //{
     //    GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(msein->mediasource->sourceBuffers.list, 0);
@@ -305,7 +305,7 @@ static Bool MSE_CanHandleURLInService(GF_InputService *plug, const char *url)
     return 1;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
     static u32 si [] = {
@@ -315,7 +315,7 @@ const u32 *QueryInterfaces()
     return si;
 }
 
-GF_EXPORT
+GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
     GF_MSE_In *msein;
@@ -340,8 +340,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     msein->plug = plug;
     return (GF_BaseInterface *)plug;
 }
-
-GF_EXPORT
+GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
     GF_MSE_In *msein;
@@ -353,3 +352,8 @@ void ShutdownInterface(GF_BaseInterface *bi)
     gf_free(msein);
     gf_free(bi);
 }
+
+GPAC_MODULE_STATIC_DELARATION( mse_in )
+
+
+

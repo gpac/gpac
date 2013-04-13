@@ -16,10 +16,10 @@ LDFLAGS+=-pg
 endif
 
 ifeq ($(DX_PATH), system)
-LDFLAGS_DX=-ldsound -ldxguid -lddraw -lole32 -lgdi32 -lopenGL32
+LDFLAGS_DX=-ldsound -ldxguid -lddraw -lole32 -lgdi32 -lopengl32
 else
 CFLAGS+= -I$(DX_PATH)/include
-LDFLAGS_DX=-L$(DX_PATH)/lib -ldsound -ldxguid -lddraw -lole32 -lgdi32 -lopenGL32
+LDFLAGS_DX=-L$(DX_PATH)/lib -ldsound -ldxguid -lddraw -lole32 -lgdi32 -lopengl32
 endif
 
 
@@ -38,7 +38,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	windres "$(SRC_PATH)/modules/dx_hw/dx_hw.rc" dw_hw.o
+	$(WINDRES) "$(SRC_PATH)/modules/dx_hw/dx_hw.rc" dw_hw.o
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) dw_hw.o $(LDFLAGS_DX) -L../../bin/gcc -lgpac $(EXTRALIBS) 
 
 clean: 

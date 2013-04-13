@@ -61,10 +61,31 @@
 #endif
 
 
+#ifdef GPAC_STATIC_MODULES
+static Bool enum_mod_dir(void *cbck, char *item_name, char *item_path)
+{
+	if (!strnicmp(item_name, "gm_", 3)) {
+printf("Found %s\n", item_name);
+		*(Bool *) cbck = GF_TRUE;
+	}
+	return GF_FALSE;
+}
+#endif
+
 static Bool check_file_exists(char *name, char *path, char *outPath)
 {
 	char szPath[GF_MAX_PATH];
 	FILE *f;
+
+#ifdef GPAC_STATIC_MODULES
+	if (!strcmp(name, TEST_MODULE)) {
+		Bool found = GF_FALSE;
+		gf_enum_directory(path, GF_FALSE, enum_mod_dir, &found, NULL);
+		if (!found) return 0;
+		if (outPath != path) strcpy(outPath, path);
+		return 1;
+	}
+#endif
 	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
 	f = fopen(szPath, "rb");
 	if (!f) return 0;

@@ -170,6 +170,7 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
 		break;
 	case GF_M2TS_VIDEO_MPEG2:
+	case GF_M2TS_VIDEO_DCII:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_422;
 		break;
@@ -707,6 +708,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 }
 
+#if 0
 static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	if (evt_type==GF_M2TS_EVT_PES_PCR) {
@@ -720,6 +722,7 @@ static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 	}
 }
+#endif
 
 void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 {

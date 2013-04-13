@@ -1591,6 +1591,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		/* PES */
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
+		case GF_M2TS_VIDEO_DCII:
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
 		case GF_M2TS_AUDIO_AAC:

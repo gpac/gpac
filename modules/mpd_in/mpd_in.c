@@ -691,13 +691,13 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
 			if (!gf_dash_in_period_setup(mpdin->dash) && !com->play.dash_segment_switch && ! mpdin->in_seek) {
-				Bool skip_seek;
+				//Bool skip_seek;
 				
 				mpdin->in_seek = 1;
 				
 				/*if start range request is the same as previous one, don't process it
 				- this happens at period switch when new objects are declared*/
-				skip_seek = (mpdin->previous_start_range==com->play.start_range) ? 1 : 0;
+				//skip_seek = (mpdin->previous_start_range==com->play.start_range) ? 1 : 0;
 				mpdin->previous_start_range = com->play.start_range;
 
 				gf_dash_seek(mpdin->dash, com->play.start_range);
@@ -774,13 +774,11 @@ Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 		return 1;
 	} else {
 		GF_MPDGroup *mudta;
-		GF_InputService *segment_ifce = NULL;
 		u32 i;
 		for (i=0;i<gf_dash_get_group_count(mpdin->dash); i++) {
 			if (!gf_dash_is_group_selected(mpdin->dash, i)) continue;
 			
 			mudta = gf_dash_get_group_udta(mpdin->dash, i);
-			segment_ifce = mudta->segment_ifce;
 			if (mudta && mudta->segment_ifce && mudta->segment_ifce->CanHandleURLInService) {
 				return mudta->segment_ifce->CanHandleURLInService(plug, url);
 			}

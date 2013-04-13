@@ -2219,7 +2219,7 @@ send_pck:
 	if (ret) {
 		muxer->tot_pck_sent++;
 		/*increment time*/
-		if (muxer->fixed_rate) {
+		if (muxer->fixed_rate || muxer->real_time) {
 			gf_m2ts_time_inc(&muxer->time, 1504/*188*8*/, muxer->bit_rate);
 		}
 		/*if a stream was found, use it*/

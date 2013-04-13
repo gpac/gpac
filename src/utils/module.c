@@ -44,58 +44,108 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_STATIC_MODULES
 	GF_InterfaceRegister *pr;
 
-	/*TODO check compil flags to inlude*/
-#if 0
-    LOAD_PLUGIN(raw_out);	
-
+	LOAD_PLUGIN(aac_in);
     LOAD_PLUGIN(ac3);
-    
-	LOAD_PLUGIN(openhevc);
-    
-	LOAD_PLUGIN(opensvc);
-    
-	LOAD_PLUGIN(xvid);
-    
-    LOAD_PLUGIN(ffmpeg);
-    LOAD_PLUGIN(redirect_av);
-    
-	LOAD_PLUGIN(ogg_in);
+#ifdef GPAC_HAS_ALSA
+    LOAD_PLUGIN(alsa);
 #endif
+    LOAD_PLUGIN(audio_filter);
+	LOAD_PLUGIN(bifs);
+#ifndef GPAC_DISABLE_SMGR	
+	LOAD_PLUGIN(ctx_load);
+#endif
+#ifdef GPAC_HAS_DIRECTFB
+	LOAD_PLUGIN(directfb_out);
+#endif
+	LOAD_PLUGIN(dummy_in);
+#ifdef GPAC_HAS_DIRECTX
+	LOAD_PLUGIN(dx_out);
+#endif
+#ifdef GPAC_HAS_FFMPEG
+	LOAD_PLUGIN(ffmpeg);
+#endif
+#ifdef GPAC_HAS_FREENECT
+	LOAD_PLUGIN(freenect);
+#endif
+#ifdef GPAC_HAS_FREETYPE
+	LOAD_PLUGIN(ftfont);
+#endif
+#ifdef GPAC_HAS_SPIDERMONKEY
+	LOAD_PLUGIN(gpac_js);
+#endif
+	LOAD_PLUGIN(img_in);
+    LOAD_PLUGIN(isma_ea);
+	LOAD_PLUGIN(isom);
+#ifdef GPAC_HAS_JACK
+	LOAD_PLUGIN(jack);
+#endif
+#ifndef GPAC_DISABLE_SVG
+	LOAD_PLUGIN(laser);
+#endif	
+	LOAD_PLUGIN(mp3_in);
+    LOAD_PLUGIN(mpd_in);
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+	LOAD_PLUGIN(mpegts_in);
+#endif
+#ifdef GPAC_HAS_SPIDERMONKEY
+    LOAD_PLUGIN(mse_in);
+#endif	
+	LOAD_PLUGIN(odf_dec);
+#ifdef GPAC_HAS_OGG
+    LOAD_PLUGIN(ogg_in);
+#endif
+#ifdef GPAC_HAS_OPENHEVC
+	LOAD_PLUGIN(openhevc);
+#endif
+#ifdef GPAC_HAS_OPENSVC
+	LOAD_PLUGIN(opensvc);
+#endif
+#ifndef GPAC_DISABLE_LOADER_BT
+	LOAD_PLUGIN(osd);
+#endif
+#ifdef GPAC_HAS_OSS
+	LOAD_PLUGIN(oss);
+#endif
+#ifdef GPAC_HAS_PULSEAUDIO
+	LOAD_PLUGIN(pulseaudio);
+#endif
+	LOAD_PLUGIN(raw_out);	
+#ifdef GPAC_HAS_FFMPEG
+	//    LOAD_PLUGIN(redirect_av);    
+#endif
+	LOAD_PLUGIN(rtp_in);
+    LOAD_PLUGIN(saf_in);
+#ifdef GPAC_HAS_SDL
+    LOAD_PLUGIN(sdl_out);
+#endif
+	LOAD_PLUGIN(soft_raster);
+#if !defined(GPAC_DISABLE_SMGR) && !defined(GPAC_DISABLE_SVG)	
+	LOAD_PLUGIN(svg_in);
+#endif		
+	LOAD_PLUGIN(timedtext);			
+    LOAD_PLUGIN(validator);
+#ifdef GPAC_HAS_WAVEOUT
+	LOAD_PLUGIN(wave_out);
+#endif
+#ifndef GPAC_DISABLE_SVG
+	LOAD_PLUGIN(widgetman);
+#endif
+#ifdef GPAC_HAS_X11
+	LOAD_PLUGIN(x11_out);
+#endif
+#ifdef GPAC_HAS_XVID
+    LOAD_PLUGIN(xvid);
+#endif
+	
 
+
+				
 	//todo fix project for iOS
 #ifdef GPAC_IPHONE
 //    LOAD_PLUGIN(ios_cam);
 //    LOAD_PLUGIN(ios_mpegv);
 #endif
 
-#ifdef WIN32 
-	LOAD_PLUGIN(dx_out);
-    LOAD_PLUGIN(wave_out);
-#endif
-
-	LOAD_PLUGIN(aac_in);
-    LOAD_PLUGIN(audio_filter);
-	LOAD_PLUGIN(bifs);
-	LOAD_PLUGIN(ctx_load);
-	LOAD_PLUGIN(dummy_in);
-    LOAD_PLUGIN(isma_ea);
-	LOAD_PLUGIN(ftfont);
-	LOAD_PLUGIN(gpac_js);
-	LOAD_PLUGIN(laser);
-	LOAD_PLUGIN(mp3_in);
-    LOAD_PLUGIN(mpd_in);
-	LOAD_PLUGIN(mpegts_in);
-	LOAD_PLUGIN(odf_dec);
-    LOAD_PLUGIN(saf_in);
-	LOAD_PLUGIN(svg_in);
-	LOAD_PLUGIN(img_in);
-	LOAD_PLUGIN(rtp_in);
-	LOAD_PLUGIN(isom);
-	LOAD_PLUGIN(soft_raster);
-    LOAD_PLUGIN(timedtext);
-    LOAD_PLUGIN(validator);
-	LOAD_PLUGIN(widgetman);
-	LOAD_PLUGIN(sdl_out);
 
 #endif //GPAC_STATIC_MODULES
 
