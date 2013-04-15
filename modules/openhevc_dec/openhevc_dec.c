@@ -33,6 +33,8 @@
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
 #  pragma comment(lib, "libLibOpenHevcWrapper")
+//temp fix untill new openHEVC lib is generated
+#define libOpenHevcGetOutputCpy libOpenHevcGetOuptutCpy
 #endif
 
 typedef struct
