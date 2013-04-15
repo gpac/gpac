@@ -34,17 +34,9 @@
 #ifndef _SVCDecoder_ietr_api_h
 #define _SVCDecoder_ietr_api_h
 
-#define WINEXPORT
 
 #include "SvcInterface.h"
 
-#ifndef POCKET_PC
-#ifdef TCPMP
-#include "windows.h"
-#undef WINEXPORT
-#define WINEXPORT WINAPI
-#endif
-#endif
 
 enum {
 	SVC_STATUS_ERROR	= -1,
@@ -59,11 +51,11 @@ int SVCDecoder_init();
 This method initializes the internal resources of the decoder
 @return SVC_STATUS_OK if creation is successful
 ======================================================================================================*/
-int WINEXPORT SVCDecoder_init(void **PlayerStruct);
+int SVCDecoder_init(void **PlayerStruct);
 
 
 /*======================================================================================================
-void WINEXPORT UpdateLayer(int *DqIdTable, int *CurrDqId, int MaxDqId, int Command);
+void UpdateLayer(int *DqIdTable, int *CurrDqId, int MaxDqId, int Command);
 Use this method to change of quality, spatial or temporal scalability during the 
 decoding process.
 The DqIdTable specifies the DqId of each layer present into the stream.
@@ -74,15 +66,15 @@ Command specifies the action to execute:
 1: To switch up of spatial or quality scalability 
 2: To switch up to the layer with the higthest DqId
 3: To switch down of temporal scalability
-4: To switch up of temproal scalability
+4: To switch up of temporal scalability
 @return nothing
 =======================================================================================================*/
-void WINEXPORT UpdateLayer(int *DqIdTable, int *CurrDqId, int *TemporalCom, int *TemporalId, int MaxDqId, int Command);
+void UpdateLayer(int *DqIdTable, int *CurrDqId, int *TemporalCom, int *TemporalId, int MaxDqId, int Command);
 
 
 
 /*======================================================================================================
-void WINEXPORT SetCommandLayer(int *Command, int DqIdMax, int CurrDqId, int *TemporalCom, int TemporalId);
+void SetCommandLayer(int *Command, int DqIdMax, int CurrDqId, int *TemporalCom, int TemporalId);
 Use this method to generate the right command for the SVC decoder.
 The Command is a 4 size table given to the decoder.
 DqIdMax specifies the maximal DqId present into the access unit.
@@ -94,7 +86,7 @@ TemporalCom is the command to use concerning the temporal scalability.
 3 -> define a specific temporal scalability. (use TemporalId variable to set).
 @return nothing
 =======================================================================================================*/
-void WINEXPORT SetCommandLayer(int *Command, int DqIdMax, int CurrDqId, int *TemporalCom, int TemporalId);
+void SetCommandLayer(int *Command, int DqIdMax, int CurrDqId, int *TemporalCom, int TemporalId);
 
 
 /*======================================================================================================
@@ -116,7 +108,7 @@ In case of a SVC stream, the largest DqIq of the Access Unit should be given.
 @param DQIdMax is the largest DQId of the current access unit
 @return SVC_STATUS_OK or SVC_STATUS_ERROR or SVC_IMAGE_READY or SVC_GHOST_IMAGE
 ======================================================================================================*/
-int WINEXPORT decodeNAL(void *PlayerStruct, unsigned char* nal, int nal_length, OPENSVCFRAME *Frame, int *LayerCommand); 
+int decodeNAL(void *PlayerStruct, unsigned char* nal, int nal_length, OPENSVCFRAME *Frame, int *LayerCommand); 
 
 
 /*======================================================================================================
@@ -124,5 +116,29 @@ int SVCDecoder_close();
 This method releases the internal resources of the decoder
 @return SVC_STATUS_OK if creation is successfull
 =======================================================================================================*/
-int WINEXPORT SVCDecoder_close(void *PlayerStruct);
+int SVCDecoder_close(void *PlayerStruct);
+
+/*======================================================================================================
+int  GetDqIdMax(const unsigned char *buf, int buf_size, int nal_length_size, int *DqidTable, int is_avc);
+This method return the max DqId commputed into the access unit.
+This method should be called once in each access unit.
+@param buf is the input data to decode
+@param buf_size is the size of access unit
+@param nal_length_size is the start code length
+@param DqidTable is a table in which all DqId will be stored.
+@param is_avc indicates if the stream contained SVC NAL.
+=======================================================================================================*/
+int GetDqIdMax(const unsigned char *buf, int buf_size, int nal_length_size, int *DqidTable, int is_avc);
+
+
+/*======================================================================================================
+void ParseAuPlayers(void *PlayerStruct, const unsigned char *buf, int buf_size, int nal_length_size, int is_avc;
+This method parses the first access unit in order to configure the decoder.
+This method has to be done once by video.
+@param buf is the input data to decode
+@param buf_size is the size of access unit
+@param nal_length_size is the start code length
+@param is_avc indicates if the stream contained SVC NAL.
+=======================================================================================================*/
+void ParseAuPlayers(void *PlayerStruct, const unsigned char *buf, int buf_size, int nal_length_size, int is_avc);
 #endif	// SVCDecoder_ietr_api
