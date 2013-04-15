@@ -35,7 +35,6 @@
 #endif
 
 #include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
-//#include <OpenSVCDecoder/ParseAU.h>
 
 typedef struct
 {
