@@ -103,6 +103,8 @@ JSObject *gf_sg_js_global_object(JSContext *cx, GF_JSClass *__class)
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE)
 #  pragma comment(lib, "js32")
+# elif defined (_WIN64)
+#  pragma comment(lib, "js")
 # elif defined (WIN32)
 #  pragma comment(lib, "js32")
 # endif
@@ -4443,7 +4445,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
-	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, sizeof(char)*(size_t)fsize, 0, 0, &rval);
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), 0, 0, &rval);
 	if (ret==JS_FALSE) success = 0;
 
 	if (success && primary_script
@@ -4598,7 +4600,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Evaluating script %s\n", str));
 
 #if 1
-	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, (u32) strlen(str), 0, 0, &rval);
 	if (ret==JS_TRUE) {
 		/*call initialize if present*/
 		if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval)

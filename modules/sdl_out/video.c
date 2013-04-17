@@ -770,7 +770,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		/*keyboard*/
 		case SDL_TEXTINPUT: /* Since SDL 1.3, text-input is handled in a specific event */
 		{
-			u32 len = strlen( sdl_evt.text.text);
+			u32 len = (u32) strlen( sdl_evt.text.text);
 			u32 ucs4_len;
 			assert( len < 5 );
 			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));

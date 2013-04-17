@@ -341,7 +341,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			} else if (!strstr(szExtList, szExt)) {
 				u32 len;
 				char *buf;
-				len = strlen(szExtList) + strlen(szExt) + 10;
+				len = (u32) (strlen(szExtList) + strlen(szExt) + 10);
 				buf = gf_malloc(sizeof(char)*len);
 				sprintf(buf, "\"%s ", szExt);
 				strcat(buf, &szExtList[1]);

@@ -200,7 +200,7 @@ next_line:
 				}
 				if (wchar==' ') {
 					last_space_pos_stream = gztell(parser->gz_in);
-					last_space_pos = dst - l;
+					last_space_pos = (u32) (dst - l);
 				}
 				dst++;
 				go--;
@@ -209,7 +209,7 @@ next_line:
 			*dst = 0;
 			/*long line, rewind stream to last space*/
 			if (!go) {
-				u32 rew_pos = gztell(parser->gz_in) - 2*(dst - &l[last_space_pos]);
+				u32 rew_pos = (u32)  (gztell(parser->gz_in) - 2*(dst - &l[last_space_pos]) );
 				gzseek(parser->gz_in, rew_pos, SEEK_SET);
 				l[last_space_pos+1] = 0;
 			}
@@ -259,7 +259,7 @@ next_line:
 
 		while (1) {
 			char c;
-			u32 len = strlen(parser->line_buffer);
+			u32 len = (u32) strlen(parser->line_buffer);
 			if (!len) break;
 			c = parser->line_buffer[len-1];
 			if (!strchr("\n\r\t", c)) break;
@@ -267,7 +267,7 @@ next_line:
 		}
 
 
-		parser->line_size = strlen(parser->line_buffer);
+		parser->line_size = (u32) strlen(parser->line_buffer);
 		parser->line_pos = 0;
 		parser->line++;
 
@@ -376,13 +376,13 @@ next_line:
 					BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
 					char *start = strstr(parser->line_buffer, def->name);
 					if (!start) continue;
-					symb_len = strlen(def->name);
+					symb_len = (u32) strlen(def->name);
 					if (!strchr(" \n\r\t,[]{}\'\"", start[symb_len])) continue;
-					val_len = strlen(def->value);
-					copy_len = strlen(start + symb_len) + 1;
+					val_len = (u32) strlen(def->value);
+					copy_len = (u32) strlen(start + symb_len) + 1;
 					memmove(start + val_len, start + symb_len, sizeof(char)*copy_len);
 					memcpy(start, def->value, sizeof(char)*val_len);
-					parser->line_size = strlen(parser->line_buffer);
+					parser->line_size = (u32) strlen(parser->line_buffer);
 					found = 1;
 				}
 				if (!found) break;
@@ -3710,7 +3710,7 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, Bool
 	ctx.scene_graph = in_scene;
 	memset(&parser, 0, sizeof(GF_BTParser));
 	parser.line_buffer = node_str;
-	parser.line_size = strlen(node_str);
+	parser.line_size = (u32) strlen(node_str);
 	parser.load = &ctx;
 	parser.top_nodes = gf_list_new();
 	parser.undef_nodes = gf_list_new();

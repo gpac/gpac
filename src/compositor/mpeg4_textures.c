@@ -344,7 +344,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				strcat(szExtractName, "/");
 				src_url = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 
-				gf_sha1_csum((u8 *)src_url, strlen(src_url), hash);
+				gf_sha1_csum((u8 *)src_url, (u32) strlen(src_url), hash);
 				for (i=0; i<20; i++) {
 					char t[3];
 					t[2] = 0;

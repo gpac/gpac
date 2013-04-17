@@ -811,7 +811,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		buf = (char*)gf_realloc(buf, sizeof(char)*buf_size);		\
 	}	\
 	strcpy(buf+pos, str);		\
-	pos += strlen(str);		\
+	pos += (u32) strlen(str);		\
 	if (space) {			\
 		strcat(buf+pos, " ");	\
 		pos += 1;		\

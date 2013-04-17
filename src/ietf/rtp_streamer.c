@@ -666,7 +666,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 
 	strcat(sdp, sdpLine);
 
-	size = strlen(sdp) + (*out_sdp_buffer ? strlen(*out_sdp_buffer) : 0) + 1;
+	size = (u32) strlen(sdp) + (*out_sdp_buffer ? (u32) strlen(*out_sdp_buffer) : 0) + 1;
 	if ( !*out_sdp_buffer) {
 		*out_sdp_buffer = gf_malloc(sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
@@ -702,7 +702,7 @@ GF_Err gf_rtp_streamer_append_sdp_decoding_dependency(GF_ISOFile *isofile, u32 i
 		strcat(sdp, "\n");
 	}
 
-	size = strlen(sdp) + (*out_sdp_buffer ? strlen(*out_sdp_buffer) : 0) + 1;
+	size = (u32) strlen(sdp) + (*out_sdp_buffer ? (u32) strlen(*out_sdp_buffer) : 0) + 1;
 	if ( !*out_sdp_buffer) {
 		*out_sdp_buffer = gf_malloc(sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;

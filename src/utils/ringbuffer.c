@@ -84,9 +84,9 @@ u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb)
   r = rb->read_ptr;
 
   if (w > r) {
-    return w - r;
+    return (u32) (w - r);
   } else {
-    return (w - r + rb->size) & rb->size_mask;
+    return (u32) (w - r + rb->size) & rb->size_mask;
   }
 }
 

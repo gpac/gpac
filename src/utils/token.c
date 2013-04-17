@@ -28,7 +28,7 @@
 static GFINLINE s32 gf_tok_is_char_in_set(const char TestChar, const char *TestSet)
 {
 	u32 i, Len;
-	Len = strlen(TestSet);
+	Len = (u32) strlen(TestSet);
 	for (i=0; i<Len; i++) {
 		if (TestChar == TestSet[i]) return 1;
 	}
@@ -40,7 +40,7 @@ s32 gf_token_get(const char *Buffer, s32 Start,  const char *Separator,  char *C
 {
 	s32 i, start, end, Len;
 
-	Len = strlen( Buffer );
+	Len = (s32) strlen( Buffer );
 	for (i=Start; i<Len; i++ ) {
 		if (!gf_tok_is_char_in_set(Buffer[i], Separator)) break;
 	}
@@ -66,7 +66,7 @@ s32 gf_token_get_strip(const char *Buffer, s32 Start, const char *Separator, con
 	s32 res = gf_token_get(Buffer, Start, Separator, Container, ContainerSize);
 	if (!strip_set || (res<0)) return res;
 	i=k=0;
-	len = strlen(Container);
+	len = (u32) strlen(Container);
 	while (strchr(strip_set, Container[i]) ) i++;
 	while (len && strchr(strip_set, Container[len]) ) {
 		Container[len]=0;
@@ -113,7 +113,7 @@ s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 
 	if (Start >= Size) return -1;
 	
-	Len = strlen(Pattern);
+	Len = (u32) strlen(Pattern);
 	if ( Len <= 0 ) return -1;
 	if (Size - Start < (u32) Len) return -1;
 

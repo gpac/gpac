@@ -279,7 +279,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		} else {
 			char name[GF_MAX_IP_NAME_LEN];
 
-			s32 start;
+			size_t start;
 			gf_get_user_name(name, 1024);
 			if (strlen(name)) strcat(name, "@");
 			start = strlen(name);

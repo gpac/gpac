@@ -62,13 +62,14 @@ GF_Err gdip_shutdown_font_engine(GF_FontReader *dr)
 
 static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang, Bool *is_rtl)
 {
+	size_t _len;
 	u32 len;
 	u32 i;
 	u16 *conv;
 	char *utf8 = (char*) utf_string;
 	FontPriv *priv = (FontPriv*)dr->udta;
 
-	len = utf_string ? strlen(utf_string) : 0;
+	len = utf_string ? (u32) strlen(utf_string) : 0;
 	if (!len) {
 		*io_glyph_buffer_size = 0;
 		return GF_OK;
@@ -77,8 +78,9 @@ static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *gl
 		*io_glyph_buffer_size = len+1;
 		return GF_BUFFER_TOO_SMALL;
 	}
-	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
-	if ((s32) len<0) return GF_IO_ERR;
+	_len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
+	if (_len==(size_t)-1) return GF_IO_ERR;
+	len = (u32) _len;
 	if (utf8) return GF_IO_ERR;
 
 	/*perform bidi relayout*/
@@ -101,7 +103,7 @@ static void adjust_white_space(const unsigned short *string, Float *width, Float
 		i++;
 	}
 	if (whiteSpaceWidth<0) return;
-	len = gf_utf8_wcslen(string);
+	len = (u32) gf_utf8_wcslen(string);
 	if (i != len) {
 		i = len - 1;
 		while (string[i] == (unsigned short) ' ') {
@@ -153,7 +155,7 @@ static GF_Err gdip_set_font(GF_FontReader *dr, const char *fontName, u32 styles)
 	else if (!stricmp(fontName, "SERIF")) fontName = ctx->font_serif;
 	else if (!stricmp(fontName, "TYPEWRITER") || !stricmp(fontName, "monospace")) fontName = ctx->font_fixed;
 
-	MultiByteToWideChar(CP_ACP, 0, fontName, strlen(fontName)+1, 
+	MultiByteToWideChar(CP_ACP, 0, fontName, (u32)strlen(fontName)+1, 
 						wcFontName, sizeof(wcFontName)/sizeof(wcFontName[0]) );
 
 

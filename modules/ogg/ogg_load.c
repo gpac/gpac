@@ -27,7 +27,7 @@
 
 
 #if !defined(__GNUC__)
-# if defined(_WIN32_WCE) || defined (WIN32)
+# if (defined(_WIN32_WCE) || defined (WIN32)) && !defined(_WIN64)
 #  pragma comment(lib, "vorbis_static")
 #  pragma comment(lib, "theora_static")
 #  pragma comment(lib, "ogg_static")

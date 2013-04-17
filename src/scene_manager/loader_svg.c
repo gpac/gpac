@@ -1844,7 +1844,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	case TAG_SVG_handler:
 	case TAG_SVG_script:
 	{
-		u32 i, len = strlen(text_content);
+		u32 i, len = (u32) strlen(text_content);
 		for (i=0; i<len; i++) {
 			if (!strchr(" \n\r\t", text_content[i])) {
 				skip_text = GF_FALSE;

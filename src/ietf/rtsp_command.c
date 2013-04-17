@@ -261,7 +261,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 //	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 
 	*out_buffer = (unsigned char *)buffer;
-	*out_size = strlen(buffer);
+	*out_size = (u32) strlen(buffer);
 	return GF_OK;
 }
 

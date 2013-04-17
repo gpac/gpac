@@ -1770,7 +1770,7 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath)
 	u32 len_rad1;
 	char szFileName[GF_MAX_PATH];
 	CATEnum *cat_enum = (CATEnum *)cbk;
-	len_rad1 = strlen(cat_enum->szRad1);
+	len_rad1 = (u32) strlen(cat_enum->szRad1);
 	if (strnicmp(szName, cat_enum->szRad1, len_rad1)) return 0;
 	if (strlen(cat_enum->szRad2) && !strstr(szName + len_rad1, cat_enum->szRad2) ) return 0;
 
@@ -2381,7 +2381,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	e = gf_isom_set_meta_xml(file, 1, 0, file_name, !ascii);
 	if (e) goto exit;
 
-	skip_chars = strlen(root_dir);
+	skip_chars = (u32) strlen(root_dir);
 	count = gf_list_count(imports);
 	for (i=0; i<count; i++) {
 		char *ext, *mime, *encoding, *name = NULL;

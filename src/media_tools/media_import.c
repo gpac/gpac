@@ -190,7 +190,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	size = (u32) gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
 	data = (char*)gf_malloc(sizeof(char)*size);
-	size = fread(data, sizeof(char), size, src);
+	size = (u32) fread(data, sizeof(char), size, src);
 	fclose(src);
 
 	/*get image size*/
@@ -323,7 +323,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	size = (u32) gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
 	data = (char*)gf_malloc(sizeof(char)*size);
-	size = fread(data, sizeof(char), size, src);
+	size = (u32) fread(data, sizeof(char), size, src);
 	fclose(src);
 
 	OTI = GPAC_OTI_SCENE_AFX;
@@ -2552,7 +2552,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 		return GF_IO_ERR;
 	}
 	if (dict && *dict) {
-		err = deflateSetDictionary(&stream, (Bytef *)*dict, strlen(*dict));
+		err = deflateSetDictionary(&stream, (Bytef *)*dict, (u32) strlen(*dict));
 		if (err != Z_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Error assigning dictionary\n"));
 			deflateEnd(&stream);
@@ -2641,7 +2641,7 @@ static GF_Err nhml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *
 			}
 		}
 		if (szString) {
-			u32 len = strlen(szString);
+			u32 len = (u32) strlen(szString);
 			if (nb_bits)
 				gf_bs_write_int(bs, len, nb_bits);
 
@@ -2664,7 +2664,7 @@ static GF_Err nhml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *
 				remain = size;
 				gf_f64_seek(_tmp, offset, SEEK_SET);
 				while (remain) {
-					read = fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
+					read = (u32) fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
 					gf_bs_write_data(bs, block, read);
 					remain -= size;
 				}
@@ -2861,7 +2861,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		specInfoSize = (u32) gf_f64_tell(info);
 		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
 		gf_f64_seek(info, 0, SEEK_SET);
-		specInfoSize = fread(specInfo, sizeof(char), specInfoSize, info);
+		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
 		fclose(info);
 	}
 
@@ -3090,7 +3090,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			GF_BitStream *bs;
 			char *content = gf_xml_dom_serialize(node, 1);
 
-			samp->dataLength = 3 + strlen(content);
+			samp->dataLength = 3 + (u32) strlen(content);
 
 			if (samp->dataLength>max_size) {
 				samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
@@ -3410,7 +3410,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		}
 
 		if (samp->dataLength){
-			readen = fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
+			readen = (u32) fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
 			assert(readen == samp->dataLength);
 		}
 		samp->dataLength += 1;
@@ -5579,7 +5579,7 @@ Bool OGG_ReadPage(FILE *f_in, ogg_sync_state *oy, ogg_page *oggpage)
 	if (feof(f_in)) return 0;
 	while (ogg_sync_pageout(oy, oggpage ) != 1 ) {
 		char *buffer = ogg_sync_buffer(oy, OGG_BUFFER_SIZE);
-		u32 bytes = fread(buffer, sizeof(char), OGG_BUFFER_SIZE, f_in);
+		u32 bytes = (u32) fread(buffer, sizeof(char), OGG_BUFFER_SIZE, f_in);
 		ogg_sync_wrote(oy, bytes);
 		if (feof(f_in)) return 1;
 	}
@@ -6121,7 +6121,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	gf_f64_seek(src, 0, SEEK_SET);
 	samp->IsRAP = 1;
 	samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
-	readen = fread(samp->data, sizeof(char), samp->dataLength, src);
+	readen = (u32) fread(samp->data, sizeof(char), samp->dataLength, src);
 	assert( readen == samp->dataLength );
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
@@ -7348,7 +7348,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	if (do_import) gf_import_message(import, GF_OK, progress);
 
 	while (!feof(mts)) {
-		size = fread(data, sizeof(char), 188, mts);
+		size = (u32) fread(data, sizeof(char), 188, mts);
 		if (size<188)
 			break;
 
@@ -7833,7 +7833,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	FILE *f = gf_f64_open(import->in_name, "rt");
 	if (!f) return GF_URL_ERROR;
 
-	readen = fread(line, 1, 4, f);
+	readen = (u32) fread(line, 1, 4, f);
 	if (readen < 4){
 		e = GF_URL_ERROR;
 		goto err_exit;
@@ -7918,7 +7918,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		u32 off = 0;
 		char *sL;
 		while (1) {
-			u32 len = strlen(line);
+			u32 len = (u32) strlen(line);
 			if (!len) break;
 			switch (line[len-1]) {
 			case '\n': case '\t': case '\r': case ' ':

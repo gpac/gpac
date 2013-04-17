@@ -261,7 +261,7 @@ static JSBool SMJS_FUNCTION(dom_imp_has_feature)
 		char *fname = SMJS_CHARS(c, argv[0]);
 		if (!fname) return JS_TRUE;
 		while (strchr(" \t\n\r", fname[0])) fname++;
-		len = strlen(fname);
+		len = (u32) strlen(fname);
 		while (len && strchr(" \t\n\r", fname[len-1])) len--;
 		sep = fname[len];
 		fname[len] = 0;
@@ -2377,7 +2377,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 
 	prev_event = SMJS_GET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event);
 	SMJS_SET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event, event);
-	ret = JS_EvaluateScript(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, strlen(utf8_script), 0, 0, &rval);
+	ret = JS_EvaluateScript(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, (u32) strlen(utf8_script), 0, 0, &rval);
 	SMJS_SET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event, prev_event);
 
 	if (ret==JS_FALSE) {
@@ -2519,7 +2519,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	fsize = (u32) gf_f64_tell(jsf);
 	gf_f64_seek(jsf, 0, SEEK_SET);
 	jsscript = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
-	fsize = fread(jsscript, sizeof(char), (size_t)fsize, jsf);
+	fsize = (u32) fread(jsscript, sizeof(char), (size_t)fsize, jsf);
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
@@ -2618,7 +2618,7 @@ void JSScript_LoadSVG(GF_Node *node)
 	else if (node->sgprivate->tag == TAG_SVG_script) {
 		txt = svg_get_text_child(node);
 		if (!txt) return;
-		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, (u32) strlen(txt->textContent), 0, 0, &rval);
 		if (ret==JS_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid script\n") );
 		}
@@ -2706,7 +2706,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 
 	if (utf8_script) {
-		ret = JS_EvaluateScript(svg_js->js_ctx, __this, utf8_script, strlen(utf8_script), 0, 0, &rval);
+		ret = JS_EvaluateScript(svg_js->js_ctx, __this, utf8_script, (u32) strlen(utf8_script), 0, 0, &rval);
 	} 
 	else if (hdl->js_fun || hdl->js_fun_val || hdl->evt_listen_obj) {
 		JSObject *evt;
@@ -2730,7 +2730,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			ret = JS_FALSE;
 	}
 	else {
-		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, (u32) strlen(txt->textContent), 0, 0, &rval);
 	}
 
 	/*check any pending exception if outer-most event*/

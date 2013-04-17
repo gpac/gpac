@@ -579,12 +579,12 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		drives = gf_malloc(sizeof(char)*(len+1));
 		drives[0]=0;
 		GetLogicalDriveStrings(len, drives);
-		len = strlen(drives);
+		len = (u32) strlen(drives);
 		volume = drives;
 		while (len) {
 			enum_dir_fct(cbck, volume, "");
 			volume += len+1;
-			len = strlen(volume);
+			len = (u32) strlen(volume);
 		}
 		gf_free(drives);
 		return GF_OK;

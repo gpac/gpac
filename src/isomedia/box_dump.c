@@ -2686,8 +2686,9 @@ static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
-	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
+	u32 i, j, count, di, nb_descs, shift_offset[20], so_count;
 	u64 last_DTS;
+	size_t len;
 	GF_Box *a;
 	Bool has_scroll;
 	char szDur[100];
@@ -2834,7 +2835,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 				str = txt->text;
 				len = gf_utf8_mbstowcs((u16*)utf16Line, 10000, (const char **) &str);
 			}
-			if (len != (u32) -1) {
+			if (len != (size_t) -1) {
 				utf16Line[len] = 0;
 #ifdef DUMP_OLD_TEXT
 				fprintf(dump, " text=\"\'");
@@ -3013,8 +3014,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 				len = txt->len;
 			} else {
 				u8 *str = (u8 *) (txt->text);
-				s32 res = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
-				if (res<0) return GF_NON_COMPLIANT_BITSTREAM;
+				size_t res = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
+				if (res==(size_t)-1) return GF_NON_COMPLIANT_BITSTREAM;
 				len = (u32) res;
 				utf16Line[len] = 0;
 			}
@@ -3057,14 +3058,15 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
                 }
 
                 if (!is_new_line) {
-                    u32 sl;
+                    size_t sl;
                     char szChar[30];
                     s16 swT[2], *swz;
                     swT[0] = utf16Line[j];
                     swT[1] = 0;
                     swz= (s16 *)swT;
                     sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
-                    szChar[sl]=0;
+                    if (sl == (size_t)-1) sl=0;
+					szChar[(u32) sl]=0;
                     fprintf(dump, "%s", szChar);
                 }
                 char_num++;

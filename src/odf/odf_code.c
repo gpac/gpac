@@ -44,19 +44,19 @@ static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool i
 
 static GFINLINE u32 OD_SizeUTF8String(char *string, Bool isUTF8)
 {
-	if (isUTF8) return 1 + strlen(string);
-	return 1 + 2*gf_utf8_wcslen((const unsigned short *)string);
+	if (isUTF8) return 1 + (u32) strlen(string);
+	return 1 + 2 * (u32) gf_utf8_wcslen((const unsigned short *)string);
 }
 
 static GFINLINE void OD_WriteUTF8String(GF_BitStream *bs, char *string, Bool isUTF8)
 {
 	u32 len;
 	if (isUTF8) {
-		len = strlen(string);
+		len = (u32) strlen(string);
 		gf_bs_write_int(bs, len, 8);
 		gf_bs_write_data(bs, string, len);
 	} else {
-		len = gf_utf8_wcslen((const unsigned short *)string);
+		len = (u32) gf_utf8_wcslen((const unsigned short *)string);
 		gf_bs_write_int(bs, len, 8);
 		gf_bs_write_data(bs, string, len*2);
 	}
@@ -99,7 +99,7 @@ GF_Err gf_odf_write_url_string(GF_BitStream *bs, char *string)
 		gf_bs_write_int(bs, 0, 8);
 		return GF_OK;
 	}		
-	len = strlen(string);
+	len = (u32) strlen(string);
 	if (len > 255) {
 		gf_bs_write_int(bs, 0, 8);
 		gf_bs_write_int(bs, len, 32);
@@ -112,7 +112,7 @@ GF_Err gf_odf_write_url_string(GF_BitStream *bs, char *string)
 
 u32 gf_odf_size_url_string(char *string)
 {
-	u32 len = strlen(string);
+	u32 len = (u32) strlen(string);
 	if (len>255) return len+5;
 	return len+1;
 }
@@ -1420,7 +1420,7 @@ GF_Err gf_odf_size_segment(GF_Segment *sd, u32 *outSize)
 {
 	if (!sd) return GF_BAD_PARAM;
 	*outSize = 17;
-	if (sd->SegmentName) *outSize += strlen(sd->SegmentName);
+	if (sd->SegmentName) *outSize += (u32) strlen(sd->SegmentName);
 	return GF_OK;
 }
 
@@ -1436,8 +1436,8 @@ GF_Err gf_odf_write_segment(GF_BitStream *bs, GF_Segment *sd)
 	gf_bs_write_double(bs, sd->startTime);
 	gf_bs_write_double(bs, sd->Duration);
 	if (sd->SegmentName) {
-		gf_bs_write_int(bs, strlen(sd->SegmentName), 8);
-		gf_bs_write_data(bs, sd->SegmentName, strlen(sd->SegmentName));
+		gf_bs_write_int(bs, (u32) strlen(sd->SegmentName), 8);
+		gf_bs_write_data(bs, sd->SegmentName, (u32) strlen(sd->SegmentName));
 	} else {
 		gf_bs_write_int(bs, 0, 8);
 	}
@@ -2011,7 +2011,7 @@ GF_Err gf_odf_size_ci(GF_CIDesc *cid, u32 *outSize)
 	if (cid->contentTypeFlag) *outSize += 1;
 
 	if (cid->contentIdentifierFlag) 
-		*outSize += strlen((const char*)cid->contentIdentifier) - 1 - cid->contentTypeFlag;
+		*outSize += (u32) strlen((const char*)cid->contentIdentifier) - 1 - cid->contentTypeFlag;
 	return GF_OK;
 }
 
@@ -2171,9 +2171,9 @@ GF_Err gf_odf_size_exp_text(GF_ExpandedTextual *etd, u32 *outSize)
 	*outSize += 1;
 	if (etd->NonItemText) {
 		if (etd->isUTF8) {
-			nonLen = strlen((const char*)etd->NonItemText);
+			nonLen = (u32) strlen((const char*)etd->NonItemText);
 		} else {
-			nonLen = gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
+			nonLen = (u32) gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
 		}
 	} else {
 		nonLen = 0;
@@ -2221,11 +2221,11 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 		OD_WriteUTF8String(bs, tmp->text, etd->isUTF8);
 	}
 	if (etd->NonItemText) {
-		nonLen = strlen((const char*)etd->NonItemText) + 1;
+		nonLen = (u32) strlen((const char*)etd->NonItemText) + 1;
 		if (etd->isUTF8) {
-			nonLen = strlen((const char*)etd->NonItemText);
+			nonLen = (u32) strlen((const char*)etd->NonItemText);
 		} else {
-			nonLen = gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
+			nonLen = (u32) gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
 		}
 	} else {
 		nonLen = 0;
@@ -2458,7 +2458,7 @@ GF_Err gf_odf_size_ipmp(GF_IPMP_Descriptor *ipmp, u32 *outSize)
 	}
 	else if (! ipmp->IPMPS_Type) {
 		if (!ipmp->opaque_data) return GF_ODF_INVALID_DESCRIPTOR;
-		*outSize += strlen(ipmp->opaque_data);
+		*outSize += (u32) strlen(ipmp->opaque_data);
 	} else {
 		*outSize += ipmp->opaque_data_size;
 	}
@@ -2492,7 +2492,7 @@ GF_Err gf_odf_write_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp)
 	}
 	else if (!ipmp->IPMPS_Type) {
 		if (!ipmp->opaque_data) return GF_ODF_INVALID_DESCRIPTOR;
-		gf_bs_write_data(bs, ipmp->opaque_data, strlen(ipmp->opaque_data));
+		gf_bs_write_data(bs, ipmp->opaque_data, (u32) strlen(ipmp->opaque_data));
 	} else {
 		gf_bs_write_data(bs, ipmp->opaque_data, ipmp->opaque_data_size);
 	}
@@ -2784,7 +2784,7 @@ GF_Err gf_odf_write_oci_name(GF_BitStream *bs, GF_OCICreators *ocn)
 		gf_bs_write_int(bs, tmp->langCode, 24);
 		gf_bs_write_int(bs, tmp->isUTF8, 1);
 		gf_bs_write_int(bs, 0, 7);		//aligned
-		gf_bs_write_int(bs, strlen(tmp->OCICreatorName) , 8);
+		gf_bs_write_int(bs, (u32) strlen(tmp->OCICreatorName) , 8);
 		OD_WriteUTF8String(bs, tmp->OCICreatorName, tmp->isUTF8);
 	}
 	return GF_OK;
@@ -3305,7 +3305,7 @@ GF_Err gf_odf_size_ipmp_tool(GF_IPMP_Tool *ipmpt, u32 *outSize)
 	if (ipmpt->num_alternate) *outSize += 1 + 16*ipmpt->num_alternate;
 
 	if (ipmpt->tool_url) {
-		u32 s = strlen(ipmpt->tool_url);
+		u32 s = (u32) strlen(ipmpt->tool_url);
 		*outSize += gf_odf_size_field_size(s) - 1 + s;
 	}
 	return GF_OK;
@@ -3331,7 +3331,7 @@ GF_Err gf_odf_write_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt)
 		gf_bs_write_int(bs, ipmpt->num_alternate, 8);
 		for (i=0;i<ipmpt->num_alternate; i++) gf_bs_write_data(bs, (char*)ipmpt->specificToolID[i], 16);
 	}
-	if (ipmpt->tool_url) gf_ipmpx_write_array(bs, ipmpt->tool_url, strlen(ipmpt->tool_url));
+	if (ipmpt->tool_url) gf_ipmpx_write_array(bs, ipmpt->tool_url, (u32) strlen(ipmpt->tool_url));
 	return GF_OK;
 }
 

@@ -2161,7 +2161,7 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 	if (!sg->ns) sg->ns = gf_list_new();
 
 	GF_SAFEALLOC(ns, GF_XMLNS);
-	ns->xmlns_id = id ? id : gf_crc_32(name, strlen(name));
+	ns->xmlns_id = id ? id : gf_crc_32(name, (u32) strlen(name));
 	ns->name = gf_strdup(name);
 
 	ns->qname = qname ? gf_strdup(qname) : NULL;

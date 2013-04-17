@@ -257,7 +257,7 @@ static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
 
 static void lsr_write_extension(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
 {
-	if (!len) len = strlen(name);
+	if (!len) len = (u32) strlen(name);
 	lsr_write_vluimsbf5(lsr, len, name);
 	gf_bs_write_data(lsr->bs, data, len);
 }
@@ -373,7 +373,7 @@ static void lsr_write_line_increment_type(GF_LASeRCodec *lsr, SVG_Number *li, co
 
 static void lsr_write_byte_align_string(GF_LASeRCodec *lsr, char *str, const char *name)
 {
-	u32 len = str ? strlen(str) : 0;
+	u32 len = str ? (u32) strlen(str) : 0;
 	gf_bs_align(lsr->bs);
 	lsr_write_vluimsbf8(lsr, len, "len");
 	if (len) gf_bs_write_data(lsr->bs, str, len);
@@ -424,7 +424,7 @@ static void lsr_write_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 			sep[0] = 0;
 			lsr_write_byte_align_string(lsr, iri->string, "uri");
 			sep[0] = ',';
-			len = strlen(sep+1);
+			len = (u32) strlen(sep+1);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "hasData");
 			lsr_write_vluimsbf5(lsr, len, "len");
 			gf_bs_write_data(lsr->bs, sep+1, len);
@@ -1052,7 +1052,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 			switch (att->tag) {
 			case TAG_SVG_ATT_syncMaster: len +=1; break;
 			case TAG_SVG_ATT_requiredFonts:
-				len += 8*strlen(*(SVG_String*)att->data);
+				len += 8 * (u32) strlen(*(SVG_String*)att->data);
 				/*get vluimsbf5 field size with one extra word (4 bits, enough to code string alignment)*/
 				size = lsr_get_vluimsbf5_size(len, 1);
 				cur_bits = gf_bs_get_bit_position(lsr->bs) + lsr->info->cfg.extensionIDBits + size + 5;

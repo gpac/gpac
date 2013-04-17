@@ -243,7 +243,7 @@ static void gf_jpeg_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 {
 	JPGCtx *jpx = (JPGCtx *) cinfo->src;
 	if (num_bytes > (long) jpx->src.bytes_in_buffer) {
-		jpx->skip = num_bytes - jpx->src.bytes_in_buffer;
+		jpx->skip = (s32) (num_bytes - jpx->src.bytes_in_buffer);
 		jpx->src.next_input_byte += jpx->src.bytes_in_buffer;
 		jpx->src.bytes_in_buffer = 0;
 	} else {
@@ -405,7 +405,7 @@ static void gf_png_user_read_data(png_structp png_ptr, png_bytep data, png_size_
 		png_error(png_ptr, "Read Error");
 	} else {
 		memcpy(data, (char*) ctx->buffer + ctx->pos, length);
-		ctx->pos += length;
+		ctx->pos += (u32) length;
 	}
 }
 static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
@@ -513,7 +513,7 @@ void gf_png_write(png_structp png, png_bytep data, png_size_t size)
 {
 	GFpng *p = (GFpng *)png_get_io_ptr(png);
 	memcpy(p->buffer+p->pos, data, sizeof(char)*size);
-	p->pos += size;
+	p->pos += (u32) size;
 }
 void gf_png_flush(png_structp png)
 {
@@ -688,7 +688,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
     fsize = (u32)gf_f64_tell(f);
     gf_f64_seek(f, 0, SEEK_SET);
     data = gf_malloc(fsize);
-    read = fread(data, sizeof(char), fsize, f);
+    read = (u32) fread(data, sizeof(char), fsize, f);
 	fclose( f );
     if (read != fsize) return GF_IO_ERR;
 

@@ -385,7 +385,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			gf_f64_seek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
 				u32 diff, nb_read;
-				nb_read = fread(file_buf, 1, 4096, priv->src);
+				nb_read = (u32) fread(file_buf, 1, 4096, priv->src);
 				file_buf[nb_read] = 0;
 				if (!nb_read) {
 					if (priv->file_pos==priv->file_size) {

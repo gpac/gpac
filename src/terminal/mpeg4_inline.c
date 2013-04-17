@@ -479,12 +479,12 @@ static char *storage_get_section(M_Storage *storage)
 
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
 
-	len = strlen(scene->root_od->net_service->url)+strlen(storage->name.buffer)+2;
+	len = (u32) strlen(scene->root_od->net_service->url) + (u32) strlen(storage->name.buffer)+2;
 	szPath = gf_malloc(sizeof(char)* len);
 	strcpy(szPath, scene->root_od->net_service->url);
 	strcat(szPath, "@");
 	strcat(szPath, storage->name.buffer);
-	gf_sha1_csum((u8*)szPath, strlen(szPath), hash);
+	gf_sha1_csum((u8*)szPath, (u32) strlen(szPath), hash);
 	gf_free(szPath);
 
 	strcpy(name, "@cache=");

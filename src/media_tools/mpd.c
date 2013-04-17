@@ -1276,7 +1276,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					if (strchr("0123456789", template_base[k])) {
 						if (template_ext) {
 							template_ext[0] = 0;
-							template_width = strlen(template_base + k);
+							template_width = (u32) strlen(template_base + k);
 							template_idx_start = atoi(template_base + k);
 							template_ext[0] = '.';
 						}
@@ -1410,7 +1410,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			sep = strrchr(base_url, '/');
 
 			if (pe->codecs && (pe->codecs[0] == '\"')) {
-				u32 len = strlen(pe->codecs);
+				u32 len = (u32) strlen(pe->codecs);
 				strncpy(pe->codecs, pe->codecs+1, len-1);
 				pe->codecs[len-2] = 0;
 			}

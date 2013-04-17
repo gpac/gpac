@@ -729,7 +729,7 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 		SVGAttribute *last_att = NULL;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute *) ((SVG_Element*)node)->attributes;
 		if (xmlns_code) ns = gf_sg_get_namespace_qname(node->sgprivate->scenegraph, xmlns_code);
-		if (ns) len = strlen(ns);
+		if (ns) len = (u32) strlen(ns);
 
 		while (att) {
 			if (((u32) att->tag == TAG_DOM_ATT_any) && 
@@ -1036,7 +1036,7 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 		char cache[1024];
 		gf_f64_seek(f, 0, SEEK_SET);
 		while (fsize) {
-			u32 read = fread(cache, 1, 1024, f);
+			u32 read = (u32) fread(cache, 1, 1024, f);
 			fsize -= read;
 			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
 			offset+=read;
@@ -1064,7 +1064,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 
 	/*handle "data:" scheme when cache is specified*/
 	strcpy(szFile, cache_dir);
-	data_size = strlen(szFile);
+	data_size = (u32) strlen(szFile);
 	if (szFile[data_size-1] != GF_PATH_SEPARATOR) {
 		szFile[data_size] = GF_PATH_SEPARATOR;
 		szFile[data_size+1] = 0;
@@ -1094,17 +1094,17 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	sep = strchr(iri->string, ';');
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
-		data_size = 2*strlen(sep);
+		data_size = 2 * (u32) strlen(sep);
 		data = (char*)gf_malloc(sizeof(char)*data_size);
 		if (!data) return GF_OUT_OF_MEM;
-		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
+		data_size = gf_base64_decode(sep, (u32) strlen(sep), data, data_size);
 	}
 	else if (!strncmp(sep, ";base16,", 8)) {
-		data_size = 2*strlen(sep);
+		data_size = 2 * (u32) strlen(sep);
 		data = (char*)gf_malloc(sizeof(char)*data_size);
 		if (!data) return GF_OUT_OF_MEM;
 		sep += 8;
-		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
+		data_size = gf_base16_decode(sep, (u32) strlen(sep), data, data_size);
 	}
 	if (!data_size) return GF_OK;
 	

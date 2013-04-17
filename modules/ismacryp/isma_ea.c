@@ -111,7 +111,7 @@ static GF_Err ISMA_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	/*base64 inband encoding*/
 	if (!strnicmp(cfg->kms_uri, "(key)", 5)) {
 		char data[100];
-		gf_base64_decode((char*)cfg->kms_uri+5, strlen(cfg->kms_uri)-5, data, 100);
+		gf_base64_decode((char*)cfg->kms_uri+5, (u32)strlen(cfg->kms_uri)-5, data, 100);
 		memcpy(priv->key, data, sizeof(char)*16);
 		memcpy(priv->salt, data+16, sizeof(char)*8);
 	}
@@ -252,7 +252,7 @@ static GF_Err OMA_DRM_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			sep = strchr(cfg->oma_drm_textual_headers + hdr_pos, ':');
 			if (sep) priv->preview_range = atoi(sep+1);
 		}
-		len = strlen(cfg->oma_drm_textual_headers + hdr_pos);
+		len = (u32) strlen(cfg->oma_drm_textual_headers + hdr_pos);
 		hdr_pos += len+1;
 	}
 	priv->is_oma = 1;

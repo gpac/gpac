@@ -309,9 +309,9 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 32) && strstr(rvc_config_att, "base64") ) {
 			char *data = strchr(rvc_config_att, ',');
 			if (data) {
-				rvc_size = strlen(data) * 3 / 4 + 1;
+				rvc_size = (u32) strlen(data) * 3 / 4 + 1;
 				rvc_data = gf_malloc(sizeof(char) * rvc_size);
-				rvc_size = gf_base64_decode(data, strlen(data), rvc_data, rvc_size);
+				rvc_size = gf_base64_decode(data, (u32) strlen(data), rvc_data, rvc_size);
 				rvc_data[rvc_size] = 0;
 			}
 			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 35)) is_gz = 1;

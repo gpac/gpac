@@ -2938,7 +2938,7 @@ Bool gf_sc_has_text_selection(GF_Compositor *compositor)
 const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 {
 	const u16 *srcp;
-	u32 len;
+	size_t len;
 	if (compositor->store_text_state != GF_SC_TSEL_FROZEN) return NULL;
 
 	gf_sc_lock(compositor, GF_TRUE);

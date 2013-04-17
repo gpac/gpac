@@ -142,7 +142,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 		} else
 #endif
 		{
-			read = fread(block, 1, 1024, in);
+			read = (u32) fread(block, 1, 1024, in);
 			gf_sha1_update(ctx, block, read);
 			tot += read;
 		}
@@ -846,8 +846,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_bs_write_int(bs, dims.fullRequestHost, 1);
 		gf_bs_write_int(bs, dims.streamType, 1);
 		gf_bs_write_int(bs, dims.containsRedundant, 2);
-		gf_bs_write_data(bs, (char*)dims.textEncoding, strlen(dims.textEncoding)+1);
-		gf_bs_write_data(bs, (char*)dims.contentEncoding, strlen(dims.contentEncoding)+1);
+		gf_bs_write_data(bs, (char*)dims.textEncoding, (u32) strlen(dims.textEncoding)+1);
+		gf_bs_write_data(bs, (char*)dims.contentEncoding, (u32) strlen(dims.contentEncoding)+1);
 		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;

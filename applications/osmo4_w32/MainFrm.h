@@ -96,7 +96,7 @@ public:
 	CChildView *m_pWndView;
 	Bool m_bFullScreen;
 	u32 m_RestoreFS;
-	u32 m_timer_on;
+	UINT_PTR m_timer_on;
 	CString console_message;
 	CString console_service;
 	GF_Err console_err;
@@ -138,10 +138,10 @@ protected:
 	afx_msg BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnMove(int x, int y);
-	afx_msg LONG OnSetSize(WPARAM wParam, LPARAM lParam);
-	afx_msg LONG OnNavigate(WPARAM wParam, LPARAM lParam);
-	afx_msg LONG Open(WPARAM wParam, LPARAM lParam);
-	afx_msg LONG NewInstanceOpened(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnSetSize(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnNavigate(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT Open(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT NewInstanceOpened(WPARAM wParam, LPARAM lParam);
 
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
@@ -152,7 +152,7 @@ protected:
 	afx_msg void OnKeyDown( UINT nChar, UINT nRepCnt, UINT nFlags );
 	afx_msg void OnKeyUp( UINT nChar, UINT nRepCnt, UINT nFlags );
 	afx_msg void OnDropFiles(HDROP hDropInfo);
-	afx_msg LONG OnConsoleMessage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnConsoleMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnViewOriginal();
 	afx_msg void OnViewFullscreen();
 	afx_msg void OnArKeep();

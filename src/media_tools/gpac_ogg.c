@@ -1054,8 +1054,8 @@ s32 ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   if(!next)
     next=oy->data+oy->fill;
 
-  oy->returned=next-oy->data;
-  return(-(next-page));
+  oy->returned = (s32) (next-oy->data);
+  return (s32) (-(next-page));
 }
 
 /* sync the stream and get a page.  Keep trying until we find a page.

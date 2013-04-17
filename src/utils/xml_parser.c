@@ -64,7 +64,7 @@ static char *xml_translate_xml_string(char *str)
 				end = strchr(szChar, ';');
 				if (!end) break;
 				end[1] = 0;
-				i+=strlen(szChar);
+				i += (u32) strlen(szChar);
 				wchar[1] = 0;
 				if (szChar[2]=='x')
 					sscanf(szChar, "&#x%x;", &val);
@@ -72,7 +72,7 @@ static char *xml_translate_xml_string(char *str)
 					sscanf(szChar, "&#%u;", &val);
 				wchar[0] = val;
 				srcp = wchar;
-				j += gf_utf8_wcstombs(&value[j], 20, &srcp);
+				j += (u32) gf_utf8_wcstombs(&value[j], 20, &srcp);
 			}
 			else if (!strnicmp(&str[i], "&amp;", sizeof(char)*5)) {
 				value[j] = '&';
@@ -217,7 +217,7 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	
 	sprintf(szM, " - Line %d: ", parser->line + 1);
 	strcat(parser->err_msg, szM);
-	len = strlen(parser->err_msg);
+	len = (u32) strlen(parser->err_msg);
 	strncpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
 	parser->err_msg[len + 10] = 0;
 	parser->sax_state = SAX_STATE_SYNTAX_ERROR;
@@ -407,7 +407,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 			sep = strchr(parser->buffer + parser->att_name_start - 1, parser->in_quote ?  parser->in_quote : ' ');
 			/*not enough data*/
 			if (!sep) return 1;
-			parser->current_pos = sep - parser->buffer;
+			parser->current_pos = (u32) (sep - parser->buffer);
 			parser->att_name_start = 0;
 			if (parser->in_quote) {
 				parser->current_pos++;
@@ -423,7 +423,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 			/*not enough data*/
 			if (!sep) return 1;
 
-			parser->current_pos = sep - parser->buffer;
+			parser->current_pos = (u32) (sep - parser->buffer);
 			att = xml_get_sax_attribute(parser);
 			att->name_start = parser->att_name_start;
 			att->name_end = parser->current_pos + 1;
@@ -491,16 +491,16 @@ att_retry:
 		if (!sep || !sep[1]) return 1;
 
 		if (sep[1]==parser->att_sep) {
-			format_sax_error(parser, sep - parser->buffer, "Invalid character %c after attribute value separator %c ", sep[1], parser->att_sep);
+			format_sax_error(parser, (u32) (sep - parser->buffer), "Invalid character %c after attribute value separator %c ", sep[1], parser->att_sep);
 			return 1;
 		}
 
 		if (!parser->init_state && (strchr(" />\n\t\r", sep[1])==NULL)) {
-			parser->current_pos = sep - parser->buffer + 1;
+			parser->current_pos = (u32) (sep - parser->buffer + 1);
 			goto att_retry;
 		}
 
-		parser->current_pos = sep - parser->buffer;
+		parser->current_pos = (u32) (sep - parser->buffer);
 		att->val_end = parser->current_pos + 1;
 		parser->current_pos++;
 
@@ -645,7 +645,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			szName[i] = 0;
 			GF_SAFEALLOC(ent, XML_Entity);
 			ent->name = gf_strdup(szName);
-			ent->namelen = strlen(ent->name);
+			ent->namelen = (u32) strlen(ent->name);
 			ent->sep = c;
 			parser->current_pos += 1+i;
 			assert(parser->current_pos < parser->line_size);
@@ -680,7 +680,7 @@ static void xml_sax_cdata(GF_SAXParser *parser)
 	if (!cd_end) {
 		xml_sax_store_text(parser, parser->line_size - parser->current_pos);
 	} else {
-		u32 size = cd_end - (parser->buffer + parser->current_pos);
+		u32 size = (u32) (cd_end - (parser->buffer + parser->current_pos));
 		xml_sax_store_text(parser, size);
 		xml_sax_flush_text(parser);
 		parser->current_pos += 3;
@@ -911,7 +911,7 @@ exit:
 static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 {
 	u32 size = parser->line_size;
-	u32 nl_size = strlen(string);
+	u32 nl_size = (u32) strlen(string);
 	
 	if (!nl_size) return GF_OK;
 
@@ -933,7 +933,7 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 static XML_Entity *gf_xml_locate_entity(GF_SAXParser *parser, char *ent_start, Bool *needs_text)
 {
 	u32 i, count;
-	u32 len = strlen(ent_start);
+	u32 len = (u32) strlen(ent_start);
 
 	*needs_text = 0;
 	count = gf_list_count(parser->entities);
@@ -973,7 +973,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 			entityStart = strrchr(parser->buffer, '&');
 
 			entityEnd[0] = 0;
-			len = strlen(entityStart) + strlen(current) + 1;
+			len = (u32) strlen(entityStart) + (u32) strlen(current) + 1;
 			name = gf_malloc(sizeof(char)*len);
 			sprintf(name, "%s%s;", entityStart+1, current);
 
@@ -989,7 +989,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 			}
 			assert(ent);
 			/*truncate input buffer*/
-			parser->line_size -= strlen(entityStart);
+			parser->line_size -= (u32) strlen(entityStart);
 			entityStart[0] = 0;
 
 			parser->in_entity = 0;
@@ -1042,9 +1042,9 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 
 	if (parser->unicode_type>1) {
 		const u16 *sptr = (const u16 *)string;
-		u32 len = 2*gf_utf8_wcslen(sptr);
+		u32 len = 2 * (u32) gf_utf8_wcslen(sptr);
 		utf_conv = (char *)gf_malloc(sizeof(char)*(len+1));
-		len = gf_utf8_wcstombs(utf_conv, len, &sptr);
+		len = (u32) gf_utf8_wcstombs(utf_conv, len, &sptr);
 		if (len==(u32) -1) {
 			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 			gf_free(utf_conv);
@@ -1343,8 +1343,8 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 
 
 #define CPYCAT_ALLOC(__str, __is_copy) if ( strlen(__str) + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
-								alloc_size = 1+strlen(__str);	\
-								if (!__is_copy) alloc_size += strlen(szLine); \
+								alloc_size = 1 + (u32) strlen(__str);	\
+								if (!__is_copy) alloc_size += (u32) strlen(szLine); \
 								szLine = gf_realloc(szLine, alloc_size);	\
 							}\
 							if (__is_copy) strcpy(szLine, __str);	\
@@ -1368,13 +1368,13 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		pos = gztell(parser->gz_in);
 #endif
 	}
-	att_len = strlen(parser->buffer + parser->att_name_start);
+	att_len = (u32) strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	alloc_size = att_len;
 	szLine = (char *) gf_malloc(sizeof(char)*alloc_size);
 	strcpy(szLine, parser->buffer + parser->att_name_start);
 	cur_line = szLine;
-	att_len = strlen(att_value);
+	att_len = (u32) strlen(att_value);
 	state = 0;
 	goto retry;
 
@@ -1754,7 +1754,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 	char *name;
 	
 #define SET_STRING(v)	\
-	vlen = strlen(v);	\
+	vlen = (u32) strlen(v);	\
 	if (vlen+ (*size) >= (*alloc_size)) {	\
 		(*alloc_size) += 1024;	\
 		(*str) = gf_realloc((*str), (*alloc_size));	\

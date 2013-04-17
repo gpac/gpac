@@ -1157,8 +1157,5 @@
     <ClCompile Include="..\..\src\utils\xml_parser.c">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\utils\zutil.c">
-      <Filter>utils</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

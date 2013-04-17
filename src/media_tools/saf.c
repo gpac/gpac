@@ -226,12 +226,12 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 		gf_bs_write_int(payload, str->ts_resolution, 24);
 		gf_bs_write_u16(payload, str->buffersize_db);
 		if (str->mime_type) {
-			u32 len = strlen(str->mime_type);
+			u32 len = (u32) strlen(str->mime_type);
 			gf_bs_write_u16(payload, len);
 			gf_bs_write_data(payload, str->mime_type, len);
 		}
 		if (str->remote_url) {
-			u32 len = strlen(str->remote_url);
+			u32 len = (u32) strlen(str->remote_url);
 			gf_bs_write_u16(payload, len);
 			gf_bs_write_data(payload, str->remote_url, len);
 		} 

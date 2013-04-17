@@ -419,7 +419,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	xml->xml_length = (u32) gf_f64_tell(xmlfile);
 	gf_f64_seek(xmlfile, 0, SEEK_SET);
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
-	xml->xml_length = fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
+	xml->xml_length = (u32) fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
 	if (ferror(xmlfile)) {
 		gf_free(xml->xml);
 		xml->xml = NULL;
@@ -595,9 +595,10 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 				remain = entry->extent_length;
 				while (remain) {
 					u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-					size_cache = fread(cache_data, 1, size_cache, src);
-					gf_bs_write_data(file->editFileMap->bs, cache_data, size_cache);
-					remain -= size_cache;
+					size_t read = fread(cache_data, 1, size_cache, src);
+					if (read==(size_t)-1) break;
+					gf_bs_write_data(file->editFileMap->bs, cache_data, (u32) read);
+					remain -= (u32) read;
 				}
 				fclose(src);
 

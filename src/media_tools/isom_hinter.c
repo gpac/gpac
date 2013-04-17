@@ -802,7 +802,7 @@ static void write_avc_config(char *sdpLine, GF_AVCConfig *avcc, GF_AVCConfig *sv
 		count = write_nalu_config_array(sdpLine, svcc->pictureParameterSets);
 		if (count) strcat(sdpLine, ",");
 	}
-	count = strlen(sdpLine);
+	count = (u32) strlen(sdpLine);
 	if (sdpLine[count-1] == ',')
 		sdpLine[count-1] = 0;
 }
@@ -1007,14 +1007,14 @@ Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType)
 	if (!size64) return 0;
 	switch (streamType) {
 	case GF_STREAM_OD:
-		size64 += strlen("data:application/mpeg4-od-au;base64,");
+		size64 += (u32) strlen("data:application/mpeg4-od-au;base64,");
 		break;
 	case GF_STREAM_SCENE:
-		size64 += strlen("data:application/mpeg4-bifs-au;base64,");
+		size64 += (u32) strlen("data:application/mpeg4-bifs-au;base64,");
 		break;
 	default:
 		/*NOT NORMATIVE*/
-		size64 += strlen("data:application/mpeg4-es-au;base64,");
+		size64 += (u32) strlen("data:application/mpeg4-es-au;base64,");
 		break;
 	}
 	if (size64>=255) return 0;
@@ -1105,7 +1105,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 					esd->decoderConfig->avgBitrate = 0;
 					esd->decoderConfig->bufferSizeDB = samp->dataLength;
 					esd->decoderConfig->maxBitrate = 0;
-					size64 = strlen(sdpLine)+1;
+					size64 = (u32) strlen(sdpLine)+1;
 					esd->URLString = (char*)gf_malloc(sizeof(char) * size64);
 					strcpy(esd->URLString, sdpLine);
 				} else {

@@ -631,7 +631,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 				memcpy(wsChunk, &utf16_txt[start_char], sizeof(s16)*(i-start_char));
 				wsChunk[i-start_char] = 0;
 				sp = &wsChunk[0];
-				len = gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
+				len = (u32) gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
 				szLine[len] = 0;
 
 				gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
@@ -889,7 +889,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		char_count = txt->len / 2;
 	} else {
 		char *p = txt->text;
-		char_count = gf_utf8_mbstowcs(utf16_text, 2500, (const char **) &p);
+		char_count = (u32) gf_utf8_mbstowcs(utf16_text, 2500, (const char **) &p);
 	}
 
 	chunks = gf_list_new();

@@ -128,7 +128,7 @@ struct _dash_segment_input
 				if (sep) {	\
 					sep[0] = 0;	\
 					strcpy(szFmt, seg_rad_name+char_template);	\
-					char_template += strlen(seg_rad_name+char_template);	\
+					char_template += (u32) strlen(seg_rad_name+char_template);	\
 					sep[0] = '$';	\
 				}	\
 			}	\
@@ -199,7 +199,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 					strcat(segment_name, seg_rad_name + char_template+6);
 					needs_init=GF_FALSE;
 				}
-				char_template += strlen(seg_rad_name + char_template)+1;
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
 			}
 			else if (!strnicmp(& seg_rad_name[char_template], "$Index=", 7)) {
@@ -209,7 +209,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 					strcat(segment_name, seg_rad_name + char_template+6);
 					needs_init=GF_FALSE;
 				}
-				char_template += strlen(seg_rad_name + char_template)+1;
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
 			}
 			
@@ -516,7 +516,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		if (first_in_set && dash_cfg->use_segment_timeline) {
 			mpd_timeline_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			sprintf(szMPDTempLine, "    <SegmentTimeline>\n");
-			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 		}
 		
 	} else {
@@ -860,7 +860,7 @@ restart_fragmentation_pass:
 			const char *key_name = gf_cfg_get_key_name(dash_cfg->dash_ctx, RepURLsSecName, i);
 			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepURLsSecName, key_name);
 			sprintf(szMPDTempLine, "     %s\n", opt);	
-			gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
+			gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
@@ -926,7 +926,7 @@ restart_fragmentation_pass:
 					if (!use_url_template) {
 						const char *name = gf_url_get_resource_name(SegmentName);
 						sprintf(szMPDTempLine, "     <SegmentURL media=\"%s\"/>\n", name );	
-						gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
+						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						if (dash_cfg->dash_ctx) {
 							char szKey[100], szVal[4046];
 							sprintf(szKey, "UrlInfo%d", cur_seg );
@@ -1251,7 +1251,7 @@ restart_fragmentation_pass:
 							} else {
 								sprintf(szMPDTempLine, "/>\n");
 							}
-							gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+							gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						}
 						previous_segment_duration = SegmentDuration;
 						if (first_segment_in_timeline) {
@@ -1260,7 +1260,7 @@ restart_fragmentation_pass:
 						} else {
 							sprintf(szMPDTempLine, "     <S d=\""LLU"\"", (u64) SegmentDuration);
 						}
-						gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+						gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						segment_timeline_repeat_count = 0;
 					}	
 				}
@@ -1290,10 +1290,10 @@ restart_fragmentation_pass:
 						end_range = file_size - 1;
 						if (dash_cfg->single_file_mode!=1) {
 							sprintf(szMPDTempLine, "      <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);	
-							gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
+							gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 							if (idx_start_range || idx_end_range) {
 								sprintf(szMPDTempLine, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);	
-								gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
+								gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 							}
 							gf_bs_write_data(mpd_bs, "/>\n", 3);
 
@@ -1359,10 +1359,10 @@ restart_fragmentation_pass:
 				end_range = file_size - 1;
 				if (dash_cfg->single_file_mode!=1) {
 					sprintf(szMPDTempLine, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);
-					gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
+					gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 					if (idx_start_range || idx_end_range) {
 						sprintf(szMPDTempLine, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);
-						gf_bs_write_data(mpd_bs, szMPDTempLine, strlen(szMPDTempLine));
+						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 					}
 					gf_bs_write_data(mpd_bs, "/>\n", 3);
 
@@ -1381,7 +1381,7 @@ restart_fragmentation_pass:
 			if (previous_segment_duration == SegmentDuration) {
 				segment_timeline_repeat_count ++;
 				sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
-				gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+				gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 			} else {
 				if (previous_segment_duration) {
 					if (segment_timeline_repeat_count) {
@@ -1389,7 +1389,7 @@ restart_fragmentation_pass:
 					} else {
 						sprintf(szMPDTempLine, "/>\n");
 					}
-					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 				}
 				if (SegmentDuration) {
 					if (first_segment_in_timeline) {
@@ -1398,12 +1398,12 @@ restart_fragmentation_pass:
 					} else {
 						sprintf(szMPDTempLine, "     <S d=\""LLU"\"/>\n", (u64) SegmentDuration);
 					}
-					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+					gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 				}
 			}
 
 			sprintf(szMPDTempLine, "    </SegmentTimeline>\n");
-			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, strlen(szMPDTempLine));
+			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 		}
 
 		if (!bandwidth)
@@ -1478,15 +1478,19 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", audio_only ? "audio" : "video", szCodecs);
 		if (width && height) {
 			fprintf(dash_cfg->mpd, " width=\"%d\" height=\"%d\"", width, height);
-			gf_media_get_reduced_frame_rate(&fps_num, &fps_denum);
-			if (fps_denum>1)
-				fprintf(dash_cfg->mpd, " frameRate=\"%d/%d\"", fps_num, fps_denum);
-			else
-				fprintf(dash_cfg->mpd, " frameRate=\"%d\"", fps_num);
 
-			if (!sar_w) sar_w = 1;
-			if (!sar_h) sar_h = 1;
-			fprintf(dash_cfg->mpd, " sar=\"%d:%d\"", sar_w, sar_h);
+			/*this is a video track*/
+			if (fps_num || fps_denum) {
+				gf_media_get_reduced_frame_rate(&fps_num, &fps_denum);
+				if (fps_denum>1)
+					fprintf(dash_cfg->mpd, " frameRate=\"%d/%d\"", fps_num, fps_denum);
+				else
+					fprintf(dash_cfg->mpd, " frameRate=\"%d\"", fps_num);
+
+				if (!sar_w) sar_w = 1;
+				if (!sar_h) sar_h = 1;
+				fprintf(dash_cfg->mpd, " sar=\"%d:%d\"", sar_w, sar_h);
+			}
 
 		}
 		if (sample_rate) fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", sample_rate);
@@ -2628,7 +2632,7 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 		/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 		while (!feof(ts_seg->src)) {
 			char data[188];
-			u32 size = fread(data, 1, 188, ts_seg->src);
+			u32 size = (u32) fread(data, 1, 188, ts_seg->src);
 			if (size<188) break;
 
 			gf_m2ts_process_data(ts_seg->ts, data, size);
@@ -2743,7 +2747,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 			while (!feof(ts_seg.src) && !ts_seg.has_seen_pat) {
 				char data[NB_TSPCK_IO_BYTES];
-				u32 size = fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
+				u32 size = (u32) fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
 				gf_m2ts_process_data(ts_seg.ts, data, size);
 
 				if (size<NB_TSPCK_IO_BYTES) break;
@@ -2762,7 +2766,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/*index the file*/
 	while (!feof(ts_seg.src) && !ts_seg.suspend_indexing) {
 		char data[NB_TSPCK_IO_BYTES];
-		u32 size = fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
+		u32 size = (u32) fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
 		gf_m2ts_process_data(ts_seg.ts, data, size);
 		if (size<NB_TSPCK_IO_BYTES) break;
 	}
@@ -2953,10 +2957,10 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 						if (pos+NB_TSPCK_IO_BYTES >= end) {
 							to_read = (u32) (end-pos);
 						}
-						res = fread(buf, 1, to_read, src);
+						res = (u32) fread(buf, 1, to_read, src);
 						if (res==to_read) {
 							gf_m2ts_restamp(buf, res, pcr_shift, is_pes);
-							res = fwrite(buf, 1, to_read, dst);
+							res = (u32) fwrite(buf, 1, to_read, dst);
 						}
 						if (res!=to_read) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: IO error while Extracting segment %03d / %03d\r", i+1, ts_seg.sidx->nb_refs));
@@ -3009,7 +3013,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		gf_f64_seek(in, 0, SEEK_SET);
 		done = 0;
 		while (1) {
-			u32 read = fread(buf, 1, NB_TSPCK_IO_BYTES, in);
+			u32 read = (u32) fread(buf, 1, NB_TSPCK_IO_BYTES, in);
 			gf_m2ts_restamp(buf, read, pcr_shift, is_pes);
 			fwrite(buf, 1, read, out);
 			done+=read;

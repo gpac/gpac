@@ -87,7 +87,7 @@ found:
 	}
 	//get the server name
 	is_ipv6 = 0;
-	len = strlen(test);
+	len = (u32) strlen(test);
 	i=0;
 	while (i<len) {
 		if (test[i]=='[') is_ipv6 = 1;
@@ -609,7 +609,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Cache-Control: no-cache\r\n\r\n" );	
 	
 	//	send it!
-	e = gf_sk_send_wait(sess->connection, buffer, strlen(buffer), HTTP_WAIT_SEC);
+	e = gf_sk_send_wait(sess->connection, buffer, (u32) strlen(buffer), HTTP_WAIT_SEC);
 	if (e) return e;
 	
 	//	2. wait for "HTTP/1.0 200 OK"
@@ -639,7 +639,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Expires: Sun. 9 Jan 1972 00:00:00 GMT\r\n\r\n");
  
 	//	send it!
-	e = gf_sk_send_wait(sess->http, buffer, strlen(buffer), HTTP_WAIT_SEC);
+	e = gf_sk_send_wait(sess->http, buffer, (u32) strlen(buffer), HTTP_WAIT_SEC);
 	
 	return e;
 }

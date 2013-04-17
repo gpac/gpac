@@ -771,14 +771,14 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 		}
 			
 		if (base_64) {
-			data_size = 2*strlen(buffer);
+			data_size = 2 * (u32) strlen(buffer);
 			data = (char*)gf_malloc(sizeof(char)*data_size);
 			if (data) 
-				data_size = gf_base64_decode(buffer, strlen(buffer), data, data_size);
+				data_size = gf_base64_decode(buffer, (u32) strlen(buffer), data, data_size);
 		} else {
 			u32 i, c;
 			char s[3];
-			data_size = strlen(buffer) / 3;
+			data_size = (u32) strlen(buffer) / 3;
 			data = (char*)gf_malloc(sizeof(char) * data_size);
 			if (data) {
 				s[2] = 0;

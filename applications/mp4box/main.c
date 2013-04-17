@@ -2501,7 +2501,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_f64_seek(fin, 0, SEEK_SET);
 		done = 0;
 		while (1) {
-			u32 nb_bytes = fread(chunk, 1, 4096, fin);
+			u32 nb_bytes = (u32) fread(chunk, 1, 4096, fin);
 			gf_fwrite(chunk, 1, nb_bytes, fout);
 			done += nb_bytes;
 			fprintf(stderr, "Appending file %s - %02.2f done\r", raw_cat, 100.0*done/to_copy);
@@ -3538,7 +3538,7 @@ int mp4boxMain(int argc, char **argv)
 				if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 			}
 
-			tlen = val ? strlen(val) : 0;
+			tlen = val ? (u32) strlen(val) : 0;
 			switch (itag) {
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
@@ -3548,7 +3548,7 @@ int mp4boxMain(int argc, char **argv)
 				tlen = (u32) gf_f64_tell(t);
 				gf_f64_seek(t, 0, SEEK_SET);
 				d = gf_malloc(sizeof(char) * tlen);
-				tlen = fread(d, sizeof(char), tlen, t);
+				tlen = (u32) fread(d, sizeof(char), tlen, t);
 				fclose(t);
 				
 				ext = strrchr(val, '.');
@@ -3566,7 +3566,7 @@ int mp4boxMain(int argc, char **argv)
 				if (_v) {
 					gf_isom_apple_set_tag(file, itag, NULL, _v);
 				} else {
-					gf_isom_apple_set_tag(file, itag, val, strlen(val) );
+					gf_isom_apple_set_tag(file, itag, val, (u32) strlen(val) );
 				}
 			}
 				break;

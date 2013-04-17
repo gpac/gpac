@@ -940,7 +940,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	}
 	/*decoder specific info (not needed when IOD is here)*/
 	else if (!stricmp(param_name, "config")) {
-		u32 len = strlen(param_val);
+		u32 len = (u32) strlen(param_val);
 		//decode the buffer - the string buffer is MSB hexadecimal
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		valS[2] = 0;
@@ -1304,7 +1304,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			strcpy(a_tx3g, tx3g);
 			next_tx3g = strchr(a_tx3g, ',');
 			if (next_tx3g) next_tx3g[0] = 0;
-			len = gf_base64_decode(a_tx3g, strlen(a_tx3g), szOut, 1000);
+			len = gf_base64_decode(a_tx3g, (u32) strlen(a_tx3g), szOut, 1000);
 			gf_bs_write_data(bs, szOut, len);
 			tx3g = strchr(tx3g, ',');
 			if (!tx3g) break;
@@ -1358,7 +1358,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 					sep = strchr(nal_ptr, ',');
 					if (sep) sep[0] = 0;
 
-					b64size = strlen(nal_ptr);
+					b64size = (u32) strlen(nal_ptr);
 					b64_d = (char*)gf_malloc(sizeof(char)*b64size);
 					ret = gf_base64_decode(nal_ptr, b64size, b64_d, b64size); 
 					b64_d[ret] = 0;

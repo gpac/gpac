@@ -89,7 +89,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				u32 len, j;
 				char *sKey = att->value;
 				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
-				len = strlen(sKey);
+				len = (u32) strlen(sKey);
 				for (j=0; j<len; j+=2) {
 					char szV[5];
 					u32 v;
@@ -161,7 +161,7 @@ void isma_ea_text(void *sax_cbck, const char *text, Bool is_cdata)
 	if (!info->in_text_header) return;
 
 	tkc = (GF_TrackCryptInfo *) gf_list_last(info->tcis);
-	len = strlen(text);
+	len = (u32) strlen(text);
 	if (len+tkc->TextualHeadersLen > 5000) return;
 
 	if (tkc->TextualHeadersLen) {
@@ -354,7 +354,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 			end = start + 4;
 			while (remain>4) {
 				if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
-					nalu_size = end - start - 4;
+					nalu_size = (u32) (end - start - 4);
 					start[0] = (nalu_size>>24)&0xFF;
 					start[1] = (nalu_size>>16)&0xFF;
 					start[2] = (nalu_size>>8)&0xFF;
@@ -366,7 +366,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 				end++;
 				remain--;
 			}
-			nalu_size = end - start - 4;
+			nalu_size = (u32) (end - start - 4);
 			start[0] = (nalu_size>>24)&0xFF;
 			start[1] = (nalu_size>>16)&0xFF;
 			start[2] = (nalu_size>>8)&0xFF;
@@ -506,7 +506,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		/*GPAC*/
 		if (!strnicmp(KMS_URI, "(key)", 5)) {
 			char data[100];
-			gf_base64_decode((char*)KMS_URI+5, strlen(KMS_URI)-5, data, 100);
+			gf_base64_decode((char*)KMS_URI+5, (u32) strlen(KMS_URI)-5, data, 100);
 			memcpy(tci.key, data, sizeof(char)*16);
 			memcpy(tci.salt, data+16, sizeof(char)*8);
 		}
@@ -651,7 +651,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		if ((tci->sel_enc_type==GF_ISMACRYP_SELENC_PREVIEW) && tci->sel_enc_range) {
 			char *szPreview = tci->TextualHeaders + tci->TextualHeadersLen;
 			sprintf(szPreview, "PreviewRange:%d", tci->sel_enc_range);
-			tci->TextualHeadersLen += strlen(szPreview)+1;
+			tci->TextualHeadersLen += (u32) strlen(szPreview)+1;
 		}
 		e = gf_isom_set_oma_protection(mp4, track, 1, 
 			strlen(tci->Scheme_URI) ? tci->Scheme_URI : NULL,

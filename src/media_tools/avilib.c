@@ -70,7 +70,7 @@ static u32 avi_read(FILE *fd, char *buf, u32 len)
    u32 r = 0;
 
    while (r < len) {
-      n = fread(buf + r, 1, len - r, fd);
+      n = (u32) fread(buf + r, 1, len - r, fd);
       if (n == 0) break;
       if (n < 0) return r;
       r += n;
@@ -85,7 +85,7 @@ static u32 avi_write (FILE *fd, char *buf, u32 len)
    u32 r = 0;
 
    while (r < len) {
-      n = gf_fwrite (buf + r, 1, len - r, fd);
+      n = (u32) gf_fwrite (buf + r, 1, len - r, fd);
       if (n < 0)
          return n;
 
@@ -1429,7 +1429,7 @@ static int avi_close_output_file(avi_t *AVI)
    memset(id_str, 0, MAX_INFO_STRLEN);
 
    sprintf(id_str, "%s-%s", PACKAGE, VERSION);
-   real_id_len = id_len = strlen(id_str)+1;
+   real_id_len = id_len = (u32) strlen(id_str)+1;
    if (id_len&1) id_len++;
 
    OUTLONG(real_id_len);

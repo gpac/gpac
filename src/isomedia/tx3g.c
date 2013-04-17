@@ -553,7 +553,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 s
 	size += 8 + 2;
 	for (j=0; j<a->font_table->entry_count; j++) {
 		size += 3;
-		if (a->font_table->fonts[j].fontName) size += strlen(a->font_table->fonts[j].fontName);
+		if (a->font_table->fonts[j].fontName) size += (u32) strlen(a->font_table->fonts[j].fontName);
 	}
 	/*write TextSampleEntry box*/
 	gf_bs_write_u32(bs, size);
@@ -574,7 +574,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 s
 	for (j=0; j<a->font_table->entry_count; j++) {
 		gf_bs_write_u16(bs, a->font_table->fonts[j].fontID);
 		if (a->font_table->fonts[j].fontName) {
-			u32 len = strlen(a->font_table->fonts[j].fontName);
+			u32 len = (u32) strlen(a->font_table->fonts[j].fontName);
 			gf_bs_write_u8(bs, len);
 			gf_bs_write_data(bs, a->font_table->fonts[j].fontName, len);
 		} else {

@@ -851,6 +851,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 		gf_node_register((GF_Node *) par, (GF_Node *)tr);
 
 		if (use_text) {
+			size_t _len;
 			u16 *str_w, *widestr;
 			char *str;
 			void *ptr;
@@ -883,8 +884,9 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 			str_w[j] = 0;
 			str = (char*)gf_malloc(sizeof(char) * (gr->nbGlyphs+2));
 			widestr = str_w;
-			j = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
-			if (j != (u32) -1) {
+			_len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
+			if (_len != (size_t) -1) {
+				j=(u32) _len;
 				str[j] = 0;
 				gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, &ptr);
@@ -962,12 +964,12 @@ static void swf_ntext(void *sax_cbck, const char *content, Bool is_cdata)
 	SWFFlatText *t;
 	if (!content || is_cdata) return;
 	t = (SWFFlatText *)sax_cbck;
-	len = strlen(content);
+	len = (u32) strlen(content);
 	if (!len) return;
 	t->final = gf_realloc(t->final, sizeof(char)*(t->len+len+1));
 	t->final [t->len] = 0;
 	strcat(t->final, content);
-	t->len = strlen(t->final)+1;
+	t->len = (u32) strlen(t->final)+1;
 }
 
 

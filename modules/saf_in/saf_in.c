@@ -316,7 +316,7 @@ u32 SAF_Run(void *_p)
 	read->saf_size=0;
 	read->run_state = 1;
 	while (read->run_state && !feof(read->stream) ) {
-		par.size = fread(data, 1, 1024, read->stream);
+		par.size = (u32) fread(data, 1, 1024, read->stream);
 		if (!par.size) break;
 		SAF_NetIO(read, &par);
 	}

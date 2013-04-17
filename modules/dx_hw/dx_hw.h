@@ -150,7 +150,7 @@ typedef struct
 
 	Bool owns_hwnd;
 	u32 off_w, off_h, prev_styles;
-	LONG last_mouse_pos;
+	LONG_PTR last_mouse_pos;
 	/*cursors*/
 	HCURSOR curs_normal, curs_hand, curs_collide;
 	u32 cursor_type;
@@ -178,9 +178,10 @@ typedef struct
 #endif
 
 	Bool has_focus;
-	DWORD orig_wnd_proc;
+	LONG_PTR orig_wnd_proc;
 
-	u32 last_mouse_move, timer, cursor_type_backup;
+	UINT_PTR timer;
+	u32 last_mouse_move, cursor_type_backup;
 	Bool windowless, hidden;
 
 	Bool dd_lost;
@@ -226,7 +227,7 @@ void DeleteAudioOutput(void *);
 
 #define SAFE_DS_RELEASE(p) { if(p) { p->lpVtbl->Release(p); (p)=NULL; } }
 
-LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam);
+LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
 #endif

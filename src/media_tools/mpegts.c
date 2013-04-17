@@ -136,7 +136,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		/* u32 sctype=0;*/
 		unsigned char *start = (unsigned char *)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
-		sc_pos = start - data;
+		sc_pos = (u32) (start - data);
 		/*not enough space to test for start code, don't check it*/
 		if (data_len - sc_pos < 5)
 			break;
@@ -353,7 +353,7 @@ static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	while (sc_pos+4<data_len) {
 		unsigned char *start = (unsigned char*)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
-		sc_pos = start - (unsigned char*)data;
+		sc_pos = (u32) (start - (unsigned char*)data);
 
 		/*found picture or sequence start_code*/
 		if (!start[1] && (start[2]==0x01)) {
@@ -2615,7 +2615,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts){
 	ts->process_dmscc = 1;
 	
 	temp_dir = gf_get_default_cache_directory();														
-	length = strlen(temp_dir);
+	length = (u32) strlen(temp_dir);
 	if(temp_dir[length-1] == GF_PATH_SEPARATOR){
 		temp_dir[length-1] = 0;
 	}
@@ -3283,7 +3283,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 
 	t = gf_f64_open(fileName, "rb");
 	while (t && count) {
-		u32 read = fread(buf, 1, 188, t);
+		u32 read = (u32) fread(buf, 1, 188, t);
 		if (!read) {
 			count = 0;
 			break;

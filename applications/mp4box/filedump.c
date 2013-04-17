@@ -92,7 +92,7 @@ const char *GetLanguageCode(char *lang)
 {
 	u32 i;
 	Bool check_2cc = 0;
-	i = strlen(lang);
+	i = (u32) strlen(lang);
 	if (i==3) return lang;
 	if (i==2) check_2cc = 1;
 
@@ -144,7 +144,7 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	tag_len = (u32) gf_f64_tell(t);
 	gf_f64_seek(t, 0, SEEK_SET);
 	tag = gf_malloc(sizeof(char) * tag_len);
-	tag_len = fread(tag, sizeof(char), tag_len, t);
+	tag_len = (u32) fread(tag, sizeof(char), tag_len, t);
 	fclose(t);
 	
 	ext = strrchr(inName, '.');
@@ -2376,7 +2376,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 	/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 	while (!feof(src)) {
-		size = fread(data, 1, 188, src);
+		size = (u32) fread(data, 1, 188, src);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
@@ -2400,7 +2400,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 
 	while (!feof(src)) {
-		size = fread(data, 1, 188, src);
+		size = (u32) fread(data, 1, 188, src);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);

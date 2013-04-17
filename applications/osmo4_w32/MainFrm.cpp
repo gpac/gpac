@@ -189,7 +189,7 @@ CMainFrame::~CMainFrame()
 #define RTI_TIMER	22
 #define RTI_REFRESH_MS		250
 
-void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
+void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT_PTR nID , DWORD )
 {
 	char szMsg[100];
 	GF_SystemRTInfo rti;
@@ -415,11 +415,11 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 }
 
 
-LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
+LRESULT CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 {
 	UINT width, height;
-	width = wParam;
-	height = lParam;
+	width = (UINT) wParam;
+	height = (UINT) lParam;
 	if (m_bInitShow) {
 		m_wndToolBar.UpdateWindow();
 		m_wndToolBar.ShowWindow(SW_SHOW);
@@ -487,7 +487,7 @@ void CMainFrame::OnMove(int x, int y)
 #define PROGRESS_TIMER	20
 #define PROGRESS_REFRESH_MS		100
 
-void CALLBACK EXPORT ProgressTimer(HWND , UINT , UINT nID , DWORD )
+void CALLBACK EXPORT ProgressTimer(HWND , UINT , UINT_PTR nID , DWORD )
 {
 	u32 now;
 	if (nID != PROGRESS_TIMER) return;
@@ -521,7 +521,7 @@ void CMainFrame::SetProgTimer(Bool bOn)
 }
 
 
-LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
+LRESULT CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 {
 	Bool do_pause;
 	Osmo4 *app = GetApp();
@@ -544,7 +544,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	return 1;	
 }
 
-LONG CMainFrame::NewInstanceOpened(WPARAM wParam, LPARAM lParam)
+LRESULT CMainFrame::NewInstanceOpened(WPARAM wParam, LPARAM lParam)
 {
 	Bool queue_only = GF_FALSE;
 	char *url = (char *) static_gpac_get_url();
@@ -605,7 +605,7 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 	m_pPlayList->PlayNext();
 }
 
-void CALLBACK EXPORT ConsoleTimer(HWND , UINT , UINT , DWORD )
+void CALLBACK EXPORT ConsoleTimer(HWND , UINT , UINT_PTR , DWORD )
 {
 	CMainFrame *pFrame = (CMainFrame *) GetApp()->m_pMainWnd;
 	
@@ -617,7 +617,7 @@ void CALLBACK EXPORT ConsoleTimer(HWND , UINT , UINT , DWORD )
 
 #define CONSOLE_DISPLAY_TIME	1000
 
-LONG CMainFrame::OnConsoleMessage(WPARAM wParam, LPARAM lParam)
+LRESULT CMainFrame::OnConsoleMessage(WPARAM wParam, LPARAM lParam)
 {
 	if (m_timer_on) KillTimer(m_timer_on);
 	
@@ -630,7 +630,7 @@ LONG CMainFrame::OnConsoleMessage(WPARAM wParam, LPARAM lParam)
 		sprintf(msg, "%s (%s)", console_message, console_service);
 		m_wndStatusBar.SetPaneText(1, msg);
 	}
-	m_timer_on = SetTimer(10, wParam ? wParam : CONSOLE_DISPLAY_TIME, ConsoleTimer);
+	m_timer_on = SetTimer(10, wParam ? (UINT) wParam : CONSOLE_DISPLAY_TIME, ConsoleTimer);
 	return 0;
 }
 
@@ -767,7 +767,7 @@ void CMainFrame::OnNavigateReset()
 }
 
 
-LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LRESULT CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	Osmo4 *gpac = GetApp();
 
@@ -1457,7 +1457,7 @@ void CMainFrame::OnUpdateViewCPU(CCmdUI* pCmdUI)
 
 void CMainFrame::OnFileCopy()
 {
-	u32 len;
+	size_t len;
 	const char *text = gf_term_get_text_selection(GetApp()->m_term, GF_FALSE);
 	if (!text) return;
 

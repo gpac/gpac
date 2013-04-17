@@ -579,7 +579,7 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 		} else {
 			u32 len_rad, len;
 			len = lsr_read_vluimsbf5(lsr, "len");
-			len_rad = s ? strlen(s) : 0;
+			len_rad = s ? (u32) strlen(s) : 0;
 			iri->string = (char*)gf_malloc(sizeof(char)*(len_rad+1+len+1));
 			iri->string[0] = 0;
 			if (s) {

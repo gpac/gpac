@@ -730,7 +730,7 @@ redecode:
 				/* FIXME : SOUCHAY : not sure of exact behaviour, but old one was reading non-allocated memory */
 				while ((end+3) < bufferEnd) {
 					if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
-						nalu_size = end - start - 4;
+						nalu_size = (u32) (end - start - 4);
 						start[0] = (nalu_size>>24)&0xFF;
 						start[1] = (nalu_size>>16)&0xFF;
 						start[2] = (nalu_size>>8)&0xFF;
@@ -741,7 +741,7 @@ redecode:
 					}
 					end++;
 				}
-				nalu_size = (inBuffer+inBufferLength) - start - 4;
+				nalu_size = (u32) ((inBuffer+inBufferLength) - start - 4);
 				start[0] = (nalu_size>>24)&0xFF;
 				start[1] = (nalu_size>>16)&0xFF;
 				start[2] = (nalu_size>>8)&0xFF;
