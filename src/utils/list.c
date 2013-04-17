@@ -768,6 +768,19 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
 }
 
 GF_EXPORT
+GF_List* gf_list_clone(GF_List *ptr){
+	GF_List* new_list;
+	u32 i = 0;
+	void* item;
+	if (!ptr) return NULL;
+	new_list = gf_list_new();
+	while (item = gf_list_enum(ptr, &i))
+		gf_list_add(new_list, item);
+
+	return new_list;
+}
+
+GF_EXPORT
 void gf_list_reverse(GF_List *ptr){
 	GF_List* saved_order;
 	void* item;
@@ -776,7 +789,7 @@ void gf_list_reverse(GF_List *ptr){
 	saved_order = gf_list_clone(ptr);
 	gf_list_reset(ptr);
 
-	while (item = gf_list_enum(saved_order, &i)){
+	while ((item = gf_list_enum(saved_order, &i))){
 		gf_list_insert(ptr, item, 0);
 	}
 
@@ -803,17 +816,4 @@ void* gf_list_pop_back(GF_List *ptr){
 	gf_list_rem_last(ptr);
 
 	return item;
-}
-
-GF_EXPORT
-GF_List* gf_list_clone(GF_List *ptr){
-	GF_List* new_list;
-	u32 i = 0;
-	void* item;
-	if (!ptr) return NULL;
-	new_list = gf_list_new();
-	while (item = gf_list_enum(ptr, &i))
-		gf_list_add(new_list, item);
-
-	return new_list;
 }
