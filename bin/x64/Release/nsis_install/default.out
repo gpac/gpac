@@ -1,0 +1,7 @@
+;--------------------------------
+;This default configuration file will generate an unversioned installer.
+;Please Check the readme.txt file.
+
+!define /date RELDATE "%Y%m%d_%H%M"
+Name "GPAC Framework ${GPAC_VERSION}"
+OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-${RELDATE}_unversioned.exe"
