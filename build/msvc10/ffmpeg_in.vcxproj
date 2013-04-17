@@ -243,6 +243,8 @@
       </ModuleDefinitionFile>
       <ProgramDatabaseFile>$(IntDir)gm_$(ProjectName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)gm_$(ProjectName).lib</ImportLibrary>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>

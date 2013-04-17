@@ -31,7 +31,7 @@
 #include <gpac/modules/codec.h>
 #include <gpac/constants.h>
 
-#if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
+#if defined(_WIN32_WCE) || defined(_WIN64) || defined(__SYMBIAN32__)
 #ifndef FPM_DEFAULT
 #define FPM_DEFAULT
 #endif

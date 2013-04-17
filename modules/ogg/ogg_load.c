@@ -27,10 +27,10 @@
 
 
 #if !defined(__GNUC__)
-# if (defined(_WIN32_WCE) || defined (WIN32)) && !defined(_WIN64)
-#  pragma comment(lib, "vorbis_static")
-#  pragma comment(lib, "theora_static")
-#  pragma comment(lib, "ogg_static")
+# if (defined(_WIN32_WCE) || defined (WIN32)) 
+#  pragma comment(lib, "libogg_static")
+#  pragma comment(lib, "libvorbis_static")
+#  pragma comment(lib, "libtheora_static")
 # endif
 #endif
 
