@@ -702,7 +702,6 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 		/*and set sample descriptions*/
 		count =	gf_list_count(cfg->sample_descriptions);
 		for	(i=0; i<count; i++)	{
-			GF_GenericSubtitleSampleDescriptor *sd=	(GF_GenericSubtitleSampleDescriptor	*)gf_list_get(cfg->sample_descriptions,	i);
 			gf_isom_new_webvtt_description(import->dest, track, NULL, NULL, NULL, &descIndex);
 		}
 		gf_import_message(import, GF_OK, "WebVTT import	- text track %d	x %d", cfg->text_width,	cfg->text_height);
