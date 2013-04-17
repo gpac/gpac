@@ -1795,23 +1795,23 @@ void OptFiles::OnAssociate()
 
 			strcpy(szPath, szReg); strcat(szPath, "\\DefaultIcon");
 			RegCreateKeyEx(HKEY_CLASSES_ROOT, szPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
-			RegSetValueEx(hKey, "", 0, REG_SZ, szIco, strlen((const char *) szIco)+1);
+			RegSetValueEx(hKey, "", 0, REG_SZ, szIco, (DWORD) strlen((const char *) szIco)+1);
 			RegCloseKey(hKey);
 
 			strcpy(szPath, szReg); strcat(szPath, "\\Shell\\open\\command");
 			RegCreateKeyEx(HKEY_CLASSES_ROOT, szPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
-			RegSetValueEx(hKey, "", 0, REG_SZ, szApp, strlen((const char *) szApp)+1);
+			RegSetValueEx(hKey, "", 0, REG_SZ, szApp, (DWORD) strlen((const char *) szApp)+1);
 			RegCloseKey(hKey);
 
 			if (strlen(szOld)) {
 				strcpy(szPath, szReg); strcat(szPath, "\\Backup");
 				RegCreateKeyEx(HKEY_CLASSES_ROOT, szPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
-				RegSetValueEx(hKey, "", 0, REG_SZ, (unsigned char *) szOld, strlen((const char *) szIco)+1);
+				RegSetValueEx(hKey, "", 0, REG_SZ, (unsigned char *) szOld, (DWORD) strlen((const char *) szIco)+1);
 				RegCloseKey(hKey);
 			}
 
 			RegCreateKeyEx(HKEY_CLASSES_ROOT, szExt, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
-			RegSetValueEx(hKey, "", 0, REG_SZ, (const unsigned char *) szReg, strlen(szReg)+1);
+			RegSetValueEx(hKey, "", 0, REG_SZ, (const unsigned char *) szReg, (DWORD) strlen(szReg)+1);
 			RegCloseKey(hKey);
 
 			sKey = tmp;
@@ -1840,7 +1840,7 @@ void OptFiles::OnAssociate()
 			RegCloseKey(hKey);
 			if (ok && strlen((char *)sDesc)) {
 				RegCreateKeyEx(HKEY_CLASSES_ROOT, szExt, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
-				RegSetValueEx(hKey, "", 0, REG_SZ, (unsigned char*) sDesc, strlen((const char *) sDesc)+1);
+				RegSetValueEx(hKey, "", 0, REG_SZ, (unsigned char*) sDesc, (DWORD) strlen((const char *) sDesc)+1);
 				RegCloseKey(hKey);
 			}
 

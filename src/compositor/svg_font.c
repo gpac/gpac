@@ -44,7 +44,7 @@ typedef struct
 static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang, Bool *is_rtl)
 {
 	u32 prev_c;
-	u32 len;
+	size_t len;
 	u32 i, gl_idx;
 	u16 *utf_res;
 	GF_Node *node = (GF_Node *)udta;
@@ -52,28 +52,28 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 	char *utf8 = (char*) utf_string;
 
 	/*FIXME - use glyphs unicode attributes for glyph substitution*/
-	len = utf_string ? strlen(utf_string) : 0;
+	len = utf_string ? (u32) strlen(utf_string) : 0;
 	if (!len) {
 		*io_glyph_buffer_size = 0;
 		return GF_OK;
 	}
 
 	if (*io_glyph_buffer_size < len+1) {
-		*io_glyph_buffer_size = len+1;
+		*io_glyph_buffer_size = (u32) len+1;
 		return GF_BUFFER_TOO_SMALL;
 	}
 
 	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char**)&utf8);
-	if ((s32) len < 0) return GF_IO_ERR;
+	if (len == (size_t) -1) return GF_IO_ERR;
 	/*should not happen*/
 	if (utf8) return GF_IO_ERR;
 
 	/*perform bidi relayout*/
 	utf_res = (u16 *) glyph_buffer;
-	*is_rtl = gf_utf8_reorder_bidi(utf_res, len);
+	*is_rtl = gf_utf8_reorder_bidi(utf_res, (u32) len);
 
 	/*move 16bit buffer to 32bit*/
-	for (i=len; i>0; i--) {
+	for (i=(u32)len; i>0; i--) {
 		glyph_buffer[i-1] = utf_res[i-1];
 	}
 
@@ -157,7 +157,7 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 		
 		gl_idx++;
 	}
-	*io_glyph_buffer_size = len = gl_idx;
+	*io_glyph_buffer_size = /* len = */ gl_idx;
 	
 	return GF_OK;
 }
@@ -321,7 +321,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 {
 	u16 utf_name[20];
 	u8 *utf8;
-	u32 len;
+	size_t len;
 	GF_Rect rc;
 	GF_Glyph *glyph;
 	GF_Font *font;
@@ -354,7 +354,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 	} else {
 		st->glyph.utf_name = (u32) (PTR_TO_U_CAST st);
 		st->unicode = gf_malloc(sizeof(u16)*len);
-		st->uni_len = len;
+		st->uni_len = (u16) len;
 		memcpy(st->unicode, utf_name, sizeof(u16)*len);
 	}
 

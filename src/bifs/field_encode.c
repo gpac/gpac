@@ -103,17 +103,17 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
 			gf_f64_seek(f, 0, SEEK_SET);
 			while (size) {
-				u32 read = fread(buf, 1, 4096, f);
+				u32 read = (u32) fread(buf, 1, 4096, f);
 				gf_bs_write_data(bs, buf, read);
 				size -= read;
 			}
 		} else {
-			u32 i, len, val;
+			u32 i, val, len;
 			char *str = (char *) ((SFString*)field->far_ptr)->buffer;
 			if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
 				len = ((M_BitWrapper*)node)->buffer_len;
 			} else {
-				len = str ? strlen(str) : 0;
+				len = str ? (u32) strlen(str) : 0;
 			}
 			val = gf_get_bit_size(len);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
@@ -146,8 +146,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		if (url->OD_ID>0) {
 			GF_BIFS_WRITE_INT(codec, bs, url->OD_ID, 10, "ODID", "SFURL");
 		} else {
-			u32 i;
-			u32 len = url->url ? strlen(url->url) : 0;
+			u32 i, len = url->url ? (u32) strlen(url->url) : 0;
 			u32 val = gf_get_bit_size(len);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);

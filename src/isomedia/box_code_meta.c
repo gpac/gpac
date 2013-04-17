@@ -606,15 +606,15 @@ GF_Err infe_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->item_ID);
 	gf_bs_write_u16(bs, ptr->item_protection_index);
 	if (ptr->item_name) {
-		len = strlen(ptr->item_name)+1;
+		len = (u32) strlen(ptr->item_name)+1;
 		gf_bs_write_data(bs, ptr->item_name, len);
 	}
 	if (ptr->content_type) {
-		len = strlen(ptr->content_type)+1;
+		len = (u32) strlen(ptr->content_type)+1;
 		gf_bs_write_data(bs, ptr->content_type, len);
 	}
 	if (ptr->content_encoding) {
-		len = strlen(ptr->content_encoding)+1;
+		len = (u32) strlen(ptr->content_encoding)+1;
 		gf_bs_write_data(bs, ptr->content_encoding, len);
 	}
 	return GF_OK;

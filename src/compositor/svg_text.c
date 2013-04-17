@@ -150,8 +150,9 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 			nb_fonts++;
 			if (sep_end) sep_end[0] = '\'';
 		} else {
-			u32 skip, len = strlen(a_font)-1;
-			skip = 0;
+			u32 skip = 0;
+			size_t len = strlen(a_font)-1;
+
 			while (a_font[len-skip] == ' ') skip++;
 			if (skip) a_font[len-skip+1] = 0;
 			fonts[nb_fonts] = gf_strdup(a_font);
@@ -216,7 +217,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 
 	Bool preserve = (atts->xml_space && (*atts->xml_space==XML_SPACE_PRESERVE)) ? 1 : 0;
 
-	len = strlen(textContent);
+	len = (u32) strlen(textContent);
 	dup_text = gf_malloc(len+1);
 		
 	switch (tr_state->last_char_type) {

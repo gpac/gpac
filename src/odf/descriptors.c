@@ -461,7 +461,7 @@ GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)
 	if (!cfg->deviceName) return GF_OK;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	len = strlen(cfg->deviceName);
+	len = (u32) strlen(cfg->deviceName);
 	gf_bs_write_int(bs, len, 8);
 	for (i=0; i<len; i++) gf_bs_write_int(bs, cfg->deviceName[i], 8);
 	if (!stricmp(cfg->deviceName, "StringSensor")) {

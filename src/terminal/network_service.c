@@ -1227,7 +1227,7 @@ void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeTyp
 	char *buf;
 	if (!ifce || !mimeType || !extList || !description) return;
 
-	len = strlen(extList) + 3 + strlen(description) + 3 + strlen(ifce->module_name) + 1;
+	len = (u32) strlen(extList) + 3 + (u32) strlen(description) + 3 + (u32) strlen(ifce->module_name) + 1;
 	buf = (char*)gf_malloc(sizeof(char)*len);
 	sprintf(buf, "\"%s\" ", extList);
 	strlwr(buf);

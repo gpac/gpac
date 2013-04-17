@@ -45,7 +45,7 @@ enum
 };
 
 #define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
-		u32 _len = strlen(__str);		\
+		u32 _len = (u32) strlen(__str);		\
 		if (!_len) break;	\
 		_len--;				\
 		if (strchr(__sep, __str[_len])) __str[_len] = 0;	\
@@ -57,7 +57,7 @@ static s32 gf_text_get_utf_type(FILE *in_src)
 {
 	u32 readen;
 	unsigned char BOM[5];
-	readen = fread(BOM, sizeof(char), 5, in_src);
+	readen = (u32) fread(BOM, sizeof(char), 5, in_src);
 	if (readen < 1)
 		return -1;
 
@@ -95,12 +95,12 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	if (uni_type>1) {
 		const u16 *sptr;
 		char szUTF[1024];
-		u32 read = fread(szUTF, 1, 1023, test);
+		u32 read = (u32) fread(szUTF, 1, 1023, test);
 		szUTF[read]=0;
 		sptr = (u16*)szUTF;
-		read = gf_utf8_wcstombs(szLine, read, &sptr);
+		read = (u32) gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
-		val = fread(szLine, 1, 1024, test);
+		val = (u32) fread(szLine, 1, 1024, test);
 		szLine[val]=0;
 	}
 	REM_TRAIL_MARKS(szLine, "\r\n\t ")
@@ -189,7 +189,7 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 	if (!sOK) return NULL;
 	if (unicode_type<=1) {
 		j=0;
-		len = strlen(szLine);
+		len = (u32) strlen(szLine);
 		for (i=0; i<len; i++) {
 			if (!unicode_type && (szLine[i] & 0x80)) {
 				/*non UTF8 (likely some win-CP)*/
@@ -241,7 +241,7 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 		}
 	}
 	sptr = (u16 *)szLine;
-	i = gf_utf8_wcstombs(szLineConv, 1024, (const unsigned short **) &sptr);
+	i = (u32) gf_utf8_wcstombs(szLineConv, 1024, (const unsigned short **) &sptr);
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
 	/*this is ugly indeed: since input is UTF16-LE, there are many chances the fgets never reads the \0 after a \n*/
@@ -493,10 +493,13 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			}
 
 			ptr = (char *) szLine;
-			len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
-			if (len == (u32) -1) {
+			{
+				size_t _len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+			if (_len == (size_t) -1) {
 				e = gf_import_message(import, GF_CORRUPTED_DATA, "Invalid UTF data (line %d)", curLine);
 				goto exit;
+			}
+			len = (u32) _len;
 			}
 			char_line = 0;
 			i=j=0;
@@ -587,7 +590,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			uniText[j] = 0;
 
 			sptr = (u16 *) uniText;
-			len = gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
+			len = (u32) gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
 
 			gf_isom_text_add_text(samp, szText, len);
 			char_len += char_line;
@@ -736,7 +739,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	samp        = gf_isom_new_generic_subtitle_sample();
 
 	sOK = gf_text_get_utf8_line(szLine, 2048, vtt_in, unicode_type);
-    len = strlen(szLine);
+    len = (u32) strlen(szLine);
 	if (len < 6 || strnicmp(szLine, "WEBVTT", 6)) {
 		e = gf_import_message(import, GF_CORRUPTED_DATA, "Bad WebVTT formatting - expecting WEBVTT file signature", szLine);
 		goto exit;
@@ -789,7 +792,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
             if (!strstr(szLine, "-->")) {
                 /*cue id = szLine */
                 state = 1;
-			    gf_isom_generic_subtitle_sample_add_text(samp, szLine, strlen(szLine));
+			    gf_isom_generic_subtitle_sample_add_text(samp, szLine, (u32) strlen(szLine));
 			    txt_line ++;
                 gf_isom_generic_subtitle_sample_add_text(samp, "\n", 1);
 			    txt_line ++;
@@ -815,7 +818,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 				gf_isom_sample_del(&s);
 				nb_samp++;
 			}
-			gf_isom_generic_subtitle_sample_add_text(samp, szLine, strlen(szLine));
+			gf_isom_generic_subtitle_sample_add_text(samp, szLine, (u32) strlen(szLine));
 			txt_line ++;
             gf_isom_generic_subtitle_sample_add_text(samp, "\n", 1);
 			txt_line ++;
@@ -827,10 +830,13 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 			first_samp = 0;
 
 			ptr = (char *) szLine;
-			len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
-			if (len == (u32) -1) {
+			{
+			size_t _len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+			if (_len == (size_t) -1) {
 				e = gf_import_message(import, GF_CORRUPTED_DATA, "Invalid UTF data in cue %d", curCue);
 				goto exit;
+			}
+			len = (u32) _len;
 			}
 			gf_isom_generic_subtitle_sample_add_text(samp, szLine, len);
 			txt_line ++;
@@ -997,7 +1003,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		line++;
-		len = strlen(szLine); 
+		len = (u32) strlen(szLine); 
 		if (!len) continue;
 
 		i=0;
@@ -1048,7 +1054,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 			}
 		}
 		szText[i-j] = 0;
-		gf_isom_text_add_text(samp, szText, strlen(szText) );
+		gf_isom_text_add_text(samp, szText, (u32) strlen(szText) );
 
 		if (prev_end) {
 			GF_TextSample * empty_samp = gf_isom_new_text_sample();
@@ -1146,7 +1152,7 @@ char *ttxt_parse_string(GF_MediaImporter *import, char *str, Bool strip_lines)
 {
 	u32 i=0;
 	u32 k=0;
-	u32 len = strlen(str);
+	u32 len = (u32) strlen(str);
 	u32 state = 0;
 
 	if (!strip_lines) {
@@ -1395,7 +1401,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				else if (!strcmp(att->name, "text")) {
 					u32 len;
 					char *str = ttxt_parse_string(import, att->value, 1);
-					len = strlen(str);
+					len = (u32) strlen(str);
 					gf_isom_text_add_text(samp, str, len);
 					last_sample_empty = len ? 0 : 1;
 					has_text = 1;
@@ -1411,7 +1417,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				if (!has_text && (ext->type==GF_XML_TEXT_TYPE)) {
 					u32 len;
 					char *str = ttxt_parse_string(import, ext->name, 0);
-					len = strlen(str);
+					len = (u32) strlen(str);
 					gf_isom_text_add_text(samp, str, len);
 					last_sample_empty = len ? 0 : 1;
 					has_text = 1;
@@ -1855,8 +1861,8 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 									nb_marks++;
 								}
 							} else if (text->type==GF_XML_TEXT_TYPE) {
-								txt_len += strlen(text->name);
-								gf_isom_text_add_text(samp, text->name, strlen(text->name));
+								txt_len += (u32) strlen(text->name);
+								gf_isom_text_add_text(samp, text->name, (u32) strlen(text->name));
 							}
 						}
 						if (styleID && (!same_style || (td.default_style.startCharOffset != styleID))) {

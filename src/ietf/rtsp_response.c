@@ -680,7 +680,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, rsp->body);
 
 	*out_buffer = (unsigned char *) buffer;
-	*out_size = strlen(buffer);
+	*out_size = (u32) strlen(buffer);
 	return GF_OK;
 }
 

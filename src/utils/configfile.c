@@ -82,7 +82,7 @@ static void gf_cfg_clear(GF_Config * iniFile){
 	  gf_list_del(iniFile->sections);
 	}
 	if (iniFile->fileName)
-	  gf_free(iniFile->fileName);
+		gf_free(iniFile->fileName);
 	memset((void *)iniFile, 0, sizeof(GF_Config));
 }
 
@@ -123,18 +123,18 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	while (!feof(file)) {
 		u32 read;
 		ret = fgets(line, line_alloc, file);
-		read = strlen(line);
+		read = (u32) strlen(line);
 		while (read + 1 == line_alloc) {
 			line_alloc += MAX_INI_LINE;
 			line = gf_realloc(line, sizeof(char)*line_alloc);
 			ret = fgets(line+read, MAX_INI_LINE, file);
-			read = strlen(line);
+			read = (u32) strlen(line);
 		}
 		if (!ret) continue;
 
 		/* get rid of the end of line stuff */
 		while (1) {
-			u32 len = strlen(line);
+			u32 len = (u32) strlen(line);
 			if (!len) break;
 			if ((line[len-1] != '\n') && (line[len-1] != '\r')) break;
 			line[len-1] = 0;

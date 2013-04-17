@@ -140,7 +140,7 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 				OGG_EndOfFile(read);
 				return 0;
 			}
-			bytes = fread(buf, 1, OGG_BUFFER_SIZE, read->ogfile);
+			bytes = (u32) fread(buf, 1, OGG_BUFFER_SIZE, read->ogfile);
 		} else {
 			e = gf_dm_sess_fetch_data(read->dnload, buf, OGG_BUFFER_SIZE, &bytes);
 			if (e) return 0;

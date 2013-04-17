@@ -110,7 +110,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		if (sep) {
 			u32 len;
 			sep[0] = 0;
-			len = strlen(parentName);
+			len = (u32) strlen(parentName);
 			outPath = (char*)gf_malloc(sizeof(char)*(len+1+strlen(pathName)));
 			strcpy(outPath, parentName);
 			strcat(outPath, pathName);
@@ -214,7 +214,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	}
 
 	/*remove the last /*/
-	for (i = strlen(parentName); i > 0; i--) {
+	for (i = (u32) strlen(parentName); i > 0; i--) {
 		//break our path at each separator
 		if ((parentName[i-1] == GF_PATH_SEPARATOR) || (parentName[i-1] == '/'))  {
 			tmp[i-1] = 0;
@@ -233,7 +233,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		strcat(tmp, "/");
 	}
 
-	i = strlen(tmp);
+	i = (u32) strlen(tmp);
 	outPath = (char *) gf_malloc(i + strlen(name) + 1);
 	sprintf(outPath, "%s%s", tmp, name);
 

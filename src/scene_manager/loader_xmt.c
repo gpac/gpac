@@ -757,7 +757,7 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 
 	/*SF string, no inspection*/
 	if (!is_mf) {
-		len = strlen(str);
+		len = (u32) strlen(str);
 		if (val->buffer) gf_free(val->buffer);
 		val->buffer = NULL;
 		if (len) val->buffer = gf_strdup(str);
@@ -778,14 +778,14 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 	else if (str[i]=='\"') strcpy(sep, "\"");
 	/*handle as a single field (old GPAC XMT & any unknown cases...*/
 	else {
-		len = strlen(str);
+		len = (u32) strlen(str);
 		if (val->buffer) gf_free(val->buffer);
 		val->buffer = NULL;
 		if (len) val->buffer = gf_strdup(str);
 		return len;
 	}
 	k = 0;
-	i += strlen(sep);
+	i += (u32) strlen(sep);
 
 	value = gf_strdup(str);
 
@@ -803,7 +803,7 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 		}
 	}
 	value[k] = 0;
-	len = strlen(sep) + i;
+	len = (u32) strlen(sep) + i;
 	
 	if (val->buffer) gf_free(val->buffer);
 	val->buffer = NULL;
@@ -2929,7 +2929,7 @@ static void xmt_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	node = top->node;
 
 	buf = text_content;
-	len = strlen(buf);
+	len = (u32) strlen(buf);
 
 	if (!len) return;
 

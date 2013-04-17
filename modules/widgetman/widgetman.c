@@ -43,7 +43,13 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
 #  pragma comment(lib, "js32")
+# elif defined (_WIN64)
+#  pragma comment(lib, "js")
+# elif defined (WIN32)
+#  pragma comment(lib, "js32")
+# endif
 #endif
 
 
@@ -262,7 +268,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	/* create the extracted path for the package root using:
 	   the cache dir + a CRC of the file path and the instance*/
 	sprintf(wzip->root_extracted_path, "%s%08X", path, (unsigned int)((unsigned long) wzip));
-	i = gf_crc_32((char *)wzip->root_extracted_path, strlen(wzip->root_extracted_path));
+	i = gf_crc_32((char *)wzip->root_extracted_path, (u32) strlen(wzip->root_extracted_path));
 	sprintf(wzip->archive_id, "GWM_%08X_", i);
 	sprintf(wzip->root_extracted_path, "%s/%s", dir, wzip->archive_id);
 
@@ -299,7 +305,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 		if (!sep) sep = strrchr(item_name, '\\');
 		if (sep) {
 			sep[0] = 0;
-			sprintf(szPath, "%s_%08X_%s", wzip->root_extracted_path, gf_crc_32((char*)item_name, strlen(item_name)), sep+1);
+			sprintf(szPath, "%s_%08X_%s", wzip->root_extracted_path, gf_crc_32((char*)item_name, (u32) strlen(item_name)), sep+1);
 			sep[0] = '/';
 		} else {
 			strcpy(szPath, wzip->root_extracted_path);
@@ -342,7 +348,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 	/* create the extracted path for the package root using:
 	   the cache dir + a CRC of the file path and the instance*/
 	sprintf(wzip->root_extracted_path, "%s%08X", path, (unsigned int)((unsigned long) wzip));
-	i = gf_crc_32((char *)wzip->root_extracted_path, strlen(wzip->root_extracted_path));
+	i = gf_crc_32((char *)wzip->root_extracted_path, (u32) strlen(wzip->root_extracted_path));
 	sprintf(wzip->archive_id, "GWM_%08X_", i);
 	sprintf(wzip->root_extracted_path, "%s/%s", dir, wzip->archive_id);
 
@@ -359,7 +365,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 		if (!sep) sep = strrchr(filename_inzip, '\\');
 		if (sep) {
 			sep[0] = 0;
-			sprintf(szPath, "%s_%08X_%s", wzip->root_extracted_path, gf_crc_32(filename_inzip, strlen(filename_inzip)), sep+1);
+			sprintf(szPath, "%s_%08X_%s", wzip->root_extracted_path, gf_crc_32(filename_inzip, (u32) strlen(filename_inzip)), sep+1);
 			sep[0] = '/';
 		} else {
 			strcpy(szPath, wzip->root_extracted_path);
@@ -1572,7 +1578,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<contextInformation xmlns=\"urn:mpeg:mpegu:schema:widgets:contextinfo:2010\">\n";
-	gf_bs_write_data(bs, (const char *) str, strlen(str) );
+	gf_bs_write_data(bs, (const char *) str, (u32) strlen(str) );
 
 	count = gf_list_count(wid->widget->main->preferences);
 	for (i=0; i<count; i++) {
@@ -1584,12 +1590,12 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 		if (!(pref->flags & GF_WM_PREF_MIGRATE)) continue;
 
 		str = " <preference name=\"";
-		gf_bs_write_data(bs, (const char *) str, strlen(str) );
+		gf_bs_write_data(bs, (const char *) str, (u32) strlen(str) );
 
-		gf_bs_write_data(bs, (const char *) pref->name, strlen(pref->name) );
+		gf_bs_write_data(bs, (const char *) pref->name, (u32) strlen(pref->name) );
 
 		str = "\" value=\"";
-		gf_bs_write_data(bs, (const char *) str, strlen(str) );
+		gf_bs_write_data(bs, (const char *) str, (u32) strlen(str) );
 
 		/*read from node*/
 		if (pref->connectTo && pref->connectTo->attribute) {
@@ -1600,13 +1606,13 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 #ifndef GPAC_DISABLE_SVG
 				if ((n->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) && !strcmp(pref->connectTo->attribute, "textContent")) {
 					char *txt = gf_dom_flatten_textContent(n);
-					gf_bs_write_data(bs, (const char *) txt, strlen(txt) );
+					gf_bs_write_data(bs, (const char *) txt, (u32) strlen(txt) );
 				} else
 #endif
 				if (gf_node_get_field_by_name(n, pref->connectTo->attribute, &info)==GF_OK) {
 					att = gf_node_dump_attribute(n, &info);
 					if (att) {
-						gf_bs_write_data(bs, (const char *)  att, strlen(att) );
+						gf_bs_write_data(bs, (const char *)  att, (u32) strlen(att) );
 						gf_free(att);
 					}
 				}
@@ -1617,14 +1623,14 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 			att = (char *)gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, pref->name);
 			if (!att) att = pref->value;
 
-			if (att) gf_bs_write_data(bs, (const char *) att, strlen(att) );
+			if (att) gf_bs_write_data(bs, (const char *) att, (u32) strlen(att) );
 		}
 
 		str = "\"/>\n";
-		gf_bs_write_data(bs, (const char *)  str, strlen(str) );
+		gf_bs_write_data(bs, (const char *)  str, (u32) strlen(str) );
 	}
 	str = "</contextInformation>\n";
-	gf_bs_write_data(bs, (const char *)  str, strlen(str) );
+	gf_bs_write_data(bs, (const char *)  str, (u32) strlen(str) );
 
 	gf_bs_write_u8(bs, 0);
 	att = NULL;
@@ -2713,7 +2719,7 @@ static char *wm_get_single_attribute(const char *input) {
 
 	if (!input) return gf_strdup("");
 
-	len = strlen(input);
+	len = (u32) strlen(input);
 	output = gf_malloc(len+1);
 
 	first_space_copied = 1;
@@ -2774,7 +2780,7 @@ static char *wm_get_text_content(GF_XMLNode *node, char *inherited_locale, const
 			for (i=0; i<count; i++) {
 				GF_XMLNode *child = (GF_XMLNode *)gf_list_get(node->content, i);
 				char *child_content = wm_get_text_content(child, xml_lang, user_locale);
-				u32 child_content_len = strlen(child_content);
+				u32 child_content_len = (u32) strlen(child_content);
 				text_content = gf_realloc(text_content, text_content_len+child_content_len+1);
 				memcpy(text_content+text_content_len, child_content, child_content_len);
 				text_content[text_content_len+child_content_len] = 0;
@@ -3374,7 +3380,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		wi->instance_id ++;
 
 		sprintf(szName, "%s#%s#Instance%d", path, wi->widget->name, wi->instance_id);
-		sprintf(wi->secname, "Widget#%08X", gf_crc_32(szName, strlen(szName)));
+		sprintf(wi->secname, "Widget#%08X", gf_crc_32(szName, (u32) strlen(szName)));
 
 		/*create section*/
 		gf_cfg_set_key(wm->term->user->config, "Widgets", (const char *) wi->secname, " ");

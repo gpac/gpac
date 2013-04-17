@@ -2086,7 +2086,7 @@ static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0t
 	}
     if (unit) {
         if (!unit_len) unit_len = 2;
-        unit_pos = unit - value_string;
+        unit_pos = (u32) (unit - value_string);
         /* setting the first unit character to 0 for the svg_parse_number method to finish */
         c = value_string[unit_pos];
         value_string[unit_pos] = 0;
@@ -2453,8 +2453,8 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 
 	while (1) {
 		tmp = strchr(str, ';');
-		if (tmp) len = tmp-str;
-		else len = strlen(str);
+		if (tmp) len = (u32) (tmp-str);
+		else len = (u32) strlen(str);
 		memcpy(value_string, str, len);
 		while (value_string[len - 1] == ' ' && len > 0) len--;
 		value_string[len] = 0;
@@ -2691,7 +2691,7 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 	SVG_Coordinate *c;
 	u32 i = 0;
 	char *str = value_string;
-	u32 len = strlen(str);
+	u32 len = (u32) strlen(str);
 
 	while (gf_list_count(values)) {
 		c = (SVG_Coordinate*)gf_list_get(values, 0);
@@ -2741,7 +2741,7 @@ static void svg_parse_points(GF_List *values, char *value_string)
 {
 	u32 i = 0, j;
 	char *str = value_string;
-	u32 len = strlen(str);
+	u32 len = (u32) strlen(str);
 	while (i < len) {
 		SVG_Point *p;
 		GF_SAFEALLOC(p, SVG_Point)
@@ -2768,7 +2768,7 @@ static void svg_parse_numbers(GF_List *values, char *value_string, Bool is_angle
     u32 read_chars;
 	u32 i = 0;
 	char *str = value_string;
-	u32 len = strlen(str);
+	u32 len = (u32) strlen(str);
 	while (i < len) {
 		Fixed *f;
 		GF_SAFEALLOC(f, Fixed)
@@ -2839,7 +2839,7 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 		UnitArray *vals = &(value->array);
 		GF_List *values = gf_list_new();
 		u32 i = 0;
-		u32 len = strlen(value_string);
+		u32 len = (u32) strlen(value_string);
 		char *str = value_string;
 		while (i < len) {
 			SVG_Length *f;
@@ -3098,7 +3098,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 
 		/*change all special chars in spaces*/
 		i=0;
-		len = strlen(attribute_content);
+		len = (u32) strlen(attribute_content);
 		while (i<len) {
 			if (strchr("\r\n\t", attribute_content[i]))
 				attribute_content[i] = ' ';
@@ -3435,7 +3435,7 @@ void svg_parse_one_style(GF_Node *n, char *one_style)
 	while (*one_style == ' ') one_style++;
 	c = strchr(one_style, ':');
 	if (!c) return;
-	attributeNameLen = (c - one_style);
+	attributeNameLen = (u32) (c - one_style);
 	sep = one_style[attributeNameLen];
 	one_style[attributeNameLen] = 0;
 	while (strchr("\r\n\t ", one_style[0]))
@@ -4409,7 +4409,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char *szT;
 			XMLRI *iri = (XMLRI *)gf_list_get(l, i);
 			szT = svg_dump_iri(iri);
-			len = strlen(szT);
+			len = (u32) strlen(szT);
 			if (len) {
 				attVal = gf_realloc(attVal, sizeof(char)*(len+strlen(attVal)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, " ");
@@ -5878,8 +5878,8 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		char *res;
 		SVG_String *s_a = (SVG_String *)a->far_ptr;
 		SVG_String *s_b = (SVG_String *)b->far_ptr;
-		u32 len_a = strlen(*s_a);
-		u32 len_b = strlen(*s_b);
+		u32 len_a = (u32) strlen(*s_a);
+		u32 len_b = (u32) strlen(*s_b);
 		len_a = FIX2INT(alpha * len_a);
 		len_b = FIX2INT(beta * len_b);
 		len = len_a + len_b + 1;

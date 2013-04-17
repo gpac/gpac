@@ -266,7 +266,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	if (ctx->stream.next_frame) {
-		ctx->len = &ctx->buffer[ctx->len] - ctx->stream.next_frame;
+		ctx->len = (u32) (&ctx->buffer[ctx->len] - ctx->stream.next_frame);
 	    memmove(ctx->buffer, ctx->stream.next_frame, ctx->len);
 	}
 

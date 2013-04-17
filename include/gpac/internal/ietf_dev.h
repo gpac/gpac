@@ -189,7 +189,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\
 	strcpy(buf+pos, (const char *) str);		\
-	pos += strlen((const char *) str); \
+	pos += (u32) strlen((const char *) str); \
 
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
 	if (str){	\

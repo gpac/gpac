@@ -200,7 +200,7 @@ GF_Err schm_Write(GF_Box *s, GF_BitStream *bs)
 	assert(e == GF_OK);
 	gf_bs_write_u32(bs, ptr->scheme_type);
 	gf_bs_write_u32(bs, ptr->scheme_version);
-	if (ptr->flags & 0x000001) gf_bs_write_data(bs, ptr->URI, strlen(ptr->URI)+1);
+	if (ptr->flags & 0x000001) gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI)+1);
 	return GF_OK;
 }
 
@@ -383,7 +383,7 @@ GF_Err iKMS_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, ptr->URI, strlen(ptr->URI)+1);
+	gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI)+1);
 	return GF_OK;
 }
 
@@ -535,14 +535,14 @@ GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->PaddingScheme);
 	gf_bs_write_u64(bs, ptr->PlaintextLength);
 	
-	cid_len = ptr->ContentID ? strlen(ptr->ContentID) : 0;
+	cid_len = ptr->ContentID ? (u32) strlen(ptr->ContentID) : 0;
 	gf_bs_write_u16(bs, cid_len);
-	ri_len = ptr->RightsIssuerURL ? strlen(ptr->RightsIssuerURL) : 0;
+	ri_len = ptr->RightsIssuerURL ? (u32) strlen(ptr->RightsIssuerURL) : 0;
 	gf_bs_write_u16(bs, ri_len);
 	gf_bs_write_u16(bs, ptr->TextualHeadersLen);
 
-	if (cid_len) gf_bs_write_data(bs, ptr->ContentID, strlen(ptr->ContentID));
-	if (ri_len) gf_bs_write_data(bs, ptr->RightsIssuerURL, strlen(ptr->RightsIssuerURL));
+	if (cid_len) gf_bs_write_data(bs, ptr->ContentID, (u32) strlen(ptr->ContentID));
+	if (ri_len) gf_bs_write_data(bs, ptr->RightsIssuerURL, (u32) strlen(ptr->RightsIssuerURL));
 	if (ptr->TextualHeadersLen) gf_bs_write_data(bs, ptr->TextualHeaders, ptr->TextualHeadersLen);
 	ptr->size -= cid_len+ri_len+ptr->TextualHeadersLen;
 	return GF_OK;
@@ -615,7 +615,7 @@ GF_Err grpi_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gid_len = ptr->GroupID ? strlen(ptr->GroupID) : 0;
+	gid_len = ptr->GroupID ? (u32) strlen(ptr->GroupID) : 0;
 	gf_bs_write_u16(bs, gid_len);
 	gf_bs_write_u8(bs, ptr->GKEncryptionMethod);
 	gf_bs_write_u16(bs, ptr->GKLength);

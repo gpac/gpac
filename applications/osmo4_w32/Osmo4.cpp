@@ -362,6 +362,8 @@ BOOL Osmo4::InitInstance()
 {
 	CCommandLineInfo cmdInfo;
 
+	afxAmbientActCtx = FALSE; 
+
 	m_logs = NULL;
 
 	m_term = NULL;
@@ -410,8 +412,8 @@ BOOL Osmo4::InitInstance()
 				::SetForegroundWindow(static_gpac_hwnd);
 
 				if (m_lpCmdLine && strlen(m_lpCmdLine)) {
-					DWORD res;
-					u32 len;
+					DWORD_PTR res;
+					size_t len;
 					char *the_url, *cmd;
 					GetCurrentDirectory(1024, szDIR);
 					if (szDIR[strlen(szDIR)-1] != '\\') strcat(szDIR, "\\");

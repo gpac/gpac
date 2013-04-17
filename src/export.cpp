@@ -26,7 +26,7 @@
 /*this file is only used with Win32&MSVC to export the symbols from libgpac(static) to libgpac(dynamic) based on the GPAC configuration*/
 #include <gpac/setup.h>
 
-#ifdef _WIN32_WCE
+#if defined(_WIN32_WCE) || defined(_WIN64)
 #define EXPORT_SYMBOL(a) "/export:"#a
 #else
 #define EXPORT_SYMBOL(a) "/export:_"#a

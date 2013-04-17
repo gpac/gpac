@@ -34,7 +34,13 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
 #  pragma comment(lib, "js32")
+# elif defined (_WIN64)
+#  pragma comment(lib, "js")
+# elif defined (WIN32)
+#  pragma comment(lib, "js32")
+# endif
 #endif
 
 #endif
@@ -1570,7 +1576,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		u32 size = (u32) gf_f64_tell(f);
 		gf_f64_seek(f, 0, SEEK_SET);
 		char *buf = (char*)gf_malloc(sizeof(char)*(size+1));
-		size = fread(buf, 1, size, f);
+		size = (u32) fread(buf, 1, size, f);
 		buf[size]=0;
 		/*evaluate the script on the object only*/
 		if (JS_EvaluateScript(m_pJSCtx, device->obj, buf, size, 0, 0, &aval) != JS_TRUE) {

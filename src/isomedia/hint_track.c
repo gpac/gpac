@@ -896,7 +896,7 @@ GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
 	if (!hnti->SDP) return GF_OK;
 	rtp = (GF_RTPBox *) hnti->SDP;
 
-	*length = strlen(rtp->sdpText);
+	*length = (u32) strlen(rtp->sdpText);
 	*sdp = rtp->sdpText;
 	return GF_OK;
 }
@@ -926,7 +926,7 @@ GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char *
 	if (!hnti->SDP) return GF_OK;
 	sdpa = (GF_SDPBox *) hnti->SDP;
 
-	*length = strlen(sdpa->sdpText);
+	*length = (u32) strlen(sdpa->sdpText);
 	*sdp = sdpa->sdpText;
 	return GF_OK;
 }

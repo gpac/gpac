@@ -1416,7 +1416,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 		gf_f64_seek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
-		sdp_size = fread(sdp_buf, 1, sdp_size, _sdp);
+		sdp_size = (u32) fread(sdp_buf, 1, sdp_size, _sdp);
 		fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
@@ -1442,7 +1442,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 			buf64 = strstr(iod_str, ",");
 			if (!buf64) break;
 			buf64 += 1;
-			size64 = strlen(buf64) - 1;
+			size64 = (u32) strlen(buf64) - 1;
 			size = gf_base64_decode(buf64, size64, buf, 2000);
 
 			gf_odf_desc_read(buf, size, &prog->iod);
@@ -1675,9 +1675,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			assert(*video_buffer_size);
 			*video_buffer = (char*) gf_malloc(*video_buffer_size);
 			{
-				s32 readen = fread(*video_buffer, sizeof(char), *video_buffer_size, f);
-				if (readen != *video_buffer_size)
-					fprintf(stderr, "Error while reading video file, has readen %u chars instead of %u.\n", readen, *video_buffer_size);
+				s32 read = (u32) fread(*video_buffer, sizeof(char), *video_buffer_size, f);
+				if (read != *video_buffer_size)
+					fprintf(stderr, "Error while reading video file, has readen %u chars instead of %u.\n", read, *video_buffer_size);
 			}
 			fclose(f);
 		} else if (!strnicmp(arg, "-audio=", 7)) {

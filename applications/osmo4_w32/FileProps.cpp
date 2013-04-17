@@ -170,7 +170,7 @@ void CFileProps::SetInfo(GF_ObjectManager *odm)
 	}
 }
 
-void CFileProps::OnTimer(UINT nIDEvent) 
+void CFileProps::OnTimer(UINT_PTR nIDEvent) 
 {
 	if (nIDEvent == FP_TIMER_ID) {
 		switch (m_ViewSel.GetCurSel()) {

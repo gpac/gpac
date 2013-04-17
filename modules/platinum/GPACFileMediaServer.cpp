@@ -53,7 +53,7 @@ void GPAC_FileMediaServer::AddSharedDirectory(const char *path, const char *alia
 {
 	u8 buf[10];
 	if (!alias) {
-			sprintf((char*)buf, "%08X", gf_crc_32((char*) path, strlen(path)));
+			sprintf((char*)buf, "%08X", gf_crc_32((char*) path, (u32) strlen(path)));
 			alias = (const char *)buf;
 	}
 	m_Directories.Add(GPAC_MediaDirectory(alias, path, is_hidden));
@@ -413,7 +413,7 @@ NPT_String GPAC_FileMediaServer::GetResourceURI(const char *url, const char *for
 			/my/example/, otherwise we will loose the ability to browse for resource in the parent dir
 		*/
 		u32 nb_sep=0;
-		u32 len = strlen(abs_url);
+		u32 len = (u32) strlen(abs_url);
 		u32 i=0;
 		while (i<=len) {
 			if ((abs_url[len-i]=='\\') || (abs_url[len-i]=='/') ) {

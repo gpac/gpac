@@ -50,7 +50,7 @@ static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
 }
 #else
 
-static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
+static void DD_GetCoordinates(LPARAM lParam, GF_Event *evt)
 {
 	POINTS pt = MAKEPOINTS(lParam);
 	evt->mouse.x = pt.x;
@@ -58,10 +58,10 @@ static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
 }
 #endif
 
-static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
+static void w32_translate_key(WPARAM wParam, LPARAM lParam, GF_EventKey *evt)
 {
 	evt->flags = 0;
-	evt->hw_code = wParam;
+	evt->hw_code = (u32) wParam;
 	switch (wParam) {
 	case VK_BACK: evt->key_code = GF_KEY_BACKSPACE; break;
 	case VK_TAB: evt->key_code = GF_KEY_TAB; break;
@@ -283,8 +283,8 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	/*thru VK_9 are the same as ASCII '0' thru '9' (0x30 - 0x39) */
 	/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */
 	default: 
-		if ((wParam>=0x30) && (wParam<=0x39))  evt->key_code = GF_KEY_0 + wParam-0x30;
-		else if ((wParam>=0x41) && (wParam<=0x5A))  evt->key_code = GF_KEY_A + wParam-0x41;
+		if ((wParam>=0x30) && (wParam<=0x39))  evt->key_code = GF_KEY_0 + (u32) (wParam-0x30);
+		else if ((wParam>=0x41) && (wParam<=0x5A))  evt->key_code = GF_KEY_A + (u32) (wParam-0x41);
 		/*DOM 3 Events: Implementations that are unable to identify a key must use the key identifier "Unidentified".*/
 		else
 			evt->key_code = GF_KEY_UNIDENTIFIED;
@@ -321,7 +321,7 @@ void release_mouse(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 	mouse_start_timer(ctx, hWnd, vout);
 }
 
-LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
+LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	Bool ret = 1;
 	GF_Event evt;
@@ -603,7 +603,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		else if (ctx->ctrl_down && (evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_C)) {
 			evt.type = GF_EVENT_COPY_TEXT;
 			if ((vout->on_event(vout->evt_cbk_hdl, &evt)==GF_OK) && evt.message.message) {
-				u32 len;
+				size_t len;
 				HGLOBAL hglbCopy;
 				LPTSTR lptstrCopy;
 				if (!IsClipboardFormatAvailable(CF_TEXT)) break;
@@ -636,7 +636,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 //		if (wParam>=32) 
 		{
 			evt.type = GF_EVENT_TEXTINPUT;
-			evt.character.unicode_char = wParam;
+			evt.character.unicode_char = (u32) wParam;
 			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;

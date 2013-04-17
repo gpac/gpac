@@ -41,7 +41,7 @@ enum
 };
 
 #define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
-		u32 _len = strlen(__str);		\
+		u32 _len = (u32) strlen(__str);		\
 		if (!_len) break;	\
 		_len--;				\
 		if (strchr(__sep, __str[_len])) __str[_len] = 0;	\
@@ -424,7 +424,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		line++;
-		len = strlen(szLine); 
+		len = (u32) strlen(szLine); 
 		if (!len) continue;
 
 		i=0;

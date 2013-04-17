@@ -368,7 +368,7 @@ static Bool check_mpeg4_systems(GF_InputService *plug, GF_ISOFile *mov)
 			u32 orig_len, len;
 			next = strchr(br, ' ');
 			if (next) next[0] = 0;
-			len = orig_len = strlen(br);
+			len = orig_len = (u32) strlen(br);
 
 			while (len) {
 				if (br[len-1]=='*') {

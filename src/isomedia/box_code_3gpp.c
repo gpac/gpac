@@ -290,7 +290,7 @@ GF_Err ftab_Write(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->entry_count; i++) {
 		gf_bs_write_u16(bs, ptr->fonts[i].fontID);
 		if (ptr->fonts[i].fontName) {
-			u32 len = strlen(ptr->fonts[i].fontName);
+			u32 len = (u32) strlen(ptr->fonts[i].fontName);
 			gf_bs_write_u8(bs, len);
 			gf_bs_write_data(bs, ptr->fonts[i].fontName, len);
 		} else {
@@ -527,7 +527,7 @@ GF_Err text_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->reserved2);				/*Reserved*/
 	gf_bs_write_u16(bs, ptr->reserved3);			/*Reserved*/
 	gf_bs_write_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
-	if (ptr->textName && (pSize=strlen(ptr->textName))) {
+	if (ptr->textName && (pSize=(u32) strlen(ptr->textName))) {
 		gf_bs_write_u8(bs, pSize);					/*a Pascal string begins with its size*/
 		gf_bs_write_data(bs, ptr->textName, pSize);	/*Font name*/
 	} else {
@@ -844,14 +844,14 @@ GF_Err href_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->startcharoffset);
 	gf_bs_write_u16(bs, ptr->endcharoffset);
 	if (ptr->URL) {
-		len = strlen(ptr->URL);
+		len = (u32) strlen(ptr->URL);
 		gf_bs_write_u8(bs, len);
 		gf_bs_write_data(bs, ptr->URL, len);
 	} else {
 		gf_bs_write_u8(bs, 0);
 	}
 	if (ptr->URL_hint) {
-		len = strlen(ptr->URL_hint);
+		len = (u32) strlen(ptr->URL_hint);
 		gf_bs_write_u8(bs, len);
 		gf_bs_write_data(bs, ptr->URL_hint, len);
 	} else {
@@ -1128,8 +1128,8 @@ GF_Err dimC_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, p->fullRequestHost, 1);
 	gf_bs_write_int(bs, p->streamType, 1);
 	gf_bs_write_int(bs, p->containsRedundant, 2);
-	gf_bs_write_data(bs, p->textEncoding, strlen(p->textEncoding)+1);
-	gf_bs_write_data(bs, p->contentEncoding, strlen(p->contentEncoding)+1);
+	gf_bs_write_data(bs, p->textEncoding, (u32) strlen(p->textEncoding)+1);
+	gf_bs_write_data(bs, p->contentEncoding, (u32) strlen(p->contentEncoding)+1);
 	return GF_OK;
 }
 GF_Err dimC_Size(GF_Box *s)
@@ -1182,7 +1182,7 @@ GF_Err diST_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	if (p->content_script_types)
-		gf_bs_write_data(bs, p->content_script_types, strlen(p->content_script_types)+1);
+		gf_bs_write_data(bs, p->content_script_types, (u32) strlen(p->content_script_types)+1);
 	else
 		gf_bs_write_u8(bs, 0);
 	return GF_OK;

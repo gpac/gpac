@@ -391,14 +391,16 @@ static void EndList(GF_SceneDumper *sdump, const char *name)
 
 static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *str)
 {
+	size_t _len;
 	u32 len, i;
 	u16 *uniLine;
 	if (!str) return;
-	len = strlen(str);
+	len = (u32) strlen(str);
 	if (!len) return;
 	uniLine = (u16*)gf_malloc(sizeof(u16) * len);
-	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-	if (len != (u32) (-1)) {
+	_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
+	if (_len != (size_t) (-1)) {
+		len = (u32) _len;
 		for (i=0; i<len; i++) {
 			//if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
 			switch (uniLine[i]) {
@@ -546,14 +548,16 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		break;
 	case GF_SG_VRML_SFSCRIPT:
 	{
+		size_t _len;
 		u32 len, i;
 		char *str;
 		u16 *uniLine;
 		str = (char*)((SFScript *)ptr)->script_text;
-		len = strlen(str);
+		len = (u32)strlen(str);
 		uniLine = (u16*)gf_malloc(sizeof(short) * len);
-		len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-		if (len != (u32) -1) {
+		_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
+		if (_len != (size_t) -1) {
+			len = (u32) _len;
 			if (!sdump->XMLDump) fputc('\"', sdump->trace);
 
 			for (i=0; i<len; i++) {
@@ -625,7 +629,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			} else if (!strchr(str, '\"')) {
 				fprintf(sdump->trace, "%s", str);
 			} else {
-				u32 i, len = strlen(str);
+				u32 i, len = (u32)strlen(str);
 				for (i=0; i<len; i++) {
 					if (str[i]=='\"') fputc('\\', sdump->trace);
 					fputc(str[i], sdump->trace);
@@ -2972,7 +2976,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		}
 		info.far_ptr = att->data;
 		attValue = gf_svg_dump_attribute((GF_Node*)svg, &info);
-		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = strlen(attValue)))
+		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = (u32) strlen(attValue)))
 			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
 		
 		if (attValue) gf_free(attValue);

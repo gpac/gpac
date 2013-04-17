@@ -186,7 +186,7 @@ GF_Err chpl_Write(GF_Box *s, GF_BitStream *bs)
 		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(ptr->list, i);
 		gf_bs_write_u64(bs, ce->start_time);
 		if (ce->name) {
-			len = strlen(ce->name); if (len>255) len = 255;
+			len = (u32) strlen(ce->name); if (len>255) len = 255;
 			gf_bs_write_u8(bs, len);
 			gf_bs_write_data(bs, ce->name, len);
 		} else {
@@ -1499,7 +1499,7 @@ GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->reserved1);
 	gf_bs_write_u32(bs, ptr->handlerType);
 	gf_bs_write_data(bs, (char*)ptr->reserved2, 12);
-	if (ptr->nameUTF8) gf_bs_write_data(bs, ptr->nameUTF8, strlen(ptr->nameUTF8));
+	if (ptr->nameUTF8) gf_bs_write_data(bs, ptr->nameUTF8, (u32) strlen(ptr->nameUTF8));
 	/*NULL-terminated string is written*/
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
@@ -1766,7 +1766,7 @@ GF_Err hnti_Write(GF_Box *s, GF_BitStream *bs)
 			if (e) return e;
 			gf_bs_write_u32(bs, rtp->subType);
 			//don't write the NULL char
-			gf_bs_write_data(bs, rtp->sdpText, strlen(rtp->sdpText));
+			gf_bs_write_data(bs, rtp->sdpText, (u32) strlen(rtp->sdpText));
 		}
 	}
 	return GF_OK;
@@ -1846,7 +1846,7 @@ GF_Err sdp_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	//don't write the NULL char!!!
-	gf_bs_write_data(bs, ptr->sdpText, strlen(ptr->sdpText));
+	gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
 	return GF_OK;
 }
 GF_Err sdp_Size(GF_Box *s)
@@ -2482,7 +2482,7 @@ GF_Err payt_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->payloadCode);
-	len = strlen(ptr->payloadString);
+	len = (u32) strlen(ptr->payloadString);
 	gf_bs_write_u8(bs, len);
 	if (len) gf_bs_write_data(bs, ptr->payloadString, len);
 	return GF_OK;
@@ -2536,7 +2536,7 @@ GF_Err name_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	if (ptr->string) {
-		gf_bs_write_data(bs, ptr->string, strlen(ptr->string) + 1);
+		gf_bs_write_data(bs, ptr->string, (u32) strlen(ptr->string) + 1);
 	}
 	return GF_OK;
 }
@@ -7317,16 +7317,16 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
 
 	if (ptr->content_encoding) 
-		gf_bs_write_data(bs, ptr->content_encoding, strlen(ptr->content_encoding));
+		gf_bs_write_data(bs, ptr->content_encoding, (u32) strlen(ptr->content_encoding));
 	gf_bs_write_u8(bs, 0);
 
 	if (ptr->mime_type_or_namespace) 
-		gf_bs_write_data(bs, ptr->mime_type_or_namespace, strlen(ptr->mime_type_or_namespace));
+		gf_bs_write_data(bs, ptr->mime_type_or_namespace, (u32) strlen(ptr->mime_type_or_namespace));
 	gf_bs_write_u8(bs, 0);
 	
 	if (ptr->type == GF_ISOM_BOX_TYPE_METX) { 
 	    if (ptr->xml_schema_loc) 
-		    gf_bs_write_data(bs, ptr->xml_schema_loc, strlen(ptr->xml_schema_loc));
+		    gf_bs_write_data(bs, ptr->xml_schema_loc, (u32) strlen(ptr->xml_schema_loc));
 	    gf_bs_write_u8(bs, 0);
     }
 

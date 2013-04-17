@@ -341,8 +341,8 @@ static char ** extractAttributes(const char * name, const char * line, const int
 	int sz, i, currentAttribute, start;
 	char ** ret;
 	u8 quote=0;
-	int len = strlen(line);
-	start = strlen(name);
+	int len = (u32) strlen(line);
+	start = (u32) strlen(name);
 	if (len <= start)
 		return NULL;
 	if (!safe_start_equals(name, line))
@@ -450,7 +450,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 				if (endPtr != utility)
 					attributes->programId = intValue;
 			} else if (safe_start_equals("CODECS=\"", ret[i])) {
-				intValue = strlen(ret[i]);
+				intValue = (u32) strlen(ret[i]);
 				if (ret[i][intValue-1] == '"') {
 					attributes->codecs = gf_strdup(&(ret[i][7]));
 				}
@@ -559,7 +559,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 		eof = strchr(currentLine, '\n');
 		if (eof)
 			eof[0] = '\0';
-		len = strlen( currentLine);
+		len = (u32) strlen( currentLine);
 		if (len < 1)
 			continue;
 		if (currentLineNumber == 1) {

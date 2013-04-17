@@ -285,10 +285,10 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 in
 		field1->eventType = field2->eventType = 0;
 		priv->enteredText[priv->text_len] = (short) '\0';
 
-		len = gf_utf8_wcslen(priv->enteredText);
+		len = (u32) gf_utf8_wcslen(priv->enteredText);
 		if (len && (priv->enteredText[len-1] == priv->termChar)) {
 			ptr = priv->enteredText;
-			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
+			len = (u32) gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (outText->buffer) gf_free(outText->buffer);
 			outText->buffer = (char*)gf_malloc(sizeof(char) * (len));
 			memcpy(outText->buffer, tmp_utf8, sizeof(char) * len-1);
@@ -312,7 +312,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 in
 			}
 			priv->text_len = len;
 			ptr = priv->enteredText;
-			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
+			len = (u32) gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (inText->buffer) gf_free(inText->buffer);
 			inText->buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(inText->buffer, tmp_utf8, sizeof(char) * len);
@@ -731,7 +731,7 @@ Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 			if (n->keyPress.buffer) gf_free(n->keyPress.buffer);
 			tc[0] = keyPressed; tc[1] = 0;
 			ptr = tc;
-			len = gf_utf8_wcstombs(szStr, 10, &ptr);
+			len = (u32) gf_utf8_wcstombs(szStr, 10, &ptr);
 			n->keyPress.buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(n->keyPress.buffer, szStr, sizeof(char) * len);
 			n->keyPress.buffer[len] = 0;
@@ -741,7 +741,7 @@ Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 			if (n->keyRelease.buffer) gf_free(n->keyRelease.buffer);
 			tc[0] = keyReleased; tc[1] = 0;
 			ptr = tc;
-			len = gf_utf8_wcstombs(szStr, 10, &ptr);
+			len = (u32) gf_utf8_wcstombs(szStr, 10, &ptr);
 			n->keyRelease.buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(n->keyRelease.buffer, szStr, sizeof(char) * len);
 			n->keyRelease.buffer[len] = 0;
@@ -847,7 +847,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 				st->text_len -= 1;
 				st->enteredText[st->text_len] = 0;
 				ptr = st->enteredText;
-				len = gf_utf8_wcstombs(szStr, 10, &ptr);
+				len = (u32) gf_utf8_wcstombs(szStr, 10, &ptr);
 				if (n->enteredText.buffer) gf_free(n->enteredText.buffer);
 				szStr[len] = 0;
 				n->enteredText.buffer = gf_strdup(szStr);
@@ -865,7 +865,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 			st->text_len += 1;
 			st->enteredText[st->text_len] = 0;
 			ptr = st->enteredText;
-			len = gf_utf8_wcstombs(szStr, 10, &ptr);
+			len = (u32) gf_utf8_wcstombs(szStr, 10, &ptr);
 			if (n->enteredText.buffer) gf_free(n->enteredText.buffer);
 			szStr[len] = 0;
 			n->enteredText.buffer = gf_strdup(szStr);

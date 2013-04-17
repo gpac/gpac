@@ -145,7 +145,7 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 static void bs_flush_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
-		u32 nb_write = fwrite(bs->buffer_io, 1, bs->buffer_written, bs->stream);
+		u32 nb_write = (u32) fwrite(bs->buffer_io, 1, bs->buffer_written, bs->stream);
 		bs->size += nb_write;
 		bs->position += nb_write;
 		bs->buffer_written = 0;
@@ -381,7 +381,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 		case GF_BITSTREAM_FILE_WRITE:
 			if (bs->buffer_io) 
 				bs_flush_cache(bs);
-			nbBytes = fread(data, 1, nbBytes, bs->stream);
+			nbBytes = (u32) fread(data, 1, nbBytes, bs->stream);
 			bs->position += nbBytes;
 			return nbBytes;
 		default:

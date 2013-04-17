@@ -1112,7 +1112,8 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 
 void SFE_PutReal(ScriptEnc *sc_enc, char *str)
 {
-	u32 i, length = strlen(str);
+	u32 i;
+	size_t length = strlen(str);
 	for (i=0; i<length; i++) {
 		s32 c = str[i];
 		if (c >= '0' && c <= '9') 

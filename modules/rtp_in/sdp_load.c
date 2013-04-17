@@ -133,7 +133,7 @@ GF_Err RP_SDPLoadIOD(RTPClient *rtp, char *iod_str)
 		buf64 = strstr(iod_str, ",");
 		if (!buf64) return GF_URL_ERROR;
 		buf64 += 1;
-		size64 = strlen(buf64) - 1;
+		size64 = (u32) strlen(buf64) - 1;
 
 		size = gf_base64_decode(buf64, size64, buf, 2000);
 		if (!size) return GF_SERVICE_ERROR;
@@ -144,7 +144,7 @@ GF_Err RP_SDPLoadIOD(RTPClient *rtp, char *iod_str)
 		buf16 = strstr(iod_str, ",");
 		if (!buf16) return GF_URL_ERROR;
 		buf16 += 1;
-		size16 = strlen(buf16) - 1;
+		size16 = (u32) strlen(buf16) - 1;
 
 		size = gf_base16_decode(buf16, size16, buf, 2000);
 		if (!size) return GF_SERVICE_ERROR;
@@ -407,7 +407,7 @@ void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	case GF_NETIO_GET_CONTENT:
 		param->data = rtp->session_state_data + strlen("data:application/sdp,");
-		param->size = strlen(param->data);
+		param->size = (u32) strlen(param->data);
 		return;
 	}
 }
@@ -427,7 +427,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 
 	sdp_buf = rtp->session_state_data + strlen("data:application/sdp,");
 	sdp = gf_sdp_info_new();
-	e = gf_sdp_info_parse(sdp, sdp_buf, strlen(sdp_buf) );
+	e = gf_sdp_info_parse(sdp, sdp_buf, (u32) strlen(sdp_buf) );
 
 	for (i=0; i<gf_list_count(rtp->channels); i++) {
 		GF_SDPMedia *media = NULL;

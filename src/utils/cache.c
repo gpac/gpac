@@ -176,7 +176,7 @@ Bool delete_cache_files(void *cbck, char *item_name, char *item_path) {
 	assert( item_name );
 	assert( item_path);
 	startPattern = (const char *) cbck;
-	sz = strlen( startPattern );
+	sz = (u32) strlen( startPattern );
 	if (!strncmp(startPattern, item_name, sz)) {
 		if (GF_OK != gf_delete_file(item_path))
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] : failed to cleanup file %s\n", item_path));
@@ -385,7 +385,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 			("[CACHE] gf_cache_create_entry :%d, dm=%p, url=%s cache_directory=%s, aborting.\n", __LINE__, dm, url, cache_directory));
 		return entry;
 	}
-	sz = strlen ( url );
+	sz = (u32) strlen ( url );
 	if ( sz > _CACHE_TMP_SIZE )
 	{
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
@@ -399,7 +399,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	} else {
 		strcpy ( tmp, url );
 	}
-	gf_sha1_csum ((u8*) tmp, strlen ( tmp ), hash );
+	gf_sha1_csum ((u8*) tmp, (u32) strlen ( tmp ), hash );
 	tmp[0] = 0;
 	{
 		int i;
@@ -633,7 +633,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 }
 
 GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size) {
-	u32 readen;
+	u32 read;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_write_to_cache:%d\n", __LINE__));
 	CHECK_ENTRY;
 
@@ -654,13 +654,13 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		return GF_OK;
 	}
 
-	readen = gf_fwrite(data, sizeof(char), size, entry->writeFilePtr);
-	if (readen > 0)
-		entry->written_in_cache+= readen;
-	if (readen != size) {
+	read = (u32) gf_fwrite(data, sizeof(char), size, entry->writeFilePtr);
+	if (read > 0)
+		entry->written_in_cache+= read;
+	if (read != size) {
 		/* Something bad happened */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-			("[CACHE] Error while writting %d bytes of data to cache : has written only %d bytes.", size, readen));
+			("[CACHE] Error while writting %d bytes of data to cache : has written only %d bytes.", size, read));
 		gf_cache_close_write_cache(entry, sess, 0);
 		gf_delete_file(entry->cache_filename);
 		return GF_IO_ERR;
@@ -719,13 +719,13 @@ s64 gf_cache_reader_get_currentSize( GF_CacheReader reader );
 s64 gf_cache_reader_full_size( GF_CacheReader reader );
 
 s32 gf_cache_reader_read( GF_CacheReader reader, char * buff, s32 length) {
-	s32 readen;
+	s32 read;
 	if (!reader || !buff || length < 0 || !reader->readPtr)
 		return -1;
-	readen = fread(buff, sizeof(char), length, reader->readPtr);
-	if (readen > 0)
-		reader->readPosition+= readen;
-	return readen;
+	read = (u32) fread(buff, sizeof(char), length, reader->readPtr);
+	if (read > 0)
+		reader->readPosition+= read;
+	return read;
 }
 
 GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )

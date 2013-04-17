@@ -89,7 +89,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 		prev_pc = 0;
 	}
 	if (done==total) {
-		u32 len = strlen(szT) + 40;
+		u32 len = (u32) strlen(szT) + 40;
 		while (len) { fprintf(stderr, " "); len--; };
 		fprintf(stderr, "\r");
 	}
@@ -303,7 +303,7 @@ char *gf_log_get_tools_levels()
 		}
 		level++;
 	}
-	len = strlen(szLogTools);
+	len = (u32) strlen(szLogTools);
 	if (len) {
 		/*remove last ':' from level*/
 		if (szLogTools[ len-1 ] == ':') szLogTools[ len-1 ] = 0;

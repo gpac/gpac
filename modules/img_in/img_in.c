@@ -379,7 +379,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			*is_new_data = 1;
 			gf_f64_seek(read->stream, 0, SEEK_SET);
 			read->data = (char*) gf_malloc(sizeof(char) * (read->data_size + read->pad_bytes));
-			read->data_size = fread(read->data, sizeof(char), read->data_size, read->stream);
+			read->data_size = (u32) fread(read->data, sizeof(char), read->data_size, read->stream);
 			gf_f64_seek(read->stream, 0, SEEK_SET);
 			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 

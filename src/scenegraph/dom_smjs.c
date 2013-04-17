@@ -1080,7 +1080,7 @@ static const char *node_lookup_namespace_by_tag(GF_Node *node, u32 tag)
 			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
 			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
 				char *xmlns = *(DOM_String *) datt->data;
-				u32 crc = gf_crc_32(xmlns, strlen(xmlns));
+				u32 crc = gf_crc_32(xmlns, (u32) strlen(xmlns));
 				if (tag==crc) return xmlns;
 			}
 		}
@@ -1670,7 +1670,7 @@ static JSBool SMJS_FUNCTION(xml_element_get_attribute)
 		u32 ns_code = 0;
 		if (ns) {
 			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
-			if (!ns_code) ns_code = gf_crc_32(ns, strlen(ns));
+			if (!ns_code) ns_code = gf_crc_32(ns, (u32) strlen(ns));
 		}
 		else {
 			ns_code = gf_xml_get_element_namespace(n);
@@ -2254,7 +2254,7 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 			txt[0] = evt->detail;
 			txt[1] = 0;
 			srcp = (const u16 *) txt;
-			len = gf_utf8_wcstombs(szData, 5, &srcp);
+			len = (u32) gf_utf8_wcstombs(szData, 5, &srcp);
 			szData[len] = 0;
 			s = JS_NewStringCopyZ(c, szData);
 			*vp = STRING_TO_JSVAL( s );
@@ -2752,7 +2752,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 		u32 i, len;
 		GF_DOMText *txt;
 		/*basic check, remove all empty text nodes*/
-		len = strlen(content);
+		len = (u32) strlen(content);
 		for (i=0; i<len; i++) {
 			if (!strchr(" \n\r\t", content[i])) break;
 		}
@@ -2834,7 +2834,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_GET_CONTENT:
 		if (ctx->data) {
 			parameter->data = ctx->data;
-			parameter->size = strlen(ctx->data);
+			parameter->size = (u32) strlen(ctx->data);
 		}
 		return;
 	case GF_NETIO_PARSE_HEADER:
@@ -4313,7 +4313,7 @@ static void xml_reload_text_content(void *sax_cbck, const char *content, Bool is
 	if (!par) return;
 
 	/*basic check, remove all empty text nodes*/
-	len = strlen(content);
+	len = (u32) strlen(content);
 	for (i=0; i<len; i++) {
 		if (!strchr(" \n\r\t", content[i])) break;
 	}

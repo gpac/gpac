@@ -3136,7 +3136,7 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 		gf_bs_write_u8(bs, 0xFE);	/*marker*/
 		gf_bs_write_u32(bs, trak->Media->information->sampleTable->groupID);
 		gf_bs_write_u32(bs, trak->Media->information->sampleTable->trackPriority);
-		len = trak->name ? strlen(trak->name) : 0;
+		len = trak->name ? (u32) strlen(trak->name) : 0;
 		gf_bs_write_u32(bs, len);
 		for (j=0; j<len; j++) gf_bs_write_u8(bs, trak->name[j]);
 		gf_bs_get_content(bs, &data, &len);
@@ -3653,7 +3653,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		char szOrig[1024], szLine[1024];
 		strcpy(szOrig, nameUTF8);
 		j=0;
-		len = strlen(szOrig);
+		len = (u32) strlen(szOrig);
 		for (i=0; i<len; i++) {
 			if (szOrig[i] & 0x80) {
 				/*non UTF8 (likely some win-CP)*/

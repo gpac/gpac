@@ -44,7 +44,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 				if (strstr(_free->data, "File Produced with GPAC")) {
 					gf_free(_free->data);
 					_free->data = gf_strdup(GPAC_ISOM_CPRT_NOTICE);
-					_free->dataSize = strlen(_free->data);
+					_free->dataSize = (u32) strlen(_free->data);
 					return GF_OK;
 				}
 			}
@@ -53,7 +53,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	a = gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
 	if (!a) return GF_OUT_OF_MEM;
 	_free = (GF_FreeSpaceBox *)a;
-	_free->dataSize = strlen(GPAC_ISOM_CPRT_NOTICE) + 1;
+	_free->dataSize = (u32) strlen(GPAC_ISOM_CPRT_NOTICE) + 1;
 	_free->data = gf_strdup(GPAC_ISOM_CPRT_NOTICE);
 	if (!_free->data) return GF_OUT_OF_MEM;
 	return gf_list_add(movie->TopBoxes, _free);
@@ -441,9 +441,10 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 						u64 remain = entry->extent_length;
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-							size_cache = fread(cache_data, sizeof(char), size_cache, src);
-							gf_bs_write_data(bs, cache_data, size_cache);
-							remain -= size_cache;
+							size_t read = fread(cache_data, sizeof(char), size_cache, src);
+							if (read ==(size_t) -1) break;
+							gf_bs_write_data(bs, cache_data, (u32) read);
+							remain -= (u32) read;
 						}
 					} else {
 						gf_bs_write_data(bs, iinf->full_path, iinf->data_len);

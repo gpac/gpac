@@ -42,11 +42,11 @@ void RP_SDPFromData(RTPClient *rtp, char *s_url, RTPStream *stream)
 	url += 1;
 	if (strstr(url, ";base64")) {
 		//decode
-		size = gf_base64_decode(url, strlen(url), buf, 2000);
+		size = gf_base64_decode(url, (u32) strlen(url), buf, 2000);
 		buf[size] = 0;
 		url = buf;
 	}
-	RP_LoadSDP(rtp, url, strlen(url), stream);
+	RP_LoadSDP(rtp, url, (u32) strlen(url), stream);
 }
 
 void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
@@ -96,7 +96,7 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
 			sprintf(szBody, "ipadd\n%s\n\nurl\n%s\n\n", opt, sdp->original_url);
 			param->data = szBody;
-			param->size = strlen(szBody);
+			param->size = (u32) strlen(szBody);
 		}
 		return;
 	case GF_NETIO_DATA_TRANSFERED:

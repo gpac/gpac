@@ -284,7 +284,7 @@ GF_Err gf_map_insert(GF_Map *ptr, const char* key, void* item){
 	/* Insert requiered a map, a key and a value */
 	if (!ptr || !key || !item) return GF_BAD_PARAM;
 
-	key_len = strlen(key);
+	key_len = (u32) strlen(key);
 
 	/* Get a pointer to the bucket the key string hashes to */
 	index = hash(key) % ptr->hash_capacity;

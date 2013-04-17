@@ -757,7 +757,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
 		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
 			res = gf_strdup(((GF_DOMText*)n)->textContent);
-			len = strlen(res);
+			len = (u32) strlen(res);
 		}
 	}
 
@@ -765,7 +765,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	while (list) {
 		char *t = gf_dom_flatten_textContent(list->node);
 		if (t) {
-			u32 sub_len = strlen(t);
+			u32 sub_len = (u32) strlen(t);
 			res = gf_realloc(res, sizeof(char)*(len+sub_len+1));
 			if (!len) res[0] = 0;
 			len += sub_len;

@@ -46,7 +46,13 @@
 #endif
 
 #if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
 #  pragma comment(lib, "js32")
+# elif defined (_WIN64)
+#  pragma comment(lib, "js")
+# elif defined (WIN32)
+#  pragma comment(lib, "js32")
+# endif
 #endif
 
 #include <gpac/internal/scenegraph_dev.h>
@@ -374,7 +380,7 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 	JS_DefineProperty(cbk->c, obj, "name", STRING_TO_JSVAL(s), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
 	sep=NULL;
-	len = strlen(file_path);
+	len = (u32) strlen(file_path);
 	for (i=0; i<len; i++) {
 		sep = strchr("/\\", file_path[len-i-1]);
 		if (sep) {

@@ -289,7 +289,7 @@ GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credent
     if (!dm || !creds || !password)
         return GF_BAD_PARAM;
     sprintf(pass_buf, "%s:%s", creds->username, password);
-    size = gf_base64_encode(pass_buf, strlen(pass_buf), range_buf, 1024);
+    size = gf_base64_encode(pass_buf, (u32) strlen(pass_buf), range_buf, 1024);
     range_buf[size] = 0;
     strcpy(creds->digest, range_buf);
     creds->valid = 1;
@@ -2045,7 +2045,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
     strcat(sHTTP, "\r\n");
 
     if (send_profile || par.data) {
-        u32 len = strlen(sHTTP);
+        u32 len = (u32) strlen(sHTTP);
         char *tmp_buf = gf_malloc(sizeof(char)*(len+par.size+1));
         strcpy(tmp_buf, sHTTP);
         if (par.data) {
@@ -2059,7 +2059,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
             assert (user_profile);
             profile = gf_f64_open(user_profile, "rt");
             if (profile) {
-                u32 readen = fread(tmp_buf+len, sizeof(char), par.size, profile);
+                u32 readen = (u32) fread(tmp_buf+len, sizeof(char), par.size, profile);
                 if (readen<par.size) {
                     GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
                            ("Error while loading Downloader/UserProfile, size=%d, should be %d.", readen, par.size));
@@ -2095,7 +2095,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 				e = GF_IP_NETWORK_FAILURE;
          } else
 #endif
-            e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
+            e = gf_sk_send(sess->sock, sHTTP, (u32) strlen(sHTTP));
 
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n ; Error Code=%d\n", sHTTP, e));
     }
@@ -2308,7 +2308,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         else if (!stricmp(hdr, "Content-Type")) {
             char * mime_type = gf_strdup(hdr_val);
             while (1) {
-                u32 len = strlen(mime_type);
+                u32 len = (u32) strlen(mime_type);
                 char c = len ? mime_type[len-1] : 0;
                 if ((c=='\r') || (c=='\n')) {
                     mime_type[len-1] = 0;
@@ -2461,7 +2461,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 int read = 0;
                 u32 total_size = gf_cache_get_cache_filesize(sess->cache_entry);
                 do {
-                    read = fread(file_cache_buff, sizeof(char), 16384, f);
+                    read = (u32) fread(file_cache_buff, sizeof(char), 16384, f);
                     if (read > 0) {
                         sess->bytes_done += read;
                         sess->total_size = total_size;
@@ -2731,7 +2731,7 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	/*handle service message*/
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
-		s32 written = gf_fwrite( param->data, sizeof(char), param->size, f);
+		s32 written = (u32) gf_fwrite( param->data, sizeof(char), param->size, f);
 		if (written != param->size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Failed to write data on disk\n"));
 		}
@@ -2825,7 +2825,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		*out_size = size;
 		*out_data = gf_malloc(sizeof(char)* ( 1 + size));
 		fseek(f, 0, SEEK_SET);
-		read = fread(*out_data, 1, size, f);
+		read = (u32) fread(*out_data, 1, size, f);
 		if (read != size) {
 			gf_free(*out_data);
 			e = GF_IO_ERR;
@@ -2899,7 +2899,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
         if (orig == NULL)
             return NULL;
         /* 22 if 1G + 1G + 2 dashes */
-        maxLen = strlen(orig) + 22;
+        maxLen = (u32) strlen(orig) + 22;
         newFilename = (char*)gf_malloc( maxLen );
         if (newFilename == NULL)
             return NULL;

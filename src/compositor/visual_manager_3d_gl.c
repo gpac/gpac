@@ -395,7 +395,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	GLsizei slen = 0;
 	u32 len;
 	if (!source || !shader_id) return 0;
-	len = strlen(source);
+	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
 	
@@ -452,17 +452,19 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 		if (sOpt) {
 			FILE *src = gf_f64_open(sOpt, "rt");
 			if (src) {
-				u32 size;
+				size_t size;
 				char *shader_src;
 				gf_f64_seek(src, 0, SEEK_END);
-				size = (u32) gf_f64_tell(src);
+				size = gf_f64_tell(src);
 				gf_f64_seek(src, 0, SEEK_SET);
 				shader_src = gf_malloc(sizeof(char)*(size+1));
 				size = fread(shader_src, 1, size, src);
 				fclose(src);
-				shader_src[size]=0;
-				visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-				visual_3d_compile_shader(visual->glsl_fragment, "fragment", shader_src);
+				if (size != (size_t) -1) {
+					shader_src[size]=0;
+					visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+					visual_3d_compile_shader(visual->glsl_fragment, "fragment", shader_src);
+				}
 				gf_free(shader_src);
 			}
 		}

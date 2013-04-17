@@ -304,7 +304,7 @@ static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, const char *address, 
 	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
 	if (!res) return 0;
     memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
-	sock->dest_addr_len = res->ai_addrlen;
+	sock->dest_addr_len = (u32) res->ai_addrlen;
 	freeaddrinfo(res);
 	return 1;
 }
@@ -475,7 +475,7 @@ void gf_sk_reset(GF_Socket *sock)
 
 s32 gf_sk_get_handle(GF_Socket *sock)
 {
-	return sock->socket;
+	return (s32) sock->socket;
 }
 
 
@@ -524,7 +524,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
 		if (lip) {
-			ret = bind(sock->socket, lip->ai_addr, lip->ai_addrlen);
+			ret = bind(sock->socket, lip->ai_addr, (int) lip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
@@ -532,7 +532,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			}
 		}
 
-		ret = connect(sock->socket, aip->ai_addr, aip->ai_addrlen);
+		ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
 			sock->socket = NULL_SOCKET;
@@ -540,7 +540,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		}
 
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
-		sock->dest_addr_len = aip->ai_addrlen;
+		sock->dest_addr_len = (u32) aip->ai_addrlen;
 		freeaddrinfo(res);
 		if (lip) freeaddrinfo(lip);
 		return GF_OK;
@@ -658,7 +658,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		af = res->ai_family;
 #endif
 		memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
-		sock->dest_addr_len = res->ai_addrlen;
+		sock->dest_addr_len = (u32) res->ai_addrlen;
 		freeaddrinfo(res);
 	}
 
@@ -709,7 +709,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 			sock->flags |= GF_SOCK_HAS_PEER;
 
 
-		ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
+		ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
 			sock->socket = NULL_SOCKET;
@@ -820,7 +820,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 	u32 count;
 	s32 res;
 #ifndef __SYMBIAN32__
-	s32 ready;
+	int ready;
 	struct timeval timeout;
 	fd_set Group;
 #endif
@@ -835,7 +835,8 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 	timeout.tv_sec = 0;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	ready = select(sock->socket+1, NULL, &Group, NULL, &timeout);
+	//TODO CHECK IF THIS IS CORRECT
+	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -972,10 +973,10 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
 
 	    memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
-		sock->dest_addr_len = aip->ai_addrlen;
+		sock->dest_addr_len = (u32) aip->ai_addrlen;
 
 		if (!NoBind) {
-			ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
+			ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
@@ -1114,7 +1115,8 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
 	res = 0;
-	ready = select(sock->socket+1, &Group, NULL, NULL, &timeout);
+	//TODO - check if this is correct
+	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EBADF:
@@ -1200,7 +1202,8 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	timeout.tv_sec = 0;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	ready = select(sock->socket+1, &Group, NULL, NULL, &timeout);
+	//TODO - check if this is correct
+	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -1346,7 +1349,8 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	timeout.tv_sec = 0;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	ready = select(sock->socket+1, NULL, &Group, NULL, &timeout);
+	//TODO - check if this is correct
+	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -1368,7 +1372,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 		struct addrinfo *res = gf_sk_get_ipv6_addr(remoteHost, remotePort, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
 		if (!res) return GF_IP_ADDRESS_NOT_FOUND;
 		memcpy(&remote_add, res->ai_addr, res->ai_addrlen);
-		remote_add_len = res->ai_addrlen;
+		remote_add_len = (u32) res->ai_addrlen;
 		freeaddrinfo(res);
 	} else {
 		struct sockaddr_in6 *remotePtr = (struct sockaddr_in6 *)&remote_add;
@@ -1432,7 +1436,8 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
 	res = 0;
-	ready = select(sock->socket+1, &Group, NULL, NULL, &timeout);
+	//TODO - check if this is correct
+	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -1482,7 +1487,8 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	timeout.tv_sec = Second;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	ready = select(sock->socket+1, NULL, &Group, NULL, &timeout);
+	//TODO - check if this is correct
+	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:

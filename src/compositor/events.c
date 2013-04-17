@@ -71,7 +71,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 {
 	Bool signal;
 	char *txt;
-	u32 len;
+	size_t len;
 	if (!compositor->edited_text) return;
 
     /* if this is the final editing and there is text, 
@@ -133,7 +133,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 {
 	u16 *conv_buf;
-	u32 len;
+	size_t len;
 	if (!compositor->sel_buffer || !compositor->edited_text) return GF_BAD_PARAM;
 	if (!text) return GF_OK;
 	len = strlen(text);
@@ -144,7 +144,7 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 	conv_buf = gf_malloc(sizeof(u16)*len);
 	len = gf_utf8_mbstowcs(conv_buf, len, &text);
 
-	compositor->sel_buffer_alloc += len;
+	compositor->sel_buffer_alloc += (u32) len;
 	if (compositor->sel_buffer_len == compositor->sel_buffer_alloc)
 		compositor->sel_buffer_alloc++;
 
@@ -152,8 +152,8 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 	memmove(&compositor->sel_buffer[compositor->caret_pos+len], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
 	memcpy(&compositor->sel_buffer[compositor->caret_pos], conv_buf, sizeof(u16)*len);
 	gf_free(conv_buf);
-	compositor->sel_buffer_len += len;
-	compositor->caret_pos += len;
+	compositor->sel_buffer_len += (u32) len;
+	compositor->caret_pos += (u32) len;
 	compositor->sel_buffer[compositor->sel_buffer_len]=0;
 	flush_text_node_edit(compositor, 0);
 	gf_sc_lock(compositor, 0);
@@ -265,7 +265,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 				if (append) {
 					u16 end;
 					const u16 *srcp;
-					u32 len;
+					size_t len;
 					GF_DOMText *cur, *ntext;
 					GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
 					GF_Node *t = gf_node_new(gf_node_get_graph(child->node), TAG_SVG_tbreak);
@@ -326,7 +326,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 								flush_text_node_edit(compositor, 1);
 							}
 							if (!n1->textContent) n1->textContent = gf_strdup("");
-							caret_pos = strlen(n1->textContent);
+							caret_pos = (u32) strlen(n1->textContent);
 							if (n2->textContent) {
 								n1->textContent = gf_realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
 								strcat(n1->textContent, n2->textContent);
@@ -374,17 +374,19 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 
 	if (*res) {
 		const char *src = *res;
-		compositor->sel_buffer_alloc = 2+strlen(src);
+		compositor->sel_buffer_alloc = 2 + (u32) strlen(src);
 		compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
 
 		if (caret_pos>=0) {
-			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
+			size_t l = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
+			compositor->sel_buffer_len = (u32) l;
 			memmove(&compositor->sel_buffer[caret_pos+1], &compositor->sel_buffer[caret_pos], sizeof(u16)*(compositor->sel_buffer_len-caret_pos));
 			compositor->sel_buffer[caret_pos] = GF_CARET_CHAR;
 			compositor->caret_pos = caret_pos;
 
 		} else {
-			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
+			size_t l = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
+			compositor->sel_buffer_len = (u32) l;
 			compositor->sel_buffer[compositor->sel_buffer_len] = GF_CARET_CHAR;
 			compositor->caret_pos = compositor->sel_buffer_len;
 		}

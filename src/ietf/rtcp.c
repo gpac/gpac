@@ -393,7 +393,7 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 	//we start with header and SSRC: 2x32 bits word
 	length = 8;
 	//ten only send one CName item is type (1byte) , len (1byte), data (len byte) +  NULL marker (0 on 1 byte) at the end of the item list
-	length += 2+strlen(ch->CName) + 1;
+	length += 2 + (u32) strlen(ch->CName) + 1;
 	//we padd the end of the content to 32-bit boundary, and set length to the number of 32 bit words
 	padd = length % 4;
 	if (padd*4 != 0) {
@@ -425,8 +425,8 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 	//CNAME type
 	gf_bs_write_u8(bs, 1);
 	//length and cname
-	gf_bs_write_u8(bs, strlen(ch->CName));	
-	gf_bs_write_data(bs, ch->CName, strlen(ch->CName));
+	gf_bs_write_u8(bs, (u32) strlen(ch->CName));	
+	gf_bs_write_data(bs, ch->CName, (u32) strlen(ch->CName));
 
 	gf_bs_write_u8(bs, 0);
 

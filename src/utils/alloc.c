@@ -714,7 +714,7 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 	int vsn_ret, size;
 	char *buffer, *realloc_buffer;
 
-	size = 2*strlen(fmt); /*first guess for the size*/
+	size = 2 * (u32) strlen(fmt); /*first guess for the size*/
 	buffer = (char*)gf_malloc(size);
 	if (buffer == NULL)
 		return -1;

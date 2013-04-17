@@ -552,7 +552,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		priv->session_migration=1;
 		if (priv->session_state_data) {
 			com->migrate.data = priv->session_state_data;
-			com->migrate.data_len = strlen(priv->session_state_data);
+			com->migrate.data_len = (u32) strlen(priv->session_state_data);
 			return GF_OK;
 		}
 		return GF_NOT_SUPPORTED;
@@ -738,7 +738,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 		/*decode data*/
 		data = strstr(data, ",");
 		data += 1;
-		*out_data_size = gf_base64_decode(data, strlen(data), ch->buffer, RTP_BUFFER_SIZE);
+		*out_data_size = gf_base64_decode(data, (u32) strlen(data), ch->buffer, RTP_BUFFER_SIZE);
 		/*FIXME - currently only support for empty SL header*/
 		*out_data_ptr = ch->buffer;
 		ch->flags &= ~GF_RTP_NEW_AU;

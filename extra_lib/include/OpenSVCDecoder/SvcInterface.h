@@ -45,6 +45,7 @@ typedef struct{
 
 	int Width;				//Output frame width
 	int Height;				//Output frame height
+	int Address;
 	unsigned char* pY[1];	//Output frame Y
 	unsigned char* pU[1];	//Output frame U
 	unsigned char* pV[1];	//Output frame V

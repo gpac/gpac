@@ -137,7 +137,7 @@ void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 {
 	u32 i, c;
 	char s[3];
-	u32 len = strlen(val) / 3;
+	u32 len = (u32) strlen(val) / 3;
 	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
 	*out_data = (char*)gf_malloc(sizeof(char) * len);
@@ -435,7 +435,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			} else if (!strlen(val)) ret = 1;
 		}
 		if (!stricmp(fieldName, "src")) {
-			u32 len = strlen("data:application/octet-string,");
+			u32 len = (u32) strlen("data:application/octet-string,");
 			if (strnicmp(val, "data:application/octet-string,", len)) break;
 			val += len;
 			/*only parse true hexa strings*/
@@ -587,7 +587,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		{
 			GF_Language *ld = (GF_Language *)desc;
 			if (!stricmp(fieldName, "languageCode")) {
-				u32 li, l = strlen(val);
+				u32 li, l = (u32) strlen(val);
 				ld->langCode = 0;
 				for (li = 0; li < l; li++) {
 					/* Warning: sensitive to big endian, little endian */
@@ -650,7 +650,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 				bs_start = gf_bs_get_position(bs);
 				/*nb phonems*/
 				gf_bs_write_int(bs, 0, 8);
-				gf_bs_write_data(bs, szItem, strlen(szItem));
+				gf_bs_write_data(bs, szItem, (u32) strlen(szItem));
 				gf_bs_write_int(bs, 0, 8);
 				continue;
 			}

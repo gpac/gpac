@@ -38,14 +38,14 @@
 
 /*enables GPAC memory tracking in debug mode only*/
 #if defined(DEBUG) || defined(_DEBUG)
-#define GPAC_MEMORY_TRACKING
+//#define GPAC_MEMORY_TRACKING
 #endif
 
 /*platform is big endian*/
 //#define GPAC_BIG_ENDIAN
 
 /*SSL enabled*/
-#ifdef WIN32
+#if defined(WIN32) && !defined(_WIN64)
 #define GPAC_HAS_SSL
 #endif
 
