@@ -1506,12 +1506,23 @@ int mp4boxMain(int argc, char **argv)
 		/********************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 		else if (!stricmp(arg, "-raw")) {
+            char *raw_params;
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE;
+            raw_params = strchr(argv[i+1], ':');
+            if (raw_params) {
+                *raw_params = 0;
+                raw_params++;
+                if (!strcmp("vttnomerge", raw_params)) {
+                    tracks[nb_track_act].dump_type |= GF_EXPORT_WEBVTT_NOMERGE;
+                } else if (!strcmp("layer", raw_params)) {
+                    tracks[nb_track_act].dump_type |= GF_EXPORT_SVC_LAYER;
+                }
+            }
+            tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			nb_track_act++;
 			i++;
 		}

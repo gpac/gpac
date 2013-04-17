@@ -418,5 +418,26 @@ typedef enum
 
 GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);
 
+#ifndef GPAC_DISABLE_VTT
+typedef struct _webvtt_parser GF_WebVTTParser;
+typedef struct _webvtt_sample GF_WebVTTSample;
+
+GF_WebVTTParser *gf_webvtt_parser_new();
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, const char *input_file, 
+                                    void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
+                                    void (*on_sample_parsed)(void *, GF_WebVTTSample *),
+                                    void (*on_header_parsed)(void *, const char *));
+GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration);
+u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser);
+void gf_webvtt_parser_del(GF_WebVTTParser *parser);
+
+void gf_webvtt_sample_del(GF_WebVTTSample * samp);
+u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);
+
+GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index);
+GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp);
+GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
+#endif /* GPAC_DISABLE_VTT */
+
 #endif		/*_GF_MEDIA_DEV_H_*/
 
