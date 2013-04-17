@@ -205,6 +205,25 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2);
  */
 GF_List* gf_list_clone(GF_List *ptr);
 
+/*!
+ *	\brief Pop the first element in the list
+ *
+ *	Removes the first element in the list container, effectively reducing its size by one 
+ *  and returns the popped element.
+ *	\param ptr the list to pop
+ *	\return the popped element
+ */
+void* gf_list_pop_front(GF_List *ptr);
+
+/*!
+ *	\brief Pop the last element in the list
+ *
+ *	Removes the last element in the list container, effectively reducing the container size by one
+ *  and return the popped element.
+ *	\param ptr the list to pop
+ *	\return the popped element
+ */
+void* gf_list_pop_back(GF_List *ptr);
 
 /*! @} */
 
