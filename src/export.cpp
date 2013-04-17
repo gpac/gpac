@@ -150,10 +150,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_rem) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_has_key) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_has_next) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_reset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_has_next) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_reset) )
 #endif
 
 /* Bitstream */

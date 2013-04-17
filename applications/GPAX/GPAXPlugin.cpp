@@ -190,9 +190,9 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
 //            USES_CONVERSION;
 //            lstrcpyn(buf,OLE2T(v.bstrVal),bufsize);
 			const u16 *srcp = (const u16 *) v.bstrVal;
-			u32 len = gf_utf8_wcstombs(buf, bufsize, &srcp);
+			size_t len = gf_utf8_wcstombs(buf, bufsize, &srcp);
 			if (len>=0) {
-				buf[len] = 0;
+				buf[(u32) len] = 0;
 				retval = GF_TRUE;
 			}
         }
@@ -251,8 +251,8 @@ void CGPAXPlugin::LoadDATAUrl()
 		BSTR data = NULL;
 		if ((pObjectElem->get_data(&data) == S_OK) && data) {
 			const u16 *srcp = (const u16 *) data;
-			u32 len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
-			if (len>=0) m_url[len] = 0;
+			size_t len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
+			if (len>=0) m_url[(u32) len] = 0;
 		}
 		SysFreeString(data);
 		break;
@@ -514,7 +514,7 @@ STDMETHODIMP CGPAXPlugin::Save(LPPROPERTYBAG pPropBag, BOOL fClearDirty, BOOL fS
     V_VT(&value) = VT_BSTR;
 
 	sptr = (const char *)m_url;
-	len = gf_utf8_mbstowcs(wurl, MAXLEN_URL, &sptr);
+	len = (u16) gf_utf8_mbstowcs(wurl, MAXLEN_URL, &sptr);
     V_BSTR(&value) = SysAllocStringLen(NULL, len+1);
 	memcpy(V_BSTR(&value) , wurl, len*sizeof(u16));
 	V_BSTR(&value) [len] = 0;
@@ -578,11 +578,11 @@ STDMETHODIMP CGPAXPlugin::SetURL(BSTR _url)
 		char *url;
 
 		srcp = (u16 *)_url;
-		len = gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
+		len = (u32) gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
 		if (len) {
 			url = (char *) gf_malloc(sizeof(char) * (len+1));
 			srcp = (u16 *)_url;
-			len = gf_utf8_wcstombs(url, len, (const u16 **)&srcp);
+			len = (u32) gf_utf8_wcstombs(url, len, (const u16 **)&srcp);
 			url[len] = 0;
 			strcpy(m_url, url);
 			gf_term_connect(m_term, url);     
@@ -600,15 +600,15 @@ STDMETHODIMP CGPAXPlugin::Update(BSTR _mtype, BSTR _updates)
 		char mtype[1024], *updates;
 
 		srcp = (u16 *) _mtype;
-		len = gf_utf8_wcstombs(mtype, 1024, (const u16 **)&srcp);
+		len = (u32) gf_utf8_wcstombs(mtype, 1024, (const u16 **)&srcp);
 		mtype[len] = 0;
 
 		srcp = (u16 *)_updates;
-		len = gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
+		len = (u32) gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
 		if (len) {
 			updates = (char *) gf_malloc(sizeof(char) * (len+1));
 			srcp = (u16 *)_updates;
-			len = gf_utf8_wcstombs(updates, len, (const u16 **)&srcp);
+			len = (u32) gf_utf8_wcstombs(updates, len, (const u16 **)&srcp);
 			updates[len] = 0;
 			gf_term_scene_update(m_term, mtype, updates);
 			gf_free(updates);
@@ -625,7 +625,7 @@ STDMETHODIMP CGPAXPlugin::get_src(BSTR *url)
     if (url==NULL) return E_POINTER;
 
 	sptr = (const char *)m_url;
-	len = gf_utf8_mbstowcs(wurl, MAXLEN_URL, &sptr);
+	len = (u32) gf_utf8_mbstowcs(wurl, MAXLEN_URL, &sptr);
     *url = SysAllocStringLen(NULL, len+1);
 	memcpy(*url, wurl, len*sizeof(u16));
 	*url[len] = 0;
@@ -634,7 +634,7 @@ STDMETHODIMP CGPAXPlugin::get_src(BSTR *url)
 STDMETHODIMP CGPAXPlugin::put_src(BSTR url)
 {
 	const u16 *srcp = (const u16 *)url;
-	u32 len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
+	u32 len = (u32) gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
 	m_url[len] = 0;
 	UpdateURL();
     return S_OK;

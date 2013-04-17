@@ -675,7 +675,7 @@ static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCueProperty
         break;
     }
     if (*prop) {
-        len = strlen(*prop);
+        len = (u32) strlen(*prop);
         *prop = (char*)gf_realloc(*prop, sizeof(char) * (len + text_len + 1) );
         strcpy(*prop + len, text_data);
     } else {
@@ -966,7 +966,7 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 }
 
 #define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
-		u32 _len = strlen(__str);		\
+		u32 _len = (u32) strlen(__str);		\
 		if (!_len) break;	\
 		_len--;				\
 		if (strchr(__sep, __str[_len])) { \
@@ -988,7 +988,7 @@ GF_Err gf_webvtt_parse_timestamp(GF_WebVTTParser *parser, GF_WebVTTTimestamp *ts
     u32     value4;
     Bool    is_hour = GF_FALSE;
     if (!ts || !line) return GF_BAD_PARAM;
-    len = strlen(line);
+    len = (u32) strlen(line);
     if (!len) return GF_BAD_PARAM;
     pos = 0;
     if (!(line[pos] >= '0' && line[pos] <= '9')) return GF_BAD_PARAM;
@@ -1115,7 +1115,7 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
         SKIP_WHITESPACE
         if (pos < len) {
             char *settings = line + pos;
-            e = gf_webvtt_cue_add_property(cue, WEBVTT_SETTINGS, settings, strlen(settings));
+            e = gf_webvtt_cue_add_property(cue, WEBVTT_SETTINGS, settings, (u32) strlen(settings));
         }
     }
     return e;
@@ -1143,7 +1143,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
     while (do_parse) {
         sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
         REM_TRAIL_MARKS(szLine, "\r\n")
-        len = strlen(szLine);
+        len = (u32) strlen(szLine);
         switch (parser->state) {
         case WEBVTT_PARSER_STATE_WAITING_SIGNATURE:
             if (!sOK || len < 6 || strnicmp(szLine, "WEBVTT", 6) || (len > 6 && szLine[6] != ' ' && szLine[6] != '\t')) {
@@ -1159,7 +1159,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
             break; /* proceed to next line */
         case WEBVTT_PARSER_STATE_WAITING_HEADER:
             if (prevLine) {
-                u32 prev_len = strlen(prevLine);
+                u32 prev_len = (u32) strlen(prevLine);
                 header = (char *)gf_realloc(header, header_len + prev_len + 1);
                 strcpy(header+header_len,prevLine); 
                 header_len += prev_len;
@@ -1228,7 +1228,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
                     cue   = gf_webvtt_cue_new();
                 }
                 if (prevLine) {
-                    gf_webvtt_cue_add_property(cue, WEBVTT_ID, prevLine, strlen(prevLine));
+                    gf_webvtt_cue_add_property(cue, WEBVTT_ID, prevLine, (u32) strlen(prevLine));
                     gf_free(prevLine);
                     prevLine = NULL;
                 }
@@ -1358,13 +1358,13 @@ GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start)
             gf_list_add(cues, cue);
             gf_webvtt_timestamp_set(&cue->start, start);
             if (cuebox->id) {
-                gf_webvtt_cue_add_property(cue, WEBVTT_ID, cuebox->id->string, strlen(cuebox->id->string));
+                gf_webvtt_cue_add_property(cue, WEBVTT_ID, cuebox->id->string, (u32) strlen(cuebox->id->string));
             }
             if (cuebox->settings) {
-                gf_webvtt_cue_add_property(cue, WEBVTT_SETTINGS, cuebox->settings->string, strlen(cuebox->settings->string));
+                gf_webvtt_cue_add_property(cue, WEBVTT_SETTINGS, cuebox->settings->string, (u32) strlen(cuebox->settings->string));
             }
             if (cuebox->payload) {
-                gf_webvtt_cue_add_property(cue, WEBVTT_PAYLOAD, cuebox->payload->string, strlen(cuebox->payload->string));
+                gf_webvtt_cue_add_property(cue, WEBVTT_PAYLOAD, cuebox->payload->string, (u32) strlen(cuebox->payload->string));
             }
         }
         gf_isom_box_del(box);
