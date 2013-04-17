@@ -1283,7 +1283,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				else if (!strcmp(att->name, "text")) {
 					u32 len;
 					char *str = ttxt_parse_string(import, att->value, GF_TRUE);
-					len = strlen(str);
+					len = (u32) strlen(str);
 					gf_isom_text_add_text(samp, str, len);
 					last_sample_empty = len ? GF_FALSE : GF_TRUE;
 					has_text = GF_TRUE;
@@ -1299,7 +1299,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				if (!has_text && (ext->type==GF_XML_TEXT_TYPE)) {
 					u32 len;
 					char *str = ttxt_parse_string(import, ext->name, GF_FALSE);
-					len = strlen(str);
+					len = (u32) strlen(str);
 					gf_isom_text_add_text(samp, str, len);
 					last_sample_empty = len ? GF_FALSE : GF_TRUE;
 					has_text = GF_TRUE;

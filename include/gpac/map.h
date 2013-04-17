@@ -108,7 +108,7 @@ void gf_map_del(GF_Map *ptr);
  *	\param it the resulting iterator
  *	\return GF_OK if iterator has been properly generated, otherwiise a GF_Err
  */
-GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it);
+GF_Err gf_map_iter_new(GF_Map* map, GF_It_Map** it);
 
 /*!
  *	\brief map iterator destructor
@@ -116,7 +116,7 @@ GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it);
  *	Destructs a map iterator object
  *	\param ptr map iterator object to destruct
  */
-void gf_map_it_del(GF_It_Map *ptr);
+void gf_map_iter_del(GF_It_Map *ptr);
 
 /*!
  *	\brief return the next value in the map
@@ -125,7 +125,7 @@ void gf_map_it_del(GF_It_Map *ptr);
  *	\param it  the map iterator object
  *  \return the next value of the map if exists, otherwise NULL
  */
-void* gf_map_it_has_next(GF_It_Map* it);
+void* gf_map_iter_has_next(GF_It_Map* it);
 
 /*!
  *	\brief Reset the iterator in the map
@@ -134,7 +134,7 @@ void* gf_map_it_has_next(GF_It_Map* it);
  *	\param it  the map iterator object
  *  \return GF_OK if the iterator has been correctly reinitialize, otherwise a GF_Err
  */
-GF_Err gf_map_it_reset(GF_It_Map* it);
+GF_Err gf_map_iter_reset(GF_It_Map* it);
 
 /*!
  *	\brief get count

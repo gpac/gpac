@@ -47,7 +47,7 @@ struct _it_map
 };
 
 GF_EXPORT
-GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it){
+GF_Err gf_map_iter_new(GF_Map* map, GF_It_Map** it){
 	GF_It_Map* new_it;
 
 	/* Iterator must be associated to a map */
@@ -67,13 +67,13 @@ GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it){
 }
 
 GF_EXPORT
-void gf_it_map_del(GF_It_Map* it){
+void gf_map_iter_del(GF_It_Map* it){
 	if (!it) return;
 	gf_free(it);
 }
 
 GF_EXPORT
-void* gf_it_map_has_next(GF_It_Map* it){
+void* gf_map_iter_has_next(GF_It_Map* it){
 	GF_Pair* next_pair = NULL;
 
 	/* No iterator or iterator out of map */
@@ -90,11 +90,11 @@ void* gf_it_map_has_next(GF_It_Map* it){
 	/* Take the next hash */
 	it->hash++;
 	it->ilist = 0;
-	return gf_map_it_has_next(it);
+	return gf_map_iter_has_next(it);
 }
 
 GF_EXPORT
-GF_Err gf_it_map_reset(GF_It_Map* it){
+GF_Err gf_map_iter_reset(GF_It_Map* it){
 	if (!it) return GF_BAD_PARAM;
 
 	it->hash = 0;
