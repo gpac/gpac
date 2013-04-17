@@ -1813,7 +1813,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		s16 l;
 		s32 tx, ty;
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, &l);
-		fprintf(stderr, "3GPP/MPEG-4 Timed Text - Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
+		fprintf(stderr, "Timed Text - Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
 	} else if (mtype == GF_ISOM_MEDIA_META) {
 		Bool is_xml = 0;
 		const char *mime_or_namespace = NULL;

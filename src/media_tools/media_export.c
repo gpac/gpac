@@ -259,6 +259,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	Bool is_stdout=0;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
+    Bool is_wvtt = GF_FALSE;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
@@ -399,6 +400,10 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_type==GF_ISOM_MEDIA_FLASH) {
 		gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie sample%s", szNum);
 		strcpy(szEXT, ".swf");
+	} else if (m_stype==GF_ISOM_SUBTYPE_WVTT) {
+		gf_export_message(dumper, GF_OK, "Extracting WebVTT sample%s", szNum);
+		strcpy(szEXT, ".vtt");
+        is_wvtt = GF_TRUE;
 	} else if (m_type==GF_ISOM_MEDIA_HINT) {
 		return gf_export_hint(dumper);
 	} else if (m_stype==GF_4CC('m','j','p','2')) {
@@ -444,8 +449,19 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (is_mj2k) 
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
-		else
-			gf_bs_write_data(bs, samp->data, samp->dataLength);
+		else {
+            if (is_wvtt) {
+                GF_Err e;
+                e = gf_webvtt_dump_header(out, dumper->file, track, 1);
+                if (e == GF_OK) {
+                    GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
+                    u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
+                    gf_webvtt_dump_iso_sample(out, timescale, samp);
+                }
+            } else {
+                gf_bs_write_data(bs, samp->data, samp->dataLength);
+            }
+        }
 		gf_isom_sample_del(&samp);
 		gf_bs_del(bs);
 		
@@ -482,8 +498,19 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		if (dsi) gf_bs_write_data(bs, dsi, dsi_size);
 		if (is_mj2k) 
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
-		else
-			gf_bs_write_data(bs, samp->data, samp->dataLength);
+		else {
+            if (is_wvtt) {
+                GF_Err e;
+                e = gf_webvtt_dump_header(out, dumper->file, track, 1);
+                if (e == GF_OK) {
+                    GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
+                    u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
+                    gf_webvtt_dump_iso_sample(out, timescale, samp);
+                }
+            } else {
+                gf_bs_write_data(bs, samp->data, samp->dataLength);
+            }
+        }
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		gf_bs_del(bs);
@@ -646,6 +673,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	char *dsi;
 	QCPRateTable rtable[8];
 	Bool is_stdout=0;
+    Bool is_webvtt = GF_FALSE;
 
 	dsi_size = 0;
 	dsi = NULL;
@@ -889,6 +917,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting AC3 Audio");
 			if (add_ext) 
 				strcat(szName, ".ac3");
+		} else if (m_stype==GF_ISOM_SUBTYPE_WVTT) {
+			gf_export_message(dumper, GF_OK, "Extracting WebVTT");
+            is_webvtt = GF_TRUE;
+			strcat(szName, ".vtt");
 		} else {
 			if (add_ext) {
 				strcat(szName, ".");
@@ -923,7 +955,12 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 	if (is_vobsub) return gf_dump_to_vobsub(dumper, szName, track, dsi, dsi_size);
 
-	if (qcp_type>1) {
+	if (is_webvtt) {
+        GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge);
+        return gf_webvtt_dump_iso_track(dumper, szName, track, (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE? GF_FALSE : GF_TRUE));
+    }
+
+    if (qcp_type>1) {
 		if (dumper->flags & GF_EXPORT_USE_QCP) {
 			if (add_ext) 
 				strcat(szName, ".qcp");
@@ -1235,7 +1272,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg && !svccfg && !hevccfg) gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (!avccfg && !svccfg && !hevccfg &!is_webvtt) gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;

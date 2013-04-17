@@ -480,6 +480,18 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		default:
 			return defa_dump(a, trace);
 		}
+	case GF_ISOM_BOX_TYPE_VTTC:
+	case GF_ISOM_BOX_TYPE_CTIM:
+	case GF_ISOM_BOX_TYPE_IDEN:
+	case GF_ISOM_BOX_TYPE_STTG:
+	case GF_ISOM_BOX_TYPE_PAYL:
+		return boxstring_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_VTCU:
+		return vtcu_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_VTTE:
+		return vtte_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_WVTT:
+		return wvtt_dump(a, trace);
 		
 	default: 
 		return defa_dump(a, trace);

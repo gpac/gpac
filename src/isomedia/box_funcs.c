@@ -634,6 +634,15 @@ GF_Box *gf_isom_box_new(u32 boxType)
 #endif
 	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_New();
 
+	case GF_ISOM_BOX_TYPE_VTCU: return vtcu_New();
+	case GF_ISOM_BOX_TYPE_VTTE: return vtte_New();
+	case GF_ISOM_BOX_TYPE_VTTC: return boxstring_New(GF_ISOM_BOX_TYPE_VTTC);
+	case GF_ISOM_BOX_TYPE_CTIM: return boxstring_New(GF_ISOM_BOX_TYPE_CTIM);
+	case GF_ISOM_BOX_TYPE_IDEN: return boxstring_New(GF_ISOM_BOX_TYPE_IDEN);
+	case GF_ISOM_BOX_TYPE_STTG: return boxstring_New(GF_ISOM_BOX_TYPE_STTG);
+	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_New(GF_ISOM_BOX_TYPE_PAYL);
+	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_New();
+
 	default:
 		a = defa_New();
 		if (a) a->type = boxType;
@@ -938,6 +947,15 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SUBS: subs_del(a); return;
 	case GF_ISOM_BOX_TYPE_RVCC: rvcc_del(a); return;
 
+	case GF_ISOM_BOX_TYPE_VTCU: vtcu_del(a); return;
+	case GF_ISOM_BOX_TYPE_VTTE: vtte_del(a); return;
+	case GF_ISOM_BOX_TYPE_VTTC: boxstring_del(a); return;
+	case GF_ISOM_BOX_TYPE_CTIM: boxstring_del(a); return;
+	case GF_ISOM_BOX_TYPE_IDEN: boxstring_del(a); return;
+	case GF_ISOM_BOX_TYPE_STTG: boxstring_del(a); return;
+	case GF_ISOM_BOX_TYPE_PAYL: boxstring_del(a); return;
+	case GF_ISOM_BOX_TYPE_WVTT: wvtt_del(a); return;
+
 	default:
 		defa_del(a);
 		return;
@@ -1197,6 +1215,15 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_PCRB: return pcrb_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_VTCU: return vtcu_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_VTTE: return vtte_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_VTTC: return boxstring_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CTIM: return boxstring_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IDEN: return boxstring_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STTG: return boxstring_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -1460,6 +1487,15 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PCRB: return pcrb_Write(a, bs); 
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_Write(a, bs); 
+
+	case GF_ISOM_BOX_TYPE_VTCU: return vtcu_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_VTTE: return vtte_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_VTTC: return boxstring_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_CTIM: return boxstring_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_IDEN: return boxstring_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_STTG: return boxstring_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_Write(a, bs);
 
 	default:
 		return defa_Write(a, bs);
@@ -1731,6 +1767,15 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PCRB: return pcrb_Size(a); 
 	case GF_ISOM_BOX_TYPE_SUBS: return subs_Size(a);
 	case GF_ISOM_BOX_TYPE_RVCC: return rvcc_Size(a);
+
+	case GF_ISOM_BOX_TYPE_VTCU: return vtcu_Size(a);
+	case GF_ISOM_BOX_TYPE_VTTE: return vtte_Size(a);
+	case GF_ISOM_BOX_TYPE_VTTC: return boxstring_Size(a);
+	case GF_ISOM_BOX_TYPE_CTIM: return boxstring_Size(a);
+	case GF_ISOM_BOX_TYPE_IDEN: return boxstring_Size(a);
+	case GF_ISOM_BOX_TYPE_STTG: return boxstring_Size(a);
+	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_Size(a);
+	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_Size(a);
 
 	default: return defa_Size(a);
 	}

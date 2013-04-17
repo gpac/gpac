@@ -199,6 +199,7 @@ enum
 	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
 
 	GF_ISOM_SUBTYPE_LSR1		= GF_4CC( 'l', 's', 'r', '1' ),
+	GF_ISOM_SUBTYPE_WVTT		= GF_4CC( 'w', 'v', 't', 't' ),
 };
 
 
@@ -1683,6 +1684,9 @@ GF_GenericSubtitleSample *gf_isom_new_generic_subtitle_sample();
 /*destroy generic subtitle sample handle*/
 void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_subtitle_samp);
 
+GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*Create a new TextSampleDescription in the file. 
@@ -1749,6 +1753,11 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample * samp, u8 wrap_flags);
 text sample content is kept untouched*/
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
 
+
+GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
+GF_Err gf_isom_new_generic_subtitle_description(GF_ISOFile *movie, u32 trackNumber, char *content_encoding, char *xml_schema_loc, char*mime_type_or_namespace, Bool is_xml, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
+GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
 GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
 GF_Err gf_isom_new_generic_subtitle_description(GF_ISOFile *movie, u32 trackNumber, char *content_encoding, char *xml_schema_loc, char*mime_type_or_namespace, Bool is_xml, char *URLname, char *URNname, u32 *outDescriptionIndex);

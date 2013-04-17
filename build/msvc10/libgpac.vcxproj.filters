@@ -869,6 +869,9 @@
     <ClCompile Include="..\..\src\media_tools\vobsub.c">
       <Filter>media_tools</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\media_tools\webvtt.c">
+      <Filter>media_tools</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\odf\desc_private.c">
       <Filter>odf</Filter>
     </ClCompile>
@@ -1155,6 +1158,9 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\xml_parser.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\zutil.c">
       <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>

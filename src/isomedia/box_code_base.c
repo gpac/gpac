@@ -4982,6 +4982,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_DIMS:
 	case GF_ISOM_BOX_TYPE_AC3:
 	case GF_ISOM_BOX_TYPE_LSR1:
+	case GF_ISOM_BOX_TYPE_WVTT:
 		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -6190,6 +6191,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_DIMS:
 		case GF_ISOM_BOX_TYPE_AC3:
 		case GF_ISOM_BOX_TYPE_LSR1:
+		case GF_ISOM_BOX_TYPE_WVTT:
 			continue;
 		default:
 			break;

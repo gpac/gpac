@@ -293,6 +293,7 @@
     <ClCompile Include="..\..\src\media_tools\saf.c" />
     <ClCompile Include="..\..\src\media_tools\text_import.c" />
     <ClCompile Include="..\..\src\media_tools\vobsub.c" />
+    <ClCompile Include="..\..\src\media_tools\webvtt.c" />
     <ClCompile Include="..\..\src\odf\descriptors.c" />
     <ClCompile Include="..\..\src\odf\desc_private.c" />
     <ClCompile Include="..\..\src\odf\ipmpx_code.c" />

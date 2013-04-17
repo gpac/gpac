@@ -356,6 +356,15 @@ enum
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
 	GF_ISOM_BOX_TYPE_RVCC	= GF_4CC( 'r', 'v', 'c', 'c' ),
+	
+	GF_ISOM_BOX_TYPE_VTTC	= GF_4CC( 'v', 't', 't', 'C' ),
+	GF_ISOM_BOX_TYPE_VTCU	= GF_4CC( 'v', 't', 't', 'c' ),
+	GF_ISOM_BOX_TYPE_VTTE	= GF_4CC( 'v', 't', 't', 'e' ),
+	GF_ISOM_BOX_TYPE_CTIM	= GF_4CC( 'c', 't', 'i', 'm' ),
+	GF_ISOM_BOX_TYPE_IDEN	= GF_4CC( 'i', 'd', 'e', 'n' ),
+	GF_ISOM_BOX_TYPE_STTG	= GF_4CC( 's', 't', 't', 'g' ),
+	GF_ISOM_BOX_TYPE_PAYL	= GF_4CC( 'p', 'a', 'y', 'l' ),
+	GF_ISOM_BOX_TYPE_WVTT	= GF_4CC( 'w', 'v', 't', 't' ),
 
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
@@ -3381,6 +3390,44 @@ GF_Err blnk_Size(GF_Box *s);
 GF_Err twrp_Size(GF_Box *s);
 #endif
 
+#ifndef GPAC_DISABLE_VTT
+/*WebVTT boxes*/
+GF_Box *boxstring_New(u32 type);
+GF_Box *vtcu_New();
+GF_Box *vtte_New();
+GF_Box *wvtt_New();
+
+void boxstring_del(GF_Box *s);
+void vtcu_del(GF_Box *s);
+void vtte_del(GF_Box *s);
+void wvtt_del(GF_Box *s);
+
+GF_Err boxstring_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err vtcu_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err vtte_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err wvtt_Read(GF_Box *s, GF_BitStream *bs);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err boxstring_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err vtcu_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err vtte_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err wvtt_Write(GF_Box *s, GF_BitStream *bs);
+
+GF_Err boxstring_Size(GF_Box *s);
+GF_Err vtcu_Size(GF_Box *s);
+GF_Err vtte_Size(GF_Box *s);
+GF_Err wvtt_Size(GF_Box *s);
+#endif /* GPAC_DISABLE_ISOM_WRITE */
+
+GF_Err boxstring_dump(GF_Box *a, FILE * trace);
+GF_Err vtcu_dump(GF_Box *a, FILE * trace);
+GF_Err vtte_dump(GF_Box *a, FILE * trace);
+GF_Err wvtt_dump(GF_Box *a, FILE * trace);
+
+GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
+GF_ISOSample *gf_isom_webvtt_to_sample(void *samp);
+
+#endif /* GPAC_DISABLE_VTT */
 
 /* MPEG-21 functions */
 GF_Box *meta_New();
