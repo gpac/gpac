@@ -246,7 +246,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_remove_last_delimiter) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_url_get_ressource_extension) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
