@@ -895,7 +895,8 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	return e;
 }
 
-GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg)
+static
+GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, u32 operand_type)
 {
 	u32 i, array_incomplete;
 	GF_TrackBox *trak;
@@ -923,15 +924,32 @@ GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 	array_incomplete = 0;
 	for (i=0; i<gf_list_count(entry->hevc_config->config->param_array); i++) {
 		GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
+	
+		/*we want to force hev1*/
+		if (operand_type==1) ar->array_completeness = 0;
+
 		if (!ar->array_completeness) {
 			array_incomplete = 1;
 			break;
 		}
 	}
+
 	entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_HEV1 : GF_ISOM_BOX_TYPE_HVC1;
 	
 	HEVC_RewriteESDescriptor(entry);
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg)
+{
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, 0);;
+}
+
+GF_EXPORT
+GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, 1);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

@@ -608,6 +608,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 
+		if (dash_cfg->inband_param_set && (gf_isom_get_media_subtype(input, i+1, 1)==GF_ISOM_SUBTYPE_HVC1)) {
+			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+		}
+
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) nb_audio++;
 		else if (mtype == GF_ISOM_MEDIA_TEXT) nb_text++;
@@ -1817,6 +1821,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 	u32 i;
 	Bool sps_merge_failed = 0;
 	Bool use_avc3 = 0;
+	Bool use_hevc = 0;
 	GF_ISOFile *init_seg = gf_isom_open(szInitName, GF_ISOM_OPEN_WRITE, tmpdir);
 
 	for (i=0; i<nb_dash_inputs; i++) {
@@ -1926,6 +1931,12 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 						use_avc3 = GF_TRUE;
 					}
 					break;
+				case GF_4CC( 'h', 'v', 'c', '1'):
+					if (use_inband_param_set) {
+						gf_isom_hevc_set_inband_config(init_seg, track, 1);
+					}
+					use_hevc = GF_TRUE;
+					break;
 				}
 
 
@@ -1942,7 +1953,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 			}
 		}
 		if (!i) {
-			if (use_avc3) {
+			if (use_hevc || use_avc3) {
 				gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
 			} else {
 				gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','5'), 1);
