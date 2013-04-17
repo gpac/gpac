@@ -725,7 +725,18 @@ s32 gf_list_del_item(GF_List *ptr, void *item)
 GF_EXPORT
 void *gf_list_enum(GF_List *ptr, u32 *pos)
 {
-	void *res = gf_list_get(ptr, *pos);
+	void *res;
+	if (!ptr || !pos) return NULL;
+	res = gf_list_get(ptr, *pos);
+	(*pos)++;
+	return res;
+}
+
+GF_EXPORT
+void *gf_list_rev_enum(GF_List *ptr, u32 *pos){
+	void *res;
+	if (!ptr || !pos) return NULL;
+	res = gf_list_get(ptr, gf_list_count (ptr) - *pos - 1 );
 	(*pos)++;
 	return res;
 }
@@ -754,4 +765,55 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
 		if (e) return e;
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+void gf_list_reverse(GF_List *ptr){
+	GF_List* saved_order;
+	void* item;
+	u32 i = 0;
+	if (!ptr) return;
+	saved_order = gf_list_clone(ptr);
+	gf_list_reset(ptr);
+
+	while (item = gf_list_enum(saved_order, &i)){
+		gf_list_insert(ptr, item, 0);
+	}
+
+	gf_list_del(saved_order);
+}
+
+GF_EXPORT
+void* gf_list_pop_front(GF_List *ptr){
+	void * item;
+	if (!ptr) return NULL;
+	
+	item = gf_list_get(ptr, 0);
+	gf_list_rem(ptr, 0);
+
+	return item;
+}
+
+GF_EXPORT
+void* gf_list_pop_back(GF_List *ptr){
+	void * item;
+	if (!ptr) return NULL;
+	
+	item = gf_list_last(ptr);
+	gf_list_rem_last(ptr);
+
+	return item;
+}
+
+GF_EXPORT
+GF_List* gf_list_clone(GF_List *ptr){
+	GF_List* new_list;
+	u32 i = 0;
+	void* item;
+	if (!ptr) return NULL;
+	new_list = gf_list_new();
+	while (item = gf_list_enum(ptr, &i))
+		gf_list_add(new_list, item);
+
+	return new_list;
 }
