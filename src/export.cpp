@@ -133,6 +133,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_swap) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_reverse) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_clone) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_rev_enum) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_pop_front) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_pop_back) )
 
 
 /* Map */
@@ -146,9 +151,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_has_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_it_map_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_map_it_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_map_it_has_next) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_map_it_reset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_has_next) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_it_map_reset) )
 #endif
 
 /* Bitstream */
@@ -241,6 +246,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_remove_last_delimiter) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_url_get_ressource_extension) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
