@@ -774,7 +774,7 @@ GF_List* gf_list_clone(GF_List *ptr){
 	void* item;
 	if (!ptr) return NULL;
 	new_list = gf_list_new();
-	while (item = gf_list_enum(ptr, &i))
+	while ((item = gf_list_enum(ptr, &i)))
 		gf_list_add(new_list, item);
 
 	return new_list;

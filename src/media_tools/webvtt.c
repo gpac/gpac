@@ -61,15 +61,14 @@ typedef struct _webvtt_sample
     u64 start;
     u64 end;
     GF_List *cues;
-} GF_WebVTTSample;
+};
 
 typedef enum {
     WEBVTT_PARSER_STATE_WAITING_SIGNATURE,
     WEBVTT_PARSER_STATE_WAITING_HEADER,
     WEBVTT_PARSER_STATE_WAITING_CUE,
     WEBVTT_PARSER_STATE_WAITING_CUE_TIMESTAMP,
-    WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD,
-    WEBVTT_PARSER_STATE_WAITING_CUE_END,
+    WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD
 } GF_WebVTTParserState;
 
 typedef struct _webvtt_parser {
@@ -90,7 +89,7 @@ typedef struct _webvtt_parser {
     void (*on_sample_parsed)(void *, GF_WebVTTSample *);
     void (*on_cue_read)(void *, GF_WebVTTCue *);
 
-} GF_WebVTTParser;
+};
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -204,7 +203,6 @@ static GF_Err vtcu_Add(GF_Box *s, GF_Box *box)
 
 GF_Err vtcu_Read(GF_Box *s, GF_BitStream *bs)
 {
-    GF_VTTCueBox *cuebox = (GF_VTTCueBox *)s;
     return gf_isom_read_box_list(s, bs, vtcu_Add);
 }
 
@@ -1261,7 +1259,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
                 cue = NULL;
 
                 gf_set_progress("Importing WebVTT", gf_f64_tell(parser->vtt_in), parser->file_size);
-                if (duration && (end >= duration) || !sOK) {
+                if ((duration && (end >= duration)) || !sOK) {
                     do_parse = GF_FALSE;
                     break;
                 } else {
