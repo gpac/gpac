@@ -67,13 +67,13 @@ GF_Err gf_it_map_new(GF_Map* map, GF_It_Map** it){
 }
 
 GF_EXPORT
-void gf_map_it_del(GF_It_Map* it){
+void gf_it_map_del(GF_It_Map* it){
 	if (!it) return;
 	gf_free(it);
 }
 
 GF_EXPORT
-void* gf_map_it_has_next(GF_It_Map* it){
+void* gf_it_map_has_next(GF_It_Map* it){
 	GF_Pair* next_pair = NULL;
 
 	/* No iterator or iterator out of map */
@@ -94,7 +94,7 @@ void* gf_map_it_has_next(GF_It_Map* it){
 }
 
 GF_EXPORT
-GF_Err gf_map_it_reset(GF_It_Map* it){
+GF_Err gf_it_map_reset(GF_It_Map* it){
 	if (!it) return GF_BAD_PARAM;
 
 	it->hash = 0;
