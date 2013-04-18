@@ -32,17 +32,6 @@
 #include <gpac/modules/font.h>
 #include <windows.h>
 
-#ifndef ULONG_PTR 
-#define ULONG_PTR DWORD
-#endif
-
-#ifndef INT16
-typedef s16 INT16;
-#endif
-
-#ifndef UINT16
-typedef u16 UINT16;
-#endif
 
 #define SAFEALLOC(__ptr, __struc) __ptr = (__struc*)gf_malloc(sizeof(__struc)); if (__ptr) memset(__ptr, 0, sizeof(__struc));
 

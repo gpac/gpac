@@ -56,7 +56,7 @@ typedef struct _webvtt_cue
     GF_WebVTTTimestamp orig_end;
 } GF_WebVTTCue;
 
-typedef struct _webvtt_sample
+struct _webvtt_sample
 {
     u64 start;
     u64 end;
@@ -71,7 +71,7 @@ typedef enum {
     WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD
 } GF_WebVTTParserState;
 
-typedef struct _webvtt_parser {
+struct _webvtt_parser {
     GF_WebVTTParserState state;
     Bool is_srt;
 

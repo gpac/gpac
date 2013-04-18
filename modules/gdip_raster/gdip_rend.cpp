@@ -24,20 +24,8 @@
  */
 
 
-#include "gdip_priv.h"
 #include <windows.h>
-
-#ifndef ULONG_PTR 
-#define ULONG_PTR DWORD
-#endif
-
-#ifndef INT16
-typedef s16 INT16;
-#endif
-
-#ifndef UINT16
-typedef u16 UINT16;
-#endif
+#include "gdip_priv.h"
 
 /*all GDIPLUS includes for C api*/
 
@@ -505,6 +493,6 @@ void gdip_ShutdownRenderer(GF_Raster2D *driver)
 	struct _gdip_context *ctx = (struct _gdip_context *)driver->internal;
 
 	GdiplusShutdown(ctx->gdiToken);
-	gf_free(driver->internal);
+	gf_free(ctx);
 	gf_free(driver);
 }
