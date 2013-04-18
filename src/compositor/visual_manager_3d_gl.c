@@ -455,7 +455,7 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 				size_t size;
 				char *shader_src;
 				gf_f64_seek(src, 0, SEEK_END);
-				size = gf_f64_tell(src);
+				size = (size_t) gf_f64_tell(src);
 				gf_f64_seek(src, 0, SEEK_SET);
 				shader_src = gf_malloc(sizeof(char)*(size+1));
 				size = fread(shader_src, 1, size, src);

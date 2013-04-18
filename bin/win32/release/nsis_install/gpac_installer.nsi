@@ -240,7 +240,7 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "..\libgpac.dll"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
-  File "..\js32.dll"
+  File "..\js.dll"
   File "..\gm_gpac_js.dll"
   File "..\libeay32.dll"
   File "..\ssleay32.dll"
@@ -393,7 +393,7 @@ SectionEnd
 
 Section "OpenSVC Decoder" SecOSVC
   SectionIn 1
-  File "..\OpenSVCdecoder.plg"
+  File "..\OpenSVCDecoder.dll"
   File "..\gm_opensvc_dec.dll"
 SectionEnd
 
@@ -495,10 +495,10 @@ SectionEnd
                   
 Section "Windows Runtime Libraries" SecMSVCRT
   SectionIn 1
-  File "..\Microsoft.VC90.CRT.manifest"
-  File "..\Microsoft.VC90.MFC.manifest"       
-  File "..\msvcr90.dll"
-  File "..\mfc90.dll"
+  File "..\Microsoft.VC100.CRT.manifest"
+  File "..\Microsoft.VC100.MFC.manifest"       
+  File "..\msvcr100.dll"
+  File "..\mfc100.dll"
 SectionEnd
 
 

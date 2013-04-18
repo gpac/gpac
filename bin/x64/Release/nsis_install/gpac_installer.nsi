@@ -180,49 +180,6 @@ FunctionEnd
 !define DeleteRegKeyAuth "!insertmacro DeleteRegKeyAuth"
 
 
-Function InsertGDIPLUS
-   Push $R0
-   Push $R1
-   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" CurrentVersion
-   StrCmp $R0 "" 0 lbl_winnt
-
-   ;NOT NT
-   ReadRegStr $R0 HKLM SOFTWARE\Microsoft\Windows\CurrentVersion VersionNumber
-
-   StrCpy $R1 $R0 1
-   ; win95, NOT SUPPORTED
-   StrCmp $R1 '4' 0 lbl_err_95
-   StrCpy $R1 $R0 3
-   StrCmp $R1 '4.0' lbl_err_95
-   ;winME or 98 otherwise
-   StrCmp $R1 '4.9' lbl_add lbl_add
-
-lbl_err_nt:
-   MessageBox MB_OK "Microsoft GDI+ cannot be installed on NT 3 Systems"
-   Goto lbl_done
-
-lbl_err_95:
-   MessageBox MB_OK "Microsoft GDI+ cannot be installed on Windows 95 and older Systems"
-   Goto lbl_done
-
-lbl_winnt:
-   StrCpy $R1 $R0 1
-   StrCmp $R1 '3' lbl_err_nt
-   StrCmp $R1 '4' lbl_add
-   StrCpy $R1 $R0 3
-   StrCmp $R1 '5.0' lbl_add	;2000
-   StrCmp $R1 '5.1' lbl_xp	;XP
-   StrCmp $R1 '5.2' lbl_done	;.NET server
-
-lbl_add:
-   File ".\Gdiplus.dll"
-
-lbl_xp:
-   File "..\gm_gdip_raster.dll"
-
-lbl_done:
-FunctionEnd
-
 
 ;osmo4 install
 Section "Osmo4/GPAC Player" SecOsmo4
@@ -235,15 +192,15 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\doc\configuration.html"
   File "${GPAC_ROOT}\doc\gpac.mp4"
 
-  File "..\Osmo4.exe"
+  File "..\MP4Client.exe"
   File "..\..\..\..\doc\osmo4.ico"
   File "..\libgpac.dll"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
-  File "..\js32.dll"
+  File "..\js.dll"
   File "..\gm_gpac_js.dll"
-  File "..\libeay32.dll"
-  File "..\ssleay32.dll"
+;  File "..\libeay32.dll"
+;  File "..\ssleay32.dll"
   File "..\gm_ismacryp.dll"
 
   ;create default cache
@@ -362,13 +319,13 @@ SectionEnd
 
 Section "SVG" SecSVG
   SectionIn 1
-  File "..\gm_svg_in.dll"
+  File "..\gm_gdip_raster.dll"
 SectionEnd
 
 
 Section "GDI+" SecGDIP
   SectionIn 1
-  call InsertGDIPLUS
+  File "..\gm_gdip_raster.dll"
 SectionEnd
 
 Section "GPAC 2D Raster" SecG2DS
@@ -462,19 +419,19 @@ SectionEnd
 
 !define HK_MOZ "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
 
-Section "Osmozilla" SecZILLA
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "..\nposmozilla.dll"
-  File "..\nposmozilla.xpt"
-
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\nposmozilla.dll"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\nposmozilla.xpt"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
-SectionEnd
+;Section "Osmozilla" SecZILLA
+;  SectionIn 1
+;  SetOutPath $INSTDIR
+;  File "..\nposmozilla.dll"
+;  File "..\nposmozilla.xpt"
+;
+;  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\nposmozilla.dll"
+;  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\nposmozilla.xpt"
+;  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
+;  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
+;  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
+;  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
+;SectionEnd
 
 
 Section "GPAX" SecGPAX
@@ -483,22 +440,12 @@ Section "GPAX" SecGPAX
   File "..\GPAX.dll"
   RegDLL "$INSTDIR\GPAX.dll"
 SectionEnd
-
-
-Section "MP4Client" SecMP4C
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "..\MP4Client.exe"
-SectionEnd   
-                 
                  
                   
 Section "Windows Runtime Libraries" SecMSVCRT
   SectionIn 1
-  File "..\Microsoft.VC90.CRT.manifest"
-  File "..\Microsoft.VC90.MFC.manifest"       
-  File "..\msvcr90.dll"
-  File "..\mfc90.dll"
+  File "..\Microsoft.VC100.CRT.manifest"
+  File "..\msvcr100.dll"
 SectionEnd
 
 
@@ -515,9 +462,8 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\Osmo4"
   CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (Classic UI).lnk" "$INSTDIR\Osmo4.exe" ""
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI).lnk" "$INSTDIR\MP4Client.exe" "-gui" 
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI With Console).lnk" "$INSTDIR\MP4Client.exe" ""
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4.lnk" "$INSTDIR\MP4Client.exe" "-gui" 
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (With Console).lnk" "$INSTDIR\MP4Client.exe" ""
   CreateShortCut "$SMPROGRAMS\Osmo4\Readme.lnk" "$INSTDIR\ReadMe.txt"
   CreateShortCut "$SMPROGRAMS\Osmo4\License.lnk" "$INSTDIR\License.txt"
   CreateShortCut "$SMPROGRAMS\Osmo4\History.lnk" "$INSTDIR\changelog.txt"
