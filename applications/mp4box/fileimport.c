@@ -1761,7 +1761,7 @@ typedef struct
 	Double force_fps;
 	u32 frames_per_sample;
 	char *tmp_dir;
-	Bool force_cat, align_timelines;
+	Bool force_cat, align_timelines, allow_add_in_command;
 } CATEnum;
 
 Bool cat_enumerate(void *cbk, char *szName, char *szPath)
@@ -1777,12 +1777,12 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath)
 	strcpy(szFileName, szName);
 	strcat(szFileName, cat_enum->szOpt);
 
-	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines);
+	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command);
 	if (e) return 1;
 	return 0;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines)
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
 	CATEnum cat_enum;
 	char *sep;
@@ -1794,6 +1794,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 	cat_enum.tmp_dir = tmp_dir;
 	cat_enum.force_cat = force_cat;
 	cat_enum.align_timelines = align_timelines;
+	cat_enum.allow_add_in_command = allow_add_in_command;
 
 	strcpy(cat_enum.szPath, fileName);
 	sep = strrchr(cat_enum.szPath, GF_PATH_SEPARATOR);
