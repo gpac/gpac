@@ -71,7 +71,7 @@ void convert_file_info(char *inName, u32 trackID);
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir);
-GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines);
+GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 #if !defined(GPAC_DISABLE_SCENE_ENCODER)
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
@@ -429,7 +429,8 @@ void PrintImportUsage()
 			" -cat file              concatenates file samples to (new) output file\n"
 			"                         * Note: creates tracks if needed\n"
 			"                         * Note: aligns initial timestamp of the file to be concatenated."
-			"                         * Note: new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
+			" -catx file             same as )cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
+			"                        where ADD_COMMAND is a regular -add syntax\n"
 			"                        where ADD_COMMAND is a regular -add syntax\n"
 			" -unalign-cat           does not attempt to align timestamps of samples inbetween tracks\n"
 			" -force-cat             skips media configuration check when concatenating file\n"
@@ -1939,7 +1940,7 @@ int mp4boxMain(int argc, char **argv)
 			nb_add++;
 			i++;
 		}
-		else if (!stricmp(arg, "-cat")) {
+		else if (!stricmp(arg, "-cat") || !stricmp(arg, "-catx")) {
 			CHECK_NEXT_ARG
 			nb_cat++;
 			i++;
@@ -2717,8 +2718,8 @@ int mp4boxMain(int argc, char **argv)
 			}
 		}
 		for (i=0; i<(u32)argc; i++) {
-			if (!strcmp(argv[i], "-cat")) {
-				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat);
+			if (!strcmp(argv[i], "-cat") || !strcmp(argv[i], "-catx")) {
+				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE);
 				if (e) {
 					fprintf(stderr, "Error appending %s: %s\n", argv[i+1], gf_error_to_string(e));
 					gf_isom_delete(file);
