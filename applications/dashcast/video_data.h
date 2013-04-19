@@ -1,0 +1,134 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Arash Shafiei
+ *			Copyright (c) Telecom ParisTech 2000-2013
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / dashcast
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+#ifndef VIDEO_DATA_H_
+#define VIDEO_DATA_H_
+
+
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
+
+#include "circular_buffer.h"
+
+#define VIDEO_CB_SIZE 3
+
+/*
+ * This structure corresponds to an
+ * entry of video configuration in the
+ * configuration file.
+ */
+typedef struct {
+	/* video file name */
+	char psz_name[256];
+	/* video format */
+	char psz_format[256];
+	/* video width */
+	int i_width;
+	/* video height */
+	int i_height;
+	/* video bitrate */
+	int i_bitrate;
+	/* video frame rate */
+	int i_framerate;
+	/* video codec */
+	char psz_codec[256];
+
+} VideoData;
+
+
+/*
+ * VideoInputData is designed to keep the data
+ * of input video in a circular buffer.
+ * The circular buffer has its own mechanism for synchronization.
+ */
+
+typedef struct {
+	/*
+	 * The circular buffer of
+	 * the video frames after decoding.
+	 */
+	CircularBuffer p_cb;
+	/*
+	 * The user of circular buffer has an index to it,
+	 * which is in this variable.
+	 */
+	Producer pro;
+	/*
+	 * Width, height and pixel format
+	 * of the input video
+	 */
+	int i_width;
+	int i_height;
+	int i_pix_fmt;
+
+} VideoInputData;
+
+
+/*
+ * Each node in a circular buffer is a pointer.
+ * To use the circular buffer for video frame we must
+ * define the node. VideoDataNode simply contains
+ * an AVFrame.
+ */
+typedef struct {
+
+	AVFrame * p_vframe;
+
+} VideoDataNode;
+
+void dc_video_data_set_default(VideoData * vdata);
+
+/*
+ * Initialize a VideoInputData.
+ *
+ * @param vind [out] is the structure to be initialize.
+ * @param width [in] input video width
+ * @param height [in] input video height
+ * @param pixfmt [in] input video pixel format
+ * @param maxcon [in] contains information on the number of users of circular buffer;
+ * which means the number of video encoders.
+ * @param live [in] indicates the system is live
+ *
+ * @return 0 on success, -1 on failure.
+ *
+ * @note Must use dc_video_data_destroy to free memory.
+ */
+int dc_video_input_data_init(VideoInputData * vind, int width, int height, int pixfmt, int maxcon, int live);
+/*
+ * Destroy a VideoInputData
+ *
+ * @param vind [in] the structure to be destroyed.
+ */
+void dc_video_input_data_destroy(VideoInputData * vind);
+
+/*
+ * Signal to all the users of the circular buffer in the VideoInputData
+ * which the current node is the last node to consume.
+ *
+ * @param vind [in] the structure to be signaled on.
+ */
+void dc_video_input_data_end_signal(VideoInputData * vind);
+
+#endif /* VIDEO_DATA_H_ */

@@ -57,6 +57,7 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 endif
@@ -99,6 +100,7 @@ uninstall:
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
+	rm -rf $(DESTDIR)$(prefix)/bin/DashCast
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
