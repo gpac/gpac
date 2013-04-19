@@ -39,7 +39,7 @@
 # elif defined (_WIN64)
 #  pragma comment(lib, "js")
 # elif defined (WIN32)
-#  pragma comment(lib, "js32")
+#  pragma comment(lib, "js")
 # endif
 #endif
 
