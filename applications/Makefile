@@ -7,7 +7,11 @@ APPDIRS+=mp4client
 endif
 
 ifeq ($(DISABLE_ISOFF), no)
-APPDIRS+=mp4box dashcast
+APPDIRS+=mp4box 
+ifeq ($(CONFIG_DARWIN), yes)
+else
+APPDIRS+=dashcast
+endif
 ifeq ($(DISABLE_M2TS_MUX), no)
 APPDIRS+=mp42ts
 endif
