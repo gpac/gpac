@@ -27,7 +27,7 @@
 
 int dc_str_to_resolution(char * psz_str, int * p_width, int * p_height) {
 
-	char * p_save;
+	char * p_save = NULL;
 	char * token = (char *) strtok_r(psz_str, "x", &p_save);
 
 	if (!token) {
