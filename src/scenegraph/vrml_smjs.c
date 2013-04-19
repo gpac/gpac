@@ -106,7 +106,7 @@ JSObject *gf_sg_js_global_object(JSContext *cx, GF_JSClass *__class)
 # elif defined (_WIN64)
 #  pragma comment(lib, "js")
 # elif defined (WIN32)
-#  pragma comment(lib, "js32")
+#  pragma comment(lib, "js")
 # endif
 #endif
 
