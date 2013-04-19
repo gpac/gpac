@@ -364,6 +364,8 @@ enum
 	GF_LOG_MODULE,
 	/*! Log for threads and mutexes */
 	GF_LOG_MUTEX,
+	/*! Log for threads and condition */
+	GF_LOG_CONDITION,
 	/*! Log for all HTTP streaming */
 	GF_LOG_DASH,
 	/*! Log for all messages coming from GF_Terminal or script alert()*/
