@@ -256,7 +256,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	char szName[1000], szEXT[10], szNum[1000], *dsi;
 	char *ext_start = NULL;
 	FILE *out;
-	Bool is_stdout=0;
+	Bool is_stdout = GF_FALSE;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
     Bool is_wvtt = GF_FALSE;

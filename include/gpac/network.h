@@ -128,6 +128,15 @@ Bool gf_url_get_resource_path(const char *url, char *res_path);
 Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path);
 
 /*!
+ *\brief Extract extension from a resource path in URL
+ *
+ * Extract a resource path of URL and analyze its extension
+ *\param url input url 
+ *\return The corresponding extension if exists, otherwise NULL.
+ */
+const char* gf_url_get_ressource_extension(const char *sURL);
+
+/*!
  *\brief gets UTC time 
  *
  *Gets UTC time since midnight Jan 1970
