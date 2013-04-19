@@ -465,7 +465,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 	Bool prev_bub;
 	GF_DOMEventTarget cur_target;
 	u32 cur_par_idx;
-	Bool can_bubble;
+	Bool can_bubble = GF_FALSE;
 	if (!node || !event) return GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Graph %p Time %f - Firing event  %s.%s\n", gf_node_get_graph(node), gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_dom_event_get_name(event->type)));
 
