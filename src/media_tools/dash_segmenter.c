@@ -550,7 +550,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		To speed-up writing, we do a first fragmentation pass without writing any sample to compute the number of segments and fragments per segment
 		in order to allocate / write to file the sidx before the fragmentation. The sidx will then be rewritten when closing the last segment*/
 		if (dash_cfg->single_file_mode==1) {
-			simulation_pass = 1;
+			simulation_pass = GF_TRUE;
 			seg_rad_name = NULL;
 		}
 		/*if single file is requested, store all segments in the same file*/

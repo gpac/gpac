@@ -772,10 +772,10 @@ struct __tag_condition
 //	   */
 //	  int wait_generation_count_;
 //
-//	  /* A manual-reset event that's used to block and release waiting
-//	   * threads.
-//	   */
-//	  HANDLE event_;
+	  /* A manual-reset event that's used to block and release waiting
+	   * threads.
+	   */
+	  HANDLE event_;
 
 #else
 	pthread_cond_t hCond;
@@ -828,6 +828,7 @@ void gf_cond_del(GF_Condition * cond) {
 
 GF_EXPORT
 void gf_cond_wait(GF_Condition * cond, GF_Mutex * mx) {
+	u32 caller;
 
 	if (!cond) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONDITION, ("[Condition] condition is null; cannot wait for condition.\n"));
@@ -837,7 +838,6 @@ void gf_cond_wait(GF_Condition * cond, GF_Mutex * mx) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONDITION, ("[Condition] mutex is null; cannot wait for condition.\n"));
 	}
 
-	u32 caller;
 	caller = gf_th_id();
 	/*only if we own*/
 	assert(caller == mx->Holder);

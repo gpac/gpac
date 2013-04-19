@@ -215,7 +215,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			case GF_4CC('s', 'i', 's', 'x'):
 			case GF_4CC('r', 'i', 's', 'x'):
 			case GF_4CC('s', 's', 's', 's'):
-				mov->is_index_segment = 1;
+				mov->is_index_segment = GF_TRUE;
 				break;
 			default:
 				break;
