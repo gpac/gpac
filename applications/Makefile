@@ -2,14 +2,12 @@ include ../config.mak
 
 APPDIRS=
 
-APPDIRS+=dashcast
-
 ifeq ($(DISABLE_PLAYER), no)
 APPDIRS+=mp4client 
 endif
 
 ifeq ($(DISABLE_ISOFF), no)
-APPDIRS+=mp4box
+APPDIRS+=mp4box dashcast
 ifeq ($(DISABLE_M2TS_MUX), no)
 APPDIRS+=mp42ts
 endif
