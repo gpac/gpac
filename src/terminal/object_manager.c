@@ -64,10 +64,10 @@ void gf_odm_del(GF_ObjectManager *odm)
 #endif
 
 	/*make sure we are not in the media queue*/
-	gf_term_lock_media_queue(odm->term, 1);
+	gf_term_lock_media_queue(odm->term, GF_TRUE);
 	gf_list_del_item(odm->term->media_queue, odm);
 	gf_term_check_connections_for_delete(odm->term, odm);
-	gf_term_lock_media_queue(odm->term, 0);
+	gf_term_lock_media_queue(odm->term, GF_FALSE);
 
 	/*detach media object as referenced by the scene - this should ensures that any attempt to lock the ODM from the 
 	compositor will fail as the media object is no longer linked to object manager*/
@@ -119,11 +119,11 @@ void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt)
 
 Bool gf_odm_lock_mo(GF_MediaObject *mo)
 {
-	if (!mo || !mo->odm) return 0;
+	if (!mo || !mo->odm) return GF_FALSE;
 	gf_odm_lock(mo->odm, 1);
 	/*the ODM may have been destroyed here !!*/
-	if (!mo->odm) return 0;
-	return 1;
+	if (!mo->odm) return GF_FALSE;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -137,7 +137,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		odm->flags |= GF_ODM_DESTROYED;
 		gf_mx_v(odm->term->net_mx);
 	}
-	gf_odm_stop(odm, 1);
+	gf_odm_stop(odm, GF_TRUE);
 
 	/*disconnect sub-scene*/
 	if (odm->subscene) gf_scene_disconnect(odm->subscene, do_remove);
@@ -153,9 +153,9 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 			u32 i, count;
 			// Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
 			GF_MediaObject *obj = odm->mo;
-			count = gf_list_count(obj->nodes);
+			count = gf_mo_event_target_count(obj);
 			for (i=0; i<count; i++) {
-				GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, i);
+				GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, i));
 				switch (gf_node_get_tag(n)) {
 #ifndef GPAC_DISABLE_VRML
 				case TAG_MPEG4_InputSensor:
@@ -221,13 +221,13 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 					/*if the new root is not playing or assoicated with the scene, force a destroy on it - this
 					is needed for services declaring their objects dynamically*/
 					if (!new_root->mo || (!new_root->mo->num_open)) {
-						gf_term_lock_media_queue(odm->term, 1);
+						gf_term_lock_media_queue(odm->term, GF_TRUE);
 						new_root->action_type = GF_ODM_ACTION_DELETE;
 						if (gf_list_find(odm->term->media_queue, new_root)<0) {
 							assert(! (new_root->flags & GF_ODM_DESTROYED));
 							gf_list_add(odm->term->media_queue, new_root);
 						}
-						gf_term_lock_media_queue(odm->term, 0);
+						gf_term_lock_media_queue(odm->term, GF_FALSE);
 					}
 					ns->owner = new_root;
 					break;
@@ -248,14 +248,14 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	if (odm->parentscene) {
 		GF_Event evt;
 		evt.type = GF_EVENT_CONNECT;
-		evt.connect.is_connected = 0;
-		gf_term_forward_event(odm->term, &evt, 0, 1);
+		evt.connect.is_connected = GF_FALSE;
+		gf_term_forward_event(odm->term, &evt, GF_FALSE, GF_TRUE);
 
-		gf_term_lock_net(term, 1);
+		gf_term_lock_net(term, GF_TRUE);
 		gf_scene_remove_object(odm->parentscene, odm, do_remove);
 		if (odm->subscene) gf_scene_del(odm->subscene);
 		gf_odm_del(odm);
-		gf_term_lock_net(term, 0);
+		gf_term_lock_net(term, GF_FALSE);
 		return;
 	}
 	
@@ -268,15 +268,15 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		odm->term->root_scene = NULL;
 
 		evt.type = GF_EVENT_CONNECT;
-		evt.connect.is_connected = 0;
+		evt.connect.is_connected = GF_FALSE;
 		gf_term_send_event(odm->term, &evt);
 	}
 
-	gf_term_lock_net(term, 1);
+	gf_term_lock_net(term, GF_TRUE);
 	/*delete the ODMan*/
 	gf_odm_del(odm);
 
-	gf_term_lock_net(term, 0);
+	gf_term_lock_net(term, GF_FALSE);
 }
 
 /*setup service for OD (extract IOD and go)*/
@@ -324,7 +324,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		}
 		gf_odf_desc_del((GF_Descriptor *) odm->OD);
 		odm->OD=NULL;
-		odm->subscene->is_dynamic_scene = 0;
+		odm->subscene->is_dynamic_scene = GF_FALSE;
 	}
 
 	if (!desc) {
@@ -401,7 +401,7 @@ err_exit:
 	if (!odm->parentscene) {
 		GF_Event evt;
 		evt.type = GF_EVENT_CONNECT;
-		evt.connect.is_connected = 0;
+		evt.connect.is_connected = GF_FALSE;
 		gf_term_send_event(odm->term, &evt);
 	}
 	if (redirect_url)
@@ -602,12 +602,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	GF_ESD *esd;
 	GF_MediaObject *syncRef;
 
-	gf_term_lock_net(odm->term, 1);
+	gf_term_lock_net(odm->term, GF_TRUE);
 
 	if (!odm->net_service) {
 		if (odm->flags & GF_ODM_DESTROYED) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
-			gf_term_lock_net(odm->term, 0);
+			gf_term_lock_net(odm->term, GF_FALSE);
 			return;
 		}
 		odm->net_service = serv;
@@ -644,7 +644,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 
 		gf_term_post_connect_object(odm->term, odm, url, parent_url);
 		gf_free(url);
-		gf_term_lock_net(odm->term, 0);
+		gf_term_lock_net(odm->term, GF_FALSE);
 		return;
 	}
 	/*restore OD ID */
@@ -662,13 +662,13 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (e) {
 		GF_Terminal *term = odm->term;
 		gf_term_message(term, odm->net_service->url, "MPEG-4 Service Error", e);
-		gf_odm_disconnect(odm, 1);
-		gf_term_lock_net(term, 0);
+		gf_odm_disconnect(odm, GF_TRUE);
+		gf_term_lock_net(term, GF_FALSE);
 		return;
 	}
 
 	if (odm->mo && (odm->mo->type == GF_MEDIA_OBJECT_UPDATES)) {
-		hasInline = 0;
+		hasInline = GF_TRUE;
 	}
 
 	if (odm->net_service->owner &&  (odm->net_service->owner->flags & GF_ODM_INHERIT_TIMELINE)) {
@@ -691,7 +691,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (!gf_list_count(odm->OD->ESDescriptors) && odm->subscene) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] No streams in object - taking over scene graph generation\n",odm->OD->objectDescriptorID));
 		assert(odm->subscene->root_od==odm);
-		odm->subscene->is_dynamic_scene = 1;
+		odm->subscene->is_dynamic_scene = GF_TRUE;
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Setting up object streams\n"));
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
@@ -720,33 +720,33 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		/*setup node decoder*/
 		if (odm->mo && odm->codec && odm->codec->decio && (odm->codec->decio->InterfaceType==GF_NODE_DECODER_INTERFACE) ) {
 			GF_NodeDecoder *ndec = (GF_NodeDecoder *) odm->codec->decio;
-			GF_Node *n = gf_list_get(odm->mo->nodes, 0);
+			GF_Node *n = gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0));
 			if (n) ndec->AttachNode(ndec, n);
 
 			/*not clear in the spec how the streams attached to AFC are started - default to "right now"*/
 			gf_odm_start(odm, 0);
 		}
 
-		gf_term_lock_net(odm->term, 0);
+		gf_term_lock_net(odm->term, GF_FALSE);
 
 		evt.type = GF_EVENT_CONNECT;
-		evt.connect.is_connected = 1;
-		gf_term_forward_event(odm->term, &evt, 0, 1);
+		evt.connect.is_connected = GF_TRUE;
+		gf_term_forward_event(odm->term, &evt, GF_FALSE, GF_TRUE);
 
-		gf_term_lock_net(odm->term, 1);
+		gf_term_lock_net(odm->term, GF_TRUE);
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected !\n", odm->net_service->url));
 		
-		gf_term_lock_net(odm->term, 0);
+		gf_term_lock_net(odm->term, GF_FALSE);
 
 		evt.type = GF_EVENT_CONNECT;
-		evt.connect.is_connected = 1;
+		evt.connect.is_connected = GF_TRUE;
 		gf_term_send_event(odm->term, &evt);
 
-		gf_term_lock_net(odm->term, 1);
+		gf_term_lock_net(odm->term, GF_TRUE);
 	}
 
 
@@ -767,14 +767,14 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	we also force a prefetch for object declared outside the OD stream to make sure we don't loose any data before object declaration and play
 	as can be the case with MPEG2 TS (first video packet right after the PMT) - this should be refined*/
 	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
-		Bool force_play = 0;
+		Bool force_play = GF_FALSE;
 		if (odm->state==GF_ODM_STATE_STOP) {
 			odm->flags |= GF_ODM_PREFETCH;
-			force_play = 1;
+			force_play = GF_TRUE;
 		}
 		/*the object could have been queued for play when setting up the scene object. If so, remove from queue and start right away*/
 		else if ((odm->state==GF_ODM_STATE_PLAY) && (gf_list_del_item(odm->term->media_queue, odm)>=0) ) {
-			force_play = 1;
+			force_play = GF_TRUE;
 		}
 		if (force_play) {
 			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
@@ -794,16 +794,16 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->OD_PL = 0;
 		}
 		if (odm->parentscene==odm->term->root_scene) {
-			gf_term_lock_net(odm->term, 0);
+			gf_term_lock_net(odm->term, GF_FALSE);
 
 			evt.type = GF_EVENT_STREAMLIST;
 			gf_term_send_event(odm->term,&evt);
 	
-			gf_term_lock_net(odm->term, 1);
+			gf_term_lock_net(odm->term, GF_TRUE);
 		}
 	}
 
-	gf_term_lock_net(odm->term, 0);
+	gf_term_lock_net(odm->term, GF_FALSE);
 }
 
 

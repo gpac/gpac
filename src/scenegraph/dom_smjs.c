@@ -501,7 +501,7 @@ static SMJS_FUNC_PROP_SET_NOVP( dom_nodelist_setProperty)
 
 /*dom event listener*/
 
-#define JS_DOM3_EVEN_TARGET_INTERFACE	\
+#define JS_DOM3_EVENT_TARGET_INTERFACE	\
 	SMJS_FUNCTION_SPEC("addEventListenerNS", dom_event_add_listener, 4),	\
 	SMJS_FUNCTION_SPEC("removeEventListenerNS", dom_event_remove_listener, 4),	\
 	SMJS_FUNCTION_SPEC("addEventListener", dom_event_add_listener, 3),		\
@@ -3728,7 +3728,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_FUNCTION_SPEC("normalizeDocument",			xml_dom3_not_implemented, 0),
 			SMJS_FUNCTION_SPEC("renameNode",					xml_dom3_not_implemented, 3),
 			/*eventTarget interface*/
-			JS_DOM3_EVEN_TARGET_INTERFACE
+			JS_DOM3_EVENT_TARGET_INTERFACE
 			/*DocumentEvent interface*/
 			SMJS_FUNCTION_SPEC("createEvent",					xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC(0, 0, 0)
@@ -3773,7 +3773,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_FUNCTION_SPEC("setAttributeNodeNS",			xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC("setIdAttributeNode",			xml_dom3_not_implemented, 2),
 			/*eventTarget interface*/
-			JS_DOM3_EVEN_TARGET_INTERFACE
+			JS_DOM3_EVENT_TARGET_INTERFACE
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 

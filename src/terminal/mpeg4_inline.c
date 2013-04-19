@@ -57,20 +57,20 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	GF_Scene *parent;
 	GF_SceneGraph *graph = gf_node_get_graph((GF_Node *) root);
 	parent = (GF_Scene *)gf_sg_get_private(graph);
-	if (!parent) return 0;
+	if (!parent) return GF_FALSE;
 
-	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, 0, NULL, 0, (GF_Node*)root);
-	if (!mo || !mo->odm) return 0;
+	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root);
+	if (!mo || !mo->odm) return GF_FALSE;
 
 	if (!mo->odm->subscene) {
 		gf_term_invalidate_compositor(parent->root_od->term);
-		return 0;
+		return GF_FALSE;
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
 	/*play*/
-	gf_mo_play(mo, 0, -1, 0);
-	return 1;
+	gf_mo_play(mo, 0, -1, GF_FALSE);
+	return GF_TRUE;
 }
 
 void gf_inline_on_modified(GF_Node *node)
@@ -86,18 +86,18 @@ void gf_inline_on_modified(GF_Node *node)
 
 		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
 		if (mo) {
-			Bool changed = 1;
+			Bool changed = GF_TRUE;
 			if (ODID != GF_MEDIA_EXTERNAL_ID) {
-				if (ODID && (ODID==scene->root_od->OD->objectDescriptorID)) changed = 0;
+				if (ODID && (ODID==scene->root_od->OD->objectDescriptorID)) changed = GF_FALSE;
 			} else {
-				if (gf_mo_is_same_url(mo, &pInline->url, NULL, 0) ) changed = 0;
+				if (gf_mo_is_same_url(mo, &pInline->url, NULL, 0) ) changed = GF_FALSE;
 			}
 			if (mo->num_open) {
 				if (!changed) return;
 
 				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node, NULL, GF_OK);
 				gf_node_dirty_parents(node);
-				gf_list_del_item(mo->nodes, node);
+				gf_mo_event_target_remove_by_node(mo, node);
 
 				/*reset the scene pointer as it may get destroyed*/
 				switch (gf_node_get_tag(node)) {
@@ -114,17 +114,16 @@ void gf_inline_on_modified(GF_Node *node)
 					if (ODID == GF_MEDIA_EXTERNAL_ID) {
 						GF_Scene *parent = scene->root_od->parentscene;
 						/*!!! THIS WILL DESTROY THE INLINE SCENE OBJECT !!!*/
-						gf_odm_disconnect(scene->root_od, 1);
+						gf_odm_disconnect(scene->root_od, GF_TRUE);
 						/*and force removal of the media object*/
 						if (parent) {
 							if (gf_list_del_item(parent->scene_objects, mo)>=0) {
 								gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
-								gf_list_del(mo->nodes);
-								gf_free(mo);
+								gf_mo_del(mo);
 							}
 						}
 					} else {
-						gf_term_lock_media_queue(scene->root_od->term, 1);
+						gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
 						
 						/*external media are completely unloaded*/
 						if (scene->root_od->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) {
@@ -135,7 +134,7 @@ void gf_inline_on_modified(GF_Node *node)
 						if (gf_list_find(scene->root_od->term->media_queue, scene->root_od)<0)
 							gf_list_add(scene->root_od->term->media_queue, scene->root_od);
 
-						gf_term_lock_media_queue(scene->root_od->term, 0);
+						gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
 					}
 				}
 			}
@@ -220,9 +219,9 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
 		safely restart an inline scene*/
 
 		/*1- stop main object from playing but don't disconnect channels*/
-		gf_odm_stop(scene->root_od, 1);
+		gf_odm_stop(scene->root_od, GF_TRUE);
 		/*2- close all ODs inside the scene and reset the graph*/
-		gf_scene_disconnect(scene, 0);
+		gf_scene_disconnect(scene, GF_FALSE);
 		if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
 		/*3- restart the scene*/
 		gf_odm_start(scene->root_od, 0);
@@ -241,13 +240,13 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK);
 		if (!mo) return;
-		gf_list_del_item(mo->nodes, n);
+		gf_mo_event_target_remove_by_node(mo, n);
 
 		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
 		if (mo->num_open) {
 			mo->num_open --;
 			if (!mo->num_open) {
-				gf_term_lock_media_queue(scene->root_od->term, 1);
+				gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
 
 				/*this is unspecified in the spec: whenever an inline not using the 
 				OD framework is destroyed, destroy the associated resource*/
@@ -257,9 +256,8 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					GF_Scene *parent_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
 					if (gf_list_del_item(parent_scene->scene_objects, mo)>=0) {
 						gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
-						gf_list_del(mo->nodes);
 						if (mo->odm) mo->odm->mo = NULL;
-						gf_free(mo);
+						gf_mo_del(mo);
 					}
 					scene->root_od->action_type = GF_ODM_ACTION_DELETE;
 					gf_list_add(scene->root_od->term->media_queue, scene->root_od);
@@ -267,7 +265,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					scene->root_od->action_type = GF_ODM_ACTION_SCENE_DISCONNECT;
 					gf_list_add(scene->root_od->term->media_queue, scene->root_od);
 				}
-				gf_term_lock_media_queue(scene->root_od->term, 0);
+				gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
 			}
 		}
 		return;
@@ -285,7 +283,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 				if (!inl->url.vals[0].OD_ID && (!inl->url.vals[0].url || !strlen(inl->url.vals[0].url) ) ) {
 					gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 				} else {
-					gf_node_dirty_set(n, 0, 1);
+					gf_node_dirty_set(n, 0, GF_TRUE);
 				}
 			}
 			return;
@@ -304,19 +302,19 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		}
 
 		scene->needs_restart = 0;
-		gf_term_lock_media_queue(scene->root_od->term, 1);
+		gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
 		scene->root_od->action_type = GF_ODM_ACTION_SCENE_INLINE_RESTART;
 		gf_list_add(scene->root_od->term->media_queue, scene->root_od);
-		gf_term_lock_media_queue(scene->root_od->term, 0);
+		gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
 
-		gf_node_dirty_set(n, 0, 1);
+		gf_node_dirty_set(n, 0, GF_TRUE);
 		return;
 	} 
 	
 	/*if not attached return (attaching the graph cannot be done in render since render is not called while unattached :) */
 	if (!scene->graph_attached) {
 		/*just like protos, we must invalidate parent graph until attached*/
-		gf_node_dirty_set(n, 0, 1);
+		gf_node_dirty_set(n, 0, GF_TRUE);
 		return;
 	}
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
@@ -334,12 +332,12 @@ static Bool gf_inline_is_hardcoded_proto(GF_Terminal *term, MFURL *url)
 	u32 i;
 	for (i=0; i<url->count; i++) {
 		if (!url->vals[i].url) continue;
-		if (strstr(url->vals[i].url, "urn:inet:gpac:builtin")) return 1;
+		if (strstr(url->vals[i].url, "urn:inet:gpac:builtin")) return GF_TRUE;
 
 		if (gf_sc_uri_is_hardcoded_proto(term->compositor, url->vals[i].url)) 
-			return 1;
+			return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
@@ -380,8 +378,8 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 				/*check the url path is the same*/
 				url1 = gf_url_concatenate(pl->mo->odm->net_service->url, lib_url->vals[0].url);
 				url2 = gf_url_concatenate(scene->root_od->net_service->url, lib_url->vals[0].url);
-				ok = 0;
-				if (url1 && url2 && !strcmp(url1, url2)) ok=1;
+				ok = GF_FALSE;
+				if (url1 && url2 && !strcmp(url1, url2)) ok=GF_TRUE;
 				if (url1) gf_free(url1);
 				if (url2) gf_free(url2);
 				if (!ok) continue;
@@ -408,9 +406,9 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	pl = (GF_ProtoLink*)gf_malloc(sizeof(GF_ProtoLink));
 	pl->url = lib_url;
 	gf_list_add(scene->extern_protos, pl);
-	pl->mo = gf_scene_get_media_object(scene, lib_url, GF_MEDIA_OBJECT_SCENE, 0);
+	pl->mo = gf_scene_get_media_object(scene, lib_url, GF_MEDIA_OBJECT_SCENE, GF_FALSE);
 	/*this may already be destroyed*/
-	if (pl->mo) gf_mo_play(pl->mo, 0, -1, 0);
+	if (pl->mo) gf_mo_play(pl->mo, 0, -1, GF_FALSE);
 
 	/*and return NULL*/
 	return NULL;
@@ -422,9 +420,9 @@ Bool gf_inline_is_protolib_object(GF_Scene *scene, GF_ObjectManager *odm)
 	GF_ProtoLink *pl;
 	i=0;
 	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i))) {
-		if (pl->mo->odm == odm) return 1;
+		if (pl->mo->odm == odm) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -433,10 +431,10 @@ Bool gf_inline_is_default_viewpoint(GF_Node *node)
 	const char *nname, *seg_name;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
 	GF_Scene *scene = sg ? (GF_Scene *) gf_sg_get_private(sg) : NULL;
-	if (!scene) return 0;
+	if (!scene) return GF_FALSE;
 
 	nname = gf_node_get_name(node);
-	if (!nname) return 0;
+	if (!nname) return GF_FALSE;
 
 	/*check any viewpoint*/
 	seg_name = strrchr(scene->root_od->net_service->url, '#');
@@ -448,12 +446,12 @@ Bool gf_inline_is_default_viewpoint(GF_Node *node)
 	} else if (!seg_name && scene->root_od->mo && scene->root_od->mo->URLs.count && scene->root_od->mo->URLs.vals[0].url) {
 		seg_name = strrchr(scene->root_od->mo->URLs.vals[0].url, '#');
 	}
-	if (!seg_name) return 0;
+	if (!seg_name) return GF_FALSE;
 	seg_name += 1;
 	/*look for a media segment with this name - if none found, this is a viewpoint name*/
-	if (gf_odm_find_segment(scene->root_od, (char *) seg_name) != NULL) return 0;
+	if (gf_odm_find_segment(scene->root_od, (char *) seg_name) != NULL) return GF_FALSE;
 
-	return (!strcmp(nname, seg_name));
+	return (!strcmp(nname, seg_name) ? GF_TRUE : GF_FALSE);
 }
 
 
@@ -479,8 +477,8 @@ static char *storage_get_section(M_Storage *storage)
 
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
 
-	len = (u32) strlen(scene->root_od->net_service->url) + (u32) strlen(storage->name.buffer)+2;
-	szPath = gf_malloc(sizeof(char)* len);
+	len = strlen(scene->root_od->net_service->url)+strlen(storage->name.buffer)+2;
+	szPath = (char *)gf_malloc(sizeof(char)* len);
 	strcpy(szPath, scene->root_od->net_service->url);
 	strcat(szPath, "@");
 	strcat(szPath, storage->name.buffer);
@@ -580,7 +578,7 @@ static void gf_storage_load(M_Storage *storage)
 			void *slot;
 			gf_sg_vrml_mf_reset(info.far_ptr, info.fieldType);
 			while (1) {
-				val = strchr(opt, '\'');
+				val = (char *)strchr(opt, '\'');
 				sep = val ? strchr(val+1, '\'') : NULL;
 				if (!val || !sep) break;
 
@@ -668,9 +666,9 @@ void gf_storage_save(M_Storage *storage)
 				slotval = storage_serialize_sf(info.far_ptr, info.fieldType);
 				if (!slotval) break;
 				if (val) {
-					val = gf_realloc(val, strlen(val) + 3 + strlen(slot));
+					val = (char *)gf_realloc(val, strlen(val) + 3 + strlen((const char *)slot));
 				} else {
-					val = gf_malloc(3 + strlen(slot));
+					val = (char *)gf_malloc(3 + strlen((const char *)slot));
 					val[0] = 0;
 				}
 				strcat(val, "'");
@@ -691,7 +689,7 @@ void gf_storage_save(M_Storage *storage)
 static void gf_storage_traverse(GF_Node *n, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
-		GF_Scene *scene = gf_node_get_private(n);
+		GF_Scene *scene = (GF_Scene *)gf_node_get_private(n);
 		GF_ClientService *net_service = scene->root_od->net_service;
 		while (scene->root_od->parentscene) { 
 			if (scene->root_od->parentscene->root_od->net_service != net_service)
@@ -740,13 +738,13 @@ GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor)
 {
 #ifndef GPAC_DISABLE_VRML
 	u32 i, count;
-	GF_Scene *scene = gf_sg_get_private(sg);
+	GF_Scene *scene = (GF_Scene *)gf_sg_get_private(sg);
 	if (!scene) return NULL;
-	if (!sensor) return gf_list_get(scene->keynavigators, 0);
+	if (!sensor) return (GF_Node *)gf_list_get(scene->keynavigators, 0);
 
 	count = gf_list_count(scene->keynavigators);
 	for (i=0; i<count; i++) {
-		M_KeyNavigator *kn = gf_list_get(scene->keynavigators, i);
+		M_KeyNavigator *kn = (M_KeyNavigator *)gf_list_get(scene->keynavigators, i);
 		if (kn->sensor==sensor) return (GF_Node *) kn;
 	}
 #endif

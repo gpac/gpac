@@ -1429,6 +1429,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_listener_build) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_listener_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event) )
+#pragma comment (linker, EXPORT_SYMBOL(sg_fire_dom_event) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_event_target_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_event_target_add_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_event_target_remove_by_node) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_event_target_get_node) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_parse_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_parse_style) )

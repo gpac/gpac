@@ -608,6 +608,98 @@ static DECL_FINALIZE(arraybuffer_finalize)
     gf_arraybuffer_del(p, GF_TRUE);
 }
 
+static JSBool SMJS_FUNCTION(js_event_add_listener)
+{
+    SMJS_OBJ
+    SMJS_ARGS
+    char                *type = NULL;
+    char                *callback = NULL;
+    jsval               funval = JSVAL_NULL;
+    JSObject            *evt_handler = NULL;
+    u32                 evtType;
+    GF_DOMEventTarget   *target = NULL;
+    GF_DOMListener      *listener = NULL;
+
+    target = (GF_DOMEventTarget *)SMJS_GET_PRIVATE(c, obj);
+
+    if (!JSVAL_CHECK_STRING(argv[0])) {
+        goto err_exit;
+    }
+    type = SMJS_CHARS(c, argv[0]);
+
+    if (JSVAL_CHECK_STRING(argv[1])) {
+        callback = SMJS_CHARS(c, argv[1]);
+        if (!callback) {
+            goto err_exit;
+        }
+    } else if (JSVAL_IS_OBJECT(argv[1])) {
+        if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[1]))) {
+            funval = argv[1];
+        } else {
+            JSBool found;
+            jsval evt_fun;
+            evt_handler = JSVAL_TO_OBJECT(argv[1]);
+            found = JS_GetProperty(c, evt_handler, "handleEvent", &evt_fun);
+            if (!found || !JSVAL_IS_OBJECT(evt_fun) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(evt_fun))) {
+                goto err_exit;
+            }
+            funval = evt_fun;
+        }
+    }
+
+    evtType = gf_dom_event_type_by_name(type);
+    if (evtType==GF_EVENT_UNKNOWN) {
+        goto err_exit;
+    }
+
+    GF_SAFEALLOC(listener, GF_DOMListener);
+    if (!callback) {
+        listener->js_fun_val = *(u64 *) &funval;
+        if (listener->js_fun_val) {
+            listener->js_context = c;
+            /*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
+            gf_js_add_root((JSContext *)listener->js_context, &listener->js_fun_val, GF_JSGC_VAL);
+        }
+        listener->evt_listen_obj = evt_handler;
+    } else {
+        listener->callback = gf_strdup(callback);
+    }
+    gf_list_add(target->listeners, listener);
+
+err_exit:
+    SMJS_FREE(c, type);
+    SMJS_FREE(c, callback);
+    return JS_TRUE;
+}
+
+void gf_dom_execute_js_event(GF_DOMEventTarget *target, GF_DOM_Event *evt)
+{
+    u32 i, count;
+    count = gf_list_count(target->listeners);
+    for (i = 0; i < count; i++)
+    {
+        GF_DOMListener *dom_listener = (GF_DOMListener *)gf_list_get(target->listeners, i);
+#ifdef GPAC_HAS_SPIDERMONKEY
+        
+#endif
+    }
+}
+
+static JSBool SMJS_FUNCTION(js_event_remove_listener)
+{
+    SMJS_OBJ
+    SMJS_ARGS
+    return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(js_event_dispatch)
+{
+    SMJS_OBJ
+    SMJS_ARGS
+    return JS_TRUE;
+}
+
+
 void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_MediaRuntime *_html_media_rt)
 {
     /* HTML Media Element */
@@ -637,6 +729,9 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
                 SMJS_FUNCTION_SPEC("addSourceBuffer", mediasource_addSourceBuffer, 1),
                 SMJS_FUNCTION_SPEC("removeSourceBuffer", mediasource_removeSourceBuffer, 1),
                 SMJS_FUNCTION_SPEC("endOfStream", mediasource_endOfStream, 1),
+                SMJS_FUNCTION_SPEC("addEventListener", js_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("removeEventListener", js_event_remove_listener, 3),
+                SMJS_FUNCTION_SPEC("dispatchEvent", js_event_dispatch, 1),
                 SMJS_FUNCTION_SPEC(0, 0, 0)
             };
             JSFunctionSpec htmlMediaSourceClassStaticFuncs[] = {

@@ -1027,8 +1027,8 @@ struct _mediaobj
 	u32 framesize;
 	/*pointer to data frame */
 	char *frame;
-	/*nodes currently registered with the media object - used to dispatch MediaAccessEvents*/
-	GF_List *nodes;
+	/* used to dispatch Media Access Events and HTML5 Media and Media Source Events */
+	GF_List *evt_targets;
 	/*pointer to the node responsible for the creation of this media object
 	ONLY used for scene media type (animationStreams) 
 	Reset upon creation of the decoder.

@@ -36,11 +36,11 @@ typedef struct __mse_module
 static Bool MSE_CanHandleURL(GF_InputService *plug, const char *url)
 {
     if (!plug || !url)
-      return 0;
+      return GF_FALSE;
     if (!strncmp(url, "blob:", 5)) {
-        return 1;
+        return GF_TRUE;
     } else {
-        return 0;
+        return GF_FALSE;
     }
 }
 
@@ -137,8 +137,13 @@ static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
         memset(&mse_event, 0, sizeof(GF_DOM_Event));
         mse_event.type = GF_EVENT_HTML_MSE_SOURCE_OPEN;
-        media_node = (GF_Node *)gf_list_get(serv->owner->mo->nodes, 0);
-        gf_dom_event_fire(media_node, &mse_event);
+        ms->target = gf_mo_event_target_get(serv->owner->mo, 0);
+        media_node = (GF_Node *)gf_event_target_get_node(ms->target);
+        ms->node = media_node;
+        //gf_dom_event_fire(media_node, &mse_event);
+        gf_mo_event_target_remove_by_node(serv->owner->mo, media_node);
+        ms->target = gf_mo_event_target_add_object(serv->owner->mo, ms);
+        sg_fire_dom_event(ms->target, &mse_event, media_node->sgprivate->scenegraph, NULL);
     }
     return GF_OK;
 }
@@ -301,8 +306,8 @@ static Bool MSE_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", msein->mediasource->service, url));
-    if (!plug || !plug->priv) return GF_SERVICE_ERROR;
-    return 1;
+    if (!plug || !plug->priv) return GF_FALSE;
+    return GF_TRUE;
 }
 
 GPAC_MODULE_EXPORT

@@ -264,20 +264,19 @@ enum
 };
 
 /*possible event targets*/
-enum
+typedef enum
 {
 	GF_DOM_EVENT_NODE,
 	GF_DOM_EVENT_DOCUMENT,
-	GF_DOM_EVENT_XHR,
-	GF_DOM_EVENT_TIMER,
-	GF_DOM_EVENT_CONNECTION,
-};
+	GF_DOM_EVENT_JS
+} GF_DOMEventTargetType;
 
 typedef struct 
 {
 	GF_List *evt_list;
 	void *ptr;
-	u32 ptr_type;
+	GF_DOMEventTargetType ptr_type;
+	GF_List *listeners;
 } GF_DOMEventTarget;
 
 GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target);
@@ -349,6 +348,7 @@ typedef struct
 BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!
 */
 Bool gf_dom_event_fire(GF_Node *node, GF_DOM_Event *event);
+Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n);
 
 /*fires event on the specified node
 BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!
@@ -366,20 +366,29 @@ u32 gf_dom_get_key_type(char *key_name);
 /*listener is simply a node added to the node events list. 
 Only one observer can be attached to a listener. The listener will remove itself from the observer
 event list when destructed.*/
+#define GF_DOM_BASE_LISTENER 	\
+	/* JavaScript context in which the listener is applicable */ \
+	void *js_context; \
+	/*target EventListener object (this) */ \
+	void *evt_listen_obj; \
+	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures \
+	we use 64 bits to store the value for portability safety*/\
+	u64 js_fun_val;\
+	/*compiled function for the case were CallFunction is needed*/\
+	void *js_fun; \
+	/* text content of the callback */ \
+	char *callback; 
+
+typedef struct __dom_listener
+{
+    GF_DOM_BASE_LISTENER
+} GF_DOMListener;
 
 typedef struct __xml_ev_handler 
 {
 	GF_DOM_BASE_NODE
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
-	/*if handler targets a VRML script, point to the script here*/
-	void *js_context;
-	/*target EventListener object (this) */
-	void *evt_listen_obj;
-	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures
-	we use 64 bits to store the value for portability safety*/
-	u64 js_fun_val;
-	/*compiled function for the case were CallFunction is needed*/
-	void *js_fun;
+	GF_DOM_BASE_LISTENER
 } GF_DOMHandler;
 
 

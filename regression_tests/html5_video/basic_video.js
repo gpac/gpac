@@ -75,7 +75,7 @@ function print_media_info()
 function init()
 {	
 	var v = document.getElementById("v");
-	v.src = "video.mp4";
+	v.src = "media/counter-10mn_I25_640x360_160kbps_openGOP_dash.mp4";
 	v.addEventListener("click", print_media_info);
 	enumerate(v);
 }
