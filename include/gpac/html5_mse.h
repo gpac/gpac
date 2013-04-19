@@ -139,6 +139,12 @@ typedef struct _html_mediasource
        we use only one service object for all sourceBuffers
        */
     GF_ClientService *service;
+
+    /* Node the MediaSource is attached to */
+    GF_Node *node;
+
+    /* object implementing Event Target Interface */
+    GF_DOMEventTarget *target;
 } GF_HTML_MediaSource;
 
 GF_HTML_MediaSource *gf_mse_media_source_new();

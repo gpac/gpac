@@ -1270,7 +1270,7 @@ void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_D
 		u32 val;
 		if (ch->service != net) continue;
 
-		media_event->bufferValid = 1;
+		media_event->bufferValid = GF_TRUE;
 		if (ch->BufferTime>0) {
 			if (ch->MaxBuffer) {
 				val = (ch->BufferTime * 100) / ch->MaxBuffer;
@@ -1300,9 +1300,9 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 
 	if (!odm || !odm->net_service) return;
 	if (odm->mo) {
-		count = gf_list_count(odm->mo->nodes);
+		count = gf_mo_event_target_count(odm->mo);
 		if (!count) return;
-		if (!(gf_node_get_dom_event_filter(gf_list_get(odm->mo->nodes, 0)) & GF_DOM_EVENT_MEDIA))
+		if (!(gf_node_get_dom_event_filter((GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0))) & GF_DOM_EVENT_MEDIA))
 			return;
 	} else {
 		count = 0;
@@ -1310,7 +1310,7 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 
 
 	memset(&media_event, 0, sizeof(GF_DOMMediaEvent));
-	media_event.bufferValid = 0;
+	media_event.bufferValid = GF_FALSE;
 	media_event.session_name = odm->net_service->url;
 
 	min_time = min_buffer = (u32) -1;
@@ -1340,14 +1340,16 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 	if (!locked) return;
 
 	for (i=0; i<count; i++) {
-		GF_Node *node = gf_list_get(odm->mo->nodes, i);
-		gf_dom_event_fire(node, &evt);
+		//GF_Node *node = (GF_Node *)gf_list_get(odm->mo->nodes, i);
+		//gf_dom_event_fire(node, &evt);
+		GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(odm->mo->evt_targets, i);
+		sg_fire_dom_event(target, &evt, scene->graph, NULL);
 	}
 	if (!count) {
 		GF_Node *root = gf_sg_get_root_node(scene->graph);
 		if (root) gf_dom_event_fire(root, &evt);
 	}
-	gf_sc_lock(odm->term->compositor, 0);
+	gf_sc_lock(odm->term->compositor, GF_FALSE);
 #endif
 }
 
