@@ -84,11 +84,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <CustomBuildStep>
-      <Message>Performing registration</Message>
-      <Command>regsvr32 /s /c "$(TargetPath)"
-echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg"
-</Command>
-      <Outputs>$(OutDir)regsvr32.trg;%(Outputs)</Outputs>
+      <Message>
+      </Message>
+      <Command>
+      </Command>
+      <Outputs>
+      </Outputs>
     </CustomBuildStep>
     <Midl>
       <TypeLibraryName>.\obj/w32_deb/GPAX.tlb</TypeLibraryName>
@@ -134,11 +135,12 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <CustomBuildStep>
-      <Message>Performing registration</Message>
-      <Command>regsvr32 /s /c "$(TargetPath)"
-echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg"
-</Command>
-      <Outputs>$(OutDir)regsvr32.trg;%(Outputs)</Outputs>
+      <Message>
+      </Message>
+      <Command>
+      </Command>
+      <Outputs>
+      </Outputs>
     </CustomBuildStep>
     <Midl>
       <TypeLibraryName>.\obj/w32_deb/GPAX.tlb</TypeLibraryName>
@@ -184,10 +186,12 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <CustomBuildStep>
-      <Message>Performing registration</Message>
+      <Message>
+      </Message>
       <Command>
       </Command>
-      <Outputs>$(OutDir)regsvr32.trg;%(Outputs)</Outputs>
+      <Outputs>
+      </Outputs>
     </CustomBuildStep>
     <Midl>
       <TypeLibraryName>.\obj/w32_rel/GPAX.tlb</TypeLibraryName>
