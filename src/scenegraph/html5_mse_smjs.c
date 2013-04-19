@@ -672,30 +672,13 @@ err_exit:
     return JS_TRUE;
 }
 
-void gf_dom_execute_js_event(GF_DOMEventTarget *target, GF_DOM_Event *evt)
-{
-    u32 i, count;
-    count = gf_list_count(target->listeners);
-    for (i = 0; i < count; i++)
-    {
-        GF_DOMListener *dom_listener = (GF_DOMListener *)gf_list_get(target->listeners, i);
-#ifdef GPAC_HAS_SPIDERMONKEY
-        
-#endif
-    }
-}
-
 static JSBool SMJS_FUNCTION(js_event_remove_listener)
 {
-    SMJS_OBJ
-    SMJS_ARGS
     return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(js_event_dispatch)
 {
-    SMJS_OBJ
-    SMJS_ARGS
     return JS_TRUE;
 }
 

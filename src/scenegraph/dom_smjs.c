@@ -2221,6 +2221,8 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 			case GF_DOM_EVENT_DOCUMENT:
 				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr);
 				break;
+            default:
+                break;
 			}
 			return JS_TRUE;
 		/*eventPhase */
