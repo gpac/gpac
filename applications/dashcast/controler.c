@@ -88,8 +88,8 @@ Bool mpd_thread(void * p_params) {
 	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,
 			video_frag_dur = 0;
 
-	AudioData * p_adata;
-	VideoData * p_vdata;
+	AudioData * p_adata = NULL;
+	VideoData * p_vdata = NULL;
 
 	if (p_cmddata->i_live) {
 
