@@ -2,6 +2,8 @@ include ../config.mak
 
 APPDIRS=
 
+APPDIRS+=dashcast
+
 ifeq ($(DISABLE_PLAYER), no)
 APPDIRS+=mp4client 
 endif
