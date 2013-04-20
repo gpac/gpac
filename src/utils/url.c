@@ -36,7 +36,9 @@ enum
 	/*relative URL*/
 	GF_URL_TYPE_RELATIVE ,
 	/*any other URL*/
-	GF_URL_TYPE_ANY
+	GF_URL_TYPE_ANY,
+	/*BLOB URL*/
+	GF_URL_TYPE_BLOB
 };
 
 /*resolve the protocol type, for a std URL: http:// or ftp:// ...*/
@@ -49,6 +51,8 @@ static u32 URL_GetProtocolType(const char *pathName)
 		|| (pathName[1] == ':') 
 		|| ((pathName[0] == ':') && (pathName[1] == ':'))
 		) return GF_URL_TYPE_FILE;
+
+    if (!strncmp(pathName, "blob:", 5)) return GF_URL_TYPE_BLOB;
 
 	begin = strstr(pathName, "://");
 	if (!begin) begin = strstr(pathName, "|//"); 
