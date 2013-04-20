@@ -140,10 +140,10 @@ static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
         ms->target = gf_mo_event_target_get(serv->owner->mo, 0);
         media_node = (GF_Node *)gf_event_target_get_node(ms->target);
         ms->node = media_node;
-        //gf_dom_event_fire(media_node, &mse_event);
-        gf_mo_event_target_remove_by_node(serv->owner->mo, media_node);
-        ms->target = gf_mo_event_target_add_object(serv->owner->mo, ms);
-        sg_fire_dom_event(ms->target, &mse_event, media_node->sgprivate->scenegraph, NULL);
+        gf_dom_event_fire(media_node, &mse_event);
+        //gf_mo_event_target_remove_by_node(serv->owner->mo, media_node);
+        //ms->target = gf_mo_event_target_add_object(serv->owner->mo, ms);
+        //sg_fire_dom_event(ms->target, &mse_event, media_node->sgprivate->scenegraph, NULL);
     }
     return GF_OK;
 }
