@@ -100,7 +100,11 @@ u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
 
 u32 gf_node_get_dom_event_filter(GF_Node *node)
 {
-	return node->sgprivate->scenegraph->dom_evt_filter;
+    if (node) {
+        return node->sgprivate->scenegraph->dom_evt_filter;
+    } else {
+        return 0;
+    }
 }
 
 GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
