@@ -3373,7 +3373,8 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	}
 	if (/*pic_scaling_list_data_present_flag	= */gf_bs_read_int(bs, 1) ) {
 		//scaling_list_data( )
-		assert(0 && "not implemented");
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[HEVC] Parsing of scaling_list_data is not yet supported, stopping scaning of PPS (slice_segment_header_extension_present won't be checked ...\n"));
+		goto exit;
 	}
 	/*lists_modification_present_flag	= */gf_bs_read_int(bs, 1);
 	/*log2_parallel_merge_level_minus2 = */bs_get_ue(bs);
