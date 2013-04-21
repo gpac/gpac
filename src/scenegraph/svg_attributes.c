@@ -6097,7 +6097,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_ContentType_datatype:
 	case DOM_String_datatype:
 		if (* (SVG_String *)a->far_ptr) gf_free(* (SVG_String *)a->far_ptr);
-		* (SVG_String *)a->far_ptr = gf_strdup(*(SVG_String *)b->far_ptr);
+			* (SVG_String *)a->far_ptr = *(SVG_String *)b->far_ptr ? gf_strdup(*(SVG_String *)b->far_ptr) : NULL;
 		return GF_OK;
 
 	case SVG_FontFamily_datatype:
