@@ -1198,7 +1198,7 @@ GF_Err gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node)
 GF_EXPORT
 GF_Node *gf_event_target_get_node(GF_DOMEventTarget *target)
 {
-    if (target->ptr_type == GF_DOM_EVENT_NODE) {
+    if (target && (target->ptr_type == GF_DOM_EVENT_NODE)) {
         return (GF_Node *)target->ptr;
     }
     return NULL;
