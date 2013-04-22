@@ -10,10 +10,16 @@ echo:
 REM ============================================
 echo Check NSIS is in your PATH
 REM ============================================
+if "%PROCESSOR_ARCHITECTURE%" == "AMD64" ( 
+    SET "PRGROOT=%programfiles(x86)%" 
+) 
+if "%PROCESSOR_ARCHITECTURE%" == "x86" ( 
+    SET PRGROOT=%programfiles% 
+)
 
-set NSIS_EXEC="%PROGRAMFILES%\NSIS\makensis.exe"
-if not exist "%PROGRAMFILES%\NSIS\makensis.exe" echo   NSIS couldn't be found at default location %NSIS_EXEC%
-if not exist "%PROGRAMFILES%\NSIS\makensis.exe" goto Abort
+set NSIS_EXEC="%PRGROOT%\NSIS\makensis.exe"
+if not exist "%PRGROOT%\NSIS\makensis.exe" echo   NSIS couldn't be found at default location %NSIS_EXEC%
+if not exist "%PRGROOT%\NSIS\makensis.exe" goto Abort
 echo   Found NSIS at default location %NSIS_EXEC%
 
 
