@@ -456,7 +456,7 @@ Section "GPAC SDK" SecSDK
   File /r /x CVS ..\..\..\..\include\*.h
   SetOutPath $INSTDIR\sdk\lib
   File ..\libgpac.lib
-  File ..\..\..\..\extra_lib\lib\win32\release\js32.lib
+  File ..\..\..\..\extra_lib\lib\win32\release\js.lib
 SectionEnd
 
 
