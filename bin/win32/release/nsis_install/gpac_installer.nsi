@@ -495,8 +495,8 @@ SectionEnd
                   
 Section "Windows Runtime Libraries" SecMSVCRT
   SectionIn 1
-  File "..\Microsoft.VC100.CRT.manifest"
-  File "..\Microsoft.VC100.MFC.manifest"       
+;  File "..\Microsoft.VC100.CRT.manifest"
+;  File "..\Microsoft.VC100.MFC.manifest"       
   File "..\msvcr100.dll"
   File "..\mfc100.dll"
 SectionEnd
