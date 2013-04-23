@@ -8,7 +8,8 @@
 InstallDir "$PROGRAMFILES\GPAC"
 InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
 
-RequestExecutionLevel user
+RequestExecutionLevel admin ;Require admin rights on NT6+ (When UAC is turned on)
+!include LogicLib.nsh
 
 
 ;--------------------------------
@@ -20,6 +21,16 @@ WindowIcon on
 Icon "..\..\..\..\doc\osmo4.ico"
 UninstallIcon "..\..\..\..\doc\osmo4.ico"
 
+
+Function .onInit
+UserInfo::GetAccountType
+pop $0
+${If} $0 != "admin" ;Require admin rights on NT4+
+    MessageBox mb_iconstop "Administrator rights required!"
+    SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
+    Quit
+${EndIf}
+FunctionEnd
 
 ;--------------------------------
 ;Interface Settings

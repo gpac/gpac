@@ -53,7 +53,7 @@ REM echo   version found: %VarRevisionSVN%
 
 move bin\%1\release\nsis_install\default.out bin\%1\release\nsis_install\default.out_
 echo Name "GPAC Framework ${GPAC_VERSION} revision %VarRevisionSVN%" > bin\%1\release\nsis_install\default.out
-echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionSVN%.exe" >> bin\%1\release\nsis_install\default.out
+echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionSVN%-%1.exe" >> bin\%1\release\nsis_install\default.out
 
 
 echo:
