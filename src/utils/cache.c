@@ -181,7 +181,7 @@ Bool delete_cache_files(void *cbck, char *item_name, char *item_path) {
 		if (GF_OK != gf_delete_file(item_path))
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] : failed to cleanup file %s\n", item_path));
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static const char * cache_file_prefix = "gpac_cache_";
