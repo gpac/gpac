@@ -6,6 +6,13 @@ echo *** Generating a Windows GPAC installer ***
 REM ============================================
 
 
+:begin
+IF "%1"=="win32" GOTO next
+IF "%1"=="x64" GOTO next
+echo You must specified target architecture : win32 or x64
+GOTO Abort
+
+:next
 echo:
 REM ============================================
 echo Check NSIS is in your PATH
@@ -44,23 +51,23 @@ if !"%VarRevisionBuild%"==!"%VarRevisionSVN%" echo   local revision and last bui
 if !"%VarRevisionBuild%"==!"%VarRevisionSVN%" goto Abort
 REM echo   version found: %VarRevisionSVN%
 
-move bin\win32\release\nsis_install\default.out bin\win32\release\nsis_install\default.out_
-echo Name "GPAC Framework ${GPAC_VERSION} revision %VarRevisionSVN%" > bin\win32\release\nsis_install\default.out
-echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionSVN%.exe" >> bin\win32\release\nsis_install\default.out
+move bin\%1\release\nsis_install\default.out bin\%1\release\nsis_install\default.out_
+echo Name "GPAC Framework ${GPAC_VERSION} revision %VarRevisionSVN%" > bin\%1\release\nsis_install\default.out
+echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionSVN%.exe" >> bin\%1\release\nsis_install\default.out
 
 
 echo:
 REM ============================================
 echo Executing NSIS
 REM ============================================
-call %NSIS_EXEC% bin\win32\release\nsis_install\gpac_installer.nsi
+call %NSIS_EXEC% bin\%1\release\nsis_install\gpac_installer.nsi
 
 
 echo:
 REM ============================================
 echo Removing temporary files
 REM ============================================
-move bin\win32\release\nsis_install\default.out_ bin\win32\release\nsis_install\default.out
+move bin\%1\release\nsis_install\default.out_ bin\%1\release\nsis_install\default.out
 
 
 echo:
