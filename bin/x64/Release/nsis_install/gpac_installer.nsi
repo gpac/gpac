@@ -8,7 +8,8 @@
 InstallDir "$PROGRAMFILES\GPAC"
 InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
 
-RequestExecutionLevel user
+RequestExecutionLevel admin ;Require admin rights on NT6+ (When UAC is turned on)
+!include LogicLib.nsh
 
 
 ;--------------------------------
@@ -20,6 +21,16 @@ WindowIcon on
 Icon "..\..\..\..\doc\osmo4.ico"
 UninstallIcon "..\..\..\..\doc\osmo4.ico"
 
+
+Function .onInit
+UserInfo::GetAccountType
+pop $0
+${If} $0 != "admin" ;Require admin rights on NT4+
+    MessageBox mb_iconstop "Administrator rights required!"
+    SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
+    Quit
+${EndIf}
+FunctionEnd
 
 ;--------------------------------
 ;Interface Settings
@@ -235,6 +246,7 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\doc\configuration.html"
   File "${GPAC_ROOT}\doc\gpac.mp4"
 
+  File "..\Osmo4.exe"
   File "..\..\..\..\doc\osmo4.ico"
   File "..\libgpac.dll"
   File "..\gm_dummy_in.dll"
@@ -483,8 +495,72 @@ Section "Windows Runtime Libraries" SecMSVCRT
   File "..\mfc100.dll"
 SectionEnd
 
+
+
+
+SubSection "Osmo4 Shortcuts"
+
+Section "Add Start Menu Shortcuts"
+  SectionIn 1
+  #has current user admin privileges?
+  userInfo::getAccountType
+  Pop $0
+  StrCmp $0 "Admin" +1 +2
+  SetShellVarContext all
+  CreateDirectory "$SMPROGRAMS\Osmo4"
+  CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (Classic UI).lnk" "$INSTDIR\Osmo4.exe" ""
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI).lnk" "$INSTDIR\MP4Client.exe" "-gui" 
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI With Console).lnk" "$INSTDIR\MP4Client.exe" ""
+  CreateShortCut "$SMPROGRAMS\Osmo4\Readme.lnk" "$INSTDIR\ReadMe.txt"
+  CreateShortCut "$SMPROGRAMS\Osmo4\License.lnk" "$INSTDIR\License.txt"
+  CreateShortCut "$SMPROGRAMS\Osmo4\History.lnk" "$INSTDIR\changelog.txt"
+  CreateShortCut "$SMPROGRAMS\Osmo4\Configuration Info.lnk" "$INSTDIR\configuration.html"
+SectionEnd
+
+Section "Add shortcut to QuickLaunch"
+  SectionIn 1
+  CreateShortCut "$QUICKLAUNCH\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
+SectionEnd
+
+Section "Add shortcut to Desktop"
+  SectionIn 1
+  CreateShortCut "$DESKTOP\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
+SectionEnd
+
 !define SHCNE_ASSOCCHANGED 0x08000000
 !define SHCNF_IDLIST 0
+
+Section "Make Osmo4 the default MPEG-4 Player"
+  SectionIn 1
+  ;write file association
+  ${WriteRegStrAuth} HKCR GPAC\mp4\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
+  ${WriteRegStrAuth} HKCR GPAC\mp4\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
+  ${WriteRegStrAuth} HKCR .mp4 "" "GPAC\mp4"
+  !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
+
+SectionEnd
+
+Section "Associate 3GPP files (3GP) with Osmo4"
+  SectionIn 1
+  ;write file association
+  ${WriteRegStrAuth} HKCR GPAC\3gp\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
+  ${WriteRegStrAuth} HKCR GPAC\3gp\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
+  ${WriteRegStrAuth} HKCR .3gp "" "GPAC\3gp"
+  !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
+SectionEnd
+
+Section "Associate 3GPP2 files (3G2) with Osmo4"
+  SectionIn 1
+  ;write file association
+  ${WriteRegStrAuth} HKCR GPAC\3g2\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
+  ${WriteRegStrAuth} HKCR GPAC\3g2\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
+  ${WriteRegStrAuth} HKCR .3g2 "" "GPAC\3g2"
+  !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
+SectionEnd
+
+SubSectionEnd
+
 
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
