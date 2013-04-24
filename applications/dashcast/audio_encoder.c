@@ -34,7 +34,7 @@ int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
 	p_aout->p_aframe = avcodec_alloc_frame();
 	p_aout->p_adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
 
-	p_aout->p_codec = avcodec_find_encoder_by_name(p_adata->psz_codec);
+	p_aout->p_codec = avcodec_find_encoder_by_name("aac"/*p_adata->psz_codec*/);
 	if (p_aout->p_codec == NULL) {
 		fprintf(stderr, "Output audio codec not found\n");
 		return -1;

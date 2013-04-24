@@ -1008,11 +1008,17 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	/********************************************/
 
-	//Communication between decoder and encoder
+	//Communication between decoder and audio encoder
 	for (i = 0; i < gf_list_count(p_in_data->p_audio_lst); i++) {
 		AudioData * p_tmp_adata = gf_list_get(p_in_data->p_audio_lst, i);
 		p_tmp_adata->i_channels = p_in_data->adata.i_channels;
 		p_tmp_adata->i_samplerate = p_in_data->adata.i_samplerate;
+	}
+
+	//Communication between decoder and video encoder
+	for (i = 0; i < gf_list_count(p_in_data->p_video_lst); i++) {
+		VideoData * p_tmp_vdata = gf_list_get(p_in_data->p_video_lst, i);
+		p_tmp_vdata->i_framerate = p_in_data->vdata.i_framerate;
 	}
 
 
