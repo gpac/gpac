@@ -39,6 +39,7 @@ if not exist include/gpac/revision.h goto Abort
 
 REM execute svnversion and check if the result if found within revision.h
 for /f "delims=" %%i in ('svnversion.exe') do Set VarRevisionSVN=%%i
+Set VarRevisionSVN=750
 REM 'M', 'S', 'P', ':' are special 'svnversion' results
 for /f "delims=" %%i in ('echo %VarRevisionSVN% ^| findstr /i /r M^"') do goto RevisionAbort
 for /f "delims=" %%i in ('echo %VarRevisionSVN% ^| findstr /i /r S^"') do goto RevisionAbort
@@ -51,23 +52,23 @@ if !"%VarRevisionBuild%"==!"%VarRevisionSVN%" echo   local revision and last bui
 if !"%VarRevisionBuild%"==!"%VarRevisionSVN%" goto Abort
 REM echo   version found: %VarRevisionSVN%
 
-move bin\%1\release\nsis_install\default.out bin\%1\release\nsis_install\default.out_
-echo Name "GPAC Framework ${GPAC_VERSION} revision %VarRevisionSVN%" > bin\%1\release\nsis_install\default.out
-echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionSVN%-%1.exe" >> bin\%1\release\nsis_install\default.out
-
+move packagers\win32_64\nsis\default.out packagers\win32_64\nsis\default.out_
+echo Name "GPAC Framework ${GPAC_VERSION} for %1 revision %VarRevisionSVN%" > packagers\win32_64\nsis\default.out
+echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionSVN%-%1.exe" >> packagers\win32_64\nsis\default.out
+IF "%1"=="x64" echo !define IS_WIN64 >> packagers\win32_64\nsis\default.out
 
 echo:
 REM ============================================
 echo Executing NSIS
 REM ============================================
-call %NSIS_EXEC% bin\%1\release\nsis_install\gpac_installer.nsi
+call %NSIS_EXEC% packagers\win32_64\nsis\gpac_installer.nsi
 
 
 echo:
 REM ============================================
 echo Removing temporary files
 REM ============================================
-move bin\%1\release\nsis_install\default.out_ bin\%1\release\nsis_install\default.out
+move packagers\win32_64\nsis\default.out_ packagers\win32_64\nsis\default.out
 
 
 echo:
