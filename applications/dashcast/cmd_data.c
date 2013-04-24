@@ -59,16 +59,16 @@ int dc_read_configuration(CmdData * p_cmdd) {
 
 		gf_cfg_set_key(p_conf, "v1.mp4", "type", "video");
 		gf_cfg_set_key(p_conf, "v1.mp4", "bitrate", "400000");
-		gf_cfg_set_key(p_conf, "v1.mp4", "framerate", "25");
+//		gf_cfg_set_key(p_conf, "v1.mp4", "framerate", "25");
 		gf_cfg_set_key(p_conf, "v1.mp4", "width", "640");
 		gf_cfg_set_key(p_conf, "v1.mp4", "height", "480");
-		gf_cfg_set_key(p_conf, "v1.mp4", "codec", "libx264");
+//		gf_cfg_set_key(p_conf, "v1.mp4", "codec", "libx264");
 
 		gf_cfg_set_key(p_conf, "a1.mp4", "type", "audio");
 		gf_cfg_set_key(p_conf, "a1.mp4", "bitrate", "200000");
 //		gf_cfg_set_key(p_conf, "a1.mp4", "samplerate", "48000");
 //		gf_cfg_set_key(p_conf, "a1.mp4", "channels", "2");
-		gf_cfg_set_key(p_conf, "a1.mp4", "codec", "aac");
+//		gf_cfg_set_key(p_conf, "a1.mp4", "codec", "aac");
 
 		i_sec_count = 2;
 	}
@@ -82,12 +82,12 @@ int dc_read_configuration(CmdData * p_cmdd) {
 
 			VideoData * p_vconf = malloc(sizeof(VideoData));
 			strcpy(p_vconf->psz_name, psz_sec_name);
-			strcpy(p_vconf->psz_codec,
-					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
+//			strcpy(p_vconf->psz_codec,
+//					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
 			p_vconf->i_bitrate = atoi(
 					gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
-			p_vconf->i_framerate = atoi(
-					gf_cfg_get_key(p_conf, psz_sec_name, "framerate"));
+//			p_vconf->i_framerate = atoi(
+//					gf_cfg_get_key(p_conf, psz_sec_name, "framerate"));
 			p_vconf->i_height = atoi(
 					gf_cfg_get_key(p_conf, psz_sec_name, "height"));
 			p_vconf->i_width = atoi(
@@ -98,8 +98,8 @@ int dc_read_configuration(CmdData * p_cmdd) {
 
 			AudioData * p_aconf = malloc(sizeof(AudioData));
 			strcpy(p_aconf->psz_name, psz_sec_name);
-			strcpy(p_aconf->psz_codec,
-					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
+//			strcpy(p_aconf->psz_codec,
+//					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
 			p_aconf->i_bitrate = atoi(
 					gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
 //			p_aconf->i_samplerate = atoi(
@@ -119,16 +119,16 @@ int dc_read_configuration(CmdData * p_cmdd) {
 	printf("Configurations:\n");
 	for (i = 0; i < gf_list_count(p_cmdd->p_video_lst); i++) {
 		VideoData * p_vconf = gf_list_get(p_cmdd->p_video_lst, i);
-		printf("    id:%s\tres:%dx%d\tvbr:%d\tvfr:%d\tvcodec:%s \n",
+		printf("    id:%s\tres:%dx%d\tvbr:%d\n",
 				p_vconf->psz_name, p_vconf->i_width, p_vconf->i_height,
-				p_vconf->i_bitrate, p_vconf->i_framerate, p_vconf->psz_codec);
+				p_vconf->i_bitrate/*, p_vconf->i_framerate, p_vconf->psz_codec*/);
 	}
 
 	for (i = 0; i < gf_list_count(p_cmdd->p_audio_lst); i++) {
 		AudioData * p_aconf = gf_list_get(p_cmdd->p_audio_lst, i);
-		printf("    id:%s\tabr:%d\tacodec:%s \n", p_aconf->psz_name,
-				p_aconf->i_bitrate, /*p_aconf->i_samplerate,
-				 p_aconf->i_channels,*/p_aconf->psz_codec);
+		printf("    id:%s\tabr:%d\n", p_aconf->psz_name,
+				p_aconf->i_bitrate/*, p_aconf->i_samplerate,
+				 p_aconf->i_channels,p_aconf->psz_codec*/);
 	}
 	printf("\33[0m");
 	fflush(stdout);

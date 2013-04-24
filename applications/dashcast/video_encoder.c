@@ -37,7 +37,7 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	p_voutf->i_vbuf_size = 9 * p_vdata->i_width * p_vdata->i_height + 10000;
 	p_voutf->p_vbuf = (uint8_t *) av_malloc(p_voutf->i_vbuf_size);
 
-	p_voutf->p_codec = avcodec_find_encoder_by_name(p_vdata->psz_codec);
+	p_voutf->p_codec = avcodec_find_encoder_by_name("libx264"/*p_vdata->psz_codec*/);
 	if (p_voutf->p_codec == NULL) {
 		fprintf(stderr, "Output video codec not found\n");
 		return -1;

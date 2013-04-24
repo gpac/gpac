@@ -114,6 +114,8 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata) {
 	p_vin->i_height = p_codec_ctx->height;
 	p_vin->i_pix_fmt = p_codec_ctx->pix_fmt;
 
+	p_vdata->i_framerate = p_codec_ctx->time_base.den;
+
 
 	return 0;
 }
