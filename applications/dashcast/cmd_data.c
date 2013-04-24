@@ -165,7 +165,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	int i;
 
 	char * psz_command_usage =
-			"Usage: dashcast [options]\n"
+			"Usage: DashCast [options]\n"
 					"\n"
 					"Options:\n"
 					"\n"
@@ -174,6 +174,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -av <string>                 multiplexed audio and video input source\n"
 					"    -vf <string>                 input video format (if necessary)\n"
 					"    -vfr <int>                   input video framerate (if necessary)\n"
+			        "    -vres <intxint>              input video resolution (if necessary)\n"
 					"    -af <string>                 input audio format (if necessary)\n"
 					"    -live                        indicates that the system is live\n"
 					"    -conf <string>               configuration file [default=dashcast.conf]\n"
@@ -287,7 +288,26 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 			i++;
 
-		} else if (strcmp(p_argv[i], "-conf") == 0) {
+		} else if (strcmp(p_argv[i], "-vres") == 0) {
+
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1 ) {
+				printf("Video framerate has been already specified.\n");
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			dc_str_to_resolution(p_argv[i], &p_cmdd->vdata.i_width, &p_cmdd->vdata.i_height);
+
+			i++;
+
+		}
+		else if (strcmp(p_argv[i], "-conf") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -411,6 +431,9 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	}
 	if (p_cmdd->vdata.i_framerate != -1) {
 		printf("    video framerate: %d\n", p_cmdd->vdata.i_framerate);
+	}
+	if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1) {
+		printf("    video resolution: %dx%d\n", p_cmdd->vdata.i_width, p_cmdd->vdata.i_height);
 	}
 
 	printf("    audio source: %s\n", p_cmdd->adata.psz_name);
