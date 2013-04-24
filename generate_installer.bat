@@ -39,7 +39,6 @@ if not exist include/gpac/revision.h goto Abort
 
 REM execute svnversion and check if the result if found within revision.h
 for /f "delims=" %%i in ('svnversion.exe') do Set VarRevisionSVN=%%i
-Set VarRevisionSVN=750
 REM 'M', 'S', 'P', ':' are special 'svnversion' results
 for /f "delims=" %%i in ('echo %VarRevisionSVN% ^| findstr /i /r M^"') do goto RevisionAbort
 for /f "delims=" %%i in ('echo %VarRevisionSVN% ^| findstr /i /r S^"') do goto RevisionAbort
