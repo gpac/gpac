@@ -215,7 +215,7 @@ Bool mpd_thread(void * p_params) {
 
 	if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
 		fprintf(p_f,
-				"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"true\">\n");
+				"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
 
 		fprintf(p_f,
 				"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
