@@ -3,26 +3,32 @@
 !define GPAC_VERSION	0.5.1-DEV
 !include default.out
 
-!define GPAC_ROOT ..\..\..\..
+!define GPAC_ROOT ..\..\..
+!ifdef IS_WIN64
+!define GPAC_BIN ${GPAC_ROOT}\bin\x64\release
+!define GPAC_EXTRA_LIB ${GPAC_ROOT}\extra_lib\lib\x64\release
+InstallDir "$PROGRAMFILES64\GPAC"
+!else
+!define GPAC_BIN ${GPAC_ROOT}\bin\win32\release
+!define GPAC_EXTRA_LIB ${GPAC_ROOT}\extra_lib\lib\win32\release
+InstallDir "$PROGRAMFILES32\GPAC"
+!endif
 
-InstallDir "$PROGRAMFILES\GPAC"
 InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
 
 RequestExecutionLevel admin ;Require admin rights on NT6+ (When UAC is turned on)
 !include LogicLib.nsh
 
-
-;--------------------------------
-;Include Modern UI
-
-  !include "MUI2.nsh"
-
-WindowIcon on
-Icon "..\..\..\..\doc\osmo4.ico"
-UninstallIcon "..\..\..\..\doc\osmo4.ico"
-
-
 Function .onInit
+!ifdef IS_WIN64
+!include "x64.nsh"
+${If} ${RunningX64}
+${Else}
+	MessageBox MB_OK|MB_ICONSTOP "This installer is for 64bits operating systems only.$\n Please go to our website and get the 32 BITS installer."
+	Quit
+${Endif}
+!endif
+
 UserInfo::GetAccountType
 pop $0
 ${If} $0 != "admin" ;Require admin rights on NT4+
@@ -31,6 +37,15 @@ ${If} $0 != "admin" ;Require admin rights on NT4+
     Quit
 ${EndIf}
 FunctionEnd
+
+;--------------------------------
+;Include Modern UI
+
+  !include "MUI2.nsh"
+
+WindowIcon on
+Icon "${GPAC_ROOT}\doc\osmo4.ico"
+UninstallIcon "${GPAC_ROOT}\doc\osmo4.ico"
 
 ;--------------------------------
 ;Interface Settings
@@ -190,7 +205,6 @@ FunctionEnd
  
 !define DeleteRegKeyAuth "!insertmacro DeleteRegKeyAuth"
 
-
 Function InsertGDIPLUS
    Push $R0
    Push $R1
@@ -226,14 +240,15 @@ lbl_winnt:
    StrCmp $R1 '5.2' lbl_done	;.NET server
 
 lbl_add:
-   File ".\Gdiplus.dll"
+ !ifndef IS_WIN64
+   File "${GPAC_BIN}\Gdiplus.dll"
+  !endif
 
 lbl_xp:
-   File "..\gm_gdip_raster.dll"
+   File "${GPAC_BIN}\gm_gdip_raster.dll"
 
 lbl_done:
 FunctionEnd
-
 
 ;osmo4 install
 Section "Osmo4/GPAC Player" SecOsmo4
@@ -246,16 +261,16 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\doc\configuration.html"
   File "${GPAC_ROOT}\doc\gpac.mp4"
 
-  File "..\Osmo4.exe"
-  File "..\..\..\..\doc\osmo4.ico"
-  File "..\libgpac.dll"
-  File "..\gm_dummy_in.dll"
-  File "..\gm_dx_hw.dll"
-  File "..\js.dll"
-  File "..\gm_gpac_js.dll"
-  File "..\libeay32.dll"
-  File "..\ssleay32.dll"
-  File "..\gm_ismacryp.dll"
+  File "${GPAC_BIN}\Osmo4.exe"
+  File "${GPAC_ROOT}\doc\osmo4.ico"
+  File "${GPAC_BIN}\libgpac.dll"
+  File "${GPAC_BIN}\gm_dummy_in.dll"
+  File "${GPAC_BIN}\gm_dx_hw.dll"
+  File "${GPAC_BIN}\js.dll"
+  File "${GPAC_BIN}\gm_gpac_js.dll"
+  File "${GPAC_BIN}\libeay32.dll"
+  File "${GPAC_BIN}\ssleay32.dll"
+  File "${GPAC_BIN}\gm_ismacryp.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -263,14 +278,14 @@ Section "Osmo4/GPAC Player" SecOsmo4
 
   ;copy GUI
   SetOutPath $INSTDIR\gui
-  File "..\..\..\..\gui\gui.bt"
-  File "..\..\..\..\gui\gui.js"
-  File "..\..\..\..\gui\gwlib.js"
-  File "..\..\..\..\gui\mpegu-core.js"
+  File "${GPAC_ROOT}\gui\gui.bt"
+  File "${GPAC_ROOT}\gui\gui.js"
+  File "${GPAC_ROOT}\gui\gwlib.js"
+  File "${GPAC_ROOT}\gui\mpegu-core.js"
   SetOutPath $INSTDIR\gui\icons
-  File /r /x .svn ..\..\..\..\gui\icons\*
+  File /r /x .svn ${GPAC_ROOT}\gui\icons\*
   SetOutPath $INSTDIR\gui\extensions
-  File /r /x .svn ..\..\..\..\gui\extensions\*
+  File /r /x .svn ${GPAC_ROOT}\gui\extensions\*
 
   SetOutPath $INSTDIR
   
@@ -289,61 +304,61 @@ SubSection "GPAC Plugins" SecPlugins
 
 Section "MPEG-4 BIFS Decoder" SecBIFS
   SectionIn 1
-  File "..\gm_bifs_dec.dll"
+  File "${GPAC_BIN}\gm_bifs_dec.dll"
 SectionEnd
 
 Section "MPEG-4 ODF Decoder" SecODF
   SectionIn 1
-  File "..\gm_odf_dec.dll"
+  File "${GPAC_BIN}\gm_odf_dec.dll"
 SectionEnd
 
 Section "MPEG-4 LASeR Decoder" SecLASeR
   SectionIn 1
-  File "..\gm_laser_dec.dll"
+  File "${GPAC_BIN}\gm_laser_dec.dll"
 SectionEnd
 
 Section "MPEG-4 SAF Demultiplexer" SecSAF
   SectionIn 1
-  File "..\gm_saf_in.dll"
+  File "${GPAC_BIN}\gm_saf_in.dll"
 SectionEnd
 
 Section "Textual MPEG-4 Loader" SecTextLoad
   SectionIn 1
-  File "..\gm_ctx_load.dll"
+  File "${GPAC_BIN}\gm_ctx_load.dll"
 SectionEnd
 
 Section "Image Package (PNG, JPEG, BMP)" SecIMG
   SectionIn 1
-  File "..\gm_img_in.dll"
+  File "${GPAC_BIN}\gm_img_in.dll"
 SectionEnd
 
 Section "AAC Audio" SecAAC
   SectionIn 1
-  File "..\gm_aac_in.dll"
+  File "${GPAC_BIN}\gm_aac_in.dll"
 SectionEnd
 
 Section "MP3 Audio" SecMP3
   SectionIn 1
-  File "..\gm_mp3_in.dll"
+  File "${GPAC_BIN}\gm_mp3_in.dll"
 SectionEnd
 
 Section "AC3 Audio" SecAC3
   SectionIn 1
-  File "..\gm_ac3_in.dll"
+  File "${GPAC_BIN}\gm_ac3_in.dll"
 SectionEnd
 
 Section "FFMPEG" SecFFMPEG
   SectionIn 1
-  File "..\gm_ffmpeg_in.dll"
-  File "..\avcodec-*.dll"
-  File "..\avformat-*.dll"
-  File "..\avutil-*.dll"
-  File "..\swscale-*.dll"
+  File "${GPAC_BIN}\gm_ffmpeg_in.dll"
+  File "${GPAC_BIN}\avcodec-*.dll"
+  File "${GPAC_BIN}\avformat-*.dll"
+  File "${GPAC_BIN}\avutil-*.dll"
+  File "${GPAC_BIN}\swscale-*.dll"
 SectionEnd
 
 Section "XviD Video Decoder" SecXVID
   SectionIn 1
-  File "..\gm_xvid_dec.dll"
+  File "${GPAC_BIN}\gm_xvid_dec.dll"
 SectionEnd
 
 ;Section "AMR NB & WB" SecAMRFT
@@ -353,29 +368,28 @@ SectionEnd
 
 Section "Subtitles" SecSUBS
   SectionIn 1
-  File "..\gm_timedtext.dll"
+  File "${GPAC_BIN}\gm_timedtext.dll"
 SectionEnd
 
 Section "ISO File Format" SecISOFF
   SectionIn 1
-  File "..\gm_isom_in.dll"
+  File "${GPAC_BIN}\gm_isom_in.dll"
 SectionEnd
 
 Section "MPEG-2 TS" SecM2TS
   SectionIn 1
-  File "..\gm_mpegts_in.dll"
+  File "${GPAC_BIN}\gm_mpegts_in.dll"
 SectionEnd
 
 Section "RTP/RTSP" SecRTP
   SectionIn 1
-  File "..\gm_rtp_in.dll"
+  File "${GPAC_BIN}\gm_rtp_in.dll"
 SectionEnd
 
 Section "SVG" SecSVG
   SectionIn 1
-  File "..\gm_svg_in.dll"
+  File "${GPAC_BIN}\gm_svg_in.dll"
 SectionEnd
-
 
 Section "GDI+" SecGDIP
   SectionIn 1
@@ -384,54 +398,49 @@ SectionEnd
 
 Section "GPAC 2D Raster" SecG2DS
   SectionIn 1
-  File "..\gm_soft_raster.dll"
+  File "${GPAC_BIN}\gm_soft_raster.dll"
 SectionEnd
 
 Section "FreeType" SecFT
   SectionIn 1
-  File "..\gm_ft_font.dll"
+  File "${GPAC_BIN}\gm_ft_font.dll"
 SectionEnd
 
 Section "Windows MME Audio" SecWAVE
   SectionIn 1
-  File "..\gm_wav_out.dll"
+  File "${GPAC_BIN}\gm_wav_out.dll"
 SectionEnd
 
 Section "Xiph" SecXIPH
   SectionIn 1
-  File "..\gm_ogg.dll"
+  File "${GPAC_BIN}\gm_ogg.dll"
 SectionEnd
 
 Section "OpenSVC Decoder" SecOSVC
   SectionIn 1
-  File "..\OpenSVCDecoder.dll"
-  File "..\gm_opensvc_dec.dll"
+  File "${GPAC_BIN}\OpenSVCDecoder.dll"
+  File "${GPAC_BIN}\gm_opensvc_dec.dll"
 SectionEnd
 
 Section "OpenHEVC Decoder" SecOHEVC
   SectionIn 1
-  File "..\libLibOpenHevcWrapper.dll"
-  File "..\gm_openhevc_dec.dll"
+  File "${GPAC_BIN}\libLibOpenHevcWrapper.dll"
+  File "${GPAC_BIN}\gm_openhevc_dec.dll"
 SectionEnd
 
 Section "MPEG DASH Suppport" SecDASH
   SectionIn 1
-  File "..\gm_mpd_in.dll"
-SectionEnd
-
-Section "HTML 5 Media Source Extensions Suppport" SecMSE
-  SectionIn 1
-  File "..\gm_mse_in.dll"
+  File "${GPAC_BIN}\gm_mpd_in.dll"
 SectionEnd
 
 Section "UPnP Support" SecUPnP
   SectionIn 1
-  File "..\gm_platinum.dll"
+  File "${GPAC_BIN}\gm_platinum.dll"
 SectionEnd
 
 Section "Widget Manager" SecMPEGU
   SectionIn 1
-  File "..\gm_widgetman.dll"
+  File "${GPAC_BIN}\gm_widgetman.dll"
 SectionEnd
 
 ;Section "MobileIP Framework" SecMobIP
@@ -458,8 +467,8 @@ SubSectionEnd
 Section "MP4Box" SecMP4B
   SectionIn 1
   SetOutPath $INSTDIR
-  File "..\MP4Box.exe"
-  File "..\MP42TS.exe"
+  File "${GPAC_BIN}\MP4Box.exe"
+  File "${GPAC_BIN}\MP42TS.exe"
 
   Push $INSTDIR
   Call AddToPath
@@ -469,17 +478,35 @@ SectionEnd
 Section "GPAC SDK" SecSDK
   SectionIn 1
   SetOutPath $INSTDIR\sdk\include
-  File /r /x CVS ..\..\..\..\include\*.h
+  File /r /x CVS ${GPAC_ROOT}\include\*.h
   SetOutPath $INSTDIR\sdk\lib
-  File ..\libgpac.lib
-  File ..\..\..\..\extra_lib\lib\x64\release\js.lib
+  File ${GPAC_BIN}\libgpac.lib
+  File ${GPAC_EXTRA_LIB}\js.lib
 SectionEnd
 
+
+!ifndef IS_WIN64
+!define HK_MOZ "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
+
+Section "Osmozilla" SecZILLA
+  SectionIn 1
+  SetOutPath $INSTDIR
+  File "${GPAC_BIN}\nposmozilla.dll"
+  File "${GPAC_BIN}\nposmozilla.xpt"
+
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\nposmozilla.dll"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\nposmozilla.xpt"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
+SectionEnd
+!endif
 
 Section "GPAX" SecGPAX
   SectionIn 1
   SetOutPath $INSTDIR
-  File "..\GPAX.dll"
+  File "${GPAC_BIN}\GPAX.dll"
   RegDLL "$INSTDIR\GPAX.dll"
 SectionEnd
 
@@ -487,7 +514,7 @@ SectionEnd
 Section "MP4Client" SecMP4C
   SectionIn 1
   SetOutPath $INSTDIR
-  File "..\MP4Client.exe"
+  File "${GPAC_BIN}\MP4Client.exe"
 SectionEnd   
                  
                  
@@ -496,8 +523,8 @@ Section "Windows Runtime Libraries" SecMSVCRT
   SectionIn 1
 ;  File "..\Microsoft.VC100.CRT.manifest"
 ;  File "..\Microsoft.VC100.MFC.manifest"       
-  File "..\msvcr100.dll"
-  File "..\mfc100.dll"
+  File "${GPAC_BIN}\msvcr100.dll"
+  File "${GPAC_BIN}\mfc100.dll"
 SectionEnd
 
 
@@ -514,7 +541,9 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\Osmo4"
   CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  !ifndef IS_WIN64
   CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (Classic UI).lnk" "$INSTDIR\Osmo4.exe" ""
+  !endif
   CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI).lnk" "$INSTDIR\MP4Client.exe" "-gui" 
   CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI With Console).lnk" "$INSTDIR\MP4Client.exe" ""
   CreateShortCut "$SMPROGRAMS\Osmo4\Readme.lnk" "$INSTDIR\ReadMe.txt"
@@ -523,6 +552,7 @@ Section "Add Start Menu Shortcuts"
   CreateShortCut "$SMPROGRAMS\Osmo4\Configuration Info.lnk" "$INSTDIR\configuration.html"
 SectionEnd
 
+!ifndef IS_WIN64
 Section "Add shortcut to QuickLaunch"
   SectionIn 1
   CreateShortCut "$QUICKLAUNCH\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
@@ -563,7 +593,8 @@ Section "Associate 3GPP2 files (3G2) with Osmo4"
   ${WriteRegStrAuth} HKCR .3g2 "" "GPAC\3g2"
   !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
 SectionEnd
-
+!endif
+  
 SubSectionEnd
 
 
@@ -596,7 +627,6 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMSE}  "HTTP Streaming using HTML 5 Media Source Extensions"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
