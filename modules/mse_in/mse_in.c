@@ -33,6 +33,11 @@ typedef struct __mse_module
     GF_InputService *plug;
 } GF_MSE_In;
 
+static u32 MSE_RegisterMimeTypes(const GF_InputService *plug)
+{
+	return 0;
+}
+
 static Bool MSE_CanHandleURL(GF_InputService *plug, const char *url)
 {
     if (!plug || !url)
@@ -329,7 +334,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
     GF_SAFEALLOC(plug, GF_InputService);
     GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MSE Loader", "gpac distribution")
-    plug->RegisterMimeTypes = NULL;
+    plug->RegisterMimeTypes = MSE_RegisterMimeTypes;
     plug->CanHandleURL = MSE_CanHandleURL;
     plug->ConnectService = MSE_ConnectService;
     plug->CloseService = MSE_CloseService;
