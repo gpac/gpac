@@ -433,6 +433,11 @@ Section "MPEG DASH Suppport" SecDASH
   File "${GPAC_BIN}\gm_mpd_in.dll"
 SectionEnd
 
+Section "HTML 5 Media Source Extensions Suppport" SecMSE
+  SectionIn 1
+  File "..\gm_mse_in.dll"
+SectionEnd
+
 Section "UPnP Support" SecUPnP
   SectionIn 1
   File "${GPAC_BIN}\gm_platinum.dll"
@@ -627,6 +632,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMSE}  "HTTP Streaming using HTML 5 Media Source Extensions"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
