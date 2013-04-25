@@ -435,7 +435,7 @@ SectionEnd
 
 Section "HTML 5 Media Source Extensions Suppport" SecMSE
   SectionIn 1
-  File "..\gm_mse_in.dll"
+  File "${GPAC_BIN}\gm_mse_in.dll"
 SectionEnd
 
 Section "UPnP Support" SecUPnP
