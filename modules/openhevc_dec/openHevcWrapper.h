@@ -7,7 +7,7 @@ int  libOpenHevcInit();
 int  libOpenHevcDecode(unsigned char *buff, int nal_len);
 void libOpenHevcGetPictureSize(unsigned int *width, unsigned int *height, unsigned int *stride);
 int  libOpenHevcGetOuptut(int got_picture, unsigned char **Y, unsigned char **U, unsigned char **V);
-int  libOpenHevcGetOuptutCpy(int got_picture, unsigned char *Y, unsigned char *U, unsigned char *V);
+int  libOpenHevcGetOutputCpy(int got_picture, unsigned char *Y, unsigned char *U, unsigned char *V);
 void libOpenHevcSetCheckMD5(int val);
 void libOpenHevcClose();
 const char *libOpenHevcVersion();
