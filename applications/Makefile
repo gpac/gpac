@@ -8,8 +8,7 @@ endif
 
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box 
-ifeq ($(CONFIG_DARWIN), yes)
-else
+ifeq ($(CONFIG_LINUX), yes)
 APPDIRS+=dashcast
 endif
 ifeq ($(DISABLE_M2TS_MUX), no)
