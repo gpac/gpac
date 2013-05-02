@@ -3784,9 +3784,9 @@ static void* prepend_alloc(mstate m, char* newbase, char* oldbase,
                            size_t nb) {
   mchunkptr p = align_as_chunk(newbase);
   mchunkptr oldfirst = align_as_chunk(oldbase);
-  size_t psize = (char*)oldfirst - (char*)p;
+  bindex_t psize = (bindex_t)((char*)oldfirst - (char*)p);
   mchunkptr q = chunk_plus_offset(p, nb);
-  size_t qsize = psize - nb;
+  bindex_t qsize = psize - (bindex_t)nb;
   set_size_and_pinuse_of_inuse_chunk(m, p, nb);
 
   assert((char*)oldfirst > (char*)q);
@@ -3807,7 +3807,7 @@ static void* prepend_alloc(mstate m, char* newbase, char* oldbase,
   }
   else {
     if (!is_inuse(oldfirst)) {
-      size_t nsize = chunksize(oldfirst);
+      bindex_t nsize = chunksize(oldfirst);
       unlink_chunk(m, oldfirst, nsize);
       oldfirst = chunk_plus_offset(oldfirst, nsize);
       qsize += nsize;
@@ -4268,7 +4268,7 @@ static void* tmalloc_large(mstate m, size_t nb) {
 /* allocate a small request from the best fitting chunk in a treebin */
 static void* tmalloc_small(mstate m, size_t nb) {
   tchunkptr t, v;
-  size_t rsize;
+  bindex_t rsize;
   bindex_t i;
   binmap_t leastbit = least_bit(m->treemap);
   compute_bit2idx(leastbit, i);
@@ -4276,7 +4276,7 @@ static void* tmalloc_small(mstate m, size_t nb) {
   rsize = chunksize(t) - nb;
 
   while ((t = leftmost_child(t)) != 0) {
-    size_t trem = chunksize(t) - nb;
+    bindex_t trem = chunksize(t) - nb;
     if (trem < rsize) {
       rsize = trem;
       v = t;
@@ -4629,7 +4629,7 @@ void* dlmalloc(size_t bytes) {
 
   if (!PREACTION(gm)) {
     void* mem;
-    size_t nb;
+    bindex_t nb;
     if (bytes <= MAX_SMALL_REQUEST) {
       bindex_t idx;
       binmap_t smallbits;
@@ -4653,7 +4653,7 @@ void* dlmalloc(size_t bytes) {
       else if (nb > gm->dvsize) {
         if (smallbits != 0) { /* Use chunk in next nonempty smallbin */
           mchunkptr b, p, r;
-          size_t rsize;
+          bindex_t rsize;
           bindex_t i;
           binmap_t leftbits = (smallbits << idx) & left_bits(idx2bit(idx));
           binmap_t leastbit = least_bit(leftbits);
@@ -4756,10 +4756,10 @@ void dlfree(void* mem) {
     if (!PREACTION(fm)) {
       check_inuse_chunk(fm, p);
       if (RTCHECK(ok_address(fm, p) && ok_inuse(p))) {
-        size_t psize = chunksize(p);
+        bindex_t psize = chunksize(p);
         mchunkptr next = chunk_plus_offset(p, psize);
         if (!pinuse(p)) {
-          size_t prevsize = p->prev_foot;
+          bindex_t prevsize = p->prev_foot;
           if (is_mmapped(p)) {
             psize += prevsize + MMAP_FOOT_PAD;
             if (CALL_MUNMAP((char*)p - prevsize, psize) == 0)
@@ -4806,7 +4806,7 @@ void dlfree(void* mem) {
               goto postaction;
             }
             else {
-              size_t nsize = chunksize(next);
+              bindex_t nsize = chunksize(next);
               psize += nsize;
               unlink_chunk(fm, next, nsize);
               set_size_and_pinuse_of_free_chunk(p, psize);

@@ -788,7 +788,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	while (list) {
 		char *t = gf_dom_flatten_textContent(list->node);
 		if (t) {
-			u32 sub_len = strlen(t);
+			size_t sub_len = strlen(t);
 			res = (char *)gf_realloc(res, sizeof(char)*(len+sub_len+1));
 			if (!len) res[0] = 0;
 			len += sub_len;

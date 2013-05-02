@@ -473,7 +473,8 @@ static char *storage_get_section(M_Storage *storage)
 	char *szPath;
 	u8 hash[20];
 	char name[50];
-	u32 i, len;
+	u32 i;
+	size_t len;
 
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
 

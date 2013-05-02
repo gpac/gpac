@@ -170,9 +170,9 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeaderOutputFile>.\obj\mp42ts_rel/$(ProjectName).pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\obj\mp42ts_rel/</AssemblerListingLocation>
-      <ObjectFileName>.\obj\mp42ts_rel/</ObjectFileName>
-      <ProgramDataBaseFileName>.\obj\mp42ts_rel/</ProgramDataBaseFileName>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
@@ -208,9 +208,9 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeaderOutputFile>.\obj\mp42ts_rel/$(ProjectName).pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\obj\mp42ts_rel/</AssemblerListingLocation>
-      <ObjectFileName>.\obj\mp42ts_rel/</ObjectFileName>
-      <ProgramDataBaseFileName>.\obj\mp42ts_rel/</ProgramDataBaseFileName>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
