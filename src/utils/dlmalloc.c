@@ -4825,7 +4825,7 @@ void dlfree(void* mem) {
           }
           else {
             tchunkptr tp = (tchunkptr)p;
-            insert_large_chunk(fm, tp, (DWORD)psize);
+            insert_large_chunk(fm, tp, psize);
             check_free_chunk(fm, p);
             if (--fm->release_checks == 0)
               release_unused_segments(fm);
