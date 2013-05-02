@@ -58,7 +58,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	ctx->width = ctx->height = ctx->out_size = 0;
 	ctx->state_found = 0;
 	
-	libOpenHevcInit();
+	libOpenHevcInit(3);
 	ctx->is_init = 1;
 
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -177,6 +177,9 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
 	switch (capability.CapCode) {
+    case GF_CODEC_WAIT_RAP:
+            libOpenHevcFlush();
+        return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		/*todo - update temporal filtering*/
 		if (capability.cap.valueInt) {
@@ -214,6 +217,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 			pV = outBuffer + 5*ctx->stride * ctx->height/4;
 
 			flushed = libOpenHevcGetOutputCpy(1, pY, pU, pV);
+
 
 			if (flushed) {
 				*outBufferLength = ctx->out_size;
