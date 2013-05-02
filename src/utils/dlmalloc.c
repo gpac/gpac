@@ -3865,7 +3865,7 @@ static void add_segment(mstate m, char* tbase, size_t tsize, flag_t mmapped) {
   /* Insert the rest of old top into a bin as an ordinary free chunk */
   if (csp != old_top) {
     mchunkptr q = (mchunkptr)old_top;
-    size_t psize = csp - old_top;
+    bindex_t psize = csp - old_top;
     mchunkptr tn = chunk_plus_offset(q, psize);
     set_free_with_pinuse(q, psize, tn);
     insert_chunk(m, q, psize);
@@ -4276,7 +4276,7 @@ static void* tmalloc_small(mstate m, size_t nb) {
   rsize = chunksize(t) - nb;
 
   while ((t = leftmost_child(t)) != 0) {
-    bindex_t trem = chunksize(t) - nb;
+    bindex_t trem = chunksize(t) - (bindex_t)nb;
     if (trem < rsize) {
       rsize = trem;
       v = t;
@@ -4759,7 +4759,7 @@ void dlfree(void* mem) {
         bindex_t psize = chunksize(p);
         mchunkptr next = chunk_plus_offset(p, psize);
         if (!pinuse(p)) {
-          bindex_t prevsize = p->prev_foot;
+          bindex_t prevsize = (bindex_t)p->prev_foot;
           if (is_mmapped(p)) {
             psize += prevsize + MMAP_FOOT_PAD;
             if (CALL_MUNMAP((char*)p - prevsize, psize) == 0)
@@ -4825,7 +4825,7 @@ void dlfree(void* mem) {
           }
           else {
             tchunkptr tp = (tchunkptr)p;
-            insert_large_chunk(fm, tp, psize);
+            insert_large_chunk(fm, tp, (DWORD)psize);
             check_free_chunk(fm, p);
             if (--fm->release_checks == 0)
               release_unused_segments(fm);
