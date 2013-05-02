@@ -2676,7 +2676,10 @@ if test "$darwin" = "yes" ; then
 fi
 
 ldir=`pwd`
-CFLAGS="$CFLAGS -fvisibility=\"hidden\" -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
+CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
+if test "$cygwin" = "no" ; then
+    CFLAGS="$CFLAGS -fvisibility=\"hidden\""
+fi
 CPPFLAGS="$CPPFLAGS"
 
 
