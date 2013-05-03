@@ -103,9 +103,9 @@ void GPACCaptureHandler::handleCaptureEvent(IOBuffer* io_buf)
 		for (u32 i=0; i<m_height; i++) {
 			memcpy(m_data + (m_height - 1 - i) * m_stride, data + i*m_stride, m_stride);
 		}
-		gf_term_on_sl_packet(m_pService, m_pChannel, m_data, io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+		gf_term_on_sl_packet(m_pService, m_pChannel, m_data, (u32)io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
 	} else {
-		gf_term_on_sl_packet(m_pService, m_pChannel, (char *) io_buf->getPtr(), io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+		gf_term_on_sl_packet(m_pService, m_pChannel, (char *) io_buf->getPtr(), (u32)io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
 	}
 	io_buf->release();
 }
@@ -283,13 +283,13 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 			break;
 		case GF_4CC('2', '1', 'U', 'Y'):
 			vcap->pixel_format = GF_PIXEL_I420;
-			vcap->stride = vcap->device->getFormatMgr()->getBytesPerLine();//1.5*vcap->width;//
-			vcap->out_size = vcap->device->getFormatMgr()->getImageSize();//1.5*vcap->width*vcap->height;//
+			vcap->stride = (u32)vcap->device->getFormatMgr()->getBytesPerLine();//1.5*vcap->width;//
+			vcap->out_size = (u32)vcap->device->getFormatMgr()->getImageSize();//1.5*vcap->width*vcap->height;//
 			break;
 		case GF_4CC('3', 'B', 'G', 'R'):
 			vcap->pixel_format = GF_PIXEL_BGR_24;
 			vcap->stride = vcap->device->getFormatMgr()->getBytesPerLine();//1.5*vcap->width;//
-			vcap->out_size = vcap->device->getFormatMgr()->getImageSize();//1.5*vcap->width*vcap->height;//
+			vcap->out_size = (u32)vcap->device->getFormatMgr()->getImageSize();//1.5*vcap->width*vcap->height;//
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Unsupported 4CC %s (%08x) from capture device\n", gf_4cc_to_str(format->getFourcc()), format->getFourcc()));
