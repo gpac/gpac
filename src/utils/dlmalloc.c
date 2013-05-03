@@ -3865,7 +3865,7 @@ static void add_segment(mstate m, char* tbase, size_t tsize, flag_t mmapped) {
   /* Insert the rest of old top into a bin as an ordinary free chunk */
   if (csp != old_top) {
     mchunkptr q = (mchunkptr)old_top;
-    bindex_t psize = csp - old_top;
+    bindex_t psize = (bindex_t)(csp - old_top);
     mchunkptr tn = chunk_plus_offset(q, psize);
     set_free_with_pinuse(q, psize, tn);
     insert_chunk(m, q, psize);
@@ -4273,7 +4273,7 @@ static void* tmalloc_small(mstate m, size_t nb) {
   binmap_t leastbit = least_bit(m->treemap);
   compute_bit2idx(leastbit, i);
   v = t = *treebin_at(m, i);
-  rsize = chunksize(t) - nb;
+  rsize = (bindex_t)(chunksize(t) - nb);
 
   while ((t = leftmost_child(t)) != 0) {
     bindex_t trem = chunksize(t) - (bindex_t)nb;

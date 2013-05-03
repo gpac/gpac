@@ -791,7 +791,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 			size_t sub_len = strlen(t);
 			res = (char *)gf_realloc(res, sizeof(char)*(len+sub_len+1));
 			if (!len) res[0] = 0;
-			len += sub_len;
+			len += (u32)sub_len;
 			strcat(res, t);
 			gf_free(t);
 		}
