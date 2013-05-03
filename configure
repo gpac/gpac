@@ -1016,8 +1016,7 @@ if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS $ohevc_ldflags 2> /dev/null  ; then
   has_openhevc="yes"
 else
   ohevc_cflags="-I$local_inc"
-  ohevc_ldflags="-lLibOpenHevcWrapper -lpthread"
-
+  ohevc_ldflags="-lLibOpenHevcWrapper -lpthread -lm"
   if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS -L$local_lib $ohevc_ldflags 2> /dev/null  ; then
     has_openhevc="yes"
     ohevc_ldflags="-L../../$local_lib $ohevc_ldflags"
