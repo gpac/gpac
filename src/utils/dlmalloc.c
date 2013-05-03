@@ -3424,8 +3424,8 @@ static void internal_malloc_stats(mstate m) {
 /* Link a free chunk into a smallbin  */
 #define insert_small_chunk(M, P, S) {\
   bindex_t I  = (bindex_t)small_index(S);\
-  mchunkptr B = (mchunkptr)smallbin_at(M, I);\
-  mchunkptr F = (mchunkptr)B;\
+  mchunkptr B = smallbin_at(M, I);\
+  mchunkptr F = B;\
   assert(S >= MIN_CHUNK_SIZE);\
   if (!smallmap_is_marked(M, I))\
     mark_smallmap(M, I);\
@@ -3434,10 +3434,10 @@ static void internal_malloc_stats(mstate m) {
   else {\
     CORRUPTION_ERROR_ACTION(M);\
   }\
-  B->fd = (mchunkptr)P;\
-  F->bk = (mchunkptr)P;\
-  P->fd = (mchunkptr)F;\
-  P->bk = (mchunkptr)B;\
+  B->fd = P;\
+  F->bk = P;\
+  P->fd = F;\
+  P->bk = B;\
 }
 
 /* Unlink a chunk from a smallbin  */
