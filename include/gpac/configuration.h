@@ -227,5 +227,8 @@
 /*disables IETF RTP/SDP/RTSP*/
 //#define GPAC_DISABLE_STREAMING
 
+/*disables dashclient */
+//#define GPAC_DISABLE_DASH_CLIENT
+
 #endif		/*_GF_CONFIG_H_*/
 
