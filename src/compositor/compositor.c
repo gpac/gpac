@@ -839,12 +839,12 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 	/*set current graph*/
 	compositor->scene = scene_graph;
-	do_notif = 0;
+	do_notif = GF_FALSE;
 	if (scene_graph) {
 #ifndef GPAC_DISABLE_SVG
 		SVG_Length *w, *h;
 		SVG_ViewBox *vb;
-		Bool is_svg = 0;
+		Bool is_svg = GF_FALSE;
 		u32 tag;
 		GF_Node *top_node;
 #endif
