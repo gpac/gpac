@@ -103,9 +103,9 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek");
 	if (!sOpt) {
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek", "yes");
-		ctx->reset_dec_on_seek = 1;
+		ctx->reset_dec_on_seek = GF_TRUE;
 	} else if (!strcmp(sOpt, "yes")) {
-		ctx->reset_dec_on_seek = 1;
+		ctx->reset_dec_on_seek = GF_TRUE;
 	}
 
 	/*not supported in this version*/
@@ -122,7 +122,7 @@ static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 
 	if (ctx->is_init) {
 		libOpenHevcClose();
-		ctx->is_init = 0;
+		ctx->is_init = GF_FALSE;
 	}
 	ctx->width = ctx->height = ctx->out_size = 0;
 	return GF_OK;
