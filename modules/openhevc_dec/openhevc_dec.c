@@ -56,10 +56,10 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = 0;
-	ctx->state_found = 0;
+	ctx->state_found = GF_FALSE;
 	
 	libOpenHevcInit(3);
-	ctx->is_init = 1;
+	ctx->is_init = GF_TRUE;
 
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		u32 i, j;
@@ -81,7 +81,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 				}
 			}
 		}
-		ctx->state_found = 1;
+		ctx->state_found = GF_TRUE;
 		gf_odf_hevc_cfg_del(cfg);
 	} else {
 		ctx->nalu_size_length = 0;
