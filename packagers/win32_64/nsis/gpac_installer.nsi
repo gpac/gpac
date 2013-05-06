@@ -261,7 +261,9 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\doc\configuration.html"
   File "${GPAC_ROOT}\doc\gpac.mp4"
 
+  !ifndef IS_WIN64
   File "${GPAC_BIN}\Osmo4.exe"
+  !endif
   File "${GPAC_ROOT}\doc\osmo4.ico"
   File "${GPAC_BIN}\libgpac.dll"
   File "${GPAC_BIN}\gm_dummy_in.dll"
