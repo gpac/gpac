@@ -637,7 +637,7 @@ void SFE_PutInteger(ScriptEnc *sc_enc, char *str)
 
 u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 {
-	Bool is_var = 0;
+	Bool is_var = GF_FALSE;
 	u32 close_code, open_code;
 	u32 count = 0;
 	u32 nbExpr = 1;
