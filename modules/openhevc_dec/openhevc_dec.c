@@ -270,7 +270,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				case GF_HEVC_NALU_VID_PARAM:
 				case GF_HEVC_NALU_SEQ_PARAM:
 				case GF_HEVC_NALU_PIC_PARAM:
-					ctx->state_found = 1;
+					ctx->state_found = GF_TRUE;
 					break;
 				}
 			}
