@@ -490,7 +490,7 @@ FILE *gf_temp_file_new()
 	if (res) return res;
 	{
 		u32 err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): %08x\n", err));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", err));
 	}
 	/*tmpfile() may fail under vista ...*/
 	if (!GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) 
