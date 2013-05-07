@@ -1661,8 +1661,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 			gf_isom_set_edit_segment(dest, dst_tk, 0, (u64) (s64) (insert_dts*rescale), 0, GF_ISOM_EDIT_EMPTY);
 			gf_isom_set_edit_segment(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
-		}
-		else if (merge_edits) {
+		} else if (merge_edits) {
 			/*convert from media time to track time*/
 			Double rescale = (Float) gf_isom_get_timescale(dest);
 			rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
@@ -1701,8 +1700,25 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			u32 j, count;
 			
 			count = gf_isom_get_edit_segment_count(dest, dst_tk);
-			gf_isom_get_edit_segment(dest, dst_tk, count, &editTime, &segmentDuration, &mediaTime, &editMode);
-
+			if (count) {
+				e = gf_isom_get_edit_segment(dest, dst_tk, count, &editTime, &segmentDuration, &mediaTime, &editMode);
+				if (e) {
+					fprintf(stderr, "Error: edit segment error on destination track %u could not be retrieved.\n", dst_tk);
+					goto err_exit;
+				}
+			} else if (gf_isom_get_edit_segment_count(orig, i+1)) {
+				/*fake empty edit segment*/
+				/*convert from media time to track time*/
+				Double rescale = (Float) gf_isom_get_timescale(dest);
+				rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
+				segmentDuration = (u64) (dest_track_dur_before_cat * rescale);
+				editTime = 0;
+				mediaTime = 0;
+				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
+			} else {
+				editTime = 0;
+				segmentDuration = 0;
+			}
 
 			/*convert to dst time scale*/
 			ts_scale = (Float) gf_isom_get_timescale(dest);
@@ -1715,7 +1731,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				t = (Double) (s64) editTime; t *= ts_scale; t += (s64) edit_offset; editTime = (s64) t;
 				t = (Double) (s64) segmentDuration; t *= ts_scale; segmentDuration = (s64) t;
 				t = (Double) (s64) mediaTime; t *= ts_scale; t+= (s64) dest_track_dur_before_cat; mediaTime = (s64) t;
-
+				if ((editMode == GF_ISOM_EDIT_EMPTY) && (mediaTime > 0)) {
+					editMode = GF_ISOM_EDIT_NORMAL;
+				}
 				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
 			}
 		}
