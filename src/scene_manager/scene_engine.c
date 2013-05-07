@@ -177,7 +177,7 @@ static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_
 	esd->decoderConfig->decoderSpecificInfo->data = data;
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 		
-	sc->dec_cfg = gf_malloc(sizeof(char)*data_len);
+	sc->dec_cfg = (char*)gf_malloc(sizeof(char)*data_len);
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 	return GF_OK;
