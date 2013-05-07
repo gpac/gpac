@@ -34,6 +34,8 @@
 #include <gpac/internal/media_dev.h>
 
 #include "video_scaler.h"
+#include "libav_compat.h"
+
 
 typedef enum {
 

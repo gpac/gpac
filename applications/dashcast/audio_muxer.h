@@ -35,6 +35,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 #include "audio_data.h"
+#include "libav_compat.h"
 
 
 typedef enum {
