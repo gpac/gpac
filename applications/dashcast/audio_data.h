@@ -32,8 +32,8 @@
 #define LIVE_FRAME_SIZE 1024
 #define MAX_AUDIO_PACKET_SIZE (128 * 1024)
 
-#include <libavcodec/avcodec.h>
-#include <libavutil/mem.h>
+#include "libav/include/libavcodec/avcodec.h"
+#include "libav/include/libavutil/mem.h"
 #include "circular_buffer.h"
 
 

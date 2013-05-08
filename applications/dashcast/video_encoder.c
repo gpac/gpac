@@ -25,7 +25,7 @@
 
 #include "video_encoder.h"
 
-#include <libavutil/opt.h>
+#include "libav/include/libavutil/opt.h"
 
 //#define DEBUG 1
 

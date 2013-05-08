@@ -24,7 +24,7 @@
  */
 
 #include "video_muxer.h"
-#include <libavutil/opt.h>
+#include "libav/include/libavutil/opt.h"
 
 int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 

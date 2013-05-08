@@ -24,7 +24,7 @@
  */
 
 #include "audio_muxer.h"
-#include "libavformat/avio.h"
+#include "libav/include/libavformat/avio.h"
 
 int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 
