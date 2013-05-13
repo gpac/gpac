@@ -393,6 +393,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	}
 	return GF_OK;
 }
+
 static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	AVCodecContext **ctx;

@@ -929,11 +929,11 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	FFDemux *ffd;
 	const char *this_url;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	ffd = (FFDemux *)plug->priv;
 	this_url = gf_term_get_service_url(ffd->service);
 	if (!this_url)
-		return 0;
+		return GF_FALSE;
 
 	strcpy(szURL, this_url);
 	sep = strrchr(szURL, '#');
@@ -943,7 +943,7 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	sep = strrchr(url, '#');
 	if (sep && !stricmp(sep, "#video") && (ffd->video_st>=0)) return 1;
 	if (sep && !stricmp(sep, "#audio") && (ffd->audio_st>=0)) return 1;
-	return 0;
+	return GF_FALSE;
 }
 
 void *New_FFMPEG_Demux()
