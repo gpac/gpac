@@ -4848,6 +4848,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
 	Bool use_opengop_gdr = 0;
+	Bool sample_start_with_ps = 0;
 
 	Double FPS;
 	char *buffer;
@@ -4991,13 +4992,18 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 			}
 			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
 			if (hevc.vps[idx].state == 2) {
-				copy_size = nal_size;
-				assert(vpss);
-				vpss->array_completeness = 0;
+				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
+					copy_size = nal_size;
+					assert(vpss);
+					vpss->array_completeness = 0;
+					if (!sample_data)
+						sample_start_with_ps = 1;
+				}
 			}
 
 			if (hevc.vps[idx].state==1) {
 				hevc.vps[idx].state = 2;
+				hevc.vps[idx].crc = gf_crc_32(buffer, nal_size);
 
 				hevccfg->avgFrameRate = hevc.vps[idx].rates[0].avg_pic_rate;
 				hevccfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
@@ -5031,16 +5037,17 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 			if ((hevc.sps[idx].state & AVC_SPS_PARSED) && !(hevc.sps[idx].state & AVC_SPS_DECLARED)) {
 				hevc.sps[idx].state |= AVC_SPS_DECLARED;
 				add_sps = 1;
+				hevc.sps[idx].crc = gf_crc_32(buffer, nal_size);
 			}
 
-			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
-			if (hevc.sps[idx].state & AVC_SUBSPS_DECLARED) {
-				if (import->flags & GF_IMPORT_SVC_NONE) {
-					copy_size = 0;
-				} else {
+			/*if we get twice the same SPS put it in the bitstream and set array_completeness to 0 ...*/
+			else if (hevc.sps[idx].state & AVC_SPS_DECLARED) {
+				if (hevc.sps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
 					assert(spss);
 					spss->array_completeness = 0;
+					if (!sample_data)
+						sample_start_with_ps = 1;
 				}
 			}
 
@@ -5101,16 +5108,21 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
 			}
-			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
+			/*if we get twice the same PPS put it in the bitstream and set array_completeness to 0 ...*/
 			if (hevc.pps[idx].state == 2) {
-				copy_size = nal_size;
-				assert(ppss);
-				ppss->array_completeness = 0;
+				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
+					copy_size = nal_size;
+					assert(ppss);
+					ppss->array_completeness = 0;
+					if (!sample_data)
+						sample_start_with_ps = 1;
+				}
 			}
 
 			if (hevc.pps[idx].state==1) {
 				hevc.pps[idx].state = 2;
-
+				hevc.pps[idx].crc = gf_crc_32(buffer, nal_size);
+				
 				if (!ppss) {
 					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
 					ppss->nalus = gf_list_new();
@@ -5212,7 +5224,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 			gf_bs_del(sample_data);
 			sample_data = NULL;
 
-
+			sample_start_with_ps = 0;
 
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
 			store the POC as the CTS offset and update the whole table at the end*/

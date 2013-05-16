@@ -133,6 +133,9 @@
 #define GPAC_HAS_GLU
 #endif
 
+#if defined(_WIN64)
+#define GPAC_X64
+#endif
 
 /*disables SVG scene graph*/
 //#define GPAC_DISABLE_SVG

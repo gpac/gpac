@@ -567,6 +567,10 @@ GF_EXPORT
 const char *gpac_features()
 {
 	const char *features = ""
+#ifdef GPAC_X64
+		"GPAC_X64 "
+#endif
+
 #ifdef GPAC_FIXED_POINT
 		"GPAC_FIXED_POINT "
 #endif
@@ -684,6 +688,6 @@ const char *gpac_features()
 		"GPAC_DISABLE_STREAMING "
 #endif
 
-	;
+;
 	return features;
 }

@@ -1012,7 +1012,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	if (arr) {\
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
-			fprintf(dump, "  <%s number=\"%d\" size=\"%d\"", name, i+1, slc->size);\
+			fprintf(dump, "  <%s number=\"%d\" size=\"%d\" ", name, i+1, slc->size);\
 			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc);\
 			fprintf(dump, "/>\n");\
 		}\
