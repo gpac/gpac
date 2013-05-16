@@ -167,7 +167,10 @@ static u64 gf_mpd_parse_date(char *attr)
 	res = mktime(&_t) - t_timezone;
 	}
 #else
-	res = mktime(&_t) - timezone;
+	{
+		s32 val = timezone;
+		res = mktime(&_t) - val;
+	}
 #endif
 
 #endif

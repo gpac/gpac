@@ -61,7 +61,7 @@ typedef struct
 
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
-
+	Bool wait_for_next_frag;
 	GF_Mutex *segment_mutex;
 
 } ISOMReader;
