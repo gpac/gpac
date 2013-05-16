@@ -125,7 +125,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		Bool group_done;
 		u32 nb_segments_cached;
 		u32 group_idx=0;
-		u32 retry_count = 10;
+		u32 retry_count = 300;
 		GF_MPDGroup *group=NULL;
 		const char *src_url;
 		Bool discard_first_cache_entry = 1;
@@ -179,7 +179,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				} 
 				return GF_EOS;
 			}
-            gf_sleep(30);
+            gf_sleep(10);
 			retry_count --;
 			if (!retry_count) {
 	            return GF_SERVICE_ERROR;
