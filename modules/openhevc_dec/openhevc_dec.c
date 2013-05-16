@@ -193,6 +193,8 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 }
 
+u32 nb_bytes = 0;
+
 static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
@@ -264,6 +266,17 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 			} else {
 				nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 			}
+
+#if 0
+			{
+				u8 nal_type = (ptr[0] & 0x7E) >> 1;
+				if (!nal_type)
+					fprintf(stderr, "Wrong NAL type 0\n");
+				else
+					fprintf(stderr, "NAL type %d\n", nal_type);
+				nb_bytes +=nalu_size;
+			}
+#endif
 
 			if (!ctx->state_found) {
 				u8 nal_type = (ptr[0] & 0x7E) >> 1;

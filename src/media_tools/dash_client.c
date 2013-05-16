@@ -202,7 +202,8 @@ struct __dash_group
 	Bool buffering;
 	Bool maybe_end_of_stream;
 	u32 cache_duration;
-
+	u32 time_at_first_reload_required;
+	
 	u32 force_representation_idx_plus_one;
 
 	Bool force_segment_switch;
@@ -3000,8 +3001,21 @@ restart_period:
 					/* if there is a specified update period, we redo the whole process */
 					if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 						if (! group->maybe_end_of_stream) {
+							u32 now = gf_sys_clock();
 							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] End of segment list reached (%d segments but idx is %d), waiting for next MPD update\n", group->nb_segments_in_rep, group->download_segment_index));
-							continue;
+							if (group->nb_cached_segments)
+								continue;
+							
+							if (!group->time_at_first_reload_required) {
+								group->time_at_first_reload_required = now;
+								continue;
+							}
+							if (now - group->time_at_first_reload_required < group->cache_duration)
+								continue;
+						
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment list has not been updated for more than %d ms - assuming end of stream\n", now - group->time_at_first_reload_required));
+							group->done = 1;
+							break;
 						}
 					} else {
 						/* if not, we are really at the end of the playlist, we can quit */
@@ -3011,6 +3025,7 @@ restart_period:
 					}
 				}
 			}
+			group->time_at_first_reload_required = 0;
 			gf_mx_p(dash->dl_mutex);
 
 			if (group->force_switch_bandwidth && !dash->auto_switch_count) {

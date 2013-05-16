@@ -57,21 +57,25 @@ static void check_segment_switch(ISOMReader *read)
 	}
 
 	count = gf_list_count(read->channels);
-	for (i=0; i<count; i++) {
-		ISOMChannel *ch = gf_list_get(read->channels, i);
-		/*check all playing channels are waiting for next segment*/
-		if (ch->is_playing && !ch->wait_for_segment_switch) {
-			gf_mx_v(read->segment_mutex);
-			return;
+	if (read->wait_for_next_frag==GF_FALSE) {
+		for (i=0; i<count; i++) {
+			ISOMChannel *ch = gf_list_get(read->channels, i);
+			/*check all playing channels are waiting for next segment*/
+			if (ch->is_playing && !ch->wait_for_segment_switch) {
+				gf_mx_v(read->segment_mutex);
+				return;
+			}
 		}
+
+		/*close current segment*/
+		gf_isom_release_segment(read->mov, 1);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - querying new one\n"));
 	}
-	/*close current segment*/
-	gf_isom_release_segment(read->mov, 1);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - querying new one\n"));
 
 	/*update current fragment if any*/
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
-	if (read->input->query_proxy(read->input, &param)==GF_OK) {
+	e = read->input->query_proxy(read->input, &param);
+	if (e ==GF_OK) {
         if (param.url_query.next_url){
 			if (param.url_query.discontinuity_type==2)
 				gf_isom_reset_fragment_info(read->mov);
@@ -120,10 +124,13 @@ static void check_segment_switch(ISOMReader *read)
 				}
 			}
 		}
-	} else {
+		read->wait_for_next_frag = GF_FALSE;
+	} else if (e==GF_EOS) {
 		/*consider we are done*/
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
+	} else {
+		read->wait_for_next_frag = GF_TRUE;
 	}
 	gf_mx_v(read->segment_mutex);
 }
