@@ -96,6 +96,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	u8 ref_track_ID, ref_track_num;
 	s8 sample_offset, nal_type;
 	u32 nal_hdr;
+	u32 temporal_id = 0;
 	char *buffer;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
 
@@ -156,7 +157,9 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			if (is_hevc) {
 				gf_bs_write_int(dst_bs, 0, 1);
 				gf_bs_write_int(dst_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
-				gf_bs_write_int(dst_bs, 0, 9);
+				gf_bs_write_int(dst_bs, 0, 6);
+				gf_bs_write_int(dst_bs, 1, 3); //nuh_temporal_id_plus1 - cannot be 0, we use 1 by default, and overwrite it if needed at the end
+
 				/*pic-type - by default we signal all slice types possible*/
 				gf_bs_write_int(dst_bs, 2, 3);
 				gf_bs_write_int(dst_bs, 0, 5);
@@ -246,6 +249,16 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				continue;
 			}
 
+			switch (nal_type) {
+			case GF_HEVC_NALU_SLICE_TSA_N:
+			case GF_HEVC_NALU_SLICE_STSA_N:
+			case GF_HEVC_NALU_SLICE_TSA_R:
+			case GF_HEVC_NALU_SLICE_STSA_R:
+				if (temporal_id < (nal_hdr & 0x7))
+					temporal_id = (nal_hdr & 0x7);
+				break;
+			}
+			
 			/*rewrite nal*/
 			gf_bs_read_data(src_bs, buffer, nal_size-2);
 			if (rewrite_start_codes) 
@@ -391,6 +404,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	gf_free(sample->data);
 	sample->data = NULL;
 	gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
+
+	/*rewrite temporal ID of AU Ddelim NALU (first one)*/
+	if (rewrite_start_codes && is_hevc && temporal_id) {
+		sample->data[6] = (sample->data[6] & 0xF8) | (temporal_id+1);
+	}
+
 
 exit:
 	if (ref_samp) gf_isom_sample_del(&ref_samp);

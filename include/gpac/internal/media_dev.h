@@ -271,6 +271,7 @@ typedef struct
 	s32 id, vps_id; 
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
+	u32 crc;
 	u32 width, height;
 
 	HEVC_ProfileTierLevel ptl;
@@ -296,6 +297,7 @@ typedef struct
 	u32 sps_id; 
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
+	u32 crc;
 
 	Bool dependent_slice_segments_enabled_flag, tiles_enabled_flag, uniform_spacing_flag;
 	u32 num_extra_slice_header_bits;
@@ -313,6 +315,7 @@ typedef struct
 	s32 id; 
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
+	u32 crc;
 	u8 max_sub_layer;
 	Bool temporal_id_nesting;
 	HEVC_ProfileTierLevel ptl;

@@ -3366,7 +3366,7 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	/*loop_filter_across_slices_enabled_flag = */gf_bs_read_int(bs, 1);
 	if( /*deblocking_filter_control_present_flag = */gf_bs_read_int(bs, 1)  ) {
 		/*deblocking_filter_override_enabled_flag= */gf_bs_read_int(bs, 1);
-		if (/*pic_disable_deblocking_filter_flag= */gf_bs_read_int(bs, 1) ) {
+		if (! /*pic_disable_deblocking_filter_flag= */gf_bs_read_int(bs, 1) ) {
 			/*beta_offset_div2 = */bs_get_se(bs);
 			/*tc_offset_div2 = */bs_get_se(bs);
 		}

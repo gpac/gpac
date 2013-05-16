@@ -98,7 +98,8 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
 	/*that's a bit crude ...*/
-	gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames", "yes");
+	if (gf_modules_get_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames")==NULL)
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames", "yes");
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek");
 	if (!sOpt) {
