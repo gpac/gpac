@@ -1,4 +1,4 @@
-/*
+﻿/*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
@@ -1568,6 +1568,7 @@ struct _tag_dom_parser
 GF_EXPORT
 void gf_xml_dom_node_del(GF_XMLNode *node)
 {
+	if (!node) return;
 	if (node->attributes) {
 		while (gf_list_count(node->attributes)) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_last(node->attributes);
@@ -1617,6 +1618,7 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 	gf_list_add(par->stack, node);
 	if (!par->root) par->root = node;
 }
+
 static void on_dom_node_end(void *cbk, const char *name, const char *ns)
 {
 	GF_DOMParser *par = (GF_DOMParser *)cbk;
@@ -1732,9 +1734,21 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 }
 
 GF_EXPORT
+GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name){
+	GF_XMLNode * root;
+	if (!parser) return NULL;
+
+	GF_SAFEALLOC(root, GF_XMLNode);
+	if (!root) return NULL;
+	root->name = gf_strdup(name);
+
+	return root;
+}
+
+GF_EXPORT
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser)
 {
-	return parser->root;
+	return parser? parser->root : NULL;
 }
 GF_EXPORT
 const char *gf_xml_dom_get_error(GF_DOMParser *parser)
@@ -1746,7 +1760,6 @@ u32 gf_xml_dom_get_line(GF_DOMParser *parser)
 {
 	return gf_xml_sax_get_line(parser->parser);
 }
-
 
 static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char **str, u32 *alloc_size, u32 *size)
 {
@@ -1825,4 +1838,70 @@ char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only)
 	char *str = NULL;
 	gf_xml_dom_node_serialize(node, content_only, &str, &alloc_size, &size);
 	return str;
+}
+
+GF_EXPORT
+GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, const char* value){
+	GF_XMLAttribute *att;
+	if (!node->attributes) {
+		node->attributes = gf_list_new();
+		if (!node->attributes) return NULL;
+	}
+	
+	GF_SAFEALLOC(att, GF_XMLAttribute);
+	if (!att) return NULL;
+
+	att->name = gf_strdup(name);
+	att->value = gf_strdup(value);
+	gf_list_add(node->attributes, att);
+	return att;
+}
+
+GF_EXPORT
+GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name){
+	u32 i = 0;
+	GF_XMLAttribute *att;
+	if (!node | !name) return NULL;
+
+	while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &i))) {
+		if (!strcmp(att->name, name)){
+			return att;
+		}
+	}
+
+	return NULL;
+}
+
+GF_EXPORT
+GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child){
+	if (!node | !child) return GF_BAD_PARAM;
+	if (!node->content){
+		node->content = gf_list_new();
+		if (!node->content) return GF_OUT_OF_MEM;
+	}
+	return gf_list_add(node->content, child);
+}
+
+GF_EXPORT
+GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name){
+	GF_XMLNode* node;
+	GF_SAFEALLOC(node, GF_XMLNode);
+	if (!node) return NULL;
+	if (ns){
+		node->ns = gf_strdup(ns);
+		if (!node->ns){
+			gf_free(node);
+			return NULL;
+		}
+	}
+
+	if (name){
+		node->name = gf_strdup(name);
+		if (!node->name){
+			gf_free(node->ns);
+			gf_free(node);
+			return NULL;
+		}
+	}
+	return node;
 }

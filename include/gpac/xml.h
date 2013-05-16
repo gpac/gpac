@@ -138,14 +138,102 @@ GF_DOMParser *gf_xml_dom_new();
 void gf_xml_dom_del(GF_DOMParser *parser);
 GF_Err gf_xml_dom_parse(GF_DOMParser *parser, const char *file, gf_xml_sax_progress OnProgress, void *cbk);
 GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string);
-GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
 const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);
 
+/*
+ *\brief Serialize a node
+ *
+ * Flush a node in a char
+ *
+ *\param node the node to flush
+ *\param content_only Whether to include or not the parent node
+ *\return The resulting serialization
+ */
 char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
 
+/*
+ *\brief Create the root element of the DOM
+ *
+ * Create the root element -- the only top level element -- of the document. 
+ *
+ *\param parser the DOM structure
+ *\return The created node if creation occurs properly, otherwise NULL;
+ */
+GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name);
 
+/*
+ *\brief Get the root element of the DOM
+ *
+ * Get the root element -- the only top level element -- of the document. 
+ *
+ *\param parser the DOM structure
+ *\return The corresponding node if exists, otherwise NULL;
+ */
+GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
+
+/*
+ *\brief Return and detach the root element of the DOM
+ *
+ * Return and detach the root element of the DOM
+ *
+ *\param parser the DOM structure
+ *\return The corresponding node if exists, otherwise NULL;
+ */
 GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
+
+/*
+ *\brief Sets an attribute value for this element.
+ *
+ * Sets an attribute value for this element
+ *
+ *\param node the GF_XMLNode node
+ *\param name the name of the attribute
+ *\param value the value of the attribute
+ *\return The created attribute if setting occurs properly, otherwise NULL;
+ */
+GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, const char* value);
+
+/*
+ *\brief Gets the attribute for this element with the given name.
+ *
+ * Gets the attribute for this element with the given name.
+ *
+ *\param node the GF_XMLNode node
+ *\param name the attribute name
+ *\return The corresponding attribute if exists, otherwise NULL;
+ */
+GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name);
+
+/*
+ *\brief Adds the node to the end of the list of children of this node.
+ *
+ * Adds the node to the end of the list of children of this node.
+ *
+ *\param node the GF_XMLNode node
+ *\param child the GF_XMLNode child to append
+ *\return GF_OK if append occurs properly, otherwise a GF_Err
+ */
+GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
+
+/*
+ *\brief Node constructor.
+ *
+ * Creates a node with the given name and namespace URI.
+ *
+ *\param ns the node namespace
+ *\param name the name namespace
+ *\return The created GF_XMLNode if creation occurs properly, otherwise NULL;
+ */
+GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name);
+
+/*
+ *\brief Node destructor.
+ *
+ * Free a node, its attributes and its childs.
+ *
+ *\param node the node to free
+ */
 void gf_xml_dom_node_del(GF_XMLNode *node);
 
 /*! @} */
