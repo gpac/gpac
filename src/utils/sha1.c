@@ -733,7 +733,6 @@ void gf_sha1_csum( u8 *input, u32 ilen, u8 output[20] )
 GF_EXPORT
 void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[41]){
 	u8 tmp[20];
-	u32 i = 0;
 	gf_sha1_csum (buf, buflen, tmp );
 	digest[0] = 0;
 	{
