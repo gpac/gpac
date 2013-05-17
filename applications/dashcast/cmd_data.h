@@ -61,6 +61,10 @@ typedef struct  {
 	GF_List * p_audio_lst;
 	/* Indicates that the system is live */
 	int i_live;
+	/* Indicates that the system is live from a media input */
+	int i_live_media;
+	/* Availability Stat Time shift */
+	int i_avstsh;
 	/* output directory name */
 	char psz_out[GF_MAX_PATH];
 

@@ -25,7 +25,7 @@
 
 #include "audio_decoder.h"
 
-int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata) {
+int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int mode) {
 
 	int i;
 	AVInputFormat * p_in_fmt = NULL;
@@ -105,6 +105,8 @@ int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata) {
 
 	p_adata->i_channels = p_codec_ctx->channels;
 	p_adata->i_samplerate = p_codec_ctx->sample_rate;
+
+	p_ain->mode = mode;
 
 	return 0;
 }
@@ -186,7 +188,7 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 				av_fifo_generic_write(p_ain->p_fifo, p_ad->p_aframe->data[0],
 						p_ad->p_aframe->linesize[0], NULL);
 
-				if (p_ad->p_cb.mode == OFFLINE) {
+				if (/*p_ad->p_cb.mode == OFFLINE*/ p_ain->mode == 0 || p_ain->mode == 2) {
 
 					dc_producer_lock(&p_ad->pro, &p_ad->p_cb);
 

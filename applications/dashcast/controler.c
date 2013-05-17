@@ -24,6 +24,7 @@
  */
 
 #include "controler.h"
+#include <sys/time.h>
 
 #define DASHER 0
 #define FRAGMENTER 0
@@ -104,7 +105,7 @@ Bool mpd_thread(void * p_params) {
 		}
 
 		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
-		t += 1;
+		t += p_cmddata->i_avstsh;
 		struct tm tm = *gmtime(&t);
 		sprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
 				tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
@@ -430,11 +431,17 @@ Bool keyboard_thread(void * p_params) {
 Bool video_decoder_thread(void * p_params) {
 
 	int ret;
+	struct timeval time_start, time_end, time_wait;
 	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
 
 	CmdData * p_in_data = p_thread_params->p_in_data;
 	VideoInputData * p_vind = p_thread_params->p_vind;
 	VideoInputFile * p_vinf = p_thread_params->p_vinf;
+
+	suseconds_t total_wait_time = 1000000/p_in_data->vdata.i_framerate;
+	suseconds_t pick_packet_delay;
+
+	//printf("wait time : %f\n", total_wait_time);
 
 	if (!gf_list_count(p_in_data->p_video_lst))
 		return 0;
@@ -445,6 +452,8 @@ Bool video_decoder_thread(void * p_params) {
 
 	while (1) {
 
+		gettimeofday(&time_start, NULL);
+
 		ret = dc_video_decoder_read(p_vinf, p_vind);
 
 #ifdef DASHCAST_PRINT
@@ -453,6 +462,17 @@ Bool video_decoder_thread(void * p_params) {
 #endif
 
 		if (ret == -2) {
+
+//			if(p_in_data->i_live_media == 1) {
+//
+//				/* Close input video */
+//				dc_video_decoder_close(p_vinf);
+//
+//				/* Open input video */
+//				dc_video_decoder_open(p_vinf, &p_in_data->vdata);
+//
+//				continue;
+//			}
 #ifdef DEBUG
 			printf("Video reader has no more frame to read.\n");
 #endif
@@ -468,6 +488,20 @@ Bool video_decoder_thread(void * p_params) {
 			break;
 		}
 
+		gettimeofday(&time_end, NULL);
+
+		if (p_in_data->i_live_media == 1) {
+
+			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
+			                                        time_end.tv_usec - time_start.tv_usec;
+			time_wait.tv_sec = 0;
+			time_wait.tv_usec = total_wait_time - pick_packet_delay;
+			select(0, NULL, NULL, NULL, &time_wait);
+
+
+
+		}
+
 	}
 
 #ifdef DEBUG
@@ -479,11 +513,18 @@ Bool video_decoder_thread(void * p_params) {
 Bool audio_decoder_thread(void * p_params) {
 
 	int ret;
+	struct timeval time_start, time_end, time_wait;
 	AudioThreadParam * p_thread_params = (AudioThreadParam *) p_params;
 
 	CmdData * p_in_data = p_thread_params->p_in_data;
 	AudioInputData * p_aind = p_thread_params->p_aind;
 	AudioInputFile * p_ainf = p_thread_params->p_ainf;
+
+	suseconds_t total_wait_time = 1000000/(p_in_data->adata.i_samplerate/1024);
+	suseconds_t pick_packet_delay;
+
+	//printf("wait time : %ld\n", total_wait_time);
+	//printf("sample-rate : %ld\n", p_in_data->adata.i_samplerate);
 
 	if (!gf_list_count(p_in_data->p_audio_lst))
 		return 0;
@@ -493,6 +534,8 @@ Bool audio_decoder_thread(void * p_params) {
 #endif
 
 	while (1) {
+
+		gettimeofday(&time_start, NULL);
 
 		ret = dc_audio_decoder_read(p_ainf, p_aind);
 
@@ -515,6 +558,20 @@ Bool audio_decoder_thread(void * p_params) {
 		if (p_in_data->i_exit_signal) {
 			dc_audio_inout_data_end_signal(p_aind);
 			break;
+		}
+
+		gettimeofday(&time_end, NULL);
+
+		if (p_in_data->i_live_media == 1) {
+
+			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
+			                                        time_end.tv_usec - time_start.tv_usec;
+			time_wait.tv_sec = 0;
+			time_wait.tv_usec = total_wait_time - pick_packet_delay;
+			select(0, NULL, NULL, NULL, &time_wait);
+
+
+
 		}
 
 	}
@@ -970,8 +1027,15 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
 
+		int mode = 0;
+		if (p_in_data->i_live == 0)
+			mode = 0;
+		else if (p_in_data->i_live_media == 1)
+			mode = 2;
+		else
+			mode = 1;
 		/* Open input audio */
-		if (dc_audio_decoder_open(&ainf, &p_in_data->adata) < 0) {
+		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, mode) < 0) {
 			fprintf(stderr, "Cannot open input audio.\n");
 			return -1;
 		}
