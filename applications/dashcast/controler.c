@@ -174,10 +174,11 @@ Bool mpd_thread(void * p_params) {
 	fprintf(p_f, "<?xml version=\"1.0\"?>\n");
 	fprintf(p_f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
 			"%s=\"%s\" "
-			"minBufferTime=\"PT1.0S\" type=\"%s\" "
+			"minBufferTime=\"PT%fS\" type=\"%s\" "
 			"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
 			p_cmddata->i_live ? "availabilityStartTime" : "mediaPresentationDuration",
 			p_cmddata->i_live ? availability_start_time : presentation_duration,
+			p_cmddata->f_minbuftime,
 			p_cmddata->i_live ? "dynamic" : "static");
 
 	fprintf(p_f,
