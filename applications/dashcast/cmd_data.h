@@ -65,6 +65,8 @@ typedef struct  {
 	int i_live_media;
 	/* Availability Stat Time shift */
 	int i_avstsh;
+	/* Min Buffer Time */
+	float f_minbuftime;
 	/* output directory name */
 	char psz_out[GF_MAX_PATH];
 

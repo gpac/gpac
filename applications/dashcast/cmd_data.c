@@ -119,16 +119,15 @@ int dc_read_configuration(CmdData * p_cmdd) {
 	printf("Configurations:\n");
 	for (i = 0; i < gf_list_count(p_cmdd->p_video_lst); i++) {
 		VideoData * p_vconf = gf_list_get(p_cmdd->p_video_lst, i);
-		printf("    id:%s\tres:%dx%d\tvbr:%d\n",
-				p_vconf->psz_name, p_vconf->i_width, p_vconf->i_height,
+		printf("    id:%s\tres:%dx%d\tvbr:%d\n", p_vconf->psz_name,
+				p_vconf->i_width, p_vconf->i_height,
 				p_vconf->i_bitrate/*, p_vconf->i_framerate, p_vconf->psz_codec*/);
 	}
 
 	for (i = 0; i < gf_list_count(p_cmdd->p_audio_lst); i++) {
 		AudioData * p_aconf = gf_list_get(p_cmdd->p_audio_lst, i);
-		printf("    id:%s\tabr:%d\n", p_aconf->psz_name,
-				p_aconf->i_bitrate/*, p_aconf->i_samplerate,
-				 p_aconf->i_channels,p_aconf->psz_codec*/);
+		printf("    id:%s\tabr:%d\n", p_aconf->psz_name, p_aconf->i_bitrate/*, p_aconf->i_samplerate,
+		 p_aconf->i_channels,p_aconf->psz_codec*/);
 	}
 	printf("\33[0m");
 	fflush(stdout);
@@ -148,7 +147,8 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_live_media = 0;
 	p_cmdd->i_seg_dur = 0;
 	p_cmdd->i_frag_dur = 0;
-	p_cmdd->i_avstsh = 0;
+	p_cmdd->i_avstsh = -1;
+	p_cmdd->f_minbuftime = -1;
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
 
@@ -176,14 +176,15 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -av <string>                 multiplexed audio and video input source\n"
 					"    -vf <string>                 input video format (if necessary)\n"
 					"    -vfr <int>                   input video framerate (if necessary)\n"
-			        "    -vres <intxint>              input video resolution (if necessary)\n"
+					"    -vres <intxint>              input video resolution (if necessary)\n"
 					"    -af <string>                 input audio format (if necessary)\n"
 					"    -live                        live system from a camera\n"
-			        "    -live-media                  live system from a media file\n"
+					"    -live-media                  live system from a media file\n"
 					"    -conf <string>               configuration file [default=dashcast.conf]\n"
 					"    -seg-dur <int>               segment duration in millisecond [default=1000]\n"
 					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
 					"    -avst-shift <int>            Availability Start Time shift in second [default=1]\n"
+					"    -minbuftime <float>          Min Buffer Time in second [default=1.0]\n"
 					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
 					"    -out <string>                output data directory name [default=output]\n"
 					"\n";
@@ -301,17 +302,17 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return -1;
 			}
 
-			if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1 ) {
+			if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1) {
 				printf("Video framerate has been already specified.\n");
 				printf("%s", psz_command_usage);
 				return -1;
 			}
-			dc_str_to_resolution(p_argv[i], &p_cmdd->vdata.i_width, &p_cmdd->vdata.i_height);
+			dc_str_to_resolution(p_argv[i], &p_cmdd->vdata.i_width,
+					&p_cmdd->vdata.i_height);
 
 			i++;
 
-		}
-		else if (strcmp(p_argv[i], "-conf") == 0) {
+		} else if (strcmp(p_argv[i], "-conf") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -395,8 +396,9 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return -1;
 			}
 
-			if (p_cmdd->i_avstsh != 0) {
-				printf("Availability Start Time Shift has been already specified.\n");
+			if (p_cmdd->i_avstsh != -1) {
+				printf(
+						"Availability Start Time Shift has been already specified.\n");
 				printf("%s", psz_command_usage);
 				return -1;
 			}
@@ -405,20 +407,36 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			i++;
 
 		}
-		else if (strcmp(p_argv[i], "-live") == 0) {
+
+		else if (strcmp(p_argv[i], "-minbuftime") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			if (p_cmdd->f_minbuftime != -1) {
+				printf(
+						"Min Buffer Time has been already specified.\n");
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			p_cmdd->f_minbuftime = atof(p_argv[i]);
+			i++;
+
+		} else if (strcmp(p_argv[i], "-live") == 0) {
 			p_cmdd->i_live = 1;
 			i++;
 		} else if (strcmp(p_argv[i], "-live-media") == 0) {
 			p_cmdd->i_live = 1;
 			p_cmdd->i_live_media = 1;
 			i++;
-		}
-		else {
+		} else {
 			printf("%s", psz_command_error);
 			printf("%s", psz_command_usage);
 			return -1;
 		}
-
 
 	}
 
@@ -443,16 +461,20 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		return -1;
 	}
 
-	if(p_cmdd->i_seg_dur == 0) {
+	if (p_cmdd->i_seg_dur == 0) {
 		p_cmdd->i_seg_dur = 1000;
 	}
 
-	if(p_cmdd->i_frag_dur == 0) {
+	if (p_cmdd->i_frag_dur == 0) {
 		p_cmdd->i_frag_dur = p_cmdd->i_seg_dur;
 	}
 
-	if(p_cmdd->i_avstsh == 0) {
+	if (p_cmdd->i_avstsh == -1) {
 		p_cmdd->i_avstsh = 1;
+	}
+
+	if (p_cmdd->f_minbuftime == -1) {
+		p_cmdd->f_minbuftime = 1.0;
 	}
 
 	printf("\33[34m\33[1m");
@@ -465,7 +487,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		printf("    video framerate: %d\n", p_cmdd->vdata.i_framerate);
 	}
 	if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1) {
-		printf("    video resolution: %dx%d\n", p_cmdd->vdata.i_width, p_cmdd->vdata.i_height);
+		printf("    video resolution: %dx%d\n", p_cmdd->vdata.i_width,
+				p_cmdd->vdata.i_height);
 	}
 
 	printf("    audio source: %s\n", p_cmdd->adata.psz_name);
