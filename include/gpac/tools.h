@@ -848,7 +848,7 @@ int gf_sha1_file(const char *filename, u8 digest[20]);
  * Output SHA-1(buf)
  */
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[20]);
-
+void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[41]);
 
 #ifdef GPAC_ANDROID
 typedef void (*fm_callback_func)(void *cbk_obj, u32 type, u32 param, int *value);
