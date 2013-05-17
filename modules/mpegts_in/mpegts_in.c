@@ -362,7 +362,7 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 		}
 		slh.randomAccessPointFlag = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
 
-		if ((pck->stream->pid==257) {
+		if (pck->stream->pid==257) {
 			if (!pck->data[3])
 				pck->data[3] = 0;
 			if ( ((pck->data[4] & 0x7E) >> 1) <= 1)
