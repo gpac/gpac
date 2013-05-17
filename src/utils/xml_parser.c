@@ -1843,6 +1843,7 @@ char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only)
 GF_EXPORT
 GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, const char* value){
 	GF_XMLAttribute *att;
+	if (!name || !value) return NULL;
 	if (!node->attributes) {
 		node->attributes = gf_list_new();
 		if (!node->attributes) return NULL;
