@@ -156,12 +156,14 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 	 */
 	p_vn->p_vframe->pts = p_video_codec_ctx->frame_number;
 
+
 	/*
 	 * Set PTS (method 2)
-	 * int64_t now = av_gettime();
-	 * p_vn->p_vframe->pts = av_rescale_q(now, AV_TIME_BASE_Q,
-	 *		p_video_codec_ctx->time_base);
 	 */
+	//int64_t now = av_gettime();
+	//p_vn->p_vframe->pts = av_rescale_q(now, AV_TIME_BASE_Q,
+	//p_video_codec_ctx->time_base);
+
 
 	/* Encoding video */
 	p_voutf->i_encoded_frame_size = avcodec_encode_video(p_video_codec_ctx,

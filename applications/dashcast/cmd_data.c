@@ -57,18 +57,18 @@ int dc_read_configuration(CmdData * p_cmdd) {
 
 	if (i_sec_count == 0) {
 
-		gf_cfg_set_key(p_conf, "v1.mp4", "type", "video");
-		gf_cfg_set_key(p_conf, "v1.mp4", "bitrate", "400000");
-//		gf_cfg_set_key(p_conf, "v1.mp4", "framerate", "25");
-		gf_cfg_set_key(p_conf, "v1.mp4", "width", "640");
-		gf_cfg_set_key(p_conf, "v1.mp4", "height", "480");
-//		gf_cfg_set_key(p_conf, "v1.mp4", "codec", "libx264");
+		gf_cfg_set_key(p_conf, "v1", "type", "video");
+		gf_cfg_set_key(p_conf, "v1", "bitrate", "400000");
+//		gf_cfg_set_key(p_conf, "v1", "framerate", "25");
+		gf_cfg_set_key(p_conf, "v1", "width", "640");
+		gf_cfg_set_key(p_conf, "v1", "height", "480");
+//		gf_cfg_set_key(p_conf, "v1", "codec", "libx264");
 
-		gf_cfg_set_key(p_conf, "a1.mp4", "type", "audio");
-		gf_cfg_set_key(p_conf, "a1.mp4", "bitrate", "200000");
-//		gf_cfg_set_key(p_conf, "a1.mp4", "samplerate", "48000");
-//		gf_cfg_set_key(p_conf, "a1.mp4", "channels", "2");
-//		gf_cfg_set_key(p_conf, "a1.mp4", "codec", "aac");
+		gf_cfg_set_key(p_conf, "a1", "type", "audio");
+		gf_cfg_set_key(p_conf, "a1", "bitrate", "200000");
+//		gf_cfg_set_key(p_conf, "a1", "samplerate", "48000");
+//		gf_cfg_set_key(p_conf, "a1", "channels", "2");
+//		gf_cfg_set_key(p_conf, "a1", "codec", "aac");
 
 		i_sec_count = 2;
 	}
@@ -145,8 +145,10 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	strcpy(p_cmdd->psz_out, "");
 	p_cmdd->i_exit_signal = 0;
 	p_cmdd->i_live = 0;
+	p_cmdd->i_live_media = 0;
 	p_cmdd->i_seg_dur = 0;
 	p_cmdd->i_frag_dur = 0;
+	p_cmdd->i_avstsh = 0;
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
 
@@ -176,10 +178,12 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -vfr <int>                   input video framerate (if necessary)\n"
 			        "    -vres <intxint>              input video resolution (if necessary)\n"
 					"    -af <string>                 input audio format (if necessary)\n"
-					"    -live                        indicates that the system is live\n"
+					"    -live                        live system from a camera\n"
+			        "    -live-media                  live system from a media file\n"
 					"    -conf <string>               configuration file [default=dashcast.conf]\n"
 					"    -seg-dur <int>               segment duration in millisecond [default=1000]\n"
 					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
+					"    -avst-shift <int>            Availability Start Time shift in second [default=1]\n"
 					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
 					"    -out <string>                output data directory name [default=output]\n"
 					"\n";
@@ -383,14 +387,38 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			p_cmdd->i_frag_dur = atoi(p_argv[i]);
 			i++;
 
-		} else if (strcmp(p_argv[i], "-live") == 0) {
+		} else if (strcmp(p_argv[i], "-avst-shift") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			if (p_cmdd->i_avstsh != 0) {
+				printf("Availability Start Time Shift has been already specified.\n");
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			p_cmdd->i_avstsh = atoi(p_argv[i]);
+			i++;
+
+		}
+		else if (strcmp(p_argv[i], "-live") == 0) {
 			p_cmdd->i_live = 1;
 			i++;
-		} else {
+		} else if (strcmp(p_argv[i], "-live-media") == 0) {
+			p_cmdd->i_live = 1;
+			p_cmdd->i_live_media = 1;
+			i++;
+		}
+		else {
 			printf("%s", psz_command_error);
 			printf("%s", psz_command_usage);
 			return -1;
 		}
+
 
 	}
 
@@ -421,6 +449,10 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 	if(p_cmdd->i_frag_dur == 0) {
 		p_cmdd->i_frag_dur = p_cmdd->i_seg_dur;
+	}
+
+	if(p_cmdd->i_avstsh == 0) {
+		p_cmdd->i_avstsh = 1;
 	}
 
 	printf("\33[34m\33[1m");
