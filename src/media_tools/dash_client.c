@@ -378,7 +378,10 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		group->broken_timing = 1;
 		return;
 	}
-
+	
+	//temp hack 
+	mpd->media_presentation_duration = 0;
+	
 	ast_diff = (u32) (mpd->availabilityStartTime - group->dash->mpd->availabilityStartTime);
 	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
 	current_time = fetch_time;
@@ -1195,6 +1198,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating Playlist %s...\n", purl ? purl : local_url));
 	if (purl) {
+		const char *mime_type;
 		/*use non-persistent connection for MPD*/
 		e = gf_dash_download_resource(dash->dash_io, &(dash->mpd_dnload), purl, 0, 0, 0, NULL);
 		if (e!=GF_OK) {
@@ -1204,7 +1208,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist %s updated with success\n", purl));
 		}
-		strcpy(mime, dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload) );
+		mime_type = dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload) ;
+		strcpy(mime, mime_type ? mime_type : "");
 		strlwr(mime);
 
 		/*in case the session has been restarted, local_url may have been destroyed - get it back*/
