@@ -16,7 +16,7 @@ InstallDir "$PROGRAMFILES32\GPAC"
 
 InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
 
-RequestExecutionLevel admin ;Require admin rights on NT6+ (When UAC is turned on)
+RequestExecutionLevel highest
 !include LogicLib.nsh
 
 Function .onInit
@@ -31,11 +31,6 @@ ${Endif}
 
 UserInfo::GetAccountType
 pop $0
-${If} $0 != "admin" ;Require admin rights on NT4+
-    MessageBox mb_iconstop "Administrator rights required!"
-    SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
-    Quit
-${EndIf}
 FunctionEnd
 
 ;--------------------------------
