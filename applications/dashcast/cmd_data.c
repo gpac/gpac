@@ -174,10 +174,13 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -a <string>                  audio stream input source\n"
 					"    -v <string>                  video stream input source\n"
 					"    -av <string>                 multiplexed audio and video input source\n"
-					"    -vf <string>                 input video format (if necessary)\n"
+					"    -vf <string>                 input video file format\n"
+					"                                 (if necessary e.g. video4linux2, mpeg4)\n"
+			        "    -v4l2f <string>              camera input format\n"
+			        "                                 (if necessary e.g. mjpeg, yuyv422, etc.)\n"
 					"    -vfr <int>                   input video framerate (if necessary)\n"
 					"    -vres <intxint>              input video resolution (if necessary)\n"
-					"    -af <string>                 input audio format (if necessary)\n"
+					"    -af <string>                 input audio file format (if necessary)\n"
 					"    -live                        live system from a camera\n"
 					"    -live-media                  live system from a media file\n"
 					"    -conf <string>               configuration file [default=dashcast.conf]\n"
@@ -337,7 +340,21 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 			i++;
 
-		} else if (strcmp(p_argv[i], "-mpd") == 0) {
+		} else if (strcmp(p_argv[i], "-v4l2f") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			strcpy(p_cmdd->vdata.psz_v4l2f, p_argv[i]);
+			strcat(p_cmdd->vdata.psz_v4l2f, "\0");
+
+			i++;
+
+		}
+		else if (strcmp(p_argv[i], "-mpd") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -482,6 +499,9 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	printf("    video source: %s\n", p_cmdd->vdata.psz_name);
 	if (strcmp(p_cmdd->vdata.psz_format, "") != 0) {
 		printf("    video format: %s\n", p_cmdd->vdata.psz_format);
+	}
+	if (strcmp(p_cmdd->vdata.psz_v4l2f, "") != 0) {
+			printf("    v4l2 format: %s\n", p_cmdd->vdata.psz_v4l2f);
 	}
 	if (p_cmdd->vdata.i_framerate != -1) {
 		printf("    video framerate: %d\n", p_cmdd->vdata.i_framerate);
