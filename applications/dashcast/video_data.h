@@ -44,6 +44,8 @@ typedef struct {
 	char psz_name[256];
 	/* video format */
 	char psz_format[256];
+	/* v4l2 format */
+	char psz_v4l2f[256];
 	/* video width */
 	int i_width;
 	/* video height */
