@@ -192,9 +192,6 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 #ifndef GPAC_DISABLE_HEVC
 				nal_type = (pck.data[4] & 0x7E) >> 1;
 
-//				if ( nal_type <= 1)
-//					nal_type = nal_type;
-
 				/*check for SPS and update stream info*/
 #ifndef GPAC_DISABLE_AV_PARSERS
 				if (!pes->vid_w && (nal_type==GF_HEVC_NALU_SEQ_PARAM)) {
@@ -229,10 +226,6 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					|| (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)
 				) {
 					pck.flags = GF_M2TS_PES_PCK_RAP;
-					if (force_new_au) {
-						pck.flags |= GF_M2TS_PES_PCK_AU_START;
-						force_new_au = 0;
-					}
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					prev_is_au_delim=0;
 				} 

@@ -361,13 +361,6 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 			slh.decodingTimeStamp = pck->DTS;
 		}
 		slh.randomAccessPointFlag = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
-
-		if (pck->stream->pid==257) {
-			if (!pck->data[3])
-				pck->data[3] = 0;
-			if ( ((pck->data[4] & 0x7E) >> 1) <= 1)
-				pck->data[3] = 1;
-		}
 	}
 	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, &slh, GF_OK);
 }
