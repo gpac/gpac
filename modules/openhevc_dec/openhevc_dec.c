@@ -39,7 +39,7 @@
 typedef struct
 {
 	u16 ES_ID;
-	u32 width, stride, height, out_size, pixel_ar, layer;
+	u32 width, stride, height, out_size, pixel_ar, layer, nb_threads;
 
 	Bool is_init;
 	Bool state_found;
@@ -58,7 +58,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	ctx->width = ctx->height = ctx->out_size = 0;
 	ctx->state_found = GF_FALSE;
 	
-	libOpenHevcInit(3);
+	libOpenHevcInit(ctx->nb_threads);
 	ctx->is_init = GF_TRUE;
 
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -107,6 +107,14 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		ctx->reset_dec_on_seek = GF_TRUE;
 	} else if (!strcmp(sOpt, "yes")) {
 		ctx->reset_dec_on_seek = GF_TRUE;
+	}
+	
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads");
+	if (!sOpt) {
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads", "1");
+		ctx->nb_threads = 1;
+	} else {
+		ctx->nb_threads = atoi(sOpt);
 	}
 
 	/*not supported in this version*/
@@ -213,6 +221,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 			libOpenHevcClose();
 			return HEVC_ConfigureStream(ctx, ctx->esd);
 		} else {
+
 			int flushed;
 		
 			pY = outBuffer;
@@ -226,6 +235,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				*outBufferLength = ctx->out_size;
 				*outBufferLength = 0;
 			}
+ 
 		}
 		return GF_OK;
 	}
