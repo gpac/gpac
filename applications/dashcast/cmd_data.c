@@ -363,7 +363,12 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return -1;
 			}
 			char * m = p_argv[i];
-			p_cmdd->i_seg_marker = GF_4CC(m[0], m[1], m[2], m[3]);
+			if (strlen(m) == 4) {
+				p_cmdd->i_seg_marker = GF_4CC(m[0], m[1], m[2], m[3]);
+			} else {
+				printf("Invalid marker box name specified: %s\n", m);
+				return -1;
+			}
 
 			i++;
 
