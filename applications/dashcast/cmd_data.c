@@ -142,6 +142,7 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->p_conf = NULL;
 	strcpy(p_cmdd->psz_mpd, "");
 	strcpy(p_cmdd->psz_out, "");
+	p_cmdd->i_seg_marker = 0;
 	p_cmdd->i_exit_signal = 0;
 	p_cmdd->i_live = 0;
 	p_cmdd->i_live_media = 0;
@@ -176,8 +177,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -av <string>                 multiplexed audio and video input source\n"
 					"    -vf <string>                 input video file format\n"
 					"                                 (if necessary e.g. video4linux2, mpeg4)\n"
-			        "    -v4l2f <string>              camera input format\n"
-			        "                                 (if necessary e.g. mjpeg, yuyv422, etc.)\n"
+					"    -v4l2f <string>              camera input format\n"
+					"                                 (if necessary e.g. mjpeg, yuyv422, etc.)\n"
 					"    -vfr <int>                   input video framerate (if necessary)\n"
 					"    -vres <intxint>              input video resolution (if necessary)\n"
 					"    -af <string>                 input audio file format (if necessary)\n"
@@ -188,6 +189,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
 					"    -avst-shift <int>            Availability Start Time shift in second [default=1]\n"
 					"    -minbuftime <float>          Min Buffer Time in second [default=1.0]\n"
+					"    -seg-marker <string>         Add a marker box at the end of DASH segment\n"
 					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
 					"    -out <string>                output data directory name [default=output]\n"
 					"\n";
@@ -353,8 +355,19 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 			i++;
 
-		}
-		else if (strcmp(p_argv[i], "-mpd") == 0) {
+		} else if (strcmp(p_argv[i], "-seg-marker") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			char * m = p_argv[i];
+			p_cmdd->i_seg_marker = GF_4CC(m[0], m[1], m[2], m[3]);
+
+			i++;
+
+		} else if (strcmp(p_argv[i], "-mpd") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -433,8 +446,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return -1;
 			}
 			if (p_cmdd->f_minbuftime != -1) {
-				printf(
-						"Min Buffer Time has been already specified.\n");
+				printf("Min Buffer Time has been already specified.\n");
 				printf("%s", psz_command_usage);
 				return -1;
 			}
@@ -501,7 +513,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		printf("    video format: %s\n", p_cmdd->vdata.psz_format);
 	}
 	if (strcmp(p_cmdd->vdata.psz_v4l2f, "") != 0) {
-			printf("    v4l2 format: %s\n", p_cmdd->vdata.psz_v4l2f);
+		printf("    v4l2 format: %s\n", p_cmdd->vdata.psz_v4l2f);
 	}
 	if (p_cmdd->vdata.i_framerate != -1) {
 		printf("    video framerate: %d\n", p_cmdd->vdata.i_framerate);
