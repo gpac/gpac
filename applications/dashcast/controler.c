@@ -107,7 +107,7 @@ Bool mpd_thread(void * p_params) {
 		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
 		t += p_cmddata->i_avstsh;
 		struct tm tm = *gmtime(&t);
-		sprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
+		sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ", tm.tm_year + 1900,
 				tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 		printf("StartTime: %s\n", availability_start_time);
 

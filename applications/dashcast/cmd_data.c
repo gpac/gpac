@@ -308,7 +308,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			}
 
 			if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1) {
-				printf("Video framerate has been already specified.\n");
+				printf("Video resolution has been already specified.\n");
 				printf("%s", psz_command_usage);
 				return -1;
 			}
