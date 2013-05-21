@@ -46,7 +46,7 @@ void dc_video_input_data_end_signal(VideoInputData * p_vconv) {
 }
 
 int dc_video_input_data_init(VideoInputData * p_vin_data,
-		int i_width, int i_height, int i_pix_fmt, int i_con_nb, int i_live) {
+		int i_width, int i_height, int i_pix_fmt, int i_con_nb, int mode) {
 
 	int i;
 
@@ -56,7 +56,7 @@ int dc_video_input_data_init(VideoInputData * p_vin_data,
 	p_vin_data->i_height = i_height;
 	p_vin_data->i_pix_fmt = i_pix_fmt;
 
-	dc_circular_buffer_create(&p_vin_data->p_cb, VIDEO_CB_SIZE, i_live?LIVE:OFFLINE,
+	dc_circular_buffer_create(&p_vin_data->p_cb, VIDEO_CB_SIZE, mode,
 				i_con_nb);
 
 	for (i = 0; i < VIDEO_CB_SIZE; i++) {

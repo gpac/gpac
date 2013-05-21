@@ -117,7 +117,7 @@ void dc_video_data_set_default(VideoData * vdata);
  *
  * @note Must use dc_video_data_destroy to free memory.
  */
-int dc_video_input_data_init(VideoInputData * vind, int width, int height, int pixfmt, int maxcon, int live);
+int dc_video_input_data_init(VideoInputData * vind, int width, int height, int pixfmt, int maxcon, int mode);
 /*
  * Destroy a VideoInputData
  *

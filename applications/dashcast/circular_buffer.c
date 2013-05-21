@@ -218,7 +218,7 @@ int dc_producer_lock(Producer * p_pro, CircularBuffer * p_cb) {
 	printf("producer %s enters lock %d \n", p_pro->psz_name, p_pro->i_idx);
 #endif
 
-	if (p_cb->mode == LIVE && (p_node->i_con_nb || p_node->i_marked)) {
+	if ( (p_cb->mode == LIVE_CAMERA || p_cb->mode == LIVE_MEDIA)  && (p_node->i_con_nb || p_node->i_marked)) {
 		gf_mx_v(p_node->mux);
 		return -1;
 	}

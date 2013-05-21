@@ -130,6 +130,11 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 
 		if (ret == AVERROR_EOF) {
 
+			if(p_ain->mode == LIVE_MEDIA) {
+				av_seek_frame(p_ain->p_fmt, p_ain->i_astream_idx, 0, 0);
+				continue;
+			}
+
 			/* Flush decoder */
 			packet.data = NULL;
 			packet.size = 0;
@@ -188,7 +193,8 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 				av_fifo_generic_write(p_ain->p_fifo, p_ad->p_aframe->data[0],
 						p_ad->p_aframe->linesize[0], NULL);
 
-				if (/*p_ad->p_cb.mode == OFFLINE*/ p_ain->mode == 0 || p_ain->mode == 2) {
+				if (/*p_ad->p_cb.mode == OFFLINE*/
+						p_ain->mode == ON_DEMAND || p_ain->mode == LIVE_MEDIA) {
 
 					dc_producer_lock(&p_ad->pro, &p_ad->p_cb);
 
