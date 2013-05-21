@@ -204,7 +204,7 @@ int dc_gpac_audio_isom_close_seg(AudioOutputFile * p_aoutf) {
 
 	GF_Err ret;
 
-	ret = gf_isom_close_segment(p_aoutf->p_isof, 0, 0, 0, 0, 0, 1, 0, NULL,
+	ret = gf_isom_close_segment(p_aoutf->p_isof, 0, 0, 0, 0, 0, 1, p_aoutf->i_seg_marker, NULL,
 			NULL);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));
@@ -358,7 +358,7 @@ int dc_ffmpeg_audio_muxer_close(AudioOutputFile * p_aoutf) {
 }
 
 int dc_audio_muxer_init(AudioOutputFile * p_aoutf, AudioData * p_adata,
-		AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag) {
+		AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag, u32 seg_marker) {
 
 	char name[256];
 	sprintf(name, "audio encoder %s", p_adata->psz_name);
@@ -370,6 +370,8 @@ int dc_audio_muxer_init(AudioOutputFile * p_aoutf, AudioData * p_adata,
 
 	p_aoutf->i_frame_per_seg = frame_per_seg;
 	p_aoutf->i_frame_per_frag = frame_per_frag;
+
+	p_aoutf->i_seg_marker = seg_marker;
 
 	return 0;
 }

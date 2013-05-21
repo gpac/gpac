@@ -65,6 +65,8 @@ typedef struct  {
 	int i_live_media;
 	/* Availability Stat Time shift */
 	int i_avstsh;
+	/* End of Segment Box name */
+	u32 i_seg_marker;
 	/* Min Buffer Time */
 	float f_minbuftime;
 	/* output directory name */

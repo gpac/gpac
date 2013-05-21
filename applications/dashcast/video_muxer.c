@@ -211,7 +211,7 @@ int dc_gpac_video_isom_close_seg(VideoOutputFile * p_voutf) {
 
 	GF_Err ret;
 
-	ret = gf_isom_close_segment(p_voutf->p_isof, 0, 0, 0, 0, 0, 1, 0, NULL,
+	ret = gf_isom_close_segment(p_voutf->p_isof, 0, 0, 0, 0, 0, 1, p_voutf->i_seg_marker, NULL,
 			NULL);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));
@@ -378,7 +378,7 @@ int dc_ffmpeg_video_muxer_close(VideoOutputFile * p_voutf) {
 
 int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata,
 		VideoMuxerType muxer_type, int frame_per_segment,
-		int frame_per_fragment) {
+		int frame_per_fragment, u32 seg_marker) {
 
 	char name[256];
 	sprintf(name, "video encoder %s", p_vdata->psz_name);
@@ -390,6 +390,8 @@ int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata,
 
 	p_voutf->frame_per_segment = frame_per_segment;
 	p_voutf->frame_per_fragment = frame_per_fragment;
+
+	p_voutf->i_seg_marker = seg_marker;
 
 	return 0;
 }

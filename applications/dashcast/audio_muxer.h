@@ -97,11 +97,14 @@ typedef struct {
 	int i_frame_per_frag;
 	int i_first_dts;
 
+	u32 i_seg_marker;
+
 	int i_frame_size;
 
 } AudioOutputFile;
 
-int dc_audio_muxer_init(AudioOutputFile * aoutf, AudioData * aconf, AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag);
+int dc_audio_muxer_init(AudioOutputFile * aoutf, AudioData * aconf, AudioMuxerType muxer_type,
+		int frame_per_seg, int frame_per_frag, u32 seg_marker);
 void dc_audio_muxer_free(AudioOutputFile * aoutf);
 
 /*

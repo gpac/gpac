@@ -657,7 +657,7 @@ Bool video_encoder_thread(void * p_params) {
 		seg_frame_max = -1;
 
 	if (dc_video_muxer_init(&out_file, p_vdata, muxer_type, seg_frame_max,
-			frag_frame_max) < 0) {
+			frag_frame_max, p_in_data->i_seg_marker) < 0) {
 		fprintf(stderr, "Cannot init output video file.\n");
 		p_in_data->i_exit_signal = 1;
 		return -1;
@@ -819,7 +819,7 @@ Bool audio_encoder_thread(void * p_params) {
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
 
 	if (dc_audio_muxer_init(&aout, p_adata, muxer_type, frame_per_seg,
-			frame_per_frag) < 0) {
+			frame_per_frag, p_in_data->i_seg_marker) < 0) {
 		fprintf(stderr, "Cannot init output audio.\n");
 		p_in_data->i_exit_signal = 1;
 		return -1;
