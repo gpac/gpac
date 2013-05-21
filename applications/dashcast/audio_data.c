@@ -50,14 +50,14 @@ void dc_audio_data_init(AudioData * adata, char * psz_name, char * psz_format) {
 }
 
 int dc_audio_input_data_init(AudioInputData * p_aid, int i_channels, int i_samplerate,
-		int i_maxcon, int i_live) {
+		int i_maxcon, int mode) {
 
 	int i;
 
 	dc_producer_init(&p_aid->pro, AUDIO_CB_SIZE, "audio decoder");
 
 
-	dc_circular_buffer_create(&p_aid->p_cb, AUDIO_CB_SIZE, i_live?LIVE:OFFLINE,
+	dc_circular_buffer_create(&p_aid->p_cb, AUDIO_CB_SIZE, mode,
 			i_maxcon);
 
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {

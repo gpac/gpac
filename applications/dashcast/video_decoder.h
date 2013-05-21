@@ -54,6 +54,8 @@ typedef struct {
 	int i_height;
 	int i_pix_fmt;
 
+	int mode;
+
 } VideoInputFile;
 
 /*
@@ -67,7 +69,7 @@ typedef struct {
  *
  * @return 0 on success -1 on failure.
  */
-int dc_video_decoder_open(VideoInputFile * vinf, VideoData *vdata);
+int dc_video_decoder_open(VideoInputFile * vinf, VideoData *vdata, int mode);
 /*
  * Read and decode video and put decoded frames on circular buffer
  *

@@ -195,10 +195,11 @@ int dc_audio_encoder_encode(AudioOutputFile * p_aout, AudioInputData * p_aind) {
 
 		/*
 		 * Set PTS (method 2)
-		 * int64_t now = av_gettime();
-		 * outAudioCtx->pOutAudioFrame->pts = av_rescale_q(now,AV_TIME_BASE_Q,
-		 * 		audioEncCtx->time_base);
 		 */
+		// int64_t now = av_gettime();
+		// p_aout->p_aframe->pts = av_rescale_q(now,AV_TIME_BASE_Q,
+		//		 p_audio_codec_ctx->time_base);
+
 
 		/* Encode audio */
 		if (avcodec_encode_audio2(p_audio_codec_ctx, &p_aout->packet,

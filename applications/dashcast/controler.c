@@ -464,16 +464,6 @@ Bool video_decoder_thread(void * p_params) {
 
 		if (ret == -2) {
 
-//			if(p_in_data->i_live_media == 1) {
-//
-//				/* Close input video */
-//				dc_video_decoder_close(p_vinf);
-//
-//				/* Open input video */
-//				dc_video_decoder_open(p_vinf, &p_in_data->vdata);
-//
-//				continue;
-//			}
 #ifdef DEBUG
 			printf("Video reader has no more frame to read.\n");
 #endif
@@ -491,7 +481,7 @@ Bool video_decoder_thread(void * p_params) {
 
 		gettimeofday(&time_end, NULL);
 
-		if (p_in_data->i_live_media == 1) {
+		if (p_vinf->mode == LIVE_MEDIA) {
 
 			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
 			                                        time_end.tv_usec - time_start.tv_usec;
@@ -563,7 +553,7 @@ Bool audio_decoder_thread(void * p_params) {
 
 		gettimeofday(&time_end, NULL);
 
-		if (p_in_data->i_live_media == 1) {
+		if (p_ainf->mode == LIVE_MEDIA) {
 
 			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
 			                                        time_end.tv_usec - time_start.tv_usec;
@@ -977,6 +967,14 @@ int dc_run_controler(CmdData * p_in_data) {
 	AudioInputData aind;
 	AudioInputFile ainf;
 
+	int mode = 0;
+	if (p_in_data->i_live == 0)
+		mode = ON_DEMAND;
+	else if (p_in_data->i_live_media == 1)
+		mode = LIVE_MEDIA;
+	else
+		mode = LIVE_CAMERA;
+
 #ifndef DASHER
 	ThreadParam dasher_th_params;
 #endif
@@ -998,13 +996,13 @@ int dc_run_controler(CmdData * p_in_data) {
 		vscaler_th_params = malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(&vinf, &p_in_data->vdata) < 0) {
+		if (dc_video_decoder_open(&vinf, &p_in_data->vdata, mode) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
 			return -1;
 		}
 
 		if (dc_video_input_data_init(&vind, vinf.i_width, vinf.i_height,
-				vinf.i_pix_fmt, p_vsdl.i_size, p_in_data->i_live) < 0) {
+				vinf.i_pix_fmt, p_vsdl.i_size, mode) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}
@@ -1028,13 +1026,6 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
 
-		int mode = 0;
-		if (p_in_data->i_live == 0)
-			mode = 0;
-		else if (p_in_data->i_live_media == 1)
-			mode = 2;
-		else
-			mode = 1;
 		/* Open input audio */
 		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, mode) < 0) {
 			fprintf(stderr, "Cannot open input audio.\n");
@@ -1043,7 +1034,7 @@ int dc_run_controler(CmdData * p_in_data) {
 
 		if (dc_audio_input_data_init(&aind, p_in_data->adata.i_channels,
 				p_in_data->adata.i_samplerate,
-				gf_list_count(p_in_data->p_audio_lst), p_in_data->i_live) < 0) {
+				gf_list_count(p_in_data->p_audio_lst), mode) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}

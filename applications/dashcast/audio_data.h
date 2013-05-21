@@ -113,7 +113,7 @@ void dc_audio_data_set_default(AudioData * adata);
  *
  * @note Must use dc_audio_data_destroy to free memory.
  */
-int dc_audio_input_data_init(AudioInputData * ain, int channels, int samplerate,  int maxcon, int live);
+int dc_audio_input_data_init(AudioInputData * ain, int channels, int samplerate,  int maxcon, int mode);
 
 /*
  * Destroy an AudioInputData

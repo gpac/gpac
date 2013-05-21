@@ -41,8 +41,9 @@
  * wait for the consumers to finish their job.
  */
 typedef enum {
-	LIVE,
-	OFFLINE
+	LIVE_CAMERA,
+	LIVE_MEDIA,
+	ON_DEMAND
 } LockMode;
 
 /*
