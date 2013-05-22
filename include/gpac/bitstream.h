@@ -164,6 +164,21 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes);
  *	\return the char value read.
  */
 u32 gf_bs_read_u8(GF_BitStream *bs);
+
+/*!
+ *	\brief align char reading until reaching the given value
+ *
+ *	Reads an integer coded on 8 bits starting at a byte boundary in the bitstream until
+ *  the given appears on the bitstream.
+ *	\note the bytes read in the bitstream will only be update if the delimiter is found
+ *	\param bs the target bitstream 
+ *	\param delimiter the stop condition
+ *  \param out the resulting value
+ *  \param max_lengh the maximum length of the output
+ *	\return the number of value read.
+ */
+u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_lengh);
+
 /*!
  *	\brief align short reading
  *
@@ -326,6 +341,7 @@ void gf_bs_write_u24(GF_BitStream *bs, u32 value);
  *	\param value the integer value to write
  */
 void gf_bs_write_u32(GF_BitStream *bs, u32 value);
+
 /*!
  *	\brief align large integer writing
  *
@@ -335,6 +351,9 @@ void gf_bs_write_u32(GF_BitStream *bs, u32 value);
  *	\param value the large integer value to write
  */
 void gf_bs_write_u64(GF_BitStream *bs, u64 value);
+
+
+
 /*!
  *	\brief little endian integer writing
  *
@@ -450,6 +469,7 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset);
  *\return number of available bits if position is in the last byte of the buffer/stream, 8 otherwise
  */
 u8 gf_bs_bits_available(GF_BitStream *bs);
+
 /*!
  *\brief position query
  *
@@ -458,6 +478,7 @@ u8 gf_bs_bits_available(GF_BitStream *bs);
  *\return the read/write position of the bitstream
  */
 u64 gf_bs_get_position(GF_BitStream *bs);
+
 /*!
  *\brief size query
  *
