@@ -361,7 +361,7 @@ u32 gf_ar_proc(void *p)
 		/*THIS IS NEEDED FOR SYMBIAN - if no yield here, the audio module always grabs the 
 		main mixer mutex and it takes forever before it can be grabed by another thread, 
 		for instance when reconfiguring scene*/
-		gf_sleep(1);
+//		gf_sleep(1);
 
 		gf_mixer_lock(ar->mixer, 1);
 		if (ar->Frozen || gf_mixer_empty(ar->mixer) ) {

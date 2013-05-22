@@ -192,9 +192,10 @@ struct __tag_compositor
 
 	/*simulation frame rate*/
 	Double frame_rate;
-	Bool no_regulation;
+	Bool no_regulation, video_regulation;
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
+	u32 frame_dur[GF_SR_FPS_COMPUTE_SIZE];
 	u32 current_frame;
 	u32 last_frame_time, caret_next_draw_time;
 	Bool show_caret;

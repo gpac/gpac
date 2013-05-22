@@ -47,8 +47,6 @@ typedef struct
 	u32 nalu_size_length;
 	u32 had_pic;
 
-	Bool reset_dec_on_seek;
-
 	GF_ESD *esd;
 } HEVCDec;
 
@@ -101,14 +99,6 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (gf_modules_get_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames")==NULL)
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "DrawLateFrames", "yes");
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek");
-	if (!sOpt) {
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "DestroyDecoderUponSeek", "yes");
-		ctx->reset_dec_on_seek = GF_TRUE;
-	} else if (!strcmp(sOpt, "yes")) {
-		ctx->reset_dec_on_seek = GF_TRUE;
-	}
-	
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads");
 	if (!sOpt) {
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads", "1");
@@ -167,7 +157,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = 3;
+		capability->cap.valueInt = 4;
 		break;
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 32;
@@ -215,29 +205,19 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 
 
 	if (!inBuffer) {
-		/*because of some seeking bugs, we destroy the context and reinit when we see a flush ... */
-		if (ctx->reset_dec_on_seek) {
-			*outBufferLength = 0;
-			libOpenHevcClose();
-			return HEVC_ConfigureStream(ctx, ctx->esd);
-		} else {
-
-			int flushed;
+		int flushed;
 		
-			pY = outBuffer;
-			pU = outBuffer + ctx->stride * ctx->height;
-			pV = outBuffer + 5*ctx->stride * ctx->height/4;
+		pY = outBuffer;
+		pU = outBuffer + ctx->stride * ctx->height;
+		pV = outBuffer + 5*ctx->stride * ctx->height/4;
 
-			flushed = libOpenHevcGetOutputCpy(1, pY, pU, pV);
+		flushed = libOpenHevcGetOutputCpy(1, pY, pU, pV);
 
-
-			if (flushed) {
-				*outBufferLength = ctx->out_size;
-				*outBufferLength = 0;
-			}
- 
+		if (flushed) {
+			*outBufferLength = ctx->out_size;
+			*outBufferLength = 0;
 		}
-		return GF_OK;
+ 		return GF_OK;
 	}
 
 	if (!ES_ID || (ES_ID!=ctx->ES_ID) ) {
@@ -276,17 +256,6 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 			} else {
 				nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 			}
-
-#if 0
-			{
-				u8 nal_type = (ptr[0] & 0x7E) >> 1;
-				if (!nal_type)
-					fprintf(stderr, "Wrong NAL type 0\n");
-				else
-					fprintf(stderr, "NAL type %d\n", nal_type);
-				nb_bytes +=nalu_size;
-			}
-#endif
 
 			if (!ctx->state_found) {
 				u8 nal_type = (ptr[0] & 0x7E) >> 1;
