@@ -208,6 +208,7 @@ static GF_Err gf_net_mobileip_ctrl(Bool start)
 /*
 		NTP tools
 */
+GF_EXPORT
 void gf_net_get_ntp(u32 *sec, u32 *frac)
 {
 	struct timeval now;
