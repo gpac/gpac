@@ -144,8 +144,8 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	strcpy(p_cmdd->psz_out, "");
 	p_cmdd->i_seg_marker = 0;
 	p_cmdd->i_exit_signal = 0;
-	p_cmdd->i_live = 0;
-	p_cmdd->i_live_media = 0;
+	p_cmdd->i_mode = ON_DEMAND;
+	p_cmdd->i_no_loop = 0;
 	p_cmdd->i_seg_dur = 0;
 	p_cmdd->i_frag_dur = 0;
 	p_cmdd->i_avstsh = -1;
@@ -184,6 +184,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -af <string>                 input audio file format (if necessary)\n"
 					"    -live                        live system from a camera\n"
 					"    -live-media                  live system from a media file\n"
+			        "    -no-loop                     system does not loop on the input media file\n"
 					"    -conf <string>               configuration file [default=dashcast.conf]\n"
 					"    -seg-dur <int>               segment duration in millisecond [default=1000]\n"
 					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
@@ -460,13 +461,16 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			i++;
 
 		} else if (strcmp(p_argv[i], "-live") == 0) {
-			p_cmdd->i_live = 1;
+			p_cmdd->i_mode = LIVE_CAMERA;
 			i++;
 		} else if (strcmp(p_argv[i], "-live-media") == 0) {
-			p_cmdd->i_live = 1;
-			p_cmdd->i_live_media = 1;
+			p_cmdd->i_mode = LIVE_MEDIA;
 			i++;
-		} else {
+		} else if (strcmp(p_argv[i], "-no-loop") == 0) {
+			p_cmdd->i_no_loop = 1;
+			i++;
+		}
+		else {
 			printf("%s", psz_command_error);
 			printf("%s", psz_command_usage);
 			return -1;

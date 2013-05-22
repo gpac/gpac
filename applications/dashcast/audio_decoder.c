@@ -25,7 +25,7 @@
 
 #include "audio_decoder.h"
 
-int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int mode) {
+int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int i_mode, int i_no_loop) {
 
 	int i;
 	AVInputFormat * p_in_fmt = NULL;
@@ -106,7 +106,8 @@ int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int mode)
 	p_adata->i_channels = p_codec_ctx->channels;
 	p_adata->i_samplerate = p_codec_ctx->sample_rate;
 
-	p_ain->mode = mode;
+	p_ain->i_mode = i_mode;
+	p_ain->i_no_loop = i_no_loop;
 
 	return 0;
 }
@@ -130,7 +131,7 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 
 		if (ret == AVERROR_EOF) {
 
-			if(p_ain->mode == LIVE_MEDIA) {
+			if(p_ain->i_mode == LIVE_MEDIA && p_ain->i_no_loop == 0) {
 				av_seek_frame(p_ain->p_fmt, p_ain->i_astream_idx, 0, 0);
 				continue;
 			}
@@ -194,7 +195,7 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 						p_ad->p_aframe->linesize[0], NULL);
 
 				if (/*p_ad->p_cb.mode == OFFLINE*/
-						p_ain->mode == ON_DEMAND || p_ain->mode == LIVE_MEDIA) {
+						p_ain->i_mode == ON_DEMAND || p_ain->i_mode == LIVE_MEDIA) {
 
 					dc_producer_lock(&p_ad->pro, &p_ad->p_cb);
 

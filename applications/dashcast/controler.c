@@ -92,7 +92,7 @@ Bool mpd_thread(void * p_params) {
 	AudioData * p_adata = NULL;
 	VideoData * p_vdata = NULL;
 
-	if (p_cmddata->i_live) {
+	if (p_cmddata->i_mode == LIVE_CAMERA || p_cmddata->i_mode == LIVE_MEDIA) {
 
 		time_t t;
 
@@ -176,10 +176,10 @@ Bool mpd_thread(void * p_params) {
 			"%s=\"%s\" "
 			"minBufferTime=\"PT%fS\" type=\"%s\" "
 			"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
-			p_cmddata->i_live ? "availabilityStartTime" : "mediaPresentationDuration",
-			p_cmddata->i_live ? availability_start_time : presentation_duration,
+			(p_cmddata->i_mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime",
+			(p_cmddata->i_mode == ON_DEMAND) ? presentation_duration : availability_start_time,
 			p_cmddata->f_minbuftime,
-			p_cmddata->i_live ? "dynamic" : "static");
+			(p_cmddata->i_mode == ON_DEMAND) ? "static" : "dynamic");
 
 	fprintf(p_f,
 			" <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
@@ -481,7 +481,7 @@ Bool video_decoder_thread(void * p_params) {
 
 		gettimeofday(&time_end, NULL);
 
-		if (p_vinf->mode == LIVE_MEDIA) {
+		if (p_vinf->i_mode == LIVE_MEDIA) {
 
 			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
 			                                        time_end.tv_usec - time_start.tv_usec;
@@ -553,7 +553,7 @@ Bool audio_decoder_thread(void * p_params) {
 
 		gettimeofday(&time_end, NULL);
 
-		if (p_ainf->mode == LIVE_MEDIA) {
+		if (p_ainf->i_mode == LIVE_MEDIA) {
 
 			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
 			                                        time_end.tv_usec - time_start.tv_usec;
@@ -717,7 +717,7 @@ Bool video_encoder_thread(void * p_params) {
 		// If system is live,
 		// Send the time that the first segment is available to MPD generator thread.
 		if (seg_nb == 0) {
-			if(p_in_data->i_live) {
+			if(p_in_data->i_mode == LIVE_MEDIA || p_in_data->i_mode == LIVE_CAMERA) {
 				if (p_thread_params->video_conf_idx == 0) {
 					time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
@@ -734,7 +734,7 @@ Bool video_encoder_thread(void * p_params) {
 
 	// If system is not live,
 	// Send the duration of the video
-	if(!p_in_data->i_live) {
+	if(p_in_data->i_mode == ON_DEMAND) {
 		if (p_thread_params->video_conf_idx == 0) {
 			int dur = (seg_nb * seg_frame_max * 1000) / p_vdata->i_framerate;
 			int dur_tot = (out_file.p_codec_ctx->frame_number * 1000) / p_vdata->i_framerate;
@@ -906,7 +906,7 @@ Bool audio_encoder_thread(void * p_params) {
 
 		// Send the time that the first segment is available to MPD generator thread.
 		if (seg_nb == 0) {
-			if(p_in_data->i_live) {
+			if(p_in_data->i_mode == LIVE_CAMERA || p_in_data->i_mode == LIVE_MEDIA) {
 				if (p_thread_params->audio_conf_idx == 0) {
 					time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
@@ -924,7 +924,7 @@ Bool audio_encoder_thread(void * p_params) {
 
 	// If system is not live,
 	// Send the duration of the video
-	if(!p_in_data->i_live) {
+	if(p_in_data->i_mode == ON_DEMAND) {
 		if (p_thread_params->audio_conf_idx == 0) {
 			int dur = (seg_nb * aout.i_frame_size * frame_per_seg * 1000) / p_adata->i_samplerate;
 			int dur_tot = (aout.p_codec_ctx->frame_number * aout.i_frame_size * 1000) / p_adata->i_samplerate;
@@ -967,14 +967,6 @@ int dc_run_controler(CmdData * p_in_data) {
 	AudioInputData aind;
 	AudioInputFile ainf;
 
-	int mode = 0;
-	if (p_in_data->i_live == 0)
-		mode = ON_DEMAND;
-	else if (p_in_data->i_live_media == 1)
-		mode = LIVE_MEDIA;
-	else
-		mode = LIVE_CAMERA;
-
 #ifndef DASHER
 	ThreadParam dasher_th_params;
 #endif
@@ -996,13 +988,13 @@ int dc_run_controler(CmdData * p_in_data) {
 		vscaler_th_params = malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(&vinf, &p_in_data->vdata, mode) < 0) {
+		if (dc_video_decoder_open(&vinf, &p_in_data->vdata, p_in_data->i_mode, p_in_data->i_no_loop) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
 			return -1;
 		}
 
 		if (dc_video_input_data_init(&vind, vinf.i_width, vinf.i_height,
-				vinf.i_pix_fmt, p_vsdl.i_size, mode) < 0) {
+				vinf.i_pix_fmt, p_vsdl.i_size, p_in_data->i_mode) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}
@@ -1027,14 +1019,14 @@ int dc_run_controler(CmdData * p_in_data) {
 	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
 
 		/* Open input audio */
-		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, mode) < 0) {
+		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, p_in_data->i_mode, p_in_data->i_no_loop) < 0) {
 			fprintf(stderr, "Cannot open input audio.\n");
 			return -1;
 		}
 
 		if (dc_audio_input_data_init(&aind, p_in_data->adata.i_channels,
 				p_in_data->adata.i_samplerate,
-				gf_list_count(p_in_data->p_audio_lst), mode) < 0) {
+				gf_list_count(p_in_data->p_audio_lst), p_in_data->i_mode) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}

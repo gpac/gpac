@@ -52,7 +52,8 @@ typedef struct {
 
 	AVFifoBuffer * p_fifo;
 
-	int mode;
+	int i_mode;
+	int i_no_loop;
 
 } AudioInputFile;
 
@@ -67,7 +68,7 @@ typedef struct {
  *
  * @return 0 on success -1 on failure.
  */
-int dc_audio_decoder_open(AudioInputFile * ainf, AudioData * adata, int mode);
+int dc_audio_decoder_open(AudioInputFile * ainf, AudioData * adata, int mode, int no_loop);
 
 /*
  * Read and decode audio and put samples on circular buffer
