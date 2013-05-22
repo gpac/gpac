@@ -164,6 +164,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_long_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8_until_delimiter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u24) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u32) )

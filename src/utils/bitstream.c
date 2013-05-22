@@ -278,6 +278,26 @@ u32 gf_bs_read_u8(GF_BitStream *bs)
 }
 
 GF_EXPORT
+u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_lengh){
+	u32 i = 0;
+	char token;
+	u32 cur_pos = gf_bs_get_position(bs);
+
+	while(gf_bs_available(bs) && i < max_lengh){
+		gf_bs_read_data(bs, &token, 1);
+		if (token == delimiter) goto found;
+		out[i++] = token;
+	}
+
+	/* Delimiter not found */
+	gf_bs_seek(bs, cur_pos);
+	return 0;
+
+found:
+	return i;
+}
+
+GF_EXPORT
 u32 gf_bs_read_u16(GF_BitStream *bs)
 {
 	u32 ret;
