@@ -60,9 +60,13 @@ typedef struct  {
 	/* List of entries for audio in configuration file */
 	GF_List * p_audio_lst;
 	/* Indicates that the system is live */
-	int i_live;
+	//int i_live;
 	/* Indicates that the system is live from a media input */
-	int i_live_media;
+	//int i_live_media;
+	/* The mode of the system: ON_DEMAND, LIVE_CAMERA, LIVE_MEDIA */
+	int i_mode;
+	/* Does not loop on input */
+	int i_no_loop;
 	/* Availability Stat Time shift */
 	int i_avstsh;
 	/* End of Segment Box name */
