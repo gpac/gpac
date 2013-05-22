@@ -325,7 +325,7 @@ static void UpdateRTInfo(const char *legend)
 
 		if (rti.total_cpu_usage) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-					gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+					gf_term_get_framerate(term, 1), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		} else {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d - Mem %d kB", 
 				gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );

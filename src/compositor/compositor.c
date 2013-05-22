@@ -226,7 +226,7 @@ void gf_sc_reset_graphics(GF_Compositor *compositor)
 static void gf_sc_reset_framerate(GF_Compositor *compositor)
 {
 	u32 i;
-	for (i=0; i<GF_SR_FPS_COMPUTE_SIZE; i++) compositor->frame_time[i] = 0;
+	for (i=0; i<GF_SR_FPS_COMPUTE_SIZE; i++) compositor->frame_time[i] = compositor->frame_dur[i] = 0;
 	compositor->current_frame = 0;
 }
 
@@ -509,7 +509,6 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
 		tmp->no_regulation = GF_TRUE;
-
 
 	/*set default size if owning output*/
 	if (!tmp->user->os_window_handler) {
@@ -1721,15 +1720,17 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 	Double fps;
 	u32 ind, num, frames, run_time;
 
+	gf_mx_p(compositor->mx);
+#if 1
 	/*start from last frame and get first frame time*/
 	ind = compositor->current_frame;
 	frames = 0;
-	run_time = compositor->frame_time[ind];
+	run_time = compositor->frame_dur[ind];
 	for (num=0; num<GF_SR_FPS_COMPUTE_SIZE; num++) {
 		if (absoluteFPS) {
-			run_time += compositor->frame_time[ind];
+			run_time += compositor->frame_dur[ind];
 		} else {
-			run_time += MAX(compositor->frame_time[ind], compositor->frame_duration);
+			run_time += MAX(compositor->frame_dur[ind], compositor->frame_duration);
 		}
 		frames++;
 		if (frames==GF_SR_FPS_COMPUTE_SIZE) break;
@@ -1739,6 +1740,20 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 			ind--;
 		}
 	}
+#else
+	/*start from last frame and get first frame time*/
+	ind = compositor->current_frame;
+	frames = 0;
+	run_time = compositor->frame_time[ind];
+	if (ind == GF_SR_FPS_COMPUTE_SIZE) ind = 0;
+	assert(run_time >= compositor->frame_time[ind+1]);
+	run_time -= compositor->frame_time[ind+1];
+	frames = GF_SR_FPS_COMPUTE_SIZE;
+#endif
+
+
+	gf_mx_v(compositor->mx);
+
 	if (!run_time) return (Double) compositor->frame_rate;
 	fps = 1000*frames;
 	fps /= run_time;
@@ -1982,6 +1997,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time;
 #endif
 
+	in_time = gf_sys_clock();
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
 
@@ -2003,8 +2019,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (!compositor->no_regulation) gf_sleep(compositor->frame_duration);
 		return;
 	}
-
-	in_time = gf_sys_clock();
 
 	if (compositor->reset_graphics) {
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);		
@@ -2143,6 +2157,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	/*setup root visual BEFORE updating the texture, because of potential composite texture */
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
+	compositor->video_regulation = compositor->no_regulation;
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
 #endif
@@ -2284,7 +2299,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	if (frame_drawn) {
 		compositor->current_frame = (compositor->current_frame+1) % GF_SR_FPS_COMPUTE_SIZE;
-		compositor->frame_time[compositor->current_frame] = end_time;
+		compositor->frame_dur[compositor->current_frame] = end_time;
+		compositor->frame_time[compositor->current_frame] = compositor->last_frame_time;
 		compositor->frame_number++;
 	}
 
@@ -2302,7 +2318,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	/*not threaded, let the owner decide*/
-	if (compositor->no_regulation) return;
+	if (compositor->video_regulation) return;
 
 	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {

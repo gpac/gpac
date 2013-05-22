@@ -206,8 +206,11 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	if (txh->tx_io && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
+		if (!txh->stream_finished)
+			txh->compositor->video_regulation = 1;
 		return;
 	}
+	txh->compositor->video_regulation = 1;
 	txh->needs_release = 1; 
 	txh->last_frame_time = ts;
 	if (gf_mo_is_muted(txh->stream)) return;

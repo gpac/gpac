@@ -41,7 +41,7 @@ enum
 	GF_MM_CE_REQ_THREAD = 1<<3,
 	/*only used by threaded decs to signal end of thread*/
 	GF_MM_CE_DEAD = 1<<4,
-	GF_MM_CE_DISCRADED = 1<<5,
+	GF_MM_CE_DISCARDED = 1<<5,
 };
 
 typedef struct
@@ -91,7 +91,7 @@ void gf_term_stop_scheduler(GF_Terminal *term)
 		count = gf_list_count(term->codecs);
 		for (i=0; i<count; i++) {
 			CodecEntry *ce = gf_list_get(term->codecs, i);
-			if (ce->flags & GF_MM_CE_DISCRADED) {
+			if (ce->flags & GF_MM_CE_DISCARDED) {
 				gf_free(ce);
 				gf_list_rem(term->codecs, i);
 				count--;
@@ -252,7 +252,7 @@ void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 			gf_free(ce);
 			gf_list_rem(term->codecs, i-1);
 		} else {
-			ce->flags |= GF_MM_CE_DISCRADED;
+			ce->flags |= GF_MM_CE_DISCARDED;
 		}
 		break;
 	}
@@ -298,7 +298,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 
 	if (term->last_codec >= count) term->last_codec = 0;
 	remain = count;
-
+	time_taken = 0;
 	/*this is ultra basic a nice scheduling system would be much better*/
 	while (remain) {
 		ce = (CodecEntry*)gf_list_get(term->codecs, term->last_codec);
@@ -316,7 +316,6 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 
 		e = gf_codec_process(ce->dec, time_slice);
 		time_taken = gf_sys_clock() - time_taken;
-
 		/*avoid signaling errors too often...*/
 #ifndef GPAC_DISABLE_LOG
 		if (e) {
@@ -325,7 +324,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Decode time slice %d ms out of %d ms\n", ce->dec->decio ? ce->dec->decio->module_name : "RAW", time_taken, time_left ));
 		}
 #endif
-		if (ce->flags & GF_MM_CE_DISCRADED) {
+		if (ce->flags & GF_MM_CE_DISCARDED) {
 			gf_free(ce);
 			gf_list_rem(term->codecs, term->last_codec);
 			count--;
@@ -334,15 +333,14 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 		} else {
 			if (ce->dec->CB && (ce->dec->CB->UnitCount >= ce->dec->CB->Min)) ce->dec->PriorityBoost = 0;
 		}
-
 		term->last_codec = (term->last_codec + 1) % count;
 
 		remain -= 1;
-		if (!remain) break;
-
 		if (time_left > time_taken) {
 			time_left -= time_taken;
+			if (!remain) break;
 		} else {
+			time_left = 0;
 			break;
 		}
 	}
@@ -350,7 +348,6 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 #ifndef GF_DISABLE_LOG
 	term->compositor->decoders_time = gf_sys_clock() - term->compositor->decoders_time;
 #endif
-
 
 	return time_left;
 }
@@ -369,7 +366,7 @@ u32 MM_Loop(void *par)
 	while (term->flags & GF_TERM_RUNNING) {
 		u32 left;
 		if (do_codec) left = MM_SimulationStep_Decoder(term);
-		else left = term->frame_duration;
+//		else left = term->frame_duration;
 		
 		if (do_scene) {
 			u32 time_taken = gf_sys_clock();
@@ -380,8 +377,12 @@ u32 MM_Loop(void *par)
 			else
 				left = 0;
 		}
-		if (do_regulate)
-			gf_sleep(left);
+
+		if (do_regulate) {
+			if (left==term->frame_duration) {
+				gf_sleep(term->frame_duration);
+			}
+		}
 	}
 	term->flags |= GF_TERM_DEAD;
 	return 0;
