@@ -875,7 +875,7 @@ Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Poi
 {
 	Fixed det, angle;
 	Fixed tmp[6];
-	if(!mx) return 0;
+	if(!mx) return GF_FALSE;
 
 	memcpy(tmp, mx->m, sizeof(Fixed)*6);
 	translate->x = tmp[2];
@@ -898,7 +898,7 @@ Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Poi
 		scale->y = gf_divfix(tmp[4], det);
 	}
 	*rotate = angle;
-	return 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT
