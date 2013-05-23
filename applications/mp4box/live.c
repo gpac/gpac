@@ -37,6 +37,8 @@
 #include <gpac/rtp_streamer.h>
 #endif
 
+#include <gpac/mpegts.h>
+
 #if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
 
 #error "Cannot compile MP4Box if GPAC is not built with ISO File Format support"
@@ -834,3 +836,71 @@ exit:
 #endif /*!defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)*/
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
+
+u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
+{
+	char data[0x80000];
+	u32 check = 50;
+	u64 nb_pck;
+	Bool first_run, is_rtp;
+	FILE *output;
+	GF_Socket *sock;
+	GF_Err e = gf_m2ts_get_socket(grab_m2ts, NULL, 0x80000, &sock);
+
+	if (e) {
+		fprintf(stderr, "Cannot open %s: %s\n", grab_m2ts, gf_error_to_string(e));
+		return 1;
+	}
+	output = gf_f64_open(outName, "wb");
+	if (!output) {
+		fprintf(stderr, "Cannot open %s: check path and rights\n", outName);
+		gf_sk_del(sock);
+		return 1;
+	}
+	
+	fprintf(stderr, "Dumping %s stream to %s - press q to abort\n", grab_m2ts, outName);
+
+	first_run = 1;
+	is_rtp = 0;
+	while (1) {
+		u32 size = 0;
+
+		check--;
+		if (!check) {
+			if (gf_prompt_has_input()) {
+				char c = (char) gf_prompt_get_char(); 
+				if (c=='q') break;
+			}
+			check = 50;
+		}
+
+		/*m2ts chunks by chunks*/
+		e = gf_sk_receive(sock, data, 0x40000, 0, &size);
+		if (!size || e) {
+			gf_sleep(1);
+			continue;
+		}
+		if (first_run) {
+			first_run = 0;
+			/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
+			if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
+				is_rtp = 1;
+			}
+		}
+		/*process chunk*/
+		if (is_rtp) {
+			fwrite(data+12, size-12, 1, output);			
+		} else {
+			fwrite(data, size, 1, output);
+		}
+	}
+	nb_pck = gf_f64_tell(output);
+	nb_pck /= 188;
+	fprintf(stderr, "Captured "LLU" TS packets\n", nb_pck );
+	fclose(output);
+	gf_sk_del(sock);
+	return 0;
+}
+
+
+

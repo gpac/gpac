@@ -289,6 +289,15 @@ typedef struct
 
 	u32 num_short_term_ref_pic_sets, num_long_term_ref_pic_sps;
 	HEVC_ReferencePictureSets rps[64];
+
+
+	Bool aspect_ratio_info_present_flag;
+	u8 sar_idc;
+	u16 sar_width, sar_height;
+	Bool has_timing_info;
+	u32 num_units_in_tick, time_scale;
+	Bool poc_proportional_to_timing_flag;
+	u32 num_ticks_poc_diff_one_minus1;
 } HEVC_SPS;
 
 typedef struct

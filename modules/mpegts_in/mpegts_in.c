@@ -832,6 +832,8 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		m2ts->hybrid_on = 1;
 	}	
 
+	m2ts->ts->record_to = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "RecordTo");
+
 	m2ts->service = serv;
 	if (m2ts->owner->query_proxy) {
 		m2ts->ts->query_next = M2TS_QueryNextFile;

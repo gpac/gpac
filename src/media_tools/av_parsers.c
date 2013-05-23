@@ -3171,7 +3171,7 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0;
 	s32 vps_id, sps_id = -1;
-	u8 max_sub_layers_minus1;
+	u8 max_sub_layers_minus1, flag;
 	u32 i, nb_CTUs, depth;
 	u32 log2_diff_max_min_luma_coding_block_size;
 	u32 log2_min_transform_block_size, log2_min_luma_coding_block_size;
@@ -3282,10 +3282,70 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	/*sps_temporal_mvp_enable_flag*/gf_bs_read_int(bs, 1);
 	/*strong_intra_smoothing_enable_flag*/gf_bs_read_int(bs, 1);
 	if (/*vui_parameters_present_flag*/gf_bs_read_int(bs, 1)) {
-		//vui param
-		Bool has_vui = 0;// FIXME
-		has_vui = 1;
+
+		sps->aspect_ratio_info_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->aspect_ratio_info_present_flag) {
+			sps->sar_idc = gf_bs_read_int(bs, 8);
+			if (sps->sar_idc == 255) {
+				sps->sar_width = gf_bs_read_int(bs, 16);
+				sps->sar_height = gf_bs_read_int(bs, 16);
+			}
+		}
+
+		if (/*overscan_info_present = */ gf_bs_read_int(bs, 1))
+			/*overscan_appropriate = */ gf_bs_read_int(bs, 1);
+
+		/*video_signal_type_present_flag = */flag = gf_bs_read_int(bs, 1);
+		if (flag) {
+			/*video_format = */gf_bs_read_int(bs, 1);
+			/*video_full_range_flag = */gf_bs_read_int(bs, 1);
+			if (/*colour_description_present_flag = */gf_bs_read_int(bs, 1)) {
+				/*colour_primaries = */ gf_bs_read_int(bs, 8);
+				/* transfer_characteristic = */ gf_bs_read_int(bs, 8);
+				/* matrix_coeffs = */ gf_bs_read_int(bs, 8);
+			}
+		}
+
+		if (/*chroma_loc_info_present_flag = */ gf_bs_read_int(bs, 1)) {
+			/*chroma_sample_loc_type_top_field = */ bs_get_ue(bs);
+			/*chroma_sample_loc_type_bottom_field = */bs_get_ue(bs);
+		}
+
+		/*neutra_chroma_indication_flag = */gf_bs_read_int(bs, 1);
+		/*field_seq_flag = */gf_bs_read_int(bs, 1);
+		/*frame_field_info_present_flag = */gf_bs_read_int(bs, 1);
+
+		if (/*default_display_window_flag=*/gf_bs_read_int(bs, 1)) {
+			/*left_offset = */bs_get_ue(bs);
+			/*right_offset = */bs_get_ue(bs);
+			/*top_offset = */bs_get_ue(bs);
+			/*bottom_offset = */bs_get_ue(bs);
+		}
+
+		sps->has_timing_info = gf_bs_read_int(bs, 1);
+		if (sps->has_timing_info ) {
+			sps->num_units_in_tick = gf_bs_read_int(bs, 32);
+			sps->time_scale = gf_bs_read_int(bs, 32);
+			sps->poc_proportional_to_timing_flag = gf_bs_read_int(bs, 1);
+			if (sps->poc_proportional_to_timing_flag)
+				sps->num_ticks_poc_diff_one_minus1 = bs_get_ue(bs);
+			if (/*hrd_parameters_present_flag=*/gf_bs_read_int(bs, 1) ) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[hehv] HRD param parsing not implemented\n"));
+			}
+		}
+
+		if (/*bitstream_restriction_flag=*/gf_bs_read_int(bs, 1)) {
+			/*tiles_fixed_structure_flag = */gf_bs_read_int(bs, 1);
+			/*motion_vectors_over_pic_boundaries_flag = */gf_bs_read_int(bs, 1);
+			/*restricted_ref_pic_lists_flag = */gf_bs_read_int(bs, 1);
+			/*min_spatial_segmentation_idc = */bs_get_ue(bs);
+			/*max_bytes_per_pic_denom = */bs_get_ue(bs);
+			/*max_bits_per_min_cu_denom = */bs_get_ue(bs);
+			/*log2_max_mv_length_horizontal = */bs_get_ue(bs);
+			/*log2_max_mv_length_vertical = */bs_get_ue(bs);
+		}
 	}
+
 	if (/*sps_extension_flag*/gf_bs_read_int(bs, 1)) {
 		while (gf_bs_available(bs)) {
 			/*sps_extension_data_flag */ gf_bs_read_int(bs, 1);

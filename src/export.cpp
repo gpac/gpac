@@ -1758,6 +1758,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(TSDemux_CloseDemux) )
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_socket) )
 
 /*laser.h exports*/
 #ifndef GPAC_DISABLE_LASER
