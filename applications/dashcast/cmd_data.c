@@ -148,7 +148,8 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_no_loop = 0;
 	p_cmdd->i_seg_dur = 0;
 	p_cmdd->i_frag_dur = 0;
-	p_cmdd->i_avstsh = -1;
+	p_cmdd->i_ast_offset = -1;
+	p_cmdd->i_time_shift = 0;
 	p_cmdd->f_minbuftime = -1;
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
@@ -175,6 +176,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -a <string>                  audio stream input source\n"
 					"    -v <string>                  video stream input source\n"
 					"    -av <string>                 multiplexed audio and video input source\n"
+					"                                 (specify \"pipe:\" for piped input)\n"
 					"    -vf <string>                 input video file format\n"
 					"                                 (if necessary e.g. video4linux2, mpeg4)\n"
 					"    -v4l2f <string>              camera input format\n"
@@ -182,17 +184,22 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -vfr <int>                   input video framerate (if necessary)\n"
 					"    -vres <intxint>              input video resolution (if necessary)\n"
 					"    -af <string>                 input audio file format (if necessary)\n"
+					"    -conf <string>               configuration file [default=dashcast.conf]\n\n"
+
 					"    -live                        live system from a camera\n"
 					"    -live-media                  live system from a media file\n"
-			        "    -no-loop                     system does not loop on the input media file\n"
-					"    -conf <string>               configuration file [default=dashcast.conf]\n"
+					"    -no-loop                     system does not loop on the input media file\n"
 					"    -seg-dur <int>               segment duration in millisecond [default=1000]\n"
 					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
-					"    -avst-shift <int>            Availability Start Time shift in second [default=1]\n"
-					"    -minbuftime <float>          Min Buffer Time in second [default=1.0]\n"
-					"    -seg-marker <string>         Add a marker box at the end of DASH segment\n"
-					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
+					"    -seg-marker <string>         Add a marker box at the end of DASH segment\n\n"
+
 					"    -out <string>                output data directory name [default=output]\n"
+					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
+					"    -ast-offset <int>            MPD AvailabilityStartTime offset in seconds [default=1]\n"
+					"    -time-shift <int>            MPD TimeShiftBufferDepth in seconds [default=10]\n"
+					"                                 (specify -1 to keep all files)\n"
+					"    -min-buffer <float>          MPD MinBufferTime in seconds [default=1.0]\n"
+
 					"\n";
 
 	char * psz_command_error =
@@ -424,7 +431,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			p_cmdd->i_frag_dur = atoi(p_argv[i]);
 			i++;
 
-		} else if (strcmp(p_argv[i], "-avst-shift") == 0) {
+		} else if (strcmp(p_argv[i], "-ast-offset") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -432,19 +439,37 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return -1;
 			}
 
-			if (p_cmdd->i_avstsh != -1) {
+			if (p_cmdd->i_ast_offset != -1) {
 				printf(
-						"Availability Start Time Shift has been already specified.\n");
+						"AvailabilityStartTime offset has been already specified.\n");
 				printf("%s", psz_command_usage);
 				return -1;
 			}
 
-			p_cmdd->i_avstsh = atoi(p_argv[i]);
+			p_cmdd->i_ast_offset = atoi(p_argv[i]);
+			i++;
+
+		} else if (strcmp(p_argv[i], "-time-shift") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			if (p_cmdd->i_time_shift != 0) {
+				printf(
+						"TimeShiftBufferDepth has been already specified.\n");
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			p_cmdd->i_time_shift = atoi(p_argv[i]);
 			i++;
 
 		}
 
-		else if (strcmp(p_argv[i], "-minbuftime") == 0) {
+		else if (strcmp(p_argv[i], "-min-buffer") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -469,8 +494,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		} else if (strcmp(p_argv[i], "-no-loop") == 0) {
 			p_cmdd->i_no_loop = 1;
 			i++;
-		}
-		else {
+		} else {
 			printf("%s", psz_command_error);
 			printf("%s", psz_command_usage);
 			return -1;
@@ -507,8 +531,16 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		p_cmdd->i_frag_dur = p_cmdd->i_seg_dur;
 	}
 
-	if (p_cmdd->i_avstsh == -1) {
-		p_cmdd->i_avstsh = 1;
+	if (p_cmdd->i_ast_offset == -1) {
+		p_cmdd->i_ast_offset = 1;
+	}
+
+	if(p_cmdd->i_mode == ON_DEMAND)
+		p_cmdd->i_time_shift = -1;
+		else {
+			if (p_cmdd->i_time_shift == 0) {
+				p_cmdd->i_time_shift = 10;
+			}
 	}
 
 	if (p_cmdd->f_minbuftime == -1) {

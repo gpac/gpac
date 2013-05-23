@@ -25,6 +25,7 @@
 
 #include "controler.h"
 #include <sys/time.h>
+#include <unistd.h>
 
 #define DASHER 0
 #define FRAGMENTER 0
@@ -81,7 +82,7 @@ Bool mpd_thread(void * p_params) {
 	MessageQueue * p_mq = p_th_param->p_mq;
 	char availability_start_time[512];
 	char presentation_duration[512];
-
+	char time_shift[512] = "";
 
 	int audio_frame_size = AUDIO_FRAME_SIZE;
 	char psz_name[512];
@@ -105,11 +106,21 @@ Bool mpd_thread(void * p_params) {
 		}
 
 		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
-		t += p_cmddata->i_avstsh;
+		t += p_cmddata->i_ast_offset;
 		struct tm tm = *gmtime(&t);
-		sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ", tm.tm_year + 1900,
-				tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+		sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
+				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+				tm.tm_min, tm.tm_sec);
 		printf("StartTime: %s\n", availability_start_time);
+
+		if(p_cmddata->i_time_shift != -1) {
+			int ts = p_cmddata->i_time_shift;
+			int h = ts / 3600;
+			ts = ts % 3600;
+			int m = ts / 60;
+			int s = ts % 60;
+			sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
+		}
 
 	} else {
 
@@ -131,7 +142,7 @@ Bool mpd_thread(void * p_params) {
 		dur = dur % 60000;
 		int s = dur / 1000;
 		int ms = dur % 1000;
-		sprintf(presentation_duration, "PT%dH%dM%d.%dS", h, m, s, ms);
+		sprintf(presentation_duration, "PT%02dH%02dM%02d.%03dS", h, m, s, ms);
 		printf("Duration: %s\n", presentation_duration);
 
 	}
@@ -174,11 +185,14 @@ Bool mpd_thread(void * p_params) {
 	fprintf(p_f, "<?xml version=\"1.0\"?>\n");
 	fprintf(p_f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
 			"%s=\"%s\" "
-			"minBufferTime=\"PT%fS\" type=\"%s\" "
+			"minBufferTime=\"PT%fS\" %s type=\"%s\" "
 			"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
-			(p_cmddata->i_mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime",
-			(p_cmddata->i_mode == ON_DEMAND) ? presentation_duration : availability_start_time,
+			(p_cmddata->i_mode == ON_DEMAND) ?
+					"mediaPresentationDuration" : "availabilityStartTime",
+			(p_cmddata->i_mode == ON_DEMAND) ?
+					presentation_duration : availability_start_time,
 			p_cmddata->f_minbuftime,
+			time_shift,
 			(p_cmddata->i_mode == ON_DEMAND) ? "static" : "dynamic");
 
 	fprintf(p_f,
@@ -249,6 +263,38 @@ Bool mpd_thread(void * p_params) {
 	printf("MPD file generated: %s/%s\n", p_cmddata->psz_out,
 			p_cmddata->psz_mpd);
 	printf("\33[0m");
+
+	return 0;
+}
+
+Bool delete_seg_thread(void * p_params) {
+
+	int ret;
+	//int status;
+	ThreadParam * p_th_param = (ThreadParam *) p_params;
+	CmdData * p_cmdd = p_th_param->p_in_data;
+	MessageQueue * p_mq = p_th_param->p_mq;
+
+	char buff[512];
+
+	while (1) {
+
+		ret = dc_message_queue_get(p_mq, (void*) buff);
+
+		if (ret > 0) {
+			//printf("Message received: %s\n", buff);
+			unlink(buff);
+
+			//if (status != 0) {
+			//	printf("Unable to delete the file %s\n", buff);
+			//}
+		}
+
+		if (p_cmdd->i_exit_signal) {
+			break;
+		}
+
+	}
 
 	return 0;
 }
@@ -439,7 +485,7 @@ Bool video_decoder_thread(void * p_params) {
 	VideoInputData * p_vind = p_thread_params->p_vind;
 	VideoInputFile * p_vinf = p_thread_params->p_vinf;
 
-	suseconds_t total_wait_time = 1000000/p_in_data->vdata.i_framerate;
+	suseconds_t total_wait_time = 1000000 / p_in_data->vdata.i_framerate;
 	suseconds_t pick_packet_delay;
 
 	//printf("wait time : %f\n", total_wait_time);
@@ -483,13 +529,12 @@ Bool video_decoder_thread(void * p_params) {
 
 		if (p_vinf->i_mode == LIVE_MEDIA) {
 
-			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
-			                                        time_end.tv_usec - time_start.tv_usec;
+			pick_packet_delay =
+					((time_end.tv_sec - time_start.tv_sec) * 1000000)
+							+ time_end.tv_usec - time_start.tv_usec;
 			time_wait.tv_sec = 0;
 			time_wait.tv_usec = total_wait_time - pick_packet_delay;
 			select(0, NULL, NULL, NULL, &time_wait);
-
-
 
 		}
 
@@ -511,7 +556,8 @@ Bool audio_decoder_thread(void * p_params) {
 	AudioInputData * p_aind = p_thread_params->p_aind;
 	AudioInputFile * p_ainf = p_thread_params->p_ainf;
 
-	suseconds_t total_wait_time = 1000000/(p_in_data->adata.i_samplerate/1024);
+	suseconds_t total_wait_time = 1000000
+			/ (p_in_data->adata.i_samplerate / 1024);
 	suseconds_t pick_packet_delay;
 
 	//printf("wait time : %ld\n", total_wait_time);
@@ -555,13 +601,12 @@ Bool audio_decoder_thread(void * p_params) {
 
 		if (p_ainf->i_mode == LIVE_MEDIA) {
 
-			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) +
-			                                        time_end.tv_usec - time_start.tv_usec;
+			pick_packet_delay =
+					((time_end.tv_sec - time_start.tv_sec) * 1000000)
+							+ time_end.tv_usec - time_start.tv_usec;
 			time_wait.tv_sec = 0;
 			time_wait.tv_usec = total_wait_time - pick_packet_delay;
 			select(0, NULL, NULL, NULL, &time_wait);
-
-
 
 		}
 
@@ -613,6 +658,8 @@ Bool video_encoder_thread(void * p_params) {
 	int frag_frame_max;
 	int seg_nb = 0;
 	int quit = 0;
+	char name_to_delete[512];
+	int shift;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
 
@@ -626,6 +673,7 @@ Bool video_encoder_thread(void * p_params) {
 	VideoOutputFile out_file;
 
 	MessageQueue * p_mq = p_thread_params->p_mq;
+	MessageQueue * p_delete_seg_mq = p_thread_params->p_delete_seg_mq;
 
 #ifndef FRAGMENTER
 	MessageQueue * p_mq = p_thread_params->p_mq;
@@ -717,12 +765,22 @@ Bool video_encoder_thread(void * p_params) {
 		// If system is live,
 		// Send the time that the first segment is available to MPD generator thread.
 		if (seg_nb == 0) {
-			if(p_in_data->i_mode == LIVE_MEDIA || p_in_data->i_mode == LIVE_CAMERA) {
+			if (p_in_data->i_mode == LIVE_MEDIA
+					|| p_in_data->i_mode == LIVE_CAMERA) {
 				if (p_thread_params->video_conf_idx == 0) {
 					time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
 				}
 			}
+		}
+
+		if (p_in_data->i_time_shift != -1) {
+			shift = (p_in_data->i_time_shift * p_in_data->i_seg_dur) / 1000;
+			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
+					p_vdata->psz_name, (seg_nb - shift));
+			dc_message_queue_put(p_delete_seg_mq, name_to_delete,
+					sizeof(name_to_delete));
+
 		}
 
 		seg_nb++;
@@ -734,17 +792,17 @@ Bool video_encoder_thread(void * p_params) {
 
 	// If system is not live,
 	// Send the duration of the video
-	if(p_in_data->i_mode == ON_DEMAND) {
+	if (p_in_data->i_mode == ON_DEMAND) {
 		if (p_thread_params->video_conf_idx == 0) {
 			int dur = (seg_nb * seg_frame_max * 1000) / p_vdata->i_framerate;
-			int dur_tot = (out_file.p_codec_ctx->frame_number * 1000) / p_vdata->i_framerate;
+			int dur_tot = (out_file.p_codec_ctx->frame_number * 1000)
+					/ p_vdata->i_framerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
 			//printf("Duration: %d \n", dur);
 			dc_message_queue_put(p_mq, &dur, sizeof(dur));
 		}
 	}
-
 
 	/* Close output video file */
 	dc_video_encoder_close(&out_file);
@@ -767,6 +825,8 @@ Bool audio_encoder_thread(void * p_params) {
 	//int frag_frame_max;
 	int frame_nb;
 	//int audio_frame_size = AUDIO_FRAME_SIZE;
+	char name_to_delete[512];
+	int shift;
 
 	AudioMuxerType muxer_type = AUDIO_MUXER;
 
@@ -780,6 +840,7 @@ Bool audio_encoder_thread(void * p_params) {
 	AudioOutputFile aout;
 
 	MessageQueue * p_mq = p_thread_params->p_mq;
+	MessageQueue * p_delete_seg_mq = p_thread_params->p_delete_seg_mq;
 
 #ifndef FRAGMENTER
 	MessageQueue * p_mq = p_thread_params->p_mq;
@@ -906,12 +967,22 @@ Bool audio_encoder_thread(void * p_params) {
 
 		// Send the time that the first segment is available to MPD generator thread.
 		if (seg_nb == 0) {
-			if(p_in_data->i_mode == LIVE_CAMERA || p_in_data->i_mode == LIVE_MEDIA) {
+			if (p_in_data->i_mode == LIVE_CAMERA
+					|| p_in_data->i_mode == LIVE_MEDIA) {
 				if (p_thread_params->audio_conf_idx == 0) {
 					time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
 				}
 			}
+
+		}
+
+		if (p_in_data->i_time_shift != -1) {
+			shift = (p_in_data->i_time_shift * p_in_data->i_seg_dur) / 1000;
+			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
+					p_adata->psz_name, (seg_nb - shift));
+			dc_message_queue_put(p_delete_seg_mq, name_to_delete,
+					sizeof(name_to_delete));
 
 		}
 
@@ -924,10 +995,12 @@ Bool audio_encoder_thread(void * p_params) {
 
 	// If system is not live,
 	// Send the duration of the video
-	if(p_in_data->i_mode == ON_DEMAND) {
+	if (p_in_data->i_mode == ON_DEMAND) {
 		if (p_thread_params->audio_conf_idx == 0) {
-			int dur = (seg_nb * aout.i_frame_size * frame_per_seg * 1000) / p_adata->i_samplerate;
-			int dur_tot = (aout.p_codec_ctx->frame_number * aout.i_frame_size * 1000) / p_adata->i_samplerate;
+			int dur = (seg_nb * aout.i_frame_size * frame_per_seg * 1000)
+					/ p_adata->i_samplerate;
+			int dur_tot = (aout.p_codec_ctx->frame_number * aout.i_frame_size
+					* 1000) / p_adata->i_samplerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
 			//printf("Duration: %d \n", dur);
@@ -952,6 +1025,7 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	ThreadParam keyboard_th_params;
 	ThreadParam mpd_th_params;
+	ThreadParam delete_seg_th_params;
 
 	//Video parameters
 	VideoThreadParam vdecoder_th_params;
@@ -978,8 +1052,10 @@ int dc_run_controler(CmdData * p_in_data) {
 	dc_register_libav();
 
 	MessageQueue mq;
+	MessageQueue delete_seg_mq;
 
 	dc_message_queue_init(&mq);
+	dc_message_queue_init(&delete_seg_mq);
 
 	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
 
@@ -988,7 +1064,8 @@ int dc_run_controler(CmdData * p_in_data) {
 		vscaler_th_params = malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(&vinf, &p_in_data->vdata, p_in_data->i_mode, p_in_data->i_no_loop) < 0) {
+		if (dc_video_decoder_open(&vinf, &p_in_data->vdata, p_in_data->i_mode,
+				p_in_data->i_no_loop) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
 			return -1;
 		}
@@ -1019,7 +1096,8 @@ int dc_run_controler(CmdData * p_in_data) {
 	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
 
 		/* Open input audio */
-		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, p_in_data->i_mode, p_in_data->i_no_loop) < 0) {
+		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, p_in_data->i_mode,
+				p_in_data->i_no_loop) < 0) {
 			fprintf(stderr, "Cannot open input audio.\n");
 			return -1;
 		}
@@ -1069,7 +1147,6 @@ int dc_run_controler(CmdData * p_in_data) {
 		p_tmp_vdata->i_framerate = p_in_data->vdata.i_framerate;
 	}
 
-
 	/******** MPD Thread ********/
 
 	/* Initialize MPD generator thread */
@@ -1078,15 +1155,13 @@ int dc_run_controler(CmdData * p_in_data) {
 	/* Create keyboard controller thread */
 	mpd_th_params.p_in_data = p_in_data;
 	mpd_th_params.p_mq = &mq;
-	if (gf_th_run(mpd_th_params.p_thread, mpd_thread,
-			(void *) &mpd_th_params) != GF_OK) {
+	if (gf_th_run(mpd_th_params.p_thread, mpd_thread, (void *) &mpd_th_params)
+			!= GF_OK) {
 
-		fprintf(stderr,
-				"Error while doing pthread_create for mpd_thread.\n");
+		fprintf(stderr, "Error while doing pthread_create for mpd_thread.\n");
 	}
 
 	/****************************/
-
 
 	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
 		/* Create video encoder threads */
@@ -1100,6 +1175,7 @@ int dc_run_controler(CmdData * p_in_data) {
 					p_vconf->i_width, p_vconf->i_height);
 
 			vencoder_th_params[i].p_mq = &mq;
+			vencoder_th_params[i].p_delete_seg_mq = &delete_seg_mq;
 
 			if (gf_th_run(vencoder_th_params[i].p_thread, video_encoder_thread,
 					(void *) &vencoder_th_params[i]) != GF_OK) {
@@ -1132,6 +1208,7 @@ int dc_run_controler(CmdData * p_in_data) {
 			aencoder_th_params[i].p_aind = &aind;
 
 			aencoder_th_params[i].p_mq = &mq;
+			aencoder_th_params[i].p_delete_seg_mq = &delete_seg_mq;
 
 			if (gf_th_run(aencoder_th_params[i].p_thread, audio_encoder_thread,
 					(void *) &aencoder_th_params[i]) != GF_OK) {
@@ -1165,6 +1242,22 @@ int dc_run_controler(CmdData * p_in_data) {
 			fprintf(stderr,
 					"Error while doing pthread_create for audio_decoder_thread.\n");
 		}
+	}
+
+	if (p_in_data->i_time_shift != -1) {
+
+		/* Initialize delete segment thread */
+		delete_seg_th_params.p_thread = gf_th_new("delete_seg_thread");
+
+		delete_seg_th_params.p_in_data = p_in_data;
+		delete_seg_th_params.p_mq = &delete_seg_mq;
+		if (gf_th_run(delete_seg_th_params.p_thread, delete_seg_thread,
+				(void *) &delete_seg_th_params) != GF_OK) {
+
+			fprintf(stderr,
+					"Error while doing pthread_create for delete_seg_thread.\n");
+		}
+
 	}
 
 #ifndef FRAGMENTER
@@ -1289,7 +1382,6 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	/**************************************/
 
-
 	/********** MPD generator thread ***********/
 
 	/* Wait for and destroy MPD generator thread */
@@ -1297,6 +1389,14 @@ int dc_run_controler(CmdData * p_in_data) {
 	gf_th_del(mpd_th_params.p_thread);
 
 	/**************************************/
+
+
+	if (p_in_data->i_time_shift != -1) {
+		//	dc_message_queue_flush(&delete_seg_mq);
+		/* Wait for and destroy delete segment thread */
+		gf_th_stop(delete_seg_th_params.p_thread);
+		gf_th_del(delete_seg_th_params.p_thread);
+	}
 
 #ifndef DASHER
 	if (!p_in_data->i_live && strcmp(p_in_data->psz_mpd, "") != 0) {

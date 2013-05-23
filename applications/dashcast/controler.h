@@ -78,6 +78,7 @@ typedef struct {
 	GF_Thread * p_thread;
 
 	MessageQueue * p_mq;
+	MessageQueue * p_delete_seg_mq;
 
 } VideoThreadParam;
 
@@ -101,6 +102,7 @@ typedef struct {
 	GF_Thread * p_thread;
 
 	MessageQueue * p_mq;
+	MessageQueue * p_delete_seg_mq;
 
 } AudioThreadParam;
 

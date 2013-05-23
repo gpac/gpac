@@ -67,11 +67,13 @@ typedef struct  {
 	int i_mode;
 	/* Does not loop on input */
 	int i_no_loop;
-	/* Availability Stat Time shift */
-	int i_avstsh;
+	/* MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay */
+	int i_ast_offset;
+	/* MPD time shift buffer depth in seconds */
+	int i_time_shift;
 	/* End of Segment Box name */
 	u32 i_seg_marker;
-	/* Min Buffer Time */
+	/* MPD min buffer time */
 	float f_minbuftime;
 	/* output directory name */
 	char psz_out[GF_MAX_PATH];
