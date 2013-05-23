@@ -2880,6 +2880,7 @@ next_segment_setup:
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket)
 {
 	char *str;
@@ -2917,8 +2918,6 @@ GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u
 
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
-		const char *mob_ip = NULL;
-
 		if (gf_sk_is_multicast_address(url)) {
 			e = gf_sk_setup_multicast(*out_socket, url, port, 0, 0, (char*)mcast_ifce_or_mobileip);
 		} else {
