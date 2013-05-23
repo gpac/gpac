@@ -164,6 +164,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd) {
 
 			if(p_in_ctx->i_mode == LIVE_MEDIA && p_in_ctx->i_no_loop == 0) {
 				av_seek_frame(p_in_ctx->p_fmt_ctx, p_in_ctx->i_vstream_idx, 0, 0);
+				av_free_packet(&packet);
 				continue;
 			}
 
