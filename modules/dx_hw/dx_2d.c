@@ -581,14 +581,14 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 
 #if 1
 		if (overlay_type==1) {
-			hr = pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW, NULL);
+			hr = pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_AUTOFLIP, NULL);
 		} else {
 			DDOVERLAYFX ddofx;
 			memset(&ddofx, 0, sizeof(DDOVERLAYFX));
 			ddofx.dwSize = sizeof(DDOVERLAYFX);
 			ddofx.dckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
 			ddofx.dckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
-			hr = pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
+			hr = pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE | DDOVER_AUTOFLIP, &ddofx);
 		}
 		if (FAILED(hr)) {
 			pool->pSurface->lpVtbl->UpdateOverlay(pool->pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
