@@ -177,7 +177,7 @@ u32 gf_bs_read_u8(GF_BitStream *bs);
  *  \param max_lengh the maximum length of the output
  *	\return the number of value read.
  */
-u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_lengh);
+u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_length);
 
 /*!
  *	\brief align short reading
