@@ -2301,7 +2301,6 @@ int main(int argc, char **argv)
 		nb_pck_in_pack=0;
 		while ((ts_pck = gf_m2ts_mux_process(muxer, &status, &usec_till_next)) != NULL) {
 
-do_flush:
 			if (ts_pack_buffer ) {
 				memcpy(ts_pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
 				nb_pck_in_pack++;
@@ -2314,6 +2313,7 @@ do_flush:
 				nb_pck_in_pack = 1;
 			}
 
+call_flush:
 			if (ts_output_file != NULL) {
 				gf_fwrite(ts_pck, 1, 188 * nb_pck_in_pack, ts_output_file); 
 				if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
@@ -2382,6 +2382,10 @@ do_flush:
 				break;
 			}
 		}
+		if (nb_pck_in_pack) {
+			ts_pck = (const char *) ts_pack_buffer;
+			goto call_flush;
+		}
 
 		/*push video*/
 		{
@@ -2423,8 +2427,6 @@ do_flush:
 			}
 		}
 		if (status==GF_M2TS_STATE_EOS) {
-			if (ts_pack_buffer) 
-				goto do_flush;
 			break;
 		}
 	}
