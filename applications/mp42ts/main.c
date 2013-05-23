@@ -1780,6 +1780,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		}
 		else if (!strnicmp(arg, "-dst-udp=", 9)) {
 			*real_time = 1;
+		} else if (!strnicmp(arg, "-dst-rtp=", 9)) {
+			*real_time = 1;
 		}
 	}
 	if (*real_time) force_real_time = 1;
