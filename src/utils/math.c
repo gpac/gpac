@@ -993,8 +993,8 @@ GF_EXPORT
 Bool gf_rect_equal(GF_Rect rc1, GF_Rect rc2) 
 { 
 	if ( (rc1.x == rc2.x)  && (rc1.y == rc2.y) && (rc1.width == rc2.width) && (rc1.height == rc2.height) )
-		return 1;
-	return 0;
+		return GF_TRUE;
+	return GF_FALSE;
 }
 
 #ifdef GPAC_FIXED_POINT
