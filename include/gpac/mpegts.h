@@ -770,6 +770,7 @@ struct tag_m2ts_demux
 	const char *ts_data_chunk;
 	u32 ts_data_chunk_size;
 
+	const char *record_to;
 	/* "Network" =  "MobileIP", "DefaultMCastInterface" */
 	Bool MobileIPEnabled;
 	const char *network_type;
@@ -1200,5 +1201,9 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts);
 
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
+
+/*quick hack to get M2TS over IP or UDP socket*/
+GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket);
+
 
 #endif	//_GF_MPEG_TS_H_

@@ -2735,6 +2735,10 @@ static u32 TSDemux_DemuxRun(void *_p)
 #endif
 	 if (ts->sock) {
 		Bool first_run, is_rtp;
+		FILE *record_to = NULL;
+		if (ts->record_to) 
+			record_to = gf_f64_open(ts->record_to, "wb");
+		
 		first_run = 1;
 		is_rtp = 0;
 		while (ts->run_state) {
@@ -2755,10 +2759,17 @@ static u32 TSDemux_DemuxRun(void *_p)
 			/*process chunk*/
 			if (is_rtp) {
 				gf_m2ts_process_data(ts, data+12, size-12);
+				if (record_to)
+					fwrite(data+12, size-12, 1, record_to);
+			
 			} else {
 				gf_m2ts_process_data(ts, data, size);
+				if (record_to)
+					fwrite(data, size, 1, record_to);
 			}
 		}
+		if (record_to)
+			fclose(record_to);
 	 } else if (ts->dnload) {
 		 while (ts->run_state) { 	 
 			 gf_dm_sess_process(ts->dnload); 	 
@@ -2869,29 +2880,29 @@ next_segment_setup:
 	return 0;
 }
 
-
-static GF_Err TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
+GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket)
 {
-	GF_Err e = GF_OK;
 	char *str;
 	u16 port;
+	GF_Err e;
 	u32 sock_type = 0;
+
+	*out_socket=NULL;
 
 	if (!strnicmp(url, "udp://", 6) || !strnicmp(url, "mpegts-udp://", 13)) {
 		sock_type = GF_SOCK_TYPE_UDP;
 	} else if (!strnicmp(url, "mpegts-tcp://", 13) ) {
 		sock_type = GF_SOCK_TYPE_TCP;
 	} else {
-		e = GF_NOT_SUPPORTED;
-		return e;
+		return GF_NOT_SUPPORTED;
 	}
 
 	url = strchr(url, ':');
 	url += 3;
 
-	ts->sock = gf_sk_new(sock_type);
-	if (!ts->sock) { 
-		return e = GF_IO_ERR;
+	*out_socket = gf_sk_new(sock_type);
+	if (! (*out_socket) ) { 
+		return GF_IO_ERR;
 	}
 
 	/*setup port and src*/
@@ -2907,21 +2918,30 @@ static GF_Err TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
 		const char *mob_ip = NULL;
-		if (ts->MobileIPEnabled){
-			mob_ip = ts->network_type;
-		}			
 
 		if (gf_sk_is_multicast_address(url)) {
-			mob_ip = ts->network_type;
-			gf_sk_setup_multicast(ts->sock, url, port, 0, 0, (char*)mob_ip);
+			e = gf_sk_setup_multicast(*out_socket, url, port, 0, 0, (char*)mcast_ifce_or_mobileip);
 		} else {
-			gf_sk_bind(ts->sock, (char*)mob_ip, port, url, 0, GF_SOCK_REUSE_PORT);
+			e = gf_sk_bind(*out_socket, (char*)mcast_ifce_or_mobileip, port, url, 0, GF_SOCK_REUSE_PORT);
+		}
+		if (e) {
+			gf_sk_del(*out_socket);
+			*out_socket = NULL;
+			return e;
 		}
 	}
 	if (str) str[0] = ':';
 
-	gf_sk_set_buffer_size(ts->sock, 0, UDP_BUFFER_SIZE);
-	gf_sk_set_block_mode(ts->sock, 0);
+	gf_sk_set_buffer_size(*out_socket, 0, buf_size);
+	gf_sk_set_block_mode(*out_socket, 0);
+	return GF_OK;
+}
+
+static GF_Err TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
+{
+	GF_Err e;
+	e = gf_m2ts_get_socket(url, ts->network_type, UDP_BUFFER_SIZE, &ts->sock);
+	if (e) return e;
 
 	//gf_th_set_priority(ts->th, GF_THREAD_PRIORITY_HIGHEST);
 	return  TSDemux_DemuxPlay(ts);
