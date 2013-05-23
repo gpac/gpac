@@ -838,8 +838,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 	//same seq num, we drop
 	if (po->in->pck_seq_num == pck_seqnum) goto discard;
 
-	if ( ( (u16) (pck_seqnum + bounds) <= (u16) (po->in->pck_seq_num + bounds) )
-		&& ( (u16) (pck_seqnum + bounds) >= (u16) (po->head_seqnum + bounds)) ) {
+	if ( ( (u16) (pck_seqnum + bounds) <= (u16) (po->in->pck_seq_num + bounds) ) ) {
 
 		it->next = po->in;
 		po->in = it;
@@ -860,12 +859,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 		if (!cur->next) {
 			cur->next = it;
 			po->Count += 1;
-#ifndef GPAC_DISABLE_LOG
-			if (cur->pck_seq_num +1 != it->pck_seq_num) 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp] Packet Reorderer: got %d expected %d\n", cur->pck_seq_num+1, it->pck_seq_num));
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d\n", pck_seqnum));
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d (last %d)\n", pck_seqnum, cur->pck_seq_num));
 			return GF_OK;
 		}
 
@@ -878,7 +872,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 			cur->next = it;
 			po->Count += 1;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Inserting packet %d", pck_seqnum));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Inserting packet %d\n", pck_seqnum));
 			//done
 			return GF_OK;
 		}
@@ -927,7 +921,7 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 
 #ifndef GPAC_DISABLE_LOG
 		if (po->in->pck_seq_num + 1 != po->in->next->pck_seq_num) 
-			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetched %d expected %d\n", po->in->pck_seq_num, po->in->next->pck_seq_num));
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[rtp] WARNING Packet Loss: Sending %d out of the queue but next is %d\n", po->in->pck_seq_num, po->in->next->pck_seq_num ));
 #endif
 		goto send_it;
 	}
