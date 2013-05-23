@@ -32,6 +32,12 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/download.h>
 
+
+#ifndef GPAC_DISABLE_STREAMING
+#include <gpac/internal/ietf_dev.h>
+#endif
+
+
 #ifdef GPAC_CONFIG_LINUX
 #include <unistd.h>
 #endif
@@ -2733,7 +2739,11 @@ static u32 TSDemux_DemuxRun(void *_p)
 		}
 	} else
 #endif
-	 if (ts->sock) {
+	if (ts->sock) {
+#ifndef GPAC_DISABLE_STREAMING
+		u16 seq_num;
+		GF_RTPReorder *ch = NULL;
+#endif
 		Bool first_run, is_rtp;
 		FILE *record_to = NULL;
 		if (ts->record_to) 
@@ -2754,14 +2764,32 @@ static u32 TSDemux_DemuxRun(void *_p)
 				/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
 				if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
 					is_rtp = 1;
+#ifndef GPAC_DISABLE_STREAMING
+					ch = gf_rtp_reorderer_new(50, 100);
+#endif
 				}
 			}
 			/*process chunk*/
 			if (is_rtp) {
+#ifndef GPAC_DISABLE_STREAMING
+				char *pck;				
+				seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);
+				gf_rtp_reorderer_add(ch, (void *) data, size, seq_num);
+
+				pck = (char *) gf_rtp_reorderer_get(ch, &size);
+				if (pck) {
+					gf_m2ts_process_data(ts, pck+12, size-12);
+					if (record_to)
+						fwrite(data+12, size-12, 1, record_to);
+				
+					gf_free(pck);
+				}
+#else
 				gf_m2ts_process_data(ts, data+12, size-12);
 				if (record_to)
 					fwrite(data+12, size-12, 1, record_to);
-			
+#endif
+
 			} else {
 				gf_m2ts_process_data(ts, data, size);
 				if (record_to)
@@ -2770,7 +2798,13 @@ static u32 TSDemux_DemuxRun(void *_p)
 		}
 		if (record_to)
 			fclose(record_to);
-	 } else if (ts->dnload) {
+
+#ifndef GPAC_DISABLE_STREAMING
+		if (ch)
+			gf_rtp_reorderer_del(ch);
+#endif
+
+	} else if (ts->dnload) {
 		 while (ts->run_state) { 	 
 			 gf_dm_sess_process(ts->dnload); 	 
 			 gf_sleep(1); 	 
@@ -3277,7 +3311,7 @@ GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts){
 
 }
 
-
+GF_EXPORT
 Bool gf_m2ts_probe_file(const char *fileName)
 {
 	char buf[188];
