@@ -2765,7 +2765,7 @@ static u32 TSDemux_DemuxRun(void *_p)
 				if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
 					is_rtp = 1;
 #ifndef GPAC_DISABLE_STREAMING
-					ch = gf_rtp_reorderer_new(50, 100);
+					ch = gf_rtp_reorderer_new(100, 500);
 #endif
 				}
 			}
@@ -2773,15 +2773,14 @@ static u32 TSDemux_DemuxRun(void *_p)
 			if (is_rtp) {
 #ifndef GPAC_DISABLE_STREAMING
 				char *pck;				
-				seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);
+				seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);				
 				gf_rtp_reorderer_add(ch, (void *) data, size, seq_num);
 
 				pck = (char *) gf_rtp_reorderer_get(ch, &size);
 				if (pck) {
-					gf_m2ts_process_data(ts, pck+12, size-12);
+					gf_m2ts_process_data(ts, pck+12, size-12);                                   
 					if (record_to)
-						fwrite(data+12, size-12, 1, record_to);
-				
+						fwrite(data+12, size-12, 1, record_to);				
 					gf_free(pck);
 				}
 #else
