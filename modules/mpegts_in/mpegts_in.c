@@ -1115,8 +1115,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
-		com->buffer.max = M2TS_BUFFER_MAX;
-		com->buffer.min = 0;
+		if (ts->file)
+			com->buffer.max = M2TS_BUFFER_MAX;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = ts->duration;
