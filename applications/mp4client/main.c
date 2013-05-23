@@ -1059,7 +1059,7 @@ int main (int argc, char **argv)
 			if (gf_log_set_tools_levels(argv[i+1]) != GF_OK) {
 				return 1;
 			}
-			logs_set = 1;
+			logs_set = GF_TRUE;
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 			log_time_start = 1;
