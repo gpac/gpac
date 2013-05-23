@@ -208,7 +208,9 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 				NB: we removed "no file regulation" since we may get broken files where PMT declares an AAC stream but no AAC PID is in the MUX
 				(filtered out). In this case, "no regulation" will make the entire TS to be read as fast as possible
 			*/
-			m2ts->ts->file_regulate = 2;
+			if (m2ts->ts->file)
+				m2ts->ts->file_regulate = 2;
+
 			gf_m2ts_set_pes_framing(stream, GF_M2TS_PES_FRAMING_DEFAULT);
 			gf_odf_desc_del((GF_Descriptor *)esd);
 			return NULL;
@@ -312,7 +314,8 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 #endif
 
 	/*TS is a file, start regulation regardless of how the TS is access (with or without fragment URI)*/
-	if (m2ts->ts->file || m2ts->ts->dnload) m2ts->ts->file_regulate = 1;
+	if (m2ts->ts->file || m2ts->ts->dnload) 
+		m2ts->ts->file_regulate = 1;
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
@@ -568,7 +571,8 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream->first_dts) {
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
-			if (ts->file || ts->dnload) ts->file_regulate = 1;
+			if (ts->file || ts->dnload) 
+				ts->file_regulate = 1;
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_term_add_media(m2ts->service, NULL, 0);
