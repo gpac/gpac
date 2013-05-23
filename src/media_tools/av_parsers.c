@@ -3283,12 +3283,12 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	/*strong_intra_smoothing_enable_flag*/gf_bs_read_int(bs, 1);
 	if (/*vui_parameters_present_flag*/gf_bs_read_int(bs, 1)) {
 		//vui param
-		//Bool has_vui = 0; FIXME
-		//has_vui = 1;
-
+		Bool has_vui = 0;// FIXME
+		has_vui = 1;
 	}
 	if (/*sps_extension_flag*/gf_bs_read_int(bs, 1)) {
 		while (gf_bs_available(bs)) {
+			/*sps_extension_data_flag */ gf_bs_read_int(bs, 1);
 		}
 	}
 
