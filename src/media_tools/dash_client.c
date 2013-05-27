@@ -386,16 +386,25 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
 	current_time = fetch_time;
 
-#if 0
-	{
+	if (current_time < mpd->availabilityStartTime) {
+#ifndef _WIN32_WCE
+		time_t gtime;
 		struct tm t1, t2;
-		t1 = * gmtime(&current_time);
-		t2 = * gmtime(&mpd->availabilityStartTime);
+		gtime = current_time;
+		t1 = * gmtime(&gtime);
+		gtime = mpd->availabilityStartTime;
+		t2 = * gmtime(&gtime);
 		t1.tm_year = t2.tm_year;
-	}
+		
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: current time %d-%02d-%02dT%02d:%02d:%02dZ is less than AST %d-%02d-%02dT%02d:%02d:%02dZ!\n", 
+			   1900+t1.tm_year, t1.tm_mon+1, t1.tm_mday, t1.tm_hour, t1.tm_min, t1.tm_sec,
+			   1900+t2.tm_year, t2.tm_mon+1, t2.tm_mday, t2.tm_hour, t2.tm_min, t2.tm_sec
+		));		
 #endif
-
-	if (current_time < mpd->availabilityStartTime) current_time = 0;
+		current_time = 0;
+		group->broken_timing = 1;
+		return;
+	}
 	else current_time -= mpd->availabilityStartTime;	
 
 	if (current_time < group->period->start/1000) current_time = 0;
@@ -1513,10 +1522,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	dash->mpd_fetch_time = fetch_time;
 
 //	dash->mpd->minimum_update_period = 3000;
-
-	if (gf_list_count(dash->mpd->periods)>1) {
-		fprintf(stderr, "DASH has multiple periods");
-	}
 	return GF_OK;
 }
 
