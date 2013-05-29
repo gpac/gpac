@@ -317,6 +317,7 @@ void PrintDASHUsage()
 			"                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
 			" -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 			" -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
+			" -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 			"\n"
 			"Advanced Options, should not be needed when using -dash-profile:\n"
 			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
@@ -582,7 +583,7 @@ void PrintExtractUsage()
 			" -raw-layer ID        same as -raw but skips SVC/MVC extractors when extracting\n" 
 			" -diod                extracts file IOD in raw format when supported\n" 
 			"\n"
-			" -grab ts IP:port     grabs TS over UDP or RTP at IP:port location to output TS file\n"
+			" -grab-ts IP:port     grabs TS over UDP or RTP at IP:port location to output TS file\n"
 
 			"\n");
 }
@@ -1358,6 +1359,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 ast_shift_sec = 1;
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
+	u32 dash_scale = 1000;
 
 #ifndef GPAC_DISABLE_MPD
 	Bool do_mpd = 0;
@@ -1757,11 +1759,15 @@ int mp4boxMain(int argc, char **argv)
 			Frag = 1;
 		} else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
-			dash_duration = atof(argv[i+1]) /	 1000;
+			dash_duration = atof(argv[i+1]) / 1000;
 			i++;
 		} else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
-			dash_subduration = atof(argv[i+1]) /	 1000;
+			dash_subduration = atof(argv[i+1]) / 1000;
+			i++;
+		} else if (!stricmp(arg, "-dash-scale")) {
+			CHECK_NEXT_ARG
+			dash_scale = atoi(argv[i+1]);
 			i++;
 		} else if (!stricmp(arg, "-dash-ts-prog")) {
 			CHECK_NEXT_ARG
@@ -2852,7 +2858,7 @@ int mp4boxMain(int argc, char **argv)
 									   use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
 									   seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec);
+									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec, dash_scale);
 			if (e) break;
 
 			if (dash_live) {

@@ -462,7 +462,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.PTS = PTS;
 	pck.flags = 0;
 
-	if (pes->frame_state && (data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0)) {
+	if (pes->frame_state && ((pes->frame_state==data_len) || (data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0))) {
 		assert(pes->frame_state<=data_len);
 		/*dispatch frame*/
 		pck.stream = pes;
@@ -591,8 +591,10 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 		}
 		first = 0;
 	}
-	/*we consumed all data*/
-	return 0;
+	/*did we consumed all data ?*/
+	if (data_len==sc_pos) return 0;
+	pes->prev_PTS = PTS;
+	return data_len - sc_pos;
 }
 
 static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len)
@@ -2083,7 +2085,7 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 				u32 offset = len;
 
 				if (pesh.pck_len && (pesh.pck_len-3-pesh.hdr_data_len != pes->data_len-len)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES payload size %d but received %d bytes\n", (u32) ( pesh.pck_len-3-pesh.hdr_data_len), pes->data_len-len));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES payload size %d but received %d bytes\n", pes->pid, (u32) ( pesh.pck_len-3-pesh.hdr_data_len), pes->data_len-len));
 				}
 
 				if (pes->prev_data_len) {
@@ -2719,6 +2721,7 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 
 static u32 TSDemux_DemuxRun(void *_p)
 {
+	u32 i;
 	GF_Err e;
 	char data[UDP_BUFFER_SIZE];
 #ifdef GPAC_HAS_LINUX_DVB
@@ -2744,6 +2747,7 @@ static u32 TSDemux_DemuxRun(void *_p)
 		u16 seq_num;
 		GF_RTPReorder *ch = NULL;
 #endif
+		u32 nb_empty=0;
 		Bool first_run, is_rtp;
 		FILE *record_to = NULL;
 		if (ts->record_to) 
@@ -2756,7 +2760,11 @@ static u32 TSDemux_DemuxRun(void *_p)
 			/*m2ts chunks by chunks*/
 			e = gf_sk_receive(ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
 			if (!size || e) {
-				gf_sleep(1);
+				nb_empty++;
+				if (nb_empty==1000) {
+					gf_sleep(1);
+					nb_empty=0;
+				}
 				continue;
 			}
 			if (first_run) {
@@ -2868,18 +2876,6 @@ restart_stream:
 				gf_sleep(3000);
             }
 		}
-		if (!gf_bs_available(ts_bs)) {
-			u32 i;
-			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-				if (ts->ess[i]) {
-					if (ts->ess[i]->flags & GF_M2TS_ES_IS_PES) {
-						gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) ts->ess[i]);
-						ts->on_event(ts, GF_M2TS_EVT_EOS, (GF_M2TS_PES *) ts->ess[i]);
-					} 
-				}
-			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
-		}
 
 next_segment_setup:
 		gf_bs_del(ts_bs);
@@ -2888,6 +2884,7 @@ next_segment_setup:
 			const char *next_url = NULL;
 			ts->query_next(ts->query_udta, 0, &next_url, &ts->start_byterange, &ts->end_byterange);
 			if (next_url) {
+				/*TODO we need to know if we had a seek or not, to fluh remaining PES data*/
 				gf_m2ts_set_segment_switch(ts);
 
 				if (!strncmp(next_url, "gmem://", 7)) {
@@ -2909,6 +2906,17 @@ next_segment_setup:
 			}
 		}
 	}
+
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		if (ts->ess[i]) {
+			if (ts->ess[i]->flags & GF_M2TS_ES_IS_PES) {
+				gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) ts->ess[i]);
+				ts->on_event(ts, GF_M2TS_EVT_EOS, (GF_M2TS_PES *) ts->ess[i]);
+			} 
+		}
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
+
 	ts->run_state = 2;
 	return 0;
 }

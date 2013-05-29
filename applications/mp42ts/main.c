@@ -72,10 +72,12 @@ static GFINLINE void usage(const char * progname)
 					"\t-pcr-init=V            sets initial value V for PCR - if not set, random value is used\n"
 					"\t-pcr-offset=V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
 					"\t-psi-rate=V            sets PSI refresh rate V in ms (default 100ms). If 0, PSI data is only send once at the begining\n"
+					"                          or before each IDR when -rap option is set. This should be set to 0 for DASH streams.\n"
 					"\t-time=n                request the program to stop after n ms\n"
 					"\t-single-au             forces 1 PES = 1 AU (disabled by default)\n"
 					"\t-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
 					"                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
+					"\t-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
 					"\t-prog=filename         specifies an input file used for a TS service\n"
 					"\t                        * currently only supports ISO files and SDP files\n"
 					"\t                        * can be used several times, once for each program\n"
@@ -1633,7 +1635,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 								  Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
 								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
 								  u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port, 
-								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, Bool *split_rap, u32 *nb_pck_pack, u32 *ttl, const char **ip_ifce)
+								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *ttl, const char **ip_ifce)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0, 
 		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
@@ -1777,6 +1779,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*single_au_pes = 1;
 		} else if (!stricmp(arg, "-rap")) {
 			*split_rap = 1;
+		} else if (!stricmp(arg, "-flush-rap")) {
+			*split_rap = 2;
 		}
 		else if (!strnicmp(arg, "-dst-udp=", 9)) {
 			*real_time = 1;
@@ -1992,9 +1996,9 @@ int main(int argc, char **argv)
 	char *ts_pack_buffer = NULL;
 	GF_Err e;
 	u32 run_time;
-	Bool real_time, single_au_pes, split_rap, is_stdout;
+	Bool real_time, single_au_pes, is_stdout;
 	u64 pcr_init_val=0;
-	u32 usec_till_next, ttl;
+	u32 usec_till_next, ttl, split_rap;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate, nb_pck_pack, nb_pck_in_pack;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
@@ -2250,6 +2254,7 @@ int main(int argc, char **argv)
 		while (cur_pid % 10)
 			cur_pid ++;
 	}
+	muxer->flush_pes_at_rap = (split_rap == 2) ? GF_TRUE : GF_FALSE;
 
 	gf_m2ts_mux_update_config(muxer, 1);
 	

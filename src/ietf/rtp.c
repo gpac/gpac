@@ -759,6 +759,7 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port)
 
 #define SN_CHECK_OFFSET		0x0A
 
+GF_EXPORT
 GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
 {
 	GF_RTPReorder *tmp;
@@ -781,12 +782,14 @@ static void DelItem(GF_POItem *it)
 }
 
 
+GF_EXPORT
 void gf_rtp_reorderer_del(GF_RTPReorder *po)
 {
 	if (po->in) DelItem(po->in);
 	gf_free(po);
 }
 
+GF_EXPORT
 void gf_rtp_reorderer_reset(GF_RTPReorder *po)
 {
 	if (!po) return;
@@ -798,6 +801,7 @@ void gf_rtp_reorderer_reset(GF_RTPReorder *po)
 	po->in = NULL;
 }
 
+GF_EXPORT
 GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u32 pck_seqnum)
 {
 	GF_POItem *it, *cur;
@@ -890,6 +894,7 @@ discard:
 //retrieve the first available packet. Note that the behavior will be undefined if the first
 //ever received packet if its SeqNum was unknown
 //the BUFFER is yours, you must delete it
+GF_EXPORT
 void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 {
 	GF_POItem *t;
