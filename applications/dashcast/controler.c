@@ -73,6 +73,38 @@ void optimize_seg_frag_dur(int * seg, int * frag) {
 
 }
 
+Bool send_frag_event(void * p_params) {
+
+	int ret;
+	//int status;
+	ThreadParam * p_th_param = (ThreadParam *) p_params;
+	CmdData * p_cmdd = p_th_param->p_in_data;
+	MessageQueue * p_mq = p_th_param->p_mq;
+
+	char buff[512];
+
+	while (1) {
+
+		if (p_cmdd->i_exit_signal) {
+			break;
+		}
+
+		ret = dc_message_queue_get(p_mq, (void*) buff);
+
+		if (ret > 0) {
+			printf("Message received: %s\n", buff);
+		}
+
+		if (p_cmdd->i_exit_signal) {
+			break;
+		}
+
+	}
+
+	return 0;
+
+}
+
 Bool mpd_thread(void * p_params) {
 
 	int i;
@@ -113,13 +145,14 @@ Bool mpd_thread(void * p_params) {
 				tm.tm_min, tm.tm_sec);
 		printf("StartTime: %s\n", availability_start_time);
 
-		if(p_cmddata->i_time_shift != -1) {
+		if (p_cmddata->i_time_shift != -1) {
 			int ts = p_cmddata->i_time_shift;
 			int h = ts / 3600;
 			ts = ts % 3600;
 			int m = ts / 60;
 			int s = ts % 60;
-			sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
+			sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h,
+					m, s);
 		}
 
 	} else {
@@ -191,8 +224,7 @@ Bool mpd_thread(void * p_params) {
 					"mediaPresentationDuration" : "availabilityStartTime",
 			(p_cmddata->i_mode == ON_DEMAND) ?
 					presentation_duration : availability_start_time,
-			p_cmddata->f_minbuftime,
-			time_shift,
+			p_cmddata->f_minbuftime, time_shift,
 			(p_cmddata->i_mode == ON_DEMAND) ? "static" : "dynamic");
 
 	fprintf(p_f,
@@ -659,6 +691,7 @@ Bool video_encoder_thread(void * p_params) {
 	int seg_nb = 0;
 	int quit = 0;
 	char name_to_delete[512];
+	char name_to_send[512];
 	int shift;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
@@ -674,6 +707,8 @@ Bool video_encoder_thread(void * p_params) {
 
 	MessageQueue * p_mq = p_thread_params->p_mq;
 	MessageQueue * p_delete_seg_mq = p_thread_params->p_delete_seg_mq;
+	MessageQueue * p_send_seg_mq = p_thread_params->p_send_seg_mq;
+
 
 #ifndef FRAGMENTER
 	MessageQueue * p_mq = p_thread_params->p_mq;
@@ -695,7 +730,7 @@ Bool video_encoder_thread(void * p_params) {
 		seg_frame_max = -1;
 
 	if (dc_video_muxer_init(&out_file, p_vdata, muxer_type, seg_frame_max,
-			frag_frame_max, p_in_data->i_seg_marker) < 0) {
+			frag_frame_max, p_in_data->i_seg_marker, p_in_data->i_gdr) < 0) {
 		fprintf(stderr, "Cannot init output video file.\n");
 		p_in_data->i_exit_signal = 1;
 		return -1;
@@ -748,6 +783,14 @@ Bool video_encoder_thread(void * p_params) {
 				int r = dc_video_muxer_write(&out_file, frame_nb);
 
 				if (r == 1) {
+					//printf("fragment is written!\n");
+					if (p_in_data->i_send_message == 1) {
+						sprintf(name_to_send, "%s/%s_%d_gpac.m4s",
+								p_in_data->psz_out, p_vdata->psz_name, seg_nb);
+						dc_message_queue_put(p_send_seg_mq, name_to_send,
+								sizeof(name_to_send));
+					}
+
 					break;
 				}
 
@@ -1026,6 +1069,7 @@ int dc_run_controler(CmdData * p_in_data) {
 	ThreadParam keyboard_th_params;
 	ThreadParam mpd_th_params;
 	ThreadParam delete_seg_th_params;
+	ThreadParam send_frag_th_params;
 
 	//Video parameters
 	VideoThreadParam vdecoder_th_params;
@@ -1053,9 +1097,11 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	MessageQueue mq;
 	MessageQueue delete_seg_mq;
+	MessageQueue send_frag_mq;
 
 	dc_message_queue_init(&mq);
 	dc_message_queue_init(&delete_seg_mq);
+	dc_message_queue_init(&send_frag_mq);
 
 	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
 
@@ -1176,6 +1222,7 @@ int dc_run_controler(CmdData * p_in_data) {
 
 			vencoder_th_params[i].p_mq = &mq;
 			vencoder_th_params[i].p_delete_seg_mq = &delete_seg_mq;
+			vencoder_th_params[i].p_send_seg_mq = &send_frag_mq;
 
 			if (gf_th_run(vencoder_th_params[i].p_thread, video_encoder_thread,
 					(void *) &vencoder_th_params[i]) != GF_OK) {
@@ -1209,6 +1256,7 @@ int dc_run_controler(CmdData * p_in_data) {
 
 			aencoder_th_params[i].p_mq = &mq;
 			aencoder_th_params[i].p_delete_seg_mq = &delete_seg_mq;
+			aencoder_th_params[i].p_send_seg_mq = &send_frag_mq;
 
 			if (gf_th_run(aencoder_th_params[i].p_thread, audio_encoder_thread,
 					(void *) &aencoder_th_params[i]) != GF_OK) {
@@ -1256,6 +1304,22 @@ int dc_run_controler(CmdData * p_in_data) {
 
 			fprintf(stderr,
 					"Error while doing pthread_create for delete_seg_thread.\n");
+		}
+
+	}
+
+	if (p_in_data->i_send_message == 1) {
+
+		/* Initialize delete segment thread */
+		send_frag_th_params.p_thread = gf_th_new("send_frag_event_thread");
+
+		send_frag_th_params.p_in_data = p_in_data;
+		send_frag_th_params.p_mq = &send_frag_mq;
+		if (gf_th_run(send_frag_th_params.p_thread, send_frag_event,
+				(void *) &send_frag_th_params) != GF_OK) {
+
+			fprintf(stderr,
+					"Error while doing pthread_create for send_frag_event_thread.\n");
 		}
 
 	}
@@ -1390,12 +1454,17 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	/**************************************/
 
-
 	if (p_in_data->i_time_shift != -1) {
 		//	dc_message_queue_flush(&delete_seg_mq);
 		/* Wait for and destroy delete segment thread */
 		gf_th_stop(delete_seg_th_params.p_thread);
 		gf_th_del(delete_seg_th_params.p_thread);
+	}
+
+	if (p_in_data->i_send_message == 1) {
+		/* Wait for and destroy delete segment thread */
+		gf_th_stop(send_frag_th_params.p_thread);
+		gf_th_del(send_frag_th_params.p_thread);
 	}
 
 #ifndef DASHER

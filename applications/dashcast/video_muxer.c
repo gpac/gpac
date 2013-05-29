@@ -378,7 +378,7 @@ int dc_ffmpeg_video_muxer_close(VideoOutputFile * p_voutf) {
 
 int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata,
 		VideoMuxerType muxer_type, int frame_per_segment,
-		int frame_per_fragment, u32 seg_marker) {
+		int frame_per_fragment, u32 seg_marker, int gdr) {
 
 	char name[256];
 	sprintf(name, "video encoder %s", p_vdata->psz_name);
@@ -392,6 +392,7 @@ int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata,
 	p_voutf->frame_per_fragment = frame_per_fragment;
 
 	p_voutf->i_seg_marker = seg_marker;
+	p_voutf->i_gdr = gdr;
 
 	return 0;
 }
