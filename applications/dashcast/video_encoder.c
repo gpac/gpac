@@ -65,6 +65,11 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	av_opt_set(p_voutf->p_codec_ctx->priv_data, "preset", "ultrafast", 0);
 	av_opt_set(p_voutf->p_codec_ctx->priv_data, "tune", "zerolatency", 0);
 
+	if(p_voutf->i_gdr == 1) {
+		av_opt_set_int(p_voutf->p_codec_ctx->priv_data, "intra-refresh", 1, 0);
+		av_opt_set_int(p_voutf->p_codec_ctx->priv_data, "key-int", 8, 0);
+	}
+
 //	if (p_voutf->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
 //		p_voutf->p_codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 

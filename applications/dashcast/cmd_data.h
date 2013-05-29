@@ -71,8 +71,12 @@ typedef struct  {
 	int i_ast_offset;
 	/* MPD time shift buffer depth in seconds */
 	int i_time_shift;
+	/* Send message on port 1234 once fragment is ready */
+	int i_send_message;
 	/* End of Segment Box name */
 	u32 i_seg_marker;
+	/* GDR */
+	int i_gdr;
 	/* MPD min buffer time */
 	float f_minbuftime;
 	/* output directory name */

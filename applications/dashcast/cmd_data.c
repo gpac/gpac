@@ -146,11 +146,13 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_exit_signal = 0;
 	p_cmdd->i_mode = ON_DEMAND;
 	p_cmdd->i_no_loop = 0;
+	p_cmdd->i_send_message = 0;
 	p_cmdd->i_seg_dur = 0;
 	p_cmdd->i_frag_dur = 0;
 	p_cmdd->i_ast_offset = -1;
 	p_cmdd->i_time_shift = 0;
 	p_cmdd->f_minbuftime = -1;
+	p_cmdd->i_gdr = 0;
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
 
@@ -186,12 +188,13 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -af <string>                 input audio file format (if necessary)\n"
 					"    -conf <string>               configuration file [default=dashcast.conf]\n\n"
 
+					"    -seg-dur <int>               segment duration in millisecond [default=1000]\n"
+					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
 					"    -live                        live system from a camera\n"
 					"    -live-media                  live system from a media file\n"
 					"    -no-loop                     system does not loop on the input media file\n"
-					"    -seg-dur <int>               segment duration in millisecond [default=1000]\n"
-					"    -frag-dur <int>              fragment duration in millisecond [default=1000]\n"
-					"    -seg-marker <string>         Add a marker box at the end of DASH segment\n\n"
+					"    -seg-marker <string>         add a marker box at the end of DASH segment\n"
+					"    -gdr                         use Gradual Decoder Refresh feature for video encoding\n\n"
 
 					"    -out <string>                output data directory name [default=output]\n"
 					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
@@ -494,7 +497,14 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		} else if (strcmp(p_argv[i], "-no-loop") == 0) {
 			p_cmdd->i_no_loop = 1;
 			i++;
-		} else {
+		} else if (strcmp(p_argv[i], "-send-message") == 0) {
+			p_cmdd->i_send_message = 1;
+			i++;
+		} else if (strcmp(p_argv[i], "-gdr") == 0) {
+			p_cmdd->i_gdr = 1;
+			i++;
+		}
+		else {
 			printf("%s", psz_command_error);
 			printf("%s", psz_command_usage);
 			return -1;
