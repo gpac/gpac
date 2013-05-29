@@ -39,6 +39,10 @@
 
 #include <gpac/mpegts.h>
 
+#ifndef GPAC_DISABLE_STREAMING
+#include <gpac/internal/ietf_dev.h>
+#endif
+
 #if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
 
 #error "Cannot compile MP4Box if GPAC is not built with ISO File Format support"
@@ -844,6 +848,10 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 	u64 nb_pck;
 	Bool first_run, is_rtp;
 	FILE *output;
+#ifndef GPAC_DISABLE_STREAMING
+	u16 seq_num;
+	GF_RTPReorder *ch = NULL;
+#endif
 	GF_Socket *sock;
 	GF_Err e = gf_m2ts_get_socket(grab_m2ts, NULL, 0x80000, &sock);
 
@@ -885,11 +893,26 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 			/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
 			if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
 				is_rtp = 1;
+#ifndef GPAC_DISABLE_STREAMING
+				ch = gf_rtp_reorderer_new(100, 500);
+#endif
 			}
 		}
 		/*process chunk*/
 		if (is_rtp) {
+#ifndef GPAC_DISABLE_STREAMING
+			char *pck;				
+			seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);				
+			gf_rtp_reorderer_add(ch, (void *) data, size, seq_num);
+
+			pck = (char *) gf_rtp_reorderer_get(ch, &size);
+			if (pck) {
+				fwrite(pck+12, size-12, 1, output);
+				gf_free(pck);
+			}
+#else
 			fwrite(data+12, size-12, 1, output);			
+#endif
 		} else {
 			fwrite(data, size, 1, output);
 		}
@@ -899,6 +922,11 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 	fprintf(stderr, "Captured "LLU" TS packets\n", nb_pck );
 	fclose(output);
 	gf_sk_del(sock);
+
+#ifndef GPAC_DISABLE_STREAMING
+	if (ch)
+		gf_rtp_reorderer_del(ch);
+#endif
 	return 0;
 }
 

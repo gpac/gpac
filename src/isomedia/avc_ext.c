@@ -373,7 +373,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						break;
 				}
 				break;
-			case GF_AVC_NALU_SEI:
+//			case GF_AVC_NALU_SEI:
 			case GF_AVC_NALU_SEQ_PARAM:
 			case GF_AVC_NALU_PIC_PARAM:
 			case GF_AVC_NALU_SEQ_PARAM_EXT:

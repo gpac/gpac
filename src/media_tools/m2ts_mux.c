@@ -992,6 +992,14 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 		break;
 	}
 
+	if (stream->program->mux->one_au_per_pes 
+			&& stream->start_pes_at_rap 
+			&& (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)
+		) {
+		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PAT;
+		stream->program->mux->force_pat = GF_TRUE;
+	}
+
 	/*rewrite timestamps for PES header*/
 	gf_m2ts_remap_timestamps_for_pes(stream, stream->curr_pck.flags, &stream->curr_pck.dts, &stream->curr_pck.cts);
 
@@ -1045,7 +1053,6 @@ static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Program *program)
 	return pcr;
 }
 
-
 void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 {
 	Bool ignore_next=0;
@@ -1089,10 +1096,10 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	1- we are asked to start new PES at RAP, just consider we don't have the next AU*/
 	if (stream->start_pes_at_rap && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP) ) {
 		ignore_next=1;
-		stream->program->force_pat_pmt_state = 1;
+		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_START;
 	}
-	/*if we have a RAP about to start on a stream in this program, force all other streams to stop merging cuming data in their current PES*/
-	else if (stream->program->force_pat_pmt_state) {
+	/*if we have a RAP about to start on a stream in this program, force all other streams to stop merging data in their current PES*/
+	else if (stream->program->mux->force_pat_pmt_state) {
 		ignore_next=1;
 	}
 
@@ -1328,17 +1335,17 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		payload_length = 184 - hdr_len;
 		payload_to_copy = padding_length = 0;
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)) ? GF_TRUE : GF_FALSE;
-		needs_pcr = (hdr_len && (stream->pcr_priority || is_rap)) ? 1 : 0;
+		needs_pcr = (hdr_len && (stream == stream->program->pcr) && (stream->pcr_priority || is_rap) ) ? 1 : 0;
 
 		/*if we forced inserting PAT/PMT before new RAP, also insert PCR here*/
-		if (stream->program->force_pat_pmt_state == 3) {
-			if( stream == stream->program->pcr) {
-				stream->program->force_pat_pmt_state = 0;
+		if (stream->program->mux->force_pat_pmt_state == GF_SEG_BOUNDARY_FORCE_PCR) {
+			if (stream == stream->program->pcr) {
+				stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_NONE;
 				needs_pcr = 1;
 			}
 		}
 
-		if (needs_pcr) {
+ 		if (needs_pcr) {
 			/*AF headers + PCR*/
 			payload_length -= 8;
 			adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
@@ -1521,8 +1528,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 				copy_next = remain;
 			}
 		}
-		else if (stream->program->force_pat_pmt_state==1) {
-			stream->program->force_pat_pmt_state = 2;
+		else if (stream->program->mux->force_pat_pmt_state==GF_SEG_BOUNDARY_START) {
+			stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PAT;
 			stream->program->mux->force_pat = 1;
 		}
 	}
@@ -2042,6 +2049,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	u32 now, nb_streams, nb_streams_done;
 	char *ret;
 	u32 res, highest_priority;
+	Bool flush_all_pes = 0;
 
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
@@ -2085,33 +2093,54 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 		muxer->needs_reconfig = 0;
 	}
 
-	/*compare PAT and PMT with current mux time
-	if non-fixed rate, current mux time is the time of the last packet sent, time test is still valid - it will however not work
-	if min access unit duration from all streams is greater than the PSI refresh rate*/
-
-	/*PAT*/
-	res = muxer->pat->process(muxer, muxer->pat);
-	if ((res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time)) || muxer->force_pat) {
-		time = muxer->pat->time;
-		stream_to_process = muxer->pat;
-		muxer->force_pat = 0;
-		/*force sending the PAT regardless of other streams*/
-		goto send_pck;
+	if (muxer->flush_pes_at_rap && muxer->force_pat) {
+		program = muxer->programs;
+		while (program) {
+			stream = program->streams;
+			while (stream) {
+				if (stream->pes_data_remain) {
+					flush_all_pes = 1;
+					break;
+				}
+				stream = stream->next;
+			}
+			program = program->next;
+		}
 	}
 
-	/*PMT, for each program*/
-	program = muxer->programs;
-	while (program) {
-		res = program->pmt->process(muxer, program->pmt);
-		if ((res && gf_m2ts_time_less_or_equal(&program->pmt->time, &time)) || (program->force_pat_pmt_state==2)) {
-			time = program->pmt->time;
-			stream_to_process = program->pmt;
-			if (program->force_pat_pmt_state==2) 
-				program->force_pat_pmt_state = 3;
-			/*force sending the PMT regardless of other streams*/
+	if (!flush_all_pes) {
+
+		/*compare PAT and PMT with current mux time
+		if non-fixed rate, current mux time is the time of the last packet sent, time test is still valid - it will however not work
+		if min access unit duration from all streams is greater than the PSI refresh rate*/
+
+		/*PAT*/
+		res = muxer->pat->process(muxer, muxer->pat);
+		if ((res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time)) || muxer->force_pat) {
+			time = muxer->pat->time;
+			stream_to_process = muxer->pat;
+			if (muxer->force_pat) {
+				muxer->force_pat = 0;
+				muxer->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PMT;
+			}
+			/*force sending the PAT regardless of other streams*/
 			goto send_pck;
 		}
-		program = program->next;
+
+		/*PMT, for each program*/
+		program = muxer->programs;
+		while (program) {
+			res = program->pmt->process(muxer, program->pmt);
+			if ((res && gf_m2ts_time_less_or_equal(&program->pmt->time, &time)) || (muxer->force_pat_pmt_state==GF_SEG_BOUNDARY_FORCE_PMT)) {
+				time = program->pmt->time;
+				stream_to_process = program->pmt;
+				if (muxer->force_pat_pmt_state==GF_SEG_BOUNDARY_FORCE_PMT) 
+					muxer->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PCR;
+				/*force sending the PMT regardless of other streams*/
+				goto send_pck;
+			}
+			program = program->next;
+		}
 	}
 
 	/*if non-fixed rate, just pick the earliest data on all streams*/
@@ -2127,11 +2156,13 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	program = muxer->programs;
 	while (program) {
 		stream = program->pcr;
-		res = stream->process(muxer, stream);
-		if (res && gf_m2ts_time_less_or_equal(&stream->time, &time)) {
-			time = stream->time;
-			stream_to_process = stream;
-			goto send_pck;
+		if (!flush_all_pes  || (stream->copy_from_next_packets + stream->pes_data_remain) ) {
+			res = stream->process(muxer, stream);
+			if (res && gf_m2ts_time_less_or_equal(&stream->time, &time)) {
+				time = stream->time;
+				stream_to_process = stream;
+				goto send_pck;
+			}
 		}
 		program = program->next;
 	}
@@ -2147,7 +2178,17 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 			if (stream != program->pcr) 
 #endif
 			{
+				if (flush_all_pes && !stream->pes_data_remain) {
+					nb_streams++;
+					stream = stream->next;
+					continue;
+				}
+
 				res = stream->process(muxer, stream);
+				/*next is rap on this stream, check flushing of other pes (we could use a goto)*/
+				if (!flush_all_pes && muxer->force_pat)
+					return gf_m2ts_mux_process(muxer, status, usec_till_next);
+
 				if (res && gf_m2ts_time_less_or_equal(&stream->time, &time)) {
 					/*if same priority schedule the earliest data*/
 					if (res>=highest_priority) {

@@ -191,8 +191,6 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 }
 
-u32 nb_bytes = 0;
-
 static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,

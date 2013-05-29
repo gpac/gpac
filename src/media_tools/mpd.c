@@ -348,8 +348,6 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 	GF_XMLNode *child;
 	u32 i = 0;
 
-	/*setup some defaults*/
-	seg->timescale = 1;
 	/*infinite by default*/
 	seg->time_shift_buffer_depth = (u32) -1;
 

@@ -1125,6 +1125,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_get_slconfig) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_reset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_add) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_get) )
+
 #endif /*GPAC_DISABLE_STREAMING*/
 
 
