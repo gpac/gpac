@@ -323,7 +323,7 @@ enum
 	/*track dumper types are formatted as flags for conveniency for 
 	authoring tools, but never used as a OR'ed set*/
 	/*native format (JPG, PNG, MP3, etc) if supported*/
-	GF_EXPORT_NATIVE = 1,
+	GF_EXPORT_NATIVE = GF_TRUE,
 	/*raw samples (including hint tracks for rtp)*/
 	GF_EXPORT_RAW_SAMPLES = (1<<1),
 	/*NHNT format (any MPEG-4 media)*/
