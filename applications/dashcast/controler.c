@@ -510,6 +510,7 @@ Bool keyboard_thread(void * p_params) {
 Bool video_decoder_thread(void * p_params) {
 
 	int ret;
+	//int first_time = 1;
 	struct timeval time_start, time_end, time_wait;
 	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
 
@@ -518,7 +519,7 @@ Bool video_decoder_thread(void * p_params) {
 	VideoInputFile * p_vinf = p_thread_params->p_vinf;
 
 	suseconds_t total_wait_time = 1000000 / p_in_data->vdata.i_framerate;
-	suseconds_t pick_packet_delay;
+	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
 
 	//printf("wait time : %f\n", total_wait_time);
 
@@ -531,7 +532,9 @@ Bool video_decoder_thread(void * p_params) {
 
 	while (1) {
 
-		gettimeofday(&time_start, NULL);
+		if (p_vinf->i_mode == LIVE_MEDIA) {
+			gettimeofday(&time_start, NULL);
+		}
 
 		ret = dc_video_decoder_read(p_vinf, p_vind);
 
@@ -557,16 +560,28 @@ Bool video_decoder_thread(void * p_params) {
 			break;
 		}
 
-		gettimeofday(&time_end, NULL);
-
 		if (p_vinf->i_mode == LIVE_MEDIA) {
+
+			gettimeofday(&time_end, NULL);
 
 			pick_packet_delay =
 					((time_end.tv_sec - time_start.tv_sec) * 1000000)
 							+ time_end.tv_usec - time_start.tv_usec;
+
 			time_wait.tv_sec = 0;
-			time_wait.tv_usec = total_wait_time - pick_packet_delay;
+			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
+			time_wait.tv_usec = real_wait;
+			//printf("delay: %ld = %ld - %ld\n", time_wait.tv_usec,
+			//				total_wait_time, pick_packet_delay);
+
+			gettimeofday(&time_start, NULL);
+
 			select(0, NULL, NULL, NULL, &time_wait);
+
+			gettimeofday(&time_end, NULL);
+
+			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000)
+					+ time_end.tv_usec - time_start.tv_usec) - real_wait;
 
 		}
 
@@ -590,7 +605,8 @@ Bool audio_decoder_thread(void * p_params) {
 
 	suseconds_t total_wait_time = 1000000
 			/ (p_in_data->adata.i_samplerate / 1024);
-	suseconds_t pick_packet_delay;
+	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
+	;
 
 	//printf("wait time : %ld\n", total_wait_time);
 	//printf("sample-rate : %ld\n", p_in_data->adata.i_samplerate);
@@ -604,7 +620,9 @@ Bool audio_decoder_thread(void * p_params) {
 
 	while (1) {
 
-		gettimeofday(&time_start, NULL);
+		if (p_ainf->i_mode == LIVE_MEDIA) {
+			gettimeofday(&time_start, NULL);
+		}
 
 		ret = dc_audio_decoder_read(p_ainf, p_aind);
 
@@ -629,16 +647,26 @@ Bool audio_decoder_thread(void * p_params) {
 			break;
 		}
 
-		gettimeofday(&time_end, NULL);
-
 		if (p_ainf->i_mode == LIVE_MEDIA) {
+
+			gettimeofday(&time_end, NULL);
 
 			pick_packet_delay =
 					((time_end.tv_sec - time_start.tv_sec) * 1000000)
 							+ time_end.tv_usec - time_start.tv_usec;
+
 			time_wait.tv_sec = 0;
-			time_wait.tv_usec = total_wait_time - pick_packet_delay;
+			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
+			time_wait.tv_usec = real_wait;
+
+			gettimeofday(&time_start, NULL);
+
 			select(0, NULL, NULL, NULL, &time_wait);
+
+			gettimeofday(&time_end, NULL);
+
+			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000)
+					+ time_end.tv_usec - time_start.tv_usec) - real_wait;
 
 		}
 
@@ -708,7 +736,6 @@ Bool video_encoder_thread(void * p_params) {
 	MessageQueue * p_mq = p_thread_params->p_mq;
 	MessageQueue * p_delete_seg_mq = p_thread_params->p_delete_seg_mq;
 	MessageQueue * p_send_seg_mq = p_thread_params->p_send_seg_mq;
-
 
 #ifndef FRAGMENTER
 	MessageQueue * p_mq = p_thread_params->p_mq;
