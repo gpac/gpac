@@ -255,7 +255,7 @@ static GF_Err OMA_DRM_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		len = (u32) strlen(cfg->oma_drm_textual_headers + hdr_pos);
 		hdr_pos += len+1;
 	}
-	priv->is_oma = 1;
+	priv->is_oma = GF_TRUE;
 
 	/*TODO: call DRM agent, fetch keys*/
 	if (!cfg->kms_uri) return GF_NON_COMPLIANT_BITSTREAM;
@@ -290,7 +290,7 @@ static GF_Err ISMA_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 	case GF_IPMP_TOOL_PROCESS_DATA:
 		if (priv->is_oma) {
 			if (evt->is_encrypted) {
-				evt->restart_requested = 1;
+				evt->restart_requested = GF_TRUE;
 				return GF_EOS;
 			}
 			return GF_OK;
