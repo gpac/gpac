@@ -462,7 +462,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.PTS = PTS;
 	pck.flags = 0;
 
-	if (pes->frame_state && ((pes->frame_state==data_len) || (data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0))) {
+	if (pes->frame_state && ((pes->frame_state==data_len) || ((data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0)))) {
 		assert(pes->frame_state<=data_len);
 		/*dispatch frame*/
 		pck.stream = pes;

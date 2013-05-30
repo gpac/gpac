@@ -364,7 +364,7 @@ u32 MM_Loop(void *par)
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\tServices\tDecoders\tCompositor\tSleep\n"));
 
 	while (term->flags & GF_TERM_RUNNING) {
-		u32 left;
+		u32 left = 0;
 		if (do_codec) left = MM_SimulationStep_Decoder(term);
 //		else left = term->frame_duration;
 		
