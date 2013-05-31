@@ -2882,7 +2882,14 @@ next_segment_setup:
 		ts_bs = NULL;
 		if (ts->run_state && ts->query_next) {
 			const char *next_url = NULL;
-			ts->query_next(ts->query_udta, 0, &next_url, &ts->start_byterange, &ts->end_byterange);
+			e = ts->query_next(ts->query_udta, 1, &next_url, &ts->start_byterange, &ts->end_byterange);
+			
+			/*not ready, wait ...*/
+			while ((e==GF_BUFFER_TOO_SMALL) && !next_url && ts->run_state) {
+				gf_sleep(10);
+				e = ts->query_next(ts->query_udta, 1, &next_url, &ts->start_byterange, &ts->end_byterange);
+			}
+
 			if (next_url) {
 				/*TODO we need to know if we had a seek or not, to fluh remaining PES data*/
 				gf_m2ts_set_segment_switch(ts);

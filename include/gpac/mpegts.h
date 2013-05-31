@@ -819,8 +819,12 @@ struct tag_m2ts_demux
 
 	const char *dvb_channels_conf_path;
 
-	/*for DASH*/
-	GF_Err (*query_next)(void *udta, Bool query_init_range, const char **next_url, u64 *next_start_range, u64 *next_end_range);
+	/*for DASH - query_type is:
+		0: query init range
+		1: drop current segment and query next segment
+		2: query next segment
+	*/
+	GF_Err (*query_next)(void *udta, u32 query_type, const char **next_url, u64 *next_start_range, u64 *next_end_range);
 	void *query_udta;
 	Bool segment_switch;
 

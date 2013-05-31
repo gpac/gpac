@@ -480,16 +480,16 @@ extern "C" {
      *
      *Sets the maximum rate (per session only at the current time). 
      *\param dm the download manager object
-     *\param rate_in_byte_per_sec the new rate in bytes per sec. If 0, HTTP rate will not be limited
+     *\param rate_in_bits_per_sec the new rate in bits per sec. If 0, HTTP rate will not be limited
      */
-    void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_byte_per_sec);
+    void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
 
     /*
      *\brief gets download manager max rate per session
      *
      *Sets the maximum rate (per session only at the current time). 
      *\param dm the download manager object
-     *\return the rate in bytes per sec. If 0, HTTP rate is not limited
+     *\return the rate in bits per sec. If 0, HTTP rate is not limited
      */
     u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
 

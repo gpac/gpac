@@ -277,7 +277,7 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 	}
 	else if (!strcmp(prop_name, "http_bitrate")) {
 		u32 new_rate = JSVAL_TO_INT(*vp);
-		gf_dm_set_data_rate(term->downloader, new_rate * 128 /*1024/8*/);
+		gf_dm_set_data_rate(term->downloader, new_rate);
 	}
 
 	SMJS_FREE(c, prop_name);

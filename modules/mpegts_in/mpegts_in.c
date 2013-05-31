@@ -791,7 +791,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
-static GF_Err M2TS_QueryNextFile(void *udta, Bool query_init, const char **out_url, u64 *out_start_range, u64 *out_end_range)
+static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range)
 {
 	GF_NetworkCommand param;
 	GF_Err query_ret;
@@ -803,13 +803,17 @@ static GF_Err M2TS_QueryNextFile(void *udta, Bool query_init, const char **out_u
 	if (out_start_range) *out_start_range = 0;
 	if (out_end_range) *out_end_range = 0;
 
-	param.command_type = query_init ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
+	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.next_url = NULL;
+	param.url_query.drop_first_segment = (query_type==1) ? 1 : 0;
+
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
 
 
-	if ((query_ret==GF_OK) && !query_init && !param.url_query.next_url){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
+	if ((query_ret==GF_BUFFER_TOO_SMALL) && query_type && !param.url_query.next_url){
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: not yet downloaded\n"));
+	} else if ((query_ret==GF_OK) && query_type && !param.url_query.next_url){
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
 	} else if (query_ret) {
 		GF_LOG((query_ret<0) ? GF_LOG_ERROR : GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
 	} else {
@@ -1115,8 +1119,12 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
-		if (ts->file)
+		if (ts->dnload || plug->query_proxy) {
+			if (!com->buffer.max) com->buffer.max = 1000;
+			com->buffer.min = com->buffer.max;
+		} else if (ts->file) {
 			com->buffer.max = M2TS_BUFFER_MAX;
+		}
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = ts->duration;

@@ -318,6 +318,13 @@ typedef struct
 typedef struct
 {
 	u32 command_type;
+	//input 
+
+	/*drops first segment */
+	Bool drop_first_segment;
+
+	//output
+
 	/*out: next url to play after current one*/
 	const char *next_url;
 	/*out: range in given URL to be played - usually 0-0 as segments are downloaded to cache

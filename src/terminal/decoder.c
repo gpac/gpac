@@ -745,15 +745,17 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if audio codec muted we dispatch to keep sync in place*/
 	if (codec->Muted && (codec->type==GF_STREAM_VISUAL) ) return GF_OK;
 
-	if ( (codec->CB->UnitCount > 1) && (codec->CB->Capacity == codec->CB->UnitCount) )
-		return GF_OK;
-
 	entryTime = gf_term_get_time(codec->odm->term);
 	if (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) 
 		drop_late_frames = 1;
 
 	/*fetch next AU in DTS order for this codec*/
 	MediaDecoder_GetNextAU(codec, &ch, &AU);
+
+	//cannot output frame, do nothing (we force a channel query before for pull mode)
+	if ( (codec->CB->UnitCount > 1) && (codec->CB->Capacity == codec->CB->UnitCount) )
+		return GF_OK;
+
 	/*no active channel return*/
 	if (!AU || !ch) {
 		/*if the codec is in EOS state, assume we're done*/
