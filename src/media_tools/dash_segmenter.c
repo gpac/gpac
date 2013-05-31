@@ -2146,7 +2146,7 @@ typedef struct
 
 	u32 subduration;
 	u32 skip_nb_segments;
-	u32 cumulated_duration;
+	u64 duration_at_last_pass;
 
 	GF_SegmentIndexBox *sidx;
 	GF_PcrInfoBox *pcrb;
@@ -2194,6 +2194,8 @@ typedef struct
 	u64 last_SAP_PTS;
 	u32 last_SAP_offset;
 
+	Bool pes_after_last_pat_is_sap;
+
 	/*Interpolated PCR value for the pcrb*/
 	u64 interpolated_pcr_value;
 	u64 last_pcr_value;
@@ -2202,7 +2204,7 @@ typedef struct
 	u32 last_pat_position;
 	u32 first_pat_position;
 	u32 prev_last_pat_position;
-	Bool first_pat_position_valid;
+	Bool first_pat_position_valid, first_pes_after_last_pat;
 	u32 pat_version;
 
 	/* information about the first CAT found in the subsegment */
@@ -2368,11 +2370,23 @@ static void m2ts_sidx_flush_entry(GF_TSSegmenter *index_info)
 	
 	/* update the values for the new index*/
 	index_info->base_offset = end_offset;
-	index_info->SAP_type = 0;
-	index_info->first_SAP_PTS = 0;
-	index_info->first_SAP_offset = 0;
-	index_info->first_pes_sap = GF_FALSE;
-	index_info->nb_pes_in_segment = 0;
+
+	if (index_info->pes_after_last_pat_is_sap) {
+		index_info->SAP_type = 1;
+		index_info->first_SAP_PTS = index_info->last_SAP_PTS;
+		index_info->first_SAP_offset = index_info->last_SAP_offset;
+		index_info->first_pes_sap = GF_TRUE;
+		index_info->nb_pes_in_segment = 1;
+		index_info->base_PTS = index_info->first_SAP_PTS;
+
+		index_info->pes_after_last_pat_is_sap= 0;
+	} else {
+		index_info->SAP_type = 0;
+		index_info->first_SAP_PTS = 0;
+		index_info->first_SAP_offset = 0;
+		index_info->first_pes_sap = GF_FALSE;
+		index_info->nb_pes_in_segment = 0;
+	}
 	index_info->last_DTS = 0;
 
 	if (index_info->last_pat_position >= index_info->base_offset) {
@@ -2404,17 +2418,39 @@ static void m2ts_sidx_flush_entry(GF_TSSegmenter *index_info)
 		index_info->first_pcr_position = 0;
 	}
 
-	index_info->cumulated_duration += duration;
-	if (index_info->subduration && (index_info->cumulated_duration >= index_info->subduration))
+	if (index_info->subduration && (index_info->last_PTS - index_info->first_PTS >= index_info->duration_at_last_pass + index_info->subduration)) {
 		index_info->suspend_indexing = end_offset;
+		index_info->duration_at_last_pass = (u32) (index_info->last_PTS - index_info->first_PTS);
+	}
 }
 
 static void m2ts_check_indexing(GF_TSSegmenter *index_info)
 {
-	u32 delta_time = (u32)(index_info->last_PTS - index_info->base_PTS);
 	u32 segment_duration = (u32)(index_info->segment_duration*90000);
+	u64 current_duration = (index_info->last_PTS - index_info->base_PTS);
+	u64 target_duration = segment_duration;
+
+	//using drift control to ensure that nb_seg*segment_duration is roughly aligned with segment(nb_seg).first_PTS
+	if (index_info->sidx) {
+		current_duration = (index_info->last_PTS - index_info->first_PTS) - index_info->duration_at_last_pass;
+		target_duration += index_info->sidx->nb_refs * segment_duration;
+	}
+
+	if (index_info->segment_at_rap) {
+		s32 diff = (s32) ((s64) current_duration - (s64) segment_duration);
+		if (diff<0)diff=-diff;
+		//check if below 10% limit 
+		if (diff/900 < 5) {
+			//below 10% limit of segment duration, if we have a RAP flush now
+			if (index_info->pes_after_last_pat_is_sap)
+				m2ts_sidx_flush_entry(index_info);
+			//no rap and below 10% limit, wait for rap
+			return;
+		}
+	}
+
 	/* we exceed the segment duration flush sidx entry*/
-	if (delta_time >= segment_duration) {
+	if (current_duration >= target_duration) {
 		m2ts_sidx_flush_entry(index_info);
 	} 
 }
@@ -2436,6 +2472,28 @@ static void dash_m2ts_event_check_pat(GF_M2TS_Demuxer *ts, u32 evt_type, void *p
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_DEFAULT);
 		}
 	}
+		break;
+	case GF_M2TS_EVT_PMT_REPEAT:
+		if (ts_seg->has_seen_pat) {
+			u32 i, count;
+			Bool done = 1;
+			GF_M2TS_Program *prog = (GF_M2TS_Program*)par;
+			count = gf_list_count(prog->streams);
+			for (i=0; i<count; i++) {
+				GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
+				if (es->flags&GF_M2TS_ES_IS_PES) {
+					GF_M2TS_PES *pes = (GF_M2TS_PES *)es; 
+					if (!pes->aud_sr && !pes->vid_w) {
+						done = 0;
+						break;
+					} else {
+						/*stream is configured, we only need PES header now*/
+						gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_RAW);
+					}
+				}
+			}
+			if (done) ts_seg->has_seen_pat = 2;
+		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		pck = par;
@@ -2473,6 +2531,8 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			ts_seg->first_pat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pat_position = (ts->pck_number-1)*188;
+		ts_seg->first_pes_after_last_pat = 0;
+		ts_seg->pes_after_last_pat_is_sap = 0;
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 		if (!ts_seg->first_pat_position_valid) {
@@ -2480,6 +2540,8 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			ts_seg->first_pat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pat_position = (ts->pck_number-1)*188;
+		ts_seg->first_pes_after_last_pat = 0;
+		ts_seg->pes_after_last_pat_is_sap = 0;
 		break;
 	case GF_M2TS_EVT_PAT_REPEAT:
 		if (!ts_seg->first_pat_position_valid) {
@@ -2487,6 +2549,8 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			ts_seg->first_pat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pat_position = (ts->pck_number-1)*188;
+		ts_seg->first_pes_after_last_pat = 0;
+		ts_seg->pes_after_last_pat_is_sap = 0;
 		break;
 	case GF_M2TS_EVT_CAT_FOUND:
 		if (!ts_seg->first_cat_position_valid) {
@@ -2570,6 +2634,11 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					ts_seg->last_frame_duration = (u32) (pck->DTS - ts_seg->last_DTS);
 				ts_seg->last_DTS = pck->DTS;
 				ts_seg->nb_pes_in_segment++;
+
+				if (!ts_seg->first_pes_after_last_pat) {
+					ts_seg->first_pes_after_last_pat = ts_seg->nb_pes_in_segment;
+					ts_seg->pes_after_last_pat_is_sap=0;
+				}
 			}
 
 			/* we store the fact that there is at least a RAP for the index
@@ -2585,6 +2654,9 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 				if (ts_seg->nb_pes_in_segment==1) {
 					ts_seg->first_pes_sap = GF_TRUE;
+				}
+				if ((ts_seg->nb_pes_in_segment>1) && (ts_seg->first_pes_after_last_pat==ts_seg->nb_pes_in_segment)) {
+					ts_seg->pes_after_last_pat_is_sap=1;
 				}
 			}
 			/* we need to know the earliest PTS value (RAP or not) in the index*/
@@ -2644,7 +2716,8 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 			if (size<188) break;
 
 			gf_m2ts_process_data(ts_seg->ts, data, size);
-			if ((probe_mode ==1) && ts_seg->has_seen_pat) break;
+			if (ts_seg->has_seen_pat==probe_mode)
+				break;
 		}
 		gf_m2ts_reset_parsers(ts_seg->ts);
 		gf_f64_seek(ts_seg->src, 0, SEEK_SET);
@@ -2660,16 +2733,32 @@ static void dasher_del_ts_demux(GF_TSSegmenter *ts_seg)
 	memset(ts_seg, 0, sizeof(GF_TSSegmenter));
 }
 
-static GF_Err dasher_mp2t_get_components_info(GF_DashSegInput *dash_input, GF_DASHSegmenterOptions *opts)
+static GF_Err dasher_mp2t_get_components_info(GF_DashSegInput *dash_input, GF_DASHSegmenterOptions *dash_opts)
 {
+	char sOpt[40];
 	GF_TSSegmenter ts_seg;
-	GF_Err e = dasher_generic_get_components_info(dash_input, opts);
+	GF_Err e = dasher_generic_get_components_info(dash_input, dash_opts);
 	if (e) return e;
 
-	e = dasher_get_ts_demux(&ts_seg, dash_input->file_name, 2);
+	dash_input->duration = 0;
+	if (dash_opts->dash_ctx) {
+		const char *opt = gf_cfg_get_key(dash_opts->dash_ctx, "DASH", "LastFileName");
+		if (opt && !strcmp(opt, dash_input->file_name)) {
+			const char *opt = gf_cfg_get_key(dash_opts->dash_ctx, "DASH", "LastFileDuration");
+			if (opt) dash_input->duration = atof(opt);
+		}
+	}
+
+	e = dasher_get_ts_demux(&ts_seg, dash_input->file_name, dash_input->duration ? 2 : 3);
 	if (e) return e;
 
-	dash_input->duration = (ts_seg.last_PTS + ts_seg.last_frame_duration - ts_seg.first_PTS)/90000.0;
+	if (!dash_input->duration)
+		dash_input->duration = (ts_seg.last_PTS + ts_seg.last_frame_duration - ts_seg.first_PTS)/90000.0;
+
+	gf_cfg_set_key(dash_opts->dash_ctx, "DASH", "LastFileName", dash_input->file_name);
+	sprintf(sOpt, "%g", dash_input->duration);
+	gf_cfg_set_key(dash_opts->dash_ctx, "DASH", "LastFileDuration", sOpt);
+
 	dasher_del_ts_demux(&ts_seg);
 
 	return GF_OK;
@@ -2740,7 +2829,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);	
 
 	ts_seg.PCR_DTS_initial_diff = (u64) -1;
-	ts_seg.subduration = (u32) (dash_cfg->subduration * 90000 / dash_cfg->dash_scale);
+	ts_seg.subduration = (u32) (dash_cfg->subduration * 90000);
 
 	szSectionName[0] = 0;
 	if (dash_cfg->dash_ctx) {
@@ -2761,7 +2850,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				if (size<NB_TSPCK_IO_BYTES) break;
 			}
 			gf_m2ts_reset_parsers(ts_seg.ts);
-
+			ts_seg.base_PTS = 0;
 			gf_f64_seek(ts_seg.src, offset, SEEK_SET);
 			ts_seg.base_offset = offset;
 			ts_seg.ts->pck_number = (u32) (offset/188);
@@ -2769,6 +2858,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, szSectionName, "InitialDTSOffset");
 		if (opt) sscanf(opt, LLU, &ts_seg.PCR_DTS_initial_diff);
+
+		opt = gf_cfg_get_key(dash_cfg->dash_ctx, szSectionName, "DurationAtLastPass");
+		if (opt) sscanf(opt, LLD, &ts_seg.duration_at_last_pass);
 	}
 
 	/*index the file*/
@@ -3049,6 +3141,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 		sprintf(szOpt, LLU, ts_seg.suspend_indexing);
 		gf_cfg_set_key(dash_cfg->dash_ctx, szSectionName, "ByteOffset", ts_seg.suspend_indexing ? szOpt : NULL);
+		
+		sprintf(szOpt, LLD, ts_seg.duration_at_last_pass);
+		gf_cfg_set_key(dash_cfg->dash_ctx, szSectionName, "DurationAtLastPass", ts_seg.suspend_indexing ? szOpt : NULL);
 
 		sprintf(szOpt, LLU, ts_seg.PCR_DTS_initial_diff);
 		gf_cfg_set_key(dash_cfg->dash_ctx, szSectionName, "InitialDTSOffset", ts_seg.suspend_indexing ? szOpt : NULL);
@@ -3465,6 +3560,8 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 	u32 i, ntp_sec, frac, prev_sec;
 	const char *opt, *section;
 	GF_Err e;
+
+	if (!dash_dynamic) return 1;
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "StoreParams");
 	if (opt && !strcmp(opt, "yes")) return 1;

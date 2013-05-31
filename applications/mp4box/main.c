@@ -1768,6 +1768,10 @@ int mp4boxMain(int argc, char **argv)
 		} else if (!stricmp(arg, "-dash-scale")) {
 			CHECK_NEXT_ARG
 			dash_scale = atoi(argv[i+1]);
+			if (!dash_scale) {
+				fprintf(stderr, "\tERROR: \"-dash-scale\": invalid parameter %s\n", argv[i+1]);
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 			i++;
 		} else if (!stricmp(arg, "-dash-ts-prog")) {
 			CHECK_NEXT_ARG
