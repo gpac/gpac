@@ -992,9 +992,7 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 		break;
 	}
 
-	if (stream->program->mux->one_au_per_pes 
-			&& stream->start_pes_at_rap 
-			&& (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)
+	if (stream->start_pes_at_rap && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)
 		) {
 		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PAT;
 		stream->program->mux->force_pat = GF_TRUE;
@@ -1096,7 +1094,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	1- we are asked to start new PES at RAP, just consider we don't have the next AU*/
 	if (stream->start_pes_at_rap && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP) ) {
 		ignore_next=1;
-		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_START;
+//		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_START;
 	}
 	/*if we have a RAP about to start on a stream in this program, force all other streams to stop merging data in their current PES*/
 	else if (stream->program->mux->force_pat_pmt_state) {
