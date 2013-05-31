@@ -1329,7 +1329,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	}
 
 	/*pull from stream - resume clock if needed*/
-	ch_buffer_off(ch);
+	if (!ch->MinBuffer) ch_buffer_off(ch);
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
 
@@ -1338,6 +1338,12 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	switch (state) {
 	case GF_EOS:
 		gf_es_on_eos(ch);
+		return NULL;
+	case GF_BUFFER_TOO_SMALL:
+		if (ch->MinBuffer) {
+			gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
+			ch_buffer_on(ch);
+		}
 		return NULL;
 	case GF_OK:
 		break;
@@ -1394,6 +1400,11 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	ch->AU_buffer_pull->DTS = (u32) ch->DTS;
 	ch->AU_buffer_pull->PaddingBits = ch->padingBits;
 	if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
+
+	if (ch->BufferOn) {
+		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYING);
+		ch_buffer_off(ch);
+	}
 	return ch->AU_buffer_pull;
 }
 
@@ -1512,6 +1523,7 @@ static void refresh_non_interactive_clocks(GF_ObjectManager *odm)
 /*performs final setup upon connection confirm*/
 void gf_es_on_connect(GF_Channel *ch)
 {
+	const char *sOpt;
 	Bool can_buffer;
 	GF_NetworkCommand com;
 
@@ -1564,24 +1576,24 @@ void gf_es_on_connect(GF_Channel *ch)
 	}
 	/*buffer setup*/
 	ch->MinBuffer = ch->MaxBuffer = 0;
+	/*set default values*/
+	com.buffer.max = com.buffer.min = 0;
 	if (can_buffer) {
-		const char *sOpt;
-		com.command_type = GF_NET_CHAN_BUFFER;
-		com.base.on_channel = ch;
-
-		/*set default values*/
 		com.buffer.max = 1000;
 		sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "BufferLength");
 		if (sOpt) com.buffer.max = atoi(sOpt);
 		com.buffer.min = 0;
 		sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "RebufferLength");
 		if (sOpt) com.buffer.min = atoi(sOpt);
-
-		if (gf_term_service_command(ch->service, &com) == GF_OK) {
-			ch->MinBuffer = com.buffer.min;
-			ch->MaxBuffer = com.buffer.max;
-		}
 	}
+
+	com.command_type = GF_NET_CHAN_BUFFER;
+	com.base.on_channel = ch;
+	if (gf_term_service_command(ch->service, &com) == GF_OK) {
+		ch->MinBuffer = com.buffer.min;
+		ch->MaxBuffer = com.buffer.max;
+	}
+
 	if (ch->esd->decoderConfig->streamType == GF_STREAM_PRIVATE_SCENE &&
 		ch->esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_EPG) { 
 		ch->bypass_sl_and_db = 1;

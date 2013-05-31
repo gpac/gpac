@@ -266,6 +266,9 @@ enum
 	/*max video cache size in kbytes*/
 	GF_OPT_VIDEO_CACHE_SIZE,
 
+	/*max HTTP download rate in bits per second, 0 if no limit*/
+	GF_OPT_HTTP_MAX_RATE,
+
 	
 	/*		3D ONLY OPTIONS		*/
 	/*set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only 

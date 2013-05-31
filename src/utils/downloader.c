@@ -1521,7 +1521,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
        
 	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;
 	/*use it in in BYTES per second*/
-	if (opt) dm->limit_data_rate = 1024 * atoi(opt) / 8;
+	if (opt) dm->limit_data_rate = 1000 * atoi(opt) / 8;
 
 	if (cfg) {
 		opt = gf_cfg_get_key(cfg, "Downloader", "DisableCache");
@@ -3032,18 +3032,13 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 }
 
 GF_EXPORT
-void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_byte_per_sec)
+void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 {
-	dm->limit_data_rate = rate_in_byte_per_sec;
-	if (dm->cfg) {
-		char szBuf[100];
-		sprintf(szBuf, "%d", rate_in_byte_per_sec*128/*8/1024*/);
-		gf_cfg_set_key(dm->cfg, "Downloader", "MaxRate", szBuf);
-	}
+	dm->limit_data_rate = rate_in_bits_per_sec/8;
 }
 
 GF_EXPORT
 u32 gf_dm_get_data_rate(GF_DownloadManager *dm)
 {
-	return dm->limit_data_rate;
+	return dm->limit_data_rate*8;
 }

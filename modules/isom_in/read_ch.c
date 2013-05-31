@@ -56,6 +56,9 @@ static void check_segment_switch(ISOMReader *read)
 		return;
 	}
 
+	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+	param.url_query.drop_first_segment = 0;
+	
 	count = gf_list_count(read->channels);
 	if (read->wait_for_next_frag==GF_FALSE) {
 		for (i=0; i<count; i++) {
@@ -70,10 +73,11 @@ static void check_segment_switch(ISOMReader *read)
 		/*close current segment*/
 		gf_isom_release_segment(read->mov, 1);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - querying new one\n"));
+
+		param.url_query.drop_first_segment = 1;
 	}
 
 	/*update current fragment if any*/
-	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 	e = read->input->query_proxy(read->input, &param);
 	if (e ==GF_OK) {
         if (param.url_query.next_url){
@@ -129,8 +133,12 @@ static void check_segment_switch(ISOMReader *read)
 		/*consider we are done*/
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
-	} else {
+	} else if (e==GF_BUFFER_TOO_SMALL){
 		read->wait_for_next_frag = GF_TRUE;
+	} else {
+		/*consider we are done*/
+		read->frag_type = 2;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error fetching next DASH segment: no more segments\n"));
 	}
 	gf_mx_v(read->segment_mutex);
 }

@@ -1668,6 +1668,17 @@ force_input:
 		}
 			break;
 
+		case 'H':
+		{
+			u32 http_bitrate = gf_term_get_option(term, GF_OPT_HTTP_MAX_RATE);	
+			do {
+				fprintf(stderr, "Enter new http bitrate in bps (0 for none) - current limit: %d\n", http_bitrate);
+			} while (1 > scanf("%ud", &http_bitrate));
+
+			gf_term_set_option(term, GF_OPT_HTTP_MAX_RATE, http_bitrate);
+		}
+			break;
+
 		case 'E':
 			gf_term_set_option(term, GF_OPT_RELOAD_CONFIG, 1); 
 			break;

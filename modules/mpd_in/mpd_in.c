@@ -125,10 +125,9 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		Bool group_done;
 		u32 nb_segments_cached;
 		u32 group_idx=0;
-		u32 retry_count = 300;
 		GF_MPDGroup *group=NULL;
 		const char *src_url;
-		Bool discard_first_cache_entry = 1;
+		Bool discard_first_cache_entry = param->url_query.drop_first_segment;
         u32 timer = gf_sys_clock();
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Query Next request from input service %s\n", ifce->module_name));
 
@@ -179,11 +178,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				} 
 				return GF_EOS;
 			}
-            gf_sleep(10);
-			retry_count --;
-			if (!retry_count) {
-	            return GF_SERVICE_ERROR;
-			}
+            return GF_BUFFER_TOO_SMALL;
         }
 	
 		nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);

@@ -922,6 +922,10 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 	case GF_OPT_MEDIA_CACHE:
 		gf_term_set_cache_state(term, value);
 		return GF_OK;
+	case GF_OPT_HTTP_MAX_RATE:
+		gf_dm_set_data_rate(term->downloader, value);
+		return GF_OK;
+
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
 	}
@@ -988,6 +992,7 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 		else if (term->root_scene && term->root_scene->root_od->net_service->cache) return GF_MEDIA_CACHE_RUNNING;
 		else return GF_MEDIA_CACHE_ENABLED;
 	case GF_OPT_CAN_SELECT_STREAMS: return (term->root_scene && term->root_scene->is_dynamic_scene) ? 1 : 0;
+	case GF_OPT_HTTP_MAX_RATE: return gf_dm_get_data_rate(term->downloader);
 	default: return gf_sc_get_option(term->compositor, type);
 	}
 }
