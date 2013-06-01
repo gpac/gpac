@@ -77,11 +77,16 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		}
 		//we need to split the entry
 		if (ent->sampleCount == 1) {
-			//use this one and adjust...
+			//FIXME - we need more tests with timed text
+#if 0
 			if (stts->w_LastDTS)
 				ent->sampleDelta += (u32) (DTS - stts->w_LastDTS);
 			else
 				ent->sampleDelta = (u32) DTS;
+#else
+			//use this one and adjust...
+			ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
+#endif
 			ent->sampleCount ++;
 			stts->w_currentSampleNum ++;
 			stts->w_LastDTS = DTS;
