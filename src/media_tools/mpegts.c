@@ -275,12 +275,8 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 						prev_is_au_delim=1;
 					}
-				} else if ((nal_type==GF_AVC_NALU_IDR_SLICE) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
-					pck.flags = GF_M2TS_PES_PCK_RAP;
-					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-					prev_is_au_delim=0;
 				} else {
-					pck.flags = 0;
+					pck.flags = (nal_type==GF_AVC_NALU_IDR_SLICE) ? GF_M2TS_PES_PCK_RAP : 0;
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 					prev_is_au_delim=0;
 				}

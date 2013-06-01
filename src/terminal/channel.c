@@ -1440,7 +1440,8 @@ void gf_es_drop_au(GF_Channel *ch)
 			ch->AU_buffer_pull->data = NULL;
 			ch->AU_buffer_pull->dataLength = 0;
 		}
-		ch->first_au_fetched = 1;
+		if (!ch->esd->dependsOnESID)
+			ch->first_au_fetched = 1;
 		return;
 	}
 
@@ -1450,7 +1451,8 @@ void gf_es_drop_au(GF_Channel *ch)
 		gf_es_lock(ch, 0);
 		return;
 	}
-	ch->first_au_fetched = 1;
+	if (!ch->esd->dependsOnESID)
+		ch->first_au_fetched = 1;
 
 	au = ch->AU_buffer_first;
 //	ch->min_computed_cts = au->CTS;

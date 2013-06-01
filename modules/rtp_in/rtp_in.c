@@ -465,6 +465,7 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 {
 	u32 i,count;
 	RTPStream *ch, *cur_ch;
+	GF_NetworkCommand com;
 	
 	count = gf_list_count(rtp->channels);
 	/*find the current stream*/
@@ -522,6 +523,9 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 					/*stop streaming current channel*/
 					gf_rtp_stop(cur_ch->rtp_ch);
 					cur_ch->status = RTP_Connected;
+					com.command_type = GF_NET_CHAN_RESET;
+					com.base.on_channel = cur_ch;
+					gf_term_on_command(rtp->service, &com, GF_OK);
 					rtp->cur_mid = ch->mid;
 					break;
 				}		

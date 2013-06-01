@@ -34,7 +34,7 @@
 
 static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
 
-#define M2TS_BUFFER_MAX 150
+#define M2TS_BUFFER_MAX 200
 
 typedef struct {
 	char *fragment;
@@ -1029,6 +1029,8 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			/*we try to play the highest layer*/
 			if (pes->program->pid_playing < pes->pid)
 				pes->program->pid_playing = pes->pid;
+			if (pes->depends_on_pid)
+				pes->program->is_scalable = GF_TRUE;
 		}
 	}
 	gf_term_on_connect(m2ts->service, channel, e);
@@ -1062,6 +1064,10 @@ static void gf_m2ts_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, B
 {
 	GF_M2TS_ES *es;
 	u32 i, count;
+	GF_NetworkCommand com;
+
+	if (!prog->is_scalable)
+		return;
 
 	if (switch_up) {
 		for (i = 0; i < GF_M2TS_MAX_STREAMS; i++) {
@@ -1076,13 +1082,15 @@ static void gf_m2ts_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, B
 	}
 	else {
 		count = gf_list_count(prog->streams);
-		if (count == 1)
-			return;
 		for (i = 0; i < count; i++) {
 			es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
-			if (es && (es->pid == prog->pid_playing)) {
+			if (es && (es->pid == prog->pid_playing) && ((GF_M2TS_PES *)es)->depends_on_pid) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Turn off ES%d - playing ES%d\n", es->pid, ((GF_M2TS_PES *)es)->depends_on_pid));
 				gf_m2ts_set_pes_framing((GF_M2TS_PES *)ts->ess[es->pid], GF_M2TS_PES_FRAMING_SKIP);
+				memset(&com, 0, sizeof(com));
+				com.command_type = GF_NET_CHAN_RESET;
+				com.base.on_channel = ((GF_M2TS_PES *)es)->user;
+				gf_term_on_command(((M2TSIn *)ts->user)->service, &com, GF_OK);
 				prog->pid_playing = ((GF_M2TS_PES *)es)->depends_on_pid;
 				return;
 			}
