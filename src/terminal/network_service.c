@@ -596,6 +596,9 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		com->cache_esd.is_iod_stream = (ch->odm->subscene /*&& (ch->odm->subscene->root_od==ch->odm)*/) ? 1 : 0;
 		gf_term_lock_net(term, 0);
 		return;
+	case GF_NET_CHAN_RESET:
+		gf_es_reset_buffers(ch);
+		break;
 	default:
 		return;
 	}

@@ -308,6 +308,7 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	GF_Channel *ch;
 	GF_DBUnit *AU;
 	u32 count, minDTS, i;
+	//u32 prev_ESID = 0;
 	count = gf_list_count(codec->inChannels);
 	*nextAU = NULL;
 	*activeChannel = NULL;
@@ -315,7 +316,7 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	if (!count) return;
 
 	minDTS = 0;
-
+	
 	/*browse from base to top layer*/
 	for (i=0;i<count;i++) {
 		ch = (GF_Channel*)gf_list_get(codec->inChannels, i);
@@ -335,20 +336,42 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 			continue;
 		}
 
+#if 0
+		if (ch->esd->dependsOnESID && (ch->esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
+			u32 nal_type = AU->data[4] & 0x1F;
+			if (nal_type != GF_AVC_NALU_VDRD) {
+				gf_es_drop_au(ch);
+				continue;
+			}
+		}
+#endif
 		/*aggregate all AUs with the same timestamp on the base AU and delete the upper layers)*/
 		if (! *nextAU) {
+			if (ch->esd->dependsOnESID) {
+				gf_es_drop_au(ch);
+				continue;
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
 			*nextAU = AU;
 			*activeChannel = ch;
 			minDTS = AU->DTS;
+//			prev_ESID = ch->esd->ESID;
 		} else if (AU->DTS == minDTS) {
 			GF_DBUnit *baseAU = *nextAU;
 			assert(baseAU);
+#if 0
+			if (ch->esd->dependsOnESID != prev_ESID) {
+				gf_es_drop_au(ch);
+				continue;
+			}
+#endif
 			baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
 			memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			baseAU->dataLength += AU->dataLength;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, (*activeChannel)->esd->ESID));
+//			prev_ESID = ch->esd->ESID;
 			gf_es_drop_au(ch);
+			ch->first_au_fetched = 1;
 		} else {
 			break;
 		}

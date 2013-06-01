@@ -467,6 +467,7 @@ typedef struct
 	Bool tdt_found;
 
 	u32 pid_playing;
+	Bool is_scalable;
 } GF_M2TS_Program;
 
 /*ES flags*/
