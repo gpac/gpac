@@ -3040,6 +3040,15 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 				else sc->carousel_period = mux->carousel_period_plus_one - 1;
 			}
 		}
+	} else if (desc->tag==GF_ODF_MUXINFO_TAG) {
+		GF_MuxInfo *mi = (GF_MuxInfo *)desc;
+		if (mi->file_name) {
+			char *res_name = gf_url_concatenate(parser->load->fileName, mi->file_name);
+			if (res_name) {
+				gf_free(mi->file_name);
+				mi->file_name = res_name;
+			}
+		}
 	}
 	return desc;
 }
