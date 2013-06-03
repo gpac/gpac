@@ -1093,10 +1093,11 @@ static void xmt_resolve_routes(GF_XMTParser *parser)
 			com->RouteID = xmt_get_route(parser, com->unres_name, 0);
 			if (!com->RouteID) {
 				xmt_report(parser, GF_BAD_PARAM, "Cannot resolve GF_Route DEF %s", com->unres_name);
+			} else {
+				com->unresolved = 0;
 			}
 			gf_free(com->unres_name);
 			com->unres_name = NULL;
-			com->unresolved = 0;
 			break;
 		}
 	}
@@ -1915,7 +1916,13 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		else if (!strcmp(att->name, "ES_ID")) xmt_desc_name = att->value;
 		else if (!strcmp(att->name, "OCR_ES_ID")) ocr_ref = att->value;
 		else if (!strcmp(att->name, "dependsOn_ES_ID")) dep_ref = att->value;
-		else {
+		else if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
+			char *res_name = gf_url_concatenate(parser->load->fileName, att->value);
+			e = gf_odf_set_field(desc, att->name, res_name ? res_name : att->value);
+			if (e) xmt_report(parser, e, "Warning: %s not a valid attribute for descriptor %s", att->name, name);
+			if (res_name)
+				gf_free(res_name);
+		} else {
 			e = gf_odf_set_field(desc, att->name, att->value);
 			if (e) xmt_report(parser, e, "Warning: %s not a valid attribute for descriptor %s", att->name, name);
 		}
@@ -3069,6 +3076,7 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 	}
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
+	if (e==GF_OK) e = parser->last_error;
 
 	xmt_resolve_routes(parser);
 	xmt_resolve_od_links(parser);
@@ -3087,6 +3095,7 @@ static GF_Err load_xmt_parse_string(GF_SceneLoader *load, const char *str)
 		return load_xmt_initialize(load, str);
 	}
 	e = gf_xml_sax_parse(parser->sax_parser, str);
+	if (e==GF_OK) e = parser->last_error;
 
 	xmt_resolve_routes(parser);
 	xmt_resolve_od_links(parser);

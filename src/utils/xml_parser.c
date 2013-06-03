@@ -1373,6 +1373,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	alloc_size = att_len;
 	szLine = (char *) gf_malloc(sizeof(char)*alloc_size);
 	strcpy(szLine, parser->buffer + parser->att_name_start);
+	parser->buffer[parser->elt_name_end - 1] = '"';
 	cur_line = szLine;
 	att_len = (u32) strlen(att_value);
 	state = 0;
@@ -1383,9 +1384,9 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		u8 sep_char;
 		if (!from_buffer) {
 #ifdef NO_GZIP
-			if (!feof(parser->f_in)) break;
+			if (feof(parser->f_in)) break;
 #else
-			if (!gzeof(parser->gz_in)) break;
+			if (gzeof(parser->gz_in)) break;
 #endif
 		}
 
