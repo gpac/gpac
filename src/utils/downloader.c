@@ -1768,6 +1768,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 	} else {
 		data = payload;
+		remaining = payload_size = 0;
 	}
 
 	if (data && store_in_init) {
@@ -1820,7 +1821,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in %d ms (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
     }
 
-	if (rewrite_size) {
+	if (rewrite_size && sess->chunked) {
 		//use memmove since regions overlap
 		memmove(payload + *rewrite_size, data, nbBytes);
 		*rewrite_size += nbBytes;
