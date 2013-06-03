@@ -2870,8 +2870,9 @@ attach_node:
 						gf_node_register(node, NULL);
 						gf_node_unregister(node, NULL);
 					} else {
-						gf_node_list_add_child(& gr->children, node);
-						gf_node_register(node, NULL);
+						//node has already been added to its parent with X3d parsing, because of the default container resolving
+//						gf_node_list_add_child(& gr->children, node);
+//						gf_node_register(node, NULL);
 					}
 				}
 			}
