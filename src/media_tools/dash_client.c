@@ -43,7 +43,7 @@
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*uncomment to only play the first representation set*/
-#define DEBUG_FIRST_SET_ONLY
+//#define DEBUG_FIRST_SET_ONLY
 
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
