@@ -253,7 +253,7 @@ static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			fprintf(sdump->trace, "<head>\n");
 			fprintf(sdump->trace, "<meta content=\"X3D File Converted/Dumped by GPAC Version %s\" name=\"generator\"/>\n", GPAC_FULL_VERSION);
 			fprintf(sdump->trace, "</head>\n");
-			fprintf(sdump->trace, "<Scene>\n");
+			fprintf(sdump->trace, " <Scene>\n");
 		} else {
 			fprintf(sdump->trace, "#X3D V3.0\n\n");
 		}
@@ -277,7 +277,7 @@ static void gf_dump_finalize(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 		fprintf(sdump->trace, " </Body>\n");
 		fprintf(sdump->trace, "</XMT-A>\n");
 	} else {
-		fprintf(sdump->trace, "</Scene>\n");
+		fprintf(sdump->trace, " </Scene>\n");
 		fprintf(sdump->trace, "</X3D>\n");
 	}
 }
@@ -2465,13 +2465,14 @@ static GF_Err DumpSceneReplace(GF_SceneDumper *sdump, GF_Command *com)
 			EndElementHeader(sdump, 1);
 			sdump->indent++;
 		}
-		StartElement(sdump, "Scene");
+		//scene tag is already dumped with X3D header
+		if (!sdump->X3DDump) StartElement(sdump, "Scene");
 		if (!sdump->X3DDump && com->use_names) {
 			StartAttribute(sdump, "USENAMES");
 			fprintf(sdump->trace, "%s", com->use_names ? "true" : "false");
 			EndAttribute(sdump);
 		}
-		EndElementHeader(sdump, 1);
+		if (!sdump->X3DDump) EndElementHeader(sdump, 1);
 		sdump->indent++;
 	} else {
 		if (!sdump->skip_scene_replace) {
@@ -2861,8 +2862,8 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	}
 	if (has_scene_replace && sdump->XMLDump) {
 		sdump->indent--;
-		EndElement(sdump, "Scene", 1);
 		if (!sdump->X3DDump) {
+			EndElement(sdump, "Scene", 1);
 			sdump->indent--;
 			EndElement(sdump, "Replace", 1);
 		}
