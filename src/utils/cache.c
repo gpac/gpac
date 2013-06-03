@@ -638,7 +638,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	CHECK_ENTRY;
 
 	if (!data || (!entry->writeFilePtr && !entry->mem_storage) || sess != entry->write_session) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Incorrect parameter : data=%p, writeFilePtr=%p mem_storage=%p at "__FILE__, data, entry->writeFilePtr, entry->mem_storage));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Incorrect parameter : data=%p, writeFilePtr=%p mem_storage=%p at "__FILE__"\n", data, entry->writeFilePtr, entry->mem_storage));
 		return GF_BAD_PARAM;
 	}
 		

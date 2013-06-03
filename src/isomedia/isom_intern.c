@@ -288,7 +288,8 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		}
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-//		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
+		/*remember where we left, in case we append an entire number of movie fragments*/
+		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
 #endif
 	}
 

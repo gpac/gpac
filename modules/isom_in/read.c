@@ -174,7 +174,17 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	if (!size) return;
 
 	/*service is opened, nothing to do*/
-	if (read->mov) return;
+	if (read->mov) {
+		/*end of chunk*/
+		if (read->frag_type && (param->reply==1) ) {
+			u64 bytesMissing = 0;
+			GF_Err e;
+			gf_mx_p(read->segment_mutex);
+			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing);
+			gf_mx_v(read->segment_mutex);
+		}
+		return;
+	}
 
 	/*try to open the service*/
 	local_name = (char *)gf_dm_sess_get_cache_name(read->dnload);
@@ -757,7 +767,9 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 	*is_new_data = GF_FALSE;
 	if (!ch->sample) {
 		/*get sample*/
+		gf_mx_p(read->segment_mutex);
 		isor_reader_get_sample(ch);
+		gf_mx_v(read->segment_mutex);
 		*is_new_data = ch->sample ? GF_TRUE : GF_FALSE;
 	}
 
@@ -767,7 +779,8 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 		*out_sl_hdr = ch->current_slh;
 	}
 	*out_reception_status = ch->last_state;
-	if (read->wait_for_next_frag) *out_reception_status = GF_BUFFER_TOO_SMALL;
+	if (read->wait_for_next_frag) 
+		*out_reception_status = GF_BUFFER_TOO_SMALL;
 	
 	return GF_OK;
 }

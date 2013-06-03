@@ -191,7 +191,7 @@ extern "C" {
         const char *name;
         /*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
         char *value;
-        /*response code - only valid for GF_NETIO_PARSE_REPLY*/
+        /*response code - only valid for GF_NETIO_PARSE_REPLY. Set to 1 in GF_NETIO_DATA_EXCHANGE to indicate end of chunk transfer*/
         u32 reply;
     } GF_NETIO_Parameter;
 
