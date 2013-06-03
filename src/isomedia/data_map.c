@@ -441,17 +441,23 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u6
 		if (gf_bs_seek(ptr->bs, fileOffset) != GF_OK) return 0;
 		ptr->curPos = fileOffset;
 	}
+
 	//read our data.
 	bytesRead = gf_bs_read_data(ptr->bs, buffer, bufferLength);
 	//update our cache
 	if (bytesRead == bufferLength) {
 		ptr->curPos += bytesRead;
 	} else {
-		//rewind to original (if seek fails, return 0 cause this means:
-		//1- no support for seek on the platform
-		//2- corrupted file for the OS
-		if (ptr->stream) fflush(ptr->stream);
-		gf_bs_seek(ptr->bs, ptr->curPos);
+		gf_bs_get_refreshed_size(ptr->bs);
+		gf_bs_seek(ptr->bs, fileOffset);
+		bytesRead = gf_bs_read_data(ptr->bs, buffer, bufferLength);
+		//update our cache
+		if (bytesRead == bufferLength) {
+			ptr->curPos += bytesRead;
+		} else {
+			gf_bs_seek(ptr->bs, ptr->curPos);
+			bytesRead = 0;
+		}
 	}
 	ptr->last_acces_was_read = 1;
 	return bytesRead;

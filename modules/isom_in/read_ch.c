@@ -327,13 +327,14 @@ fetch_next:
 			}
 		} else if (!ch->sample_num || (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
 			if (ch->owner->frag_type==1) {
-				if (!ch->wait_for_segment_switch) {
+				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy) {
 					ch->wait_for_segment_switch = 1;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
-				ch->last_state = GF_OK;
+//				ch->last_state = GF_OK;
+				ch->last_state = GF_BUFFER_TOO_SMALL;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
