@@ -58,6 +58,11 @@ void gf_modules_free_module(ModuleInstance *inst)
 		gf_free(inst->name);
 		inst->name = NULL;
 	}
+
+	if (inst->dir) {
+		gf_free(inst->dir);
+		inst->dir = NULL;
+	}
 	gf_free(inst);
 }
 
