@@ -73,7 +73,7 @@ typedef struct {
 	/* Video input file structure 
 	 * corresponding to the thread
 	 */
-	VideoInputFile * p_vinf;
+	VideoInputFile ** p_vinf;
 	/* handle to the thread */
 	GF_Thread * p_thread;
 

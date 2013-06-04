@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+//#define MAX_SOURCE_NUMBER 20
 #define DASHER 0
 #define FRAGMENTER 0
 //#define DEBUG 1
@@ -71,6 +72,13 @@ void optimize_seg_frag_dur(int * seg, int * frag) {
 
 	*seg -= min_rem;
 
+}
+
+Bool change_source_thread(void * p_params) {
+
+	int ret = 0;
+
+	return ret;
 }
 
 Bool send_frag_event(void * p_params) {
@@ -139,10 +147,11 @@ Bool mpd_thread(void * p_params) {
 
 		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
 		t += p_cmddata->i_ast_offset;
-		struct tm tm = *gmtime(&t);
-		sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
-				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
-				tm.tm_min, tm.tm_sec);
+		struct tm ast_time = *gmtime(&t);
+		strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%SZ", &ast_time);
+		//sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
+		//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
+		//		time.tm_min, time.tm_sec);
 		printf("StartTime: %s\n", availability_start_time);
 
 		if (p_cmddata->i_time_shift != -1) {
@@ -510,16 +519,20 @@ Bool keyboard_thread(void * p_params) {
 Bool video_decoder_thread(void * p_params) {
 
 	int ret;
+
+	int source_number = 0;
+
 	//int first_time = 1;
 	struct timeval time_start, time_end, time_wait;
 	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
 
 	CmdData * p_in_data = p_thread_params->p_in_data;
 	VideoInputData * p_vind = p_thread_params->p_vind;
-	VideoInputFile * p_vinf = p_thread_params->p_vinf;
+	VideoInputFile ** p_vinf = p_thread_params->p_vinf;
 
 	suseconds_t total_wait_time = 1000000 / p_in_data->vdata.i_framerate;
-	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
+	suseconds_t pick_packet_delay, select_delay = 0, real_wait,
+			other_delays = 1;
 
 	//printf("wait time : %f\n", total_wait_time);
 
@@ -530,13 +543,29 @@ Bool video_decoder_thread(void * p_params) {
 	int i = 0;
 #endif
 
+//	int fr = 0;
 	while (1) {
 
-		if (p_vinf->i_mode == LIVE_MEDIA) {
+//		fr++;
+//
+//		if (fr == 480) {
+//			source_number = 1;
+//		}
+//
+//		if (fr == 960) {
+//			source_number = 2;
+//		}
+//
+//		if (fr == 1200) {
+//			source_number = 0;
+//		}
+
+
+		if (p_vinf[source_number]->i_mode == LIVE_MEDIA) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(p_vinf, p_vind);
+		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number);
 
 #ifdef DASHCAST_PRINT
 		printf("Read video frame %d\r", i++);
@@ -560,7 +589,7 @@ Bool video_decoder_thread(void * p_params) {
 			break;
 		}
 
-		if (p_vinf->i_mode == LIVE_MEDIA) {
+		if (p_vinf[source_number]->i_mode == LIVE_MEDIA) {
 
 			gettimeofday(&time_end, NULL);
 
@@ -569,7 +598,8 @@ Bool video_decoder_thread(void * p_params) {
 							+ time_end.tv_usec - time_start.tv_usec;
 
 			time_wait.tv_sec = 0;
-			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
+			real_wait = total_wait_time - pick_packet_delay - select_delay
+					- other_delays;
 			time_wait.tv_usec = real_wait;
 			//printf("delay: %ld = %ld - %ld\n", time_wait.tv_usec,
 			//				total_wait_time, pick_packet_delay);
@@ -605,7 +635,8 @@ Bool audio_decoder_thread(void * p_params) {
 
 	suseconds_t total_wait_time = 1000000
 			/ (p_in_data->adata.i_samplerate / 1024);
-	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
+	suseconds_t pick_packet_delay, select_delay = 0, real_wait,
+			other_delays = 1;
 	;
 
 	//printf("wait time : %ld\n", total_wait_time);
@@ -656,7 +687,8 @@ Bool audio_decoder_thread(void * p_params) {
 							+ time_end.tv_usec - time_start.tv_usec;
 
 			time_wait.tv_sec = 0;
-			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
+			real_wait = total_wait_time - pick_packet_delay - select_delay
+					- other_delays;
 			time_wait.tv_usec = real_wait;
 
 			gettimeofday(&time_start, NULL);
@@ -681,6 +713,7 @@ Bool audio_decoder_thread(void * p_params) {
 Bool video_scaler_thread(void * p_params) {
 
 	int ret;
+
 	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
 
 	CmdData * p_in_data = p_thread_params->p_in_data;
@@ -689,6 +722,7 @@ Bool video_scaler_thread(void * p_params) {
 
 	if (!gf_list_count(p_in_data->p_video_lst))
 		return 0;
+
 
 	while (1) {
 
@@ -1091,7 +1125,7 @@ Bool audio_encoder_thread(void * p_params) {
 
 int dc_run_controler(CmdData * p_in_data) {
 
-	int i;
+	int i,j;
 
 	ThreadParam keyboard_th_params;
 	ThreadParam mpd_th_params;
@@ -1102,7 +1136,7 @@ int dc_run_controler(CmdData * p_in_data) {
 	VideoThreadParam vdecoder_th_params;
 	VideoThreadParam vencoder_th_params[gf_list_count(p_in_data->p_video_lst)];
 	VideoInputData vind;
-	VideoInputFile vinf;
+	VideoInputFile * vinf[MAX_SOURCE_NUMBER];
 	VideoScaledDataList p_vsdl;
 	VideoThreadParam * vscaler_th_params = NULL;
 
@@ -1126,6 +1160,9 @@ int dc_run_controler(CmdData * p_in_data) {
 	MessageQueue delete_seg_mq;
 	MessageQueue send_frag_mq;
 
+	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
+		vinf[i] = malloc(sizeof(VideoInputFile));
+
 	dc_message_queue_init(&mq);
 	dc_message_queue_init(&delete_seg_mq);
 	dc_message_queue_init(&send_frag_mq);
@@ -1137,20 +1174,53 @@ int dc_run_controler(CmdData * p_in_data) {
 		vscaler_th_params = malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(&vinf, &p_in_data->vdata, p_in_data->i_mode,
+		if (dc_video_decoder_open(vinf[0], &p_in_data->vdata, p_in_data->i_mode,
 				p_in_data->i_no_loop) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
 			return -1;
 		}
 
-		if (dc_video_input_data_init(&vind, vinf.i_width, vinf.i_height,
-				vinf.i_pix_fmt, p_vsdl.i_size, p_in_data->i_mode) < 0) {
+		if (dc_video_input_data_init(&vind, /*vinf[0]->i_width, vinf[0]->i_height,
+		 vinf[0]->i_pix_fmt,*/p_vsdl.i_size, p_in_data->i_mode, MAX_SOURCE_NUMBER)
+				< 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}
 
+		/* open other input videos for source switching */
+		for (i = 0; i < gf_list_count(p_in_data->p_vsrc); i++) {
+			VideoData * p_vconf = gf_list_get(p_in_data->p_vsrc, i);
+			if (dc_video_decoder_open(vinf[i + 1], p_vconf, LIVE_MEDIA, 1)
+					< 0) {
+				fprintf(stderr, "Cannot open input video.\n");
+				return -1;
+			}
+
+//			if (dc_video_input_data_init(&vind, vinf[i + 1]->i_width,
+//					vinf[i + 1]->i_height, vinf[i + 1]->i_pix_fmt, p_vsdl.i_size,
+//					p_in_data->i_mode, MAX_SOURCE_NUMBER) < 0) {
+//				fprintf(stderr, "Cannot initialize audio data.\n");
+//				return -1;
+//			}
+		}
+
+//		dc_video_input_data_set_prop(&vind, 0, vinf[1]->i_width,
+//				vinf[1]->i_height, vinf[1]->i_pix_fmt);
+
+		//int source_nb = gf_list_count(p_in_data->p_vsrc);
+		//printf("source_nb: %d \n", source_nb);
+		for (i = 0; i < gf_list_count(p_in_data->p_vsrc)+1; i++) {
+			dc_video_input_data_set_prop(&vind, i, vinf[i]->i_width,
+					vinf[i]->i_height, vinf[i]->i_pix_fmt);
+		}
+
+
 		for (i = 0; i < p_vsdl.i_size; i++) {
-			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i]);
+			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i], MAX_SOURCE_NUMBER);
+
+			for (j = 0; j < gf_list_count(p_in_data->p_vsrc)+1; j++) {
+				dc_video_scaler_data_set_prop(&vind, p_vsdl.p_vsd[i], j);
+			}
 		}
 
 		/* Initialize video decoder thread */
@@ -1297,7 +1367,7 @@ int dc_run_controler(CmdData * p_in_data) {
 		/* Create video decoder thread */
 		vdecoder_th_params.p_in_data = p_in_data;
 		vdecoder_th_params.p_vind = &vind;
-		vdecoder_th_params.p_vinf = &vinf;
+		vdecoder_th_params.p_vinf = vinf;
 		if (gf_th_run(vdecoder_th_params.p_thread, video_decoder_thread,
 				(void *) &vdecoder_th_params) != GF_OK) {
 
@@ -1443,10 +1513,15 @@ int dc_run_controler(CmdData * p_in_data) {
 	}
 
 	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
+
 		/* Destroy video input data */
 		dc_video_input_data_destroy(&vind);
-		/* Close input video */
-		dc_video_decoder_close(&vinf);
+
+		for (i = 0; i < gf_list_count(p_in_data->p_vsrc); i++) {
+			/* Close input video */
+			dc_video_decoder_close(vinf[i]);
+		}
+
 		/* Destroy video scaled data */
 		dc_video_scaler_list_destroy(&p_vsdl);
 	}
