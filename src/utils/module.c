@@ -240,6 +240,7 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 GF_EXPORT
 const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs){
 	char* directories;
+	char* tmp_dirs;
 	char * pch;
 	if (!pm) return NULL;
 	if (pm->num_dirs > 0 ){
@@ -255,7 +256,8 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 		return NULL;
 	}
 
-	pch = strtok (directories,";");
+	tmp_dirs = gf_strdup(directories);
+	pch = strtok (tmp_dirs,";");
 
 	while (pch != NULL)
 	{
@@ -268,7 +270,7 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 		pm->num_dirs++;
 		pch = strtok (NULL, ";");
 	}
-	
+	gf_free(tmp_dirs);
 	*num_dirs = pm->num_dirs;
 	return pm->dirs;
 }
