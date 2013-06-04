@@ -50,13 +50,15 @@ typedef struct
 	GF_ESD *esd;
 } HEVCDec;
 
+OpenHevc_Handle openHevcHandle;
+
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = 0;
 	ctx->state_found = GF_FALSE;
 	
-	libOpenHevcInit(ctx->nb_threads);
+	openHevcHandle = libOpenHevcInit(ctx->nb_threads);
 	ctx->is_init = GF_TRUE;
 
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -69,7 +71,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 			GF_HEVCParamArray *ar = gf_list_get(cfg->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
 				GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-				libOpenHevcDecode(sl->data, sl->size);
+				libOpenHevcDecode(openHevcHandle, sl->data, sl->size, 0);
 
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					HEVCState hevc;
@@ -120,7 +122,7 @@ static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
 	if (ctx->is_init) {
-		libOpenHevcClose();
+		libOpenHevcClose(openHevcHandle);
 		ctx->is_init = GF_FALSE;
 	}
 	ctx->width = ctx->height = ctx->out_size = 0;
@@ -177,7 +179,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 {
 	switch (capability.CapCode) {
     case GF_CODEC_WAIT_RAP:
-            libOpenHevcFlush();
+            libOpenHevcFlush(openHevcHandle);
         return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		/*todo - update temporal filtering*/
@@ -198,23 +200,22 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		u8 PaddingBits, u32 mmlevel)
 {
 	unsigned int got_pic, a_w, a_h, a_stride;
+    OpenHevc_Frame_cpy openHevcFrame;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	u8 *pY, *pU, *pV;
 
 
 	if (!inBuffer) {
-		int flushed;
-		
 		pY = outBuffer;
 		pU = outBuffer + ctx->stride * ctx->height;
 		pV = outBuffer + 5*ctx->stride * ctx->height/4;
-
-		flushed = libOpenHevcGetOutputCpy(1, pY, pU, pV);
-
-		if (flushed) {
-			*outBufferLength = ctx->out_size;
-			*outBufferLength = 0;
-		}
+	    openHevcFrame.pvY = (void*) pY;
+	    openHevcFrame.pvU = (void*) pU;
+	    openHevcFrame.pvV = (void*) pV;
+	    *outBufferLength = 0;
+	    if (libOpenHevcGetOutputCpy(openHevcHandle, 1, &openHevcFrame)) {
+	        *outBufferLength = ctx->out_size;
+	    }
  		return GF_OK;
 	}
 
@@ -268,7 +269,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 
 			if (ctx->state_found) {
 				if (!got_pic) {
-					got_pic = libOpenHevcDecode(ptr, nalu_size);
+					got_pic = libOpenHevcDecode(openHevcHandle, ptr, nalu_size, 0);
 				} else {
 //					libOpenHevcDecode(ptr, nalu_size);
 //					printf("%d bytes left over from frame - nal type %d\n", nalu_size, (ptr[0] & 0x7E) >> 1 );
@@ -291,10 +292,13 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 
-	a_w = a_h = a_stride = 0;
-	libOpenHevcGetPictureSize(&a_w, &a_h, &a_stride);
+	libOpenHevcGetPictureInfo(openHevcHandle, &openHevcFrame.frameInfo);
 
-	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)) {
+    a_w      = openHevcFrame.frameInfo.nWidth;
+    a_h      = openHevcFrame.frameInfo.nHeight;
+    a_stride = openHevcFrame.frameInfo.nYPitch;
+
+    if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)) {
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
@@ -304,16 +308,18 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
 	}
-	*outBufferLength = 0;
 
-	pY = outBuffer;
-	pU = outBuffer + ctx->stride * ctx->height;
-	pV = outBuffer + 5*ctx->stride * ctx->height/4;
-
-	if (libOpenHevcGetOutputCpy(1, pY, pU, pV)) {
-		*outBufferLength = ctx->out_size;
-	}
-
+    pY = outBuffer;
+    pU = outBuffer + ctx->stride * ctx->height;
+    pV = outBuffer + 5*ctx->stride * ctx->height/4;
+    openHevcFrame.pvY = (void*) pY;
+    openHevcFrame.pvU = (void*) pU;
+    openHevcFrame.pvV = (void*) pV;
+    *outBufferLength = 0;
+    if (libOpenHevcGetOutputCpy(openHevcHandle, 1, &openHevcFrame)) {
+        *outBufferLength = ctx->out_size;
+    }
+    
 	return GF_OK;
 }
 
@@ -333,7 +339,7 @@ static u32 HEVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 
 static const char *HEVC_GetCodecName(GF_BaseDecoder *dec)
 {
-	return libOpenHevcVersion();
+	return libOpenHevcVersion(openHevcHandle);
 }
 
 GF_BaseDecoder *NewHEVCDec()
