@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/openhevc_dec
 
-CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include" $(OHEVC_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
