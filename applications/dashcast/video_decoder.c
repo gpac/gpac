@@ -133,7 +133,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 	return 0;
 }
 
-int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd) {
+int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int source_number) {
 
 #ifdef DASHCAST_DEBUG_TIME_
 	struct timeval start, end;
@@ -179,6 +179,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd) {
 			dc_producer_unlock_previous(&p_vd->pro, &p_vd->p_cb);
 			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro, &p_vd->p_cb);
 
+			p_vdn->source_number = source_number;
 			/* Flush decoder */
 			packet.data = NULL;
 			packet.size = 0;
@@ -217,6 +218,8 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd) {
 			}
 
 			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro, &p_vd->p_cb);
+
+			p_vdn->source_number = source_number;
 
 			/*  Set video frame to default */
 			avcodec_get_frame_defaults(p_vdn->p_vframe);

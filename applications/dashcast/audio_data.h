@@ -36,6 +36,8 @@
 #include "libav/include/libavutil/mem.h"
 #include "circular_buffer.h"
 
+#include <time.h>
+
 
 /*
  * AudioInputData is designed to keep the data
@@ -84,7 +86,14 @@ typedef struct {
 	/* audio codec */
 	char psz_codec[256];
 
+	/* used for source switching */
+	char psz_source_id[256];
+	struct tm start_time;
+	struct tm end_time;
+
 } AudioData;
+
+
 
 /*
  * Each node in a circular buffer is a pointer.

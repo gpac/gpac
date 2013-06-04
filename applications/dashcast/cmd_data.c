@@ -135,11 +135,95 @@ int dc_read_configuration(CmdData * p_cmdd) {
 	return 0;
 }
 
+int dc_read_switch_config(CmdData * p_cmdd) {
+
+	int i;
+
+	char start_time[4096], end_time[4096];
+	GF_Config * p_conf = p_cmdd->p_switch_conf;
+
+	int i_sec_count = gf_cfg_get_section_count(p_conf);
+
+	if (i_sec_count == 0) {
+		return 0;
+	}
+
+	for (i = 0; i < i_sec_count; i++) {
+
+		const char * psz_sec_name = gf_cfg_get_section_name(p_conf, i);
+
+		const char * psz_type = gf_cfg_get_key(p_conf, psz_sec_name, "type");
+
+		if (strcmp(psz_type, "video") == 0) {
+
+			VideoData * p_vconf = malloc(sizeof(VideoData));
+			strcpy(p_vconf->psz_source_id, psz_sec_name);
+			strcpy(p_vconf->psz_name,
+					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
+
+			strcpy(start_time, gf_cfg_get_key(p_conf, psz_sec_name, "start"));
+			strptime(start_time, "%Y-%m-%d %H:%M:%S", &p_vconf->start_time);
+
+			strcpy(end_time, gf_cfg_get_key(p_conf, psz_sec_name, "end"));
+			strptime(end_time, "%Y-%m-%d %H:%M:%S", &p_vconf->end_time);
+
+			gf_list_add(p_cmdd->p_vsrc, (void *) p_vconf);
+
+		} else if (strcmp(psz_type, "audio") == 0) {
+
+			AudioData * p_aconf = malloc(sizeof(AudioData));
+			strcpy(p_aconf->psz_source_id, psz_sec_name);
+			strcpy(p_aconf->psz_name,
+					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
+
+			strcpy(start_time, gf_cfg_get_key(p_conf, psz_sec_name, "start"));
+			strptime(start_time, "%Y-%m-%d %H:%M:%S", &p_aconf->start_time);
+
+			strcpy(end_time, gf_cfg_get_key(p_conf, psz_sec_name, "end"));
+			strptime(end_time, "%Y-%m-%d %H:%M:%S", &p_aconf->end_time);
+
+			gf_list_add(p_cmdd->p_asrc, (void *) p_aconf);
+
+		} else {
+			printf(
+					"Switch source configuration file: type %s is not supported.\n",
+					psz_type);
+		}
+
+	}
+
+	printf("\33[34m\33[1m");
+	printf("Sources:\n");
+	for (i = 0; i < gf_list_count(p_cmdd->p_vsrc); i++) {
+		VideoData * p_vconf = gf_list_get(p_cmdd->p_vsrc, i);
+		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", &p_vconf->start_time);
+		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", &p_vconf->end_time);
+		printf("    id:%s\tsource:%s\tstart:%s\tend:%s\n", p_vconf->psz_source_id,
+				p_vconf->psz_name, start_time, end_time);
+	}
+
+	for (i = 0; i < gf_list_count(p_cmdd->p_asrc); i++) {
+		AudioData * p_aconf = gf_list_get(p_cmdd->p_asrc, i);
+		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", &p_aconf->start_time);
+		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", &p_aconf->end_time);
+		printf("    id:%s\tsource:%s\tstart:%s\tend:%s\n", p_aconf->psz_source_id,
+				p_aconf->psz_name, start_time, end_time);
+
+	}
+	printf("\33[0m");
+	fflush(stdout);
+
+	return 0;
+}
+
 void dc_cmd_data_init(CmdData * p_cmdd) {
+
 
 	dc_audio_data_set_default(&p_cmdd->adata);
 	dc_video_data_set_default(&p_cmdd->vdata);
+
 	p_cmdd->p_conf = NULL;
+	p_cmdd->p_switch_conf = NULL;
 	strcpy(p_cmdd->psz_mpd, "");
 	strcpy(p_cmdd->psz_out, "");
 	p_cmdd->i_seg_marker = 0;
@@ -155,6 +239,8 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_gdr = 0;
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
+	p_cmdd->p_asrc = gf_list_new();
+	p_cmdd->p_vsrc = gf_list_new();
 
 }
 
@@ -162,7 +248,10 @@ void dc_cmd_data_destroy(CmdData * p_cmdd) {
 
 	gf_list_del(p_cmdd->p_audio_lst);
 	gf_list_del(p_cmdd->p_video_lst);
+	gf_list_del(p_cmdd->p_asrc);
+	gf_list_del(p_cmdd->p_vsrc);
 	gf_cfg_del(p_cmdd->p_conf);
+	gf_cfg_del(p_cmdd->p_switch_conf);
 
 }
 
@@ -340,6 +429,18 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 			i++;
 
+		} else if (strcmp(p_argv[i], "-switch-source") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+
+			p_cmdd->p_switch_conf = gf_cfg_force_new(NULL, p_argv[i]);
+
+			i++;
+
 		} else if (strcmp(p_argv[i], "-out") == 0) {
 			i++;
 			if (i >= i_argc) {
@@ -461,8 +562,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			}
 
 			if (p_cmdd->i_time_shift != 0) {
-				printf(
-						"TimeShiftBufferDepth has been already specified.\n");
+				printf("TimeShiftBufferDepth has been already specified.\n");
 				printf("%s", psz_command_usage);
 				return -1;
 			}
@@ -503,8 +603,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		} else if (strcmp(p_argv[i], "-gdr") == 0) {
 			p_cmdd->i_gdr = 1;
 			i++;
-		}
-		else {
+		} else {
 			printf("%s", psz_command_error);
 			printf("%s", psz_command_usage);
 			return -1;
@@ -545,12 +644,12 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		p_cmdd->i_ast_offset = 1;
 	}
 
-	if(p_cmdd->i_mode == ON_DEMAND)
+	if (p_cmdd->i_mode == ON_DEMAND)
 		p_cmdd->i_time_shift = -1;
-		else {
-			if (p_cmdd->i_time_shift == 0) {
-				p_cmdd->i_time_shift = 10;
-			}
+	else {
+		if (p_cmdd->i_time_shift == 0) {
+			p_cmdd->i_time_shift = 10;
+		}
 	}
 
 	if (p_cmdd->f_minbuftime == -1) {
@@ -585,7 +684,13 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		p_cmdd->p_conf = gf_cfg_force_new(NULL, "dashcast.conf");
 	}
 
+	if (!p_cmdd->p_switch_conf) {
+		p_cmdd->p_switch_conf = gf_cfg_force_new(NULL, "switch.conf");
+	}
+
 	dc_read_configuration(p_cmdd);
+
+	dc_read_switch_config(p_cmdd);
 
 	return 0;
 }

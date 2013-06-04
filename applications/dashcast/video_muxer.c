@@ -38,7 +38,7 @@ int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 	u32 di;
 	u32 track;
 
-	// TODO: For the moment it is fixed
+	// T0D0: For the moment it is fixed
 	//u32 sample_dur = p_voutf->p_codec_ctx->time_base.den;
 
 	avccfg = gf_odf_avc_cfg_new();

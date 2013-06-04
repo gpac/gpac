@@ -32,6 +32,8 @@
 
 #include "circular_buffer.h"
 
+#include <time.h>
+
 #define VIDEO_CB_SIZE 3
 
 /*
@@ -40,6 +42,7 @@
  * configuration file.
  */
 typedef struct {
+
 	/* video file name */
 	char psz_name[256];
 	/* video format */
@@ -57,14 +60,32 @@ typedef struct {
 	/* video codec */
 	char psz_codec[256];
 
+	/* used for source switching */
+	char psz_source_id[256];
+	struct tm start_time;
+	struct tm end_time;
+
 } VideoData;
 
+
+typedef struct {
+
+	/*
+	 * Width, height and pixel format
+	 * of the input video
+	 */
+	int i_width;
+	int i_height;
+	int i_pix_fmt;
+
+} VideoInputProp;
 
 /*
  * VideoInputData is designed to keep the data
  * of input video in a circular buffer.
  * The circular buffer has its own mechanism for synchronization.
  */
+
 
 typedef struct {
 	/*
@@ -77,13 +98,16 @@ typedef struct {
 	 * which is in this variable.
 	 */
 	Producer pro;
+
+	VideoInputProp * p_vprop;
+
 	/*
 	 * Width, height and pixel format
 	 * of the input video
 	 */
-	int i_width;
-	int i_height;
-	int i_pix_fmt;
+	//int i_width;
+	//int i_height;
+	//int i_pix_fmt;
 
 } VideoInputData;
 
@@ -97,6 +121,8 @@ typedef struct {
 typedef struct {
 
 	AVFrame * p_vframe;
+
+	int source_number;
 
 } VideoDataNode;
 
@@ -117,7 +143,9 @@ void dc_video_data_set_default(VideoData * vdata);
  *
  * @note Must use dc_video_data_destroy to free memory.
  */
-int dc_video_input_data_init(VideoInputData * vind, int width, int height, int pixfmt, int maxcon, int mode);
+int dc_video_input_data_init(VideoInputData * vind,/* int width, int height, int pix_fmt,*/ int maxcon, int mode, int maxsource);
+
+void dc_video_input_data_set_prop(VideoInputData * vind, int index, int width, int height, int pix_fmt);
 /*
  * Destroy a VideoInputData
  *

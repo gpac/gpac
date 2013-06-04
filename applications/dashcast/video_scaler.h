@@ -30,6 +30,15 @@
 #include <gpac/list.h>
 
 #include "video_data.h"
+
+typedef struct {
+	/* scaler of the libav */
+	struct SwsContext * p_sws_ctx;
+	/* width, height, and the pixel format of the scaled video */
+	int i_in_width;
+	int i_in_height;
+	int i_in_pix_fmt;
+} VideoScaledProp;
 /*
  * VideoScaledData keeps a circular buffer
  * of video frame with a defined resolution.
@@ -37,12 +46,19 @@
  */
 typedef struct {
 
+	VideoScaledProp * p_vsprop;
+
+	int i_out_width;
+	int i_out_height;
+	int i_out_pix_fmt;
+
 	/* scaler of the libav */
-	struct SwsContext * p_sws_ctx;
+	//struct SwsContext * p_sws_ctx;
 	/* width, height, and the pixel format of the scaled video */
-	int i_width;
-	int i_height;
-	int i_pix_fmt;
+	//int i_width;
+	//int i_height;
+	//int i_pix_fmt;
+
 	/* circular buffer containing the scaled video frames */
 	CircularBuffer p_cb;
 	/* Scaler is a consumer and also producer.
@@ -59,6 +75,7 @@ typedef struct {
 	 * (Which are the encoders who are using this resolution)
 	 */
 	int i_maxcon;
+	int i_maxsource;
 
 } VideoScaledData;
 
@@ -122,7 +139,9 @@ void dc_video_scaler_end_signal(VideoScaledData * vsd);
  *
  * @note Must use dc_video_scaler_data_destroy to free memory.
  */
-int dc_video_scaler_data_init(VideoInputData * vind,	VideoScaledData * vsd);
+int dc_video_scaler_data_init(VideoInputData * vind, VideoScaledData * vsd, int maxsource);
+
+int dc_video_scaler_data_set_prop(VideoInputData * vind, VideoScaledData * vsd, int index);
 /*
  * Get a frame from the circular buffer on the input video,
  * scale it and put the result on the circular buffer of the

@@ -81,7 +81,7 @@ int dc_video_decoder_open(VideoInputFile * vinf, VideoData *vdata, int mode, int
  * @return 0 on success, -1 on failure, -2 on EOF (end of the file)
  *
  */
-int dc_video_decoder_read(VideoInputFile * vinf, VideoInputData * vind);
+int dc_video_decoder_read(VideoInputFile * vinf, VideoInputData * vind, int source_number);
 /*
  * Close the input video
  *

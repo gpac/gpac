@@ -45,16 +45,18 @@ void dc_video_input_data_end_signal(VideoInputData * p_vconv) {
 
 }
 
-int dc_video_input_data_init(VideoInputData * p_vin_data,
-		int i_width, int i_height, int i_pix_fmt, int i_con_nb, int mode) {
+int dc_video_input_data_init(VideoInputData * p_vin_data, /*int i_width, int i_height, int i_pix_fmt*/
+		int i_con_nb, int mode, int max_source) {
 
 	int i;
 
 	dc_producer_init(&p_vin_data->pro, VIDEO_CB_SIZE, "video decoder");
 
-	p_vin_data->i_width = i_width;
-	p_vin_data->i_height = i_height;
-	p_vin_data->i_pix_fmt = i_pix_fmt;
+	//p_vin_data->i_width = i_width;
+	//p_vin_data->i_height = i_height;
+	//p_vin_data->i_pix_fmt = i_pix_fmt;
+
+	p_vin_data->p_vprop = malloc(max_source * sizeof(VideoInputProp));
 
 	dc_circular_buffer_create(&p_vin_data->p_cb, VIDEO_CB_SIZE, mode,
 				i_con_nb);
@@ -66,6 +68,13 @@ int dc_video_input_data_init(VideoInputData * p_vin_data,
 	}
 
 	return 0;
+}
+
+void dc_video_input_data_set_prop(VideoInputData * p_vind, int index, int width, int height, int pix_fmt) {
+
+	p_vind->p_vprop[index].i_width = width;
+	p_vind->p_vprop[index].i_height = height;
+	p_vind->p_vprop[index].i_pix_fmt = pix_fmt;
 }
 
 

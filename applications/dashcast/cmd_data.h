@@ -26,15 +26,19 @@
 #ifndef CMD_DATA_H_
 #define CMD_DATA_H_
 
+#define MAX_SOURCE_NUMBER 20
+
+#define _XOPEN_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <gpac/config_file.h>
 #include <gpac/list.h>
 #include "audio_data.h"
 #include "video_data.h"
-
 
 /*
  * This structure corresponds to
@@ -47,6 +51,8 @@ typedef struct  {
 	AudioData adata;
 	/* Configuration file */
 	GF_Config * p_conf;
+	/* Switch source configuration file */
+	GF_Config * p_switch_conf;
 	/* MPD file */
 	char psz_mpd[GF_MAX_PATH];
 	/* segment duration */
@@ -60,6 +66,10 @@ typedef struct  {
 	/* List of entries for audio in configuration file */
 	GF_List * p_audio_lst;
 	/* Indicates that the system is live */
+	/* List of video input sources */
+	GF_List * p_vsrc;
+	/* List of audio input sources */
+	GF_List * p_asrc;
 	//int i_live;
 	/* Indicates that the system is live from a media input */
 	//int i_live_media;
@@ -81,6 +91,8 @@ typedef struct  {
 	float f_minbuftime;
 	/* output directory name */
 	char psz_out[GF_MAX_PATH];
+	/* switch source configuration file */
+	//char psz_switch[GF_MAX_PATH];
 
 } CmdData;
 /*
