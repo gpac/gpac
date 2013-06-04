@@ -178,7 +178,6 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		/*end of chunk*/
 		if (read->frag_type && (param->reply==1) ) {
 			u64 bytesMissing = 0;
-			GF_Err e;
 			gf_mx_p(read->segment_mutex);
 			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing);
 			gf_mx_v(read->segment_mutex);
