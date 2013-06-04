@@ -1839,7 +1839,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 GF_EXPORT
 GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
 {
-	u32 size;
+    u32 size;
     GF_Err e;
     if (/*sess->cache || */ !buffer || !buffer_size) return GF_BAD_PARAM;
     if (sess->th) return GF_BAD_PARAM;
@@ -1876,9 +1876,9 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 
     e = gf_dm_read_data(sess, buffer, buffer_size, read_size);
     if (e) return e;
-	size = *read_size;
-	*read_size = 0;
-    gf_dm_data_received(sess, buffer, *read_size, 0, read_size);
+    size = *read_size;
+    *read_size = 0;
+    gf_dm_data_received(sess, buffer, size, 0, read_size);
     return GF_OK;
 }
 
