@@ -1773,7 +1773,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 
 	if (data && store_in_init) {
 		sess->init_data = (char *) gf_realloc(sess->init_data , sizeof(char) * (sess->init_data_size + nbBytes) );
-		memcpy(sess->init_data+sess->init_data_size, payload, nbBytes);
+		memcpy(sess->init_data+sess->init_data_size, data, nbBytes);
 		sess->init_data_size += nbBytes;
 	}
 
@@ -1823,7 +1823,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 
 	if (rewrite_size && sess->chunked) {
 		//use memmove since regions overlap
-		memmove(payload + *rewrite_size, data, nbBytes);
+		memmove(data + *rewrite_size, data, nbBytes);
 		*rewrite_size += nbBytes;
 	}
 
