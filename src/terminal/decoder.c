@@ -308,7 +308,6 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	GF_Channel *ch;
 	GF_DBUnit *AU;
 	u32 count, minDTS, i;
-	//u32 prev_ESID = 0;
 	count = gf_list_count(codec->inChannels);
 	*nextAU = NULL;
 	*activeChannel = NULL;
@@ -336,15 +335,6 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 			continue;
 		}
 
-#if 0
-		if (ch->esd->dependsOnESID && (ch->esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
-			u32 nal_type = AU->data[4] & 0x1F;
-			if (nal_type != GF_AVC_NALU_VDRD) {
-				gf_es_drop_au(ch);
-				continue;
-			}
-		}
-#endif
 		/*aggregate all AUs with the same timestamp on the base AU and delete the upper layers)*/
 		if (! *nextAU) {
 			if (ch->esd->dependsOnESID) {
@@ -355,21 +345,14 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 			*nextAU = AU;
 			*activeChannel = ch;
 			minDTS = AU->DTS;
-//			prev_ESID = ch->esd->ESID;
 		} else if (AU->DTS == minDTS) {
 			GF_DBUnit *baseAU = *nextAU;
 			assert(baseAU);
-#if 0
-			if (ch->esd->dependsOnESID != prev_ESID) {
-				gf_es_drop_au(ch);
-				continue;
-			}
-#endif
+
 			baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
 			memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			baseAU->dataLength += AU->dataLength;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, (*activeChannel)->esd->ESID));
-//			prev_ESID = ch->esd->ESID;
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
 		} else {
@@ -706,7 +689,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 }
 
 
-static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
+GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 {
 	if (!dec || !dec->CB) return GF_BAD_PARAM;
 
@@ -816,12 +799,8 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	}
 	/*we are still flushing our CB - keep the current pending AU and wait for CB resize*/
 	if (codec->force_cb_resize) {
-		if (codec->CB->UnitCount>1) {
-			return GF_OK;
-		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
-		ResizeCompositionBuffer(codec, codec->force_cb_resize);
-		codec->force_cb_resize=0;
+		/*we cannot destroy the CB here, as we don't know who is using its output*/
+		return GF_OK;
 	}
 
 	/*image codecs*/
@@ -936,14 +915,14 @@ scalable_retry:
 			/*release but no dispatch*/
 			UnlockCompositionUnit(codec, CU, 0);
 
-			/*if we have pending media do wait! - this shoud be fixed by avoiding to destroy the CB ... */
-			if (codec->CB->UnitCount>1) {
+			/*if we have pending media, wait untill CB is completely flushed by the compositor - this shoud be fixed by avoiding to destroy the CB ... */
+			if (codec->CB->LastRenderedTS) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d: Resize output buffer requested\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID));
 				codec->force_cb_resize = unit_size;
 				return GF_OK;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->CB->UnitSize, unit_size));
-			ResizeCompositionBuffer(codec, unit_size);
+			gf_codec_resize_composition_buffer(codec, unit_size);
 			continue;
 
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/

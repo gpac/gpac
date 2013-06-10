@@ -126,6 +126,7 @@ static void check_segment_switch(ISOMReader *read)
 					/*no need to rewrite upcoming SPS/PPS into the samples*/
 					gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_DEFAULT);
 				}
+				ch->last_state = GF_OK;
 			}
 		}
 		read->wait_for_next_frag = GF_FALSE;
@@ -134,6 +135,7 @@ static void check_segment_switch(ISOMReader *read)
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
 	} else if (e==GF_BUFFER_TOO_SMALL){
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
 		read->wait_for_next_frag = GF_TRUE;
 	} else {
 		/*consider we are done*/

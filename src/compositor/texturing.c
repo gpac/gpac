@@ -162,6 +162,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
+	Bool needs_reload = 0;
 	u32 size, ts;
 
 	/*already refreshed*/
@@ -177,11 +178,23 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	/*check init flag*/
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
+		needs_reload = 1;
+		txh->data = NULL;
+		if (txh->tx_io) {
+			gf_sc_texture_release(txh);
+		}
+	}
+	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size);
+
+	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
+		needs_reload = 1;
+	}
+
+	if (needs_reload) {
 		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
 		if (txh->tx_io) {
 			gf_sc_texture_release(txh);
-			txh->data = NULL;
 			txh->needs_refresh = 1;
 		}
 		if (gf_mo_is_private_media(txh->stream)) {
@@ -189,7 +202,6 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_node_dirty_set(txh->owner, 0, 0);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size);
 
 	/*if no frame or muted don't draw*/
 	if (!txh->data || !size) {

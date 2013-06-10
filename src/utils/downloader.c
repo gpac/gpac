@@ -56,7 +56,7 @@
 #define SESSION_RETRY_COUNT	20
 
 #define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_FULL_VERSION
-#define GF_DOWNLOAD_BUFFER_SIZE		8193
+#define GF_DOWNLOAD_BUFFER_SIZE		8192
 #define GF_WAIT_REPLY_SLEEP	20
 
 
@@ -2229,7 +2229,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
             }
         }
 #endif
-        e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE-1, &size);
+        e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
         if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
 			if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && !sess->chunked && (gf_sys_clock() - sess->start_time > 5000))) {
                 sess->total_size = sess->bytes_done;
@@ -2299,7 +2299,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     new_location = NULL;
     sess->use_cache_file = 1;
     while (1) {
-        e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - 1 - bytesRead, &res);
+        e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
         switch (e) {
         case GF_IP_NETWORK_EMPTY:
             if (!bytesRead) return GF_OK;
@@ -2785,7 +2785,7 @@ exit:
  */
 void http_do_requests(GF_DownloadSession *sess)
 {
-    char sHTTP[GF_DOWNLOAD_BUFFER_SIZE];
+    char sHTTP[GF_DOWNLOAD_BUFFER_SIZE+1];
 
 	if (sess->reused_cache_entry) {
 		if (!gf_cache_is_in_progress(sess->cache_entry)) {
@@ -3020,7 +3020,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
         }
         /* Now, we copy ! */
         {
-            char copyBuff[GF_DOWNLOAD_BUFFER_SIZE];
+            char copyBuff[GF_DOWNLOAD_BUFFER_SIZE+1];
             s64 read, write, total;
             total = endOffset - startOffset;
             read = gf_f64_seek(fr, startOffset, SEEK_SET);

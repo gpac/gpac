@@ -117,14 +117,14 @@ typedef enum
 
 /*create a new DASH client:
 	@dash_io: DASH callbacks to the user
-	@max_cache_duration_sec: maximum duration in seconds for the cached media
+	@max_cache_duration: maximum duration in milliseconds for the cached media. If less than mpd@minBufferTime, mpd@minBufferTime is used
 	@auto_switch_count: forces representation switching every auto_switch_count segments
 	@keep_files: do not delete files from the cache
 	@disable_switching: turn off bandwidth switching algorithm
 	@first_select_mode: indicates which representation to select upon startup
 */
 GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, 
-						   u32 max_cache_duration_sec, 
+						   u32 max_cache_duration, 
 						   u32 auto_switch_count, 
 						   Bool keep_files, 
 						   Bool disable_switching, 
