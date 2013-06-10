@@ -332,11 +332,11 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	if ((curMaxDqId != ctx->MaxDqId) || (pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[SVC Decoder] Resizing from %dx%d to %dx%d\n", ctx->width, ctx->height, pic.Width, pic.Height ));
 		ctx->width = pic.Width;
 		ctx->stride = pic.Width + 32;
 		ctx->height = pic.Height;
 		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-		printf("resizing\n");
 		/*always force layer resize*/
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;

@@ -716,9 +716,6 @@ Specifies the DVB channels configuration file as produced by dvbtools' scan util
 <a name="DASH"></a>
 <span style="text-decoration: underline;"><b>Section "DASH"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>The "DASH" section of the config file holds all configuration options for DASH or HLS/M3U8 playback.</p>
-<b>MaxCacheDuration</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies minimum cache duration in seconds. Default is 30 sec</.p>
 <b>KeepFiles</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Specifies whether downloaded files should not be deleted.</p>
@@ -730,7 +727,7 @@ For debug purposes, instructs the player to switch representation every N segmen
 Disables automatic adaptation logic. Default is no</p>
 <b>MemoryStorage</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
-Files are only stored in memory and destroyed after playback, no disk IO is used. Default is no</p>
+Files are only stored in memory and destroyed after playback, no disk IO is used. Default is yes</p>
 <b>UseMaxResolution</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Forces the player to set the output video resolution to the max resolution available instead of resizing the window. Default is yes</p>

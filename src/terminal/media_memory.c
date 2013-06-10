@@ -613,6 +613,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		}
 		if (Status == CB_STOP) {
 			gf_cm_reset(cb);
+			cb->LastRenderedTS = 0;
 		}
 		cb->Status = Status;
 	}

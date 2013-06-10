@@ -510,9 +510,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	mpdin->dash_io.get_total_size = mpdin_dash_io_get_total_size;
 	mpdin->dash_io.on_dash_event = mpdin_dash_io_on_dash_event;
 
-	max_cache_duration = 30;
-	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MaxCacheDuration");
-    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MaxCacheDuration", "30");
+	max_cache_duration = 0;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "BufferLength");
     if (opt) max_cache_duration = atoi(opt);
 
     auto_switch_count = 0;

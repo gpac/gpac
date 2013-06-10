@@ -304,7 +304,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 		ce = (CodecEntry*)gf_list_get(term->codecs, term->last_codec);
 		if (!ce) break;
 
-		if (!(ce->flags & GF_MM_CE_RUNNING) || (ce->flags & GF_MM_CE_THREADED) ) {
+		if (!(ce->flags & GF_MM_CE_RUNNING) || (ce->flags & GF_MM_CE_THREADED) || ce->dec->force_cb_resize) {
 			remain--;
 			if (!remain) break;
 			term->last_codec = (term->last_codec + 1) % count;
@@ -398,10 +398,12 @@ u32 RunSingleDec(void *ptr)
 
 	while (ce->flags & GF_MM_CE_RUNNING) {
 		time_left = gf_sys_clock();
-		gf_mx_p(ce->mx);
-		e = gf_codec_process(ce->dec, ce->dec->odm->term->frame_duration);
-		if (e) gf_term_message(ce->dec->odm->term, ce->dec->odm->net_service->url, "Decoding Error", e);
-		gf_mx_v(ce->mx);
+		if (!ce->dec->force_cb_resize) {
+			gf_mx_p(ce->mx);
+			e = gf_codec_process(ce->dec, ce->dec->odm->term->frame_duration);
+			if (e) gf_term_message(ce->dec->odm->term, ce->dec->odm->net_service->url, "Decoding Error", e);
+			gf_mx_v(ce->mx);
+		}
 		time_left = gf_sys_clock() - time_left;
 
 

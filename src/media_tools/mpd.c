@@ -99,7 +99,7 @@ static u64 gf_mpd_parse_date(char *attr)
 {
 	Bool ok = 0;
 	Bool neg_time_zone = 0;
-	u32 year, month, day, h, m;
+	u32 year, month, day, h, m, ms;
 	s32 oh, om;
 	Float s;
 	u64 res;
@@ -180,7 +180,9 @@ static u64 gf_mpd_parse_date(char *attr)
 		if (neg_time_zone) diff = -diff;
 		res = res + diff;
 	}
-	return res;
+	res *= 1000;
+	ms = (s - (u32)s) * 1000;
+	return res + ms;
 }
 
 static u32 gf_mpd_parse_duration(char *duration) {

@@ -2318,7 +2318,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	/*not threaded, let the owner decide*/
-	if (compositor->video_regulation) return;
+	if (compositor->video_regulation) {
+		/*fixme - we need to know exactly how long to sleep / yield until next frame is due*/
+		if (!compositor->no_regulation) gf_sleep(1);
+		return;
+	}
 
 	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {

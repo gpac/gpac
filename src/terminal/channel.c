@@ -38,7 +38,7 @@ static void ch_buffer_off(GF_Channel *ch)
 	if (ch->BufferOn) {
 		ch->BufferOn = 0;
 		gf_clock_buffer_off(ch->clock);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
 	}
 }
 
@@ -53,7 +53,7 @@ static void ch_buffer_on(GF_Channel *ch)
 	if (!ch->BufferOn) {
 		ch->BufferOn = 1;
 		gf_clock_buffer_on(ch->clock);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 	}
 }
 
@@ -1341,8 +1341,14 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		return NULL;
 	case GF_BUFFER_TOO_SMALL:
 		if (ch->MinBuffer) {
-			gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
-			ch_buffer_on(ch);
+			//if we have a composition buffer, only trigger buffering when no more data is available in the CB
+			if (ch->odm->codec && ch->odm->codec->CB && ch->odm->codec->CB->UnitCount<=1) {
+				gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
+				ch_buffer_on(ch);
+			} else if (!ch->odm->codec || !ch->odm->codec->CB) {
+				gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
+				ch_buffer_on(ch);
+			}
 		}
 		return NULL;
 	case GF_OK:
