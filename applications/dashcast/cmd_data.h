@@ -78,7 +78,7 @@ typedef struct  {
 	int i_mode;
 	/* Does not loop on input */
 	int i_no_loop;
-	/* MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay */
+	/* MPD AvailabilityStartTime offset in milliseconds. Default is 1000 milliseconds delay */
 	int i_ast_offset;
 	/* MPD time shift buffer depth in seconds */
 	int i_time_shift;

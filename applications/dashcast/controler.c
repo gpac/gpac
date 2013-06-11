@@ -74,6 +74,23 @@ void optimize_seg_frag_dur(int * seg, int * frag) {
 
 }
 
+static u64 dc_get_utc_clock()
+{
+	u64 current_time;
+	Double msec;
+	u32 sec, frac;
+
+	gf_net_get_ntp(&sec, &frac);
+
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
+
+	current_time *= 1000;
+	msec = frac*1000.0;
+	msec /= 0xFFFFFFFF;
+	current_time += (u64) msec;
+	return current_time;
+}
+
 Bool change_source_thread(void * p_params) {
 
 	int ret = 0;
@@ -136,19 +153,27 @@ Bool mpd_thread(void * p_params) {
 	if (p_cmddata->i_mode == LIVE_CAMERA || p_cmddata->i_mode == LIVE_MEDIA) {
 
 		time_t t;
+		int ms;
+		u64 time = 0;
 
 		if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-			dc_message_queue_get(p_mq, &t);
+			dc_message_queue_get(p_mq, &time);
 		}
 
 		if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-			dc_message_queue_get(p_mq, &t);
+			dc_message_queue_get(p_mq, &time);
 		}
 
+		time += p_cmddata->i_ast_offset;
+
+		t = time / 1000;
+		ms = time % 1000;
+
 		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
-		t += p_cmddata->i_ast_offset;
+		//t += p_cmddata->i_ast_offset;
 		struct tm ast_time = *gmtime(&t);
-		strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%SZ", &ast_time);
+		strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
+		sprintf(availability_start_time,"%s.%dZ", availability_start_time, ms);
 		//sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
 		//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
 		//		time.tm_min, time.tm_sec);
@@ -862,7 +887,8 @@ Bool video_encoder_thread(void * p_params) {
 			if (p_in_data->i_mode == LIVE_MEDIA
 					|| p_in_data->i_mode == LIVE_CAMERA) {
 				if (p_thread_params->video_conf_idx == 0) {
-					time_t t = time(NULL);
+					u64 t = dc_get_utc_clock();
+					//time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
 				}
 			}
@@ -1064,7 +1090,8 @@ Bool audio_encoder_thread(void * p_params) {
 			if (p_in_data->i_mode == LIVE_CAMERA
 					|| p_in_data->i_mode == LIVE_MEDIA) {
 				if (p_thread_params->audio_conf_idx == 0) {
-					time_t t = time(NULL);
+					u64 t = dc_get_utc_clock();
+					//time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
 				}
 			}
