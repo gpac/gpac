@@ -2694,10 +2694,19 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			else if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete") )  {
 				/*restore parent command if in CommandBuffer*/
 				if (parser->command && parser->command_buffer && parser->command_buffer->buffer) {
+					//empty <Insert>
+					if ((parser->command->tag==GF_SG_ROUTE_INSERT) && !parser->command->fromNodeID) {
+						gf_list_del_item(parser->command_buffer->commandList, parser->command);
+					}
+
 					parser->command = (GF_Command*) parser->command_buffer->buffer;
 					parser->command_buffer->buffer = NULL;
 					parser->command_buffer = NULL;
 				} else {
+					//empty <Insert>
+					if ((parser->command->tag==GF_SG_ROUTE_INSERT) && !parser->command->fromNodeID) {
+						gf_list_del_item(parser->scene_au->commands, parser->command);
+					}
 					parser->command = NULL;
 				}
 			}
