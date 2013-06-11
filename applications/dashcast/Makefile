@@ -21,7 +21,7 @@ CFLAGS+=-DGPAC_READ_ONLY
 endif
 
 #common obj
-OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circular_buffer.o cmd_data.o controler.o message_queue.o register.o video_data.o video_decoder.o video_encoder.o video_muxer.o video_scaler.o
+OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circular_buffer.o cmd_data.o controler.o message_queue.o register.o video_data.o video_decoder.o video_encoder.o video_muxer.o video_scaler.o task.o
 
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
