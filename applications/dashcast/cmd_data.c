@@ -138,9 +138,18 @@ int dc_read_configuration(CmdData * p_cmdd) {
 int dc_read_switch_config(CmdData * p_cmdd) {
 
 	int i;
+	int src_number;
+	dc_task_init(&p_cmdd->task_list);
 
 	char start_time[4096], end_time[4096];
+
+	time_t now_t = time(NULL);
+	struct tm start_tm  = *localtime(&now_t);
+	struct tm end_tm  = *localtime(&now_t);
+
 	GF_Config * p_conf = p_cmdd->p_switch_conf;
+
+
 
 	int i_sec_count = gf_cfg_get_section_count(p_conf);
 
@@ -157,17 +166,23 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 		if (strcmp(psz_type, "video") == 0) {
 
 			VideoData * p_vconf = malloc(sizeof(VideoData));
+
 			strcpy(p_vconf->psz_source_id, psz_sec_name);
 			strcpy(p_vconf->psz_name,
 					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
 
 			strcpy(start_time, gf_cfg_get_key(p_conf, psz_sec_name, "start"));
-			strptime(start_time, "%Y-%m-%d %H:%M:%S", &p_vconf->start_time);
-
+			strptime(start_time, "%Y-%m-%d %H:%M:%S", &start_tm);
+			p_vconf->start_time = mktime(&start_tm);
 			strcpy(end_time, gf_cfg_get_key(p_conf, psz_sec_name, "end"));
-			strptime(end_time, "%Y-%m-%d %H:%M:%S", &p_vconf->end_time);
+			strptime(end_time, "%Y-%m-%d %H:%M:%S", &end_tm);
+			p_vconf->end_time = mktime(&end_tm);
 
 			gf_list_add(p_cmdd->p_vsrc, (void *) p_vconf);
+
+			src_number = gf_list_count(p_cmdd->p_vsrc);
+
+			dc_task_add(&p_cmdd->task_list, src_number, p_vconf->psz_source_id, p_vconf->start_time, p_vconf->end_time);
 
 		} else if (strcmp(psz_type, "audio") == 0) {
 
@@ -177,10 +192,12 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
 
 			strcpy(start_time, gf_cfg_get_key(p_conf, psz_sec_name, "start"));
-			strptime(start_time, "%Y-%m-%d %H:%M:%S", &p_aconf->start_time);
+			strptime(start_time, "%Y-%m-%d %H:%M:%S", &start_tm);
+			p_aconf->start_time = mktime(&start_tm);
 
 			strcpy(end_time, gf_cfg_get_key(p_conf, psz_sec_name, "end"));
-			strptime(end_time, "%Y-%m-%d %H:%M:%S", &p_aconf->end_time);
+			strptime(end_time, "%Y-%m-%d %H:%M:%S", &end_tm);
+			p_aconf->end_time = mktime(&end_tm);
 
 			gf_list_add(p_cmdd->p_asrc, (void *) p_aconf);
 
@@ -190,22 +207,23 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 					psz_type);
 		}
 
+
 	}
 
 	printf("\33[34m\33[1m");
 	printf("Sources:\n");
 	for (i = 0; i < gf_list_count(p_cmdd->p_vsrc); i++) {
 		VideoData * p_vconf = gf_list_get(p_cmdd->p_vsrc, i);
-		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", &p_vconf->start_time);
-		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", &p_vconf->end_time);
+		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&p_vconf->start_time));
+		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&p_vconf->end_time));
 		printf("    id:%s\tsource:%s\tstart:%s\tend:%s\n", p_vconf->psz_source_id,
 				p_vconf->psz_name, start_time, end_time);
 	}
 
 	for (i = 0; i < gf_list_count(p_cmdd->p_asrc); i++) {
 		AudioData * p_aconf = gf_list_get(p_cmdd->p_asrc, i);
-		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", &p_aconf->start_time);
-		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", &p_aconf->end_time);
+		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&p_aconf->start_time));
+		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&p_aconf->end_time));
 		printf("    id:%s\tsource:%s\tstart:%s\tend:%s\n", p_aconf->psz_source_id,
 				p_aconf->psz_name, start_time, end_time);
 

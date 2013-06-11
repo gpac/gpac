@@ -62,8 +62,8 @@ typedef struct {
 
 	/* used for source switching */
 	char psz_source_id[256];
-	struct tm start_time;
-	struct tm end_time;
+	time_t start_time;
+	time_t end_time;
 
 } VideoData;
 

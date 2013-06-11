@@ -39,6 +39,7 @@
 #include <gpac/list.h>
 #include "audio_data.h"
 #include "video_data.h"
+#include "task.h"
 
 /*
  * This structure corresponds to
@@ -93,6 +94,8 @@ typedef struct  {
 	char psz_out[GF_MAX_PATH];
 	/* switch source configuration file */
 	//char psz_switch[GF_MAX_PATH];
+
+	TaskList task_list;
 
 } CmdData;
 /*

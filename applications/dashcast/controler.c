@@ -532,8 +532,9 @@ Bool video_decoder_thread(void * p_params) {
 
 	suseconds_t total_wait_time = 1000000 / p_in_data->vdata.i_framerate;
 	suseconds_t pick_packet_delay, select_delay = 0, real_wait,
-			other_delays = 1;
+			other_delays = 2;
 
+	Task t;
 	//printf("wait time : %f\n", total_wait_time);
 
 	if (!gf_list_count(p_in_data->p_video_lst))
@@ -543,29 +544,19 @@ Bool video_decoder_thread(void * p_params) {
 	int i = 0;
 #endif
 
-//	int fr = 0;
 	while (1) {
 
-//		fr++;
-//
-//		if (fr == 480) {
-//			source_number = 1;
-//		}
-//
-//		if (fr == 960) {
-//			source_number = 2;
-//		}
-//
-//		if (fr == 1200) {
-//			source_number = 0;
-//		}
+		dc_task_get_current(&p_in_data->task_list, &t);
+		source_number = t.source_number;
 
+		//printf("sourcenumber: %d\n", source_number);
 
 		if (p_vinf[source_number]->i_mode == LIVE_MEDIA) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number);
+		ret = dc_video_decoder_read(p_vinf[source_number], p_vind,
+				source_number);
 
 #ifdef DASHCAST_PRINT
 		printf("Read video frame %d\r", i++);
@@ -722,7 +713,6 @@ Bool video_scaler_thread(void * p_params) {
 
 	if (!gf_list_count(p_in_data->p_video_lst))
 		return 0;
-
 
 	while (1) {
 
@@ -1125,7 +1115,7 @@ Bool audio_encoder_thread(void * p_params) {
 
 int dc_run_controler(CmdData * p_in_data) {
 
-	int i,j;
+	int i, j;
 
 	ThreadParam keyboard_th_params;
 	ThreadParam mpd_th_params;
@@ -1209,16 +1199,16 @@ int dc_run_controler(CmdData * p_in_data) {
 
 		//int source_nb = gf_list_count(p_in_data->p_vsrc);
 		//printf("source_nb: %d \n", source_nb);
-		for (i = 0; i < gf_list_count(p_in_data->p_vsrc)+1; i++) {
+		for (i = 0; i < gf_list_count(p_in_data->p_vsrc) + 1; i++) {
 			dc_video_input_data_set_prop(&vind, i, vinf[i]->i_width,
 					vinf[i]->i_height, vinf[i]->i_pix_fmt);
 		}
 
-
 		for (i = 0; i < p_vsdl.i_size; i++) {
-			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i], MAX_SOURCE_NUMBER);
+			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i],
+					MAX_SOURCE_NUMBER);
 
-			for (j = 0; j < gf_list_count(p_in_data->p_vsrc)+1; j++) {
+			for (j = 0; j < gf_list_count(p_in_data->p_vsrc) + 1; j++) {
 				dc_video_scaler_data_set_prop(&vind, p_vsdl.p_vsd[i], j);
 			}
 		}
