@@ -181,7 +181,7 @@ static u64 gf_mpd_parse_date(char *attr)
 		res = res + diff;
 	}
 	res *= 1000;
-	ms = (s - (u32)s) * 1000;
+	ms = (u32) ( (s - (u32)s) * 1000);
 	return res + ms;
 }
 
