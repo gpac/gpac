@@ -120,12 +120,27 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 
 	p_vdata->i_framerate = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.num;
 
-	if(p_vdata->i_framerate <= 1) {
+	if(p_vdata->i_framerate / 1000 != 0)
+		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
+
+	if(p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+		p_vdata->i_framerate = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.num;
+	}
+
+	if(p_vdata->i_framerate / 1000 != 0)
+		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
+
+	if(p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
 		p_vdata->i_framerate = p_codec_ctx->time_base.den;
 	}
 
 	if(p_vdata->i_framerate / 1000 != 0)
 		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
+
+	if(p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+		printf("Invalid input framerate.\n");
+		return -1;
+	}
 
 	p_vin->i_mode = i_mode;
 	p_vin->i_no_loop = i_no_loop;
