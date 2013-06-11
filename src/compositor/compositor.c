@@ -2170,6 +2170,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
 	}
+
+	//it may happen that we have a reconfigure request at this stage, especiall if updating one of the textures update
+	//forced a relayout - do it right away
+	if (compositor->msg_type) {
+		gf_sc_lock(compositor, 0);
+		return;
+	}
 	compositor->text_edit_changed = 0;
 	compositor->rebuild_offscreen_textures = 0;
 
