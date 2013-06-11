@@ -305,7 +305,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 					"    -out <string>                output data directory name [default=output]\n"
 					"    -mpd <string>                MPD file name [default=dashcast.mpd]\n"
-					"    -ast-offset <int>            MPD AvailabilityStartTime offset in seconds [default=1]\n"
+					"    -ast-offset <int>            MPD AvailabilityStartTime offset in milliseconds [default=1000]\n"
 					"    -time-shift <int>            MPD TimeShiftBufferDepth in seconds [default=10]\n"
 					"                                 (specify -1 to keep all files)\n"
 					"    -min-buffer <float>          MPD MinBufferTime in seconds [default=1.0]\n"
@@ -659,7 +659,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	}
 
 	if (p_cmdd->i_ast_offset == -1) {
-		p_cmdd->i_ast_offset = 1;
+		p_cmdd->i_ast_offset = 1000;
 	}
 
 	if (p_cmdd->i_mode == ON_DEMAND)
