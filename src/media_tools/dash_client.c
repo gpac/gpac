@@ -626,14 +626,19 @@ static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 */
 GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *sess, const char *url, u64 start_range, u64 end_range, u32 persistent_mode, GF_DASH_Group *group)
 {
+	s32 group_idx = -1;
 	Bool had_sess = 0;
 	Bool retry = 1;
 	GF_Err e;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s...\n", url));
 
+	if (group) {
+		group_idx = gf_list_find(group->dash->groups, group);
+	}
+
 	if (! *sess) {
-		*sess = dash_io->create(dash_io, persistent_mode ? 1 : 0, url);
+		*sess = dash_io->create(dash_io, persistent_mode ? 1 : 0, url, group_idx);
 		if (!(*sess)){
 			assert(0);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot try to download %s... OUT of memory ?\n", url));
@@ -642,7 +647,7 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 	} else {
 		had_sess = 1;
 		if (persistent_mode!=2) {
-			e = dash_io->setup_from_url(dash_io, *sess, url);
+			e = dash_io->setup_from_url(dash_io, *sess, url, group_idx);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot resetup session for url %s: %s\n", url, gf_error_to_string(e) ));
 				return e;
@@ -706,12 +711,12 @@ retry:
 		e = dash_io->run(dash_io, *sess);
 	}
 	switch (e) {
-case GF_IP_CONNECTION_FAILURE:
-case GF_IP_NETWORK_FAILURE:
+	case GF_IP_CONNECTION_FAILURE:
+	case GF_IP_NETWORK_FAILURE:
 	{
 		dash_io->del(dash_io, *sess);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] failed to download, retrying once with %s...\n", url));
-		*sess = dash_io->create(dash_io, 0, url);
+		*sess = dash_io->create(dash_io, 0, url, group_idx);
 		if (! (*sess)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
 			return GF_OUT_OF_MEM;
@@ -724,12 +729,12 @@ case GF_IP_NETWORK_FAILURE:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] two consecutive failures, aborting the download %s.\n", url));
 		return e;
 	}
-case GF_OK:
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete\n", url));
-	break;
-default:
-	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
-	return e;
+	case GF_OK:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete\n", url));
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
+		return e;
 	}
 	return GF_OK;
 }
@@ -2054,6 +2059,11 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 	/*no error and no init segment, go for media segment*/
 	if (!base_init_url) {
+		//if no init segment don't download first segment
+#if 1
+		gf_mx_v(dash->dl_mutex);
+		return GF_OK;
+#else
 		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA, group->download_segment_index, &base_init_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL);
 		if (e) {
 			gf_mx_v(dash->dl_mutex);
@@ -2061,6 +2071,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			return e;
 		}
 		nb_segment_read = 1;
+#endif
 	} else if (!group->bitstream_switching) {
 		group->dont_delete_first_segment = 1;
 	}
@@ -3456,7 +3467,7 @@ static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 {
 	GF_Err e;
 	GF_DashClient *dash = (GF_DashClient*) getter->udta;
-	GF_DASHFileIOSession *sess = dash->dash_io->create(dash->dash_io, 0, url);
+	GF_DASHFileIOSession *sess = dash->dash_io->create(dash->dash_io, 0, url, -1);
 	if (!sess) return GF_IO_ERR;
 	getter->session = sess;
 	e = dash->dash_io->init(dash->dash_io, sess);
@@ -4070,6 +4081,37 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 	}
 	group->force_segment_switch = 0;
 	group->prev_active_rep_index = group->cached[0].representation_index;
+	gf_mx_v(dash->dl_mutex);	
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url)
+{
+	GF_DASH_Group *group;
+
+	*url = NULL;
+	if (switching_url) *switching_url = NULL;
+	if (original_url) *original_url = NULL;
+	if (switching_index) *switching_index = -1;
+
+	gf_mx_p(dash->dl_mutex);	
+	group = gf_list_get(dash->groups, idx);
+	if (!group) {
+		gf_mx_v(dash->dl_mutex);	
+		return GF_BAD_PARAM;
+	}
+
+	*url = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
+	if (original_url) *original_url = dash->dash_io->get_url(dash->dash_io, group->segment_download);
+
+	if (group->active_rep_index != group->prev_active_rep_index) {
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+		if (switching_index)
+			*switching_index = group->active_rep_index;
+		if (switching_url)
+			*switching_url = rep->playback.cached_init_segment_url;
+	}
 	gf_mx_v(dash->dl_mutex);	
 	return GF_OK;
 }

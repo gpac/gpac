@@ -825,7 +825,7 @@ struct tag_m2ts_demux
 		1: drop current segment and query next segment
 		2: query next segment
 	*/
-	GF_Err (*query_next)(void *udta, u32 query_type, const char **next_url, u64 *next_start_range, u64 *next_end_range);
+	GF_Err (*query_next)(void *udta, u32 query_type, const char **next_url, u64 *next_start_range, u64 *next_end_range, Bool *is_refresh);
 	void *query_udta;
 	Bool segment_switch;
 
@@ -1207,9 +1207,9 @@ struct __gf_dvb_tuner {
 
 
 #ifndef GPAC_DISABLE_MPEG2TS
-GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop);
-GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts);
-GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts);
+GF_Err gf_m2ts_demuxer_setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop);
+GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts);
+GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts);
 
 
 #endif /*GPAC_DISABLE_MPEG2TS*/

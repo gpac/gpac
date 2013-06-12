@@ -3069,6 +3069,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
     }
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk)
 {
 	/*shall only be called for non-threaded sessions!! */
@@ -3118,6 +3119,12 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 		}
 	}
 #endif
+
+	if (flags == 0xFFFFFFFF) {
+		sess->user_proc = user_io;
+		sess->usr_cbk = cbk;
+		return GF_OK;
+	}
 
 	if (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL) flags |= GF_DOWNLOAD_SESSION_USE_SSL;
 	sess->flags = flags;

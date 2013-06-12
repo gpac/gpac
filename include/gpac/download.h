@@ -459,7 +459,7 @@ extern "C" {
     /*!
      * Reassigns session flags and callbacks. This is only possible if the session is not threaded.
 	 * \param sess The session
-	 * \param flags The new flags for the session 
+	 * \param flags The new flags for the session - if flags is 0xFFFFFFFF, existing flags are not modified
 	 * \param user_io The new callback function
 	 * \param cbk The new user data to ba used in the callback function
      * \return GF_OK or error

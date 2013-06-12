@@ -77,14 +77,14 @@ struct _gf_dash_io
 	/*called whenever a file has to be deleted*/
 	void (*delete_cache_file)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url);
 
-	/*create a file download session for the given resource*/
-	GF_DASHFileIOSession (*create)(GF_DASHFileIO *dashio, Bool persistent, const char *url);
+	/*create a file download session for the given resource - group_idx may be -1 if this is a global resource , otherwise it indicates the group/adaptationSet in which the download happens*/
+	GF_DASHFileIOSession (*create)(GF_DASHFileIO *dashio, Bool persistent, const char *url, s32 group_idx);
 	/*delete a file download session*/
 	void (*del)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*aborts downloading in the given file session*/
 	void (*abort)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*resetup the file session with a new resource to get - this allows persistent connection usage with HTTP servers*/
-	GF_Err (*setup_from_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url);
+	GF_Err (*setup_from_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx);
 	/*set download range for the file session*/
 	GF_Err (*set_range)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache);
 	/*initialize the file session - all the headers shall be fetched before returning*/
@@ -186,6 +186,11 @@ original_url is optional and may be used to het the URI of the segment
 GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, 
 											s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, 
 											const char **original_url);
+
+/*same as gf_dash_group_get_next_segment_location but query the current downloaded segment*/
+GF_EXPORT
+GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url);
+
 /*discards the first media resource in the queue of this group*/
 void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx);
 /*get the number of media resources available in the cache for this group*/

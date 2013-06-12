@@ -64,6 +64,8 @@ typedef struct
 	Bool wait_for_next_frag;
 	GF_Mutex *segment_mutex;
 
+	Bool in_progress, seg_opened, use_memory;
+
 } ISOMReader;
 
 
@@ -119,6 +121,13 @@ GF_Descriptor *isor_emulate_iod(ISOMReader *read);
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 
 void isor_declare_objects(ISOMReader *read);
+
+/*progressive_mode indicates the type of check we do:
+0: regular check at the end of the segment : all samples from the segment have been processed
+1: check upon first data received in progressive mode: we possibly need to discard the previous segment and open the new segment 
+2: check when more data is received: we only fetch the new URL and reload the file
+*/
+void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode);
 
 void send_proxy_command(ISOMReader *read, Bool is_disconnect, Bool is_add_media, GF_Err e, GF_Descriptor *desc, LPNETCHANNEL channel);
 

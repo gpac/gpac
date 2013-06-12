@@ -45,7 +45,7 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
 	Bool memory_storage;
-	Bool use_max_res, immediate_switch;
+	Bool use_max_res, immediate_switch, use_low_latency;
     Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -56,6 +56,9 @@ typedef struct
 	GF_InputService *segment_ifce;
 	Bool service_connected;
 	Bool service_descriptor_fetched;
+	//pointer to function used to signal progress of HTTP loading - cbk will be the module handler (struct _netinterface *)
+	void (*client_net_io)(void *cbk, GF_NETIO_Parameter *param);
+	Bool netio_unassigned;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -120,6 +123,24 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		return GF_SERVICE_ERROR;
 	}
 
+	/*sets byte/io callback for low latency mode*/
+	if (param->command_type==GF_NET_SERVICE_SET_PROXY_NETIO) {
+		if (!mpdin->use_low_latency) 
+			return GF_OK;
+
+		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+			GF_MPDGroup *group;
+			if (!gf_dash_is_group_selected(mpdin->dash, i)) continue;
+			group = gf_dash_get_group_udta(mpdin->dash, i);
+			if (group->segment_ifce == ifce) {
+				group->client_net_io = param->net_io.client_net_io;
+				group->netio_unassigned = GF_TRUE;
+				return GF_OK;
+			}
+		}		
+		return GF_SERVICE_ERROR;
+	}
+
 	/*gets URL and byte range of next segment - if needed, adds bitstream switching segment info*/
 	if (param->command_type==GF_NET_SERVICE_QUERY_NEXT) {
 		Bool group_done;
@@ -178,9 +199,19 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				} 
 				return GF_EOS;
 			}
+
+			if (param->url_query.query_current_download) {
+				gf_dash_group_probe_current_download_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, NULL, &param->url_query.next_url_init_or_switch_segment, &src_url);
+
+				if (param->url_query.next_url)
+					return GF_OK;
+	            return GF_BUFFER_TOO_SMALL;
+			}
+			param->url_query.query_current_download = 0;
             return GF_BUFFER_TOO_SMALL;
         }
 	
+		param->url_query.query_current_download = 0;
 		nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
         if (nb_segments_cached < 1) {
             GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] No more file in cache, EOS\n"));
@@ -315,8 +346,9 @@ void mpdin_dash_io_delete_cache_file(GF_DASHFileIO *dashio, GF_DASHFileIOSession
 	gf_dm_delete_cached_file_entry_session((GF_DownloadSession *)session, cache_url);
 }
 
-GF_DASHFileIOSession mpdin_dash_io_create(GF_DASHFileIO *dashio, Bool persistent, const char *url)
+GF_DASHFileIOSession mpdin_dash_io_create(GF_DASHFileIO *dashio, Bool persistent, const char *url, s32 group_idx)
 {
+	GF_MPDGroup *group = NULL;
 	GF_DownloadSession *sess;
 	u32 flags = GF_NETIO_SESSION_NOT_THREADED;
 	GF_MPD_In *mpdin = (GF_MPD_In *)dashio->udta;
@@ -324,7 +356,16 @@ GF_DASHFileIOSession mpdin_dash_io_create(GF_DASHFileIO *dashio, Bool persistent
 		flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 
 	if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
-	sess = gf_term_download_new(mpdin->service, url, flags, NULL, NULL);
+
+	if (group_idx>=0) {
+		group = gf_dash_get_group_udta(mpdin->dash, group_idx);
+	}
+	if (group) {
+		sess = gf_term_download_new(mpdin->service, url, flags, group->client_net_io, group->segment_ifce);
+		group->netio_unassigned = GF_FALSE;
+	} else {
+		sess = gf_term_download_new(mpdin->service, url, flags, NULL, NULL);
+	}
 	return (GF_DASHFileIOSession ) sess;
 }
 void mpdin_dash_io_del(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
@@ -335,8 +376,16 @@ void mpdin_dash_io_abort(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
     gf_dm_sess_abort((GF_DownloadSession *)session);
 }
-GF_Err mpdin_dash_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url)
+GF_Err mpdin_dash_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx)
 {
+	if (group_idx>=0) {
+		GF_MPD_In *mpdin = (GF_MPD_In *)dashio->udta;
+		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
+		if (group && group->netio_unassigned) {
+			gf_dm_sess_reassign((GF_DownloadSession *)session, 0xFFFFFFFF, group->client_net_io, group->segment_ifce);
+			group->netio_unassigned = GF_FALSE;
+		}
+	}
 	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url);
 }
 GF_Err mpdin_dash_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
@@ -554,6 +603,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering", "yes");
 	enable_buffering = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
+	mpdin->use_low_latency = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;

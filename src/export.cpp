@@ -322,6 +322,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_data_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_data_rate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_reassign) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_create_entry) )
@@ -1759,9 +1760,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(variant_playlist_del) )
 
 
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_Demux_Setup))
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_DemuxPlay) )
-#pragma comment (linker, EXPORT_SYMBOL(TSDemux_CloseDemux) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_setup))
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_play) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_close) )
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_socket) )
@@ -1832,6 +1833,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_num_segments_ready) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_discard_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_next_segment_location) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_probe_current_download_segment_location) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_max_segments_in_cache) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_group_done) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_in_period_setup) )

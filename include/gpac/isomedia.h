@@ -386,8 +386,11 @@ is available once the file is successfully open (gf_isom_open_progressive), and 
 no information wrt number fragments (which could actually be generated on the fly 
 at the sender side), you must call this function on regular bases in order to
 load newly downloaded fragments. Note this may result in Track/Movie duration changes
-and SampleCount change too ...*/
-GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes);
+and SampleCount change too ...
+
+if new_location is set, the previous bitstream is changed to this new location, otherwise it is refreshed (disk flush)
+*/
+GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes, const char *new_location);
 
 /*check if file has movie info, eg has tracks & dynamic media. Some files may just use
 the base IsoMedia structure without "moov" container*/

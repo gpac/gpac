@@ -2715,7 +2715,7 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 
 /* DVB fonction */
 
-static u32 TSDemux_DemuxRun(void *_p)
+static u32 gf_m2ts_demuxer_run(void *_p)
 {
 	u32 i;
 	GF_Err e;
@@ -2812,11 +2812,11 @@ static u32 TSDemux_DemuxRun(void *_p)
 			 gf_dm_sess_process(ts->dnload); 	 
 			 gf_sleep(1); 	 
 		 }
-	 } else if (ts->file || ts->ts_data_chunk) {
+	 } else {
 		u32 pos = 0;
 		GF_BitStream *ts_bs = NULL;
 
-		if (ts->segment_switch) {
+		if (ts->segment_switch || (!ts->file && !ts->ts_data_chunk) ) {
 			ts->segment_switch = 0;
 			goto next_segment_setup;
 		} 
@@ -2874,21 +2874,30 @@ restart_stream:
 		}
 
 next_segment_setup:
-		gf_bs_del(ts_bs);
-		ts_bs = NULL;
+		if (ts_bs) {
+			pos = (u32) gf_bs_get_position(ts_bs);
+			gf_bs_del(ts_bs);
+			ts_bs = NULL;
+		}
 		if (ts->run_state && ts->query_next) {
+			u32 query_type = (!ts->file && !ts->ts_data_chunk) ? 2 : 1;
+			Bool is_refresh = GF_FALSE;
 			const char *next_url = NULL;
-			e = ts->query_next(ts->query_udta, 1, &next_url, &ts->start_byterange, &ts->end_byterange);
+			e = ts->query_next(ts->query_udta, query_type, &next_url, &ts->start_byterange, &ts->end_byterange, &is_refresh);
 			
 			/*not ready, wait ...*/
 			while ((e==GF_BUFFER_TOO_SMALL) && !next_url && ts->run_state) {
 				gf_sleep(10);
-				e = ts->query_next(ts->query_udta, 1, &next_url, &ts->start_byterange, &ts->end_byterange);
+				e = ts->query_next(ts->query_udta, query_type, &next_url, &ts->start_byterange, &ts->end_byterange, &is_refresh);
 			}
 
 			if (next_url) {
 				/*TODO we need to know if we had a seek or not, to fluh remaining PES data*/
-				gf_m2ts_set_segment_switch(ts);
+				if (is_refresh) {
+					ts->start_byterange = pos;
+				} else { 
+					gf_m2ts_set_segment_switch(ts);
+				}
 
 				if (!strncmp(next_url, "gmem://", 7)) {
 					u32 size;
@@ -2980,14 +2989,14 @@ GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u
 	return GF_OK;
 }
 
-static GF_Err TSDemux_SetupLive(GF_M2TS_Demuxer *ts, char *url)
+static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 {
 	GF_Err e;
 	e = gf_m2ts_get_socket(url, ts->network_type, UDP_BUFFER_SIZE, &ts->sock);
 	if (e) return e;
 
 	//gf_th_set_priority(ts->th, GF_THREAD_PRIORITY_HIGHEST);
-	return  TSDemux_DemuxPlay(ts);
+	return gf_m2ts_demuxer_play(ts);
 
 }
 
@@ -3178,7 +3187,7 @@ u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 	return freq;
 }
 
-GF_Err TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, const char *url)
+GF_Err gf_m2ts_demuxer_setup_dvb(GF_M2TS_Demuxer *ts, const char *url)
 {
 	GF_Err e = GF_OK;
 
@@ -3199,38 +3208,40 @@ GF_Err TSDemux_SetupDVB(GF_M2TS_Demuxer *ts, const char *url)
 		return GF_SERVICE_ERROR;
 	}
 
-	return  TSDemux_DemuxPlay(ts);
+	return  gf_m2ts_demuxer_play(ts);
 }
 
 #endif
 
-static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
+static GF_Err gf_m2ts_demuxer_setup_file(GF_M2TS_Demuxer *ts, char *url)
 {
-	if (ts->file && !strcmp(ts->filename, url)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] TS file already being processed: %s\n", url));
-		return GF_IO_ERR;
-	}
-	strcpy(ts->filename, url);
-
-	if (!strncmp(url, "gmem://", 7)) {
-		u32 size;
-		void *mem_address;
-		if (sscanf(url, "gmem://%d@%p", &size, &mem_address) != 2)
-			return GF_IO_ERR;
-		ts->ts_data_chunk_size = size;
-		ts->ts_data_chunk = mem_address;
-	} else {
-
-		ts->file = gf_f64_open(url, "rb"); 
-		if (!ts->file) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));		
+	if (url) {
+		if (ts->file && !strcmp(ts->filename, url)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] TS file already being processed: %s\n", url));
 			return GF_IO_ERR;
 		}
 		strcpy(ts->filename, url);
 
-		gf_f64_seek(ts->file, 0, SEEK_END);
-		ts->file_size = gf_f64_tell(ts->file);
+		if (!strncmp(url, "gmem://", 7)) {
+			u32 size;
+			void *mem_address;
+			if (sscanf(url, "gmem://%d@%p", &size, &mem_address) != 2)
+				return GF_IO_ERR;
+			ts->ts_data_chunk_size = size;
+			ts->ts_data_chunk = mem_address;
+		} else {
 
+			ts->file = gf_f64_open(url, "rb"); 
+			if (!ts->file) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));		
+				return GF_IO_ERR;
+			}
+			strcpy(ts->filename, url);
+
+			gf_f64_seek(ts->file, 0, SEEK_END);
+			ts->file_size = gf_f64_tell(ts->file);
+
+		}
 	}
 
 	/* reinitialization for seek */
@@ -3239,27 +3250,20 @@ static GF_Err TSDemux_SetupFile(GF_M2TS_Demuxer *ts, char *url)
 
 	ts->start_byterange = ts->end_byterange = 0;
 	if (ts->query_next) {
-		ts->query_next(ts->query_udta, 1, NULL, &ts->start_byterange, &ts->end_byterange);
+		ts->query_next(ts->query_udta, 0, NULL, &ts->start_byterange, &ts->end_byterange, NULL);
 	}
 
 
-	return  TSDemux_DemuxPlay(ts);
+	return  gf_m2ts_demuxer_play(ts);
 
 }
 
 GF_EXPORT
-GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
+GF_Err gf_m2ts_demuxer_setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 {
 	char szURL[2048];
 	char *frag;
 	
-	if(!url){
-	  return GF_IO_ERR;
-	}
-	strcpy(szURL, url);
-	frag = strrchr(szURL, '#');
-	if (frag) frag[0] = 0;
-
 	ts->file_regulate = 0;
 	ts->duration = 0;
 
@@ -3268,26 +3272,34 @@ GF_Err TSDemux_Demux_Setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
       GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Loop Mode activated \n"));
     }
 
+	if (!url) {
+	  return gf_m2ts_demuxer_setup_file(ts, NULL);
+	}
+
+	strcpy(szURL, url);
+	frag = strrchr(szURL, '#');
+	if (frag) frag[0] = 0;
+
 	if (!strnicmp(url, "udp://", 6)
 		|| !strnicmp(url, "mpegts-udp://", 13)
 		|| !strnicmp(url, "mpegts-tcp://", 13)
 		) {
-		return TSDemux_SetupLive(ts, (char *) szURL);
+		return gf_m2ts_demuxer_setup_live(ts, (char *) szURL);
 	}
 #ifdef GPAC_HAS_LINUX_DVB
 	else if (!strnicmp(url, "dvb://", 6)) {
-		return TSDemux_SetupDVB(ts, (char *) szURL);
+		return gf_m2ts_demuxer_setup_dvb(ts, (char *) szURL);
 	}
 #endif
 	else {
-	  return TSDemux_SetupFile(ts, (char *) szURL);
+	  return gf_m2ts_demuxer_setup_file(ts, (char *) szURL);
 	}
 
 	return GF_NOT_SUPPORTED;
 }
 
 GF_EXPORT
-GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
+GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[TSDemux] Destroying demuxer\n"));
 	if (ts->th) {
@@ -3307,16 +3319,16 @@ GF_Err TSDemux_CloseDemux(GF_M2TS_Demuxer *ts)
 }
 
 GF_EXPORT
-GF_Err TSDemux_DemuxPlay(GF_M2TS_Demuxer *ts){
+GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts){
 
 	/*set the state variable outside the TS thread. If inside, we may get called for shutdown before the TS thread has started
 	and we would overwrite the run_state when entering the TS thread, which would make the thread run forever and the stop() wait forever*/
 	ts->run_state = 1;
 	if(ts->th){
 		/*start playing for tune-in*/
-		return gf_th_run(ts->th, TSDemux_DemuxRun, ts);
+		return gf_th_run(ts->th, gf_m2ts_demuxer_run, ts);
 	}else{
-		return TSDemux_DemuxRun(ts);
+		return gf_m2ts_demuxer_run(ts);
 	}
 
 }

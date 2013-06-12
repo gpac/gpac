@@ -2017,8 +2017,9 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 
 
 GF_EXPORT
-GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
+GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const char *new_location)
 {
+	u32 i;
 	u64 prevsize, size;
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
@@ -2028,6 +2029,17 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 
 	/*refresh size*/
 	size = gf_bs_get_size(movie->movieFileMap->bs);
+
+	if (new_location) {
+		GF_Err e = gf_isom_datamap_new(new_location, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
+		if (e) return e;
+	
+		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+			trak->Media->information->dataHandler = movie->movieFileMap;
+		}
+	}
+
 	prevsize = gf_bs_get_refreshed_size(movie->movieFileMap->bs);
 	if (prevsize==size) return GF_OK;
 
