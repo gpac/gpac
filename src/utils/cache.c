@@ -646,11 +646,12 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			entry->mem_storage = gf_realloc(entry->mem_storage, (entry->mem_allocated+size+2));
 			entry->mem_allocated += size;
-			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+//			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 		}
 		memcpy(entry->mem_storage + entry->written_in_cache, data, size);
 		entry->written_in_cache += size;
 		memset(entry->mem_storage + entry->written_in_cache, 0, 2);
+		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
 		return GF_OK;
 	}
 
