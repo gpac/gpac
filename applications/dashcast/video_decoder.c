@@ -251,7 +251,11 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
-				av_free_packet(&packet);
+				//TODO: This might cause some probles in future.
+				// For a decode/encode process we must free this memory.
+				//But if the input is raw and there is no need to decode then
+				// the packet is directly passed for decoded frame. So freeing it cause problem.
+				//av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;
 			}
