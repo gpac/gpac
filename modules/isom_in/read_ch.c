@@ -360,8 +360,7 @@ fetch_next:
 				}
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
-//				ch->last_state = GF_OK;
-				ch->last_state = GF_BUFFER_TOO_SMALL;
+				ch->last_state = GF_OK;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
