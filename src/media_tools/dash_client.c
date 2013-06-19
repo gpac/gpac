@@ -303,66 +303,6 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 	return 0;
 }
 
-static u64 gf_net_get_utc()
-{
-	u64 current_time;
-	Double msec;
-	u32 sec, frac;
-
-#ifndef _WIN32_WCE
-	time_t gtime;
-	struct tm _t;
-#endif
-
-	gf_net_get_ntp(&sec, &frac);
-
-#ifndef _WIN32_WCE
-	gtime = sec - GF_NTP_SEC_1900_TO_1970;
-	_t = * gmtime(&gtime);
-
-#ifdef GPAC_ANDROID
-	{
-	/*FIXME - finad a safe way to estimate timezone this does not work !!*/
-	s32 t_timezone;
-	struct tm t_gmt, t_local;
-	time_t t_time;
-	t_time = time(NULL);
-	t_gmt = *gmtime(&t_time);
-	t_local = *localtime(&t_time);
-	
-	t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600;
-	current_time = mktime(&_t) - t_timezone;
-	}
-#else
-	{
-		s32 val = timezone;
-		current_time = mktime(&_t) - val;
-	}
-#endif
-
-#else
-	{
-	SYSTEMTIME syst;
-	FILETIME filet;
-	GetSystemTime(&syst);
-	SystemTimeToFileTime(&syst, &filet);
-
-#define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
-
-	current_time = (u64) ((*(LONGLONG *) &filet - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
-
-#undef TIMESPEC_TO_FILETIME_OFFSET 
-	}
-
-#endif
-
-	current_time *= 1000;
-	msec = frac*1000.0;
-	msec /= 0xFFFFFFFF;
-	current_time += (u64) msec;
-	return current_time;
-}
-
 static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
 {
 	GF_MPD_SegmentTimeline *timeline = NULL;
