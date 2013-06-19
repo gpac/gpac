@@ -459,9 +459,10 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 			p_voutf->first_dts += p_voutf->frame_per_fragment;
 		}
 		dc_gpac_video_isom_write(p_voutf);
-		if (i_frame_nb % p_voutf->frame_per_fragment
-				== p_voutf->frame_per_fragment - 1) {
+		if (i_frame_nb % p_voutf->frame_per_fragment == p_voutf->frame_per_fragment - 1) {
 			gf_isom_flush_fragments(p_voutf->p_isof, 1);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), p_voutf->p_codec_ctx->coded_frame->pts));
 		}
 		if (i_frame_nb + 1 == p_voutf->frame_per_segment)
 			return 1;

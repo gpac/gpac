@@ -259,7 +259,7 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->p_video_lst = gf_list_new();
 	p_cmdd->p_asrc = gf_list_new();
 	p_cmdd->p_vsrc = gf_list_new();
-
+	p_cmdd->p_logfile = NULL;
 }
 
 void dc_cmd_data_destroy(CmdData * p_cmdd) {
@@ -270,7 +270,14 @@ void dc_cmd_data_destroy(CmdData * p_cmdd) {
 	gf_list_del(p_cmdd->p_vsrc);
 	gf_cfg_del(p_cmdd->p_conf);
 	gf_cfg_del(p_cmdd->p_switch_conf);
+	if (p_cmdd->p_logfile) fclose(p_cmdd->p_logfile);
+}
 
+static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+{
+	FILE *logs = cbk;
+	vfprintf(logs, fmt, list);
+	fflush(logs);
 }
 
 int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
@@ -282,6 +289,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"\n"
 					"Options:\n"
 					"\n"
+					"    -log-file file               set output log file. Also works with -lf\n"
+					"    -logs LOGS                   set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 					"    -a inasrc:str                input audio source named inasrc\n"
 			        "                                    - If input is from microphone, inasrc will be \"plughw:[x],[y]\"\n"
 			        "                                    where x is the card number and y is the device number.\n"
@@ -345,6 +354,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		printf("%s", psz_command_usage);
 		return -1;
 	}
+	gf_sys_init(GF_FALSE);
 
 	i = 1;
 	while (i < i_argc) {
@@ -643,6 +653,28 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			i++;
 		} else if (strcmp(p_argv[i], "-send-message") == 0) {
 			p_cmdd->i_send_message = 1;
+			i++;
+		} else if (strcmp(p_argv[i], "-logs") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			if (gf_log_set_tools_levels(p_argv[i]) != GF_OK) {
+				printf("Invalid log format %s", p_argv[i]);
+				return 1;
+			}
+			i++;
+		} else if (!strcmp(p_argv[i], "-lf") || !strcmp(p_argv[i], "-log-file")) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			p_cmdd->p_logfile = gf_f64_open(p_argv[i], "wt");
+			gf_log_set_callback(p_cmdd->p_logfile, on_dc_log);
 			i++;
 		} else if (strcmp(p_argv[i], "-gdr") == 0) {
 			p_cmdd->i_gdr = 1;

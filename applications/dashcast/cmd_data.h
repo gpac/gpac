@@ -94,7 +94,7 @@ typedef struct  {
 	char psz_out[GF_MAX_PATH];
 	/* switch source configuration file */
 	//char psz_switch[GF_MAX_PATH];
-
+	FILE *p_logfile;
 	TaskList task_list;
 
 } CmdData;

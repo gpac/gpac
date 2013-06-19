@@ -303,7 +303,7 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 	return 0;
 }
 
-static u64 gf_dash_get_utc_clock()
+static u64 gf_net_get_utc()
 {
 	u64 current_time;
 	Double msec;
@@ -631,7 +631,7 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 	Bool retry = 1;
 	GF_Err e;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s...\n", url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s startin,g at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 
 	if (group) {
 		group_idx = gf_list_find(group->dash->groups, group);
@@ -730,7 +730,7 @@ retry:
 		return e;
 	}
 	case GF_OK:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete\n", url));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
@@ -1247,7 +1247,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		gf_free(purl);
 		purl = NULL;
 	}
-	fetch_time = gf_dash_get_utc_clock();
+	fetch_time = gf_net_get_utc();
 
 	if (!gf_dash_check_mpd_root_type(local_url)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
@@ -2880,7 +2880,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 		}
 
 		if (!dash->disable_switching && new_rep && (new_rep!=rep)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH]Download rate %d - switching representation %s from bandwidth %d bps to %d bps\n\n", dl_rate, go_up ? "up" : "down", rep->bandwidth, new_rep->bandwidth));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Download rate %d - switching representation %s from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dl_rate, go_up ? "up" : "down", rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
 			gf_dash_set_group_representation(group, new_rep);
 		}
 	}
@@ -3129,7 +3129,7 @@ restart_period:
 				s32 to_wait = 0;
 				u32 seg_dur_ms=0;
 				s64 segment_ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, &seg_dur_ms);
-				s64 now = (s64) gf_dash_get_utc_clock();
+				s64 now = (s64) gf_net_get_utc();
 				
 				to_wait = (s32) (segment_ast - now);
 
@@ -3576,7 +3576,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		if (!f) return GF_URL_ERROR;
 		fclose(f);
 	}
-	dash->mpd_fetch_time = gf_dash_get_utc_clock();
+	dash->mpd_fetch_time = gf_net_get_utc();
 
 	if (dash->is_m3u8) {
 		if (is_local) {

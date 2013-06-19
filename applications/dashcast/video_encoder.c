@@ -37,7 +37,8 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	p_voutf->i_vbuf_size = 9 * p_vdata->i_width * p_vdata->i_height + 10000;
 	p_voutf->p_vbuf = (uint8_t *) av_malloc(p_voutf->i_vbuf_size);
 
-	p_voutf->p_codec = avcodec_find_encoder_by_name("libx264"/*p_vdata->psz_codec*/);
+//	p_voutf->p_codec = avcodec_find_encoder_by_name("libx264"/*p_vdata->psz_codec*/);
+	p_voutf->p_codec = avcodec_find_encoder(CODEC_ID_H264);
 	if (p_voutf->p_codec == NULL) {
 		fprintf(stderr, "Output video codec not found\n");
 		return -1;
@@ -180,6 +181,9 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 		fprintf(stderr, "Error occured while encoding video frame.\n");
 		return -1;
 	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS %d encoded at UTC "LLU" ms\n", /*p_vn->source_number, */p_vn->p_vframe->pts, gf_net_get_utc() ));
+
 	/* if zero size, it means the image was buffered */
 //	if (i_out_size > 0) {
 //

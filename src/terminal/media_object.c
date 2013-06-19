@@ -484,7 +484,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		if (mo->odm->parentscene->is_dynamic_scene)
 			mo->odm->parentscene->root_od->current_time = mo->odm->current_time;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u fetch frame TS %u size %d (preivous TS %d) - %d unit in CB\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc() ));
 		mo->timestamp = CU->TS;
 		/*signal EOS after rendering last frame, not while rendering it*/
 		*eos = GF_FALSE;

@@ -230,9 +230,9 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waiting for download to end took a long time : %u ms\n", timer2));
             }
 			if (param->url_query.end_range) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s (Media Range: "LLD"-"LLD")\n", src_url, param->url_query.start_range, param->url_query.end_range));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s (Media Range: "LLD"-"LLD") at UTC "LLU" ms\n", src_url, param->url_query.start_range, param->url_query.end_range, gf_net_get_utc() ));
 			} else {
-	            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s\n", src_url));
+	            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s at UTC "LLU" ms\n", src_url, gf_net_get_utc()));
 			}
             GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] segment start time %g sec\n", gf_dash_group_current_segment_start_time(mpdin->dash, group_idx) ));
 
