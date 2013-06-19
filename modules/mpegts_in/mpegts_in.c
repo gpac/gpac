@@ -246,9 +246,6 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		memcpy(esd->decoderConfig->decoderSpecificInfo->data, dsi, sizeof(char)*dsi_size);
 		esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_size;
 	}
-
-	esd->has_ref_base = GF_TRUE;
-
 	return esd;
 }
 
@@ -281,6 +278,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 			the_esd = MP2TS_GetESD(m2ts, (GF_M2TS_PES *)es, dsi, dsi_size);
 			if (the_esd) {
 				the_esd->dependsOnESID = cur_ES;
+				the_esd->has_ref_base = GF_TRUE;
 				gf_list_add(od->ESDescriptors, the_esd);
 			}
 			cur_ES = the_esd->ESID;
