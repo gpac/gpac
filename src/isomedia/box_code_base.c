@@ -6237,22 +6237,24 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 
 		default:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
-			genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
-			genm->size = a->size;
-			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
-			gf_bs_read_data(bs, genm->reserved, 6);
-			genm->dataReferenceIndex = gf_bs_read_u16(bs);
-			genm->data_size = (u32) gf_bs_available(bs);
-			if (genm->data_size) {
-				genm->data = (char*)gf_malloc(sizeof(char) * genm->data_size);
-				gf_bs_read_data(bs, genm->data, genm->data_size);
-			}
-			gf_bs_del(bs);
-			genm->size = a->size;
-			genm->EntryType = a->type;
-			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genm, i-1);
+      if (a->data && a->size) {
+			  gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
+			  genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
+			  genm->size = a->size;
+			  bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
+			  gf_bs_read_data(bs, genm->reserved, 6);
+			  genm->dataReferenceIndex = gf_bs_read_u16(bs);
+			  genm->data_size = (u32) gf_bs_available(bs);
+			  if (genm->data_size) {
+				  genm->data = (char*)gf_malloc(sizeof(char) * genm->data_size);
+				  gf_bs_read_data(bs, genm->data, genm->data_size);
+			  }
+			  gf_bs_del(bs);
+			  genm->size = a->size;
+			  genm->EntryType = a->type;
+			  gf_isom_box_del((GF_Box *)a);
+			  gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genm, i-1);
+      }
 			break;
 		}
 
