@@ -711,6 +711,14 @@ GF_Err gf_cleanup_dir(char* DirPathName);
 u32 gf_crc_32(const char *data, u32 size);
 
 
+/*!
+ *\brief gets UTC time in milliseconds 
+ *
+ *Gets UTC clock in milliseconds
+ \retrun UTC time in seconds
+ */
+u64 gf_net_get_utc();
+
 /*!\brief run-time system info object
  *
  *The Run-Time Info object is used to get CPU and memory occupation of the calling process.

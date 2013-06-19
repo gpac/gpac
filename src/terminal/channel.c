@@ -1394,7 +1394,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				return NULL;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch Pull AU DTS %d - CTS %d - size %d time %d\n", ch->esd->ESID, ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, gf_clock_real_time(ch->clock) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch Pull AU DTS %d - CTS %d - size %d time %d - UTC "LLU" ms\n", ch->esd->ESID, ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, gf_clock_real_time(ch->clock), gf_net_get_utc() ));
 	}
 
 	/*this may happen in file streaming when data has not arrived yet, in which case we discard the AU*/

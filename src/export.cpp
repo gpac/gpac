@@ -250,6 +250,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_ressource_extension) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_is_ipv6) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_mobileip_set_callback) )
