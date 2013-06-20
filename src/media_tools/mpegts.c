@@ -313,12 +313,23 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 				pck.data[0]=0;
 				pck.data_len = data_len+1;
 			}
-			nal_type = pck.data[4] & 0x1F;
-			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
-				pck.flags = GF_M2TS_PES_PCK_AU_START;
-			} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
-				pck.flags = GF_M2TS_PES_PCK_RAP;
-			} 
+			if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
+				nal_type = (pck.data[4] & 0x7E) >> 1;
+				if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
+					pck.flags = GF_M2TS_PES_PCK_AU_START;
+				} else if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
+					pck.flags = GF_M2TS_PES_PCK_RAP;
+				} 
+#endif
+			} else {
+				nal_type = pck.data[4] & 0x1F;
+				if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
+					pck.flags = GF_M2TS_PES_PCK_AU_START;
+				} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
+					pck.flags = GF_M2TS_PES_PCK_RAP;
+				} 
+			}
 		}
 		if (force_new_au) {
 			pck.flags |= GF_M2TS_PES_PCK_AU_START;
@@ -892,7 +903,7 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 }
 
 GF_EXPORT
-void gf_m2ts_es_del(GF_M2TS_ES *es)
+void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 {
 	gf_list_del_item(es->program->streams, es);
 
@@ -907,6 +918,10 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 
 	} else if (es->pid!=es->program->pmt_pid) {
 		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+
+		if ((pes->flags & GF_M2TS_INHERIT_PCR) && ts->ess[es->program->pcr_pid]==es)
+			ts->ess[es->program->pcr_pid] = NULL;
+
 		if (pes->data) gf_free(pes->data);
 		if (pes->prev_data) gf_free(pes->prev_data);
 		if (pes->buf) gf_free(pes->buf);
@@ -1582,6 +1597,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		GF_M2TS_PES *pes = NULL;
 		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es = NULL;
+		Bool inherit_pcr = 0;
 		u32 pid, stream_type, reg_desc_format;
 
 		stream_type = data[0];
@@ -1596,21 +1612,24 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
 		case GF_M2TS_VIDEO_DCII:
-		case GF_M2TS_AUDIO_MPEG1:
-		case GF_M2TS_AUDIO_MPEG2:
-		case GF_M2TS_AUDIO_AAC:
-		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_VIDEO_MPEG4:
 		case GF_M2TS_SYSTEMS_MPEG4_PES:
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
 		case GF_M2TS_VIDEO_HEVC:
+			inherit_pcr = 1;
+		case GF_M2TS_AUDIO_MPEG1:
+		case GF_M2TS_AUDIO_MPEG2:
+		case GF_M2TS_AUDIO_AAC:
+		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_DTS:
 		case GF_M2TS_SUBTITLE_DVB:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			pes->cc = -1;
 			pes->flags = GF_M2TS_ES_IS_PES;
+			if (inherit_pcr) 
+				pes->flags |= GF_M2TS_INHERIT_PCR;
 			es = (GF_M2TS_ES *)pes;
 			break;
 		case GF_M2TS_PRIVATE_DATA:
@@ -1784,7 +1803,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				gf_free(es);
 				es = NULL;
 			} else {
-				gf_m2ts_es_del(o_es);
+				gf_m2ts_es_del(o_es, ts);
 				ts->ess[es->pid] = NULL;
 			}
 		}
@@ -2318,18 +2337,36 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		return;
 	} else {
 		es = ts->ess[hdr.pid];
-		if (paf && paf->PCR_flag && es) {
-			GF_M2TS_PES_PCK pck;
-			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-			es->program->before_last_pcr_value = es->program->last_pcr_value;
-			es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
-			es->program->last_pcr_value_pck_number = ts->pck_number;
-			es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
-			if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
-			pck.PTS = es->program->last_pcr_value;
-			pck.stream = (GF_M2TS_PES *)es;
-			if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
-			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+		if (paf && paf->PCR_flag) {
+			if (!es) {
+				u32 i, j;
+				for(i=0;i<gf_list_count(ts->programs);i++){
+					GF_M2TS_Program *program = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
+					if(program->pcr_pid != hdr.pid) continue;
+					for (j=0; j<gf_list_count(program->streams); j++) {
+						GF_M2TS_PES *pes = (GF_M2TS_PES *) gf_list_get(program->streams, j);
+						if (pes->flags & GF_M2TS_INHERIT_PCR) {
+							ts->ess[hdr.pid] = (GF_M2TS_ES *) pes;
+							break;
+						}
+					}
+					break;
+				}
+				es = ts->ess[hdr.pid];
+			} 
+			if (es) {
+				GF_M2TS_PES_PCK pck;
+				memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+				es->program->before_last_pcr_value = es->program->last_pcr_value;
+				es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
+				es->program->last_pcr_value_pck_number = ts->pck_number;
+				es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
+				if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
+				pck.PTS = es->program->last_pcr_value;
+				pck.stream = (GF_M2TS_PES *)es;
+				if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
+				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+			}
 		}
 
 		/*check for DVB reserved PIDs*/
@@ -2645,7 +2682,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->tdt_tot) gf_m2ts_section_filter_del(ts->tdt_tot);
 
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		if (ts->ess[i]) gf_m2ts_es_del(ts->ess[i]);
+		if (ts->ess[i]) gf_m2ts_es_del(ts->ess[i], ts);
 	}
 	if (ts->buffer) gf_free(ts->buffer);
 	while (gf_list_count(ts->programs)) {
