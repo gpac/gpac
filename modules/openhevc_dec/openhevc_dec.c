@@ -45,7 +45,7 @@ typedef struct
 	Bool state_found;
 
 	u32 nalu_size_length;
-	u32 had_pic;
+	u32 restart_from;
 
 	GF_ESD *esd;
 } HEVCDec;
@@ -86,6 +86,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	} else {
 		ctx->nalu_size_length = 0;
 	}
+
 	ctx->stride = ctx->width;
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 	return GF_OK;
@@ -193,16 +194,57 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 }
 
+static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLength )
+{
+	unsigned int a_w, a_h, a_stride;
+    OpenHevc_Frame_cpy openHevcFrame;
+	u8 *pY, *pU, *pV;
+
+	libOpenHevcGetPictureInfo(openHevcHandle, &openHevcFrame.frameInfo);
+
+
+	a_w      = openHevcFrame.frameInfo.nWidth;
+    a_h      = openHevcFrame.frameInfo.nHeight;
+    a_stride = openHevcFrame.frameInfo.nYPitch;
+
+    if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)) {
+		ctx->width = a_w;
+		ctx->stride = a_stride;
+		ctx->height = a_h;
+		ctx->out_size = ctx->stride * a_w * 3 / 2;
+		/*always force layer resize*/
+		*outBufferLength = ctx->out_size;
+		return GF_BUFFER_TOO_SMALL;
+	}
+
+    pY = outBuffer;
+    pU = outBuffer + ctx->stride * ctx->height;
+    pV = outBuffer + 5*ctx->stride * ctx->height/4;
+    openHevcFrame.pvY = (void*) pY;
+    openHevcFrame.pvU = (void*) pU;
+    openHevcFrame.pvV = (void*) pV;
+    *outBufferLength = 0;
+    if (libOpenHevcGetOutputCpy(openHevcHandle, 1, &openHevcFrame)) {
+        *outBufferLength = ctx->out_size;
+    }
+    return GF_OK;
+}
+
+
 static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
-	unsigned int got_pic, a_w, a_h, a_stride;
+	GF_Err e;
+	unsigned int got_pic;
     OpenHevc_Frame_cpy openHevcFrame;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
-	u8 *pY, *pU, *pV;
+	u8 *pY, *pU, *pV, *ptr;
+	u32 nb_pics=0;
+	u32 input_data_consumed = 0;
+	u32 sc_size, i, nalu_size;
 
 
 	if (!inBuffer) {
@@ -228,97 +270,89 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_BUFFER_TOO_SMALL;
 	}
 
+	nb_pics = 0;
+	if (ctx->restart_from) {
+		inBuffer += ctx->restart_from;
+		inBufferLength -= ctx->restart_from;
+		ctx->restart_from = 0;
+
+		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength);
+		if (e) return e;
+		nb_pics ++;
+	}
+
 	got_pic = 0;
-	if (ctx->had_pic) {
-		got_pic = 1;
-		ctx->had_pic = 0;
-	} else {
-		u32 sc_size = 0;
-		u32 i, nalu_size = 0;
-		u8 *ptr = inBuffer;
 
-		if (!ctx->nalu_size_length) {
-			u32 size = gf_media_nalu_next_start_code(inBuffer, inBufferLength, &sc_size);
-			if (sc_size) {
-				ptr += size+sc_size;
-				inBufferLength-=size+sc_size;
-			}
-		}
-
-		while (inBufferLength) {
-						
-			if (ctx->nalu_size_length) {
-				for (i=0; i<ctx->nalu_size_length; i++) {
-					nalu_size = (nalu_size<<8) + ptr[i];
-				}
-				ptr += ctx->nalu_size_length;
-			} else {
-				nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
-			}
-
-			if (!ctx->state_found) {
-				u8 nal_type = (ptr[0] & 0x7E) >> 1;
-				switch (nal_type) {
-				case GF_HEVC_NALU_VID_PARAM:
-				case GF_HEVC_NALU_SEQ_PARAM:
-				case GF_HEVC_NALU_PIC_PARAM:
-					ctx->state_found = GF_TRUE;
-					break;
-				}
-			}
-
-			if (ctx->state_found) {
-				if (!got_pic) {
-					got_pic = libOpenHevcDecode(openHevcHandle, ptr, nalu_size, 0);
-				} else {
-//					libOpenHevcDecode(ptr, nalu_size);
-//					printf("%d bytes left over from frame - nal type %d\n", nalu_size, (ptr[0] & 0x7E) >> 1 );
-				}
-			}
-
-			ptr += nalu_size;
-			if (ctx->nalu_size_length) {
-				if (inBufferLength < nalu_size + ctx->nalu_size_length) break;
-				inBufferLength -= nalu_size + ctx->nalu_size_length;
-			} else {
-				if (!sc_size || (inBufferLength < nalu_size + sc_size)) break;
-				inBufferLength -= nalu_size + sc_size;
-				ptr += sc_size;
-			}
-		}
-		if (got_pic==0) {
-			*outBufferLength = 0;
-			return GF_OK;
+	sc_size = 0;
+	nalu_size = 0;
+	ptr = inBuffer;
+	if (!ctx->nalu_size_length) {
+		u32 size = gf_media_nalu_next_start_code(inBuffer, inBufferLength, &sc_size);
+		if (sc_size) {
+			ptr += size+sc_size;
+			inBufferLength-=size+sc_size;
 		}
 	}
 
-	libOpenHevcGetPictureInfo(openHevcHandle, &openHevcFrame.frameInfo);
+	while (inBufferLength) {
 
-    a_w      = openHevcFrame.frameInfo.nWidth;
-    a_h      = openHevcFrame.frameInfo.nHeight;
-    a_stride = openHevcFrame.frameInfo.nYPitch;
+		if (ctx->nalu_size_length) {
+			for (i=0; i<ctx->nalu_size_length; i++) {
+				nalu_size = (nalu_size<<8) + ptr[i];
+			}
+			ptr += ctx->nalu_size_length;
+		} else {
+			nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
+		}
 
-    if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)) {
-		ctx->width = a_w;
-		ctx->stride = a_stride;
-		ctx->height = a_h;
-		ctx->out_size = ctx->stride * a_w * 3 / 2;
-		ctx->had_pic = 1;
-		/*always force layer resize*/
-		*outBufferLength = ctx->out_size;
-		return GF_BUFFER_TOO_SMALL;
+		//fprintf(stderr, "HEVC decode NAL type %d size %d\n", (ptr[0] & 0x7E) >> 1, nalu_size);
+
+		if (!ctx->state_found) {
+			u8 nal_type = (ptr[0] & 0x7E) >> 1;
+			switch (nal_type) {
+			case GF_HEVC_NALU_VID_PARAM:
+			case GF_HEVC_NALU_SEQ_PARAM:
+			case GF_HEVC_NALU_PIC_PARAM:
+				ctx->state_found = GF_TRUE;
+				break;
+			}
+		}
+
+		if (ctx->state_found) {
+			got_pic = libOpenHevcDecode(openHevcHandle, ptr, nalu_size, 0);
+			if (got_pic) {
+				nb_pics ++;
+				e = HEVC_flush_picture(ctx, outBuffer, outBufferLength);
+				if (e) {
+					if (e==GF_BUFFER_TOO_SMALL) {
+						if (ctx->nalu_size_length) {
+							ctx->restart_from = nalu_size + ctx->nalu_size_length;
+						} else {
+							ctx->restart_from = input_data_consumed + sc_size;
+						}
+					}
+					return e;
+				}
+				got_pic = 0;
+			}
+		}
+
+		ptr += nalu_size;
+		if (ctx->nalu_size_length) {
+			if (inBufferLength < nalu_size + ctx->nalu_size_length) break;
+			inBufferLength -= nalu_size + ctx->nalu_size_length;
+			input_data_consumed += nalu_size + ctx->nalu_size_length;
+		} else {
+			if (!sc_size || (inBufferLength < nalu_size + sc_size)) break;
+			inBufferLength -= nalu_size + sc_size;
+			ptr += sc_size;
+			input_data_consumed += sc_size;
+		}
 	}
-
-    pY = outBuffer;
-    pU = outBuffer + ctx->stride * ctx->height;
-    pV = outBuffer + 5*ctx->stride * ctx->height/4;
-    openHevcFrame.pvY = (void*) pY;
-    openHevcFrame.pvU = (void*) pU;
-    openHevcFrame.pvV = (void*) pV;
-    *outBufferLength = 0;
-    if (libOpenHevcGetOutputCpy(openHevcHandle, 1, &openHevcFrame)) {
-        *outBufferLength = ctx->out_size;
-    }
+	if (!nb_pics && (got_pic==0)) {
+		*outBufferLength = 0;
+		return GF_OK;
+	}
     
 	return GF_OK;
 }
