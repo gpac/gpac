@@ -27,6 +27,9 @@
 #define MESSAGE_QUEUE_H_
 
 #define GPAC_THREAD
+#ifdef WIN32
+#define SEM
+#endif
 
 #include <string.h>
 #include <stdlib.h>
@@ -51,7 +54,11 @@ typedef struct MessageQueue {
 	MessageQueueNode * first_node;
 	int nb_nodes;
 #ifdef GPAC_THREAD
+#ifdef SEM
+	GF_Semaphore * sem;
+#else
 	GF_Condition * cond;
+#endif
 	GF_Mutex * mux;
 #else
 	pthread_mutex_t mux;

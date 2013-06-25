@@ -252,7 +252,6 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 
 void dc_cmd_data_init(CmdData * p_cmdd) {
 
-
 	dc_audio_data_set_default(&p_cmdd->adata);
 	dc_video_data_set_default(&p_cmdd->vdata);
 
@@ -300,7 +299,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 	int i;
 
-	char * psz_command_usage =
+	const char * psz_command_usage =
 			"Usage: DashCast [options]\n"
 					"\n"
 					"Options:\n"
@@ -394,7 +393,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				}
 				//p_cmdd->psz_asrc = malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->adata.psz_name, p_argv[i]);
-				strcat(p_cmdd->adata.psz_name, "\0");
 			}
 
 			if (strcmp(p_argv[i - 1], "-v") == 0
@@ -407,7 +405,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 				//p_cmdd->psz_vsrc = malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->vdata.psz_name, p_argv[i]);
-				strcat(p_cmdd->vdata.psz_name, "\0");
 			}
 
 			i++;
@@ -430,7 +427,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				}
 				//p_cmdd->psz_af = malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->adata.psz_format, p_argv[i]);
-				strcat(p_cmdd->adata.psz_format, "\0");
 			}
 
 			if (strcmp(p_argv[i - 1], "-vf") == 0) {
@@ -442,7 +438,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 				//p_cmdd->psz_vf = malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->vdata.psz_format, p_argv[i]);
-				strcat(p_cmdd->vdata.psz_format, "\0");
 			}
 
 			i++;
@@ -464,7 +459,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			//p_cmdd->psz_vfr = malloc(strlen(p_argv[i]) + 1);
 			p_cmdd->vdata.i_framerate = atoi(p_argv[i]);
 			//strcpy(p_cmdd->psz_vfr, p_argv[i]);
-			//strcat(p_cmdd->psz_vfr, "\0");
 
 			i++;
 
@@ -520,7 +514,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			}
 
 			strcpy(p_cmdd->psz_out, p_argv[i]);
-			strcat(p_cmdd->psz_out, "\0");
+
 
 			i++;
 
@@ -533,7 +527,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			}
 
 			strcpy(p_cmdd->vdata.psz_v4l2f, p_argv[i]);
-			strcat(p_cmdd->vdata.psz_v4l2f, "\0");
 
 			i++;
 
@@ -714,7 +707,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		strcpy(p_cmdd->psz_out, "output/");
 
 		if (stat(p_cmdd->psz_out, &status) != 0) {
-			//TODO: check equivalence with previous: mkdir(p_cmdd->psz_out, 0777);
 			gf_mkdir(p_cmdd->psz_out);
 		}
 	}

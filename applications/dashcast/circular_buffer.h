@@ -26,11 +26,14 @@
 #ifndef CIRCULAR_BUFFER_H_
 #define CIRCULAR_BUFFER_H_
 
-//#define SEM
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <gpac/thread.h>
+
+#ifdef WIN32
+#define SEM
+#endif
+
 
 /*
  * The method (mode) of multithread management.
