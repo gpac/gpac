@@ -64,7 +64,7 @@ int dc_read_configuration(CmdData * p_cmdd) {
 //		gf_cfg_set_key(p_conf, "v1", "codec", "libx264");
 
 		gf_cfg_set_key(p_conf, "a1", "type", "audio");
-		gf_cfg_set_key(p_conf, "a1", "bitrate", "200000");
+		gf_cfg_set_key(p_conf, "a1", "bitrate", "192000");
 //		gf_cfg_set_key(p_conf, "a1", "samplerate", "48000");
 //		gf_cfg_set_key(p_conf, "a1", "channels", "2");
 //		gf_cfg_set_key(p_conf, "a1", "codec", "aac");
