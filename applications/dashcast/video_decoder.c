@@ -253,7 +253,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS %d decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
-				//TODO: This might cause some probles in future.
+				//TODO: This might cause some problems in future.
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.

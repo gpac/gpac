@@ -33,7 +33,11 @@ void dc_message_queue_init(MessageQueue *mq) {
 	mq->nb_nodes = 0;
 #ifdef GPAC_THREAD
 	mq->mux = gf_mx_new("MessageQueue Mutex");
+#ifdef SEM
+	mq->sem = gf_sema_new(1000, 0); //TODO: why 1000 (at other places too)
+#else
 	mq->cond = gf_cond_new();
+#endif
 #else
 	pthread_mutex_init(&mq->mux, NULL);
 	pthread_cond_init(&mq->cond, NULL);
@@ -64,7 +68,11 @@ void dc_message_queue_put(MessageQueue *mq, void *data, int size) {
 	mq->nb_nodes++;
 
 #ifdef GPAC_THREAD
+#ifdef SEM
+	gf_sema_notify(mq->sem, 1);
+#else
 	gf_cond_signal(mq->cond);
+#endif
 	gf_mx_v(mq->mux);
 #else
 	pthread_cond_signal(&mq->cond);
@@ -88,7 +96,14 @@ int dc_message_queue_get(MessageQueue *mq, void * data) {
 
 	if(!mqn) {
 #ifdef GPAC_THREAD
+#ifdef SEM
+		gf_mx_v(mq->mux);
+		gf_sema_wait(mq->sem);
+		gf_mx_p(mq->mux);
+#else
+		//FIXME: doesn't work: semaphore based replacement above
 		gf_cond_wait(mq->cond, mq->mux);
+#endif
 #else
 		pthread_cond_wait(&mq->cond, &mq->mux);
 #endif
@@ -139,7 +154,11 @@ void dc_message_queue_flush(MessageQueue *mq) {
 
 
 #ifdef GPAC_THREAD
+#ifdef SEM
+	gf_sema_notify(mq->sem, 1);
+#else
 	gf_cond_signal(mq->cond);
+#endif
 	gf_mx_v(mq->mux);
 #else
 	pthread_cond_signal(&mq->cond);
@@ -152,7 +171,11 @@ void dc_message_queue_free(MessageQueue *mq) {
 	dc_message_queue_flush(mq);
 #ifdef GPAC_THREAD
 	gf_mx_del(mq->mux);
+#ifdef SEM
+	gf_sema_del(mq->sem);
+#else
 	gf_cond_del(mq->cond);
+#endif
 #else
 	pthread_mutex_destroy(&mq->mux);
 	pthread_cond_destroy(&mq->cond);
