@@ -83,9 +83,9 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 	/*  Find the first video stream */
 	p_vin->i_vstream_idx = -1;
 	for (i = 0; i < p_vin->p_fmt_ctx->nb_streams; i++) {
-		if (p_vin->p_fmt_ctx->streams[i]->codec->codec_type
-				== AVMEDIA_TYPE_VIDEO) {
+		if (p_vin->p_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
 			p_vin->i_vstream_idx = i;
+			break;
 		}
 	}
 	if (p_vin->i_vstream_idx == -1) {

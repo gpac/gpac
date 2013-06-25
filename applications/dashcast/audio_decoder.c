@@ -47,8 +47,7 @@ int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int i_mod
 	/*
 	 * Open audio
 	 */
-	if (avformat_open_input(&p_ain->p_fmt, p_adata->psz_name, p_in_fmt, NULL)
-			!= 0) {
+	if (avformat_open_input(&p_ain->p_fmt, p_adata->psz_name, p_in_fmt, NULL) != 0) {
 		fprintf(stderr, "Cannot open file: %s\n", p_adata->psz_name);
 		return -1;
 	}
@@ -70,6 +69,7 @@ int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int i_mod
 	for (i = 0; i < p_ain->p_fmt->nb_streams; i++) {
 		if (p_ain->p_fmt->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			p_ain->i_astream_idx = i;
+			break;
 		}
 	}
 	if (p_ain->i_astream_idx == -1) {

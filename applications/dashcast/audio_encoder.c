@@ -36,7 +36,7 @@ int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
 	p_aout->p_aframe = avcodec_alloc_frame();
 	p_aout->p_adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
 
-	p_aout->p_codec = avcodec_find_encoder_by_name("aac"/*p_adata->psz_codec*/);
+	p_aout->p_codec = avcodec_find_encoder_by_name("mp2"/*FIXME: p_adata->psz_codec - Note: windows build doesn't seem to have AAC*/);
 	if (p_aout->p_codec == NULL) {
 		fprintf(stderr, "Output audio codec not found\n");
 		return -1;
@@ -83,6 +83,7 @@ int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
 
 	/* open the audio codec */
 	if (avcodec_open2(p_aout->p_codec_ctx, p_aout->p_codec, NULL) < 0) {
+		/*FIXME: if we enter here (set "mp2" as a codec and "200000" as a bitrate -> deadlock*/
 		fprintf(stderr, "Cannot open output audio codec\n");
 		return -1;
 	}
