@@ -62,7 +62,8 @@ void dc_video_scaler_node_destroy(VideoScaledDataNode * p_vsdn) {
 void dc_video_scaler_list_init(VideoScaledDataList * p_vsdl,
 		GF_List * p_video_lst) {
 
-	int i, j;
+	u32 i;
+	int j;
 	int found;
 
 	p_vsdl->i_size = 0;
@@ -70,8 +71,8 @@ void dc_video_scaler_list_init(VideoScaledDataList * p_vsdl,
 
 	for (i = 0; i < gf_list_count(p_video_lst); i++) {
 
+		VideoData * p_vconf = (VideoData*)gf_list_get(p_video_lst, i);
 		found = 0;
-		VideoData * p_vconf = gf_list_get(p_video_lst, i);
 		for (j = 0; j < p_vsdl->i_size; j++) {
 			if (p_vsdl->p_vsd[j]->i_out_height == p_vconf->i_height
 					&& p_vsdl->p_vsd[j]->i_out_width == p_vconf->i_width) {

@@ -27,6 +27,8 @@
 
 int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
 
+	int i_osize;
+
 	//AVCodec * p_audio_codec;
 	//AVStream * p_audio_stream;
 
@@ -85,7 +87,7 @@ int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
 		return -1;
 	}
 
-	int i_osize = av_get_bytes_per_sample(p_aout->p_codec_ctx->sample_fmt);
+	i_osize = av_get_bytes_per_sample(p_aout->p_codec_ctx->sample_fmt);
 
 	p_aout->i_frame_bytes = p_aout->p_codec_ctx->frame_size * i_osize
 			* p_aout->p_codec_ctx->channels;

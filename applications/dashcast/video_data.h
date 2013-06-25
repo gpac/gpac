@@ -26,9 +26,9 @@
 #ifndef VIDEO_DATA_H_
 #define VIDEO_DATA_H_
 
-
-#include "libav/include/libavcodec/avcodec.h"
-#include "libav/include/libswscale/swscale.h"
+#include "../../modules/ffmpeg_in/ffmpeg_in.h"
+#include "libavcodec/avcodec.h"
+#include "libswscale/swscale.h"
 
 #include "circular_buffer.h"
 

@@ -24,14 +24,14 @@
  */
 
 #include "video_decoder.h"
-#include <sys/time.h>
+#include <time.h>
 #include <gpac/network.h>
 
 //#define DASHCAST_DEBUG_TIME_
 
 int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mode, int i_no_loop) {
 
-	int i;
+	u32 i;
 	AVInputFormat * p_in_fmt = NULL;
 	AVDictionary * p_options = NULL;
 	AVCodecContext * p_codec_ctx;

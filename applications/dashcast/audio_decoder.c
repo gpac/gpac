@@ -27,7 +27,7 @@
 
 int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int i_mode, int i_no_loop) {
 
-	int i;
+	u32 i;
 	AVInputFormat * p_in_fmt = NULL;
 	AVCodecContext * p_codec_ctx;
 	AVCodec * p_codec;

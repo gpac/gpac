@@ -26,15 +26,18 @@
 #ifndef VIDEO_MUXER_H_
 #define VIDEO_MUXER_H_
 
-#include "libav/include/libavformat/avformat.h"
-#include "libav/include/libavdevice/avdevice.h"
-#include "libav/include/libswscale/swscale.h"
-#include "libav/include/libavutil/mathematics.h"
+#include "../../modules/ffmpeg_in/ffmpeg_in.h"
+#include "libavformat/avformat.h"
+#ifndef WIN32
+#include "libavdevice/avdevice.h"
+#endif
+#include "libswscale/swscale.h"
+#include "libavutil/mathematics.h"
 #include <gpac/isomedia.h>
 #include <gpac/internal/media_dev.h>
 
 #include "video_scaler.h"
-//#include "libav_compat.h"
+#include "libav_compat.h"
 
 
 typedef enum {

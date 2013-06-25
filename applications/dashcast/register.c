@@ -49,7 +49,9 @@ void dc_register_libav() {
 
 	av_register_all();
 	avcodec_register_all();
+#ifndef WIN32
 	avdevice_register_all();
+#endif
 	avformat_network_init();
 
 	av_lockmgr_register(&lock_call_back);

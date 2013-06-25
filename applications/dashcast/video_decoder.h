@@ -26,10 +26,13 @@
 #ifndef VIDEO_DECODER_H_
 #define VIDEO_DECODER_H_
 
-#include "libav/include/libavformat/avformat.h"
-#include "libav/include/libavdevice/avdevice.h"
-
 #include "video_data.h"
+
+#include "libavformat/avformat.h"
+#ifndef WIN32
+#include "libavdevice/avdevice.h"
+#endif
+
 
 /*
  * The structure which keeps the data of
