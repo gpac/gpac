@@ -231,7 +231,23 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 
 #ifdef WIN32
 	t->threadH = CreateThread(NULL,  t->stackSize, &(RunThread), (void *)t, 0, &id);
-	if (t->threadH == NULL) {
+	if (t->threadH != NULL) {
+		/*add thread name for the msvc debugger*/
+#pragma pack(push,8)
+		typedef struct {
+			DWORD dwType;
+			LPCSTR szName;
+			DWORD dwThreadID;
+			DWORD dwFlags;
+		} THREADNAME_INFO;
+#pragma pack(pop)
+		THREADNAME_INFO info;
+		info.dwType = 0x1000;
+		info.szName = t->log_name;
+		info.dwThreadID = id;
+		info.dwFlags = 0;
+		RaiseException(0x406D1388, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+	} else {
 #else
 	if ( pthread_attr_init(&att) != 0 ) return GF_IO_ERR;
 	pthread_attr_setdetachstate(&att, PTHREAD_CREATE_JOINABLE);
