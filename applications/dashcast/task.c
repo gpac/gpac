@@ -39,7 +39,7 @@ void dc_task_destroy(TaskList * list) {
 
 void dc_task_add(TaskList * list, int source_number, char * id, time_t start, time_t end) {
 
-	Task * task = malloc(sizeof(Task));
+	Task * task = gf_malloc(sizeof(Task));
 
 	task->source_number = source_number;
 	strncpy(task->id, id, MAX_ID_SIZE);

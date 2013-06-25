@@ -1197,7 +1197,7 @@ int dc_run_controler(CmdData * p_in_data) {
 	dc_register_libav();
 
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
-		vinf[i] = malloc(sizeof(VideoInputFile));
+		vinf[i] = gf_malloc(sizeof(VideoInputFile));
 
 	dc_message_queue_init(&mq);
 	dc_message_queue_init(&delete_seg_mq);
@@ -1207,7 +1207,7 @@ int dc_run_controler(CmdData * p_in_data) {
 
 		dc_video_scaler_list_init(&p_vsdl, p_in_data->p_video_lst);
 
-		vscaler_th_params = malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
+		vscaler_th_params = gf_malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
 
 		/* Open input video */
 		if (dc_video_decoder_open(vinf[0], &p_in_data->vdata, p_in_data->i_mode,
@@ -1613,7 +1613,7 @@ int dc_run_controler(CmdData * p_in_data) {
 #endif
 
 	if (vscaler_th_params)
-		free(vscaler_th_params);
+		gf_free(vscaler_th_params);
 
 	return 0;
 }

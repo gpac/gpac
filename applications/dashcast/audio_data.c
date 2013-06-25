@@ -61,11 +61,11 @@ int dc_audio_input_data_init(AudioInputData * p_aid, int i_channels, int i_sampl
 			i_maxcon);
 
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {
-		AudioDataNode * p_adn = malloc(sizeof(AudioDataNode));
+		AudioDataNode * p_adn = gf_malloc(sizeof(AudioDataNode));
 		p_aid->p_cb.p_list[i].p_data = (void *) p_adn;
 
 		p_adn->i_abuf_size = MAX_AUDIO_PACKET_SIZE;
-		p_adn->p_abuf = malloc(p_adn->i_abuf_size * sizeof(uint8_t));
+		p_adn->p_abuf = gf_malloc(p_adn->i_abuf_size * sizeof(uint8_t));
 
 	}
 
@@ -89,7 +89,7 @@ void dc_audio_input_data_destroy(AudioInputData * p_aid) {
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {
 		AudioDataNode * p_adn = p_aid->p_cb.p_list[i].p_data;
 		av_free(p_adn->p_abuf);
-		free(p_adn);
+		gf_free(p_adn);
 	}
 
 	dc_circular_buffer_destroy(&p_aid->p_cb);
