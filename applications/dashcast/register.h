@@ -27,9 +27,12 @@
 #define REGISTER_H_
 
 //#include <pthread.h>
-#include "libav/include/libavcodec/avcodec.h"
-#include "libav/include/libavdevice/avdevice.h"
-#include "libav/include/libavformat/avformat.h"
+#include "../../modules/ffmpeg_in/ffmpeg_in.h"
+#include "libavcodec/avcodec.h"
+#ifndef WIN32
+#include "libavdevice/avdevice.h"
+#endif
+#include "libavformat/avformat.h"
 
 #include <gpac/thread.h>
 

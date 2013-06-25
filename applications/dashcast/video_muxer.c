@@ -24,7 +24,7 @@
  */
 
 #include "video_muxer.h"
-#include "libav/include/libavutil/opt.h"
+#include "libavutil/opt.h"
 
 int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 
@@ -254,10 +254,11 @@ int dc_raw_h264_close(VideoOutputFile * p_voutf) {
 
 int dc_ffmpeg_video_muxer_open(VideoOutputFile * p_voutf, char * psz_name) {
 
-	p_voutf->p_fmt = NULL;
+	AVStream * p_video_stream;
 	AVOutputFormat * p_output_fmt;
 
 	AVCodecContext * p_video_codec_ctx = p_voutf->p_codec_ctx;
+	p_voutf->p_fmt = NULL;
 
 //	p_voutf->i_vbr = p_vconf->i_bitrate;
 //	p_voutf->i_vfr = p_vconf->i_framerate;
@@ -290,7 +291,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile * p_voutf, char * psz_name) {
 		}
 	}
 
-	AVStream * p_video_stream = avformat_new_stream(p_voutf->p_fmt,
+	p_video_stream = avformat_new_stream(p_voutf->p_fmt,
 			p_voutf->p_codec);
 	if (!p_video_stream) {
 		fprintf(stderr, "Cannot create output video stream\n");
@@ -304,9 +305,12 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile * p_voutf, char * psz_name) {
 	p_video_stream->codec->bit_rate = p_video_codec_ctx->bit_rate; //p_voutf->p_vdata->i_bitrate;
 	p_video_stream->codec->width = p_video_codec_ctx->width; //p_voutf->p_vdata->i_width;
 	p_video_stream->codec->height = p_video_codec_ctx->height; //p_voutf->p_vdata->i_height;
-	p_video_stream->codec->time_base =
-			(AVRational) {p_video_codec_ctx->time_base.num ,
-						p_video_codec_ctx->time_base.den};
+	{
+		AVRational time_base; 
+		time_base.num = p_video_codec_ctx->time_base.num;
+		time_base.den = p_video_codec_ctx->time_base.den;
+		p_video_stream->codec->time_base = time_base;
+	}
 	p_video_stream->codec->pix_fmt = PIX_FMT_YUV420P;
 	p_video_stream->codec->gop_size = p_video_codec_ctx->time_base.den; //p_voutf->p_vdata->i_framerate;
 
@@ -358,7 +362,7 @@ int dc_ffmpeg_video_muxer_write(VideoOutputFile * p_voutf) {
 
 int dc_ffmpeg_video_muxer_close(VideoOutputFile * p_voutf) {
 
-	int i;
+	u32 i;
 
 	av_write_trailer(p_voutf->p_fmt);
 

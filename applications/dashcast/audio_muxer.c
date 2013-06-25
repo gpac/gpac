@@ -24,7 +24,7 @@
  */
 
 #include "audio_muxer.h"
-#include "libav/include/libavformat/avio.h"
+#include "libavformat/avio.h"
 
 int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 
@@ -33,6 +33,8 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 	AVCodecContext * p_audio_codec_ctx = p_aoutf->p_codec_ctx;
 	u32 di;
 	u32 track;
+	u8 bpsample;
+	GF_ESD * p_esd;
 	GF_M4ADecSpecInfo acfg;
 
 	p_aoutf->p_isof = gf_isom_open(psz_name,
@@ -52,7 +54,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 
 	acfg.audioPL = gf_m4a_get_profile(&acfg);
 
-	GF_ESD * p_esd = gf_odf_desc_esd_new(2);
+	p_esd = gf_odf_desc_esd_new(2);
 
 	if (!p_esd) {
 		fprintf(stderr, "Cannot create GF_ESD\n");
@@ -100,7 +102,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 	gf_odf_desc_del((GF_Descriptor *) p_esd);
 	p_esd = NULL;
 
-	u8 bpsample = av_get_bytes_per_sample(p_aoutf->p_codec_ctx->sample_fmt) * 8;
+	bpsample = av_get_bytes_per_sample(p_aoutf->p_codec_ctx->sample_fmt) * 8;
 
 	ret = gf_isom_set_audio_info(p_aoutf->p_isof, track, di,
 			p_audio_codec_ctx->sample_rate, p_aoutf->p_codec_ctx->channels,
@@ -233,10 +235,11 @@ int dc_gpac_audio_isom_close(AudioOutputFile * p_aoutf) {
 
 int dc_ffmpeg_audio_muxer_open(AudioOutputFile * p_aoutf, char * psz_name) {
 
-	p_aoutf->p_fmt = NULL;
+	AVStream * p_audio_stream;
 	AVOutputFormat * p_output_fmt;
 
 	AVCodecContext * p_audio_codec_ctx = p_aoutf->p_codec_ctx;
+	p_aoutf->p_fmt = NULL;
 
 //	strcpy(p_aoutf->psz_name, p_aconf->psz_name);
 //	p_aoutf->i_abr = p_aconf->i_bitrate;
@@ -270,7 +273,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile * p_aoutf, char * psz_name) {
 		}
 	}
 
-	AVStream * p_audio_stream = avformat_new_stream(p_aoutf->p_fmt,
+	p_audio_stream = avformat_new_stream(p_aoutf->p_fmt,
 			p_aoutf->p_codec);
 	if (!p_audio_stream) {
 		fprintf(stderr, "Cannot create output video stream\n");
@@ -312,7 +315,7 @@ int dc_ffmpeg_audio_muxer_write(AudioOutputFile * p_aout) {
 				p_audio_codec_ctx->time_base, p_audio_stream->time_base);
 
 	if (p_aout->packet.duration > 0)
-		p_aout->packet.duration = av_rescale_q(p_aout->packet.duration,
+		p_aout->packet.duration = (int)av_rescale_q(p_aout->packet.duration,
 				p_audio_codec_ctx->time_base, p_audio_stream->time_base);
 	/*
 	 * if (pkt.pts != AV_NOPTS_VALUE)
@@ -336,7 +339,7 @@ int dc_ffmpeg_audio_muxer_write(AudioOutputFile * p_aout) {
 
 int dc_ffmpeg_audio_muxer_close(AudioOutputFile * p_aoutf) {
 
-	int i;
+	u32 i;
 
 	av_write_trailer(p_aoutf->p_fmt);
 

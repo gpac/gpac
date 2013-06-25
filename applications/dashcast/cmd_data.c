@@ -27,8 +27,7 @@
 
 int dc_str_to_resolution(char * psz_str, int * p_width, int * p_height) {
 
-	char * p_save = NULL;
-	char * token = (char *) strtok_r(psz_str, "x", &p_save);
+	char * token = strtok(psz_str, "x");
 
 	if (!token) {
 		fprintf(stderr, "Cannot parse resolution string.\n");
@@ -36,7 +35,7 @@ int dc_str_to_resolution(char * psz_str, int * p_width, int * p_height) {
 	}
 	*p_width = atoi(token);
 
-	token = (char *) strtok_r(NULL, " ", &p_save);
+	token = strtok(NULL, " ");
 
 	if (!token) {
 		fprintf(stderr, "Cannot parse resolution string.\n");
@@ -49,11 +48,11 @@ int dc_str_to_resolution(char * psz_str, int * p_width, int * p_height) {
 
 int dc_read_configuration(CmdData * p_cmdd) {
 
-	int i;
+	u32 i;
 
 	GF_Config * p_conf = p_cmdd->p_conf;
 
-	int i_sec_count = gf_cfg_get_section_count(p_conf);
+	u32 i_sec_count = gf_cfg_get_section_count(p_conf);
 
 	if (i_sec_count == 0) {
 
@@ -135,11 +134,28 @@ int dc_read_configuration(CmdData * p_cmdd) {
 	return 0;
 }
 
+/**
+ * Parse time from a string to a struct tm.
+ */
+static Bool parse_time(const char* str_time, struct tm *tm_time) {
+	if (!tm_time)
+		return GF_FALSE;
+
+#if defined(__GNUC__)
+	strptime(str_time, "%Y-%m-%d %H:%M:%S", &tm_tm);
+#elif defined(WIN32)
+	assert(0); //TODO
+#else
+#error
+#endif
+
+	return GF_TRUE;
+}
+
 int dc_read_switch_config(CmdData * p_cmdd) {
 
-	int i;
+	u32 i;
 	int src_number;
-	dc_task_init(&p_cmdd->task_list);
 
 	char start_time[4096], end_time[4096];
 
@@ -148,10 +164,10 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 	struct tm end_tm  = *localtime(&now_t);
 
 	GF_Config * p_conf = p_cmdd->p_switch_conf;
+  
+	u32 i_sec_count = gf_cfg_get_section_count(p_conf);
 
-
-
-	int i_sec_count = gf_cfg_get_section_count(p_conf);
+	dc_task_init(&p_cmdd->task_list);
 
 	if (i_sec_count == 0) {
 		return 0;
@@ -172,10 +188,10 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
 
 			strcpy(start_time, gf_cfg_get_key(p_conf, psz_sec_name, "start"));
-			strptime(start_time, "%Y-%m-%d %H:%M:%S", &start_tm);
+			parse_time(start_time, &start_tm);
 			p_vconf->start_time = mktime(&start_tm);
 			strcpy(end_time, gf_cfg_get_key(p_conf, psz_sec_name, "end"));
-			strptime(end_time, "%Y-%m-%d %H:%M:%S", &end_tm);
+			parse_time(end_time, &end_tm);
 			p_vconf->end_time = mktime(&end_tm);
 
 			gf_list_add(p_cmdd->p_vsrc, (void *) p_vconf);
@@ -192,11 +208,11 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
 
 			strcpy(start_time, gf_cfg_get_key(p_conf, psz_sec_name, "start"));
-			strptime(start_time, "%Y-%m-%d %H:%M:%S", &start_tm);
+			parse_time(start_time, &start_tm);
 			p_aconf->start_time = mktime(&start_tm);
 
 			strcpy(end_time, gf_cfg_get_key(p_conf, psz_sec_name, "end"));
-			strptime(end_time, "%Y-%m-%d %H:%M:%S", &end_tm);
+			parse_time(end_time, &end_tm);
 			p_aconf->end_time = mktime(&end_tm);
 
 			gf_list_add(p_cmdd->p_asrc, (void *) p_aconf);
@@ -522,13 +538,14 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			i++;
 
 		} else if (strcmp(p_argv[i], "-seg-marker") == 0) {
+			char * m;
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
 				printf("%s", psz_command_usage);
 				return -1;
 			}
-			char * m = p_argv[i];
+			m = p_argv[i];
 			if (strlen(m) == 4) {
 				p_cmdd->i_seg_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 			} else {
@@ -639,7 +656,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return -1;
 			}
 
-			p_cmdd->f_minbuftime = atof(p_argv[i]);
+			p_cmdd->f_minbuftime = (float)atof(p_argv[i]);
 			i++;
 
 		} else if (strcmp(p_argv[i], "-live") == 0) {
@@ -692,12 +709,13 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	}
 
 	if (strcmp(p_cmdd->psz_out, "") == 0) {
-		strcpy(p_cmdd->psz_out, "output/");
-
 		struct stat status;
 
+		strcpy(p_cmdd->psz_out, "output/");
+
 		if (stat(p_cmdd->psz_out, &status) != 0) {
-			mkdir(p_cmdd->psz_out, 0777);
+			//TODO: check equivalence with previous: mkdir(p_cmdd->psz_out, 0777);
+			gf_mkdir(p_cmdd->psz_out);
 		}
 	}
 

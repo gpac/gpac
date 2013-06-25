@@ -26,11 +26,10 @@
 #ifndef AUDIO_DECODER_H_
 #define AUDIO_DECODER_H_
 
-#include "libav/include/libavformat/avformat.h"
-#include "libav/include/libavdevice/avdevice.h"
-#include "libav/include/libavutil/fifo.h"
-
 #include "audio_data.h"
+
+#include "libavformat/avformat.h"
+#include "libavutil/fifo.h"
 
 /*
  * The structure which keeps the data of

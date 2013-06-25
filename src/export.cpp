@@ -215,6 +215,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_notify) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait_for) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cond_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cond_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cond_wait) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cond_signal) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cond_broadcast) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_lock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_unlock) )
 
@@ -930,6 +935,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_append_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_close_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_traf_base_media_decode_time) )
 #endif
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -1250,6 +1258,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_version_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_object_type_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_profile) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_profile_name) )
 
 #if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)

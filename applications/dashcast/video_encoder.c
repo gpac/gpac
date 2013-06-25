@@ -25,7 +25,7 @@
 
 #include "video_encoder.h"
 
-#include "libav/include/libavutil/opt.h"
+#include "libavutil/opt.h"
 
 //#define DEBUG 1
 
@@ -58,8 +58,12 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	p_voutf->p_codec_ctx->bit_rate = p_vdata->i_bitrate;
 	p_voutf->p_codec_ctx->width = p_vdata->i_width;
 	p_voutf->p_codec_ctx->height = p_vdata->i_height;
-	p_voutf->p_codec_ctx->time_base = (AVRational) {1 ,
-				p_vdata->i_framerate};
+	{
+		AVRational time_base; 
+		time_base.num = 1;
+		time_base.den = p_vdata->i_framerate;
+		p_voutf->p_codec_ctx->time_base = time_base;
+	}
 	p_voutf->p_codec_ctx->pix_fmt = PIX_FMT_YUV420P;
 	p_voutf->p_codec_ctx->gop_size = p_voutf->i_gop_size;//p_vdata->i_framerate;
 
