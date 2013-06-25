@@ -79,7 +79,7 @@ int dc_read_configuration(CmdData * p_cmdd) {
 
 		if (strcmp(psz_type, "video") == 0) {
 
-			VideoData * p_vconf = malloc(sizeof(VideoData));
+			VideoData * p_vconf = gf_malloc(sizeof(VideoData));
 			strcpy(p_vconf->psz_name, psz_sec_name);
 //			strcpy(p_vconf->psz_codec,
 //					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
@@ -95,7 +95,7 @@ int dc_read_configuration(CmdData * p_cmdd) {
 			gf_list_add(p_cmdd->p_video_lst, (void *) p_vconf);
 		} else if (strcmp(psz_type, "audio") == 0) {
 
-			AudioData * p_aconf = malloc(sizeof(AudioData));
+			AudioData * p_aconf = gf_malloc(sizeof(AudioData));
 			strcpy(p_aconf->psz_name, psz_sec_name);
 //			strcpy(p_aconf->psz_codec,
 //					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
@@ -181,7 +181,7 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 
 		if (strcmp(psz_type, "video") == 0) {
 
-			VideoData * p_vconf = malloc(sizeof(VideoData));
+			VideoData * p_vconf = gf_malloc(sizeof(VideoData));
 
 			strcpy(p_vconf->psz_source_id, psz_sec_name);
 			strcpy(p_vconf->psz_name,
@@ -202,7 +202,7 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 
 		} else if (strcmp(psz_type, "audio") == 0) {
 
-			AudioData * p_aconf = malloc(sizeof(AudioData));
+			AudioData * p_aconf = gf_malloc(sizeof(AudioData));
 			strcpy(p_aconf->psz_source_id, psz_sec_name);
 			strcpy(p_aconf->psz_name,
 					gf_cfg_get_key(p_conf, psz_sec_name, "source"));
@@ -391,7 +391,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					printf("%s", psz_command_usage);
 					return -1;
 				}
-				//p_cmdd->psz_asrc = malloc(strlen(p_argv[i]) + 1);
+				//p_cmdd->psz_asrc = gf_malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->adata.psz_name, p_argv[i]);
 			}
 
@@ -403,7 +403,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					return -1;
 				}
 
-				//p_cmdd->psz_vsrc = malloc(strlen(p_argv[i]) + 1);
+				//p_cmdd->psz_vsrc = gf_malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->vdata.psz_name, p_argv[i]);
 			}
 
@@ -425,7 +425,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					printf("%s", psz_command_usage);
 					return -1;
 				}
-				//p_cmdd->psz_af = malloc(strlen(p_argv[i]) + 1);
+				//p_cmdd->psz_af = gf_malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->adata.psz_format, p_argv[i]);
 			}
 
@@ -436,7 +436,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					return -1;
 				}
 
-				//p_cmdd->psz_vf = malloc(strlen(p_argv[i]) + 1);
+				//p_cmdd->psz_vf = gf_malloc(strlen(p_argv[i]) + 1);
 				strcpy(p_cmdd->vdata.psz_format, p_argv[i]);
 			}
 
@@ -456,7 +456,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				printf("%s", psz_command_usage);
 				return -1;
 			}
-			//p_cmdd->psz_vfr = malloc(strlen(p_argv[i]) + 1);
+			//p_cmdd->psz_vfr = gf_malloc(strlen(p_argv[i]) + 1);
 			p_cmdd->vdata.i_framerate = atoi(p_argv[i]);
 			//strcpy(p_cmdd->psz_vfr, p_argv[i]);
 

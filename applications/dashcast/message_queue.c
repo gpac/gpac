@@ -47,8 +47,8 @@ void dc_message_queue_init(MessageQueue *mq) {
 
 void dc_message_queue_put(MessageQueue *mq, void *data, int size) {
 
-	MessageQueueNode * mqn = malloc(sizeof(MessageQueueNode));
-	mqn->data = malloc(size);
+	MessageQueueNode * mqn = gf_malloc(sizeof(MessageQueueNode));
+	mqn->data = gf_malloc(size);
 	memcpy(mqn->data, data, size);
 	mqn->size = size;
 	mqn->next = NULL;
@@ -120,8 +120,8 @@ int dc_message_queue_get(MessageQueue *mq, void * data) {
 		mq->nb_nodes--;
 		memcpy(data, mqn->data, mqn->size);
 		ret = mqn->size;
-		free(mqn->data);
-		free(mqn);
+		gf_free(mqn->data);
+		gf_free(mqn);
 	}
 
 #ifdef GPAC_THREAD
@@ -146,7 +146,7 @@ void dc_message_queue_flush(MessageQueue *mq) {
 
 	for (mqn = mq->first_node; mqn != NULL; mqn = mqn1) {
 		mqn1 = mqn->next;
-		free(mqn);
+		gf_free(mqn);
 	}
 	mq->last_node = NULL;
 	mq->first_node = NULL;

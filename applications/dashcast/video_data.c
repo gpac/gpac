@@ -56,13 +56,13 @@ int dc_video_input_data_init(VideoInputData * p_vin_data, /*int i_width, int i_h
 	//p_vin_data->i_height = i_height;
 	//p_vin_data->i_pix_fmt = i_pix_fmt;
 
-	p_vin_data->p_vprop = malloc(max_source * sizeof(VideoInputProp));
+	p_vin_data->p_vprop = gf_malloc(max_source * sizeof(VideoInputProp));
 
 	dc_circular_buffer_create(&p_vin_data->p_cb, VIDEO_CB_SIZE, mode,
 				i_con_nb);
 
 	for (i = 0; i < VIDEO_CB_SIZE; i++) {
-		VideoDataNode * p_vdn = malloc(sizeof(VideoDataNode));
+		VideoDataNode * p_vdn = gf_malloc(sizeof(VideoDataNode));
 		p_vin_data->p_cb.p_list[i].p_data = (void *) p_vdn;
 		p_vdn->p_vframe = avcodec_alloc_frame();
 	}
@@ -85,7 +85,7 @@ void dc_video_input_data_destroy(VideoInputData * p_vd) {
 	for (i = 0; i < VIDEO_CB_SIZE; i++) {
 		VideoDataNode * p_vdn = p_vd->p_cb.p_list[i].p_data;
 		av_free(p_vdn->p_vframe);
-		free(p_vdn);
+		gf_free(p_vdn);
 	}
 
 	dc_circular_buffer_destroy(&p_vd->p_cb);

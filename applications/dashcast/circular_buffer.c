@@ -32,7 +32,7 @@ void dc_circular_buffer_create(CircularBuffer * p_cb, int i_size, LockMode mode,
 
 	int i;
 	p_cb->i_size = i_size;
-	p_cb->p_list = malloc(i_size * sizeof(Node));
+	p_cb->p_list = gf_malloc(i_size * sizeof(Node));
 	p_cb->mode = mode;
 	p_cb->i_max_con_nb = i_max_con_nb;
 
@@ -74,7 +74,7 @@ void dc_circular_buffer_destroy(CircularBuffer * p_cb) {
 
 	}
 
-	free(p_cb->p_list);
+	gf_free(p_cb->p_list);
 }
 
 void dc_consumer_init(Consumer * p_con, int i_max_idx, char * name) {

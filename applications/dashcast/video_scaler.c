@@ -30,7 +30,7 @@ VideoScaledDataNode * dc_video_scaler_node_create(int i_width, int i_height,
 
 	int num_bytes;
 	VideoScaledDataNode * p_vsdn;
-	p_vsdn = malloc(sizeof(VideoDataNode));
+	p_vsdn = gf_malloc(sizeof(VideoDataNode));
 
 	p_vsdn->p_vframe = avcodec_alloc_frame();
 
@@ -55,7 +55,7 @@ void dc_video_scaler_node_destroy(VideoScaledDataNode * p_vsdn) {
 	av_free(p_vsdn->p_vframe);
 	av_free(p_vsdn->p_pic_data_buf);
 
-	free(p_vsdn);
+	gf_free(p_vsdn);
 
 }
 
@@ -86,14 +86,14 @@ void dc_video_scaler_list_init(VideoScaledDataList * p_vsdl,
 		}
 		if (!found) {
 
-			VideoScaledData * p_vsd = malloc(sizeof(VideoScaledData));
+			VideoScaledData * p_vsd = gf_malloc(sizeof(VideoScaledData));
 			p_vsd->i_out_width = p_vconf->i_width;
 			p_vsd->i_out_height = p_vconf->i_height;
 
 			p_vsd->i_maxcon = 1;
 
 			if (p_vsdl->p_vsd == NULL) {
-				p_vsdl->p_vsd = malloc(sizeof(VideoScaledData *));
+				p_vsdl->p_vsd = gf_malloc(sizeof(VideoScaledData *));
 			} else {
 				p_vsdl->p_vsd = realloc(p_vsdl->p_vsd,
 						(p_vsdl->i_size + 1) * sizeof(VideoScaledData *));
@@ -110,9 +110,9 @@ void dc_video_scaler_list_init(VideoScaledDataList * p_vsdl,
 void dc_video_scaler_list_destroy(VideoScaledDataList * p_vsdl) {
 	int i;
 	for (i = 0; i < p_vsdl->i_size; i++)
-		free(p_vsdl->p_vsd[i]);
+		gf_free(p_vsdl->p_vsd[i]);
 
-	free(p_vsdl->p_vsd);
+	gf_free(p_vsdl->p_vsd);
 }
 
 void dc_video_scaler_end_signal(VideoScaledData * p_vconv) {
@@ -133,7 +133,7 @@ int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, i
 
 	p_vsd->i_maxsource = max_source;
 	p_vsd->i_out_pix_fmt = PIX_FMT_YUV420P;
-	p_vsd->p_vsprop = malloc(max_source * sizeof(VideoScaledProp));
+	p_vsd->p_vsprop = gf_malloc(max_source * sizeof(VideoScaledProp));
 
 	dc_circular_buffer_create(&p_vsd->p_cb, VIDEO_CB_SIZE, p_vin->p_cb.mode,
 			p_vsd->i_maxcon);
@@ -221,7 +221,7 @@ int dc_video_scaler_data_destroy(VideoScaledData * p_vsd) {
 	for (i = 0 ; i<p_vsd->i_maxsource ; i++) {
 		av_free(p_vsd->p_vsprop[i].p_sws_ctx);
 	}
-	free(p_vsd->p_vsprop);
+	gf_free(p_vsd->p_vsprop);
 	//av_free(p_vsd->p_sws_ctx);
 
 	dc_circular_buffer_destroy(&p_vsd->p_cb);
