@@ -142,7 +142,7 @@ static Bool parse_time(const char* str_time, struct tm *tm_time) {
 		return GF_FALSE;
 
 #if defined(__GNUC__)
-	strptime(str_time, "%Y-%m-%d %H:%M:%S", &tm_tm);
+	strptime(str_time, "%Y-%m-%d %H:%M:%S", tm_time);
 #elif defined(WIN32)
 	assert(0); //TODO
 #else

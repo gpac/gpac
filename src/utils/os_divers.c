@@ -158,6 +158,7 @@ GF_Err gf_rmdir(char *DirPathName)
 	return GF_OK;
 }   
 
+GF_EXPORT
 GF_Err gf_mkdir(char* DirPathName)
 {
 #if defined (_WIN32_WCE)
