@@ -47,7 +47,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 	}
 
 	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
-	acfg.base_object_type = GF_M4A_AAC_LC;
+	acfg.base_object_type = GF_M4A_LAYER2;
 	acfg.base_sr = p_audio_codec_ctx->sample_rate;
 	acfg.nb_chan = p_audio_codec_ctx->channels;
 	acfg.sbr_object_type = 0;
@@ -64,7 +64,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 	p_esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	p_esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	p_esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	p_esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+	p_esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
 	p_esd->decoderConfig->bufferSizeDB = 20;
 	p_esd->slConfig->timestampResolution = p_audio_codec_ctx->sample_rate;
 	p_esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);

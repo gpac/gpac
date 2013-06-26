@@ -116,7 +116,7 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 
 	int ret;
 	AVPacket packet;
-	int i_got_frame;
+	int i_got_frame = 0;
 	//int locked_already = 0;
 	AVCodecContext * p_codec_ctx;
 	AudioDataNode * p_adn;
@@ -140,8 +140,7 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 			packet.data = NULL;
 			packet.size = 0;
 			avcodec_get_frame_defaults(p_ad->p_aframe);
-			avcodec_decode_video2(p_codec_ctx, p_ad->p_aframe,
-					&i_got_frame, &packet);
+			avcodec_decode_audio4(p_codec_ctx, p_ad->p_aframe, &i_got_frame, &packet);
 
 			if (i_got_frame) {
 
@@ -173,8 +172,7 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 			avcodec_get_frame_defaults(p_ad->p_aframe);
 
 			/* Decode audio frame */
-			if (avcodec_decode_audio4(p_codec_ctx, p_ad->p_aframe, &i_got_frame,
-					&packet) < 0) {
+			if (avcodec_decode_audio4(p_codec_ctx, p_ad->p_aframe, &i_got_frame, &packet) < 0) {
 				av_free_packet(&packet);
 				fprintf(stderr, "Error while decoding audio.\n");
 				dc_producer_end_signal(&p_ad->pro, &p_ad->p_cb);

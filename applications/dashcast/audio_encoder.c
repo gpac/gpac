@@ -56,7 +56,14 @@ int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
 	p_aout->p_codec_ctx->codec_type = AVMEDIA_TYPE_AUDIO;
 	p_aout->p_codec_ctx->bit_rate = p_adata->i_bitrate;
 	p_aout->p_codec_ctx->sample_rate = p_adata->i_samplerate;
+	{
+		AVRational time_base;
+		time_base.num = 1;
+		time_base.den = p_adata->i_samplerate;
+		p_aout->p_codec_ctx->time_base = time_base;
+	}
 	p_aout->p_codec_ctx->channels = p_adata->i_channels;
+	p_aout->p_codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO; /*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
 	p_aout->p_codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
 
 //	if (p_aout->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
@@ -154,6 +161,9 @@ int dc_audio_encoder_flush(AudioOutputFile * p_aout, AudioInputData * p_aind) {
 	AVCodecContext * p_audio_codec_ctx = p_aout->p_codec_ctx;
 
 	av_init_packet(&p_aout->packet);
+	p_aout->packet.data = NULL;
+	p_aout->packet.size = 0;
+
 	/* Set PTS (method 1) */
 	p_aout->p_aframe->pts = p_aind->next_pts;
 	/* Encode audio */
@@ -189,6 +199,8 @@ int dc_audio_encoder_encode(AudioOutputFile * p_aout, AudioInputData * p_aind) {
 		p_aout->p_aframe->linesize[0] = p_aout->i_frame_bytes;
 
 		av_init_packet(&p_aout->packet);
+		p_aout->packet.data = NULL;
+		p_aout->packet.size = 0;
 
 		/* 
 		 * Set PTS (method 1)
@@ -199,14 +211,17 @@ int dc_audio_encoder_encode(AudioOutputFile * p_aout, AudioInputData * p_aind) {
 		/*
 		 * Set PTS (method 2)
 		 */
-		// int64_t now = av_gettime();
-		// p_aout->p_aframe->pts = av_rescale_q(now,AV_TIME_BASE_Q,
-		//		 p_audio_codec_ctx->time_base);
+		//{
+		//	int64_t now = av_gettime();
+		//	AVRational avr;
+		//	avr.num = 1;
+		//	avr.den =  AV_TIME_BASE;
+		//	p_aout->p_aframe->pts = av_rescale_q(now, avr, p_audio_codec_ctx->time_base);
+		//}
 
 
 		/* Encode audio */
-		if (avcodec_encode_audio2(p_audio_codec_ctx, &p_aout->packet,
-				p_aout->p_aframe, &i_got_pkt) != 0) {
+		if (avcodec_encode_audio2(p_audio_codec_ctx, &p_aout->packet, p_aout->p_aframe, &i_got_pkt) != 0) {
 
 			fprintf(stderr, "Error while encoding audio.\n");
 			return -1;

@@ -67,7 +67,7 @@ int dc_read_configuration(CmdData * p_cmdd) {
 		gf_cfg_set_key(p_conf, "a1", "bitrate", "192000");
 //		gf_cfg_set_key(p_conf, "a1", "samplerate", "48000");
 //		gf_cfg_set_key(p_conf, "a1", "channels", "2");
-//		gf_cfg_set_key(p_conf, "a1", "codec", "aac");
+//		gf_cfg_set_key(p_conf, "a1", "codec", "mp2");
 
 		i_sec_count = 2;
 	}

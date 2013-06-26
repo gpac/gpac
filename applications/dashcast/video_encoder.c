@@ -192,6 +192,8 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 //	if (i_out_size > 0) {
 //
 //		av_init_packet(&pkt);
+//		pkt.data = NULL;
+//		pkt.size = 0;
 //
 //		if (p_video_codec_ctx->coded_frame->pts != AV_NOPTS_VALUE) {
 //			pkt.pts = av_rescale_q(p_video_codec_ctx->coded_frame->pts,
