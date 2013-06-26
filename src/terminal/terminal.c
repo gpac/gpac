@@ -552,7 +552,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	memset(tmp, 0, sizeof(GF_Terminal));
 
 	/*just for safety*/
-	gf_sys_init(0);
+	gf_sys_init(GF_FALSE);
 
 	tmp->user = user;
 

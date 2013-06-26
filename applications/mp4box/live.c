@@ -486,7 +486,7 @@ int live_session(int argc, char **argv)
 	aggregate_au = 1;
 	es_id = 0;
 	no_rap = 0;
-	gf_sys_init(0);
+	gf_sys_init(GF_FALSE);
 
 	memset(&livesess, 0, sizeof(LiveSession));
 	
