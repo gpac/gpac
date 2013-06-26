@@ -336,6 +336,8 @@ int dc_ffmpeg_video_muxer_write(VideoOutputFile * p_voutf) {
 	AVCodecContext * p_video_codec_ctx = p_video_stream->codec;
 
 	av_init_packet(&pkt);
+	pkt.data = NULL;
+	pkt.size = 0;
 
 	if (p_video_codec_ctx->coded_frame->pts != AV_NOPTS_VALUE) {
 		pkt.pts = av_rescale_q(p_video_codec_ctx->coded_frame->pts,

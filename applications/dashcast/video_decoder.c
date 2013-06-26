@@ -200,8 +200,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 			packet.data = NULL;
 			packet.size = 0;
 			avcodec_get_frame_defaults(p_vdn->p_vframe);
-			avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe,
-					&i_got_frame, &packet);
+			avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe,	&i_got_frame, &packet);
 
 			if (i_got_frame) {
 				dc_producer_advance(&p_vd->pro);
