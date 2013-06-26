@@ -143,8 +143,7 @@ int dc_audio_encoder_read(AudioOutputFile * p_aout, AudioInputData * p_aind) {
 	/* Write audio sample on fifo */
 //	av_fifo_generic_write(p_aout->p_fifo, p_adn->p_aframe->data[0],
 //			p_adn->p_aframe->linesize[0], NULL);
-	av_fifo_generic_write(p_aout->p_fifo, p_adn->p_abuf, p_adn->i_abuf_size,
-			NULL);
+	av_fifo_generic_write(p_aout->p_fifo, p_adn->p_abuf, p_adn->i_abuf_size, NULL);
 
 	dc_consumer_advance(&p_aout->acon);
 
