@@ -29,6 +29,7 @@
 //FIXME: use GPAC utility functions
 #if defined(__GNUC__)
 #include <unistd.h>
+#include <sys/time.h>
 #elif defined(WIN32)
 #include <Winsock.h>
 #include <sys/timeb.h>
@@ -92,23 +93,6 @@ void optimize_seg_frag_dur(int * seg, int * frag) {
 
 	*seg -= min_rem;
 
-}
-
-static u64 dc_get_utc_clock()
-{
-	u64 current_time;
-	Double msec;
-	u32 sec, frac;
-
-	gf_net_get_ntp(&sec, &frac);
-
-	current_time = sec - GF_NTP_SEC_1900_TO_1970;
-
-	current_time *= 1000;
-	msec = frac*1000.0;
-	msec /= 0xFFFFFFFF;
-	current_time += (u64) msec;
-	return current_time;
 }
 
 Bool change_source_thread(void * p_params) {
@@ -191,7 +175,7 @@ static u32 mpd_thread(void * p_params) {
 
 		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
 		//t += p_cmddata->i_ast_offset;
-		{
+		{	
 			struct tm ast_time = *gmtime(&t);
 			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
 			sprintf(availability_start_time,"%s.%dZ", availability_start_time, ms);
@@ -906,7 +890,7 @@ u32 video_encoder_thread(void * p_params) {
 			if (p_in_data->i_mode == LIVE_MEDIA
 					|| p_in_data->i_mode == LIVE_CAMERA) {
 				if (p_thread_params->video_conf_idx == 0) {
-					u64 t = dc_get_utc_clock();
+					u64 t = gf_net_get_utc();
 					//time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
 				}
@@ -1109,7 +1093,7 @@ u32 audio_encoder_thread(void * p_params) {
 			if (p_in_data->i_mode == LIVE_CAMERA
 					|| p_in_data->i_mode == LIVE_MEDIA) {
 				if (p_thread_params->audio_conf_idx == 0) {
-					u64 t = dc_get_utc_clock();
+					u64 t = gf_net_get_utc();
 					//time_t t = time(NULL);
 					dc_message_queue_put(p_mq, &t, sizeof(t));
 				}
