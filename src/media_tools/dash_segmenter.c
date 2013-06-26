@@ -3731,7 +3731,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				strcpy(dash_inputs[i].periodID, "GENID_DEF");
 			}
 		}
-		gf_dash_segmenter_probe_input(&dash_inputs[i]);
+		e = gf_dash_segmenter_probe_input(&dash_inputs[i]);
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Cannot open file %s for dashing: %s\n", dash_inputs[i].file_name, gf_error_to_string(e) ));
+		}
 
 		if (!strcmp(dash_inputs[i].szMime, "video/mp2t")) has_mpeg2 = 1;
  	}

@@ -2820,6 +2820,7 @@ int mp4boxMain(int argc, char **argv)
 
 
 	if (dash_duration) {
+		Bool del_file = GF_FALSE;
 		char szMPD[GF_MAX_PATH], *sep;
 		GF_Config *dash_ctx = NULL;
 		u32 do_abort = 0;
@@ -2855,6 +2856,11 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Using default MPD refresh of %d seconds\n", mpd_update_time);
 		}
 
+		if (file && needSave) {
+			gf_isom_close(file);
+			file = NULL;
+			del_file = GF_TRUE;
+		}
 		while (!do_abort) {
 
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
@@ -2901,7 +2907,10 @@ int mp4boxMain(int argc, char **argv)
 			gf_cfg_del(dash_ctx);
 		}
 		if (e) fprintf(stderr, "Error DASHing file: %s\n", gf_error_to_string(e));
-
+		if (file) gf_isom_delete(file);
+		if (del_file) 
+			gf_delete_file(inName);
+	
 		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
 	}
 
