@@ -246,7 +246,10 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 		info.szName = t->log_name;
 		info.dwThreadID = id;
 		info.dwFlags = 0;
-		RaiseException(0x406D1388, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+		__try {
+			RaiseException(0x406D1388, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+		} __except (EXCEPTION_CONTINUE_EXECUTION) {
+		}
 	} else {
 #else
 	if ( pthread_attr_init(&att) != 0 ) return GF_IO_ERR;
