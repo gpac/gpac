@@ -186,7 +186,7 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 		return -1;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS %d encoded at UTC "LLU" ms\n", /*p_vn->source_number, */p_vn->p_vframe->pts, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" encoded at UTC "LLU" ms\n", /*p_vn->source_number, */p_vn->p_vframe->pts, gf_net_get_utc() ));
 
 	/* if zero size, it means the image was buffered */
 //	if (i_out_size > 0) {
