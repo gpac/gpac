@@ -270,7 +270,7 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_time_shift = 0;
 	p_cmdd->f_minbuftime = -1;
 	p_cmdd->i_gdr = 0;
-	p_cmdd->p_audio_lst = gf_list_new();
+	p_cmdd->p_audio_lst = gf_list_new(); //FIXME: alloc occur before the memory tracker is set.
 	p_cmdd->p_video_lst = gf_list_new();
 	p_cmdd->p_asrc = gf_list_new();
 	p_cmdd->p_vsrc = gf_list_new();
@@ -676,6 +676,15 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				return 1;
 			}
 			i++;
+		} else if (strcmp(p_argv[i], "-mem-track") == 0) {
+			i++;
+#ifdef GPAC_MEMORY_TRACKING
+			gf_sys_close();
+			gf_sys_init(GF_TRUE);
+			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+#else
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+#endif
 		} else if (!strcmp(p_argv[i], "-lf") || !strcmp(p_argv[i], "-log-file")) {
 			i++;
 			if (i >= i_argc) {

@@ -1304,8 +1304,7 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	/* Create keyboard controller thread */
 	keyboard_th_params.p_in_data = p_in_data;
-	if (gf_th_run(keyboard_th_params.p_thread, keyboard_thread,
-			(void *) &keyboard_th_params) != GF_OK) {
+	if (gf_th_run(keyboard_th_params.p_thread, keyboard_thread, (void *) &keyboard_th_params) != GF_OK) {
 
 		fprintf(stderr,
 				"Error while doing pthread_create for keyboard_thread.\n");
@@ -1334,8 +1333,7 @@ int dc_run_controler(CmdData * p_in_data) {
 	/* Create keyboard controller thread */
 	mpd_th_params.p_in_data = p_in_data;
 	mpd_th_params.p_mq = &mq;
-	if (gf_th_run(mpd_th_params.p_thread, mpd_thread, (void *) &mpd_th_params)
-			!= GF_OK) {
+	if (gf_th_run(mpd_th_params.p_thread, mpd_thread, (void *) &mpd_th_params) != GF_OK) {
 
 		fprintf(stderr, "Error while doing pthread_create for mpd_thread.\n");
 	}

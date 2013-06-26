@@ -88,7 +88,7 @@ void dc_audio_input_data_destroy(AudioInputData * p_aid) {
 
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {
 		AudioDataNode * p_adn = p_aid->p_cb.p_list[i].p_data;
-		av_free(p_adn->p_abuf);
+		gf_free(p_adn->p_abuf);
 		gf_free(p_adn);
 	}
 
