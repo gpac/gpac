@@ -286,6 +286,8 @@ void dc_cmd_data_destroy(CmdData * p_cmdd) {
 	gf_cfg_del(p_cmdd->p_conf);
 	gf_cfg_del(p_cmdd->p_switch_conf);
 	if (p_cmdd->p_logfile) fclose(p_cmdd->p_logfile);
+
+	gf_sys_close();
 }
 
 static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
