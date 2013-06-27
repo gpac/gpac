@@ -57,8 +57,12 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
-ifneq ($(CONFIG_DARWIN), yes)
+ifeq ($(DISABLE_ISOFF), no) 
+ifeq ($(CONFIG_LINUX), yes)
+ifeq ($(CONFIG_FFMPEG), system)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
+endif
+endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
