@@ -93,8 +93,7 @@ int dc_consumer_lock(Consumer * p_con, CircularBuffer * p_cb) {
 
 	gf_mx_p(p_node->mux);
 #ifdef DEBUG
-	printf("consumer %s enters lock %d\n", p_con->psz_name, p_con->i_idx,
-			p_node->i_pro_nb, p_node->i_marked);
+	printf("consumer %s enters lock %d\n", p_con->psz_name, p_con->i_idx);
 #endif
 	if (p_node->i_marked == 2) {
 		gf_mx_v(p_node->mux);

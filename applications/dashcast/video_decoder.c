@@ -256,7 +256,10 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.
-				//av_free_packet(&packet);
+				// Strange thing is that it happens only when the pixel format is BGRA.
+				// More tests are needed here.
+				if(p_codec_ctx->codec->id != CODEC_ID_RAWVIDEO || p_codec_ctx->pix_fmt != PIX_FMT_BGRA)
+					av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;
 			}
