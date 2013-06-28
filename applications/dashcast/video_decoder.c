@@ -29,7 +29,8 @@
 
 //#define DASHCAST_DEBUG_TIME_
 
-int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mode, int i_no_loop) {
+int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
+		int i_mode, int i_no_loop) {
 
 	u32 i;
 	AVInputFormat * p_in_fmt = NULL;
@@ -43,8 +44,8 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 		av_dict_set(&p_options, "framerate", vfr, 0);
 	}
 
-	if (strcmp(p_vdata->psz_v4l2f,"") != 0) {
-		av_dict_set(&p_options, "input_format", p_vdata->psz_v4l2f , 0);
+	if (strcmp(p_vdata->psz_v4l2f, "") != 0) {
+		av_dict_set(&p_options, "input_format", p_vdata->psz_v4l2f, 0);
 	}
 
 	if (p_vdata->i_width > 0 && p_vdata->i_height > 0) {
@@ -53,8 +54,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 		av_dict_set(&p_options, "video_size", vres, 0);
 	}
 
-
-	if (p_vdata->psz_format && strcmp(p_vdata->psz_format,"") != 0) {
+	if (p_vdata->psz_format && strcmp(p_vdata->psz_format, "") != 0) {
 		p_in_fmt = av_find_input_format(p_vdata->psz_format);
 		if (p_in_fmt == NULL) {
 			printf("Cannot find the format %s.\n", p_vdata->psz_format);
@@ -83,7 +83,8 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 	/*  Find the first video stream */
 	p_vin->i_vstream_idx = -1;
 	for (i = 0; i < p_vin->p_fmt_ctx->nb_streams; i++) {
-		if (p_vin->p_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+		if (p_vin->p_fmt_ctx->streams[i]->codec->codec_type
+				== AVMEDIA_TYPE_VIDEO) {
 			p_vin->i_vstream_idx = i;
 			break;
 		}
@@ -119,26 +120,39 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 	p_vin->i_height = p_codec_ctx->height;
 	p_vin->i_pix_fmt = p_codec_ctx->pix_fmt;
 
-	p_vdata->i_framerate = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.num;
+	p_vdata->i_framerate = p_codec_ctx->time_base.den;
 
-	if(p_vdata->i_framerate / 1000 != 0)
+	if (p_vdata->i_framerate / 1000 != 0)
 		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
 
-	if(p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
-		p_vdata->i_framerate = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.num;
+	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+
+		p_vdata->i_framerate =
+				p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.num
+						/ (p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.den
+								== 0 ?
+								1 :
+								p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.den);
+
+		if (p_vdata->i_framerate / 1000 != 0)
+			p_vdata->i_framerate = p_vdata->i_framerate / 1000;
+
+		if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+			p_vdata->i_framerate =
+					p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.num
+							/ (p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.den
+									== 0 ?
+									1 :
+									p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.den);
+
+			if (p_vdata->i_framerate / 1000 != 0)
+				p_vdata->i_framerate = p_vdata->i_framerate / 1000;
+
+		}
+
 	}
 
-	if(p_vdata->i_framerate / 1000 != 0)
-		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
-
-	if(p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
-		p_vdata->i_framerate = p_codec_ctx->time_base.den;
-	}
-
-	if(p_vdata->i_framerate / 1000 != 0)
-		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
-
-	if(p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
 		printf("Invalid input framerate.\n");
 		return -1;
 	}
@@ -149,11 +163,12 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata, int i_mod
 	return 0;
 }
 
-int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int source_number) {
+int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
+		int source_number) {
 
 #ifdef DASHCAST_DEBUG_TIME_
 	struct timeval start, end;
-    long elapsed_time;
+	long elapsed_time;
 #endif
 
 	int ret;
@@ -163,7 +178,6 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 	AVCodecContext * p_codec_ctx;
 	VideoDataNode * p_vdn;
 
-
 	/*  Get a pointer to the codec context for the video stream */
 	p_codec_ctx = p_in_ctx->p_fmt_ctx->streams[p_in_ctx->i_vstream_idx]->codec;
 
@@ -171,36 +185,38 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 	while (1) {
 
 #ifdef DASHCAST_DEBUG_TIME_
-	    gettimeofday(&start, NULL);
+		gettimeofday(&start, NULL);
 #endif
 
 		ret = av_read_frame(p_in_ctx->p_fmt_ctx, &packet);
 
 #ifdef DASHCAST_DEBUG_TIME_
-	    gettimeofday(&end, NULL);
-	    elapsed_time = (end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
-	    printf("fps: %f\n", 1000000.0/elapsed_time);
+		gettimeofday(&end, NULL);
+		elapsed_time = (end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
+		printf("fps: %f\n", 1000000.0/elapsed_time);
 #endif
-
 
 		if (ret == AVERROR_EOF) {
 
-			if(p_in_ctx->i_mode == LIVE_MEDIA && p_in_ctx->i_no_loop == 0) {
-				av_seek_frame(p_in_ctx->p_fmt_ctx, p_in_ctx->i_vstream_idx, 0, 0);
+			if (p_in_ctx->i_mode == LIVE_MEDIA && p_in_ctx->i_no_loop == 0) {
+				av_seek_frame(p_in_ctx->p_fmt_ctx, p_in_ctx->i_vstream_idx, 0,
+						0);
 				av_free_packet(&packet);
 				continue;
 			}
 
 			dc_producer_lock(&p_vd->pro, &p_vd->p_cb);
 			dc_producer_unlock_previous(&p_vd->pro, &p_vd->p_cb);
-			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro, &p_vd->p_cb);
+			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro,
+					&p_vd->p_cb);
 
 			p_vdn->source_number = source_number;
 			/* Flush decoder */
 			packet.data = NULL;
 			packet.size = 0;
 			avcodec_get_frame_defaults(p_vdn->p_vframe);
-			avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe,	&i_got_frame, &packet);
+			avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe, &i_got_frame,
+					&packet);
 
 			if (i_got_frame) {
 				dc_producer_advance(&p_vd->pro);
@@ -220,9 +236,9 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 		/*  Is this a packet from the video stream? */
 		if (packet.stream_index == p_in_ctx->i_vstream_idx) {
 
-			if(!already_locked) {
+			if (!already_locked) {
 
-				if ( dc_producer_lock(&p_vd->pro, &p_vd->p_cb) < 0) {
+				if (dc_producer_lock(&p_vd->pro, &p_vd->p_cb) < 0) {
 					printf("[dashcast] Live system dropped a video frame\n");
 					continue;
 				}
@@ -232,7 +248,8 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 				already_locked = 1;
 			}
 
-			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro, &p_vd->p_cb);
+			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro,
+					&p_vd->p_cb);
 
 			p_vdn->source_number = source_number;
 
@@ -240,7 +257,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 			avcodec_get_frame_defaults(p_vdn->p_vframe);
 
 			/*  Decode video frame */
-			if ( avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe,
+			if (avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe,
 					&i_got_frame, &packet) < 0) {
 				av_free_packet(&packet);
 				fprintf(stderr, "Error while decoding video.\n");
@@ -251,14 +268,16 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd, int 
 
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH,
+						("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
 				//TODO: This might cause some problems in future.
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.
 				// Strange thing is that it happens only when the pixel format is BGRA.
 				// More tests are needed here.
-				if(p_codec_ctx->codec->id != CODEC_ID_RAWVIDEO || p_codec_ctx->pix_fmt != PIX_FMT_BGRA)
+				if (p_codec_ctx->codec->id != CODEC_ID_RAWVIDEO
+						|| p_codec_ctx->pix_fmt != PIX_FMT_BGRA)
 					av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;
