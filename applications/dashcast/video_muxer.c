@@ -136,6 +136,7 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile * p_voutf, char * psz_name) {
 //
 //	p_voutf->first_dts += p_voutf->frame_per_segment;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Opening new segment %s at UTC "LLU" ms\n", psz_name, gf_net_get_utc() ));
 	return 0;
 }
 
@@ -217,6 +218,7 @@ int dc_gpac_video_isom_close_seg(VideoOutputFile * p_voutf) {
 		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));
 		return -1;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Closing segment at UTC "LLU" ms\n", gf_net_get_utc() ));
 
 	return 0;
 }

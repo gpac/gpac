@@ -604,7 +604,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
 		if (entry->mem_allocated <= entry->contentLength) {
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
-			else if (!entry->mem_allocated) entry->mem_allocated = 1024;
+			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
 			entry->mem_storage = gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
 		}
 		if (!entry->mem_allocated) {
@@ -634,7 +634,6 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 
 GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size) {
 	u32 read;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_write_to_cache:%d\n", __LINE__));
 	CHECK_ENTRY;
 
 	if (!data || (!entry->writeFilePtr && !entry->mem_storage) || sess != entry->write_session) {
@@ -644,14 +643,19 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		
 	if (entry->memory_stored) {
 		if (entry->written_in_cache + size > entry->mem_allocated) {
-			entry->mem_storage = gf_realloc(entry->mem_storage, (entry->mem_allocated+size+2));
-			entry->mem_allocated += size;
-//			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+			u32 new_size = entry->mem_allocated*2;
+			if (new_size < size) new_size = size;
+			entry->mem_storage = gf_realloc(entry->mem_storage, (new_size+2));
+			entry->mem_allocated = new_size + 2;
+			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
 		}
 		memcpy(entry->mem_storage + entry->written_in_cache, data, size);
 		entry->written_in_cache += size;
 		memset(entry->mem_storage + entry->written_in_cache, 0, 2);
 		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Writing %d bytes to cache\n", size));
 		return GF_OK;
 	}
 
@@ -673,6 +677,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		gf_delete_file(entry->cache_filename);
 		return GF_IO_ERR;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Writing %d bytes to cache\n", size));
 	return GF_OK;
 }
 

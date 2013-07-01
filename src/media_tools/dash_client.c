@@ -571,7 +571,7 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 	Bool retry = 1;
 	GF_Err e;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s startin,g at UTC "LLU" ms\n", url, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s starting at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 
 	if (group) {
 		group_idx = gf_list_find(group->dash->groups, group);
@@ -2931,7 +2931,7 @@ restart_period:
 				Bool cache_full = 1;
 
 				/*wait if nothing is ready to be downloaded*/
-				if (min_wait) {
+				if (min_wait>2) {
 					u32 sleep_for = MIN(min_wait, 100) /2;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep\n", sleep_for));
 					gf_sleep(sleep_for);
@@ -3074,7 +3074,7 @@ restart_period:
 				to_wait = (s32) (segment_ast - now);
 
 				/*if segment AST is greater than now, it is not yet available ...*/
-				if (to_wait > 0) {
+				if (to_wait > 4) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") is not yet available on server - requesting later in %d ms\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, to_wait));
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
