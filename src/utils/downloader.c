@@ -1733,7 +1733,7 @@ static u8 *gf_dm_get_chunk_data(GF_DownloadSession *sess, u8 *body_start, u32 *p
 	if (sep) sep[0] = ';';
 	*payload_size = size;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Start of chunk - size %d\n", size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d\n", body_start, 2+strlen(body_start), size));
 	
 	te_header[0] = '\r';
 	return te_header+2;

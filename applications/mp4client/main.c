@@ -95,6 +95,7 @@ static char pl_path[GF_MAX_PATH];
 static Bool no_mime_check = GF_TRUE;
 static Bool be_quiet = GF_FALSE;
 static u32 log_time_start = 0;
+static Bool log_utc_time = GF_FALSE;
 static Bool loop_at_end = GF_FALSE;
 static u32 forced_width=0;
 static u32 forced_height=0;
@@ -175,6 +176,8 @@ void PrintUsage()
 		"\t        \"mutex\"      : mutex\n"
 		"\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
 		"\n"
+		"\t-log-clock or -lc      : logs time in ms since start time of GPAC before each log line.\n"
+		"\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
 #if defined(__DARWIN__) || defined(__APPLE__)
 		"\t-thread:        enables thread usage for terminal and compositor \n"
@@ -850,6 +853,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
 		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
+		if (log_utc_time) fprintf(logs, "[UTC "LLU"]", gf_net_get_utc() );
 		vfprintf(logs, fmt, list);
 		fflush(logs);
 	}
@@ -1063,6 +1067,8 @@ int main (int argc, char **argv)
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 			log_time_start = 1;
+		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
+			log_utc_time = 1;
 		} else if (!strcmp(arg, "-align")) {
 			if (argv[i+1][0]=='m') align_mode = 1;
 			else if (argv[i+1][0]=='b') align_mode = 2;
