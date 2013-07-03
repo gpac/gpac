@@ -9,10 +9,8 @@ endif
 
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box 
-ifeq ($(CONFIG_LINUX), yes)
 ifeq ($(CONFIG_FFMPEG), system)
 APPDIRS+=dashcast
-endif
 endif
 ifeq ($(DISABLE_M2TS_MUX), no)
 APPDIRS+=mp42ts
