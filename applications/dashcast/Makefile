@@ -31,12 +31,20 @@ EXT=
 PROG=DashCast
 endif
 
+LINKLIBS+=-lz -lpthread -lavcodec -lavformat -lswscale -lavutil -lavdevice 
+
+ifeq ($(CONFIG_DARWIN), yes)
+#fixme - use proper detection of libavdevice dependencies
+LINKLIBS+=-lavfilter -lswresample -lbz2 
+endif
+
+
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)
 
 DashCast$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lz -lpthread -lavcodec -lavformat -lswscale -lavutil -lavdevice -lavfilter -lm -lbz2 -lz -lswresample -lgpac $(LINKLIBS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc  -lgpac $(LINKLIBS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
