@@ -384,12 +384,18 @@ GF_Socket *gf_sk_new(u32 SocketType)
 GF_EXPORT
 GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 {
+	s32 res;
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
 	if (SendBuffer) {
-		setsockopt(sock->socket, SOL_SOCKET, SO_SNDBUF, (char *) &NewSize, sizeof(u32) );
+		res = setsockopt(sock->socket, SOL_SOCKET, SO_SNDBUF, (char *) &NewSize, sizeof(u32) );
 	} else {
-		setsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &NewSize, sizeof(u32) );
+		res = setsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &NewSize, sizeof(u32) );
+	}
+	if (res<0) {
+		GF_LOG(GF_LOG_NETWORK, GF_LOG_ERROR, ("[Core] Couldn't set socket %s buffer size: %d\n", SendBuffer ? "send" : "receive", res));
+	} else {
+		GF_LOG(GF_LOG_NETWORK, GF_LOG_DEBUG, ("[Core] Set socket %s buffer size\n", SendBuffer ? "send" : "receive"));
 	}
 	return GF_OK;
 }
@@ -1127,6 +1133,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 			return GF_IP_SOCK_WOULD_BLOCK;
 		case EINTR:
 			/* Interrupted system call, not really important... */
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] netowrk is lost\n"));
 			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
@@ -1134,7 +1141,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 		}
 	}
 	if (!ready || !FD_ISSET(sock->socket, &Group)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] nothing to be read\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] nothing to be read - ready %d\n", ready));
 		return GF_IP_NETWORK_EMPTY;
 	}
 #endif

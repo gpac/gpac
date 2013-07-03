@@ -1387,6 +1387,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool seg_at_rap=0;
 	Bool frag_at_rap=0;
 	Bool adjust_split_end = 0;
+	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
 	u32 nb_dash_inputs = 0;
 	char *gf_logs = NULL;
@@ -1511,6 +1512,11 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-grab-ts")) {
 			CHECK_NEXT_ARG
 			grab_m2ts = argv[i+1];
+			i++;
+		}		
+		else if (!stricmp(arg, "-wget")) {
+			CHECK_NEXT_ARG
+			do_wget = argv[i+1];
 			i++;
 		}		
 		/*******************************************************************************/
@@ -2571,6 +2577,14 @@ int mp4boxMain(int argc, char **argv)
 			gf_set_progress_callback(NULL, progress_quiet);
 
 		}
+	}
+
+	if (do_wget != NULL) {
+		e = gf_dm_wget(do_wget, inName, 0, 0);
+		if (e != GF_OK) {
+			fprintf(stderr, "Cannot retrieve %s: %s\n", do_wget, gf_error_to_string(e) );
+		}
+		MP4BOX_EXIT_WITH_CODE(1);
 	}
 
 #ifndef GPAC_DISABLE_MPD
