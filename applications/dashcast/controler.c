@@ -24,7 +24,11 @@
  */
 
 #include "controler.h"
-//#include <malloc.h>
+
+#if (!defined(__DARWIN__) && !defined(__APPLE__))
+#include <malloc.h>
+#endif
+
 #include <time.h>
 //FIXME: use GPAC utility functions
 #if defined(__GNUC__)
