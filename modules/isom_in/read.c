@@ -976,10 +976,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
-		//dash or HTTP, do rebuffer if needed
+		//dash or HTTP, do rebuffer if not disabled
 		if (plug->query_proxy || read->dnload) {
-			if (!com->buffer.max) com->buffer.max = 1000;
-			com->buffer.min = com->buffer.max;
+			//if (!com->buffer.max) com->buffer.max = 1000;
+			//com->buffer.min = com->buffer.max;
 		} else {
 			com->buffer.max = com->buffer.min = 0;
 		}

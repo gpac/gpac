@@ -209,9 +209,6 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			}
 			param->url_query.query_current_download = 0;
 
-			if (gf_sys_clock() - timer < 500)
-				continue;
-
             return GF_BUFFER_TOO_SMALL;
         }
 	

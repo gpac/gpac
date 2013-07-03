@@ -56,6 +56,7 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 		return;
 	}
 
+	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.drop_first_segment = 0;
 	param.url_query.query_current_download = progressive_mode ? GF_TRUE : GF_FALSE;
@@ -92,6 +93,15 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 			if (progressive_mode==2) {
 				u64 bytesMissing;
 				e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
+#ifndef GPAC_DISABLE_LOG
+				if (gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_DASH) ) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU"\n", param.url_query.next_url, gf_net_get_utc() ));
+					for (i=0; i<count; i++) {
+						ISOMChannel *ch = gf_list_get(read->channels, i);
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+					}
+				}
+#endif
 				gf_mx_v(read->segment_mutex);
 				return;
 			}
@@ -157,8 +167,12 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
 	} else if (e==GF_BUFFER_TOO_SMALL){
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
-		read->wait_for_next_frag = GF_TRUE;
+		if (progressive_mode==0) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
+			read->wait_for_next_frag = GF_TRUE;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Corrupted state in low latency mode !!\n"));
+		}
 	} else {
 		/*consider we are done*/
 		read->frag_type = 2;

@@ -56,7 +56,8 @@
 #define SESSION_RETRY_COUNT	20
 
 #define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_FULL_VERSION
-#define GF_DOWNLOAD_BUFFER_SIZE		8192
+//let's be agressive with socket buffer size
+#define GF_DOWNLOAD_BUFFER_SIZE		131072
 #define GF_WAIT_REPLY_SLEEP	20
 
 
@@ -1221,6 +1222,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 	    sess->status = GF_NETIO_CONNECTED;
 		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
+		gf_sk_set_buffer_size(sess->sock, 1, GF_DOWNLOAD_BUFFER_SIZE);
 		gf_sk_set_buffer_size(sess->sock, 0, GF_DOWNLOAD_BUFFER_SIZE);
 	}
 
