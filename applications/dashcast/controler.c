@@ -24,7 +24,7 @@
  */
 
 #include "controler.h"
-#include <malloc.h>
+//#include <malloc.h>
 #include <time.h>
 //FIXME: use GPAC utility functions
 #if defined(__GNUC__)

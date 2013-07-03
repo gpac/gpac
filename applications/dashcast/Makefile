@@ -36,7 +36,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 DashCast$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lz -lpthread -lavcodec -lavformat -lswscale -lavutil -lavdevice -lgpac $(LINKLIBS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lz -lpthread -lavcodec -lavformat -lswscale -lavutil -lavdevice -lavfilter -lm -lbz2 -lz -lswresample -lgpac $(LINKLIBS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
