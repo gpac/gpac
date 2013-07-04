@@ -322,8 +322,8 @@ GF_EXPORT
 Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 {
 	assert(log_tool<GF_LOG_TOOL_MAX); 
-	if (global_log_tools[log_tool].level >= log_level) return 1;
-	return 0;
+	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
+	return GF_FALSE;
 }
 
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
@@ -335,7 +335,7 @@ void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_l
 
 static void *user_log_cbk = NULL;
 static gf_log_cbk log_cbk = default_log_callback;
-static Bool log_exit_on_error = 0;
+static Bool log_exit_on_error = GF_FALSE;
 
 GF_EXPORT
 void gf_log(const char *fmt, ...)
@@ -496,7 +496,14 @@ const char *gf_error_to_string(GF_Err e)
 		return "Authentication failure";
 	case GF_SCRIPT_NOT_READY:
 		return "Script not ready for playback";
-
+	case GF_INVALID_CONFIGURATION:
+		return "Bad configuration for the current contex";
+	case GF_NOT_FOUND:
+		return "At least one required element has not been found";
+	case GF_MISSING_REQUIREMENTS:
+		return "The filter is missing at least one requirement";
+	case GF_WRONG_DATAFORMAT:
+		return "Unexpected data format";
 	default:
 		return "Unknown Error";
 	}
