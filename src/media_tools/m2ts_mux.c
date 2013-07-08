@@ -833,6 +833,11 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Initializing PCR for program number %d: PCR %d - mux time %d:%09d\n", stream->pid, stream->program->number, stream->program->pcr_init_time, muxer->time.sec, muxer->time.nanosec));
 		} else {
+			/*PES has been sent, discard internal buffer*/
+			if (stream->discard_data) gf_free(stream->curr_pck.data);
+			stream->curr_pck.data = NULL;
+			stream->curr_pck.data_len = 0;
+			stream->pck_offset = 0;
 			/*don't send until PCR is initialized*/
 			return 0;
 		}
@@ -1209,7 +1214,6 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 	return 1;
 }
 
-u64 last_dts=0;
 static u32 gf_m2ts_stream_get_pes_header_length(GF_M2TS_Mux_Stream *stream)
 {
 	u32 hdr_len, flags;

@@ -6898,7 +6898,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			 /* Even if we don't import this stream we need to check the first dts of the program */
 			if (!(pck->stream->flags & GF_M2TS_ES_FIRST_DTS) && is_au_start) {
 				pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
-				pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
+				pck->stream->first_dts = (pck->PTS!=pck->DTS) ? pck->DTS : pck->PTS;
 				if (!pck->stream->program->first_dts || pck->stream->program->first_dts > pck->stream->first_dts) {
 					pck->stream->program->first_dts = pck->stream->first_dts;
 
@@ -7101,7 +7101,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 
 			samp = gf_isom_sample_new();
-			samp->DTS = pck->DTS ? pck->DTS : pck->PTS;
+			samp->DTS = pck->DTS;
 			samp->CTS_Offset = (u32) (pck->PTS - samp->DTS);
 
 			if (pck->stream->first_dts==samp->DTS) {
