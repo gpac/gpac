@@ -2899,18 +2899,92 @@ Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc)
 	}
 }
 
+static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 idx_rps) 
+{
+	u32 i;
+	Bool inter_ref_pic_set_prediction_flag = 0;
+	if (idx_rps != 0)
+		inter_ref_pic_set_prediction_flag = gf_bs_read_int(bs, 1);
+
+	if (inter_ref_pic_set_prediction_flag ) {
+		HEVC_ReferencePictureSets *ref_ps, *rps;
+		u32 delta_idx_minus1 = 0;
+		u32 ref_idx;
+		u32 delta_rps_sign;
+		u32 abs_delta_rps_minus1, nb_ref_pics;
+		s32 deltaRPS;
+	    u32 k = 0, k0 = 0, k1 = 0;
+		if (idx_rps == sps->num_short_term_ref_pic_sets)
+			delta_idx_minus1 = bs_get_ue(bs);
+
+		assert(delta_idx_minus1 <= idx_rps - 1);
+		ref_idx = idx_rps - 1 - delta_idx_minus1;
+		delta_rps_sign = gf_bs_read_int(bs, 1);
+		abs_delta_rps_minus1 = bs_get_ue(bs);
+		deltaRPS = (1 - (delta_rps_sign<<1)) * (abs_delta_rps_minus1 + 1);
+
+		rps = &sps->rps[idx_rps];
+		ref_ps = &sps->rps[ref_idx];
+		nb_ref_pics = ref_ps->num_negative_pics + ref_ps->num_positive_pics;
+		for (i=0; i<=nb_ref_pics; i++) {
+			s32 ref_idc;
+			s32 used_by_curr_pic_flag = gf_bs_read_int(bs, 1);
+			ref_idc = used_by_curr_pic_flag ? 1 : 0;
+			if ( !used_by_curr_pic_flag ) {
+				used_by_curr_pic_flag = gf_bs_read_int(bs, 1);
+				ref_idc = used_by_curr_pic_flag << 1;
+			}
+			if ((ref_idc==1) || (ref_idc== 2)) {
+				s32 deltaPOC = deltaRPS;
+				if (i < nb_ref_pics) 
+					deltaPOC += ref_ps->delta_poc[i];
+				
+				rps->delta_poc[k] = deltaPOC;
+
+				if (deltaPOC < 0)  k0++;
+				else k1++;
+				
+				k++;
+			}
+		}
+		rps->num_negative_pics = k0;
+		rps->num_positive_pics = k1;
+	} else {
+		s32 prev = 0, poc = 0;
+		sps->rps[idx_rps].num_negative_pics = bs_get_ue(bs);
+		sps->rps[idx_rps].num_positive_pics = bs_get_ue(bs);
+		for (i=0; i<sps->rps[idx_rps].num_negative_pics; i++) {
+			u32 delta_poc_s0_minus1 = bs_get_ue(bs);
+			poc = prev - delta_poc_s0_minus1 - 1;
+			prev = poc;
+			sps->rps[idx_rps].delta_poc[i] = poc;
+			/*used_by_curr_pic_s1_flag[ i ] = */gf_bs_read_int(bs, 1);
+		}
+		for (i=0; i<sps->rps[idx_rps].num_positive_pics; i++) {
+			u32 delta_poc_s1_minus1 = bs_get_ue(bs);
+			poc = prev + delta_poc_s1_minus1 + 1;
+			prev = poc;
+			sps->rps[idx_rps].delta_poc[i] = poc;
+			/*used_by_curr_pic_s1_flag[ i ] = */gf_bs_read_int(bs, 1);
+		}
+	}
+	return 1;
+}
+
+#define PARSE_FULL_HEADER	0
 static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si) 
 {
+#if PARSE_FULL_HEADER
+	u32 i, j;
+#endif
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
 	s32 pps_id;
-	Bool dependent_slice_segment_flag = 0;
 	Bool RapPicFlag = 0;
 	Bool IDRPicFlag = 0;
-	Bool first_slice_segment_in_pic_flag;
 	
-	first_slice_segment_in_pic_flag = gf_bs_read_int(bs, 1);
-	
+	si->first_slice_segment_in_pic_flag = gf_bs_read_int(bs, 1);
+
 	switch (si->nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
@@ -2936,15 +3010,27 @@ static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSlice
 	si->sps = sps;
 	si->pps = pps;
 
-	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
-		dependent_slice_segment_flag = gf_bs_read_int(bs, 1);
+	if (!si->first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
+		si->dependent_slice_segment_flag = gf_bs_read_int(bs, 1);
+	} else {
+		si->dependent_slice_segment_flag = 0;
 	}
 
-	if (!first_slice_segment_in_pic_flag) {
-		/*slice_segment_address = */gf_bs_read_int(bs, sps->bitsSliceSegmentAddress);
+	if (!si->first_slice_segment_in_pic_flag) {
+		si->slice_segment_address = gf_bs_read_int(bs, sps->bitsSliceSegmentAddress);
+	} else {
+		si->slice_segment_address = 0;
 	}
 	
-	if( !dependent_slice_segment_flag ) {
+	if( !si->dependent_slice_segment_flag ) {
+#if PARSE_FULL_HEADER
+		Bool deblocking_filter_override_flag=0;
+		Bool slice_temporal_mvp_enabled_flag = 0;
+        Bool slice_sao_luma_flag=0;
+		Bool slice_sao_chroma_flag=0;
+		Bool slice_deblocking_filter_disabled_flag=0;
+#endif
+
 		//"slice_reserved_undetermined_flag[]"
 		gf_bs_read_int(bs, pps->num_extra_slice_header_bits);
 
@@ -2960,8 +3046,150 @@ static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSlice
 			si->poc_lsb = 0;
 		} else {
 			si->poc_lsb = gf_bs_read_int(bs, sps->log2_max_pic_order_cnt_lsb);
+
+#if !PARSE_FULL_HEADER
 		}
 	}
+#else
+			if (/*short_term_ref_pic_set_sps_flag =*/gf_bs_read_int(bs, 1) == 0) {
+				Bool ret = parse_short_term_ref_pic_set(bs, sps, sps->num_short_term_ref_pic_sets );
+				if (!ret) return 0;
+			} else if( sps->num_short_term_ref_pic_sets > 1 ) {
+                u32 numbits = 0;
+                s32 short_term_ref_pic_set_idx;
+                while ( (u32) (1 << numbits) < sps->num_short_term_ref_pic_sets)
+                    numbits++;
+                if (numbits > 0)
+                    short_term_ref_pic_set_idx = gf_bs_read_int(bs, numbits);
+                else
+                    short_term_ref_pic_set_idx = 0;
+			}
+			if (sps->long_term_ref_pics_present_flag ) {
+				u8 DeltaPocMsbCycleLt[32];
+				u32 num_long_term_sps = 0;
+	            u32 num_long_term_pics = 0;
+				if (sps->num_long_term_ref_pic_sps > 0 ) {
+					num_long_term_sps = bs_get_ue(bs);
+				}
+				num_long_term_pics = bs_get_ue(bs);
+
+                for (i = 0; i < num_long_term_sps + num_long_term_pics; i++ ) {
+                    if( i < num_long_term_sps ) {
+                        u8 lt_idx_sps = 0;
+                        if (sps->num_long_term_ref_pic_sps > 1)
+                            lt_idx_sps = gf_bs_read_int(bs, gf_get_bit_size(sps->num_long_term_ref_pic_sps) );
+                    } else {
+                        /*PocLsbLt[ i ] = */ gf_bs_read_int(bs, sps->log2_max_pic_order_cnt_lsb);
+                        /*UsedByCurrPicLt[ i ] = */ gf_bs_read_int(bs, 1);
+                    }
+                    if (/*delta_poc_msb_present_flag[ i ] = */ gf_bs_read_int(bs, 1) ) {
+                        if( i == 0 || i == num_long_term_sps )
+                            DeltaPocMsbCycleLt[i] = bs_get_ue(bs);
+                        else
+                            DeltaPocMsbCycleLt[i] = bs_get_ue(bs) + DeltaPocMsbCycleLt[i-1];
+					}
+                }
+			}
+            if (sps->temporal_mvp_enable_flag)
+                slice_temporal_mvp_enabled_flag = gf_bs_read_int(bs, 1);
+		}
+        if (sps->sample_adaptive_offset_enabled_flag) {
+            slice_sao_luma_flag = gf_bs_read_int(bs, 1);
+			slice_sao_chroma_flag = gf_bs_read_int(bs, 1);
+        }
+
+		if (si->slice_type == GF_HEVC_TYPE_P || si->slice_type == GF_HEVC_TYPE_B) {
+            //u32 NumPocTotalCurr;
+			u32 num_ref_idx_l0_active, num_ref_idx_l1_active;
+
+			num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
+			num_ref_idx_l1_active = 0;
+			if (si->slice_type == GF_HEVC_TYPE_B)
+                num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
+
+			if ( /*num_ref_idx_active_override_flag =*/gf_bs_read_int(bs, 1) ) {
+				num_ref_idx_l0_active = 1 + bs_get_ue(bs);
+				if (si->slice_type == GF_HEVC_TYPE_B)
+					num_ref_idx_l1_active = 1 + bs_get_ue(bs);
+			}
+
+//            if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
+	            if (pps->lists_modification_present_flag ) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[hehv] ref_pic_lists_modification( ) not implemented\n"));
+				return 0;
+			}
+
+			if (si->slice_type == GF_HEVC_TYPE_B)
+				/*mvd_l1_zero_flag=*/gf_bs_read_int(bs, 1);
+			if (pps->cabac_init_present_flag)
+				/*cabac_init_flag=*/gf_bs_read_int(bs, 1);
+
+			if (slice_temporal_mvp_enabled_flag) {
+				Bool collocated_from_l0_flag = 0;
+				if (si->slice_type == GF_HEVC_TYPE_B)
+					collocated_from_l0_flag = gf_bs_read_int(bs, 1);
+				
+				if ( (collocated_from_l0_flag && num_ref_idx_l0_active-1 > 0 ) 
+					|| ( !collocated_from_l0_flag && num_ref_idx_l1_active-1 > 0 )
+				) {
+					/*collocated_ref_idx=*/bs_get_ue(bs);
+				}
+			}
+
+			if ( (pps->weighted_pred_flag && si->slice_type == GF_HEVC_TYPE_P ) 
+				|| ( pps->weighted_bipred_flag && si->slice_type == GF_HEVC_TYPE_B) 
+			) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[hehv] pred_weight_table not implemented\n"));
+				return 0;
+			}
+			/*five_minus_max_num_merge_cand=*/bs_get_ue(bs);
+		}
+		/*slice_qp_delta = */bs_get_se(bs);
+		if( pps->slice_chroma_qp_offsets_present_flag ) {
+			/*slice_cb_qp_offset=*/bs_get_se(bs);
+			/*slice_cr_qp_offset=*/bs_get_se(bs);
+		}
+		if ( pps->deblocking_filter_override_enabled_flag ) {
+			deblocking_filter_override_flag = gf_bs_read_int(bs, 1);
+		}
+
+		if (deblocking_filter_override_flag) {
+			slice_deblocking_filter_disabled_flag = gf_bs_read_int(bs, 1);
+			if ( !slice_deblocking_filter_disabled_flag) {
+				/*slice_beta_offset_div2=*/ bs_get_se(bs);
+				/*slice_tc_offset_div2=*/bs_get_se(bs);
+			}
+		}
+		if( pps->loop_filter_across_slices_enabled_flag
+			&& ( slice_sao_luma_flag || slice_sao_chroma_flag || !slice_deblocking_filter_disabled_flag )
+		) {
+			/*slice_loop_filter_across_slices_enabled_flag = */gf_bs_read_int(bs, 1);
+		}
+	}
+
+
+	if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
+		u32 num_entry_point_offsets = bs_get_ue(bs);
+		if ( num_entry_point_offsets > 0) {
+            u32 offset = bs_get_ue(bs) + 1;
+            u32 segments = offset >> 4;
+            s32 remain = (offset & 15);
+
+			for (i=0; i<num_entry_point_offsets; i++) {
+                u32 res = 0;
+                for (j=0; j<segments; j++) {
+                    res <<= 16;
+                    res += gf_bs_read_int(bs, 16);
+                }
+                if (remain) {
+                    res <<= remain;
+                    res += gf_bs_read_int(bs, remain);
+                }
+                // entry_point_offset = val + 1; // +1; // +1 to get the size
+            }
+		}
+	}
+#endif //PARSE_FULL_HEADER
 	return 0;
 }
 
@@ -3093,77 +3321,8 @@ exit:
 }
 
 
-static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 idx_rps) 
-{
-	u32 i;
-	Bool inter_ref_pic_set_prediction_flag = 0;
-	if (idx_rps != 0)
-		inter_ref_pic_set_prediction_flag = gf_bs_read_int(bs, 1);
 
-	if (inter_ref_pic_set_prediction_flag ) {
-		HEVC_ReferencePictureSets *ref_ps, *rps;
-		u32 delta_idx_minus1 = 0;
-		u32 ref_idx;
-		u32 delta_rps_sign;
-		u32 abs_delta_rps_minus1, nb_ref_pics;
-		s32 deltaRPS;
-	    u32 k = 0, k0 = 0, k1 = 0;
-		if (idx_rps == sps->num_short_term_ref_pic_sets)
-			delta_idx_minus1 = bs_get_ue(bs);
 
-		assert(delta_idx_minus1 <= idx_rps - 1);
-		ref_idx = idx_rps - 1 - delta_idx_minus1;
-		delta_rps_sign = gf_bs_read_int(bs, 1);
-		abs_delta_rps_minus1 = bs_get_ue(bs);
-		deltaRPS = (1 - (delta_rps_sign<<1)) * (abs_delta_rps_minus1 + 1);
-
-		rps = &sps->rps[idx_rps];
-		ref_ps = &sps->rps[ref_idx];
-		nb_ref_pics = ref_ps->num_negative_pics + ref_ps->num_positive_pics;
-		for (i=0; i<=nb_ref_pics; i++) {
-			s32 ref_idc;
-			s32 used_by_curr_pic_flag = gf_bs_read_int(bs, 1);
-			ref_idc = used_by_curr_pic_flag ? 1 : 0;
-			if ( !used_by_curr_pic_flag ) {
-				used_by_curr_pic_flag = gf_bs_read_int(bs, 1);
-				ref_idc = used_by_curr_pic_flag << 1;
-			}
-			if ((ref_idc==1) || (ref_idc== 2)) {
-				s32 deltaPOC = deltaRPS;
-				if (i < nb_ref_pics) 
-					deltaPOC += ref_ps->delta_poc[i];
-				
-				rps->delta_poc[k] = deltaPOC;
-
-				if (deltaPOC < 0)  k0++;
-				else k1++;
-				
-				k++;
-			}
-		}
-		rps->num_negative_pics = k0;
-		rps->num_positive_pics = k1;
-	} else {
-		s32 prev = 0, poc = 0;
-		sps->rps[idx_rps].num_negative_pics = bs_get_ue(bs);
-		sps->rps[idx_rps].num_positive_pics = bs_get_ue(bs);
-		for (i=0; i<sps->rps[idx_rps].num_negative_pics; i++) {
-			u32 delta_poc_s0_minus1 = bs_get_ue(bs);
-			poc = prev - delta_poc_s0_minus1 - 1;
-			prev = poc;
-			sps->rps[idx_rps].delta_poc[i] = poc;
-			/*used_by_curr_pic_s1_flag[ i ] = */gf_bs_read_int(bs, 1);
-		}
-		for (i=0; i<sps->rps[idx_rps].num_positive_pics; i++) {
-			u32 delta_poc_s1_minus1 = bs_get_ue(bs);
-			poc = prev + delta_poc_s1_minus1 + 1;
-			prev = poc;
-			sps->rps[idx_rps].delta_poc[i] = poc;
-			/*used_by_curr_pic_s1_flag[ i ] = */gf_bs_read_int(bs, 1);
-		}
-	}
-	return 1;
-}
 GF_EXPORT
 s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 {
@@ -3258,7 +3417,7 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 		}
 	}
 	/*asymmetric_motion_partitions_enabled_flag= */ gf_bs_read_int(bs, 1);
-	/*sample_adaptive_offset_enabled_flag= */ gf_bs_read_int(bs, 1);
+	sps->sample_adaptive_offset_enabled_flag = gf_bs_read_int(bs, 1);
 	if (/*pcm_enabled_flag= */ gf_bs_read_int(bs, 1) ) {
 		/*pcm_sample_bit_depth_luma_minus1=*/gf_bs_read_int(bs, 4);
 		/*pcm_sample_bit_depth_chroma_minus1=*/gf_bs_read_int(bs, 4);
@@ -3272,14 +3431,14 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 		/*cannot parse short_term_ref_pic_set, skip VUI parsing*/
 		if (!ret) goto exit;
 	}
-	if (/*long_term_ref_pics_present_flag */ gf_bs_read_int(bs, 1) ) {
+	if ( (sps->long_term_ref_pics_present_flag = gf_bs_read_int(bs, 1)) ) {
 		sps->num_long_term_ref_pic_sps = bs_get_ue(bs);
 		for (i=0; i<sps->num_long_term_ref_pic_sps; i++) {
 			/*lt_ref_pic_poc_lsb_sps=*/gf_bs_read_int(bs, sps->log2_max_pic_order_cnt_lsb);
 			/*used_by_curr_pic_lt_sps_flag*/gf_bs_read_int(bs, 1);
 		}
 	}
-	/*sps_temporal_mvp_enable_flag*/gf_bs_read_int(bs, 1);
+	sps->temporal_mvp_enable_flag = gf_bs_read_int(bs, 1);
 	/*strong_intra_smoothing_enable_flag*/gf_bs_read_int(bs, 1);
 	if (/*vui_parameters_present_flag*/gf_bs_read_int(bs, 1)) {
 
@@ -3392,9 +3551,9 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 	pps->output_flag_present_flag = gf_bs_read_int(bs, 1);
 	pps->num_extra_slice_header_bits = gf_bs_read_int(bs, 3);
 	/*sign_data_hiding_flag = */gf_bs_read_int(bs, 1);
-	/*cabac_init_present_flag = */gf_bs_read_int(bs, 1);
-	/*num_ref_idx_l0_default_active_minus1 = */bs_get_ue(bs);
-	/*num_ref_idx_l1_default_active_minus1 = */bs_get_ue(bs);
+	pps->cabac_init_present_flag = gf_bs_read_int(bs, 1);
+	pps->num_ref_idx_l0_default_active = 1 + bs_get_ue(bs);
+	pps->num_ref_idx_l1_default_active = 1 + bs_get_ue(bs);
 	/*pic_init_qp_minus26 = */bs_get_se(bs);
 	/*constrained_intra_pred_flag = */gf_bs_read_int(bs, 1);
 	/*transform_skip_enabled_flag = */gf_bs_read_int(bs, 1);
@@ -3403,29 +3562,29 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 
 	/*pic_cb_qp_offset = */bs_get_se(bs);
 	/*pic_cr_qp_offset = */bs_get_se(bs);
-	/*pic_slice_chroma_qp_offsets_present_flag = */gf_bs_read_int(bs, 1);
-	/*weighted_pred_flag = */gf_bs_read_int(bs, 1);
-	/*weighted_bipred_flag = */gf_bs_read_int(bs, 1);
+	pps->slice_chroma_qp_offsets_present_flag = gf_bs_read_int(bs, 1);
+	pps->weighted_pred_flag = gf_bs_read_int(bs, 1);
+	pps->weighted_bipred_flag = gf_bs_read_int(bs, 1);
 	/*transquant_bypass_enable_flag = */gf_bs_read_int(bs, 1);
 	pps->tiles_enabled_flag = gf_bs_read_int(bs, 1);
-	/*entropy_coding_sync_enabled_flag = */gf_bs_read_int(bs, 1);
+	pps->entropy_coding_sync_enabled_flag = gf_bs_read_int(bs, 1);
 	if (pps->tiles_enabled_flag) {
-		u32 num_tile_columns_minus1 = bs_get_ue(bs);
-		u32 num_tile_rows_minus1 = bs_get_ue(bs);
+		pps->num_tile_columns = 1 + bs_get_ue(bs);
+		pps->num_tile_rows = 1 + bs_get_ue(bs);
 		pps->uniform_spacing_flag = gf_bs_read_int(bs, 1);
 		if (!pps->uniform_spacing_flag ) {
-			for( i = 0; i < num_tile_columns_minus1; i++ ) {
-				/*column_width_minus1[ i ] = */bs_get_ue(bs);
+			for (i=0; i<pps->num_tile_columns; i++) {
+				pps->column_width[i] = 1 + bs_get_ue(bs);
 			}
-			for( i = 0; i < num_tile_rows_minus1; i++ ) {
-				/*row_height_minus1[ i ] = */bs_get_ue(bs);
+			for (i=0; i<pps->num_tile_rows; i++) {
+				pps->row_height[i] = bs_get_ue(bs);
 			}
 		}
-		/*loop_filter_across_tiles_enabled_flag	 = */gf_bs_read_int(bs, 1);
+		pps->loop_filter_across_tiles_enabled_flag = gf_bs_read_int(bs, 1);
 	}
-	/*loop_filter_across_slices_enabled_flag = */gf_bs_read_int(bs, 1);
+	pps->loop_filter_across_slices_enabled_flag = gf_bs_read_int(bs, 1);
 	if( /*deblocking_filter_control_present_flag = */gf_bs_read_int(bs, 1)  ) {
-		/*deblocking_filter_override_enabled_flag= */gf_bs_read_int(bs, 1);
+		pps->deblocking_filter_override_enabled_flag = gf_bs_read_int(bs, 1);
 		if (! /*pic_disable_deblocking_filter_flag= */gf_bs_read_int(bs, 1) ) {
 			/*beta_offset_div2 = */bs_get_se(bs);
 			/*tc_offset_div2 = */bs_get_se(bs);
@@ -3436,7 +3595,7 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[HEVC] Parsing of scaling_list_data is not yet supported, stopping scaning of PPS (slice_segment_header_extension_present won't be checked ...\n"));
 		goto exit;
 	}
-	/*lists_modification_present_flag	= */gf_bs_read_int(bs, 1);
+	pps->lists_modification_present_flag = gf_bs_read_int(bs, 1);
 	/*log2_parallel_merge_level_minus2 = */bs_get_ue(bs);
 	pps->slice_segment_header_extension_present_flag = gf_bs_read_int(bs, 1);
 	if ( /*pps_extension_flag= */gf_bs_read_int(bs, 1) ) {
@@ -3988,4 +4147,3 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 }
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
-

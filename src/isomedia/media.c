@@ -803,8 +803,10 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 
 	//MEDIA DATA EDIT: write this new sample to the edit temp file
 	newOffset = gf_isom_datamap_get_offset(mdia->mediaTrack->moov->mov->editFileMap);
-	e = gf_isom_datamap_add_data(mdia->mediaTrack->moov->mov->editFileMap, sample->data, sample->dataLength);
-	if (e) return e;
+	if (sample->dataLength) {
+		e = gf_isom_datamap_add_data(mdia->mediaTrack->moov->mov->editFileMap, sample->data, sample->dataLength);
+		if (e) return e;
+	}
 
 	if (data_only) {
 		stbl_SetSampleSize(stbl->SampleSize, sampleNumber, sample->dataLength);

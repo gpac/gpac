@@ -291,7 +291,7 @@ typedef struct
 	HEVC_ReferencePictureSets rps[64];
 
 
-	Bool aspect_ratio_info_present_flag;
+	Bool aspect_ratio_info_present_flag, long_term_ref_pics_present_flag, temporal_mvp_enable_flag, sample_adaptive_offset_enabled_flag;
 	u8 sar_idc;
 	u16 sar_width, sar_height;
 	Bool has_timing_info;
@@ -309,8 +309,13 @@ typedef struct
 	u32 crc;
 
 	Bool dependent_slice_segments_enabled_flag, tiles_enabled_flag, uniform_spacing_flag;
-	u32 num_extra_slice_header_bits;
-	Bool slice_segment_header_extension_present_flag, output_flag_present_flag;
+	u32 num_extra_slice_header_bits, num_ref_idx_l0_default_active, num_ref_idx_l1_default_active;
+	Bool slice_segment_header_extension_present_flag, output_flag_present_flag, lists_modification_present_flag, cabac_init_present_flag;
+	Bool weighted_pred_flag, weighted_bipred_flag, slice_chroma_qp_offsets_present_flag, deblocking_filter_override_enabled_flag, loop_filter_across_slices_enabled_flag, entropy_coding_sync_enabled_flag;
+	Bool loop_filter_across_tiles_enabled_flag;
+
+	u32 num_tile_columns, num_tile_rows;
+	u32 column_width[22], row_height[20];
 } HEVC_PPS;
 
 typedef struct
@@ -353,6 +358,10 @@ typedef struct
 	s32 poc;
 	u32 poc_msb, poc_msb_prev, poc_lsb_prev, frame_num_prev;
 	s32 frame_num_offset, frame_num_offset_prev;
+
+	Bool dependent_slice_segment_flag;
+	Bool first_slice_segment_in_pic_flag;
+	u32 slice_segment_address;
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;

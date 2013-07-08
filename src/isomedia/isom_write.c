@@ -641,7 +641,7 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 		if (od_sample) gf_isom_sample_del(&od_sample);
 	} else {
 		e = Media_AddSample(trak->Media, data_offset, sample, descIndex, 0);
-		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+		if (!e && sample->dataLength) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
 	}
 	if (e) return e;
 

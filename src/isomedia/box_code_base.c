@@ -5459,7 +5459,7 @@ GF_Err stsz_Write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->type == GF_ISOM_BOX_TYPE_STSZ) {
 		if (! ptr->sampleSize) {
 			for (i = 0; i < ptr->sampleCount; i++) {
-				gf_bs_write_u32(bs, ptr->sizes[i]);
+				gf_bs_write_u32(bs, ptr->sizes ? ptr->sizes[i] : 0);
 			}
 		}
 	} else {
