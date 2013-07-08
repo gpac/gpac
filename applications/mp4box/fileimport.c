@@ -179,7 +179,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode;
+	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
@@ -219,6 +219,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	stype = 0;
 	profile = level = 0;
 	negative_cts_offset = 0;
+	tile_mode = 0;
 
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
@@ -344,7 +345,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			else if (!stricmp(ext+9, "merged"))
 				svc_mode = 0;
 		}
-
+		else if (!strnicmp(ext+1, "tiles", 5)) {
+			tile_mode = 1;
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 		 ext = ext2;
@@ -514,6 +517,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = i+1;
+
+			if (tile_mode) {
+				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
+				case GF_ISOM_SUBTYPE_HVC1:
+				case GF_ISOM_SUBTYPE_HEV1:
+					tile_mode = 2;
+					break;
+				}
+			}
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -637,6 +649,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = track;
+
+			if (tile_mode) {
+				switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
+				case GF_ISOM_SUBTYPE_HVC1:
+				case GF_ISOM_SUBTYPE_HEV1:
+					tile_mode = 2;
+					break;
+				}
+			}
 		}
 		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
@@ -670,6 +691,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (e) goto exit;
 		}
 	}
+	if (tile_mode == 2) {
+		gf_media_split_hevc_tiles(import.dest);
+	}
+
 
 exit:
 	if (handler_name) gf_free(handler_name);

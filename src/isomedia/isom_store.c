@@ -348,6 +348,8 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	GF_DataMap *map;
 	u32 bytes;
 
+	if (!size) return GF_OK;
+
 	if (size>mw->size) {
 		mw->buffer = (char*)gf_realloc(mw->buffer, size);
 		mw->size = size;

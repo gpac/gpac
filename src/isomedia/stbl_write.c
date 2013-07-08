@@ -343,7 +343,7 @@ GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size)
 {
 	u32 i, k;
 	u32 *newSizes;
-	if (!stsz || !size || !sampleNumber) return GF_BAD_PARAM;
+	if (!stsz /*|| !size */ || !sampleNumber) return GF_BAD_PARAM;
 
 	if (sampleNumber > stsz->sampleCount + 1) return GF_BAD_PARAM;
 
@@ -1250,7 +1250,11 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 		for (i=0; i<stsz->sampleCount; i++) stsz->sizes[i] = stsz->sampleSize;
 		stsz->sampleSize = 0;
 	}
-	stsz->sizes[stsz->sampleCount-1] += data_size;
+	if (!stsz->sizes) {
+		stsz->sampleSize = data_size;
+	} else {
+		stsz->sizes[stsz->sampleCount-1] += data_size;
+	}
 	return GF_OK;
 }
 
