@@ -629,7 +629,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 
 redecode:
 #ifdef USE_AVCODEC2
-		gotpic = 0;
+		gotpic = 192000;
 		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);
 #else
 		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
