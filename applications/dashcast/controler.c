@@ -289,7 +289,7 @@ static u32 mpd_thread(void * p_params) {
 
 			fprintf(p_f,
 					"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-							" startNumber=\"0\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+							" startNumber=\"1\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
 					p_adata->i_samplerate, audio_seg_dur * audio_frame_size);
 
 			for (i = 0; i < gf_list_count(p_cmddata->p_audio_lst); i++) {
@@ -312,7 +312,7 @@ static u32 mpd_thread(void * p_params) {
 
 			fprintf(p_f,
 					"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-							" startNumber=\"0\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+							" startNumber=\"1\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
 					p_vdata->i_framerate, video_seg_dur);
 
 			for (i = 0; i < gf_list_count(p_cmddata->p_video_lst); i++) {
