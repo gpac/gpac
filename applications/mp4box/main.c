@@ -318,6 +318,7 @@ void PrintDASHUsage()
 			" -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 			" -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
 			" -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
+			" -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 			"\n"
 			"Advanced Options, should not be needed when using -dash-profile:\n"
 			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
@@ -1387,6 +1388,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool seg_at_rap=0;
 	Bool frag_at_rap=0;
 	Bool adjust_split_end = 0;
+	Bool memory_frags = 1;
 	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
 	u32 nb_dash_inputs = 0;
@@ -1868,6 +1870,8 @@ int mp4boxMain(int argc, char **argv)
 			}
 		} else if (!stricmp(arg, "-segment-timeline")) {
 			segment_timeline = 1;
+		} else if (!stricmp(arg, "-mem-frags")) {
+			memory_frags = 1;
 		} else if (!stricmp(arg, "-segment-marker")) {
 			char *m;
 			CHECK_NEXT_ARG
@@ -2882,7 +2886,7 @@ int mp4boxMain(int argc, char **argv)
 									   use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
 									   seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec, dash_scale);
+									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec, dash_scale, memory_frags);
 			if (e) break;
 
 			if (dash_live) {

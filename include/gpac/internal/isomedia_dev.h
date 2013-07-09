@@ -2433,6 +2433,8 @@ struct __tag_isom {
 	u32 root_sidx_index;
 
 	Bool is_index_segment;
+
+	GF_BitStream *segment_bs;
 #endif
 
 	/*this contains ALL the root boxes excepts fragments*/

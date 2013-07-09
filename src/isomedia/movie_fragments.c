@@ -717,24 +717,37 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	}
 
 	if (load_mdat_only) {
-		u64 offset;
 		u64 pos = gf_bs_get_position(bs);
 		//we assume we never write large MDATs in fragment mode which should always be true
 		movie->moof->mdat_size = (u32) (pos - movie->moof->fragment_offset);
-		movie->moof->mdat = gf_malloc(sizeof(char) * movie->moof->mdat_size);
-		if (!movie->moof->mdat) return GF_OUT_OF_MEM;
 
-		offset = movie->segment_start;
 
-		gf_bs_seek(bs, offset);
-		/*write mdat size*/
-		gf_bs_write_u32(bs, (u32) movie->moof->mdat_size);
+		if (movie->segment_bs) {
+			gf_bs_seek(bs, 0);
+			/*write mdat size*/
+			gf_bs_write_u32(bs, (u32) movie->moof->mdat_size);
+			/*and get internal buffer*/
+			gf_bs_seek(bs, movie->moof->mdat_size);
+			gf_bs_get_content(bs, &movie->moof->mdat, &movie->moof->mdat_size);
 
-		gf_bs_seek(bs, offset);
-		gf_bs_read_data(bs, movie->moof->mdat, movie->moof->mdat_size);
+			gf_bs_del(bs);
+			bs = movie->editFileMap->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		} else {
+			u64 offset = movie->segment_start;
+			gf_bs_seek(bs, offset);
+			/*write mdat size*/
+			gf_bs_write_u32(bs, (u32) movie->moof->mdat_size);
 
-		gf_bs_seek(bs, offset);
-		gf_bs_truncate(bs);
+			movie->moof->mdat = gf_malloc(sizeof(char) * movie->moof->mdat_size);
+			if (!movie->moof->mdat) return GF_OUT_OF_MEM;
+
+			gf_bs_seek(bs, offset);
+			gf_bs_read_data(bs, movie->moof->mdat, movie->moof->mdat_size);
+
+			gf_bs_seek(bs, offset);
+			gf_bs_truncate(bs);
+		}
+
 		return GF_OK;
 	}
 
@@ -919,6 +932,7 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 GF_EXPORT
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 {
+	GF_BitStream *temp_bs = NULL;
 	GF_Err e;
 		
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
@@ -928,6 +942,11 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 	if (movie->moof) {
 		e = StoreFragment(movie, 1, 0, NULL);
 		if (e) return e;
+	}
+
+	if (movie->segment_bs) {
+		temp_bs = movie->editFileMap->bs;
+		movie->editFileMap->bs = movie->segment_bs;
 	}
 
 	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
@@ -968,6 +987,11 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
 	}
 	movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
+
+	if (temp_bs) {
+		movie->segment_bs = movie->editFileMap->bs;
+		movie->editFileMap->bs = temp_bs;
+	}
 	return GF_OK;
 }
 
@@ -1016,6 +1040,13 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		e = StoreFragment(movie, 1, 0, NULL);
 		if (e) return e;
 	}
+	/*restore final bitstream*/
+	if (movie->segment_bs) {
+		gf_bs_del(movie->editFileMap->bs);
+		movie->editFileMap->bs = movie->segment_bs;
+		movie->segment_bs = NULL;
+	}
+
 	count = gf_list_count(movie->moof_list);
 	if (!count) {
 		/*append segment marker box*/
@@ -1429,7 +1460,7 @@ GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
+GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName, Bool memory_mode)
 {
 	GF_Err e;
 	//and only at setup
@@ -1439,6 +1470,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 	if (gf_list_count(movie->moof_list)) 
 		return GF_BAD_PARAM;
 
+	movie->segment_bs = NULL;
 	movie->append_segment = 0;
 	/*update segment file*/
 	if (SegName) {
@@ -1453,6 +1485,12 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 		/*if movieFileMap is not null, we are concatenating segments to the original movie, force a copy*/
 		if (movie->movieFileMap)
 			movie->append_segment = 1;
+	}
+
+	/*create a memory bitstream for all file IO until final flush*/
+	if (memory_mode) {
+		movie->segment_bs = movie->editFileMap->bs;
+		movie->editFileMap->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
 	return GF_OK;
 }
