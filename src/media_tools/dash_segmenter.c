@@ -82,6 +82,7 @@ typedef struct
 	Bool variable_seg_rad_name;
 
 	Bool fragments_start_with_rap;
+	Bool memory_mode;
 
 	GF_Config *dash_ctx;
 	const char *tmpdir;
@@ -914,7 +915,7 @@ restart_fragmentation_pass:
 				start_range = gf_isom_get_file_size(output);
 				if (seg_rad_name) {
 					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, (u64) ( period_duration * dash_cfg->dash_scale + segment_start_time), bandwidth, cur_seg, dash_cfg->use_segment_timeline);
-					e = gf_isom_start_segment(output, SegmentName);
+					e = gf_isom_start_segment(output, SegmentName, dash_cfg->memory_mode);
 
 					gf_dasher_store_segment_info(dash_cfg, SegmentName, period_duration + segment_start_time / (Double) dash_cfg->dash_scale);
 
@@ -936,7 +937,7 @@ restart_fragmentation_pass:
 						}
 					}
 				} else {
-					e = gf_isom_start_segment(output, NULL);
+					e = gf_isom_start_segment(output, NULL, dash_cfg->memory_mode);
 				}
 			}
 
@@ -3663,7 +3664,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 							   Bool use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching, 
 							   Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
 							   Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
-							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, u32 ast_shift_sec, u32 dash_scale)
+							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH];
@@ -3878,6 +3879,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.time_shift_depth = (s32) time_shift_depth;
 	dash_opts.segment_marker_4cc = segment_marker_4cc;
 	dash_opts.inband_param_set = ((bitstream_switching == GF_DASH_BSMODE_INBAND) || (bitstream_switching == GF_DASH_BSMODE_SINGLE) ) ? 1 : 0;
+	dash_opts.memory_mode = fragments_in_memory;
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
 	dash_opts.subduration = subduration * 1000 / dash_scale;

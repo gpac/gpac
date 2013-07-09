@@ -120,7 +120,7 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile * p_voutf, char * psz_name) {
 
 	GF_Err ret;
 
-	ret = gf_isom_start_segment(p_voutf->p_isof, psz_name);
+	ret = gf_isom_start_segment(p_voutf->p_isof, psz_name, 0);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_start_segment\n", gf_error_to_string(ret));
 		return -1;

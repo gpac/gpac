@@ -26,7 +26,7 @@
 #include <gpac/bitstream.h>
 
 /*the default size for new streams allocation...*/
-#define BS_MEM_BLOCK_ALLOC_SIZE		250
+#define BS_MEM_BLOCK_ALLOC_SIZE		4096
 
 /*private types*/
 enum
@@ -397,6 +397,8 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 	if (BS_IsAlign(bs)) {
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
+		case GF_BITSTREAM_WRITE:
+		case GF_BITSTREAM_WRITE_DYN:
 			memcpy(data, bs->original + bs->position, nbBytes);
 			bs->position += nbBytes;
 			return nbBytes;
@@ -434,9 +436,9 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
 			/*gf_realloc if enough space...*/
 			if (bs->size > 0xFFFFFFFF) return;
-			bs->original = (char*)gf_realloc(bs->original, (u32) (bs->size + BS_MEM_BLOCK_ALLOC_SIZE));
+			bs->original = (char*)gf_realloc(bs->original, (u32) (bs->size * 2));
 			if (!bs->original) return;
-			bs->size += BS_MEM_BLOCK_ALLOC_SIZE;
+			bs->size *= 2;
 		}
 		bs->original[bs->position] = val;
 		bs->position++;
@@ -557,12 +559,17 @@ u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 	case GF_BITSTREAM_WRITE_DYN:
 		/*need to gf_realloc ...*/
 		if (bs->position+repeat_count> bs->size) {
+			u32 new_size = (u32) (bs->size*2);
+			if (!new_size) new_size = BS_MEM_BLOCK_ALLOC_SIZE;
+
 			if (bs->size + repeat_count > 0xFFFFFFFF) 
 				return 0;
-			bs->original = (char*)gf_realloc(bs->original, sizeof(u32)*((u32) bs->size + repeat_count));
+			while (new_size < (u32) ( bs->size + repeat_count))
+				new_size *= 2;
+			bs->original = (char*)gf_realloc(bs->original, sizeof(u32)*new_size);
 			if (!bs->original) 
 				return 0;
-			bs->size += repeat_count;
+			bs->size = new_size;
 		}
 		memset(bs->original + bs->position, byte, repeat_count);
 		bs->position += repeat_count;
@@ -629,12 +636,18 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 		case GF_BITSTREAM_WRITE_DYN:
 			/*need to gf_realloc ...*/
 			if (bs->position+nbBytes > bs->size) {
+				u32 new_size = (u32) (bs->size*2);
+				if (!new_size) new_size = BS_MEM_BLOCK_ALLOC_SIZE;
+				
 				if (bs->size + nbBytes > 0xFFFFFFFF) 
 					return 0;
-				bs->original = (char*)gf_realloc(bs->original, sizeof(u32)*((u32) bs->size + nbBytes));
+
+				while (new_size < (u32) ( bs->size + nbBytes))
+					new_size *= 2;
+				bs->original = (char*)gf_realloc(bs->original, sizeof(u32)*new_size);
 				if (!bs->original) 
 					return 0;
-				bs->size += nbBytes;
+				bs->size = new_size;
 			}
 			memcpy(bs->original + bs->position, data, nbBytes);
 			bs->position += nbBytes;
@@ -734,8 +747,10 @@ static s32 BS_CutBuffer(GF_BitStream *bs)
 
 	nbBytes = (u32) (bs->size - bs->position);
 	if (!nbBytes || (nbBytes == 0xFFFFFFFF) || (bs->position >= 0xFFFFFFFF)) return 0;
+/*
 	bs->original = (char*)gf_realloc(bs->original, (u32) bs->position);
 	if (! bs->original) return (u32) -1;
+*/
 	/*just in case, re-adjust..*/
 	bs->size = bs->position;
 	return nbBytes;
