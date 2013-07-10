@@ -77,7 +77,7 @@ LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o
 endif
 
 ## libgpac objects gathering: src/media tools
-LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/html5_media.o media_tools/html5_mse.o
+LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o
 ifeq ($(DISABLE_AV_PARSERS), no)
 LIBGPAC_MEDIATOOLS+=media_tools/img.o
 endif
@@ -133,8 +133,12 @@ endif
 ifeq ($(DISABLE_TTXT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/text_import.o
 endif
+
+ifeq ($(DISABLE_PLAYER), no)
+LIBGPAC_MEDIATOOLS+=media_tools/html5_media.o media_tools/html5_mse.o
 ifeq ($(DISABLE_TTXT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
+endif
 endif
 
 
