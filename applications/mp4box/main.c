@@ -82,8 +82,6 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 
 #endif
 
-u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
-
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
 GF_Err dump_chapters(GF_ISOFile *file, char *inName);
 u32 id3_get_genre_tag(const char *name);
@@ -134,6 +132,10 @@ void PrintStreamerUsage();
 int stream_file_rtp(int argc, char **argv);
 int live_session(int argc, char **argv);
 void PrintLiveUsage();
+#endif
+
+#if !defined(GPAC_DISABLE_STREAMING)
+u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
 #endif
 
 int mp4boxTerminal(int argc, char **argv);
@@ -584,8 +586,9 @@ void PrintExtractUsage()
 			" -raw-layer ID        same as -raw but skips SVC/MVC extractors when extracting\n" 
 			" -diod                extracts file IOD in raw format when supported\n" 
 			"\n"
+#if !defined(GPAC_DISABLE_STREAMING)
 			" -grab-ts IP:port     grabs TS over UDP or RTP at IP:port location to output TS file\n"
-
+#endif
 			"\n");
 }
 void PrintDumpUsage()
@@ -1397,8 +1400,10 @@ int mp4boxMain(int argc, char **argv)
 	const char *dash_title = NULL;
 	const char *dash_source = NULL;
 	const char *dash_more_info = NULL;
+#if !defined(GPAC_DISABLE_STREAMING)
 	const char *grab_m2ts = NULL;
-
+#endif
+	
 	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
@@ -1511,11 +1516,13 @@ int mp4boxMain(int argc, char **argv)
 				info_track_id=0;
 			}
 		}
+#if !defined(GPAC_DISABLE_STREAMING)
 		else if (!stricmp(arg, "-grab-ts")) {
 			CHECK_NEXT_ARG
 			grab_m2ts = argv[i+1];
 			i++;
 		}		
+#endif
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
 			do_wget = argv[i+1];
@@ -2554,9 +2561,11 @@ int mp4boxMain(int argc, char **argv)
 		fclose(fout);
 		MP4BOX_EXIT_WITH_CODE(0);
 	}
+#if !defined(GPAC_DISABLE_STREAMING) 
 	if (grab_m2ts) {
 		return grab_live_m2ts(grab_m2ts, inName);
 	}
+#endif
 	/*init libgpac*/
 	if (enable_mem_tracker) {
 		gf_sys_close();

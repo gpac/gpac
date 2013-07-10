@@ -155,6 +155,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		else {
 			gf_bs_write_int(dst_bs, 1, 32);
 			if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
 				gf_bs_write_int(dst_bs, 0, 1);
 				gf_bs_write_int(dst_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
 				gf_bs_write_int(dst_bs, 0, 6);
@@ -163,6 +164,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				/*pic-type - by default we signal all slice types possible*/
 				gf_bs_write_int(dst_bs, 2, 3);
 				gf_bs_write_int(dst_bs, 0, 5);
+#endif
 			} else {
 				gf_bs_write_int(dst_bs, (sample->data[0] & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
 				gf_bs_write_int(dst_bs, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
@@ -243,12 +245,13 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				gf_bs_del(ps_bs);
 				ps_bs = NULL;
 			}
+
+#ifndef GPAC_DISABLE_HEVC
 			/*we already wrote this stuff*/
 			if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
 				gf_bs_skip_bytes(src_bs, nal_size-2);
 				continue;
 			}
-
 			switch (nal_type) {
 			case GF_HEVC_NALU_SLICE_TSA_N:
 			case GF_HEVC_NALU_SLICE_STSA_N:
@@ -258,6 +261,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					temporal_id = (nal_hdr & 0x7);
 				break;
 			}
+#endif
 			
 			/*rewrite nal*/
 			gf_bs_read_data(src_bs, buffer, nal_size-2);

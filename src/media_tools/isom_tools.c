@@ -2235,6 +2235,9 @@ err_exit:
 GF_EXPORT
 GF_Err gf_media_split_tiles(GF_ISOFile *file)
 {
+#ifdef GPAC_DISABLE_HEVC
+	return GF_NOT_SUPPORTED;
+#else
 	u32 i, j, count, stype, track, nb_tracks, di, nalu_size_length;
 	s32 pps_idx=-1;
 //	GF_Err e;
@@ -2341,6 +2344,9 @@ GF_Err gf_media_split_tiles(GF_ISOFile *file)
 	}
 
 	return GF_OK;
+#endif //GPAC_DISABLE_HEVC
+
 }
+
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
