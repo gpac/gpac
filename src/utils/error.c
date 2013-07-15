@@ -497,7 +497,7 @@ const char *gf_error_to_string(GF_Err e)
 	case GF_SCRIPT_NOT_READY:
 		return "Script not ready for playback";
 	case GF_INVALID_CONFIGURATION:
-		return "Bad configuration for the current contex";
+		return "Bad configuration for the current context";
 	case GF_NOT_FOUND:
 		return "At least one required element has not been found";
 	case GF_MISSING_REQUIREMENTS:
