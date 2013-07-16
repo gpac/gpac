@@ -149,7 +149,7 @@ int dc_gpac_audio_isom_open_seg(AudioOutputFile * p_aoutf, char * psz_name) {
 
 	GF_Err ret;
 
-	ret = gf_isom_start_segment(p_aoutf->p_isof, psz_name, 0);
+	ret = gf_isom_start_segment(p_aoutf->p_isof, psz_name, 1);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_start_segment\n", gf_error_to_string(ret));
 		return -1;
