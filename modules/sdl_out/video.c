@@ -784,17 +784,17 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			sdl_translate_key(sdl_evt.key.keysym.sym, &gpac_evt.key);
 			gpac_evt.type = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+#ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
 			if ((sdl_evt.key.type==SDL_KEYDOWN)
 				&& sdl_evt.key.keysym.unicode
-#ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
 				&& ((sdl_evt.key.keysym.unicode=='\r') || (sdl_evt.key.keysym.unicode=='\n')  || (sdl_evt.key.keysym.unicode=='\b') || (sdl_evt.key.keysym.unicode=='\t') )
-#endif
 			) {
 				gpac_evt.character.unicode_char = sdl_evt.key.keysym.unicode;
 				gpac_evt.type = GF_EVENT_TEXTINPUT;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			}
-			break;
+#endif
+                break;
 
 		/*mouse*/
 		case SDL_MOUSEMOTION:
