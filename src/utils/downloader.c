@@ -1070,9 +1070,8 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 
 static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
 {
-#ifdef GPAC_HAS_SSL
     GF_Err e;
-#endif
+
 	if (!sess)
         return GF_BAD_PARAM;
 #ifdef GPAC_HAS_SSL
@@ -1092,7 +1091,13 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 #endif
     if (!sess->sock)
         return GF_NETIO_DISCONNECTED;
-    return gf_sk_receive(sess->sock, data, data_size, 0, out_read);
+    e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
+
+ 	if (e==GF_IP_NETWORK_EMPTY) {
+		gf_sleep(1);
+	}
+
+    return e;
 }
 
 
@@ -1735,7 +1740,7 @@ static u8 *gf_dm_get_chunk_data(GF_DownloadSession *sess, u8 *body_start, u32 *p
 	if (sep) sep[0] = ';';
 	*payload_size = size;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d\n", body_start, 2+strlen(body_start), size));
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d\n", body_start, 2+strlen(body_start), size));
 	
 	te_header[0] = '\r';
 	return te_header+2;
@@ -1906,7 +1911,7 @@ GF_EXPORT
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
     if (!sess) return NULL;
-    if (! sess->cache_entry )  return NULL;
+    if (! sess->cache_entry || sess->needs_cache_reconfig) return NULL;
     return gf_cache_get_cache_filename(sess->cache_entry);
 }
 

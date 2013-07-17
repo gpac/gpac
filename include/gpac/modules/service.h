@@ -106,8 +106,6 @@ typedef enum
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUALITY_SWITCH,
 
-	/*When using DASH , sets callback for http downloading - net->proxy only*/
-	GF_NET_SERVICE_SET_PROXY_NETIO,
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
 	/*When using DASH, query the media range of the url passed in COnnectService - this is only used for local 
@@ -319,14 +317,6 @@ typedef struct
 	u32 data_len;
 } GF_NetComMigration;
 
-/*GF_NET_SERVICE_SET_PROXY_NETIO*/
-typedef struct
-{
-	u32 command_type;
-	//pointer to function used to signal progress of HTTP loading - cbk will be the module handler (struct _netinterface *)
-	void (*client_net_io)(void *cbk, GF_NETIO_Parameter *param);
-} GF_ProxyURLNetIO;
-
 /*GF_NET_SERVICE_QUERY_NEXT*/
 typedef struct
 {
@@ -335,8 +325,6 @@ typedef struct
 
 	/*drops first segment */
 	Bool drop_first_segment;
-	/*retrieves info of the next segment to play even if download is not yet completed*/
-	Bool query_current_download;
 
 	//output
 
@@ -354,6 +342,13 @@ typedef struct
 	/*out: initialization/switching segment of next URL to play, if different from previous init segment*/
 	const char *next_url_init_or_switch_segment;
 	u64 switch_start_range, switch_end_range;
+
+
+	/*indicates that the return URL is the currently downloaded one, not yet completed (progressive mode only).	*/
+	Bool is_current_download;
+	/*indicates that there is new data in the cache for the current URL (progressive mode only) - only valid if is_current_download is set.*/
+	Bool has_new_data;
+
 } GF_NetURLQuery;
 
 /*GF_NET_SERVICE_QUALITY_SWITCH*/
@@ -398,7 +393,6 @@ typedef union __netcommand
 	GF_NetURLQuery url_query;
 	GF_NetQualitySwitch switch_quality;
 	GF_NetServiceStatus status;
-	GF_ProxyURLNetIO net_io;
 } GF_NetworkCommand;
 
 /*

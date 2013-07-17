@@ -55,7 +55,7 @@ typedef struct
 	Bool request_all_pids;
 	Bool is_connected;
 	Bool low_latency_mode;
-	u32 segment_progress_state;
+	Bool in_segment_download;
 
 	Bool epg_requested;
 	Bool has_eit;
@@ -791,28 +791,6 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
-
-static void m2ts_net_io_segment(void *cbk, GF_NETIO_Parameter *param)
-{
-	GF_InputService *plug = (GF_InputService *)cbk;
-	M2TSIn *m2ts = (M2TSIn *) plug->priv;
-
-	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
-		if (m2ts->segment_progress_state) {
-			m2ts->segment_progress_state = 2;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M2TS In] Segment file transfer done\n"));
-		}
-	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
-		/*query next segment URL and refresh*/
-		if (m2ts->segment_progress_state==1) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M2TS In] Segment file in transfer (%d new bytes)\n", param->size));
-		}
-	} else {
-		m2ts->low_latency_mode = 1;
-		return;
-	}
-}
-
 static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, Bool *is_refresh)
 {
 	GF_NetworkCommand param;
@@ -828,11 +806,9 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.next_url = NULL;
 	param.url_query.drop_first_segment = (query_type==1) ? 1 : 0;
-	//always query the current download in low latency
-	param.url_query.query_current_download = m2ts->low_latency_mode ? GF_TRUE : GF_FALSE;
 
 	//we are downloading the segment we play, don't delete it
-	if (m2ts->segment_progress_state) 
+	if (m2ts->in_segment_download)
 		param.url_query.drop_first_segment = 0;
 
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
@@ -849,24 +825,25 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 		if (out_end_range) *out_end_range = param.url_query.end_range;
 
 		/*the segment is being downloaded now, start monitoring refresh*/
-		if (param.url_query.query_current_download) {
+		if (param.url_query.is_current_download) {
+			m2ts->low_latency_mode = 1;
 			if (is_refresh) *is_refresh = GF_TRUE;
-			if (!m2ts->segment_progress_state) {
-				//state "in progress"
-				m2ts->segment_progress_state = 1;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Start of progressive loading of TS segments\n"));
+			if (!m2ts->in_segment_download || param.url_query.has_new_data) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] progressive loading of TS segments\n"));
 			}
+			//state "in progress"
+		m2ts->in_segment_download = 1;
 		} else {
-			if (is_refresh) *is_refresh = GF_FALSE;
-	
-			/*we've switch to first input in buffer but we were refreshing the file: these is the the same file as previously loaded, set refresh*/
-			if ((m2ts->segment_progress_state==2) && !param.url_query.query_current_download && is_refresh) {
-				if (is_refresh) *is_refresh = GF_TRUE;
+			if (is_refresh) {
+				//segment done downloading but was in progress mode: do a final refresh
+				if (m2ts->in_segment_download) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] End of progressive loading of TS segments\n"));
+					*is_refresh = GF_TRUE;
+				} else {
+					*is_refresh = GF_FALSE;
+				}
 			}
-			if (m2ts->segment_progress_state) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] End of progressive loading of TS segments\n"));
-			}
-			m2ts->segment_progress_state = 0;
+			m2ts->in_segment_download = 0;
 		}
 	}
 	return query_ret;
@@ -910,15 +887,6 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		}
 	} else {
 		e = gf_m2ts_demuxer_setup(m2ts->ts,url,0);
-	}
-
-	if (m2ts->owner->query_proxy) {
-		GF_NetworkCommand param;
-		memset(&param, 0, sizeof(GF_NetworkCommand));
-	
-		param.net_io.command_type = GF_NET_SERVICE_SET_PROXY_NETIO;
-		param.net_io.client_net_io = m2ts_net_io_segment;
-		m2ts->owner->query_proxy(m2ts->owner, &param);
 	}
 
 	if (e) {

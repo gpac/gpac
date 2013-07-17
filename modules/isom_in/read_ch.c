@@ -42,7 +42,7 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->is_playing = 0;
 }
 
-void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
+void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 {
 	GF_NetworkCommand param;
 	u32 i, count;
@@ -51,60 +51,76 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
 	gf_mx_p(read->segment_mutex);
 
-	if (!read->frag_type || !read->input->query_proxy || (read->in_progress && !progressive_mode) ) {
+	if (!read->frag_type || !read->input->query_proxy ) {
 		gf_mx_v(read->segment_mutex);
 		return;
 	}
 
 	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
-	param.url_query.drop_first_segment = 0;
-	param.url_query.query_current_download = progressive_mode ? GF_TRUE : GF_FALSE;
 
 	count = gf_list_count(read->channels);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refresh seg: progressive %d - seg opened %d\n", progressive_refresh , read->seg_opened));
+
+	if (progressive_refresh && !read->seg_opened)
+		progressive_refresh = 0;
+
+	if ((read->seg_opened==1) && !progressive_refresh) {
+		gf_mx_v(read->segment_mutex);
+		return;
+	}
+
 	//if first time trying to fetch next segment, check if we have to discard it
-	if (progressive_mode<2) {
-		if (read->wait_for_next_frag==GF_FALSE) {
-			for (i=0; i<count; i++) {
-				ISOMChannel *ch = gf_list_get(read->channels, i);
-				/*check all playing channels are waiting for next segment*/
-				if (ch->is_playing && !ch->wait_for_segment_switch) {
-					gf_mx_v(read->segment_mutex);
-					return;
-				}
+	if (!progressive_refresh && (read->seg_opened==2)) {
+		for (i=0; i<count; i++) {
+			ISOMChannel *ch = gf_list_get(read->channels, i);
+			/*check all playing channels are waiting for next segment*/
+			if (ch->is_playing && !ch->wait_for_segment_switch) {
+				gf_mx_v(read->segment_mutex);
+				return;
 			}
-
-			/*close current segment*/
-			gf_isom_release_segment(read->mov, 1);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - querying new one\n"));
-
-			param.url_query.drop_first_segment = 1;
 		}
+
+		/*close current segment*/
+		gf_isom_release_segment(read->mov, 1);
+		read->seg_opened = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - querying new one\n"));
+
+		/*drop this segment*/
+		param.url_query.drop_first_segment = 1;
 	}
 
 
 	/*update current fragment if any*/
 	e = read->input->query_proxy(read->input, &param);
 	if (e ==GF_OK) {
-        if (param.url_query.next_url){
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next dash URL %s\n", param.url_query.next_url));
+
+		if (param.url_query.next_url){
 
 			//refresh file
-			if (progressive_mode==2) {
-				u64 bytesMissing;
-				e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
-#ifndef GPAC_DISABLE_LOG
-				if (gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_DASH) ) {
+			if (progressive_refresh) {
+				//the url is the current download or we just finished downloaded it, refresh the parsing.
+				if ((param.url_query.is_current_download || (read->seg_opened==1)) /*&& param.url_query.has_new_data*/) {
+					u64 bytesMissing;
+					e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
+
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU"\n", param.url_query.next_url, gf_net_get_utc() ));
 					for (i=0; i<count; i++) {
 						ISOMChannel *ch = gf_list_get(read->channels, i);
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 					}
 				}
-#endif
+				//we did the last refresh and the segment is downloaded, move to fully parsed mode
+				if (! param.url_query.is_current_download) {
+					read->seg_opened = 2;
+				}
 				gf_mx_v(read->segment_mutex);
 				return;
 			}
+
+			//we have to open the file
 
 			if (param.url_query.discontinuity_type==2)
 				gf_isom_reset_fragment_info(read->mov);
@@ -117,11 +133,10 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 
 			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
 
-			if (progressive_mode) {
-				read->seg_opened = GF_TRUE;
-				if (e==GF_ISOM_INCOMPLETE_FILE)
-					e = GF_OK;
+			if (progressive_refresh && (e==GF_ISOM_INCOMPLETE_FILE)) {
+				e = GF_OK;
 			}
+
 #ifndef GPAC_DISABLE_LOG
 			if (e<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC "LLU": %s\n", param.url_query.next_url, gf_net_get_utc(), gf_error_to_string(e) ));
@@ -131,6 +146,21 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
 			}
 #endif
+
+			if (e<0) {
+				//cannot open file, don't change our state
+				gf_mx_v(read->segment_mutex);
+				return;
+			}
+
+			//segment is the first in our cache, we may need a refresh
+			if (param.url_query.is_current_download ) {
+				read->seg_opened = 1;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Opening current segment in progressive mode (download in progress)\n"));
+			} else {
+				read->seg_opened = 2;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Opening current segment in npn-progressive mode (completely downloaded)\n"));
+			}
 
 			for (i=0; i<count; i++) {
 				ISOMChannel *ch = gf_list_get(read->channels, i);
@@ -161,15 +191,15 @@ void isor_check_segment_switch(ISOMReader *read, u32 progressive_mode)
 
 			read->use_memory = !strncmp(param.url_query.next_url, "gmem://", 7) ? GF_TRUE : GF_FALSE;
 		}
-		read->wait_for_next_frag = GF_FALSE;
+		read->waiting_for_data = GF_FALSE;
 	} else if (e==GF_EOS) {
 		/*consider we are done*/
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
 	} else if (e==GF_BUFFER_TOO_SMALL){
-		if (progressive_mode==0) {
+		if (progressive_refresh==0) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
-			read->wait_for_next_frag = GF_TRUE;
+			read->waiting_for_data = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Corrupted state in low latency mode !!\n"));
 		}
@@ -185,7 +215,7 @@ static void init_reader(ISOMChannel *ch)
 {
 	u32 ivar;
 	if (ch->wait_for_segment_switch) {
-		isor_check_segment_switch(ch->owner, 0);
+		isor_segment_switch_or_refresh(ch->owner, 0);
 		if (ch->wait_for_segment_switch) 
 			return;
 	}
@@ -257,6 +287,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		ch->track = ch->next_track;
 		ch->next_track = 0;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Checking for next sample\n"));
+
+
+	if (ch->owner->seg_opened==1) {
+		isor_segment_switch_or_refresh(ch->owner, 1);
+	}
+
 	if (ch->to_init) {
 		init_reader(ch);
 	} else if (ch->has_edit_list) {
@@ -357,9 +394,7 @@ fetch_next:
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
-			if (ch->owner->in_progress) {
-				ch->last_state = GF_OK;
-			} else if (ch->owner->dnload) {
+			if (ch->owner->dnload) {
 				u32 net_status;
 				gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 				if (net_status == GF_NETIO_DATA_EXCHANGE) {
@@ -368,7 +403,8 @@ fetch_next:
 			}
 		} else if (!ch->sample_num || (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
 			if (ch->owner->frag_type==1) {
-				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy) {
+				//if segment is fully opened and no more data, this track is done, wait for next segment
+				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy && (ch->owner->seg_opened==2) ) {
 					ch->wait_for_segment_switch = 1;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
@@ -383,7 +419,7 @@ fetch_next:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
 		if (ch->wait_for_segment_switch)
-			isor_check_segment_switch(ch->owner, 0);
+			isor_segment_switch_or_refresh(ch->owner, 0);
 		return;
 	}
 	ch->last_state = GF_OK;
