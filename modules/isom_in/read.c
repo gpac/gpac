@@ -246,43 +246,6 @@ void isor_setup_download(GF_InputService *plug, const char *url)
 	/*service confirm is done once IOD can be fetched*/
 }
 
-static void isor_net_io_segment(void *cbk, GF_NETIO_Parameter *param)
-{
-	GF_Err e;
-	GF_InputService *plug = (GF_InputService *)cbk;
-	ISOMReader *read = (ISOMReader *) plug->priv;
-
-	read->in_progress = GF_TRUE;
-	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
-		e = GF_EOS;
-	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
-		e = GF_OK;
-	} else {
-		return;
-	}
-
-	/*service is opened and no error, try to refresh */
-	if (!read->mov) return;
-
-	if (!read->seg_opened) {
-		isor_check_segment_switch(read, 1);
-	} else {
-
-		/*try to load more from the movie
-		this is an end of chunk if reply==1
-		*/
-		if (read->frag_type /* && (param->reply==1) */ ) {
-			isor_check_segment_switch(read, 2);
-		}
-	}
-
-	if (e == GF_EOS) {
-		read->in_progress = GF_FALSE;
-		read->seg_opened = GF_FALSE;
-	}
-}
-
-
 GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
@@ -335,6 +298,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 			return GF_OK;
 		}
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
+		read->seg_opened = 2;
 
 		read->time_scale = gf_isom_get_timescale(read->mov);
 		/*reply to user*/
@@ -343,15 +307,6 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
         } else {
             gf_term_on_connect(read->service, NULL, GF_OK);
         }
-
-		if (read->input->query_proxy) {
-			GF_NetworkCommand param;
-			memset(&param, 0, sizeof(GF_NetworkCommand));
-	
-			param.net_io.command_type = GF_NET_SERVICE_SET_PROXY_NETIO;
-			param.net_io.client_net_io = isor_net_io_segment;
-			read->input->query_proxy(read->input, &param);
-		}
 
 		if (read->no_service_desc) isor_declare_objects(read);
 
@@ -824,7 +779,7 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 		*out_sl_hdr = ch->current_slh;
 	}
 	*out_reception_status = ch->last_state;
-	if (read->wait_for_next_frag) 
+	if (read->waiting_for_data)
 		*out_reception_status = GF_BUFFER_TOO_SMALL;
 	
 	return GF_OK;

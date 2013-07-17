@@ -207,6 +207,7 @@ struct __dash_group
 	u32 force_representation_idx_plus_one;
 
 	Bool force_segment_switch;
+	Bool is_downloading;
 
 	/*set when switching segment, indicates the current downloaded segment duration*/
 	u64 current_downloaded_segment_duration;
@@ -594,6 +595,8 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 			}
 		}
 	}
+	if (group)
+		group->is_downloading = 1;
 
 retry:
 
@@ -606,6 +609,8 @@ retry:
 				return gf_dash_download_resource(dash_io, sess, url, start_range, end_range, persistent_mode ? 1 : 0, group);
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot setup byte-range download for %s: %s\n", url, gf_error_to_string(e) ));
+			if (group)
+				group->is_downloading = 0;
 			return e;
 		}
 	}
@@ -631,6 +636,7 @@ retry:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Disabling representation since mime does not match: expected %s, but had %s for %s!\n", group->service_mime, mime, url));
 				group->force_switch_bandwidth = 1;
 				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
+				group->is_downloading = 0;
 				return GF_OK;
 			}
 #endif
@@ -642,6 +648,7 @@ retry:
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Segment %s cannot be cached on disk, will use direct streaming\n", url));
 				group->segment_must_be_streamed = 1;
 				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
+				group->is_downloading = 1;
 				return GF_OK;
 			} 
 			group->segment_must_be_streamed = 0;
@@ -659,6 +666,8 @@ retry:
 		*sess = dash_io->create(dash_io, 0, url, group_idx);
 		if (! (*sess)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
+			if (group)
+				group->is_downloading = 0;
 			return GF_OUT_OF_MEM;
 		}
 
@@ -667,16 +676,18 @@ retry:
 			goto retry;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] two consecutive failures, aborting the download %s.\n", url));
-		return e;
+		break;
 	}
 	case GF_OK:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
-		return e;
+		break;
 	}
-	return GF_OK;
+	if (group)
+		group->is_downloading = 0;
+	return e;
 }
 
 static void gf_dash_get_timeline_duration(GF_MPD_SegmentTimeline *timeline, u32 *nb_segments, Double *max_seg_duration)
@@ -4040,6 +4051,11 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 	if (!group) {
 		gf_mx_v(dash->dl_mutex);	
 		return GF_BAD_PARAM;
+	}
+
+	if (!group->is_downloading) {
+		gf_mx_v(dash->dl_mutex);
+		return GF_OK;
 	}
 
 	*url = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
