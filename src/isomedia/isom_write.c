@@ -3318,14 +3318,24 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			data1 = data2 = NULL;
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			a = avc1->hevc_config ? (GF_Box *) avc1->hevc_config : (GF_Box *) avc1->avc_config;
+			if (avc1->hevc_config)
+				a = (GF_Box *) avc1->hevc_config;
+			else if (avc1->svc_config)
+				a = (GF_Box *) avc1->svc_config;
+			else
+				a = (GF_Box *) avc1->avc_config;
 			gf_isom_box_size(a);
 			gf_isom_box_write(a, bs);
 			gf_bs_get_content(bs, &data1, &data1_size);
 			gf_bs_del(bs);
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			a = avc2->hevc_config ? (GF_Box *) avc2->hevc_config : (GF_Box *) avc2->avc_config;
+			if (avc2->hevc_config)
+				a = (GF_Box *) avc2->hevc_config;
+			else if (avc2->svc_config)
+				a = (GF_Box *) avc2->svc_config;
+			else
+				a = (GF_Box *) avc2->avc_config;
 			gf_isom_box_size(a);
 			gf_isom_box_write(a, bs);
 			gf_bs_get_content(bs, &data2, &data2_size);

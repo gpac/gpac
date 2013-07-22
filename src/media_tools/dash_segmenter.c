@@ -91,10 +91,13 @@ typedef struct
 struct _dash_segment_input
 {
 	char *file_name;
+	u32 trackNum, lower_layer_track;
 	char representationID[100];
 	char periodID[100];
 	char role[100];
 	u32 bandwidth;
+	u32 dependency_bandwidth;
+	char dependencyID[100];
 
 	/*if 0, input is disabled*/
 	u32 adaptation_set;
@@ -165,7 +168,9 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			char c = seg_rad_name[char_template];
 			if (!c) break;
 			
-			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18)) {
+			if (!is_template && !is_init_template 
+				&& (!strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) || !strnicmp(& seg_rad_name[char_template], "$ID$", 4))
+			) {
 				char_template+=18;
 				strcat(segment_name, rep_id);
 				needs_init=GF_FALSE;
@@ -296,8 +301,12 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AVC2_H264:
 	case GF_ISOM_SUBTYPE_AVC3_H264:
 	case GF_ISOM_SUBTYPE_AVC4_H264:
-	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_avc_config_get(movie, track, 1);
+		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+		gf_odf_avc_cfg_del(avcc);
+		return GF_OK;
+	case GF_ISOM_SUBTYPE_SVC_H264:
+		avcc = gf_isom_svc_config_get(movie, track, 1);
 		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
@@ -570,6 +579,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
 
+		if (dash_input->trackNum && ((i+1) != dash_input->trackNum))
+			continue;
+
 		if (! dash_moov_setup) {
 			e = gf_isom_clone_track(input, i+1, output, GF_FALSE, &TrackNum);
 			if (e) goto err_exit;
@@ -594,8 +606,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		/*set extraction mode whether setup or not*/
 		avctype = gf_isom_get_avc_svc_type(input, i+1, 1);
 		if (avctype==GF_ISOM_AVCTYPE_AVC_ONLY) {
-			/*for AVC we concatenate SPS/PPS*/
-			if (dash_cfg->inband_param_set) 
+			/*for AVC we concatenate SPS/PPS unless SVC base*/
+			if (!dash_input->trackNum && dash_cfg->inband_param_set) 
 				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		}
 		else if (avctype > GF_ISOM_AVCTYPE_AVC_ONLY) {
@@ -1410,6 +1422,9 @@ restart_fragmentation_pass:
 
 	if (!bandwidth)
 		bandwidth = (u32) (file_size * 8 / file_duration);
+	
+	bandwidth += dash_input->dependency_bandwidth;
+	dash_input->bandwidth = bandwidth;
 
 	if (use_url_template) {
 		/*segment template does not depend on file name, write the template at the adaptationSet level*/
@@ -1503,8 +1518,10 @@ restart_fragmentation_pass:
 	}
 	//only appears at AdaptationSet level - need to rewrite the DASH segementer to allow writing this at the proper place
 //		if ((single_file_mode==1) && segments_start_with_sap) fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
-		
-	fprintf(dash_cfg->mpd, " bandwidth=\"%d\"", bandwidth);		
+
+	fprintf(dash_cfg->mpd, " bandwidth=\"%d\"", bandwidth);	
+	if (strlen(dash_input->dependencyID))
+		fprintf(dash_cfg->mpd, " dependencyId=\"%s\"", dash_input->dependencyID);
 	fprintf(dash_cfg->mpd, ">\n");
 
 	if (nb_channels && !is_bs_switching) 
@@ -1661,6 +1678,9 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 	for (i=0; i<gf_isom_get_track_count(in); i++) {
 		u32 mtype = gf_isom_get_media_type(in, i+1);
 
+		if (input->trackNum && (input->trackNum != i+1))
+			continue;
+
 		if (mtype == GF_ISOM_MEDIA_HINT) 
 			continue;
 		
@@ -1813,13 +1833,14 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 	return GF_OK;
 }
 
-static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, Bool use_inband_param_set, Bool single_segment, Bool *disable_bs_switching)
+static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, Bool inband_param_set, Bool single_segment, Bool *disable_bs_switching)
 {
 	GF_Err e = GF_OK;
 	u32 i;
 	Bool sps_merge_failed = 0;
 	Bool use_avc3 = 0;
 	Bool use_hevc = 0;
+	Bool use_inband_param_set;
 	GF_ISOFile *init_seg = gf_isom_open(szInitName, GF_ISOM_OPEN_WRITE, tmpdir);
 
 	for (i=0; i<nb_dash_inputs; i++) {
@@ -1828,6 +1849,9 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 
 		if (dash_inputs[i].adaptation_set != adaptation_set)
 			continue;
+
+		//no inband param set for scalable files
+		use_inband_param_set = dash_inputs[i].trackNum ? 0 : inband_param_set;
 
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 		if (!in) {
@@ -1858,9 +1882,10 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 					switch (stype1) {
 						case GF_4CC( 'a', 'v', 'c', '1'):
 						case GF_4CC( 'a', 'v', 'c', '2'):
-						case GF_4CC( 's', 'v', 'c', '1'):
 							if (use_avc3) 
 								merge_mode = 2;
+							break;
+						case GF_4CC( 's', 'v', 'c', '1'):
 							break;
 						case GF_4CC( 'a', 'v', 'c', '3'):
 						case GF_4CC( 'a', 'v', 'c', '4'):
@@ -1947,7 +1972,6 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 							defaultSize, (u8) defaultRandomAccess,
 							defaultPadding, defaultDegradationPriority);
 				if (e) break;
-
 			}
 		}
 		if (!i) {
@@ -3173,18 +3197,91 @@ exit:
 
 #endif //GPAC_DISABLE_MPEG2TS
 
-GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput *dash_input)
+static char * gf_dash_get_representationID(GF_DashSegInput *inputs, u32 nb_dash_inputs, const char *file_name, u32 trackNum) {
+	u32 i;
+
+	for (i = 0; i < nb_dash_inputs; i++) {
+		if (!strcmp(inputs[i].file_name, file_name) && (inputs[i].trackNum == trackNum))
+			return inputs[i].representationID;
+	}
+
+	return 0; //we should never be here !!!!
+}
+
+GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash_inputs, u32 idx)
 {
+	GF_DashSegInput *dash_input = & (*dash_inputs) [idx];
 	FILE *t = gf_f64_open(dash_input->file_name, "rb");
 	if (!t) return GF_URL_ERROR;
 	fclose(t);
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_probe_file(dash_input->file_name)) {
+		GF_ISOFile *file;
+		u32 nb_track, j, max_nb_deps, cur_idx;
+				
 		strcpy(dash_input->szMime, "video/mp4");
 		dash_input->dasher_create_init_segment = dasher_isom_create_init_segment;
 		dash_input->dasher_input_classify = dasher_isom_classify_input;
 		dash_input->dasher_get_components_info = dasher_isom_get_input_components_info;
 		dash_input->dasher_segment_file = dasher_isom_segment_file;
+
+		file = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_READ, NULL);
+		if (!file) return gf_isom_last_error(NULL);
+		nb_track = gf_isom_get_track_count(file);
+
+		/*if this dash input file has only one track, or this has not the scalable track: let it be*/
+		if ((nb_track == 1) || !gf_isom_has_scalable_layer(file)) {
+			gf_isom_close(file);
+			return GF_OK;
+		}
+
+		max_nb_deps = 0;
+		for (j = 0; j < nb_track; j++) {
+			if (gf_isom_get_media_type(file, j+1)==GF_ISOM_MEDIA_VISUAL) {
+				u32 count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_SCAL);
+				if (count)
+					max_nb_deps ++;
+			}
+		}
+		//scalable input file
+		j = *nb_dash_inputs + max_nb_deps;
+		*dash_inputs = gf_realloc(*dash_inputs, sizeof(GF_DashSegInput) * j);
+		dash_input = & (*dash_inputs) [idx];
+		cur_idx = idx+1;
+
+		for (j = 0; j < nb_track; j++) {
+			GF_DashSegInput *di;
+			u32 count, t, ref_track;
+			count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_SCAL);
+			/*base track, done above*/
+			if (!count) {
+				dash_input->trackNum = j+1;
+				continue;
+			}
+
+			di = & (*dash_inputs) [cur_idx];
+			*nb_dash_inputs += 1;
+			cur_idx++;
+			//copy over values from base rep
+			memcpy(di, dash_input, sizeof(GF_DashSegInput));
+
+			/*representationID*/
+			sprintf(di->representationID, "%s_%d", dash_input->representationID, cur_idx);
+			di->trackNum = j+1;
+
+			/*dependencyID*/
+			sprintf(di->dependencyID, "%s", dash_input->representationID); //base track
+			di->lower_layer_track = dash_input->trackNum;
+			for (t = 1; t < count; t++) {
+				gf_isom_get_reference(file, j+1, GF_ISOM_REF_SCAL, t+1, &ref_track);
+				if (j) strcat(di->dependencyID, " ");
+				strcat(di->dependencyID, gf_dash_get_representationID(*dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
+
+				di->lower_layer_track = ref_track;
+			}		
+		}
+		gf_isom_close(file);
 		return GF_OK;
 	}
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -3655,10 +3752,20 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 	return 1;
 }
 
+static u32 gf_dash_get_dependency_bandwidth(GF_DashSegInput *inputs, u32 nb_dash_inputs, const char *file_name, u32 trackNum) {
+	u32 i;
+
+	for (i = 0; i < nb_dash_inputs; i++) {
+		if (!strcmp(inputs[i].file_name, file_name) && (inputs[i].trackNum == trackNum))
+			return inputs[i].bandwidth;
+	}
+
+	return 0; //we should never be here !!!!
+}
 
 /*dash segmenter*/
 GF_EXPORT
-GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *inputs, u32 nb_dash_inputs, GF_DashProfile dash_profile, 
+GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile dash_profile, 
 							   const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
 							   const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, 
 							   Bool use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching, 
@@ -3682,6 +3789,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	FILE *mpd = NULL;
 	GF_DashSegInput *dash_inputs;
 	GF_DASHSegmenterOptions dash_opts;
+	u32 nb_dash_inputs;
 
 	/*init dash context if needed*/
 	if (dash_ctx) {
@@ -3713,31 +3821,41 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 	/*copy over input files to our internal structure*/
 	max_period = 0;
+	/* first, we assume that nb_dash_inputs is equal to nb_inputs. This value will be recompute then*/
+	nb_dash_inputs = nb_inputs;
 	dash_inputs = gf_malloc(sizeof(GF_DashSegInput)*nb_dash_inputs);
 	memset(dash_inputs, 0, sizeof(GF_DashSegInput)*nb_dash_inputs);
-	for (i=0; i<nb_dash_inputs; i++) {
-		dash_inputs[i].file_name = inputs[i].file_name;
-		strcpy(dash_inputs[i].representationID, inputs[i].representationID);
-		strcpy(dash_inputs[i].periodID, inputs[i].periodID);
-		strcpy(dash_inputs[i].role, inputs[i].role);
-		dash_inputs[i].bandwidth = inputs[i].bandwidth;
+	j = 0;
+	for (i=0; i<nb_inputs; i++) {
+		u32 nb_diff;
+		dash_inputs[j].file_name = inputs[i].file_name;
+		strcpy(dash_inputs[j].representationID, inputs[i].representationID);
+		strcpy(dash_inputs[j].periodID, inputs[i].periodID);
+		strcpy(dash_inputs[j].role, inputs[i].role);
+		dash_inputs[j].bandwidth = inputs[i].bandwidth;
 
 		if (strlen(inputs[i].role) && strcmp(inputs[i].role, "main"))
 			has_role = 1;
 
-		if (!strlen(dash_inputs[i].periodID)) {
+		if (!strlen(dash_inputs[j].periodID)) {
 			max_period = 1;
-			dash_inputs[i].period = 1;
+			dash_inputs[j].period = 1;
 			if (dash_dynamic) {
-				strcpy(dash_inputs[i].periodID, "GENID_DEF");
+				strcpy(dash_inputs[j].periodID, "GENID_DEF");
 			}
 		}
-		e = gf_dash_segmenter_probe_input(&dash_inputs[i]);
+		nb_diff = nb_dash_inputs;
+		e = gf_dash_segmenter_probe_input(&dash_inputs, &nb_dash_inputs, j);
+
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Cannot open file %s for dashing: %s\n", dash_inputs[i].file_name, gf_error_to_string(e) ));
 		}
 
-		if (!strcmp(dash_inputs[i].szMime, "video/mp2t")) has_mpeg2 = 1;
+		if (!strcmp(dash_inputs[j].szMime, "video/mp2t")) has_mpeg2 = 1;
+
+		nb_diff = nb_dash_inputs - nb_diff;
+		if (!nb_diff) nb_diff = 1;		
+		j += nb_diff;
  	}
 	memset(&dash_opts, 0, sizeof(GF_DASHSegmenterOptions));
 
@@ -4063,13 +4181,30 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					}
 					segment_name = szSolvedSegName;
 				}
+				if (dash_inputs[i].trackNum 
+					&& (!seg_name || (!strstr(seg_name, "$RepresentationID$") && !strstr(seg_name, "$ID$"))) 
+				) {
+					char tmp[10];
+					sprintf(tmp, "_track%d", dash_inputs[i].trackNum);
+					strcat(szOutName, tmp);
+				}
 				strcat(szOutName, "_dash");
 
 				if (gf_url_get_resource_path(mpdfile, tmp)) {
 					strcat(tmp, szOutName);
 					strcpy(szOutName, tmp);
 				}
+				if (segment_name && dash_inputs[i].trackNum && !strstr(seg_name, "$RepresentationID$") && !strstr(seg_name, "$ID$")) {
+					char tmp[10];
+					sprintf(tmp, "_track%d_", dash_inputs[i].trackNum);
+					strcat(segment_name, tmp);
+				}
 				dash_opts.seg_rad_name = segment_name;
+
+				/*in scalable case, we need also the bandwidth of dependent representation*/
+				if (strlen(dash_inputs[i].dependencyID)) {
+					dash_inputs[i].dependency_bandwidth = gf_dash_get_dependency_bandwidth(dash_inputs, nb_dash_inputs, dash_inputs[i].file_name, dash_inputs[i].lower_layer_track);
+				}
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("DASHing file %s\n", dash_inputs[i].file_name));
 				e = dash_inputs[i].dasher_segment_file(&dash_inputs[i], szOutName, &dash_opts, is_first_rep);
