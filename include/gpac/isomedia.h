@@ -1594,6 +1594,7 @@ typedef enum
 
 u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
+Bool gf_isom_has_scalable_layer(GF_ISOFile *file);
 
 enum
 {

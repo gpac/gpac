@@ -2994,4 +2994,18 @@ s32 gf_isom_get_composition_offset_shift(GF_ISOFile *file, u32 track)
 }
 
 
+GF_EXPORT
+Bool gf_isom_has_scalable_layer(GF_ISOFile *file) 
+{
+	u32 count, i;
+	if (!file)
+		return GF_FALSE;
+	count = gf_isom_get_track_count(file);
+	for (i = 0; i < count; i++) {
+		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SCAL) > 0)
+			return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/

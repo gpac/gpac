@@ -745,6 +745,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_composition_offset_shift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
 
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
