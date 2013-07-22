@@ -3641,11 +3641,11 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	/*slice_layer_rbsp*/
 //	case GF_HEVC_NALU_SLICE_STSA_N:
 //	case GF_HEVC_NALU_SLICE_STSA_R:
-	case GF_HEVC_NALU_SLICE_RADL_N:
+//	case GF_HEVC_NALU_SLICE_RADL_N:
 //	case GF_HEVC_NALU_SLICE_RADL_R:
-	case GF_HEVC_NALU_SLICE_RASL_N:
+//	case GF_HEVC_NALU_SLICE_RASL_N:
 //	case GF_HEVC_NALU_SLICE_RASL_R:
-		break;
+//		break;
 
 	/*slice_segment_layer_rbsp*/
 	case GF_HEVC_NALU_SLICE_TRAIL_N:
@@ -3661,7 +3661,9 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
+	case GF_HEVC_NALU_SLICE_RADL_N:
 	case GF_HEVC_NALU_SLICE_RADL_R:
+	case GF_HEVC_NALU_SLICE_RASL_N:
 	case GF_HEVC_NALU_SLICE_RASL_R:
 		slice = 1;
 		/* slice - read the info and compare.*/
