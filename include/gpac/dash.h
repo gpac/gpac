@@ -101,8 +101,10 @@ struct _gf_dash_io
 	const char *(*get_mime)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the average download rate for the session*/
 	u32 (*get_bytes_per_sec)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
-	/*get the totla size on bytes for the session*/
+	/*get the total size on bytes for the session*/
 	u32 (*get_total_size)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*get the total size on bytes for the session*/
+	u32 (*get_bytes_done)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 };
 
 typedef struct __dash_client GF_DashClient;
@@ -232,7 +234,11 @@ void gf_dash_allow_local_mpd_update(GF_DashClient *dash, Bool allow_local_mpd_up
 /*gets media info for representation*/
 GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs);
 
+/*gets media buffering info for all active representations*/
 void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered);
+
+/*updates media bandwidth for the given group*/
+GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 
