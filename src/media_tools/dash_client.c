@@ -43,7 +43,7 @@
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*uncomment to only play the first representation set*/
-//#define DEBUG_FIRST_SET_ONLY
+#define DEBUG_FIRST_SET_ONLY
 
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
@@ -162,8 +162,9 @@ struct __dash_group
 
 	Bool done;
 	Bool force_switch_bandwidth, min_bandwidth_selected;
-	u32 nb_bw_check;
+	u32 download_start_time;
 	u32 active_bitrate, max_bitrate, min_bitrate;
+	u32 min_representation_bitrate;
 
 	u32 nb_segments_in_rep;
 	Double segment_duration;
@@ -483,42 +484,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment duration unknown - cannot estimate current startNumber\n"));
 	}
 }
-//old code
-#if 0
-static void gf_dash_group_check_switch(GF_DASHFileIO *dash_io, GF_DASH_Group *group, Bool download_active)
-{
-	u32 download_rate;
 
-	if (group->dash->disable_switching) return;
 
-/*	if (group->min_bandwidth_selected && group->buffering)
-		return;
-*/
-	download_rate = dash_io->get_bytes_per_sec(dash_io, group->segment_download);
-	if (!download_rate) return;
-
-	download_rate *= 8;
-	if (download_rate<group->min_bitrate) group->min_bitrate = download_rate;
-	if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
-
-	if (download_rate && (download_rate < group->active_bitrate)) {
-		u32 set_idx = gf_list_find(group->period->adaptation_sets, group->adaptation_set)+1;
-		group->nb_bw_check ++;
-		if (group->min_bandwidth_selected) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - no lower bitrate available ...\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
-		} else if (group->nb_bw_check>2) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - switching\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
-			group->force_switch_bandwidth = 1;
-			if (download_active) 
-				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps but media bitrate is %d kbps\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
-		}
-	} else {
-		group->nb_bw_check = 0;
-	}
-}
-#endif
 
 
 
@@ -558,6 +525,94 @@ static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 }
 
 
+GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
+{
+	u32 download_rate, set_idx, time_since_start, done, tot_size, time_until_end;
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_BAD_PARAM;
+	if (group->dash->disable_switching) return GF_OK;
+
+	if (group->buffering)
+		return GF_OK;
+
+	download_rate = group->dash->dash_io->get_bytes_per_sec(group->dash->dash_io, group->segment_download);
+	if (!download_rate) return GF_OK;
+
+
+	done = group->dash->dash_io->get_bytes_done(group->dash->dash_io, group->segment_download);
+	tot_size = group->dash->dash_io->get_total_size(group->dash->dash_io, group->segment_download);
+	time_until_end = 0;
+	if (tot_size) {
+		time_until_end = 1000*(tot_size-done) / download_rate;
+	}
+
+	download_rate *= 8;
+	if (download_rate<group->min_bitrate) group->min_bitrate = download_rate;
+	if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
+
+	if (!download_rate || (download_rate > group->active_bitrate)) {
+		return GF_OK;
+	}
+
+	set_idx = gf_list_find(group->period->adaptation_sets, group->adaptation_set)+1;
+	time_since_start = gf_sys_clock() - group->download_start_time;
+
+	if (group->min_bandwidth_selected) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - no lower bitrate available ...\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
+		return GF_OK;
+	}
+	
+
+	//TODO - when do we start checking ?
+	if (time_since_start < 200) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps but media bitrate is %d kbps\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
+		return GF_OK;
+	}
+
+	if (time_until_end) {
+		u32 i, cache_dur=0;
+		for (i=1; i<group->nb_cached_segments; i++) {
+			cache_dur += group->cached[i].duration;
+		}
+		//we have enough cache data to go until end of this download, perform rate switching at next segment
+		if (time_until_end<cache_dur) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps but media bitrate is %d kbps - %d till end of download and %d in cache - going on with download\n", set_idx, download_rate/1024, group->active_bitrate/1024,time_until_end, cache_dur ));
+			return GF_OK;
+		}
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - switching - %d/%d in cache\n", set_idx, download_rate/1024, group->active_bitrate/1024, group->nb_cached_segments, group->max_cached_segments ));
+
+	group->dash->dash_io->abort(group->dash->dash_io, group->segment_download);
+
+	//if we have time to download from another rep ?
+	if (group->current_downloaded_segment_duration <= time_since_start) {
+		//don't force bandwidth switch (it's too late anyway, consider we lost the segment), let the rate adaptation decide
+		group->force_switch_bandwidth = 0;
+
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download time longer than segment duration - trying to resync on next segment\n"));
+	} else {
+		u32 target_rate;
+		//compute min bitrate needed to fetch the segement in another rep, with the time remaining
+		Double ratio = ((u32)group->current_downloaded_segment_duration - time_since_start);
+		ratio /= (u32)group->current_downloaded_segment_duration;
+		
+		target_rate = (u32) (download_rate * ratio);
+		
+		if (target_rate < group->min_representation_bitrate) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download rate lower than min available rate ...\n"));
+			target_rate = group->min_representation_bitrate;
+			//don't force bandwidth switch, we won't have time to redownload the segment. 
+		} else {
+			group->force_switch_bandwidth = 1;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Attempting to re-download at target rate %d\n", target_rate));
+		}
+		//cap max bitrate for next rate adaptation pass
+		group->max_bitrate = target_rate;
+	}
+	return GF_OK;
+}
+
 /*!
 * Download a file with possible retry if GF_IP_CONNECTION_FAILURE|GF_IP_NETWORK_FAILURE
 * (I discovered that with my WIFI connection, I had many issues with BFM-TV downloads)
@@ -595,8 +650,10 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 			}
 		}
 	}
-	if (group)
+	if (group) {
 		group->is_downloading = 1;
+		group->download_start_time  = gf_sys_clock();
+	}
 
 retry:
 
@@ -2665,10 +2722,15 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		gf_dash_setup_single_index_mode(group);
 
 		/* Select the appropriate representation in the given period */
+		group->min_representation_bitrate = (u32) -1;
 		active_rep = 0;
 		for (rep_i = 0; rep_i < nb_rep; rep_i++) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
 			rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
+
+			if (rep->bandwidth < group->min_representation_bitrate) {
+				group->min_representation_bitrate = rep->bandwidth;
+			}
 
 			if (rep_i) {
 				Bool ok;
@@ -2809,12 +2871,14 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 		if (rep->bandwidth < dl_rate) {
 			go_up = 1;
 		}
-		
+		if (dl_rate < group->min_representation_bitrate)
+			dl_rate = group->min_representation_bitrate;
+
 		/*find best bandwidth that fits our bitrate*/
 		new_rep = NULL;
 		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
 			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
-			if (dl_rate > arep->bandwidth) {
+			if (dl_rate >= arep->bandwidth) {
 				if (!new_rep) new_rep = arep;
 				else if (go_up) {
 					/*try to switch to highest bitrate below availble download rate*/

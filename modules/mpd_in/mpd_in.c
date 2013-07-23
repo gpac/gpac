@@ -53,11 +53,13 @@ typedef struct __mpd_module
 
 typedef struct 
 {
+	GF_MPD_In *mpdin;
 	GF_InputService *segment_ifce;
 	Bool service_connected;
 	Bool service_descriptor_fetched;
 	Bool netio_assigned;
 	Bool has_new_data;
+	u32 idx;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -140,6 +142,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			param->url_query.discontinuity_type = 2;
 			discard_first_cache_entry = 0;
 		}
+
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			if (!gf_dash_is_group_selected(mpdin->dash, i)) continue;
 			group = gf_dash_get_group_udta(mpdin->dash, i);
@@ -152,6 +155,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		
 		if (!group) {
 			return GF_SERVICE_ERROR;
+		}
+		//update group idx
+		if (group->idx != group_idx) {
+			group->idx = group_idx;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] New AdaptationSet detected after MPD update ?\n"));
 		}
 
 		if (discard_first_cache_entry) {
@@ -251,6 +259,8 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 				group->segment_ifce = segment_ifce;
 				group->segment_ifce->proxy_udta = mpdin;
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
+				group->mpdin = mpdin;
+				group->idx = group_index;
 				gf_dash_set_group_udta(mpdin->dash, group_index, group);
 				return GF_OK;
 			}
@@ -267,6 +277,8 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 				group->segment_ifce = ifce;
 				group->segment_ifce->proxy_udta = mpdin;
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
+				group->mpdin = mpdin;
+				group->idx = group_index;
 				gf_dash_set_group_udta(mpdin->dash, group_index, group);
 				return GF_OK;
 			}
@@ -334,6 +346,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 	GF_MPDGroup *group = (GF_MPDGroup *)cbk;
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
 		group->has_new_data = 1;
+		gf_dash_group_check_bandwidth(group->mpdin->dash, group->idx);
 	}
 }
 
@@ -378,7 +391,7 @@ GF_Err mpdin_dash_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession 
 	if (group_idx>=0) {
 		GF_MPD_In *mpdin = (GF_MPD_In *)dashio->udta;
 		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
-		if (!group->netio_assigned) {
+		if (group && !group->netio_assigned) {
 			group->netio_assigned = GF_TRUE;
 			gf_dm_sess_reassign((GF_DownloadSession *)session, 0xFFFFFFFF, mpdin_dash_segment_netio, group);
 		}
@@ -421,6 +434,13 @@ u32 mpdin_dash_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 	u32 size=0;
 //	GF_DownloadSession *sess = (GF_DownloadSession *)session;
     gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, &size, NULL, NULL, NULL);
+	return size;
+}
+u32 mpdin_dash_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
+{
+	u32 size=0;
+//	GF_DownloadSession *sess = (GF_DownloadSession *)session;
+    gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, &size, NULL, NULL);
 	return size;
 }
 
@@ -554,6 +574,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	mpdin->dash_io.get_mime = mpdin_dash_io_get_mime;
 	mpdin->dash_io.get_bytes_per_sec = mpdin_dash_io_get_bytes_per_sec;
 	mpdin->dash_io.get_total_size = mpdin_dash_io_get_total_size;
+	mpdin->dash_io.get_bytes_done = mpdin_dash_io_get_bytes_done;
 	mpdin->dash_io.on_dash_event = mpdin_dash_io_on_dash_event;
 
 	max_cache_duration = 0;
