@@ -191,7 +191,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 
 /*same as gf_dash_group_get_next_segment_location but query the current downloaded segment*/
 GF_EXPORT
-GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url);
+GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url, Bool *switched);
 
 /*discards the first media resource in the queue of this group*/
 void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx);

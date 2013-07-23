@@ -191,11 +191,13 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			}
 
 			if (mpdin->use_low_latency) {
-				gf_dash_group_probe_current_download_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, NULL, &param->url_query.next_url_init_or_switch_segment, &src_url);
+				Bool is_switched=GF_FALSE;
+				gf_dash_group_probe_current_download_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, NULL, &param->url_query.next_url_init_or_switch_segment, &src_url, &is_switched);
 
 				if (param->url_query.next_url) {
 					param->url_query.is_current_download = 1;
 					param->url_query.has_new_data = group->has_new_data;
+					param->url_query.discontinuity_type = is_switched ? 1 : 0;
 					group->has_new_data = 0;
 					return GF_OK;
 				}
@@ -346,6 +348,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 	GF_MPDGroup *group = (GF_MPDGroup *)cbk;
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
 		group->has_new_data = 1;
+	
 		gf_dash_group_check_bandwidth(group->mpdin->dash, group->idx);
 	}
 }
