@@ -45,7 +45,7 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
 	Bool memory_storage;
-	Bool use_max_res, immediate_switch, use_low_latency;
+	Bool use_max_res, immediate_switch, use_low_latency, allow_http_abort;
     Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -349,10 +349,10 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
 		group->has_new_data = 1;
 	
-		gf_dash_group_check_bandwidth(group->mpdin->dash, group->idx);
+		if (group->mpdin->allow_http_abort)
+			gf_dash_group_check_bandwidth(group->mpdin->dash, group->idx);
 	}
 }
-
 
 void mpdin_dash_io_delete_cache_file(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url)
 {
@@ -629,6 +629,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
 	mpdin->use_low_latency = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AllowAbort");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AllowAbort", "no");
+	mpdin->allow_http_abort = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
+	
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
 
