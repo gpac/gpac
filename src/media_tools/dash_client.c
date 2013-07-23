@@ -43,7 +43,7 @@
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*uncomment to only play the first representation set*/
-#define DEBUG_FIRST_SET_ONLY
+//#define DEBUG_FIRST_SET_ONLY
 
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
@@ -106,7 +106,7 @@ struct __dash_client
 	GF_DASH_STATE dash_state;
 	Bool mpd_stop_request;
 	Bool in_period_setup;
-
+	
 	u32 nb_buffering;
 
 	/* TODO - handle playback status for SPEED/SEEK through SIDX */
@@ -161,7 +161,9 @@ struct __dash_group
 	Bool bitstream_switching, dont_delete_first_segment;
 
 	Bool done;
-	Bool force_switch_bandwidth, min_bandwidth_selected;
+	//if set, will redownload the last segment partially downloaded
+	Bool force_switch_bandwidth;
+	Bool min_bandwidth_selected;
 	u32 download_start_time;
 	u32 active_bitrate, max_bitrate, min_bitrate;
 	u32 min_representation_bitrate;
@@ -208,7 +210,7 @@ struct __dash_group
 	u32 force_representation_idx_plus_one;
 
 	Bool force_segment_switch;
-	Bool is_downloading;
+	Bool is_downloading, download_aborted;
 
 	/*set when switching segment, indicates the current downloaded segment duration*/
 	u64 current_downloaded_segment_duration;
@@ -527,6 +529,7 @@ static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 
 GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 {
+	Bool default_switch_mode = 0;
 	u32 download_rate, set_idx, time_since_start, done, tot_size, time_until_end;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
@@ -581,14 +584,18 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 		}
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - switching - %d/%d in cache\n", set_idx, download_rate/1024, group->active_bitrate/1024, group->nb_cached_segments, group->max_cached_segments ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - %d/%d in cache - killing connection and switching\n", set_idx, download_rate/1024, group->active_bitrate/1024, group->nb_cached_segments, group->max_cached_segments ));
 
 	group->dash->dash_io->abort(group->dash->dash_io, group->segment_download);
+	group->download_aborted = GF_TRUE;
+
+	//in live we just abort current download and go to next. In onDemand, we may want to rebuffer
+	default_switch_mode = (group->dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? 0 : 1;
 
 	//if we have time to download from another rep ?
 	if (group->current_downloaded_segment_duration <= time_since_start) {
 		//don't force bandwidth switch (it's too late anyway, consider we lost the segment), let the rate adaptation decide
-		group->force_switch_bandwidth = 0;
+		group->force_switch_bandwidth = default_switch_mode;
 
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download time longer than segment duration - trying to resync on next segment\n"));
 	} else {
@@ -603,6 +610,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download rate lower than min available rate ...\n"));
 			target_rate = group->min_representation_bitrate;
 			//don't force bandwidth switch, we won't have time to redownload the segment. 
+			group->force_switch_bandwidth = default_switch_mode;
 		} else {
 			group->force_switch_bandwidth = 1;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Attempting to re-download at target rate %d\n", target_rate));
@@ -2396,7 +2404,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		if (group->cache_duration < dash->mpd->min_buffer_time)
 			group->cache_duration = dash->mpd->min_buffer_time;
 
-		group->max_cached_segments = 1;
+		//we want at least 2 segments available in the cache, in order to perform rate adaptation with one cache ahead
+		group->max_cached_segments = 2;
 		if (seg_dur) {
 			while (group->max_cached_segments * seg_dur * 1000 < group->cache_duration)
 				group->max_cached_segments ++;
@@ -2404,7 +2413,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			group->max_buffer_segments = group->max_cached_segments;
 
 			/*we need one more entry in cache for segment being currently played*/
-			if (group->max_cached_segments<2)
+			if (group->max_cached_segments<3)
 				group->max_cached_segments ++;
 		}
 
@@ -4101,7 +4110,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url)
+GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url, Bool *switched)
 {
 	GF_DASH_Group *group;
 
@@ -4120,6 +4129,12 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 	if (!group->is_downloading) {
 		gf_mx_v(dash->dl_mutex);
 		return GF_OK;
+	}
+
+	*switched = GF_FALSE;
+	if (group->download_aborted) {
+		group->download_aborted = 0;
+		*switched = GF_TRUE;
 	}
 
 	*url = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);

@@ -2823,7 +2823,7 @@ Bool gf_isom_moov_first(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-void gf_isom_reset_fragment_info(GF_ISOFile *movie)
+void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count)
 {
 	u32 i;
 	if (!movie) return;
@@ -2834,7 +2834,8 @@ void gf_isom_reset_fragment_info(GF_ISOFile *movie)
 	}
 #else
 		trak->dts_at_seg_start = 0;
-		trak->sample_count_at_seg_start = 0;
+		if (!keep_sample_count)
+			trak->sample_count_at_seg_start = 0;
 	}
 	movie->NextMoofNumber = 0;
 #endif
