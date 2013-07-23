@@ -527,6 +527,7 @@ static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 }
 
 
+GF_EXPORT
 GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 {
 	Bool default_switch_mode = 0;
