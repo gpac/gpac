@@ -312,7 +312,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 							e = GF_IO_ERR;
 							goto exit;
 						}
-						e = Media_GetSample(ref_trak->Media, sampleNumber, &ref_samp, &di, 0, NULL);
+
+						//fixeme - we assume that the sampleNumber in the refered track is the same as this sample number
+						//are there cases were this wouldn't be the case ?
+						if (sample_offset < -sample_offset) 
+							sample_offset = 0;
+						e = Media_GetSample(ref_trak->Media, sampleNumber + sample_offset, &ref_samp, &di, 0, NULL);
 						if (e)
 							goto exit;
 						if (rewrite_start_codes) {
