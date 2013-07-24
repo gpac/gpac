@@ -630,6 +630,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_release_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_highest_track_in_scalable_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_refresh_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timescale) )
@@ -1193,6 +1194,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_sps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_pps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_profile_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_parse_nalu) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_sps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_pps) )
 
 #ifndef GPAC_DISABLE_HEVC
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )

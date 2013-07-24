@@ -101,6 +101,7 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 {
 	u32 i;
+	GF_Err e;
 	GF_MPD_In *mpdin = (GF_MPD_In *) ifce->proxy_udta;
     if (!param || !ifce || !ifce->proxy_udta) return GF_BAD_PARAM;
 
@@ -217,9 +218,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Had to wait for %u ms for the only cache file to be downloaded\n", (gf_sys_clock() - timer)));
         }
 
-		gf_dash_group_get_next_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, &param->url_query.start_range, &param->url_query.end_range, 
+		e = gf_dash_group_get_next_segment_location(mpdin->dash, group_idx, param->url_query.dependent_representation_index, &param->url_query.next_url, &param->url_query.start_range, &param->url_query.end_range, 
 								NULL, &param->url_query.next_url_init_or_switch_segment, &param->url_query.switch_start_range , &param->url_query.switch_end_range,
-								&src_url);
+								&src_url, &param->url_query.has_next);
+		if (e)
+			return e;
 
         {
             u32 timer2 = gf_sys_clock() - timer ;
@@ -234,8 +237,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
             GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] segment start time %g sec\n", gf_dash_group_current_segment_start_time(mpdin->dash, group_idx) ));
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url ));
-        }
-	    return GF_OK;
+        }    
     }
 
 

@@ -98,6 +98,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	u32 nal_hdr;
 	u32 temporal_id = 0;
 	char *buffer;
+	GF_TrackBox *ref_trak;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
 
 	src_bs = ref_bs = dst_bs = ps_bs = NULL;
@@ -301,11 +302,19 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						if (rewrite_ps)
 							ref_extract_mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 						gf_isom_set_nalu_extract_mode(file, ref_track_num, ref_extract_mode);
-						ref_samp = gf_isom_get_sample(file, ref_track_num, sampleNumber+sample_offset, &di);
+						ref_trak = gf_isom_get_track_from_file(file, ref_track_num);
+						if (!ref_trak) {
+							e =  GF_BAD_PARAM;
+							goto exit;
+						}
+						ref_samp = gf_isom_sample_new();
 						if (!ref_samp) {
 							e = GF_IO_ERR;
 							goto exit;
 						}
+						e = Media_GetSample(ref_trak->Media, sampleNumber, &ref_samp, &di, 0, NULL);
+						if (e)
+							goto exit;
 						if (rewrite_start_codes) {
 							gf_bs_write_int(dst_bs, 1, 32);
 							if (is_hevc) {

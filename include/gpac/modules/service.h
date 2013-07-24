@@ -325,6 +325,8 @@ typedef struct
 
 	/*drops first segment */
 	Bool drop_first_segment;
+	/*in : cache index we want to query; by defaut is 0*/
+	u32 dependent_representation_index;
 
 	//output
 
@@ -344,6 +346,7 @@ typedef struct
 	u64 switch_start_range, switch_end_range;
 
 
+	Bool has_next;
 	/*indicates that the return URL is the currently downloaded one, not yet completed (progressive mode only).	*/
 	Bool is_current_download;
 	/*indicates that there is new data in the cache for the current URL (progressive mode only) - only valid if is_current_download is set.*/

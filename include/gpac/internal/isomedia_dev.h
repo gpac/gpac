@@ -552,6 +552,7 @@ typedef struct
 	u64 dts_at_seg_start;
 	u32 sample_count_at_seg_start;
 	Bool first_traf_merged;
+	Bool present_in_scalable_segment;
 #endif 
 } GF_TrackBox;
 
@@ -1199,6 +1200,7 @@ typedef struct __tag_media_info_box
 	GF_DataInformationBox *dataInformation;
 	GF_SampleTableBox *sampleTable;
 	GF_Box *InfoHeader;
+	struct __tag_data_map *scalableDataHandler;
 	struct __tag_data_map *dataHandler;
 	u32 dataEntryIndex;
 } GF_MediaInformationBox;

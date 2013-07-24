@@ -217,6 +217,12 @@ struct __dash_group
 
 	char *service_mime;
 
+	/* base representation index of this group plus one, or 0 if all representations in this group are independent*/
+	u32 base_rep_index_plus_one;
+
+	/* maximum representation index we want to download*/
+	u32 force_max_rep_index;
+
 	void *udta;
 };
 
@@ -254,9 +260,33 @@ static void gf_dash_buffer_on(GF_DASH_Group *group, GF_DashClient *dash)
 	}
 }
 
+static u32 gf_dash_group_count_rep_needed(GF_DASH_Group *group)
+{
+	u32 count, nb_rep_need, next_rep_index_plus_one;
+	GF_MPD_Representation *rep;
+	count  = gf_list_count(group->adaptation_set->representations);
+	nb_rep_need = 1;
+	if (!group->base_rep_index_plus_one || (group->base_rep_index_plus_one == group->force_max_rep_index+1))
+		return nb_rep_need; // we need to download only one representation
+	rep = gf_list_get(group->adaptation_set->representations, group->base_rep_index_plus_one-1);
+	next_rep_index_plus_one = rep->enhancement_rep_index_plus_one;
+	while ((nb_rep_need < count) && rep->enhancement_rep_index_plus_one) {
+		nb_rep_need++;
+		if (next_rep_index_plus_one == group->force_max_rep_index+1)
+			break;
+		rep = gf_list_get(group->adaptation_set->representations, next_rep_index_plus_one-1);
+		next_rep_index_plus_one = rep->enhancement_rep_index_plus_one;
+	}
+
+	assert(nb_rep_need <= count);
+
+	return nb_rep_need;
+}
+
 GF_EXPORT
 void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered)
 {
+	u32 nb_buffering = 0;
 	if (dash->nb_buffering) {
 		u32 i, j, nb_groups;
 		*total_buffer = 0;
@@ -271,11 +301,13 @@ void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u
 					buffer += group->cached[j].duration;
 				}
 				*media_buffered += buffer;
+				nb_buffering += gf_dash_group_count_rep_needed(group);
 			}
 		}
-		if (*media_buffered > *total_buffer) *media_buffered  = *total_buffer;
-		*total_buffer /= dash->nb_buffering;
-		*media_buffered /= dash->nb_buffering;
+		if (*media_buffered > *total_buffer) 
+			*media_buffered  = *total_buffer;
+		*total_buffer /= nb_buffering;
+		*media_buffered /= nb_buffering;
 	}
 }
 
@@ -636,7 +668,7 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 	Bool retry = 1;
 	GF_Err e;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s starting at UTC "LLU" ms\n", url, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s startin,g at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 
 	if (group) {
 		group_idx = gf_list_find(group->dash->groups, group);
@@ -1553,7 +1585,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	return GF_OK;
 }
 
-
 static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Representation *rep)
 {
 #ifndef GPAC_DISABLE_LOG
@@ -1566,10 +1597,16 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	GF_MPD_Period *period;
 	u32 nb_segs;
 	u32 i = gf_list_find(group->adaptation_set->representations, rep);
+	u32 nb_cached_seg_per_rep = group->max_cached_segments / gf_dash_group_count_rep_needed(group);
 	assert((s32) i >= 0);
 
-	group->active_rep_index = i;
+	/* in case of dependent representations: we set force_max_rep_index than active_rep_index*/
+	if (group->base_rep_index_plus_one)
+		group->force_max_rep_index = i;
+	else
+		group->active_rep_index = i;
 	group->active_bitrate = rep->bandwidth;
+	group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
 	nb_segs = group->nb_segments_in_rep;
 
 	group->min_bandwidth_selected = 1;
@@ -2347,7 +2384,7 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 {
 	GF_Err e;
-	u32 i, j, count;
+	u32 i, j, count, nb_rep_ok;
 	GF_MPD_Period *period;
 
 	if (!dash->groups) {
@@ -2363,6 +2400,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		Double seg_dur;
 		GF_DASH_Group *group;
 		Bool found = 0;
+		Bool has_dependent_representations = GF_FALSE;
 		GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, i);
 		for (j=0; j<gf_list_count(dash->groups); j++) {
 			GF_DASH_Group *group = gf_list_get(dash->groups, j);
@@ -2384,9 +2422,10 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? 1 : 0;
 
 		seg_dur = 0;
+		nb_rep_ok = 0;
 		for (j=0; j<gf_list_count(set->representations); j++) {
 			Double dur;
-			u32 nb_seg;
+			u32 nb_seg, k;
 			GF_MPD_Representation *rep = gf_list_get(set->representations, j);
 			gf_dash_get_segment_duration(rep, set, period, dash->mpd, &nb_seg, &dur);
 			if (dur>seg_dur) seg_dur = dur;
@@ -2395,6 +2434,27 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				set->max_width = rep->width;
 				set->max_height = rep->height;
 			}
+			if (rep->dependency_id && strlen(rep->dependency_id))
+				has_dependent_representations = GF_TRUE;
+			else
+				group->base_rep_index_plus_one = j+1;
+			rep->enhancement_rep_index_plus_one = 0;
+			for (k = 0; k < gf_list_count(set->representations); k++) {
+				GF_MPD_Representation *a_rep = gf_list_get(set->representations, k);
+				if (a_rep->dependency_id) {
+					char * tmp = strrchr(a_rep->dependency_id, ' ');
+					if (tmp) 
+						tmp = tmp + 1;
+					else
+						tmp = a_rep->dependency_id;
+					if (!strcmp(tmp, rep->id))
+						rep->enhancement_rep_index_plus_one = k + 1;
+				}
+			}
+			if (!rep->enhancement_rep_index_plus_one)
+				group->force_max_rep_index = j;
+			if (!rep->playback.disabled)
+				nb_rep_ok++;
 		}
 
 		if (!seg_dur) {
@@ -2416,7 +2476,13 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			/*we need one more entry in cache for segment being currently played*/
 			if (group->max_cached_segments<3)
 				group->max_cached_segments ++;
+
+			group->max_cached_segments *= nb_rep_ok;
+			group->max_buffer_segments *= nb_rep_ok;
 		}
+
+		if (!has_dependent_representations)
+			group->base_rep_index_plus_one = 0; // all representations in this group are independent
 
 		group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
 		memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
@@ -2753,13 +2819,8 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 					if (sep) sep[0] = '.';
 					if (!ok) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Different codec types (%s vs %s) in same AdaptationSet - disabling %s\n", rep_sel->codecs, rep->codecs, rep->codecs));
-						rep->playback.disabled = 1;
-						continue;
-					}
-					if (rep->dependency_id) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation dependent on representation %d - not supported\n", rep->dependency_id));
-						rep->playback.disabled = 1;
-						continue;
+						//rep->playback.disabled = 1;
+						//continue;
 					}
 					if (rep->segment_list && rep->segment_list->xlink_href) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling because not supported\n", rep->segment_list->xlink_href));
@@ -2886,6 +2947,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 
 		/*find best bandwidth that fits our bitrate*/
 		new_rep = NULL;
+		
 		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
 			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
 			if (dl_rate >= arep->bandwidth) {
@@ -3070,7 +3132,6 @@ restart_period:
 			if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 			if (group->done) continue;
 
-
 			if (group->nb_cached_segments>=group->max_cached_segments) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At %d Cache is full for this group - skipping\n", gf_sys_clock() ));
 				continue;
@@ -3207,7 +3268,6 @@ restart_period:
 					i--;
 					continue;
 				}
-
 			} else {
 				group->max_bitrate = 0;
 				group->min_bitrate = (u32)-1;
@@ -3275,12 +3335,17 @@ restart_period:
 					group->cached[group->nb_cached_segments].start_range = start_range;
 					group->cached[group->nb_cached_segments].end_range = end_range;
 				}
-				if (!group->local_files) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
-				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
 				group->nb_cached_segments++;
 				gf_dash_update_buffering(group, dash);
-				group->download_segment_index++;
+				/* download enhancement representation of this segment*/
+				if ((representation_index != group->force_max_rep_index) && rep->enhancement_rep_index_plus_one)
+					group->active_rep_index = rep->enhancement_rep_index_plus_one - 1;
+				/* if we have downloaded all enhancement representations of this segment, restart from base representation and increase dowloaded segment index by 1*/
+				else {
+					if (group->base_rep_index_plus_one) group->active_rep_index = group->base_rep_index_plus_one - 1;
+					group->download_segment_index++;
+				}
 				if (dash->auto_switch_count) {
 					group->nb_segments_done++;
 					if (group->nb_segments_done==dash->auto_switch_count) {
@@ -3797,6 +3862,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 		u32 current_idx = group->active_rep_index;
 		if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 
+		if (group->base_rep_index_plus_one) current_idx = group->force_max_rep_index;
 		if (group->force_representation_idx_plus_one) current_idx = group->force_representation_idx_plus_one - 1;
 
 		active_rep = gf_list_get(group->adaptation_set->representations, current_idx);
@@ -3825,32 +3891,110 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 			}
 		}
 		if (switch_to_rep_idx && (switch_to_rep_idx-1 != current_idx) ) {
+			u32 nb_cached_seg_per_rep = group->max_cached_segments / gf_dash_group_count_rep_needed(group);
 			gf_mx_p(dash->dl_mutex);
 			group->force_switch_bandwidth = 1;
-			group->force_representation_idx_plus_one = switch_to_rep_idx;
-
+			if (!group->base_rep_index_plus_one)
+				group->force_representation_idx_plus_one = switch_to_rep_idx;
+			else
+				group->force_max_rep_index = switch_to_rep_idx-1;
 			if (group->local_files || immediate_switch) {
-				/*in local playback just switch at the end of the current segment
-				for remote, we should let the user decide*/
-				while (group->nb_cached_segments>1) {
-					group->nb_cached_segments--;
-					gf_dash_update_buffering(group, dash);
-
-					gf_free(group->cached[group->nb_cached_segments].url);
-					group->cached[group->nb_cached_segments].url = NULL;
-					if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
-						gf_delete_file( group->cached[group->nb_cached_segments].cache );
-						gf_free(group->cached[group->nb_cached_segments].cache);
-						group->cached[group->nb_cached_segments].cache = NULL;
+				u32 keep_seg_index = 0;
+				//keep all scalable enhancements of the first segment
+				rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
+				if (rep->enhancement_rep_index_plus_one) {
+					u32 rep_idx = rep->enhancement_rep_index_plus_one;
+					while (keep_seg_index + 1 < group->nb_cached_segments) {
+						rep = gf_list_get(group->adaptation_set->representations, group->cached[keep_seg_index+1].representation_index);
+						if (rep_idx == group->cached[keep_seg_index+1].representation_index+1) {
+							keep_seg_index ++;
+							rep_idx = rep->enhancement_rep_index_plus_one;
+						}
+						else
+							break;
 					}
-					group->cached[group->nb_cached_segments].representation_index = 0;
-					group->cached[group->nb_cached_segments].start_range = 0;
-					group->cached[group->nb_cached_segments].end_range = 0;
-					group->cached[group->nb_cached_segments].duration = (u32) group->current_downloaded_segment_duration;
-					if (group->download_segment_index>1)
+				}
+
+				if (!group->base_rep_index_plus_one) {
+					/*in local playback just switch at the end of the current segment
+					for remote, we should let the user decide*/
+					while (group->nb_cached_segments > keep_seg_index + 1) {
+						group->nb_cached_segments--;
+						gf_dash_update_buffering(group, dash);
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[group->nb_cached_segments].url));
+						gf_free(group->cached[group->nb_cached_segments].url);
+						group->cached[group->nb_cached_segments].url = NULL;
+						if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
+							gf_delete_file( group->cached[group->nb_cached_segments].cache );
+							gf_free(group->cached[group->nb_cached_segments].cache);
+							group->cached[group->nb_cached_segments].cache = NULL;
+						}
+						group->cached[group->nb_cached_segments].representation_index = 0;
+						group->cached[group->nb_cached_segments].start_range = 0;
+						group->cached[group->nb_cached_segments].end_range = 0;
+						group->cached[group->nb_cached_segments].duration = (u32) group->current_downloaded_segment_duration;
+						if (group->download_segment_index>1)
+							group->download_segment_index--;
+					}
+				} else {
+					if (switch_up) {
+						//first, we keep the second segment and remove all segments from the third one
+						keep_seg_index++;
+						rep = gf_list_get(group->adaptation_set->representations, group->cached[keep_seg_index].representation_index);
+						if (rep->enhancement_rep_index_plus_one) {
+							u32 rep_idx = rep->enhancement_rep_index_plus_one;
+							while (keep_seg_index + 1 < group->nb_cached_segments) {
+								rep = gf_list_get(group->adaptation_set->representations, group->cached[keep_seg_index+1].representation_index);
+								if (rep_idx == group->cached[keep_seg_index+1].representation_index+1) {
+									keep_seg_index ++;
+									rep_idx = rep->enhancement_rep_index_plus_one;
+								}
+								else
+									break;
+							}
+						}
+						while (group->nb_cached_segments > keep_seg_index + 1) {
+							Bool decrease_download_segment_index = (group->cached[group->nb_cached_segments-1].representation_index == current_idx) ? GF_TRUE : GF_FALSE;
+							group->nb_cached_segments--;
+							gf_dash_update_buffering(group, dash);
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[group->nb_cached_segments].url));
+							gf_free(group->cached[group->nb_cached_segments].url);
+							group->cached[group->nb_cached_segments].url = NULL;
+							if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
+								gf_delete_file( group->cached[group->nb_cached_segments].cache );
+								gf_free(group->cached[group->nb_cached_segments].cache);
+								group->cached[group->nb_cached_segments].cache = NULL;
+							}
+							group->cached[group->nb_cached_segments].representation_index = 0;
+							group->cached[group->nb_cached_segments].start_range = 0;
+							group->cached[group->nb_cached_segments].duration = (u32) group->current_downloaded_segment_duration;
+							if (decrease_download_segment_index && group->download_segment_index>1)
+								group->download_segment_index--;
+						}
+						/*force to download scalable enhancement of the second segment*/
+						group->force_representation_idx_plus_one = switch_to_rep_idx;
+						group->active_rep_index = switch_to_rep_idx - 1;
 						group->download_segment_index--;
+					}
+					else {
+						/* we remove highest scalable enhancements of the dowloaded segments, and keep another segments*/
+						for (k = group->nb_cached_segments - 1; k > keep_seg_index; k--) {
+							if (group->cached[k].representation_index != current_idx)
+								continue;
+							group->nb_cached_segments--;
+							gf_dash_update_buffering(group, dash);
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[k].url));
+							if (k != group->nb_cached_segments) {
+								memmove(&group->cached[k], &group->cached[k+1], (group->nb_cached_segments-k)*sizeof(segment_cache_entry));
+							}
+							memset(&group->cached[group->nb_cached_segments], 0, sizeof(segment_cache_entry));
+						}
+					}
 				}
 			}
+			/*resize max cached segment*/
+			group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
+
 			gf_mx_v(dash->dl_mutex);
 		}
 	}
@@ -4008,6 +4152,7 @@ void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx)
 	gf_mx_p(dash->dl_mutex);
 	group = gf_list_get(dash->groups, idx);
 
+discard_segment:
 	if (!group->nb_cached_segments) {
 		gf_mx_v(dash->dl_mutex);	
 		return;
@@ -4040,6 +4185,12 @@ void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx)
 	memset(&(group->cached[group->nb_cached_segments-1]), 0, sizeof(segment_cache_entry));
 	group->nb_cached_segments--;
 
+	/*if we have dependency representations, we need also discard them*/
+	if (group->base_rep_index_plus_one) {
+		if (group->cached[0].cache && (group->cached[0].representation_index != group->base_rep_index_plus_one-1))
+			goto discard_segment;
+	}
+
 	gf_mx_v(dash->dl_mutex);
 }
 
@@ -4067,10 +4218,10 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url)
+GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url, Bool *has_next_segment)
 {
 	GF_DASH_Group *group;
-
+	u32 index;
 	*url = NULL;
 	if (switching_url) *switching_url = NULL;
 	if (start_range) *start_range = 0;
@@ -4079,6 +4230,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 	if (switching_end_range) *switching_end_range = 0;
 	if (original_url) *original_url = NULL;
 	if (switching_index) *switching_index = -1;
+	if (has_next_segment) *has_next_segment = GF_FALSE;
 
 	gf_mx_p(dash->dl_mutex);	
 	group = gf_list_get(dash->groups, idx);
@@ -4086,14 +4238,34 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 		gf_mx_v(dash->dl_mutex);	
 		return GF_BAD_PARAM;
 	}
-	*url = group->cached[0].cache;
-	if (start_range) 
-		*start_range = group->cached[0].start_range;
-	if (end_range)
-		*end_range = group->cached[0].end_range;
-	if (original_url) *original_url = group->cached[0].url;
 
-	if (group->cached[0].representation_index != group->prev_active_rep_index) {
+	/*check the dependent rep is in the cache and does not target next segment (next in time)*/
+	index = 0;
+	while (dependent_representation_index) {
+		Bool valid = GF_TRUE;
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[index].representation_index);
+
+		if (!rep->enhancement_rep_index_plus_one) valid = GF_FALSE;
+		if (index+1 >= group->nb_cached_segments) valid = GF_FALSE;
+		if (rep->enhancement_rep_index_plus_one != group->cached[index+1].representation_index + 1) valid = GF_FALSE;
+
+		if (valid == GF_FALSE) {
+			gf_mx_v(dash->dl_mutex);	
+			return GF_BAD_PARAM;
+		}
+		index ++;
+		dependent_representation_index--;
+	}
+	assert(dependent_representation_index==0);
+
+	*url = group->cached[index].cache;
+	if (start_range) 
+		*start_range = group->cached[index].start_range;
+	if (end_range)
+		*end_range = group->cached[index].end_range;
+	if (original_url) *original_url = group->cached[index].url;
+
+	if (!group->base_rep_index_plus_one && (group->cached[index].representation_index != group->prev_active_rep_index)) {
 		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
 		if (switching_index)
 			*switching_index = group->cached[0].representation_index;
@@ -4105,7 +4277,15 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, con
 			*switching_url = rep->playback.cached_init_segment_url;
 	}
 	group->force_segment_switch = 0;
-	group->prev_active_rep_index = group->cached[0].representation_index;
+	group->prev_active_rep_index = group->cached[index].representation_index;
+	if (group->cached[index+1].cache) {
+		GF_MPD_Representation *rep;
+	
+		rep = gf_list_get(group->adaptation_set->representations, group->cached[index].representation_index);
+		if (rep->enhancement_rep_index_plus_one == group->cached[index+1].representation_index+1) {
+			if (has_next_segment) *has_next_segment = GF_TRUE;	
+		}
+	}
 	gf_mx_v(dash->dl_mutex);	
 	return GF_OK;
 }

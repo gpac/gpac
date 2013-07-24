@@ -1767,6 +1767,7 @@ static u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, 
 	return nal_size-emulation_bytes_count; 
 } 
 
+GF_EXPORT
 s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
@@ -2037,6 +2038,7 @@ exit:
 	return sps_id;
 }
 
+GF_EXPORT
 s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 {
 	GF_BitStream *bs;
@@ -2418,6 +2420,7 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		si->poc = field_poc[1];
 }
 
+GF_EXPORT
 s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 {
 	u8 idr_flag;
@@ -2523,6 +2526,7 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	case GF_AVC_NALU_SEQ_PARAM:
 	case GF_AVC_NALU_PIC_PARAM:
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
+	case GF_AVC_NALU_FILLER_DATA:
 		return 0;
 	default:
 		if (avc->s_info.nal_unit_type <= GF_AVC_NALU_IDR_SLICE) ret = 1;

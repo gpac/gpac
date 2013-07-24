@@ -46,6 +46,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 {
 	GF_NetworkCommand param;
 	u32 i, count;
+	Bool scalable_segment = 0;
 	GF_Err e;
 
 	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
@@ -58,6 +59,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 
 	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+	param.url_query.dependent_representation_index = 0;
 
 	count = gf_list_count(read->channels);
 
@@ -91,10 +93,11 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 		param.url_query.drop_first_segment = 1;
 	}
 
-
+next_segment:
 	/*update current fragment if any*/
 	e = read->input->query_proxy(read->input, &param);
-	if (e ==GF_OK) {
+	if (e == GF_OK) {
+		u32 trackID = 0;
 		if (param.url_query.next_url){
 
 			//previously loaded file has been aborted, reload segment !
@@ -136,7 +139,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
 			}
 
-			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range);
+			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, scalable_segment);
 
 			if (param.url_query.is_current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
 				e = GF_OK;
@@ -172,6 +175,19 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 			for (i=0; i<count; i++) {
 				ISOMChannel *ch = gf_list_get(read->channels, i);
 				ch->wait_for_segment_switch = 0;
+
+				if (scalable_segment) {
+					trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
+					if (trackID) {
+						ch->track_id = trackID;
+						ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+					}
+				}
+				else if (ch->base_track) {
+					ch->track = ch->base_track;
+					ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
+				}
+
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				if (param.url_query.next_url_init_or_switch_segment) {
 					ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
@@ -184,19 +200,22 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 						}
 					}
 
-					/*rewrite all upcoming SPS/PPS into the samples*/
-					gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
-
 					/*we changed our moov structure, sample_num now starts from 0*/
 					ch->sample_num = 0;
-				} else {
-					/*no need to rewrite upcoming SPS/PPS into the samples*/
-					gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_DEFAULT);
-				}
+				} 
+				/*rewrite all upcoming SPS/PPS into the samples*/
+				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 				ch->last_state = GF_OK;
 			}
 
 			read->use_memory = !strncmp(param.url_query.next_url, "gmem://", 7) ? GF_TRUE : GF_FALSE;
+		}
+		if (param.url_query.has_next) {
+			param.url_query.drop_first_segment = GF_FALSE;
+			param.url_query.dependent_representation_index++;
+			scalable_segment = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Enhancement layer available in cache - refreshing it\n"));
+			goto next_segment;
 		}
 		read->waiting_for_data = GF_FALSE;
 	} else if (e==GF_EOS) {

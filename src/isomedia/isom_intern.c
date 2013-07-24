@@ -80,6 +80,8 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		e = MergeTrack(trak, traf, mov->current_top_box_start, !trak->first_traf_merged);
 		if (e) return e;
 
+		trak->present_in_scalable_segment = 1;
+
 		//update trak duration
 		SetTrackDuration(trak);
 		if (trak->Header->duration > MaxDur) 

@@ -52,6 +52,7 @@
 #ifndef GPAC_DISABLE_SMGR
 #include <gpac/scene_manager.h>
 #endif
+#include <gpac/internal/media_dev.h>
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
@@ -873,12 +874,13 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 }
 
 
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc)
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc, AVCState *avc)
 {
 	u8 type;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
-	u32 data_offset, sps_id, pps_id;
+	u32 data_offset, idx;
+	GF_BitStream *bs;
 	
 	if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC
@@ -919,24 +921,35 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 		return;
 	} 
 	
+	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 	type = ptr[0] & 0x1F;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	switch (type) {
-	case GF_AVC_NALU_NON_IDR_SLICE: fputs("Non IDR slice", dump); break;
+	case GF_AVC_NALU_NON_IDR_SLICE: 
+		gf_media_avc_parse_nalu(bs, ptr[0], avc);
+		fputs("Non IDR slice", dump);
+		fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
+		break;
 	case GF_AVC_NALU_DP_A_SLICE: fputs("DP Type A slice", dump); break;
 	case GF_AVC_NALU_DP_B_SLICE: fputs("DP Type B slice", dump); break;
 	case GF_AVC_NALU_DP_C_SLICE: fputs("DP Type C slice", dump); break;
-	case GF_AVC_NALU_IDR_SLICE: fputs("IDR slice", dump); break;
+	case GF_AVC_NALU_IDR_SLICE: 
+		gf_media_avc_parse_nalu(bs, ptr[0], avc);
+		fputs("IDR slice", dump);
+		fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
+		break;
 	case GF_AVC_NALU_SEI: fputs("SEI Message", dump); break;
 	case GF_AVC_NALU_SEQ_PARAM: 
-		fputs("SequenceParameterSet", dump); 
-		gf_avc_get_sps_info(ptr, ptr_size, &sps_id, NULL, NULL, NULL, NULL);
-		fprintf(dump, "\" sps_id=\"%d", sps_id);
+		fputs("SequenceParameterSet", dump);
+		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 0, NULL);
+		assert (idx >= 0);
+		fprintf(dump, "\" sps_id=\"%d", idx);
 		break;
 	case GF_AVC_NALU_PIC_PARAM: 
 		fputs("PictureParameterSet", dump);
-		gf_avc_get_pps_info(ptr, ptr_size, &pps_id, &sps_id);
-		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", pps_id, sps_id);
+		idx = gf_media_avc_read_pps(ptr, ptr_size, avc);
+		assert (idx >= 0);
+		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT: fputs("AccessUnit delimiter", dump); break;
 	case GF_AVC_NALU_END_OF_SEQ: fputs("EndOfSequence", dump); break;
@@ -946,17 +959,20 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	case GF_AVC_NALU_SVC_PREFIX_NALU: fputs("SVCPrefix", dump); break;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM: 
 		fputs("SVCSubsequenceParameterSet", dump); 
-		gf_avc_get_sps_info(ptr, ptr_size, &sps_id, NULL, NULL, NULL, NULL);
-		fprintf(dump, "\" sps_id=\"%d", sps_id);
+		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 1, NULL);
+		assert (idx >= 0);
+		fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
 		break;
 	case GF_AVC_NALU_SLICE_AUX: fputs("Auxiliary Slice", dump); break;
 
 	case GF_AVC_NALU_SVC_SLICE: 
+		gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
 		fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
+		fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
 	case 30: fputs("SVCAggregator", dump); break;
 	case 31:
@@ -970,6 +986,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 		fputs("UNKNOWN", dump); break;
 	}
 	fputs("\"", dump);
+	if (bs) gf_bs_del(bs);
 }
 
 void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
@@ -978,12 +995,15 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	Bool is_hevc = 0;
 	FILE *dump;
 	s32 countRef;
+	AVCState avc;
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg;
 	GF_AVCConfigSlot *slc;
 #endif
 
+	memset(&avc, 0, sizeof(AVCState));
 	if (inName) {
 		char szBuf[GF_MAX_PATH];
 		strcpy(szBuf, inName);
@@ -1013,7 +1033,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "  <%s number=\"%d\" size=\"%d\" ", name, i+1, slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc, &avc);\
 			fprintf(dump, "/>\n");\
 		}\
 	}\
@@ -1099,7 +1119,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 				break;
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
-				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc);
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc, &avc);
 				fprintf(dump, "/>\n");
 			}
 			idx++;

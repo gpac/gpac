@@ -338,10 +338,12 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	//divided into the original and the edition files
 	if (mdia->mediaTrack->moov->mov->openMode == GF_ISOM_OPEN_READ) {	
 		//same as last call in read mode
-		if (!mdia->information->dataHandler || (mdia->information->dataEntryIndex != dataRefIndex)) {
+		if (!mdia->information->dataHandler) {
 			e = gf_isom_datamap_open(mdia, dataRefIndex, isEdited);
 			if (e) return e;
 		}
+		if (mdia->information->dataEntryIndex != dataRefIndex)
+			mdia->information->dataEntryIndex = dataRefIndex;
 	} else {
 		e = gf_isom_datamap_open(mdia, dataRefIndex, isEdited);
 		if (e) return e;

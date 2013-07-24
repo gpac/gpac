@@ -1132,7 +1132,10 @@ footprint low when playing segments. Note however that seeking in the file is th
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 /*opens a new segment file. Access to samples in previous segments is no longer possible
 if end_range>start_range, restricts the URL to the given byterange when parsing*/
-GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range);
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, Bool is_scalable_segment);
+
+/*returns track ID of the traf containing the highest enhancement layer for the given base track*/
+u32 gf_isom_get_highest_track_in_scalable_segment(GF_ISOFile *movie, u32 for_base_track);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 
@@ -1615,6 +1618,7 @@ enum
 
 GF_Err gf_isom_set_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber, u32 nalu_extract_mode);
 u32 gf_isom_get_nalu_extract_mode(GF_ISOFile *the_file, u32 trackNumber);
+
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*creates new AVC config*/

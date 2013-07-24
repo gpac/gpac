@@ -185,9 +185,9 @@ If no bitstream switching is possible, also set the url and byte range of the me
 the playback of the next segment
 original_url is optional and may be used to het the URI of the segment
 */
-GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, const char **url, u64 *start_range, u64 *end_range, 
+GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range, 
 											s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, 
-											const char **original_url);
+											const char **original_url, Bool *has_next_segment);
 
 /*same as gf_dash_group_get_next_segment_location but query the current downloaded segment*/
 GF_EXPORT

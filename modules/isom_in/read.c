@@ -562,7 +562,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 
 GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
-	u32 ESID, base_track, count, i;
+	u32 ESID;
 	ISOMChannel *ch;
 	GF_NetworkCommand com;
 	u32 track;
@@ -635,25 +635,8 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		ch->streamType = GF_STREAM_SCENE;
 		break;
 	case GF_ISOM_MEDIA_VISUAL:
-		count = gf_isom_get_track_count(ch->owner->mov);
-		base_track = 0;
-		for (i = 0; i < count; i++)
-		{
-			gf_isom_get_reference(ch->owner->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
-			if (base_track)
-				break;
-		}
-		ch->base_track = base_track;
+		gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
 		ch->next_track = 0;
-
-		/*set track to last layer (hopefully max quality)*/
-		if (base_track) {
-			for (i = 0; i < count; i++) {
-				gf_isom_get_reference(ch->owner->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
-				if (base_track==ch->base_track)
-					ch->track = i+1;
-			}
-		}
 		/*in scalable mode add SPS/PPS in-band*/
 		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		break;
@@ -908,7 +891,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		for (i = 0; i < count; i++)
 		{
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
-			if (ch->base_track) {
+			if (gf_isom_has_scalable_layer(read->mov)) {
 				ch->next_track = gf_channel_switch_quality(ch, read->mov, com->switch_quality.up);
 			}
 		}

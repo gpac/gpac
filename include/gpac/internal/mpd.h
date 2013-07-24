@@ -214,6 +214,9 @@ typedef struct {
 
 	GF_List *sub_representations;
 
+	/*index of the next enhancement representation plus 1, 0 is reserved in case of the highest representation*/
+	u32 enhancement_rep_index_plus_one;
+
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
 } GF_MPD_Representation;
