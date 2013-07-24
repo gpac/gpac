@@ -426,7 +426,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	/*in playback mode*/
 	if (traf->tfdt && is_first_merge) {
 #ifndef GPAC_DISABLE_LOG
-		if (trak->sample_count_at_seg_start && (trak->dts_at_seg_start != traf->tfdt->baseMediaDecodeTime)) {
+		if (trak->present_in_scalable_segment && trak->sample_count_at_seg_start && (trak->dts_at_seg_start != traf->tfdt->baseMediaDecodeTime)) {
 			s32 drift = (s32) ((s64)trak->dts_at_seg_start - (s64) traf->tfdt->baseMediaDecodeTime);
 			if (drift<0) drift = -drift;
 			if (drift > 1) {

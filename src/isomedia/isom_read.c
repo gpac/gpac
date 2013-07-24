@@ -255,6 +255,18 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 	}
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	{
+		u32 i;
+
+		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+			/*delete any pending dataHandler of scalable enhancements*/
+			if (trak->Media->information->scalableDataHandler)
+				gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
+		}
+	}
+#endif
 
 	//free and return;
 	gf_isom_delete_movie(movie);
@@ -2031,12 +2043,20 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	size = gf_bs_get_size(movie->movieFileMap->bs);
 
 	if (new_location) {
-		GF_Err e = gf_isom_datamap_new(new_location, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
-		if (e) return e;
-	
+		void *previous_movie_fileMap_address = movie->movieFileMap;
+		GF_Err e;
+		
+		e = gf_isom_datamap_new(new_location, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
+ 		if (e) return e;
+
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
-			trak->Media->information->dataHandler = movie->movieFileMap;
+			if (trak->Media->information->dataHandler == previous_movie_fileMap_address) {
+				//reaasign for later destruction
+				trak->Media->information->scalableDataHandler = movie->movieFileMap;
+				//reassign for Media_GetSample function
+				trak->Media->information->dataHandler = movie->movieFileMap;
+			}
 		}
 	}
 
@@ -2052,20 +2072,30 @@ GF_EXPORT
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	u32 i;
+	u32 i, base_track_sample_count;
+	Bool has_scalable;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
-
+	has_scalable = gf_isom_has_scalable_layer(movie);
+	base_track_sample_count = 0;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
 		trak->first_traf_merged = 0;
 		if (trak->Media->information->dataHandler == movie->movieFileMap) {
 			trak->Media->information->dataHandler = NULL;
 		}
+		if (trak->Media->information->scalableDataHandler == movie->movieFileMap) {
+			gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
+			trak->Media->information->scalableDataHandler = NULL;
+		}
+
+
 		if (reset_tables) {
 			u32 type, dur;
 			u64 dts;
 			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
-			trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
+			if (has_scalable && !gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_SCAL))
+				base_track_sample_count = stbl->SampleSize->sampleCount;
+			trak->sample_count_at_seg_start += has_scalable ? base_track_sample_count : stbl->SampleSize->sampleCount;
 			if (trak->sample_count_at_seg_start) {
 				GF_Err e;
 				e = stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
@@ -2100,7 +2130,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 }
 
 GF_EXPORT
-GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range)
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, Bool is_scalable_segment)
 {
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
@@ -2108,15 +2138,27 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 	u64 MissingBytes;
 	GF_Err e;
 	u32 i;
+	Bool segment_map_assigned = 0;
+	GF_DataMap *tmp = NULL;
+	GF_DataMap *orig_file_map = NULL;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
-	if (movie->movieFileMap)
-		gf_isom_release_segment(movie, 0);
+	/*this is a scalable segment - use a temp data map for the associated track(s) but do NOT touch the movie file map*/
+	if (is_scalable_segment) {
+		tmp = NULL;
+		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &tmp);
+		if (e) return e;
 
-	e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
-	if (e) return e;
+		orig_file_map = movie->movieFileMap;
+		movie->movieFileMap = tmp;
+	} else {
+		if (movie->movieFileMap)
+			gf_isom_release_segment(movie, 0);
 
+		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
+		if (e) return e;
+	}
 	movie->current_top_box_start = 0;
 
 	if (end_range > start_range) {
@@ -2128,13 +2170,73 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 	
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
-		if (trak->Media->information->dataHandler == NULL) {
-			trak->Media->information->dataHandler = movie->movieFileMap;
+
+		if (!is_scalable_segment) {
+			/*reset data handler to new segment*/
+			if (trak->Media->information->dataHandler == NULL) {
+				trak->Media->information->dataHandler = movie->movieFileMap;
+			}
+		} else {
+			trak->present_in_scalable_segment = 0;
 		}
 	}
 
+
 	//ok parse root boxes
-	return gf_isom_parse_movie_boxes(movie, &MissingBytes, 1);
+	e = gf_isom_parse_movie_boxes(movie, &MissingBytes, 1);
+	
+	if (!is_scalable_segment) 
+		return e;
+
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+		if (trak->present_in_scalable_segment) {
+			/*store the temp dataHandler into scalableDataHandler so that it will not be destroyed 
+			if we append another representation - destruction of this data handler is done in release_segment*/
+			trak->Media->information->scalableDataHandler = tmp;
+			if (!segment_map_assigned) {
+				trak->Media->information->scalableDataHandler = tmp;
+				segment_map_assigned = 1;
+			}
+			//and update the regular dataHandler for the Media_GetSample function
+			trak->Media->information->dataHandler = tmp;
+		}
+	}
+	movie->movieFileMap = 	orig_file_map;
+	return e;
+#endif
+}
+
+GF_EXPORT
+u32 gf_isom_get_highest_track_in_scalable_segment(GF_ISOFile *movie, u32 for_base_track)
+{
+#ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
+	return 0;
+#else
+	s32 max_ref;
+	u32 i, j, track_id;
+	
+	max_ref = 0;
+	track_id = 0;
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		s32 ref;
+		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+		if (! trak->present_in_scalable_segment) continue;
+
+		ref = gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_SCAL);
+		if (ref<=0) continue;
+		if (ref<=max_ref) continue;
+
+		for (j=0; j< (u32) ref; j++) {
+			u32 on_track=0;
+			gf_isom_get_reference(movie, i+1, GF_ISOM_REF_SCAL, j+1, &on_track);
+			if (on_track==for_base_track) {
+				max_ref = ref;
+				track_id = trak->Header->trackID;
+			}
+		}
+	}
+	return track_id;
 #endif
 }
 
@@ -2994,7 +3096,6 @@ s32 gf_isom_get_composition_offset_shift(GF_ISOFile *file, u32 track)
 	return trak->Media->information->sampleTable->CompositionToDecode->compositionToDTSShift;
 }
 
-
 GF_EXPORT
 Bool gf_isom_has_scalable_layer(GF_ISOFile *file) 
 {
@@ -3008,5 +3109,4 @@ Bool gf_isom_has_scalable_layer(GF_ISOFile *file)
 	}
 	return GF_FALSE;
 }
-
 #endif /*GPAC_DISABLE_ISOM*/

@@ -123,6 +123,70 @@ void isor_declare_objects(ISOMReader *read)
 		if (esd) {
 			gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
 			esd->has_ref_base = base_track ? GF_TRUE : GF_FALSE;
+			/* we add the SPS/PPS of the lower layers to this esd*/
+#if 1
+			if (esd->has_ref_base) {
+				u32 count, refIndex, ref_track, num_sps, num_pps, t;
+				GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				GF_AVCConfig *avccfg, *svccfg;
+
+				count = gf_isom_get_reference_count(read->mov, i+1, GF_ISOM_REF_SCAL);
+				for (refIndex = count; refIndex != 0; refIndex--) {
+					gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_SCAL, refIndex, &ref_track);
+					avccfg = gf_isom_avc_config_get(read->mov, ref_track, 1);
+					svccfg = gf_isom_svc_config_get(read->mov, ref_track, 1);
+					if (avccfg) {
+						num_sps = gf_list_count(avccfg->sequenceParameterSets);
+						for (t = 0; t < num_sps; t++) {
+							GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, t);
+							GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+							sl->id = slc->id;
+							sl->size = slc->size;
+							sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+							memcpy(sl->data, slc->data, sizeof(char)*sl->size);
+							gf_list_insert(cfg->sequenceParameterSets, sl, 0);
+						}
+						num_pps = gf_list_count(avccfg->pictureParameterSets);
+						for (t = 0; t < num_sps; t++) {
+							GF_AVCConfigSlot *slc = gf_list_get(avccfg->pictureParameterSets, t);
+							GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+							sl->id = slc->id;
+							sl->size = slc->size;
+							sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+							memcpy(sl->data, slc->data, sizeof(char)*sl->size);
+							gf_list_insert(cfg->pictureParameterSets, sl, 0);
+						}
+						gf_odf_avc_cfg_del(avccfg);
+					}
+					if (svccfg) {
+						num_sps = gf_list_count(svccfg->sequenceParameterSets);
+						for (t = 0; t < num_sps; t++) {
+							GF_AVCConfigSlot *slc = gf_list_get(svccfg->sequenceParameterSets, t);
+							GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+							sl->id = slc->id;
+							sl->size = slc->size;
+							sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+							memcpy(sl->data, slc->data, sizeof(char)*sl->size);
+							gf_list_insert(cfg->sequenceParameterSets, sl, 0);
+						}
+						num_pps = gf_list_count(svccfg->pictureParameterSets);
+						for (t = 0; t < num_sps; t++) {
+							GF_AVCConfigSlot *slc = gf_list_get(svccfg->pictureParameterSets, t);
+							GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+							sl->id = slc->id;
+							sl->size = slc->size;
+							sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+							memcpy(sl->data, slc->data, sizeof(char)*sl->size);
+							gf_list_insert(cfg->pictureParameterSets, sl, 0);
+						}
+						gf_odf_avc_cfg_del(svccfg);
+					}
+				}
+
+				gf_odf_avc_cfg_write(cfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+				gf_odf_avc_cfg_del(cfg);
+			}
+#endif
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 			od->service_ifce = read->input;
 			od->objectDescriptorID = 0;
