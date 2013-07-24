@@ -170,7 +170,7 @@ void isor_declare_objects(ISOMReader *read)
 							gf_list_insert(cfg->sequenceParameterSets, sl, 0);
 						}
 						num_pps = gf_list_count(svccfg->pictureParameterSets);
-						for (t = 0; t < num_sps; t++) {
+						for (t = 0; t < num_pps; t++) {
 							GF_AVCConfigSlot *slc = gf_list_get(svccfg->pictureParameterSets, t);
 							GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 							sl->id = slc->id;
