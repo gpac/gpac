@@ -91,7 +91,6 @@ typedef struct
 struct _dash_segment_input
 {
 	char *file_name;
-	u32 trackNum, lower_layer_track;
 	char representationID[100];
 	char periodID[100];
 	char role[100];
@@ -117,6 +116,11 @@ struct _dash_segment_input
 
 	/*shall be set after call to dasher_input_classify*/
 	char szMime[50];
+
+	//information for scalability
+	u32 trackNum, lower_layer_track, nb_representations, idx_representations;
+	//increase sequence number between consecutive segments by this amount (for scalable reps)
+	u32 moof_seqnum_increase;
 
 	/*all these shall be set after call to dasher_get_components_info*/
 	Double duration;
@@ -856,6 +860,9 @@ restart_fragmentation_pass:
 
 	cur_seg=1;
 	fragment_index=1;
+	if (dash_input->moof_seqnum_increase) {
+		fragment_index = dash_input->moof_seqnum_increase * dash_input->idx_representations + 1;
+	}
 	period_duration = 0;
 	split_at_rap = GF_FALSE;
 	has_rap = GF_FALSE;
@@ -901,6 +908,7 @@ restart_fragmentation_pass:
 			}
 		}
 	}
+
 	gf_isom_set_next_moof_number(output, fragment_index);
 
 
@@ -1294,7 +1302,15 @@ restart_fragmentation_pass:
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
 					
+
 				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, ref_track_next_cts, dash_cfg->daisy_chain_sidx, flush_all_samples ? GF_TRUE : GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+
+				//take care of scalable reps
+				if (dash_input->moof_seqnum_increase) {
+					u32 frag_index = gf_isom_get_next_moof_number(output) + dash_input->nb_representations * dash_input->moof_seqnum_increase;
+					gf_isom_set_next_moof_number(output, frag_index);
+				}
+
 				ref_track_first_dts = (u64) -1;
 
 				if (!seg_rad_name) {
@@ -3208,9 +3224,10 @@ static char * gf_dash_get_representationID(GF_DashSegInput *inputs, u32 nb_dash_
 	return 0; //we should never be here !!!!
 }
 
-GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash_inputs, u32 idx)
+GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_dash_inputs, u32 idx)
 {
-	GF_DashSegInput *dash_input = & (*dash_inputs) [idx];
+	GF_DashSegInput *dash_inputs = *io_dash_inputs;
+	GF_DashSegInput *dash_input = & dash_inputs[idx];
 	FILE *t = gf_f64_open(dash_input->file_name, "rb");
 	if (!t) return GF_URL_ERROR;
 	fclose(t);
@@ -3218,7 +3235,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_probe_file(dash_input->file_name)) {
 		GF_ISOFile *file;
-		u32 nb_track, j, max_nb_deps, cur_idx;
+		u32 nb_track, j, max_nb_deps, cur_idx, rep_idx;
 				
 		strcpy(dash_input->szMime, "video/mp4");
 		dash_input->dasher_create_init_segment = dasher_isom_create_init_segment;
@@ -3233,6 +3250,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash
 		/*if this dash input file has only one track, or this has not the scalable track: let it be*/
 		if ((nb_track == 1) || !gf_isom_has_scalable_layer(file)) {
 			gf_isom_close(file);
+			dash_input->moof_seqnum_increase = 0;
 			return GF_OK;
 		}
 
@@ -3244,10 +3262,16 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash
 					max_nb_deps ++;
 			}
 		}
-		//scalable input file
+		//scalable input file, realloc
 		j = *nb_dash_inputs + max_nb_deps;
-		*dash_inputs = gf_realloc(*dash_inputs, sizeof(GF_DashSegInput) * j);
-		dash_input = & (*dash_inputs) [idx];
+		dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegInput) * j);
+		memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegInput) * max_nb_deps);
+		*io_dash_inputs = dash_inputs;
+
+		dash_input = & dash_inputs[idx];
+		dash_input->nb_representations = 1 + max_nb_deps;
+		dash_input->idx_representations=0;
+		rep_idx = 1;
 		cur_idx = idx+1;
 
 		for (j = 0; j < nb_track; j++) {
@@ -3260,7 +3284,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash
 				continue;
 			}
 
-			di = & (*dash_inputs) [cur_idx];
+			di = &dash_inputs [cur_idx];
 			*nb_dash_inputs += 1;
 			cur_idx++;
 			//copy over values from base rep
@@ -3270,13 +3294,15 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash
 			sprintf(di->representationID, "%s_%d", dash_input->representationID, cur_idx);
 			di->trackNum = j+1;
 
-			/*dependencyID*/
+			/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
+			di->idx_representations = rep_idx;
+			rep_idx ++;
 			sprintf(di->dependencyID, "%s", dash_input->representationID); //base track
 			di->lower_layer_track = dash_input->trackNum;
 			for (t = 1; t < count; t++) {
 				gf_isom_get_reference(file, j+1, GF_ISOM_REF_SCAL, t+1, &ref_track);
 				if (j) strcat(di->dependencyID, " ");
-				strcat(di->dependencyID, gf_dash_get_representationID(*dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
+				strcat(di->dependencyID, gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
 
 				di->lower_layer_track = ref_track;
 			}		
@@ -3285,6 +3311,8 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **dash_inputs, u32 *nb_dash
 		return GF_OK;
 	}
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
+
+	dash_input->moof_seqnum_increase = 0;
 
 #ifndef GPAC_DISABLE_MPEG2TS
 	if (gf_m2ts_probe_file(dash_input->file_name)) {
@@ -3790,7 +3818,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	GF_DashSegInput *dash_inputs;
 	GF_DASHSegmenterOptions dash_opts;
 	u32 nb_dash_inputs;
-
+	
 	/*init dash context if needed*/
 	if (dash_ctx) {
 
@@ -3845,6 +3873,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			}
 		}
 		nb_diff = nb_dash_inputs;
+		dash_inputs[j].moof_seqnum_increase = 2 + (u32) (dash_duration/frag_duration);
 		e = gf_dash_segmenter_probe_input(&dash_inputs, &nb_dash_inputs, j);
 
 		if (e) {
@@ -3855,7 +3884,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 		nb_diff = nb_dash_inputs - nb_diff;
 		if (!nb_diff) nb_diff = 1;		
-		j += nb_diff;
+		j += 1+nb_diff;
  	}
 	memset(&dash_opts, 0, sizeof(GF_DASHSegmenterOptions));
 
