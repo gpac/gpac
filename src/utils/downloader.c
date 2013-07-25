@@ -2775,7 +2775,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 exit:
     if (e) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error parsing reply: %s for URL %s\n", gf_error_to_string(e), sess->orig_url ));
-        gf_dm_disconnect(sess, 1);
+		gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
+		gf_dm_remove_cache_entry_from_session(sess);
+		sess->cache_entry = NULL;
+		gf_dm_disconnect(sess, 0);
         sess->status = GF_NETIO_STATE_ERROR;
         sess->last_error = e;
         gf_dm_sess_notify_state(sess, sess->status, e);
