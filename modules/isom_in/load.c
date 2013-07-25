@@ -88,8 +88,16 @@ void isor_declare_objects(ISOMReader *read)
 	const char *tag;
 	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
 	Bool highest_stream;
+	char *opt;
+	Bool add_ps_lower = GF_TRUE;
 
 	ocr_es_id = 0;
+	opt = (char*) gf_modules_get_option((GF_BaseInterface *)read->input, "ISOReader", "DeclareScalableXPS");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)read->input, "ISOReader", "DeclareScalableXPS", "yes");
+	} else if (!strcmp(opt, "no")) {
+		add_ps_lower = GF_FALSE;
+	}
 
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);
@@ -123,9 +131,9 @@ void isor_declare_objects(ISOMReader *read)
 		if (esd) {
 			gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
 			esd->has_ref_base = base_track ? GF_TRUE : GF_FALSE;
-			/* we add the SPS/PPS of the lower layers to this esd*/
-#if 1
-			if (esd->has_ref_base) {
+			/*FIXME: if we declare only SPS/PPS of the highest layer, we have a problem in decoding even though we have all SPS/PPS inband (OpenSVC bug ?)*/
+			/*so we add by default the SPS/PPS of the lower layers to this esd*/
+			if (esd->has_ref_base && add_ps_lower) {
 				u32 count, refIndex, ref_track, num_sps, num_pps, t;
 				GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				GF_AVCConfig *avccfg, *svccfg;
@@ -186,7 +194,7 @@ void isor_declare_objects(ISOMReader *read)
 				gf_odf_avc_cfg_write(cfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 				gf_odf_avc_cfg_del(cfg);
 			}
-#endif
+
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 			od->service_ifce = read->input;
 			od->objectDescriptorID = 0;
