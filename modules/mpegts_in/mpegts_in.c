@@ -803,6 +803,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	if (out_start_range) *out_start_range = 0;
 	if (out_end_range) *out_end_range = 0;
 
+	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.next_url = NULL;
 	param.url_query.drop_first_segment = (query_type==1) ? 1 : 0;

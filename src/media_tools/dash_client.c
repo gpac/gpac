@@ -212,6 +212,9 @@ struct __dash_group
 	Bool force_segment_switch;
 	Bool is_downloading, download_aborted;
 
+	u32 time_at_first_failure;
+	Bool prev_segment_ok;
+	u32 nb_consecutive_fail;
 	/*set when switching segment, indicates the current downloaded segment duration*/
 	u64 current_downloaded_segment_duration;
 
@@ -668,7 +671,7 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 	Bool retry = 1;
 	GF_Err e;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s startin,g at UTC "LLU" ms\n", url, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s starting at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 
 	if (group) {
 		group_idx = gf_list_find(group->dash->groups, group);
@@ -3128,6 +3131,7 @@ restart_period:
 			u64 start_range, end_range;
 			Bool use_byterange;
 			u32 representation_index;
+			u32 clock_time;
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
 			if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 			if (group->done) continue;
@@ -3211,11 +3215,11 @@ restart_period:
 
 			/*check availablity start time of segment in Live !!*/
 			if (!group->broken_timing && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->is_m3u8) {
-				u32 clock_time = gf_sys_clock();
 				s32 to_wait = 0;
 				u32 seg_dur_ms=0;
 				s64 segment_ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, &seg_dur_ms);
 				s64 now = (s64) gf_net_get_utc();
+				clock_time = gf_sys_clock();
 				
 				to_wait = (s32) (segment_ast - now);
 
@@ -3280,6 +3284,7 @@ restart_period:
 
 				/*TODO decide what is the best, fetch from another representation or ignore ...*/
 				if (e != GF_OK) {
+					clock_time = gf_sys_clock();
 					if (group->maybe_end_of_stream) {
 						if (group->maybe_end_of_stream==2) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Couldn't get segment %s (error %s) and end of period was guessed during last update - stoping playback\n", new_base_seg_url, gf_error_to_string(e)));
@@ -3290,13 +3295,38 @@ restart_period:
 					} else if (in_segment_avail_time) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Couldn't get segment %s during its availability period (%s) - retrying\n", new_base_seg_url, gf_error_to_string(e)));
 						min_wait = 30;
+					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
+						group->time_at_first_failure = clock_time;
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
+						min_wait = 10;
+					} else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure < group->current_downloaded_segment_duration)) {
+						min_wait = 10;
 					} else {
+						if (group->prev_segment_ok) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
+							group->time_at_first_failure = 0;
+							group->prev_segment_ok = GF_FALSE;
+						}
+						group->nb_consecutive_fail ++;
+						//we are lost ....
+						if (group->nb_consecutive_fail == 20) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync has been lost. End of stream ?\n"));
+							group->maybe_end_of_stream = 1;
+							continue;
+						}
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
 						group->download_segment_index++;
 					}
 					continue;
 				}
 
+				group->prev_segment_ok = GF_TRUE;
+				if (group->time_at_first_failure) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Recovered segment %s - was our download schedule too early ?\n", new_base_seg_url));
+					group->time_at_first_failure = 0;
+					group->nb_consecutive_fail = 0;
+				}
+				
 				if ((e==GF_OK) && group->force_switch_bandwidth) {
 					if (!dash->auto_switch_count) {
 						gf_dash_switch_group_representation(dash, group);
