@@ -279,11 +279,11 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\gui\gui.js"
   File "${GPAC_ROOT}\gui\gwlib.js"
   File "${GPAC_ROOT}\gui\mpegu-core.js"
+  File "${GPAC_ROOT}\gui\webvtt-renderer.js"
   SetOutPath $INSTDIR\gui\icons
   File /r /x .svn ${GPAC_ROOT}\gui\icons\*
   SetOutPath $INSTDIR\gui\extensions
   File /r /x .svn ${GPAC_ROOT}\gui\extensions\*
-  File "${GPAC_ROOT}\gui\webvtt-renderer.js"
 
   SetOutPath $INSTDIR
   
@@ -627,6 +627,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecM2TS} "Support for MPEG-2 Transport Stream"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRTP} "Support for RTP and RTSP IP streaming"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSVG} "Support for SVG including progressive loading"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecWebVTT} "Support for WebVTT subtitles"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGDIP} "GDIPlus-based rasterizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecG2DS} "GPAC software rasterizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
