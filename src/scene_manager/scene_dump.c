@@ -163,6 +163,12 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 }
 
 GF_EXPORT
+void gf_sm_dumper_set_extra_graph(GF_SceneDumper *sdump, GF_SceneGraph *extra)
+{
+	sdump->sg = extra;
+}
+
+GF_EXPORT
 void gf_sm_dumper_del(GF_SceneDumper *sdump)
 {
 	gf_list_del(sdump->dump_nodes);
@@ -2278,8 +2284,18 @@ static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_ty
 	
 	node_name = gf_node_get_name_and_id(r->FromNode, &id);
 	if (node_name) {
+		const char *to_name;
 		strcpy(fromNode, node_name);
-		strcpy(toNode, gf_node_get_name(r->ToNode));
+		to_name = gf_node_get_name(r->ToNode);
+		if (to_name) {
+			strcpy(toNode, to_name);
+		} else {
+			char str[100];
+			u32 id;
+			id = gf_node_get_id(r->ToNode);
+			sprintf(str, "node_%d", id);
+			strcpy(toNode, str);
+		}
 	} else {
 		sprintf(fromNode, "N%d", id-1);
 		sprintf(toNode, "N%d", gf_node_get_id(r->ToNode) - 1);

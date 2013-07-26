@@ -3431,6 +3431,20 @@ GF_Err wvtt_dump(GF_Box *a, FILE * trace);
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 GF_ISOSample *gf_isom_webvtt_to_sample(void *samp);
 
+typedef struct 
+{
+    GF_ISOM_BOX
+    char *string;
+} GF_StringBox;
+
+typedef struct
+{
+    GF_ISOM_SAMPLE_ENTRY_FIELDS
+    GF_StringBox *config;
+} GF_WebVTTSampleEntryBox;
+
+GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
+
 #endif /* GPAC_DISABLE_VTT */
 
 /* MPEG-21 functions */

@@ -198,6 +198,20 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			break;
 		}
 		else return GF_ISOM_INVALID_MEDIA;
+	case GF_ISOM_BOX_TYPE_WVTT:
+		{
+			GF_BitStream *bs;
+			esd =  gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = GF_STREAM_TEXT;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_VTT_MP4;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, entry->type);
+			boxstring_Write((GF_Box *)((GF_WebVTTSampleEntryBox*)entry)->config, bs);
+			gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_del(bs);
+		}
+		break;
 
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -385,6 +399,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	} 
 	else if (mdia->mediaTrack->moov->mov->convert_streaming_text 
 		&& ((mdia->handler->handlerType == GF_ISOM_MEDIA_TEXT) || (mdia->handler->handlerType == GF_ISOM_MEDIA_SUBT)) 
+		&& (entry->type == GF_ISOM_BOX_TYPE_TX3G || entry->type == GF_ISOM_BOX_TYPE_TEXT) 
 	) {
 		u64 dur;
 		if (sampleNumber == mdia->information->sampleTable->SampleSize->sampleCount) {
