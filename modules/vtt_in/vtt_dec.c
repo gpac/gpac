@@ -180,10 +180,19 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 	gf_node_list_add_child(&((GF_ParentNode *)root)->children, n);
 	path = gf_modules_get_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript");
 	if (!path) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot find Rendering Script - check config file\n"));
-		return;
+		/* try to find the JS renderer in the default GPAC installation folder */
+		const char *startuppath = gf_modules_get_option((GF_BaseInterface *)vttdec->module, "General", "StartupFile");
+		path = gf_url_concatenate(startuppath, "webvtt-renderer.js");
+		jsfile = gf_f64_open(path, "rt");
+		if (jsfile) {
+			gf_modules_set_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript", path);
+			fclose(jsfile);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot find Rendering Script - check config file\n"));
+			return;
+		}
 	}
-	jsfile = path ? gf_f64_open(path, "rt") : NULL;
+	jsfile = gf_f64_open(path, "rt");
 	if (jsfile) {
 		fclose(jsfile);
 		gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
