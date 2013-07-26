@@ -25,36 +25,10 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/webvtt.h>
 #include <gpac/constants.h>
 
 #ifndef GPAC_DISABLE_VTT
-
-/* WebVTT types */
-typedef enum {
-    WEBVTT_ID,
-    WEBVTT_SETTINGS,
-    WEBVTT_PAYLOAD,
-    WEBVTT_TIME
-} GF_WebVTTCuePropertyType;
-
-typedef struct _webvtt_timestamp {
-    u32 hour, min, sec, ms;
-} GF_WebVTTTimestamp;
-
-typedef struct _webvtt_cue
-{
-    GF_WebVTTTimestamp start;
-    GF_WebVTTTimestamp end;
-    char *id;
-    char *settings;
-    char *text;
-    char *time;
-
-    Bool split;
-    /* original times before split, if applicable */
-    GF_WebVTTTimestamp orig_start;
-    GF_WebVTTTimestamp orig_end;
-} GF_WebVTTCue;
 
 struct _webvtt_sample
 {
@@ -88,17 +62,9 @@ struct _webvtt_parser {
     void (*on_header_parsed)(void *, const char *);
     void (*on_sample_parsed)(void *, GF_WebVTTSample *);
     void (*on_cue_read)(void *, GF_WebVTTCue *);
-
 };
 
 #ifndef GPAC_DISABLE_ISOM
-
-
-typedef struct 
-{
-    GF_ISOM_BOX
-    char *string;
-} GF_StringBox;
 
 typedef struct
 {
@@ -108,12 +74,6 @@ typedef struct
     GF_StringBox *settings;
     GF_StringBox *payload;
 } GF_VTTCueBox;
-
-typedef struct
-{
-    GF_ISOM_SAMPLE_ENTRY_FIELDS
-    GF_StringBox *config;
-} GF_WebVTTSampleEntryBox;
 
 GF_Box *boxstring_New(u32 type) {
     ISOM_DECL_BOX_ALLOC(GF_StringBox, type);
@@ -645,9 +605,9 @@ static GF_WebVTTCue *gf_webvtt_cue_split_at(GF_WebVTTCue *cue, GF_WebVTTTimestam
     dup_cue->end            = cue->end;
     dup_cue->orig_start     = cue->orig_start;
     dup_cue->orig_end       = cue->orig_end;
-    dup_cue->id             = gf_strdup(cue->id);
-    dup_cue->settings       = gf_strdup(cue->settings);
-    dup_cue->text           = gf_strdup(cue->text);
+    dup_cue->id             = gf_strdup((cue->id ? cue->id : ""));
+    dup_cue->settings       = gf_strdup((cue->settings ? cue->settings : ""));
+    dup_cue->text           = gf_strdup((cue->text ? cue->text : ""));
 
     cue->end = *time;
     return dup_cue;
@@ -655,7 +615,7 @@ static GF_WebVTTCue *gf_webvtt_cue_split_at(GF_WebVTTCue *cue, GF_WebVTTTimestam
 
 static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCuePropertyType type, char *text_data, u32 text_len)
 {
-    char **prop;
+    char **prop = NULL;
     u32 len;
     if (!cue) return GF_BAD_PARAM;
     if (!text_len) return GF_OK;
@@ -692,7 +652,7 @@ static GF_WebVTTCue *gf_webvtt_cue_new()
     return cue;
 }
 
-static void gf_webvtt_cue_del(GF_WebVTTCue * cue)
+void gf_webvtt_cue_del(GF_WebVTTCue * cue)
 {
     if (cue) {
         if (cue->id)        gf_free(cue->id);
@@ -1340,12 +1300,18 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 
 GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start)
 {
+	return gf_webvtt_parse_cues_from_data(iso_sample->data, iso_sample->dataLength, start);
+}
+
+GF_EXPORT
+GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start)
+{
     GF_List         *cues;
     GF_WebVTTCue    *cue;
     GF_VTTCueBox    *cuebox;
     GF_BitStream    *bs;
     cues = gf_list_new();
-    bs = gf_bs_new(iso_sample->data, iso_sample->dataLength, GF_BITSTREAM_READ);
+    bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
     while(gf_bs_available(bs))
     {
         GF_Err  e;

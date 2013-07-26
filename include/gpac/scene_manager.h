@@ -375,6 +375,7 @@ typedef struct _scenedump GF_SceneDumper;
 returns NULL if can't create a file
 */
 GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char indent_char, Bool XMLDump);
+void gf_sm_dumper_set_extra_graph(GF_SceneDumper *sdump, GF_SceneGraph *extra);
 void gf_sm_dumper_del(GF_SceneDumper *bd);
 
 /*gets a pointer to the filename (rad+ext) of the dumped file

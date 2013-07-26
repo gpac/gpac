@@ -194,6 +194,7 @@ proceed_box:
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs)
 {
 	return gf_isom_parse_box_ex(outBox, bs, 0);

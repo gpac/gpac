@@ -328,6 +328,7 @@
     <ClCompile Include="..\..\src\scenegraph\vrml_script.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_smjs.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_tools.c" />
+    <ClCompile Include="..\..\src\scenegraph\webvtt_smjs.c" />
     <ClCompile Include="..\..\src\scenegraph\x3d_nodes.c" />
     <ClCompile Include="..\..\src\scenegraph\xbl_process.c" />
     <ClCompile Include="..\..\src\scenegraph\xml_ns.c" />

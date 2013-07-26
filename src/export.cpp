@@ -618,6 +618,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timed_meta_data_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_parse_box) )
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
@@ -1862,7 +1863,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_representation_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_check_bandwidth) )
+#endif
 
+#ifndef GPAC_DISABLE_VTT
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_addCue) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_removeCues) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )

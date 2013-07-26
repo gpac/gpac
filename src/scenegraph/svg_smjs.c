@@ -97,6 +97,8 @@ typedef struct
 	GF_JSClass pointClass;
 	GF_JSClass pathClass;
 	GF_JSClass matrixClass;
+
+	GF_JSClass consoleClass;
 } GF_SVGuDOM;
 static GF_SVGuDOM *svg_rt = NULL;
 
@@ -187,7 +189,7 @@ static JSBool SMJS_FUNCTION(svg_echo)
 	GF_SceneGraph *sg;
 	SMJS_OBJ
 	SMJS_ARGS
-	if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
+	if ((argc!=1) || (!GF_JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) && !GF_JS_InstanceOf(c, obj, &svg_rt->consoleClass, NULL))) return JS_TRUE;
 	sg = (GF_SceneGraph *)SMJS_GET_PRIVATE(c, obj);
 	if (!sg) return JS_TRUE;
 
@@ -2181,6 +2183,20 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 
 	svg_define_udom_exception(scene->svg_js->js_ctx, scene->svg_js->global);
 
+	/*Console class*/
+	{
+
+		JSPropertySpec consoleProps[] = {
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
+		};
+		JSFunctionSpec consoleFuncs[] = {
+			/*trait access interface*/
+			SMJS_FUNCTION_SPEC("log", svg_echo, 1),
+			SMJS_FUNCTION_SPEC(0, 0, 0)
+		};
+		GF_JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->consoleClass, 0, 0, consoleProps, 0, 0, consoleFuncs);
+	}
+
 	/*SVGDocument class*/
 	{
 
@@ -2454,6 +2470,7 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 		JS_SETUP_CLASS(svg_rt->pointClass, "SVGPoint", JSCLASS_HAS_PRIVATE, point_getProperty, point_setProperty, baseCI_finalize);
 		JS_SETUP_CLASS(svg_rt->matrixClass, "SVGMatrix", JSCLASS_HAS_PRIVATE, matrix_getProperty, matrix_setProperty, baseCI_finalize);
 		JS_SETUP_CLASS(svg_rt->pathClass, "SVGPath", JSCLASS_HAS_PRIVATE, path_getProperty, JS_PropertyStub_forSetter, pathCI_finalize);
+		JS_SETUP_CLASS(svg_rt->consoleClass, "console", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_PropertyStub);
 	}
 	svg_rt->nb_inst++;
 

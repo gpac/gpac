@@ -385,6 +385,8 @@ enum
 	GPAC_OTI_PRIVATE_SCENE_EPG = 0xC4,
 	/*!OTI for WGT dummy streams (dsi = null) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_WGT = 0xC5,
+	/*!OTI for VTT dummy stream (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_VTT = 0xC6,
 
 	/*!OTI for streaming SVG - GPAC internal*/
 	GPAC_OTI_SCENE_SVG = 0xD0,
@@ -392,6 +394,10 @@ enum
 	GPAC_OTI_SCENE_SVG_GZ = 0xD1,
 	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
 	GPAC_OTI_SCENE_DIMS = 0xD2,
+	/*!OTI for streaming VTT - GPAC internal*/
+	GPAC_OTI_SCENE_VTT = 0xD3,
+	/*!OTI for streaming VTT from MP4- GPAC internal*/
+	GPAC_OTI_SCENE_VTT_MP4 = 0xD4,
 
 /*!
  * \brief OGG ObjectTypeIndication

@@ -367,7 +367,9 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 	GF_SceneGraph *sg;
 	GF_ObjectManager *odm;
 	GF_SceneDumper *dumper;
+	GF_List *extra_graphs;
 	u32 mode;
+	u32 i;
 	char szExt[20], *ext;
 	GF_Err e;
 
@@ -384,9 +386,11 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 	if (odm->subscene) {
 		if (!odm->subscene->graph) return GF_IO_ERR;
 		sg = odm->subscene->graph;
+		extra_graphs = odm->subscene->extra_scenes;
 	} else {
 		if (!odm->parentscene->graph) return GF_IO_ERR;
 		sg = odm->parentscene->graph;
+		extra_graphs = odm->parentscene->extra_scenes;
 	}
 
 	mode = xml_dump ? GF_SM_DUMP_AUTO_XML : GF_SM_DUMP_AUTO_TXT;
@@ -404,6 +408,12 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 
 	if (!dumper) return GF_IO_ERR;
 	e = gf_sm_dump_graph(dumper, skip_protos, 0);
+	for (i = 0; i < gf_list_count(extra_graphs); i++) {
+		GF_SceneGraph *extra = (GF_SceneGraph *)gf_list_get(extra_graphs, i);
+		gf_sm_dumper_set_extra_graph(dumper, extra);
+		e = gf_sm_dump_graph(dumper, skip_protos, 0);
+	}
+
 	if (filename) *filename = gf_strdup(gf_sm_dump_get_name(dumper));
 	gf_sm_dumper_del(dumper);
 	return e;

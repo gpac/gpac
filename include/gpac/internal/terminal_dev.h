@@ -893,7 +893,7 @@ struct _od_manager
 	GF_Scene *parentscene;
 	/*channels associated with this object (media channels, OCR, IPMP, OCI, etc)*/
 	GF_List *channels;
-	/*sub scene for inline/animation or NULL */
+	/*sub scene for inline or NULL */
 	GF_Scene *subscene;
 	/*object codec (media or BIFS for AnimationStream) attached if any*/
 	struct _generic_codec *codec;
