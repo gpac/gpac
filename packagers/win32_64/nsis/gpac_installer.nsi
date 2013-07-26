@@ -283,6 +283,7 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File /r /x .svn ${GPAC_ROOT}\gui\icons\*
   SetOutPath $INSTDIR\gui\extensions
   File /r /x .svn ${GPAC_ROOT}\gui\extensions\*
+  File "${GPAC_ROOT}\gui\webvtt-renderer.js"
 
   SetOutPath $INSTDIR
   
@@ -386,6 +387,11 @@ SectionEnd
 Section "SVG" SecSVG
   SectionIn 1
   File "${GPAC_BIN}\gm_svg_in.dll"
+SectionEnd
+
+Section "WebVTT" SecWebVTT
+  SectionIn 1
+  File "${GPAC_BIN}\gm_vtt_in.dll"
 SectionEnd
 
 Section "GDI+" SecGDIP
