@@ -351,6 +351,13 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 
 	case TAG_ProtoNode: compositor_init_hardcoded_proto(compositor, node); break;
 
+	case TAG_MPEG4_SBVCAnimation:			
+		compositor_init_afx_node(compositor, node, & ((M_SBVCAnimation *)node)->url); 
+		break;
+	case TAG_MPEG4_BitWrapper:			
+		compositor_init_afx_node(compositor, node, & ((M_BitWrapper *)node)->url); 
+		break;
+
 #endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_SVG
@@ -398,14 +405,6 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 
 	case TAG_LSR_updates:			compositor_init_svg_updates(compositor, node); break;
 #endif
-
-
-	case TAG_MPEG4_SBVCAnimation:			
-		compositor_init_afx_node(compositor, node, & ((M_SBVCAnimation *)node)->url); 
-		break;
-	case TAG_MPEG4_BitWrapper:			
-		compositor_init_afx_node(compositor, node, & ((M_BitWrapper *)node)->url); 
-		break;
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] node %s will not be rendered\n", gf_node_get_class_name(node)));
