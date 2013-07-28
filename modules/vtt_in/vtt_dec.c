@@ -220,15 +220,21 @@ static GF_Err VTT_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_sc
 	return GF_OK;
 }
 
+static void VTT_CleanExtraScene(VTTDec *vttdec)
+{
+	/* Cleaning scene graph related data */
+	if (vttdec->sg) {
+		gf_scene_register_extra_graph(vttdec->scene, vttdec->sg, GF_TRUE);
+		gf_sg_del(vttdec->sg);
+		vttdec->sg = NULL;
+	}
+}
+
 static GF_Err VTT_ReleaseScene(GF_SceneDecoder *plug)
 {
 	VTTDec *vttdec = (VTTDec *)plug->privateStack;
 
-		/* Cleaning scene graph related data */
-	gf_scene_register_extra_graph(vttdec->scene, vttdec->sg, GF_TRUE);
-	gf_sg_del(vttdec->sg);
-	vttdec->sg = NULL;
-
+	VTT_CleanExtraScene(vttdec);
 	vttdec->scene = NULL;
 	vttdec->terminal = NULL;
 
@@ -300,6 +306,7 @@ static GF_Err VTT_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	VTTDec *vttdec = (VTTDec *)plug->privateStack;
 	if (vttdec->file_name) gf_free(vttdec->file_name);
+	VTT_CleanExtraScene(vttdec);
 	vttdec->file_name = NULL;
 	vttdec->is_stream_attached = GF_FALSE;
 
