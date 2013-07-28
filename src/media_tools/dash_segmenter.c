@@ -1181,7 +1181,7 @@ restart_fragmentation_pass:
 									stop_frag = GF_TRUE;
 								}
 
-								if (tf->all_sample_raps) {
+								if (! tf->all_sample_raps) {
 									/*if adding this SAP will result in stoping the fragment "soon" after it, stop now and start with SAP
 									if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
 									otherwise, take 3 samples (should be refined of course)*/
@@ -3883,7 +3883,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		if (!strcmp(dash_inputs[j].szMime, "video/mp2t")) has_mpeg2 = 1;
 
 		nb_diff = nb_dash_inputs - nb_diff;
-		if (!nb_diff) nb_diff = 1;		
 		j += 1+nb_diff;
  	}
 	memset(&dash_opts, 0, sizeof(GF_DASHSegmenterOptions));
