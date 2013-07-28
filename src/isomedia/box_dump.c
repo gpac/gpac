@@ -2505,8 +2505,10 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 				fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
 
 			if (p->flags & GF_ISOM_TRUN_FLAGS) {
-				fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\"",
-					GF_ISOM_GET_FRAG_PAD(ent->flags), GF_ISOM_GET_FRAG_SYNC(ent->flags), GF_ISOM_GET_FRAG_DEG(ent->flags));
+				fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" \
+					IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
+					GF_ISOM_GET_FRAG_PAD(ent->flags), GF_ISOM_GET_FRAG_SYNC(ent->flags), GF_ISOM_GET_FRAG_DEG(ent->flags), 
+					GF_ISOM_GET_FRAG_LEAD(ent->flags), GF_ISOM_GET_FRAG_DEPENDS(ent->flags), GF_ISOM_GET_FRAG_DEPENDED(ent->flags), GF_ISOM_GET_FRAG_REDUNDANT(ent->flags));
 			}
 			fprintf(trace, "/>\n");
 		}
