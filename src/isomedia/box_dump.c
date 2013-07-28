@@ -2439,6 +2439,14 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+static void frag_dump_sample_flags(FILE * trace, u32 flags)
+{
+	fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
+		GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags), GF_ISOM_GET_FRAG_DEG(flags), 
+		GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+}
+
+
 GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackFragmentHeaderBox *p;
@@ -2458,10 +2466,9 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " SampleDuration=\"%d\"", p->def_sample_duration);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_SIZE)
 		fprintf(trace, " SampleSize=\"%d\"", p->def_sample_size);
+
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) {
-		fprintf(trace, " SamplePadding=\"%d\"", GF_ISOM_GET_FRAG_PAD(p->def_sample_flags));
-		fprintf(trace, " SampleSync=\"%d\"", GF_ISOM_GET_FRAG_SYNC(p->def_sample_flags));
-		fprintf(trace, " SampleDegradationPriority=\"%d\"", GF_ISOM_GET_FRAG_DEG(p->def_sample_flags));
+		frag_dump_sample_flags(trace, p->def_sample_flags);
 	}
 
 	fprintf(trace, ">\n");
@@ -2505,10 +2512,7 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 				fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
 
 			if (p->flags & GF_ISOM_TRUN_FLAGS) {
-				fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" \
-					IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
-					GF_ISOM_GET_FRAG_PAD(ent->flags), GF_ISOM_GET_FRAG_SYNC(ent->flags), GF_ISOM_GET_FRAG_DEG(ent->flags), 
-					GF_ISOM_GET_FRAG_LEAD(ent->flags), GF_ISOM_GET_FRAG_DEPENDS(ent->flags), GF_ISOM_GET_FRAG_DEPENDED(ent->flags), GF_ISOM_GET_FRAG_REDUNDANT(ent->flags));
+				frag_dump_sample_flags(trace, ent->flags);
 			}
 			fprintf(trace, "/>\n");
 		}
