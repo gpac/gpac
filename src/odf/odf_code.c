@@ -2373,12 +2373,14 @@ GF_Err gf_odf_del_ipmp(GF_IPMP_Descriptor *ipmp)
 {
 	if (!ipmp) return GF_BAD_PARAM;
 	if (ipmp->opaque_data) gf_free(ipmp->opaque_data);
+#ifndef GPAC_MINIMAL_ODF
 	/*TODO DELETE IPMPX*/
 	while (gf_list_count(ipmp->ipmpx_data)) {
 		GF_IPMPX_Data *p = (GF_IPMPX_Data *)gf_list_get(ipmp->ipmpx_data, 0);
 		gf_list_rem(ipmp->ipmpx_data, 0);
 		gf_ipmpx_data_del(p);
 	}
+#endif
 	gf_list_del(ipmp->ipmpx_data);
 	gf_free(ipmp);
 	return GF_OK;

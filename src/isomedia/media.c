@@ -198,6 +198,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			break;
 		}
 		else return GF_ISOM_INVALID_MEDIA;
+#ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_WVTT:
 		{
 			GF_BitStream *bs;
@@ -212,6 +213,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			gf_bs_del(bs);
 		}
 		break;
+#endif
 
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
