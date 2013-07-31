@@ -118,6 +118,20 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_del) )
 #endif
 
+
+/* Sound */
+#ifndef GPAC_DISABLE_PLAYER
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_get_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_reconfig) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_empty) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_lock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_add_input) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_get_output) )
+#endif
+
+
 /* List */
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_del) )
@@ -150,8 +164,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_rem) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_has_key) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_set) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_has_next) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_map_iter_reset) )
 #endif

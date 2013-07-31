@@ -31,47 +31,16 @@ struct _tag_map
 	GF_List** pairs;
 };
 
-struct _it_map
-{
-	/* The current map*/
-	GF_Map* map;
-
-	/* The current pair */
-	GF_Pair* pair;
-
-	/* The current list */
-	u32 ilist;
-
-	/* The current index in the hasmap*/
-	u32 hash;
-};
-
 GF_EXPORT
-GF_Err gf_map_iter_new(GF_Map* map, GF_It_Map** it){
-	GF_It_Map* new_it;
-
+GF_Err gf_map_iter_set(GF_Map* map, GF_It_Map* it){
 	/* Iterator must be associated to a map */
-	if (!it) return GF_BAD_PARAM;
-	*it = NULL;
-	if(!map) return GF_BAD_PARAM;
-
-	/* Allocate space for a new iterator */
-	GF_SAFEALLOC(new_it, GF_It_Map);
-	if (!new_it) return GF_OUT_OF_MEM;
+	if (!map || !it) return GF_BAD_PARAM;
 
 	/* Associate iterator to the beginning of the map */
-	new_it->map = map;
-	new_it->ilist = 0;
-	new_it->hash = 0;
-	*it = new_it;
-
+	it->map = map;
+	it->ilist = 0;
+	it->hash = 0;
 	return GF_OK;
-}
-
-GF_EXPORT
-void gf_map_iter_del(GF_It_Map* it){
-	if (!it) return;
-	gf_free(it);
 }
 
 GF_EXPORT
@@ -98,10 +67,8 @@ void* gf_map_iter_has_next(GF_It_Map* it){
 GF_EXPORT
 GF_Err gf_map_iter_reset(GF_It_Map* it){
 	if (!it) return GF_BAD_PARAM;
-
 	it->hash = 0;
 	it->ilist = 0;
-
 	return GF_OK;
 }
 

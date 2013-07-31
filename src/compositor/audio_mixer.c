@@ -78,6 +78,7 @@ struct __audiomix
 	u32 output_size;
 };
 
+GF_EXPORT
 GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 {
 	GF_AudioMixer *am;
@@ -150,6 +151,7 @@ u32 gf_mixer_get_block_align(GF_AudioMixer *am)
 	return am->nb_channels*am->bits_per_sample/8;
 }
 
+GF_EXPORT
 void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt)
 {
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioMixer] Thread ID %d is %s the audio mixer\n", gf_th_id(), lockIt ? "locking" : "unlocking" ));
@@ -160,11 +162,13 @@ void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt)
 	}
 }
 
+GF_EXPORT
 Bool gf_mixer_empty(GF_AudioMixer *am)
 {
 	return am->isEmpty;
 }
 
+GF_EXPORT
 void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {
 	MixerInput *in;
@@ -207,6 +211,7 @@ static GF_Err get_best_samplerate(GF_AudioMixer *am, u32 *out_sr, u32 *out_ch, u
 	return am->ar->audio_out->QueryOutputSampleRate(am->ar->audio_out, out_sr, out_ch, out_bps);
 }
 
+GF_EXPORT
 void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outBPS, u32 *outChCfg)
 {
 	(*outBPS) = am->bits_per_sample;
@@ -215,6 +220,7 @@ void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outBPS,
 	(*outChCfg) = am->channel_cfg;
 }
 
+GF_EXPORT
 void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u32 outChCfg)
 {
 	if ((am->bits_per_sample == outBPS) && (am->nb_channels == outCH) 
@@ -234,6 +240,7 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u3
 	gf_mixer_lock(am, 0);
 }
 
+GF_EXPORT
 Bool gf_mixer_reconfig(GF_AudioMixer *am)
 {
 	u32 i, count, numInit, max_sample_rate, max_channels, max_bps, cfg_changed, ch_cfg;
@@ -546,7 +553,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	in->in_bytes_used += 1;
 }
 
-
+GF_EXPORT
 u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 delay)
 {
 	MixerInput *in, *single_source;

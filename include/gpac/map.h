@@ -56,14 +56,6 @@ extern "C" {
 typedef struct _tag_map GF_Map;
 
 
-/**
- * \struct GF_Iterator
- * \brief Map iterator Object.
- *
- * Allows to go through each pair key/value in the map.
- */
-typedef struct _it_map GF_It_Map;
-
 /* Pair structure */
 
 /**
@@ -77,6 +69,27 @@ typedef struct {
 	void *value;
 } GF_Pair;
 
+
+/**
+ * \struct GF_Iterator
+ * \brief Map iterator Object.
+ *
+ * Allows to go through each pair key/value in the map.
+ */
+typedef struct _it_map{
+	/* The current map*/
+	GF_Map* map;
+
+	/* The current pair */
+	GF_Pair* pair;
+
+	/* The current list */
+	u32 ilist;
+
+	/* The current index in the hasmap*/
+	u32 hash;
+	
+}GF_It_Map;
 
 /*!
  *	\brief map constructor
@@ -100,23 +113,15 @@ GF_Map *gf_map_new(u32 hash_capacity);
 void gf_map_del(GF_Map *ptr);
 
 /*!
- *	\brief map iterator constructor
+ *	\brief Set a new map iterator
  *
- *	Constructs a new map iterator object
+ *	Associate a map iterator to a map
  *
  *	\param map the map associated to the iterator
  *	\param it the resulting iterator
- *	\return GF_OK if iterator has been properly generated, otherwiise a GF_Err
+ *	\return GF_OK if iterator has been set properly, otherwise a GF_Err
  */
-GF_Err gf_map_iter_new(GF_Map* map, GF_It_Map** it);
-
-/*!
- *	\brief map iterator destructor
- *
- *	Destructs a map iterator object
- *	\param ptr map iterator object to destruct
- */
-void gf_map_iter_del(GF_It_Map *ptr);
+GF_Err gf_map_iter_set(GF_Map* map, GF_It_Map* it);
 
 /*!
  *	\brief return the next value in the map
