@@ -3275,6 +3275,7 @@ restart_period:
 			} else {
 				group->max_bitrate = 0;
 				group->min_bitrate = (u32)-1;
+
 				/*use persistent connection for segment downloads*/
 				if (use_byterange) {
 					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
@@ -3298,9 +3299,9 @@ restart_period:
 					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
 						group->time_at_first_failure = clock_time;
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
-						min_wait = 10;
-					} else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure < group->current_downloaded_segment_duration)) {
-						min_wait = 10;
+						min_wait = 100;
+					} else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure < 2*group->current_downloaded_segment_duration)) {
+						min_wait = 100;
 					} else {
 						if (group->prev_segment_ok) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
@@ -3310,8 +3311,9 @@ restart_period:
 						group->nb_consecutive_fail ++;
 						//we are lost ....
 						if (group->nb_consecutive_fail == 20) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync has been lost. End of stream ?\n"));
-							group->maybe_end_of_stream = 1;
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering slow refresh mode\n"));
+							min_wait = 1000;
+//							group->maybe_end_of_stream = 1;
 							continue;
 						}
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
@@ -4422,6 +4424,64 @@ GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 r
 	if (bandwidth) *bandwidth = rep->bandwidth;
 	if (audio_samplerate) *audio_samplerate = rep->samplerate ? rep->samplerate : group->adaptation_set->samplerate;
 
+	return GF_OK;
+}
+
+GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, u32 group_idx, const char *latest_segment_name, const char *earliest_segment_name)
+{
+	GF_Err e;
+	u32 i, new_idx, first_idx;
+	u64 start_range, end_range, current_dur;
+	char *seg_url, *seg_name;
+	GF_MPD_Representation *rep;
+	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
+	if (!group || !latest_segment_name) return GF_BAD_PARAM;
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	if (!rep) return GF_BAD_PARAM;
+
+	new_idx = first_idx = 0;
+	if (!earliest_segment_name) 
+		first_idx = -1;
+
+	for (i=0; ; i++) {
+		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA, i, &seg_url, &start_range, &end_range, &current_dur, NULL);
+
+		if (!seg_url) return GF_BAD_PARAM;
+		seg_name = strstr(seg_url, "://");
+		if (seg_name) 
+			seg_name = strchr(seg_name+4, '/');
+		
+		if (!seg_name) {
+			gf_free(seg_url);
+			return GF_BAD_PARAM;
+		}
+		
+		if (!strcmp(seg_name, latest_segment_name)) {
+			new_idx = i;
+		}
+		if (earliest_segment_name && !strcmp(seg_name, earliest_segment_name)) {
+			new_idx = i;
+		}
+		gf_free(seg_url);
+
+		if (new_idx && first_idx) 
+			break;
+
+		if (i>10000)
+			break;
+	}
+
+	if (new_idx) {
+		if (group->download_segment_index > new_idx) {
+			if (group->download_segment_index == new_idx+1) {
+			} else {
+				group->download_segment_index = new_idx;
+				group->nb_consecutive_fail = 0;
+			}
+		} else {
+			group->download_segment_index = new_idx;
+		}
+	}
 	return GF_OK;
 }
 
