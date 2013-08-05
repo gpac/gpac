@@ -393,9 +393,9 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 		res = setsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &NewSize, sizeof(u32) );
 	}
 	if (res<0) {
-		GF_LOG(GF_LOG_NETWORK, GF_LOG_ERROR, ("[Core] Couldn't set socket %s buffer size: %d\n", SendBuffer ? "send" : "receive", res));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Core] Couldn't set socket %s buffer size: %d\n", SendBuffer ? "send" : "receive", res));
 	} else {
-		GF_LOG(GF_LOG_NETWORK, GF_LOG_DEBUG, ("[Core] Set socket %s buffer size\n", SendBuffer ? "send" : "receive"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Core] Set socket %s buffer size\n", SendBuffer ? "send" : "receive"));
 	}
 	return GF_OK;
 }
@@ -593,7 +593,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
 			u32 res = LASTSOCKERROR;
-			GF_LOG(GF_LOG_NETWORK, GF_LOG_ERROR, ("[Core] Couldn't connect socket - last sock error %d\n", res));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Core] Couldn't connect socket - last sock error %d\n", res));
 			switch (res) {
 			case EAGAIN: return GF_IP_SOCK_WOULD_BLOCK;
 #ifdef WIN32
