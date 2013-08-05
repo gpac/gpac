@@ -30,6 +30,7 @@
 #include <gpac/dash.h>
 #include <gpac/internal/terminal_dev.h>
 
+GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, u32 group_idx, const char *latest_segment_name, const char *earliest_segment_name);
 
 typedef struct __mpd_module 
 {
@@ -348,6 +349,13 @@ GF_Err MPD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_MPDGroup *group = (GF_MPDGroup *)cbk;
+
+	if (param->msg_type == GF_NETIO_PARSE_HEADER) {
+		if (!strcmp(param->name, "Dash-Newest-Segment")) {
+			gf_dash_resync_to_segment(group->mpdin->dash, group->idx, param->value, NULL);
+		}
+	}
+
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
 		group->has_new_data = 1;
 	
@@ -755,7 +763,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	/*we should get it from MPD minBufferTime*/
 	case GF_NET_CHAN_BUFFER:
-        return segment_ifce->ServiceCommand(segment_ifce, com);
+		com->buffer.min = 200;
+		com->buffer.max = 200;
+//        return segment_ifce->ServiceCommand(segment_ifce, com);
         break;
 
 	case GF_NET_CHAN_DURATION:

@@ -563,6 +563,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     assert( entry );
     sess->cache_entry = entry;
 	sess->reused_cache_entry = 	gf_cache_is_in_progress(entry);
+	assert(!sess->reused_cache_entry);
     gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
@@ -904,18 +905,18 @@ GF_EXPORT
 GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 {
 	Bool socket_changed = 0;
-    GF_Err e;
     GF_URL_Info info;
 
 	if (!url) return GF_BAD_PARAM;
 
     gf_dm_url_info_init(&info);
-    
-	if (!sess->sock) socket_changed = 1;
-	else if (sess->status>GF_NETIO_DISCONNECTED) socket_changed = 1;
 
-    e = gf_dm_get_url_info(url, &info, sess->remote_path);
-	if (e) return e;
+	if (!sess->sock) socket_changed = 1;
+	else if (sess->status>GF_NETIO_DISCONNECTED) 
+		socket_changed = 1;
+
+	sess->last_error = gf_dm_get_url_info(url, &info, sess->remote_path);
+	if (sess->last_error) return sess->last_error;
 
 	if (sess->port != info.port) {
 		socket_changed = 1;
@@ -977,7 +978,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 		sess->sock = NULL;
 		sess->status = GF_NETIO_SETUP;
 	}
-    return e;
+    return sess->last_error;
 }
 
 
@@ -2285,6 +2286,41 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 
 
 
+/* FIXME UGLY CODE DUPLICATION to fix later on: we only send the headers to the user if no problem in response (eg no relocation, ...)*/
+static void notify_headers(GF_DownloadSession *sess, char * sHTTP, s32 bytesRead, s32 BodyStart)
+{
+    char buf[1025];
+    GF_NETIO_Parameter par;
+    s32 LinePos=0;
+
+	while (1) {
+        char *sep, *hdr_sep, *hdr, *hdr_val;
+        if ( (s32) LinePos + 4 > BodyStart) break;
+        LinePos = gf_token_get_line(sHTTP, LinePos , bytesRead, buf, 1024);
+        if (LinePos < 0) break;
+
+        hdr_sep = NULL;
+        hdr_val = NULL;
+        hdr = buf;
+        sep = strchr(buf, ':');
+        if (sep) {
+            sep[0]=0;
+            hdr_val = sep+1;
+            while (hdr_val[0]==' ') hdr_val++;
+            hdr_sep = strrchr(hdr_val, '\r');
+            if (hdr_sep) hdr_sep[0] = 0;
+        }
+
+        par.error = 0;
+        par.msg_type = GF_NETIO_PARSE_HEADER;
+        par.name = hdr;
+        par.value = hdr_val;
+        gf_dm_sess_user_io(sess, &par);
+        if (sep) sep[0]=':';
+        if (hdr_sep) hdr_sep[0] = '\r';
+    }
+}
+
 /*!
  * Waits for the response HEADERS, parse the information... and so on
  * \param sess The session
@@ -2297,6 +2333,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     u32 res;
     s32 LinePos, Pos;
     u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
+	Bool connection_closed = 0;
     char buf[1025];
     char comp[400];
     GF_Err e;
@@ -2474,8 +2511,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             if (sess->dm && sess->dm->cfg)
                 gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdr_val);
         }
-        /*			else if (!stricmp(hdr, "Connection") )
-        				if (strstr(hdr_val, "close")) sess->http_read_type = 1; */
+        else if (!stricmp(hdr, "Connection") ) {
+			if (strstr(hdr_val, "close")) 
+				connection_closed = 1; 
+		}
 
         if (sep) sep[0]=':';
         if (hdr_sep) hdr_sep[0] = '\r';
@@ -2627,13 +2666,17 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sHTTP[bytesRead] = 0;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Failure: %s\n", sHTTP + BodyStart));
 		}
+		notify_headers(sess, sHTTP, bytesRead, BodyStart);
+
 		e = GF_URL_ERROR;
         goto exit;
         break;
     case 416:
         /* Range not accepted */
         gf_dm_sess_user_io(sess, &par);
-        e = GF_SERVICE_ERROR;
+
+		notify_headers(sess, sHTTP, bytesRead, BodyStart);
+		e = GF_SERVICE_ERROR;
         goto exit;
         break;
     case 400:
@@ -2657,6 +2700,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         }
 
         gf_dm_sess_user_io(sess, &par);
+		notify_headers(sess, sHTTP, bytesRead, BodyStart);
         e = GF_REMOTE_SERVICE_ERROR;
         goto exit;
 
@@ -2670,39 +2714,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         }
     default:
         gf_dm_sess_user_io(sess, &par);
+		notify_headers(sess, sHTTP, bytesRead, BodyStart);
         e = GF_REMOTE_SERVICE_ERROR;
         goto exit;
     }
 
-
-    /* FIXME UGLY CODE DUPLICATION to fix later on: we only send the headers to the user if no problem in response (eg no relocation, ...)*/
-    while (1) {
-        char *sep, *hdr_sep, *hdr, *hdr_val;
-        if ( (s32) LinePos + 4 > BodyStart) break;
-        LinePos = gf_token_get_line(sHTTP, LinePos , bytesRead, buf, 1024);
-        if (LinePos < 0) break;
-
-        hdr_sep = NULL;
-        hdr_val = NULL;
-        hdr = buf;
-        sep = strchr(buf, ':');
-        if (sep) {
-            sep[0]=0;
-            hdr_val = sep+1;
-            while (hdr_val[0]==' ') hdr_val++;
-            hdr_sep = strrchr(hdr_val, '\r');
-            if (hdr_sep) hdr_sep[0] = 0;
-        }
-
-        par.error = 0;
-        par.msg_type = GF_NETIO_PARSE_HEADER;
-        par.name = hdr;
-        par.value = hdr_val;
-        gf_dm_sess_user_io(sess, &par);
-        if (sep) sep[0]=':';
-        if (hdr_sep) hdr_sep[0] = '\r';
-    }
-
+	notify_headers(sess, sHTTP, bytesRead, BodyStart);
 
     if (sess->http_read_type != GET)
         sess->use_cache_file = 0;
@@ -2779,7 +2796,7 @@ exit:
 		gf_dm_remove_cache_entry_from_session(sess);
 		sess->cache_entry = NULL;
 		gf_dm_disconnect(sess, 0);
-        sess->status = GF_NETIO_STATE_ERROR;
+        sess->status = connection_closed ? GF_NETIO_STATE_ERROR : GF_NETIO_DISCONNECTED;
         sess->last_error = e;
         gf_dm_sess_notify_state(sess, sess->status, e);
         return e;

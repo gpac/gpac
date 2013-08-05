@@ -1876,6 +1876,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_representation_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_check_bandwidth) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_resync_to_segment) )
 #endif
 
 #ifndef GPAC_DISABLE_VTT
@@ -1885,31 +1886,6 @@
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
