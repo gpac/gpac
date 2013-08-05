@@ -458,7 +458,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	if (dash_evt==GF_DASH_EVENT_PERIOD_SETUP_ERROR) {
 		if (!mpdin->connection_ack_sent) {
 	        gf_term_on_connect(mpdin->service, NULL, error_code);
-			mpdin->connection_ack_sent=1;
+			mpdin->connection_ack_sent= GF_TRUE;
 		}
 		return GF_OK;
 	}
