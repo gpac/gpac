@@ -1278,8 +1278,10 @@ void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count);
 
 /*return the duration of the movie+fragments if known, 0 if error*/
 u64 gf_isom_get_fragmented_duration(GF_ISOFile *movie);
-/*returns the number */
+/*returns the number of sidx boxes*/
 u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only);
+/*gets total sample number and duration*/
+GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 

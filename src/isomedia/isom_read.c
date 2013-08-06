@@ -3059,6 +3059,43 @@ u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only)
 	return nb_frags;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration)
+{
+	u32 i=0;
+	u32 k, l;
+	u64 def_duration, samp_dur;
+	GF_MovieFragmentBox *moof;
+	GF_TrackFragmentBox *traf;
+	
+	*nb_samples = 0;
+	*duration = 0;
+	while ((moof=gf_list_enum(movie->TopBoxes, &i))) {
+		if (moof->type==GF_ISOM_BOX_TYPE_MOOF) {
+			u32 j=0;
+			while ((traf=gf_list_enum( moof->TrackList, &j))) {
+				if (traf->tfhd->trackID != trackID)
+					continue;
+
+				def_duration = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DUR) ? traf->tfhd->def_sample_duration : traf->trex->def_sample_duration;
+
+				for (k=0; k<gf_list_count(traf->TrackRuns); k++) {
+					GF_TrackFragmentRunBox *trun = gf_list_get(traf->TrackRuns, k);
+					*nb_samples += gf_list_count(trun->entries);
+
+					for (l=0; l<gf_list_count(trun->entries); l++) {
+						GF_TrunEntry *ent = gf_list_get(trun->entries, l);
+
+						samp_dur = def_duration;
+						if (trun->flags & GF_ISOM_TRUN_DURATION) samp_dur = ent->Duration;
+						*duration += samp_dur;
+					}
+				}
+			}
+		}
+	}
+	return GF_OK;
+}
 #endif
 
 GF_EXPORT
