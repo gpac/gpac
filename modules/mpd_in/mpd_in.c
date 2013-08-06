@@ -30,8 +30,6 @@
 #include <gpac/dash.h>
 #include <gpac/internal/terminal_dev.h>
 
-GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, u32 group_idx, const char *latest_segment_name, const char *earliest_segment_name);
-
 typedef struct __mpd_module 
 {
     /* GPAC Service object (i.e. how this module is seen by the terminal)*/
@@ -352,7 +350,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 
 	if (param->msg_type == GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "Dash-Newest-Segment")) {
-			gf_dash_resync_to_segment(group->mpdin->dash, group->idx, param->value, NULL);
+			gf_dash_resync_to_segment(group->mpdin->dash, param->value, gf_dm_sess_get_header(param->sess, "Dash-Oldest-Segment") );
 		}
 	}
 

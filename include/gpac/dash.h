@@ -240,6 +240,9 @@ void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u
 /*updates media bandwidth for the given group*/
 GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx);
 
+/*resync the downloader so that the next downloaded segment falls into the indicated range - used for error recovery*/
+GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

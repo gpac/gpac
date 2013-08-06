@@ -52,7 +52,7 @@ extern "C" {
 #include <gpac/cache.h>
 
 
-    /*!the download manager object. This is usually not used by GPAC modules*/
+	/*!the download manager object. This is usually not used by GPAC modules*/
     typedef struct __gf_download_manager GF_DownloadManager;
     /*!the download manager session.*/
     typedef struct __gf_download_session GF_DownloadSession;
@@ -67,7 +67,7 @@ extern "C" {
         u16 port;
     } GF_URL_Info;
 
-    /*!
+	/*!
      * Extracts the information from an URL. A call to gf_dm_url_info_init() must have been issue before calling this method.
      * \param url The URL to fill
      * \param info This structure will be initialized properly and filled with the data
@@ -193,6 +193,8 @@ extern "C" {
         char *value;
         /*response code - only valid for GF_NETIO_PARSE_REPLY. Set to 1 in GF_NETIO_DATA_EXCHANGE to indicate end of chunk transfer*/
         u32 reply;
+        /*download session for which the message is being sent*/
+		GF_DownloadSession *sess;
     } GF_NETIO_Parameter;
 
     /*!
@@ -474,6 +476,16 @@ extern "C" {
      * \return GF_OK or error
      */
 	GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url);
+
+    /*
+     *\retrieves the HTTP header value for the given name
+     *
+     *Retrieves the HTTP header value for the given header name.
+     *\param sess the current session
+     *\param name the target header name
+     * \return header value or NULL if not found
+	 */
+	const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
 
     /*
      *\brief sets download manager max rate per session
