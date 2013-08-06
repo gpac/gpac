@@ -117,6 +117,7 @@ struct _dash_segment_input
 	/*shall be set after call to dasher_input_classify*/
 	char szMime[50];
 
+	u32 single_track_num;
 	//information for scalability
 	u32 trackNum, lower_layer_track, nb_representations, idx_representations;
 	//increase sequence number between consecutive segments by this amount (for scalable reps)
@@ -584,6 +585,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
 
 		if (dash_input->trackNum && ((i+1) != dash_input->trackNum))
+			continue;
+
+		if (dash_input->single_track_num && ((i+1) != dash_input->single_track_num))
 			continue;
 
 		if (! dash_moov_setup) {
@@ -1697,6 +1701,9 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 		if (input->trackNum && (input->trackNum != i+1))
 			continue;
 
+		if (input->single_track_num && (input->single_track_num != i+1))
+			continue;
+
 		if (mtype == GF_ISOM_MEDIA_HINT) 
 			continue;
 		
@@ -1769,6 +1776,15 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				assign_to_group = 0;
 				break;
 			}
+
+			if (dash_inputs[input_idx].single_track_num && (dash_inputs[input_idx].single_track_num != j+1))
+				continue;
+			if (dash_inputs[i].single_track_num && (dash_inputs[i].single_track_num != track)) {
+				valid_in_adaptation_set = 0;
+				assign_to_group = 0;
+				break;
+			}
+
 			mtype = gf_isom_get_media_type(set_file, j+1);
 			if (mtype != gf_isom_get_media_type(in, j+1)) {
 				valid_in_adaptation_set = 0;
@@ -2147,6 +2163,7 @@ static GF_Err dasher_generic_get_components_info(GF_DashSegInput *input, GF_DASH
 	if (e) return e;
 
 	input->nb_components = in.nb_tracks;
+
 	for (i=0; i<in.nb_tracks; i++) {
 		input->components[i].width = in.tk_info[i].video_info.width;
 		input->components[i].height = in.tk_info[i].video_info.height;
@@ -3228,7 +3245,12 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 {
 	GF_DashSegInput *dash_inputs = *io_dash_inputs;
 	GF_DashSegInput *dash_input = & dash_inputs[idx];
+	char *uri_frag = strchr(dash_input->file_name, '#');
 	FILE *t = gf_f64_open(dash_input->file_name, "rb");
+	
+	if (uri_frag) uri_frag[0] = 0;
+
+	t = gf_f64_open(dash_input->file_name, "rb");
 	if (!t) return GF_URL_ERROR;
 	fclose(t);
 
@@ -3249,6 +3271,30 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 
 		/*if this dash input file has only one track, or this has not the scalable track: let it be*/
 		if ((nb_track == 1) || !gf_isom_has_scalable_layer(file)) {
+
+			if (uri_frag) {
+				u32 id = 0;
+				if (!strnicmp(uri_frag+1, "trackID=", 8)) 
+					id = atoi(uri_frag+9);
+				else if (!strnicmp(uri_frag+1, "ID=", 3)) 
+					id = atoi(uri_frag+4);
+				else if (!stricmp(uri_frag+1, "audio") || !stricmp(uri_frag+1, "video")) {
+					Bool check_video = !stricmp(uri_frag+1, "video") ? 1 : 0;
+					u32 i;
+					for (i=0; i<nb_track; i++) {
+						switch (gf_isom_get_media_type(file, i+1)) {
+						case GF_ISOM_MEDIA_VISUAL:
+							if (check_video) id = gf_isom_get_track_id(file, i+1);
+							break;
+						case GF_ISOM_MEDIA_AUDIO:
+							if (!check_video) id = gf_isom_get_track_id(file, i+1);
+							break;
+						}
+						if (id) break;
+					}
+				}
+				dash_input->single_track_num = gf_isom_get_track_by_id(file, id);
+			}
 			gf_isom_close(file);
 			dash_input->moof_seqnum_increase = 0;
 			return GF_OK;
