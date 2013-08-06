@@ -2689,7 +2689,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_ISOSample *samp;
 	GF_XMLAttribute *att;
 	s64 media_size, media_done, offset;
-	u64 duration;
+	u64 duration, sample_duration;
 	FILE *nhml, *mdia, *info;
 	char *dictionary;
 	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
@@ -3007,7 +3007,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		u32 j, dims_flags;
-		Bool append, compress, has_subbs ;
+		Bool append, compress, has_subbs;
 		if (node->type) continue;
 		if (stricmp(node->name, szSampleName) ) continue;
 
@@ -3021,6 +3021,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		dims_flags = 0;
 		append = 0;
 		compress = do_compress;
+		sample_duration = 0;
 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
@@ -3058,7 +3059,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				dims_flags |= GF_DIMS_UNIT_P;
 			else if (!stricmp(att->name, "compress") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_C;
-
+			else if (!stricmp(att->name, "duration") )
+				sscanf(att->value, ""LLU, &sample_duration);
 		}
 		if (samp->IsRAP==1)
 			dims_flags |= GF_DIMS_UNIT_M;
@@ -3205,12 +3207,20 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		if (e) goto exit;
 		samp->IsRAP = 0;
 		samp->CTS_Offset = 0;
-		samp->DTS += dts_inc;
+		if (sample_duration) 
+			samp->DTS += sample_duration;
+		else
+			samp->DTS += dts_inc;
 		media_done += samp->dataLength;
 		gf_set_progress(is_dims ? "Importing DIMS" : "Importing NHML", (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
+
+	if (sample_duration) {
+		gf_isom_set_last_sample_duration(import->dest, track, (u32) sample_duration);
+	}
+
 	if (media_done!=media_size) gf_set_progress(is_dims ? "Importing DIMS" : "Importing NHML", (u32) media_size, (u32) media_size);
 	MP4T_RecomputeBitRate(import->dest, track);
 
