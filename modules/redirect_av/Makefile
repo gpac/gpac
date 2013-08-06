@@ -20,6 +20,11 @@ LOCAL_LIB=../../bin/gcc
 #common objects
 OBJS=redirect_av.o
 
+ifeq ($(CONFIG_DARWIN), yes)
+#fixme - use proper detection of libavdevice dependencies
+LINKLIBS+=-lbz2 
+endif
+
 
 
 SRCS := $(OBJS:.o=.c) 
