@@ -261,6 +261,8 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	read->dnload = NULL;
 
 	read->base_track_id = 0;
+	if (!url) return GF_URL_ERROR;
+
 	strcpy(szURL, url);
 	tmp = strrchr(szURL, '.');
 	if (tmp) {
