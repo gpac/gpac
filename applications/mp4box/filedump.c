@@ -1362,6 +1362,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
+	Bool fragmented = gf_isom_is_fragmented(file);
 	Float scale;
 	Bool is_od_track = 0;
 	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits;
@@ -1391,7 +1392,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	fprintf(stderr, "%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
-	
+
+	if (gf_isom_is_track_fragmented(file, trackID) ) {
+		u32 frag_samples;
+		u64 frag_duration;
+		gf_isom_get_fragmented_samples_info(file, trackID, &frag_samples, &frag_duration);
+		fprintf(stderr, "Fragmented track: %d samples - Media Duration %s\n", frag_samples, format_duration(frag_duration, timescale, szDur));
+	}
+
 	if (!gf_isom_is_self_contained(file, trackNum, 1)) {
 		const char *url, *urn;
 		gf_isom_get_data_reference(file, trackNum, 1, &url, &urn);
