@@ -4441,7 +4441,7 @@ GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 r
 	if (!rep) return GF_BAD_PARAM;
 
 	if (width) *width = rep->width ? rep->width : group->adaptation_set->width;
-	if (height) *width = rep->height ? rep->height : group->adaptation_set->height;
+	if (height) *height = rep->height ? rep->height : group->adaptation_set->height;
 	if (codecs) *codecs = rep->codecs ? rep->codecs : group->adaptation_set->codecs;
 	if (bandwidth) *bandwidth = rep->bandwidth;
 	if (audio_samplerate) *audio_samplerate = rep->samplerate ? rep->samplerate : group->adaptation_set->samplerate;
