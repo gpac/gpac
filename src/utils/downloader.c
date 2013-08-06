@@ -84,6 +84,14 @@ enum REQUEST_TYPE {
     OTHER = 2
 };
 
+/*!the structure used to store an HTTP header*/
+typedef struct
+{
+	char *name;
+	char *value;
+} GF_HTTPHeader;
+
+
 /**
  * This structure handles partial downloads
  */
@@ -116,6 +124,8 @@ struct __gf_download_session
     char cookie[GF_MAX_PATH];
     DownloadedCacheEntry cache_entry;
 	Bool reused_cache_entry;
+
+    GF_List *headers;
 
     GF_Socket *sock;
     u32 num_retry, status;
@@ -623,8 +633,21 @@ void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  co
 }
 
 
+static void gf_dm_clear_headers(GF_DownloadSession *sess)
+{
+	while (gf_list_count(sess->headers)) {
+		GF_HTTPHeader *hdr = gf_list_last(sess->headers);
+		gf_list_rem_last(sess->headers);
+		gf_free(hdr->name);
+		gf_free(hdr->value);
+		gf_free(hdr);
+	}
+}
+
+
 static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 {
+	gf_dm_clear_headers(sess);
     assert( sess );
     if (sess->status >= GF_NETIO_DISCONNECTED)
 		return;
@@ -694,6 +717,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     sess->creds = NULL;
 	if (sess->sock) 
 		gf_sk_del(sess->sock);
+	gf_list_del(sess->headers);
     gf_free(sess);
     GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
 }
@@ -708,6 +732,7 @@ static void gf_dm_sess_notify_state(GF_DownloadSession *sess, u32 dnload_status,
         memset(&par, 0, sizeof(GF_NETIO_Parameter));
         par.msg_type = dnload_status;
         par.error = error;
+		par.sess = sess;
         sess->user_proc(sess->usr_cbk, &par);
         sess->in_callback = 0;
     }
@@ -717,6 +742,7 @@ static void gf_dm_sess_user_io(GF_DownloadSession *sess, GF_NETIO_Parameter *par
 {
     if (sess->user_proc) {
         sess->in_callback = 1;
+		par->sess = sess;
         sess->user_proc(sess->usr_cbk, par);
         sess->in_callback = 0;
     }
@@ -909,6 +935,8 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 
 	if (!url) return GF_BAD_PARAM;
 
+	gf_dm_clear_headers(sess);
+
     gf_dm_url_info_init(&info);
 
 	if (!sess->sock) socket_changed = 1;
@@ -1025,6 +1053,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 	 GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("%s:%d Cannot allocate session for URL %s: OUT OF MEMORY!\n", __FILE__, __LINE__, url));
 	 return NULL;
     }
+	sess->headers = gf_list_new();
     sess->flags = dl_flags;
 	if (dm && !dm->head_timeout) sess->server_only_understand_get = 1;
     sess->user_proc = user_io;
@@ -1677,8 +1706,8 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const c
                     par.msg_type = GF_NETIO_PARSE_HEADER;
                     par.name = "icy-meta";
                     par.value = szData;
-                    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
-                           ("[ICY] Found metainfo in stream=%s, (every %d bytes)\n", szData, icy_metaint));
+					par.sess = sess;
+                    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[ICY] Found metainfo in stream=%s, (every %d bytes)\n", szData, icy_metaint));
                     gf_dm_sess_user_io(sess, &par);
                 }
                 nbBytes -= sess->icy_count;
@@ -1699,7 +1728,6 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const c
             }
 
             par.msg_type = GF_NETIO_DATA_EXCHANGE;
-            par.error = GF_OK;
             par.data = data;
             par.size = left;
             gf_dm_sess_user_io(sess, &par);
@@ -1981,6 +2009,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
     Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile, has_mime;
     assert (sess->status == GF_NETIO_CONNECTED);
 
+	gf_dm_clear_headers(sess);
 
 	if (sess->needs_cache_reconfig) {
 		gf_dm_configure_cache(sess);
@@ -2284,40 +2313,22 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
     }
 }
 
-
-
-/* FIXME UGLY CODE DUPLICATION to fix later on: we only send the headers to the user if no problem in response (eg no relocation, ...)*/
 static void notify_headers(GF_DownloadSession *sess, char * sHTTP, s32 bytesRead, s32 BodyStart)
 {
-    char buf[1025];
     GF_NETIO_Parameter par;
-    s32 LinePos=0;
+    u32 i, count;
 
-	while (1) {
-        char *sep, *hdr_sep, *hdr, *hdr_val;
-        if ( (s32) LinePos + 4 > BodyStart) break;
-        LinePos = gf_token_get_line(sHTTP, LinePos , bytesRead, buf, 1024);
-        if (LinePos < 0) break;
-
-        hdr_sep = NULL;
-        hdr_val = NULL;
-        hdr = buf;
-        sep = strchr(buf, ':');
-        if (sep) {
-            sep[0]=0;
-            hdr_val = sep+1;
-            while (hdr_val[0]==' ') hdr_val++;
-            hdr_sep = strrchr(hdr_val, '\r');
-            if (hdr_sep) hdr_sep[0] = 0;
-        }
+	count = gf_list_count(sess->headers);
+	memset(&par, 0, sizeof(GF_NETIO_Parameter));
+	
+	for (i=0; i<count; i++) {
+		GF_HTTPHeader *hdrp = gf_list_get(sess->headers, i);
+		par.name = hdrp->name;
+		par.value = hdrp->value;
 
         par.error = 0;
         par.msg_type = GF_NETIO_PARSE_HEADER;
-        par.name = hdr;
-        par.value = hdr_val;
         gf_dm_sess_user_io(sess, &par);
-        if (sep) sep[0]=':';
-        if (hdr_sep) hdr_sep[0] = '\r';
     }
 }
 
@@ -2330,7 +2341,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 {
     GF_NETIO_Parameter par;
     s32 bytesRead, BodyStart;
-    u32 res;
+    u32 res, i;
     s32 LinePos, Pos;
     u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = 0;
@@ -2416,8 +2427,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     Pos = gf_token_get(buf, Pos, " \r\n", comp, 400);
 
     no_range = range = ContentLength = first_byte = last_byte = total_size = 0;
-    /* parse header */
+    /* parse headers*/
     while (1) {
+		GF_HTTPHeader *hdrp;
         char *sep, *hdr_sep, *hdr, *hdr_val;
         if ( (s32) LinePos + 4 > BodyStart) break;
         LinePos = gf_token_get_line(sHTTP, LinePos , bytesRead, buf, 1024);
@@ -2435,10 +2447,22 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             if (hdr_sep) hdr_sep[0] = 0;
         }
 
- //       GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Processing header %s: %s\n", hdr, hdr_val));
+		GF_SAFEALLOC(hdrp, GF_HTTPHeader);
+		hdrp->name = gf_strdup(hdr);
+		hdrp->value = gf_strdup(hdr_val);
+		gf_list_add(sess->headers, hdrp);
 
-        if (!stricmp(hdr, "Content-Length") ) {
-            ContentLength = (u32) atoi(hdr_val);
+		if (sep) sep[0]=':';
+        if (hdr_sep) hdr_sep[0] = '\r';
+	}
+
+	//default pre-processing of headers - needs cleanup, not all of these have to be parsed before checking reply code
+	for (i=0; i<gf_list_count(sess->headers); i++) {
+		char *val;
+		GF_HTTPHeader *hdrp = gf_list_get(sess->headers, i);
+
+		if (!stricmp(hdrp->name, "Content-Length") ) {
+			ContentLength = (u32) atoi(hdrp->value);
             
 			if (rsp_code<300)
 				gf_cache_set_content_length(sess->cache_entry, ContentLength);
@@ -2447,8 +2471,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			if (ContentLength==0)
 				sess->use_cache_file = 0;
         }
-        else if (!stricmp(hdr, "Content-Type")) {
-            char * mime_type = gf_strdup(hdr_val);
+        else if (!stricmp(hdrp->name, "Content-Type")) {
+            char * mime_type = gf_strdup(hdrp->value);
             while (1) {
                 u32 len = (u32) strlen(mime_type);
                 char c = len ? mime_type[len-1] : 0;
@@ -2458,66 +2482,63 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                     break;
                 }
             }
-            hdr = strchr(mime_type, ';');
-            if (hdr) hdr[0] = 0;
+            val = strchr(mime_type, ';');
+            if (val) val[0] = 0;
 
 			strlwr(mime_type);
 			if (rsp_code<300)
 	            gf_cache_set_mime_type(sess->cache_entry, mime_type);
             gf_free(mime_type);
         }
-        else if (!stricmp(hdr, "Content-Range")) {
+        else if (!stricmp(hdrp->name, "Content-Range")) {
             range = 1;
-            if (!strncmp(hdr_val, "bytes", 5)) {
-                hdr_val += 5;
-                if (hdr_val[0] == ':') hdr_val += 1;
-                hdr_val += http_skip_space(hdr_val);
-                if (hdr_val[0] == '*') {
-                    sscanf(hdr_val, "*/%u", &total_size);
+            if (!strncmp(hdrp->value, "bytes", 5)) {
+                val = hdrp->value + 5;
+                if (val[0] == ':') val += 1;
+                val += http_skip_space(val);
+                if (val[0] == '*') {
+					sscanf(val, "*/%u", &total_size);
                 } else {
-                    sscanf(hdr_val, "%u-%u/%u", &first_byte, &last_byte, &total_size);
+                    sscanf(val, "%u-%u/%u", &first_byte, &last_byte, &total_size);
                 }
             }
         }
-        else if (!stricmp(hdr, "Accept-Ranges")) {
-            if (strstr(hdr_val, "none")) no_range = 1;
+        else if (!stricmp(hdrp->name, "Accept-Ranges")) {
+			if (strstr(hdrp->value, "none")) no_range = 1;
         }
-        else if (!stricmp(hdr, "Location"))
-            new_location = gf_strdup(hdr_val);
-        else if (!strnicmp(hdr, "ice", 3) || !strnicmp(hdr, "icy", 3) ) {
+        else if (!stricmp(hdrp->name, "Location"))
+            new_location = gf_strdup(hdrp->value);
+        else if (!strnicmp(hdrp->name, "ice", 3) || !strnicmp(hdrp->name, "icy", 3) ) {
             /* For HTTP icy servers, we disable cache */
             if (sess->icy_metaint == 0)
                 sess->icy_metaint = -1;
             sess->use_cache_file = 0;
-            if (!stricmp(hdr, "icy-metaint")) {
-                sess->icy_metaint = atoi(hdr_val);
+            if (!stricmp(hdrp->name, "icy-metaint")) {
+                sess->icy_metaint = atoi(hdrp->value);
             }
         }
-        else if (!stricmp(hdr, "Cache-Control")) {
+        else if (!stricmp(hdrp->name, "Cache-Control")) {
         }
-        else if (!stricmp(hdr, "ETag")) {
+        else if (!stricmp(hdrp->name, "ETag")) {
 			if (rsp_code<300)
-	            gf_cache_set_etag_on_server(sess->cache_entry, hdr_val);
+	            gf_cache_set_etag_on_server(sess->cache_entry, hdrp->value);
         }
-        else if (!stricmp(hdr, "Last-Modified")) {
+        else if (!stricmp(hdrp->name, "Last-Modified")) {
 			if (rsp_code<300)
-	            gf_cache_set_last_modified_on_server(sess->cache_entry, hdr_val);
+	            gf_cache_set_last_modified_on_server(sess->cache_entry, hdrp->value);
         }
-        else if (!stricmp(hdr, "Transfer-Encoding")) {
-			if (!stricmp(hdr_val, "chunked"))
+        else if (!stricmp(hdrp->name, "Transfer-Encoding")) {
+			if (!stricmp(hdrp->value, "chunked"))
 				sess->chunked = GF_TRUE;
 		}		
-        else if (!stricmp(hdr, "X-UserProfileID") ) {
+        else if (!stricmp(hdrp->name, "X-UserProfileID") ) {
             if (sess->dm && sess->dm->cfg)
-                gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdr_val);
+                gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdrp->value);
         }
-        else if (!stricmp(hdr, "Connection") ) {
-			if (strstr(hdr_val, "close")) 
+        else if (!stricmp(hdrp->name, "Connection") ) {
+			if (strstr(hdrp->value, "close")) 
 				connection_closed = 1; 
 		}
-
-        if (sep) sep[0]=':';
-        if (hdr_sep) hdr_sep[0] = '\r';
 
         if (sess->status==GF_NETIO_DISCONNECTED) return GF_OK;
     }
@@ -3177,4 +3198,18 @@ GF_EXPORT
 u32 gf_dm_get_data_rate(GF_DownloadManager *dm)
 {
 	return dm->limit_data_rate*8;
+}
+
+
+GF_EXPORT
+const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name)
+{
+	u32 i, count;
+	if( !sess || !name) return NULL;
+	count = gf_list_count(sess->headers);
+	for (i=0; i<count; i++) {
+		GF_HTTPHeader *header = gf_list_get(sess->headers, i);
+		if (!strcmp(header->name, name)) return header->value; 
+	}
+	return NULL;
 }
