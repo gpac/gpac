@@ -4427,6 +4427,7 @@ GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 r
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, u32 group_idx, const char *latest_segment_name, const char *earliest_segment_name)
 {
 	GF_Err e;

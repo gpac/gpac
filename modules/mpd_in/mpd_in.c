@@ -765,8 +765,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.min = 200;
 		com->buffer.max = 200;
+        return GF_OK;
 //        return segment_ifce->ServiceCommand(segment_ifce, com);
-        break;
+//        break;
 
 	case GF_NET_CHAN_DURATION:
 		/* Ignore the duration given by the input service and use the one given in the MPD
