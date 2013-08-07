@@ -902,7 +902,7 @@ u32 video_encoder_thread(void * p_params) {
 		}
 
 		if (p_in_data->i_time_shift != -1) {
-			shift = (p_in_data->i_time_shift * p_in_data->i_seg_dur) / 1000;
+			shift = 1000 * p_in_data->i_time_shift / p_in_data->i_seg_dur;
 			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
 					p_vdata->psz_name, (seg_nb - shift));
 			dc_message_queue_put(p_delete_seg_mq, name_to_delete,
@@ -1106,7 +1106,7 @@ u32 audio_encoder_thread(void * p_params) {
 		}
 
 		if (p_in_data->i_time_shift != -1) {
-			shift = (p_in_data->i_time_shift * p_in_data->i_seg_dur) / 1000;
+			shift = 1000 * p_in_data->i_time_shift / p_in_data->i_seg_dur;
 			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
 					p_adata->psz_name, (seg_nb - shift));
 			dc_message_queue_put(p_delete_seg_mq, name_to_delete,
