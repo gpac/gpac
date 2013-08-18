@@ -369,6 +369,7 @@
     <None Include="..\..\applications\osmo4_w32\res\play.ico" />
     <None Include="..\..\applications\osmo4_w32\res\playlist.bmp" />
     <None Include="..\..\applications\osmo4_w32\res\stop.ico" />
+    <None Include="..\..\doc\osmo4.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libgpac_dll.vcxproj">

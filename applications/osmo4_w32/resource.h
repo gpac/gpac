@@ -135,7 +135,7 @@
 #define ID_FILE_EXIT                    1114
 #define ID_H_ABOUT                      1115
 #define ID_PLAYLIST_LOOP                1116
-#define ID_FILEOPEN                     1117
+#define ID_OPEN_FILE                     1117
 #define ID_VIEW_CONTROL                 1118
 #define ID_VIEW_ORIGINAL                1119
 #define ID_VIEW_FULLSCREEN              1120
@@ -309,7 +309,6 @@
 #define ID_FILE_COPY                    32961
 #define ID_FILE_PASTE                   32962
 #define ID_CONFIG_RELOAD                32963
-#define ID_OPENFILE                     32967
 
 // Next default values for new objects
 // 
