@@ -1189,6 +1189,7 @@ void avcc_del(GF_Box *s)
 	if (ptr->config) gf_odf_avc_cfg_del(ptr->config);
 	gf_free(ptr);
 }
+
 GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, count;
@@ -1266,6 +1267,11 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 
 			count = gf_bs_read_int(bs, 8);
 			ptr->size -= 4;
+			if (count*2 > ptr->size) {
+				//ffmpeg just ignores this part while allocating bytes (filled with garbage?)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("AVCC: invalid numOfSequenceParameterSetExt value. Skipping.\n"));
+				return GF_OK;
+			}
 			if (count) {
 				ptr->config->sequenceParameterSetExtensions = gf_list_new();
 				for (i=0; i<count; i++) {
@@ -1282,6 +1288,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	return GF_OK;
 }
+
 GF_Box *avcc_New()
 {
 	GF_AVCConfigurationBox *tmp = (GF_AVCConfigurationBox *) gf_malloc(sizeof(GF_AVCConfigurationBox));
