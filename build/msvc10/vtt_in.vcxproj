@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{402A8794-B724-44A3-B608-84B600ECA387}</ProjectGuid>
+    <ProjectGuid>{E578716F-6663-4D83-AC79-57EA00D2F406}</ProjectGuid>
     <RootNamespace>vtt_in</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
