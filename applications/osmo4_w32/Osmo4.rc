@@ -13,24 +13,22 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Anglais (États-Unis) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
 //
 
-IDR_MAINFRAME MENU 
+IDR_MAINFRAME MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open File\tCtrl+O",          ID_OPENFILE
+        MENUITEM "&Open File\tCtrl+O",          ID_OPEN_FILE
         MENUITEM "Open &URL\tCtrl+U",           ID_OPEN_URL
         MENUITEM SEPARATOR
         MENUITEM "File Propert&ies\tCtrl+I",    ID_FILE_PROP
@@ -157,7 +155,7 @@ BEGIN
     CTEXT           "The FreeType Project\nMozilla SpiderMonkey (JavaScript support)\n\nZLIB, the PNG Group, the I.J.G.\nFFMPEG, FAAD, XVID, MAD",IDC_STATIC,9,92,189,41
 END
 
-IDD_PASSWD DIALOG  0, 0, 134, 71
+IDD_PASSWD DIALOG 0, 0, 134, 71
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Enter user name and password"
 FONT 8, "MS Sans Serif"
@@ -217,7 +215,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -232,9 +230,9 @@ END
 // Toolbar
 //
 
-IDR_MAINTOOLS TOOLBAR  16, 15
+IDR_MAINTOOLS TOOLBAR 16, 15
 BEGIN
-    BUTTON      ID_FILEOPEN
+    BUTTON      ID_OPEN_FILE
     BUTTON      ID_NAV_PREV
     BUTTON      ID_NAV_NEXT
     BUTTON      ID_FILE_PLAY
@@ -260,32 +258,32 @@ IDR_MAINTOOLS           BITMAP                  "res\\maintool.bmp"
 // String Table
 //
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "Osmo4"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_APP_TITLE       "Osmo4"
     AFX_IDS_IDLEMESSAGE     "Ready"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_EXIT            "Quit the application; prompts to save documents\nExit"
     ID_H_ABOUT              "Display program information, version number and copyright\nAbout"
     ID_PLAYLIST_LOOP        "Restarts playlist from begining when playlist is over"
-    ID_FILEOPEN             "Opens local file"
+    ID_OPEN_FILE             "Opens local file"
     ID_VIEW_ORIGINAL        "restore Original Aspect of presentation"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_SCSIZE          "Change the window size"
     AFX_IDS_SCMOVE          "Change the window position"
@@ -296,13 +294,13 @@ BEGIN
     AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_SCRESTORE       "Restore the window to normal size"
     AFX_IDS_SCTASKLIST      "Activate Task List"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_STOP            "Stops current presentation"
     ID_SWITCH_RENDER        "Switch between 2D and 3D renderers"
@@ -312,7 +310,7 @@ BEGIN
     ID_HEADLIGHT            "Turns headlight on/off"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_CLEAR_NAV            "Clears navigation history"
     ID_TIMER                " "
@@ -320,7 +318,7 @@ BEGIN
     ID_VIEW_PL              "View navigation history as a playlist"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_VIEW_FULLSCREEN      "Move to Full Screen mode (Esc to exit)"
     ID_AR_KEEP              "Keep Aspect Ratio of presentation"
@@ -335,7 +333,7 @@ BEGIN
     ID_NAVIGATE_NONE        "Disable navigation"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_NAVIGATE_WALK        "Turn walk navigation on"
     ID_AR_FILL              "Ignores Aspect Ratio and always fill screen"
@@ -344,7 +342,7 @@ BEGIN
     ID_NAV_RESET            "Restore last viewpoint"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_NAVIGATE_VR          "QT-VR like navigation"
     ID_REC_ENABLE           "Enable recording of streaming data"
@@ -352,31 +350,29 @@ BEGIN
     ID_REC_ABORT            "Stops recording and discard data"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_COPY            "Copy selected text to clipboard"
     ID_FILE_PASTE           "Paste clipboard"
 END
 
-#endif    // Anglais (États-Unis) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Français (France) resources
+// French (France) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
-#ifdef _WIN32
 LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-IDD_OPENFILE DIALOG  0, 0, 301, 23
+IDD_OPENFILE DIALOG 0, 0, 301, 23
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Select Location"
 FONT 8, "MS Sans Serif"
@@ -385,7 +381,7 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDC_BUTGO,279,5,19,13
 END
 
-IDD_OPTIONS DIALOG  0, 0, 174, 106
+IDD_OPTIONS DIALOG 0, 0, 174, 106
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Osmo4 Options"
 FONT 8, "MS Sans Serif"
@@ -395,7 +391,7 @@ BEGIN
     LTEXT           "Category",IDC_STATIC,7,4,29,8
 END
 
-IDD_OPT_GEN DIALOG  0, 20, 169, 76
+IDD_OPT_GEN DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -406,7 +402,7 @@ BEGIN
     CONTROL         "Single Instance",IDC_SINGLE_INSTANCE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,54,65,10
 END
 
-IDD_OPT_RENDER DIALOG  0, 20, 169, 76
+IDD_OPT_RENDER DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -423,7 +419,7 @@ BEGIN
     LTEXT           "Bounds",IDC_STATIC,82,64,25,8
 END
 
-IDD_OPT_AUDIO DIALOG  0, 20, 169, 76
+IDD_OPT_AUDIO DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_THICKFRAME
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -441,7 +437,7 @@ BEGIN
     LTEXT           "ms total length",IDC_STATIC,118,18,49,8
 END
 
-IDD_OPT_VIDEO DIALOG  0, 20, 169, 76
+IDD_OPT_VIDEO DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -468,7 +464,7 @@ BEGIN
     CONTROL         "Use proxy",IDC_HTTP_USE_PROXY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,59,47,10
 END
 
-IDD_OPT_FONT DIALOG  0, 20, 169, 76
+IDD_OPT_FONT DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -480,7 +476,7 @@ BEGIN
     LTEXT           "Text Texturing Mode",IDC_STATIC,7,60,69,8
 END
 
-IDD_OPT_SYSTEMS DIALOG  0, 20, 169, 76
+IDD_OPT_SYSTEMS DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -492,7 +488,7 @@ BEGIN
     CONTROL         "Force Single Timeline",IDC_FORCE_DURATION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,58,83,10
 END
 
-IDD_OPT_STREAM DIALOG  0, 20, 169, 76
+IDD_OPT_STREAM DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -521,7 +517,7 @@ BEGIN
     CONTROL         "Tab1",IDC_VIEWSEL,"SysTabControl32",TCS_BUTTONS,124,2,208,14
 END
 
-IDD_OPT_DECODER DIALOG  0, 20, 169, 76
+IDD_OPT_DECODER DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -531,7 +527,7 @@ BEGIN
     COMBOBOX        IDC_VIDEC_LIST,25,52,113,55,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
-IDD_OPT_RENDER2D DIALOG  0, 20, 169, 76
+IDD_OPT_RENDER2D DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -541,7 +537,7 @@ BEGIN
     CONTROL         "Scalable Zoom",IDC_ZOOM_SCALABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,10,77,10
 END
 
-IDD_OPT_RENDER3D DIALOG  0, 20, 169, 76
+IDD_OPT_RENDER3D DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -586,7 +582,7 @@ BEGIN
     CONTROL         "List4",IDC_FILELIST,"SysListView32",LVS_REPORT | WS_BORDER | WS_TABSTOP,1,0,182,51
 END
 
-IDD_OPT_MCACHE DIALOG  0, 20, 169, 76
+IDD_OPT_MCACHE DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -597,7 +593,7 @@ BEGIN
     EDITTEXT        IDC_BASEPRES,81,31,82,12,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
 END
 
-IDD_OPT_FILETYPES DIALOG  0, 20, 169, 76
+IDD_OPT_FILETYPES DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -609,7 +605,7 @@ BEGIN
     LTEXT           "Plugin",IDC_FILES_PLUG,8,49,154,8
 END
 
-IDD_OPT_LOGS DIALOG  0, 20, 169, 76
+IDD_OPT_LOGS DIALOG 0, 20, 169, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -639,7 +635,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_OPT_VIDEO, DIALOG
     BEGIN
@@ -706,7 +702,7 @@ END
 // Toolbar
 //
 
-IDR_PLAYLIST TOOLBAR  16, 15
+IDR_PLAYLIST TOOLBAR 16, 15
 BEGIN
     BUTTON      ID_PL_OPEN
     BUTTON      ID_PL_SAVE
@@ -849,18 +845,18 @@ END
 // Accelerator
 //
 
-IDR_MAINACCEL ACCELERATORS 
+IDR_MAINACCEL ACCELERATORS
 BEGIN
     "^P",           ID_FILE_PLAY,           ASCII,  NOINVERT
     "\t",           ID_FILE_PROP,           ASCII,  NOINVERT
     VK_F5,          ID_FILE_RELOAD,         VIRTKEY, NOINVERT
     "^S",           ID_FILE_STEP,           ASCII,  NOINVERT
-    "^O",           ID_FILEOPEN,            ASCII,  NOINVERT
+    "^O",           ID_OPEN_FILE,            ASCII,  NOINVERT
     "^U",           ID_OPEN_URL,            ASCII,  NOINVERT
     VK_F3,          ID_VIEW_PL,             VIRTKEY, NOINVERT
 END
 
-#endif    // Français (France) resources
+#endif    // French (France) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

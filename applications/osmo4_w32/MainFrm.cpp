@@ -256,7 +256,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	ba = &buttonArray[0];
-	*ba = ID_FILEOPEN; ba++;
+	*ba = ID_OPEN_FILE; ba++;
 	*ba = ID_SEPARATOR; ba++;
 	*ba = ID_NAV_PREV; ba++;
 	*ba = ID_NAV_NEXT; ba++;
@@ -270,7 +270,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	*ba = ID_FILE_PROP; ba++;
 	*ba = ID_SWITCH_RENDER;
 	m_wndToolBar.SetButtons(buttonArray, 13);
-	m_wndToolBar.SetButtonInfo(0, ID_FILEOPEN, TBBS_BUTTON, 0);
+	m_wndToolBar.SetButtonInfo(0, ID_OPEN_FILE, TBBS_BUTTON, 0);
 	m_wndToolBar.SetButtonInfo(1, ID_SEPARATOR, TBBS_SEPARATOR, 0);
 	m_wndToolBar.SetButtonInfo(2, ID_NAV_PREV, TBBS_DROPDOWN, 1);
 	m_wndToolBar.SetButtonInfo(3, ID_NAV_NEXT, TBBS_DROPDOWN, 2);
