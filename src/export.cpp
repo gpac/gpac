@@ -125,6 +125,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_reconfig) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mixer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_empty) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_lock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_add_input) )
