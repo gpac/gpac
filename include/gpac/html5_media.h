@@ -157,6 +157,7 @@ typedef enum {
     LPNETCHANNEL            channel;   /* channel object used by the terminal */\
     GF_ObjectDescriptor     *od;       /* MPEG-4 Object descriptor for this track */\
     GF_List                 *buffer;   /* List of MSE Packets */\
+    u32						packet_index;   /* index of MSE Packets*/\
     GF_Mutex                *buffer_mutex;\
     Bool                    last_dts_set; \
     double                  last_dts; /* MSE  last decode timestamp */ \

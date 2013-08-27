@@ -257,53 +257,25 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     }
 }
 
-static GF_Err MSE_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err MSE_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, 
+								GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
     GF_MSE_Packet *packet;
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     GF_HTML_SourceBuffer *sb = MSE_GetSourceBufferForChannel(msein->mediasource, channel);
     GF_HTML_Track *track = MSE_GetTrackForChannel(sb, channel);
     if (!plug || !plug->priv || !sb || !sb->parser || !track) return GF_SERVICE_ERROR;
-    gf_mx_p(track->buffer_mutex);
-    packet = (GF_MSE_Packet *)gf_list_get(track->buffer, 0);
-    if (packet)
-    {
-        *out_data_ptr = packet->data;
-        *out_data_size = packet->size;
-        *out_sl_hdr = packet->sl_header;
-        *sl_compressed = packet->is_compressed;
-        *out_reception_status = packet->status;
-        *is_new_data = packet->is_new_data;
-        packet->is_new_data = GF_FALSE;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Sending AU to decoder with TS: %g (%d frames)\n", (packet->sl_header.compositionTimeStamp*1.0/track->timescale), gf_list_count(track->buffer)));
-    } else {
-        *out_data_ptr = NULL;
-        *out_data_size = 0;
-        *sl_compressed = GF_FALSE;
-        *out_reception_status = GF_OK;
-        *is_new_data = GF_FALSE;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_In] No AU for decoder\n"));
-    }
-    gf_mx_v(track->buffer_mutex);
+	gf_mse_track_buffer_get_next_packet(track, out_data_ptr, out_data_size, out_sl_hdr, sl_compressed, out_reception_status, is_new_data);
     return GF_OK;
 }
 
 static GF_Err MSE_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-    GF_MSE_Packet *packet;
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     GF_HTML_SourceBuffer *sb = MSE_GetSourceBufferForChannel(msein->mediasource, channel);
     GF_HTML_Track *track = MSE_GetTrackForChannel(sb, channel);
     if (!plug || !plug->priv || !sb || !sb->parser || !track) return GF_SERVICE_ERROR;
-    gf_mx_p(track->buffer_mutex);
-    packet = (GF_MSE_Packet *)gf_list_get(track->buffer, 0);
-    if (packet)
-    {
-        gf_list_rem(track->buffer, 0);
-        gf_free(packet->data);
-        gf_free(packet);
-    }
-    gf_mx_v(track->buffer_mutex);
+	gf_mse_track_buffer_release_packet(track);
     return GF_OK;
 }
 
@@ -312,7 +284,11 @@ static Bool MSE_CanHandleURLInService(GF_InputService *plug, const char *url)
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", msein->mediasource->service, url));
     if (!plug || !plug->priv) return GF_FALSE;
-    return GF_TRUE;
+	if (!strcmp(url, msein->mediasource->blobURI)) {
+		return GF_TRUE;
+	} else {
+		return GF_FALSE;
+	}
 }
 
 GPAC_MODULE_EXPORT
