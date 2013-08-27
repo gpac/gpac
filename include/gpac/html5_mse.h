@@ -170,6 +170,12 @@ typedef struct
 GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command);
 void gf_mse_packet_del(GF_MSE_Packet *packet);
 
+GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
+											char **out_data_ptr, u32 *out_data_size, 
+											GF_SLHeader *out_sl_hdr, Bool *sl_compressed, 
+											GF_Err *out_reception_status, Bool *is_new_data);
+GF_Err gf_mse_track_buffer_release_packet(GF_HTML_Track *track);
+
 #ifdef __cplusplus
 }
 #endif

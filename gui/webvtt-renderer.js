@@ -82,45 +82,64 @@ function addSpan(parent, cuePart) {
 function parseCueSettings(cueSettings){
 	reportMessage("Parsing cue settings: "+cueSettings);
 	var obj = {};
-	var settingsArray = cueSettings.split(/\s+/g);
+	var settingsArray = cueSettings.split(/\s/g);
 	//.filter(function(set) { return set && !!set.length; });
 
 	// Convert the Array into an object 
 	var compositeCueSettings = {};
 	for (var settingsIndex in settingsArray) {
 		var nvArray = settingsArray[settingsIndex].split(":");
-		compositeCueSettings[nvArray[0]] = compositeCueSettings[nvArray[1]];
+		compositeCueSettings[nvArray[0]] = nvArray[1];
 	}
 
 	// Compute real values
 	if (compositeCueSettings.line !== undefined) {
 		if (compositeCueSettings.line.match(/\%/)) {
 			obj.linePosition = parseFloat(compositeCueSettings.line.replace(/\%/ig,""));
-			obj.linePosition *= height/100;
+			if (isNaN(obj.linePosition)) {
+				obj.linePosition = nbCues*lineIncrement;
+			} else {
+				obj.linePosition *= height/100;
+			}
 		} else {
 			obj.linePosition = parseFloat(compositeCueSettings.line)*lineIncrement;
-			if (obj.linePosition > 0) {
-				obj.fromTop = true;
+			if (isNaN(obj.linePosition)) {
+				obj.linePosition = nbCues*lineIncrement;
 			} else {
-				obj.fromTop = false;
-				obj.linePosition = -obj.linePosition;
+				if (obj.linePosition > 0) {
+					obj.fromTop = true;
+				} else {
+					obj.fromTop = false;
+					obj.linePosition = -obj.linePosition;
+				}
 			}
 		}
 	} else {
 		obj.linePosition = nbCues*lineIncrement;
 	}
+	reportMessage("linePosition: "+obj.linePosition);
 	if (compositeCueSettings.position !== undefined) {
 		obj.xPosition = parseFloat(compositeCueSettings.position.replace(/\%/ig,""));
-		obj.xPosition *= width/100;
+		if (isNaN(obj.xPosition)) {
+			obj.xPosition = 50;
+		} else {
+			obj.xPosition *= width/100;
+		}
 	} else {
-		obj.xPosition = 0;
+		obj.xPosition = 50;
 	}
+	reportMessage("xPosition: "+obj.xPosition);
 	if (compositeCueSettings.size !== undefined) {
 		obj.size = parseFloat(compositeCueSettings.size.replace(/\%/ig,""));
-		obj.size *= width/100;
+		if (isNaN(obj.size)) {
+			obj.size = 100;
+		} else {
+			obj.size *= width/100;
+		}
 	} else {
-		obj.size = width;
+		obj.size = 100;
 	}
+	reportMessage("size: "+obj.size);
 	if (compositeCueSettings.align !== undefined) {
 		if (compositeCueSettings.align === "middle") {
 			obj.align = "center";
@@ -128,12 +147,17 @@ function parseCueSettings(cueSettings){
 			obj.align = "start";
 		} else if (compositeCueSettings.align === "right") {
 			obj.align = "end";
+		} else if (compositeCueSettings.align === "start") {
+			obj.align = "start";
+		} else if (compositeCueSettings.align === "end") {
+			obj.align = "end";
 		} else {
-			obj.align = compositeCueSettings.align;
+			obj.align = "center";
 		}
 	} else {
 		obj.align = "center";
 	}
+	reportMessage("align: "+obj.align);
 	reportMessage("cue settings parsed: "+obj);
 	return obj;
 }

@@ -1888,6 +1888,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )
 #endif
 
+#ifndef GPAC_DISABLE_MSE
+#pragma comment (linker, EXPORT_SYMBOL(gf_mse_track_buffer_get_next_packet) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mse_track_buffer_release_packet) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )
+#endif
+
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
 
 

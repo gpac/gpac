@@ -1160,5 +1160,8 @@
     <ClCompile Include="..\..\src\utils\xml_parser.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\scenegraph\webvtt_smjs.c">
+      <Filter>scenegraph</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

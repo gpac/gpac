@@ -702,4 +702,55 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
         return GF_OK;
     }
 }
+
+#define MSE_TRACK_BUFFER_LENGTH 1000 // number of AU per track 
+
+GF_EXPORT
+GF_Err gf_mse_track_buffer_release_packet(GF_HTML_Track *track) {
+	GF_MSE_Packet *packet;
+	gf_mx_p(track->buffer_mutex);
+	packet = (GF_MSE_Packet *)gf_list_get(track->buffer, track->packet_index);
+	if (packet) {
+		track->packet_index++;
+		if (gf_list_count(track->buffer) > MSE_TRACK_BUFFER_LENGTH) {
+			packet = (GF_MSE_Packet *)gf_list_get(track->buffer, 0);
+			track->packet_index--;
+			gf_list_rem(track->buffer, 0);
+			gf_free(packet->data);
+			gf_free(packet);
+		}
+	}
+	gf_mx_v(track->buffer_mutex);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
+											char **out_data_ptr, u32 *out_data_size, 
+											GF_SLHeader *out_sl_hdr, Bool *sl_compressed, 
+											GF_Err *out_reception_status, Bool *is_new_data)
+{
+	GF_MSE_Packet *packet;
+	gf_mx_p(track->buffer_mutex);
+	packet = (GF_MSE_Packet *)gf_list_get(track->buffer, track->packet_index);
+	if (packet)
+	{
+		*out_data_ptr = packet->data;
+		*out_data_size = packet->size;
+		*out_sl_hdr = packet->sl_header;
+		*sl_compressed = packet->is_compressed;
+		*out_reception_status = packet->status;
+		*is_new_data = packet->is_new_data;
+		packet->is_new_data = GF_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Sending AU to decoder with TS: %g (%d frames)\n", (packet->sl_header.compositionTimeStamp*1.0/track->timescale), gf_list_count(track->buffer)));
+	} else {
+		*out_data_ptr = NULL;
+		*out_data_size = 0;
+		*sl_compressed = GF_FALSE;
+		*out_reception_status = GF_OK;
+		*is_new_data = GF_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_In] No AU for decoder\n"));
+	}
+	gf_mx_v(track->buffer_mutex);
+}
 #endif
