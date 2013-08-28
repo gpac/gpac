@@ -260,7 +260,6 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 static GF_Err MSE_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, 
 								GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-    GF_MSE_Packet *packet;
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     GF_HTML_SourceBuffer *sb = MSE_GetSourceBufferForChannel(msein->mediasource, channel);
     GF_HTML_Track *track = MSE_GetTrackForChannel(sb, channel);

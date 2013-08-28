@@ -752,5 +752,6 @@ GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_In] No AU for decoder\n"));
 	}
 	gf_mx_v(track->buffer_mutex);
+	return GF_OK;
 }
 #endif
