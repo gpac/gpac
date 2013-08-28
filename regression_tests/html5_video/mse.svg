@@ -37,16 +37,18 @@
   <script type="application/ecmascript" xlink:href="counter-mp4-video-segments-http.js"/>
   <script type="application/ecmascript" xlink:href="counter-mp4-audio-segments-http.js"/>
   <script type="application/ecmascript" xlink:href="counter-mp4-av-segments-http.js"/>
-  <script type="application/ecmascript" xlink:href="redbull-mp4-video-segments-http.js"/>
+  <script type="application/ecmascript" xlink:href="counter-mp4-video-segments-live-nobs-http.js"/>
+  <script type="application/ecmascript" xlink:href="redbull-mp4-video-segments-http.js"/>  
   <script type="application/ecmascript" xlink:href="gpac-mse.js"/>
   
   <script type="application/ecmascript">
     /* choose one of the segment source: 
 	    - counterAudioHTTPSegments, 
 		- counterAudioVideoHTTPSegments, 
-		- counterVideoHTTPSegments 
+		- counterVideoHTTPSegments ,
+		- counterLiveNoBSVideoHTTPSegments,
 		- or redBullVideoHTTPSegments */
-	var p1 = new Player('v_main', 'info_main', 'timer_anim', counterAudioVideoHTTPSegments); 
+	var p1 = new Player('v_main', 'info_main', 'timer_anim', counterLiveNoBSVideoHTTPSegments); 
 	p1.play();
   </script>
 </svg>

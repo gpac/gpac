@@ -90,7 +90,7 @@ void gf_isom_sample_del(GF_ISOSample **samp)
 }
 
 GF_EXPORT
-Bool gf_isom_probe_file(const char *fileName)
+u32 gf_isom_probe_file(const char *fileName)
 {
 	u32 type = 0;
 
@@ -98,7 +98,7 @@ Bool gf_isom_probe_file(const char *fileName)
 		u32 size;
 		u8 *mem_address;
 		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return GF_URL_ERROR;
+			return 0;
 		} 
 		if (size>8)
 			type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
@@ -115,18 +115,20 @@ Bool gf_isom_probe_file(const char *fileName)
 		fclose(f);
 	}
 	switch (type) {
-	case GF_ISOM_BOX_TYPE_MOOV:
-	case GF_ISOM_BOX_TYPE_MDAT:
 	case GF_ISOM_BOX_TYPE_FTYP:
+	case GF_ISOM_BOX_TYPE_MOOV:
+		return 2;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
+		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
 	case GF_ISOM_BOX_TYPE_AFRA:
 	case GF_ISOM_BOX_TYPE_ABST:
 #endif
 #endif
+	case GF_ISOM_BOX_TYPE_MDAT:
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 	case GF_ISOM_BOX_TYPE_UDTA:

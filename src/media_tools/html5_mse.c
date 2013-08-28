@@ -26,14 +26,44 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/html5_mse.h>
+#include <gpac/internal/isomedia_dev.h>
 
 GF_HTML_MediaSource *gf_mse_media_source_new()
 {
-    GF_HTML_MediaSource *p;
-    GF_SAFEALLOC(p, GF_HTML_MediaSource);
-    p->sourceBuffers.list = gf_list_new();
-    p->activeSourceBuffers.list = gf_list_new();
-    return p;
+	GF_HTML_MediaSource *p;
+	GF_SAFEALLOC(p, GF_HTML_MediaSource);
+	p->sourceBuffers.list = gf_list_new();
+	p->activeSourceBuffers.list = gf_list_new();
+	p->reference_count = 1;
+	return p;
+}
+
+GF_EXPORT
+void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js) 
+{
+	if (ms) {
+		if (del_js) {
+			/* finalize the object from the JS perspective */
+			ms->c = NULL;
+			ms->_this = NULL;
+		}
+		/* only delete the object if it is not used elsewhere */
+		if (ms->reference_count) {
+			ms->reference_count--;
+		}
+		if (!ms->reference_count) {
+			u32 i;
+			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) 
+			{
+				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
+				gf_mse_source_buffer_del(sb);
+			}
+			gf_list_del(ms->sourceBuffers.list);
+			/* all source buffer should have been deleted in the deletion of sourceBuffers */
+			gf_list_del(ms->activeSourceBuffers.list); 
+			gf_free(ms);
+		}
+	}
 }
 
 GF_HTML_SourceBuffer *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource)
@@ -47,7 +77,7 @@ GF_HTML_SourceBuffer *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource)
     source->input_buffer = gf_list_new();
     source->tracks = gf_list_new();
     source->parser_thread = gf_th_new(name);
-    source->parser_mutex = gf_mx_new(name);
+    source->remove_thread = gf_th_new(name);
     source->abort_mode = MEDIA_SOURCE_ABORT_MODE_NONE;
     source->appendWindowStart = 0;
     source->appendWindowEnd = GF_MAX_DOUBLE;
@@ -55,20 +85,30 @@ GF_HTML_SourceBuffer *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource)
     return source;
 }
 
+static void gf_mse_reset_input_buffer(GF_List *input_buffer)
+{
+	while (gf_list_count(input_buffer)) {
+		GF_HTML_ArrayBuffer *b = (GF_HTML_ArrayBuffer *)gf_list_get(input_buffer, 0);
+		gf_list_rem(input_buffer, 0);
+		gf_arraybuffer_del(b, GF_FALSE);
+	}
+}
+
 void gf_mse_source_buffer_del(GF_HTML_SourceBuffer *sb)
 {
     GF_HTML_TrackList tlist;
     gf_html_timeranges_del(&sb->buffered);
     gf_list_del(sb->buffered.times);
+    gf_mse_reset_input_buffer(sb->input_buffer);
     gf_list_del(sb->input_buffer);
     tlist.tracks = sb->tracks;
     gf_html_tracklist_del(&tlist);
     gf_free(sb->parser_thread);
-    gf_free(sb->parser_mutex);
+    gf_free(sb->remove_thread);
     gf_free(sb);
 }
 
-/*locates input service (demuxer, parser) based on mime type or segment name*/
+/*locates and loads an input service (demuxer, parser) for this source buffer based on mime type or segment name*/
 GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime)
 {
     GF_InputService *parser = NULL;
@@ -98,6 +138,7 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
     }
 }
 
+/* create a track based on the ESD and adds it to the source buffer */
 static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, GF_ESD *esd)
 {
     GF_HTML_Track *track;
@@ -132,8 +173,11 @@ static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, G
     return track;
 }
 
+/* Creates the different tracks based on the demuxer parser information 
+   Needs the parser to be setup and the initialization segment passed */
 static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 {
+	if (!sb || !sb->parser || !sb->parser_connected) return GF_BAD_PARAM;
     sb->service_desc = (GF_ObjectDescriptor *)sb->parser->GetServiceDescriptor(sb->parser, GF_MEDIA_OBJECT_UNDEF, NULL);
     if (sb->service_desc) 
     {
@@ -154,6 +198,8 @@ static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
     }
 }
 
+/* Adds the ObjectDescriptor to the associated track (creating a new track if needed)
+   Called in response to addmedia events received from the parser */
 static GF_Err gf_mse_source_buffer_store_track_desc(GF_HTML_SourceBuffer *sb, GF_ObjectDescriptor *od)
 {
     u32 i;
@@ -188,6 +234,7 @@ static GF_Err gf_mse_source_buffer_store_track_desc(GF_HTML_SourceBuffer *sb, GF
     return GF_OK;
 }
 
+/* Traverses the list of Access Units already demuxed & parsed to update the buffered status */
 void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
 {
     u32 i;
@@ -196,6 +243,9 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
     double end = 0;
     Bool start_set = GF_FALSE;
     Bool end_set = GF_FALSE;
+	u64 au_dur = 0;
+	double packet_start;
+	double packet_end;
 
     /* cleaning the current list */
     gf_html_timeranges_del(&(sb->buffered));
@@ -209,12 +259,21 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
         GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
         gf_mx_p(track->buffer_mutex);
         packet_count = gf_list_count(track->buffer);
+		au_dur = 0;
         for (j = 0; j < packet_count; j++)
         {
             GF_MSE_Packet *packet = (GF_MSE_Packet *)gf_list_get(track->buffer, j);
             if (packet) {
-                double packet_start = (packet->sl_header.compositionTimeStamp * 1.0 )/ track->timescale;
-                double packet_end = ((packet->sl_header.compositionTimeStamp + packet->sl_header.au_duration) * 1.0) / track->timescale;
+                packet_start = (packet->sl_header.compositionTimeStamp * 1.0 )/ track->timescale;
+				if (packet->sl_header.au_duration) {
+					au_dur = packet->sl_header.au_duration;
+				} else {
+					if (j > 0) {
+						GF_MSE_Packet *prev = (GF_MSE_Packet *)gf_list_get(track->buffer, j-1);
+						au_dur = packet->sl_header.compositionTimeStamp - prev->sl_header.compositionTimeStamp;
+					}
+				}
+                packet_end = ((packet->sl_header.compositionTimeStamp + au_dur) * 1.0) / track->timescale;
                 if (!start_set) 
                 {
                     start = packet_start;
@@ -250,6 +309,7 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
     }
 }
 
+/* Deletes all unparsed data buffers from all tracks in the source buffer */
 static void gf_mse_source_buffer_reset_parser(GF_HTML_SourceBuffer *sb)
 {
     u32 i, track_count;
@@ -265,10 +325,7 @@ static void gf_mse_source_buffer_reset_parser(GF_HTML_SourceBuffer *sb)
         track->needs_rap        = GF_TRUE;
     }
     sb->highest_end_timestamp_set = GF_FALSE;
-    while (gf_list_count(sb->input_buffer)) {
-        GF_MSE_Packet *packet = (GF_MSE_Packet *)gf_list_rem(sb->input_buffer, 0);
-        gf_mse_packet_del(packet);
-    }
+    gf_mse_reset_input_buffer(sb->input_buffer);
     sb->append_state = MEDIA_SOURCE_APPEND_STATE_WAITING_FOR_SEGMENT;
 }
 
@@ -335,9 +392,7 @@ static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
 {
     u32     i;
     u32     frame_count;
-    //Bool    found_previous;
 
-    //found_previous = GF_FALSE;
     gf_mx_p(track->buffer_mutex);
     frame_count = gf_list_count(track->buffer);
     for (i = 0; i < frame_count; i++)
@@ -466,6 +521,8 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
     return GF_OK;
 }
 
+/* Threaded function: called as a result of an append buffer 
+   Parses/Demultiplexes media segments and places the parsed AU in the track buffers */
 u32 gf_mse_parse_segment(void *par)
 {
     GF_MSE_Packet           *packet;
@@ -541,6 +598,7 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
         buffer->url = (char *)gf_malloc(256);
         sprintf(buffer->url, "gmem://%d@%p", buffer->length, buffer->data);
         buffer->reference_count++;
+		buffer->is_init = (gf_isom_probe_file(buffer->url) == 2 ? GF_TRUE : GF_FALSE);
         GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Appending segment %s\n", buffer->url));
 
         /* TODO: detect if the buffer contains an initialization segment or a media segment */
@@ -569,7 +627,8 @@ static void gf_mse_source_buffer_append_error(GF_HTML_SourceBuffer *sb)
 }
 */
 
-
+/* Threaded function called upon request from JS
+   - Removes data in each track buffer until the next RAP is found */
 u32 gf_mse_source_buffer_remove(void *par)
 {
     GF_HTML_SourceBuffer    *sb = (GF_HTML_SourceBuffer *)par;
@@ -579,6 +638,8 @@ u32 gf_mse_source_buffer_remove(void *par)
     u32                     frame_count;
     u64                     end = 0;
     //Bool                    end_set;
+
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Removing media until next RAP\n"));
 
     track_count = gf_list_count(sb->tracks);
     for (i = 0; i < track_count; i++)
@@ -610,6 +671,7 @@ u32 gf_mse_source_buffer_remove(void *par)
     return 0;
 }
 
+/* Callback functions used by a media parser when parsing events happens */
 GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 {
     if (!parser || !command || !parser->proxy_udta) {
@@ -631,15 +693,29 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
                 buffer = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 0);
                 if (buffer)
                 {
-                    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Next segment to parse %s\n", buffer->url));
-                    command->url_query.next_url = buffer->url;
-                    command->url_query.discontinuity_type = 0;
-                    command->url_query.start_range = 0;
-                    command->url_query.end_range = 0;
-                    command->url_query.switch_start_range = 0;
-                    command->url_query.switch_end_range = 0;
-                    command->url_query.next_url_init_or_switch_segment = NULL;
-                    gf_list_rem(sb->input_buffer, 0);
+					command->url_query.discontinuity_type = 0;
+					command->url_query.start_range = 0;
+					command->url_query.end_range = 0;
+					command->url_query.switch_start_range = 0;
+					command->url_query.switch_end_range = 0;
+					command->url_query.next_url_init_or_switch_segment = NULL;
+					if (buffer->is_init) { 
+						GF_HTML_ArrayBuffer *next = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 1);
+						if (next) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Next segment to parse %s with init \n", next->url, buffer->url));
+							command->url_query.next_url = next->url;
+							command->url_query.next_url_init_or_switch_segment = buffer->url;
+							gf_list_rem(sb->input_buffer, 0);
+							gf_list_rem(sb->input_buffer, 0);
+						} else {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Only one init segment to parse %s, need to wait\n", buffer->url));
+							command->url_query.next_url = NULL;
+						}
+					} else {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Next segment to parse %s\n", buffer->url));
+						command->url_query.next_url = buffer->url;
+						gf_list_rem(sb->input_buffer, 0);
+					}
                     sb->prev_buffer = buffer;
                 } else {
                     command->url_query.next_url = NULL;
@@ -648,7 +724,11 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
             }
             break;
         case GF_NET_SERVICE_STATUS_PROXY:
-            /* add media request from underlying parser */
+            /* The parser is informing the proxy about its status changes:
+			    - new track found 
+				- all tracks parsed
+				- connect/disconnect
+				- */
             if (command->status.is_add_media)
             {
                 if (command->status.desc)
@@ -703,8 +783,14 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
     }
 }
 
-#define MSE_TRACK_BUFFER_LENGTH 1000 // number of AU per track 
+/* Track Buffer Managment: 
+ * - Access Units are parsed/demultiplexed from the SourceBuffer input buffer and placed into individual track buffers
+ * - The parsing/demux is done in a separate thread (so access to the the track buffer is protected by a mutex)
+ *
+ * Track Buffer Length: number of Access Units */
+#define MSE_TRACK_BUFFER_LENGTH 1000 
 
+/* When an Access Unit can be released, we check if it needs to be kept or not in the track buffer */
 GF_EXPORT
 GF_Err gf_mse_track_buffer_release_packet(GF_HTML_Track *track) {
 	GF_MSE_Packet *packet;
@@ -724,6 +810,7 @@ GF_Err gf_mse_track_buffer_release_packet(GF_HTML_Track *track) {
 	return GF_OK;
 }
 
+/* Requests from the decoders to get the next Access Unit: we get it from the track buffer */
 GF_EXPORT
 GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
 											char **out_data_ptr, u32 *out_data_size, 
