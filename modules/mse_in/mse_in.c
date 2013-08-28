@@ -33,11 +33,13 @@ typedef struct __mse_module
     GF_InputService *plug;
 } GF_MSE_In;
 
+/* The MSE plugin has no MIME type associated, it cannot handle basic media resources (it needs a blob)*/
 static u32 MSE_RegisterMimeTypes(const GF_InputService *plug)
 {
 	return 0;
 }
 
+/* Only Blob URL are supported */
 static Bool MSE_CanHandleURL(GF_InputService *plug, const char *url)
 {
     if (!plug || !url)
@@ -49,15 +51,19 @@ static Bool MSE_CanHandleURL(GF_InputService *plug, const char *url)
     }
 }
 
+/* Returns the source buffer associated with the terminal channel
+   TODO: Improve: currently only 1 source buffer supported */
 static GF_HTML_SourceBuffer *MSE_GetSourceBufferForChannel(GF_HTML_MediaSource *mediasource, LPNETCHANNEL channel)
 {
-    if (gf_list_count(mediasource->sourceBuffers.list)) {
+    if (mediasource && gf_list_count(mediasource->sourceBuffers.list)) {
         GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(mediasource->sourceBuffers.list, 0);
         if (sb) return sb;
     }
     return NULL;
 }
 
+/* For a given source buffer, returns the media track associated with the terminal channel object 
+   Association is saved during the ConnectChannel operation */
 static GF_HTML_Track *MSE_GetTrackForChannel(GF_HTML_SourceBuffer *sb, LPNETCHANNEL channel)
 {
     u32 i;
@@ -74,6 +80,8 @@ static GF_HTML_Track *MSE_GetTrackForChannel(GF_HTML_SourceBuffer *sb, LPNETCHAN
     return NULL;
 }
 
+/* For a given source buffer, returns the media track associated with the given ESID
+   Association is saved when the initialisation segment has been parsed */
 static GF_HTML_Track *gf_mse_get_track_by_esid(GF_HTML_SourceBuffer *sb, u32 ESID)
 {
     GF_HTML_Track *track;
@@ -91,6 +99,8 @@ static GF_HTML_Track *gf_mse_get_track_by_esid(GF_HTML_SourceBuffer *sb, u32 ESI
     return NULL;
 }
 
+/* We connect the channel only if the sourcebuffer has been created,
+   and a track with the right ESID has been found in the init segment */
 static GF_Err MSE_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
     u32 ESID;
@@ -116,27 +126,34 @@ static GF_Err MSE_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 static GF_Err MSE_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
-    GF_HTML_SourceBuffer *sb = MSE_GetSourceBufferForChannel(msein->mediasource, channel);
+    GF_HTML_Track *track;
+	GF_HTML_SourceBuffer *sb = MSE_GetSourceBufferForChannel(msein->mediasource, channel);
     if (!plug || !plug->priv || !sb || !sb->parser) return GF_SERVICE_ERROR;
+	track = MSE_GetTrackForChannel(sb, channel);
+	if (track) {
+		track->channel = NULL;
+	}
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Disconnect channel (%p) request from terminal \n", channel));
     return sb->parser->DisconnectChannel(sb->parser, channel);
 }
 
+/* Upon service connection, if the URL is a blobURL, we do the following:
+   - get the associated MediaSource object, mark it as used
+   - trigger a source event to the media node associated with the service */
 static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
-
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
-
-    if (!msein|| !serv || !url) return GF_BAD_PARAM;
-
-    {
+    if (!msein|| !serv || !url) {
+		return GF_BAD_PARAM;
+	} else {
         GF_DOM_Event            mse_event;
         GF_Node                 *media_node;
         GF_HTML_MediaSource     *ms = NULL;
 
         sscanf(url, "blob:%p", &ms);
         msein->mediasource = ms;
+		ms->reference_count++;
         ms->service = serv;
         ms->readyState = 1;
 
@@ -149,38 +166,33 @@ static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
         //gf_mo_event_target_remove_by_node(serv->owner->mo, media_node);
         //ms->target = gf_mo_event_target_add_object(serv->owner->mo, ms);
         //sg_fire_dom_event(ms->target, &mse_event, media_node->sgprivate->scenegraph, NULL);
+	    return GF_OK;
     }
-    return GF_OK;
 }
 
+/* There is no service description (no MPEG-4 IOD) for this module, the associated scene will be generated dynamically */
 static GF_Descriptor *MSE_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-    //GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
-    //if (msein->mediasource && gf_list_count(msein->mediasource->sourceBuffers.list)) 
-    //{
-    //    GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(msein->mediasource->sourceBuffers.list, 0);
-    //    if (!sb->service_desc) 
-    //    { 
-    //        /* WARNING: we should not reach this point, the descriptor should be fetched upon MSE connection */
-    //        sb->service_desc = (GF_ObjectDescriptor *)sb->parser->GetServiceDescriptor(sb->parser, expect_type, sub_url);
-    //    } 
-    //    return (GF_Descriptor *)sb->service_desc;
-    //}
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Service Description request from terminal for %s\n", sub_url));
     return NULL;
 }
 
+/* Indicate that the media source object is unused anymore */
 static GF_Err MSE_CloseService(GF_InputService *plug)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     assert( msein );
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Close Service (%p) request from terminal\n", msein->mediasource->service));
-
-    gf_term_on_disconnect(msein->mediasource->service, NULL, GF_OK);
-
+	if (msein->mediasource) {
+		gf_term_on_disconnect(msein->mediasource->service, NULL, GF_OK);
+		gf_mse_mediasource_del(msein->mediasource, GF_FALSE);
+		msein->mediasource = NULL;
+	}
     return GF_OK;
 }
 
+/* Forward all the commands received from the the terminal 
+   to the parser associated with the channel on which the command is received */
 static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
@@ -257,6 +269,7 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     }
 }
 
+/* Forward the request for a new packet to the track (ask the parser to parse a new buffer or use already parsed AU) */
 static GF_Err MSE_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, 
 								GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
@@ -268,6 +281,7 @@ static GF_Err MSE_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
     return GF_OK;
 }
 
+/* Indicate to the track that a packet can be released (and potentially deleted) */
 static GF_Err MSE_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
@@ -278,6 +292,7 @@ static GF_Err MSE_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
     return GF_OK;
 }
 
+/* This module can only handle one blobURL at a time */
 static Bool MSE_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
@@ -339,6 +354,3 @@ void ShutdownInterface(GF_BaseInterface *bi)
 }
 
 GPAC_MODULE_STATIC_DELARATION( mse_in )
-
-
-

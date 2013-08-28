@@ -85,15 +85,29 @@ typedef struct
     double                  remove_start;
     double                  remove_end;
 
-    /* GPAC internal objects */
-    GF_List                 *tracks;         /* Media tracks associated to this source buffer */
-    GF_List                 *input_buffer;  /* List of ArrayBuffer objects as given by appendBuffer call (only one buffer for now)*/
-    void                    *prev_buffer;  /* Previous ArrayBuffer (for garbage collection)*/
-    GF_InputService         *parser;        /* Media parser */
-    GF_ObjectDescriptor     *service_desc;  /* MPEG-4 Object descriptor as returned by the media parser */
-    Bool                    parser_connected;
-    Bool                    parsing;
-    GF_Mutex                *parser_mutex;
+    /*
+	 * GPAC internal objects 
+	 */
+
+	/* Media tracks associated to this source buffer */
+    GF_List                 *tracks;
+	/* Buffers to parse */
+	GF_List					*input_buffer;
+	/* We can only delete a buffer when we know it has been parsed, 
+	   i.e. when the next buffer is asked for, 
+	   so we need to keep the buffer in the meantime */
+    void                    *prev_buffer;
+
+	/* Media parser */
+    GF_InputService         *parser;
+
+	/* MPEG-4 Object descriptor as returned by the media parser */
+    GF_ObjectDescriptor     *service_desc;  
+
+    /* Boolean indicating that the parser has parsed the initialisation segment */
+	Bool                    parser_connected;
+
+	/* Threads used to asynchronously parse the buffer and remove media data */
     GF_Thread               *parser_thread;
     GF_Thread               *remove_thread;
 
@@ -122,6 +136,9 @@ typedef struct _html_mediasource
     /* JavaScript counterpart for this object*/
     JSObject                *_this;
 
+	/* Used to determine if the object can be safely deleted (not used by JS, not used by the service) */
+	u32 reference_count;
+
     GF_HTML_SourceBufferList sourceBuffers;
     GF_HTML_SourceBufferList activeSourceBuffers;
 
@@ -147,7 +164,8 @@ typedef struct _html_mediasource
     GF_DOMEventTarget *target;
 } GF_HTML_MediaSource;
 
-GF_HTML_MediaSource *gf_mse_media_source_new();
+GF_HTML_MediaSource		*gf_mse_media_source_new();
+void					gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js);
 
 GF_HTML_SourceBuffer   *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource);
 GF_Err                  gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime);

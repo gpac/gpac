@@ -323,8 +323,10 @@ the last error is a FatalError, and is not always set if a bad
 param is specified...*/
 GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 
-/*returns 1 if target file is an IsoMedia file, 0 otherwise*/
-Bool gf_isom_probe_file(const char *fileName);
+/*indicates if target file is an IsoMedia file
+  returns 1 if it is a non-special file, 2 if an init segment, 3 if a media segment, 
+  returns 0 otherwise*/
+u32 gf_isom_probe_file(const char *fileName);
 
 /*Opens an isoMedia File.
 tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the librairy will use the default

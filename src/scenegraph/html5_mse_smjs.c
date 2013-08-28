@@ -62,10 +62,10 @@ typedef enum
 
 static GF_HTML_MediaRuntime *html_media_rt = NULL;
 
-static void mediasource_sourceBuffer_initjs(JSContext *c, GF_HTML_SourceBuffer *sb)
+static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_HTML_SourceBuffer *sb)
 {
     sb->_this = JS_NewObject(c, &html_media_rt->sourceBufferClass._class, 0, 0);
-    gf_js_add_root(c, &sb->_this, GF_JSGC_OBJECT);
+    //gf_js_add_root(c, &sb->_this, GF_JSGC_OBJECT);
     SMJS_SET_PRIVATE(c, sb->_this, sb);
     sb->buffered._this = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, sb->_this);
     SMJS_SET_PRIVATE(c, sb->buffered._this, &sb->buffered);
@@ -130,7 +130,7 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
     assert(p->service);
     sb = gf_mse_source_buffer_new(p);
     gf_mse_source_buffer_load_parser(sb, mime);
-    mediasource_sourceBuffer_initjs(c, sb);
+    mediasource_sourceBuffer_initjs(c, obj, sb);
     SMJS_SET_RVAL( OBJECT_TO_JSVAL(sb->_this) );
     return JS_TRUE;
 }
@@ -172,20 +172,7 @@ static DECL_FINALIZE(media_source_finalize)
     GF_HTML_MediaSource *p;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) return;
     p = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
-    if (p) {
-        u32 i;
-        /* TODO remove functions */
-        for (i = 0; i < gf_list_count(p->sourceBuffers.list); i++) 
-        {
-            GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(p->sourceBuffers.list, i);
-            if (sb) {
-                gf_free(sb);
-            }
-        }
-        gf_list_del(p->sourceBuffers.list);
-        gf_list_del(p->activeSourceBuffers.list); /* all source buffer should have been deleted in the deletion of sourecBuffers */
-        gf_free(p);
-    }
+	gf_mse_mediasource_del(p, GF_TRUE);
 }
 
 static SMJS_FUNC_PROP_GET(media_source_get_source_buffers)
