@@ -559,7 +559,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(m2ts, param);
 		break;
-	case GF_M2TS_EVT_SL_PCK:
+	case GF_M2TS_EVT_SL_PCK: /* DMB specific */
 		MP2TS_SendSLPacket(m2ts, param);
 		break;
 	case GF_M2TS_EVT_EOS:
