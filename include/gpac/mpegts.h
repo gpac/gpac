@@ -852,7 +852,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 
 
 
-u32 gf_m2ts_crc32_check(char *data, u32 len);
+Bool gf_m2ts_crc32_check(char *data, u32 len);
 
 
 
