@@ -401,7 +401,7 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 }
 
 GF_EXPORT
-GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
+GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 {
 	s32 res;
 #ifdef WIN32
