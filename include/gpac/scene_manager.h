@@ -371,10 +371,10 @@ typedef struct _scenedump GF_SceneDumper;
 @graph: scene graph being dumped
 @rad_name: file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
 @indent_char: indent format
-@XMLDump: if set, dumps in XML format otherwise regular text
+@dump_mode: if set, dumps in XML format otherwise regular text
 returns NULL if can't create a file
 */
-GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char indent_char, Bool XMLDump);
+GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, u32 dump_mode);
 void gf_sm_dumper_set_extra_graph(GF_SceneDumper *sdump, GF_SceneGraph *extra);
 void gf_sm_dumper_del(GF_SceneDumper *bd);
 
