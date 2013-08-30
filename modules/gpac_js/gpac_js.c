@@ -121,15 +121,15 @@ static SMJS_FUNC_PROP_GET( gpac_getProperty)
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
 	}
 	else if (!strcmp(prop_name, "rectangular_textures")) {
-		Bool any_size = 0;
+		Bool any_size = GF_FALSE;
 #ifndef GPAC_DISABLE_3D
 		if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
-			any_size = 1;
+			any_size = GF_TRUE;
 #endif
 		*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
 	}
 	else if (!strcmp(prop_name, "batteryOn")) {
-		Bool on_battery = 0;
+		Bool on_battery = GF_FALSE;
 		gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
 		*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
 	}
