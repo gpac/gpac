@@ -4454,10 +4454,9 @@ GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 r
 GF_EXPORT
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name)
 {
-	GF_Err e;
 	Bool found = GF_FALSE;
 	u32 i, j, latest_segment_number, earliest_segment_number;
-	Double latest_segment_time, earliest_segment_time;
+	Double /*latest_segment_time,*/ earliest_segment_time;
 	u64 start_range, end_range, current_dur;
 	char *seg_url, *seg_name, *seg_sep;
 	GF_MPD_Representation *rep;
@@ -4468,7 +4467,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 		group = gf_list_get(dash->groups, i);
 		for (j=0; j<gf_list_count(group->adaptation_set->representations); j++) {
 			rep = gf_list_get(group->adaptation_set->representations, j);
-			e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA_TEMPLATE, i, &seg_url, &start_range, &end_range, &current_dur, NULL);
+			gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA_TEMPLATE, i, &seg_url, &start_range, &end_range, &current_dur, NULL);
 			
 			if (!seg_url) continue;
 
@@ -4505,7 +4504,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 		char *earliest_template = earliest_segment_name ? (char *) (earliest_segment_name + strlen(seg_name)) : NULL;
 
 		latest_segment_number = earliest_segment_number = 0;
-		latest_segment_time = earliest_segment_time = 0;
+		/*latest_segment_time = */earliest_segment_time = 0;
 
 		seg_sep[0] = '$';
 		while (seg_sep) {
@@ -4522,7 +4521,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 				latest_segment_number = atoi(latest_template);
 			}
 			else if (!strcmp(seg_sep, "$Time$")) {
-				latest_segment_time = atof(latest_template);
+				/*latest_segment_time =*/ atof(latest_template);
 			}
 			sep_name[0] = c;
 			latest_template = sep_name;
