@@ -4456,7 +4456,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 {
 	Bool found = GF_FALSE;
 	u32 i, j, latest_segment_number, earliest_segment_number;
-	Double /*latest_segment_time,*/ earliest_segment_time;
+	/*Double latest_segment_time, earliest_segment_time;*/ //FIX : set but not used
 	u64 start_range, end_range, current_dur;
 	char *seg_url, *seg_name, *seg_sep;
 	GF_MPD_Representation *rep;
@@ -4504,7 +4504,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 		char *earliest_template = earliest_segment_name ? (char *) (earliest_segment_name + strlen(seg_name)) : NULL;
 
 		latest_segment_number = earliest_segment_number = 0;
-		/*latest_segment_time = */earliest_segment_time = 0;
+		/*latest_segment_time = earliest_segment_time = 0;*/
 
 		seg_sep[0] = '$';
 		while (seg_sep) {
@@ -4520,9 +4520,9 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 			if (!strcmp(seg_sep, "$Number$")) {
 				latest_segment_number = atoi(latest_template);
 			}
-			else if (!strcmp(seg_sep, "$Time$")) {
-				/*latest_segment_time =*/ atof(latest_template);
-			}
+			/*else if (!strcmp(seg_sep, "$Time$")) {
+				latest_segment_time = atof(latest_template);
+			}*/
 			sep_name[0] = c;
 			latest_template = sep_name;
 
@@ -4535,9 +4535,9 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 				if (!strcmp(seg_sep, "$Number$")) {
 					earliest_segment_number = atoi(earliest_template);
 				}
-				else if (!strcmp(seg_sep, "$Time$")) {
+				/*else if (!strcmp(seg_sep, "$Time$")) {
 					earliest_segment_time = atof(earliest_template);
-				}
+				}*/
 				sep_name[0] = c;
 				earliest_template = sep_name;
 			}
