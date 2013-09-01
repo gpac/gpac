@@ -1732,7 +1732,7 @@ typedef enum
 
 
 
-GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Group *group, const char *mpd_url, GF_DASHURLResolveType resolve_type, u32 item_index, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url)
+static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Group *group, const char *mpd_url, GF_DASHURLResolveType resolve_type, u32 item_index, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url)
 {
 	GF_MPD_BaseURL *url_child;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -1747,14 +1747,10 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 	*out_range_start = *out_range_end = 0;
 	*out_url = NULL;
 
-
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(mpd, group, 0);
 		group->timeline_setup = 1;
 	}
-
-
-
 
 	/*resolve base URLs from document base (download location) to representation (media)*/
 	url = gf_strdup(mpd_url);
@@ -1795,7 +1791,8 @@ GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Grou
 	if (!rep->segment_list && !set->segment_list && !period->segment_list && !rep->segment_template && !set->segment_template && !period->segment_template) {	
 		GF_MPD_URL *res_url;
 		GF_MPD_SegmentBase *base_seg = NULL;
-		if (item_index>0) return GF_EOS;
+		if (item_index > 0)
+			return GF_EOS;
 		switch (resolve_type) {
 		case GF_DASH_RESOLVE_URL_MEDIA:
 		case GF_DASH_RESOLVE_URL_MEDIA_TEMPLATE:
@@ -4466,9 +4463,12 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		group = gf_list_get(dash->groups, i);
 		for (j=0; j<gf_list_count(group->adaptation_set->representations); j++) {
+			GF_Err e;
 			rep = gf_list_get(group->adaptation_set->representations, j);
-			gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA_TEMPLATE, i, &seg_url, &start_range, &end_range, &current_dur, NULL);
-			
+			e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA_TEMPLATE, i, &seg_url, &start_range, &end_range, &current_dur, NULL);
+			if (e)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Unable to resolve media template URL: %s\n", gf_error_to_string(e)));
+
 			if (!seg_url) continue;
 
 			seg_sep = NULL;
