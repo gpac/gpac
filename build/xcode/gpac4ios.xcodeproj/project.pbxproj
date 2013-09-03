@@ -454,6 +454,12 @@
 		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
 		97DDAFEF1569631900528219 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DDAFEE1569631900528219 /* sha1.c */; };
 		97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E08C68160F684B00BBDC34 /* swf_svg.c */; };
+		97E29F6917D1138B00904FBF /* webvtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F6817D1138B00904FBF /* webvtt.c */; };
+		97E29F6E17D114E900904FBF /* mse_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F6D17D114E900904FBF /* mse_in.c */; };
+		97E29F7417D1154D00904FBF /* ac3_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7217D1154D00904FBF /* ac3_in.c */; };
+		97E29F7517D1154D00904FBF /* liba52_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7317D1154D00904FBF /* liba52_dec.c */; };
+		97E29F7A17D118F100904FBF /* raw_video.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7917D118F100904FBF /* raw_video.c */; };
+		97E29F7C17D1190600904FBF /* osd.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7B17D1190600904FBF /* osd.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
 /* End PBXBuildFile section */
 
@@ -995,6 +1001,12 @@
 		97DB67C41627B22F00A7E054 /* dash_segmenter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_segmenter.c; sourceTree = "<group>"; };
 		97DDAFEE1569631900528219 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		97E08C68160F684B00BBDC34 /* swf_svg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = swf_svg.c; sourceTree = "<group>"; };
+		97E29F6817D1138B00904FBF /* webvtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = webvtt.c; sourceTree = "<group>"; };
+		97E29F6D17D114E900904FBF /* mse_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mse_in.c; path = ../../modules/mse_in/mse_in.c; sourceTree = "<group>"; };
+		97E29F7217D1154D00904FBF /* ac3_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ac3_in.c; path = ../../modules/ac3_in/ac3_in.c; sourceTree = "<group>"; };
+		97E29F7317D1154D00904FBF /* liba52_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = liba52_dec.c; path = ../../modules/ac3_in/liba52_dec.c; sourceTree = "<group>"; };
+		97E29F7917D118F100904FBF /* raw_video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_video.c; path = ../../modules/raw_out/raw_video.c; sourceTree = "<group>"; };
+		97E29F7B17D1190600904FBF /* osd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = osd.c; path = ../../modules/osd/osd.c; sourceTree = "<group>"; };
 		97FF065F138CE4C400D6C707 /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1510,6 +1522,7 @@
 		71CCF1CD1277045100339E12 /* media_tools */ = {
 			isa = PBXGroup;
 			children = (
+				97E29F6817D1138B00904FBF /* webvtt.c */,
 				970FBA7B16F9F0720052216D /* html5_media.c */,
 				970FBA7C16F9F0720052216D /* html5_mse.c */,
 				97DB67C41627B22F00A7E054 /* dash_segmenter.c */,
@@ -1805,6 +1818,11 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				97E29F7B17D1190600904FBF /* osd.c */,
+				97E29F7917D118F100904FBF /* raw_video.c */,
+				97E29F7217D1154D00904FBF /* ac3_in.c */,
+				97E29F7317D1154D00904FBF /* liba52_dec.c */,
+				97E29F6D17D114E900904FBF /* mse_in.c */,
 				92FA826116F254F50002629E /* timedtext_dec.c */,
 				92FA826216F254F50002629E /* timedtext_in.c */,
 				92FA825F16F254DA0002629E /* isma_ea.c */,
@@ -2374,6 +2392,12 @@
 				970FBA7E16F9F0720052216D /* html5_mse.c in Sources */,
 				970FBA8116F9F0920052216D /* html5_media_smjs.c in Sources */,
 				970FBA8216F9F0920052216D /* html5_mse_smjs.c in Sources */,
+				97E29F6917D1138B00904FBF /* webvtt.c in Sources */,
+				97E29F6E17D114E900904FBF /* mse_in.c in Sources */,
+				97E29F7417D1154D00904FBF /* ac3_in.c in Sources */,
+				97E29F7517D1154D00904FBF /* liba52_dec.c in Sources */,
+				97E29F7A17D118F100904FBF /* raw_video.c in Sources */,
+				97E29F7C17D1190600904FBF /* osd.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2402,6 +2426,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
@@ -2411,13 +2436,14 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				OTHER_CFLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = osmo4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
+				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 			};
 			name = Debug;
@@ -2433,6 +2459,7 @@
 				COPY_PHASE_STRIP = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = ../../include;
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
@@ -2442,12 +2469,14 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = osmo4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
+				SDKROOT = iphoneos;
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -2520,6 +2549,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				GCC_C_LANGUAGE_STANDARD = c99;
@@ -2531,6 +2561,8 @@
 					XP_UNIX,
 				);
 				GCC_THUMB_SUPPORT = NO;
+				GCC_USE_STANDARD_INCLUDE_SEARCHING = YES;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../../extra_lib/include;
@@ -2547,6 +2579,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				GCC_C_LANGUAGE_STANDARD = c99;
@@ -2558,6 +2591,8 @@
 					XP_UNIX,
 				);
 				GCC_THUMB_SUPPORT = NO;
+				GCC_USE_STANDARD_INCLUDE_SEARCHING = YES;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
