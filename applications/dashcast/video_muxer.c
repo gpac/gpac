@@ -26,6 +26,166 @@
 #include "video_muxer.h"
 #include "libavutil/opt.h"
 
+
+/**
+ * A function which takes FFmpeg H264 extradata (SPS/PPS) and bring them ready to be pushed to the MP4 muxer.
+ * @param extradata
+ * @param extradata_size
+ * @param dstcfg
+ * @returns GF_OK is the extradata was parsed and is valid, other values otherwise.
+ */
+static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_size, GF_AVCConfig *dstcfg)
+{
+	u8 nal_size;
+	AVCState avc;
+	GF_BitStream *bs;
+	if (!extradata || !extradata_size)
+		return GF_BAD_PARAM;
+	bs = gf_bs_new(extradata, extradata_size, GF_BITSTREAM_READ);
+	if (!bs)
+		return GF_BAD_PARAM;
+	if (gf_bs_read_u32(bs) != 0x00000001)
+		return GF_BAD_PARAM;
+
+	//SPS
+	{
+		s32 idx;
+		char *buffer = NULL;
+		const u64 nal_start = 4;
+		nal_size = gf_media_nalu_next_start_code_bs(bs);
+		if (nal_start + nal_size > extradata_size)
+			return GF_BAD_PARAM;
+		buffer = (char*)gf_malloc(nal_size);
+		gf_bs_read_data(bs, buffer, nal_size);
+		gf_bs_seek(bs, nal_start);
+		if ((gf_bs_read_u8(bs) & 0x1F) != GF_AVC_NALU_SEQ_PARAM) {
+			gf_bs_del(bs);
+			gf_free(buffer);
+			return GF_BAD_PARAM;
+		}
+
+		idx = gf_media_avc_read_sps(buffer, nal_size, &avc, 0, NULL);
+		if (idx < 0) {
+			gf_bs_del(bs);
+			gf_free(buffer);
+			return GF_BAD_PARAM;
+		}
+
+		dstcfg->configurationVersion = 1;
+		dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
+		dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
+		dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
+		dstcfg->chroma_format = avc.sps[idx].chroma_format;
+		dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
+		dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+
+		{
+			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+			slc->size = nal_size;
+			slc->id = idx;
+			slc->data = buffer;
+			gf_list_add(dstcfg->sequenceParameterSets, slc);
+		}
+	}
+
+	//PPS
+	{
+		s32 idx;
+		char *buffer = NULL;
+		const u64 nal_start = 4 + nal_size + 4;
+		gf_bs_seek(bs, nal_start);
+		nal_size = gf_media_nalu_next_start_code_bs(bs);
+		if (nal_start + nal_size > extradata_size)
+			return GF_BAD_PARAM;
+		buffer = (char*)gf_malloc(nal_size);
+		gf_bs_read_data(bs, buffer, nal_size);
+		gf_bs_seek(bs, nal_start);
+		if ((gf_bs_read_u8(bs) & 0x1F) != GF_AVC_NALU_PIC_PARAM) {
+			gf_bs_del(bs);
+			gf_free(buffer);
+			return GF_BAD_PARAM;
+		}
+		
+		idx = gf_media_avc_read_pps(buffer, nal_size, &avc);
+		if (idx < 0) {
+			gf_bs_del(bs);
+			gf_free(buffer);
+			return GF_BAD_PARAM;
+		}
+
+		{
+			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+			slc->size = nal_size;
+			slc->id = idx;
+			slc->data = buffer;
+			gf_list_add(dstcfg->pictureParameterSets, slc);
+		}
+	}
+
+	gf_bs_del(bs);
+	return GF_OK;
+}
+
+static GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec)
+{
+	GF_ESD *esd;
+	GF_AVCConfig *avcc;
+	u32 subtype = gf_isom_is_media_encrypted(movie, track, 1);
+	if (!subtype) subtype = gf_isom_get_media_subtype(movie, track, 1);
+
+	switch (subtype) {
+	case GF_ISOM_SUBTYPE_MPEG4:
+		esd = gf_isom_get_esd(movie, track, 1);
+		switch (esd->decoderConfig->streamType) {
+		case GF_STREAM_AUDIO:
+			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+				/*5 first bits of AAC config*/
+				u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
+				sprintf(szCodec, "mp4a.%02x.%01x", esd->decoderConfig->objectTypeIndication, audio_object_type);
+			} else {
+				sprintf(szCodec, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
+			}
+			break;
+		case GF_STREAM_VISUAL:
+#ifndef GPAC_DISABLE_AV_PARSERS
+			if (esd->decoderConfig->decoderSpecificInfo) {
+				GF_M4VDecSpecInfo dsi;
+				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+				sprintf(szCodec, "mp4v.%02x.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
+			} else
+#endif
+			{
+				sprintf(szCodec, "mp4v.%02x", esd->decoderConfig->objectTypeIndication);
+			}
+			break;
+		default:
+			sprintf(szCodec, "mp4s.%02x", esd->decoderConfig->objectTypeIndication);
+			break;
+		}
+		gf_odf_desc_del((GF_Descriptor *)esd);
+		return GF_OK;
+
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
+		avcc = gf_isom_avc_config_get(movie, track, 1);
+		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+		gf_odf_avc_cfg_del(avcc);
+		return GF_OK;
+	case GF_ISOM_SUBTYPE_SVC_H264:
+		avcc = gf_isom_svc_config_get(movie, track, 1);
+		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+		gf_odf_avc_cfg_del(avcc);
+		return GF_OK;
+	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
+		sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
+		return GF_OK;
+	}
+	return GF_OK;
+}
+
 int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 
 	GF_Err ret;
@@ -51,11 +211,14 @@ int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 	//int64_t profile = 0;
 	//av_opt_get_int(p_voutf->p_codec_ctx->priv_data, "level", AV_OPT_SEARCH_CHILDREN, &profile);
 
-	avccfg->configurationVersion = 1; //0
-	//avccfg->AVCProfileIndication = 66; //0
-	//avccfg->profile_compatibility = 192; //0
-	//avccfg->AVCLevelIndication = 30; //24
-	//avccfg->nal_unit_size = 4;
+	{
+		GF_Err e = avc_import_ffextradata(p_video_codec_ctx->extradata, p_video_codec_ctx->extradata_size, avccfg);
+		if (e) {
+			fprintf(stderr, "Cannot parse H264 SPS/PPS\n");
+			gf_odf_avc_cfg_del(avccfg);
+			return -1;
+		}
+	}
 
 	p_voutf->p_isof = gf_isom_open(psz_name, GF_ISOM_OPEN_WRITE, NULL);
 
@@ -90,11 +253,16 @@ int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 	//printf("time scale: %d \n",
 	//		p_video_codec_ctx->time_base.den);
 
-	ret = gf_isom_avc_set_inband_config(p_voutf->p_isof, track, 1);
-	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_avc_set_inband_config\n",
-				gf_error_to_string(ret));
-		return -1;
+	gf_isom_set_visual_info(p_voutf->p_isof, track, di, p_video_codec_ctx->width, p_video_codec_ctx->height);
+
+	//inband SPS/PPS
+	if (p_voutf->muxer_type == GPAC_INIT_VIDEO_MUXER_AVC3) {
+		ret = gf_isom_avc_set_inband_config(p_voutf->p_isof, track, 1);
+		if (ret != GF_OK) {
+			fprintf(stderr, "%s: gf_isom_avc_set_inband_config\n",
+					gf_error_to_string(ret));
+			return -1;
+		}
 	}
 
 	ret = gf_isom_setup_track_fragment(p_voutf->p_isof, 1, 1, 1, 0, 0, 0, 0);
@@ -433,7 +601,15 @@ GF_Err dc_video_muxer_open(VideoOutputFile * p_voutf, char * psz_directory,
 		sprintf(psz_name, "%s/%s_%d_gpac.mp4", psz_directory, psz_id, i_seg);
 		dc_gpac_video_moov_create(p_voutf, psz_name);
 		return dc_gpac_video_isom_open_seg(p_voutf, NULL);
-	case GPAC_INIT_VIDEO_MUXER:
+	case GPAC_INIT_VIDEO_MUXER_AVC1:
+		if (i_seg == 0) {
+			sprintf(psz_name, "%s/%s_init_gpac.mp4", psz_directory, psz_id);
+			dc_gpac_video_moov_create(p_voutf, psz_name);
+			p_voutf->first_dts = 0;
+		}
+		sprintf(psz_name, "%s/%s_%d_gpac.m4s", psz_directory, psz_id, i_seg);
+		return dc_gpac_video_isom_open_seg(p_voutf, psz_name);
+	case GPAC_INIT_VIDEO_MUXER_AVC3:
 		if (i_seg == 0) {
 			sprintf(psz_name, "%s/%s_init_gpac.mp4", psz_directory, psz_id);
 			dc_gpac_video_moov_create(p_voutf, psz_name);
@@ -458,7 +634,8 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 	case RAW_VIDEO_H264:
 		return dc_raw_h264_write(p_voutf);
 	case GPAC_VIDEO_MUXER:
-	case GPAC_INIT_VIDEO_MUXER:
+	case GPAC_INIT_VIDEO_MUXER_AVC1:
+	case GPAC_INIT_VIDEO_MUXER_AVC3:
 		if (i_frame_nb % p_voutf->frame_per_fragment == 0) {
 			gf_isom_start_fragment(p_voutf->p_isof, 1);
 
@@ -493,7 +670,8 @@ int dc_video_muxer_close(VideoOutputFile * p_voutf) {
 	case GPAC_VIDEO_MUXER:
 		dc_gpac_video_isom_close_seg(p_voutf);
 		return dc_gpac_video_isom_close(p_voutf);
-	case GPAC_INIT_VIDEO_MUXER:
+	case GPAC_INIT_VIDEO_MUXER_AVC1:
+	case GPAC_INIT_VIDEO_MUXER_AVC3:
 		return dc_gpac_video_isom_close_seg(p_voutf);
 	default:
 		return -2;

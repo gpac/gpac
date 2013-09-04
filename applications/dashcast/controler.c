@@ -60,7 +60,8 @@ s32 gettimeofday(struct timeval *tp, void *tz)
 //#define VIDEO_MUXER FFMPEG_VIDEO_MUXER
 //#define VIDEO_MUXER RAW_VIDEO_H264
 //#define VIDEO_MUXER GPAC_VIDEO_MUXER
-#define VIDEO_MUXER GPAC_INIT_VIDEO_MUXER
+#define VIDEO_MUXER GPAC_INIT_VIDEO_MUXER_AVC1
+//#define VIDEO_MUXER GPAC_INIT_VIDEO_MUXER_AVC3
 
 //#define AUDIO_MUXER FFMPEG_AUDIO_MUXER
 //#define AUDIO_MUXER GPAC_AUDIO_MUXER
@@ -289,7 +290,7 @@ static u32 mpd_thread(void * p_params) {
 
 			fprintf(p_f,
 					"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-							" startNumber=\"1\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+							" startNumber=\"0\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
 					p_adata->i_samplerate, audio_seg_dur * audio_frame_size);
 
 			for (i = 0; i < gf_list_count(p_cmddata->p_audio_lst); i++) {
@@ -312,18 +313,19 @@ static u32 mpd_thread(void * p_params) {
 
 			fprintf(p_f,
 					"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-							" startNumber=\"1\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+							" startNumber=\"0\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
 					p_vdata->i_framerate, video_seg_dur);
 
 			for (i = 0; i < gf_list_count(p_cmddata->p_video_lst); i++) {
 
 				p_vdata = gf_list_get(p_cmddata->p_video_lst, i);
 				fprintf(p_f,
-						"   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"avc3\" "
-								"width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
-								"   </Representation>\n", p_vdata->psz_name,
-						p_vdata->i_width, p_vdata->i_height, p_vdata->i_framerate,
-						p_vdata->i_bitrate);
+					"   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
+					"width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
+					"   </Representation>\n", p_vdata->psz_name,
+					VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? "avc1.42e01e" : "avc3", //FIXME: hardcoded. We would need acces to the ISOFile to call gf_media_get_rfc_6381_codec_name()
+					p_vdata->i_width, p_vdata->i_height, p_vdata->i_framerate,
+					p_vdata->i_bitrate);
 
 			}
 
