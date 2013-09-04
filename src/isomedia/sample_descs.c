@@ -73,7 +73,6 @@ GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStrea
 #ifndef GPAC_DISABLE_ISOM_WRITE
 void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs)
 {
-
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
 	

@@ -76,7 +76,8 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	}
 
 //	if (p_voutf->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
-//		p_voutf->p_codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+	//the global header gives access to the extradata (SPS/PPS)
+	p_voutf->p_codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 //	p_video_stream->codec->codec_id = p_video_codec->id;
 //	p_video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;

@@ -1519,6 +1519,7 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
 
 /*read that amount of data at each IO access rather than fetching byte by byte...*/
 #define AVC_CACHE_SIZE	4096
+GF_EXPORT
 u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs)
 {
 	u32 v, bpos;
