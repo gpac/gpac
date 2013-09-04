@@ -433,18 +433,6 @@ static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static u32 latm_get_value(GF_BitStream *bs)
-{
-	u32 i, tmp, value = 0;
-	u32 bytesForValue = gf_bs_read_int(bs, 2);
-	for (i=0; i <= bytesForValue; i++) {
-		value <<= 8;
-		tmp = gf_bs_read_int(bs, 8);
-		value += tmp;
-	}
-	return value;
-}
-
 typedef struct
 {
 	Bool is_mp2, no_crc;
@@ -649,7 +637,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			if (amux_version) amux_versionA = gf_bs_read_int(bs, 1);
 			if (!amux_versionA) {
 				u32 i, allStreamsSameTimeFraming, numProgram;
-				if (amux_version) latm_get_value(bs);
+				if (amux_version) gf_latm_get_value(bs);
 
 				allStreamsSameTimeFraming = gf_bs_read_int(bs, 1);
 				/*numSubFrames = */gf_bs_read_int(bs, 6);
@@ -664,7 +652,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 						if (i || j) same_cfg = gf_bs_read_int(bs, 1);
 
 						if (!same_cfg) {
-							if (amux_version==1) latm_get_value(bs);
+							if (amux_version==1) gf_latm_get_value(bs);
 							gf_m4a_parse_config(bs, &cfg, 0);
 
 							if (!pes->aud_sr) {

@@ -1041,6 +1041,18 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 	return GF_OK;
 }
 
+u32 gf_latm_get_value(GF_BitStream *bs)
+{
+	u32 i, tmp, value = 0;
+	u32 bytesForValue = gf_bs_read_int(bs, 2);
+	for (i=0; i <= bytesForValue; i++) {
+		value <<= 8;
+		tmp = gf_bs_read_int(bs, 8);
+		value += tmp;
+	}
+	return value;
+}
+
 GF_EXPORT
 GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 {
