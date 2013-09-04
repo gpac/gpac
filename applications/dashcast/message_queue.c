@@ -31,14 +31,8 @@ void dc_message_queue_init(MessageQueue *mq) {
 	mq->first_node = NULL;
 	mq->last_node = NULL;
 	mq->nb_nodes = 0;
-#ifdef GPAC_THREAD
 	mq->mux = gf_mx_new("MessageQueue Mutex");
 	mq->sem = gf_sema_new(1000, 0); //TODO: why 1000 (at other places too)
-#else
-	pthread_mutex_init(&mq->mux, NULL);
-	pthread_cond_init(&mq->cond, NULL);
-#endif
-
 }
 
 void dc_message_queue_put(MessageQueue *mq, void *data, int size) {
@@ -49,11 +43,7 @@ void dc_message_queue_put(MessageQueue *mq, void *data, int size) {
 	mqn->size = size;
 	mqn->next = NULL;
 
-#ifdef GPAC_THREAD
 	gf_mx_p(mq->mux);
-#else
-	pthread_mutex_lock(&mq->mux);
-#endif
 
 	if (!mq->last_node)
 		mq->first_node = mqn;
@@ -63,13 +53,8 @@ void dc_message_queue_put(MessageQueue *mq, void *data, int size) {
 	mq->last_node = mqn;
 	mq->nb_nodes++;
 
-#ifdef GPAC_THREAD
 	gf_sema_notify(mq->sem, 1);
 	gf_mx_v(mq->mux);
-#else
-	pthread_cond_signal(&mq->cond);
-	pthread_mutex_unlock(&mq->mux);
-#endif
 
 }
 
@@ -78,22 +63,14 @@ int dc_message_queue_get(MessageQueue *mq, void * data) {
 	int ret = 0;
 	MessageQueueNode * mqn;
 
-#ifdef GPAC_THREAD
 	gf_mx_p(mq->mux);
-#else
-	pthread_mutex_lock(&mq->mux);
-#endif
 
 	mqn = mq->first_node;
 
 	if(!mqn) {
-#ifdef GPAC_THREAD
 		gf_mx_v(mq->mux);
 		gf_sema_wait(mq->sem);
 		gf_mx_p(mq->mux);
-#else
-		pthread_cond_wait(&mq->cond, &mq->mux);
-#endif
 
 		mqn = mq->first_node;
 
@@ -111,11 +88,7 @@ int dc_message_queue_get(MessageQueue *mq, void * data) {
 		gf_free(mqn);
 	}
 
-#ifdef GPAC_THREAD
 	gf_mx_v(mq->mux);
-#else
-	pthread_mutex_unlock(&mq->mux);
-#endif
 
 	return ret;
 
@@ -125,11 +98,7 @@ void dc_message_queue_flush(MessageQueue *mq) {
 
 	MessageQueueNode * mqn, *mqn1;
 
-#ifdef GPAC_THREAD
 	gf_mx_p(mq->mux);
-#else
-	pthread_mutex_lock(&mq->mux);
-#endif
 
 	for (mqn = mq->first_node; mqn != NULL; mqn = mqn1) {
 		mqn1 = mqn->next;
@@ -139,25 +108,13 @@ void dc_message_queue_flush(MessageQueue *mq) {
 	mq->first_node = NULL;
 	mq->nb_nodes = 0;
 
-
-#ifdef GPAC_THREAD
 	gf_sema_notify(mq->sem, 1);
 	gf_mx_v(mq->mux);
-#else
-	pthread_cond_signal(&mq->cond);
-	pthread_mutex_unlock(&mq->mux);
-#endif
-
 }
 
 void dc_message_queue_free(MessageQueue *mq) {
 	dc_message_queue_flush(mq);
-#ifdef GPAC_THREAD
 	gf_mx_del(mq->mux);
 	gf_sema_del(mq->sem);
-#else
-	pthread_mutex_destroy(&mq->mux);
-	pthread_cond_destroy(&mq->cond);
-#endif
 }
 
