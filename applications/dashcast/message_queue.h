@@ -26,16 +26,10 @@
 #ifndef MESSAGE_QUEUE_H_
 #define MESSAGE_QUEUE_H_
 
-#define GPAC_THREAD
-
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef GPAC_THREAD
 #include <gpac/thread.h>
-#else
-#include <pthread.h>
-#endif
+
 
 typedef struct MessageQueueNode {
 
@@ -50,14 +44,8 @@ typedef struct MessageQueue {
 	MessageQueueNode * last_node;
 	MessageQueueNode * first_node;
 	int nb_nodes;
-#ifdef GPAC_THREAD
 	GF_Semaphore * sem;
 	GF_Mutex * mux;
-#else
-	pthread_mutex_t mux;
-	pthread_cond_t cond;
-#endif
-
 } MessageQueue;
 
 void dc_message_queue_init(MessageQueue *mq);
