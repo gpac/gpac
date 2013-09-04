@@ -42,36 +42,18 @@ void dc_circular_buffer_create(CircularBuffer * p_cb, int i_size, LockMode mode,
 		p_cb->p_list[i].i_con_access = 0;
 		p_cb->p_list[i].i_marked = 0;
 		p_cb->p_list[i].i_con_waiting = 0;
-
-#ifdef SEM
 		p_cb->p_list[i].con_sem = gf_sema_new(1000, 0);
 		p_cb->p_list[i].pro_sem = gf_sema_new(1000, 0);
-#else
-		p_cb->p_list[i].con_cond = gf_cond_new();
-		p_cb->p_list[i].pro_cond = gf_cond_new();
-#endif
-
 		p_cb->p_list[i].mux = gf_mx_new("Circular Buffer Mutex");
-
 	}
-
 }
 
 void dc_circular_buffer_destroy(CircularBuffer * p_cb) {
-
 	int i;
 	for (i = 0; i < p_cb->i_size; i++) {
-
-#ifdef SEM
 		gf_sema_del(p_cb->p_list[i].con_sem);
 		gf_sema_del(p_cb->p_list[i].pro_sem);
-#else
-		gf_cond_del(p_cb->p_list[i].con_cond);
-		gf_cond_del(p_cb->p_list[i].pro_cond);
-#endif
-
 		gf_mx_del(p_cb->p_list[i].mux);
-
 	}
 
 	gf_free(p_cb->p_list);
@@ -102,14 +84,9 @@ int dc_consumer_lock(Consumer * p_con, CircularBuffer * p_cb) {
 
 	p_node->i_con_waiting++;
 	while (p_node->i_pro_nb || !p_node->i_marked) {
-
-#ifdef SEM
 		gf_mx_v(p_node->mux);
 		gf_sema_wait(p_node->con_sem);
 		gf_mx_p(p_node->mux);
-#else
-		gf_cond_wait(p_node->con_cond, p_node->mux);
-#endif
 
 		if (p_node->i_marked == 2) {
 			gf_mx_v(p_node->mux);
@@ -146,11 +123,7 @@ int dc_consumer_unlock(Consumer * p_con, CircularBuffer * p_cb) {
 		i_last_con = 1;
 	}
 
-#ifdef SEM
 	gf_sema_notify(p_node->pro_sem, 1);
-#else
-	gf_cond_signal(p_node->pro_cond);
-#endif
 
 #ifdef DEBUG
 	printf("consumer %s unlock %d \n", p_con->psz_name, p_con->i_idx);
@@ -179,11 +152,7 @@ int dc_consumer_unlock_previous(Consumer * p_con, CircularBuffer * p_cb) {
 		i_last_con = 1;
 	}
 
-#ifdef SEM
 	gf_sema_notify(p_node->pro_sem, 1);
-#else
-	gf_cond_signal(p_node->pro_cond);
-#endif
 
 #ifdef DEBUG
 	printf("consumer %s unlock %d \n", p_con->psz_name, node_idx);
@@ -223,15 +192,9 @@ int dc_producer_lock(Producer * p_pro, CircularBuffer * p_cb) {
 	}
 
 	while (p_node->i_con_nb || p_node->i_marked) {
-
-#ifdef SEM
 		gf_mx_v(p_node->mux);
 		gf_sema_wait(p_node->pro_sem);
 		gf_mx_p(p_node->mux);
-#else
-		gf_cond_wait(p_node->pro_cond, p_node->mux);
-#endif
-
 	}
 
 	p_node->i_pro_nb++;
@@ -253,17 +216,12 @@ void dc_producer_unlock(Producer * p_pro, CircularBuffer * p_cb) {
 
 	p_node->i_pro_nb--;
 
-#ifdef SEM
 	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-#else
-	gf_cond_broadcast(p_node->con_cond);
-#endif
 
 #ifdef DEBUG
 	printf("producer %s unlock %d \n", p_pro->psz_name, p_pro->i_idx);
 #endif
 	gf_mx_v(p_node->mux);
-
 }
 
 void dc_producer_unlock_previous(Producer * p_pro, CircularBuffer * p_cb) {
@@ -275,17 +233,12 @@ void dc_producer_unlock_previous(Producer * p_pro, CircularBuffer * p_cb) {
 
 	p_node->i_pro_nb = 0;
 
-#ifdef SEM
 	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-#else
-	gf_cond_broadcast(p_node->con_cond);
-#endif
 
 #ifdef DEBUG
 	printf("producer %s unlock %d \n", p_pro->psz_name, node_idx);
 #endif
 	gf_mx_v(p_node->mux);
-
 }
 
 void dc_producer_advance(Producer * p_pro) {
@@ -299,11 +252,7 @@ void dc_producer_end_signal(Producer * p_pro, CircularBuffer * p_cb) {
 
 	p_node->i_marked = 2;
 
-#ifdef SEM
 	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-#else
-	gf_cond_broadcast(p_node->con_cond);
-#endif
 
 #ifdef DEBUG
 	printf("producer %s sends end signal %d \n", p_pro->psz_name, p_pro->i_idx);
@@ -320,11 +269,7 @@ void dc_producer_end_signal_previous(Producer * p_pro, CircularBuffer * p_cb) {
 
 	p_node->i_marked = 2;
 
-#ifdef SEM
 	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-#else
-	gf_cond_broadcast(p_node->con_cond);
-#endif
 
 #ifdef DEBUG
 	printf("producer %s sends end signal %d \n", p_pro->psz_name, i_node);

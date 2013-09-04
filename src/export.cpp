@@ -229,11 +229,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_notify) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait_for) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cond_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cond_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cond_wait) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cond_signal) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cond_broadcast) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_lock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_unlock) )
 

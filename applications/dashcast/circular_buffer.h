@@ -30,10 +30,6 @@
 #include <stdio.h>
 #include <gpac/thread.h>
 
-#ifdef WIN32
-#define SEM
-#endif
-
 
 /*
  * The method (mode) of multithread management.
@@ -69,19 +65,11 @@ typedef struct {
 	/* Mutex used for synchronizing the users of this node. */
 	GF_Mutex * mux;
 
-#ifdef SEM
 	/* Semaphore for producer */
 	GF_Semaphore * pro_sem;
 
 	/* Semaphore for consumers */
 	GF_Semaphore * con_sem;
-#else
-	/* Condition variable aimed for signaling the producers waiting on this condition. */
-	GF_Condition * pro_cond;
-
-	/* condition variable aimed for signaling the consumers waiting on this condition. */
-	GF_Condition * con_cond;
-#endif
 
 	/* If marked is 0 it means the data on this node is not valid.
 	 * If marked is 1 it means that the data on this node is valid.

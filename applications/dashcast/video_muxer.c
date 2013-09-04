@@ -126,66 +126,6 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 	return GF_OK;
 }
 
-static GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec)
-{
-	GF_ESD *esd;
-	GF_AVCConfig *avcc;
-	u32 subtype = gf_isom_is_media_encrypted(movie, track, 1);
-	if (!subtype) subtype = gf_isom_get_media_subtype(movie, track, 1);
-
-	switch (subtype) {
-	case GF_ISOM_SUBTYPE_MPEG4:
-		esd = gf_isom_get_esd(movie, track, 1);
-		switch (esd->decoderConfig->streamType) {
-		case GF_STREAM_AUDIO:
-			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-				/*5 first bits of AAC config*/
-				u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
-				sprintf(szCodec, "mp4a.%02x.%01x", esd->decoderConfig->objectTypeIndication, audio_object_type);
-			} else {
-				sprintf(szCodec, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
-			}
-			break;
-		case GF_STREAM_VISUAL:
-#ifndef GPAC_DISABLE_AV_PARSERS
-			if (esd->decoderConfig->decoderSpecificInfo) {
-				GF_M4VDecSpecInfo dsi;
-				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				sprintf(szCodec, "mp4v.%02x.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
-			} else
-#endif
-			{
-				sprintf(szCodec, "mp4v.%02x", esd->decoderConfig->objectTypeIndication);
-			}
-			break;
-		default:
-			sprintf(szCodec, "mp4s.%02x", esd->decoderConfig->objectTypeIndication);
-			break;
-		}
-		gf_odf_desc_del((GF_Descriptor *)esd);
-		return GF_OK;
-
-	case GF_ISOM_SUBTYPE_AVC_H264:
-	case GF_ISOM_SUBTYPE_AVC2_H264:
-	case GF_ISOM_SUBTYPE_AVC3_H264:
-	case GF_ISOM_SUBTYPE_AVC4_H264:
-		avcc = gf_isom_avc_config_get(movie, track, 1);
-		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
-		gf_odf_avc_cfg_del(avcc);
-		return GF_OK;
-	case GF_ISOM_SUBTYPE_SVC_H264:
-		avcc = gf_isom_svc_config_get(movie, track, 1);
-		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
-		gf_odf_avc_cfg_del(avcc);
-		return GF_OK;
-	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
-		sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
-		return GF_OK;
-	}
-	return GF_OK;
-}
-
 int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 
 	GF_Err ret;
