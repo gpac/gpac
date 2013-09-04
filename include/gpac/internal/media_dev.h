@@ -44,6 +44,7 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+u32 gf_latm_get_value(GF_BitStream *bs);
 
 #define GF_SVC_SSPS_ID_SHIFT	16	
 

@@ -551,10 +551,11 @@ typedef struct
 	u32 profile, sr_idx, nb_ch, frame_size;
 } ADTSHeader;
 
-static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr)
+static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr, u32 *frame_skipped)
 {
 	u32 val, hdr_size;
 	u64 pos;
+	*frame_skipped = 0;
 	while (gf_bs_available(bs)) {
 		val = gf_bs_read_u8(bs);
 		if (val!=0xFF) continue;
@@ -580,6 +581,7 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr)
 		if (!hdr->no_crc) gf_bs_read_int(bs, 16);
 		if (hdr->frame_size < hdr_size) {
 			gf_bs_seek(bs, pos+1);
+			*frame_skipped += 1;
 			continue;
 		}
 		hdr->frame_size -= hdr_size;
@@ -589,18 +591,246 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr)
 		val = gf_bs_read_u8(bs);
 		if (val!=0xFF) {
 			gf_bs_seek(bs, pos+1);
+			*frame_skipped += 1;
 			continue;
 		}
 		val = gf_bs_read_int(bs, 4);
 		if (val!=0x0F) {
 			gf_bs_read_int(bs, 4);
 			gf_bs_seek(bs, pos+2);
+			*frame_skipped += 1;
 			continue;
 		}
 		gf_bs_seek(bs, pos+hdr_size);
 		return 1;
 	}
 	return 0;
+}
+
+static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *frame_skipped, u32 *nb_bytes, u8 *buffer)
+{
+	u32 val, size;
+	u64 pos, mux_size;
+	*frame_skipped = 0;
+	while (gf_bs_available(bs)) {
+		val = gf_bs_read_u8(bs);
+		if (val!=0x56) continue;
+		val = gf_bs_read_int(bs, 3);
+		if (val != 0x07) {
+			gf_bs_read_int(bs, 5);
+			continue;
+		}
+		mux_size = gf_bs_read_int(bs, 13);
+		pos = gf_bs_get_position(bs);
+
+		/*use same stream mux*/
+		if (!gf_bs_read_int(bs, 1)) {
+			Bool amux_version, amux_versionA;
+
+			amux_version = gf_bs_read_int(bs, 1);
+			amux_versionA = 0;
+			if (amux_version) amux_versionA = gf_bs_read_int(bs, 1);
+			if (!amux_versionA) {
+				u32 i, allStreamsSameTimeFraming, numProgram;
+				if (amux_version) gf_latm_get_value(bs);
+
+				allStreamsSameTimeFraming = gf_bs_read_int(bs, 1);
+				/*numSubFrames = */gf_bs_read_int(bs, 6);
+				numProgram = gf_bs_read_int(bs, 4);
+				for (i=0; i<=numProgram; i++) {
+					u32 j, num_lay;
+					num_lay = gf_bs_read_int(bs, 3);
+					for (j=0;j<=num_lay; j++) {
+						u32 frameLengthType;
+						Bool same_cfg = 0;
+						if (i || j) same_cfg = gf_bs_read_int(bs, 1);
+
+						if (!same_cfg) {
+							if (amux_version==1) gf_latm_get_value(bs);
+							gf_m4a_parse_config(bs, acfg, 0);
+						}
+						frameLengthType = gf_bs_read_int(bs, 3);
+						if (!frameLengthType) {
+							/*latmBufferFullness = */gf_bs_read_int(bs, 8);
+							if (!allStreamsSameTimeFraming) {
+							}
+						} else {
+							/*not supported*/
+						}
+					}
+
+				}
+				/*other data present*/
+				if (gf_bs_read_int(bs, 1)) {
+//					u32 k = 0;
+				}
+				/*CRCcheck present*/
+				if (gf_bs_read_int(bs, 1)) {
+				}
+			}
+		}
+
+		size = 0;
+		while (1) {
+			u32 tmp = gf_bs_read_int(bs, 8);
+			size += tmp;
+			if (tmp!=255) break;
+		}
+		if (nb_bytes && buffer) {
+			*nb_bytes = (u32) size;
+			gf_bs_read_data(bs, (char *) buffer, size);
+		} else {
+			gf_bs_skip_bytes(bs, size);
+		}
+
+		/*parse amux*/
+		gf_bs_seek(bs, pos + mux_size);
+
+		if (gf_bs_peek_bits(bs, 11, 0) != 0x2B7) {
+			gf_bs_seek(bs, pos + 1);
+			*frame_skipped ++;
+			continue;
+		}
+
+		return 1;
+	}
+	return 0;
+}
+
+GF_Err gf_import_aac_loas(GF_MediaImporter *import)
+{
+	u8 oti;
+	Bool destroy_esd;
+	GF_Err e;
+	Bool sync_frame;
+	u16 sr, sbr_sr, dts_inc;
+	u32 timescale;
+	u32 frames_skipped = 0;
+	GF_BitStream *bs, *dsi;
+	GF_M4ADecSpecInfo acfg;
+	FILE *in;
+	u32 nbbytes;
+	u8 aac_buf[4096];
+	u64 tot_size, done, duration;
+	u32 track, di;
+	GF_ISOSample *samp;
+
+	in = gf_f64_open(import->in_name, "rb");
+	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
+
+	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
+
+	sync_frame = LOAS_LoadFrame(bs, &acfg, &frames_skipped, &nbbytes, (u8 *)aac_buf);
+
+	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
+	oti = GPAC_OTI_AUDIO_AAC_MPEG4;
+	timescale = sr = acfg.base_sr;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = GF_ISOM_MEDIA_AUDIO;
+		import->tk_info[0].flags = GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT | GF_IMPORT_PS_IMPLICIT | GF_IMPORT_PS_EXPLICIT | GF_IMPORT_FORCE_MPEG4;
+		import->nb_tracks = 1;
+		import->tk_info[0].audio_info.sample_rate = sr;
+		import->tk_info[0].audio_info.nb_channels = acfg.nb_chan;
+		gf_bs_del(bs);
+		fclose(in);
+		return GF_OK;
+	}
+
+	dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_m4a_write_config_bs(dsi, &acfg);
+
+	sbr_sr = acfg.sbr_sr ? acfg.sbr_sr : acfg.base_sr;
+
+	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
+		import->flags &= ~GF_IMPORT_PS_IMPLICIT;
+		import->flags |= GF_IMPORT_SBR_EXPLICIT;
+		import->flags &= ~GF_IMPORT_SBR_IMPLICIT;
+	}
+
+	dts_inc = 1024;
+
+	e = GF_OK;
+	destroy_esd = 0;
+	if (!import->esd) {
+		import->esd = gf_odf_desc_esd_new(2);
+		destroy_esd = 1;
+	}
+	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
+	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+	import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+	import->esd->decoderConfig->objectTypeIndication = oti;
+	import->esd->decoderConfig->bufferSizeDB = 20;
+	import->esd->slConfig->timestampResolution = timescale;
+	if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+	if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
+	gf_bs_get_content(dsi, &import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_del(dsi);
+
+	samp = NULL;
+	gf_import_message(import, GF_OK, "MPEG-4 AAC in LOAS import - sample rate %d - %d channel%s", sr, acfg.nb_chan, (acfg.nb_chan > 1) ? "s" : "");
+
+	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, timescale);
+	if (!track) {
+		e = gf_isom_last_error(import->dest);
+		goto exit;
+	}
+	gf_isom_set_track_enabled(import->dest, track, 1);
+	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	import->final_trackID = import->esd->ESID;
+	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, (acfg.nb_chan>2) ? 2 : acfg.nb_chan, 16);
+
+	e = GF_OK;
+	/*add first sample*/
+	samp = gf_isom_sample_new();
+	samp->IsRAP = 1;
+	samp->dataLength = nbbytes;
+	samp->data = aac_buf;
+	
+	e = gf_isom_add_sample(import->dest, track, di, samp);
+	if (e) goto exit;
+	samp->DTS+=dts_inc;
+
+	duration = import->duration;
+	duration *= sr;
+	duration /= 1000;
+
+	tot_size = gf_bs_get_size(bs);
+	done = 0;
+	while (gf_bs_available(bs) ) {
+		sync_frame = LOAS_LoadFrame(bs, &acfg, &frames_skipped, &nbbytes, (u8 *)aac_buf);
+		if (!sync_frame) break;
+
+		samp->data = (char*)aac_buf;
+		samp->dataLength = nbbytes;
+
+		e = gf_isom_add_sample(import->dest, track, di, samp);
+		if (e) break;
+
+		gf_set_progress("Importing AAC", done, tot_size);
+		samp->DTS += dts_inc;
+		done += samp->dataLength;
+		if (duration && (samp->DTS > duration)) break;
+		if (import->flags & GF_IMPORT_DO_ABORT) break;
+	}
+	MP4T_RecomputeBitRate(import->dest, track);
+	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, acfg.audioPL);
+	gf_set_progress("Importing AAC", tot_size, tot_size);
+
+exit:
+	if (import->esd && destroy_esd) {
+		gf_odf_desc_del((GF_Descriptor *) import->esd);
+		import->esd = NULL;
+	}
+	if (samp) {
+		samp->data = NULL;
+		gf_isom_sample_del(&samp);
+	}
+	gf_bs_del(bs);
+	fclose(in);
+	return e;
 }
 
 GF_Err gf_import_aac_adts(GF_MediaImporter *import)
@@ -611,6 +841,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	Bool sync_frame;
 	u16 sr, sbr_sr, sbr_sr_idx, dts_inc;
 	u32 timescale;
+	u32 frames_skipped = 0;
 	GF_BitStream *bs, *dsi;
 	ADTSHeader hdr;
 	GF_M4ADecSpecInfo acfg;
@@ -624,12 +855,23 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 
 	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
 
-	sync_frame = ADTS_SyncFrame(bs, &hdr);
+	sync_frame = ADTS_SyncFrame(bs, &hdr, &frames_skipped);
 	if (!sync_frame) {
 		gf_bs_del(bs);
 		fclose(in);
 		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio isn't MPEG-2/4 AAC with ADTS");
 	}
+
+	if (frames_skipped) {
+		gf_bs_seek(bs, 0);
+		sync_frame = LOAS_LoadFrame(bs, &acfg, &frames_skipped, NULL, NULL);
+		if (sync_frame) {
+			gf_bs_del(bs);
+			fclose(in);
+			return gf_import_aac_loas(import);
+		}
+	}
+
 	if (import->flags & GF_IMPORT_FORCE_MPEG4) hdr.is_mp2 = 0;
 
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
@@ -765,7 +1007,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	gf_bs_del(dsi);
 
 	samp = NULL;
-	gf_import_message(import, GF_OK, "AAC import %s%s%s- sample rate %d - %s audio - %d channel%s",
+	gf_import_message(import, GF_OK, "AAC ADTS import %s%s%s- sample rate %d - %s audio - %d channel%s",
 		(import->flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) ? "SBR" : "",
 		(import->flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) ? "+PS" : "",
 		((import->flags & (GF_IMPORT_SBR_EXPLICIT|GF_IMPORT_PS_EXPLICIT)) ? " (explicit) " : " "),
@@ -809,7 +1051,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	tot_size = gf_bs_get_size(bs);
 	done = 0;
 	while (gf_bs_available(bs) ) {
-		sync_frame = ADTS_SyncFrame(bs, &hdr);
+		sync_frame = ADTS_SyncFrame(bs, &hdr, &frames_skipped);
 		if (!sync_frame) break;
 		if (hdr.frame_size>max_size) {
 			samp->data = (char*)gf_realloc(samp->data, sizeof(char) * hdr.frame_size);
