@@ -29,9 +29,7 @@
 #include "video_data.h"
 
 #include "libavformat/avformat.h"
-#ifndef WIN32
 #include "libavdevice/avdevice.h"
-#endif
 
 
 /*

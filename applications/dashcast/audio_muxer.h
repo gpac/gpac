@@ -30,9 +30,7 @@
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavutil/fifo.h"
 #include "libavformat/avformat.h"
-#ifndef WIN32
 #include "libavdevice/avdevice.h"
-#endif
 #include "libavutil/mathematics.h"
 #include <gpac/isomedia.h>
 #include <gpac/internal/media_dev.h>

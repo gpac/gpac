@@ -79,7 +79,7 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 		p_voutf->p_codec_ctx->time_base = time_base;
 	}
 	p_voutf->p_codec_ctx->pix_fmt = PIX_FMT_YUV420P;
-	p_voutf->p_codec_ctx->gop_size = p_voutf->i_gop_size;//p_vdata->i_framerate;
+	p_voutf->p_codec_ctx->gop_size = /*p_voutf->i_gop_size;*/p_vdata->i_framerate;
 
 	av_opt_set(p_voutf->p_codec_ctx->priv_data, "preset", "ultrafast", 0);
 	av_opt_set(p_voutf->p_codec_ctx->priv_data, "tune", "zerolatency", 0);
@@ -93,24 +93,24 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	//the global header gives access to the extradata (SPS/PPS)
 	p_voutf->p_codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-//	p_video_stream->codec->codec_id = p_video_codec->id;
-//	p_video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-//	p_video_stream->codec->bit_rate = p_voutf->p_vdata->i_bitrate;
-//	p_video_stream->codec->width = p_voutf->p_vdata->i_width;
-//	p_video_stream->codec->height = p_voutf->p_vdata->i_height;
-//	p_video_stream->codec->time_base = (AVRational) {1 ,
+//	p_voutf->p_codec_ctx->codec_id = p_video_codec->id;
+//	p_voutf->p_codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+//	p_voutf->p_codec_ctx->bit_rate = p_vdata->i_bitrate;
+//	p_voutf->p_codec_ctx->width = p_vdata->i_width;
+//	p_voutf->p_codec_ctx->height = p_vdata->i_height;
+//	p_voutf->p_codec_ctx->time_base = (AVRational) {1 ,
 //				p_voutf->p_vdata->i_framerate};
-//	p_video_stream->codec->pix_fmt = PIX_FMT_YUV420P;
-//	p_video_stream->codec->gop_size = p_voutf->p_vdata->i_framerate;
+//	p_voutf->p_codec_ctx->codec->pix_fmt = PIX_FMT_YUV420P;
+	p_voutf->p_codec_ctx->gop_size = p_vdata->i_framerate;
 //
-//	av_opt_set(p_video_stream->codec->priv_data, "preset", "ultrafast", 0);
-//	av_opt_set(p_video_stream->codec->priv_data, "tune", "zerolatency", 0);
+//	av_opt_set(p_voutf->p_codec_ctx->priv_data, "preset", "ultrafast", 0);
+//	av_opt_set(p_voutf->p_codec_ctx->priv_data, "tune", "zerolatency", 0);
 
 	/*
-	 p_video_stream->codec->max_b_frames = 0;
-	 p_video_stream->codec->thread_count = 1;
-	 p_video_stream->codec->delay = 0;
-	 p_video_stream->codec->rc_lookahead = 0;
+	 p_voutf->p_codec_ctx->max_b_frames = 0;
+	 p_voutf->p_codec_ctx->thread_count = 1;
+	 p_voutf->p_codec_ctx->delay = 0;
+	 p_voutf->p_codec_ctx->rc_lookahead = 0;
 	 */
 
 	/*

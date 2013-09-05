@@ -115,14 +115,14 @@ void dc_video_scaler_list_destroy(VideoScaledDataList * p_vsdl) {
 	gf_free(p_vsdl->p_vsd);
 }
 
-void dc_video_scaler_end_signal(VideoScaledData * p_vconv) {
-
+void dc_video_scaler_end_signal(VideoScaledData * p_vconv)
+{
 	dc_producer_end_signal(&p_vconv->svpro, &p_vconv->p_cb);
 	dc_producer_unlock_previous(&p_vconv->svpro, &p_vconv->p_cb);
 }
 
-int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, int max_source) {
-
+int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, int max_source)
+{
 	int i;
 
 	char name[256];
@@ -146,10 +146,8 @@ int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, i
 	return 0;
 }
 
-int dc_video_scaler_data_set_prop(VideoInputData * p_vin,
-		VideoScaledData * p_vsd, int index) {
-
-
+int dc_video_scaler_data_set_prop(VideoInputData * p_vin, VideoScaledData * p_vsd, int index)
+{
 	p_vsd->p_vsprop[index].i_in_width = p_vin->p_vprop[index].i_width;
 	p_vsd->p_vsprop[index].i_in_height = p_vin->p_vprop[index].i_height;
 	p_vsd->p_vsprop[index].i_in_pix_fmt = p_vin->p_vprop[index].i_pix_fmt;
@@ -209,14 +207,12 @@ int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
 	return 0;
 }
 
-int dc_video_scaler_data_destroy(VideoScaledData * p_vsd) {
-
+int dc_video_scaler_data_destroy(VideoScaledData * p_vsd)
+{
 	int i;
-
 	for (i = 0; i < VIDEO_CB_SIZE; i++) {
 		dc_video_scaler_node_destroy(p_vsd->p_cb.p_list[i].p_data);
 	}
-
 
 	for (i = 0 ; i<p_vsd->i_maxsource ; i++) {
 		av_free(p_vsd->p_vsprop[i].p_sws_ctx);
