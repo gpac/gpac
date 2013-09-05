@@ -120,26 +120,32 @@ typedef struct AVIOContext {
      * max filesize, used to limit allocations
      * This field is internal to libavformat and access from outside is not allowed.
      */
-     int64_t maxsize;
+    int64_t maxsize;
 
-     /**
-      * avio_read and avio_write should if possible be satisfied directly
-      * instead of going through a buffer, and avio_seek will always
-      * call the underlying seek function directly.
-      */
-     int direct;
+    /**
+     * avio_read and avio_write should if possible be satisfied directly
+     * instead of going through a buffer, and avio_seek will always
+     * call the underlying seek function directly.
+     */
+    int direct;
 
     /**
      * Bytes read statistic
      * This field is internal to libavformat and access from outside is not allowed.
      */
-     int64_t bytes_read;
+    int64_t bytes_read;
 
     /**
      * seek statistic
      * This field is internal to libavformat and access from outside is not allowed.
      */
-     int seek_count;
+    int seek_count;
+
+    /**
+     * writeout statistic
+     * This field is internal to libavformat and access from outside is not allowed.
+     */
+    int writeout_count;
 } AVIOContext;
 
 /* unbuffered I/O */
@@ -217,8 +223,8 @@ int avio_put_str16le(AVIOContext *s, const char *str);
 
 /**
  * Oring this flag as into the "whence" parameter to a seek function causes it to
- * seek by any means (like reopening and linear reading) or other normally unreasonble
- * means that can be extreemly slow.
+ * seek by any means (like reopening and linear reading) or other normally unreasonable
+ * means that can be extremely slow.
  * This may be ignored by the seek code.
  */
 #define AVSEEK_FORCE 0x20000

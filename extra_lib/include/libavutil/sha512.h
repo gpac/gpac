@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 Michael Niedermayer <michaelni@gmx.at>
+ * Copyright (C) 2013 James Almer <jamrial@gmail.com>
  *
  * This file is part of FFmpeg.
  *
@@ -18,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVUTIL_SHA_H
-#define AVUTIL_SHA_H
+#ifndef AVUTIL_SHA512_H
+#define AVUTIL_SHA512_H
 
 #include <stdint.h>
 
@@ -27,28 +28,28 @@
 #include "version.h"
 
 /**
- * @defgroup lavu_sha SHA
+ * @defgroup lavu_sha512 SHA512
  * @ingroup lavu_crypto
  * @{
  */
 
-extern const int av_sha_size;
+extern const int av_sha512_size;
 
-struct AVSHA;
+struct AVSHA512;
 
 /**
- * Allocate an AVSHA context.
+ * Allocate an AVSHA512 context.
  */
-struct AVSHA *av_sha_alloc(void);
+struct AVSHA512 *av_sha512_alloc(void);
 
 /**
- * Initialize SHA-1 or SHA-2 hashing.
+ * Initialize SHA-2 512 hashing.
  *
- * @param context pointer to the function context (of size av_sha_size)
- * @param bits    number of bits in digest (SHA-1 - 160 bits, SHA-2 224 or 256 bits)
+ * @param context pointer to the function context (of size av_sha512_size)
+ * @param bits    number of bits in digest (224, 256, 384 or 512 bits)
  * @return        zero if initialization succeeded, -1 otherwise
  */
-int av_sha_init(struct AVSHA* context, int bits);
+int av_sha512_init(struct AVSHA512* context, int bits);
 
 /**
  * Update hash value.
@@ -57,7 +58,7 @@ int av_sha_init(struct AVSHA* context, int bits);
  * @param data    input data to update hash with
  * @param len     input data length
  */
-void av_sha_update(struct AVSHA* context, const uint8_t* data, unsigned int len);
+void av_sha512_update(struct AVSHA512* context, const uint8_t* data, unsigned int len);
 
 /**
  * Finish hashing and output digest value.
@@ -65,10 +66,10 @@ void av_sha_update(struct AVSHA* context, const uint8_t* data, unsigned int len)
  * @param context hash function context
  * @param digest  buffer where output digest value is stored
  */
-void av_sha_final(struct AVSHA* context, uint8_t *digest);
+void av_sha512_final(struct AVSHA512* context, uint8_t *digest);
 
 /**
  * @}
  */
 
-#endif /* AVUTIL_SHA_H */
+#endif /* AVUTIL_SHA512_H */

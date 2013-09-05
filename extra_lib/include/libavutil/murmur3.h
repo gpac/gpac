@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2006 Mans Rullgard
+ * Copyright (C) 2013 Reimar Döffinger <Reimar.Doeffinger@gmx.de>
  *
  * This file is part of FFmpeg.
  *
@@ -18,35 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVUTIL_ADLER32_H
-#define AVUTIL_ADLER32_H
+#ifndef AVUTIL_MURMUR3_H
+#define AVUTIL_MURMUR3_H
 
 #include <stdint.h>
-#include "attributes.h"
 
-/**
- * @defgroup lavu_adler32 Adler32
- * @ingroup lavu_crypto
- * @{
- */
+struct AVMurMur3 *av_murmur3_alloc(void);
+void av_murmur3_init_seeded(struct AVMurMur3 *c, uint64_t seed);
+void av_murmur3_init(struct AVMurMur3 *c);
+void av_murmur3_update(struct AVMurMur3 *c, const uint8_t *src, int len);
+void av_murmur3_final(struct AVMurMur3 *c, uint8_t dst[16]);
 
-/**
- * Calculate the Adler32 checksum of a buffer.
- *
- * Passing the return value to a subsequent av_adler32_update() call
- * allows the checksum of multiple buffers to be calculated as though
- * they were concatenated.
- *
- * @param adler initial checksum value
- * @param buf   pointer to input buffer
- * @param len   size of input buffer
- * @return      updated checksum
- */
-unsigned long av_adler32_update(unsigned long adler, const uint8_t *buf,
-                                unsigned int len) av_pure;
-
-/**
- * @}
- */
-
-#endif /* AVUTIL_ADLER32_H */
+#endif /* AVUTIL_MURMUR3_H */

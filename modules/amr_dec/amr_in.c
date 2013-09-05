@@ -66,6 +66,17 @@ typedef struct
 	//Bool is_live;
 } AMR_Reader;
 
+
+static const char * AMR_MIMES[] = { "audio/ac3", "audio/x-ac3", NULL };
+
+static u32 AMR_RegisterMimeTypes(const GF_InputService *plug)
+{
+	gf_term_register_mime_type(plug, "audio/amr", "amr awb", "AMR Speech Data");
+	gf_term_register_mime_type(plug, "audio/evrc", "evc", "EVRC Speech Data");
+	gf_term_register_mime_type(plug, "audio/smv", "smv", "SMV Speech Data");
+	return 3;
+}
+
 static GF_ESD *AMR_GetESD(AMR_Reader *read)
 {
 	GF_BitStream *dsi;
@@ -530,6 +541,7 @@ GF_InputService *NewAESReader()
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AMR/EVRC/SMV Reader", "gpac distribution")
 
+	plug->RegisterMimeTypes = AMR_RegisterMimeTypes;
 	plug->CanHandleURL = AMR_CanHandleURL;
 	plug->ConnectService = AMR_ConnectService;
 	plug->CloseService = AMR_CloseService;
