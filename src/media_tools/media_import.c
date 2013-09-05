@@ -703,7 +703,6 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	Bool sync_frame;
 	u16 sr, dts_inc;
 	u32 timescale;
-	u32 frames_skipped = 0;
 	GF_BitStream *bs, *dsi;
 	GF_M4ADecSpecInfo acfg;
 	FILE *in;
