@@ -44,16 +44,18 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		av_dict_set(&p_options, "framerate", vfr, 0);
 	}
 
+#ifndef WIN32
 	if (strcmp(p_vdata->psz_v4l2f, "") != 0) {
 		av_dict_set(&p_options, "input_format", p_vdata->psz_v4l2f, 0);
 	}
+#endif
 
 	if (p_vdata->i_width > 0 && p_vdata->i_height > 0) {
 		char vres[16];
 		sprintf(vres, "%dx%d", p_vdata->i_width, p_vdata->i_height);
 		av_dict_set(&p_options, "video_size", vres, 0);
 	}
-
+	
 	if (p_vdata->psz_format && strcmp(p_vdata->psz_format, "") != 0) {
 		p_in_fmt = av_find_input_format(p_vdata->psz_format);
 		if (p_in_fmt == NULL) {

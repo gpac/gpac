@@ -28,9 +28,7 @@
 
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavformat/avformat.h"
-#ifndef WIN32
 #include "libavdevice/avdevice.h"
-#endif
 #include "libswscale/swscale.h"
 #include "libavutil/mathematics.h"
 #include <gpac/isomedia.h>

@@ -29,9 +29,7 @@
 //#include <pthread.h>
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavcodec/avcodec.h"
-#ifndef WIN32
 #include "libavdevice/avdevice.h"
-#endif
 #include "libavformat/avformat.h"
 
 #include <gpac/thread.h>

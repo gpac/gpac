@@ -55,7 +55,6 @@ int dc_read_configuration(CmdData * p_cmdd) {
 	u32 i_sec_count = gf_cfg_get_section_count(p_conf);
 
 	if (i_sec_count == 0) {
-
 		gf_cfg_set_key(p_conf, "v1", "type", "video");
 		gf_cfg_set_key(p_conf, "v1", "bitrate", "400000");
 //		gf_cfg_set_key(p_conf, "v1", "framerate", "25");
@@ -309,21 +308,27 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -log-file file               set output log file. Also works with -lf\n"
 					"    -logs LOGS                   set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 					"    -a inasrc:str                input audio source named inasrc\n"
-			        "                                    - If input is from microphone, inasrc will be \"plughw:[x],[y]\"\n"
-			        "                                    where x is the card number and y is the device number.\n"
+			    "                                    - If input is from microphone, inasrc will be \"plughw:[x],[y]\"\n"
+			    "                                      where x is the card number and y is the device number.\n"
 					"    -v invsrc:str                input video source named invsrc\n"
-			        "                                    - If input is from a webcam, invsrc will be \"/dev/video[x]\" \n"
-			        "                                    where x is the video device number.\n"
-			        "                                    - If input is the screen video, invsrc will be \":0.0+[x],[y]\" \n"
-			        "                                    which captures from upper-left at x,y.\n"
-			        "                                    - If input is from stdin, invsrc will be \"pipe:\".\n"
+			    "                                    - If input is from a webcam, invsrc will be \"/dev/video[x]\" \n"
+			    "                                      where x is the video device number.\n"
+			    "                                    - If input is the screen video, invsrc will be \":0.0+[x],[y]\" \n"
+			    "                                      which captures from upper-left at x,y.\n"
+			    "                                    - If input is from stdin, invsrc will be \"pipe:\".\n"
 					"    -av inavsrc:str              a multiplexed audio and video source named inavsrc\n"
 					"                                    - If this option is present, non of '-a' or '-v' can be present.\n"
 					"    -vf invfmt:str               invfmt is the input video format\n"
+#ifdef WIN32
+					"                                    - To capture from a VfW webcam invfmt will be vfwcap."
+					"                                    - To capture from a directshow device invfmt will be dshow."
+					"    -dshowf indshow:str          indshow is the input filter name for the acquisition\n"
+#else
 					"                                    - To capture from a webcam invfmt will be video4linux2.\n"
 					"                                    - To capture the screen invfmt will be x11grab.\n"
 					"    -v4l2f inv4l2f:str           inv4l2f is the input format for webcam acquisition\n"
 					"                                    - It can be mjpeg, yuyv422, etc.\n"
+#endif
 					"    -vfr invfr:int               invfr is the input video framerate\n"
 					"    -vres invres:intxint         input video resolution\n"
 					"    -af inafmt:str               inafmt is the input audio format\n"
@@ -357,11 +362,14 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"Examples:\n"
 			        "\n"
 			        "    DashCast -av test.avi -live-media\n"
-					"    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
+					    "    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
+#ifdef WIN32
+	        		"    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
+	        		"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live\n"
+#else
 	        		"    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
 	        		"    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
-
-
+#endif
 					"\n";
 
 	char * psz_command_error =
@@ -520,6 +528,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 			i++;
 
+#ifndef WIN32
 		} else if (strcmp(p_argv[i], "-v4l2f") == 0) {
 			i++;
 			if (i >= i_argc) {
@@ -531,7 +540,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			strcpy(p_cmdd->vdata.psz_v4l2f, p_argv[i]);
 
 			i++;
-
+#endif
 		} else if (strcmp(p_argv[i], "-seg-marker") == 0) {
 			char * m;
 			i++;
@@ -759,9 +768,11 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	if (strcmp(p_cmdd->vdata.psz_format, "") != 0) {
 		printf("    video format: %s\n", p_cmdd->vdata.psz_format);
 	}
+#ifndef WIN32
 	if (strcmp(p_cmdd->vdata.psz_v4l2f, "") != 0) {
 		printf("    v4l2 format: %s\n", p_cmdd->vdata.psz_v4l2f);
 	}
+#endif
 	if (p_cmdd->vdata.i_framerate != -1) {
 		printf("    video framerate: %d\n", p_cmdd->vdata.i_framerate);
 	}
