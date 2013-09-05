@@ -607,11 +607,10 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr, u32 *frame_skipped
 	return 0;
 }
 
-static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *frame_skipped, u32 *nb_bytes, u8 *buffer)
+static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *nb_bytes, u8 *buffer)
 {
 	u32 val, size;
 	u64 pos, mux_size;
-	*frame_skipped = 0;
 	while (gf_bs_available(bs)) {
 		val = gf_bs_read_u8(bs);
 		if (val!=0x56) continue;
@@ -688,7 +687,6 @@ static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *frame
 
 		if (gf_bs_peek_bits(bs, 11, 0) != 0x2B7) {
 			gf_bs_seek(bs, pos + 1);
-			*frame_skipped ++;
 			continue;
 		}
 
@@ -703,7 +701,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	Bool destroy_esd;
 	GF_Err e;
 	Bool sync_frame;
-	u16 sr, sbr_sr, dts_inc;
+	u16 sr, dts_inc;
 	u32 timescale;
 	u32 frames_skipped = 0;
 	GF_BitStream *bs, *dsi;
@@ -720,7 +718,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
 
-	sync_frame = LOAS_LoadFrame(bs, &acfg, &frames_skipped, &nbbytes, (u8 *)aac_buf);
+	sync_frame = LOAS_LoadFrame(bs, &acfg, &nbbytes, (u8 *)aac_buf);
 
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
 	oti = GPAC_OTI_AUDIO_AAC_MPEG4;
@@ -740,8 +738,6 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_m4a_write_config_bs(dsi, &acfg);
-
-	sbr_sr = acfg.sbr_sr ? acfg.sbr_sr : acfg.base_sr;
 
 	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
 		import->flags &= ~GF_IMPORT_PS_IMPLICIT;
@@ -800,7 +796,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	tot_size = gf_bs_get_size(bs);
 	done = 0;
 	while (gf_bs_available(bs) ) {
-		sync_frame = LOAS_LoadFrame(bs, &acfg, &frames_skipped, &nbbytes, (u8 *)aac_buf);
+		sync_frame = LOAS_LoadFrame(bs, &acfg, &nbbytes, (u8 *)aac_buf);
 		if (!sync_frame) break;
 
 		samp->data = (char*)aac_buf;
@@ -864,7 +860,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 
 	if (frames_skipped) {
 		gf_bs_seek(bs, 0);
-		sync_frame = LOAS_LoadFrame(bs, &acfg, &frames_skipped, NULL, NULL);
+		sync_frame = LOAS_LoadFrame(bs, &acfg, NULL, NULL);
 		if (sync_frame) {
 			gf_bs_del(bs);
 			fclose(in);
