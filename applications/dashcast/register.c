@@ -28,8 +28,13 @@
 int lock_call_back(void ** mutex, enum AVLockOp op) {
 	switch (op) {
 	case AV_LOCK_CREATE:
-		*mutex = gf_mx_new("AVLIB callback mutex");
-		break;
+		{
+			static int i = 0;
+			char mxName[64];
+			snprintf(mxName, 64, "AVLIB callback mutex %d", i++);
+			*mutex = gf_mx_new(mxName);
+			break;
+		}
 	case AV_LOCK_OBTAIN:
 		gf_mx_p(*mutex);
 		break;
@@ -42,18 +47,14 @@ int lock_call_back(void ** mutex, enum AVLockOp op) {
 	}
 
 	return 0;
-
 }
 
 void dc_register_libav() {
 
 	av_register_all();
 	avcodec_register_all();
-#ifndef WIN32
 	avdevice_register_all();
-#endif
 	avformat_network_init();
 
 	av_lockmgr_register(&lock_call_back);
-
 }
