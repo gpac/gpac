@@ -58,7 +58,9 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	ctx->state_found = GF_FALSE;
 	
 	ctx->openHevcHandle = libOpenHevcInit(ctx->nb_threads);
+#if !defined(WIN32) || defined(_WIN64)
     libOpenHevcSetDisableAU(ctx->openHevcHandle, 1);
+#endif
 	ctx->is_init = GF_TRUE;
 
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {

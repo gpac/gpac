@@ -75,7 +75,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../../bin/$(Platform)\$(Configuration)/</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</LinkIncremental>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">gm_$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">gm_$(ProjectName)</TargetName>

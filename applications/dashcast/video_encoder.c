@@ -26,6 +26,20 @@
 #include "video_encoder.h"
 
 #include "libavutil/opt.h"
+#include "libavdevice/avdevice.h"
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+
+#define _TOSTR(_val) #_val
+#define TOSTR(_val) _TOSTR(_val)
+
+#pragma comment(lib, "avcodec-"TOSTR(LIBAVCODEC_VERSION_MAJOR) )
+#pragma comment(lib, "avdevice-"TOSTR(LIBAVDEVICE_VERSION_MAJOR) )
+#pragma comment(lib, "avformat-"TOSTR(LIBAVFORMAT_VERSION_MAJOR) )
+#pragma comment(lib, "avutil-"TOSTR(LIBAVUTIL_VERSION_MAJOR) )
+#pragma comment(lib, "swscale-"TOSTR(LIBSWSCALE_VERSION_MAJOR) )
+
+#endif
 
 //#define DEBUG 1
 

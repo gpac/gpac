@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 Michael Niedermayer <michaelni@gmx.at>
+ * Copyright (C) 2013 James Almer <jamrial@gmail.com>
  *
  * This file is part of FFmpeg.
  *
@@ -18,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVUTIL_SHA_H
-#define AVUTIL_SHA_H
+#ifndef AVUTIL_RIPEMD_H
+#define AVUTIL_RIPEMD_H
 
 #include <stdint.h>
 
@@ -27,28 +28,28 @@
 #include "version.h"
 
 /**
- * @defgroup lavu_sha SHA
+ * @defgroup lavu_ripemd RIPEMD
  * @ingroup lavu_crypto
  * @{
  */
 
-extern const int av_sha_size;
+extern const int av_ripemd_size;
 
-struct AVSHA;
+struct AVRIPEMD;
 
 /**
- * Allocate an AVSHA context.
+ * Allocate an AVRIPEMD context.
  */
-struct AVSHA *av_sha_alloc(void);
+struct AVRIPEMD *av_ripemd_alloc(void);
 
 /**
- * Initialize SHA-1 or SHA-2 hashing.
+ * Initialize RIPEMD hashing.
  *
- * @param context pointer to the function context (of size av_sha_size)
- * @param bits    number of bits in digest (SHA-1 - 160 bits, SHA-2 224 or 256 bits)
+ * @param context pointer to the function context (of size av_ripemd_size)
+ * @param bits    number of bits in digest (128, 160, 256 or 320 bits)
  * @return        zero if initialization succeeded, -1 otherwise
  */
-int av_sha_init(struct AVSHA* context, int bits);
+int av_ripemd_init(struct AVRIPEMD* context, int bits);
 
 /**
  * Update hash value.
@@ -57,7 +58,7 @@ int av_sha_init(struct AVSHA* context, int bits);
  * @param data    input data to update hash with
  * @param len     input data length
  */
-void av_sha_update(struct AVSHA* context, const uint8_t* data, unsigned int len);
+void av_ripemd_update(struct AVRIPEMD* context, const uint8_t* data, unsigned int len);
 
 /**
  * Finish hashing and output digest value.
@@ -65,10 +66,10 @@ void av_sha_update(struct AVSHA* context, const uint8_t* data, unsigned int len)
  * @param context hash function context
  * @param digest  buffer where output digest value is stored
  */
-void av_sha_final(struct AVSHA* context, uint8_t *digest);
+void av_ripemd_final(struct AVRIPEMD* context, uint8_t *digest);
 
 /**
  * @}
  */
 
-#endif /* AVUTIL_SHA_H */
+#endif /* AVUTIL_RIPEMD_H */

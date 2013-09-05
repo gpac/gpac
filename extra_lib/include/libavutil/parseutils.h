@@ -122,7 +122,7 @@ int av_parse_color(uint8_t *rgba_color, const char *color_string, int slen,
  * year-month-day.
  * - If a duration the syntax is:
  * @code
- * [-]HH:MM:SS[.m...]]]
+ * [-][HH:]MM:SS[.m...]
  * [-]S+[.m...]
  * @endcode
  * @param duration flag which tells how to interpret timestr, if not
@@ -141,6 +141,7 @@ int av_parse_time(int64_t *timeval, const char *timestr, int duration);
  * In particular it actually supports the parameters:
  * - %H: the hour as a decimal number, using a 24-hour clock, in the
  * range '00' through '23'
+ * - %J: hours as a decimal number, in the range '0' through INT_MAX
  * - %M: the minute as a decimal number, using a 24-hour clock, in the
  * range '00' through '59'
  * - %S: the second as a decimal number, using a 24-hour clock, in the

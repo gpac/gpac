@@ -29,12 +29,6 @@
  * Public libavcodec VDA header.
  */
 
-#include "libavcodec/version.h"
-
-#if FF_API_VDA_ASYNC
-#include <pthread.h>
-#endif
-
 #include <stdint.h>
 
 // emmintrin.h is unable to compile with -std=c99 -Werror=missing-prototypes
@@ -45,45 +39,14 @@
 #include <VideoDecodeAcceleration/VDADecoder.h>
 #undef Picture
 
+#include "libavcodec/version.h"
+
 /**
  * @defgroup lavc_codec_hwaccel_vda VDA
  * @ingroup lavc_codec_hwaccel
  *
  * @{
  */
-
-#if FF_API_VDA_ASYNC
-/**
- * This structure is used to store decoded frame information and data.
- *
- * @deprecated Use synchronous decoding mode.
- */
-typedef struct {
-    /**
-     * The PTS of the frame.
-     *
-     * - encoding: unused
-     * - decoding: Set/Unset by libavcodec.
-     */
-    int64_t             pts;
-
-    /**
-     * The CoreVideo buffer that contains the decoded data.
-     *
-     * - encoding: unused
-     * - decoding: Set/Unset by libavcodec.
-     */
-    CVPixelBufferRef    cv_buffer;
-
-    /**
-     * A pointer to the next frame.
-     *
-     * - encoding: unused
-     * - decoding: Set/Unset by libavcodec.
-     */
-    struct vda_frame    *next_frame;
-} vda_frame;
-#endif
 
 /**
  * This structure is used to provide the necessary configurations and data
@@ -115,28 +78,6 @@ struct vda_context {
      * decoding: Set by user.
      */
     int                 use_sync_decoding;
-
-#if FF_API_VDA_ASYNC
-    /**
-     * VDA frames queue ordered by presentation timestamp.
-     *
-     * @deprecated Use synchronous decoding mode.
-     *
-     * - encoding: unused
-     * - decoding: Set/Unset by libavcodec.
-     */
-    vda_frame           *queue;
-
-    /**
-     * Mutex for locking queue operations.
-     *
-     * @deprecated Use synchronous decoding mode.
-     *
-     * - encoding: unused
-     * - decoding: Set/Unset by libavcodec.
-     */
-    pthread_mutex_t     queue_mutex;
-#endif
 
     /**
      * The frame width.
@@ -193,6 +134,17 @@ struct vda_context {
      * - decoding: Set/Unset by libavcodec.
      */
     int                 priv_allocated_size;
+
+    /**
+     * Use av_buffer to manage buffer.
+     * When the flag is set, the CVPixelBuffers returned by the decoder will
+     * be released automatically, so you have to retain them if necessary.
+     * Not setting this flag may cause memory leak.
+     *
+     * encoding: unused
+     * decoding: Set by user.
+     */
+    int                 use_ref_buffer;
 };
 
 /** Create the video decoder. */
@@ -202,22 +154,6 @@ int ff_vda_create_decoder(struct vda_context *vda_ctx,
 
 /** Destroy the video decoder. */
 int ff_vda_destroy_decoder(struct vda_context *vda_ctx);
-
-#if FF_API_VDA_ASYNC
-/**
- * Return the top frame of the queue.
- *
- * @deprecated Use synchronous decoding mode.
- */
-vda_frame *ff_vda_queue_pop(struct vda_context *vda_ctx);
-
-/**
- * Release the given frame.
- *
- * @deprecated Use synchronous decoding mode.
- */
-void ff_vda_release_vda_frame(vda_frame *frame);
-#endif
 
 /**
  * @}

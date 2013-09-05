@@ -247,13 +247,21 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 	dump_format(ts->oc, 0, avr->destination, 1);
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] DUMPING to %s...\n", ts->destination));
 
+#if (LIBAVCODEC_VERSION_MAJOR<55)
     if (avcodec_open(ts->video_st->codec, avr->videoCodec) < 0) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] failed to open video codec\n"));
+#else
+	if (avcodec_open2(ts->video_st->codec, avr->videoCodec, NULL) < 0) {
+#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] failed to open video codec\n"));
         return NULL;
     }
 #if REDIRECT_AV_AUDIO_ENABLED
+#if (LIBAVCODEC_VERSION_MAJOR<55)
     if (avcodec_open(ts->audio_st->codec, avr->audioCodec) < 0) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] failed to open audio codec\n"));
+#else
+	if (avcodec_open2(ts->audio_st->codec, avr->audioCodec, NULL) < 0) {
+#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] failed to open audio codec\n"));
         return NULL;
     }
     ts->audioMx = gf_mx_new("TS_AudioMx");

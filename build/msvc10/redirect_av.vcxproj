@@ -75,7 +75,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../../bin/$(Platform)\$(Configuration)/</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</LinkIncremental>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">gm_$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">gm_$(ProjectName)</TargetName>
@@ -269,7 +269,6 @@
   <ItemGroup>
     <ProjectReference Include="libgpac_dll.vcxproj">
       <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

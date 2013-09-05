@@ -26,7 +26,7 @@
  * external API header
  */
 
-/*
+/**
  * @mainpage
  *
  * @section ffmpeg_intro Introduction
@@ -35,12 +35,46 @@
  * provided by FFmpeg.
  *
  * @li @ref libavc "libavcodec" encoding/decoding library
- * @li @subpage libavfilter graph based frame editing library
+ * @li @ref lavfi "libavfilter" graph-based frame editing library
  * @li @ref libavf "libavformat" I/O and muxing/demuxing library
  * @li @ref lavd "libavdevice" special devices muxing/demuxing library
  * @li @ref lavu "libavutil" common utility library
- * @li @subpage libpostproc post processing library
- * @li @subpage libswscale  color conversion and scaling library
+ * @li @ref lswr "libswresample" audio resampling, format conversion and mixing
+ * @li @ref lpp  "libpostproc" post processing library
+ * @li @ref lsws "libswscale" color conversion and scaling library
+ *
+ * @section ffmpeg_versioning Versioning and compatibility
+ *
+ * Each of the FFmpeg libraries contains a version.h header, which defines a
+ * major, minor and micro version number with the
+ * <em>LIBRARYNAME_VERSION_{MAJOR,MINOR,MICRO}</em> macros. The major version
+ * number is incremented with backward incompatible changes - e.g. removing
+ * parts of the public API, reordering public struct members, etc. The minor
+ * version number is incremented for backward compatible API changes or major
+ * new features - e.g. adding a new public function or a new decoder. The micro
+ * version number is incremented for smaller changes that a calling program
+ * might still want to check for - e.g. changing behavior in a previously
+ * unspecified situation.
+ *
+ * FFmpeg guarantees backward API and ABI compatibility for each library as long
+ * as its major version number is unchanged. This means that no public symbols
+ * will be removed or renamed. Types and names of the public struct members and
+ * values of public macros and enums will remain the same (unless they were
+ * explicitly declared as not part of the public API). Documented behavior will
+ * not change.
+ *
+ * In other words, any correct program that works with a given FFmpeg snapshot
+ * should work just as well without any changes with any later snapshot with the
+ * same major versions. This applies to both rebuilding the program against new
+ * FFmpeg versions or to replacing the dynamic FFmpeg libraries that a program
+ * links against.
+ *
+ * However, new public symbols may be added and new members may be appended to
+ * public structs whose size is not part of public ABI (most public structs in
+ * FFmpeg). New macros and enum values may be added. Behavior in undocumented
+ * situations may change slightly (and be documented). All those are accompanied
+ * by an entry in doc/APIchanges and incrementing either the minor or micro
+ * version number.
  */
 
 /**
@@ -250,6 +284,27 @@ static inline void *av_x_if_null(const void *p, const void *x)
 {
     return (void *)(intptr_t)(p ? p : x);
 }
+
+/**
+ * Compute the length of an integer list.
+ *
+ * @param elsize  size in bytes of each list element (only 1, 2, 4 or 8)
+ * @param term    list terminator (usually 0 or -1)
+ * @param list    pointer to the list
+ * @return  length of the list, in elements, not counting the terminator
+ */
+unsigned av_int_list_length_for_size(unsigned elsize,
+                                     const void *list, uint64_t term) av_pure;
+
+/**
+ * Compute the length of an integer list.
+ *
+ * @param term  list terminator (usually 0 or -1)
+ * @param list  pointer to the list
+ * @return  length of the list, in elements, not counting the terminator
+ */
+#define av_int_list_length(list, term) \
+    av_int_list_length_for_size(sizeof(*(list)), list, term)
 
 /**
  * @}
