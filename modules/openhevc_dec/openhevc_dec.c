@@ -240,7 +240,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		u8 PaddingBits, u32 mmlevel)
 {
 	GF_Err e;
-	unsigned int got_pic;
+	int got_pic;
     OpenHevc_Frame_cpy openHevcFrame;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	u8 *pY, *pU, *pV, *ptr;
@@ -310,7 +310,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 			nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 		}
 
-		//fprintf(stderr, "HEVC decode NAL type %d size %d\n", (ptr[0] & 0x7E) >> 1, nalu_size);
+//		fprintf(stderr, "HEVC decode NAL type %d size %d\n", (ptr[0] & 0x7E) >> 1, nalu_size);
 
 		if (!ctx->state_found) {
 			u8 nal_type = (ptr[0] & 0x7E) >> 1;
@@ -325,7 +325,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 
 		if (ctx->state_found) {
 			got_pic = libOpenHevcDecode(ctx->openHevcHandle, ptr, nalu_size, 0);
-			if (got_pic) {
+			if (got_pic>0) {
 				nb_pics ++;
 				e = HEVC_flush_picture(ctx, outBuffer, outBufferLength);
 				if (e) {
