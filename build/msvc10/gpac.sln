@@ -42,9 +42,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp3_in", "mp3_in.vcxproj", "{4AC7F65D-0DC0-49F9-8B96-AD05F11FF38E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "mp42ts.vcxproj", "{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{72486240-A124-496E-A67A-E76FEC7E99BE} = {72486240-A124-496E-A67A-E76FEC7E99BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4box", "mp4box.vcxproj", "{48E2C7C6-52EB-46FB-8722-00A62F46F497}"
 	ProjectSection(ProjectDependencies) = postProject
