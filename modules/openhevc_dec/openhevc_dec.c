@@ -265,6 +265,9 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
  		return GF_OK;
 	}
 
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("HEVC: Decoding AU %d bytes\n", inBufferLength));
+
 	if (!ES_ID || (ES_ID!=ctx->ES_ID) ) {
 		*outBufferLength = 0;
 		return GF_OK;
@@ -444,4 +447,3 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_STATIC_DELARATION( openhevc )
-

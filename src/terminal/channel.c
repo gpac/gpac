@@ -892,6 +892,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				}
 				OCR_TS += ch->ts_offset;
 				ch->clock->clock_init = 0;
+				ch->prev_pcr_diff = 0;
 
 				gf_clock_set_time(ch->clock, OCR_TS);
 				/*many TS streams deployed with HLS have broken PCRs - we will check their consistency
@@ -928,6 +929,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		{
 			u32 ck;
 			u32 OCR_TS;
+			s32 pcr_diff, pcr_pcrprev_diff;
 			if (hdr.m2ts_pcr) {
 				OCR_TS = (u32) ( hdr.objectClockReference / 27000);
 			} else {
@@ -935,17 +937,20 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			}
 			ck = gf_clock_time(ch->clock);
 
-			//PCR loop or disc
-			if (OCR_TS + 2000 < ck) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping" ));
+			pcr_diff = (s32) OCR_TS - (s32) ck;
+			pcr_pcrprev_diff = pcr_diff - ch->prev_pcr_diff;
 
+			//PCR loop or disc
+			if (ABS(pcr_pcrprev_diff) > 4000) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping" ));
 				gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
 
 				//and re-init timing
 				gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
 				return;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+				ch->prev_pcr_diff = pcr_diff;
 			}
 		}
 #endif

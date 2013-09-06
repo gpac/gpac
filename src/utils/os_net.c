@@ -49,7 +49,8 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF)
+//#if defined(IPV6_MULTICAST_IF)
+#if 0
 //#if 0
 #define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
@@ -971,7 +972,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 				continue;
 			}
 
-//			if (aip->ai_next && (aip->ai_next->ai_family==PF_INET) && !gf_net_is_ipv6(multi_IPAdd)) continue;
+			if ((aip->ai_family!=PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET) && !gf_net_is_ipv6(multi_IPAdd)) continue;
 
 			/*enable address reuse*/
 			optval = 1;
@@ -1038,6 +1039,8 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
+		sock->flags |= GF_SOCK_IS_MULTICAST | GF_SOCK_HAS_PEER;
+		return GF_OK;
 	}
 #endif
 
@@ -1078,6 +1081,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 	}
+
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
 	M_req.imr_interface.s_addr = local_add_id;
@@ -1096,12 +1100,10 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 //	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 
 #ifdef GPAC_HAS_IPV6
-	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, type);
-	if (res) {
-		memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
-		sock->dest_addr_len = (u32) res->ai_addrlen;
-		freeaddrinfo(res);
-	}
+	((struct sockaddr_in *) &sock->dest_addr)->sin_family = AF_INET;
+	((struct sockaddr_in *) &sock->dest_addr)->sin_addr.s_addr = M_req.imr_multiaddr.s_addr;
+	((struct sockaddr_in *) &sock->dest_addr)->sin_port = htons( MultiPortNumber);
+	sock->dest_addr_len = sizeof(struct sockaddr);
 #else
 	sock->dest_addr.sin_family = AF_INET;
 	sock->dest_addr.sin_addr.s_addr = M_req.imr_multiaddr.s_addr;
