@@ -681,6 +681,7 @@ struct _es_channel
 	Bool is_raw_channel;
 
 	u32 resync_drift;
+	s32 prev_pcr_diff;
 
 	/*TSs as received from network - these are used for cache storage*/
 	u64 net_dts, net_cts;

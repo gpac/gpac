@@ -320,7 +320,9 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					pck.flags = GF_M2TS_PES_PCK_AU_START;
 				} else if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
 					pck.flags = GF_M2TS_PES_PCK_RAP;
-				} 
+				} else if (nal_type==GF_HEVC_NALU_FILLER_DATA) {
+					return 0;
+				}
 #endif
 			} else {
 				nal_type = pck.data[4] & 0x1F;
@@ -736,11 +738,18 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	GF_M2TS_PES_PCK pck;
 	u32 pos, frame_size, remain;
 	u64 PTS;
+	u32 next_hdr = 0;
 
 	pck.flags = GF_M2TS_PES_PCK_RAP;
 	pck.stream = pes;
 	remain = pes->frame_state;
 	PTS = pes->PTS;
+
+	/*check we don't find a sync point within what we should flush - this happens with looping TS streams and other nasty scenarii*/
+	next_hdr = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
+	if (next_hdr && remain && (pos<remain) ) {
+		remain = pos;
+	}
 
 	if (remain) {
 		/*dispatch end of prev frame*/

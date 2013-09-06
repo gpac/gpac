@@ -349,8 +349,12 @@ Section "FFMPEG" SecFFMPEG
   SectionIn 1
   File "${GPAC_BIN}\gm_ffmpeg_in.dll"
   File "${GPAC_BIN}\avcodec-*.dll"
+  File "${GPAC_BIN}\avdevice-*.dll"
+  File "${GPAC_BIN}\avfilter-*.dll"
   File "${GPAC_BIN}\avformat-*.dll"
   File "${GPAC_BIN}\avutil-*.dll"
+  File "${GPAC_BIN}\postproc-*.dll"
+  File "${GPAC_BIN}\swresample-*.dll"
   File "${GPAC_BIN}\swscale-*.dll"
 SectionEnd
 
@@ -477,6 +481,7 @@ Section "MP4Box" SecMP4B
   SetOutPath $INSTDIR
   File "${GPAC_BIN}\MP4Box.exe"
   File "${GPAC_BIN}\MP42TS.exe"
+  File "${GPAC_BIN}\dashcast.exe"
 
   Push $INSTDIR
   Call AddToPath
