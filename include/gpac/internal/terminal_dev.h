@@ -479,7 +479,7 @@ For these nodes, the traverse effect passed will be NULL.*/
 void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
 void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
 
-Bool gf_term_lock_codec(GF_Codec *codec, Bool lock);
+Bool gf_term_lock_codec(GF_Codec *codec, Bool lock, Bool try_lock);
 
 typedef struct
 {
@@ -722,6 +722,11 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *isma_cryp);
 void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts);
 /*returns true if this stream owns its clock, false if it simply refers to it*/
 Bool gf_es_owns_clock(GF_Channel *ch);
+void gf_es_reset_timing(GF_Channel *ch);
+/*reset all timestamps in CB*/
+void gf_cm_reset_timing(GF_CompositionMemory *cb);
+/*reset timing of all objects associated with this clock*/
+void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity);
 
 /*
 		decoder stuff

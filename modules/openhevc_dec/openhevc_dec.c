@@ -126,7 +126,6 @@ static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 		libOpenHevcClose(ctx->openHevcHandle);
 		ctx->is_init = GF_FALSE;
 	}
-	fprintf(stderr, "closing hevc dec\n");
 	ctx->width = ctx->height = ctx->out_size = 0;
 	return GF_OK;
 }

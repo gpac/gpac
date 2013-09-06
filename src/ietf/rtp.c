@@ -887,7 +887,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 discard:
 	gf_free(it->pck);
 	gf_free(it);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp] Packet Reorderer: Dropping packet %d", pck_seqnum));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp] Packet Reorderer: Dropping packet %d\n", pck_seqnum));
 	return GF_OK;
 }
 

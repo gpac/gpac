@@ -294,6 +294,24 @@ void gf_es_reset_buffers(GF_Channel *ch)
 	gf_mx_v(ch->mx);
 }
 
+void gf_es_reset_timing(GF_Channel *ch)
+{
+	struct _decoding_buffer *au = ch->AU_buffer_first;
+	gf_mx_p(ch->mx);
+
+	if (ch->buffer) gf_free(ch->buffer);
+	ch->buffer = NULL;
+	ch->len = ch->allocSize = 0;
+
+	while (au) {
+		au->CTS = au->DTS = 0;
+		au = au->next;
+	}
+	ch->BufferTime = 0;
+	ch->IsClockInit = 0;
+	gf_mx_v(ch->mx);
+}
+
 static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 {
 	if (!ch->MaxBuffer || ch->IsEndOfStream) return 0;
@@ -916,7 +934,19 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
 			}
 			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+
+			//PCR loop or disc
+			if (OCR_TS + 2000 < ck) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping" ));
+
+				gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
+
+				//and re-init timing
+				gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
+				return;
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+			}
 		}
 #endif
 		if (!payload_size) return;

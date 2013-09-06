@@ -595,7 +595,7 @@ void gf_term_set_threading(GF_Terminal *term, u32 mode)
 	gf_mx_v(term->mm_mx);
 }
 
-Bool gf_term_lock_codec(GF_Codec *codec, Bool lock)
+Bool gf_term_lock_codec(GF_Codec *codec, Bool lock, Bool trylock)
 {
 	Bool res = 1;
 	CodecEntry *ce;
@@ -605,11 +605,23 @@ Bool gf_term_lock_codec(GF_Codec *codec, Bool lock)
 	if (!ce) return 0;
 
 	if (ce->mx) {
-		if (lock) res = gf_mx_try_lock(ce->mx);
+		if (lock) {
+			if (trylock) {
+				res = gf_mx_try_lock(ce->mx);
+			} else {
+				res = gf_mx_p(ce->mx);
+			}
+		}
 		else gf_mx_v(ce->mx);
 	}
 	else {
-		if (lock) res = gf_mx_try_lock(term->mm_mx);
+		if (lock) {
+			if (trylock) {
+				res = gf_mx_try_lock(term->mm_mx);
+			} else {
+				res = gf_mx_p(term->mm_mx);
+			}
+		}
 		else gf_mx_v(term->mm_mx);
 	}
 	return res;

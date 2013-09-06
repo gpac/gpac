@@ -400,6 +400,21 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 	gf_odm_lock(cb->odm, 0);
 }
 
+void gf_cm_reset_timing(GF_CompositionMemory *cb)
+{
+	GF_CMUnit *cu = cb->input;
+
+	gf_odm_lock(cb->odm, 1);
+	cu->TS = 0;
+	cu = cu->next;
+	while (cu != cb->input) {
+		cu->TS = 0;
+		cu = cu->next;
+	}
+	if (cb->odm->mo) cb->odm->mo->timestamp = 0;
+	gf_odm_lock(cb->odm, 0);
+}
+
 /*resize buffers (blocking)*/
 void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 {

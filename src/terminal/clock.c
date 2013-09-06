@@ -281,3 +281,50 @@ void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift)
 {
 	if (ck) ck->drift = ms_drift;
 }
+
+
+/*handle clock discontinuity - for now we only reset timing of all received data and reinit the clock*/
+void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity)
+{
+	u32 i, j;
+	GF_Channel *ch;
+	GF_ObjectManager *odm;
+
+	/*check all channels and reset timing */
+	i=0;
+	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
+		if (ch->clock == ck) {
+			gf_es_reset_timing(ch);
+		}
+	}
+	j=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &j))) {
+		i=0;
+		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
+			if (ch->clock == ck) {
+				//on clock looping we force emptying all buffer
+				//on clock disc we should only reset timing, but this needs further debugging
+				if (!is_pcr_discontinuity && odm->codec && gf_term_lock_codec(odm->codec, GF_TRUE, GF_FALSE)) {
+					gf_es_reset_buffers(ch);
+					ch->IsClockInit = 0;
+					gf_term_lock_codec(odm->codec, GF_FALSE, GF_FALSE);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing buffers for ES%d\n", ch->esd->ESID));
+				} else {
+//					gf_es_reset_timing(ch);
+//					ch->IsClockInit = 0;
+
+					gf_es_reset_buffers(ch);
+					ch->IsClockInit = 0;
+					gf_term_lock_codec(odm->codec, GF_FALSE, GF_FALSE);
+					
+					GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
+				}
+
+				if (ch->odm->codec && ch->odm->codec->CB)
+					gf_cm_reset_timing(ch->odm->codec->CB);
+
+			}
+		}
+	}
+	gf_clock_reset(ck);
+}
