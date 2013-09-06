@@ -178,6 +178,7 @@ void PrintUsage()
 		"\n"
 		"\t-log-clock or -lc      : logs time in ms since start time of GPAC before each log line.\n"
 		"\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
+		"\t-ifce IPIFCE           : Sets default Multicast interface\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
 #if defined(__DARWIN__) || defined(__APPLE__)
 		"\t-thread:        enables thread usage for terminal and compositor \n"
@@ -1099,6 +1100,10 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
+			i++;
+		}
+		else if (!strcmp(arg, "-ifce")) {
+			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-views")) {
