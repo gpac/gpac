@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in `find . -name '*.sh'` ; do svn propset svn:eol-style native $i ; done
+for i in `find . -name '*.sh'` ; do svn propset svn:eol-style LF $i ; done
 for i in `find . -name '*.txt'` ; do svn propset svn:eol-style native $i ; done
 for i in `find . -name '*.cpp'` ; do svn propset svn:eol-style native $i ; done
 for i in `find . -name '*.c'` ; do svn propset svn:eol-style native $i ; done
