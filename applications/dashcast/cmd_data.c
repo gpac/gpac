@@ -46,71 +46,104 @@ int dc_str_to_resolution(char * psz_str, int * p_width, int * p_height) {
 	return 0;
 }
 
-int dc_read_configuration(CmdData * p_cmdd) {
 
+#define DEFAULT_VIDEO_BITRATE			400000
+#define DEFAULT_VIDEO_FRAMERATE		25
+#define DEFAULT_VIDEO_WIDTH				640
+#define DEFAULT_VIDEO_HEIGHT			480
+#define DEFAULT_VIDEO_CODEC				libx264
+#define DEFAULT_AUDIO_BITRATE			192000
+#define DEFAULT_AUDIO_SAMPLERATE	48000
+#define DEFAULT_AUDIO_CHANNELS		2
+
+static void dc_create_configuration(CmdData * p_cmdd)
+{	
+	GF_Config * p_conf = p_cmdd->p_conf;
+	u32 i_sec_count = gf_cfg_get_section_count(p_conf);
+	if (i_sec_count == 0) {
+		char value[GF_MAX_PATH];
+
+		//video
+		gf_cfg_set_key(p_conf, "v1", "type", "video");
+		if (p_cmdd->vdata.i_bitrate == -1)
+			p_cmdd->vdata.i_bitrate = DEFAULT_VIDEO_BITRATE;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->vdata.i_bitrate);
+		gf_cfg_set_key(p_conf, "v1", "bitrate", value);
+		
+		if (p_cmdd->vdata.i_framerate == -1)
+			p_cmdd->vdata.i_framerate = DEFAULT_VIDEO_FRAMERATE;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->vdata.i_framerate);
+		gf_cfg_set_key(p_conf, "v1", "framerate", value);
+		
+		if (p_cmdd->vdata.i_width == -1)
+			p_cmdd->vdata.i_width = DEFAULT_VIDEO_WIDTH;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->vdata.i_width);
+		gf_cfg_set_key(p_conf, "v1", "width", value);
+		
+		if (p_cmdd->vdata.i_height == -1)
+			p_cmdd->vdata.i_height = DEFAULT_VIDEO_HEIGHT;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->vdata.i_height);
+		gf_cfg_set_key(p_conf, "v1", "height", value);
+
+		gf_cfg_set_key(p_conf, "v1", "codec", value);
+		
+		//audio
+		gf_cfg_set_key(p_conf, "a1", "type", "audio");
+
+		if (p_cmdd->adata.i_bitrate == -1)
+			p_cmdd->adata.i_bitrate = DEFAULT_AUDIO_BITRATE;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->adata.i_bitrate);
+		gf_cfg_set_key(p_conf, "a1", "bitrate", value);
+
+		if (p_cmdd->adata.i_samplerate == -1)
+			p_cmdd->adata.i_samplerate = DEFAULT_AUDIO_SAMPLERATE;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->adata.i_samplerate);
+		gf_cfg_set_key(p_conf, "a1", "samplerate", value);
+
+		if (p_cmdd->adata.i_channels == -1)
+			p_cmdd->adata.i_channels = DEFAULT_AUDIO_CHANNELS;
+		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->adata.i_channels);
+		gf_cfg_set_key(p_conf, "a1", "channels", value);
+
+		gf_cfg_set_key(p_conf, "a1", "codec", value);
+	}
+}
+
+int dc_read_configuration(CmdData * p_cmdd)
+{
 	u32 i;
 
 	GF_Config * p_conf = p_cmdd->p_conf;
 
 	u32 i_sec_count = gf_cfg_get_section_count(p_conf);
-
-	if (i_sec_count == 0) {
-		gf_cfg_set_key(p_conf, "v1", "type", "video");
-		gf_cfg_set_key(p_conf, "v1", "bitrate", "400000");
-//		gf_cfg_set_key(p_conf, "v1", "framerate", "25");
-		gf_cfg_set_key(p_conf, "v1", "width", "640");
-		gf_cfg_set_key(p_conf, "v1", "height", "480");
-//		gf_cfg_set_key(p_conf, "v1", "codec", "libx264");
-
-		gf_cfg_set_key(p_conf, "a1", "type", "audio");
-		gf_cfg_set_key(p_conf, "a1", "bitrate", "192000");
-//		gf_cfg_set_key(p_conf, "a1", "samplerate", "48000");
-//		gf_cfg_set_key(p_conf, "a1", "channels", "2");
-//		gf_cfg_set_key(p_conf, "a1", "codec", "mp2");
-
-		i_sec_count = 2;
-	}
 	for (i = 0; i < i_sec_count; i++) {
-
 		const char * psz_sec_name = gf_cfg_get_section_name(p_conf, i);
-
 		const char * psz_type = gf_cfg_get_key(p_conf, psz_sec_name, "type");
 
 		if (strcmp(psz_type, "video") == 0) {
 
 			VideoData * p_vconf = gf_malloc(sizeof(VideoData));
 			strcpy(p_vconf->psz_name, psz_sec_name);
-//			strcpy(p_vconf->psz_codec,
-//					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
-			p_vconf->i_bitrate = atoi(
-					gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
-//			p_vconf->i_framerate = atoi(
-//					gf_cfg_get_key(p_conf, psz_sec_name, "framerate"));
-			p_vconf->i_height = atoi(
-					gf_cfg_get_key(p_conf, psz_sec_name, "height"));
-			p_vconf->i_width = atoi(
-					gf_cfg_get_key(p_conf, psz_sec_name, "width"));
-
+			strcpy(p_vconf->psz_codec, gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
+			p_vconf->i_bitrate = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
+			p_vconf->i_framerate = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "framerate"));
+			p_vconf->i_height = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "height"));
+			p_vconf->i_width = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "width"));
 			gf_list_add(p_cmdd->p_video_lst, (void *) p_vconf);
+
 		} else if (strcmp(psz_type, "audio") == 0) {
 
 			AudioData * p_aconf = gf_malloc(sizeof(AudioData));
 			strcpy(p_aconf->psz_name, psz_sec_name);
-//			strcpy(p_aconf->psz_codec,
-//					gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
-			p_aconf->i_bitrate = atoi(
-					gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
-//			p_aconf->i_samplerate = atoi(
-//					gf_cfg_get_key(p_conf, psz_sec_name, "samplerate"));
-//			p_aconf->i_channels = atoi(
-//					gf_cfg_get_key(p_conf, psz_sec_name, "channels"));
-
+			strcpy(p_aconf->psz_codec, gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
+			p_aconf->i_bitrate = atoi( gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
+			p_aconf->i_samplerate = atoi( gf_cfg_get_key(p_conf, psz_sec_name, "samplerate"));
+			p_aconf->i_channels = atoi( gf_cfg_get_key(p_conf, psz_sec_name, "channels"));
 			gf_list_add(p_cmdd->p_audio_lst, (void *) p_aconf);
 
 		} else {
 			printf("Configuration file: type %s is not supported.\n", psz_type);
 		}
-
 	}
 
 	printf("\33[34m\33[1m");
@@ -486,8 +519,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 				printf("%s", psz_command_usage);
 				return -1;
 			}
-			dc_str_to_resolution(p_argv[i], &p_cmdd->vdata.i_width,
-					&p_cmdd->vdata.i_height);
+			dc_str_to_resolution(p_argv[i], &p_cmdd->vdata.i_width, &p_cmdd->vdata.i_height);
 
 			i++;
 
@@ -645,9 +677,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			p_cmdd->i_time_shift = atoi(p_argv[i]);
 			i++;
 
-		}
-
-		else if (strcmp(p_argv[i], "-min-buffer") == 0) {
+		} else if (strcmp(p_argv[i], "-min-buffer") == 0) {
 			i++;
 			if (i >= i_argc) {
 				printf("%s", psz_command_error);
@@ -714,7 +744,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			printf("%s", psz_command_usage);
 			return -1;
 		}
-
 	}
 
 	if (strcmp(p_cmdd->psz_mpd, "") == 0) {
@@ -762,6 +791,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		p_cmdd->f_minbuftime = 1.0;
 	}
 
+
+
 	printf("\33[34m\33[1m");
 	printf("Options:\n");
 	printf("    video source: %s\n", p_cmdd->vdata.psz_name);
@@ -777,8 +808,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		printf("    video framerate: %d\n", p_cmdd->vdata.i_framerate);
 	}
 	if (p_cmdd->vdata.i_height != -1 && p_cmdd->vdata.i_width != -1) {
-		printf("    video resolution: %dx%d\n", p_cmdd->vdata.i_width,
-				p_cmdd->vdata.i_height);
+		printf("    video resolution: %dx%d\n", p_cmdd->vdata.i_width, p_cmdd->vdata.i_height);
 	}
 
 	printf("    audio source: %s\n", p_cmdd->adata.psz_name);
@@ -788,16 +818,17 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	printf("\33[0m");
 	fflush(stdout);
 
+	
+	
 	if (!p_cmdd->p_conf) {
 		p_cmdd->p_conf = gf_cfg_force_new(NULL, "dashcast.conf");
+		dc_create_configuration(p_cmdd);
 	}
+	dc_read_configuration(p_cmdd);
 
 	if (!p_cmdd->p_switch_conf) {
 		p_cmdd->p_switch_conf = gf_cfg_force_new(NULL, "switch.conf");
 	}
-
-	dc_read_configuration(p_cmdd);
-
 	dc_read_switch_config(p_cmdd);
 
 	return 0;
