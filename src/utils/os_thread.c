@@ -232,6 +232,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 #ifdef WIN32
 	t->threadH = CreateThread(NULL,  t->stackSize, &(RunThread), (void *)t, 0, &id);
 	if (t->threadH != NULL) {
+#ifdef _MSC_VER
 		/*add thread name for the msvc debugger*/
 #pragma pack(push,8)
 		typedef struct {
@@ -250,6 +251,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 			RaiseException(0x406D1388, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
 		} __except (EXCEPTION_CONTINUE_EXECUTION) {
 		}
+#endif
 	} else {
 #else
 	if ( pthread_attr_init(&att) != 0 ) return GF_IO_ERR;
