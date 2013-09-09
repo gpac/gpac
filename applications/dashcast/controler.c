@@ -39,14 +39,9 @@
 #include <sys/timeb.h>
 #define suseconds_t long
 
-typedef struct {
-	int segnum;
-	u64 time;
-} segtime;
-
 s32 gettimeofday(struct timeval *tp, void *tz)
 {
-	struct _timeb timebuffer;   
+	struct _timeb timebuffer;
 
 	_ftime( &timebuffer );
 	tp->tv_sec  = (long) (timebuffer.time);
@@ -56,6 +51,13 @@ s32 gettimeofday(struct timeval *tp, void *tz)
 #else
 #error
 #endif
+
+
+typedef struct {
+	int segnum;
+	u64 time;
+} segtime;
+
 
 //#define MAX_SOURCE_NUMBER 20
 #define DASHER 0
