@@ -374,17 +374,20 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (current_time < mpd->availabilityStartTime) {
 #ifndef _WIN32_WCE
 		time_t gtime;
-		struct tm t1, t2;
-		gtime = current_time;
-		t1 = * gmtime(&gtime);
+		struct tm *t1, *t2;
+		gtime = current_time / 1000;
+		t1 = gmtime(&gtime);
 		gtime = mpd->availabilityStartTime / 1000;
-		t2 = * gmtime(&gtime);
-		t1.tm_year = t2.tm_year;
-		
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: current time %d-%02d-%02dT%02d:%02d:%02dZ is less than AST %d-%02d-%02dT%02d:%02d:%02dZ!\n", 
-			   1900+t1.tm_year, t1.tm_mon+1, t1.tm_mday, t1.tm_hour, t1.tm_min, t1.tm_sec,
-			   1900+t2.tm_year, t2.tm_mon+1, t2.tm_mday, t2.tm_hour, t2.tm_min, t2.tm_sec
-		));		
+		t2 = gmtime(&gtime);
+		if (t1 && t2) {
+			t1->tm_year = t2->tm_year;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: current time %d-%02d-%02dT%02d:%02d:%02dZ is less than AST %d-%02d-%02dT%02d:%02d:%02dZ!\n", 
+					 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec,
+					 1900+t2->tm_year, t2->tm_mon+1, t2->tm_mday, t2->tm_hour, t2->tm_min, t2->tm_sec
+			));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: could not retrieve time!\n"));
+		}
 #endif
 		current_time = 0;
 		group->broken_timing = 1;
