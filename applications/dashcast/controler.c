@@ -317,7 +317,6 @@ static u32 mpd_thread(void * p_params) {
 					p_vdata->i_framerate, video_seg_dur);
 
 			for (i = 0; i < gf_list_count(p_cmddata->p_video_lst); i++) {
-
 				p_vdata = gf_list_get(p_cmddata->p_video_lst, i);
 				fprintf(p_f,
 					"   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
@@ -326,7 +325,6 @@ static u32 mpd_thread(void * p_params) {
 					VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? "avc1.42e01e" : "avc3", //FIXME: hardcoded. We would need acces to the ISOFile to call gf_media_get_rfc_6381_codec_name()
 					p_vdata->i_width, p_vdata->i_height, p_vdata->i_framerate,
 					p_vdata->i_bitrate);
-
 			}
 
 			fprintf(p_f, "  </AdaptationSet>\n");
@@ -1200,8 +1198,7 @@ int dc_run_controler(CmdData * p_in_data) {
 		vscaler_th_params = gf_malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(vinf[0], &p_in_data->vdata, p_in_data->i_mode,
-				p_in_data->i_no_loop) < 0) {
+		if (dc_video_decoder_open(vinf[0], &p_in_data->vdata, p_in_data->i_mode, p_in_data->i_no_loop) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
 			return -1;
 		}
@@ -1324,7 +1321,6 @@ int dc_run_controler(CmdData * p_in_data) {
 	mpd_th_params.p_in_data = p_in_data;
 	mpd_th_params.p_mq = &mq;
 	if (gf_th_run(mpd_th_params.p_thread, mpd_thread, (void *)&mpd_th_params) != GF_OK) {
-
 		fprintf(stderr, "Error while doing pthread_create for mpd_thread.\n");
 	}
 

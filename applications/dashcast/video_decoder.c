@@ -38,23 +38,26 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	AVCodecContext * p_codec_ctx;
 	AVCodec * p_codec;
 
+	if (p_vdata->i_width > 0 && p_vdata->i_height > 0) {
+		char vres[16];
+		sprintf(vres, "%dx%d", p_vdata->i_width, p_vdata->i_height);
+		av_dict_set(&p_options, "video_size", vres, 0);
+	}
+
 	if (p_vdata->i_framerate > 0) {
 		char vfr[16];
 		sprintf(vfr, "%d", p_vdata->i_framerate);
 		av_dict_set(&p_options, "framerate", vfr, 0);
 	}
 
+	//TODO: support other colorspaces
+	av_dict_set(&p_options, "pixel_format", "yuv420p", 0);
+
 #ifndef WIN32
 	if (strcmp(p_vdata->psz_v4l2f, "") != 0) {
 		av_dict_set(&p_options, "input_format", p_vdata->psz_v4l2f, 0);
 	}
 #endif
-
-	if (p_vdata->i_width > 0 && p_vdata->i_height > 0) {
-		char vres[16];
-		sprintf(vres, "%dx%d", p_vdata->i_width, p_vdata->i_height);
-		av_dict_set(&p_options, "video_size", vres, 0);
-	}
 	
 	if (p_vdata->psz_format && strcmp(p_vdata->psz_format, "") != 0) {
 		p_in_fmt = av_find_input_format(p_vdata->psz_format);
@@ -67,15 +70,13 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	p_vin->p_fmt_ctx = NULL;
 
 	/*  Open video */
-	if (avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt,
-			p_options == NULL ? NULL : &p_options) != 0) {
+	if (avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, p_options ? &p_options : NULL) < 0) {
 		fprintf(stderr, "Cannot open file %s\n", p_vdata->psz_name);
 		return -1;
 	}
 
 	/*  Retrieve stream information */
-	if (avformat_find_stream_info(p_vin->p_fmt_ctx,
-			p_options == NULL ? NULL : &p_options) < 0) {
+	if (avformat_find_stream_info(p_vin->p_fmt_ctx, p_options == NULL ? NULL : &p_options) < 0) {
 		fprintf(stderr, "Cannot find stream information\n");
 		return -1;
 	}
@@ -85,8 +86,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	/*  Find the first video stream */
 	p_vin->i_vstream_idx = -1;
 	for (i = 0; i < p_vin->p_fmt_ctx->nb_streams; i++) {
-		if (p_vin->p_fmt_ctx->streams[i]->codec->codec_type
-				== AVMEDIA_TYPE_VIDEO) {
+		if (p_vin->p_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
 			p_vin->i_vstream_idx = i;
 			break;
 		}
@@ -279,7 +279,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 				// Strange thing is that it happens only when the pixel format is BGRA.
 				// More tests are needed here.
 				if (p_codec_ctx->codec->id != CODEC_ID_RAWVIDEO
-						|| p_codec_ctx->pix_fmt != PIX_FMT_BGRA)
+						/*|| p_codec_ctx->pix_fmt != PIX_FMT_BGRA*/)
 					av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;
