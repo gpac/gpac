@@ -73,7 +73,7 @@ typedef struct {
 
 	/* If marked is 0 it means the data on this node is not valid.
 	 * If marked is 1 it means that the data on this node is valid.
-	 *  If marked is 2 it means this node is the last node.
+	 * If marked is 2 it means this node is the last node.
 	 */
 	int i_marked;
 	/*

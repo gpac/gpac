@@ -350,7 +350,7 @@ static u32 mpd_thread(void * p_params) {
 			printf("Duration: %s\n", presentation_duration);
 		}
 
-		dc_write_mpd(p_cmddata, p_adata, p_vdata, presentation_duration, availability_start_time, time_shift, 1);
+		dc_write_mpd(p_cmddata, p_adata, p_vdata, presentation_duration, availability_start_time, time_shift, 0);
 	}
 
 	return 0;
