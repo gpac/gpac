@@ -444,7 +444,10 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		bs->position++;
 		return;
 	}
-	if (bs->buffer_io && (bs->buffer_written<bs->buffer_io_size)) {
+	if (bs->buffer_io) {
+		if (bs->buffer_written == bs->buffer_io_size) {
+			bs_flush_cache(bs);
+		}
 		bs->buffer_io[bs->buffer_written] = val;
 		bs->buffer_written++;
 		if (bs->buffer_written == bs->buffer_io_size) {

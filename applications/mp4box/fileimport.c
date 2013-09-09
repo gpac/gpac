@@ -202,11 +202,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
 	strcpy(szName, inName);
-	ext = strrchr(inName, '.');
-	if (!ext) {
-		fprintf(stderr, "Unknown input file type\n");
-		return GF_BAD_PARAM;
-	}
+
 	is_chap_file = 0;
 	handler = 0;
 	disable = 0;
