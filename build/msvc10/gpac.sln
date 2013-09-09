@@ -1,14 +1,8 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4client", "mp4client.vcxproj", "{A35D99BF-D72D-4F56-99A1-97249B22BCE2}"
-	ProjectSection(ProjectDependencies) = postProject
-		{72486240-A124-496E-A67A-E76FEC7E99BE} = {72486240-A124-496E-A67A-E76FEC7E99BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Osmo4", "Osmo4.vcxproj", "{C79C2D73-06E9-4622-92CE-F166B1B51792}"
-	ProjectSection(ProjectDependencies) = postProject
-		{72486240-A124-496E-A67A-E76FEC7E99BE} = {72486240-A124-496E-A67A-E76FEC7E99BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "aac_in", "aac_in.vcxproj", "{1F7CD37F-DC9A-4AC7-881B-36B263A644C7}"
 EndProject
@@ -21,9 +15,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dx_hw", "dx_hw.vcxproj", "{B64736BD-9245-4F40-961D-EB9822265764}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpeg_in", "ffmpeg_in.vcxproj", "{9FECAB79-BC70-4EEA-A23B-B64159F904B3}"
-	ProjectSection(ProjectDependencies) = postProject
-		{72486240-A124-496E-A67A-E76FEC7E99BE} = {72486240-A124-496E-A67A-E76FEC7E99BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ft_font", "ft_font.vcxproj", "{042D3628-67F3-4B5C-8BC0-CD9AFA416974}"
 EndProject
@@ -44,9 +35,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "mp42ts.vcxproj", "{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4box", "mp4box.vcxproj", "{48E2C7C6-52EB-46FB-8722-00A62F46F497}"
-	ProjectSection(ProjectDependencies) = postProject
-		{72486240-A124-496E-A67A-E76FEC7E99BE} = {72486240-A124-496E-A67A-E76FEC7E99BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mpegts_in", "mpegts_in.vcxproj", "{B38E812D-9823-48E7-BE5F-BF09B0AD4165}"
 EndProject
@@ -55,9 +43,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ogg", "ogg.vcxproj", "{3B4108E4-C8FD-4D82-AF4A-F928CCF36A60}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "osmozilla", "osmozilla.vcxproj", "{A0288B75-0D95-4106-A3A7-779A891E8FEF}"
-	ProjectSection(ProjectDependencies) = postProject
-		{72486240-A124-496E-A67A-E76FEC7E99BE} = {72486240-A124-496E-A67A-E76FEC7E99BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raw_out", "raw_out.vcxproj", "{8162BADA-2FB6-4A71-B998-ABAFAF28E5A8}"
 EndProject
