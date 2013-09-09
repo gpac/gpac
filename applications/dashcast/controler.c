@@ -39,6 +39,11 @@
 #include <sys/timeb.h>
 #define suseconds_t long
 
+typedef struct {
+	int segnum;
+	u64 time;
+} segtime;
+
 s32 gettimeofday(struct timeval *tp, void *tz)
 {
 	struct _timeb timebuffer;   
@@ -139,10 +144,120 @@ u32 send_frag_event(void * p_params) {
 
 }
 
+static void dc_write_mpd(CmdData *p_cmddata, const AudioData *p_adata, const VideoData *p_vdata, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum) {
+	u32 i = 0;
+	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,	video_frag_dur = 0;
+	int audio_frame_size = AUDIO_FRAME_SIZE;
+	FILE * p_f;
+	char psz_name[512];
+	
+	sprintf(psz_name, "%s/%s", p_cmddata->psz_out, p_cmddata->psz_mpd);
+
+	if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
+		p_adata = gf_list_get(p_cmddata->p_audio_lst, 0);
+
+		audio_seg_dur = (int)((p_adata->i_samplerate / (double) audio_frame_size) * (p_cmddata->i_seg_dur / 1000.0));
+		audio_frag_dur = (int)((p_adata->i_samplerate / (double) audio_frame_size) * (p_cmddata->i_frag_dur / 1000.0));
+		optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
+	}
+
+	if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
+		p_vdata = gf_list_get(p_cmddata->p_video_lst, 0);
+
+		video_seg_dur = (int)(p_vdata->i_framerate * (p_cmddata->i_seg_dur / 1000.0));
+		video_frag_dur = (int)(p_vdata->i_framerate * (p_cmddata->i_frag_dur / 1000.0));
+		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
+	}
+	
+	p_f = fopen(psz_name, "w");
+
+	//	time_t t = time(NULL);
+	//	time_t t2 = t + 2;
+	//	t += (2 * (p_cmddata->i_seg_dur / 1000.0));
+	//	tm = *gmtime(&t2);
+	//	sprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
+	//			tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+	//	printf("%s \n", availability_start_time);
+
+	fprintf(p_f, "<?xml version=\"1.0\"?>\n");
+	fprintf(p_f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
+							"%s=\"%s\" "
+							"minBufferTime=\"PT%fS\" %s type=\"%s\" "
+							"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
+							(p_cmddata->i_mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime",
+							(p_cmddata->i_mode == ON_DEMAND) ? presentation_duration : availability_start_time,
+							p_cmddata->f_minbuftime, time_shift,
+							(p_cmddata->i_mode == ON_DEMAND) ? "static" : "dynamic");
+
+	fprintf(p_f,
+		" <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
+		"  <Title>%s</Title>\n"
+		" </ProgramInformation>\n", p_cmddata->psz_mpd);
+
+	fprintf(p_f, " <Period id=\"\">\n");
+
+	if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
+		fprintf(p_f,
+			"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
+
+		fprintf(p_f,
+			"   <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" "
+			"value=\"2\"/>\n");
+
+		fprintf(p_f,
+			"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
+			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+			p_adata->i_samplerate, audio_seg_dur * audio_frame_size, segnum);
+
+		for (i = 0; i < gf_list_count(p_cmddata->p_audio_lst); i++) {
+
+			p_adata = gf_list_get(p_cmddata->p_audio_lst, i);
+			fprintf(p_f,
+				"   <Representation id=\"%s\" mimeType=\"audio/mp4\" codecs=\"mp4a.40.2\" "
+				"audioSamplingRate=\"%d\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
+				"   </Representation>\n", p_adata->psz_name,
+				p_adata->i_samplerate, p_adata->i_bitrate);
+
+		}
+
+		fprintf(p_f, "  </AdaptationSet>\n");
+	}
+
+	if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
+		fprintf(p_f,
+			"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
+
+		fprintf(p_f,
+			"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
+			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+			p_vdata->i_framerate, video_seg_dur, segnum);
+
+		for (i = 0; i < gf_list_count(p_cmddata->p_video_lst); i++) {
+			p_vdata = gf_list_get(p_cmddata->p_video_lst, i);
+			fprintf(p_f,
+				"   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
+				"width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
+				"   </Representation>\n", p_vdata->psz_name,
+				VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? "avc1.42e01e" : "avc3", //FIXME: hardcoded. We would need acces to the ISOFile to call gf_media_get_rfc_6381_codec_name()
+				p_vdata->i_width, p_vdata->i_height, p_vdata->i_framerate,
+				p_vdata->i_bitrate);
+		}
+
+		fprintf(p_f, "  </AdaptationSet>\n");
+	}
+
+	fprintf(p_f, " </Period>\n");
+
+	fprintf(p_f, "</MPD>\n");
+
+	fclose(p_f);
+
+	printf("\33[34m\33[1m");
+	printf("MPD file generated: %s/%s\n", p_cmddata->psz_out, p_cmddata->psz_mpd);
+	printf("\33[0m");
+}
+
 static u32 mpd_thread(void * p_params) {
-
-	u32 i;
-
 	ThreadParam * p_th_param = (ThreadParam *) p_params;
 	CmdData * p_cmddata = p_th_param->p_in_data;
 	MessageQueue * p_mq = p_th_param->p_mq;
@@ -150,57 +265,63 @@ static u32 mpd_thread(void * p_params) {
 	char presentation_duration[512];
 	char time_shift[512] = "";
 
-	int audio_frame_size = AUDIO_FRAME_SIZE;
-	char psz_name[512];
-
-	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,
-			video_frag_dur = 0;
-
 	AudioData * p_adata = NULL;
 	VideoData * p_vdata = NULL;
 
 	if (p_cmddata->i_mode == LIVE_CAMERA || p_cmddata->i_mode == LIVE_MEDIA) {
 
-		time_t t;
-		int ms;
-		u64 time = 0;
+		while (1) {
+			time_t t;
+			int ms;
+			segtime seg_time;
+			seg_time.segnum = 0;
+			seg_time.time = 0;
 
-		if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-			dc_message_queue_get(p_mq, &time);
+			if (p_cmddata->i_exit_signal) {
+				break;
+			}
+
+			if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
+				dc_message_queue_get(p_mq, &seg_time);
+			}
+
+			if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
+				dc_message_queue_get(p_mq, &seg_time);
+			}
+
+			seg_time.time += p_cmddata->i_ast_offset;
+			seg_time.segnum -= p_cmddata->i_ast_offset / p_cmddata->i_seg_dur;
+			if (seg_time.segnum < 0) {
+				continue;
+			}
+
+			t = seg_time.time / 1000;
+			ms = seg_time.time % 1000;
+
+			//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
+			//t += p_cmddata->i_ast_offset;
+			{	
+				struct tm ast_time = *gmtime(&t);
+				strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
+				sprintf(availability_start_time,"%s.%dZ", availability_start_time, ms);
+				//sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
+				//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
+				//		time.tm_min, time.tm_sec);
+				printf("StartTime: %s\n", availability_start_time);
+			}
+
+			if (p_cmddata->i_time_shift != -1) {
+				int ts, h, m, s;
+				ts = p_cmddata->i_time_shift;
+				h = ts / 3600;
+				ts = ts % 3600;
+				m = ts / 60;
+				s = ts % 60;
+				sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
+			}
+
+			dc_write_mpd(p_cmddata, p_adata, p_vdata, presentation_duration, availability_start_time, time_shift, seg_time.segnum);
 		}
-
-		if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-			dc_message_queue_get(p_mq, &time);
-		}
-
-		time += p_cmddata->i_ast_offset;
-
-		t = time / 1000;
-		ms = time % 1000;
-
-		//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
-		//t += p_cmddata->i_ast_offset;
-		{	
-			struct tm ast_time = *gmtime(&t);
-			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
-			sprintf(availability_start_time,"%s.%dZ", availability_start_time, ms);
-			//sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
-			//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
-			//		time.tm_min, time.tm_sec);
-			printf("StartTime: %s\n", availability_start_time);
-		}
-
-		if (p_cmddata->i_time_shift != -1) {
-			int ts, h, m, s;
-			ts = p_cmddata->i_time_shift;
-			h = ts / 3600;
-			ts = ts % 3600;
-			m = ts / 60;
-			s = ts % 60;
-			sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h,
-					m, s);
-		}
-
 	} else {
 
 		int a_dur = 0;
@@ -226,121 +347,9 @@ static u32 mpd_thread(void * p_params) {
 			sprintf(presentation_duration, "PT%02dH%02dM%02d.%03dS", h, m, s, ms);
 			printf("Duration: %s\n", presentation_duration);
 		}
+
+		dc_write_mpd(p_cmddata, p_adata, p_vdata, presentation_duration, availability_start_time, time_shift, 1);
 	}
-
-	sprintf(psz_name, "%s/%s", p_cmddata->psz_out, p_cmddata->psz_mpd);
-
-	if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-
-		p_adata = gf_list_get(p_cmddata->p_audio_lst, 0);
-
-		audio_seg_dur = (int)((p_adata->i_samplerate / (double) audio_frame_size) * (p_cmddata->i_seg_dur / 1000.0));
-		audio_frag_dur = (int)((p_adata->i_samplerate / (double) audio_frame_size) * (p_cmddata->i_frag_dur / 1000.0));
-		optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
-
-	}
-
-	if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-
-		p_vdata = gf_list_get(p_cmddata->p_video_lst, 0);
-
-		video_seg_dur = (int)(p_vdata->i_framerate * (p_cmddata->i_seg_dur / 1000.0));
-		video_frag_dur = (int)(p_vdata->i_framerate * (p_cmddata->i_frag_dur / 1000.0));
-		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
-
-	}
-
-	{
-		FILE * p_f = fopen(psz_name, "w");
-
-  	//	time_t t = time(NULL);
-  	//	time_t t2 = t + 2;
-  	//	t += (2 * (p_cmddata->i_seg_dur / 1000.0));
-  	//	tm = *gmtime(&t2);
-  	//	sprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
-  	//			tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  	//	printf("%s \n", availability_start_time);
-
-		fprintf(p_f, "<?xml version=\"1.0\"?>\n");
-		fprintf(p_f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
-				"%s=\"%s\" "
-				"minBufferTime=\"PT%fS\" %s type=\"%s\" "
-				"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
-				(p_cmddata->i_mode == ON_DEMAND) ?
-						"mediaPresentationDuration" : "availabilityStartTime",
-				(p_cmddata->i_mode == ON_DEMAND) ?
-						presentation_duration : availability_start_time,
-				p_cmddata->f_minbuftime, time_shift,
-				(p_cmddata->i_mode == ON_DEMAND) ? "static" : "dynamic");
-
-		fprintf(p_f,
-				" <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
-						"  <Title>%s</Title>\n"
-						" </ProgramInformation>\n", p_cmddata->psz_mpd);
-
-		fprintf(p_f, " <Period id=\"\">\n");
-
-		if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-			fprintf(p_f,
-					"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
-
-			fprintf(p_f,
-					"   <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" "
-							"value=\"2\"/>\n");
-
-			fprintf(p_f,
-					"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-							" startNumber=\"0\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
-					p_adata->i_samplerate, audio_seg_dur * audio_frame_size);
-
-			for (i = 0; i < gf_list_count(p_cmddata->p_audio_lst); i++) {
-
-				p_adata = gf_list_get(p_cmddata->p_audio_lst, i);
-				fprintf(p_f,
-						"   <Representation id=\"%s\" mimeType=\"audio/mp4\" codecs=\"mp4a.40.2\" "
-								"audioSamplingRate=\"%d\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
-								"   </Representation>\n", p_adata->psz_name,
-						p_adata->i_samplerate, p_adata->i_bitrate);
-
-			}
-
-			fprintf(p_f, "  </AdaptationSet>\n");
-		}
-
-		if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-			fprintf(p_f,
-					"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
-
-			fprintf(p_f,
-					"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-							" startNumber=\"0\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
-					p_vdata->i_framerate, video_seg_dur);
-
-			for (i = 0; i < gf_list_count(p_cmddata->p_video_lst); i++) {
-				p_vdata = gf_list_get(p_cmddata->p_video_lst, i);
-				fprintf(p_f,
-					"   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
-					"width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
-					"   </Representation>\n", p_vdata->psz_name,
-					VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? "avc1.42e01e" : "avc3", //FIXME: hardcoded. We would need acces to the ISOFile to call gf_media_get_rfc_6381_codec_name()
-					p_vdata->i_width, p_vdata->i_height, p_vdata->i_framerate,
-					p_vdata->i_bitrate);
-			}
-
-			fprintf(p_f, "  </AdaptationSet>\n");
-		}
-
-		fprintf(p_f, " </Period>\n");
-
-		fprintf(p_f, "</MPD>\n");
-
-		fclose(p_f);
-	}
-
-	printf("\33[34m\33[1m");
-	printf("MPD file generated: %s/%s\n", p_cmddata->psz_out,
-			p_cmddata->psz_mpd);
-	printf("\33[0m");
 
 	return 0;
 }
@@ -868,10 +877,8 @@ u32 video_encoder_thread(void * p_params) {
 				if (r == 1) {
 					//printf("fragment is written!\n");
 					if (p_in_data->i_send_message == 1) {
-						sprintf(name_to_send, "%s/%s_%d_gpac.m4s",
-								p_in_data->psz_out, p_vdata->psz_name, seg_nb);
-						dc_message_queue_put(p_send_seg_mq, name_to_send,
-								sizeof(name_to_send));
+						sprintf(name_to_send, "%s/%s_%d_gpac.m4s", p_in_data->psz_out, p_vdata->psz_name, seg_nb);
+						dc_message_queue_put(p_send_seg_mq, name_to_send, sizeof(name_to_send));
 					}
 
 					break;
@@ -884,23 +891,21 @@ u32 video_encoder_thread(void * p_params) {
 		dc_video_muxer_close(&out_file);
 
 #ifndef FRAGMENTER
-		dc_message_queue_put(p_mq, p_vdata->psz_name,
-				sizeof(p_vdata->psz_name));
+		dc_message_queue_put(p_mq, p_vdata->psz_name, sizeof(p_vdata->psz_name));
 #endif
 
 		// If system is live,
-		// Send the time that the first segment is available to MPD generator thread.
-		if (seg_nb == 0) {
-			if (p_in_data->i_mode == LIVE_MEDIA
-					|| p_in_data->i_mode == LIVE_CAMERA) {
-				if (p_thread_params->video_conf_idx == 0) {
-					u64 t = gf_net_get_utc();
-					//time_t t = time(NULL);
-					dc_message_queue_put(p_mq, &t, sizeof(t));
-				}
+		// Send the time that a segment is available to MPD generator thread.
+		if (p_in_data->i_mode == LIVE_MEDIA || p_in_data->i_mode == LIVE_CAMERA) {
+			if (p_thread_params->video_conf_idx == 0) {
+				segtime t;
+				t.segnum = seg_nb;
+				t.time = gf_net_get_utc();
+				//time_t t = time(NULL);
+				dc_message_queue_put(p_mq, &t, sizeof(t));
 			}
 		}
-
+	
 		if (p_in_data->i_time_shift != -1) {
 			shift = 1000 * p_in_data->i_time_shift / p_in_data->i_seg_dur;
 			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
@@ -996,8 +1001,7 @@ u32 audio_encoder_thread(void * p_params) {
 
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
 
-	if (dc_audio_muxer_init(&aout, p_adata, muxer_type, frame_per_seg,
-			frame_per_frag, p_in_data->i_seg_marker) < 0) {
+	if (dc_audio_muxer_init(&aout, p_adata, muxer_type, frame_per_seg, frame_per_frag, p_in_data->i_seg_marker) < 0) {
 		fprintf(stderr, "Cannot init output audio.\n");
 		p_in_data->i_exit_signal = 1;
 		return -1;
@@ -1008,8 +1012,7 @@ u32 audio_encoder_thread(void * p_params) {
 		frame_nb = 0;
 		quit = 0;
 
-		if (dc_audio_muxer_open(&aout, p_in_data->psz_out, p_adata->psz_name,
-				seg_nb) < 0) {
+		if (dc_audio_muxer_open(&aout, p_in_data->psz_out, p_adata->psz_name, seg_nb) < 0) {
 			fprintf(stderr, "Cannot open output audio.\n");
 			p_in_data->i_exit_signal = 1;
 			return -1;
@@ -1056,8 +1059,7 @@ u32 audio_encoder_thread(void * p_params) {
 				}
 
 				if (ret == -1) {
-					fprintf(stderr,
-							"An error occured while encoding audio frame.\n");
+					fprintf(stderr, "An error occured while encoding audio frame.\n");
 					quit = 1;
 					break;
 				}
@@ -1065,8 +1067,7 @@ u32 audio_encoder_thread(void * p_params) {
 				ret = dc_audio_muxer_write(&aout, frame_nb);
 
 				if (ret == -1) {
-					fprintf(stderr,
-							"An error occured while writing audio frame.\n");
+					fprintf(stderr, "An error occured while writing audio frame.\n");
 					quit = 1;
 					break;
 				}
@@ -1092,17 +1093,15 @@ u32 audio_encoder_thread(void * p_params) {
 				sizeof(p_adata->psz_name));
 #endif
 
-		// Send the time that the first segment is available to MPD generator thread.
-		if (seg_nb == 0) {
-			if (p_in_data->i_mode == LIVE_CAMERA
-					|| p_in_data->i_mode == LIVE_MEDIA) {
-				if (p_thread_params->audio_conf_idx == 0) {
-					u64 t = gf_net_get_utc();
-					//time_t t = time(NULL);
-					dc_message_queue_put(p_mq, &t, sizeof(t));
-				}
+		// Send the time that a segment is available to MPD generator thread.
+		if (p_in_data->i_mode == LIVE_CAMERA || p_in_data->i_mode == LIVE_MEDIA) {
+			if (p_thread_params->audio_conf_idx == 0) {
+				segtime t;
+				t.segnum = seg_nb;
+				t.time = gf_net_get_utc();
+				//time_t t = time(NULL);
+				dc_message_queue_put(p_mq, &t, sizeof(t));
 			}
-
 		}
 
 		if (p_in_data->i_time_shift != -1) {
