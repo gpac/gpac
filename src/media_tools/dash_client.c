@@ -1994,7 +1994,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		return GF_OK;
 	}
 	/*let's solve the template*/
-	solved_template = gf_malloc(sizeof(char)*strlen(url_to_solve)*2);
+	solved_template = gf_malloc(sizeof(char)*(strlen(url_to_solve) + (rep->id ? strlen(rep->id) : 0) ) * 2 );
 	solved_template[0] = 0;
 	strcpy(solved_template, url_to_solve);
 	first_sep = strchr(solved_template, '$');
