@@ -49,9 +49,7 @@
 
 #if !defined(__GNUC__)
 
-//#if defined(IPV6_MULTICAST_IF)
-#if 0
-//#if 0
+#if defined(IPV6_MULTICAST_IF)
 #define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
