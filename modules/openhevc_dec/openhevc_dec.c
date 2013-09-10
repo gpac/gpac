@@ -42,7 +42,7 @@ typedef struct
 	u32 width, stride, height, out_size, pixel_ar, layer, nb_threads;
 
 	Bool is_init;
-	Bool state_found;
+	Bool state_found, first_pps_patch, first_pps;
 
 	u32 nalu_size_length;
 	u32 restart_from;
@@ -108,6 +108,14 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		ctx->nb_threads = 1;
 	} else {
 		ctx->nb_threads = atoi(sOpt);
+	}
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "FirstPPSPatch");
+	if (!sOpt) {
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "FirstPPSPatch", "yes");
+		ctx->first_pps_patch = GF_TRUE;
+	} else if (!strcmp(sOpt, "yes")) {
+		ctx->first_pps_patch = GF_TRUE;
 	}
 
 	/*not supported in this version*/
@@ -231,7 +239,6 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
     return GF_OK;
 }
 
-
 static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
@@ -302,7 +309,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	while (inBufferLength) {
-
+		u8 nal_type;
 		if (ctx->nalu_size_length) {
 			for (i=0; i<ctx->nalu_size_length; i++) {
 				nalu_size = (nalu_size<<8) + ptr[i];
@@ -314,18 +321,28 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 
 //		fprintf(stderr, "HEVC decode NAL type %d size %d\n", (ptr[0] & 0x7E) >> 1, nalu_size);
 
+		nal_type = (ptr[0] & 0x7E) >> 1;
 		if (!ctx->state_found) {
-			u8 nal_type = (ptr[0] & 0x7E) >> 1;
 			switch (nal_type) {
 			case GF_HEVC_NALU_VID_PARAM:
 			case GF_HEVC_NALU_SEQ_PARAM:
 			case GF_HEVC_NALU_PIC_PARAM:
 				ctx->state_found = GF_TRUE;
 				break;
+			default:
+				nal_type = 0;
 			}
 		}
 
-		if (ctx->state_found) {
+		if (ctx->first_pps_patch && (nal_type==GF_HEVC_NALU_PIC_PARAM)) {
+			if (!ctx->first_pps) {
+				ctx->first_pps = 1;
+			} else {
+				nal_type = 0;
+			}
+		}
+
+		if (nal_type) {
 			got_pic = libOpenHevcDecode(ctx->openHevcHandle, ptr, nalu_size, 0);
 			if (got_pic>0) {
 				nb_pics ++;
