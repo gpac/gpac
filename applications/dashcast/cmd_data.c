@@ -47,14 +47,15 @@ int dc_str_to_resolution(char * psz_str, int * p_width, int * p_height) {
 }
 
 
-#define DEFAULT_VIDEO_BITRATE			400000
-#define DEFAULT_VIDEO_FRAMERATE		25
-#define DEFAULT_VIDEO_WIDTH				640
-#define DEFAULT_VIDEO_HEIGHT			480
-#define DEFAULT_VIDEO_CODEC				libx264
-#define DEFAULT_AUDIO_BITRATE			192000
-#define DEFAULT_AUDIO_SAMPLERATE	48000
-#define DEFAULT_AUDIO_CHANNELS		2
+#define DEFAULT_VIDEO_BITRATE    400000
+#define DEFAULT_VIDEO_FRAMERATE  25
+#define DEFAULT_VIDEO_WIDTH      640
+#define DEFAULT_VIDEO_HEIGHT     480
+#define DEFAULT_VIDEO_CODEC      "libx264"
+#define DEFAULT_AUDIO_BITRATE    192000
+#define DEFAULT_AUDIO_SAMPLERATE 48000
+#define DEFAULT_AUDIO_CHANNELS   2
+#define DEFAULT_AUDIO_CODEC      "mp2"
 
 static void dc_create_configuration(CmdData * p_cmdd)
 {	
@@ -85,7 +86,7 @@ static void dc_create_configuration(CmdData * p_cmdd)
 		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->vdata.i_height);
 		gf_cfg_set_key(p_conf, "v1", "height", value);
 
-		gf_cfg_set_key(p_conf, "v1", "codec", value);
+		gf_cfg_set_key(p_conf, "v1", "codec", DEFAULT_VIDEO_CODEC);
 		
 		//audio
 		gf_cfg_set_key(p_conf, "a1", "type", "audio");
@@ -105,7 +106,7 @@ static void dc_create_configuration(CmdData * p_cmdd)
 		snprintf(value, GF_MAX_PATH, "%d", p_cmdd->adata.i_channels);
 		gf_cfg_set_key(p_conf, "a1", "channels", value);
 
-		gf_cfg_set_key(p_conf, "a1", "codec", value);
+		gf_cfg_set_key(p_conf, "a1", "codec", DEFAULT_AUDIO_CODEC);
 	}
 }
 
