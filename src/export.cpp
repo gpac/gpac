@@ -1876,6 +1876,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_check_bandwidth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_resync_to_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_loop_detected) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_idle_interval) )
 #endif
 
 #ifndef GPAC_DISABLE_VTT

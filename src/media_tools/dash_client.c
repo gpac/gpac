@@ -108,6 +108,7 @@ struct __dash_client
 	Bool in_period_setup;
 	
 	u32 nb_buffering;
+	u32 idle_interval;
 
 	/* TODO - handle playback status for SPEED/SEEK through SIDX */
 	Double playback_start_range;
@@ -124,7 +125,7 @@ typedef struct
 	u64 start_range, end_range;
 	/*representation index in adaptation_set->representations*/
 	u32 representation_index;
-	Bool do_not_delete;
+	Bool loop_detected;
 	u32 duration;
 } segment_cache_entry;
 
@@ -206,16 +207,16 @@ struct __dash_group
 	Bool buffering;
 	u32 maybe_end_of_stream;
 	u32 cache_duration;
-	u32 time_at_first_reload_required;
-	
+	u32 time_at_first_reload_required;	
 	u32 force_representation_idx_plus_one;
 
 	Bool force_segment_switch;
 	Bool is_downloading, download_aborted;
+	Bool loop_detected;
 
 	u32 time_at_first_failure;
 	Bool prev_segment_ok, segment_in_valid_range;
-	u32 nb_consecutive_fail;
+	u32 nb_consecutive_fail, force_wait;
 	/*set when switching segment, indicates the current downloaded segment duration*/
 	u64 current_downloaded_segment_duration;
 
@@ -3102,7 +3103,7 @@ restart_period:
 
 				/*wait if nothing is ready to be downloaded*/
 				if (min_wait>2) {
-					u32 sleep_for = MIN(min_wait, 100) /2;
+					u32 sleep_for = MIN(min_wait, 1000);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep\n", sleep_for));
 					gf_sleep(sleep_for);
 				}
@@ -3323,9 +3324,11 @@ restart_period:
 					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
 						group->time_at_first_failure = clock_time;
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
-						min_wait = 100;
+						min_wait = group->force_wait ? group->force_wait : 0;
+						group->force_wait = 0;
 					} else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure < 2*group->current_downloaded_segment_duration)) {
-						min_wait = 100;
+						min_wait = group->force_wait ? group->force_wait : 0;
+						group->force_wait = 0;
 					} else {
 						if (group->prev_segment_ok) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
@@ -3338,11 +3341,13 @@ restart_period:
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering slow refresh mode\n"));
 							min_wait = 1000;
 //							group->maybe_end_of_stream = 1;
-							continue;
+						} else {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
+							group->download_segment_index++;
 						}
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
-						group->download_segment_index++;
 					}
+					gf_free(new_base_seg_url);
+					new_base_seg_url = NULL;
 					continue;
 				}
 
@@ -3358,12 +3363,16 @@ restart_period:
 						gf_dash_switch_group_representation(dash, group);
 						/*restart*/
 						i--;
+						gf_free(new_base_seg_url);
+						new_base_seg_url = NULL;
 						continue;
 					}
 					if (rep->playback.disabled) {
 						gf_dash_skip_disabled_representation(group, rep);
 						/*restart*/
 						i--;
+						gf_free(new_base_seg_url);
+						new_base_seg_url = NULL;
 						continue;
 					}
 				}
@@ -3386,6 +3395,8 @@ restart_period:
 				group->cached[group->nb_cached_segments].end_range = 0;
 				group->cached[group->nb_cached_segments].representation_index = representation_index;
 				group->cached[group->nb_cached_segments].duration = (u32) group->current_downloaded_segment_duration;
+				group->cached[group->nb_cached_segments].loop_detected = group->loop_detected;
+				group->loop_detected = GF_FALSE;
 
 				if (group->local_files && use_byterange) {
 					group->cached[group->nb_cached_segments].start_range = start_range;
@@ -3846,6 +3857,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 	dash->keep_files = keep_files;
 	dash->disable_switching = disable_switching;
 	dash->first_select_mode = first_select_mode;	
+	dash->idle_interval = 1000;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Client created\n"));
 	return dash;
 }
@@ -3863,6 +3875,13 @@ void gf_dash_del(GF_DashClient *dash)
 
 	gf_free(dash);
 }
+
+GF_EXPORT
+void gf_dash_set_idle_interval(GF_DashClient *dash, u32 idle_time_ms)
+{
+	dash->idle_interval = idle_time_ms;
+}
+
 
 GF_EXPORT
 u32 gf_dash_get_group_count(GF_DashClient *dash)
@@ -4226,7 +4245,7 @@ discard_segment:
 		if (group->dont_delete_first_segment) {
 			group->dont_delete_first_segment = 0;
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
 			group->urlToDeleteNext = gf_strdup( group->cached[0].url );
 		}
 
@@ -4452,10 +4471,31 @@ GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 r
 }
 
 GF_EXPORT
+Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	return (group && group->nb_cached_segments) ? group->cached[0].loop_detected : GF_FALSE;
+}
+
+
+static u32 gf_dash_get_start_number(GF_DASH_Group *group, GF_MPD_Representation *rep)
+{
+	if (rep->segment_list && rep->segment_list->start_number) return rep->segment_list->start_number;
+	if (group->adaptation_set->segment_list && group->adaptation_set->segment_list->start_number) return group->adaptation_set->segment_list->start_number;
+	if (group->period->segment_list && group->period->segment_list->start_number) return group->period->segment_list->start_number;
+
+	if (rep->segment_template && rep->segment_template->start_number) return rep->segment_template->start_number;
+	if (group->adaptation_set->segment_template && group->adaptation_set->segment_template->start_number) return group->adaptation_set->segment_template->start_number;
+	if (group->period->segment_template && group->period->segment_template->start_number) return group->period->segment_template->start_number;
+
+	return 0;
+}
+
+GF_EXPORT
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name)
 {
 	Bool found = GF_FALSE;
-	u32 i, j, latest_segment_number, earliest_segment_number;
+	u32 i, j, latest_segment_number, earliest_segment_number, start_number, prev_num;
 	/*Double latest_segment_time, earliest_segment_time;*/ //FIX : set but not used
 	u64 start_range, end_range, current_dur;
 	char *seg_url, *seg_name, *seg_sep;
@@ -4500,6 +4540,12 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No representation found matching the resync segment name %s\n", latest_segment_name));
 		return GF_BAD_PARAM;
 	}
+
+	start_number = gf_dash_get_start_number(group, rep);
+	if (group->start_number_override)
+		start_number = group->start_number;
+
+	prev_num  = start_number + group->download_segment_index ;
 
 	if (seg_sep) {
 		char *sep_template, *sep_name, c;
@@ -4558,26 +4604,32 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 		//todo - recompute an AST offset so that the AST of the new segment equals UTC(now) + offset
 		if (latest_segment_number) {
 			//there's been a loop in segments (not supported)
-			if (group->start_number > latest_segment_number) {
+			if (start_number > latest_segment_number) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", group->start_number , latest_segment_number));
-				group->start_number = latest_segment_number;
+				group->start_number = latest_segment_number - 1;
 				group->start_number_override = 1;
 				group->download_segment_index = 0;
-
+				group->loop_detected = GF_TRUE;
+				
+#if 0
 				//for now loops in start number means end of stream
 				if (group->nb_cached_segments) {
 					group->maybe_end_of_stream = 1;
 					dash->active_period_index = 0;
 					dash->request_period_switch = 2;
 				}
-			} else if (group->start_number + group->download_segment_index > latest_segment_number) {
-				group->download_segment_index = latest_segment_number - group->start_number;
+#endif
+			} else if (start_number + group->download_segment_index > latest_segment_number) {
+				u32 new_idx = 1 + latest_segment_number - start_number;;
+				if (new_idx >= group->download_segment_index)
+					group->download_segment_index = 1 + latest_segment_number - start_number;
 				group->nb_consecutive_fail = 0;
+				group->force_wait = (u32) group->current_downloaded_segment_duration;
 			} else if (earliest_segment_number) {
-				if (group->start_number + group->download_segment_index >= earliest_segment_number) {
+				if (start_number + group->download_segment_index >= earliest_segment_number) {
 					group->segment_in_valid_range = 1;
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in segment %d download but range is correct (%d - %d) - server loss ? \n", group->start_number + group->download_segment_index, earliest_segment_number, latest_segment_number));
-				} else if (group->start_number>earliest_segment_number) {
+				} else if (start_number > earliest_segment_number) {
 					group->start_number = earliest_segment_number;
 					group->start_number_override = 1;
 					group->download_segment_index = 0;
@@ -4589,7 +4641,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 						dash->request_period_switch = 2;
 					}
 				} else {
-					group->download_segment_index = earliest_segment_number - group->start_number;
+					group->download_segment_index = earliest_segment_number - start_number - 1;
 					group->nb_consecutive_fail = 0;
 				}
 			}
