@@ -4495,7 +4495,7 @@ GF_EXPORT
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name)
 {
 	Bool found = GF_FALSE;
-	u32 i, j, latest_segment_number, earliest_segment_number, start_number, prev_num;
+	u32 i, j, latest_segment_number, earliest_segment_number, start_number;
 	/*Double latest_segment_time, earliest_segment_time;*/ //FIX : set but not used
 	u64 start_range, end_range, current_dur;
 	char *seg_url, *seg_name, *seg_sep;
@@ -4544,8 +4544,6 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	start_number = gf_dash_get_start_number(group, rep);
 	if (group->start_number_override)
 		start_number = group->start_number;
-
-	prev_num  = start_number + group->download_segment_index ;
 
 	if (seg_sep) {
 		char *sep_template, *sep_name, c;
