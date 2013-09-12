@@ -193,6 +193,9 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 GF_EXPORT
 GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url, Bool *switched);
 
+/*returns 1 if segment numbers loops at this level (not allowed but happens when looping captures ...*/
+Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx);
+
 /*discards the first media resource in the queue of this group*/
 void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx);
 /*get the number of media resources available in the cache for this group*/
@@ -242,6 +245,9 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx);
 
 /*resync the downloader so that the next downloaded segment falls into the indicated range - used for error recovery*/
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name);
+
+/*sets dash idle interval. The default is 1 sec. The dash client thread will never go to sleep for more than this interval*/
+void gf_dash_set_idle_interval(GF_DashClient *dash, u32 idle_time_ms);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

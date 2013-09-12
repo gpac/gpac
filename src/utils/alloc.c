@@ -542,7 +542,7 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
 
-	gf_memory_add(&memory_add, ptr, size, filename, line);
+	gf_memory_add(&memory_add, ptr, (int) size, filename, line);
 	gf_memory_del_item(&memory_rem, ptr); /*the same block can be reallocated, so remove it from the deallocation list*/
 
 	/*update stats*/

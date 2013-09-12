@@ -1817,6 +1817,12 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	if (nbBytes) {
 		rcv = nbBytes;
 		sess->bytes_done += nbBytes;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] url %s received %d new bytes\n", gf_cache_get_url(sess->cache_entry), nbBytes ));
+		if (sess->total_size && (sess->bytes_done > sess->total_size)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] url %s received more bytes than planned!! Got %d bytes vs %d content length\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done , sess->total_size ));
+			sess->bytes_done = sess->total_size;
+		}
+
 		if (sess->icy_metaint > 0)
 			gf_icy_skip_data(sess, sess->icy_metaint, data, nbBytes);
 		else {

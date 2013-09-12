@@ -602,7 +602,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 
 	if (entry->memory_stored) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
-		if (entry->mem_allocated <= entry->contentLength) {
+		if (entry->mem_allocated < entry->contentLength) {
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
 			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
 			entry->mem_storage = gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
@@ -646,7 +646,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 			u32 new_size = entry->mem_allocated*2;
 			if (new_size < size) new_size = size;
 			entry->mem_storage = gf_realloc(entry->mem_storage, (new_size+2));
-			entry->mem_allocated = new_size + 2;
+			entry->mem_allocated = new_size;
 			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
 		}
@@ -790,6 +790,10 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_free ( entry->mimeType );
 		entry->mimeType = NULL;
 	}
+	if (entry->mem_storage) { 
+		gf_free(entry->mem_storage);
+	}
+
 	if ( entry->cache_filename )
 	{
 		gf_free ( entry->cache_filename );
@@ -817,8 +821,6 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		entry->sessions = NULL;
 	}
 
-	if (entry->mem_storage) 
-		gf_free(entry->mem_storage);
 	gf_free (entry);
 	return GF_OK;
 }
