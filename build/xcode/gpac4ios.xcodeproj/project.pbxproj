@@ -16,6 +16,18 @@
 		0496F09B16DE35C9009D9D8D /* libgpac_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71CCF1311277037A00339E12 /* libgpac_static.a */; };
 		0496F09C16DE36BC009D9D8D /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
 		04EFB63516E51E4200D1D44A /* libglues.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 04EFB63416E51E4200D1D44A /* libglues.a */; };
+		285DBB44170F17C500AF2B9B /* ffmpeg_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 285DBB42170F17C500AF2B9B /* ffmpeg_decode.c */; };
+		285DBB47170F17CC00AF2B9B /* ffmpeg_demux.c in Sources */ = {isa = PBXBuildFile; fileRef = 285DBB45170F17CC00AF2B9B /* ffmpeg_demux.c */; };
+		285DBB49170F17D700AF2B9B /* ffmpeg_in.h in Headers */ = {isa = PBXBuildFile; fileRef = 285DBB48170F17D700AF2B9B /* ffmpeg_in.h */; };
+		285DBBA01712C80E00AF2B9B /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9B1712C80E00AF2B9B /* libavcodec.a */; };
+		285DBBA11712C80E00AF2B9B /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9C1712C80E00AF2B9B /* libavformat.a */; };
+		285DBBA21712C80E00AF2B9B /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9D1712C80E00AF2B9B /* libavutil.a */; };
+		285DBBA31712C80E00AF2B9B /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9E1712C80E00AF2B9B /* libswresample.a */; };
+		285DBBA41712C80E00AF2B9B /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9F1712C80E00AF2B9B /* libswscale.a */; };
+		28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240317D6367000E9D2BE /* ffmpeg_decode.c */; };
+		28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240517D6369700E9D2BE /* ffmpeg_demux.c */; };
+		28F2240817D636C300E9D2BE /* ffmpeg_in.h in Headers */ = {isa = PBXBuildFile; fileRef = 28F2240717D636C300E9D2BE /* ffmpeg_in.h */; };
+		28F2240A17D636DA00E9D2BE /* ffmpeg_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240917D636DA00E9D2BE /* ffmpeg_load.c */; };
 		7141FF301292CB9200FCB27D /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7141FF2F1292CB9200FCB27D /* alloc.c */; };
 		7147426012B918C900DB5A59 /* cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 7147425F12B918C900DB5A59 /* cache.c */; };
 		71A19B2112796B6F00ACFF58 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A19B2012796B6F00ACFF58 /* main.c */; };
@@ -550,6 +562,18 @@
 		04E81B0A16E0FF0B004796EF /* tv_wm_gui.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = tv_wm_gui.js; sourceTree = "<group>"; };
 		04E81B0B16E0FF0B004796EF /* tv_wm_gui.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = tv_wm_gui.svg; sourceTree = "<group>"; };
 		04EFB63416E51E4200D1D44A /* libglues.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglues.a; path = ../../extra_lib/lib/iOS/libglues.a; sourceTree = "<group>"; };
+		285DBB42170F17C500AF2B9B /* ffmpeg_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_decode.c; path = ../../modules/ffmpeg_in/ffmpeg_decode.c; sourceTree = "<group>"; };
+		285DBB45170F17CC00AF2B9B /* ffmpeg_demux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_demux.c; path = ../../modules/ffmpeg_in/ffmpeg_demux.c; sourceTree = "<group>"; };
+		285DBB48170F17D700AF2B9B /* ffmpeg_in.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffmpeg_in.h; path = ../../modules/ffmpeg_in/ffmpeg_in.h; sourceTree = "<group>"; };
+		285DBB9B1712C80E00AF2B9B /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../../extra_lib/lib/iOS/libavcodec.a; sourceTree = "<group>"; };
+		285DBB9C1712C80E00AF2B9B /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = ../../extra_lib/lib/iOS/libavformat.a; sourceTree = "<group>"; };
+		285DBB9D1712C80E00AF2B9B /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = ../../extra_lib/lib/iOS/libavutil.a; sourceTree = "<group>"; };
+		285DBB9E1712C80E00AF2B9B /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../extra_lib/lib/iOS/libswresample.a; sourceTree = "<group>"; };
+		285DBB9F1712C80E00AF2B9B /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../../extra_lib/lib/iOS/libswscale.a; sourceTree = "<group>"; };
+		28F2240317D6367000E9D2BE /* ffmpeg_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_decode.c; path = ../../modules/ffmpeg_in/ffmpeg_decode.c; sourceTree = "<group>"; };
+		28F2240517D6369700E9D2BE /* ffmpeg_demux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_demux.c; path = ../../modules/ffmpeg_in/ffmpeg_demux.c; sourceTree = "<group>"; };
+		28F2240717D636C300E9D2BE /* ffmpeg_in.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffmpeg_in.h; path = ../../modules/ffmpeg_in/ffmpeg_in.h; sourceTree = "<group>"; };
+		28F2240917D636DA00E9D2BE /* ffmpeg_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_load.c; path = ../../modules/ffmpeg_in/ffmpeg_load.c; sourceTree = "<group>"; };
 		71179CBF1292EC1800A83216 /* mpd_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mpd_in.c; path = ../../modules/mpd_in/mpd_in.c; sourceTree = "<group>"; };
 		7141FF2F1292CB9200FCB27D /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		7147425F12B918C900DB5A59 /* cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache.c; sourceTree = "<group>"; };
@@ -1015,6 +1039,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				285DBBA01712C80E00AF2B9B /* libavcodec.a in Frameworks */,
+				285DBBA11712C80E00AF2B9B /* libavformat.a in Frameworks */,
+				285DBBA21712C80E00AF2B9B /* libavutil.a in Frameworks */,
+				285DBBA31712C80E00AF2B9B /* libswresample.a in Frameworks */,
+				285DBBA41712C80E00AF2B9B /* libswscale.a in Frameworks */,
 				04EFB63516E51E4200D1D44A /* libglues.a in Frameworks */,
 				0496F09C16DE36BC009D9D8D /* libz.dylib in Frameworks */,
 				0496F09B16DE35C9009D9D8D /* libgpac_static.a in Frameworks */,
@@ -1155,9 +1184,25 @@
 			path = icons;
 			sourceTree = "<group>";
 		};
+		28F2240B17D6372100E9D2BE /* ffmpeg_in */ = {
+			isa = PBXGroup;
+			children = (
+				28F2240917D636DA00E9D2BE /* ffmpeg_load.c */,
+				28F2240717D636C300E9D2BE /* ffmpeg_in.h */,
+				28F2240517D6369700E9D2BE /* ffmpeg_demux.c */,
+				28F2240317D6367000E9D2BE /* ffmpeg_decode.c */,
+			);
+			name = ffmpeg_in;
+			sourceTree = "<group>";
+		};
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				285DBB9B1712C80E00AF2B9B /* libavcodec.a */,
+				285DBB9C1712C80E00AF2B9B /* libavformat.a */,
+				285DBB9D1712C80E00AF2B9B /* libavutil.a */,
+				285DBB9E1712C80E00AF2B9B /* libswresample.a */,
+				285DBB9F1712C80E00AF2B9B /* libswscale.a */,
 				71CCF1381277041D00339E12 /* libgpac */,
 				929A929516EF8A7500B7C64F /* modules */,
 				71A19B1412796AC700ACFF58 /* osmo4iOS */,
@@ -1818,6 +1863,7 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				28F2240B17D6372100E9D2BE /* ffmpeg_in */,
 				97E29F7B17D1190600904FBF /* osd.c */,
 				97E29F7917D118F100904FBF /* raw_video.c */,
 				97E29F7217D1154D00904FBF /* ac3_in.c */,
@@ -1984,6 +2030,8 @@
 				9747B6EF14864C6400280D95 /* ait.h in Headers */,
 				9747B6F014864C6400280D95 /* dsmcc.h in Headers */,
 				9747B6F114864C6400280D95 /* events_constants.h in Headers */,
+				285DBB49170F17D700AF2B9B /* ffmpeg_in.h in Headers */,
+				28F2240817D636C300E9D2BE /* ffmpeg_in.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2085,6 +2133,8 @@
 				92FA826016F254DA0002629E /* isma_ea.c in Sources */,
 				92FA826316F254F50002629E /* timedtext_dec.c in Sources */,
 				92FA826416F254F50002629E /* timedtext_in.c in Sources */,
+				285DBB44170F17C500AF2B9B /* ffmpeg_decode.c in Sources */,
+				285DBB47170F17CC00AF2B9B /* ffmpeg_demux.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2398,6 +2448,9 @@
 				97E29F7517D1154D00904FBF /* liba52_dec.c in Sources */,
 				97E29F7A17D118F100904FBF /* raw_video.c in Sources */,
 				97E29F7C17D1190600904FBF /* osd.c in Sources */,
+				28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */,
+				28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */,
+				28F2240A17D636DA00E9D2BE /* ffmpeg_load.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2416,7 +2469,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CODE_SIGN_ENTITLEMENTS = osmo4ios.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2426,9 +2478,12 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
-				HEADER_SEARCH_PATHS = ../../include;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../extra_lib/include,
+				);
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
 				INSTALL_PATH = /Applications;
 				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
@@ -2453,15 +2508,17 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
-				CODE_SIGN_ENTITLEMENTS = osmo4ios.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
-				HEADER_SEARCH_PATHS = ../../include;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../extra_lib/include,
+				);
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
 				INSTALL_PATH = /Applications;
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
@@ -2562,7 +2619,7 @@
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_USE_STANDARD_INCLUDE_SEARCHING = YES;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../../extra_lib/include;
@@ -2592,9 +2649,10 @@
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_USE_STANDARD_INCLUDE_SEARCHING = YES;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = ../../../extra_lib/include;
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";

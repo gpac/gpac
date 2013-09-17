@@ -137,6 +137,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
     LOAD_PLUGIN(xvid);
 #endif
 	
+    LOAD_PLUGIN(ffmpeg);
 
 
 				
@@ -169,7 +170,6 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	if (!tmp) return NULL;
 	tmp->cfg = config;
 	gf_modules_get_module_directories(tmp, &num_dirs);
-	if (!num_dirs) return NULL;
 
 	/* Initialize module list */
 	tmp->plug_list = gf_list_new();
