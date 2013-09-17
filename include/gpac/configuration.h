@@ -88,7 +88,9 @@
 /*lazy definition of extra libs for iOS*/
 #if defined(GPAC_IPHONE)
 #define GPAC_HAS_FAAD
-#define GPAC_HAS_MAD
+//#define GPAC_HAS_MAD
+#define GPAC_HAS_SDL
+#define GPAC_HAS_FREETYPE
 #endif
 
 
