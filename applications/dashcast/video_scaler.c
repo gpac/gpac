@@ -188,7 +188,6 @@ int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
 	dc_producer_lock(&p_vsd->svpro, &p_vsd->p_cb);
 	dc_producer_unlock_previous(&p_vsd->svpro, &p_vsd->p_cb);
 
-
 	p_vdn = (VideoDataNode *) dc_consumer_consume(&p_vsd->svcon, &p_vin->p_cb);
 	p_vsdn = (VideoScaledDataNode *) dc_producer_produce(&p_vsd->svpro,
 			&p_vsd->p_cb);
@@ -200,7 +199,9 @@ int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
 			p_vdn->p_vframe->linesize, 0,
 			p_vin->p_vprop[index].i_height/*p_vin->i_height*/,
 			p_vsdn->p_vframe->data, p_vsdn->p_vframe->linesize);
-
+	
+	av_frame_unref(p_vdn->p_vframe);
+	
 	dc_consumer_advance(&p_vsd->svcon);
 	dc_producer_advance(&p_vsd->svpro);
 
