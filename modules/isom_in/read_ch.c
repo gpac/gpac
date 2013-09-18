@@ -169,7 +169,7 @@ next_segment:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Opening current segment in progressive mode (download in progress)\n"));
 			} else {
 				read->seg_opened = 2;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Opening current segment in npn-progressive mode (completely downloaded)\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Opening current segment in non-progressive mode (completely downloaded)\n"));
 			}
 
 			for (i=0; i<count; i++) {
