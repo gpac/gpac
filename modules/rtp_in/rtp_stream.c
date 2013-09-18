@@ -286,7 +286,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	/*setup NAT keep-alive*/
 	ctrl = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Streaming", "NATKeepAlive");
 	if (ctrl) gf_rtp_enable_nat_keepalive(tmp->rtp_ch, atoi(ctrl));
-	
+
 	tmp->range_start = Start;
 	tmp->range_end = End;
 	if (End != -1.0) tmp->flags |= RTP_HAS_RANGE;
@@ -300,9 +300,9 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		tmp->status = RTP_SessionResume;
 	}
 
-	if (rvc_predef) { 
+	if (rvc_predef) {
 		tmp->depacketizer->sl_map.rvc_predef = rvc_predef ;
-	} else if (rvc_config_att) { 
+	} else if (rvc_config_att) {
 		char *rvc_data=NULL;
 		u32 rvc_size;
 		Bool is_gz = 0;
@@ -324,6 +324,10 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		}
 		if (rvc_data) {
 			if (is_gz) {
+#ifdef GPAC_DISABLE_ZLIB
+				fprintf(stderr, "Error: no zlib support - RVC not supported in RTP\n");
+				return NULL;
+#endif
 				gf_gz_decompress_payload(rvc_data, rvc_size, &tmp->depacketizer->sl_map.rvc_config, &tmp->depacketizer->sl_map.rvc_config_size);
 				gf_free(rvc_data);
 			} else {
@@ -332,7 +336,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 			}
 		}
 	}
-	
+
 	return tmp;
 }
 

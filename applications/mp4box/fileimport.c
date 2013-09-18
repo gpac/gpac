@@ -632,15 +632,19 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					assert(read);
 					assert(read == size);
 					fclose(f);
+#ifdef GPAC_DISABLE_ZLIB
+					fprintf(stderr, "Error: no zlib support - RVC not available\n");
+					e = GF_NOT_SUPPORTED;
+					goto exit;
+#endif
 					gf_gz_compress_payload(&data, size, &size);
-
 					gf_isom_set_rvc_config(import.dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 					gf_free(data);
 				}
 			} else if (rvc_predefined>0) {
 				gf_isom_set_rvc_config(import.dest, track, 1, rvc_predefined, NULL, NULL, 0);
 			}
-			
+
 			gf_isom_set_composition_offset_mode(import.dest, track, negative_cts_offset);
 
 			if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)

@@ -461,7 +461,9 @@ ifeq ($(CONFIG_ZLIB), local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
 NEED_LOCAL_LIB="yes"
 endif
+ifneq ($(CONFIG_ZLIB), no)
 LINKLIBS+=-lz
+endif
 
 #2 - ssl support
 ifeq ($(HAS_OPENSSL), yes)
