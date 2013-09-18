@@ -534,6 +534,11 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 # endif
 #endif
 
+#ifndef GPAC_HAS_SPIDERMONKEY
+# ifndef GPAC_DISABLE_MSE
+# define GPAC_DISABLE_MSE
+# endif
+#endif
 
 #ifdef __cplusplus
 }
