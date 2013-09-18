@@ -557,8 +557,11 @@ static u32 keyboard_thread(void * p_params) {
 			}
 		}
 
-		if (p_in_data->i_exit_signal)
+		if (p_in_data->i_exit_signal) {
 			break;
+		}
+
+		gf_sleep(100);
 	}
 
 	return 0;
@@ -581,8 +584,7 @@ u32 video_decoder_thread(void * p_params) {
 	VideoInputFile ** p_vinf = p_thread_params->p_vinf;
 
 	suseconds_t total_wait_time = 1000000 / p_in_data->vdata.i_framerate;
-	suseconds_t pick_packet_delay, select_delay = 0, real_wait,
-			other_delays = 2;
+	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 2;
 
 	Task t;
 	//printf("wait time : %f\n", total_wait_time);
@@ -601,8 +603,7 @@ u32 video_decoder_thread(void * p_params) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(p_vinf[source_number], p_vind,
-				source_number);
+		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number);
 
 #ifdef DASHCAST_PRINT
 		printf("Read video frame %d\r", i++);

@@ -250,8 +250,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 				already_locked = 1;
 			}
 
-			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro,
-					&p_vd->p_cb);
+			p_vdn = (VideoDataNode *) dc_producer_produce(&p_vd->pro, &p_vd->p_cb);
 
 			p_vdn->source_number = source_number;
 
@@ -259,8 +258,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 			avcodec_get_frame_defaults(p_vdn->p_vframe);
 
 			/*  Decode video frame */
-			if (avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe,
-					&i_got_frame, &packet) < 0) {
+			if (avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe, &i_got_frame, &packet) < 0) {
 				av_free_packet(&packet);
 				fprintf(stderr, "Error while decoding video.\n");
 				dc_producer_end_signal(&p_vd->pro, &p_vd->p_cb);
@@ -270,17 +268,14 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH,
-						("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
-				//TODO: This might cause some problems in future.
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.
-				// Strange thing is that it happens only when the pixel format is BGRA.
-				// More tests are needed here.
-				if (p_codec_ctx->codec->id != CODEC_ID_RAWVIDEO
-						/*|| p_codec_ctx->pix_fmt != PIX_FMT_BGRA*/)
-					av_free_packet(&packet);
+				if (p_codec_ctx->codec->id == CODEC_ID_RAWVIDEO) {
+					p_vdn->p_vframe = av_frame_clone(p_vdn->p_vframe);
+				}
+				av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;
 			}
