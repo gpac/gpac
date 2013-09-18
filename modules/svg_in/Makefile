@@ -18,6 +18,9 @@ ifeq ($(CONFIG_ZLIB), local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
 EXTRALIBS+=-L../../extra_lib/lib/gcc
 endif
+ifneq ($(CONFIG_ZLIB), no)
+EXTRALIBS+=-lz
+endif
 
 #common obj
 OBJS= svg_in.o
@@ -34,9 +37,9 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -lz
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_svg_in-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static -lz
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_svg_in-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
 endif
 
 clean: 

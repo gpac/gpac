@@ -568,6 +568,9 @@ EOF
         mingw32="yes"
         win32="yes"
         extralibs="$extralibs -lws2_32 -lwinmm"
+	if test "$cross_prefix" != "" ; then
+		GPAC_SH_FLAGS=""
+	fi
         ;;
 
     CYGWIN*)
@@ -2811,9 +2814,11 @@ else
     echo "JS_LIBS=$js_lib" >> config.mak
     echo "#define GPAC_HAS_SPIDERMONKEY" >> $TMPH
 fi
-echo "CONFIG_ZLIB=$has_zlib" >> config.mak
-if test "$has_zlib" = "no" ; then
+if test "$has_zlib" = "no" -o "$has_zlib" = "force-no" ; then
     echo "#define GPAC_DISABLE_ZLIB" >> $TMPH
+    echo "CONFIG_ZLIB=no" >> config.mak
+else
+    echo "CONFIG_ZLIB=$has_zlib" >> config.mak
 fi
 echo "CONFIG_FT=$has_ft" >> config.mak
 

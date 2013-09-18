@@ -20,9 +20,12 @@ PLUGDIRS+=ctx_load svg_in
 endif
 
 ifeq ($(DISABLE_SVG), no)
-PLUGDIRS+=laser_dec svg_in widgetman vtt_in
+PLUGDIRS+=laser_dec svg_in vtt_in
+ifneq ($(CONFIG_ZLIB), no)
+PLUGDIRS+=widgetman
 ifeq ($(DISABLE_LOADER_BT),no)
 PLUGDIRS+=osd
+endif
 endif
 endif
 
