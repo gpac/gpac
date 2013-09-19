@@ -1691,6 +1691,8 @@ static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32
 			num_zero = 0;
 			buffer_dst[i+emulation_bytes_count] = 0x03;
 			emulation_bytes_count++;
+			if (!buffer_src[i])
+				num_zero = 1;
 		} else {
 			if (!buffer_src[i])
 				num_zero++;
@@ -3337,11 +3339,15 @@ exit:
 	return vps_id;
 }
 
+static const struct { u32 w, h; } hevc_sar[17] =
+{
+	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
+	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
+	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
+	{ 64, 33 }, { 160,99 }, { 4,3}, { 3,2}, { 2,1}
+};
 
-
-
-GF_EXPORT
-s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
+static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 *vui_flag_pos)
 {
 	GF_BitStream *bs;
 	char *data_without_emulation_bytes = NULL;
@@ -3355,6 +3361,8 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	Bool sps_sub_layer_ordering_info_present_flag;
 	HEVC_SPS *sps;
 	HEVC_ProfileTierLevel ptl;
+
+	if (vui_flag_pos) *vui_flag_pos = 0;
 
 	/*still contains emulation bytes*/
 	data_without_emulation_bytes = gf_malloc(size*sizeof(char));
@@ -3457,6 +3465,10 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 	}
 	sps->temporal_mvp_enable_flag = gf_bs_read_int(bs, 1);
 	/*strong_intra_smoothing_enable_flag*/gf_bs_read_int(bs, 1);
+
+	if (vui_flag_pos) 
+		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
+
 	if (/*vui_parameters_present_flag*/gf_bs_read_int(bs, 1)) {
 
 		sps->aspect_ratio_info_present_flag = gf_bs_read_int(bs, 1);
@@ -3465,6 +3477,9 @@ s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
 			if (sps->sar_idc == 255) {
 				sps->sar_width = gf_bs_read_int(bs, 16);
 				sps->sar_height = gf_bs_read_int(bs, 16);
+			} else if (sps->sar_idc<17) {
+				sps->sar_width = hevc_sar[sps->sar_idc].w;
+				sps->sar_height = hevc_sar[sps->sar_idc].h;
 			}
 		}
 
@@ -3533,6 +3548,14 @@ exit:
 	gf_free(data_without_emulation_bytes);
 	return sps_id;
 }
+
+
+GF_EXPORT
+s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc)
+{
+	return gf_media_hevc_read_sps_ex(data, size, hevc, NULL);
+}
+
 
 GF_EXPORT
 s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
@@ -3715,6 +3738,151 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	if (slice) hevc_compute_poc(&n_state);
 	memcpy(&hevc->s_info, &n_state, sizeof(HEVCSliceInfo));
 	return ret;
+}
+
+static u8 hevc_get_sar_idx(u32 w, u32 h)
+{
+	u32 i;
+	for (i=0; i<14; i++) {
+		if ((avc_sar[i].w==w) && (avc_sar[i].h==h)) return i;
+	}
+	return 0xFF;
+}
+
+GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
+{
+	GF_BitStream *orig, *mod;
+	HEVCState hevc;
+	u32 i, bit_offset, flag, nal_hdr_size;
+	s32 idx;
+	GF_HEVCParamArray *spss;
+	GF_AVCConfigSlot *slc;
+	orig = NULL;
+
+	memset(&hevc, 0, sizeof(HEVCState));
+	hevc.sps_active_idx = -1;
+
+	nal_hdr_size=2;
+
+	i=0;
+	spss = NULL;
+	while ((spss = (GF_HEVCParamArray *)gf_list_enum(hvcc->param_array, &i))) {
+		if (spss->type==GF_HEVC_NALU_SEQ_PARAM) 
+			break;
+		spss = NULL;
+	}
+	if (!spss) return GF_NON_COMPLIANT_BITSTREAM;
+
+	i=0;
+	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(spss->nalus, &i))) {
+		char *no_emulation_buf = NULL;
+		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
+		idx = gf_media_hevc_read_sps_ex(slc->data, slc->size, &hevc, &bit_offset);
+		if (idx<0) {
+			if ( orig )
+				gf_bs_del(orig);
+			continue;
+		}
+
+		/*SPS still contains emulation bytes*/
+		no_emulation_buf = gf_malloc((slc->size - nal_hdr_size)*sizeof(char));
+		no_emulation_buf_size = avc_remove_emulation_bytes(slc->data + nal_hdr_size, no_emulation_buf, slc->size - nal_hdr_size);
+
+		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
+		gf_bs_read_data(orig, no_emulation_buf, no_emulation_buf_size);
+		gf_bs_seek(orig, 0);
+		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+		/*copy over till vui flag*/
+		assert(bit_offset >= 8 * nal_hdr_size);
+		while (bit_offset - 8 * nal_hdr_size/*bit_offset doesn't take care of the first two byte (NALU hdr)*/) {
+			flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, flag, 1);
+			bit_offset--;
+		}
+		/*check VUI*/
+		flag = gf_bs_read_int(orig, 1);
+		gf_bs_write_int(mod, 1, 1); /*vui_parameters_present_flag*/
+		if (flag) {
+			/*aspect_ratio_info_present_flag*/
+			if (gf_bs_read_int(orig, 1)) {
+				s32 aspect_ratio_idc = gf_bs_read_int(orig, 8);
+				if (aspect_ratio_idc == 255) {
+					gf_bs_read_int(orig, 16); /*AR num*/
+					gf_bs_read_int(orig, 16); /*AR den*/
+				}
+			}
+		}
+		if ((ar_d<0) || (ar_n<0)) {
+			/*no AR signaled*/
+			gf_bs_write_int(mod, 0, 1);
+		} else {
+			u32 sarx;
+			gf_bs_write_int(mod, 1, 1);
+			sarx = hevc_get_sar_idx((u32) ar_n, (u32) ar_d);
+			gf_bs_write_int(mod, sarx, 8);
+			if (sarx==0xFF) {
+				gf_bs_write_int(mod, ar_n, 16);
+				gf_bs_write_int(mod, ar_d, 16);
+			}
+		}
+		/*no VUI in input bitstream, set all vui flags to 0*/
+		if (!flag) {
+			gf_bs_write_int(mod, 0, 1);		/*overscan_info_present_flag */
+			gf_bs_write_int(mod, 0, 1);		/*video_signal_type_present_flag */
+			gf_bs_write_int(mod, 0, 1);		/*chroma_location_info_present_flag */
+
+			gf_bs_write_int(mod, 0, 1); /*neutra_chroma_indication_flag */;
+			gf_bs_write_int(mod, 0, 1); /*field_seq_flag */;
+			gf_bs_write_int(mod, 0, 1); /*frame_field_info_present_flag*/;
+			gf_bs_write_int(mod, 0, 1); /*default_display_window_flag*/;
+
+			gf_bs_write_int(mod, 0, 1);		/*timing_info_present_flag*/
+			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+		}
+
+		/*finally copy over remaining*/
+		while (gf_bs_bits_available(orig)) {
+			flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, flag, 1);
+		}
+		gf_bs_del(orig);
+		orig = NULL;
+		gf_free(no_emulation_buf);
+
+		/*set anti-emulation*/
+		gf_bs_get_content(mod, (char **) &no_emulation_buf, &no_emulation_buf_size);
+		emulation_bytes = avc_emulation_bytes_add_count(no_emulation_buf, no_emulation_buf_size);
+		if (no_emulation_buf_size + emulation_bytes + nal_hdr_size > slc->size)
+			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes + nal_hdr_size);
+
+		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data + nal_hdr_size, no_emulation_buf_size) + nal_hdr_size;
+
+		gf_bs_del(mod);
+		gf_free(no_emulation_buf);
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
+{
+	HEVCState hevc;
+	s32 idx;
+	memset(&hevc, 0, sizeof(HEVCState));
+	hevc.sps_active_idx = -1;
+
+	idx = gf_media_hevc_read_sps(sps_data, sps_size, &hevc);
+	if (idx<0) {
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	if (sps_id) *sps_id = idx;
+
+	if (width) *width = hevc.sps[idx].width;
+	if (height) *height = hevc.sps[idx].height;
+	if (par_n) *par_n = hevc.sps[idx].aspect_ratio_info_present_flag ? hevc.sps[idx].sar_width : (u32) -1;
+	if (par_d) *par_d = hevc.sps[idx].aspect_ratio_info_present_flag ? hevc.sps[idx].sar_height : (u32) -1;
+	return GF_OK;
 }
 
 #endif //GPAC_DISABLE_HEVC

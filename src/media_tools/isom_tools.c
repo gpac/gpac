@@ -53,6 +53,15 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		if (e) return e;
 #endif
 	}
+#ifndef GPAC_DISABLE_HEVC
+	else if (stype==GF_4CC('h','v','c','1')) {
+		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
+		gf_media_hevc_change_par(hvcc, ar_num, ar_den);
+		e = gf_isom_hevc_config_update(file, track, 1, hvcc);
+		gf_odf_hevc_cfg_del(hvcc);
+		if (e) return e;
+	}
+#endif
 	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
@@ -68,6 +77,9 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		}
 #endif
 	} else {
+		if (gf_isom_get_media_type(file, track)==GF_ISOM_MEDIA_VISUAL) {
+			return GF_NOT_SUPPORTED;
+		}
 		return GF_BAD_PARAM;
 	}
 
