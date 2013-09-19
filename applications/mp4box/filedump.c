@@ -1556,7 +1556,24 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 								fprintf(stderr, "%d VPS ", gf_list_count(ar->nalus));
 							}
 						}
-						fprintf(stderr, "\n\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
+						fprintf(stderr, "\n");
+						for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
+							GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
+							u32 idx;
+							s32 par_n, par_d;
+							if (ar->type !=GF_HEVC_NALU_SEQ_PARAM) continue;
+							for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
+								GF_AVCConfigSlot *sps = gf_list_get(ar->nalus, idx);
+								par_n = par_d = -1;
+								gf_hevc_get_sps_info(sps->data, sps->size, NULL, NULL, NULL, &par_n, &par_d);
+								if ((par_n>0) && (par_d>0)) {
+									u32 tw, th;
+									gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+									fprintf(stderr, "\tPixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+								}
+							}
+						}
+						fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
 						gf_odf_hevc_cfg_del(hevccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/

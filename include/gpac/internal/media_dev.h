@@ -234,6 +234,7 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
+GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d);
 #endif
 
 
