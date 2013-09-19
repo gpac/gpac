@@ -264,6 +264,7 @@ void PrintGeneralUsage()
 			" -group-clean         removes all group information from all tracks\n"
  	        " -group-single        puts all tracks in a single group\n"
 			" -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
+			" -keep-utc            keeps UTC timing in the file after edit\n"
 			"\n");
 }
 
@@ -335,6 +336,9 @@ void PrintDASHUsage()
 			" -single-segment      uses a single segment for the whole file (OnDemand profile). \n"
 			" -single-file         uses a single file for the whole file (default). \n"
 			" -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
+			" -moof-sn N           sets sequence number of first moof to N\n"
+			" -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
+			" -no-frag-default     disables default flags in fragments\n"
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
@@ -1365,14 +1369,14 @@ int mp4boxMain(int argc, char **argv)
 	MetaAction *metas = NULL;
 	TrackAction *tracks = NULL;
 	TSELAction *tsel_acts = NULL;
-	u64 movie_time;
+	u64 movie_time, initial_tfdt;
 	s32 subsegs_per_sidx;
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 	Double min_buffer = 1.5;
 	u32 ast_shift_sec = 1;
@@ -1407,6 +1411,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool frag_at_rap=0;
 	Bool adjust_split_end = 0;
 	Bool memory_frags = 1;
+	Bool keep_utc = 0;
 	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
 	u32 nb_dash_inputs = 0;
@@ -1433,6 +1438,7 @@ int mp4boxMain(int argc, char **argv)
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
+	no_fragments_defaults = 0;
 	dash_dynamic = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
@@ -1443,6 +1449,8 @@ int mp4boxMain(int argc, char **argv)
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
 	seg_name = dash_ctx_file = NULL;
+	initial_moof_sn = 0;
+	initial_tfdt = 0;
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	memset(&opts, 0, sizeof(opts));
@@ -1869,6 +1877,17 @@ int mp4boxMain(int argc, char **argv)
 			ast_shift_sec = (u32) atoi(argv[i+1]);
 			i++;
 		}
+		else if (!stricmp(arg, "-moof-sn")) { 
+			CHECK_NEXT_ARG 
+			initial_moof_sn = (u32) atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-tfdt")) { 
+			CHECK_NEXT_ARG 
+			sscanf(argv[i+1], LLU, &initial_tfdt);
+			i++;
+		}
+		else if (!stricmp(arg, "-no-frags-default")) { no_fragments_defaults = 1; }
 		else if (!stricmp(arg, "-mpd-title")) { CHECK_NEXT_ARG dash_title = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mpd-source")) { CHECK_NEXT_ARG dash_source = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mpd-info-url")) { CHECK_NEXT_ARG dash_more_info = argv[i+1]; i++; }
@@ -1999,6 +2018,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-iod")) regular_iod = 1;
 		else if (!stricmp(arg, "-flat")) do_flat = 1;
+		else if (!stricmp(arg, "-keep-utc")) keep_utc = 1;
 		else if (!stricmp(arg, "-new")) force_new = 1;
 		else if (!stricmp(arg, "-add") || !stricmp(arg, "-import") || !stricmp(arg, "-convert")) {
 			CHECK_NEXT_ARG
@@ -2881,7 +2901,6 @@ int mp4boxMain(int argc, char **argv)
 	} 
 #endif
 
-
 	if (dash_duration) {
 		Bool del_file = GF_FALSE;
 		char szMPD[GF_MAX_PATH], *sep;
@@ -2931,7 +2950,8 @@ int mp4boxMain(int argc, char **argv)
 									   use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
 									   seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, ast_shift_sec, dash_scale, memory_frags);
+									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, 
+									   ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults);
 			if (e) break;
 
 			if (dash_live) {
@@ -3077,6 +3097,10 @@ int mp4boxMain(int argc, char **argv)
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
 		}
+	}
+
+	if (file && keep_utc && open_edit) {
+		gf_isom_keep_utc_times(file, 1);
 	}
 
 	strcpy(outfile, outName ? outName : inName);

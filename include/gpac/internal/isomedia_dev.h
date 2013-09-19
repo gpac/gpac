@@ -2405,6 +2405,7 @@ struct __tag_isom {
 	u8 convert_streaming_text;
 	u8 is_jp2;
 
+	Bool keep_utc;
 	/*main boxes for fast access*/
 	/*moov*/
 	GF_MovieBox *moov;

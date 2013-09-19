@@ -740,7 +740,8 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 	now = gf_isom_get_mp4time();
 	mvhd = (GF_MovieHeaderBox *) mvhd_New();
 	mvhd->creationTime = now;
-	mvhd->modificationTime = now;
+	if (!file->keep_utc)
+		mvhd->modificationTime = now;
 	mvhd->nextTrackID = 1;
 	//600 is our default movie TimeScale
 	mvhd->timeScale = 600;

@@ -738,6 +738,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_guess_specification) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_keep_utc_times) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sync_shadows) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sample_dependency) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_find_od_for_track) )
