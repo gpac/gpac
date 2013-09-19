@@ -5078,6 +5078,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 #ifdef GPAC_DISABLE_HEVC
 	return GF_NOT_SUPPORTED;
 #else
+	Bool detect_fps;
 	u64 nal_start, nal_end, total_size;
 	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
 	s32 idx, sei_recovery_frame_count;
@@ -5113,7 +5114,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
-	//detect_fps = 1;
+	detect_fps = GF_TRUE;
 	FPS = (Double) import->video_fps;
 	if (!FPS) {
 		FPS = GF_IMPORT_DEFAULT_FPS;
@@ -5122,15 +5123,14 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
 		} else {
 			/*fps is forced by the caller*/
-			//detect_fps = 0;
+			detect_fps = GF_FALSE;
 		}	
 	}
 	get_video_timing(FPS, &timescale, &dts_inc);
 
 	poc_diff = 0;
 
-
-//restart_import:
+restart_import:
 
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevc.sps_active_idx = -1;
@@ -5331,6 +5331,27 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				gf_list_add(spss->nalus, slc);
+
+				/*disable frame rate scan, most bitstreams have wrong values there*/
+				if (detect_fps && hevc.sps[idx].has_timing_info 
+					/*if detected FPS is greater than 1000, assume wrong timing info*/
+					&& (hevc.sps[idx].time_scale <= 1000*hevc.sps[idx].num_units_in_tick)
+					) {
+					timescale = hevc.sps[idx].time_scale;
+					dts_inc =   hevc.sps[idx].num_units_in_tick;
+					FPS = (Double)timescale / dts_inc;
+					detect_fps = 0;
+					gf_isom_remove_track(import->dest, track);
+					if (sample_data) gf_bs_del(sample_data);
+					gf_odf_hevc_cfg_del(hevccfg);
+					hevccfg = NULL;
+					gf_free(buffer);
+					buffer = NULL;
+					gf_bs_del(bs);
+					bs = NULL;
+					gf_f64_seek(mdia, 0, SEEK_SET);
+					goto restart_import;
+				}
 
 				if (first_avc) {
 					first_avc = 0;
