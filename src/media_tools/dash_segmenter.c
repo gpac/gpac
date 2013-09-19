@@ -3310,6 +3310,7 @@ exit:
 
 #endif //GPAC_DISABLE_MPEG2TS
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 static char * gf_dash_get_representationID(GF_DashSegInput *inputs, u32 nb_dash_inputs, const char *file_name, u32 trackNum) {
 	u32 i;
 
@@ -3320,6 +3321,7 @@ static char * gf_dash_get_representationID(GF_DashSegInput *inputs, u32 nb_dash_
 
 	return 0; //we should never be here !!!!
 }
+#endif
 
 GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_dash_inputs, u32 idx)
 {

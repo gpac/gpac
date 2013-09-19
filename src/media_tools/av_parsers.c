@@ -25,6 +25,7 @@
 
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
+#include <gpac/mpeg4_odf.h>
 
 #ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
