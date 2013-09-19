@@ -441,7 +441,7 @@ void PrintImportUsage()
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"
 			"                         * Note: creates tracks if needed\n"
-			"                         * Note: aligns initial timestamp of the file to be concatenated."
+			"                         * Note: aligns initial timestamp of the file to be concatenated.\n"
 			" -catx file             same as )cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
 			"                        where ADD_COMMAND is a regular -add syntax\n"
 			"                        where ADD_COMMAND is a regular -add syntax\n"
@@ -575,8 +575,9 @@ void PrintHintUsage()
 }
 void PrintExtractUsage()
 {
-	fprintf(stderr, "Extracting Options\n"
+	fprintf(stderr, "Extracting Options:\n"
 			" -raw TrackID         extracts track in raw format when supported\n" 
+			"                      :output=FileName sets the output filename for this extraction \n" 
 			" -raws TrackID        extract each track sample to a file\n" 
 			"                       * Note: \"TrackID:N\" extracts Nth sample\n"
 			" -nhnt TrackID        extracts track in nhnt format\n" 
@@ -1287,6 +1288,7 @@ typedef struct
 	const char *hdl_name;
 	s32 par_num, par_den;
 	u32 dump_type, sample_num;
+	char *out_name;
 } TrackAction;
 
 enum
@@ -1302,7 +1304,13 @@ enum
 	if (mpd_base_urls) gf_free(mpd_base_urls);	\
 	if (sdp_lines) gf_free(sdp_lines); \
 	if (metas) gf_free(metas); \
-	if (tracks) gf_free(tracks); \
+	if (tracks) { \
+		for (i=0; i<nb_track_act; i++) { \
+			if (tracks[i].out_name) \
+				gf_free(tracks[i].out_name); \
+		} \
+		gf_free(tracks); \
+	}\
 	if (tsel_acts) gf_free(tsel_acts); \
 	if (brand_add) gf_free(brand_add); \
 	if (brand_rem) gf_free(brand_rem); \
@@ -1546,6 +1554,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE;
             raw_params = strchr(argv[i+1], ':');
@@ -1556,9 +1565,15 @@ int mp4boxMain(int argc, char **argv)
                     tracks[nb_track_act].dump_type |= GF_EXPORT_WEBVTT_NOMERGE;
                 } else if (!strcmp("layer", raw_params)) {
                     tracks[nb_track_act].dump_type |= GF_EXPORT_SVC_LAYER;
+                } else if (!strncmp("output=", raw_params, 7)) {
+                    tracks[nb_track_act].out_name = gf_strdup(raw_params+7);
                 }
             }
-            tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			if (!strcmp(argv[i+1], "*")) {
+				tracks[nb_track_act].trackID = (u32) -1;
+			} else {
+	            tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			}
 			nb_track_act++;
 			i++;
 		}
@@ -1566,6 +1581,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
@@ -1576,6 +1592,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP;
@@ -1598,6 +1615,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_RAW_SAMPLES;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			if (strchr(argv[i+1], ':')) {
 				sscanf(argv[i+1], "%u:%u", &tracks[nb_track_act].trackID, &tracks[nb_track_act].sample_num);
@@ -1612,6 +1630,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NHNT;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_NHNT;
@@ -1622,6 +1641,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NHML;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].dump_type = GF_EXPORT_NHML;
 			if (argv[i+1][0]=='+') {
@@ -1637,6 +1657,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_AVI;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_AVI;
@@ -1968,6 +1989,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_MP4;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = 9;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_MP4;
@@ -2014,6 +2036,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-rem") || !stricmp(arg, "-disable") || !stricmp(arg, "-enable")) {
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = 6;
 			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = 7;
@@ -2027,6 +2050,7 @@ int mp4boxMain(int argc, char **argv)
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			tracks[nb_track_act].act_type = 4;
 			assert(strlen(argv[i+1])+1 <= sizeof(szTK));
@@ -2057,6 +2081,7 @@ int mp4boxMain(int argc, char **argv)
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			tracks[nb_track_act].act_type = 1;
 			tracks[nb_track_act].lang[3] = 0;
@@ -2081,6 +2106,7 @@ int mp4boxMain(int argc, char **argv)
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
@@ -2100,6 +2126,7 @@ int mp4boxMain(int argc, char **argv)
 			char *szTK, *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			szTK = argv[i+1];
 			ext = strchr(szTK, ':');
@@ -2126,6 +2153,7 @@ int mp4boxMain(int argc, char **argv)
 			char szTK[GF_MAX_PATH], *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
@@ -2258,6 +2286,7 @@ int mp4boxMain(int argc, char **argv)
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			strncpy(szTK, argv[i+1], 19);
 			ext = strchr(szTK, '=');
@@ -3213,15 +3242,28 @@ int mp4boxMain(int argc, char **argv)
 			mdump.flags = tka->dump_type;
 			mdump.trackID = tka->trackID;
 			mdump.sample_num = raw_sample_num;
-			if (outName) {
+			if (tka->out_name) {
+				mdump.out_name = tka->out_name;
+			} else if (outName) {
 				mdump.out_name = outName;
 				mdump.flags |= GF_EXPORT_MERGE;
 			} else {
 				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
 				mdump.out_name = szFile;
 			}
-			e = gf_media_export(&mdump);
-			if (e) goto err_exit;
+			if (tka->trackID==(u32) -1) {
+				u32 j;
+				for (j=0; j<gf_isom_get_track_count(file); j++) {
+					mdump.trackID = gf_isom_get_track_id(file, j+1);
+					sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
+					mdump.out_name = szFile;
+					e = gf_media_export(&mdump);
+					if (e) goto err_exit;
+				}
+			} else {
+				e = gf_media_export(&mdump);
+				if (e) goto err_exit;
+			}
 		}
 	} else if (do_saf) {
 		GF_MediaExporter mdump;
