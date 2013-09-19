@@ -782,7 +782,8 @@ Bool gf_isom_is_single_av(GF_ISOFile *file);
   for files without movie, returns the file meta handler type
 */
 u32 gf_isom_guess_specification(GF_ISOFile *file);
-
+/*keeps UTC edit times when storing*/
+void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

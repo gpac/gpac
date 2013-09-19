@@ -278,7 +278,8 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
-	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	switch (cfg->type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -376,7 +377,8 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
-	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	entry = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 	if (!entry) return GF_OUT_OF_MEM;
@@ -448,7 +450,8 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
-	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	dims = (GF_DIMSSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMS);
 	dims->dataReferenceIndex = dataRefIndex;
@@ -492,7 +495,8 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 	if (!dims->config)
 		dims->config = (GF_DIMSSceneConfigBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMC);
 
-	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	dims->config->profile = desc->profile;
 	dims->config->level = desc->level;

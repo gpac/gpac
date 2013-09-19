@@ -472,7 +472,8 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
         return GF_BAD_PARAM;
     }
     if (wvtt) {
-        trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+		if (!movie->keep_utc)
+	        trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
         wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC, config);
     } else {
@@ -508,7 +509,8 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_Tex
         e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
         if (e) return e;
     }
-    trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!movie->keep_utc)
+	    trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
     wvtt = (GF_WebVTTSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_WVTT);
     wvtt->dataReferenceIndex = dataRefIndex;

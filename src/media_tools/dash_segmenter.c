@@ -86,6 +86,9 @@ typedef struct
 
 	GF_Config *dash_ctx;
 	const char *tmpdir;
+	u32 initial_moof_sn;
+	u64 initial_tfdt;
+	Bool no_fragments_defaults;
 } GF_DASHSegmenterOptions;
 
 struct _dash_segment_input
@@ -267,6 +270,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 {
 	GF_ESD *esd;
 	GF_AVCConfig *avcc;
+#ifndef GPAC_DISABLE_HEVC
+	GF_HEVCConfig *hvcc;
+#endif
 	u32 subtype = gf_isom_is_media_encrypted(movie, track, 1);
 	if (!subtype) subtype = gf_isom_get_media_subtype(movie, track, 1);
 
@@ -315,6 +321,62 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
+#ifndef GPAC_DISABLE_HEVC
+	case GF_4CC('h','v','c','1'):
+	case GF_4CC('h','e','v','1'):
+		hvcc = gf_isom_hevc_config_get(movie, track, 1);
+		if (hvcc) {
+			u8 c;
+			char szTemp[40];
+			sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
+			if (hvcc->profile_space==1) strcat(szCodec, ".A");
+			else if (hvcc->profile_space==2) strcat(szCodec, ".B");
+			else if (hvcc->profile_space==3) strcat(szCodec, ".C");
+			sprintf(szTemp, ".%x", hvcc->profile_idc);
+			strcat(szCodec, szTemp);
+			if (hvcc->tier_flag) strcat(szCodec, ".H");
+			else strcat(szCodec, ".L");
+			sprintf(szTemp, "%d", hvcc->level_idc);
+			strcat(szCodec, szTemp);
+
+			c = hvcc->progressive_source_flag << 7;
+			c |= hvcc->interlaced_source_flag << 6;
+			c |= hvcc->non_packed_constraint_flag << 5;
+			c |= hvcc->frame_only_constraint_flag << 4;
+			c |= (hvcc->constraint_indicator_flags >> 40);
+			sprintf(szTemp, ".%x", c);
+			strcat(szCodec, szTemp);
+			if (hvcc->constraint_indicator_flags & 0xFFFFFFFF) {
+				c = (hvcc->constraint_indicator_flags >> 32) & 0xFF;
+				sprintf(szTemp, ".%x", c);
+				strcat(szCodec, szTemp);
+				if (hvcc->constraint_indicator_flags & 0x00FFFFFF) {
+					c = (hvcc->constraint_indicator_flags >> 24) & 0xFF;
+					sprintf(szTemp, ".%x", c);
+					strcat(szCodec, szTemp);
+					if (hvcc->constraint_indicator_flags & 0x0000FFFF) {
+						c = (hvcc->constraint_indicator_flags >> 16) & 0xFF;
+						sprintf(szTemp, ".%x", c);
+						strcat(szCodec, szTemp);
+						if (hvcc->constraint_indicator_flags & 0x000000FF) {
+							c = (hvcc->constraint_indicator_flags >> 8) & 0xFF;
+							sprintf(szTemp, ".%x", c);
+							strcat(szCodec, szTemp);
+							c = (hvcc->constraint_indicator_flags ) & 0xFF;
+							sprintf(szTemp, ".%x", c);
+							strcat(szCodec, szTemp);
+						}
+					}
+				}
+			}
+		
+			gf_odf_hevc_cfg_del(hvcc);
+		} else {
+			sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
+		}
+		return GF_OK;
+#endif
+
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 		sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
@@ -637,14 +699,19 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 		//setup fragmenters
 		if (! dash_moov_setup) {
+				//new initialization segment, setup fragmentation
 			gf_isom_get_fragment_defaults(input, i+1,
-									 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+										&defaultDuration, &defaultSize, &defaultDescriptionIndex, 
+										&defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+			if (! dash_cfg->no_fragments_defaults) {
+				e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
+							defaultDescriptionIndex, defaultDuration,
+							defaultSize, (u8) defaultRandomAccess,
+							defaultPadding, defaultDegradationPriority);
 
-			//new initialization segment, setup fragmentation
-			e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
-						defaultDescriptionIndex, defaultDuration,
-						defaultSize, (u8) defaultRandomAccess,
-						defaultPadding, defaultDegradationPriority);
+			} else {
+				e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum), defaultDescriptionIndex, 0, 0, 0, 0, 0);
+			}
 			if (e) goto err_exit;
 		} else {
 			gf_isom_get_fragment_defaults(output, TrackNum,
@@ -913,7 +980,7 @@ restart_fragmentation_pass:
 		}
 	}
 
-	gf_isom_set_next_moof_number(output, fragment_index);
+	gf_isom_set_next_moof_number(output, dash_cfg->initial_moof_sn + fragment_index);
 
 
 	max_segment_duration = 0;
@@ -984,8 +1051,13 @@ restart_fragmentation_pass:
 			for (i=0; i<count; i++) {
 				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 				if (tf->done) continue;
-				/*FIXME - we need a way in the spec to specify "past" DTS for splitted sample*/
-				gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->InitialTSOffset + tf->next_sample_dts);
+
+				if (dash_cfg->initial_tfdt && (tf->TimeScale != dash_cfg->dash_scale)) {
+					Double scale = tf->TimeScale; scale /= dash_cfg->dash_scale;
+					gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, (u64) (dash_cfg->initial_tfdt*scale) + tf->InitialTSOffset + tf->next_sample_dts);
+				} else {
+					gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->InitialTSOffset + tf->next_sample_dts);
+				}
 			}
 		
 		}
@@ -1033,6 +1105,8 @@ restart_fragmentation_pass:
 						e = gf_isom_last_error(input);
 						goto err_exit;
 					}
+
+					/*FIXME - use negative ctts to indicate "past" DTS for splitted sample*/
 					if (tf->split_sample_dts_shift) {
 						sample->DTS += tf->split_sample_dts_shift;
 						is_redundant_sample = GF_TRUE;
@@ -1312,7 +1386,7 @@ restart_fragmentation_pass:
 				//take care of scalable reps
 				if (dash_input->moof_seqnum_increase) {
 					u32 frag_index = gf_isom_get_next_moof_number(output) + dash_input->nb_representations * dash_input->moof_seqnum_increase;
-					gf_isom_set_next_moof_number(output, frag_index);
+					gf_isom_set_next_moof_number(output, dash_cfg->initial_moof_sn + frag_index);
 				}
 
 				ref_track_first_dts = (u64) -1;
@@ -1451,7 +1525,10 @@ restart_fragmentation_pass:
 		if (!dash_cfg->variable_seg_rad_name && first_in_set) {
 			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
-			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale), SegmentName, startNumber - startNumberRewind);	
+			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timescale, SegmentName, startNumber - startNumberRewind);	
+			if (!mpd_timeline_bs) {
+				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
+			}
 			/*in BS switching we share the same IS for all reps*/
 			if (is_bs_switching) {
 				strcpy(SegmentName, bs_switching_segment_name);
@@ -1499,7 +1576,7 @@ restart_fragmentation_pass:
 		char *mpd_seg_info = NULL;
 		u32 size;
 
-		fprintf(dash_cfg->mpd, "   <SegmentList>\n");
+		fprintf(dash_cfg->mpd, "   <SegmentList timescale=\"%d\">\n", dash_cfg->dash_scale);
 
 		gf_bs_get_content(mpd_timeline_bs, &mpd_seg_info, &size);
 		gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
@@ -1589,7 +1666,10 @@ restart_fragmentation_pass:
 		if (!seg_rad_name) {
 			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_url_get_resource_name( gf_isom_get_filename(output) ) );	
 		}
-		fprintf(dash_cfg->mpd, "    <SegmentList timescale=\"%d\" duration=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale));	
+		fprintf(dash_cfg->mpd, "    <SegmentList");
+		if (!mpd_timeline_bs) {
+			fprintf(dash_cfg->mpd, " timescale=\"%d\" duration=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale));	
+		}
 		if (presentationTimeOffset) 
 			fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
 		fprintf(dash_cfg->mpd, ">\n");	
@@ -3845,7 +3925,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 							   Bool use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching, 
 							   Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
 							   Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
-							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory)
+							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH];
@@ -4076,6 +4156,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
 	dash_opts.subduration = subduration * 1000 / dash_scale;
 	dash_opts.fragment_duration = frag_duration * 1000 / dash_scale;
+	dash_opts.initial_moof_sn = initial_moof_sn;
+	dash_opts.initial_tfdt = initial_tfdt;
+	dash_opts.no_fragments_defaults = no_fragments_defaults;
+	
 
 	for (cur_period=0; cur_period<max_period; cur_period++) {
 		u32 first_in_period = 0;

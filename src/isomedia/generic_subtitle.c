@@ -63,7 +63,8 @@ GF_Err gf_isom_update_generic_subtitle_description( GF_ISOFile                  
 	//	return GF_BAD_PARAM;
 	//}
 
-	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	return e;
 }
@@ -103,7 +104,8 @@ GF_Err gf_isom_new_generic_subtitle_description(GF_ISOFile  *movie,
 		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
-	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	metasd = (GF_MetaDataSampleEntryBox *) gf_isom_box_new((is_xml ? GF_ISOM_BOX_TYPE_METX : GF_ISOM_BOX_TYPE_METT));
 	metasd->dataReferenceIndex = dataRefIndex;

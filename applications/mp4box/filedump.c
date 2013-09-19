@@ -2055,7 +2055,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 	gf_isom_get_creation_time(file, &create, &modif);
 	fprintf(stderr, "\tCreated: %s", format_date(create, szDur));
-	//fprintf(stderr, "\tModified: %s", format_date(modif, szDur));
+	fprintf(stderr, "\tModified: %s", format_date(modif, szDur));
 	fprintf(stderr, "\n");
 
 	DumpMetaItem(file, 0, 0, "Moov Meta");
