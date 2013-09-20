@@ -205,21 +205,6 @@ static GF_Err gf_net_mobileip_ctrl(Bool start)
 }
 
 
-/*
-		NTP tools
-*/
-GF_EXPORT
-void gf_net_get_ntp(u32 *sec, u32 *frac)
-{
-	struct timeval now;
-#ifdef WIN32
-	s32 gettimeofday(struct timeval *tp, void *tz);
-#endif
-	gettimeofday(&now, NULL);
-	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
-	*frac = (u32) ( (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6) );
-}
-
 u32 gf_net_has_ipv6()
 {
 #ifdef GPAC_HAS_IPV6
