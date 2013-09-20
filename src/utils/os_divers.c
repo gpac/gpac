@@ -2064,6 +2064,21 @@ void gf_fm_request_call(u32 type, u32 param, int *value) {
 
 #endif //GPAC_ANDROID
 
+/*
+		NTP tools
+*/
+GF_EXPORT
+void gf_net_get_ntp(u32 *sec, u32 *frac)
+{
+	struct timeval now;
+#ifdef WIN32
+	s32 gettimeofday(struct timeval *tp, void *tz);
+#endif
+	gettimeofday(&now, NULL);
+	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
+	*frac = (u32) ( (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6) );
+}
+
 GF_EXPORT
 u64 gf_net_get_utc()
 {
