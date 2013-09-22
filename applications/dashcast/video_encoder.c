@@ -191,8 +191,17 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 
 
 	/* Encoding video */
-	p_voutf->i_encoded_frame_size = avcodec_encode_video(p_video_codec_ctx,
-			p_voutf->p_vbuf, p_voutf->i_vbuf_size, p_vn->p_vframe);
+	{
+		int got_packet = 0;
+		AVPacket pkt;
+		memset(&pkt, 0, sizeof(AVPacket));
+		pkt.data = p_voutf->p_vbuf;
+		pkt.size = p_voutf->i_vbuf_size;
+		p_voutf->i_encoded_frame_size = avcodec_encode_video2(p_video_codec_ctx, &pkt, p_vn->p_vframe, &got_packet);
+		if (p_voutf->i_encoded_frame_size >= 0) {
+			p_voutf->i_encoded_frame_size = pkt.size;
+		}
+	}
 
 	dc_consumer_advance(&p_voutf->vcon);
 

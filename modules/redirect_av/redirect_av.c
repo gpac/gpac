@@ -133,7 +133,7 @@ static u32 audio_encoding_thread_run(void *param)
     AVCodecContext * ctx = NULL;
     assert( avr );
 
-	outBuffSize = FF_MIN_BUFFER_SIZE;
+    outBuffSize = FF_MIN_BUFFER_SIZE;
 
     outBuff = gf_malloc(outBuffSize* sizeof(u8));
     inBuff = NULL;
@@ -281,23 +281,33 @@ static u32 video_encoding_thread_run(void *param)
                     int written;
                     u32 sysclock_begin = gf_sys_clock(), sysclock_end=0;
                     avr->YUVpicture->pts = currentFrameTimeProcessed;
-                    written = avcodec_encode_video ( ctx, avr->videoOutbuf, avr->videoOutbufSize, avr->YUVpicture);
-					sysclock_end = gf_sys_clock();
+                    {
+                      int got_packet = 0;
+                      AVPacket pkt;
+                      memset(&pkt, 0, sizeof(AVPacket));
+                      pkt.data = avr->videoOutbuf;
+                      pkt.size = avr->videoOutbufSize;
+                      written = avcodec_encode_video2(ctx, &pkt, avr->YUVpicture, &got_packet);
+                      if (written >= 0) {
+                        written = pkt.size;
+                      }
+                    }
+                    sysclock_end = gf_sys_clock();
                     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Encoding frame PTS="LLD", frameNum=%u, time="LLU", size=%d\t in %ums\n", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number, currentFrameTimeProcessed, written, sysclock_end-sysclock_begin));
                     ctx->coded_frame->pts = currentFrameTimeProcessed;
 
                     if (written<0) {
                         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while encoding video frame =%d\n", written ) );
-					} else {
+                    } else {
                         if (written>0)
                             ts_encode_video_frame(avr->ts_implementation, avr->videoOutbuf, written);
                         lastEncodedFrameTime = currentFrameTimeProcessed;
-					}
+                    }
                 }
             }
         }
         avr->frameTimeEncoded = currentFrameTimeProcessed;
-		gf_sleep(1);
+        gf_sleep(1);
     } /* End of main loop */
 exit:
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Ending video encoding thread...\n"));
