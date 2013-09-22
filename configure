@@ -1285,7 +1285,7 @@ fi
 
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
-int main( void ) { return 0; }
+int main(void) {return 0;}
 EOF
 
 if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
@@ -1295,7 +1295,12 @@ else
 
     cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
-int main( void ) { return 0; }
+int main(void) {
+    AVFrame *f1, *f2;
+    f2 = av_frame_clone(f1);
+    AV_CODEC_ID_H264;
+    return 0;
+}
 EOF
 
 fi

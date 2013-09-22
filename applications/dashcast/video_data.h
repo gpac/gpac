@@ -29,6 +29,7 @@
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavcodec/avcodec.h"
 #include "libswscale/swscale.h"
+#include "libav_compat.h"
 
 #include "circular_buffer.h"
 
