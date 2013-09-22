@@ -1275,7 +1275,7 @@ fi
 
 ffmpeg_cflags=""
 ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice"
-if test "$pkg_config" != "no"; then
+if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil 2> /dev/null  ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice`
     ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
