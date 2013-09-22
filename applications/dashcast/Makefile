@@ -31,7 +31,7 @@ EXT=
 PROG=DashCast
 endif
 
-LINKLIBS+=-lz -lpthread -lavcodec -lavformat -lswscale -lavutil -lavdevice 
+LINKLIBS+= $(ffmpeg_lflags)
 
 ifeq ($(CONFIG_DARWIN), yes)
 #fixme - use proper detection of libavdevice dependencies

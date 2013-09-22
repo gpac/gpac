@@ -140,18 +140,13 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 			p_vdata->i_framerate = p_vdata->i_framerate / 1000;
 
 		if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
-			p_vdata->i_framerate =
-					p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.num
-							/ (p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.den
-									== 0 ?
-									1 :
-									p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->r_frame_rate.den);
+			p_vdata->i_framerate = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.num / (p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.den
+			== 0 ? 1 : p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.den);
 
-			if (p_vdata->i_framerate / 1000 != 0)
+			if (p_vdata->i_framerate / 1000 != 0) {
 				p_vdata->i_framerate = p_vdata->i_framerate / 1000;
-
+			}
 		}
-
 	}
 
 	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
