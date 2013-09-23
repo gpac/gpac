@@ -60,7 +60,7 @@ install:
 ifeq ($(DISABLE_ISOFF), no) 
 ifeq ($(CONFIG_LINUX), yes)
 ifeq ($(CONFIG_FFMPEG), system)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
+#	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
 endif
 endif
 endif

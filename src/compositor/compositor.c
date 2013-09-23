@@ -2076,7 +2076,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	//if next video frame is due in this render cycle, wait until it matures
 	if ((compositor->frame_delay > 0) && (compositor->frame_delay != (u32) -1)) {
-		u32 diff;
+		u32 diff=0;
 		while (1) {
 			gf_sleep(0);
 			diff = gf_sys_clock() - in_time;
