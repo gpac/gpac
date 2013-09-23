@@ -4601,9 +4601,9 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 
 		//todo - recompute an AST offset so that the AST of the new segment equals UTC(now) + offset
 		if (latest_segment_number) {
-			//there's been a loop in segments (not supported)
+			//there's been a loop in segments, use new latest avail startTime
 			if (start_number > latest_segment_number) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", group->start_number , latest_segment_number));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", start_number , latest_segment_number));
 				group->start_number = latest_segment_number - 1;
 				group->start_number_override = 1;
 				group->download_segment_index = 0;
@@ -4618,12 +4618,21 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 				}
 #endif
 			} else if (start_number + group->download_segment_index > latest_segment_number) {
-				u32 new_idx = 1 + latest_segment_number - start_number;;
-				if (new_idx >= group->download_segment_index)
-					group->download_segment_index = 1 + latest_segment_number - start_number;
-				group->nb_consecutive_fail = 0;
-				group->force_wait = (u32) group->current_downloaded_segment_duration;
-			} else if (earliest_segment_number) {
+				u32 new_idx = 1 + latest_segment_number - start_number;
+				if (new_idx + 10 < group->download_segment_index) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", start_number , latest_segment_number));
+					group->start_number = latest_segment_number - 1;
+					group->start_number_override = 1;
+					group->download_segment_index = 0;
+					group->loop_detected = GF_TRUE;
+				} else {
+					if (new_idx >= group->download_segment_index)
+						group->download_segment_index = 1 + latest_segment_number - start_number;
+					group->nb_consecutive_fail = 0;
+					group->force_wait = (u32) group->current_downloaded_segment_duration;
+				}
+			}
+			else if (earliest_segment_number) {
 				if (start_number + group->download_segment_index >= earliest_segment_number) {
 					group->segment_in_valid_range = 1;
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in segment %d download but range is correct (%d - %d) - server loss ? \n", group->start_number + group->download_segment_index, earliest_segment_number, latest_segment_number));

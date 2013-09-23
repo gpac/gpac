@@ -171,6 +171,7 @@ struct __gf_download_session
 	Bool chunked;
 	u32 nb_left_in_chunk;
 
+	u32 request_time;
     /*private extension*/
     void *ext;
 };
@@ -184,7 +185,7 @@ struct __gf_download_manager
     Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
     void *usr_cbk;
 
-	u32 head_timeout;
+	u32 head_timeout, request_timeout;
     GF_Config *cfg;
     GF_List *sessions;
 	Bool disable_cache;
@@ -1576,6 +1577,14 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 			dm->head_timeout = atoi(opt);
 		}
 	}
+	dm->request_timeout = 20000;
+	if (cfg) {
+        opt = gf_cfg_get_key(cfg, "Downloader", "HTTPRequestTimeout");
+		if (opt) {
+			dm->request_timeout = atoi(opt);
+		}
+	}
+
     gf_mx_v( dm->cache_mx );
     if (default_cache_dir)
         gf_free(default_cache_dir);
@@ -2235,6 +2244,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n ; Error Code=%d\n", sHTTP, e));
     }
+	sess->request_time = gf_sys_clock();
 
     if (e) {
         sess->status = GF_NETIO_STATE_ERROR;
@@ -2363,7 +2373,14 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
         switch (e) {
         case GF_IP_NETWORK_EMPTY:
-            if (!bytesRead) return GF_OK;
+            if (!bytesRead) {
+				if (gf_sys_clock() - sess->request_time > sess->dm->request_timeout) {
+	                sess->last_error = GF_IP_NETWORK_EMPTY;
+		            sess->status = GF_NETIO_STATE_ERROR;
+					return GF_IP_NETWORK_EMPTY;
+				}
+				return GF_OK;
+			}
             continue;
             /*socket has been closed while configuring, retry (not sure if the server got the GET)*/
         case GF_IP_CONNECTION_CLOSED:
