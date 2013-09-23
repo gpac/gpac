@@ -475,9 +475,9 @@ static JSBool SMJS_FUNCTION(dom_nodelist_item)
 static SMJS_FUNC_PROP_GET( dom_nodelist_getProperty)
 
 	DOMNodeList *nl;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)
-	)
+	if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)) {
 		return JS_TRUE;
+	}
 
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
@@ -2357,6 +2357,23 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
  *	xmlHttpRequest implementation
  *
  *************************************************************/
+typedef enum {
+	XHR_READYSTATE_UNSENT,
+	XHR_READYSTATE_OPENED,
+	XHR_READYSTATE_HEADERS_RECEIVED,
+	XHR_READYSTATE_LOADING,
+	XHR_READYSTATE_DONE
+} XHR_ReadyState;
+
+typedef enum {
+	XHR_RESPONSETYPE_NONE,
+	XHR_RESPONSETYPE_ARRAYBUFFER,
+	XHR_RESPONSETYPE_BLOB,
+	XHR_RESPONSETYPE_DOCUMENT,
+	XHR_RESPONSETYPE_JSON,
+	XHR_RESPONSETYPE_TEXT,
+	XHR_RESPONSETYPE_STREAM
+} XHR_ResponseType;
 
 typedef struct
 {
@@ -2364,7 +2381,7 @@ typedef struct
 	JSObject *_this;
 	JSFunction *onreadystatechange;
 
-	u32 readyState;
+	XHR_ReadyState readyState;
 	Bool async;
 	/*header/header-val, terminated by NULL*/
 	char **headers;
@@ -2379,9 +2396,11 @@ typedef struct
 	GF_Err ret_code;
 	u32 html_status;
 	char *statusText;
+	char *mime;
 	u32 timeout;
-	u32 responseType;
+	XHR_ResponseType responseType;
 	Bool withCredentials;
+	Bool isFile;
 
 	GF_SAXParser *sax;
 	GF_List *node_stack;
@@ -2389,13 +2408,38 @@ typedef struct
 	GF_SceneGraph *document;
 } XMLHTTPContext;
 
-static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *val)
+static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
 {
 	u32 nb_hdr = 0;
+	if (ctx->recv_headers) {
+		while (ctx->recv_headers[nb_hdr]) {
+			gf_free(ctx->recv_headers[nb_hdr]);
+			gf_free(ctx->recv_headers[nb_hdr+1]);
+			nb_hdr+=2;
+		}
+		gf_free(ctx->recv_headers);
+		ctx->recv_headers = NULL;
+	}
+}
+
+static void xml_http_append_recv_header(XMLHTTPContext *ctx, const char *hdr, const char *val)
+{
+	u32 nb_hdr = 0;
+	if (ctx->recv_headers) {
+		while (ctx->recv_headers[nb_hdr]) nb_hdr+=2;
+	}
+	ctx->recv_headers = (char **)gf_realloc(ctx->recv_headers, sizeof(char*)*(nb_hdr+3));
+	ctx->recv_headers[nb_hdr] = gf_strdup(hdr);
+	ctx->recv_headers[nb_hdr+1] = gf_strdup(val ? val : "");
+	ctx->recv_headers[nb_hdr+2] = NULL;
+}
+
+static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *val)
+{
 	if (!hdr) return;
 
 	if (ctx->headers) {
-		nb_hdr = 0;
+		u32 nb_hdr = 0;
 		while (ctx->headers && ctx->headers[nb_hdr]) {
 			if (stricmp(ctx->headers[nb_hdr], hdr)) {
 				nb_hdr+=2;
@@ -2455,73 +2499,65 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 			nb_hdr+=2;
 		}
 	}
-	nb_hdr = 0;
-	if (ctx->headers) {
-		while (ctx->headers[nb_hdr]) nb_hdr+=2;
-	}
-	ctx->headers = (char **)gf_realloc(ctx->headers, sizeof(char*)*(nb_hdr+3));
-	ctx->headers[nb_hdr] = gf_strdup(hdr);
-	ctx->headers[nb_hdr+1] = gf_strdup(val ? val : "");
-	ctx->headers[nb_hdr+2] = NULL;
+	xml_http_append_recv_header(ctx, hdr, val);
 }
 
-static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
+static void xml_http_del_data(XMLHTTPContext *ctx)
 {
-	u32 nb_hdr = 0;
-	if (ctx->recv_headers) {
-		while (ctx->recv_headers[nb_hdr]) {
-			gf_free(ctx->recv_headers[nb_hdr]);
-			gf_free(ctx->recv_headers[nb_hdr+1]);
-			nb_hdr+=2;
+	if (ctx->data) {
+		if (ctx->arraybuffer) {
+			/* if there is an arraybuffer holding a point to that data, we need to release it */
+			GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
+			gf_arraybuffer_del(html_array, GF_TRUE);
+			ctx->arraybuffer = NULL;
+		} else {
+			gf_free(ctx->data);
 		}
-		gf_free(ctx->recv_headers);
-		ctx->recv_headers = NULL;
+		ctx->data = NULL;
+		ctx->size = 0;
 	}
-}
-static void xml_http_append_recv_header(XMLHTTPContext *ctx, const char *hdr, const char *val)
-{
-	u32 nb_hdr = 0;
-	if (ctx->recv_headers) {
-		while (ctx->recv_headers[nb_hdr]) nb_hdr+=2;
-	}
-	ctx->recv_headers = (char **)gf_realloc(ctx->recv_headers, sizeof(char*)*(nb_hdr+3));
-	ctx->recv_headers[nb_hdr] = gf_strdup(hdr);
-	ctx->recv_headers[nb_hdr+1] = gf_strdup(val ? val : "");
-	ctx->recv_headers[nb_hdr+2] = NULL;
 }
 
+static void xml_http_reset_partial(XMLHTTPContext *ctx)
+{
+
+		xml_http_del_data(ctx);
+		ctx->cur_header = 0;
+		ctx->html_status = 0;
+		if (ctx->statusText) {
+			gf_free(ctx->statusText);
+			ctx->statusText = NULL;
+		}
+		xml_http_reset_recv_hdr(ctx);
+
+	xml_http_reset_recv_hdr(ctx);
+	xml_http_del_data(ctx);
+	if (ctx->mime) {
+		gf_free(ctx->mime);
+		ctx->mime = NULL;
+	}
+	if (ctx->statusText) {
+		gf_free(ctx->statusText);
+		ctx->statusText = NULL;
+	}
+	ctx->cur_header = 0;
+	ctx->html_status = 0;
+}
 
 static void xml_http_reset(XMLHTTPContext *ctx)
 {
-	u32 nb_hdr = 0;
 	if (ctx->method) { gf_free(ctx->method); ctx->method = NULL; }
 	if (ctx->url) { gf_free(ctx->url); ctx->url = NULL; }
 
-	xml_http_reset_recv_hdr(ctx);
-	if (ctx->headers) {
-		while (ctx->headers[nb_hdr]) {
-			gf_free(ctx->headers[nb_hdr]);
-			gf_free(ctx->headers[nb_hdr+1]);
-			nb_hdr+=2;
-		}
-		gf_free(ctx->headers);
-		ctx->headers = NULL;
-	}
+	xml_http_reset_partial(ctx);
+
 	if (ctx->sess) {
 		GF_DownloadSession *tmp = ctx->sess;
 		ctx->sess = NULL;
 		gf_dm_sess_abort(tmp);
 		gf_dm_sess_del(tmp);
 	}
-	if (ctx->data) {
-		if (!ctx->arraybuffer) gf_free(ctx->data);
-		ctx->data = NULL;
-		ctx->arraybuffer = NULL;
-	}
-	if (ctx->statusText) {
-		gf_free(ctx->statusText);
-		ctx->statusText = NULL;
-	}
+
 	if (ctx->url) {
 		gf_free(ctx->url);
 		ctx->url = NULL;
@@ -2546,10 +2582,8 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 	ctx->document = NULL;
 	ctx->size = 0;
 	ctx->async = GF_FALSE;
-	ctx->readyState = 0;
-	ctx->cur_header = 0;
+	ctx->readyState = XHR_READYSTATE_UNSENT;
 	ctx->ret_code = GF_OK;
-	ctx->html_status = 0;
 }
 
 static DECL_FINALIZE( xml_http_finalize)
@@ -2669,7 +2703,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 		SMJS_FREE(c, val);
 	}
 	/*OPEN success*/
-	ctx->readyState = 1;
+	ctx->readyState = XHR_READYSTATE_OPENED;
 	xml_http_state_change(ctx);
 	return JS_TRUE;
 }
@@ -2685,7 +2719,7 @@ static JSBool SMJS_FUNCTION(xml_http_set_header)
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
-	if (ctx->readyState!=1) return JS_TRUE;
+	if (ctx->readyState!=XHR_READYSTATE_OPENED) return JS_TRUE;
 	if (argc!=2) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
@@ -2725,7 +2759,7 @@ static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char
 			prev = att;
 		}
 	}
-	par = gf_list_last(ctx->node_stack);
+	par = (GF_DOMFullNode *)gf_list_last(ctx->node_stack);
 	gf_node_register((GF_Node*)node, (GF_Node*)par);
 	if (par) {
 		gf_node_list_add_child(&par->children, (GF_Node*)node);
@@ -2781,15 +2815,16 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		gf_sleep(1);
 	}
 	/*if session not set, we've had an abort*/
-	if (!ctx->sess){
+	if (!ctx->sess && !ctx->isFile){
 		if (locked)
 			gf_sg_lock_javascript(ctx->c, GF_FALSE);
 		return;
 	}
 
-	assert( locked );
-	gf_sg_lock_javascript(ctx->c, GF_FALSE);
-
+	if (!ctx->isFile) {
+		assert( locked );
+		gf_sg_lock_javascript(ctx->c, GF_FALSE);
+	}
 	switch (parameter->msg_type) {
 	case GF_NETIO_SETUP:
 		/*nothing to do*/
@@ -2799,18 +2834,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_WAIT_FOR_REPLY:
 		/*reset send() state (data, current header) and prepare recv headers*/
-		if (ctx->data && !ctx->arraybuffer) gf_free(ctx->data);
-		ctx->data = NULL;
-		ctx->size = 0;
-		ctx->arraybuffer = NULL;
-		ctx->cur_header = 0;
-		ctx->html_status = 0;
-		if (ctx->statusText) {
-			gf_free(ctx->statusText);
-			ctx->statusText = NULL;
-		}
-		xml_http_reset_recv_hdr(ctx);
-		ctx->readyState = 2;
+		xml_http_reset_partial(ctx);
+		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
 		xml_http_state_change(ctx);
 		return;
 	/*this is signaled sent AFTER headers*/
@@ -2819,7 +2844,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (parameter->value) {
 			ctx->statusText = gf_strdup(parameter->value);
 		}
-		ctx->readyState = 3;
+		ctx->readyState = XHR_READYSTATE_LOADING;
 		xml_http_state_change(ctx);
 		return;
 
@@ -2908,12 +2933,63 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		ctx->html_status = 200;
 	}
 	/*but stay in loaded mode*/
-	ctx->readyState = 4;
+	ctx->readyState = XHR_READYSTATE_DONE;
 	xml_http_state_change(ctx);
+}
+
+static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
+{
+	/* For XML Http Requests to files, we fake the processing by calling the HTTP callbacks */
+	GF_NETIO_Parameter par;
+	u64 fsize;
+	FILE *responseFile;
+		
+	/*opera-style local host*/
+	if (!strnicmp(ctx->url, "file://localhost", 16)) responseFile = gf_f64_open(ctx->url+16, "rb");
+	/*regular-style local host*/
+	else if (!strnicmp(ctx->url, "file://", 7)) responseFile = gf_f64_open(ctx->url+7, "rb");
+	/* other types: e.g. "C:\" */
+	else responseFile = gf_f64_open(ctx->url, "rb");
+
+	if (!responseFile) {
+		ctx->html_status = 404;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot open local file %s\n", ctx->url));
+		return GF_BAD_PARAM;
+	}
+	ctx->isFile = GF_TRUE;
+
+	par.msg_type = GF_NETIO_WAIT_FOR_REPLY;
+	xml_http_on_data(ctx, &par);
+		
+	gf_f64_seek(responseFile, 0, SEEK_END);
+	fsize = gf_f64_tell(responseFile);
+	gf_f64_seek(responseFile, 0, SEEK_SET);
+		
+	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
+	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
+	fclose(responseFile);
+	ctx->data[fsize] = 0;
+		
+	memset(&par, 0, sizeof(GF_NETIO_Parameter));
+	par.msg_type = GF_NETIO_PARSE_HEADER;
+	par.name = "Content-Type";
+	if (ctx->responseType == XHR_RESPONSETYPE_DOCUMENT) {
+		par.value = "application/xml";
+	} else {
+		par.value = "application/octet-stream";
+	}
+	xml_http_on_data(ctx, &par);
+
+	memset(&par, 0, sizeof(GF_NETIO_Parameter));
+	par.msg_type = GF_NETIO_DATA_TRANSFERED;
+	xml_http_on_data(ctx, &par);			
+
+	return GF_OK;
 }
 
 static JSBool SMJS_FUNCTION(xml_http_send)
 {
+	GF_Err e;
 	GF_JSAPIParam par;
 	GF_SceneGraph *scene;
 	char *data = NULL;
@@ -2925,7 +3001,7 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (!ctx) return JS_TRUE;
 
-	if (ctx->readyState!=1) return JS_TRUE;
+	if (ctx->readyState!=XHR_READYSTATE_OPENED) return JS_TRUE;
 	if (ctx->sess) return JS_TRUE;
 
 	scene = xml_get_scenegraph(c);
@@ -2947,17 +3023,11 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	}
 
 	/*reset previous text*/
-	if (ctx->data && !ctx->arraybuffer) {
-		gf_free(ctx->data);
-		ctx->data = NULL;
-		ctx->size = 0;
-		ctx->arraybuffer = NULL;
-	}
+	xml_http_del_data(ctx);
 	ctx->data = data ? gf_strdup(data) : NULL;
 	SMJS_FREE(c, data);
 
 	if (!strncmp(ctx->url, "http://", 7)) {
-		GF_Err e;
 
 		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED, xml_http_on_data, ctx, &e);			
 		if (!ctx->sess) return JS_TRUE;
@@ -2970,55 +3040,10 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 		/**/
 		if (!ctx->async && ctx->sess) gf_dm_sess_del(ctx->sess);
 	} else {
-		u64 fsize;
-		FILE * xmlf;
-		
-		if (ctx->data && !ctx->arraybuffer) gf_free(ctx->data);
-		ctx->data = NULL;
-		ctx->size = 0;
-		ctx->arraybuffer = NULL;
-		ctx->cur_header = 0;
-		ctx->html_status = 0;
-		if (ctx->statusText) {
-			gf_free(ctx->statusText);
-			ctx->statusText = NULL;
+		e = xml_http_process_local(ctx);
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] Error processing %s: %s\n", ctx->url, gf_error_to_string(e) ));
 		}
-		/*opera-style local host*/
-		if (!strnicmp(ctx->url, "file://localhost", 16)) xmlf = gf_f64_open(ctx->url+16, "rt");
-		/*regular-style local host*/
-		else if (!strnicmp(ctx->url, "file://", 7)) xmlf = gf_f64_open(ctx->url+7, "rt");
-		else xmlf = gf_f64_open(ctx->url, "rt");
-
-		if (!xmlf) {
-			ctx->html_status = 404;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot open %s\n", ctx->url));
-			return JS_TRUE;
-		}
-		ctx->readyState = 2;
-		xml_http_state_change(ctx);
-		
-		gf_f64_seek(xmlf, 0, SEEK_END);
-		fsize = gf_f64_tell(xmlf);
-		gf_f64_seek(xmlf, 0, SEEK_SET);
-		
-		ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
-		fsize = fread(ctx->data, sizeof(char), (size_t)fsize, xmlf);
-		fclose(xmlf);
-		ctx->data[fsize] = 0;
-
-		ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
-		ctx->node_stack = gf_list_new();
-		ctx->document = gf_sg_new();
-		/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
-		ctx->document->reference_count = 1;
-
-		gf_xml_sax_parse_file(ctx->sax, ctx->url, NULL);
-
-		ctx->readyState = 3;
-		xml_http_state_change(ctx);
-		ctx->readyState = 4;
-		ctx->html_status = 200;
-		xml_http_state_change(ctx);
 	}
 
 	return JS_TRUE;
@@ -3042,6 +3067,19 @@ static JSBool SMJS_FUNCTION(xml_http_abort)
 	return JS_TRUE;
 }
 
+static JSBool SMJS_FUNCTION(xml_http_wait)
+{
+	XMLHTTPContext *ctx;
+	SMJS_OBJ
+
+	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
+	if (!ctx) return JS_TRUE;
+
+	gf_sleep(2000);
+	return JS_TRUE;
+}
+
 static JSBool SMJS_FUNCTION(xml_http_get_all_headers)
 {
 	u32 nb_hdr;
@@ -3054,7 +3092,7 @@ static JSBool SMJS_FUNCTION(xml_http_get_all_headers)
 	if (!ctx) return JS_TRUE;
 
 	/*must be received or loaded*/
-	if (ctx->readyState<3) return JS_TRUE;
+	if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 	szVal[0] = 0;
 	nb_hdr = 0;
 	if (ctx->recv_headers) {
@@ -3089,7 +3127,7 @@ static JSBool SMJS_FUNCTION(xml_http_get_header)
 
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	/*must be received or loaded*/
-	if (ctx->readyState<3) return JS_TRUE;
+	if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 	hdr = SMJS_CHARS(c, argv[0]);
 
 	szVal[0] = 0;
@@ -3109,6 +3147,23 @@ static JSBool SMJS_FUNCTION(xml_http_get_header)
 		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szVal)) );
 	}
 	SMJS_FREE(c, hdr);
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(xml_http_overrideMimeType)
+{
+	char *mime;
+	XMLHTTPContext *ctx;
+	SMJS_OBJ
+	SMJS_ARGS
+	if (!argc || !GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
+	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
+	if (!ctx) return JS_TRUE;
+
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	mime = SMJS_CHARS(c, argv[0]);
+	ctx->mime = gf_strdup(mime);
+	SMJS_FREE(c, mime);
 	return JS_TRUE;
 }
 
@@ -3137,7 +3192,7 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 			return JS_TRUE;
 		/*responseText*/
 		case 2:
-			if (ctx->readyState<3) return JS_TRUE;
+			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 			if (ctx->data) {
 				s = JS_NewStringCopyZ(c, ctx->data);
 				*vp = STRING_TO_JSVAL( s );
@@ -3147,7 +3202,7 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 			return JS_TRUE;
 		/*responseXML*/
 		case 3:
-			if (ctx->readyState<3) return JS_TRUE;
+			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 			if (ctx->data && ctx->document) {
 				*vp = dom_document_construct(c, ctx->document);
 			} else {
@@ -3156,17 +3211,28 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 			return JS_TRUE;
 		/*response*/
 		case 10:
-			if (ctx->readyState<3) return JS_TRUE;
+			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 			if (ctx->data) {
 				switch(ctx->responseType)
 				{
-				case 0:
+				case XHR_RESPONSETYPE_NONE:
+				case XHR_RESPONSETYPE_TEXT:
 					s =	JS_NewStringCopyZ(c, ctx->data);
 					*vp	= STRING_TO_JSVAL( s );
 					break;
-				case 1:
-					if (!ctx->arraybuffer) ctx->arraybuffer = gf_arraybuffer_js_new(c, ctx->data, ctx->size, obj);
+				case XHR_RESPONSETYPE_ARRAYBUFFER:
+					if (!ctx->arraybuffer) {
+						/* always return the same ArrayBuffer, is this correct? Probably not in chunked/loading mode */
+						ctx->arraybuffer = gf_arraybuffer_js_new(c, ctx->data, ctx->size, obj);
+					}
 					*vp = OBJECT_TO_JSVAL( ctx->arraybuffer );
+					break;
+				case XHR_RESPONSETYPE_DOCUMENT:
+					if (ctx->data && ctx->document) {
+						*vp = dom_document_construct(c, ctx->document);
+					} else {
+						*vp = JSVAL_VOID;
+					}
 					break;
 				default:
 					/*other	types not supported	*/
@@ -3205,25 +3271,25 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 		case 9:
 			switch (ctx->responseType)
             {
-            case 0:
+            case XHR_RESPONSETYPE_NONE:
 				s = JS_NewStringCopyZ(c, "");
                 break;
-            case 1:
+            case XHR_RESPONSETYPE_ARRAYBUFFER:
 				s = JS_NewStringCopyZ(c, "arraybuffer");
                 break;
-            case 2:
+            case XHR_RESPONSETYPE_BLOB:
 				s = JS_NewStringCopyZ(c, "blob");
                 break;
-            case 3:
+            case XHR_RESPONSETYPE_DOCUMENT:
 				s = JS_NewStringCopyZ(c, "document");
                 break;
-            case 4:
+            case XHR_RESPONSETYPE_JSON:
 				s = JS_NewStringCopyZ(c, "json");
                 break;
-            case 5:
+            case XHR_RESPONSETYPE_TEXT:
 				s = JS_NewStringCopyZ(c, "text");
                 break;
-            case 6:
+            case XHR_RESPONSETYPE_STREAM:
 				s = JS_NewStringCopyZ(c, "stream");
                 break;
             }
@@ -3294,19 +3360,19 @@ static SMJS_FUNC_PROP_SET( xml_http_setProperty)
                 char *str = SMJS_CHARS(c, *vp);
 	            if (!str) return JS_TRUE;
                 if (!strcmp(str, "")) {
-                    ctx->responseType = 0;
+                    ctx->responseType = XHR_RESPONSETYPE_NONE;
                 } else if (!strcmp(str, "arraybuffer")) {
-                    ctx->responseType = 1;
+                    ctx->responseType = XHR_RESPONSETYPE_ARRAYBUFFER;
                 } else if (!strcmp(str, "blob")) {
-                    ctx->responseType = 2;
+                    ctx->responseType = XHR_RESPONSETYPE_BLOB;
                 } else if (!strcmp(str, "document")) {
-                    ctx->responseType = 3;
+                    ctx->responseType = XHR_RESPONSETYPE_DOCUMENT;
                 } else if (!strcmp(str, "json")) {
-                    ctx->responseType = 4;
+                    ctx->responseType = XHR_RESPONSETYPE_JSON;
                 } else if (!strcmp(str, "text")) {
-                    ctx->responseType = 5;
+                    ctx->responseType = XHR_RESPONSETYPE_TEXT;
                 } else if (!strcmp(str, "stream")) {
-                    ctx->responseType = 6;
+                    ctx->responseType = XHR_RESPONSETYPE_STREAM;
                 }
                 break;
 			    return JS_TRUE;
@@ -3381,7 +3447,7 @@ static SMJS_FUNC_PROP_GET(dcci_getProperty)
 		case 3:
 			att = (GF_DOMFullAttribute*) n->attributes;
 			while (att) {
-				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp(att->data, "true")) {
+				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
 					*vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 					return JS_TRUE;
 				}
@@ -3935,8 +4001,10 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_FUNCTION_SPEC("setRequestHeader",		xml_http_set_header, 2),
 			SMJS_FUNCTION_SPEC("send",					xml_http_send, 0),
 			SMJS_FUNCTION_SPEC("abort",					xml_http_abort, 0),
+			SMJS_FUNCTION_SPEC("wait",					xml_http_wait, 0),
 			SMJS_FUNCTION_SPEC("getAllResponseHeaders",	xml_http_get_all_headers, 0),
 			SMJS_FUNCTION_SPEC("getResponseHeader",		xml_http_get_header, 1),
+			SMJS_FUNCTION_SPEC("overrideMimeType",		xml_http_overrideMimeType, 1),
 			/*todo - addEventListener and removeEventListener*/
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
@@ -4075,7 +4143,7 @@ static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGr
 
 	__class = NULL;
 	if (dom_rt->get_document_class)
-		__class = dom_rt->get_document_class(doc);
+		__class = (GF_JSClass *)dom_rt->get_document_class(doc);
 	if (!__class) __class = &dom_rt->domDocumentClass;
 
 	obj = JS_DefineObject(c, global, name, & __class->_class, 0, 0 );

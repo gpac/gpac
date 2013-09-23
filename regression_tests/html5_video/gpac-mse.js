@@ -14,8 +14,9 @@ function reportMessage(msg) {
 	}
 }
 
-Player.prototype.createInfoStructure = function(id, width) {
+Player.prototype.createInfoStructure = function(id) {
 	this.info = {};
+	var width = 330;
     var ta;
 	var g = document.getElementById(id);
     ta = document.createElement("textArea");
@@ -148,7 +149,7 @@ Player.prototype.switchUp = function() {
     reportMessage('Switching quality');
 	if (this.qualityIndex < this.segmentFiles.length - 1) {
 		this.qualityIndex++;
-		this.qualityChangeRequested = 1;
+		this.qualityChangeRequested++;
 	}
     this.updateInfo();
 }
@@ -157,7 +158,7 @@ Player.prototype.switchDown = function() {
     reportMessage('Switching quality');
 	if (this.qualityIndex > 0) {
 		this.qualityIndex--;
-		this.qualityChangeRequested = -1;
+		this.qualityChangeRequested--;
 	}
     this.updateInfo();
 }
@@ -316,9 +317,6 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
 	this.info = null;
 
 	this.segmentFiles = segmentFiles;
-    this.v = document.getElementById(vId);
-    /* GPAC Hack: the event should be dispatched to the MediaSource object not to the video */
-    this.v.addEventListener("sourceopen", this.onSourceOpen.bind(this));
 	
     if (this.use_regulation) {
         /* GPAC workaround: adding the event listener on the repeatEvent of a dummy animation to simulate window.setInterval */
@@ -329,7 +327,7 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
         reportMessage("Not using any regulation - downloading segments as fast as possible");
     }
 
-    this.createInfoStructure(iId, 330);
+    this.createInfoStructure(iId);
 
     reportMessage("Creating new MediaSource");
     this.ms = new MediaSource();
@@ -337,6 +335,10 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
 
     var bloburl = URL.createObjectURL(this.ms);
     reportMessage("Attaching Media Source " + bloburl + " to Video");
+
+    this.v = document.getElementById(vId);
+    /* GPAC Hack: the event should be dispatched to the MediaSource object not to the video */
+    this.v.addEventListener("sourceopen", this.onSourceOpen.bind(this));
     this.v.src = bloburl;
 
     /* GPAC hack to retrieve the MediaSource from the video when the sourceopen event is dispatched to the video */
