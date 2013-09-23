@@ -59,7 +59,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
 	if (!ai->stream) return NULL;
 	
-	frame = gf_mo_fetch_data(ai->stream, 0, &ai->stream_finished, &ts, size);
+	frame = gf_mo_fetch_data(ai->stream, 0, &ai->stream_finished, &ts, size, NULL, NULL);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (ai->stream_finished) gf_sc_invalidate(ai->compositor, NULL);
 

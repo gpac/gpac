@@ -609,7 +609,9 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		return GF_OK;
 	}
 	
-	hr = dd->pDD->lpVtbl->WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
+	if (!dd->disable_vsync)
+		hr = dd->pDD->lpVtbl->WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
+
 	if (dest) {
 		POINT pt;
 		pt.x = dest->x;

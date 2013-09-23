@@ -353,15 +353,25 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size)
+char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, u32 *ms_until_next)
 {
 	GF_Codec *codec;
 	Bool force_decode = GF_FALSE;
 	u32 obj_time;
 	GF_CMUnit *CU;
-	*eos = GF_FALSE;
+	s32 diff;
+	Bool bench_mode;
 
-	if (!gf_odm_lock_mo(mo)) return NULL;
+
+	*eos = GF_FALSE;
+	*eos = GF_FALSE;
+	*timestamp = mo->timestamp;
+	*size = mo->framesize;
+	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
+	if (ms_until_next) *ms_until_next = mo->ms_until_next;
+
+	if (!gf_odm_lock_mo(mo)) 
+		return NULL;
 
 	if (!mo->odm->codec || !mo->odm->codec->CB) {
 		gf_odm_lock(mo->odm, 0);
@@ -371,9 +381,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {
-		*eos = GF_FALSE;
-		*timestamp = mo->timestamp;
-		*size = mo->framesize;
 		mo->nb_fetch ++;
 		gf_odm_lock(mo->odm, 0);
 		return mo->frame;
@@ -388,6 +395,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
+
+	bench_mode = mo->odm->term->bench_mode;
 
 	/*resize requested - if last frame destroy CB and force a decode*/
 	if (codec->force_cb_resize && (codec->CB->UnitCount<=1)) {
@@ -418,7 +427,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		if (!retry) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize and decode next frame in one pass - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
 		}
-		if (!gf_odm_lock_mo(mo)) return NULL;
+		if (!gf_odm_lock_mo(mo))
+			return NULL;
 	}
 
 	/*new frame to fetch, lock*/
@@ -434,10 +444,20 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	if (codec->CB->UnitCount==1) resync = GF_FALSE;
 
+	if (bench_mode) {
+		resync = GF_FALSE;
+		if (mo->timestamp == CU->TS) {
+			if (CU->next->dataLength) {
+				gf_cm_drop_output(codec->CB);
+				CU = gf_cm_get_output(codec->CB);
+			}
+		}
+	}
+
 	/*resync*/
+	obj_time = gf_clock_time(codec->ck);
 	if (resync) {
 		u32 nb_droped = 0;
-		obj_time = gf_clock_time(codec->ck);
 		while (CU->TS < obj_time) {
 			if (!CU->next->dataLength) {
 				if (force_decode) {
@@ -476,6 +496,16 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	mo->framesize = CU->dataLength - CU->RenderedLength;
 	mo->frame = CU->data + CU->RenderedLength;
+
+	if (CU->next->dataLength) {
+		diff = (s32) (CU->next->TS) - (s32) obj_time;
+		mo->ms_until_next = FIX2INT(diff * mo->speed);
+	} else  {
+		mo->ms_until_next = 1;
+	}
+	diff = (s32) (CU->TS) - (s32) obj_time;
+	mo->ms_until_pres = FIX2INT(diff * mo->speed);
+
 	if (mo->timestamp != CU->TS) {
 #ifndef GPAC_DISABLE_VRML
 		mediasensor_update_timing(mo->odm, codec->CB->HasSeenEOS);
@@ -484,18 +514,28 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		if (mo->odm->parentscene->is_dynamic_scene)
 			mo->odm->parentscene->root_od->current_time = mo->odm->current_time;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc() ));
 		mo->timestamp = CU->TS;
 		/*signal EOS after rendering last frame, not while rendering it*/
 		*eos = GF_FALSE;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 	}
 
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
 	if (codec->bytes_per_sec) mo->timestamp += CU->RenderedLength * 1000 / codec->bytes_per_sec;
 
+	if (bench_mode) {
+//		mo->timestamp = gf_clock_time(codec->ck);
+		mo->ms_until_pres = -1;
+		mo->ms_until_next = 1;
+	} 
+
+
 	mo->nb_fetch ++;
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
+	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
+	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 
 	gf_odm_lock(mo->odm, 0);
 	return mo->frame;

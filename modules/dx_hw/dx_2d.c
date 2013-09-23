@@ -203,8 +203,8 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
     DDSURFDESC ddsd;
 	DDPIXELFORMAT pixelFmt;
     LPDIRECTDRAWCLIPPER pcClipper;
+	const char *opt;
 	DDCONTEXT;
-	
 	if (!dd->cur_hwnd || !Width || !Height || !dd->DirectDrawCreate) return GF_BAD_PARAM;
 	DestroyObjects(dd);
 
@@ -298,6 +298,10 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
         return GF_IO_ERR;
     }
 	pcClipper->lpVtbl->Release(pcClipper);
+
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
+	if (opt && !strcmp(opt, "yes")) dd->disable_vsync = GF_TRUE;
 
 	dd->ddraw_init = 1;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/

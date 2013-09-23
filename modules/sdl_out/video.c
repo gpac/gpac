@@ -595,7 +595,13 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 		}
 		if ( !ctx->renderer ) {
-            if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC))) {
+			u32 flags = SDL_RENDERER_ACCELERATED;
+			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
+			if (!opt || strcmp(opt, "yes")) 
+				flags |= SDL_RENDERER_PRESENTVSYNC;
+
+			
+			if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, flags))) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;

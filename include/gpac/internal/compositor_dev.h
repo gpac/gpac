@@ -62,7 +62,7 @@ extern "C" {
 #define GF_SR_USE_DEPTH
 
 /*FPS computed on this number of frame*/
-#define GF_SR_FPS_COMPUTE_SIZE	30
+#define GF_SR_FPS_COMPUTE_SIZE	60
 
 
 
@@ -192,7 +192,7 @@ struct __tag_compositor
 
 	/*simulation frame rate*/
 	Double frame_rate;
-	Bool no_regulation, video_regulation;
+	Bool no_regulation;
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 frame_dur[GF_SR_FPS_COMPUTE_SIZE];
@@ -202,6 +202,8 @@ struct __tag_compositor
 	Bool text_edit_changed;
 
 	u32 last_click_time;
+	u32 next_frame_delay;
+	s32 frame_delay;
 
 	/*display size*/
 	u32 display_width, display_height;

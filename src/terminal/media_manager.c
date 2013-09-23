@@ -380,7 +380,8 @@ u32 MM_Loop(void *par)
 
 		if (do_regulate) {
 			if (left==term->frame_duration) {
-				gf_sleep(term->frame_duration);
+//				gf_sleep(term->frame_duration);
+				gf_sleep(0);
 			}
 		}
 	}
@@ -663,8 +664,11 @@ u32 gf_term_process_step(GF_Terminal *term)
 		time_taken = term->compositor->frame_duration - time_taken;
 	}
 	if (term->user->init_flags & GF_TERM_NO_REGULATION) return time_taken;
+		time_taken = 0;
 
-	gf_sleep(time_taken);
+	if (2*time_taken >= term->compositor->frame_duration) {
+		gf_sleep(time_taken);
+	}
 	return time_taken;
 }
 

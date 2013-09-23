@@ -117,12 +117,12 @@ static void movietexture_update(GF_TextureHandler *txh)
 			gf_sc_texture_stop(txh);
 			/*make sure the refresh flag is not cleared*/
 			txh->needs_refresh = 1;
+			gf_sc_invalidate(txh->compositor, NULL);
 		}
 	}
 	if (txh->needs_refresh) {
 		/*mark all subtrees using this image as dirty*/
 		gf_node_dirty_parents(txh->owner);
-		gf_sc_invalidate(txh->compositor, NULL);
 	}
 }
 
