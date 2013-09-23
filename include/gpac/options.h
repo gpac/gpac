@@ -246,6 +246,8 @@ enum
 	GF_OPT_MEDIA_CACHE,
 	/*get/set Play state - cf above states for set*/
 	GF_OPT_PLAY_STATE,
+	/*get/set benvch mode - if enabled, video frames are drawn as soon as possible witthout checking synchronisation*/
+	GF_OPT_VIDEO_BENCH,
 	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/
 	GF_OPT_USE_OPENGL,
 

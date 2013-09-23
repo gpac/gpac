@@ -1721,35 +1721,32 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 	u32 ind, num, frames, run_time;
 
 	gf_mx_p(compositor->mx);
-#if 1
-	/*start from last frame and get first frame time*/
-	ind = compositor->current_frame;
-	frames = 0;
-	run_time = compositor->frame_dur[ind];
-	for (num=0; num<GF_SR_FPS_COMPUTE_SIZE; num++) {
-		if (absoluteFPS) {
+
+	if (absoluteFPS) {
+		/*start from last frame and get first frame time*/
+		ind = compositor->current_frame;
+		frames = 0;
+		run_time = compositor->frame_dur[ind];
+		for (num=0; num<GF_SR_FPS_COMPUTE_SIZE; num++) {
 			run_time += compositor->frame_dur[ind];
-		} else {
-			run_time += MAX(compositor->frame_dur[ind], compositor->frame_duration);
+			frames++;
+			if (frames==GF_SR_FPS_COMPUTE_SIZE) break;
+			if (!ind) {
+				ind = GF_SR_FPS_COMPUTE_SIZE;
+			} else {
+				ind--;
+			}
 		}
-		frames++;
-		if (frames==GF_SR_FPS_COMPUTE_SIZE) break;
-		if (!ind) {
-			ind = GF_SR_FPS_COMPUTE_SIZE;
-		} else {
-			ind--;
-		}
+	} else {
+		/*start from last frame and get first frame time*/
+		ind = compositor->current_frame;
+		frames = 0;
+		run_time = compositor->frame_time[ind];
+		if (ind == GF_SR_FPS_COMPUTE_SIZE) ind = 0;
+		assert(run_time >= compositor->frame_time[ind+1]);
+		run_time -= compositor->frame_time[ind+1];
+		frames = GF_SR_FPS_COMPUTE_SIZE-1;
 	}
-#else
-	/*start from last frame and get first frame time*/
-	ind = compositor->current_frame;
-	frames = 0;
-	run_time = compositor->frame_time[ind];
-	if (ind == GF_SR_FPS_COMPUTE_SIZE) ind = 0;
-	assert(run_time >= compositor->frame_time[ind+1]);
-	run_time -= compositor->frame_time[ind+1];
-	frames = GF_SR_FPS_COMPUTE_SIZE;
-#endif
 
 
 	gf_mx_v(compositor->mx);
@@ -1994,7 +1991,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	u32 in_time, end_time, i, count, sim_time;
 	Bool frame_drawn;
 #ifndef GPAC_DISABLE_LOG
-	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time;
+	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
 #endif
 
 	in_time = gf_sys_clock();
@@ -2021,7 +2018,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	if (compositor->reset_graphics) {
-		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);		
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		visual_reset_graphics(compositor->visual);
 	}
 
@@ -2046,6 +2043,53 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	event_time = 0;
 #endif
 	
+
+	//first update all natural textures to figure out timing
+	compositor->frame_delay = (u32) -1;
+	compositor->next_frame_delay = (u32) -1;
+
+#ifndef GPAC_DISABLE_LOG
+	texture_time = gf_sys_clock();
+#endif
+	/*update all video textures*/
+	count = gf_list_count(compositor->textures);
+	for (i=0; i<count; i++) {
+		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
+		if (!txh) break;
+		//this is not a natural (video) texture
+		if (! txh->stream) continue;
+
+		/*signal graphics reset before updating*/
+		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
+		txh->update_texture_fcnt(txh);
+	}
+
+	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures 
+	//forced a relayout - do it right away
+	if (compositor->msg_type) {
+		gf_sc_lock(compositor, 0);
+		return;
+	}
+#ifndef GPAC_DISABLE_LOG
+	texture_time = gf_sys_clock() - texture_time;
+#endif
+
+	//if next video frame is due in this render cycle, wait until it matures
+	if ((compositor->frame_delay > 0) && (compositor->frame_delay != (u32) -1)) {
+		u32 diff;
+		while (1) {
+			gf_sleep(0);
+			diff = gf_sys_clock() - in_time;
+			if (diff >= (u32) compositor->frame_delay)
+				break;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Waited %d ms for next frame and %d ms was required\n", diff, compositor->frame_delay));
+		if (compositor->next_frame_delay != (u32) -1) {
+			if (diff < compositor->next_frame_delay) compositor->next_frame_delay -= diff;
+			else compositor->next_frame_delay = 1;
+		}
+	}
+
 	sim_time = gf_term_sample_clocks(compositor->term);
 
 #ifndef GPAC_DISABLE_VRML
@@ -2154,35 +2198,36 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		}
 	}
 
-	/*setup root visual BEFORE updating the texture, because of potential composite texture */
+	/*setup root visual BEFORE updating the composite textures (since they may depend on root setup)*/
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
-	compositor->video_regulation = compositor->no_regulation;
 #ifndef GPAC_DISABLE_LOG
-	texture_time = gf_sys_clock();
+	txtime = gf_sys_clock();
 #endif
-	/*update all textures*/
+	/*update all composite textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
 		if (!txh) break;
+		//this is not a composite texture
+		if (txh->stream) continue;
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
 	}
 
-	//it may happen that we have a reconfigure request at this stage, especiall if updating one of the textures update
+	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures update
 	//forced a relayout - do it right away
 	if (compositor->msg_type) {
 		gf_sc_lock(compositor, 0);
 		return;
 	}
+#ifndef GPAC_DISABLE_LOG
+	texture_time += gf_sys_clock() - txtime;
+#endif
+
 	compositor->text_edit_changed = 0;
 	compositor->rebuild_offscreen_textures = 0;
-
-#ifndef GPAC_DISABLE_LOG
-	texture_time = gf_sys_clock() - texture_time;
-#endif
 
 	if (compositor->force_next_frame_redraw) {
 		compositor->force_next_frame_redraw=0;
@@ -2213,8 +2258,12 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		/*video flush only*/
 		if (compositor->frame_draw_type==GF_SC_DRAW_FLUSH) {
 			compositor->frame_draw_type = 0;
-		} else {
+		}
+		/*full render*/
+		else {
 			compositor->frame_draw_type = 0;
+
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - OTB %d\n", sim_time));
 			gf_sc_draw_scene(compositor);
 #ifndef GPAC_DISABLE_LOG
@@ -2281,6 +2330,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Frame %sdrawn\n", frame_drawn ? "" : "not " ));
+
 	compositor->last_frame_time = gf_sys_clock();
 	end_time = compositor->last_frame_time - in_time;
 
@@ -2325,21 +2376,34 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	/*not threaded, let the owner decide*/
-	if (compositor->video_regulation) {
-		/*fixme - we need to know exactly how long to sleep / yield until next frame is due*/
-		if (!compositor->no_regulation) gf_sleep(1);
+	if (compositor->no_regulation) return;
+
+	//we have a pending frame, return asap - we could sleep until frames matures but this give weird regulation 
+	if (compositor->next_frame_delay != (u32) -1) {
+		if (compositor->next_frame_delay>2) {
+			u32 diff;
+			while (! compositor->msg_type) {
+				gf_sleep(0);
+				diff = gf_sys_clock() - in_time;
+				if (diff >= (u32) compositor->next_frame_delay)
+					break;
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame due in %d ms\n", diff, compositor->next_frame_delay));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame due in %d ms - not going to sleep\n", compositor->next_frame_delay));
+		}
 		return;
 	}
 
-	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {
-		gf_sleep(1);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor did not go to sleep\n"));
 		return;
 	}
 
 	/*compute sleep time till next frame*/
 	end_time %= compositor->frame_duration;
 	gf_sleep(compositor->frame_duration - end_time);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept for %d ms\n", compositor->frame_duration - end_time));
 }
 
 Bool gf_sc_visual_is_registered(GF_Compositor *compositor, GF_VisualManager *visual)
@@ -2673,7 +2737,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			} else {
 				/*remove pending resize notif*/
-				compositor->msg_type = 0;
+				if (!compositor->new_width)
+					compositor->msg_type = 0;
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}

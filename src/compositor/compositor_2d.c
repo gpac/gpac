@@ -645,6 +645,15 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 			}
 		}
+#ifndef GPAC_DISABLE_LOG
+		else if (txh->stream) {
+			u32 ck;
+			gf_mo_get_object_time(txh->stream, &ck);
+			if (ck>txh->last_frame_time) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
+			}
+		}
+#endif
 	}
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;

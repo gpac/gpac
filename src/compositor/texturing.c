@@ -163,7 +163,8 @@ GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
 	Bool needs_reload = 0;
-	u32 size, ts;
+	u32 size, ts, ms_until_next;
+	s32 ms_until_pres;
 
 	/*already refreshed*/
 	if (txh->needs_refresh) return;
@@ -184,7 +185,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size);
+	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next);
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
@@ -218,14 +219,20 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	if (txh->tx_io && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
-		if (!txh->stream_finished)
-			txh->compositor->video_regulation = 1;
+		if (!txh->stream_finished) {
+			if (txh->compositor->next_frame_delay > ms_until_next)
+				txh->compositor->next_frame_delay = ms_until_next;
+		}
 		return;
 	}
-	txh->compositor->video_regulation = 1;
 	txh->needs_release = 1; 
 	txh->last_frame_time = ts;
 	if (gf_mo_is_muted(txh->stream)) return;
+
+	if (txh->compositor->frame_delay < ms_until_pres)
+		txh->compositor->frame_delay = ms_until_pres;
+
+	txh->compositor->next_frame_delay = 1;
 
 	if (!txh->tx_io) {
 		setup_texture_object(txh, 0);

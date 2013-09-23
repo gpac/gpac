@@ -80,8 +80,6 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
-static Fixed bench_speed = FLT2FIX(20);
-
 static Bool request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
 static Bool readonly_playlist = GF_FALSE;
@@ -196,6 +194,7 @@ void PrintUsage()
 		"\t-pause:         pauses at first frame\n"
 		"\t-loop:          loops presentation\n"
 		"\t-no-regulation: disables framerate regulation\n"
+		"\t-bench:         sets playback in bench mode (as fast as possible)\n"
 		"\t-fs:	           starts in fullscreen mode\n"
 		"\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC. \n"
 		"                    in this mode, URL argument of GPAC is ignored, GUI as well.\n"
@@ -329,7 +328,7 @@ static void UpdateRTInfo(const char *legend)
 
 		if (rti.total_cpu_usage) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-					gf_term_get_framerate(term, 1), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+					gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		} else {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d - Mem %d kB", 
 				gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
@@ -404,15 +403,14 @@ u32 get_sys_col(int idx)
 }
 #endif
 
-void switch_bench()
+void switch_bench(Bool is_on)
 {
-	if (is_connected) {
-		bench_mode = !bench_mode;
-		display_rti = !display_rti;
-		ResetCaption();
-		gf_term_set_speed(term, bench_mode ? bench_speed : FIX_ONE);
-	}
+	bench_mode = is_on;
+	display_rti = is_on ;
+	ResetCaption();
+	gf_term_set_option(term, GF_OPT_VIDEO_BENCH, bench_mode ? 1 : 0);
 }
+
 #ifndef WIN32
 #include <termios.h>
 int getch() {
@@ -552,7 +550,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_KEYUP:
 		switch (evt->key.key_code) {
 		case GF_KEY_SPACE:
-			if (evt->key.flags & GF_KEY_MOD_CTRL) switch_bench();
+			if (evt->key.flags & GF_KEY_MOD_CTRL) switch_bench(!bench_mode);
 			break;
 		}
 		break;
@@ -562,7 +560,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_SPACE:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) {
 				/*ignore key repeat*/
-				if (!bench_mode) switch_bench();
+				if (!bench_mode) switch_bench(!bench_mode);
 			}
 			break;
 		case GF_KEY_PAGEDOWN:
@@ -1098,6 +1096,7 @@ int main (int argc, char **argv)
 #endif
 		}
 		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
+		else if (!strcmp(arg, "-bench")) bench_mode = 1;
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
 			i++;
@@ -1199,6 +1198,10 @@ int main (int argc, char **argv)
 		return 1;
 	}
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
+
+	if (bench_mode) {
+		switch_bench(1);
+	}
 
 	if (dump_mode) {
 //		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
@@ -1695,7 +1698,7 @@ force_input:
 			break;
 
 		case 'B':
-			switch_bench();
+			switch_bench(!bench_mode);
 			break;
 
 		case 'Y':

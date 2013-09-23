@@ -424,6 +424,8 @@ struct _tag_terminal
 
 	GF_Shortcut shortcuts[MAX_SHORTCUTS];
 	Fixed speed_ratio;
+
+	Bool bench_mode;
 };
 
 
@@ -1031,6 +1033,9 @@ struct _mediaobj
 	u32 nb_fetch;
 	/*frame presentation time*/
 	u32 timestamp;
+	/*time in ms until next frame shall be presented*/
+	u32 ms_until_next;
+	s32 ms_until_pres;
 	/*data frame size*/
 	u32 framesize;
 	/*pointer to data frame */

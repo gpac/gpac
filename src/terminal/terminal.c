@@ -645,10 +645,13 @@ GF_Terminal *gf_term_new(GF_User *user)
 			gf_list_add(tmp->unthreaded_extensions, ifce);
 	}
 
+	gf_term_lock_media_queue(tmp, 1);
 	if (!gf_list_count(tmp->unthreaded_extensions)) {
 		gf_list_del(tmp->unthreaded_extensions);
 		tmp->unthreaded_extensions = NULL;
 	}
+	gf_term_lock_media_queue(tmp, 0);
+
 	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")){
           GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
           /* No mime-types detected, probably the first launch */
@@ -925,6 +928,12 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 	case GF_OPT_HTTP_MAX_RATE:
 		gf_dm_set_data_rate(term->downloader, value);
 		return GF_OK;
+	case GF_OPT_VIDEO_BENCH:
+		term->bench_mode = value ? GF_TRUE : GF_FALSE;
+		term->compositor->no_regulation = term->bench_mode;
+
+		return GF_OK;
+		
 
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
@@ -993,6 +1002,8 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 		else return GF_MEDIA_CACHE_ENABLED;
 	case GF_OPT_CAN_SELECT_STREAMS: return (term->root_scene && term->root_scene->is_dynamic_scene) ? 1 : 0;
 	case GF_OPT_HTTP_MAX_RATE: return gf_dm_get_data_rate(term->downloader);
+	case GF_OPT_VIDEO_BENCH: return term->bench_mode ? GF_TRUE : GF_FALSE;
+
 	default: return gf_sc_get_option(term->compositor, type);
 	}
 }
@@ -1137,6 +1148,7 @@ void gf_term_handle_services(GF_Terminal *term)
 	}
 
 	/*extensions*/
+	gf_term_lock_media_queue(term, 1);
 	if (!term->reload_state && term->unthreaded_extensions) {
 		u32 i, count;
 		count = gf_list_count(term->unthreaded_extensions);
@@ -1145,6 +1157,7 @@ void gf_term_handle_services(GF_Terminal *term)
 			ifce->process(ifce, GF_TERM_EXT_PROCESS, NULL);
 		}
 	}
+	gf_term_lock_media_queue(term, 0);
 
 	
 	/*need to reload*/

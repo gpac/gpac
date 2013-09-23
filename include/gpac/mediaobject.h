@@ -94,7 +94,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 /*fetch media data 
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size);
+char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, u32 *ms_until_next);
 
 /*release given amount of media data - nb_bytes is used for audio - if forceDrop is set, the unlocked frame will be 
 droped if all bytes are consumed, otherwise it will be droped based on object time - typically, video fetches with the resync

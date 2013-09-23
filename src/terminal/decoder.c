@@ -927,8 +927,8 @@ scalable_retry:
 
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
-			/*in seek don't dispatch any output*/
-			if (mmlevel >= GF_CODEC_LEVEL_DROP) {
+			/*in seek do dispatch output otherwise we will only see the I-frame preceding the seek point*/
+			if (mmlevel == GF_CODEC_LEVEL_DROP) {
 				if (drop_late_frames)
 					unit_size = 0;
 				else 

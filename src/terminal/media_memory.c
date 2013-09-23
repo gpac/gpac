@@ -359,10 +359,13 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 			gf_term_service_media_event(cb->odm->parentscene->root_od, GF_EVENT_MEDIA_CANPLAY);
 		} 
 
+		//new FPS regulation doesn't need this signaling
+#if 0
 		/*since a new CU is here notify the compositor*/
 		if ((cb->odm->codec->type==GF_STREAM_VISUAL) && cb->odm->mo && cb->odm->mo->num_open) {
 			gf_term_invalidate_compositor(cb->odm->term);
 		}
+#endif
 	}
 	gf_odm_lock(cb->odm, 0);
 }
