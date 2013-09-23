@@ -284,12 +284,16 @@ static u32 video_encoding_thread_run(void *param)
                     {
                       int got_packet = 0;
                       AVPacket pkt;
-                      memset(&pkt, 0, sizeof(AVPacket));
+                      av_init_packet(&pkt);
                       pkt.data = avr->videoOutbuf;
                       pkt.size = avr->videoOutbufSize;
                       written = avcodec_encode_video2(ctx, &pkt, avr->YUVpicture, &got_packet);
                       if (written >= 0) {
                         written = pkt.size;
+                        if (got_packet) {	
+                          ctx->coded_frame->pts = pkt.pts;
+                          ctx->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
+                        }
                       }
                     }
                     sysclock_end = gf_sys_clock();
