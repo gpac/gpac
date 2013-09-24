@@ -758,6 +758,8 @@ typedef struct
 	u64 physical_memory_avail;
 	/*!total memory currently allocated by gpac*/
 	u64 gpac_memory;
+	/*!total number of cores on the system*/
+	u32 nb_cores;
 } GF_SystemRTInfo;
 
 /*!

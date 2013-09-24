@@ -1154,6 +1154,13 @@ int main (int argc, char **argv)
 
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
+	{
+		GF_SystemRTInfo rti;
+		gf_sys_get_rti(0, &rti, 0);
+		fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
+	} 
+
+
 	/*setup dumping options*/
 	if (dump_mode) {
 		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;

@@ -1138,8 +1138,12 @@ GF_EXPORT
 void gf_sys_init(Bool enable_memory_tracker)
 {
 	if (!sys_init) {
+#if defined (WIN32)
 #if defined(_WIN32_WCE)
 		MEMORYSTATUS ms;
+#else
+		SYSTEM_INFO sysinfo;
+#endif
 #endif
 
 		if (enable_memory_tracker) {
@@ -1179,6 +1183,7 @@ void gf_sys_init(Bool enable_memory_tracker)
 		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = GetCurrentProcessId();
+		the_rti.nb_cores = 1;
 		GlobalMemoryStatus(&ms);
 		mem_usage_at_startup = ms.dwAvailPhys;
 #else
@@ -1201,16 +1206,37 @@ void gf_sys_init(Bool enable_memory_tracker)
 		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = GetCurrentProcessId();
+
+		GetSystemInfo( &sysinfo );
+		the_rti.nb_cores = sysinfo.dwNumberOfProcessors;
 #endif
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("\n"));
 
 #else
-		/*linux threads...*/
+		/*linux threads and OSX...*/
 		last_process_k_u_time = 0;
 		last_cpu_u_k_time = last_cpu_idle_time = 0;
 		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = getpid();
+
+#ifdef GPAC_CONFIG_FREEBSD
+		{
+			s32 flags[4];
+			size_t len = sizeof(u32); 
+			flags[0] = CTL_HW;
+			flags[1] = HW_AVAILCPU;
+			sysctl(flags, 2, &the_rti.nb_cores, &len, NULL, 0);
+			if( the_rti.nb_cores < 1 ) {
+				flags[1] = HW_NCPU;
+				sysctl(flags, 2, &the_rti.nb_cores, &len, NULL, 0);
+				if (the_rti.nb_cores<1) the_rti.nb_cores = 1;
+			}
+		}
+#else
+		the_rti.nb_cores = sysconf( _SC_NPROCESSORS_ONLN );
+#endif
+
 		sys_start_time = gf_sys_clock();
 #endif
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] process id %d\n", the_rti.pid));
@@ -1227,6 +1253,7 @@ void gf_sys_init(Bool enable_memory_tracker)
 		GF_SystemRTInfo rti;
 		gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 		memory_at_gpac_startup = rti.physical_memory_avail;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] System init OK - process id %d - %d MB physical RAM - %d cores\n", rti.pid, (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
 	}
 }
 
