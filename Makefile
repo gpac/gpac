@@ -59,8 +59,8 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no) 
 ifeq ($(CONFIG_LINUX), yes)
-ifeq ($(CONFIG_FFMPEG), system)
-#	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
+ifeq ($(DISABLE_DASHCAST), no)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
 endif
 endif
 endif

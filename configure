@@ -1328,6 +1328,16 @@ if test "$has_ffmpeg" = "no" ; then
     fi
 fi
 
+cat > $TMPC << EOF
+#include <libavutil/frame.h>
+int main(void) {return 0;}
+EOF
+if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+	is_libav="no"
+else
+	is_libav="yes"
+fi
+
 
 
 #look for FREENECT support
@@ -2614,6 +2624,9 @@ echo "MAD: $has_mad"
 echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
 echo "FFMPEG: $has_ffmpeg"
+if test "$is_libav" = "yes"; then
+echo "FFMPEG API from non-compatible libav - disabling DashCast"
+fi
 echo "Xiph OGG: $has_ogg"
 echo "Platinum UPnP: $has_platinum"
 echo "AVCap: $has_avcap"
@@ -2845,10 +2858,12 @@ echo "CONFIG_OGG=$has_ogg" >> config.mak
 echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
 echo "CONFIG_THEORA=$has_theora" >> config.mak
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
-if test "$has_ffmpeg" != "no"
-then
+if test "$has_ffmpeg" = "no"; then
+echo "DISABLE_DASHCAST=yes" >> config.mak
+else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
+    echo "DISABLE_DASHCAST=$is_libav" >> config.mak
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 
