@@ -76,7 +76,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	}
 
 	/*  Retrieve stream information */
-	if (avformat_find_stream_info(p_vin->p_fmt_ctx, p_options == NULL ? NULL : &p_options) < 0) {
+	if (avformat_find_stream_info(p_vin->p_fmt_ctx, NULL) < 0) {
 		fprintf(stderr, "Cannot find stream information\n");
 		return -1;
 	}

@@ -295,8 +295,7 @@ int dc_gpac_video_isom_write(VideoOutputFile * p_voutf) {
 
 	}
 
-	gf_bs_get_content(out_bs, &p_voutf->p_sample->data,
-			&p_voutf->p_sample->dataLength);
+	gf_bs_get_content(out_bs, &p_voutf->p_sample->data, &p_voutf->p_sample->dataLength);
 	//p_voutf->p_sample->data = //(char *) (p_voutf->p_vbuf + nalu_size + sc_size);
 	//p_voutf->p_sample->dataLength = //p_voutf->i_encoded_frame_size - (sc_size + nalu_size);
 
@@ -304,15 +303,14 @@ int dc_gpac_video_isom_write(VideoOutputFile * p_voutf) {
 	p_voutf->p_sample->IsRAP = p_video_codec_ctx->coded_frame->key_frame;
 	//printf("RAP %d , DTS %ld \n", p_voutf->p_sample->IsRAP, p_voutf->p_sample->DTS);
 
-	ret = gf_isom_fragment_add_sample(p_voutf->p_isof, 1, p_voutf->p_sample, 1,
-			1, 0, 0, 0);
-
+	ret = gf_isom_fragment_add_sample(p_voutf->p_isof, 1, p_voutf->p_sample, 1, 1, 0, 0, 0);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n",
-				gf_error_to_string(ret));
+		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret));
 		return -1;
 	}
 
+	//FIXME: p_voutf->p_sample->data leaks
+	gf_bs_del(out_bs);
 	return 0;
 }
 

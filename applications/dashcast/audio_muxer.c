@@ -182,9 +182,7 @@ int dc_gpac_audio_isom_write(AudioOutputFile * p_aoutf) {
 	p_aoutf->p_sample->IsRAP = 1; //p_aoutf->p_aframe->key_frame;//p_audio_codec_ctx->coded_frame->key_frame;
 	//printf("RAP %d , DTS %ld \n", p_aoutf->p_sample->IsRAP, p_aoutf->p_sample->DTS);
 
-	ret = gf_isom_fragment_add_sample(p_aoutf->p_isof, 1, p_aoutf->p_sample, 1,
-			p_aoutf->p_codec_ctx->frame_size, 0, 0, 0);
-
+	ret = gf_isom_fragment_add_sample(p_aoutf->p_isof, 1, p_aoutf->p_sample, 1, p_aoutf->p_codec_ctx->frame_size, 0, 0, 0);
 	p_aoutf->dts += p_aoutf->p_codec_ctx->frame_size;
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n",
@@ -380,12 +378,11 @@ int dc_audio_muxer_init(AudioOutputFile * p_aoutf, AudioData * p_adata,
 }
 
 void dc_audio_muxer_free(AudioOutputFile * p_aoutf) {
-
 	if (p_aoutf->p_isof != NULL) {
 		gf_isom_close(p_aoutf->p_isof);
 	}
 
-	gf_isom_sample_del(&p_aoutf->p_sample);
+	//gf_isom_sample_del(&p_aoutf->p_sample);
 }
 
 GF_Err dc_audio_muxer_open(AudioOutputFile * p_aoutf, char * psz_directory, char * psz_id, int i_seg) {
