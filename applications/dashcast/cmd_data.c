@@ -135,6 +135,7 @@ static void dc_create_configuration(CmdData * p_cmdd)
 
 int dc_read_configuration(CmdData * p_cmdd)
 {
+	const char *opt;
 	u32 i;
 
 	GF_Config * p_conf = p_cmdd->p_conf;
@@ -148,21 +149,32 @@ int dc_read_configuration(CmdData * p_cmdd)
 
 			VideoData * p_vconf = gf_malloc(sizeof(VideoData));
 			strcpy(p_vconf->psz_name, psz_sec_name);
-			strcpy(p_vconf->psz_codec, gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
-			p_vconf->i_bitrate = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
-			p_vconf->i_framerate = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "framerate"));
-			p_vconf->i_height = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "height"));
-			p_vconf->i_width = atoi(gf_cfg_get_key(p_conf, psz_sec_name, "width"));
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "codec");
+			if (!opt) opt = DEFAULT_VIDEO_CODEC;
+			strcpy(p_vconf->psz_codec, opt);
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "bitrate");
+			p_vconf->i_bitrate = opt ? atoi(opt) : DEFAULT_VIDEO_BITRATE;
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "framerate");
+			p_vconf->i_framerate = opt ? atoi(opt) : DEFAULT_VIDEO_FRAMERATE;
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "height");
+			p_vconf->i_height = opt ? atoi(opt) : DEFAULT_VIDEO_HEIGHT;
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "width");
+			p_vconf->i_width = opt ? atoi(opt) : DEFAULT_VIDEO_WIDTH;
 			gf_list_add(p_cmdd->p_video_lst, (void *) p_vconf);
 
 		} else if (strcmp(psz_type, "audio") == 0) {
 
 			AudioData * p_aconf = gf_malloc(sizeof(AudioData));
 			strcpy(p_aconf->psz_name, psz_sec_name);
-			strcpy(p_aconf->psz_codec, gf_cfg_get_key(p_conf, psz_sec_name, "codec"));
-			p_aconf->i_bitrate = atoi( gf_cfg_get_key(p_conf, psz_sec_name, "bitrate"));
-			p_aconf->i_samplerate = atoi( gf_cfg_get_key(p_conf, psz_sec_name, "samplerate"));
-			p_aconf->i_channels = atoi( gf_cfg_get_key(p_conf, psz_sec_name, "channels"));
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "codec");
+			if (!opt) opt = DEFAULT_AUDIO_CODEC;
+			strcpy(p_aconf->psz_codec, opt);
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "bitrate");
+			p_aconf->i_bitrate = opt ? atoi(opt) : DEFAULT_AUDIO_BITRATE;
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "samplerate");
+			p_aconf->i_samplerate = opt ? atoi(opt) : DEFAULT_AUDIO_SAMPLERATE;
+			opt = gf_cfg_get_key(p_conf, psz_sec_name, "channels");
+			p_aconf->i_channels = opt ? atoi(opt) : DEFAULT_AUDIO_CHANNELS;
 			gf_list_add(p_cmdd->p_audio_lst, (void *) p_aconf);
 
 		} else {
@@ -326,7 +338,7 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_time_shift = 0;
 	p_cmdd->f_minbuftime = -1;
 	p_cmdd->i_gdr = 0;
-	p_cmdd->p_audio_lst = gf_list_new(); //FIXME: alloc occur before the memory tracker is set.
+	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
 	p_cmdd->p_asrc = gf_list_new();
 	p_cmdd->p_vsrc = gf_list_new();
@@ -335,13 +347,26 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 
 void dc_cmd_data_destroy(CmdData * p_cmdd) {
 
+	while (gf_list_count(p_cmdd->p_audio_lst)) {
+		AudioData * p_aconf = gf_list_last(p_cmdd->p_audio_lst);
+		gf_list_rem_last(p_cmdd->p_audio_lst);
+		gf_free(p_aconf);
+	}
 	gf_list_del(p_cmdd->p_audio_lst);
+	while (gf_list_count(p_cmdd->p_video_lst)) {
+		VideoData * p_aconf = gf_list_last(p_cmdd->p_video_lst);
+		gf_list_rem_last(p_cmdd->p_video_lst);
+		gf_free(p_aconf);
+	}
 	gf_list_del(p_cmdd->p_video_lst);
+
 	gf_list_del(p_cmdd->p_asrc);
 	gf_list_del(p_cmdd->p_vsrc);
 	gf_cfg_del(p_cmdd->p_conf);
 	gf_cfg_del(p_cmdd->p_switch_conf);
 	if (p_cmdd->p_logfile) fclose(p_cmdd->p_logfile);
+
+	dc_task_destroy(&p_cmdd->task_list);
 
 	gf_sys_close();
 }
@@ -355,6 +380,7 @@ static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 
 int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
+	Bool use_mem_track = GF_FALSE;
 	int i;
 
 	const char * psz_command_usage =
@@ -436,7 +462,26 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		printf("%s", psz_command_usage);
 		return -1;
 	}
-	gf_sys_init(GF_FALSE);
+
+#ifdef GPAC_MEMORY_TRACKING
+	i = 1;
+	while (i < i_argc) {
+		if (strcmp(p_argv[i], "-mem-track") == 0) {
+			use_mem_track = GF_TRUE;
+			break;
+		}
+		i++;
+	}
+#endif
+
+	gf_sys_init(use_mem_track);
+
+	if (use_mem_track) {
+		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+	}
+
+	/* Initialize command data */
+	dc_cmd_data_init(p_cmdd);
 
 	i = 1;
 	while (i < i_argc) {
@@ -743,12 +788,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 			i++;
 		} else if (strcmp(p_argv[i], "-mem-track") == 0) {
 			i++;
-#ifdef GPAC_MEMORY_TRACKING
-			gf_sys_close();
-			gf_sys_init(GF_TRUE);
-			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
-#else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+#ifndef GPAC_MEMORY_TRACKING
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
 		} else if (!strcmp(p_argv[i], "-lf") || !strcmp(p_argv[i], "-log-file")) {
 			i++;
@@ -840,7 +881,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 		printf("    audio format: %s\n", p_cmdd->adata.psz_format);
 	}
 	printf("\33[0m");
-	fflush(stdout);
+//	fflush(stdout);
 
 	
 	

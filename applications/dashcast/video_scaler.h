@@ -90,7 +90,6 @@ typedef struct {
 
 	AVFrame * p_vframe;
 	uint8_t * p_pic_data_buf;
-
 } VideoScaledDataNode;
 
 /*

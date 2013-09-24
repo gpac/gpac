@@ -31,10 +31,7 @@ int main(int argc, char ** argv) {
 
 	CmdData cmd_data;
 
-	/* Initialize command data */
-	dc_cmd_data_init(&cmd_data);
-
-	/* Read command line and parse input */
+	/* Read command line (performs init) and parse input */
 	if ( dc_parse_command(argc, argv, &cmd_data) < 0) {
 		dc_cmd_data_destroy(&cmd_data);
 		return -1;

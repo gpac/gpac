@@ -89,5 +89,7 @@ void dc_video_input_data_destroy(VideoInputData * p_vd) {
 	}
 
 	dc_circular_buffer_destroy(&p_vd->p_cb);
+	gf_free(p_vd->p_vprop);
+
 
 }
