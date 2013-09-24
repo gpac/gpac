@@ -1157,7 +1157,7 @@ int main (int argc, char **argv)
 	{
 		GF_SystemRTInfo rti;
 		gf_sys_get_rti(0, &rti, 0);
-		fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
+		fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory_avail/1024/1024), rti.nb_cores);
 	} 
 
 
