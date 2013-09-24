@@ -73,46 +73,62 @@ static void dc_create_configuration(CmdData * p_cmdd)
 		const char * psz_type = gf_cfg_get_key(p_conf, psz_sec_name, "type");
 
 		if (strcmp(psz_type, "video") == 0) {
-			if (p_cmdd->vdata.i_bitrate == -1)
-				p_cmdd->vdata.i_bitrate = DEFAULT_VIDEO_BITRATE;
-			sprintf(value, "%d", p_cmdd->vdata.i_bitrate);
-			gf_cfg_set_key(p_conf, psz_sec_name, "bitrate", value);
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "bitrate")) {
+				if (p_cmdd->vdata.i_bitrate == -1)
+					p_cmdd->vdata.i_bitrate = DEFAULT_VIDEO_BITRATE;
+				sprintf(value, "%d", p_cmdd->vdata.i_bitrate);
+				gf_cfg_set_key(p_conf, psz_sec_name, "bitrate", value);
+			}
 		
-			if (p_cmdd->vdata.i_framerate == -1)
-				p_cmdd->vdata.i_framerate = DEFAULT_VIDEO_FRAMERATE;
-			sprintf(value, "%d", p_cmdd->vdata.i_framerate);
-			gf_cfg_set_key(p_conf, psz_sec_name, "framerate", value);
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "framerate")) {
+				if (p_cmdd->vdata.i_framerate == -1)
+					p_cmdd->vdata.i_framerate = DEFAULT_VIDEO_FRAMERATE;
+				sprintf(value, "%d", p_cmdd->vdata.i_framerate);
+				gf_cfg_set_key(p_conf, psz_sec_name, "framerate", value);
+			}
 		
-			if (p_cmdd->vdata.i_width == -1)
-				p_cmdd->vdata.i_width = DEFAULT_VIDEO_WIDTH;
-			sprintf(value, "%d", p_cmdd->vdata.i_width);
-			gf_cfg_set_key(p_conf, psz_sec_name, "width", value);
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "width")) {
+				if (p_cmdd->vdata.i_width == -1)
+					p_cmdd->vdata.i_width = DEFAULT_VIDEO_WIDTH;
+				sprintf(value, "%d", p_cmdd->vdata.i_width);
+				gf_cfg_set_key(p_conf, psz_sec_name, "width", value);
+			}
 		
-			if (p_cmdd->vdata.i_height == -1)
-				p_cmdd->vdata.i_height = DEFAULT_VIDEO_HEIGHT;
-			sprintf(value, "%d", p_cmdd->vdata.i_height);
-			gf_cfg_set_key(p_conf, psz_sec_name, "height", value);
-
-			gf_cfg_set_key(p_conf, psz_sec_name, "codec", DEFAULT_VIDEO_CODEC);
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "height")) {
+				if (p_cmdd->vdata.i_height == -1)
+					p_cmdd->vdata.i_height = DEFAULT_VIDEO_HEIGHT;
+				sprintf(value, "%d", p_cmdd->vdata.i_height);
+				gf_cfg_set_key(p_conf, psz_sec_name, "height", value);
+			}
+			
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "codec"))
+				gf_cfg_set_key(p_conf, psz_sec_name, "codec", DEFAULT_VIDEO_CODEC);
 		}
 		
 		if (strcmp(psz_type, "audio") == 0) {
-			if (p_cmdd->adata.i_bitrate == -1)
-				p_cmdd->adata.i_bitrate = DEFAULT_AUDIO_BITRATE;
-			sprintf(value, "%d", p_cmdd->adata.i_bitrate);
-			gf_cfg_set_key(p_conf, psz_sec_name, "bitrate", value);
-
-			if (p_cmdd->adata.i_samplerate == -1)
-				p_cmdd->adata.i_samplerate = DEFAULT_AUDIO_SAMPLERATE;
-			sprintf(value, "%d", p_cmdd->adata.i_samplerate);
-			gf_cfg_set_key(p_conf, psz_sec_name, "samplerate", value);
-
-			if (p_cmdd->adata.i_channels == -1)
-				p_cmdd->adata.i_channels = DEFAULT_AUDIO_CHANNELS;
-			sprintf(value, "%d", p_cmdd->adata.i_channels);
-			gf_cfg_set_key(p_conf, psz_sec_name, "channels", value);
-
-			gf_cfg_set_key(p_conf, psz_sec_name, "codec", DEFAULT_AUDIO_CODEC);
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "bitrate")) {
+				if (p_cmdd->adata.i_bitrate == -1)
+					p_cmdd->adata.i_bitrate = DEFAULT_AUDIO_BITRATE;
+				sprintf(value, "%d", p_cmdd->adata.i_bitrate);
+				gf_cfg_set_key(p_conf, psz_sec_name, "bitrate", value);
+			}
+			
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "samplerate")) {
+				if (p_cmdd->adata.i_samplerate == -1)
+					p_cmdd->adata.i_samplerate = DEFAULT_AUDIO_SAMPLERATE;
+				sprintf(value, "%d", p_cmdd->adata.i_samplerate);
+				gf_cfg_set_key(p_conf, psz_sec_name, "samplerate", value);
+			}
+			
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "channels")) {
+				if (p_cmdd->adata.i_channels == -1)
+					p_cmdd->adata.i_channels = DEFAULT_AUDIO_CHANNELS;
+				sprintf(value, "%d", p_cmdd->adata.i_channels);
+				gf_cfg_set_key(p_conf, psz_sec_name, "channels", value);
+			}
+			
+			if (!gf_cfg_get_key(p_conf, psz_sec_name, "codec"))
+				gf_cfg_set_key(p_conf, psz_sec_name, "codec", DEFAULT_AUDIO_CODEC);
 		}
 	}
 }
