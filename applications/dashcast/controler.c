@@ -563,7 +563,7 @@ static u32 keyboard_thread(void * p_params) {
 
 		gf_sleep(100);
 	}
-
+fprintf(stderr, "Keyboard thread exit\n");
 	return 0;
 }
 
@@ -658,6 +658,7 @@ u32 video_decoder_thread(void * p_params) {
 #ifdef DEBUG
 	printf("Video decoder is exiting...\n");
 #endif
+	fprintf(stderr, "video decoder thread exit\n");
 	return 0;
 }
 
@@ -777,6 +778,7 @@ u32 video_scaler_thread(void * p_params) {
 #ifdef DEBUG
 	printf("Video scaler is exiting...\n");
 #endif
+	fprintf(stderr, "video scaler thread exit\n");
 	return 0;
 }
 
@@ -947,6 +949,7 @@ u32 video_encoder_thread(void * p_params) {
 #ifdef DEBUG
 	printf("Video encoder is exiting...\n");
 #endif
+	fprintf(stderr, "video encoder thread exit\n");
 	return 0;
 }
 
@@ -1544,11 +1547,15 @@ int dc_run_controler(CmdData * p_in_data) {
 			dc_video_decoder_close(vinf[i]);
 		}
 
+		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
+			dc_video_scaler_data_destroy(p_vsdl.p_vsd[i]);
+		}
+
 		/* Destroy video scaled data */
 		dc_video_scaler_list_destroy(&p_vsdl);
 	}
 
-	keyboard_th_params.p_in_data->i_exit_signal = 1;
+	keyboard_th_params.p_in_data->i_exit_signal = 0;
 
 #ifndef FRAGMENTER
 
@@ -1598,8 +1605,18 @@ int dc_run_controler(CmdData * p_in_data) {
 	}
 #endif
 
+
 	if (vscaler_th_params)
 		gf_free(vscaler_th_params);
+
+
+	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
+		gf_free(vinf[i]);
+
+	dc_message_queue_free(&mq);
+	dc_message_queue_free(&delete_seg_mq);
+	dc_message_queue_free(&send_frag_mq);
+
 
 	return 0;
 }

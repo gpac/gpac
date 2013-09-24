@@ -268,7 +268,15 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.
 				if (p_codec_ctx->codec->id == CODEC_ID_RAWVIDEO) {
+#ifdef GPAC_USE_LIBAV
+					//we don't have ref count in libav, store packet (contains raw video) and destroy it later
+					p_vdn->raw_packet = packet;
+					p_vdn->is_raw_data = 1;
+					dc_producer_advance(&p_vd->pro);
+					return 0;
+#else
 					p_vdn->p_vframe = av_frame_clone(p_vdn->p_vframe);
+#endif
 				}
 				av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);

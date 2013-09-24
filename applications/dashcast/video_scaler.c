@@ -200,7 +200,14 @@ int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
 			p_vin->p_vprop[index].i_height/*p_vin->i_height*/,
 			p_vsdn->p_vframe->data, p_vsdn->p_vframe->linesize);
 	
+#ifdef GPAC_USE_LIBAV
+	if (p_vdn->is_raw_data) {
+		av_free_packet(&p_vdn->raw_packet);
+		p_vdn->is_raw_data = 0;
+	}
+#else
 	av_frame_unref(p_vdn->p_vframe);
+#endif
 	
 	dc_consumer_advance(&p_vsd->svcon);
 	dc_producer_advance(&p_vsd->svpro);

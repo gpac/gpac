@@ -125,6 +125,10 @@ typedef struct {
 
 	int source_number;
 
+#ifdef GPAC_USE_LIBAV
+	AVPacket raw_packet;
+	uint8_t is_raw_data;
+#endif
 } VideoDataNode;
 
 void dc_video_data_set_default(VideoData * vdata);

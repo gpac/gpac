@@ -44,8 +44,10 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 	bs = gf_bs_new(extradata, extradata_size, GF_BITSTREAM_READ);
 	if (!bs)
 		return GF_BAD_PARAM;
-	if (gf_bs_read_u32(bs) != 0x00000001)
+	if (gf_bs_read_u32(bs) != 0x00000001) {
+		gf_bs_del(bs);
 		return GF_BAD_PARAM;
+	}
 
 	//SPS
 	{
@@ -53,8 +55,10 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 		char *buffer = NULL;
 		const u64 nal_start = 4;
 		nal_size = gf_media_nalu_next_start_code_bs(bs);
-		if (nal_start + nal_size > extradata_size)
+		if (nal_start + nal_size > extradata_size) {
+			gf_bs_del(bs);
 			return GF_BAD_PARAM;
+		}
 		buffer = (char*)gf_malloc(nal_size);
 		gf_bs_read_data(bs, buffer, nal_size);
 		gf_bs_seek(bs, nal_start);
@@ -95,8 +99,10 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 		const u64 nal_start = 4 + nal_size + 4;
 		gf_bs_seek(bs, nal_start);
 		nal_size = gf_media_nalu_next_start_code_bs(bs);
-		if (nal_start + nal_size > extradata_size)
+		if (nal_start + nal_size > extradata_size) {
+			gf_bs_del(bs);
 			return GF_BAD_PARAM;
+		}
 		buffer = (char*)gf_malloc(nal_size);
 		gf_bs_read_data(bs, buffer, nal_size);
 		gf_bs_seek(bs, nal_start);
@@ -305,11 +311,16 @@ int dc_gpac_video_isom_write(VideoOutputFile * p_voutf) {
 
 	ret = gf_isom_fragment_add_sample(p_voutf->p_isof, 1, p_voutf->p_sample, 1, 1, 0, 0, 0);
 	if (ret != GF_OK) {
+		gf_bs_del(out_bs);
 		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret));
 		return -1;
 	}
 
-	//FIXME: p_voutf->p_sample->data leaks
+	//free data but keep sample structure alive
+	gf_free(p_voutf->p_sample->data);
+	p_voutf->p_sample->data = NULL;
+	p_voutf->p_sample->dataLength = 0;
+
 	gf_bs_del(out_bs);
 	return 0;
 }

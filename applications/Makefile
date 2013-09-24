@@ -9,7 +9,7 @@ endif
 
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box 
-ifeq ($(DISABLE_DASHCAST), no)
+ifneq ($(CONFIG_FFMPEG), no)
 APPDIRS+=dashcast
 endif
 ifeq ($(DISABLE_M2TS_MUX), no)
