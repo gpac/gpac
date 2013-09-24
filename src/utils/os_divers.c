@@ -1607,8 +1607,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			total_physical_memory = result;
 		}
 	}
-	the_rti.physical_memory_avail = total_physical_memory;
-
+	the_rti.physical_memory = total_physical_memory;
 	
 	error = task_for_pid(mach_task_self(), the_rti.pid, &task);
  	if (error) {
