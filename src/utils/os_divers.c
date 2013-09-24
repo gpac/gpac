@@ -1565,7 +1565,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	size_t length;
 	u32 entry_time, i, percent;
 	int mib[6];
-	int result;
+	u64 result;
 	int pagesize;
 	u64 process_u_k_time;
 	double utime, stime;
@@ -1601,12 +1601,14 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 	if (!total_physical_memory) {
 		mib[0] = CTL_HW;
-		mib[1] = HW_PHYSMEM;
-		length = sizeof(result);
+		mib[1] = HW_MEMSIZE;
+		length = sizeof(u64);
 		if (sysctl(mib, 2, &result, &length, NULL, 0) >= 0) {
 			total_physical_memory = result;
 		}
 	}
+	the_rti.physical_memory_avail = total_physical_memory;
+
 	
 	error = task_for_pid(mach_task_self(), the_rti.pid, &task);
  	if (error) {
@@ -1674,7 +1676,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	last_cpu_idle_time = 0;
 	last_update_time = entry_time;
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
-	return 1;
+    return 1;
 }
 
 //linux
