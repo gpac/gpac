@@ -32,7 +32,7 @@ int lock_call_back(void ** mutex, enum AVLockOp op) {
 			static int i = 0;
 			char mxName[64];
 			snprintf(mxName, 64, "AVLIB callback mutex %d", i++);
-			*mutex  = gf_mx_new(mxName);
+			*mutex = gf_mx_new(mxName);
 			break;
 		}
 	case AV_LOCK_OBTAIN:
@@ -58,5 +58,9 @@ void dc_register_libav() {
 	avformat_network_init();
 
 	av_lockmgr_register(&lock_call_back);
+}
+
+void dc_unregister_libav() {
+	av_lockmgr_register(NULL);
 }
 

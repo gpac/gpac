@@ -1600,14 +1600,14 @@ int dc_run_controler(CmdData * p_in_data) {
 	if (vscaler_th_params)
 		gf_free(vscaler_th_params);
 
-
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
 		gf_free(vinf[i]);
 
 	dc_message_queue_free(&mq);
 	dc_message_queue_free(&delete_seg_mq);
 	dc_message_queue_free(&send_frag_mq);
-
+	
+	dc_unregister_libav();
 
 	return 0;
 }
