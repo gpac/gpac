@@ -405,7 +405,6 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 #ifdef WIN32
 					"                                    - To capture from a VfW webcam invfmt will be vfwcap."
 					"                                    - To capture from a directshow device invfmt will be dshow."
-					"    -dshowf indshow:str          indshow is the input filter name for the acquisition\n"
 #else
 					"                                    - To capture from a webcam invfmt will be video4linux2.\n"
 					"                                    - To capture the screen invfmt will be x11grab.\n"
