@@ -133,7 +133,7 @@ int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, i
 
 	p_vsd->i_maxsource = max_source;
 	p_vsd->i_out_pix_fmt = PIX_FMT_YUV420P;
-	p_vsd->p_vsprop = gf_malloc(max_source * sizeof(VideoScaledProp));
+	GF_SAFE_ALLOC_N(p_vsd->p_vsprop, max_source, VideoScaledProp);
 
 	dc_circular_buffer_create(&p_vsd->p_cb, VIDEO_CB_SIZE, p_vin->p_cb.mode,
 			p_vsd->i_maxcon);

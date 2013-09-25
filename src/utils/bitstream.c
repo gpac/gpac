@@ -839,11 +839,14 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 	/*if mem, do it */
 	if ((bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_WRITE) || (bs->bsmode == GF_BITSTREAM_WRITE_DYN)) {
 		if (offset > 0xFFFFFFFF) return GF_IO_ERR;
+		if (!bs->original) return GF_BAD_PARAM;
 		/*0 for write, read will be done automatically*/
 		if (offset >= bs->size) {
 			if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_WRITE) ) return GF_BAD_PARAM;
 			/*in DYN, gf_realloc ...*/
 			bs->original = (char*)gf_realloc(bs->original, (u32) (offset + 1));
+			if (!bs->original)
+				return GF_OUT_OF_MEM;
 			for (i = 0; i < (u32) (offset + 1 - bs->size); i++) {
 				bs->original[bs->size + i] = 0;
 			}
