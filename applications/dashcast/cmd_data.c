@@ -450,7 +450,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 	if (i_argc == 1) {
 		printf("%s", psz_command_usage);
-		return -1;
+		return -2;
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
