@@ -761,11 +761,11 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	/*we should get it from MPD minBufferTime*/
 	case GF_NET_CHAN_BUFFER:
-		com->buffer.min = 200;
-		com->buffer.max = 200;
+		com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
+		if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
+			com->buffer.min = 200;
+		}
         return GF_OK;
-//        return segment_ifce->ServiceCommand(segment_ifce, com);
-//        break;
 
 	case GF_NET_CHAN_DURATION:
 		/* Ignore the duration given by the input service and use the one given in the MPD

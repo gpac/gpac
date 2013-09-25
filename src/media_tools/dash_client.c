@@ -380,7 +380,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		t1 = gmtime(&gtime);
 		gtime = mpd->availabilityStartTime / 1000;
 		t2 = gmtime(&gtime);
-		if (t1 && t2) {
+		if (t1 && t2 && (t1 != t2) ) {
 			t1->tm_year = t2->tm_year;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: current time %d-%02d-%02dT%02d:%02d:%02dZ is less than AST %d-%02d-%02dT%02d:%02d:%02dZ!\n", 
 					 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec,
@@ -1369,6 +1369,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		gf_mpd_del(new_mpd);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updating playlist at UTC time "LLU" - availabilityStartTime "LLU"\n", fetch_time, new_mpd->availabilityStartTime));
 
 	timeline_start_time = 0;
 	/*if not infinity for timeShift, compute min media time before merge and adjust it*/
@@ -2408,7 +2410,7 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 {
 	GF_Err e;
-	u32 i, j, count, nb_rep_ok;
+	u32 i, j, count, nb_dependant_rep;
 	GF_MPD_Period *period;
 
 	if (!dash->groups) {
@@ -2446,7 +2448,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? 1 : 0;
 
 		seg_dur = 0;
-		nb_rep_ok = 0;
+		nb_dependant_rep = 0;
 		for (j=0; j<gf_list_count(set->representations); j++) {
 			Double dur;
 			u32 nb_seg, k;
@@ -2477,8 +2479,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			}
 			if (!rep->enhancement_rep_index_plus_one)
 				group->force_max_rep_index = j;
-			if (!rep->playback.disabled)
-				nb_rep_ok++;
+			if (!rep->playback.disabled && rep->dependency_id)
+				nb_dependant_rep++;
 		}
 
 		if (!seg_dur) {
@@ -2501,8 +2503,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			if (group->max_cached_segments<3)
 				group->max_cached_segments ++;
 
-			group->max_cached_segments *= nb_rep_ok;
-			group->max_buffer_segments *= nb_rep_ok;
+			group->max_cached_segments *= (nb_dependant_rep+1);
+			group->max_buffer_segments *= (nb_dependant_rep+1);
 		}
 
 		if (!has_dependent_representations)
@@ -3784,7 +3786,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
 		goto exit;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH client initialized from MPD\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] DASH client initialized from MPD at UTC time "LLU" - availabilityStartTime "LLU"\n", dash->mpd_fetch_time , dash->mpd->availabilityStartTime));
 	if (is_local && dash->mpd->minimum_update_period) {
 		e = gf_dash_update_manifest(dash);
 		if (e != GF_OK) {
@@ -4475,6 +4477,19 @@ Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return (group && group->nb_cached_segments) ? group->cached[0].loop_detected : GF_FALSE;
+}
+
+
+GF_EXPORT
+Bool gf_dash_is_dynamic_mpd(GF_DashClient *dash)
+{
+	return (dash && dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? 1 : 0;
+}
+
+GF_EXPORT
+u32 gf_dash_get_min_buffer_time(GF_DashClient *dash)
+{
+	return dash ? dash->mpd->min_buffer_time : 0;
 }
 
 

@@ -249,6 +249,12 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 /*sets dash idle interval. The default is 1 sec. The dash client thread will never go to sleep for more than this interval*/
 void gf_dash_set_idle_interval(GF_DashClient *dash, u32 idle_time_ms);
 
+/*returns GF-TRUE if MPD is dynamic, false otherwise*/
+Bool gf_dash_is_dynamic_mpd(GF_DashClient *dash);
+
+/*returns minimum buffer time indicated in mpd in ms*/
+u32 gf_dash_get_min_buffer_time(GF_DashClient *dash);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

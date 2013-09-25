@@ -73,6 +73,11 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 		return;
 	}
 
+	if (read->drop_next_segment) {
+		read->drop_next_segment = 0;
+		param.url_query.drop_first_segment = 1;
+	}
+
 	//if first time trying to fetch next segment, check if we have to discard it
 	if (!progressive_refresh && (read->seg_opened==2)) {
 		for (i=0; i<count; i++) {
@@ -157,7 +162,8 @@ next_segment:
 
 			if (e<0) {
 				gf_isom_release_segment(read->mov, 1);
-				gf_isom_reset_fragment_info(read->mov, 1);
+				//gf_isom_reset_fragment_info(read->mov, 1);
+				read->drop_next_segment = 1;
 				//cannot open file, don't change our state
 				gf_mx_v(read->segment_mutex);
 				return;
