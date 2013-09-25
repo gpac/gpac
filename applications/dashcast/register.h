@@ -41,4 +41,9 @@
 void dc_register_libav();
 void dc_unregister_libav();
 
+/* 
+ * performs libav* cleanup
+ */
+void dc_unregister_libav();
+
 #endif /* REGISTER_H_ */

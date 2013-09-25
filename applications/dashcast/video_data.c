@@ -27,10 +27,7 @@
 
 void dc_video_data_set_default(VideoData * vdata) {
 
-	strcpy(vdata->psz_name, "");
-	strcpy(vdata->psz_format, "");
-	strcpy(vdata->psz_codec, "");
-	strcpy(vdata->psz_v4l2f, "");
+	memset(vdata, 0, sizeof(VideoData));
 	vdata->i_bitrate = -1;
 	vdata->i_framerate = -1;
 	vdata->i_height = -1;
