@@ -1607,8 +1607,7 @@ int dc_run_controler(CmdData * p_in_data) {
 	dc_message_queue_free(&delete_seg_mq);
 	dc_message_queue_free(&send_frag_mq);
 	
-	dc_unregister_libav();
-
+	dc_unregister_libav();	
 	return 0;
 }
 

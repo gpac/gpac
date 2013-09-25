@@ -320,29 +320,18 @@ int dc_read_switch_config(CmdData * p_cmdd) {
 
 void dc_cmd_data_init(CmdData * p_cmdd) {
 
+	memset(p_cmdd, 0, sizeof(CmdData));
 	dc_audio_data_set_default(&p_cmdd->adata);
 	dc_video_data_set_default(&p_cmdd->vdata);
 
-	p_cmdd->p_conf = NULL;
-	p_cmdd->p_switch_conf = NULL;
-	strcpy(p_cmdd->psz_mpd, "");
-	strcpy(p_cmdd->psz_out, "");
-	p_cmdd->i_seg_marker = 0;
-	p_cmdd->i_exit_signal = 0;
 	p_cmdd->i_mode = ON_DEMAND;
-	p_cmdd->i_no_loop = 0;
-	p_cmdd->i_send_message = 0;
-	p_cmdd->i_seg_dur = 0;
-	p_cmdd->i_frag_dur = 0;
 	p_cmdd->i_ast_offset = -1;
-	p_cmdd->i_time_shift = 0;
 	p_cmdd->f_minbuftime = -1;
-	p_cmdd->i_gdr = 0;
+
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
 	p_cmdd->p_asrc = gf_list_new();
 	p_cmdd->p_vsrc = gf_list_new();
-	p_cmdd->p_logfile = NULL;
 }
 
 void dc_cmd_data_destroy(CmdData * p_cmdd) {
@@ -411,6 +400,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -v4l2f inv4l2f:str           inv4l2f is the input format for webcam acquisition\n"
 					"                                    - It can be mjpeg, yuyv422, etc.\n"
 #endif
+					"    -pixf FMT                    spcifies the input pixel format to use\n"
 					"    -vfr invfr:int               invfr is the input video framerate\n"
 					"    -vres invres:intxint         input video resolution\n"
 					"    -af inafmt:str               inafmt is the input audio format\n"
@@ -447,7 +437,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					    "    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
 #ifdef WIN32
 	        		"    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
-	        		"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live\n"
+					"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
+	        		"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420 -live\n"
 #else
 	        		"    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
 	        		"    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
@@ -553,6 +544,21 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 			i++;
 
+		} else if (strcmp(p_argv[i], "-pixf") == 0) {
+			i++;
+			if (i >= i_argc) {
+				printf("%s", psz_command_error);
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			if (strcmp(p_cmdd->vdata.pixel_format, "") != 0) {
+				printf("Input pixel format has been already specified.\n");
+				printf("%s", psz_command_usage);
+				return -1;
+			}
+			strcpy(p_cmdd->vdata.pixel_format, p_argv[i]);
+
+			i++;
 		} else if (strcmp(p_argv[i], "-vfr") == 0) {
 
 			i++;

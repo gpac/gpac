@@ -38,7 +38,7 @@
 
 /*enables GPAC memory tracking in debug mode only*/
 #if defined(DEBUG) || defined(_DEBUG)
-//#define GPAC_MEMORY_TRACKING
+#define GPAC_MEMORY_TRACKING
 #endif
 
 /*platform is big endian*/

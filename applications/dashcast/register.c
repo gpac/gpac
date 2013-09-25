@@ -25,6 +25,8 @@
 
 #include "register.h"
 
+static GF_List *av_mutex = NULL;
+
 int lock_call_back(void ** mutex, enum AVLockOp op) {
 	switch (op) {
 	case AV_LOCK_CREATE:
@@ -33,6 +35,7 @@ int lock_call_back(void ** mutex, enum AVLockOp op) {
 			char mxName[64];
 			snprintf(mxName, 64, "AVLIB callback mutex %d", i++);
 			*mutex = gf_mx_new(mxName);
+			gf_list_add(av_mutex, *mutex);
 			break;
 		}
 	case AV_LOCK_OBTAIN:
@@ -42,6 +45,7 @@ int lock_call_back(void ** mutex, enum AVLockOp op) {
 		gf_mx_v(*mutex);
 		break;
 	case AV_LOCK_DESTROY:
+		gf_list_del_item(av_mutex, *mutex);
 		gf_mx_del(*mutex);
 		*mutex = NULL;
 		break;
@@ -52,6 +56,8 @@ int lock_call_back(void ** mutex, enum AVLockOp op) {
 
 void dc_register_libav() {
 
+	av_mutex = gf_list_new();
+
 	av_register_all();
 	avcodec_register_all();
 	avdevice_register_all();
@@ -60,7 +66,18 @@ void dc_register_libav() {
 	av_lockmgr_register(&lock_call_back);
 }
 
-void dc_unregister_libav() {
+void dc_unregister_libav() 
+{
 	av_lockmgr_register(NULL);
+
+	if (av_mutex) {
+		while (gf_list_count(av_mutex)) {
+			GF_Mutex *mx = gf_list_last(av_mutex);
+			gf_list_rem_last(av_mutex);
+			gf_mx_del(mx);
+		}
+		gf_list_del(av_mutex);
+		av_mutex = NULL;
+	}
 }
 

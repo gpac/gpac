@@ -77,11 +77,12 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\DEVTOOLS\SDL\include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\DEVTOOLS\include;$(IncludePath)</IncludePath>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">gm_$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">gm_$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">gm_$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">gm_$(ProjectName)</TargetName>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir)lib\x64;;C:\devtools\lib\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>

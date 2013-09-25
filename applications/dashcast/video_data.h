@@ -48,6 +48,8 @@ typedef struct {
 	char psz_name[256];
 	/* video format */
 	char psz_format[256];
+	/* video format */
+	char pixel_format[256];
 	/* v4l2 format */
 	char psz_v4l2f[256];
 	/* video width */
@@ -125,9 +127,9 @@ typedef struct {
 
 	int source_number;
 
+	uint8_t is_raw_data;
 #ifdef GPAC_USE_LIBAV
 	AVPacket raw_packet;
-	uint8_t is_raw_data;
 #endif
 } VideoDataNode;
 

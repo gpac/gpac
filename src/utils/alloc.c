@@ -692,13 +692,13 @@ void gf_memory_print()
 			memory_element *curr_element = memory_add, *next_element;
 #endif
 			while (curr_element) {
-				char szVal[50];
+				char szVal[51];
 				u32 size;
 				next_element = curr_element->next;
 				size = curr_element->size>=50 ? 49 : curr_element->size;
 				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
 				szVal[size+1] = 0;
-				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated\n             in file %s at line %d\n\tstring dump: %s\n", curr_element->ptr, curr_element->size, curr_element->filename, curr_element->line, szVal);
+				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated\n\tin file %s at line %d\n\tstring dump: %s\n", curr_element->ptr, curr_element->size, curr_element->filename, curr_element->line, szVal);
 				curr_element = next_element;
 			}
 		}

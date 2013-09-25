@@ -134,6 +134,7 @@ int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, i
 	p_vsd->i_maxsource = max_source;
 	p_vsd->i_out_pix_fmt = PIX_FMT_YUV420P;
 	GF_SAFE_ALLOC_N(p_vsd->p_vsprop, max_source, VideoScaledProp);
+	memset(p_vsd->p_vsprop, 0, max_source * sizeof(VideoScaledProp));
 
 	dc_circular_buffer_create(&p_vsd->p_cb, VIDEO_CB_SIZE, p_vin->p_cb.mode,
 			p_vsd->i_maxcon);
@@ -200,15 +201,15 @@ int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
 			p_vin->p_vprop[index].i_height/*p_vin->i_height*/,
 			p_vsdn->p_vframe->data, p_vsdn->p_vframe->linesize);
 	
-#ifdef GPAC_USE_LIBAV
 	if (p_vdn->is_raw_data) {
+#ifdef GPAC_USE_LIBAV
 		av_free_packet(&p_vdn->raw_packet);
 		p_vdn->is_raw_data = 0;
-	}
 #else
-	av_frame_unref(p_vdn->p_vframe);
+		av_frame_unref(p_vdn->p_vframe);
 #endif
-	
+	}
+
 	dc_consumer_advance(&p_vsd->svcon);
 	dc_producer_advance(&p_vsd->svpro);
 
@@ -223,7 +224,8 @@ int dc_video_scaler_data_destroy(VideoScaledData * p_vsd)
 	}
 
 	for (i = 0 ; i<p_vsd->i_maxsource ; i++) {
-		av_free(p_vsd->p_vsprop[i].p_sws_ctx);
+		if (p_vsd->p_vsprop[i].p_sws_ctx)
+			av_free(p_vsd->p_vsprop[i].p_sws_ctx);
 	}
 	gf_free(p_vsd->p_vsprop);
 	//av_free(p_vsd->p_sws_ctx);

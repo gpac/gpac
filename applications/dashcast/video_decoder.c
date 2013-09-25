@@ -33,6 +33,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		int i_mode, int i_no_loop) {
 
 	u32 i;
+	s32 open_res;
 	AVInputFormat * p_in_fmt = NULL;
 	AVDictionary * p_options = NULL;
 	AVCodecContext * p_codec_ctx;
@@ -50,10 +51,8 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		av_dict_set(&p_options, "framerate", vfr, 0);
 	}
 
-#if 1
-	//TODO: support other colorspaces
-	av_dict_set(&p_options, "pixel_format", "yuv420p", 0);
-#endif
+	if (strlen(p_vdata->pixel_format))
+		av_dict_set(&p_options, "pixel_format", p_vdata->pixel_format, 0);
 
 #ifndef WIN32
 	if (strcmp(p_vdata->psz_v4l2f, "") != 0) {
@@ -72,7 +71,21 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	p_vin->p_fmt_ctx = NULL;
 
 	/*  Open video */
-	if (avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, p_options ? &p_options : NULL) < 0) {
+	open_res = avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, p_options ? &p_options : NULL);
+	if ( (open_res < 0) && stricmp(p_vdata->psz_name, "screen-capture-recorder") ) {
+		fprintf(stderr, "Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", open_res);
+		av_dict_set(&p_options, "video_size", NULL, 0);
+		open_res = avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, p_options ? &p_options : NULL);
+		
+	}
+
+	if ( (open_res < 0) && p_options) {
+		fprintf(stderr, "Error %d opening input - retrying without options\n", open_res);
+		av_dict_free(&p_options);
+		open_res = avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, NULL);
+	}
+
+	if (open_res < 0) {
 		fprintf(stderr, "Cannot open file %s\n", p_vdata->psz_name);
 		return -1;
 	}
@@ -125,11 +138,8 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	p_vin->i_pix_fmt = p_codec_ctx->pix_fmt;
 
 	p_vdata->i_framerate = p_codec_ctx->time_base.den / p_codec_ctx->time_base.num;
-
-	if (p_vdata->i_framerate / 1000 != 0)
-		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
-
-	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+	
+	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 1000) {
 
 		p_vdata->i_framerate =
 				p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.num
@@ -141,7 +151,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		if (p_vdata->i_framerate / 1000 != 0)
 			p_vdata->i_framerate = p_vdata->i_framerate / 1000;
 
-		if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+		if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 1000) {
 			p_vdata->i_framerate = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.num / (p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.den
 			== 0 ? 1 : p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->avg_frame_rate.den);
 
@@ -151,7 +161,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		}
 	}
 
-	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 30) {
+	if (p_vdata->i_framerate <= 1 || p_vdata->i_framerate > 1000) {
 		printf("Invalid input framerate.\n");
 		return -1;
 	}
@@ -266,19 +276,20 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
-#ifdef GPAC_USE_LIBAV
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.
 				if (p_codec_ctx->codec->id == CODEC_ID_RAWVIDEO) {
+					p_vdn->is_raw_data = 1;
+#ifdef GPAC_USE_LIBAV
 					//we don't have ref count in libav, store packet (contains raw video) and destroy it later
 					p_vdn->raw_packet = packet;
-					p_vdn->is_raw_data = 1;
 					dc_producer_advance(&p_vd->pro);
 					return 0;
-				}
+#else
+					p_vdn->p_vframe = av_frame_clone(p_vdn->p_vframe);
 #endif
-				p_vdn->p_vframe = av_frame_clone(p_vdn->p_vframe);
+				}
 				av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;

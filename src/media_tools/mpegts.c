@@ -68,7 +68,7 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_AUDIO_AAC: return "AAC Audio";
 	case GF_M2TS_VIDEO_MPEG4: return "MPEG-4 Video";
 	case GF_M2TS_VIDEO_H264: return "MPEG-4/H264 Video";
-	case GF_M2TS_VIDEO_HEVC: return "MPEG-H HEVC Video";
+	case GF_M2TS_VIDEO_HEVC: return "MPEG-HHEVC Video";
 	case GF_M2TS_VIDEO_SVC: return "H264-SVC Video";
 
 	case GF_M2TS_AUDIO_AC3: return "Dolby AC3 Audio";
