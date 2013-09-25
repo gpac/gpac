@@ -112,8 +112,8 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "FirstPPSPatch");
 	if (!sOpt) {
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "FirstPPSPatch", "yes");
-		ctx->first_pps_patch = GF_TRUE;
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "FirstPPSPatch", "no");
+		ctx->first_pps_patch = GF_FALSE;
 	} else if (!strcmp(sOpt, "yes")) {
 		ctx->first_pps_patch = GF_TRUE;
 	}

@@ -246,9 +246,9 @@ static void dc_write_mpd(CmdData *p_cmddata, const AudioData *p_adata, const Vid
 
 	fclose(p_f);
 
-	printf("\33[34m\33[1m");
+//	printf("\33[34m\33[1m");
 	printf("MPD file generated: %s/%s\n", p_cmddata->psz_out, p_cmddata->psz_mpd);
-	printf("\33[0m");
+//	printf("\33[0m");
 }
 
 static u32 mpd_thread(void * p_params) {
@@ -785,6 +785,7 @@ u32 video_encoder_thread(void * p_params) {
 	char name_to_delete[512];
 	char name_to_send[512];
 	int shift;
+	u64 start_utc, seg_utc;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
 
@@ -831,6 +832,8 @@ u32 video_encoder_thread(void * p_params) {
 		return -1;
 	}
 
+	start_utc = gf_net_get_utc();
+	seg_utc = 0;
 	while (1) {
 
 		frame_nb = 0;
@@ -899,10 +902,28 @@ u32 video_encoder_thread(void * p_params) {
 		if (p_in_data->i_mode == LIVE_MEDIA || p_in_data->i_mode == LIVE_CAMERA) {
 			if (p_thread_params->video_conf_idx == 0) {
 				segtime t;
+
+				//check we don't loose sync
+				int diff;
+				seg_utc = gf_net_get_utc();
+				diff = (int) (seg_utc - start_utc);
+				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
+				if (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
+					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
+
+					//FIXME ASAP - we need to estimate losses since avcodec gives us an automatic +1 frame increase of the pts !!
+
+					while (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
+						seg_nb ++;
+					}
+				}
+				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * p_in_data->i_seg_dur);
+				
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);
 				dc_message_queue_put(p_mq, &t, sizeof(t));
+
 			}
 		}
 	
@@ -962,6 +983,7 @@ u32 audio_encoder_thread(void * p_params) {
 	//int audio_frame_size = AUDIO_FRAME_SIZE;
 	char name_to_delete[512];
 	int shift;
+	u64 start_utc, seg_utc;
 
 	AudioMuxerType muxer_type = AUDIO_MUXER;
 
@@ -1008,6 +1030,8 @@ u32 audio_encoder_thread(void * p_params) {
 		return -1;
 	}
 
+	start_utc = gf_net_get_utc();
+	seg_utc = 0;
 	while (1) {
 
 		frame_nb = 0;
@@ -1098,6 +1122,19 @@ u32 audio_encoder_thread(void * p_params) {
 		if (p_in_data->i_mode == LIVE_CAMERA || p_in_data->i_mode == LIVE_MEDIA) {
 			if (p_thread_params->audio_conf_idx == 0) {
 				segtime t;
+				
+				//check we don't loose sync
+				int diff;
+				seg_utc = gf_net_get_utc();
+				diff = (int) (seg_utc - start_utc);
+				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
+				if (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
+					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
+					while (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
+						seg_nb ++;
+					}
+				}
+				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * p_in_data->i_seg_dur);
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);

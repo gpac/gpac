@@ -1880,6 +1880,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_check_bandwidth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_resync_to_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_loop_detected) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_is_dynamic_mpd) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_min_buffer_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_idle_interval) )
 #endif
 

@@ -67,6 +67,7 @@ typedef struct
 	Bool use_memory;
 	/*0: segment is not opened - 1: segment is opened but can be refreshed incomplete file) - 2: segment is fully parsed, no need for refresh*/
 	u32 seg_opened;
+	Bool drop_next_segment;
 
 } ISOMReader;
 

@@ -846,7 +846,8 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	}
 
 	if (p_cmdd->i_ast_offset == -1) {
-		p_cmdd->i_ast_offset = 1000;
+		//generate MPD as soon as possible (no offset)
+		p_cmdd->i_ast_offset = 0;
 	}
 
 	if (p_cmdd->i_mode == ON_DEMAND)
