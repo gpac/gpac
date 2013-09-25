@@ -555,7 +555,7 @@ static u32 keyboard_thread(void * p_params) {
 
 		gf_sleep(100);
 	}
-fprintf(stderr, "Keyboard thread exit\n");
+	fprintf(stderr, "Keyboard thread exit\n");
 	return 0;
 }
 
@@ -1125,10 +1125,8 @@ u32 audio_encoder_thread(void * p_params) {
 	// Send the duration of the video
 	if (p_in_data->i_mode == ON_DEMAND) {
 		if (p_thread_params->audio_conf_idx == 0) {
-			int dur = (seg_nb * aout.i_frame_size * frame_per_seg * 1000)
-					/ p_adata->i_samplerate;
-			int dur_tot = (aout.p_codec_ctx->frame_number * aout.i_frame_size
-					* 1000) / p_adata->i_samplerate;
+			int dur = (seg_nb * aout.i_frame_size * frame_per_seg * 1000) / p_adata->i_samplerate;
+			int dur_tot = (aout.p_codec_ctx->frame_number * aout.i_frame_size * 1000) / p_adata->i_samplerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
 			//printf("Duration: %d \n", dur);
@@ -1213,8 +1211,7 @@ int dc_run_controler(CmdData * p_in_data) {
 		/* open other input videos for source switching */
 		for (i = 0; i < gf_list_count(p_in_data->p_vsrc); i++) {
 			VideoData * p_vconf = gf_list_get(p_in_data->p_vsrc, i);
-			if (dc_video_decoder_open(vinf[i + 1], p_vconf, LIVE_MEDIA, 1)
-					< 0) {
+			if (dc_video_decoder_open(vinf[i + 1], p_vconf, LIVE_MEDIA, 1) < 0) {
 				fprintf(stderr, "Cannot open input video.\n");
 				return -1;
 			}
@@ -1549,7 +1546,7 @@ int dc_run_controler(CmdData * p_in_data) {
 		dc_video_scaler_list_destroy(&p_vsdl);
 	}
 
-	keyboard_th_params.p_in_data->i_exit_signal = 0;
+	keyboard_th_params.p_in_data->i_exit_signal = 1;
 
 #ifndef FRAGMENTER
 
