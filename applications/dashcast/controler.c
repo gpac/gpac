@@ -125,25 +125,17 @@ u32 send_frag_event(void * p_params) {
 	char buff[512];
 
 	while (1) {
-
 		if (p_cmdd->i_exit_signal) {
 			break;
 		}
 
 		ret = dc_message_queue_get(p_mq, (void*) buff);
-
 		if (ret > 0) {
 			printf("Message received: %s\n", buff);
 		}
-
-		if (p_cmdd->i_exit_signal) {
-			break;
-		}
-
 	}
 
 	return 0;
-
 }
 
 static void dc_write_mpd(CmdData *p_cmddata, const AudioData *p_adata, const VideoData *p_vdata, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum) {
@@ -880,6 +872,7 @@ u32 video_encoder_thread(void * p_params) {
 				int r = dc_video_muxer_write(&out_file, frame_nb);
 				if (r < 0) {
 					quit = 1;
+					p_in_data->i_exit_signal = 1;
 					break;
 				} else if (r == 1) {
 					//printf("fragment is written!\n");
@@ -894,9 +887,6 @@ u32 video_encoder_thread(void * p_params) {
 				frame_nb++;
 			}
 		}
-
-		if (quit)
-			break;
 
 		dc_video_muxer_close(&out_file);
 

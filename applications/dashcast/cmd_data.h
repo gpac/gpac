@@ -61,7 +61,7 @@ typedef struct  {
 	/* fragment duration */
 	int i_frag_dur;
 	/* Exit signal emitting from user to end the program */
-	int i_exit_signal;
+	volatile int i_exit_signal;
 	/* List of entries for video in configuration file */
 	GF_List * p_video_lst;
 	/* List of entries for audio in configuration file */
