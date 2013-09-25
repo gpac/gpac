@@ -721,7 +721,6 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 		//we assume we never write large MDATs in fragment mode which should always be true
 		movie->moof->mdat_size = (u32) (pos - movie->moof->fragment_offset);
 
-
 		if (movie->segment_bs) {
 			gf_bs_seek(bs, 0);
 			/*write mdat size*/
@@ -750,7 +749,6 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 
 		return GF_OK;
 	}
-
 
 	moof_start = gf_bs_get_position(bs);
 	//2- update MOOF MDAT header
@@ -1678,9 +1676,15 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 
 	//finally write the data
 	if (!traf->DataCache) {
-		gf_bs_write_data(movie->editFileMap->bs, sample->data, sample->dataLength);
+		if (!gf_bs_write_data(movie->editFileMap->bs, sample->data, sample->dataLength)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size if %u bytes (no DataCache)\n", sample->dataLength));
+			return GF_OUT_OF_MEM;
+		}
 	} else if (trun->cache) {
-		gf_bs_write_data(trun->cache, sample->data, sample->dataLength);
+		if (!gf_bs_write_data(trun->cache, sample->data, sample->dataLength)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size if %u bytes (with cache)\n", sample->dataLength));
+			return GF_OUT_OF_MEM;
+		}
 	} else {
 		return GF_BAD_PARAM;
 	}

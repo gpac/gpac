@@ -878,8 +878,10 @@ u32 video_encoder_thread(void * p_params) {
 			if (ret > 0) {
 
 				int r = dc_video_muxer_write(&out_file, frame_nb);
-
-				if (r == 1) {
+				if (r < 0) {
+					quit = 1;
+					break;
+				} else if (r == 1) {
 					//printf("fragment is written!\n");
 					if (p_in_data->i_send_message == 1) {
 						sprintf(name_to_send, "%s/%s_%d_gpac.m4s", p_in_data->psz_out, p_vdata->psz_name, seg_nb);
@@ -892,6 +894,9 @@ u32 video_encoder_thread(void * p_params) {
 				frame_nb++;
 			}
 		}
+
+		if (quit)
+			break;
 
 		dc_video_muxer_close(&out_file);
 
@@ -1243,8 +1248,7 @@ int dc_run_controler(CmdData * p_in_data) {
 		}
 
 		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
-			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i],
-					MAX_SOURCE_NUMBER);
+			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i], MAX_SOURCE_NUMBER);
 
 			for (j = 0; j < gf_list_count(p_in_data->p_vsrc) + 1; j++) {
 				dc_video_scaler_data_set_prop(&vind, p_vsdl.p_vsd[i], j);

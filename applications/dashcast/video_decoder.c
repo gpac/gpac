@@ -50,8 +50,10 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		av_dict_set(&p_options, "framerate", vfr, 0);
 	}
 
+#if 1
 	//TODO: support other colorspaces
 	av_dict_set(&p_options, "pixel_format", "yuv420p", 0);
+#endif
 
 #ifndef WIN32
 	if (strcmp(p_vdata->psz_v4l2f, "") != 0) {
@@ -122,7 +124,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	p_vin->i_height = p_codec_ctx->height;
 	p_vin->i_pix_fmt = p_codec_ctx->pix_fmt;
 
-	p_vdata->i_framerate = p_codec_ctx->time_base.den;
+	p_vdata->i_framerate = p_codec_ctx->time_base.den / p_codec_ctx->time_base.num;
 
 	if (p_vdata->i_framerate / 1000 != 0)
 		p_vdata->i_framerate = p_vdata->i_framerate / 1000;
@@ -264,20 +266,19 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
+#ifdef GPAC_USE_LIBAV
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. So freeing it cause problem.
 				if (p_codec_ctx->codec->id == CODEC_ID_RAWVIDEO) {
-#ifdef GPAC_USE_LIBAV
 					//we don't have ref count in libav, store packet (contains raw video) and destroy it later
 					p_vdn->raw_packet = packet;
 					p_vdn->is_raw_data = 1;
 					dc_producer_advance(&p_vd->pro);
 					return 0;
-#else
-					p_vdn->p_vframe = av_frame_clone(p_vdn->p_vframe);
-#endif
 				}
+#endif
+				p_vdn->p_vframe = av_frame_clone(p_vdn->p_vframe);
 				av_free_packet(&packet);
 				dc_producer_advance(&p_vd->pro);
 				return 0;
