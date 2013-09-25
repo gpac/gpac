@@ -39,5 +39,6 @@
  * the lock manager on top of avlib
  */
 void dc_register_libav();
+void dc_unregister_libav();
 
 #endif /* REGISTER_H_ */
