@@ -43,7 +43,7 @@
 
 //#define DEBUG 1
 
-int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
+int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata, Bool use_source_timing) {
 
 	//AVCodec * p_video_codec;
 	//AVStream * p_video_stream;
@@ -72,11 +72,15 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata) {
 	p_voutf->p_codec_ctx->bit_rate = p_vdata->i_bitrate;
 	p_voutf->p_codec_ctx->width = p_vdata->i_width;
 	p_voutf->p_codec_ctx->height = p_vdata->i_height;
-	{
-		AVRational time_base; 
-		time_base.num = 1;
-		time_base.den = p_vdata->i_framerate;
-		p_voutf->p_codec_ctx->time_base = time_base;
+
+	p_voutf->p_codec_ctx->time_base.num = 1;
+	p_voutf->p_codec_ctx->time_base.den = p_vdata->i_framerate;
+
+	p_voutf->use_source_timing = use_source_timing;
+	if (use_source_timing) {
+		//for avcodec to do rate allcoation, we need to have ctx->timebase == 1/framerate
+		p_voutf->p_codec_ctx->time_base.den = p_vdata->time_base.den;
+		p_voutf->p_codec_ctx->time_base.num = p_vdata->time_base.num * p_vdata->time_base.den / p_vdata->i_framerate;
 	}
 	p_voutf->p_codec_ctx->pix_fmt = PIX_FMT_YUV420P;
 	p_voutf->p_codec_ctx->gop_size = /*p_voutf->i_gop_size;*/p_vdata->i_framerate;
@@ -179,17 +183,11 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 	/*
 	 * Set PTS (method 1)
 	 */
-	p_vn->p_vframe->pts = p_video_codec_ctx->frame_number;
-
-
-	/*
-	 * Set PTS (method 2)
-	 */
-	//int64_t now = av_gettime();
-	//p_vn->p_vframe->pts = av_rescale_q(now, AV_TIME_BASE_Q,
-	//p_video_codec_ctx->time_base);
-
-
+	if (! p_voutf->use_source_timing) {
+		p_vn->p_vframe->pts = p_video_codec_ctx->frame_number;
+	}
+	
+	
 	/* Encoding video */
 	{
 		int got_packet = 0;
@@ -197,6 +195,7 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 		av_init_packet(&pkt);
 		pkt.data = p_voutf->p_vbuf;
 		pkt.size = p_voutf->i_vbuf_size;
+		p_vn->p_vframe->pkt_dts = p_vn->p_vframe->pkt_pts = p_vn->p_vframe->pts;
 #ifdef GPAC_USE_LIBAV
 		p_voutf->i_encoded_frame_size = avcodec_encode_video(p_video_codec_ctx, p_voutf->p_vbuf, p_voutf->i_vbuf_size, p_vn->p_vframe);
 #else
@@ -206,6 +205,7 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 			p_voutf->i_encoded_frame_size = pkt.size;
 			if (got_packet) {	
 				p_video_codec_ctx->coded_frame->pts = pkt.pts;
+				p_video_codec_ctx->coded_frame->pkt_dts = pkt.dts;
 				p_video_codec_ctx->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
 			}
 		}

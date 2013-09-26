@@ -77,6 +77,7 @@ typedef struct {
 	int i_maxcon;
 	int i_maxsource;
 
+	u64 frame_duration;
 } VideoScaledData;
 
 /*

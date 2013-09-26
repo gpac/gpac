@@ -595,7 +595,7 @@ u32 video_decoder_thread(void * p_params) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number);
+		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number, p_in_data->use_source_timing);
 
 #ifdef DASHCAST_PRINT
 		printf("Read video frame %d\r", i++);
@@ -785,6 +785,7 @@ u32 video_encoder_thread(void * p_params) {
 	char name_to_delete[512];
 	char name_to_send[512];
 	int shift;
+	int loss_state = 0;
 	u64 start_utc, seg_utc;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
@@ -819,14 +820,24 @@ u32 video_encoder_thread(void * p_params) {
 	if (seg_frame_max <= 0)
 		seg_frame_max = -1;
 
-	if (dc_video_muxer_init(&out_file, p_vdata, muxer_type, seg_frame_max,
-			frag_frame_max, p_in_data->i_seg_marker, p_in_data->i_gdr) < 0) {
+
+	shift = 0;
+	if (p_in_data->use_source_timing) {
+		//ugly patch ...
+		shift=1000;
+		while (!p_vsd->frame_duration && shift) {
+			gf_sleep(1);
+			shift--;
+		}
+		shift = (u32) p_vsd->frame_duration;
+	}
+	if (dc_video_muxer_init(&out_file, p_vdata, muxer_type, seg_frame_max, frag_frame_max, p_in_data->i_seg_marker, p_in_data->i_gdr, p_in_data->i_seg_dur, p_in_data->i_frag_dur, shift) < 0) {
 		fprintf(stderr, "Cannot init output video file.\n");
 		p_in_data->i_exit_signal = 1;
 		return -1;
 	}
 
-	if (dc_video_encoder_open(&out_file, p_vdata) < 0) {
+	if (dc_video_encoder_open(&out_file, p_vdata, p_in_data->use_source_timing) < 0) {
 		fprintf(stderr, "Cannot open output video stream.\n");
 		p_in_data->i_exit_signal = 1;
 		return -1;
@@ -854,7 +865,13 @@ u32 video_encoder_thread(void * p_params) {
 //					break;
 //			}
 
-			ret = dc_video_encoder_encode(&out_file, p_vsd);
+			//we have the RAP already encoded, skip coder
+			if (loss_state == 2) {
+				ret = 1;
+				loss_state = 0;
+			} else {
+				ret = dc_video_encoder_encode(&out_file, p_vsd);
+			}
 
 			if (ret == -2) {
 #ifdef DEBUG
@@ -871,8 +888,14 @@ u32 video_encoder_thread(void * p_params) {
 			}
 
 			if (ret > 0) {
+				int r;
+				/*resync at first RAP: flush current broken segment and restart next one on rap*/
+				if ((loss_state==1) && out_file.p_codec_ctx->coded_frame->key_frame) {
+					loss_state = 2;
+					break;
+				}
 
-				int r = dc_video_muxer_write(&out_file, frame_nb);
+				r = dc_video_muxer_write(&out_file, frame_nb);
 				if (r < 0) {
 					quit = 1;
 					p_in_data->i_exit_signal = 1;
@@ -911,11 +934,16 @@ u32 video_encoder_thread(void * p_params) {
 				if (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
 					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
 
-					//FIXME ASAP - we need to estimate losses since avcodec gives us an automatic +1 frame increase of the pts !!
-
 					while (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
 						seg_nb ++;
+
+						//do a rough estimate of losses to adjust timing...
+						if (! p_in_data->use_source_timing) {
+								out_file.first_dts += out_file.p_codec_ctx->time_base.den;
+						}
 					}
+					//wait for RAP to cut next segment
+					loss_state = 1;
 				}
 				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * p_in_data->i_seg_dur);
 				
@@ -1343,6 +1371,9 @@ int dc_run_controler(CmdData * p_in_data) {
 	for (i = 0; i < gf_list_count(p_in_data->p_video_lst); i++) {
 		VideoData * p_tmp_vdata = gf_list_get(p_in_data->p_video_lst, i);
 		p_tmp_vdata->i_framerate = p_in_data->vdata.i_framerate;
+		if (p_in_data->use_source_timing) {
+			p_tmp_vdata->time_base = p_in_data->vdata.time_base;
+		}
 	}
 	
 	/******** MPD Thread ********/

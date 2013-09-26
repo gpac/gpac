@@ -86,7 +86,8 @@ void dc_video_scaler_list_init(VideoScaledDataList * p_vsdl,
 		}
 		if (!found) {
 
-			VideoScaledData * p_vsd = gf_malloc(sizeof(VideoScaledData));
+			VideoScaledData * p_vsd;
+			GF_SAFEALLOC(p_vsd, VideoScaledData);
 			p_vsd->i_out_width = p_vconf->i_width;
 			p_vsd->i_out_height = p_vconf->i_height;
 
@@ -195,19 +196,23 @@ int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
 
 	index = p_vdn->source_number;
 
+	p_vsd->frame_duration = p_vin->frame_duration;
+
 	sws_scale(p_vsd->p_vsprop[index].p_sws_ctx,
 			(const uint8_t * const *) p_vdn->p_vframe->data,
 			p_vdn->p_vframe->linesize, 0,
 			p_vin->p_vprop[index].i_height/*p_vin->i_height*/,
 			p_vsdn->p_vframe->data, p_vsdn->p_vframe->linesize);
 	
+	p_vsdn->p_vframe->pts = p_vdn->p_vframe->pts;
+
 	if (p_vdn->is_raw_data) {
 #ifdef GPAC_USE_LIBAV
 		av_free_packet(&p_vdn->raw_packet);
-		p_vdn->is_raw_data = 0;
 #else
 		av_frame_unref(p_vdn->p_vframe);
 #endif
+		p_vdn->is_raw_data = 0;
 	}
 
 	dc_consumer_advance(&p_vsd->svcon);

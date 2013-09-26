@@ -97,6 +97,7 @@ typedef struct  {
 	FILE *p_logfile;
 	TaskList task_list;
 
+	Bool use_source_timing;
 } CmdData;
 /*
  * Initilize the command data structure

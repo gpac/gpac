@@ -327,6 +327,7 @@ void dc_cmd_data_init(CmdData * p_cmdd) {
 	p_cmdd->i_mode = ON_DEMAND;
 	p_cmdd->i_ast_offset = -1;
 	p_cmdd->f_minbuftime = -1;
+	p_cmdd->use_source_timing = 1;
 
 	p_cmdd->p_audio_lst = gf_list_new();
 	p_cmdd->p_video_lst = gf_list_new();
@@ -412,6 +413,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 					"    -frag-dur dur:int            dur is the fragment duration in millisecond\n"
 					"                                    - The default value is 1000.\n"
 					"    -live                        system is live and input is a camera\n"
+					"    -npts                        uses frame counting for timestamps (not error-free) instead of source timing (default)\n"
 					"    -live-media                  system is live and input is a media file\n"
 					"    -no-loop                     system does not loop on the input media file\n"
 					"    -seg-marker marker:str       add a marker box named marker at the end of DASH segment\n"
@@ -769,6 +771,9 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 
 		} else if (strcmp(p_argv[i], "-live") == 0) {
 			p_cmdd->i_mode = LIVE_CAMERA;
+			i++;
+		} else if (strcmp(p_argv[i], "-npts") == 0) {
+			p_cmdd->use_source_timing = 0;
 			i++;
 		} else if (strcmp(p_argv[i], "-live-media") == 0) {
 			p_cmdd->i_mode = LIVE_MEDIA;

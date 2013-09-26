@@ -173,8 +173,11 @@ int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 		return -1;
 	}
 	//gf_isom_store_movie_config(p_voutf->p_isof, 0);
-	track = gf_isom_new_track(p_voutf->p_isof, 1, GF_ISOM_MEDIA_VISUAL,
-			p_video_codec_ctx->time_base.den);
+	track = gf_isom_new_track(p_voutf->p_isof, 1, GF_ISOM_MEDIA_VISUAL, p_video_codec_ctx->time_base.den);
+
+	p_voutf->timescale = p_video_codec_ctx->time_base.den;
+	if (!p_voutf->frame_dur) 
+		p_voutf->frame_dur = p_video_codec_ctx->time_base.num;
 
 	if (!track) {
 		fprintf(stderr, "Cannot create new track\n");
@@ -211,7 +214,8 @@ int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
 		}
 	}
 
-	ret = gf_isom_setup_track_fragment(p_voutf->p_isof, 1, 1, 1, 0, 0, 0, 0);
+	ret = gf_isom_setup_track_fragment(p_voutf->p_isof, 1, 1, p_voutf->use_source_timing ? (u32) p_voutf->frame_dur : 1, 0, 0, 0, 0);
+
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_setup_track_fragment\n",
 				gf_error_to_string(ret));
@@ -305,11 +309,13 @@ int dc_gpac_video_isom_write(VideoOutputFile * p_voutf) {
 	//p_voutf->p_sample->data = //(char *) (p_voutf->p_vbuf + nalu_size + sc_size);
 	//p_voutf->p_sample->dataLength = //p_voutf->i_encoded_frame_size - (sc_size + nalu_size);
 
-	p_voutf->p_sample->DTS = p_video_codec_ctx->coded_frame->pts;
+	p_voutf->p_sample->DTS = p_video_codec_ctx->coded_frame->pkt_dts;
+	p_voutf->p_sample->CTS_Offset = (s32) (p_video_codec_ctx->coded_frame->pts - p_voutf->p_sample->DTS);
 	p_voutf->p_sample->IsRAP = p_video_codec_ctx->coded_frame->key_frame;
 	//printf("RAP %d , DTS %ld \n", p_voutf->p_sample->IsRAP, p_voutf->p_sample->DTS);
 
-	ret = gf_isom_fragment_add_sample(p_voutf->p_isof, 1, p_voutf->p_sample, 1, 1, 0, 0, 0);
+	ret = gf_isom_fragment_add_sample(p_voutf->p_isof, 1, p_voutf->p_sample, 1,  p_voutf->use_source_timing ? (u32) p_voutf->frame_dur : 1, 0, 0, 0);
+
 	if (ret != GF_OK) {
 		gf_bs_del(out_bs);
 		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret));
@@ -423,12 +429,9 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile * p_voutf, char * psz_name) {
 	p_video_stream->codec->bit_rate = p_video_codec_ctx->bit_rate; //p_voutf->p_vdata->i_bitrate;
 	p_video_stream->codec->width = p_video_codec_ctx->width; //p_voutf->p_vdata->i_width;
 	p_video_stream->codec->height = p_video_codec_ctx->height; //p_voutf->p_vdata->i_height;
-	{
-		AVRational time_base; 
-		time_base.num = p_video_codec_ctx->time_base.num;
-		time_base.den = p_video_codec_ctx->time_base.den;
-		p_video_stream->codec->time_base = time_base;
-	}
+
+	p_video_stream->codec->time_base = p_video_codec_ctx->time_base;
+	
 	p_video_stream->codec->pix_fmt = PIX_FMT_YUV420P;
 	p_video_stream->codec->gop_size = p_video_codec_ctx->time_base.den; //p_voutf->p_vdata->i_framerate;
 
@@ -443,6 +446,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile * p_voutf, char * psz_name) {
 
 	avformat_write_header(p_voutf->p_fmt, NULL);
 
+	p_voutf->timescale = p_video_codec_ctx->time_base.den;
 	return 0;
 }
 
@@ -464,6 +468,7 @@ int dc_ffmpeg_video_muxer_write(VideoOutputFile * p_voutf) {
 
 	if (p_video_codec_ctx->coded_frame->key_frame)
 		pkt.flags |= AV_PKT_FLAG_KEY;
+
 
 	pkt.stream_index = p_video_stream->index;
 	pkt.data = p_voutf->p_vbuf;
@@ -500,11 +505,12 @@ int dc_ffmpeg_video_muxer_close(VideoOutputFile * p_voutf) {
 	return 0;
 }
 
-int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata,
-		VideoMuxerType muxer_type, int frame_per_segment,
-		int frame_per_fragment, u32 seg_marker, int gdr) {
+int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int i_seg_dur, int i_frag_dur, int i_frame_dur)
+{
 
 	char name[256];
+
+	memset(p_voutf, 0, sizeof(VideoOutputFile));
 	sprintf(name, "video encoder %s", p_vdata->psz_name);
 	dc_consumer_init(&p_voutf->vcon, VIDEO_CB_SIZE, name);
 
@@ -515,9 +521,12 @@ int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata,
 	p_voutf->frame_per_segment = frame_per_segment;
 	p_voutf->frame_per_fragment = frame_per_fragment;
 
+	p_voutf->seg_dur = i_seg_dur;
+	p_voutf->frag_dur = i_frag_dur;
+
 	p_voutf->i_seg_marker = seg_marker;
 	p_voutf->i_gdr = gdr;
-
+	p_voutf->frame_dur = i_frame_dur;
 	return 0;
 }
 
@@ -574,7 +583,8 @@ GF_Err dc_video_muxer_open(VideoOutputFile * p_voutf, char * psz_directory,
 
 int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 
-	//GF_Err ret;
+	u64 frame_dur;
+	GF_Err ret;
 	switch (p_voutf->muxer_type) {
 
 	case FFMPEG_VIDEO_MUXER:
@@ -584,6 +594,46 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 	case GPAC_VIDEO_MUXER:
 	case GPAC_INIT_VIDEO_MUXER_AVC1:
 	case GPAC_INIT_VIDEO_MUXER_AVC3:
+
+	if (p_voutf->use_source_timing) {
+
+		if (! p_voutf->fragment_started) {
+			p_voutf->fragment_started = 1;
+			ret = gf_isom_start_fragment(p_voutf->p_isof, 1);
+			if (ret<0) return -1;
+
+			p_voutf->first_dts = p_voutf->p_codec_ctx->coded_frame->pkt_dts;
+			if (!p_voutf->segment_started) {
+				p_voutf->pts_at_segment_start  = p_voutf->p_codec_ctx->coded_frame->pts;
+				p_voutf->segment_started = 1;
+			}
+			gf_isom_set_traf_base_media_decode_time(p_voutf->p_isof, 1, p_voutf->first_dts);
+
+		}
+
+		frame_dur = p_voutf->p_codec_ctx->coded_frame->pts - p_voutf->last_dts;
+		if (frame_dur && (p_voutf->frame_dur> (u32) frame_dur)) 
+			p_voutf->frame_dur = (u32) frame_dur;
+
+		if (dc_gpac_video_isom_write(p_voutf) < 0) {
+			return -1;
+		}
+		p_voutf->last_pts = p_voutf->p_codec_ctx->coded_frame->pts;
+		p_voutf->last_dts = p_voutf->p_codec_ctx->coded_frame->pkt_dts;
+
+		if (( p_voutf->last_dts - p_voutf->first_dts + p_voutf->frame_dur) /p_voutf->timescale >= p_voutf->frag_dur / 1000) {
+			gf_isom_flush_fragments(p_voutf->p_isof, 1);
+			p_voutf->fragment_started = 0;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), p_voutf->p_codec_ctx->coded_frame->pts));
+		}
+
+		//we may have rounding errors on the input PTS :( add half frame dur safety
+		if (1000 * ( p_voutf->last_pts - p_voutf->pts_at_segment_start + 3*p_voutf->frame_dur/2) /p_voutf->timescale >= p_voutf->seg_dur ) {
+			return 1;
+		}
+		return 0;
+	} 
 		if (i_frame_nb % p_voutf->frame_per_fragment == 0) {
 			gf_isom_start_fragment(p_voutf->p_isof, 1);
 
@@ -591,9 +641,7 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 					p_voutf->first_dts);
 			p_voutf->first_dts += p_voutf->frame_per_fragment;
 		}
-		if (dc_gpac_video_isom_write(p_voutf) < 0) {
-			return -1;
-		}
+		dc_gpac_video_isom_write(p_voutf);
 		if (i_frame_nb % p_voutf->frame_per_fragment == p_voutf->frame_per_fragment - 1) {
 			gf_isom_flush_fragments(p_voutf->p_isof, 1);
 
@@ -602,6 +650,7 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 		if (i_frame_nb + 1 == p_voutf->frame_per_segment)
 			return 1;
 		return 0;
+
 	default:
 		return -2;
 	};
@@ -610,6 +659,8 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 }
 
 int dc_video_muxer_close(VideoOutputFile * p_voutf) {
+
+	p_voutf->fragment_started = p_voutf->segment_started = 0;
 
 	switch (p_voutf->muxer_type) {
 
