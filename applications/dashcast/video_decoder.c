@@ -206,11 +206,9 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 	int already_locked = 0;
 	AVCodecContext * p_codec_ctx;
 	VideoDataNode * p_vdn;
-	AVStream *p_video_stream;
 
 	/*  Get a pointer to the codec context for the video stream */
 	p_codec_ctx = p_in_ctx->p_fmt_ctx->streams[p_in_ctx->i_vstream_idx]->codec;
-	p_video_stream = p_in_ctx->p_fmt_ctx->streams[p_in_ctx->i_vstream_idx];
 
 	/*  Read frames */
 	while (1) {
