@@ -438,7 +438,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 #ifdef WIN32
 	        		"    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
 					"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
-	        		"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420 -live\n"
+	        		"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
 #else
 	        		"    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
 	        		"    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
