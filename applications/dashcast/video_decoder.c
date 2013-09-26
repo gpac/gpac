@@ -32,6 +32,7 @@
 int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		int i_mode, int i_no_loop) {
 
+	s32 ret;
 	u32 i;
 	s32 open_res;
 	AVInputFormat * p_in_fmt = NULL;
@@ -42,21 +43,38 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	if (p_vdata->i_width > 0 && p_vdata->i_height > 0) {
 		char vres[16];
 		sprintf(vres, "%dx%d", p_vdata->i_width, p_vdata->i_height);
-		av_dict_set(&p_options, "video_size", vres, 0);
+		ret = av_dict_set(&p_options, "video_size", vres, 0);
+		if (ret < 0) {
+			printf("Could not set video size %s.\n", vres);
+			return -1;
+		}
 	}
 
 	if (p_vdata->i_framerate > 0) {
 		char vfr[16];
 		sprintf(vfr, "%d", p_vdata->i_framerate);
-		av_dict_set(&p_options, "framerate", vfr, 0);
+		ret = av_dict_set(&p_options, "framerate", vfr, 0);
+		if (ret < 0) {
+			printf("Could not set video framerate %s.\n", vfr);
+			return -1;
+		}
 	}
 
-	if (strlen(p_vdata->pixel_format))
-		av_dict_set(&p_options, "pixel_format", p_vdata->pixel_format, 0);
+	if (strlen(p_vdata->pixel_format)) {
+		ret = av_dict_set(&p_options, "pixel_format", p_vdata->pixel_format, 0);
+		if (ret < 0) {
+			printf("Could not set pixel format %s.\n", p_vdata->pixel_format);
+			return -1;
+		}
+	}
 
 #ifndef WIN32
 	if (strcmp(p_vdata->psz_v4l2f, "") != 0) {
-		av_dict_set(&p_options, "input_format", p_vdata->psz_v4l2f, 0);
+		ret = av_dict_set(&p_options, "input_format", p_vdata->psz_v4l2f, 0);
+		if (ret < 0) {
+			printf("Could not set input format %s.\n", p_vdata->psz_v4l2f);
+			return -1;
+		}
 	}
 #endif
 	
@@ -72,7 +90,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 
 	/*  Open video */
 	open_res = avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, p_options ? &p_options : NULL);
-	if ( (open_res < 0) && stricmp(p_vdata->psz_name, "screen-capture-recorder") ) {
+	if ( (open_res < 0) && !stricmp(p_vdata->psz_name, "screen-capture-recorder") ) {
 		fprintf(stderr, "Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", open_res);
 		av_dict_set(&p_options, "video_size", NULL, 0);
 		open_res = avformat_open_input(&p_vin->p_fmt_ctx, p_vdata->psz_name, p_in_fmt, p_options ? &p_options : NULL);
