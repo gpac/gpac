@@ -168,22 +168,22 @@ GF_Err gf_mkdir(char* DirPathName)
 	res = CreateDirectory(swzName, NULL);
 	if (! res) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32) 
 	int res = mkdir(DirPathName);
 	if (res==-1) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
 	}
 #else	
     int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	if (res==-1) {		
 		if(errno == 17){
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s, it already exists: last error %d \n", DirPathName, errno ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s, it already exists: last error %d \n", DirPathName, errno ));
 			return GF_BAD_PARAM;
 		}else{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create director %s: last error %d\n", DirPathName, errno ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, errno ));
 			return GF_IO_ERR;
 		}
 	}

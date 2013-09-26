@@ -823,7 +823,7 @@ int dc_parse_command(int i_argc, char ** p_argv, CmdData * p_cmdd) {
 	if (strcmp(p_cmdd->psz_out, "") == 0) {
 		struct stat status;
 
-		strcpy(p_cmdd->psz_out, "output/");
+		strcpy(p_cmdd->psz_out, "output");
 
 		if (stat(p_cmdd->psz_out, &status) != 0) {
 			gf_mkdir(p_cmdd->psz_out);
