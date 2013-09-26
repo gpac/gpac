@@ -59,7 +59,8 @@ int dc_video_input_data_init(VideoInputData * p_vin_data, /*int i_width, int i_h
 				i_con_nb);
 
 	for (i = 0; i < VIDEO_CB_SIZE; i++) {
-		VideoDataNode * p_vdn = gf_malloc(sizeof(VideoDataNode));
+		VideoDataNode *p_vdn;
+		GF_SAFEALLOC(p_vdn, VideoDataNode);
 		p_vin_data->p_cb.p_list[i].p_data = (void *) p_vdn;
 		p_vdn->p_vframe = avcodec_alloc_frame();
 	}

@@ -37,7 +37,7 @@
  *
  * @return 0 on success, -1 on failure
  */
-int dc_video_encoder_open(VideoOutputFile * voutf, VideoData * vdata);
+int dc_video_encoder_open(VideoOutputFile * voutf, VideoData * vdata, Bool use_source_timing);
 
 /*
  * Read the decoded video frames from circular buffer

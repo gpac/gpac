@@ -40,6 +40,8 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 	AVCodecContext * p_codec_ctx;
 	AVCodec * p_codec;
 
+	memset(p_vin, 0, sizeof(VideoInputFile));
+
 	if (p_vdata->i_width > 0 && p_vdata->i_height > 0) {
 		char vres[16];
 		sprintf(vres, "%dx%d", p_vdata->i_width, p_vdata->i_height);
@@ -184,6 +186,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 		return -1;
 	}
 
+	p_vdata->time_base = p_vin->p_fmt_ctx->streams[p_vin->i_vstream_idx]->time_base;
 	p_vin->i_mode = i_mode;
 	p_vin->i_no_loop = i_no_loop;
 
@@ -191,22 +194,23 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 }
 
 int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
-		int source_number) {
+		int source_number, int use_source_timing) {
 
 #ifdef DASHCAST_DEBUG_TIME_
 	struct timeval start, end;
 	long elapsed_time;
 #endif
-
 	int ret;
 	AVPacket packet;
 	int i_got_frame;
 	int already_locked = 0;
 	AVCodecContext * p_codec_ctx;
 	VideoDataNode * p_vdn;
+	AVStream *p_video_stream;
 
 	/*  Get a pointer to the codec context for the video stream */
 	p_codec_ctx = p_in_ctx->p_fmt_ctx->streams[p_in_ctx->i_vstream_idx]->codec;
+	p_video_stream = p_in_ctx->p_fmt_ctx->streams[p_in_ctx->i_vstream_idx];
 
 	/*  Read frames */
 	while (1) {
@@ -215,6 +219,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 		gettimeofday(&start, NULL);
 #endif
 
+		memset(&packet, 0, sizeof(AVPacket));
 		ret = av_read_frame(p_in_ctx->p_fmt_ctx, &packet);
 
 #ifdef DASHCAST_DEBUG_TIME_
@@ -239,8 +244,7 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 
 			p_vdn->source_number = source_number;
 			/* Flush decoder */
-			packet.data = NULL;
-			packet.size = 0;
+			memset(&packet, 0, sizeof(AVPacket));
 			avcodec_get_frame_defaults(p_vdn->p_vframe);
 			avcodec_decode_video2(p_codec_ctx, p_vdn->p_vframe, &i_got_frame,
 					&packet);
@@ -290,6 +294,23 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 				dc_producer_unlock(&p_vd->pro, &p_vd->p_cb);
 				return -1;
 			}
+
+			if (use_source_timing) {
+				if (p_in_ctx->pts_init == 0) {
+					p_in_ctx->pts_init = 1;
+					p_in_ctx->first_pts = packet.pts;
+					//TODO - check with audio if sync is OK 
+				} else if (p_in_ctx->pts_init == 1) {
+					p_in_ctx->pts_init = 2;
+					p_vd->frame_duration = packet.pts - p_in_ctx->first_pts;
+				}
+				p_vdn->p_vframe->pts = packet.pts - p_in_ctx->first_pts;	
+				if (p_vdn->p_vframe->pts - p_in_ctx->prev_pts < p_vd->frame_duration)
+					p_vd->frame_duration = p_vdn->p_vframe->pts - p_in_ctx->prev_pts;
+
+				p_in_ctx->prev_pts = p_vdn->p_vframe->pts;
+			}
+
 
 			/*  Did we get a video frame? */
 			if (i_got_frame) {

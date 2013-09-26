@@ -37,6 +37,7 @@
 
 #define VIDEO_CB_SIZE 3
 
+
 /*
  * This structure corresponds to an
  * entry of video configuration in the
@@ -68,6 +69,9 @@ typedef struct {
 	time_t start_time;
 	time_t end_time;
 
+	//copy over from source file
+	AVRational time_base;
+	u64 frame_duration;
 } VideoData;
 
 
@@ -111,7 +115,7 @@ typedef struct {
 	//int i_width;
 	//int i_height;
 	//int i_pix_fmt;
-
+	u64 frame_duration;
 } VideoInputData;
 
 

@@ -58,6 +58,8 @@ typedef struct {
 	int i_mode;
 	int i_no_loop;
 
+	Bool pts_init;
+	u64 first_pts, prev_pts;
 } VideoInputFile;
 
 /*
@@ -82,7 +84,7 @@ int dc_video_decoder_open(VideoInputFile * vinf, VideoData *vdata, int mode, int
  * @return 0 on success, -1 on failure, -2 on EOF (end of the file)
  *
  */
-int dc_video_decoder_read(VideoInputFile * vinf, VideoInputData * vind, int source_number);
+int dc_video_decoder_read(VideoInputFile * vinf, VideoInputData * vind, int source_number, int use_source_timing);
 /*
  * Close the input video
  *
