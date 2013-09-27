@@ -1399,6 +1399,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	assert(!comp);
 	/*update timing if new stream data but send no data*/
 	if (is_new_data) {
+		ch->IsRap = 0;
 		gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
 		
 		if (ch->ipmp_tool) {
@@ -1440,6 +1441,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	ch->AU_buffer_pull->CTS = (u32) ch->CTS;
 	ch->AU_buffer_pull->DTS = (u32) ch->DTS;
 	ch->AU_buffer_pull->PaddingBits = ch->padingBits;
+	ch->AU_buffer_pull->flags = 0;
 	if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
 
 	if (ch->BufferOn) {

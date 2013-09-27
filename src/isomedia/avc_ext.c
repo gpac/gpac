@@ -184,6 +184,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 			/*little optimization if we are not asked to start codes: copy over the sample*/
 			if (!rewrite_start_codes) {
+				if (ps_bs)
+				{
+					gf_bs_transfer(dst_bs, ps_bs);
+					gf_bs_del(ps_bs);
+					ps_bs = NULL;
+				}
 				gf_bs_write_data(dst_bs, sample->data, sample->dataLength);
 				gf_free(sample->data);
 				sample->data = NULL;
