@@ -255,6 +255,9 @@ Bool gf_dash_is_dynamic_mpd(GF_DashClient *dash);
 /*returns minimum buffer time indicated in mpd in ms*/
 u32 gf_dash_get_min_buffer_time(GF_DashClient *dash);
 
+//shifts UTC clock of server by shift_utc_sec so that new UTC in MPD is old + shift_utc_sec
+void gf_dash_set_utc_shift(GF_DashClient *dash, s32 shift_utc_sec);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

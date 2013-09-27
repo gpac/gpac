@@ -110,6 +110,7 @@ struct __dash_client
 	u32 nb_buffering;
 	u32 idle_interval;
 
+	s32 utc_shift;
 	/* TODO - handle playback status for SPEED/SEEK through SIDX */
 	Double playback_start_range;
 	Double start_range_in_segment_at_next_period;
@@ -365,6 +366,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		return;
 	}
 	
+	group->dash->mpd->availabilityStartTime += group->dash->utc_shift*1000;
+
 	//temp hack 
 	mpd->media_presentation_duration = 0;
 	
@@ -4441,6 +4444,12 @@ Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return gf_dash_get_segment_start_time(group, NULL);
+}
+
+GF_EXPORT
+void gf_dash_set_utc_shift(GF_DashClient *dash, s32 shift_utc_sec)
+{
+	if (dash) dash->utc_shift = shift_utc_sec;
 }
 
 GF_EXPORT
