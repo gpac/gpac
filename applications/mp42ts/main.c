@@ -2416,11 +2416,17 @@ call_flush:
 				}
 			}
 			if (status == GF_M2TS_STATE_IDLE) {
+#if 0
 				/*wait till next packet is ready to be sent*/
 				if (usec_till_next>1000) {
 					//fprintf(stderr, "%d usec till next packet\n", usec_till_next);
 					gf_sleep(usec_till_next / 1000);
 				}
+#else
+				//we don't have enough precision on usec counting and we end up eating one core on most machines, so let's just sleep
+				//one second whenever we are idle - it's maybe too much but the muxer will catchup afterwards
+				gf_sleep(1);
+#endif
 			}
 		}
 

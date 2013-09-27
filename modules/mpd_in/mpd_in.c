@@ -561,6 +561,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
     const char *opt;
     GF_Err e;
+	s32 shift_utc_sec;
 	u32 max_cache_duration, auto_switch_count, init_timeshift;
 	GF_DASHInitialSelectionMode first_select_mode;
 	Bool keep_files, disable_switching, enable_buffering;
@@ -641,6 +642,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AllowAbort", "no");
 	mpdin->allow_http_abort = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 	
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ShiftClock");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ShiftClock", "0");
+	shift_utc_sec = opt ? atoi(opt) : 0;
+	
+
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
 
@@ -656,6 +662,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
 		return GF_OK;
 	}
+
+	gf_dash_set_utc_shift(mpdin->dash, shift_utc_sec);
 
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);

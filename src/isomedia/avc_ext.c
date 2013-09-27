@@ -184,9 +184,19 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 			/*little optimization if we are not asked to start codes: copy over the sample*/
 			if (!rewrite_start_codes) {
-				if (ps_bs)
-				{
-					gf_bs_transfer(dst_bs, ps_bs);
+				if (ps_bs) {
+					u8 nal_type = (sample->data[nal_unit_size_field] & 0x7E) >> 1;
+					//temp fix - if we detect xPS in the begining of the sample do NOT copy the ps bitstream
+					//this is not correct since we are not sure whether they are the same xPS or not, but it crashes openHEVC ...
+					switch (nal_type) {
+					case GF_HEVC_NALU_VID_PARAM:
+					case GF_HEVC_NALU_SEQ_PARAM:
+					case GF_HEVC_NALU_PIC_PARAM:
+						break;
+					default:
+						gf_bs_transfer(dst_bs, ps_bs);
+						break;
+					}
 					gf_bs_del(ps_bs);
 					ps_bs = NULL;
 				}
