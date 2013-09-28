@@ -149,7 +149,7 @@ typedef struct
 	void *dsi_and_rap;
 	Bool loop;
 	Bool is_repeat;
-	u64 ts_offset;
+	s64 ts_offset;
 	M2TSProgram *prog;
 
 #ifndef USE_ISOBMF_REWRITE
@@ -360,6 +360,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	GF_DecoderConfig *dcd;
 	u64 avg_rate, duration;
 	s32 ref_count;
+	s64 mediaOffset;
 
 	GF_SAFEALLOC(priv, GF_ESIMP4);
 
@@ -470,6 +471,11 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	  if (ifce->input_udta)
 	    gf_free(ifce->input_udta);
 	  ifce->input_udta = priv;
+	}
+
+
+	if (! gf_isom_get_edit_list_type(mp4, track_num, &mediaOffset)) {
+		priv->ts_offset = mediaOffset;
 	}
 
 	ref_count = gf_isom_get_reference_count(mp4, track_num, GF_ISOM_REF_SCAL);
@@ -1252,6 +1258,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 	GF_SDPInfo *sdp;
 #endif
 	u32 i;
+	s64 min_offset = 0;
 	
 	memset(prog, 0, sizeof(M2TSProgram));
 	prog->mpeg4_signaling = mpeg4_signaling;
@@ -1275,6 +1282,8 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 				continue; 
 
 			fill_isom_es_ifce(prog, &prog->streams[i], prog->mp4, i+1, bifs_use_pes);
+			if (min_offset > ((GF_ESIMP4 *)prog->streams[i].input_udta)->ts_offset)
+				min_offset = ((GF_ESIMP4 *)prog->streams[i].input_udta)->ts_offset;
 
 			switch(prog->streams[i].stream_type) {
 			case GF_STREAM_OD:
@@ -1340,6 +1349,12 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 			prog->pcr_idx-=1;
 			priv = prog->streams[prog->pcr_idx].input_udta;
 			gf_isom_set_default_sync_track(prog->mp4, priv->track);
+		}
+
+		if (min_offset < 0) {
+			for (i=0; i<prog->nb_streams; i++) {
+				((GF_ESIMP4 *)prog->streams[i].input_udta)->ts_offset += -min_offset;
+			}
 		}
 
 		prog->iod = gf_isom_get_root_od(prog->mp4);
