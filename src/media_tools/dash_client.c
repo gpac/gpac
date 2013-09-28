@@ -350,7 +350,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	GF_MPD_Representation *rep = NULL;
 	u32 shift, timescale;
-	u64 current_time;
+	u64 current_time, availabilityStartTime;
 	u32 ast_diff, start_number;
 	
 	if (mpd->type==GF_MPD_TYPE_STATIC) 
@@ -366,24 +366,23 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		return;
 	}
 	
-	group->dash->mpd->availabilityStartTime += group->dash->utc_shift*1000;
-
 	//temp hack 
 	mpd->media_presentation_duration = 0;
+	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift*1000;
 	
-	ast_diff = (u32) (mpd->availabilityStartTime - group->dash->mpd->availabilityStartTime);
+	ast_diff = (u32) (availabilityStartTime - group->dash->mpd->availabilityStartTime);
 	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
 	current_time = fetch_time;
 
-	if (current_time < mpd->availabilityStartTime) {
+	if (current_time < availabilityStartTime) {
 		//if more than 1 sec consider we have a pb
-		if (mpd->availabilityStartTime - current_time >= 1000) {
+		if (availabilityStartTime - current_time >= 1000) {
 #ifndef _WIN32_WCE
 			time_t gtime;
 			struct tm *t1, *t2;
 			gtime = current_time / 1000;
 			t1 = gmtime(&gtime);
-			gtime = mpd->availabilityStartTime / 1000;
+			gtime = availabilityStartTime / 1000;
 			t2 = gmtime(&gtime);
 			if (t1 && t2) {
 				t1->tm_year = t2->tm_year;
@@ -399,11 +398,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->broken_timing = 1;
 			return;
 		} else {
-			mpd->availabilityStartTime = current_time;
+			availabilityStartTime = current_time;
 			current_time = 0;	
 		}
 	}
-	else current_time -= mpd->availabilityStartTime;	
+	else current_time -= availabilityStartTime;	
 
 	if (current_time < group->period->start) current_time = 0;
 	else current_time -= group->period->start;
@@ -506,7 +505,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		if (!group->start_number_at_last_ast) {
 			group->download_segment_index = shift;
 			group->start_number_at_last_ast = start_number;
-			group->ast_at_init = mpd->availabilityStartTime;
+			group->ast_at_init = availabilityStartTime;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
 		} else {
@@ -516,7 +515,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d ms: Updating Timeline: startNumber=%d segmentNumber=%d downloadSegmentIndex=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->download_segment_index, group->segment_duration, ast_diff));
 			} else {
 				group->download_segment_index = shift;
-				group->ast_at_init = mpd->availabilityStartTime;
+				group->ast_at_init = availabilityStartTime;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time %d ms: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->segment_duration, ast_diff));
 			}
 			group->start_number_at_last_ast = start_number;
@@ -1048,6 +1047,7 @@ u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *grou
 	seg_ast += seg_dur;
 	seg_ast *= 1000;
 	seg_ast += group->period->start + group->ast_at_init;
+
 	return (u64) seg_ast;
 }
 
