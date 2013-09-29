@@ -194,7 +194,7 @@ int dc_video_decoder_open(VideoInputFile * p_vin, VideoData * p_vdata,
 }
 
 int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
-		int source_number, int use_source_timing) {
+		int source_number, int use_source_timing, int is_live_capture) {
 
 #ifdef DASHCAST_DEBUG_TIME_
 	struct timeval start, end;
@@ -293,25 +293,42 @@ int dc_video_decoder_read(VideoInputFile * p_in_ctx, VideoInputData * p_vd,
 				return -1;
 			}
 
-			if (use_source_timing) {
-				if (p_in_ctx->pts_init == 0) {
-					p_in_ctx->pts_init = 1;
-					p_in_ctx->first_pts = packet.pts;
-					//TODO - check with audio if sync is OK 
-				} else if (p_in_ctx->pts_init == 1) {
-					p_in_ctx->pts_init = 2;
-					p_vd->frame_duration = packet.pts - p_in_ctx->first_pts;
-				}
-				p_vdn->p_vframe->pts = packet.pts - p_in_ctx->first_pts;	
-				if (p_vdn->p_vframe->pts - p_in_ctx->prev_pts < p_vd->frame_duration)
-					p_vd->frame_duration = p_vdn->p_vframe->pts - p_in_ctx->prev_pts;
-
-				p_in_ctx->prev_pts = p_vdn->p_vframe->pts;
-			}
-
 
 			/*  Did we get a video frame? */
 			if (i_got_frame) {
+
+				if (use_source_timing && is_live_capture) {
+					u64 pts;
+					if (p_in_ctx->pts_init == 0) {
+						p_in_ctx->pts_init = 1;
+						p_in_ctx->utc_at_init = gf_net_get_utc();
+						p_in_ctx->first_pts = packet.pts;
+						p_in_ctx->computed_pts = 0;
+						p_vd->frame_duration = p_codec_ctx->time_base.num;
+						p_in_ctx->sync_tolerance = 9*p_vd->frame_duration/5;
+						//TODO - check with audio if sync is OK 
+					} 
+					//perform FPS re-linearisation 
+					pts = packet.pts - p_in_ctx->first_pts;	
+					if (pts - p_in_ctx->prev_pts > p_in_ctx->sync_tolerance) {
+						u32 nb_lost=0;
+						while (pts > p_in_ctx->computed_pts) {
+							p_in_ctx->computed_pts += p_vd->frame_duration;
+							nb_lost++;
+						}
+
+						if (nb_lost) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DashCast] Capture lost %d video frames \n", nb_lost));
+						}
+					}
+
+//					fprintf(stdout, "Capture PTS %g - UTC diff %g - Computed PTS %g\n", (Double) pts / p_codec_ctx->time_base.den, (Double) (gf_net_get_utc() - p_in_ctx->utc_at_init) / 1000, (Double) p_in_ctx->computed_pts / p_codec_ctx->time_base.den);
+
+					p_in_ctx->prev_pts = pts;
+					p_vdn->p_vframe->pts = p_in_ctx->computed_pts;
+					p_in_ctx->computed_pts += p_vd->frame_duration;
+				}
+
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", p_vdn->p_vframe->pts, gf_net_get_utc() ));
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then

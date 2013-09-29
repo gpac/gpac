@@ -595,7 +595,7 @@ u32 video_decoder_thread(void * p_params) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number, p_in_data->use_source_timing);
+		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number, p_in_data->use_source_timing, (p_in_data->i_mode == LIVE_CAMERA) ? 1 : 0);
 
 #ifdef DASHCAST_PRINT
 		printf("Read video frame %d\r", i++);
@@ -1253,6 +1253,11 @@ int dc_run_controler(CmdData * p_in_data) {
 	dc_message_queue_init(&mq);
 	dc_message_queue_init(&delete_seg_mq);
 	dc_message_queue_init(&send_frag_mq);
+
+
+	memset(&aind, 0, sizeof(AudioInputData));;
+	memset(&ainf, 0, sizeof(AudioInputFile));
+	memset(&vind, 0, sizeof(VideoInputData));
 
 	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
 
