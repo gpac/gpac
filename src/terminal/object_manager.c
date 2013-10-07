@@ -478,7 +478,7 @@ static void ODM_SelectAlternateStream(GF_ObjectManager *odm, u32 lang_code, u8 s
 GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 {
 	u32 i;
-	u16 es_id;
+	u16 es_id, ck_id;
 	GF_ESD *esd, *base_scene;
 	const char *sOpt;
 	u32 nb_od, nb_ocr, nb_scene, nb_mp7, nb_ipmp, nb_oci, nb_mpj, nb_other, prev_st;
@@ -489,12 +489,21 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 	*hasInline = 0;
 
 	/*step 1: validate OD*/
+	ck_id = 0;
 	i=0;
 	while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i))) {
 		assert(esd->decoderConfig);
+		//force single clock ID in one object
+		if (!ck_id) ck_id = esd->OCRESID;
+		else esd->OCRESID = ck_id;
+
 		switch (esd->decoderConfig->streamType) {
-		case GF_STREAM_OD: nb_od++; break;
-		case GF_STREAM_OCR: nb_ocr++; break;
+		case GF_STREAM_OD:
+			nb_od++;
+			break;
+		case GF_STREAM_OCR: 
+			nb_ocr++; 
+			break;
 		case GF_STREAM_SCENE: 
 			switch (esd->decoderConfig->objectTypeIndication) {
 			case GPAC_OTI_SCENE_AFX:
@@ -1751,14 +1760,12 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	}
 	if (!odm->subscene) return;
 
-	if (odm->subscene->scene_codec && (gf_list_find(odm->subscene->scene_codec->inChannels, on_channel)>=0) ) {
+	if (odm->subscene->scene_codec) {
 		gf_codec_set_status(odm->subscene->scene_codec, GF_ESM_CODEC_EOS);
-		return;
 	}
 
-	if (on_channel->esd->decoderConfig->streamType==GF_STREAM_OD) {
+	if (odm->subscene->od_codec) {
 		gf_codec_set_status(odm->subscene->od_codec, GF_ESM_CODEC_EOS);
-		return;
 	}
 }
 

@@ -1304,14 +1304,21 @@ static char *format_date(u64 time, char *szTime)
 
 
 
-GF_Err dump_chapters(GF_ISOFile *file, char *inName)
+GF_Err dump_chapters(GF_ISOFile *file, char *inName, Bool dump_ogg)
 {
 	char szName[1024];
 	FILE *t;
 	u32 i, count;
 	count = gf_isom_get_chapter_count(file, 0);
-	sprintf(szName, "%s.chap", inName);
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Extracting chapters to %s\n", szName));
+	strcpy(szName, inName);
+	if (dump_ogg) {
+		strcat(szName, ".txt");
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Extracting OGG chapters to %s\n", szName));
+	}
+	else {
+		strcat(szName, ".chap");
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Extracting chapters to %s\n", szName));
+	}
 
 	t = gf_f64_open(szName, "wt");
 	if (!t) return GF_IO_ERR;
@@ -1319,9 +1326,15 @@ GF_Err dump_chapters(GF_ISOFile *file, char *inName)
 	for (i=0; i<count;i++) {
 		u64 chapter_time;
 		const char *name;
+		char szDur[20];
 		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
-		chapter_time /= 1000;
-		fprintf(t, "AddChapterBySecond("LLD",%s)\n", chapter_time, name);
+		if (dump_ogg) {
+			fprintf(t, "CHAPTER%02d=%s\n", i+1, format_duration(chapter_time, 1000, szDur));
+			fprintf(t, "CHAPTER%02dNAME=%s\n", i+1, name);		
+		} else {
+			chapter_time /= 1000;
+			fprintf(t, "AddChapterBySecond("LLD",%s)\n", chapter_time, name);
+		}
 	}
 	fclose(t);
 	return GF_OK;
