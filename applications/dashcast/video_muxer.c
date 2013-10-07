@@ -615,7 +615,7 @@ int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb) {
 		//this works fine because we perform frame rate regulation at the capture stage
 		frame_dur = p_voutf->p_codec_ctx->coded_frame->pts - p_voutf->last_pts;
 		if (frame_dur && (p_voutf->frame_dur> (u32) frame_dur)) {
-			fprintf(stdout, "New frame dur detected: %d vs %d old\n", (u32) frame_dur, p_voutf->frame_dur);
+			fprintf(stdout, "New frame dur detected: %d vs %d old\n", (u32) frame_dur, (u32) p_voutf->frame_dur);
 			p_voutf->frame_dur = (u32) frame_dur;
 		}
 
