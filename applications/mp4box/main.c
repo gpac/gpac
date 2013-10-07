@@ -83,7 +83,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 #endif
 
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
-GF_Err dump_chapters(GF_ISOFile *file, char *inName);
+GF_Err dump_chapters(GF_ISOFile *file, char *inName, Bool dump_ogg);
 u32 id3_get_genre_tag(const char *name);
 
 /*in filedump.c*/
@@ -1375,11 +1375,12 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 	Double min_buffer = 1.5;
 	u32 ast_shift_sec = 1;
+	u32 dump_chap = 0;
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
 	u32 dash_scale = 1000;
@@ -1437,7 +1438,7 @@ int mp4boxMain(int argc, char **argv)
 	dump_nal = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
 	no_fragments_defaults = 0;
 	dash_dynamic = 0;
 	/*align cat is the new default behaviour for -cat*/
@@ -1713,6 +1714,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-diso")) dump_isom = 1;
 		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
+		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
 		else if (!stricmp(arg, "-hash")) do_hash = 1;
 
 		else if (!stricmp(arg, "-dmp4")) {
@@ -3214,7 +3216,7 @@ int mp4boxMain(int argc, char **argv)
 		fprintf(stderr, "\n");
 	}
 	if (dump_cart) dump_cover_art(file, outfile);
-	if (dump_chap) dump_chapters(file, outfile);
+	if (dump_chap) dump_chapters(file, outfile; (dump_chap==2) ? 1 : 0);
 
 	if (dump_iod) {
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
