@@ -391,8 +391,10 @@ load newly downloaded fragments. Note this may result in Track/Movie duration ch
 and SampleCount change too ...
 
 if new_location is set, the previous bitstream is changed to this new location, otherwise it is refreshed (disk flush)
+
+do_parse indicates if the new buffer should be parsed now or not
 */
-GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes, const char *new_location);
+GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes, const char *new_location, Bool do_parse);
 
 /*check if file has movie info, eg has tracks & dynamic media. Some files may just use
 the base IsoMedia structure without "moov" container*/
@@ -1128,6 +1130,12 @@ a brutal memory comparaison is done*/
 Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2);
 
 GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
+
+/* sample information for all tracks setup are reset. This allows keeping the memory
+footprint low when playing segments. Note however that seeking in the file is then no longer possible*/
+GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count);
+/* sets the offset for parsing from the input buffer to 0 (used to reclaim input buffer)*/
+GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start);
 
 /*releases current movie segment - this closes the associated file IO object.
 If reset_tables is set, sample information for all tracks setup as segment are destroyed. This allows keeping the memory
