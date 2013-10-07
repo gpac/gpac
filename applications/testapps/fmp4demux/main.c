@@ -262,7 +262,6 @@ int main(int argc, char **argv)
 				/* nothing to do, this is normal */
 			} else {
 				fprintf(stdout, "Error opening fragmented mp4 in progressive mode: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
-				gf_sys_close();
 				ret = 1;
 				goto exit;
 			} 
@@ -275,7 +274,6 @@ int main(int argc, char **argv)
 
 			if (e != GF_OK && e != GF_ISOM_INCOMPLETE_FILE) {
 				fprintf(stdout, "Error refreshing fragmented mp4: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
-				gf_sys_close();
 				ret = 1;
 				goto exit;
 			}
