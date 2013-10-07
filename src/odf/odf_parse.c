@@ -623,9 +623,9 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	return ret ? GF_OK : GF_BAD_PARAM;
 }
 
-
 Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 {
+#ifndef GPAC_MINIMAL_ODF
 	GF_BitStream *bs;
 	if (!strnicmp(val, "HTK:", 4)) {
 		char szItem[100];
@@ -690,6 +690,6 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 		gf_bs_del(bs);
 		return 1;
 	}
+#endif
 	return 0;
 }
-
