@@ -2438,6 +2438,9 @@ struct __tag_isom {
 	Bool is_index_segment;
 
 	GF_BitStream *segment_bs;
+	/* 0: no moof found yet, 1: 1 moof found, 2: next moof found */
+	Bool single_moof_mode;
+	u32 single_moof_state;
 #endif
 
 	/*this contains ALL the root boxes excepts fragments*/

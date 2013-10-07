@@ -98,7 +98,6 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 #endif
 
-
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
@@ -109,9 +108,14 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (mov->single_moof_mode && mov->single_moof_state == 2) {
+		return e;
+	}
+
 	/*restart from where we stopped last*/
 	totSize = mov->current_top_box_start;
 	gf_bs_seek(mov->movieFileMap->bs, mov->current_top_box_start);
+
 #endif
 
 
@@ -236,6 +240,13 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			break;
 
 		case GF_ISOM_BOX_TYPE_MOOF:
+			if (mov->single_moof_mode) {
+				mov->single_moof_state++;
+				if (mov->single_moof_state > 1) {
+					gf_isom_box_del(a);
+					return GF_OK;
+				}
+			}
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
 			totSize += a->size;

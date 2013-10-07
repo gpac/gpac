@@ -2029,7 +2029,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 
 
 GF_EXPORT
-GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const char *new_location, Bool do_parse)
+GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const char *new_location)
 {
 	u32 i;
 	u64 prevsize, size;
@@ -2043,12 +2043,14 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	size = gf_bs_get_size(movie->movieFileMap->bs);
 
 	if (new_location) {
-		void *previous_movie_fileMap_address = movie->movieFileMap;
+		Bool delete_map;
+		GF_DataMap *previous_movie_fileMap_address = movie->movieFileMap;
 		GF_Err e;
 		
 		e = gf_isom_datamap_new(new_location, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
  		if (e) return e;
 
+		delete_map = (previous_movie_fileMap_address != NULL ? GF_TRUE: GF_FALSE);
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 			GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
 			if (trak->Media->information->dataHandler == previous_movie_fileMap_address) {
@@ -2056,7 +2058,12 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 				trak->Media->information->scalableDataHandler = movie->movieFileMap;
 				//reassign for Media_GetSample function
 				trak->Media->information->dataHandler = movie->movieFileMap;
+			} else if (trak->Media->information->scalableDataHandler == previous_movie_fileMap_address) {
+				delete_map = GF_FALSE;
 			}
+		}
+		if (delete_map) {
+			gf_isom_datamap_del(previous_movie_fileMap_address);
 		}
 	}
 
@@ -2064,12 +2071,14 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	if (prevsize==size) return GF_OK;
 
 	//ok parse root boxes
-	if (do_parse) {
-		return gf_isom_parse_movie_boxes(movie, MissingBytes, GF_TRUE);
-	} else {
-		return GF_OK;
-	}
+	return gf_isom_parse_movie_boxes(movie, MissingBytes, GF_TRUE);
 #endif
+}
+
+GF_EXPORT
+void gf_isom_set_single_moof_mode(GF_ISOFile *movie, Bool mode) 
+{
+	movie->single_moof_mode = mode;
 }
 
 GF_EXPORT
@@ -2079,6 +2088,9 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	*top_box_start = movie->current_top_box_start;
 	movie->current_top_box_start = 0;
+	if (movie->single_moof_mode) {
+		movie->single_moof_state = 0;
+	}
 #endif
 	return GF_OK;
 }
@@ -2097,6 +2109,7 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 		u32 type, dur;
 		u64 dts;
 		GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
+
 		trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
 		if (trak->sample_count_at_seg_start) {
 			GF_Err e;
