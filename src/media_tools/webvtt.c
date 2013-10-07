@@ -1442,6 +1442,7 @@ GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISO
     return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_ISOM_DUMP
 static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 duration)
 {
     GF_WebVTTSample *sample;
@@ -1542,5 +1543,7 @@ exit:
     if (szName) fclose(out);
     return e;
 }
+
+#endif //GPAC_DISABLE_ISOM_DUMP
 
 #endif /* GPAC_DISABLE_VTT */
