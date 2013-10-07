@@ -28,7 +28,17 @@
 
 #define BUFFER_BLOC_SIZE 1000
 
-typedef struct {
+typedef struct iso_progressive_reader {
+
+	/* data buffer to be read by the parser */
+	u8 *data;
+	/* size of the data buffer */
+	u32 data_size;
+	/* number of valid bytes in the buffer */
+	u32 valid_data_size;
+	/* URL used to pass a buffer to the parser */
+	char data_url[256];
+
 	/* The ISO file structure created for the parsing of data */
 	GF_ISOFile *movie;
 
@@ -38,11 +48,10 @@ typedef struct {
 	/* Boolean indicating if the thread should stop */
 	Bool do_run;
 
+	Bool refresh_boxes;
+
 	/* id of the track in the ISO to be read */
 	u32 track_id;
-
-	/* Boolean indicating that all current samples have been read and some input data can be flushed */
-	Bool can_flush;
 
 } ISOProgressiveReader;
 
@@ -52,47 +61,101 @@ static u32 iso_progressive_read(void *param)
 	ISOProgressiveReader *reader = (ISOProgressiveReader *)param;
 	u32 track_number;
 	GF_ISOSample *iso_sample;
+	u32 samples_processed;
 	u32 sample_index;
 	u32 sample_count;
 
+	samples_processed = 0;
+	sample_count = 0;
 	track_number = 0;
 	/* samples are numbered starting from 1 */
 	sample_index = 1;
+
 	while(reader->do_run == GF_TRUE) {
+
+		/* we can only parse if there is a movie */
 		if (reader->movie) {
+
+			/* block the data input until we are done in the parsing */
+			gf_mx_p(reader->mutex);
+
+			/* get the track number we want */
 			if (track_number == 0) {
-				gf_mx_p(reader->mutex);
 				track_number = gf_isom_get_track_by_id(reader->movie, reader->track_id);
-				gf_mx_v(reader->mutex);
-			} else {
+			} 
+
+			/* only if we have the track number can we try to get the sample data */
+			if (track_number != 0) {
 				u32 new_sample_count;
 				u32 di; /*descriptor index*/
-				gf_mx_p(reader->mutex);
+
+				/* let's see how many samples we have since the last parsed */
 				new_sample_count = gf_isom_get_sample_count(reader->movie, track_number);
 				if (new_sample_count > sample_count) {
-					/* New data has been added to the file */
-					fprintf(stdout, "Found %d new samples\n", new_sample_count - sample_count);
-				}
-				iso_sample = gf_isom_get_sample(reader->movie, track_number, sample_index, &di);
-				gf_mx_v(reader->mutex);
-				if (iso_sample) {
-					/* if you want the sample description call:
-					   GF_Descriptor *desc = gf_isom_get_decoder_config(reader->movie, reader->track_handle, di);
-					*/
-					/*here you can dump: samp->data, samp->dataLength, samp->isRAP, samp->DTS, samp->CTS_Offset */
-					fprintf(stdout, "Found sample #%d of length %d, RAP: %d, DTS: "LLD", CTS: "LLD"\n", sample_index, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
-					gf_isom_sample_del(&iso_sample);
-					sample_index++;
-					if (sample_index == sample_count) {
-						gf_mx_p(reader->mutex);
-						reader->can_flush = GF_TRUE;
-						gf_mx_v(reader->mutex);
-						sample_count = new_sample_count - sample_count;
+					/* New samples have been added to the file */
+					fprintf(stdout, "Found %d new samples (total: %d)\n", new_sample_count - sample_count, new_sample_count);
+					if (sample_count == 0) {
+						sample_count = new_sample_count;
 					}
+				}
+				if (sample_count == 0) {
+					/* no sample yet, let the data input force a reparsing of the data */
+					reader->refresh_boxes = GF_TRUE;
+					/*let the reader push new data */
+					gf_mx_v(reader->mutex);
+					gf_sleep(1000);
+				} else {
+					/* we have some samples, lets keep things stable in the parser for now and 
+					  don't let the data input force a reparsing of the data */
+					reader->refresh_boxes = GF_FALSE;
+
+					/* let's analyze the samples we have parsed so far one by one */
+					iso_sample = gf_isom_get_sample(reader->movie, track_number, sample_index, &di);
+					if (iso_sample) {
+						/* if you want the sample description data, you can call:
+						   GF_Descriptor *desc = gf_isom_get_decoder_config(reader->movie, reader->track_handle, di);
+						*/
+						
+						samples_processed++;
+						/*here we dump some sample info: samp->data, samp->dataLength, samp->isRAP, samp->DTS, samp->CTS_Offset */
+						fprintf(stdout, "Found sample #%5d (#%5d) of length %8d, RAP: %d, DTS: "LLD", CTS: "LLD"\r\n", sample_index, samples_processed, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
+						sample_index++;
+						
+						/*release the sample data, once you're done with it*/
+						gf_isom_sample_del(&iso_sample);
+						
+						/* once we have read all the samples, we can release some data and force a reparse of the input buffer */
+						if (sample_index > sample_count) {
+							u64 new_buffer_start;
+							u64 missing_bytes;
+
+							/* release internal structures associated with the samples read so far */
+							gf_isom_reset_tables(reader->movie, GF_TRUE);
+
+#if 1
+							/* release the associated input data as well */
+							gf_isom_reset_data_offset(reader->movie, &new_buffer_start);
+							if (new_buffer_start) {
+								u32 offset = (u32)new_buffer_start;
+								memmove(reader->data, reader->data+offset, reader->data_size-offset);
+								reader->valid_data_size -= offset;
+							} 
+							sprintf(reader->data_url, "gmem://%d@%p",  reader->data_size, reader->data);
+							gf_isom_refresh_fragmented(reader->movie, &missing_bytes, reader->data_url, GF_TRUE);
+#endif
+
+							/* update the sample count and sample index */
+							sample_count = new_sample_count - sample_count;
+							assert(sample_count == 0);
+							sample_index = 1;
+						}
+					}
+					/* and finally, let the data reader push more data */
+					gf_mx_v(reader->mutex);
 				}
 			}
 		} else {
-			gf_sleep(1000);
+			gf_sleep(1);
 		}
 	}
 	return 0;
@@ -100,25 +163,20 @@ static u32 iso_progressive_read(void *param)
 
 int main(int argc, char **argv)
 {
+	/* The ISO progressive reader */
 	ISOProgressiveReader reader;
 	/* Error indicator */
 	GF_Err e;
-	/* variable used for the dummy input file reading */
-	u8 *data;
-	/* size of the data buffer */
-	u32 data_size;
-	/* number of valid bytes in the buffer */
-	u32 valid_data_size;
-	/* offset in the data from where the parser reads */
-	u32 last_data_offset;
 	/* input file to be read in the data buffer */
 	FILE *input;
-	/* number of bytes read at each read operation */
+	/* number of bytes read from the file at each read operation */
 	u32 read_bytes;
-	/* number of bytes required to finish the current ISO Box reading */
+	/* number of bytes read from the file (total) */
+	u64 total_read_bytes;
+	/* size of the input file */
+	u64 file_size;
+	/* number of bytes required to finish the current ISO Box reading (not used here)*/
 	u64 missing_bytes;
-	/* URL used to pass a buffer to the parser */
-	char data_url[256];
 	/* Thread used to run the ISO parsing in */
 	GF_Thread *reading_thread;
 
@@ -130,69 +188,88 @@ int main(int argc, char **argv)
 	input = gf_f64_open(argv[1], "rb");
 	if (!input) return 0;
 
+	gf_f64_seek(input, 0, SEEK_END);
+	file_size = gf_f64_tell(input);
+	gf_f64_seek(input, 0, SEEK_SET);
+
+	/* Initializing the progressive reader */
 	memset(&reader, 0, sizeof(ISOProgressiveReader));
 	reading_thread = gf_th_new("ISO reading thread");
 	reader.mutex = gf_mx_new("ISO Segment");
 	reader.do_run = GF_TRUE;
 	/* we want to parse the first track */
 	reader.track_id = 1;
+	/* start the async parsing */
 	gf_th_run(reading_thread, iso_progressive_read, &reader);
 
-	data_size = BUFFER_BLOC_SIZE;
-	data = (u8 *)gf_malloc(data_size);
-	last_data_offset = 0;
-	valid_data_size = 0;
+	/* start the data reading */
+	reader.data_size = BUFFER_BLOC_SIZE;
+	reader.data = (u8 *)gf_malloc(reader.data_size);
+	reader.valid_data_size = 0;
+	total_read_bytes = 0;
 	while(1) {
-		/* Check if we can flush some input data, no longer needed by the parser */
-		if (reader.can_flush) {
-			gf_mx_p(reader.mutex);
-			memmove(data, data+last_data_offset, data_size-last_data_offset);
-			valid_data_size -= last_data_offset;
-			last_data_offset = 0;
-			reader.can_flush = GF_FALSE;
-			gf_mx_v(reader.mutex);
-		} 
+		/* block the parser until we are done manipulating the data buffer */
+		gf_mx_p(reader.mutex);
 		
 		/* make sure we have enough space in the buffer to read the next bloc of data */
-		if (valid_data_size + BUFFER_BLOC_SIZE > data_size) {
-			data = (u8 *)gf_realloc(data, data_size + BUFFER_BLOC_SIZE);
-			data_size += BUFFER_BLOC_SIZE;
-		}
+		if (reader.valid_data_size + BUFFER_BLOC_SIZE > reader.data_size) {
+			reader.data = (u8 *)gf_realloc(reader.data, reader.data_size + BUFFER_BLOC_SIZE);
+			reader.data_size += BUFFER_BLOC_SIZE;
+		} 
 
-		/* read the next bloc of data and update the blob url */
-		read_bytes = fread(data+valid_data_size, 1, BUFFER_BLOC_SIZE, input);
+		/* read the next bloc of data and update the data buffer url */
+		read_bytes = fread(reader.data+reader.valid_data_size, 1, BUFFER_BLOC_SIZE, input);
+		total_read_bytes += read_bytes;
+		fprintf(stdout, "Read "LLD" bytes of "LLD" bytes from input file %s (buffer status: %5d/%5d)\r", total_read_bytes, file_size, argv[1], reader.valid_data_size, reader.data_size);
 		if (read_bytes) {
-			valid_data_size += read_bytes;
-			sprintf(data_url, "gmem://%d@%p",  data_size, data);
+			reader.valid_data_size += read_bytes;
+			sprintf(reader.data_url, "gmem://%d@%p",  reader.data_size, reader.data);
+		} else {
+			/* end of file we can quit */
+			gf_mx_v(reader.mutex);
+			break;
 		}
 
 		/* if the file is not yet opened (no movie), open it in progressive mode (to update its data later on) */
 		if (!reader.movie) {
-			gf_mx_p(reader.mutex);
-			e = gf_isom_open_progressive(data_url, 0, 0, &reader.movie, &missing_bytes/*, &last_data_offset*/);
+			/* let's initialize the parser */
+			e = gf_isom_open_progressive(reader.data_url, 0, 0, &reader.movie, &missing_bytes);
+
+			/* we can let parser try to work now */
 			gf_mx_v(reader.mutex);
-			fprintf(stdout, "Opening file in progressive mode: missing "LLD" bytes\n", missing_bytes);
 
 			if ((e == GF_OK || e == GF_ISOM_INCOMPLETE_FILE) && reader.movie) {
-				/* nothing to do */
+				/* nothing to do, this is normal */
 			} else {
-				fprintf(stdout, "Error opening fragmented mp4 in progressive mode: %s", gf_error_to_string(e));
-				return 0;
+				fprintf(stdout, "Error opening fragmented mp4 in progressive mode: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
+				return -1;
 			} 
 		} else {
-			/* we can inform the parser that the buffer has been updated with new data */
-			gf_mx_p(reader.mutex);
-			e = gf_isom_refresh_fragmented(reader.movie, &missing_bytes, data_url);
-			fprintf(stdout, "Updating file in progressive mode: missing "LLD" bytes\n", missing_bytes);
+			/* let inform the parser that the buffer has been updated with new data */
+			e = gf_isom_refresh_fragmented(reader.movie, &missing_bytes, reader.data_url, reader.refresh_boxes);
+
+			/* we can let parser try to work now */
 			gf_mx_v(reader.mutex);
-			if (e != GF_OK) {
-				fprintf(stdout, "Error refreshing fragmented mp4: %s", gf_error_to_string(e));
+
+			if (e != GF_OK && e != GF_ISOM_INCOMPLETE_FILE) {
+				fprintf(stdout, "Error refreshing fragmented mp4: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
+				return -1;
 			}
 		}
+		
+		gf_sleep(1);
+
 	}
+
+	/* stop the parser */
 	reader.do_run = GF_FALSE;
+
+	/* clean structures */
+	gf_th_del(reading_thread);
+	gf_mx_del(reader.mutex);
+	gf_free(reader.data);
+	gf_isom_close(reader.movie);
 	fclose(input);
-	gf_free(data);
 	gf_sys_close();
 
 	return GF_OK;
