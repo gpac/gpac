@@ -18,13 +18,9 @@
     <ClCompile Include="..\..\..\src\isomedia\box_code_base.c" />
     <ClCompile Include="..\..\..\src\isomedia\box_code_drm.c" />
     <ClCompile Include="..\..\..\src\isomedia\box_code_meta.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_dump.c" />
     <ClCompile Include="..\..\..\src\isomedia\box_funcs.c" />
     <ClCompile Include="..\..\..\src\isomedia\data_map.c" />
     <ClCompile Include="..\..\..\src\isomedia\drm_sample.c" />
-    <ClCompile Include="..\..\..\src\isomedia\generic_subtitle.c" />
-    <ClCompile Include="..\..\..\src\isomedia\hinting.c" />
-    <ClCompile Include="..\..\..\src\isomedia\hint_track.c" />
     <ClCompile Include="..\..\..\src\isomedia\isom_intern.c" />
     <ClCompile Include="..\..\..\src\isomedia\isom_read.c" />
     <ClCompile Include="..\..\..\src\isomedia\isom_store.c" />
@@ -38,14 +34,12 @@
     <ClCompile Include="..\..\..\src\isomedia\stbl_write.c" />
     <ClCompile Include="..\..\..\src\isomedia\track.c" />
     <ClCompile Include="..\..\..\src\isomedia\tx3g.c" />
-    <ClCompile Include="..\..\..\src\media_tools\text_import.c" />
     <ClCompile Include="..\..\..\src\media_tools\webvtt.c" />
     <ClCompile Include="..\..\..\src\odf\descriptors.c" />
     <ClCompile Include="..\..\..\src\odf\desc_private.c" />
     <ClCompile Include="..\..\..\src\odf\odf_code.c" />
     <ClCompile Include="..\..\..\src\odf\odf_codec.c" />
     <ClCompile Include="..\..\..\src\odf\odf_command.c" />
-    <ClCompile Include="..\..\..\src\odf\odf_dump.c" />
     <ClCompile Include="..\..\..\src\odf\odf_parse.c" />
     <ClCompile Include="..\..\..\src\odf\slc.c" />
     <ClCompile Include="..\..\..\src\utils\alloc.c" />
@@ -57,7 +51,6 @@
     <ClCompile Include="..\..\..\src\utils\os_divers.c" />
     <ClCompile Include="..\..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\..\src\utils\url.c" />
-    <ClCompile Include="..\..\..\src\utils\utf.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
