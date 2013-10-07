@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 		
 		if (reader.valid_data_size + BUFFER_BLOC_SIZE > MAX_BUFFER_SIZE) {
 			/* regulate the reader to limit the max buffer size and let some time to the parser to release buffer data */
-			fprintf(stdout, "Buffer too full (%d/%d)- waiting to read next data \n", reader.valid_data_size, reader.data_size);
+			fprintf(stdout, "Buffer full (%d/%d)- waiting to read next data \r", reader.valid_data_size, reader.data_size);
 			gf_mx_v(reader.mutex);
 			//gf_sleep(10);
 		} else {
