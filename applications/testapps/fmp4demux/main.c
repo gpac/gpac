@@ -46,8 +46,9 @@ typedef struct iso_progressive_reader {
 	GF_Mutex *mutex;
 
 	/* Boolean indicating if the thread should stop */
-	Bool do_run;
+	volatile Bool do_run;
 
+	/* Boolean state to indicate if the needs to be parsed */
 	Bool refresh_boxes;
 
 	/* id of the track in the ISO to be read */
@@ -56,7 +57,7 @@ typedef struct iso_progressive_reader {
 } ISOProgressiveReader;
 
 
-static u32 iso_progressive_read(void *param)
+static u32 iso_progressive_read_thread(void *param)
 {
 	ISOProgressiveReader *reader = (ISOProgressiveReader *)param;
 	u32 track_number;
@@ -71,7 +72,7 @@ static u32 iso_progressive_read(void *param)
 	/* samples are numbered starting from 1 */
 	sample_index = 1;
 
-	while(reader->do_run == GF_TRUE) {
+	while (reader->do_run == GF_TRUE) {
 
 		/* we can only parse if there is a movie */
 		if (reader->movie) {
@@ -140,7 +141,7 @@ static u32 iso_progressive_read(void *param)
 								memmove(reader->data, reader->data+offset, reader->data_size-offset);
 								reader->valid_data_size -= offset;
 							} 
-							sprintf(reader->data_url, "gmem://%d@%p",  reader->data_size, reader->data);
+							sprintf(reader->data_url, "gmem://%d@%p", reader->data_size, reader->data);
 							gf_isom_refresh_fragmented(reader->movie, &missing_bytes, reader->data_url, GF_TRUE);
 #endif
 
@@ -179,14 +180,33 @@ int main(int argc, char **argv)
 	u64 missing_bytes;
 	/* Thread used to run the ISO parsing in */
 	GF_Thread *reading_thread;
+	/* Return value for the program */
+	int ret = 0;
+
+	/* Usage */
+	if (argc != 2) {
+		fprintf(stdout, "Usage: %s filename\n", argv[0]);
+		return 1;
+	}
 
 	/* Initializing GPAC framework */
+	/* Enables GPAC memory tracking in debug mode only */
+#if defined(DEBUG) || defined(_DEBUG)
+	gf_sys_init(GF_TRUE);
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+	gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+#else
 	gf_sys_init(GF_FALSE);
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+#endif
 
 	/* This is an input file to read data from. Could be replaced by any other method to retrieve the data (e.g. JavaScript, socket, ...)*/
 	input = gf_f64_open(argv[1], "rb");
-	if (!input) return 0;
+	if (!input) {
+		fprintf(stdout, "Could not open file %s for reading.\n", argv[1]);
+		gf_sys_close();
+		return 1;
+	}
 
 	gf_f64_seek(input, 0, SEEK_END);
 	file_size = gf_f64_tell(input);
@@ -200,14 +220,14 @@ int main(int argc, char **argv)
 	/* we want to parse the first track */
 	reader.track_id = 1;
 	/* start the async parsing */
-	gf_th_run(reading_thread, iso_progressive_read, &reader);
+	gf_th_run(reading_thread, iso_progressive_read_thread, &reader);
 
 	/* start the data reading */
 	reader.data_size = BUFFER_BLOC_SIZE;
 	reader.data = (u8 *)gf_malloc(reader.data_size);
 	reader.valid_data_size = 0;
 	total_read_bytes = 0;
-	while(1) {
+	while (1) {
 		/* block the parser until we are done manipulating the data buffer */
 		gf_mx_p(reader.mutex);
 		
@@ -223,7 +243,7 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Read "LLD" bytes of "LLD" bytes from input file %s (buffer status: %5d/%5d)\r", total_read_bytes, file_size, argv[1], reader.valid_data_size, reader.data_size);
 		if (read_bytes) {
 			reader.valid_data_size += read_bytes;
-			sprintf(reader.data_url, "gmem://%d@%p",  reader.data_size, reader.data);
+			sprintf(reader.data_url, "gmem://%d@%p", reader.data_size, reader.data);
 		} else {
 			/* end of file we can quit */
 			gf_mx_v(reader.mutex);
@@ -242,7 +262,9 @@ int main(int argc, char **argv)
 				/* nothing to do, this is normal */
 			} else {
 				fprintf(stdout, "Error opening fragmented mp4 in progressive mode: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
-				return -1;
+				gf_sys_close();
+				ret = 1;
+				goto exit;
 			} 
 		} else {
 			/* let inform the parser that the buffer has been updated with new data */
@@ -253,16 +275,19 @@ int main(int argc, char **argv)
 
 			if (e != GF_OK && e != GF_ISOM_INCOMPLETE_FILE) {
 				fprintf(stdout, "Error refreshing fragmented mp4: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
-				return -1;
+				gf_sys_close();
+				ret = 1;
+				goto exit;
 			}
 		}
 		
 		gf_sleep(1);
-
 	}
 
+exit:
 	/* stop the parser */
 	reader.do_run = GF_FALSE;
+	gf_th_stop(reading_thread);
 
 	/* clean structures */
 	gf_th_del(reading_thread);
@@ -272,7 +297,7 @@ int main(int argc, char **argv)
 	fclose(input);
 	gf_sys_close();
 
-	return GF_OK;
+	return ret;
 }
 
 
