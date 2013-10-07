@@ -133,6 +133,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 #define TTXT_DEFAULT_HEIGHT	60
 #define TTXT_DEFAULT_FONT_SIZE	18
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 static void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *height)
 {
 	u32 w, h, f_w, f_h, i;
@@ -163,7 +164,6 @@ static void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *he
 }
 
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
 {
 	if (import->esd && import->esd->langDesc) {
