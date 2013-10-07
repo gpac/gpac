@@ -2029,7 +2029,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 
 
 GF_EXPORT
-GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const char *new_location)
+GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const char *new_location, Bool do_parse)
 {
 	u32 i;
 	u64 prevsize, size;
@@ -2050,7 +2050,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
  		if (e) return e;
 
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
-			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+			GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
 			if (trak->Media->information->dataHandler == previous_movie_fileMap_address) {
 				//reaasign for later destruction
 				trak->Media->information->scalableDataHandler = movie->movieFileMap;
@@ -2064,8 +2064,78 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	if (prevsize==size) return GF_OK;
 
 	//ok parse root boxes
-	return gf_isom_parse_movie_boxes(movie, MissingBytes, 1);
+	if (do_parse) {
+		return gf_isom_parse_movie_boxes(movie, MissingBytes, GF_TRUE);
+	} else {
+		return GF_OK;
+	}
 #endif
+}
+
+GF_EXPORT
+GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start) 
+{
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	u64 MissingBytes;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	*top_box_start = movie->current_top_box_start;
+	movie->current_top_box_start = 0;
+#endif
+	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count) 
+{
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	u32 i, base_track_sample_count;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	base_track_sample_count = 0;
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
+
+		u32 type, dur;
+		u64 dts;
+		GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
+		trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
+		if (trak->sample_count_at_seg_start) {
+			GF_Err e;
+			e = stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
+			if (e == GF_OK) {
+				trak->dts_at_seg_start += dts + dur;
+			}
+		}
+#define RECREATE_BOX(_a, __cast)	\
+		if (_a) {	\
+			type = _a->type;\
+			gf_isom_box_del((GF_Box *)_a);\
+			_a = __cast gf_isom_box_new(type);\
+		}\
+
+		RECREATE_BOX(stbl->ChunkOffset, (GF_Box *));
+		RECREATE_BOX(stbl->CompositionOffset, (GF_CompositionOffsetBox *));
+		RECREATE_BOX(stbl->DegradationPriority, (GF_DegradationPriorityBox *));
+		RECREATE_BOX(stbl->PaddingBits, (GF_PaddingBitsBox *));
+		RECREATE_BOX(stbl->SampleDep, (GF_SampleDependencyTypeBox *));
+		RECREATE_BOX(stbl->SampleSize, (GF_SampleSizeBox *));
+		RECREATE_BOX(stbl->SampleToChunk, (GF_SampleToChunkBox *));
+		RECREATE_BOX(stbl->ShadowSync, (GF_ShadowSyncBox *));
+		RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
+		RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
+
+		if (reset_sample_count) {
+			trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			trak->sample_count_at_seg_start = 0;
+#endif
+		}
+	}
+
+#endif
+	return GF_OK;
+
 }
 
 GF_EXPORT

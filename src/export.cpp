@@ -640,6 +640,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragments_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragmented_samples_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_fragmented) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_tables) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_data_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_release_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_highest_track_in_scalable_segment) )
