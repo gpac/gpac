@@ -392,9 +392,8 @@ and SampleCount change too ...
 
 if new_location is set, the previous bitstream is changed to this new location, otherwise it is refreshed (disk flush)
 
-do_parse indicates if the new buffer should be parsed now or not
 */
-GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes, const char *new_location, Bool do_parse);
+GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes, const char *new_location);
 
 /*check if file has movie info, eg has tracks & dynamic media. Some files may just use
 the base IsoMedia structure without "moov" container*/
@@ -403,6 +402,10 @@ Bool gf_isom_has_movie(GF_ISOFile *file);
 /* check if the file has a top styp box and returns the brand and version of the first styp found */
 Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version);
 
+/* Indicates that we want to parse only one moof/mdat at a time 
+   in order to proceed to next moof, call gf_isom_reset_data_offset
+*/
+void gf_isom_set_single_moof_mode(GF_ISOFile *file, Bool mode);
 /********************************************************************
 				READING API FUNCTIONS
 ********************************************************************/
