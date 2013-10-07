@@ -3216,7 +3216,7 @@ int mp4boxMain(int argc, char **argv)
 		fprintf(stderr, "\n");
 	}
 	if (dump_cart) dump_cover_art(file, outfile);
-	if (dump_chap) dump_chapters(file, outfile; (dump_chap==2) ? 1 : 0);
+	if (dump_chap) dump_chapters(file, outfile, (dump_chap==2) ? 1 : 0);
 
 	if (dump_iod) {
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
