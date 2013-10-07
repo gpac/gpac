@@ -37,32 +37,6 @@ struct _webvtt_sample
     GF_List *cues;
 };
 
-typedef enum {
-    WEBVTT_PARSER_STATE_WAITING_SIGNATURE,
-    WEBVTT_PARSER_STATE_WAITING_HEADER,
-    WEBVTT_PARSER_STATE_WAITING_CUE,
-    WEBVTT_PARSER_STATE_WAITING_CUE_TIMESTAMP,
-    WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD
-} GF_WebVTTParserState;
-
-struct _webvtt_parser {
-    GF_WebVTTParserState state;
-    Bool is_srt;
-
-    /* List of non-overlapping GF_WebVTTSample */
-    GF_List              *samples;
-
-    FILE                 *vtt_in;
-    u64                  file_size;
-    s32                  unicode_type;
-
-    u64                  last_duration;
-    void *user;
-    GF_Err (*report_message)(void *, GF_Err, char *, const char *);
-    void (*on_header_parsed)(void *, const char *);
-    void (*on_sample_parsed)(void *, GF_WebVTTSample *);
-    void (*on_cue_read)(void *, GF_WebVTTCue *);
-};
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -519,76 +493,35 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_Tex
     return e;
 }
 
-//GF_Err gf_isom_get_webvtt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
-//{
-//    GF_BitStream *bs;
-//    u32 count, i;
-//    Bool has_v_info;
-//    GF_List *sampleDesc;
-//    GF_ESD *esd;
-//    GF_TrackBox *tk;
-//
-//    *out_esd = NULL;
-//    sampleDesc = mdia->information->sampleTable->SampleDescription->other_boxes;
-//    count = gf_list_count(sampleDesc);
-//    if (!count) return GF_ISOM_INVALID_MEDIA;
-//    
-//    esd = gf_odf_desc_esd_new(2);
-//    esd->decoderConfig->streamType = GF_STREAM_TEXT;
-//    esd->decoderConfig->objectTypeIndication = 0x08;
-//
-//    bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-//
-//    /*Base3GPPFormat*/
-//    gf_bs_write_u8(bs, 0x10);
-//    /*MPEGExtendedFormat*/
-//    gf_bs_write_u8(bs, 0x10);
-//    /*profileLevel*/
-//    gf_bs_write_u8(bs, 0x10);
-//    gf_bs_write_u24(bs, mdia->mediaHeader->timeScale);
-//    gf_bs_write_int(bs, 0, 1);  /*no alt formats*/
-//    gf_bs_write_int(bs, 2, 2);  /*only out-of-band-band sample desc*/
-//    gf_bs_write_int(bs, 1, 1);  /*we will write sample desc*/
-//
-//    /*write v info if any visual track in this movie*/
-//    has_v_info = GF_FALSE;
-//    i=0;
-//    while ((tk = (GF_TrackBox*)gf_list_enum(mdia->mediaTrack->moov->trackList, &i))) {
-//        if (tk->Media->handler && (tk->Media->handler->handlerType == GF_ISOM_MEDIA_VISUAL)) {
-//            has_v_info = GF_TRUE;
-//        }
-//    }
-//    gf_bs_write_int(bs, has_v_info, 1);
-//
-//    gf_bs_write_int(bs, 0, 3);  /*reserved, spec doesn't say the values*/
-//    gf_bs_write_u8(bs, mdia->mediaTrack->Header->layer);
-//    gf_bs_write_u16(bs, mdia->mediaTrack->Header->width>>16);
-//    gf_bs_write_u16(bs, mdia->mediaTrack->Header->height>>16);
-//
-//    /*write desc*/
-//    gf_bs_write_u8(bs, count);
-//    for (i=0; i<count; i++) {
-//        //GF_Tx3gSampleEntryBox *a;
-//        //a = (GF_Tx3gSampleEntryBox *) gf_list_get(sampleDesc, i);
-//        //if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT) ) continue;
-//        //gf_isom_write_tx3g(a, bs, i+1, SAMPLE_INDEX_OFFSET);
-//    }
-//    if (has_v_info) {
-//        u32 trans;
-//        gf_bs_write_u16(bs, 0);
-//        gf_bs_write_u16(bs, 0);
-//        trans = mdia->mediaTrack->Header->matrix[6]; trans >>= 16;
-//        gf_bs_write_u16(bs, trans);
-//        trans = mdia->mediaTrack->Header->matrix[7]; trans >>= 16;
-//        gf_bs_write_u16(bs, trans);
-//    }
-//
-//    gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
-//    gf_bs_del(bs);
-//    *out_esd = esd;
-//    return GF_OK;
-//}
 #endif /*GPAC_DISABLE_ISOM*/
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+typedef enum {
+    WEBVTT_PARSER_STATE_WAITING_SIGNATURE,
+    WEBVTT_PARSER_STATE_WAITING_HEADER,
+    WEBVTT_PARSER_STATE_WAITING_CUE,
+    WEBVTT_PARSER_STATE_WAITING_CUE_TIMESTAMP,
+    WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD
+} GF_WebVTTParserState;
+
+struct _webvtt_parser {
+    GF_WebVTTParserState state;
+    Bool is_srt;
+
+    /* List of non-overlapping GF_WebVTTSample */
+    GF_List              *samples;
+
+    FILE                 *vtt_in;
+    u64                  file_size;
+    s32                  unicode_type;
+
+    u64                  last_duration;
+    void *user;
+    GF_Err (*report_message)(void *, GF_Err, char *, const char *);
+    void (*on_header_parsed)(void *, const char *);
+    void (*on_sample_parsed)(void *, GF_WebVTTSample *);
+    void (*on_cue_read)(void *, GF_WebVTTCue *);
+};
 
 /* mark the overlapped cue in the previous sample as split */
 /* duplicate the cue, mark it as split and adjust its timing */
@@ -806,14 +739,6 @@ void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour
 
     fprintf(dump, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
 }
-
-//void gf_webvtt_timestamp_add(GF_WebVTTTimestamp *ts, u64 value)
-//{
-//    u64 tmp;
-//    tmp = gf_webvtt_timestamp_get(ts);
-//    tmp+= value;
-//    gf_webvtt_timestamp_set(ts, tmp);
-//}
 
 static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *samples, GF_WebVTTCue *cue)
 {
@@ -1441,6 +1366,7 @@ GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISO
 
     return GF_OK;
 }
+#endif //GPAC_DISABLE_MEDIA_IMPORT
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 duration)
