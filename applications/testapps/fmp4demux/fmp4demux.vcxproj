@@ -1,0 +1,187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\isomedia\avc_ext.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_code_3gpp.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_code_adobe.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_code_apple.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_code_base.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_code_drm.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_code_meta.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_dump.c" />
+    <ClCompile Include="..\..\..\src\isomedia\box_funcs.c" />
+    <ClCompile Include="..\..\..\src\isomedia\data_map.c" />
+    <ClCompile Include="..\..\..\src\isomedia\drm_sample.c" />
+    <ClCompile Include="..\..\..\src\isomedia\generic_subtitle.c" />
+    <ClCompile Include="..\..\..\src\isomedia\hinting.c" />
+    <ClCompile Include="..\..\..\src\isomedia\hint_track.c" />
+    <ClCompile Include="..\..\..\src\isomedia\isom_intern.c" />
+    <ClCompile Include="..\..\..\src\isomedia\isom_read.c" />
+    <ClCompile Include="..\..\..\src\isomedia\isom_store.c" />
+    <ClCompile Include="..\..\..\src\isomedia\isom_write.c" />
+    <ClCompile Include="..\..\..\src\isomedia\media.c" />
+    <ClCompile Include="..\..\..\src\isomedia\media_odf.c" />
+    <ClCompile Include="..\..\..\src\isomedia\meta.c" />
+    <ClCompile Include="..\..\..\src\isomedia\movie_fragments.c" />
+    <ClCompile Include="..\..\..\src\isomedia\sample_descs.c" />
+    <ClCompile Include="..\..\..\src\isomedia\stbl_read.c" />
+    <ClCompile Include="..\..\..\src\isomedia\stbl_write.c" />
+    <ClCompile Include="..\..\..\src\isomedia\track.c" />
+    <ClCompile Include="..\..\..\src\isomedia\tx3g.c" />
+    <ClCompile Include="..\..\..\src\media_tools\text_import.c" />
+    <ClCompile Include="..\..\..\src\media_tools\webvtt.c" />
+    <ClCompile Include="..\..\..\src\odf\descriptors.c" />
+    <ClCompile Include="..\..\..\src\odf\desc_private.c" />
+    <ClCompile Include="..\..\..\src\odf\odf_code.c" />
+    <ClCompile Include="..\..\..\src\odf\odf_codec.c" />
+    <ClCompile Include="..\..\..\src\odf\odf_command.c" />
+    <ClCompile Include="..\..\..\src\odf\odf_dump.c" />
+    <ClCompile Include="..\..\..\src\odf\odf_parse.c" />
+    <ClCompile Include="..\..\..\src\odf\slc.c" />
+    <ClCompile Include="..\..\..\src\utils\alloc.c" />
+    <ClCompile Include="..\..\..\src\utils\bitstream.c" />
+    <ClCompile Include="..\..\..\src\utils\configfile.c" />
+    <ClCompile Include="..\..\..\src\utils\error.c" />
+    <ClCompile Include="..\..\..\src\utils\list.c" />
+    <ClCompile Include="..\..\..\src\utils\os_config_init.c" />
+    <ClCompile Include="..\..\..\src\utils\os_divers.c" />
+    <ClCompile Include="..\..\..\src\utils\os_thread.c" />
+    <ClCompile Include="..\..\..\src\utils\url.c" />
+    <ClCompile Include="..\..\..\src\utils\utf.c" />
+    <ClCompile Include="main.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{978A2D9F-E44F-4073-8032-333563BCC160}</ProjectGuid>
+    <ProjectName>fmp4demux</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.60610.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>../../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <IntDir>obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\Release\</OutDir>
+    <IntDir>.\Release\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <TypeLibraryName>.\Debug/fmp4demux.tlb</TypeLibraryName>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../../include;../../../extra_lib/include/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>$(OutDir);../../../extra_lib/lib/$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)$(ProjectName).pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug/fmp4demux.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <TypeLibraryName>.\Release/fmp4demux.tlb</TypeLibraryName>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeaderOutputFile>.\Release/fmp4demux.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
+      <ObjectFileName>.\Release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../../bin/$(Platform)/$(Configuration)/MP42TS.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>../../../extra_lib/lib/w32_rel;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>.\Release/fmp4demux.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release/fmp4demux.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

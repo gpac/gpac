@@ -46,23 +46,23 @@
 
 /*SSL enabled*/
 #if defined(WIN32) && !defined(_WIN64)
-#define GPAC_HAS_SSL
+//#define GPAC_HAS_SSL
 #endif
 
 /*spidermonkey enabled*/
-#define GPAC_HAS_SPIDERMONKEY
+//#define GPAC_HAS_SPIDERMONKEY
 #ifdef GPAC_CONFIG_DARWIN
 #define MOZILLA_1_8_BRANCH
 #endif
 
 /*zlib enabled*/
-//#define GPAC_DISABLE_ZLIB
+#define GPAC_DISABLE_ZLIB
 
 /*libjpeg enabled*/
-#define GPAC_HAS_JPEG
+//#define GPAC_HAS_JPEG
 
 /*pnj enabled*/
-#define GPAC_HAS_PNG
+//#define GPAC_HAS_PNG
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 //#define GPAC_HAS_IPV6
@@ -71,6 +71,7 @@
 #ifdef GPAC_CONFIG_DARWIN
 //#define GPAC_DISABLE_3D
 #endif
+#define GPAC_DISABLE_3D
 
 /*use TinyGL instead of OpenGL*/
 //#define GPAC_USE_TINYGL
@@ -132,7 +133,7 @@
 /*comment this line if you don't have a GLU32 version for Windows Mobile*/
 //#define GPAC_HAS_GLU
 #elif defined(WIN32)
-#define GPAC_HAS_GLU
+//#define GPAC_HAS_GLU
 #endif
 
 #if defined(_WIN64)
@@ -140,79 +141,79 @@
 #endif
 
 /*disables SVG scene graph*/
-//#define GPAC_DISABLE_SVG
+#define GPAC_DISABLE_SVG
 
 /*disables VRML/BIFS scene graphs*/
-//#define GPAC_DISABLE_VRML
+#define GPAC_DISABLE_VRML
 
 /*disables X3D scene graphs*/
-//#define GPAC_DISABLE_X3D
+#define GPAC_DISABLE_X3D
 
 /*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed*/
-//#define GPAC_MINIMAL_ODF
+#define GPAC_MINIMAL_ODF
 
 /*disables BIFS coding*/
-//#define GPAC_DISABLE_BIFS
+#define GPAC_DISABLE_BIFS
 
 /*disables LASeR coder*/
-//#define GPAC_DISABLE_LASER
+#define GPAC_DISABLE_LASER
 
 /*disables BIFS Engine support - TODO - merge DIMS and LASeR into BENG and rename it*/
-//#define GPAC_DISABLE_SENG
+#define GPAC_DISABLE_SENG
 
 /*disables Cubic QTVR importing*/
-//#define GPAC_DISABLE_QTVR
+#define GPAC_DISABLE_QTVR
 
 /*disables AVILib support*/
-//#define GPAC_DISABLE_AVILIB
+#define GPAC_DISABLE_AVILIB
 
 /*disables OGG support*/
-//#define GPAC_DISABLE_OGG
+#define GPAC_DISABLE_OGG
 
 /*disables MPEG2 PS support*/
-//#define GPAC_DISABLE_MPEG2PS
+#define GPAC_DISABLE_MPEG2PS
 
 /*disables MPEG2 TS demux support*/
-//#define GPAC_DISABLE_MPEG2TS
+#define GPAC_DISABLE_MPEG2TS
 
 /*disables MPEG2 TS Mux support*/
-//#define GPAC_DISABLE_MPEG2TS_MUX
+#define GPAC_DISABLE_MPEG2TS_MUX
 
 /*disables all media import functions*/
-//#define GPAC_DISABLE_MEDIA_IMPORT
+#define GPAC_DISABLE_MEDIA_IMPORT
 
 /*disable all AV parsing functions*/
-//#define GPAC_DISABLE_AV_PARSERS
+#define GPAC_DISABLE_AV_PARSERS
 
 /*disables all media export functions*/
-//#define GPAC_DISABLE_MEDIA_EXPORT
+#define GPAC_DISABLE_MEDIA_EXPORT
 
 /*disables SWF importer*/
-//#define GPAC_DISABLE_SWF_IMPORT
+#define GPAC_DISABLE_SWF_IMPORT
 
 /*disables all media export functions*/
-//#define GPAC_DISABLE_SCENE_STATS
+#define GPAC_DISABLE_SCENE_STATS
 
 /*disables scene -> MP4 encoder*/
-//#define GPAC_DISABLE_SCENE_ENCODER
+#define GPAC_DISABLE_SCENE_ENCODER
 
 /*disables ISOM -> scene decoder*/
-//#define GPAC_DISABLE_LOADER_ISOM
+#define GPAC_DISABLE_LOADER_ISOM
 
 /*disables BT/WRL/X3DV -> scene decoder*/
-//#define GPAC_DISABLE_LOADER_BT
+#define GPAC_DISABLE_LOADER_BT
 
 /*disables XMTA/X3D -> scene decoder*/
-//#define GPAC_DISABLE_LOADER_XMT
+#define GPAC_DISABLE_LOADER_XMT
 
 /*disables mcrypt*/
-//#define GPAC_DISABLE_MCRYPT
+#define GPAC_DISABLE_MCRYPT
 
 /*disables all ISO FF*/
 //#define GPAC_DISABLE_ISOM
 
 /*disables ISO FF hint tracks*/
-//#define GPAC_DISABLE_ISOM_HINTING
+#define GPAC_DISABLE_ISOM_HINTING
 
 /*disables ISO FF writing*/
 //#define GPAC_DISABLE_ISOM_WRITE
@@ -221,19 +222,19 @@
 //#define GPAC_DISABLE_ISOM_FRAGMENTS
 
 /*disables scene graph textual dump*/
-//#define GPAC_DISABLE_SCENE_DUMP
+#define GPAC_DISABLE_SCENE_DUMP
 
 /*disables OD graph textual dump*/
-//#define GPAC_DISABLE_OD_DUMP
+#define GPAC_DISABLE_OD_DUMP
 
 /*disables OD graph textual dump*/
-//#define GPAC_DISABLE_ISOM_DUMP
+#define GPAC_DISABLE_ISOM_DUMP
 
 /*disables IETF RTP/SDP/RTSP*/
-//#define GPAC_DISABLE_STREAMING
+#define GPAC_DISABLE_STREAMING
 
 /*disables dashclient */
-//#define GPAC_DISABLE_DASH_CLIENT
+#define GPAC_DISABLE_DASH_CLIENT
 
 #endif		/*_GF_CONFIG_H_*/
 
