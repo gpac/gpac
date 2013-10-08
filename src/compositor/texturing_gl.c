@@ -336,7 +336,10 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_OGL_ES 
-		if (!compositor->disable_yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
+        if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
+            use_yuv_shaders = 1;
+            break;
+        } else if (!compositor->disable_yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
 			txh->tx_io->gl_format = compositor->gl_caps.yuv_texture;
 			txh->tx_io->nb_comp = 3;
 			txh->tx_io->gl_dtype = UNSIGNED_SHORT_8_8_MESA;
@@ -376,6 +379,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 	tx_id[0] = txh->tx_io->id;
 
+#ifndef GPAC_USE_OGL_ES
 	if (use_yuv_shaders && !txh->tx_io->u_id) {
 		glGenTextures(1, &txh->tx_io->u_id);
 		glGenTextures(1, &txh->tx_io->v_id);
@@ -404,7 +408,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			glUseProgram(0);
 		}
 	}
-
+#endif
+    
 	if (use_yuv_shaders) {
 		txh->tx_io->gl_format = GL_LUMINANCE;
 		txh->tx_io->nb_comp = 1;
@@ -1409,6 +1414,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 	txh->flags |= GF_SR_TEXTURE_USED;
 
+#ifndef GPAC_USE_OGL_ES
 	if (txh->tx_io->yuv_shader) {
 		/*use our program*/
 		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
@@ -1427,7 +1433,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		
 		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
 		glClientActiveTexture(GL_TEXTURE0);
-	} else {
+	} else 
+#endif
+    {
 		tx_bind(txh);
 	}
 	return 1;

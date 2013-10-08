@@ -2100,9 +2100,8 @@ GF_EXPORT
 GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count) 
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	u32 i, base_track_sample_count;
+    u32 i;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
-	base_track_sample_count = 0;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
 
