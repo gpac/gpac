@@ -3161,7 +3161,10 @@ restart_period:
 
 		/*for each selected groups*/
 		for (i=0; i<group_count; i++) {		
-			Bool in_segment_avail_time;
+            //commented out as we end up doing too many requets
+#if 0
+			Bool in_segment_avail_time=0;
+#endif
 			u64 start_range, end_range;
 			Bool use_byterange;
 			u32 representation_index;
@@ -3245,8 +3248,6 @@ restart_period:
 				continue;
 			}
 
-			in_segment_avail_time = 0;
-
 			/*check availablity start time of segment in Live !!*/
 			if (!group->broken_timing && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->is_m3u8) {
 				s32 to_wait = 0;
@@ -3273,9 +3274,11 @@ restart_period:
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 					}
+#if 0
 					/*check if we are in the segment availability end time*/
 					if (now < segment_ast + seg_dur_ms + group->time_shift_buffer_depth )
 						in_segment_avail_time = 1;
+#endif
 				}
 			}
 			min_wait = 0;

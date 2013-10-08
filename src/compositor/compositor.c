@@ -451,7 +451,9 @@ static u32 gf_sc_proc(void *par)
 			gf_sc_simulation_tick(compositor);
 	}
 
+#ifndef GPAC_DISABLE_3D
 	visual_3d_reset_graphics(compositor->visual);
+#endif
 	/*destroy video out here if we're using openGL, to avoid threading issues*/
 	compositor->video_out->Shutdown(compositor->video_out);
 	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
