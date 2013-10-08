@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\isomedia\avc_ext.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_code_3gpp.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_code_adobe.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_code_apple.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_code_base.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_code_drm.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_code_meta.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\box_funcs.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\data_map.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\drm_sample.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\isom_intern.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\isom_read.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\isom_store.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\isom_write.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\media.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\media_odf.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\meta.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\movie_fragments.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\sample_descs.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\stbl_read.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\stbl_write.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\track.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\tx3g.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\bitstream.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\error.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\list.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\desc_private.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\descriptors.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\odf_code.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\odf_codec.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\odf_command.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\odf_parse.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\media_tools\webvtt.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c" />
+    <ClCompile Include="..\..\..\src\utils\url.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\odf\slc.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\alloc.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\configfile.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\os_thread.c" />
+    <ClCompile Include="..\..\..\src\utils\os_divers.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="isoff">
+      <UniqueIdentifier>{c9a8f639-328c-4505-be50-4859357c2c00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="others">
+      <UniqueIdentifier>{e5ca7285-ca00-49d8-ac81-dff3d494be9a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
