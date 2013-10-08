@@ -221,11 +221,13 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 {
 	if (txh && txh->tx_io) {
 
+#ifndef GPAC_USE_OGL_ES 
 		if (txh->tx_io->yuv_shader) {
 			glUseProgram(0);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(txh->tx_io->gl_type, 0);
 		}
+#endif
 		glDisable(txh->tx_io->gl_type);
 		if (txh->transparent) glDisable(GL_BLEND);
 	}
