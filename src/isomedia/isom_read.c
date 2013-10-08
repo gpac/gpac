@@ -2165,6 +2165,8 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			trak->Media->information->dataHandler = NULL;
 		}
 		if (trak->Media->information->scalableDataHandler == movie->movieFileMap) {
+			trak->Media->information->scalableDataHandler = NULL;
+		} else {
 			gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
 			trak->Media->information->scalableDataHandler = NULL;
 		}

@@ -1217,7 +1217,11 @@ GF_Err gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target)
 
 GF_Err gf_mo_event_target_remove_by_index(GF_MediaObject *mo, u32 i)
 {
+	GF_DOMEventTarget *target;
     if (!mo) return GF_BAD_PARAM;
+	target = (GF_DOMEventTarget *)gf_list_get(mo->evt_targets, i);
+	if (target && target->evt_list) gf_list_del(target->evt_list);
+	if (target) gf_free(target);
     gf_list_rem(mo->evt_targets, i);
     return GF_OK;
 }
@@ -1252,6 +1256,8 @@ GF_Err gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node)
     for (i = 0; i < count; i++) {
         GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(mo->evt_targets, i);
         if (target->ptr == node) {
+			if (target && target->evt_list) gf_list_del(target->evt_list);
+			if (target) gf_free(target);
             gf_list_del_item(mo->evt_targets, target);
             return GF_OK;
         }

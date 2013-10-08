@@ -217,6 +217,8 @@ void gf_modules_del(GF_ModuleManager *pm)
 	}
 
 	gf_list_del(pm->plug_list);
+
+	if (pm->plugin_registry) gf_list_del(pm->plugin_registry);
 	gf_free(pm);
 }
 
