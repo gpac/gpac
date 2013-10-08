@@ -560,13 +560,9 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 
 void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 {
-/* This test creates a compilation warning under MacOS since always defined, should now compile with -Wall -Werror */
-#if (defined(GL_VERSION_2_0) && defined(GL_GLEXT_PROTOTYPES)) || defined(CONFIG_DARWIN_GL)
-#else
 	u32 i;
 	GLint loc;
-	if (!glCreateProgram) return;
-#endif /* for Linux w/ OpenGL 2 + CONFIG_DARWIN_GL ... */
+	if (glCreateProgram == NULL) return;
 
 	GL_CHECK_ERR
 	if (visual->yuv_glsl_program) return;
@@ -642,6 +638,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 	}
 
 	glUseProgram(0);  
+	GL_CHECK_ERR
 }
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
