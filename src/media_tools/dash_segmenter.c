@@ -2009,7 +2009,9 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 							break;
 					}
 					if (merge_mode==1) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 						u32 k, l, sps_id1, sps_id2;
+#endif
 						GF_AVCConfig *avccfg1 = gf_isom_avc_config_get(in, j+1, 1);
 						GF_AVCConfig *avccfg2 = gf_isom_avc_config_get(init_seg, track, 1);
 #ifndef GPAC_DISABLE_AV_PARSERS

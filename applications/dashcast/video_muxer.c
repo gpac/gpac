@@ -36,6 +36,9 @@
  */
 static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_size, GF_AVCConfig *dstcfg)
 {
+#ifdef GPAC_DISABLE_AV_PARSERS
+    return GF_OK;
+#else
 	u8 nal_size;
 	AVCState avc;
 	GF_BitStream *bs;
@@ -130,6 +133,7 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 
 	gf_bs_del(bs);
 	return GF_OK;
+#endif
 }
 
 int dc_gpac_video_moov_create(VideoOutputFile * p_voutf, char * psz_name) {
