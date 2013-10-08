@@ -1345,6 +1345,17 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	/*prefered codec module per streamType/objectType from config*/
 	sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 	sOpt = gf_cfg_get_key(term->user->config, "Systems", szPrefDec);
+
+	//little hack - FFMPEG has some weird issues with MPEG1/2 audio on some systems, try to default to MAD if present
+	if (!sOpt && (esd->decoderConfig->streamType==GF_STREAM_AUDIO)) {
+		switch (esd->decoderConfig->objectTypeIndication) {
+		case GPAC_OTI_AUDIO_MPEG2_PART3:
+		case GPAC_OTI_AUDIO_MPEG1:
+			sOpt = "MAD Decoder";
+			gf_cfg_set_key(term->user->config, "Systems", szPrefDec, sOpt);
+		}
+	}
+
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {

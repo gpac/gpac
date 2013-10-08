@@ -140,13 +140,11 @@ GLDECL_STATIC(glUniformMatrix4x3fv);
 
 void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context)
 {
-	Bool has_shaders = 0;
 #ifdef GPAC_USE_TINYGL
 	/*let TGL handle texturing*/
 	compositor->gl_caps.rect_texture = 1;
 	compositor->gl_caps.npot_texture = 1;
 #else
-
 	const char *ext = NULL;
 
 	if (compositor->visual->type_3d) 
@@ -261,7 +259,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
 
-		has_shaders = 1;
+		compositor->gl_caps.has_shaders = 1;
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported\n"));
 	}
@@ -270,10 +268,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #endif //GPAC_USE_TINYGL
 
 #ifdef GL_VERSION_2_0
-	has_shaders = 1;
+	compositor->gl_caps.has_shaders = 1;
 #endif
 
-	if (!has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
+	if (!compositor->gl_caps.has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
 		compositor->visual->nb_views=1;
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
@@ -388,6 +386,84 @@ static char *glsl_view_5VSP19 = "\
 	gl_FragColor.b = color[Vb].b;\
 	}";
 
+static char *glsl_yuv_shader = "\
+	uniform sampler2D y_plane;\
+	uniform sampler2D u_plane;\
+	uniform sampler2D v_plane;\
+	void main(void)  \
+	{\
+		vec2 texc;\
+		float y, u, v;\
+		vec4 rgb;\
+		texc = gl_TexCoord[0].st;\
+		texc.y = 1.0 - texc.y;\
+		y = (texture2D(y_plane, texc).r - 0.0625) * 1.164; \
+		u = texture2D(u_plane, texc).r - 0.5; \
+		v = texture2D(v_plane, texc).r - 0.5; \
+		rgb.r = y + 1.596*v;\
+		rgb.g = y + -0.391*u + -0.813*v;\
+		rgb.b = y + 2.018*u;\
+		rgb.a = 1.0;\
+		gl_FragColor = rgb;\
+	}";
+
+
+static char *glsl_yuv_rect_shader_strict = "\
+	#version 140\n\
+	#extension GL_ARB_texture_rectangle : enable\n\
+	uniform sampler2DRect y_plane;\
+	uniform sampler2DRect u_plane;\
+	uniform sampler2DRect v_plane;\
+	uniform float width;\
+	uniform float height;\
+	out vec4 FragColor;\
+	void main(void)  \
+	{\
+		vec2 texc;\
+		float y, u, v;\
+		vec4 rgb;\
+		texc = gl_TexCoord[0].st;\
+		texc.y = 1.0 - texc.y;\
+		texc.x *= width;\
+		texc.y *= height;\
+		y = (texture2DRect(y_plane, texc).r - 0.0625) * 1.164; \
+		texc.x /= 2.0;\
+		texc.y /= 2.0;\
+		u = texture2DRect(u_plane, texc).r - 0.5; \
+		v = texture2DRect(v_plane, texc).r - 0.5; \
+		rgb.r = y + 1.596*v;\
+		rgb.g = y + -0.391*u + -0.813*v;\
+		rgb.b = y + 2.018*u;\
+		rgb.a = 1.0;\
+		FragColor = rgb;\
+	}";
+
+static char *glsl_yuv_rect_shader_relaxed= "\
+	uniform sampler2DRect y_plane;\
+	uniform sampler2DRect u_plane;\
+	uniform sampler2DRect v_plane;\
+	uniform float width;\
+	uniform float height;\
+	void main(void)  \
+	{\
+		vec2 texc;\
+		float y, u, v;\
+		vec4 rgb;\
+		texc = gl_TexCoord[0].st;\
+		texc.y = 1.0 - texc.y;\
+		texc.x *= width;\
+		texc.y *= height;\
+		y = (texture2DRect(y_plane, texc).r - 0.0625) * 1.164; \
+		texc.x /= 2.0;\
+		texc.y /= 2.0;\
+		u = texture2DRect(u_plane, texc).r - 0.5; \
+		v = texture2DRect(v_plane, texc).r - 0.5; \
+		rgb.r = y + 1.596*v;\
+		rgb.g = y + -0.391*u + -0.813*v;\
+		rgb.b = y + 2.018*u;\
+		rgb.a = 1.0;\
+		gl_FragColor = rgb;\
+	}";
 
 Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
@@ -414,7 +490,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	return 1;
 }
 
-void visual_3d_init_shaders(GF_VisualManager *visual)
+void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 {
 /* This test creates a compilation warning under MacOS since always defined, should now compile with -Wall -Werror */
 #if (defined(GL_VERSION_2_0) && defined(GL_GLEXT_PROTOTYPES)) || defined(CONFIG_DARWIN_GL)
@@ -426,8 +502,10 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	
 	visual->glsl_program = glCreateProgram();
 
-	visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
-	visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);
+	if (!visual->glsl_vertex) {
+		visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
+		visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);
+	}
 
 	switch (visual->autostereo_type) {
 	case GF_3D_STEREO_COLUMNS:
@@ -477,6 +555,94 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	glLinkProgram(visual->glsl_program);  
 }
 
+#define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
+#define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
+
+void visual_3d_init_yuv_shader(GF_VisualManager *visual)
+{
+/* This test creates a compilation warning under MacOS since always defined, should now compile with -Wall -Werror */
+#if (defined(GL_VERSION_2_0) && defined(GL_GLEXT_PROTOTYPES)) || defined(CONFIG_DARWIN_GL)
+#else
+	u32 i;
+	GLint loc;
+	if (!glCreateProgram) return;
+#endif /* for Linux w/ OpenGL 2 + CONFIG_DARWIN_GL ... */
+
+	GL_CHECK_ERR
+	if (visual->yuv_glsl_program) return;
+	
+	visual->yuv_glsl_program = glCreateProgram();
+
+	if (!visual->glsl_vertex) {
+		visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
+		visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);
+	}
+
+	visual->yuv_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+	visual_3d_compile_shader(visual->yuv_glsl_fragment, "fragment", glsl_yuv_shader);
+
+	glAttachShader(visual->yuv_glsl_program, visual->glsl_vertex);
+	glAttachShader(visual->yuv_glsl_program, visual->yuv_glsl_fragment);
+	glLinkProgram(visual->yuv_glsl_program);  
+
+	//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
+	glUseProgram(visual->yuv_glsl_program);  
+	for (i=0; i<3; i++) {
+		const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
+		loc = glGetUniformLocation(visual->yuv_glsl_program, txname);
+		if (loc == -1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
+			continue;
+		}
+		glUniform1i(loc, i);
+	}
+
+	if (visual->compositor->gl_caps.rect_texture) {
+		Bool res;
+		const char *opt;
+		visual->yuv_rect_glsl_program = glCreateProgram();
+
+		opt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "YUVShader");
+		visual->yuv_rect_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		if (opt && !strcmp(opt, "Relaxed")) {
+			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
+		} else {
+			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_strict);
+			if (!res) {
+				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
+				if (res) {
+					gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVShader", "Relaxed");
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntaxed version of YUV shader\n"));
+				}
+			}
+		}
+		if (!res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Unable to compile fragment shader for rectangular extensions\n"));
+			DEL_SHADER(visual->yuv_rect_glsl_fragment);
+			DEL_PROGRAM(visual->yuv_rect_glsl_program);
+		}
+
+		if (visual->yuv_rect_glsl_program) {
+			glAttachShader(visual->yuv_rect_glsl_program, visual->glsl_vertex);
+			glAttachShader(visual->yuv_rect_glsl_program, visual->yuv_rect_glsl_fragment);
+			glLinkProgram(visual->yuv_rect_glsl_program);  
+
+			//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
+			glUseProgram(visual->yuv_rect_glsl_program);  
+			for (i=0; i<3; i++) {
+				const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
+				loc = glGetUniformLocation(visual->yuv_rect_glsl_program, txname);
+				if (loc == -1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
+					continue;
+				}
+				glUniform1i(loc, i);
+			}
+		}
+	}
+
+	glUseProgram(0);  
+}
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
 
@@ -484,15 +650,12 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
-#define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
-
 	DEL_SHADER(visual->glsl_vertex);
 	DEL_SHADER(visual->glsl_fragment);
+	DEL_SHADER(visual->yuv_glsl_fragment);
 
-	if (visual->glsl_program ) {
-		glDeleteProgram(visual->glsl_program);
-		visual->glsl_program = 0;
-	}
+	DEL_PROGRAM(visual->glsl_program );
+	DEL_PROGRAM(visual->yuv_glsl_program );
 
 	if (visual->gl_textures) {
 		glDeleteTextures(visual->nb_views, visual->gl_textures);
@@ -504,7 +667,6 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 		visual->autostereo_mesh = NULL;
 	}
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
-
 }
 
 
@@ -544,7 +706,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual3D] AutoStereo initialized - width %d height %d\n", visual->auto_stereo_width, visual->auto_stereo_height) );
 
-	visual_3d_init_shaders(visual);
+	visual_3d_init_stereo_shaders(visual);
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
 	return GF_OK;
