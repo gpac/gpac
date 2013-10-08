@@ -874,6 +874,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 }
 
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc, AVCState *avc)
 {
 	u8 type;
@@ -988,22 +989,23 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	fputs("\"", dump);
 	if (bs) gf_bs_del(bs);
 }
+#endif
 
 void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 {
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
-	Bool is_hevc = 0;
 	FILE *dump;
 	s32 countRef;
-	AVCState avc;
-
 #ifndef GPAC_DISABLE_AV_PARSERS
+	Bool is_hevc = 0;
+	AVCState avc;
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg;
 	GF_AVCConfigSlot *slc;
-#endif
 
 	memset(&avc, 0, sizeof(AVCState));
+#endif
+
 	if (inName) {
 		char szBuf[GF_MAX_PATH];
 		strcpy(szBuf, inName);
@@ -1119,7 +1121,9 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 				break;
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
+#ifndef GPAC_DISABLE_AV_PARSERS
 				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc, &avc);
+#endif
 				fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -1136,8 +1140,10 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	fprintf(dump, "</NALUTrack>\n");
 
 	if (inName) fclose(dump);
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+#endif
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 

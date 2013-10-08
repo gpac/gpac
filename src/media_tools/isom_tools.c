@@ -53,7 +53,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		if (e) return e;
 #endif
 	}
-#ifndef GPAC_DISABLE_HEVC
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 	else if (stype==GF_4CC('h','v','c','1')) {
 		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
 		gf_media_hevc_change_par(hvcc, ar_num, ar_den);
@@ -1926,6 +1926,9 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 GF_EXPORT
 GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 {
+#if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
+	return GF_NOT_SUPPORTED;
+#else
 	u32 i, j, cur_tile, count, stype, track, nb_tracks, di, nalu_size_length;
 	s32 pps_idx=-1;
 	GF_Err e;
@@ -2045,6 +2048,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 err_exit:
 	gf_free(tiles_track);
 	return e;
+#endif
 }
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
@@ -2247,7 +2251,7 @@ err_exit:
 GF_EXPORT
 GF_Err gf_media_split_tiles(GF_ISOFile *file)
 {
-#ifdef GPAC_DISABLE_HEVC
+#if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
 #else
 	u32 i, j, count, stype, track, nb_tracks, di, nalu_size_length;

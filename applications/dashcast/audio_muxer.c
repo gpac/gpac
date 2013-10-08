@@ -35,8 +35,10 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 	u32 track;
 	u8 bpsample;
 	GF_ESD * p_esd;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo acfg;
-
+#endif
+    
 	p_aoutf->p_isof = gf_isom_open(psz_name,
 			GF_ISOM_OPEN_WRITE, NULL);
 
@@ -46,16 +48,8 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 		return -1;
 	}
 
-	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
-	acfg.base_object_type = GF_M4A_LAYER2;
-	acfg.base_sr = p_audio_codec_ctx->sample_rate;
-	acfg.nb_chan = p_audio_codec_ctx->channels;
-	acfg.sbr_object_type = 0;
-
-	acfg.audioPL = gf_m4a_get_profile(&acfg);
-
 	p_esd = gf_odf_desc_esd_new(2);
-
+    
 	if (!p_esd) {
 		fprintf(stderr, "Cannot create GF_ESD\n");
 		return -1;
@@ -70,11 +64,19 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 	p_esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 	p_esd->ESID = 1;
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+	acfg.base_object_type = GF_M4A_LAYER2;
+	acfg.base_sr = p_audio_codec_ctx->sample_rate;
+	acfg.nb_chan = p_audio_codec_ctx->channels;
+	acfg.sbr_object_type = 0;
+	acfg.audioPL = gf_m4a_get_profile(&acfg);
+    
 	ret = gf_m4a_write_config(&acfg, &p_esd->decoderConfig->decoderSpecificInfo->data, &p_esd->decoderConfig->decoderSpecificInfo->dataLength);
 
+#endif
 	//gf_isom_store_movie_config(p_voutf->p_isof, 0);
-	track = gf_isom_new_track(p_aoutf->p_isof, p_esd->ESID,
-			GF_ISOM_MEDIA_AUDIO, p_audio_codec_ctx->sample_rate);
+	track = gf_isom_new_track(p_aoutf->p_isof, p_esd->ESID, GF_ISOM_MEDIA_AUDIO, p_audio_codec_ctx->sample_rate);
 
 	//printf("TimeScale: %d \n", p_video_codec_ctx->time_base.den);
 	if (!track) {
@@ -114,8 +116,9 @@ int dc_gpac_audio_moov_create(AudioOutputFile * p_aoutf, char * psz_name) {
 		return -1;
 	}
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	ret = gf_isom_set_pl_indication(p_aoutf->p_isof, GF_ISOM_PL_AUDIO, acfg.audioPL);
-
+#endif
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_set_pl_indication\n",
 				gf_error_to_string(ret));

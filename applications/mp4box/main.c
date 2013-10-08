@@ -1547,11 +1547,13 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}		
 #endif
+#if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
 			do_wget = argv[i+1];
 			i++;
 		}		
+#endif
 		/*******************************************************************************/
 		else if (!stricmp(arg, "-dvbhdemux")) {
 			dvbhdemux = 1;
@@ -2650,6 +2652,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
+#if !defined(DISABLE_CORE_TOOLS)
 	if (do_wget != NULL) {
 		e = gf_dm_wget(do_wget, inName, 0, 0);
 		if (e != GF_OK) {
@@ -2657,12 +2660,14 @@ int mp4boxMain(int argc, char **argv)
 		}
 		MP4BOX_EXIT_WITH_CODE(1);
 	}
-
+#endif
+    
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
 		Bool remote = 0;
 		char *mpd_base_url = gf_strdup(inName);
 		if (!strnicmp(inName, "http://", 7)) {
+#if !defined(GPAC_DISABLE_CORE_TOOLS)
 			e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0);
 			if (e != GF_OK) {
 				fprintf(stderr, "Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e));
@@ -2671,9 +2676,14 @@ int mp4boxMain(int argc, char **argv)
 			}
 			inName = "tmp_main.m3u8";
 			remote = 1;
+#else
+			fprintf(stderr, "HTTP Downloader disabled in this build\n");
+            MP4BOX_EXIT_WITH_CODE(1);
+#endif
 		}
-		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", 1, use_url_template, NULL);
+        e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", 1, use_url_template, NULL);
 		gf_free(mpd_base_url);
+        
 		if (remote) {
 			//gf_delete_file("tmp_main.m3u8");
 		}
