@@ -191,6 +191,7 @@ void isor_declare_objects(ISOMReader *read)
 					}
 				}
 
+				if (esd->decoderConfig->decoderSpecificInfo->data) gf_free(esd->decoderConfig->decoderSpecificInfo->data);
 				gf_odf_avc_cfg_write(cfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 				gf_odf_avc_cfg_del(cfg);
 			}

@@ -1046,6 +1046,7 @@ void isor_client_del(GF_BaseInterface *bi)
 	GF_InputService *plug = (GF_InputService *) bi;
 	ISOMReader *read = (ISOMReader *)plug->priv;
 
+	if (read->segment_mutex) gf_mx_del(read->segment_mutex);
 	gf_list_del(read->channels);
 	gf_free(read);
 	gf_free(bi);
