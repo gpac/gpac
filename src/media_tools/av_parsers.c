@@ -1480,9 +1480,13 @@ static u32 bs_get_ue(GF_BitStream *bs)
 	u8 coded;
 	u32 bits = 0, read = 0;
 	while (1) {
-		if (!gf_bs_available(bs)) break;
 		read = gf_bs_peek_bits(bs, 8, 0);
 		if (read) break;
+		//check whether we still have bits once the peek is done since we may have less than 8 bits available
+		if (!gf_bs_available(bs)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC/HEVC] Not enough bits in bitstream !!\n"));
+			return 0;
+		}
 		gf_bs_read_int(bs, 8);
 		bits += 8;
 	}
@@ -3402,10 +3406,12 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	sps->log2_max_pic_order_cnt_lsb = 4 + bs_get_ue(bs);
 
 	sps_sub_layer_ordering_info_present_flag = gf_bs_read_int(bs, 1);
-	for(i= sps_sub_layer_ordering_info_present_flag ? 0 : max_sub_layers_minus1; i<=max_sub_layers_minus1; i++) {
-		/*max_dec_pic_buffering = */ bs_get_ue(bs);
-		/*num_reorder_pics = */ bs_get_ue(bs);
-		/*max_latency_increase = */ bs_get_ue(bs);
+	if (sps_sub_layer_ordering_info_present_flag ) {
+		for(i=0; i<=max_sub_layers_minus1; i++) {
+			/*max_dec_pic_buffering = */ bs_get_ue(bs);
+			/*num_reorder_pics = */ bs_get_ue(bs);
+			/*max_latency_increase = */ bs_get_ue(bs);
+		}
 	}
 
 	log2_min_luma_coding_block_size = 3 + bs_get_ue(bs);
