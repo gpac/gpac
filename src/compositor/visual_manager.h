@@ -191,6 +191,11 @@ struct _visual_manager
 	GF_SHADERID glsl_program;
 	GF_SHADERID glsl_vertex;
 	GF_SHADERID glsl_fragment;
+	
+	GF_SHADERID yuv_glsl_program;
+	GF_SHADERID yuv_glsl_fragment;
+	GF_SHADERID yuv_rect_glsl_program;
+	GF_SHADERID yuv_rect_glsl_fragment;
 #endif
 
 #ifdef GF_SR_USE_DEPTH

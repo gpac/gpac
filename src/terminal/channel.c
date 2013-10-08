@@ -902,31 +902,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
 
 			}
-		}
-#if 0
-		/*adjust clock if M2TS PCR discontinuity*/
-		else if (hdr.m2ts_pcr==2) {
-			u32 ck;
-			u32 OCR_TS = (u32) ( hdr.objectClockReference / 27000);
-			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u - OCR Discontinuity OCR: adjusting to %d (original TS "LLD") - original clock %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, ck));
-//			gf_clock_set_time(ch->clock, (u32) OCR_TS);
-		}
-		/*compute clock drift*/
-		else {
-			u32 ck;
-			u32 OCR_TS;
-			if (hdr.m2ts_pcr) {
-				OCR_TS = (u32) ( hdr.objectClockReference / 27000);
-			} else {
-				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
-			}
-			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u adjusting OCR to %d (original TS "LLD") - diff %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck));
-//			gf_clock_set_time(ch->clock, (u32) OCR_TS);
-		}
-#else
-		{
+		} else {
 			u32 ck;
 			u32 OCR_TS;
 			s32 pcr_diff, pcr_pcrprev_diff;
@@ -940,20 +916,20 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			pcr_diff = (s32) OCR_TS - (s32) ck;
 			pcr_pcrprev_diff = pcr_diff - ch->prev_pcr_diff;
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+
 			//PCR loop or disc
-			if (ABS(pcr_pcrprev_diff) > 4000) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping" ));
+			if (ch->prev_pcr_diff && ABS(pcr_pcrprev_diff) > 4000) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s (PCR diff %d - last PCR diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping", pcr_diff, ch->prev_pcr_diff));
 				gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
 
 				//and re-init timing
 				gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
 				return;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
 				ch->prev_pcr_diff = pcr_diff;
 			}
 		}
-#endif
 		if (!payload_size) return;
 	}
 

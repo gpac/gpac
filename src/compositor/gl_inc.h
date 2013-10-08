@@ -85,7 +85,7 @@
 #endif
 
 
-#define GL_CHECK_ERR  {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, "GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
+#define GL_CHECK_ERR  {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
 
 /*macros for GL proto and fun declaration*/
 #ifdef _WIN32_WCE

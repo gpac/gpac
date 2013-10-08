@@ -2508,10 +2508,12 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 			group->max_buffer_segments = group->max_cached_segments;
 
-			/*we need one more entry in cache for segment being currently played*/
-			if (group->max_cached_segments<3)
-				group->max_cached_segments ++;
-
+			/*unless we are in low latency modes*/
+			if (dash->max_cache_duration>1000) {
+				/*we need one more entry in cache for segment being currently played*/
+				if (group->max_cached_segments<3)
+					group->max_cached_segments ++;
+			}
 			group->max_cached_segments *= (nb_dependant_rep+1);
 			group->max_buffer_segments *= (nb_dependant_rep+1);
 		}
@@ -3329,9 +3331,11 @@ restart_period:
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - segment was lost at server/proxy side\n", new_base_seg_url, gf_error_to_string(e)));
 						group->download_segment_index++;
 						group->segment_in_valid_range=0;
+#if 0
 					} else if (in_segment_avail_time) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Couldn't get segment %s during its availability period (%s) - retrying\n", new_base_seg_url, gf_error_to_string(e)));
 						min_wait = 30;
+#endif
 					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
 						group->time_at_first_failure = clock_time;
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));

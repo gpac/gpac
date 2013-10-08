@@ -85,6 +85,8 @@ struct __texture_wrapper
 
 	/*gl textures vars (gl_type: 2D texture or rectangle (NV ext) )*/
 	u32 nb_comp, gl_format, gl_type, gl_dtype;
+	Bool yuv_shader;
+	u32 v_id, u_id;
 #endif
 #ifdef GF_SR_USE_DEPTH
 	char *depth_data;
@@ -115,6 +117,8 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 	if (txh->tx_io->id) glDeleteTextures(1, &txh->tx_io->id);
+	if (txh->tx_io->u_id) glDeleteTextures(1, &txh->tx_io->u_id);
+	if (txh->tx_io->v_id) glDeleteTextures(1, &txh->tx_io->v_id);
 	if (txh->tx_io->scale_data) gf_free(txh->tx_io->scale_data);
 	if (txh->tx_io->conv_data) gf_free(txh->tx_io->conv_data);
 #endif
@@ -141,6 +145,11 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Releasing OpenGL texture %d\n", txh->tx_io->id));
 		glDeleteTextures(1, &txh->tx_io->id);
 		txh->tx_io->id = 0;
+		if (txh->tx_io->u_id) {
+			glDeleteTextures(1, &txh->tx_io->u_id);
+			glDeleteTextures(1, &txh->tx_io->v_id);
+			txh->tx_io->u_id = txh->tx_io->v_id = 0;
+		}
 	}
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 #endif
@@ -165,10 +174,12 @@ void gf_sc_texture_set_blend_mode(GF_TextureHandler *txh, u32 mode)
 	if (txh->tx_io) txh->tx_io->blend_mode = mode;
 }
 
-void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
+void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode, Bool no_bind)
 {
 	if (!txh->tx_io || !txh->tx_io->id || !txh->tx_io->gl_type) return;
-	glEnable(txh->tx_io->gl_type);
+
+	if (!no_bind)
+		glEnable(txh->tx_io->gl_type);
 
 	switch (blend_mode) {
 	case TX_BLEND:
@@ -189,25 +200,32 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
 		break;
 	case TX_DECAL:
 	default:
-		if ((txh->tx_io->gl_format==GL_LUMINANCE) || (txh->tx_io->gl_format==GL_LUMINANCE_ALPHA)) {
+		if (((txh->tx_io->gl_format==GL_LUMINANCE)) || (txh->tx_io->gl_format==GL_LUMINANCE_ALPHA)) {
 			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND/*GL_MODULATE*/);
 		} else {
 			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 		}
 		break;
 	}
-	glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+	if (!no_bind)
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 }
 
 void tx_bind(GF_TextureHandler *txh)
 {
 	if (txh->tx_io )
-		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode);
+		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 0);
 }
 
 void gf_sc_texture_disable(GF_TextureHandler *txh)
 {
 	if (txh && txh->tx_io) {
+
+		if (txh->tx_io->yuv_shader) {
+			glUseProgram(0);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(txh->tx_io->gl_type, 0);
+		}
 		glDisable(txh->tx_io->gl_type);
 		if (txh->transparent) glDisable(GL_BLEND);
 	}
@@ -249,14 +267,10 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 
 static Bool tx_setup_format(GF_TextureHandler *txh)
 {
-	Bool is_pow2, use_rect, flip;
+	GLint tx_id[3];
+	u32 i, nb_tx = 1;
+	Bool is_pow2, use_rect, flip, use_yuv_shaders;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
-
-	/*in case the ID has been lost, resetup*/
-	if (!txh->tx_io->id) {
-		glGenTextures(1, &txh->tx_io->id);
-		txh->tx_io->flags |= TX_EMULE_FIRST_LOAD;
-	}
 
 	/*first setup, this will force recompute bounds in case used with bitmap - we could refine and only 
 	invalidate for bitmaps only*/
@@ -279,6 +293,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 	if (!use_rect && !compositor->gl_caps.npot_texture && !is_pow2) txh->tx_io->flags = TX_MUST_SCALE;
 
+	use_yuv_shaders = 0;
 	txh->tx_io->nb_comp = txh->tx_io->gl_format = 0;
 	txh->tx_io->gl_dtype = GL_UNSIGNED_BYTE;
 	switch (txh->pixelformat) {
@@ -325,25 +340,21 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			txh->tx_io->gl_format = compositor->gl_caps.yuv_texture;
 			txh->tx_io->nb_comp = 3;
 			txh->tx_io->gl_dtype = UNSIGNED_SHORT_8_8_MESA;
-		} else 
+			break;
+		}
 #endif
-		{
+		//fallthrough
+	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUVD:
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
+			use_yuv_shaders = 1;
+		} else {
 			if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
 			txh->tx_io->gl_format = GL_RGB;
 			txh->tx_io->nb_comp = 3;
 		}
 		break;
-	case GF_PIXEL_YUY2:
-		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
-		txh->tx_io->gl_format = GL_RGB;
-		txh->tx_io->nb_comp = 3;
-		break;
 
-	case GF_PIXEL_YUVD:
-		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
-		txh->tx_io->gl_format = GL_RGB;
-		txh->tx_io->nb_comp = 3;
-		break;
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGB_24_DEPTH:
 		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
@@ -356,48 +367,96 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 
 	if (flip) txh->tx_io->flags |= TX_IS_FLIPPED;
 
+	/*in case the ID has been lost, resetup*/
+	if (!txh->tx_io->id) {
+		glGenTextures(1, &txh->tx_io->id);
+		txh->tx_io->flags |= TX_EMULE_FIRST_LOAD;
+		txh->tx_io->u_id = 0;
+		txh->tx_io->v_id = 0;
+	}
+	tx_id[0] = txh->tx_io->id;
+
+	if (use_yuv_shaders && !txh->tx_io->u_id) {
+		glGenTextures(1, &txh->tx_io->u_id);
+		glGenTextures(1, &txh->tx_io->v_id);
+		tx_id[1] = txh->tx_io->u_id;
+		tx_id[2] = txh->tx_io->v_id;
+		nb_tx = 3;
+
+
+		if (txh->tx_io->flags & TX_IS_RECT) {
+			GLint loc;
+			glUseProgram(compositor->visual->yuv_rect_glsl_program);
+			loc = glGetUniformLocation(compositor->visual->yuv_rect_glsl_program, "width");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"width\" in YUV shader\n"));
+			} else {
+				GLfloat w = (GLfloat) txh->width;
+				glUniform1f(loc, w);
+			}
+			loc = glGetUniformLocation(compositor->visual->yuv_rect_glsl_program, "height");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"width\" in YUV shader\n"));
+			} else {
+				GLfloat h = (GLfloat) txh->height;
+				glUniform1f(loc, h);
+			}
+			glUseProgram(0);
+		}
+	}
+
+	if (use_yuv_shaders) {
+		txh->tx_io->gl_format = GL_LUMINANCE;
+		txh->tx_io->nb_comp = 1;
+		txh->tx_io->yuv_shader = 1;
+	}
+
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
 	if ((txh->tx_io->flags == TX_MUST_SCALE) & !txh->tx_io->scale_data) {
 		txh->tx_io->scale_data = (char*)gf_malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
 		memset(txh->tx_io->scale_data , 0, sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
 	}
 
-	glEnable(txh->tx_io->gl_type);
-	glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+	//setup all textures
+	for (i=0; i<nb_tx; i++) {
+		glEnable(txh->tx_io->gl_type);
+		glBindTexture(txh->tx_io->gl_type, tx_id[i] );
 
 #ifdef GPAC_USE_OGL_ES
-	GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-	GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-	if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-	} else {
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+		if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		} else {
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
 #else
 
 #ifndef GPAC_USE_TINYGL
-	if (txh->tx_io->gl_type == GL_TEXTURE_2D) { 
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
-	} else
+		if (txh->tx_io->gl_type == GL_TEXTURE_2D) { 
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
+		} else
 #endif
-	{ 
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	}
+		{ 
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		}
 
-	if (txh->tx_io->gl_type == GL_TEXTURE_2D) { 
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-	} else {
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
+		if (txh->tx_io->gl_type == GL_TEXTURE_2D) { 
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		} else {
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
 #endif
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glDisable(txh->tx_io->gl_type);
+
+	    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glDisable(txh->tx_io->gl_type);
+	}
 	return 1;
 }
 
@@ -510,8 +569,10 @@ assert(txh->data );
 			txh_unpack_yuv(txh);
 			return 1;
 		}
-		bpp = 3;
-		break;
+		if (txh->tx_io->yuv_shader) {
+			txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
+			return 1;
+		}
 	case GF_PIXEL_YUY2:
 		bpp = 3;
 		break;
@@ -523,7 +584,7 @@ assert(txh->data );
 		return 0;
 	}
 	if (!txh->tx_io->conv_data) {
-		if (txh->tx_io->flags == TX_EMULE_POW2) {
+		if (txh->tx_io->flags & TX_EMULE_POW2) {
 			/*convert video to a po of 2 WITHOUT SCALING VIDEO*/
 			txh->tx_io->conv_w = gf_get_next_pow2(txh->width);
 			txh->tx_io->conv_h = gf_get_next_pow2(txh->height);
@@ -694,12 +755,37 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 	/*pow2 texture or hardware support*/
 	if (! (txh->tx_io->flags & TX_MUST_SCALE) ) {
-		first_load=1;
-		if (first_load) {
-			glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
+		if (txh->tx_io->yuv_shader) {
+			u8 *pY, *pU, *pV;
+			pY = data;
+			pU = pY + txh->height*txh->stride;
+			pV = pU + txh->height*txh->stride/4;
 
+			if (first_load) {
+				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pY);
+			} else {
+				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pY);
+			}
+
+			glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+			if (first_load) {
+				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w/2, h/2, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pU);
+			} else {
+				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w/2, h/2, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pU);
+			}
+
+			glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+			if (first_load) {
+				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w/2, h/2, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pV);
+			} else {
+				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w/2, h/2, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pV);
+			}
 		} else {
-			glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
+			if (first_load) {
+				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
+			} else {
+				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
+			}
 		}
 	} else {
 
@@ -1322,8 +1408,30 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_MODELVIEW);
 
 	txh->flags |= GF_SR_TEXTURE_USED;
-	tx_bind(txh);
+
+	if (txh->tx_io->yuv_shader) {
+		/*use our program*/
+		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
+		glUseProgram(is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program);
+
+		glEnable(txh->tx_io->gl_type);
+		
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+
+		glActiveTexture(GL_TEXTURE0 );
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+		
+		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
+		glClientActiveTexture(GL_TEXTURE0);
+	} else {
+		tx_bind(txh);
+	}
 	return 1;
+
 }
 
 u32 gf_sc_texture_enable(GF_TextureHandler *txh, GF_Node *tx_transform)

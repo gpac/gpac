@@ -865,6 +865,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 			visual_3d_init_autostereo(visual);
 			auto_stereo = 1;
 		}
+		visual_3d_init_yuv_shader(visual);
 		
 		for (visual->current_view=0; visual->current_view < visual->nb_views; visual->current_view++) {
 			GF_SceneGraph *sg;

@@ -101,6 +101,7 @@ typedef struct
 	Bool point_sprite;
 	Bool vbo;
 	u32 yuv_texture;
+	Bool has_shaders;
 } GLCaps;
 
 #endif
