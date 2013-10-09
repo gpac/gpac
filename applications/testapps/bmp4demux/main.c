@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	GF_ISOFile *movie;
 	/* Error indicator */
 	GF_Err e;
-	/* number of bytes required to finish the current ISO Box reading (not used here)*/
+	/* number of bytes required to finish the current ISO Box reading */
 	u64 missing_bytes;
 	/* Return value for the program */
 	int ret = 0;
@@ -71,13 +71,18 @@ int main(int argc, char **argv)
 
 		iso_sample = gf_isom_get_sample(movie, track_number, sample_index, &sample_description_index);
 		if (iso_sample) {
-			fprintf(stdout, "Found sample #%5d (#%5d) of length %8d, RAP: %d, DTS: "LLD", CTS: "LLD"\r", sample_index, sample_count, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
+			fprintf(stdout, "Found sample #%5d/%5d of length %8d, RAP: %d, DTS: "LLD", CTS: "LLD"\n", sample_index, sample_count, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
 			sample_index++;
 						
 			/*release the sample data, once you're done with it*/
 			gf_isom_sample_del(&iso_sample);
 		} else {
-			e = gf_isom_refresh_fragmented(movie, &missing_bytes, argv[1]);
+			e = gf_isom_last_error(movie);
+			if (e == GF_ISOM_INCOMPLETE_FILE) {
+				missing_bytes = gf_isom_get_missing_bytes(movie, track_number);
+				fprintf(stdout, "Missing "LLU" bytes on input file\n", missing_bytes);
+				gf_sleep(1000);
+			}
 		}
 	}
 
