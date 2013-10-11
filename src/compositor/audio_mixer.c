@@ -512,9 +512,10 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		}
 
 		gf_mixer_map_channels(inChan, in_ch, in->src->ch_cfg, out_ch, am->channel_cfg);
-
+		//Fixe me - we nee to uderstand how to map pan from N channels to K channels ...
 		for (j=0; j<out_ch ; j++) {
-			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
+//			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
+			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] );
 		}
 
 		in->out_samples_written ++;
@@ -578,13 +579,15 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	if (count!=1) goto do_mix;
 	if (am->force_channel_out) goto do_mix;
 	single_source = (MixerInput *) gf_list_get(am->sources, 0);
-	/*if cfg changed or unknown return*/
+	/*if cfg changed or unknown, reconfigure the mixer if the audio renderer is attached. Otherwise,  the mixer config never changes internally*/
 	if (!single_source->src->GetConfig(single_source->src, 0)) {
-		am->must_reconfig = 1;
-		gf_mixer_reconfig(am);
-		memset(buffer, 0, buffer_size);
-		gf_mixer_lock(am, 0);
-		return 0;
+		if (am->ar) {
+			am->must_reconfig = 1;
+			gf_mixer_reconfig(am);
+			memset(buffer, 0, buffer_size);
+			gf_mixer_lock(am, 0);
+			return 0;
+		}
 	}
 
 	single_source->muted = single_source->src->IsMuted(single_source->src->callback);
@@ -766,7 +769,7 @@ do_mix:
 		s8 *out_s8 = (s8 *) buffer;
 		for (i=0; i<nb_written; i++) {
 			for (j=0; j<am->nb_channels; j++) {
-				s32 samp = (*out_mix / nb_act_src);
+				s32 samp = (*out_mix / nb_act_src) / 255;
 				if (samp > 127) samp = 127;
 				else if (samp < -128) samp = -128;
 				(*out_s8) = samp;
