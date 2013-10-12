@@ -113,7 +113,12 @@
     <ClCompile Include="..\..\..\src\utils\configfile.c">
       <Filter>others</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\utils\os_divers.c" />
+    <ClCompile Include="..\..\..\src\utils\os_divers.c">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\os_thread.c">
+      <Filter>others</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="isoff">
