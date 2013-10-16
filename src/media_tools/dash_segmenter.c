@@ -284,7 +284,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 				/*5 first bits of AAC config*/
 				u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
-				sprintf(szCodec, "mp4a.%02x.%01x", esd->decoderConfig->objectTypeIndication, audio_object_type);
+				sprintf(szCodec, "mp4a.%02x.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
 			} else {
 				sprintf(szCodec, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
 			}
