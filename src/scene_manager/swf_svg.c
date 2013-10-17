@@ -54,7 +54,7 @@ static void swf_svg_print(SWFReader *read, const char *format, ...) {
 	vsprintf(line, format, args);
 	va_end(args);
 	/* add the line to the buffer */
-	line_length = strlen(line);
+	line_length = (u32)strlen(line);
 	new_size = read->svg_data_size+line_length;
 	read->svg_data = (char *)gf_realloc(read->svg_data, new_size+1);
 	if (read->print_frame_header) {

@@ -2300,7 +2300,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 				fprintf(vtt, "mediaOffset:%d ", pos+headerLength);
 				fprintf(vtt, "dataLength:%d ", samp->dataLength);
 			}
-			if (samp->CTS_Offset) fprintf(vtt, "CTS:%u ", samp->DTS+samp->CTS_Offset);
+			if (samp->CTS_Offset) fprintf(vtt, "CTS: "LLD"", samp->DTS+samp->CTS_Offset);
 			if (samp->IsRAP==1) fprintf(vtt, "isRAP:true ");
 			else if (samp->IsRAP==2) fprintf(vtt, "isSyncShadow: true ");
 			else fprintf(vtt, "isRAP:false ");

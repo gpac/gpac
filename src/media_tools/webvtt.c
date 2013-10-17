@@ -1196,7 +1196,7 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	config = (GF_StringBox *)box;
     if (config->string) {
 		fprintf(dump, "%s", config->string);
-		*dumpedLength = strlen(config->string)+1;
+		*dumpedLength = (u32)strlen(config->string)+1;
 	} 
 	gf_bs_del(bs);
 	gf_isom_box_del(box);
