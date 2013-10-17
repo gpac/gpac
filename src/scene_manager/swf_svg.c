@@ -26,6 +26,9 @@
 #include <gpac/xml.h>
 #include <gpac/internal/swf_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/media_dev.h>
+#include <gpac/constants.h>
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -33,11 +36,37 @@
 
 #define SWF_TEXT_SCALE              (1/1024.0f)
 
-typedef struct
+typedef struct _swf_svg_sample
 {
-    u32 btn_id;
-    u32 sprite_up_id;
-} s2sBtnRec;
+    u64 start;
+    u64 end;
+    char *data;
+} GF_SWF_SVG_Sample;
+
+static void swf_svg_print(SWFReader *read, const char *format, ...) {
+	char line[2000];
+	u32 line_length;
+	u32 new_size;
+	va_list args;
+
+	/* print the line */
+	va_start(args, format);
+	vsprintf(line, format, args);
+	va_end(args);
+	/* add the line to the buffer */
+	line_length = strlen(line);
+	new_size = read->svg_data_size+line_length;
+	read->svg_data = (char *)gf_realloc(read->svg_data, new_size+1);
+	if (read->print_frame_header) {
+		/* write at the beginning of the buffer */
+		memmove(read->svg_data+read->frame_header_offset+line_length, read->svg_data+read->frame_header_offset, (read->svg_data_size-read->frame_header_offset)+1);
+		memcpy(read->svg_data+read->frame_header_offset, line, line_length);
+		read->frame_header_offset += line_length;
+	} else {
+		strcpy(read->svg_data+read->svg_data_size, line);
+	}
+	read->svg_data_size = new_size;
+}
 
 static void swf_svg_print_color(SWFReader *read, u32 ARGB)
 {
@@ -45,14 +74,14 @@ static void swf_svg_print_color(SWFReader *read, u32 ARGB)
     val.red = INT2FIX((ARGB>>16)&0xFF) / 255*100;
     val.green = INT2FIX((ARGB>>8)&0xFF) / 255*100;
     val.blue = INT2FIX((ARGB)&0xFF) / 255*100;
-    fprintf(read->svg_output, "rgb(%f%%,%f%%,%f%%)", FIX2FLT(val.red), FIX2FLT(val.green), FIX2FLT(val.blue));
+    swf_svg_print(read, "rgb(%g%%,%g%%,%g%%)", FIX2FLT(val.red), FIX2FLT(val.green), FIX2FLT(val.blue));
 }
 
 static void swf_svg_print_alpha(SWFReader *read, u32 ARGB)
 {
     Fixed alpha;
     alpha = INT2FIX((ARGB>>24)&0xFF)/255;
-    fprintf(read->svg_output, "%f", FIX2FLT(alpha));
+    swf_svg_print(read, "%g", FIX2FLT(alpha));
 }
 
 static void swg_svg_print_shape_record_to_fill_stroke(SWFReader *read, SWFShapeRec *srec, Bool is_fill)
@@ -62,12 +91,12 @@ static void swg_svg_print_shape_record_to_fill_stroke(SWFReader *read, SWFShapeR
 		switch (srec->type) {
 		/*solid/alpha fill*/
 		case 0x00:
-            fprintf(read->svg_output, "fill=\"");
+            swf_svg_print(read, "fill=\"");
             swf_svg_print_color(read, srec->solid_col);
-            fprintf(read->svg_output, "\" ");
-            fprintf(read->svg_output, "fill-opacity=\"");
+            swf_svg_print(read, "\" ");
+            swf_svg_print(read, "fill-opacity=\"");
             swf_svg_print_alpha(read, srec->solid_col);
-            fprintf(read->svg_output, "\" ");
+            swf_svg_print(read, "\" ");
 			break;
 		case 0x10:
 		case 0x12:
@@ -90,14 +119,14 @@ static void swg_svg_print_shape_record_to_fill_stroke(SWFReader *read, SWFShapeR
 			break;
 		}
 	} else {
-        fprintf(read->svg_output, "fill=\"none\" ");
-        fprintf(read->svg_output, "stroke=\"");
+        swf_svg_print(read, "fill=\"none\" ");
+        swf_svg_print(read, "stroke=\"");
         swf_svg_print_color(read, srec->solid_col);
-        fprintf(read->svg_output, "\" ");
-        fprintf(read->svg_output, "stroke-opacity=\"");
+        swf_svg_print(read, "\" ");
+        swf_svg_print(read, "stroke-opacity=\"");
         swf_svg_print_alpha(read, srec->solid_col);
-        fprintf(read->svg_output, "\" ");
-        fprintf(read->svg_output, "stroke-width=\"%f\" ", FIX2FLT(srec->width));
+        swf_svg_print(read, "\" ");
+        swf_svg_print(read, "stroke-width=\"%g\" ", FIX2FLT(srec->width));
 	}
 }
 
@@ -111,19 +140,19 @@ static void swf_svg_print_shape_record_to_path_d(SWFReader *read, SWFShapeRec *s
         switch (srec->path->types[i]) {
         /*moveTo*/
         case 0:
-            fprintf(read->svg_output, "M%f,%f", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
+            swf_svg_print(read, "M%g,%g", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
             pt_idx++;
             break;
         /*lineTo*/
         case 1:
-            fprintf(read->svg_output, "L%f,%f", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
+            swf_svg_print(read, "L%g,%g", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
             pt_idx++;
             break;
         /*curveTo*/
         case 2:
-            fprintf(read->svg_output, "Q%f,%f", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
+            swf_svg_print(read, "Q%g,%g", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
             pt_idx++;
-            fprintf(read->svg_output, ",%f,%f", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
+            swf_svg_print(read, ",%g,%g", FIX2FLT(srec->path->pts[pt_idx].x), FIX2FLT(srec->path->pts[pt_idx].y));
             pt_idx++;
             break;
         }
@@ -139,24 +168,24 @@ static void swf_svg_print_matrix(SWFReader *read, GF_Matrix2D *mat)
         Fixed       rotate;
         if( gf_mx2d_decompose(mat, &scale, &rotate, &translate)) 
         {
-            fprintf(read->svg_output, "transform=\"");
+            swf_svg_print(read, "transform=\"");
             if (translate.x != 0 || translate.y != 0)
             {
-                fprintf(read->svg_output, "translate(%f, %f) ", FIX2FLT(translate.x), FIX2FLT(translate.y));
+                swf_svg_print(read, "translate(%g, %g) ", FIX2FLT(translate.x), FIX2FLT(translate.y));
             }
             if (rotate != 0)
             {
-                fprintf(read->svg_output, "rotate(%f) ", FIX2FLT(rotate));
+                swf_svg_print(read, "rotate(%g) ", FIX2FLT(rotate));
             }
             if (scale.x != FIX_ONE || scale.y != FIX_ONE)
             {
-                fprintf(read->svg_output, "scale(%f, %f) ", FIX2FLT(scale.x), FIX2FLT(scale.y));
+                swf_svg_print(read, "scale(%g, %g) ", FIX2FLT(scale.x), FIX2FLT(scale.y));
             }
-            fprintf(read->svg_output, "\" ");
+            swf_svg_print(read, "\" ");
         } 
         else 
         {
-            fprintf(read->svg_output, "transform=\"matrix(%f,%f,%f,%f,%f,%f)\" ", FIX2FLT(mat->m[0]), FIX2FLT(mat->m[3]), FIX2FLT(mat->m[1]), FIX2FLT(mat->m[4]), FIX2FLT(mat->m[2]), FIX2FLT(mat->m[5]) );
+            swf_svg_print(read, "transform=\"matrix(%g,%g,%g,%g,%g,%g)\" ", FIX2FLT(mat->m[0]), FIX2FLT(mat->m[3]), FIX2FLT(mat->m[1]), FIX2FLT(mat->m[4]), FIX2FLT(mat->m[2]), FIX2FLT(mat->m[5]) );
         }
     }
 }
@@ -172,45 +201,46 @@ static GF_Err swf_svg_define_shape(SWFReader *read, SWFShape *shape, SWFFont *pa
         return GF_OK;
     }
 
-    if (!read->cur_shape) 
+    if (!read->svg_shape_started) 
     {
-        fprintf(read->svg_output, "<defs>\n");
+        swf_svg_print(read, "<defs>\n");
         if (!parent_font)
         {
-            fprintf(read->svg_output, "<g id=\"S%d\" >\n", shape->ID);
+            swf_svg_print(read, "<g id=\"S%d\" >\n", shape->ID);
         }
         else
         {
             char    szGlyphId[256];
             sprintf(szGlyphId, "Font%d_Glyph%d", parent_font->fontID, gf_list_count(parent_font->glyphs));
-            fprintf(read->svg_output, "<g id=\"%s\" >\n", szGlyphId);
+            swf_svg_print(read, "<g id=\"%s\" >\n", szGlyphId);
             gf_list_add(parent_font->glyphs, szGlyphId);
         }
     }
-    read->cur_shape = (GF_Node *)"shape";
+	read->empty_frame = GF_FALSE;
+    read->svg_shape_started = GF_TRUE;
 
     i=0;
     while ((srec = (SWFShapeRec*)gf_list_enum(shape->fill_left, &i))) {
-        fprintf(read->svg_output, "<path d=\"");
+        swf_svg_print(read, "<path d=\"");
         swf_svg_print_shape_record_to_path_d(read, srec);
-        fprintf(read->svg_output, "\" ");
+        swf_svg_print(read, "\" ");
         swg_svg_print_shape_record_to_fill_stroke(read, srec, 1);
-        fprintf(read->svg_output, "/>\n");
+        swf_svg_print(read, "/>\n");
     }
     i=0;
     while ((srec = (SWFShapeRec*)gf_list_enum(shape->lines, &i))) {
-        fprintf(read->svg_output, "<path d=\"");
+        swf_svg_print(read, "<path d=\"");
         swf_svg_print_shape_record_to_path_d(read, srec);
-        fprintf(read->svg_output, "\" ");
+        swf_svg_print(read, "\" ");
         swg_svg_print_shape_record_to_fill_stroke(read, srec, 0);
-        fprintf(read->svg_output, "/>\n");
+        swf_svg_print(read, "/>\n");
     }
 
     if (last_sub_shape) 
     {
-        read->cur_shape = NULL;
-        fprintf(read->svg_output, "</g>\n");
-        fprintf(read->svg_output, "</defs>\n");
+        read->svg_shape_started = GF_FALSE;
+        swf_svg_print(read, "</g>\n");
+        swf_svg_print(read, "</defs>\n");
     }
     return GF_OK;
 }
@@ -225,10 +255,10 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 
     use_text = (read->flags & GF_SM_SWF_NO_FONT) ? 1 : 0;
 
-    fprintf(read->svg_output, "<defs>\n");
-    fprintf(read->svg_output, "<g id=\"S%d\" ", text->ID);
+    swf_svg_print(read, "<defs>\n");
+    swf_svg_print(read, "<g id=\"S%d\" ", text->ID);
     swf_svg_print_matrix(read, &text->mat);
-    fprintf(read->svg_output, ">\n");
+    swf_svg_print(read, ">\n");
 
     i=0;
     while ((gr = (SWFGlyphRec*)gf_list_enum(text->text, &i))) 
@@ -243,23 +273,23 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
         }
         if (use_text) {
             /*restore back the font height in pixels (it's currently in SWF glyph design units)*/
-            fprintf(read->svg_output, "<text ");
-            fprintf(read->svg_output, "x=\"%f \" ", FIX2FLT(gr->orig_x));
-            fprintf(read->svg_output, "y=\"%f \" ", FIX2FLT(gr->orig_y));
-            fprintf(read->svg_output, "font-size=\"%d\" ", (u32)(gr->fontSize * SWF_TWIP_SCALE));
+            swf_svg_print(read, "<text ");
+            swf_svg_print(read, "x=\"%g \" ", FIX2FLT(gr->orig_x));
+            swf_svg_print(read, "y=\"%g \" ", FIX2FLT(gr->orig_y));
+            swf_svg_print(read, "font-size=\"%d\" ", (u32)(gr->fontSize * SWF_TWIP_SCALE));
             if (ft->fontName)
             {
-                fprintf(read->svg_output, "font-family=\"%s\" ", ft->fontName);
+                swf_svg_print(read, "font-family=\"%s\" ", ft->fontName);
             }
             if (ft->is_italic) 
             {
-                fprintf(read->svg_output, "font-style=\"italic\" ");
+                swf_svg_print(read, "font-style=\"italic\" ");
             }
             if (ft->is_bold) 
             {
-                fprintf(read->svg_output, "font-weight=\"bold\" ");
+                swf_svg_print(read, "font-weight=\"bold\" ");
             }
-            fprintf(read->svg_output, ">");
+            swf_svg_print(read, ">");
             /*convert to UTF-8*/
             {
 				size_t _len;
@@ -278,29 +308,30 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
                 _len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
                 if (_len != (size_t) -1) {
                     str[(u32) _len] = 0;
-                    fprintf(read->svg_output, "%s", str);
+                    swf_svg_print(read, "%s", str);
                 }
             }
-            fprintf(read->svg_output, "</text>\n");
+            swf_svg_print(read, "</text>\n");
         }
         else
         {
             /*convert glyphs*/
             Fixed       dx;
-            fprintf(read->svg_output, "<g tranform=\"scale(1,-1) ");
-            fprintf(read->svg_output, "translate(%f, %f)\" >\n", FIX2FLT(gr->orig_x), FIX2FLT(gr->orig_y));
+            swf_svg_print(read, "<g tranform=\"scale(1,-1) ");
+            swf_svg_print(read, "translate(%g, %g)\" >\n", FIX2FLT(gr->orig_x), FIX2FLT(gr->orig_y));
 
             dx = 0;
             for (j=0; j<gr->nbGlyphs; j++) 
             {
-                fprintf(read->svg_output, "<use xlink:href=\"#Font%d_Glyph%d\" transform=\"translate(%f)\" />\n", gr->fontID, gr->indexes[j], FIX2FLT(gf_divfix(dx, FLT2FIX(gr->fontSize * SWF_TEXT_SCALE))));
+                swf_svg_print(read, "<use xlink:href=\"#Font%d_Glyph%d\" transform=\"translate(%g)\" />\n", gr->fontID, gr->indexes[j], FIX2FLT(gf_divfix(dx, FLT2FIX(gr->fontSize * SWF_TEXT_SCALE))));
                 dx += gr->dx[j];
             }
-            fprintf(read->svg_output, "</g>\n");
+            swf_svg_print(read, "</g>\n");
         }
     }
-    fprintf(read->svg_output, "</g>\n");
-    fprintf(read->svg_output, "</defs>\n");
+	read->empty_frame = GF_FALSE;
+    swf_svg_print(read, "</g>\n");
+    swf_svg_print(read, "</defs>\n");
     return GF_OK;
 }
 
@@ -796,11 +827,11 @@ static GF_Err swf_svg_start_sound(SWFReader *read, SWFSound *snd, Bool stop)
 
 static GF_Err swf_svg_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id, u32 type, GF_Matrix2D *mat, GF_ColorMatrix *cmat, GF_Matrix2D *prev_mat, GF_ColorMatrix *prev_cmat)
 {
-    //fprintf(read->svg_output, "<use xlink:href=\"#S%d\" z-index=\"%d\" ", ID, depth);
+    //swf_svg_print(read, "<use xlink:href=\"#S%d\" z-index=\"%d\" ", ID, depth);
     //if (mat) {
     //    swf_svg_print_matrix(read, mat);
     //}
-    //fprintf(read->svg_output, "/>\n");
+    //swf_svg_print(read, "/>\n");
 
     //GF_Command *com;
     //GF_CommandField *f;
@@ -857,11 +888,13 @@ static GF_Err swf_svg_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id,
     //      s2s_control_sprite(read, read->bifs_au->commands, prev_id, 1, 0, 0, 0);
     //  }
     //}
+	read->empty_frame = GF_FALSE;
     return GF_OK;
 }
 
 static GF_Err swf_svg_remove_obj(SWFReader *read, u32 depth, u32 ID)
 {
+	read->empty_frame = GF_FALSE;
     return GF_OK;
 }
 
@@ -871,10 +904,10 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
     u32     len;
     GF_List *sdl = gf_list_new(); // sorted display list
 
-    /* sorting the display list */
+    /* sorting the display list because SVG/CSS z-index is not well supported */
     while (gf_list_count(read->display_list))
     {
-        Bool        inserted = 0;
+        Bool        inserted = GF_FALSE;
         DispShape   *s;
 
         s = (DispShape *)gf_list_get(read->display_list, 0);
@@ -886,7 +919,7 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
             if (s->depth < s2->depth) 
             {
                 gf_list_insert(sdl, s, i);
-                inserted = 1;
+                inserted = GF_TRUE;
                 break;
             }
         }
@@ -904,43 +937,39 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
     {
         DispShape   *s;
         s = (DispShape *)gf_list_get(read->display_list, i);
-        fprintf(read->svg_output, "<use xlink:href=\"#S%d\" z-index=\"%d\" ", s->char_id, s->depth);
+        swf_svg_print(read, "<use xlink:href=\"#S%d\" ", s->char_id);
+        //swf_svg_print(read, "z-index=\"%d\" ", s->depth);
         swf_svg_print_matrix(read, &s->mat);
-        fprintf(read->svg_output, "/>\n");
+        swf_svg_print(read, "/>\n");
+		read->empty_frame = GF_FALSE;
     }
-    fprintf(read->svg_output, "</g>\n");
+	if (!read->empty_frame) {
+		read->print_frame_header = GF_TRUE;
+		read->frame_header_offset = 0;
+		swf_svg_print(read, "<g display=\"none\">\n");
+		swf_svg_print(read, "<animate id=\"frame%d_anim\" attributeName=\"display\" to=\"inline\" ", read->current_frame);
+		swf_svg_print(read, "begin=\"%g\" ", 1.0*(read->current_frame)/read->frame_rate);
+		if (read->current_frame+1 < read->frame_count) {
+			swf_svg_print(read, "end=\"frame%d_anim.begin\" fill=\"remove\" ", (read->current_frame+1));
+		} else {
+			swf_svg_print(read, "fill=\"freeze\" ");
+		}
+		swf_svg_print(read, "/>\n");
+		read->print_frame_header = GF_FALSE;
 
-    fprintf(read->svg_output, "<g id=\"frame%d\" display=\"none\">\n",read->current_frame+1);
-    fprintf(read->svg_output, "<animate attributeName=\"display\" to=\"inline\" begin=\"%f\" end=\"%f\" fill=\"%s\" restart=\"never\"/>\n", 
-        1.0*(read->current_frame+1)/read->frame_rate, 1.0*(read->current_frame+2)/read->frame_rate,
-        (((read->current_frame+1) <= (read->frame_count-1)) ? "remove" : "freeze"));
+		swf_svg_print(read, "</g>\n");
+	}
+	read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0));
+	gf_free(read->svg_data);
+	read->svg_data = NULL;
+	read->svg_data_size = 0;
+
+	read->empty_frame = GF_TRUE;
     return GF_OK;
 }
 
 static void swf_svg_finalize(SWFReader *read)
 {
-    //u32 i, count;
-
-    //swf_svg_end_of_clip(read);    
-
-    //while (gf_list_count(read->buttons)) {
-    //  s2sBtnRec *btnrec = gf_list_get(read->buttons, 0);
-    //  gf_list_rem(read->buttons, 0);
-    //  gf_free(btnrec);
-    //}
-
-    //count = gf_list_count(read->fonts);
-    //for (i=0;i<count; i++) {
-    //  SWFFont *ft = (SWFFont *)gf_list_get(read->fonts, i);
-    //  while (gf_list_count(ft->glyphs)) {
-    //      GF_Node *gl = (GF_Node *)gf_list_get(ft->glyphs, 0);
-    //      gf_list_rem(ft->glyphs, 0);
-    //      gf_node_unregister(gl, NULL);
-    //  }
-    //}
-    fprintf(read->svg_output, "</g>\n");
-    fprintf(read->svg_output, "</svg>\n");
-    fclose(read->svg_output);
 }
 
 static GF_Err swf_svg_define_button(SWFReader *read, SWF_Button *btn)
@@ -1137,23 +1166,11 @@ Bool swf_svg_action(SWFReader *read, SWFAction *act)
     return 1;
 }
 
-GF_Err swf_to_svg_init(SWFReader *read)
+GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 {
-    char szFileName[GF_MAX_PATH];
-    sprintf(szFileName, "%s.svg", read->load->fileName);
+	if (!read->user) return GF_BAD_PARAM;
+
     /*init callbacks*/
-    read->svg_output = gf_f64_open(szFileName, "wt");
-    fprintf(read->svg_output, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    fprintf(read->svg_output, "<svg xmlns=\"http://www.w3.org/2000/svg\" ");
-    fprintf(read->svg_output, "xmlns:xlink=\"http://www.w3.org/1999/xlink\" ");
-    fprintf(read->svg_output, "width=\"100%%\" ");
-    fprintf(read->svg_output, "height=\"100%%\" ");
-    fprintf(read->svg_output, "viewBox=\"0 0 %d %d\" ", FIX2INT(read->width), FIX2INT(read->height));
-    fprintf(read->svg_output, "viewport-fill=\"rgb(255,255,255)\" ");
-    fprintf(read->svg_output, ">\n");
-    fprintf(read->svg_output, "<g id=\"frame%d\" display=\"none\">\n",read->current_frame);
-    fprintf(read->svg_output, "<animate attributeName=\"display\" to=\"inline\" begin=\"%f\" end=\"%f\" fill=\"remove\" restart=\"never\"/>\n",
-        1.0*(read->current_frame)/read->frame_rate, 1.0*(read->current_frame+1)/read->frame_rate);
     read->show_frame = swf_svg_show_frame;
     read->allocate_depth = swf_svg_allocate_depth;
     read->place_obj = swf_svg_place_obj;
@@ -1169,13 +1186,34 @@ GF_Err swf_to_svg_init(SWFReader *read)
     read->setup_image = swf_svg_setup_image;
     read->action = swf_svg_action;
     read->finalize = swf_svg_finalize;
-    return GF_OK;
+
+	read->flags = swf_flags;
+	read->flat_limit = FLT2FIX(swf_flatten_angle);
+
+	read->print_stream_header = GF_TRUE;
+	swf_svg_print(read, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	swf_svg_print(read, "<svg xmlns=\"http://www.w3.org/2000/svg\" ");
+	swf_svg_print(read, "xmlns:xlink=\"http://www.w3.org/1999/xlink\" ");
+	swf_svg_print(read, "width=\"100%%\" ");
+	swf_svg_print(read, "height=\"100%%\" ");
+	swf_svg_print(read, "viewBox=\"0 0 %d %d\" ", FIX2INT(read->width), FIX2INT(read->height));
+	swf_svg_print(read, "viewport-fill=\"rgb(255,255,255)\" ");
+	swf_svg_print(read, ">\n");
+	read->print_stream_header = GF_FALSE;
+
+	/* update sample description */
+	read->add_header(read->user, read->svg_data, read->svg_data_size);
+	gf_free(read->svg_data);
+	read->svg_data = NULL;
+	read->svg_data_size = 0;
+
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
 #else
-GF_Err swf_to_svg_init(SWFReader *read)
+GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 {
     return GF_NOT_SUPPORTED;
 }

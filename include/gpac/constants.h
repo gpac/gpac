@@ -398,6 +398,8 @@ enum
 	GPAC_OTI_SCENE_VTT = 0xD3,
 	/*!OTI for streaming VTT from MP4- GPAC internal*/
 	GPAC_OTI_SCENE_VTT_MP4 = 0xD4,
+	/*!OTI for streaming simple text from MP4- GPAC internal*/
+	GPAC_OTI_SCENE_SIMPLE_TEXT_MP4 = 0xD5,
 
 /*!
  * \brief OGG ObjectTypeIndication

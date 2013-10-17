@@ -189,6 +189,9 @@ typedef struct __track_import
 	u32 duration;
 	/*importer flags*/
 	u32 flags;
+	/*importer swf flags*/
+	u32 swf_flags;
+	Float swf_flatten_angle;
 	/*if non 0, force video FPS (CMP, AVI, OGG, H264) - also used by SUB import*/
 	Double video_fps;
 	/*optional ESD*/
@@ -339,6 +342,12 @@ enum
 	GF_EXPORT_NHML = (1<<6),
 	/*SAF format*/
 	GF_EXPORT_SAF = (1<<7),
+	/*WebVTT metadata format (any media)*/
+	GF_EXPORT_WEBVTT_META = (1<<8),
+	/*WebVTT metadata format: media data will be embedded in webvtt*/
+	GF_EXPORT_WEBVTT_META_EMBEDDED = (1<<9),
+	/* Experimental Streaming Instructions */
+	GF_EXPORT_SIX = (1<<14),
 
 	/*following ones are real flags*/
 	/*

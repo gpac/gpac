@@ -28,6 +28,7 @@
 
 #include <gpac/scene_manager.h>
 #include <gpac/color.h>
+#include <gpac/media_tools.h>
 
 #define SWF_TWIP_SCALE				(1/20.0f)
 
@@ -60,8 +61,10 @@ typedef struct
 struct SWFReader
 {
 	GF_SceneLoader *load;
+
 	FILE *input;
 
+	char *inputName;
 	char *localPath;
 	/*file header*/
 	u32 length;
@@ -70,6 +73,7 @@ struct SWFReader
 	u32 frame_count;
 	Fixed width, height;
 	Bool has_interact, no_as;
+	Bool empty_frame;
 
 	/*copy of the swf import flags*/	
 	u32 flags;
@@ -170,21 +174,36 @@ struct SWFReader
 	/* </BIFS conversion state> */
 
     /* SVG conversion state */
-    FILE *svg_output;
+	Bool print_stream_header;
+	Bool print_frame_header;
+	u32 frame_header_offset;
+	char *svg_data;
+	u32 svg_data_size;
+	Bool svg_shape_started;
     /* end of SVG conversion state */
 
+	/* MP4 user */
+	void *user;
+	GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap);
+	GF_Err (*add_header)(void *user, const char *data, u32 length);
 };
 
 
 void swf_report(SWFReader *read, GF_Err e, char *format, ...);
 SWFFont *swf_find_font(SWFReader *read, u32 fontID);
 GF_Err swf_parse_sprite(SWFReader *read);
-
+GF_Err swf_parse_tag(SWFReader *read);
 
 GF_Err swf_to_bifs_init(SWFReader *read);
-GF_Err swf_to_svg_init(SWFReader *read);
+GF_Err swf_to_svg_init(SWFReader *read, u32 flags, Float angle);
 
+SWFReader *gf_swf_reader_new(const char *path, const char *filename);
+GF_Err gf_swf_read_header(SWFReader *read);
+void gf_swf_reader_del(SWFReader *read);
 
+GF_Err gf_swf_reader_set_user_mode(SWFReader *read, void *user, 
+								  GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap),
+								  GF_Err (*add_header)(void *user, const char *data, u32 length));
 
 typedef struct
 {
@@ -370,7 +389,5 @@ struct SWFAction
 	char *target;
 	char *url;
 };
-
-
 
 #endif /*_GF_SWF_DEV_H_*/

@@ -3382,8 +3382,28 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		}
 			break;
 		case GF_ISOM_BOX_TYPE_WVTT:
-            /* TODO */
-            assert(0);
+			{
+				GF_WebVTTSampleEntryBox *wvtt1 = (GF_WebVTTSampleEntryBox *)ent1;
+				GF_WebVTTSampleEntryBox *wvtt2 = (GF_WebVTTSampleEntryBox *)ent2;
+				if (wvtt1->config && wvtt2->config && 
+					(wvtt1->config->string && wvtt1->config->string && !strcmp(wvtt1->config->string, wvtt2->config->string))) {
+						return 1;
+				}
+				return 0;
+			}
+            break;
+		case GF_ISOM_BOX_TYPE_STSE:
+			{
+				GF_SimpleTextSampleEntryBox *stse1 = (GF_SimpleTextSampleEntryBox *)ent1;
+				GF_SimpleTextSampleEntryBox *stse2 = (GF_SimpleTextSampleEntryBox *)ent2;
+				if (stse1->mime_type && stse2->mime_type && 
+					( (!stse1->config && !stse2->config) ||
+					  (stse1->config && stse2->config && stse1->config->string && stse2->config->string && 
+					    !strcmp(stse1->config->string, stse2->config->string)))) {
+						return 1;
+				}
+				return 0;
+			}
             break;
 		}
 

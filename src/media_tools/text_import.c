@@ -42,6 +42,7 @@ enum
 	GF_TEXT_IMPORT_TTXT,
 	GF_TEXT_IMPORT_TEXML,
     GF_TEXT_IMPORT_WEBVTT,
+    GF_TEXT_IMPORT_SWF_SVG,
 };
 
 #define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
@@ -134,7 +135,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 #define TTXT_DEFAULT_FONT_SIZE	18
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-static void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *height)
+void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *height)
 {
 	u32 w, h, f_w, f_h, i;
 	GF_ISOFile *dest = import->dest;
@@ -164,7 +165,7 @@ static void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *he
 }
 
 
-static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
+void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
 {
 	if (import->esd && import->esd->langDesc) {
 		char lang[4];
@@ -309,7 +310,8 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
-	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
 
 	if (OCR_ES_ID) gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_OCR, OCR_ES_ID);
 
@@ -613,29 +615,31 @@ exit:
 	return e;
 }
 
+/* Structure used to pass importer and track data to the parsers without exposing the GF_MediaImporter structure 
+   used by WebVTT and Flash->SVG */
 typedef struct {
     GF_MediaImporter *import;
     u32 timescale;
     u32 track;
     u32 descriptionIndex;
-} GF_WebVTTISOFlusher;
+} GF_ISOFlusher;
 
 static GF_Err gf_webvtt_import_report(void *user, GF_Err e, char *message, const char *line)
 {
-    GF_WebVTTISOFlusher     *flusher = (GF_WebVTTISOFlusher *)user;
+    GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
     return gf_import_message(flusher->import, e, message, line);
 }
 
 static void gf_webvtt_import_header(void *user, const char *config)
 {
-    GF_WebVTTISOFlusher     *flusher = (GF_WebVTTISOFlusher *)user;
+    GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
     gf_isom_update_webvtt_description(flusher->import->dest, flusher->track, flusher->descriptionIndex, config);
 }
 
 static void gf_webvtt_flush_sample_to_iso(void *user, GF_WebVTTSample *samp)
 {
     GF_ISOSample            *s;
-    GF_WebVTTISOFlusher     *flusher = (GF_WebVTTISOFlusher *)user;
+    GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
     //gf_webvtt_dump_sample(stdout, samp);
     s = gf_isom_webvtt_to_sample(samp);
     if (s) {
@@ -658,7 +662,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	u32							OCR_ES_ID;
 	GF_GenericSubtitleConfig	*cfg;
 	GF_WebVTTParser				*vttparser;
-	GF_WebVTTISOFlusher			flusher;
+	GF_ISOFlusher				flusher;
 
 	cfg	= NULL;
 	if (import->esd) {
@@ -687,8 +691,9 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	if (!track)	{
 		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating WebVTT track");
 	}
-	gf_isom_set_track_enabled(import->dest,	track, 1);
-	if (import->esd	&& !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	gf_isom_set_track_enabled(import->dest, track, 1);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
 
 	if (OCR_ES_ID) gf_isom_set_track_reference(import->dest, track,	GF_ISOM_REF_OCR, OCR_ES_ID);
 
@@ -741,6 +746,256 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
     gf_webvtt_parser_del(vttparser);
     return e;
 }
+
+/* SimpleText Text tracks -related functions */
+GF_SimpleTextSampleEntryBox *gf_isom_get_simpletext_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex)
+{
+    GF_SimpleTextSampleEntryBox *stse;
+    GF_TrackBox *trak;
+    GF_Err e;
+
+    if (!descriptionIndex) return NULL;
+
+    e = CanAccessMovie(movie, GF_ISOM_OPEN_READ);
+    if (e) return NULL;
+    
+    trak = gf_isom_get_track_from_file(movie, trackNumber);
+    if (!trak || !trak->Media) return NULL;
+
+    switch (trak->Media->handler->handlerType) {
+    case GF_ISOM_MEDIA_TEXT:
+        break;
+    default:
+        return NULL;
+    }
+
+    stse = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
+    if (!stse) return NULL;
+    return stse;
+}
+
+GF_Box *boxstring_new_with_data(u32 type, const char *string);
+
+GF_Err gf_isom_update_simpletext_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
+{
+    GF_Err e;
+    GF_SimpleTextSampleEntryBox *stse;
+    GF_TrackBox *trak;
+
+    e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+    if (e) return GF_BAD_PARAM;
+    
+    trak = gf_isom_get_track_from_file(movie, trackNumber);
+    if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+    switch (trak->Media->handler->handlerType) {
+    case GF_ISOM_MEDIA_TEXT:
+        break;
+    default:
+        return GF_BAD_PARAM;
+    }
+
+    stse = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
+    if (!stse) {
+		return GF_BAD_PARAM;
+	} else {
+		switch (stse->type) {
+		case GF_ISOM_BOX_TYPE_STSE:
+			break;
+		default:
+			return GF_BAD_PARAM;
+		}
+		if (!movie->keep_utc)
+			trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+		stse->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_STTC, config);
+		return GF_OK;
+    } 
+}
+
+GF_Err gf_isom_new_simpletext_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, 
+										  const char *content_encoding, const char *mime, u32 *outDescriptionIndex)
+{
+    GF_TrackBox *trak;
+    GF_Err e;
+    u32 dataRefIndex;
+    GF_SimpleTextSampleEntryBox *stse;
+
+    e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+    if (e) return e;
+    
+    trak = gf_isom_get_track_from_file(movie, trackNumber);
+    if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+    switch (trak->Media->handler->handlerType) {
+    case GF_ISOM_MEDIA_TEXT:
+        break;
+    default:
+        return GF_BAD_PARAM;
+    }
+
+    //get or create the data ref
+    e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+    if (e) return e;
+    if (!dataRefIndex) {
+        e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+        if (e) return e;
+    }
+	if (!movie->keep_utc)
+	    trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+    stse = (GF_SimpleTextSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSE);
+    stse->dataReferenceIndex = dataRefIndex;
+	stse->mime_type = gf_strdup(mime);
+    gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, stse);
+    if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+    return e;
+}
+
+/* SWF Importer */
+#include <gpac/internal/swf_dev.h>
+
+static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
+{
+    GF_Err				e = GF_OK;
+    GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
+    GF_ISOSample		*s;
+    GF_BitStream		*bs;
+
+    bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_BAD_PARAM;
+	gf_bs_write_data(bs, data, length);
+    s = gf_isom_sample_new();
+	if (s) {
+		gf_bs_get_content(bs, &s->data, &s->dataLength);
+		s->DTS = (u64) (flusher->timescale*timestamp/1000);
+		s->IsRAP = isRap;
+		gf_isom_add_sample(flusher->import->dest, flusher->track, flusher->descriptionIndex, s);
+		gf_isom_sample_del(&s);
+	} else {
+		e = GF_BAD_PARAM;
+	}
+	gf_bs_del(bs);
+	return e;
+}
+
+static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length)
+{
+	GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
+	if (!flusher) return GF_BAD_PARAM;
+	return gf_isom_update_simpletext_description(flusher->import->dest, flusher->track, flusher->descriptionIndex , data);
+}
+
+GF_EXPORT
+GF_Err gf_text_import_swf(GF_MediaImporter *import)
+{
+	GF_Err						e = GF_OK;
+	u32							track;
+	u32							timescale;
+	u32							duration;
+	u32							descIndex;
+	u32							ID;
+	u32							OCR_ES_ID;
+	GF_GenericSubtitleConfig	*cfg;
+	SWFReader					*read;
+	GF_ISOFlusher				flusher;
+	char						*mime;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->nb_tracks = 1;
+		return GF_OK;
+	}
+
+	cfg	= NULL;
+	if (import->esd) {
+		if (!import->esd->slConfig)	{
+			import->esd->slConfig =	(GF_SLConfig *)	gf_odf_desc_new(GF_ODF_SLC_TAG);
+			import->esd->slConfig->predefined =	2;
+			import->esd->slConfig->timestampResolution = 1000;
+		}
+		timescale =	import->esd->slConfig->timestampResolution;
+		if (!timescale)	timescale =	1000;
+
+		/*explicit text	config*/
+		if (import->esd->decoderConfig && import->esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_GEN_SUB_CFG_TAG) {
+			cfg	= (GF_GenericSubtitleConfig	*) import->esd->decoderConfig->decoderSpecificInfo;
+			import->esd->decoderConfig->decoderSpecificInfo	= NULL;
+		}
+		ID = import->esd->ESID;
+		OCR_ES_ID =	import->esd->OCRESID;
+	} else {
+		timescale =	1000;
+		OCR_ES_ID =	ID = 0;
+	}
+	
+	if (cfg	&& cfg->timescale) timescale = cfg->timescale;
+	track =	gf_isom_new_track(import->dest,	ID,	GF_ISOM_MEDIA_TEXT,	timescale);
+	if (!track)	{
+		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
+	}
+	gf_isom_set_track_enabled(import->dest,	track, 1);
+	if (import->esd	&& !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+
+	if (OCR_ES_ID) gf_isom_set_track_reference(import->dest, track,	GF_ISOM_REF_OCR, OCR_ES_ID);
+
+	if (!stricmp(import->streamFormat, "SVG")) {
+		mime = "image/svg+xml";
+	} else {
+		mime = "application/octet-stream";
+	}
+	/*setup	track*/
+	if (cfg) {
+		u32	i;
+		u32	count;
+		/*set track	info*/
+		gf_isom_set_track_layout_info(import->dest,	track, cfg->text_width<<16,	cfg->text_height<<16, 0, 0,	cfg->layer);
+
+		/*and set sample descriptions*/
+		count =	gf_list_count(cfg->sample_descriptions);
+		for	(i=0; i<count; i++)	{
+			gf_isom_new_simpletext_description(import->dest, track, NULL, NULL, NULL, NULL, mime, &descIndex);
+		}
+		gf_import_message(import, GF_OK, "SWF import - text track %d	x %d", cfg->text_width,	cfg->text_height);
+		gf_odf_desc_del((GF_Descriptor *)cfg);
+	} else {
+		u32	w;
+		u32	h;
+
+		gf_text_get_video_size(import, &w, &h);
+		gf_isom_set_track_layout_info(import->dest,	track, w<<16, h<<16, 0,	0, 0);
+
+		gf_isom_new_simpletext_description(import->dest, track,	NULL, NULL,	NULL, NULL, mime, &descIndex);
+		
+		gf_import_message(import, GF_OK, "SWF import (as text - type: %s)", import->streamFormat);
+	}
+	gf_text_import_set_language(import, track);
+	duration = (u32) (((Double) import->duration)*timescale/1000.0);
+
+	read = gf_swf_reader_new(NULL, import->in_name);
+	gf_swf_read_header(read);
+	flusher.import = import;
+	flusher.track = track;
+	flusher.timescale = timescale;
+	flusher.descriptionIndex = descIndex;
+	gf_swf_reader_set_user_mode(read, &flusher, swf_svg_add_iso_sample, swf_svg_add_iso_header);
+	if (!import->streamFormat || (import->streamFormat && !stricmp(import->streamFormat, "SVG"))) {
+		e = swf_to_svg_init(read, import->swf_flags, import->swf_flatten_angle);
+	} else /*if (import->streamFormat && !strcmp(import->streamFormat, "BIFS"))*/ {
+        e = swf_to_bifs_init(read);
+	}
+	if (e) {
+		goto exit;
+	}
+	/*parse all tags*/
+	while (e == GF_OK) {
+		e = swf_parse_tag(read);
+	}
+	if (e==GF_EOS) e = GF_OK;
+exit:
+	gf_swf_reader_del(read);
+	return e;
+}
+/* end of SWF Importer */
 
 static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 {
@@ -1848,11 +2103,12 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	u32 fmt;
 	e = gf_text_guess_format(import->in_name, &fmt);
 	if (e) return e;
+	if (import->streamFormat && !strcmp(import->streamFormat, "VTT")) fmt = GF_TEXT_IMPORT_WEBVTT;
+	if ((strstr(import->in_name, ".swf") || strstr(import->in_name, ".SWF")) && !stricmp(import->streamFormat, "SVG")) fmt = GF_TEXT_IMPORT_SWF_SVG;
 	if (!fmt) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTXT Import] Input %s does not look like a supported text format - ignoring\n", import->in_name));
 		return GF_NOT_SUPPORTED;
 	}
-	if (import->streamFormat && !strcmp(import->streamFormat, "VTT")) fmt = GF_TEXT_IMPORT_WEBVTT;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		if (fmt==GF_TEXT_IMPORT_SUB) import->flags |= GF_IMPORT_OVERRIDE_FPS;
 		return GF_OK;
@@ -1863,6 +2119,7 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	case GF_TEXT_IMPORT_TTXT: return gf_text_import_ttxt(import);
 	case GF_TEXT_IMPORT_TEXML: return gf_text_import_texml(import);
 	case GF_TEXT_IMPORT_WEBVTT: return gf_text_import_webvtt(import);
+	case GF_TEXT_IMPORT_SWF_SVG: return gf_text_import_swf(import);
 	default: return GF_BAD_PARAM;
 	}
 }
