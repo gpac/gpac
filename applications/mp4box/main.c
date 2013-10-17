@@ -410,9 +410,9 @@ void PrintImportUsage()
 			" \":packed\"            same as -packed option\n"
 			" \":sbr\"               same as -sbr option\n"
 			" \":sbrx\"              same as -sbrx option\n"
-			" \":ps\":               same as -ps option\n"
-			" \":psx\":              same as -psx option\n"
-			" \":ovsbr\":            same as -ovsbr option\n" 
+			" \":ps\"                same as -ps option\n"
+			" \":psx\"               same as -psx option\n"
+			" \":ovsbr\"             same as -ovsbr option\n" 
 			" \":mpeg4\"             same as -mpeg4 option\n"
 			" \":svc\"               import SVC with explicit signaling (no AVC base compatibility)\n"
 			" \":nosvc\"             discard SVC data when importing\n"
@@ -440,14 +440,25 @@ void PrintImportUsage()
 			"                         - X and Y can be omitted (:layout=WxH)\n"
 			" \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
 			" \":timescale=TS\"      sets import timescale to TS\n"
+			" \":swf-global\"        all SWF defines are placed in first scene replace\n"
+			"                         * Note: By default SWF defines are sent when needed\n"
+			" \":swf-no-ctrl\"       uses a single stream for movie control and dictionary\n"
+			"                         * Note: this will disable ActionScript\n"
+			" \":swf-no-text\"       removes all SWF text\n"
+			" \":swf-no-font\"       removes all embedded SWF Fonts (terminal fonts used)\n"
+			" \":swf-no-line\"       removes all lines from SWF shapes\n"
+			" \":swf-no-grad\"       removes all gradients from swf shapes\n"
+			" \":swf-quad\"          uses quadratic bezier curves instead of cubic ones\n"
+			" \":swf-xlp\"           support for lines transparency and scalability\n"
+			" \":swf-flatten=ang\"   complementary angle below which 2 lines are merged\n"
+			"                         * Note: angle \'0\' means no flattening\n"
 			"\n"
 			" \":negctts\"           uses negative CTS-DTS offsets (ISO4 brand)\n"
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"
 			"                         * Note: creates tracks if needed\n"
 			"                         * Note: aligns initial timestamp of the file to be concatenated.\n"
-			" -catx file             same as )cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
-			"                        where ADD_COMMAND is a regular -add syntax\n"
+			" -catx file             same as cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
 			"                        where ADD_COMMAND is a regular -add syntax\n"
 			" -unalign-cat           does not attempt to align timestamps of samples inbetween tracks\n"
 			" -force-cat             skips media configuration check when concatenating file\n"
@@ -463,9 +474,9 @@ void PrintImportUsage()
 			" -packed                forces packed bitstream when importing raw ASP\n"
 			" -sbr                   backward compatible signaling of AAC-SBR\n"
 			" -sbrx                  non-backward compatible signaling of AAC-SBR\n"
-			" -ps:                   backward compatible signaling of AAC-PS\n"
-			" -psx:                  non-backward compatible signaling of AAC-PS\n"
-			" -ovsbr:                oversample SBR\n"
+			" -ps                    backward compatible signaling of AAC-PS\n"
+			" -psx                   non-backward compatible signaling of AAC-PS\n"
+			" -ovsbr                 oversample SBR\n"
 			"                         * Note: SBR AAC, PS AAC and oversampled SBR cannot be detected at import time\n"
 			" -fps FPS               forces frame rate for video and SUB subtitles import\n"
 			"                         FPS is either a number or expressed as timescale-increment\n"
@@ -586,7 +597,10 @@ void PrintExtractUsage()
 			"                       * Note: \"TrackID:N\" extracts Nth sample\n"
 			" -nhnt TrackID        extracts track in nhnt format\n" 
 			" -nhml TrackID        extracts track in nhml format (XML nhnt).\n" 
-			"                       * Note: \"-nhml +TrackID\" for full dump\n"
+			"                       * Note: \"-nhml TrackID:full\" for full dump\n"
+			" -webvtt-raw TrackID  extracts raw media track in WebVTT as metadata.\n" 
+			"                       * Note: \"-webvtt-raw TrackID:embedded\" to include media data in the WebVTT file\n"
+			" -six TrackID		   extracts raw media track in experimental XML streaming instructions.\n" 
 			" -single TrackID      extracts track to a new mp4 file\n"
 			" -avi TrackID         extracts visual track to an avi file\n"
 			" -qcp TrackID         same as \'-raw\' but defaults to QCP file for EVRC/SMV\n" 
@@ -1356,6 +1370,47 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 	return dash_inputs;
 }
 
+static GF_Err parse_track_action_params(char *string, TrackAction *action)
+{
+	char *param = string;
+	while (param) {
+		param = strchr(param, ':');
+		if (param) {
+			*param = 0;
+			param++;
+			if (!strncmp("vttnomerge", param, 10)) {
+				action->dump_type |= GF_EXPORT_WEBVTT_NOMERGE;
+			} else if (!strncmp("layer", param, 5)) {
+				action->dump_type |= GF_EXPORT_SVC_LAYER;
+			} else if (!strncmp("full", param, 4)) {
+				action->dump_type |= GF_EXPORT_NHML_FULL;
+			} else if (!strncmp("embedded", param, 8)) {
+				action->dump_type |= GF_EXPORT_WEBVTT_META_EMBEDDED;
+			} else if (!strncmp("output=", param, 7)) {
+				action->out_name = gf_strdup(param+7);
+			} else if (action->dump_type == GF_EXPORT_RAW_SAMPLES) {
+				action->sample_num = atoi(param);
+			}
+		} 
+	}
+	if (!strcmp(string, "*")) {
+		action->trackID = (u32) -1;
+	} else {
+	    action->trackID = atoi(string);
+	}
+	return GF_OK;
+}
+
+static u32 create_new_track_action(char *string, TrackAction **actions, u32 *nb_track_act, u32 dump_type)
+{
+	*actions = (TrackAction *)gf_realloc(*actions, sizeof(TrackAction) * (*nb_track_act+1));
+	memset(&(*actions)[*nb_track_act], 0, sizeof(TrackAction) );
+	(*actions)[*nb_track_act].act_type = 9;
+	(*actions)[*nb_track_act].dump_type = dump_type;
+	parse_track_action_params(string, &(*actions)[*nb_track_act]);
+	(*nb_track_act)++;
+	return dump_type;
+}
 
 int mp4boxMain(int argc, char **argv)
 {
@@ -1375,9 +1430,11 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle;
+	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
+	u32 track_dump_type;
+	u32 trackID;
 	Double min_buffer = 1.5;
 	u32 ast_shift_sec = 1;
 	u32 dump_chap = 0;
@@ -1561,53 +1618,18 @@ int mp4boxMain(int argc, char **argv)
 		/********************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 		else if (!stricmp(arg, "-raw")) {
-            char *raw_params;
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_NATIVE;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE;
-            raw_params = strchr(argv[i+1], ':');
-            if (raw_params) {
-                *raw_params = 0;
-                raw_params++;
-                if (!strcmp("vttnomerge", raw_params)) {
-                    tracks[nb_track_act].dump_type |= GF_EXPORT_WEBVTT_NOMERGE;
-                } else if (!strcmp("layer", raw_params)) {
-                    tracks[nb_track_act].dump_type |= GF_EXPORT_SVC_LAYER;
-                } else if (!strncmp("output=", raw_params, 7)) {
-                    tracks[nb_track_act].out_name = gf_strdup(raw_params+7);
-                }
-            }
-			if (!strcmp(argv[i+1], "*")) {
-				tracks[nb_track_act].trackID = (u32) -1;
-			} else {
-	            tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			}
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NATIVE);
 			i++;
 		}
 		else if (!stricmp(arg, "-raw-layer")) {
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER;
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER);
 			i++;
 		}
 		else if (!stricmp(arg, "-qcp")) {
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			tracks[nb_track_act].dump_type = GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP;
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP);
 			i++;
 		}
 		else if (!stricmp(arg, "-aviraw")) {
@@ -1619,60 +1641,36 @@ int mp4boxMain(int argc, char **argv)
 			}
 			else { fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n"); MP4BOX_EXIT_WITH_CODE(1); }
 			track_dump_type = GF_EXPORT_AVI_NATIVE;
-
 			i++;
 		}
 		else if (!stricmp(arg, "-raws")) {
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_RAW_SAMPLES;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			if (strchr(argv[i+1], ':')) {
-				sscanf(argv[i+1], "%u:%u", &tracks[nb_track_act].trackID, &tracks[nb_track_act].sample_num);
-			} else {
-				tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			}
-			tracks[nb_track_act].dump_type = GF_EXPORT_RAW_SAMPLES;
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_RAW_SAMPLES);
 			i++;
 		}
 		else if (!stricmp(arg, "-nhnt")) {
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_NHNT;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			tracks[nb_track_act].dump_type = GF_EXPORT_NHNT;
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NHNT);
 			i++;
 		}
 		else if (!stricmp(arg, "-nhml")) {
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_NHML;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].dump_type = GF_EXPORT_NHML;
-			if (argv[i+1][0]=='+') {
-				track_dump_type |= GF_EXPORT_NHML_FULL;
-				tracks[nb_track_act].trackID = atoi(argv[i+1] + 1);
-			} else {
-				tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			}
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NHML);
+			i++;
+		}
+		else if (!stricmp(arg, "-webvtt-raw")) {
+			CHECK_NEXT_ARG
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_WEBVTT_META);
+			i++;
+		}
+		else if (!stricmp(arg, "-six")) {
+			CHECK_NEXT_ARG
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_SIX);
 			i++;
 		}
 		else if (!stricmp(arg, "-avi")) {
 			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_AVI;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			tracks[nb_track_act].dump_type = GF_EXPORT_AVI;
-			nb_track_act++;
+			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_AVI);
 			i++;
 		}
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
@@ -3046,7 +3044,7 @@ int mp4boxMain(int argc, char **argv)
 		case 3:
 		/*allowed for svg->lsr**/
 		case 4:
-		/*allowed for swf->bt, swf->xmt*/
+		/*allowed for swf->bt, swf->xmt, swf->svg*/
 		case 5:
 			break;
 		/*used for .saf / .lsr dump*/

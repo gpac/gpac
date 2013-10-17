@@ -366,6 +366,9 @@ enum
 	GF_ISOM_BOX_TYPE_PAYL	= GF_4CC( 'p', 'a', 'y', 'l' ),
 	GF_ISOM_BOX_TYPE_WVTT	= GF_4CC( 'w', 'v', 't', 't' ),
 
+	GF_ISOM_BOX_TYPE_STSE	= GF_4CC( 's', 't', 's', 'e' ),
+	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 's', 't', 't', 'C' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -3447,6 +3450,15 @@ typedef struct
     GF_StringBox *config;
 } GF_WebVTTSampleEntryBox;
 
+typedef struct
+{
+    GF_ISOM_SAMPLE_ENTRY_FIELDS
+	char *content_encoding;			//optional
+	char *mime_type;				//not optional
+	GF_MPEG4BitRateBox *bitrate;	// optional
+    GF_StringBox *config;
+} GF_SimpleTextSampleEntryBox;
+
 GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
 
 #endif /* GPAC_DISABLE_VTT */
@@ -3794,7 +3806,12 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err metx_Size(GF_Box *s);
 GF_Err metx_dump(GF_Box *a, FILE * trace);
 
-
+GF_Box *stse_New();
+void stse_del(GF_Box *s);
+GF_Err stse_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stse_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err stse_Size(GF_Box *s);
+GF_Err stse_dump(GF_Box *a, FILE * trace);
 
 GF_Box *tsel_New();
 void tsel_del(GF_Box *s);

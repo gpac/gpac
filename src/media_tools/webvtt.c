@@ -54,7 +54,7 @@ GF_Box *boxstring_New(u32 type) {
     return (GF_Box *)tmp;
 }
 
-static GF_Box *boxstring_new_with_data(u32 type, const char *string) {
+GF_Box *boxstring_new_with_data(u32 type, const char *string) {
     ISOM_DECL_BOX_ALLOC(GF_StringBox, type);
     if (string) tmp->string = gf_strdup(string);
     return (GF_Box *)tmp;
@@ -1181,6 +1181,26 @@ exit:
     if (prevLine) gf_free(prevLine);
     if (header) gf_free(header);
     return e;
+}
+
+GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *dumpedLength)
+{
+	GF_Err e;
+	GF_Box *box;
+    GF_StringBox *config;
+	GF_BitStream *bs;
+	*dumpedLength = 0;
+	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
+	e = gf_isom_parse_box(&box, bs);
+    if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC && box->type != GF_ISOM_BOX_TYPE_STTC)) return GF_BAD_PARAM;
+	config = (GF_StringBox *)box;
+    if (config->string) {
+		fprintf(dump, "%s", config->string);
+		*dumpedLength = strlen(config->string)+1;
+	} 
+	gf_bs_del(bs);
+	gf_isom_box_del(box);
+    return GF_OK;
 }
 
 GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index)

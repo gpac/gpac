@@ -265,6 +265,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
+		else if (!stricmp(ext+1, "swf-global")) import.swf_flags |= GF_SM_SWF_STATIC_DICT;
+		else if (!stricmp(ext+1, "swf-no-ctrl")) import.swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
+		else if (!stricmp(ext+1, "swf-no-text")) import.swf_flags |= GF_SM_SWF_NO_TEXT;
+		else if (!stricmp(ext+1, "swf-no-font")) import.swf_flags |= GF_SM_SWF_NO_FONT;
+		else if (!stricmp(ext+1, "swf-no-line")) import.swf_flags |= GF_SM_SWF_NO_LINE;
+		else if (!stricmp(ext+1, "swf-no-grad")) import.swf_flags |= GF_SM_SWF_NO_GRADIENT;
+		else if (!stricmp(ext+1, "swf-quad")) import.swf_flags |= GF_SM_SWF_QUAD_CURVE;
+		else if (!stricmp(ext+1, "swf-xlp")) import.swf_flags |= GF_SM_SWF_SCALABLE_LINE;
+		else if (!stricmp(ext+1, "swf-ic2d")) import.swf_flags |= GF_SM_SWF_USE_IC2D;
+		else if (!stricmp(ext+1, "swf-same-app")) import.swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
+		else if (!strnicmp(ext+1, "swf-flatten=", 12)) import.swf_flatten_angle = (Float) atof(ext+13);
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
 		else if (!strnicmp(ext+1, "par=", 4)) {

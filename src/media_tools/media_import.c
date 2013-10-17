@@ -8493,6 +8493,13 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") )
 		return gf_media_import_chapters_file(importer);
 
+	if (!strnicmp(ext, ".swf", 4) || !strnicmp(ext, ".SWF", 4)) {
+#ifndef GPAC_DISABLE_TTXT
+		return gf_import_timed_text(importer);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
+	}
 	/*try XML things*/
 	xml_type = gf_xml_get_root_type(importer->in_name, &e);
 	if (xml_type) {

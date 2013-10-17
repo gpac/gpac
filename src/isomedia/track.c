@@ -895,6 +895,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			e = LSR_UpdateESD((GF_LASeRSampleEntryBox*)entry, esd);
 			if (e) return e;
 			break;
+		case GF_ISOM_BOX_TYPE_STSE:
 		case GF_ISOM_BOX_TYPE_WVTT:
             /* TODO */
             assert(0);

@@ -41,6 +41,9 @@ typedef enum {
 typedef struct _webvtt_timestamp {
     u32 hour, min, sec, ms;
 } GF_WebVTTTimestamp;
+u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts);
+void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value);
+void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour);
 
 typedef struct _webvtt_cue
 {
@@ -57,8 +60,9 @@ typedef struct _webvtt_cue
     GF_WebVTTTimestamp orig_end;
 } GF_WebVTTCue;
 
-u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts);
 void gf_webvtt_cue_del(GF_WebVTTCue * cue);
+
+GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *printLength);
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/scenegraph_dev.h>

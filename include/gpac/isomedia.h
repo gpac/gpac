@@ -200,6 +200,7 @@ enum
 
 	GF_ISOM_SUBTYPE_LSR1		= GF_4CC( 'l', 's', 'r', '1' ),
 	GF_ISOM_SUBTYPE_WVTT		= GF_4CC( 'w', 'v', 't', 't' ),
+	GF_ISOM_SUBTYPE_STSE		= GF_4CC( 's', 't', 's', 'e' ),
 };
 
 

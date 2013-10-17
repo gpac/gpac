@@ -2040,8 +2040,8 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	}
 
 	/*dump file*/
-	if (read->load->localPath) {
-		sprintf(szName, "%s/swf_jpeg_%d.jpg", read->load->localPath, ID);
+	if (read->localPath) {
+		sprintf(szName, "%s/swf_jpeg_%d.jpg", read->localPath, ID);
 	} else {
 		sprintf(szName, "swf_jpeg_%d.jpg", ID);
 	}
@@ -2113,8 +2113,8 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		gf_free(dst);
 
 		/*write png*/
-		if (read->load->localPath) {
-			sprintf(szName, "%s/swf_png_%d.png", read->load->localPath, ID);
+		if (read->localPath) {
+			sprintf(szName, "%s/swf_png_%d.png", read->localPath, ID);
 		} else {
 			sprintf(szName, "swf_png_%d.png", ID);
 		}
@@ -2251,7 +2251,7 @@ static GF_Err swf_process_tag(SWFReader *read)
 	}
 }
 
-static GF_Err swf_parse_tag(SWFReader *read)
+GF_Err swf_parse_tag(SWFReader *read)
 {
 	GF_Err e;
 	s32 diff;
@@ -2356,11 +2356,9 @@ GF_Err gf_sm_load_run_swf(GF_SceneLoader *load)
 	return e;
 }
 
-void gf_sm_load_done_swf(GF_SceneLoader *load)
+void gf_swf_reader_del(SWFReader *read)
 {
-	SWFReader *read = (SWFReader *) load->loader_priv;
 	if (!read) return;
-
 	gf_bs_del(read->bs);
 	if (read->mem) gf_free(read->mem);
 
@@ -2398,26 +2396,25 @@ void gf_sm_load_done_swf(GF_SceneLoader *load)
 	if (read->localPath) gf_free(read->localPath);
 	fclose(read->input);
 	gf_free(read);
+}
+
+void gf_sm_load_done_swf(GF_SceneLoader *load)
+{
+	SWFReader *read = (SWFReader *) load->loader_priv;
+	if (!read) return;
+	gf_swf_reader_del(read);
 	load->loader_priv = NULL;
 }
 
-GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
+SWFReader *gf_swf_reader_new(const char *localPath, const char *inputName)
 {
 	SWFReader *read;
-	SWFRec rc;
-	GF_Err e;
 	FILE *input;
-	u8 sig[3];
-
-	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
-	input = gf_f64_open(load->fileName, "rb");
-	if (!input) return GF_URL_ERROR;
+	input = gf_f64_open(inputName, "rb");
+	if (!input) return NULL;
 
 	GF_SAFEALLOC(read, SWFReader);
-	read->load = load;
-	
-	e = GF_OK;
-
+	read->inputName = gf_strdup(inputName);
 	read->input = input;
 	read->bs = gf_bs_from_file(input, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(read->bs, swf_io_error, &read);
@@ -2426,12 +2423,11 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	read->apps = gf_list_new();
 	read->sounds = gf_list_new();
 
-	read->flags = load->swf_import_flags;
-	read->flat_limit = FLT2FIX(load->swf_flatten_limit);
-	if (load->localPath) read->localPath = gf_strdup(load->localPath);
-	else {
+	if (localPath) {
+		read->localPath = gf_strdup(localPath);
+	} else {
 		char *c;
-		read->localPath = gf_strdup(load->fileName);
+		read->localPath = gf_strdup(inputName);
 		c = strrchr(read->localPath, GF_PATH_SEPARATOR);
 		if (c) c[1] = 0;
 		else {
@@ -2440,7 +2436,24 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 		}
 	}
 
-	load->loader_priv = read;
+	return read;
+}
+
+GF_Err gf_swf_reader_set_user_mode(SWFReader *read, void *user, 
+								  GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap),
+								  GF_Err (*add_header)(void *user, const char *data, u32 length))
+{
+	if (!read) return GF_BAD_PARAM;
+	read->user = user;
+	read->add_header = add_header;
+	read->add_sample = add_sample;
+	return GF_OK;
+}
+
+GF_Err gf_swf_read_header(SWFReader *read)
+{
+	SWFRec rc;
+	u8 sig[3];
 
 	/*get signature*/
 	sig[0] = gf_bs_read_u8(read->bs);
@@ -2448,28 +2461,45 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	sig[2] = gf_bs_read_u8(read->bs);
 	/*"FWS" or "CWS"*/
 	if ( ((sig[0] != 'F') && (sig[0] != 'C')) || (sig[1] != 'W') || (sig[2] != 'S') ) {
-		e = GF_URL_ERROR;
-		goto exit;
+		return GF_URL_ERROR;
 	}
 	/*version = */gf_bs_read_u8(read->bs);
 	read->length = swf_get_32(read);
 
 	/*if compressed decompress the whole file*/
-	if (sig[0] == 'C') 
+	if (sig[0] == 'C') {
 		swf_init_decompress(read);
-	
+	}
+
 	swf_get_rec(read, &rc);
 	read->width = rc.w;
 	read->height = rc.h;
-	load->ctx->scene_width = FIX2INT(read->width);
-	load->ctx->scene_height = FIX2INT(read->height);
-	load->ctx->is_pixel_metrics = 1;
 	
 	swf_align(read);
 	read->frame_rate = swf_get_16(read)>>8;
 	read->frame_count = swf_get_16(read);
-	
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SWF Import - Scene Size %dx%d - %d frames @ %d FPS", load->ctx->scene_width, load->ctx->scene_height, read->frame_count, read->frame_rate));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SWF Import - Scene Size %gx%g - %d frames @ %d FPS", read->width, read->height, read->frame_count, read->frame_rate));
+	return GF_OK;
+}
+
+GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
+{
+	SWFReader *read;
+	GF_Err e;
+
+	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
+	e = GF_OK;
+
+	read = gf_swf_reader_new(load->localPath, load->fileName);
+	read->load = load;
+	read->flags = load->swf_import_flags;
+	read->flat_limit = FLT2FIX(load->swf_flatten_limit);
+	load->loader_priv = read;
+
+	gf_swf_read_header(read);
+	load->ctx->scene_width = FIX2INT(read->width);
+	load->ctx->scene_height = FIX2INT(read->height);
+	load->ctx->is_pixel_metrics = 1;
 
 	if (!(load->swf_import_flags & GF_SM_SWF_SPLIT_TIMELINE) ) {
 		swf_report(read, GF_OK, "ActionScript disabled");
@@ -2479,7 +2509,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
     if (!(load->swf_import_flags & GF_SM_SWF_USE_SVG)) {
         e = swf_to_bifs_init(read);
     } else {
-        e = swf_to_svg_init(read);
+        e = swf_to_svg_init(read, read->flags, load->swf_flatten_limit);
     }
 	if (e) goto exit;
 

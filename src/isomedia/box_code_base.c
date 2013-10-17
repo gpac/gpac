@@ -4979,6 +4979,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCT:
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
+	case GF_ISOM_BOX_TYPE_STSE:
 	case GF_ISOM_BOX_TYPE_DIMS:
 	case GF_ISOM_BOX_TYPE_AC3:
 	case GF_ISOM_BOX_TYPE_LSR1:
@@ -6178,6 +6179,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_RTP_STSD:
 		case GF_ISOM_BOX_TYPE_METX:
 		case GF_ISOM_BOX_TYPE_METT:
+		case GF_ISOM_BOX_TYPE_STSE:
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:
 		case GF_ISOM_BOX_TYPE_AVC3:
@@ -7244,7 +7246,7 @@ void metx_del(GF_Box *s)
 
 GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
 {
-	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
+	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
@@ -7338,7 +7340,7 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->bitrate, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_size(s, ptr->protections);
+	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
 GF_Err metx_Size(GF_Box *s)
@@ -7370,7 +7372,146 @@ GF_Err metx_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+/* SimpleTextSampleEntry */
+GF_Box *stse_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SimpleTextSampleEntryBox, GF_ISOM_BOX_TYPE_STSE);
+	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
+	return (GF_Box *)tmp;
+}
 
+
+void stse_del(GF_Box *s)
+{
+	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox*)s;
+	if (ptr == NULL) return;
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
+
+	if (ptr->content_encoding) gf_free(ptr->content_encoding);
+	if (ptr->mime_type) gf_free(ptr->mime_type);
+	if (ptr->bitrate) gf_isom_box_del((GF_Box *)ptr->bitrate);
+    if (ptr->config) gf_isom_box_del((GF_Box *)ptr->config);
+	gf_free(ptr);
+}
+
+
+GF_Err stse_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_STTC:
+		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->config =  (GF_StringBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_BTRT:
+		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_SINF:
+		gf_list_add(ptr->protections, a);
+		break;
+	default:
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
+GF_Err stse_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 size, i;
+	char *str;
+	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox*)s;
+
+	gf_bs_read_data(bs, ptr->reserved, 6);
+	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+
+	size = (u32) ptr->size - 8;
+	str = (char *)gf_malloc(sizeof(char)*size);
+
+	i=0;
+
+	while (size) {
+		str[i] = gf_bs_read_u8(bs);
+		size--;
+		if (!str[i])
+			break;
+		i++;
+	}
+	if (i) ptr->content_encoding = gf_strdup(str);
+
+	i=0;
+	while (size) {
+		str[i] = gf_bs_read_u8(bs);
+		size--;
+		if (!str[i])
+			break;
+		i++;
+	}
+	if (i) ptr->mime_type = gf_strdup(str);
+
+	ptr->size = size;
+	gf_free(str);
+	return gf_isom_read_box_list(s, bs, stse_AddBox);
+}
+
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err stse_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_data(bs, ptr->reserved, 6);
+	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
+
+	if (ptr->content_encoding) 
+		gf_bs_write_data(bs, ptr->content_encoding, (u32) strlen(ptr->content_encoding));
+	gf_bs_write_u8(bs, 0);
+
+	if (ptr->mime_type) 
+		gf_bs_write_data(bs, ptr->mime_type, (u32) strlen(ptr->mime_type));
+	gf_bs_write_u8(bs, 0);
+	
+	if (ptr->bitrate) {
+		e = gf_isom_box_write((GF_Box *)ptr->bitrate, bs);
+		if (e) return e;
+	}
+	if (ptr->config) {
+		e = gf_isom_box_write((GF_Box *)ptr->config, bs);
+		if (e) return e;
+	}
+	return gf_isom_box_array_write(s, ptr->protections, bs);
+}
+
+GF_Err stse_Size(GF_Box *s)
+{
+	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
+	GF_Err e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8;
+
+	if (ptr->content_encoding)
+		ptr->size += strlen(ptr->content_encoding);
+	ptr->size++;
+	if (ptr->mime_type)
+		ptr->size += strlen(ptr->mime_type);
+	ptr->size++;
+	if (ptr->bitrate) {
+		e = gf_isom_box_size((GF_Box *)ptr->bitrate);
+		if (e) return e;
+		ptr->size += ptr->bitrate->size;
+	}
+	if (ptr->config) {
+		e = gf_isom_box_size((GF_Box *)ptr->config);
+		if (e) return e;
+		ptr->size += ptr->config->size;
+	}
+	return gf_isom_box_array_size(s, ptr->protections);
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *dac3_New(u32 boxType)
 {
