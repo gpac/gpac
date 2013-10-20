@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	GF_ISOFile *movie;
 	/* Error indicator */
 	GF_Err e;
-	/* number of bytes required to finish the current ISO Box reading */
+	/* Number of bytes required to finish the current ISO Box reading */
 	u64 missing_bytes;
 	/* Return value for the program */
 	int ret = 0;
@@ -58,12 +58,12 @@ int main(int argc, char **argv)
 
 	track_number = gf_isom_get_track_by_id(movie, track_id);
 	if (track_number == 0) {
-		fprintf(stdout, "Could not open file %s for reading (%s).\n", argv[1], gf_error_to_string(e));
+		fprintf(stdout, "Could not find track ID=%u of file %s.\n", track_id, argv[1]);
 		ret = 1;
 		goto exit;
 	}
 
-	sample_count = 	gf_isom_get_sample_count(movie, track_number);
+	sample_count = gf_isom_get_sample_count(movie, track_number);
 	sample_index = 1;
 	while (sample_index <= sample_count) {
 		GF_ISOSample *iso_sample;
