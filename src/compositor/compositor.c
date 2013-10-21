@@ -1141,6 +1141,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	compositor->cache_tolerance = sOpt ? atoi(sOpt) : 30;
 #endif
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory");
+	compositor->texture_from_decoder_memory = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	if (!sOpt) 
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory", "no");
+
 #ifndef GPAC_DISABLE_3D
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceOpenGL");
@@ -1156,11 +1161,6 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (sOpt && !strcmp(sOpt, "Examine")) compositor->default_navigation_mode = GF_NAVIGATE_EXAMINE;
 	else if (sOpt && !strcmp(sOpt, "Fly")) compositor->default_navigation_mode = GF_NAVIGATE_FLY;
 	
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory");
-	compositor->texture_from_decoder_memory = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
-	if (!sOpt) 
-		gf_cfg_set_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory", "no");
-
 #ifdef GPAC_HAS_GLU
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
 	compositor->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
