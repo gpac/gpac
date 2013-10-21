@@ -551,6 +551,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		force_soft_blt = use_soft_stretch = GF_TRUE;
 	}
 
+	memset(&video_src, 0, sizeof(GF_VideoSurface));
 	video_src.height = txh->height;
 	video_src.width = txh->width;
 	video_src.pitch_x = 0;
@@ -560,6 +561,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (txh->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YV12;
 #endif
 	video_src.video_buffer = txh->data;
+	if (txh->raw_memory) {
+		video_src.u_ptr = txh->pU;
+		video_src.v_ptr = txh->pV;
+	}
+
 	if (overlay_type) {
 
 		if (overlay_type==2) {
@@ -629,6 +635,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (is_attached) visual_2d_release_raster(visual);
 
 	if (!use_soft_stretch) {
+		u32 push_time = gf_sys_clock();
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 0);
 		/*HW pb, try soft*/
 		if (e) {
@@ -648,10 +655,20 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 #ifndef GPAC_DISABLE_LOG
 		else if (txh->stream) {
 			u32 ck;
+			push_time = gf_sys_clock() - push_time;
 			gf_mo_get_object_time(txh->stream, &ck);
 			if (ck>txh->last_frame_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
 			}
+
+			if (txh->nb_frames==100) {
+				txh->nb_frames = 0;
+				txh->upload_time = 0;
+			}
+			txh->nb_frames ++;
+			txh->upload_time += push_time;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Pushed Y,U,V texures in %d ms - average push time %d ms\n", push_time, txh->upload_time / txh->nb_frames));
 		}
 #endif
 	}

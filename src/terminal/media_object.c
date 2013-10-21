@@ -538,7 +538,18 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 
 	gf_odm_lock(mo->odm, 0);
+	if (codec->direct_vout) return codec->CB->pY;
 	return mo->frame;
+}
+
+GF_EXPORT
+GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV)
+{
+	if (!mo || !mo->odm || !mo->odm->codec) return GF_BAD_PARAM;
+	*pY_or_RGB = mo->odm->codec->CB->pY;
+	*pU = mo->odm->codec->CB->pU;
+	*pV = mo->odm->codec->CB->pV;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -1138,6 +1149,13 @@ Bool gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst)
 	e = dec->Control(dec, GF_FALSE, src, dst);
 	if (e==GF_BUFFER_TOO_SMALL) return GF_TRUE;
 	return GF_FALSE;
+}
+
+GF_EXPORT
+Bool gf_mo_is_raw_memory(GF_MediaObject *mo)
+{
+	if (!mo->odm || !mo->odm->codec) return GF_FALSE;
+	return mo->odm->codec->direct_vout;
 }
 
 GF_EXPORT

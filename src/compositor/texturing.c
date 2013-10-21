@@ -84,6 +84,9 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 	txh->last_frame_time = (u32) (-1);
 	//gf_sc_invalidate(txh->compositor, NULL);
 	txh->is_open = 1;
+
+	/*request play*/
+	txh->raw_memory = gf_mo_is_raw_memory(txh->stream);
 	return GF_OK;
 }
 
@@ -227,7 +230,17 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 	txh->needs_release = 1; 
 	txh->last_frame_time = ts;
+	if (txh->raw_memory) {
+		gf_mo_get_raw_image_planes(txh->stream, &txh->data, &txh->pU, &txh->pV);
+	}
 	if (gf_mo_is_muted(txh->stream)) return;
+
+
+	if (txh->nb_frames) {
+		s32 push_delay = txh->upload_time / txh->nb_frames;
+		if (push_delay > ms_until_pres) ms_until_pres = 0;
+		else ms_until_pres -= push_delay;
+	}
 
 	if (txh->compositor->frame_delay < ms_until_pres)
 		txh->compositor->frame_delay = ms_until_pres;

@@ -5195,7 +5195,7 @@ restart_import:
 
 	while (gf_bs_available(bs)) {
 		s32 res;
-		u8 nal_unit_type, temporal_id;
+		u8 nal_unit_type, temporal_id, layer_id;
 		Bool skip_nal, add_sps, is_slice;
 		nal_size = gf_media_nalu_next_start_code_bs(bs);
 
@@ -5209,7 +5209,7 @@ restart_import:
 
 		gf_bs_seek(bs, nal_start);
 
-		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id);
+		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 
 		skip_nal = 0;
 		copy_size = flush_sample = 0;
@@ -5356,6 +5356,8 @@ restart_import:
 				if (first_avc) {
 					first_avc = 0;
 					gf_import_message(import, GF_OK, "HEVC import - frame size %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
+				} else {
+					gf_import_message(import, GF_OK, "SHVC detected - %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
 				}
 
 				if ((max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
@@ -5568,7 +5570,8 @@ restart_import:
 				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 0, 0, 0);
 			}
 
-			if (is_slice) {
+			//fixme with latest SHVC syntax
+			if (!layer_id && is_slice) {
 				slice_is_ref = gf_media_hevc_slice_is_IDR(&hevc);
 				if (slice_is_ref) 
 					nb_idr++;
@@ -8440,8 +8443,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_avc_h264(importer);
 	/*HEVC video*/
-	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4)
-		|| !stricmp(fmt, "HEVC") || !stricmp(fmt, "H265") )
+	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4) || !strnicmp(ext, ".shvc", 5)
+		|| !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
 	/*AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )

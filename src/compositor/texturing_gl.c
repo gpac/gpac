@@ -763,29 +763,55 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	/*pow2 texture or hardware support*/
 	if (! (txh->tx_io->flags & TX_MUST_SCALE) ) {
 		if (txh->tx_io->yuv_shader) {
+			u32 push_time;
 			u8 *pY, *pU, *pV;
 			pY = data;
-			pU = pY + txh->height*txh->stride;
-			pV = pU + txh->height*txh->stride/4;
+			if (txh->raw_memory) {
+				if (!txh->pU || !txh->pV) return 0;
 
+				pU = txh->pU;
+				pV = txh->pV;
+			} else {
+				pU = pY + txh->height*txh->stride;
+				pV = pU + txh->height*txh->stride/4;
+			}
+
+			push_time = gf_sys_clock();
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride);
 			if (first_load) {
 				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pY);
 			} else {
 				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pY);
 			}
 
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride/2);
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 			if (first_load) {
 				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w/2, h/2, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pU);
 			} else {
 				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w/2, h/2, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pU);
 			}
-
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride/2);
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 			if (first_load) {
 				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w/2, h/2, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pV);
 			} else {
 				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w/2, h/2, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pV);
+			}
+			push_time = gf_sys_clock() - push_time;
+
+			if (txh->nb_frames==100) {
+				txh->nb_frames = 0;
+				txh->upload_time = 0;
+			}
+			txh->nb_frames ++;
+			txh->upload_time += push_time;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Pushed Y,U,V texures in %d ms - average push time %d ms\n", push_time, txh->upload_time / txh->nb_frames));
+
+			//we just pushed our texture to the GPU, release
+			if (txh->raw_memory) {
+				gf_sc_texture_release_stream(txh);
 			}
 		} else {
 			if (first_load) {

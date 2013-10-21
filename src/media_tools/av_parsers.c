@@ -3353,6 +3353,8 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	u32 data_without_emulation_bytes_size = 0;
 	s32 vps_id, sps_id = -1;
 	u8 max_sub_layers_minus1, flag;
+	u8 layer_id, temporal_id;
+	Bool update_rep_format_flag;
 	u32 i, nb_CTUs, depth;
 	u32 log2_diff_max_min_luma_coding_block_size;
 	u32 log2_min_transform_block_size, log2_min_luma_coding_block_size;
@@ -3369,18 +3371,27 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	if (!bs) goto exit;
 	
-	gf_bs_read_u16(bs);
-
+	gf_bs_read_int(bs, 7);
+	layer_id = gf_bs_read_int(bs, 6);
+	temporal_id = gf_bs_read_int(bs, 3);
 	vps_id = gf_bs_read_int(bs, 4);
 	if (vps_id>=16) goto exit;
 
-	max_sub_layers_minus1 = gf_bs_read_int(bs, 3);
-	/*temporal_id_nesting_flag = */gf_bs_read_int(bs, 1);
 	memset(&ptl, 0, sizeof(ptl));
-	profile_tier_level(bs, 1, max_sub_layers_minus1, &ptl);
+
+	//fixme with latest shvc syntax !!
+//	if (layer_id == 0) 
+	{
+		max_sub_layers_minus1 = gf_bs_read_int(bs, 3);
+		/*temporal_id_nesting_flag = */gf_bs_read_int(bs, 1);
+		profile_tier_level(bs, 1, max_sub_layers_minus1, &ptl);
+	}
 
 	sps_id = bs_get_ue(bs);
 	if (sps_id>=16) goto exit;
+	//fixme with latest shvc syntax !!
+	if (layer_id) sps_id=1;
+
 	sps = &hevc->sps[sps_id];
 	if (!sps->state) {
 		sps->state = 1;
@@ -3389,19 +3400,30 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	}
 	sps->ptl = ptl;
 
-	sps->chroma_format_idc = bs_get_ue(bs);
-	if (sps->chroma_format_idc==3)
-		sps->separate_colour_plane_flag = gf_bs_read_int(bs, 1);
-	sps->width = bs_get_ue(bs);
-	sps->height = bs_get_ue(bs);
+	if (layer_id > 0) {
+//		update_rep_format_flag = gf_bs_read_int(bs, 1);
+		update_rep_format_flag = 1;
+	} else {
+		update_rep_format_flag = 1;
+	}
+	if (update_rep_format_flag) {
+		sps->chroma_format_idc = bs_get_ue(bs);
+		if (sps->chroma_format_idc==3)
+			sps->separate_colour_plane_flag = gf_bs_read_int(bs, 1);
+		sps->width = bs_get_ue(bs);
+		sps->height = bs_get_ue(bs);
+	}
+
 	if (gf_bs_read_int(bs, 1)) {
 		sps->cw_left = bs_get_ue(bs);
 		sps->cw_right = bs_get_ue(bs);
 		sps->cw_top = bs_get_ue(bs);
 		sps->cw_bottom = bs_get_ue(bs);
 	}
-	sps->bit_depth_luma = 8 + bs_get_ue(bs);
-	sps->bit_depth_chroma = 8 + bs_get_ue(bs);
+	if (update_rep_format_flag) {
+		sps->bit_depth_luma = 8 + bs_get_ue(bs);
+		sps->bit_depth_chroma = 8 + bs_get_ue(bs);
+	}
 
 	sps->log2_max_pic_order_cnt_lsb = 4 + bs_get_ue(bs);
 
@@ -3470,6 +3492,9 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	if (vui_flag_pos) 
 		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
 
+	/*fixme - move to latest syntax*/
+	if (layer_id>0) goto exit;
+	
 	if (/*vui_parameters_present_flag*/gf_bs_read_int(bs, 1)) {
 
 		sps->aspect_ratio_info_present_flag = gf_bs_read_int(bs, 1);
@@ -3652,7 +3677,7 @@ exit:
 }
 
 
-s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id)
+s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	u32 reserved;
 	s32 slice, ret;
@@ -3665,9 +3690,7 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	if (reserved) return -1;
 
 	*nal_unit_type = n_state.nal_unit_type = gf_bs_read_int(bs, 6);
-	reserved = gf_bs_read_int(bs, 6);
-//	if (reserved) return -1;
-
+	*layer_id = gf_bs_read_int(bs, 6);
 	*temporal_id = n_state.temporal_id = gf_bs_read_int(bs, 3);
 
 	ret = 0;
@@ -3707,6 +3730,9 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	case GF_HEVC_NALU_SLICE_RASL_N:
 	case GF_HEVC_NALU_SLICE_RASL_R:
 		slice = 1;
+		//fixme with latest SHVC syntax
+		if (*layer_id) return 0;
+
 		/* slice - read the info and compare.*/
 		ret = hevc_parse_slice_segment(bs, hevc, &n_state);
 		if (ret<0) return ret;

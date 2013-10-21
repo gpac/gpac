@@ -1156,6 +1156,10 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (sOpt && !strcmp(sOpt, "Examine")) compositor->default_navigation_mode = GF_NAVIGATE_EXAMINE;
 	else if (sOpt && !strcmp(sOpt, "Fly")) compositor->default_navigation_mode = GF_NAVIGATE_FLY;
 	
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory");
+	compositor->texture_from_decoder_memory = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	if (!sOpt) 
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory", "no");
 
 #ifdef GPAC_HAS_GLU
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
@@ -3102,4 +3106,11 @@ GF_Err gf_sc_remove_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 	}
 	gf_sc_lock(sc, GF_FALSE);
 	return GF_OK;
+}
+
+Bool gf_sc_use_raw_texture(GF_Compositor *compositor)
+{
+	if (!compositor) return 0;
+//	if (!compositor->visual->type_3d && !compositor->force_opengl_2d) return 0;
+	return compositor->texture_from_decoder_memory;
 }

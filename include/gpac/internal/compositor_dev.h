@@ -475,6 +475,8 @@ struct __tag_compositor
 
 	u32 offscreen_width, offscreen_height;
 
+	u32 texture_from_decoder_memory;
+
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;
 #endif
@@ -591,6 +593,10 @@ typedef struct _gf_sc_texture_handler
 	char *data;
 	u32 width, height, stride, pixelformat, pixel_ar;
     Bool is_flipped;
+
+	Bool raw_memory;
+	u8 *pU, *pV;
+	u32 nb_frames, upload_time;
 
 #ifndef GPAC_DISABLE_VRML
 	/*if set texture has been transformed by MatteTexture -> disable blit*/
@@ -1350,6 +1356,9 @@ GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *
 
 
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
+
+
+Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }

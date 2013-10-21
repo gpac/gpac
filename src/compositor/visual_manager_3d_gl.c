@@ -390,21 +390,24 @@ static char *glsl_yuv_shader = "\
 	uniform sampler2D y_plane;\
 	uniform sampler2D u_plane;\
 	uniform sampler2D v_plane;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
 	void main(void)  \
 	{\
 		vec2 texc;\
-		float y, u, v;\
-		vec4 rgb;\
+		vec3 yuv, rgb;\
 		texc = gl_TexCoord[0].st;\
 		texc.y = 1.0 - texc.y;\
-		y = (texture2D(y_plane, texc).r - 0.0625) * 1.164; \
-		u = texture2D(u_plane, texc).r - 0.5; \
-		v = texture2D(v_plane, texc).r - 0.5; \
-		rgb.r = y + 1.596*v;\
-		rgb.g = y + -0.391*u + -0.813*v;\
-		rgb.b = y + 2.018*u;\
-		rgb.a = 1.0;\
-		gl_FragColor = rgb;\
+		yuv.x = texture2D(y_plane, texc).r; \
+		yuv.y = texture2D(u_plane, texc).r; \
+		yuv.z = texture2D(v_plane, texc).r; \
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		gl_FragColor = vec4(rgb, 1.0);\
 	}";
 
 
@@ -416,26 +419,29 @@ static char *glsl_yuv_rect_shader_strict = "\
 	uniform sampler2DRect v_plane;\
 	uniform float width;\
 	uniform float height;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
 	out vec4 FragColor;\
 	void main(void)  \
 	{\
 		vec2 texc;\
-		float y, u, v;\
-		vec4 rgb;\
+		vec3 yuv, rgb;\
 		texc = gl_TexCoord[0].st;\
 		texc.y = 1.0 - texc.y;\
 		texc.x *= width;\
 		texc.y *= height;\
-		y = (texture2DRect(y_plane, texc).r - 0.0625) * 1.164; \
+		yuv.x = texture2DRect(y_plane, texc).r; \
 		texc.x /= 2.0;\
 		texc.y /= 2.0;\
-		u = texture2DRect(u_plane, texc).r - 0.5; \
-		v = texture2DRect(v_plane, texc).r - 0.5; \
-		rgb.r = y + 1.596*v;\
-		rgb.g = y + -0.391*u + -0.813*v;\
-		rgb.b = y + 2.018*u;\
-		rgb.a = 1.0;\
-		FragColor = rgb;\
+		yuv.y = texture2DRect(u_plane, texc).r; \
+		yuv.z = texture2DRect(v_plane, texc).r; \
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		FragColor = vec4(rgb, 1.0);\
 	}";
 
 static char *glsl_yuv_rect_shader_relaxed= "\
@@ -444,25 +450,35 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 	uniform sampler2DRect v_plane;\
 	uniform float width;\
 	uniform float height;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
 	void main(void)  \
 	{\
 		vec2 texc;\
-		float y, u, v;\
-		vec4 rgb;\
+		vec3 yuv, rgb;\
 		texc = gl_TexCoord[0].st;\
 		texc.y = 1.0 - texc.y;\
 		texc.x *= width;\
 		texc.y *= height;\
-		y = (texture2DRect(y_plane, texc).r - 0.0625) * 1.164; \
+		yuv.x = texture2DRect(y_plane, texc).r; \
 		texc.x /= 2.0;\
 		texc.y /= 2.0;\
-		u = texture2DRect(u_plane, texc).r - 0.5; \
-		v = texture2DRect(v_plane, texc).r - 0.5; \
-		rgb.r = y + 1.596*v;\
-		rgb.g = y + -0.391*u + -0.813*v;\
-		rgb.b = y + 2.018*u;\
-		rgb.a = 1.0;\
-		gl_FragColor = rgb;\
+		yuv.y = texture2DRect(u_plane, texc).r; \
+		yuv.z = texture2DRect(v_plane, texc).r; \
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		gl_FragColor = vec4(rgb, 1.0);\
+	}";
+
+
+static char *glsl_yuv_shader_test= "\
+	void main(void)  \
+	{\
+		gl_FragColor = vec4(1.0, 0, 0, 1.0);\
 	}";
 
 Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
