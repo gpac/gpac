@@ -475,12 +475,6 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 	}";
 
 
-static char *glsl_yuv_shader_test= "\
-	void main(void)  \
-	{\
-		gl_FragColor = vec4(1.0, 0, 0, 1.0);\
-	}";
-
 Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
 	GLint blen = 0;	
