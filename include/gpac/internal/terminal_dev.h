@@ -807,6 +807,7 @@ struct _generic_codec
 	u32 bytes_per_sec;
 	Double fps;
 	u32 nb_dispatch_skipped;
+	Bool direct_vout;
 
 	/*statistics*/
 	u32 last_stat_start, cur_bit_size;

@@ -380,6 +380,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		ffd->out_pix_fmt = ffd->pix_fmt;
 
 		if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
+			ffd->stride = (*ctx)->width;
 			if (ffd->depth_codec) {
 				ffd->out_size = (*ctx)->width * (*ctx)->height * 5 / 2;
 				ffd->out_pix_fmt = GF_PIXEL_YUVD;
@@ -454,6 +455,9 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 	case GF_CODEC_REORDER:
 		capability->cap.valueInt = 1;
 		return GF_OK;
+	case GF_CODEC_DIRECT_OUTPUT:
+		capability->cap.valueBool = GF_TRUE;
+		return GF_OK;
 	}
 
 	if (!ffd->base_ctx) {
@@ -493,7 +497,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = ffd->base_ctx->height;
 		break;
 	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = ffd->base_ctx->width;
+		capability->cap.valueInt = ffd->stride;
 		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) capability->cap.valueInt *= 3;
 		break;
 	case GF_CODEC_FPS:
@@ -543,6 +547,9 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 			if (ffd->base_ctx && ffd->base_ctx->codec) avcodec_flush_buffers(ffd->base_ctx);
 			if (ffd->depth_ctx && ffd->depth_ctx->codec) avcodec_flush_buffers(ffd->depth_ctx);
 		}
+		return GF_OK;
+	case GF_CODEC_DIRECT_OUTPUT:
+		ffd->direct_output = GF_TRUE;
 		return GF_OK;
 	default:
 		/*return unsupported to avoid confusion by the player (like color space changing ...) */
@@ -617,6 +624,10 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	if (ffd->st==GF_STREAM_AUDIO) {
 		s32 len;
 		u32 buf_size = (*outBufferLength);
+#ifdef USE_AVCODEC2
+		AVFrame *audio_frame;
+#endif
+
 		(*outBufferLength) = 0;
 
 		/*seeking don't decode*/
@@ -629,23 +640,41 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 
 redecode:
 #ifdef USE_AVCODEC2
-		gotpic = 192000;
-		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);
+
+		audio_frame = avcodec_alloc_frame();
+		len = avcodec_decode_audio4(ctx, audio_frame, &gotpic, &pkt);
+		if (gotpic) gotpic = audio_frame->nb_samples * 2 * ctx->channels;
 #else
 		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 		len = avcodec_decode_audio2(ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 #endif
-		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
-		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }
+		if (len<0) { 
+			ffd->frame_start = 0;
+#ifdef USE_AVCODEC2
+			avcodec_free_frame(&audio_frame);
+#endif
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (gotpic<0) {
+			ffd->frame_start = 0;
+#ifdef USE_AVCODEC2
+			avcodec_free_frame(&audio_frame);
+#endif
+			return GF_OK;
+		}
 
 		/*first config*/
 		if (!ffd->out_size) {
-			if (ctx->channels * ctx->frame_size* 2 < gotpic) ctx->frame_size = gotpic / 2 * ctx->channels;
+			if (ctx->channels * ctx->frame_size* 2 < gotpic) ctx->frame_size = gotpic / (2 * ctx->channels);
+
 			ffd->out_size = ctx->channels * ctx->frame_size * 2 /* 16 / 8 */;
 		}
 		if (ffd->out_size < (u32) gotpic) {
 			/*looks like relying on frame_size is not a good idea for all codecs, so we use gotpic*/
 			(*outBufferLength) = ffd->out_size = gotpic;
+#ifdef USE_AVCODEC2
+			avcodec_free_frame(&audio_frame);
+#endif
 			return GF_BUFFER_TOO_SMALL;
 		}
 		if (ffd->out_size > buf_size) {
@@ -653,11 +682,36 @@ redecode:
 			also request more slots in the composition memory but let's not waste mem*/
 			if (ffd->out_size < (u32) 576*ctx->channels) ffd->out_size=ctx->channels*576;
 			(*outBufferLength) = ffd->out_size;
+#ifdef USE_AVCODEC2
+			avcodec_free_frame(&audio_frame);
+#endif
 			return GF_BUFFER_TOO_SMALL;
 		}
 
 		/*we're sure to have at least gotpic bytes available in output*/
-		memcpy(outBuffer, ffd->audio_buf, sizeof(char) * gotpic);
+#ifdef USE_AVCODEC2
+		if (audio_frame->format==AV_SAMPLE_FMT_FLTP) {
+			s32 _samples = audio_frame->nb_samples;
+			s32 i, j;
+			s16 *output = (s16 *) outBuffer;
+			for (i=0 ; i<audio_frame->nb_samples ; i++) {
+				for (j=0; j<audio_frame->channels; j++) {
+					Float* inputChannel = (Float*)audio_frame->extended_data[j];
+					Float sample = inputChannel[i];
+					if (sample<-1.0f) sample=-1.0f;
+					else if (sample>1.0f) sample=1.0f;
+					
+					output[i*audio_frame->channels + j] = (int16_t) (sample * GF_SHORT_MAX);
+				}
+			}
+		} else {
+			memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
+		}
+		avcodec_free_frame(&audio_frame);
+#else
+		memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
+#endif
+
 		(*outBufferLength) += gotpic;
 		outBuffer += gotpic;
 
@@ -822,9 +876,17 @@ redecode:
 
 
 	/*recompute outsize in case on-the-fly change*/
-	if ((w != ctx->width) || (h != ctx->height)) {
-		outsize = ctx->width * ctx->height * 3;
-		if (ffd->out_pix_fmt != GF_PIXEL_RGB_24) outsize /= 2;
+	if ((w != ctx->width) || (h != ctx->height)
+		|| (ffd->direct_output && (frame->linesize[0] != ffd->stride)) 
+		) {
+
+		ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width;
+		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
+			outsize = ctx->width * ctx->height * 3;
+		} else {
+			outsize = ffd->stride * ctx->height * 3 / 2;
+		}
+
 		if (ffd->depth_codec) {
 			outsize = 5 * ctx->width * ctx->height / 2;
 			ffd->yuv_size = 3 * ctx->width * ctx->height / 2;
@@ -875,6 +937,11 @@ redecode:
 
 	if (!gotpic) return GF_OK;
 
+	if (ffd->direct_output) {
+		*outBufferLength = ffd->out_size;
+		return GF_OK;
+	}
+
 	if (ES_ID == ffd->depth_ES_ID) {
 		s32 i;
 		u8 *pYO, *pYD;
@@ -921,6 +988,7 @@ redecode:
 		*outBufferLength = ffd->out_size;
 	}
 #else
+
 	memset(&pict, 0, sizeof(pict));
 	if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) {
 		pict.data[0] = outBuffer;
@@ -959,6 +1027,23 @@ redecode:
 	*outBufferLength = ffd->out_size;
 #endif
 
+	return GF_OK;
+}
+
+static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV)
+{
+	FFDec *ffd = ifcg->privateStack;
+	AVFrame *frame;
+	
+	if (ES_ID && (ffd->depth_ES_ID==ES_ID)) {
+		frame = ffd->depth_frame;
+		*pY_or_RGB = frame->data[0];
+	} else {
+		frame = ffd->base_frame;
+		*pY_or_RGB = frame->data[0];
+		*pU = frame->data[1];
+		*pV = frame->data[2];
+	} 
 	return GF_OK;
 }
 
@@ -1120,6 +1205,7 @@ void *FFDEC_Load()
 	ptr->CanHandleStream = FFDEC_CanHandleStream;
 	ptr->GetName = FFDEC_GetCodecName;
 	ptr->ProcessData = FFDEC_ProcessData;
+	ptr->GetOutputBuffer = FFDEC_GetOutputBuffer;
 
 	GF_REGISTER_MODULE_INTERFACE(ptr, GF_MEDIA_DECODER_INTERFACE, "FFMPEG decoder", "gpac distribution");
 	return (GF_BaseInterface *) ptr;

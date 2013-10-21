@@ -117,6 +117,8 @@ typedef struct
 
 	u32 raw_pix_fmt;
 	Bool flipped;
+	Bool direct_output;
+	u32 stride;
 
 	/*for audio packed frames*/
 	u32 frame_start;

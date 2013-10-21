@@ -2427,11 +2427,10 @@ u32 gf_bbox_plane_relation(GF_BBox *box, GF_Plane *p)
 GF_EXPORT
 u32 gf_get_next_pow2(u32 s)
 {
-	u32 i;
-	u32 res = s;
-    u32 sizes[] = { 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
-    u32 nSizes = sizeof(sizes) / sizeof(int);
-    for (i = 0; i < nSizes; ++i) { if (res <= sizes[i]) { res = sizes[i]; break; } }
+	u32 res = 1;
+	while (s > res) {
+		res <<= 1;
+	}
 	return res;
 }
 

@@ -82,13 +82,14 @@ static Bool is_planar_yuv(u32 pf)
 }
 
 
-static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 src_stride, u32 src_pf,
-								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
+static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_stride, u32 src_pf,
+								 u32 src_width, u32 src_height, const GF_Window *src_wnd, u8 *pU, u8 *pV)
 {
-	unsigned char *pY, *pU, *pV;
-	pY = src;
-	pU = src + src_stride * src_height;
-	pV = src + 5*src_stride * src_height/4;
+
+	if (!pU) {
+		pU = pY + src_stride * src_height;
+		pV = pY + 5*src_stride * src_height/4;
+	}
 
 
 	pY = pY + src_stride * src_wnd->y + src_wnd->x;
@@ -552,7 +553,7 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 	if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YV12) {
 		if (format_is_yuv(dst_s->pixel_format)) {
 			/*generic YV planar to YUV (planar or not) */
-			write_yv12_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd);
+			write_yv12_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd, src_s->u_ptr, src_s->v_ptr);
 			return;
 		}
 	} else if (format_is_yuv(src_s->pixel_format)) {

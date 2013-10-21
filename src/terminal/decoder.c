@@ -92,6 +92,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	u32 min, max;
 
 
+
 	/*only for valid codecs (eg not OCR)*/
 	if (codec->decio) {
 		com.get_dsi.dsi = NULL;
@@ -136,6 +137,17 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		/*get desired amount of units and minimal fullness (used for scheduling)*/
 		switch(codec->type) {
 		case GF_STREAM_VISUAL:
+			//this works but we need at least double buffering of textures on the GPU which we don't have now
+			if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
+				cap.CapCode = GF_CODEC_DIRECT_OUTPUT;
+				gf_codec_get_capability(codec, &cap);
+				if (cap.cap.valueBool) {
+					cap.CapCode = GF_CODEC_DIRECT_OUTPUT;
+					if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
+						codec->direct_vout = GF_TRUE;
+				}
+			}
+
 		case GF_STREAM_AUDIO:
 			cap.CapCode = GF_CODEC_BUFFER_MIN;
 			cap.cap.valueInt = 1;
@@ -158,15 +170,21 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 
 		/*setup CB*/
 		if (!codec->CB && max) {
+			Bool no_alloc = GF_FALSE;
 			if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
 				max = 1;
 				/*create a semaphore in non-notified stage*/
 				codec->odm->raw_frame_sema = gf_sema_new(1, 0);
+				no_alloc = 1;
+			}
+			else if (codec->direct_vout) {
+				max = 1;
+				no_alloc = 1;
 			}
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 
-			codec->CB = gf_cm_new(CUsize, max, (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) ? 1 : 0);
+			codec->CB = gf_cm_new(CUsize, max, no_alloc);
 			codec->CB->Min = min;
 			codec->CB->odm = codec->odm;
 		}
@@ -804,7 +822,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	}
 
 	/*image codecs*/
-	if (codec->CB->Capacity == 1) {
+	if (!codec->CB->no_allocation && (codec->CB->Capacity == 1)) {
 		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
 		u8 new_unit_signature[20];
 		gf_sha1_csum((u8*)AU->data, AU->dataLength, new_unit_signature);
@@ -900,7 +918,7 @@ scalable_retry:
 		now = gf_term_get_time(codec->odm->term);
 
 		assert( CU );
-		if (!CU->data && unit_size)
+		if (!CU->data && unit_size && !codec->CB->no_allocation)
 			e = GF_OUT_OF_MEM;
 		else
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
@@ -962,6 +980,10 @@ scalable_retry:
 		case GF_OK:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %d in %d ms (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
+
+				if (codec->direct_vout) {
+					e = mdec->GetOutputBuffer(mdec, ch->esd->ESID, &codec->CB->pY, &codec->CB->pU, &codec->CB->pV);
+				}
 			}
 			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
 			else if (codec->CB->Status == CB_BUFFER) {

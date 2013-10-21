@@ -755,25 +755,30 @@ static void load_line_bgr_32(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	}
 }
 
-static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
+static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV)
 {
-	u8 *pY, *pU, *pV;
+	u8 *pY;
 	pY = (u8 *)src_bits;
-	pU = (u8 *)src_bits + y_pitch*height;
-	pV = (u8 *)src_bits + 5*y_pitch*height/4;
+	if (!pU) {
+		pU = (u8 *)src_bits + y_pitch*height;
+		pV = (u8 *)src_bits + 5*y_pitch*height/4;
+	}
+
 	pY += x_offset + y_offset*y_pitch;
 	pU += x_offset/2 + y_offset*y_pitch/4;
 	pV += x_offset/2 + y_offset*y_pitch/4;
 	gf_yuv_load_lines_planar((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width);
 }
 
-static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
+static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, u8 *pA)
 {
-	u8 *pY, *pU, *pV, *pA;
+	u8 *pY;
 	pY = (u8*)src_bits;
-	pU = (u8*)src_bits + y_pitch*height;
-	pV = (u8*)src_bits + 5*y_pitch*height/4;
-	pA = (u8*)src_bits + 3*y_pitch*height/2;
+	if (!pU) {
+		pU = (u8*)src_bits + y_pitch*height;
+		pV = (u8*)src_bits + 5*y_pitch*height/4;
+		pA = (u8*)src_bits + 3*y_pitch*height/2;
+	}
 
 	pY += x_offset + y_offset*y_pitch;
 	pU += x_offset/2 + y_offset*y_pitch/4;
@@ -1036,9 +1041,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						the_row --;
 						if (flip) the_row = src->height-2 - the_row;
 						if (yuv_planar_type==1) {
-							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
+							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr);
 						} else {
-							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
+							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr, src->a_ptr);
 						}
 						the_row = src_row - 1;
 
@@ -1070,9 +1075,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 				} else {
 					if (flip) the_row = src->height-2 - the_row;
 					if (yuv_planar_type==1) {
-						load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
+						load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr);
 					} else {
-						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
+						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr, src->a_ptr);
 					}
 					yuv_init = 1;
 					rows = flip ? tmp + src_w * 4 : tmp;

@@ -116,6 +116,8 @@ enum
 	GF_CODEC_CU_DURATION,
 	/*queries whether data is RAW (directly dispatched to CompositionMemory) or not*/
 	GF_CODEC_RAW_MEDIA,
+	/*queries or set  support for usage of decoded frame from decoder memory - used for video codecs only*/
+	GF_CODEC_DIRECT_OUTPUT,
 
 	/*This is only called on scene decoders to signal that potential overlay scene should be 
 	showed (cap.valueINT=1) or hidden (cap.valueINT=0). Currently only used with SetCap*/
@@ -207,6 +209,10 @@ typedef struct _mediadecoder
 			u16 ES_ID,
 			char *outBuffer, u32 *outBufferLength,
 			u8 PaddingBits, u32 mmlevel);
+
+
+	/*optionnal (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_DIRECT_OUTPUT*/
+	GF_Err (*GetOutputBuffer)(struct _mediadecoder *, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV);
 } GF_MediaDecoder;
 
 

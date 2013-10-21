@@ -126,6 +126,8 @@ struct _composition_memory
 
 	/*trick for temporal scalability: this is the last rendered CTS*/
 	u32 LastRenderedTS;
+
+	u8 *pY, *pU, *pV;
 };
 
 /*a composition buffer only has fixed-size unit*/
