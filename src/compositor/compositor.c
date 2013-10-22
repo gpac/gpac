@@ -1142,7 +1142,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory");
-	compositor->texture_from_decoder_memory = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	compositor->texture_from_decoder_memory = (sOpt && !strcmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	if (!sOpt) 
 		gf_cfg_set_key(compositor->user->config, "Compositor", "TextureFromDecoderMemory", "no");
 

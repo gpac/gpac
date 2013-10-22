@@ -30,7 +30,7 @@
 #include <gpac/internal/media_dev.h>
 
 #include "openHevcWrapper.h"
-//#define OPEN_SHVC
+#define OPEN_SHVC
 
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
@@ -106,7 +106,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 			GF_HEVCParamArray *ar = gf_list_get(cfg->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
 				GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-				libOpenHevcDecode(ctx->openHevcHandle, sl->data, sl->size, 0);
+				libOpenHevcDecode(ctx->openHevcHandle, sl->data, sl->size, 0, ctx->base_only);
 
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					HEVCState hevc;
@@ -310,7 +310,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	    openHevcFrame.pvV = (void*) pV;
 	    *outBufferLength = 0;
 
-		if ( libOpenHevcDecode(ctx->openHevcHandle, NULL, 0, 0) ) {
+		if ( libOpenHevcDecode(ctx->openHevcHandle, NULL, 0, 0, ctx->base_only) ) {
 			if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame)) {
 				*outBufferLength = ctx->out_size;
 			}
@@ -386,7 +386,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 #endif       
         
 		if (!skip && ctx->state_found) {
-			got_pic = libOpenHevcDecode(ctx->openHevcHandle, ptr, nalu_size, 0);
+			got_pic = libOpenHevcDecode(ctx->openHevcHandle, ptr, nalu_size, 0, ctx->base_only);
 			if (got_pic>0) {
 				nb_pics ++;
 				e = HEVC_flush_picture(ctx, outBuffer, outBufferLength);

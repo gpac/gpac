@@ -679,6 +679,46 @@ assert(txh->data );
 #endif
 
 
+#ifndef GPAC_DISABLE_3D
+static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h)
+{
+    Bool needs_stride = (stride!=w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
+#if !defined(GPAC_USE_OGL_ES)
+    if (needs_stride)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
+#else
+    u32 i;
+    if (needs_stride) {
+#endif        
+
+    if (first_load) {
+        glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
+    } else {
+        glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
+    }
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+
+#if !defined(GPAC_USE_OGL_ES)
+    if (needs_stride)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    return;
+#else
+    if (!needs_stride)
+        return;
+
+    //no GL_UNPACK_ROW_LENGTH on GLES, push line by line ...
+    if (first_load) {
+        glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, NULL);
+    }
+    for (i=0; i<h; i++) {
+        u8 *ptr = data + i*stride;
+        glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, 1, txh->tx_io->gl_format, txh->tx_io->gl_dtype, ptr);
+    }
+#endif
+}
+
+#endif
+    
 Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Bool for2d)
 {
 #ifndef GPAC_DISABLE_3D
@@ -777,27 +817,15 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 
 			push_time = gf_sys_clock();
-			glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride);
-			if (first_load) {
-				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pY);
-			} else {
-				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pY);
-			}
+            
+            do_tex_image_2d(txh, tx_mode, first_load, pY, txh->stride, w, h);
 
-			glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride/2);
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
-			if (first_load) {
-				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w/2, h/2, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pU);
-			} else {
-				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w/2, h/2, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pU);
-			}
-			glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride/2);
-			glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-			if (first_load) {
-				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w/2, h/2, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pV);
-			} else {
-				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w/2, h/2, txh->tx_io->gl_format, txh->tx_io->gl_dtype, pV);
-			}
+            do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2);
+			
+            glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+            do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2);
+            
 			push_time = gf_sys_clock() - push_time;
 
 			if (txh->nb_frames==100) {

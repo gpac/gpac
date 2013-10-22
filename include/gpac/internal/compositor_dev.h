@@ -475,8 +475,6 @@ struct __tag_compositor
 
 	u32 offscreen_width, offscreen_height;
 
-	u32 texture_from_decoder_memory;
-
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;
 #endif
@@ -490,6 +488,8 @@ struct __tag_compositor
 	Fixed focus_distance;
 #endif
 	
+	Bool texture_from_decoder_memory;
+    
 	u32 networks_time;
 	u32 decoders_time;
 
