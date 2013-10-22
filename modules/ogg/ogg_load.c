@@ -99,7 +99,7 @@ void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
         if (!ifcd)
           return;
         wrap = (OGGWraper *)ifcd->privateStack;
-        if (!wrap){
+        if (wrap){
           switch (wrap->type) {
 #ifdef GPAC_HAS_VORBIS
             case OGG_VORBIS: DeleteVorbisDecoder(ifcd); break;
