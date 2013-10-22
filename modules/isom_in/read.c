@@ -707,7 +707,7 @@ exit:
 			/*fill PSSH in the structure. We will free it in CENC_Setup*/
 			for (i=0; i<com.drm_cfg.PSSH_count; i++) {
 				GF_NetComDRMConfigPSSH *pssh = &com.drm_cfg.PSSHs[i];
-				e = gf_isom_get_pssh_info(read->mov, i+1, pssh->SystemID, &pssh->KID_count, & pssh->KIDs, &pssh->private_data, &pssh->private_data_size);
+				e = gf_isom_get_pssh_info(read->mov, i+1, pssh->SystemID, &pssh->KID_count, (const bin128 **) & pssh->KIDs, (const u8 **) &pssh->private_data, &pssh->private_data_size);
 			}
             if (read->input->query_proxy && read->input->proxy_udta) {
                 read->input->query_proxy(read->input, &com);

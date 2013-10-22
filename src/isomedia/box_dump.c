@@ -4175,7 +4175,6 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 GF_Err senc_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, j, sample_count;
-	u32 IV_size = 0;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) a;
 	if (!a) return GF_BAD_PARAM;
 

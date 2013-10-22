@@ -3243,7 +3243,7 @@ u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 	u32 count=0;
 	u32 i=0;
 	GF_Box *a_box;
-	while (a_box = (GF_Box*)gf_list_enum(file->moov->other_boxes, &i)) {
+	while ((a_box = (GF_Box*)gf_list_enum(file->moov->other_boxes, &i))) {
 		if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
 		count++;
 	}
@@ -3255,20 +3255,21 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 {
 	u32 count=1;
 	u32 i=0;
-	GF_Box *a_box;
-	while (a_box = (GF_Box*)gf_list_enum(file->moov->other_boxes, &i)) {
-		if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+	GF_ProtectionSystemHeaderBox *pssh;
+	while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->moov->other_boxes, &i))) {
+		if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
 		if (count == pssh_index) break;
 		count++;
 	}
-	if (!a_box) return GF_BAD_PARAM;
+	if (!pssh) return GF_BAD_PARAM;
 
-	memcpy(SystemID, ((GF_ProtectionSystemHeaderBox *)a_box)->SystemID, 16);
-	*KID_count = ((GF_ProtectionSystemHeaderBox *)a_box)->KID_count;
-	*KIDs = ((GF_ProtectionSystemHeaderBox *)a_box)->KIDs;
-	*private_data_size = ((GF_ProtectionSystemHeaderBox *)a_box)->private_data_size;
-	*private_data = ((GF_ProtectionSystemHeaderBox *)a_box)->private_data;
+	memcpy(SystemID, pssh->SystemID, 16);
+	*KID_count = pssh->KID_count;
+	*KIDs = (const bin128 *) pssh->KIDs;
+	*private_data_size = pssh->private_data_size;
+	*private_data = pssh->private_data;
 	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
+
