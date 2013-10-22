@@ -97,6 +97,23 @@ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 #endif
 
 
+#ifndef FFMPEG_OLD_HEADERS
+
+#if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
+#undef USE_AVCODEC2
+#else
+#define USE_AVCODEC2	1
+#endif
+
+#else
+#undef USE_AVCODEC2
+#endif
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 55) 
+#define USE_AVCTX3
+#elif (LIBAVCODEC_VERSION_MAJOR >= 54) && (LIBAVCODEC_VERSION_MINOR >= 35)
+#define USE_AVCTX3
+#endif
 
 
 /*FFMPEG decoder module */
@@ -140,6 +157,10 @@ typedef struct
 	AVFrame *depth_frame;
 #ifdef FFMPEG_SWSCALE
 	struct SwsContext *depth_sws;
+#endif
+
+#ifdef USE_AVCTX3
+		AVFrame *audio_frame;
 #endif
 
 } FFDec;
