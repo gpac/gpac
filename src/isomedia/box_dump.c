@@ -4130,7 +4130,6 @@ GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
 GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, j;
-	u32 IV_size = 0;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *) a;
 	if (!a) return GF_BAD_PARAM;
 
@@ -4139,7 +4138,6 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
 		DumpData(trace, (char *) ptr->KID, 16);
 		fprintf(trace, "\"");
-		IV_size = 0;
 	}
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
