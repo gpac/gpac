@@ -691,18 +691,19 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
     if (needs_stride) {
 #endif        
 
-    if (first_load) {
-        glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
-    } else {
-        glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
-    }
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	if (first_load) {
+		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
+	} else {
+		glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
+	}
 
 #if !defined(GPAC_USE_OGL_ES)
     if (needs_stride)
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     return;
 #else
+	}
+
     if (!needs_stride)
         return;
 
