@@ -403,6 +403,7 @@ typedef struct
 	u64 last_sample_cts, next_sample_dts;
 	Bool all_sample_raps, splitable;
 	u32 split_sample_dts_shift;
+	s32 ts_shift;
 } GF_ISOMTrackFragmenter;
 
 static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -746,15 +747,31 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 		/*figure out if we have an initial TS*/
 		if (!dash_moov_setup) {
-			if (gf_isom_get_edit_segment_count(input, i+1)) {
+			u32 j, edit_count = gf_isom_get_edit_segment_count(input, i+1);
+			Double scale = tf->TimeScale;
+			scale /= gf_isom_get_timescale(input);
+
+			/*remove all segments*/
+			gf_isom_remove_edit_segments(output, TrackNum);
+			tf->ts_shift = 0;
+			//clone all edits before first nomal, and stop at first normal setting duration to 0
+			for (j=0; j<edit_count; j++) {
 				u64 EditTime, SegDuration, MediaTime;
 				u8 EditMode;
-				gf_isom_get_edit_segment(input, i+1, 1, &EditTime, &SegDuration, &MediaTime, &EditMode);
-				if (EditMode==GF_ISOM_EDIT_EMPTY) {
-					tf->InitialTSOffset = (u32) (SegDuration * tf->TimeScale / gf_isom_get_timescale(input));
+
+				/*get first edit*/
+				gf_isom_get_edit_segment(input, i+1, j+1, &EditTime, &SegDuration, &MediaTime, &EditMode);
+
+				if (EditMode==GF_ISOM_EDIT_NORMAL) 
+					SegDuration = 0;
+
+				gf_isom_set_edit_segment(output, TrackNum, EditTime, SegDuration, MediaTime, EditMode);
+
+				if (EditMode==GF_ISOM_EDIT_NORMAL) {
+					tf->ts_shift -= (s32) MediaTime;
+					break;
 				}
-				/*and remove edit segments*/
-				gf_isom_remove_edit_segments(output, TrackNum);
+				tf->ts_shift += (u32) (scale*SegDuration);
 			}
 
 			gf_isom_set_brand_info(output, GF_4CC('i','s','o','5'), 1);
@@ -1075,13 +1092,12 @@ restart_fragmentation_pass:
 				} else {
 					u32 j;
 					for (j=0; j<=i; j++) {
-						if (!tfref || (gf_list_get(fragmenters, j) == tfref)) {
-							tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
-							break;
-						} else if (i == j) {
-							tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i-1);
-							break;
+						tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i-1);
+						if (tfref && (tf == tfref)) {
+							//already done
+							continue;
 						}
+						break;
 					}
 					assert(tf);
 				}
@@ -1381,7 +1397,7 @@ restart_fragmentation_pass:
 				u64 idx_start_range, idx_end_range;
 					
 
-				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, ref_track_next_cts, dash_cfg->daisy_chain_sidx, flush_all_samples ? GF_TRUE : GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->ts_shift : tf->ts_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, flush_all_samples ? GF_TRUE : GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 
 				//take care of scalable reps
 				if (dash_input->moof_seqnum_increase) {
@@ -1459,7 +1475,7 @@ restart_fragmentation_pass:
 
 		segment_start_time += SegmentDuration;
 
-		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, ref_track_next_cts, dash_cfg->daisy_chain_sidx, 1, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tf->ts_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, 1, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 		nb_segments++;
 
 		if (!seg_rad_name) {

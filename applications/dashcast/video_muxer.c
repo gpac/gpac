@@ -339,7 +339,7 @@ int dc_gpac_video_isom_close_seg(VideoOutputFile * p_voutf) {
 
 	GF_Err ret;
 
-	ret = gf_isom_close_segment(p_voutf->p_isof, 0, 0, 0, 0, 0, 1, p_voutf->i_seg_marker, NULL, NULL);
+	ret = gf_isom_close_segment(p_voutf->p_isof, 0, 0, 0, 0, 0, 0, 1, p_voutf->i_seg_marker, NULL, NULL);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));
 		return -1;
