@@ -151,16 +151,23 @@ enum
 	GF_ISOM_MEDIA_FLASH		= GF_4CC( 'f', 'l', 's', 'h' )
 };
 
-/* Encryption Scheme Type in the SchemeTypeInfoBox */
-enum 
-{
-	GF_ISOM_ISMACRYP_SCHEME	= GF_4CC( 'i', 'A', 'E', 'C' )
-};
 
-/* Encryption Scheme Type in the SchemeTypeInfoBox */
-enum 
+/*DRM related code points*/
+enum
 {
-	GF_ISOM_OMADRM_SCHEME	= GF_4CC('o','d','k','m')
+	GF_ISOM_BOX_UUID_PSEC	= GF_4CC( 'P', 'S', 'E', 'C' ),
+	GF_ISOM_BOX_TYPE_SENC	= GF_4CC( 's', 'e', 'n', 'c'),
+
+	/* Encryption Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_ISMACRYP_SCHEME	= GF_4CC( 'i', 'A', 'E', 'C' ),
+	/* Encryption Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_OMADRM_SCHEME	= GF_4CC('o','d','k','m'),
+
+	/* Encryption Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_CENC_SCHEME	= GF_4CC('c','e','n','c'),
+	
+	/* Encryption Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_CBC_SCHEME	= GF_4CC('c','b','c','1')
 };
 
 
@@ -1299,6 +1306,9 @@ u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only);
 /*gets total sample number and duration*/
 GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration);
 
+GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum);
+GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input);
+
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
@@ -1866,8 +1876,8 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-/*removes ISMACryp protection info (does not perform decryption :)*/
-GF_Err gf_isom_remove_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex);
+/*removes protection info (does not perform decryption :), for ISMA, OMA and CENC*/
+GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex);
 
 /*creates ISMACryp protection info (does not perform encryption :)*/
 GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, 
@@ -1885,7 +1895,53 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
 						   Bool selective_encryption, u32 KI_length, u32 IV_length);
 
+
+GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, char *buf, u32 len);
+
+
+typedef struct 
+{
+	u32 bytes_clear_data;
+	u32 bytes_encrypted_data;
+} GF_CENCSubSampleEntry;
+
+typedef struct __cenc_sample_aux_info
+{
+	bin128 IV; /*can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
+    u16 subsample_count;
+	GF_CENCSubSampleEntry *subsamples;
+} GF_CENCSampleAuxInfo;
+
+GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, 
+									u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID);
+
+GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, char *data, u32 len);
+
+GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber);
+GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber);
+GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber);
+
+void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
+GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, u32 *outIVLength);
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
+#endif
+
+/*boxType is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC*/
+GF_CENCSampleAuxInfo * gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *container_type);
+
+void gf_isom_cenc_get_KID(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, bin128 *outKID);
+
+u32 gf_isom_get_pssh_count(GF_ISOFile *file);
+/*index is 1-based, all pointers shall not be free*/
+GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size);
+
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 /*xml dumpers*/

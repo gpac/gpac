@@ -1907,3 +1907,129 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name){
 	}
 	return node;
 }
+
+
+#include <gpac/bitstream.h>
+#include <gpac/base_coding.h>
+
+#define XML_SCAN_INT(_fmt, _value)	\
+	{\
+	if (strstr(att->value, "0x")) { u32 __i; sscanf(att->value+2, "%x", &__i); _value = __i; }\
+	else if (strstr(att->value, "0X")) { u32 __i; sscanf(att->value+2, "%X", &__i); _value = __i; }\
+	else sscanf(att->value, _fmt, &_value); \
+	}\
+
+
+GF_EXPORT
+GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specInfoSize)
+{
+	u32 i, j;
+	GF_XMLNode *node;
+	GF_XMLAttribute *att;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	i=0;
+	while ((node = (GF_XMLNode *) gf_list_enum(bsroot->content, &i))) {
+		u32 nb_bits = 0;
+		u32 size = 0;
+		u64 offset = 0;
+		s64 value = 0;
+		bin128 word128;
+ 		const char *szFile = NULL;
+ 		const char *szString = NULL;
+		const char *szBase64 = NULL;
+		const char *szData = NULL;
+		if (node->type) continue;
+		if (stricmp(node->name, "BS") ) continue;
+
+		j=0;
+		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
+			if (!stricmp(att->name, "bits")) {
+				XML_SCAN_INT("%d", nb_bits);
+			} else if (!stricmp(att->name, "value")) {
+				XML_SCAN_INT(LLD, value);
+			} else if (!stricmp(att->name, "mediaOffset") || !stricmp(att->name, "dataOffset")) {
+				XML_SCAN_INT(LLU, offset);
+			} else if (!stricmp(att->name, "dataLength")) {
+				XML_SCAN_INT("%u", size);
+			} else if (!stricmp(att->name, "mediaFile") || !stricmp(att->name, "dataFile")) {
+				szFile = att->value;
+			} else if (!stricmp(att->name, "text") || !stricmp(att->name, "string")) {
+				szString = att->value;
+			} else if (!stricmp(att->name, "fcc")) {
+				value = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+				nb_bits = 32;
+			} else if (!stricmp(att->name, "ID128")) {
+				gf_bin128_parse(att->value, word128);
+			} else if (!stricmp(att->name, "data64")) {
+				szBase64 = att->value;
+			} else if (!stricmp(att->name, "data")) {
+				szData = att->value;
+				if (!strnicmp(szData, "0x", 2)) szData += 2;
+			}
+		}
+		if (szString) {
+			u32 len = (u32) strlen(szString);
+			if (nb_bits)
+				gf_bs_write_int(bs, len, nb_bits);
+
+			gf_bs_write_data(bs, szString, len);
+		} else if (szBase64) {
+			u32 len = (u32) strlen(szBase64);
+			char *data = (char *) gf_malloc(sizeof(char)*len);
+			u32 ret = (u32) gf_base64_decode((char *)szBase64, len, data, len); 
+			if ((s32) ret >=0) {
+				gf_bs_write_int(bs, ret, nb_bits);
+				gf_bs_write_data(bs, data, ret);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Error decoding base64 %s\n", att->value));
+			}
+			gf_free(data);
+		} else if (szData) {
+			u32 j, len = (u32) strlen(szData);
+			char *data = (char *) gf_malloc(sizeof(char)*len/2);
+			for (j=0; j<len; j+=2) {
+				u32 v;
+				char szV[5];
+				sprintf(szV, "%c%c", szData[j], szData[j+1]);
+				sscanf(szV, "%x", &v);
+				data[j/2] = v;
+			}
+			gf_bs_write_int(bs, len/2, nb_bits);
+			gf_bs_write_data(bs, data, len/2);
+			gf_free(data);
+		} else if (nb_bits) {
+			if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
+			else gf_bs_write_long_int(bs, value, nb_bits);
+		} else if (szFile && size) {
+			char block[1024];
+			FILE *_tmp = gf_f64_open(szFile, "rb");
+			if (_tmp) {
+				u32 read, remain;
+				if (!size) {
+					gf_f64_seek(_tmp, 0, SEEK_END);
+					size = (u32) gf_f64_tell(_tmp);
+					//if offset only copy from offset until end
+					if ((u64) size > offset)
+						size -= (u32) offset;
+				}
+				remain = size;
+				gf_f64_seek(_tmp, offset, SEEK_SET);
+				while (remain) {
+					read = (u32) fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
+					gf_bs_write_data(bs, block, read);
+					remain -= size;
+				}
+				fclose(_tmp);
+			}
+		} else if (word128) {
+			gf_bs_write_data(bs, (char *)word128, 16);
+		}
+	}
+	gf_bs_align(bs);
+	gf_bs_get_content(bs, specInfo, specInfoSize);
+	gf_bs_del(bs);
+	return GF_OK;
+
+}

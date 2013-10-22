@@ -1076,6 +1076,9 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 #endif
 	fprintf(dump, " </NALUConfig>\n");
 
+	/*fixme: for dumping encrypted track: we don't have neither avccfg nor svccfg*/
+	if (!nalh_size) nalh_size = 4;
+
 	/*for testing dependency*/
 	countRef = gf_isom_get_reference_count(file, track, GF_ISOM_REF_SCAL);
 	if (countRef > 0)
@@ -1798,6 +1801,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 
 					fprintf(stderr, "Selective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
+					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+				} else if(gf_isom_is_cenc_media(file, trackNum, 1)) {
+					gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version, &IV_size);
+					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
 					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
 				} else {
 					fprintf(stderr, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(gf_isom_is_media_encrypted(file, trackNum, 1) ));

@@ -25,21 +25,23 @@
 
 
 #include "isom_in.h"
+#include <gpac\internal\isomedia_dev.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
 
 void isor_reset_reader(ISOMChannel *ch)
 {
-	memset(&ch->current_slh, 0, sizeof(GF_SLHeader));
 	ch->last_state = GF_OK;
-	if (ch->sample) gf_isom_sample_del(&ch->sample);
+	isor_reader_release_sample(ch);
+
 	ch->sample = NULL;
 	ch->sample_num = 0;
 	ch->speed = 1.0;
 	ch->start = ch->end = 0;
 	ch->to_init = 1;
 	ch->is_playing = 0;
+	memset(&ch->current_slh, 0, sizeof(GF_SLHeader));
 }
 
 void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
@@ -486,12 +488,40 @@ fetch_next:
 			gf_isom_ismacryp_delete_sample(ismasamp);
 		} else {
 			ch->current_slh.isma_encrypted = 0;
+			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
+			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
+				GF_CENCSampleAuxInfo *sai;
+				bin128 KID;
+
+				gf_isom_cenc_get_KID(ch->owner->mov, ch->track, ch->sample_num, &KID);
+				sai = gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, NULL);
+				if (sai) {
+					GF_BitStream *bs;
+					bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					/*write sample auxiliary information*/
+					gf_bs_write_data(bs, (char *)KID, 16);
+					gf_bs_write_data(bs, (char *)sai->IV, 16);
+					gf_bs_write_u16(bs, sai->subsample_count);
+					for (ivar = 0; ivar < sai->subsample_count; ivar++) {
+						gf_bs_write_u32(bs, sai->subsamples[ivar].bytes_clear_data);
+						gf_bs_write_u32(bs, sai->subsamples[ivar].bytes_encrypted_data);
+					}
+					gf_bs_get_content(bs, &ch->current_slh.sai, &ch->current_slh.saiz);
+					gf_bs_del(bs);
+					ch->current_slh.cenc_encrypted = 1;
+				} else
+					ch->current_slh.cenc_encrypted = 0;
+			}
 		}
 	}
 }
 
 void isor_reader_release_sample(ISOMChannel *ch)
 {
+	if (ch->current_slh.sai) {
+		gf_free(ch->current_slh.sai);
+		ch->current_slh.sai = NULL;
+	}
 	if (ch->sample) gf_isom_sample_del(&ch->sample);
 	ch->sample = NULL;
 	ch->current_slh.AU_sequenceNumber++;

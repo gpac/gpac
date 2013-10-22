@@ -90,6 +90,26 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		trak->first_traf_merged = 1;
 	}
 
+	if (moof->other_boxes) {
+		GF_Box *a;	
+		i = 0;
+		while (a = (GF_Box *)gf_list_enum(moof->other_boxes, &i)) {
+			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
+				GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
+				memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
+				pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
+				pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+				memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
+				pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
+				pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+				memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
+
+				if (!mov->moov->other_boxes) mov->moov->other_boxes = gf_list_new();
+				gf_list_add(mov->moov->other_boxes, pssh);
+			}
+		}
+	}
+
 	mov->NextMoofNumber = moof->mfhd->sequence_number;
 	//update movie duration
 	if (mov->moov->mvhd->duration < MaxDur) mov->moov->mvhd->duration = MaxDur;

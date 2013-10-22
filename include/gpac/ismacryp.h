@@ -42,19 +42,19 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
 enum
 {
 	/*no selective encryption*/
-	GF_ISMACRYP_SELENC_NONE = 0,
+	GF_CRYPT_SELENC_NONE = 0,
 	/*only encrypts RAP samples*/
-	GF_ISMACRYP_SELENC_RAP = 1,
+	GF_CRYPT_SELENC_RAP = 1,
 	/*only encrypts non-RAP samples*/
-	GF_ISMACRYP_SELENC_NON_RAP = 2,
+	GF_CRYPT_SELENC_NON_RAP = 2,
 	/*selective encryption of random samples*/
-	GF_ISMACRYP_SELENC_RAND = 3,
+	GF_CRYPT_SELENC_RAND = 3,
 	/*selective encryption of a random sample in given range*/
-	GF_ISMACRYP_SELENC_RAND_RANGE = 4,
+	GF_CRYPT_SELENC_RAND_RANGE = 4,
 	/*selective encryption of first sample in given range*/
-	GF_ISMACRYP_SELENC_RANGE = 5,
+	GF_CRYPT_SELENC_RANGE = 5,
 	/*encryption of all samples but the preview range*/
-	GF_ISMACRYP_SELENC_PREVIEW = 6,
+	GF_CRYPT_SELENC_PREVIEW = 6,
 };
 
 typedef struct
@@ -77,6 +77,8 @@ typedef struct
 	u32 ipmp_type;
 	/*if not set and IPMP enabled, defaults to TrackID*/
 	u32 ipmp_desc_id;
+	/*type of box where sample auxiliary informations is saved, or 0 in case of ISMACrypt (it will be written in samples)*/
+	u32 sai_saved_box_type;
 
 	/*OMA extensions*/
 	/*0: none, 1: AES CBC, 2: AES CTR*/
@@ -84,6 +86,18 @@ typedef struct
 	char TextualHeaders[5000];
 	u32 TextualHeadersLen;
 	char TransactionID[17];
+
+	/*CENC extensions*/
+	u32 IsEncrypted;
+	u8 IV_size; 
+	bin128 default_KID;
+	u32 KID_count;
+	bin128 *KIDs;
+	bin128 *keys;
+	/*IV of first sample in track*/
+	unsigned char first_IV[16];
+	u32 defaultKeyIdx;
+	u32 keyRoll;
 
 } GF_TrackCryptInfo;
 
@@ -95,17 +109,28 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 /*decrypts track - logs, progress: info callbacks, NULL for default*/
 GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
+/*Common Encryption*/
+/*AES-CTR*/
+GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+/*AES-CBC*/
+GF_Err gf_cbc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+GF_Err gf_cbc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+
+GF_Err (*gf_encrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+GF_Err (*gf_decrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+
 /*decrypt a file 
 @drm_file: location of DRM data (cf MP4Box doc).
 @LogMsg: redirection for message or NULL for default
 */
-GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4file, const char *drm_file);
+GF_Err gf_decrypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
 /*Crypt a the file 
 @drm_file: location of DRM data.
 @LogMsg: redirection for message or NULL for default
 */
-GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4file, const char *drm_file);
+GF_Err gf_crypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
 #endif /*!defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

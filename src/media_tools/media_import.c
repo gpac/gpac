@@ -2839,83 +2839,6 @@ static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 	}\
 
 
-static GF_Err nhml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specInfoSize)
-{
-	u32 i, j;
-	GF_XMLNode *node;
-	GF_XMLAttribute *att;
-	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (!bs) return GF_OUT_OF_MEM;
-
-	i=0;
-	while ((node = (GF_XMLNode *) gf_list_enum(bsroot->content, &i))) {
-		u32 nb_bits = 0;
-		u32 size = 0;
-		u64 offset = 0;
-		s64 value = 0;
-		const char *szFile = NULL;
-		const char *szString = NULL;
-		if (node->type) continue;
-		if (stricmp(node->name, "BS") ) continue;
-
-		j=0;
-		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
-			if (!stricmp(att->name, "bits")) {
-				NHML_SCAN_INT("%d", nb_bits);
-			} else if (!stricmp(att->name, "value")) {
-				NHML_SCAN_INT(LLD, value);
-			} else if (!stricmp(att->name, "mediaOffset")) {
-				NHML_SCAN_INT(LLU, offset);
-			} else if (!stricmp(att->name, "dataLength")) {
-				NHML_SCAN_INT("%u", size);
-			} else if (!stricmp(att->name, "mediaFile")) {
-				szFile = att->value;
-			} else if (!stricmp(att->name, "text")) {
-				szString = att->value;
-			} else if (!stricmp(att->name, "fcc")) {
-				value = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
-				nb_bits = 32;
-			}
-		}
-		if (szString) {
-			u32 len = (u32) strlen(szString);
-			if (nb_bits)
-				gf_bs_write_int(bs, len, nb_bits);
-
-			gf_bs_write_data(bs, szString, len);
-		} else if (nb_bits) {
-			if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
-			else gf_bs_write_long_int(bs, value, nb_bits);
-		} else if (szFile && size) {
-			char block[1024];
-			FILE *_tmp = gf_f64_open(szFile, "rb");
-			if (_tmp) {
-				u32 read, remain;
-				if (!size) {
-					gf_f64_seek(_tmp, 0, SEEK_END);
-					size = (u32) gf_f64_tell(_tmp);
-					//if offset only copy from offset until end
-					if ((u64) size > offset)
-						size -= (u32) offset;
-				}
-				remain = size;
-				gf_f64_seek(_tmp, offset, SEEK_SET);
-				while (remain) {
-					read = (u32) fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
-					gf_bs_write_data(bs, block, read);
-					remain -= size;
-				}
-				fclose(_tmp);
-			}
-		}
-	}
-	gf_bs_align(bs);
-	gf_bs_get_content(bs, specInfo, specInfoSize);
-	gf_bs_del(bs);
-	return GF_OK;
-
-}
-
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
 GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 {
@@ -3107,7 +3030,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		if (node->type) continue;
 		if (stricmp(node->name, "DecoderSpecificInfo") ) continue;
 
-		e = nhml_parse_bit_sequence(node, &specInfo, &specInfoSize);
+		e = gf_xml_parse_bit_sequence(node, &specInfo, &specInfoSize);
 		break;
 	}
 
@@ -3350,7 +3273,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			if (samp->data) gf_free(samp->data );
 			samp->data = 0;
 			samp->dataLength = 0;
-			e = nhml_parse_bit_sequence(node, &samp->data, &samp->dataLength);	
+			e = gf_xml_parse_bit_sequence(node, &samp->data, &samp->dataLength);	
 			max_size = samp->dataLength;
 		} else {
 			Bool close = 0;

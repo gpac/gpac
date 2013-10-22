@@ -409,7 +409,9 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		e = Media_RewriteODFrame(mdia, *samp);
 		if (e) return e;
 	}
-	else if (gf_isom_is_nalu_based_entry(mdia, entry)) {
+	/*FIXME: we don NOT rewrite sample if we have a encrypted track*/
+	else if (gf_isom_is_nalu_based_entry(mdia, entry) && 
+		!gf_isom_is_track_encrypted(mdia->mediaTrack->moov->mov, gf_isom_get_tracknum_from_id(mdia->mediaTrack->moov, mdia->mediaTrack->Header->trackID))) {
 		e = gf_isom_nalu_sample_rewrite(mdia, *samp, sampleNumber, (GF_MPEGVisualSampleEntryBox *)entry);
 		if (e) return e;
 	} 

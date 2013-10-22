@@ -34,7 +34,7 @@ extern "C" {
 
 #ifndef GPAC_DISABLE_MCRYPT
 
-/*the samllest version of the lib: only AES-128-CTR supported*/
+/*the samllest version of the lib: only AES-128-CTR and AES-CBC supported*/
 #define GPAC_CRYPT_ISMA_ONLY
 
 

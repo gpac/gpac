@@ -579,6 +579,68 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 		}
 	}
+
+	/*Merge PIFF sample auxiliary encryption information*/
+	if (traf->piff_sample_encryption) {
+		GF_PIFFSampleEncryptionBox *psec = NULL;
+		for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
+			GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
+			if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
+				psec = (GF_PIFFSampleEncryptionBox *)a;
+				break;
+			}
+		}
+		if (!psec) {
+			psec = gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
+			if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
+			gf_list_add(trak->Media->information->sampleTable->other_boxes, psec);
+		}
+
+		for (i = 0; i < gf_list_count(traf->piff_sample_encryption->samp_aux_info); i++) {
+			GF_CENCSampleAuxInfo *sai, *new_sai;
+
+			sai = (GF_CENCSampleAuxInfo *)gf_list_get(traf->piff_sample_encryption->samp_aux_info, i);
+
+			new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+			memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
+			new_sai->subsample_count = sai->subsample_count;
+			new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+
+			gf_list_add(psec->samp_aux_info, new_sai);
+			psec->sample_count++;
+		}
+	}
+
+	if (traf->sample_encryption) {
+		GF_SampleEncryptionBox *senc = NULL;
+		for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
+			GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
+			if (a->type ==GF_ISOM_BOX_TYPE_SENC) {
+				senc = (GF_SampleEncryptionBox *)a;
+				break;
+			}
+		}
+		if (!senc) {
+			senc = gf_isom_create_samp_enc_box(1, 0x2);
+			if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
+			gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
+		}
+
+		for (i = 0; i < gf_list_count(traf->sample_encryption->samp_aux_info); i++) {
+			GF_CENCSampleAuxInfo *sai, *new_sai;
+
+			sai = (GF_CENCSampleAuxInfo *)gf_list_get(traf->sample_encryption->samp_aux_info, i);
+
+			new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+			memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
+			new_sai->subsample_count = sai->subsample_count;
+			new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+
+			gf_list_add(senc->samp_aux_info, new_sai);
+		}
+	}
 	return GF_OK;
 }
 

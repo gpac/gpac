@@ -3392,7 +3392,8 @@ GF_Box *mp4a_New()
 
 GF_Box *enca_New() 
 {
-	ISOM_DECL_BOX_ALLOC(GF_Box, GF_ISOM_BOX_TYPE_ENCA);
+	ISOM_DECL_BOX_ALLOC(GF_MPEGAudioSampleEntryBox, GF_ISOM_BOX_TYPE_ENCA);
+	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
 	return tmp;
 }
 
@@ -3476,7 +3477,8 @@ GF_Box *mp4s_New()
 
 GF_Box *encs_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_Box, GF_ISOM_BOX_TYPE_ENCS);
+	ISOM_DECL_BOX_ALLOC(GF_MPEGSampleEntryBox, GF_ISOM_BOX_TYPE_ENCS);
+	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
 	return tmp;
 }
 
@@ -5909,6 +5911,7 @@ void traf_del(GF_Box *s)
 	if (ptr->subs) gf_isom_box_del((GF_Box *) ptr->subs);
 	if (ptr->tfdt) gf_isom_box_del((GF_Box *) ptr->tfdt);
 	if (ptr->piff_sample_encryption) gf_isom_box_del((GF_Box *) ptr->piff_sample_encryption);
+	if (ptr->sample_encryption) gf_isom_box_del((GF_Box *) ptr->sample_encryption);
 	gf_isom_box_array_del(ptr->TrackRuns);
 	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
 	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
@@ -5965,6 +5968,11 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 		} else {
 			return gf_isom_box_add_default(s, a);
 		}
+	case GF_ISOM_BOX_TYPE_SENC:
+		if (ptr->sample_encryption) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->sample_encryption = (GF_SampleEncryptionBox *)a;
+			ptr->sample_encryption->traf = ptr;
+			return GF_OK;
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -6074,6 +6082,11 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->piff_sample_encryption, bs);
 		if (e) return e;
 	}
+
+	if (ptr->sample_encryption) {
+		e = gf_isom_box_write((GF_Box *) ptr->sample_encryption, bs);
+		if (e) return e;
+	}
 	return GF_OK;
 }
 
@@ -6125,6 +6138,11 @@ GF_Err traf_Size(GF_Box *s)
 	if (ptr->sai_offsets) {
 		e = gf_isom_box_array_size(s, ptr->sai_offsets);
 		if (e) return e;
+	}
+	if (ptr->sample_encryption) {
+		e = gf_isom_box_size((GF_Box *) ptr->sample_encryption);
+		if (e) return e;
+		ptr->size += ptr->sample_encryption->size;
 	}
 	return gf_isom_box_array_size(s, ptr->TrackRuns);
 }
@@ -8607,7 +8625,7 @@ GF_Err saiz_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	gf_bs_write_u8(bs, ptr->default_sample_info_size);
 	gf_bs_write_u32(bs, ptr->sample_count);
-	if (ptr->default_sample_info_size) {
+	if (!ptr->default_sample_info_size) {
 		gf_bs_write_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
 	}
 	return GF_OK;

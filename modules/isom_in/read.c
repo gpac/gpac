@@ -697,6 +697,25 @@ exit:
             } else {
                 gf_term_on_command(read->service, &com, GF_OK);
             }
+		} else if (gf_isom_is_cenc_media(read->mov, track, 1)) {
+			u32 i;
+			gf_isom_get_cenc_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, NULL);
+
+			com.drm_cfg.PSSH_count = gf_isom_get_pssh_count(read->mov);
+			com.drm_cfg.PSSHs = gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
+
+			/*fill PSSH in the structure. We will free it in CENC_Setup*/
+			for (i=0; i<com.drm_cfg.PSSH_count; i++) {
+				GF_NetComDRMConfigPSSH *pssh = &com.drm_cfg.PSSHs[i];
+				e = gf_isom_get_pssh_info(read->mov, i+1, pssh->SystemID, &pssh->KID_count, & pssh->KIDs, &pssh->private_data, &pssh->private_data_size);
+			}
+            if (read->input->query_proxy && read->input->proxy_udta) {
+                read->input->query_proxy(read->input, &com);
+            } else {
+                gf_term_on_command(read->service, &com, GF_OK);
+            }
+			//free our PSSH
+			if (com.drm_cfg.PSSHs) gf_free(com.drm_cfg.PSSHs);
 		}
 	}
 	return e;

@@ -393,7 +393,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_serialize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
@@ -725,6 +725,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_ismacryp_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ismacryp_delete_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_ismacryp_sample) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_cenc_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pssh_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pssh_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_cenc_media) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_get_sample_aux_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_get_KID) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_avc_svc_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_get) )
@@ -887,7 +893,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_add_blink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_wrap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_to_sample) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_ismacryp_protection) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_change_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_new) )
@@ -953,6 +959,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_append_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sai) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_pssh) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_traf_base_media_decode_time) )
@@ -1237,6 +1245,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_decrypt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_encrypt) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_state) )
 #endif GPAC_DISABLE_MCRYPT
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum) )
@@ -1288,12 +1297,13 @@
 
 #if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 /*ismacryp.h exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_crypt_file) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_decrypt_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_decrypt_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_encrypt_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_decrypt_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_gpac_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_mpeg4ip_get_info) )
+
 
 #endif
 

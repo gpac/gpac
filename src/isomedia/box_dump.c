@@ -470,6 +470,9 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_PCRB:
 		return pcrb_dump(a, trace);
 
+	case GF_ISOM_BOX_TYPE_SENC:
+		return senc_dump(a, trace);
+
 	case GF_ISOM_BOX_TYPE_UUID:
 		switch ( ((GF_UnknownUUIDBox *)a)->internal_4cc) {
 		case GF_ISOM_BOX_UUID_TENC: return piff_tenc_dump(a, trace);
@@ -764,6 +767,21 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->Fragments) gf_box_dump(p->Fragments, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
+	if (p->sai_sizes) {
+		u32 i;
+		for (i = 0; i < gf_list_count(p->sai_sizes); i++) {
+			GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(p->sai_sizes, i);
+			gf_box_dump(saiz, trace);
+		}
+	}
+
+	if (p->sai_offsets) {
+		u32 i;
+		for (i = 0; i < gf_list_count(p->sai_offsets); i++) {
+			GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(p->sai_offsets, i);
+			gf_box_dump(saio, trace);
+		}
+	}
 	
 	gf_box_dump_done("SampleTableBox", a, trace);
 	return GF_OK;
@@ -2439,6 +2457,7 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 	gf_box_array_dump(p->TrackRuns, trace);
 	if (p->piff_sample_encryption) gf_box_dump(p->piff_sample_encryption, trace);
+	if (p->sample_encryption) gf_box_dump(p->sample_encryption, trace);
 	gf_box_dump_done("TrackFragmentBox", a, trace);
 	return GF_OK;
 }
@@ -3274,11 +3293,11 @@ GF_Err iKMS_dump(GF_Box *a, FILE * trace)
 {
 	GF_ISMAKMSBox *p;
 	p = (GF_ISMAKMSBox *)a;
-	fprintf(trace, "<ISMAKMSBox kms_URI=\"%s\">\n", p->URI);
+	fprintf(trace, "<KMSBox kms_URI=\"%s\">\n", p->URI);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	gf_box_dump_done("ISMAKMSBox", a, trace);
+	gf_box_dump_done("KMSBox", a, trace);
 	return GF_OK;
 
 }
@@ -4042,7 +4061,7 @@ GF_Err pssh_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<ProtectionSystemHeaderBox SystemID=\"");
-	DumpData(trace, (char *) ptr->SystemID, 16);
+	DumpDataHex(trace, (char *) ptr->SystemID, 16);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -4051,13 +4070,13 @@ GF_Err pssh_dump(GF_Box *a, FILE * trace)
 		u32 i;
 		for (i=0; i<ptr->KID_count; i++) {
 			fprintf(trace, " <PSSHKey KID=\"");
-			DumpData(trace, (char *) ptr->KIDs[i], 16);
+			DumpDataHex(trace, (char *) ptr->KIDs[i], 16);
 			fprintf(trace, "\"/>\n");
 		}
 	}
 	if (ptr->private_data_size) {
 		fprintf(trace, " <PSSHData size=\"%d\" value=\"", ptr->private_data_size);
-		DumpData(trace, (char *) ptr->private_data, ptr->private_data_size);
+		DumpDataHex(trace, (char *) ptr->private_data, ptr->private_data_size);
 		fprintf(trace, "\"/>\n");
 	}
 	gf_box_dump_done("ProtectionSystemHeaderBox", a, trace);
@@ -4070,7 +4089,7 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<TrackEncryptionBox isEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ptr->IsEncrypted, ptr->IV_size);
-	DumpData(trace, (char *) ptr->KID, 16);
+	DumpDataHex(trace, (char *) ptr->KID, 16);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -4100,7 +4119,7 @@ GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<PIFFTrackEncryptionBox AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
-	DumpData(trace,(char *) ptr->KID, 16);
+	DumpDataHex(trace,(char *) ptr->KID, 16);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
@@ -4110,47 +4129,85 @@ GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
 
 GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 {
+	u32 i, j;
 	u32 IV_size = 0;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *) a;
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<PIFFSampleEncryptionBox sampleCount=\"%d\"", ptr->sample_count);
 	if (ptr->flags & 1) {
-		fprintf(trace, " default_AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
+		fprintf(trace, " AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
 		DumpData(trace, (char *) ptr->KID, 16);
 		fprintf(trace, "\"");
 		IV_size = 0;
 	}
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
-	if (ptr->cenc_data) {
-		u32 i, j;
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	
+	if (ptr->sample_count) {
+		assert(ptr->sample_count = gf_list_count(ptr->samp_aux_info));
 		for (i=0; i<ptr->sample_count; i++) {
-			GF_CENCSampleInfo *cenc_sample = gf_isom_cenc_get_sample(ptr->traf->trex->track, ptr->traf, i+1);
+			GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 			if (cenc_sample) {
+				if  (!strlen((char *)cenc_sample->IV)) continue;
 				fprintf(trace, "<PIFFSampleEncryptionEntry IV=\"");
-				DumpDataHex(trace, (char *) cenc_sample->IV, IV_size);
-				fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
-				if (cenc_sample->is_alt_info) {
-					fprintf(trace, " AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", cenc_sample->algo_id, cenc_sample->IV_size);
-					DumpDataHex(trace, (char *) cenc_sample->keyID, 16);
-					fprintf(trace, "\"");
-				}
-				fprintf(trace, ">\n");
+				DumpDataHex(trace, (char *) cenc_sample->IV, 16);
+				if (ptr->flags & 0x2) {
+					fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
+					fprintf(trace, ">\n");
 				
-				for (j=0; j<cenc_sample->subsample_count; j++) {
-					fprintf(trace, "<PIFFSubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
+					for (j=0; j<cenc_sample->subsample_count; j++) {
+						fprintf(trace, "<PIFFSubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
+					}
 				}
 				fprintf(trace, "</PIFFSampleEncryptionEntry>\n");
 	
-				gf_isom_cenc_sample_del(cenc_sample);
+				//gf_isom_cenc_samp_aux_info_del(cenc_sample);
 			}
 		}
-#endif //	GPAC_DISABLE_ISOM_FRAGMENTS
 	}
+
 	gf_box_dump_done("PIFFSampleEncryptionBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err senc_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, j, sample_count;
+	u32 IV_size = 0;
+	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) a;
+	if (!a) return GF_BAD_PARAM;
+
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	fprintf(trace, "<SampleEncryptionBox sampleCount=\"%d\">\n", sample_count);
+	DumpBox(a, trace);
+	
+	if (sample_count) {
+		assert(sample_count = gf_list_count(ptr->samp_aux_info));
+		for (i=0; i<sample_count; i++) {
+			GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+
+			if (cenc_sample) {
+				if (!strlen((char *)cenc_sample->IV)) continue;
+				fprintf(trace, "<SampleEncryptionEntry sampleCount=\"%d\" IV=\"", i+1);
+				DumpDataHex(trace, (char *) cenc_sample->IV, 16);
+				if (ptr->flags & 0x2) {
+					fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
+					fprintf(trace, ">\n");
+				
+					for (j=0; j<cenc_sample->subsample_count; j++) {
+						fprintf(trace, "<SubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
+					}
+				}
+				fprintf(trace, "</SampleEncryptionEntry>\n");
+	
+				//gf_isom_cenc_samp_aux_info_del(cenc_sample);
+			}
+		}
+	}
+
+	gf_box_dump_done("SampleEncryptionBox", a, trace);
 	return GF_OK;
 }
 
