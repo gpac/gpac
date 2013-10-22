@@ -207,7 +207,7 @@ int dc_gpac_audio_isom_close_seg(AudioOutputFile * p_aoutf) {
 
 	GF_Err ret;
 
-	ret = gf_isom_close_segment(p_aoutf->p_isof, 0, 0, 0, 0, 0, 1, p_aoutf->i_seg_marker, NULL,
+	ret = gf_isom_close_segment(p_aoutf->p_isof, 0, 0,0, 0, 0, 0, 1, p_aoutf->i_seg_marker, NULL,
 			NULL);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));

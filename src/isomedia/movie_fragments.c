@@ -1000,7 +1000,7 @@ typedef struct
 } SIDXEntry;
 
 GF_EXPORT
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
@@ -1091,7 +1091,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	if (referenceTrackID) {
 		Bool is_root_sidx=0;
 
-		prev_earliest_cts = ref_track_decode_time + moof_get_earliest_cts(gf_list_get(movie->moof_list, 0), referenceTrackID);
+		prev_earliest_cts = ref_track_decode_time + moof_get_earliest_cts(gf_list_get(movie->moof_list, 0), referenceTrackID) + ts_shift;
 
 		if (movie->root_sidx) {
 			sidx = movie->root_sidx;
@@ -1451,7 +1451,7 @@ GF_EXPORT
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, 1, 0, NULL, NULL);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, 0, 1, 0, NULL, NULL);
 	} else {
 		return StoreFragment(movie, 0, 0, NULL);
 	}
