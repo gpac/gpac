@@ -892,7 +892,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	GF_Err						e = GF_OK;
 	u32							track;
 	u32							timescale;
-	u32							duration;
+	//u32							duration;
 	u32							descIndex;
 	u32							ID;
 	u32							OCR_ES_ID;
@@ -969,7 +969,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 		gf_import_message(import, GF_OK, "SWF import (as text - type: %s)", import->streamFormat);
 	}
 	gf_text_import_set_language(import, track);
-	duration = (u32) (((Double) import->duration)*timescale/1000.0);
+	//duration = (u32) (((Double) import->duration)*timescale/1000.0);
 
 	read = gf_swf_reader_new(NULL, import->in_name);
 	gf_swf_read_header(read);

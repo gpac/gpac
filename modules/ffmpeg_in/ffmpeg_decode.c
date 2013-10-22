@@ -651,14 +651,16 @@ redecode:
 		if (len<0) { 
 			ffd->frame_start = 0;
 #ifdef USE_AVCODEC2
-			avcodec_free_frame(&audio_frame);
+			//avcodec_free_frame(&audio_frame);
+			av_free(audio_frame);
 #endif
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (gotpic<0) {
 			ffd->frame_start = 0;
 #ifdef USE_AVCODEC2
-			avcodec_free_frame(&audio_frame);
+			//avcodec_free_frame(&audio_frame);
+			av_free(audio_frame);
 #endif
 			return GF_OK;
 		}
@@ -673,7 +675,8 @@ redecode:
 			/*looks like relying on frame_size is not a good idea for all codecs, so we use gotpic*/
 			(*outBufferLength) = ffd->out_size = gotpic;
 #ifdef USE_AVCODEC2
-			avcodec_free_frame(&audio_frame);
+			//avcodec_free_frame(&audio_frame);
+			av_free(audio_frame);
 #endif
 			return GF_BUFFER_TOO_SMALL;
 		}
@@ -683,7 +686,8 @@ redecode:
 			if (ffd->out_size < (u32) 576*ctx->channels) ffd->out_size=ctx->channels*576;
 			(*outBufferLength) = ffd->out_size;
 #ifdef USE_AVCODEC2
-			avcodec_free_frame(&audio_frame);
+			//avcodec_free_frame(&audio_frame);
+			av_free(audio_frame);
 #endif
 			return GF_BUFFER_TOO_SMALL;
 		}
@@ -691,23 +695,23 @@ redecode:
 		/*we're sure to have at least gotpic bytes available in output*/
 #ifdef USE_AVCODEC2
 		if (audio_frame->format==AV_SAMPLE_FMT_FLTP) {
-			s32 _samples = audio_frame->nb_samples;
 			s32 i, j;
 			s16 *output = (s16 *) outBuffer;
 			for (i=0 ; i<audio_frame->nb_samples ; i++) {
-				for (j=0; j<audio_frame->channels; j++) {
+				for (j=0; j<ctx->channels; j++) {
 					Float* inputChannel = (Float*)audio_frame->extended_data[j];
 					Float sample = inputChannel[i];
 					if (sample<-1.0f) sample=-1.0f;
 					else if (sample>1.0f) sample=1.0f;
 					
-					output[i*audio_frame->channels + j] = (int16_t) (sample * GF_SHORT_MAX);
+					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX);
 				}
 			}
 		} else {
 			memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
 		}
-		avcodec_free_frame(&audio_frame);
+		//avcodec_free_frame(&audio_frame);
+		av_free(audio_frame);
 #else
 		memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
 #endif

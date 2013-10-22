@@ -2344,9 +2344,10 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	char szName[1000], szMedia[1000];
 	FILE *media, *six;
 	u32 track, i, di, count, pos, header_size;
-	u32 mtype, mstype;
+	//u32 mtype;
+	u32 mstype;
 	const char *szRootName;
-	Bool isText;
+	//Bool isText;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
@@ -2376,12 +2377,14 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
+/*
 	mtype = gf_isom_get_media_type(dumper->file, track);
 	if (mtype==GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_SUBM || mtype == GF_ISOM_MEDIA_SUBT) {
 		isText = GF_TRUE;
 	} else {
 		isText = GF_FALSE;
 	}
+*/
 	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
 
 	/*write header*/

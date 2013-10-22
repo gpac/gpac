@@ -3353,7 +3353,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	u32 data_without_emulation_bytes_size = 0;
 	s32 vps_id, sps_id = -1;
 	u8 max_sub_layers_minus1, flag;
-	u8 layer_id, temporal_id;
+	u8 layer_id/*, temporal_id*/;
 	Bool update_rep_format_flag;
 	u32 i, nb_CTUs, depth;
 	u32 log2_diff_max_min_luma_coding_block_size;
@@ -3373,7 +3373,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	
 	gf_bs_read_int(bs, 7);
 	layer_id = gf_bs_read_int(bs, 6);
-	temporal_id = gf_bs_read_int(bs, 3);
+	/*temporal_id = */gf_bs_read_int(bs, 3);
 	vps_id = gf_bs_read_int(bs, 4);
 	if (vps_id>=16) goto exit;
 

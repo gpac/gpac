@@ -1200,7 +1200,7 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	} 
 	gf_bs_del(bs);
 	gf_isom_box_del(box);
-    return GF_OK;
+    return e;
 }
 
 GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index)

@@ -428,13 +428,13 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 static GF_Err HEVC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ESID, u8 **pY_or_RGB, u8 **pU, u8 **pV)
 {
 	s32 res;
-    OpenHevc_Frame openHevcFrame;
+    	OpenHevc_Frame openHevcFrame;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	if (!ctx->has_pic) return GF_BAD_PARAM;
 	ctx->has_pic = GF_FALSE;
 
 	res = libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHevcFrame);
-	if (!openHevcFrame.pvY || !openHevcFrame.pvU || !openHevcFrame.pvV)
+	if (res<0 || !openHevcFrame.pvY || !openHevcFrame.pvU || !openHevcFrame.pvV)
 		return GF_SERVICE_ERROR;
 
 	*pY_or_RGB = * (u8 **) openHevcFrame.pvY;
