@@ -43,8 +43,8 @@ static Bool gf_crypt_assign_algo(GF_Crypt *td, const char *algorithm)
 static Bool gf_crypt_assign_mode(GF_Crypt *td, const char *mode)
 {
 	if (!stricmp(mode, "CTR")) { gf_crypt_register_ctr(td); return 1; }
-#ifndef GPAC_CRYPT_ISMA_ONLY
 	else if (!stricmp(mode, "CBC")) { gf_crypt_register_cbc(td); return 1; }
+#ifndef GPAC_CRYPT_ISMA_ONLY
 	else if (!stricmp(mode, "CFB")) { gf_crypt_register_cfb(td); return 1; }
 	else if (!stricmp(mode, "ECB")) { gf_crypt_register_ecb(td); return 1; }
 	else if (!stricmp(mode, "nCFB")) { gf_crypt_register_ncfb(td); return 1; }
@@ -118,6 +118,7 @@ void gf_crypt_close(GF_Crypt *td)
 	gf_free(td);
 }
 
+GF_EXPORT
 GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
 {
 	GF_Err (*__mcrypt_set_key_stream) (void *, const void *, int, const void *, int);

@@ -217,6 +217,16 @@ typedef struct
 	Bool reset_buffers;
 } GF_NetComMapTime;
 
+
+typedef struct
+{
+	bin128 SystemID;
+	u32 KID_count;
+	bin128 *KIDs;
+	u32 private_data_size;
+	u8 *private_data;
+} GF_NetComDRMConfigPSSH;
+
 /*GF_NET_CHAN_ISMACRYP_CFG*/
 typedef struct
 {
@@ -238,6 +248,10 @@ typedef struct
 
 	/*SHA-1 file hash*/
 	u8 hash[20];
+
+	/*CENC PSSH data*/
+	u32 PSSH_count;
+	GF_NetComDRMConfigPSSH *PSSHs;
 } GF_NetComDRMConfig;
 
 /*GF_NET_CHAN_GET_ESD*/

@@ -721,6 +721,17 @@ u32 gf_crc_32(const char *data, u32 size);
  */
 u64 gf_net_get_utc();
 
+
+/*!
+ *\brief parses 128 bit from string 
+ *
+ *Parses 128 bit from string 
+ \param string the string containing the value in hexa. Non alphanum characters are skipped
+ \param value the value parsed
+ \return error code if any
+ */
+GF_Err gf_bin128_parse(char *string, bin128 value);
+
 /*!\brief run-time system info object
  *
  *The Run-Time Info object is used to get CPU and memory occupation of the calling process.

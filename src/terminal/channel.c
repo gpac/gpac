@@ -1256,7 +1256,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		evt.channel = ch;
 		evt.data = payload;
 		evt.data_size = payload_size;
-		evt.is_encrypted = hdr.isma_encrypted;
+		evt.is_encrypted = (hdr.isma_encrypted || hdr.cenc_encrypted) ? 1 : 0;
 		evt.isma_BSO = hdr.isma_BSO;
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 
@@ -1373,7 +1373,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
         }
 	}
 	assert(!comp);
-	/*update timing if new stream data but send no data*/
+	/*update timing if new stream data but send no data. in sase of encrypted data: we always need updating*/
 	if (is_new_data) {
 		ch->IsRap = 0;
 		gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
@@ -1384,8 +1384,13 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 			evt.event_type=GF_IPMP_TOOL_PROCESS_DATA;
 			evt.data = ch->AU_buffer_pull->data;
 			evt.data_size = ch->AU_buffer_pull->dataLength;
-			evt.is_encrypted = slh.isma_encrypted;
-			evt.isma_BSO = slh.isma_BSO;
+			evt.is_encrypted = (slh.isma_encrypted || slh.cenc_encrypted) ? 1 : 0;
+			if (slh.isma_encrypted) {
+				evt.isma_BSO = slh.isma_BSO;
+			} else if (slh.cenc_encrypted) {
+				evt.sai = slh.sai;
+				evt.saiz = slh.saiz;
+			}
 			evt.channel = ch;
 			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 
@@ -1647,6 +1652,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 	GF_IPMPEvent evt;
 	GF_OMADRM2Config cfg;
 	GF_OMADRM2Config isma_cfg;
+	GF_CENCConfig cenc_cfg;
 
 	/*always buffer when fetching keys*/
 	ch_buffer_on(ch);
@@ -1657,29 +1663,41 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 	evt.channel = ch;
 
 	/*push all cfg data*/
-	if (drm_cfg->contentID) {
-		evt.config_data_code = GF_4CC('o','d','r','m');
-		memset(&cfg, 0, sizeof(cfg));
-		cfg.scheme_version = drm_cfg->scheme_version;
-		cfg.scheme_type = drm_cfg->scheme_type;
-		cfg.scheme_uri = drm_cfg->scheme_uri;
-		cfg.kms_uri = drm_cfg->kms_uri;
-		memcpy(cfg.hash, drm_cfg->hash, sizeof(char)*20);
-		cfg.contentID = drm_cfg->contentID;
-		cfg.oma_drm_crypt_type = drm_cfg->oma_drm_crypt_type;
-		cfg.oma_drm_use_pad = drm_cfg->oma_drm_use_pad;
-		cfg.oma_drm_use_hdr = drm_cfg->oma_drm_use_hdr;
-		cfg.oma_drm_textual_headers = drm_cfg->oma_drm_textual_headers;
-		cfg.oma_drm_textual_headers_len = drm_cfg->oma_drm_textual_headers_len;
-		evt.config_data = &cfg;
+	/*CommonEncryption*/
+	if ((drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','1'))) {
+		evt.config_data_code = drm_cfg->scheme_type;
+		memset(&cenc_cfg, 0, sizeof(cenc_cfg));
+		cenc_cfg.scheme_version = drm_cfg->scheme_version;
+		cenc_cfg.scheme_type = drm_cfg->scheme_type;
+		cenc_cfg.PSSH_count = drm_cfg->PSSH_count;
+		cenc_cfg.PSSHs = drm_cfg->PSSHs;
+		evt.config_data = &cenc_cfg;	
 	} else {
-		evt.config_data_code = GF_4CC('i','s','m','a');
-		memset(&isma_cfg, 0, sizeof(isma_cfg));
-		isma_cfg.scheme_version = drm_cfg->scheme_version;
-		isma_cfg.scheme_type = drm_cfg->scheme_type;
-		isma_cfg.scheme_uri = drm_cfg->scheme_uri;
-		isma_cfg.kms_uri = drm_cfg->kms_uri;
-		evt.config_data = &isma_cfg;		
+	/*ISMA and OMA*/
+		if (drm_cfg->contentID) {
+			evt.config_data_code = GF_4CC('o','d','r','m');
+			memset(&cfg, 0, sizeof(cfg));
+			cfg.scheme_version = drm_cfg->scheme_version;
+			cfg.scheme_type = drm_cfg->scheme_type;
+			cfg.scheme_uri = drm_cfg->scheme_uri;
+			cfg.kms_uri = drm_cfg->kms_uri;
+			memcpy(cfg.hash, drm_cfg->hash, sizeof(char)*20);
+			cfg.contentID = drm_cfg->contentID;
+			cfg.oma_drm_crypt_type = drm_cfg->oma_drm_crypt_type;
+			cfg.oma_drm_use_pad = drm_cfg->oma_drm_use_pad;
+			cfg.oma_drm_use_hdr = drm_cfg->oma_drm_use_hdr;
+			cfg.oma_drm_textual_headers = drm_cfg->oma_drm_textual_headers;
+			cfg.oma_drm_textual_headers_len = drm_cfg->oma_drm_textual_headers_len;
+			evt.config_data = &cfg;
+		} else {
+			evt.config_data_code = GF_4CC('i','s','m','a');
+			memset(&isma_cfg, 0, sizeof(isma_cfg));
+			isma_cfg.scheme_version = drm_cfg->scheme_version;
+			isma_cfg.scheme_type = drm_cfg->scheme_type;
+			isma_cfg.scheme_uri = drm_cfg->scheme_uri;
+			isma_cfg.kms_uri = drm_cfg->kms_uri;
+			evt.config_data = &isma_cfg;		
+		}
 	}
 
 	if (ch->ipmp_tool) {

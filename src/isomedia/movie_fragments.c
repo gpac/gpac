@@ -1545,6 +1545,31 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 		traf->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
 		gf_list_add(movie->moof->TrackList, traf);
 	}
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input) {
+	GF_Box *a;
+	u32 i;
+	i = 0;
+	
+	while (a = (GF_Box *)gf_list_enum(input->moov->other_boxes, &i)) {
+		if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
+			GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
+			memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
+			pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
+			pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+			memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
+			pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
+			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+			memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
+
+			if (!output->moof->other_boxes) output->moof->other_boxes = gf_list_new();
+			gf_list_add(output->moof->other_boxes, pssh);
+		}
+	}
 	return GF_OK;
 }
 
@@ -1614,7 +1639,6 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 		//switch them ...
 		traf = traf_2;
 	}
-
 
 	pos = gf_bs_get_position(movie->editFileMap->bs);
 	//add TRUN entry
@@ -1689,6 +1713,66 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 		return GF_BAD_PARAM;
 	}
 	if (od_sample) gf_isom_sample_del(&od_sample);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum)
+{
+	u32 trackNum;
+
+	trackNum = gf_isom_get_track_by_id(input, TrackID);
+	if (gf_isom_is_cenc_media(input, trackNum, 1)) {
+		GF_CENCSampleAuxInfo *sai, *new_sai;
+		GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
+		u32 boxType;
+
+		if (!traf) 
+			return GF_BAD_PARAM;
+
+
+		sai = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &boxType);
+		if (!sai) {
+			return GF_IO_ERR;
+		}
+
+		new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+		memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
+		new_sai->subsample_count = sai->subsample_count;
+		new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+		memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+
+		switch (boxType) {
+			case GF_ISOM_BOX_UUID_PSEC:
+				if (!traf->piff_sample_encryption) {
+					traf->piff_sample_encryption = gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
+					traf->piff_sample_encryption->traf = traf;
+				}
+
+				if (!traf->piff_sample_encryption) {
+					return GF_IO_ERR;
+				}
+				gf_list_add(traf->piff_sample_encryption->samp_aux_info, new_sai);
+				traf->piff_sample_encryption->sample_count++;
+				break;
+			case GF_ISOM_BOX_TYPE_SENC:
+				if (!traf->sample_encryption) {
+					traf->sample_encryption = gf_isom_create_samp_enc_box(1, 0x2);
+					traf->sample_encryption->traf = traf;
+				}
+
+				if (!traf->sample_encryption) {
+					return GF_IO_ERR;
+				}
+				gf_list_add(traf->sample_encryption->samp_aux_info, new_sai);
+				break;
+			default:
+				if (new_sai->subsamples) gf_free(new_sai->subsamples);
+				gf_free(new_sai);
+				return GF_NOT_SUPPORTED;
+		}
+	}
+
 	return GF_OK;
 }
 

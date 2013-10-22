@@ -65,6 +65,14 @@ typedef struct
 {
 	u32 scheme_version;
 	u32 scheme_type;
+	u32 PSSH_count;
+	GF_NetComDRMConfigPSSH *PSSHs;
+} GF_CENCConfig;
+
+typedef struct
+{
+	u32 scheme_version;
+	u32 scheme_type;
 	const char *scheme_uri;
 	const char *kms_uri;
 	/*SHA-1 hash*/
@@ -102,6 +110,9 @@ typedef struct
 	Bool is_encrypted;
 	/*ISMA payload resync indicator*/
 	u64 isma_BSO;
+	/*CENC sample auxiliary information*/
+	char *sai;
+	u32 saiz;
 } GF_IPMPEvent;
 
 /*interface name and version for IPMP tools*/

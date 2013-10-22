@@ -904,7 +904,7 @@ GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->size -= 4;
 		if (ptr->KID_count) {
 			u32 i;
-			ptr->KIDs = gf_malloc(sizeof(bin128));
+			ptr->KIDs = gf_malloc(ptr->KID_count*sizeof(bin128));
 			for (i=0; i<ptr->KID_count; i++) {
 				gf_bs_read_data(bs, (char *) ptr->KIDs[i], 16);
 				ptr->size -= 16;
@@ -960,7 +960,7 @@ GF_Err pssh_Size(GF_Box *s)
 
 	ptr->size += 16;
 	if (ptr->version) ptr->size += 4 + 16*ptr->KID_count;
-	ptr->size += 4 + ptr->private_data ? ptr->private_data_size : 0;
+	ptr->size += 4 + (ptr->private_data ? ptr->private_data_size : 0);
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
@@ -1088,7 +1088,16 @@ GF_Box *piff_psec_New()
 void piff_psec_del(GF_Box *s)
 {
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *)s;
-	if (ptr->cenc_data) gf_free(ptr->cenc_data);
+	while (gf_list_count(ptr->samp_aux_info)) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, 0);
+		if (sai) {
+			gf_isom_cenc_samp_aux_info_del(sai);
+			gf_free(sai);
+			sai = NULL;
+		}
+		gf_list_rem(ptr->samp_aux_info, 0);
+	}
+	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
 	gf_free(s);
 }
 
@@ -1108,9 +1117,23 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	ptr->sample_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
-	ptr->cenc_data_size = (u32) ptr->size;
-	ptr->cenc_data = gf_malloc(sizeof(char)*ptr->cenc_data_size);
-	gf_bs_read_data(bs, ptr->cenc_data, ptr->cenc_data_size);
+	if (ptr->sample_count) {
+		u32 i, j;
+
+		if (!ptr->samp_aux_info) ptr->samp_aux_info = gf_list_new();
+		for (i = 0; i < ptr->sample_count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+			memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
+			gf_bs_read_data(bs, (char *)sai->IV, 16);
+			sai->subsample_count = gf_bs_read_u16(bs);
+			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			for (j = 0; j < sai->subsample_count; j++) {
+				sai->subsamples[j].bytes_clear_data = gf_bs_read_u32(bs);
+				sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
+			gf_list_add(ptr->samp_aux_info, sai);
+		}
+	}
 	ptr->size = 0;
 	return GF_OK;
 }
@@ -1134,14 +1157,25 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_data(bs, (char *) ptr->KID, 16);
 	}
 	gf_bs_write_u32(bs, ptr->sample_count);
-	if (ptr->cenc_data && ptr->cenc_data_size) {
-		gf_bs_write_data(bs, ptr->cenc_data, ptr->cenc_data_size);
+	if (ptr->sample_count) {
+		u32 i, j;
+		assert(ptr->sample_count == gf_list_count(ptr->samp_aux_info));
+		for (i = 0; i < ptr->sample_count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+			gf_bs_write_data(bs, (char *)sai->IV, 16);
+			gf_bs_write_u16(bs, sai->subsample_count);
+			for (j = 0; j < sai->subsample_count; j++) {
+				gf_bs_write_u32(bs, sai->subsamples[j].bytes_clear_data);
+				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+			}
+		}
 	}
 	return GF_OK;
 }
 
 GF_Err piff_psec_Size(GF_Box *s)
 {
+	u32 i;
 	GF_Err e;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox*)s;
 	e = gf_isom_box_get_size(s);
@@ -1151,8 +1185,12 @@ GF_Err piff_psec_Size(GF_Box *s)
 		ptr->size += 20;
 	}
 	ptr->size += 4;
-	if (ptr->cenc_data && ptr->cenc_data_size) {
-		ptr->size += ptr->cenc_data_size;
+	if (ptr->sample_count) {
+		assert(ptr->sample_count == gf_list_count(ptr->samp_aux_info));
+		for (i = 0; i < ptr->sample_count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+			ptr->size += 18 + 8*sai->subsample_count;
+		}
 	}
 	return GF_OK;
 }
@@ -1215,6 +1253,113 @@ GF_Err piff_pssh_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	ptr->size += 24 + ptr->private_data_size;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *senc_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SampleEncryptionBox, GF_ISOM_BOX_TYPE_SENC);
+	return (GF_Box *)tmp;
+}
+
+void senc_del(GF_Box *s)
+{
+	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
+	while (gf_list_count(ptr->samp_aux_info)) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, 0);
+		if (sai) {
+			gf_isom_cenc_samp_aux_info_del(sai);
+			gf_free(sai);
+			sai = NULL;
+		}
+		gf_list_rem(ptr->samp_aux_info, 0);
+	}
+	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
+	gf_free(s);
+}
+
+GF_Err senc_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 sample_count;
+	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
+	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->flags = gf_bs_read_u24(bs);
+	ptr->size -= 4;
+
+	sample_count = gf_bs_read_u32(bs);
+	ptr->size -= 4;
+	if (sample_count) {
+		u32 i, j;
+
+		if (!ptr->samp_aux_info) ptr->samp_aux_info = gf_list_new();
+		for (i = 0; i < sample_count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+			memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
+			gf_bs_read_data(bs, (char *)sai->IV, 16);
+			sai->subsample_count = gf_bs_read_u16(bs);
+			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			for (j = 0; j < sai->subsample_count; j++) {
+				sai->subsamples[j].bytes_clear_data = gf_bs_read_u32(bs);
+				sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
+			gf_list_add(ptr->samp_aux_info, sai);
+		}
+	}
+	ptr->size = 0;
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	u32 sample_count;
+	GF_Err e;
+	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
+	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_u24(bs, ptr->flags);
+
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	gf_bs_write_u32(bs, sample_count);
+	if (sample_count) {
+		u32 i, j;
+		assert(sample_count == gf_list_count(ptr->samp_aux_info));
+		for (i = 0; i < sample_count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+			gf_bs_write_data(bs, (char *)sai->IV, 16);
+			gf_bs_write_u16(bs, sai->subsample_count);
+			for (j = 0; j < sai->subsample_count; j++) {
+				gf_bs_write_u32(bs, sai->subsamples[j].bytes_clear_data);
+				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+			}
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err senc_Size(GF_Box *s)
+{
+	u32 sample_count;
+	u32 i;
+	GF_Err e;
+	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox*)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8;
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	if (sample_count) {
+		assert(sample_count == gf_list_count(ptr->samp_aux_info));
+		for (i = 0; i < sample_count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+			ptr->size += 18 + 8*sai->subsample_count;
+		}
+	}
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE

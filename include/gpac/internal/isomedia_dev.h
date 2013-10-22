@@ -382,11 +382,9 @@ enum
 	/*for compatibility with old files hinted for DSS - needs special parsing*/
 	GF_ISOM_BOX_TYPE_VOID	= GF_4CC( 'V', 'O', 'I', 'D' ),
 
-
 	/*MS Smooth - these are actually UUID boxes*/
 	GF_ISOM_BOX_UUID_PSSH	= GF_4CC( 'P', 'S', 'S', 'H' ),
 	GF_ISOM_BOX_UUID_TENC	= GF_4CC( 'T', 'E', 'N', 'C' ),
-	GF_ISOM_BOX_UUID_PSEC	= GF_4CC( 'P', 'S', 'E', 'C' ),
 	GF_ISOM_BOX_UUID_TFRF	= GF_4CC( 'T', 'F', 'R', 'F' ),
 	GF_ISOM_BOX_UUID_TFXD	= GF_4CC( 'T', 'F', 'X', 'D' ),
 };
@@ -1185,6 +1183,9 @@ typedef struct
 
 	GF_SubSampleInformationBox *SubSamples;
 
+	GF_Box *piff_psec;
+	GF_Box *senc;
+
 	GF_List *sampleGroups;
 	GF_List *sampleGroupsDescription;
 
@@ -1641,6 +1642,7 @@ typedef struct
 	GF_List *sai_offsets;
 
 	struct __piff_sample_enc_box *piff_sample_encryption;
+	struct __sample_encryption_box *sample_encryption;
 
 	/*when data caching is on*/
 	u32 DataCache;
@@ -2218,31 +2220,6 @@ typedef struct
 } GF_PIFFProtectionSystemHeaderBox;
 
 
-typedef struct 
-{
-	u32 bytes_clear_data;
-	u32 bytes_encrypted_data;
-} GF_CENCSubSampleEntry;
-
-typedef struct __cenc_sample_info
-{
-	/*set to 1 if keyID, IV_size and algo_id are NOT the default vamlues for the track*/
-	Bool is_alt_info;
-	bin128 keyID;
-	/*can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
-	bin128 IV;
-	u32 algo_id;
-	u16 IV_size;
-    u16 subsample_count;
-	GF_CENCSubSampleEntry *subsamples;
-} GF_CENCSampleInfo;
-
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_CENCSampleInfo *gf_isom_cenc_get_sample(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number);
-void gf_isom_cenc_sample_del(GF_CENCSampleInfo *samp);
-#endif
-
-
 typedef struct __piff_sample_enc_box
 {
 	GF_ISOM_UUID_BOX
@@ -2254,14 +2231,30 @@ typedef struct __piff_sample_enc_box
 	bin128 KID;
 
 	u32 sample_count;
-	u32 cenc_data_size;
-	char *cenc_data;
+	GF_List *samp_aux_info;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*pointer to container traf*/
 	GF_TrackFragmentBox *traf;
 #endif
 } GF_PIFFSampleEncryptionBox;
+
+typedef struct __sample_encryption_box
+{
+	GF_ISOM_UUID_BOX
+	u8 version;
+	u32 flags;		
+
+	GF_List *samp_aux_info;
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	/*pointer to container traf*/
+	GF_TrackFragmentBox *traf;
+#endif
+} GF_SampleEncryptionBox;
+
+GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
+GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
 /*
 		Data Map (media storage) stuff
@@ -3971,6 +3964,13 @@ GF_Err piff_pssh_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err piff_pssh_Size(GF_Box *s);
 GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err piff_pssh_dump(GF_Box *a, FILE * trace);
+
+GF_Box *senc_New();
+void senc_del(GF_Box *);
+GF_Err senc_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err senc_Size(GF_Box *s);
+GF_Err senc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err senc_dump(GF_Box *a, FILE * trace);
 
 
 GF_Box *cslg_New();

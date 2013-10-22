@@ -236,6 +236,30 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name);
  */
 void gf_xml_dom_node_del(GF_XMLNode *node);
 
+/*
+ *\brief bitsequence parser.
+ *
+ * inspects all child elements of the node and converts <BS> children into bits. BS take the following attributes:.
+ *bits: value gives the number of bits used to code a value or a length 
+ *value: value is a 32 bit signed value 
+ *dataOffset: value gives an offset into a file
+ *dataLength: value gives the number of bits bytes to copy in a file
+ *dataFile: value gives the name of the source file
+ *text: or string: value gives a string (length is first coded on number of bits in bits attribute)
+ *fcc: value gives a four character code, coded on 32 bits
+ *ID128: value gives a 128 bit vlue in hexadecimal
+ *data64: value gives data coded as base64 
+ *data: value gives data coded in hexa 
+ *
+ *
+ *
+ *\param node the root node of the bitstream to create
+ *\param out_data pointer to output buffer allocated by the function to store the result
+ *\param out_data_size pointer to output buffer size allocated by the function to store the result
+ *\return error code or GF_OK
+ */
+GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **out_data, u32 *out_data_size);
+
 /*! @} */
 
 #ifdef __cplusplus
