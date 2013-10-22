@@ -1936,6 +1936,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 		u64 offset = 0;
 		s64 value = 0;
 		bin128 word128;
+		Bool use_word128 = GF_FALSE;
  		const char *szFile = NULL;
  		const char *szString = NULL;
 		const char *szBase64 = NULL;
@@ -1962,6 +1963,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 				nb_bits = 32;
 			} else if (!stricmp(att->name, "ID128")) {
 				gf_bin128_parse(att->value, word128);
+                use_word128 = GF_TRUE;
 			} else if (!stricmp(att->name, "data64")) {
 				szBase64 = att->value;
 			} else if (!stricmp(att->name, "data")) {
@@ -2023,7 +2025,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 				}
 				fclose(_tmp);
 			}
-		} else if (word128) {
+		} else if (use_word128) {
 			gf_bs_write_data(bs, (char *)word128, 16);
 		}
 	}

@@ -93,7 +93,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	if (moof->other_boxes) {
 		GF_Box *a;	
 		i = 0;
-		while (a = (GF_Box *)gf_list_enum(moof->other_boxes, &i)) {
+		while ((a = (GF_Box *)gf_list_enum(moof->other_boxes, &i))) {
 			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
 				GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
 				memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
