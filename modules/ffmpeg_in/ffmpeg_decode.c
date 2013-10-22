@@ -26,24 +26,6 @@
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
 
-#ifndef FFMPEG_OLD_HEADERS
-
-#if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
-#undef USE_AVCODEC2
-#else
-#define USE_AVCODEC2	1
-#endif
-
-#else
-#undef USE_AVCODEC2
-#endif
-
-#if (LIBAVCODEC_VERSION_MAJOR >= 55) 
-#define USE_AVCTX3
-#elif (LIBAVCODEC_VERSION_MAJOR >= 54) && (LIBAVCODEC_VERSION_MINOR >= 35)
-#define USE_AVCTX3
-#endif
-
 
 
 /**
@@ -345,6 +327,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		ffd->out_size = (*ctx)->channels * (*ctx)->frame_size * 2 /*16 / 8*/;
 		if (!(*ctx)->sample_rate) (*ctx)->sample_rate = 44100;
 		if (!(*ctx)->channels) (*ctx)->channels = 2;
+
+#if defined(USE_AVCTX3)
+		ffd->audio_frame = avcodec_alloc_frame();
+#endif
+
 	} else {
 		switch ((*codec)->id) {
 		case CODEC_ID_MJPEG:
@@ -429,6 +416,12 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 		*ctx = NULL;
 	}
 	*codec = NULL;
+
+#if defined(USE_AVCTX3)
+	if (ffd->audio_frame) {
+		av_free(ffd->audio_frame);
+	}
+#endif
 
 #ifdef FFMPEG_SWSCALE
 	if (*sws) {
@@ -624,9 +617,6 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	if (ffd->st==GF_STREAM_AUDIO) {
 		s32 len;
 		u32 buf_size = (*outBufferLength);
-#ifdef USE_AVCODEC2
-		AVFrame *audio_frame;
-#endif
 
 		(*outBufferLength) = 0;
 
@@ -639,31 +629,19 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		if (ffd->frame_start>inBufferLength) ffd->frame_start = 0;
 
 redecode:
-#ifdef USE_AVCODEC2
 
-		audio_frame = avcodec_alloc_frame();
-		len = avcodec_decode_audio4(ctx, audio_frame, &gotpic, &pkt);
-		if (gotpic) gotpic = audio_frame->nb_samples * 2 * ctx->channels;
+#if defined(USE_AVCTX3)
+		len = avcodec_decode_audio4(ctx, ffd->audio_frame, &gotpic, &pkt);
+		if (gotpic) gotpic = ffd->audio_frame->nb_samples * 2 * ctx->channels;
+#elif defined(USE_AVCODEC2)
+		gotpic = 192000;
+		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);
 #else
 		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 		len = avcodec_decode_audio2(ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 #endif
-		if (len<0) { 
-			ffd->frame_start = 0;
-#ifdef USE_AVCODEC2
-			//avcodec_free_frame(&audio_frame);
-			av_free(audio_frame);
-#endif
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-		if (gotpic<0) {
-			ffd->frame_start = 0;
-#ifdef USE_AVCODEC2
-			//avcodec_free_frame(&audio_frame);
-			av_free(audio_frame);
-#endif
-			return GF_OK;
-		}
+		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
+		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }
 
 		/*first config*/
 		if (!ffd->out_size) {
@@ -674,10 +652,6 @@ redecode:
 		if (ffd->out_size < (u32) gotpic) {
 			/*looks like relying on frame_size is not a good idea for all codecs, so we use gotpic*/
 			(*outBufferLength) = ffd->out_size = gotpic;
-#ifdef USE_AVCODEC2
-			//avcodec_free_frame(&audio_frame);
-			av_free(audio_frame);
-#endif
 			return GF_BUFFER_TOO_SMALL;
 		}
 		if (ffd->out_size > buf_size) {
@@ -685,21 +659,16 @@ redecode:
 			also request more slots in the composition memory but let's not waste mem*/
 			if (ffd->out_size < (u32) 576*ctx->channels) ffd->out_size=ctx->channels*576;
 			(*outBufferLength) = ffd->out_size;
-#ifdef USE_AVCODEC2
-			//avcodec_free_frame(&audio_frame);
-			av_free(audio_frame);
-#endif
 			return GF_BUFFER_TOO_SMALL;
 		}
 
-		/*we're sure to have at least gotpic bytes available in output*/
-#ifdef USE_AVCODEC2
-		if (audio_frame->format==AV_SAMPLE_FMT_FLTP) {
+#if defined(USE_AVCTX3)
+		if (ffd->audio_frame->format==AV_SAMPLE_FMT_FLTP) {
 			s32 i, j;
 			s16 *output = (s16 *) outBuffer;
-			for (i=0 ; i<audio_frame->nb_samples ; i++) {
+			for (i=0 ; i<ffd->audio_frame->nb_samples ; i++) {
 				for (j=0; j<ctx->channels; j++) {
-					Float* inputChannel = (Float*)audio_frame->extended_data[j];
+					Float* inputChannel = (Float*)ffd->audio_frame->extended_data[j];
 					Float sample = inputChannel[i];
 					if (sample<-1.0f) sample=-1.0f;
 					else if (sample>1.0f) sample=1.0f;
@@ -708,11 +677,10 @@ redecode:
 				}
 			}
 		} else {
-			memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
+			memcpy(outBuffer, ffd->audio_frame->data, sizeof(char) * ffd->audio_frame->nb_samples * ctx->channels*2);
 		}
-		//avcodec_free_frame(&audio_frame);
-		av_free(audio_frame);
 #else
+		/*we're sure to have at least gotpic bytes available in output*/
 		memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
 #endif
 
