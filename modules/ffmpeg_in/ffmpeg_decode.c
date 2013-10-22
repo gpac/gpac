@@ -681,7 +681,7 @@ redecode:
 		}
 #else
 		/*we're sure to have at least gotpic bytes available in output*/
-		memcpy(outBuffer, audio_frame->data, sizeof(char) * audio_frame->nb_samples * ctx->channels*2);
+		memcpy(outBuffer, ffd->audio_buf, sizeof(char) * gotpic);
 #endif
 
 		(*outBufferLength) += gotpic;
