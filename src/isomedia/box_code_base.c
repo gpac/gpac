@@ -4468,6 +4468,13 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 		gf_list_add(ptr->sai_offsets, a);
 		break;
 
+	case GF_ISOM_BOX_TYPE_SENC:
+		ptr->senc = a;
+		return gf_isom_box_add_default((GF_Box *)ptr, a);
+	case GF_ISOM_BOX_UUID_PSEC:
+		ptr->piff_psec = a;
+		return gf_isom_box_add_default((GF_Box *)ptr, a);
+
 	default:
 		return gf_isom_box_add_default((GF_Box *)ptr, a);
 	}
@@ -8673,7 +8680,7 @@ GF_Err saio_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	ptr->entry_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
-	if (ptr->entry_count>1) {
+	if (ptr->entry_count) {
 		u32 i;
 		if (ptr->version==0) {
 			ptr->offsets = gf_malloc(sizeof(u32)*ptr->entry_count);
@@ -8685,14 +8692,6 @@ GF_Err saio_Read(GF_Box *s, GF_BitStream *bs)
 			for (i=0; i<ptr->entry_count; i++)
 				ptr->offsets_large[i] = gf_bs_read_u64(bs);
 			ptr->size -= 8*ptr->entry_count;
-		}
-	} else {
-		if (ptr->version==0) {
-			ptr->single_offset = gf_bs_read_u32(bs);
-			ptr->size -= 4;
-		} else {
-			ptr->single_offset = gf_bs_read_u64(bs);
-			ptr->size -= 8;
 		}
 	}
 	return GF_OK;
@@ -8719,22 +8718,24 @@ GF_Err saio_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->aux_info_type_parameter);
 	}
 	gf_bs_write_u32(bs, ptr->entry_count);
-	if (ptr->entry_count>1) {
+	if (ptr->entry_count) {
 		u32 i;
+		//store position in bitstream before writing data - offsets can be NULL if a single offset is rewritten later on (cf senc_write)
+		ptr->offset_first_offset_field = gf_bs_get_position(bs);
 		if (ptr->version==0) {
-			assert(ptr->offsets);
-			for (i=0; i<ptr->entry_count; i++)
-				gf_bs_write_u32(bs, ptr->offsets[i]);
+			if (!ptr->offsets) {
+				gf_bs_write_u32(bs, 0);
+			} else {
+				for (i=0; i<ptr->entry_count; i++)
+					gf_bs_write_u32(bs, ptr->offsets[i]);
+			}
 		} else {
-			assert(ptr->offsets_large);
-			for (i=0; i<ptr->entry_count; i++)
-				gf_bs_write_u64(bs, ptr->offsets_large[i]);
-		}
-	} else {
-		if (ptr->version==0) {
-			gf_bs_write_u32(bs, (u32) ptr->single_offset);
-		} else {
-			gf_bs_write_u64(bs, ptr->single_offset);
+			if (!ptr->offsets_large) {
+				gf_bs_write_u64(bs, 0);
+			} else {
+				for (i=0; i<ptr->entry_count; i++)
+					gf_bs_write_u64(bs, ptr->offsets_large[i]);
+			}
 		}
 	}
 	return GF_OK;
@@ -8748,7 +8749,7 @@ GF_Err saio_Size(GF_Box *s)
 	if (ptr->aux_info_type || ptr->aux_info_type_parameter) {
 		ptr->flags |= 1;
 	}
-	if (ptr->offsets_large || (ptr->single_offset >0xFFFFFFFF)) {
+	if (ptr->offsets_large) {
 		ptr->version = 1;
 	}
 

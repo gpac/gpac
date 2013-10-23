@@ -2456,6 +2456,8 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 	gf_box_array_dump(p->TrackRuns, trace);
+	if (p->sai_sizes) gf_box_array_dump(p->sai_sizes, trace);
+	if (p->sai_offsets) gf_box_array_dump(p->sai_offsets, trace);
 	if (p->piff_sample_encryption) gf_box_dump(p->piff_sample_encryption, trace);
 	if (p->sample_encryption) gf_box_dump(p->sample_encryption, trace);
 	gf_box_dump_done("TrackFragmentBox", a, trace);
@@ -4015,7 +4017,13 @@ GF_Err saiz_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<SampleAuxiliaryInfoSizeBox default_sample_info_size=\"%d\" sample_count=\"%d\"", ptr->default_sample_info_size, ptr->sample_count);
-	if (ptr->flags & 1) fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type, ptr->aux_info_type_parameter);
+	if (ptr->flags & 1) {
+		if (isalnum(ptr->aux_info_type>>24)) {	
+			fprintf(trace, " aux_info_type=\"%s\" aux_info_type_parameter=\"%d\"", gf_4cc_to_str(ptr->aux_info_type), ptr->aux_info_type_parameter);
+		} else {
+			fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type, ptr->aux_info_type_parameter);
+		}
+	}
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -4035,14 +4043,19 @@ GF_Err saio_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<SampleAuxiliaryInfoOffsetBox entry_count=\"%d\"", ptr->entry_count);
-	if (ptr->flags & 1) fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type, ptr->aux_info_type_parameter);
+	if (ptr->flags & 1) {
+		if (isalnum(ptr->aux_info_type>>24)) {	
+			fprintf(trace, " aux_info_type=\"%s\" aux_info_type_parameter=\"%d\"", gf_4cc_to_str(ptr->aux_info_type), ptr->aux_info_type_parameter);
+		} else {
+			fprintf(trace, " aux_info_type=\"%d\" aux_info_type_parameter=\"%d\"", ptr->aux_info_type, ptr->aux_info_type_parameter);
+		}
+	}
+
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 
-	if (ptr->single_offset) {
-		fprintf(trace, "<SAIChunkOffset offset=\""LLD"\"/>\n", ptr->single_offset);
-	} else if (ptr->version==0) {
+	if (ptr->version==0) {
 		for (i=0; i<ptr->entry_count; i++) {
 			fprintf(trace, "<SAIChunkOffset offset=\"%d\"/>\n", ptr->offsets[i]);
 		}
@@ -4129,11 +4142,12 @@ GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
 
 GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 {
-	u32 i, j;
+	u32 i, j, sample_count;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *) a;
 	if (!a) return GF_BAD_PARAM;
 
-	fprintf(trace, "<PIFFSampleEncryptionBox sampleCount=\"%d\"", ptr->sample_count);
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	fprintf(trace, "<PIFFSampleEncryptionBox sampleCount=\"%d\"", sample_count);
 	if (ptr->flags & 1) {
 		fprintf(trace, " AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
 		DumpData(trace, (char *) ptr->KID, 16);
@@ -4142,9 +4156,8 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	
-	if (ptr->sample_count) {
-		assert(ptr->sample_count = gf_list_count(ptr->samp_aux_info));
-		for (i=0; i<ptr->sample_count; i++) {
+	if (sample_count) {
+		for (i=0; i<sample_count; i++) {
 			GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 			if (cenc_sample) {
@@ -4160,8 +4173,6 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 					}
 				}
 				fprintf(trace, "</PIFFSampleEncryptionEntry>\n");
-	
-				//gf_isom_cenc_samp_aux_info_del(cenc_sample);
 			}
 		}
 	}
@@ -4179,28 +4190,26 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 	sample_count = gf_list_count(ptr->samp_aux_info);
 	fprintf(trace, "<SampleEncryptionBox sampleCount=\"%d\">\n", sample_count);
 	DumpBox(a, trace);
-	
-	if (sample_count) {
-		assert(sample_count = gf_list_count(ptr->samp_aux_info));
-		for (i=0; i<sample_count; i++) {
-			GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
+	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"0x%X\"/>\n", ptr->version, ptr->flags);
+	for (i=0; i<sample_count; i++) {
+		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
-			if (cenc_sample) {
-				if (!strlen((char *)cenc_sample->IV)) continue;
-				fprintf(trace, "<SampleEncryptionEntry sampleCount=\"%d\" IV=\"", i+1);
-				DumpDataHex(trace, (char *) cenc_sample->IV, 16);
-				if (ptr->flags & 0x2) {
-					fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
-					fprintf(trace, ">\n");
+		if (cenc_sample) {
+			fprintf(trace, "<SampleEncryptionEntry sampleCount=\"%d\" IV=\"", i+1);
+			DumpDataHex(trace, (char *) cenc_sample->IV, 16);
+			fprintf(trace, "\"");
+			if (ptr->flags & 0x2) {
+				fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);
+				fprintf(trace, ">\n");
 				
-					for (j=0; j<cenc_sample->subsample_count; j++) {
-						fprintf(trace, "<SubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
-					}
+				for (j=0; j<cenc_sample->subsample_count; j++) {
+					fprintf(trace, "<SubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
 				}
-				fprintf(trace, "</SampleEncryptionEntry>\n");
-	
-				//gf_isom_cenc_samp_aux_info_del(cenc_sample);
+			} else {
+				fprintf(trace, ">\n");
 			}
+			fprintf(trace, "</SampleEncryptionEntry>\n");
 		}
 	}
 

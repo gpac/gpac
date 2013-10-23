@@ -2152,8 +2152,9 @@ GF_EXPORT
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	u32 i, base_track_sample_count;
+	u32 i, j, base_track_sample_count;
 	Bool has_scalable;
+	GF_Box *a;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	has_scalable = gf_isom_has_scalable_layer(movie);
 	base_track_sample_count = 0;
@@ -2202,6 +2203,16 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			RECREATE_BOX(stbl->ShadowSync, (GF_ShadowSyncBox *));
 			RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
 			RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
+		}
+
+
+		j = 0;	
+		while ((a = (GF_Box *)gf_list_enum(movie->moov->other_boxes, &j))) {
+			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
+				gf_isom_box_del(a);
+				j--;
+				gf_list_rem(movie->moov->other_boxes, j);
+			}
 		}
 	}
 

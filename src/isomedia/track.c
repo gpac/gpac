@@ -608,7 +608,6 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 
 			gf_list_add(psec->samp_aux_info, new_sai);
-			psec->sample_count++;
 		}
 	}
 

@@ -2188,7 +2188,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 		/*copy PSSHs from moov to the first moof*/
 		if (!nb_done) {
-			e = gf_isom_clone_pssh(output, input);
+			e = gf_isom_clone_pssh(output, input, GF_FALSE);
 			if (e) goto err_exit;
 		}
 

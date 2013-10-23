@@ -1165,6 +1165,34 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_FULL_BOX
+
+	u32 aux_info_type;
+	u32 aux_info_type_parameter;
+
+	u8 default_sample_info_size; 
+	u32 sample_count; 
+	u8 *sample_info_size;
+} GF_SampleAuxiliaryInfoSizeBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+	u32 aux_info_type;
+	u32 aux_info_type_parameter;
+
+	u8 default_sample_info_size; 
+	u32 entry_count;  //1 or stco / trun count
+	u32 *offsets;
+	u64 *offsets_large;
+
+	u64 offset_first_offset_field;
+} GF_SampleAuxiliaryInfoOffsetBox;
+
+
+typedef struct
+{
 	GF_ISOM_BOX
 	GF_TimeToSampleBox *TimeToSample;
 	GF_CompositionOffsetBox *CompositionOffset;
@@ -1647,6 +1675,8 @@ typedef struct
 	/*when data caching is on*/
 	u32 DataCache;
     GF_TFBaseMediaDecodeTimeBox *tfdt;
+
+	u64 moof_start_in_bs;
 } GF_TrackFragmentBox;
 
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
@@ -2138,32 +2168,6 @@ typedef struct
 } GF_RollRecoveryEntry;
 
 
-typedef struct
-{
-	GF_ISOM_FULL_BOX
-
-	u32 aux_info_type;
-	u32 aux_info_type_parameter;
-
-	u8 default_sample_info_size; 
-	u32 sample_count; 
-	u8 *sample_info_size;
-} GF_SampleAuxiliaryInfoSizeBox;
-
-typedef struct
-{
-	GF_ISOM_FULL_BOX
-
-	u32 aux_info_type;
-	u32 aux_info_type_parameter;
-
-	u8 default_sample_info_size; 
-	u32 entry_count;  //1 or stco / trun count
-	u32 *offsets;
-	u64 *offsets_large;
-
-	u64 single_offset;
-} GF_SampleAuxiliaryInfoOffsetBox;
 
 /* 
 		CENC stuff
@@ -2226,17 +2230,23 @@ typedef struct __piff_sample_enc_box
 	u8 version;
 	u32 flags;		
 
-	u32 AlgorithmID;
-	u8 IV_size;
-	bin128 KID;
-
-	u32 sample_count;
 	GF_List *samp_aux_info;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*pointer to container traf*/
 	GF_TrackFragmentBox *traf;
 #endif
+	/*pointer to associated saio*/
+	GF_SampleAuxiliaryInfoSizeBox *cenc_saiz;
+	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
+
+	//do NOT change order below this point or insert anything, since we cast GF_PIFFSampleEncryptionBox into GF_SampleEncryptionBox
+
+
+	u32 AlgorithmID;
+	u8 IV_size;
+	bin128 KID;
+
 } GF_PIFFSampleEncryptionBox;
 
 typedef struct __sample_encryption_box
@@ -2251,6 +2261,10 @@ typedef struct __sample_encryption_box
 	/*pointer to container traf*/
 	GF_TrackFragmentBox *traf;
 #endif
+	/*pointer to associated saio*/
+	GF_SampleAuxiliaryInfoSizeBox *cenc_saiz;
+	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
+
 } GF_SampleEncryptionBox;
 
 GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
@@ -2618,7 +2632,7 @@ GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err dinf_AddBox(GF_Box *s, GF_Box *a);
 GF_Err minf_AddBox(GF_Box *s, GF_Box *a);
 GF_Err mdia_AddBox(GF_Box *s, GF_Box *a);
-GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
+GF_Err traf_AddBox(GF_Box *s, GF_Box *a);
 
 /*rewrites avcC based on the given esd - this destroys the esd*/
 GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
@@ -2628,6 +2642,7 @@ void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 
 GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
+void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 

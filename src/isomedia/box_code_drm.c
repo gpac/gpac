@@ -1090,19 +1090,17 @@ void piff_psec_del(GF_Box *s)
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *)s;
 	while (gf_list_count(ptr->samp_aux_info)) {
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, 0);
-		if (sai) {
-			gf_isom_cenc_samp_aux_info_del(sai);
-			gf_free(sai);
-			sai = NULL;
-		}
+		if (sai) gf_isom_cenc_samp_aux_info_del(sai);
 		gf_list_rem(ptr->samp_aux_info, 0);
 	}
 	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
 	gf_free(s);
 }
 
+
 GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 {
+	u32 sample_count;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *)s;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	ptr->version = gf_bs_read_u8(bs);
@@ -1115,13 +1113,13 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_read_data(bs, (char *) ptr->KID, 16);
 		ptr->size -= 20;
 	}
-	ptr->sample_count = gf_bs_read_u32(bs);
+	sample_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
-	if (ptr->sample_count) {
+	if (sample_count) {
 		u32 i, j;
 
 		if (!ptr->samp_aux_info) ptr->samp_aux_info = gf_list_new();
-		for (i = 0; i < ptr->sample_count; i++) {
+		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 			memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
 			gf_bs_read_data(bs, (char *)sai->IV, 16);
@@ -1140,9 +1138,31 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
+{
+	GF_Err e;
+	u64 pos;
+	if (!ptr->cenc_saio) return GF_OK;
+
+	pos = gf_bs_get_position(bs);
+	if (pos>0xFFFFFFFFULL) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] \"senc\" offset larger than 32-bits , cannot store.\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	e = gf_bs_seek(bs, ptr->cenc_saio->offset_first_offset_field);
+	if (e) return e;
+	if (ptr->traf) {
+		gf_bs_write_u32(bs, (u32) ( pos - ptr->traf->moof_start_in_bs) );
+	} else {
+		gf_bs_write_u32(bs, (u32) pos);
+	}
+	return gf_bs_seek(bs, pos);
+}
+
 GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
+	u32 sample_count;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
@@ -1156,11 +1176,14 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u8(bs, ptr->IV_size);
 		gf_bs_write_data(bs, (char *) ptr->KID, 16);
 	}
-	gf_bs_write_u32(bs, ptr->sample_count);
-	if (ptr->sample_count) {
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	gf_bs_write_u32(bs, sample_count);
+	if (sample_count) {
 		u32 i, j;
-		assert(ptr->sample_count == gf_list_count(ptr->samp_aux_info));
-		for (i = 0; i < ptr->sample_count; i++) {
+		e = store_senc_info((GF_SampleEncryptionBox *)ptr, bs);
+		if (e) return e;
+
+		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 			gf_bs_write_data(bs, (char *)sai->IV, 16);
 			gf_bs_write_u16(bs, sai->subsample_count);
@@ -1175,7 +1198,7 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err piff_psec_Size(GF_Box *s)
 {
-	u32 i;
+	u32 i, sample_count;
 	GF_Err e;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox*)s;
 	e = gf_isom_box_get_size(s);
@@ -1185,9 +1208,9 @@ GF_Err piff_psec_Size(GF_Box *s)
 		ptr->size += 20;
 	}
 	ptr->size += 4;
-	if (ptr->sample_count) {
-		assert(ptr->sample_count == gf_list_count(ptr->samp_aux_info));
-		for (i = 0; i < ptr->sample_count; i++) {
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	if (sample_count) {
+		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 			ptr->size += 18 + 8*sai->subsample_count;
 		}
@@ -1211,12 +1234,11 @@ void piff_pssh_del(GF_Box *s)
 
 GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
 
-	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
-	ptr->version = gf_bs_read_u8(bs);
-	ptr->flags = gf_bs_read_u24(bs);
-	ptr->size -= 4;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
 
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
@@ -1231,14 +1253,8 @@ GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err piff_pssh_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox *) s;
-	if (!s) return GF_BAD_PARAM;
-
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	gf_bs_write_u8(bs, ptr->version);
-	gf_bs_write_u24(bs, ptr->flags);
+	GF_Err e = gf_isom_full_box_write(s, bs);
 
 	gf_bs_write_data(bs, (char *) ptr->SystemID, 16);
 	gf_bs_write_u32(bs, ptr->private_data_size);
@@ -1268,11 +1284,7 @@ void senc_del(GF_Box *s)
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
 	while (gf_list_count(ptr->samp_aux_info)) {
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, 0);
-		if (sai) {
-			gf_isom_cenc_samp_aux_info_del(sai);
-			gf_free(sai);
-			sai = NULL;
-		}
+		if (sai) gf_isom_cenc_samp_aux_info_del(sai);
 		gf_list_rem(ptr->samp_aux_info, 0);
 	}
 	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
@@ -1283,7 +1295,7 @@ GF_Err senc_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
-	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
 	ptr->size -= 4;
@@ -1298,11 +1310,13 @@ GF_Err senc_Read(GF_Box *s, GF_BitStream *bs)
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 			memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
 			gf_bs_read_data(bs, (char *)sai->IV, 16);
-			sai->subsample_count = gf_bs_read_u16(bs);
-			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-			for (j = 0; j < sai->subsample_count; j++) {
-				sai->subsamples[j].bytes_clear_data = gf_bs_read_u32(bs);
-				sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+			if (ptr->flags & 0x00000002) {
+				sai->subsample_count = gf_bs_read_u16(bs);
+				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+				for (j = 0; j < sai->subsample_count; j++) {
+					sai->subsamples[j].bytes_clear_data = gf_bs_read_u32(bs);
+					sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+				}
 			}
 			gf_list_add(ptr->samp_aux_info, sai);
 		}
@@ -1313,15 +1327,15 @@ GF_Err senc_Read(GF_Box *s, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+
 GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 sample_count;
 	GF_Err e;
+	u32 sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
-	if (!s) return GF_BAD_PARAM;
-
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
+	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 	gf_bs_write_u8(bs, ptr->version);
 	gf_bs_write_u24(bs, ptr->flags);
 
@@ -1329,14 +1343,19 @@ GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, sample_count);
 	if (sample_count) {
 		u32 i, j;
-		assert(sample_count == gf_list_count(ptr->samp_aux_info));
+
+		e = store_senc_info(ptr, bs);
+		if (e) return e;
+
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 			gf_bs_write_data(bs, (char *)sai->IV, 16);
-			gf_bs_write_u16(bs, sai->subsample_count);
-			for (j = 0; j < sai->subsample_count; j++) {
-				gf_bs_write_u32(bs, sai->subsamples[j].bytes_clear_data);
-				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+			if (ptr->flags & 0x00000002) {
+				gf_bs_write_u16(bs, sai->subsample_count);
+				for (j = 0; j < sai->subsample_count; j++) {
+					gf_bs_write_u32(bs, sai->subsamples[j].bytes_clear_data);
+					gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+				}
 			}
 		}
 	}
@@ -1345,19 +1364,23 @@ GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err senc_Size(GF_Box *s)
 {
+	GF_Err e;
 	u32 sample_count;
 	u32 i;
-	GF_Err e;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox*)s;
+	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	ptr->size += 8;
+	ptr->size += 4;
+
+	ptr->size += 4;
 	sample_count = gf_list_count(ptr->samp_aux_info);
 	if (sample_count) {
-		assert(sample_count == gf_list_count(ptr->samp_aux_info));
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
-			ptr->size += 18 + 8*sai->subsample_count;
+			ptr->size += 16;
+			if (ptr->flags & 0x00000002) 
+				ptr->size += 2 + 8*sai->subsample_count;
 		}
 	}
 	return GF_OK;
