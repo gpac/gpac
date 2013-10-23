@@ -1315,7 +1315,7 @@ GF_Err senc_Read(GF_Box *s, GF_BitStream *bs)
 				sai->subsample_count = gf_bs_read_u16(bs);
 				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 				for (j = 0; j < sai->subsample_count; j++) {
-					sai->subsamples[j].bytes_clear_data = gf_bs_read_u32(bs);
+					sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
 					sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
 				}
 			}
@@ -1354,7 +1354,7 @@ GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 			if (ptr->flags & 0x00000002) {
 				gf_bs_write_u16(bs, sai->subsample_count);
 				for (j = 0; j < sai->subsample_count; j++) {
-					gf_bs_write_u32(bs, sai->subsamples[j].bytes_clear_data);
+					gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
 					gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
 				}
 			}
@@ -1381,7 +1381,7 @@ GF_Err senc_Size(GF_Box *s)
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 			ptr->size += 16;
 			if (ptr->flags & 0x00000002) 
-				ptr->size += 2 + 8*sai->subsample_count;
+				ptr->size += 2 + 6*sai->subsample_count;
 		}
 	}
 	return GF_OK;
