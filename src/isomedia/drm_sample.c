@@ -577,31 +577,6 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 
 #if 0
 
-GF_Err gf_isom_set_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber, u32 sample_count, u8 *sample_info_size)
-{
-	GF_SampleTableBox *stbl;
-	GF_SampleAuxiliaryInfoSizeBox *saiz;
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-
-	stbl = trak->Media->information->sampleTable;
-	if (!stbl)
-		return GF_BAD_PARAM;
-
-	saiz = (GF_SampleAuxiliaryInfoSizeBox *)saiz_New();
-	saiz->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
-	saiz->aux_info_type_parameter = 0;
-	saiz->sample_count = sample_count;
-	saiz->default_sample_info_size = 0;
-	saiz->sample_info_size = (u8 *) gf_malloc(sample_count*sizeof(u8));
-	memmove(saiz->sample_info_size, sample_info_size, sample_count*sizeof(u8));
-
-	if (!stbl->sai_sizes) stbl->sai_sizes = gf_list_new();
-	gf_list_add(stbl->sai_sizes, saiz);
-
-	return GF_OK;
-}
-
 GF_Err gf_isom_set_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_SampleTableBox *stbl;
@@ -756,7 +731,6 @@ GF_PIFFSampleEncryptionBox * gf_isom_create_piff_psec_box(u8 version, u32 flags,
 		psec->IV_size = IV_size;
 		strcpy((char *)psec->KID, (const char *)KID);
 	}
-	psec->sample_count = 0;
 	psec->samp_aux_info = gf_list_new();
 
 	return psec;
@@ -776,7 +750,7 @@ GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags)
 	return senc;
 }
 
-GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID) 
+GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID) 
 {
 	GF_SampleTableBox *stbl;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -788,23 +762,63 @@ GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC: 
 		if (stbl->piff_psec) return GF_OK;
-		stbl->piff_psec = (GF_Box *)gf_isom_create_piff_psec_box(version, flags, AlgorithmID, IV_size, KID);
+		stbl->piff_psec = (GF_Box *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
 		//senc will be written and destroyed with the other boxes
 		return gf_isom_box_add_default((GF_Box *) stbl, stbl->piff_psec);
 
 	case GF_ISOM_BOX_TYPE_SENC: 
 		if (stbl->senc) return GF_OK;
-		stbl->senc = (GF_Box *)gf_isom_create_samp_enc_box(version, flags);
+		stbl->senc = (GF_Box *)gf_isom_create_samp_enc_box(0, 0);
 		//senc will be written and destroyed with the other boxes
 		return gf_isom_box_add_default((GF_Box *) stbl, stbl->senc);
 	}
 	return GF_NOT_SUPPORTED;
 }
 
+
+void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len)
+{
+	u32  i;
+	if (!senc->cenc_saiz) {
+		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIZ);
+		senc->cenc_saiz->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+		senc->cenc_saiz->aux_info_type_parameter = 0;
+		if (stbl) 
+			stbl_AddBox(stbl, (GF_Box *)senc->cenc_saiz);
+		else
+			traf_AddBox((GF_Box*)traf, (GF_Box *)senc->cenc_saiz);
+	}
+	if (!senc->cenc_saio) {
+		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
+		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+		senc->cenc_saio->aux_info_type_parameter = 0;
+		senc->cenc_saio->entry_count = 1;
+		if (stbl) 
+			stbl_AddBox(stbl, (GF_Box *)senc->cenc_saio);
+		else
+			traf_AddBox((GF_Box*)traf, (GF_Box *)senc->cenc_saio);
+	}
+
+	if (!senc->cenc_saiz->sample_count || (senc->cenc_saiz->default_sample_info_size==len)) {
+		senc->cenc_saiz->sample_count ++;
+		senc->cenc_saiz->default_sample_info_size = len;
+	} else {
+		senc->cenc_saiz->sample_info_size = gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
+
+		if (senc->cenc_saiz->default_sample_info_size) {
+			for (i=0; i<senc->cenc_saiz->sample_count; i++)
+				senc->cenc_saiz->sample_info_size[i] = senc->cenc_saiz->default_sample_info_size;
+			senc->cenc_saiz->default_sample_info_size = 0;
+		}
+		senc->cenc_saiz->sample_info_size[senc->cenc_saiz->sample_count] = len;
+		senc->cenc_saiz->sample_count++;
+	}
+}
 GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, char *buf, u32 len)
 {
 	u32 i;
 	GF_BitStream *bs;
+	GF_SampleEncryptionBox *senc;
 	GF_CENCSampleAuxInfo *sai;
 	GF_SampleTableBox *stbl;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -812,12 +826,25 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	stbl = trak->Media->information->sampleTable;
 	if (!stbl) return GF_BAD_PARAM;
 
+	switch (container_type) {
+	case GF_ISOM_BOX_UUID_PSEC:
+		senc = (GF_SampleEncryptionBox *) stbl->piff_psec;
+		break;
+	case GF_ISOM_BOX_TYPE_SENC:
+		senc = (GF_SampleEncryptionBox *)stbl->senc;
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+
 	sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 	if (!sai) return GF_OUT_OF_MEM;
 	memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
 	bs = gf_bs_new(buf, len, GF_BITSTREAM_READ);
 	gf_bs_read_data(bs, (char *)sai->IV, 16);
 	sai->subsample_count = gf_bs_read_u16(bs);
+	if (sai->subsample_count) senc->flags = 0x00000002;
 	sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 	for (i = 0; i < sai->subsample_count; i++) {
 		sai->subsamples[i].bytes_clear_data = gf_bs_read_u32(bs);
@@ -825,28 +852,21 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	}
 	gf_bs_del(bs);
 
-	switch (container_type) {
-	case GF_ISOM_BOX_UUID_PSEC:
-		gf_list_add(((GF_PIFFSampleEncryptionBox *) stbl->piff_psec)->samp_aux_info, sai);
-		break;
-	case GF_ISOM_BOX_TYPE_SENC:
-		gf_list_add(((GF_SampleEncryptionBox *)stbl->senc)->samp_aux_info, sai);
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
-	}
+	gf_list_add(senc->samp_aux_info, sai);
+
+	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len);
 
 	return GF_OK;
 }
 
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 {
 	//if (samp->IV) gf_free(samp->IV);
 	if (samp->subsamples) gf_free(samp->subsamples);
-	samp->subsamples = NULL;
+	gf_free(samp);
 }
 
 GF_EXPORT

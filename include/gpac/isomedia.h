@@ -1132,8 +1132,9 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
 GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 
 /*clones the entire movie file to destination. Tracks can be cloned if clone_tracks is set, in which case hint tracks can be
-kept if keep_hint_tracks is set*/
-GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks);
+kept if keep_hint_tracks is set
+if keep_pssh, all pssh boxes will be kept*/
+GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh);
 
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only
@@ -1149,7 +1150,7 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count);
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start);
 
 /*releases current movie segment - this closes the associated file IO object.
-If reset_tables is set, sample information for all tracks setup as segment are destroyed. This allows keeping the memory
+If reset_tables is set, sample information for all tracks setup as segment are destroyed, along with all PSSH boxes. This allows keeping the memory
 footprint low when playing segments. Note however that seeking in the file is then no longer possible*/
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 /*opens a new segment file. Access to samples in previous segments is no longer possible
@@ -1307,7 +1308,7 @@ u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only);
 GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration);
 
 GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum);
-GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input);
+GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
@@ -1896,7 +1897,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 						   Bool selective_encryption, u32 KI_length, u32 IV_length);
 
 
-GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
+GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, char *buf, u32 len);
 
 

@@ -213,6 +213,12 @@ next_segment:
 				/*rewrite all upcoming SPS/PPS into the samples*/
 				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 				ch->last_state = GF_OK;
+
+				
+				if (ch->is_cenc) {
+					isor_send_cenc_config(ch);
+				}
+
 			}
 
 			read->use_memory = !strncmp(param.url_query.next_url, "gmem://", 7) ? GF_TRUE : GF_FALSE;

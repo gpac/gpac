@@ -83,6 +83,7 @@ typedef struct
 
 	Bool fragments_start_with_rap;
 	Bool memory_mode;
+	Bool pssh_moof;
 
 	GF_Config *dash_ctx;
 	const char *tmpdir;
@@ -114,7 +115,7 @@ struct _dash_segment_input
 	/*assigns the different media to the same adaptation set or group than the input_idx one*/
 	GF_Err (* dasher_input_classify) (GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 input_idx, u32 *current_group_id, u32 *max_sap_type);
 	GF_Err ( *dasher_get_components_info) (GF_DashSegInput *dash_input, GF_DASHSegmenterOptions *opts);
-	GF_Err ( *dasher_create_init_segment) (GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, Bool use_inband_param_set, Bool single_segment, Bool *disable_bs_switching);
+	GF_Err ( *dasher_create_init_segment) (GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenterOptions *dash_opts, Bool *disable_bs_switching);
 	GF_Err ( *dasher_segment_file) (GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenterOptions *opts, Bool first_in_set);
 
 	/*shall be set after call to dasher_input_classify*/
@@ -601,7 +602,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	fragmenters = gf_list_new();
 
 	if (! dash_moov_setup) {
-		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE);
+		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, !dash_cfg->pssh_moof );
 		if (e) goto err_exit;
 
 		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
@@ -612,6 +613,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','3'), 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP41, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP42, 0);
+
 	}
 
 	MaxFragmentDuration = (u32) (dash_cfg->dash_scale * max_duration_sec);	
@@ -1003,7 +1005,7 @@ restart_fragmentation_pass:
 	max_segment_duration = 0;
 
 	while ( (count = gf_list_count(fragmenters)) ) {
-
+		Bool store_pssh = GF_FALSE;
 		if (switch_segment) {
 			if (dash_cfg->subduration && (segment_start_time + MaxSegmentDuration/2 >= dash_cfg->dash_scale * dash_cfg->subduration)) {
 				/*done with file (next segment will exceppe of more than half the requested subduration : store all fragmenters state and abord*/
@@ -1047,6 +1049,8 @@ restart_fragmentation_pass:
 				} else {
 					e = gf_isom_start_segment(output, NULL, dash_cfg->memory_mode);
 				}
+				if (dash_cfg->pssh_moof)
+					store_pssh = GF_TRUE;
 			}
 
 			cur_seg++;
@@ -1076,7 +1080,10 @@ restart_fragmentation_pass:
 					gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->InitialTSOffset + tf->next_sample_dts);
 				}
 			}
-		
+			if (store_pssh) {
+				store_pssh = GF_FALSE;
+				e = gf_isom_clone_pssh(output, input, GF_TRUE);
+			}
 		}
 
 		//process track by track
@@ -1964,7 +1971,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 	return GF_OK;
 }
 
-static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, Bool inband_param_set, Bool single_segment, Bool *disable_bs_switching)
+static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenterOptions *dash_opts, Bool *disable_bs_switching)
 {
 	GF_Err e = GF_OK;
 	u32 i;
@@ -1972,6 +1979,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 	Bool use_avc3 = 0;
 	Bool use_hevc = 0;
 	Bool use_inband_param_set;
+	Bool single_segment = (dash_opts->single_file_mode==1) ? 1 : 0;
 	GF_ISOFile *init_seg = gf_isom_open(szInitName, GF_ISOM_OPEN_WRITE, tmpdir);
 
 	for (i=0; i<nb_dash_inputs; i++) {
@@ -1982,7 +1990,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 			continue;
 
 		//no inband param set for scalable files
-		use_inband_param_set = dash_inputs[i].trackNum ? 0 : inband_param_set;
+		use_inband_param_set = dash_inputs[i].trackNum ? 0 : dash_opts->inband_param_set;
 
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 		if (!in) {
@@ -2118,6 +2126,10 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 				gf_isom_modify_alternate_brand(init_seg, GF_4CC('d','s','m','s'), 1);
 			} else {
 				gf_isom_modify_alternate_brand(init_seg, GF_4CC('d','a','s','h'), 1);
+			}
+
+			if (!dash_opts->pssh_moof) {
+				e = gf_isom_clone_pssh(init_seg, in, GF_TRUE);
 			}
 		}
 		gf_isom_close(in);
@@ -3948,7 +3960,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 							   Bool use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching, 
 							   Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
 							   Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
-							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults)
+							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, 
+							   u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH];
@@ -4175,6 +4188,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.segment_marker_4cc = segment_marker_4cc;
 	dash_opts.inband_param_set = ((bitstream_switching == GF_DASH_BSMODE_INBAND) || (bitstream_switching == GF_DASH_BSMODE_SINGLE) ) ? 1 : 0;
 	dash_opts.memory_mode = fragments_in_memory;
+	dash_opts.pssh_moof = pssh_moof;
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
 	dash_opts.subduration = subduration * 1000 / dash_scale;
@@ -4294,7 +4308,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 			if (!skip_init_segment_creation) {
 				Bool disable_bs_switching = 0;
-				e = dash_inputs[first_rep_in_set].dasher_create_init_segment(dash_inputs, nb_dash_inputs, cur_adaptation_set+1, szInit, tmpdir, dash_opts.inband_param_set, (dash_opts.single_file_mode==1) ? 1 : 0, &disable_bs_switching);
+				e = dash_inputs[first_rep_in_set].dasher_create_init_segment(dash_inputs, nb_dash_inputs, cur_adaptation_set+1, szInit, tmpdir, &dash_opts, &disable_bs_switching);
 				if (e) goto exit;
 				if (disable_bs_switching)
 					use_bs_switching = 0;

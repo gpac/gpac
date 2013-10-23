@@ -933,7 +933,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	BSO = 0;
 	has_crypted_samp = GF_FALSE;
 	/*Sample Encryption Box*/
-	e = gf_isom_cenc_allocate_storage(mp4, track, tci->sai_saved_box_type, 1, 0x2, 0, 0, NULL);
+	e = gf_isom_cenc_allocate_storage(mp4, track, tci->sai_saved_box_type, 0, 0, NULL);
 	if (e) goto exit;
 	
 	if (! gf_isom_has_sync_points(mp4, track)) 
@@ -1393,7 +1393,7 @@ GF_Err gf_cbc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*prog
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	has_crypted_samp = GF_FALSE;
 	/*Sample Encryption Box*/
-	e = gf_isom_cenc_allocate_storage(mp4, track, tci->sai_saved_box_type, 1, 0x2, 0, 0, NULL);
+	e = gf_isom_cenc_allocate_storage(mp4, track, tci->sai_saved_box_type, 0, 0, NULL);
 	if (e) goto exit;
 
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);

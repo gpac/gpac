@@ -102,7 +102,7 @@ typedef struct
 	Bool to_init, is_playing, has_rap;
 	u8 streamType;
 	
-	Bool is_encrypted;
+	Bool is_encrypted, is_cenc;
 
 	/*cache stuff*/
 	u64 cache_seed_ts;
@@ -128,6 +128,7 @@ void isor_declare_objects(ISOMReader *read);
 
 void send_proxy_command(ISOMReader *read, Bool is_disconnect, Bool is_add_media, GF_Err e, GF_Descriptor *desc, LPNETCHANNEL channel);
 
+void isor_send_cenc_config(ISOMChannel *ch);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_BaseInterface *isow_load_cache();

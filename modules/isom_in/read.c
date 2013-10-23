@@ -562,6 +562,40 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 }
 
 
+void isor_send_cenc_config(ISOMChannel *ch)
+{
+	GF_Err e;
+	GF_NetworkCommand com;
+	u32 i;
+	
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	com.base.on_channel = ch->channel;
+	com.command_type = GF_NET_CHAN_DRM_CFG;
+	ch->is_encrypted = GF_TRUE;
+	
+	gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, NULL);
+
+	com.drm_cfg.PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+	com.drm_cfg.PSSHs = gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
+
+	/*fill PSSH in the structure. We will free it in CENC_Setup*/
+	for (i=0; i<com.drm_cfg.PSSH_count; i++) {
+		GF_NetComDRMConfigPSSH *pssh = &com.drm_cfg.PSSHs[i];
+		e = gf_isom_get_pssh_info(ch->owner->mov, i+1, pssh->SystemID, &pssh->KID_count, (const bin128 **) & pssh->KIDs, (const u8 **) &pssh->private_data, &pssh->private_data_size);
+	}
+	//fixme - check MSE and EME
+#if 0
+	if (read->input->query_proxy && read->input->proxy_udta) {
+        read->input->query_proxy(read->input, &com);
+    } else 
+#endif
+		gf_term_on_command(ch->owner->service, &com, GF_OK);
+	//free our PSSH
+	if (com.drm_cfg.PSSHs) gf_free(com.drm_cfg.PSSHs);
+}
+
+
+
 GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
 	u32 ESID;
@@ -698,24 +732,8 @@ exit:
                 gf_term_on_command(read->service, &com, GF_OK);
             }
 		} else if (gf_isom_is_cenc_media(read->mov, track, 1)) {
-			u32 i;
-			gf_isom_get_cenc_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, NULL);
-
-			com.drm_cfg.PSSH_count = gf_isom_get_pssh_count(read->mov);
-			com.drm_cfg.PSSHs = gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
-
-			/*fill PSSH in the structure. We will free it in CENC_Setup*/
-			for (i=0; i<com.drm_cfg.PSSH_count; i++) {
-				GF_NetComDRMConfigPSSH *pssh = &com.drm_cfg.PSSHs[i];
-				e = gf_isom_get_pssh_info(read->mov, i+1, pssh->SystemID, &pssh->KID_count, (const bin128 **) & pssh->KIDs, (const u8 **) &pssh->private_data, &pssh->private_data_size);
-			}
-            if (read->input->query_proxy && read->input->proxy_udta) {
-                read->input->query_proxy(read->input, &com);
-            } else {
-                gf_term_on_command(read->service, &com, GF_OK);
-            }
-			//free our PSSH
-			if (com.drm_cfg.PSSHs) gf_free(com.drm_cfg.PSSHs);
+			ch->is_cenc = GF_TRUE;
+			isor_send_cenc_config(ch);
 		}
 	}
 	return e;

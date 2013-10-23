@@ -2384,7 +2384,8 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 	gf_free(data);
 	return e;
 }
-GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks)
+
+GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh)
 {
 	GF_Err e;
 	u32 i;
@@ -2441,6 +2442,17 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		dest_file->moov->mov = dest_file;
 	}
 
+	if (!keep_pssh) {
+		i=0;
+		while ((box = (GF_Box*)gf_list_get(dest_file->moov->other_boxes, i++))) {
+			if (box->type == GF_ISOM_BOX_TYPE_PSSH) {
+				i--;
+				gf_list_rem(dest_file->moov->other_boxes, i);
+				gf_isom_box_del(box);
+			}
+		}
+	}
+
 	//duplicate other boxes
 	i=0;
 	while ((box = (GF_Box*)gf_list_get(orig_file->TopBoxes, i++))) {
@@ -2457,6 +2469,11 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 #endif
 			case GF_4CC('j','P',' ',' '):
 				break;
+
+			case GF_ISOM_BOX_TYPE_PSSH:
+				if (!keep_pssh)
+					break;
+
 			default:
 				{
 					GF_Box *box2 = NULL;
