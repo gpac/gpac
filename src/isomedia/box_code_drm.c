@@ -1255,6 +1255,7 @@ GF_Err piff_pssh_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox *) s;
 	GF_Err e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
 
 	gf_bs_write_data(bs, (char *) ptr->SystemID, 16);
 	gf_bs_write_u32(bs, ptr->private_data_size);
