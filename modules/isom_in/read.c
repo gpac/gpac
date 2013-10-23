@@ -564,7 +564,6 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 
 void isor_send_cenc_config(ISOMChannel *ch)
 {
-	GF_Err e;
 	GF_NetworkCommand com;
 	u32 i;
 	
@@ -581,7 +580,7 @@ void isor_send_cenc_config(ISOMChannel *ch)
 	/*fill PSSH in the structure. We will free it in CENC_Setup*/
 	for (i=0; i<com.drm_cfg.PSSH_count; i++) {
 		GF_NetComDRMConfigPSSH *pssh = &com.drm_cfg.PSSHs[i];
-		e = gf_isom_get_pssh_info(ch->owner->mov, i+1, pssh->SystemID, &pssh->KID_count, (const bin128 **) & pssh->KIDs, (const u8 **) &pssh->private_data, &pssh->private_data_size);
+		gf_isom_get_pssh_info(ch->owner->mov, i+1, pssh->SystemID, &pssh->KID_count, (const bin128 **) & pssh->KIDs, (const u8 **) &pssh->private_data, &pssh->private_data_size);
 	}
 	//fixme - check MSE and EME
 #if 0
