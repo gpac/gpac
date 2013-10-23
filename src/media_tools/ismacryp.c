@@ -797,7 +797,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u64 BSO, u8 IV_size, Bool 
 	if (isNewSample && (IV_size == 8)) {
 		u64 IV_value;
 		IV_value = gf_bs_read_u64(tmp);
-		if (IV_value == 0xFFFFFFFFFFFFFFFF)
+		if (IV_value == 0xFFFFFFFFFFFFFFFFULL)
 			IV_value = 0x0;
 		else
 			IV_value++;
@@ -809,8 +809,8 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u64 BSO, u8 IV_size, Bool 
 		salt_portion = gf_bs_read_u64(tmp);
 		block_count_portion = gf_bs_read_u64(tmp);
 		/*reset the block counter to zero without affecting the other 64 bits of the IV*/
-		if (prev_block_count > 0xFFFFFFFFFFFFFFFF-block_count_portion)
-			block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFF-block_count_portion) - 1;
+		if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
+			block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
 		else
 			block_count_portion +=  prev_block_count;
 		gf_bs_write_u64(bs, salt_portion);

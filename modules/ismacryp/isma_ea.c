@@ -466,8 +466,8 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			salt_portion = gf_bs_read_u64(tmp);
 			block_count_portion = gf_bs_read_u64(tmp);
 			/*reset the block counter to zero without affecting the other 64 bits of the IV*/
-			if (prev_block_count > 0xFFFFFFFFFFFFFFFF-block_count_portion)
-				block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFF-block_count_portion) - 1;
+			if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
+				block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
 			else
 				block_count_portion +=  prev_block_count;
 			gf_bs_write_u64(bs, salt_portion);
