@@ -46,6 +46,23 @@
 //#define DEBUG 1
 
 
+/**
+ * A function which pushes argument to a libav codec using its private data.
+ * param priv_data
+ * param options a list of space separated and ':' affected options (e.g. "a:b c:d e:f"). @options be non NULL.
+ */
+void build_dict(void *priv_data, const char *options) {
+  char *opt = strdup(options);
+  char *tok = strtok(opt, "=");
+  char *tokval = NULL;
+  while (tok && (tokval=strtok(NULL, " "))) {
+    if (av_opt_set(priv_data, tok, tokval, 0) < 0)
+      fprintf(stderr, "Unknown custom option \"%s\" with value \"%s\" in %s\n", tok, tokval, options);
+    tok = strtok(NULL, "=");
+  }
+  free(opt);
+}
+
 int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing)
 {
 	video_output_file->vbuf_size = 9 * video_data_conf->width * video_data_conf->height + 10000;
@@ -85,18 +102,6 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	video_output_file->codec_ctx->pix_fmt = PIX_FMT_YUV420P;
 	video_output_file->codec_ctx->gop_size = /*video_output_file->gosize;*/video_data_conf->framerate;
 
-	av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
-	av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
-
-	if(video_output_file->gdr == 1) {
-		av_opt_set_int(video_output_file->codec_ctx->priv_data, "intra-refresh", 1, 0);
-		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", 8, 0);
-	}
-
-//	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
-	//the global header gives access to the extradata (SPS/PPS)
-	video_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
 //	video_output_file->codec_ctx->codec_id = video_codec->id;
 //	video_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 //	video_output_file->codec_ctx->bit_rate = video_data_conf->bitrate;
@@ -134,12 +139,31 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	 *
 	 */
 
+	if (video_data_conf->custom) {
+		build_dict(video_output_file->codec_ctx->priv_data, video_data_conf->custom);
+		gf_free(video_data_conf->custom);
+		video_data_conf->custom = NULL;
+	} else {
+		fprintf(stdout, "Video Encoder: applying default options (preset=ultrafast tune=zerolatency)\n");
+		av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
+		av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
+	}
+
+	if(video_output_file->gdr == 1) {
+		av_opt_set_int(video_output_file->codec_ctx->priv_data, "intra-refresh", 1, 0);
+		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", 8, 0);
+	}
+
+//	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+	//the global header gives access to the extradata (SPS/PPS)
+	video_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
 //	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
 //		video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 	video_output_file->vstream_idx = 0;//video_stream->index;
-
-	/* open the video codec */
+	
+	/* open the video codec - options are passed thru video_output_file->codec_ctx->priv_data */
 	if (avcodec_open2(video_output_file->codec_ctx, video_output_file->codec, NULL) < 0) {
 		fprintf(stderr, "Cannot open output video codec\n");
 		return -1;
