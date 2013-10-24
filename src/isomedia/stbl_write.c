@@ -1438,8 +1438,7 @@ void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)
 
 	pad_bits = (u8*)gf_malloc(sizeof(u8) * stbl->SampleSize->sampleCount);
 	if (!pad_bits) return;
-	memset(pad_bits, 0, sizeof(pad_bits));
-//	for (i=0; i<stbl->SampleSize->sampleCount; i++) pad_bits[i] = 0;
+	memset(pad_bits, 0, sizeof(u8) * stbl->SampleSize->sampleCount);
 	for (i=0; i<stbl->PaddingBits->SampleCount; i++) pad_bits[i] = stbl->PaddingBits->padbits[i];
 	pad_bits[stbl->SampleSize->sampleCount-1] = padding;
 	if (stbl->PaddingBits->padbits) gf_free(stbl->PaddingBits->padbits);

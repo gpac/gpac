@@ -236,7 +236,7 @@ void gf_isom_box_array_del(GF_List *other_boxes)
 GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type)
 {
 	GF_Err e;
-	GF_Box *a;
+	GF_Box *a = NULL;
 	while (parent->size) {
 		e = gf_isom_parse_box_ex(&a, bs, parent_type);
 		if (e) {
