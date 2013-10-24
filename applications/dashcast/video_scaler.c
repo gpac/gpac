@@ -202,7 +202,9 @@ int dc_video_scaler_data_destroy(VideoScaledData *video_scaled_data)
 {
 	int i;
 	for (i=0; i<VIDEO_CB_SIZE; i++) {
-		dc_video_scaler_node_destroy(video_scaled_data->circular_buf.list[i].data);
+		if (video_scaled_data->circular_buf.list) {
+			dc_video_scaler_node_destroy(video_scaled_data->circular_buf.list[i].data);
+		}
 	}
 
 	for (i=0 ; i<video_scaled_data->num_producers; i++) {
