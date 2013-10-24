@@ -93,7 +93,7 @@ typedef struct {
  */
 typedef struct {
 	VideoScaledData **video_scaled_data;
-	int size;
+	u32 size;
 } VideoScaledDataList;
 
 /*

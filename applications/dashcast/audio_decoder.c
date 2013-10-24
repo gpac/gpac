@@ -150,8 +150,11 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 
 			dc_producer_end_signal(&audio_input_data->producer, &audio_input_data->circular_buf);
 			dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
+
 			return -2;
-		} else if (ret < 0) {
+		}
+		else if (ret < 0)
+		{
 			fprintf(stderr, "Cannot read audio frame.\n");
 			continue;
 		}

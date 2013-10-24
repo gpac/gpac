@@ -36,10 +36,10 @@ void dc_audio_data_set_default(AudioDataConf *audio_data_conf)
 	audio_data_conf->samplerate = -1;
 }
 
-void dc_audio_data_init(AudioDataConf *audio_data_conf, char *psz_name, char *format)
+void dc_audio_data_init(AudioDataConf *audio_data_conf, char *filename, char *format)
 {
-	if (psz_name != NULL && strlen(psz_name) > 0)
-		strcpy(audio_data_conf->filename, psz_name);
+	if (filename != NULL && strlen(filename) > 0)
+		strcpy(audio_data_conf->filename, filename);
 	else
 		strcpy(audio_data_conf->filename, "");
 
@@ -65,7 +65,6 @@ int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int
 	}
 
 	audio_input_data->aframe = avcodec_alloc_frame();
-
 	if (audio_input_data->aframe == NULL) {
 		fprintf(stderr, "Cannot initialize AudioInputData");
 		return -1;

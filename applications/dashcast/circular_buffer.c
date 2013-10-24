@@ -29,15 +29,15 @@
 //#define DEBUG
 
 
-void dc_circular_buffer_create(CircularBuffer *circular_buf, int size, LockMode mode, int max_con_nb)
+void dc_circular_buffer_create(CircularBuffer *circular_buf, u32 size, LockMode mode, int max_num_consumers)
 {
-	int i;
+	u32 i;
 	circular_buf->size = size;
 	circular_buf->list = gf_malloc(size * sizeof(Node));
 	circular_buf->mode = mode;
-	circular_buf->max_con_nb = max_con_nb;
+	circular_buf->max_num_consumers = max_num_consumers;
 
-	for (i = 0; i < size; i++) {
+	for (i=0; i<size; i++) {
 		circular_buf->list[i].num_producers = 0;
 		circular_buf->list[i].num_consumers = 0;
 		circular_buf->list[i].num_consumers_accessed = 0;
@@ -51,7 +51,7 @@ void dc_circular_buffer_create(CircularBuffer *circular_buf, int size, LockMode 
 
 void dc_circular_buffer_destroy(CircularBuffer *circular_buf)
 {
-	int i;
+	u32 i;
 	for (i = 0; i < circular_buf->size; i++) {
 		gf_sema_del(circular_buf->list[i].consumers_semaphore);
 		gf_sema_del(circular_buf->list[i].producers_semaphore);
@@ -79,7 +79,7 @@ int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf)
 
 	gf_mx_p(node->mutex);
 #ifdef DEBUG
-	fprintf(stdout, "consumer %s enters lock %d\n", consumer->psz_name, consumer->idx);
+	fprintf(stdout, "consumer %s enters lock %d\n", consumer->name, consumer->idx);
 #endif
 	if (node->marked == 2) {
 		gf_mx_v(node->mutex);
@@ -106,7 +106,7 @@ int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf)
 	node->num_consumers++;
 	node->num_consumers_accessed++;
 #ifdef DEBUG
-	fprintf(stdout, "consumer %s exits lock %d \n", consumer->psz_name, consumer->idx);
+	fprintf(stdout, "consumer %s exits lock %d \n", consumer->name, consumer->idx);
 #endif
 	gf_mx_v(node->mutex);
 
@@ -121,7 +121,7 @@ int dc_consumer_unlock(Consumer *consumer, CircularBuffer *circular_buf)
 	gf_mx_p(node->mutex);
 	node->num_consumers--;
 
-	if (node->num_consumers_accessed == circular_buf->max_con_nb) {
+	if (node->num_consumers_accessed == circular_buf->max_num_consumers) {
 		node->marked = 0;
 		node->num_consumers_accessed = 0;
 		last_consumer = 1;
@@ -130,7 +130,7 @@ int dc_consumer_unlock(Consumer *consumer, CircularBuffer *circular_buf)
 	gf_sema_notify(node->producers_semaphore, 1);
 
 #ifdef DEBUG
-	fprintf(stdout, "consumer %s unlock %d \n", consumer->psz_name, consumer->idx);
+	fprintf(stdout, "consumer %s unlock %d \n", consumer->name, consumer->idx);
 #endif
 	gf_mx_v(node->mutex);
 
@@ -149,7 +149,7 @@ int dc_consumer_unlock_previous(Consumer *consumer, CircularBuffer *circular_buf
 	if (node->num_consumers < 0)
 		node->num_consumers = 0;
 
-	if (node->num_consumers_accessed == circular_buf->max_con_nb) {
+	if (node->num_consumers_accessed == circular_buf->max_num_consumers) {
 		if (node->marked != 2)
 			node->marked = 0;
 		node->num_consumers_accessed = 0;
@@ -159,7 +159,7 @@ int dc_consumer_unlock_previous(Consumer *consumer, CircularBuffer *circular_buf
 	gf_sema_notify(node->producers_semaphore, 1);
 
 #ifdef DEBUG
-	fprintf(stdout, "consumer %s unlock %d \n", consumer->psz_name, node_idx);
+	fprintf(stdout, "consumer %s unlock %d \n", consumer->name, node_idx);
 #endif
 	gf_mx_v(node->mutex);
 
@@ -189,7 +189,7 @@ int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
 
 	gf_mx_p(node->mutex);
 #ifdef DEBUG
-	fprintf(stdout, "producer %s enters lock %d \n", producer->psz_name, producer->idx);
+	fprintf(stdout, "producer %s enters lock %d \n", producer->name, producer->idx);
 #endif
 
 	if ( (circular_buf->mode == LIVE_CAMERA || circular_buf->mode == LIVE_MEDIA) && (node->num_consumers || node->marked)) {
@@ -207,7 +207,7 @@ int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
 	node->marked = 1;
 
 #ifdef DEBUG
-	fprintf(stdout, "producer %s exits lock %d \n", producer->psz_name, producer->idx);
+	fprintf(stdout, "producer %s exits lock %d \n", producer->name, producer->idx);
 #endif
 	gf_mx_v(node->mutex);
 
@@ -222,7 +222,7 @@ void dc_producer_unlock(Producer *producer, CircularBuffer *circular_buf)
 	node->num_producers--;
 	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	fprintf(stdout, "producer %s unlock %d \n", producer->psz_name, producer->idx);
+	fprintf(stdout, "producer %s unlock %d \n", producer->name, producer->idx);
 #endif
 	gf_mx_v(node->mutex);
 }
@@ -236,7 +236,7 @@ void dc_producer_unlock_previous(Producer *producer, CircularBuffer *circular_bu
 	node->num_producers = 0;
 	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	fprintf(stdout, "producer %s unlock %d \n", producer->psz_name, node_idx);
+	fprintf(stdout, "producer %s unlock %d \n", producer->name, node_idx);
 #endif
 	gf_mx_v(node->mutex);
 }
@@ -254,7 +254,7 @@ void dc_producer_end_signal(Producer *producer, CircularBuffer *circular_buf)
 	node->marked = 2;
 	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	fprintf(stdout, "producer %s sends end signal %d \n", producer->psz_name, producer->idx);
+	fprintf(stdout, "producer %s sends end signal %d \n", producer->name, producer->idx);
 #endif
 	gf_mx_v(node->mutex);
 }
@@ -268,7 +268,7 @@ void dc_producer_end_signal_previous(Producer *producer, CircularBuffer *circula
 	node->marked = 2;
 	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	fprintf(stdout, "producer %s sends end signal %d \n", producer->psz_name, node);
+	fprintf(stdout, "producer %s sends end signal %d \n", producer->name, node);
 #endif
 	gf_mx_v(node->mutex);
 }

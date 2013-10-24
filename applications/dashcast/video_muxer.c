@@ -136,7 +136,7 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 #endif
 }
 
-int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *psz_name)
+int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename)
 {
 	GF_Err ret;
 	//AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
@@ -167,9 +167,9 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *psz_name
 		}
 	}
 
-	video_output_file->isof = gf_isom_open(psz_name, GF_ISOM_OPEN_WRITE, NULL);
+	video_output_file->isof = gf_isom_open(filename, GF_ISOM_OPEN_WRITE, NULL);
 	if (!video_output_file->isof) {
-		fprintf(stderr, "Cannot open iso file %s\n", psz_name);
+		fprintf(stderr, "Cannot open iso file %s\n", filename);
 		return -1;
 	}
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
@@ -228,10 +228,10 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *psz_name
 	return 0;
 }
 
-int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *psz_name)
+int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *filename)
 {
 	GF_Err ret;
-	ret = gf_isom_start_segment(video_output_file->isof, psz_name, 1);
+	ret = gf_isom_start_segment(video_output_file->isof, filename, 1);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_start_segment\n", gf_error_to_string(ret));
 		return -1;
@@ -247,7 +247,7 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *psz_na
 //
 //	video_output_file->first_dts += video_output_file->frame_per_segment;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Opening new segment %s at UTC "LLU" ms\n", psz_name, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Opening new segment %s at UTC "LLU" ms\n", filename, gf_net_get_utc() ));
 	return 0;
 }
 
@@ -340,9 +340,9 @@ int dc_gpac_video_isom_close(VideoOutputFile *video_output_file)
 	return 0;
 }
 
-int dc_raw_h264_open(VideoOutputFile *video_output_file, char *psz_name)
+int dc_raw_h264_open(VideoOutputFile *video_output_file, char *filename)
 {
-	video_output_file->file = fopen(psz_name, "w");
+	video_output_file->file = fopen(filename, "w");
 	return 0;
 }
 
@@ -358,7 +358,7 @@ int dc_raw_h264_close(VideoOutputFile *video_output_file)
 	return 0;
 }
 
-int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *psz_name)
+int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filename)
 {
 	AVStream *video_stream;
 	AVOutputFormat *output_fmt;
@@ -370,11 +370,11 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *psz_nam
 //	video_output_file->vfr = video_data_conf->framerate;
 //	video_output_file->width = video_data_conf->width;
 //	video_output_file->height = video_data_conf->height;
-//	strcpy(video_output_file->psz_name, video_data_conf->psz_name);
+//	strcpy(video_output_file->filename, video_data_conf->filename);
 //	strcpy(video_output_file->codec, video_data_conf->codec);
 
 	/* Find output format */
-	output_fmt = av_guess_format(NULL, psz_name, NULL);
+	output_fmt = av_guess_format(NULL, filename, NULL);
 	if (!output_fmt) {
 		fprintf(stderr, "Cannot find suitable output format\n");
 		return -1;
@@ -387,12 +387,12 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *psz_nam
 	}
 
 	video_output_file->fmt->oformat = output_fmt;
-	strcpy(video_output_file->fmt->filename, psz_name);
+	strcpy(video_output_file->fmt->filename, filename);
 
 	/* Open the output file */
 	if (!(output_fmt->flags & AVFMT_NOFILE)) {
-		if (avio_open(&video_output_file->fmt->pb, psz_name, URL_WRONLY) < 0) {
-			fprintf(stderr, "Cannot not open '%s'\n", psz_name);
+		if (avio_open(&video_output_file->fmt->pb, filename, URL_WRONLY) < 0) {
+			fprintf(stderr, "Cannot not open '%s'\n", filename);
 			return -1;
 		}
 	}
@@ -488,10 +488,9 @@ int dc_ffmpeg_video_muxer_close(VideoOutputFile *video_output_file)
 
 int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur)
 {
-	char name[256];
-
+	char name[GF_MAX_PATH];
 	memset(video_output_file, 0, sizeof(VideoOutputFile));
-	sprintf(name, "video encoder %s", video_data_conf->filename);
+	snprintf(name, sizeof(name), "video encoder %s", video_data_conf->filename);
 	dc_consumer_init(&video_output_file->consumer, VIDEO_CB_SIZE, name);
 
 	video_output_file->sample = gf_isom_sample_new();
@@ -524,35 +523,35 @@ int dc_video_muxer_free(VideoOutputFile *video_output_file)
 
 GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, char *id_name, int seg)
 {
-	char psz_name[256];
+	char name[GF_MAX_PATH];
 
 	switch (video_output_file->muxer_type) {
 	case FFMPEG_VIDEO_MUXER:
-		sprintf(psz_name, "%s/%s_%d_ffmpeg.mp4", directory, id_name, seg);
-		return dc_ffmpeg_video_muxer_open(video_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_ffmpeg.mp4", directory, id_name, seg);
+		return dc_ffmpeg_video_muxer_open(video_output_file, name);
 	case RAW_VIDEO_H264:
-		sprintf(psz_name, "%s/%s_%d.264", directory, id_name, seg);
-		return dc_raw_h264_open(video_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d.264", directory, id_name, seg);
+		return dc_raw_h264_open(video_output_file, name);
 	case GPAC_VIDEO_MUXER:
-		sprintf(psz_name, "%s/%s_%d_gpac.mp4", directory, id_name, seg);
-		dc_gpac_video_moov_create(video_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_gpac.mp4", directory, id_name, seg);
+		dc_gpac_video_moov_create(video_output_file, name);
 		return dc_gpac_video_isom_open_seg(video_output_file, NULL);
 	case GPAC_INIT_VIDEO_MUXER_AVC1:
 		if (seg == 0) {
-			sprintf(psz_name, "%s/%s_init_gpac.mp4", directory, id_name);
-			dc_gpac_video_moov_create(video_output_file, psz_name);
+			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
+			dc_gpac_video_moov_create(video_output_file, name);
 			video_output_file->first_dts = 0;
 		}
-		sprintf(psz_name, "%s/%s_%d_gpac.m4s", directory, id_name, seg);
-		return dc_gpac_video_isom_open_seg(video_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
+		return dc_gpac_video_isom_open_seg(video_output_file, name);
 	case GPAC_INIT_VIDEO_MUXER_AVC3:
 		if (seg == 0) {
-			sprintf(psz_name, "%s/%s_init_gpac.mp4", directory, id_name);
-			dc_gpac_video_moov_create(video_output_file, psz_name);
+			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
+			dc_gpac_video_moov_create(video_output_file, name);
 			video_output_file->first_dts = 0;
 		}
-		sprintf(psz_name, "%s/%s_%d_gpac.m4s", directory, id_name, seg);
-		return dc_gpac_video_isom_open_seg(video_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
+		return dc_gpac_video_isom_open_seg(video_output_file, name);
 	default:
 		return GF_BAD_PARAM;
 	};

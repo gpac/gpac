@@ -56,8 +56,8 @@ void dc_video_scaler_node_destroy(VideoScaledDataNode *video_scaled_data_node)
 
 void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_List * video_lst)
 {
-	u32 i;
-	int j, found;
+	u32 i, j;
+	int found;
 
 	video_scaled_data_list->size = 0;
 	video_scaled_data_list->video_scaled_data = NULL;
@@ -94,8 +94,8 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 
 void dc_video_scaler_list_destroy(VideoScaledDataList *video_scaled_data_list)
 {
-	int i;
-	for (i = 0; i < video_scaled_data_list->size; i++)
+	u32 i;
+	for (i=0; i<video_scaled_data_list->size; i++)
 		gf_free(video_scaled_data_list->video_scaled_data[i]);
 
 	gf_free(video_scaled_data_list->video_scaled_data);
@@ -110,8 +110,8 @@ void dc_video_scaler_end_signal(VideoScaledData *video_scaled_data)
 int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int max_source)
 {
 	int i;
-	char name[256];
-	sprintf(name, "video scaler %dx%d", video_scaled_data->out_width, video_scaled_data->out_height);
+	char name[GF_MAX_PATH];
+	snprintf(name, sizeof(name), "video scaler %dx%d", video_scaled_data->out_width, video_scaled_data->out_height);
 
 	dc_producer_init(&video_scaled_data->producer, VIDEO_CB_SIZE, name);
 	dc_consumer_init(&video_scaled_data->consumer, VIDEO_CB_SIZE, name);
@@ -221,7 +221,7 @@ int dc_video_scaler_data_destroy(VideoScaledData *video_scaled_data)
 
 VideoScaledData * dc_video_scaler_get_data(VideoScaledDataList *video_scaled_data_list, int width, int height)
 {
-	int i;
+	u32 i;
 	for (i=0; i<video_scaled_data_list->size; i++) {
 		if (video_scaled_data_list->video_scaled_data[i]->out_width == width && video_scaled_data_list->video_scaled_data[i]->out_height == height)
 			return video_scaled_data_list->video_scaled_data[i];

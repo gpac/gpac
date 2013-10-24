@@ -33,7 +33,7 @@
 
 typedef struct MessageQueueNode {
 	void *data;
-	int size;
+	u32 size;
 	struct MessageQueueNode *next;
 } MessageQueueNode;
 
@@ -47,7 +47,7 @@ typedef struct MessageQueue {
 
 void dc_message_queue_init(MessageQueue *mq);
 
-void dc_message_queue_put(MessageQueue *mq, void *data, int size);
+void dc_message_queue_put(MessageQueue *mq, void *data, u32 size);
 
 int dc_message_queue_get(MessageQueue *mq, void *data);
 

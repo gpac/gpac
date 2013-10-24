@@ -412,7 +412,7 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	char cmd[1024];
 	if (!fileName || !newFileName)
 		return GF_IO_ERR;
-	snprintf(cmd, sizeof(cmd)-1, "mv '%s' '%s' > /dev/null 2>&1", fileName, newFileName);
+	snprintf(cmd, sizeof(cmd), "mv '%s' '%s' > /dev/null 2>&1", fileName, newFileName);
 	return ( system(cmd) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 }
@@ -1968,7 +1968,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	{
 		int sz = 100;
 		char * buf = gf_malloc( sz );
-		sz = snprintf(buf, sz-1, "%ld\n", (long) getpid());
+		sz = snprintf(buf, sz, "%ld\n", (long) getpid());
 		if (write(fd, buf, sz) != sz){
 			gf_free(buf);
 			goto exit;

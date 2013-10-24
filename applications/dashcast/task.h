@@ -42,7 +42,7 @@ typedef struct {
 
 typedef struct {
 	GF_List *tasks;
-	int size;
+	u32 size;
 } TaskList;
 
 /**
