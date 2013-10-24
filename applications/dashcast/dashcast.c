@@ -27,8 +27,8 @@
 #include "controler.h"
 
 
-int main(int argc, char ** argv) {
-
+int main(int argc, char **argv)
+{
 	s32 res;
 	CmdData cmd_data;
 

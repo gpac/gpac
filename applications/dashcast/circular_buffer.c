@@ -25,255 +25,250 @@
 
 #include "circular_buffer.h"
 
+
 //#define DEBUG
 
-void dc_circular_buffer_create(CircularBuffer * p_cb, int i_size, LockMode mode,
-		int i_max_con_nb) {
 
+void dc_circular_buffer_create(CircularBuffer *circular_buf, int size, LockMode mode, int max_con_nb)
+{
 	int i;
-	p_cb->i_size = i_size;
-	p_cb->p_list = gf_malloc(i_size * sizeof(Node));
-	p_cb->mode = mode;
-	p_cb->i_max_con_nb = i_max_con_nb;
+	circular_buf->size = size;
+	circular_buf->list = gf_malloc(size * sizeof(Node));
+	circular_buf->mode = mode;
+	circular_buf->max_con_nb = max_con_nb;
 
-	for (i = 0; i < i_size; i++) {
-		p_cb->p_list[i].i_pro_nb = 0;
-		p_cb->p_list[i].i_con_nb = 0;
-		p_cb->p_list[i].i_con_access = 0;
-		p_cb->p_list[i].i_marked = 0;
-		p_cb->p_list[i].i_con_waiting = 0;
-		p_cb->p_list[i].con_sem = gf_sema_new(1000, 0);
-		p_cb->p_list[i].pro_sem = gf_sema_new(1000, 0);
-		p_cb->p_list[i].mux = gf_mx_new("Circular Buffer Mutex");
+	for (i = 0; i < size; i++) {
+		circular_buf->list[i].num_producers = 0;
+		circular_buf->list[i].num_consumers = 0;
+		circular_buf->list[i].num_consumers_accessed = 0;
+		circular_buf->list[i].marked = 0;
+		circular_buf->list[i].num_consumers_waiting = 0;
+		circular_buf->list[i].consumers_semaphore = gf_sema_new(1000, 0);
+		circular_buf->list[i].producers_semaphore = gf_sema_new(1000, 0);
+		circular_buf->list[i].mutex = gf_mx_new("Circular Buffer Mutex");
 	}
 }
 
-void dc_circular_buffer_destroy(CircularBuffer * p_cb) {
+void dc_circular_buffer_destroy(CircularBuffer *circular_buf)
+{
 	int i;
-	for (i = 0; i < p_cb->i_size; i++) {
-		gf_sema_del(p_cb->p_list[i].con_sem);
-		gf_sema_del(p_cb->p_list[i].pro_sem);
-		gf_mx_del(p_cb->p_list[i].mux);
+	for (i = 0; i < circular_buf->size; i++) {
+		gf_sema_del(circular_buf->list[i].consumers_semaphore);
+		gf_sema_del(circular_buf->list[i].producers_semaphore);
+		gf_mx_del(circular_buf->list[i].mutex);
 	}
 
-	gf_free(p_cb->p_list);
+	gf_free(circular_buf->list);
 }
 
-void dc_consumer_init(Consumer * p_con, int i_max_idx, char * name) {
-	p_con->i_idx = 0;
-	p_con->i_max_idx = i_max_idx;
-	strcpy(p_con->psz_name, name);
+void dc_consumer_init(Consumer *consumer, int max_idx, char *name)
+{
+	consumer->idx = 0;
+	consumer->max_idx = max_idx;
+	strcpy(consumer->name, name);
 }
 
-void * dc_consumer_consume(Consumer * p_con, CircularBuffer * p_cb) {
-	return p_cb->p_list[p_con->i_idx].p_data;
+void * dc_consumer_consume(Consumer *consumer, CircularBuffer *circular_buf)
+{
+	return circular_buf->list[consumer->idx].data;
 }
 
-int dc_consumer_lock(Consumer * p_con, CircularBuffer * p_cb) {
+int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf)
+{
+	Node *node = &circular_buf->list[consumer->idx];
 
-	Node * p_node = &p_cb->p_list[p_con->i_idx];
-
-	gf_mx_p(p_node->mux);
+	gf_mx_p(node->mutex);
 #ifdef DEBUG
-	printf("consumer %s enters lock %d\n", p_con->psz_name, p_con->i_idx);
+	fprintf(stdout, "consumer %s enters lock %d\n", consumer->psz_name, consumer->idx);
 #endif
-	if (p_node->i_marked == 2) {
-		gf_mx_v(p_node->mux);
+	if (node->marked == 2) {
+		gf_mx_v(node->mutex);
 		return -1;
 	}
 
-	p_node->i_con_waiting++;
-	while (p_node->i_pro_nb || !p_node->i_marked) {
-		gf_mx_v(p_node->mux);
-		gf_sema_wait(p_node->con_sem);
-		gf_mx_p(p_node->mux);
+	node->num_consumers_waiting++;
+	while (node->num_producers || !node->marked) {
+		gf_mx_v(node->mutex);
+		gf_sema_wait(node->consumers_semaphore);
+		gf_mx_p(node->mutex);
 
-		if (p_node->i_marked == 2) {
-			gf_mx_v(p_node->mux);
+		if (node->marked == 2) {
+			gf_mx_v(node->mutex);
 			return -1;
 		}
 	}
-	p_node->i_con_waiting--;
+	node->num_consumers_waiting--;
 
-	if (p_node->i_marked == 2) {
-		gf_mx_v(p_node->mux);
+	if (node->marked == 2) {
+		gf_mx_v(node->mutex);
 		return -1;
 	}
-	p_node->i_con_nb++;
-	p_node->i_con_access++;
+	node->num_consumers++;
+	node->num_consumers_accessed++;
 #ifdef DEBUG
-	printf("consumer %s exits lock %d \n", p_con->psz_name, p_con->i_idx);
+	fprintf(stdout, "consumer %s exits lock %d \n", consumer->psz_name, consumer->idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 
 	return 0;
 }
 
-int dc_consumer_unlock(Consumer * p_con, CircularBuffer * p_cb) {
+int dc_consumer_unlock(Consumer *consumer, CircularBuffer *circular_buf)
+{
+	int last_consumer = 0;
+	Node *node = &circular_buf->list[consumer->idx];
 
-	int i_last_con = 0;
-	Node * p_node = &p_cb->p_list[p_con->i_idx];
+	gf_mx_p(node->mutex);
+	node->num_consumers--;
 
-	gf_mx_p(p_node->mux);
-	p_node->i_con_nb--;
-
-	if (p_node->i_con_access == p_cb->i_max_con_nb) {
-		p_node->i_marked = 0;
-		p_node->i_con_access = 0;
-		i_last_con = 1;
+	if (node->num_consumers_accessed == circular_buf->max_con_nb) {
+		node->marked = 0;
+		node->num_consumers_accessed = 0;
+		last_consumer = 1;
 	}
 
-	gf_sema_notify(p_node->pro_sem, 1);
+	gf_sema_notify(node->producers_semaphore, 1);
 
 #ifdef DEBUG
-	printf("consumer %s unlock %d \n", p_con->psz_name, p_con->i_idx);
+	fprintf(stdout, "consumer %s unlock %d \n", consumer->psz_name, consumer->idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 
-	return i_last_con;
+	return last_consumer;
 }
 
-int dc_consumer_unlock_previous(Consumer * p_con, CircularBuffer * p_cb) {
+int dc_consumer_unlock_previous(Consumer *consumer, CircularBuffer *circular_buf)
+{
+	int node_idx = (consumer->idx - 1 + consumer->max_idx) % consumer->max_idx;
+	int last_consumer = 0;
+	Node *node = &circular_buf->list[node_idx];
 
-	int node_idx = (p_con->i_idx - 1 + p_con->i_max_idx) % p_con->i_max_idx;
-	int i_last_con = 0;
-	Node * p_node = &p_cb->p_list[node_idx];
+	gf_mx_p(node->mutex);
 
-	gf_mx_p(p_node->mux);
+	node->num_consumers--;
+	if (node->num_consumers < 0)
+		node->num_consumers = 0;
 
-	p_node->i_con_nb--;
-	if (p_node->i_con_nb < 0)
-		p_node->i_con_nb = 0;
-
-	if (p_node->i_con_access == p_cb->i_max_con_nb) {
-		if (p_node->i_marked != 2)
-			p_node->i_marked = 0;
-		p_node->i_con_access = 0;
-		i_last_con = 1;
+	if (node->num_consumers_accessed == circular_buf->max_con_nb) {
+		if (node->marked != 2)
+			node->marked = 0;
+		node->num_consumers_accessed = 0;
+		last_consumer = 1;
 	}
 
-	gf_sema_notify(p_node->pro_sem, 1);
+	gf_sema_notify(node->producers_semaphore, 1);
 
 #ifdef DEBUG
-	printf("consumer %s unlock %d \n", p_con->psz_name, node_idx);
+	fprintf(stdout, "consumer %s unlock %d \n", consumer->psz_name, node_idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 
-	return i_last_con;
+	return last_consumer;
 }
 
-void dc_consumer_advance(Consumer * p_con) {
-	p_con->i_idx = (p_con->i_idx + 1) % p_con->i_max_idx;
+void dc_consumer_advance(Consumer *consumer)
+{
+	consumer->idx = (consumer->idx + 1) % consumer->max_idx;
 }
 
-void dc_producer_init(Producer * p_pro, int i_max_idx, char * name) {
-	p_pro->i_idx = 0;
-	p_pro->i_max_idx = i_max_idx;
-	strcpy(p_pro->psz_name, name);
+void dc_producer_init(Producer *producer, int max_idx, char *name)
+{
+	producer->idx = 0;
+	producer->max_idx = max_idx;
+	strcpy(producer->name, name);
 }
 
-void * dc_producer_produce(Producer * p_pro, CircularBuffer * p_cb) {
-	return p_cb->p_list[p_pro->i_idx].p_data;
-
+void * dc_producer_produce(Producer *producer, CircularBuffer *circular_buf)
+{
+	return circular_buf->list[producer->idx].data;
 }
 
-int dc_producer_lock(Producer * p_pro, CircularBuffer * p_cb) {
+int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
+{
+	Node *node = &circular_buf->list[producer->idx];
 
-	Node * p_node = &p_cb->p_list[p_pro->i_idx];
-
-	gf_mx_p(p_node->mux);
+	gf_mx_p(node->mutex);
 #ifdef DEBUG
-	printf("producer %s enters lock %d \n", p_pro->psz_name, p_pro->i_idx);
+	fprintf(stdout, "producer %s enters lock %d \n", producer->psz_name, producer->idx);
 #endif
 
-	if ( (p_cb->mode == LIVE_CAMERA || p_cb->mode == LIVE_MEDIA)  && (p_node->i_con_nb || p_node->i_marked)) {
-		gf_mx_v(p_node->mux);
+	if ( (circular_buf->mode == LIVE_CAMERA || circular_buf->mode == LIVE_MEDIA) && (node->num_consumers || node->marked)) {
+		gf_mx_v(node->mutex);
 		return -1;
 	}
 
-	while (p_node->i_con_nb || p_node->i_marked) {
-		gf_mx_v(p_node->mux);
-		gf_sema_wait(p_node->pro_sem);
-		gf_mx_p(p_node->mux);
+	while (node->num_consumers || node->marked) {
+		gf_mx_v(node->mutex);
+		gf_sema_wait(node->producers_semaphore);
+		gf_mx_p(node->mutex);
 	}
 
-	p_node->i_pro_nb++;
-	p_node->i_marked = 1;
+	node->num_producers++;
+	node->marked = 1;
 
 #ifdef DEBUG
-	printf("producer %s exits lock %d \n", p_pro->psz_name, p_pro->i_idx);
+	fprintf(stdout, "producer %s exits lock %d \n", producer->psz_name, producer->idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 
 	return 0;
 }
 
-void dc_producer_unlock(Producer * p_pro, CircularBuffer * p_cb) {
+void dc_producer_unlock(Producer *producer, CircularBuffer *circular_buf)
+{
+	Node *node = &circular_buf->list[producer->idx];
 
-	Node * p_node = &p_cb->p_list[p_pro->i_idx];
-
-	gf_mx_p(p_node->mux);
-
-	p_node->i_pro_nb--;
-
-	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-
+	gf_mx_p(node->mutex);
+	node->num_producers--;
+	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	printf("producer %s unlock %d \n", p_pro->psz_name, p_pro->i_idx);
+	fprintf(stdout, "producer %s unlock %d \n", producer->psz_name, producer->idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 }
 
-void dc_producer_unlock_previous(Producer * p_pro, CircularBuffer * p_cb) {
+void dc_producer_unlock_previous(Producer *producer, CircularBuffer *circular_buf)
+{
+	int node_idx = (producer->idx - 1 + producer->max_idx) % producer->max_idx;
+	Node *node = &circular_buf->list[node_idx];
 
-	int node_idx = (p_pro->i_idx - 1 + p_pro->i_max_idx) % p_pro->i_max_idx;
-	Node * p_node = &p_cb->p_list[node_idx];
-
-	gf_mx_p(p_node->mux);
-
-	p_node->i_pro_nb = 0;
-
-	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-
+	gf_mx_p(node->mutex);
+	node->num_producers = 0;
+	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	printf("producer %s unlock %d \n", p_pro->psz_name, node_idx);
+	fprintf(stdout, "producer %s unlock %d \n", producer->psz_name, node_idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 }
 
-void dc_producer_advance(Producer * p_pro) {
-	p_pro->i_idx = (p_pro->i_idx + 1) % p_pro->i_max_idx;
+void dc_producer_advance(Producer *producer)
+{
+	producer->idx = (producer->idx + 1) % producer->max_idx;
 }
 
-void dc_producer_end_signal(Producer * p_pro, CircularBuffer * p_cb) {
+void dc_producer_end_signal(Producer *producer, CircularBuffer *circular_buf)
+{
+	Node *node = &circular_buf->list[producer->idx];
 
-	Node * p_node = &p_cb->p_list[p_pro->i_idx];
-	gf_mx_p(p_node->mux);
-
-	p_node->i_marked = 2;
-
-	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-
+	gf_mx_p(node->mutex);
+	node->marked = 2;
+	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	printf("producer %s sends end signal %d \n", p_pro->psz_name, p_pro->i_idx);
+	fprintf(stdout, "producer %s sends end signal %d \n", producer->psz_name, producer->idx);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 }
 
-void dc_producer_end_signal_previous(Producer * p_pro, CircularBuffer * p_cb) {
+void dc_producer_end_signal_previous(Producer *producer, CircularBuffer *circular_buf)
+{
+	int i_node = (producer->max_idx + producer->idx - 1) % producer->max_idx;
+	Node *node = &circular_buf->list[i_node];
 
-	int i_node = (p_pro->i_max_idx + p_pro->i_idx - 1) % p_pro->i_max_idx;
-
-	Node * p_node = &p_cb->p_list[i_node];
-	gf_mx_p(p_node->mux);
-
-	p_node->i_marked = 2;
-
-	gf_sema_notify(p_node->con_sem, p_node->i_con_waiting);
-
+	gf_mx_p(node->mutex);
+	node->marked = 2;
+	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
 #ifdef DEBUG
-	printf("producer %s sends end signal %d \n", p_pro->psz_name, i_node);
+	fprintf(stdout, "producer %s sends end signal %d \n", producer->psz_name, node);
 #endif
-	gf_mx_v(p_node->mux);
+	gf_mx_v(node->mutex);
 }
-

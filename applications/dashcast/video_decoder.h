@@ -37,26 +37,23 @@
  * input video file.
  */
 typedef struct {
-
 	/*
-	 * Format context structure provided by avlib
-	 * to open and read from a media file
+	 * Format context structure provided by avlib to open and read from a media file
 	 */
-	AVFormatContext * p_fmt_ctx;
+	AVFormatContext *fmt_ctx;
 	/*
-	 * The index of the video stream
-	 * in the file
+	 * The index of the video stream in the file
 	 */
-	int i_vstream_idx;
+	int vstream_idx;
 	/*
 	 * video width, height, and pixel format
 	 */
-	int i_width;
-	int i_height;
-	int i_pix_fmt;
+	int width;
+	int height;
+	int pix_fmt;
 
-	int i_mode;
-	int i_no_loop;
+	int mode;
+	int no_loop;
 
 	Bool pts_init;
 	u64 first_pts, prev_pts, computed_pts, sync_tolerance;
@@ -66,30 +63,31 @@ typedef struct {
 /*
  * Open the input video
  *
- * @param cmdd [in] contains information about the file name
+ * @param cmd_data [in] contains information about the file name
  * and the video format.
  *
- * @param vinf [out] pointer to the structure which we want to
+ * @param video_input_file [out] pointer to the structure which we want to
  * open the file
  *
  * @return 0 on success -1 on failure.
  */
-int dc_video_decoder_open(VideoInputFile * vinf, VideoData *vdata, int mode, int no_loop);
+int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video_data_conf, int mode, int no_loop);
+
 /*
  * Read and decode video and put decoded frames on circular buffer
  *
- * @param vinf [in] contains info on input video.
- * @param vind [out] the decoded samples will be put
+ * @param video_input_file [in] contains info on input video.
+ * @param video_input_data [out] the decoded samples will be put
  * on the circular buffer of this parameter.
  *
  * @return 0 on success, -1 on failure, -2 on EOF (end of the file)
- *
  */
-int dc_video_decoder_read(VideoInputFile * vinf, VideoInputData * vind, int source_number, int use_source_timing, int is_live_capture);
+int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *video_input_data, int source_number, int use_source_timing, int is_live_capture);
+
 /*
  * Close the input video
  *
- * @param vinf [in] the video file to be closed
+ * @param video_input_file [in] the video file to be closed
  *
  */
 void dc_video_decoder_close(VideoInputFile *);

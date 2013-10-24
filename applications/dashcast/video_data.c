@@ -25,69 +25,62 @@
 
 #include "video_data.h"
 
-void dc_video_data_set_default(VideoData * vdata) {
 
-	memset(vdata, 0, sizeof(VideoData));
-	vdata->i_bitrate = -1;
-	vdata->i_framerate = -1;
-	vdata->i_height = -1;
-	vdata->i_width = -1;
+void dc_video_data_set_default(VideoDataConf *video_data_conf)
+{
+	memset(video_data_conf, 0, sizeof(VideoDataConf));
+	video_data_conf->bitrate = -1;
+	video_data_conf->framerate = -1;
+	video_data_conf->height = -1;
+	video_data_conf->width = -1;
 }
 
-
-void dc_video_input_data_end_signal(VideoInputData * p_vconv) {
-
-	dc_producer_end_signal(&p_vconv->pro, &p_vconv->p_cb);
-	dc_producer_end_signal_previous(&p_vconv->pro, &p_vconv->p_cb);
-
+void dc_video_input_data_end_signal(VideoInputData *video_input_data)
+{
+	dc_producer_end_signal(&video_input_data->producer, &video_input_data->circular_buf);
+	dc_producer_end_signal_previous(&video_input_data->producer, &video_input_data->circular_buf);
 }
 
-int dc_video_input_data_init(VideoInputData * p_vin_data, /*int i_width, int i_height, int i_pix_fmt*/
-		int i_con_nb, int mode, int max_source) {
-
+int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int height, int pix_fmt*/ int num_consumers, int mode, int max_source)
+{
 	int i;
 
-	dc_producer_init(&p_vin_data->pro, VIDEO_CB_SIZE, "video decoder");
+	dc_producer_init(&video_input_data->producer, VIDEO_CB_SIZE, "video decoder");
 
-	//p_vin_data->i_width = i_width;
-	//p_vin_data->i_height = i_height;
-	//p_vin_data->i_pix_fmt = i_pix_fmt;
+	//video_input_data->width = width;
+	//video_input_data->height = height;
+	//video_input_data->pix_fmt = pix_fmt;
 
-	p_vin_data->p_vprop = gf_malloc(max_source * sizeof(VideoInputProp));
+	video_input_data->vprop = gf_malloc(max_source * sizeof(VideoInputProp));
 
-	dc_circular_buffer_create(&p_vin_data->p_cb, VIDEO_CB_SIZE, mode,
-				i_con_nb);
+	dc_circular_buffer_create(&video_input_data->circular_buf, VIDEO_CB_SIZE, mode, num_consumers);
 
-	for (i = 0; i < VIDEO_CB_SIZE; i++) {
-		VideoDataNode *p_vdn;
-		GF_SAFEALLOC(p_vdn, VideoDataNode);
-		p_vin_data->p_cb.p_list[i].p_data = (void *) p_vdn;
-		p_vdn->p_vframe = avcodec_alloc_frame();
+	for (i=0; i<VIDEO_CB_SIZE; i++) {
+		VideoDataNode *video_data_node;
+		GF_SAFEALLOC(video_data_node, VideoDataNode);
+		video_input_data->circular_buf.list[i].data = (void *) video_data_node;
+		video_data_node->vframe = avcodec_alloc_frame();
 	}
 
 	return 0;
 }
 
-void dc_video_input_data_set_prop(VideoInputData * p_vind, int index, int width, int height, int pix_fmt) {
-
-	p_vind->p_vprop[index].i_width = width;
-	p_vind->p_vprop[index].i_height = height;
-	p_vind->p_vprop[index].i_pix_fmt = pix_fmt;
+void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int pix_fmt)
+{
+	video_input_data->vprop[index].width = width;
+	video_input_data->vprop[index].height = height;
+	video_input_data->vprop[index].pix_fmt = pix_fmt;
 }
 
-
-void dc_video_input_data_destroy(VideoInputData * p_vd) {
-
+void dc_video_input_data_destroy(VideoInputData *video_input_data)
+{
 	int i;
-
-	for (i = 0; i < VIDEO_CB_SIZE; i++) {
-		VideoDataNode * p_vdn = p_vd->p_cb.p_list[i].p_data;
-		av_free(p_vdn->p_vframe);
-		gf_free(p_vdn);
+	for (i=0; i<VIDEO_CB_SIZE; i++) {
+		VideoDataNode *video_data_node = video_input_data->circular_buf.list[i].data;
+		av_free(video_data_node->vframe);
+		gf_free(video_data_node);
 	}
 
-	dc_circular_buffer_destroy(&p_vd->p_cb);
-	gf_free(p_vd->p_vprop);
-
-
+	dc_circular_buffer_destroy(&video_input_data->circular_buf);
+	gf_free(video_input_data->vprop);
 }

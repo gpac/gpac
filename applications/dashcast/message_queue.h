@@ -32,26 +32,27 @@
 
 
 typedef struct MessageQueueNode {
-
-	void * data;
+	void *data;
 	int size;
-	struct MessageQueueNode * next;
-
+	struct MessageQueueNode *next;
 } MessageQueueNode;
 
 typedef struct MessageQueue {
-
-	MessageQueueNode * last_node;
-	MessageQueueNode * first_node;
+	MessageQueueNode *last_node;
+	MessageQueueNode *first_node;
 	int nb_nodes;
-	GF_Semaphore * sem;
-	GF_Mutex * mux;
+	GF_Semaphore *sem;
+	GF_Mutex *mutex;
 } MessageQueue;
 
 void dc_message_queue_init(MessageQueue *mq);
-void dc_message_queue_put(MessageQueue *mq, void * data, int size);
-int dc_message_queue_get(MessageQueue *mq, void * data);
+
+void dc_message_queue_put(MessageQueue *mq, void *data, int size);
+
+int dc_message_queue_get(MessageQueue *mq, void *data);
+
 void dc_message_queue_flush(MessageQueue *mq);
+
 void dc_message_queue_free(MessageQueue *mq);
 
 #endif /* MESSAGE_QUEUE_H_ */

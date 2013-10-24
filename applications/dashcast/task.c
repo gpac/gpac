@@ -26,43 +26,35 @@
 #include "task.h"
 
 
-void dc_task_init(TaskList * list) {
-
+void dc_task_init(TaskList *list)
+{
 	list->tasks = gf_list_new();
 	list->size = 0;
 }
 
-void dc_task_destroy(TaskList * list) {
-
+void dc_task_destroy(TaskList *list)
+{
 	gf_list_del(list->tasks);
 }
 
-void dc_task_add(TaskList * list, int source_number, char * id, time_t start, time_t end) {
-
-	Task * task = gf_malloc(sizeof(Task));
-
+void dc_task_add(TaskList *list, int source_number, char *id_name, time_t start, time_t end)
+{
+	Task *task = gf_malloc(sizeof(Task));
 	task->source_number = source_number;
-	strncpy(task->id, id, MAX_ID_SIZE);
-	//memcpy(&task->start_time, start, sizeof(struct tm));
-	//memcpy(&task->end_time, end, sizeof(struct tm));
+	strncpy(task->id, id_name, MAX_ID_SIZE);
 	task->start_time_t = start;
 	task->end_time_t = end;
 	gf_list_add(list->tasks, task);
-	list->size ++;
+	list->size++;
 }
 
-int dc_task_get_current(TaskList * list, Task * task) {
-
+int dc_task_get_current(TaskList *list, Task *task)
+{
 	int i;
-
 	time_t now_time = time(NULL);
-
 	for (i = 0; i<list->size; i++) {
-		Task * cur_task = gf_list_get(list->tasks, i);
-
-
-		if(now_time > cur_task->start_time_t  && now_time < cur_task->end_time_t) {
-
+		Task *cur_task = gf_list_get(list->tasks, i);
+		if (now_time > cur_task->start_time_t && now_time < cur_task->end_time_t) {
 			//strncpy(task->id, cur_task->id, MAX_ID_SIZE);
 			//memcpy(&task->start_time, &cur_task->start_time, sizeof(struct tm));
 			//memcpy(&task->end_time, &cur_task->end_time, sizeof(struct tm));
@@ -74,5 +66,4 @@ int dc_task_get_current(TaskList * list, Task * task) {
 	task->source_number = 0;
 	return -1;
 }
-
 

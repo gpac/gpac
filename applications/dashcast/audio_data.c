@@ -25,80 +25,72 @@
 
 #include "audio_data.h"
 
-void dc_audio_data_set_default(AudioData * adata) {
 
-	strcpy(adata->psz_name, "");
-	strcpy(adata->psz_format, "");
-	strcpy(adata->psz_codec, "");
-	adata->i_bitrate = -1;
-	adata->i_channels= -1;
-	adata->i_samplerate = -1;
-
+void dc_audio_data_set_default(AudioDataConf *audio_data_conf)
+{
+	strcpy(audio_data_conf->filename, "");
+	strcpy(audio_data_conf->format, "");
+	strcpy(audio_data_conf->codec, "");
+	audio_data_conf->bitrate = -1;
+	audio_data_conf->channels= -1;
+	audio_data_conf->samplerate = -1;
 }
 
-void dc_audio_data_init(AudioData * adata, char * psz_name, char * psz_format) {
-
-	if(psz_name != NULL && strlen(psz_name) > 0)
-		strcpy(adata->psz_name, psz_name);
+void dc_audio_data_init(AudioDataConf *audio_data_conf, char *psz_name, char *format)
+{
+	if (psz_name != NULL && strlen(psz_name) > 0)
+		strcpy(audio_data_conf->filename, psz_name);
 	else
-		strcpy(adata->psz_name, "");
+		strcpy(audio_data_conf->filename, "");
 
-	if(psz_format != NULL && strlen(psz_format) > 0)
-		strcpy(adata->psz_format, psz_format);
+	if (format != NULL && strlen(format) > 0)
+		strcpy(audio_data_conf->format, format);
 	else
-		strcpy(adata->psz_format, "");
+		strcpy(audio_data_conf->format, "");
 }
 
-int dc_audio_input_data_init(AudioInputData * p_aid, int i_channels, int i_samplerate,
-		int i_maxcon, int mode) {
-
+int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int samplerate, int num_consumers, int mode)
+{
 	int i;
 
-	dc_producer_init(&p_aid->pro, AUDIO_CB_SIZE, "audio decoder");
-
-
-	dc_circular_buffer_create(&p_aid->p_cb, AUDIO_CB_SIZE, mode,
-			i_maxcon);
+	dc_producer_init(&audio_input_data->producer, AUDIO_CB_SIZE, "audio decoder");
+	dc_circular_buffer_create(&audio_input_data->circular_buf, AUDIO_CB_SIZE, mode, num_consumers);
 
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {
-		AudioDataNode * p_adn = gf_malloc(sizeof(AudioDataNode));
-		p_aid->p_cb.p_list[i].p_data = (void *) p_adn;
+		AudioDataNode *audio_data_node = gf_malloc(sizeof(AudioDataNode));
+		audio_input_data->circular_buf.list[i].data = (void *) audio_data_node;
 
-		p_adn->i_abuf_size = MAX_AUDIO_PACKET_SIZE;
-		p_adn->p_abuf = gf_malloc(p_adn->i_abuf_size * sizeof(uint8_t));
-
+		audio_data_node->abuf_size = MAX_AUDIO_PACKET_SIZE;
+		audio_data_node->abuf = gf_malloc(audio_data_node->abuf_size * sizeof(uint8_t));
 	}
 
-	p_aid->p_aframe = avcodec_alloc_frame();
+	audio_input_data->aframe = avcodec_alloc_frame();
 
-	if(p_aid->p_aframe == NULL) {
+	if (audio_input_data->aframe == NULL) {
 		fprintf(stderr, "Cannot initialize AudioInputData");
 		return -1;
 	}
 
-	p_aid->i_channels = i_channels;
-	p_aid->i_samplerate = i_samplerate;
+	audio_input_data->channels = channels;
+	audio_input_data->samplerate = samplerate;
 
 	return 0;
 }
 
-void dc_audio_input_data_destroy(AudioInputData * p_aid) {
-
+void dc_audio_input_data_destroy(AudioInputData *audio_input_data)
+{
 	int i;
-
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {
-		AudioDataNode * p_adn = p_aid->p_cb.p_list[i].p_data;
-		gf_free(p_adn->p_abuf);
-		gf_free(p_adn);
+		AudioDataNode *audio_data_node = audio_input_data->circular_buf.list[i].data;
+		gf_free(audio_data_node->abuf);
+		gf_free(audio_data_node);
 	}
 
-	dc_circular_buffer_destroy(&p_aid->p_cb);
-
+	dc_circular_buffer_destroy(&audio_input_data->circular_buf);
 }
 
-void dc_audio_inout_data_end_signal(AudioInputData * p_aid) {
-
-	dc_producer_end_signal(&p_aid->pro, &p_aid->p_cb);
-	dc_producer_end_signal_previous(&p_aid->pro, &p_aid->p_cb);
-
+void dc_audio_inout_data_end_signal(AudioInputData *audio_input_data)
+{
+	dc_producer_end_signal(&audio_input_data->producer, &audio_input_data->circular_buf);
+	dc_producer_end_signal_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 }

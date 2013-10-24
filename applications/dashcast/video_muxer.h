@@ -38,48 +38,41 @@
 
 
 typedef enum {
-
 	FFMPEG_VIDEO_MUXER,
 	RAW_VIDEO_H264,
 	GPAC_VIDEO_MUXER,
 	GPAC_INIT_VIDEO_MUXER_AVC1,
 	GPAC_INIT_VIDEO_MUXER_AVC3
-
 } VideoMuxerType;
 
 /*
- * VideoOutputFile structure has the data needed
- * to encode video frames and write them on the file.
- * It reads the data from a circular buffer so it needs
- * to keep the index to that circular buffer. This index is
+ * VideoOutputFile structure has the data needed to encode video frames and write them on the file.
+ * It reads the data from a circular buffer so it needs to keep the index to that circular buffer. This index is
  * available in Consumer data structure.
- *
  */
 typedef struct {
-
-	//VideoData * p_vdata;
-
+	//VideoDataConf *video_data_conf;
 	VideoMuxerType muxer_type;
 
 	/* file format context structure */
-	AVFormatContext * p_fmt;
-	AVCodecContext * p_codec_ctx;
-	AVCodec * p_codec;
+	AVFormatContext *fmt;
+	AVCodecContext *codec_ctx;
+	AVCodec *codec;
 
-	FILE * p_file;
+	FILE *file;
 
-	GF_ISOFile * p_isof;
-	GF_ISOSample * p_sample;
+	GF_ISOFile *isof;
+	GF_ISOSample *sample;
 
 	/* Index of the video stream in the file */
-	int i_vstream_idx;
+	int vstream_idx;
 	/* keeps the index with which encoder access to the circular buffer (as a consumer) */
-	Consumer vcon;
+	Consumer consumer;
 
 	/* Variables that encoder needs to encode data */
-	uint8_t * p_vbuf;
-	int i_vbuf_size;
-	int i_encoded_frame_size;
+	uint8_t *vbuf;
+	int vbuf_size;
+	int encoded_frame_size;
 
 	int frame_per_fragment;
 	int frame_per_segment;
@@ -89,10 +82,10 @@ typedef struct {
 
 	u64 first_dts;
 
-	u32 i_seg_marker;
+	u32 seg_marker;
 
-	int i_gop_size;
-	int i_gdr;
+	int gosize;
+	int gdr;
 
 	Bool use_source_timing;
 
@@ -103,11 +96,14 @@ typedef struct {
 	int fragment_started, segment_started;
 } VideoOutputFile;
 
-int dc_video_muxer_init(VideoOutputFile * p_voutf, VideoData * p_vdata, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int i_seg_dur, int i_frag_dur, int i_frame_dur);
-int dc_video_muxer_free(VideoOutputFile * p_voutf);
+int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur);
 
-int dc_video_muxer_open(VideoOutputFile * p_voutf, char * psz_directory, char * psz_id, int i_seg);
-int dc_video_muxer_write(VideoOutputFile * p_voutf, int i_frame_nb);
-int dc_video_muxer_close(VideoOutputFile * p_voutf);
+int dc_video_muxer_free(VideoOutputFile *video_output_file);
+
+int dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, char *id_name, int seg);
+
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb);
+
+int dc_video_muxer_close(VideoOutputFile *video_output_file);
 
 #endif /* VIDEO_MUXER_H_ */

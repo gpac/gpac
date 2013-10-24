@@ -78,13 +78,13 @@ typedef struct {
 
 #define AUDIO_FRAME_SIZE 1024
 
-void optimize_seg_frag_dur(int * seg, int * frag) {
 
+void optimize_seg_frag_dur(int *seg, int *frag)
+{
 	int seg_nb = *seg;
 	int frag_nb = *frag;
 
 	int min_rem = seg_nb % frag_nb;
-
 	if (seg_nb % (frag_nb + 1) < min_rem) {
 		min_rem = seg_nb % (frag_nb + 1);
 		*seg = seg_nb;
@@ -104,166 +104,157 @@ void optimize_seg_frag_dur(int * seg, int * frag) {
 	}
 
 	*seg -= min_rem;
-
 }
 
-Bool change_source_thread(void * p_params) {
-
+Bool change_source_thread(void *params)
+{
 	int ret = 0;
-
 	return ret;
 }
 
-u32 send_frag_event(void * p_params) {
-
+u32 send_frag_event(void *params)
+{
 	int ret;
 	//int status;
-	ThreadParam * p_th_param = (ThreadParam *) p_params;
-	CmdData * p_cmdd = p_th_param->p_in_data;
-	MessageQueue * p_mq = p_th_param->p_mq;
-
 	char buff[512];
+	ThreadParam *th_param = (ThreadParam*)params;
+	CmdData *cmd_data = th_param->in_data;
+	MessageQueue *mq = th_param->mq;
 
 	while (1) {
-		if (p_cmdd->i_exit_signal) {
+		if (cmd_data->exit_signal) {
 			break;
 		}
 
-		ret = dc_message_queue_get(p_mq, (void*) buff);
+		ret = dc_message_queue_get(mq, (void*) buff);
 		if (ret > 0) {
-			printf("Message received: %s\n", buff);
+			fprintf(stdout, "Message received: %s\n", buff);
 		}
 	}
 
 	return 0;
 }
 
-static void dc_write_mpd(CmdData *p_cmddata, const AudioData *p_adata, const VideoData *p_vdata, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum) {
+static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf, const VideoDataConf *video_data_conf, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum)
+{
 	u32 i = 0;
 	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,	video_frag_dur = 0;
 	int audio_frame_size = AUDIO_FRAME_SIZE;
-	FILE * p_f;
+	FILE *f;
 	char psz_name[512];
-	
-	sprintf(psz_name, "%s/%s", p_cmddata->psz_out, p_cmddata->psz_mpd);
 
-	if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-		p_adata = gf_list_get(p_cmddata->p_audio_lst, 0);
+	sprintf(psz_name, "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
 
-		audio_seg_dur = (int)((p_adata->i_samplerate / (double) audio_frame_size) * (p_cmddata->i_seg_dur / 1000.0));
-		audio_frag_dur = (int)((p_adata->i_samplerate / (double) audio_frame_size) * (p_cmddata->i_frag_dur / 1000.0));
+	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
+		audio_data_conf = gf_list_get(cmddata->audio_lst, 0);
+		audio_seg_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->seg_dur / 1000.0));
+		audio_frag_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->frag_dur / 1000.0));
 		optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
 	}
 
-	if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-		p_vdata = gf_list_get(p_cmddata->p_video_lst, 0);
-
-		video_seg_dur = (int)(p_vdata->i_framerate * (p_cmddata->i_seg_dur / 1000.0));
-		video_frag_dur = (int)(p_vdata->i_framerate * (p_cmddata->i_frag_dur / 1000.0));
+	if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
+		video_data_conf = gf_list_get(cmddata->video_lst, 0);
+		video_seg_dur = (int)(video_data_conf->framerate * (cmddata->seg_dur / 1000.0));
+		video_frag_dur = (int)(video_data_conf->framerate * (cmddata->frag_dur / 1000.0));
 		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
 	}
 	
-	p_f = fopen(psz_name, "w");
+	f = fopen(psz_name, "w");
+	//TODO: if (!f) ...
 
 	//	time_t t = time(NULL);
 	//	time_t t2 = t + 2;
-	//	t += (2 * (p_cmddata->i_seg_dur / 1000.0));
+	//	t += (2 * (cmddata->seg_dur / 1000.0));
 	//	tm = *gmtime(&t2);
 	//	sprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
 	//			tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	//	printf("%s \n", availability_start_time);
+	//	fprintf(stdout, "%s \n", availability_start_time);
 
-	fprintf(p_f, "<?xml version=\"1.0\"?>\n");
-	fprintf(p_f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
+	fprintf(f, "<?xml version=\"1.0\"?>\n");
+	fprintf(f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
 							"%s=\"%s\" "
 							"minBufferTime=\"PT%fS\" %s type=\"%s\" "
 							"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
-							(p_cmddata->i_mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime",
-							(p_cmddata->i_mode == ON_DEMAND) ? presentation_duration : availability_start_time,
-							p_cmddata->f_minbuftime, time_shift,
-							(p_cmddata->i_mode == ON_DEMAND) ? "static" : "dynamic");
+							(cmddata->mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime",
+							(cmddata->mode == ON_DEMAND) ? presentation_duration : availability_start_time,
+							cmddata->min_buffer_time, time_shift,
+							(cmddata->mode == ON_DEMAND) ? "static" : "dynamic");
 
-	fprintf(p_f,
+	fprintf(f,
 		" <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
 		"  <Title>%s</Title>\n"
-		" </ProgramInformation>\n", p_cmddata->psz_mpd);
+		" </ProgramInformation>\n", cmddata->mpd_filename);
 
-	fprintf(p_f, " <Period id=\"\">\n");
+	fprintf(f, " <Period id=\"\">\n");
 
-	if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-		fprintf(p_f,
-			"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
+	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
+		fprintf(f, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
 
-		fprintf(p_f,
+		fprintf(f,
 			"   <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" "
 			"value=\"2\"/>\n");
 
-		fprintf(p_f,
+		fprintf(f,
 			"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
 			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
-			p_adata->i_samplerate, audio_seg_dur * audio_frame_size, segnum);
+			audio_data_conf->samplerate, audio_seg_dur * audio_frame_size, segnum);
 
-		for (i = 0; i < gf_list_count(p_cmddata->p_audio_lst); i++) {
-
-			p_adata = gf_list_get(p_cmddata->p_audio_lst, i);
-			fprintf(p_f,
+		for (i = 0; i < gf_list_count(cmddata->audio_lst); i++) {
+			audio_data_conf = gf_list_get(cmddata->audio_lst, i);
+			fprintf(f,
 				"   <Representation id=\"%s\" mimeType=\"audio/mp4\" codecs=\"mp4a.40.2\" "
 				"audioSamplingRate=\"%d\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
-				"   </Representation>\n", p_adata->psz_name,
-				p_adata->i_samplerate, p_adata->i_bitrate);
-
+				"   </Representation>\n", audio_data_conf->filename, audio_data_conf->samplerate, audio_data_conf->bitrate);
 		}
 
-		fprintf(p_f, "  </AdaptationSet>\n");
+		fprintf(f, "  </AdaptationSet>\n");
 	}
 
-	if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-		fprintf(p_f,
-			"  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
+	if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
+		fprintf(f, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
 
-		fprintf(p_f,
+		fprintf(f,
 			"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
 			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
-			p_vdata->i_framerate, video_seg_dur, segnum);
+			video_data_conf->framerate, video_seg_dur, segnum);
 
-		for (i = 0; i < gf_list_count(p_cmddata->p_video_lst); i++) {
-			p_vdata = gf_list_get(p_cmddata->p_video_lst, i);
-			fprintf(p_f,
-				"   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
+		for (i = 0; i < gf_list_count(cmddata->video_lst); i++) {
+			video_data_conf = gf_list_get(cmddata->video_lst, i);
+			fprintf(f, "   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
 				"width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
-				"   </Representation>\n", p_vdata->psz_name,
+				"   </Representation>\n", video_data_conf->filename,
 				VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? "avc1.42e01e" : "avc3", //FIXME: hardcoded. We would need acces to the ISOFile to call gf_media_get_rfc_6381_codec_name()
-				p_vdata->i_width, p_vdata->i_height, p_vdata->i_framerate,
-				p_vdata->i_bitrate);
+				video_data_conf->width, video_data_conf->height, video_data_conf->framerate,
+				video_data_conf->bitrate);
 		}
 
-		fprintf(p_f, "  </AdaptationSet>\n");
+		fprintf(f, "  </AdaptationSet>\n");
 	}
 
-	fprintf(p_f, " </Period>\n");
+	fprintf(f, " </Period>\n");
 
-	fprintf(p_f, "</MPD>\n");
+	fprintf(f, "</MPD>\n");
 
-	fclose(p_f);
+	fclose(f);
 
-//	printf("\33[34m\33[1m");
-	printf("MPD file generated: %s/%s\n", p_cmddata->psz_out, p_cmddata->psz_mpd);
-//	printf("\33[0m");
+//	fprintf(stdout, "\33[34m\33[1m");
+	fprintf(stdout, "MPD file generated: %s/%s\n", cmddata->out_dir, cmddata->mpd_filename);
+//	fprintf(stdout, "\33[0m");
 }
 
-static u32 mpd_thread(void * p_params) {
-	ThreadParam * p_th_param = (ThreadParam *) p_params;
-	CmdData * p_cmddata = p_th_param->p_in_data;
-	MessageQueue * p_mq = p_th_param->p_mq;
+static u32 mpd_thread(void *params)
+{
+	ThreadParam *th_param = (ThreadParam*)params;
+	CmdData *cmddata = th_param->in_data;
+	MessageQueue *mq = th_param->mq;
 	char availability_start_time[512];
 	char presentation_duration[512];
 	char time_shift[512] = "";
 
-	AudioData * p_adata = NULL;
-	VideoData * p_vdata = NULL;
+	AudioDataConf *audio_data_conf = NULL;
+	VideoDataConf *video_data_conf = NULL;
 
-	if (p_cmddata->i_mode == LIVE_CAMERA || p_cmddata->i_mode == LIVE_MEDIA) {
-
+	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
 			time_t t;
 			int ms;
@@ -271,20 +262,20 @@ static u32 mpd_thread(void * p_params) {
 			seg_time.segnum = 0;
 			seg_time.time = 0;
 
-			if (p_cmddata->i_exit_signal) {
+			if (cmddata->exit_signal) {
 				break;
 			}
 
-			if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-				dc_message_queue_get(p_mq, &seg_time);
+			if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
+				dc_message_queue_get(mq, &seg_time);
 			}
 
-			if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-				dc_message_queue_get(p_mq, &seg_time);
+			if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
+				dc_message_queue_get(mq, &seg_time);
 			}
 
-			seg_time.time += p_cmddata->i_ast_offset;
-			seg_time.segnum -= p_cmddata->i_ast_offset / p_cmddata->i_seg_dur;
+			seg_time.time += cmddata->ast_offset;
+			seg_time.segnum -= cmddata->ast_offset / cmddata->seg_dur;
 			if (seg_time.segnum < 0) {
 				continue;
 			}
@@ -292,8 +283,8 @@ static u32 mpd_thread(void * p_params) {
 			t = seg_time.time / 1000;
 			ms = seg_time.time % 1000;
 
-			//t += (1 * (p_cmddata->i_seg_dur / 1000.0));
-			//t += p_cmddata->i_ast_offset;
+			//t += (1 * (cmddata->seg_dur / 1000.0));
+			//t += cmddata->ast_offset;
 			{	
 				struct tm ast_time = *gmtime(&t);
 				strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
@@ -301,12 +292,12 @@ static u32 mpd_thread(void * p_params) {
 				//sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
 				//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
 				//		time.tm_min, time.tm_sec);
-				printf("StartTime: %s\n", availability_start_time);
+				fprintf(stdout, "StartTime: %s\n", availability_start_time);
 			}
 
-			if (p_cmddata->i_time_shift != -1) {
+			if (cmddata->time_shift != -1) {
 				int ts, h, m, s;
-				ts = p_cmddata->i_time_shift;
+				ts = cmddata->time_shift;
 				h = ts / 3600;
 				ts = ts % 3600;
 				m = ts / 60;
@@ -314,19 +305,19 @@ static u32 mpd_thread(void * p_params) {
 				sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
 			}
 
-			dc_write_mpd(p_cmddata, p_adata, p_vdata, presentation_duration, availability_start_time, time_shift, seg_time.segnum);
+			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, seg_time.segnum);
 		}
 	} else {
 
 		int a_dur = 0;
 		int v_dur = 0;
 
-		if (strcmp(p_cmddata->adata.psz_name, "") != 0) {
-			dc_message_queue_get(p_mq, &a_dur);
+		if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
+			dc_message_queue_get(mq, &a_dur);
 		}
 
-		if (strcmp(p_cmddata->vdata.psz_name, "") != 0) {
-			dc_message_queue_get(p_mq, &v_dur);
+		if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
+			dc_message_queue_get(mq, &v_dur);
 		}
 
 		{
@@ -339,81 +330,74 @@ static u32 mpd_thread(void * p_params) {
 			s = dur / 1000;
 			ms = dur % 1000;
 			sprintf(presentation_duration, "PT%02dH%02dM%02d.%03dS", h, m, s, ms);
-			printf("Duration: %s\n", presentation_duration);
+			fprintf(stdout, "Duration: %s\n", presentation_duration);
 		}
 
-		dc_write_mpd(p_cmddata, p_adata, p_vdata, presentation_duration, availability_start_time, time_shift, 0);
+		dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, 0);
 	}
 
 	return 0;
 }
 
-u32 delete_seg_thread(void * p_params) {
-
+u32 delete_seg_thread(void *params)
+{
 	int ret;
 	//int status;
-	ThreadParam * p_th_param = (ThreadParam *) p_params;
-	CmdData * p_cmdd = p_th_param->p_in_data;
-	MessageQueue * p_mq = p_th_param->p_mq;
+	ThreadParam *th_param = (ThreadParam*)params;
+	CmdData *cmd_data = th_param->in_data;
+	MessageQueue *mq = th_param->mq;
 
 	char buff[512];
 
 	while (1) {
-
-		ret = dc_message_queue_get(p_mq, (void*) buff);
-
+		ret = dc_message_queue_get(mq, (void*) buff);
 		if (ret > 0) {
-			//printf("Message received: %s\n", buff);
+			//fprintf(stdout, "Message received: %s\n", buff);
 			unlink(buff);
-
 			//if (status != 0) {
-			//	printf("Unable to delete the file %s\n", buff);
+			//	fprintf(stdout, "Unable to delete the file %s\n", buff);
 			//}
 		}
 
-		if (p_cmdd->i_exit_signal) {
+		if (cmd_data->exit_signal) {
 			break;
 		}
-
 	}
 
 	return 0;
 }
 
-Bool fragmenter_thread(void * p_params) {
-
+Bool fragmenter_thread(void *params)
+{
 	int ret;
-	ThreadParam * p_th_param = (ThreadParam *) p_params;
-	CmdData * p_cmdd = p_th_param->p_in_data;
-	MessageQueue * p_mq = p_th_param->p_mq;
+	ThreadParam *th_param = (ThreadParam*)params;
+	CmdData *cmd_data = th_param->in_data;
+	MessageQueue *mq = th_param->mq;
 
 	char buff[256];
 
 	while (1) {
-
-		ret = dc_message_queue_get(p_mq, (void*) buff);
-
+		ret = dc_message_queue_get(mq, (void*) buff);
 		if (ret > 0) {
-			printf("Message received: %s\n", buff);
+			fprintf(stdout, "Message received: %s\n", buff);
 		}
 
-		if (p_cmdd->i_exit_signal) {
+		if (cmd_data->exit_signal) {
 			break;
 		}
-
 	}
 
 	return 0;
 }
 
-Bool dasher_thread(void * p_params) {
-
+Bool dasher_thread(void *params)
+{
 //	int i;
-//	ThreadParam * p_th_param = (ThreadParam *) p_params;
-//	CmdData * p_cmdd = p_th_param->p_in_data;
+//	ThreadParam *th_param = (ThreadParam *) params;
+//	CmdData *cmd_data = th_param->in_data;
 //
 //	char sz_mpd[GF_MAX_PATH];
-//	GF_DashSegmenterInput * dash_inputs;
+//	GF_DashSegmenterInput *dash_inputs;
 //	u32 nb_dash_inputs = 0;
 //	Bool use_url_template = 0;
 //	GF_Err e;
@@ -443,16 +427,16 @@ Bool dasher_thread(void * p_params) {
 //	u32 dash_dynamic = 0;
 //	GF_Config *dash_ctx = NULL;
 //
-//	int video_list_size = gf_list_count(p_cmdd->p_video_lst);
-//	int audio_list_size = gf_list_count(p_cmdd->p_audio_lst);
+//	int video_list_size = gf_list_count(cmd_data->video_lst);
+//	int audio_list_size = gf_list_count(cmd_data->audio_lst);
 //	nb_dash_inputs = video_list_size + audio_list_size;
 //
 //	dash_inputs = gf_malloc(nb_dash_inputs * sizeof(GF_DashSegmenterInput));
 //
 //	for (i = 0; i < video_list_size; i++) {
 //
-//		VideoData * p_vdata = gf_list_get(p_cmdd->p_video_lst, i);
-//		dash_inputs[i].file_name = p_vdata->psz_name;
+//		VideoDataConf *video_data_conf = gf_list_get(cmd_data->video_lst, i);
+//		dash_inputs[i].file_name = video_data_conf->psz_name;
 //		sprintf(dash_inputs[i].representationID, "%d", i);
 //		strcpy(dash_inputs[i].periodID, "");
 //		strcpy(dash_inputs[i].role, "");
@@ -461,8 +445,8 @@ Bool dasher_thread(void * p_params) {
 //
 //	for (i = 0; i < audio_list_size; i++) {
 //
-//		AudioData * p_adata = gf_list_get(p_cmdd->p_audio_lst, i);
-//		dash_inputs[i + video_list_size].file_name = p_adata->psz_name;
+//		AudioDataConf *audio_data_conf = gf_list_get(cmd_data->audio_lst, i);
+//		dash_inputs[i + video_list_size].file_name = audio_data_conf->psz_name;
 //		sprintf(dash_inputs[i + video_list_size].representationID, "%d",
 //				i + video_list_size);
 //		strcpy(dash_inputs[i + video_list_size].periodID, "");
@@ -470,12 +454,12 @@ Bool dasher_thread(void * p_params) {
 //
 //	}
 //
-//	dash_profile = p_cmdd->i_live ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_MAIN;
-//	strncpy(sz_mpd, p_cmdd->psz_mpd, GF_MAX_PATH);
+//	dash_profile = cmd_data->live ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_MAIN;
+//	strncpy(sz_mpd, cmd_data->mpd_filename, GF_MAX_PATH);
 //
-//	dash_duration = p_cmdd->i_dash_dur ? p_cmdd->i_dash_dur / 1000 : 1;
+//	dash_duration = cmd_data->dash_dur ? cmd_data->dash_dur / 1000 : 1;
 //
-//	if (p_cmdd->i_live) {
+//	if (cmd_data->live) {
 //		dash_ctx = gf_cfg_new(NULL, NULL);
 //	}
 //
@@ -491,7 +475,7 @@ Bool dasher_thread(void * p_params) {
 //				mpd_update_time);
 //	}
 //
-//	if (p_cmdd->i_live)
+//	if (cmd_data->live)
 //		gf_sleep(dash_duration * 1000);
 //
 //	while (1) {
@@ -508,24 +492,24 @@ Bool dasher_thread(void * p_params) {
 //				time_shift_depth, dash_subduration);
 //
 //		if (e) {
-//			printf("Error while segmenting.\n");
+//			fprintf(stdout, "Error while segmenting.\n");
 //			break;
 //		}
 //		*/
 //
-//		if (!p_cmdd->i_live)
+//		if (!cmd_data->live)
 //			break;
 //
-//		u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+//		u32 sleefor = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
 //
-//		if (p_cmdd->i_exit_signal) {
+//		if (cmd_data->exit_signal) {
 //			break;
 //		}
 //
-//		if (sleep_for) {
+//		if (sleefor) {
 //			if (dash_dynamic != 2) {
-//				fprintf(stderr, "sleep for %d ms\n", sleep_for);
-//				gf_sleep(sleep_for);
+//				fprintf(stderr, "sleep for %d ms\n", sleefor);
+//				gf_sleep(sleefor);
 //			}
 //		}
 //
@@ -534,22 +518,23 @@ Bool dasher_thread(void * p_params) {
 	return 0;
 }
 
-static u32 keyboard_thread(void * p_params) {
+static u32 keyboard_thread(void *params)
+{
 
-	ThreadParam * p_th_param = (ThreadParam *) p_params;
-	CmdData * p_in_data = p_th_param->p_in_data;
+	ThreadParam *th_param = (ThreadParam*)params;
+	CmdData *in_data = th_param->in_data;
 	char c;
 
 	while (1) {
 		if (gf_prompt_has_input()) {
 			c = gf_prompt_get_char();
 			if (c == 'q' || c == 'Q') {
-				p_in_data->i_exit_signal = 1;
+				in_data->exit_signal = 1;
 				break;
 			}
 		}
 
-		if (p_in_data->i_exit_signal) {
+		if (in_data->exit_signal) {
 			break;
 		}
 
@@ -559,53 +544,49 @@ static u32 keyboard_thread(void * p_params) {
 	return 0;
 }
 
-u32 video_decoder_thread(void * p_params) {
+u32 video_decoder_thread(void *params)
+{
 #ifdef DASHCAST_PRINT
 	int i = 0;
 #endif
-
 	int ret;
 	int source_number = 0;
 
 	//int first_time = 1;
 	struct timeval time_start, time_end, time_wait;
-	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
+	VideoThreadParam *thread_params = (VideoThreadParam *) params;
 
-	CmdData * p_in_data = p_thread_params->p_in_data;
-	VideoInputData * p_vind = p_thread_params->p_vind;
-	VideoInputFile ** p_vinf = p_thread_params->p_vinf;
+	CmdData *in_data = thread_params->in_data;
+	VideoInputData *video_input_data = thread_params->video_input_data;
+	VideoInputFile **video_input_file = thread_params->video_input_file;
 
-	suseconds_t total_wait_time = 1000000 / p_in_data->vdata.i_framerate;
+	suseconds_t total_wait_time = 1000000 / in_data->video_data_conf.framerate;
 	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 2;
 
 	Task t;
-	//printf("wait time : %f\n", total_wait_time);
+	//fprintf(stdout, "wait time : %f\n", total_wait_time);
 
-	if (!gf_list_count(p_in_data->p_video_lst))
+	if (!gf_list_count(in_data->video_lst))
 		return 0;
 
 	while (1) {
-
-		dc_task_get_current(&p_in_data->task_list, &t);
+		dc_task_get_current(&in_data->task_list, &t);
 		source_number = t.source_number;
 
-		//printf("sourcenumber: %d\n", source_number);
+		//fprintf(stdout, "sourcenumber: %d\n", source_number);
 
-		if (p_vinf[source_number]->i_mode == LIVE_MEDIA) {
+		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(p_vinf[source_number], p_vind, source_number, p_in_data->use_source_timing, (p_in_data->i_mode == LIVE_CAMERA) ? 1 : 0);
-
+		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0);
 #ifdef DASHCAST_PRINT
-		printf("Read video frame %d\r", i++);
+		fprintf(stdout, "Read video frame %d\r", i++);
 		fflush(stdout);
 #endif
-
 		if (ret == -2) {
-
 #ifdef DEBUG
-			printf("Video reader has no more frame to read.\n");
+			fprintf(stdout, "Video reader has no more frame to read.\n");
 #endif
 			break;
 		}
@@ -614,87 +595,70 @@ u32 video_decoder_thread(void * p_params) {
 			break;
 		}
 
-		if (p_in_data->i_exit_signal) {
-			dc_video_input_data_end_signal(p_vind);
+		if (in_data->exit_signal) {
+			dc_video_input_data_end_signal(video_input_data);
 			break;
 		}
 
-		if (p_vinf[source_number]->i_mode == LIVE_MEDIA) {
-
+		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
 			gettimeofday(&time_end, NULL);
-
-			pick_packet_delay =
-					((time_end.tv_sec - time_start.tv_sec) * 1000000)
-							+ time_end.tv_usec - time_start.tv_usec;
-
+			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec;
 			time_wait.tv_sec = 0;
-			real_wait = total_wait_time - pick_packet_delay - select_delay
-					- other_delays;
+			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
 			time_wait.tv_usec = real_wait;
-			//printf("delay: %ld = %ld - %ld\n", time_wait.tv_usec,
+			//fprintf(stdout, "delay: %ld = %ld - %ld\n", time_wait.tv_usec,
 			//				total_wait_time, pick_packet_delay);
 
 			gettimeofday(&time_start, NULL);
-
 			select(0, NULL, NULL, NULL, &time_wait);
-
 			gettimeofday(&time_end, NULL);
 
-			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000)
-					+ time_end.tv_usec - time_start.tv_usec) - real_wait;
-
+			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec) - real_wait;
 		}
-
 	}
 
 #ifdef DEBUG
-	printf("Video decoder is exiting...\n");
+	fprintf(stdout, "Video decoder is exiting...\n");
 #endif
 	fprintf(stderr, "video decoder thread exit\n");
 	return 0;
 }
 
-u32 audio_decoder_thread(void * p_params) {
+u32 audio_decoder_thread(void *params)
+{
 #ifdef DASHCAST_PRINT
 	int i = 0;
 #endif
-
 	int ret;
 	struct timeval time_start, time_end, time_wait;
-	AudioThreadParam * p_thread_params = (AudioThreadParam *) p_params;
+	AudioThreadParam *thread_params = (AudioThreadParam*)params;
 
-	CmdData * p_in_data = p_thread_params->p_in_data;
-	AudioInputData * p_aind = p_thread_params->p_aind;
-	AudioInputFile * p_ainf = p_thread_params->p_ainf;
+	CmdData *in_data = thread_params->in_data;
+	AudioInputData *audio_input_data = thread_params->audio_input_data;
+	AudioInputFile *audio_input_file = thread_params->audio_input_file;
 
-	suseconds_t total_wait_time = 1000000
-			/ (p_in_data->adata.i_samplerate / 1024);
-	suseconds_t pick_packet_delay, select_delay = 0, real_wait,
-			other_delays = 1;
-	;
+	suseconds_t total_wait_time = 1000000 / (in_data->audio_data_conf.samplerate / 1024);
+	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
 
-	//printf("wait time : %ld\n", total_wait_time);
-	//printf("sample-rate : %ld\n", p_in_data->adata.i_samplerate);
+	//fprintf(stdout, "wait time : %ld\n", total_wait_time);
+	//fprintf(stdout, "sample-rate : %ld\n", in_data->audio_data_conf.samplerate);
 
-	if (!gf_list_count(p_in_data->p_audio_lst))
+	if (!gf_list_count(in_data->audio_lst))
 		return 0;
 
 	while (1) {
-
-		if (p_ainf->i_mode == LIVE_MEDIA) {
+		if (audio_input_file->mode == LIVE_MEDIA) {
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_audio_decoder_read(p_ainf, p_aind);
-
+		ret = dc_audio_decoder_read(audio_input_file, audio_input_data);
 #ifdef DASHCAST_PRINT
-		printf("Read audio frame %d\r", i++);
+		fprintf(stdout, "Read audio frame %d\r", i++);
 		fflush(stdout);
 #endif
-
 		if (ret == -2) {
 #ifdef DEBUG
-			printf("Audio decoder has no more frame to read.\n");
+			fprintf(stdout, "Audio decoder has no more frame to read.\n");
 #endif
 			break;
 		}
@@ -703,179 +667,144 @@ u32 audio_decoder_thread(void * p_params) {
 			break;
 		}
 
-		if (p_in_data->i_exit_signal) {
-			dc_audio_inout_data_end_signal(p_aind);
+		if (in_data->exit_signal) {
+			dc_audio_inout_data_end_signal(audio_input_data);
 			break;
 		}
 
-		if (p_ainf->i_mode == LIVE_MEDIA) {
-
+		if (audio_input_file->mode == LIVE_MEDIA) {
 			gettimeofday(&time_end, NULL);
-
-			pick_packet_delay =
-					((time_end.tv_sec - time_start.tv_sec) * 1000000)
-							+ time_end.tv_usec - time_start.tv_usec;
-
+			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec;
 			time_wait.tv_sec = 0;
-			real_wait = total_wait_time - pick_packet_delay - select_delay
-					- other_delays;
+			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
 			time_wait.tv_usec = real_wait;
 
 			gettimeofday(&time_start, NULL);
-
 			select(0, NULL, NULL, NULL, &time_wait);
-
 			gettimeofday(&time_end, NULL);
 
-			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000)
-					+ time_end.tv_usec - time_start.tv_usec) - real_wait;
-
+			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec) - real_wait;
 		}
-
 	}
 
 #ifdef DEBUG
-	printf("Audio decoder is exiting...\n");
+	fprintf(stdout, "Audio decoder is exiting...\n");
 #endif
 	return 0;
 }
 
-u32 video_scaler_thread(void * p_params) {
-
+u32 video_scaler_thread(void *params)
+{
 	int ret;
+	VideoThreadParam *thread_params = (VideoThreadParam *) params;
+	CmdData *in_data = thread_params->in_data;
+	VideoInputData *video_input_data = thread_params->video_input_data;
+	VideoScaledData *video_scaled_data = thread_params->video_scaled_data;
 
-	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
-
-	CmdData * p_in_data = p_thread_params->p_in_data;
-	VideoInputData * p_vind = p_thread_params->p_vind;
-	VideoScaledData * p_vsd = p_thread_params->p_vsd;
-
-	if (!gf_list_count(p_in_data->p_video_lst))
+	if (!gf_list_count(in_data->video_lst))
 		return 0;
 
 	while (1) {
-
-		ret = dc_video_scaler_scale(p_vind, p_vsd);
-
+		ret = dc_video_scaler_scale(video_input_data, video_scaled_data);
 		if (ret == -2) {
 #ifdef DEBUG
-			printf("Video scaler has no more frame to read.\n");
+			fprintf(stdout, "Video scaler has no more frame to read.\n");
 #endif
 			break;
 		}
 	}
 
-	dc_video_scaler_end_signal(p_vsd);
+	dc_video_scaler_end_signal(video_scaled_data);
 
 #ifdef DEBUG
-	printf("Video scaler is exiting...\n");
+	fprintf(stdout, "Video scaler is exiting...\n");
 #endif
 	fprintf(stderr, "video scaler thread exit\n");
 	return 0;
 }
 
-u32 video_encoder_thread(void * p_params) {
-
-	int ret;
-	int frame_nb;
-	int seg_frame_max;
-	int frag_frame_max;
-	int seg_nb = 0;
-	int quit = 0;
-	char name_to_delete[512];
-	char name_to_send[512];
-	int shift;
-	int loss_state = 0;
+u32 video_encoder_thread(void *params)
+{
+	int ret, shift, frame_nb, seg_frame_max, frag_frame_max, seg_nb = 0, loss_state = 0, quit = 0;
+	char name_to_delete[512], name_to_send[512];
 	u64 start_utc, seg_utc;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
+	VideoThreadParam *thread_params = (VideoThreadParam*)params;
 
-	VideoThreadParam * p_thread_params = (VideoThreadParam *) p_params;
+	CmdData *in_data = thread_params->in_data;
+	int video_conf_idx = thread_params->video_conf_idx;
+	VideoDataConf *video_data_conf = gf_list_get(in_data->video_lst, video_conf_idx);
 
-	CmdData * p_in_data = p_thread_params->p_in_data;
-	int video_conf_idx = p_thread_params->video_conf_idx;
-	VideoData * p_vdata = gf_list_get(p_in_data->p_video_lst, video_conf_idx);
-
-	VideoScaledData * p_vsd = p_thread_params->p_vsd;
+	VideoScaledData *video_scaled_data = thread_params->video_scaled_data;
 	VideoOutputFile out_file;
 
-	MessageQueue * p_mq = p_thread_params->p_mq;
-	MessageQueue * p_delete_seg_mq = p_thread_params->p_delete_seg_mq;
-	MessageQueue * p_send_seg_mq = p_thread_params->p_send_seg_mq;
-
+	MessageQueue *mq = thread_params->mq;
+	MessageQueue *delete_seg_mq = thread_params->delete_seg_mq;
+	MessageQueue *send_seg_mq = thread_params->send_seg_mq;
 #ifndef FRAGMENTER
-	MessageQueue * p_mq = p_thread_params->p_mq;
+	MessageQueue *mq = thread_params->mq;
 #endif
 
-	if (!gf_list_count(p_in_data->p_video_lst))
+	if (!gf_list_count(in_data->video_lst))
 		return 0;
 
-	seg_frame_max = (int)(p_vdata->i_framerate * (float) (p_in_data->i_seg_dur / 1000.0));
-	frag_frame_max = (int)(p_vdata->i_framerate * (float) (p_in_data->i_frag_dur / 1000.0));
-
+	seg_frame_max = (int)(video_data_conf->framerate * (float) (in_data->seg_dur / 1000.0));
+	frag_frame_max = (int)(video_data_conf->framerate * (float) (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&seg_frame_max, &frag_frame_max);
-
-	out_file.i_gop_size = seg_frame_max;
+	out_file.gosize = seg_frame_max;
 
 	if (seg_frame_max <= 0)
 		seg_frame_max = -1;
 
-
 	shift = 0;
-	if (p_in_data->use_source_timing) {
+	if (in_data->use_source_timing) {
 		//ugly patch ...
-		shift=1000;
-		while (!p_vsd->frame_duration && shift) {
+		shift = 1000;
+		while (!video_scaled_data->frame_duration && shift) {
 			gf_sleep(1);
 			shift--;
 		}
-		shift = (u32) p_vsd->frame_duration;
+		shift = (u32) video_scaled_data->frame_duration;
 	}
-	if (dc_video_muxer_init(&out_file, p_vdata, muxer_type, seg_frame_max, frag_frame_max, p_in_data->i_seg_marker, p_in_data->i_gdr, p_in_data->i_seg_dur, p_in_data->i_frag_dur, shift) < 0) {
+	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift) < 0) {
 		fprintf(stderr, "Cannot init output video file.\n");
-		p_in_data->i_exit_signal = 1;
+		in_data->exit_signal = 1;
 		return -1;
 	}
 
-	if (dc_video_encoder_open(&out_file, p_vdata, p_in_data->use_source_timing) < 0) {
+	if (dc_video_encoder_open(&out_file, video_data_conf, in_data->use_source_timing) < 0) {
 		fprintf(stderr, "Cannot open output video stream.\n");
-		p_in_data->i_exit_signal = 1;
+		in_data->exit_signal = 1;
 		return -1;
 	}
 
 	start_utc = gf_net_get_utc();
 	seg_utc = 0;
 	while (1) {
-
 		frame_nb = 0;
-
-		if (dc_video_muxer_open(&out_file, p_in_data->psz_out,
-				p_vdata->psz_name, seg_nb) < 0) {
+		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb) < 0) {
 			fprintf(stderr, "Cannot open output video file.\n");
-			p_in_data->i_exit_signal = 1;
+			in_data->exit_signal = 1;
 			return -1;
 		}
-
-//		printf("Header size: %d\n", ret);
-
+//		fprintf(stdout, "Header size: %d\n", ret);
 		while (1) {
-
 //			if (seg_frame_max > 0) {
 //				if (frame_nb == seg_frame_max)
 //					break;
 //			}
-
 			//we have the RAP already encoded, skip coder
 			if (loss_state == 2) {
 				ret = 1;
 				loss_state = 0;
 			} else {
-				ret = dc_video_encoder_encode(&out_file, p_vsd);
+				ret = dc_video_encoder_encode(&out_file, video_scaled_data);
 			}
 
 			if (ret == -2) {
 #ifdef DEBUG
-				printf("Audio encoder has no more data to encode.\n");
+				fprintf(stdout, "Audio encoder has no more data to encode.\n");
 #endif
 				quit = 1;
 				break;
@@ -890,7 +819,7 @@ u32 video_encoder_thread(void * p_params) {
 			if (ret > 0) {
 				int r;
 				/*resync at first RAP: flush current broken segment and restart next one on rap*/
-				if ((loss_state==1) && out_file.p_codec_ctx->coded_frame->key_frame) {
+				if ((loss_state==1) && out_file.codec_ctx->coded_frame->key_frame) {
 					loss_state = 2;
 					break;
 				}
@@ -898,13 +827,13 @@ u32 video_encoder_thread(void * p_params) {
 				r = dc_video_muxer_write(&out_file, frame_nb);
 				if (r < 0) {
 					quit = 1;
-					p_in_data->i_exit_signal = 1;
+					in_data->exit_signal = 1;
 					break;
 				} else if (r == 1) {
-					//printf("fragment is written!\n");
-					if (p_in_data->i_send_message == 1) {
-						sprintf(name_to_send, "%s/%s_%d_gpac.m4s", p_in_data->psz_out, p_vdata->psz_name, seg_nb);
-						dc_message_queue_put(p_send_seg_mq, name_to_send, sizeof(name_to_send));
+					//fprintf(stdout, "fragment is written!\n");
+					if (in_data->send_message == 1) {
+						sprintf(name_to_send, "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, seg_nb);
+						dc_message_queue_put(send_seg_mq, name_to_send, sizeof(name_to_send));
 					}
 
 					break;
@@ -917,13 +846,13 @@ u32 video_encoder_thread(void * p_params) {
 		dc_video_muxer_close(&out_file);
 
 #ifndef FRAGMENTER
-		dc_message_queue_put(p_mq, p_vdata->psz_name, sizeof(p_vdata->psz_name));
+		dc_message_queue_put(mq, video_data_conf->psz_name, sizeof(video_data_conf->psz_name));
 #endif
 
 		// If system is live,
 		// Send the time that a segment is available to MPD generator thread.
-		if (p_in_data->i_mode == LIVE_MEDIA || p_in_data->i_mode == LIVE_CAMERA) {
-			if (p_thread_params->video_conf_idx == 0) {
+		if (in_data->mode == LIVE_MEDIA || in_data->mode == LIVE_CAMERA) {
+			if (thread_params->video_conf_idx == 0) {
 				segtime t;
 
 				//check we don't loose sync
@@ -931,57 +860,52 @@ u32 video_encoder_thread(void * p_params) {
 				seg_utc = gf_net_get_utc();
 				diff = (int) (seg_utc - start_utc);
 				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
-				if (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
+				if (diff > (seg_nb+2) * in_data->seg_dur) {
 					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
 
-					while (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
-						seg_nb ++;
+					while (diff > (seg_nb+2) * in_data->seg_dur) {
+						seg_nb++;
 
 						//do a rough estimate of losses to adjust timing...
-						if (! p_in_data->use_source_timing) {
-								out_file.first_dts += out_file.p_codec_ctx->time_base.den;
+						if (! in_data->use_source_timing) {
+								out_file.first_dts += out_file.codec_ctx->time_base.den;
 						}
 					}
 					//wait for RAP to cut next segment
 					loss_state = 1;
 				}
-				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * p_in_data->i_seg_dur);
+				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur);
 				
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);
-				dc_message_queue_put(p_mq, &t, sizeof(t));
-
+				dc_message_queue_put(mq, &t, sizeof(t));
 			}
 		}
 	
-		if (p_in_data->i_time_shift != -1) {
-			shift = 1000 * p_in_data->i_time_shift / p_in_data->i_seg_dur;
-			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
-					p_vdata->psz_name, (seg_nb - shift));
-			dc_message_queue_put(p_delete_seg_mq, name_to_delete,
-					sizeof(name_to_delete));
-
+		if (in_data->time_shift != -1) {
+			shift = 1000 * in_data->time_shift / in_data->seg_dur;
+			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, (seg_nb - shift));
+			dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
 		}
 
 		seg_nb++;
 
 		if (quit)
 			break;
-
 	}
 
 	// If system is not live,
 	// Send the duration of the video
-	if (p_in_data->i_mode == ON_DEMAND) {
-		if (p_thread_params->video_conf_idx == 0) {
-			int dur = (seg_nb * seg_frame_max * 1000) / p_vdata->i_framerate;
-			int dur_tot = (out_file.p_codec_ctx->frame_number * 1000)
-					/ p_vdata->i_framerate;
+	if (in_data->mode == ON_DEMAND) {
+		if (thread_params->video_conf_idx == 0) {
+			int dur = (seg_nb * seg_frame_max * 1000) / video_data_conf->framerate;
+			int dur_tot = (out_file.codec_ctx->frame_number * 1000)
+					/ video_data_conf->framerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
-			//printf("Duration: %d \n", dur);
-			dc_message_queue_put(p_mq, &dur, sizeof(dur));
+			//fprintf(stdout, "Duration: %d \n", dur);
+			dc_message_queue_put(mq, &dur, sizeof(dur));
 		}
 	}
 
@@ -991,96 +915,82 @@ u32 video_encoder_thread(void * p_params) {
 	dc_video_muxer_free(&out_file);
 
 #ifdef DEBUG
-	printf("Video encoder is exiting...\n");
+	fprintf(stdout, "Video encoder is exiting...\n");
 #endif
 	fprintf(stderr, "video encoder thread exit\n");
 	return 0;
 }
 
-u32 audio_encoder_thread(void * p_params) {
-
-	int ret;
-	int exit_loop = 0;
-	int quit = 0;
-	int seg_nb = 0;
+u32 audio_encoder_thread(void *params)
+{
+	int ret, exit_loop = 0, quit = 0, seg_nb = 0, frame_per_seg, frame_per_frag, frame_nb, shift;
 	//int seg_frame_max;
 	//int frag_frame_max;
-	int frame_per_seg;
-	int frame_per_frag;
-	int frame_nb;
 	//int audio_frame_size = AUDIO_FRAME_SIZE;
 	char name_to_delete[512];
-	int shift;
 	u64 start_utc, seg_utc;
 
 	AudioMuxerType muxer_type = AUDIO_MUXER;
+	AudioThreadParam *thread_params = (AudioThreadParam *) params;
 
-	AudioThreadParam * p_thread_params = (AudioThreadParam *) p_params;
+	CmdData *in_data = thread_params->in_data;
+	int audio_conf_idx = thread_params->audio_conf_idx;
+	AudioDataConf *audio_data_conf = gf_list_get(in_data->audio_lst, audio_conf_idx);
 
-	CmdData * p_in_data = p_thread_params->p_in_data;
-	int audio_conf_idx = p_thread_params->audio_conf_idx;
-	AudioData * p_adata = gf_list_get(p_in_data->p_audio_lst, audio_conf_idx);
+	AudioInputData *audio_input_data = thread_params->audio_input_data;
+	AudioOutputFile audio_output_file;
 
-	AudioInputData * p_aind = p_thread_params->p_aind;
-	AudioOutputFile aout;
-
-	MessageQueue * p_mq = p_thread_params->p_mq;
-	MessageQueue * p_delete_seg_mq = p_thread_params->p_delete_seg_mq;
-
+	MessageQueue *mq = thread_params->mq;
+	MessageQueue *delete_seg_mq = thread_params->delete_seg_mq;
 #ifndef FRAGMENTER
-	MessageQueue * p_mq = p_thread_params->p_mq;
+	MessageQueue *mq = thread_params->mq;
 #endif
 
-	if (!gf_list_count(p_in_data->p_audio_lst))
+	if (!gf_list_count(in_data->audio_lst))
 		return 0;
 
-	//seg_frame_max = p_adata->i_samplerate
-	//		* (float) (p_in_data->i_seg_dur / 1000.0);
+	//seg_frame_max = audio_data_conf->samplerate
+	//		* (float) (in_data->seg_dur / 1000.0);
 
-	//frag_frame_max = p_adata->i_samplerate * (float) (p_in_data->i_frag_dur / 1000.0);
+	//frag_frame_max = audio_data_conf->samplerate * (float) (in_data->frag_dur / 1000.0);
 	//if (seg_frame_max <= 0)
 	//	seg_frame_max = -1;
 
-	if (dc_audio_encoder_open(&aout, p_adata) < 0) {
+	if (dc_audio_encoder_open(&audio_output_file, audio_data_conf) < 0) {
 		fprintf(stderr, "Cannot open output audio stream.\n");
-		p_in_data->i_exit_signal = 1;
+		in_data->exit_signal = 1;
 		return -1;
 	}
 
-	frame_per_seg  = (int)((p_adata->i_samplerate / (double) aout.i_frame_size) * (p_in_data->i_seg_dur  / 1000.0));
-	frame_per_frag = (int)((p_adata->i_samplerate / (double) aout.i_frame_size) * (p_in_data->i_frag_dur / 1000.0));
-
+	frame_per_seg  = (int)((audio_data_conf->samplerate / (double) audio_output_file.frame_size) * (in_data->seg_dur  / 1000.0));
+	frame_per_frag = (int)((audio_data_conf->samplerate / (double) audio_output_file.frame_size) * (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
 
-	if (dc_audio_muxer_init(&aout, p_adata, muxer_type, frame_per_seg, frame_per_frag, p_in_data->i_seg_marker) < 0) {
+	if (dc_audio_muxer_init(&audio_output_file, audio_data_conf, muxer_type, frame_per_seg, frame_per_frag, in_data->seg_marker) < 0) {
 		fprintf(stderr, "Cannot init output audio.\n");
-		p_in_data->i_exit_signal = 1;
+		in_data->exit_signal = 1;
 		return -1;
 	}
 
 	start_utc = gf_net_get_utc();
 	seg_utc = 0;
 	while (1) {
-
 		frame_nb = 0;
 		quit = 0;
-
-		if (dc_audio_muxer_open(&aout, p_in_data->psz_out, p_adata->psz_name, seg_nb) < 0) {
+		if (dc_audio_muxer_open(&audio_output_file, in_data->out_dir, audio_data_conf->filename, seg_nb) < 0) {
 			fprintf(stderr, "Cannot open output audio.\n");
-			p_in_data->i_exit_signal = 1;
+			in_data->exit_signal = 1;
 			return -1;
 		}
 
 		while (1) {
-
 			exit_loop = 0;
-
 //			if (frame_per_seg > 0) {
 //				if (frame_nb == frame_per_seg) {
 //
-//					//if (dc_audio_encoder_flush(&aout, p_aind) == 0) {
-//					//	dc_audio_muxer_write(&aout);
-//					//	frame_nb ++;//= aout.p_codec_ctx->frame_size; //aout.acc_samples;
+//					//if (dc_audio_encoder_flush(&audio_output_file, audio_input_data) == 0) {
+//					//	dc_audio_muxer_write(&audio_output_file);
+//					//	frame_nb++;//= audio_output_file.codec_ctx->frame_size; //audio_output_file.acc_samples;
 //					//}
 //
 //					exit_loop = 1;
@@ -1088,25 +998,21 @@ u32 audio_encoder_thread(void * p_params) {
 //				}
 //			}
 
-			ret = dc_audio_encoder_read(&aout, p_aind);
-
+			ret = dc_audio_encoder_read(&audio_output_file, audio_input_data);
 			if (ret == -2) {
 #ifdef DEBUG
-				printf("Audio encoder has no more data to encode.\n");
+				fprintf(stdout, "Audio encoder has no more data to encode.\n");
 #endif
-				//if (dc_audio_encoder_flush(&aout, p_aind) == 0) {
-				//	dc_audio_muxer_write(&aout);
-				//	frame_nb ++;//= aout.p_codec_ctx->frame_size; //aout.acc_samples;
+				//if (dc_audio_encoder_flush(&audio_output_file, audio_input_data) == 0) {
+				//	dc_audio_muxer_write(&audio_output_file);
+				//	frame_nb++;//= audio_output_file.codec_ctx->frame_size; //audio_output_file.acc_samples;
 				//}
-
 				quit = 1;
 				break;
 			}
 
 			while (1) {
-
-				ret = dc_audio_encoder_encode(&aout, p_aind);
-
+				ret = dc_audio_encoder_encode(&audio_output_file, audio_input_data);
 				if (ret == 1) {
 					break;
 				}
@@ -1117,8 +1023,7 @@ u32 audio_encoder_thread(void * p_params) {
 					break;
 				}
 
-				ret = dc_audio_muxer_write(&aout, frame_nb);
-
+				ret = dc_audio_muxer_write(&audio_output_file, frame_nb);
 				if (ret == -1) {
 					fprintf(stderr, "An error occured while writing audio frame.\n");
 					quit = 1;
@@ -1130,25 +1035,23 @@ u32 audio_encoder_thread(void * p_params) {
 					break;
 				}
 
-				frame_nb++; //= aout.p_codec_ctx->frame_size; //aout.acc_samples;
-
+				frame_nb++; //= audio_output_file.codec_ctx->frame_size; //audio_output_file.acc_samples;
 			}
 
 			if (exit_loop || quit)
 				break;
-
 		}
 
-		dc_audio_muxer_close(&aout);
+		dc_audio_muxer_close(&audio_output_file);
 
 #ifndef FRAGMENTER
-		dc_message_queue_put(p_mq, p_adata->psz_name,
-				sizeof(p_adata->psz_name));
+		dc_message_queue_put(mq, audio_data_conf->psz_name,
+				sizeof(audio_data_conf->psz_name));
 #endif
 
 		// Send the time that a segment is available to MPD generator thread.
-		if (p_in_data->i_mode == LIVE_CAMERA || p_in_data->i_mode == LIVE_MEDIA) {
-			if (p_thread_params->audio_conf_idx == 0) {
+		if (in_data->mode == LIVE_CAMERA || in_data->mode == LIVE_MEDIA) {
+			if (thread_params->audio_conf_idx == 0) {
 				segtime t;
 				
 				//check we don't loose sync
@@ -1156,62 +1059,58 @@ u32 audio_encoder_thread(void * p_params) {
 				seg_utc = gf_net_get_utc();
 				diff = (int) (seg_utc - start_utc);
 				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
-				if (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
+				if (diff > (seg_nb+2) * in_data->seg_dur) {
 					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
-					while (diff > (seg_nb+2) * p_in_data->i_seg_dur) {
-						seg_nb ++;
+					while (diff > (seg_nb+2) * in_data->seg_dur) {
+						seg_nb++;
 					}
 				}
-				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * p_in_data->i_seg_dur);
+				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur);
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);
-				dc_message_queue_put(p_mq, &t, sizeof(t));
+				dc_message_queue_put(mq, &t, sizeof(t));
 			}
 		}
 
-		if (p_in_data->i_time_shift != -1) {
-			shift = 1000 * p_in_data->i_time_shift / p_in_data->i_seg_dur;
-			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", p_in_data->psz_out,
-					p_adata->psz_name, (seg_nb - shift));
-			dc_message_queue_put(p_delete_seg_mq, name_to_delete,
-					sizeof(name_to_delete));
-
+		if (in_data->time_shift != -1) {
+			shift = 1000 * in_data->time_shift / in_data->seg_dur;
+			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", in_data->out_dir, audio_data_conf->filename, (seg_nb - shift));
+			dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
 		}
 
 		seg_nb++;
 
 		if (quit)
 			break;
-
 	}
 
 	// If system is not live,
 	// Send the duration of the video
-	if (p_in_data->i_mode == ON_DEMAND) {
-		if (p_thread_params->audio_conf_idx == 0) {
-			int dur = (seg_nb * aout.i_frame_size * frame_per_seg * 1000) / p_adata->i_samplerate;
-			int dur_tot = (aout.p_codec_ctx->frame_number * aout.i_frame_size * 1000) / p_adata->i_samplerate;
+	if (in_data->mode == ON_DEMAND) {
+		if (thread_params->audio_conf_idx == 0) {
+			int dur = (seg_nb * audio_output_file.frame_size * frame_per_seg * 1000) / audio_data_conf->samplerate;
+			int dur_tot = (audio_output_file.codec_ctx->frame_number * audio_output_file.frame_size * 1000) / audio_data_conf->samplerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
-			//printf("Duration: %d \n", dur);
-			dc_message_queue_put(p_mq, &dur, sizeof(dur));
+			//fprintf(stdout, "Duration: %d \n", dur);
+			dc_message_queue_put(mq, &dur, sizeof(dur));
 		}
 	}
 
-	dc_audio_muxer_free(&aout);
+	dc_audio_muxer_free(&audio_output_file);
 
 	/* Close output audio file */
-	dc_audio_encoder_close(&aout);
+	dc_audio_encoder_close(&audio_output_file);
 
 #ifdef DEBUG
-	printf("Audio encoder is exiting...\n");
+	fprintf(stdout, "Audio encoder is exiting...\n");
 #endif
 	return 0;
 }
 
-int dc_run_controler(CmdData * p_in_data) {
-
+int dc_run_controler(CmdData *in_data)
+{
 	u32 i, j;
 	
 	ThreadParam keyboard_th_params;
@@ -1221,17 +1120,17 @@ int dc_run_controler(CmdData * p_in_data) {
 
 	//Video parameters
 	VideoThreadParam vdecoder_th_params;
-	VideoThreadParam *vencoder_th_params = alloca(gf_list_count(p_in_data->p_video_lst) * sizeof(VideoThreadParam));
-	VideoInputData vind;
-	VideoInputFile * vinf[MAX_SOURCE_NUMBER];
-	VideoScaledDataList p_vsdl;
-	VideoThreadParam * vscaler_th_params = NULL;
+	VideoThreadParam *vencoder_th_params = alloca(gf_list_count(in_data->video_lst) * sizeof(VideoThreadParam));
+	VideoInputData video_input_data;
+	VideoInputFile *video_input_file[MAX_SOURCE_NUMBER];
+	VideoScaledDataList video_scaled_data_list;
+	VideoThreadParam *vscaler_th_params = NULL;
 
 	//Audio parameters
 	AudioThreadParam adecoder_th_params;
-	AudioThreadParam *aencoder_th_params = alloca(gf_list_count(p_in_data->p_audio_lst) * sizeof(AudioThreadParam));
-	AudioInputData aind;
-	AudioInputFile ainf;
+	AudioThreadParam *aencoder_th_params = alloca(gf_list_count(in_data->audio_lst) * sizeof(AudioThreadParam));
+	AudioInputData audio_input_data;
+	AudioInputFile audio_input_file;
 
 #ifndef DASHER
 	ThreadParam dasher_th_params;
@@ -1248,433 +1147,372 @@ int dc_run_controler(CmdData * p_in_data) {
 	dc_register_libav();
 
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
-		vinf[i] = gf_malloc(sizeof(VideoInputFile));
+		video_input_file[i] = gf_malloc(sizeof(VideoInputFile));
 
 	dc_message_queue_init(&mq);
 	dc_message_queue_init(&delete_seg_mq);
 	dc_message_queue_init(&send_frag_mq);
 
+	memset(&audio_input_data, 0, sizeof(AudioInputData));;
+	memset(&audio_input_file, 0, sizeof(AudioInputFile));
+	memset(&video_input_data, 0, sizeof(VideoInputData));
 
-	memset(&aind, 0, sizeof(AudioInputData));;
-	memset(&ainf, 0, sizeof(AudioInputFile));
-	memset(&vind, 0, sizeof(VideoInputData));
-
-	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
-
-		dc_video_scaler_list_init(&p_vsdl, p_in_data->p_video_lst);
-
-		vscaler_th_params = gf_malloc(p_vsdl.i_size * sizeof(VideoThreadParam));
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
+		dc_video_scaler_list_init(&video_scaled_data_list, in_data->video_lst);
+		vscaler_th_params = gf_malloc(video_scaled_data_list.size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(vinf[0], &p_in_data->vdata, p_in_data->i_mode, p_in_data->i_no_loop) < 0) {
+		if (dc_video_decoder_open(video_input_file[0], &in_data->video_data_conf, in_data->mode, in_data->no_loop) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
 			return -1;
 		}
 
-		if (dc_video_input_data_init(&vind, /*vinf[0]->i_width, vinf[0]->i_height,
-		 vinf[0]->i_pix_fmt,*/p_vsdl.i_size, p_in_data->i_mode, MAX_SOURCE_NUMBER)
-				< 0) {
+		if (dc_video_input_data_init(&video_input_data, /*video_input_file[0]->width, video_input_file[0]->height,
+		 video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}
 
 		/* open other input videos for source switching */
-		for (i = 0; i < gf_list_count(p_in_data->p_vsrc); i++) {
-			VideoData * p_vconf = gf_list_get(p_in_data->p_vsrc, i);
-			if (dc_video_decoder_open(vinf[i + 1], p_vconf, LIVE_MEDIA, 1) < 0) {
+		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
+			VideoDataConf *vconf = gf_list_get(in_data->vsrc, i);
+			if (dc_video_decoder_open(video_input_file[i + 1], vconf, LIVE_MEDIA, 1) < 0) {
 				fprintf(stderr, "Cannot open input video.\n");
 				return -1;
 			}
 
-//			if (dc_video_input_data_init(&vind, vinf[i + 1]->i_width,
-//					vinf[i + 1]->i_height, vinf[i + 1]->i_pix_fmt, p_vsdl.i_size,
-//					p_in_data->i_mode, MAX_SOURCE_NUMBER) < 0) {
+//			if (dc_video_input_data_init(&video_input_data, video_input_file[i + 1]->width,
+//					video_input_file[i + 1]->height, video_input_file[i + 1]->pix_fmt, video_scaled_data_list.size,
+//					in_data->mode, MAX_SOURCE_NUMBER) < 0) {
 //				fprintf(stderr, "Cannot initialize audio data.\n");
 //				return -1;
 //			}
 		}
 
-//		dc_video_input_data_set_prop(&vind, 0, vinf[1]->i_width,
-//				vinf[1]->i_height, vinf[1]->i_pix_fmt);
+//		dc_video_input_data_set_prop(&video_input_data, 0, video_input_file[1]->width,
+//				video_input_file[1]->height, video_input_file[1]->pix_fmt);
 
-		//int source_nb = gf_list_count(p_in_data->p_vsrc);
-		//printf("source_nb: %d \n", source_nb);
-		for (i = 0; i < gf_list_count(p_in_data->p_vsrc) + 1; i++) {
-			dc_video_input_data_set_prop(&vind, i, vinf[i]->i_width,
-					vinf[i]->i_height, vinf[i]->i_pix_fmt);
+		//int source_nb = gf_list_count(in_data->vsrc);
+		//fprintf(stdout, "source_nb: %d \n", source_nb);
+		for (i=0; i<gf_list_count(in_data->vsrc) + 1; i++) {
+			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, video_input_file[i]->pix_fmt);
 		}
 
-		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
-			dc_video_scaler_data_init(&vind, p_vsdl.p_vsd[i], MAX_SOURCE_NUMBER);
+		for (i=0; i<(u32)video_scaled_data_list.size; i++) {
+			dc_video_scaler_data_init(&video_input_data, video_scaled_data_list.video_scaled_data[i], MAX_SOURCE_NUMBER);
 
-			for (j = 0; j < gf_list_count(p_in_data->p_vsrc) + 1; j++) {
-				dc_video_scaler_data_set_prop(&vind, p_vsdl.p_vsd[i], j);
+			for (j=0; j<gf_list_count(in_data->vsrc) + 1; j++) {
+				dc_video_scaler_data_set_prop(&video_input_data, video_scaled_data_list.video_scaled_data[i], j);
 			}
 		}
 
 		/* Initialize video decoder thread */
-		vdecoder_th_params.p_thread = gf_th_new("video_decoder_thread");
+		vdecoder_th_params.thread = gf_th_new("video_decoder_thread");
 
-		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
-			vscaler_th_params[i].p_thread = gf_th_new("video_scaler_thread");
+		for (i=0; i<(u32)video_scaled_data_list.size; i++) {
+			vscaler_th_params[i].thread = gf_th_new("video_scaler_thread");
 		}
 
 		/* Initialize video encoder threads */
-		for (i = 0; i < gf_list_count(p_in_data->p_video_lst); i++)
-			vencoder_th_params[i].p_thread = gf_th_new("video_encoder_thread");
-
+		for (i=0; i<gf_list_count(in_data->video_lst); i++)
+			vencoder_th_params[i].thread = gf_th_new("video_encoder_thread");
 	}
 
-	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
-
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Open input audio */
-		if (dc_audio_decoder_open(&ainf, &p_in_data->adata, p_in_data->i_mode,
-				p_in_data->i_no_loop) < 0) {
+		if (dc_audio_decoder_open(&audio_input_file, &in_data->audio_data_conf, in_data->mode, in_data->no_loop) < 0) {
 			fprintf(stderr, "Cannot open input audio.\n");
 			return -1;
 		}
 
-		if (dc_audio_input_data_init(&aind, p_in_data->adata.i_channels,
-				p_in_data->adata.i_samplerate,
-				gf_list_count(p_in_data->p_audio_lst), p_in_data->i_mode) < 0) {
+		if (dc_audio_input_data_init(&audio_input_data, in_data->audio_data_conf.channels, in_data->audio_data_conf.samplerate, gf_list_count(in_data->audio_lst), in_data->mode) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			return -1;
 		}
 
 		/* Initialize audio decoder thread */
-		adecoder_th_params.p_thread = gf_th_new("audio_decoder_thread");
+		adecoder_th_params.thread = gf_th_new("audio_decoder_thread");
 
 		/* Initialize audio encoder threads */
-		for (i = 0; i < gf_list_count(p_in_data->p_audio_lst); i++)
-			aencoder_th_params[i].p_thread = gf_th_new("video_encoder_thread");
-
+		for (i = 0; i < gf_list_count(in_data->audio_lst); i++)
+			aencoder_th_params[i].thread = gf_th_new("video_encoder_thread");
 	}
 
 	/******** Keyboard controler Thread ********/
 
 	/* Initialize keyboard controller thread */
-	keyboard_th_params.p_thread = gf_th_new("keyboard_thread");
+	keyboard_th_params.thread = gf_th_new("keyboard_thread");
 	
 	/* Create keyboard controller thread */
-	keyboard_th_params.p_in_data = p_in_data;
-	if (gf_th_run(keyboard_th_params.p_thread, keyboard_thread, (void *)&keyboard_th_params) != GF_OK) {
-
-		fprintf(stderr,
-				"Error while doing pthread_create for keyboard_thread.\n");
+	keyboard_th_params.in_data = in_data;
+	if (gf_th_run(keyboard_th_params.thread, keyboard_thread, (void *)&keyboard_th_params) != GF_OK) {
+		fprintf(stderr, "Error while doing pthread_create for keyboard_thread.\n");
 	}
 
 	/********************************************/
 
 	//Communication between decoder and audio encoder
-	for (i = 0; i < gf_list_count(p_in_data->p_audio_lst); i++) {
-		AudioData * p_tmp_adata = gf_list_get(p_in_data->p_audio_lst, i);
-		p_tmp_adata->i_channels = p_in_data->adata.i_channels;
-		p_tmp_adata->i_samplerate = p_in_data->adata.i_samplerate;
+	for (i = 0; i < gf_list_count(in_data->audio_lst); i++) {
+		AudioDataConf *tmadata = gf_list_get(in_data->audio_lst, i);
+		tmadata->channels = in_data->audio_data_conf.channels;
+		tmadata->samplerate = in_data->audio_data_conf.samplerate;
 	}
 
 	//Communication between decoder and video encoder
-	for (i = 0; i < gf_list_count(p_in_data->p_video_lst); i++) {
-		VideoData * p_tmp_vdata = gf_list_get(p_in_data->p_video_lst, i);
-		p_tmp_vdata->i_framerate = p_in_data->vdata.i_framerate;
-		if (p_in_data->use_source_timing) {
-			p_tmp_vdata->time_base = p_in_data->vdata.time_base;
+	for (i = 0; i < gf_list_count(in_data->video_lst); i++) {
+		VideoDataConf *tmvdata = gf_list_get(in_data->video_lst, i);
+		tmvdata->framerate = in_data->video_data_conf.framerate;
+		if (in_data->use_source_timing) {
+			tmvdata->time_base = in_data->video_data_conf.time_base;
 		}
 	}
 	
 	/******** MPD Thread ********/
 
 	/* Initialize MPD generator thread */
-	mpd_th_params.p_thread = gf_th_new("mpd_thread");
+	mpd_th_params.thread = gf_th_new("mpd_thread");
 	
 	/* Create MPD generator thread */
-	mpd_th_params.p_in_data = p_in_data;
-	mpd_th_params.p_mq = &mq;
-	if (gf_th_run(mpd_th_params.p_thread, mpd_thread, (void *)&mpd_th_params) != GF_OK) {
+	mpd_th_params.in_data = in_data;
+	mpd_th_params.mq = &mq;
+	if (gf_th_run(mpd_th_params.thread, mpd_thread, (void *)&mpd_th_params) != GF_OK) {
 		fprintf(stderr, "Error while doing pthread_create for mpd_thread.\n");
 	}
 
 	/****************************/
 
-	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Create video encoder threads */
-		for (i = 0; i < gf_list_count(p_in_data->p_video_lst); i++) {
+		for (i=0; i<gf_list_count(in_data->video_lst); i++) {
+			VideoDataConf * vconf = gf_list_get(in_data->video_lst, i);
 
-			VideoData * p_vconf = gf_list_get(p_in_data->p_video_lst, i);
-
-			vencoder_th_params[i].p_in_data = p_in_data;
+			vencoder_th_params[i].in_data = in_data;
 			vencoder_th_params[i].video_conf_idx = i;
-			vencoder_th_params[i].p_vsd = dc_video_scaler_get_data(&p_vsdl,
-					p_vconf->i_width, p_vconf->i_height);
+			vencoder_th_params[i].video_scaled_data = dc_video_scaler_get_data(&video_scaled_data_list, vconf->width, vconf->height);
 
-			vencoder_th_params[i].p_mq = &mq;
-			vencoder_th_params[i].p_delete_seg_mq = &delete_seg_mq;
-			vencoder_th_params[i].p_send_seg_mq = &send_frag_mq;
+			vencoder_th_params[i].mq = &mq;
+			vencoder_th_params[i].delete_seg_mq = &delete_seg_mq;
+			vencoder_th_params[i].send_seg_mq = &send_frag_mq;
 
-			if (gf_th_run(vencoder_th_params[i].p_thread, video_encoder_thread,
-					(void *) &vencoder_th_params[i]) != GF_OK) {
-				fprintf(stderr,
-						"Error while doing pthread_create for video_encoder_thread.\n");
+			if (gf_th_run(vencoder_th_params[i].thread, video_encoder_thread, (void*)&vencoder_th_params[i]) != GF_OK) {
+				fprintf(stderr, "Error while doing pthread_create for video_encoder_thread.\n");
 			}
 		}
 
 		/* Create video scaler threads */
-		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
+		for (i=0; i<(u32)video_scaled_data_list.size; i++) {
+			vscaler_th_params[i].in_data = in_data;
+			vscaler_th_params[i].video_scaled_data = video_scaled_data_list.video_scaled_data[i];
+			vscaler_th_params[i].video_input_data = &video_input_data;
 
-			vscaler_th_params[i].p_in_data = p_in_data;
-			vscaler_th_params[i].p_vsd = p_vsdl.p_vsd[i];
-			vscaler_th_params[i].p_vind = &vind;
-
-			if (gf_th_run(vscaler_th_params[i].p_thread, video_scaler_thread,
-					(void *) &vscaler_th_params[i]) != GF_OK) {
-				fprintf(stderr,
-						"Error while doing pthread_create for video_scaler_thread.\n");
+			if (gf_th_run(vscaler_th_params[i].thread, video_scaler_thread, (void*)&vscaler_th_params[i]) != GF_OK) {
+				fprintf(stderr, "Error while doing pthread_create for video_scaler_thread.\n");
 			}
 		}
 	}
 
-	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Create audio encoder threads */
-		for (i = 0; i < gf_list_count(p_in_data->p_audio_lst); i++) {
-
-			aencoder_th_params[i].p_in_data = p_in_data;
+		for (i = 0; i < gf_list_count(in_data->audio_lst); i++) {
+			aencoder_th_params[i].in_data = in_data;
 			aencoder_th_params[i].audio_conf_idx = i;
-			aencoder_th_params[i].p_aind = &aind;
+			aencoder_th_params[i].audio_input_data = &audio_input_data;
 
-			aencoder_th_params[i].p_mq = &mq;
-			aencoder_th_params[i].p_delete_seg_mq = &delete_seg_mq;
-			aencoder_th_params[i].p_send_seg_mq = &send_frag_mq;
+			aencoder_th_params[i].mq = &mq;
+			aencoder_th_params[i].delete_seg_mq = &delete_seg_mq;
+			aencoder_th_params[i].send_seg_mq = &send_frag_mq;
 
-			if (gf_th_run(aencoder_th_params[i].p_thread, audio_encoder_thread,
-					(void *) &aencoder_th_params[i]) != GF_OK) {
-				fprintf(stderr,
-						"Error while doing pthread_create for audio_encoder_thread.\n");
+			if (gf_th_run(aencoder_th_params[i].thread, audio_encoder_thread, (void *) &aencoder_th_params[i]) != GF_OK) {
+				fprintf(stderr, "Error while doing pthread_create for audio_encoder_thread.\n");
 			}
 		}
 	}
 
-	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Create video decoder thread */
-		vdecoder_th_params.p_in_data = p_in_data;
-		vdecoder_th_params.p_vind = &vind;
-		vdecoder_th_params.p_vinf = vinf;
-		if (gf_th_run(vdecoder_th_params.p_thread, video_decoder_thread,
-				(void *) &vdecoder_th_params) != GF_OK) {
-
-			fprintf(stderr,
-					"Error while doing pthread_create for video_decoder_thread.\n");
+		vdecoder_th_params.in_data = in_data;
+		vdecoder_th_params.video_input_data = &video_input_data;
+		vdecoder_th_params.video_input_file = video_input_file;
+		if (gf_th_run(vdecoder_th_params.thread, video_decoder_thread, (void *) &vdecoder_th_params) != GF_OK) {
+			fprintf(stderr, "Error while doing pthread_create for video_decoder_thread.\n");
 		}
 	}
 
-	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Create audio decoder thread */
-		adecoder_th_params.p_in_data = p_in_data;
-		adecoder_th_params.p_aind = &aind;
-		adecoder_th_params.p_ainf = &ainf;
-		if (gf_th_run(adecoder_th_params.p_thread, audio_decoder_thread,
-				(void *) &adecoder_th_params) != GF_OK) {
-
-			fprintf(stderr,
-					"Error while doing pthread_create for audio_decoder_thread.\n");
+		adecoder_th_params.in_data = in_data;
+		adecoder_th_params.audio_input_data = &audio_input_data;
+		adecoder_th_params.audio_input_file = &audio_input_file;
+		if (gf_th_run(adecoder_th_params.thread, audio_decoder_thread, (void *) &adecoder_th_params) != GF_OK) {
+			fprintf(stderr, "Error while doing pthread_create for audio_decoder_thread.\n");
 		}
 	}
 
-	if (p_in_data->i_time_shift != -1) {
-
+	if (in_data->time_shift != -1) {
 		/* Initialize delete segment thread */
-		delete_seg_th_params.p_thread = gf_th_new("delete_seg_thread");
-
-		delete_seg_th_params.p_in_data = p_in_data;
-		delete_seg_th_params.p_mq = &delete_seg_mq;
-		if (gf_th_run(delete_seg_th_params.p_thread, delete_seg_thread,
-				(void *) &delete_seg_th_params) != GF_OK) {
-
-			fprintf(stderr,
-					"Error while doing pthread_create for delete_seg_thread.\n");
+		delete_seg_th_params.thread = gf_th_new("delete_seg_thread");
+		delete_seg_th_params.in_data = in_data;
+		delete_seg_th_params.mq = &delete_seg_mq;
+		if (gf_th_run(delete_seg_th_params.thread, delete_seg_thread, (void *) &delete_seg_th_params) != GF_OK) {
+			fprintf(stderr, "Error while doing pthread_create for delete_seg_thread.\n");
 		}
-
 	}
 
-	if (p_in_data->i_send_message == 1) {
-
+	if (in_data->send_message == 1) {
 		/* Initialize delete segment thread */
-		send_frag_th_params.p_thread = gf_th_new("send_frag_event_thread");
-
-		send_frag_th_params.p_in_data = p_in_data;
-		send_frag_th_params.p_mq = &send_frag_mq;
-		if (gf_th_run(send_frag_th_params.p_thread, send_frag_event,
-				(void *) &send_frag_th_params) != GF_OK) {
-
-			fprintf(stderr,
-					"Error while doing pthread_create for send_frag_event_thread.\n");
+		send_frag_th_params.thread = gf_th_new("send_frag_event_thread");
+		send_frag_th_params.in_data = in_data;
+		send_frag_th_params.mq = &send_frag_mq;
+		if (gf_th_run(send_frag_th_params.thread, send_frag_event, (void *) &send_frag_th_params) != GF_OK) {
+			fprintf(stderr, "Error while doing pthread_create for send_frag_event_thread.\n");
 		}
-
 	}
 
 #ifndef FRAGMENTER
 
-	if (strcmp(p_in_data->psz_mpd, "") != 0) {
-
+	if (strcmp(in_data->mpd_filename, "") != 0) {
 		/* Initialize keyboard controller thread */
-		fragmenter_th_params.p_thread = gf_th_new("fragmenter_thread");
-
-		fragmenter_th_params.p_in_data = p_in_data;
-		fragmenter_th_params.p_mq = &mq;
-		if (gf_th_run(fragmenter_th_params.p_thread, fragmenter_thread,
-						(void *) &fragmenter_th_params) != GF_OK) {
-
-			fprintf(stderr,
-					"Error while doing pthread_create for fragmenter_thread.\n");
+		fragmenter_th_params.thread = gf_th_new("fragmenter_thread");
+		fragmenter_th_params.in_data = in_data;
+		fragmenter_th_params.mq = &mq;
+		if (gf_th_run(fragmenter_th_params.thread, fragmenter_thread, (void *) &fragmenter_th_params) != GF_OK) {
+			fprintf(stderr, "Error while doing pthread_create for fragmenter_thread.\n");
 		}
-
 	}
-
 #endif
 
 #ifndef DASHER
-
-	if (p_in_data->i_live && strcmp(p_in_data->psz_mpd, "") != 0) {
-
+	if (in_data->live && strcmp(in_data->mpd_filename, "") != 0) {
 		/* Initialize keyboard controller thread */
-		dasher_th_params.p_thread = gf_th_new("dasher_thread");
-
-		dasher_th_params.p_in_data = p_in_data;
-		if (gf_th_run(dasher_th_params.p_thread, dasher_thread,
-						(void *) &dasher_th_params) != GF_OK) {
-
-			fprintf(stderr,
-					"Error while doing pthread_create for dasher_thread.\n");
+		dasher_th_params.thread = gf_th_new("dasher_thread");
+		dasher_th_params.in_data = in_data;
+		if (gf_th_run(dasher_th_params.thread, dasher_thread, (void *) &dasher_th_params) != GF_OK) {
+			fprintf(stderr, "Error while doing pthread_create for dasher_thread.\n");
 		}
-
 	}
-
 #endif
 
-	printf("Press q or Q to exit...\n");
+	fprintf(stdout, "Press q or Q to exit...\n");
 
-	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Wait for and destroy audio decoder threads */
-		gf_th_stop(adecoder_th_params.p_thread);
-		gf_th_del(adecoder_th_params.p_thread);
+		gf_th_stop(adecoder_th_params.thread);
+		gf_th_del(adecoder_th_params.thread);
 	}
 
-	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Wait for and destroy video decoder threads */
-		gf_th_stop(vdecoder_th_params.p_thread);
-		gf_th_del(vdecoder_th_params.p_thread);
+		gf_th_stop(vdecoder_th_params.thread);
+		gf_th_del(vdecoder_th_params.thread);
 	}
 
-	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Wait for and destroy audio encoder threads */
-		for (i = 0; i < gf_list_count(p_in_data->p_audio_lst); i++) {
-			gf_th_stop(aencoder_th_params[i].p_thread);
-			gf_th_del(aencoder_th_params[i].p_thread);
+		for (i = 0; i < gf_list_count(in_data->audio_lst); i++) {
+			gf_th_stop(aencoder_th_params[i].thread);
+			gf_th_del(aencoder_th_params[i].thread);
 		}
 	}
 
-	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Wait for and destroy video encoder threads */
-		for (i = 0; i < gf_list_count(p_in_data->p_video_lst); i++) {
-			gf_th_stop(vencoder_th_params[i].p_thread);
-			gf_th_del(vencoder_th_params[i].p_thread);
+		for (i = 0; i < gf_list_count(in_data->video_lst); i++) {
+			gf_th_stop(vencoder_th_params[i].thread);
+			gf_th_del(vencoder_th_params[i].thread);
 		}
 
 		/* Wait for and destroy video scaler threads */
-		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
-			gf_th_stop(vscaler_th_params[i].p_thread);
-			gf_th_del(vscaler_th_params[i].p_thread);
+		for (i = 0; i < (u32)video_scaled_data_list.size; i++) {
+			gf_th_stop(vscaler_th_params[i].thread);
+			gf_th_del(vscaler_th_params[i].thread);
 		}
 	}
 
 #ifndef DASHER
-	if (p_in_data->i_live && strcmp(p_in_data->psz_mpd, "") != 0) {
+	if (in_data->live && strcmp(in_data->mpd_filename, "") != 0) {
 		/* Wait for and destroy dasher thread */
-		gf_th_stop(dasher_th_params.p_thread);
-		gf_th_del(dasher_th_params.p_thread);
+		gf_th_stop(dasher_th_params.thread);
+		gf_th_del(dasher_th_params.thread);
 	}
-
 #endif
 
-	if (strcmp(p_in_data->adata.psz_name, "") != 0) {
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Destroy audio input data */
-		dc_audio_input_data_destroy(&aind);
+		dc_audio_input_data_destroy(&audio_input_data);
 		/* Close input audio */
-		dc_audio_decoder_close(&ainf);
+		dc_audio_decoder_close(&audio_input_file);
 	}
 
-	if (strcmp(p_in_data->vdata.psz_name, "") != 0) {
-
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Destroy video input data */
-		dc_video_input_data_destroy(&vind);
+		dc_video_input_data_destroy(&video_input_data);
 
-		for (i = 0; i < gf_list_count(p_in_data->p_vsrc); i++) {
+		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
 			/* Close input video */
-			dc_video_decoder_close(vinf[i]);
+			dc_video_decoder_close(video_input_file[i]);
 		}
 
-		for (i = 0; i < (u32)p_vsdl.i_size; i++) {
-			dc_video_scaler_data_destroy(p_vsdl.p_vsd[i]);
+		for (i = 0; i < (u32)video_scaled_data_list.size; i++) {
+			dc_video_scaler_data_destroy(video_scaled_data_list.video_scaled_data[i]);
 		}
 
 		/* Destroy video scaled data */
-		dc_video_scaler_list_destroy(&p_vsdl);
+		dc_video_scaler_list_destroy(&video_scaled_data_list);
 	}
 
-	keyboard_th_params.p_in_data->i_exit_signal = 1;
+	keyboard_th_params.in_data->exit_signal = 1;
 
 #ifndef FRAGMENTER
-
 	dc_message_queue_flush(&mq);
 
-	if (strcmp(p_in_data->psz_mpd, "") != 0) {
+	if (strcmp(in_data->mpd_filename, "") != 0) {
 		/* Wait for and destroy dasher thread */
-		gf_th_stop(fragmenter_th_params.p_thread);
-		gf_th_del(fragmenter_th_params.p_thread);
+		gf_th_stop(fragmenter_th_params.thread);
+		gf_th_del(fragmenter_th_params.thread);
 	}
-
 #endif
 
 	/********** Keyboard thread ***********/
 
 	/* Wait for and destroy keyboard controler thread */
-	gf_th_stop(keyboard_th_params.p_thread);
-	gf_th_del(keyboard_th_params.p_thread);
+	gf_th_stop(keyboard_th_params.thread);
+	gf_th_del(keyboard_th_params.thread);
 
 	/**************************************/
 
 	/********** MPD generator thread ***********/
 
 	/* Wait for and destroy MPD generator thread */
-	gf_th_stop(mpd_th_params.p_thread);
-	gf_th_del(mpd_th_params.p_thread);
+	gf_th_stop(mpd_th_params.thread);
+	gf_th_del(mpd_th_params.thread);
 
 	/**************************************/
 
-	if (p_in_data->i_time_shift != -1) {
+	if (in_data->time_shift != -1) {
 		//	dc_message_queue_flush(&delete_seg_mq);
 		/* Wait for and destroy delete segment thread */
-		gf_th_stop(delete_seg_th_params.p_thread);
-		gf_th_del(delete_seg_th_params.p_thread);
+		gf_th_stop(delete_seg_th_params.thread);
+		gf_th_del(delete_seg_th_params.thread);
 	}
 
-	if (p_in_data->i_send_message == 1) {
+	if (in_data->send_message == 1) {
 		/* Wait for and destroy delete segment thread */
-		gf_th_stop(send_frag_th_params.p_thread);
-		gf_th_del(send_frag_th_params.p_thread);
+		gf_th_stop(send_frag_th_params.thread);
+		gf_th_del(send_frag_th_params.thread);
 	}
 
 #ifndef DASHER
-	if (!p_in_data->i_live && strcmp(p_in_data->psz_mpd, "") != 0) {
-		dasher_th_params.p_in_data = p_in_data;
+	if (!in_data->live && strcmp(in_data->mpd_filename, "") != 0) {
+		dasher_th_params.in_data = in_data;
 		dasher_thread((void*) &dasher_th_params);
 	}
 #endif
-
 
 	if (vscaler_th_params)
 		gf_free(vscaler_th_params);
 
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
-		gf_free(vinf[i]);
+		gf_free(video_input_file[i]);
 
 	dc_message_queue_free(&mq);
 	dc_message_queue_free(&delete_seg_mq);
@@ -1683,4 +1521,3 @@ int dc_run_controler(CmdData * p_in_data) {
 	dc_unregister_libav();	
 	return 0;
 }
-

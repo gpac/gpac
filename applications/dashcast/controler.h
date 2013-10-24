@@ -38,81 +38,60 @@
 #include "cmd_data.h"
 #include "message_queue.h"
 
+
 /* General thread parameters */
 typedef struct {
 	/* command data */
-	CmdData * p_in_data;
+	CmdData *in_data;
 	/* handle to thread */
-	GF_Thread * p_thread;
+	GF_Thread *thread;
 
-	MessageQueue * p_mq;
-
+	MessageQueue *mq;
 } ThreadParam;
 
 /* Video thread parameters */
 typedef struct {
 	/* command data */
-	CmdData * p_in_data;
-	/* The index in the configuration file
-	 * to a video entry corresponding to
-	 * the thread.
-	 */
+	CmdData *in_data;
+	/* The index in the configuration file to a video entry corresponding to the thread. */
 	int video_conf_idx;
-	/* Video input data structure
-	 * corresponding to the thread. (This data
-	 * is shared between video decoder and 
-	 * video scaler)
-	 */
-	VideoInputData * p_vind;
-	/* Video scaled data structure
-	 * corresponding to the thread. (This data
-	 * is shared between video scaler and
-	 * video encoder)
-	 */
-	VideoScaledData * p_vsd;
-	/* Video input file structure 
-	 * corresponding to the thread
-	 */
-	VideoInputFile ** p_vinf;
+	/* Video input data structure corresponding to the thread. (This data is shared between video decoder and video scaler) */
+	VideoInputData *video_input_data;
+	/* Video scaled data structure corresponding to the thread. (This data is shared between video scaler and video encoder) */
+	VideoScaledData *video_scaled_data;
+	/* Video input file structure corresponding to the thread */
+	VideoInputFile **video_input_file;
 	/* handle to the thread */
-	GF_Thread * p_thread;
+	GF_Thread *thread;
 
-	MessageQueue * p_mq;
-	MessageQueue * p_delete_seg_mq;
-	MessageQueue * p_send_seg_mq;
-
+	MessageQueue *mq;
+	MessageQueue *delete_seg_mq;
+	MessageQueue *send_seg_mq;
 } VideoThreadParam;
 
 /* Audio thread parameters */
 typedef struct {
 	/* command data */
-	CmdData * p_in_data;
-	/* The index in the configuration file
-	 * to an audio entry corresponding to
-	 * the thread
-	 */
+	CmdData *in_data;
+	/* The index in the configuration file to an audio entry corresponding to the thread */
 	int audio_conf_idx;
-	/* Audio input data
-	 * (This data is shared between audio 
-	 * decoder and audio encoder
-	 */
-	AudioInputData * p_aind;
+	/* Audio input data (This data is shared between audio decoder and audio encoder */
+	AudioInputData *audio_input_data;
 	/* Audio input file structure */
-	AudioInputFile * p_ainf;
+	AudioInputFile *audio_input_file;
 	/* handle to the thread */
-	GF_Thread * p_thread;
+	GF_Thread *thread;
 
-	MessageQueue * p_mq;
-	MessageQueue * p_delete_seg_mq;
-	MessageQueue * p_send_seg_mq;
-
+	MessageQueue *mq;
+	MessageQueue *delete_seg_mq;
+	MessageQueue *send_seg_mq;
 } AudioThreadParam;
 
 /* 
  * Run controler runs all decoder, scalers, and encoders
  * of audio and video
  * 
- * @param cmdd [in] command data 
+ * @param cmd_data [in] command data 
  * 
  * @return 0 on success, -1 on failure
  */
