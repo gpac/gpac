@@ -76,9 +76,11 @@ void dc_video_input_data_destroy(VideoInputData *video_input_data)
 {
 	int i;
 	for (i=0; i<VIDEO_CB_SIZE; i++) {
-		VideoDataNode *video_data_node = video_input_data->circular_buf.list[i].data;
-		av_free(video_data_node->vframe);
-		gf_free(video_data_node);
+		if (video_input_data->circular_buf.list) {
+			VideoDataNode *video_data_node = video_input_data->circular_buf.list[i].data;
+			av_free(video_data_node->vframe);
+			gf_free(video_data_node);
+		}
 	}
 
 	dc_circular_buffer_destroy(&video_input_data->circular_buf);

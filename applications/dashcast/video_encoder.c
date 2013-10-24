@@ -52,15 +52,15 @@
  * param options a list of space separated and ':' affected options (e.g. "a:b c:d e:f"). @options be non NULL.
  */
 void build_dict(void *priv_data, const char *options) {
-  char *opt = strdup(options);
-  char *tok = strtok(opt, "=");
-  char *tokval = NULL;
-  while (tok && (tokval=strtok(NULL, " "))) {
-    if (av_opt_set(priv_data, tok, tokval, 0) < 0)
-      fprintf(stderr, "Unknown custom option \"%s\" with value \"%s\" in %s\n", tok, tokval, options);
-    tok = strtok(NULL, "=");
-  }
-  free(opt);
+	char *opt = strdup(options);
+	char *tok = strtok(opt, "=");
+	char *tokval = NULL;
+	while (tok && (tokval=strtok(NULL, " "))) {
+		if (av_opt_set(priv_data, tok, tokval, 0) < 0)
+			fprintf(stderr, "Unknown custom option \"%s\" with value \"%s\" in %s\n", tok, tokval, options);
+		tok = strtok(NULL, "=");
+	}
+	free(opt);
 }
 
 int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing)

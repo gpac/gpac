@@ -1111,6 +1111,7 @@ u32 audio_encoder_thread(void *params)
 
 int dc_run_controler(CmdData *in_data)
 {
+	int ret = 0;
 	u32 i, j;
 	
 	ThreadParam keyboard_th_params;
@@ -1164,13 +1165,15 @@ int dc_run_controler(CmdData *in_data)
 		/* Open input video */
 		if (dc_video_decoder_open(video_input_file[0], &in_data->video_data_conf, in_data->mode, in_data->no_loop) < 0) {
 			fprintf(stderr, "Cannot open input video.\n");
-			return -1;
+			ret = -1;
+			goto exit;
 		}
 
 		if (dc_video_input_data_init(&video_input_data, /*video_input_file[0]->width, video_input_file[0]->height,
 		 video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
-			return -1;
+			ret = -1;
+			goto exit;
 		}
 
 		/* open other input videos for source switching */
@@ -1178,14 +1181,16 @@ int dc_run_controler(CmdData *in_data)
 			VideoDataConf *video_data_conf = gf_list_get(in_data->vsrc, i);
 			if (dc_video_decoder_open(video_input_file[i + 1], video_data_conf, LIVE_MEDIA, 1) < 0) {
 				fprintf(stderr, "Cannot open input video.\n");
-				return -1;
+				ret = -1;
+				goto exit;
 			}
 
 //			if (dc_video_input_data_init(&video_input_data, video_input_file[i + 1]->width,
 //					video_input_file[i + 1]->height, video_input_file[i + 1]->pix_fmt, video_scaled_data_list.size,
 //					in_data->mode, MAX_SOURCE_NUMBER) < 0) {
 //				fprintf(stderr, "Cannot initialize audio data.\n");
-//				return -1;
+					ret = -1;
+					goto exit;
 //			}
 		}
 
@@ -1222,12 +1227,14 @@ int dc_run_controler(CmdData *in_data)
 		/* Open input audio */
 		if (dc_audio_decoder_open(&audio_input_file, &in_data->audio_data_conf, in_data->mode, in_data->no_loop) < 0) {
 			fprintf(stderr, "Cannot open input audio.\n");
-			return -1;
+			ret = -1;
+			goto exit;
 		}
 
 		if (dc_audio_input_data_init(&audio_input_data, in_data->audio_data_conf.channels, in_data->audio_data_conf.samplerate, gf_list_count(in_data->audio_lst), in_data->mode) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
-			return -1;
+			ret = -1;
+			goto exit;
 		}
 
 		/* Initialize audio decoder thread */
@@ -1369,7 +1376,6 @@ int dc_run_controler(CmdData *in_data)
 	}
 
 #ifndef FRAGMENTER
-
 	if (strcmp(in_data->mpd_filename, "") != 0) {
 		/* Initialize keyboard controller thread */
 		fragmenter_th_params.thread = gf_th_new("fragmenter_thread");
@@ -1436,30 +1442,6 @@ int dc_run_controler(CmdData *in_data)
 	}
 #endif
 
-	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
-		/* Destroy audio input data */
-		dc_audio_input_data_destroy(&audio_input_data);
-		/* Close input audio */
-		dc_audio_decoder_close(&audio_input_file);
-	}
-
-	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
-		/* Destroy video input data */
-		dc_video_input_data_destroy(&video_input_data);
-
-		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
-			/* Close input video */
-			dc_video_decoder_close(video_input_file[i]);
-		}
-
-		for (i = 0; i < (u32)video_scaled_data_list.size; i++) {
-			dc_video_scaler_data_destroy(video_scaled_data_list.video_scaled_data[i]);
-		}
-
-		/* Destroy video scaled data */
-		dc_video_scaler_list_destroy(&video_scaled_data_list);
-	}
-
 	keyboard_th_params.in_data->exit_signal = 1;
 
 #ifndef FRAGMENTER
@@ -1507,6 +1489,31 @@ int dc_run_controler(CmdData *in_data)
 		dasher_thread((void*) &dasher_th_params);
 	}
 #endif
+	
+exit:
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
+		/* Destroy audio input data */
+		dc_audio_input_data_destroy(&audio_input_data);
+		/* Close input audio */
+		dc_audio_decoder_close(&audio_input_file);
+	}
+
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
+		/* Destroy video input data */
+		dc_video_input_data_destroy(&video_input_data);
+
+		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
+			/* Close input video */
+			dc_video_decoder_close(video_input_file[i]);
+		}
+
+		for (i = 0; i < (u32)video_scaled_data_list.size; i++) {
+			dc_video_scaler_data_destroy(video_scaled_data_list.video_scaled_data[i]);
+		}
+
+		/* Destroy video scaled data */
+		dc_video_scaler_list_destroy(&video_scaled_data_list);
+	}
 
 	if (vscaler_th_params)
 		gf_free(vscaler_th_params);
@@ -1518,6 +1525,7 @@ int dc_run_controler(CmdData *in_data)
 	dc_message_queue_free(&delete_seg_mq);
 	dc_message_queue_free(&send_frag_mq);
 	
-	dc_unregister_libav();	
-	return 0;
+	dc_unregister_libav();
+
+	return ret;
 }
