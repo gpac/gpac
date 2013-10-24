@@ -25,54 +25,51 @@
 
 #include "audio_decoder.h"
 
-int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int i_mode, int i_no_loop) {
-
+int dc_audio_decoder_open(AudioInputFile *audio_input_data, AudioDataConf *audio_data_conf, int mode, int no_loop)
+{
 	u32 i;
-	AVInputFormat * p_in_fmt = NULL;
-	AVCodecContext * p_codec_ctx;
-	AVCodec * p_codec;
+	AVCodecContext *codec_ctx;
+	AVCodec *codec;
+	AVInputFormat *in_fmt = NULL;
+	audio_input_data->fmt = NULL;
 
-	if (p_adata->psz_format && strcmp(p_adata->psz_format,"") != 0) {
-
-		p_in_fmt = av_find_input_format(p_adata->psz_format);
-		if (p_in_fmt == NULL) {
-			fprintf(stderr, "Cannot find the format %s.\n", p_adata->psz_format);
+	if (audio_data_conf->format && strcmp(audio_data_conf->format,"") != 0) {
+		in_fmt = av_find_input_format(audio_data_conf->format);
+		if (in_fmt == NULL) {
+			fprintf(stderr, "Cannot find the format %s.\n", audio_data_conf->format);
 			return -1;
 		}
-
 	}
-
-	p_ain->p_fmt = NULL;
 
 	/*
 	 * Open audio
 	 */
-	if (avformat_open_input(&p_ain->p_fmt, p_adata->psz_name, p_in_fmt, NULL) != 0) {
-		fprintf(stderr, "Cannot open file: %s\n", p_adata->psz_name);
+	if (avformat_open_input(&audio_input_data->fmt, audio_data_conf->filename, in_fmt, NULL) != 0) {
+		fprintf(stderr, "Cannot open file: %s\n", audio_data_conf->filename);
 		return -1;
 	}
 
 	/*
 	 * Retrieve stream information
 	 */
-	if (avformat_find_stream_info(p_ain->p_fmt, NULL) < 0) {
+	if (avformat_find_stream_info(audio_input_data->fmt, NULL) < 0) {
 		fprintf(stderr, "Cannot find stream information\n");
 		return -1;
 	}
 
-	av_dump_format(p_ain->p_fmt, 0, p_adata->psz_name, 0);
+	av_dump_format(audio_input_data->fmt, 0, audio_data_conf->filename, 0);
 
 	/*
 	 * Find the first audio stream
 	 */
-	p_ain->i_astream_idx = -1;
-	for (i = 0; i < p_ain->p_fmt->nb_streams; i++) {
-		if (p_ain->p_fmt->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
-			p_ain->i_astream_idx = i;
+	audio_input_data->astream_idx = -1;
+	for (i=0; i<audio_input_data->fmt->nb_streams; i++) {
+		if (audio_input_data->fmt->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+			audio_input_data->astream_idx = i;
 			break;
 		}
 	}
-	if (p_ain->i_astream_idx == -1) {
+	if (audio_input_data->astream_idx == -1) {
 		fprintf(stderr, "Cannot find a audio stream\n");
 		return -1;
 	}
@@ -80,162 +77,143 @@ int dc_audio_decoder_open(AudioInputFile * p_ain, AudioData * p_adata, int i_mod
 	/*
 	 * Get a pointer to the codec context for the audio stream
 	 */
-	p_codec_ctx = p_ain->p_fmt->streams[p_ain->i_astream_idx]->codec;
+	codec_ctx = audio_input_data->fmt->streams[audio_input_data->astream_idx]->codec;
 
 	/*
 	 * Find the decoder for the audio stream
 	 */
-	p_codec = avcodec_find_decoder(p_codec_ctx->codec_id);
-	if (p_codec == NULL) {
+	codec = avcodec_find_decoder(codec_ctx->codec_id);
+	if (codec == NULL) {
 		fprintf(stderr, "Input audio codec is not supported.\n");
-		avformat_close_input(&p_ain->p_fmt);
+		avformat_close_input(&audio_input_data->fmt);
 		return -1;
 	}
 
 	/*
 	 * Open codec
 	 */
-	if (avcodec_open2(p_codec_ctx, p_codec, NULL) < 0) {
+	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
 		fprintf(stderr, "Cannot open input audio codec.\n");
-		avformat_close_input(&p_ain->p_fmt);
+		avformat_close_input(&audio_input_data->fmt);
 		return -1;
 	}
 
-	p_ain->p_fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
+	audio_input_data->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 
-	p_adata->i_channels = p_codec_ctx->channels;
-	p_adata->i_samplerate = p_codec_ctx->sample_rate;
+	audio_data_conf->channels = codec_ctx->channels;
+	audio_data_conf->samplerate = codec_ctx->sample_rate;
 
-	p_ain->i_mode = i_mode;
-	p_ain->i_no_loop = i_no_loop;
+	audio_input_data->mode = mode;
+	audio_input_data->no_loop = no_loop;
 
 	return 0;
 }
 
-int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
-
+int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audio_input_data)
+{
 	int ret;
 	AVPacket packet;
-	int i_got_frame = 0;
+	int got_frame = 0;
 	//int locked_already = 0;
-	AVCodecContext * p_codec_ctx;
-	AudioDataNode * p_adn;
+	AVCodecContext *codec_ctx;
+	AudioDataNode *audio_data_node;
 
 	/* Get a pointer to the codec context for the audio stream */
-	p_codec_ctx = p_ain->p_fmt->streams[p_ain->i_astream_idx]->codec;
+	codec_ctx = audio_input_file->fmt->streams[audio_input_file->astream_idx]->codec;
 
 	/* Read frames */
 	while (1) {
-
-		ret = av_read_frame(p_ain->p_fmt, &packet);
-
+		ret = av_read_frame(audio_input_file->fmt, &packet);
 		if (ret == AVERROR_EOF) {
-
-			if(p_ain->i_mode == LIVE_MEDIA && p_ain->i_no_loop == 0) {
-				av_seek_frame(p_ain->p_fmt, p_ain->i_astream_idx, 0, 0);
+			if (audio_input_file->mode == LIVE_MEDIA && audio_input_file->no_loop == 0) {
+				av_seek_frame(audio_input_file->fmt, audio_input_file->astream_idx, 0, 0);
 				continue;
 			}
 
 			/* Flush decoder */
 			packet.data = NULL;
 			packet.size = 0;
-			avcodec_get_frame_defaults(p_ad->p_aframe);
-			avcodec_decode_audio4(p_codec_ctx, p_ad->p_aframe, &i_got_frame, &packet);
+			avcodec_get_frame_defaults(audio_input_data->aframe);
+			avcodec_decode_audio4(codec_ctx, audio_input_data->aframe, &got_frame, &packet);
 
-			if (i_got_frame) {
-
-				dc_producer_lock(&p_ad->pro, &p_ad->p_cb);
-				dc_producer_unlock_previous(&p_ad->pro, &p_ad->p_cb);
-				p_adn = (AudioDataNode *) dc_producer_produce(&p_ad->pro, &p_ad->p_cb);
+			if (got_frame) {
+				dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf);
+				dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
+				audio_data_node = (AudioDataNode*)dc_producer_produce(&audio_input_data->producer, &audio_input_data->circular_buf);
 				
-				p_adn->i_abuf_size = p_ad->p_aframe->linesize[0];
-				memcpy(p_adn->p_abuf, p_ad->p_aframe->data[0], p_adn->i_abuf_size);
+				audio_data_node->abuf_size = audio_input_data->aframe->linesize[0];
+				memcpy(audio_data_node->abuf, audio_input_data->aframe->data[0], audio_data_node->abuf_size);
 
-				dc_producer_advance(&p_ad->pro);
+				dc_producer_advance(&audio_input_data->producer);
 				return 0;
 			}
 
-			dc_producer_end_signal(&p_ad->pro, &p_ad->p_cb);
-			dc_producer_unlock_previous(&p_ad->pro, &p_ad->p_cb);
+			dc_producer_end_signal(&audio_input_data->producer, &audio_input_data->circular_buf);
+			dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 			return -2;
-		}
-
-		else if (ret < 0) {
+		} else if (ret < 0) {
 			fprintf(stderr, "Cannot read audio frame.\n");
 			continue;
 		}
 
 		/* Is this a packet from the audio stream? */
-		if (packet.stream_index == p_ain->i_astream_idx) {
-
+		if (packet.stream_index == audio_input_file->astream_idx) {
 			/* Set audio frame to default */
-			avcodec_get_frame_defaults(p_ad->p_aframe);
+			avcodec_get_frame_defaults(audio_input_data->aframe);
 
 			/* Decode audio frame */
-			if (avcodec_decode_audio4(p_codec_ctx, p_ad->p_aframe, &i_got_frame, &packet) < 0) {
+			if (avcodec_decode_audio4(codec_ctx, audio_input_data->aframe, &got_frame, &packet) < 0) {
 				av_free_packet(&packet);
 				fprintf(stderr, "Error while decoding audio.\n");
-				dc_producer_end_signal(&p_ad->pro, &p_ad->p_cb);
-				dc_producer_unlock_previous(&p_ad->pro, &p_ad->p_cb);
+				dc_producer_end_signal(&audio_input_data->producer, &audio_input_data->circular_buf);
+				dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 				return -1;
 			}
 
-			if (p_ad->p_aframe->pts != AV_NOPTS_VALUE)
-				p_ad->next_pts = p_ad->p_aframe->pts;
+			if (audio_input_data->aframe->pts != AV_NOPTS_VALUE)
+				audio_input_data->next_pts = audio_input_data->aframe->pts;
 
-			p_ad->next_pts += ((int64_t) AV_TIME_BASE
-					* p_ad->p_aframe->nb_samples) / p_codec_ctx->sample_rate;
+			audio_input_data->next_pts += ((int64_t)AV_TIME_BASE * audio_input_data->aframe->nb_samples) / codec_ctx->sample_rate;
 
 			/* Did we get a video frame? */
-			if (i_got_frame) {
+			if (got_frame) {
+				av_fifo_generic_write(audio_input_file->fifo, audio_input_data->aframe->data[0], audio_input_data->aframe->linesize[0], NULL);
 
-				av_fifo_generic_write(p_ain->p_fifo, p_ad->p_aframe->data[0],
-						p_ad->p_aframe->linesize[0], NULL);
-
-				if (/*p_ad->p_cb.mode == OFFLINE*/
-						p_ain->i_mode == ON_DEMAND || p_ain->i_mode == LIVE_MEDIA) {
-
-					dc_producer_lock(&p_ad->pro, &p_ad->p_cb);
+				if (/*audio_input_file->circular_buf.mode == OFFLINE*/audio_input_file->mode == ON_DEMAND || audio_input_file->mode == LIVE_MEDIA) {
+					dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf);
 
 					/* Unlock the previous node in the circular buffer. */
-					dc_producer_unlock_previous(&p_ad->pro, &p_ad->p_cb);
+					dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 
 					/* Get the pointer of the current node in circular buffer. */
-					p_adn = (AudioDataNode *) dc_producer_produce(&p_ad->pro,
-							&p_ad->p_cb);
+					audio_data_node = (AudioDataNode *) dc_producer_produce(&audio_input_data->producer, &audio_input_data->circular_buf);
 
-					p_adn->i_abuf_size = p_ad->p_aframe->linesize[0];
-					av_fifo_generic_read(p_ain->p_fifo, p_adn->p_abuf, p_adn->i_abuf_size , NULL);
+					audio_data_node->abuf_size = audio_input_data->aframe->linesize[0];
+					av_fifo_generic_read(audio_input_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size , NULL);
 
-					dc_producer_advance(&p_ad->pro);
+					dc_producer_advance(&audio_input_data->producer);
 				} else {
-
-					while (av_fifo_size(p_ain->p_fifo) >= LIVE_FRAME_SIZE) {
-
+					while (av_fifo_size(audio_input_file->fifo) >= LIVE_FRAME_SIZE) {
 						/* Lock the current node in the circular buffer. */
-						if (dc_producer_lock(&p_ad->pro, &p_ad->p_cb) < 0) {
-							printf(
-									"[dashcast] Live system dropped an audio frame\n");
+						if (dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf) < 0) {
+							fprintf(stderr, "[dashcast] Live system dropped an audio frame\n");
 							continue;
 						}
 
 						/* Unlock the previous node in the circular buffer. */
-						dc_producer_unlock_previous(&p_ad->pro, &p_ad->p_cb);
+						dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 
 						/* Get the pointer of the current node in circular buffer. */
-						p_adn = (AudioDataNode *) dc_producer_produce(
-								&p_ad->pro, &p_ad->p_cb);
+						audio_data_node = (AudioDataNode *) dc_producer_produce( &audio_input_data->producer, &audio_input_data->circular_buf);
 
-						p_adn->i_abuf_size = LIVE_FRAME_SIZE;
-						av_fifo_generic_read(p_ain->p_fifo, p_adn->p_abuf, p_adn->i_abuf_size, NULL);
+						audio_data_node->abuf_size = LIVE_FRAME_SIZE;
+						av_fifo_generic_read(audio_input_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size, NULL);
 
-						dc_producer_advance(&p_ad->pro);
+						dc_producer_advance(&audio_input_data->producer);
 					}
-
 				}
 
 				return 0;
-
 			}
 		}
 
@@ -243,21 +221,18 @@ int dc_audio_decoder_read(AudioInputFile * p_ain, AudioInputData * p_ad) {
 		 * Free the packet that was allocated by av_read_frame
 		 */
 		av_free_packet(&packet);
-
 	}
 
 	fprintf(stderr, "Unknown error while reading audio frame.\n");
 	return -1;
-
 }
 
-void dc_audio_decoder_close(AudioInputFile * p_ain) {
-
+void dc_audio_decoder_close(AudioInputFile * audio_input_data)
+{
 	/*
 	 * Close the audio format context
 	 */
-	avformat_close_input(&p_ain->p_fmt);
+	avformat_close_input(&audio_input_data->fmt);
 
-	av_fifo_free(p_ain->p_fifo);
-
+	av_fifo_free(audio_input_data->fifo);
 }

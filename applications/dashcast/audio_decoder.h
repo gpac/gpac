@@ -31,64 +31,61 @@
 #include "libavformat/avformat.h"
 #include "libavutil/fifo.h"
 
+
 /*
  * The structure which keeps the data of
  * input audio file.
  */
 typedef struct {
-
 	/*
 	 * Format context structure provided by avlib
 	 * to open and read from a media file
 	 */
-	AVFormatContext * p_fmt;
+	AVFormatContext *fmt;
 
 	/*
 	 * The index of the audio stream
 	 * in the file
 	 */
-	int i_astream_idx;
+	int astream_idx;
 
-	AVFifoBuffer * p_fifo;
+	AVFifoBuffer *fifo;
 
-	int i_mode;
-	int i_no_loop;
-
+	int mode;
+	int no_loop;
 } AudioInputFile;
 
 /*
  * Open the input audio
  *
- * @param cmdd [in] contains information about the file name
+ * @param cmd_data [in] contains information about the file name
  * and the audio format.
  *
- * @param ainf [out] pointer to the structure which we want to
+ * @param audio_input_file [out] pointer to the structure which we want to
  * open the file
  *
  * @return 0 on success -1 on failure.
  */
-int dc_audio_decoder_open(AudioInputFile * ainf, AudioData * adata, int mode, int no_loop);
+int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio_data_conf, int mode, int no_loop);
 
 /*
  * Read and decode audio and put samples on circular buffer
  *
- * @param ainf [in] contains info on input audio. This parameter
+ * @param audio_input_file [in] contains info on input audio. This parameter
  * must have been opened with open_audio_input
  *
- * @param aind [out] the samples will be saved on the circular buffer
+ * @param audio_input_data [out] the samples will be saved on the circular buffer
  * of this parameter.
  *
  * @return 0 on success, -1 on failure, -2 on EOF (end of the file)
- *
  */
-int dc_audio_decoder_read(AudioInputFile * ainf, AudioInputData * aind);
+int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audio_input_data);
 
 /*
  * Close the input audio
  *
- * @param ainf [in] the audio file to be closed
- *
+ * @param audio_input_file [in] the audio file to be closed
  */
-void dc_audio_decoder_close(AudioInputFile * ainf);
+void dc_audio_decoder_close(AudioInputFile *audio_input_file);
 
 #endif /* AUDIO_DECODER_H_ */

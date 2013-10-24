@@ -25,9 +25,11 @@
 
 #include "register.h"
 
+
 static GF_List *av_mutex = NULL;
 
-int lock_call_back(void ** mutex, enum AVLockOp op) {
+int lock_call_back(void ** mutex, enum AVLockOp op)
+{
 	switch (op) {
 	case AV_LOCK_CREATE:
 		{
@@ -54,8 +56,8 @@ int lock_call_back(void ** mutex, enum AVLockOp op) {
 	return 0;
 }
 
-void dc_register_libav() {
-
+void dc_register_libav()
+{
 	av_mutex = gf_list_new();
 
 	av_register_all();

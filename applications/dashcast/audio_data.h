@@ -23,7 +23,6 @@
  *
  */
 
-
 #ifndef AUDIO_DATA_H_
 #define AUDIO_DATA_H_
 
@@ -31,6 +30,7 @@
 
 #define LIVE_FRAME_SIZE 1024
 #define MAX_AUDIO_PACKET_SIZE (128 * 1024)
+
 
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavcodec/avcodec.h"
@@ -42,60 +42,50 @@
 
 
 /*
- * AudioInputData is designed to keep the data
- * of input audio in a circular buffer.
+ * AudioInputData is designed to keep the data of input audio in a circular buffer.
  * The circular buffer has its own mechanism for synchronization.
  */
 typedef struct {
+	/*
+	 * The circular buffer of input audio. Input audio is the audio frames after decoding.
+	 */
+	CircularBuffer circular_buf;
 
 	/*
-	 * The circular buffer of input audio.
-	 * Input audio is the audio frames after decoding.
+	 * The user of circular buffer has an index to it, which is in this variable.
 	 */
-	CircularBuffer p_cb;
+	Producer producer;
 
-	/*
-	 * The user of circular buffer has an index to it,
-	 * which is in this variable.
-	 */
-	Producer pro;
-
-	AVFrame * p_aframe;
+	AVFrame *aframe;
 
 	int64_t next_pts;
 
-	int i_channels;
-	int i_samplerate;
-
+	int channels;
+	int samplerate;
 } AudioInputData;
 
 /*
- * This structure corresponds to an
- * entry of audio configuration in the
- * configuration file
+ * This structure corresponds to an entry of audio configuration in the configuration file
  */
 typedef struct {
 	/* audio file name */
-	char psz_name[256];
+	char filename[256];
 	/* audio format */
-	char psz_format[256];
+	char format[256];
 	/* audio bitrate */
-	int i_bitrate;
+	int bitrate;
 	/* audio samplerate */
-	int i_samplerate;
+	int samplerate;
 	/* audio channel number */
-	int i_channels;
+	int channels;
 	/* audio codec */
-	char psz_codec[256];
+	char codec[256];
 
 	/* used for source switching */
-	char psz_source_id[256];
+	char source_id[256];
 	time_t start_time;
 	time_t end_time;
-
-} AudioData;
-
-
+} AudioDataConf;
 
 /*
  * Each node in a circular buffer is a pointer.
@@ -104,19 +94,17 @@ typedef struct {
  * an AVFrame.
  */
 typedef struct {
-
-	uint8_t * p_abuf;
-	int i_abuf_size;
-
+	uint8_t *abuf;
+	int abuf_size;
 } AudioDataNode;
 
-void dc_audio_data_set_default(AudioData * adata);
+void dc_audio_data_set_default(AudioDataConf *audio_data_conf);
 
 /*
  * Initialize an AudioInputData.
  *
- * @param ain [out] is the structure to be initialize.
- * @param maxcon [in] contains information on the number of users of circular buffer;
+ * @param audio_input_data [out] is the structure to be initialize.
+ * @param num_consumers [in] contains information on the number of users of circular buffer;
  * which means the number of audio encoders.
  * @param live [in] indicates the system is live
  *
@@ -124,21 +112,21 @@ void dc_audio_data_set_default(AudioData * adata);
  *
  * @note Must use dc_audio_data_destroy to free memory.
  */
-int dc_audio_input_data_init(AudioInputData * ain, int channels, int samplerate,  int maxcon, int mode);
+int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int samplerate, int num_consumers, int mode);
 
 /*
  * Destroy an AudioInputData
  *
- * @param ain [in] the structure to be destroyed.
+ * @param audio_input_data [in] the structure to be destroyed.
  */
-void dc_audio_input_data_destroy(AudioInputData * ain);
+void dc_audio_input_data_destroy(AudioInputData *audio_input_data);
 
 /*
  * Signal to all the users of the circular buffer in the AudioInputData
  * which the current node is the last node to consume.
  *
- * @param ain [in] the structure to be signaled on.
+ * @param audio_input_data [in] the structure to be signaled on.
  */
-void dc_audio_inout_data_end_signal(AudioInputData * ain);
+void dc_audio_inout_data_end_signal(AudioInputData *audio_input_data);
 
 #endif /* AUDIO_DATA_H_ */

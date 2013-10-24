@@ -25,187 +25,167 @@
 
 #include "audio_encoder.h"
 
-int dc_audio_encoder_open(AudioOutputFile * p_aout, AudioData * p_adata) {
+int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf)
+{
+	int osize;
 
-	int i_osize;
+	//AVCodec *audio_codec;
+	//AVStream *audio_stream;
 
-	//AVCodec * p_audio_codec;
-	//AVStream * p_audio_stream;
+	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
+	audio_output_file->aframe = avcodec_alloc_frame();
+	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
 
-	p_aout->p_fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
-	p_aout->p_aframe = avcodec_alloc_frame();
-	p_aout->p_adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
-
-	p_aout->p_codec = avcodec_find_encoder_by_name("mp2"/*FIXME: p_adata->psz_codec - Note: windows build doesn't seem to have AAC*/);
-	if (p_aout->p_codec == NULL) {
+	audio_output_file->codec = avcodec_find_encoder_by_name("mp2"/*FIXME: audio_data_conf->codec - Note: windows build doesn't seem to have AAC*/);
+	if (audio_output_file->codec == NULL) {
 		fprintf(stderr, "Output audio codec not found\n");
 		return -1;
 	}
 
-	p_aout->p_codec_ctx = avcodec_alloc_context3(p_aout->p_codec);
+	audio_output_file->codec_ctx = avcodec_alloc_context3(audio_output_file->codec);
 
 //	/* Create new audio stream */
-//	p_audio_stream = avformat_new_stream(p_aout->p_fmt, p_audio_codec);
-//	if (!p_audio_stream) {
+//	audio_stream = avformat_new_stream(audio_output_file->fmt, audio_codec);
+//	if (!audio_stream) {
 //		fprintf(stderr, "Cannot create output video stream\n");
 //		return -1;
 //	}
-
-
-	p_aout->p_codec_ctx->codec_id = p_aout->p_codec->id;
-	p_aout->p_codec_ctx->codec_type = AVMEDIA_TYPE_AUDIO;
-	p_aout->p_codec_ctx->bit_rate = p_adata->i_bitrate;
-	p_aout->p_codec_ctx->sample_rate = p_adata->i_samplerate;
+	
+	audio_output_file->codec_ctx->codec_id = audio_output_file->codec->id;
+	audio_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_AUDIO;
+	audio_output_file->codec_ctx->bit_rate = audio_data_conf->bitrate;
+	audio_output_file->codec_ctx->sample_rate = audio_data_conf->samplerate;
 	{
 		AVRational time_base;
 		time_base.num = 1;
-		time_base.den = p_adata->i_samplerate;
-		p_aout->p_codec_ctx->time_base = time_base;
+		time_base.den = audio_data_conf->samplerate;
+		audio_output_file->codec_ctx->time_base = time_base;
 	}
-	p_aout->p_codec_ctx->channels = p_adata->i_channels;
-	p_aout->p_codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO; /*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
-	p_aout->p_codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
+	audio_output_file->codec_ctx->channels = audio_data_conf->channels;
+	audio_output_file->codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO; /*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
+	audio_output_file->codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
 
-//	if (p_aout->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
-//		p_aout->p_codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
-
-//	p_audio_stream->codec->codec_id = p_audio_codec->id;
-//	p_audio_stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
-//	p_audio_stream->codec->bit_rate = p_aout->p_adata->i_bitrate;
-//	p_audio_stream->codec->sample_rate = p_aout->p_adata->i_samplerate;
-//	p_audio_stream->codec->channels = p_aout->p_adata->i_channels;
-//	p_audio_stream->codec->sample_fmt = AV_SAMPLE_FMT_S16;
+//	if (audio_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//		audio_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+	
+//	audio_stream->codec->codec_id = audio_codec->id;
+//	audio_stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
+//	audio_stream->codec->bit_rate = audio_output_file->audio_data_conf->bitrate;
+//	audio_stream->codec->sample_rate = audio_output_file->audio_data_conf->samplerate;
+//	audio_stream->codec->channels = audio_output_file->audio_data_conf->channels;
+//	audio_stream->codec->sample_fmt = AV_SAMPLE_FMT_S16;
 //
 //	/*
-//	 p_audio_stream->codec->delay = 0;
-//	 p_audio_stream->codec->thread_count = 1;
-//	 p_audio_stream->codec->max_b_frames = 0;
+//	 audio_stream->codec->delay = 0;
+//	 audio_stream->codec->thread_count = 1;
+//	 audio_stream->codec->max_b_frames = 0;
 //	 */
 //
-//	if (p_aout->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
-//		p_audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+//	if (audio_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//		audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-	p_aout->i_astream_idx = 0;
+	audio_output_file->astream_idx = 0;
 
 	/* open the audio codec */
-	if (avcodec_open2(p_aout->p_codec_ctx, p_aout->p_codec, NULL) < 0) {
+	if (avcodec_open2(audio_output_file->codec_ctx, audio_output_file->codec, NULL) < 0) {
 		/*FIXME: if we enter here (set "mp2" as a codec and "200000" as a bitrate -> deadlock*/
 		fprintf(stderr, "Cannot open output audio codec\n");
 		return -1;
 	}
 
-	i_osize = av_get_bytes_per_sample(p_aout->p_codec_ctx->sample_fmt);
+	osize = av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt);
+	audio_output_file->frame_bytes = audio_output_file->codec_ctx->frame_size * osize * audio_output_file->codec_ctx->channels;
+	avcodec_get_frame_defaults(audio_output_file->aframe);
+	audio_output_file->aframe->nb_samples = audio_output_file->frame_bytes
+					/ (audio_output_file->codec_ctx->channels * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt));
 
-	p_aout->i_frame_bytes = p_aout->p_codec_ctx->frame_size * i_osize
-			* p_aout->p_codec_ctx->channels;
-
-	avcodec_get_frame_defaults(p_aout->p_aframe);
-
-	p_aout->p_aframe->nb_samples =
-			p_aout->i_frame_bytes
-					/ (p_aout->p_codec_ctx->channels
-							* av_get_bytes_per_sample(
-									p_aout->p_codec_ctx->sample_fmt));
-
-	if (avcodec_fill_audio_frame(p_aout->p_aframe,
-			p_aout->p_codec_ctx->channels, p_aout->p_codec_ctx->sample_fmt,
-			p_aout->p_adata_buf, p_aout->i_frame_bytes, 1) < 0) {
+	if (avcodec_fill_audio_frame(audio_output_file->aframe,
+			audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
+			audio_output_file->adata_buf, audio_output_file->frame_bytes, 1) < 0) {
 		fprintf(stderr, "Fill audio frame failed\n");
 		return -1;
 	}
 
-	//p_aout->acc_samples = 0;
-	p_aout->i_frame_size = p_aout->p_codec_ctx->frame_size;
+	//audio_output_file->acc_samples = 0;
+	audio_output_file->frame_size = audio_output_file->codec_ctx->frame_size;
 
 	return 0;
 }
 
-int dc_audio_encoder_read(AudioOutputFile * p_aout, AudioInputData * p_aind) {
-
+int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
+{
 	int ret;
-	AudioDataNode * p_adn;
+	AudioDataNode *audio_data_node;
 
-	ret = dc_consumer_lock(&p_aout->acon, &p_aind->p_cb);
-
+	ret = dc_consumer_lock(&audio_output_file->consumer, &audio_input_data->circular_buf);
 	if (ret < 0) {
 #ifdef DEBUG
-		printf("Audio encoder got to end of buffer!\n");
+		fprintf(stderr, "Audio encoder got an end of buffer!\n");
 #endif
-
 		return -2;
 	}
 
-	dc_consumer_unlock_previous(&p_aout->acon, &p_aind->p_cb);
+	dc_consumer_unlock_previous(&audio_output_file->consumer, &audio_input_data->circular_buf);
 
-	p_adn = (AudioDataNode *) dc_consumer_consume(&p_aout->acon, &p_aind->p_cb);
+	audio_data_node = (AudioDataNode *) dc_consumer_consume(&audio_output_file->consumer, &audio_input_data->circular_buf);
 
 	/* Write audio sample on fifo */
-//	av_fifo_generic_write(p_aout->p_fifo, p_adn->p_aframe->data[0],
-//			p_adn->p_aframe->linesize[0], NULL);
-	av_fifo_generic_write(p_aout->p_fifo, p_adn->p_abuf, p_adn->i_abuf_size, NULL);
+//	av_fifo_generic_write(audio_output_file->fifo, audio_data_node->aframe->data[0],
+//			audio_data_node->aframe->linesize[0], NULL);
+	av_fifo_generic_write(audio_output_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size, NULL);
 
-	dc_consumer_advance(&p_aout->acon);
+	dc_consumer_advance(&audio_output_file->consumer);
 
 	return 0;
 }
 
-int dc_audio_encoder_flush(AudioOutputFile * p_aout, AudioInputData * p_aind) {
+int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
+{
+	int got_pkt;
+	//AVStream *audio_stream = audio_output_file->fmt->streams[audio_output_file->astream_idx];
+	//AVCodecContext *audio_codec_ctx = audio_stream->codec;
+	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
-	int i_got_pkt;
-
-	//AVStream * p_audio_stream = p_aout->p_fmt->streams[p_aout->i_astream_idx];
-	//AVCodecContext * p_audio_codec_ctx = p_audio_stream->codec;
-
-	AVCodecContext * p_audio_codec_ctx = p_aout->p_codec_ctx;
-
-	av_init_packet(&p_aout->packet);
-	p_aout->packet.data = NULL;
-	p_aout->packet.size = 0;
+	av_init_packet(&audio_output_file->packet);
+	audio_output_file->packet.data = NULL;
+	audio_output_file->packet.size = 0;
 
 	/* Set PTS (method 1) */
-	p_aout->p_aframe->pts = p_aind->next_pts;
+	audio_output_file->aframe->pts = audio_input_data->next_pts;
 	/* Encode audio */
-	if (avcodec_encode_audio2(p_audio_codec_ctx, &p_aout->packet, NULL,
-			&i_got_pkt) != 0) {
+	if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, NULL, &got_pkt) != 0) {
 		fprintf(stderr, "Error while encoding audio.\n");
 		return -1;
 	}
-	if (i_got_pkt) {
-		//p_aout->acc_samples += p_aout->p_aframe->nb_samples;
+	if (got_pkt) {
+		//audio_output_file->acc_samples += audio_output_file->aframe->nb_samples;
 		return 0;
 	}
-	av_free_packet(&p_aout->packet);
+	av_free_packet(&audio_output_file->packet);
 	return 1;
 }
 
-int dc_audio_encoder_encode(AudioOutputFile * p_aout, AudioInputData * p_aind) {
+int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
+{
+	int got_pkt;
+	//AVStream *audio_stream = audio_output_file->fmt->streams[audio_output_file->astream_idx];
+	//AVCodecContext *audio_codec_ctx = audio_stream->codec;
+	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
-	int i_got_pkt;
+	while (av_fifo_size(audio_output_file->fifo) >= audio_output_file->frame_bytes) {
+		av_fifo_generic_read(audio_output_file->fifo, audio_output_file->adata_buf, audio_output_file->frame_bytes, NULL);
 
-	//AVStream * p_audio_stream = p_aout->p_fmt->streams[p_aout->i_astream_idx];
-	//AVCodecContext * p_audio_codec_ctx = p_audio_stream->codec;
+		audio_output_file->aframe->data[0] = audio_output_file->adata_buf;
+		audio_output_file->aframe->linesize[0] = audio_output_file->frame_bytes;
 
-	AVCodecContext * p_audio_codec_ctx = p_aout->p_codec_ctx;
-
-	while (av_fifo_size(p_aout->p_fifo) >= p_aout->i_frame_bytes) {
-
-		av_fifo_generic_read(p_aout->p_fifo, p_aout->p_adata_buf,
-				p_aout->i_frame_bytes, NULL);
-
-
-		p_aout->p_aframe->data[0] = p_aout->p_adata_buf;
-		p_aout->p_aframe->linesize[0] = p_aout->i_frame_bytes;
-
-		av_init_packet(&p_aout->packet);
-		p_aout->packet.data = NULL;
-		p_aout->packet.size = 0;
+		av_init_packet(&audio_output_file->packet);
+		audio_output_file->packet.data = NULL;
+		audio_output_file->packet.size = 0;
 
 		/* 
 		 * Set PTS (method 1)
 		 */
-
-		//p_aout->p_aframe->pts = p_aind->next_pts;
+		//audio_output_file->aframe->pts = audio_input_data->next_pts;
 
 		/*
 		 * Set PTS (method 2)
@@ -214,48 +194,42 @@ int dc_audio_encoder_encode(AudioOutputFile * p_aout, AudioInputData * p_aind) {
 		//	int64_t now = av_gettime();
 		//	AVRational avr;
 		//	avr.num = 1;
-		//	avr.den =  AV_TIME_BASE;
-		//	p_aout->p_aframe->pts = av_rescale_q(now, avr, p_audio_codec_ctx->time_base);
+		//	avr.den = AV_TIME_BASE;
+		//	audio_output_file->aframe->pts = av_rescale_q(now, avr, audio_codec_ctx->time_base);
 		//}
 
-
 		/* Encode audio */
-		if (avcodec_encode_audio2(p_audio_codec_ctx, &p_aout->packet, p_aout->p_aframe, &i_got_pkt) != 0) {
-
+		if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, audio_output_file->aframe, &got_pkt) != 0) {
 			fprintf(stderr, "Error while encoding audio.\n");
 			return -1;
 		}
 
-		if (i_got_pkt) {
-
-			//p_aout->acc_samples += p_aout->p_aframe->nb_samples;
+		if (got_pkt) {
+			//audio_output_file->acc_samples += audio_output_file->aframe->nb_samples;
 			return 0;
-
 		}
 
-		av_free_packet(&p_aout->packet);
+		av_free_packet(&audio_output_file->packet);
 	}
 
 	return 1;
 }
 
-void dc_audio_encoder_close(AudioOutputFile * p_aoutf) {
-
+void dc_audio_encoder_close(AudioOutputFile *audio_output_file)
+{
 //	int i;
 //
 //	/* free the streams */
-//	for (i = 0; i < p_aout->p_fmt->nb_streams; i++) {
-//		avcodec_close(p_aout->p_fmt->streams[i]->codec);
-//		av_freep(&p_aout->p_fmt->streams[i]->info);
+//	for (i = 0; i < audio_output_file->fmt->nb_streams; i++) {
+//		avcodec_close(audio_output_file->fmt->streams[i]->codec);
+//		av_freep(&audio_output_file->fmt->streams[i]->info);
 //	}
 
-	av_fifo_free(p_aoutf->p_fifo);
+	av_fifo_free(audio_output_file->fifo);
 
-	av_free(p_aoutf->p_adata_buf);
-	av_free(p_aoutf->p_aframe);
+	av_free(audio_output_file->adata_buf);
+	av_free(audio_output_file->aframe);
 
-	avcodec_close(p_aoutf->p_codec_ctx);
-	av_free(p_aoutf->p_codec_ctx);
-
+	avcodec_close(audio_output_file->codec_ctx);
+	av_free(audio_output_file->codec_ctx);
 }
-

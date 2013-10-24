@@ -32,35 +32,38 @@
 #include <time.h>
 #include <gpac/list.h>
 
+
 typedef struct {
 	char id[MAX_ID_SIZE];
 	int source_number;
-	//struct tm start_time;
-	//struct tm end_time;
 	time_t start_time_t;
 	time_t end_time_t;
-
 } Task;
 
 typedef struct {
-
-	GF_List * tasks;
-
+	GF_List *tasks;
 	int size;
-
 } TaskList;
 
-/* initialize a list of task */
-void dc_task_init(TaskList * list);
+/**
+ * initialize a list of task
+ */
+void dc_task_init(TaskList *list);
 
-/* destroy the list of task */
-void dc_task_destroy(TaskList * list);
+/**
+ * destroy the list of task
+ */
+void dc_task_destroy(TaskList *list);
 
-/* ad a task to the list */
-void dc_task_add(TaskList * list, int source_number, char * id, time_t start, time_t end);
+/**
+ * audio_input_data a task to the list
+ */
+void dc_task_add(TaskList *list, int source_number, char *id_name, time_t start, time_t end);
 
-/* give the task which corresponds to the time=NOW */
-/* note: in the case of infering tasks, the first one is picked */
-int dc_task_get_current(TaskList * list, Task * task);
+/**
+ * give the task which corresponds to the time=NOW
+ * note: in the case of infering tasks, the first one is picked
+ */
+int dc_task_get_current(TaskList *list, Task *task);
 
 #endif /* TASK_H_ */

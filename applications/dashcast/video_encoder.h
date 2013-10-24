@@ -32,34 +32,32 @@
 /*
  * Open an video stream
  *
- * @param voutf [in] add a video stream to the file
+ * @param video_output_file [in] add a video stream to the file
  * with the parameters already passed to open_video_output
  *
  * @return 0 on success, -1 on failure
  */
-int dc_video_encoder_open(VideoOutputFile * voutf, VideoData * vdata, Bool use_source_timing);
+int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing);
 
 /*
  * Read the decoded video frames from circular buffer
  * of the corresponding resolution
  * and encode and write them on the output file
  *
- * @param voutf [in] video output file
- * @param vsd [in] scaled video data structure which
+ * @param video_output_file [in] video output file
+ * @param video_scaled_data [in] scaled video data structure which
  * contains a circular buffer with video frames
  *
  * @return 0 on success, -1 on failure, -2 on finishing;
  * when there is no more data on circular buffer to encode
  */
-int dc_video_encoder_encode(VideoOutputFile * voutf, VideoScaledData * vsd);
-
+int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData *video_scaled_data);
 
 /*
  * Close the output video file
  *
- * @param voutf [in] video output file
+ * @param video_output_file [in] video output file
  */
-void dc_video_encoder_close(VideoOutputFile * voutf);
-
+void dc_video_encoder_close(VideoOutputFile *video_output_file);
 
 #endif /* VIDEO_ENCODER_H_ */

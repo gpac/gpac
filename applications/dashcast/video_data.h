@@ -44,47 +44,43 @@
  * configuration file.
  */
 typedef struct {
-
 	/* video file name */
-	char psz_name[256];
+	char filename[256];
 	/* video format */
-	char psz_format[256];
+	char format[256];
 	/* video format */
 	char pixel_format[256];
 	/* v4l2 format */
-	char psz_v4l2f[256];
+	char v4l2f[256];
 	/* video width */
-	int i_width;
+	int width;
 	/* video height */
-	int i_height;
+	int height;
 	/* video bitrate */
-	int i_bitrate;
+	int bitrate;
 	/* video frame rate */
-	int i_framerate;
+	int framerate;
 	/* video codec */
-	char psz_codec[256];
+	char codec[256];
 
 	/* used for source switching */
-	char psz_source_id[256];
+	char source_id[256];
 	time_t start_time;
 	time_t end_time;
 
 	//copy over from source file
 	AVRational time_base;
 	u64 frame_duration;
-} VideoData;
-
+} VideoDataConf;
 
 typedef struct {
-
 	/*
 	 * Width, height and pixel format
 	 * of the input video
 	 */
-	int i_width;
-	int i_height;
-	int i_pix_fmt;
-
+	int width;
+	int height;
+	int pix_fmt;
 } VideoInputProp;
 
 /*
@@ -92,29 +88,27 @@ typedef struct {
  * of input video in a circular buffer.
  * The circular buffer has its own mechanism for synchronization.
  */
-
-
 typedef struct {
 	/*
 	 * The circular buffer of
 	 * the video frames after decoding.
 	 */
-	CircularBuffer p_cb;
+	CircularBuffer circular_buf;
 	/*
 	 * The user of circular buffer has an index to it,
 	 * which is in this variable.
 	 */
-	Producer pro;
+	Producer producer;
 
-	VideoInputProp * p_vprop;
+	VideoInputProp *vprop;
 
 	/*
 	 * Width, height and pixel format
 	 * of the input video
 	 */
-	//int i_width;
-	//int i_height;
-	//int i_pix_fmt;
+	//int width;
+	//int height;
+	//int pix_fmt;
 	u64 frame_duration;
 } VideoInputData;
 
@@ -126,27 +120,24 @@ typedef struct {
  * an AVFrame.
  */
 typedef struct {
-
-	AVFrame * p_vframe;
-
+	AVFrame * vframe;
 	int source_number;
-
 	uint8_t is_raw_data;
 #ifdef GPAC_USE_LIBAV
 	AVPacket raw_packet;
 #endif
 } VideoDataNode;
 
-void dc_video_data_set_default(VideoData * vdata);
+void dc_video_data_set_default(VideoDataConf *video_data_conf);
 
 /*
  * Initialize a VideoInputData.
  *
- * @param vind [out] is the structure to be initialize.
+ * @param video_input_data [out] is the structure to be initialize.
  * @param width [in] input video width
  * @param height [in] input video height
  * @param pixfmt [in] input video pixel format
- * @param maxcon [in] contains information on the number of users of circular buffer;
+ * @param num_consumers [in] contains information on the number of users of circular buffer;
  * which means the number of video encoders.
  * @param live [in] indicates the system is live
  *
@@ -154,22 +145,26 @@ void dc_video_data_set_default(VideoData * vdata);
  *
  * @note Must use dc_video_data_destroy to free memory.
  */
-int dc_video_input_data_init(VideoInputData * vind,/* int width, int height, int pix_fmt,*/ int maxcon, int mode, int maxsource);
+int dc_video_input_data_init(VideoInputData *video_input_data,/* int width, int height, int pix_fmt,*/ int num_consumers, int mode, int num_producers);
 
-void dc_video_input_data_set_prop(VideoInputData * vind, int index, int width, int height, int pix_fmt);
 /*
- * Destroy a VideoInputData
- *
- * @param vind [in] the structure to be destroyed.
+ * Set properties for a VideoInputData.
  */
-void dc_video_input_data_destroy(VideoInputData * vind);
+void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int pix_fmt);
+
+/*
+ * Destroy a VideoInputData.
+ *
+ * @param video_input_data [in] the structure to be destroyed.
+ */
+void dc_video_input_data_destroy(VideoInputData *video_input_data);
 
 /*
  * Signal to all the users of the circular buffer in the VideoInputData
  * which the current node is the last node to consume.
  *
- * @param vind [in] the structure to be signaled on.
+ * @param video_input_data [in] the structure to be signaled on.
  */
-void dc_video_input_data_end_signal(VideoInputData * vind);
+void dc_video_input_data_end_signal(VideoInputData *video_input_data);
 
 #endif /* VIDEO_DATA_H_ */

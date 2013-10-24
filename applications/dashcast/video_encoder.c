@@ -28,6 +28,7 @@
 #include "libavutil/opt.h"
 #include "libavdevice/avdevice.h"
 
+
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 
 #define _TOSTR(_val) #_val
@@ -41,86 +42,85 @@
 
 #endif
 
+
 //#define DEBUG 1
 
-int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata, Bool use_source_timing) {
 
-	//AVCodec * p_video_codec;
-	//AVStream * p_video_stream;
+int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing)
+{
+	video_output_file->vbuf_size = 9 * video_data_conf->width * video_data_conf->height + 10000;
+	video_output_file->vbuf = (uint8_t *) av_malloc(video_output_file->vbuf_size);
 
-	p_voutf->i_vbuf_size = 9 * p_vdata->i_width * p_vdata->i_height + 10000;
-	p_voutf->p_vbuf = (uint8_t *) av_malloc(p_voutf->i_vbuf_size);
-
-//	p_voutf->p_codec = avcodec_find_encoder_by_name("libx264"/*p_vdata->psz_codec*/);
-	p_voutf->p_codec = avcodec_find_encoder(CODEC_ID_H264);
-	if (p_voutf->p_codec == NULL) {
+//	video_output_file->codec = avcodec_find_encoder_by_name("libx264"/*video_data_conf->codec*/);
+	video_output_file->codec = avcodec_find_encoder(CODEC_ID_H264);
+	if (video_output_file->codec == NULL) {
 		fprintf(stderr, "Output video codec %d not found\n", CODEC_ID_H264);
 		return -1;
 	}
 
-	p_voutf->p_codec_ctx = avcodec_alloc_context3(p_voutf->p_codec);
+	video_output_file->codec_ctx = avcodec_alloc_context3(video_output_file->codec);
 
 	//Create new video stream
-//	p_video_stream = avformat_new_stream(p_voutf->p_fmt, p_video_codec);
-//	if (!p_video_stream) {
+//	video_stream = avformat_new_stream(video_output_file->fmt, video_codec);
+//	if (!video_stream) {
 //		fprintf(stderr, "Cannot create output video stream\n");
 //		return -1;
 //	}
 
-	p_voutf->p_codec_ctx->codec_id = p_voutf->p_codec->id;
-	p_voutf->p_codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-	p_voutf->p_codec_ctx->bit_rate = p_vdata->i_bitrate;
-	p_voutf->p_codec_ctx->width = p_vdata->i_width;
-	p_voutf->p_codec_ctx->height = p_vdata->i_height;
+	video_output_file->codec_ctx->codec_id = video_output_file->codec->id;
+	video_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+	video_output_file->codec_ctx->bit_rate = video_data_conf->bitrate;
+	video_output_file->codec_ctx->width = video_data_conf->width;
+	video_output_file->codec_ctx->height = video_data_conf->height;
 
-	p_voutf->p_codec_ctx->time_base.num = 1;
-	p_voutf->p_codec_ctx->time_base.den = p_vdata->i_framerate;
+	video_output_file->codec_ctx->time_base.num = 1;
+	video_output_file->codec_ctx->time_base.den = video_data_conf->framerate;
 
-	p_voutf->use_source_timing = use_source_timing;
+	video_output_file->use_source_timing = use_source_timing;
 	if (use_source_timing) {
 		//for avcodec to do rate allcoation, we need to have ctx->timebase == 1/framerate
-		p_voutf->p_codec_ctx->time_base.den = p_vdata->time_base.den;
-		p_voutf->p_codec_ctx->time_base.num = p_vdata->time_base.num * p_vdata->time_base.den / p_vdata->i_framerate;
+		video_output_file->codec_ctx->time_base.den = video_data_conf->time_base.den;
+		video_output_file->codec_ctx->time_base.num = video_data_conf->time_base.num * video_data_conf->time_base.den / video_data_conf->framerate;
 	}
-	p_voutf->p_codec_ctx->pix_fmt = PIX_FMT_YUV420P;
-	p_voutf->p_codec_ctx->gop_size = /*p_voutf->i_gop_size;*/p_vdata->i_framerate;
+	video_output_file->codec_ctx->pix_fmt = PIX_FMT_YUV420P;
+	video_output_file->codec_ctx->gop_size = /*video_output_file->gosize;*/video_data_conf->framerate;
 
-	av_opt_set(p_voutf->p_codec_ctx->priv_data, "preset", "ultrafast", 0);
-	av_opt_set(p_voutf->p_codec_ctx->priv_data, "tune", "zerolatency", 0);
+	av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
+	av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
 
-	if(p_voutf->i_gdr == 1) {
-		av_opt_set_int(p_voutf->p_codec_ctx->priv_data, "intra-refresh", 1, 0);
-		av_opt_set_int(p_voutf->p_codec_ctx->priv_data, "key-int", 8, 0);
+	if(video_output_file->gdr == 1) {
+		av_opt_set_int(video_output_file->codec_ctx->priv_data, "intra-refresh", 1, 0);
+		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", 8, 0);
 	}
 
-//	if (p_voutf->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
 	//the global header gives access to the extradata (SPS/PPS)
-	p_voutf->p_codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+	video_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-//	p_voutf->p_codec_ctx->codec_id = p_video_codec->id;
-//	p_voutf->p_codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-//	p_voutf->p_codec_ctx->bit_rate = p_vdata->i_bitrate;
-//	p_voutf->p_codec_ctx->width = p_vdata->i_width;
-//	p_voutf->p_codec_ctx->height = p_vdata->i_height;
-//	p_voutf->p_codec_ctx->time_base = (AVRational) {1 ,
-//				p_voutf->p_vdata->i_framerate};
-//	p_voutf->p_codec_ctx->codec->pix_fmt = PIX_FMT_YUV420P;
-	p_voutf->p_codec_ctx->gop_size = p_vdata->i_framerate;
+//	video_output_file->codec_ctx->codec_id = video_codec->id;
+//	video_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+//	video_output_file->codec_ctx->bit_rate = video_data_conf->bitrate;
+//	video_output_file->codec_ctx->width = video_data_conf->width;
+//	video_output_file->codec_ctx->height = video_data_conf->height;
+//	video_output_file->codec_ctx->time_base = (AVRational) {1 ,
+//				video_output_file->video_data_conf->framerate};
+//	video_output_file->codec_ctx->codec->pix_fmt = PIX_FMT_YUV420P;
+	video_output_file->codec_ctx->gop_size = video_data_conf->framerate;
 //
-//	av_opt_set(p_voutf->p_codec_ctx->priv_data, "preset", "ultrafast", 0);
-//	av_opt_set(p_voutf->p_codec_ctx->priv_data, "tune", "zerolatency", 0);
+//	av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
+//	av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
 
 	/*
-	 p_voutf->p_codec_ctx->max_b_frames = 0;
-	 p_voutf->p_codec_ctx->thread_count = 1;
-	 p_voutf->p_codec_ctx->delay = 0;
-	 p_voutf->p_codec_ctx->rc_lookahead = 0;
+	 video_output_file->codec_ctx->max_b_frames = 0;
+	 video_output_file->codec_ctx->thread_count = 1;
+	 video_output_file->codec_ctx->delay = 0;
+	 video_output_file->codec_ctx->rc_lookahead = 0;
 	 */
 
 	/*
-	 * p_video_stream->codec->gop_size = p_voutf->i_vfr;
-	 * videoStream->codec->gop_size = 1;
-	 * p_video_stream->codec->rc_lookahead = 0;
+	 * video_stream->codec->gosize = video_output_file->vfr;
+	 * videoStream->codec->gosize = 1;
+	 * video_stream->codec->rc_lookahead = 0;
 	 * videoStream->time_base = (AVRational) {1 , 1000000};
 	 * videoStream->r_frame_rate = (AVRational) {outVideoCtx->video_framerate, 1};
 	 * av_opt_set(videoStream->codec->priv_data, "preset", "slow", 0);
@@ -134,19 +134,19 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata, Bool u
 	 *
 	 */
 
-//	if (p_voutf->p_fmt->oformat->flags & AVFMT_GLOBALHEADER)
-//		p_video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+//	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//		video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-	p_voutf->i_vstream_idx = 0;//p_video_stream->index;
+	video_output_file->vstream_idx = 0;//video_stream->index;
 
 	/* open the video codec */
-	if (avcodec_open2(p_voutf->p_codec_ctx, p_voutf->p_codec, NULL) < 0) {
+	if (avcodec_open2(video_output_file->codec_ctx, video_output_file->codec, NULL) < 0) {
 		fprintf(stderr, "Cannot open output video codec\n");
 		return -1;
 	}
 
 //	/* open the video codec */
-//	if (avcodec_open2(p_video_stream->codec, p_video_codec, NULL) < 0) {
+//	if (avcodec_open2(video_stream->codec, video_codec, NULL) < 0) {
 //		fprintf(stderr, "Cannot open output video codec\n");
 //		return -1;
 //	}
@@ -154,94 +154,90 @@ int dc_video_encoder_open(VideoOutputFile * p_voutf, VideoData * p_vdata, Bool u
 	return 0;
 }
 
-int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) {
-
+int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData *video_scaled_data)
+{
 	//AVPacket pkt;
-	VideoDataNode * p_vn;
+	VideoDataNode *video_data_node;
 	int ret;
-	//int i_out_size;
+	//int out_size;
 
-//	AVStream * p_video_stream = p_voutf->p_fmt->streams[p_voutf->i_vstream_idx];
-//	AVCodecContext * p_video_codec_ctx = p_video_stream->codec;
-	AVCodecContext * p_video_codec_ctx = p_voutf->p_codec_ctx;
+//	AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
+//	AVCodecContext *video_codec_ctx = video_stream->codec;
+	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 
-
-	ret = dc_consumer_lock(&p_voutf->vcon, &p_vsd->p_cb);
-
+	ret = dc_consumer_lock(&video_output_file->consumer, &video_scaled_data->circular_buf);
 	if (ret < 0) {
 #ifdef DEBUG
-		printf("Video encoder got to end of buffer!\n");
+		fprintf(stderr, "Video encoder got an end of buffer!\n");
 #endif
-
 		return -2;
 	}
 
-	dc_consumer_unlock_previous(&p_voutf->vcon, &p_vsd->p_cb);
+	dc_consumer_unlock_previous(&video_output_file->consumer, &video_scaled_data->circular_buf);
 
-	p_vn = (VideoDataNode *) dc_consumer_consume(&p_voutf->vcon, &p_vsd->p_cb);
+	video_data_node = (VideoDataNode*)dc_consumer_consume(&video_output_file->consumer, &video_scaled_data->circular_buf);
 
 	/*
 	 * Set PTS (method 1)
 	 */
-	if (! p_voutf->use_source_timing) {
-		p_vn->p_vframe->pts = p_video_codec_ctx->frame_number;
-	}
-	
+	if (!video_output_file->use_source_timing) {
+		video_data_node->vframe->pts = video_codec_ctx->frame_number;
+	}	
 	
 	/* Encoding video */
 	{
 		int got_packet = 0;
 		AVPacket pkt;
 		av_init_packet(&pkt);
-		pkt.data = p_voutf->p_vbuf;
-		pkt.size = p_voutf->i_vbuf_size;
-		p_vn->p_vframe->pkt_dts = p_vn->p_vframe->pkt_pts = p_vn->p_vframe->pts;
+		pkt.data = video_output_file->vbuf;
+		pkt.size = video_output_file->vbuf_size;
+		video_data_node->vframe->pkt_dts = video_data_node->vframe->pkt_pts = video_data_node->vframe->pts;
 #ifdef GPAC_USE_LIBAV
-		p_voutf->i_encoded_frame_size = avcodec_encode_video(p_video_codec_ctx, p_voutf->p_vbuf, p_voutf->i_vbuf_size, p_vn->p_vframe);
+		video_output_file->encoded_frame_size = avcodec_encode_video(video_codec_ctx, video_output_file->vbuf, video_output_file->vbuf_size, video_data_node->vframe);
 #else
-		p_voutf->i_encoded_frame_size = avcodec_encode_video2(p_video_codec_ctx, &pkt, p_vn->p_vframe, &got_packet);
+		video_output_file->encoded_frame_size = avcodec_encode_video2(video_codec_ctx, &pkt, video_data_node->vframe, &got_packet);
 #endif
-		if (p_voutf->i_encoded_frame_size >= 0) {
-			p_voutf->i_encoded_frame_size = pkt.size;
+		if (video_output_file->encoded_frame_size >= 0) {
+			video_output_file->encoded_frame_size = pkt.size;
 			if (got_packet) {	
-				p_video_codec_ctx->coded_frame->pts = pkt.pts;
-				p_video_codec_ctx->coded_frame->pkt_dts = pkt.dts;
-				p_video_codec_ctx->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
+				video_codec_ctx->coded_frame->pts = pkt.pts;
+				video_codec_ctx->coded_frame->pkt_dts = pkt.dts;
+				video_codec_ctx->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
 			}
 		}
 	}
 
-	dc_consumer_advance(&p_voutf->vcon);
+	dc_consumer_advance(&video_output_file->consumer);
 
-	if (p_voutf->i_encoded_frame_size < 0) {
+	if (video_output_file->encoded_frame_size < 0) {
 		fprintf(stderr, "Error occured while encoding video frame.\n");
 		return -1;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" encoded at UTC "LLU" ms\n", /*p_vn->source_number, */p_vn->p_vframe->pts, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" encoded at UTC "LLU" ms\n", /*video_data_node->source_number, */video_data_node->vframe->pts, gf_net_get_utc() ));
 
 	/* if zero size, it means the image was buffered */
-//	if (i_out_size > 0) {
+//	if (out_size > 0) {
 //
 //		av_init_packet(&pkt);
 //		pkt.data = NULL;
 //		pkt.size = 0;
 //
-//		if (p_video_codec_ctx->coded_frame->pts != AV_NOPTS_VALUE) {
-//			pkt.pts = av_rescale_q(p_video_codec_ctx->coded_frame->pts,
-//					p_video_codec_ctx->time_base, p_video_stream->time_base);
+//		if (video_codec_ctx->coded_frame->pts != AV_NOPTS_VALUE) {
+//			pkt.pts = av_rescale_q(video_codec_ctx->coded_frame->pts,
+//					video_codec_ctx->time_base, video_stream->time_base);
 //		}
 //
 //
-//		if (p_video_codec_ctx->coded_frame->key_frame)
+//		if (video_codec_ctx->coded_frame->key_frame)
 //			pkt.flags |= AV_PKT_FLAG_KEY;
 //
-//		pkt.stream_index = p_video_stream->index;
-//		pkt.data = p_voutf->p_vbuf;
-//		pkt.size = i_out_size;
+//		pkt.stream_index = video_stream->index;
+//		pkt.data = video_output_file->vbuf;
+//		pkt.size = out_size;
 //
 //		// write the compressed frame in the media file
-//		if (av_interleaved_write_frame(p_voutf->p_fmt, &pkt)
+//		if (av_interleaved_write_frame(video_output_file->fmt, &pkt)
 //				!= 0) {
 //			fprintf(stderr, "Writing frame is not successful\n");
 //			return -1;
@@ -251,22 +247,19 @@ int dc_video_encoder_encode(VideoOutputFile * p_voutf, VideoScaledData * p_vsd) 
 //
 //	}
 
-	return p_voutf->i_encoded_frame_size;
+	return video_output_file->encoded_frame_size;
 }
 
-void dc_video_encoder_close(VideoOutputFile * p_voutf) {
-
+void dc_video_encoder_close(VideoOutputFile *video_output_file)
+{
 //	int i;
 //
 //	// free the streams
-//	for (i = 0; i < p_voutf->p_fmt->nb_streams; i++) {
-//		avcodec_close(p_voutf->p_fmt->streams[i]->codec);
-//		av_freep(&p_voutf->p_fmt->streams[i]->info);
+//	for (i = 0; i < video_output_file->fmt->nb_streams; i++) {
+//		avcodec_close(video_output_file->fmt->streams[i]->codec);
+//		av_freep(&video_output_file->fmt->streams[i]->info);
 //	}
-
-	av_free(p_voutf->p_vbuf);
-
-	avcodec_close(p_voutf->p_codec_ctx);
-	av_free(p_voutf->p_codec_ctx);
-
+	av_free(video_output_file->vbuf);
+	avcodec_close(video_output_file->codec_ctx);
+	av_free(video_output_file->codec_ctx);
 }

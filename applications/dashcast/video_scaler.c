@@ -25,143 +25,123 @@
 
 #include "video_scaler.h"
 
-VideoScaledDataNode * dc_video_scaler_node_create(int i_width, int i_height,
-		int i_pix_fmt) {
 
+VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int pix_fmt)
+{
 	int num_bytes;
-	VideoScaledDataNode * p_vsdn;
-	p_vsdn = gf_malloc(sizeof(VideoDataNode));
-
-	p_vsdn->p_vframe = avcodec_alloc_frame();
-
-	if (p_vsdn->p_vframe == NULL) {
+	VideoScaledDataNode *video_scaled_data_node = gf_malloc(sizeof(VideoDataNode));
+	if (video_scaled_data_node)
+		video_scaled_data_node->vframe = avcodec_alloc_frame();
+	if (!video_scaled_data_node || !video_scaled_data_node->vframe) {
 		fprintf(stderr, "Cannot allocate VideoNode!\n");
+		gf_free(video_scaled_data_node);
 		return NULL;
 	}
 
 	/* Determine required buffer size and allocate buffer */
-	num_bytes = avpicture_get_size(i_pix_fmt, i_width, i_height);
+	num_bytes = avpicture_get_size(pix_fmt, width, height);
+	video_scaled_data_node->pic_data_buf = (uint8_t *) av_malloc(num_bytes * sizeof(uint8_t));
+	avpicture_fill((AVPicture *) video_scaled_data_node->vframe, video_scaled_data_node->pic_data_buf, pix_fmt, width, height);
 
-	p_vsdn->p_pic_data_buf = (uint8_t *) av_malloc(num_bytes * sizeof(uint8_t));
-
-	avpicture_fill((AVPicture *) p_vsdn->p_vframe, p_vsdn->p_pic_data_buf,
-			i_pix_fmt, i_width, i_height);
-
-	return p_vsdn;
+	return video_scaled_data_node;
 }
 
-void dc_video_scaler_node_destroy(VideoScaledDataNode * p_vsdn) {
+void dc_video_scaler_node_destroy(VideoScaledDataNode *video_scaled_data_node)
+{
+	av_free(video_scaled_data_node->vframe);
+	av_free(video_scaled_data_node->pic_data_buf);
 
-	av_free(p_vsdn->p_vframe);
-	av_free(p_vsdn->p_pic_data_buf);
-
-	gf_free(p_vsdn);
-
+	gf_free(video_scaled_data_node);
 }
 
-void dc_video_scaler_list_init(VideoScaledDataList * p_vsdl,
-		GF_List * p_video_lst) {
-
+void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_List * video_lst)
+{
 	u32 i;
-	int j;
-	int found;
+	int j, found;
 
-	p_vsdl->i_size = 0;
-	p_vsdl->p_vsd = NULL;
+	video_scaled_data_list->size = 0;
+	video_scaled_data_list->video_scaled_data = NULL;
 
-	for (i = 0; i < gf_list_count(p_video_lst); i++) {
-
-		VideoData * p_vconf = (VideoData*)gf_list_get(p_video_lst, i);
+	for (i=0; i<gf_list_count(video_lst); i++) {
+		VideoDataConf *vconf = (VideoDataConf*)gf_list_get(video_lst, i);
 		found = 0;
-		for (j = 0; j < p_vsdl->i_size; j++) {
-			if (p_vsdl->p_vsd[j]->i_out_height == p_vconf->i_height
-					&& p_vsdl->p_vsd[j]->i_out_width == p_vconf->i_width) {
-
+		for (j=0; j<video_scaled_data_list->size; j++) {
+			if (   video_scaled_data_list->video_scaled_data[j]->out_height == vconf->height
+				  && video_scaled_data_list->video_scaled_data[j]->out_width  == vconf->width) {
 				found = 1;
-
-				p_vsdl->p_vsd[j]->i_maxcon++;
-
+				video_scaled_data_list->video_scaled_data[j]->num_consumers++;
 				break;
 			}
 		}
 		if (!found) {
+			VideoScaledData *video_scaled_data;
+			GF_SAFEALLOC(video_scaled_data, VideoScaledData);
+			video_scaled_data->out_width  = vconf->width;
+			video_scaled_data->out_height = vconf->height;
+			video_scaled_data->num_consumers = 1;
 
-			VideoScaledData * p_vsd;
-			GF_SAFEALLOC(p_vsd, VideoScaledData);
-			p_vsd->i_out_width = p_vconf->i_width;
-			p_vsd->i_out_height = p_vconf->i_height;
-
-			p_vsd->i_maxcon = 1;
-
-			if (p_vsdl->p_vsd == NULL) {
-				p_vsdl->p_vsd = gf_malloc(sizeof(VideoScaledData *));
+			if (video_scaled_data_list->video_scaled_data == NULL) {
+				video_scaled_data_list->video_scaled_data = gf_malloc(sizeof(VideoScaledData *));
 			} else {
-				p_vsdl->p_vsd = realloc(p_vsdl->p_vsd,
-						(p_vsdl->i_size + 1) * sizeof(VideoScaledData *));
+				video_scaled_data_list->video_scaled_data = realloc(video_scaled_data_list->video_scaled_data, (video_scaled_data_list->size+1)*sizeof(VideoScaledData*));
 			}
 
-			p_vsdl->p_vsd[p_vsdl->i_size] = p_vsd;
-
-			p_vsdl->i_size++;
+			video_scaled_data_list->video_scaled_data[video_scaled_data_list->size] = video_scaled_data;
+			video_scaled_data_list->size++;
 		}
 	}
-
 }
 
-void dc_video_scaler_list_destroy(VideoScaledDataList * p_vsdl) {
-	int i;
-	for (i = 0; i < p_vsdl->i_size; i++)
-		gf_free(p_vsdl->p_vsd[i]);
-
-	gf_free(p_vsdl->p_vsd);
-}
-
-void dc_video_scaler_end_signal(VideoScaledData * p_vconv)
-{
-	dc_producer_end_signal(&p_vconv->svpro, &p_vconv->p_cb);
-	dc_producer_unlock_previous(&p_vconv->svpro, &p_vconv->p_cb);
-}
-
-int dc_video_scaler_data_init(VideoInputData * p_vin, VideoScaledData * p_vsd, int max_source)
+void dc_video_scaler_list_destroy(VideoScaledDataList *video_scaled_data_list)
 {
 	int i;
+	for (i = 0; i < video_scaled_data_list->size; i++)
+		gf_free(video_scaled_data_list->video_scaled_data[i]);
 
+	gf_free(video_scaled_data_list->video_scaled_data);
+}
+
+void dc_video_scaler_end_signal(VideoScaledData *video_scaled_data)
+{
+	dc_producer_end_signal(&video_scaled_data->producer, &video_scaled_data->circular_buf);
+	dc_producer_unlock_previous(&video_scaled_data->producer, &video_scaled_data->circular_buf);
+}
+
+int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int max_source)
+{
+	int i;
 	char name[256];
-	sprintf(name, "video scaler %dx%d", p_vsd->i_out_width,
-			p_vsd->i_out_height);
-	dc_producer_init(&p_vsd->svpro, VIDEO_CB_SIZE, name);
-	dc_consumer_init(&p_vsd->svcon, VIDEO_CB_SIZE, name);
+	sprintf(name, "video scaler %dx%d", video_scaled_data->out_width, video_scaled_data->out_height);
 
-	p_vsd->i_maxsource = max_source;
-	p_vsd->i_out_pix_fmt = PIX_FMT_YUV420P;
-	GF_SAFE_ALLOC_N(p_vsd->p_vsprop, max_source, VideoScaledProp);
-	memset(p_vsd->p_vsprop, 0, max_source * sizeof(VideoScaledProp));
+	dc_producer_init(&video_scaled_data->producer, VIDEO_CB_SIZE, name);
+	dc_consumer_init(&video_scaled_data->consumer, VIDEO_CB_SIZE, name);
 
-	dc_circular_buffer_create(&p_vsd->p_cb, VIDEO_CB_SIZE, p_vin->p_cb.mode,
-			p_vsd->i_maxcon);
+	video_scaled_data->num_producers = max_source;
+	video_scaled_data->out_pix_fmt = PIX_FMT_YUV420P;
+	GF_SAFE_ALLOC_N(video_scaled_data->vsprop, max_source, VideoScaledProp);
+	memset(video_scaled_data->vsprop, 0, max_source * sizeof(VideoScaledProp));
 
-	for (i = 0; i < VIDEO_CB_SIZE; i++) {
-		p_vsd->p_cb.p_list[i].p_data = dc_video_scaler_node_create(
-				p_vsd->i_out_width, p_vsd->i_out_height, p_vsd->i_out_pix_fmt);
+	dc_circular_buffer_create(&video_scaled_data->circular_buf, VIDEO_CB_SIZE, video_input_data->circular_buf.mode, video_scaled_data->num_consumers);
+	for (i=0; i<VIDEO_CB_SIZE; i++) {
+		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_scaled_data->out_pix_fmt);
 	}
 
 	return 0;
 }
 
-int dc_video_scaler_data_set_prop(VideoInputData * p_vin, VideoScaledData * p_vsd, int index)
+int dc_video_scaler_data_set_prop(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int index)
 {
-	p_vsd->p_vsprop[index].i_in_width = p_vin->p_vprop[index].i_width;
-	p_vsd->p_vsprop[index].i_in_height = p_vin->p_vprop[index].i_height;
-	p_vsd->p_vsprop[index].i_in_pix_fmt = p_vin->p_vprop[index].i_pix_fmt;
+	video_scaled_data->vsprop[index].in_width   = video_input_data->vprop[index].width;
+	video_scaled_data->vsprop[index].in_height  = video_input_data->vprop[index].height;
+	video_scaled_data->vsprop[index].in_pix_fmt = video_input_data->vprop[index].pix_fmt;
 
-	p_vsd->p_vsprop[index].p_sws_ctx = sws_getContext(
-			p_vsd->p_vsprop[index].i_in_width,
-			p_vsd->p_vsprop[index].i_in_height,
-			p_vsd->p_vsprop[index].i_in_pix_fmt, /* p_vin->i_width, p_vin->i_height,
-			 p_vin->i_pix_fmt,*/p_vsd->i_out_width, p_vsd->i_out_height,
-			p_vsd->i_out_pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-
-	if (p_vsd->p_vsprop[index].p_sws_ctx == NULL) {
+	video_scaled_data->vsprop[index].sws_ctx = sws_getContext(
+			video_scaled_data->vsprop[index].in_width,
+			video_scaled_data->vsprop[index].in_height,
+			video_scaled_data->vsprop[index].in_pix_fmt,
+			video_scaled_data->out_width, video_scaled_data->out_height,
+			video_scaled_data->out_pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	if (video_scaled_data->vsprop[index].sws_ctx == NULL) {
 		fprintf(stderr, "Cannot initialize the conversion context!\n");
 		return -1;
 	}
@@ -169,87 +149,81 @@ int dc_video_scaler_data_set_prop(VideoInputData * p_vin, VideoScaledData * p_vs
 	return 0;
 }
 
-int dc_video_scaler_scale(VideoInputData * p_vin, VideoScaledData * p_vsd) {
+int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *video_scaled_data)
+{
+	int ret, index;
+	VideoDataNode *video_data_node;
+	VideoScaledDataNode *video_scaled_data_node;
 
-	int ret;
-	int index;
-	VideoDataNode * p_vdn;
-	VideoScaledDataNode * p_vsdn;
-
-	ret = dc_consumer_lock(&p_vsd->svcon, &p_vin->p_cb);
+	ret = dc_consumer_lock(&video_scaled_data->consumer, &video_input_data->circular_buf);
 
 	if (ret < 0) {
 #ifdef DEBUG
-		printf("Video scaler got to end of buffer!\n");
+		fprintf(stderr, "Video scaler got an end of buffer!\n");
 #endif
 		return -2;
 	}
 
-	dc_consumer_unlock_previous(&p_vsd->svcon, &p_vin->p_cb);
+	dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
 
-	dc_producer_lock(&p_vsd->svpro, &p_vsd->p_cb);
-	dc_producer_unlock_previous(&p_vsd->svpro, &p_vsd->p_cb);
+	dc_producer_lock(&video_scaled_data->producer, &video_scaled_data->circular_buf);
+	dc_producer_unlock_previous(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 
-	p_vdn = (VideoDataNode *) dc_consumer_consume(&p_vsd->svcon, &p_vin->p_cb);
-	p_vsdn = (VideoScaledDataNode *) dc_producer_produce(&p_vsd->svpro,
-			&p_vsd->p_cb);
+	video_data_node = (VideoDataNode*)dc_consumer_consume(&video_scaled_data->consumer, &video_input_data->circular_buf);
+	video_scaled_data_node = (VideoScaledDataNode*)dc_producer_produce(&video_scaled_data->producer, &video_scaled_data->circular_buf);
+	index = video_data_node->source_number;
 
-	index = p_vdn->source_number;
+	video_scaled_data->frame_duration = video_input_data->frame_duration;
 
-	p_vsd->frame_duration = p_vin->frame_duration;
-
-	sws_scale(p_vsd->p_vsprop[index].p_sws_ctx,
-			(const uint8_t * const *) p_vdn->p_vframe->data,
-			p_vdn->p_vframe->linesize, 0,
-			p_vin->p_vprop[index].i_height/*p_vin->i_height*/,
-			p_vsdn->p_vframe->data, p_vsdn->p_vframe->linesize);
+	sws_scale(video_scaled_data->vsprop[index].sws_ctx,
+			(const uint8_t * const *) video_data_node->vframe->data,
+			video_data_node->vframe->linesize, 0,
+			video_input_data->vprop[index].height/*video_input_data->height*/,
+			video_scaled_data_node->vframe->data, video_scaled_data_node->vframe->linesize);
 	
-	p_vsdn->p_vframe->pts = p_vdn->p_vframe->pts;
+	video_scaled_data_node->vframe->pts = video_data_node->vframe->pts;
 
-	if (p_vdn->is_raw_data) {
+	if (video_data_node->is_raw_data) {
 #ifdef GPAC_USE_LIBAV
-		av_free_packet(&p_vdn->raw_packet);
+		av_free_packet(&video_data_node->raw_packet);
 #else
-		av_frame_unref(p_vdn->p_vframe);
+		av_frame_unref(video_data_node->vframe);
 #endif
-		p_vdn->is_raw_data = 0;
+		video_data_node->is_raw_data = 0;
 	}
 
-	dc_consumer_advance(&p_vsd->svcon);
-	dc_producer_advance(&p_vsd->svpro);
+	dc_consumer_advance(&video_scaled_data->consumer);
+	dc_producer_advance(&video_scaled_data->producer);
 
 	return 0;
 }
 
-int dc_video_scaler_data_destroy(VideoScaledData * p_vsd)
+int dc_video_scaler_data_destroy(VideoScaledData *video_scaled_data)
 {
 	int i;
-	for (i = 0; i < VIDEO_CB_SIZE; i++) {
-		dc_video_scaler_node_destroy(p_vsd->p_cb.p_list[i].p_data);
+	for (i=0; i<VIDEO_CB_SIZE; i++) {
+		dc_video_scaler_node_destroy(video_scaled_data->circular_buf.list[i].data);
 	}
 
-	for (i = 0 ; i<p_vsd->i_maxsource ; i++) {
-		if (p_vsd->p_vsprop[i].p_sws_ctx)
-			av_free(p_vsd->p_vsprop[i].p_sws_ctx);
+	for (i=0 ; i<video_scaled_data->num_producers; i++) {
+		if (video_scaled_data->vsprop[i].sws_ctx)
+			av_free(video_scaled_data->vsprop[i].sws_ctx);
 	}
-	gf_free(p_vsd->p_vsprop);
-	//av_free(p_vsd->p_sws_ctx);
+	gf_free(video_scaled_data->vsprop);
+	//av_free(video_scaled_data->sws_ctx);
 
-	dc_circular_buffer_destroy(&p_vsd->p_cb);
+	dc_circular_buffer_destroy(&video_scaled_data->circular_buf);
 
 	return 0;
 }
 
-VideoScaledData * dc_video_scaler_get_data(VideoScaledDataList * p_vsdl,
-		int i_width, int i_height) {
+VideoScaledData * dc_video_scaler_get_data(VideoScaledDataList *video_scaled_data_list, int width, int height)
+{
 	int i;
-
-	for (i = 0; i < p_vsdl->i_size; i++) {
-		if (p_vsdl->p_vsd[i]->i_out_width == i_width
-				&& p_vsdl->p_vsd[i]->i_out_height == i_height)
-			return p_vsdl->p_vsd[i];
+	for (i=0; i<video_scaled_data_list->size; i++) {
+		if (video_scaled_data_list->video_scaled_data[i]->out_width == width && video_scaled_data_list->video_scaled_data[i]->out_height == height)
+			return video_scaled_data_list->video_scaled_data[i];
 	}
 
 	return NULL;
 }
-

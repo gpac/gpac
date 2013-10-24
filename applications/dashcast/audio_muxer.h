@@ -39,11 +39,9 @@
 
 
 typedef enum {
-
 	FFMPEG_AUDIO_MUXER,
 	GPAC_AUDIO_MUXER,
 	GPAC_INIT_AUDIO_MUXER
-
 } AudioMuxerType;
 
 /*
@@ -55,28 +53,27 @@ typedef enum {
  *
  */
 typedef struct {
-
-	//AudioData * p_adata;
+	//AudioDataConf *audio_data_conf;
 
 	/* File format context structure */
-	AVFormatContext * p_fmt;
-	AVCodec * p_codec;
-	AVCodecContext * p_codec_ctx;
+	AVFormatContext *fmt;
+	AVCodec *codec;
+	AVCodecContext *codec_ctx;
 
-	GF_ISOFile * p_isof;
-	GF_ISOSample * p_sample;
+	GF_ISOFile *isof;
+	GF_ISOSample *sample;
 	int dts;
 
 	/* The index to the audio stream in the file */
-	int i_astream_idx;
+	int astream_idx;
 
 	/* It keeps the index with which encoder access to the circular buffer (as a consumer) */
-	Consumer acon;
+	Consumer consumer;
 
 	/* Variables that encoder needs to encode data */
-	AVFrame * p_aframe;
-	uint8_t * p_adata_buf;
-	int i_frame_bytes;
+	AVFrame *aframe;
+	uint8_t *adata_buf;
+	int frame_bytes;
 	AVPacket packet;
 
 	/*
@@ -86,40 +83,40 @@ typedef struct {
 	 * to store audio samples in the fifo and once an access unit
 	 * is complete we can encode it.
 	 */
-	AVFifoBuffer * p_fifo;
+	AVFifoBuffer *fifo;
 
 	AudioMuxerType muxer_type;
 
 	/* Accumulated sample */
 	//int acc_samples;
 
-	int i_frame_per_seg;
-	int i_frame_per_frag;
-	int i_first_dts;
+	int frame_per_seg;
+	int frame_per_frag;
+	int first_dts;
 
-	u32 i_seg_marker;
+	u32 seg_marker;
 
-	int i_frame_size;
+	int frame_size;
 
 } AudioOutputFile;
 
-int dc_audio_muxer_init(AudioOutputFile * aoutf, AudioData * aconf, AudioMuxerType muxer_type,
-		int frame_per_seg, int frame_per_frag, u32 seg_marker);
-void dc_audio_muxer_free(AudioOutputFile * aoutf);
+int dc_audio_muxer_init(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf, AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag, u32 seg_marker);
+void dc_audio_muxer_free(AudioOutputFile *audio_output_file);
 
 /*
  * Open the output audio
  *
- * @param aoutf [out] open the audio output on this file
+ * @param audio_output_file [out] open the audio output on this file
  *
- * @param aconf [in] the structure containing the
+ * @param audio_data_conf [in] the structure containing the
  * configuration of the output file (bitrate, samplerate, name, channels)
  *
  * @return 0 on success, -1 on failure
  */
-GF_Err dc_audio_muxer_open(AudioOutputFile * aoutf, char * psz_directory, char * psz_id, int i_seg);
-GF_Err dc_audio_muxer_write(AudioOutputFile * aout, int i_frame_nb);
-GF_Err dc_audio_muxer_close(AudioOutputFile * aoutf);
+GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, char *id_name, int seg);
 
+GF_Err dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb);
+
+GF_Err dc_audio_muxer_close(AudioOutputFile *audio_output_file);
 
 #endif /* AUDIO_MUXER_H_ */

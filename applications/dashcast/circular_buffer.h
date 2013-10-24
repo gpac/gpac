@@ -50,38 +50,30 @@ typedef enum {
  * all the variables needed for multithread management. 
  */
 typedef struct {
-
 	/* Pointer to the data on the node */
-	void * p_data;
-
+	void *data;
 	/* The number of the producer currently using this node */
-	int i_pro_nb;
-
+	int num_producers;
 	/* The number of consumer currently using this node */
-	int i_con_nb;
-
-	int i_con_waiting;
-
+	int num_consumers;
+	/* The number of consumer currently waiting for this node */
+	int num_consumers_waiting;
 	/* Mutex used for synchronizing the users of this node. */
-	GF_Mutex * mux;
-
+	GF_Mutex *mutex;
 	/* Semaphore for producer */
-	GF_Semaphore * pro_sem;
-
+	GF_Semaphore *producers_semaphore;
 	/* Semaphore for consumers */
-	GF_Semaphore * con_sem;
-
+	GF_Semaphore *consumers_semaphore;
 	/* If marked is 0 it means the data on this node is not valid.
 	 * If marked is 1 it means that the data on this node is valid.
 	 * If marked is 2 it means this node is the last node.
 	 */
-	int i_marked;
+	int marked;
 	/*
-	 * Indicates the number of consumer already accessed to this node.
-	 * It is used for the case where the last consumer has to to something.
+	 * Indicates the number of consumers which already accessed this node.
+	 * It is used for the case where the last consumer has to do something.
 	 */
-	int i_con_access;
-
+	int num_consumers_accessed;
 } Node;
 
 /*
@@ -90,19 +82,14 @@ typedef struct {
  * locking mechanism it needs to use. (LIVE or OFFLINE)
  */
 typedef struct {
-
 	/* The size of circular buffer */
-	int i_size;
-	
+	int size;	
 	/* A list of all the nodes */
-	Node * p_list;
-	
+	Node *list;	
 	/* The mode for multithread management. */
-	LockMode mode;
-	
+	LockMode mode;	
 	/* The maximum number of the consumers using the circular buffer */
-	int i_max_con_nb;
-
+	int max_con_nb;
 } CircularBuffer;
 
 /*
@@ -110,11 +97,11 @@ typedef struct {
  */ 
 typedef struct {
 	/* The index where the producer is using */
-	int i_idx;
+	int idx;
 	/* The maximum of the index. (Which means the size of circular buffer) */
-	int i_max_idx;
+	int max_idx;
 
-	char psz_name[256];
+	char name[256];
 } Producer;
 
 /*
@@ -122,152 +109,140 @@ typedef struct {
  */
 typedef struct {
 	/* The index where the consumer is using */
-	int i_idx;
+	int idx;
 	/* The maximum of the index. (Which means the size of circular buffer) */
-	int i_max_idx;
+	int max_idx;
 
-	char psz_name[256];
+	char name[256];
 } Consumer;
 
 /*
  * Create a circular buffer
  * 
- * @param cb [out] circular buffer to be created
+ * @param circular_buf [out] circular buffer to be created
  * @param size [in] size of circular buffer
  * @param mode [in] mode of multithread management (LIVE or OFFLINE)
- * @param maxcon [in] maximum number of the consumers of the circular buffer
- *
+ * @param num_consumers [in] maximum number of the consumers of the circular buffer
  */
-void dc_circular_buffer_create(CircularBuffer * cb, int size, LockMode mode,int maxcon);
+void dc_circular_buffer_create(CircularBuffer *circular_buf, int size, LockMode mode, int num_consumers);
 
 /*
  * Destroy the circular buffer
  *
- * @param cb [in] circular buffer to be destroyed
- *
+ * @param circular_buf [in] circular buffer to be destroyed
  */
-void dc_circular_buffer_destroy(CircularBuffer * cb);
+void dc_circular_buffer_destroy(CircularBuffer *circular_buf);
 
 /* 
  * Initialize a consumer
  * 
- * @param con [out] the consumer to be initialize
- * @param maxcon [in] maximum number of the consumers
- *
+ * @param consumer [out] the consumer to be initialize
+ * @param num_consumers [in] maximum number of the consumers
  */
-void dc_consumer_init(Consumer * con, int maxcon, char * name);
+void dc_consumer_init(Consumer *consumer, int num_consumers, char *name);
 
 /*
- * Return the data in the node in question. (cb[con index])
- * @param con [in] consumer
- * @param cb [in] circular buffer
- *  
+ * Return the data in the node in question. (circular_buf[consumer index])
+ *
+ * @param consumer [in] consumer
+ * @param circular_buf [in] circular buffer
  */
-void * dc_consumer_consume(Consumer * con, CircularBuffer * cb);
+void * dc_consumer_consume(Consumer *consumer, CircularBuffer *circular_buf);
 
 /*
  * Consumer lock on circular buffer
  * 
- * @param con [in] consumer
- * @param cb [in] circular buffer
+ * @param consumer [in] consumer
+ * @param circular_buf [in] circular buffer
  *
- * @return 0 on success, -1 if the node in question is the last node
- * and not usable. 
+ * @return 0 on success, -1 if the node in question is the last node and not usable. 
  */ 
-int dc_consumer_lock(Consumer * con, CircularBuffer * cb);
+int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf);
 
 /*
  * Consumer unlock on circular buffer
  *
- * @param con [in] consumer
- * @param cb [in] circular buffer
+ * @param consumer [in] consumer
+ * @param circular_buf [in] circular buffer
  *
- * @return 0 on normal exit, 1 if the consumer unlocking this node
- * is the last consumer.
+ * @return 0 on normal exit, 1 if the consumer unlocking this node is the last consumer.
  */
-int dc_consumer_unlock(Consumer * con, CircularBuffer * cb);
+int dc_consumer_unlock(Consumer *consumer, CircularBuffer *circular_buf);
 
 /*
  * Consumer unlock on previous node of the circular buffer
  *
- * @param con [in] consumer
- * @param cb [in] circular buffer
+ * @param consumer [in] consumer
+ * @param circular_buf [in] circular buffer
  *
- * @return 0 on normal exit, 1 if the consumer unlocking this node
- * is the last consumer.
+ * @return 0 on normal exit, 1 if the consumer unlocking this node is the last consumer.
  */
-int dc_consumer_unlock_previous(Consumer * con, CircularBuffer * cb);
+int dc_consumer_unlock_previous(Consumer *consumer, CircularBuffer *circular_buf);
 
 /*
  * Consumer leads its index
  * 
- * @param con [in] consumer
+ * @param consumer [in] consumer
  */
-void dc_consumer_advance(Consumer * con);
+void dc_consumer_advance(Consumer *consumer);
 
 /* 
  * Initialize a producer
  * 
- * @param pro [out] the producer to be initialize
+ * @param producer [out] the producer to be initialize
  * @param maxpro [in] maximum number of the producers
- *
  */
-void dc_producer_init(Producer * pro, int maxpro, char * name);
+void dc_producer_init(Producer *producer, int maxpro, char *name);
 
 /*
- * Return the data in the node in question. (cb[con index])
- * @param pro [in] producer
- * @param cb [in] circular buffer
- *  
+ * Return the data in the node in question. (circular_buf[consumer index])
+ *
+ * @param producer [in] producer
+ * @param circular_buf [in] circular buffer
  */
-void * dc_producer_produce(Producer * pro, CircularBuffer * cb);
+void * dc_producer_produce(Producer *producer, CircularBuffer *circular_buf);
 
 /*
  * Producer lock on circular buffer
  * 
- * @param pro [in] producer
- * @param cb [in] circular buffer
+ * @param producer [in] producer
+ * @param circular_buf [in] circular buffer
  *
  * @return 0 on success, -1 if the mode is live and cannot wait.
- *
  */ 
-int dc_producer_lock(Producer * pro, CircularBuffer * cb);
+int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf);
 
 /*
  * Producer unlock on circular buffer
  *
- * @param pro [in] producer
- * @param cb [in] circular buffer
- *
+ * @param producer [in] producer
+ * @param circular_buf [in] circular buffer
  */
-void dc_producer_unlock(Producer * pro, CircularBuffer * cb);
+void dc_producer_unlock(Producer *producer, CircularBuffer *circular_buf);
 
 /*
  * Producer unlock on the previous node of the circular buffer
  *
- * @param pro [in] producer
- * @param cb [in] circular buffer
- *
+ * @param producer [in] producer
+ * @param circular_buf [in] circular buffer
  */
 void dc_producer_unlock_previous(Producer *, CircularBuffer *);
 
 /*
  * Producer leads its index
  * 
- * @param pro [in] producer
- *
+ * @param producer [in] producer
  */
-void dc_producer_advance(Producer * pro);
+void dc_producer_advance(Producer *producer);
 
 /*
  * Producer signal that the current node is the last node
  * 
- * @param pro [in] producer
- * @param cb [in] circular buffer
+ * @param producer [in] producer
+ * @param circular_buf [in] circular buffer
  */
-void dc_producer_end_signal(Producer * pro, CircularBuffer * cb);
+void dc_producer_end_signal(Producer *producer, CircularBuffer *circular_buf);
 
-void dc_producer_end_signal_previous(Producer * p_pro, CircularBuffer * p_cb);
-
+void dc_producer_end_signal_previous(Producer *producer, CircularBuffer *circular_buf);
 
 #endif /* CIRCULAR_BUFFER_H_ */
