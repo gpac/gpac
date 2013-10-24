@@ -1040,7 +1040,7 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segme
 
 u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *group, u32 segment_index, u32 *seg_dur_ms)
 {
-	Double seg_ast, seg_dur;
+	Double seg_ast, seg_dur=0.0;
 	seg_ast = gf_dash_get_segment_start_time(group, &seg_dur);
 	if (seg_dur_ms) *seg_dur_ms = (u32) (seg_dur * 1000);
 

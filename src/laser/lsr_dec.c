@@ -4853,6 +4853,7 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 			break;
 		}
 	}
+	x.value = y.value = 0;
 	GF_LSR_READ_INT(lsr, flag, 1, "has_pointvalue");
 	if (flag) {
 		lsr_read_coordinate(lsr, &x, 0, "x");
