@@ -27,7 +27,7 @@
 #include "libavformat/avio.h"
 
 
-int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *psz_name)
+int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename)
 {
 	GF_Err ret;
 	u32 di, track;
@@ -38,9 +38,9 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *psz_name
 #endif
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
-	audio_output_file->isof = gf_isom_open(psz_name, GF_ISOM_OPEN_WRITE, NULL);
+	audio_output_file->isof = gf_isom_open(filename, GF_ISOM_OPEN_WRITE, NULL);
 	if (!audio_output_file->isof) {
-		fprintf(stderr, "Cannot open iso file %s\n", psz_name);
+		fprintf(stderr, "Cannot open iso file %s\n", filename);
 		return -1;
 	}
 
@@ -132,10 +132,10 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *psz_name
 	return 0;
 }
 
-int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *psz_name)
+int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filename)
 {
 	GF_Err ret;
-	ret = gf_isom_start_segment(audio_output_file->isof, psz_name, 1);
+	ret = gf_isom_start_segment(audio_output_file->isof, filename, 1);
 	if (ret != GF_OK) {
 		fprintf(stderr, "%s: gf_isom_start_segment\n", gf_error_to_string(ret));
 		return -1;
@@ -212,7 +212,7 @@ int dc_gpac_audio_isom_close(AudioOutputFile *audio_output_file)
 	return 0;
 }
 
-int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *psz_name)
+int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filename)
 {
 	AVStream *audio_stream;
 	AVOutputFormat *output_fmt;
@@ -220,14 +220,14 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *psz_nam
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 	audio_output_file->fmt = NULL;
 
-//	strcpy(audio_output_file->psz_name, audio_data_conf->psz_name);
+//	strcpy(audio_output_file->filename, audio_data_conf->filename);
 //	audio_output_file->abr = audio_data_conf->bitrate;
 //	audio_output_file->asr = audio_data_conf->samplerate;
 //	audio_output_file->ach = audio_data_conf->channels;
 //	strcpy(audio_output_file->codec, audio_data_conf->codec);
 
 	/* Find output format */
-	output_fmt = av_guess_format(NULL, psz_name, NULL);
+	output_fmt = av_guess_format(NULL, filename, NULL);
 	if (!output_fmt) {
 		fprintf(stderr, "Cannot find suitable output format\n");
 		return -1;
@@ -240,12 +240,12 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *psz_nam
 	}
 
 	audio_output_file->fmt->oformat = output_fmt;
-	strcpy(audio_output_file->fmt->filename, psz_name);
+	strcpy(audio_output_file->fmt->filename, filename);
 
 	/* Open the output file */
 	if (!(output_fmt->flags & AVFMT_NOFILE)) {
-		if (avio_open(&audio_output_file->fmt->pb, psz_name, URL_WRONLY) < 0) {
-			fprintf(stderr, "Cannot not open '%s'\n", psz_name);
+		if (avio_open(&audio_output_file->fmt->pb, filename, URL_WRONLY) < 0) {
+			fprintf(stderr, "Cannot not open '%s'\n", filename);
 			return -1;
 		}
 	}
@@ -334,8 +334,8 @@ int dc_ffmpeg_audio_muxer_close(AudioOutputFile *audio_output_file)
 
 int dc_audio_muxer_init(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf, AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag, u32 seg_marker)
 {
-	char name[256];
-	sprintf(name, "audio encoder %s", audio_data_conf->filename);
+	char name[GF_MAX_PATH];
+	snprintf(name, sizeof(name), "audio encoder %s", audio_data_conf->filename);
 	dc_consumer_init(&audio_output_file->consumer, AUDIO_CB_SIZE, name);
 
 	audio_output_file->sample = gf_isom_sample_new();
@@ -362,24 +362,24 @@ void dc_audio_muxer_free(AudioOutputFile *audio_output_file)
 GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, char *id_name, int seg)
 {
 	GF_Err ret;
-	char psz_name[256];
+	char name[GF_MAX_PATH];
 
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
-		sprintf(psz_name, "%s/%s_%d_ffmpeg.mp4", directory, id_name, seg);
-		return dc_ffmpeg_audio_muxer_open(audio_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_ffmpeg.mp4", directory, id_name, seg);
+		return dc_ffmpeg_audio_muxer_open(audio_output_file, name);
 	case GPAC_AUDIO_MUXER:
-		sprintf(psz_name, "%s/%s_%d_gpac.mp4", directory, id_name, seg);
-		dc_gpac_audio_moov_create(audio_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_gpac.mp4", directory, id_name, seg);
+		dc_gpac_audio_moov_create(audio_output_file, name);
 		return dc_gpac_audio_isom_open_seg(audio_output_file, NULL);
 	case GPAC_INIT_AUDIO_MUXER:
 		if (seg == 0) {
-			sprintf(psz_name, "%s/%s_init_gpac.mp4", directory, id_name);
-			dc_gpac_audio_moov_create(audio_output_file, psz_name);
+			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
+			dc_gpac_audio_moov_create(audio_output_file, name);
 			audio_output_file->first_dts = 0;
 		}
-		sprintf(psz_name, "%s/%s_%d_gpac.m4s", directory, id_name, seg);
-		ret = dc_gpac_audio_isom_open_seg(audio_output_file, psz_name);
+		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
+		ret = dc_gpac_audio_isom_open_seg(audio_output_file, name);
 		return ret;
 	default:
 		return GF_BAD_PARAM;

@@ -45,13 +45,13 @@
  */
 typedef struct {
 	/* video file name */
-	char filename[256];
+	char filename[GF_MAX_PATH];
 	/* video format */
-	char format[256];
+	char format[GF_MAX_PATH];
 	/* video format */
-	char pixel_format[256];
+	char pixel_format[GF_MAX_PATH];
 	/* v4l2 format */
-	char v4l2f[256];
+	char v4l2f[GF_MAX_PATH];
 	/* video width */
 	int width;
 	/* video height */
@@ -61,12 +61,12 @@ typedef struct {
 	/* video frame rate */
 	int framerate;
 	/* video codec */
-	char codec[256];
+	char codec[GF_MAX_PATH];
 	/* custom parameter to be passed directly to the encoder - free it once you're done */
 	char *custom;
 
 	/* used for source switching */
-	char source_id[256];
+	char source_id[GF_MAX_PATH];
 	time_t start_time;
 	time_t end_time;
 

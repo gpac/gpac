@@ -69,9 +69,9 @@ typedef struct {
  */
 typedef struct {
 	/* audio file name */
-	char filename[256];
+	char filename[GF_MAX_PATH];
 	/* audio format */
-	char format[256];
+	char format[GF_MAX_PATH];
 	/* audio bitrate */
 	int bitrate;
 	/* audio samplerate */
@@ -79,12 +79,12 @@ typedef struct {
 	/* audio channel number */
 	int channels;
 	/* audio codec */
-	char codec[256];
+	char codec[GF_MAX_PATH];
 	/* custom parameter to be passed directly to the encoder - free it once you're done */
 	char *custom;
 
 	/* used for source switching */
-	char source_id[256];
+	char source_id[GF_MAX_PATH];
 	time_t start_time;
 	time_t end_time;
 } AudioDataConf;

@@ -116,7 +116,7 @@ u32 send_frag_event(void *params)
 {
 	int ret;
 	//int status;
-	char buff[512];
+	char buff[GF_MAX_PATH];
 	ThreadParam *th_param = (ThreadParam*)params;
 	CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
@@ -141,9 +141,9 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,	video_frag_dur = 0;
 	int audio_frame_size = AUDIO_FRAME_SIZE;
 	FILE *f;
-	char psz_name[512];
 
-	sprintf(psz_name, "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
+	char name[GF_MAX_PATH];
+	snprintf(name, sizeof(name), "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
 		audio_data_conf = gf_list_get(cmddata->audio_lst, 0);
@@ -159,14 +159,14 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
 	}
 	
-	f = fopen(psz_name, "w");
+	f = fopen(name, "w");
 	//TODO: if (!f) ...
 
 	//	time_t t = time(NULL);
 	//	time_t t2 = t + 2;
 	//	t += (2 * (cmddata->seg_dur / 1000.0));
 	//	tm = *gmtime(&t2);
-	//	sprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
+	//	snprintf(availability_start_time, "%d-%d-%dT%d:%d:%dZ", tm.tm_year + 1900,
 	//			tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 	//	fprintf(stdout, "%s \n", availability_start_time);
 
@@ -247,9 +247,9 @@ static u32 mpd_thread(void *params)
 	ThreadParam *th_param = (ThreadParam*)params;
 	CmdData *cmddata = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
-	char availability_start_time[512];
-	char presentation_duration[512];
-	char time_shift[512] = "";
+	char availability_start_time[GF_MAX_PATH];
+	char presentation_duration[GF_MAX_PATH];
+	char time_shift[GF_MAX_PATH] = "";
 
 	AudioDataConf *audio_data_conf = NULL;
 	VideoDataConf *video_data_conf = NULL;
@@ -288,8 +288,8 @@ static u32 mpd_thread(void *params)
 			{	
 				struct tm ast_time = *gmtime(&t);
 				strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
-				sprintf(availability_start_time,"%s.%dZ", availability_start_time, ms);
-				//sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
+				snprintf(availability_start_time, sizeof(availability_start_time),"%s.%dZ", availability_start_time, ms);
+				//snprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
 				//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
 				//		time.tm_min, time.tm_sec);
 				fprintf(stdout, "StartTime: %s\n", availability_start_time);
@@ -302,7 +302,7 @@ static u32 mpd_thread(void *params)
 				ts = ts % 3600;
 				m = ts / 60;
 				s = ts % 60;
-				sprintf(time_shift, "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
+				snprintf(time_shift, sizeof(time_shift), "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
 			}
 
 			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, seg_time.segnum);
@@ -329,7 +329,7 @@ static u32 mpd_thread(void *params)
 			dur = dur % 60000;
 			s = dur / 1000;
 			ms = dur % 1000;
-			sprintf(presentation_duration, "PT%02dH%02dM%02d.%03dS", h, m, s, ms);
+			snprintf(presentation_duration, sizeof(presentation_duration), "PT%02dH%02dM%02d.%03dS", h, m, s, ms);
 			fprintf(stdout, "Duration: %s\n", presentation_duration);
 		}
 
@@ -347,7 +347,7 @@ u32 delete_seg_thread(void *params)
 	CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
 
-	char buff[512];
+	char buff[GF_MAX_PATH];
 
 	while (1) {
 		ret = dc_message_queue_get(mq, (void*) buff);
@@ -374,7 +374,7 @@ Bool fragmenter_thread(void *params)
 	CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
 
-	char buff[256];
+	char buff[GF_MAX_PATH];
 
 	while (1) {
 		ret = dc_message_queue_get(mq, (void*) buff);
@@ -436,8 +436,8 @@ Bool dasher_thread(void *params)
 //	for (i = 0; i < video_list_size; i++) {
 //
 //		VideoDataConf *video_data_conf = gf_list_get(cmd_data->video_lst, i);
-//		dash_inputs[i].file_name = video_data_conf->psz_name;
-//		sprintf(dash_inputs[i].representationID, "%d", i);
+//		dash_inputs[i].file_name = video_data_conf->filename;
+//		snprintf(dash_inputs[i].representationID, "%d", i);
 //		strcpy(dash_inputs[i].periodID, "");
 //		strcpy(dash_inputs[i].role, "");
 //
@@ -446,8 +446,8 @@ Bool dasher_thread(void *params)
 //	for (i = 0; i < audio_list_size; i++) {
 //
 //		AudioDataConf *audio_data_conf = gf_list_get(cmd_data->audio_lst, i);
-//		dash_inputs[i + video_list_size].file_name = audio_data_conf->psz_name;
-//		sprintf(dash_inputs[i + video_list_size].representationID, "%d",
+//		dash_inputs[i + video_list_size].file_name = audio_data_conf->filename;
+//		snprintf(dash_inputs[i + video_list_size].representationID, "%d",
 //				i + video_list_size);
 //		strcpy(dash_inputs[i + video_list_size].periodID, "");
 //		strcpy(dash_inputs[i + video_list_size].role, "");
@@ -726,7 +726,7 @@ u32 video_scaler_thread(void *params)
 u32 video_encoder_thread(void *params)
 {
 	int ret, shift, frame_nb, seg_frame_max, frag_frame_max, seg_nb = 0, loss_state = 0, quit = 0;
-	char name_to_delete[512], name_to_send[512];
+	char name_to_delete[GF_MAX_PATH], name_to_send[GF_MAX_PATH];
 	u64 start_utc, seg_utc;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
@@ -832,7 +832,7 @@ u32 video_encoder_thread(void *params)
 				} else if (r == 1) {
 					//fprintf(stdout, "fragment is written!\n");
 					if (in_data->send_message == 1) {
-						sprintf(name_to_send, "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, seg_nb);
+						snprintf(name_to_send, sizeof(name_to_send), "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, seg_nb);
 						dc_message_queue_put(send_seg_mq, name_to_send, sizeof(name_to_send));
 					}
 
@@ -846,7 +846,7 @@ u32 video_encoder_thread(void *params)
 		dc_video_muxer_close(&out_file);
 
 #ifndef FRAGMENTER
-		dc_message_queue_put(mq, video_data_conf->psz_name, sizeof(video_data_conf->psz_name));
+		dc_message_queue_put(mq, video_data_conf->filename, sizeof(video_data_conf->filename));
 #endif
 
 		// If system is live,
@@ -885,7 +885,7 @@ u32 video_encoder_thread(void *params)
 	
 		if (in_data->time_shift != -1) {
 			shift = 1000 * in_data->time_shift / in_data->seg_dur;
-			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, (seg_nb - shift));
+			snprintf(name_to_delete, sizeof(name_to_delete), "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, (seg_nb - shift));
 			dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
 		}
 
@@ -927,7 +927,7 @@ u32 audio_encoder_thread(void *params)
 	//int seg_frame_max;
 	//int frag_frame_max;
 	//int audio_frame_size = AUDIO_FRAME_SIZE;
-	char name_to_delete[512];
+	char name_to_delete[GF_MAX_PATH];
 	u64 start_utc, seg_utc;
 
 	AudioMuxerType muxer_type = AUDIO_MUXER;
@@ -1045,8 +1045,7 @@ u32 audio_encoder_thread(void *params)
 		dc_audio_muxer_close(&audio_output_file);
 
 #ifndef FRAGMENTER
-		dc_message_queue_put(mq, audio_data_conf->psz_name,
-				sizeof(audio_data_conf->psz_name));
+		dc_message_queue_put(mq, audio_data_conf->filename, sizeof(audio_data_conf->filename));
 #endif
 
 		// Send the time that a segment is available to MPD generator thread.
@@ -1075,7 +1074,7 @@ u32 audio_encoder_thread(void *params)
 
 		if (in_data->time_shift != -1) {
 			shift = 1000 * in_data->time_shift / in_data->seg_dur;
-			sprintf(name_to_delete, "%s/%s_%d_gpac.m4s", in_data->out_dir, audio_data_conf->filename, (seg_nb - shift));
+			snprintf(name_to_delete, sizeof(name_to_delete), "%s/%s_%d_gpac.m4s", in_data->out_dir, audio_data_conf->filename, (seg_nb - shift));
 			dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
 		}
 
@@ -1189,8 +1188,8 @@ int dc_run_controler(CmdData *in_data)
 //					video_input_file[i + 1]->height, video_input_file[i + 1]->pix_fmt, video_scaled_data_list.size,
 //					in_data->mode, MAX_SOURCE_NUMBER) < 0) {
 //				fprintf(stderr, "Cannot initialize audio data.\n");
-					ret = -1;
-					goto exit;
+//				ret = -1;
+//				goto exit;
 //			}
 		}
 
@@ -1203,7 +1202,7 @@ int dc_run_controler(CmdData *in_data)
 			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, video_input_file[i]->pix_fmt);
 		}
 
-		for (i=0; i<(u32)video_scaled_data_list.size; i++) {
+		for (i=0; i<video_scaled_data_list.size; i++) {
 			dc_video_scaler_data_init(&video_input_data, video_scaled_data_list.video_scaled_data[i], MAX_SOURCE_NUMBER);
 
 			for (j=0; j<gf_list_count(in_data->vsrc) + 1; j++) {
@@ -1214,7 +1213,7 @@ int dc_run_controler(CmdData *in_data)
 		/* Initialize video decoder thread */
 		vdecoder_th_params.thread = gf_th_new("video_decoder_thread");
 
-		for (i=0; i<(u32)video_scaled_data_list.size; i++) {
+		for (i=0; i<video_scaled_data_list.size; i++) {
 			vscaler_th_params[i].thread = gf_th_new("video_scaler_thread");
 		}
 
@@ -1307,7 +1306,7 @@ int dc_run_controler(CmdData *in_data)
 		}
 
 		/* Create video scaler threads */
-		for (i=0; i<(u32)video_scaled_data_list.size; i++) {
+		for (i=0; i<video_scaled_data_list.size; i++) {
 			vscaler_th_params[i].in_data = in_data;
 			vscaler_th_params[i].video_scaled_data = video_scaled_data_list.video_scaled_data[i];
 			vscaler_th_params[i].video_input_data = &video_input_data;
@@ -1422,13 +1421,13 @@ int dc_run_controler(CmdData *in_data)
 
 	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Wait for and destroy video encoder threads */
-		for (i = 0; i < gf_list_count(in_data->video_lst); i++) {
+		for (i=0; i<gf_list_count(in_data->video_lst); i++) {
 			gf_th_stop(vencoder_th_params[i].thread);
 			gf_th_del(vencoder_th_params[i].thread);
 		}
 
 		/* Wait for and destroy video scaler threads */
-		for (i = 0; i < (u32)video_scaled_data_list.size; i++) {
+		for (i=0; i<video_scaled_data_list.size; i++) {
 			gf_th_stop(vscaler_th_params[i].thread);
 			gf_th_del(vscaler_th_params[i].thread);
 		}
@@ -1507,7 +1506,7 @@ exit:
 			dc_video_decoder_close(video_input_file[i]);
 		}
 
-		for (i = 0; i < (u32)video_scaled_data_list.size; i++) {
+		for (i=0; i<video_scaled_data_list.size; i++) {
 			dc_video_scaler_data_destroy(video_scaled_data_list.video_scaled_data[i]);
 		}
 

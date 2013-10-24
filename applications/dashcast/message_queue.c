@@ -36,7 +36,7 @@ void dc_message_queue_init(MessageQueue *mq)
 	mq->sem = gf_sema_new(1000, 0); //TODO: why 1000 (at other places too)
 }
 
-void dc_message_queue_put(MessageQueue *mq, void *data, int size)
+void dc_message_queue_put(MessageQueue *mq, void *data, u32 size)
 {
 	MessageQueueNode *mqn = gf_malloc(sizeof(MessageQueueNode));
 	mqn->data = gf_malloc(size);
@@ -82,7 +82,7 @@ int dc_message_queue_get(MessageQueue *mq, void * data)
 			mq->last_node = NULL;
 		mq->nb_nodes--;
 		memcpy(data, mqn->data, mqn->size);
-		ret = mqn->size;
+		ret = (int)mqn->size;
 		gf_free(mqn->data);
 		gf_free(mqn);
 	}

@@ -50,7 +50,7 @@ void dc_task_add(TaskList *list, int source_number, char *id_name, time_t start,
 
 int dc_task_get_current(TaskList *list, Task *task)
 {
-	int i;
+	u32 i;
 	time_t now_time = time(NULL);
 	for (i = 0; i<list->size; i++) {
 		Task *cur_task = gf_list_get(list->tasks, i);

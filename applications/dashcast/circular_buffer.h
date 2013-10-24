@@ -35,7 +35,7 @@
  * The method (mode) of multithread management.
  * It can be LIVE or OFFLINE.
  * LIVE means that the system is real time. The producer does not wait
- * for anyone and it always produce and find a place on the circular buffer.
+ * for anyone and it always produces and finds a place on the circular buffer.
  * OFFLINE means that the system is working offline, so the producer can
  * wait for the consumers to finish their job.
  */
@@ -83,13 +83,13 @@ typedef struct {
  */
 typedef struct {
 	/* The size of circular buffer */
-	int size;	
+	u32 size;	
 	/* A list of all the nodes */
 	Node *list;	
 	/* The mode for multithread management. */
 	LockMode mode;	
 	/* The maximum number of the consumers using the circular buffer */
-	int max_con_nb;
+	u32 max_num_consumers;
 } CircularBuffer;
 
 /*
@@ -101,7 +101,7 @@ typedef struct {
 	/* The maximum of the index. (Which means the size of circular buffer) */
 	int max_idx;
 
-	char name[256];
+	char name[GF_MAX_PATH];
 } Producer;
 
 /*
@@ -113,7 +113,7 @@ typedef struct {
 	/* The maximum of the index. (Which means the size of circular buffer) */
 	int max_idx;
 
-	char name[256];
+	char name[GF_MAX_PATH];
 } Consumer;
 
 /*
@@ -124,7 +124,7 @@ typedef struct {
  * @param mode [in] mode of multithread management (LIVE or OFFLINE)
  * @param num_consumers [in] maximum number of the consumers of the circular buffer
  */
-void dc_circular_buffer_create(CircularBuffer *circular_buf, int size, LockMode mode, int num_consumers);
+void dc_circular_buffer_create(CircularBuffer *circular_buf, u32 size, LockMode mode, int num_consumers);
 
 /*
  * Destroy the circular buffer

@@ -26,9 +26,9 @@
 #include "cmd_data.h"
 
 
-int dc_str_to_resolution(char *psz_str, int *width, int *height)
+int dc_str_to_resolution(char *str, int *width, int *height)
 {
-	char *token = strtok(psz_str, "x");
+	char *token = strtok(str, "x");
 	if (!token) {
 		fprintf(stderr, "Cannot parse resolution string.\n");
 		return -1;
@@ -68,66 +68,66 @@ static void dc_create_configuration(CmdData *cmd_data)
 	}
 	for (i=0; i<sec_count; i++) {
 		char value[GF_MAX_PATH];		
-		const char *psz_sec_name = gf_cfg_get_section_name(conf, i);
-		const char *psz_type = gf_cfg_get_key(conf, psz_sec_name, "type");
+		const char *section_name = gf_cfg_get_section_name(conf, i);
+		const char *section_type = gf_cfg_get_key(conf, section_name, "type");
 
-		if (strcmp(psz_type, "video") == 0) {
-			if (!gf_cfg_get_key(conf, psz_sec_name, "bitrate")) {
+		if (strcmp(section_type, "video") == 0) {
+			if (!gf_cfg_get_key(conf, section_name, "bitrate")) {
 				if (cmd_data->video_data_conf.bitrate == -1)
 					cmd_data->video_data_conf.bitrate = DEFAULT_VIDEO_BITRATE;
-				sprintf(value, "%d", cmd_data->video_data_conf.bitrate);
-				gf_cfg_set_key(conf, psz_sec_name, "bitrate", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.bitrate);
+				gf_cfg_set_key(conf, section_name, "bitrate", value);
 			}
 		
-			if (!gf_cfg_get_key(conf, psz_sec_name, "framerate")) {
+			if (!gf_cfg_get_key(conf, section_name, "framerate")) {
 				if (cmd_data->video_data_conf.framerate == -1)
 					cmd_data->video_data_conf.framerate = DEFAULT_VIDEO_FRAMERATE;
-				sprintf(value, "%d", cmd_data->video_data_conf.framerate);
-				gf_cfg_set_key(conf, psz_sec_name, "framerate", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.framerate);
+				gf_cfg_set_key(conf, section_name, "framerate", value);
 			}
 		
-			if (!gf_cfg_get_key(conf, psz_sec_name, "width")) {
+			if (!gf_cfg_get_key(conf, section_name, "width")) {
 				if (cmd_data->video_data_conf.width == -1)
 					cmd_data->video_data_conf.width = DEFAULT_VIDEO_WIDTH;
-				sprintf(value, "%d", cmd_data->video_data_conf.width);
-				gf_cfg_set_key(conf, psz_sec_name, "width", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.width);
+				gf_cfg_set_key(conf, section_name, "width", value);
 			}
 		
-			if (!gf_cfg_get_key(conf, psz_sec_name, "height")) {
+			if (!gf_cfg_get_key(conf, section_name, "height")) {
 				if (cmd_data->video_data_conf.height == -1)
 					cmd_data->video_data_conf.height = DEFAULT_VIDEO_HEIGHT;
-				sprintf(value, "%d", cmd_data->video_data_conf.height);
-				gf_cfg_set_key(conf, psz_sec_name, "height", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.height);
+				gf_cfg_set_key(conf, section_name, "height", value);
 			}
 			
-			if (!gf_cfg_get_key(conf, psz_sec_name, "codec"))
-				gf_cfg_set_key(conf, psz_sec_name, "codec", DEFAULT_VIDEO_CODEC);
+			if (!gf_cfg_get_key(conf, section_name, "codec"))
+				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_VIDEO_CODEC);
 		}
 		
-		if (strcmp(psz_type, "audio") == 0) {
-			if (!gf_cfg_get_key(conf, psz_sec_name, "bitrate")) {
+		if (strcmp(section_type, "audio") == 0) {
+			if (!gf_cfg_get_key(conf, section_name, "bitrate")) {
 				if (cmd_data->audio_data_conf.bitrate == -1)
 					cmd_data->audio_data_conf.bitrate = DEFAULT_AUDIO_BITRATE;
-				sprintf(value, "%d", cmd_data->audio_data_conf.bitrate);
-				gf_cfg_set_key(conf, psz_sec_name, "bitrate", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->audio_data_conf.bitrate);
+				gf_cfg_set_key(conf, section_name, "bitrate", value);
 			}
 			
-			if (!gf_cfg_get_key(conf, psz_sec_name, "samplerate")) {
+			if (!gf_cfg_get_key(conf, section_name, "samplerate")) {
 				if (cmd_data->audio_data_conf.samplerate == -1)
 					cmd_data->audio_data_conf.samplerate = DEFAULT_AUDIO_SAMPLERATE;
-				sprintf(value, "%d", cmd_data->audio_data_conf.samplerate);
-				gf_cfg_set_key(conf, psz_sec_name, "samplerate", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->audio_data_conf.samplerate);
+				gf_cfg_set_key(conf, section_name, "samplerate", value);
 			}
 			
-			if (!gf_cfg_get_key(conf, psz_sec_name, "channels")) {
+			if (!gf_cfg_get_key(conf, section_name, "channels")) {
 				if (cmd_data->audio_data_conf.channels == -1)
 					cmd_data->audio_data_conf.channels = DEFAULT_AUDIO_CHANNELS;
-				sprintf(value, "%d", cmd_data->audio_data_conf.channels);
-				gf_cfg_set_key(conf, psz_sec_name, "channels", value);
+				snprintf(value, sizeof(value), "%d", cmd_data->audio_data_conf.channels);
+				gf_cfg_set_key(conf, section_name, "channels", value);
 			}
 			
-			if (!gf_cfg_get_key(conf, psz_sec_name, "codec"))
-				gf_cfg_set_key(conf, psz_sec_name, "codec", DEFAULT_AUDIO_CODEC);
+			if (!gf_cfg_get_key(conf, section_name, "codec"))
+				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_AUDIO_CODEC);
 		}
 	}
 }
@@ -140,47 +140,47 @@ int dc_read_configuration(CmdData *cmd_data)
 
 	u32 sec_count = gf_cfg_get_section_count(conf);
 	for (i=0; i<sec_count; i++) {
-		const char *psz_sec_name = gf_cfg_get_section_name(conf, i);
-		const char *psz_type = gf_cfg_get_key(conf, psz_sec_name, "type");
+		const char *section_name = gf_cfg_get_section_name(conf, i);
+		const char *section_type = gf_cfg_get_key(conf, section_name, "type");
 
-		if (strcmp(psz_type, "video") == 0) {
+		if (strcmp(section_type, "video") == 0) {
 			VideoDataConf *video_data_conf;
 			GF_SAFEALLOC(video_data_conf, VideoDataConf);
-			strcpy(video_data_conf->filename, psz_sec_name);
-			opt = gf_cfg_get_key(conf, psz_sec_name, "codec");
+			strcpy(video_data_conf->filename, section_name);
+			opt = gf_cfg_get_key(conf, section_name, "codec");
 			if (!opt) opt = DEFAULT_VIDEO_CODEC;
 			strcpy(video_data_conf->codec, opt);
-			opt = gf_cfg_get_key(conf, psz_sec_name, "bitrate");
+			opt = gf_cfg_get_key(conf, section_name, "bitrate");
 			video_data_conf->bitrate = opt ? atoi(opt) : DEFAULT_VIDEO_BITRATE;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "framerate");
+			opt = gf_cfg_get_key(conf, section_name, "framerate");
 			video_data_conf->framerate = opt ? atoi(opt) : DEFAULT_VIDEO_FRAMERATE;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "height");
+			opt = gf_cfg_get_key(conf, section_name, "height");
 			video_data_conf->height = opt ? atoi(opt) : DEFAULT_VIDEO_HEIGHT;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "width");
+			opt = gf_cfg_get_key(conf, section_name, "width");
 			video_data_conf->width = opt ? atoi(opt) : DEFAULT_VIDEO_WIDTH;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "custom");
+			opt = gf_cfg_get_key(conf, section_name, "custom");
 			video_data_conf->custom = opt ? strdup(opt) : NULL;
 			gf_list_add(cmd_data->video_lst, (void *) video_data_conf);
 		}
-		else if (strcmp(psz_type, "audio") == 0)
+		else if (strcmp(section_type, "audio") == 0)
 		{
 			AudioDataConf *audio_data_conf;
 			GF_SAFEALLOC(audio_data_conf, AudioDataConf);
-			strcpy(audio_data_conf->filename, psz_sec_name);
-			opt = gf_cfg_get_key(conf, psz_sec_name, "codec");
+			strcpy(audio_data_conf->filename, section_name);
+			opt = gf_cfg_get_key(conf, section_name, "codec");
 			if (!opt) opt = DEFAULT_AUDIO_CODEC;
 			strcpy(audio_data_conf->codec, opt);
-			opt = gf_cfg_get_key(conf, psz_sec_name, "bitrate");
+			opt = gf_cfg_get_key(conf, section_name, "bitrate");
 			audio_data_conf->bitrate = opt ? atoi(opt) : DEFAULT_AUDIO_BITRATE;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "samplerate");
+			opt = gf_cfg_get_key(conf, section_name, "samplerate");
 			audio_data_conf->samplerate = opt ? atoi(opt) : DEFAULT_AUDIO_SAMPLERATE;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "channels");
+			opt = gf_cfg_get_key(conf, section_name, "channels");
 			audio_data_conf->channels = opt ? atoi(opt) : DEFAULT_AUDIO_CHANNELS;
-			opt = gf_cfg_get_key(conf, psz_sec_name, "custom");
+			opt = gf_cfg_get_key(conf, section_name, "custom");
 			audio_data_conf->custom = opt ? strdup(opt) : NULL;
 			gf_list_add(cmd_data->audio_lst, (void *) audio_data_conf);
 		} else {
-			fprintf(stdout, "Configuration file: type %s is not supported.\n", psz_type);
+			fprintf(stdout, "Configuration file: type %s is not supported.\n", section_type);
 		}
 	}
 
@@ -241,19 +241,19 @@ int dc_read_switch_config(CmdData *cmd_data)
 	}
 
 	for (i = 0; i < sec_count; i++) {
-		const char *psz_sec_name = gf_cfg_get_section_name(conf, i);
-		const char *psz_type = gf_cfg_get_key(conf, psz_sec_name, "type");
+		const char *section_name = gf_cfg_get_section_name(conf, i);
+		const char *section_type = gf_cfg_get_key(conf, section_name, "type");
 
-		if (strcmp(psz_type, "video") == 0) {
+		if (strcmp(section_type, "video") == 0) {
 			VideoDataConf *video_data_conf = gf_malloc(sizeof(VideoDataConf));
 
-			strcpy(video_data_conf->source_id, psz_sec_name);
-			strcpy(video_data_conf->filename, gf_cfg_get_key(conf, psz_sec_name, "source"));
+			strcpy(video_data_conf->source_id, section_name);
+			strcpy(video_data_conf->filename, gf_cfg_get_key(conf, section_name, "source"));
 
-			strcpy(start_time, gf_cfg_get_key(conf, psz_sec_name, "start"));
+			strcpy(start_time, gf_cfg_get_key(conf, section_name, "start"));
 			parse_time(start_time, &start_tm);
 			video_data_conf->start_time = mktime(&start_tm);
-			strcpy(end_time, gf_cfg_get_key(conf, psz_sec_name, "end"));
+			strcpy(end_time, gf_cfg_get_key(conf, section_name, "end"));
 			parse_time(end_time, &end_tm);
 			video_data_conf->end_time = mktime(&end_tm);
 
@@ -263,23 +263,23 @@ int dc_read_switch_config(CmdData *cmd_data)
 
 			dc_task_add(&cmd_data->task_list, src_number, video_data_conf->source_id, video_data_conf->start_time, video_data_conf->end_time);
 		}
-		else if (strcmp(psz_type, "audio") == 0)
+		else if (strcmp(section_type, "audio") == 0)
 		{
 			AudioDataConf *audio_data_conf = gf_malloc(sizeof(AudioDataConf));
-			strcpy(audio_data_conf->source_id, psz_sec_name);
-			strcpy(audio_data_conf->filename, gf_cfg_get_key(conf, psz_sec_name, "source"));
+			strcpy(audio_data_conf->source_id, section_name);
+			strcpy(audio_data_conf->filename, gf_cfg_get_key(conf, section_name, "source"));
 
-			strcpy(start_time, gf_cfg_get_key(conf, psz_sec_name, "start"));
+			strcpy(start_time, gf_cfg_get_key(conf, section_name, "start"));
 			parse_time(start_time, &start_tm);
 			audio_data_conf->start_time = mktime(&start_tm);
 
-			strcpy(end_time, gf_cfg_get_key(conf, psz_sec_name, "end"));
+			strcpy(end_time, gf_cfg_get_key(conf, section_name, "end"));
 			parse_time(end_time, &end_tm);
 			audio_data_conf->end_time = mktime(&end_tm);
 
 			gf_list_add(cmd_data->asrc, (void *) audio_data_conf);
 		} else {
-			fprintf(stdout, "Switch source configuration file: type %s is not supported.\n", psz_type);
+			fprintf(stdout, "Switch source configuration file: type %s is not supported.\n", section_type);
 		}
 	}
 
@@ -361,7 +361,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	Bool use_mem_track = GF_FALSE;
 	int i;
 
-	const char *psz_command_usage =
+	const char *command_usage =
 			"Usage: DashCast [options]\n"
 					"\n"
 					"Options:\n"
@@ -435,11 +435,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #endif
 					"\n";
 
-	char *psz_command_error =
-			"\33[31mUnknown option or missing mandatory argument.\33[0m\n";
+	char *command_error = "\33[31mUnknown option or missing mandatory argument.\33[0m\n";
 
 	if (argc == 1) {
-		fprintf(stdout, "%s", psz_command_usage);
+		fprintf(stdout, "%s", command_usage);
 		return -2;
 	}
 
@@ -468,29 +467,26 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		if (strcmp(argv[i], "-a") == 0 || strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "-av") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (strcmp(argv[i - 1], "-a") == 0 || strcmp(argv[i - 1], "-av") == 0) {
 				if (strcmp(cmd_data->audio_data_conf.filename, "") != 0) {
 					fprintf(stdout, "Audio source has been already specified.\n");
-					fprintf(stdout, "%s", psz_command_usage);
+					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
-				//cmd_data->psz_asrc = gf_malloc(strlen(argv[i]) + 1);
 				strcpy(cmd_data->audio_data_conf.filename, argv[i]);
 			}
 
 			if (strcmp(argv[i - 1], "-v") == 0 || strcmp(argv[i - 1], "-av") == 0) {
 				if (strcmp(cmd_data->video_data_conf.filename, "") != 0) {
 					fprintf(stdout, "Video source has been already specified.\n");
-					fprintf(stdout, "%s", psz_command_usage);
+					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
-
-				//cmd_data->psz_vsrc = gf_malloc(strlen(argv[i]) + 1);
 				strcpy(cmd_data->video_data_conf.filename, argv[i]);
 			}
 
@@ -498,29 +494,26 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-af") == 0 || strcmp(argv[i], "-vf") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (strcmp(argv[i - 1], "-af") == 0) {
 				if (strcmp(cmd_data->audio_data_conf.format, "") != 0) {
 					fprintf(stdout, "Audio format has been already specified.\n");
-					fprintf(stdout, "%s", psz_command_usage);
+					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
-				//cmd_data->psz_af = gf_malloc(strlen(argv[i]) + 1);
 				strcpy(cmd_data->audio_data_conf.format, argv[i]);
 			}
 
 			if (strcmp(argv[i - 1], "-vf") == 0) {
 				if (strcmp(cmd_data->video_data_conf.format, "") != 0) {
 					fprintf(stdout, "Video format has been already specified.\n");
-					fprintf(stdout, "%s", psz_command_usage);
+					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
-
-				//cmd_data->psz_vf = gf_malloc(strlen(argv[i]) + 1);
 				strcpy(cmd_data->video_data_conf.format, argv[i]);
 			}
 
@@ -528,13 +521,13 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-pixf") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			if (strcmp(cmd_data->video_data_conf.pixel_format, "") != 0) {
 				fprintf(stdout, "Input pixel format has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			strcpy(cmd_data->video_data_conf.pixel_format, argv[i]);
@@ -543,33 +536,29 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-vfr") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (cmd_data->video_data_conf.framerate != -1) {
 				fprintf(stdout, "Video framerate has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-			//cmd_data->psz_vfr = gf_malloc(strlen(argv[i]) + 1);
 			cmd_data->video_data_conf.framerate = atoi(argv[i]);
-			//strcpy(cmd_data->psz_vfr, argv[i]);
-
 			i++;
-
 		} else if (strcmp(argv[i], "-vres") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (cmd_data->video_data_conf.height != -1 && cmd_data->video_data_conf.width != -1) {
 				fprintf(stdout, "Video resolution has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			dc_str_to_resolution(argv[i], &cmd_data->video_data_conf.width, &cmd_data->video_data_conf.height);
@@ -578,8 +567,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-conf") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -590,8 +579,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-switch-source") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -601,8 +590,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-out") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -613,8 +602,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-v4l2f") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -626,8 +615,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			char *m;
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			m = argv[i];
@@ -643,14 +632,14 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-mpd") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (strcmp(cmd_data->mpd_filename, "") != 0) {
 				fprintf(stdout, "MPD file has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -660,14 +649,14 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-seg-dur") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (cmd_data->seg_dur != 0) {
 				fprintf(stdout, "Segment duration has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -677,14 +666,14 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-frag-dur") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (cmd_data->frag_dur != 0) {
 				fprintf(stdout, "Fragment duration has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -694,14 +683,14 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-ast-offset") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (cmd_data->ast_offset != -1) {
 				fprintf(stdout, "AvailabilityStartTime offset has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -711,14 +700,14 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-time-shift") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
 			if (cmd_data->time_shift != 0) {
 				fprintf(stdout, "TimeShiftBufferDepth has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -728,13 +717,13 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-min-buffer") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			if (cmd_data->min_buffer_time != -1) {
 				fprintf(stdout, "Min Buffer Time has been already specified.\n");
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 
@@ -759,8 +748,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-logs") == 0) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			if (gf_log_set_tools_levels(argv[i]) != GF_OK) {
@@ -776,8 +765,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
 			i++;
 			if (i >= argc) {
-				fprintf(stdout, "%s", psz_command_error);
-				fprintf(stdout, "%s", psz_command_usage);
+				fprintf(stdout, "%s", command_error);
+				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->logfile = gf_f64_open(argv[i], "wt");
@@ -787,8 +776,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			cmd_data->gdr = 1;
 			i++;
 		} else {
-			fprintf(stdout, "%s", psz_command_error);
-			fprintf(stdout, "%s", psz_command_usage);
+			fprintf(stdout, "%s", command_error);
+			fprintf(stdout, "%s", command_usage);
 			return -1;
 		}
 	}
@@ -807,7 +796,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	if (strcmp(cmd_data->video_data_conf.filename, "") == 0 && strcmp(cmd_data->audio_data_conf.filename, "") == 0) {
 		fprintf(stdout, "Audio/Video source must be specified.\n");
-		fprintf(stdout, "%s", psz_command_usage);
+		fprintf(stdout, "%s", command_usage);
 		return -1;
 	}
 

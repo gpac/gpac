@@ -45,7 +45,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video
 
 	if (video_data_conf->width > 0 && video_data_conf->height > 0) {
 		char vres[16];
-		sprintf(vres, "%dx%d", video_data_conf->width, video_data_conf->height);
+		snprintf(vres, sizeof(vres), "%dx%d", video_data_conf->width, video_data_conf->height);
 		ret = av_dict_set(&options, "video_size", vres, 0);
 		if (ret < 0) {
 			fprintf(stderr, "Could not set video size %s.\n", vres);
@@ -55,7 +55,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video
 
 	if (video_data_conf->framerate > 0) {
 		char vfr[16];
-		sprintf(vfr, "%d", video_data_conf->framerate);
+		snprintf(vfr, sizeof(vfr), "%d", video_data_conf->framerate);
 		ret = av_dict_set(&options, "framerate", vfr, 0);
 		if (ret < 0) {
 			fprintf(stderr, "Could not set video framerate %s.\n", vfr);
