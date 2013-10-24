@@ -62,6 +62,8 @@ typedef struct {
 	int framerate;
 	/* video codec */
 	char codec[256];
+	/* custom parameter to be passed directly to the encoder - free it once you're done */
+	char *custom;
 
 	/* used for source switching */
 	char source_id[256];

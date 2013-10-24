@@ -63,11 +63,11 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 	video_scaled_data_list->video_scaled_data = NULL;
 
 	for (i=0; i<gf_list_count(video_lst); i++) {
-		VideoDataConf *vconf = (VideoDataConf*)gf_list_get(video_lst, i);
+		VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_get(video_lst, i);
 		found = 0;
 		for (j=0; j<video_scaled_data_list->size; j++) {
-			if (   video_scaled_data_list->video_scaled_data[j]->out_height == vconf->height
-				  && video_scaled_data_list->video_scaled_data[j]->out_width  == vconf->width) {
+			if (   video_scaled_data_list->video_scaled_data[j]->out_height == video_data_conf->height
+				  && video_scaled_data_list->video_scaled_data[j]->out_width  == video_data_conf->width) {
 				found = 1;
 				video_scaled_data_list->video_scaled_data[j]->num_consumers++;
 				break;
@@ -76,8 +76,8 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 		if (!found) {
 			VideoScaledData *video_scaled_data;
 			GF_SAFEALLOC(video_scaled_data, VideoScaledData);
-			video_scaled_data->out_width  = vconf->width;
-			video_scaled_data->out_height = vconf->height;
+			video_scaled_data->out_width  = video_data_conf->width;
+			video_scaled_data->out_height = video_data_conf->height;
 			video_scaled_data->num_consumers = 1;
 
 			if (video_scaled_data_list->video_scaled_data == NULL) {

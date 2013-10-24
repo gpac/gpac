@@ -25,6 +25,10 @@
 
 #include "audio_encoder.h"
 
+
+extern void build_dict(void *priv_data, const char *options);
+
+
 int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf)
 {
 	int osize;
@@ -80,7 +84,13 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 //	 audio_stream->codec->thread_count = 1;
 //	 audio_stream->codec->max_b_frames = 0;
 //	 */
-//
+
+	if (audio_data_conf->custom) {
+		build_dict(audio_output_file->codec_ctx->priv_data, audio_data_conf->custom);
+		gf_free(audio_data_conf->custom);
+		audio_data_conf->custom = NULL;
+	}
+
 //	if (audio_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
 //		audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 

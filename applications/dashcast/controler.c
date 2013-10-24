@@ -1175,8 +1175,8 @@ int dc_run_controler(CmdData *in_data)
 
 		/* open other input videos for source switching */
 		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
-			VideoDataConf *vconf = gf_list_get(in_data->vsrc, i);
-			if (dc_video_decoder_open(video_input_file[i + 1], vconf, LIVE_MEDIA, 1) < 0) {
+			VideoDataConf *video_data_conf = gf_list_get(in_data->vsrc, i);
+			if (dc_video_decoder_open(video_input_file[i + 1], video_data_conf, LIVE_MEDIA, 1) < 0) {
 				fprintf(stderr, "Cannot open input video.\n");
 				return -1;
 			}
@@ -1284,11 +1284,11 @@ int dc_run_controler(CmdData *in_data)
 	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Create video encoder threads */
 		for (i=0; i<gf_list_count(in_data->video_lst); i++) {
-			VideoDataConf * vconf = gf_list_get(in_data->video_lst, i);
+			VideoDataConf * video_data_conf = gf_list_get(in_data->video_lst, i);
 
 			vencoder_th_params[i].in_data = in_data;
 			vencoder_th_params[i].video_conf_idx = i;
-			vencoder_th_params[i].video_scaled_data = dc_video_scaler_get_data(&video_scaled_data_list, vconf->width, vconf->height);
+			vencoder_th_params[i].video_scaled_data = dc_video_scaler_get_data(&video_scaled_data_list, video_data_conf->width, video_data_conf->height);
 
 			vencoder_th_params[i].mq = &mq;
 			vencoder_th_params[i].delete_seg_mq = &delete_seg_mq;

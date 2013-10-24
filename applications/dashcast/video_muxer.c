@@ -366,12 +366,12 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *psz_nam
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 	video_output_file->fmt = NULL;
 
-//	video_output_file->vbr = vconf->bitrate;
-//	video_output_file->vfr = vconf->framerate;
-//	video_output_file->width = vconf->width;
-//	video_output_file->height = vconf->height;
-//	strcpy(video_output_file->psz_name, vconf->psz_name);
-//	strcpy(video_output_file->codec, vconf->codec);
+//	video_output_file->vbr = video_data_conf->bitrate;
+//	video_output_file->vfr = video_data_conf->framerate;
+//	video_output_file->width = video_data_conf->width;
+//	video_output_file->height = video_data_conf->height;
+//	strcpy(video_output_file->psz_name, video_data_conf->psz_name);
+//	strcpy(video_output_file->codec, video_data_conf->codec);
 
 	/* Find output format */
 	output_fmt = av_guess_format(NULL, psz_name, NULL);

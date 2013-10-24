@@ -144,24 +144,28 @@ int dc_read_configuration(CmdData *cmd_data)
 		const char *psz_type = gf_cfg_get_key(conf, psz_sec_name, "type");
 
 		if (strcmp(psz_type, "video") == 0) {
-			VideoDataConf *vconf = gf_malloc(sizeof(VideoDataConf));
-			strcpy(vconf->filename, psz_sec_name);
+			VideoDataConf *video_data_conf;
+			GF_SAFEALLOC(video_data_conf, VideoDataConf);
+			strcpy(video_data_conf->filename, psz_sec_name);
 			opt = gf_cfg_get_key(conf, psz_sec_name, "codec");
 			if (!opt) opt = DEFAULT_VIDEO_CODEC;
-			strcpy(vconf->codec, opt);
+			strcpy(video_data_conf->codec, opt);
 			opt = gf_cfg_get_key(conf, psz_sec_name, "bitrate");
-			vconf->bitrate = opt ? atoi(opt) : DEFAULT_VIDEO_BITRATE;
+			video_data_conf->bitrate = opt ? atoi(opt) : DEFAULT_VIDEO_BITRATE;
 			opt = gf_cfg_get_key(conf, psz_sec_name, "framerate");
-			vconf->framerate = opt ? atoi(opt) : DEFAULT_VIDEO_FRAMERATE;
+			video_data_conf->framerate = opt ? atoi(opt) : DEFAULT_VIDEO_FRAMERATE;
 			opt = gf_cfg_get_key(conf, psz_sec_name, "height");
-			vconf->height = opt ? atoi(opt) : DEFAULT_VIDEO_HEIGHT;
+			video_data_conf->height = opt ? atoi(opt) : DEFAULT_VIDEO_HEIGHT;
 			opt = gf_cfg_get_key(conf, psz_sec_name, "width");
-			vconf->width = opt ? atoi(opt) : DEFAULT_VIDEO_WIDTH;
-			gf_list_add(cmd_data->video_lst, (void *) vconf);
+			video_data_conf->width = opt ? atoi(opt) : DEFAULT_VIDEO_WIDTH;
+			opt = gf_cfg_get_key(conf, psz_sec_name, "custom");
+			video_data_conf->custom = opt ? strdup(opt) : NULL;
+			gf_list_add(cmd_data->video_lst, (void *) video_data_conf);
 		}
 		else if (strcmp(psz_type, "audio") == 0)
 		{
-			AudioDataConf *audio_data_conf = gf_malloc(sizeof(AudioDataConf));
+			AudioDataConf *audio_data_conf;
+			GF_SAFEALLOC(audio_data_conf, AudioDataConf);
 			strcpy(audio_data_conf->filename, psz_sec_name);
 			opt = gf_cfg_get_key(conf, psz_sec_name, "codec");
 			if (!opt) opt = DEFAULT_AUDIO_CODEC;
@@ -172,6 +176,8 @@ int dc_read_configuration(CmdData *cmd_data)
 			audio_data_conf->samplerate = opt ? atoi(opt) : DEFAULT_AUDIO_SAMPLERATE;
 			opt = gf_cfg_get_key(conf, psz_sec_name, "channels");
 			audio_data_conf->channels = opt ? atoi(opt) : DEFAULT_AUDIO_CHANNELS;
+			opt = gf_cfg_get_key(conf, psz_sec_name, "custom");
+			audio_data_conf->custom = opt ? strdup(opt) : NULL;
 			gf_list_add(cmd_data->audio_lst, (void *) audio_data_conf);
 		} else {
 			fprintf(stdout, "Configuration file: type %s is not supported.\n", psz_type);
@@ -181,10 +187,10 @@ int dc_read_configuration(CmdData *cmd_data)
 	fprintf(stdout, "\33[34m\33[1m");
 	fprintf(stdout, "Configurations:\n");
 	for (i=0; i<gf_list_count(cmd_data->video_lst); i++) {
-		VideoDataConf *vconf = gf_list_get(cmd_data->video_lst, i);
-		fprintf(stdout, "    id:%s\tres:%dx%d\tvbr:%d\n", vconf->filename,
-				vconf->width, vconf->height,
-				vconf->bitrate/*, vconf->framerate, vconf->codec*/);	}
+		VideoDataConf *video_data_conf = gf_list_get(cmd_data->video_lst, i);
+		fprintf(stdout, "    id:%s\tres:%dx%d\tvbr:%d\n", video_data_conf->filename,
+				video_data_conf->width, video_data_conf->height,
+				video_data_conf->bitrate/*, video_data_conf->framerate, video_data_conf->codec*/);	}
 
 	for (i=0; i<gf_list_count(cmd_data->audio_lst); i++) {
 		AudioDataConf *audio_data_conf = gf_list_get(cmd_data->audio_lst, i);
@@ -239,23 +245,23 @@ int dc_read_switch_config(CmdData *cmd_data)
 		const char *psz_type = gf_cfg_get_key(conf, psz_sec_name, "type");
 
 		if (strcmp(psz_type, "video") == 0) {
-			VideoDataConf *vconf = gf_malloc(sizeof(VideoDataConf));
+			VideoDataConf *video_data_conf = gf_malloc(sizeof(VideoDataConf));
 
-			strcpy(vconf->source_id, psz_sec_name);
-			strcpy(vconf->filename, gf_cfg_get_key(conf, psz_sec_name, "source"));
+			strcpy(video_data_conf->source_id, psz_sec_name);
+			strcpy(video_data_conf->filename, gf_cfg_get_key(conf, psz_sec_name, "source"));
 
 			strcpy(start_time, gf_cfg_get_key(conf, psz_sec_name, "start"));
 			parse_time(start_time, &start_tm);
-			vconf->start_time = mktime(&start_tm);
+			video_data_conf->start_time = mktime(&start_tm);
 			strcpy(end_time, gf_cfg_get_key(conf, psz_sec_name, "end"));
 			parse_time(end_time, &end_tm);
-			vconf->end_time = mktime(&end_tm);
+			video_data_conf->end_time = mktime(&end_tm);
 
-			gf_list_add(cmd_data->vsrc, (void *) vconf);
+			gf_list_add(cmd_data->vsrc, (void *) video_data_conf);
 
 			src_number = gf_list_count(cmd_data->vsrc);
 
-			dc_task_add(&cmd_data->task_list, src_number, vconf->source_id, vconf->start_time, vconf->end_time);
+			dc_task_add(&cmd_data->task_list, src_number, video_data_conf->source_id, video_data_conf->start_time, video_data_conf->end_time);
 		}
 		else if (strcmp(psz_type, "audio") == 0)
 		{
@@ -280,10 +286,10 @@ int dc_read_switch_config(CmdData *cmd_data)
 	fprintf(stdout, "\33[34m\33[1m");
 	fprintf(stdout, "Sources:\n");
 	for (i=0; i<gf_list_count(cmd_data->vsrc); i++) {
-		VideoDataConf *vconf = gf_list_get(cmd_data->vsrc, i);
-		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&vconf->start_time));
-		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&vconf->end_time));
-		fprintf(stdout, "    id:%s\tsource:%s\tstart:%s\tend:%s\n", vconf->source_id, vconf->filename, start_time, end_time);
+		VideoDataConf *video_data_conf = gf_list_get(cmd_data->vsrc, i);
+		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&video_data_conf->start_time));
+		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&video_data_conf->end_time));
+		fprintf(stdout, "    id:%s\tsource:%s\tstart:%s\tend:%s\n", video_data_conf->source_id, video_data_conf->filename, start_time, end_time);
 	}
 
 	for (i=0; i<gf_list_count(cmd_data->asrc); i++) {
@@ -325,9 +331,9 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 	gf_list_del(cmd_data->audio_lst);
 
 	while (gf_list_count(cmd_data->video_lst)) {
-		VideoDataConf *audio_data_conf = gf_list_last(cmd_data->video_lst);
+		VideoDataConf *video_data_conf = gf_list_last(cmd_data->video_lst);
 		gf_list_rem_last(cmd_data->video_lst);
-		gf_free(audio_data_conf);
+		gf_free(video_data_conf);
 	}
 	gf_list_del(cmd_data->video_lst);
 
