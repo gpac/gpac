@@ -1151,7 +1151,8 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start);
 
 /*releases current movie segment - this closes the associated file IO object.
 If reset_tables is set, sample information for all tracks setup as segment are destroyed, along with all PSSH boxes. This allows keeping the memory
-footprint low when playing segments. Note however that seeking in the file is then no longer possible*/
+footprint low when playing segments. Note however that seeking in the file is then no longer possible
+WARNING - the sample count is not reset after the release of tables. This means you need to keep counting samples.*/
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 /*opens a new segment file. Access to samples in previous segments is no longer possible
 if end_range>start_range, restricts the URL to the given byterange when parsing*/
