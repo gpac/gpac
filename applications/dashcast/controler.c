@@ -24,7 +24,6 @@
  */
 
 #include "controler.h"
-#include <alloca.h>
 
 
 #if (!defined(__DARWIN__) && !defined(__APPLE__))
