@@ -28,8 +28,6 @@
 
 #define MAX_SOURCE_NUMBER 20
 
-#define _XOPEN_SOURCE
-
 
 #include <stdio.h>
 #include <stdlib.h>
