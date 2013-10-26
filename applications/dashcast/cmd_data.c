@@ -160,7 +160,7 @@ int dc_read_configuration(CmdData *cmd_data)
 			opt = gf_cfg_get_key(conf, section_name, "width");
 			video_data_conf->width = opt ? atoi(opt) : DEFAULT_VIDEO_WIDTH;
 			opt = gf_cfg_get_key(conf, section_name, "custom");
-			video_data_conf->custom = opt ? strdup(opt) : NULL;
+			video_data_conf->custom = opt ? gf_strdup(opt) : NULL;
 			gf_list_add(cmd_data->video_lst, (void *) video_data_conf);
 		}
 		else if (strcmp(section_type, "audio") == 0)
@@ -178,7 +178,7 @@ int dc_read_configuration(CmdData *cmd_data)
 			opt = gf_cfg_get_key(conf, section_name, "channels");
 			audio_data_conf->channels = opt ? atoi(opt) : DEFAULT_AUDIO_CHANNELS;
 			opt = gf_cfg_get_key(conf, section_name, "custom");
-			audio_data_conf->custom = opt ? strdup(opt) : NULL;
+			audio_data_conf->custom = opt ? gf_strdup(opt) : NULL;
 			gf_list_add(cmd_data->audio_lst, (void *) audio_data_conf);
 		} else {
 			fprintf(stdout, "Configuration file: type %s is not supported.\n", section_type);

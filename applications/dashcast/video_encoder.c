@@ -24,7 +24,6 @@
  */
 
 #include "video_encoder.h"
-
 #include "libavutil/opt.h"
 #include "libavdevice/avdevice.h"
 
@@ -52,7 +51,7 @@
  * param options a list of space separated and ':' affected options (e.g. "a:b c:d e:f"). @options be non NULL.
  */
 void build_dict(void *priv_data, const char *options) {
-	char *opt = strdup(options);
+	char *opt = gf_strdup(options);
 	char *tok = strtok(opt, "=");
 	char *tokval = NULL;
 	while (tok && (tokval=strtok(NULL, " "))) {
