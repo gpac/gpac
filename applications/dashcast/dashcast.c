@@ -39,11 +39,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	dc_run_controler(&cmd_data);
+	res = dc_run_controler(&cmd_data);
 
 	/* Destroy command data */
 	dc_cmd_data_destroy(&cmd_data);
 
-	return 0;
+	return res;
 }
 

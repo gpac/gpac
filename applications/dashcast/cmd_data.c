@@ -56,6 +56,7 @@ int dc_str_to_resolution(char *str, int *width, int *height)
 #define DEFAULT_AUDIO_CHANNELS   2
 #define DEFAULT_AUDIO_CODEC      "mp2"
 
+
 static void dc_create_configuration(CmdData *cmd_data)
 {	
 	u32 i;
@@ -364,78 +365,78 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	const char *command_usage =
 			"Usage: DashCast [options]\n"
 					"\n"
-					"Options:\n"
-					"\n"
-					"    -log-file file               set output log file. Also works with -lf\n"
+					"General options:\n"
+					"    -log-file filename           set output log file. Also works with -lf\n"
 					"    -logs LOGS                   set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-					"    -a inasrc:str                input audio source named inasrc\n"
-			    "                                    - If input is from microphone, inasrc will be \"plughw:[x],[y]\"\n"
-			    "                                      where x is the card number and y is the device number.\n"
-					"    -v invsrc:str                input video source named invsrc\n"
-			    "                                    - If input is from a webcam, invsrc will be \"/dev/video[x]\" \n"
-			    "                                      where x is the video device number.\n"
-			    "                                    - If input is the screen video, invsrc will be \":0.0+[x],[y]\" \n"
-			    "                                      which captures from upper-left at x,y.\n"
-			    "                                    - If input is from stdin, invsrc will be \"pipe:\".\n"
-					"    -av inavsrc:str              a multiplexed audio and video source named inavsrc\n"
-					"                                    - If this option is present, non of '-a' or '-v' can be present.\n"
-					"    -vf invfmt:str               invfmt is the input video format\n"
-#ifdef WIN32
-					"                                    - To capture from a VfW webcam invfmt will be vfwcap."
-					"                                    - To capture from a directshow device invfmt will be dshow."
-#else
-					"                                    - To capture from a webcam invfmt will be video4linux2.\n"
-					"                                    - To capture the screen invfmt will be x11grab.\n"
-					"    -v4l2f inv4l2f:str           inv4l2f is the input format for webcam acquisition\n"
-					"                                    - It can be mjpeg, yuyv422, etc.\n"
+#ifdef GPAC_MEMORY_TRACKING
+					"    -mem-track                   enable the memory tracker\n"
 #endif
-					"    -pixf FMT                    spcifies the input pixel format to use\n"
-					"    -vfr invfr:int               invfr is the input video framerate\n"
-					"    -vres invres:intxint         input video resolution\n"
-					"    -af inafmt:str               inafmt is the input audio format\n"
-					"    -conf confname:str           confname is the configuration file\n"
-					"                                    - The default value is dashcast.conf\n\n"
-
-					"    -seg-dur dur:int             dur is the segment duration in millisecond\n"
-					"                                    - The default value is 1000.\n"
-					"    -frag-dur dur:int            dur is the fragment duration in millisecond\n"
-					"                                    - The default value is 1000.\n"
+					"    -conf filename               set the configuration file name (default: dashcast.conf)\n"
+					"    -switch-source filename      set the configuration file name for source switching\n"
+					"\n"
+					"Live options:\n"
 					"    -live                        system is live and input is a camera\n"
-					"    -npts                        uses frame counting for timestamps (not error-free) instead of source timing (default)\n"
 					"    -live-media                  system is live and input is a media file\n"
-					"    -no-loop                     system does not loop on the input media file\n"
-					"    -seg-marker marker:str       add a marker box named marker at the end of DASH segment\n"
-					"    -gdr                         use Gradual Decoder Refresh feature for video encoding\n\n"
-
-					"    -out outdir:str              outdir is the output data directory\n"
-					"                                    - The default value is output.\n"
-					"    -mpd mpdname:str             mpdname is the MPD file name\n"
-					"                                    - The default value is dashcast.mpd.\n"
-					"    -ast-offset dur:int          dur is the MPD availabilityStartTime shift in milliseconds\n"
-					"                                    - The default value is 1000.\n"
-					"    -time-shift dur:int          dur is the MPD TimeShiftBufferDepth in seconds\n"
-					"                                    - The default value is 10. Specify -1 to keep all files.\n"
-					"    -min-buffer dur:float        dur is the MPD minBufferTime in seconds\n"
-					"                                    - The default value is 1.0.\n\n"
-
-					"    -switch-source confname:str  confname is the name of configuration file for source switching.\n\n"
-
-
-					"Examples:\n"
-			        "\n"
-			        "    DashCast -av test.avi -live-media\n"
-					    "    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
+					"    -no-loop                     system does not loop on the input media file when live\n"
+					"\n"
+					"Source options:\n"
+					"    -npts                        use frame counting for timestamps (not error-free) instead of source timing (default)\n"
+					"    -av string                   set the source name for a multiplexed audio and video input\n"
+					"                                    - if this option is present, neither '-a' nor '-v' shall be present\n"
+					"* Video options:\n"
+					"    -v string                    set the source name for a video input\n"
+					"                                    - if input is from a webcam, use \"/dev/video[x]\" \n"
+					"                                      where x is the video device number\n"
+					"                                    - if input is the screen video, use \":0.0+[x],[y]\" \n"
+					"                                      which captures from upper-left at x,y\n"
+					"                                    - if input is from stdin, use \"pipe:\"\n"
+					"    -vf string                   set the input video format\n"
 #ifdef WIN32
-	        		"    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
-					"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
-	        		"    DashCast -vf dshow -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
+					"                                    - to capture from a VfW webcam, set vfwcap."
+					"                                    - to capture from a directshow device, set dshow."
 #else
-	        		"    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
-	        		"    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
+					"                                    - to capture from a webcam, set video4linux2\n"
+					"                                    - to capture the screen, set x11grab\n"
+					"    -v4l2f inv4l2f               inv4l2f is the input format for webcam acquisition\n"
+					"                                    - it can be mjpeg, yuyv422, etc.\n"
+#endif
+					"    -pixf FMT                    set the input pixel format\n"
+					"    -vfr N                       set the input video framerate\n"
+					"    -vres WxH                    set the input video resolution (e.g. 640x480)\n"
+					"    -gdr                         use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
+					"* Audio options:\n"
+					"    -a string                    set the source name for an audio input\n"
+					"                                    - if input is from microphone, use \"plughw:[x],[y]\"\n"
+					"                                      where x is the card number and y is the device number\n"
+					"    -af string                   set the input audio format\n"
+					"\n"
+					"DASH options:\n"
+					"    -seg-dur dur:int             set the segment duration in millisecond (default value: 1000)\n"
+					"    -frag-dur dur:int            set the fragment duration in millisecond (default value: 1000)\n"
+					"    -seg-marker marker:str       add a marker box named marker at the end of DASH segment\n"
+					"    -out outdir:str              outdir is the output data directory (default: output)\n"
+					"    -mpd mpdname:str             mpdname is the MPD file name (default: dashcast.mpd)\n"
+					"    -ast-offset dur:int          dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
+					"    -time-shift dur:int          dur is the MPD TimeShiftBufferDepth in seconds\n"
+					"                                    - the default value is 10. Specify -1 to keep all files.\n"
+					"    -min-buffer dur:float        dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
+					"\n"
+					"\n"
+					"Examples:\n"
+					"\n"
+					"    DashCast -av test.avi -live-media\n"
+					"    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
+#ifdef WIN32
+					"    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
+					"    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
+					"    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
+#else
+					"    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
+					"    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
 #endif
 					"\n";
 
-	char *command_error = "\33[31mUnknown option or missing mandatory argument.\33[0m\n";
+	const char *command_error = "\33[31mUnknown option or missing mandatory argument.\33[0m\n";
 
 	if (argc == 1) {
 		fprintf(stdout, "%s", command_usage);
@@ -743,6 +744,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			cmd_data->no_loop = 1;
 			i++;
 		} else if (strcmp(argv[i], "-send-message") == 0) {
+			//FIXME: unreferenced option. Seems related to a separate fragment thread.
 			cmd_data->send_message = 1;
 			i++;
 		} else if (strcmp(argv[i], "-logs") == 0) {

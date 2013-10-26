@@ -44,7 +44,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 		return -1;
 	}
 
-	esd = gf_odf_desc_esd_new(2);    
+	esd = gf_odf_desc_esd_new(2);
 	if (!esd) {
 		fprintf(stderr, "Cannot create GF_ESD\n");
 		return -1;
@@ -66,12 +66,12 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	acfg.nb_chan = audio_codec_ctx->channels;
 	acfg.sbr_object_type = 0;
 	acfg.audioPL = gf_m4a_get_profile(&acfg);
-    
+
 	ret = gf_m4a_write_config(&acfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+	assert(ret == GF_OK);
 #endif
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
 	track = gf_isom_new_track(audio_output_file->isof, esd->ESID, GF_ISOM_MEDIA_AUDIO, audio_codec_ctx->sample_rate);
-
 	//fprintf(stdout, "TimeScale: %d \n", video_codec_ctx->time_base.den);
 	if (!track) {
 		fprintf(stderr, "Cannot create new track\n");
