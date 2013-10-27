@@ -38,7 +38,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
-		fprintf(stderr, "Output audio codec not found\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output audio codec not found\n"));
 		return -1;
 	}
 
@@ -66,7 +66,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	/* open the audio codec */
 	if (avcodec_open2(audio_output_file->codec_ctx, audio_output_file->codec, NULL) < 0) {
 		/*FIXME: if we enter here (set "mp2" as a codec and "200000" as a bitrate -> deadlock*/
-		fprintf(stderr, "Cannot open output audio codec\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output audio codec\n"));
 		return -1;
 	}
 
@@ -79,7 +79,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	if (avcodec_fill_audio_frame(audio_output_file->aframe,
 			audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
 			audio_output_file->adata_buf, audio_output_file->frame_bytes, 1) < 0) {
-		fprintf(stderr, "Fill audio frame failed\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Fill audio frame failed\n"));
 		return -1;
 	}
 
@@ -96,9 +96,7 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 
 	ret = dc_consumer_lock(&audio_output_file->consumer, &audio_input_data->circular_buf);
 	if (ret < 0) {
-#ifdef DEBUG
-		fprintf(stderr, "Audio encoder got an end of buffer!\n");
-#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio encoder got an end of buffer!\n"));
 		return -2;
 	}
 
@@ -131,7 +129,7 @@ int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *a
 	audio_output_file->aframe->pts = audio_input_data->next_pts;
 	/* Encode audio */
 	if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, NULL, &got_pkt) != 0) {
-		fprintf(stderr, "Error while encoding audio.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while encoding audio.\n"));
 		return -1;
 	}
 	if (got_pkt) {
@@ -177,7 +175,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 
 		/* Encode audio */
 		if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, audio_output_file->aframe, &got_pkt) != 0) {
-			fprintf(stderr, "Error while encoding audio.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while encoding audio.\n"));
 			return -1;
 		}
 

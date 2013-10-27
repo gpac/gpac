@@ -40,13 +40,13 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 	audio_output_file->isof = gf_isom_open(filename, GF_ISOM_OPEN_WRITE, NULL);
 	if (!audio_output_file->isof) {
-		fprintf(stderr, "Cannot open iso file %s\n", filename);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open iso file %s\n", filename));
 		return -1;
 	}
 
 	esd = gf_odf_desc_esd_new(2);
 	if (!esd) {
-		fprintf(stderr, "Cannot create GF_ESD\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create GF_ESD\n"));
 		return -1;
 	}
 
@@ -72,15 +72,15 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 #endif
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
 	track = gf_isom_new_track(audio_output_file->isof, esd->ESID, GF_ISOM_MEDIA_AUDIO, audio_codec_ctx->sample_rate);
-	//fprintf(stdout, "TimeScale: %d \n", video_codec_ctx->time_base.den);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("TimeScale: %d \n", audio_codec_ctx->time_base.den));
 	if (!track) {
-		fprintf(stderr, "Cannot create new track\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create new track\n"));
 		return -1;
 	}
 
 	ret = gf_isom_set_track_enabled(audio_output_file->isof, track, 1);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_set_track_enabled\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_track_enabled\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -88,8 +88,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 	ret = gf_isom_new_mpeg4_description(audio_output_file->isof, track, esd, NULL, NULL, &di);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_new_mpeg4_description\n",
-				gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_new_mpeg4_description\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -101,7 +100,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	ret = gf_isom_set_audio_info(audio_output_file->isof, track, di,
 			audio_codec_ctx->sample_rate, audio_output_file->codec_ctx->channels, bpsample);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_set_audio_info\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_audio_info\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -109,15 +108,15 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	ret = gf_isom_set_pl_indication(audio_output_file->isof, GF_ISOM_PL_AUDIO, acfg.audioPL);
 #endif
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_set_pl_indication\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_pl_indication\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
-	//fprintf(stdout, "time scale: %d  sample dur: %d \n", video_codec_ctx->time_base.den, audio_output_file->codec_ctx->frame_size);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("time scale: %d  sample dur: %d \n", audio_codec_ctx->time_base.den, audio_output_file->codec_ctx->frame_size));
 
 	ret = gf_isom_setup_track_fragment(audio_output_file->isof, track, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0, 0);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_setutrack_fragment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_setutrack_fragment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -125,7 +124,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 	ret = gf_isom_finalize_for_fragment(audio_output_file->isof, 1);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -137,14 +136,13 @@ int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filena
 	GF_Err ret;
 	ret = gf_isom_start_segment(audio_output_file->isof, filename, 1);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_start_segment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
 //	ret = gf_isom_start_fragment(audio_output_file->isof, 1);
 //	if (ret != GF_OK) {
-//		fprintf(stderr, "%s: gf_isom_start_fragment\n",
-//				gf_error_to_string(ret));
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_fragment\n", gf_error_to_string(ret)));
 //		return -1;
 //	}
 
@@ -165,19 +163,18 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 
 	audio_output_file->sample->DTS = audio_output_file->dts; //audio_output_file->aframe->pts;
 	audio_output_file->sample->IsRAP = 1; //audio_output_file->aframe->key_frame;//audio_codec_ctx->coded_frame->key_frame;
-	//fprintf(stdout, "RAP %d , DTS %ld \n", audio_output_file->sample->IsRAP, audio_output_file->sample->DTS);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("RAP %d , DTS %ld \n", audio_output_file->sample->IsRAP, audio_output_file->sample->DTS));
 
 	ret = gf_isom_fragment_add_sample(audio_output_file->isof, 1, audio_output_file->sample, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0);
 	audio_output_file->dts += audio_output_file->codec_ctx->frame_size;
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
 //	ret = gf_isom_flush_fragments(video_output_file->isof, 1);
 //	if (ret != GF_OK) {
-//		fprintf(stderr, "%s: gf_isom_flush_fragments\n",
-//				gf_error_to_string(ret));
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_flush_fragments\n", gf_error_to_string(ret)));
 //		return -1;
 //	}
 
@@ -189,7 +186,7 @@ int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 	GF_Err ret;
 	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0,0, 0, 0, 0, 1, audio_output_file->seg_marker, NULL, NULL);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -203,7 +200,7 @@ int dc_gpac_audio_isom_close(AudioOutputFile *audio_output_file)
 	GF_Err ret;
 	ret = gf_isom_close(audio_output_file->isof);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_close\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -229,13 +226,13 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	/* Find output format */
 	output_fmt = av_guess_format(NULL, filename, NULL);
 	if (!output_fmt) {
-		fprintf(stderr, "Cannot find suitable output format\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find suitable output format\n"));
 		return -1;
 	}
 
 	audio_output_file->av_fmt_ctx = avformat_alloc_context();
 	if (!audio_output_file->av_fmt_ctx) {
-		fprintf(stderr, "Cannot allocate memory for pOutVideoFormatCtx\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate memory for pOutVideoFormatCtx\n"));
 		return -1;
 	}
 
@@ -245,14 +242,14 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	/* Open the output file */
 	if (!(output_fmt->flags & AVFMT_NOFILE)) {
 		if (avio_open(&audio_output_file->av_fmt_ctx->pb, filename, URL_WRONLY) < 0) {
-			fprintf(stderr, "Cannot not open '%s'\n", filename);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot not open '%s'\n", filename));
 			return -1;
 		}
 	}
 
 	audio_stream = avformat_new_stream(audio_output_file->av_fmt_ctx, audio_output_file->codec);
 	if (!audio_stream) {
-		fprintf(stderr, "Cannot create output video stream\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create output video stream\n"));
 		return -1;
 	}
 
@@ -270,7 +267,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 
 	/* open the video codec */
 	if (avcodec_open2(audio_stream->codec, audio_output_file->codec, NULL) < 0) {
-		fprintf(stderr, "Cannot open output video codec\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
 		return -1;
 	}
 
@@ -300,7 +297,7 @@ int dc_ffmpeg_audio_muxer_write(AudioOutputFile *audio_output_file)
 	audio_output_file->packet.flags |= AV_PKT_FLAG_KEY;
 
 	if (av_interleaved_write_frame(audio_output_file->av_fmt_ctx, &audio_output_file->packet) != 0) {
-		fprintf(stderr, "Writing frame is not successful\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Writing frame is not successful\n"));
 		av_free_packet(&audio_output_file->packet);
 		return -1;
 	}

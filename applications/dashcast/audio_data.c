@@ -66,7 +66,7 @@ int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int
 
 	audio_input_data->aframe = avcodec_alloc_frame();
 	if (audio_input_data->aframe == NULL) {
-		fprintf(stderr, "Cannot initialize AudioInputData");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize AudioInputData"));
 		return -1;
 	}
 

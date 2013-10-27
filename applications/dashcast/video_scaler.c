@@ -33,7 +33,7 @@ VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int pix
 	if (video_scaled_data_node)
 		video_scaled_data_node->vframe = avcodec_alloc_frame();
 	if (!video_scaled_data_node || !video_scaled_data_node->vframe) {
-		fprintf(stderr, "Cannot allocate VideoNode!\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate VideoNode!\n"));
 		gf_free(video_scaled_data_node);
 		return NULL;
 	}
@@ -142,7 +142,7 @@ int dc_video_scaler_data_set_prop(VideoInputData *video_input_data, VideoScaledD
 			video_scaled_data->out_width, video_scaled_data->out_height,
 			video_scaled_data->out_pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	if (video_scaled_data->vsprop[index].sws_ctx == NULL) {
-		fprintf(stderr, "Cannot initialize the conversion context!\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize the conversion context!\n"));
 		return -1;
 	}
 
@@ -158,9 +158,7 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	ret = dc_consumer_lock(&video_scaled_data->consumer, &video_input_data->circular_buf);
 
 	if (ret < 0) {
-#ifdef DEBUG
-		fprintf(stderr, "Video scaler got an end of buffer!\n");
-#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler got an end of buffer!\n"));
 		return -2;
 	}
 

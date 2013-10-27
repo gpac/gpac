@@ -151,7 +151,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 
 	avccfg = gf_odf_avc_cfg_new();
 	if (!avccfg) {
-		fprintf(stderr, "Cannot create AVCConfig\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create AVCConfig\n"));
 		return -1;
 	}
 
@@ -161,7 +161,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 	{
 		GF_Err e = avc_import_ffextradata(video_codec_ctx->extradata, video_codec_ctx->extradata_size, avccfg);
 		if (e) {
-			fprintf(stderr, "Cannot parse H264 SPS/PPS\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot parse H264 SPS/PPS\n"));
 			gf_odf_avc_cfg_del(avccfg);
 			return -1;
 		}
@@ -169,7 +169,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 
 	video_output_file->isof = gf_isom_open(filename, GF_ISOM_OPEN_WRITE, NULL);
 	if (!video_output_file->isof) {
-		fprintf(stderr, "Cannot open iso file %s\n", filename);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open iso file %s\n", filename));
 		return -1;
 	}
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
@@ -180,19 +180,19 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 		video_output_file->frame_dur = video_codec_ctx->time_base.num;
 
 	if (!track) {
-		fprintf(stderr, "Cannot create new track\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create new track\n"));
 		return -1;
 	}
 
 	ret = gf_isom_set_track_enabled(video_output_file->isof, 1, 1);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_set_track_enabled\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_track_enabled\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
 	ret = gf_isom_avc_config_new(video_output_file->isof, 1, avccfg, NULL, NULL, &di);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_avc_config_new\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_avc_config_new\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -205,14 +205,14 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 	if (video_output_file->muxer_type == GPAC_INIT_VIDEO_MUXER_AVC3) {
 		ret = gf_isom_avc_set_inband_config(video_output_file->isof, track, 1);
 		if (ret != GF_OK) {
-			fprintf(stderr, "%s: gf_isom_avc_set_inband_config\n", gf_error_to_string(ret));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_avc_set_inband_config\n", gf_error_to_string(ret)));
 			return -1;
 		}
 	}
 
 	ret = gf_isom_setup_track_fragment(video_output_file->isof, 1, 1, video_output_file->use_source_timing ? (u32) video_output_file->frame_dur : 1, 0, 0, 0, 0);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_setutrack_fragment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_setutrack_fragment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -220,8 +220,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 
 	ret = gf_isom_finalize_for_fragment(video_output_file->isof, 1);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_finalize_for_fragment\n",
-				gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -233,15 +232,14 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *filena
 	GF_Err ret;
 	ret = gf_isom_start_segment(video_output_file->isof, filename, 1);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_start_segment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
 //	ret = gf_isom_set_traf_base_media_decode_time(video_output_file->isof, 1,
 //			video_output_file->first_dts);
 //	if (ret != GF_OK) {
-//		fprintf(stderr, "%s: gf_isom_set_traf_base_media_decode_time\n",
-//				gf_error_to_string(ret));
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_traf_base_media_decode_time\n", gf_error_to_string(ret)));
 //		return -1;
 //	}
 //
@@ -297,12 +295,12 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 	video_output_file->sample->DTS = video_codec_ctx->coded_frame->pkt_dts;
 	video_output_file->sample->CTS_Offset = (s32) (video_codec_ctx->coded_frame->pts - video_output_file->sample->DTS);
 	video_output_file->sample->IsRAP = video_codec_ctx->coded_frame->key_frame;
-	//fprintf(stdout, "RAP %d , DTS %ld \n", video_output_file->sample->IsRAP, video_output_file->sample->DTS);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Isom Write: RAP %d , DTS %ld \n", video_output_file->sample->IsRAP, video_output_file->sample->DTS));
 
 	ret = gf_isom_fragment_add_sample(video_output_file->isof, 1, video_output_file->sample, 1, video_output_file->use_source_timing ? (u32) video_output_file->frame_dur : 1, 0, 0, 0);
 	if (ret != GF_OK) {
 		gf_bs_del(out_bs);
-		fprintf(stderr, "%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -320,7 +318,7 @@ int dc_gpac_video_isom_close_seg(VideoOutputFile *video_output_file)
 	GF_Err ret;
 	ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, 1, video_output_file->seg_marker, NULL, NULL);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_close_segment\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Closing segment at UTC "LLU" ms\n", gf_net_get_utc() ));
@@ -333,7 +331,7 @@ int dc_gpac_video_isom_close(VideoOutputFile *video_output_file)
 	GF_Err ret;
 	ret = gf_isom_close(video_output_file->isof);
 	if (ret != GF_OK) {
-		fprintf(stderr, "%s: gf_isom_close\n", gf_error_to_string(ret));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
@@ -376,13 +374,13 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 	/* Find output format */
 	output_fmt = av_guess_format(NULL, filename, NULL);
 	if (!output_fmt) {
-		fprintf(stderr, "Cannot find suitable output format\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find suitable output format\n"));
 		return -1;
 	}
 
 	video_output_file->av_fmt_ctx = avformat_alloc_context();
 	if (!video_output_file->av_fmt_ctx) {
-		fprintf(stderr, "Cannot allocate memory for pOutVideoFormatCtx\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate memory for pOutVideoFormatCtx\n"));
 		return -1;
 	}
 
@@ -392,7 +390,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 	/* Open the output file */
 	if (!(output_fmt->flags & AVFMT_NOFILE)) {
 		if (avio_open(&video_output_file->av_fmt_ctx->pb, filename, URL_WRONLY) < 0) {
-			fprintf(stderr, "Cannot not open '%s'\n", filename);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot not open '%s'\n", filename));
 			return -1;
 		}
 	}
@@ -400,7 +398,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 	video_stream = avformat_new_stream(video_output_file->av_fmt_ctx,
 			video_output_file->codec);
 	if (!video_stream) {
-		fprintf(stderr, "Cannot create output video stream\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create output video stream\n"));
 		return -1;
 	}
 
@@ -422,7 +420,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 
 	/* open the video codec */
 	if (avcodec_open2(video_stream->codec, video_output_file->codec, NULL) < 0) {
-		fprintf(stderr, "Cannot open output video codec\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
 		return -1;
 	}
 
@@ -457,7 +455,7 @@ int dc_ffmpeg_video_muxer_write(VideoOutputFile *video_output_file)
 
 	// write the compressed frame in the media file
 	if (av_interleaved_write_frame(video_output_file->av_fmt_ctx, &pkt) != 0) {
-		fprintf(stderr, "Writing frame is not successful\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Writing frame is not successful\n"));
 		return -1;
 	}
 
@@ -590,7 +588,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
 			//this works fine because we perform frame rate regulation at the capture stage
 			frame_dur = video_output_file->codec_ctx->coded_frame->pts - video_output_file->last_pts;
 			if (frame_dur && (video_output_file->frame_dur> (u32) frame_dur)) {
-				fprintf(stdout, "New frame dur detected: %d vs %d old\n", (u32) frame_dur, (u32) video_output_file->frame_dur);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("New frame dur detected: %d vs %d old\n", (u32) frame_dur, (u32) video_output_file->frame_dur));
 				video_output_file->frame_dur = (u32) frame_dur;
 			}
 
