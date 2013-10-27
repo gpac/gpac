@@ -66,13 +66,10 @@ typedef struct {
 	GF_Semaphore *consumers_semaphore;
 	/* If marked is 0 it means the data on this node is not valid.
 	 * If marked is 1 it means that the data on this node is valid.
-	 * If marked is 2 it means this node is the last node.
-	 */
+	 * If marked is 2 it means this node is the last node. */
 	int marked;
-	/*
-	 * Indicates the number of consumers which already accessed this node.
-	 * It is used for the case where the last consumer has to do something.
-	 */
+	/* Indicates the number of consumers which already accessed this node.
+	 * It is used for the case where the last consumer has to do something. */
 	int num_consumers_accessed;
 } Node;
 

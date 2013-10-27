@@ -46,14 +46,10 @@
  * The circular buffer has its own mechanism for synchronization.
  */
 typedef struct {
-	/*
-	 * The circular buffer of input audio. Input audio is the audio frames after decoding.
-	 */
+	/* The circular buffer of input audio. Input audio is the audio frames after decoding. */
 	CircularBuffer circular_buf;
 
-	/*
-	 * The user of circular buffer has an index to it, which is in this variable.
-	 */
+	/* The user of circular buffer has an index to it, which is in this variable. */
 	Producer producer;
 
 	AVFrame *aframe;

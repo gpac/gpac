@@ -33,28 +33,16 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 {
 	int osize;
 
-	//AVCodec *audio_codec;
-	//AVStream *audio_stream;
-
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->aframe = avcodec_alloc_frame();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
-
-	audio_output_file->codec = avcodec_find_encoder_by_name("mp2"/*FIXME: audio_data_conf->codec - Note: windows build doesn't seem to have AAC*/);
+	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
 		fprintf(stderr, "Output audio codec not found\n");
 		return -1;
 	}
 
-	audio_output_file->codec_ctx = avcodec_alloc_context3(audio_output_file->codec);
-
-//	/* Create new audio stream */
-//	audio_stream = avformat_new_stream(audio_output_file->fmt, audio_codec);
-//	if (!audio_stream) {
-//		fprintf(stderr, "Cannot create output video stream\n");
-//		return -1;
-//	}
-	
+	audio_output_file->codec_ctx = avcodec_alloc_context3(audio_output_file->codec);	
 	audio_output_file->codec_ctx->codec_id = audio_output_file->codec->id;
 	audio_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_AUDIO;
 	audio_output_file->codec_ctx->bit_rate = audio_data_conf->bitrate;
@@ -68,32 +56,11 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->codec_ctx->channels = audio_data_conf->channels;
 	audio_output_file->codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO; /*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
 	audio_output_file->codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
-
-//	if (audio_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
-//		audio_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-	
-//	audio_stream->codec->codec_id = audio_codec->id;
-//	audio_stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
-//	audio_stream->codec->bit_rate = audio_output_file->audio_data_conf->bitrate;
-//	audio_stream->codec->sample_rate = audio_output_file->audio_data_conf->samplerate;
-//	audio_stream->codec->channels = audio_output_file->audio_data_conf->channels;
-//	audio_stream->codec->sample_fmt = AV_SAMPLE_FMT_S16;
-//
-//	/*
-//	 audio_stream->codec->delay = 0;
-//	 audio_stream->codec->thread_count = 1;
-//	 audio_stream->codec->max_b_frames = 0;
-//	 */
-
 	if (audio_data_conf->custom) {
 		build_dict(audio_output_file->codec_ctx->priv_data, audio_data_conf->custom);
 		gf_free(audio_data_conf->custom);
 		audio_data_conf->custom = NULL;
 	}
-
-//	if (audio_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
-//		audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
 	audio_output_file->astream_idx = 0;
 
 	/* open the audio codec */
@@ -152,7 +119,7 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
 {
 	int got_pkt;
-	//AVStream *audio_stream = audio_output_file->fmt->streams[audio_output_file->astream_idx];
+	//AVStream *audio_stream = audio_output_file->av_fmt_ctx->streams[audio_output_file->astream_idx];
 	//AVCodecContext *audio_codec_ctx = audio_stream->codec;
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
@@ -178,7 +145,7 @@ int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *a
 int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
 {
 	int got_pkt;
-	//AVStream *audio_stream = audio_output_file->fmt->streams[audio_output_file->astream_idx];
+	//AVStream *audio_stream = audio_output_file->av_fmt_ctx->streams[audio_output_file->astream_idx];
 	//AVCodecContext *audio_codec_ctx = audio_stream->codec;
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
@@ -230,9 +197,9 @@ void dc_audio_encoder_close(AudioOutputFile *audio_output_file)
 //	int i;
 //
 //	/* free the streams */
-//	for (i = 0; i < audio_output_file->fmt->nb_streams; i++) {
-//		avcodec_close(audio_output_file->fmt->streams[i]->codec);
-//		av_freep(&audio_output_file->fmt->streams[i]->info);
+//	for (i = 0; i < audio_output_file->av_fmt_ctx->nb_streams; i++) {
+//		avcodec_close(audio_output_file->av_fmt_ctx->streams[i]->codec);
+//		av_freep(&audio_output_file->av_fmt_ctx->streams[i]->info);
 //	}
 
 	av_fifo_free(audio_output_file->fifo);

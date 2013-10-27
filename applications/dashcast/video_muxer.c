@@ -139,7 +139,7 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename)
 {
 	GF_Err ret;
-	//AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
+	//AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
 	//AVCodecContext *video_codec_ctx = video_stream->codec;
 
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
@@ -254,7 +254,7 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *filena
 int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 {
 	GF_Err ret;
-	//AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
+	//AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
 	//AVCodecContext *video_codec_ctx = video_stream->codec;
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 
@@ -364,7 +364,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 	AVOutputFormat *output_fmt;
 
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
-	video_output_file->fmt = NULL;
+	video_output_file->av_fmt_ctx = NULL;
 
 //	video_output_file->vbr = video_data_conf->bitrate;
 //	video_output_file->vfr = video_data_conf->framerate;
@@ -380,24 +380,24 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 		return -1;
 	}
 
-	video_output_file->fmt = avformat_alloc_context();
-	if (!video_output_file->fmt) {
+	video_output_file->av_fmt_ctx = avformat_alloc_context();
+	if (!video_output_file->av_fmt_ctx) {
 		fprintf(stderr, "Cannot allocate memory for pOutVideoFormatCtx\n");
 		return -1;
 	}
 
-	video_output_file->fmt->oformat = output_fmt;
-	strcpy(video_output_file->fmt->filename, filename);
+	video_output_file->av_fmt_ctx->oformat = output_fmt;
+	strcpy(video_output_file->av_fmt_ctx->filename, filename);
 
 	/* Open the output file */
 	if (!(output_fmt->flags & AVFMT_NOFILE)) {
-		if (avio_open(&video_output_file->fmt->pb, filename, URL_WRONLY) < 0) {
+		if (avio_open(&video_output_file->av_fmt_ctx->pb, filename, URL_WRONLY) < 0) {
 			fprintf(stderr, "Cannot not open '%s'\n", filename);
 			return -1;
 		}
 	}
 
-	video_stream = avformat_new_stream(video_output_file->fmt,
+	video_stream = avformat_new_stream(video_output_file->av_fmt_ctx,
 			video_output_file->codec);
 	if (!video_stream) {
 		fprintf(stderr, "Cannot create output video stream\n");
@@ -426,7 +426,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 		return -1;
 	}
 
-	avformat_write_header(video_output_file->fmt, NULL);
+	avformat_write_header(video_output_file->av_fmt_ctx, NULL);
 
 	video_output_file->timescale = video_codec_ctx->time_base.den;
 	return 0;
@@ -435,7 +435,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 int dc_ffmpeg_video_muxer_write(VideoOutputFile *video_output_file)
 {
 	AVPacket pkt;
-	AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
+	AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
 	AVCodecContext *video_codec_ctx = video_stream->codec;
 
 	av_init_packet(&pkt);
@@ -456,7 +456,7 @@ int dc_ffmpeg_video_muxer_write(VideoOutputFile *video_output_file)
 	pkt.size = video_output_file->encoded_frame_size;
 
 	// write the compressed frame in the media file
-	if (av_interleaved_write_frame(video_output_file->fmt, &pkt) != 0) {
+	if (av_interleaved_write_frame(video_output_file->av_fmt_ctx, &pkt) != 0) {
 		fprintf(stderr, "Writing frame is not successful\n");
 		return -1;
 	}
@@ -470,18 +470,18 @@ int dc_ffmpeg_video_muxer_close(VideoOutputFile *video_output_file)
 {
 	u32 i;
 
-	av_write_trailer(video_output_file->fmt);
+	av_write_trailer(video_output_file->av_fmt_ctx);
 
-	avio_close(video_output_file->fmt->pb);
+	avio_close(video_output_file->av_fmt_ctx->pb);
 
 	// free the streams
-	for (i = 0; i < video_output_file->fmt->nb_streams; i++) {
-		avcodec_close(video_output_file->fmt->streams[i]->codec);
-		av_freep(&video_output_file->fmt->streams[i]->info);
+	for (i = 0; i < video_output_file->av_fmt_ctx->nb_streams; i++) {
+		avcodec_close(video_output_file->av_fmt_ctx->streams[i]->codec);
+		av_freep(&video_output_file->av_fmt_ctx->streams[i]->info);
 	}
 
-	//video_output_file->fmt->streams[video_output_file->vstream_idx]->codec = NULL;
-	avformat_free_context(video_output_file->fmt);
+	//video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx]->codec = NULL;
+	avformat_free_context(video_output_file->av_fmt_ctx);
 
 	return 0;
 }

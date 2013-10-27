@@ -56,7 +56,7 @@ typedef struct {
 	//AudioDataConf *audio_data_conf;
 
 	/* File format context structure */
-	AVFormatContext *fmt;
+	AVFormatContext *av_fmt_ctx;
 	AVCodec *codec;
 	AVCodecContext *codec_ctx;
 

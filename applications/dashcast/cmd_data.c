@@ -26,6 +26,15 @@
 #include "cmd_data.h"
 
 
+#define DASHCAST_CHECK_NEXT_ARG \
+			i++; \
+			if (i >= argc) { \
+				fprintf(stdout, "%s: %s", command_error, argv[i]); \
+				fprintf(stdout, "%s", command_usage); \
+				return -1; \
+			}
+
+
 int dc_str_to_resolution(char *str, int *width, int *height)
 {
 	char *token = strtok(str, "x");
@@ -326,6 +335,7 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 {
 	while (gf_list_count(cmd_data->audio_lst)) {
 		AudioDataConf *audio_data_conf = gf_list_last(cmd_data->audio_lst);
+		gf_free(audio_data_conf->custom);
 		gf_list_rem_last(cmd_data->audio_lst);
 		gf_free(audio_data_conf);
 	}
@@ -333,6 +343,7 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 
 	while (gf_list_count(cmd_data->video_lst)) {
 		VideoDataConf *video_data_conf = gf_list_last(cmd_data->video_lst);
+		gf_free(video_data_conf->custom);
 		gf_list_rem_last(cmd_data->video_lst);
 		gf_free(video_data_conf);
 	}
@@ -350,10 +361,10 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 	gf_sys_close();
 }
 
-static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *av_fmt_ctx, va_list list)
 {
 	FILE *logs = cbk;
-	vfprintf(logs, fmt, list);
+	vfprintf(logs, av_fmt_ctx, list);
 	fflush(logs);
 }
 
@@ -366,60 +377,76 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			"Usage: DashCast [options]\n"
 					"\n"
 					"General options:\n"
-					"    -log-file filename           set output log file. Also works with -lf\n"
-					"    -logs LOGS                   set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+					"    -log-file filename       set output log file. Also works with -lf\n"
+					"    -logs LOGS               set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 #ifdef GPAC_MEMORY_TRACKING
-					"    -mem-track                   enable the memory tracker\n"
+					"    -mem-track               enable the memory tracker\n"
 #endif
-					"    -conf filename               set the configuration file name (default: dashcast.conf)\n"
-					"    -switch-source filename      set the configuration file name for source switching\n"
+					"    -conf filename           set the configuration file name (default: dashcast.conf)\n"
+					"    -switch-source filename  set the configuration file name for source switching\n"
 					"\n"
 					"Live options:\n"
-					"    -live                        system is live and input is a camera\n"
-					"    -live-media                  system is live and input is a media file\n"
-					"    -no-loop                     system does not loop on the input media file when live\n"
+					"    -live                    system is live and input is a camera\n"
+					"    -live-media              system is live and input is a media file\n"
+					"    -no-loop                 system does not loop on the input media file when live\n"
 					"\n"
 					"Source options:\n"
-					"    -npts                        use frame counting for timestamps (not error-free) instead of source timing (default)\n"
-					"    -av string                   set the source name for a multiplexed audio and video input\n"
-					"                                    - if this option is present, neither '-a' nor '-v' shall be present\n"
+					"    -npts                    use frame counting for timestamps (not error-free) instead of source timing (default)\n"
+					"    -av string               set the source name for a multiplexed audio and video input\n"
+					"                                - if this option is present, neither '-a' nor '-v' shall be present\n"
 					"* Video options:\n"
-					"    -v string                    set the source name for a video input\n"
-					"                                    - if input is from a webcam, use \"/dev/video[x]\" \n"
-					"                                      where x is the video device number\n"
-					"                                    - if input is the screen video, use \":0.0+[x],[y]\" \n"
-					"                                      which captures from upper-left at x,y\n"
-					"                                    - if input is from stdin, use \"pipe:\"\n"
-					"    -vf string                   set the input video format\n"
+					"    -v string                set the source name for a video input\n"
+					"                                - if input is from a webcam, use \"/dev/video[x]\" \n"
+					"                                  where x is the video device number\n"
+					"                                - if input is the screen video, use \":0.0+[x],[y]\" \n"
+					"                                  which captures from upper-left at x,y\n"
+					"                                - if input is from stdin, use \"pipe:\"\n"
+					"    -vf string               set the input video format\n"
 #ifdef WIN32
-					"                                    - to capture from a VfW webcam, set vfwcap."
-					"                                    - to capture from a directshow device, set dshow."
+					"                                - to capture from a VfW webcam, set vfwcap\n"
+					"                                - to capture from a directshow device, set dshow\n"
 #else
-					"                                    - to capture from a webcam, set video4linux2\n"
-					"                                    - to capture the screen, set x11grab\n"
-					"    -v4l2f inv4l2f               inv4l2f is the input format for webcam acquisition\n"
-					"                                    - it can be mjpeg, yuyv422, etc.\n"
+					"                                - to capture from a webcam, set video4linux2\n"
+					"                                - to capture the screen, set x11grab\n"
+					"    -v4l2f inv4l2f           inv4l2f is the input format for webcam acquisition\n"
+					"                                - it can be mjpeg, yuyv422, etc.\n"
 #endif
-					"    -pixf FMT                    set the input pixel format\n"
-					"    -vfr N                       set the input video framerate\n"
-					"    -vres WxH                    set the input video resolution (e.g. 640x480)\n"
-					"    -gdr                         use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
+					"    -pixf FMT                set the input pixel format\n"
+					"    -vfr N                   force the input video framerate\n"
+					"    -vres WxH                force the video resolution (e.g. 640x480)\n"
+					"    -gdr                     use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
 					"* Audio options:\n"
-					"    -a string                    set the source name for an audio input\n"
-					"                                    - if input is from microphone, use \"plughw:[x],[y]\"\n"
-					"                                      where x is the card number and y is the device number\n"
-					"    -af string                   set the input audio format\n"
+					"    -a string                set the source name for an audio input\n"
+					"                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
+					"                                  where x is the card number and y is the device number\n"
+					"    -af string               set the input audio format\n"
+					"\n"
+					"Output options:\n"
+					"* Video encoding options:\n"
+					"    -vcodec string          set the output video codec (default: h264)\n"
+#if 0 //TODO: bind to option and params - test first how it binds to current input parameters
+					"    -vb int                 set the output video bitrate (in bits)\n"
+#endif
+					"    -vcustom string         send custom parameters directly to the audio encoder\n"
+					"* Audio encoding options:\n"
+					"    -acodec string          set the output audio codec (default: mp2)\n"
+#if 0 //TODO: bind to option and params - test first how it binds to current input parameters
+					"    -ab int                 set the output audio bitrate in bits (default: 192000)\n"
+					"    -as int                 set the sample rate (default: 48000)\n"
+					"    -ach int                set the number of output audio channels (default: 2)\n"
+#endif
+					"    -acustom string         send custom parameters directly to the audio encoder\n"
 					"\n"
 					"DASH options:\n"
-					"    -seg-dur dur:int             set the segment duration in millisecond (default value: 1000)\n"
-					"    -frag-dur dur:int            set the fragment duration in millisecond (default value: 1000)\n"
-					"    -seg-marker marker:str       add a marker box named marker at the end of DASH segment\n"
-					"    -out outdir:str              outdir is the output data directory (default: output)\n"
-					"    -mpd mpdname:str             mpdname is the MPD file name (default: dashcast.mpd)\n"
-					"    -ast-offset dur:int          dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
-					"    -time-shift dur:int          dur is the MPD TimeShiftBufferDepth in seconds\n"
-					"                                    - the default value is 10. Specify -1 to keep all files.\n"
-					"    -min-buffer dur:float        dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
+					"    -seg-dur dur:int         set the segment duration in millisecond (default value: 1000)\n"
+					"    -frag-dur dur:int        set the fragment duration in millisecond (default value: 1000)\n"
+					"    -seg-marker marker:str   add a marker box named marker at the end of DASH segment\n"
+					"    -out outdir:str          outdir is the output data directory (default: output)\n"
+					"    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
+					"    -ast-offset dur:int      dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
+					"    -time-shift dur:int      dur is the MPD TimeShiftBufferDepth in seconds\n"
+					"                                - the default value is 10. Specify -1 to keep all files.\n"
+					"    -min-buffer dur:float    dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
 					"\n"
 					"\n"
 					"Examples:\n"
@@ -466,16 +493,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	i = 1;
 	while (i < argc) {
 		if (strcmp(argv[i], "-a") == 0 || strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "-av") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(argv[i - 1], "-a") == 0 || strcmp(argv[i - 1], "-av") == 0) {
 				if (strcmp(cmd_data->audio_data_conf.filename, "") != 0) {
-					fprintf(stdout, "Audio source has been already specified.\n");
+					fprintf(stdout, "Audio source has already been specified.\n");
 					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
@@ -484,7 +505,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 			if (strcmp(argv[i - 1], "-v") == 0 || strcmp(argv[i - 1], "-av") == 0) {
 				if (strcmp(cmd_data->video_data_conf.filename, "") != 0) {
-					fprintf(stdout, "Video source has been already specified.\n");
+					fprintf(stdout, "Video source has already been specified.\n");
 					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
@@ -493,133 +514,108 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 			i++;
 		} else if (strcmp(argv[i], "-af") == 0 || strcmp(argv[i], "-vf") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(argv[i - 1], "-af") == 0) {
 				if (strcmp(cmd_data->audio_data_conf.format, "") != 0) {
-					fprintf(stdout, "Audio format has been already specified.\n");
+					fprintf(stdout, "Audio format has already been specified.\n");
 					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
 				strcpy(cmd_data->audio_data_conf.format, argv[i]);
 			}
-
 			if (strcmp(argv[i - 1], "-vf") == 0) {
 				if (strcmp(cmd_data->video_data_conf.format, "") != 0) {
-					fprintf(stdout, "Video format has been already specified.\n");
+					fprintf(stdout, "Video format has already been specified.\n");
 					fprintf(stdout, "%s", command_usage);
 					return -1;
 				}
 				strcpy(cmd_data->video_data_conf.format, argv[i]);
 			}
-
 			i++;
 		} else if (strcmp(argv[i], "-pixf") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
+			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->video_data_conf.pixel_format, "") != 0) {
-				fprintf(stdout, "Input pixel format has been already specified.\n");
+				fprintf(stdout, "Input pixel format has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			strcpy(cmd_data->video_data_conf.pixel_format, argv[i]);
-
 			i++;
 		} else if (strcmp(argv[i], "-vfr") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->video_data_conf.framerate != -1) {
-				fprintf(stdout, "Video framerate has been already specified.\n");
+				fprintf(stdout, "Video framerate has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->video_data_conf.framerate = atoi(argv[i]);
 			i++;
 		} else if (strcmp(argv[i], "-vres") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->video_data_conf.height != -1 && cmd_data->video_data_conf.width != -1) {
-				fprintf(stdout, "Video resolution has been already specified.\n");
+				fprintf(stdout, "Video resolution has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
 			dc_str_to_resolution(argv[i], &cmd_data->video_data_conf.width, &cmd_data->video_data_conf.height);
-
+			i++;
+		} else if (strcmp(argv[i], "-vcodec") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (strcmp(cmd_data->video_data_conf.codec, "") != 0) {
+				fprintf(stdout, "Video codec has already been specified.\n");
+				fprintf(stdout, "%s", command_usage);
+				return -1;
+			}
+			strncpy(cmd_data->video_data_conf.codec, argv[i], GF_MAX_PATH);
+			i++;
+		} else if (strcmp(argv[i], "-vcustom") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (strcmp(cmd_data->video_data_conf.custom, "") != 0) {
+				fprintf(stdout, "Video custom has already been specified: appending\n");
+				fprintf(stdout, "%s", command_usage);
+				return -1;
+			}
+			strncpy(cmd_data->video_data_conf.custom, argv[i], GF_MAX_PATH);
+			i++;
+		} else if (strcmp(argv[i], "-acodec") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (strcmp(cmd_data->audio_data_conf.codec, "") != 0) {
+				fprintf(stdout, "Audio codec has already been specified.\n");
+				fprintf(stdout, "%s", command_usage);
+				return -1;
+			}
+			strncpy(cmd_data->audio_data_conf.codec, argv[i], GF_MAX_PATH);
+			i++;
+		} else if (strcmp(argv[i], "-acustom") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (strcmp(cmd_data->audio_data_conf.custom, "") != 0) {
+				fprintf(stdout, "Audio custom has already been specified: appending\n");
+				fprintf(stdout, "%s", command_usage);
+				return -1;
+			}
+			strncpy(cmd_data->audio_data_conf.custom, argv[i], GF_MAX_PATH);
 			i++;
 		} else if (strcmp(argv[i], "-conf") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			cmd_data->conf = gf_cfg_force_new(NULL, argv[i]);
-
 			i++;
-
 		} else if (strcmp(argv[i], "-switch-source") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			cmd_data->switch_conf = gf_cfg_force_new(NULL, argv[i]);
-
 			i++;
 		} else if (strcmp(argv[i], "-out") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			strcpy(cmd_data->out_dir, argv[i]);
-
 			i++;
 #ifndef WIN32
 		} else if (strcmp(argv[i], "-v4l2f") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			strcpy(cmd_data->video_data_conf.v4l2f, argv[i]);
-
 			i++;
 #endif
 		} else if (strcmp(argv[i], "-seg-marker") == 0) {
 			char *m;
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
+			DASHCAST_CHECK_NEXT_ARG
 			m = argv[i];
 			if (strlen(m) == 4) {
 				cmd_data->seg_marker = GF_4CC(m[0], m[1], m[2], m[3]);
@@ -627,110 +623,61 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				fprintf(stdout, "Invalid marker box name specified: %s\n", m);
 				return -1;
 			}
-
 			i++;
-
 		} else if (strcmp(argv[i], "-mpd") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->mpd_filename, "") != 0) {
-				fprintf(stdout, "MPD file has been already specified.\n");
+				fprintf(stdout, "MPD file has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-
 			strncpy(cmd_data->mpd_filename, argv[i], GF_MAX_PATH);
 			i++;
-
 		} else if (strcmp(argv[i], "-seg-dur") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->seg_dur != 0) {
-				fprintf(stdout, "Segment duration has been already specified.\n");
+				fprintf(stdout, "Segment duration has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-
 			cmd_data->seg_dur = atoi(argv[i]);
 			i++;
-
 		} else if (strcmp(argv[i], "-frag-dur") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->frag_dur != 0) {
-				fprintf(stdout, "Fragment duration has been already specified.\n");
+				fprintf(stdout, "Fragment duration has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-
 			cmd_data->frag_dur = atoi(argv[i]);
 			i++;
-
 		} else if (strcmp(argv[i], "-ast-offset") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->ast_offset != -1) {
-				fprintf(stdout, "AvailabilityStartTime offset has been already specified.\n");
+				fprintf(stdout, "AvailabilityStartTime offset has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-
 			cmd_data->ast_offset = atoi(argv[i]);
 			i++;
-
 		} else if (strcmp(argv[i], "-time-shift") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
-
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->time_shift != 0) {
-				fprintf(stdout, "TimeShiftBufferDepth has been already specified.\n");
+				fprintf(stdout, "TimeShiftBufferDepth has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-
 			cmd_data->time_shift = atoi(argv[i]);
 			i++;
-
 		} else if (strcmp(argv[i], "-min-buffer") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
+			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->min_buffer_time != -1) {
-				fprintf(stdout, "Min Buffer Time has been already specified.\n");
+				fprintf(stdout, "Min Buffer Time has already been specified.\n");
 				fprintf(stdout, "%s", command_usage);
 				return -1;
 			}
-
 			cmd_data->min_buffer_time = (float)atof(argv[i]);
 			i++;
-
 		} else if (strcmp(argv[i], "-live") == 0) {
 			cmd_data->mode = LIVE_CAMERA;
 			i++;
@@ -748,12 +695,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			cmd_data->send_message = 1;
 			i++;
 		} else if (strcmp(argv[i], "-logs") == 0) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
+			DASHCAST_CHECK_NEXT_ARG
 			if (gf_log_set_tools_levels(argv[i]) != GF_OK) {
 				fprintf(stdout, "Invalid log format %s", argv[i]);
 				return 1;
@@ -765,12 +707,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
-			i++;
-			if (i >= argc) {
-				fprintf(stdout, "%s", command_error);
-				fprintf(stdout, "%s", command_usage);
-				return -1;
-			}
+			DASHCAST_CHECK_NEXT_ARG
 			cmd_data->logfile = gf_f64_open(argv[i], "wt");
 			gf_log_set_callback(cmd_data->logfile, on_dc_log);
 			i++;
@@ -778,7 +715,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			cmd_data->gdr = 1;
 			i++;
 		} else {
-			fprintf(stdout, "%s", command_error);
+			fprintf(stdout, "%s: %s", command_error, argv[i]);
 			fprintf(stdout, "%s", command_usage);
 			return -1;
 		}

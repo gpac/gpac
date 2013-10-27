@@ -64,15 +64,12 @@ typedef struct {
 
 	/* Scaler is a consumer and also producer.
 	 * It consumes from the video input data and it produces the video scaled data.
-	 * So it deals with two circular buffer and we need to keep the index for both.
-	 */
+	 * So it deals with two circular buffer and we need to keep the index for both. */
 	Producer producer;
 	Consumer consumer;
 
-	/*
-	 * The number of consumers of this circular buffer.
-	 * (Which are the encoders who are using this resolution)
-	 */
+	/* The number of consumers of this circular buffer.
+	 * (Which are the encoders who are using this resolution) */
 	int num_consumers;
 	int num_producers;
 

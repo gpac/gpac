@@ -156,7 +156,7 @@ int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filena
 int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 {
 	GF_Err ret;
-	//AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
+	//AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
 	//AVCodecContext *video_codec_ctx = video_stream->codec;
 	//AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
@@ -218,7 +218,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	AVOutputFormat *output_fmt;
 
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
-	audio_output_file->fmt = NULL;
+	audio_output_file->av_fmt_ctx = NULL;
 
 //	strcpy(audio_output_file->filename, audio_data_conf->filename);
 //	audio_output_file->abr = audio_data_conf->bitrate;
@@ -233,24 +233,24 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 		return -1;
 	}
 
-	audio_output_file->fmt = avformat_alloc_context();
-	if (!audio_output_file->fmt) {
+	audio_output_file->av_fmt_ctx = avformat_alloc_context();
+	if (!audio_output_file->av_fmt_ctx) {
 		fprintf(stderr, "Cannot allocate memory for pOutVideoFormatCtx\n");
 		return -1;
 	}
 
-	audio_output_file->fmt->oformat = output_fmt;
-	strcpy(audio_output_file->fmt->filename, filename);
+	audio_output_file->av_fmt_ctx->oformat = output_fmt;
+	strcpy(audio_output_file->av_fmt_ctx->filename, filename);
 
 	/* Open the output file */
 	if (!(output_fmt->flags & AVFMT_NOFILE)) {
-		if (avio_open(&audio_output_file->fmt->pb, filename, URL_WRONLY) < 0) {
+		if (avio_open(&audio_output_file->av_fmt_ctx->pb, filename, URL_WRONLY) < 0) {
 			fprintf(stderr, "Cannot not open '%s'\n", filename);
 			return -1;
 		}
 	}
 
-	audio_stream = avformat_new_stream(audio_output_file->fmt, audio_output_file->codec);
+	audio_stream = avformat_new_stream(audio_output_file->av_fmt_ctx, audio_output_file->codec);
 	if (!audio_stream) {
 		fprintf(stderr, "Cannot create output video stream\n");
 		return -1;
@@ -263,7 +263,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	audio_stream->codec->channels = audio_codec_ctx->channels;//audio_output_file->audio_data_conf->channels;
 	audio_stream->codec->sample_fmt = AV_SAMPLE_FMT_S16;
 
-//	if (audio_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//	if (audio_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
 //		audio_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 	//video_stream->codec = video_output_file->codec_ctx;
@@ -274,14 +274,14 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 		return -1;
 	}
 
-	avformat_write_header(audio_output_file->fmt, NULL);
+	avformat_write_header(audio_output_file->av_fmt_ctx, NULL);
 
 	return 0;
 }
 
 int dc_ffmpeg_audio_muxer_write(AudioOutputFile *audio_output_file)
 {
-	AVStream *audio_stream = audio_output_file->fmt->streams[audio_output_file->astream_idx];
+	AVStream *audio_stream = audio_output_file->av_fmt_ctx->streams[audio_output_file->astream_idx];
 	AVCodecContext *audio_codec_ctx = audio_stream->codec;
 
 	audio_output_file->packet.stream_index = audio_stream->index;
@@ -299,7 +299,7 @@ int dc_ffmpeg_audio_muxer_write(AudioOutputFile *audio_output_file)
 
 	audio_output_file->packet.flags |= AV_PKT_FLAG_KEY;
 
-	if (av_interleaved_write_frame(audio_output_file->fmt, &audio_output_file->packet) != 0) {
+	if (av_interleaved_write_frame(audio_output_file->av_fmt_ctx, &audio_output_file->packet) != 0) {
 		fprintf(stderr, "Writing frame is not successful\n");
 		av_free_packet(&audio_output_file->packet);
 		return -1;
@@ -314,17 +314,17 @@ int dc_ffmpeg_audio_muxer_close(AudioOutputFile *audio_output_file)
 {
 	u32 i;
 
-	av_write_trailer(audio_output_file->fmt);
-	avio_close(audio_output_file->fmt->pb);
+	av_write_trailer(audio_output_file->av_fmt_ctx);
+	avio_close(audio_output_file->av_fmt_ctx->pb);
 
 	// free the streams
-	for (i = 0; i < audio_output_file->fmt->nb_streams; i++) {
-		avcodec_close(audio_output_file->fmt->streams[i]->codec);
-		av_freep(&audio_output_file->fmt->streams[i]->info);
+	for (i = 0; i < audio_output_file->av_fmt_ctx->nb_streams; i++) {
+		avcodec_close(audio_output_file->av_fmt_ctx->streams[i]->codec);
+		av_freep(&audio_output_file->av_fmt_ctx->streams[i]->info);
 	}
 
-	//video_output_file->fmt->streams[video_output_file->vstream_idx]->codec = NULL;
-	avformat_free_context(audio_output_file->fmt);
+	//video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx]->codec = NULL;
+	avformat_free_context(audio_output_file->av_fmt_ctx);
 
 	//audio_output_file->acc_samples = 0;
 

@@ -31,7 +31,7 @@
 //#define DASHCAST_DEBUG_TIME_
 
 
-int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video_data_conf, int mode, int no_loop)
+int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video_data_conf, int mode, int no_loop)
 {
 	s32 ret;
 	u32 i;
@@ -41,7 +41,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video
 	AVCodecContext *codec_ctx;
 	AVCodec *codec;
 
-	memset(video_input_data, 0, sizeof(VideoInputFile));
+	memset(video_input_file, 0, sizeof(VideoInputFile));
 
 	if (video_data_conf->width > 0 && video_data_conf->height > 0) {
 		char vres[16];
@@ -89,20 +89,20 @@ int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video
 		}
 	}
 
-	video_input_data->fmt_ctx = NULL;
+	video_input_file->av_fmt_ctx = NULL;
 
 	/* Open video */
-	open_res = avformat_open_input(&video_input_data->fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
+	open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	if ( (open_res < 0) && !stricmp(video_data_conf->filename, "screen-capture-recorder") ) {
 		fprintf(stderr, "Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", open_res);
 		av_dict_set(&options, "video_size", NULL, 0);
-		open_res = avformat_open_input(&video_input_data->fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
+		open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	}
 
 	if ( (open_res < 0) && options) {
 		fprintf(stderr, "Error %d opening input - retrying without options\n", open_res);
 		av_dict_free(&options);
-		open_res = avformat_open_input(&video_input_data->fmt_ctx, video_data_conf->filename, in_fmt, NULL);
+		open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, NULL);
 	}
 
 	if (open_res < 0) {
@@ -111,55 +111,57 @@ int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video
 	}
 
 	/* Retrieve stream information */
-	if (avformat_find_stream_info(video_input_data->fmt_ctx, NULL) < 0) {
+	if (avformat_find_stream_info(video_input_file->av_fmt_ctx, NULL) < 0) {
 		fprintf(stderr, "Cannot find stream information\n");
 		return -1;
 	}
 
-	av_dump_format(video_input_data->fmt_ctx, 0, video_data_conf->filename, 0);
+	av_dump_format(video_input_file->av_fmt_ctx, 0, video_data_conf->filename, 0);
 
 	/* Find the first video stream */
-	video_input_data->vstream_idx = -1;
-	for (i = 0; i < video_input_data->fmt_ctx->nb_streams; i++) {
-		if (video_input_data->fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-			video_input_data->vstream_idx = i;
+	video_input_file->vstream_idx = -1;
+	for (i = 0; i < video_input_file->av_fmt_ctx->nb_streams; i++) {
+		if (video_input_file->av_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+			video_input_file->vstream_idx = i;
 			break;
 		}
 	}
-	if (video_input_data->vstream_idx == -1) {
+	if (video_input_file->vstream_idx == -1) {
 		fprintf(stderr, "Cannot find a video stream\n");
 		return -1;
 	}
 
 	/* Get a pointer to the codec context for the video stream */
-	codec_ctx = video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->codec;
+	codec_ctx = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->codec;
 
-	//int64_t dur = video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->duration;
-	//int time_base = video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->time_base.den;
+	//int64_t dur = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->duration;
+	//int time_base = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->time_base.den;
 	//fprintf(stdout, "DURATION: %d \n", dur/time_base);
 
 	/* Find the decoder for the video stream */
 	codec = avcodec_find_decoder(codec_ctx->codec_id);
 	if (codec == NULL) {
 		fprintf(stderr, "Codec is not supported.\n");
-		avformat_close_input(&video_input_data->fmt_ctx);
+		if (!video_input_file->av_fmt_ctx_ref_cnt)
+			avformat_close_input(&video_input_file->av_fmt_ctx);
 		return -1;
 	}
 
 	/* Open codec */
 	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
 		fprintf(stderr, "Cannot open codec.\n");
-		avformat_close_input(&video_input_data->fmt_ctx);
+		if (!video_input_file->av_fmt_ctx_ref_cnt)
+			avformat_close_input(&video_input_file->av_fmt_ctx);
 		return -1;
 	}
 
-	video_input_data->width = codec_ctx->width;
-	video_input_data->height = codec_ctx->height;
-	video_input_data->pix_fmt = codec_ctx->pix_fmt;
+	video_input_file->width = codec_ctx->width;
+	video_input_file->height = codec_ctx->height;
+	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;	
 	if (video_data_conf->framerate <= 1 || video_data_conf->framerate > 1000) {
-		const int num = video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->avg_frame_rate.num;
-		const int den = video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->avg_frame_rate.den == 0 ? 1 : video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->avg_frame_rate.den;
+		const int num = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.num;
+		const int den = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.den == 0 ? 1 : video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.den;
 		video_data_conf->framerate = num / den;
 		if (video_data_conf->framerate / 1000 != 0) {
 			fprintf(stderr, "Framerate %d was divided by 1000: %d\n", video_data_conf->framerate, video_data_conf->framerate/1000);
@@ -179,9 +181,9 @@ int dc_video_decoder_open(VideoInputFile *video_input_data, VideoDataConf *video
 		return -1;
 	}
 
-	video_data_conf->time_base = video_input_data->fmt_ctx->streams[video_input_data->vstream_idx]->time_base;
-	video_input_data->mode = mode;
-	video_input_data->no_loop = no_loop;
+	video_data_conf->time_base = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->time_base;
+	video_input_file->mode = mode;
+	video_input_file->no_loop = no_loop;
 
 	return 0;
 }
@@ -198,7 +200,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 	VideoDataNode *video_data_node;
 
 	/* Get a pointer to the codec context for the video stream */
-	codec_ctx = video_input_file->fmt_ctx->streams[video_input_file->vstream_idx]->codec;
+	codec_ctx = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->codec;
 
 	/* Read frames */
 	while (1) {
@@ -206,15 +208,34 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 		gettimeofday(&start, NULL);
 #endif
 		memset(&packet, 0, sizeof(AVPacket));
-		ret = av_read_frame(video_input_file->fmt_ctx, &packet);
+		ret = av_read_frame(video_input_file->av_fmt_ctx, &packet);
 #ifdef DASHCAST_DEBUG_TIME_
 		gettimeofday(&end, NULL);
 		elapsed_time = (end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
 		fprintf(stdout, "fps: %f\n", 1000000.0/elapsed_time);
 #endif
+		
+		/* If we demux for the audio thread, send the packet to the audio */
+		if (video_input_file->av_fmt_ctx_ref_cnt && ((packet.stream_index != video_input_file->vstream_idx) || (ret == AVERROR_EOF))) {
+			AVPacket *packet_copy = NULL;
+			if (ret != AVERROR_EOF) {
+				GF_SAFEALLOC(packet_copy, AVPacket);
+				memcpy(packet_copy, &packet, sizeof(AVPacket));
+			}
+
+			assert(video_input_file->av_pkt_list);
+			gf_mx_p(video_input_file->av_pkt_list_mutex);
+			gf_list_add(video_input_file->av_pkt_list, packet_copy);
+			gf_mx_v(video_input_file->av_pkt_list_mutex);
+			
+			if (ret != AVERROR_EOF) {
+				continue;
+			}
+		}
+
 		if (ret == AVERROR_EOF) {
 			if (video_input_file->mode == LIVE_MEDIA && video_input_file->no_loop == 0) {
-				av_seek_frame(video_input_file->fmt_ctx, video_input_file->vstream_idx, 0, 0);
+				av_seek_frame(video_input_file->av_fmt_ctx, video_input_file->vstream_idx, 0, 0);
 				av_free_packet(&packet);
 				continue;
 			}
@@ -236,8 +257,8 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			dc_producer_unlock(&video_input_data->producer, &video_input_data->circular_buf);
 			return -2;
 		}
-
-		else if (ret < 0) {
+		else if (ret < 0)
+		{
 			fprintf(stderr, "Cannot read video frame.\n");
 			continue;
 		}
@@ -336,5 +357,9 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 void dc_video_decoder_close(VideoInputFile *video_input_file)
 {
 	/* Close the video format context */
-	avformat_close_input(&video_input_file->fmt_ctx);
+	if (!video_input_file->av_fmt_ctx_ref_cnt)
+		avformat_close_input(&video_input_file->av_fmt_ctx);
+	
+	video_input_file->av_pkt_list = NULL;
+	video_input_file->av_pkt_list_mutex = NULL;
 }
