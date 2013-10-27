@@ -77,7 +77,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	video_output_file->codec_ctx = avcodec_alloc_context3(video_output_file->codec);
 
 	//Create new video stream
-//	video_stream = avformat_new_stream(video_output_file->fmt, video_codec);
+//	video_stream = avformat_new_stream(video_output_file->av_fmt_ctx, video_codec);
 //	if (!video_stream) {
 //		fprintf(stderr, "Cannot create output video stream\n");
 //		return -1;
@@ -153,11 +153,11 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", 8, 0);
 	}
 
-//	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//	if (video_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
 	//the global header gives access to the extradata (SPS/PPS)
 	video_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-//	if (video_output_file->fmt->oformat->flags & AVFMT_GLOBALHEADER)
+//	if (video_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
 //		video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 	video_output_file->vstream_idx = 0;//video_stream->index;
@@ -184,10 +184,11 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 	int ret;
 	//int out_size;
 
-//	AVStream *video_stream = video_output_file->fmt->streams[video_output_file->vstream_idx];
+//	AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
 //	AVCodecContext *video_codec_ctx = video_stream->codec;
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 
+	//FIXME: deadlock when pressing 'q' with BigBuckBunny_640x360.m4v
 	ret = dc_consumer_lock(&video_output_file->consumer, &video_scaled_data->circular_buf);
 	if (ret < 0) {
 #ifdef DEBUG
@@ -260,7 +261,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 //		pkt.size = out_size;
 //
 //		// write the compressed frame in the media file
-//		if (av_interleaved_write_frame(video_output_file->fmt, &pkt)
+//		if (av_interleaved_write_frame(video_output_file->av_fmt_ctx, &pkt)
 //				!= 0) {
 //			fprintf(stderr, "Writing frame is not successful\n");
 //			return -1;
@@ -278,9 +279,9 @@ void dc_video_encoder_close(VideoOutputFile *video_output_file)
 //	int i;
 //
 //	// free the streams
-//	for (i = 0; i < video_output_file->fmt->nb_streams; i++) {
-//		avcodec_close(video_output_file->fmt->streams[i]->codec);
-//		av_freep(&video_output_file->fmt->streams[i]->info);
+//	for (i = 0; i < video_output_file->av_fmt_ctx->nb_streams; i++) {
+//		avcodec_close(video_output_file->av_fmt_ctx->streams[i]->codec);
+//		av_freep(&video_output_file->av_fmt_ctx->streams[i]->info);
 //	}
 	av_free(video_output_file->vbuf);
 	avcodec_close(video_output_file->codec_ctx);

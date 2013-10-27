@@ -37,17 +37,17 @@
  * input video file.
  */
 typedef struct {
-	/*
-	 * Format context structure provided by avlib to open and read from a media file
-	 */
-	AVFormatContext *fmt_ctx;
-	/*
-	 * The index of the video stream in the file
-	 */
+	/* Format context structure provided by avlib to open and read from a media file. */
+	AVFormatContext *av_fmt_ctx;
+	/* A reference counter on the format context (may be shared with other sources). Currently redundant with av_pkt_list non-NULLness. */
+	int av_fmt_ctx_ref_cnt;
+	/* A list of AVPackets and return value to be processed: when this parameter is non-null,
+	 * the video thread makes the demux and pushes the packets. Packets must be freed when retrieved.*/
+	GF_List  *av_pkt_list;
+	GF_Mutex *av_pkt_list_mutex;
+	/* The index of the video stream in the file. */
 	int vstream_idx;
-	/*
-	 * video width, height, and pixel format
-	 */
+	/* video width, height, and pixel format. */
 	int width;
 	int height;
 	int pix_fmt;

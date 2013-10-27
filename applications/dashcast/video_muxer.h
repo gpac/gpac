@@ -55,7 +55,7 @@ typedef struct {
 	VideoMuxerType muxer_type;
 
 	/* file format context structure */
-	AVFormatContext *fmt;
+	AVFormatContext *av_fmt_ctx;
 	AVCodecContext *codec_ctx;
 	AVCodec *codec;
 

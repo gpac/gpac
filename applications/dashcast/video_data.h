@@ -76,10 +76,7 @@ typedef struct {
 } VideoDataConf;
 
 typedef struct {
-	/*
-	 * Width, height and pixel format
-	 * of the input video
-	 */
+	/* Width, height and pixel format of the input video. */
 	int width;
 	int height;
 	int pix_fmt;
@@ -91,23 +88,14 @@ typedef struct {
  * The circular buffer has its own mechanism for synchronization.
  */
 typedef struct {
-	/*
-	 * The circular buffer of
-	 * the video frames after decoding.
-	 */
+	/* The circular buffer of the video frames after decoding. */
 	CircularBuffer circular_buf;
-	/*
-	 * The user of circular buffer has an index to it,
-	 * which is in this variable.
-	 */
+	/* The user of circular buffer has an index to it, which is in this variable. */
 	Producer producer;
 
 	VideoInputProp *vprop;
 
-	/*
-	 * Width, height and pixel format
-	 * of the input video
-	 */
+	/* Width, height and pixel format of the input video */
 	//int width;
 	//int height;
 	//int pix_fmt;

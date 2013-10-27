@@ -25,13 +25,12 @@
 
 #include "audio_decoder.h"
 
-int dc_audio_decoder_open(AudioInputFile *audio_input_data, AudioDataConf *audio_data_conf, int mode, int no_loop)
+int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio_data_conf, int mode, int no_loop)
 {
 	u32 i;
 	AVCodecContext *codec_ctx;
 	AVCodec *codec;
 	AVInputFormat *in_fmt = NULL;
-	audio_input_data->fmt = NULL;
 
 	if (audio_data_conf->format && strcmp(audio_data_conf->format,"") != 0) {
 		in_fmt = av_find_input_format(audio_data_conf->format);
@@ -42,34 +41,36 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_data, AudioDataConf *audio
 	}
 
 	/*
-	 * Open audio
+	 * Open audio (may already be opened when shared with the video input).
 	 */
-	if (avformat_open_input(&audio_input_data->fmt, audio_data_conf->filename, in_fmt, NULL) != 0) {
-		fprintf(stderr, "Cannot open file: %s\n", audio_data_conf->filename);
-		return -1;
-	}
+	if (!audio_input_file->av_fmt_ctx) {
+		if (avformat_open_input(&audio_input_file->av_fmt_ctx, audio_data_conf->filename, in_fmt, NULL) != 0) {
+			fprintf(stderr, "Cannot open file: %s\n", audio_data_conf->filename);
+			return -1;
+		}
 
-	/*
-	 * Retrieve stream information
-	 */
-	if (avformat_find_stream_info(audio_input_data->fmt, NULL) < 0) {
-		fprintf(stderr, "Cannot find stream information\n");
-		return -1;
-	}
+		/*
+		* Retrieve stream information
+		*/
+		if (avformat_find_stream_info(audio_input_file->av_fmt_ctx, NULL) < 0) {
+			fprintf(stderr, "Cannot find stream information\n");
+			return -1;
+		}
 
-	av_dump_format(audio_input_data->fmt, 0, audio_data_conf->filename, 0);
+		av_dump_format(audio_input_file->av_fmt_ctx, 0, audio_data_conf->filename, 0);
+	}
 
 	/*
 	 * Find the first audio stream
 	 */
-	audio_input_data->astream_idx = -1;
-	for (i=0; i<audio_input_data->fmt->nb_streams; i++) {
-		if (audio_input_data->fmt->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
-			audio_input_data->astream_idx = i;
+	audio_input_file->astream_idx = -1;
+	for (i=0; i<audio_input_file->av_fmt_ctx->nb_streams; i++) {
+		if (audio_input_file->av_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+			audio_input_file->astream_idx = i;
 			break;
 		}
 	}
-	if (audio_input_data->astream_idx == -1) {
+	if (audio_input_file->astream_idx == -1) {
 		fprintf(stderr, "Cannot find a audio stream\n");
 		return -1;
 	}
@@ -77,7 +78,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_data, AudioDataConf *audio
 	/*
 	 * Get a pointer to the codec context for the audio stream
 	 */
-	codec_ctx = audio_input_data->fmt->streams[audio_input_data->astream_idx]->codec;
+	codec_ctx = audio_input_file->av_fmt_ctx->streams[audio_input_file->astream_idx]->codec;
 
 	/*
 	 * Find the decoder for the audio stream
@@ -85,7 +86,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_data, AudioDataConf *audio
 	codec = avcodec_find_decoder(codec_ctx->codec_id);
 	if (codec == NULL) {
 		fprintf(stderr, "Input audio codec is not supported.\n");
-		avformat_close_input(&audio_input_data->fmt);
+		avformat_close_input(&audio_input_file->av_fmt_ctx);
 		return -1;
 	}
 
@@ -94,17 +95,17 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_data, AudioDataConf *audio
 	 */
 	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
 		fprintf(stderr, "Cannot open input audio codec.\n");
-		avformat_close_input(&audio_input_data->fmt);
+		avformat_close_input(&audio_input_file->av_fmt_ctx);
 		return -1;
 	}
 
-	audio_input_data->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
+	audio_input_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 
 	audio_data_conf->channels = codec_ctx->channels;
 	audio_data_conf->samplerate = codec_ctx->sample_rate;
 
-	audio_input_data->mode = mode;
-	audio_input_data->no_loop = no_loop;
+	audio_input_file->mode = mode;
+	audio_input_file->no_loop = no_loop;
 
 	return 0;
 }
@@ -119,14 +120,35 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 	AudioDataNode *audio_data_node;
 
 	/* Get a pointer to the codec context for the audio stream */
-	codec_ctx = audio_input_file->fmt->streams[audio_input_file->astream_idx]->codec;
+	codec_ctx = audio_input_file->av_fmt_ctx->streams[audio_input_file->astream_idx]->codec;
 
 	/* Read frames */
 	while (1) {
-		ret = av_read_frame(audio_input_file->fmt, &packet);
+		if (audio_input_file->av_pkt_list) {
+			if (gf_list_count(audio_input_file->av_pkt_list)) {
+				AVPacket *packet_copy;
+				assert(audio_input_file->av_pkt_list);
+				gf_mx_p(audio_input_file->av_pkt_list_mutex);
+				packet_copy = gf_list_pop_front(audio_input_file->av_pkt_list);
+				gf_mx_v(audio_input_file->av_pkt_list_mutex);
+
+				if (packet_copy == NULL) {
+					ret = AVERROR_EOF;
+				} else {
+					memcpy(&packet, packet_copy, sizeof(AVPacket));
+					gf_free(packet_copy);
+					ret = 0;
+				}
+			} else {
+				gf_sleep(1);
+				continue;
+			}
+		} else {
+			ret = av_read_frame(audio_input_file->av_fmt_ctx, &packet);
+		}
 		if (ret == AVERROR_EOF) {
 			if (audio_input_file->mode == LIVE_MEDIA && audio_input_file->no_loop == 0) {
-				av_seek_frame(audio_input_file->fmt, audio_input_file->astream_idx, 0, 0);
+				av_seek_frame(audio_input_file->av_fmt_ctx, audio_input_file->astream_idx, 0, 0);
 				continue;
 			}
 
@@ -230,12 +252,23 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 	return -1;
 }
 
-void dc_audio_decoder_close(AudioInputFile * audio_input_data)
+void dc_audio_decoder_close(AudioInputFile *audio_input_file)
 {
 	/*
 	 * Close the audio format context
 	 */
-	avformat_close_input(&audio_input_data->fmt);
+	avformat_close_input(&audio_input_file->av_fmt_ctx);
 
-	av_fifo_free(audio_input_data->fifo);
+	if (audio_input_file->av_pkt_list_mutex) {
+		gf_mx_p(audio_input_file->av_pkt_list_mutex);
+		while (gf_list_count(audio_input_file->av_pkt_list)) {
+			AVPacket *pkt = gf_list_last(audio_input_file->av_pkt_list);
+			av_free_packet(pkt);
+			gf_list_rem_last(audio_input_file->av_pkt_list);
+		}
+		gf_mx_v(audio_input_file->av_pkt_list_mutex);
+		gf_mx_del(audio_input_file->av_pkt_list_mutex);
+	}
+
+	av_fifo_free(audio_input_file->fifo);
 }

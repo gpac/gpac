@@ -637,10 +637,16 @@ u32 audio_decoder_thread(void *params)
 	CmdData *in_data = thread_params->in_data;
 	AudioInputData *audio_input_data = thread_params->audio_input_data;
 	AudioInputFile *audio_input_file = thread_params->audio_input_file;
-
-	suseconds_t total_wait_time = 1000000 / (in_data->audio_data_conf.samplerate / 1024);
+	
 	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
-
+	suseconds_t total_wait_time;
+	if (in_data->audio_data_conf.samplerate < 1024) {
+		fprintf(stderr, "Error: invalid audio sample rate: %d\n", in_data->audio_data_conf.samplerate);
+		dc_audio_inout_data_end_signal(audio_input_data);
+		//FIXME: deadlock on the mpd thread. Reproduce with big_buck_bunny.mp4.
+		return 1;
+	}
+	total_wait_time = 1000000 / (in_data->audio_data_conf.samplerate / 1024);
 	//fprintf(stdout, "wait time : %ld\n", total_wait_time);
 	//fprintf(stdout, "sample-rate : %ld\n", in_data->audio_data_conf.samplerate);
 
@@ -1170,7 +1176,7 @@ int dc_run_controler(CmdData *in_data)
 		}
 
 		if (dc_video_input_data_init(&video_input_data, /*video_input_file[0]->width, video_input_file[0]->height,
-		 video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER) < 0) {
+		  video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER) < 0) {
 			fprintf(stderr, "Cannot initialize audio data.\n");
 			ret = -1;
 			goto exit;
@@ -1184,21 +1190,8 @@ int dc_run_controler(CmdData *in_data)
 				ret = -1;
 				goto exit;
 			}
-
-//			if (dc_video_input_data_init(&video_input_data, video_input_file[i + 1]->width,
-//					video_input_file[i + 1]->height, video_input_file[i + 1]->pix_fmt, video_scaled_data_list.size,
-//					in_data->mode, MAX_SOURCE_NUMBER) < 0) {
-//				fprintf(stderr, "Cannot initialize audio data.\n");
-//				ret = -1;
-//				goto exit;
-//			}
 		}
 
-//		dc_video_input_data_set_prop(&video_input_data, 0, video_input_file[1]->width,
-//				video_input_file[1]->height, video_input_file[1]->pix_fmt);
-
-		//int source_nb = gf_list_count(in_data->vsrc);
-		//fprintf(stdout, "source_nb: %d \n", source_nb);
 		for (i=0; i<gf_list_count(in_data->vsrc) + 1; i++) {
 			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, video_input_file[i]->pix_fmt);
 		}
@@ -1221,6 +1214,14 @@ int dc_run_controler(CmdData *in_data)
 		/* Initialize video encoder threads */
 		for (i=0; i<gf_list_count(in_data->video_lst); i++)
 			vencoder_th_params[i].thread = gf_th_new("video_encoder_thread");
+	}
+
+	/* When video and audio share the same source, open it once. This allow to read from unicast streams */
+	if (!strcmp(in_data->video_data_conf.filename, in_data->audio_data_conf.filename)) {
+		audio_input_file.av_fmt_ctx = video_input_file[0]->av_fmt_ctx;
+		video_input_file[0]->av_fmt_ctx_ref_cnt++;
+		audio_input_file.av_pkt_list = video_input_file[0]->av_pkt_list = gf_list_new();
+		audio_input_file.av_pkt_list_mutex = video_input_file[0]->av_pkt_list_mutex = gf_mx_new("Demux AVPackets List");
 	}
 
 	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {

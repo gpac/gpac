@@ -37,16 +37,15 @@
  * input audio file.
  */
 typedef struct {
-	/*
-	 * Format context structure provided by avlib
-	 * to open and read from a media file
-	 */
-	AVFormatContext *fmt;
+	/* Format context structure provided by avlib to open and read from a media file. */
+	AVFormatContext *av_fmt_ctx;
 
-	/*
-	 * The index of the audio stream
-	 * in the file
-	 */
+	/* A list of AVPackets and return value to be processed: when this parameter is non-null,
+	 * the video thread makes the demux and pushes the packets. */
+	GF_List  *av_pkt_list;
+	GF_Mutex *av_pkt_list_mutex;
+
+	/* The index of the audio stream in the file. */
 	int astream_idx;
 
 	AVFifoBuffer *fifo;
