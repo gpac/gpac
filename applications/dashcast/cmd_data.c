@@ -29,8 +29,8 @@
 #define DASHCAST_CHECK_NEXT_ARG \
 			i++; \
 			if (i >= argc) { \
-				fprintf(stdout, "%s: %s", command_error, argv[i]); \
-				fprintf(stdout, "%s", command_usage); \
+				fprintf(stderr, "%s: %s", command_error, argv[i]); \
+				fprintf(stderr, "%s", command_usage); \
 				return -1; \
 			}
 
@@ -39,14 +39,14 @@ int dc_str_to_resolution(char *str, int *width, int *height)
 {
 	char *token = strtok(str, "x");
 	if (!token) {
-		fprintf(stderr, "Cannot parse resolution string.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot parse resolution string.\n"));
 		return -1;
 	}
 	*width = atoi(token);
 
 	token = strtok(NULL, " ");
 	if (!token) {
-		fprintf(stderr, "Cannot parse resolution string.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot parse resolution string.\n"));
 		return -1;
 	}
 	*height = atoi(token);
@@ -190,7 +190,7 @@ int dc_read_configuration(CmdData *cmd_data)
 			audio_data_conf->custom = opt ? gf_strdup(opt) : NULL;
 			gf_list_add(cmd_data->audio_lst, (void *) audio_data_conf);
 		} else {
-			fprintf(stdout, "Configuration file: type %s is not supported.\n", section_type);
+			fprintf(stderr, "Configuration file: type %s is not supported.\n", section_type);
 		}
 	}
 
@@ -466,7 +466,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	const char *command_error = "\33[31mUnknown option or missing mandatory argument.\33[0m\n";
 
 	if (argc == 1) {
-		fprintf(stdout, "%s", command_usage);
+		fprintf(stderr, "%s", command_usage);
 		return -2;
 	}
 
@@ -496,8 +496,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(argv[i - 1], "-a") == 0 || strcmp(argv[i - 1], "-av") == 0) {
 				if (strcmp(cmd_data->audio_data_conf.filename, "") != 0) {
-					fprintf(stdout, "Audio source has already been specified.\n");
-					fprintf(stdout, "%s", command_usage);
+					fprintf(stderr, "Audio source has already been specified.\n");
+					fprintf(stderr, "%s", command_usage);
 					return -1;
 				}
 				strcpy(cmd_data->audio_data_conf.filename, argv[i]);
@@ -505,8 +505,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 			if (strcmp(argv[i - 1], "-v") == 0 || strcmp(argv[i - 1], "-av") == 0) {
 				if (strcmp(cmd_data->video_data_conf.filename, "") != 0) {
-					fprintf(stdout, "Video source has already been specified.\n");
-					fprintf(stdout, "%s", command_usage);
+					fprintf(stderr, "Video source has already been specified.\n");
+					fprintf(stderr, "%s", command_usage);
 					return -1;
 				}
 				strcpy(cmd_data->video_data_conf.filename, argv[i]);
@@ -517,16 +517,16 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(argv[i - 1], "-af") == 0) {
 				if (strcmp(cmd_data->audio_data_conf.format, "") != 0) {
-					fprintf(stdout, "Audio format has already been specified.\n");
-					fprintf(stdout, "%s", command_usage);
+					fprintf(stderr, "Audio format has already been specified.\n");
+					fprintf(stderr, "%s", command_usage);
 					return -1;
 				}
 				strcpy(cmd_data->audio_data_conf.format, argv[i]);
 			}
 			if (strcmp(argv[i - 1], "-vf") == 0) {
 				if (strcmp(cmd_data->video_data_conf.format, "") != 0) {
-					fprintf(stdout, "Video format has already been specified.\n");
-					fprintf(stdout, "%s", command_usage);
+					fprintf(stderr, "Video format has already been specified.\n");
+					fprintf(stderr, "%s", command_usage);
 					return -1;
 				}
 				strcpy(cmd_data->video_data_conf.format, argv[i]);
@@ -535,8 +535,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-pixf") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->video_data_conf.pixel_format, "") != 0) {
-				fprintf(stdout, "Input pixel format has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Input pixel format has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			strcpy(cmd_data->video_data_conf.pixel_format, argv[i]);
@@ -544,8 +544,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-vfr") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->video_data_conf.framerate != -1) {
-				fprintf(stdout, "Video framerate has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Video framerate has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->video_data_conf.framerate = atoi(argv[i]);
@@ -553,8 +553,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-vres") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->video_data_conf.height != -1 && cmd_data->video_data_conf.width != -1) {
-				fprintf(stdout, "Video resolution has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Video resolution has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			dc_str_to_resolution(argv[i], &cmd_data->video_data_conf.width, &cmd_data->video_data_conf.height);
@@ -562,8 +562,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-vcodec") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->video_data_conf.codec, "") != 0) {
-				fprintf(stdout, "Video codec has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Video codec has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			strncpy(cmd_data->video_data_conf.codec, argv[i], GF_MAX_PATH);
@@ -571,8 +571,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-vcustom") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->video_data_conf.custom, "") != 0) {
-				fprintf(stdout, "Video custom has already been specified: appending\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Video custom has already been specified: appending\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			strncpy(cmd_data->video_data_conf.custom, argv[i], GF_MAX_PATH);
@@ -580,8 +580,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-acodec") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->audio_data_conf.codec, "") != 0) {
-				fprintf(stdout, "Audio codec has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Audio codec has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			strncpy(cmd_data->audio_data_conf.codec, argv[i], GF_MAX_PATH);
@@ -589,8 +589,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-acustom") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->audio_data_conf.custom, "") != 0) {
-				fprintf(stdout, "Audio custom has already been specified: appending\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Audio custom has already been specified: appending\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			strncpy(cmd_data->audio_data_conf.custom, argv[i], GF_MAX_PATH);
@@ -620,15 +620,15 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			if (strlen(m) == 4) {
 				cmd_data->seg_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 			} else {
-				fprintf(stdout, "Invalid marker box name specified: %s\n", m);
+				fprintf(stderr, "Invalid marker box name specified: %s\n", m);
 				return -1;
 			}
 			i++;
 		} else if (strcmp(argv[i], "-mpd") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (strcmp(cmd_data->mpd_filename, "") != 0) {
-				fprintf(stdout, "MPD file has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "MPD file has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			strncpy(cmd_data->mpd_filename, argv[i], GF_MAX_PATH);
@@ -636,8 +636,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-seg-dur") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->seg_dur != 0) {
-				fprintf(stdout, "Segment duration has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Segment duration has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->seg_dur = atoi(argv[i]);
@@ -645,8 +645,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-frag-dur") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->frag_dur != 0) {
-				fprintf(stdout, "Fragment duration has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Fragment duration has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->frag_dur = atoi(argv[i]);
@@ -654,8 +654,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-ast-offset") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->ast_offset != -1) {
-				fprintf(stdout, "AvailabilityStartTime offset has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "AvailabilityStartTime offset has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->ast_offset = atoi(argv[i]);
@@ -663,8 +663,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-time-shift") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->time_shift != 0) {
-				fprintf(stdout, "TimeShiftBufferDepth has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "TimeShiftBufferDepth has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->time_shift = atoi(argv[i]);
@@ -672,8 +672,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-min-buffer") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->min_buffer_time != -1) {
-				fprintf(stdout, "Min Buffer Time has already been specified.\n");
-				fprintf(stdout, "%s", command_usage);
+				fprintf(stderr, "Min Buffer Time has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
 			cmd_data->min_buffer_time = (float)atof(argv[i]);
@@ -697,14 +697,14 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-logs") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (gf_log_set_tools_levels(argv[i]) != GF_OK) {
-				fprintf(stdout, "Invalid log format %s", argv[i]);
+				fprintf(stderr, "Invalid log format %s", argv[i]);
 				return 1;
 			}
 			i++;
 		} else if (strcmp(argv[i], "-mem-track") == 0) {
 			i++;
 #ifndef GPAC_MEMORY_TRACKING
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -715,8 +715,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			cmd_data->gdr = 1;
 			i++;
 		} else {
-			fprintf(stdout, "%s: %s", command_error, argv[i]);
-			fprintf(stdout, "%s", command_usage);
+			fprintf(stderr, "%s: %s", command_error, argv[i]);
+			fprintf(stderr, "%s", command_usage);
 			return -1;
 		}
 	}
@@ -734,8 +734,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	}
 
 	if (strcmp(cmd_data->video_data_conf.filename, "") == 0 && strcmp(cmd_data->audio_data_conf.filename, "") == 0) {
-		fprintf(stdout, "Audio/Video source must be specified.\n");
-		fprintf(stdout, "%s", command_usage);
+		fprintf(stderr, "Audio/Video source must be specified.\n");
+		fprintf(stderr, "%s", command_usage);
 		return -1;
 	}
 

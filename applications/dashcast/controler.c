@@ -343,7 +343,6 @@ static u32 mpd_thread(void *params)
 u32 delete_seg_thread(void *params)
 {
 	int ret;
-	//int status;
 	ThreadParam *th_param = (ThreadParam*)params;
 	CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
@@ -353,11 +352,12 @@ u32 delete_seg_thread(void *params)
 	while (1) {
 		ret = dc_message_queue_get(mq, (void*) buff);
 		if (ret > 0) {
-			//fprintf(stdout, "Message received: %s\n", buff);
-			unlink(buff);
-			//if (status != 0) {
-			//	fprintf(stdout, "Unable to delete the file %s\n", buff);
-			//}
+			int status;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Message received: %s\n", buff));
+			status = unlink(buff);
+			if (status != 0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unable to delete the file %s\n", buff));
+			}
 		}
 
 		if (cmd_data->exit_signal) {
@@ -380,7 +380,7 @@ Bool fragmenter_thread(void *params)
 	while (1) {
 		ret = dc_message_queue_get(mq, (void*) buff);
 		if (ret > 0) {
-			fprintf(stdout, "Message received: %s\n", buff);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Message received: %s\n", buff));
 		}
 
 		if (cmd_data->exit_signal) {
@@ -472,7 +472,7 @@ Bool dasher_thread(void *params)
 //		/*use a default MPD update of dash_duration sec*/
 //		mpd_update_time = (u32) (
 //				dash_subduration ? dash_subduration : dash_duration);
-//		fprintf(stderr, "Using default MPD refresh of %d seconds\n",
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Using default MPD refresh of %d seconds\n",
 //				mpd_update_time);
 //	}
 //
@@ -509,7 +509,7 @@ Bool dasher_thread(void *params)
 //
 //		if (sleefor) {
 //			if (dash_dynamic != 2) {
-//				fprintf(stderr, "sleep for %d ms\n", sleefor);
+//				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("sleep for %d ms\n", sleefor);
 //				gf_sleep(sleefor);
 //			}
 //		}
@@ -541,7 +541,7 @@ static u32 keyboard_thread(void *params)
 
 		gf_sleep(100);
 	}
-	fprintf(stderr, "Keyboard thread exit\n");
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Keyboard thread exit\n"));
 	return 0;
 }
 
@@ -586,13 +586,11 @@ u32 video_decoder_thread(void *params)
 		fflush(stdout);
 #endif
 		if (ret == -2) {
-#ifdef DEBUG
-			fprintf(stdout, "Video reader has no more frame to read.\n");
-#endif
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video reader has no more frame to read.\n"));
 			break;
 		}
 		if (ret == -1) {
-			fprintf(stderr, "An error occurred while reading video frame.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occurred while reading video frame.\n"));
 			break;
 		}
 
@@ -607,8 +605,7 @@ u32 video_decoder_thread(void *params)
 			time_wait.tv_sec = 0;
 			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
 			time_wait.tv_usec = real_wait;
-			//fprintf(stdout, "delay: %ld = %ld - %ld\n", time_wait.tv_usec,
-			//				total_wait_time, pick_packet_delay);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("delay: %ld = %ld - %ld\n", time_wait.tv_usec, total_wait_time, pick_packet_delay));
 
 			gettimeofday(&time_start, NULL);
 			select(0, NULL, NULL, NULL, &time_wait);
@@ -618,10 +615,8 @@ u32 video_decoder_thread(void *params)
 		}
 	}
 
-#ifdef DEBUG
-	fprintf(stdout, "Video decoder is exiting...\n");
-#endif
-	fprintf(stderr, "video decoder thread exit\n");
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Video decoder is exiting...\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("video decoder thread exit\n"));
 	return 0;
 }
 
@@ -641,14 +636,14 @@ u32 audio_decoder_thread(void *params)
 	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 1;
 	suseconds_t total_wait_time;
 	if (in_data->audio_data_conf.samplerate < 1024) {
-		fprintf(stderr, "Error: invalid audio sample rate: %d\n", in_data->audio_data_conf.samplerate);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error: invalid audio sample rate: %d\n", in_data->audio_data_conf.samplerate));
 		dc_audio_inout_data_end_signal(audio_input_data);
 		//FIXME: deadlock on the mpd thread. Reproduce with big_buck_bunny.mp4.
 		return 1;
 	}
 	total_wait_time = 1000000 / (in_data->audio_data_conf.samplerate / 1024);
-	//fprintf(stdout, "wait time : %ld\n", total_wait_time);
-	//fprintf(stdout, "sample-rate : %ld\n", in_data->audio_data_conf.samplerate);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("wait time : %ld\n", total_wait_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("sample-rate : %ld\n", in_data->audio_data_conf.samplerate));
 
 	if (!gf_list_count(in_data->audio_lst))
 		return 0;
@@ -664,13 +659,11 @@ u32 audio_decoder_thread(void *params)
 		fflush(stdout);
 #endif
 		if (ret == -2) {
-#ifdef DEBUG
-			fprintf(stdout, "Audio decoder has no more frame to read.\n");
-#endif
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio decoder has no more frame to read.\n"));
 			break;
 		}
 		if (ret == -1) {
-			fprintf(stderr, "An error occurred while reading video frame.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occurred while reading video frame.\n"));
 			break;
 		}
 
@@ -694,9 +687,7 @@ u32 audio_decoder_thread(void *params)
 		}
 	}
 
-#ifdef DEBUG
-	fprintf(stdout, "Audio decoder is exiting...\n");
-#endif
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio decoder is exiting...\n"));
 	return 0;
 }
 
@@ -714,19 +705,14 @@ u32 video_scaler_thread(void *params)
 	while (1) {
 		ret = dc_video_scaler_scale(video_input_data, video_scaled_data);
 		if (ret == -2) {
-#ifdef DEBUG
-			fprintf(stdout, "Video scaler has no more frame to read.\n");
-#endif
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video scaler has no more frame to read.\n"));
 			break;
 		}
 	}
 
 	dc_video_scaler_end_signal(video_scaled_data);
 
-#ifdef DEBUG
-	fprintf(stdout, "Video scaler is exiting...\n");
-#endif
-	fprintf(stderr, "video scaler thread exit\n");
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("video scaler thread exit\n"));
 	return 0;
 }
 
@@ -775,13 +761,13 @@ u32 video_encoder_thread(void *params)
 		shift = (u32) video_scaled_data->frame_duration;
 	}
 	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift) < 0) {
-		fprintf(stderr, "Cannot init output video file.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot init output video file.\n"));
 		in_data->exit_signal = 1;
 		return -1;
 	}
 
 	if (dc_video_encoder_open(&out_file, video_data_conf, in_data->use_source_timing) < 0) {
-		fprintf(stderr, "Cannot open output video stream.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video stream.\n"));
 		in_data->exit_signal = 1;
 		return -1;
 	}
@@ -791,7 +777,7 @@ u32 video_encoder_thread(void *params)
 	while (1) {
 		frame_nb = 0;
 		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb) < 0) {
-			fprintf(stderr, "Cannot open output video file.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video file.\n"));
 			in_data->exit_signal = 1;
 			return -1;
 		}
@@ -810,15 +796,12 @@ u32 video_encoder_thread(void *params)
 			}
 
 			if (ret == -2) {
-#ifdef DEBUG
-				fprintf(stdout, "Audio encoder has no more data to encode.\n");
-#endif
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio encoder has no more data to encode.\n"));
 				quit = 1;
 				break;
 			}
 			if (ret == -1) {
-				fprintf(stderr,
-						"An error occured while writing video frame.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occured while writing video frame.\n"));
 				quit = 1;
 				break;
 			}
@@ -837,7 +820,7 @@ u32 video_encoder_thread(void *params)
 					in_data->exit_signal = 1;
 					break;
 				} else if (r == 1) {
-					//fprintf(stdout, "fragment is written!\n");
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("fragment is written!\n"));
 					if (in_data->send_message == 1) {
 						snprintf(name_to_send, sizeof(name_to_send), "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, seg_nb);
 						dc_message_queue_put(send_seg_mq, name_to_send, sizeof(name_to_send));
@@ -868,7 +851,7 @@ u32 video_encoder_thread(void *params)
 				diff = (int) (seg_utc - start_utc);
 				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
 				if (diff > (seg_nb+2) * in_data->seg_dur) {
-					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb));
 
 					while (diff > (seg_nb+2) * in_data->seg_dur) {
 						seg_nb++;
@@ -881,7 +864,7 @@ u32 video_encoder_thread(void *params)
 					//wait for RAP to cut next segment
 					loss_state = 1;
 				}
-				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur));
 				
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
@@ -911,7 +894,7 @@ u32 video_encoder_thread(void *params)
 					/ video_data_conf->framerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
-			//fprintf(stdout, "Duration: %d \n", dur);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Duration: %d \n", dur));
 			dc_message_queue_put(mq, &dur, sizeof(dur));
 		}
 	}
@@ -921,10 +904,7 @@ u32 video_encoder_thread(void *params)
 
 	dc_video_muxer_free(&out_file);
 
-#ifdef DEBUG
-	fprintf(stdout, "Video encoder is exiting...\n");
-#endif
-	fprintf(stderr, "video encoder thread exit\n");
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("video encoder thread exit\n"));
 	return 0;
 }
 
@@ -964,7 +944,7 @@ u32 audio_encoder_thread(void *params)
 	//	seg_frame_max = -1;
 
 	if (dc_audio_encoder_open(&audio_output_file, audio_data_conf) < 0) {
-		fprintf(stderr, "Cannot open output audio stream.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output audio stream.\n"));
 		in_data->exit_signal = 1;
 		return -1;
 	}
@@ -974,7 +954,7 @@ u32 audio_encoder_thread(void *params)
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
 
 	if (dc_audio_muxer_init(&audio_output_file, audio_data_conf, muxer_type, frame_per_seg, frame_per_frag, in_data->seg_marker) < 0) {
-		fprintf(stderr, "Cannot init output audio.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot init output audio.\n"));
 		in_data->exit_signal = 1;
 		return -1;
 	}
@@ -985,7 +965,7 @@ u32 audio_encoder_thread(void *params)
 		frame_nb = 0;
 		quit = 0;
 		if (dc_audio_muxer_open(&audio_output_file, in_data->out_dir, audio_data_conf->filename, seg_nb) < 0) {
-			fprintf(stderr, "Cannot open output audio.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output audio.\n"));
 			in_data->exit_signal = 1;
 			return -1;
 		}
@@ -1007,9 +987,7 @@ u32 audio_encoder_thread(void *params)
 
 			ret = dc_audio_encoder_read(&audio_output_file, audio_input_data);
 			if (ret == -2) {
-#ifdef DEBUG
-				fprintf(stdout, "Audio encoder has no more data to encode.\n");
-#endif
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio encoder has no more data to encode.\n"));
 				//if (dc_audio_encoder_flush(&audio_output_file, audio_input_data) == 0) {
 				//	dc_audio_muxer_write(&audio_output_file);
 				//	frame_nb++;//= audio_output_file.codec_ctx->frame_size; //audio_output_file.acc_samples;
@@ -1025,14 +1003,14 @@ u32 audio_encoder_thread(void *params)
 				}
 
 				if (ret == -1) {
-					fprintf(stderr, "An error occured while encoding audio frame.\n");
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occured while encoding audio frame.\n"));
 					quit = 1;
 					break;
 				}
 
 				ret = dc_audio_muxer_write(&audio_output_file, frame_nb);
 				if (ret == -1) {
-					fprintf(stderr, "An error occured while writing audio frame.\n");
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occured while writing audio frame.\n"));
 					quit = 1;
 					break;
 				}
@@ -1066,12 +1044,12 @@ u32 audio_encoder_thread(void *params)
 				diff = (int) (seg_utc - start_utc);
 				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
 				if (diff > (seg_nb+2) * in_data->seg_dur) {
-					fprintf(stderr, "UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb);
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb));
 					while (diff > (seg_nb+2) * in_data->seg_dur) {
 						seg_nb++;
 					}
 				}
-				fprintf(stderr, "UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur));
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);
@@ -1099,7 +1077,7 @@ u32 audio_encoder_thread(void *params)
 			int dur_tot = (audio_output_file.codec_ctx->frame_number * audio_output_file.frame_size * 1000) / audio_data_conf->samplerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
-			//fprintf(stdout, "Duration: %d \n", dur);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Duration: %d \n", dur));
 			dc_message_queue_put(mq, &dur, sizeof(dur));
 		}
 	}
@@ -1109,9 +1087,7 @@ u32 audio_encoder_thread(void *params)
 	/* Close output audio file */
 	dc_audio_encoder_close(&audio_output_file);
 
-#ifdef DEBUG
-	fprintf(stdout, "Audio encoder is exiting...\n");
-#endif
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio encoder is exiting...\n"));
 	return 0;
 }
 
@@ -1170,14 +1146,14 @@ int dc_run_controler(CmdData *in_data)
 
 		/* Open input video */
 		if (dc_video_decoder_open(video_input_file[0], &in_data->video_data_conf, in_data->mode, in_data->no_loop) < 0) {
-			fprintf(stderr, "Cannot open input video.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input video.\n"));
 			ret = -1;
 			goto exit;
 		}
 
 		if (dc_video_input_data_init(&video_input_data, /*video_input_file[0]->width, video_input_file[0]->height,
 		  video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER) < 0) {
-			fprintf(stderr, "Cannot initialize audio data.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize audio data.\n"));
 			ret = -1;
 			goto exit;
 		}
@@ -1186,7 +1162,7 @@ int dc_run_controler(CmdData *in_data)
 		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
 			VideoDataConf *video_data_conf = gf_list_get(in_data->vsrc, i);
 			if (dc_video_decoder_open(video_input_file[i + 1], video_data_conf, LIVE_MEDIA, 1) < 0) {
-				fprintf(stderr, "Cannot open input video.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input video.\n"));
 				ret = -1;
 				goto exit;
 			}
@@ -1227,13 +1203,13 @@ int dc_run_controler(CmdData *in_data)
 	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
 		/* Open input audio */
 		if (dc_audio_decoder_open(&audio_input_file, &in_data->audio_data_conf, in_data->mode, in_data->no_loop) < 0) {
-			fprintf(stderr, "Cannot open input audio.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input audio.\n"));
 			ret = -1;
 			goto exit;
 		}
 
 		if (dc_audio_input_data_init(&audio_input_data, in_data->audio_data_conf.channels, in_data->audio_data_conf.samplerate, gf_list_count(in_data->audio_lst), in_data->mode) < 0) {
-			fprintf(stderr, "Cannot initialize audio data.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize audio data.\n"));
 			ret = -1;
 			goto exit;
 		}
@@ -1254,7 +1230,7 @@ int dc_run_controler(CmdData *in_data)
 	/* Create keyboard controller thread */
 	keyboard_th_params.in_data = in_data;
 	if (gf_th_run(keyboard_th_params.thread, keyboard_thread, (void *)&keyboard_th_params) != GF_OK) {
-		fprintf(stderr, "Error while doing pthread_create for keyboard_thread.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for keyboard_thread.\n"));
 	}
 
 	/********************************************/
@@ -1284,7 +1260,7 @@ int dc_run_controler(CmdData *in_data)
 	mpd_th_params.in_data = in_data;
 	mpd_th_params.mq = &mq;
 	if (gf_th_run(mpd_th_params.thread, mpd_thread, (void *)&mpd_th_params) != GF_OK) {
-		fprintf(stderr, "Error while doing pthread_create for mpd_thread.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for mpd_thread.\n"));
 	}
 
 	/****************************/
@@ -1303,7 +1279,7 @@ int dc_run_controler(CmdData *in_data)
 			vencoder_th_params[i].send_seg_mq = &send_frag_mq;
 
 			if (gf_th_run(vencoder_th_params[i].thread, video_encoder_thread, (void*)&vencoder_th_params[i]) != GF_OK) {
-				fprintf(stderr, "Error while doing pthread_create for video_encoder_thread.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for video_encoder_thread.\n"));
 			}
 		}
 
@@ -1314,7 +1290,7 @@ int dc_run_controler(CmdData *in_data)
 			vscaler_th_params[i].video_input_data = &video_input_data;
 
 			if (gf_th_run(vscaler_th_params[i].thread, video_scaler_thread, (void*)&vscaler_th_params[i]) != GF_OK) {
-				fprintf(stderr, "Error while doing pthread_create for video_scaler_thread.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for video_scaler_thread.\n"));
 			}
 		}
 	}
@@ -1331,7 +1307,7 @@ int dc_run_controler(CmdData *in_data)
 			aencoder_th_params[i].send_seg_mq = &send_frag_mq;
 
 			if (gf_th_run(aencoder_th_params[i].thread, audio_encoder_thread, (void *) &aencoder_th_params[i]) != GF_OK) {
-				fprintf(stderr, "Error while doing pthread_create for audio_encoder_thread.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for audio_encoder_thread.\n"));
 			}
 		}
 	}
@@ -1342,7 +1318,7 @@ int dc_run_controler(CmdData *in_data)
 		vdecoder_th_params.video_input_data = &video_input_data;
 		vdecoder_th_params.video_input_file = video_input_file;
 		if (gf_th_run(vdecoder_th_params.thread, video_decoder_thread, (void *) &vdecoder_th_params) != GF_OK) {
-			fprintf(stderr, "Error while doing pthread_create for video_decoder_thread.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for video_decoder_thread.\n"));
 		}
 	}
 
@@ -1352,7 +1328,7 @@ int dc_run_controler(CmdData *in_data)
 		adecoder_th_params.audio_input_data = &audio_input_data;
 		adecoder_th_params.audio_input_file = &audio_input_file;
 		if (gf_th_run(adecoder_th_params.thread, audio_decoder_thread, (void *) &adecoder_th_params) != GF_OK) {
-			fprintf(stderr, "Error while doing pthread_create for audio_decoder_thread.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for audio_decoder_thread.\n"));
 		}
 	}
 
@@ -1362,7 +1338,7 @@ int dc_run_controler(CmdData *in_data)
 		delete_seg_th_params.in_data = in_data;
 		delete_seg_th_params.mq = &delete_seg_mq;
 		if (gf_th_run(delete_seg_th_params.thread, delete_seg_thread, (void *) &delete_seg_th_params) != GF_OK) {
-			fprintf(stderr, "Error while doing pthread_create for delete_seg_thread.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for delete_seg_thread.\n"));
 		}
 	}
 
@@ -1372,7 +1348,7 @@ int dc_run_controler(CmdData *in_data)
 		send_frag_th_params.in_data = in_data;
 		send_frag_th_params.mq = &send_frag_mq;
 		if (gf_th_run(send_frag_th_params.thread, send_frag_event, (void *) &send_frag_th_params) != GF_OK) {
-			fprintf(stderr, "Error while doing pthread_create for send_frag_event_thread.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for send_frag_event_thread.\n"));
 		}
 	}
 
@@ -1383,7 +1359,7 @@ int dc_run_controler(CmdData *in_data)
 		fragmenter_th_params.in_data = in_data;
 		fragmenter_th_params.mq = &mq;
 		if (gf_th_run(fragmenter_th_params.thread, fragmenter_thread, (void *) &fragmenter_th_params) != GF_OK) {
-			fprintf(stderr, "Error while doing pthread_create for fragmenter_thread.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for fragmenter_thread.\n"));
 		}
 	}
 #endif
@@ -1394,7 +1370,7 @@ int dc_run_controler(CmdData *in_data)
 		dasher_th_params.thread = gf_th_new("dasher_thread");
 		dasher_th_params.in_data = in_data;
 		if (gf_th_run(dasher_th_params.thread, dasher_thread, (void *) &dasher_th_params) != GF_OK) {
-			fprintf(stderr, "Error while doing pthread_create for dasher_thread.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for dasher_thread.\n"));
 		}
 	}
 #endif

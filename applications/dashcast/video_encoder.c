@@ -56,7 +56,7 @@ void build_dict(void *priv_data, const char *options) {
 	char *tokval = NULL;
 	while (tok && (tokval=strtok(NULL, " "))) {
 		if (av_opt_set(priv_data, tok, tokval, 0) < 0)
-			fprintf(stderr, "Unknown custom option \"%s\" with value \"%s\" in %s\n", tok, tokval, options);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Unknown custom option \"%s\" with value \"%s\" in %s\n", tok, tokval, options));
 		tok = strtok(NULL, "=");
 	}
 	free(opt);
@@ -70,7 +70,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 //	video_output_file->codec = avcodec_find_encoder_by_name("libx264"/*video_data_conf->codec*/);
 	video_output_file->codec = avcodec_find_encoder(CODEC_ID_H264);
 	if (video_output_file->codec == NULL) {
-		fprintf(stderr, "Output video codec %d not found\n", CODEC_ID_H264);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output video codec %d not found\n", CODEC_ID_H264));
 		return -1;
 	}
 
@@ -79,7 +79,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	//Create new video stream
 //	video_stream = avformat_new_stream(video_output_file->av_fmt_ctx, video_codec);
 //	if (!video_stream) {
-//		fprintf(stderr, "Cannot create output video stream\n");
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create output video stream\n"));
 //		return -1;
 //	}
 
@@ -143,7 +143,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		gf_free(video_data_conf->custom);
 		video_data_conf->custom = NULL;
 	} else {
-		fprintf(stdout, "Video Encoder: applying default options (preset=ultrafast tune=zerolatency)\n");
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video Encoder: applying default options (preset=ultrafast tune=zerolatency)\n"));
 		av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
 		av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
 	}
@@ -164,13 +164,13 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	
 	/* open the video codec - options are passed thru video_output_file->codec_ctx->priv_data */
 	if (avcodec_open2(video_output_file->codec_ctx, video_output_file->codec, NULL) < 0) {
-		fprintf(stderr, "Cannot open output video codec\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
 		return -1;
 	}
 
 //	/* open the video codec */
 //	if (avcodec_open2(video_stream->codec, video_codec, NULL) < 0) {
-//		fprintf(stderr, "Cannot open output video codec\n");
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
 //		return -1;
 //	}
 
@@ -191,9 +191,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 	//FIXME: deadlock when pressing 'q' with BigBuckBunny_640x360.m4v
 	ret = dc_consumer_lock(&video_output_file->consumer, &video_scaled_data->circular_buf);
 	if (ret < 0) {
-#ifdef DEBUG
-		fprintf(stderr, "Video encoder got an end of buffer!\n");
-#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video encoder got an end of buffer!\n"));
 		return -2;
 	}
 
@@ -234,7 +232,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 	dc_consumer_advance(&video_output_file->consumer);
 
 	if (video_output_file->encoded_frame_size < 0) {
-		fprintf(stderr, "Error occured while encoding video frame.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error occured while encoding video frame.\n"));
 		return -1;
 	}
 
@@ -263,7 +261,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 //		// write the compressed frame in the media file
 //		if (av_interleaved_write_frame(video_output_file->av_fmt_ctx, &pkt)
 //				!= 0) {
-//			fprintf(stderr, "Writing frame is not successful\n");
+//			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Writing frame is not successful\n"));
 //			return -1;
 //		}
 //

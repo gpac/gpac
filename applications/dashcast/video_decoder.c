@@ -48,7 +48,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 		snprintf(vres, sizeof(vres), "%dx%d", video_data_conf->width, video_data_conf->height);
 		ret = av_dict_set(&options, "video_size", vres, 0);
 		if (ret < 0) {
-			fprintf(stderr, "Could not set video size %s.\n", vres);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not set video size %s.\n", vres));
 			return -1;
 		}
 	}
@@ -58,7 +58,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 		snprintf(vfr, sizeof(vfr), "%d", video_data_conf->framerate);
 		ret = av_dict_set(&options, "framerate", vfr, 0);
 		if (ret < 0) {
-			fprintf(stderr, "Could not set video framerate %s.\n", vfr);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not set video framerate %s.\n", vfr));
 			return -1;
 		}
 	}
@@ -66,7 +66,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	if (strlen(video_data_conf->pixel_format)) {
 		ret = av_dict_set(&options, "pixel_format", video_data_conf->pixel_format, 0);
 		if (ret < 0) {
-			fprintf(stderr, "Could not set pixel format %s.\n", video_data_conf->pixel_format);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not set pixel format %s.\n", video_data_conf->pixel_format));
 			return -1;
 		}
 	}
@@ -75,7 +75,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	if (strcmp(video_data_conf->v4l2f, "") != 0) {
 		ret = av_dict_set(&options, "input_format", video_data_conf->v4l2f, 0);
 		if (ret < 0) {
-			fprintf(stderr, "Could not set input format %s.\n", video_data_conf->v4l2f);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not set input format %s.\n", video_data_conf->v4l2f));
 			return -1;
 		}
 	}
@@ -84,7 +84,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	if (video_data_conf->format && strcmp(video_data_conf->format, "") != 0) {
 		in_fmt = av_find_input_format(video_data_conf->format);
 		if (in_fmt == NULL) {
-			fprintf(stderr, "Cannot find the format %s.\n", video_data_conf->format);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find the format %s.\n", video_data_conf->format));
 			return -1;
 		}
 	}
@@ -94,25 +94,25 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	/* Open video */
 	open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	if ( (open_res < 0) && !stricmp(video_data_conf->filename, "screen-capture-recorder") ) {
-		fprintf(stderr, "Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", open_res);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", open_res));
 		av_dict_set(&options, "video_size", NULL, 0);
 		open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	}
 
 	if ( (open_res < 0) && options) {
-		fprintf(stderr, "Error %d opening input - retrying without options\n", open_res);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error %d opening input - retrying without options\n", open_res));
 		av_dict_free(&options);
 		open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, NULL);
 	}
 
 	if (open_res < 0) {
-		fprintf(stderr, "Cannot open file %s\n", video_data_conf->filename);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open file %s\n", video_data_conf->filename));
 		return -1;
 	}
 
 	/* Retrieve stream information */
 	if (avformat_find_stream_info(video_input_file->av_fmt_ctx, NULL) < 0) {
-		fprintf(stderr, "Cannot find stream information\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find stream information\n"));
 		return -1;
 	}
 
@@ -127,21 +127,17 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 		}
 	}
 	if (video_input_file->vstream_idx == -1) {
-		fprintf(stderr, "Cannot find a video stream\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find a video stream\n"));
 		return -1;
 	}
 
 	/* Get a pointer to the codec context for the video stream */
 	codec_ctx = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->codec;
 
-	//int64_t dur = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->duration;
-	//int time_base = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->time_base.den;
-	//fprintf(stdout, "DURATION: %d \n", dur/time_base);
-
 	/* Find the decoder for the video stream */
 	codec = avcodec_find_decoder(codec_ctx->codec_id);
 	if (codec == NULL) {
-		fprintf(stderr, "Codec is not supported.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Codec is not supported.\n"));
 		if (!video_input_file->av_fmt_ctx_ref_cnt)
 			avformat_close_input(&video_input_file->av_fmt_ctx);
 		return -1;
@@ -149,7 +145,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 
 	/* Open codec */
 	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
-		fprintf(stderr, "Cannot open codec.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open codec.\n"));
 		if (!video_input_file->av_fmt_ctx_ref_cnt)
 			avformat_close_input(&video_input_file->av_fmt_ctx);
 		return -1;
@@ -164,7 +160,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 		const int den = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.den == 0 ? 1 : video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.den;
 		video_data_conf->framerate = num / den;
 		if (video_data_conf->framerate / 1000 != 0) {
-			fprintf(stderr, "Framerate %d was divided by 1000: %d\n", video_data_conf->framerate, video_data_conf->framerate/1000);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Framerate %d was divided by 1000: %d\n", video_data_conf->framerate, video_data_conf->framerate/1000));
 			video_data_conf->framerate = video_data_conf->framerate / 1000;
 		}
 
@@ -177,7 +173,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	}
 
 	if (video_data_conf->framerate <= 1 || video_data_conf->framerate > 1000) {
-		fprintf(stderr, "Invalid input framerate.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Invalid input framerate.\n"));
 		return -1;
 	}
 
@@ -259,7 +255,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 		}
 		else if (ret < 0)
 		{
-			fprintf(stderr, "Cannot read video frame.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot read video frame.\n"));
 			continue;
 		}
 
@@ -267,7 +263,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 		if (packet.stream_index == video_input_file->vstream_idx) {
 			if (!already_locked) {
 				if (dc_producer_lock(&video_input_data->producer, &video_input_data->circular_buf) < 0) {
-					fprintf(stderr, "[dashcast] Live system dropped a video frame\n");
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[dashcast] Live system dropped a video frame\n"));
 					continue;
 				}
 
@@ -285,7 +281,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			/* Decode video frame */
 			if (avcodec_decode_video2(codec_ctx, video_data_node->vframe, &got_frame, &packet) < 0) {
 				av_free_packet(&packet);
-				fprintf(stderr, "Error while decoding video.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while decoding video.\n"));
 				dc_producer_end_signal(&video_input_data->producer, &video_input_data->circular_buf);
 				dc_producer_unlock(&video_input_data->producer, &video_input_data->circular_buf);
 				return -1;
@@ -350,7 +346,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 		av_free_packet(&packet);
 	}
 
-	fprintf(stderr, "Unknown error while reading video frame.\n");
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Unknown error while reading video frame.\n"));
 	return -1;
 }
 

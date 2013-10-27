@@ -35,7 +35,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	if (audio_data_conf->format && strcmp(audio_data_conf->format,"") != 0) {
 		in_fmt = av_find_input_format(audio_data_conf->format);
 		if (in_fmt == NULL) {
-			fprintf(stderr, "Cannot find the format %s.\n", audio_data_conf->format);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find the format %s.\n", audio_data_conf->format));
 			return -1;
 		}
 	}
@@ -45,7 +45,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	 */
 	if (!audio_input_file->av_fmt_ctx) {
 		if (avformat_open_input(&audio_input_file->av_fmt_ctx, audio_data_conf->filename, in_fmt, NULL) != 0) {
-			fprintf(stderr, "Cannot open file: %s\n", audio_data_conf->filename);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open file: %s\n", audio_data_conf->filename));
 			return -1;
 		}
 
@@ -53,7 +53,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 		* Retrieve stream information
 		*/
 		if (avformat_find_stream_info(audio_input_file->av_fmt_ctx, NULL) < 0) {
-			fprintf(stderr, "Cannot find stream information\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find stream information\n"));
 			return -1;
 		}
 
@@ -71,7 +71,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 		}
 	}
 	if (audio_input_file->astream_idx == -1) {
-		fprintf(stderr, "Cannot find a audio stream\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find a audio stream\n"));
 		return -1;
 	}
 
@@ -85,7 +85,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	 */
 	codec = avcodec_find_decoder(codec_ctx->codec_id);
 	if (codec == NULL) {
-		fprintf(stderr, "Input audio codec is not supported.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Input audio codec is not supported.\n"));
 		avformat_close_input(&audio_input_file->av_fmt_ctx);
 		return -1;
 	}
@@ -94,7 +94,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	 * Open codec
 	 */
 	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
-		fprintf(stderr, "Cannot open input audio codec.\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input audio codec.\n"));
 		avformat_close_input(&audio_input_file->av_fmt_ctx);
 		return -1;
 	}
@@ -177,7 +177,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 		}
 		else if (ret < 0)
 		{
-			fprintf(stderr, "Cannot read audio frame.\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot read audio frame.\n"));
 			continue;
 		}
 
@@ -189,7 +189,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 			/* Decode audio frame */
 			if (avcodec_decode_audio4(codec_ctx, audio_input_data->aframe, &got_frame, &packet) < 0) {
 				av_free_packet(&packet);
-				fprintf(stderr, "Error while decoding audio.\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while decoding audio.\n"));
 				dc_producer_end_signal(&audio_input_data->producer, &audio_input_data->circular_buf);
 				dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 				return -1;
@@ -221,7 +221,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					while (av_fifo_size(audio_input_file->fifo) >= LIVE_FRAME_SIZE) {
 						/* Lock the current node in the circular buffer. */
 						if (dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf) < 0) {
-							fprintf(stderr, "[dashcast] Live system dropped an audio frame\n");
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[dashcast] Live system dropped an audio frame\n"));
 							continue;
 						}
 
@@ -248,7 +248,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 		av_free_packet(&packet);
 	}
 
-	fprintf(stderr, "Unknown error while reading audio frame.\n");
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Unknown error while reading audio frame.\n"));
 	return -1;
 }
 
