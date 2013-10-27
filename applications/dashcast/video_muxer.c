@@ -441,13 +441,11 @@ int dc_ffmpeg_video_muxer_write(VideoOutputFile *video_output_file)
 	pkt.size = 0;
 
 	if (video_codec_ctx->coded_frame->pts != AV_NOPTS_VALUE) {
-		pkt.pts = av_rescale_q(video_codec_ctx->coded_frame->pts,
-				video_codec_ctx->time_base, video_stream->time_base);
+		pkt.pts = av_rescale_q(video_codec_ctx->coded_frame->pts, video_codec_ctx->time_base, video_stream->time_base);
 	}
 
 	if (video_codec_ctx->coded_frame->key_frame)
 		pkt.flags |= AV_PKT_FLAG_KEY;
-
 
 	pkt.stream_index = video_stream->index;
 	pkt.data = video_output_file->vbuf;
@@ -587,9 +585,9 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
 			//keep track of previous frame dur and use last dur as the default duration for next sample
 			//this works fine because we perform frame rate regulation at the capture stage
 			frame_dur = video_output_file->codec_ctx->coded_frame->pts - video_output_file->last_pts;
-			if (frame_dur && (video_output_file->frame_dur> (u32) frame_dur)) {
+			if (frame_dur && (video_output_file->frame_dur>(u32) frame_dur)) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("New frame dur detected: %d vs %d old\n", (u32) frame_dur, (u32) video_output_file->frame_dur));
-				video_output_file->frame_dur = (u32) frame_dur;
+				video_output_file->frame_dur = (u32)frame_dur;
 			}
 
 			if (dc_gpac_video_isom_write(video_output_file) < 0) {

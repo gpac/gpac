@@ -704,7 +704,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-mem-track") == 0) {
 			i++;
 #ifndef GPAC_MEMORY_TRACKING
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"));
 #endif
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
 			DASHCAST_CHECK_NEXT_ARG

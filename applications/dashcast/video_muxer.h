@@ -93,7 +93,7 @@ typedef struct {
 	u64 last_pts, last_dts;
 	u64 frame_dur;
 	u32 timescale;
-	int fragment_started, segment_started;
+	Bool fragment_started, segment_started;
 } VideoOutputFile;
 
 int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur);

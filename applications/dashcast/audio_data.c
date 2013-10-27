@@ -79,10 +79,12 @@ int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int
 void dc_audio_input_data_destroy(AudioInputData *audio_input_data)
 {
 	int i;
-	for (i = 0; i < AUDIO_CB_SIZE; i++) {
-		AudioDataNode *audio_data_node = audio_input_data->circular_buf.list[i].data;
-		gf_free(audio_data_node->abuf);
-		gf_free(audio_data_node);
+	if (audio_input_data->circular_buf.list) {
+		for (i = 0; i < AUDIO_CB_SIZE; i++) {
+			AudioDataNode *audio_data_node = audio_input_data->circular_buf.list[i].data;
+			gf_free(audio_data_node->abuf);
+			gf_free(audio_data_node);
+		}
 	}
 
 	dc_circular_buffer_destroy(&audio_input_data->circular_buf);
