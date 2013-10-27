@@ -134,17 +134,11 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filename)
 {
 	GF_Err ret;
-	ret = gf_isom_start_segment(audio_output_file->isof, filename, 1);
+	ret = gf_isom_start_segment(audio_output_file->isof, filename, GF_TRUE);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-
-//	ret = gf_isom_start_fragment(audio_output_file->isof, 1);
-//	if (ret != GF_OK) {
-//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_fragment\n", gf_error_to_string(ret)));
-//		return -1;
-//	}
 
 	audio_output_file->dts = 0;
 
@@ -290,8 +284,7 @@ int dc_ffmpeg_audio_muxer_write(AudioOutputFile *audio_output_file)
 		audio_output_file->packet.duration = (int)av_rescale_q(audio_output_file->packet.duration, audio_codec_ctx->time_base, audio_stream->time_base);
 	/*
 	 * if (pkt.pts != AV_NOPTS_VALUE)
-	 * pkt.pts = av_rescale_q(pkt.pts, audioEncCtx->time_base,
-	 * audioStream->time_base);
+	 * pkt.pts = av_rescale_q(pkt.pts, audioEncCtx->time_base, audioStream->time_base);
 	 */
 
 	audio_output_file->packet.flags |= AV_PKT_FLAG_KEY;
