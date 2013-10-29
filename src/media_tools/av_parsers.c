@@ -3428,12 +3428,10 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	sps->log2_max_pic_order_cnt_lsb = 4 + bs_get_ue(bs);
 
 	sps_sub_layer_ordering_info_present_flag = gf_bs_read_int(bs, 1);
-	if (sps_sub_layer_ordering_info_present_flag ) {
-		for(i=0; i<=max_sub_layers_minus1; i++) {
-			/*max_dec_pic_buffering = */ bs_get_ue(bs);
-			/*num_reorder_pics = */ bs_get_ue(bs);
-			/*max_latency_increase = */ bs_get_ue(bs);
-		}
+	for(i=sps_sub_layer_ordering_info_present_flag ? 0 : max_sub_layers_minus1; i<=max_sub_layers_minus1; i++) {
+		/*max_dec_pic_buffering = */ bs_get_ue(bs);
+		/*num_reorder_pics = */ bs_get_ue(bs);
+		/*max_latency_increase = */ bs_get_ue(bs);
 	}
 
 	log2_min_luma_coding_block_size = 3 + bs_get_ue(bs);
