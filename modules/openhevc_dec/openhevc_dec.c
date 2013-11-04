@@ -217,7 +217,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_DIRECT_OUTPUT:
-		capability->cap.valueBool = 0;
+		capability->cap.valueBool = 1;
 		break;
 	/*not known at our level...*/
 	case GF_CODEC_CU_DURATION:
@@ -305,25 +305,11 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 {
 	GF_Err e;
 	int got_pic;
-    OpenHevc_Frame_cpy openHevcFrame;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
-	u8 *pY, *pU, *pV;
-	u32 nb_pics=0;
-
 
 	if (!inBuffer) {
-		pY = outBuffer;
-		pU = outBuffer + ctx->stride * ctx->height;
-		pV = outBuffer + 5*ctx->stride * ctx->height/4;
-	    openHevcFrame.pvY = (void*) pY;
-	    openHevcFrame.pvU = (void*) pU;
-	    openHevcFrame.pvV = (void*) pV;
-	    *outBufferLength = 0;
-
 		if ( libOpenHevcDecode(ctx->openHevcHandle, NULL, 0, 0) ) {
-			if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame)) {
-				*outBufferLength = ctx->out_size;
-			}
+			return HEVC_flush_picture(ctx, outBuffer, outBufferLength);
 		}
  		return GF_OK;
 	}
@@ -340,20 +326,14 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_BUFFER_TOO_SMALL;
 	}
 
-	nb_pics = 0;
+	*outBufferLength = 0;
+
 	got_pic = libOpenHevcDecode(ctx->openHevcHandle, inBuffer, inBufferLength, 0);
 	if (got_pic>0) {
-		nb_pics ++;
 		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength);
 		if (e) return e;
 		got_pic = 0;
 	}
-
-	if (!nb_pics && (got_pic==0)) {
-		*outBufferLength = 0;
-		return GF_OK;
-	}
-    
 	return GF_OK;
 }
 
@@ -367,12 +347,12 @@ static GF_Err HEVC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ESID, u8 **pY_or_R
 	ctx->has_pic = GF_FALSE;
 
 	res = libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHevcFrame);
-	if (!openHevcFrame.pvY || !openHevcFrame.pvU || !openHevcFrame.pvV)
+	if ((res<=0) || !openHevcFrame.pvY || !openHevcFrame.pvU || !openHevcFrame.pvV)
 		return GF_SERVICE_ERROR;
 
-	*pY_or_RGB = * (u8 **) openHevcFrame.pvY;
-	*pU = * (u8 **) openHevcFrame.pvU;
-	*pV = * (u8 **) openHevcFrame.pvV;
+	*pY_or_RGB = (u8 *) openHevcFrame.pvY;
+	*pU = (u8 *) openHevcFrame.pvU;
+	*pV = (u8 *) openHevcFrame.pvV;
 	return GF_OK;
 }
 
