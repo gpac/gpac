@@ -1730,7 +1730,7 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "profile_space=\"%d\" ", p->config->profile_space);
 	fprintf(trace, "tier_flag=\"%d\" ", p->config->tier_flag);
 	fprintf(trace, "profile_idc=\"%d\" ", p->config->profile_idc);
-	fprintf(trace, "profile_compatibility_indications=\"%d\" ", p->config->profile_compatibility_indications);
+	fprintf(trace, "general_profile_compatibility_flags=\"%d\" ", p->config->general_profile_compatibility_flags);
 	fprintf(trace, "progressive_source_flag=\"%d\" ", p->config->progressive_source_flag);
 	fprintf(trace, "interlaced_source_flag=\"%d\" ", p->config->interlaced_source_flag);
 	fprintf(trace, "non_packed_constraint_flag=\"%d\" ", p->config->non_packed_constraint_flag);

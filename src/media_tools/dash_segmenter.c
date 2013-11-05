@@ -329,12 +329,26 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		if (hvcc) {
 			u8 c;
 			char szTemp[40];
-			sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
-			if (hvcc->profile_space==1) strcat(szCodec, ".A");
-			else if (hvcc->profile_space==2) strcat(szCodec, ".B");
-			else if (hvcc->profile_space==3) strcat(szCodec, ".C");
-			sprintf(szTemp, ".%x", hvcc->profile_idc);
+			sprintf(szCodec, "%s.", gf_4cc_to_str(subtype));
+			if (hvcc->profile_space==1) strcat(szCodec, "A");
+			else if (hvcc->profile_space==2) strcat(szCodec, "B");
+			else if (hvcc->profile_space==3) strcat(szCodec, "C");
+			//profile idc encoded as a decimal number
+			sprintf(szTemp, "%d", hvcc->profile_idc);
 			strcat(szCodec, szTemp);
+			//general profile compatibility flags: hexa, bit-reversed 
+			{
+				u32 val = hvcc->general_profile_compatibility_flags;
+				u32 i, res = 0;
+				for (i=0; i<32; i++) {
+					res |= val & 1;
+					res <<= 1;
+					val >>=1;
+				}
+				sprintf(szTemp, ".%x", res);
+				strcat(szCodec, szTemp);
+			}
+
 			if (hvcc->tier_flag) strcat(szCodec, ".H");
 			else strcat(szCodec, ".L");
 			sprintf(szTemp, "%d", hvcc->level_idc);
