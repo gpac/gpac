@@ -833,7 +833,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	gf_bs_write_int(bs, cfg->profile_space, 2);
 	gf_bs_write_int(bs, cfg->tier_flag, 1);
 	gf_bs_write_int(bs, cfg->profile_idc, 5);
-	gf_bs_write_int(bs, cfg->profile_compatibility_indications, 32);
+	gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
 
 	gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
 	gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
@@ -905,7 +905,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs)
 	cfg->profile_space = gf_bs_read_int(bs, 2);
 	cfg->tier_flag = gf_bs_read_int(bs, 1);
 	cfg->profile_idc = gf_bs_read_int(bs, 5);
-	cfg->profile_compatibility_indications = gf_bs_read_int(bs, 32);
+	cfg->general_profile_compatibility_flags = gf_bs_read_int(bs, 32);
 
 	cfg->progressive_source_flag = gf_bs_read_int(bs, 1);
 	cfg->interlaced_source_flag = gf_bs_read_int(bs, 1);

@@ -1564,7 +1564,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					} else {
 						u32 k;
 						fprintf(stderr, "\tHEVC Info: Profile IDC %d - Level IDC %d - Chroma Format %d\n", hevccfg->profile_idc, hevccfg->level_idc, hevccfg->chromaFormat);
-						fprintf(stderr, "\tNAL Unit length bits: %d - profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->profile_compatibility_indications);
+						fprintf(stderr, "\tNAL Unit length bits: %d - general profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->general_profile_compatibility_flags);
 						fprintf(stderr, "\tParameter Sets: ");
 						for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
 							GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);

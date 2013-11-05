@@ -899,7 +899,7 @@ typedef struct
 	u8 profile_space;
 	u8 tier_flag;
 	u8 profile_idc;
-	u32 profile_compatibility_indications;
+	u32 general_profile_compatibility_flags;
 	u8 progressive_source_flag;
 	u8 interlaced_source_flag;
 	u8 non_packed_constraint_flag;

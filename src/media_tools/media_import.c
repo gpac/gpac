@@ -5221,7 +5221,7 @@ restart_import:
 				hevccfg->profile_space = hevc.sps[idx].ptl.profile_space;
 				hevccfg->tier_flag = hevc.sps[idx].ptl.tier_flag;
 				hevccfg->profile_idc = hevc.sps[idx].ptl.profile_idc;
-				hevccfg->profile_compatibility_indications = hevc.sps[idx].ptl.profile_compatibility_flag;
+				hevccfg->general_profile_compatibility_flags = hevc.sps[idx].ptl.profile_compatibility_flag;
 				hevccfg->progressive_source_flag = hevc.sps[idx].ptl.general_progressive_source_flag;
 				hevccfg->interlaced_source_flag = hevc.sps[idx].ptl.general_interlaced_source_flag;
 				hevccfg->non_packed_constraint_flag = hevc.sps[idx].ptl.general_non_packed_constraint_flag;
@@ -7219,7 +7219,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							tsimp->hevccfg->profile_idc = tsimp->hevc.sps[idx].ptl.profile_idc;
 							tsimp->hevccfg->constraint_indicator_flags = 0;
 							tsimp->hevccfg->level_idc = tsimp->hevc.sps[idx].ptl.level_idc;
-							tsimp->hevccfg->profile_compatibility_indications = tsimp->hevc.sps[idx].ptl.profile_compatibility_flag;
+							tsimp->hevccfg->general_profile_compatibility_flags = tsimp->hevc.sps[idx].ptl.profile_compatibility_flag;
 							tsimp->hevccfg->chromaFormat = tsimp->hevc.sps[idx].chroma_format_idc;
 							tsimp->hevccfg->luma_bit_depth = tsimp->hevc.sps[idx].bit_depth_luma;
 							tsimp->hevccfg->chroma_bit_depth = tsimp->hevc.sps[idx].bit_depth_chroma;
