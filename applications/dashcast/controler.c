@@ -289,7 +289,7 @@ static u32 mpd_thread(void *params)
 			{	
 				struct tm ast_time = *gmtime(&t);
 				strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
-				snprintf(availability_start_time, sizeof(availability_start_time),"%s.%dZ", availability_start_time, ms);
+//				snprintf(availability_start_time, sizeof(availability_start_time),"%s.%dZ", availability_start_time, ms);
 				//snprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
 				//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
 				//		time.tm_min, time.tm_sec);
