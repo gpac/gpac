@@ -258,7 +258,6 @@ static u32 mpd_thread(void *params)
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
 			time_t t;
-			int ms;
 			segtime seg_time;
 			seg_time.segnum = 0;
 			seg_time.time = 0;
@@ -282,7 +281,6 @@ static u32 mpd_thread(void *params)
 			}
 
 			t = seg_time.time / 1000;
-			ms = seg_time.time % 1000;
 
 			//t += (1 * (cmddata->seg_dur / 1000.0));
 			//t += cmddata->ast_offset;
