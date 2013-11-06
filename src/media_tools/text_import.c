@@ -1522,7 +1522,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			samp = gf_isom_new_text_sample();
 			ts = 0;
 			descIndex = 1;
-			last_sample_empty = GF_FALSE;
+			last_sample_empty = GF_TRUE;
 
 			j=0;
 			while ( (att=(GF_XMLAttribute*)gf_list_enum(node->attributes, &j))) {
