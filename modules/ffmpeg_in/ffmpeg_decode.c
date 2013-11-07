@@ -27,6 +27,10 @@
 #include <gpac/avparse.h>
 
 
+#if (LIBAVCODEC_VERSION_MAJOR >= 55) && (LIBAVCODEC_VERSION_MINOR >= 38)
+#define HAS_HEVC
+#endif
+
 
 /**
  * Allocates data for FFMPEG decoding
@@ -230,10 +234,13 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				break;
 			case GPAC_OTI_VIDEO_AVC:
 				codec_id = CODEC_ID_H264;
-				/*ffmpeg H264/AVC needs that*/
-				//(*ctx)->codec_tag = 0x31637661;
 				break;
-			case GPAC_OTI_VIDEO_MPEG1:
+#ifdef HAS_HEVC
+            case GPAC_OTI_VIDEO_HEVC:
+                codec_id = AV_CODEC_ID_HEVC;
+                break;
+#endif
+                case GPAC_OTI_VIDEO_MPEG1:
 			case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
 			case GPAC_OTI_VIDEO_MPEG2_MAIN:
 			case GPAC_OTI_VIDEO_MPEG2_SNR:
@@ -268,10 +275,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	/*should never happen*/
 	if (! (*codec)) return GF_OUT_OF_MEM;
 
+    fprintf(stderr, "In FFMPEG SETUP\n");
 	/*setup MPEG-4 video streams*/
 	if ((ffd->st==GF_STREAM_VISUAL)) {
 		/*for all MPEG-4 variants get size*/
-		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) || (ffd->oti == GPAC_OTI_VIDEO_AVC)) {
+		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) || (ffd->oti == GPAC_OTI_VIDEO_AVC) || (ffd->oti == GPAC_OTI_VIDEO_HEVC)) {
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -293,8 +301,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 					ffd->check_h264_isma = 1;
 				}
 
+                fprintf(stderr, "In FFMPEG SETUP\n");
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-				(*ctx)->extradata = ffmpeg_realloc_buffer((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				(*ctx)->extradata = ffmpeg_realloc_buffer((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->dataLength + 8);
 				if ((*ctx)->extradata){
 					memcpy((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 					(*ctx)->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
@@ -449,7 +458,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = 1;
 		return GF_OK;
 	case GF_CODEC_DIRECT_OUTPUT:
-		capability->cap.valueBool = GF_TRUE;
+		capability->cap.valueBool = /*GF_TRUE*/GF_FALSE;
 		return GF_OK;
 	}
 
@@ -1097,7 +1106,11 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		/*H264 (not std OTI, just the way we use it internally)*/
 		case GPAC_OTI_VIDEO_AVC:
 			codec_id = CODEC_ID_H264; break;
-		/*MPEG1 video*/
+#ifdef HAS_HEVC
+        case GPAC_OTI_VIDEO_HEVC:
+            codec_id = AV_CODEC_ID_HEVC; break;
+#endif
+        /*MPEG1 video*/
 		case GPAC_OTI_VIDEO_MPEG1:
 		/*MPEG2 video*/
 		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
