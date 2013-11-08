@@ -599,7 +599,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
 			if (( video_output_file->last_dts - video_output_file->first_dts + video_output_file->frame_dur) /video_output_file->timescale >= video_output_file->frag_dur / 1000) {
 				gf_isom_flush_fragments(video_output_file->isof, 1);
 				video_output_file->fragment_started = 0;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
 			}
 
 			//we may have rounding errors on the input PTS :( add half frame dur safety
@@ -619,7 +619,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
 
 		if (frame_nb % video_output_file->frame_per_fragment == video_output_file->frame_per_fragment - 1) {
 			gf_isom_flush_fragments(video_output_file->isof, 1);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
 		}
 
 		if (frame_nb + 1 == video_output_file->frame_per_segment)
