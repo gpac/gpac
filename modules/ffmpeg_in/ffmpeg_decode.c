@@ -275,7 +275,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	/*should never happen*/
 	if (! (*codec)) return GF_OUT_OF_MEM;
 
-    fprintf(stderr, "In FFMPEG SETUP\n");
 	/*setup MPEG-4 video streams*/
 	if ((ffd->st==GF_STREAM_VISUAL)) {
 		/*for all MPEG-4 variants get size*/
@@ -301,7 +300,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 					ffd->check_h264_isma = 1;
 				}
 
-                fprintf(stderr, "In FFMPEG SETUP\n");
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
 				(*ctx)->extradata = ffmpeg_realloc_buffer((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->dataLength + 8);
 				if ((*ctx)->extradata){
