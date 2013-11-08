@@ -42,7 +42,7 @@ typedef struct
 	u32 width, stride, height, out_size, pixel_ar, layer, nb_threads;
 
 	Bool is_init;
-	Bool state_found;
+	Bool had_pic;
 
 	u32 nalu_size_length;
 	u32 threading_type;
@@ -62,7 +62,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
     GF_HEVCConfig *cfg = NULL;
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = 0;
-	ctx->state_found = GF_FALSE;
 	
 #ifdef OPEN_SHVC
     ctx->nb_layers = 1;
@@ -96,7 +95,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
                 }
             }
         }
-		ctx->state_found = GF_TRUE;
 		gf_odf_hevc_cfg_del(cfg);
     } else {
 		ctx->nalu_size_length = 0;
@@ -133,6 +131,9 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	if (gf_sys_get_rti(100, &rti, 0) ) {
 		nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
+		//checkme I have perf using too many threads
+		if (nb_threads > 6)
+			nb_threads = 6;
 	}
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads");
@@ -271,6 +272,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		ctx->stride = a_stride;
 		ctx->height = a_h;
 		ctx->out_size = ctx->stride * a_w * 3 / 2;
+		ctx->had_pic = GF_TRUE;
 		/*always force layer resize*/
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
@@ -328,6 +330,11 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 
 	*outBufferLength = 0;
 
+	if (ctx->had_pic) {
+		ctx->had_pic = 0;
+		return HEVC_flush_picture(ctx, outBuffer, outBufferLength);
+	}
+	
 	got_pic = libOpenHevcDecode(ctx->openHevcHandle, inBuffer, inBufferLength, 0);
 	if (got_pic>0) {
 		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength);

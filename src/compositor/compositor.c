@@ -2296,10 +2296,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->skip_flush = 1;
 
 		if (compositor->skip_flush!=1) {
+			//release compositor in case we have vsync
+			gf_sc_lock(compositor, 0);
 			rc.x = rc.y = 0; 
 			rc.w = compositor->display_width;	
 			rc.h = compositor->display_height;		
 			compositor->video_out->Flush(compositor->video_out, &rc);
+			gf_sc_lock(compositor, 1);
 		} else {
 			compositor->skip_flush = 0;
 		}
@@ -2662,7 +2665,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 		if (gf_mx_try_lock(compositor->mx)) 
 			break;
 		retry--;
-		gf_sleep(1);
+		gf_sleep(0);
 		if (!retry) {
 			return GF_FALSE;
 		}

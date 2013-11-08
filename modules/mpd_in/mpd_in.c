@@ -512,21 +512,21 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			if (e != GF_OK) {
 				gf_dash_group_select(mpdin->dash, i, 0);
 			} else {
+				u32 w, h;
 				/*connect our media service*/
 				GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
+				gf_dash_group_get_video_info(mpdin->dash, i, &w, &h);
+				if (w && h && w>mpdin->width && h>mpdin->height) {
+					mpdin->width = w;
+					mpdin->height = h;
+				}
+
 				e = group->segment_ifce->ConnectService(group->segment_ifce, mpdin->service, init_segment);
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Unable to connect input service to %s\n", init_segment));
 					gf_dash_group_select(mpdin->dash, i, 0);
 				} else {
-					u32 w, h;
 					group->service_connected = 1;
-					w = h = 0;
-					gf_dash_group_get_video_info(mpdin->dash, i, &w, &h);
-					if (w && h && w>mpdin->width && h>mpdin->height) {
-						mpdin->width = w;
-						mpdin->height = h;
-					}
 				}
 			}
 		}

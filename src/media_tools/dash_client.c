@@ -394,9 +394,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: could not retrieve time!\n"));
 			}
 #endif
-			current_time = 0;
-			group->broken_timing = 1;
-			return;
+			if (group->dash->utc_shift>0) {
+				availabilityStartTime = current_time;
+			} else {
+				current_time = 0;
+				group->broken_timing = 1;
+				return;
+			}
 		} else {
 			availabilityStartTime = current_time;
 			current_time = 0;	

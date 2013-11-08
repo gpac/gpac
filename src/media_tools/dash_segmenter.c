@@ -1920,6 +1920,8 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				|| (msub_type==GF_ISOM_SUBTYPE_AVC3_H264)
 				|| (msub_type==GF_ISOM_SUBTYPE_AVC4_H264)
 				|| (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
+				|| (msub_type==GF_ISOM_SUBTYPE_HVC1)
+				|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
 				|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
 				) {
 					GF_DecoderConfig *dcd1 = gf_isom_get_decoder_config(set_file, j+1, 1);
@@ -2042,6 +2044,14 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 							break;
 						case GF_4CC( 'a', 'v', 'c', '3'):
 						case GF_4CC( 'a', 'v', 'c', '4'):
+							/*we don't want to clone SPS/PPS since they are already inside the samples*/
+							merge_mode = 2;
+							break;
+						case GF_4CC( 'h', 'v', 'c', '1'):
+							if (use_hevc) 
+								merge_mode = 2;
+							break;
+						case GF_4CC( 'h', 'e', 'v', '1'):
 							/*we don't want to clone SPS/PPS since they are already inside the samples*/
 							merge_mode = 2;
 							break;
