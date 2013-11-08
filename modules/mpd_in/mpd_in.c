@@ -59,6 +59,7 @@ typedef struct
 	Bool netio_assigned;
 	Bool has_new_data;
 	u32 idx;
+	GF_DownloadSession *sess;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -356,9 +357,22 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
 		group->has_new_data = 1;
+
+		if (param->reply) {
+			u32 bytes_per_sec;
+			const char *url;
+			gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000 ));
+		}
 	
 		if (group->mpdin->allow_http_abort)
 			gf_dash_group_check_bandwidth(group->mpdin->dash, group->idx);
+	}
+	if (param->msg_type == GF_NETIO_DATA_TRANSFERED) {
+		u32 bytes_per_sec;
+		const char *url;
+		gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000));
 	}
 }
 
@@ -383,7 +397,7 @@ GF_DASHFileIOSession mpdin_dash_io_create(GF_DASHFileIO *dashio, Bool persistent
 	}
 	if (group) {
 		group->netio_assigned = GF_TRUE;
-		sess = gf_term_download_new(mpdin->service, url, flags, mpdin_dash_segment_netio, group);
+		group->sess = sess = gf_term_download_new(mpdin->service, url, flags, mpdin_dash_segment_netio, group);
 	} else {
 		sess = gf_term_download_new(mpdin->service, url, flags, NULL, NULL);
 	}
@@ -404,6 +418,7 @@ GF_Err mpdin_dash_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession 
 		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
 		if (group && !group->netio_assigned) {
 			group->netio_assigned = GF_TRUE;
+			group->sess = (GF_DownloadSession *)session;
 			gf_dm_sess_reassign((GF_DownloadSession *)session, 0xFFFFFFFF, mpdin_dash_segment_netio, group);
 		}
 	}

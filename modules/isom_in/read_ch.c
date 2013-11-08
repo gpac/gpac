@@ -117,13 +117,13 @@ next_segment:
 			if (progressive_refresh) {
 				//the url is the current download or we just finished downloaded it, refresh the parsing.
 				if ((param.url_query.is_current_download || (read->seg_opened==1)) && param.url_query.has_new_data) {
-					u64 bytesMissing;
+					u64 bytesMissing=0;
 					e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
 
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
 					for (i=0; i<count; i++) {
 						ISOMChannel *ch = gf_list_get(read->channels, i);
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 					}
 				}
 				//we did the last refresh and the segment is downloaded, move to fully parsed mode
@@ -438,6 +438,9 @@ fetch_next:
 				if (net_status == GF_NETIO_DATA_EXCHANGE) {
 					ch->last_state = GF_OK;
 				}
+			}
+			else if (ch->owner->input->query_proxy) {
+				ch->last_state = GF_OK;
 			}
 		} else if (!ch->sample_num || (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
 			if (ch->owner->frag_type==1) {
