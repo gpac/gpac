@@ -559,7 +559,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 {
 	MixerInput *in, *single_source;
 	Fixed pan[6];
-	Bool is_muted;
+	Bool is_muted, force_mix;
 	u32 i, j, count, size, in_size, nb_samples, nb_written;
 	s32 *out_mix, nb_act_src;
 	char *data, *ptr;
@@ -606,6 +606,7 @@ single_source_mix:
 	is_muted = single_source->muted;
 
 	while (buffer_size) {
+		size = 0;
 		data = single_source->src->FetchFrame(single_source->src->callback, &size, delay);
 		if (!data || !size) break;
 		/*don't copy more than possible*/
@@ -622,14 +623,20 @@ single_source_mix:
 	}
 
 	/*not completely filled*/
-	if (buffer_size) {
-		if (!data) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioMixer] not enough input data (%d still to fill)\n", buffer_size));
+	if (!size || !buffer_size) {
+		if (buffer_size) {
+			if (!data) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioMixer] not enough input data (%d still to fill)\n", buffer_size));
+			}
+			memset(ptr, 0, buffer_size);
 		}
-		memset(ptr, 0, buffer_size);
+		gf_mixer_lock(am, 0);
+		return (in_size - buffer_size);
 	}
-	gf_mixer_lock(am, 0);
-	return (in_size - buffer_size);
+
+	//otherwise, we do have some data but we had a change in config while writing the sample - fallthrough to full mix mode
+	buffer = ptr;
+
 
 do_mix:
 	nb_act_src = 0;
@@ -642,6 +649,7 @@ do_mix:
 	}
 
 	single_source = NULL;
+	force_mix = GF_FALSE;
 	for (i=0; i<count; i++) {
 		in = (MixerInput *)gf_list_get(am->sources, i);
 		in->muted = in->src->IsMuted(in->src->callback);
@@ -662,17 +670,20 @@ do_mix:
 
 		/*if cfg unknown or changed (AudioBuffer child...) invalidate cfg settings*/
 		if (!in->src->GetConfig(in->src, 0)) {
-			if (!am->must_reconfig) {
-				am->must_reconfig = 1;
-				/*if main mixer reconfig asap*/
-				if (am->ar) gf_mixer_reconfig(am);
-			}
-			//however keep the current mixer config and output some audio ...
-//			nb_act_src = 0;
-//			break;
-			in->muted = 1;
-			continue;
-		} else if (in->speed==0) {
+			if (am->ar) {
+				if (!am->must_reconfig) {
+					am->must_reconfig = 1;
+					/*if main mixer reconfig asap*/
+					gf_mixer_reconfig(am);
+				}
+				in->muted = 1;
+				continue;
+			} 
+			//otherwise fallthrou, mixer keeps the same config
+			force_mix = GF_TRUE;
+		} 
+		
+		if (in->speed==0) {
 			in->out_samples_to_write = 0;
 		} else {
 			assert(in->src->samplerate);
@@ -680,7 +691,7 @@ do_mix:
 			if (in->src->IsMuted(in->src->callback)) {
 				memset(in->pan, 0, sizeof(Fixed)*6);
 			} else {
-				if (!in->src->GetChannelVolume(in->src->callback, in->pan)) {
+				if (!force_mix  && !in->src->GetChannelVolume(in->src->callback, in->pan)) {
 					/*track first active source with same cfg as mixer*/
 					if (!single_source && (in->src->samplerate == am->sample_rate) 
 						&& (in->src->chan == am->nb_channels) && (in->speed == FIX_ONE) 

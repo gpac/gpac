@@ -67,6 +67,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	if (!frame) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] No data in audio object (eos %d)\n", ai->stream_finished));
 		gf_mo_adjust_clock(ai->stream, 0);
+		*size = 0;
 		return NULL;
 	}
 	ai->need_release = 1;
