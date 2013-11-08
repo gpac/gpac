@@ -962,7 +962,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !trak->Media || !cfg || !DescriptionIndex) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !DescriptionIndex) return GF_BAD_PARAM;
 	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	switch (entry->type) {
@@ -974,9 +974,13 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	}
 
 	if (!entry->hevc_config) entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
-	if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
-	entry->hevc_config->config = HEVC_DuplicateConfig(cfg);
 
+	if (cfg) {
+		if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
+		entry->hevc_config->config = HEVC_DuplicateConfig(cfg);
+	} else {
+		operand_type=1;
+	}
 	array_incomplete = 0;
 	for (i=0; i<gf_list_count(entry->hevc_config->config->param_array); i++) {
 		GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
@@ -986,12 +990,11 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 
 		if (!ar->array_completeness) {
 			array_incomplete = 1;
-			break;
 		}
 	}
 
 	entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_HEV1 : GF_ISOM_BOX_TYPE_HVC1;
-	
+
 	HEVC_RewriteESDescriptor(entry);
 	return GF_OK;
 }

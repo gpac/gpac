@@ -5014,7 +5014,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, flush_next_sample, is_empty_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
@@ -5115,6 +5115,8 @@ restart_import:
 	has_cts_offset = 0;
 	min_poc = 0;
 	poc_shift = 0;
+	flush_next_sample = 0;
+	is_empty_sample = 1;
 
 	while (gf_bs_available(bs)) {
 		s32 res;
@@ -5152,6 +5154,12 @@ restart_import:
 		default:
 			break;
 		}
+
+		if (flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
+			flush_next_sample = 0;
+			flush_sample = 1;
+		}
+
 		switch (nal_unit_type) {
 		case GF_HEVC_NALU_VID_PARAM:
 			idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
@@ -5163,6 +5171,7 @@ restart_import:
 			if (hevc.vps[idx].state == 2) {
 				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
+					is_empty_sample = 0;
 					assert(vpss);
 					vpss->array_completeness = 0;
 				}
@@ -5211,6 +5220,7 @@ restart_import:
 			else if (hevc.sps[idx].state & AVC_SPS_DECLARED) {
 				if (hevc.sps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
+					is_empty_sample = 0;
 					assert(spss);
 					spss->array_completeness = 0;
 				}
@@ -5300,6 +5310,7 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
+					is_empty_sample = 0;
 					assert(ppss);
 					ppss->array_completeness = 0;
 				}
@@ -5326,8 +5337,9 @@ restart_import:
 				gf_list_add(ppss->nalus, slc);
 			}
 			break;
-		case GF_HEVC_NALU_SEI_PREFIX:
 		case GF_HEVC_NALU_SEI_SUFFIX:
+			flush_next_sample = 1;
+		case GF_HEVC_NALU_SEI_PREFIX:
 			if (hevc.sps_active_idx != -1) {
 				/*TODO*/
 				//copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &hevc);
@@ -5347,6 +5359,7 @@ restart_import:
 			is_slice = 1;
 			if (! skip_nal) {
 				copy_size = nal_size;
+				is_empty_sample = 0;
 			}
 			break;
 
@@ -5373,6 +5386,7 @@ restart_import:
 */
 			if (! skip_nal) {
 				copy_size = nal_size;
+				is_empty_sample = 0;
 				switch (hevc.s_info.slice_type) {
 				case GF_HEVC_TYPE_P: nb_p++; break;
 				case GF_HEVC_TYPE_I: nb_i++; 
@@ -5393,10 +5407,14 @@ restart_import:
 		default:
 			gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_unit_type);
 			copy_size = nal_size;
+			is_empty_sample = 0;
 			break;
 		}
 
 		if (!nal_size) break;
+
+		if (flush_sample && is_empty_sample)
+			flush_sample = 0;
 
 		if (flush_sample && sample_data) {
 			GF_ISOSample *samp = gf_isom_sample_new();
@@ -5448,6 +5466,7 @@ restart_import:
 
 			sample_has_islice = 0;
 			sei_recovery_frame_count = -1;
+			is_empty_sample = 1;
 		}
 
 		if (copy_size) {
