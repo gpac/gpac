@@ -1,0 +1,606 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\gpac\ait.h" />
+    <ClInclude Include="..\..\include\gpac\avparse.h" />
+    <ClInclude Include="..\..\include\gpac\base_coding.h" />
+    <ClInclude Include="..\..\include\gpac\bifs.h" />
+    <ClInclude Include="..\..\include\gpac\bitstream.h" />
+    <ClInclude Include="..\..\include\gpac\cache.h" />
+    <ClInclude Include="..\..\include\gpac\color.h" />
+    <ClInclude Include="..\..\include\gpac\compositor.h" />
+    <ClInclude Include="..\..\include\gpac\configuration.h" />
+    <ClInclude Include="..\..\include\gpac\config_file.h" />
+    <ClInclude Include="..\..\include\gpac\constants.h" />
+    <ClInclude Include="..\..\include\gpac\crypt.h" />
+    <ClInclude Include="..\..\include\gpac\dash.h" />
+    <ClInclude Include="..\..\include\gpac\download.h" />
+    <ClInclude Include="..\..\include\gpac\dsmcc.h" />
+    <ClInclude Include="..\..\include\gpac\dvb_mpe.h" />
+    <ClInclude Include="..\..\include\gpac\esi.h" />
+    <ClInclude Include="..\..\include\gpac\events.h" />
+    <ClInclude Include="..\..\include\gpac\events_constants.h" />
+    <ClInclude Include="..\..\include\gpac\filestreamer.h" />
+    <ClInclude Include="..\..\include\gpac\html5_media.h" />
+    <ClInclude Include="..\..\include\gpac\html5_mse.h" />
+    <ClInclude Include="..\..\include\gpac\ietf.h" />
+    <ClInclude Include="..\..\include\gpac\internal\avilib.h" />
+    <ClInclude Include="..\..\include\gpac\internal\bifs_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\bifs_tables.h" />
+    <ClInclude Include="..\..\include\gpac\internal\camera.h" />
+    <ClInclude Include="..\..\include\gpac\internal\compositor_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\crypt_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\dvb_mpe_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\ietf_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\isomedia_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\laser_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\m3u8.h" />
+    <ClInclude Include="..\..\include\gpac\internal\media_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\mesh.h" />
+    <ClInclude Include="..\..\include\gpac\internal\mpd.h" />
+    <ClInclude Include="..\..\include\gpac\internal\odf_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\odf_parse_common.h" />
+    <ClInclude Include="..\..\include\gpac\internal\ogg.h" />
+    <ClInclude Include="..\..\include\gpac\internal\reedsolomon.h" />
+    <ClInclude Include="..\..\include\gpac\internal\scenegraph_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\smjs_api.h" />
+    <ClInclude Include="..\..\include\gpac\internal\swf_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\terminal_dev.h" />
+    <ClInclude Include="..\..\include\gpac\internal\vobsub.h" />
+    <ClInclude Include="..\..\include\gpac\ismacryp.h" />
+    <ClInclude Include="..\..\include\gpac\iso639.h" />
+    <ClInclude Include="..\..\include\gpac\isomedia.h" />
+    <ClInclude Include="..\..\include\gpac\laser.h" />
+    <ClInclude Include="..\..\include\gpac\list.h" />
+    <ClInclude Include="..\..\include\gpac\map.h" />
+    <ClInclude Include="..\..\include\gpac\math.h" />
+    <ClInclude Include="..\..\include\gpac\mediaobject.h" />
+    <ClInclude Include="..\..\include\gpac\media_tools.h" />
+    <ClInclude Include="..\..\include\gpac\module.h" />
+    <ClInclude Include="..\..\include\gpac\modules\audio_out.h" />
+    <ClInclude Include="..\..\include\gpac\modules\codec.h" />
+    <ClInclude Include="..\..\include\gpac\modules\font.h" />
+    <ClInclude Include="..\..\include\gpac\modules\hardcoded_proto.h" />
+    <ClInclude Include="..\..\include\gpac\modules\ipmp.h" />
+    <ClInclude Include="..\..\include\gpac\modules\js_usr.h" />
+    <ClInclude Include="..\..\include\gpac\modules\raster2d.h" />
+    <ClInclude Include="..\..\include\gpac\modules\service.h" />
+    <ClInclude Include="..\..\include\gpac\modules\term_ext.h" />
+    <ClInclude Include="..\..\include\gpac\modules\video_out.h" />
+    <ClInclude Include="..\..\include\gpac\mpeg4_odf.h" />
+    <ClInclude Include="..\..\include\gpac\mpegts.h" />
+    <ClInclude Include="..\..\include\gpac\network.h" />
+    <ClInclude Include="..\..\include\gpac\nodes_mpeg4.h" />
+    <ClInclude Include="..\..\include\gpac\nodes_svg.h" />
+    <ClInclude Include="..\..\include\gpac\nodes_x3d.h" />
+    <ClInclude Include="..\..\include\gpac\nodes_xbl.h" />
+    <ClInclude Include="..\..\include\gpac\options.h" />
+    <ClInclude Include="..\..\include\gpac\path2d.h" />
+    <ClInclude Include="..\..\include\gpac\revision.h" />
+    <ClInclude Include="..\..\include\gpac\ringbuffer.h" />
+    <ClInclude Include="..\..\include\gpac\rtp_streamer.h" />
+    <ClInclude Include="..\..\include\gpac\scenegraph.h" />
+    <ClInclude Include="..\..\include\gpac\scenegraph_svg.h" />
+    <ClInclude Include="..\..\include\gpac\scenegraph_vrml.h" />
+    <ClInclude Include="..\..\include\gpac\scene_engine.h" />
+    <ClInclude Include="..\..\include\gpac\scene_manager.h" />
+    <ClInclude Include="..\..\include\gpac\setup.h" />
+    <ClInclude Include="..\..\include\gpac\svg_types.h" />
+    <ClInclude Include="..\..\include\gpac\sync_layer.h" />
+    <ClInclude Include="..\..\include\gpac\terminal.h" />
+    <ClInclude Include="..\..\include\gpac\term_info.h" />
+    <ClInclude Include="..\..\include\gpac\thread.h" />
+    <ClInclude Include="..\..\include\gpac\token.h" />
+    <ClInclude Include="..\..\include\gpac\tools.h" />
+    <ClInclude Include="..\..\include\gpac\unicode.h" />
+    <ClInclude Include="..\..\include\gpac\user.h" />
+    <ClInclude Include="..\..\include\gpac\utf.h" />
+    <ClInclude Include="..\..\include\gpac\version.h" />
+    <ClInclude Include="..\..\include\gpac\xml.h" />
+    <ClInclude Include="..\..\include\win32\inttypes.h" />
+    <ClInclude Include="..\..\include\win32\stdint.h" />
+    <ClInclude Include="..\..\src\bifs\quant.h" />
+    <ClInclude Include="..\..\src\bifs\script.h" />
+    <ClInclude Include="..\..\src\compositor\drawable.h" />
+    <ClInclude Include="..\..\src\compositor\gl_inc.h" />
+    <ClInclude Include="..\..\src\compositor\mpeg4_grouping.h" />
+    <ClInclude Include="..\..\src\compositor\nodes_stacks.h" />
+    <ClInclude Include="..\..\src\compositor\offscreen_cache.h" />
+    <ClInclude Include="..\..\src\compositor\texturing.h" />
+    <ClInclude Include="..\..\src\compositor\visual_manager.h" />
+    <ClInclude Include="..\..\src\compositor\visual_manager_2d.h" />
+    <ClInclude Include="..\..\src\compositor\visual_manager_3d.h" />
+    <ClInclude Include="..\..\src\media_tools\mpeg2_ps.h" />
+    <ClInclude Include="..\..\src\terminal\input_sensor.h" />
+    <ClInclude Include="..\..\src\terminal\media_control.h" />
+    <ClInclude Include="..\..\src\terminal\media_memory.h" />
+    <ClInclude Include="..\..\src\utils\module_wrap.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\bifs\arith_decoder.c" />
+    <ClCompile Include="..\..\src\bifs\bifs_codec.c" />
+    <ClCompile Include="..\..\src\bifs\bifs_node_tables.c" />
+    <ClCompile Include="..\..\src\bifs\com_dec.c" />
+    <ClCompile Include="..\..\src\bifs\com_enc.c" />
+    <ClCompile Include="..\..\src\bifs\conditional.c" />
+    <ClCompile Include="..\..\src\bifs\field_decode.c" />
+    <ClCompile Include="..\..\src\bifs\field_encode.c" />
+    <ClCompile Include="..\..\src\bifs\memory_decoder.c" />
+    <ClCompile Include="..\..\src\bifs\predictive_mffield.c" />
+    <ClCompile Include="..\..\src\bifs\quantize.c" />
+    <ClCompile Include="..\..\src\bifs\script_dec.c" />
+    <ClCompile Include="..\..\src\bifs\script_enc.c" />
+    <ClCompile Include="..\..\src\bifs\unquantize.c" />
+    <ClCompile Include="..\..\src\compositor\audio_input.c" />
+    <ClCompile Include="..\..\src\compositor\audio_mixer.c" />
+    <ClCompile Include="..\..\src\compositor\audio_render.c" />
+    <ClCompile Include="..\..\src\compositor\bindable.c" />
+    <ClCompile Include="..\..\src\compositor\camera.c" />
+    <ClCompile Include="..\..\src\compositor\compositor.c" />
+    <ClCompile Include="..\..\src\compositor\compositor_2d.c" />
+    <ClCompile Include="..\..\src\compositor\compositor_3d.c" />
+    <ClCompile Include="..\..\src\compositor\compositor_node_init.c" />
+    <ClCompile Include="..\..\src\compositor\drawable.c" />
+    <ClCompile Include="..\..\src\compositor\events.c" />
+    <ClCompile Include="..\..\src\compositor\font_engine.c" />
+    <ClCompile Include="..\..\src\compositor\hardcoded_protos.c" />
+    <ClCompile Include="..\..\src\compositor\hc_flash_shape.c" />
+    <ClCompile Include="..\..\src\compositor\mesh.c" />
+    <ClCompile Include="..\..\src\compositor\mesh_collide.c" />
+    <ClCompile Include="..\..\src\compositor\mesh_tesselate.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_animstream.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_audio.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_background.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_background2d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_bitmap.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_composite.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_form.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_geometry_2d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_geometry_3d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_geometry_ifs2d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_geometry_ils2d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_gradients.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_grouping.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_grouping_2d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_grouping_3d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_layer_2d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_layer_3d.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_layout.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_lighting.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_path_layout.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_sensors.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_sound.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_text.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_textures.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_timesensor.c" />
+    <ClCompile Include="..\..\src\compositor\mpeg4_viewport.c" />
+    <ClCompile Include="..\..\src\compositor\navigate.c" />
+    <ClCompile Include="..\..\src\compositor\offscreen_cache.c" />
+    <ClCompile Include="..\..\src\compositor\svg_base.c" />
+    <ClCompile Include="..\..\src\compositor\svg_filters.c" />
+    <ClCompile Include="..\..\src\compositor\svg_font.c" />
+    <ClCompile Include="..\..\src\compositor\svg_geometry.c" />
+    <ClCompile Include="..\..\src\compositor\svg_grouping.c" />
+    <ClCompile Include="..\..\src\compositor\svg_media.c" />
+    <ClCompile Include="..\..\src\compositor\svg_paint_servers.c" />
+    <ClCompile Include="..\..\src\compositor\svg_text.c" />
+    <ClCompile Include="..\..\src\compositor\texturing.c" />
+    <ClCompile Include="..\..\src\compositor\texturing_gl.c" />
+    <ClCompile Include="..\..\src\compositor\visual_manager.c" />
+    <ClCompile Include="..\..\src\compositor\visual_manager_2d.c" />
+    <ClCompile Include="..\..\src\compositor\visual_manager_2d_draw.c" />
+    <ClCompile Include="..\..\src\compositor\visual_manager_3d.c" />
+    <ClCompile Include="..\..\src\compositor\visual_manager_3d_gl.c" />
+    <ClCompile Include="..\..\src\compositor\x3d_geometry.c" />
+    <ClCompile Include="..\..\src\ietf\rtcp.c" />
+    <ClCompile Include="..\..\src\ietf\rtp.c" />
+    <ClCompile Include="..\..\src\ietf\rtp_depacketizer.c" />
+    <ClCompile Include="..\..\src\ietf\rtp_packetizer.c" />
+    <ClCompile Include="..\..\src\ietf\rtp_pck_3gpp.c" />
+    <ClCompile Include="..\..\src\ietf\rtp_pck_mpeg12.c" />
+    <ClCompile Include="..\..\src\ietf\rtp_pck_mpeg4.c" />
+    <ClCompile Include="..\..\src\ietf\rtp_streamer.c" />
+    <ClCompile Include="..\..\src\ietf\rtsp_command.c" />
+    <ClCompile Include="..\..\src\ietf\rtsp_common.c" />
+    <ClCompile Include="..\..\src\ietf\rtsp_response.c" />
+    <ClCompile Include="..\..\src\ietf\rtsp_session.c" />
+    <ClCompile Include="..\..\src\ietf\sdp.c" />
+    <ClCompile Include="..\..\src\isomedia\avc_ext.c" />
+    <ClCompile Include="..\..\src\isomedia\box_code_3gpp.c" />
+    <ClCompile Include="..\..\src\isomedia\box_code_adobe.c" />
+    <ClCompile Include="..\..\src\isomedia\box_code_apple.c" />
+    <ClCompile Include="..\..\src\isomedia\box_code_base.c" />
+    <ClCompile Include="..\..\src\isomedia\box_code_drm.c" />
+    <ClCompile Include="..\..\src\isomedia\box_code_meta.c" />
+    <ClCompile Include="..\..\src\isomedia\box_dump.c" />
+    <ClCompile Include="..\..\src\isomedia\box_funcs.c" />
+    <ClCompile Include="..\..\src\isomedia\data_map.c" />
+    <ClCompile Include="..\..\src\isomedia\drm_sample.c" />
+    <ClCompile Include="..\..\src\isomedia\generic_subtitle.c" />
+    <ClCompile Include="..\..\src\isomedia\hinting.c" />
+    <ClCompile Include="..\..\src\isomedia\hint_track.c" />
+    <ClCompile Include="..\..\src\isomedia\isom_intern.c" />
+    <ClCompile Include="..\..\src\isomedia\isom_read.c" />
+    <ClCompile Include="..\..\src\isomedia\isom_store.c" />
+    <ClCompile Include="..\..\src\isomedia\isom_write.c" />
+    <ClCompile Include="..\..\src\isomedia\media.c" />
+    <ClCompile Include="..\..\src\isomedia\media_odf.c" />
+    <ClCompile Include="..\..\src\isomedia\meta.c" />
+    <ClCompile Include="..\..\src\isomedia\movie_fragments.c" />
+    <ClCompile Include="..\..\src\isomedia\sample_descs.c" />
+    <ClCompile Include="..\..\src\isomedia\stbl_read.c" />
+    <ClCompile Include="..\..\src\isomedia\stbl_write.c" />
+    <ClCompile Include="..\..\src\isomedia\track.c" />
+    <ClCompile Include="..\..\src\isomedia\tx3g.c" />
+    <ClCompile Include="..\..\src\laser\lsr_dec.c" />
+    <ClCompile Include="..\..\src\laser\lsr_enc.c" />
+    <ClCompile Include="..\..\src\laser\lsr_tables.c" />
+    <ClCompile Include="..\..\src\mcrypt\cbc.c" />
+    <ClCompile Include="..\..\src\mcrypt\cfb.c" />
+    <ClCompile Include="..\..\src\mcrypt\ctr.c" />
+    <ClCompile Include="..\..\src\mcrypt\des.c" />
+    <ClCompile Include="..\..\src\mcrypt\ecb.c" />
+    <ClCompile Include="..\..\src\mcrypt\g_crypt.c" />
+    <ClCompile Include="..\..\src\mcrypt\ncfb.c" />
+    <ClCompile Include="..\..\src\mcrypt\nofb.c" />
+    <ClCompile Include="..\..\src\mcrypt\ofb.c" />
+    <ClCompile Include="..\..\src\mcrypt\rijndael-128.c" />
+    <ClCompile Include="..\..\src\mcrypt\rijndael-192.c" />
+    <ClCompile Include="..\..\src\mcrypt\rijndael-256.c" />
+    <ClCompile Include="..\..\src\mcrypt\stream.c" />
+    <ClCompile Include="..\..\src\mcrypt\tripledes.c" />
+    <ClCompile Include="..\..\src\media_tools\ait.c" />
+    <ClCompile Include="..\..\src\media_tools\avilib.c" />
+    <ClCompile Include="..\..\src\media_tools\av_parsers.c" />
+    <ClCompile Include="..\..\src\media_tools\dash_client.c" />
+    <ClCompile Include="..\..\src\media_tools\dash_segmenter.c" />
+    <ClCompile Include="..\..\src\media_tools\dsmcc.c" />
+    <ClCompile Include="..\..\src\media_tools\dvb_mpe.c" />
+    <ClCompile Include="..\..\src\media_tools\filestreamer.c" />
+    <ClCompile Include="..\..\src\media_tools\gpac_ogg.c" />
+    <ClCompile Include="..\..\src\media_tools\html5_media.c" />
+    <ClCompile Include="..\..\src\media_tools\html5_mse.c" />
+    <ClCompile Include="..\..\src\media_tools\img.c" />
+    <ClCompile Include="..\..\src\media_tools\ismacryp.c" />
+    <ClCompile Include="..\..\src\media_tools\isom_hinter.c" />
+    <ClCompile Include="..\..\src\media_tools\isom_tools.c" />
+    <ClCompile Include="..\..\src\media_tools\m2ts_mux.c" />
+    <ClCompile Include="..\..\src\media_tools\m3u8.c" />
+    <ClCompile Include="..\..\src\media_tools\media_export.c" />
+    <ClCompile Include="..\..\src\media_tools\media_import.c" />
+    <ClCompile Include="..\..\src\media_tools\mpd.c" />
+    <ClCompile Include="..\..\src\media_tools\mpeg2_ps.c" />
+    <ClCompile Include="..\..\src\media_tools\mpegts.c" />
+    <ClCompile Include="..\..\src\media_tools\reedsolomon.c" />
+    <ClCompile Include="..\..\src\media_tools\saf.c" />
+    <ClCompile Include="..\..\src\media_tools\text_import.c" />
+    <ClCompile Include="..\..\src\media_tools\vobsub.c" />
+    <ClCompile Include="..\..\src\media_tools\webvtt.c" />
+    <ClCompile Include="..\..\src\odf\descriptors.c" />
+    <ClCompile Include="..\..\src\odf\desc_private.c" />
+    <ClCompile Include="..\..\src\odf\ipmpx_code.c" />
+    <ClCompile Include="..\..\src\odf\ipmpx_dump.c" />
+    <ClCompile Include="..\..\src\odf\ipmpx_parse.c" />
+    <ClCompile Include="..\..\src\odf\oci_codec.c" />
+    <ClCompile Include="..\..\src\odf\odf_code.c" />
+    <ClCompile Include="..\..\src\odf\odf_codec.c" />
+    <ClCompile Include="..\..\src\odf\odf_command.c" />
+    <ClCompile Include="..\..\src\odf\odf_dump.c" />
+    <ClCompile Include="..\..\src\odf\odf_parse.c" />
+    <ClCompile Include="..\..\src\odf\qos.c" />
+    <ClCompile Include="..\..\src\odf\slc.c" />
+    <ClCompile Include="..\..\src\scenegraph\base_scenegraph.c" />
+    <ClCompile Include="..\..\src\scenegraph\commands.c" />
+    <ClCompile Include="..\..\src\scenegraph\dom_events.c" />
+    <ClCompile Include="..\..\src\scenegraph\dom_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\html5_media_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\html5_mse_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\mpeg4_animators.c" />
+    <ClCompile Include="..\..\src\scenegraph\mpeg4_nodes.c" />
+    <ClCompile Include="..\..\src\scenegraph\mpeg4_valuator.c" />
+    <ClCompile Include="..\..\src\scenegraph\smil_anim.c" />
+    <ClCompile Include="..\..\src\scenegraph\smil_timing.c" />
+    <ClCompile Include="..\..\src\scenegraph\svg_attributes.c" />
+    <ClCompile Include="..\..\src\scenegraph\svg_properties.c" />
+    <ClCompile Include="..\..\src\scenegraph\svg_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\svg_types.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_interpolators.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_proto.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_route.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_script.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_tools.c" />
+    <ClCompile Include="..\..\src\scenegraph\webvtt_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\x3d_nodes.c" />
+    <ClCompile Include="..\..\src\scenegraph\xbl_process.c" />
+    <ClCompile Include="..\..\src\scenegraph\xml_ns.c" />
+    <ClCompile Include="..\..\src\scene_manager\encode_isom.c" />
+    <ClCompile Include="..\..\src\scene_manager\loader_bt.c" />
+    <ClCompile Include="..\..\src\scene_manager\loader_isom.c" />
+    <ClCompile Include="..\..\src\scene_manager\loader_qt.c" />
+    <ClCompile Include="..\..\src\scene_manager\loader_svg.c" />
+    <ClCompile Include="..\..\src\scene_manager\loader_xmt.c" />
+    <ClCompile Include="..\..\src\scene_manager\scene_dump.c" />
+    <ClCompile Include="..\..\src\scene_manager\scene_engine.c" />
+    <ClCompile Include="..\..\src\scene_manager\scene_manager.c" />
+    <ClCompile Include="..\..\src\scene_manager\scene_stats.c" />
+    <ClCompile Include="..\..\src\scene_manager\swf_bifs.c" />
+    <ClCompile Include="..\..\src\scene_manager\swf_parse.c" />
+    <ClCompile Include="..\..\src\scene_manager\swf_svg.c" />
+    <ClCompile Include="..\..\src\scene_manager\text_to_bifs.c" />
+    <ClCompile Include="..\..\src\terminal\channel.c" />
+    <ClCompile Include="..\..\src\terminal\clock.c" />
+    <ClCompile Include="..\..\src\terminal\decoder.c" />
+    <ClCompile Include="..\..\src\terminal\input_sensor.c" />
+    <ClCompile Include="..\..\src\terminal\media_control.c" />
+    <ClCompile Include="..\..\src\terminal\media_manager.c" />
+    <ClCompile Include="..\..\src\terminal\media_memory.c" />
+    <ClCompile Include="..\..\src\terminal\media_object.c" />
+    <ClCompile Include="..\..\src\terminal\media_sensor.c" />
+    <ClCompile Include="..\..\src\terminal\mpeg4_inline.c" />
+    <ClCompile Include="..\..\src\terminal\network_service.c" />
+    <ClCompile Include="..\..\src\terminal\object_browser.c" />
+    <ClCompile Include="..\..\src\terminal\object_manager.c" />
+    <ClCompile Include="..\..\src\terminal\scene.c" />
+    <ClCompile Include="..\..\src\terminal\svg_external.c" />
+    <ClCompile Include="..\..\src\terminal\terminal.c" />
+    <ClCompile Include="..\..\src\terminal\term_node_init.c" />
+    <ClCompile Include="..\..\src\utils\alloc.c" />
+    <ClCompile Include="..\..\src\utils\base_encoding.c" />
+    <ClCompile Include="..\..\src\utils\bitstream.c" />
+    <ClCompile Include="..\..\src\utils\cache.c" />
+    <ClCompile Include="..\..\src\utils\color.c" />
+    <ClCompile Include="..\..\src\utils\configfile.c" />
+    <ClCompile Include="..\..\src\utils\dlmalloc.c" />
+    <ClCompile Include="..\..\src\utils\downloader.c" />
+    <ClCompile Include="..\..\src\utils\error.c" />
+    <ClCompile Include="..\..\src\utils\list.c" />
+    <ClCompile Include="..\..\src\utils\map.c" />
+    <ClCompile Include="..\..\src\utils\math.c" />
+    <ClCompile Include="..\..\src\utils\module.c" />
+    <ClCompile Include="..\..\src\utils\os_config_init.c" />
+    <ClCompile Include="..\..\src\utils\os_divers.c" />
+    <ClCompile Include="..\..\src\utils\os_module.c" />
+    <ClCompile Include="..\..\src\utils\os_net.c" />
+    <ClCompile Include="..\..\src\utils\os_thread.c" />
+    <ClCompile Include="..\..\src\utils\path2d.c" />
+    <ClCompile Include="..\..\src\utils\path2d_stroker.c" />
+    <ClCompile Include="..\..\src\utils\ringbuffer.c" />
+    <ClCompile Include="..\..\src\utils\sha1.c" />
+    <ClCompile Include="..\..\src\utils\token.c" />
+    <ClCompile Include="..\..\src\utils\unicode.c" />
+    <ClCompile Include="..\..\src\utils\uni_bidi.c" />
+    <ClCompile Include="..\..\src\utils\url.c" />
+    <ClCompile Include="..\..\src\utils\utf.c" />
+    <ClCompile Include="..\..\src\utils\xml_parser.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{233014D5-F6E5-419D-8757-FA9CE7337088}</ProjectGuid>
+    <RootNamespace>libgpac</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libgpac_static</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libgpac_static</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libgpac_static</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libgpac_static</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png;../../extra_lib/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Lib>
+      <OutputFile>../../bin/$(Platform)\$(Configuration)/libgpac_static.lib</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Lib>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\obj\$(Platform)\$(Configuration)\libgpac/libgpac.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png;../../extra_lib/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_WIN64;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Lib>
+      <OutputFile>../../bin/$(Platform)\$(Configuration)/libgpac_static.lib</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Lib>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\obj\$(Platform)\$(Configuration)\libgpac/libgpac.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <PreBuildEvent>
+      <Command>"$(ProjectDir)..\..\version.bat"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png;../../extra_lib/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName).pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Lib>
+      <OutputFile>../../bin/$(Platform)/$(Configuration)/libgpac_static.lib</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Lib>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PreBuildEvent>
+      <Command>"$(ProjectDir)..\..\version.bat"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png;../../extra_lib/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_WIN64;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName).pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Lib>
+      <OutputFile>../../bin/$(Platform)/$(Configuration)/libgpac_static.lib</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Lib>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
