@@ -602,7 +602,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 
 	if (entry->memory_stored) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
-		if (entry->mem_allocated < entry->contentLength) {
+		if (!entry->mem_allocated || (entry->mem_allocated < entry->contentLength)) {
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
 			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
 			entry->mem_storage = gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );

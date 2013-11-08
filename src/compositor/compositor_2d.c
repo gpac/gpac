@@ -668,7 +668,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			txh->nb_frames ++;
 			txh->upload_time += push_time;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Pushed Y,U,V texures in %d ms - average push time %d ms\n", push_time, txh->upload_time / txh->nb_frames));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] Blit texure in %d ms - average push time %d ms\n", push_time, txh->upload_time / txh->nb_frames));
 		}
 #endif
 	}

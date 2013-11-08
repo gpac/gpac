@@ -1120,6 +1120,14 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 	    return e;
     } 
 #endif
+
+
+	//reset bandwidth computation at start of each chunk
+	if (sess->chunked && !sess->nb_left_in_chunk) {
+		sess->start_time = gf_sys_clock();
+		sess->bytes_done = 0;
+	}
+
     if (!sess->sock)
         return GF_NETIO_DISCONNECTED;
     e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
