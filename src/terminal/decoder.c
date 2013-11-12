@@ -325,14 +325,14 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 {
 	GF_Channel *ch;
 	GF_DBUnit *AU;
-	u32 count, minDTS, i;
+	u32 count, curCTS, i;
 	count = gf_list_count(codec->inChannels);
 	*nextAU = NULL;
 	*activeChannel = NULL;
 
 	if (!count) return;
 
-	minDTS = 0;
+	curCTS = 0;
 	
 	/*browse from base to top layer*/
 	for (i=0;i<count;i++) {
@@ -346,7 +346,7 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 			}
 			return;
 		}
-
+refetch_AU:
 		AU = gf_es_get_au(ch);
 		if (!AU) {
 			if (! (*activeChannel)) *activeChannel = ch;
@@ -356,14 +356,14 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 		/*aggregate all AUs with the same timestamp on the base AU and delete the upper layers)*/
 		if (! *nextAU) {
 			if (ch->esd->dependsOnESID) {
-				gf_es_drop_au(ch);
+				//gf_es_drop_au(ch);
 				continue;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
 			*nextAU = AU;
 			*activeChannel = ch;
-			minDTS = AU->DTS;
-		} else if (AU->DTS == minDTS) {
+			curCTS = AU->CTS;
+		} else if (AU->CTS == curCTS) {
 			GF_DBUnit *baseAU = *nextAU;
 			assert(baseAU);
 
@@ -373,10 +373,56 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
-		} else {
-			break;
+		}
+		//not the same TS for base and enhancement - either temporal scalability is used or we had a frame loss
+		else {		
+			//we cannot rely on DTS - to check if this is temporal scalability, check next CTS
+			if (ch->recompute_dts) {
+				Bool au_match_base_ts = GF_FALSE;
+				GF_DBUnit *next_unit = AU->next;
+				while (next_unit) {
+					//SNR/spatial scalable found later: we need to start from the enhancement layer
+					if (next_unit->CTS==curCTS) {
+						au_match_base_ts = GF_TRUE;
+						break;
+					}
+					next_unit = next_unit->next;
+				}
+				//no AU found with the same CTS as the current base, we likely had a drop in the enhancement - aggregate from base
+				if (!au_match_base_ts) {
+				} 
+				// AU found with the same CTS as the current base, we either had a drop on the base or some temporal scalability - aggregate from current channel.
+				else {
+					//we cannot tell whether this is a loss or temporal scalable, don't attempt to discard the AU
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d doesn't have the same CTS as the base (%d)- selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, (*nextAU)->CTS));
+					*nextAU = AU;
+					*activeChannel = ch;
+					(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
+					curCTS = AU->CTS;
+				}
+			}
+			//we can rely on DTS - if DTS is earlier on the enhencement, this is a loss or temporal scalability
+			else if (AU->DTS < (*nextAU)->DTS) {
+				//Sample with the same DTS of this AU has been decoded. This is a loss, we need to drop it and re-fetch this channel
+				if (AU->DTS < (*activeChannel)->prev_aggregated_dts) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
+					gf_es_drop_au(ch);
+					goto refetch_AU;
+				} 
+				//This is a temporal scalability so we re-aggregate from the enhencement
+				else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
+					*nextAU = AU;
+					*activeChannel = ch;
+					(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
+					curCTS = AU->CTS;
+				}
+			}
 		}
 	}
+
+	if (*nextAU)
+		(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
 		if ((*activeChannel)->esd->slConfig->no_dts_signaling) {
@@ -803,7 +849,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		else if (ch && !ch->BufferOn)
 			gf_cm_abort_buffering(codec->CB);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: No data in decoding buffer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: No data in decoding buffer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID));
 		return GF_OK;
 	}
 

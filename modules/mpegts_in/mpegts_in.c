@@ -259,6 +259,9 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	esd = MP2TS_GetESD(m2ts, stream, dsi, dsi_size);
 	if (!esd) return NULL;
 
+	if (stream->program->is_scalable)
+		esd->has_ref_base = GF_TRUE;
+
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
@@ -316,6 +319,15 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	/*TS is a file, start regulation regardless of how the TS is access (with or without fragment URI)*/
 	if (m2ts->ts->file || m2ts->ts->dnload || m2ts->owner->query_proxy) 
 		m2ts->ts->file_regulate = 1;
+		
+	for (i=0; i<count; i++) {
+		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+		if (es->pid==prog->pmt_pid) continue;
+		if (((GF_M2TS_PES *)es)->depends_on_pid ) {
+			prog->is_scalable = GF_TRUE;
+			break;
+		}
+	}
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
@@ -1054,8 +1066,6 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			/*we try to play the highest layer*/
 			if (pes->program->pid_playing < pes->pid)
 				pes->program->pid_playing = pes->pid;
-			if (pes->depends_on_pid)
-				pes->program->is_scalable = GF_TRUE;
 		}
 	}
 	gf_term_on_connect(m2ts->service, channel, e);

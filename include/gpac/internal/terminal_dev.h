@@ -689,6 +689,7 @@ struct _es_channel
 	u64 net_dts, net_cts;
 
 	Bool no_timestamps;
+	u32 prev_aggregated_dts;
 };
 
 /*creates a new channel for this stream*/
