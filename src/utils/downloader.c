@@ -134,6 +134,7 @@ struct __gf_download_session
 
     u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
     u32 bytes_per_sec;
+	u64 start_time_utc;
 
 	Bool is_range_continuation;
 	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases*/
@@ -1125,6 +1126,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 	//reset bandwidth computation at start of each chunk
 	if (sess->chunked && !sess->nb_left_in_chunk) {
 		sess->start_time = gf_sys_clock();
+		sess->start_time_utc = gf_net_get_utc();
 		sess->bytes_done = 0;
 	}
 
@@ -1957,6 +1959,13 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
     if (sess->status == GF_NETIO_DISCONNECTED) return GF_EOS;
     else if (sess->status == GF_NETIO_STATE_ERROR) return GF_SERVICE_ERROR;
     return GF_OK;
+}
+
+GF_EXPORT
+u64 gf_dm_sess_get_utc_start(GF_DownloadSession * sess)
+{
+    if (!sess) return 0;
+	return sess->start_time_utc;
 }
 
 GF_EXPORT
@@ -2832,6 +2841,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     }
 
     sess->start_time = gf_sys_clock();
+	sess->start_time_utc = gf_net_get_utc();
 
     /* we may have existing data in this buffer ... */
     if (!e && (BodyStart < (s32) bytesRead)) {
@@ -3054,6 +3064,7 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->last_error = GF_OK;
     sess->total_size = 0;
     sess->start_time = 0;
+	sess->start_time_utc = 0;
     return GF_OK;
 }
 

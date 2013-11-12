@@ -935,6 +935,18 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 	}
+	if (com->command_type == GF_NET_SERVICE_PROXY_CHUNK_RECEIVE) {
+		isor_flush_data(read, 1, 0);
+		return GF_OK;
+	}
+	if (com->command_type == GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE) {
+		isor_flush_data(read, 1, 1);
+		return GF_OK;
+	}
+	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
+		isor_flush_data(read, 0, 0);
+		return GF_OK;
+	}
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
@@ -947,6 +959,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_isom_set_sample_padding(read->mov, ch->track, com->pad.padding_bytes);
 		return GF_OK;
 	case GF_NET_CHAN_SET_PULL:
+		//we don't pull in DASH base services, we flush as soon as we have a complete segment
+		if (read->input->proxy_udta) 
+			return GF_NOT_SUPPORTED;
+
 		ch->is_pulling = 1;
 		return GF_OK;
 	case GF_NET_CHAN_INTERACTIVE:
@@ -980,8 +996,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
-		if (!ch->is_pulling) return GF_NOT_SUPPORTED;
-		assert(!ch->is_playing);
+
 		isor_reset_reader(ch);
 		ch->speed = com->play.speed;
 		ch->start = ch->end = 0;

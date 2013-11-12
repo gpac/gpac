@@ -98,6 +98,14 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 	return gf_dash_check_mpd_root_type(url);
 }
 
+static void MPD_NotifyData(GF_MPDGroup *group, Bool chunk_flush)
+{
+	GF_NetworkCommand com;
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	com.base.command_type = chunk_flush ? GF_NET_SERVICE_PROXY_CHUNK_RECEIVE : GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE;
+	group->segment_ifce->ServiceCommand(group->segment_ifce, &com);
+}
+
 static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 {
 	u32 i;
@@ -362,7 +370,10 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 			u32 bytes_per_sec;
 			const char *url;
 			gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000 ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps - chunk start at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
+
+			if (group->mpdin->use_low_latency) 
+				MPD_NotifyData(group, 1);
 		}
 	
 		if (group->mpdin->allow_http_abort)
@@ -371,8 +382,9 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 	if (param->msg_type == GF_NETIO_DATA_TRANSFERED) {
 		u32 bytes_per_sec;
 		const char *url;
+		u64 start_time = gf_dm_sess_get_utc_start(group->sess);
 		gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chun at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
 	}
 }
 
@@ -470,7 +482,8 @@ u32 mpdin_dash_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 	return size;
 }
 
-GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt, GF_Err error_code)
+
+GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt, s32 group_idx, GF_Err error_code)
 {
 	GF_Err e;
 	u32 i;
@@ -566,6 +579,13 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		u32 tot, done;
 		gf_dash_get_buffer_info_buffering(mpdin->dash, &tot, &done);
 		fprintf(stderr, "DASH: Buffering %g%% out of %d ms\n", (100.0*done)/tot, tot);
+		return GF_OK;
+	}
+	if (dash_evt==GF_DASH_EVENT_SEGMENT_AVAILABLE) {
+		if (group_idx>=0) {
+			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
+			if (group) MPD_NotifyData(group, 0);
+		}
 	}
 	return GF_OK;
 }
@@ -755,7 +775,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     }
 	/*we could get it from MPD*/
     case GF_NET_SERVICE_HAS_AUDIO:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Has Audio command from terminal on Service (%p)\n", mpdin->service));
+	case GF_NET_SERVICE_FLUSH_DATA:
 		if (segment_ifce) {
 	        /* defer to the real input service */
 		    return segment_ifce->ServiceCommand(segment_ifce, com);

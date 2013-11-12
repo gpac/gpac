@@ -68,7 +68,7 @@ typedef struct
 	/*0: segment is not opened - 1: segment is opened but can be refreshed incomplete file) - 2: segment is fully parsed, no need for refresh*/
 	u32 seg_opened;
 	Bool drop_next_segment;
-
+	Bool in_data_flush;
 } ISOMReader;
 
 
@@ -129,6 +129,8 @@ void isor_declare_objects(ISOMReader *read);
 void send_proxy_command(ISOMReader *read, Bool is_disconnect, Bool is_add_media, GF_Err e, GF_Descriptor *desc, LPNETCHANNEL channel);
 
 void isor_send_cenc_config(ISOMChannel *ch);
+
+void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_BaseInterface *isow_load_cache();

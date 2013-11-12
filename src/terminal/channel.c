@@ -1329,6 +1329,14 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
 	if (!ch->is_pulling) {
+		if (!ch->AU_buffer_first) {
+			/*query buffer level, don't sleep if too low*/
+			GF_NetworkCommand com;
+			com.command_type = GF_NET_SERVICE_FLUSH_DATA;
+			com.base.on_channel = NULL;
+			gf_term_service_command(ch->service, &com);
+		}
+	
 		/*we must update buffering before fetching in order to stop buffering for streams with very few
 		updates (especially streams with one update, like most of OD streams)*/
 		if (ch->BufferOn) Channel_UpdateBuffering(ch, 0);
