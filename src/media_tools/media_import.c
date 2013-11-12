@@ -5121,7 +5121,9 @@ restart_import:
 	while (gf_bs_available(bs)) {
 		s32 res;
 		u8 nal_unit_type, temporal_id, layer_id;
-		Bool skip_nal, add_sps, is_slice;
+		Bool skip_nal, add_sps, is_slice, has_vcl_nal;
+
+		has_vcl_nal = 0;
 		nal_size = gf_media_nalu_next_start_code_bs(bs);
 
 		if (nal_size>max_size) {
@@ -5171,7 +5173,7 @@ restart_import:
 			if (hevc.vps[idx].state == 2) {
 				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					is_empty_sample = 0;
+					has_vcl_nal = 1;
 					assert(vpss);
 					vpss->array_completeness = 0;
 				}
@@ -5220,7 +5222,7 @@ restart_import:
 			else if (hevc.sps[idx].state & AVC_SPS_DECLARED) {
 				if (hevc.sps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					is_empty_sample = 0;
+					has_vcl_nal = 1;
 					assert(spss);
 					spss->array_completeness = 0;
 				}
@@ -5310,7 +5312,7 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					is_empty_sample = 0;
+					has_vcl_nal = 1;
 					assert(ppss);
 					ppss->array_completeness = 0;
 				}
@@ -5349,25 +5351,13 @@ restart_import:
 			}
 			break;
 
-		/*slice_layer_rbsp*/
-//		case GF_HEVC_NALU_SLICE_STSA_N:
-//		case GF_HEVC_NALU_SLICE_STSA_R:
-		case GF_HEVC_NALU_SLICE_RADL_N:
-//		case GF_HEVC_NALU_SLICE_RADL_R:
-		case GF_HEVC_NALU_SLICE_RASL_N:
-//		case GF_HEVC_NALU_SLICE_RASL_R:		
-			is_slice = 1;
-			if (! skip_nal) {
-				copy_size = nal_size;
-				is_empty_sample = 0;
-			}
-			break;
-
 		/*slice_segment_layer_rbsp*/
 		case GF_HEVC_NALU_SLICE_STSA_N:
 		case GF_HEVC_NALU_SLICE_STSA_R:
 		case GF_HEVC_NALU_SLICE_RADL_R:
 		case GF_HEVC_NALU_SLICE_RASL_R:		
+		case GF_HEVC_NALU_SLICE_RADL_N:
+		case GF_HEVC_NALU_SLICE_RASL_N:
 		case GF_HEVC_NALU_SLICE_TRAIL_N:
 		case GF_HEVC_NALU_SLICE_TRAIL_R:
 		case GF_HEVC_NALU_SLICE_TSA_N:
@@ -5386,7 +5376,7 @@ restart_import:
 */
 			if (! skip_nal) {
 				copy_size = nal_size;
-				is_empty_sample = 0;
+				has_vcl_nal = 1;
 				switch (hevc.s_info.slice_type) {
 				case GF_HEVC_TYPE_P: nb_p++; break;
 				case GF_HEVC_TYPE_I: nb_i++; 
@@ -5407,7 +5397,6 @@ restart_import:
 		default:
 			gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_unit_type);
 			copy_size = nal_size;
-			is_empty_sample = 0;
 			break;
 		}
 
@@ -5510,6 +5499,10 @@ restart_import:
 			if (set_subsamples) {
 				/* use the res and priority value of last prefix NALU */
 				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 0, 0, 0);
+			}
+
+			if (has_vcl_nal) {
+				is_empty_sample = 0;
 			}
 
 			//fixme with latest SHVC syntax
