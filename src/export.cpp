@@ -328,6 +328,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_process_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_cache_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_stats) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_utc_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_fetch_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_last_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_resource_name) )

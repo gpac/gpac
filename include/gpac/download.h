@@ -370,6 +370,15 @@ extern "C" {
      */
     GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status);
 
+    /*!
+     *\brief get start time
+     *
+     *Gets session start time in UTC. If chunk-transfer is used, the start time is reset at each chunk start
+     *\param sess the download session
+     *\return UTC start time
+     */
+    u64 gf_dm_sess_get_utc_start(GF_DownloadSession *sess);
+
 
     /*!
      *\brief fetch session object

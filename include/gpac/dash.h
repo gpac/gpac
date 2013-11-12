@@ -60,6 +60,8 @@ typedef enum
 
 	GF_DASH_EVENT_BUFFERING,
 	GF_DASH_EVENT_BUFFER_DONE,
+
+	GF_DASH_EVENT_SEGMENT_AVAILABLE,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -72,7 +74,7 @@ struct _gf_dash_io
 	void *udta;
 	
 	/*signals errors or specific actions to perform*/
-	GF_Err (*on_dash_event)(GF_DASHFileIO *dashio, GF_DASHEventType evt, GF_Err setup_error);
+	GF_Err (*on_dash_event)(GF_DASHFileIO *dashio, GF_DASHEventType evt, s32 group_idx, GF_Err setup_error);
 
 	/*called whenever a file has to be deleted*/
 	void (*delete_cache_file)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url);

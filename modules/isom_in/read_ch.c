@@ -253,7 +253,7 @@ next_segment:
 static void init_reader(ISOMChannel *ch)
 {
 	u32 ivar;
-	if (ch->wait_for_segment_switch) {
+	if (ch->is_pulling && ch->wait_for_segment_switch) {
 		isor_segment_switch_or_refresh(ch->owner, 0);
 		if (ch->wait_for_segment_switch) 
 			return;
@@ -327,7 +327,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		ch->next_track = 0;
 	}
 
-	if (ch->owner->seg_opened==1) {
+	if ((ch->owner->seg_opened==1) && ch->is_pulling) {
 		isor_segment_switch_or_refresh(ch->owner, 1);
 	}
 
@@ -452,18 +452,19 @@ fetch_next:
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
 				ch->last_state = GF_OK;
-			} else {
+			} else if (!ch->owner->frag_type) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
 			}
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
-		if (ch->wait_for_segment_switch)
+		if (ch->wait_for_segment_switch && ch->is_pulling)
 			isor_segment_switch_or_refresh(ch->owner, 0);
 		return;
 	}
 	ch->last_state = GF_OK;
+	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 	/*still seeking or not ?*/
 	if (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset) {
@@ -537,5 +538,53 @@ void isor_reader_release_sample(ISOMChannel *ch)
 }
 
 
+void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush)
+{
+	u32 i, count;
+	GF_NetworkCommand com;
+	ISOMChannel *ch;
+
+	if (read->in_data_flush) 
+		return;
+
+	gf_mx_p(read->segment_mutex);
+	read->in_data_flush = 1;
+
+	//update data
+	isor_segment_switch_or_refresh(read, is_chunk_flush);
+
+
+	if (check_buffer_level) {
+		ch = (ISOMChannel *)gf_list_get(read->channels, 0);
+		/*query buffer level, don't sleep if too low*/
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.command_type = GF_NET_BUFFER_QUERY;
+		gf_term_on_command(read->service, &com, GF_OK);
+		if (com.buffer.occupancy >= com.buffer.max) {
+			read->in_data_flush = 0;
+			gf_mx_v(read->segment_mutex);
+			return;
+		}
+	}
+
+	//for all channels, fetch and send ...
+	count = gf_list_count(read->channels);
+	for (i=0; i<count; i++) {
+		ch = (ISOMChannel *)gf_list_get(read->channels, i);
+		
+		while (!ch->sample) {
+			isor_reader_get_sample(ch);
+			if (!ch->sample) break;
+			gf_term_on_sl_packet(read->service, ch->channel, ch->sample->data, ch->sample->dataLength, &ch->current_slh, GF_OK);
+			isor_reader_release_sample(ch);
+		}
+ 		if (!ch->sample && (ch->last_state==GF_EOS)) {
+			gf_term_on_sl_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
+		}
+	}
+
+	read->in_data_flush = 0;
+	gf_mx_v(read->segment_mutex);
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

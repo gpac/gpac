@@ -97,6 +97,8 @@ typedef enum
 	GF_NET_SERVICE_INFO,
 	/*checks if there is an audio stream in the service - term->net only*/
 	GF_NET_SERVICE_HAS_AUDIO,
+	/*send by the terminal to indicate the channel(s) on this service need more data - term->net only*/
+	GF_NET_SERVICE_FLUSH_DATA,
 
 	/*checks if there is a forced video size  - if yes, info is stored in GF_NetComPixelAR - term->net only*/
 	GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE,
@@ -113,6 +115,10 @@ typedef enum
 	GF_NET_SERVICE_QUERY_INIT_RANGE,
 	/* When using proxy between an input module and the terminal, exchange status using this command: input -> proxy */
 	GF_NET_SERVICE_STATUS_PROXY,
+	/*When using DASH or playlists, indicates that DATA (chunk) has been received by the playlist proxy*/
+	GF_NET_SERVICE_PROXY_CHUNK_RECEIVE,
+	/*When using DASH or playlists, indicates that complete segment has been received by the playlist proxy*/
+	GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:

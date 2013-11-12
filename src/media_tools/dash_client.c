@@ -247,7 +247,7 @@ static void gf_dash_buffer_off(GF_DASH_Group *group, GF_DashClient *dash)
 		assert(dash->nb_buffering); 
 		dash->nb_buffering--;	
 		if (!dash->nb_buffering) {
-			dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_BUFFER_DONE, GF_OK); 
+			dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_BUFFER_DONE, -1, GF_OK); 
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Session buffering done\n"));
 		}
 		group->buffering = 0;
@@ -320,7 +320,7 @@ void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u
 static void gf_dash_update_buffering(GF_DASH_Group *group, GF_DashClient *dash)
 {
 	if (dash->nb_buffering) {
-		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_BUFFERING, GF_OK);
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_BUFFERING, -1, GF_OK);
 
 		if (group->cached[0].duration && group->nb_cached_segments>=group->max_buffer_segments) 
 			gf_dash_buffer_off(group, dash);
@@ -2383,7 +2383,7 @@ static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Re
 static void gf_dash_reset_groups(GF_DashClient *dash)
 {
 	/*send playback destroy event*/
-	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_DESTROY_PLAYBACK, GF_OK);
+	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_DESTROY_PLAYBACK, -1, GF_OK);
 
 	while (gf_list_count(dash->groups)) {
 		GF_DASH_Group *group = gf_list_last(dash->groups);
@@ -3042,11 +3042,11 @@ restart_period:
 	/*setup period*/
 	e = gf_dash_setup_period(dash);
 	if (e) {
-		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, e);
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
 		ret = 1;
 		goto exit;
 	}
-	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, GF_OK);
+	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, -1, GF_OK);
 
 	e = GF_OK;
 	group_count = gf_list_count(dash->groups);
@@ -3064,7 +3064,7 @@ restart_period:
 
 	/*if error signal to the user*/
 	if (e != GF_OK) {
-		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, e);
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
 		ret = 1;
 		goto exit;
 	}
@@ -3078,7 +3078,7 @@ restart_period:
 
 
 	/*ask the user to connect to desired groups*/
-	e = dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CREATE_PLAYBACK, GF_OK);
+	e = dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CREATE_PLAYBACK, -1, GF_OK);
 	if (e) {
 		ret = 1;
 		goto exit;
@@ -3443,6 +3443,10 @@ restart_period:
 					}
 				}
 				gf_mx_v(dash->dl_mutex);
+
+
+				dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, group), GF_OK); 
+
 			}
 			gf_free(new_base_seg_url);
 			new_base_seg_url = NULL;
