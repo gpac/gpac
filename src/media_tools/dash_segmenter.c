@@ -908,6 +908,12 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	if (!tfref)
 		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
+	else {
+		//put tfref in first pos
+		gf_list_del_item(fragmenters, tfref);
+		gf_list_insert(fragmenters, tfref, 0);
+	}
+
 	tfref->is_ref_track = GF_TRUE;
 	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
@@ -1105,28 +1111,11 @@ restart_fragmentation_pass:
 			Bool has_roll, is_rap;
 			s32 roll_distance;
 			u32 SAP_type = 0;
-			/*start with ref*/
-			if (split_seg_at_rap) {
-				if (tfref && (i==0)) {
-					tf = tfref;
-					has_rap = GF_FALSE;
-				} else {
-					u32 j;
-					for (j=0; j<=i; j++) {
-						tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i-1);
-						if (tfref && (tf == tfref)) {
-							//already done
-							continue;
-						}
-						break;
-					}
-					assert(tf);
-				}
-			} else {
-				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
-				if (tf == tfref) 
-					has_rap = GF_FALSE;
-			} 
+
+			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
+			if (tf == tfref) 
+				has_rap = GF_FALSE;
+
 			if (tf->done) continue;
 
 			//ok write samples
