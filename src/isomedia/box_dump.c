@@ -4234,7 +4234,7 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 
 	time_t secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
 	struct tm t = *gmtime(&secs);
-	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\"%d\" NTP_frac=\"%u\" UTCClock=\"%d-%02d-%02dT%02d:%02d:%02dZ\">\n", ptr->refTrackID, ptr->timestamp, ptr->ntp&0xFFFFFFFFULL, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\""LLU"\" NTP_frac=\"%d\"  UTCClock=\"%d-%02d-%02dT%02d:%02d:%02dZ\">\n", ptr->refTrackID, ptr->timestamp, (u32) (ptr->ntp&0xFFFFFFFFULL), 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, (u32) t.tm_sec);
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	gf_box_dump_done("ProducerReferenceTimeBox", a, trace);
