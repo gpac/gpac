@@ -1636,7 +1636,7 @@ typedef enum
 	GF_ISOM_HEVCTYPE_HEVC_ONLY,
 	GF_ISOM_HEVCTYPE_HEVC_SHVC,
 	GF_ISOM_HEVCTYPE_SHVC_ONLY,
-} GF_ISOMAVCType;
+} GF_ISOMHEVCType;
 
 u32 gf_isom_get_hevc_shvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
