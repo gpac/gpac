@@ -137,7 +137,12 @@ static GF_Err process_extractor(GF_ISOFile *file, u32 sampleNumber, u32 nal_size
 			}
 		}
 		ref_bs = gf_bs_new(ref_samp->data + data_offset, ref_samp->dataLength - data_offset, GF_BITSTREAM_READ);
-		while (gf_bs_available(ref_bs)) {
+		if (!data_length)
+			data_length = ref_samp->dataLength - data_offset;
+
+		assert(ref_samp->dataLength - data_offset >= data_length);
+
+		while (data_length && gf_bs_available(ref_bs)) {
 			ref_nalu_size = gf_bs_read_int(ref_bs, 8*nal_unit_size_field);
 			assert(ref_nalu_size <= data_length);
 			
