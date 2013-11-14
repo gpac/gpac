@@ -39,6 +39,8 @@
 
 */
 
+//#define DASH_USE_PULL
+
 typedef struct
 {
 	GF_InputService *input;

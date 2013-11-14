@@ -173,7 +173,8 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 		return -1;
 	}
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
-	track = gf_isom_new_track(video_output_file->isof, 1, GF_ISOM_MEDIA_VISUAL, video_codec_ctx->time_base.den);
+	track = gf_isom_new_track(video_output_file->isof, 0, GF_ISOM_MEDIA_VISUAL, video_codec_ctx->time_base.den);
+	video_output_file->trackID = gf_isom_get_track_id(video_output_file->isof, track);
 
 	video_output_file->timescale = video_codec_ctx->time_base.den;
 	if (!video_output_file->frame_dur) 
@@ -184,13 +185,13 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 		return -1;
 	}
 
-	ret = gf_isom_set_track_enabled(video_output_file->isof, 1, 1);
+	ret = gf_isom_set_track_enabled(video_output_file->isof, track, 1);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_track_enabled\n", gf_error_to_string(ret)));
 		return -1;
 	}
 
-	ret = gf_isom_avc_config_new(video_output_file->isof, 1, avccfg, NULL, NULL, &di);
+	ret = gf_isom_avc_config_new(video_output_file->isof, track, avccfg, NULL, NULL, &di);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_avc_config_new\n", gf_error_to_string(ret)));
 		return -1;
@@ -210,7 +211,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 		}
 	}
 
-	ret = gf_isom_setup_track_fragment(video_output_file->isof, 1, 1, video_output_file->use_source_timing ? (u32) video_output_file->frame_dur : 1, 0, 0, 0, 0);
+	ret = gf_isom_setup_track_fragment(video_output_file->isof, track, 1, video_output_file->use_source_timing ? (u32) video_output_file->frame_dur : 1, 0, 0, 0, 0);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_setutrack_fragment\n", gf_error_to_string(ret)));
 		return -1;
@@ -218,7 +219,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 
 	//gf_isom_add_track_to_root_od(video_output_file->isof,1);
 
-	ret = gf_isom_finalize_for_fragment(video_output_file->isof, 1);
+	ret = gf_isom_finalize_for_fragment(video_output_file->isof, track);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret)));
 		return -1;
@@ -297,7 +298,7 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 	video_output_file->sample->IsRAP = video_codec_ctx->coded_frame->key_frame;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Isom Write: RAP %d , DTS %ld \n", video_output_file->sample->IsRAP, video_output_file->sample->DTS));
 
-	ret = gf_isom_fragment_add_sample(video_output_file->isof, 1, video_output_file->sample, 1, video_output_file->use_source_timing ? (u32) video_output_file->frame_dur : 1, 0, 0, 0);
+	ret = gf_isom_fragment_add_sample(video_output_file->isof, video_output_file->trackID, video_output_file->sample, 1, video_output_file->use_source_timing ? (u32) video_output_file->frame_dur : 1, 0, 0, 0);
 	if (ret != GF_OK) {
 		gf_bs_del(out_bs);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
@@ -555,7 +556,7 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 	return -2;
 }
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_utc)
 {
 	u64 frame_dur;
 	GF_Err ret;
@@ -576,10 +577,18 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
 
 				video_output_file->first_dts = video_output_file->codec_ctx->coded_frame->pkt_dts;
 				if (!video_output_file->segment_started) {
+					u32 sec, frac;
+					u64 ntpts;
 					video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
 					video_output_file->segment_started = 1;
+
+					if (insert_utc) {
+						gf_net_get_ntp(&sec, &frac);
+						ntpts = sec; ntpts <<= 32; ntpts |= frac; 
+						gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntpts, video_output_file->pts_at_segment_start);
+					}
 				}
-				gf_isom_set_traf_base_media_decode_time(video_output_file->isof, 1, video_output_file->first_dts);
+				gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts);
 			}
 
 			//keep track of previous frame dur and use last dur as the default duration for next sample
@@ -611,7 +620,22 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb)
 
 		if (frame_nb % video_output_file->frame_per_fragment == 0) {
 			gf_isom_start_fragment(video_output_file->isof, 1);
-			gf_isom_set_traf_base_media_decode_time(video_output_file->isof, 1, video_output_file->first_dts);
+
+			if (!video_output_file->segment_started) {
+				u32 sec, frac;
+				u64 ntpts;
+				video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
+				video_output_file->segment_started = 1;
+
+				if (insert_utc) {
+					gf_net_get_ntp(&sec, &frac);
+					ntpts = sec; ntpts <<= 32; ntpts |= frac; 
+					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntpts, video_output_file->pts_at_segment_start);
+				}
+			}
+
+
+			gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts);
 			video_output_file->first_dts += video_output_file->frame_per_fragment;
 		}
 

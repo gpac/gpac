@@ -25,6 +25,8 @@
 
 
 #include "isom_in.h"
+#include <gpac/network.h>
+#include <time.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -81,6 +83,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 
 	//if first time trying to fetch next segment, check if we have to discard it
 	if (!progressive_refresh && (read->seg_opened==2)) {
+#ifdef DASH_USE_PULL
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
 			/*check all playing channels are waiting for next segment*/
@@ -89,6 +92,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 progressive_refresh)
 				return;
 			}
 		}
+#endif
 
 		/*close current segment*/
 		gf_isom_release_segment(read->mov, 1);
@@ -103,6 +107,7 @@ next_segment:
 	/*update current fragment if any*/
 	e = read->input->query_proxy(read->input, &param);
 	if (e == GF_OK) {
+		u64 timestamp, ntp;
 		u32 trackID = 0;
 		if (param.url_query.next_url){
 
@@ -179,6 +184,15 @@ next_segment:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Opening current segment in non-progressive mode (completely downloaded)\n"));
 			}
 
+#ifndef _WIN32_WCE
+			if (gf_isom_get_last_producer_time_box(read->mov, &trackID, &ntp, &timestamp, 1)) {
+				time_t secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
+				struct tm t = *gmtime(&secs);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp "LLU" matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %d) \n", trackID, timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, (ntp & 0xFFFFFFFFULL) ));
+			}
+#endif
+
+			trackID = 0;
 			for (i=0; i<count; i++) {
 				ISOMChannel *ch = gf_list_get(read->channels, i);
 				ch->wait_for_segment_switch = 0;
@@ -551,10 +565,10 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	read->in_data_flush = 1;
 
 	//update data
-	isor_segment_switch_or_refresh(read, is_chunk_flush);
+	isor_segment_switch_or_refresh(read, (is_chunk_flush && (read->seg_opened==1) ) ? 1 : 0);
 
 
-	if (check_buffer_level) {
+	if (!is_chunk_flush && check_buffer_level) {
 		ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		/*query buffer level, don't sleep if too low*/
 		memset(&com, 0, sizeof(GF_NetworkCommand));

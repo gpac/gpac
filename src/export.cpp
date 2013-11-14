@@ -773,7 +773,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_composition_offset_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -963,6 +963,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_finalize_for_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_flush_fragments) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_reference_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_append_data) )

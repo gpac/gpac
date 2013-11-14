@@ -375,6 +375,8 @@ enum
 	GF_ISOM_BOX_TYPE_STSE	= GF_4CC( 's', 't', 's', 'e' ),
 	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 's', 't', 't', 'C' ),
 
+	GF_ISOM_BOX_TYPE_PRFT   = GF_4CC( 'p', 'r', 'f', 't' ),
+	
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -1624,6 +1626,10 @@ typedef struct
 	u64 fragment_offset;
 	u32 mdat_size;
 	char *mdat;
+
+	//temp storage of prft box
+	u32 reference_track_ID;
+	u64 ntp, timestamp;
 } GF_MovieFragmentBox;
 
 
@@ -2277,6 +2283,15 @@ typedef struct __sample_encryption_box
 GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
+
+typedef struct 
+{
+	GF_ISOM_FULL_BOX
+	u32 refTrackID;
+	u64 ntp, timestamp;
+} GF_ProducerReferenceTimeBox;
+
+
 /*
 		Data Map (media storage) stuff
 */
@@ -2459,6 +2474,7 @@ struct __tag_isom {
 	Bool single_moof_mode;
 	u32 single_moof_state;
 #endif
+	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
 	/*this contains ALL the root boxes excepts fragments*/
 	GF_List *TopBoxes;
@@ -4000,6 +4016,12 @@ GF_Err hvcc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err hvcc_Size(GF_Box *s);
 GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err hvcc_dump(GF_Box *a, FILE * trace);
+
+
+void prft_del(GF_Box *s);
+GF_Box *prft_New();
+GF_Err prft_Read(GF_Box *s,GF_BitStream *bs);
+GF_Err prft_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

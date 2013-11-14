@@ -802,6 +802,10 @@ u32 gf_isom_guess_specification(GF_ISOFile *file);
 /*keeps UTC edit times when storing*/
 void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc);
 
+
+/*gets last UTC/timestamp values indicated for the reference track in the file if any. Returns 0 if no info found*/
+Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
@@ -1249,6 +1253,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 refere
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
+
+/*sets fragment prft box info, written just before the moof*/
+GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp, u64 timestamp);
 
 /*writes an empty sidx in the current movie. The SIDX will be forced to have nb_segs entries - nb_segs shall match the number of calls to
 gf_isom_close_segment that will follow. This avoids wasting time and disk space moving data around. Once gf_isom_close_segment has then been called nb_segs times, 

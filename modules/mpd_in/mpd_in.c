@@ -44,7 +44,8 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
 	Bool memory_storage;
-	Bool use_max_res, immediate_switch, use_low_latency, allow_http_abort;
+	Bool use_max_res, immediate_switch, allow_http_abort;
+	u32 use_low_latency;
     Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -374,6 +375,8 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 
 			if (group->mpdin->use_low_latency) 
 				MPD_NotifyData(group, 1);
+		} else if (group->mpdin->use_low_latency==2) {
+			MPD_NotifyData(group, 1);
 		}
 	
 		if (group->mpdin->allow_http_abort)
@@ -666,12 +669,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 	
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering", "yes");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering", "no");
 	enable_buffering = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
-	mpdin->use_low_latency = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
+
+	if (opt && !strcmp(opt, "chunk") ) mpdin->use_low_latency = 1;
+	else if (opt && !strcmp(opt, "always") ) mpdin->use_low_latency = 2;
+	else mpdin->use_low_latency = 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AllowAbort");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AllowAbort", "no");
@@ -804,9 +810,11 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	/*we should get it from MPD minBufferTime*/
 	case GF_NET_CHAN_BUFFER:
-		com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
-		if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
-			com->buffer.min = 200;
+		if (!mpdin->use_low_latency) {
+			com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
+			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
+				com->buffer.min = 200;
+			}
 		}
         return GF_OK;
 
