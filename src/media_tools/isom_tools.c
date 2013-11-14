@@ -1953,7 +1953,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		count2 = gf_list_count(ar->nalus);
 		for (j=0; j<count2; j++) {
 			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-			u8 nal_type = (sl->data[0] & 0x7E) >> 1;
+//			u8 nal_type = (sl->data[0] & 0x7E) >> 1;
 			u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 			
 			//this should not happen
@@ -2005,7 +2005,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				sti[layer_id].bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 			gf_bs_write_int(sti[layer_id].bs, size, shvccfg->nal_unit_size*8);
-			gf_bs_write_int(sti[layer_id].bs, 0, 1);
+			gf_bs_write_int(sti[layer_id].bs, fzero, 1);
 			gf_bs_write_int(sti[layer_id].bs, nal_type, 6);
 			gf_bs_write_int(sti[layer_id].bs, orig_layer_id, 6);
 			gf_bs_write_int(sti[layer_id].bs, temporal_id, 3);
