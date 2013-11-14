@@ -136,7 +136,7 @@ u32 send_frag_event(void *params)
 	return 0;
 }
 
-static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf, const VideoDataConf *video_data_conf, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum)
+static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf, const VideoDataConf *video_data_conf, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum, const int ast_offset)
 {
 	u32 i = 0;
 	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,	video_frag_dur = 0;
@@ -197,8 +197,15 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 		fprintf(f,
 			"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"",
 			audio_data_conf->samplerate, audio_seg_dur * audio_frame_size, segnum);
+
+		if (ast_offset<0) {
+			fprintf(f, " availabilityTimeOffset=\"%g\"", -ast_offset/1000.0);	
+		}
+		fprintf(f, "/>\n");
+
+
 
 		for (i = 0; i < gf_list_count(cmddata->audio_lst); i++) {
 			audio_data_conf = gf_list_get(cmddata->audio_lst, i);
@@ -216,8 +223,14 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 		fprintf(f,
 			"   <SegmentTemplate timescale=\"%d\" duration=\"%d\" media=\"$RepresentationID$_$Number$_gpac.m4s\""
-			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"/>\n",
+			" startNumber=\"%d\" initialization=\"$RepresentationID$_init_gpac.mp4\"",
 			video_data_conf->framerate, video_seg_dur, segnum);
+
+
+		if (ast_offset<0) {
+			fprintf(f, " availabilityTimeOffset=\"%g\"", -ast_offset/1000.0);	
+		}
+		fprintf(f, "/>\n");
 
 		for (i = 0; i < gf_list_count(cmddata->video_lst); i++) {
 			video_data_conf = gf_list_get(cmddata->video_lst, i);
@@ -287,8 +300,18 @@ static u32 mpd_thread(void *params)
 					main_seg_time = seg_time;
 				} else {
 					if (first) {
+						u64 rounded;
+						s32 diff;
 						main_seg_time = seg_time;
 						first = GF_FALSE;
+						rounded = (main_seg_time.time/1000) * 1000;
+						diff = rounded + 1000 - main_seg_time.time;
+						main_seg_time.time = rounded + 1000;
+
+						//if using AST offset, signal the diff
+						if (cmddata->ast_offset) {
+							cmddata->ast_offset -= diff;
+						}
 					}
 				}
 			}
@@ -314,7 +337,7 @@ static u32 mpd_thread(void *params)
 				snprintf(time_shift, sizeof(time_shift), "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
 			}
 
-			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum);
+			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum, cmddata->ast_offset);
 		}
 	} else {
 
@@ -342,7 +365,7 @@ static u32 mpd_thread(void *params)
 			fprintf(stdout, "Duration: %s\n", presentation_duration);
 		}
 
-		dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, 0);
+		dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, 0, cmddata->ast_offset);
 	}
 
 	return 0;

@@ -110,6 +110,7 @@ struct __dash_client
 	u32 nb_buffering;
 	u32 idle_interval;
 
+	s32 utc_drift_estimate;
 	s32 utc_shift;
 	/* TODO - handle playback status for SPEED/SEEK through SIDX */
 	Double playback_start_range;
@@ -352,7 +353,9 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	u32 shift, timescale;
 	u64 current_time, availabilityStartTime;
 	u32 ast_diff, start_number;
+	Double ast_offset = 0;
 	
+	group->dash->utc_drift_estimate = 0;
 	if (mpd->type==GF_MPD_TYPE_STATIC) 
 		return;
 	
@@ -378,28 +381,37 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		//if more than 1 sec consider we have a pb
 		if (availabilityStartTime - current_time >= 1000) {
 #ifndef _WIN32_WCE
-			time_t gtime;
+			time_t gtime1, gtime2;
 			struct tm *t1, *t2;
-			gtime = current_time / 1000;
-			t1 = gmtime(&gtime);
-			gtime = availabilityStartTime / 1000;
-			t2 = gmtime(&gtime);
-			if (t1 && t2) {
+			gtime1 = current_time / 1000;
+			t1 = gmtime(&gtime1);
+			gtime2 = availabilityStartTime / 1000;
+			t2 = gmtime(&gtime2);
+			if (t1 == t2) {
+				group->dash->utc_drift_estimate = (s32) (availabilityStartTime - current_time);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Slight drift in UTC clock at time %d-%02d-%02dT%02d:%02d:%02dZ: diff AST - now %d ms\n", 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec, group->dash->utc_drift_estimate));
+				current_time = 0;	
+			}
+			else if (t1 && t2) {
 				t1->tm_year = t2->tm_year;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: current time %d-%02d-%02dT%02d:%02d:%02dZ is less than AST %d-%02d-%02dT%02d:%02d:%02dZ!\n", 
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: current time %d-%02d-%02dT%02d:%02d:%02dZ is less than AST %d-%02d-%02dT%02d:%02d:%02dZ - diff AST-now %d ms\n", 
 						 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec,
-						 1900+t2->tm_year, t2->tm_mon+1, t2->tm_mday, t2->tm_hour, t2->tm_min, t2->tm_sec
+						 1900+t2->tm_year, t2->tm_mon+1, t2->tm_mday, t2->tm_hour, t2->tm_min, t2->tm_sec,
+						 (u32) (availabilityStartTime - current_time)
 				));
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in UTC clock: could not retrieve time!\n"));
 			}
+
 #endif
-			if (group->dash->utc_shift>0) {
-				availabilityStartTime = current_time;
-			} else {
-				current_time = 0;
-				group->broken_timing = 1;
-				return;
+			if (!group->dash->utc_drift_estimate) {
+				if (group->dash->utc_shift>0) {
+					availabilityStartTime = current_time;
+				} else {
+					current_time = 0;
+					group->broken_timing = 1;
+					return;
+				}
 			}
 		} else {
 			availabilityStartTime = current_time;
@@ -440,32 +452,38 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		if (group->period->segment_list->segment_timeline) timeline = group->period->segment_list->segment_timeline;
 		if (group->period->segment_list->timescale) timescale = group->period->segment_list->timescale;
 		if (group->period->segment_list->start_number) start_number = group->period->segment_list->start_number;
+		if (group->period->segment_list->availability_time_offset) ast_offset = group->period->segment_list->availability_time_offset;
 	}
 	if (group->adaptation_set->segment_list) {
 		if (group->adaptation_set->segment_list->segment_timeline) timeline = group->adaptation_set->segment_list->segment_timeline;
 		if (group->adaptation_set->segment_list->timescale) timescale = group->adaptation_set->segment_list->timescale;
 		if (group->adaptation_set->segment_list->start_number) start_number = group->adaptation_set->segment_list->start_number;
+		if (group->adaptation_set->segment_list->availability_time_offset) ast_offset = group->adaptation_set->segment_list->availability_time_offset;
 	}
 	if (rep->segment_list) {
 		if (rep->segment_list->segment_timeline) timeline = rep->segment_list->segment_timeline;
 		if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
 		if (rep->segment_list->start_number) start_number = rep->segment_list->start_number;
+		if (rep->segment_list->availability_time_offset) ast_offset = rep->segment_list->availability_time_offset;
 	}
 
 	if (group->period->segment_template) {
 		if (group->period->segment_template->segment_timeline) timeline = group->period->segment_template->segment_timeline;
 		if (group->period->segment_template->timescale) timescale = group->period->segment_template->timescale;
 		if (group->period->segment_template->start_number) start_number = group->period->segment_template->start_number;
+		if (group->period->segment_template->availability_time_offset) ast_offset = group->period->segment_template->availability_time_offset;
 	}
 	if (group->adaptation_set->segment_template) {
 		if (group->adaptation_set->segment_template->segment_timeline) timeline = group->adaptation_set->segment_template->segment_timeline;
 		if (group->adaptation_set->segment_template->timescale) timescale = group->adaptation_set->segment_template->timescale;
 		if (group->adaptation_set->segment_template->start_number) start_number = group->adaptation_set->segment_template->start_number;
+		if (group->adaptation_set->segment_template->availability_time_offset) ast_offset = group->adaptation_set->segment_template->availability_time_offset;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->start_number) start_number = rep->segment_template->start_number;
+		if (rep->segment_template->availability_time_offset) ast_offset = rep->segment_template->availability_time_offset;
 	}
 
 	if (timeline) {
@@ -509,7 +527,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		if (!group->start_number_at_last_ast) {
 			group->download_segment_index = shift;
 			group->start_number_at_last_ast = start_number;
-			group->ast_at_init = availabilityStartTime;
+			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
 		} else {
@@ -519,12 +537,10 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d ms: Updating Timeline: startNumber=%d segmentNumber=%d downloadSegmentIndex=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->download_segment_index, group->segment_duration, ast_diff));
 			} else {
 				group->download_segment_index = shift;
-				group->ast_at_init = availabilityStartTime;
+				group->ast_at_init = availabilityStartTime -  (u32) (ast_offset*1000);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time %d ms: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->segment_duration, ast_diff));
 			}
 			group->start_number_at_last_ast = start_number;
-
-
 		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] UTC time indicates first segment in period is %d, MPD indicates %d segments are available ...\n", group->download_segment_index , group->nb_segments_in_rep));
@@ -3257,13 +3273,13 @@ restart_period:
 				s32 to_wait = 0;
 				u32 seg_dur_ms=0;
 				s64 segment_ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, &seg_dur_ms);
-				s64 now = (s64) gf_net_get_utc();
+				s64 now = (s64) gf_net_get_utc() + dash->utc_drift_estimate;
 				clock_time = gf_sys_clock();
 				
 				to_wait = (s32) (segment_ast - now);
 
 				/*if segment AST is greater than now, it is not yet available ...*/
-				if (to_wait > 4) {
+				if (to_wait > 100) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") is not yet available on server - requesting later in %d ms\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, to_wait));
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
