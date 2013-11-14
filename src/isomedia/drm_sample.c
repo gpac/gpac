@@ -414,6 +414,10 @@ static GF_Err gf_isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber,
 		break;
 	case GF_ISOM_BOX_TYPE_HVC1: 
 	case GF_ISOM_BOX_TYPE_HEV1: 
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 		if (is_isma) 
 			original_format = GF_4CC('2','6','5','b');
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;

@@ -197,6 +197,15 @@ void *gf_list_rev_enum(GF_List *ptr, u32 *pos);
 GF_Err gf_list_swap(GF_List *l1, GF_List *l2);
 
 /*!
+ *	\brief list transfer
+ *
+ *	Transfer content between lists
+ *	\param l1 destination list object
+ *	\param l2 source list object
+ */
+GF_Err gf_list_transfer(GF_List *l1, GF_List *l2);
+
+/*!
  *	\brief clone list
  *
  *	Returns a new list as an exact copy of the given list

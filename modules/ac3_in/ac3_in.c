@@ -101,7 +101,7 @@ static GF_ESD *AC3_GetESD(AC3Reader *read)
 	GF_ESD *esd;
 	esd = gf_odf_desc_esd_new(0);
 	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	esd->decoderConfig->objectTypeIndication = 0xA5;
+	esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AC3;
 	esd->ESID = 1;
 	esd->OCRESID = 1;
 	esd->slConfig->timestampResolution = read->sample_rate;

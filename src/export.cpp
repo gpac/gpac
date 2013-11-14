@@ -148,6 +148,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_swap) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_list_transfer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_reverse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_clone) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rev_enum) )
@@ -737,6 +738,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_shvc_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_hevc_shvc_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_info) )
@@ -901,6 +904,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_set_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_update) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_update) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_set_inband_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_shvc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_media_timescale) )
@@ -1208,6 +1214,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_hevc_tiles) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_split_shvc) )
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

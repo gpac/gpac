@@ -206,6 +206,12 @@ enum
 	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_HEV1	= GF_4CC( 'h', 'e', 'v', '1' ),
 
+	GF_ISOM_BOX_TYPE_HVC2	= GF_4CC( 'h', 'v', 'c', '2' ),
+	GF_ISOM_BOX_TYPE_HEV2	= GF_4CC( 'h', 'e', 'v', '2' ),
+	GF_ISOM_BOX_TYPE_SHCC	= GF_4CC( 's', 'h', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_SHC1	= GF_4CC( 's', 'h', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_SHV1	= GF_4CC( 's', 'h', 'v', '1' ),
+
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
@@ -881,6 +887,7 @@ typedef struct
 	GF_AVCConfigurationBox *svc_config;
 	/*hevc extension*/
 	GF_HEVCConfigurationBox *hevc_config;
+	GF_HEVCConfigurationBox *shvc_config;
 
 	GF_MPEG4BitRateBox *bitrate;
 	/*ext descriptors*/
@@ -2860,7 +2867,6 @@ GF_Box *hdlr_New();
 GF_Box *iods_New();
 GF_Box *trak_New();
 GF_Box *mp4s_New();
-GF_Box *mp4v_New();
 GF_Box *mp4a_New();
 GF_Box *edts_New();
 GF_Box *udta_New();
@@ -3320,13 +3326,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err avcc_Size(GF_Box *s);
 
-GF_Box *avc1_New();
-GF_Box *avc2_New();
-GF_Box *avc3_New();
-GF_Box *avc4_New();
-GF_Box *svc1_New();
-GF_Box *hvc1_New();
-GF_Box *hev1_New();
+GF_Box *mp4v_encv_avc_hevc_new(u32 type);
 
 GF_Box *m4ds_New();
 void m4ds_del(GF_Box *s);
@@ -3485,7 +3485,6 @@ GF_Box *frma_New();
 GF_Box *schm_New();
 GF_Box *schi_New();
 GF_Box *enca_New();
-GF_Box *encv_New();
 GF_Box *encs_New();
 
 void meta_del(GF_Box *s);

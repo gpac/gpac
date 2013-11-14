@@ -36,9 +36,6 @@
 #include <gpac/scene_engine.h>
 #endif
 
-#define USE_ISOBMF_REWRITE
-
-
 #ifdef GPAC_DISABLE_ISOM
 
 #error "Cannot compile MP42TS if GPAC is not built with ISO File Format support"
@@ -152,9 +149,6 @@ typedef struct
 	s64 ts_offset;
 	M2TSProgram *prog;
 
-#ifndef USE_ISOBMF_REWRITE
-	u32 nalu_size;
-#endif
 } GF_ESIMP4;
 
 typedef struct
@@ -226,81 +220,18 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
 		}
 
-#ifndef USE_ISOBMF_REWRITE
-		if (priv->nalu_size) {
-			Bool nalu_delim_sent = 0;
-			u32 remain = priv->sample->dataLength;
-			char *ptr = priv->sample->data;
-			u32 v, size;
-			char sc[10];
-
-
-			/*send nalus*/
-			sc[0] = sc[1] = sc[2] = 0; sc[3] = 1;
-			while (remain) {
-				size = 0;
-				v = priv->nalu_size;
-				while (v) {
-					size |= (u8) *ptr;
-					ptr++;
-					remain--;
-					v-=1;
-					if (v) size<<=8;
-				}
-				remain -= size;
-
-				if (!nalu_delim_sent) {
-					nalu_delim_sent = 1;
-					/*send a NALU delim: copy over NAL ref idc*/
-					sc[4] = (ptr[0] & 0x60) | GF_AVC_NALU_ACCESS_UNIT;
-					sc[5] = 0xF0 /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
-
-					pck.data = sc;
-					pck.data_len = 6;
-					ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-					pck.flags &= ~GF_ESI_DATA_AU_START;
-
-					/*and send SPD / PPS if RAP - it is not clear in the specs whether SPS/PPS should be inserted after
-					the AU delimiter NALU*/
-					if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
-						pck.data = priv->dsi;
-						pck.data_len = priv->dsi_size;
-						ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-						pck.flags &= ~GF_ESI_DATA_AU_START;
-					}
-				}
-
-				pck.data = sc;
-				pck.data_len = 4;
-				ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-
-				if (!remain) pck.flags |= GF_ESI_DATA_AU_END;
-				pck.flags &= ~GF_ESI_DATA_AU_START;
-
-				pck.data = ptr;
-				pck.data_len = size;
-				ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-				ptr += size;
-			}
-
-		} else 
-#endif //USE_ISOBMF_REWRITE
-		
-		{
-
-			if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
-				pck.data = priv->dsi;
-				pck.data_len = priv->dsi_size;
-				ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-				pck.flags &= ~GF_ESI_DATA_AU_START;
-			}
-
-			pck.flags |= GF_ESI_DATA_AU_END;
-			pck.data = priv->sample->data;
-			pck.data_len = priv->sample->dataLength;
+		if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
+			pck.data = priv->dsi;
+			pck.data_len = priv->dsi_size;
 			ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Track %d: sample %d CTS %d\n", priv->track, priv->sample_number+1, pck.cts));
+			pck.flags &= ~GF_ESI_DATA_AU_START;
 		}
+
+		pck.flags |= GF_ESI_DATA_AU_END;
+		pck.data = priv->sample->data;
+		pck.data_len = priv->sample->dataLength;
+		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Track %d: sample %d CTS %d\n", priv->track, priv->sample_number+1, pck.cts));
 
 		gf_isom_sample_del(&priv->sample);
 		priv->sample_number++;
@@ -357,7 +288,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 {
 	GF_ESIMP4 *priv;
 	char _lan[4];
-	GF_DecoderConfig *dcd;
+	GF_ESD *esd;
 	u64 avg_rate, duration;
 	s32 ref_count;
 	s64 mediaOffset;
@@ -375,61 +306,38 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 	priv->prog = prog;
 	memset(ifce, 0, sizeof(GF_ESInterface));
 	ifce->stream_id = gf_isom_get_track_id(mp4, track_num);
-	dcd = gf_isom_get_decoder_config(mp4, track_num, 1);
-	ifce->stream_type = dcd->streamType;
-	ifce->object_type_indication = dcd->objectTypeIndication;
-	if (dcd->decoderSpecificInfo && dcd->decoderSpecificInfo->dataLength) {
-		switch (dcd->objectTypeIndication) {
-		case GPAC_OTI_AUDIO_AAC_MPEG4:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-			ifce->decoder_config = gf_malloc(sizeof(char)*dcd->decoderSpecificInfo->dataLength);
-			ifce->decoder_config_size = dcd->decoderSpecificInfo->dataLength;
-			memcpy(ifce->decoder_config, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
-			break;
-		case GPAC_OTI_VIDEO_MPEG4_PART2:
-			priv->dsi = gf_malloc(sizeof(char)*dcd->decoderSpecificInfo->dataLength);
-			priv->dsi_size = dcd->decoderSpecificInfo->dataLength;
-			memcpy(priv->dsi, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
-			break;
-		case GPAC_OTI_VIDEO_HEVC:
-			gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
-			break;
-		case GPAC_OTI_VIDEO_AVC:
-		case GPAC_OTI_VIDEO_SVC:
-#ifdef USE_ISOBMF_REWRITE
-			gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
 
-#elif !defined(GPAC_DISABLE_AV_PARSERS)
-			GF_AVCConfigSlot *slc;
-			u32 i;
-			GF_BitStream *bs;
-			GF_AVCConfig *avccfg = gf_isom_avc_config_get(mp4, track_num, 1);
-			priv->nalu_size = avccfg->nal_unit_size;
+	esd = gf_media_map_esd(mp4, track_num);
 
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets);i++) {
-				slc = gf_list_get(avccfg->sequenceParameterSets, i);
-				gf_bs_write_u32(bs, 1);
-				gf_bs_write_data(bs, slc->data, slc->size);
+	if (esd) {
+		ifce->stream_type = esd->decoderConfig->streamType;
+		ifce->object_type_indication = esd->decoderConfig->objectTypeIndication;
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->dataLength) {
+			switch (esd->decoderConfig->objectTypeIndication) {
+			case GPAC_OTI_AUDIO_AAC_MPEG4:
+			case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+			case GPAC_OTI_VIDEO_MPEG4_PART2:
+				ifce->decoder_config = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				break;
+			case GPAC_OTI_VIDEO_HEVC:
+			case GPAC_OTI_VIDEO_SHVC:
+			case GPAC_OTI_VIDEO_AVC:
+			case GPAC_OTI_VIDEO_SVC:
+				gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
+				break;
 			}
-			for (i=0; i<gf_list_count(avccfg->pictureParameterSets);i++) {
-				slc = gf_list_get(avccfg->pictureParameterSets, i);
-				gf_bs_write_u32(bs, 1);
-				gf_bs_write_data(bs, slc->data, slc->size);
-			}
-			gf_bs_get_content(bs, (char **) &priv->dsi, &priv->dsi_size);
-			gf_bs_del(bs);
-			gf_odf_avc_cfg_del(avccfg);
-#endif
-
-			break;
 		}
+		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
-	gf_odf_desc_del((GF_Descriptor *)dcd);
 	gf_isom_get_media_language(mp4, track_num, _lan);
-	ifce->lang = GF_4CC(_lan[0],_lan[1],_lan[2],' ');
+	if (!strcmp(_lan, "und"))
+		ifce->lang = 0;
+	else
+		ifce->lang = GF_4CC(_lan[0],_lan[1],_lan[2],' ');
 
 	ifce->timescale = gf_isom_get_media_timescale(mp4, track_num);
 	ifce->duration = gf_isom_get_media_timescale(mp4, track_num);
@@ -1756,7 +1664,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 #ifdef GPAC_MEMORY_TRACKING
 			gf_sys_close();
 			gf_sys_init(GF_TRUE);
-			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_DEBUG);
+			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
 #endif
@@ -2483,9 +2391,6 @@ exit:
 #ifndef GPAC_DISABLE_STREAMING
 	if (rtp_out) gf_free(rtp_out);
 #endif
-#ifndef GPAC_DISABLE_PLAYER
-	if (aac_reader) AAC_Reader_del(aac_reader);
-#endif
 	if (muxer) gf_m2ts_mux_del(muxer);
 	
 	for (i=0; i<nb_progs; i++) {
@@ -2511,6 +2416,11 @@ exit:
 #endif
 		if (progs[i].th) gf_th_del(progs[i].th);
 	}
+
+#ifndef GPAC_DISABLE_PLAYER
+	if (aac_reader) AAC_Reader_del(aac_reader);
+#endif
+
 	gf_sys_close();
 	return 0;
 }

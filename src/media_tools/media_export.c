@@ -294,6 +294,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
 				break;
 			case GPAC_OTI_VIDEO_HEVC:
+			case GPAC_OTI_VIDEO_SHVC:
 				strcpy(szEXT, ".hvc");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
 				break;
@@ -667,7 +668,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	FILE *out;
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
 	GF_AVCConfig *avccfg, *svccfg;
-	GF_HEVCConfig *hevccfg;
+	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_M4ADecSpecInfo a_cfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
@@ -729,7 +730,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
 				break;
 			case GPAC_OTI_VIDEO_HEVC:
+			case GPAC_OTI_VIDEO_SHVC:
 				hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
+				shvccfg = gf_isom_shvc_config_get(dumper->file, track, 1);
 				if (add_ext) 
 					strcat(szName, ".hvc");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
@@ -907,8 +910,13 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
 		} else if ((m_stype==GF_ISOM_SUBTYPE_HEV1) 
 				|| (m_stype==GF_ISOM_SUBTYPE_HVC1) 
+				|| (m_stype==GF_ISOM_SUBTYPE_HVC2) 
+				|| (m_stype==GF_ISOM_SUBTYPE_HEV2) 
+				|| (m_stype==GF_ISOM_SUBTYPE_SHC1) 
+				|| (m_stype==GF_ISOM_SUBTYPE_SHV1) 
 			) {
 			hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
+			shvccfg = gf_isom_shvc_config_get(dumper->file, track, 1);
 			if (add_ext) 
 				strcat(szName, ".hvc");
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
@@ -952,6 +960,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		if (svccfg) gf_odf_avc_cfg_del(svccfg);
 		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+		if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
 		return GF_OK;
 	}
 	if (dumper->flags & GF_EXPORT_SVC_LAYER)
@@ -995,6 +1004,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		if (svccfg) gf_odf_avc_cfg_del(svccfg);
 		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+		if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 	bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
@@ -1009,46 +1019,59 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		gf_bs_write_data(bs, dsi, dsi_size);
 		gf_free(dsi);
 	}
+#define DUMP_AVCPARAM(_params) \
+		count = gf_list_count(_params); \
+		for (i=0;i<count;i++) { \
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(_params, i); \
+			gf_bs_write_u32(bs, 1); \
+			gf_bs_write_data(bs, sl->data, sl->size); \
+		} \
+
+#define DUMP_HEVCPARAM(_params) \
+	count = gf_list_count(_params->param_array); \
+	for (i=0;i<count;i++) { \
+		u32 j; \
+		GF_HEVCParamArray *ar = gf_list_get(_params->param_array, i); \
+		for (j=0; j<gf_list_count(ar->nalus); j++) { \
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); \
+			gf_bs_write_u32(bs, 1); \
+			gf_bs_write_data(bs, sl->data, sl->size); \
+		} \
+	} \
+
+
 	if (avccfg) {
-		count = gf_list_count(avccfg->sequenceParameterSets);
-		for (i=0;i<count;i++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avccfg->sequenceParameterSets, i);
-			gf_bs_write_u32(bs, 1);
-			gf_bs_write_data(bs, sl->data, sl->size);
-		}
-		count = gf_list_count(avccfg->pictureParameterSets);
-		for (i=0;i<count;i++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avccfg->pictureParameterSets, i);
-			gf_bs_write_u32(bs, 1);
-			gf_bs_write_data(bs, sl->data, sl->size);
-		}
+		DUMP_AVCPARAM(avccfg->sequenceParameterSets);
+		DUMP_AVCPARAM(avccfg->pictureParameterSets);
 	}
-	if (svccfg) {
+
+	if (hevccfg) {
+		DUMP_HEVCPARAM(hevccfg);
+	}
+
+	if (svccfg || shvccfg) {
 		if (!(dumper->flags & GF_EXPORT_SVC_LAYER))
 		{
 			GF_AVCConfig *cfg;
+			GF_HEVCConfig *hcfg;
 			u32 ref_track = 0, t;
 			s32 countRef;
 
 			// copy avcC and svcC from base layer
 			gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_BASE, 1, &ref_track);
 			cfg = gf_isom_avc_config_get(dumper->file, ref_track, 1);
-			if (cfg)
-			{
-				count = gf_list_count(cfg->sequenceParameterSets);
-				for (i  =0; i < count; i++) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
-					gf_bs_write_u32(bs, 1);
-					gf_bs_write_data(bs, sl->data, sl->size);
-				}
-				count = gf_list_count(cfg->pictureParameterSets);
-				for (i = 0; i < count; i++) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
-					gf_bs_write_u32(bs, 1);
-					gf_bs_write_data(bs, sl->data, sl->size);
-				}
+			hcfg = gf_isom_hevc_config_get(dumper->file, ref_track, 1);
+			if (cfg) {
+				DUMP_AVCPARAM(cfg->sequenceParameterSets);
+				DUMP_AVCPARAM(cfg->pictureParameterSets);
 				gf_odf_avc_cfg_del(cfg);
 				cfg = NULL;
+			}
+			if (hcfg) {
+				DUMP_HEVCPARAM(hcfg);
+				DUMP_HEVCPARAM(hcfg);
+				gf_odf_hevc_cfg_del(hcfg);
+				hcfg = NULL;
 			}
 
 			// copy avcC and svcC from lower layer
@@ -1062,53 +1085,29 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			{
 				gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_SCAL, t, &ref_track);
 				cfg = gf_isom_svc_config_get(dumper->file, ref_track, 1);
-				if (cfg)
-				{
-					count = gf_list_count(cfg->sequenceParameterSets);
-					for (i  = 0; i < count; i++) {
-						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
-						gf_bs_write_u32(bs, 1);
-						gf_bs_write_data(bs, sl->data, sl->size);
-					}
-					count = gf_list_count(cfg->pictureParameterSets);
-					for (i = 0; i < count; i++) {
-						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
-						gf_bs_write_u32(bs, 1);
-						gf_bs_write_data(bs, sl->data, sl->size);
-					}
+				if (cfg) {
+					DUMP_AVCPARAM(cfg->sequenceParameterSets);
+					DUMP_AVCPARAM(cfg->pictureParameterSets);
 					gf_odf_avc_cfg_del(cfg);
 					cfg = NULL;
 				}
+				hcfg = gf_isom_shvc_config_get(dumper->file, ref_track, 1);
+				if (hcfg) {
+					DUMP_HEVCPARAM(hcfg);
+					gf_odf_hevc_cfg_del(hcfg);
+					hcfg = NULL;
+				}
 			}
 		}
-
-		count = gf_list_count(svccfg->sequenceParameterSets);
-		for (i=0;i<count;i++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(svccfg->sequenceParameterSets, i);
-			gf_bs_write_u32(bs, 1);
-			gf_bs_write_data(bs, sl->data, sl->size);
+		if (svccfg) {
+			DUMP_AVCPARAM(svccfg->sequenceParameterSets);
+			DUMP_AVCPARAM(svccfg->pictureParameterSets);
 		}
-		count = gf_list_count(svccfg->pictureParameterSets);
-		for (i=0;i<count;i++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(svccfg->pictureParameterSets, i);
-			gf_bs_write_u32(bs, 1);
-			gf_bs_write_data(bs, sl->data, sl->size);
+		if (shvccfg) {
+			DUMP_HEVCPARAM(shvccfg);
 		}
 	}
 
-
-	if (hevccfg) {
-		count = gf_list_count(hevccfg->param_array);
-		for (i=0;i<count;i++) {
-			u32 j;
-			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
-			for (j=0; j<gf_list_count(ar->nalus); j++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-				gf_bs_write_u32(bs, 1);
-				gf_bs_write_data(bs, sl->data, sl->size);
-			}
-		}
-	}
 
 	qcp_rates = NULL;
 	count = gf_isom_get_sample_count(dumper->file, track);
@@ -1223,13 +1222,14 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			break;
 		}
 		/*AVC sample to NALU*/
-		if (avccfg || svccfg || hevccfg) {
+		if (avccfg || svccfg || hevccfg || shvccfg) {
 			u32 j, nal_size, remain, nal_unit_size;
 			char *ptr = samp->data;
 			nal_unit_size = 0;
 			if (avccfg) nal_unit_size= avccfg->nal_unit_size;
 			else if (svccfg) nal_unit_size = svccfg->nal_unit_size;
 			else if (hevccfg) nal_unit_size = hevccfg->nal_unit_size;
+			else if (shvccfg) nal_unit_size = shvccfg->nal_unit_size;
 			remain = samp->dataLength;
 			while (remain) {
 				nal_size = 0;
@@ -1278,7 +1278,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg && !svccfg && !hevccfg &!is_webvtt) gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (!avccfg && !svccfg && !hevccfg && !shvccfg &!is_webvtt) gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
@@ -1287,6 +1287,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 exit:
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
 	gf_bs_del(bs);
 	if (!is_stdout) 
 		fclose(out);
@@ -1777,7 +1779,12 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
 
 	if ((esd->decoderConfig->streamType!=GF_STREAM_VISUAL) || 
-	( (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2) && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_AVC) && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_SVC)) ) {
+	( (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2) 
+		&& (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_AVC)
+		&& (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_SVC)
+		&& (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_HEVC)
+		&& (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_SHVC)
+	) ) {
 		gf_odf_desc_del((GF_Descriptor*)esd);
 		return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Track ID %d is not MPEG-4 Visual - cannot extract to AVI", dumper->trackID);
 	}
@@ -1811,6 +1818,11 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)){
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		v4CC = "h264";
+	} 
+	/*HEVC - FIXME dump format is probably wrong...*/
+	else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SHVC)){
+		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
+		v4CC = "hevc";
 	} 
 	/*MPEG4*/
 	else {
