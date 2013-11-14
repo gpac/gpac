@@ -389,6 +389,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 					"    -live                    system is live and input is a camera\n"
 					"    -live-media              system is live and input is a media file\n"
 					"    -no-loop                 system does not loop on the input media file when live\n"
+					"    -dynamic-ast             changes segment availability start time at each MPD generation (old behaviour but not allowed in most profiles)\n"
+					"    -insert-utc              inserts UTC clock at the start of each segment\n"
 					"\n"
 					"Source options:\n"
 					"    -npts                    use frame counting for timestamps (not error-free) instead of source timing (default)\n"
@@ -689,6 +691,12 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			i++;
 		} else if (strcmp(argv[i], "-no-loop") == 0) {
 			cmd_data->no_loop = 1;
+			i++;
+		} else if (strcmp(argv[i], "-insert-utc") == 0) {
+			cmd_data->insert_utc = 1;
+			i++;
+		} else if (strcmp(argv[i], "-dynamic-ast") == 0) {
+			cmd_data->use_dynamic_ast = 1;
 			i++;
 		} else if (strcmp(argv[i], "-send-message") == 0) {
 			//FIXME: unreferenced option. Seems related to a separate fragment thread.

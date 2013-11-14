@@ -8741,4 +8741,32 @@ GF_Err saio_Size(GF_Box *s)
 #endif //GPAC_DISABLE_ISOM_WRITE
 
 
+void prft_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err prft_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox *) s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ptr->refTrackID = gf_bs_read_u32(bs);
+	ptr->ntp = gf_bs_read_u64(bs);
+	if (ptr->version==0) {
+		ptr->timestamp = gf_bs_read_u32(bs);
+	} else {
+		ptr->timestamp = gf_bs_read_u64(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *prft_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ProducerReferenceTimeBox, GF_ISOM_BOX_TYPE_PRFT);	
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/

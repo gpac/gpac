@@ -96,6 +96,10 @@ typedef struct {
 	//char switch_cfg_filename[GF_MAX_PATH];
 	FILE *logfile;
 	TaskList task_list;
+	/*dynamic ast*/
+	int use_dynamic_ast;
+	/*insert UTC */
+	int insert_utc;
 
 	Bool use_source_timing;
 } CmdData;

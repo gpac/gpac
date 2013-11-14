@@ -751,6 +751,11 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	}
 
 	moof_start = gf_bs_get_position(bs);
+
+	if (movie->moof->ntp) {
+		moof_start += 8*4;
+	}
+
 	//2- update MOOF MDAT header
 	if (!movie->moof->mdat) {
 		gf_bs_seek(bs, movie->moof->fragment_offset);
@@ -826,6 +831,17 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 		}
 	}
 #endif
+
+
+	if (movie->moof->ntp) {
+		gf_bs_write_u32(bs, 8*4);
+		gf_bs_write_u32(bs, GF_4CC('p','r','f','t') );
+		gf_bs_write_u8(bs, 1);
+		gf_bs_write_u24(bs, 0);
+		gf_bs_write_u32(bs, movie->moof->reference_track_ID);
+		gf_bs_write_u64(bs, movie->moof->ntp);
+		gf_bs_write_u64(bs, movie->moof->timestamp);
+	}
 
 	pos = gf_bs_get_position(bs);
 	i=0;
@@ -1506,6 +1522,16 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName, Bool memory_mode)
 		movie->segment_bs = movie->editFileMap->bs;
 		movie->editFileMap->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp, u64 timestamp)
+{
+	if (!movie->moof) return GF_BAD_PARAM;
+	movie->moof->reference_track_ID = reference_track_ID;
+	movie->moof->ntp = ntp;
+	movie->moof->timestamp = timestamp;
 	return GF_OK;
 }
 

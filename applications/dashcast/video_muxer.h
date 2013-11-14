@@ -63,7 +63,7 @@ typedef struct {
 
 	GF_ISOFile *isof;
 	GF_ISOSample *sample;
-
+	u32 trackID;
 	/* Index of the video stream in the file */
 	int vstream_idx;
 	/* keeps the index with which encoder access to the circular buffer (as a consumer) */
@@ -102,7 +102,7 @@ int dc_video_muxer_free(VideoOutputFile *video_output_file);
 
 int dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, char *id_name, int seg);
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb);
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_utc);
 
 int dc_video_muxer_close(VideoOutputFile *video_output_file);
 

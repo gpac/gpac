@@ -251,9 +251,14 @@ static u32 mpd_thread(void *params)
 	char availability_start_time[GF_MAX_PATH];
 	char presentation_duration[GF_MAX_PATH];
 	char time_shift[GF_MAX_PATH] = "";
-
 	AudioDataConf *audio_data_conf = NULL;
 	VideoDataConf *video_data_conf = NULL;
+	struct tm ast_time;
+
+	segtime main_seg_time;
+	Bool first = GF_TRUE;
+	main_seg_time.segnum = 0;
+	main_seg_time.time = 0;
 
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
@@ -272,28 +277,33 @@ static u32 mpd_thread(void *params)
 
 			if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
 				dc_message_queue_get(mq, &seg_time);
+
+				if (cmddata->ast_offset>0) {
+					seg_time.time += cmddata->ast_offset;
+					seg_time.segnum -= cmddata->ast_offset / cmddata->seg_dur;
+				}
+
+				if (cmddata->use_dynamic_ast) {
+					main_seg_time = seg_time;
+				} else {
+					if (first) {
+						main_seg_time = seg_time;
+						first = GF_FALSE;
+					}
+				}
 			}
 
-			seg_time.time += cmddata->ast_offset;
-			seg_time.segnum -= cmddata->ast_offset / cmddata->seg_dur;
-			if (seg_time.segnum < 0) {
-				continue;
-			}
+			//printf time at which we generate MPD
+			t = main_seg_time.time / 1000;
+			ast_time = *gmtime(&t);
+			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
+			fprintf(stdout, "Generating MPD at %s\n", availability_start_time);
 
 			t = seg_time.time / 1000;
-
-			//t += (1 * (cmddata->seg_dur / 1000.0));
-			//t += cmddata->ast_offset;
-			{	
-				struct tm ast_time = *gmtime(&t);
-				strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
-//				snprintf(availability_start_time, sizeof(availability_start_time),"%s.%dZ", availability_start_time, ms);
-				//snprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02dZ",
-				//		time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour,
-				//		time.tm_min, time.tm_sec);
-				fprintf(stdout, "StartTime: %s\n", availability_start_time);
-			}
-
+			ast_time = *gmtime(&t);
+			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
+			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum, seg_time.segnum);
+			
 			if (cmddata->time_shift != -1) {
 				int ts, h, m, s;
 				ts = cmddata->time_shift;
@@ -304,7 +314,7 @@ static u32 mpd_thread(void *params)
 				snprintf(time_shift, sizeof(time_shift), "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
 			}
 
-			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, seg_time.segnum);
+			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum);
 		}
 	} else {
 
@@ -812,7 +822,7 @@ u32 video_encoder_thread(void *params)
 					break;
 				}
 
-				r = dc_video_muxer_write(&out_file, frame_nb);
+				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc);
 				if (r < 0) {
 					quit = 1;
 					in_data->exit_signal = 1;

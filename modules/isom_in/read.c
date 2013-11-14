@@ -936,15 +936,15 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_PROXY_CHUNK_RECEIVE) {
-		isor_flush_data(read, 1, 0);
-		return GF_OK;
-	}
-	if (com->command_type == GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE) {
 		isor_flush_data(read, 1, 1);
 		return GF_OK;
 	}
+	if (com->command_type == GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE) {
+		isor_flush_data(read, 1, 0);
+		return GF_OK;
+	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
-		isor_flush_data(read, 0, 0);
+//		isor_flush_data(read, 0, 0);
 		return GF_OK;
 	}
 
@@ -960,8 +960,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_SET_PULL:
 		//we don't pull in DASH base services, we flush as soon as we have a complete segment
+#ifndef DASH_USE_PULL
 		if (read->input->proxy_udta) 
 			return GF_NOT_SUPPORTED;
+#endif
 
 		ch->is_pulling = 1;
 		return GF_OK;

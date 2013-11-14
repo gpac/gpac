@@ -25,6 +25,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
+#include <gpac/network.h>
+#include <time.h>
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
@@ -394,7 +396,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_ENCS:
 		return mp4s_dump(a, trace);
-
+	case GF_ISOM_BOX_TYPE_PRFT:
+		return prft_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_0xA9NAM:
 	case GF_ISOM_BOX_TYPE_0xA9CMT:
@@ -567,6 +570,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 #endif
 #endif
 		case GF_ISOM_BOX_TYPE_MFRA:
+		case GF_ISOM_BOX_TYPE_PRFT:
 			break;
 
 		default:
@@ -4221,6 +4225,20 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 	}
 
 	gf_box_dump_done("SampleEncryptionBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err prft_dump(GF_Box *a, FILE * trace)
+{
+	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox *) a;
+
+	time_t secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
+	struct tm t = *gmtime(&secs);
+	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\"%d\" NTP_frac=\"%u\" UTCClock=\"%d-%02d-%02dT%02d:%02d:%02dZ\">\n", ptr->refTrackID, ptr->timestamp, ptr->ntp&0xFFFFFFFFULL, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("ProducerReferenceTimeBox", a, trace);
+
 	return GF_OK;
 }
 
