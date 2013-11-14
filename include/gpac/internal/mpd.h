@@ -97,6 +97,7 @@ typedef struct
 	u32 time_shift_buffer_depth; /* expressed in milliseconds */	\
 	GF_MPD_ByteRange *index_range;	\
 	Bool index_range_exact;	\
+	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
 
