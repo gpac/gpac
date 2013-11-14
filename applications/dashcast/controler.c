@@ -317,12 +317,12 @@ static u32 mpd_thread(void *params)
 			}
 
 			//printf time at which we generate MPD
-			t = main_seg_time.time / 1000;
+			t = seg_time.time / 1000;
 			ast_time = *gmtime(&t);
 			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
 			fprintf(stdout, "Generating MPD at %s\n", availability_start_time);
 
-			t = seg_time.time / 1000;
+			t = main_seg_time.time / 1000;
 			ast_time = *gmtime(&t);
 			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
 			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum, seg_time.segnum);
