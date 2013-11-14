@@ -4995,6 +4995,15 @@ exit:
 	return e;
 }
 
+static GF_HEVCParamArray *get_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type) 
+{
+	u32 i, count = hevc_cfg->param_array ? gf_list_count(hevc_cfg->param_array) : 0;
+	for (i=0; i<count; i++) {
+		GF_HEVCParamArray *ar = gf_list_get(hevc_cfg->param_array, i);
+		if (ar->type==type) return ar;
+	}
+	return NULL;
+}
 
 static GF_Err gf_import_hevc(GF_MediaImporter *import)
 {
@@ -5010,7 +5019,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	FILE *mdia;
 	HEVCState hevc;
 	GF_AVCConfigSlot *slc;
-	GF_HEVCConfig *hevccfg;
+	GF_HEVCConfig *hevc_cfg, *shvc_cfg, *dst_cfg;
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
@@ -5057,7 +5066,9 @@ restart_import:
 
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevc.sps_active_idx = -1;
-	hevccfg = gf_odf_hevc_cfg_new();
+	dst_cfg = hevc_cfg = gf_odf_hevc_cfg_new();
+	shvc_cfg = gf_odf_hevc_cfg_new();
+	//shvc_cfg->complete_representation = 1;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 	first_avc = 1;
@@ -5092,7 +5103,7 @@ restart_import:
 		gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
 
-	e = gf_isom_hevc_config_new(import->dest, track, hevccfg, NULL, NULL, &di);
+	e = gf_isom_hevc_config_new(import->dest, track, hevc_cfg, NULL, NULL, &di);
 	if (e) goto exit;
 
 	sample_data = NULL;
@@ -5120,6 +5131,8 @@ restart_import:
 
 	while (gf_bs_available(bs)) {
 		s32 res;
+		Bool force_shvc = 0;
+		GF_HEVCConfig *prev_cfg;
 		u8 nal_unit_type, temporal_id, layer_id;
 		Bool skip_nal, add_sps, is_slice, has_vcl_nal;
 
@@ -5137,6 +5150,24 @@ restart_import:
 		gf_bs_seek(bs, nal_start);
 
 		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
+
+		if (layer_id && (import->flags & GF_IMPORT_SVC_NONE)) {
+			goto next_nal;
+		}
+		
+		prev_cfg = dst_cfg;
+		//todo check layer type, for now only scalable (not 3D etc) ...
+		if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
+			dst_cfg = shvc_cfg;
+			force_shvc = 1;
+		} else 
+			dst_cfg = layer_id ? shvc_cfg : hevc_cfg;
+
+		if (prev_cfg != dst_cfg) {
+			vpss = get_hevc_param_array(dst_cfg, GF_HEVC_NALU_VID_PARAM);
+			spss = get_hevc_param_array(dst_cfg, GF_HEVC_NALU_SEQ_PARAM);
+			ppss = get_hevc_param_array(dst_cfg, GF_HEVC_NALU_PIC_PARAM);
+		}
 
 		skip_nal = 0;
 		copy_size = flush_sample = 0;
@@ -5157,7 +5188,7 @@ restart_import:
 			break;
 		}
 
-		if (flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
+		if (! layer_id && flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
 			flush_next_sample = 0;
 			flush_sample = 1;
 		}
@@ -5183,15 +5214,15 @@ restart_import:
 				hevc.vps[idx].state = 2;
 				hevc.vps[idx].crc = gf_crc_32(buffer, nal_size);
 
-				hevccfg->avgFrameRate = hevc.vps[idx].rates[0].avg_pic_rate;
-				hevccfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
-				hevccfg->numTemporalLayers = hevc.vps[idx].max_sub_layer;
-				hevccfg->temporalIdNested = hevc.vps[idx].temporal_id_nesting;
+				dst_cfg->avgFrameRate = hevc.vps[idx].rates[0].avg_pic_rate;
+				dst_cfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
+				dst_cfg->numTemporalLayers = hevc.vps[idx].max_sub_layer;
+				dst_cfg->temporalIdNested = hevc.vps[idx].temporal_id_nesting;
 
 				if (!vpss) {
 					GF_SAFEALLOC(vpss, GF_HEVCParamArray);
 					vpss->nalus = gf_list_new();
-					gf_list_add(hevccfg->param_array, vpss);
+					gf_list_add(dst_cfg->param_array, vpss);
 					vpss->array_completeness = 1;
 					vpss->type = GF_HEVC_NALU_VID_PARAM;
 				}
@@ -5229,22 +5260,22 @@ restart_import:
 			}
 
 			if (add_sps) {
-				hevccfg->configurationVersion = 1;
-				hevccfg->profile_space = hevc.sps[idx].ptl.profile_space;
-				hevccfg->tier_flag = hevc.sps[idx].ptl.tier_flag;
-				hevccfg->profile_idc = hevc.sps[idx].ptl.profile_idc;
-				hevccfg->general_profile_compatibility_flags = hevc.sps[idx].ptl.profile_compatibility_flag;
-				hevccfg->progressive_source_flag = hevc.sps[idx].ptl.general_progressive_source_flag;
-				hevccfg->interlaced_source_flag = hevc.sps[idx].ptl.general_interlaced_source_flag;
-				hevccfg->non_packed_constraint_flag = hevc.sps[idx].ptl.general_non_packed_constraint_flag;
-				hevccfg->frame_only_constraint_flag = hevc.sps[idx].ptl.general_frame_only_constraint_flag;
+				dst_cfg->configurationVersion = 1;
+				dst_cfg->profile_space = hevc.sps[idx].ptl.profile_space;
+				dst_cfg->tier_flag = hevc.sps[idx].ptl.tier_flag;
+				dst_cfg->profile_idc = hevc.sps[idx].ptl.profile_idc;
+				dst_cfg->general_profile_compatibility_flags = hevc.sps[idx].ptl.profile_compatibility_flag;
+				dst_cfg->progressive_source_flag = hevc.sps[idx].ptl.general_progressive_source_flag;
+				dst_cfg->interlaced_source_flag = hevc.sps[idx].ptl.general_interlaced_source_flag;
+				dst_cfg->non_packed_constraint_flag = hevc.sps[idx].ptl.general_non_packed_constraint_flag;
+				dst_cfg->frame_only_constraint_flag = hevc.sps[idx].ptl.general_frame_only_constraint_flag;
 
-				hevccfg->constraint_indicator_flags = hevc.sps[idx].ptl.general_reserved_44bits;
-				hevccfg->level_idc = hevc.sps[idx].ptl.level_idc;
+				dst_cfg->constraint_indicator_flags = hevc.sps[idx].ptl.general_reserved_44bits;
+				dst_cfg->level_idc = hevc.sps[idx].ptl.level_idc;
 
-				hevccfg->chromaFormat = hevc.sps[idx].chroma_format_idc;
-				hevccfg->luma_bit_depth = hevc.sps[idx].bit_depth_luma;
-				hevccfg->chroma_bit_depth = hevc.sps[idx].bit_depth_chroma;
+				dst_cfg->chromaFormat = hevc.sps[idx].chroma_format_idc;
+				dst_cfg->luma_bit_depth = hevc.sps[idx].bit_depth_luma;
+				dst_cfg->chroma_bit_depth = hevc.sps[idx].bit_depth_chroma;
 
 				//need VUI for these ...
 				//u16 min_spatial_segmentation_idc;
@@ -5255,7 +5286,7 @@ restart_import:
 				if (!spss) {
 					GF_SAFEALLOC(spss, GF_HEVCParamArray);
 					spss->nalus = gf_list_new();
-					gf_list_add(hevccfg->param_array, spss);
+					gf_list_add(dst_cfg->param_array, spss);
 					spss->array_completeness = 1;
 					spss->type = GF_HEVC_NALU_SEQ_PARAM;
 				}
@@ -5278,8 +5309,10 @@ restart_import:
 					detect_fps = 0;
 					gf_isom_remove_track(import->dest, track);
 					if (sample_data) gf_bs_del(sample_data);
-					gf_odf_hevc_cfg_del(hevccfg);
-					hevccfg = NULL;
+					gf_odf_hevc_cfg_del(hevc_cfg);
+					hevc_cfg = NULL;
+					gf_odf_hevc_cfg_del(shvc_cfg);
+					shvc_cfg = NULL;
 					gf_free(buffer);
 					buffer = NULL;
 					gf_bs_del(bs);
@@ -5295,7 +5328,8 @@ restart_import:
 					gf_import_message(import, GF_OK, "SHVC detected - %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
 				}
 
-				if ((max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
+				//width and height only for base layer if HEVC
+				if ((force_shvc || (dst_cfg==hevc_cfg)) && (max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
 					max_w = hevc.sps[idx].width;
 					max_h = hevc.sps[idx].height;
 				}
@@ -5325,7 +5359,7 @@ restart_import:
 				if (!ppss) {
 					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
 					ppss->nalus = gf_list_new();
-					gf_list_add(hevccfg->param_array, ppss);
+					gf_list_add(dst_cfg->param_array, ppss);
 					ppss->array_completeness = 1;
 					ppss->type = GF_HEVC_NALU_PIC_PARAM;
 				}
@@ -5340,7 +5374,7 @@ restart_import:
 			}
 			break;
 		case GF_HEVC_NALU_SEI_SUFFIX:
-			flush_next_sample = 1;
+			if (!layer_id) flush_next_sample = 1;
 		case GF_HEVC_NALU_SEI_PREFIX:
 			if (hevc.sps_active_idx != -1) {
 				/*TODO*/
@@ -5605,6 +5639,7 @@ restart_import:
 			}
 		}
 
+next_nal:
 		gf_bs_align(bs);
 		nal_end = gf_bs_get_position(bs);
 		assert(nal_start <= nal_end);
@@ -5730,9 +5765,17 @@ restart_import:
 	gf_set_progress("Importing HEVC", (u32) cur_samp, cur_samp);
 
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
-	hevccfg->nal_unit_size = size_length/8;
+	hevc_cfg->nal_unit_size = shvc_cfg->nal_unit_size = size_length/8;
 
-	gf_isom_hevc_config_update(import->dest, track, 1, hevccfg);
+	if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
+		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
+		if (gf_list_count(shvc_cfg->param_array)) {
+			gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, 1);
+		}
+	} else {
+		gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, 0);
+	}
+
 	gf_media_update_par(import->dest, track);
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -5741,7 +5784,7 @@ restart_import:
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_ISOM, 0);
 	gf_isom_modify_alternate_brand(import->dest, GF_4CC('h','v','c','1'), 1);
 
-	if (!vpss || !ppss || !spss) {
+	if (!vpss && !ppss && !spss) {
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
 		if (nb_sp || nb_si) {
@@ -5774,7 +5817,8 @@ restart_import:
 
 exit:
 	if (sample_data) gf_bs_del(sample_data);
-	gf_odf_hevc_cfg_del(hevccfg);
+	gf_odf_hevc_cfg_del(hevc_cfg);
+	gf_odf_hevc_cfg_del(shvc_cfg);
 	gf_free(buffer);
 	gf_bs_del(bs);
 	fclose(mdia);
@@ -6412,7 +6456,14 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				switch (oti) {
 				case GPAC_OTI_VIDEO_AVC: 
 				case GPAC_OTI_VIDEO_SVC:
-					name = "AVC/H264 Video"; stype = GF_4CC('H','2','6','4'); break;
+					name = "AVC/H264 Video"; 
+					stype = GF_4CC('H','2','6','4');
+					break;
+				case GPAC_OTI_VIDEO_HEVC: 
+				case GPAC_OTI_VIDEO_SHVC:
+					name = "HEVC Video"; 
+					stype = GF_4CC('H','E','V','C');
+					break;
 				case GPAC_OTI_VIDEO_MPEG4_PART2: name = "MPEG-4 Video"; stype = GF_4CC('M','P','4','V'); break;
 				case GPAC_OTI_VIDEO_MPEG1: name = "MPEG-1 Video"; stype = GF_4CC('M','P','1','V'); break;
 				case GPAC_OTI_VIDEO_MPEG2_SIMPLE: 
@@ -6998,6 +7049,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				tsimp->avccfg = gf_odf_avc_cfg_new();
 				break;
 			case GF_M2TS_VIDEO_HEVC:
+			case GF_M2TS_VIDEO_SHVC:
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				stype = GF_STREAM_VISUAL; 
 				oti = GPAC_OTI_VIDEO_HEVC;

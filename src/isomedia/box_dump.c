@@ -306,6 +306,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_SVCC: 
 		return avcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_HVCC: 
+	case GF_ISOM_BOX_TYPE_SHCC: 
 		return hvcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_BTRT:
 		return btrt_dump(a, trace);
@@ -318,6 +319,10 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_SVC1: 
 	case GF_ISOM_BOX_TYPE_HVC1: 
 	case GF_ISOM_BOX_TYPE_HEV1: 
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 		return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_dump(a, trace);
@@ -1010,6 +1015,7 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 		if (p->descr) gf_box_dump(p->descr, trace);
 		if (p->bitrate) gf_box_dump(p->bitrate, trace);
 		if (p->svc_config) gf_box_dump(p->svc_config, trace);
+		if (p->shvc_config) gf_box_dump(p->shvc_config, trace);
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
 		gf_box_array_dump(p->protections, trace);
@@ -1721,11 +1727,12 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
+	const char *name = (a->type==GF_ISOM_BOX_TYPE_HVCC) ? "HEVC" : "SHVC";
 	GF_HEVCConfigurationBox *p = (GF_HEVCConfigurationBox *) a;
 
-	fprintf(trace, "<HEVCConfigurationBox>\n");
+	fprintf(trace, "<%sConfigurationBox>\n", name);
 
-	fprintf(trace, "<HEVCDecoderConfigurationRecord nal_unit_size=\"%d\" ", p->config->nal_unit_size);
+	fprintf(trace, "<%sDecoderConfigurationRecord nal_unit_size=\"%d\" ", name, p->config->nal_unit_size);
 	fprintf(trace, "configurationVersion=\"%d\" ", p->config->configurationVersion);
 	fprintf(trace, "profile_space=\"%d\" ", p->config->profile_space);
 	fprintf(trace, "tier_flag=\"%d\" ", p->config->tier_flag);
@@ -1760,11 +1767,11 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "</ParameterSetArray>\n");
 	}
 
-	fprintf(trace, "</HEVCDecoderConfigurationRecord>\n");
+	fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
 
 	DumpBox(a, trace);
 	gf_box_dump_done(NULL, a, trace);
-	fprintf(trace, "</HEVCConfigurationBox>\n");
+	fprintf(trace, "</%sConfigurationBox>\n", name);
 	return GF_OK;
 }
 

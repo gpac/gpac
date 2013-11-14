@@ -774,6 +774,10 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 	case GF_ISOM_SUBTYPE_HVC1:
 	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC2:
+	case GF_ISOM_SUBTYPE_HEV2:
+	case GF_ISOM_SUBTYPE_SHC1:
+	case GF_ISOM_SUBTYPE_SHV1:
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
@@ -1887,6 +1891,260 @@ exit:
 	if (DTS_offset) gf_free(DTS_offset);
 	for (t = 1; t <= gf_isom_get_track_count(file); t++)
 		gf_isom_set_nalu_extract_mode(file, t, GF_ISOM_NALU_EXTRACT_DEFAULT);
+	return e;
+}
+
+
+/* Split SHVC layers */
+static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type) 
+{
+	GF_HEVCParamArray *ar;
+	u32 i, count = hevc_cfg->param_array ? gf_list_count(hevc_cfg->param_array) : 0;
+	for (i=0; i<count; i++) {
+		GF_HEVCParamArray *ar = gf_list_get(hevc_cfg->param_array, i);
+		if (ar->type==type) return ar;
+	}
+	GF_SAFEALLOC(ar, GF_HEVCParamArray);
+	ar->nalus = gf_list_new();
+	ar->type = type;
+	gf_list_add(hevc_cfg->param_array, ar);
+	return ar;
+}
+
+typedef struct
+{
+	u32 track_num;
+	u32 layer_id;
+	GF_HEVCConfig *shvccfg;
+	GF_BitStream *bs;
+	u32 data_offset, data_size;
+	u32 temporal_id;
+} SHVCTrackInfo;
+
+GF_EXPORT
+GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors)
+{
+	SHVCTrackInfo sti[64];
+	GF_HEVCConfig *hevccfg, *shvccfg;
+	u32 i, count, cur_extract_mode, j, k;
+	char *nal_data=NULL;
+	u32 nal_alloc_size;
+	GF_Err e = GF_OK;
+
+	hevccfg = gf_isom_hevc_config_get(file, track, 1);
+	shvccfg = gf_isom_shvc_config_get(file, track, 1);
+	if (!shvccfg) {
+		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+		return GF_OK;
+	}
+
+	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
+	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
+
+	memset(sti, 0, sizeof(sti));
+	sti[0].track_num = track;
+
+	//split all SPS/PPS/VPS from svccfg
+	count = gf_list_count(shvccfg->param_array);
+	for (i=0; i<count; i++) {
+		u32 count2;
+		GF_HEVCParamArray *s_ar;
+		GF_HEVCParamArray *ar = gf_list_get(shvccfg->param_array, i);
+		count2 = gf_list_count(ar->nalus);
+		for (j=0; j<count2; j++) {
+			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
+			u8 nal_type = (sl->data[0] & 0x7E) >> 1;
+			u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+			
+			//this should not happen
+			if (!layer_id) continue;
+
+			if (!splitAll) layer_id = 1;
+
+			if (!sti[layer_id].shvccfg)
+				sti[layer_id].shvccfg = gf_odf_hevc_cfg_new();
+
+			s_ar = alloc_hevc_param_array(sti[layer_id].shvccfg, ar->type);
+			gf_list_add(s_ar->nalus, sl);
+			gf_list_rem(ar->nalus, j);
+			j--;
+			count2--;
+		}
+	}
+	//remove shvc config
+	e = gf_isom_shvc_config_update(file, track, 1, NULL, 0);
+	if (e) goto exit;
+
+	nal_alloc_size = 10000;
+	nal_data = gf_malloc(sizeof(char) * nal_alloc_size);
+	//parse all samples
+	count = gf_isom_get_sample_count(file, track);
+	for (i=0; i<count; i++) {
+		GF_BitStream *bs;
+		u32 di;
+		GF_ISOSample *sample;
+		u8 max_layer_id = 0;
+		
+		sample = gf_isom_get_sample(file, track, i+1, &di);
+		
+		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
+		while (gf_bs_available(bs)) {
+			u8 orig_layer_id;
+			u32 size = gf_bs_read_int(bs, shvccfg->nal_unit_size*8);
+			u8 fzero = gf_bs_read_int(bs, 1);
+			u8 nal_type = gf_bs_read_int(bs, 6);
+			u8 layer_id = orig_layer_id = gf_bs_read_int(bs, 6);
+			u8 temporal_id = gf_bs_read_int(bs, 3);
+
+			if (!splitAll) layer_id = 1;
+
+			if (max_layer_id < layer_id) 
+				max_layer_id = layer_id;
+
+			if (!sti[layer_id].bs)
+				sti[layer_id].bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			gf_bs_write_int(sti[layer_id].bs, size, shvccfg->nal_unit_size*8);
+			gf_bs_write_int(sti[layer_id].bs, 0, 1);
+			gf_bs_write_int(sti[layer_id].bs, nal_type, 6);
+			gf_bs_write_int(sti[layer_id].bs, orig_layer_id, 6);
+			gf_bs_write_int(sti[layer_id].bs, temporal_id, 3);
+			size -= 2;
+
+			if (!sti[layer_id].temporal_id || (sti[layer_id].temporal_id < temporal_id)) {
+				sti[layer_id].temporal_id = temporal_id;
+			}
+
+			if (size>nal_alloc_size) {
+				nal_alloc_size = size;
+				nal_data = gf_realloc(nal_data, nal_alloc_size);
+			}
+
+			gf_bs_read_data(bs, nal_data, size);
+			gf_bs_write_data(sti[layer_id].bs, nal_data, size);
+		}
+		gf_bs_del(bs);
+
+
+		gf_free(sample->data);
+		sample->data = NULL;
+		sample->dataLength = 0;
+		//reset all samples on scalable layers
+		for (j=0; j<=max_layer_id; j++) {
+			if (! sti[j].bs) {
+				sti[j].data_offset =  sti[j].data_size = 0;
+				continue;
+			}
+
+			//clone track
+			if (! sti[j].track_num) {
+				u32 track_id = gf_isom_get_track_id(file, track);
+				e = gf_isom_clone_track(file, track, file, 0, &sti[j].track_num);
+				if (e) goto exit;
+
+				e = gf_isom_shvc_config_update(file, sti[j].track_num, 1, sti[j].shvccfg, 0);
+				if (e) goto exit;
+
+				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
+				//get lower layer
+				for (k=j; k>0; k--) {
+					if (sti[k-1].track_num) {
+						u32 track_id = gf_isom_get_track_id(file, sti[k-1].track_num);
+						gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','c','a','l'), track_id);
+						if (!use_extractors) break;
+					}
+				}
+
+				//add empty sample at DTS 0 
+				if (sample->DTS ) {
+					u64 dts = sample->DTS;
+					s32 cts = sample->CTS_Offset;
+					sample->DTS = 0;
+					sample->CTS_Offset = 0;
+					gf_isom_add_sample(file, sti[j].track_num, 1, sample);
+					sample->DTS = dts;
+					sample->CTS_Offset = cts;
+				}
+			}
+
+			if (j && use_extractors) {
+				GF_BitStream *xbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				//get all lower layers
+				for (k=0; k<j; k++) {
+					u8 trefidx;
+					if (!sti[k].data_size) continue;
+					//extractor is 12 bytes
+					gf_bs_write_int(xbs, 2*shvccfg->nal_unit_size + 4, 8*shvccfg->nal_unit_size);
+					gf_bs_write_int(xbs, 0, 1);
+					gf_bs_write_int(xbs, 49, 6); //extractor
+					gf_bs_write_int(xbs, k, 6);
+					gf_bs_write_int(xbs, sti[k].temporal_id, 3);
+					//set ref track index
+					trefidx = (u8) gf_isom_has_track_reference(file, sti[j].track_num, GF_ISOM_REF_SCAL, gf_isom_get_track_id(file, sti[k].track_num) );
+					gf_bs_write_int(xbs, trefidx, 8);
+					// no sample offset
+					gf_bs_write_int(xbs, 0, 8);
+					// data offset: we start from begining of the sample data, not the extractor
+					gf_bs_write_int(xbs, sti[k].data_offset, 8*shvccfg->nal_unit_size);
+					gf_bs_write_int(xbs, sti[k].data_size, 8*shvccfg->nal_unit_size);
+				}
+
+				gf_bs_get_content(xbs, &sample->data, &sample->dataLength);
+				gf_bs_del(xbs);
+
+				//we wrote all our references, store offset for upper layers
+				sti[j].data_offset = sample->dataLength;
+				e = gf_isom_add_sample(file, sti[j].track_num, 1, sample);
+				if (e) goto exit;
+				gf_free(sample->data);
+
+				//get real content, remember its size and add it to the new bs
+				gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
+				e = gf_isom_append_sample_data(file, sti[j].track_num, sample->data, sample->dataLength);
+				if (e) goto exit;
+
+
+			} else {
+				//get sample content
+				gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
+				sti[j].data_offset = 0;
+				sti[j].data_size = sample->dataLength;
+
+
+				//add sample
+				if (j) {
+					e = gf_isom_add_sample(file, sti[j].track_num, 1, sample);
+				} else {
+					e = gf_isom_update_sample(file, sti[j].track_num, i+1, sample, 1);
+				}
+				if (e) goto exit;
+			}
+			
+			gf_bs_del(sti[j].bs);
+			sti[j].bs = NULL;
+				
+
+			gf_free(sample->data);
+			sample->data = NULL;
+			sample->dataLength = 0;
+		}
+		gf_isom_sample_del(&sample);
+
+		//reset all scalable info
+		for (j=0; j<=max_layer_id; j++) {
+			sti[j].temporal_id = 0;
+		}
+	}
+
+exit:
+	//reset all scalable info
+	for (j=0; j<64; j++) {
+		if (sti[j].shvccfg) gf_odf_hevc_cfg_del(sti[j].shvccfg);
+	}
+	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
+	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
+	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+	if (nal_data) gf_free(nal_data);
 	return e;
 }
 

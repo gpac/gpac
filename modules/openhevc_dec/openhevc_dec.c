@@ -158,8 +158,8 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ThreadingType", "frame");
 	}
 
-	/*not supported in this version*/
-	if (esd->dependsOnESID) return GF_NOT_SUPPORTED;
+	/*once base layer is configured, nothing to do on enhancement*/
+	if (esd->dependsOnESID) return GF_OK;
 
 	ctx->esd = esd;
 	return HEVC_ConfigureStream(ctx, esd);
@@ -374,6 +374,7 @@ static u32 HEVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_HEVC:
+	case GPAC_OTI_VIDEO_SHVC:
 		return GF_CODEC_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;

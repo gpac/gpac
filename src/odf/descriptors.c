@@ -819,8 +819,10 @@ void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg)
 			if (n->data) gf_free(n->data);
 			gf_free(n);
 		}
+		gf_list_del(pa->nalus);
 		gf_free(pa);
 	}
+	gf_list_del(cfg->param_array);
 	gf_free(cfg);
 }
 
@@ -1076,6 +1078,10 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "MPEG-4 SVC Video";
 		case GPAC_OTI_VIDEO_AVC_PS:
 			return "MPEG-4 AVC|H264 Parameter Set";
+		case GPAC_OTI_VIDEO_HEVC:
+			return "MPEG-H HEVC Video";
+		case GPAC_OTI_VIDEO_SHVC:
+			return "MPEG-H SHVC Video";
 		case GPAC_OTI_MEDIA_FFMPEG:
 			return "GPAC FFMPEG Private Video";
 		case GPAC_OTI_VIDEO_SMPTE_VC1:

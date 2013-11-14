@@ -646,17 +646,32 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 
 		es = stream->program->streams;
 		while (es) {
+			u8 type = es->mpeg2_stream_type;
 			nb_streams++;
-			gf_bs_write_int(bs,	es->mpeg2_stream_type, 8);
+			es_info_length = 0;
+
+
+			switch (es->mpeg2_stream_type) {
+			case GF_M2TS_AUDIO_AC3:
+			case GF_M2TS_VIDEO_VC1:
+				es_info_length += 2 + 4;
+				type = GF_M2TS_PRIVATE_DATA;
+				break;
+			case GF_M2TS_AUDIO_EC3:
+				es_info_length += 2;
+				type = GF_M2TS_PRIVATE_DATA;
+				break;
+			}
+
+			gf_bs_write_int(bs,	type, 8);
 			gf_bs_write_int(bs,	0x7, 3); // reserved
 			gf_bs_write_int(bs,	es->pid, 13);
 			gf_bs_write_int(bs,	0xF, 4); // reserved
 	
 			/*calculate es_info_length*/
 			if (stream->program->iod && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS))
-				es_info_length = 4;
-			else
-				es_info_length = 0;
+				es_info_length += 4;
+
 			/*another loop descriptors*/
 			if (es->loop_descriptors)
 			{
@@ -666,12 +681,48 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 					es_info_length += 2 +desc->data_len;
 				}
 			}
+
+			if (stream->ifce && stream->ifce->lang) {
+				es_info_length += 2 + 3;
+			}
+
 			gf_bs_write_int(bs,	es_info_length, 12);
 
 			if (stream->program->iod && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
 				gf_bs_write_int(bs,	GF_M2TS_MPEG4_SL_DESCRIPTOR, 8); 
 				gf_bs_write_int(bs,	2, 8); 
 				gf_bs_write_int(bs,	es->ifce->stream_id, 16);  // mpeg4_esid
+			}
+
+			if (es->ifce && es->ifce->lang) {
+				gf_bs_write_int(bs,	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR, 8); 
+				gf_bs_write_int(bs,	3, 8); 
+				gf_bs_write_int(bs,	(es->ifce->lang>>24) & 0xFF, 8); 
+				gf_bs_write_int(bs,	(es->ifce->lang>>16) & 0xFF, 8); 
+				gf_bs_write_int(bs,	es->ifce->lang & 0xFF, 8); 
+			}
+
+			switch (es->mpeg2_stream_type) {
+			case GF_M2TS_AUDIO_AC3:
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8); 
+				gf_bs_write_int(bs,	4, 8); 
+				gf_bs_write_int(bs,	0x41, 8); 
+				gf_bs_write_int(bs,	0x43, 8); 
+				gf_bs_write_int(bs,	0x2D, 8); 
+				gf_bs_write_int(bs,	0x33, 8); 
+				break;
+			case GF_M2TS_VIDEO_VC1:
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8); 
+				gf_bs_write_int(bs,	4, 8); 
+				gf_bs_write_int(bs,	0x56, 8); 
+				gf_bs_write_int(bs,	0x43, 8); 
+				gf_bs_write_int(bs,	0x2D, 8); 
+				gf_bs_write_int(bs,	0x31, 8); 
+				break;
+			case GF_M2TS_AUDIO_EC3:
+				gf_bs_write_int(bs,	GF_M2TS_DVB_EAC3_DESCRIPTOR, 8); 
+				gf_bs_write_int(bs,	0, 8); //check what is in this desc
+				break;
 			}
 
 			if (es->loop_descriptors)
@@ -1632,7 +1683,6 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 {
 	GF_M2TSDescriptor *desc;
 	GF_BitStream *bs;
-	char *data;
 	u32 data_len;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1650,7 +1700,7 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	gf_bs_write_int(bs, 3, 2);
 	/*hierarchy_layer_index*/
 	gf_bs_write_int(bs, stream->pid - stream->program->pmt->pid, 6);
-	/*tref_present_flag*/
+	/*tref_present_flag = 1 : NOT PRESENT*/
 	gf_bs_write_int(bs, 1, 1);
 	/*reserved*/
 	gf_bs_write_int(bs, 1, 1);
@@ -1663,12 +1713,9 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
 	desc->tag = (u8) GF_M2TS_HIERARCHY_DESCRIPTOR;
-	gf_bs_get_content(bs, &data, &data_len);
+	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
-	desc->data_len = data_len;
-	desc->data = (char *)gf_malloc(data_len*sizeof(char));
-	memcpy(desc->data, data, data_len);
-
+	desc->data_len = (u8) data_len;
 	gf_list_add(stream->loop_descriptors, desc);
 }
 
@@ -1719,12 +1766,6 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 11;
 			break;
-		case GPAC_OTI_VIDEO_HEVC:
-			stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC;
-			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
-			+ 4 byte start code + first nal header*/
-			stream->min_bytes_copy_from_next = 12;
-			break;
 		case GPAC_OTI_VIDEO_SVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_SVC;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (start code + 1 nal hdr + AU delim) 
@@ -1732,6 +1773,21 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->min_bytes_copy_from_next = 11;
 			gf_m2ts_stream_add_hierarchy_descriptor(stream);
 			break;	
+		case GPAC_OTI_VIDEO_HEVC:
+			stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC;
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
+			+ 4 byte start code + first nal header*/
+			stream->min_bytes_copy_from_next = 12;
+			break;
+		case GPAC_OTI_VIDEO_SHVC:
+			stream->mpeg2_stream_type = GF_M2TS_VIDEO_SHVC;
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
+			+ 4 byte start code + first nal header*/
+			stream->min_bytes_copy_from_next = 12;
+			gf_m2ts_stream_add_hierarchy_descriptor(stream);
+			//force by default with SHVC since we don't have any delimiter / layer yet
+			stream->program->mux->one_au_per_pes = 1;
+			break;
 		case GPAC_OTI_VIDEO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
 			break;
@@ -1769,6 +1825,9 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
+			break;
+		case GPAC_OTI_AUDIO_AC3:
+			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
 			break;
 		}
 		/*just pick first valid stream_id in audio range*/
@@ -1910,7 +1969,7 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 		while (gf_list_count(st->loop_descriptors) ) {
 			GF_M2TSDescriptor *desc = gf_list_last(st->loop_descriptors);
 			gf_list_rem_last(st->loop_descriptors);
-			//if (desc->data) gf_free(desc->data);
+			if (desc->data) gf_free(desc->data);
 			gf_free(desc);
 		}
 		gf_list_del(st->loop_descriptors);

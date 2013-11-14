@@ -191,6 +191,10 @@ enum
 	GF_ISOM_SUBTYPE_SVC_H264		= GF_4CC( 's', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_HVC1			= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
+	GF_ISOM_SUBTYPE_HVC2			= GF_4CC( 'h', 'v', 'c', '2' ),
+	GF_ISOM_SUBTYPE_HEV2			= GF_4CC( 'h', 'e', 'v', '2' ),
+	GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
+	GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
 
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
@@ -1615,9 +1619,6 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 /*gets uncompressed SVC config - user is responsible for deleting it*/
 GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-/*gets uncompressed HEVC config - user is responsible for deleting it*/
-GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
-
 typedef enum
 {
 	GF_ISOM_AVCTYPE_NONE=0,
@@ -1627,6 +1628,22 @@ typedef enum
 } GF_ISOMAVCType;
 
 u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+
+typedef enum
+{
+	GF_ISOM_HEVCTYPE_NONE=0,
+	GF_ISOM_HEVCTYPE_HEVC_ONLY,
+	GF_ISOM_HEVCTYPE_HEVC_SHVC,
+	GF_ISOM_HEVCTYPE_SHVC_ONLY,
+} GF_ISOMAVCType;
+
+u32 gf_isom_get_hevc_shvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+/*gets HEVC config - user is responsible for deleting it*/
+GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+/*gets SHVC config - user is responsible for deleting it*/
+GF_HEVCConfig *gf_isom_shvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 Bool gf_isom_has_scalable_layer(GF_ISOFile *file);
 
@@ -1665,14 +1682,17 @@ GF_Err gf_isom_svc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 Descrip
 /*sets avc3 entry type (inband SPS/PPS) instead of of avc1 (SPS/PPS in avcC box)*/
 GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-/*sets avc3 entry type (inband SPS/PPS) instead of of avc1 (SPS/PPS in avcC box)*/
+/*sets hev1 entry type (inband SPS/PPS) instead of of hvc1 (SPS/PPS in avcC box)*/
 GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 
-/*creates new AVC config*/
+/*creates new HEVC config*/
 GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
-/*updates AVC config*/
+/*updates HEVC config*/
 GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg);
+
+/*updates SHVC config*/
+GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_additional);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

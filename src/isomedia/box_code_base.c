@@ -3526,6 +3526,7 @@ void mp4v_del(GF_Box *s)
 	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
 	if (ptr->svc_config) gf_isom_box_del((GF_Box *) ptr->svc_config);
 	if (ptr->hevc_config) gf_isom_box_del((GF_Box *) ptr->hevc_config);
+	if (ptr->shvc_config) gf_isom_box_del((GF_Box *) ptr->shvc_config);
 	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
 	if (ptr->ipod_ext) gf_isom_box_del((GF_Box *)ptr->ipod_ext);
@@ -3560,6 +3561,10 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SVCC:
 		if (ptr->svc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->svc_config = (GF_AVCConfigurationBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_SHCC:
+		if (ptr->shvc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->shvc_config = (GF_HEVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
 		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -3598,11 +3603,11 @@ GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
 	/*this is an AVC sample desc*/
 	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
 	/*this is an HEVC sample desc*/
-	if (mp4v->hevc_config ) HEVC_RewriteESDescriptor(mp4v);
+	if (mp4v->hevc_config || mp4v->shvc_config) HEVC_RewriteESDescriptor(mp4v);
 	return GF_OK;
 }
 
-static GF_Box *mp4v_encv_avc1_new(u32 type)
+GF_Box *mp4v_encv_avc_hevc_new(u32 type)
 {
 	GF_MPEGVisualSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_MPEGVisualSampleEntryBox);
@@ -3612,53 +3617,8 @@ static GF_Box *mp4v_encv_avc1_new(u32 type)
 	tmp->type = type;
 	return (GF_Box *)tmp;
 }
-GF_Box *mp4v_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_MP4V);
-}
-
-GF_Box *avc1_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_AVC1);
-}
-
-GF_Box *avc2_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_AVC2);
-}
-
-GF_Box *avc3_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_AVC3);
-}
-
-GF_Box *avc4_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_AVC4);
-}
-
-GF_Box *svc1_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_SVC1);
-}
-
-GF_Box *hvc1_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_HVC1);
-}
-
-GF_Box *hev1_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_HEV1);
-}
 
 
-GF_Box *encv_New()
-{
-	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_ENCV);
-}
-
- 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
@@ -3679,7 +3639,7 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
 		if (e) return e;
 	}
-	/*avc1*/
+	/*avc or hevc*/
 	else {
 		if (ptr->avc_config && ptr->avc_config->config) {
 			e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
@@ -3705,6 +3665,10 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
 			if (e) return e;
 		}
+		if (ptr->shvc_config && ptr->shvc_config->config) {
+			e = gf_isom_box_write((GF_Box *) ptr->shvc_config, bs);
+			if (e) return e;
+		}
 	}
 	if (ptr->rvcc) {
 		e = gf_isom_box_write((GF_Box *)ptr->rvcc, bs);
@@ -3727,7 +3691,7 @@ GF_Err mp4v_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->esd->size;
 	} else {
-		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config) {
+		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->shvc_config) {
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -3747,6 +3711,12 @@ GF_Err mp4v_Size(GF_Box *s)
 			e = gf_isom_box_size((GF_Box *) ptr->svc_config); 
 			if (e) return e;
 			ptr->size += ptr->svc_config->size;
+		}
+
+		if (ptr->shvc_config && ptr->shvc_config->config) {
+			e = gf_isom_box_size((GF_Box *) ptr->shvc_config); 
+			if (e) return e;
+			ptr->size += ptr->shvc_config->size;
 		}
 
 		if (ptr->ipod_ext) {
@@ -4983,6 +4953,10 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
 	case GF_ISOM_BOX_TYPE_ENCT:
@@ -6209,9 +6183,13 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_AVC2:
 		case GF_ISOM_BOX_TYPE_AVC3:
 		case GF_ISOM_BOX_TYPE_AVC4:
+		case GF_ISOM_BOX_TYPE_SVC1:
 		case GF_ISOM_BOX_TYPE_HVC1:
 		case GF_ISOM_BOX_TYPE_HEV1:
-		case GF_ISOM_BOX_TYPE_SVC1:
+		case GF_ISOM_BOX_TYPE_HVC2:
+		case GF_ISOM_BOX_TYPE_HEV2:
+		case GF_ISOM_BOX_TYPE_SHC1:
+		case GF_ISOM_BOX_TYPE_SHV1:
 		case GF_ISOM_BOX_TYPE_TX3G:
 		case GF_ISOM_BOX_TYPE_TEXT:
 		case GF_ISOM_BOX_TYPE_ENCT:

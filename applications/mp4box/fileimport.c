@@ -183,7 +183,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
-	u32 group, handler, rvc_predefined, check_track_for_svc;
+	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_shvc;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
@@ -260,8 +260,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "ovsbr")) import_flags |= GF_IMPORT_OVSBR;
 		else if (!stricmp(ext+1, "ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
 		else if (!stricmp(ext+1, "psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
-		else if (!stricmp(ext+1, "svc")) import_flags |= GF_IMPORT_SVC_EXPLICIT;
-		else if (!stricmp(ext+1, "nosvc")) import_flags |= GF_IMPORT_SVC_NONE;
+		else if (!stricmp(ext+1, "svc") || !stricmp(ext+1, "shvc") ) import_flags |= GF_IMPORT_SVC_EXPLICIT;
+		else if (!stricmp(ext+1, "nosvc") || !stricmp(ext+1, "noshvc")) import_flags |= GF_IMPORT_SVC_NONE;
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
@@ -344,12 +344,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		/*force all composition offsets to be positive*/
 		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
 		/*split SVC layers*/
-		else if (!strnicmp(ext+1, "svcmode=", 8)) {
-			if (!stricmp(ext+9, "splitall") || !stricmp(ext+9, "split"))
+		else if (!strnicmp(ext+1, "svcmode=", 8) || !strnicmp(ext+1, "shvcmode=", 9)) {
+			char *mode = ext+9;
+			if (mode[0]=='=') mode = ext+10;
+
+			if (!stricmp(mode, "splitnox"))
+				svc_mode = 3;
+			else if (!stricmp(mode, "splitall") || !stricmp(mode, "split"))
 				svc_mode = 2;
-			else if (!stricmp(ext+9, "splitbase"))
+			else if (!stricmp(mode, "splitbase"))
 				svc_mode = 1;
-			else if (!stricmp(ext+9, "merged"))
+			else if (!stricmp(mode, "merged"))
 				svc_mode = 0;
 		}
 		else if (!strnicmp(ext+1, "tiles", 5)) {
@@ -451,7 +456,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		import.text_y = txty;
 	}
 
-	check_track_for_svc = 0;
+	check_track_for_svc = check_track_for_shvc = 0;
 
 	import.dest = dest;
 	import.video_fps = force_fps;
@@ -524,6 +529,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = i+1;
+			
+			if (gf_isom_get_hevc_shvc_type(import.dest, i+1, 1)>=GF_ISOM_HEVCTYPE_HEVC_SHVC)
+				check_track_for_shvc = i+1;
 
 			if (tile_mode) {
 				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
@@ -661,6 +669,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = track;
 
+			if (gf_isom_get_hevc_shvc_type(import.dest, track, 1)>=GF_ISOM_HEVCTYPE_HEVC_SHVC)
+				check_track_for_shvc = track;
+
 			if (tile_mode) {
 				switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
 				case GF_ISOM_SUBTYPE_HVC1:
@@ -700,6 +711,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		} else {
 			e = gf_media_merge_svc(import.dest, check_track_for_svc, 1);
 			if (e) goto exit;
+		}
+	}
+	if (check_track_for_shvc) {
+		if (svc_mode) {
+			e = gf_media_split_shvc(import.dest, check_track_for_shvc, (svc_mode==1) ? 0 : 1, (svc_mode==3) ? 0 : 1 );
+			if (e) goto exit;
+		} else {
+			//TODO - merge
 		}
 	}
 	if (tile_mode == 2) {

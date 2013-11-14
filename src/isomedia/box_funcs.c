@@ -416,7 +416,6 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_IODS: return iods_New();
 	case GF_ISOM_BOX_TYPE_TRAK: return trak_New();
 	case GF_ISOM_BOX_TYPE_MP4S: return mp4s_New();
-	case GF_ISOM_BOX_TYPE_MP4V: return mp4v_New();
 	case GF_ISOM_BOX_TYPE_MP4A: return mp4a_New();
 	case GF_ISOM_BOX_TYPE_GNRM: return gnrm_New();
 	case GF_ISOM_BOX_TYPE_GNRV: return gnrv_New();
@@ -528,17 +527,28 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		if (a) a->type = boxType;
 		return a;
 	case GF_ISOM_BOX_TYPE_HVCC: 
-		return hvcc_New();
+	case GF_ISOM_BOX_TYPE_SHCC:
+		a = hvcc_New();
+		if (a) a->type = boxType;
+		return a;
 
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_New();
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_New();
-	case GF_ISOM_BOX_TYPE_AVC1: return avc1_New();
-	case GF_ISOM_BOX_TYPE_AVC2: return avc2_New();
-	case GF_ISOM_BOX_TYPE_AVC3: return avc3_New();
-	case GF_ISOM_BOX_TYPE_AVC4: return avc4_New();
-	case GF_ISOM_BOX_TYPE_SVC1: return svc1_New();
-	case GF_ISOM_BOX_TYPE_HVC1: return hvc1_New();
-	case GF_ISOM_BOX_TYPE_HEV1: return hev1_New();
+
+	case GF_ISOM_BOX_TYPE_MP4V: 
+	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
+	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_HVC1:
+	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
+		return mp4v_encv_avc_hevc_new(boxType);
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_New();
@@ -572,7 +582,6 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_SCHM: return schm_New();
 	case GF_ISOM_BOX_TYPE_SCHI: return schi_New();
 	case GF_ISOM_BOX_TYPE_ENCA: return enca_New();
-	case GF_ISOM_BOX_TYPE_ENCV: return encv_New();
 	case GF_ISOM_BOX_TYPE_ENCS: return encs_New();
 
 	case GF_ISOM_BOX_TYPE_SENC: return senc_New();
@@ -848,8 +857,14 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SVC1: 
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 		mp4v_del(a); return;
-	case GF_ISOM_BOX_TYPE_HVCC: hvcc_del(a); return;
+	case GF_ISOM_BOX_TYPE_HVCC:
+	case GF_ISOM_BOX_TYPE_SHCC:
+		hvcc_del(a); return;
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: ftab_del(a); return;
@@ -1139,8 +1154,13 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SVC1: 
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 		return mp4v_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HVCC: 
+	case GF_ISOM_BOX_TYPE_SHCC:
 		return hvcc_Read(a, bs);
 
 	/*3GPP streaming text*/
@@ -1409,6 +1429,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SVCC: 
 		return avcc_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_HVCC: 
+	case GF_ISOM_BOX_TYPE_SHCC:
 		return hvcc_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Write(a, bs);
@@ -1419,6 +1440,10 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SVC1: 
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 		return mp4v_Write(a, bs);
 
 	/*3GPP streaming text*/
@@ -1697,6 +1722,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SVCC: 
 		return avcc_Size(a);
 	case GF_ISOM_BOX_TYPE_HVCC: 
+	case GF_ISOM_BOX_TYPE_SHCC:
 		return hvcc_Size(a);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Size(a);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Size(a);
@@ -1707,6 +1733,10 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SVC1: 
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_SHC1:
+	case GF_ISOM_BOX_TYPE_SHV1:
 		return mp4v_Size(a);
 
 	/*3GPP streaming text*/

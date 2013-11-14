@@ -88,9 +88,9 @@ enum
 	GF_IMPORT_USE_COMPACT_SIZE = 1<<8,
 	/*don't add a final empty sample when importing text tracks from srt*/
 	GF_IMPORT_NO_TEXT_FLUSH = 1<<9,
-	/*for SVC video: forces explicit SVC signaling */
+	/*for SVC or SHVC video: forces explicit SVC / SHVC signaling */
 	GF_IMPORT_SVC_EXPLICIT = 1<<10,
-	/*for SVC video: removes all SVC extensions*/
+	/*for SVC / SHVC video: removes all SVC / SHVC extensions*/
 	GF_IMPORT_SVC_NONE = 1<<11,
 
 	/*for AAC audio: forces PS mode with implicit signaling (backward compatible)*/
@@ -263,7 +263,11 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll);
 /* Merge SVC layers*/
 GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
 
+/* Split SHVC layers */
+GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors);
+
 GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
