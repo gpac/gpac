@@ -305,7 +305,7 @@ static u32 mpd_thread(void *params)
 						main_seg_time = seg_time;
 						first = GF_FALSE;
 						rounded = (main_seg_time.time/1000) * 1000;
-						diff = rounded + 1000 - main_seg_time.time;
+						diff = (s32) (rounded + 1000 - main_seg_time.time);
 						main_seg_time.time = rounded + 1000;
 
 						//if using AST offset, signal the diff
