@@ -684,6 +684,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	hevccfg = NULL;
 	avccfg = NULL;
 	svccfg = NULL;
+	shvccfg = NULL;
 	
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
