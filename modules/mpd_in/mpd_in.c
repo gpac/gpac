@@ -44,9 +44,9 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
 	Bool memory_storage;
-	Bool use_max_res, immediate_switch, allow_http_abort;
+	Bool use_max_res, immediate_switch, allow_http_abort, enable_buffering;
 	u32 use_low_latency;
-    Double previous_start_range;
+	Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
 } GF_MPD_In;
@@ -602,7 +602,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	s32 shift_utc_sec;
 	u32 max_cache_duration, auto_switch_count, init_timeshift;
 	GF_DASHInitialSelectionMode first_select_mode;
-	Bool keep_files, disable_switching, enable_buffering;
+	Bool keep_files, disable_switching;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
@@ -670,7 +670,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering", "no");
-	enable_buffering = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	mpdin->enable_buffering = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
@@ -696,7 +696,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 
-	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, enable_buffering, init_timeshift);
+	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, mpdin->enable_buffering, init_timeshift);
 
 	if (!mpdin->dash) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot create DASH Client for %s\n", url));
@@ -810,7 +810,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	/*we should get it from MPD minBufferTime*/
 	case GF_NET_CHAN_BUFFER:
-		if (!mpdin->use_low_latency) {
+		if (mpdin->enable_buffering) {
 			com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
 			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
 				com->buffer.min = 200;

@@ -291,7 +291,7 @@ static u32 mpd_thread(void *params)
 			if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
 				dc_message_queue_get(mq, &seg_time);
 
-				if (cmddata->ast_offset>0) {
+				if (cmddata->ast_offset>=1000) {
 					seg_time.time += cmddata->ast_offset;
 					seg_time.segnum -= cmddata->ast_offset / cmddata->seg_dur;
 				}
@@ -309,8 +309,10 @@ static u32 mpd_thread(void *params)
 						main_seg_time.time = rounded + 1000;
 
 						//if using AST offset, signal the diff
-						if (cmddata->ast_offset) {
+						if (cmddata->use_ast_offset && (cmddata->ast_offset<1000)) {
 							cmddata->ast_offset -= diff;
+							if (cmddata->ast_offset>0) cmddata->ast_offset=0;
+
 						}
 					}
 				}
@@ -752,6 +754,7 @@ u32 video_encoder_thread(void *params)
 	int ret, shift, frame_nb, seg_frame_max, frag_frame_max, seg_nb = 0, loss_state = 0, quit = 0;
 	char name_to_delete[GF_MAX_PATH], name_to_send[GF_MAX_PATH];
 	u64 start_utc, seg_utc;
+	segtime time_at_segment_start;
 
 	VideoMuxerType muxer_type = VIDEO_MUXER;
 	VideoThreadParam *thread_params = (VideoThreadParam*)params;
@@ -807,6 +810,11 @@ u32 video_encoder_thread(void *params)
 	seg_utc = 0;
 	while (1) {
 		frame_nb = 0;
+		//log time at segment start, because segment availabilityStartTime is computed from AST anchor + segment duration
+		//logging at the end of the segment production will induce one segment delay
+		time_at_segment_start.segnum = seg_nb;
+		time_at_segment_start.time = gf_net_get_utc();
+		
 		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video file.\n"));
 			in_data->exit_signal = 1;
@@ -874,8 +882,6 @@ u32 video_encoder_thread(void *params)
 		// Send the time that a segment is available to MPD generator thread.
 		if (in_data->mode == LIVE_MEDIA || in_data->mode == LIVE_CAMERA) {
 			if (thread_params->video_conf_idx == 0) {
-				segtime t;
-
 				//check we don't loose sync
 				int diff;
 				seg_utc = gf_net_get_utc();
@@ -897,14 +903,12 @@ u32 video_encoder_thread(void *params)
 				}
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur));
 				
-				t.segnum = seg_nb;
-				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);
-				dc_message_queue_put(mq, &t, sizeof(t));
+				dc_message_queue_put(mq, &time_at_segment_start, sizeof(time_at_segment_start));
 			}
 		}
 	
-		if (in_data->time_shift != -1) {
+		if ((in_data->time_shift != -1) && (seg_nb - shift>=0)) {
 			shift = 1000 * in_data->time_shift / in_data->seg_dur;
 			snprintf(name_to_delete, sizeof(name_to_delete), "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, (seg_nb - shift));
 			dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
