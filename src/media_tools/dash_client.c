@@ -3136,8 +3136,8 @@ restart_period:
 
 				/*wait if nothing is ready to be downloaded*/
 				if (min_wait>2) {
-					u32 sleep_for = MIN(min_wait, 1000);
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep\n", sleep_for));
+					u32 sleep_for = MIN(min_wait/2, 1000);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", min_wait, sleep_for));
 					gf_sleep(sleep_for);
 				}
 

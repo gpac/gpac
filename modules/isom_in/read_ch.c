@@ -188,7 +188,7 @@ next_segment:
 			if (gf_isom_get_last_producer_time_box(read->mov, &trackID, &ntp, &timestamp, 1)) {
 				time_t secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
 				struct tm t = *gmtime(&secs);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp "LLU" matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %d) \n", trackID, timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, (ntp & 0xFFFFFFFFULL) ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp %d matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %d) \n", trackID, (u32) timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, (u32) (ntp & 0xFFFFFFFFULL) ));
 			}
 #endif
 
@@ -560,13 +560,12 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 
 	if (read->in_data_flush) 
 		return;
+	//pull request from term: if no segments are pending (received but not yet parsed) ignore
+	if (!check_buffer_level && !read->has_pending_segments)
+		return;
 
 	gf_mx_p(read->segment_mutex);
 	read->in_data_flush = 1;
-
-	//update data
-	isor_segment_switch_or_refresh(read, (is_chunk_flush && (read->seg_opened==1) ) ? 1 : 0);
-
 
 	if (!is_chunk_flush && check_buffer_level) {
 		ch = (ISOMChannel *)gf_list_get(read->channels, 0);
@@ -576,10 +575,16 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		gf_term_on_command(read->service, &com, GF_OK);
 		if (com.buffer.occupancy >= com.buffer.max) {
 			read->in_data_flush = 0;
+			read->has_pending_segments++;
 			gf_mx_v(read->segment_mutex);
 			return;
 		}
 	}
+
+	//update data
+	isor_segment_switch_or_refresh(read, (is_chunk_flush && (read->seg_opened==1) ) ? 1 : 0);
+	if (read->has_pending_segments)
+		read->has_pending_segments--;
 
 	//for all channels, fetch and send ...
 	count = gf_list_count(read->channels);

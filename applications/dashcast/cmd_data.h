@@ -100,6 +100,8 @@ typedef struct {
 	int use_dynamic_ast;
 	/*insert UTC */
 	int insert_utc;
+	/*insert UTC */
+	int use_ast_offset;
 
 	Bool use_source_timing;
 } CmdData;
