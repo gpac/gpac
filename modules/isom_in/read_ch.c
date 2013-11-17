@@ -186,9 +186,26 @@ next_segment:
 
 #ifndef _WIN32_WCE
 			if (gf_isom_get_last_producer_time_box(read->mov, &trackID, &ntp, &timestamp, 1)) {
-				time_t secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
-				struct tm t = *gmtime(&secs);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp %d matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %d) \n", trackID, (u32) timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, (u32) (ntp & 0xFFFFFFFFULL) ));
+				u32 remote_s, remote_f, local_s, local_f;
+				s64 diff_s, diff_f;
+				time_t secs;
+				struct tm t;
+				remote_s = (ntp>>32);
+				remote_f = (u32) (ntp & 0xFFFFFFFFULL);
+				gf_net_get_ntp(&local_s, &local_f);
+				diff_s = local_s;
+				diff_s -= remote_s;
+				diff_s *= 1000;
+				diff_f = local_f;
+				diff_f -= remote_f;
+				diff_f *= 1000;
+				diff_f /= 0xFFFFFFFFULL;
+				diff_s += diff_f;
+
+				secs = remote_s - GF_NTP_SEC_1900_TO_1970;
+				t = *gmtime(&secs);
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp %d matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ - NTP clock diff (local - remote): %d ms\n", trackID, (u32) timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, diff_s ));
 			}
 #endif
 
@@ -573,10 +590,11 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_BUFFER_QUERY;
 		gf_term_on_command(read->service, &com, GF_OK);
-		if (com.buffer.occupancy >= com.buffer.max) {
+		if (com.buffer.max && (com.buffer.occupancy >= com.buffer.max)) {
 			read->in_data_flush = 0;
 			read->has_pending_segments++;
 			gf_mx_v(read->segment_mutex);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Buffer level %d ms higher than max allowed %d ms - skipping dispatch\n", com.buffer.occupancy,  com.buffer.max));
 			return;
 		}
 	}

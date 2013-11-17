@@ -908,10 +908,12 @@ u32 video_encoder_thread(void *params)
 			}
 		}
 	
-		if ((in_data->time_shift != -1) && (seg_nb - shift>=0)) {
+		if ((in_data->time_shift != -1)) {
 			shift = 1000 * in_data->time_shift / in_data->seg_dur;
-			snprintf(name_to_delete, sizeof(name_to_delete), "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, (seg_nb - shift));
-			dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
+			if (seg_nb - shift>=0) {
+				snprintf(name_to_delete, sizeof(name_to_delete), "%s/%s_%d_gpac.m4s", in_data->out_dir, video_data_conf->filename, (seg_nb - shift));
+				dc_message_queue_put(delete_seg_mq, name_to_delete, sizeof(name_to_delete));
+			}
 		}
 
 		seg_nb++;
