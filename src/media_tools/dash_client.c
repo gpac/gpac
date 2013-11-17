@@ -529,7 +529,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->start_number_at_last_ast = start_number;
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time %d ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
 		} else {
 			group->download_segment_index += start_number;
 			if (group->download_segment_index > group->start_number_at_last_ast) {
@@ -542,8 +542,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 			group->start_number_at_last_ast = start_number;
 		}
-
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] UTC time indicates first segment in period is %d, MPD indicates %d segments are available ...\n", group->download_segment_index , group->nb_segments_in_rep));
+		if (group->nb_segments_in_rep) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] UTC time indicates first segment in period is %d, MPD indicates %d segments are available\n", group->download_segment_index , group->nb_segments_in_rep));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] UTC time indicates first segment in period is %d\n", group->download_segment_index));
+		}
 
 		if (group->nb_segments_in_rep && (group->download_segment_index + nb_segs_in_update > group->nb_segments_in_rep)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Not enough segments (%d needed vs %d indicated) to reach period endTime indicated in MPD - ignoring MPD duration\n", nb_segs_in_update, group->nb_segments_in_rep - group->download_segment_index ));
@@ -3135,7 +3138,7 @@ restart_period:
 				Bool cache_full = 1;
 
 				/*wait if nothing is ready to be downloaded*/
-				if (min_wait>2) {
+				if (min_wait>0) {
 					u32 sleep_for = MIN(min_wait/2, 1000);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", min_wait, sleep_for));
 					gf_sleep(sleep_for);
@@ -3278,8 +3281,8 @@ restart_period:
 				
 				to_wait = (s32) (segment_ast - now);
 
-				/*if segment AST is greater than now, it is not yet available ...*/
-				if (to_wait > 100) {
+				/*if segment AST is greater than now, it is not yet available - we would need an estimate on how long the request takes to be sent to the server in order to be more reactive ...*/
+				if (to_wait > 1) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") is not yet available on server - requesting later in %d ms\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, to_wait));
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));

@@ -637,7 +637,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 
 					secs = sec - GF_NTP_SEC_1900_TO_1970;
 					t = *gmtime(&secs);
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Producer reference clock: Timestamp %d matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %d) \n", (u32) video_output_file->pts_at_segment_start, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, frac ));
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Producer reference clock: Timestamp %d matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %u) \n", (u32) video_output_file->pts_at_segment_start, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, (u32) frac ));
 
 				}
 			}
