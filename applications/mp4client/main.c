@@ -31,6 +31,7 @@
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
 #include <gpac/avparse.h>
+#include <time.h>
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
@@ -852,7 +853,13 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
 		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
-		if (log_utc_time) fprintf(logs, "[UTC "LLU"]", gf_net_get_utc() );
+		if (log_utc_time) {
+			u64 utc_clock = gf_net_get_utc() ;
+			time_t secs = utc_clock/1000;
+			struct tm t;
+			t = *gmtime(&secs);
+			fprintf(logs, "[UTC %d-%02d-%02dT%02d:%02d:%02dZ - TS "LLU"]", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+		}
 		vfprintf(logs, fmt, list);
 		fflush(logs);
 	}
