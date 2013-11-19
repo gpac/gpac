@@ -209,6 +209,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_refreshed_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_set_output_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_transfer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_flush) )
+
 
 /* Thread */
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_new) )

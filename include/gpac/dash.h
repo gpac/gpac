@@ -101,6 +101,10 @@ struct _gf_dash_io
 	const char *(*get_cache_name)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the MIME type of the file*/
 	const char *(*get_mime)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*get the given hedaer value in the last HTTP response. Function is optional*/
+	const char *(*get_header_value)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *header_name);
+	/*gets the UTC time at which reply has been received. Function is optional*/
+	u64 (*get_utc_start_time)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the average download rate for the session*/
 	u32 (*get_bytes_per_sec)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the total size on bytes for the session*/

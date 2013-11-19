@@ -649,7 +649,6 @@ static void gf_dm_clear_headers(GF_DownloadSession *sess)
 
 static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 {
-	gf_dm_clear_headers(sess);
     assert( sess );
     if (sess->status >= GF_NETIO_DISCONNECTED)
 		return;
@@ -1123,12 +1122,14 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 #endif
 
 
+#if 0
 	//reset bandwidth computation at start of each chunk
 	if (sess->chunked && !sess->nb_left_in_chunk) {
 		sess->start_time = gf_sys_clock();
 		sess->start_time_utc = gf_net_get_utc();
 		sess->bytes_done = 0;
 	}
+#endif
 
     if (!sess->sock)
         return GF_NETIO_DISCONNECTED;
@@ -2386,6 +2387,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     bytesRead = res = 0;
     new_location = NULL;
     sess->use_cache_file = 1;
+
+	//always set start time to the time at last attempt reply parsing
+    sess->start_time = gf_sys_clock();
+	sess->start_time_utc = gf_net_get_utc();
+
     while (1) {
         e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
         switch (e) {
@@ -2839,9 +2845,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             sess->bytes_done = 0;
         }
     }
-
-    sess->start_time = gf_sys_clock();
-	sess->start_time_utc = gf_net_get_utc();
 
     /* we may have existing data in this buffer ... */
     if (!e && (BodyStart < (s32) bytesRead)) {

@@ -275,6 +275,7 @@ static u32 mpd_thread(void *params)
 
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
+			u32 msecs;
 			time_t t;
 			segtime seg_time;
 			seg_time.segnum = 0;
@@ -300,33 +301,23 @@ static u32 mpd_thread(void *params)
 					main_seg_time = seg_time;
 				} else {
 					if (first) {
-						u64 rounded;
-						s32 diff;
 						main_seg_time = seg_time;
 						first = GF_FALSE;
-						rounded = (main_seg_time.time/1000) * 1000;
-						diff = (s32) (rounded + 1000 - main_seg_time.time);
-						main_seg_time.time = rounded + 1000;
-
-						//if using AST offset, signal the diff
-						if (cmddata->use_ast_offset && (cmddata->ast_offset<1000)) {
-							cmddata->ast_offset -= diff;
-							if (cmddata->ast_offset>0) cmddata->ast_offset=0;
-
-						}
 					}
 				}
 			}
 
 			//printf time at which we generate MPD
 			t = seg_time.time / 1000;
+			msecs = (u32) ( (seg_time.time - t*1000) );
 			ast_time = *gmtime(&t);
 			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
-			fprintf(stdout, "Generating MPD at %s\n", availability_start_time);
+			fprintf(stdout, "Generating MPD at %s.%d\n", availability_start_time, msecs);
 
 			t = main_seg_time.time / 1000;
+			msecs = (u32) ( (main_seg_time.time - t*1000) );
 			ast_time = *gmtime(&t);
-			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
+			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%d", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
 			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum, seg_time.segnum);
 			
 			if (cmddata->time_shift != -1) {
@@ -376,8 +367,7 @@ static u32 mpd_thread(void *params)
 u32 delete_seg_thread(void *params)
 {
 	int ret;
-	ThreadParam *th_param = (ThreadParam*)params;
-	CmdData *cmd_data = th_param->in_data;
+	ThreadParam *th_param = (ThreadParam*)params;CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
 
 	char buff[GF_MAX_PATH];

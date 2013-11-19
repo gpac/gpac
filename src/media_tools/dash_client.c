@@ -267,6 +267,31 @@ static void gf_dash_buffer_on(GF_DASH_Group *group, GF_DashClient *dash)
 	}
 }
 
+static u64 dash_get_fetch_time(GF_DashClient *dash)
+{
+	u64 utc = 0;
+
+	if (dash->mpd_dnload && dash->dash_io->get_utc_start_time)
+		utc = dash->dash_io->get_utc_start_time(dash->dash_io, dash->mpd_dnload);
+	if (!utc) 
+		utc = gf_net_get_utc();
+	return utc;
+}
+
+static void dash_check_server_utc(GF_DashClient *dash, u64 fetch_time)
+{
+	dash->utc_drift_estimate = 0;
+	if (dash->mpd_dnload && dash->dash_io->get_header_value) {
+		const char *val = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "Server-UTC");
+		if (val) {
+			u64 utc;
+			sscanf(val, LLU, &utc);
+			dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server %d ms\n", dash->utc_drift_estimate));
+		}
+	}
+}
+
 static u32 gf_dash_group_count_rep_needed(GF_DASH_Group *group)
 {
 	u32 count, nb_rep_need, next_rep_index_plus_one;
@@ -355,7 +380,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	u32 ast_diff, start_number;
 	Double ast_offset = 0;
 	
-	group->dash->utc_drift_estimate = 0;
 	if (mpd->type==GF_MPD_TYPE_STATIC) 
 		return;
 	
@@ -380,6 +404,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (current_time < availabilityStartTime) {
 		//if more than 1 sec consider we have a pb
 		if (availabilityStartTime - current_time >= 1000) {
+			Bool broken_timing = 1;
 #ifndef _WIN32_WCE
 			time_t gtime1, gtime2;
 			struct tm *t1, *t2;
@@ -388,9 +413,9 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			gtime2 = availabilityStartTime / 1000;
 			t2 = gmtime(&gtime2);
 			if (t1 == t2) {
-				group->dash->utc_drift_estimate = (s32) (availabilityStartTime - current_time);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Slight drift in UTC clock at time %d-%02d-%02dT%02d:%02d:%02dZ: diff AST - now %d ms\n", 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec, group->dash->utc_drift_estimate));
-				current_time = 0;	
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Slight drift in UTC clock at time %d-%02d-%02dT%02d:%02d:%02dZ: diff AST - now %d ms\n", 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec, (s32) (availabilityStartTime - current_time) ));
+				current_time = 0;
+				broken_timing = 0;
 			}
 			else if (t1 && t2) {
 				t1->tm_year = t2->tm_year;
@@ -404,7 +429,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 
 #endif
-			if (!group->dash->utc_drift_estimate) {
+			if (broken_timing) {
 				if (group->dash->utc_shift>0) {
 					availabilityStartTime = current_time;
 				} else {
@@ -524,9 +549,14 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		nb_seg /= 1000;
 		nb_seg /= group->segment_duration;
 		shift = (u32) nb_seg;
+		//TODO we could optimize further here, but we start with the next available segment in order to avoid playing back for (nb_seg - shift) - we could optimize further here by seeking in the media 
+		if (shift < nb_seg) 
+			shift += 1;
+		
 		if (!group->start_number_at_last_ast) {
 			group->download_segment_index = shift;
 			group->start_number_at_last_ast = start_number;
+
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
@@ -1339,7 +1369,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		gf_free(purl);
 		purl = NULL;
 	}
-	fetch_time = gf_net_get_utc();
+	fetch_time = dash_get_fetch_time(dash);
+	dash_check_server_utc(dash, fetch_time);
 
 	if (!gf_dash_check_mpd_root_type(local_url)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
@@ -3276,7 +3307,7 @@ restart_period:
 				s32 to_wait = 0;
 				u32 seg_dur_ms=0;
 				s64 segment_ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, &seg_dur_ms);
-				s64 now = (s64) gf_net_get_utc() + dash->utc_drift_estimate;
+				s64 now = (s64) gf_net_get_utc();
 				clock_time = gf_sys_clock();
 				
 				to_wait = (s32) (segment_ast - now);
@@ -3778,7 +3809,8 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		if (!f) return GF_URL_ERROR;
 		fclose(f);
 	}
-	dash->mpd_fetch_time = gf_net_get_utc();
+	dash->mpd_fetch_time = dash_get_fetch_time(dash);
+	dash_check_server_utc(dash, dash->mpd_fetch_time );
 
 	if (dash->is_m3u8) {
 		if (is_local) {

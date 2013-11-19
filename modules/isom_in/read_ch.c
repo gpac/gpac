@@ -572,6 +572,7 @@ void isor_reader_release_sample(ISOMChannel *ch)
 void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush)
 {
 	u32 i, count;
+	Bool was_in_progressive_mode;
 	GF_NetworkCommand com;
 	ISOMChannel *ch;
 
@@ -599,6 +600,8 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		}
 	}
 
+	was_in_progressive_mode = (read->seg_opened==1) ? 1 : 0;
+
 	//update data
 	isor_segment_switch_or_refresh(read, (is_chunk_flush && (read->seg_opened==1) ) ? 1 : 0);
 	if (read->has_pending_segments)
@@ -621,6 +624,10 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	}
 
 	read->in_data_flush = 0;
+	//this call has finished the parsing of any previously segment in progressive mode, but since we just got a new chunk, we may also want to dispatch any data in this chunk
+	if (was_in_progressive_mode && (read->seg_opened==2) && is_chunk_flush) {
+		isor_flush_data(read, check_buffer_level, is_chunk_flush);
+	}
 	gf_mx_v(read->segment_mutex);
 }
 

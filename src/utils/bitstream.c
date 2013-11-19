@@ -1026,6 +1026,7 @@ void gf_bs_truncate(GF_BitStream *bs)
 	if (bs->stream) return;
 }
 
+
 GF_EXPORT
 GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src)
 {
@@ -1047,4 +1048,29 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src)
 	gf_free(data);
 	if (written<data_len) return GF_IO_ERR;
 	return GF_OK;
+}
+
+GF_EXPORT
+void gf_bs_flush(GF_BitStream *bs)
+{
+	if (bs->buffer_io)
+		bs_flush_cache(bs);
+
+	if (!bs->stream) return;
+
+	if (bs->bsmode != GF_BITSTREAM_FILE_WRITE) return;
+	fflush(bs->stream);
+}
+
+void gf_bs_reassign(GF_BitStream *bs, FILE *stream)
+{
+	if (!bs) return;
+	switch (bs->bsmode) {
+	case GF_BITSTREAM_FILE_WRITE:
+	case GF_BITSTREAM_FILE_READ:
+		bs->stream = stream;
+		if (gf_f64_tell(stream) != bs->position)
+			gf_bs_seek(bs, bs->position);
+		break;
+	}
 }
