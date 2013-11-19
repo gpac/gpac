@@ -194,11 +194,13 @@ int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
 	}
 
 	node->num_producers++;
-	node->marked = 1;
+	if (circular_buf->size>1) {
+		node->marked = 1;
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("producer %s exits lock %d \n", producer->name, producer->idx));
 	gf_mx_v(node->mutex);
-
+	
 	return 0;
 }
 
@@ -225,8 +227,15 @@ void dc_producer_unlock_previous(Producer *producer, CircularBuffer *circular_bu
 	gf_mx_v(node->mutex);
 }
 
-void dc_producer_advance(Producer *producer)
+void dc_producer_advance(Producer *producer, CircularBuffer *circular_buf)
 {
+	if (circular_buf->size == 1) {
+		Node *node = &circular_buf->list[producer->idx];
+		gf_mx_p(node->mutex);
+		node->marked = 1;
+		gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
+		gf_mx_v(node->mutex);
+	}
 	producer->idx = (producer->idx + 1) % producer->max_idx;
 }
 

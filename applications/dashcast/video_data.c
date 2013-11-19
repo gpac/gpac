@@ -41,11 +41,11 @@ void dc_video_input_data_end_signal(VideoInputData *video_input_data)
 	dc_producer_end_signal_previous(&video_input_data->producer, &video_input_data->circular_buf);
 }
 
-int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int height, int pix_fmt*/ int num_consumers, int mode, int max_source)
+int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int height, int pix_fmt*/ int num_consumers, int mode, int max_source, int video_cb_size)
 {
 	int i;
 
-	dc_producer_init(&video_input_data->producer, VIDEO_CB_SIZE, "video decoder");
+	dc_producer_init(&video_input_data->producer, video_cb_size, "video decoder");
 
 	//video_input_data->width = width;
 	//video_input_data->height = height;
@@ -53,9 +53,9 @@ int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int 
 
 	video_input_data->vprop = gf_malloc(max_source * sizeof(VideoInputProp));
 
-	dc_circular_buffer_create(&video_input_data->circular_buf, VIDEO_CB_SIZE, mode, num_consumers);
+	dc_circular_buffer_create(&video_input_data->circular_buf, video_cb_size, mode, num_consumers);
 
-	for (i=0; i<VIDEO_CB_SIZE; i++) {
+	for (i=0; i<video_cb_size; i++) {
 		VideoDataNode *video_data_node;
 		GF_SAFEALLOC(video_data_node, VideoDataNode);
 		video_input_data->circular_buf.list[i].data = (void *) video_data_node;
@@ -75,7 +75,7 @@ void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, i
 void dc_video_input_data_destroy(VideoInputData *video_input_data)
 {
 	int i;
-	for (i=0; i<VIDEO_CB_SIZE; i++) {
+	for (i=0; i<(int) video_input_data->circular_buf.size; i++) {
 		if (video_input_data->circular_buf.list) {
 			VideoDataNode *video_data_node = video_input_data->circular_buf.list[i].data;
 			av_free(video_data_node->vframe);

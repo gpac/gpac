@@ -166,7 +166,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 				audio_data_node->abuf_size = audio_input_data->aframe->linesize[0];
 				memcpy(audio_data_node->abuf, audio_input_data->aframe->data[0], audio_data_node->abuf_size);
 
-				dc_producer_advance(&audio_input_data->producer);
+				dc_producer_advance(&audio_input_data->producer, &audio_input_data->circular_buf);
 				return 0;
 			}
 
@@ -216,7 +216,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					audio_data_node->abuf_size = audio_input_data->aframe->linesize[0];
 					av_fifo_generic_read(audio_input_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size , NULL);
 
-					dc_producer_advance(&audio_input_data->producer);
+					dc_producer_advance(&audio_input_data->producer, &audio_input_data->circular_buf);
 				} else {
 					while (av_fifo_size(audio_input_file->fifo) >= LIVE_FRAME_SIZE) {
 						/* Lock the current node in the circular buffer. */
@@ -234,7 +234,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 						audio_data_node->abuf_size = LIVE_FRAME_SIZE;
 						av_fifo_generic_read(audio_input_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size, NULL);
 
-						dc_producer_advance(&audio_input_data->producer);
+						dc_producer_advance(&audio_input_data->producer, &audio_input_data->circular_buf);
 					}
 				}
 

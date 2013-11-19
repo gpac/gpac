@@ -127,7 +127,7 @@ void dc_video_scaler_end_signal(VideoScaledData *video_scaled_data);
  *
  * @note Must use dc_video_scaler_data_destroy to free memory.
  */
-int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int num_producers);
+int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int num_producers, int video_cb_size);
 
 /*
  * Set properties of a VideoScaledData.

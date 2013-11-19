@@ -290,7 +290,9 @@ static u32 mpd_thread(void *params)
 			}
 
 			if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
-				dc_message_queue_get(mq, &seg_time);
+				if (dc_message_queue_get(mq, &seg_time)<0) {
+					continue;
+				}
 
 				if (cmddata->ast_offset>=1000) {
 					seg_time.time += cmddata->ast_offset;
@@ -303,6 +305,8 @@ static u32 mpd_thread(void *params)
 					if (first) {
 						main_seg_time = seg_time;
 						first = GF_FALSE;
+					} else {
+						assert(seg_time.segnum);
 					}
 				}
 			}
@@ -603,7 +607,7 @@ u32 video_decoder_thread(void *params)
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0);
+		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0, &in_data->exit_signal);
 #ifdef DASHCAST_PRINT
 		fprintf(stdout, "Read video frame %d\r", i++);
 		fflush(stdout);
@@ -745,7 +749,6 @@ u32 video_encoder_thread(void *params)
 	char name_to_delete[GF_MAX_PATH], name_to_send[GF_MAX_PATH];
 	u64 start_utc, seg_utc;
 	segtime time_at_segment_start;
-
 	VideoMuxerType muxer_type = VIDEO_MUXER;
 	VideoThreadParam *thread_params = (VideoThreadParam*)params;
 
@@ -754,6 +757,7 @@ u32 video_encoder_thread(void *params)
 	VideoDataConf *video_data_conf = gf_list_get(in_data->video_lst, video_conf_idx);
 
 	VideoScaledData *video_scaled_data = thread_params->video_scaled_data;
+	int video_cb_size = (in_data->mode == LIVE_MEDIA || in_data->mode == LIVE_CAMERA) ? 1 : VIDEO_CB_DEFAULT_SIZE;
 	VideoOutputFile out_file;
 
 	MessageQueue *mq = thread_params->mq;
@@ -784,7 +788,7 @@ u32 video_encoder_thread(void *params)
 		}
 		shift = (u32) video_scaled_data->frame_duration;
 	}
-	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift) < 0) {
+	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift, video_cb_size) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot init output video file.\n"));
 		in_data->exit_signal = 1;
 		return -1;
@@ -1121,6 +1125,7 @@ u32 audio_encoder_thread(void *params)
 int dc_run_controler(CmdData *in_data)
 {
 	int ret = 0;
+	u32 video_cb_size = VIDEO_CB_DEFAULT_SIZE;
 	u32 i, j;
 	
 	ThreadParam keyboard_th_params;
@@ -1167,19 +1172,23 @@ int dc_run_controler(CmdData *in_data)
 	memset(&audio_input_file, 0, sizeof(AudioInputFile));
 	memset(&video_input_data, 0, sizeof(VideoInputData));
 
+
+	if (in_data->mode == LIVE_CAMERA || in_data->mode == LIVE_MEDIA)
+		video_cb_size  = 1;
+
 	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		dc_video_scaler_list_init(&video_scaled_data_list, in_data->video_lst);
 		vscaler_th_params = gf_malloc(video_scaled_data_list.size * sizeof(VideoThreadParam));
 
 		/* Open input video */
-		if (dc_video_decoder_open(video_input_file[0], &in_data->video_data_conf, in_data->mode, in_data->no_loop) < 0) {
+		if (dc_video_decoder_open(video_input_file[0], &in_data->video_data_conf, in_data->mode, in_data->no_loop, video_scaled_data_list.size) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input video.\n"));
 			ret = -1;
 			goto exit;
 		}
 
 		if (dc_video_input_data_init(&video_input_data, /*video_input_file[0]->width, video_input_file[0]->height,
-		  video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER) < 0) {
+		  video_input_file[0]->pix_fmt,*/video_scaled_data_list.size, in_data->mode, MAX_SOURCE_NUMBER, video_cb_size) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize audio data.\n"));
 			ret = -1;
 			goto exit;
@@ -1188,7 +1197,7 @@ int dc_run_controler(CmdData *in_data)
 		/* open other input videos for source switching */
 		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
 			VideoDataConf *video_data_conf = gf_list_get(in_data->vsrc, i);
-			if (dc_video_decoder_open(video_input_file[i + 1], video_data_conf, LIVE_MEDIA, 1) < 0) {
+			if (dc_video_decoder_open(video_input_file[i + 1], video_data_conf, LIVE_MEDIA, 1, video_scaled_data_list.size) < 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input video.\n"));
 				ret = -1;
 				goto exit;
@@ -1200,7 +1209,7 @@ int dc_run_controler(CmdData *in_data)
 		}
 
 		for (i=0; i<video_scaled_data_list.size; i++) {
-			dc_video_scaler_data_init(&video_input_data, video_scaled_data_list.video_scaled_data[i], MAX_SOURCE_NUMBER);
+			dc_video_scaler_data_init(&video_input_data, video_scaled_data_list.video_scaled_data[i], MAX_SOURCE_NUMBER, video_cb_size);
 
 			for (j=0; j<gf_list_count(in_data->vsrc) + 1; j++) {
 				dc_video_scaler_data_set_prop(&video_input_data, video_scaled_data_list.video_scaled_data[i], j);

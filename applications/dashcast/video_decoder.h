@@ -53,8 +53,9 @@ typedef struct {
 	int pix_fmt;
 
 	int mode;
-	int no_loop;
+	int no_loop, nb_consumers;
 
+	u32 frame_decoded;
 	Bool pts_init;
 	u64 first_pts, prev_pts, computed_pts, sync_tolerance;
 	u64 utc_at_init;
@@ -71,7 +72,7 @@ typedef struct {
  *
  * @return 0 on success -1 on failure.
  */
-int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video_data_conf, int mode, int no_loop);
+int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video_data_conf, int mode, int no_loop, int nb_consumers);
 
 /*
  * Read and decode video and put decoded frames on circular buffer
@@ -82,7 +83,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
  *
  * @return 0 on success, -1 on failure, -2 on EOF (end of the file)
  */
-int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *video_input_data, int source_number, int use_source_timing, int is_live_capture);
+int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *video_input_data, int source_number, int use_source_timing, int is_live_capture, const int *exit_signal_addr);
 
 /*
  * Close the input video

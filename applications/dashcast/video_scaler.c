@@ -103,22 +103,22 @@ void dc_video_scaler_end_signal(VideoScaledData *video_scaled_data)
 	dc_producer_unlock_previous(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 }
 
-int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int max_source)
+int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int max_source, int video_cb_size)
 {
 	int i;
 	char name[GF_MAX_PATH];
 	snprintf(name, sizeof(name), "video scaler %dx%d", video_scaled_data->out_width, video_scaled_data->out_height);
 
-	dc_producer_init(&video_scaled_data->producer, VIDEO_CB_SIZE, name);
-	dc_consumer_init(&video_scaled_data->consumer, VIDEO_CB_SIZE, name);
+	dc_producer_init(&video_scaled_data->producer, video_cb_size, name);
+	dc_consumer_init(&video_scaled_data->consumer, video_cb_size, name);
 
 	video_scaled_data->num_producers = max_source;
 	video_scaled_data->out_pix_fmt = PIX_FMT_YUV420P;
 	GF_SAFE_ALLOC_N(video_scaled_data->vsprop, max_source, VideoScaledProp);
 	memset(video_scaled_data->vsprop, 0, max_source * sizeof(VideoScaledProp));
 
-	dc_circular_buffer_create(&video_scaled_data->circular_buf, VIDEO_CB_SIZE, video_input_data->circular_buf.mode, video_scaled_data->num_consumers);
-	for (i=0; i<VIDEO_CB_SIZE; i++) {
+	dc_circular_buffer_create(&video_scaled_data->circular_buf, video_cb_size, video_input_data->circular_buf.mode, video_scaled_data->num_consumers);
+	for (i=0; i<video_cb_size; i++) {
 		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_scaled_data->out_pix_fmt);
 	}
 
@@ -178,18 +178,17 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	video_scaled_data_node->vframe->pts = video_data_node->vframe->pts;
 
 	if (video_data_node->nb_raw_frames_ref) {
-		video_data_node->nb_raw_frames_ref--;
-		if (!video_data_node->nb_raw_frames_ref) {
-#ifdef GPAC_USE_LIBAV
-			av_free_packet(&video_data_node->raw_packet);
-#else
+		if (video_data_node->nb_raw_frames_ref==1) {
+#ifndef GPAC_USE_LIBAV
 			av_frame_unref(video_data_node->vframe);
 #endif
+			av_free_packet(&video_data_node->raw_packet);
 		}
+		video_data_node->nb_raw_frames_ref--;
 	}
 
 	dc_consumer_advance(&video_scaled_data->consumer);
-	dc_producer_advance(&video_scaled_data->producer);
+	dc_producer_advance(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 
 	return 0;
 }
@@ -197,7 +196,7 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 int dc_video_scaler_data_destroy(VideoScaledData *video_scaled_data)
 {
 	int i;
-	for (i=0; i<VIDEO_CB_SIZE; i++) {
+	for (i=0; i<(int) video_scaled_data->circular_buf.size; i++) {
 		if (video_scaled_data->circular_buf.list) {
 			dc_video_scaler_node_destroy(video_scaled_data->circular_buf.list[i].data);
 		}

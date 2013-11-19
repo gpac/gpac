@@ -229,8 +229,9 @@ void dc_producer_unlock_previous(Producer *, CircularBuffer *);
  * Producer leads its index
  * 
  * @param producer [in] producer
+ * @param circular_buf [in] circular buffer
  */
-void dc_producer_advance(Producer *producer);
+void dc_producer_advance(Producer *producer, CircularBuffer *);
 
 /*
  * Producer signal that the current node is the last node
