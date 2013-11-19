@@ -395,7 +395,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	
 	//temp hack 
 	mpd->media_presentation_duration = 0;
-	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift*1000;
+	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift*1000 + group->dash->utc_drift_estimate;
 	
 	ast_diff = (u32) (availabilityStartTime - group->dash->mpd->availabilityStartTime);
 	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
@@ -430,7 +430,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 #endif
 			if (broken_timing) {
-				if (group->dash->utc_shift>0) {
+				if (group->dash->utc_shift + group->dash->utc_drift_estimate > 0) {
 					availabilityStartTime = current_time;
 				} else {
 					current_time = 0;

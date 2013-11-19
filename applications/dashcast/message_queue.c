@@ -68,13 +68,15 @@ int dc_message_queue_get(MessageQueue *mq, void * data)
 	mqn = mq->first_node;
 	if (!mqn) {
 		gf_mx_v(mq->mutex);
-		gf_sema_wait(mq->sem);
+		ret = gf_sema_wait_for(mq->sem, 1000);
 		gf_mx_p(mq->mutex);
 
 		mqn = mq->first_node;
 
-		if (!mqn)
+		if (!ret || !mqn) {
+			gf_mx_v(mq->mutex);
 			return -1;
+		}
 	}
 	if (mqn) {
 		mq->first_node = mqn->next;

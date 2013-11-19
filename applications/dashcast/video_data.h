@@ -112,7 +112,7 @@ typedef struct {
 typedef struct {
 	AVFrame * vframe;
 	int source_number;
-	uint8_t is_raw_data;
+	uint8_t nb_raw_frames_ref;
 #ifdef GPAC_USE_LIBAV
 	AVPacket raw_packet;
 #endif

@@ -51,7 +51,7 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 {
 	if (!ptr) return;
 
-//	if (ptr->szName) gf_free(ptr->szName);
+	if (ptr->szName) gf_free(ptr->szName);
 
 	//then delete the structure itself....
 	switch (ptr->type) {
