@@ -483,12 +483,12 @@ int dc_ffmpeg_video_muxer_close(VideoOutputFile *video_output_file)
 	return 0;
 }
 
-int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur)
+int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur, int video_cb_size)
 {
 	char name[GF_MAX_PATH];
 	memset(video_output_file, 0, sizeof(VideoOutputFile));
 	snprintf(name, sizeof(name), "video encoder %s", video_data_conf->filename);
-	dc_consumer_init(&video_output_file->consumer, VIDEO_CB_SIZE, name);
+	dc_consumer_init(&video_output_file->consumer, video_cb_size, name);
 
 	video_output_file->sample = gf_isom_sample_new();
 	video_output_file->isof = NULL;

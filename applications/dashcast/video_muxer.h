@@ -96,7 +96,7 @@ typedef struct {
 	Bool fragment_started, segment_started;
 } VideoOutputFile;
 
-int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur);
+int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur, int video_cb_size);
 
 int dc_video_muxer_free(VideoOutputFile *video_output_file);
 

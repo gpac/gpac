@@ -35,7 +35,7 @@
 
 #include <time.h>
 
-#define VIDEO_CB_SIZE 3
+#define VIDEO_CB_DEFAULT_SIZE 3
 
 
 /*
@@ -113,9 +113,7 @@ typedef struct {
 	AVFrame * vframe;
 	int source_number;
 	uint8_t nb_raw_frames_ref;
-#ifdef GPAC_USE_LIBAV
 	AVPacket raw_packet;
-#endif
 } VideoDataNode;
 
 void dc_video_data_set_default(VideoDataConf *video_data_conf);
@@ -135,7 +133,7 @@ void dc_video_data_set_default(VideoDataConf *video_data_conf);
  *
  * @note Must use dc_video_data_destroy to free memory.
  */
-int dc_video_input_data_init(VideoInputData *video_input_data,/* int width, int height, int pix_fmt,*/ int num_consumers, int mode, int num_producers);
+int dc_video_input_data_init(VideoInputData *video_input_data,/* int width, int height, int pix_fmt,*/ int num_consumers, int mode, int num_producers, int video_cb_size);
 
 /*
  * Set properties for a VideoInputData.

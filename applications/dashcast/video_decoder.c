@@ -31,7 +31,7 @@
 //#define DASHCAST_DEBUG_TIME_
 
 
-int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video_data_conf, int mode, int no_loop)
+int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video_data_conf, int mode, int no_loop, int nb_consumers)
 {
 	s32 ret;
 	u32 i;
@@ -180,11 +180,11 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_data_conf->time_base = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->time_base;
 	video_input_file->mode = mode;
 	video_input_file->no_loop = no_loop;
-
+	video_input_file->nb_consumers = nb_consumers;
 	return 0;
 }
 
-int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *video_input_data, int source_number, int use_source_timing, int is_live_capture)
+int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *video_input_data, int source_number, int use_source_timing, int is_live_capture, const int *exit_signal_addr)
 {
 #ifdef DASHCAST_DEBUG_TIME_
 	struct timeval start, end;
@@ -245,7 +245,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			avcodec_get_frame_defaults(video_data_node->vframe);
 			avcodec_decode_video2(codec_ctx, video_data_node->vframe, &got_frame, &packet);
 			if (got_frame) {
-				dc_producer_advance(&video_input_data->producer);
+				dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
 				return 0;
 			}
 
@@ -321,26 +321,33 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 					video_input_file->computed_pts += video_input_data->frame_duration;
 				}
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", video_data_node->vframe->pts, gf_net_get_utc() ));
+				if (!use_source_timing && (video_data_node->vframe->pts==AV_NOPTS_VALUE)) {
+					video_data_node->vframe->pts = video_input_file->frame_decoded;
+				}
+				video_input_file->frame_decoded++;
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", video_data_node->vframe->pts, gf_net_get_utc() ));
+
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
-				// the packet is directly passed for decoded frame. So freeing it cause problem.
+				// the packet is directly passed for decoded frame. We must wait until rescale is done before freeing it
+
 				if (codec_ctx->codec->id == CODEC_ID_RAWVIDEO) {
-					video_data_node->nb_raw_frames_ref++;
-					if (video_data_node->nb_raw_frames_ref==1) {
-#ifdef GPAC_USE_LIBAV
-						//we don't have ref count in libav, store packet (contains raw video) and destroy it later
-						video_data_node->raw_packet = packet;
-						dc_producer_advance(&video_input_data->producer);
-						return 0;
-#else
-						video_data_node->vframe = av_frame_clone(video_data_node->vframe);
-#endif
+					video_data_node->nb_raw_frames_ref = video_input_file->nb_consumers;
+
+					video_data_node->raw_packet = packet;
+					video_data_node->vframe = av_frame_clone(video_data_node->vframe);
+
+					dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
+					while (video_data_node->nb_raw_frames_ref && ! *exit_signal_addr) {
+						gf_sleep(0);
 					}
+				} else {
+					dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
+					av_free_packet(&packet);
 				}
-				av_free_packet(&packet);
-				dc_producer_advance(&video_input_data->producer);
 				return 0;
+
 			}
 		}
 
