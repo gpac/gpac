@@ -264,7 +264,7 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
 			/*delete any pending dataHandler of scalable enhancements*/
-			if (trak->Media->information->scalableDataHandler)
+			if (trak->Media->information->scalableDataHandler && (trak->Media->information->scalableDataHandler != movie->movieFileMap)) 
 				gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
 		}
 	}

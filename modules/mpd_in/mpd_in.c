@@ -387,7 +387,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 		const char *url;
 		u64 start_time = gf_dm_sess_get_utc_start(group->sess);
 		gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chun at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chunk at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
 	}
 }
 
@@ -463,6 +463,19 @@ const char *mpdin_dash_io_get_mime(GF_DASHFileIO *dashio, GF_DASHFileIOSession s
 {
 	return gf_dm_sess_mime_type((GF_DownloadSession *)session);
 }
+
+const char *mpdin_dash_io_get_header_value(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *header_name)
+{
+	return gf_dm_sess_get_header((GF_DownloadSession *)session, header_name);
+}
+
+u64 mpdin_dash_io_get_utc_start_time(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
+{
+	return gf_dm_sess_get_utc_start((GF_DownloadSession *)session);
+}
+
+
+
 u32 mpdin_dash_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u32 bps=0;
@@ -622,6 +635,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	mpdin->dash_io.get_url = mpdin_dash_io_get_url;
 	mpdin->dash_io.get_cache_name = mpdin_dash_io_get_cache_name;
 	mpdin->dash_io.get_mime = mpdin_dash_io_get_mime;
+	mpdin->dash_io.get_header_value = mpdin_dash_io_get_header_value;
+	mpdin->dash_io.get_utc_start_time = mpdin_dash_io_get_utc_start_time;
 	mpdin->dash_io.get_bytes_per_sec = mpdin_dash_io_get_bytes_per_sec;
 	mpdin->dash_io.get_total_size = mpdin_dash_io_get_total_size;
 	mpdin->dash_io.get_bytes_done = mpdin_dash_io_get_bytes_done;

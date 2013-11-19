@@ -2325,7 +2325,8 @@ enum
 	u8	type;		\
 	u64	curPos;		\
 	u8	mode;		\
-	GF_BitStream *bs;
+	GF_BitStream *bs;\
+	char *szName;
 
 typedef struct __tag_data_map
 {
@@ -2377,6 +2378,8 @@ u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLen
 u64 gf_isom_datamap_get_offset(GF_DataMap *map);
 GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 #endif	
+
+void gf_isom_datamap_flush(GF_DataMap *map);
 
 /*
 		Movie stuff

@@ -508,6 +508,25 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs);
  *\return error if any
  */
 GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src);
+
+
+/*!
+ *\brief Flushes bitstream contet to disk
+ *
+ *Flushes bitstream contet to disk
+ *\param bs the target bitstream
+ */
+void gf_bs_flush(GF_BitStream *bs);
+
+/*!
+ *\brief Reassigns FILE object for stream-based bitstreams
+ *
+ *Reassigns FILE object for stream-based bitstreams. Automatiocally sets the stream position to the bitstream position
+ *\param bs the target bitstream
+ *\param stream the new stream to assign
+ */
+void gf_bs_reassign(GF_BitStream *bs, FILE *stream);
+
 /*! @} */
 
 #ifdef __cplusplus

@@ -28,6 +28,10 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+#if !defined(NODEJS_FS_WATCH_PATCH) && defined(WIN32)
+#define NODEJS_FS_WATCH_PATCH
+#endif
+
 
 static u32 default_write_buffering_size = 0;
 
@@ -47,6 +51,8 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 {
 	if (!ptr) return;
 
+//	if (ptr->szName) gf_free(ptr->szName);
+
 	//then delete the structure itself....
 	switch (ptr->type) {
 	//file-based
@@ -60,6 +66,7 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 	default:
 		break;
 	}
+
 }
 
 //Close a data entry
@@ -166,9 +173,14 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 #endif
 	} else {
 		*outDataMap = gf_isom_fdm_new(sPath, mode);
+		if (*outDataMap) {
+			(*outDataMap)->szName = sPath;
+			sPath = NULL;
+		}
 	}
 
-	gf_free(sPath);
+	if (sPath) 
+		gf_free(sPath);
 	if (! (*outDataMap)) return GF_URL_ERROR;
 	return GF_OK;
 }
@@ -260,6 +272,22 @@ u32 gf_isom_datamap_get_data(GF_DataMap *map, char *buffer, u32 bufferLength, u6
 	}
 }
 
+void gf_isom_datamap_flush(GF_DataMap *map)
+{
+	if (!map) return;
+
+	if (map->type==GF_ISOM_DATA_FILE) {
+		GF_FileDataMap *fdm = (GF_FileDataMap *)map;
+		gf_bs_flush(fdm->bs);
+#ifdef NODEJS_FS_WATCH_PATCH
+		if (fdm->stream && fdm->szName) {
+			fclose(fdm->stream);
+			fdm->stream = gf_f64_open(fdm->szName, "a+b");
+			gf_bs_reassign(fdm->bs, fdm->stream);
+		}
+#endif
+	}
+}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

@@ -661,7 +661,6 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return -1;
 			}
 			cmd_data->ast_offset = atoi(argv[i]);
-			cmd_data->use_ast_offset = 1;
 			i++;
 		} else if (strcmp(argv[i], "-time-shift") == 0) {
 			DASHCAST_CHECK_NEXT_ARG

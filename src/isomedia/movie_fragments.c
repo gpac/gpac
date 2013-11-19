@@ -1003,8 +1003,12 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 			gf_bs_write_data(movie->movieFileMap->bs, bloc, size);
 			seg_size -= size;
 		}
+		gf_isom_datamap_flush(movie->movieFileMap);
+
 		gf_isom_datamap_del(movie->editFileMap);
 		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
+	} else {
+		gf_isom_datamap_flush(movie->editFileMap);
 	}
 	movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
 
