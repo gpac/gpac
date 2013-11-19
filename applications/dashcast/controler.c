@@ -607,7 +607,7 @@ u32 video_decoder_thread(void *params)
 			gettimeofday(&time_start, NULL);
 		}
 
-		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0, &in_data->exit_signal);
+		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0, (const int *) &in_data->exit_signal);
 #ifdef DASHCAST_PRINT
 		fprintf(stdout, "Read video frame %d\r", i++);
 		fflush(stdout);
