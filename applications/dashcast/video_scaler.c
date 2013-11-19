@@ -80,11 +80,7 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 			video_scaled_data->out_height = video_data_conf->height;
 			video_scaled_data->num_consumers = 1;
 
-			if (video_scaled_data_list->video_scaled_data == NULL) {
-				video_scaled_data_list->video_scaled_data = gf_malloc(sizeof(VideoScaledData *));
-			} else {
-				video_scaled_data_list->video_scaled_data = realloc(video_scaled_data_list->video_scaled_data, (video_scaled_data_list->size+1)*sizeof(VideoScaledData*));
-			}
+			video_scaled_data_list->video_scaled_data = gf_realloc(video_scaled_data_list->video_scaled_data, (video_scaled_data_list->size+1)*sizeof(VideoScaledData*));
 
 			video_scaled_data_list->video_scaled_data[video_scaled_data_list->size] = video_scaled_data;
 			video_scaled_data_list->size++;
@@ -181,13 +177,15 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	
 	video_scaled_data_node->vframe->pts = video_data_node->vframe->pts;
 
-	if (video_data_node->is_raw_data) {
+	if (video_data_node->nb_raw_frames_ref) {
+		video_data_node->nb_raw_frames_ref--;
+		if (!video_data_node->nb_raw_frames_ref) {
 #ifdef GPAC_USE_LIBAV
-		av_free_packet(&video_data_node->raw_packet);
+			av_free_packet(&video_data_node->raw_packet);
 #else
-		av_frame_unref(video_data_node->vframe);
+			av_frame_unref(video_data_node->vframe);
 #endif
-		video_data_node->is_raw_data = 0;
+		}
 	}
 
 	dc_consumer_advance(&video_scaled_data->consumer);
