@@ -688,6 +688,7 @@ struct _es_channel
 	/*TSs as received from network - these are used for cache storage*/
 	u64 net_dts, net_cts;
 
+	Bool last_au_was_seek;
 	Bool no_timestamps;
 	u32 prev_aggregated_dts;
 };

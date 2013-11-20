@@ -294,17 +294,20 @@ static u32 mpd_thread(void *params)
 					continue;
 				}
 
-				if (cmddata->ast_offset>=1000) {
+				if (cmddata->ast_offset>0) {
 					seg_time.time += cmddata->ast_offset;
-					seg_time.segnum -= cmddata->ast_offset / cmddata->seg_dur;
 				}
 
 				if (cmddata->use_dynamic_ast) {
 					main_seg_time = seg_time;
 				} else {
+					//get the last notification of AST 
 					if (first) {
-						main_seg_time = seg_time;
-						first = GF_FALSE;
+						if (seg_time.segnum) {
+							first = GF_FALSE;
+						} else {
+							main_seg_time = seg_time;
+						}
 					} else {
 						assert(seg_time.segnum);
 					}
@@ -874,31 +877,43 @@ u32 video_encoder_thread(void *params)
 		// If system is live,
 		// Send the time that a segment is available to MPD generator thread.
 		if (in_data->mode == LIVE_MEDIA || in_data->mode == LIVE_CAMERA) {
-			if (thread_params->video_conf_idx == 0) {
-				//check we don't loose sync
-				int diff;
-				seg_utc = gf_net_get_utc();
-				diff = (int) (seg_utc - start_utc);
-				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
-				if (diff > (seg_nb+2) * in_data->seg_dur) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb));
+			//check we don't loose sync
+			int diff;
+			int seg_diff;
+			seg_utc = gf_net_get_utc();
+			diff = (int) (seg_utc - start_utc);
 
-					while (diff > (seg_nb+2) * in_data->seg_dur) {
-						seg_nb++;
+			//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
+			if (diff > (seg_nb+2) * in_data->seg_dur) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Rep %s UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", out_file.rep_id, diff, seg_nb));
 
-						//do a rough estimate of losses to adjust timing...
-						if (! in_data->use_source_timing) {
-								out_file.first_dts += out_file.codec_ctx->time_base.den;
-						}
+				while (diff > (seg_nb+2) * in_data->seg_dur) {
+					seg_nb++;
+
+					//do a rough estimate of losses to adjust timing...
+					if (! in_data->use_source_timing) {
+							out_file.first_dts += out_file.codec_ctx->time_base.den;
 					}
-					//wait for RAP to cut next segment
-					loss_state = 1;
 				}
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur));
-				
-				//time_t t = time(NULL);
-				dc_message_queue_put(mq, &time_at_segment_start, sizeof(time_at_segment_start));
+				//wait for RAP to cut next segment
+				loss_state = 1;
+			} else {
+#define SYNC_SAFE	800
+
+				seg_diff = diff;
+				seg_diff -= (seg_nb+1) * in_data->seg_dur;
+				if (seg_diff > SYNC_SAFE) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Rep %s UTC diff at segment close: %d is higher than cumulated segment duration %d (diff %d) - frame rate is probably not correct !!\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));			
+				}
+				else if (seg_diff < -SYNC_SAFE) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Rep %s UTC diff at segment close: %d is lower than cumulated segment duration %d (diff %d) - frame rate is probably not correct or frames were lost !!\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));			
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Rep %s UTC diff at segment close: %d - cumulated segment duration %d (diff %d)\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));			
+				}
 			}
+
+			//time_t t = time(NULL);
+			dc_message_queue_put(mq, &time_at_segment_start, sizeof(time_at_segment_start));
 		}
 	
 		if ((in_data->time_shift != -1)) {

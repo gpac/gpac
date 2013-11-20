@@ -572,7 +572,7 @@ void isor_reader_release_sample(ISOMChannel *ch)
 void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush)
 {
 	u32 i, count;
-	Bool was_in_progressive_mode;
+	Bool in_progressive_mode;
 	GF_NetworkCommand com;
 	ISOMChannel *ch;
 
@@ -585,13 +585,25 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	gf_mx_p(read->segment_mutex);
 	read->in_data_flush = 1;
 
-	if (!is_chunk_flush && check_buffer_level) {
+	in_progressive_mode = (read->seg_opened==1) ? 1 : 0;
+
+	if (in_progressive_mode) {
+		//query from terminal - do nothing if we are not done downloading the segment - otherwise we could access media data while it is reallocated by the downloader
+		if (!check_buffer_level) {
+			read->in_data_flush = 0;
+			gf_mx_v(read->segment_mutex);
+			return;
+		}
+		//otherwise this is new chunk or end of chunk, process
+	}
+	//this is a new file, check buffer level 
+	else if (!is_chunk_flush && check_buffer_level) {
 		ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		/*query buffer level, don't sleep if too low*/
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_BUFFER_QUERY;
 		gf_term_on_command(read->service, &com, GF_OK);
-		if (com.buffer.max && (com.buffer.occupancy >= com.buffer.max)) {
+		if (com.buffer.max && (com.buffer.occupancy >= MAX(com.buffer.max, 1000) )) {
 			read->in_data_flush = 0;
 			read->has_pending_segments++;
 			gf_mx_v(read->segment_mutex);
@@ -599,13 +611,8 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			return;
 		}
 	}
-
-	was_in_progressive_mode = (read->seg_opened==1) ? 1 : 0;
-
 	//update data
-	isor_segment_switch_or_refresh(read, (is_chunk_flush && (read->seg_opened==1) ) ? 1 : 0);
-	if (read->has_pending_segments)
-		read->has_pending_segments--;
+	isor_segment_switch_or_refresh(read, in_progressive_mode);
 
 	//for all channels, fetch and send ...
 	count = gf_list_count(read->channels);
@@ -624,9 +631,16 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	}
 
 	read->in_data_flush = 0;
-	//this call has finished the parsing of any previously segment in progressive mode, but since we just got a new chunk, we may also want to dispatch any data in this chunk
-	if (was_in_progressive_mode && (read->seg_opened==2) && is_chunk_flush) {
-		isor_flush_data(read, check_buffer_level, is_chunk_flush);
+	
+	//done playing the file after notification from DASH client: 
+	if (read->seg_opened==2) {
+		if (read->has_pending_segments)
+			read->has_pending_segments--;
+	
+		//this call has finished the parsing of any previously segment in progressive mode, but since we just got a new chunk, we may also want to dispatch any data in this chunk
+		if (in_progressive_mode && !is_chunk_flush) {
+			isor_flush_data(read, check_buffer_level, is_chunk_flush);
+		}
 	}
 	gf_mx_v(read->segment_mutex);
 }
