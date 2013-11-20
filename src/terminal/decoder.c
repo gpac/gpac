@@ -181,6 +181,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				max = 1;
 				no_alloc = 1;
 			}
+			//very low latency 
+			else if (ch->MaxBuffer<=300) {
+				max /= MAX(max/2, 2);
+			}
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 
@@ -846,7 +850,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			if (codec->CB) gf_cm_set_eos(codec->CB);
 		}
 		/*if no data, and channel not buffering, ABORT CB buffer (data timeout or EOS not detectable)*/
-		else if (ch && !ch->BufferOn)
+		else if (ch && !ch->BufferOn && !ch->last_au_was_seek)
 			gf_cm_abort_buffering(codec->CB);
 
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: No data in decoding buffer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID));
@@ -899,10 +903,12 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	first = 1;
 	while (codec->CB->Capacity > codec->CB->UnitCount) {
 	/*set media processing level*/
+		ch->last_au_was_seek = 0;
 		mmlevel = GF_CODEC_LEVEL_NORMAL;
 		/*SEEK: if the last frame had the same TS, we are seeking. Ask the codec to drop*/
 		if (!ch->skip_sl && codec->last_unit_cts && (codec->last_unit_cts == AU->CTS) && !ch->esd->dependsOnESID) {
 			mmlevel = GF_CODEC_LEVEL_SEEK;
+			ch->last_au_was_seek = 1;
 			/*object clock is paused by media control or terminal is paused: exact frame seek*/
 			if (
 #ifndef GPAC_DISABLE_VRML

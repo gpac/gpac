@@ -322,7 +322,7 @@ int dc_gpac_video_isom_close_seg(VideoOutputFile *video_output_file)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Closing segment at UTC "LLU" ms\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Rep %s Closing segment at UTC "LLU" ms\n", video_output_file->rep_id, gf_net_get_utc() ));
 
 	return 0;
 }

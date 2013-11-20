@@ -318,6 +318,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		case GF_ISOM_BOX_TYPE_PRFT:
 			mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;
 			//fallthrough
+			if (!(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
+				gf_isom_box_del(a);
+				break;
+			}
+
 
 		default:
 			totSize += a->size;

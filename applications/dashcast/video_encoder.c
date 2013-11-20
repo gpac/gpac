@@ -174,6 +174,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 //		return -1;
 //	}
 
+	video_output_file->rep_id = video_data_conf->filename;
 	return 0;
 }
 
@@ -239,7 +240,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		return -1;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" encoded at UTC "LLU" ms\n", /*video_data_node->source_number, */video_data_node->vframe->pts, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video %s Frame TS "LLU" encoded at UTC "LLU" ms\n", video_output_file->rep_id, /*video_data_node->source_number, */video_data_node->vframe->pts, gf_net_get_utc() ));
 
 	/* if zero size, it means the image was buffered */
 //	if (out_size > 0) {
