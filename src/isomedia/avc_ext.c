@@ -315,10 +315,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					//temp fix - if we detect xPS in the begining of the sample do NOT copy the ps bitstream
 					//this is not correct since we are not sure whether they are the same xPS or not, but it crashes openHEVC ...
 					switch (nal_type) {
+#ifndef GPAC_DISABLE_HEVC
 					case GF_HEVC_NALU_VID_PARAM:
 					case GF_HEVC_NALU_SEQ_PARAM:
 					case GF_HEVC_NALU_PIC_PARAM:
 						break;
+#endif
 					default:
 						gf_bs_transfer(dst_bs, ps_bs);
 						break;
