@@ -582,7 +582,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 		//check this is in our media time line
 		if ((*MediaTime > lastSampleTime)
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-			&& !trak->moov->mov->use_segments
+			&& !trak->moov->mov->moof
 #endif
 		   ) {
 			*MediaTime = lastSampleTime;

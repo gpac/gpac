@@ -88,6 +88,8 @@ typedef struct {
 	u32 seg_marker;
 	/* GDR */
 	int gdr;
+	/* GOP size in frames - 0 means framerate (1 sec)*/
+	int gop_size;
 	/* MPD min buffer time */
 	float min_buffer_time;
 	/* output directory name */

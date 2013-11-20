@@ -90,8 +90,8 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	video_output_file->codec_ctx->height = video_data_conf->height;
 
 	video_output_file->codec_ctx->time_base.num = 1;
-	video_output_file->codec_ctx->time_base.den = video_data_conf->framerate;
-
+	video_output_file->codec_ctx->time_base.den = video_output_file->gop_size ? video_output_file->gop_size : video_data_conf->framerate;
+	
 	video_output_file->use_source_timing = use_source_timing;
 	if (use_source_timing) {
 		//for avcodec to do rate allcoation, we need to have ctx->timebase == 1/framerate
@@ -99,7 +99,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		video_output_file->codec_ctx->time_base.num = video_data_conf->time_base.num * video_data_conf->time_base.den / video_data_conf->framerate;
 	}
 	video_output_file->codec_ctx->pix_fmt = PIX_FMT_YUV420P;
-	video_output_file->codec_ctx->gop_size = /*video_output_file->gosize;*/video_data_conf->framerate;
+	video_output_file->codec_ctx->gop_size = video_data_conf->framerate;
 
 //	video_output_file->codec_ctx->codec_id = video_codec->id;
 //	video_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -148,9 +148,9 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
 	}
 
-	if(video_output_file->gdr == 1) {
+	if (video_output_file->gdr) {
 		av_opt_set_int(video_output_file->codec_ctx->priv_data, "intra-refresh", 1, 0);
-		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", 8, 0);
+		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", video_output_file->gdr, 0);
 	}
 
 //	if (video_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)

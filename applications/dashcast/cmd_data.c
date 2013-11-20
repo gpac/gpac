@@ -671,6 +671,15 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			}
 			cmd_data->time_shift = atoi(argv[i]);
 			i++;
+		} else if (strcmp(argv[i], "-gop") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (cmd_data->gop_size != 0) {
+				fprintf(stderr, "GOP size has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
+				return -1;
+			}
+			cmd_data->gop_size = atoi(argv[i]);
+			i++;
 		} else if (strcmp(argv[i], "-min-buffer") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->min_buffer_time != -1) {
@@ -720,7 +729,13 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			gf_log_set_callback(cmd_data->logfile, on_dc_log);
 			i++;
 		} else if (strcmp(argv[i], "-gdr") == 0) {
-			cmd_data->gdr = 1;
+			if ( (i+1 <= argc) && (argv[i+1][0] != '-')) {
+				DASHCAST_CHECK_NEXT_ARG
+				cmd_data->gdr = atoi(argv[i]);
+			} else {
+				//for historical reasons in dashcast
+				cmd_data->gdr = 8;
+			}
 			i++;
 		} else {
 			fprintf(stderr, "%s: %s", command_error, argv[i]);

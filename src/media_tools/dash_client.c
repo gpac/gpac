@@ -174,6 +174,8 @@ struct __dash_group
 	u32 nb_segments_in_rep;
 	Double segment_duration;
 
+	Double start_playback_range;
+
 	/*for debug purpose of templates only*/
 	u32 start_number;
 	u32 start_number_override;
@@ -286,7 +288,7 @@ static void dash_check_server_utc(GF_DashClient *dash, u64 fetch_time)
 		if (val) {
 			u64 utc;
 			sscanf(val, LLU, &utc);
-			dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
+//			dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server %d ms\n", dash->utc_drift_estimate));
 		}
 	}
@@ -527,7 +529,10 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				if ((current_time >= segtime) && (current_time < segtime + ent->duration)) {
 					group->download_segment_index = seg_idx;
 					group->nb_segments_in_rep = seg_idx + 10;
+					
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found segment %d for current time "LLU" is in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time, segtime, segtime + ent->duration));
+
+					group->start_playback_range = (current_time )/1000.0;
 					return;
 				}
 				segtime += ent->duration;
@@ -549,9 +554,14 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		nb_seg /= 1000;
 		nb_seg /= group->segment_duration;
 		shift = (u32) nb_seg;
-		//TODO we could optimize further here, but we start with the next available segment in order to avoid playing back for (nb_seg - shift) - we could optimize further here by seeking in the media 
-		if (shift < nb_seg) 
-			shift += 1;
+
+		//if less than 1/3 of a second till end of current segment directly start with next one
+		if (1000*(1+shift)*group->segment_duration - current_time < 330) {
+			group->start_playback_range = 0;
+			shift++;
+		} else {
+			group->start_playback_range = (Double) current_time / 1000.0;
+		}
 		
 		if (!group->start_number_at_last_ast) {
 			group->download_segment_index = shift;
@@ -559,7 +569,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g\n", current_time, start_number, shift, group->segment_duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g sec offset in segment %g sec\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0));
 		} else {
 			group->download_segment_index += start_number;
 			if (group->download_segment_index > group->start_number_at_last_ast) {
@@ -4558,6 +4568,14 @@ Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	return (group && group->nb_cached_segments) ? group->cached[0].loop_detected : GF_FALSE;
+}
+
+GF_EXPORT
+Double gf_dash_group_get_start_range(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return 0.0;
+	return group->start_playback_range;
 }
 
 
