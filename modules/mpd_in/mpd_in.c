@@ -614,6 +614,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     GF_Err e;
 	s32 shift_utc_sec;
 	u32 max_cache_duration, auto_switch_count, init_timeshift;
+	Bool use_server_utc;
 	GF_DASHInitialSelectionMode first_select_mode;
 	Bool keep_files, disable_switching;
 
@@ -702,6 +703,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ShiftClock", "0");
 	shift_utc_sec = opt ? atoi(opt) : 0;
 	
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC", "yes");
+	use_server_utc = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	
 
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
@@ -720,6 +725,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	}
 
 	gf_dash_set_utc_shift(mpdin->dash, shift_utc_sec);
+	gf_dash_enable_utc_drift_compensation(mpdin->dash, use_server_utc);
 
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
