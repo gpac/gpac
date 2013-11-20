@@ -773,7 +773,6 @@ u32 video_encoder_thread(void *params)
 	seg_frame_max = (int)(video_data_conf->framerate * (float) (in_data->seg_dur / 1000.0));
 	frag_frame_max = (int)(video_data_conf->framerate * (float) (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&seg_frame_max, &frag_frame_max);
-	out_file.gosize = seg_frame_max;
 
 	if (seg_frame_max <= 0)
 		seg_frame_max = -1;
@@ -788,7 +787,7 @@ u32 video_encoder_thread(void *params)
 		}
 		shift = (u32) video_scaled_data->frame_duration;
 	}
-	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift, video_cb_size) < 0) {
+	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift, in_data->gop_size, video_cb_size) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot init output video file.\n"));
 		in_data->exit_signal = 1;
 		return -1;

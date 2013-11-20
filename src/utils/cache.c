@@ -643,8 +643,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		
 	if (entry->memory_stored) {
 		if (entry->written_in_cache + size > entry->mem_allocated) {
-			u32 new_size = entry->mem_allocated*2;
-			if (new_size < size) new_size = size;
+			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
 			entry->mem_storage = gf_realloc(entry->mem_storage, (new_size+2));
 			entry->mem_allocated = new_size;
 			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);

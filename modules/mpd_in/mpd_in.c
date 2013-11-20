@@ -874,6 +874,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 			/*don't forward commands, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(mpdin->dash) ) return GF_OK;
+		} else {
+			s32 idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+			if (idx>=0)
+				com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);
 		}
 
 		return segment_ifce->ServiceCommand(segment_ifce, com);
