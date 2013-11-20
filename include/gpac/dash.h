@@ -258,6 +258,9 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 /*sets dash idle interval. The default is 1 sec. The dash client thread will never go to sleep for more than this interval*/
 void gf_dash_set_idle_interval(GF_DashClient *dash, u32 idle_time_ms);
 
+/*enables UTC drift computation using HTTP header "Server-UTC: UTC", where UTC is in ms*/
+void gf_dash_enable_utc_drift_compensation(GF_DashClient *dash, Bool estimate_utc_drift);
+
 /*returns GF-TRUE if MPD is dynamic, false otherwise*/
 Bool gf_dash_is_dynamic_mpd(GF_DashClient *dash);
 

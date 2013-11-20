@@ -68,7 +68,7 @@ struct __dash_client
 
 	u32 max_cache_duration;
 	u32 auto_switch_count;
-	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering;
+	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift;
 	Bool is_m3u8;
 
 	u64 mpd_fetch_time;
@@ -283,12 +283,12 @@ static u64 dash_get_fetch_time(GF_DashClient *dash)
 static void dash_check_server_utc(GF_DashClient *dash, u64 fetch_time)
 {
 	dash->utc_drift_estimate = 0;
-	if (dash->mpd_dnload && dash->dash_io->get_header_value) {
+	if (dash->estimate_utc_drift && dash->mpd_dnload && dash->dash_io->get_header_value) {
 		const char *val = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "Server-UTC");
 		if (val) {
 			u64 utc;
 			sscanf(val, LLU, &utc);
-//			dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
+			dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server %d ms\n", dash->utc_drift_estimate));
 		}
 	}
@@ -3967,6 +3967,12 @@ GF_EXPORT
 void gf_dash_set_idle_interval(GF_DashClient *dash, u32 idle_time_ms)
 {
 	dash->idle_interval = idle_time_ms;
+}
+
+GF_EXPORT
+void gf_dash_enable_utc_drift_compensation(GF_DashClient *dash, Bool estimate_utc_drift)
+{
+	dash->estimate_utc_drift = estimate_utc_drift;
 }
 
 

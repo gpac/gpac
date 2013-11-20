@@ -741,14 +741,18 @@ Forces the player to set the output video resolution to the max resolution avail
 Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.</p>
 <b>InitialTimeshift</b> [value: <i>positive integer between 0 and 100</i> ]
 <p style="text-indent: 5%">
-Uses the given percentage of the timeshift buffer when starting playback. Default is 0 to tune to the live point.
+Uses the given percentage of the timeshift buffer when starting playback. Default is 0 to tune to the live point.</p>
 <b>LowLatency</b> [value: <i>always, chunk, no</i>]
 <p style="text-indent: 5%">
 Sets low-latency mode enabled. In low-latency mode, media data is parsed as soon as possible while segment is being downloaded. Default is no.
-If chunk is selected, media data is re-parsed at each HTTP 1.1 chunk end. If always is selected, media data is re-parsed as soon as HTTP data is received. 
+If chunk is selected, media data is re-parsed at each HTTP 1.1 chunk end. If always is selected, media data is re-parsed as soon as HTTP data is received.</p> 
 <b>AllowAbort</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
-Enables aborts of HTTP transfer when rate gets too low. This may result in a packet drops. Default is no.
+Enables aborts of HTTP transfer when rate gets too low. This may result in a packet drops. Default is no.</p>
+<b>UseServerUTC</b> [value: <i>yes, no</i>]
+<p style="text-indent: 5%">
+Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is no.
+
 
 <br/><br/>
 

@@ -1910,6 +1910,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_min_buffer_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_idle_interval) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_utc_shift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_enable_utc_drift_compensation) )
 #endif
 
 #ifndef GPAC_DISABLE_VTT
