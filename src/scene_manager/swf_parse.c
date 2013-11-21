@@ -28,7 +28,7 @@
 #include <gpac/internal/swf_dev.h>
 #include <gpac/avparse.h>
 
-#if !defined(GPAC_DISABLE_SWF_IMPORT) && !defined(GPAC_DISABLE_ZLIB)
+#ifndef GPAC_DISABLE_SWF_IMPORT
 
 
 #include <zlib.h>

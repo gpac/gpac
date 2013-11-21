@@ -1046,7 +1046,6 @@ u32 audio_encoder_thread(void *params)
 				if (ret == 1) {
 					break;
 				}
-
 				if (ret == -1) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occured while encoding audio frame.\n"));
 					quit = 1;
