@@ -30,6 +30,10 @@
 #include <gpac/color.h>
 #include <gpac/media_tools.h>
 
+
+#ifndef GPAC_DISABLE_SWF_IMPORT
+
+
 #define SWF_TWIP_SCALE				(1/20.0f)
 
 
@@ -389,5 +393,7 @@ struct SWFAction
 	char *target;
 	char *url;
 };
+
+#endif /*GPAC_DISABLE_SWF_IMPORT*/
 
 #endif /*_GF_SWF_DEV_H_*/

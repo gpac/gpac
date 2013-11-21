@@ -26,7 +26,10 @@ ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Box$(EXE)
 ifeq ($(MP4BOX_STATIC),yes)
-LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
+ifneq ($(CONFIG_ZLIB),no)
+LINKFLAGS+=-lz
+endif
+LINKFLAGS+=-lgpac_static $(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
 endif
@@ -36,7 +39,10 @@ else
 EXT=
 PROG=MP4Box
 ifeq ($(MP4BOX_STATIC),yes)
-LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
+ifneq ($(CONFIG_ZLIB),no)
+LINKFLAGS+=-lz
+endif
+LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS)
 
 # spidermonkey support
 ifeq ($(CONFIG_JS),no)

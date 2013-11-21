@@ -852,20 +852,23 @@ GF_Err gf_isom_new_simpletext_description(GF_ISOFile *movie, u32 trackNumber, GF
     return e;
 }
 
+
+#ifndef GPAC_DISABLE_SWF_IMPORT
+
 /* SWF Importer */
 #include <gpac/internal/swf_dev.h>
 
 static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
 {
-    GF_Err				e = GF_OK;
-    GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
-    GF_ISOSample		*s;
-    GF_BitStream		*bs;
+	GF_Err				e = GF_OK;
+	GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
+	GF_ISOSample		*s;
+	GF_BitStream		*bs;
 
-    bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (!bs) return GF_BAD_PARAM;
 	gf_bs_write_data(bs, data, length);
-    s = gf_isom_sample_new();
+	s = gf_isom_sample_new();
 	if (s) {
 		gf_bs_get_content(bs, &s->data, &s->dataLength);
 		s->DTS = (u64) (flusher->timescale*timestamp/1000);
@@ -996,6 +999,17 @@ exit:
 	return e;
 }
 /* end of SWF Importer */
+
+#else
+
+GF_EXPORT
+GF_Err gf_text_import_swf(GF_MediaImporter *import)
+{
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Warning: GPAC was compiled without SWF import support, can't import track."));
+	return GF_NOT_SUPPORTED;
+}
+
+#endif /*GPAC_DISABLE_SWF_IMPORT*/
 
 static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 {
