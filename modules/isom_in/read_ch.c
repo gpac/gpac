@@ -584,6 +584,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 
 	gf_mx_p(read->segment_mutex);
 	read->in_data_flush = 1;
+	count = gf_list_count(read->channels);
 
 	in_progressive_mode = (read->seg_opened==1) ? 1 : 0;
 
@@ -598,12 +599,20 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	}
 	//this is a new file, check buffer level 
 	else if (!is_chunk_flush && check_buffer_level) {
-		ch = (ISOMChannel *)gf_list_get(read->channels, 0);
-		/*query buffer level, don't sleep if too low*/
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.command_type = GF_NET_BUFFER_QUERY;
-		gf_term_on_command(read->service, &com, GF_OK);
-		if (com.buffer.max && (com.buffer.occupancy >= MAX(com.buffer.max, 1000) )) {
+		Bool buffer_full = 1;
+		for (i=0; i<count; i++) {
+			ch = (ISOMChannel *)gf_list_get(read->channels, i);
+			/*query buffer level on each channel, don't sleep if too low*/
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_BUFFER_QUERY;
+			com.base.on_channel = ch->channel;
+			gf_term_on_command(read->service, &com, GF_OK);
+			if ((com.buffer.occupancy < MAX(com.buffer.max, 1000) )) {
+				buffer_full = 0;
+				break;
+			}
+		}
+		if (buffer_full) {
 			read->in_data_flush = 0;
 			read->has_pending_segments++;
 			gf_mx_v(read->segment_mutex);
@@ -611,6 +620,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			return;
 		}
 	}
+
 	//update data
 	isor_segment_switch_or_refresh(read, in_progressive_mode);
 
@@ -630,18 +640,27 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		}
 	}
 
-	read->in_data_flush = 0;
-	
 	//done playing the file after notification from DASH client: 
 	if (read->seg_opened==2) {
-		if (read->has_pending_segments)
+		GF_NetworkCommand param;
+		//drop this segment
+		memset(&param, 0, sizeof(GF_NetworkCommand));
+		param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+		param.url_query.dependent_representation_index = 0;
+		param.url_query.drop_first_segment = 1;
+		read->input->query_proxy(read->input, &param);
+
+
+		if (read->has_pending_segments) {
 			read->has_pending_segments--;
-	
-		//this call has finished the parsing of any previously segment in progressive mode, but since we just got a new chunk, we may also want to dispatch any data in this chunk
-		if (in_progressive_mode && !is_chunk_flush) {
-			isor_flush_data(read, check_buffer_level, is_chunk_flush);
-		}
+		} 
+
+		/*close current segment*/
+		gf_isom_release_segment(read->mov, 1);
+		read->seg_opened = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment \n"));
 	}
+	read->in_data_flush = 0;
 	gf_mx_v(read->segment_mutex);
 }
 

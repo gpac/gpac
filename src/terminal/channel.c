@@ -1333,7 +1333,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 			/*query buffer level, don't sleep if too low*/
 			GF_NetworkCommand com;
 			com.command_type = GF_NET_SERVICE_FLUSH_DATA;
-			com.base.on_channel = NULL;
+			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
 		}
 	
