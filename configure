@@ -568,9 +568,10 @@ EOF
         mingw32="yes"
         win32="yes"
         extralibs="$extralibs -lws2_32 -lwinmm"
-	if test "$cross_prefix" != "" ; then
-		GPAC_SH_FLAGS=""
-	fi
+        CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+        if test "$cross_prefix" != "" ; then
+            GPAC_SH_FLAGS=""
+        fi
         ;;
 
     CYGWIN*)
@@ -2782,6 +2783,10 @@ if test "$win32" = "yes" ; then
     echo "CONFIG_WIN32=yes" >> config.mak
     echo "CONFIG_OS=CONFIG_WIN32" >> config.mak
     echo "#define GPAC_CONFIG_WIN32" >> $TMPH
+    if test "$cygwin" = "yes" ; then
+        echo "#define ftello64 ftell" >> $TMPH
+        echo "#define fseeko64 fseek" >> $TMPH
+    fi
 elif test "$linux" = "yes" ; then
     echo "CONFIG_LINUX=yes" >> config.mak
     echo "CONFIG_OS=CONFIG_LINUX" >> config.mak
