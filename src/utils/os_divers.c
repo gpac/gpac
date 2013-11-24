@@ -782,7 +782,11 @@ u64 gf_f64_tell(FILE *fp)
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
 #elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#if (_FILE_OFFSET_BITS >= 64)
+	return (u64) ftello64(fp);
+#else
 	return (u64) ftell(fp);
+#endif
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
@@ -800,7 +804,11 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
 #elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#if (_FILE_OFFSET_BITS >= 64)
+	return (u64) fseeko64(fp, offset, whence);
+#else
 	return (u64) fseek(fp, (s32) offset, whence);
+#endif
 #elif defined(WIN32)
 	return (u64) _fseeki64(fp, offset, whence);
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
