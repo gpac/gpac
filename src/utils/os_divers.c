@@ -2182,7 +2182,7 @@ u64 gf_net_parse_date(const char *val)
 	else if (sscanf(val, "%9s, %d-%3s-%d %02d:%02d:%02d GMT", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
-	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
+	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
 	else {
