@@ -3556,17 +3556,10 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 			sec += ast_shift_sec;
 		}
 #ifdef _WIN32_WCE
-
-#define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
-
 		*(LONGLONG *) &filet = (sec - GF_NTP_SEC_1900_TO_1970) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
-
-#undef TIMESPEC_TO_FILETIME_OFFSET 
-		
 		FileTimeToSystemTime(&filet, &syst);
 		fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond) );
-
 #else
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		t = gmtime(&gtime);

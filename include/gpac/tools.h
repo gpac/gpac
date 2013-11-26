@@ -712,15 +712,43 @@ GF_Err gf_cleanup_dir(char* DirPathName);
  */
 u32 gf_crc_32(const char *data, u32 size);
 
+#ifdef _WIN32_WCE
+/*!
+ *	\brief WINCE time constant
+ *	\hideinitializer
+ *
+ *	time between jan 1, 1601 and jan 1, 1970 in units of 100 nanoseconds
+*/
+#define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
+
+#endif
 
 /*!
  *\brief gets UTC time in milliseconds 
  *
  *Gets UTC clock in milliseconds
- \retrun UTC time in seconds
+ \retrun UTC time in milliseconds
  */
 u64 gf_net_get_utc();
 
+/*!
+ *\brief parses date and returns UTC value for this date. Date format is an XSD dateTime format or any of the supported formats from HTTP 1.1: 
+	Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123  
+	Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
+	Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() formatgets UTC time in milliseconds 
+ *
+ *	\param date string containing the date to parse
+ \retrun UTC time in milliseconds
+ */
+u64 gf_net_parse_date(const char *date);
+
+/*!
+ *\brief gets timezone adjustment in seconds 
+ *
+ *Gets gets timezone adjustment in seconds, with localtime - timezone = UTC time
+ \retrun timezone shift in seconds
+ */
+s32 gf_net_get_timezone();
 
 /*!
  *\brief parses 128 bit from string 

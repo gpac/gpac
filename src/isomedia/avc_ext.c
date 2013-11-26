@@ -1061,6 +1061,18 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 
 			if (!ar->array_completeness) {
 				array_incomplete = 1;
+
+				while (gf_list_count(ar->nalus)) {
+					GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, 0);
+					gf_list_rem(ar->nalus, 0);
+					if (sl->data) gf_free(sl->data);
+					gf_free(sl);
+				}
+				gf_list_del(ar->nalus);
+				gf_free(ar);
+				gf_list_rem(entry->hevc_config->config->param_array, i);
+				i--;
+
 			}
 		}
 		entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_HEV1 : GF_ISOM_BOX_TYPE_HVC1;

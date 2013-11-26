@@ -280,19 +280,6 @@ static u64 dash_get_fetch_time(GF_DashClient *dash)
 	return utc;
 }
 
-static void dash_check_server_utc(GF_DashClient *dash, u64 fetch_time)
-{
-	dash->utc_drift_estimate = 0;
-	if (dash->estimate_utc_drift && dash->mpd_dnload && dash->dash_io->get_header_value) {
-		const char *val = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "Server-UTC");
-		if (val) {
-			u64 utc;
-			sscanf(val, LLU, &utc);
-			dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server %d ms\n", dash->utc_drift_estimate));
-		}
-	}
-}
 
 static u32 gf_dash_group_count_rep_needed(GF_DASH_Group *group)
 {
@@ -373,6 +360,7 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 	return 0;
 }
 
+
 static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
 {
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -388,13 +376,17 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	/*M3U8 does not use NTP sync */
 	if (group->dash->is_m3u8)
 		return;
+
+	if (group->broken_timing )
+		return;
+		
 	
 	/*if no AST, do not use NTP sync */
 	if (! group->dash->mpd->availabilityStartTime) {
 		group->broken_timing = 1;
 		return;
 	}
-	
+
 	//temp hack 
 	mpd->media_presentation_duration = 0;
 	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift*1000 + group->dash->utc_drift_estimate;
@@ -402,6 +394,26 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	ast_diff = (u32) (availabilityStartTime - group->dash->mpd->availabilityStartTime);
 	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
 	current_time = fetch_time;
+
+	if (group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
+		const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
+		if (val) {
+			u64 utc;
+			sscanf(val, LLU, &utc);
+			group->dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server %d ms\n", group->dash->utc_drift_estimate));
+		} else {
+			val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Date");
+			if (val) {
+				u64 utc = gf_net_parse_date(val);
+				if (utc) {
+					group->dash->utc_drift_estimate = (s32) ((s64) fetch_time - (s64) utc);
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server %d ms\n", group->dash->utc_drift_estimate));
+				}
+			}
+		}
+	}
+
 
 	if (current_time < availabilityStartTime) {
 		//if more than 1 sec consider we have a pb
@@ -1380,7 +1392,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		purl = NULL;
 	}
 	fetch_time = dash_get_fetch_time(dash);
-	dash_check_server_utc(dash, fetch_time);
 
 	if (!gf_dash_check_mpd_root_type(local_url)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
@@ -3820,7 +3831,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		fclose(f);
 	}
 	dash->mpd_fetch_time = dash_get_fetch_time(dash);
-	dash_check_server_utc(dash, dash->mpd_fetch_time );
 
 	if (dash->is_m3u8) {
 		if (is_local) {
