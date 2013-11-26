@@ -3512,7 +3512,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 
 		/*video_signal_type_present_flag = */flag = gf_bs_read_int(bs, 1);
 		if (flag) {
-			/*video_format = */gf_bs_read_int(bs, 1);
+			/*video_format = */gf_bs_read_int(bs, 3);
 			/*video_full_range_flag = */gf_bs_read_int(bs, 1);
 			if (/*colour_description_present_flag = */gf_bs_read_int(bs, 1)) {
 				/*colour_primaries = */ gf_bs_read_int(bs, 8);
