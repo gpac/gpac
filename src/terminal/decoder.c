@@ -183,7 +183,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			}
 			//very low latency 
 			else if (ch->MaxBuffer<=300) {
-				max /= MAX(max/2, 2);
+//				max /= MAX(max/2, 2);
 			}
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
