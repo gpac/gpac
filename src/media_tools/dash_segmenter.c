@@ -1888,20 +1888,19 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 			if (dash_inputs[input_idx].single_track_num && (dash_inputs[input_idx].single_track_num != j+1))
 				continue;
-			if (dash_inputs[i].single_track_num && (dash_inputs[i].single_track_num != track)) {
-				valid_in_adaptation_set = 0;
-				assign_to_group = 0;
-				break;
+
+			if (dash_inputs[i].single_track_num) {
+				track = dash_inputs[i].single_track_num;
 			}
 
 			mtype = gf_isom_get_media_type(set_file, j+1);
-			if (mtype != gf_isom_get_media_type(in, j+1)) {
+			if (mtype != gf_isom_get_media_type(in, track)) {
 				valid_in_adaptation_set = 0;
 				assign_to_group = 0;
 				break;
 			}
 			msub_type = gf_isom_get_media_subtype(set_file, j+1, 1);
-			if (msub_type != gf_isom_get_media_subtype(in, j+1, 1)) same_codec = 0;
+			if (msub_type != gf_isom_get_media_subtype(in, track, 1)) same_codec = 0;
 			if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) 
 				|| (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) 
 				|| (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
@@ -1914,7 +1913,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
 				) {
 					GF_DecoderConfig *dcd1 = gf_isom_get_decoder_config(set_file, j+1, 1);
-					GF_DecoderConfig *dcd2 = gf_isom_get_decoder_config(in, j+1, 1);
+					GF_DecoderConfig *dcd2 = gf_isom_get_decoder_config(in, track, 1);
 					if (dcd1 && dcd2 && (dcd1->streamType==dcd2->streamType) && (dcd1->objectTypeIndication==dcd2->objectTypeIndication)) {
 						same_codec = 1;
 					} else {
@@ -1933,7 +1932,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				char szLang1[4], szLang2[4];
 				szLang1[3] = szLang2[3] = 0;
 				gf_isom_get_media_language(set_file, j+1, szLang1);
-				gf_isom_get_media_language(in, j+1, szLang2);
+				gf_isom_get_media_language(in, track, szLang2);
 				if (stricmp(szLang1, szLang2)) {
 					valid_in_adaptation_set = 0;
 					break;
@@ -1945,14 +1944,14 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				s32 roll_dist;
 
 				gf_isom_get_track_layout_info(set_file, j+1, &w1, &h1, NULL, NULL, NULL);
-				gf_isom_get_track_layout_info(in, j+1, &w2, &h2, NULL, NULL, NULL);
+				gf_isom_get_track_layout_info(in, track, &w2, &h2, NULL, NULL, NULL);
 
 				if (h1*w2 != h2*w1) {
 					valid_in_adaptation_set = 0;
 					break;
 				}
 
-				gf_isom_get_sample_rap_roll_info(in, j+1, 0, &rap, &roll, &roll_dist);
+				gf_isom_get_sample_rap_roll_info(in, track, 0, &rap, &roll, &roll_dist);
 				if (roll_dist>0) sap_type = 4;
 				else if (roll) sap_type = 3;
 				else if (rap) sap_type = 1;
@@ -1980,6 +1979,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 {
 	GF_Err e = GF_OK;
 	u32 i;
+	u32 single_track_id = 0;
 	Bool sps_merge_failed = 0;
 	Bool use_avc3 = 0;
 	Bool use_hevc = 0;
@@ -2005,7 +2005,25 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 		}
 
 		for (j=0; j<gf_isom_get_track_count(in); j++) {
-			u32 track = gf_isom_get_track_by_id(init_seg, gf_isom_get_track_id(in, j+1));
+			u32 track;
+			
+			if (dash_inputs[i].single_track_num) {
+				if (dash_inputs[i].single_track_num != j+1)
+					continue;
+
+				if (!single_track_id)
+					single_track_id = gf_isom_get_track_id(in, j+1);
+				//if not the same ID between the two tracks we cannot create a legal file with bitstream switching enabled
+				else if (single_track_id != gf_isom_get_track_id(in, j+1)) {
+					*disable_bs_switching = GF_TRUE;
+					gf_isom_delete(init_seg);
+					gf_delete_file(szInitName);
+					return GF_OK;
+				}
+			}
+
+			track = gf_isom_get_track_by_id(init_seg, gf_isom_get_track_id(in, j+1));
+
 			if (track) {
 				u32 outDescIndex;
 				if ( gf_isom_get_sample_description_count(in, j+1) != 1) {
@@ -3691,6 +3709,8 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 				 || !strcmp(first_rep->role, "dub")
 			) {
 				fprintf(mpd, "   <Role schemeIdUri=\"urn:mpeg:dash:role:2011\" value=\"%s\"/>\n", first_rep->role);
+			} else {
+				fprintf(mpd, "   <Role schemeIdUri=\"urn:gpac:dash:role:2013\" value=\"%s\"/>\n", first_rep->role);
 			}
 		}
 
@@ -4377,16 +4397,21 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					if (strstr(seg_name, "%s")) {
 						sprintf(szSolvedSegName, seg_name, szOutName);
 						dash_opts.variable_seg_rad_name = 1;
+						if (dash_inputs[i].single_track_num) {
+							char szTkNum[50];
+							sprintf(szTkNum, "_track%d_", dash_inputs[i].single_track_num);
+							strcat(szSolvedSegName, szTkNum);
+						}
 					} else {
 						strcpy(szSolvedSegName, seg_name);
 					}
 					segment_name = szSolvedSegName;
 				}
-				if (dash_inputs[i].trackNum 
+				if ((dash_inputs[i].trackNum || dash_inputs[i].single_track_num)
 					&& (!seg_name || (!strstr(seg_name, "$RepresentationID$") && !strstr(seg_name, "$ID$"))) 
 				) {
 					char tmp[10];
-					sprintf(tmp, "_track%d", dash_inputs[i].trackNum);
+					sprintf(tmp, "_track%d", dash_inputs[i].trackNum ? dash_inputs[i].trackNum : dash_inputs[i].single_track_num);
 					strcat(szOutName, tmp);
 				}
 				strcat(szOutName, "_dash");
