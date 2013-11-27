@@ -4352,12 +4352,16 @@ discard_segment:
 			group->urlToDeleteNext = gf_strdup( group->cached[0].url );
 		}
 
+		//remember the representation index of the last segment
+		group->prev_active_rep_index = group->cached[0].representation_index;
+
 		gf_free(group->cached[0].cache);
 		gf_free(group->cached[0].url);
 		group->cached[0].url = NULL;
 		group->cached[0].cache = NULL;
 		group->cached[0].representation_index = 0;
 		group->cached[0].duration = 0;
+
 	}
 	memmove(&group->cached[0], &group->cached[1], sizeof(segment_cache_entry)*(group->nb_cached_segments-1));
 	memset(&(group->cached[group->nb_cached_segments-1]), 0, sizeof(segment_cache_entry));
@@ -4455,7 +4459,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 			*switching_url = rep->playback.cached_init_segment_url;
 	}
 	group->force_segment_switch = 0;
-	group->prev_active_rep_index = group->cached[index].representation_index;
+
 	if (group->cached[index+1].cache) {
 		GF_MPD_Representation *rep;
 	
