@@ -572,6 +572,7 @@ void isor_reader_release_sample(ISOMChannel *ch)
 void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush)
 {
 	u32 i, count;
+	GF_Err e = GF_OK;
 	Bool in_progressive_mode;
 	GF_NetworkCommand com;
 	ISOMChannel *ch;
@@ -648,12 +649,20 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 		param.url_query.dependent_representation_index = 0;
 		param.url_query.drop_first_segment = 1;
-		read->input->query_proxy(read->input, &param);
+		e = read->input->query_proxy(read->input, &param);
 
 
 		if (read->has_pending_segments) {
 			read->has_pending_segments--;
 		} 
+
+		if (e==GF_EOS) {
+			assert(!read->has_pending_segments);
+			for (i=0; i<count; i++) {
+				ch = (ISOMChannel *)gf_list_get(read->channels, i);
+				gf_term_on_sl_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
+			}
+		}
 
 		/*close current segment*/
 		gf_isom_release_segment(read->mov, 1);

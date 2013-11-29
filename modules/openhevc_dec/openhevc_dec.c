@@ -155,7 +155,7 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	else if (sOpt && !strcmp(sOpt, "frame+wpp")) ctx->threading_type = 3;
 	else {
 		ctx->threading_type = 1;
-		if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ThreadingType", "frame");
+		if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ThreadingType", "frame+wpp");
 	}
 
 	/*once base layer is configured, nothing to do on enhancement*/
