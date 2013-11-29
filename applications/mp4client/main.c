@@ -74,6 +74,7 @@ static Bool no_audio = GF_FALSE;
 static Bool term_step = GF_FALSE;
 static Bool no_regulation = GF_FALSE;
 static Bool bench_mode = GF_FALSE;
+static Bool eos_seen = GF_FALSE;
 Bool is_connected = GF_FALSE;
 Bool startup_file = GF_FALSE;
 GF_User user;
@@ -640,6 +641,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->connect.is_connected) {
 			is_connected = 1;
 			fprintf(stderr, "Service Connected\n");
+			eos_seen = GF_FALSE;
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;
@@ -651,6 +653,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		ResetCaption();
 		break;
 	case GF_EVENT_EOS:
+		eos_seen = GF_TRUE;
 		if (!playlist && loop_at_end) restart = 1;
 		break;
 	case GF_EVENT_SIZE:
@@ -1342,12 +1345,13 @@ int main (int argc, char **argv)
 			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
 			if (term_step) {
 				gf_term_process_step(term);
-				if (auto_exit && gf_term_get_option(term, GF_OPT_IS_OVER)) {
-					Run = 0;
-				} 
 			} else {
 				gf_sleep(rti_update_time_ms);
 			}
+			if (auto_exit && eos_seen && gf_term_get_option(term, GF_OPT_IS_OVER)) {
+				Run = 0;
+			} 
+
 			/*sim time*/
 			if (simulation_time_in_ms 
 				&& ( (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
