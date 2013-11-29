@@ -35,7 +35,8 @@
 
 #include <time.h>
 
-#define VIDEO_CB_DEFAULT_SIZE 3
+//anything different is broken in dash cast (random frame inversions at encoding time ...)
+#define VIDEO_CB_DEFAULT_SIZE 1
 
 
 /*

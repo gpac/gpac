@@ -158,7 +158,8 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 		return -2;
 	}
 
-	dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
+	if (video_input_data->circular_buf.size > 1) 
+		dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
 
 	dc_producer_lock(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 	dc_producer_unlock_previous(&video_scaled_data->producer, &video_scaled_data->circular_buf);
@@ -190,6 +191,8 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	dc_consumer_advance(&video_scaled_data->consumer);
 	dc_producer_advance(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 
+	if (video_input_data->circular_buf.size == 1) 
+		dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
 	return 0;
 }
 

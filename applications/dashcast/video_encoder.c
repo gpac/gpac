@@ -196,7 +196,8 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		return -2;
 	}
 
-	dc_consumer_unlock_previous(&video_output_file->consumer, &video_scaled_data->circular_buf);
+	if (video_scaled_data->circular_buf.size > 1)
+		dc_consumer_unlock_previous(&video_output_file->consumer, &video_scaled_data->circular_buf);
 
 	video_data_node = (VideoDataNode*)dc_consumer_consume(&video_output_file->consumer, &video_scaled_data->circular_buf);
 
@@ -234,6 +235,9 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 	}
 
 	dc_consumer_advance(&video_output_file->consumer);
+
+	if (video_scaled_data->circular_buf.size == 1)
+		dc_consumer_unlock_previous(&video_output_file->consumer, &video_scaled_data->circular_buf);
 
 	if (video_output_file->encoded_frame_size < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error occured while encoding video frame.\n"));
