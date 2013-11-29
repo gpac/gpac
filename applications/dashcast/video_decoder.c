@@ -154,7 +154,9 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->width = codec_ctx->width;
 	video_input_file->height = codec_ctx->height;
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
-	video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;	
+	if (video_data_conf->framerate >= 0) {
+		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;	
+	}
 	if (video_data_conf->framerate <= 1 || video_data_conf->framerate > 1000) {
 		const int num = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.num;
 		const int den = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.den == 0 ? 1 : video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.den;
@@ -321,8 +323,12 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 					video_input_file->computed_pts += video_input_data->frame_duration;
 				}
 
-				if (!use_source_timing && (video_data_node->vframe->pts==AV_NOPTS_VALUE)) {
-					video_data_node->vframe->pts = video_input_file->frame_decoded;
+				if (video_data_node->vframe->pts==AV_NOPTS_VALUE) {
+					if (!use_source_timing ) {
+						video_data_node->vframe->pts = video_input_file->frame_decoded;
+					} else {
+						video_data_node->vframe->pts = video_data_node->vframe->pkt_pts;
+					}
 				}
 				video_input_file->frame_decoded++;
 
