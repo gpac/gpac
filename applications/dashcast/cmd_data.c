@@ -109,6 +109,20 @@ static void dc_create_configuration(CmdData *cmd_data)
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.height);
 				gf_cfg_set_key(conf, section_name, "height", value);
 			}
+		
+			if (!gf_cfg_get_key(conf, section_name, "crop_x")) {
+				if (cmd_data->video_data_conf.crop_x == -1)
+					cmd_data->video_data_conf.crop_x = 0;
+				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.crop_x);
+				gf_cfg_set_key(conf, section_name, "crop_x", value);
+			}
+		
+			if (!gf_cfg_get_key(conf, section_name, "crop_y")) {
+				if (cmd_data->video_data_conf.crop_y == -1)
+					cmd_data->video_data_conf.crop_y = 0;
+				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.crop_y);
+				gf_cfg_set_key(conf, section_name, "crop_y", value);
+			}
 			
 			if (!gf_cfg_get_key(conf, section_name, "codec"))
 				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_VIDEO_CODEC);
@@ -168,6 +182,10 @@ int dc_read_configuration(CmdData *cmd_data)
 			video_data_conf->height = opt ? atoi(opt) : DEFAULT_VIDEO_HEIGHT;
 			opt = gf_cfg_get_key(conf, section_name, "width");
 			video_data_conf->width = opt ? atoi(opt) : DEFAULT_VIDEO_WIDTH;
+			opt = gf_cfg_get_key(conf, section_name, "crop_x");
+			video_data_conf->crop_x = opt ? atoi(opt) : 0;
+			opt = gf_cfg_get_key(conf, section_name, "crop_y");
+			video_data_conf->crop_x = opt ? atoi(opt) : 0;
 			opt = gf_cfg_get_key(conf, section_name, "custom");
 			video_data_conf->custom = opt ? gf_strdup(opt) : NULL;
 			gf_list_add(cmd_data->video_lst, (void *) video_data_conf);
@@ -416,6 +434,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 					"    -pixf FMT                set the input pixel format\n"
 					"    -vfr N                   force the input video framerate\n"
 					"    -vres WxH                force the video resolution (e.g. 640x480)\n"
+					"    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
 					"    -gdr                     use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
 					"* Audio options:\n"
 					"    -a string                set the source name for an audio input\n"
@@ -560,6 +579,15 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return -1;
 			}
 			dc_str_to_resolution(argv[i], &cmd_data->video_data_conf.width, &cmd_data->video_data_conf.height);
+			i++;
+		} else if (strcmp(argv[i], "-vcrop") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (cmd_data->video_data_conf.crop_x && cmd_data->video_data_conf.crop_y) {
+				fprintf(stderr, "Video crop has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
+				return -1;
+			}
+			dc_str_to_resolution(argv[i], &cmd_data->video_data_conf.crop_x, &cmd_data->video_data_conf.crop_y);
 			i++;
 		} else if (strcmp(argv[i], "-vcodec") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -787,6 +815,15 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		cmd_data->min_buffer_time = 1.0;
 	}
 
+	//safety checks
+	if (cmd_data->video_data_conf.crop_x || cmd_data->video_data_conf.crop_y) {
+		if (cmd_data->video_data_conf.width == -1 && cmd_data->video_data_conf.height == -1) {
+			fprintf(stderr, "You cannot use '-vcrop' without '-vres'. Please check usage.\n");
+			fprintf(stderr, "%s", command_usage);
+			return -1;
+		}
+	}
+
 	fprintf(stdout, "\33[34m\33[1m");
 	fprintf(stdout, "Options:\n");
 	fprintf(stdout, "    video source: %s\n", cmd_data->video_data_conf.filename);
@@ -803,6 +840,9 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	}
 	if (cmd_data->video_data_conf.height != -1 && cmd_data->video_data_conf.width != -1) {
 		fprintf(stdout, "    video resolution: %dx%d\n", cmd_data->video_data_conf.width, cmd_data->video_data_conf.height);
+	}
+	if (cmd_data->video_data_conf.crop_x != -1 && cmd_data->video_data_conf.crop_y != -1) {
+		fprintf(stdout, "    video crop: %dx%d\n", cmd_data->video_data_conf.crop_x, cmd_data->video_data_conf.crop_y);
 	}
 
 	fprintf(stdout, "    audio source: %s\n", cmd_data->audio_data_conf.filename);

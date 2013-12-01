@@ -53,9 +53,13 @@ typedef struct {
 	char pixel_format[GF_MAX_PATH];
 	/* v4l2 format */
 	char v4l2f[GF_MAX_PATH];
-	/* video width */
+	/* left crop */
+	int crop_x;
+	/* top crop */
+	int crop_y;
+	/* video final width */
 	int width;
-	/* video height */
+	/* video final height */
 	int height;
 	/* video bitrate */
 	int bitrate;
@@ -80,6 +84,7 @@ typedef struct {
 	/* Width, height and pixel format of the input video. */
 	int width;
 	int height;
+	int crop_x, crop_y;
 	int pix_fmt;
 } VideoInputProp;
 
@@ -139,7 +144,7 @@ int dc_video_input_data_init(VideoInputData *video_input_data,/* int width, int 
 /*
  * Set properties for a VideoInputData.
  */
-void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int pix_fmt);
+void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int crop_x, int crop_y, int pix_fmt);
 
 /*
  * Destroy a VideoInputData.

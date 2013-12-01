@@ -26,31 +26,37 @@
 #include "video_scaler.h"
 
 
-VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int pix_fmt)
+VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int crop_x, int crop_y, int pix_fmt)
 {
-	int num_bytes;
 	VideoScaledDataNode *video_scaled_data_node = gf_malloc(sizeof(VideoDataNode));
-	if (video_scaled_data_node)
-		video_scaled_data_node->vframe = avcodec_alloc_frame();
-	if (!video_scaled_data_node || !video_scaled_data_node->vframe) {
+	if (video_scaled_data_node) {
+		video_scaled_data_node->v_frame = avcodec_alloc_frame();
+		if (crop_x || crop_y) {
+			video_scaled_data_node->cropped_frame = avcodec_alloc_frame();
+		} else {
+			video_scaled_data_node->cropped_frame = NULL;
+		}
+	}
+	if (!video_scaled_data_node || !video_scaled_data_node->v_frame || ((crop_x || crop_y) && !video_scaled_data_node->cropped_frame)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate VideoNode!\n"));
+		av_frame_free(&video_scaled_data_node->v_frame);
+		av_frame_free(&video_scaled_data_node->cropped_frame);
 		gf_free(video_scaled_data_node);
 		return NULL;
 	}
 
 	/* Determine required buffer size and allocate buffer */
-	num_bytes = avpicture_get_size(pix_fmt, width, height);
-	video_scaled_data_node->pic_data_buf = (uint8_t *) av_malloc(num_bytes * sizeof(uint8_t));
-	avpicture_fill((AVPicture *) video_scaled_data_node->vframe, video_scaled_data_node->pic_data_buf, pix_fmt, width, height);
+	avpicture_alloc((AVPicture*)video_scaled_data_node->v_frame, pix_fmt, width, height);
+	if (video_scaled_data_node->cropped_frame) {
+		avpicture_alloc((AVPicture*)video_scaled_data_node->cropped_frame, pix_fmt, width-crop_x, height-crop_y);
+	}
 
 	return video_scaled_data_node;
 }
 
 void dc_video_scaler_node_destroy(VideoScaledDataNode *video_scaled_data_node)
 {
-	av_free(video_scaled_data_node->vframe);
-	av_free(video_scaled_data_node->pic_data_buf);
-
+	av_frame_free(&video_scaled_data_node->v_frame);
 	gf_free(video_scaled_data_node);
 }
 
@@ -119,7 +125,7 @@ int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData 
 
 	dc_circular_buffer_create(&video_scaled_data->circular_buf, video_cb_size, video_input_data->circular_buf.mode, video_scaled_data->num_consumers);
 	for (i=0; i<video_cb_size; i++) {
-		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_scaled_data->out_pix_fmt);
+		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_input_data->vprop->crop_x, video_input_data->vprop->crop_y, video_scaled_data->out_pix_fmt);
 	}
 
 	return 0;
@@ -127,8 +133,8 @@ int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData 
 
 int dc_video_scaler_data_set_prop(VideoInputData *video_input_data, VideoScaledData *video_scaled_data, int index)
 {
-	video_scaled_data->vsprop[index].in_width   = video_input_data->vprop[index].width;
-	video_scaled_data->vsprop[index].in_height  = video_input_data->vprop[index].height;
+	video_scaled_data->vsprop[index].in_width   = video_input_data->vprop[index].width - video_input_data->vprop[index].crop_x;
+	video_scaled_data->vsprop[index].in_height  = video_input_data->vprop[index].height - video_input_data->vprop[index].crop_y;
 	video_scaled_data->vsprop[index].in_pix_fmt = video_input_data->vprop[index].pix_fmt;
 
 	video_scaled_data->vsprop[index].sws_ctx = sws_getContext(
@@ -147,12 +153,12 @@ int dc_video_scaler_data_set_prop(VideoInputData *video_input_data, VideoScaledD
 
 int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *video_scaled_data)
 {
-	int ret, index;
+	int ret, index, src_height;
 	VideoDataNode *video_data_node;
 	VideoScaledDataNode *video_scaled_data_node;
+	AVFrame *src_vframe;
 
 	ret = dc_consumer_lock(&video_scaled_data->consumer, &video_input_data->circular_buf);
-
 	if (ret < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler got an end of buffer!\n"));
 		return -2;
@@ -170,13 +176,31 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 
 	video_scaled_data->frame_duration = video_input_data->frame_duration;
 
+	//crop if necessary
+	if (video_input_data->vprop[index].crop_x || video_input_data->vprop[index].crop_y) {
+#if 0
+		av_frame_copy_props(video_scaled_data_node->cropped_frame, video_data_node->vframe);
+		video_scaled_data_node->cropped_frame->width  = video_input_data->vprop[index].width  - video_input_data->vprop[index].crop_x;
+		video_scaled_data_node->cropped_frame->height = video_input_data->vprop[index].height - video_input_data->vprop[index].crop_y;
+#endif
+		if (av_picture_crop((AVPicture*)video_scaled_data_node->cropped_frame, (AVPicture*)video_data_node->vframe, PIX_FMT_YUV420P, video_input_data->vprop[index].crop_y, video_input_data->vprop[index].crop_x) < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler: error while cropping picture.\n"));
+			return -1;
+		}
+		src_vframe = video_scaled_data_node->cropped_frame;
+		src_height = video_input_data->vprop[index].height - video_input_data->vprop[index].crop_y;
+	} else {
+		assert(!video_scaled_data_node->cropped_frame);
+		src_vframe = video_data_node->vframe;
+		src_height = video_input_data->vprop[index].height;
+	}
+
+	//rescale the cropped frame
 	sws_scale(video_scaled_data->vsprop[index].sws_ctx,
-			(const uint8_t * const *) video_data_node->vframe->data,
-			video_data_node->vframe->linesize, 0,
-			video_input_data->vprop[index].height/*video_input_data->height*/,
-			video_scaled_data_node->vframe->data, video_scaled_data_node->vframe->linesize);
+			(const uint8_t * const *)src_vframe->data, src_vframe->linesize, 0, src_height,
+			video_scaled_data_node->v_frame->data, video_scaled_data_node->v_frame->linesize);
 	
-	video_scaled_data_node->vframe->pts = video_data_node->vframe->pts;
+	video_scaled_data_node->v_frame->pts = video_data_node->vframe->pts;
 
 	if (video_data_node->nb_raw_frames_ref) {
 		if (video_data_node->nb_raw_frames_ref==1) {

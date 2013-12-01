@@ -1218,7 +1218,7 @@ int dc_run_controler(CmdData *in_data)
 		}
 
 		for (i=0; i<gf_list_count(in_data->vsrc) + 1; i++) {
-			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, video_input_file[i]->pix_fmt);
+			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, in_data->video_data_conf.crop_x, in_data->video_data_conf.crop_y, video_input_file[i]->pix_fmt);
 		}
 
 		for (i=0; i<video_scaled_data_list.size; i++) {

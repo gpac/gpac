@@ -81,8 +81,8 @@ typedef struct {
  * To use the circular buffer for scaled video frame we must define the node. This structure contains the data needed to encode a video frame.
  */
 typedef struct {
-	AVFrame *vframe;
-	uint8_t *pic_data_buf;
+	AVFrame *v_frame;
+	AVFrame *cropped_frame;
 } VideoScaledDataNode;
 
 /*
