@@ -31,6 +31,8 @@ void dc_video_data_set_default(VideoDataConf *video_data_conf)
 	memset(video_data_conf, 0, sizeof(VideoDataConf));
 	video_data_conf->bitrate = -1;
 	video_data_conf->framerate = -1;
+	video_data_conf->crop_x = 0;
+	video_data_conf->crop_y = 0;
 	video_data_conf->height = -1;
 	video_data_conf->width = -1;
 }
@@ -65,10 +67,12 @@ int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int 
 	return 0;
 }
 
-void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int pix_fmt)
+void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int crop_x, int crop_y, int pix_fmt)
 {
 	video_input_data->vprop[index].width = width;
 	video_input_data->vprop[index].height = height;
+	video_input_data->vprop[index].crop_x = crop_x;
+	video_input_data->vprop[index].crop_y = crop_y;
 	video_input_data->vprop[index].pix_fmt = pix_fmt;
 }
 
