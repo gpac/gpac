@@ -583,7 +583,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)) {
 		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
-		GF_List *sais;
+		GF_List *sais = NULL;
 
 		if (traf->piff_sample_encryption) {
 			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
@@ -623,9 +623,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			//GF_BitStream *bs;
 			u32 size, nb_saio;
 			u64 offset;
-			GF_Err e = GF_OK;
-			GF_SampleAuxiliaryInfoOffsetBox *saio;
-			GF_SampleAuxiliaryInfoSizeBox *saiz;
+			GF_SampleAuxiliaryInfoOffsetBox *saio = NULL;
+			GF_SampleAuxiliaryInfoSizeBox *saiz = NULL;
 			//GF_CENCSampleAuxInfo *sai;
 			//char *buffer;
 
@@ -645,38 +644,38 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 					break;
 				}
 			}
+			if (saiz) {
+				for (i = 0; i < saiz->sample_count; i++) {
+					if (nb_saio != 1) 
+						offset = saio->offsets[i] + moof_offset;
+					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
-			for (i = 0; i < saiz->sample_count; i++) {
-				if (nb_saio != 1) 
-					offset = saio->offsets[i] + moof_offset;
-				size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
+					/*cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
+					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
+					buffer = (char *)malloc(size);
+					gf_bs_read_data(trak->moov->mov->movieFileMap->bs, buffer, size);
+					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
 
-				/*cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
-				gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
-				buffer = (char *)malloc(size);
-				gf_bs_read_data(trak->moov->mov->movieFileMap->bs, buffer, size);
-				gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
-
-				sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-				bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
-				gf_bs_read_data(bs, (char *)sai->IV, 16);
-				if (size > 16) {
-					sai->subsample_count = gf_bs_read_u16(bs);
-					sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
-					for (j = 0; j < sai->subsample_count; j++) {
-						sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
-						sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+					sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+					bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
+					gf_bs_read_data(bs, (char *)sai->IV, 16);
+					if (size > 16) {
+						sai->subsample_count = gf_bs_read_u16(bs);
+						sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
+						for (j = 0; j < sai->subsample_count; j++) {
+							sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
+							sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+						}
+						gf_bs_del(bs);
 					}
-					gf_bs_del(bs);
+					gf_list_add(senc->samp_aux_info, sai);
+					if (sai->subsample_count) senc->flags = 0x00000002;*/
+					gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, (u32)offset, size);
+					if (nb_saio == 1)
+						offset += size;				
 				}
-				gf_list_add(senc->samp_aux_info, sai);
-				if (sai->subsample_count) senc->flags = 0x00000002;*/
-				gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, (u32)offset, size);
-				if (nb_saio == 1)
-					offset += size;				
 			}
-		}
-		else {
+		} else if (sais) {
 			for (i = 0; i < gf_list_count(sais); i++) {
 				GF_CENCSampleAuxInfo *sai, *new_sai;
 
