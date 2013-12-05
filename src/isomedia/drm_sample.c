@@ -961,8 +961,8 @@ static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNum
 	u64 cur_position;
 	GF_Err e = GF_OK;
 	char *buffer;
-
-	offset = prev_sai_size = 0;
+	
+	nb_saio = size = offset = prev_sai_size = 0;
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(mdia->information->sampleTable->sai_offsets, i);
@@ -1014,7 +1014,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
-	GF_Box *a_box;
+	GF_Box *a_box = NULL;
 	u32 i, type;
 	GF_CENCSampleAuxInfo *a_sai;
 
@@ -1053,21 +1053,25 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 	a_sai = NULL;
 	switch (type) {
-		case GF_ISOM_BOX_UUID_PSEC:
+	case GF_ISOM_BOX_UUID_PSEC:
+		if (a_box) 
 			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(((GF_PIFFSampleEncryptionBox *)a_box)->samp_aux_info, sampleNumber-1);
-			break;
-		case GF_ISOM_BOX_TYPE_SENC:
+		break;
+	case GF_ISOM_BOX_TYPE_SENC:
+		if (a_box) 
 			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(((GF_SampleEncryptionBox *)a_box)->samp_aux_info, sampleNumber-1);
-			break;
+		break;
 	}
 	if (!a_sai)
 		return GF_NOT_SUPPORTED;
 
-	(*sai) = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-	memmove((*sai)->IV, a_sai->IV, 16);
-	(*sai)->subsample_count = a_sai->subsample_count;
-	(*sai)->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-	memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+	GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
+	if (a_box) {
+		memmove((*sai)->IV, a_sai->IV, 16);
+		(*sai)->subsample_count = a_sai->subsample_count;
+		(*sai)->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+		memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+	}
 
 	return GF_OK;
 }

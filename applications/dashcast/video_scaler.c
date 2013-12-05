@@ -26,6 +26,10 @@
 #include "video_scaler.h"
 
 
+#ifdef GPAC_USE_LIBAV
+#define av_frame_free	av_free
+#endif
+
 VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int crop_x, int crop_y, int pix_fmt)
 {
 	VideoScaledDataNode *video_scaled_data_node = gf_malloc(sizeof(VideoDataNode));
