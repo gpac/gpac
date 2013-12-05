@@ -972,8 +972,10 @@ scalable_retry:
 		assert( CU );
 		if (!CU->data && unit_size && !codec->CB->no_allocation)
 			e = GF_OUT_OF_MEM;
-		else
+		else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
+		}
 		now = gf_term_get_time(codec->odm->term) - now;
 		if (codec->Status == GF_ESM_CODEC_STOP) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because codec has been stopped\n", codec->decio->module_name));

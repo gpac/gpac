@@ -37,7 +37,27 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
 	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return 0;
-	if (_entry->type==GF_ISOM_BOX_TYPE_GNRV) return 0;
+	switch (_entry->type) {
+	case GF_4CC('a','v','c','1'):
+	case GF_4CC('a','v','c','2'):
+	case GF_4CC('a','v','c','3'):
+	case GF_4CC('a','v','c','4'):
+	case GF_4CC('s','v','c','1'):
+	case GF_4CC('s','v','c','2'):
+	case GF_4CC('m','v','c','1'):
+	case GF_4CC('m','v','c','2'):
+	case GF_4CC('h','v','c','1'):
+	case GF_4CC('h','e','v','1'):
+	case GF_4CC('h','v','c','2'):
+	case GF_4CC('h','e','v','2'):
+	case GF_4CC('s','h','v','1'):
+	case GF_4CC('s','h','c','1'):
+	case GF_4CC('m','h','v','1'):
+	case GF_4CC('m','h','c','1'):
+		return 1;
+	default:
+		return 0;
+	}
 	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
 	if (!entry) return 0;
 	if (entry->avc_config || entry->svc_config || entry->hevc_config || entry->shvc_config) return 1;
