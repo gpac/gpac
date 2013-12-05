@@ -1242,6 +1242,9 @@ GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32
 		gf_isom_sample_del(&samp);
 		return NULL;
 	}
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (samp) samp->DTS += trak->dts_at_seg_start;
+#endif
 	return samp;
 }
 

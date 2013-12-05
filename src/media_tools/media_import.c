@@ -1888,7 +1888,7 @@ exit:
 GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u64 offset, sampDTS, duration;
+	u64 offset, sampDTS, duration, dts_offset;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -2035,6 +2035,14 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		break;
 	}
 
+	//this may happen with fragmented files
+	dts_offset = 0;
+	samp = gf_isom_get_sample_info(import->orig, track_in, 1, &di, &offset);
+	if (samp) {
+		dts_offset = samp->DTS;
+		gf_isom_sample_del(&samp);
+	}
+
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
@@ -2045,6 +2053,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				e = gf_isom_last_error(import->orig);
 				goto exit;
 			}
+			samp->DTS -= dts_offset;
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
@@ -2052,6 +2061,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				/*couldn't get the sample, but still move on*/
 				goto exit;
 			}
+			samp->DTS -= dts_offset;
 			/*if not first sample and same DTS as previous sample, force DTS++*/
 			if (i && (samp->DTS<=sampDTS)) {
 				if (i+1 < num_samples) {
