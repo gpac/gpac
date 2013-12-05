@@ -544,6 +544,22 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			break;
 		}
 			break;
+		case GF_ISOM_SUBTYPE_HVC1:
+		case GF_ISOM_SUBTYPE_HEV1:
+		case GF_ISOM_SUBTYPE_HVC2:
+		case GF_ISOM_SUBTYPE_HEV2:
+		{
+			GF_HEVCConfig *hevcc = NULL;
+			hevcc = gf_isom_hevc_config_get(streamer->isom, track->track_num, 1);
+			if (hevcc) {
+				track->avc_nalu_size = hevcc->nal_unit_size;
+				gf_odf_hevc_cfg_del(hevcc);
+				streamType = GF_STREAM_VISUAL;
+				oti = GPAC_OTI_VIDEO_HEVC;
+			}
+			break;
+		}
+			break;
 		default:
 			streamType = GF_STREAM_4CC;
 			oti = TrackMediaSubType;

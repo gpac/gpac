@@ -1931,7 +1931,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 
 typedef struct 
 {
-	u32 bytes_clear_data;
+	u16 bytes_clear_data;
 	u32 bytes_encrypted_data;
 } GF_CENCSubSampleEntry;
 
@@ -1941,6 +1941,7 @@ typedef struct __cenc_sample_aux_info
     u16 subsample_count;
 	GF_CENCSubSampleEntry *subsamples;
 } GF_CENCSampleAuxInfo;
+
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, 
 									u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID);
@@ -1963,9 +1964,9 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
 #endif
 
 /*boxType is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC*/
-GF_CENCSampleAuxInfo * gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *container_type);
+GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type);
 
-void gf_isom_cenc_get_KID(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, bin128 *outKID);
+void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
 
 u32 gf_isom_get_pssh_count(GF_ISOFile *file);
 /*index is 1-based, all pointers shall not be free*/
@@ -2263,10 +2264,14 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_num
 - currently sample group info MUST be added in order (no insertion in the tables)*/
 GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance);
 
+/*set encryption group for a sample_number; buf specifies the parameters for this group: IsEncrypted, IV_size, KID*/ 
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool isEncrypted, u8 IV_size, bin128 KeyID);
+
 GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use_negative_offsets);
 
 #endif
 
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
 
 
 #endif /*GPAC_DISABLE_ISOM*/

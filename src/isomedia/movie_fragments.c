@@ -1765,10 +1765,11 @@ GF_EXPORT
 GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum)
 {
 	u32 trackNum;
+	GF_Err e = GF_OK;
 
 	trackNum = gf_isom_get_track_by_id(input, TrackID);
 	if (gf_isom_is_cenc_media(input, trackNum, 1)) {
-		GF_CENCSampleAuxInfo *sai, *new_sai;
+		GF_CENCSampleAuxInfo *sai;
 		GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
 		GF_TrackBox  *src_trak = gf_isom_get_track_from_file(input, TrackID);
 		u32 boxType;
@@ -1776,8 +1777,9 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 
 		if (!traf)  return GF_BAD_PARAM;
 
-		sai = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &boxType);
-		if (!sai) return GF_IO_ERR;
+		sai = NULL;
+		e = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &sai, &boxType);
+		if (e) return e;
 
 		switch (boxType) {
 		case GF_ISOM_BOX_UUID_PSEC:
@@ -1808,22 +1810,15 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 			return GF_NOT_SUPPORTED;
 		}
 
-		new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-		memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
-		new_sai->subsample_count = sai->subsample_count;
+		gf_list_add(senc->samp_aux_info, sai);
 		if (sai->subsample_count) senc->flags = 0x00000002;
-		new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-		memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 
-		gf_list_add(senc->samp_aux_info, new_sai);
-
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 18+8*new_sai->subsample_count);
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 18+6*sai->subsample_count);
 
 	}
 
 	return GF_OK;
 }
-
 
 
 GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, char *data, u32 data_size, u8 PaddingBits)

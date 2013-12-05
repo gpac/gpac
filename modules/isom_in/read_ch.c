@@ -531,25 +531,33 @@ fetch_next:
 			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
 			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
 				GF_CENCSampleAuxInfo *sai;
+				u32 Is_Encrypted;
+				u8 IV_size;
 				bin128 KID;
 
-				gf_isom_cenc_get_KID(ch->owner->mov, ch->track, ch->sample_num, &KID);
-				sai = gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, NULL);
-				if (sai) {
-					GF_BitStream *bs;
-					bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-					/*write sample auxiliary information*/
-					gf_bs_write_data(bs, (char *)KID, 16);
-					gf_bs_write_data(bs, (char *)sai->IV, 16);
-					gf_bs_write_u16(bs, sai->subsample_count);
-					for (ivar = 0; ivar < sai->subsample_count; ivar++) {
-						gf_bs_write_u32(bs, sai->subsamples[ivar].bytes_clear_data);
-						gf_bs_write_u32(bs, sai->subsamples[ivar].bytes_encrypted_data);
-					}
-					gf_bs_get_content(bs, &ch->current_slh.sai, &ch->current_slh.saiz);
-					gf_bs_del(bs);
+				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID);
+				if (Is_Encrypted) {
 					ch->current_slh.cenc_encrypted = 1;
-				} else
+					sai = NULL;
+					gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, &sai, NULL);
+					if (sai) {
+						GF_BitStream *bs;
+						bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+						/*write sample auxiliary information*/
+						gf_bs_write_data(bs, (char *)KID, 16);
+						gf_bs_write_data(bs, (char *)sai->IV, 16);
+						gf_bs_write_u16(bs, sai->subsample_count);
+						for (ivar = 0; ivar < sai->subsample_count; ivar++) {
+							gf_bs_write_u16(bs, sai->subsamples[ivar].bytes_clear_data);
+							gf_bs_write_u32(bs, sai->subsamples[ivar].bytes_encrypted_data);
+						}
+						gf_bs_get_content(bs, &ch->current_slh.sai, &ch->current_slh.saiz);
+						gf_bs_del(bs);
+						gf_isom_cenc_samp_aux_info_del(sai);
+						sai = NULL;
+					}
+				}
+				else
 					ch->current_slh.cenc_encrypted = 0;
 			}
 		}
@@ -580,8 +588,8 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	if (read->in_data_flush) 
 		return;
 	//pull request from term: if no segments are pending (received but not yet parsed) ignore
-	if (!check_buffer_level && !read->has_pending_segments)
-		return;
+//	if (!check_buffer_level && !read->has_pending_segments)
+//		return;
 
 	gf_mx_p(read->segment_mutex);
 	read->in_data_flush = 1;

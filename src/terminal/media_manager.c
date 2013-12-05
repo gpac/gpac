@@ -321,7 +321,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Decode time slice %d ms out of %d ms\n", ce->dec->decio ? ce->dec->decio->module_name : "RAW", time_taken, time_left ));
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Decode time slice %d ms out of %d ms\n", ce->dec->decio ? ce->dec->decio->module_name : "RAW", time_taken, time_left ));
 		}
 #endif
 		if (ce->flags & GF_MM_CE_DISCARDED) {

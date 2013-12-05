@@ -2446,7 +2446,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 		/*copy PSSHs from moov to the first moof*/
 		if (!nb_done) {
-			e = gf_isom_clone_pssh(output, input, GF_FALSE);
+			e = gf_isom_clone_pssh(output, input, GF_TRUE);
 			if (e) goto err_exit;
 		}
 
@@ -2475,6 +2475,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 				e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1);
 				if (e) goto err_exit;
+
+				/*copy subsample information*/
+				e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1);
+				if (e) 
+					goto err_exit;
 
 				gf_set_progress("ISO File Fragmenting", nb_done, nb_samp);
 				nb_done++;

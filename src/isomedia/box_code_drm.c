@@ -1126,7 +1126,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 			sai->subsample_count = gf_bs_read_u16(bs);
 			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 			for (j = 0; j < sai->subsample_count; j++) {
-				sai->subsamples[j].bytes_clear_data = gf_bs_read_u32(bs);
+				sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
 				sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
 			}
 			gf_list_add(ptr->samp_aux_info, sai);
@@ -1188,7 +1188,7 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 			gf_bs_write_data(bs, (char *)sai->IV, 16);
 			gf_bs_write_u16(bs, sai->subsample_count);
 			for (j = 0; j < sai->subsample_count; j++) {
-				gf_bs_write_u32(bs, sai->subsamples[j].bytes_clear_data);
+				gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
 				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
 			}
 		}
@@ -1212,7 +1212,7 @@ GF_Err piff_psec_Size(GF_Box *s)
 	if (sample_count) {
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
-			ptr->size += 18 + 8*sai->subsample_count;
+			ptr->size += 18 + 6*sai->subsample_count;
 		}
 	}
 	return GF_OK;

@@ -3297,6 +3297,63 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+{
+	GF_TrackBox *trak;
+	u32 i, count;
+
+	gf_isom_cenc_get_default_info(movie, track, sample_number, IsEncrypted, IV_size, KID);
+
+	trak = gf_isom_get_track_from_file(movie, track);
+
+	if (!trak->Media->information->sampleTable->sampleGroups) return GF_OK;
+
+	count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
+	for (i=0; i<count; i++) {
+		GF_SampleGroupBox *sg;
+		u32 j, group_desc_index;
+		GF_SampleGroupDescriptionBox *sgdesc;
+		u32 first_sample_in_entry, last_sample_in_entry;
+		first_sample_in_entry = 1;
+		group_desc_index = 0;
+		sg = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
+		for (j=0; j<sg->entry_count; j++) {
+			last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+			if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
+				first_sample_in_entry = last_sample_in_entry+1;
+				continue;
+			}
+			/*we found our sample*/
+			group_desc_index = sg->sample_entries[j].group_description_index;
+			break;
+		}
+		/*no sampleGroup info associated*/
+		if (!group_desc_index) continue;
+
+		sgdesc = NULL;
+		for (j=0; j<gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription); j++) {
+			sgdesc = gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, j);
+			if (sgdesc->grouping_type==sg->grouping_type) break;
+			sgdesc = NULL;
+		}
+		/*no sampleGroup description found for this group (invalid file)*/
+		if (!sgdesc) continue;
+
+		switch (sgdesc->grouping_type) {
+		case GF_4CC( 's', 'e', 'i', 'g' ):
+			if (IsEncrypted || IV_size || KID) {
+				GF_CENCSampleEncryptionGroupEntry *entry = (GF_CENCSampleEncryptionGroupEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
+				if (IsEncrypted) *IsEncrypted = entry->IsEncrypted;
+				if (IV_size) *IV_size = entry->IV_size;
+				if (KID) memmove(*KID, entry->KID, 16);
+				break;
+			}
+		}
+	}
+	return GF_OK;;
+}
+
 
 GF_EXPORT
 Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info)

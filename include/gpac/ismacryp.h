@@ -59,7 +59,7 @@ enum
 
 typedef struct
 {
-	/*0: ISMACryp - 1: OMA DRM*/
+	/*0: ISMACryp - 1: OMA DRM - 2: CENC CTR - 3: CENC CBC*/
 	u32 enc_type;
 	u32 trackID;
 	unsigned char key[16];
