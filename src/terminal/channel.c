@@ -1257,7 +1257,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		evt.data = payload;
 		evt.data_size = payload_size;
 		evt.is_encrypted = (hdr.isma_encrypted || hdr.cenc_encrypted) ? 1 : 0;
-		evt.isma_BSO = hdr.isma_BSO;
+		if (hdr.isma_encrypted) {
+			evt.isma_BSO = hdr.isma_BSO;
+		} else if (hdr.cenc_encrypted) {
+			evt.sai = hdr.sai;
+			evt.saiz = hdr.saiz;
+		}
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 
 		/*we discard undecrypted AU*/

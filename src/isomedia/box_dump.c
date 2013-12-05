@@ -4011,6 +4011,11 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			if (((GF_VisualRandomAccessEntry*)entry)->num_leading_samples_known) fprintf(trace, " num_leading_samples=\"%d\" />", ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples);
 			fprintf(trace, "/>\n");
 			break;
+		case GF_4CC( 's', 'e', 'i', 'g' ):
+			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ((GF_CENCSampleEncryptionGroupEntry*)entry)->IsEncrypted, ((GF_CENCSampleEncryptionGroupEntry*)entry)->IV_size);
+			DumpDataHex(trace, (char *)((GF_CENCSampleEncryptionGroupEntry*)entry)->KID, 16);
+			fprintf(trace, "\"/>\n");
+			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			DumpData(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);

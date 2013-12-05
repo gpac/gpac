@@ -170,8 +170,8 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			else if (!stricmp(att->name, "keyRoll")) {
 				if (!strncmp(att->value, "idx=", 4))
 					tkc->defaultKeyIdx = atoi(att->value+4);
-				else if (!strncmp(att->value, "roll=", 4))
-					tkc->keyRoll = atoi(att->value+4);
+				else if (!strncmp(att->value, "roll=", 5))
+					tkc->keyRoll = atoi(att->value+5);
 			}
 		}
 	}
@@ -843,6 +843,187 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u64 BSO, u8 IV_size, Bool 
 	gf_bs_del(tmp);
 }
 
+static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz) {
+	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
+	char *buffer;
+	u32 max_size, size;
+	u64 BSO;
+	GF_Err e = GF_OK;
+	GF_List *subsamples;
+
+	pleintext_bs = cyphertext_bs = sai_bs = NULL;
+	max_size = 4096;
+	BSO = 0;
+	buffer = (char*)gf_malloc(sizeof(char) * max_size);
+	memset(buffer, 0, max_size);
+	pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+	cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_data(sai_bs, IV, 16);
+	subsamples = gf_list_new();
+	if (!subsamples) {
+		e = GF_IO_ERR;
+		goto exit; 
+	}
+	while (gf_bs_available(pleintext_bs)) {
+		GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+
+		if (is_nalu_video) {
+			u32 nal_hdr;
+			size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
+			if (size>max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
+				max_size = size;
+			}
+			nal_hdr = gf_bs_read_u8(pleintext_bs);
+
+			gf_bs_read_data(pleintext_bs, buffer, size-1);
+			gf_crypt_encrypt(mc, buffer, size-1);
+			BSO += size-1;
+
+			/*write clear data and encrypted data to bitstream*/
+			gf_bs_write_int(cyphertext_bs, size, 8*nalu_size_length);
+			gf_bs_write_u8(cyphertext_bs, nal_hdr);
+			gf_bs_write_data(cyphertext_bs, buffer, size-1);
+
+			entry->bytes_clear_data = nalu_size_length + 1;
+			entry->bytes_encrypted_data = size - 1;
+
+		} else {
+			gf_bs_read_data(pleintext_bs, buffer, samp->dataLength);
+			gf_crypt_encrypt(mc, buffer, samp->dataLength);
+			gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
+
+			BSO += samp->dataLength;			
+			entry->bytes_clear_data = 0;
+			entry->bytes_encrypted_data = samp->dataLength;
+		}
+
+
+		gf_list_add(subsamples, entry);
+
+
+		/*update IV for next sub-samples*/
+		if (gf_bs_available(pleintext_bs))
+			cenc_resync_IV(mc, IV, BSO, IV_size, GF_FALSE);
+	}
+
+	if (samp->data) {
+		gf_free(samp->data);
+		samp->data = NULL;
+		samp->dataLength = 0;
+	}
+	gf_bs_get_content(cyphertext_bs, &samp->data, &samp->dataLength);
+	gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
+	while (gf_list_count(subsamples)) {
+		GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
+		gf_list_rem(subsamples, 0);
+		gf_bs_write_u16(sai_bs, ptr->bytes_clear_data);
+		gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
+		gf_free(ptr);
+	}
+	gf_list_del(subsamples);
+	gf_bs_get_content(sai_bs, sai, saiz);
+	cenc_resync_IV(mc, IV, BSO, IV_size, GF_TRUE);
+
+exit:
+	if (buffer) gf_free(buffer);
+	if (pleintext_bs) gf_bs_del(pleintext_bs);
+	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
+	if (sai_bs) gf_bs_del(sai_bs);
+	return e;
+}
+
+static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz) {
+	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
+	char *buffer;
+	u32 max_size, size;
+	GF_Err e = GF_OK;
+	GF_List *subsamples;
+
+	pleintext_bs = cyphertext_bs = sai_bs = NULL;
+	max_size = 4096;
+	buffer = (char*)gf_malloc(sizeof(char) * max_size);
+	memset(buffer, 0, max_size);
+	pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+	cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_data(sai_bs, IV, 16);
+	subsamples = gf_list_new();
+	if (!subsamples) {
+		e = GF_IO_ERR;
+		goto exit; 
+	}
+	while (gf_bs_available(pleintext_bs)) {
+		u32 ret;
+		GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+
+		if (is_nalu_video) {
+			size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
+			if (size+1 > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*(size+1));
+				memset(buffer, 0, sizeof(char)*(size+1));
+				max_size = size + 1;
+			}
+			gf_bs_write_int(cyphertext_bs, size, 8*nalu_size_length);
+
+			gf_bs_read_data(pleintext_bs, buffer, size);
+
+			ret = size % 16;
+			if (ret) {
+				gf_bs_write_data(cyphertext_bs, buffer, ret);
+			}
+
+			if (size >= 16) {
+				gf_crypt_encrypt(mc, buffer+ret, size - ret);
+				gf_bs_write_data(cyphertext_bs, buffer+ret, size - ret);
+			}
+
+			entry->bytes_clear_data = nalu_size_length + ret;
+			entry->bytes_encrypted_data = (size >= 16) ? size - ret : 0  ;
+		} else {
+			gf_bs_read_data(pleintext_bs, buffer, samp->dataLength);
+			ret = samp->dataLength % 16;
+			if (ret) {
+				gf_bs_write_data(cyphertext_bs, buffer, ret);
+			}
+			if (samp->dataLength >= 16) {
+				gf_crypt_encrypt(mc, buffer, samp->dataLength);
+				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
+			}
+
+			entry->bytes_clear_data = ret;
+			entry->bytes_encrypted_data = (samp->dataLength >= 16) ? samp->dataLength - ret : 0;
+		}
+
+		gf_list_add(subsamples, entry);
+	}
+
+	if (samp->data) {
+		gf_free(samp->data);
+		samp->data = NULL;
+		samp->dataLength = 0;
+	}
+	gf_bs_get_content(cyphertext_bs, &samp->data, &samp->dataLength);
+	gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
+	while (gf_list_count(subsamples)) {
+		GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
+		gf_list_rem(subsamples, 0);
+		gf_bs_write_u16(sai_bs, ptr->bytes_clear_data);
+		gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
+		gf_free(ptr);
+	}
+	gf_list_del(subsamples);
+	gf_bs_get_content(sai_bs, sai, saiz);
+
+exit:
+	if (buffer) gf_free(buffer);
+	if (pleintext_bs) gf_bs_del(pleintext_bs);
+	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
+	if (sai_bs) gf_bs_del(sai_bs);
+	return e;
+}
+
 
 /*encrypts track - logs, progress: info callbacks, NULL for default*/
 GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
@@ -852,24 +1033,19 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_ISOSample *samp;
 	GF_Crypt *mc;
 	Bool all_rap = GF_FALSE;
-	u32 i, count, di, track, nalu_size_length, max_size, size, len;
-	u64 BSO;
+	u32 i, count, di, track, len, nb_samp_encrypted, nalu_size_length, idx;
 	GF_ESD *esd;
 	Bool has_crypted_samp;
 	Bool is_nalu_video = GF_FALSE;
-	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
-	char *buffer;
-	/*for log*/
-	u8 digest[33];
-	char t[3];
 	char *buf;
+	GF_BitStream *bs;
 
 	e = GF_OK;
 	nalu_size_length = 0;
-	pleintext_bs = cyphertext_bs = sai_bs = NULL;
 	mc = NULL;
-	buffer = buf = NULL;
-	max_size = 4096;
+	buf = NULL;
+	bs = NULL;
+	idx = 0;
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	if (!track) {
@@ -907,9 +1083,12 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	samp = NULL;
 
-	mc = gf_crypt_open("AES-128", "CTR");
+	if (tci->enc_type == 2)
+		mc = gf_crypt_open("AES-128", "CTR");
+	else if (tci->enc_type == 3)
+		mc = gf_crypt_open("AES-128", "CBC");
 	if (!mc) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 CTR\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", (tci->enc_type == 2) ? "CTR" : "CBC"));
 		e = GF_IO_ERR;
 		goto exit;
 	}
@@ -918,20 +1097,22 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	if (tci->defaultKeyIdx && (tci->defaultKeyIdx < tci->KID_count)) {
 		memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
 		memcpy(tci->default_KID, tci->KIDs[tci->defaultKeyIdx], 16);
+		idx = tci->defaultKeyIdx;
 	} else {
 		memcpy(tci->key, tci->keys[0], 16);
 		memcpy(tci->default_KID, tci->KIDs[0], 16);
+		idx = 0;
 	}
 
 	/*create CENC protection*/
-	e = gf_isom_set_cenc_protection(mp4, track, 1, GF_ISOM_CENC_SCHEME, 1, tci->IsEncrypted, tci->IV_size, tci->default_KID);
+	e = gf_isom_set_cenc_protection(mp4, track, 1, (tci->enc_type == 2) ? GF_ISOM_CENC_SCHEME : GF_ISOM_CBC_SCHEME, 1, tci->IsEncrypted, tci->IV_size, tci->default_KID);
 	if (e) goto  exit;
 
 
 	count = gf_isom_get_sample_count(mp4, track);
-	buffer = (char*)gf_malloc(sizeof(char) * max_size);
-	BSO = 0;
+	
 	has_crypted_samp = GF_FALSE;
+	nb_samp_encrypted = 0;
 	/*Sample Encryption Box*/
 	e = gf_isom_cenc_allocate_storage(mp4, track, tci->sai_saved_box_type, 0, 0, NULL);
 	if (e) goto exit;
@@ -941,20 +1122,21 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 0; i < count; i++) {
-		GF_List *subsamples;
-
 		samp = gf_isom_get_sample(mp4, track, i+1, &di);
 		if (!samp)
 		{
 			e = GF_IO_ERR;
 			goto exit;
 		}
-		sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		
 		switch (tci->sel_enc_type) {
 			case GF_CRYPT_SELENC_RAP:
 				if (!samp->IsRAP && !all_rap) {
-					char tmp[16];
-					memset(tmp, 0, 16);
+					GF_BitStream *sai_bs;
+					bin128 tmp;
+					memset(tmp, 0, sizeof(bin128) );
+
+					sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 					gf_bs_write_data(sai_bs, tmp, 16);
 					gf_bs_write_u16(sai_bs, 0);
 					gf_bs_get_content(sai_bs, &buf, &len);
@@ -966,14 +1148,21 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 						goto exit;
 					gf_free(buf);
 					buf = NULL;
+
+					//already done: memset(tmp, 0, 16);
+					e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, tmp);
+					if (e) goto exit;
+
 					gf_isom_sample_del(&samp);
 					continue;
 				}
 				break;
 			case GF_CRYPT_SELENC_NON_RAP:
 				if (samp->IsRAP || all_rap) {
-					char tmp[16];
-					memset(tmp, 0, 16);
+					GF_BitStream *sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					bin128 tmp;
+					memset(tmp, 0, sizeof(bin128));
+
 					gf_bs_write_data(sai_bs, tmp, 16);
 					gf_bs_write_u16(sai_bs, 0);
 					gf_bs_get_content(sai_bs, &buf, &len);
@@ -981,22 +1170,21 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 					sai_bs = NULL;
 
 					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
-					if (e) 
-						goto exit;
+					if (e) goto exit;
 					gf_free(buf);
 					buf = NULL;
+
+					//alreaduy done: memset(tmp, 0, 16);
+
+					e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, tmp);
+					if (e) goto exit;
+
 					gf_isom_sample_del(&samp);
 					continue;
 				}
 				break;
 			default:
 				break;
-		}
-
-		subsamples = gf_list_new();
-		if (!subsamples) {
-			e = GF_IO_ERR;
-			goto exit; 
 		}
 
 		/*generate initialization vector for the first sample in track ... */
@@ -1011,9 +1199,10 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 			else 
 				return GF_NOT_SUPPORTED;
+
 			e = gf_crypt_init(mc, tci->key, 16, IV);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 %s (%s)\n", (tci->enc_type == 2) ? "CTR" : "CBC", gf_error_to_string(e)) );
 				gf_crypt_close(mc);
 				mc = NULL;
 				e = GF_IO_ERR;
@@ -1021,100 +1210,33 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 			has_crypted_samp = GF_TRUE;
 		}
-		/* ... or update initialization vector for the subsequent samples*/
 		else {
-			cenc_resync_IV(mc, IV, BSO, tci->IV_size, GF_TRUE);
-		}
-
-		gf_bs_write_data(sai_bs, IV, 16);
-
-		{
-			u32 j;
-			digest[0] = 0;				
-			for ( j=0; j<16; j++ ) {
-				t[2] = 0;
-				sprintf ( t, "%02X", (u8) IV[j] );
-				strcat ( (char*)digest, t );
-			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[CENC] IV for sample %d \n \t\t first NALU: %s \n", i+1, digest) );
-		}
-
-		BSO = 0;
-		memset(buffer, 0, max_size);
-		pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
-		cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-
-		while (gf_bs_available(pleintext_bs)) {
-			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-
-			if (is_nalu_video) {
-				u32 nal_hdr;
-				size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
-				if (size>max_size) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
-					max_size = size;
+			if (tci->keyRoll) {
+				idx = (nb_samp_encrypted / tci->keyRoll) % tci->KID_count;
+				memcpy(tci->key, tci->keys[idx], 16);
+				e = gf_crypt_set_key(mc, tci->key, 16, IV);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", (tci->enc_type == 2) ? "CTR" : "CBC", gf_error_to_string(e)) );
+					gf_crypt_close(mc);
+					mc = NULL;
+					e = GF_IO_ERR;
+					goto exit;
 				}
-				nal_hdr = gf_bs_read_u8(pleintext_bs);
-
-				gf_bs_read_data(pleintext_bs, buffer, size-1);
-				gf_crypt_encrypt(mc, buffer, size-1);
-				BSO += size-1;
-
-				/*write clear data and encrypted data to bitstream*/
-				gf_bs_write_int(cyphertext_bs, size, 8*nalu_size_length);
-				gf_bs_write_u8(cyphertext_bs, nal_hdr);
-				gf_bs_write_data(cyphertext_bs, buffer, size-1);
-
-				entry->bytes_clear_data = nalu_size_length + 1;
-				entry->bytes_encrypted_data = size - 1;
-
-			} else {
-				gf_bs_read_data(pleintext_bs, buffer, samp->dataLength);
-				gf_crypt_encrypt(mc, buffer, samp->dataLength);
-				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
-
-				BSO += samp->dataLength;			
-				entry->bytes_clear_data = 0;
-				entry->bytes_encrypted_data = samp->dataLength;
 			}
-
-
-			gf_list_add(subsamples, entry);
-
-
-			/*update IV for next sub-samples*/
-			if (gf_bs_available(pleintext_bs))
-				cenc_resync_IV(mc, IV, BSO, tci->IV_size, GF_FALSE);
 		}
-	
-		/*rewrite cypher text to CENC sample*/	
-		gf_bs_del(pleintext_bs);
-		pleintext_bs = NULL;
-		if (samp->data) {
-			gf_free(samp->data);
-			samp->data = NULL;
-			samp->dataLength = 0;
-		}
-		gf_bs_get_content(cyphertext_bs, &samp->data, &samp->dataLength);
-		gf_bs_del(cyphertext_bs);
-		cyphertext_bs = NULL;
+
+		/*add this sample to sample encryption group*/
+		e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 1, tci->IV_size,tci->KIDs[idx]);
+		if (e) goto exit;
+
+		if (tci->enc_type == 2)
+			gf_cenc_encrypt_sample_ctr(mc, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &buf, &len);
+		else if (tci->enc_type == 3)
+			gf_cenc_encrypt_sample_cbc(mc, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &buf, &len);
+		
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
 		samp = NULL;
-		/*write sample auxiliary info to bitstream*/
-		//sample_info_size[i] = 18 + 8*gf_list_count(subsamples);
-		gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
-		while (gf_list_count(subsamples)) {
-			GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
-			gf_list_rem(subsamples, 0);
-			gf_bs_write_u32(sai_bs, ptr->bytes_clear_data);
-			gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
-			gf_free(ptr);
-		}
-		gf_list_del(subsamples);
-		gf_bs_get_content(sai_bs, &buf, &len);
-		gf_bs_del(sai_bs);
-		sai_bs = NULL;
 
 		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
 		if (e) 
@@ -1122,19 +1244,16 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_free(buf);
 		buf = NULL;
 
+		nb_samp_encrypted++;
 		gf_set_progress("CENC Encrypt", i+1, count);
 
 	}
 
 exit:
-	//if (sample_info_size) gf_free(sample_info_size);
 	if (samp) gf_isom_sample_del(&samp);
 	if (mc) gf_crypt_close(mc);
-	if (buffer) gf_free(buffer);
 	if (buf) gf_free(buf);
-	if (pleintext_bs) gf_bs_del(pleintext_bs);
-	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
-	if (sai_bs) gf_bs_del(sai_bs);
+	if (bs) gf_bs_del(bs);
 	return e;
 }
 
@@ -1142,7 +1261,7 @@ exit:
 GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
 {
 	GF_Err e;
-	u32 track, count, i, si, max_size, subsample_count;
+	u32 track, count, i, j, si, max_size, subsample_count, nb_samp_decrypted;
 	u64 BSO;
 	GF_ISOSample *samp;
 	GF_Crypt *mc;
@@ -1151,15 +1270,14 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_BitStream *pleintext_bs, *cyphertext_bs;
 	GF_CENCSampleAuxInfo *sai;
 	char *buffer;
-	/*for log*/
-	u8 digest[33];
-	char t[3];
 
 	e = GF_OK;
 	pleintext_bs = cyphertext_bs = NULL;
 	mc = NULL;
 	buffer = NULL;
 	max_size = 4096;
+	nb_samp_decrypted = 0;
+	sai = NULL;
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	if (!track) {
@@ -1167,18 +1285,13 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		return GF_OK;
 	}
 
-	/*select key*/
-	if (tci->defaultKeyIdx && (tci->defaultKeyIdx < tci->KID_count)) {
-		memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
-		memcpy(tci->default_KID, tci->KIDs[tci->defaultKeyIdx], 16);
-	} else {
-		memcpy(tci->key, tci->keys[0], 16);
-		memcpy(tci->default_KID, tci->KIDs[0], 16);
-	}
 
-	mc = gf_crypt_open("AES-128", "CTR");
+	if (tci->enc_type == 2)
+		mc = gf_crypt_open("AES-128", "CTR");
+	else if (tci->enc_type == 3)
+		mc = gf_crypt_open("AES-128", "CBC");
 	if (!mc) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 CTR\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", (tci->enc_type == 2) ? "CTR" : "CBC"));
 		e = GF_IO_ERR;
 		goto exit;
 	}
@@ -1189,6 +1302,24 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	prev_sample_encrypted = GF_FALSE;
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 0; i < count; i++) {
+		u32 Is_Encrypted;
+		u8 IV_size;
+		bin128 KID;
+
+		gf_isom_get_sample_cenc_info(mp4, track, i+1, &Is_Encrypted, &IV_size, &KID);
+		if (!Is_Encrypted)
+			continue;
+
+		/*select key*/
+		for (j = 0; j < tci->KID_count; j++) {
+			if (!strncmp((const char *)tci->KIDs[j], (const char *)KID, 16)) {
+				memcpy(tci->key, tci->keys[j], 16);
+				break;
+			}
+		}
+		if (j == tci->KID_count)
+			memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
+
 		memset(IV, 0, 17);
 		memset(buffer, 0, max_size);
 		BSO = 0;
@@ -1200,15 +1331,9 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			goto exit;
 		}
 
-		sai = gf_isom_cenc_get_sample_aux_info(mp4, track, i+1, NULL);
-		if (!sai) {
-			e = GF_IO_ERR;
+		e = gf_isom_cenc_get_sample_aux_info(mp4, track, i+1, &sai, NULL);
+		if (e) {
 			goto exit;
-		}
-
-		if (!strlen((char *)sai->IV)) {
-			gf_isom_sample_del(&samp);
-			continue;
 		}
 
 		cyphertext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
@@ -1227,23 +1352,22 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			prev_sample_encrypted = GF_TRUE;
 		}
 		else {
-			GF_BitStream *bs;
-			bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
-			gf_bs_write_u8(bs, 0);	/*begin of counter*/
-			gf_bs_write_data(bs, (char *)sai->IV, 16);
-			gf_bs_del(bs);
-			gf_crypt_set_state(mc, IV, 17);
-		}
-
-		{
-			u32 j;
-			digest[0] = 0;				
-			for ( j=0; j<16; j++ ) {
-				t[2] = 0;
-				sprintf ( t, "%02X", (u8) sai->IV[j] );
-				strcat ( (char*)digest, t );
+			if (tci->enc_type == 2) {
+				GF_BitStream *bs;
+				bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
+				gf_bs_write_u8(bs, 0);	/*begin of counter*/
+				gf_bs_write_data(bs, (char *)sai->IV, 16);
+				gf_bs_del(bs);
+				gf_crypt_set_state(mc, IV, 17);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[CENC] IV for sample %d \n \t\t first NALU: %s \n", i+1, digest) );
+			e = gf_crypt_set_key(mc, tci->key, 16, IV);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", (tci->enc_type == 2) ? "CTR" : "CBC", gf_error_to_string(e)) );
+				gf_crypt_close(mc);
+				mc = NULL;
+				e = GF_IO_ERR;
+				goto exit;
+			}
 		}
 
 		subsample_count = 0;
@@ -1268,12 +1392,17 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 
 			/*update IV for next subsample*/
-			BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
-			if (gf_bs_available(cyphertext_bs))
-				cenc_resync_IV(mc, (char *)sai->IV, BSO, tci->IV_size, GF_FALSE);
+			if (tci->enc_type == 2) {
+				BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
+				if (gf_bs_available(cyphertext_bs))
+					cenc_resync_IV(mc, (char *)sai->IV, BSO, tci->IV_size, GF_FALSE);
+			}
 
 			subsample_count++;
 		}
+
+		gf_isom_cenc_samp_aux_info_del(sai);
+		sai = NULL;
 		
 		gf_bs_del(cyphertext_bs);
 		cyphertext_bs = NULL;
@@ -1288,6 +1417,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
 		samp = NULL;
+		nb_samp_decrypted++;
 
 		gf_set_progress("CENC Decrypt", i+1, count);
 	}
@@ -1308,410 +1438,7 @@ exit:
 	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
 	if (samp) gf_isom_sample_del(&samp);
 	if (buffer) gf_free(buffer);
-	return e;
-}
-
-GF_Err gf_cbc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
-{
-	GF_Err e;
-	char IV[16];
-	GF_ISOSample *samp;
-	GF_Crypt *mc;
-	u32 i, count, di, track, nalu_size_length, max_size, size, len;
-	GF_ESD *esd;
-	Bool is_nalu_video = GF_TRUE;
-	Bool has_crypted_samp;
-	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
-	char *buffer, *buf;
-
-	e = GF_OK;
-	nalu_size_length = 0;
-	pleintext_bs = cyphertext_bs = sai_bs = NULL;
-	mc = NULL;
-	buffer = buf = NULL;
-	max_size = 4096;
-
-	track = gf_isom_get_track_by_id(mp4, tci->trackID);
-	if (!track) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
-		return GF_OK;
-	}
-
-	esd = gf_isom_get_esd(mp4, track, 1);
-	if (esd && (esd->decoderConfig->streamType == GF_STREAM_OD)) {
-		gf_odf_desc_del((GF_Descriptor *) esd);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot encrypt OD tracks - skipping"));
-		return GF_NOT_SUPPORTED;
-	}
-	if (esd) {
-		if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
-			GF_AVCConfig *avccfg = gf_isom_avc_config_get(mp4, track, 1);
-			GF_AVCConfig *svccfg = gf_isom_svc_config_get(mp4, track, 1);
-			if (avccfg)
-				nalu_size_length = avccfg->nal_unit_size;
-			else if (svccfg)
-				nalu_size_length = svccfg->nal_unit_size;
-			if (avccfg) gf_odf_avc_cfg_del(avccfg);
-			if (svccfg) gf_odf_avc_cfg_del(svccfg);
-			is_nalu_video = GF_TRUE;
-		}
-		else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC)) {
-			GF_HEVCConfig *hevccfg = gf_isom_hevc_config_get(mp4, track, 1);
-			if (hevccfg)
-				nalu_size_length = hevccfg->nal_unit_size;
-			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-			is_nalu_video = GF_TRUE;
-		}
-
-
-		gf_odf_desc_del((GF_Descriptor*) esd);
-	}
-
-
-	mc = gf_crypt_open("AES-128", "CBC");
-	if (!mc) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 CBC\n"));
-		e = GF_IO_ERR;
-		goto exit;
-	}
-
-	/*select key*/
-	if (tci->defaultKeyIdx && (tci->defaultKeyIdx < tci->KID_count)) {
-		memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
-		memcpy(tci->default_KID, tci->KIDs[tci->defaultKeyIdx], 16);
-	} else {
-		memcpy(tci->key, tci->keys[0], 16);
-		memcpy(tci->default_KID, tci->KIDs[0], 16);
-	}
-
-	/*create CENC protection*/
-	e = gf_isom_set_cenc_protection(mp4, track, 1, GF_ISOM_CBC_SCHEME, 1, tci->IsEncrypted, tci->IV_size, tci->default_KID);
-	if (e) goto  exit;
-
-
-	count = gf_isom_get_sample_count(mp4, track);
-	buffer = (char*)gf_malloc(sizeof(char) * max_size);
-	has_crypted_samp = GF_FALSE;
-	/*Sample Encryption Box*/
-	e = gf_isom_cenc_allocate_storage(mp4, track, tci->sai_saved_box_type, 0, 0, NULL);
-	if (e) goto exit;
-
-	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
-	for (i = 0; i < count; i++) {
-		GF_List *subsamples;
-
-		samp = gf_isom_get_sample(mp4, track, i+1, &di);
-		if (!samp)
-		{
-			e = GF_IO_ERR;
-			goto exit;
-		}
-		sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		switch (tci->sel_enc_type) {
-			case GF_CRYPT_SELENC_RAP:
-				if (!samp->IsRAP) {
-					char tmp[16];
-					memset(tmp, 0, 16);
-					gf_bs_write_data(sai_bs, tmp, 16);
-					gf_bs_write_u16(sai_bs, 0);
-					gf_bs_get_content(sai_bs, &buf, &len);
-					gf_bs_del(sai_bs);
-					sai_bs = NULL;
-
-					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
-					if (e) 
-						goto exit;
-					gf_free(buf);
-					buf = NULL;
-					gf_isom_sample_del(&samp);
-					continue;
-				}
-				break;
-			case GF_CRYPT_SELENC_NON_RAP:
-				if (samp->IsRAP) {
-					char tmp[16];
-					memset(tmp, 0, 16);
-					gf_bs_write_data(sai_bs, tmp, 16);
-					gf_bs_write_u16(sai_bs, 0);
-					gf_bs_get_content(sai_bs, &buf, &len);
-					gf_bs_del(sai_bs);
-					sai_bs = NULL;
-
-					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
-					if (e) 
-						goto exit;
-					gf_free(buf);
-					buf = NULL;
-					gf_isom_sample_del(&samp);
-					continue;
-				}
-				break;
-			default:
-				break;
-		}
-
-		subsamples = gf_list_new();
-		if (!subsamples) {
-			e = GF_IO_ERR;
-			goto exit; 
-		}
-
-		/*generate initialization vector for the first sample in track ... */
-		if (!has_crypted_samp) {
-			memset(IV, 0, sizeof(char)*16);
-			if (tci->IV_size == 8) {
-				memcpy(IV, tci->first_IV, sizeof(char)*8);
-				memset(IV+8, '0', sizeof(char)*8);
-			} 
-			else if (tci->IV_size == 16) {
-				memcpy(IV, tci->first_IV, sizeof(char)*16);
-			}
-			else 
-				return GF_NOT_SUPPORTED;
-			e = gf_crypt_init(mc, tci->key, 16, IV);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 CBC (%s)\n", gf_error_to_string(e)) );
-				gf_crypt_close(mc);
-				mc = NULL;
-				e = GF_IO_ERR;
-				goto exit;
-			}
-			has_crypted_samp = GF_TRUE;
-		}
-
-		gf_bs_write_data(sai_bs, IV, 16);
-
-		memset(buffer, 0, max_size);
-		pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
-		cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-
-		while (gf_bs_available(pleintext_bs)) {
-			u32 ret;
-			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-
-			if (is_nalu_video) {
-				size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
-				if (size+1 > max_size) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*(size+1));
-					memset(buffer, 0, sizeof(char)*(size+1));
-					max_size = size + 1;
-				}
-				gf_bs_write_int(cyphertext_bs, size, 8*nalu_size_length);
-
-				gf_bs_read_data(pleintext_bs, buffer, size);
-
-				ret = size % 16;
-				if (ret) {
-					gf_bs_write_data(cyphertext_bs, buffer, ret);
-				}
-
-				if (size > 16) {
-					gf_crypt_encrypt(mc, buffer+ret, size - ret);
-					gf_bs_write_data(cyphertext_bs, buffer+ret, size - ret);
-				}
-
-				entry->bytes_clear_data = nalu_size_length + ret;
-				entry->bytes_encrypted_data = size - ret;
-				gf_list_add(subsamples, entry);
-			} else {
-				gf_bs_read_data(pleintext_bs, buffer, samp->dataLength);
-				gf_crypt_encrypt(mc, buffer, samp->dataLength);
-				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
-
-				entry->bytes_clear_data = 0;
-				entry->bytes_encrypted_data = samp->dataLength;
-			}
-		}
-	
-		/*rewrite cypher text to CENC sample*/	
-		gf_bs_del(pleintext_bs);
-		pleintext_bs = NULL;
-		if (samp->data) {
-			gf_free(samp->data);
-			samp->data = NULL;
-			samp->dataLength = 0;
-		}
-		gf_bs_get_content(cyphertext_bs, &samp->data, &samp->dataLength);
-		gf_bs_del(cyphertext_bs);
-		cyphertext_bs = NULL;
-		gf_isom_update_sample(mp4, track, i+1, samp, 1);
-		gf_isom_sample_del(&samp);
-		samp = NULL;
-
-		gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
-		while (gf_list_count(subsamples)) {
-			GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
-			gf_list_rem(subsamples, 0);
-			gf_bs_write_u32(sai_bs, ptr->bytes_clear_data);
-			gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
-			gf_free(ptr);
-		}
-		gf_list_del(subsamples);
-		gf_bs_get_content(sai_bs, &buf, &len);
-		gf_bs_del(sai_bs);
-		sai_bs = NULL;
-
-		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
-		if (e) 
-			goto exit;
-		gf_free(buf);
-		buf = NULL;
-		gf_set_progress("CENC-CBC Encrypt", i+1, count);
-	}
-
-exit:
-	if (samp) gf_isom_sample_del(&samp);
-	if (mc) gf_crypt_close(mc);
-	if (buffer) gf_free(buffer);
-	if (buf) gf_free(buf);
-	if (pleintext_bs) gf_bs_del(pleintext_bs);
-	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
-	if (sai_bs) gf_bs_del(sai_bs);
-	return e;
-}
-
-GF_Err gf_cbc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
-{
-	GF_Err e;
-	u32 track, count, i, si, max_size, subsample_count;
-	GF_ISOSample *samp;
-	GF_Crypt *mc;
-	char IV[16];
-	Bool prev_sample_encrypted;
-	GF_BitStream *pleintext_bs, *cyphertext_bs;
-	GF_CENCSampleAuxInfo *sai;
-	char *buffer;
-
-	e = GF_OK;
-	pleintext_bs = cyphertext_bs = NULL;
-	mc = NULL;
-	buffer = NULL;
-	max_size = 4096;
-
-	track = gf_isom_get_track_by_id(mp4, tci->trackID);
-	if (!track) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
-		return GF_OK;
-	}
-
-	mc = gf_crypt_open("AES-128", "CBC");
-	if (!mc) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 CBC\n"));
-		e = GF_IO_ERR;
-		goto exit;
-	}
-
-	/*select key*/
-	if (tci->defaultKeyIdx && (tci->defaultKeyIdx < tci->KID_count)) {
-		memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
-		memcpy(tci->default_KID, tci->KIDs[tci->defaultKeyIdx], 16);
-	} else {
-		memcpy(tci->key, tci->keys[0], 16);
-		memcpy(tci->default_KID, tci->KIDs[0], 16);
-	}
-
-	/* decrypt each sample */
-	count = gf_isom_get_sample_count(mp4, track);
-	buffer = (char*)gf_malloc(sizeof(char) * max_size);
-	prev_sample_encrypted = GF_FALSE;
-	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
-	for (i = 0; i < count; i++) {
-		memset(IV, 0, 16);
-		memset(buffer, 0, max_size);
-
-		samp = gf_isom_get_sample(mp4, track, i+1, &si);
-		if (!samp)
-		{
-			e = GF_IO_ERR;
-			goto exit;
-		}
-
-		sai = gf_isom_cenc_get_sample_aux_info(mp4, track, i+1, NULL);
-		if (!sai) {
-			e = GF_IO_ERR;
-			goto exit;
-		}
-
-		if (!strlen((char *)sai->IV)) {
-			gf_isom_sample_del(&samp);
-			continue;
-		}
-
-		cyphertext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
-		pleintext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-
-		if (!prev_sample_encrypted) {
-			memmove(IV, sai->IV, 16);
-			e = gf_crypt_init(mc, tci->key, 16, IV);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 CBC (%s)\n", gf_error_to_string(e)) );
-				gf_crypt_close(mc);
-				mc = NULL;
-				e = GF_IO_ERR;
-				goto exit;
-			}
-			prev_sample_encrypted = GF_TRUE;
-		}
-
-		subsample_count = 0;
-		while (gf_bs_available(cyphertext_bs)) {
-			assert(subsample_count < sai->subsample_count);
-
-			/*read clear data and write it to pleintext bitstream*/
-			if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
-				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
-				max_size = sai->subsamples[subsample_count].bytes_clear_data;
-			}
-			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-
-			/*now read encrypted data, decrypted it and write to pleintext bitstream*/
-			if (sai->subsamples[subsample_count].bytes_encrypted_data) {
-				if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
-					max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
-				}
-				gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-				gf_crypt_decrypt(mc, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-				gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-			}
-
-			subsample_count++;
-		}
-		
-		gf_bs_del(cyphertext_bs);
-		cyphertext_bs = NULL;
-		if (samp->data) {
-			gf_free(samp->data);
-			samp->data = NULL;
-			samp->dataLength = 0;
-		}
-		gf_bs_get_content(pleintext_bs, &samp->data, &samp->dataLength);
-		gf_bs_del(pleintext_bs);
-		pleintext_bs = NULL;
-		gf_isom_update_sample(mp4, track, i+1, samp, 1);
-		gf_isom_sample_del(&samp);
-		samp = NULL;
-
-		gf_set_progress("CENC-CBC Decrypt", i+1, count);
-	}
-
-	/*remove protection info*/
-	e = gf_isom_remove_track_protection(mp4, track, 1);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error CENC signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
-	}
-
-	gf_isom_remove_cenc_saiz(mp4, track);
-	gf_isom_remove_cenc_saio(mp4, track);
-	gf_isom_remove_samp_enc_box(mp4, track);
-
-exit:
-	if (mc) gf_crypt_close(mc);
-	if (pleintext_bs) gf_bs_del(pleintext_bs);
-	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
-	if (samp) gf_isom_sample_del(&samp);
-	if (buffer) gf_free(buffer);
+	if (sai) gf_isom_cenc_samp_aux_info_del(sai);
 	return e;
 }
 
@@ -1736,21 +1463,6 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			return GF_NOT_SUPPORTED;
 		}
 		count = gf_list_count(info->tcis);
-	}
-
-	switch (info->crypt_type) {
-		case 1:
-			gf_decrypt_track = gf_ismacryp_decrypt_track;
-			break;
-		case 2:
-			gf_decrypt_track = gf_cenc_decrypt_track;
-			break;
-		case 3:
-			gf_decrypt_track = gf_cbc_decrypt_track;
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not supported\n"));
-			return GF_NOT_SUPPORTED;;
 	}
 
 	common_idx=0;
@@ -1783,6 +1495,23 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		} else {
 			memset(&tci, 0, sizeof(GF_TrackCryptInfo));
 			tci.trackID = trackID;
+		}
+
+		switch (info->crypt_type) {
+			case 1:
+				gf_decrypt_track = gf_ismacryp_decrypt_track;
+				break;
+			case 2:
+				tci.enc_type = 2;
+				gf_decrypt_track = gf_cenc_decrypt_track;
+				break;
+			case 3:
+				tci.enc_type = 3;
+				gf_decrypt_track = gf_cenc_decrypt_track;
+				break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not supported\n"));
+				return GF_NOT_SUPPORTED;;
 		}
 
 		if (gf_isom_is_ismacryp_media(mp4, i+1, 1)) {
@@ -1981,21 +1710,6 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 		if (e) return e;
 	}
 
-	switch (info->crypt_type) {
-		case 1:
-			gf_encrypt_track = gf_ismacryp_encrypt_track;
-			break;
-		case 2:
-			gf_encrypt_track = gf_cenc_encrypt_track;
-			break;
-		case 3:
-			gf_encrypt_track = gf_cbc_encrypt_track;
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not sopported\n"));
-			return GF_NOT_SUPPORTED;;
-	}
-
 	e = GF_OK;
 	count = gf_list_count(info->tcis);
 
@@ -2018,6 +1732,23 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 			idx = common_idx;
 		}
 		tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
+
+		switch (info->crypt_type) {
+		case 1:
+			gf_encrypt_track = gf_ismacryp_encrypt_track;
+			break;
+		case 2:
+			tci->enc_type = 2;
+			gf_encrypt_track = gf_cenc_encrypt_track;
+			break;
+		case 3:
+			tci->enc_type = 3;
+			gf_encrypt_track = gf_cenc_encrypt_track;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not sopported\n"));
+			return GF_NOT_SUPPORTED;;
+	}
 
 		/*default to FILE uri*/
 		if (!strlen(tci->KMS_URI)) strcpy(tci->KMS_URI, drm_file);

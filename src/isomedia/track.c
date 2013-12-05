@@ -580,64 +580,117 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		}
 	}
 
-	/*Merge PIFF sample auxiliary encryption information*/
-	if (traf->piff_sample_encryption) {
-		GF_PIFFSampleEncryptionBox *psec = NULL;
-		for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
-			if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
-				psec = (GF_PIFFSampleEncryptionBox *)a;
-				break;
-			}
-		}
-		if (!psec) {
-			psec = gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
-			if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
-			gf_list_add(trak->Media->information->sampleTable->other_boxes, psec);
-		}
-
-		for (i = 0; i < gf_list_count(traf->piff_sample_encryption->samp_aux_info); i++) {
-			GF_CENCSampleAuxInfo *sai, *new_sai;
-
-			sai = (GF_CENCSampleAuxInfo *)gf_list_get(traf->piff_sample_encryption->samp_aux_info, i);
-
-			new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-			memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
-			new_sai->subsample_count = sai->subsample_count;
-			new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-			memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-
-			gf_list_add(psec->samp_aux_info, new_sai);
-		}
-	}
-
-	if (traf->sample_encryption) {
+	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)) {
+		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
-		for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
-			if (a->type ==GF_ISOM_BOX_TYPE_SENC) {
-				senc = (GF_SampleEncryptionBox *)a;
-				break;
+		GF_List *sais;
+
+		if (traf->piff_sample_encryption) {
+			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
+				GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
+				if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
+					senc = (GF_SampleEncryptionBox *)a;
+					break;
+				}
+			}
+			if (!senc) {
+				senc = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
+				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
+				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
+			}
+			
+			sais = traf->piff_sample_encryption->samp_aux_info;
+		}
+		else if (traf->sample_encryption) {
+			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
+				GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
+				if (a->type ==GF_ISOM_BOX_TYPE_SENC) {
+					senc = (GF_SampleEncryptionBox *)a;
+					break;
+				}
+			}
+			if (!senc) {
+				senc = gf_isom_create_samp_enc_box(1, 0x2);
+				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
+				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
+			}
+
+			sais = traf->sample_encryption->samp_aux_info;
+		}
+
+		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
+		if (gf_isom_cenc_has_saiz_saio(NULL, traf)) {
+			//GF_BitStream *bs;
+			u32 size, nb_saio;
+			u64 offset;
+			GF_Err e = GF_OK;
+			GF_SampleAuxiliaryInfoOffsetBox *saio;
+			GF_SampleAuxiliaryInfoSizeBox *saiz;
+			//GF_CENCSampleAuxInfo *sai;
+			//char *buffer;
+
+			offset = nb_saio = 0;
+
+			for (i = 0; i < gf_list_count(traf->sai_offsets); i++) {
+				saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(traf->sai_offsets, i);
+				if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+					offset = saio->offsets[0] + moof_offset;
+					nb_saio = saio->entry_count;
+					break;
+				}			
+			}
+			for (i = 0; i < gf_list_count(traf->sai_sizes); i++) {
+				saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(traf->sai_sizes, i);
+				if (saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+					break;
+				}
+			}
+
+			for (i = 0; i < saiz->sample_count; i++) {
+				if (nb_saio != 1) 
+					offset = saio->offsets[i] + moof_offset;
+				size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
+
+				/*cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
+				gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
+				buffer = (char *)malloc(size);
+				gf_bs_read_data(trak->moov->mov->movieFileMap->bs, buffer, size);
+				gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
+
+				sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+				bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
+				gf_bs_read_data(bs, (char *)sai->IV, 16);
+				if (size > 16) {
+					sai->subsample_count = gf_bs_read_u16(bs);
+					sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
+					for (j = 0; j < sai->subsample_count; j++) {
+						sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
+						sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+					}
+					gf_bs_del(bs);
+				}
+				gf_list_add(senc->samp_aux_info, sai);
+				if (sai->subsample_count) senc->flags = 0x00000002;*/
+				gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, (u32)offset, size);
+				if (nb_saio == 1)
+					offset += size;				
 			}
 		}
-		if (!senc) {
-			senc = gf_isom_create_samp_enc_box(1, 0x2);
-			if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
-			gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
-		}
+		else {
+			for (i = 0; i < gf_list_count(sais); i++) {
+				GF_CENCSampleAuxInfo *sai, *new_sai;
 
-		for (i = 0; i < gf_list_count(traf->sample_encryption->samp_aux_info); i++) {
-			GF_CENCSampleAuxInfo *sai, *new_sai;
+				sai = (GF_CENCSampleAuxInfo *)gf_list_get(sais, i);
 
-			sai = (GF_CENCSampleAuxInfo *)gf_list_get(traf->sample_encryption->samp_aux_info, i);
+				new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+				memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
+				new_sai->subsample_count = sai->subsample_count;
+				new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+				memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 
-			new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-			memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
-			new_sai->subsample_count = sai->subsample_count;
-			new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-			memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-
-			gf_list_add(senc->samp_aux_info, new_sai);
+				gf_list_add(senc->samp_aux_info, new_sai);
+				if (sai->subsample_count) senc->flags = 0x00000002;
+			}
 		}
 	}
 	return GF_OK;

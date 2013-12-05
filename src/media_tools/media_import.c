@@ -1899,6 +1899,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	GF_ISOSample *samp;
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
+	Bool is_cenc;
 	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
@@ -2046,6 +2047,17 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
+	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
+	if (is_cenc) {
+		u32 container_type;
+		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, NULL, &container_type);
+		if (e)
+			goto exit;
+		e = gf_isom_cenc_allocate_storage(import->dest, track, container_type, 0, 0, NULL);
+		if (e) goto exit;
+		e = gf_isom_clone_pssh(import->dest, import->orig, GF_FALSE);
+		if (e) goto exit;
+	}
 	for (i=0; i<num_samples; i++) {
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			samp = gf_isom_get_sample_info(import->orig, track_in, i+1, &di, &offset);
@@ -2078,6 +2090,37 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		if (e)
 			goto exit;
+		if (is_cenc) {
+			GF_CENCSampleAuxInfo *sai;
+			u32 container_type, len, j, Is_Encrypted;
+			u8 IV_size;
+			bin128 KID;
+			GF_BitStream *bs;
+			char *buffer;
+
+			sai = NULL;
+			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, &sai, &container_type);
+			if (e)
+				goto exit;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_data(bs, (const char *)sai->IV, 16);
+			gf_bs_write_u16(bs, sai->subsample_count);
+			for (j = 0; j < sai->subsample_count; j++) {
+				gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
+				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+			}
+			gf_isom_cenc_samp_aux_info_del(sai);
+			gf_bs_get_content(bs, &buffer, &len);
+			gf_bs_del(bs);
+			e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, buffer, len);
+			gf_free(buffer);
+			if (e) goto exit;
+
+			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID);
+			if (e) goto exit;
+			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID);
+			if (e) goto exit;
+		}
 	}
 
 	if (gf_isom_has_time_offset(import->orig, track_in)==2) {

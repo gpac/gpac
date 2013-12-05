@@ -306,7 +306,15 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		
 		/*now we search a key*/
 		priv->KID_count = pssh->KID_count;
+		if (priv->KIDs) {
+			gf_free(priv->KIDs);
+			priv->KIDs = NULL;
+		}
 		priv->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+		if (priv->keys) {
+			gf_free(priv->keys);
+			priv->keys = NULL;
+		}
 		priv->keys = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
 
 		memmove(priv->KIDs, pssh->KIDs, pssh->KID_count*sizeof(bin128));
@@ -392,15 +400,11 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	if (sai->subsample_count) {
 		sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 		for (i = 0; i < sai->subsample_count; i++) {
-			sai->subsamples[i].bytes_clear_data = gf_bs_read_u32(sai_bs);
+			sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(sai_bs);
 			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(sai_bs);
 		}
 	}
 
-	if (!strlen((char *)sai->IV)) {
-		e = GF_OK;
-		goto exit;
-	}
 
 	for (i = 0; i < priv->KID_count; i++) {
 		if (!strncmp((const char *)KID, (const char *)priv->KIDs[i], 16)) {
@@ -413,18 +417,26 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		memmove(IV, sai->IV, 16);
 		e = gf_crypt_init(priv->crypt, priv->key, 16, IV);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", priv->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
 			e = GF_IO_ERR;
 			goto exit;
 		}
 		priv->first_crypted_samp = GF_FALSE;
 	} else {
-		GF_BitStream *bs;
-		bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
-		gf_bs_write_u8(bs, 0);	/*begin of counter*/
-		gf_bs_write_data(bs,(char *)sai->IV, 16);
-		gf_bs_del(bs);
-		gf_crypt_set_state(priv->crypt, IV, 17);
+		if (priv->is_cenc) {
+			GF_BitStream *bs;
+			bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
+			gf_bs_write_u8(bs, 0);	/*begin of counter*/
+			gf_bs_write_data(bs,(char *)sai->IV, 16);
+			gf_bs_del(bs);
+			gf_crypt_set_state(priv->crypt, IV, 17);
+		}
+		e = gf_crypt_set_key(priv->crypt, priv->key, 16, IV);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", priv->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
+			e = GF_IO_ERR;
+			goto exit;
+		}
 	}
 
 	subsample_count = 0;
@@ -450,142 +462,41 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 
 		/*update IV for next subsample*/
-		BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
-		if (gf_bs_available(cyphertext_bs)) {
-			char next_IV[17];
-			u64 prev_block_count, salt_portion, block_count_portion;
-			u32 remain;
-			GF_BitStream *bs, *tmp;
+		if (priv->is_cenc) {
+			BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
+			if (gf_bs_available(cyphertext_bs)) {
+				char next_IV[17];
+				u64 prev_block_count, salt_portion, block_count_portion;
+				u32 remain;
+				GF_BitStream *bs, *tmp;
 
-			prev_block_count = BSO / 16;
-			remain = BSO % 16;
-			tmp = gf_bs_new(sai->IV, 16, GF_BITSTREAM_READ);
-			bs = gf_bs_new(next_IV, 17, GF_BITSTREAM_WRITE);
-			gf_bs_write_u8(bs, 0);	/*begin of counter*/
+				prev_block_count = BSO / 16;
+				remain = BSO % 16;
+				tmp = gf_bs_new((const char *)sai->IV, 16, GF_BITSTREAM_READ);
+				bs = gf_bs_new(next_IV, 17, GF_BITSTREAM_WRITE);
+				gf_bs_write_u8(bs, 0);	/*begin of counter*/
 
-			salt_portion = gf_bs_read_u64(tmp);
-			block_count_portion = gf_bs_read_u64(tmp);
-			/*reset the block counter to zero without affecting the other 64 bits of the IV*/
-			if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
-				block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
-			else
-				block_count_portion +=  prev_block_count;
-			gf_bs_write_u64(bs, salt_portion);
-			gf_bs_write_u64(bs, block_count_portion);
+				salt_portion = gf_bs_read_u64(tmp);
+				block_count_portion = gf_bs_read_u64(tmp);
+				/*reset the block counter to zero without affecting the other 64 bits of the IV*/
+				if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
+					block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
+				else
+					block_count_portion +=  prev_block_count;
+				gf_bs_write_u64(bs, salt_portion);
+				gf_bs_write_u64(bs, block_count_portion);
 
-			gf_crypt_set_state(priv->crypt, next_IV, 17);
-			/*decrypt remain bytes*/
-			if (remain) {
-				char dummy[20];
-				gf_crypt_decrypt(priv->crypt, dummy, remain);
+				gf_crypt_set_state(priv->crypt, next_IV, 17);
+				/*decrypt remain bytes*/
+				if (remain) {
+					char dummy[20];
+					gf_crypt_decrypt(priv->crypt, dummy, remain);
+				}
+
+				gf_bs_del(bs);
+				gf_bs_del(tmp);
 			}
-
-			gf_bs_del(bs);
-			gf_bs_del(tmp);
 		}
-
-		subsample_count++;
-	}
-
-	if (buffer) gf_free(buffer);
-	gf_bs_get_content(pleintext_bs, &buffer, &evt->data_size);
-	memmove(evt->data, buffer, evt->data_size);
-
-exit:
-	if (pleintext_bs) gf_bs_del(pleintext_bs);
-	if (sai_bs) gf_bs_del(sai_bs);
-	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
-	if (buffer) gf_free(buffer);
-	if (sai && sai->subsamples) gf_free(sai->subsamples);
-	if (sai) gf_free(sai);
-	return e;
-}
-
-static GF_Err CBC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
-{
-	GF_Err e;
-	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
-	char IV[17];
-	bin128 KID;
-	char *buffer;
-	u32 max_size, i, subsample_count;
-	GF_CENCSampleAuxInfo *sai;
-
-	e = GF_OK;
-	pleintext_bs = cyphertext_bs = sai_bs = NULL;
-	buffer = NULL;
-	max_size = 4096;
-
-	if (!priv->crypt) return GF_SERVICE_ERROR;
-	
-	if (!evt->is_encrypted) return GF_OK;
-
-	cyphertext_bs = gf_bs_new(evt->data, evt->data_size, GF_BITSTREAM_READ);
-	sai_bs = gf_bs_new(evt->sai, evt->saiz, GF_BITSTREAM_READ);
-	pleintext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	buffer = (char*)gf_malloc(sizeof(char) * max_size);
-
-	sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-	if (!sai) {
-		e = GF_IO_ERR;
-		goto exit;
-	}
-	memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
-	/*read sample auxiliary information from bitstream*/
-	gf_bs_read_data(sai_bs, (char *)KID, 16);
-	gf_bs_read_data(sai_bs, (char *)sai->IV, 16);
-	sai->subsample_count = gf_bs_read_u16(sai_bs);
-	if (sai->subsample_count) {
-		sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-		for (i = 0; i < sai->subsample_count; i++) {
-			sai->subsamples[i].bytes_clear_data = gf_bs_read_u32(sai_bs);
-			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(sai_bs);
-		}
-	}
-
-	if (!strlen((char *)sai->IV)) {
-		e = GF_OK;
-		goto exit;
-	}
-
-	for (i = 0; i < priv->KID_count; i++) {
-		if (!strncmp((const char *)KID, (const char *)priv->KIDs[i], 16)) {
-			memmove(priv->key, priv->keys[i], 16);
-			break;
-		}
-	}
-
-	if (priv->first_crypted_samp) {
-		memmove(IV, sai->IV, 16);
-		e = gf_crypt_init(priv->crypt, priv->key, 16, IV);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 CBC (%s)\n", gf_error_to_string(e)) );
-			e = GF_IO_ERR;
-			goto exit;
-		}
-		priv->first_crypted_samp = GF_FALSE;
-	}
-
-	subsample_count = 0;
-	while (gf_bs_available(cyphertext_bs)) {
-		assert(subsample_count < sai->subsample_count);
-
-		/*read clear data and write it to pleintext bitstream*/
-		if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
-			buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
-			max_size = sai->subsamples[subsample_count].bytes_clear_data;
-		}
-		gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-		gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-
-		/*now read encrypted data, decrypted it and write to pleintext bitstream*/
-		if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
-			buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
-			max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
-		}
-		gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-		gf_crypt_decrypt(priv->crypt, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-		gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 
 		subsample_count++;
 	}
@@ -627,10 +538,8 @@ static GF_Err IPMP_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 		}
 		break;
 	case GF_IPMP_TOOL_PROCESS_DATA:
-		if (priv->is_cenc) {
+		if (priv->is_cenc || priv->is_cbc) {
 			return CENC_ProcessData(priv, evt);
-		} else if (priv->is_cbc) {
-			return CBC_ProcessData(priv, evt);
 		} else if (priv->is_oma) {
 			if (evt->is_encrypted) {
 				evt->restart_requested = GF_TRUE;
