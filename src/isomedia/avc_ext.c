@@ -307,10 +307,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? 1 : 0;
 	if ( mdia->information->sampleTable->no_sync_found) {
-		rewrite_ps = is_sample_idr(sample, entry);
-	} else if (! sample->IsRAP) {
-		rewrite_ps = 0;
+		sample->IsRAP = is_sample_idr(sample, entry);
 	}
+
+	rewrite_ps = sample->IsRAP;
 	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? 1 : 0;
 	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? 1 : 0;
 	if (!entry->svc_config) insert_vdrd_code = 0;
