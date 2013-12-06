@@ -4500,6 +4500,9 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 		e = stbl_AddBox(ptr, a);
 		if (e) return e;
 	}
+	if (!ptr->SyncSample) 
+		ptr->no_sync_found = 1;
+
 	return GF_OK;
 }
 
@@ -8388,10 +8391,10 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	{
 		GF_CENCSampleEncryptionGroupEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
-		ptr->IsEncrypted = gf_bs_read_u32(bs);
+		ptr->IsEncrypted = gf_bs_read_u24(bs);
 		ptr->IV_size = gf_bs_read_u8(bs);
 		gf_bs_read_data(bs, (char *)ptr->KID, 16);
-		*total_bytes = 21;
+		*total_bytes = 20;
 		return ptr;
 	}
 	default:
@@ -8439,7 +8442,7 @@ static void	sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 		gf_bs_write_int(bs, ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples, 7);
 		return;
 	case GF_4CC( 's', 'e', 'i', 'g' ):
-		gf_bs_write_u32(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsEncrypted);
+		gf_bs_write_u24(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsEncrypted);
 		gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IV_size);
 		gf_bs_write_data(bs, (char *)((GF_CENCSampleEncryptionGroupEntry *)entry)->KID, 16);
 		return;
@@ -8458,7 +8461,7 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 	case GF_4CC( 'r', 'a', 'p', ' ' ):
 		return 1;
 	case GF_4CC( 's', 'e', 'i', 'g' ):
-		return 21;
+		return 20;
 	default:
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}

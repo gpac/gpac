@@ -646,6 +646,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 
 		es = stream->program->streams;
 		while (es) {
+			Bool has_lang = 0;
 			u8 type = es->mpeg2_stream_type;
 			nb_streams++;
 			es_info_length = 0;
@@ -682,8 +683,9 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				}
 			}
 
-			if (stream->ifce && stream->ifce->lang) {
+			if (es->ifce && es->ifce->lang && (es->ifce->lang  != GF_4CC('u', 'n', 'd', ' ')) ) {
 				es_info_length += 2 + 3;
+				has_lang = 1;
 			}
 
 			gf_bs_write_int(bs,	es_info_length, 12);
@@ -694,7 +696,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				gf_bs_write_int(bs,	es->ifce->stream_id, 16);  // mpeg4_esid
 			}
 
-			if (es->ifce && es->ifce->lang) {
+			if (has_lang) {
 				gf_bs_write_int(bs,	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR, 8); 
 				gf_bs_write_int(bs,	3, 8); 
 				gf_bs_write_int(bs,	(es->ifce->lang>>24) & 0xFF, 8); 

@@ -4455,7 +4455,7 @@ void *sg_encryption_create_entry(void *udta)
 	GF_BitStream *bs;
 	GF_SAFEALLOC(entry, GF_CENCSampleEncryptionGroupEntry);
 	bs = gf_bs_new((char *) udta, sizeof(GF_CENCSampleEncryptionGroupEntry), GF_BITSTREAM_READ);
-	entry->IsEncrypted = gf_bs_read_u32(bs);
+	entry->IsEncrypted = gf_bs_read_u24(bs);
 	entry->IV_size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *)entry->KID, 16);
 	gf_bs_del(bs);
@@ -4470,7 +4470,7 @@ Bool sg_encryption_compare_entry(void *udta, void *entry)
 	GF_BitStream *bs;
 	GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
 	bs = gf_bs_new((char *) udta, sizeof(GF_CENCSampleEncryptionGroupEntry), GF_BITSTREAM_READ);
-	isEncrypted = gf_bs_read_u32(bs);
+	isEncrypted = gf_bs_read_u24(bs);
 	IV_size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *)KID, 16);
 	gf_bs_del(bs);
@@ -4482,13 +4482,13 @@ Bool sg_encryption_compare_entry(void *udta, void *entry)
 GF_EXPORT
 GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool isEncrypted, u8 IV_size, bin128 KeyID)
 {
-	char seig[21];
-	if ((IV_size!=0) && (IV_size!=4) && (IV_size!=8)) return GF_BAD_PARAM;
+	char seig[20];
+	if ((IV_size!=0) && (IV_size!=8) && (IV_size!=16)) return GF_BAD_PARAM;
 
 	seig[0] = seig[1] = 0;
 	seig[2] = isEncrypted ? 1 : 0;
 	seig[3] = IV_size;
-	memcpy(seig + 5, KeyID, sizeof(bin128));
+	memcpy(seig + 4, KeyID, sizeof(bin128));
 
 	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 's', 'e', 'i', 'g' ), seig, sg_encryption_create_entry, sg_encryption_compare_entry);
 }
