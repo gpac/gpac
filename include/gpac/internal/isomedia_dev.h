@@ -1233,6 +1233,8 @@ typedef struct
 	u16 groupID;
 	u16 trackPriority;
 	u32 currentEntryIndex;
+
+	Bool no_sync_found;
 } GF_SampleTableBox;
 
 typedef struct __tag_media_info_box

@@ -256,6 +256,7 @@ default_sync:
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
 			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+			stbl->no_sync_found = 1;
 		} else {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 			esd->slConfig->useRandomAccessPointFlag = 0;
