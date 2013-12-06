@@ -231,6 +231,7 @@ static Bool is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *ent
 		u32 size = gf_bs_read_int(bs, 8*nalu_size_field);
 
 		if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
 			u16 nal_hdr = gf_bs_read_u16(bs);
 			nal_type = (nal_hdr&0x7E00) >> 9;
 
@@ -255,6 +256,7 @@ static Bool is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *ent
 				return 0;
 			}
 			gf_bs_skip_bytes(bs, size - 2);
+#endif
 		} else {
 			u8 nal_hdr = gf_bs_read_u8(bs);
 			nal_type = nal_hdr & 0x1F;
