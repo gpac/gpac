@@ -1380,6 +1380,7 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 		if (param) {
 			*param = 0;
 			param++;
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 			if (!strncmp("vttnomerge", param, 10)) {
 				action->dump_type |= GF_EXPORT_WEBVTT_NOMERGE;
 			} else if (!strncmp("layer", param, 5)) {
@@ -1393,6 +1394,7 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 			} else if (action->dump_type == GF_EXPORT_RAW_SAMPLES) {
 				action->sample_num = atoi(param);
 			}
+#endif
 		} 
 	}
 	if (!strcmp(string, "*")) {
