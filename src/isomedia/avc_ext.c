@@ -208,6 +208,80 @@ static GF_Err process_extractor(GF_ISOFile *file, u32 sampleNumber, u32 nal_size
 	return GF_OK;
 }
 
+static Bool is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+{
+	Bool is_hevc = 0;
+	u32 nalu_size_field = 0;
+	GF_BitStream *bs;
+	if (entry->avc_config) nalu_size_field = entry->avc_config->config->nal_unit_size;
+	else if (entry->svc_config) nalu_size_field = entry->svc_config->config->nal_unit_size;
+	else if (entry->hevc_config) {
+		nalu_size_field = entry->hevc_config->config->nal_unit_size;
+		is_hevc = 1;
+	}
+	else if (entry->shvc_config) {
+		nalu_size_field = entry->shvc_config->config->nal_unit_size;
+		is_hevc = 1;
+	}
+	if (!nalu_size_field) return 0;
+
+	bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
+	while (gf_bs_available(bs)) {
+		u8 nal_type;
+		u32 size = gf_bs_read_int(bs, 8*nalu_size_field);
+
+		if (is_hevc) {
+			u16 nal_hdr = gf_bs_read_u16(bs);
+			nal_type = (nal_hdr&0x7E00) >> 9;
+
+			switch (nal_type) {
+			case GF_HEVC_NALU_VID_PARAM:
+			case GF_HEVC_NALU_SEQ_PARAM:
+			case GF_HEVC_NALU_PIC_PARAM:
+			case GF_HEVC_NALU_SLICE_BLA_W_LP:
+			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+			case GF_HEVC_NALU_SLICE_BLA_N_LP:
+			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+			case GF_HEVC_NALU_SLICE_IDR_N_LP:
+			case GF_HEVC_NALU_SLICE_CRA:
+				gf_bs_del(bs);
+				return 1;
+			case GF_HEVC_NALU_ACCESS_UNIT:
+			case GF_HEVC_NALU_FILLER_DATA:
+			case GF_HEVC_NALU_SEI_PREFIX:
+				break;
+			default:
+				gf_bs_del(bs);
+				return 0;
+			}
+			gf_bs_skip_bytes(bs, size - 2);
+		} else {
+			u8 nal_hdr = gf_bs_read_u8(bs);
+			nal_type = nal_hdr & 0x1F;
+
+			switch (nal_type) {
+			case GF_AVC_NALU_SEQ_PARAM:
+			case GF_AVC_NALU_PIC_PARAM:
+			case GF_AVC_NALU_SEQ_PARAM_EXT:
+			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
+			case GF_AVC_NALU_IDR_SLICE:
+				gf_bs_del(bs);
+				return 1;
+			case GF_AVC_NALU_ACCESS_UNIT:
+			case GF_AVC_NALU_FILLER_DATA:
+			case GF_AVC_NALU_SEI:
+				break;
+			default:
+				gf_bs_del(bs);
+				return 0;
+			}
+			gf_bs_skip_bytes(bs, size - 2);
+		} 
+	}
+	gf_bs_del(bs);
+	return 0;
+}
+
 /* Rewrite mode:
  * mode = 0: playback
  * mode = 1: streaming
@@ -230,7 +304,11 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	ref_samp = NULL;
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? 1 : 0;
-	if (! sample->IsRAP) rewrite_ps = 0;
+	if ( mdia->information->sampleTable->no_sync_found) {
+		rewrite_ps = is_sample_idr(sample, entry);
+	} else if (! sample->IsRAP) {
+		rewrite_ps = 0;
+	}
 	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? 1 : 0;
 	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? 1 : 0;
 	if (!entry->svc_config) insert_vdrd_code = 0;
