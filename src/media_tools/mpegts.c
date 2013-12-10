@@ -2750,6 +2750,116 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 }
 
 
+GF_EXPORT
+GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_byterange, u64 end_byterange, u32 refresh_type, Bool signal_end_of_stream)
+{
+	u32 i;
+	GF_Err e;
+	u32 size;
+	u64 read;
+	GF_BitStream *bs = NULL;
+	FILE *f = NULL;
+
+	if (fileName && !strnicmp(fileName, "gmem://", 7)) {
+		void *mem_address;
+		u32 remain;
+		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", fileName));
+			return GF_URL_ERROR;
+		} 
+		if (refresh_type==0) 
+			ts->pos_in_stream = 0;
+
+		//resume where we left
+		mem_address = (u8 *) mem_address + ts->pos_in_stream;
+		size -= (u32) ts->pos_in_stream;
+
+		remain = (size % 188);
+		size -= remain;
+
+		/*process chunk*/			
+		e = gf_m2ts_process_data(ts, mem_address, size);
+
+		if (refresh_type==2) 
+			ts->pos_in_stream = 0;
+		else
+			ts->pos_in_stream += size;
+
+	} else if (fileName) {
+		char data[188000];
+
+		f = gf_f64_open(fileName, "rb");
+	
+		if (!f) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", fileName));
+			return GF_URL_ERROR;
+		}
+		bs = gf_bs_from_file(f, GF_BITSTREAM_READ);
+
+		if (refresh_type) {
+			if (ts->pos_in_stream) {
+				gf_bs_seek(bs, ts->pos_in_stream);
+			}
+		} else {
+			if (start_byterange) {
+				gf_bs_seek(bs, start_byterange);
+			}
+		}
+		read = 0;
+		while (1) {
+			u32 to_read = 188000;
+			Bool done = 0;
+			u64 avail = gf_bs_available(bs);
+			
+			if (avail < 188) 
+				break;
+
+			if (end_byterange && (read + to_read > end_byterange)) {
+				to_read = (u32) (end_byterange - read);
+				done = 1;
+			}
+			if (to_read > avail) {
+				u32 skip = avail % 188;
+				to_read = (u32) (avail - skip);
+				done = 1;
+			}
+			size = gf_bs_read_data(bs, data, to_read);
+			if (size) {
+				e = gf_m2ts_process_data(ts, data, size);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Error %s while demuxing %s\n", gf_error_to_string(e), fileName));
+				}
+			}
+			read += size;
+			if (done) break;
+		}
+
+		if ((refresh_type==2) || !gf_bs_available(bs)) {
+			ts->pos_in_stream = 0;
+		} else {
+			ts->pos_in_stream = gf_bs_get_position(bs);
+		}
+	
+		gf_bs_del(bs);
+		fclose(f);
+
+	}
+
+	if (signal_end_of_stream && !ts->pos_in_stream) {
+		for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+			if (ts->ess[i]) {
+				if (ts->ess[i]->flags & GF_M2TS_ES_IS_PES) {
+					gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) ts->ess[i]);
+					ts->on_event(ts, GF_M2TS_EVT_EOS, (GF_M2TS_PES *) ts->ess[i]);
+				} 
+			}
+		}
+	}
+	return GF_OK;
+}
+
+
+
 /* DVB fonction */
 
 static u32 gf_m2ts_demuxer_run(void *_p)
@@ -2853,10 +2963,6 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 		u32 pos = 0;
 		GF_BitStream *ts_bs = NULL;
 
-		if (ts->segment_switch || (!ts->file && !ts->ts_data_chunk) ) {
-			ts->segment_switch = 0;
-			goto next_segment_setup;
-		} 
 		if (ts->start_range && ts->duration) {
 			Double perc = ts->start_range / (1000 * ts->duration);
 			pos = (u32) (s64) (perc * ts->file_size);
@@ -2868,16 +2974,12 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 			}
 		}
 
-restart_stream:
-
 		if (ts->file)
 			ts_bs = gf_bs_from_file(ts->file, GF_BITSTREAM_READ);
 		else
 			ts_bs = gf_bs_new(ts->ts_data_chunk, ts->ts_data_chunk_size, GF_BITSTREAM_READ);
 
-		gf_bs_seek(ts_bs, ts->start_byterange);
-
-		while (ts->run_state && gf_bs_available(ts_bs)) {
+		while (ts->run_state && gf_bs_available(ts_bs) && !ts->force_file_refresh) {
 			/*m2ts chunks by chunks*/
 			size = gf_bs_read_data(ts_bs, data, 188);
 			if (!size && (ts->loop_demux == 1)) {
@@ -2893,8 +2995,6 @@ restart_stream:
 			gf_m2ts_process_data(ts, data, size);
 
 			ts->nb_pck++;
-			if (ts->end_byterange && (gf_bs_get_position(ts_bs) >= ts->end_byterange))
-				break;
 
 			//gf_sleep(0);
 			/*if asked to regulate, wait until we get a play request*/
@@ -2909,50 +3009,12 @@ restart_stream:
 				gf_sleep(3000);
             }
 		}
+		ts->force_file_refresh = 0;
 
-next_segment_setup:
 		if (ts_bs) {
 			pos = (u32) gf_bs_get_position(ts_bs);
 			gf_bs_del(ts_bs);
 			ts_bs = NULL;
-		}
-		if (ts->run_state && ts->query_next) {
-			u32 query_type = (!ts->file && !ts->ts_data_chunk) ? 2 : 1;
-			Bool is_refresh = GF_FALSE;
-			const char *next_url = NULL;
-			e = ts->query_next(ts->query_udta, query_type, &next_url, &ts->start_byterange, &ts->end_byterange, &is_refresh);
-			
-			/*not ready, wait ...*/
-			while ((e==GF_BUFFER_TOO_SMALL) && !next_url && ts->run_state) {
-				gf_sleep(10);
-				e = ts->query_next(ts->query_udta, query_type, &next_url, &ts->start_byterange, &ts->end_byterange, &is_refresh);
-			}
-
-			if (next_url) {
-				/*TODO we need to know if we had a seek or not, to fluh remaining PES data*/
-				if (is_refresh) {
-					ts->start_byterange = pos;
-				} else { 
-					gf_m2ts_set_segment_switch(ts);
-				}
-
-				if (!strncmp(next_url, "gmem://", 7)) {
-					u32 size;
-					void *mem_address;
-					if (sscanf(next_url, "gmem://%d@%p", &size, &mem_address) != 2) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
-					} else {
-						ts->ts_data_chunk_size = size;
-						ts->ts_data_chunk = mem_address;
-						if (ts->ts_data_chunk_size) goto restart_stream;
-					}
-				} else {
-					if (ts->file) fclose(ts->file);
-					ts->file = gf_f64_open(next_url, "rb");
-					if (ts->file) goto restart_stream;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", next_url));
-				}
-			}
 		}
 	}
 
@@ -3284,13 +3346,6 @@ static GF_Err gf_m2ts_demuxer_setup_file(GF_M2TS_Demuxer *ts, char *url)
 	/* reinitialization for seek */
 	ts->end_range = ts->start_range = 0;
 	ts->nb_playing = 0;	
-
-	ts->start_byterange = ts->end_byterange = 0;
-	if (ts->query_next) {
-		ts->query_next(ts->query_udta, 0, NULL, &ts->start_byterange, &ts->end_byterange, NULL);
-	}
-
-
 	return  gf_m2ts_demuxer_play(ts);
 
 }

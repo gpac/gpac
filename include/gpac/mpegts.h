@@ -752,6 +752,7 @@ struct tag_m2ts_demux
 	GF_Thread *th;
 	u32 run_state;
 
+	Bool force_file_refresh;
     /*net playing*/
 	GF_Socket *sock;
 
@@ -764,7 +765,7 @@ struct tag_m2ts_demux
 	char filename[GF_MAX_PATH];
 	u32 start_range, end_range;
 	u64 file_size;
-	u64 start_byterange, end_byterange;
+	u64 pos_in_stream;
 	Double duration;
 	u32 nb_playing;
 	Bool file_regulate;
@@ -824,15 +825,6 @@ struct tag_m2ts_demux
 
 	const char *dvb_channels_conf_path;
 
-	/*for DASH - query_type is:
-		0: query init range
-		1: drop current segment and query next segment
-		2: query next segment
-	*/
-	GF_Err (*query_next)(void *udta, u32 query_type, const char **next_url, u64 *next_start_range, u64 *next_end_range, Bool *is_refresh);
-	void *query_udta;
-	Bool segment_switch;
-
 	/*AIT*/
 	GF_List* ChannelAppList;
 
@@ -840,6 +832,9 @@ struct tag_m2ts_demux
 	Bool process_dmscc;
 	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
+
+	Bool segment_switch;
+
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
@@ -904,6 +899,12 @@ typedef struct
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
+/*demuxes the TS file using a complete number of 1888 blocks - refresh_type is one of the following:
+0 - this is a new file
+1 - this is a refresh of a previous file
+2 - this is the last refresh of a previous file
+*/
+GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_byterange, u64 end_byterange, u32 refresh_type, Bool signal_end_of_stream);
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
