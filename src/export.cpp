@@ -1787,7 +1787,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_restamp) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_file) )
 
 /* carousel.h */
 #ifdef GPAC_ENABLE_DSMCC

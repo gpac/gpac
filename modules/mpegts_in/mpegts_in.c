@@ -56,6 +56,7 @@ typedef struct
 	Bool is_connected;
 	Bool low_latency_mode;
 	Bool in_segment_download;
+	Bool first_segment_fetched;
 
 	Bool epg_requested;
 	Bool has_eit;
@@ -69,6 +70,9 @@ typedef struct
 
 	/*pick first pcr pid for regulation*/
 	u32 regulation_pcr_pid;
+
+	Bool skip_regulation;
+	Bool has_pending_segments;
 
 	Bool hybrid_on;
 }M2TSIn;
@@ -321,7 +325,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 #endif
 
 	/*TS is a file, start regulation regardless of how the TS is access (with or without fragment URI)*/
-	if (m2ts->ts->file || m2ts->ts->dnload || m2ts->owner->query_proxy) 
+	if (m2ts->ts->file || m2ts->ts->dnload) 
 		m2ts->ts->file_regulate = 1;
 		
 	for (i=0; i<count; i++) {
@@ -412,12 +416,10 @@ static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)
 	esd->decoderConfig->objectTypeIndication = GPAC_OTI_PRIVATE_SCENE_EPG;
 	esd->decoderConfig->bufferSizeDB = 0;
 
-	/*we only use AUstart indicator
+	/*we only use AUstart indicator*/
 	esd->slConfig->useAccessUnitStartFlag = 1;
-	esd->slConfig->useAccessUnitEndFlag = 0;
 	esd->slConfig->useRandomAccessPointFlag = 1;
-	esd->slConfig->AUSeqNumLength = 0;
-	esd->slConfig->timestampResolution = 90000;*/
+	esd->slConfig->timestampResolution = 90000;
 
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -660,9 +662,10 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					/*query buffer level, don't sleep if too low*/
 					GF_NetworkCommand com;
 					com.command_type = GF_NET_BUFFER_QUERY;
+					com.base.on_channel = NULL;
 					while (ts->run_state) {
 						gf_term_on_command(m2ts->service, &com, GF_OK);
-						if (com.buffer.occupancy < M2TS_BUFFER_MAX) {
+						if (!com.buffer.occupancy || (com.buffer.occupancy < com.buffer.max)) {
 							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
 							break;
 						}
@@ -728,22 +731,6 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 }
 
-#if 0
-static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
-{
-	if (evt_type==GF_M2TS_EVT_PES_PCR) {
-//		M2TSIn *m2ts = ts->user;
-		GF_M2TS_PES_PCK *pck = param;
-		if (!ts->nb_playing) {
-			ts->nb_playing = pck->stream->pid;
-			ts->end_range = (u32) (pck->PTS / 90);
-		} else if (ts->nb_playing == pck->stream->pid) {
-			ts->start_range = (u32) (pck->PTS / 90);
-		}
-	}
-}
-#endif
-
 void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
@@ -807,7 +794,12 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
-static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, Bool *is_refresh)
+/*for DASH - query_type is:
+	0: query init range
+	1: query next segment
+	2: drop next segment
+*/
+static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, u32 *refresh_type)
 {
 	GF_NetworkCommand param;
 	GF_Err query_ret;
@@ -822,7 +814,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.next_url = NULL;
-	param.url_query.drop_first_segment = (query_type==1) ? 1 : 0;
+	param.url_query.drop_first_segment = (query_type==2) ? 1 : 0;
 
 	//we are downloading the segment we play, don't delete it
 	if (m2ts->in_segment_download)
@@ -831,7 +823,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
 
 	if ((query_ret==GF_BUFFER_TOO_SMALL) && query_type && !param.url_query.next_url){
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Cannot query next file: not yet downloaded\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M2TS In] Cannot query next file: not yet downloaded\n"));
 	} else if ((query_ret==GF_OK) && query_type && !param.url_query.next_url){
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
 	} else if (query_ret) {
@@ -844,20 +836,20 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 		/*the segment is being downloaded now, start monitoring refresh*/
 		if (param.url_query.is_current_download) {
 			m2ts->low_latency_mode = 1;
-			if (is_refresh) *is_refresh = GF_TRUE;
+			if (refresh_type) *refresh_type = 1;
 			if (!m2ts->in_segment_download || param.url_query.has_new_data) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] progressive loading of TS segments\n"));
 			}
 			//state "in progress"
-		m2ts->in_segment_download = 1;
+			m2ts->in_segment_download = 1;
 		} else {
-			if (is_refresh) {
+			if (refresh_type) {
 				//segment done downloading but was in progress mode: do a final refresh
 				if (m2ts->in_segment_download) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] End of progressive loading of TS segments\n"));
-					*is_refresh = GF_TRUE;
+					*refresh_type = 2;
 				} else {
-					*is_refresh = GF_FALSE;
+					*refresh_type = 0;
 				}
 			}
 			m2ts->in_segment_download = 0;
@@ -865,6 +857,61 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	}
 	return query_ret;
 }
+
+void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
+{
+	u64 start_byterange, end_byterange;
+	GF_Err e = GF_OK;
+	u32 refresh_type = 0;
+	const char *url;
+
+	gf_mx_p(m2ts->mx);
+
+	//check buffer level when start of new segment
+	if (flush_type<=1) {
+		GF_NetworkCommand com;
+		/*query buffer level on each channel, don't sleep if too low*/
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.command_type = GF_NET_BUFFER_QUERY;
+		gf_term_on_command(m2ts->service, &com, GF_OK);
+		if (com.buffer.occupancy && (com.buffer.occupancy >= com.buffer.max)) {
+			//count completed segment that were not dispatched
+			if (flush_type==1)
+				m2ts->has_pending_segments++;
+			
+			gf_mx_v(m2ts->mx);
+			return;
+		}
+	}
+	else if (flush_type==2) {
+		if (! m2ts->has_pending_segments) {
+			gf_mx_v(m2ts->mx);
+			return;
+		}
+	}
+
+	e = M2TS_QueryNextFile(m2ts, 1, &url, &start_byterange, &end_byterange, &refresh_type);
+	if (e) {
+		gf_mx_v(m2ts->mx);
+		return;
+	}
+	gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, refresh_type, 0);
+
+	//done, drop segment 
+	if (!m2ts->in_segment_download) {
+		e = M2TS_QueryNextFile(m2ts, 2, &url, &start_byterange, &end_byterange, &refresh_type);
+
+		if (m2ts->has_pending_segments)
+			m2ts->has_pending_segments--;
+
+		if (e==GF_EOS) {
+			gf_m2ts_demux_file(m2ts->ts, NULL, 0, 0, 0, 1);
+		}
+
+	}
+	gf_mx_v(m2ts->mx);
+}
+
 
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
@@ -884,10 +931,6 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->ts->record_to = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "RecordTo");
 
 	m2ts->service = serv;
-	if (m2ts->owner->query_proxy) {
-		m2ts->ts->query_next = M2TS_QueryNextFile;
-		m2ts->ts->query_udta = m2ts;
-	}
 
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
 	if (opt && !strcmp(opt, "yes")) {
@@ -903,7 +946,20 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 			e = gf_m2ts_demuxer_play(m2ts->ts);
 		}
 	} else {
-		e = gf_m2ts_demuxer_setup(m2ts->ts,url,0);
+		//dash & HLS - run in non-threaded mode 
+		if (plug->query_proxy) {
+			//get byte range if any (local playback)
+			if (url) {
+				u64 start_byterange, end_byterange;
+				M2TS_QueryNextFile(m2ts, 0, NULL, &start_byterange, &end_byterange, NULL);
+				e = gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, 0, 0);
+			} else {
+				e = GF_OK;
+			}
+			m2ts->ts->run_state = 1;
+		} else {
+			e = gf_m2ts_demuxer_setup(m2ts->ts,url,0);
+		}
 	}
 
 	if (e) {
@@ -917,9 +973,11 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 	M2TSIn *m2ts = plug->priv;
 	GF_M2TS_Demuxer* ts = m2ts->ts;
 
-	gf_m2ts_demuxer_close(ts);	
+	if (!plug->query_proxy)
+		gf_m2ts_demuxer_close(ts);	
 	
-	
+	m2ts->ts->run_state = 0;
+
 	if (ts->dnload) gf_term_download_del(ts->dnload);
 	ts->dnload = NULL;
 
@@ -1007,11 +1065,12 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	}
 
 	/* restart the thread if the same service is reused and if the previous thread terminated */
-	if (m2ts->ts->run_state == 2) {
-		m2ts->ts->file_regulate = 0;
-		gf_m2ts_demuxer_play(m2ts->ts);
+	if (!plug->query_proxy) {
+		if (m2ts->ts->run_state == 2) {
+			m2ts->ts->file_regulate = 0;
+			gf_m2ts_demuxer_play(m2ts->ts);
+		}
 	}
-
 	return NULL;
 }
 
@@ -1157,6 +1216,20 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 	}
+	if (com->command_type == GF_NET_SERVICE_PROXY_CHUNK_RECEIVE) {
+		m2ts_flush_data(m2ts, 1);
+		return GF_OK;
+	}
+	if (com->command_type == GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE) {
+		m2ts_flush_data(m2ts, 0);
+		return GF_OK;
+	}
+	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
+		m2ts_flush_data(m2ts, 2);
+		return GF_OK;
+	}
+
+
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
 	/*we cannot pull complete AUs from the stream*/
@@ -1195,12 +1268,14 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			ts->start_range = (u32) (com->play.start_range*1000);
 			ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 
-			if (ts->query_next && ts->file) 
+			if (plug->query_proxy && ts->file) 
 				ts->segment_switch = 1;
 
 			/*start demuxer*/
-			if (ts->run_state!=1) {
-				return gf_m2ts_demuxer_play(ts);
+			if (!plug->query_proxy) {
+				if (ts->run_state!=1) {
+					gf_m2ts_demuxer_play(ts);
+				}
 			}
 		}
 		ts->nb_playing++;
@@ -1217,13 +1292,15 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (ts->nb_playing)
 		  ts->nb_playing--;
 		/*stop demuxer*/
-		if (!ts->nb_playing && (ts->run_state==1)) {
-			ts->run_state=0;
-			while (ts->run_state!=2) gf_sleep(2);
-			if (gf_list_count(m2ts->ts->requested_progs)) {
-				ts->file_regulate = 0;
-				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-				return gf_m2ts_demuxer_play(ts);
+		if (!plug->query_proxy) {
+			if (!ts->nb_playing && (ts->run_state==1)) {
+				ts->run_state=0;
+				while (ts->run_state!=2) gf_sleep(2);
+				if (gf_list_count(m2ts->ts->requested_progs)) {
+					ts->file_regulate = 0;
+					gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
+					return gf_m2ts_demuxer_play(ts);
+				}
 			}
 		}
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
