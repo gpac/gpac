@@ -1105,7 +1105,6 @@ typedef struct
 	char *line;
 } SDPLine;
 
-
 typedef struct
 {
 	/*actions:
@@ -1129,11 +1128,13 @@ typedef struct
 } MetaAction;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-static Bool parse_meta_args(MetaAction *meta, char *opts)
+static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 {
 	Bool ret = 0;
 	char szSlot[1024], *next;
 
+	memset(meta, 0, sizeof(MetaAction));
+	meta->act_type = act_type;
 	meta->mime_type[0] = 0;
 	meta->enc_type[0] = 0;
 	meta->szName[0] = 0;
@@ -2389,70 +2390,54 @@ int mp4boxMain(int argc, char **argv)
 		/*meta*/
 		else if (!stricmp(arg, "-set-meta")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 0;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 0, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-add-item")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 1;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 1, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-rem-item")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 2;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 2, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-set-primary")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 3;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 3, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-set-xml")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 4;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 4, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-rem-xml")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 6;
-			if (parse_meta_args(&metas[nb_meta_act], argv[i+1])) i++;
+			if (parse_meta_args(&metas[nb_meta_act], 6, argv[i+1])) i++;
 			nb_meta_act++;
 			open_edit = 1;
 		}
 		else if (!stricmp(arg, "-dump-xml")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 7;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 7, argv[i+1]);
 			nb_meta_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-dump-item")) { 
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-
-			metas[nb_meta_act].act_type = 8;
-			parse_meta_args(&metas[nb_meta_act], argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], 8, argv[i+1]);
 			nb_meta_act++;
 			i++;
 		}
