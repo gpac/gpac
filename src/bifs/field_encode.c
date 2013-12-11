@@ -227,9 +227,8 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 {
 	GF_ChildNodeItem *list = NULL;
 	GF_Err e;
-	u32 nbBits;
-	Bool use_list;
-	Bool qp_local, qp_on, initial_qp;
+	u32 nbBits, qp_local;
+	Bool use_list, qp_on, initial_qp;
 	u32 nbF, i;
 	GF_FieldInfo sffield;
 		

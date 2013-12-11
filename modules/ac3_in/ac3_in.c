@@ -414,7 +414,7 @@ static GF_Descriptor *AC3_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 static GF_Err AC3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
-	u32 ES_ID;
+	u32 ES_ID=0;
 	GF_Err e;
 	AC3Reader *read = plug->priv;
 

@@ -1575,7 +1575,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 			gf_isom_get_visual_info(infile, inTrackNum, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 			/*this is because so many files have reserved values of 320x240 from v1 ... */
-			if ((esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) ) {
+			if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
 				GF_M4VDecSpecInfo dsi;
 				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 				w = dsi.width;

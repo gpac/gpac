@@ -1441,8 +1441,8 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, dump_mode, import_subtitle;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 	u32 track_dump_type;
@@ -2365,8 +2365,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) { 
 			CHECK_NEXT_ARG 
-			split_size = atoi(argv[i+1]);
-			if (split_size<0) split_size = 0; 
+			split_size = (u32) atoi(argv[i+1]);
 			i++; 
 			split_duration = 0;
 		}

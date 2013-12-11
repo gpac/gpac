@@ -22,7 +22,7 @@ GPAC_CONFIGURATION="$@"
 
 TMPC="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
-TMPCPP="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.cpp"
+TMPCXX="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.cpp"
 TMPE="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}"
 TMPO="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPS="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.S"
@@ -37,9 +37,7 @@ targetos=""
 dxsdk_path=""
 moz_path="local"
 cc_orig="gcc"
-cc="${cc_orig}"
-cpp_orig="g++"
-cpp="${cpp_orig}"
+cxx_orig="g++"
 ar="ar"
 ranlib="ranlib"
 make="make"
@@ -177,7 +175,7 @@ bigendian="no"
 SHFLAGS=-shared
 need_inet_aton="no"
 CFLAGS=""
-CPPFLAGS=""
+CXXFLAGS=""
 GPAC_SH_FLAGS=-lpthread
 DYN_LIB_SUFFIX="so"
 X11_PATH="/usr/X11R6"
@@ -204,8 +202,8 @@ GPAC configuration options:
   --source-path=PATH       path of source code [$source_path]
   --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]
   --target-os=TARGETOS     use TARGETOS for compile tools [$targetos]
-  --cc =CC                 use C   compiler CC  [$cc]
-  --cpp=CPP                use C++ compiler CPP [$cpp]
+  --cc=CC                  use C   compiler CC  [$cc]
+  --cxx=CXX                use C++ compiler CXX [$cxx]
   --make=MAKE              use specified make [$make]
   --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS [$CFLAGS]
   --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS [$LDFLAGS]
@@ -330,7 +328,11 @@ for opt do
             ;;
         --target-os=*) targetos=`echo $opt | cut -d '=' -f 2` && echo "\ntarget-os detected: $targetos"
             ;;
-        --cc=*) cc=`echo $opt | cut -d '=' -f 2`
+        --cc=*) cc_orig=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --cxx=*) cxx_orig=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --cpp=*) cxx_orig=`echo $opt | cut -d '=' -f 2`
             ;;
         --make=*) make=`echo $opt | cut -d '=' -f 2`
             ;;
@@ -352,6 +354,9 @@ for opt do
             ;;
     esac
 done
+
+cc="${cc_orig}"
+cxx="${cxx_orig}"
 
 case "$cpu" in
     i386|i486|i586|i686|i86pc|BePC)
@@ -426,7 +431,7 @@ fi
 cc="${cross_prefix}${cc}"
 #for ccache
 cc="${cc}"
-cpp="${cross_prefix}${cpp}"
+cxx="${cross_prefix}${cxx}"
 ar="${cross_prefix}${ar}"
 ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
@@ -627,7 +632,7 @@ CFLAGS="$CFLAGS -Wall"
 if $cc -o $TMPO $TMPC -fno-strict-aliasing 2> /dev/null  ; then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
-CPPFLAGS="$CFLAGS"
+CXXFLAGS="$CFLAGS"
 if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
@@ -647,15 +652,15 @@ if test "$cross_prefix" != "" ; then
 fi
 if test "$want_pic"  = "yes" ; then
     CFLAGS="$CFLAGS -fPIC -DPIC"
-    CPPFLAGS="$CPPFLAGS -fPIC -DPIC"
+    CXXFLAGS="$CXXFLAGS -fPIC -DPIC"
 fi
 
 
 #force use of cflags with cc
 cc_naked=$cc
-cpp_naked=$cpp
+cxx_naked=$cxx
 cc="$cc $CFLAGS"
-cpp="$cpp $CPPFLAGS"
+cxx="$cxx $CXXFLAGS"
 
 
 #look for zlib
@@ -932,7 +937,7 @@ cat > $TMPC << EOF
 #include <Platinum.h>
 int main( void ) { return 0; }
 EOF
-if $cpp -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread 2> /dev/null  ; then
+if $cxx -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread 2> /dev/null  ; then
   has_platinum="yes"
 fi
 
@@ -954,7 +959,7 @@ int main( void ) {
   return 0; 
 }
 EOF
-if $cpp -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
+if $cxx -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
   has_avcap="yes"
 else
     if test "$darwin" = "yes" ; then
@@ -964,7 +969,7 @@ else
         avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
         avcap_ldflags="-lavcap -lpthread"
     fi
-    if $cpp -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags 2> /dev/null  ; then
+    if $cxx -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags 2> /dev/null  ; then
         has_avcap="yes"
         avcap_ldflags="-L../../$local_lib $avcap_ldflags"
     fi
@@ -985,13 +990,13 @@ cat > $TMPC << EOF
 #include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
 int main( void ) { return 0; }
 EOF
-if $cpp -o $TMPO $TMPC $osvc_cflags $LDFLAGS $osvc_ldflags 2> /dev/null  ; then
+if $cxx -o $TMPO $TMPC $osvc_cflags $LDFLAGS $osvc_ldflags 2> /dev/null  ; then
   has_opensvc="yes"
 else
 osvc_cflags="-I$local_inc"
 osvc_ldflags="-lOpenSVCDec"
 
-if $cpp -o $TMPO $TMPC $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags 2> /dev/null  ; then
+if $cxx -o $TMPO $TMPC $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags 2> /dev/null  ; then
   has_opensvc="yes"
   osvc_ldflags="-L../../$local_lib $osvc_ldflags"
 fi
@@ -1013,8 +1018,8 @@ fi
 
 cat > $TMPC << EOF
 #include <stdio.h>
-int libOpenHevcInit();
-int main( void ) { libOpenHevcInit(); return 0; }
+#include <openHevcWrapper.h>
+int main( void ) { libOpenHevcInit(1, 1); return 0; }
 EOF
 if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS $ohevc_ldflags 2> /dev/null  ; then
   has_openhevc="yes"
@@ -1512,12 +1517,12 @@ if test "$cross_prefix" = "" ; then
             fi
         fi
 
-        cat > $TMPCPP << EOF
+        cat > $TMPCXX << EOF
 #include <wx/wx.h>
 int main( void ) { return 0; }
 EOF
 
-        if $cc $wx_cflags -o $TMPO $TMPCPP $wx_lflags > /dev/null 2>&1 ; then
+        if $cc $wx_cflags -o $TMPO $TMPCXX $wx_lflags > /dev/null 2>&1 ; then
             wx_version=`wx-config --version | sed 's/[^0-9]//g'`
             if test "$wx_version" -lt 254 ; then
                 wx_too_old="yes"
@@ -2075,12 +2080,12 @@ fi
 
 
 #look for GECKO support
-cat > $TMPCPP << EOF
+cat > $TMPCXX << EOF
 #include <npapi.h>
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPCPP -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
+if $cc -o $TMPO $TMPCXX -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
     has_xul="system"
     xul_flags="-I$xulsdk_path $xul_flags"
 fi
@@ -2088,7 +2093,7 @@ fi
 if test "$pkg_config" != "no"; then
   if test "$has_xul" = "no" ; then
     if $pkg_config --exists libxul 2> /dev/null ; then
-        if $cpp -o $TMPO $TMPCPP `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
+        if $cxx -o $TMPO $TMPCXX `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
             has_xul="system"
             xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
         fi
@@ -2097,13 +2102,13 @@ if test "$pkg_config" != "no"; then
 fi
 
 if test "$has_xul" = "no" ; then
-    if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS 2> /dev/null  ; then
+    if $cc -o $TMPO $TMPCXX $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS 2> /dev/null  ; then
         has_xul="local"
         xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
     else
         #xulrunner directories are sometimes included through js/xul/ff packages
         if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
-            if $cc -o $TMPO $TMPCPP $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
+            if $cc -o $TMPO $TMPCXX $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
                 if test "$mozjs_pkgcfg" != "no" ; then
                     xul_flags=`$pkg_config --cflags $mozjs_pkgcfg`
                     has_xul="$has_js"
@@ -2352,7 +2357,7 @@ echo "** System Configuration"
 echo "Install prefix: $prefix"
 echo "Source path: $source_path"
 echo "C   compiler: $cc_naked"
-echo "C++ compiler: $cpp_naked"
+echo "C++ compiler: $cxx_naked"
 echo "make: $make"
 echo "CPU: $cpu"
 echo "Big Endian: $bigendian"
@@ -2698,7 +2703,7 @@ CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
 if test "$win32" = "no" ; then
     CFLAGS="$CFLAGS -fvisibility=\"hidden\""
 fi
-CPPFLAGS="$CPPFLAGS"
+CXXFLAGS="$CXXFLAGS"
 
 
 echo "Creating config.mak"
@@ -2732,7 +2737,7 @@ echo "LIBTOOL=libtool" >> config.mak
 
 echo "INSTFLAGS=$instflags" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak
-echo "CPPFLAGS=$CPPFLAGS" >> config.mak
+echo "CXXFLAGS=$CXXFLAGS" >> config.mak
 echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
 echo "libdir=$libdir" >> config.mak
@@ -3146,7 +3151,7 @@ else
 fi
 
 
-rm -f $TMPO $TMPC $TMPE $TMPS $TMPCPP $TMPH
+rm -f $TMPO $TMPC $TMPE $TMPS $TMPCXX $TMPH
 
 
 if [ ! -d "./bin" ] ; then

@@ -177,9 +177,9 @@ Bool visual_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState
 {
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d) {
-		GF_Err e = visual_3d_draw_frame(visual, root, tr_state, is_root_visual);
+		Bool res = visual_3d_draw_frame(visual, root, tr_state, is_root_visual);
 		visual_clean_contexts(visual);
-		return e;
+		return res;
 	}
 #endif
 	return visual_2d_draw_frame(visual, root, tr_state, is_root_visual);

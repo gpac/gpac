@@ -276,7 +276,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	if (! (*codec)) return GF_OUT_OF_MEM;
 
 	/*setup MPEG-4 video streams*/
-	if ((ffd->st==GF_STREAM_VISUAL)) {
+	if (ffd->st==GF_STREAM_VISUAL) {
 		/*for all MPEG-4 variants get size*/
 		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) || (ffd->oti == GPAC_OTI_VIDEO_AVC) || (ffd->oti == GPAC_OTI_VIDEO_HEVC)) {
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where

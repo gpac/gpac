@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/freenect
 
-CFLAGS= $(CPPFLAGS) -I"$(SRC_PATH)/include" $(FREENECT_CFLAGS)
+CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include" $(FREENECT_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

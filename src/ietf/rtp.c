@@ -227,7 +227,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//Bind to multicast (auto-join the group). 
 			//we do not bind the socket if this is a source-only channel because some servers
 			//don't like that on local loop ...
-			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, (IsSource==2), local_ip);
+			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, 0, local_ip);
 			if (e) return e;
 		}
 		if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
@@ -266,7 +266,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		} else {
 			if (!ch->net_info.port_last) ch->net_info.port_last = ch->net_info.client_port_last;
 			//Bind to multicast (auto-join the group)
-			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, (IsSource==2), local_ip);
+			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, 0, local_ip);
 			if (e) return e;
 		}
 	}

@@ -304,7 +304,7 @@ typedef enum
 GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile, 
 							   const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
 							   const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, 
-							   Bool use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
+							   u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
 							   Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 segment_marker_4cc,
 							   Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,  
 							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, 

@@ -37,7 +37,8 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *as
 
 Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc)
 {
-	Bool check_fill, check_stroke, check_over, check_outline, check_vis, inside;
+	u32 check_fill, check_stroke;
+	Bool check_over, check_outline, check_vis, inside;
 	GF_Rect rc;
 	u8 ptr_evt;
 

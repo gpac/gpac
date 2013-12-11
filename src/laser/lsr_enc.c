@@ -720,7 +720,7 @@ u32 dom_to_lsr_key(u32 dom_k)
 }
 static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 {
-	Bool force_string = 0;
+	u32 force_string = 0;
 	switch (evtType) {
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_LONGKEYPRESS:
@@ -2446,7 +2446,7 @@ static void lsr_write_path(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
 static void lsr_write_polygon(GF_LASeRCodec *lsr, SVG_Element *elt, Bool is_polyline, Bool ommit_tag)
 {
 	Bool same_fill, same_stroke;
-	Bool same_type = 0;
+	u32 same_type = 0;
 
 	SVGAllAttributes atts;
 	gf_svg_flatten_attributes(elt, &atts);
@@ -2503,7 +2503,7 @@ static void lsr_write_radialGradient(GF_LASeRCodec *lsr, SVG_Element *elt)
 }
 static void lsr_write_rect(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
 {
-	Bool same_type = 0;
+	u32 same_type = 0;
 	Bool same_fill;
 	SVGAllAttributes atts;
 	gf_svg_flatten_attributes(elt, &atts);

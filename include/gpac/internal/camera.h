@@ -131,7 +131,8 @@ typedef struct _camera
 	u32 navigation_flags, navigate_mode;
 	SFVec3f avatar_size;
 	Fixed visibility, speed;
-	Bool had_viewpoint, had_nav_info;
+	Bool had_nav_info;
+	u32 had_viewpoint;
 
 	/*last camera position before collision& gravity detection*/
 	SFVec3f last_pos;

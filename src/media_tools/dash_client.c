@@ -3549,7 +3549,7 @@ static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u32 time)
 		}
 		cumul_start+=period->duration;
 	}
-	return (i-1 >= 0 ? (i-1) : 0);
+	return (i>=1 ? (i-1) : 0);
 }
 
 static void gf_dash_download_stop(GF_DashClient *dash)
@@ -4266,7 +4266,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_3cc)
 GF_EXPORT
 Bool gf_dash_is_running(GF_DashClient *dash) 
 {
-	return dash->dash_state;
+	return (dash->dash_state==GF_DASH_STATE_STOPPED) ? 0 : 1;
 }
 
 GF_EXPORT

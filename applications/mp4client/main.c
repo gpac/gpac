@@ -60,7 +60,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
 
-static Bool gui_mode = GF_FALSE;
+static u32 gui_mode = 0;
 
 static Bool restart = GF_FALSE;
 static Bool reload = GF_FALSE;
@@ -87,7 +87,7 @@ FILE *playlist = NULL;
 static Bool readonly_playlist = GF_FALSE;
 
 static GF_Config *cfg_file;
-static Bool display_rti = GF_FALSE;
+static u32 display_rti = 0;
 static Bool Run;
 static Bool CanSeek = GF_FALSE;
 static char the_url[GF_MAX_PATH];
@@ -1013,7 +1013,7 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-fill")) {
 			fill_ar = GF_TRUE;
 		} else if (!strcmp(arg, "-gui")) {
-			gui_mode = GF_TRUE;
+			gui_mode = 1;
 		} else if (!strcmp(arg, "-guid")) {
 			gui_mode = 2;
 		} else if (!strcmp(arg, "-show")) {

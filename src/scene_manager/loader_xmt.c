@@ -1857,7 +1857,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 {
 	GF_Err e;
 	u32 i;
-	Bool fake_desc = 0;
+	u32 fake_desc = 0;
 	GF_Descriptor *desc;
 	char *xmt_desc_name = NULL, *ocr_ref = NULL, *dep_ref = NULL;
 	u32 binaryID = 0;
