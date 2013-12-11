@@ -123,7 +123,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	Bool au_start_in_pes=0;
 	Bool prev_is_au_delim=0;
 	Bool force_new_au=0;
-	Bool start_code_found = 0;
+	u32 start_code_found = 0;
 	Bool short_start_code = 0;
 	Bool esc_code_found = 0;
 	u32 nal_type, sc_pos = 0;
@@ -2297,8 +2297,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		//this will stop you when processing invalid (yet existing) mpeg2ts streams in debug
-		assert(af_size>=0 && af_size<=182);
-		if ( !(af_size>=0 && af_size<=182))
+		assert( af_size<=182);
+		if (af_size>182)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Detected wrong adaption field size %u when control value is 3\n", af_size));
 		if (af_size) gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		pos += 1+af_size;

@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/platinum
 
-CFLAGS= $(CPPFLAGS) -I"$(SRC_PATH)/include" -I$(SRC_PATH)/extra_lib/include/platinum/ -DGPAC_HAVE_CONFIG_H -I../..
+CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include" -I$(SRC_PATH)/extra_lib/include/platinum/ -DGPAC_HAVE_CONFIG_H -I../..
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

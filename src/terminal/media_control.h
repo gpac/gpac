@@ -61,7 +61,7 @@ typedef struct _media_control
 	/*stream owner's clock*/
 	GF_Clock *ck;
 
-	Bool changed;
+	u32 changed;
 	Bool is_init;
 	Bool paused;
 	u32 prev_active;

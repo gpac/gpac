@@ -404,7 +404,7 @@ static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
 }
 
 
-void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shutdown)
+void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shutdown)
 {
 	u32 i;
 	GF_MediaObject *obj;

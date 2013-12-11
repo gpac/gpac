@@ -70,7 +70,7 @@ typedef struct
 	const char *mpd_name, *seg_rad_name, *seg_ext;
 	s32 subsegs_per_sidx;
 	Bool daisy_chain_sidx;
-	Bool use_url_template;
+	u32 use_url_template;
 	Bool use_segment_timeline;
 	u32 single_file_mode;
 	u32 segment_marker_4cc;
@@ -3983,7 +3983,7 @@ GF_EXPORT
 GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile dash_profile, 
 							   const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
 							   const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, 
-							   Bool use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching, 
+							   u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching, 
 							   Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
 							   Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
 							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, 

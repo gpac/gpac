@@ -35,7 +35,7 @@ void RP_SendFailure(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	gf_term_on_message(sess->owner->service, e, sMsg);
 }
 
-Bool RP_ProcessResponse(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
+GF_Err RP_ProcessResponse(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	if (!strcmp(com->method, GF_RTSP_DESCRIBE)) 
 		return RP_ProcessDescribe(sess, com, e);

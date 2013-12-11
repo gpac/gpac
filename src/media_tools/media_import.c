@@ -2904,7 +2904,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	s64 media_size, media_done, offset;
 	u64 duration, sample_duration;
 	FILE *nhml, *mdia, *info;
-	char *dictionary;
+	char *dictionary = NULL;
 	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
@@ -2966,7 +2966,6 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, root->name);
 		goto exit;
 	}
-	dictionary = NULL;
 	use_dict = 0;
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
 	tkID = mtype = streamType = oti = par_den = par_num = 0;
@@ -4187,7 +4186,7 @@ static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
-	Bool use_opengop_gdr = 0;
+	u32 use_opengop_gdr = 0;
 	u32 last_svc_sps;
 	u32 prev_nalu_prefix_size, res_prev_nalu_prefix;
 	u8 priority_prev_nalu_prefix;
@@ -5080,7 +5079,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
-	Bool use_opengop_gdr = 0;
+	u32 use_opengop_gdr = 0;
 
 	Double FPS;
 	char *buffer;

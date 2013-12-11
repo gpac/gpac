@@ -222,7 +222,7 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene);
 void gf_scene_del(GF_Scene *scene);
 struct _od_manager *gf_scene_find_odm(GF_Scene *scene, u16 OD_ID);
 void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown);
-void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shutdown);
+void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
 void gf_scene_buffering_info(GF_Scene *scene);
 void gf_scene_attach_to_compositor(GF_Scene *scene);
@@ -680,7 +680,7 @@ struct _es_channel
 	Bool is_protected;
 
 	/*indicates that AU received will be copied to the composition memory*/
-	Bool is_raw_channel;
+	u32 is_raw_channel;
 
 	u32 resync_drift;
 	s32 prev_pcr_diff;
@@ -967,7 +967,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
 /*setup OD*/
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *parent_serv);
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
-void gf_odm_disconnect(GF_ObjectManager *odman, Bool do_remove);
+void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
 /*setup an ESD*/
 GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *service, GF_MediaObject *sync_ref);
 /*removes an ESD (this destroys associated channel if any)*/

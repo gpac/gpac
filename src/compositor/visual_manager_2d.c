@@ -784,6 +784,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	GF_SceneGraph *sg;
 	GF_Matrix2D backup;
 	u32 i;
+	Bool res;
 	GF_Err e;
 #ifndef GPAC_DISABLE_LOG
 	u32 itime, time = gf_sys_clock();
@@ -825,7 +826,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 #endif
 
 	gf_mx2d_copy(tr_state->transform, backup);
-	e = visual_2d_terminate_draw(visual, tr_state);
+	res = visual_2d_terminate_draw(visual, tr_state);
 	
 #ifndef GPAC_DISABLE_LOG
 	if (!tr_state->immediate_draw) {
@@ -833,7 +834,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	}
 #endif
 
-	return e;
+	return res;
 }
 
 

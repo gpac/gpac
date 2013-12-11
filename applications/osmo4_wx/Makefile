@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.cpp $(SRC_PATH)/applications/osmo4_wx
 
-CFLAGS= $(CPPFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

@@ -12,7 +12,7 @@ MOZILLA_DIR=local
 endif
 endif
 
-CFLAGS=$(CPPFLAGS) $(XUL_CFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS=$(CXXFLAGS) $(XUL_CFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

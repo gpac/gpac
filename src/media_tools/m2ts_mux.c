@@ -1279,8 +1279,6 @@ static u32 gf_m2ts_stream_get_pes_header_length(GF_M2TS_Mux_Stream *stream)
 	if ( flags & GF_ESI_DATA_AU_START) {
 		if (flags & GF_ESI_DATA_HAS_CTS) hdr_len += 5;
 		if (flags & GF_ESI_DATA_HAS_DTS) hdr_len += 5;
-	} else {
-		hdr_len = hdr_len;
 	}
 	return hdr_len;
 }

@@ -469,7 +469,7 @@ static Bool scene_dump_vrml_find_route_name(GF_SceneDumper *sdump, u32 ID, const
 
 	i=0;
 	while ((com = (GF_Command *)gf_list_enum(sdump->inserted_routes, &i))) {
-		if ((com->tag == GF_SG_ROUTE_INSERT)) {
+		if (com->tag == GF_SG_ROUTE_INSERT) {
 			if (com->RouteID==ID) {
 				(*outName) = com->def_name;
 				return 1;

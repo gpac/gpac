@@ -127,7 +127,7 @@ Bool gf_odm_lock_mo(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
+void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 {
 	GF_Terminal *term;
 	GF_Channel *ch;
@@ -1210,10 +1210,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 	}
 
 	/*in case a channel is inserted in a running OD, open and play if not in queue*/
-	if ( (ch->odm->state==GF_ODM_STATE_PLAY) 
-		/*HACK: special case when OD resources are statically described in the ESD itself (ISMA streaming)*/
-//		|| 	(dec && (dec->flags & GF_ESM_CODEC_IS_STATIC_OD)) 
-	) {
+	if (ch->odm->state==GF_ODM_STATE_PLAY) {
 
 		gf_term_lock_media_queue(ch->odm->term, 1);
 		gf_list_del_item(ch->odm->term->media_queue, ch->odm);
@@ -1703,11 +1700,9 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 #ifndef GPAC_DISABLE_VRML
 	/*reset media sensor(s)*/
-	if (force_close!=2) {
-		i = 0;
-		while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))){
-			MS_Stop(media_sens);
-		}
+	i = 0;
+	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))){
+		MS_Stop(media_sens);
 	}
 	/*reset media control state*/
 	ctrl = gf_odm_get_mediacontrol(odm);

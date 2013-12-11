@@ -239,7 +239,7 @@ struct __tag_compositor
 	u32 interaction_sensors;
 
 	/*set whenever 3D HW ctx changes (need to rebuild dlists/textures if any used)*/
-	Bool reset_graphics;
+	u32 reset_graphics;
 
 	/*font engine*/
 	GF_FontManager *font_manager;
@@ -250,7 +250,8 @@ struct __tag_compositor
 	/*options*/
 	u32 aspect_ratio, antiAlias, texture_text_mode;
 	Bool high_speed, stress_mode;
-	Bool force_opengl_2d, was_opengl;
+	Bool was_opengl;
+	u32 force_opengl_2d;
 #ifdef OPENGL_RASTER
 	Bool opengl_raster;
 #endif
@@ -335,7 +336,8 @@ struct __tag_compositor
 	/*screen buffer for direct access*/
 	GF_VideoSurface hw_surface;
 	/*output buffer is configured in video memory*/
-	Bool video_memory, request_video_memory, was_system_memory;
+	u32  video_memory;
+	Bool request_video_memory, was_system_memory;
 	/*indicate if overlays were prezsent in the previous frame*/
 	Bool last_had_overlays;
 	GF_RasterCallback raster_callbacks;

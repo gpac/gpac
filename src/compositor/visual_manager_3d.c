@@ -314,7 +314,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 	} else 
 #endif
 	if (tr_state->camera->had_viewpoint) {
-		Bool had_vp = tr_state->camera->had_viewpoint;
+		u32 had_vp = tr_state->camera->had_viewpoint;
 		tr_state->camera->had_viewpoint = 0;
 		if (tr_state->camera->is_3D) {
 			SFVec3f pos, center;

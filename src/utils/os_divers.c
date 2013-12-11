@@ -191,7 +191,7 @@ GF_Err gf_mkdir(char* DirPathName)
 	return GF_OK;
 }
 
-static Bool delete_carousel_data(void *cbck, char *item_name, char *item_path)
+static Bool delete_dir(void *cbck, char *item_name, char *item_path)
 {
 	Bool directory_clean_mode = *(Bool*)cbck;
 
@@ -201,7 +201,7 @@ static Bool delete_carousel_data(void *cbck, char *item_name, char *item_path)
 	}else{
 		gf_delete_file(item_path);		
 	}	
-	return GF_OK;
+	return 0;
 }
 
 GF_Err gf_cleanup_dir(char* DirPathName)
@@ -209,9 +209,9 @@ GF_Err gf_cleanup_dir(char* DirPathName)
 	Bool directory_clean_mode;
 
 	directory_clean_mode = 1;
-	gf_enum_directory(DirPathName, 1, delete_carousel_data, &directory_clean_mode, NULL);														
+	gf_enum_directory(DirPathName, 1, delete_dir, &directory_clean_mode, NULL);														
 	directory_clean_mode = 0;
-	gf_enum_directory(DirPathName, 0, delete_carousel_data, &directory_clean_mode, NULL);
+	gf_enum_directory(DirPathName, 0, delete_dir, &directory_clean_mode, NULL);
 
 	return GF_OK;
 }

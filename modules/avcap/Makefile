@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/avcap
 
-CFLAGS= $(CPPFLAGS) -I"$(SRC_PATH)/include" $(AVCAP_CFLAGS)
+CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include" $(AVCAP_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

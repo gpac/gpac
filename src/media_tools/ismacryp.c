@@ -1071,7 +1071,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			if (svccfg) gf_odf_avc_cfg_del(svccfg);
 			is_nalu_video = GF_TRUE;
 		}
-		else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC)) {
+		else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
 			GF_HEVCConfig *hevccfg = gf_isom_hevc_config_get(mp4, track, 1);
 			if (hevccfg)
 				nalu_size_length = hevccfg->nal_unit_size;
@@ -1263,7 +1263,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_Err e;
 	u32 track, count, i, j, si, max_size, subsample_count, nb_samp_decrypted;
 	u64 BSO;
-	GF_ISOSample *samp;
+	GF_ISOSample *samp = NULL;
 	GF_Crypt *mc;
 	char IV[17];
 	Bool prev_sample_encrypted;

@@ -434,7 +434,7 @@ const char *gf_dom_get_key_name(u32 key_identifier)
 u32 gf_dom_get_key_type(char *key_name)
 {
 	if (strlen(key_name) == 1) {
-		char c[2];
+		unsigned char c[2];
 		c[0] = key_name[0];
 		c[1] = 0;
 		strupr(c);
@@ -476,7 +476,7 @@ u32 gf_dom_get_key_type(char *key_name)
 		case '{': return GF_KEY_LEFTCURLYBRACKET;
 		case '|': return GF_KEY_PIPE;
 		case '}': return GF_KEY_RIGHTCURLYBRACKET;
-		case '¡': return GF_KEY_INVERTEXCLAMATION;
+		case 0xA1: return GF_KEY_INVERTEXCLAMATION;
 		default: return GF_KEY_UNIDENTIFIED;
 		}
 	} else {
@@ -1352,7 +1352,7 @@ Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 }
 
 /* Parses an SVG transform attribute and collapses all in the given matrix */
-static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
+static GF_Err svg_parse_transform(SVG_Transform *t, char *attribute_content)
 {
 	char *str;
 	u32 i;
@@ -1403,11 +1403,11 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 			return GF_BAD_PARAM;
 		}
 	} else {
-		read_chars = gf_svg_parse_transformlist(&t->mat, attribute_content);
-        if (!read_chars) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error parsing transform list: %s\n", attribute_content));
-            return GF_BAD_PARAM;
-        }
+		Bool res = gf_svg_parse_transformlist(&t->mat, attribute_content);
+	        if (!res) {
+	            GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error parsing transform list: %s\n", attribute_content));
+	            return GF_BAD_PARAM;
+	        }
 	}
 	return GF_OK;
 }

@@ -111,7 +111,7 @@ struct _visual_manager
 	/*top clipper (may be different than surf_rect when a viewport is active)*/
 	GF_IRect top_clipper;
 
-	Bool last_had_back;
+	u32 last_had_back;
 
 	/*signals that the hardware surface is attached to buffer/device/stencil*/
 	Bool is_attached;
