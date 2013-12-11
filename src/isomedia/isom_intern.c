@@ -321,7 +321,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				if (mov->last_producer_ref_time)
 					gf_isom_box_del(a);
 				else
-					mov->last_producer_ref_time = a;
+					mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;
 				break;
 			}
 			//fallthrough
