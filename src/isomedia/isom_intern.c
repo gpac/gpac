@@ -316,12 +316,15 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			break;
 
 		case GF_ISOM_BOX_TYPE_PRFT:
-			mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;
-			//fallthrough
 			if (!(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
-				gf_isom_box_del(a);
+				//keep the last one read
+				if (mov->last_producer_ref_time)
+					gf_isom_box_del(a);
+				else
+					mov->last_producer_ref_time = a;
 				break;
 			}
+			//fallthrough
 
 
 		default:

@@ -389,12 +389,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 	//temp hack 
 	mpd->media_presentation_duration = 0;
-	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift*1000 + group->dash->utc_drift_estimate;
-	
-	ast_diff = (u32) (availabilityStartTime - group->dash->mpd->availabilityStartTime);
-	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
-	current_time = fetch_time;
 
+	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
 	if (group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
 		const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
 		if (val) {
@@ -413,6 +409,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 		}
 	}
+
+
+	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
+	
+	ast_diff = (u32) (availabilityStartTime - group->dash->mpd->availabilityStartTime);
+	current_time = fetch_time;
+
 
 
 	if (current_time < availabilityStartTime) {
