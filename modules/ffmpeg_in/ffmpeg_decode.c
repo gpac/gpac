@@ -1156,7 +1156,7 @@ static const char *FFDEC_GetCodecName(GF_BaseDecoder *dec)
 		return NULL;
 	ffd = dec->privateStack;
 	if (ffd && ffd->base_codec) {
-		sprintf(ffd->szCodec, "FFMPEG %s", ffd->base_codec->name ? ffd->base_codec->name : "unknown");
+		sprintf(ffd->szCodec, "FFMPEG %s - version %s", ffd->base_codec->name ? ffd->base_codec->name : "unknown", LIBAVCODEC_IDENT);
 		return ffd->szCodec;
 	}
 	return NULL;
