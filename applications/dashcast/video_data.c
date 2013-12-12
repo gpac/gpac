@@ -61,7 +61,7 @@ int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int 
 		VideoDataNode *video_data_node;
 		GF_SAFEALLOC(video_data_node, VideoDataNode);
 		video_input_data->circular_buf.list[i].data = (void *) video_data_node;
-		video_data_node->vframe = avcodec_alloc_frame();
+		video_data_node->vframe = FF_ALLOC_FRAME();
 	}
 
 	return 0;

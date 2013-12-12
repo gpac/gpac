@@ -44,5 +44,11 @@
 #define AV_CH_LAYOUT_STEREO (AV_CH_FRONT_LEFT|AV_CH_FRONT_RIGHT)
 #endif
 
+#if (LIBAVCODEC_VERSION_MAJOR<=55) && (LIBAVCODEC_VERSION_MINOR<=40)
+#define FF_ALLOC_FRAME avcodec_alloc_frame
+#else
+#define FF_ALLOC_FRAME av_frame_alloc
+#endif
+
 #endif
 
