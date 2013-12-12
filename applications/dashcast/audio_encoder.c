@@ -34,7 +34,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	int osize;
 
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
-	audio_output_file->aframe = avcodec_alloc_frame();
+	audio_output_file->aframe = FF_ALLOC_FRAME();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {

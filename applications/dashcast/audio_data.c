@@ -64,7 +64,7 @@ int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int
 		audio_data_node->abuf = gf_malloc(audio_data_node->abuf_size * sizeof(uint8_t));
 	}
 
-	audio_input_data->aframe = avcodec_alloc_frame();
+	audio_input_data->aframe = FF_ALLOC_FRAME();
 	if (audio_input_data->aframe == NULL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize AudioInputData"));
 		return -1;

@@ -34,9 +34,9 @@ VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int cro
 {
 	VideoScaledDataNode *video_scaled_data_node = gf_malloc(sizeof(VideoDataNode));
 	if (video_scaled_data_node) {
-		video_scaled_data_node->v_frame = avcodec_alloc_frame();
+		video_scaled_data_node->v_frame = FF_ALLOC_FRAME();
 		if (crop_x || crop_y) {
-			video_scaled_data_node->cropped_frame = avcodec_alloc_frame();
+			video_scaled_data_node->cropped_frame = FF_ALLOC_FRAME();
 		} else {
 			video_scaled_data_node->cropped_frame = NULL;
 		}
