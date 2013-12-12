@@ -862,6 +862,13 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	gf_bs_write_int(bs, cfg->temporalIdNested, 1);
 	gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
 
+	if (cfg->is_shvc) {
+		gf_bs_write_int(bs, cfg->complete_representation, 1);
+		gf_bs_write_int(bs, cfg->non_hevc_base_layer, 1);
+		gf_bs_write_int(bs, cfg->num_layers ? cfg->num_layers - 1 : 0, 6);
+		gf_bs_write_int(bs, cfg->scalability_mask, 16);
+	}
+
 	count = gf_list_count(cfg->param_array);
 	gf_bs_write_int(bs, count, 8);
 	for (i=0; i<count; i++) {
@@ -897,11 +904,10 @@ GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs)
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 {
 	u32 i, count;
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_new();
-
 
 	cfg->configurationVersion = gf_bs_read_int(bs, 8);
 	cfg->profile_space = gf_bs_read_int(bs, 2);
@@ -935,6 +941,13 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs)
 
 	cfg->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 
+	if (is_shvc) {
+		cfg->is_shvc = 1;
+		cfg->complete_representation = gf_bs_read_int(bs, 1);
+		cfg->non_hevc_base_layer = gf_bs_read_int(bs, 1);
+		cfg->num_layers = 1 + gf_bs_read_int(bs, 6);
+		cfg->scalability_mask = gf_bs_read_int(bs, 16);
+	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
@@ -962,10 +975,10 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size)
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_shvc)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
-	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs);
+	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs, is_shvc);
 	gf_bs_del(bs);
 	return cfg;
 }

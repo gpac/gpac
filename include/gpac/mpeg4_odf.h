@@ -921,6 +921,15 @@ typedef struct
 	u8 nal_unit_size;
 	
 	GF_List *param_array;
+
+	//set by libisomedia at impport/export time
+	Bool is_shvc;
+
+	//used in SHVC config
+	Bool complete_representation;
+	Bool non_hevc_base_layer;
+	u8 num_layers;
+	u16 scalability_mask;
 } GF_HEVCConfig;
 
 /************************************************************
@@ -1121,8 +1130,8 @@ GF_HEVCConfig *gf_odf_hevc_cfg_new();
 void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg);
 GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
 GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize);
-GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs);
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size);
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc);
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_shvc);
 
 /*destroy the descriptors in a list but not the list*/
 GF_Err gf_odf_desc_list_del(GF_List *descList);

@@ -1961,8 +1961,13 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 			if (!splitAll) layer_id = 1;
 
-			if (!sti[layer_id].shvccfg)
+			if (!sti[layer_id].shvccfg) {
 				sti[layer_id].shvccfg = gf_odf_hevc_cfg_new();
+				sti[layer_id].shvccfg->is_shvc = 1;
+				sti[layer_id].shvccfg->complete_representation = 1;
+				sti[layer_id].shvccfg->num_layers = 1;
+				//TODO - set scalability mask flag
+			}
 
 			s_ar = alloc_hevc_param_array(sti[layer_id].shvccfg, ar->type);
 			gf_list_add(s_ar->nalus, sl);

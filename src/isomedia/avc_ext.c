@@ -599,7 +599,7 @@ GF_HEVCConfig *HEVC_DuplicateConfig(GF_HEVCConfig *cfg)
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 
-	new_cfg = gf_odf_hevc_cfg_read_bs(bs);
+	new_cfg = gf_odf_hevc_cfg_read_bs(bs, cfg->is_shvc);
 	gf_bs_del(bs);
 	gf_free(data);
 	return new_cfg;
@@ -822,7 +822,7 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 			if (!avc->hevc_config) avc->hevc_config = (GF_HEVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 				if (avc->hevc_config->config) gf_odf_hevc_cfg_del(avc->hevc_config->config);
-				avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
 			}
 		} else {
 			if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
@@ -1226,6 +1226,7 @@ GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32
 
 GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_add)
 {
+	if (cfg) cfg->is_shvc = 1;
 	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? 2 : 3);
 }
 
@@ -1714,7 +1715,7 @@ GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->config) gf_odf_hevc_cfg_del(ptr->config);
 	
 	pos = gf_bs_get_position(bs);
-	ptr->config = gf_odf_hevc_cfg_read_bs(bs);
+	ptr->config = gf_odf_hevc_cfg_read_bs(bs, (s->type == GF_ISOM_BOX_TYPE_HVCC) ? 0 : 1);
 	pos = gf_bs_get_position(bs) - pos ;
 	if (pos < ptr->size)
 		ptr->size -= (u32) pos;
@@ -1754,6 +1755,9 @@ GF_Err hvcc_Size(GF_Box *s)
 		return e;
 	}
 	ptr->size += 23;
+	if (ptr->config->is_shvc) {
+		ptr->size += 3;
+	}
 
 	count = gf_list_count(ptr->config->param_array);
 	for (i=0; i<count; i++) {

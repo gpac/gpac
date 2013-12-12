@@ -47,7 +47,6 @@ static void DumpData(FILE *trace, char *data, u32 dataLength)
 	u32 i;
 	fprintf(trace, "data:application/octet-string,");
 	for (i=0; i<dataLength; i++) {
-		fprintf(trace, "%%");
 		fprintf(trace, "%02X", (unsigned char) data[i]);
 	}
 }
@@ -1753,6 +1752,10 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
 		p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
+
+	if (p->config->is_shvc) {
+		fprintf(trace, " completeRepresentation=\"%d\" nonHEVCBaseLayer=\"%d\" numLayers=\"%d\" scalabilityMask=\"%016b\" ", p->config->complete_representation, p->config->non_hevc_base_layer, p->config->num_layers, p->config->scalability_mask);
+	}
 
 	fprintf(trace, ">\n");
 

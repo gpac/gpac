@@ -1418,10 +1418,10 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 }
 
 #ifndef GPAC_DISABLE_HEVC
-void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, const char *name)
+void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg)
 {
 	u32 k;
-	fprintf(stderr, "\t%s Info: Profile IDC %d - Level IDC %d - Chroma Format %d\n", name, hevccfg->profile_idc, hevccfg->level_idc, hevccfg->chromaFormat);
+	fprintf(stderr, "\t%s Info: Profile IDC %d - Level IDC %d - Chroma Format %d\n", hevccfg->is_shvc ? "SHVC" : "HEVC", hevccfg->profile_idc, hevccfg->level_idc, hevccfg->chromaFormat);
 	fprintf(stderr, "\tNAL Unit length bits: %d - general profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->general_profile_compatibility_flags);
 	fprintf(stderr, "\tParameter Sets: ");
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
@@ -1456,6 +1456,9 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 		}
 	}
 	fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
+	if (hevccfg->is_shvc) {
+		fprintf(stderr, "\t%sNum Layers: %d (scalability mask 0x%02X)%s\n", hevccfg->non_hevc_base_layer ? "Non-HEVC base layer - " : "", hevccfg->num_layers, hevccfg->scalability_mask, hevccfg->complete_representation ? "" : " - no VCL data");
+	}
 }
 #endif
 
@@ -1641,12 +1644,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					} 
 					if (hevccfg) {
-						dump_hevc_track_info(file, trackNum, hevccfg, "HEVC");
+						dump_hevc_track_info(file, trackNum, hevccfg);
 						gf_odf_hevc_cfg_del(hevccfg);
 						fprintf(stderr, "\n");
 					}
 					if (shvccfg) {
-						dump_hevc_track_info(file, trackNum, shvccfg, "SHVC");
+						dump_hevc_track_info(file, trackNum, shvccfg);
 						gf_odf_hevc_cfg_del(shvccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/
