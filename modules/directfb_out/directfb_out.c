@@ -279,6 +279,7 @@ static GF_Err DirectFBVid_LockBackBuffer(GF_VideoOutput *driv, GF_VideoSurface *
 		if (ret != 0) return GF_IO_ERR;
 
 		// fetch data
+		memset(video_info, 0, sizeof(GF_VideoSurface));
 		video_info->width = DirectFBVid_CtxGetWidth(ctx);
 		video_info->height = DirectFBVid_CtxGetHeight(ctx);
 		video_info->pitch_x = 0;

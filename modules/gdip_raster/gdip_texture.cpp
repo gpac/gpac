@@ -422,6 +422,7 @@ void gdip_convert_texture(struct _stencil *sten)
 		sten->conv_buf = (unsigned char *) gf_malloc(sizeof(unsigned char)*sten->conv_size);
 	}
 
+	memset(&src, 0, sizeof(GF_VideoSurface));
 	src.height = sten->height;
 	src.width = sten->width;
 	src.pitch_x  =0;
@@ -429,6 +430,7 @@ void gdip_convert_texture(struct _stencil *sten)
 	src.pixel_format = sten->orig_format;
 	src.video_buffer = (char*)sten->orig_buf;
 
+	memset(&dst, 0, sizeof(GF_VideoSurface));
 	dst.width = sten->width;
 	dst.height = sten->height;
 	dst.pitch_x = 0;

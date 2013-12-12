@@ -606,10 +606,12 @@ assert(txh->data );
 	}
 	out_stride = bpp * ((txh->tx_io->flags & TX_EMULE_POW2) ? txh->tx_io->conv_w : txh->width);
 
+	memset(&dst, 0, sizeof(GF_VideoSurface));
 	dst.width = src.width = txh->width;
 	dst.height = src.height = txh->height;
 	dst.is_hardware_memory = src.is_hardware_memory = 0;
 
+	memset(&src, 0, sizeof(GF_VideoSurface));
 	src.pitch_x = 0;
 	src.pitch_y = txh->stride;
 	src.pixel_format = txh->pixelformat;
@@ -859,6 +861,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		{
 			/*it appears gluScaleImage is quite slow - use ourt own resampler which is not as nice but a but faster*/
 			GF_VideoSurface src, dst;
+			memset(&src, 0, sizeof(GF_VideoSurface));
 			src.width = txh->width;
 			src.height = txh->height;
 			src.pitch_x = 0;
@@ -866,6 +869,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			src.pixel_format = txh->pixelformat;
 			src.video_buffer = txh->data;
 
+			memset(&dst, 0, sizeof(GF_VideoSurface));
 			dst.width = txh->tx_io->rescale_width;
 			dst.height = txh->tx_io->rescale_height;
 			dst.pitch_x = 0;

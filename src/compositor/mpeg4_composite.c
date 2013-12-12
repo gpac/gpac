@@ -85,6 +85,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 
 	if (!compositor_texture_rectangles(visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return 1;
 
+	memset(&video_src, 0, sizeof(GF_VideoSurface));
 	video_src.height = ctx->aspect.fill_texture->height;
 	video_src.width = ctx->aspect.fill_texture->width;
 	video_src.pitch_x = 0;

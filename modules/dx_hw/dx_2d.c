@@ -345,6 +345,7 @@ static GF_Err DD_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do
 	DDCONTEXT;
 
 	if (do_lock) {
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->pixel_format = dd->pixelFormat;
 		return DD_LockSurface(dd, vi, dd->pBack);
 	}
@@ -553,6 +554,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	if (!pool) 
 		return GF_IO_ERR;
 
+	memset(&temp_surf, 0, sizeof(GF_VideoSurface));
 	temp_surf.pixel_format = pool->format;
 	e = DD_LockSurface(dd, &temp_surf, pool->pSurface);
 	if (e) return e;
