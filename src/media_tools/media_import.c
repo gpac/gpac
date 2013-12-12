@@ -5064,7 +5064,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 #else
 	Bool detect_fps;
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
+	u32 i, nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
 	s32 idx, sei_recovery_frame_count;
 	u64 duration;
 	GF_Err e;
@@ -5080,6 +5080,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
 	u32 use_opengop_gdr = 0;
+	u8 layer_ids[64];
 
 	Double FPS;
 	char *buffer;
@@ -5120,7 +5121,8 @@ restart_import:
 	hevc.sps_active_idx = -1;
 	dst_cfg = hevc_cfg = gf_odf_hevc_cfg_new();
 	shvc_cfg = gf_odf_hevc_cfg_new();
-	//shvc_cfg->complete_representation = 1;
+	shvc_cfg->complete_representation = 1;
+	shvc_cfg->non_hevc_base_layer = 0;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 	first_avc = 1;
@@ -5157,6 +5159,8 @@ restart_import:
 
 	e = gf_isom_hevc_config_new(import->dest, track, hevc_cfg, NULL, NULL, &di);
 	if (e) goto exit;
+
+	memset(layer_ids, 0, sizeof(u8)*64);
 
 	sample_data = NULL;
 	sample_is_rap = 0;
@@ -5270,6 +5274,7 @@ restart_import:
 				dst_cfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
 				dst_cfg->numTemporalLayers = hevc.vps[idx].max_sub_layer;
 				dst_cfg->temporalIdNested = hevc.vps[idx].temporal_id_nesting;
+				//TODO set scalability mask
 
 				if (!vpss) {
 					GF_SAFEALLOC(vpss, GF_HEVCParamArray);
@@ -5590,6 +5595,8 @@ restart_import:
 			if (has_vcl_nal) {
 				is_empty_sample = 0;
 			}
+			layer_ids[layer_id] = 1;
+
 
 			//fixme with latest SHVC syntax
 			if (!layer_id && is_slice) {
@@ -5740,7 +5747,7 @@ next_nal:
 
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
-		u32 i, last_cts_samp;
+		u32 last_cts_samp;
 		u64 last_dts, max_cts;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
@@ -5818,6 +5825,12 @@ next_nal:
 
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
 	hevc_cfg->nal_unit_size = shvc_cfg->nal_unit_size = size_length/8;
+
+	shvc_cfg->num_layers = 0;
+	for (i=1; i<64; i++) {
+		if (layer_ids[i]) 
+			shvc_cfg->num_layers ++;
+	}
 
 	if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
