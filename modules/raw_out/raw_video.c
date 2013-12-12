@@ -86,6 +86,7 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 	RAWCTX;
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->pixels;

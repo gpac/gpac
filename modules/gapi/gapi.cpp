@@ -1425,6 +1425,7 @@ static GF_Err GAPI_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool 
 
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->width = gctx->bb_width;
 		vi->height = gctx->bb_height;
 		vi->video_buffer = gctx->backbuffer;

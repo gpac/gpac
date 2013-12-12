@@ -516,6 +516,7 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 		if ( rc->out_3d_type != 0 )
 			return GF_NOT_SUPPORTED;
 
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->texData;

@@ -116,6 +116,7 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 			rc->locked_data = pixels;
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout rc dims: %d:%d\n", rc->height, rc->width));
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->locked_data;

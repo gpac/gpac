@@ -1247,6 +1247,7 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 		visual->overlays = ol->next;
 
 		txh = ol->ctx->aspect.fill_texture;
+		memset(&video_src, 0, sizeof(GF_VideoSurface));
 		video_src.height = txh->height;
 		video_src.width = txh->width;
 		video_src.pitch_x = 0;

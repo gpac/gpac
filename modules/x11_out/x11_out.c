@@ -991,6 +991,7 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		if (xWindow->surface) {
 			vi->width = xWindow->surface->width;
 			vi->height = xWindow->surface->height;

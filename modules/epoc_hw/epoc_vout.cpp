@@ -421,6 +421,7 @@ static GF_Err EVID_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Retrieving backbuffer memory address\n"));
 			ctx->locked_data = (char *)ctx->surface->DataAddress();
 		}
+		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->height = ctx->height;
 		vi->width = ctx->width;
 		vi->is_hardware_memory = 0;

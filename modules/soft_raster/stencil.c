@@ -894,6 +894,7 @@ void evg_set_texture_active(EVGStencil *st)
 		_this->conv_buf = (unsigned char *) gf_malloc(sizeof(unsigned char)*_this->conv_size);
 	}
 
+	memset(&src, 0, sizeof(GF_VideoSurface));
 	src.height = _this->height;
 	src.width = _this->width;
 	src.pitch_x = 0;
@@ -901,6 +902,7 @@ void evg_set_texture_active(EVGStencil *st)
 	src.pixel_format = _this->orig_format;
 	src.video_buffer = (char *)_this->orig_buf;
 
+	memset(&dst, 0, sizeof(GF_VideoSurface));
 	dst.width = _this->width;
 	dst.height = _this->height;
 	dst.pitch_x = _this->Bpp;

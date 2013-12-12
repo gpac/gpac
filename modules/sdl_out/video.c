@@ -1165,6 +1165,7 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 	if (do_lock) {
 		if (!video_info) return GF_BAD_PARAM;
 		if (SDL_LockSurface(ctx->back_buffer)<0) return GF_IO_ERR;
+		memset(video_info, 0, sizeof(GF_VideoSurface));
 		video_info->width = ctx->back_buffer->w;
 		video_info->height = ctx->back_buffer->h;
 		video_info->pitch_x = 0;
@@ -1204,6 +1205,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #endif
 
 		SDL_LockSurface(ctx->back_buffer);
+		memset(&src, 0, sizeof(GF_VideoSurface));
 		src.height = ctx->back_buffer->h;
 		src.width = ctx->back_buffer->w;
 		src.pitch_x = 0;
@@ -1214,6 +1216,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #if SDL_VERSION_ATLEAST(2,0,0)
 		wndSurface  = SDL_GetWindowSurface(ctx->screen);
 		SDL_LockSurface(wndSurface);
+		memset(&dst, 0, sizeof(GF_VideoSurface));
 		dst.height = wndSurface->h;
 		dst.width = wndSurface->w;
 		dst.pitch_x = 0;
