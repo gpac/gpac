@@ -1754,7 +1754,7 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 		p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
 
 	if (p->config->is_shvc) {
-		fprintf(trace, " completeRepresentation=\"%d\" nonHEVCBaseLayer=\"%d\" numLayers=\"%d\" scalabilityMask=\"%016b\" ", p->config->complete_representation, p->config->non_hevc_base_layer, p->config->num_layers, p->config->scalability_mask);
+		fprintf(trace, " completeRepresentation=\"%d\" nonHEVCBaseLayer=\"%d\" numLayers=\"%d\" scalabilityMask=\"0x%02X\" ", p->config->complete_representation, p->config->non_hevc_base_layer, p->config->num_layers, p->config->scalability_mask);
 	}
 
 	fprintf(trace, ">\n");
