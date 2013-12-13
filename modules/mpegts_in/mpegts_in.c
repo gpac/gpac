@@ -1225,7 +1225,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
-		m2ts_flush_data(m2ts, 2);
+		if (plug->query_proxy)
+			m2ts_flush_data(m2ts, 2);
 		return GF_OK;
 	}
 

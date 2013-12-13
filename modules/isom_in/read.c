@@ -944,7 +944,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
-		isor_flush_data(read, 0, 0);
+		if (plug->query_proxy)
+			isor_flush_data(read, 0, 0);
 		return GF_OK;
 	}
 
