@@ -201,6 +201,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 	//fprintf(stdout, "time scale: %d \n", video_codec_ctx->time_base.den);
 
 	gf_isom_set_visual_info(video_output_file->isof, track, di, video_codec_ctx->width, video_codec_ctx->height);
+	gf_isom_set_sync_table(video_output_file->isof, track);
 
 	//inband SPS/PPS
 	if (video_output_file->muxer_type == GPAC_INIT_VIDEO_MUXER_AVC3) {

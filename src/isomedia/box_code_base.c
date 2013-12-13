@@ -5637,7 +5637,7 @@ GF_Err tfhd_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	
-	ptr->trackID = gf_bs_read_u32(bs);
+		ptr->trackID = gf_bs_read_u32(bs);
 
 	//The rest depends on the flags
 	if (ptr->flags & GF_ISOM_TRAF_BASE_OFFSET) {

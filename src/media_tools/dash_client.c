@@ -3422,7 +3422,9 @@ restart_period:
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
 						min_wait = group->force_wait ? group->force_wait : 0;
 						group->force_wait = 0;
-					} else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure < 2*group->current_downloaded_segment_duration)) {
+					}
+					//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost
+					else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration )) {
 						min_wait = group->force_wait ? group->force_wait : 0;
 						group->force_wait = 0;
 					} else {
@@ -3431,13 +3433,16 @@ restart_period:
 							group->time_at_first_failure = 0;
 							group->prev_segment_ok = GF_FALSE;
 						}
+#if 0
 						group->nb_consecutive_fail ++;
 						//we are lost ....
 						if (group->nb_consecutive_fail == 20) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering slow refresh mode\n"));
 							min_wait = 1000;
 //							group->maybe_end_of_stream = 1;
-						} else {
+						} else 
+#endif
+						{
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
 							group->download_segment_index++;
 						}

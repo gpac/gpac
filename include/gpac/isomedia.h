@@ -1324,6 +1324,7 @@ GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
+GF_Err gf_isom_set_sync_table(GF_ISOFile *the_file, u32 trackNumber);
 
 /******************************************************************
 		GENERIC Publishing API

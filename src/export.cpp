@@ -780,6 +780,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_composition_offset_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
