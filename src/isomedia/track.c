@@ -498,6 +498,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			
 			//flags
 			sync = GF_ISOM_GET_FRAG_SYNC(flags);
+			if (trak->Media->information->sampleTable->no_sync_found && sync) {
+				trak->Media->information->sampleTable->no_sync_found = 0;
+			}
 			stbl_AppendRAP(trak->Media->information->sampleTable, sync);
 			pad = GF_ISOM_GET_FRAG_PAD(flags);
 			if (pad) stbl_AppendPadding(trak->Media->information->sampleTable, pad);
