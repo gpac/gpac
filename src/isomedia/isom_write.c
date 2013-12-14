@@ -4595,6 +4595,7 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 	}
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_sync_table(GF_ISOFile *file, u32 track)
 {
 	GF_Err e;
