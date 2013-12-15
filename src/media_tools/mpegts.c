@@ -3339,7 +3339,7 @@ static GF_Err gf_m2ts_demuxer_setup_file(GF_M2TS_Demuxer *ts, char *url)
 
 			gf_f64_seek(ts->file, 0, SEEK_END);
 			ts->file_size = gf_f64_tell(ts->file);
-
+			gf_f64_seek(ts->file, 0, SEEK_SET);
 		}
 	}
 
