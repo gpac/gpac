@@ -40,7 +40,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 
 int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data);
 
-int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data);
+//int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data);
 
 /*
  * Read the decoded audio sample from circular buffer (which is in audio_input_data) 

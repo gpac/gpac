@@ -31,7 +31,11 @@
 #include "libavutil/fifo.h"
 #include "libavformat/avformat.h"
 #include "libavdevice/avdevice.h"
+#ifdef DC_AUDIO_RESAMPLER
+#include "libavresample/avresample.h"
+#endif
 #include "libavutil/mathematics.h"
+#include "libavutil/opt.h"
 #include <gpac/isomedia.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
@@ -69,6 +73,11 @@ typedef struct {
 
 	/* It keeps the index with which encoder access to the circular buffer (as a consumer) */
 	Consumer consumer;
+
+#ifdef DC_AUDIO_RESAMPLER
+	/* Optional audio resampling between the decoder and the encoder */
+	AVAudioResampleContext *aresampler;
+#endif
 
 	/* Variables that encoder needs to encode data */
 	AVFrame *aframe;
