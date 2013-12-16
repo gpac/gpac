@@ -1150,9 +1150,6 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 		res = recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
 		res = recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
-		/* souchay : Added for Linux, if we cannot read, it means we have been disconnected, beahviour may be different
-		 * on some OSs... in such case, a #ifdef directive shoud be used
-		 */
 		if (res == 0)
 		  return GF_IP_CONNECTION_CLOSED;
 	}
