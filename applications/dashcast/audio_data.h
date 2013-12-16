@@ -94,6 +94,10 @@ typedef struct {
 typedef struct {
 	uint8_t *abuf;
 	int abuf_size;
+	uint64_t channel_layout;
+	int sample_rate;
+	int format;
+	int channels;
 } AudioDataNode;
 
 void dc_audio_data_set_default(AudioDataConf *audio_data_conf);
