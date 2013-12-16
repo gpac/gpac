@@ -981,7 +981,7 @@ static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNum
 		if (saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
 			for (j = 0; j < sampleNumber-1; j++)
 				prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
-			size = saiz->sample_info_size[sampleNumber-1];
+			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[sampleNumber-1];
 			break;
 		}
 	}
