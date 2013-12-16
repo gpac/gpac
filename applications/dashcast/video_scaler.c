@@ -129,7 +129,7 @@ int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData 
 
 	dc_circular_buffer_create(&video_scaled_data->circular_buf, video_cb_size, video_input_data->circular_buf.mode, video_scaled_data->num_consumers);
 	for (i=0; i<video_cb_size; i++) {
-		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_input_data->vprop->crop_x, video_input_data->vprop->crop_y, video_scaled_data->out_pix_fmt);
+		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_input_data->vprop[i].crop_x, video_input_data->vprop[i].crop_y, video_scaled_data->out_pix_fmt);
 	}
 
 	return 0;
