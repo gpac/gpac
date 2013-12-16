@@ -617,8 +617,8 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	if (e) return e;
 	
 	//get HTTP/1.0 200 OK
-	if (strncmp(buffer, HTTP_RSP_OK, strlen(HTTP_RSP_OK))) return GF_REMOTE_SERVICE_ERROR;
-
+	if (strncmp(buffer, HTTP_RSP_OK, strlen(HTTP_RSP_OK)))
+		return GF_REMOTE_SERVICE_ERROR;
 
 	//	3. send "POST /sample.mov HTTP/1.0\r\n ..."
 	sess->http = gf_sk_new(GF_SOCK_TYPE_TCP);
