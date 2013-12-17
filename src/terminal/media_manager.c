@@ -663,7 +663,6 @@ u32 gf_term_process_step(GF_Terminal *term)
 		time_taken = term->compositor->frame_duration - time_taken;
 	}
 	if (term->user->init_flags & GF_TERM_NO_REGULATION) return time_taken;
-		time_taken = 0;
 
 	if (2*time_taken >= term->compositor->frame_duration) {
 		gf_sleep(time_taken);
