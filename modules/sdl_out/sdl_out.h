@@ -95,6 +95,8 @@ typedef struct
 
 	u32 last_mouse_move;
 	Bool cursor_on;
+
+	Bool ctrl_down, alt_down, meta_down;
 } SDLVidCtx;
 
 void SDL_DeleteVideo(void *ifce);
