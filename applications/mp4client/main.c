@@ -1148,7 +1148,6 @@ int main (int argc, char **argv)
 	}
 
 	if (gui_mode) {
-		threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD;
 		if (gui_mode==1) {
 			hide_shell(1);
 			user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;

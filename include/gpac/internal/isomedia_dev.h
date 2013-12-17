@@ -2520,7 +2520,7 @@ Bool IsMP4Description(u32 entryType);
 /*Find a reference of a given type*/
 GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceTypeBox **dpnd);
 /*Time and sample*/
-GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit);
+GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit, u64 *next_edit_start_plus_one);
 GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sampleDescriptionIndex, Bool no_data, u64 *out_offset);
 GF_Err Media_CheckDataEntry(GF_MediaBox *mdia, u32 dataEntryIndex);
 GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromTime, u32 *sampleNumber, u8 mode);

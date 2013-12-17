@@ -716,7 +716,7 @@ GF_Err gf_isom_get_media_time(GF_ISOFile *the_file, u32 trackNumber, u32 movieTi
 	if (!trak || !MediaTime) return GF_BAD_PARAM;;
 
 	SegmentStartTime = 0;
-	return GetMediaTime(trak, 0, movieTime, MediaTime, &SegmentStartTime, &mediaOffset, &useEdit);
+	return GetMediaTime(trak, 0, movieTime, MediaTime, &SegmentStartTime, &mediaOffset, &useEdit, NULL);
 }
 
 
@@ -1454,7 +1454,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	Double tsscale;
 	GF_Err e;
 	GF_TrackBox *trak;
-	u64 mediaTime;
+	u64 mediaTime, nextMediaTime;
 	s64 segStartTime, mediaOffset;
 	u32 sampNum;
 	u8 useEdit;
@@ -1486,10 +1486,11 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//get the media time for this movie time...
 	mediaTime = segStartTime = 0;
 	*StreamDescriptionIndex = 0;
+	nextMediaTime = 0;
 
-	e = GetMediaTime(trak, (SearchMode==GF_ISOM_SEARCH_SYNC_FORWARD) ? 1 : 0, movieTime, &mediaTime, &segStartTime, &mediaOffset, &useEdit);
+	e = GetMediaTime(trak, (SearchMode==GF_ISOM_SEARCH_SYNC_FORWARD) ? 1 : 0, movieTime, &mediaTime, &segStartTime, &mediaOffset, &useEdit, &nextMediaTime);
 	if (e) return e;
-
+	
 	/*here we check if we were playing or not and return no sample in normal search modes*/
 	if (useEdit && mediaOffset == -1) {
 		if ((SearchMode==GF_ISOM_SEARCH_FORWARD) || (SearchMode==GF_ISOM_SEARCH_BACKWARD)) {
@@ -1525,7 +1526,12 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 
 	//OK, we have a sample so fetch it
 	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
-	if (e) return e;
+	if (e) {
+		if ((e==GF_EOS) && nextMediaTime) {
+			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber);
+		}
+		return e;
+	}
 
 	//OK, now the trick: we have to rebuild the time stamps, according
 	//to the media time scale (used by SLConfig) - add the edit start time but stay in
