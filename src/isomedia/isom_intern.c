@@ -553,14 +553,14 @@ GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *movie, u32 trackNumber)
 
 
 //WARNING: MOVIETIME IS EXPRESSED IN MEDIA TS
-GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit)
+GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit, u64 *next_edit_start_plus_one)
 {
 #if 0
 	GF_Err e;
 	u32 sampleNumber, prevSampleNumber;
 	u64 firstDTS;
 #endif
-	u32 i;
+	u32 i, count;
 	Bool last_is_empty = 0;
 	u64 time, lastSampleTime;
 	s64 mtime;
@@ -568,6 +568,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 	Double scale_ts;
 	GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 
+	if (next_edit_start_plus_one) *next_edit_start_plus_one = 0;
 	*useEdit = 1;
 	*MediaTime = 0;
 	//no segment yet...
@@ -604,11 +605,14 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 
 	time = 0;
 	ent = NULL;
-	i=0;
-	while ((ent = (GF_EdtsEntry *)gf_list_enum(trak->editBox->editList->entryList, &i))) {
+	count=gf_list_count(trak->editBox->editList->entryList);
+	for (i=0; i<count; i++) {
+		ent = (GF_EdtsEntry *)gf_list_get(trak->editBox->editList->entryList, i);
 		if ( (time + ent->segmentDuration) * scale_ts > movieTime) {
-			if (!force_non_empty || (ent->mediaTime >= 0)) 
+			if (!force_non_empty || (ent->mediaTime >= 0)) {
+				if (next_edit_start_plus_one) *next_edit_start_plus_one = 1 + time + ent->segmentDuration;
 				goto ent_found;
+			}
 		}
 		time += ent->segmentDuration;
 		last_is_empty = ent->segmentDuration ? 0 : 1;

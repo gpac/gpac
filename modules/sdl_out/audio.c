@@ -185,14 +185,10 @@ static u32 SDLAud_GetTotalBufferTime(GF_AudioOutput *dr)
 static void SDLAud_SetVolume(GF_AudioOutput *dr, u32 Volume)
 {
 	SDLAUD();
-#if 0
-	if (Volume > 98)
+	if (Volume == 100)
 		ctx->volume = SDL_MIX_MAXVOLUME;
 	else
 		ctx->volume = Volume * SDL_MIX_MAXVOLUME / 100;
-#else
-	ctx->volume = SDL_MIX_MAXVOLUME;
-#endif
 }
 
 static void SDLAud_SetPan(GF_AudioOutput *dr, u32 pan)

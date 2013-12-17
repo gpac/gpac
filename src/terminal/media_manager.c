@@ -366,7 +366,7 @@ u32 MM_Loop(void *par)
 	while (term->flags & GF_TERM_RUNNING) {
 		u32 left = 0;
 		if (do_codec) left = MM_SimulationStep_Decoder(term);
-//		else left = term->frame_duration;
+		else left = term->frame_duration;
 		
 		if (do_scene) {
 			u32 time_taken = gf_sys_clock();
@@ -380,8 +380,7 @@ u32 MM_Loop(void *par)
 
 		if (do_regulate) {
 			if (left==term->frame_duration) {
-//				gf_sleep(term->frame_duration);
-				gf_sleep(0);
+				gf_sleep(term->frame_duration);
 			}
 		}
 	}
