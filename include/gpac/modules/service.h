@@ -119,6 +119,10 @@ typedef enum
 	GF_NET_SERVICE_PROXY_CHUNK_RECEIVE,
 	/*When using DASH or playlists, indicates that complete segment has been received by the playlist proxy*/
 	GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE,
+
+	/*query screen capabilities*/
+	GF_NET_SERVICE_MEDIA_CAP_QUERY,
+
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -388,12 +392,28 @@ typedef struct
 typedef struct
 {
 	u32 command_type;
-	GF_Err e;
 	LPNETCHANNEL channel;
+	GF_Err e;
 	Bool is_disconnect;
 	Bool is_add_media;
 	GF_Descriptor *desc;
 } GF_NetServiceStatus;
+
+/*GF_NET_SERVICE_STATUS_PROXY*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL channel;
+	u32 width;
+	u32 height;
+	u32 bpp;
+	u32 channels;
+	u32 sample_rate;
+	const char *mime_query;
+	const char *mime_params;
+	//set upon reply
+	Bool mime_supported;
+} GF_MediaCapQuery;
 
 typedef union __netcommand
 {
@@ -416,6 +436,7 @@ typedef union __netcommand
 	GF_NetURLQuery url_query;
 	GF_NetQualitySwitch switch_quality;
 	GF_NetServiceStatus status;
+	GF_MediaCapQuery mcaps;
 } GF_NetworkCommand;
 
 /*

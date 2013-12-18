@@ -3117,3 +3117,13 @@ Bool gf_sc_use_raw_texture(GF_Compositor *compositor)
 //	if (!compositor->visual->type_3d && !compositor->force_opengl_2d) return 0;
 	return compositor->texture_from_decoder_memory;
 }
+
+void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *bpp, u32 *channels, u32 *sample_rate)
+{
+	if (width) *width = compositor->video_out->max_screen_width;
+	if (height) *height = compositor->video_out->max_screen_height;
+	//to do
+	if (bpp) *bpp = 8;
+	if (channels) *channels = 0;
+	if (sample_rate) *sample_rate = 48000;
+}

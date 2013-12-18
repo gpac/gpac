@@ -1361,6 +1361,7 @@ GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bo
 
 
 Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
+void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *bpp, u32 *channels, u32 *sample_rate);
 
 #ifdef __cplusplus
 }
