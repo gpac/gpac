@@ -167,10 +167,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		needs_init = GF_FALSE;
 	
 	if (!seg_rad_name) {
-		char *sep;
 		strcpy(segment_name, output_file_name);
-		sep = strrchr(segment_name, '.');
-		if (sep) sep[0] = 0;
 	} else {
 
 		while (1) {
