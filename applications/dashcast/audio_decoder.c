@@ -212,13 +212,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 
 					/* Get the pointer of the current node in circular buffer. */
 					audio_data_node = (AudioDataNode *) dc_producer_produce(&audio_input_data->producer, &audio_input_data->circular_buf);
-#ifdef GPAC_USE_LIBAV
-					audio_data_node->channels = codec_ctx->channels;
-					audio_data_node->channel_layout = codec_ctx->channel_layout;
-					audio_data_node->sample_rate = codec_ctx->sample_rate;
-					audio_data_node->format = codec_ctx->sample_fmt;
-#else
-
+#ifdef DC_AUDIO_RESAMPLER
 					audio_data_node->channels = audio_input_data->aframe->channels;
 					audio_data_node->channel_layout = audio_input_data->aframe->channel_layout;
 					audio_data_node->sample_rate = audio_input_data->aframe->sample_rate;

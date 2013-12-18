@@ -36,7 +36,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->aframe = FF_ALLOC_FRAME();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
-#ifndef GPAC_USE_LIBAV
+#ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aframe->channel_layout = 0;
 	audio_output_file->aframe->sample_rate = -1;
 	audio_output_file->aframe->format = -1;
@@ -112,7 +112,7 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 	dc_consumer_unlock_previous(&audio_output_file->consumer, &audio_input_data->circular_buf);
 
 	audio_data_node = (AudioDataNode *) dc_consumer_consume(&audio_output_file->consumer, &audio_input_data->circular_buf);
-#ifndef GPAC_USE_LIBAV
+#ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aframe->channels = audio_data_node->channels;
 	audio_output_file->aframe->channel_layout = audio_data_node->channel_layout;
 	audio_output_file->aframe->sample_rate = audio_data_node->sample_rate;
@@ -163,6 +163,9 @@ int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *a
 int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
 {
 	int got_pkt;
+#ifdef DC_AUDIO_RESAMPLER
+	int i;
+#endif
 	//AVStream *audio_stream = audio_output_file->av_fmt_ctx->streams[audio_output_file->astream_idx];
 	//AVCodecContext *audio_codec_ctx = audio_stream->codec;
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
