@@ -102,6 +102,7 @@ typedef struct
 #endif
 
 	Bool is_init, fullscreen, has_focus;
+	Bool ctrl_down, alt_down, meta_down;
 
 	/*backbuffer size before entering fullscreen mode (used for restore) */
 	u32 store_width, store_height;

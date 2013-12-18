@@ -602,7 +602,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		else if (ctx->ctrl_down && (evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_C)) {
 			evt.type = GF_EVENT_COPY_TEXT;
-			if ((vout->on_event(vout->evt_cbk_hdl, &evt)==GF_OK) && evt.message.message) {
+			if ((vout->on_event(vout->evt_cbk_hdl, &evt)==GF_TRUE) && evt.message.message) {
 				size_t len;
 				HGLOBAL hglbCopy;
 				LPTSTR lptstrCopy;

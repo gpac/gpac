@@ -364,11 +364,21 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 		evt->key_code = GF_KEY_ALT;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
+#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 	case SDLK_LGUI:
+#else
+	case SDLK_LMETA:
+	case SDLK_LSUPER:
+#endif
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
+#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 	case SDLK_RGUI:
+#else
+	case SDLK_RMETA:
+	case SDLK_RSUPER:
+#endif
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
@@ -794,6 +804,8 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			else if (gpac_evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
 			else if (gpac_evt.key.key_code==GF_KEY_META) ctx->meta_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
 		
+#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
+
 			if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_V)	
 #if defined(__DARWIN__) || defined(__APPLE__)
 				&& ctx->meta_down 
@@ -813,8 +825,11 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				&& ctx->ctrl_down 
 #endif
             ) {
+			gpac_evt.type = GF_EVENT_COPY_TEXT;
+			if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
 				 SDL_SetClipboardText((char *)gpac_evt.message.message );
 			}
+#endif
 
 #ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
 			if ((sdl_evt.key.type==SDL_KEYDOWN)

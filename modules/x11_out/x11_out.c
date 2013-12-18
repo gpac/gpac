@@ -29,6 +29,7 @@
 #include <gpac/user.h>
 #include <sys/time.h>
 #include <X11/XKBlib.h>
+#include <X11/Xatom.h>
 
 
 void X11_SetupWindow (GF_VideoOutput * vout);
@@ -572,8 +573,8 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    }
 		    break;
 		  	
-		      case KeyPress:
-		      case KeyRelease:
+		  case KeyPress:
+		  case KeyRelease:
 		    x11_translate_key(XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0), &evt.key);
 			evt.type = (xevent.type ==KeyPress) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			vout->on_event (vout->evt_cbk_hdl, &evt);
@@ -585,6 +586,60 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 					utf8_to_ucs4 (& evt.character.unicode_char, len, keybuf);
 					evt.type = GF_EVENT_TEXTINPUT;
 					vout->on_event (vout->evt_cbk_hdl, &evt);
+				}
+			}
+
+			if (evt.key.key_code==GF_KEY_CONTROL) xWindow->ctrl_down = (xevent.type==KeyPress) ? 1 : 0;
+			else if (evt.key.key_code==GF_KEY_ALT) xWindow->alt_down = (xevent.type==KeyPress) ? 1 : 0;
+			else if (evt.key.key_code==GF_KEY_META) xWindow->meta_down = (xevent.type==KeyPress) ? 1 : 0;
+
+			if ((evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_V) && xWindow->ctrl_down) {
+			    int sformat;
+			    unsigned long nb_bytes, overflow;
+			    unsigned char *data;
+			    Window owner;
+	   		    Atom selection, stype;
+			    Atom clipb_atom = XInternAtom(xWindow->display, "CLIPBOARD", 0);
+			    if (clipb_atom == None) break;
+    			    owner = XGetSelectionOwner(xWindow->display, clipb_atom);
+			    if ((owner == None) || (owner == the_window)) {
+			        owner = DefaultRootWindow(xWindow->display);
+			        selection = XA_CUT_BUFFER0;
+			    } else {
+			       owner = the_window;
+			       selection = XInternAtom(xWindow->display, "GPAC_TEXT_SEL", False);
+			       XConvertSelection(xWindow->display, clipb_atom, XA_STRING, selection, owner, CurrentTime);
+			    }
+
+
+			   if (XGetWindowProperty(xWindow->display, owner, selection, 0, INT_MAX/4, False, AnyPropertyType, &stype, &sformat, &nb_bytes, &overflow, &data) == Success) {
+			        if (stype == XA_STRING) {
+			            char *text = gf_malloc(sizeof(char)*(nb_bytes+1));
+			            if (text) {
+					memcpy(text, data, nb_bytes);
+			                text[nb_bytes] = 0;
+					evt.type = GF_EVENT_PASTE_TEXT;
+					evt.message.message = (const char *) text;
+					vout->on_event(vout->evt_cbk_hdl, &evt);
+					gf_free(text);
+			            }
+			        }
+			        XFree(data);
+			    }
+			}	
+			else if ((evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_C) && xWindow->ctrl_down) {
+				Atom clipb_atom = XInternAtom(xWindow->display, "CLIPBOARD", 0);
+				evt.type = GF_EVENT_COPY_TEXT;
+				if (vout->on_event(vout->evt_cbk_hdl, &evt)==GF_TRUE) {
+					const char *txt = evt.message.message;
+ 					XChangeProperty(xWindow->display, DefaultRootWindow(xWindow->display), XA_CUT_BUFFER0, XA_STRING, 8, PropModeReplace, (const unsigned char *)txt, strlen(txt));
+
+					if ((clipb_atom != None) && XGetSelectionOwner(xWindow->display, clipb_atom) != the_window) {
+			        		XSetSelectionOwner(xWindow->display, clipb_atom, the_window, CurrentTime);
+					}
+					if (XGetSelectionOwner(xWindow->display, XA_PRIMARY) != the_window) {
+						XSetSelectionOwner(xWindow->display, XA_PRIMARY, the_window, CurrentTime);
+					}					
 				}
 			}
 			break;
@@ -650,7 +705,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		  case FocusIn:
 			if (!xWindow->fullscreen) xWindow->has_focus = 1;
 		    break;
-		    
+
 		  case DestroyNotify:
 		      evt.type = GF_EVENT_QUIT;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
