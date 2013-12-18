@@ -125,6 +125,7 @@
       <ProgramDatabaseFile>$(IntDir)gm_$(ProjectName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)gm_$(ProjectName).lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
