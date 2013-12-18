@@ -66,7 +66,7 @@ struct __dash_client
 
 	char *base_url;
 
-	u32 max_cache_duration;
+	u32 max_cache_duration, max_width, max_height;
 	u32 auto_switch_count;
 	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift;
 	Bool is_m3u8;
@@ -2543,6 +2543,14 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			gf_dash_get_segment_duration(rep, set, period, dash->mpd, &nb_seg, &dur);
 			if (dur>seg_dur) seg_dur = dur;
 
+			if (dash->max_width && dash->max_height) {
+				if ((rep->width>dash->max_width) || (rep->height>dash->max_height)) {
+					rep->playback.disabled = 1;
+					continue;
+				}
+			}
+	
+			rep->playback.disabled = 0;
 			if (rep->width>set->max_width) {
 				set->max_width = rep->width;
 				set->max_height = rep->height;
@@ -4803,6 +4811,15 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	return GF_OK;
 }
 
+GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height)
+{
+	if (dash) {
+		dash->max_width = width;
+		dash->max_height = height;
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+}
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

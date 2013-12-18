@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/network.h>
 #include <gpac/cache.h>
 #include "media_memory.h"
@@ -515,7 +516,10 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		gf_term_send_event(term, &evt);
 		return;
 	}
-
+	if (com->command_type==GF_NET_SERVICE_MEDIA_CAP_QUERY) {
+		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
+		return;
+	}
 
 	if (!com->base.on_channel) return;
 

@@ -727,6 +727,20 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	gf_dash_set_utc_shift(mpdin->dash, shift_utc_ms);
 	gf_dash_enable_utc_drift_compensation(mpdin->dash, use_server_utc);
 
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution", "yes");
+	if (!opt || !strcmp(opt, "yes")) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_MEDIA_CAP_QUERY;
+		gf_term_on_command(serv, &com, GF_OK);
+
+		if (com.mcaps.width && com.mcaps.height) {
+			gf_dash_set_max_resolution(mpdin->dash, com.mcaps.width, com.mcaps.height);
+		}
+	}
+
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
 	if (e) {

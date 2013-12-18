@@ -270,6 +270,9 @@ u32 gf_dash_get_min_buffer_time(GF_DashClient *dash);
 //shifts UTC clock of server by shift_utc_ms so that new UTC in MPD is old + shift_utc_ms
 void gf_dash_set_utc_shift(GF_DashClient *dash, s32 shift_utc_ms);
 
+//sets max resolution for all video 
+GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 
