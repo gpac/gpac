@@ -1333,6 +1333,125 @@ err_exit:
 
 GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
+static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
+{
+	u32 j, k;
+	for (j=0; j<gf_list_count(src); j++) {
+		Bool found = 0;
+		GF_AVCConfigSlot *slc = gf_list_get(src, j);
+		for (k=0; k<gf_list_count(dst); k++) {
+			GF_AVCConfigSlot *slc_dst = gf_list_get(dst, k);
+			if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
+				found = 1;
+				break;
+			}
+		}
+		if (!found) {
+			return GF_FALSE;
+		}
+	}
+	return GF_TRUE;
+}
+
+static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 src_track, Bool force_cat)
+{
+	GF_AVCConfig *avc_src, *avc_dst;
+	u32 dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+				
+	avc_src = gf_isom_avc_config_get(orig, src_track, 1);
+	avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
+				
+	if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) {
+		dst_tk = 0;
+	} else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) {
+		dst_tk = 0;
+	}
+	else {
+		/*rewrite all samples if using different NALU size*/
+		if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
+			gf_media_avc_rewrite_samples(dest, dst_tk, 8*avc_dst->nal_unit_size, 8*avc_src->nal_unit_size); 
+			avc_dst->nal_unit_size = avc_src->nal_unit_size;
+		} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
+			gf_media_avc_rewrite_samples(orig, src_track, 8*avc_src->nal_unit_size, 8*avc_dst->nal_unit_size); 
+		}
+
+		/*merge PS*/
+		if (!merge_parameter_set(avc_src->sequenceParameterSets, avc_dst->sequenceParameterSets, "SPS"))
+			dst_tk = 0;
+		if (!merge_parameter_set(avc_src->pictureParameterSets, avc_dst->pictureParameterSets, "PPS"))
+			dst_tk = 0;
+					
+		gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
+	}
+
+	gf_odf_avc_cfg_del(avc_src);
+	gf_odf_avc_cfg_del(avc_dst);
+
+	if (!dst_tk) {
+		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+		if (!force_cat) {
+			gf_isom_avc_set_inband_config(dest, dst_tk, 1);
+		} else {
+			fprintf(stderr, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
+		}
+	}
+	return dst_tk;
+}
+
+static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 src_track, Bool force_cat)
+{
+	u32 i;
+	GF_HEVCConfig *hevc_src, *hevc_dst;
+	u32 dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+				
+	hevc_src = gf_isom_hevc_config_get(orig, src_track, 1);
+	hevc_dst = gf_isom_hevc_config_get(dest, dst_tk, 1);
+
+	if (hevc_src->profile_idc != hevc_dst->profile_idc) dst_tk = 0;
+	else if (hevc_src->level_idc != hevc_dst->level_idc) dst_tk = 0;
+	else if (hevc_src->general_profile_compatibility_flags != hevc_dst->general_profile_compatibility_flags ) dst_tk = 0;
+	else {
+		/*rewrite all samples if using different NALU size*/
+		if (hevc_src->nal_unit_size > hevc_dst->nal_unit_size) {
+			gf_media_avc_rewrite_samples(dest, dst_tk, 8*hevc_dst->nal_unit_size, 8*hevc_src->nal_unit_size); 
+			hevc_dst->nal_unit_size = hevc_src->nal_unit_size;
+		} else if (hevc_src->nal_unit_size < hevc_dst->nal_unit_size) {
+			gf_media_avc_rewrite_samples(orig, src_track, 8*hevc_src->nal_unit_size, 8*hevc_dst->nal_unit_size); 
+		}
+
+		/*merge PS*/
+		for (i=0; i<gf_list_count(hevc_src->param_array); i++) {
+			u32 k;
+			GF_HEVCParamArray *src_ar = gf_list_get(hevc_src->param_array, i);
+			for (k=0; k<gf_list_count(hevc_dst->param_array); k++) {
+				GF_HEVCParamArray *dst_ar = gf_list_get(hevc_dst->param_array, k);
+				if (dst_ar->type==src_ar->type) {
+					if (!merge_parameter_set(src_ar->nalus, dst_ar->nalus, "SPS"))
+						dst_tk = 0;
+					break;
+				}
+			}
+		}
+					
+		gf_isom_hevc_config_update(dest, dst_tk, 1, hevc_dst);
+	}
+
+	gf_odf_hevc_cfg_del(hevc_src);
+	gf_odf_hevc_cfg_del(hevc_dst);
+
+	if (!dst_tk) {
+		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+		if (!force_cat) {
+			gf_isom_hevc_set_inband_config(dest, dst_tk, 1);
+		} else {
+			fprintf(stderr, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
+		}
+	}
+	return dst_tk;
+}
+
 GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
@@ -1537,78 +1656,21 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				}
 			}
 
-			/*merge AVC config if possible*/
-			if (!dst_tk && ((stype == GF_ISOM_SUBTYPE_AVC_H264) || (stype == GF_ISOM_SUBTYPE_AVC2_H264) || (stype == GF_ISOM_SUBTYPE_AVC3_H264) || (stype == GF_ISOM_SUBTYPE_AVC4_H264))  ) {
-				GF_AVCConfig *avc_src, *avc_dst;
-				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
-				
-				avc_src = gf_isom_avc_config_get(orig, i+1, 1);
-				avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
-				
-				if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) {
-					fprintf(stderr, "Cannot concatenate files: Different AVC Level Indication between source (%d) and destination (%d)\n", avc_src->AVCLevelIndication, avc_dst->AVCLevelIndication);
-					dst_tk = 0;
-				} else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) {
-					fprintf(stderr, "Cannot concatenate files: Different AVC Profile Indication between source (%d) and destination (%d)\n", avc_src->AVCProfileIndication, avc_dst->AVCProfileIndication);
-					dst_tk = 0;
+			if (!dst_tk) {
+				/*merge AVC config if possible*/
+				if ((stype == GF_ISOM_SUBTYPE_AVC_H264) 
+					|| (stype == GF_ISOM_SUBTYPE_AVC2_H264) 
+					|| (stype == GF_ISOM_SUBTYPE_AVC3_H264) 
+					|| (stype == GF_ISOM_SUBTYPE_AVC4_H264) ) {
+					dst_tk = merge_avc_config(dest, tk_id, orig, i+1, force_cat);
 				}
-				else {
-					u32 j, k;
-					/*rewrite all samples if using different NALU size*/
-					if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
-						gf_media_avc_rewrite_samples(dest, dst_tk, 8*avc_dst->nal_unit_size, 8*avc_src->nal_unit_size); 
-						avc_dst->nal_unit_size = avc_src->nal_unit_size;
-					} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
-						gf_media_avc_rewrite_samples(orig, i+1, 8*avc_src->nal_unit_size, 8*avc_dst->nal_unit_size); 
-					}
-
-					/*merge SPS*/
-					for (j=0; j<gf_list_count(avc_src->sequenceParameterSets); j++) {
-						Bool found = 0;
-						GF_AVCConfigSlot *slc = gf_list_get(avc_src->sequenceParameterSets, j);
-						for (k=0; k<gf_list_count(avc_dst->sequenceParameterSets); k++) {
-							GF_AVCConfigSlot *slc_dst = gf_list_get(avc_dst->sequenceParameterSets, k);
-							if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
-								found = 1;
-								break;
-							}
-						}
-						if (!found) {
-							fprintf(stderr, "WARNING: Concatenating track ID %d with different SPS - result file might be broken\n", tk_id);
-							gf_list_rem(avc_src->sequenceParameterSets, j);
-							j--;
-							gf_list_add(avc_dst->sequenceParameterSets, slc);
-						}
-					}
-
-					/*merge PPS*/
-					for (j=0; j<gf_list_count(avc_src->pictureParameterSets); j++) {
-						Bool found = 0;
-						GF_AVCConfigSlot *slc = gf_list_get(avc_src->pictureParameterSets, j);
-						for (k=0; k<gf_list_count(avc_dst->pictureParameterSets); k++) {
-							GF_AVCConfigSlot *slc_dst = gf_list_get(avc_dst->pictureParameterSets, k);
-							if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
-								found = 1;
-								break;
-							}
-						}
-						if (!found) {
-							fprintf(stderr, "WARNING: Concatenating track ID %d with different PPS - result file might be broken\n", tk_id);
-							gf_list_rem(avc_src->pictureParameterSets, j);
-							j--;
-							gf_list_add(avc_dst->pictureParameterSets, slc);
-						}
-					}
-					gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
+				/*merge HEVC config if possible*/
+				else if ((stype == GF_ISOM_SUBTYPE_HVC1) 
+					|| (stype == GF_ISOM_SUBTYPE_HEV1) 
+					|| (stype == GF_ISOM_SUBTYPE_HVC2) 
+					|| (stype == GF_ISOM_SUBTYPE_HEV2)) {
+					dst_tk = merge_hevc_config(dest, tk_id, orig, i+1, force_cat);
 				}
-
-				gf_odf_avc_cfg_del(avc_src);
-				gf_odf_avc_cfg_del(avc_dst);
-			}
-
-			if (!dst_tk && force_cat) {
-				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
-				fprintf(stderr, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
 			}
 		}
 
