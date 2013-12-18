@@ -4811,6 +4811,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height)
 {
 	if (dash) {
