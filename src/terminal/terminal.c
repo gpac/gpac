@@ -653,24 +653,23 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_term_lock_media_queue(tmp, 0);
 
 	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")){
-          GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
-          /* No mime-types detected, probably the first launch */
-          for (i=0; i< gf_modules_get_count(user->modules); i++) {
-                GF_BaseInterface *ifce = gf_modules_load_interface(user->modules, i, GF_NET_CLIENT_INTERFACE);
-                if (ifce) {
-		  GF_InputService * service = (GF_InputService*) ifce;
-		  GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Asking mime types supported for new module %s...\n", ifce->module_name));
-		  if (service->RegisterMimeTypes){
-		    u32 num = service->RegisterMimeTypes(service);
-		    GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] module %s has registered %u new mime-types.\n", ifce->module_name, num));
-		  } else {
-		    GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Module %s has not declared any RegisterMimeTypes method, cannot guess its supported mime-types.\n", ifce->module_name));
-		  }
-		  gf_modules_close_interface(ifce);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
+		/* No mime-types detected, probably the first launch */
+		for (i=0; i< gf_modules_get_count(user->modules); i++) {
+			GF_BaseInterface *ifce = gf_modules_load_interface(user->modules, i, GF_NET_CLIENT_INTERFACE);
+			if (ifce) {
+				GF_InputService * service = (GF_InputService*) ifce;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Asking mime types supported for new module %s...\n", ifce->module_name));
+				if (service->RegisterMimeTypes){
+					u32 num = service->RegisterMimeTypes(service);
+					GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] module %s has registered %u new mime-types.\n", ifce->module_name, num));
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Module %s has not declared any RegisterMimeTypes method, cannot guess its supported mime-types.\n", ifce->module_name));
+				}
+				gf_modules_close_interface(ifce);
+			}
 		}
-	  }
-          GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Finished Initializing Mime Types."));
-	  
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Finished Initializing Mime Types."));
 	}
 
 	tmp->uri_relocators = gf_list_new();
