@@ -364,20 +364,20 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 		evt->key_code = GF_KEY_ALT;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
-#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
-	case SDLK_LGUI:
+#if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
+    case SDLK_LMETA:
+    case SDLK_LSUPER:
 #else
-	case SDLK_LMETA:
-	case SDLK_LSUPER:
+    case SDLK_LGUI:
 #endif
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
-#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
-	case SDLK_RGUI:
+#if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
+    case SDLK_RMETA:
+    case SDLK_RSUPER:
 #else
-	case SDLK_RMETA:
-	case SDLK_RSUPER:
+    case SDLK_RGUI:
 #endif
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_RIGHT;
