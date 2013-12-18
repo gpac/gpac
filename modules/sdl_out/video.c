@@ -558,7 +558,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Window ceated\n"));
 		}
+
 		if ( !ctx->gl_context ) {
 			if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
@@ -603,6 +605,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Window ceated\n"));
 		}
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
@@ -637,14 +640,17 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	const SDL_VideoInfo *vinf;
 #endif
 
+#ifdef WIN32
 	putenv("directx");
-	flags = SDL_WasInit(SDL_INIT_VIDEO);
+#endif
+	
+    flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
 		if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 			return 0;
 		}
 	}
-
+    
 	ctx->curs_def = SDL_GetCursor();
 	ctx->curs_hand = SDLVid_LoadCursor(hand_data);
 	ctx->curs_collide = SDLVid_LoadCursor(collide_data);
@@ -712,10 +718,8 @@ static void SDLVid_ResetWindow(SDLVidCtx *ctx)
 	if ( ctx->renderer )
 		SDL_DestroyRenderer(ctx->renderer);
 	ctx->gl_context = NULL;
-	ctx->renderer = NULL;
-	ctx->screen = NULL;
 
-	/*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
+    /*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
 #ifdef GPAC_IPHONE
 	if ( ctx->screen ) {
 		SDL_DestroyWindow(ctx->screen);
