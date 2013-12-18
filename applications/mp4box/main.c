@@ -1357,8 +1357,18 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		while (opts) {
 			sep = strchr(opts, ':');
 			if (sep) sep[0] = 0;
-			if (!strnicmp(opts, "id=", 3)) strncpy(di->representationID, opts+3, 99);
-			else if (!strnicmp(opts, "period=", 7)) strncpy(di->periodID, opts+7, 99);
+			if (!strnicmp(opts, "id=", 3)) {
+				u32 i;
+				strncpy(di->representationID, opts+3, 99);
+				/* check to see if this representation Id has already been assigned */
+				for (i=0; i<(*nb_dash_inputs)-1;i++) {
+					GF_DashSegmenterInput *other_di;
+					other_di = &dash_inputs[i];
+					if (!strcmp(other_di->representationID, di->representationID)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
+					}
+				}
+			} else if (!strnicmp(opts, "period=", 7)) strncpy(di->periodID, opts+7, 99);
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
 			
