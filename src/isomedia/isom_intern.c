@@ -610,7 +610,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 		ent = (GF_EdtsEntry *)gf_list_get(trak->editBox->editList->entryList, i);
 		if ( (time + ent->segmentDuration) * scale_ts > movieTime) {
 			if (!force_non_empty || (ent->mediaTime >= 0)) {
-				if (next_edit_start_plus_one) *next_edit_start_plus_one = 1 + time + ent->segmentDuration;
+				if (next_edit_start_plus_one) *next_edit_start_plus_one = 1 + (u64) ((time + ent->segmentDuration) * scale_ts);
 				goto ent_found;
 			}
 		}
