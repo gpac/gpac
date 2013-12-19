@@ -833,9 +833,9 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
             ) {
 			gpac_evt.type = GF_EVENT_COPY_TEXT;
-			if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
 #if defined(__DARWIN__) || defined(__APPLE__)
 #else
+			if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
 				SDL_SetClipboardText((char *)gpac_evt.message.message );
 #endif
 			}
