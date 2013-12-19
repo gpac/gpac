@@ -817,10 +817,13 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				&& ctx->ctrl_down 
 #endif
             ) {
+#if defined(__DARWIN__) || defined(__APPLE__)
+#else
 				gpac_evt.type = GF_EVENT_PASTE_TEXT;
 				gpac_evt.message.message = (const char *) SDL_GetClipboardText();
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				SDL_free((char *) gpac_evt.message.message);
+#endif
 			}
 			else if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_C)	
 #if defined(__DARWIN__) || defined(__APPLE__)
@@ -831,7 +834,10 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
             ) {
 			gpac_evt.type = GF_EVENT_COPY_TEXT;
 			if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
-				 SDL_SetClipboardText((char *)gpac_evt.message.message );
+#if defined(__DARWIN__) || defined(__APPLE__)
+#else
+				SDL_SetClipboardText((char *)gpac_evt.message.message );
+#endif
 			}
 #endif
 
