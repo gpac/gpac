@@ -462,6 +462,24 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			gf_odf_avc_cfg_del(svcc);
 		}
 			break;
+		case GF_ISOM_SUBTYPE_HVC1:
+		case GF_ISOM_SUBTYPE_HEV1:
+		case GF_ISOM_SUBTYPE_HVC2:
+		case GF_ISOM_SUBTYPE_HEV2:
+		{
+			GF_HEVCConfig *hevcc = NULL;
+			hevcc = gf_isom_hevc_config_get(file, TrackNum, 1);
+			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+			hintType = GF_RTP_PAYT_HEVC;			
+			streamType = GF_STREAM_VISUAL;
+			avc_nalu_size = hevcc->nal_unit_size;
+			oti = GPAC_OTI_VIDEO_HEVC;
+			PL_ID = 0x0F;
+			flags |= GP_RTP_PCK_USE_MULTI;
+			gf_odf_hevc_cfg_del(hevcc);
+			break;
+		}
+			break;
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_QCELP;

@@ -301,6 +301,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_H264_SVC;
 			PL_ID = 0x0F;
 			break;
+		/*HEVC*/
+		case GPAC_OTI_VIDEO_HEVC:
+			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+			rtp_type = GF_RTP_PAYT_HEVC;
+			PL_ID = 0x0F;
+			break;
 		}
 		break;
 
@@ -608,6 +614,34 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 				}
 			}
 			gf_odf_avc_cfg_del(avcc);
+			strcat(sdpLine, "\n");
+		}
+	}
+	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) {
+		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, 0) : NULL;
+		if (hevcc) {
+			u32 count, i, j, b64s;
+			char b64[200];
+			sprintf(sdpLine, "a=fmtp:%d", rtp->packetizer->PayloadType);
+			count = gf_list_count(hevcc->param_array);
+			for (i = 0; i < count; i++) {
+				GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hevcc->param_array, i);
+				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+					strcat(sdpLine, "; sprop-sps=");						
+				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+					strcat(sdpLine, "; sprop-pps=");
+				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+					strcat(sdpLine, "; sprop-vps=");
+				}
+				for (j = 0; j < gf_list_count(ar->nalus); j++) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
+					b64[b64s]=0;
+					if (j) strcat(sdpLine, ", ");
+					strcat(sdpLine, b64);
+				}
+			}
+			gf_odf_hevc_cfg_del(hevcc);
 			strcat(sdpLine, "\n");
 		}
 	}
