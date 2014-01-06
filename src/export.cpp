@@ -1246,6 +1246,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_profile_name) )
 
 #endif //GPAC_DISABLE_HEVC
 
