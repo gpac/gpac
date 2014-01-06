@@ -117,6 +117,8 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
 	case GF_RTP_PAYT_AC3: 
 		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize); 
+	case GF_RTP_PAYT_HEVC:
+		return gp_rtp_builder_do_hevc(builder, data, data_size, IsAUEnd, FullAUSize); 
  	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -204,7 +206,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->flags &= 0x07;
 		/*disable aggregation for visual streams, except for AVC where STAP/MTAP can be used*/
 		if (StreamType==GF_STREAM_VISUAL) {
-			if (OTI != GPAC_OTI_VIDEO_AVC) {
+			if ((OTI != GPAC_OTI_VIDEO_AVC) && (OTI != GPAC_OTI_VIDEO_SVC) && (OTI != GPAC_OTI_VIDEO_HEVC)) {
 				builder->flags &= ~GP_RTP_PCK_USE_MULTI;
 			}
 		}
@@ -524,6 +526,10 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 	case GF_RTP_PAYT_H264_SVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H264-SVC");
+		return 1;
+	case GF_RTP_PAYT_HEVC:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "H265");
 		return 1;
 	default:
 		strcpy(szMediaName, "");

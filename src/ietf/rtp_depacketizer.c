@@ -726,6 +726,130 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 	}
 }
 
+static void gf_rtp_h265_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
+{
+	char *data;
+	u32 data_size, nal_s;
+	if (!rtp->inter_bs) return;
+
+	data = NULL;
+	data_size = 0;
+	gf_bs_get_content(rtp->inter_bs, &data, &data_size);
+	gf_bs_del(rtp->inter_bs);
+	rtp->inter_bs = NULL;
+	nal_s = data_size-4;
+
+	data[0] = nal_s>>24; data[1] = nal_s>>16; data[2] = nal_s>>8; data[3] = nal_s&0xFF;
+	/*set F-bit since nal is corrupted*/
+	if (missed_end) data[4] |= 0x80;
+
+	rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+	rtp->sl_hdr.compositionTimeStampFlag = 1;
+	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.decodingTimeStampFlag = 0;
+	rtp->on_sl_packet(rtp->udta, data, data_size, &rtp->sl_hdr, GF_OK);
+	rtp->sl_hdr.accessUnitStartFlag = 0;
+	rtp->sl_hdr.randomAccessPointFlag = 0;
+	gf_free(data);
+}
+
+void gf_rtp_parse_h265(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+{
+	u32 nal_type;
+	char nalu_size[4];
+
+	nal_type = (payload[0] & 0x7E) >> 1;
+
+	/*set start*/
+	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+		if (rtp->flags & GF_RTP_UNRELIABLE_M) {
+			rtp->sl_hdr.accessUnitEndFlag = 1;
+			rtp->on_sl_packet(rtp->udta, NULL, 0, &rtp->sl_hdr, GF_OK);
+		}
+		rtp->sl_hdr.accessUnitEndFlag = 0;
+		rtp->sl_hdr.accessUnitStartFlag = 1;
+		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+		rtp->sl_hdr.compositionTimeStampFlag = 1;
+		rtp->sl_hdr.decodingTimeStampFlag = 0;
+		rtp->sl_hdr.randomAccessPointFlag = 0;
+	} else if (rtp->sl_hdr.accessUnitEndFlag) {
+		rtp->flags |= GF_RTP_UNRELIABLE_M;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[H265 RTP] error in Marker bit - switching to unreliable mode\n"));
+	}
+	
+	/*Single NALU*/
+	if (nal_type <= 40) {
+		if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
+			rtp->sl_hdr.randomAccessPointFlag = 1;
+		}
+
+		rtp->sl_hdr.accessUnitEndFlag = 0;
+
+		/*signal NALU size on 4 bytes*/
+		nalu_size[0] = size>>24; nalu_size[1] = size>>16; nalu_size[2] = size>>8; nalu_size[3] = size&0xFF;
+		rtp->on_sl_packet(rtp->udta, nalu_size, 4, &rtp->sl_hdr, GF_OK);
+
+		rtp->sl_hdr.accessUnitStartFlag = 0;
+		rtp->sl_hdr.compositionTimeStampFlag = 1;
+		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+		rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+
+		/*send NAL payload*/
+		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
+	}
+	/*AP NALU*/
+	else if (nal_type == 48) {
+		u32 offset = 2;
+		while (offset<size) {
+			u32 nal_size = (u8) payload[offset]; nal_size<<=8; nal_size |= (u8) payload[offset+1]; 
+			offset += 2;
+			nal_type = (payload[offset] & 0x7E) >> 1;
+			if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
+				rtp->sl_hdr.randomAccessPointFlag = 1;
+			}
+
+			/*signal NALU size on 4 bytes*/
+			nalu_size[0] = nal_size>>24; nalu_size[1] = nal_size>>16; nalu_size[2] = nal_size>>8; nalu_size[3] = nal_size&0xFF;
+			rtp->on_sl_packet(rtp->udta, nalu_size, 4, &rtp->sl_hdr, GF_OK);
+
+			rtp->sl_hdr.accessUnitStartFlag = 0;
+			rtp->sl_hdr.compositionTimeStampFlag = 0;
+			rtp->sl_hdr.accessUnitEndFlag = (!(rtp->flags & GF_RTP_UNRELIABLE_M) && hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
+			rtp->on_sl_packet(rtp->udta, payload+offset, nal_size, &rtp->sl_hdr, GF_OK);
+			offset += nal_size;
+		}
+	}
+	/*FU NALU*/
+	else if (nal_type == 49) {
+		Bool is_start = payload[2] & 0x80;
+		Bool is_end = payload[2] & 0x40;
+		/*flush*/
+		if (is_start) gf_rtp_h265_flush(rtp, hdr, 1);
+
+		nal_type = payload[2] & 0x3F;
+		if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
+			rtp->sl_hdr.randomAccessPointFlag = 1;
+		}
+
+		/*setup*/
+		if (!rtp->inter_bs) {
+			char nal_hdr[2];
+			rtp->inter_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			/*coypy F bit highest bit of LayerId*/
+			nal_hdr[0] = payload[0] & 0x81;
+			/*assign NAL type*/
+			nal_hdr[0] |= (payload[2] & 0x3F) << 1;
+			/*copy LayerId and TID*/
+			nal_hdr[1] = payload[1];
+			/*dummy size field*/
+			gf_bs_write_u32(rtp->inter_bs, 0);
+			gf_bs_write_data(rtp->inter_bs, nal_hdr, 2);
+		}
+		gf_bs_write_data(rtp->inter_bs, payload+3, size-3);
+		if (is_end || hdr->Marker) gf_rtp_h265_flush(rtp, hdr, 0);
+	}
+}
+
 
 static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
@@ -916,6 +1040,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
+	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
 	else return 0;
 }
 
@@ -1391,6 +1516,79 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	}
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h264;
+		break;
+	case GF_RTP_PAYT_HEVC:
+	{
+		GF_SDP_FMTP *fmtp;
+		GF_HEVCConfig *hevcc = gf_odf_hevc_cfg_new();
+		hevcc->configurationVersion = 1;
+		hevcc->nal_unit_size = 4;
+		rtp->sl_map.StreamType = 4;
+		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_HEVC;
+		/*we will signal RAPs*/
+		rtp->sl_map.RandomAccessIndication = 1;
+		i=0;
+		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
+			GF_X_Attribute *att;
+			if (fmtp->PayloadType != map->PayloadType) continue;
+			j=0;
+			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
+				char *nal_ptr, *sep;
+				GF_HEVCParamArray *ar;
+				if (!stricmp(att->Name, "sprop-vps")) {
+					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					ar->nalus = gf_list_new();
+					ar->type = GF_HEVC_NALU_VID_PARAM;
+				}
+				else if (!stricmp(att->Name, "sprop-sps")) {
+					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					ar->nalus = gf_list_new();
+					ar->type = GF_HEVC_NALU_SEQ_PARAM;
+				}
+				else if (!stricmp(att->Name, "sprop-pps")) {
+					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					ar->nalus = gf_list_new();
+					ar->type = GF_HEVC_NALU_PIC_PARAM;
+				}
+				else
+					continue;
+				nal_ptr = att->Value;
+				while (nal_ptr) {
+					u32 b64size, ret;
+					char *b64_d;
+					GF_AVCConfigSlot *sl;
+
+					sep = strchr(nal_ptr, ',');
+					if (sep) sep[0] = 0;
+
+					b64size = (u32) strlen(nal_ptr);
+					b64_d = (char*)gf_malloc(sizeof(char)*b64size);
+					ret = gf_base64_decode(nal_ptr, b64size, b64_d, b64size); 
+					b64_d[ret] = 0;
+
+					sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
+					sl->size = ret;
+					sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+					memcpy(sl->data, b64_d, sizeof(char)*sl->size);
+					gf_list_add(ar->nalus, sl);
+
+					gf_free(b64_d);
+
+					if (sep) {
+						sep[0] = ',';
+						nal_ptr = sep+1;
+					} else {
+						break;
+					}
+				}
+				if (!hevcc->param_array) hevcc->param_array = gf_list_new();
+				gf_list_add(hevcc->param_array, ar);
+			}
+		}
+		gf_odf_hevc_cfg_write(hevcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		gf_odf_hevc_cfg_del(hevcc);
+	}
+		rtp->depacketize = gf_rtp_parse_h265;
 		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

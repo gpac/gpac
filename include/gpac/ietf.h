@@ -1073,6 +1073,8 @@ enum
 	GF_RTP_PAYT_AC3,
 	/*use H264-SVC transport*/
 	GF_RTP_PAYT_H264_SVC,
+	/*use HEVC/H265 transport - no RFC yet, only draft*/
+	GF_RTP_PAYT_HEVC,
 };
 
 
@@ -1166,6 +1168,11 @@ struct __tag_rtp_packetizer
 	/*ac3 ft flags*/
 	u8 ac3_ft;
 
+		/*********************************
+				HEVC-H265 info
+		*********************************/	
+	/*HEVC Payload Header. It will be use in case of Aggreation Packet where we must add payload header for packet after having added of NALU to AP*/
+	char hevc_payload_hdr[2];
 };
 
 /*generic rtp builder (packetizer)*/

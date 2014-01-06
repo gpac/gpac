@@ -557,6 +557,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				streamType = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_HEVC;
 			}
+			flags |= GP_RTP_PCK_USE_MULTI;
 			break;
 		}
 			break;
