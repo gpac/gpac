@@ -224,6 +224,7 @@ GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
 const char *gf_avc_get_profile_name(u8 video_prof);
 
 GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+const char *gf_hevc_get_profile_name(u8 video_prof);
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 

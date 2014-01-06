@@ -1421,7 +1421,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg)
 {
 	u32 k;
-	fprintf(stderr, "\t%s Info: Profile IDC %d - Level IDC %d - Chroma Format %d\n", hevccfg->is_shvc ? "SHVC" : "HEVC", hevccfg->profile_idc, hevccfg->level_idc, hevccfg->chromaFormat);
+	fprintf(stderr, "\t%s Info: Profile %s @ Level %g - Chroma Format %d\n", hevccfg->is_shvc ? "SHVC" : "HEVC", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, hevccfg->chromaFormat);
 	fprintf(stderr, "\tNAL Unit length bits: %d - general profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->general_profile_compatibility_flags);
 	fprintf(stderr, "\tParameter Sets: ");
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
