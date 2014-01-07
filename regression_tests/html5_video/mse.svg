@@ -33,7 +33,7 @@
     <animate id="timer_anim" begin="0" dur="0.1" repeatCount="indefinite" attributeName="visibilty" from="visible" to="hidden" />
   </g>	 
 	 
-  <!--script type="application/ecmascript" xlink:href="bind.js"/-->
+  <script type="application/ecmascript" xlink:href="bind.js"/>
   <script type="application/ecmascript" xlink:href="counter-mp4-video-segments-http.js"/>
   <script type="application/ecmascript" xlink:href="counter-mp4-video-segments-local.js"/>
   <script type="application/ecmascript" xlink:href="counter-mp4-audio-segments-http.js"/>
