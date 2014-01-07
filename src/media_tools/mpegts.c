@@ -2739,6 +2739,8 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 		gf_list_del(ts->requested_pids);
 	}
 
+	if (ts->th)
+		gf_th_del(ts->th);
 	gf_free(ts);
 }
 

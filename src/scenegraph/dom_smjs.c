@@ -2502,16 +2502,21 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 	xml_http_append_recv_header(ctx, hdr, val);
 }
 
+void xhr_del_array_buffer(void *udta)
+{
+	if (udta)
+		((XMLHTTPContext *)udta)->arraybuffer = NULL;;
+}
+
 static void xml_http_del_data(XMLHTTPContext *ctx)
 {
 	if (ctx->data) {
 		if (ctx->arraybuffer) {
 			/* if there is an arraybuffer holding a point to that data, we need to release it */
 			if (ctx->arraybuffer) {
-/*				GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
+				GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
+				//detach the ArrayBuffer from this object
 				JS_SetParent(ctx->c, ctx->arraybuffer, NULL);
-				gf_arraybuffer_del(html_array, GF_TRUE);
-*/
 				ctx->arraybuffer = NULL;
 			}
 		} else {
@@ -2675,7 +2680,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	val = SMJS_CHARS(c, argv[1]);
 	par.uri.url = val;
 	ScriptAction(scene, GF_JSAPI_OP_RESOLVE_URI, scene->RootNode, &par);
-	ctx->url = gf_strdup((char *)par.uri.url);
+	ctx->url = par.uri.url;
 	SMJS_FREE(c, val);
 
 	/*async defaults to true*/
@@ -4063,8 +4068,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 	if (n) {
-        if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
-        {
+        if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
             html_media_element_js_finalize(c, n);
         }
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
@@ -4085,6 +4089,9 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		JSObject *obj = (JSObject *)gf_list_get(sg->objects, 0);
 		n = dom_get_node(c, obj);
 		if (n) {
+			if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
+				html_media_element_js_finalize(c, n);
+			}
 			SMJS_SET_PRIVATE(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			gf_node_unregister(n, NULL);

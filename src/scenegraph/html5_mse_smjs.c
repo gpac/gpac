@@ -514,7 +514,7 @@ GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length)
         ab->data = data;
         ab->length = length;
     }
-    ab->reference_count = 1;
+    ab->reference_count = 0;
     return ab;
 }
 
@@ -534,20 +534,30 @@ JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *
     return obj;
 }
 
+void xhr_del_array_buffer(void *udta);
+
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js) 
 {
     if (buffer) {
-        if (del_js) {
+        if (del_js && buffer->_this) {
+			/*if we have a JS object, make sure the parent XHR doesn't point to us ...*/
+			JSObject *xhro = JS_GetParent(buffer->c, buffer->_this); 
+			if (xhro) {
+				void *xhr_ctx = SMJS_GET_PRIVATE(buffer->c, xhro);
+				xhr_del_array_buffer(xhr_ctx);
+			}
+
             /* finalize the object from the JS perspective */
             buffer->c = NULL;
             buffer->_this = NULL;
         }
         /* but only delete if the data is not used elsewhere */
-        if(buffer->reference_count) {
+        if(!del_js && buffer->reference_count) {
             buffer->reference_count--;
         }
-        if (!buffer->reference_count) {
+        if (!buffer->reference_count && !buffer->_this) {
             gf_free(buffer->data);
+			if (buffer->url) gf_free(buffer->url);
             gf_free(buffer);
         }
     }
@@ -592,7 +602,8 @@ static DECL_FINALIZE(arraybuffer_finalize)
     GF_HTML_ArrayBuffer *p;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->arrayBufferClass, NULL) ) return;
     p = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(c, obj);
-    gf_arraybuffer_del(p, GF_TRUE);
+    if (!p) return;
+	gf_arraybuffer_del(p, GF_TRUE);
 }
 
 static JSBool SMJS_FUNCTION(js_event_add_listener)
