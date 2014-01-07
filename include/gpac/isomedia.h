@@ -1952,6 +1952,8 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_c
 GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber);
 GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber);
 GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber);
+GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber);
+GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file);
 
 void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file);
 

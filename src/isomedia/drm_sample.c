@@ -719,6 +719,65 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
+{
+	u32 i;
+	GF_SampleTableBox *stbl;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	stbl = trak->Media->information->sampleTable;
+	if (!stbl)
+		return GF_BAD_PARAM;
+
+	for (i = 0; i < gf_list_count(stbl->sampleGroupsDescription); i++) {
+		GF_SampleGroupDescriptionBox *a = (GF_SampleGroupDescriptionBox *)gf_list_get(stbl->sampleGroupsDescription, i);
+		if (a->grouping_type == GF_4CC( 's', 'e', 'i', 'g' )) {
+			gf_list_rem(stbl->sampleGroupsDescription, i);
+			sgpd_del((GF_Box *) a);
+			i--;
+		}
+	}
+	if (!gf_list_count(stbl->sampleGroupsDescription)) {
+		gf_list_del(stbl->sampleGroupsDescription);
+		stbl->sampleGroupsDescription = NULL;
+	}
+
+	for (i = 0; i < gf_list_count(stbl->sampleGroups); i++) {
+		GF_SampleGroupBox *a = (GF_SampleGroupBox *)gf_list_get(stbl->sampleGroups, i);
+		if (a->grouping_type == GF_4CC( 's', 'e', 'i', 'g' )) {
+			gf_list_rem(stbl->sampleGroups, i);
+			sbgp_del((GF_Box *) a);
+			i--;
+		}
+	}
+	if (!gf_list_count(stbl->sampleGroups)) {
+		gf_list_del(stbl->sampleGroups);
+		stbl->sampleGroups = NULL;
+	}
+
+	return GF_OK;
+}
+
+GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
+{
+	u32 i;
+	for (i = 0; i < gf_list_count(the_file->moov->other_boxes); i++) {
+		GF_Box *a = (GF_Box *)gf_list_get(the_file->moov->other_boxes, i);
+		if (a->type == GF_4CC('p', 's', 's', 'h')) {
+			gf_list_rem(the_file->moov->other_boxes, i);
+			pssh_del(a);
+			i--;
+		}
+	}
+
+	if (!gf_list_count(the_file->moov->other_boxes)) {
+		gf_list_del(the_file->moov->other_boxes);
+		the_file->moov->other_boxes = NULL;
+	}
+
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_PIFFSampleEncryptionBox * gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID) 
