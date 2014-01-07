@@ -288,7 +288,7 @@ typedef struct
     /* JavaScript counterpart for this object*/
     JSObject                *_this;
 
-    char    *data;
+	char    *data;
     u32     length;
     char    *url;
 	Bool	is_init;
@@ -298,7 +298,9 @@ typedef struct
 } GF_HTML_ArrayBuffer;
 
 GF_Err gf_media_time_ranges_add(GF_HTML_MediaTimeRanges *timeranges, double start, double end);
+void gf_html_timeranges_reset(GF_HTML_MediaTimeRanges *range);
 void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range);
+
 
 GF_HTML_Track *html_media_add_new_track_to_list(GF_HTML_TrackList *tracklist,
                                                        GF_HTML_TrackType type, const char *mime, Bool enable_or_selected,

@@ -2414,6 +2414,8 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	return (ret==JS_FALSE) ? GF_FALSE : GF_TRUE;
 }
 
+void html_media_js_api_del();
+
 static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 {
 	if (is_destroy) {
@@ -2438,6 +2440,8 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 				assert(svg_rt);
 				svg_rt->nb_inst--;
 				if (!svg_rt->nb_inst) {
+					/* HTML */
+				    html_media_js_api_del();
 					gf_free(svg_rt);
 					svg_rt = NULL;
 				}

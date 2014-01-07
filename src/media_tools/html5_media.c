@@ -44,7 +44,7 @@ GF_Err gf_media_time_ranges_add(GF_HTML_MediaTimeRanges *timeranges, double star
     return GF_OK;
 }
 
-void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range)
+void gf_html_timeranges_reset(GF_HTML_MediaTimeRanges *range)
 {
     while (gf_list_count(range->times))
     {
@@ -52,6 +52,13 @@ void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range)
         gf_free(d);
         gf_list_rem(range->times, 0);
     }
+}
+
+void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range)
+{
+	gf_html_timeranges_reset(range);
+    gf_list_del(range->times);
+	range->times = NULL;
 }
 
 GF_HTML_Track *html_media_add_new_track_to_list(GF_HTML_TrackList *tracklist,
@@ -102,7 +109,6 @@ void gf_html_tracklist_del(GF_HTML_TrackList *tlist)
     {
         GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tlist->tracks, 0);
         gf_html_track_del(track);
-        gf_free(track);
         gf_list_rem(tlist->tracks, 0);
     }
     gf_list_del(tlist->tracks);
@@ -142,6 +148,7 @@ void gf_html_track_del(GF_HTML_Track *track)
     gf_mx_v(track->buffer_mutex);
     gf_list_del(track->buffer);
     gf_mx_del(track->buffer_mutex);
+	gf_free(track);
 }
 
 GF_HTML_MediaElement *gf_html_media_element_new(GF_Node *media_node, GF_HTML_MediaController *mc)

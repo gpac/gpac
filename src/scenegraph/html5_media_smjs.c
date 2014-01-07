@@ -1265,6 +1265,14 @@ static SMJS_FUNC_PROP_SET(html_video_set_property)
 
 void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_MediaRuntime *html_media_rt);
 
+void html_media_js_api_del()
+{
+    if (html_media_rt) {
+		gf_free(html_media_rt);
+		html_media_rt = NULL;
+	}
+}
+
 void html_media_init_js_api(GF_SceneGraph *scene)
 {
     /* HTML Media Element */

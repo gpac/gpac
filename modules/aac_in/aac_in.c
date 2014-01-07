@@ -576,7 +576,7 @@ static void AAC_Reader_del(AACReader * read)
     gf_free(read->data);
   read->data = NULL;
   read->stream = NULL;
-#ifdef DONT_USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
   gf_free( read );
 #endif
 }

@@ -56,11 +56,16 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) 
 			{
 				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
+
+				if (sb->parser)
+					sb->parser->CloseService(sb->parser);
+
 				gf_mse_source_buffer_del(sb);
 			}
 			gf_list_del(ms->sourceBuffers.list);
 			/* all source buffer should have been deleted in the deletion of sourceBuffers */
 			gf_list_del(ms->activeSourceBuffers.list); 
+			if (ms->blobURI) gf_free(ms->blobURI);
 			gf_free(ms);
 		}
 	}
@@ -98,14 +103,19 @@ void gf_mse_source_buffer_del(GF_HTML_SourceBuffer *sb)
 {
     GF_HTML_TrackList tlist;
     gf_html_timeranges_del(&sb->buffered);
-    gf_list_del(sb->buffered.times);
     gf_mse_reset_input_buffer(sb->input_buffer);
     gf_list_del(sb->input_buffer);
-    tlist.tracks = sb->tracks;
+
+	if (sb->prev_buffer) gf_arraybuffer_del(sb->prev_buffer, GF_FALSE);
+
+	tlist.tracks = sb->tracks;
     gf_html_tracklist_del(&tlist);
-    gf_free(sb->parser_thread);
-    gf_free(sb->remove_thread);
+    gf_th_del(sb->parser_thread);
+    gf_th_del(sb->remove_thread);
+
+	if (sb->service_desc) gf_odf_desc_del((GF_Descriptor *)sb->service_desc);
     gf_free(sb);
+
 }
 
 /*locates and loads an input service (demuxer, parser) for this source buffer based on mime type or segment name*/
@@ -248,7 +258,7 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
 	double packet_end;
 
     /* cleaning the current list */
-    gf_html_timeranges_del(&(sb->buffered));
+    gf_html_timeranges_reset(&(sb->buffered));
 
     /* merging the start and end for all tracks */
     track_count = gf_list_count(sb->tracks);
@@ -409,8 +419,10 @@ static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
 
 static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb, 
                                        GF_HTML_Track           *track, 
-                                       GF_MSE_Packet           *frame)
+                                       GF_MSE_Packet           *frame,
+									   Bool *stored)
 {
+	*stored = 0;
     if (sb->abort_mode != MEDIA_SOURCE_ABORT_MODE_NONE) 
     {
         switch (sb->abort_mode)
@@ -498,6 +510,7 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
 
     /* TODO: spliced frames */
 
+	*stored = 1;
     gf_mx_p(track->buffer_mutex);
     gf_list_add(track->buffer, frame);
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Adding frame %g (%d frames)\n", (frame->sl_header.compositionTimeStamp*1.0)/track->timescale, gf_list_count(track->buffer)));
@@ -546,6 +559,7 @@ u32 gf_mse_parse_segment(void *par)
         u32 track_with_data = 0;
         for (i = 0; i < track_count; i++)
         {
+			Bool stored = 0;
             GF_Err e;
             track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
             GF_SAFEALLOC(packet, GF_MSE_Packet);
@@ -559,10 +573,12 @@ u32 gf_mse_parse_segment(void *par)
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] New AU parsed %g\n", (packet->sl_header.compositionTimeStamp*1.0/track->timescale)));
                 memcpy(data, packet->data, packet->size);
                 packet->data = data;
-                gf_mse_process_coded_frame(sb, track, packet);
+                gf_mse_process_coded_frame(sb, track, packet, &stored);
                 track_with_data++;
                 sb->parser->ChannelReleaseSLP(sb->parser, track->channel);
             }
+
+			if (!stored) gf_free(packet);
         }
         if (!track_with_data)
         {
@@ -570,6 +586,7 @@ u32 gf_mse_parse_segment(void *par)
             {
                 /* try to delete the previous buffer */
                 gf_arraybuffer_del((GF_HTML_ArrayBuffer *)sb->prev_buffer, GF_FALSE);
+				(GF_HTML_ArrayBuffer *)sb->prev_buffer = NULL;
                 /* get ready to receive a new segment and start a new thread */
                 sb->updating = GF_FALSE;
                 break;
@@ -607,6 +624,7 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
         {
             /* we expect an initialization segment to connect the service */
             sb->parser->ConnectService(sb->parser, sb->mediasource->service, buffer->url);
+			sb->prev_buffer = buffer;
         } else {
             /* we expect a media segment */
             gf_list_add(sb->input_buffer, buffer);
