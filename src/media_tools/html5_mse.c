@@ -549,6 +549,7 @@ u32 gf_mse_parse_segment(void *par)
             GF_Err e;
             track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
             GF_SAFEALLOC(packet, GF_MSE_Packet);
+			assert(track->channel);
             e = sb->parser->ChannelGetSLP(sb->parser, track->channel, 
                                           &packet->data, &packet->size, &packet->sl_header, 
                                           &packet->is_compressed, &packet->status, &packet->is_new_data);

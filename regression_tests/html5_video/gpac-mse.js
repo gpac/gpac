@@ -6,7 +6,8 @@
  *****************************************************************************************/
 alert("Media Source Script loaded");
 
-var DEBUG = false;
+var DEBUG = true;
+var UPDATE_TEXT_INFO = true;
 
 function reportMessage(msg) {
 	if (DEBUG) {
@@ -105,6 +106,7 @@ Player.prototype.createInfoStructure = function(id) {
 }
 
 Player.prototype.updateInfo = function() {
+	if (!UPDATE_TEXT_INFO) return;
 	var start = 0;
 	var end = 1;
 	var nowVideo = this.v.currentTime.toFixed(3);
@@ -133,6 +135,7 @@ Player.prototype.updateInfo = function() {
 }
 
 Player.prototype.updateDownloadInfo = function(index, url, done) {
+	if (!UPDATE_TEXT_INFO) return;
     this.info.ue.textContent = "Segment #" + index + " ..." + url.slice(-30);
 	this.info.se.textContent = "Download Status:"+ (done ?" done" : " in progress");
 }
@@ -291,8 +294,8 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
 		- depending on the buffer occupancy (true) (see TIME_THRESOLD below), 
 		- as fast as possible (false) */
 	this.use_regulation = true;
-	/* when using regulation, difference in seconds between the latest media time downloaded 
-	and the media time being played used to trigger a new download when the regulation mode is on */
+	/* difference in seconds between the latest media time downloaded and the media time being played, 
+	used to trigger a new download when the regulation mode is on */
 	this.TIME_THRESOLD = 2;
 	/* Current file being downloaded */
 	this.fileIndex = -1;

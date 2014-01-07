@@ -2520,16 +2520,6 @@ static void xml_http_del_data(XMLHTTPContext *ctx)
 
 static void xml_http_reset_partial(XMLHTTPContext *ctx)
 {
-
-		xml_http_del_data(ctx);
-		ctx->cur_header = 0;
-		ctx->html_status = 0;
-		if (ctx->statusText) {
-			gf_free(ctx->statusText);
-			ctx->statusText = NULL;
-		}
-		xml_http_reset_recv_hdr(ctx);
-
 	xml_http_reset_recv_hdr(ctx);
 	xml_http_del_data(ctx);
 	if (ctx->mime) {
@@ -2681,7 +2671,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	val = SMJS_CHARS(c, argv[1]);
 	par.uri.url = val;
 	ScriptAction(scene, GF_JSAPI_OP_RESOLVE_URI, scene->RootNode, &par);
-	ctx->url = (char *)par.uri.url;
+	ctx->url = gf_strdup((char *)par.uri.url);
 	SMJS_FREE(c, val);
 
 	/*async defaults to true*/
@@ -2969,6 +2959,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
 	fclose(responseFile);
 	ctx->data[fsize] = 0;
+	ctx->size = (u32)fsize;
 		
 	memset(&par, 0, sizeof(GF_NETIO_Parameter));
 	par.msg_type = GF_NETIO_PARSE_HEADER;
