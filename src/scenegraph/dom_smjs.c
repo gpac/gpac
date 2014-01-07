@@ -2375,7 +2375,7 @@ typedef enum {
 	XHR_RESPONSETYPE_STREAM
 } XHR_ResponseType;
 
-typedef struct
+typedef struct __xhr_context
 {
 	JSContext *c;
 	JSObject *_this;
@@ -2507,9 +2507,13 @@ static void xml_http_del_data(XMLHTTPContext *ctx)
 	if (ctx->data) {
 		if (ctx->arraybuffer) {
 			/* if there is an arraybuffer holding a point to that data, we need to release it */
-			GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
-			gf_arraybuffer_del(html_array, GF_TRUE);
-			ctx->arraybuffer = NULL;
+			if (ctx->arraybuffer) {
+/*				GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
+				JS_SetParent(ctx->c, ctx->arraybuffer, NULL);
+				gf_arraybuffer_del(html_array, GF_TRUE);
+*/
+				ctx->arraybuffer = NULL;
+			}
 		} else {
 			gf_free(ctx->data);
 		}
