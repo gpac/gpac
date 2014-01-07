@@ -537,7 +537,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 
 GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
 {
-	u32 do_flush, bytesLeft, size, nal_type;
+	u32 do_flush, bytesLeft, size;
 
 	do_flush = 0;
 	if (!nalu) do_flush = 1;
@@ -567,9 +567,6 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 	}
-
-	nal_type = (nalu[0] & 0x7E) >> 1;
-	
 
 	/*at this point we're sure the NALU fits in current packet OR must be splitted*/
 	/*check that we should use single NALU packet mode or aggreation packets mode*/
