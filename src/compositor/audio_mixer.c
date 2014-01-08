@@ -514,8 +514,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		gf_mixer_map_channels(inChan, in_ch, in->src->ch_cfg, out_ch, am->channel_cfg);
 		//Fixe me - we nee to uderstand how to map pan from N channels to K channels ...
 		for (j=0; j<out_ch ; j++) {
-//			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
-			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] );
+			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
 		}
 
 		in->out_samples_written ++;
