@@ -762,12 +762,13 @@ do_mix:
 		return 0;
 	}
 
+	//we do not re-normalize based on the numbner of input, this is the author's responsability
 	out_mix = am->output;
 	if (am->bits_per_sample==16) {
 		s16 *out_s16 = (s16 *) buffer;
 		for (i=0; i<nb_written; i++) {
 			for (j=0; j<am->nb_channels; j++) {
-				s32 samp = (*out_mix / nb_act_src);
+				s32 samp = (*out_mix );
 				if (samp > GF_SHORT_MAX) samp = GF_SHORT_MAX;
 				else if (samp < GF_SHORT_MIN) samp = GF_SHORT_MIN;
 				(*out_s16) = samp;
@@ -779,7 +780,7 @@ do_mix:
 		s8 *out_s8 = (s8 *) buffer;
 		for (i=0; i<nb_written; i++) {
 			for (j=0; j<am->nb_channels; j++) {
-				s32 samp = (*out_mix / nb_act_src) / 255;
+				s32 samp = (*out_mix ) / 255;
 				if (samp > 127) samp = 127;
 				else if (samp < -128) samp = -128;
 				(*out_s8) = samp;
