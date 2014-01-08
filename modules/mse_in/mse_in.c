@@ -210,6 +210,10 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         return GF_OK;
     case GF_NET_SERVICE_QUALITY_SWITCH:
         return GF_NOT_SUPPORTED;
+	case GF_NET_SERVICE_FLUSH_DATA:
+		break;
+	default:
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received unknown command %d from terminal on Service (%p)\n", com->command_type, msein->mediasource->service));
     }
 
     if (!com->base.on_channel) return GF_NOT_SUPPORTED;

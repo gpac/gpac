@@ -10,34 +10,23 @@ function report(msg) {
 	tA.appendChild(document.createTextNode(msg));
 }
 
-function getFile(url, responseType, mime, doneCallback, xhr2)
+function getResource(url, async, responseType, mime, doneCallback, xhr_reused)
 {
   var xhr;
-  if (!xhr2) xhr = new XMLHttpRequest();
-  else xhr = xhr2;  
+  if (!xhr_reused) xhr = new XMLHttpRequest();
+  else xhr = xhr_reused;  
   xhr.url = url;
-  xhr.open("GET", xhr.url, false);
+  xhr.open("GET", xhr.url, async);
   xhr.responseType = responseType;
   if (mime !== "") {
 	xhr.overrideMimeType(mime);
   }
-  xhr.onreadystatechange = doneCallback;
-  report("Downloading: " + xhr.url + ", expecting responseType \'" + responseType +"\'"+ ((mime !== "")?", with MIME: " + mime:""));
+  if (async) xhr.onreadystatechange = doneCallback;
+  report((async ? "Asynchronous" : "Synchronous" )+ " download of " + xhr.url + "," +
+         " expecting responseType \'" + responseType +"\'"+ ((mime !== "")?", with forced MIME type: '" + mime +"'":""));
   xhr.send();
+  if (!async) doneCallback.call(xhr);
   return xhr;
-}
-
-function onDone2(e)
-{ 
-  if (this.readyState == this.DONE)
-  {
-	report("Download done: "+this.url);
-	report("Response: "+this.response+", of size: "+this.response.byteLength);
-	if (count == 0) {
-	  count++;
-	  getFile("http://perso.telecom-paristech.fr/~concolat/html5_tests/video1.ogv", "arraybuffer", "video/ogv", onDone2, this);
-	}
-  }
 }
 
 function onDone(e)
@@ -71,65 +60,88 @@ function onDone(e)
   }
 }
 
-function testAll(url)
+function getResourceSimple(url, async, responseType, mime)
 {
-  getFile(url, "",            "", onDone);
-  getFile(url, "text",        "", onDone);
-  getFile(url, "arraybuffer", "", onDone);
-  getFile(url, "json",        "", onDone);
-  getFile(url, "document",    "", onDone);
-  getFile(url, "blob",        "", onDone);
-  getFile(url, "stream",      "", onDone);
-
-  getFile(url, "",            "text/plain", onDone);
-  getFile(url, "text",        "text/plain", onDone);
-  getFile(url, "arraybuffer", "text/plain", onDone);
-  getFile(url, "json",        "text/plain", onDone);
-  getFile(url, "document",    "text/plain", onDone);
-  getFile(url, "blob",        "text/plain", onDone);
-  getFile(url, "stream",      "text/plain", onDone);
-
-  getFile(url, "",            "application/xml", onDone);
-  getFile(url, "text",        "application/xml", onDone);
-  getFile(url, "arraybuffer", "application/xml", onDone);
-  getFile(url, "json",        "application/xml", onDone);
-  getFile(url, "document",    "application/xml", onDone);
-  getFile(url, "blob",        "application/xml", onDone);
-  getFile(url, "stream",      "application/xml", onDone);
-
-  getFile(url, "",            "application/octet-stream", onDone);
-  getFile(url, "text",        "application/octet-stream", onDone);
-  getFile(url, "arraybuffer", "application/octet-stream", onDone);
-  getFile(url, "json",        "application/octet-stream", onDone);
-  getFile(url, "document",    "application/octet-stream", onDone);
-  getFile(url, "blob",        "application/octet-stream", onDone);
-  getFile(url, "stream",      "application/octet-stream", onDone);
+	getResource(url, async, (responseType == undefined ? "" : responseType), (mime == undefined ? "" : mime), onDone);
 }
 
-function testAllLocal(filename) {
-	testAll(filename);
-//	testAll("file://"+filename);
-//	testAll("file://localhost/"+filename);
+function getResourceAllWays(url, async)
+{
+  getResource(url, async, "",            "", onDone);
+  getResource(url, async, "text",        "", onDone);
+  getResource(url, async, "arraybuffer", "", onDone);
+  getResource(url, async, "json",        "", onDone);
+  getResource(url, async, "document",    "", onDone);
+  getResource(url, async, "blob",        "", onDone);
+  getResource(url, async, "stream",      "", onDone);
+
+  getResource(url, async, "",            "text/plain", onDone);
+  getResource(url, async, "text",        "text/plain", onDone);
+  getResource(url, async, "arraybuffer", "text/plain", onDone);
+  getResource(url, async, "json",        "text/plain", onDone);
+  getResource(url, async, "document",    "text/plain", onDone);
+  getResource(url, async, "blob",        "text/plain", onDone);
+  getResource(url, async, "stream",      "text/plain", onDone);
+
+  getResource(url, async, "",            "application/xml", onDone);
+  getResource(url, async, "text",        "application/xml", onDone);
+  getResource(url, async, "arraybuffer", "application/xml", onDone);
+  getResource(url, async, "json",        "application/xml", onDone);
+  getResource(url, async, "document",    "application/xml", onDone);
+  getResource(url, async, "blob",        "application/xml", onDone);
+  getResource(url, async, "stream",      "application/xml", onDone);
+
+  getResource(url, async, "",            "application/octet-stream", onDone);
+  getResource(url, async, "text",        "application/octet-stream", onDone);
+  getResource(url, async, "arraybuffer", "application/octet-stream", onDone);
+  getResource(url, async, "json",        "application/octet-stream", onDone);
+  getResource(url, async, "document",    "application/octet-stream", onDone);
+  getResource(url, async, "blob",        "application/octet-stream", onDone);
+  getResource(url, async, "stream",      "application/octet-stream", onDone);
+}
+
+function testAllLocal(filename, asyncDownload, getMethod, responseType, mime) {
+	getMethod(filename, asyncDownload, responseType, mime);
+//	getMethod("file://"+filename, asyncDownload, responseType, mime);
+//	getMethod("file://localhost/"+filename, asyncDownload, responseType, mime);
+}
+
+function test1() 
+{
+  var baseURL = "";"http://perso.telecom-paristech.fr/~concolat/html5_tests/";
+  var asyncDownload = false;
+  var testFunc = getResourceSimple; //getResourceAllWays;
+  report("Starting tests 1...");
+  testFunc(baseURL+"file.txt", asyncDownload);
+  testFunc(baseURL+"file.xml", asyncDownload, "document");
+  testFunc(baseURL+"file.mp4", asyncDownload, "arraybuffer");
+  testFunc(baseURL+"file.json", asyncDownload);
+/*  testAllLocal("file.txt", asyncDownload, testFunc);
+  testAllLocal("file.xml", asyncDownload, testFunc, "document");
+  testAllLocal("file.mp4", asyncDownload, testFunc, "arraybuffer");
+  testAllLocal("file.json", asyncDownload, testFunc);*/
+  report("end of tests 1.");
+}
+
+function test2() 
+{
+  var res;
+
+  report("Starting tests 2...");
+  var xhr = getResource("file.mp4", false, "arraybuffer", "application/octet-stream", onDone);
+  var res = xhr.response;
+  alert("Resource: "+res);
+  getResource("file.json", false, "arraybuffer", "application/octet-stream", onDone, xhr);
+  report("end of tests 2");
 }
 
 function init()
 { 
   tA = document.createElement('textArea');
   document.documentElement.appendChild(tA);
-
-  report("Starting tests ...");
-  testAll("http://perso.telecom-paristech.fr/~concolat/html5_tests/file.txt");
-  testAll("http://perso.telecom-paristech.fr/~concolat/html5_tests/file.xml");
-  testAll("http://perso.telecom-paristech.fr/~concolat/html5_tests/file.mp4");
-  testAll("http://perso.telecom-paristech.fr/~concolat/html5_tests/file.json");
-  testAllLocal("file.txt");
-  testAllLocal("file.xml");
-  testAllLocal("file.mp4");
-  testAllLocal("file.json");
-  report("done.");
-
 }
 
 alert("Script loaded"); 
 init();
+test1();
 

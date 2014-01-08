@@ -962,7 +962,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_SET_PULL:
 		//we don't pull in DASH base services, we flush as soon as we have a complete segment
 #ifndef DASH_USE_PULL
-		if (read->input->proxy_udta) 
+		if (read->input->proxy_udta && !read->input->proxy_type) 
 			return GF_NOT_SUPPORTED;
 #endif
 
