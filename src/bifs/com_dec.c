@@ -710,7 +710,10 @@ static GF_Err BD_DecIndexDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 	/*special handling in case of a node*/
 	if (SF_type == GF_SG_VRML_SFNODE) {
-		e = gf_node_replace_child(node, (GF_ChildNodeItem**) field.far_ptr, pos, NULL);
+		GF_ChildNodeItem** nlist_ptr = (GF_ChildNodeItem**) field.far_ptr;
+		if (*nlist_ptr) {
+			e = gf_node_replace_child(node, nlist_ptr, pos, NULL);
+		} 
 	} else {
 		e = gf_sg_vrml_mf_remove(field.far_ptr, field.fieldType, pos);
 	}
