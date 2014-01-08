@@ -618,6 +618,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 		}
 	}
 	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) {
+#ifndef GPAC_DISABLE_HEVC
 		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, 0) : NULL;
 		if (hevcc) {
 			u32 count, i, j, b64s;
@@ -644,6 +645,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 			gf_odf_hevc_cfg_del(hevcc);
 			strcat(sdpLine, "\n");
 		}
+#endif
 	}
 	/*MPEG-4 decoder config*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_MPEG4) {

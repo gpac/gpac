@@ -5047,6 +5047,7 @@ exit:
 	return e;
 }
 
+#ifndef GPAC_DISABLE_HEVC
 static GF_HEVCParamArray *get_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type) 
 {
 	u32 i, count = hevc_cfg->param_array ? gf_list_count(hevc_cfg->param_array) : 0;
@@ -5056,6 +5057,7 @@ static GF_HEVCParamArray *get_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 	}
 	return NULL;
 }
+#endif
 
 static GF_Err gf_import_hevc(GF_MediaImporter *import)
 {

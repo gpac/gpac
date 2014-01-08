@@ -726,7 +726,9 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 	}
 }
 
-static void gf_rtp_h265_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
+#ifndef GPAC_DISABLE_HEVC
+
+static void gf_rtp_hevc_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
 {
 	char *data;
 	u32 data_size, nal_s;
@@ -753,7 +755,7 @@ static void gf_rtp_h265_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	gf_free(data);
 }
 
-void gf_rtp_parse_h265(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	u32 nal_type;
 	char nalu_size[4];
@@ -774,7 +776,7 @@ void gf_rtp_parse_h265(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->sl_hdr.randomAccessPointFlag = 0;
 	} else if (rtp->sl_hdr.accessUnitEndFlag) {
 		rtp->flags |= GF_RTP_UNRELIABLE_M;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[H265 RTP] error in Marker bit - switching to unreliable mode\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[HEVC RTP] error in Marker bit - switching to unreliable mode\n"));
 	}
 	
 	/*Single NALU*/
@@ -824,7 +826,7 @@ void gf_rtp_parse_h265(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		Bool is_start = payload[2] & 0x80;
 		Bool is_end = payload[2] & 0x40;
 		/*flush*/
-		if (is_start) gf_rtp_h265_flush(rtp, hdr, 1);
+		if (is_start) gf_rtp_hevc_flush(rtp, hdr, 1);
 
 		nal_type = payload[2] & 0x3F;
 		if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
@@ -846,9 +848,10 @@ void gf_rtp_parse_h265(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			gf_bs_write_data(rtp->inter_bs, nal_hdr, 2);
 		}
 		gf_bs_write_data(rtp->inter_bs, payload+3, size-3);
-		if (is_end || hdr->Marker) gf_rtp_h265_flush(rtp, hdr, 0);
+		if (is_end || hdr->Marker) gf_rtp_hevc_flush(rtp, hdr, 0);
 	}
 }
+#endif
 
 
 static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
@@ -1518,6 +1521,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->depacketize = gf_rtp_parse_h264;
 		break;
 	case GF_RTP_PAYT_HEVC:
+#ifndef GPAC_DISABLE_HEVC
 	{
 		GF_SDP_FMTP *fmtp;
 		GF_HEVCConfig *hevcc = gf_odf_hevc_cfg_new();
@@ -1588,7 +1592,10 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		gf_odf_hevc_cfg_write(hevcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_odf_hevc_cfg_del(hevcc);
 	}
-		rtp->depacketize = gf_rtp_parse_h265;
+		rtp->depacketize = gf_rtp_parse_hevc;
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
