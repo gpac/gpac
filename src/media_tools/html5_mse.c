@@ -586,7 +586,7 @@ u32 gf_mse_parse_segment(void *par)
             {
                 /* try to delete the previous buffer */
                 gf_arraybuffer_del((GF_HTML_ArrayBuffer *)sb->prev_buffer, GF_FALSE);
-				(GF_HTML_ArrayBuffer *)sb->prev_buffer = NULL;
+				sb->prev_buffer = NULL;
                 /* get ready to receive a new segment and start a new thread */
                 sb->updating = GF_FALSE;
                 break;

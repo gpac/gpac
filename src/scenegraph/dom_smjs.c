@@ -2514,7 +2514,7 @@ static void xml_http_del_data(XMLHTTPContext *ctx)
 		if (ctx->arraybuffer) {
 			/* if there is an arraybuffer holding a point to that data, we need to release it */
 			if (ctx->arraybuffer) {
-				GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
+//				GF_HTML_ArrayBuffer *html_array = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(ctx->c, ctx->arraybuffer);
 				//detach the ArrayBuffer from this object
 				JS_SetParent(ctx->c, ctx->arraybuffer, NULL);
 				ctx->arraybuffer = NULL;
