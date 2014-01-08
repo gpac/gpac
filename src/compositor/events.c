@@ -774,6 +774,8 @@ TODO clean: figure out whether we use a mouse or a touch device - if touch devic
 			evt.cancelable = 1;
 			evt.key_flags = compositor->key_states;
 			evt.type = event->type;
+			evt.button = event->mouse.button;
+			evt.new_scale = event->mouse.wheel_pos;
 			ret += gf_dom_event_fire_ex(gf_sg_get_root_node(compositor->scene), &evt, compositor->hit_use_stack);
 		}
 		if (compositor->sensor_type != cursor_type) {

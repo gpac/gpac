@@ -15,6 +15,28 @@ function reportMessage(msg) {
 	}
 }
 
+function createLabel(x, y, fill, textContent)
+{
+    var label = document.createElement("text");
+	label.setAttribute("x", x);
+	label.setAttribute("y", y);
+	label.setAttribute("fill", fill);
+	label.textContent = textContent;
+	return label;
+}
+
+function createBar(x, y, w, h, fill) {
+    var bar = document.createElement("rect");
+	bar.setAttribute("x", x);
+	bar.setAttribute("y", y);
+	bar.setAttribute("width", w);
+	bar.setAttribute("height", h);
+	bar.setAttribute("rx", h/2);
+	bar.setAttribute("ry", h/2);
+	bar.setAttribute("fill", fill);
+	return bar;
+}
+
 Player.prototype.createInfoStructure = function(id) {
 	this.info = {};
 	var width = 330;
@@ -50,59 +72,27 @@ Player.prototype.createInfoStructure = function(id) {
     ta.appendChild(this.info.ue);
 
 	this.ui = {};
-    this.ui.playbackRect = document.createElement("rect");
+    this.ui.playbackRect = createBar(10, 5, width-10, 5, "black");
 	g.appendChild(this.ui.playbackRect);
-	this.ui.playbackRect.setAttribute("x", 10);
-	this.ui.playbackRect.setAttribute("y", 5);
-	this.ui.playbackRect.setAttribute("width", width-10);
-	this.ui.playbackRect.setAttribute("height", "5");
-	this.ui.playbackRect.setAttribute("fill", "black");
 	
-    this.ui.bufferedRect = document.createElement("rect");
+    this.ui.bufferedRect = createBar(10, 5, 0, 5, "url(#backColor)");
 	g.appendChild(this.ui.bufferedRect);
 	this.ui.bufferedRect.max = width;
-	this.ui.playbackRect.setAttribute("x", 10);
-	this.ui.bufferedRect.setAttribute("y", 5);
-	this.ui.bufferedRect.setAttribute("width", 0);
-	this.ui.bufferedRect.setAttribute("height", 5);
-	this.ui.bufferedRect.setAttribute("fill", "url(#backColor)");
 	
-    this.ui.zeroLabel = document.createElement("text");
+    this.ui.zeroLabel = createLabel(0, 10, "black", '0');
 	g.appendChild(this.ui.zeroLabel);
-	this.ui.zeroLabel.setAttribute("x", 0);
-	this.ui.zeroLabel.setAttribute("y", 10);
-	this.ui.zeroLabel.setAttribute("fill", "black");
-	this.ui.zeroLabel.textContent = '0';
 	
-    this.ui.playLabel = document.createElement("text");
+    this.ui.playLabel = createLabel(0, 20, "black", '');
 	g.appendChild(this.ui.playLabel);
-	this.ui.playLabel.setAttribute("x", 0);
-	this.ui.playLabel.setAttribute("y", 20);
-	this.ui.playLabel.setAttribute("fill", "black");
-	this.ui.playLabel.textContent = '';
 
-    this.ui.playBar = document.createElement("rect");
+    this.ui.playBar = createBar(0, 5, 1, 5, "black");
 	g.appendChild(this.ui.playBar);
-	this.ui.playBar.setAttribute("x", 0);
-	this.ui.playBar.setAttribute("y", 5);
-	this.ui.playBar.setAttribute("width", 1);
-	this.ui.playBar.setAttribute("height", 5);
-	this.ui.playBar.setAttribute("fill", "black");
 	
-    this.ui.startLabel = document.createElement("text");
+    this.ui.startLabel = createLabel(0, 0, "black", '');
 	g.appendChild(this.ui.startLabel);
-	this.ui.startLabel.setAttribute("x", 0);
-	this.ui.startLabel.setAttribute("y", 0);
-	this.ui.startLabel.setAttribute("fill", "black");
-	this.ui.startLabel.textContent = '';
 
-    this.ui.endLabel = document.createElement("text");
+    this.ui.endLabel = createLabel(width+5, 10, "black", 'end');
 	g.appendChild(this.ui.endLabel);
-	this.ui.endLabel.setAttribute("x", width+5);
-	this.ui.endLabel.setAttribute("y", 10);
-	this.ui.endLabel.setAttribute("text-anchor", "start");
-	this.ui.endLabel.setAttribute("fill", "black");
-	this.ui.endLabel.textContent = 'end';
 }
 
 Player.prototype.updateInfo = function() {
@@ -141,7 +131,7 @@ Player.prototype.updateDownloadInfo = function(index, url, done) {
 }
 
 Player.prototype.toggleQuality = function() {
-    reportMessage('Switching quality');
+    reportMessage("[video "+this.v.getAttribute("id")+"] Toggling quality");
 	var newQuality = (this.qualityIndex + 1) % this.segmentFiles.length;
 	this.qualityChangeRequested = (newQuality - this.qualityIndex);
     this.qualityIndex = newQuality;
@@ -149,7 +139,7 @@ Player.prototype.toggleQuality = function() {
 }
 
 Player.prototype.switchUp = function() {
-    reportMessage('Switching quality');
+    reportMessage("[video "+this.v.getAttribute("id")+"] Switching quality up");
 	if (this.qualityIndex < this.segmentFiles.length - 1) {
 		this.qualityIndex++;
 		this.qualityChangeRequested++;
@@ -158,7 +148,7 @@ Player.prototype.switchUp = function() {
 }
 
 Player.prototype.switchDown = function() {
-    reportMessage('Switching quality');
+    reportMessage("[video "+this.v.getAttribute("id")+"] Switching quality down");
 	if (this.qualityIndex > 0) {
 		this.qualityIndex--;
 		this.qualityChangeRequested--;
@@ -168,7 +158,7 @@ Player.prototype.switchDown = function() {
 
 Player.prototype.getNextSegment = function () {
     /* apply the limit (if any) to the number of segments to download */
-    if (this.maxSeg > 0 && this.fileIndex >= this.maxSeg) return;
+    if (this.maxSeg > 0 && this.fileIndex >= this.maxSeg && this.playing) return;
 
 	if (!this.qualityChangeRequested) {
 		/* we increment the segment index only when we need a media segment (not an init segment) */
@@ -178,10 +168,10 @@ Player.prototype.getNextSegment = function () {
     /* apply the segment reordering pattern (if any) */
     if (this.appendOrder != null && this.fileIndex < this.appendOrder.length) {
         this.fileIndexReordered = this.appendOrder[this.fileIndex];
-        reportMessage("Changing file index from: " + this.fileIndex + "to : " + this.fileIndexReordered);
+        reportMessage("[video "+this.v.getAttribute("id")+"] Changing file index from: " + this.fileIndex + "to : " + this.fileIndexReordered);
     } else {
         this.fileIndexReordered = this.fileIndex;
-        reportMessage("Using file index: " + this.fileIndex);
+        reportMessage("[video "+this.v.getAttribute("id")+"] Using file index: " + this.fileIndex);
     }
 
     /* determine the url to use */
@@ -198,7 +188,7 @@ Player.prototype.getNextSegment = function () {
 				 + this.segmentFiles[this.qualityIndex].segmentSuffix;
     }
 
-    reportMessage("url: " + this.url);
+    reportMessage("[video "+this.v.getAttribute("id")+"] Downloading resource from url: " + this.url);
     /* starting the download */
     if (this.url) {
         this.updateDownloadInfo(this.fileIndexReordered, this.url);
@@ -217,7 +207,7 @@ function onDone(e) {
     if (this.readyState == this.DONE) {
         this.player.updateDownloadInfo(this.player.fileIndexReordered, this.url, true);
         var arraybuffer = this.response;
-        reportMessage("Received ArrayBuffer (size: " + arraybuffer.byteLength + ")");
+        reportMessage("[video "+this.player.v.getAttribute("id")+"] Received ArrayBuffer (size: " + arraybuffer.byteLength + ")");
         /* Appending the downloaded segment to the SourceBuffer */
         if (this.player.sb) {
             /* if there is a discontinuity in the file index, we need to inform the SourceBuffer */
@@ -239,57 +229,73 @@ function onDone(e) {
 }
 
 Player.prototype.onSourceOpen = function (event) {
-    reportMessage("MediaSource opened");
+    reportMessage("[video "+this.v.getAttribute("id")+"] MediaSource opened");
     /* GPAC Hack: since the event is not targeted to the MediaSource, we need to get the MediaSource back */
     var ms = event.target.ms;
 
-    reportMessage("Adding Source Buffer of type video/mp4 to the MediaSource");
+    reportMessage("[video "+this.v.getAttribute("id")+"] Adding Source Buffer of type video/mp4 to the MediaSource");
     ms.player.sb = ms.addSourceBuffer("video/mp4");
-
+	ms.player.sb.id = ms.sourceBuffers.length;
     ms.player.getNextSegment();
 }
 
-/* Function called repeatedly to monitor the playback time versus download time difference 
-and to trigger a new download if needed */
-Player.prototype.repeatFunc = function() {
-    this.updateInfo();
-
+Player.prototype.checkBufferLevel = function() {
     /* don't download a new segment if:
     - the SourceBuffer is not created
     - there is already a download going on */
     if (this.sb != null && this.url == null) {
         if (this.sb.buffered.length > 0) {
-            reportMessage("Source buffered range: (" + this.sb.buffered.start(0) + "," + this.sb.buffered.end(0) + ")");
-            if (this.sb.updating == false && this.sb.buffered.end(0) - this.v.currentTime < this.TIME_THRESOLD) {
-                reportMessage("buffered attribute has too few data, downloading new segment");
-                this.getNextSegment();
-            }
+			if (this.v.currentTime >= this.sb.buffered.end(0)) {
+				this.pause();
+			} else {
+				reportMessage("[video "+this.v.getAttribute("id")+"] Video time "+this.v.currentTime + ", Source Buffer #"+this.sb.id+" buffered data range: (" + this.sb.buffered.start(0) + "," + this.sb.buffered.end(0) + ")");
+				if (this.sb.updating == false && this.sb.buffered.end(0) - this.v.currentTime < this.TIME_THRESOLD) {
+					reportMessage("[video "+this.v.getAttribute("id")+"] buffered attribute has not enough data, downloading new segment");
+					this.getNextSegment();
+				}
+			}
         }
         else {
             if (!this.sb.updating) {
-                reportMessage("buffered attribute has no data, downloading new segment");
+                reportMessage("[video "+this.v.getAttribute("id")+"] buffered attribute has no data, downloading new segment");
                 this.getNextSegment();
             }
         }
     }
 }
 
+/* Function called repeatedly to monitor the playback time versus download time difference 
+and to trigger a new download if needed */
+Player.prototype.repeatFunc = function() {
+	if (!this.playing) return;
+    this.updateInfo();
+	this.checkBufferLevel();
+}
+
 Player.prototype.play = function() {
-  reportMessage("Starting video playback");
+  reportMessage("[video "+this.v.getAttribute("id")+"] Starting video playback");
+  this.playing = true;
   this.v.play();
+}
+
+Player.prototype.pause = function() {
+  reportMessage("[video "+this.v.getAttribute("id")+"] Pausing video playback");
+  this.playing = false;
+  this.v.pause();
 }
 
 Player.prototype.changeSegmentList = function(newSegments) {
   this.segmentFiles = newSegments;
+  this.qualityChangeRequested++;
 }
 
 /* 
    vId: id of the video element
    iId: id of a group where debug info will be displayed 
-   bId: id of the button used to trigger changes
    aId: id of a animation used to refresh downloads
 */
 function Player(vId, iId, aId, segmentFiles, segmentOrder) {
+	reportMessage("[video "+vId+"] Creating Player");
 	/* Boolean to define the download policy: 
 		- depending on the buffer occupancy (true) (see TIME_THRESOLD below), 
 		- as fast as possible (false) */
@@ -311,6 +317,7 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
 	this.sb = null;
 	/* maximum number of segments to download */
 	this.maxSeg = Infinity;
+	this.playing = false;
 	/* Array representing the download order of each segments (for out-of-order append), 
 	  segments not listed are downloaded in the right order */
 	this.appendOrder = segmentOrder; 
@@ -325,19 +332,19 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
         /* GPAC workaround: adding the event listener on the repeatEvent of a dummy animation to simulate window.setInterval */
 		var animation = document.getElementById(aId);
         animation.addEventListener("repeatEvent", this.repeatFunc.bind(this));
-        reportMessage("Using buffer regulation to download segments ");
+        reportMessage("[video "+vId+"] Using buffer regulation to download segments ");
     } else {
-        reportMessage("Not using any regulation - downloading segments as fast as possible");
+        reportMessage("[video "+vId+"] Not using any regulation - downloading segments as fast as possible");
     }
 
     this.createInfoStructure(iId);
 
-    reportMessage("Creating new MediaSource");
+    reportMessage("[video "+vId+"] Creating new MediaSource");
     this.ms = new MediaSource();
 	this.ms.player = this;
 
     var bloburl = URL.createObjectURL(this.ms);
-    reportMessage("Attaching Media Source " + bloburl + " to Video");
+    reportMessage("[video "+vId+"] Attaching Media Source " + bloburl + " to video element");
 
     this.v = document.getElementById(vId);
     /* GPAC Hack: the event should be dispatched to the MediaSource object not to the video */

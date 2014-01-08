@@ -24,7 +24,7 @@
   <!-- Displaying info -->
   <g id="info_main"  transform="translate( 10, 60)"/>
  
-  <g transform="translate(0, 60)">
+  <g transform="translate(10, 60)">
     <video id="v_main"  x="0"   width="380" height="400"/>
   </g>
  
@@ -41,6 +41,7 @@
   <script type="application/ecmascript" xlink:href="counter-mp4-video-segments-live-nobs-http.js"/>
   <script type="application/ecmascript" xlink:href="redbull-mp4-video-segments-http.js"/>  
   <script type="application/ecmascript" xlink:href="redbull-mp4-audio-segments-http.js"/>  
+  <script type="application/ecmascript" xlink:href="myanmar-tiles.js"/>  
   <script type="application/ecmascript" xlink:href="gpac-mse.js"/>
   
   <script type="application/ecmascript">
@@ -51,7 +52,7 @@
 		- counterLiveNoBSVideoHTTPSegments,
 		- redBullAudioHTTPSegments
 		- or redBullVideoHTTPSegments */
-	var p1 = new Player('v_main', 'info_main', 'timer_anim', counterVideoLocalSegments); 
+	var p1 = new Player('v_main', 'info_main', 'timer_anim', myanmarTile1VideoSegmentsLocal); 
 	p1.play();
   </script>
 </svg>

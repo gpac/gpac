@@ -280,7 +280,7 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
 				} else {
 					if (j > 0) {
 						GF_MSE_Packet *prev = (GF_MSE_Packet *)gf_list_get(track->buffer, j-1);
-						au_dur = packet->sl_header.compositionTimeStamp - prev->sl_header.compositionTimeStamp;
+						au_dur = packet->sl_header.decodingTimeStamp - prev->sl_header.decodingTimeStamp;
 					}
 				}
                 packet_end = ((packet->sl_header.compositionTimeStamp + au_dur) * 1.0) / track->timescale;
