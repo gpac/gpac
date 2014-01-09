@@ -797,7 +797,8 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 /*for DASH - query_type is:
 	0: query init range
 	1: query next segment
-	2: drop next segment
+	2: query next segment except currently downloading one
+	3: drop next segment
 */
 static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, u32 *refresh_type)
 {
@@ -813,8 +814,8 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 
 	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
-	param.url_query.next_url = NULL;
-	param.url_query.drop_first_segment = (query_type==2) ? 1 : 0;
+	param.url_query.drop_first_segment = (query_type==3) ? 1 : 0;
+	param.url_query.current_download = (query_type==2) ? 0 : 1;
 
 	//we are downloading the segment we play, don't delete it
 	if (m2ts->in_segment_download)
@@ -834,7 +835,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 		if (out_end_range) *out_end_range = param.url_query.end_range;
 
 		/*the segment is being downloaded now, start monitoring refresh*/
-		if (param.url_query.is_current_download) {
+		if (param.url_query.current_download) {
 			m2ts->low_latency_mode = 1;
 			if (refresh_type) *refresh_type = 1;
 			if (!m2ts->in_segment_download || param.url_query.has_new_data) {
@@ -890,7 +891,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 		}
 	}
 
-	e = M2TS_QueryNextFile(m2ts, 1, &url, &start_byterange, &end_byterange, &refresh_type);
+	e = M2TS_QueryNextFile(m2ts, (flush_type==2) ? 2 : 1, &url, &start_byterange, &end_byterange, &refresh_type);
 	if (e) {
 		gf_mx_v(m2ts->mx);
 		return;
@@ -899,7 +900,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 
 	//done, drop segment 
 	if (!m2ts->in_segment_download) {
-		e = M2TS_QueryNextFile(m2ts, 2, &url, &start_byterange, &end_byterange, &refresh_type);
+		e = M2TS_QueryNextFile(m2ts, 3, &url, &start_byterange, &end_byterange, &refresh_type);
 
 		if (m2ts->has_pending_segments)
 			m2ts->has_pending_segments--;
