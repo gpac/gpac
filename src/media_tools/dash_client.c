@@ -4363,6 +4363,7 @@ discard_segment:
 
 		if (group->dont_delete_first_segment) {
 			group->dont_delete_first_segment = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] deleting cache file %s : %s (kept in HTTP cache)\n", group->cached[0].url, group->cached[0].cache));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] deleting cache file %s : %s\n", group->cached[0].url, group->cached[0].cache));
 			group->urlToDeleteNext = gf_strdup( group->cached[0].url );

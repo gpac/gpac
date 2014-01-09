@@ -371,8 +371,10 @@ typedef struct
 
 
 	Bool has_next;
-	/*indicates that the return URL is the currently downloaded one, not yet completed (progressive mode only).	*/
-	Bool is_current_download;
+	/*module->proxy: indicates that currently downloaded segment should be checked.	
+	  proxy->module: indicates that the return URL is the currently downloaded one, not yet completed (progressive mode only).	
+	*/
+	Bool current_download;
 	/*indicates that there is new data in the cache for the current URL (progressive mode only) - only valid if is_current_download is set.*/
 	Bool has_new_data;
 

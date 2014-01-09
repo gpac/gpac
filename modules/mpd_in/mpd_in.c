@@ -142,10 +142,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		GF_MPDGroup *group=NULL;
 		const char *src_url;
 		Bool discard_first_cache_entry = param->url_query.drop_first_segment;
+		Bool check_current_download = param->url_query.current_download;
         u32 timer = gf_sys_clock();
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Query Next request from input service %s\n", ifce->module_name));
 
 
+		param->url_query.current_download = 0;
 		param->url_query.discontinuity_type = 0;
 		if (mpdin->in_seek) {
 			mpdin->in_seek = 0;
@@ -200,12 +202,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				return GF_EOS;
 			}
 
-			if (mpdin->use_low_latency) {
+			if (check_current_download && mpdin->use_low_latency) {
 				Bool is_switched=GF_FALSE;
 				gf_dash_group_probe_current_download_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, NULL, &param->url_query.next_url_init_or_switch_segment, &src_url, &is_switched);
 
 				if (param->url_query.next_url) {
-					param->url_query.is_current_download = 1;
+					param->url_query.current_download = 1;
 					param->url_query.has_new_data = group->has_new_data;
 					param->url_query.discontinuity_type = is_switched ? 1 : 0;
 					group->has_new_data = 0;
@@ -213,12 +215,10 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				}
 	            return GF_BUFFER_TOO_SMALL;
 			}
-			param->url_query.is_current_download = 0;
-
             return GF_BUFFER_TOO_SMALL;
         }
 	
-		param->url_query.is_current_download = 0;
+		param->url_query.current_download = 0;
 		nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
         if (nb_segments_cached < 1) {
             GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] No more file in cache, EOS\n"));
