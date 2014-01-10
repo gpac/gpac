@@ -916,6 +916,12 @@ redecode:
 
 	if (!gotpic) return GF_OK;
 
+	//fixme - investigate this, happens in some dash cases 
+	if ((frame->width!=ctx->width) || (frame->height!=ctx->height))  {
+		*outBufferLength = 0;
+		return GF_OK;
+	}
+
 	if (ffd->direct_output) {
 		*outBufferLength = ffd->out_size;
 		return GF_OK;
