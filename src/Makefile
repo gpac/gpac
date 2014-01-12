@@ -577,7 +577,7 @@ SRCS := $(OBJS:.o=.c)
 
 all: lib
 
-lib: $(LIB)
+lib: ../bin/gcc/$(LIB)
 
 #there's a bunch of warnings in there, get rid of them
 mcrypt: CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
@@ -586,37 +586,43 @@ mcrypt: $(LIBGPAC_MCRYPT)
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
 
-mediatools: CFLAGS += $(MEDIATOOLS_CFLAGS)
-mediatools: $(LIBGPAC_MEDIATOOLS)
+media_tools: CFLAGS += $(MEDIATOOLS_CFLAGS)
+media_tools: $(LIBGPAC_MEDIATOOLS)
 
 compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
 compositor: $(LIBGPAC_COMPOSITOR)
 
 
-$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph mediatools mcrypt $(OBJS)
-	@echo "Linking libgpac"
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
 ifeq ($(CONFIG_DARWIN),yes)
 	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
-	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJS) $(EXTRALIBS) 
+	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS) 
 else
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
-	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJS) $(EXTRALIBS)
+	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)
 ifeq (,$(findstring yes, $(CONFIG_WIN32)))
-	mv ../bin/gcc/$@ ../bin/gcc/$@.$(VERSION_SONAME)
-	ln -sf $@.$(VERSION_SONAME) ../bin/gcc/$@.$(VERSION_MAJOR)
-	ln -sf $@.$(VERSION_SONAME) ../bin/gcc/$@
+	mv $@ $@.$(VERSION_SONAME)
+	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
+	ln -sf $(notdir $@).$(VERSION_SONAME) $@
 endif
 endif
 
-dep: depend
+dep:
 
-depend:
-	rm -f .depend
-	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
+DEPS := $(SRCS:%.c=.deps/%.dep)
+
+-include .depend
+
+.depend: $(DEPS)
+	cat $^ > "$@"
+
+.deps/%.dep: %.c
+	@mkdir -p $(dir $@)
+	$(CC) -MM $(CFLAGS) "$<" -MT "$*.o" -MF "$@"
 
 clean: 
 	rm -f $(OBJS) ../bin/gcc/$(LIB)
@@ -625,11 +631,4 @@ clean:
 		../bin/gcc/libgpac.so.$(VERSION_SONAME)
 
 distclean: clean
-	rm -f Makefile.bak .depend
-
-
-# include dependency files if they exist
-#
-ifneq ($(wildcard .depend),)
-include .depend
-endif
+	rm -f Makefile.bak .depend $(DEPS)
