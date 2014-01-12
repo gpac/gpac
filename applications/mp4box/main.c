@@ -340,7 +340,7 @@ void PrintDASHUsage()
 			" -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
 			" -moof-sn N           sets sequence number of first moof to N\n"
 			" -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
-			" -no-frag-default     disables default flags in fragments\n"
+			" -no-frags-default     disables default flags in fragments\n"
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
