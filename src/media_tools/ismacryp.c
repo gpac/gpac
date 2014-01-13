@@ -388,10 +388,9 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		ismasamp = gf_isom_get_ismacryp_sample(mp4, track, samp, si);
 
 		gf_free(samp->data);
-		samp->data = ismasamp->data;
+		samp->data = (char *)gf_malloc(ismasamp->dataLength);
+		memmove(samp->data, ismasamp->data, ismasamp->dataLength);
 		samp->dataLength = ismasamp->dataLength;
-		ismasamp->data = NULL;
-		ismasamp->dataLength = 0;
 
 		/* Decrypt payload */
 		if (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
@@ -418,6 +417,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 					start[3] = (nalu_size)&0xFF;
 					start = end;
 					end = start+4;
+					remain -= 4;
 					continue;
 				}
 				end++;
