@@ -916,11 +916,13 @@ redecode:
 
 	if (!gotpic) return GF_OK;
 
+#if (LIBAVCODEC_VERSION_MAJOR>52)
 	//fixme - investigate this, happens in some dash cases 
 	if ((frame->width!=ctx->width) || (frame->height!=ctx->height))  {
 		*outBufferLength = 0;
 		return GF_OK;
 	}
+#endif
 
 	if (ffd->direct_output) {
 		*outBufferLength = ffd->out_size;
