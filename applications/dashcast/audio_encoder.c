@@ -196,12 +196,15 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		//	audio_output_file->aframe->pts = av_rescale_q(now, avr, audio_codec_ctx->time_base);
 		//}
 
-#ifdef DC_AUDIO_RESAMPLER
 		/* Resample if needed */
 		if ( audio_output_file->aframe->format != audio_codec_ctx->sample_fmt
 			|| audio_output_file->aframe->sample_rate != audio_codec_ctx->sample_rate
 			|| audio_output_file->aframe->channel_layout != audio_codec_ctx->channel_layout)
 		{
+#ifndef DC_AUDIO_RESAMPLER			
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed, but not supported by your version of DashCast. Aborting.\n"));
+			return -1;
+#else
 			if (!audio_output_file->aresampler) {
 				audio_output_file->aresampler = avresample_alloc_context();
 				if (!audio_output_file->aresampler) {
@@ -245,8 +248,8 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 				audio_codec_ctx->sample_rate = audio_output_file->aframe->sample_rate;
 				audio_codec_ctx->channels = audio_output_file->aframe->channels;
 			}
-		}
 #endif
+		}
 
 		/* Encode audio */
 		if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, audio_output_file->aframe, &got_pkt) != 0) {
