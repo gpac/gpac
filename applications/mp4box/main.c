@@ -189,7 +189,7 @@ void PrintGeneralUsage()
 {
 	fprintf(stderr, "General Options:\n"
 #ifdef GPAC_MEMORY_TRACKING
-			" -mem-track:  enables memory tracker\n"	
+			" -mem-track:  enables memory tracker\n"
 #endif
 			" -strict-error        exits after the first error is reported\n"
 			" -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
@@ -340,7 +340,7 @@ void PrintDASHUsage()
 			" -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
 			" -moof-sn N           sets sequence number of first moof to N\n"
 			" -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
-			" -no-frags-default     disables default flags in fragments\n"
+			" -no-frags-default    disables default flags in fragments\n"
 			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 			"\n");
 }
@@ -1949,7 +1949,13 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
 			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-			else if (!stricmp(argv[i+1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
+			else if (!stricmp(argv[i+1], "dashavc264:live")) {
+				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+				no_fragments_defaults = 1;
+			} else if (!stricmp(argv[i+1], "dashavc264:onDemand")) {
+				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
+				no_fragments_defaults = 1;
+			} else if (!stricmp(argv[i+1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
 			else dash_profile = GF_DASH_PROFILE_FULL;
 			i++;
 		} else if (!strnicmp(arg, "-url-template", 13)) {
