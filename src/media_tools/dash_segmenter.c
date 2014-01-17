@@ -1551,7 +1551,7 @@ restart_fragmentation_pass:
 		if (!dash_cfg->variable_seg_rad_name && first_in_set) {
 			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
-			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timescale, SegmentName, startNumber - startNumberRewind);	
+			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber - startNumberRewind);	
 			if (!mpd_timeline_bs) {
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
 			}
@@ -1696,8 +1696,9 @@ restart_fragmentation_pass:
 		if (!mpd_timeline_bs) {
 			fprintf(dash_cfg->mpd, " timescale=\"%d\" duration=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale));	
 		}
-		if (presentationTimeOffset) 
+		if (presentationTimeOffset) {
 			fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
+		}
 		fprintf(dash_cfg->mpd, ">\n");	
 		/*we are not in bitstreamSwitching mode*/
 		if (!is_bs_switching) {
@@ -3606,12 +3607,17 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 
 	if (profile==GF_DASH_PROFILE_LIVE) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011\"", is_mpeg2 ? "mp2t-simple" : "isoff-live");
-	} else if (profile==GF_DASH_PROFILE_ONDEMAND) 
+	} else if (profile==GF_DASH_PROFILE_ONDEMAND) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011\"");
-	else if (profile==GF_DASH_PROFILE_MAIN) 
+	} else if (profile==GF_DASH_PROFILE_MAIN) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011\"", is_mpeg2 ? "mp2t-main" : "isoff-main");
-	else 
+	} else if (profile==GF_DASH_PROFILE_AVC264_LIVE) {
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guildelines/dash264\"");
+	} else if (profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guildelines/dash264\"");
+	} else {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011\"");	
+	}
 
 	fprintf(mpd, ">\n");
 
@@ -4156,6 +4162,17 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		use_url_template = 1;
 		single_segment = single_file = 0;
 		break;
+	case GF_DASH_PROFILE_AVC264_LIVE:
+		seg_at_rap = 1;
+		use_url_template = 1;
+		single_segment = single_file = 0;
+		break;
+	case GF_DASH_PROFILE_AVC264_ONDEMAND:
+		if (seg_name) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
+			e = GF_NOT_SUPPORTED;
+			goto exit;
+		}
 	case GF_DASH_PROFILE_ONDEMAND:
 		seg_at_rap = 1;
 		single_segment = 1;
