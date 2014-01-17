@@ -36,12 +36,10 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->aframe = FF_ALLOC_FRAME();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
-#ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aframe->channel_layout = 0;
 	audio_output_file->aframe->sample_rate = -1;
 	audio_output_file->aframe->format = -1;
 	audio_output_file->aframe->channels = -1;
-#endif
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output audio codec not found\n"));
@@ -112,12 +110,10 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 	dc_consumer_unlock_previous(&audio_output_file->consumer, &audio_input_data->circular_buf);
 
 	audio_data_node = (AudioDataNode *) dc_consumer_consume(&audio_output_file->consumer, &audio_input_data->circular_buf);
-#ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aframe->channels = audio_data_node->channels;
 	audio_output_file->aframe->channel_layout = audio_data_node->channel_layout;
 	audio_output_file->aframe->sample_rate = audio_data_node->sample_rate;
 	audio_output_file->aframe->format = audio_data_node->format;
-#endif
 
 	/* Write audio sample on fifo */
 //	av_fifo_generic_write(audio_output_file->fifo, audio_data_node->aframe->data[0],
@@ -203,7 +199,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		{
 #ifndef DC_AUDIO_RESAMPLER			
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed, but not supported by your version of DashCast. Aborting.\n"));
-			return -1;
+			exit(1);
 #else
 			if (!audio_output_file->aresampler) {
 				audio_output_file->aresampler = avresample_alloc_context();
