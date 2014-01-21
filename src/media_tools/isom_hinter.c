@@ -752,6 +752,10 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 					if (v) size<<=8;
 				}
 				tkHint->base_offset_in_sample = samp->dataLength-remain;
+				if (remain < size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Broken AVC nalu encapsulation: NALU size is %d but only %d bytes left in sample %d\n", size, remain, tkHint->CurrentSample));
+					break;
+				}
 				remain -= size;
 				tkHint->rtp_p->sl_header.accessUnitEndFlag = remain ? 0 : 1;
 				e = gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + GF_RTP_TX3G_SIDX_OFFSET) );

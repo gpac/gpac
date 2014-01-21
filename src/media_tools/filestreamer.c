@@ -364,6 +364,10 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 				v-=1;
 				if (v) size<<=8;
 			}
+			if (remain < size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Broken AVC nalu encapsulation: NALU size is %d but only %d bytes left in sample %d\n", size, remain, to_send->current_au));
+				break;
+			}
 			remain -= size;
 			au_end = remain ? 0 : 1;
 
