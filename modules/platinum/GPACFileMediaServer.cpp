@@ -169,14 +169,10 @@ GPAC_FileMediaServer::ServeFile(NPT_HttpRequest&              request,
     // File requested
     NPT_String path = m_FileRoot;
     if (path.Compare(uri_path.Left(path.GetLength()), true) == 0) {
+#if 0
         NPT_Position start, end;
-#if 0
         PLT_HttpHelper::GetRange(request, start, end);
-#else
-			start = end = -1;
-#endif
-        
-#if 0
+
 			return PLT_HttpServer::ServeFile(response,
                                          file_path, 
                                          start, 
