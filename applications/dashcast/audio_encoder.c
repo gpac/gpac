@@ -36,10 +36,12 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->aframe = FF_ALLOC_FRAME();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
+#ifndef GPAC_USE_LIBAV
 	audio_output_file->aframe->channel_layout = 0;
 	audio_output_file->aframe->sample_rate = -1;
-	audio_output_file->aframe->format = -1;
 	audio_output_file->aframe->channels = -1;
+#endif
+	audio_output_file->aframe->format = -1;
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output audio codec not found\n"));
@@ -110,9 +112,11 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 	dc_consumer_unlock_previous(&audio_output_file->consumer, &audio_input_data->circular_buf);
 
 	audio_data_node = (AudioDataNode *) dc_consumer_consume(&audio_output_file->consumer, &audio_input_data->circular_buf);
+#ifndef GPAC_USE_LIBAV
 	audio_output_file->aframe->channels = audio_data_node->channels;
 	audio_output_file->aframe->channel_layout = audio_data_node->channel_layout;
 	audio_output_file->aframe->sample_rate = audio_data_node->sample_rate;
+#endif
 	audio_output_file->aframe->format = audio_data_node->format;
 
 	/* Write audio sample on fifo */
@@ -194,9 +198,11 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 
 		/* Resample if needed */
 		if ( audio_output_file->aframe->format != audio_codec_ctx->sample_fmt
+#ifndef GPAC_USE_LIBAV
 			|| audio_output_file->aframe->sample_rate != audio_codec_ctx->sample_rate
-			|| audio_output_file->aframe->channel_layout != audio_codec_ctx->channel_layout)
-		{
+			|| audio_output_file->aframe->channel_layout != audio_codec_ctx->channel_layout
+#endif
+		) {
 #ifndef DC_AUDIO_RESAMPLER			
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed, but not supported by your version of DashCast. Aborting.\n"));
 			exit(1);
