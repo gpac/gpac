@@ -2,7 +2,7 @@
 |
 |   Platinum - Ring buffer stream
 |
-| Copyright (c) 2004-2008, Plutinosoft, LLC.
+| Copyright (c) 2004-2010, Plutinosoft, LLC.
 | All rights reserved.
 | http://www.plutinosoft.com
 |
@@ -17,7 +17,8 @@
 | licensed software under version 2, or (at your option) any later
 | version, of the GNU General Public License (the "GPL") must enter
 | into a commercial license agreement with Plutinosoft, LLC.
-| 
+| licensing@plutinosoft.com
+|  
 | This program is distributed in the hope that it will be useful,
 | but WITHOUT ANY WARRANTY; without even the implied warranty of
 | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -51,16 +52,21 @@ public:
     PLT_RingBufferStream(NPT_Size buffer_size = 4096, bool blocking = true);
     PLT_RingBufferStream(NPT_RingBufferReference& buffer, bool blocking = true);
     virtual ~PLT_RingBufferStream();
-
-    void SetEos() {m_Eos = true;}
-
+    
+    // methods
+    bool IsAborted() { return m_Aborted; }
+    
     // NPT_InputStream methods
     NPT_Result Read(void*     buffer, 
                     NPT_Size  bytes_to_read, 
                     NPT_Size* bytes_read = NULL);
-    NPT_Result GetSize(NPT_LargeSize& size)  { 
+    NPT_Result GetSize(NPT_LargeSize& size)  {
+        NPT_COMPILER_UNUSED(size);
+        return NPT_ERROR_NOT_SUPPORTED;
+    }
+    NPT_Result GetSpace(NPT_LargeSize& space) { 
         NPT_AutoLock autoLock(m_Lock);
-        size = m_TotalBytesWritten;  
+        space = m_RingBuffer->GetSpace();
         return NPT_SUCCESS;
     }
     NPT_Result GetAvailable(NPT_LargeSize& available) { 
@@ -74,13 +80,14 @@ public:
                      NPT_Size    bytes_to_write, 
                      NPT_Size*   bytes_written = NULL);
     NPT_Result Flush();
-    NPT_Result Close() { m_RingBuffer->Close(); return NPT_SUCCESS; }
+    NPT_Result SetEOS();
+    NPT_Result Abort();
 
 protected:
     // NPT_DelegatingInputStream methods
     NPT_Result InputSeek(NPT_Position offset) {
         NPT_COMPILER_UNUSED(offset);
-        return NPT_FAILURE;
+        return NPT_ERROR_NOT_SUPPORTED;
     }
     NPT_Result InputTell(NPT_Position& offset) { 
         NPT_AutoLock autoLock(m_Lock);
@@ -91,7 +98,7 @@ protected:
     // NPT_DelegatingOutputStream methods
     NPT_Result OutputSeek(NPT_Position offset) {
         NPT_COMPILER_UNUSED(offset);
-        return NPT_FAILURE;
+        return NPT_ERROR_NOT_SUPPORTED;
     }
     NPT_Result OutputTell(NPT_Position& offset) {
         NPT_AutoLock autoLock(m_Lock);
@@ -100,12 +107,13 @@ protected:
     }
 
 private:
-    NPT_RingBufferReference     m_RingBuffer;
-    NPT_Offset                  m_TotalBytesRead;
-    NPT_Offset                  m_TotalBytesWritten;
-    NPT_Mutex                   m_Lock;
-    bool                        m_Eos;
-    bool                        m_Blocking;
+    NPT_RingBufferReference m_RingBuffer;
+    NPT_Offset              m_TotalBytesRead;
+    NPT_Offset              m_TotalBytesWritten;
+    NPT_Mutex               m_Lock;
+    bool                    m_Blocking;
+    bool                    m_Eos;
+    bool                    m_Aborted;
 };
 
 typedef NPT_Reference<PLT_RingBufferStream> PLT_RingBufferStreamReference;

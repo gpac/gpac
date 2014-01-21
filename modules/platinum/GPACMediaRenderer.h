@@ -40,7 +40,7 @@
 class GF_UPnP;
 
 class GPAC_MediaRenderer  : public PLT_DeviceHost,
-                          public PLT_MediaRendererInterface
+                          public PLT_MediaRendererDelegate
 {
 public:
     GPAC_MediaRenderer (GF_UPnP *upnp, const char*          friendly_name,
@@ -49,7 +49,7 @@ public:
                       unsigned int         port = 0);
 
     // PLT_DeviceHost methods
-    virtual NPT_Result SetupServices(PLT_DeviceData& data);
+    virtual NPT_Result SetupServices();
     virtual NPT_Result OnAction(PLT_ActionReference &action, const PLT_HttpRequestContext& context);
 
 	/*these are called when event filtering is used (no JS)*/
@@ -77,7 +77,10 @@ protected:
     // RenderingControl
     //virtual NPT_Result OnGetVolume(PLT_ActionReference& action);
     virtual NPT_Result OnSetVolume(PLT_ActionReference& action);
+    virtual NPT_Result OnSetVolumeDB(PLT_ActionReference& action);
     virtual NPT_Result OnSetMute(PLT_ActionReference& action);
+    virtual NPT_Result OnGetVolumeDBRange(PLT_ActionReference &action);
+
 
 private:
 	GF_UPnP *m_pUPnP;

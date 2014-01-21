@@ -67,12 +67,12 @@ GPAC_FileMediaServer::OnBrowseDirectChildren(PLT_ActionReference&          actio
 												const char*                   filter,
 												NPT_UInt32                    start_index,
 												NPT_UInt32                    req_count,
-												const NPT_List<NPT_String>&   sort_criteria,
+												const char*   sort_criteria,
 												const PLT_HttpRequestContext& context)
 {
 	/*not the root of our server*/
 	if (strcmp(object_id, "/") && strcmp(object_id, "\\") && strcmp(object_id, "0")) {
-		return PLT_FileMediaServer::OnBrowseDirectChildren(action, object_id, filter, start_index, req_count, sort_criteria, context);
+		return PLT_MediaServer::OnBrowseDirectChildren(action, object_id, filter, start_index, req_count, sort_criteria, context);
 	}
 
 	unsigned long cur_index = 0;
@@ -153,7 +153,11 @@ GPAC_FileMediaServer::ServeFile(NPT_HttpRequest&              request,
 		if (path == vfile.m_URI) {
 			NPT_Result res;
 			NPT_Position start, end;
+#if 0
 			PLT_HttpHelper::GetRange(request, start, end);
+#else
+			start = end = -1;
+#endif
 			res = ServeVirtualFile(response, &vfile, start, end, !request.GetMethod().Compare("HEAD"));
 			if (vfile.m_temporary) {
 				m_VirtualFiles.Remove(vfile);
@@ -163,23 +167,26 @@ GPAC_FileMediaServer::ServeFile(NPT_HttpRequest&              request,
 	}
 
     // File requested
-    NPT_String path = m_FileBaseUri.GetPath();
+    NPT_String path = m_FileRoot;
     if (path.Compare(uri_path.Left(path.GetLength()), true) == 0) {
         NPT_Position start, end;
+#if 0
         PLT_HttpHelper::GetRange(request, start, end);
+#else
+			start = end = -1;
+#endif
         
-        return PLT_FileServer::ServeFile(response,
+#if 0
+			return PLT_HttpServer::ServeFile(response,
                                          file_path, 
                                          start, 
                                          end, 
                                          !request.GetMethod().Compare("HEAD"));
-    } 
+#else
+			return PLT_HttpServer::ServeFile(request, context, response, NPT_FilePath::Create(m_FileRoot, file_path) );
+#endif
+	} 
 
-    // Album Art requested
-    path = m_AlbumArtBaseUri.GetPath();
-    if (path.Compare(uri_path.Left(path.GetLength()), true) == 0) {
-        return OnAlbumArtRequest(response, file_path);
-    } 
     
     return NPT_FAILURE;
 }
@@ -262,7 +269,7 @@ GPAC_FileMediaServer::BuildFromFilePathAndHost(const NPT_String&        __filepa
         if (object->m_Title.GetLength() == 0) goto failure;
 
         /* Set the protocol Info from the extension */
-        resource.m_ProtocolInfo = PLT_ProtocolInfo(PLT_MediaItem::GetProtocolInfo(filepath, true, context));
+        resource.m_ProtocolInfo = PLT_ProtocolInfo(PLT_ProtocolInfo::GetProtocolInfo(filepath, true, context));
         if (!resource.m_ProtocolInfo.IsValid())  goto failure;
 
         /* Set the resource file size */
@@ -301,7 +308,8 @@ GPAC_FileMediaServer::BuildFromFilePathAndHost(const NPT_String&        __filepa
 			ip = *ipi;
 		}
 
-        /* Look to see if a metadatahandler exists for this extension */
+#if 0
+		/* Look to see if a metadatahandler exists for this extension */
         PLT_MetadataHandler* handler = NULL;
         NPT_Result res = NPT_ContainerFind(
             m_MetadataHandlers, 
@@ -334,10 +342,11 @@ GPAC_FileMediaServer::BuildFromFilePathAndHost(const NPT_String&        __filepa
                 handler->GetProtection(resource.m_Protection);
             }
 		}
-
+#endif
 		object->m_ObjectClass.type = PLT_MediaItem::GetUPnPClass(filepath, context);
 
-		resource.m_Uri = BuildResourceUri(m_FileBaseUri, ip.ToString(), url);
+		NPT_HttpUrl base_uri(m_FileRoot);
+		resource.m_Uri = BuildResourceUri(base_uri/*m_FileBaseUri*/, ip.ToString(), url);
 		object->m_Resources.Add(resource);
 
 	} else {
@@ -355,7 +364,13 @@ GPAC_FileMediaServer::BuildFromFilePathAndHost(const NPT_String&        __filepa
 #ifndef _WIN32_WCE
 		/* Get the number of children for this container */
         NPT_Cardinal count = 0;
-        if (with_count && NPT_SUCCEEDED(NPT_File::GetCount(__filepath, count))) {
+
+		// reset output params
+		count = 0;
+        if (with_count ) {
+			NPT_List<NPT_String> entries;
+			NPT_File::ListDir(__filepath, entries);    
+			count = entries.GetItemCount();
             ((PLT_MediaContainer*)object)->m_ChildrenCount = count;
         }
 #endif	//_WIN32_WCE
@@ -557,8 +572,6 @@ GPAC_FileMediaServer::ServeVirtualFile(NPT_HttpResponse& response,
         } else {
             len = end_offset - start_offset + 1;
             response.SetStatus(206, "Partial Content");
-            PLT_HttpHelper::SetContentRange(response, start_offset, end_offset, total_len);
-
             entity->SetInputStream(stream);
             entity->SetContentLength(len);
         }

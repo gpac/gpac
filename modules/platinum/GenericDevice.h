@@ -165,7 +165,7 @@ public:
 
 protected:
     // PLT_DeviceHost methods
-    virtual NPT_Result SetupServices(PLT_DeviceData& data);
+    virtual NPT_Result SetupServices();
     virtual NPT_Result OnAction(PLT_ActionReference&          action, 
                                 const PLT_HttpRequestContext& context);
 public:
@@ -187,7 +187,7 @@ public:
 class GPAC_Service : public PLT_Service
 {
 public:
-	GPAC_Service(PLT_DeviceData* device, const char*     type = NULL,  const char*     id = NULL, const char*     last_change_namespace = NULL);
+	GPAC_Service(PLT_DeviceData* device, const char*     type = NULL,  const char*     id = NULL, const char*     name = NULL, const char*     last_change_namespace = NULL);
 	~GPAC_Service();
 
 #ifdef GPAC_HAS_SPIDERMONKEY

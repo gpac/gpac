@@ -72,20 +72,21 @@ GPAC_MediaRenderer::~GPAC_MediaRenderer()
 }
 
 NPT_Result
-GPAC_MediaRenderer::SetupServices(PLT_DeviceData& data)
+GPAC_MediaRenderer::SetupServices()
 {
     PLT_Service* service;
 
     {
         /* AVTransport */
         m_pAVService = new PLT_Service(
-            &data,
+            this,
             "urn:schemas-upnp-org:service:AVTransport:1", 
-            "urn:upnp-org:serviceId:AVT_1-0",
+            "urn:upnp-org:serviceId:AVTransport",
+            "AVTransport",
             "urn:schemas-upnp-org:metadata-1-0/AVT/");
+
         NPT_CHECK_FATAL(m_pAVService->SetSCPDXML((const char*) RDR_AVTransportSCPD));
-        NPT_CHECK_FATAL(m_pAVService->InitURLs("AVTransport", data.GetUUID()));
-        NPT_CHECK_FATAL(data.AddService(m_pAVService));
+        NPT_CHECK_FATAL(AddService(m_pAVService));
 
         m_pAVService->SetStateVariableRate("LastChange", NPT_TimeInterval(0.2f));
         m_pAVService->SetStateVariable("A_ARG_TYPE_InstanceID", "0"); 
@@ -147,12 +148,12 @@ GPAC_MediaRenderer::SetupServices(PLT_DeviceData& data)
     {
         /* ConnectionManager */
         service = new PLT_Service(
-            &data,
+            this,
             "urn:schemas-upnp-org:service:ConnectionManager:1", 
-            "urn:upnp-org:serviceId:CMGR_1-0");
+            "urn:upnp-org:serviceId:ConnectionManager",
+            "ConnectionManager");
         NPT_CHECK_FATAL(service->SetSCPDXML((const char*) RDR_ConnectionManagerSCPD));
-        NPT_CHECK_FATAL(service->InitURLs("ConnectionManager", data.GetUUID()));
-        NPT_CHECK_FATAL(data.AddService(service));
+        NPT_CHECK_FATAL(AddService(service));
 
         service->SetStateVariable("CurrentConnectionIDs", "0");
 
@@ -164,13 +165,13 @@ GPAC_MediaRenderer::SetupServices(PLT_DeviceData& data)
     {
         /* RenderingControl */
         service = new PLT_Service(
-            &data,
+            this,
             "urn:schemas-upnp-org:service:RenderingControl:1", 
-            "urn:upnp-org:serviceId:RCS_1-0",
+            "urn:upnp-org:serviceId:RenderingControl",
+            "RenderingControl",
             "urn:schemas-upnp-org:metadata-1-0/RCS/");
         NPT_CHECK_FATAL(service->SetSCPDXML((const char*) RDR_RenderingControlSCPD));
-        NPT_CHECK_FATAL(service->InitURLs("RenderingControl", data.GetUUID()));
-        NPT_CHECK_FATAL(data.AddService(service));
+        NPT_CHECK_FATAL(AddService(service));
 
         service->SetStateVariableRate("LastChange", NPT_TimeInterval(0.2f));
 
@@ -226,11 +227,10 @@ static NPT_UInt8 MIGRATION_SCPDXML[] = "<scpd xmlns=\"urn:schemas-upnp-org:servi
 </scpd>";
 
         /* MigrationService */
-        m_pMigrationService = new PLT_Service(&data, "urn:intermedia:service:migration:1", "urn:intermedia:service:migration.001");
+        m_pMigrationService = new PLT_Service(this, "urn:intermedia:service:migration:1", "urn:intermedia:service:migration.001", "SessionMigration");
 		
 		NPT_CHECK_FATAL(m_pMigrationService->SetSCPDXML((const char*) MIGRATION_SCPDXML));
-        NPT_CHECK_FATAL(m_pMigrationService->InitURLs("SessionMigration", data.GetUUID()));
-        NPT_CHECK_FATAL(data.AddService(m_pMigrationService));
+        NPT_CHECK_FATAL(AddService(m_pMigrationService));
 
         m_pMigrationService->SetStateVariable("MigrationStatus", "OK");
         m_pMigrationService->SetStateVariable("MigrationMetaData", "");
@@ -375,7 +375,7 @@ GPAC_MediaRenderer::OnAction(PLT_ActionReference&          action,
         }
     }
 
-    if (name.Compare("GetVolume", true) == 0) {
+    if ((name.Compare("GetVolume", true) == 0) || (name.Compare("GetVolumeRangeDB", true) == 0) ) {
         NPT_CHECK_SEVERE(action->SetArgumentsOutFromStateVariable());
         return NPT_SUCCESS;
     }
@@ -387,6 +387,9 @@ GPAC_MediaRenderer::OnAction(PLT_ActionReference&          action,
 
     if (name.Compare("SetVolume", true) == 0) {
           return OnSetVolume(action);
+    }
+    if (name.Compare("SetVolumeDB", true) == 0) {
+          return OnSetVolumeDB(action);
     }
 
     if (name.Compare("SetMute", true) == 0) {
@@ -556,7 +559,17 @@ NPT_Result GPAC_MediaRenderer::OnSetVolume(PLT_ActionReference& action)
     return NPT_SUCCESS;
 }
 
+NPT_Result GPAC_MediaRenderer::OnSetVolumeDB(PLT_ActionReference& action)
+{
+    return NPT_SUCCESS;
+}
+
 NPT_Result GPAC_MediaRenderer::OnSetMute(PLT_ActionReference& action)
+{
+    return NPT_SUCCESS;
+}
+
+NPT_Result GPAC_MediaRenderer::OnGetVolumeDBRange(PLT_ActionReference& action )
 {
     return NPT_SUCCESS;
 }

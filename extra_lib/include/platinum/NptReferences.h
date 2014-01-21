@@ -36,6 +36,7 @@
 |   includes
 +---------------------------------------------------------------------*/
 #include "NptConstants.h"
+#include "NptThreads.h"
 
 /*----------------------------------------------------------------------
 |   NPT_Reference
@@ -45,13 +46,18 @@ class NPT_Reference
 {
 public:
     // constructors and destructor
-    NPT_Reference() : m_Object(NULL), m_Counter(NULL) {}
-    explicit NPT_Reference(T* object) : 
-        m_Object(object), m_Counter(object?new NPT_Cardinal(1):NULL) {}
+    NPT_Reference() : m_Object(NULL), m_Counter(NULL), m_Mutex(NULL), m_ThreadSafe(true) {}
+    explicit NPT_Reference(T* object, bool thread_safe = true) : 
+        m_Object(object), 
+        m_Counter(object?new NPT_Cardinal(1):NULL),
+        m_Mutex((object && thread_safe)?new NPT_Mutex():NULL),
+        m_ThreadSafe(thread_safe) {}
 
     NPT_Reference(const NPT_Reference<T>& ref) :
-        m_Object(ref.m_Object), m_Counter(ref.m_Counter) {
+        m_Object(ref.m_Object), m_Counter(ref.m_Counter), m_Mutex(ref.m_Mutex), m_ThreadSafe(ref.m_ThreadSafe) {
+        if (m_Mutex) m_Mutex->Lock();
         if (m_Counter) ++(*m_Counter);
+        if (m_Mutex) m_Mutex->Unlock();
     }
 
     // this methods should be private, but this causes a problem on some
@@ -59,9 +65,11 @@ public:
     // the cast operator operator NPT_Reference<U>() below, which would
     // have to be marked as a friend, and friend declarations with the 
     // same class name confuses some compilers
-    NPT_Reference(T* object, NPT_Cardinal* counter) : 
-        m_Object(object), m_Counter(counter) {
+    NPT_Reference(T* object, NPT_Cardinal* counter, NPT_Mutex* mutex, bool thread_safe) : 
+        m_Object(object), m_Counter(counter), m_Mutex(mutex), m_ThreadSafe(thread_safe) {
+        if (m_Mutex) m_Mutex->Lock();
         if (m_Counter) ++(*m_Counter);
+        if (m_Mutex) m_Mutex->Unlock();
     }
 
     ~NPT_Reference() {
@@ -74,14 +82,20 @@ public:
             Release();
             m_Object = ref.m_Object;
             m_Counter = ref.m_Counter;
+            m_Mutex = ref.m_Mutex;
+            m_ThreadSafe = ref.m_ThreadSafe;
+            
+            if (m_Mutex) m_Mutex->Lock();
             if (m_Counter) ++(*m_Counter);
+            if (m_Mutex) m_Mutex->Unlock();
         }
         return *this;
     }
     NPT_Reference<T>& operator=(T* object) {
         Release();
-        m_Object = object;
+        m_Object  = object;
         m_Counter = object?new NPT_Cardinal(1):NULL;
+        m_Mutex   = (object && m_ThreadSafe)?new NPT_Mutex():NULL;
         return *this;
     }
     T& operator*() const { return *m_Object; }
@@ -96,7 +110,7 @@ public:
 
     // overloaded cast operators
     template <typename U> operator NPT_Reference<U>() {
-        return NPT_Reference<U>(m_Object, m_Counter);
+        return NPT_Reference<U>(m_Object, m_Counter, m_Mutex, m_ThreadSafe);
     }
 
     // methods
@@ -111,7 +125,7 @@ public:
     NPT_Cardinal GetCounter() const { return *m_Counter; }
     
     /**
-     * Returns wether this references a NULL object.
+     * Returns whether this references a NULL object.
      */
     bool IsNull()  const { return m_Object == NULL; }
     
@@ -122,25 +136,38 @@ public:
      * After the method returns, this reference does not point to any shared object.
      */
     void Detach() {
-        if (m_Counter && --(*m_Counter) == 0) {
-            delete m_Counter; 
-        }
-        m_Counter = NULL;
-        m_Object  = NULL;
+        Release(true);        
     }
     
 private:
     // methods
-    void Release() {
+    void Release(bool detach_only = false) {
+        bool last_reference = false;
+        if (m_Mutex) m_Mutex->Lock();
+            
         if (m_Counter && --(*m_Counter) == 0) {
-            delete m_Counter; m_Counter = NULL;
-            delete m_Object;  m_Object  = NULL;
+            delete m_Counter;
+            if (!detach_only) delete m_Object;
+            last_reference = true;
         }
+        
+        m_Counter = NULL;
+        m_Object  = NULL;
+        
+        if (m_Mutex) {
+            NPT_Mutex* mutex = m_Mutex;
+            m_Mutex = NULL;
+            mutex->Unlock();
+            if (last_reference) delete mutex;
+        }
+        
     }
 
     // members
     T*            m_Object;
     NPT_Cardinal* m_Counter;
+    NPT_Mutex*    m_Mutex;
+    bool          m_ThreadSafe;
 };
 
 #endif // _NPT_REFERENCES_H_
