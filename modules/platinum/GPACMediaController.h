@@ -39,11 +39,11 @@
 
 #include <gpac/thread.h>
 
-typedef struct PLT_BrowseData {
+typedef struct {
     NPT_SharedVariable shared_var;
     NPT_Result         res;
     PLT_BrowseInfo     info;
-} PLT_BrowseData;
+} GPAC_BrowseData;
 
 /*basic class to hold each media renderer*/
 class GPAC_MediaRendererItem
@@ -67,7 +67,7 @@ public:
 	NPT_Stack<NPT_String> m_ParentDirectories;
 };
 
-typedef NPT_Reference<PLT_BrowseData> PLT_BrowseDataReference;
+typedef NPT_Reference<GPAC_BrowseData> GPAC_BrowseDataReference;
 
 class GF_UPnP;
 
@@ -118,7 +118,7 @@ public:
     PLT_MediaBrowser *m_MediaBrowser;
 
 protected:
-    NPT_Result Browse(PLT_BrowseDataReference& browse_data,
+    NPT_Result Browse(GPAC_BrowseDataReference& browse_data,
                       PLT_DeviceDataReference& device, 
                       const char*              object_id,
                       NPT_Int32                index, 

@@ -210,7 +210,7 @@ void GPAC_MediaController::OnBrowseResult(NPT_Result res, PLT_DeviceDataReferenc
 
     if (!userdata) return;
 
-    PLT_BrowseDataReference* data = (PLT_BrowseDataReference*) userdata;
+    GPAC_BrowseDataReference* data = (GPAC_BrowseDataReference*) userdata;
     (*data)->res = res;
     if (NPT_SUCCEEDED(res) && info) {
         (*data)->info = *info;
@@ -275,7 +275,7 @@ GPAC_MediaController::WaitForResponse(NPT_SharedVariable& shared_var)
 
 
 NPT_Result 
-GPAC_MediaController::Browse(PLT_BrowseDataReference& browse_data,
+GPAC_MediaController::Browse(GPAC_BrowseDataReference& browse_data,
                              PLT_DeviceDataReference& device, 
                              const char*              object_id, 
                              NPT_Int32                index, 
@@ -298,7 +298,7 @@ GPAC_MediaController::Browse(PLT_BrowseDataReference& browse_data,
         browse_metadata,
         filter,
         sort,
-        new PLT_BrowseDataReference(browse_data));		
+        new GPAC_BrowseDataReference(browse_data));		
     NPT_CHECK_SEVERE(res);
 
     return WaitForResponse(browse_data->shared_var);
@@ -315,7 +315,7 @@ GPAC_MediaController::Browse(GPAC_MediaServerItem *server, const char *object_id
 
 
 	do {	
-        PLT_BrowseDataReference browse_data(new PLT_BrowseData());
+        GPAC_BrowseDataReference browse_data(new GPAC_BrowseData());
 
         // send off the browse packet.  Note that this will
         // not block.  There is a call to WaitForResponse in order

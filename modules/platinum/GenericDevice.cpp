@@ -31,7 +31,7 @@
 
 #include "GenericDevice.h"
 #include "GPACPlatinum.h"
-#include "PltXmlHelper.h"
+//#include "PltXmlHelper.h"
 
 NPT_SET_LOCAL_LOGGER("gpac.genericdevice")
 
@@ -550,7 +550,7 @@ static JSBool SMJS_FUNCTION(upnp_action_get_error)
 	SMJS_OBJ
 	PLT_Action *action = (PLT_Action *) SMJS_GET_PRIVATE(c, obj);
 	if (!action ) return JS_FALSE;
-	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, action->GetError( code ) ) ) );
+	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, action->GetError( &code ) ) ) );
 	return JS_TRUE;
 }
 
@@ -740,8 +740,8 @@ NPT_Result GPAC_GenericController::OnEventNotify(PLT_Service* service, NPT_List<
 }
 
 
-GPAC_Service::GPAC_Service(PLT_DeviceData* device, const char *type,  const char *id, const char *last_change_namespace)
-	: PLT_Service(device, type,  id, last_change_namespace)
+GPAC_Service::GPAC_Service(PLT_DeviceData* device, const char *type,  const char *id, const char *name, const char *last_change_namespace)
+	: PLT_Service(device, type,  id, name, last_change_namespace)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	m_pObj = NULL;
@@ -846,13 +846,13 @@ void GPAC_GenericDevice::DetachJS(JSContext *c)
 #endif
 
 NPT_Result
-GPAC_GenericDevice::SetupServices(PLT_DeviceData& data)
+GPAC_GenericDevice::SetupServices()
 {
 	u32 i, count;
 	count = gf_list_count(m_pServices);
 	for (i=0; i<count; i++) {
 		GPAC_Service *service = (GPAC_Service *)gf_list_get(m_pServices, i);
-	    data.AddService(service);
+	    AddService(service);
 	}
     return NPT_SUCCESS;
 }

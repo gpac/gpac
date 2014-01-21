@@ -484,6 +484,10 @@ void GF_UPnP::Unload()
 	if (m_pAVCtrlPoint) delete m_pAVCtrlPoint;
 	/*this will delete all UPnP devices*/
 	delete m_pPlatinum;
+
+	/*final cleanup of UPnP lib*/
+    NPT_AutomaticCleaner::Shutdown()
+
 }
 
 
@@ -1277,9 +1281,8 @@ static JSBool SMJS_FUNCTION(upnp_device_setup_service)
 	scpd_xml = NULL;
 	if ((argc>3) && JSVAL_IS_STRING(argv[3])) scpd_xml = SMJS_CHARS(c, argv[3]);
 
-	GPAC_Service* service = new GPAC_Service(device, type, id);
+	GPAC_Service* service = new GPAC_Service(device, type, id, name);
 	res = service->SetSCPDXML((const char*) scpd_xml ? scpd_xml : (char *)GENERIC_SCPDXML);
-	if (res == NPT_SUCCESS) res = service->InitURLs(name, device->GetUUID() );
 
 	SMJS_FREE(c, name);
 	SMJS_FREE(c, type);

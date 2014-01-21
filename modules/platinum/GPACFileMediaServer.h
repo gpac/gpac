@@ -103,7 +103,7 @@ protected:
 												const char*                   filter,
 												NPT_UInt32                    starting_index,
 												NPT_UInt32                    requested_count,
-												const NPT_List<NPT_String>&   sort_criteria,
+												const char *   sort_criteria,
 												const PLT_HttpRequestContext& context);
 
 	virtual NPT_Result GetFilePath(const char* object_id, NPT_String& filepath);

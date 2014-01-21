@@ -2,7 +2,7 @@
 |
 |   Platinum - Metadata Handler
 |
-| Copyright (c) 2004-2008, Plutinosoft, LLC.
+| Copyright (c) 2004-2010, Plutinosoft, LLC.
 | All rights reserved.
 | http://www.plutinosoft.com
 |
@@ -17,7 +17,8 @@
 | licensed software under version 2, or (at your option) any later
 | version, of the GNU General Public License (the "GPL") must enter
 | into a commercial license agreement with Plutinosoft, LLC.
-| 
+| licensing@plutinosoft.com
+|  
 | This program is distributed in the hope that it will be useful,
 | but WITHOUT ANY WARRANTY; without even the implied warranty of
 | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -50,11 +51,11 @@ public:
     // metadata overridables
     virtual bool HandleExtension(const char* extension) = 0;
     virtual NPT_Result  Load(NPT_InputStream&  stream, 
-                             NPT_TimeInterval  sleeptime = NPT_TimeInterval(0, 10000), 
-                             NPT_TimeInterval  timeout = NPT_TimeInterval(30, 0)) = 0;
+                             NPT_TimeInterval  sleeptime = NPT_TimeInterval(.01), 
+                             NPT_TimeInterval  timeout = NPT_TimeInterval(30.)) = 0;
     virtual NPT_Result  Save(NPT_OutputStream& stream,
-                             NPT_TimeInterval  sleeptime = NPT_TimeInterval(0, 10000), 
-                             NPT_TimeInterval  timeout = NPT_TimeInterval(30, 0)) = 0;
+                             NPT_TimeInterval  sleeptime = NPT_TimeInterval(.01), 
+                             NPT_TimeInterval  timeout = NPT_TimeInterval(30.)) = 0;
 
     virtual const char* GetLicenseData(NPT_String& licenseData) = 0;
     virtual NPT_Result  GetCoverArtData(char*& caData, int& len) = 0;
