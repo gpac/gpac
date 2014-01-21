@@ -1298,13 +1298,13 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #endif
 		rc.x = dest->x; rc.y = dest->y; rc.w = dest->w; rc.h = dest->h;
 #if SDL_VERSION_ATLEAST(2,0,0)
-        SDL_ClearError();
+		SDL_ClearError();
 		if (!(tx = SDL_CreateTextureFromSurface(ctx->renderer, ctx->back_buffer))) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("SDL_GetWindowSurface failed: %s\n", SDL_GetError()));
-            SDL_ClearError();
-        }
-        SDL_RenderCopy(ctx->renderer, tx, NULL, &rc);
-        SDL_DestroyTexture(tx);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("SDL_GetWindowSurface failed: %s\n", SDL_GetError()));
+			SDL_ClearError();
+		}
+		SDL_RenderCopy(ctx->renderer, tx, NULL, &rc);
+		SDL_DestroyTexture(tx);
 #else
 		SDL_BlitSurface(ctx->back_buffer, NULL, ctx->screen, &rc);
 #endif
@@ -1638,7 +1638,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		dstrc.x = dst_wnd->x;
 		dstrc.y = dst_wnd->y;
 
-        SDL_ClearError();
+		SDL_ClearError();
 		SDL_RenderCopy(ctx->renderer, ctx->yuv_texture, NULL, &dstrc);
 		SDL_RenderPresent(ctx->renderer);
 		return GF_OK;
