@@ -37,6 +37,11 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols platinum.def 
 endif
 
+ifeq ($(CONFIG_DARWIN), yes)
+LINKLIBS+= -laxTLS -lobjc
+LDFLAGS+=-framework Foundation
+endif
+
 
 all: $(LIB)
 
