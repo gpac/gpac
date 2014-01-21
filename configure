@@ -322,8 +322,6 @@ for opt do
             ;;
         --mandir=*) mandir=`echo $opt | cut -d '=' -f 2`
             ;;
-        --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
-            ;;
         --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2` && echo "\ncross-prefix detected: $cross_prefix"
             ;;
         --target-os=*) targetos=`echo $opt | cut -d '=' -f 2` && echo "\ntarget-os detected: $targetos"
