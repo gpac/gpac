@@ -486,8 +486,7 @@ void GF_UPnP::Unload()
 	delete m_pPlatinum;
 
 	/*final cleanup of UPnP lib*/
-    NPT_AutomaticCleaner::Shutdown()
-
+    NPT_AutomaticCleaner::Shutdown();
 }
 
 
