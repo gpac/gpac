@@ -1112,7 +1112,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	/*create CENC protection*/
-	e = gf_isom_set_cenc_protection(mp4, track, 1, (tci->enc_type == 2) ? GF_ISOM_CENC_SCHEME : GF_ISOM_CBC_SCHEME, 1, tci->IsEncrypted, tci->IV_size, tci->default_KID);
+	e = gf_isom_set_cenc_protection(mp4, track, 1, (tci->enc_type == 2) ? GF_ISOM_CENC_SCHEME : GF_ISOM_CBC_SCHEME, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID);
 	if (e) goto  exit;
 
 
