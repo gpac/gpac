@@ -416,6 +416,7 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 #endif
 }
 
+GF_EXPORT
 void gf_rand_init(Bool Reset)
 {
 	if (Reset) {
@@ -429,6 +430,7 @@ void gf_rand_init(Bool Reset)
 	}
 }
 
+GF_EXPERT
 u32 gf_rand()
 {
 	return rand();
