@@ -430,7 +430,7 @@ void gf_rand_init(Bool Reset)
 	}
 }
 
-GF_EXPERT
+GF_EXPORT
 u32 gf_rand()
 {
 	return rand();
