@@ -245,6 +245,7 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  *dataOffset: value gives an offset into a file
  *dataLength: value gives the number of bits bytes to copy in a file
  *dataFile: value gives the name of the source file
+ *textmode: indicates whether the file shall be opened in text or binary mode before reading
  *text: or string: value gives a string (length is first coded on number of bits in bits attribute)
  *fcc: value gives a four character code, coded on 32 bits
  *ID128: value gives a 128 bit vlue in hexadecimal

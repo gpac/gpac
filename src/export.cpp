@@ -732,6 +732,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ismacryp_delete_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_ismacryp_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_cenc_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_original_format_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pssh_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pssh_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_cenc_media) )

@@ -1938,6 +1938,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 		s64 value = 0;
 		bin128 word128;
 		Bool use_word128 = GF_FALSE;
+		Bool use_text = GF_FALSE;
  		const char *szFile = NULL;
  		const char *szString = NULL;
 		const char *szBase64 = NULL;
@@ -1965,6 +1966,8 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 			} else if (!stricmp(att->name, "ID128")) {
 				gf_bin128_parse(att->value, word128);
                 use_word128 = GF_TRUE;
+			} else if (!stricmp(att->name, "textmode")) {
+				if (!strcmp(att->value, "yes")) use_text = GF_TRUE;
 			} else if (!stricmp(att->name, "data64")) {
 				szBase64 = att->value;
 			} else if (!stricmp(att->name, "data")) {
@@ -2005,9 +2008,9 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 		} else if (nb_bits) {
 			if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
 			else gf_bs_write_long_int(bs, value, nb_bits);
-		} else if (szFile && size) {
+		} else if (szFile) {
 			char block[1024];
-			FILE *_tmp = gf_f64_open(szFile, "rb");
+			FILE *_tmp = gf_f64_open(szFile, use_text ? "rt" : "rb");
 			if (_tmp) {
 				u32 read, remain;
 				if (!size) {
