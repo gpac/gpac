@@ -1716,6 +1716,7 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 }
 
 
+GF_EXPORT
 void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 {
 	Bool net_check_interface(GF_InputService *ifce);
@@ -1910,6 +1911,7 @@ static void gf_term_sample_scenetime(GF_Scene *scene)
 	gf_mx_v(scene->root_od->term->net_mx);
 }
 
+GF_EXPORT
 u32 gf_term_sample_clocks(GF_Terminal *term)
 {
 	if (term->root_scene) {
@@ -1919,6 +1921,7 @@ u32 gf_term_sample_clocks(GF_Terminal *term)
 	return 0;
 }
 
+GF_EXPORT
 const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only)
 {
 	Bool has_text;
@@ -1930,6 +1933,7 @@ const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only)
 }
 
 
+GF_EXPORT
 GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 {
 	if (!term) return GF_BAD_PARAM;
@@ -1937,6 +1941,7 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 	return gf_sc_paste_text(term->compositor, txt);
 }
 
+GF_EXPORT
 Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool forward_only)
 {
 	if (!term) return 0;

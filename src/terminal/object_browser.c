@@ -103,6 +103,7 @@ u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm)
 }
 
 /*select given object when stream selection is available*/
+GF_EXPORT
 void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm)
 {
 	if (!term || !odm) return;
