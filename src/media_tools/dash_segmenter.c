@@ -271,8 +271,29 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
-	u32 subtype = gf_isom_is_media_encrypted(movie, track, 1);
-	if (!subtype) subtype = gf_isom_get_media_subtype(movie, track, 1);
+
+	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
+
+	if (subtype==GF_ISOM_SUBTYPE_MPEG4_CRYP) {
+		GF_Err e;
+		u32 originalFormat=0;
+		if (gf_isom_is_ismacryp_media(movie, track, 1)) {
+			e = gf_isom_get_ismacryp_info(movie, track, 1, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		} else if (gf_isom_is_omadrm_media(movie, track, 1)) {
+			e = gf_isom_get_omadrm_info(movie, track, 1, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		} else if(gf_isom_is_cenc_media(movie, track, 1)) {
+			e = gf_isom_get_cenc_info(movie, track, 1, &originalFormat, NULL, NULL, NULL);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unkown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
+			e = gf_isom_get_original_format_type(movie, track, 1, &originalFormat);
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOM Tools] Error fecthing protection information\n"));
+			return e;
+		}
+
+		if (originalFormat) subtype = originalFormat;
+	}
 
 	switch (subtype) {
 	case GF_ISOM_SUBTYPE_MPEG4:
@@ -495,6 +516,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	Bool first_sample_in_segment = GF_FALSE;
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
+	u32 protected_track = 0;
 	Bool audio_only = GF_TRUE;
 	Bool is_bs_switching = GF_FALSE;
 	Bool use_url_template = dash_cfg->use_url_template;
@@ -896,6 +918,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			file_duration = ((Double) gf_isom_get_media_duration(input, i+1)) / tf->TimeScale;
 		}
 		gf_list_add(fragmenters, tf);
+
+		if (gf_isom_is_media_encrypted(input, i+1, 1)) {
+			protected_track = i+1;
+		}
 
 		nb_samp += count;
 	}
@@ -1649,6 +1675,21 @@ restart_fragmentation_pass:
 
 	if (nb_channels && !is_bs_switching) 
 		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
+
+
+	if (protected_track) {
+		u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
+		if (gf_isom_is_cenc_media(input, protected_track, 1)) {
+			bin128 default_KID;
+			gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
+			fprintf(dash_cfg->mpd, "    <ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"", gf_4cc_to_str(prot_scheme) );
+			for (i=0; i<16; i++) {
+				fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
+			}
+			fprintf(dash_cfg->mpd, "\"/>\n");
+		} 
+		//todo for ISMA or OMA DRM
+	}
 
 	if (dash_cfg->dash_ctx) {
 		Double seg_dur;
@@ -3155,6 +3196,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	fprintf(dash_cfg->mpd, " startWithSAP=\"%d\"", dash_cfg->segments_start_with_rap ? 1 : 0);
 	fprintf(dash_cfg->mpd, " bandwidth=\"%d\"", bandwidth);
 	fprintf(dash_cfg->mpd, ">\n");
+
 
 	if (dash_cfg->single_file_mode==1) {
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);

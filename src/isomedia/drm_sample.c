@@ -508,6 +508,28 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	return GF_OK;
 }
 
+
+GF_EXPORT
+GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat)
+{
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *sea;
+	GF_ProtectionInfoBox *sinf;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
+	if (!sea) return GF_BAD_PARAM;
+
+	sinf = gf_list_get(sea->protections, 0);
+	if (outOriginalFormat && sinf->original_format) {
+		*outOriginalFormat = sinf->original_format->data_format;
+	}
+	return GF_OK;
+}
+
+
 /* Common Encryption*/
 GF_EXPORT
 Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
@@ -1136,7 +1158,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 }
 
 GF_EXPORT
-void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID) {
+void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID) {
 	GF_TrackBox *trak;
 	GF_ProtectionInfoBox *sinf;
 
@@ -1147,8 +1169,8 @@ void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return;
 
-	sinf = gf_isom_get_sinf_entry(trak, 1, GF_ISOM_CENC_SCHEME, NULL);
-	if (!sinf) sinf = gf_isom_get_sinf_entry(trak, 1, GF_ISOM_CBC_SCHEME, NULL);
+	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
+	if (!sinf) sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
 
 	if (sinf && sinf->info && sinf->info->tenc) {
 		if (default_IsEncrypted) *default_IsEncrypted = sinf->info->tenc->IsEncrypted;

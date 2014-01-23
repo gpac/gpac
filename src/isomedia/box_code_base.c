@@ -4444,6 +4444,11 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_UUID_PSEC:
 		ptr->piff_psec = a;
 		return gf_isom_box_add_default((GF_Box *)ptr, a);
+	case GF_ISOM_BOX_TYPE_UUID: 
+		if (((GF_UnknownUUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC) {
+			ptr->piff_psec = a;
+			return gf_isom_box_add_default((GF_Box *)ptr, a);
+		}
 
 	default:
 		return gf_isom_box_add_default((GF_Box *)ptr, a);
