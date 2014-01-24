@@ -585,12 +585,18 @@ mcrypt: $(LIBGPAC_MCRYPT)
 
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
+.deps/scenegraph/%: CFLAGS += $(SCENEGRAPH_CFLAGS)
+.deps/scenegraph/%: CFLAGS += $(SCENEGRAPH_CFLAGS)
 
 media_tools: CFLAGS += $(MEDIATOOLS_CFLAGS)
 media_tools: $(LIBGPAC_MEDIATOOLS)
+.deps/media_tools/%: CFLAGS += $(MEDIATOOLS_CFLAGS)
+.deps/media_tools/%: CFLAGS += $(MEDIATOOLS_CFLAGS)
 
 compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
 compositor: $(LIBGPAC_COMPOSITOR)
+.deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
+.deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 
 
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt $(OBJS)
