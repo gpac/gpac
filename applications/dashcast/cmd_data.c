@@ -468,6 +468,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 					"    -time-shift dur:int      dur is the MPD TimeShiftBufferDepth in seconds\n"
 					"                                - the default value is 10. Specify -1 to keep all files.\n"
 					"    -min-buffer dur:float    dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
+					"    -base-url baseurl:str    baseurl is the MPD BaseURL\n"
 					"\n"
 					"\n"
 					"Examples:\n"
@@ -716,6 +717,15 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return -1;
 			}
 			cmd_data->min_buffer_time = (float)atof(argv[i]);
+			i++;
+		} else if (strcmp(argv[i], "-base-url") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (strcmp(cmd_data->base_url, "") != 0) {
+				fprintf(stderr, "BaseURL has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
+				return -1;
+			}
+			strncpy(cmd_data->base_url, argv[i], GF_MAX_PATH);
 			i++;
 		} else if (strcmp(argv[i], "-live") == 0) {
 			cmd_data->mode = LIVE_CAMERA;

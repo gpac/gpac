@@ -186,6 +186,10 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		"  <Title>%s</Title>\n"
 		" </ProgramInformation>\n", cmddata->mpd_filename);
 
+	if (strcmp(cmddata->base_url, "") != 0) {
+		fprintf(f, " <BaseURL>%s</BaseURL>\n", cmddata->base_url);
+	}
+
 	fprintf(f, " <Period id=\"\">\n");
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
