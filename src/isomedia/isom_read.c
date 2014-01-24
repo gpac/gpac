@@ -258,7 +258,7 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	{
+	if (movie->moov) {
 		u32 i;
 
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {

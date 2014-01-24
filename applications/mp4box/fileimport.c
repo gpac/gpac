@@ -2511,7 +2511,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	if (e) goto exit;
 	/*add self ref*/
 	if (isom_src) {
-		e = gf_isom_add_meta_item(file, 1, 0, 1, NULL, isom_src, NULL, NULL, NULL,  NULL);
+		e = gf_isom_add_meta_item(file, 1, 0, 1, NULL, isom_src, 0, NULL, NULL, NULL,  NULL);
 		if (e) goto exit;
 	}
 	e = gf_isom_set_meta_xml(file, 1, 0, file_name, !ascii);
@@ -2549,7 +2549,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		else if (!stricmp(ext, ".x3dz") || !stricmp(ext, ".x3d.gz")) { mime = "model/x3d+xml"; encoding = "binary-gzip"; }
 		else if (!stricmp(ext, ".xmtz") || !stricmp(ext, ".xmt.gz")) { mime = "application/x-xmt"; encoding = "binary-gzip"; }
 
-		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, mime, NULL, NULL,  NULL);
+		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, mime, NULL, NULL,  NULL);
 		gf_free(name);
 		if (e) goto exit;
 	}
