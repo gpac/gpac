@@ -672,6 +672,7 @@ void PrintMetaUsage()
 			"                        name=str: item name\n"
 			"                        mime=mtype: item mime type\n"
 			"                        encoding=enctype: item content-encoding type\n"
+			"                        id=id: item ID\n"
 			"                       * file_path \"this\" or \"self\": item is the file itself\n"
 			" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
 			" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
@@ -1157,6 +1158,7 @@ static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 			meta->root_meta = 0;
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "id=", 3)) { meta->item_id = atoi(szSlot+3); ret = 1; }
 		else if (!strnicmp(szSlot, "name=", 5)) { strcpy(meta->szName, szSlot+5); ret = 1; }
 		else if (!strnicmp(szSlot, "path=", 5)) { strcpy(meta->szPath, szSlot+5); ret = 1; }
 		else if (!strnicmp(szSlot, "mime=", 5)) { strcpy(meta->mime_type, szSlot+5); ret = 1; }
@@ -3351,6 +3353,7 @@ int mp4boxMain(int argc, char **argv)
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath, 
 					strlen(meta->szName) ? meta->szName : NULL,  
+					meta->item_id,
 					strlen(meta->mime_type) ? meta->mime_type : NULL,  
 					strlen(meta->enc_type) ? meta->enc_type : NULL,  
 					meta->use_dref ? meta->szPath : NULL,  NULL);

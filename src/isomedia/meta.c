@@ -457,7 +457,7 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 	return GF_OK;
 }
 
-GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, char *data, u32 data_len)
+GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, char *data, u32 data_len)
 {
 	GF_Err e;
 	GF_ItemLocationEntry *location_entry;
@@ -490,11 +490,19 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		for (i = 0; i < item_count; i++) {
 			GF_ItemInfoEntryBox *e= (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
 			if (e->item_ID > lastItemID) lastItemID = e->item_ID;
+			if (item_id == e->item_ID) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item with id %d already exists, ignoring\n", item_id));
+				item_id = 0;
+			}
 		}
 	}
 
 	infe = (GF_ItemInfoEntryBox *)infe_New();
-	infe->item_ID = ++lastItemID;
+	if (item_id) {
+		infe->item_ID = item_id;
+	} else {
+		infe->item_ID = ++lastItemID;
+	}
 
 	/*get relative name*/
 	if (item_name) {
@@ -532,7 +540,11 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	/*Creation an ItemLocation Box if it does not exist*/
 	if (!meta->item_locations) meta->item_locations = (GF_ItemLocationBox *)iloc_New();
 	gf_list_add(meta->item_locations->location_entries, location_entry);
-	location_entry->item_ID = lastItemID;
+	if (item_id) {
+		location_entry->item_ID = item_id;
+	} else {
+		location_entry->item_ID = lastItemID;
+	}	
 
 	if (!meta->item_infos) meta->item_infos = (GF_ItemInfoBox *) iinf_New();
 	e = gf_list_add(meta->item_infos->item_infos, infe);
@@ -623,14 +635,14 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN)
+GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding, const char *URL, const char *URN)
 {
-	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, mime_type, content_encoding, URL, URN, NULL, 0);
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, item_id, mime_type, content_encoding, URL, URN, NULL, 0);
 }
 
-GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, const char *mime_type, const char *content_encoding, char *data, u32 data_len)
+GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding, char *data, u32 data_len)
 {
-	return gf_isom_add_meta_item_extended(file, root_meta, track_num, 0, NULL, item_name, mime_type, content_encoding, NULL, NULL, data, data_len);
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, 0, NULL, item_name, item_id, mime_type, content_encoding, NULL, NULL, data, data_len);
 }
 
 GF_EXPORT

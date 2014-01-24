@@ -4261,7 +4261,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 		e = gf_isom_set_meta_type(movie, 0, track, GF_4CC('r','v','c','i'));
 		if (e) return e;
 		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, 1);		
-		e = gf_isom_add_meta_item_memory(movie, 0, track, "rvcconfig.xml", mime, NULL, data, size);
+		e = gf_isom_add_meta_item_memory(movie, 0, track, "rvcconfig.xml", 0, mime, NULL, data, size);
 		if (e) return e;
 		entry->rvcc->rvc_meta_idx = gf_isom_get_meta_item_count(movie, 0, track);
 	}
