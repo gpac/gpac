@@ -212,6 +212,4 @@ endif
 	@echo
 	@echo "to build libgpac documentation, go to gpac/doc and type 'doxygen'"
 
-ifneq ($(wildcard .depend),)
-include .depend
-endif
+-include .depend

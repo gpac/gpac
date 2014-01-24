@@ -47,10 +47,4 @@ depend:
 distclean: clean
 	rm -f Makefile.bak .depend
 
-
-
-# include dependency files if they exist
-#
-ifneq ($(wildcard .depend),)
-include .depend
-endif
+-include .depend
