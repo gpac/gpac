@@ -3947,7 +3947,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 		elapsed = ntp_sec;
 		elapsed -= prev_sec;
 		/*check if we need to generate */
-		if (elapsed < max_dur - safety_dur ) {
+		if (!dash_dynamic && elapsed < max_dur - safety_dur ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
 			return 0;
 		}
