@@ -92,6 +92,8 @@ typedef struct {
 	int gop_size;
 	/* MPD min buffer time */
 	float min_buffer_time;
+	/* MPD BaseURL*/
+	char base_url[GF_MAX_PATH];
 	/* output directory name */
 	char out_dir[GF_MAX_PATH];
 	/* switch source configuration file */
