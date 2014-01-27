@@ -115,6 +115,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
+	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_STBL:
 		return stbl_dump(a, trace);
@@ -507,6 +508,11 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return vtte_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_dump(a, trace);
+
+	case GF_ISOM_BOX_TYPE_STPP:
+		return stpp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SBTT:
+		return metx_dump(a, trace);
 #endif
 			
 	default: 
@@ -2768,6 +2774,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	case GF_ISOM_BOX_TYPE_TX3G:
 		break;
 	case GF_ISOM_BOX_TYPE_TEXT:
+	case GF_ISOM_BOX_TYPE_STPP:
+	case GF_ISOM_BOX_TYPE_SBTT:
 	default:
 		return GF_BAD_PARAM;
 	}

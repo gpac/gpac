@@ -234,7 +234,6 @@
     <ClCompile Include="..\..\src\isomedia\box_funcs.c" />
     <ClCompile Include="..\..\src\isomedia\data_map.c" />
     <ClCompile Include="..\..\src\isomedia\drm_sample.c" />
-    <ClCompile Include="..\..\src\isomedia\generic_subtitle.c" />
     <ClCompile Include="..\..\src\isomedia\hinting.c" />
     <ClCompile Include="..\..\src\isomedia\hint_track.c" />
     <ClCompile Include="..\..\src\isomedia\isom_intern.c" />
@@ -249,6 +248,7 @@
     <ClCompile Include="..\..\src\isomedia\stbl_read.c" />
     <ClCompile Include="..\..\src\isomedia\stbl_write.c" />
     <ClCompile Include="..\..\src\isomedia\track.c" />
+    <ClCompile Include="..\..\src\isomedia\ttml.c" />
     <ClCompile Include="..\..\src\isomedia\tx3g.c" />
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
     <ClCompile Include="..\..\src\laser\lsr_enc.c" />

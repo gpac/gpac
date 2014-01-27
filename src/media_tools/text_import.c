@@ -42,6 +42,7 @@ enum
 	GF_TEXT_IMPORT_TTXT,
 	GF_TEXT_IMPORT_TEXML,
     GF_TEXT_IMPORT_WEBVTT,
+    GF_TEXT_IMPORT_TTML,
     GF_TEXT_IMPORT_SWF_SVG,
 };
 
@@ -111,6 +112,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	else if (!strnicmp(szLine, "<?xml ", 6)) {
 		char *ext = strrchr(filename, '.');
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
+		else if (!strnicmp(ext, ".ttml", 5)) *fmt = GF_TEXT_IMPORT_TTML;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
 		if (!ext[0]){
@@ -119,6 +121,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		}
 		if (strstr(szLine, "x-quicktime-tx3g") || strstr(szLine, "text3GTrack")) *fmt = GF_TEXT_IMPORT_TEXML;
 		else if (strstr(szLine, "TextStream")) *fmt = GF_TEXT_IMPORT_TTXT;
+		else if (strstr(szLine, "tt")) *fmt = GF_TEXT_IMPORT_TTML;
 	}
 	else if (strstr(szLine, "WEBVTT") )
         *fmt = GF_TEXT_IMPORT_WEBVTT;
@@ -745,6 +748,14 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
     gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(vttparser));
     gf_webvtt_parser_del(vttparser);
     return e;
+}
+
+static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
+{
+	GF_Err e;
+	e = GF_OK;
+
+	return e;
 }
 
 /* SimpleText Text tracks -related functions */
@@ -2117,7 +2128,10 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	u32 fmt;
 	e = gf_text_guess_format(import->in_name, &fmt);
 	if (e) return e;
-	if (import->streamFormat && !strcmp(import->streamFormat, "VTT")) fmt = GF_TEXT_IMPORT_WEBVTT;
+	if (import->streamFormat) {
+		if (!strcmp(import->streamFormat, "VTT")) fmt = GF_TEXT_IMPORT_WEBVTT;
+		else if (!strcmp(import->streamFormat, "TTML")) fmt = GF_TEXT_IMPORT_TTML;
+	}
 	if ((strstr(import->in_name, ".swf") || strstr(import->in_name, ".SWF")) && !stricmp(import->streamFormat, "SVG")) fmt = GF_TEXT_IMPORT_SWF_SVG;
 	if (!fmt) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTXT Import] Input %s does not look like a supported text format - ignoring\n", import->in_name));
@@ -2134,6 +2148,7 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	case GF_TEXT_IMPORT_TEXML: return gf_text_import_texml(import);
 	case GF_TEXT_IMPORT_WEBVTT: return gf_text_import_webvtt(import);
 	case GF_TEXT_IMPORT_SWF_SVG: return gf_text_import_swf(import);
+	case GF_TEXT_IMPORT_TTML: return gf_text_import_ttml(import);
 	default: return GF_BAD_PARAM;
 	}
 }

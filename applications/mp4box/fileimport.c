@@ -824,6 +824,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		/*we duplicate text samples at boundaries*/
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
 			tks[nb_tk].can_duplicate = 1;
 		case GF_ISOM_MEDIA_AUDIO:
 			break;
@@ -1518,6 +1519,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
@@ -1571,6 +1573,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			continue;
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
 		case GF_ISOM_MEDIA_SCENE:
 			use_ts_dur = 0;
 		case GF_ISOM_MEDIA_AUDIO:

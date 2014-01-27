@@ -403,6 +403,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
+	case GF_ISOM_BOX_TYPE_STHD:
 		a = nmhd_New();
 		if (a) a->type = boxType;
 		return a;
@@ -685,6 +686,9 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_STTG: return boxstring_New(GF_ISOM_BOX_TYPE_STTG);
 	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_New(GF_ISOM_BOX_TYPE_PAYL);
 	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_New();
+
+	case GF_ISOM_BOX_TYPE_STPP: return stpp_New();
+	case GF_ISOM_BOX_TYPE_SBTT: return metx_New(GF_ISOM_BOX_TYPE_SBTT);
 #endif //GPAC_DISABLE_TTXT
 
 	default:
@@ -1012,6 +1016,10 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STTG: boxstring_del(a); return;
 	case GF_ISOM_BOX_TYPE_PAYL: boxstring_del(a); return;
 	case GF_ISOM_BOX_TYPE_WVTT: wvtt_del(a); return;
+
+	case GF_ISOM_BOX_TYPE_STPP: stpp_del(a); return;
+	case GF_ISOM_BOX_TYPE_SBTT: metx_del(a); return;
+
 #endif // GPAC_DISABLE_TTXT
 
 	default:
@@ -1040,6 +1048,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
+	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STBL: return stbl_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_DINF: return dinf_Read(a, bs);
@@ -1293,6 +1302,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STTG: return boxstring_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_STPP: return stpp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SBTT: return metx_Read(a, bs);
+
 #endif // GPAC_DISABLE_TTXT
 
 	default:
@@ -1321,6 +1334,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
+	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STBL: return stbl_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_DINF: return dinf_Write(a, bs);
@@ -1578,6 +1592,9 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STTG: return boxstring_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_Write(a, bs);
+
+	case GF_ISOM_BOX_TYPE_STPP: return stpp_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SBTT: return metx_Write(a, bs);
 #endif//GPAC_DISABLE_TTXT
 
 	default:
@@ -1615,6 +1632,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
+	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_Size(a);
 	case GF_ISOM_BOX_TYPE_STBL: return stbl_Size(a);
 	case GF_ISOM_BOX_TYPE_DINF: return dinf_Size(a);
@@ -1869,6 +1887,9 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STTG: return boxstring_Size(a);
 	case GF_ISOM_BOX_TYPE_PAYL: return boxstring_Size(a);
 	case GF_ISOM_BOX_TYPE_WVTT: return wvtt_Size(a);
+
+	case GF_ISOM_BOX_TYPE_STPP: return stpp_Size(a);
+	case GF_ISOM_BOX_TYPE_SBTT: return metx_Size(a);
 #endif // GPAC_DISABLE_TTXT
 
 	default: return defa_Size(a);

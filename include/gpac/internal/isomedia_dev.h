@@ -186,6 +186,7 @@ enum
 	GF_ISOM_BOX_TYPE_SDHD	= GF_4CC( 's', 'd', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_ODHD	= GF_4CC( 'o', 'd', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_NMHD	= GF_4CC( 'n', 'm', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_STHD	= GF_4CC( 's', 't', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_MP4S	= GF_4CC( 'm', 'p', '4', 's' ),
 	GF_ISOM_BOX_TYPE_MP4A	= GF_4CC( 'm', 'p', '4', 'a' ),
 	GF_ISOM_BOX_TYPE_MP4V	= GF_4CC( 'm', 'p', '4', 'v' ),
@@ -371,6 +372,9 @@ enum
 	GF_ISOM_BOX_TYPE_STTG	= GF_4CC( 's', 't', 't', 'g' ),
 	GF_ISOM_BOX_TYPE_PAYL	= GF_4CC( 'p', 'a', 'y', 'l' ),
 	GF_ISOM_BOX_TYPE_WVTT	= GF_4CC( 'w', 'v', 't', 't' ),
+
+	GF_ISOM_BOX_TYPE_STPP	= GF_4CC( 's', 't', 'p', 'p' ),
+	GF_ISOM_BOX_TYPE_SBTT	= GF_4CC( 's', 'b', 't', 't' ),
 
 	GF_ISOM_BOX_TYPE_STSE	= GF_4CC( 's', 't', 's', 'e' ),
 	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 's', 't', 't', 'C' ),
@@ -624,6 +628,11 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 } GF_MPEGMediaHeaderBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+} GF_SubtitleMediaHeaderBox;
 
 typedef struct
 {
@@ -3484,6 +3493,15 @@ typedef struct
 typedef struct
 {
     GF_ISOM_SAMPLE_ENTRY_FIELDS
+	char *xmlnamespace;			// not optional
+	char *schema_location;		// optional
+	char *auxiliary_mime_types;	// optional
+	GF_MPEG4BitRateBox *bitrate;// not optional
+} GF_XMLSubtitleSampleEntryBox;
+
+typedef struct
+{
+    GF_ISOM_SAMPLE_ENTRY_FIELDS
 	char *content_encoding;			//optional
 	char *mime_type;				//not optional
 	GF_MPEG4BitRateBox *bitrate;	// optional
@@ -3842,6 +3860,13 @@ GF_Err stse_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stse_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stse_Size(GF_Box *s);
 GF_Err stse_dump(GF_Box *a, FILE * trace);
+
+GF_Box *stpp_New();
+void stpp_del(GF_Box *s);
+GF_Err stpp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stpp_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err stpp_Size(GF_Box *s);
+GF_Err stpp_dump(GF_Box *a, FILE * trace);
 
 GF_Box *tsel_New();
 void tsel_del(GF_Box *s);
