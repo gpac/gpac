@@ -453,7 +453,6 @@
 		970FBA8216F9F0920052216D /* html5_mse_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 970FBA8016F9F0920052216D /* html5_mse_smjs.c */; };
 		97116F211646E38D00BD1AD0 /* box_code_adobe.c in Sources */ = {isa = PBXBuildFile; fileRef = 97116F201646E38D00BD1AD0 /* box_code_adobe.c */; };
 		9719CE751704C35000381CE6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9793AE341704C0BD00E0C938 /* CoreGraphics.framework */; };
-		973B2E3115BAAE3D00394854 /* generic_subtitle.c in Sources */ = {isa = PBXBuildFile; fileRef = 973B2E3015BAAE3D00394854 /* generic_subtitle.c */; };
 		9747B6EF14864C6400280D95 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EC14864C6400280D95 /* ait.h */; };
 		9747B6F014864C6400280D95 /* dsmcc.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6ED14864C6400280D95 /* dsmcc.h */; };
 		9747B6F114864C6400280D95 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EE14864C6400280D95 /* events_constants.h */; };
@@ -463,6 +462,7 @@
 		97793E5115E6370D005123E1 /* dash_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 97793E5015E6370D005123E1 /* dash_client.c */; };
 		9793AE351704C0BD00E0C938 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9793AE341704C0BD00E0C938 /* CoreGraphics.framework */; };
 		97A5D5891704C61A00144E5D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 976AF9991704C5C9004E9C00 /* AudioToolbox.framework */; };
+		97A8DDC41896AFF300F4680F /* ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 97A8DDC31896AFF300F4680F /* ttml.c */; };
 		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
 		97DDAFEF1569631900528219 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DDAFEE1569631900528219 /* sha1.c */; };
 		97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E08C68160F684B00BBDC34 /* swf_svg.c */; };
@@ -1013,7 +1013,6 @@
 		970FBA7F16F9F0910052216D /* html5_media_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_media_smjs.c; sourceTree = "<group>"; };
 		970FBA8016F9F0920052216D /* html5_mse_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_mse_smjs.c; sourceTree = "<group>"; };
 		97116F201646E38D00BD1AD0 /* box_code_adobe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_code_adobe.c; sourceTree = "<group>"; };
-		973B2E3015BAAE3D00394854 /* generic_subtitle.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = generic_subtitle.c; sourceTree = "<group>"; };
 		9747B6EC14864C6400280D95 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ait.h; sourceTree = "<group>"; };
 		9747B6ED14864C6400280D95 /* dsmcc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dsmcc.h; sourceTree = "<group>"; };
 		9747B6EE14864C6400280D95 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = events_constants.h; sourceTree = "<group>"; };
@@ -1022,6 +1021,7 @@
 		976AF9991704C5C9004E9C00 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		97793E5015E6370D005123E1 /* dash_client.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_client.c; sourceTree = "<group>"; };
 		9793AE341704C0BD00E0C938 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		97A8DDC31896AFF300F4680F /* ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ttml.c; sourceTree = "<group>"; };
 		97DB67C41627B22F00A7E054 /* dash_segmenter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_segmenter.c; sourceTree = "<group>"; };
 		97DDAFEE1569631900528219 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		97E08C68160F684B00BBDC34 /* swf_svg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = swf_svg.c; sourceTree = "<group>"; };
@@ -1499,8 +1499,8 @@
 		71CCF19F1277045100339E12 /* isomedia */ = {
 			isa = PBXGroup;
 			children = (
+				97A8DDC31896AFF300F4680F /* ttml.c */,
 				97116F201646E38D00BD1AD0 /* box_code_adobe.c */,
-				973B2E3015BAAE3D00394854 /* generic_subtitle.c */,
 				71CCF1A01277045100339E12 /* avc_ext.c */,
 				71CCF1A11277045100339E12 /* box_code_3gpp.c */,
 				71CCF1A21277045100339E12 /* box_code_apple.c */,
@@ -2433,7 +2433,6 @@
 				9747B6F414864C7800280D95 /* ait.c in Sources */,
 				9747B6F514864C7800280D95 /* dsmcc.c in Sources */,
 				97DDAFEF1569631900528219 /* sha1.c in Sources */,
-				973B2E3115BAAE3D00394854 /* generic_subtitle.c in Sources */,
 				97793E5115E6370D005123E1 /* dash_client.c in Sources */,
 				97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */,
 				97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */,
@@ -2451,6 +2450,7 @@
 				28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */,
 				28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */,
 				28F2240A17D636DA00E9D2BE /* ffmpeg_load.c in Sources */,
+				97A8DDC41896AFF300F4680F /* ttml.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
