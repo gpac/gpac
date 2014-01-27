@@ -2701,6 +2701,11 @@ GF_Err mdhd_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->timeScale = gf_bs_read_u32(bs);
 		ptr->duration = gf_bs_read_u32(bs);
 	}
+	if (!ptr->timeScale) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Media header timescale is invalid (0) - defaulting to 90000\n" ));
+		ptr->timeScale = 90000;
+	}
+	
 	//our padding bit
 	gf_bs_read_int(bs, 1);
 	//the spec is unclear here, just says "the value 0 is interpreted as undetermined"
@@ -3912,6 +3917,10 @@ GF_Err mvhd_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->modificationTime = gf_bs_read_u32(bs);
 		ptr->timeScale = gf_bs_read_u32(bs);
 		ptr->duration = gf_bs_read_u32(bs);
+	}
+	if (!ptr->timeScale) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Movie header timescale is invalid (0) - defaulting to 600\n" ));
+		ptr->timeScale = 600;
 	}
 	ptr->preferredRate = gf_bs_read_u32(bs);
 	ptr->preferredVolume = gf_bs_read_u16(bs);
