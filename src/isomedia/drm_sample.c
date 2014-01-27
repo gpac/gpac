@@ -123,7 +123,7 @@ GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest)
 static GF_ProtectionInfoBox *gf_isom_get_sinf_entry(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 scheme_type, GF_SampleEntryBox **out_sea)
 {
 	u32 i=0;
-	GF_SampleEntryBox *sea;
+	GF_SampleEntryBox *sea=NULL;
 	GF_ProtectionInfoBox *sinf;
 
 	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);

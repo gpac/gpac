@@ -3309,7 +3309,7 @@ GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_num
 	GF_TrackBox *trak;
 	u32 i, count;
 
-	gf_isom_cenc_get_default_info(movie, track, sample_number, IsEncrypted, IV_size, KID);
+	gf_isom_cenc_get_default_info(movie, track, 1, IsEncrypted, IV_size, KID);
 
 	trak = gf_isom_get_track_from_file(movie, track);
 
