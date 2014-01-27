@@ -2958,6 +2958,7 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a)
 	GF_MediaInformationBox *ptr = (GF_MediaInformationBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_NMHD:
+	case GF_ISOM_BOX_TYPE_STHD:
 	case GF_ISOM_BOX_TYPE_VMHD:
 	case GF_ISOM_BOX_TYPE_SMHD:
 	case GF_ISOM_BOX_TYPE_HMHD:
@@ -4975,7 +4976,9 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AC3:
 	case GF_ISOM_BOX_TYPE_LSR1:
 	case GF_ISOM_BOX_TYPE_WVTT:
-		return gf_isom_box_add_default((GF_Box*)ptr, a);
+	case GF_ISOM_BOX_TYPE_STPP:
+	case GF_ISOM_BOX_TYPE_SBTT:
+	return gf_isom_box_add_default((GF_Box*)ptr, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -6205,6 +6208,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_AC3:
 		case GF_ISOM_BOX_TYPE_LSR1:
 		case GF_ISOM_BOX_TYPE_WVTT:
+		case GF_ISOM_BOX_TYPE_STPP:
+		case GF_ISOM_BOX_TYPE_SBTT:
 			continue;
 		default:
 			break;

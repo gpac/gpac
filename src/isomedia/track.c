@@ -817,6 +817,10 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
 		str = "GPAC Streaming Text Handler";
 		break;
+	case GF_ISOM_MEDIA_MPEG_SUBT:
+		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_STHD);
+		str = "GPAC MPEG Subtitle Handler";
+		break;
 	case GF_ISOM_MEDIA_DIMS:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
 		MediaType = GF_ISOM_MEDIA_SCENE;
@@ -1017,6 +1021,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 		case GF_ISOM_BOX_TYPE_STSE:
 		case GF_ISOM_BOX_TYPE_WVTT:
+		case GF_ISOM_BOX_TYPE_STPP:
             /* TODO */
             assert(0);
 			break;

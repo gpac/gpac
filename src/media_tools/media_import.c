@@ -3046,6 +3046,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		else if (!stricmp(att->name, "mime_type")) dims.mime_type = att->value;
         else if (!stricmp(att->name, "media_namespace")) dims.mime_type = att->value;
 		else if (!stricmp(att->name, "media_schema_location")) dims.xml_schema_loc = att->value;
+        else if (!stricmp(att->name, "xml_namespace")) dims.contentEncoding = att->value;
+		else if (!stricmp(att->name, "xml_schema_location")) dims.xml_schema_loc = att->value;
 
 	}
 	if (sdesc.samplerate && !timescale) timescale = sdesc.samplerate;
@@ -3160,13 +3162,12 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		if (e) goto exit;
 
 		gf_import_message(import, GF_OK, "3GPP DIMS import");
-    } else if (mtype == GF_ISOM_MEDIA_SUBM) {
+    } else if (mtype == GF_ISOM_MEDIA_MPEG_SUBT) {
 		track = gf_isom_new_track(import->dest, tkID, mtype, timescale);
 		if (!track) { e = gf_isom_last_error(import->dest); goto exit; }
-		e = gf_isom_new_generic_subtitle_description(import->dest, track, 
-                                                    (char *)dims.contentEncoding, (char *)dims.xml_schema_loc, (char *)dims.mime_type, 
-                                                    (sdesc.codec_tag == GF_4CC( 'm', 'e', 't', 'x' ) ? 1 : 0), 
-                                                    (import->flags & GF_IMPORT_USE_DATAREF) ? szMedia : NULL, NULL, &di);
+		e = gf_isom_new_xml_subtitle_description(import->dest, track, 
+                                                 (char *)dims.contentEncoding, (char *)dims.xml_schema_loc, (char *)dims.mime_type, 
+                                                 &di);
 		if (e) goto exit;
 
     } else {
@@ -8531,8 +8532,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".saf", 4) || !strnicmp(ext, ".lsr", 4) || !stricmp(fmt, "SAF") )
 		return gf_import_saf(importer);
 	/*text subtitles*/
-	if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5) || !strnicmp(ext, ".vtt", 4)
-		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") || !stricmp(fmt, "VTT")) {
+	if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5) || !strnicmp(ext, ".vtt", 4) || !strnicmp(ext, ".ttml", 5)
+		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") || !stricmp(fmt, "VTT") || !stricmp(fmt, "TTML")) {
 #ifndef GPAC_DISABLE_TTXT
 			return gf_import_timed_text(importer);
 #else

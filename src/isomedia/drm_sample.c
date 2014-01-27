@@ -428,6 +428,7 @@ static GF_Err gf_isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber,
 		break;
 	case GF_ISOM_BOX_TYPE_STSE:
 	case GF_ISOM_BOX_TYPE_WVTT:
+	case GF_ISOM_BOX_TYPE_STPP:
 		sea->type = GF_ISOM_BOX_TYPE_ENCT;
 		break;
 	default:

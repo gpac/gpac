@@ -133,6 +133,7 @@ enum
 	/*subtitle code point used on ipod - same as text*/
 	GF_ISOM_MEDIA_SUBT		= GF_4CC( 's', 'b', 't', 'l' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
+	GF_ISOM_MEDIA_MPEG_SUBT	= GF_4CC( 's', 'u', 'b', 't' ),
 
 	/*MPEG-4 media types*/
 	GF_ISOM_MEDIA_OD		= GF_4CC( 'o', 'd', 's', 'm' ),
@@ -1825,14 +1826,13 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
 
 
 GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
-GF_Err gf_isom_new_generic_subtitle_description(GF_ISOFile *movie, u32 trackNumber, char *content_encoding, char *xml_schema_loc, char*mime_type_or_namespace, Bool is_xml, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
 GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
-GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
-GF_Err gf_isom_new_generic_subtitle_description(GF_ISOFile *movie, u32 trackNumber, char *content_encoding, char *xml_schema_loc, char*mime_type_or_namespace, Bool is_xml, char *URLname, char *URNname, u32 *outDescriptionIndex);
-GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
-GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
+GF_Err gf_isom_xml_subtitle_reset(GF_GenericSubtitleSample *samp);
+GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,  u32 trackNumber, char *xmlnamespace, char *xml_schema_loc, char *mimes, u32 *outDescriptionIndex);
+GF_ISOSample *gf_isom_xml_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
+GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
