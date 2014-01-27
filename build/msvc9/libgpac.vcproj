@@ -2714,7 +2714,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\src\isomedia\generic_subtitle.c"
+				RelativePath="..\..\src\isomedia\ttml.c"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
