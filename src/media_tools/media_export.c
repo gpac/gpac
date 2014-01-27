@@ -2168,7 +2168,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 	}
 
 	mtype = gf_isom_get_media_type(dumper->file, track);
-	if (mtype==GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_SUBM || mtype == GF_ISOM_MEDIA_SUBT) {
+	if (mtype==GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT) {
 		isText = GF_TRUE;
 	} else {
 		isText = GF_FALSE;
@@ -2210,7 +2210,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 			gf_isom_get_audio_info(dumper->file, track, 1, &sr, &nb_ch, &bps);
 			fprintf(vtt, "sampleRate: %d\n", sr);
 			fprintf(vtt, "numChannels: %d\n", nb_ch);
-		} else if (mtype==GF_ISOM_MEDIA_TEXT) {
+		} else if (isText) {
 			u32 w, h;
 			s32 tx, ty;
 			s16 layer;
@@ -2226,8 +2226,11 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 					/* Warning: Just use -raw export */
 					mime = "text/vtt";
 				} else if (mstype == GF_ISOM_SUBTYPE_STSE) {
-					/* TODO: find the mime type from the ESD */
+					/* TODO: find the mime type from the ESD, assume SVG for now */
 					mime = "image/svg+xml";
+				} else if (mstype == GF_ISOM_SUBTYPE_STPP) {
+					/* TODO: find the mime type from the ESD, assume TTML for now */
+					mime = "application/ttml+xml";
 				}
 				if (dumper->flags & GF_EXPORT_WEBVTT_META_EMBEDDED) {
 					if (mstype == GF_ISOM_SUBTYPE_STSE) {

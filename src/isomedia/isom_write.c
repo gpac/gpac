@@ -3423,6 +3423,11 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
             break;
 		case GF_ISOM_BOX_TYPE_STPP:
 			{
+				GF_XMLSubtitleSampleEntryBox *stpp1 = (GF_XMLSubtitleSampleEntryBox *)ent1;
+				GF_XMLSubtitleSampleEntryBox *stpp2 = (GF_XMLSubtitleSampleEntryBox *)ent2;
+				if (stpp1->xmlnamespace && stpp2->xmlnamespace && !strcmp(stpp1->xmlnamespace, stpp2->xmlnamespace)) {
+						return 1;
+				}
 				return 0;
 			}
             break;
