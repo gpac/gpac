@@ -694,6 +694,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 			if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
 
+// Commenting it the code for Timed Text tracks, it may happen that we have only one long sample, fragmentation is useful
+#if 0 
 			//if only one sample, don't fragment track
 			count = gf_isom_get_sample_count(input, i+1);
 			if (count==1) {
@@ -704,6 +706,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 				continue;
 			}
+#endif
 		} else {
 			TrackNum = gf_isom_get_track_by_id(output, gf_isom_get_track_id(input, i+1));
 			count = gf_isom_get_sample_count(input, i+1);
@@ -727,7 +730,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) nb_audio++;
-		else if (mtype == GF_ISOM_MEDIA_TEXT) nb_text++;
+		else if (mtype == GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT) nb_text++;
 		else if (mtype == GF_ISOM_MEDIA_SCENE) nb_scene++;
 		else if (mtype == GF_ISOM_MEDIA_DIMS) nb_scene++;
 
@@ -882,7 +885,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		/*get language, width/height/layout info, audio info*/
 		switch (mtype) {
 		case GF_ISOM_MEDIA_TEXT:
-			tf->splitable = 1;
+		case GF_ISOM_MEDIA_SUBT:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
+			tf->splitable = GF_TRUE;
 			gf_isom_get_media_language(input, i+1, langCode);
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
@@ -929,9 +934,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (gf_list_count(fragmenters)>1)
 		mpd_timescale = 1000;
 
-	if (!tfref)
+	if (!tfref) {
 		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
-	else {
+		assert(tfref);
+	} else {
 		//put tfref in first pos
 		gf_list_del_item(fragmenters, tfref);
 		gf_list_insert(fragmenters, tfref, 0);

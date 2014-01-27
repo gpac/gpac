@@ -1932,7 +1932,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #endif
 	} else if (mtype==GF_ISOM_MEDIA_FLASH) {
 		fprintf(stderr, "Macromedia Flash Movie\n");
-	} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) {
+	} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) || (mtype==GF_ISOM_MEDIA_MPEG_SUBT)) {
 		u32 w, h;
 		s16 l;
 		s32 tx, ty;
