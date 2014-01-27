@@ -7735,14 +7735,20 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			if ((es->first_dts != es->program->first_dts) && gf_isom_get_sample_count(import->dest, tsimp.track) ){
 				u32 media_ts, moov_ts, offset;
 				u64 dur;
+				Double pdur, poffset;
 				media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);
 				moov_ts = gf_isom_get_timescale(import->dest);
 				assert(es->program->first_dts <= es->first_dts);
-				offset = (u32)(es->first_dts - es->program->first_dts) * moov_ts / media_ts;
-				dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
+				poffset = (es->first_dts - es->program->first_dts) * 1.0 * moov_ts / media_ts;
+				offset = (u32)poffset;
+				pdur = gf_isom_get_media_duration(import->dest, tsimp.track) * 1.0 * moov_ts / media_ts;
+				dur = (u64)pdur;
+				if (poffset != offset || pdur != dur) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("Movie timescale not precise enough to store edit\n"));
+				}
 				gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
-				gf_import_message(import, GF_OK, "Timeline offset: %d ms", offset);
+				gf_import_message(import, GF_OK, "Timeline offset: %d ms", (offset * 1000) / moov_ts);
 			}
 
 			if (tsimp.nb_p) {
