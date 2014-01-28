@@ -154,6 +154,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		} else if (e == GF_ISOM_INCOMPLETE_FILE) {
 			/*our mdat is uncomplete, only valid for READ ONLY files...*/
 			if (mov->openMode != GF_ISOM_OPEN_READ) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete MDAT while file is not read-only\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			return e;
@@ -164,7 +165,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		switch (a->type) {
 		/*MOOV box*/
 		case GF_ISOM_BOX_TYPE_MOOV:
-			if (mov->moov) return GF_ISOM_INVALID_FILE;
+			if (mov->moov) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate MOOV detected!\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
 			mov->moov = (GF_MovieBox *)a;
 			/*set our pointer to the movie*/
 			mov->moov->mov = mov;
@@ -172,16 +176,23 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
             if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 #endif
             e = gf_list_add(mov->TopBoxes, a);
-			if (e) return e;
+			if (e) {
+				return e;
+			}
 			totSize += a->size;
 			break;
 
 		/*META box*/
 		case GF_ISOM_BOX_TYPE_META:
-			if (mov->meta) return GF_ISOM_INVALID_FILE;
+			if (mov->meta) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate META detected!\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
 			mov->meta = (GF_MetaBox *)a;
 			e = gf_list_add(mov->TopBoxes, a);
-			if (e) return e;
+			if (e) {
+				return e;
+			}
 			totSize += a->size;
 			break;
 
@@ -192,7 +203,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				if (!mov->mdat) {
 					mov->mdat = (GF_MediaDataBox *) a;
 					e = gf_list_add(mov->TopBoxes, mov->mdat);
-					if (e) return e;
+					if (e) {
+						return e;
+					}
 				}
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 				else if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) gf_list_add(mov->TopBoxes, a);
@@ -206,7 +219,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				gf_isom_box_del(a);
 				mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);
 				e = gf_list_add(mov->TopBoxes, mov->mdat);
-				if (e) return e;
+				if (e) {
+					return e;
+				}
 			} else {
 				gf_isom_box_del(a);
 			}
@@ -215,6 +230,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			/*ONE AND ONLY ONE FTYP*/
 			if (mov->brand) {
 				gf_isom_box_del(a);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate FTYP detected!\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->brand = (GF_FileTypeBox *)a;
@@ -226,6 +242,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			/*ONE AND ONLY ONE PDIN*/
 			if (mov->pdin) {
 				gf_isom_box_del(a);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate PDIN detected!\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->pdin = (GF_ProgressiveDownloadBox *) a;
@@ -344,11 +361,19 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
         && !mov->moof && !mov->is_index_segment
 #endif
-        ) return GF_ISOM_INVALID_FILE;
+        ) {
+			return GF_ISOM_INCOMPLETE_FILE;
+	}
 	/*we MUST have movie header*/
-	if (mov->moov && !mov->moov->mvhd) return GF_ISOM_INVALID_FILE;
+	if (mov->moov && !mov->moov->mvhd) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MVHD in MOOV!\n"));
+		return GF_ISOM_INVALID_FILE;
+	}
 	/*we MUST have meta handler*/
-	if (mov->meta && !mov->meta->handler) return GF_ISOM_INVALID_FILE;
+	if (mov->meta && !mov->meta->handler) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing handler in META!\n"));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
