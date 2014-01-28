@@ -1,5 +1,0 @@
-
-HbbTV Player
-
-the goal is to get a HbbTVTerminal emulation on a PC and be able to play HbbTV applications,  that could be include in a Stream.
-The player will receveive input  of HbbtvApplication entry files, or TS-stream featuring HBBTV.
