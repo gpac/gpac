@@ -808,6 +808,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		if (txh->tx_io->yuv_shader) {
 			u32 push_time;
 			u8 *pY, *pU, *pV;
+			u32 ck;
 			pY = data;
 			if (txh->raw_memory) {
 				if (!txh->pU || !txh->pV) return 0;
@@ -838,8 +839,10 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			txh->nb_frames ++;
 			txh->upload_time += push_time;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Pushed Y,U,V texures in %d ms - average push time %d ms\n", push_time, txh->upload_time / txh->nb_frames));
-
+#ifndef GPAC_DISABLE_LOGS
+		    gf_mo_get_object_time(txh->stream, &ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texure (CTS %d) %d ms after due date - Pushed Y,U,V texures in %d ms - average push time %d ms\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
+#endif
 			//we just pushed our texture to the GPU, release
 			if (txh->raw_memory) {
 				gf_sc_texture_release_stream(txh);
