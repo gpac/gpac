@@ -16,7 +16,7 @@ version:
 	@if [ -d $(SRC_PATH)/".svn" ]; then \
 		if which svnversion >/dev/null; then \
 			echo "#define GPAC_SVN_REVISION	\"$(shell svnversion $(SRC_PATH) )\"" > $(SVNREV_PATH).new ; \
-			if diff -q $(SVNREV_PATH) $(SVNREV_PATH).new >/dev/null ; then \
+			if ! diff -q $(SVNREV_PATH) $(SVNREV_PATH).new >/dev/null ; then \
 				mv $(SVNREV_PATH).new  $(SVNREV_PATH) ;  \
 			fi ; \
 		fi \
