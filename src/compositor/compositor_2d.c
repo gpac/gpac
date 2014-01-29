@@ -304,6 +304,27 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
+#ifndef GPAC_DISABLE_LOGS
+static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
+{
+    u32 ck;
+    if (!txh->stream) return;
+    push_time = gf_sys_clock() - push_time;
+    gf_mo_get_object_time(txh->stream, &ck);
+    if (ck>txh->last_frame_time) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
+    }                
+    if (txh->nb_frames==100) {
+        txh->nb_frames = 0;
+        txh->upload_time = 0;
+    }
+    txh->nb_frames ++;
+    txh->upload_time += push_time;
+        
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] Blit texure (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
+}
+#endif
+
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale)
 {
 	Fixed w_scale, h_scale, tmp;
@@ -567,6 +588,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (overlay_type) {
+		u32 push_time;
 
 		if (overlay_type==2) {
 			GF_IRect o_rc;
@@ -619,8 +641,12 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 		visual->compositor->skip_flush = 1;
 
+		push_time = gf_sys_clock();
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
-		if (!e) {
+		if (!e) {            
+#ifndef GPAC_DISABLE_LOG
+            log_blit_times(txh, push_time);
+#endif            
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 			visual->has_overlays = GF_TRUE;
@@ -653,22 +679,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			}
 		}
 #ifndef GPAC_DISABLE_LOG
-		else if (txh->stream) {
-			u32 ck;
-			push_time = gf_sys_clock() - push_time;
-			gf_mo_get_object_time(txh->stream, &ck);
-			if (ck>txh->last_frame_time) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
-			}
-
-			if (txh->nb_frames==100) {
-				txh->nb_frames = 0;
-				txh->upload_time = 0;
-			}
-			txh->nb_frames ++;
-			txh->upload_time += push_time;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] Blit texure in %d ms - average push time %d ms\n", push_time, txh->upload_time / txh->nb_frames));
+		else {
+            log_blit_times(txh, push_time);
 		}
 #endif
 	}
@@ -676,7 +688,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		GF_VideoSurface backbuffer;
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
+            u32 push_time = gf_sys_clock();
 			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, 0, col_key, ctx->col_mat);
+#ifndef GPAC_DISABLE_LOG
+            log_blit_times(txh, push_time);
+#endif
 			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
