@@ -783,7 +783,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	}
 
 
-	strcpy(szName, inName);
+	ext = strrchr(inName, '/');
+	if (!ext) ext = strrchr(inName, '\\');
+	strcpy(szName, ext ? ext+1 : inName);
 	ext = strrchr(szName, '.');
 	if (ext) ext[0] = 0;
 	ext = strrchr(inName, '.');
@@ -1208,11 +1210,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 							break;
 						}
 					}
-					if (rap_split) {
-						if (time <= file_split_dur) break;
-					} else {
-						if (time < file_split_dur) break;
-					}
+
+					if (time <= file_split_dur) break;
 
 					gf_isom_remove_sample(dest, tki->dst_tk, last_samp);
 					tki->last_sample--;
