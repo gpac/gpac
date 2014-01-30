@@ -32,19 +32,19 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = libgpac
+PROJECT_NAME           = GPAC
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = 0.5.0
+PROJECT_NUMBER         = 
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "Documentation of the core library of GPAC. For more information, check out http://gpac.wp.mines-telecom.fr"
+PROJECT_BRIEF          = "Open Source Multimedia Framework. For more information, check out http://gpac.wp.mines-telecom.fr"
 
 # With the PROJECT_LOGO tag one can specify an logo or icon that is included in
 # the documentation. The maximum height of the logo should not exceed 55 pixels
@@ -744,7 +744,11 @@ WARN_LOGFILE           = doxygen_warnings.txt
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ../include/gpac/
+INPUT                  = ../src \
+						 ../applications/mp4box \
+						 ../applications/mp4client \
+						 ../include  \
+						 ../modules
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -795,7 +799,7 @@ FILE_PATTERNS          = *.c \
 # be searched for input files as well.
 # The default value is: NO.
 
-RECURSIVE              = NO
+RECURSIVE              = YES
 
 # The EXCLUDE tag can be used to specify files and/or directories that should be
 # excluded from the INPUT source files. This way you can easily exclude a
@@ -1034,7 +1038,7 @@ GENERATE_HTML          = YES
 # The default directory is: html.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_OUTPUT            = html-libgpac
+HTML_OUTPUT            = html-gpac
 
 # The HTML_FILE_EXTENSION tag can be used to specify the file extension for each
 # generated HTML page (for example: .htm, .php, .asp).
