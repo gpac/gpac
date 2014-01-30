@@ -296,7 +296,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
  *	Adds a sub-path to the path with a given transform.
  *	\param gp the target path
  *	\param subpath the path to add
- *	\param mat Matrix for subpath 
+ *	\param mx Matrix for subpath 
  *	\return error code if any error, \ref GF_OK otherwise
  */
 GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *subpath, GF_Matrix2D *mx);

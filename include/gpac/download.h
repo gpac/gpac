@@ -229,12 +229,12 @@ extern "C" {
      *\brief download session simple constructor
      *
      *Creates a new download session
+     *\param dm The download manager used to create the download session
      *\param url file to retrieve (no PUT/POST yet, only downloading is supported)
      *\param dl_flags combination of session download flags
      *\param user_io \ref gf_dm_user_io callback function for data reception and service messages
      *\param usr_cbk opaque user data passed to callback function
-     *\param cache_name cache name
-     *\param error error for failure cases
+     *\param e error for failure cases
      *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
      */
     GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *url, u32 dl_flags,
@@ -323,7 +323,7 @@ extern "C" {
      *\param sess the download session
      *\param start_range HTTP download start range in byte 
      *\param end_range HTTP download end range in byte 
-     *\param discontinue If set, forces a new cache entry if byte range are not continuous. Otherwise a single cache entry is used to reconstruct the file
+     *\param discontinue_cache If set, forces a new cache entry if byte range are not continuous. Otherwise a single cache entry is used to reconstruct the file
      *\note this can only be used when the session is not threaded
      */
 	GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache);
@@ -337,19 +337,22 @@ extern "C" {
 
     /*!
      * \brief Marks the cache file to be deleted once the file is not used anymore by any session
-     * \param entry The cache entry to delete
+     * \param dm the download manager
+     * \param url The URL associate to the cache entry to be deleted
      */
     void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm, const char * url);
 
     /*!
      * Convenience function
      * \see gf_dm_delete_cached_file_entry
+     *\param sess the download session
+     * \param url The URL associate to the cache entry to be deleted
      */
-    void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * dm, const char * url);
+    void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url);
 
     /*!
      * Get a range of a cache entry file
-     * \param entry The session
+     * \param sess The session
      * \param startOffset The first byte of the request to get
      * \param endOffset The last byte of request to get
      * \return The temporary name for the file created to have a range of the file
@@ -410,7 +413,7 @@ extern "C" {
      *\param sess the download session
      *\return the associated URL
      */
-    const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
+    const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
     /*!
      *\brief Get session original resource url
      *
@@ -418,7 +421,7 @@ extern "C" {
      *\param sess the download session
      *\return the associated URL
      */
-    const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload);
+    const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
 	
 
     /*!
@@ -426,6 +429,8 @@ extern "C" {
      * \param dm The downlaod manager to use, function will use all associated cache ressources
      * \param url The url to download
      * \param filename The filename to download
+     * \param start_range start position of a byte range
+     * \param end_range end position of a byte range
      * \return GF_OK if everything went fine, an error otherwise
      */
     GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
@@ -436,6 +441,8 @@ extern "C" {
      * This function is deprecated, please use gf_dm_wget_with_cache instead
      * \param url The url to download
      * \param filename The filename to download
+     * \param start_range start position of a byte range
+     * \param end_range end position of a byte range
      * \return GF_OK if everything went fine, an error otherwise
      */
     GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range);
@@ -479,7 +486,7 @@ extern "C" {
 
     /*!
      * Re-setup an existing, completed session to download a new URL. If same server/port/protocol is used, the same socket will be reused if the session
-	 has the @GF_NETIO_SESSION_PERSISTENT flag set. This is only possible if the session is not threaded.
+	 * has the GF_NETIO_SESSION_PERSISTENT flag set. This is only possible if the session is not threaded.
 	 * \param sess The session
 	 * \param url The new url for the session 
      * \return GF_OK or error

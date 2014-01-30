@@ -36,7 +36,6 @@ extern "C" {
  */
 
 /*!
- *	\addtogroup media_grp FileStreamer
  *	\ingroup media_grp
  *	\brief FileStreamer object
  *
@@ -69,7 +68,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
  *	\brief RTP file streamer destructor
  *
  *	Destructs an RTP file streamer
- *	\param ptr object to destruct
+ *	\param streamer object to destruct
  */
 void gf_isom_streamer_del(GF_ISOMRTPStreamer *streamer);
 

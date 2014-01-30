@@ -121,7 +121,7 @@ Bool gf_url_get_resource_path(const char *url, char *res_path);
  *\brief Remove last delimenter from URL
  *
  * Remove last delimenter from URL
- *\param url input url 
+ *\param sURL input url 
  *\param res_path buffer for resulting path storage
  *\return GF_TRUE if delimiter was extracted, otherwise GF_FALSE.
  */
@@ -131,7 +131,7 @@ Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path);
  *\brief Extract extension from a resource path in URL
  *
  * Extract a resource path of URL and analyze its extension
- *\param url input url 
+ *\param sURL input url 
  *\return The corresponding extension if exists, otherwise NULL.
  */
 const char* gf_url_get_ressource_extension(const char *sURL);
@@ -426,7 +426,7 @@ Bool gf_net_is_ipv6(const char *address);
 /*!
  *	\brief MobileIP Callback
  *
- * The gf_net_mobileip_ctrl_cbk type is the type for the callback of the \ref gf_net_set_mobileip_callback function. By default no mobileip is used
+ * The gf_net_mobileip_ctrl_cbk type is the type for the callback of the \ref gf_net_mobileip_set_callback function. By default no mobileip is used
  *	\param cbck Opaque user data.
  *	\param start boolean indicating wether the MobileIP subsystem should be started or stopped.
  *	\return Error code if needed.
@@ -439,6 +439,7 @@ typedef GF_Err (*gf_net_mobileip_ctrl_cbk)(Bool start);
  *
  *Assigns the MobileIP control callback.
  *\param _mobip_cbk MobileIP control callback
+ *\param MobileIP MobileIP address
  */
 void gf_net_mobileip_set_callback(gf_net_mobileip_ctrl_cbk _mobip_cbk, const char *MobileIP);
 

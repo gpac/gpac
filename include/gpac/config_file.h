@@ -57,7 +57,7 @@ typedef struct __tag_config GF_Config;
  * Constructs a configuration file from fileName. if fileName is NULL, the default GPAC configuration file is loaded.
  * If no configuration file is found, a default configuration file is created with the proper module directory, font directory 
  * and other default options.
- *\param fileName name of the configuration file, or NULL for default file
+ *\param file name of the configuration file, or NULL for default file
  *\param new_cfg Boolean set to true if a new configuration file has been created
  *\return the configuration file object, NULL if the file could not be created
  */
@@ -101,7 +101,7 @@ void gf_cfg_remove(GF_Config *cfgFile);
  *Saves the configuration file if modified.
  *\param cfgFile the target configuration file
  */
-GF_Err gf_cfg_save(GF_Config *iniFile);
+GF_Err gf_cfg_save(GF_Config *cfgFile);
 /*!
  *	\brief key value query
  *
@@ -198,7 +198,7 @@ void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
  *\param secName the target section
  *\param keyName the name of the target key
  *\param sub_index the 0-based index position of the sub key*/
-const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName,u32 sub_index);
+const char *gf_cfg_get_sub_key(GF_Config *cfgFile, const char *secName, const char *keyName,u32 sub_index);
 
 /*!
  * Get the full filename associated with this config file
@@ -215,6 +215,8 @@ char * gf_cfg_get_filename(GF_Config *iniFile);
  * \return erroro code
  */
 GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

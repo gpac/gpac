@@ -73,7 +73,7 @@ typedef struct __tag_thread GF_Thread;
  *\brief thread constructor
  *
  *Constructs a new thread object
- *\param log name of the thread if any
+ *\param name log name of the thread if any
  */
 GF_Thread *gf_th_new(const char *name);
 /*!
