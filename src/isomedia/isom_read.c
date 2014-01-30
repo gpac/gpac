@@ -469,6 +469,67 @@ Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version)
 #endif
 	return 0;
 }
+
+GF_EXPORT
+u32 gf_isom_segment_get_fragment_count(GF_ISOFile *file)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+    if (file) {
+		u32 i, count = 0;
+		for (i=0; i<gf_list_count(file->TopBoxes); i++) {
+			GF_Box *a = gf_list_get(file->TopBoxes, i);
+			if (a->type==GF_ISOM_BOX_TYPE_MOOF) count++;
+		}
+		return count;
+	}
+#endif
+	return 0;
+}
+
+static GF_MovieFragmentBox *gf_isom_get_moof(GF_ISOFile *file, u32 moof_index)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(file->TopBoxes); i++) {
+		GF_Box *a = gf_list_get(file->TopBoxes, i);
+		if (a->type==GF_ISOM_BOX_TYPE_MOOF) {
+			moof_index--;
+			if (!moof_index) return (GF_MovieFragmentBox *) a;
+		}
+	}
+	return NULL;
+}
+
+GF_EXPORT
+u32 gf_isom_segment_get_track_fragment_count(GF_ISOFile *file, u32 moof_index)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_MovieFragmentBox *moof;
+    if (!file) return 0;
+	gf_list_count(file->TopBoxes);
+	moof = gf_isom_get_moof(file, moof_index);
+	return moof ? gf_list_count(moof->TrackList) : 0;
+#endif
+	return 0;
+}
+
+GF_EXPORT
+u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *file, u32 moof_index, u32 traf_index, u64 *decode_time)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_MovieFragmentBox *moof;
+	GF_TrackFragmentBox *traf;
+    if (!file) return 0;
+	gf_list_count(file->TopBoxes);
+	moof = gf_isom_get_moof(file, moof_index);
+	traf = moof ? gf_list_get(moof->TrackList, traf_index-1) : NULL;
+	if (!traf) return 0;
+	if (*decode_time) {
+		*decode_time = traf->tfdt ? traf->tfdt->baseMediaDecodeTime : 0;
+	}
+	return traf->tfhd->trackID;
+#endif
+	return 0;
+}
 #endif
 
 //return the timescale of the movie, 0 if error

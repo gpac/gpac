@@ -415,6 +415,12 @@ Bool gf_isom_has_movie(GF_ISOFile *file);
 
 /* check if the file has a top styp box and returns the brand and version of the first styp found */
 Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version);
+/*get number of movie fragments in the file*/
+u32 gf_isom_segment_get_fragment_count(GF_ISOFile *file);
+/*get number of track fragments in the indicated movie fragment (1-based index)*/
+u32 gf_isom_segment_get_track_fragment_count(GF_ISOFile *file, u32 moof_index);
+/*returns the track ID and get the tfdt of the given track fragment (1-based index) in the indicated movie fragment (1-based index)*/
+u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *file, u32 moof_index, u32 traf_index, u64 *decode_time);
 
 /* Indicates that we want to parse only one moof/mdat at a time 
    in order to proceed to next moof, call gf_isom_reset_data_offset
