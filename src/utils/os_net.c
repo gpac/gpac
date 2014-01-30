@@ -1134,7 +1134,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 			return GF_IP_SOCK_WOULD_BLOCK;
 		case EINTR:
 			/* Interrupted system call, not really important... */
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] netowrk is lost\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] network is lost\n"));
 			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
