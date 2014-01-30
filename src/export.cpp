@@ -400,6 +400,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
@@ -756,6 +757,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_movie) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_fragment_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_track_fragment_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_track_fragment_decode_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_guess_specification) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_keep_utc_times) )

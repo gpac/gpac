@@ -567,6 +567,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			store_dash_params=GF_TRUE;
 			gf_cfg_set_key(dash_cfg->dash_ctx, RepSecName, "ID", dash_input->representationID);
 		}
+		//we no longer support start number changes 
+#if 0
 		/*we are in time shift enabled mode so segments will get destroyed, set the start number to the current segment 
 		and restore presentationTimeOffset (cf below)*/
 		if (!store_dash_params && (dash_cfg->time_shift_depth >= 0)) {
@@ -578,6 +580,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 				startNumberRewind = dash_cfg->time_shift_depth;
 			}
 		}
+#endif
 	}
 
 	opt = dash_cfg->dash_ctx ? gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "InitializationSegment") : NULL;
@@ -877,8 +880,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			opt = (char *)gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, sKey);
 			if (opt) tf->InitialTSOffset = atoi(opt);
 
-			/*in time shift enabled, restore presentationTimeOffset */
-			if (dash_cfg->time_shift_depth>=0)
+			/*store presentationTimeOffset on the first rep*/
+			if (store_dash_params)
 				presentationTimeOffset = tf->InitialTSOffset;
 		}
 
@@ -4041,7 +4044,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 							   u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof)
 {
 	u32 i, j, segment_mode;
-	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH];
+	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
+	const char *opt;
 	u32 cur_adaptation_set;
 	u32 max_adaptation_set = 0;
 	u32 cur_period;
@@ -4287,8 +4291,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	
 
 	for (cur_period=0; cur_period<max_period; cur_period++) {
+		char szKey[GF_MAX_PATH];
 		u32 first_in_period = 0;
 		Double period_duration=0;
+		szKey[0] = 0;
+
 		for (i=0; i<nb_dash_inputs; i++) {
 			/*this file does not belongs to any adaptation set*/
 			if (dash_inputs[i].period != cur_period+1) continue;
@@ -4307,9 +4314,19 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			if (dash_inputs[i].duration > period_duration)
 				period_duration = dash_inputs[i].duration;
 		}
-		if (first_in_period)
-			dash_inputs[first_in_period-1].period_duration = period_duration;
+		if (first_in_period) {
+			if (dash_ctx) {
+				strcpy(szKey, "Period_");
+				strcat(szKey, dash_inputs[first_in_period-1].periodID);
+				opt = gf_cfg_get_key(dash_ctx, szKey, "Duration");
+				if (opt) period_duration += atof(opt);
 
+				sprintf(szOpt, "%g", period_duration);
+				gf_cfg_set_key(dash_ctx, szKey, "Duration", szOpt);
+			}
+
+			dash_inputs[first_in_period-1].period_duration = period_duration;
+		}
 		presentation_duration += period_duration;
 	}
 
