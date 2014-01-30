@@ -522,7 +522,7 @@ enum
  */
 enum
 {
-	/*!S: is-Scene: DIMS unit contains a complete document (<svg>*/
+	/*!S: is-Scene: DIMS unit contains a complete document (svg)*/
 	GF_DIMS_UNIT_S = 1,
 	/*!M: is-RAP: DIMS unit is a random access point*/
 	GF_DIMS_UNIT_M = 1<<1,

@@ -2255,12 +2255,12 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
 /**
- * @chunkFile BT chunk to be encoded
- * @bifs output file name for the BIFS data
- * @inputContext initial BT upon which the chunk is based (shall not be NULL)
- * @outputContext: file name to dump the context after applying the new chunk to the input context 
+ * \param chunkFile BT chunk to be encoded
+ * \param bifs output file name for the BIFS data
+ * \param inputContext initial BT upon which the chunk is based (shall not be NULL)
+ * \param outputContext: file name to dump the context after applying the new chunk to the input context 
                    can be NULL, without .bt
- * @logFile: can be NULL
+ * \param tmpdir can be NULL
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {

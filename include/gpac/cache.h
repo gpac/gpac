@@ -105,7 +105,7 @@ extern "C" {
     /**
      * Set the Mime-Type in the cache. Data is duplicated, so original string can be freed by caller.
      * \param entry The entry
-     * \param eTag The mime-type to set
+     * \param mime_type The mime-type to set
      * \return GF_OK if entry and mime-type are valid, GF_BAD_PARAM otherwise
      */
     GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mime_type );
@@ -233,6 +233,8 @@ extern "C" {
 
 	u64 gf_cache_get_start_range( const DownloadedCacheEntry entry );
 	u64 gf_cache_get_end_range( const DownloadedCacheEntry entry );
+
+/*! @} */
 
 #ifdef __cplusplus
 }
