@@ -325,14 +325,18 @@ GF_Err RTSP_ParseResponseHeader(GF_RTSPSession *sess, GF_RTSPResponse *rsp, u32 
 
 	//parse first line
 	ret = gf_token_get_line(buffer, 0, Size, LineBuffer, 1024);
-	if (ret < 0) return GF_REMOTE_SERVICE_ERROR;
+	if (ret < 0) 
+		return GF_REMOTE_SERVICE_ERROR;
 	//RTSP/1.0
 	Pos = gf_token_get(LineBuffer, 0, " \t\r\n", ValBuf, 400);
-	if (Pos <= 0) return GF_REMOTE_SERVICE_ERROR;
-	if (strcmp(ValBuf, GF_RTSP_VERSION)) return GF_SERVICE_ERROR;
+	if (Pos <= 0) 
+		return GF_REMOTE_SERVICE_ERROR;
+	if (strcmp(ValBuf, GF_RTSP_VERSION))
+		return GF_SERVICE_ERROR;
 	//CODE
 	Pos = gf_token_get(LineBuffer, Pos, " \t\r\n", ValBuf, 400);
-	if (Pos <= 0) return GF_REMOTE_SERVICE_ERROR;
+	if (Pos <= 0) 
+		return GF_REMOTE_SERVICE_ERROR;
 	rsp->ResponseCode = atoi(ValBuf);
 	//string info
 	Pos = gf_token_get(LineBuffer, Pos, "\t\r\n", ValBuf, 400);
@@ -432,6 +436,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	}
 
 	if (sess->CSeq != rsp->CSeq + sess->NbPending) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Invalid sequence number - got %d but expected %d\n", sess->CSeq, rsp->CSeq + sess->NbPending));
 		e = GF_REMOTE_SERVICE_ERROR;
 		goto exit;
 	}

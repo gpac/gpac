@@ -207,6 +207,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	if (conn && (!conn->host || !strcmp(conn->host, "0.0.0.0"))) conn = NULL;
 
 	if (!conn) conn = (GF_SDPConnection*)gf_list_get(media->Connections, 0);
+	if (conn && (!conn->host || !strcmp(conn->host, "0.0.0.0"))) conn = NULL;
 
 	if (!conn) {
 		/*RTSP RFC recommends an empty "c= " line but some server don't send it. Use session info (o=)*/
