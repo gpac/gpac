@@ -27,6 +27,9 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
+#define RTP_DEFAULT_TIMEOUT 10000
+#define RTSP_DEFAULT_TIMEOUT 2000
+
 static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 {
 	const char *sOpt;
@@ -65,7 +68,7 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 		if (sOpt ) {
 			rtp->udp_time_out = atoi(sOpt);
 		} else {
-			rtp->udp_time_out = 10000;
+			rtp->udp_time_out = RTP_DEFAULT_TIMEOUT;
 		}
 	}
 
@@ -73,7 +76,7 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	if (sOpt ) {
 		rtp->time_out = atoi(sOpt);
 	} else {
-		rtp->time_out = 30000;
+		rtp->time_out = RTSP_DEFAULT_TIMEOUT;
 	}
 
 	/*packet drop emulation*/
@@ -832,7 +835,7 @@ GF_InputService *RTP_Load()
 
 	plug->priv = priv;
 
-	priv->time_out = 30000;
+	priv->time_out = RTSP_DEFAULT_TIMEOUT;
 	priv->mx = gf_mx_new("RTPDemux");
 	priv->th = gf_th_new("RTPDemux");
 

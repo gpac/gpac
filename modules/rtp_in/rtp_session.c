@@ -102,15 +102,23 @@ void RP_ProcessCommands(RTSPSession *sess)
 			sess->flags &= ~RTSP_WAIT_REPLY;
 			sess->command_time = 0;
 		} else {
+			u32 time_out = sess->owner->time_out;
 			/*evaluate timeout*/
 			time = gf_sys_clock() - sess->command_time;
+
+			if (!strcmp(com->method, GF_RTSP_DESCRIBE) && (time_out < 10000) ) time_out = 10000;
 			/*don't waste time waiting for teardown ACK, half a sec is enough. If server is not replying
 			in time it is likely to never reply (happens with RTP over RTSP) -> kill session 
 			and create new one*/
-			if (!strcmp(com->method, GF_RTSP_TEARDOWN) && (time>=500) ) time = sess->owner->time_out;
+			else if (!strcmp(com->method, GF_RTSP_TEARDOWN) && (time>=500) ) time = time_out;
+			
 			//signal what's going on
-			if (time >= sess->owner->time_out) {
-				if (!strcmp(com->method, GF_RTSP_TEARDOWN)) gf_rtsp_session_reset(sess->session, 1);
+			if (time >= time_out) {
+				if (!strcmp(com->method, GF_RTSP_TEARDOWN)) {
+					gf_rtsp_session_reset(sess->session, 1);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Request Timeout for command %s after %d ms\n", com->method, time));
+				}
 
 				RP_ProcessResponse(sess, com, GF_IP_NETWORK_FAILURE);
 				RP_RemoveCommand(sess);

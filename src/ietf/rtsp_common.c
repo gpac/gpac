@@ -41,11 +41,13 @@ GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess)
 		//Locate header / body
 		if (!BodyStart) gf_rtsp_get_body_info(sess, &BodyStart, &body_size);
 		
-		//enough data
-		res = sess->CurrentSize - sess->CurrentPos;
-		if (!body_size || (res >= body_size + BodyStart)) {
-			//done
-			break;
+		if (BodyStart) {
+			//enough data
+			res = sess->CurrentSize - sess->CurrentPos;
+			if (!body_size || (res >= body_size + BodyStart)) {
+				//done
+				break;
+			}
 		}
 		//this is the tricky part: if we do NOT have a body start -> we refill
 		e = gf_rtsp_refill_buffer(sess);
@@ -57,34 +59,36 @@ GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess)
 void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size)
 {
 	u32 i;
+	s32 start;
 	char *buffer;
 	char *cl_str, val[30];
 
 	*body_start = *body_size = 0;
 
 	buffer = sess->TCPBuffer + sess->CurrentPos;
-	*body_start = gf_token_find(buffer, 0, sess->CurrentSize - sess->CurrentPos, "\r\n\r\n");
+	start = gf_token_find(buffer, 0, sess->CurrentSize - sess->CurrentPos, "\r\n\r\n");
+	if (start<=0) {
+		return;
+	}
 
 	//if found add the 2 "\r\n" and parse it
-	if (*body_start) {
-		*body_start += 4;
+	*body_start = start + 4;
 		
-		//get the content length
-		cl_str = strstr(buffer, "Content-Length: ");
-		if (!cl_str) cl_str = strstr(buffer, "Content-length: ");
+	//get the content length
+	cl_str = strstr(buffer, "Content-Length: ");
+	if (!cl_str) cl_str = strstr(buffer, "Content-length: ");
 		
-		if (cl_str) {
-			cl_str += 16;
-			i = 0;
-			while (cl_str[i] != '\r') {
-				val[i] = cl_str[i];
-				i += 1;
-			}
-			val[i] = 0;
-			*body_size = atoi(val);
-		} else {
-			*body_size = 0;
+	if (cl_str) {
+		cl_str += 16;
+		i = 0;
+		while (cl_str[i] != '\r') {
+			val[i] = cl_str[i];
+			i += 1;
 		}
+		val[i] = 0;
+		*body_size = atoi(val);
+	} else {
+		*body_size = 0;
 	}
 }
 
