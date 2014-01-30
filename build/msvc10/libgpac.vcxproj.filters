@@ -692,9 +692,6 @@
     <ClCompile Include="..\..\src\isomedia\drm_sample.c">
       <Filter>isomedia</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\isomedia\generic_subtitle.c">
-      <Filter>isomedia</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\isomedia\hint_track.c">
       <Filter>isomedia</Filter>
     </ClCompile>
@@ -1162,6 +1159,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\webvtt_smjs.c">
       <Filter>scenegraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\isomedia\ttml.c">
+      <Filter>isomedia</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
