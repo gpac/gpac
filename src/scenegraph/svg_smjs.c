@@ -181,7 +181,7 @@ static JSBool SMJS_FUNCTION(svg_parse_xml)
 
 static void svg_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] %s in file %s:%d (%s)\n", msg, jserr->filename, jserr->lineno, jserr->linebuf));
 }
 
 static JSBool SMJS_FUNCTION(svg_echo)
@@ -2553,7 +2553,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 
 	gf_sg_lock_javascript(svg_js->js_ctx, GF_TRUE);
 	
-	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
+	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, file, 0, &rval);
 
 	if (svg_js->force_gc) {
 		gf_sg_js_call_gc(svg_js->js_ctx);
