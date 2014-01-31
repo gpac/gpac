@@ -4032,6 +4032,43 @@ static u32 gf_dash_get_dependency_bandwidth(GF_DashSegInput *inputs, u32 nb_dash
 	return 0; //we should never be here !!!!
 }
 
+static void dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
+{
+	FILE *period_mpd;
+	u32 xml_size;
+
+	period_mpd = gf_f64_open(szPeriodXML, "rb");
+	gf_f64_seek(period_mpd, 0, SEEK_END);
+	xml_size = (u32) gf_f64_tell(period_mpd);
+	gf_f64_seek(period_mpd, 0, SEEK_SET);
+
+	while (xml_size) {
+		char buf[4046];
+		u32 size = 4096;
+		if (xml_size<4096) size = xml_size;
+		fread(buf, 1, size, period_mpd);
+		fwrite(buf, 1, size, mpd);
+		xml_size -= size;
+	}
+	fclose(period_mpd);
+}
+
+static void purge_dash_context(GF_Config *dash_ctx)
+{
+	u32 i, count;
+	//purge dash context
+	count = gf_cfg_get_section_count(dash_ctx);
+	for (i=0; i<count; i++) {
+		const char *opt = gf_cfg_get_section_name(dash_ctx, i);
+		if (!opt) continue;
+		if( !strnicmp(opt, "Representation_", 15) || !strcmp(opt, "SegmentsStartTimes")) {
+			gf_cfg_del_section(dash_ctx, opt);
+			count--; 
+			i--;
+		}
+	}
+}
+
 /*dash segmenter*/
 GF_EXPORT
 GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile dash_profile, 
@@ -4045,6 +4082,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
+	char szPeriodXML[GF_MAX_PATH];
 	const char *opt;
 	u32 cur_adaptation_set;
 	u32 max_adaptation_set = 0;
@@ -4052,10 +4090,12 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	u32 max_period = 0;
 	u32 cur_group_id = 0;
 	u32 max_sap_type = 0;
+	u32 last_period_rep_idx_plus_one = 0;
 	Bool none_supported = GF_TRUE;
 	Bool has_mpeg2 = GF_FALSE;
 	Bool has_role = GF_FALSE;
 	Double presentation_duration = 0;
+	Double active_period_start = 0;
 	GF_Err e = GF_OK;
 	FILE *mpd = NULL;
 	GF_DashSegInput *dash_inputs;
@@ -4305,6 +4345,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 			if (!first_in_period) {
 				first_in_period = i+1;
+				last_period_rep_idx_plus_one = first_in_period;
 			}
 
 			if (dash_inputs[i].dasher_get_components_info) {
@@ -4315,19 +4356,84 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				period_duration = dash_inputs[i].duration;
 		}
 		if (first_in_period) {
-			if (dash_ctx) {
-				strcpy(szKey, "Period_");
-				strcat(szKey, dash_inputs[first_in_period-1].periodID);
-				opt = gf_cfg_get_key(dash_ctx, szKey, "Duration");
-				if (opt) period_duration += atof(opt);
-
-				sprintf(szOpt, "%g", period_duration);
-				gf_cfg_set_key(dash_ctx, szKey, "Duration", szOpt);
-			}
-
 			dash_inputs[first_in_period-1].period_duration = period_duration;
 		}
 		presentation_duration += period_duration;
+	}
+
+	active_period_start = 0;
+	if (dash_ctx) {
+		Double duration;
+		char *id = "";
+		if (last_period_rep_idx_plus_one) id = dash_inputs[last_period_rep_idx_plus_one-1].periodID;
+		if (!id) id = "";
+
+		opt = gf_cfg_get_key(dash_ctx, "DASH", "LastActivePeriod");
+		//period has changed
+		if (opt && strcmp(opt, id)) {
+			Bool prev_period_not_done = GF_FALSE;
+			const char *prev_id = opt;
+			Double last_period_dur = 0;
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
+			duration = opt ? atof(opt) : 0.0;
+
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "LastPeriodDuration");
+			if (opt) last_period_dur = atof(opt);
+			presentation_duration += last_period_dur;
+
+			//we may have called the segmenter with the end of the previous active period and the start of the new one - locate the 
+			//previous period and update cumulated duration
+			for (i=0;i<nb_dash_inputs; i++) {
+				char *p_id = dash_inputs[i].periodID;
+				if (!p_id) p_id = "";
+				if (!strcmp(p_id, prev_id)) {
+					last_period_dur += dash_inputs[last_period_rep_idx_plus_one-1].period_duration;
+					prev_period_not_done = GF_TRUE;
+					break;
+				}
+			}
+			gf_cfg_set_key(dash_ctx, "DASH", "LastPeriodDuration", NULL);
+
+			duration += last_period_dur;
+			sprintf(szOpt, "%g", duration);
+			gf_cfg_set_key(dash_ctx, "DASH", "CumulatedPastPeriodsDuration", szOpt);
+
+			//get active period start
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "LastActivePeriodStart");
+			if (opt) active_period_start = atof(opt);
+			active_period_start += last_period_dur;
+
+			//and add period to past periods, storing their start time
+			if (! prev_period_not_done) {
+				sprintf(szOpt, "%g", presentation_duration - last_period_dur);
+				gf_cfg_set_key(dash_ctx, "PastPeriods", prev_id, szOpt);
+		
+				//update active period start
+				sprintf(szOpt, "%g", active_period_start);
+				gf_cfg_set_key(dash_ctx, "DASH", "LastActivePeriodStart", szOpt);
+
+				purge_dash_context(dash_ctx);
+			}
+
+			//and finally switch active period
+			gf_cfg_set_key(dash_ctx, "DASH", "LastActivePeriod", id);
+
+			sprintf(szOpt, "%g", dash_inputs[last_period_rep_idx_plus_one-1].period_duration);
+			gf_cfg_set_key(dash_ctx, "DASH", "LastPeriodDuration", szOpt);
+		} else {
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "LastPeriodDuration");
+			if (opt) {
+				duration = atof(opt);
+				dash_inputs[last_period_rep_idx_plus_one-1].period_duration += duration;
+				presentation_duration += duration;
+			}
+			sprintf(szOpt, "%g", dash_inputs[last_period_rep_idx_plus_one-1].period_duration);
+			gf_cfg_set_key(dash_ctx, "DASH", "LastPeriodDuration", szOpt);
+			gf_cfg_set_key(dash_ctx, "DASH", "LastActivePeriod", id);
+
+			opt = gf_cfg_get_key(dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
+			presentation_duration += opt ? atof(opt) : 0.0;
+		}
 	}
 
 	strcpy(szTempMPD, mpdfile);
@@ -4345,9 +4451,26 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_dynamic, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_shift_sec);
 	if (e) goto exit;
 
+	if (dash_ctx) {
+		u32 count = gf_cfg_get_key_count(dash_ctx, "PastPeriods");
+		for (i=0; i<count; i++) {
+			const char *p_id = gf_cfg_get_key_name(dash_ctx, "PastPeriods", i);
+
+			strcpy(szPeriodXML, mpdfile);
+			sep = strrchr(szPeriodXML, '.');
+			if (sep) sep[0] = 0;
+			strcat(szPeriodXML, "-Period_");
+			strcat(szPeriodXML, p_id);
+			strcat(szPeriodXML, ".mpd");
+			dash_insert_period_xml(mpd, szPeriodXML);
+		}
+	}
+
 	for (cur_period=0; cur_period<max_period; cur_period++) {
+		FILE *period_mpd;
 		Double period_duration = 0;
 		const char *id=NULL;
+
 		/*for each identified adaptationSets, write MPD and perform segmentation of input files*/
 		for (i=0; i< nb_dash_inputs; i++) {
 			if (dash_inputs[i].adaptation_set && (dash_inputs[i].period==cur_period+1)) {
@@ -4356,7 +4479,18 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				break;
 			}
 		}
-		e = write_period_header(mpd, id, 0.0, period_duration, dash_dynamic);
+
+		strcpy(szPeriodXML, mpdfile);
+		sep = strrchr(szPeriodXML, '.');
+		if (sep) sep[0] = 0;
+		strcat(szPeriodXML, "-Period_");
+		strcat(szPeriodXML, id ? id : "");
+		strcat(szPeriodXML, ".mpd");
+
+		period_mpd = gf_f64_open(szPeriodXML, "wb");
+		dash_opts.mpd = period_mpd;
+
+		e = write_period_header(period_mpd, id, 0.0, period_duration, dash_dynamic);
 		if (e) goto exit;
 
 		/*for each identified adaptationSets, write MPD and perform segmentation of input files*/
@@ -4455,7 +4589,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					sprintf(szFPS, "%d", fps_num);
 			}
 
-			e = write_adaptation_header(mpd, dash_profile, use_url_template, segment_mode, &dash_inputs[first_rep_in_set], use_bs_switching, max_width, max_height, szFPS, szLang, szInit);
+			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, &dash_inputs[first_rep_in_set], use_bs_switching, max_width, max_height, szFPS, szLang, szInit);
 			if (e) goto exit;
 
 			is_first_rep = 1;
@@ -4521,10 +4655,28 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				is_first_rep = 0;
 			}
 			/*close adaptation set*/
-			fprintf(mpd, "  </AdaptationSet>\n");
+			fprintf(period_mpd, "  </AdaptationSet>\n");
 		}
 
-		fprintf(mpd, " </Period>\n");
+		fprintf(period_mpd, " </Period>\n");
+		fclose(period_mpd);
+
+		dash_insert_period_xml(mpd, szPeriodXML);
+
+		dash_opts.mpd = period_mpd;
+
+		//and add periods done to past periods, storing their start time
+		if (!id) id="";
+		if (last_period_rep_idx_plus_one && strcmp(id, dash_inputs[last_period_rep_idx_plus_one-1].periodID) ) {
+			sprintf(szOpt, "%g", active_period_start);
+			gf_cfg_set_key(dash_ctx, "PastPeriods", id, szOpt);
+			active_period_start += period_duration;
+
+			sprintf(szOpt, "%g", active_period_start);
+			gf_cfg_set_key(dash_ctx, "DASH", "LastActivePeriodStart", szOpt);
+
+			purge_dash_context(dash_ctx);
+		}
 	}
 	fprintf(mpd, "</MPD>");
 
