@@ -52,7 +52,7 @@ static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err e
 		if (sOpt && !stricmp(sOpt, "yes")) {
 			char szMsg[1024];
 			sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", message);
-			gf_term_message(term, service->url, szMsg, GF_OK);
+			gf_term_message(term, service->url, szMsg, GF_IP_NETWORK_FAILURE);
 
 			/*reload scene*/
 			if (term->reload_url) gf_free(term->reload_url);

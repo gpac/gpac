@@ -563,6 +563,7 @@ void RP_ReadStream(RTPStream *ch)
 			u32 diff = gf_sys_clock() - ch->last_udp_time;
 			if (diff >= ch->owner->udp_time_out) {
 				char szMessage[1024];
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms\n", diff));
 				sprintf(szMessage, "No data received in %d ms", diff);
 				gf_term_on_message(ch->owner->service, GF_IP_UDP_TIMEOUT, szMessage);
 				ch->status = RTP_Unavailable;
