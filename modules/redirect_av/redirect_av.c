@@ -118,7 +118,7 @@ static const char * AVR_VIDEO_CODEC_OPTION = "VideoCodec";
 #if REDIRECT_AV_AUDIO_ENABLED
 /**
  * This thread sends the frame to TS mux
- * \param Parameter The GF_AVRedirect pointer
+ * \param param The GF_AVRedirect pointer
  */
 static u32 audio_encoding_thread_run(void *param)
 {
@@ -227,7 +227,7 @@ exit:
 
 /**
  * This thread sends the frame to TS mux
- * \param Parameter The GF_AVRedirect pointer
+ * \param param The GF_AVRedirect pointer
  */
 static u32 video_encoding_thread_run(void *param)
 {

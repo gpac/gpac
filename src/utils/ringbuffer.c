@@ -56,7 +56,7 @@ void gf_ringbuffer_del(GF_Ringbuffer * ringbuffer){
  * Return the number of bytes available for writing.  This is the
  * number of bytes in front of the write pointer and behind the read
  * pointer.
- * \param The ringbuffer
+ * \param rb The ringbuffer
  */
 GF_EXPORT
 u32 gf_ringbuffer_available_for_write (GF_Ringbuffer * rb)

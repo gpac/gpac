@@ -442,7 +442,8 @@ int getch(){
 /**
  * Reads a line of input from stdin
  * @param line the buffer to fill
- * @param
+ * @param maxSize the maximum size of the line to read
+ * @param showContent boolean indicating if the line read should be printed on stderr or not 
  */
 static const char * read_line_input(char * line, int maxSize, Bool showContent){
     char read;

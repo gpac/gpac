@@ -634,7 +634,8 @@ static Bool gf_dash_is_dash_mime(const char * mime) {
 }
 
 /*!
-* Returns true if mime type is an M3U8 mime-type
+* Returns true if mime type of a given URL is an M3U8 mime-type
+* \param url The url to check
 * \param mime The mime-type to check
 * \return true if mime-type is OK for M3U8
 */
