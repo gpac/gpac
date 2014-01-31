@@ -407,8 +407,10 @@ Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph
 	    gf_dom_listener_process_add(sg);
 	    /*if the current target is a node, we can bubble*/
 	    return n ? GF_TRUE : GF_FALSE;
-    } 
-    return GF_FALSE;
+    } else {
+		/* if the node does not have a event target, probably a parent will have, so let's bubble */
+		return GF_TRUE;
+	}
 }
 
 static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack, u32 cur_par_idx)
@@ -554,6 +556,12 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 	SVG_Element *listener;
 	GF_FieldInfo info;
 	GF_ChildNodeItem *last = NULL;
+
+	/* make sure the JS context is initialized, in case there is no <handler> or <script> element in the scene */
+	{
+		GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg);
+		JSScript_CreateSVGContext(node->sgprivate->scenegraph);
+	}
 
 	listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 	/*don't register the listener, this will be done when adding to the node events list*/
