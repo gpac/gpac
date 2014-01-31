@@ -702,7 +702,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 // Commenting it the code for Timed Text tracks, it may happen that we have only one long sample, fragmentation is useful
 #if 0 
 			//if only one sample, don't fragment track
-			if (count==1) {
+			if (gf_isom_get_sample_count(input, i+1) == 1) {
 				sample = gf_isom_get_sample(input, i+1, 1, &descIndex);
 				e = gf_isom_add_sample(output, TrackNum, 1, sample);
 				gf_isom_sample_del(&sample);
@@ -710,12 +710,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 				continue;
 			}
-#else
-			count = gf_isom_get_sample_count(input, i+1);
 #endif
 		} else {
 			TrackNum = gf_isom_get_track_by_id(output, gf_isom_get_track_id(input, i+1));
-			count = gf_isom_get_sample_count(input, i+1);
 		}
 
 		/*set extraction mode whether setup or not*/
@@ -934,7 +931,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			protected_track = i+1;
 		}
 
-		nb_samp += count;
+		nb_samp += tf->SampleCount;
 	}
 
 	if (gf_list_count(fragmenters)>1)

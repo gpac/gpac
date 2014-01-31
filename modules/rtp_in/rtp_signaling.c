@@ -135,6 +135,10 @@ void RP_Setup(RTPStream *ch)
 	else if (ch->rtsp->flags & RTSP_FORCE_INTER) {
 		if (trans->Profile) gf_free(trans->Profile);
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
+		//some servers expect the interleaved to be set during the setup request
+		trans->IsInterleaved = 1;
+		trans->rtpID = gf_list_find(ch->owner->channels, ch);
+		trans->rtcpID = trans->rtpID+1;
 		gf_rtp_setup_transport(ch->rtp_ch, trans, NULL);
 	}
 
@@ -145,7 +149,7 @@ void RP_Setup(RTPStream *ch)
 
 	/*turn off interleaving in case of re-setup, some servers don't like it (we still signal it
 	through RTP/AVP/TCP profile so it's OK)*/
-	trans->IsInterleaved = 0;
+//	trans->IsInterleaved = 0;
 	gf_list_add(com->Transports, trans);
 	if (strlen(ch->control)) com->ControlString = gf_strdup(ch->control);
 
@@ -224,7 +228,12 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		const char *opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceClientPorts");
 		if (opt && !stricmp(opt, "yes")) 
 			gf_rtp_get_ports(ch->rtp_ch, &trans->client_port_first, &trans->client_port_last);
-		
+
+		if (gf_rtp_is_interleaved(ch->rtp_ch) && !trans->IsInterleaved) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Requested interleaved RTP over RTSP but server did not setup interleave - cannot process command\n"));
+			e = GF_REMOTE_SERVICE_ERROR;
+			continue;
+		}
 		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
 		if (!e) break;
 	}
@@ -242,9 +251,10 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	}
 
 exit:
-	/*confirm only on first connect, otherwise this is a re-SETUP of the rtsp session, not the channel*/
+		/*confirm only on first connect, otherwise this is a re-SETUP of the rtsp session, not the channel*/
 	if (! (ch->flags & RTP_CONNECTED) ) {
-		ch->flags |= RTP_CONNECTED;
+		if (!e) 
+			ch->flags |= RTP_CONNECTED;
 		RP_ConfirmChannelConnect(ch, e);
 	}
 	com->user_data = NULL;

@@ -160,7 +160,8 @@ typedef struct
 	Bool IsRecord, Append;
 	/* in case transport is on TCP/RTSP, If only 1 ID is specified, it is stored in rtpID (this
 	is not RTP interleaving) */
-	Bool IsInterleaved, rtpID, rtcpID;
+	Bool IsInterleaved;
+	u32 rtpID, rtcpID;
 	/* Multicast specific */
 	u32 MulticastLayers;
 	u8 TTL;

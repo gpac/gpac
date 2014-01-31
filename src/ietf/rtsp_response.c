@@ -378,11 +378,13 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 
 	e = gf_rtsp_check_connection(sess);
-	if (e) goto exit;
+	if (e) 
+		goto exit;
 
 	//push data in our queue
 	e = gf_rtsp_fill_buffer(sess);
-	if (e) goto exit;
+	if (e) 
+		goto exit;
 
 	//this is interleaved data
 	if (!IsRTSPMessage(sess->TCPBuffer+sess->CurrentPos) ) {
@@ -391,7 +393,8 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		goto exit;
 	}
 	e = gf_rtsp_read_reply(sess);
-	if (e) goto exit;
+	if (e)
+		goto exit;
 
 	//get the reply
 	gf_rtsp_get_body_info(sess, &BodyStart, &size);
