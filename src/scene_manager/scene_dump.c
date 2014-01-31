@@ -403,7 +403,7 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 	if (!str) return;
 	len = (u32) strlen(str);
 	if (!len) return;
-	uniLine = (u16*)gf_malloc(sizeof(u16) * len);
+	uniLine = (u16*)gf_malloc(sizeof(u16) * len*4);
 	_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 	if (_len != (size_t) (-1)) {
 		len = (u32) _len;
