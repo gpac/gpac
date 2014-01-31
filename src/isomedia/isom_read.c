@@ -523,7 +523,7 @@ u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *file, u32 moof_in
 	moof = gf_isom_get_moof(file, moof_index);
 	traf = moof ? gf_list_get(moof->TrackList, traf_index-1) : NULL;
 	if (!traf) return 0;
-	if (*decode_time) {
+	if (decode_time) {
 		*decode_time = traf->tfdt ? traf->tfdt->baseMediaDecodeTime : 0;
 	}
 	return traf->tfhd->trackID;
