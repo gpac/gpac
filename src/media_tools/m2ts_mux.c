@@ -37,6 +37,10 @@
 #define ADAPTATION_LENGTH_LENGTH 1
 /* discontinuty flag, random access flag ... */
 #define ADAPTATION_FLAGS_LENGTH 1 
+/* length of adaptation_extension_field_length; */ 
+#define ADAPTATION_EXTENSION_LENGTH_LENGTH 1
+/* AF des flags and co... */
+#define ADAPTATION_EXTENSION_FLAGS_LENGTH 1 
 /* length of encoded pcr */
 #define PCR_LENGTH 6
 
@@ -404,11 +408,17 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u16 pid,  
 				   Bool has_pcr, u64 pcr_time, 
 				   Bool is_rap, 
-				   u32 padding_length)
+				   u32 padding_length,
+				   char *af_descriptors, u32 af_descriptors_size)
 {
 	u32 adaptation_length;
 
 	adaptation_length = ADAPTATION_FLAGS_LENGTH + (has_pcr?PCR_LENGTH:0) + padding_length;
+
+
+	if (af_descriptors_size && af_descriptors) {
+		adaptation_length += ADAPTATION_EXTENSION_LENGTH_LENGTH + ADAPTATION_EXTENSION_FLAGS_LENGTH + af_descriptors_size;
+	}
 
 	gf_bs_write_int(bs,	adaptation_length, 8);
 	gf_bs_write_int(bs,	0, 1);			// discontinuity indicator
@@ -418,7 +428,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 	gf_bs_write_int(bs,	0, 1);			// OPCR flag
 	gf_bs_write_int(bs,	0, 1);			// splicing point flag
 	gf_bs_write_int(bs,	0, 1);			// transport private data flag
-	gf_bs_write_int(bs,	0, 1);			// adaptation field extension flag
+	gf_bs_write_int(bs,	af_descriptors_size ? 1 : 0, 1);			// adaptation field extension flag
 	if (has_pcr) {
 		u64 PCR_base, PCR_ext;
 		PCR_base = pcr_time/300;
@@ -437,6 +447,18 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding adaptation field size %d - RAP %d - Padding %d\n", pid, adaptation_length, is_rap, padding_length));
 #endif
 
+	}
+
+	if (af_descriptors_size) {
+		gf_bs_write_int(bs,	ADAPTATION_EXTENSION_FLAGS_LENGTH + af_descriptors_size, 8);
+
+		gf_bs_write_int(bs,	0, 1);			// ltw_flag
+		gf_bs_write_int(bs,	0, 1);			// piecewise_rate_flag
+		gf_bs_write_int(bs,	0, 1);			// seamless_splice_flag
+		gf_bs_write_int(bs,	0, 1);			// af_descriptor_not_present_flag
+		gf_bs_write_int(bs,	1, 4);			// reserved
+	
+		gf_bs_write_data(bs, af_descriptors, af_descriptors_size);
 	}
 
 	gf_bs_write_byte(bs, 0xFF, padding_length); // stuffing byte
@@ -499,7 +521,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	else stream->continuity_counter=0;
 
 	if (adaptation_field_control != GF_M2TS_ADAPTATION_NONE)
-		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length);
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length, NULL, 0);
 
 	/*pointer field*/
 	if (!stream->current_section_offset) {
@@ -859,6 +881,8 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 		stream->curr_pck.data_len = curr_pck->data_len;
 		stream->curr_pck.dts = curr_pck->dts;
 		stream->curr_pck.flags = curr_pck->flags;
+		stream->curr_pck.mpeg2_af_descriptors = curr_pck->mpeg2_af_descriptors;
+		stream->curr_pck.mpeg2_af_descriptors_size = curr_pck->mpeg2_af_descriptors_size;
 
 		/*discard first packet*/
 		stream->pck_first = curr_pck->next;
@@ -1403,6 +1427,13 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			payload_length -= 8;
 			adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
 		}
+		if (stream->curr_pck.mpeg2_af_descriptors) {
+			if (adaptation_field_control != GF_M2TS_ADAPTATION_AND_PAYLOAD) {
+				payload_length -= 2; //AF header but no PCR
+				adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
+			}
+			payload_length -= 2 + stream->curr_pck.mpeg2_af_descriptors_size; //AF extension field and AF descriptor 
+		}
 		
 		if (hdr_len) {
 			assert(!stream->pes_data_remain);
@@ -1486,11 +1517,16 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			stream->pcr_priority = 0;
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? 1 : 0;
-		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length);
-	
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length, stream->curr_pck.mpeg2_af_descriptors, stream->curr_pck.mpeg2_af_descriptors_size);
+
+		if (stream->curr_pck.mpeg2_af_descriptors) {
+			gf_free(stream->curr_pck.mpeg2_af_descriptors);
+			stream->curr_pck.mpeg2_af_descriptors = NULL;
+			stream->curr_pck.mpeg2_af_descriptors_size = 0;
+		}
+
 		if (padding_length) 
 			stream->program->mux->tot_pes_pad_bytes += padding_length;
-
 	}
 
 	if (hdr_len) gf_m2ts_stream_add_pes_header(bs, stream, payload_length);
@@ -1626,6 +1662,11 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 			GF_SAFEALLOC(stream->pck_reassembler, GF_M2TS_Packet);
 			stream->pck_reassembler->cts = esi_pck->cts;
 			stream->pck_reassembler->dts = esi_pck->dts;
+			if (esi_pck->mpeg2_af_descriptors) {
+				stream->pck_reassembler->mpeg2_af_descriptors = gf_realloc(stream->pck_reassembler->mpeg2_af_descriptors, sizeof(u8)* (stream->pck_reassembler->mpeg2_af_descriptors_size + esi_pck->mpeg2_af_descriptors_size) );
+				memcpy(stream->pck_reassembler->mpeg2_af_descriptors + stream->pck_reassembler->mpeg2_af_descriptors_size, esi_pck->mpeg2_af_descriptors, sizeof(u8)* esi_pck->mpeg2_af_descriptors_size );
+				stream->pck_reassembler->mpeg2_af_descriptors_size += esi_pck->mpeg2_af_descriptors_size;
+			}
 		}
 
 		stream->force_new = esi_pck->flags & GF_ESI_DATA_AU_END ? 1 : 0;

@@ -56,7 +56,7 @@ enum
 enum
 {
 	/*forces a data flush from interface to dest (caller) - used for non-threaded interfaces
-		corresponding parameter: unused
+		corresponding parameter: GF_ESIPacket
 	*/
 	GF_ESI_OUTPUT_DATA_DISPATCH
 };
@@ -89,6 +89,9 @@ typedef struct __data_packet_ifce
 	u32 au_sn;
 	/*for packets using ISMACrypt/OMA/3GPP based crypto*/
 	u32 isma_bso;
+
+	char *mpeg2_af_descriptors;
+	u32 mpeg2_af_descriptors_size;
 } GF_ESIPacket;
 
 struct __esi_video_info
