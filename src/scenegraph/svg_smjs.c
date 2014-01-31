@@ -2416,6 +2416,25 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 
 void html_media_js_api_del();
 
+void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph)
+{
+	dom_js_pre_destroy(svg_js->js_ctx, scenegraph, NULL);
+	/*user-defined extensions*/
+	gf_sg_load_script_extensions(scenegraph, svg_js->js_ctx, svg_js->global, GF_TRUE);
+	gf_sg_ecmascript_del(svg_js->js_ctx);
+	dom_js_unload();
+	gf_free(svg_js);
+	scenegraph->svg_js = NULL;
+	assert(svg_rt);
+	svg_rt->nb_inst--;
+	if (!svg_rt->nb_inst) {
+		/* HTML */
+		html_media_js_api_del();
+		gf_free(svg_rt);
+		svg_rt = NULL;
+	}
+}
+
 static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 {
 	if (is_destroy) {
@@ -2430,31 +2449,22 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
 
 			if (!svg_js->nb_scripts) {
-				dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, NULL);
-				/*user-defined extensions*/
-				gf_sg_load_script_extensions(n->sgprivate->scenegraph, svg_js->js_ctx, svg_js->global, GF_TRUE);
-				gf_sg_ecmascript_del(svg_js->js_ctx);
-				dom_js_unload(svg_js->js_ctx, svg_js->global);
-				gf_free(svg_js);
-				n->sgprivate->scenegraph->svg_js = NULL;
-				assert(svg_rt);
-				svg_rt->nb_inst--;
-				if (!svg_rt->nb_inst) {
-					/* HTML */
-				    html_media_js_api_del();
-					gf_free(svg_rt);
-					svg_rt = NULL;
-				}
+				gf_svg_script_context_del(svg_js, n->sgprivate->scenegraph);
 			}
 		}
 	}
 }
 
-static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
+GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 {
 	GF_SVGJS *svg_js;
-	GF_SAFEALLOC(svg_js, GF_SVGJS);
 
+	if (sg->svg_js) {
+		/* the JS/SVG context is already created, no need to do anything  */
+		return GF_OK;
+	}
+
+	GF_SAFEALLOC(svg_js, GF_SVGJS);
 	/*create new ecmascript context*/
 	svg_js->js_ctx = gf_sg_ecmascript_new(sg);
 	if (!svg_js->js_ctx) {
