@@ -1770,6 +1770,10 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	GF_SceneLoader load;
 
 	if (!term) return GF_BAD_PARAM;
+	
+	if (type && (!stricmp(type, "application/ecmascript") || !stricmp(type, "js")) )  {
+		return gf_scene_execute_script(term->root_scene->graph, com);
+	}
 
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.localPath = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");

@@ -253,6 +253,7 @@ void PrintHelp()
 		"\tt: print current timing\n"
 		"\n"
 		"\tu: sends a command (BIFS or LASeR) to the main scene\n"
+		"\te: evaluates JavaScript code\n"
 		"\tZ: dumps output video to PNG\n"
 		"\n"
 		"\tw: view world info\n"
@@ -1666,6 +1667,21 @@ force_input:
 			}
 			e = gf_term_scene_update(term, NULL, szCom);
 			if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
+		}
+			break;
+		case 'e':
+		{
+			GF_Err e;
+			char jsCode[8192];
+			fprintf(stderr, "Enter JavaScript code to evaluate:\n");
+			fflush(stdin);
+			jsCode[0] = 0;
+			if (1 > scanf("%[^\t\n]", jsCode)){
+			    fprintf(stderr, "Cannot read code to evaluate, aborting.\n");
+			    break;
+			}
+			e = gf_term_scene_update(term, "application/ecmascript", jsCode);
+			if (e) fprintf(stderr, "Processing JS code failed: %s\n", gf_error_to_string(e));
 		}
 			break;
 

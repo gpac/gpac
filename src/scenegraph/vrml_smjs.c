@@ -4947,4 +4947,28 @@ Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 	}
 	return 0;
 }
+
 #endif /* GPAC_HAS_SPIDERMONKEY */
+
+GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com) 
+{
+#ifdef GPAC_HAS_SPIDERMONKEY
+	u32 tag;
+	GF_Err e;
+	GF_Node *root = gf_sg_get_root_node(sg);
+	if (root) {
+		tag = gf_node_get_tag(root);
+		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
+			GF_SVGJS *svg_js = sg->svg_js;
+			Bool ret = svg_js->script_execute(sg, (char *)com, NULL);
+			return (ret == GF_TRUE ? GF_OK : GF_BAD_PARAM);
+		} else {
+			e = GF_NOT_SUPPORTED;
+			return e;
+		}
+	}
+	return GF_BAD_PARAM;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}

@@ -771,6 +771,9 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double t
 /*returns new commandFieldInfo structure and registers it with command*/
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 
+/* Executes JS code in the root context of the scene graph */
+GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com);
+
 #ifdef __cplusplus
 }
 #endif

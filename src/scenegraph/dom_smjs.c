@@ -1392,30 +1392,31 @@ static SMJS_FUNC_PROP_GET( dom_document_getProperty )
 	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
-	case 2:/*implementation*/
+	case -2:/*implementation*/
 		/*FIXME, this is wrong, we should have our own implementation
 		but at the current time we rely on the global object to provide it*/
 		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
 		return JS_TRUE;
-	case 3: /*"documentElement"*/
+	case -3: /*"documentElement"*/
 		*vp = dom_element_construct(c, sg->RootNode);
 		return JS_TRUE;
 
-	case 11:/*global*/
+	case -12:/*global*/
 		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
 		return JS_TRUE;
 
 
 	/*NOT SUPPORTED YET*/
 
-	case 1: /*"doctype"*/
-	case 4: /*"inputEncoding"*/
-	case 5: /*"xmlEncoding"*/
-	case 6: /*"xmlStandalone"*/
-	case 7: /*"xmlVersion"*/
-	case 8: /*"strictErrorChecking"*/
-	case 9: /*"documentURI"*/
-	case 10: /*"domConfig"*/
+	case -1: /*"doctype"*/
+	case -4: /*"inputEncoding"*/
+	case -5: /*"xmlEncoding"*/
+	case -6: /*"xmlStandalone"*/
+	case -7: /*"xmlVersion"*/
+	case -8: /*"strictErrorChecking"*/
+	case -9: /*"documentURI"*/
+	case -10: /*"location"*/
+	case -11: /*"domConfig"*/
 		*vp = JSVAL_VOID;
 		return JS_TRUE;
 	}
@@ -3803,16 +3804,18 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		};
 
 		JSPropertySpec documentProps[] = {
-			SMJS_PROPERTY_SPEC("doctype",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("implementation",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("documentElement",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("inputEncoding",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("xmlEncoding",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("xmlStandalone",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("xmlVersion",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("strictErrorChecking",	8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("documentURI",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("domConfig",			10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("doctype",				-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("implementation",		-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("documentElement",		-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("inputEncoding",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("xmlEncoding",			-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("xmlStandalone",			-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("xmlVersion",			-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("strictErrorChecking",	-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("documentURI",			-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("location",			   -10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("domConfig",			   -11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("global",			   -12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0),
 		};
 
