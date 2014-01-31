@@ -228,6 +228,15 @@ enum
 };
 
 
+
+/*MPEG-2 Descriptor tags*/
+enum
+{
+	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR	= 0x00,
+	GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR	= 0x01,
+	GF_M2TS_AFDESC_BASEURL_DESCRIPTOR	= 0x02,
+};
+
 #define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
 #define SECTION_ADDITIONAL_HEADER_LENGTH 5 /* header from the last bit of the section_length field to the payload */
 #define	CRC_LENGTH 4
@@ -956,6 +965,9 @@ typedef struct __m2ts_mux_pck
 	u32 data_len;
 	u32 flags;
 	u64 cts, dts;
+
+	char *mpeg2_af_descriptors;
+	u32 mpeg2_af_descriptors_size;
 } GF_M2TS_Packet;
 
 
