@@ -851,7 +851,7 @@ function wmjs_migrate_widget(render, widget) {
 // if yes, remove it from the list
 //
 function wmjs_standard_service_remove(device) {
-    var service = device.FindService("urn:mpeg:mpeg-u:standard-service:widget-manager:1");
+    var service = device.FindService("urn:mpeg-u:service:widget-manager:1");
     if (service != null) {
         var i = WidgetManager.MPEGUStandardServiceProviders.indexOf(device);
         if (i >= 0) {
@@ -865,7 +865,7 @@ function wmjs_standard_service_remove(device) {
 // add a migration service provider to the list and remember the service in the device
 //
 function wmjs_standard_service_add(device) {
-    var service = device.FindService("urn:mpeg:mpeg-u:standard-service:widget-manager:1");
+    var service = device.FindService("urn:mpeg-u:service:widget-manager:1");
     if (service != null) {
         log(l_err, "migration service add "+device.Name);
         WidgetManager.MPEGUStandardServiceProviders.push(device);
@@ -894,15 +894,15 @@ function wmjs_create_standard_service() {
     var name = "MPEG-U";
     var option = gpac.getOption('General', 'DeviceName');
     if (option) name = option;
-    WidgetManager.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:standard-service:widget-manager:1", name+"@"+gpac.hostname);
+    WidgetManager.device = UPnP.CreateDevice("urn:mpeg-u:device:widget-manager:1", name+"@"+gpac.hostname);
     WidgetManager.device.enabled = 1;
     /* implement the response to a external call (messageOut of another widget) */
     WidgetManager.device.OnAction = wmjs_widget_standard_service_process_action;
     log(l_err, 'wmjs_create_standard_service');
     //log(l_inf, 'Service scpd ' + standard_service_scpd);
     /* WidgetManager.standardService = */
-    var service = WidgetManager.device.SetupService("MPEG-U_Standard_Service", "urn:mpeg:mpeg-u:standard-service:widget-manager:1",
-            "urn:mpeg:mpeg-u:standard-service:widget-manager:1.001", standard_service_scpd);
+    var service = WidgetManager.device.SetupService("MPEG-U_Standard_Service", "urn:mpeg-u:service:widget-manager:1",
+            "urn:mpeg-u:serviceId:widget-manager:1.001", standard_service_scpd);
     WidgetManager.device.Start();
     WidgetManager.MPEGUStandardServiceProviders = new Array();
     //alert("create_standard_service end");
@@ -1172,7 +1172,7 @@ function wmjs_create_upnp_service(widget, ifce) {
     name = widget.name.replace(whiteSpaceRegExp, '_');
     if (!widget.device) {
         //log(l_inf,'creating device');
-        widget.device = UPnP.CreateDevice("urn:mpeg:mpeg-u:widget:provider:" + name + ":1", name);
+        widget.device = UPnP.CreateDevice("urn:mpeg-u:device:provider-" + name + ":1", name);
         /* remember the widget in the device */
         widget.device.widget = widget;
         widget.device.enabled = 1;
