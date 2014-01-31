@@ -126,6 +126,8 @@ struct _dash_segment_input
 	u32 trackNum, lower_layer_track, nb_representations, idx_representations;
 	//increase sequence number between consecutive segments by this amount (for scalable reps)
 	u32 moof_seqnum_increase;
+	
+	u32 protection_scheme_type;
 
 	/*all these shall be set after call to dasher_get_components_info*/
 	Double duration;
@@ -700,7 +702,6 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 // Commenting it the code for Timed Text tracks, it may happen that we have only one long sample, fragmentation is useful
 #if 0 
 			//if only one sample, don't fragment track
-			count = gf_isom_get_sample_count(input, i+1);
 			if (count==1) {
 				sample = gf_isom_get_sample(input, i+1, 1, &descIndex);
 				e = gf_isom_add_sample(output, TrackNum, 1, sample);
@@ -709,6 +710,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 				continue;
 			}
+#else
+			count = gf_isom_get_sample_count(input, i+1);
 #endif
 		} else {
 			TrackNum = gf_isom_get_track_by_id(output, gf_isom_get_track_id(input, i+1));
@@ -1692,9 +1695,16 @@ restart_fragmentation_pass:
 			bin128 default_KID;
 			gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
 			fprintf(dash_cfg->mpd, "    <ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"", gf_4cc_to_str(prot_scheme) );
-			for (i=0; i<16; i++) {
-				fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
-			}
+			/* Output canonical UIID form */
+			for (i=0; i<4; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
+			fprintf(dash_cfg->mpd, "-");
+			for (i=4; i<6; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
+			fprintf(dash_cfg->mpd, "-"); 
+			for (i=6; i<8; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
+			fprintf(dash_cfg->mpd, "-");
+			for (i=8; i<10; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
+			fprintf(dash_cfg->mpd, "-");
+			for (i=10; i<16; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
 			fprintf(dash_cfg->mpd, "\"/>\n");
 		} 
 		//todo for ISMA or OMA DRM
@@ -3489,9 +3499,12 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 					}
 				}
 				dash_input->single_track_num = gf_isom_get_track_by_id(file, id);
+				nb_track = dash_input->single_track_num;
 			}
+			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, nb_track, 1);
 			gf_isom_close(file);
 			dash_input->moof_seqnum_increase = 0;
+
 			return GF_OK;
 		}
 
@@ -3534,6 +3547,8 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 			/*representationID*/
 			sprintf(di->representationID, "%s_%d", dash_input->representationID, cur_idx);
 			di->trackNum = j+1;
+
+			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 1);
 
 			/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
 			di->idx_representations = rep_idx;
@@ -3582,7 +3597,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, u32 ast_shift_sec)
+static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, u32 ast_shift_sec, Bool use_cenc)
 {
 	u32 sec, frac;
 #ifdef _WIN32_WCE
@@ -3668,6 +3683,9 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guildelines/dash264\"");
 	} else {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011\"");	
+	}
+	if (use_cenc) {
+		fprintf(mpd, " xmlns:cenc=\"urn:mpeg:cenc:2013\"");
 	}
 
 	fprintf(mpd, ">\n");
@@ -4043,7 +4061,7 @@ static void dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 	gf_f64_seek(period_mpd, 0, SEEK_SET);
 
 	while (xml_size) {
-		char buf[4046];
+		char buf[4096];
 		u32 size = 4096;
 		if (xml_size<4096) size = xml_size;
 		fread(buf, 1, size, period_mpd);
@@ -4091,6 +4109,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	u32 cur_group_id = 0;
 	u32 max_sap_type = 0;
 	u32 last_period_rep_idx_plus_one = 0;
+	Bool use_cenc = GF_FALSE;
 	Bool none_supported = GF_TRUE;
 	Bool has_mpeg2 = GF_FALSE;
 	Bool has_role = GF_FALSE;
@@ -4354,6 +4373,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			}
 			if (dash_inputs[i].duration > period_duration)
 				period_duration = dash_inputs[i].duration;
+
+			switch (dash_inputs[i].protection_scheme_type) {
+			case GF_ISOM_CENC_SCHEME:
+			case GF_ISOM_CBC_SCHEME:
+				use_cenc = GF_TRUE;
+				break;
+			}
 		}
 		if (first_in_period) {
 			dash_inputs[first_in_period-1].period_duration = period_duration;
@@ -4448,7 +4474,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 	dash_opts.mpd = mpd;
 
-	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_dynamic, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_shift_sec);
+	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_dynamic, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_shift_sec,use_cenc);
 	if (e) goto exit;
 
 	if (dash_ctx) {

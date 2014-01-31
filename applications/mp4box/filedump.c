@@ -2107,16 +2107,16 @@ void DumpMovieInfo(GF_ISOFile *file)
 	DumpMetaItem(file, 1, 0, "Root Meta");
 	if (!gf_isom_has_movie(file)) {
         if (gf_isom_has_segment(file, &brand, &min)) {
-            u32 count;
+            u32 j, count;
 	        count = gf_isom_segment_get_fragment_count(file);
 			fprintf(stderr, "File is a segment - %d movie fragments - Brand %s (version %d):\n", count, gf_4cc_to_str(brand), min);
-			if (count) {
-				count = gf_isom_segment_get_track_fragment_count(file, 1);
-				for (i=0; i<count; i++) {
+			for (i=0; i<count; i++) {
+				u32 traf_count = gf_isom_segment_get_track_fragment_count(file, i+1);
+				for (j=0; j<traf_count; j++) {
 					u32 ID;
 					u64 tfdt;
-					ID = gf_isom_segment_get_track_fragment_decode_time(file, 1, i+1, &tfdt);
-					fprintf(stderr, "\t1st Fragment Track ID %d - TFDT "LLU"\n", ID, tfdt);
+					ID = gf_isom_segment_get_track_fragment_decode_time(file, i+1, j+1, &tfdt);
+					fprintf(stderr, "\tFragment #%d Track ID %d - TFDT "LLU"\n", i+1, ID, tfdt);
 				}
 			}
         } else {
