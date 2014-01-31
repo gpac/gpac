@@ -237,6 +237,7 @@ static void init_prng (void)
  * \brief Write data to cache
  * Writes data to the cache. A call to gf_cache_open_write_cache should have been issued before calling this function.
  * \param entry The entry to use
+ * \param sess The download session 
  * \param data data to write
  * \param size number of elements to write
  * \return GF_OK is everything went fine, GF_BAD_PARAM if cache has not been opened, GF_IO_ERR if a failure occurs
@@ -247,6 +248,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
  * \brief Close the write file pointer of cache
  * This function also flushes all buffers, so cache will always be consistent after
  * \param entry The entry to use
+ * \param sess The download session 
  * \param success 1 if cache write is success, false otherwise
  * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
@@ -256,6 +258,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
  * \brief Open the write file pointer of cache
  * This function prepares calls for gf_cache_write_to_cache
  * \param entry The entry to use
+ * \param sess The download session 
  * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
@@ -505,8 +508,12 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
 
 /**
  * Creates a new cache entry
+ * \param dm The download manager to create this entry
  * \param cache_directory The path to the directory containing cache files
  * \param url The full URL
+ * \param start_range the start of the byte range request
+ * \param end_range the end of the byte range request
+ * \param mem_storage Boolean indicating if the cache data should be stored in memory
  * \return The DownloadedCacheEntry
  */
 DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range, Bool mem_storage);
@@ -2027,7 +2034,7 @@ static GFINLINE char *http_is_header(char *line, char *header_name)
 /*!
  * Sends the HTTP headers
  * \param sess The GF_DownloadSession
- * \param the buffer containing the request
+ * \param sHTTP buffer containing the request
  * \return GF_OK if everything went fine, the error otherwise
  */
 static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
