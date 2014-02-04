@@ -1139,25 +1139,13 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		switch (tci->sel_enc_type) {
 			case GF_CRYPT_SELENC_RAP:
 				if (!samp->IsRAP && !all_rap) {
-					GF_BitStream *sai_bs;
-					bin128 tmp;
-					memset(tmp, 0, sizeof(bin128) );
-
-					sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-					gf_bs_write_data(sai_bs, tmp, 16);
-					gf_bs_write_u16(sai_bs, 0);
-					gf_bs_get_content(sai_bs, &buf, &len);
-					gf_bs_del(sai_bs);
-					sai_bs = NULL;
-
-					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
+					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
 					if (e) 
 						goto exit;
-					gf_free(buf);
 					buf = NULL;
 
 					//already done: memset(tmp, 0, 16);
-					e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, tmp);
+					e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL);
 					if (e) goto exit;
 
 					gf_isom_sample_del(&samp);
@@ -1176,7 +1164,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 					gf_bs_del(sai_bs);
 					sai_bs = NULL;
 
-					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
+					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 16, buf, len);
 					if (e) goto exit;
 					gf_free(buf);
 					buf = NULL;
@@ -1199,7 +1187,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			memset(IV, 0, sizeof(char)*16);
 			if (tci->IV_size == 8) {
 				memcpy(IV, tci->first_IV, sizeof(char)*8);
-				memset(IV+8, '0', sizeof(char)*8);
+				memset(IV+8, 0, sizeof(char)*8);
 			} 
 			else if (tci->IV_size == 16) {
 				memcpy(IV, tci->first_IV, sizeof(char)*16);
@@ -1233,7 +1221,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		}
 
 		/*add this sample to sample encryption group*/
-		e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 1, tci->IV_size,tci->KIDs[idx]);
+		e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 1, tci->IV_size, tci->KIDs[idx]);
 		if (e) goto exit;
 
 		if (tci->enc_type == 2)
@@ -1245,7 +1233,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_isom_sample_del(&samp);
 		samp = NULL;
 
-		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, buf, len);
+		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, buf, len);
 		if (e) 
 			goto exit;
 		gf_free(buf);

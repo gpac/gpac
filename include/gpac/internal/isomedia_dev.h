@@ -2255,6 +2255,7 @@ typedef struct __piff_sample_enc_box
 	u32 flags;		
 
 	GF_List *samp_aux_info;
+	u64 bs_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*pointer to container traf*/
@@ -2280,6 +2281,7 @@ typedef struct __sample_encryption_box
 	u32 flags;		
 
 	GF_List *samp_aux_info;
+	u64 bs_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*pointer to container traf*/
@@ -2294,6 +2296,10 @@ typedef struct __sample_encryption_box
 GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
+void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
+
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
 
 typedef struct 
 {

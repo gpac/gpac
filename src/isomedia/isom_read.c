@@ -3365,62 +3365,111 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
 {
-	GF_TrackBox *trak;
+	GF_SampleGroupBox *sg;
+	u32 j, group_desc_index;
+	GF_SampleGroupDescriptionBox *sgdesc;
 	u32 i, count;
+	u32 descIndex, chunkNum;
+	u64 offset;
+	u8 edit;
+	u32 first_sample_in_entry, last_sample_in_entry;
+	GF_CENCSampleEncryptionGroupEntry *entry;
 
-	gf_isom_cenc_get_default_info(movie, track, 1, IsEncrypted, IV_size, KID);
+	if (IsEncrypted) *IsEncrypted = 0;
+	if (IV_size) *IV_size = 0;
+	if (KID) memset(*KID, 0, 16);
 
-	trak = gf_isom_get_track_from_file(movie, track);
+	stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, &edit);
+	gf_isom_cenc_get_default_info_ex(trak, descIndex, IsEncrypted, IV_size, KID);
 
-	if (!trak->Media->information->sampleTable->sampleGroups) return GF_OK;
 
-	count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
-	for (i=0; i<count; i++) {
-		GF_SampleGroupBox *sg;
-		u32 j, group_desc_index;
-		GF_SampleGroupDescriptionBox *sgdesc;
-		u32 first_sample_in_entry, last_sample_in_entry;
-		first_sample_in_entry = 1;
-		group_desc_index = 0;
-		sg = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
-		for (j=0; j<sg->entry_count; j++) {
-			last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
-			if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
-				first_sample_in_entry = last_sample_in_entry+1;
-				continue;
-			}
-			/*we found our sample*/
-			group_desc_index = sg->sample_entries[j].group_description_index;
-			break;
+	group_desc_index = 0;
+	if (trak->Media->information->sampleTable->sampleGroups) {
+		count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
+		for (i=0; i<count; i++) {
+			first_sample_in_entry = 1;
+			sg = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
+			if (sg->grouping_type ==  GF_4CC( 's', 'e', 'i', 'g' )) 
+				break;
+
+			sg = NULL;
 		}
-		/*no sampleGroup info associated*/
-		if (!group_desc_index) continue;
+		if (sg) {
+			for (j=0; j<sg->entry_count; j++) {
+				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+				if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
+					first_sample_in_entry = last_sample_in_entry+1;
+					continue;
+				}
+				/*we found our sample*/
+				group_desc_index = sg->sample_entries[j].group_description_index;
+				break;
+			}
+		}
+	}
+	if (!group_desc_index && traf && traf->sampleGroups) {
+		count = gf_list_count(traf->sampleGroups);
+		for (i=0; i<count; i++) {
+			first_sample_in_entry = 1;
+			group_desc_index = 0;
+			sg = gf_list_get(traf->sampleGroups, i);
+			if (sg->grouping_type ==  GF_4CC( 's', 'e', 'i', 'g' )) 
+				break;
+		} 
+		if (sg) {
+			for (j=0; j<sg->entry_count; j++) {
+				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+				if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
+					first_sample_in_entry = last_sample_in_entry+1;
+					continue;
+				}
+				/*we found our sample*/
+				group_desc_index = sg->sample_entries[j].group_description_index;
+				break;
+			}
+		}
+	}
+	/*no sampleGroup info associated*/
+	if (!group_desc_index) return GF_OK;
 
-		sgdesc = NULL;
+	sgdesc = NULL;
+
+	if (group_desc_index<=0x10000) {
 		for (j=0; j<gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription); j++) {
 			sgdesc = gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, j);
 			if (sgdesc->grouping_type==sg->grouping_type) break;
 			sgdesc = NULL;
 		}
-		/*no sampleGroup description found for this group (invalid file)*/
-		if (!sgdesc) continue;
-
-		switch (sgdesc->grouping_type) {
-		case GF_4CC( 's', 'e', 'i', 'g' ):
-			if (IsEncrypted || IV_size || KID) {
-				GF_CENCSampleEncryptionGroupEntry *entry = (GF_CENCSampleEncryptionGroupEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
-				if (IsEncrypted) *IsEncrypted = entry->IsEncrypted;
-				if (IV_size) *IV_size = entry->IV_size;
-				if (KID) memmove(*KID, entry->KID, 16);
-				break;
-			}
+	} else if (traf) {
+		group_desc_index -= 0x10000;
+		for (j=0; j<gf_list_count(traf->sampleGroupsDescription); j++) {
+			sgdesc = gf_list_get(traf->sampleGroupsDescription, j);
+			if (sgdesc->grouping_type==sg->grouping_type) break;
+			sgdesc = NULL;
 		}
 	}
-	return GF_OK;;
+	/*no sampleGroup description found for this group (invalid file)*/
+	if (!sgdesc) return GF_ISOM_INVALID_FILE;
+
+	entry = (GF_CENCSampleEncryptionGroupEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
+	if (!entry) return GF_ISOM_INVALID_FILE;
+
+	if (IsEncrypted) *IsEncrypted = entry->IsEncrypted;
+	if (IV_size) *IV_size = entry->IV_size;
+	if (KID) memmove(*KID, entry->KID, 16);
+
+	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, track);
+	return gf_isom_get_sample_cenc_info_ex(trak, NULL, sample_number, IsEncrypted, IV_size, KID);
+}
 
 GF_EXPORT
 Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info)

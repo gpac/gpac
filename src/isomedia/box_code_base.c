@@ -5970,10 +5970,10 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 			return gf_isom_box_add_default(s, a);
 		}
 	case GF_ISOM_BOX_TYPE_SENC:
-		if (ptr->sample_encryption) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->sample_encryption = (GF_SampleEncryptionBox *)a;
-			ptr->sample_encryption->traf = ptr;
-			return GF_OK;
+		if (ptr->sample_encryption) ERROR_ON_DUPLICATED_BOX(a, ptr) 
+		ptr->sample_encryption = (GF_SampleEncryptionBox *)a;
+		ptr->sample_encryption->traf = ptr;
+		return GF_OK;
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -6333,7 +6333,17 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_read_box_list(s, bs, trak_AddBox);
 	if (e) return e;
 	gf_isom_check_sample_desc(ptr);
-	return GF_OK;
+
+	//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
+	if (ptr->Media && ptr->Media->information && ptr->Media->information->sampleTable /*&& !ptr->Media->information->sampleTable->sai_sizes*/) {
+		if (ptr->Media->information->sampleTable->senc) {
+			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *)ptr->Media->information->sampleTable->senc);
+		}
+		else if (ptr->Media->information->sampleTable->piff_psec) {
+			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *) ptr->Media->information->sampleTable->piff_psec);
+		}
+	}
+	return e;
 }
 
 GF_Box *trak_New()

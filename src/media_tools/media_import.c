@@ -2102,22 +2102,28 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, &sai, &container_type);
 			if (e)
 				goto exit;
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_data(bs, (const char *)sai->IV, 16);
-			gf_bs_write_u16(bs, sai->subsample_count);
-			for (j = 0; j < sai->subsample_count; j++) {
-				gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
-				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
-			}
-			gf_isom_cenc_samp_aux_info_del(sai);
-			gf_bs_get_content(bs, &buffer, &len);
-			gf_bs_del(bs);
-			e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, buffer, len);
-			gf_free(buffer);
-			if (e) goto exit;
 
 			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID);
 			if (e) goto exit;
+
+			if (Is_Encrypted) {
+				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				gf_bs_write_data(bs, (const char *)sai->IV, IV_size);
+				gf_bs_write_u16(bs, sai->subsample_count);
+				for (j = 0; j < sai->subsample_count; j++) {
+					gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
+					gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+				}
+				gf_isom_cenc_samp_aux_info_del(sai);
+				gf_bs_get_content(bs, &buffer, &len);
+				gf_bs_del(bs);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len);
+				gf_free(buffer);
+			} else {
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0);
+			}
+			if (e) goto exit;
+
 			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID);
 			if (e) goto exit;
 		}
