@@ -4344,10 +4344,10 @@ GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_number, 
 		return GF_OK;
 	}
 	/*we are adding a sample with no desc, add entry at the end*/
-	if (!sampleGroupDescriptionIndex) {
+	if (!sampleGroupDescriptionIndex || (sample_number - 1 - last_sample_in_entry==0) ) {
 		sgroup->sample_entries = gf_realloc(sgroup->sample_entries, sizeof(GF_SampleGroupEntry) * (sgroup->entry_count + 1) );
 		sgroup->sample_entries[sgroup->entry_count].sample_count = 1;
-		sgroup->sample_entries[sgroup->entry_count].group_description_index = 0;
+		sgroup->sample_entries[sgroup->entry_count].group_description_index = sampleGroupDescriptionIndex;
 		sgroup->entry_count++;
 		return GF_OK;
 	}
@@ -4500,10 +4500,12 @@ GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	char seig[20];
 	if ((IV_size!=0) && (IV_size!=8) && (IV_size!=16)) return GF_BAD_PARAM;
 
+	memset(seig, 0, sizeof(char)*20);
 	seig[0] = seig[1] = 0;
 	seig[2] = isEncrypted ? 1 : 0;
 	seig[3] = IV_size;
-	memcpy(seig + 4, KeyID, sizeof(bin128));
+	if (KeyID && IV_size)
+		memcpy(seig + 4, KeyID, sizeof(bin128));
 
 	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 's', 'e', 'i', 'g' ), seig, sg_encryption_create_entry, sg_encryption_compare_entry);
 }

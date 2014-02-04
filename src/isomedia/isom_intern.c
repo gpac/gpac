@@ -307,6 +307,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 								traf->trex = NULL;
 							}
 						}
+						//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
+						if (traf->trex && traf->trex->track && (traf->piff_sample_encryption || traf->sample_encryption)) {
+							GF_TrackBox *trak = GetTrackbyID(mov->moov, traf->tfhd->trackID);
+							e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->piff_sample_encryption ? (GF_SampleEncryptionBox *) traf->piff_sample_encryption : traf->sample_encryption);
+						}
 					}
 				}
 			} else if (mov->openMode==GF_ISOM_OPEN_CAT_FRAGMENTS) {
