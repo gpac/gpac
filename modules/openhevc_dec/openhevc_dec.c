@@ -39,7 +39,7 @@
 typedef struct
 {
 	u16 ES_ID;
-	u32 width, stride, height, out_size, pixel_ar, layer, nb_threads;
+	u32 width, stride, height, out_size, pixel_ar, layer, nb_threads, luma_bpp, chroma_bpp;
 
 	Bool is_init;
 	Bool had_pic;
@@ -56,12 +56,14 @@ typedef struct
 #endif
 } HEVCDec;
 
+
+
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
     u32 i, j;
     GF_HEVCConfig *cfg = NULL;
 	ctx->ES_ID = esd->ESID;
-	ctx->width = ctx->height = ctx->out_size = 0;
+	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = 0;
 	
 #ifdef OPEN_SHVC
     ctx->nb_layers = 1;
@@ -86,6 +88,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 					idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
 					ctx->width = MAX(hevc.sps[idx].width, ctx->width);
 					ctx->height = MAX(hevc.sps[idx].height, ctx->height);
+					ctx->luma_bpp = MAX(hevc.sps[idx].bit_depth_luma, ctx->luma_bpp);
+					ctx->chroma_bpp = MAX(hevc.sps[idx].bit_depth_chroma, ctx->chroma_bpp);
 
 					if (hdr & 0x1f8) {
 #ifdef OPEN_SHVC
@@ -117,7 +121,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 #endif
     libOpenHevcStartDecoder(ctx->openHevcHandle);
 
-	ctx->stride = ctx->width;
+	
+	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 	return GF_OK;
 }
@@ -203,7 +208,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->out_size;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = GF_PIXEL_YV12;
+		capability->cap.valueInt = (ctx->luma_bpp==8) ? GF_PIXEL_YV12 : GF_PIXEL_YV12_10;
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = 1;
@@ -266,6 +271,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	a_w      = openHevcFrame.frameInfo.nWidth;
     a_h      = openHevcFrame.frameInfo.nHeight;
     a_stride = openHevcFrame.frameInfo.nYPitch;
+	if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) a_stride *= 2;
 
     if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)) {
 		ctx->width = a_w;

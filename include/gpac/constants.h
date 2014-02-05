@@ -226,8 +226,10 @@ typedef enum
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
 
 	/*!YV12 + Depth plane*/
-	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D')
+	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D'),
 
+	/*!YUV planar format in 10 bits mode, all components are stored as shorts*/
+	GF_PIXEL_YV12_10		=	GF_4CC('P','0','1','0')
 } GF_PixelFormat;
 
 

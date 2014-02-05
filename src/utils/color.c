@@ -109,6 +109,62 @@ static void gf_yuv_load_lines_planar(unsigned char *dst, s32 dststride, unsigned
 	}
 }
 
+static void gf_yuv_10_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *_y_src, unsigned char *_u_src, unsigned char *_v_src, s32 y_stride, s32 uv_stride, s32 width)
+{
+	u32 hw, x;
+	unsigned char *dst2 = (unsigned char *) dst + dststride;
+	unsigned short *y_src2 = (unsigned short *) (_y_src + y_stride);
+	unsigned short *y_src = (unsigned short *)_y_src;
+	unsigned short *u_src = (unsigned short *)_u_src;
+	unsigned short *v_src = (unsigned short *)_v_src;
+
+
+	hw = width / 2;
+	for (x = 0; x < hw; x++) {
+		s32 u, v;
+		s32 b_u, g_uv, r_v, rgb_y;
+
+		u = u_src[x] >> 2;
+		v = v_src[x] >> 2;
+
+		b_u = B_U[u];
+		g_uv = G_U[u] + G_V[v];
+		r_v = R_V[v];
+
+		rgb_y = RGB_Y[*y_src >> 2];
+		dst[0] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
+		dst[1] = col_clip( (rgb_y - g_uv) >> SCALEBITS_OUT);
+		dst[2] = col_clip( (rgb_y + b_u) >> SCALEBITS_OUT);
+		dst[3] = 0xFF;
+		y_src++;
+
+		rgb_y = RGB_Y[*y_src >> 2];
+		dst[4] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
+		dst[5] = col_clip( (rgb_y - g_uv) >> SCALEBITS_OUT);
+		dst[6] = col_clip( (rgb_y + b_u) >> SCALEBITS_OUT);
+		dst[7] = 0xFF;
+		y_src++;
+
+		rgb_y = RGB_Y[*y_src2 >> 2];
+		dst2[0] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
+		dst2[1] = col_clip( (rgb_y - g_uv) >> SCALEBITS_OUT);
+		dst2[2] = col_clip( (rgb_y + b_u) >> SCALEBITS_OUT);
+		dst2[3] = 0xFF;
+		y_src2++;
+
+		rgb_y = RGB_Y[*y_src2 >> 2];
+		dst2[4] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
+		dst2[5] = col_clip( (rgb_y - g_uv) >> SCALEBITS_OUT);
+		dst2[6] = col_clip( (rgb_y + b_u) >> SCALEBITS_OUT);
+		dst2[7] = 0xFF;
+		y_src2++;
+
+		dst += 8;
+		dst2 += 8;
+	}
+}
+
+
 static void gf_yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 width)
 {
 	u32 hw, x;
@@ -770,6 +826,21 @@ static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	gf_yuv_load_lines_planar((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width);
 }
 
+static void load_line_yv12_10(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV)
+{
+	u8 *pY;
+	pY = (u8 *)src_bits;
+	if (!pU) {
+		pU = (u8 *)src_bits + y_pitch*height;
+		pV = (u8 *)src_bits + 5*y_pitch*height/4;
+	}
+
+	pY += x_offset + y_offset*y_pitch;
+	pU += x_offset/2 + y_offset*y_pitch/4;
+	pV += x_offset/2 + y_offset*y_pitch/4;
+	gf_yuv_10_load_lines_planar((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width);
+}
+
 static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, u8 *pA)
 {
 	u8 *pY;
@@ -917,6 +988,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		yuv2rgb_init();
 		yuv_planar_type = 1;
 		break;
+	case GF_PIXEL_YV12_10:
+		yuv2rgb_init();
+		yuv_planar_type = 3;
+		break;
 	case GF_PIXEL_NV21:
 		load_line = load_line_YUV420SP;
 		break;
@@ -1042,6 +1117,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						if (flip) the_row = src->height-2 - the_row;
 						if (yuv_planar_type==1) {
 							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr);
+						} else if (yuv_planar_type==3) {
+							load_line_yv12_10(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr);
 						} else {
 							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr, src->a_ptr);
 						}
@@ -1076,6 +1153,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					if (flip) the_row = src->height-2 - the_row;
 					if (yuv_planar_type==1) {
 						load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr);
+					} else if (yuv_planar_type==3) {
+						load_line_yv12_10(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr);
 					} else {
 						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, src->u_ptr, src->v_ptr, src->a_ptr);
 					}

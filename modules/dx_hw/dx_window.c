@@ -831,7 +831,6 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	ctx->curs_hand = LoadCursor(hInst, MAKEINTRESOURCE(IDC_HAND_PTR));
 	ctx->curs_collide = LoadCursor(hInst, MAKEINTRESOURCE(IDC_COLLIDE));
 	ctx->cursor_type = GF_CURSOR_NORMAL;
-
 	return 1;
 }
 

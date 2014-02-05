@@ -336,6 +336,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		break;
 #endif
 	case GF_PIXEL_YV12:
+	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_OGL_ES 
         if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
@@ -413,9 +414,12 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
     
 	if (use_yuv_shaders) {
-		txh->tx_io->gl_format = GL_LUMINANCE;
+		txh->tx_io->gl_format = GL_RED;
 		txh->tx_io->nb_comp = 1;
 		txh->tx_io->yuv_shader = 1;
+		if (txh->pixelformat==GF_PIXEL_YV12_10) {
+			txh->tx_io->gl_dtype = GL_UNSIGNED_SHORT;
+		}
 	}
 
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
@@ -461,7 +465,13 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		}
 #endif
 
-	    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		if (txh->tx_io->yuv_shader && (txh->pixelformat==GF_PIXEL_YV12_10)) {
+		    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+			//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
+			glPixelTransferi(GL_RED_SCALE, 64);
+		} else {
+		    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		}
 		glDisable(txh->tx_io->gl_type);
 	}
 	return 1;
@@ -568,6 +578,7 @@ assert(txh->data );
 		txh->tx_io->flags |= TX_IS_FLIPPED;
 		return 1;
 	case GF_PIXEL_YV12:
+	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_I420:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
@@ -606,12 +617,12 @@ assert(txh->data );
 	}
 	out_stride = bpp * ((txh->tx_io->flags & TX_EMULE_POW2) ? txh->tx_io->conv_w : txh->width);
 
+	memset(&src, 0, sizeof(GF_VideoSurface));
 	memset(&dst, 0, sizeof(GF_VideoSurface));
 	dst.width = src.width = txh->width;
 	dst.height = src.height = txh->height;
 	dst.is_hardware_memory = src.is_hardware_memory = 0;
 
-	memset(&src, 0, sizeof(GF_VideoSurface));
 	src.pitch_x = 0;
 	src.pitch_y = txh->stride;
 	src.pixel_format = txh->pixelformat;
@@ -624,6 +635,7 @@ assert(txh->data );
 	switch (txh->pixelformat) {
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YV12:
+	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_BGR_24:
@@ -684,7 +696,13 @@ assert(txh->data );
 #ifndef GPAC_DISABLE_3D
 static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h)
 {
-    Bool needs_stride = (stride!=w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
+    Bool needs_stride;
+	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
+		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
+	} else {
+		needs_stride = (stride!=w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
+	}
+
 #if !defined(GPAC_USE_OGL_ES)
     if (needs_stride)
         glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
