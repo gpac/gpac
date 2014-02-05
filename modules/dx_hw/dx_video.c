@@ -42,10 +42,12 @@
 
 #ifndef GPAC_DISABLE_3D
 
-#define WGL_RED_BITS_ARB                    0x2015
-#define WGL_GREEN_BITS_ARB                  0x2017
-#define WGL_BLUE_BITS_ARB                   0x2019
-
+#define WGL_DRAW_TO_WINDOW_ARB   0x2001
+#define WGL_PIXEL_TYPE_ARB   0x2013
+#define WGL_RED_BITS_ARB                0x2015
+#define WGL_GREEN_BITS_ARB              0x2017
+#define WGL_BLUE_BITS_ARB               0x2019
+#define WGL_ALPHA_BITS_ARB				0x201B
 #define WGL_TEXTURE_FORMAT_ARB         0x2072
 #define WGL_TEXTURE_TARGET_ARB         0x2073
 #define WGL_TEXTURE_RGB_ARB            0x2075
@@ -54,6 +56,7 @@
 #define WGL_NO_TEXTURE_ARB             0x2077
 #define WGL_TEXTURE_2D_ARB             0x207A
 #define WGL_SUPPORT_OPENGL_ARB         0x2010
+#define WGL_DOUBLE_BUFFER_ARB          0x2011
 #define WGL_DRAW_TO_PBUFFER_ARB        0x202D
 #define WGL_BIND_TO_TEXTURE_RGBA_ARB   0x2071
 #define WGL_COLOR_BITS_ARB             0x2014
@@ -62,9 +65,14 @@
 #define WGL_ACCELERATION_ARB           0x2003
 #define WGL_GENERIC_ACCELERATION_ARB	0x2026
 #define WGL_FULL_ACCELERATION_ARB      0x2027
+#define WGL_TYPE_RGBA_ARB   0x202B
 
 typedef Bool (APIENTRY *CHOOSEPFFORMATARB)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
 static CHOOSEPFFORMATARB wglChoosePixelFormatARB = NULL;
+
+typedef Bool (APIENTRY *GETPIXELFORMATATTRIBIV)(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int* piAttributes, int *piValues);
+static GETPIXELFORMATATTRIBIV wglGetPixelFormatAttribivARB = NULL;
+
 
 typedef void *(APIENTRY *CREATEPBUFFERARB)(HDC hDC, int iPixelFormat, int iWidth, int iHeight, const int *piAttribList);
 static CREATEPBUFFERARB wglCreatePbufferARB = NULL;
@@ -86,12 +94,12 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
 
 #ifndef _WIN32_WCE
+	wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
 
 	wglCreatePbufferARB = (CREATEPBUFFERARB) wglGetProcAddress("wglCreatePbufferARB");
 	if (opt && strcmp(opt, "PBuffer")) wglCreatePbufferARB = NULL;
 
 	if (wglCreatePbufferARB) {
-		wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
 		wglDestroyPbufferARB = (DESTROYBUFFERARB) wglGetProcAddress("wglDestroyPbufferARB");
 		wglGetPbufferDCARB = (GETPBUFFERDCARB ) wglGetProcAddress("wglGetPbufferDCARB");
 		wglReleasePbufferDCARB = (RELEASEPBUFFERDCARB ) wglGetProcAddress("wglReleasePbufferDCARB");
@@ -104,13 +112,7 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 #endif
 	{
 		u32 gl_type = 1;
-		HINSTANCE hInst;
 
-#ifndef _WIN32_WCE
-		hInst = GetModuleHandle("gm_dx_hw.dll");
-#else
-		hInst = GetModuleHandle(_T("gm_dx_hw.dll"));
-#endif
 		opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
 		if (opt) {
 			if (!strcmp(opt, "Window")) gl_type = 1;
@@ -122,9 +124,9 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 
 		if (gl_type) {
 #ifdef _WIN32_WCE
-			dd->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+			dd->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, GetModuleHandle(_T("gm_dx_hw.dll")), NULL);
 #else
-			dd->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+			dd->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, GetModuleHandle("gm_dx_hw.dll"), NULL);
 #endif
 			if (!dd->gl_hwnd)
 				return;
@@ -287,45 +289,156 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 #elif !defined(_WIN32_WCE)
     PIXELFORMATDESCRIPTOR pfd; 
     s32 pixelformat;
+	HWND highbpp_hwnd = NULL;
+	HWND target_hwnd = NULL;
 	int bits_depth = 24;
 	u32 i;
+	Bool use_double_buffer;
 
 	/*already setup*/
+	target_hwnd = (dd->gl_hwnd && (dd->output_3d_type==2)) ? dd->gl_hwnd : dd->cur_hwnd;
+	if ((dd->bound_hwnd == target_hwnd) && dd->gl_HRC) 
+		goto exit;
+
+	dd->bound_hwnd = target_hwnd;
+
+	/*cleanup*/
 	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? 0 : 1);
 
-	dd->bound_hwnd = (dd->gl_hwnd && (dd->output_3d_type==2)) ? dd->gl_hwnd : dd->cur_hwnd;
-	dd->gl_HDC = GetDC(dd->bound_hwnd );
+	//first time we init GL: create a dummy window to select pixel format for high bpp - we must do this because 
+	//- we must get a valid GL context to query the extensions for bpp > 8 (regular choosePixelFormat does not work for them)
+	//- we must call SetPixelFormat to create the GL context 
+	//- it is not possible to call several time SetPixelFormat on the same window with different PF properties ...
+	if (!dd->mode_high_bpp) {
+		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
+		if (!sOpt) {
+			gf_modules_set_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent", "8");
+			dd->bpp = 8;
+		} else {
+			dd->bpp = atoi(sOpt);
+		}
+		if (dd->bpp > 8) {
+			highbpp_hwnd = CreateWindow("GPAC DirectDraw Output", "dummy", WS_POPUP, 0, 0, 128, 128, NULL, NULL, NULL /* GetModuleHandle("gm_dx_hw.dll")*/, NULL);
+			dd->gl_HDC = GetDC(highbpp_hwnd);
 
+			memset(&pfd, 0, sizeof(pfd));
+			pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+			pfd.nVersion = 1;
+			pfd.dwFlags = PFD_SUPPORT_OPENGL;
+			if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
+			
+			if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d- disabling GL\n", GetLastError() ));
+				return GF_IO_ERR; 
+			}
+			dd->gl_HRC = wglCreateContext(dd->gl_HDC);
+			if (!dd->gl_HRC) return GF_IO_ERR;
+
+			wglMakeCurrent(dd->gl_HDC, dd->gl_HRC);
+			wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
+			wglGetPixelFormatAttribivARB = (GETPIXELFORMATATTRIBIV) wglGetProcAddress("wglGetPixelFormatAttribivARB");
+
+			wglMakeCurrent(NULL, NULL);
+			wglDeleteContext(dd->gl_HRC);
+			dd->gl_HRC = NULL;
+			ReleaseDC(highbpp_hwnd, dd->gl_HDC);
+			DestroyWindow(highbpp_hwnd);
+
+			
+			dd->mode_high_bpp = wglChoosePixelFormatARB ? 1 : 2;
+		} else {
+			dd->mode_high_bpp = 2;
+		}
+	}
+
+	dd->gl_HDC = GetDC(dd->bound_hwnd);
 	if (!dd->gl_HDC) return GF_IO_ERR;
 
-    memset(&pfd, 0, sizeof(pfd));
-    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_SUPPORT_OPENGL;
-	if (dd->bound_hwnd != dd->fs_hwnd) pfd.dwFlags |= PFD_DRAW_TO_WINDOW;
-
+	use_double_buffer = 0;
 	if (dd->gl_double_buffer ) {
-		pfd.dwFlags |= PFD_DOUBLEBUFFER;
+		use_double_buffer = dd->gl_double_buffer;
 	} else {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseGLDoubleBuffering");
-		if (!sOpt || !strcmp(sOpt, "yes")) pfd.dwFlags |= PFD_DOUBLEBUFFER;
+		if (!sOpt || !strcmp(sOpt, "yes")) use_double_buffer = 1;
 	}
 
-    pfd.dwLayerMask = PFD_MAIN_PLANE;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 32;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
 	if (sOpt) bits_depth = atoi(sOpt);
-	pfd.cDepthBits = bits_depth;
-	/*we need alpha support for composite textures...*/
-	pfd.cAlphaBits = 8;
-    if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
-	
-    if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d- disabling GL\n", GetLastError() ));
-		return GF_IO_ERR; 
+
+	memset(&pfd, 0, sizeof(pfd));
+	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	pfd.nVersion = 1;
+
+	if (dd->mode_high_bpp == 1) {
+		int pformats[200];
+		u32 nbformats=0;
+		Bool found = GF_FALSE;
+		float fattribs[1] = { 0.0f }; 
+		
+		int hdcAttributes[] = {
+			WGL_SUPPORT_OPENGL_ARB, TRUE,
+			WGL_DRAW_TO_WINDOW_ARB, (dd->bound_hwnd != dd->fs_hwnd) ? TRUE : FALSE,
+			WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
+			WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB, 
+			WGL_RED_BITS_ARB, dd->bpp,
+			WGL_GREEN_BITS_ARB, dd->bpp,
+			WGL_BLUE_BITS_ARB, dd->bpp, 
+			WGL_ALPHA_BITS_ARB, (dd->bpp==10) ? 2 : 0, 
+			WGL_DEPTH_BITS_ARB, bits_depth,
+			WGL_DOUBLE_BUFFER_ARB, use_double_buffer ? TRUE : FALSE, 
+			0,0
+		}; 
+
+		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 200, pformats, &nbformats); 
+
+		for (i=0; i<nbformats; i++) {
+			if (SetPixelFormat(dd->gl_HDC, pformats[i], &pfd) != FALSE) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d - disabling GL\n", GetLastError() ));
+			return GF_IO_ERR; 
+		}
+
+		if (wglGetPixelFormatAttribivARB) {
+			int rb, gb, bb, att;
+			rb = gb = bb = 0;
+			att = WGL_RED_BITS_ARB;
+			wglGetPixelFormatAttribivARB(dd->gl_HDC, pformats[0], 0, 1, &att, &rb);
+			att = WGL_GREEN_BITS_ARB;
+			wglGetPixelFormatAttribivARB(dd->gl_HDC, pformats[0], 0, 1, &att, &gb);
+			att = WGL_BLUE_BITS_ARB;
+			wglGetPixelFormatAttribivARB(dd->gl_HDC, pformats[0], 0, 1, &att, &bb);
+
+			if ((rb != dd->bpp) || (gb != dd->bpp) || (bb != dd->bpp)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DX GL] Asked for %d bits per pixel but got %d red %d green %d blue\n", dd->bpp, rb, gb, bb ));
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DX GL] Setup OpenGL bpp: %d red %d green %d blue\n", rb, gb, bb ));
+			}
+		}
+
+	} else {
+		pfd.dwFlags = PFD_SUPPORT_OPENGL;
+		if (dd->bound_hwnd != dd->fs_hwnd) pfd.dwFlags |= PFD_DRAW_TO_WINDOW;
+
+		if (use_double_buffer) pfd.dwFlags |= PFD_DOUBLEBUFFER;
+		pfd.dwLayerMask = PFD_MAIN_PLANE;
+		pfd.iPixelType = PFD_TYPE_RGBA;
+		pfd.cColorBits = 32;
+		pfd.cDepthBits = bits_depth;
+		/*we need alpha support for composite textures...*/
+		pfd.cAlphaBits = 8;
+
+		if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
+
+		if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d- disabling GL\n", GetLastError() ));
+			return GF_IO_ERR; 
+		}
 	}
-	
+
 	dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 	if (!dd->gl_HRC) return GF_IO_ERR;
 
@@ -333,7 +446,6 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		dd->glext_init=1;
 		wglMakeCurrent(dd->gl_HDC, dd->gl_HRC);
 		dd_init_gl_offscreen(dr);
-		return DD_SetupOpenGL(dr, offscreen_width, offscreen_height);
 	}
 
 
@@ -345,7 +457,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			WGL_TEXTURE_TARGET_ARB,	WGL_TEXTURE_2D_ARB,
 			0
 		};
-		u32 pformats[20];
+		int pformats[20];
 		u32 nbformats=0;
 		int hdcAttributes[] = {
 			WGL_SUPPORT_OPENGL_ARB, TRUE,
@@ -353,13 +465,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			WGL_RED_BITS_ARB, 8,
 			WGL_GREEN_BITS_ARB, 8,
 			WGL_BLUE_BITS_ARB, 8, 
-
 			WGL_DEPTH_BITS_ARB, bits_depth,
-/*			WGL_BIND_TO_TEXTURE_RGBA_ARB, TRUE,
-			WGL_COLOR_BITS_ARB,24,
-			WGL_DEPTH_BITS_ARB, 0,
-			WGL_STENCIL_BITS_ARB,0,
-*/			0
+			0
 		}; 
 		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 20, pformats, &nbformats); 
 		// Create the PBuffer
@@ -386,6 +493,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 #endif
 
+exit:
 	if (dd->output_3d_type==1) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
