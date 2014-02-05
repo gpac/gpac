@@ -4347,10 +4347,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	
 
 	for (cur_period=0; cur_period<max_period; cur_period++) {
-		char szKey[GF_MAX_PATH];
 		u32 first_in_period = 0;
 		Double period_duration=0;
-		szKey[0] = 0;
 
 		for (i=0; i<nb_dash_inputs; i++) {
 			/*this file does not belongs to any adaptation set*/
