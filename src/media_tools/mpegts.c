@@ -2297,7 +2297,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 				switch (desc_tag) {
 				case GF_M2TS_AFDESC_LOCATION_DESCRIPTOR:
 				{
-					u32 timeline_id;
+					//u32 timeline_id;
 					Bool external_url, use_base_temi_url;
 					/*Bool force_reload = */gf_bs_read_int(bs, 1);
 					/*Bool is_announcement = */gf_bs_read_int(bs, 1); 
@@ -2305,7 +2305,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					external_url = gf_bs_read_int(bs, 1);
 					use_base_temi_url = gf_bs_read_int(bs, 1);
 					gf_bs_read_int(bs, 3); //reserved 
-					timeline_id = gf_bs_read_int(bs, 8); 
+					/*timeline_id = */gf_bs_read_int(bs, 8); 
 					if (!external_url) {
 						if (!use_base_temi_url) {
 							char *_url;
