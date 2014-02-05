@@ -2308,7 +2308,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					/*timeline_id = */gf_bs_read_int(bs, 8); 
 					if (!external_url) {
 						if (!use_base_temi_url) {
-							char *_url;
+							char *_url = URL;
 							u8 scheme = gf_bs_read_int(bs, 8);
 							u8 url_len = gf_bs_read_int(bs, 8);
 							switch (scheme) {

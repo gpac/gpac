@@ -3389,14 +3389,13 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *t
 	if (trak->Media->information->sampleTable->sampleGroups) {
 		count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
 		for (i=0; i<count; i++) {
-			first_sample_in_entry = 1;
 			sg = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
 			if (sg->grouping_type ==  GF_4CC( 's', 'e', 'i', 'g' )) 
 				break;
-
 			sg = NULL;
 		}
 		if (sg) {
+			first_sample_in_entry = 1;
 			for (j=0; j<sg->entry_count; j++) {
 				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
 				if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
@@ -3412,13 +3411,14 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *t
 	if (!group_desc_index && traf && traf->sampleGroups) {
 		count = gf_list_count(traf->sampleGroups);
 		for (i=0; i<count; i++) {
-			first_sample_in_entry = 1;
 			group_desc_index = 0;
 			sg = gf_list_get(traf->sampleGroups, i);
 			if (sg->grouping_type ==  GF_4CC( 's', 'e', 'i', 'g' )) 
 				break;
+			sg = NULL;
 		} 
 		if (sg) {
+			first_sample_in_entry = 1;
 			for (j=0; j<sg->entry_count; j++) {
 				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
 				if ((sample_number<first_sample_in_entry) || (sample_number>last_sample_in_entry)) {
