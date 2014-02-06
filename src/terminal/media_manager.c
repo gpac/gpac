@@ -380,8 +380,7 @@ u32 MM_Loop(void *par)
 
 		if (do_regulate) {
 			if (left==term->frame_duration) {
-//				gf_sleep(term->frame_duration/2);
-				gf_sleep(2);
+				gf_sleep(term->frame_duration/2);
 			}
 		}
 	}
@@ -417,10 +416,9 @@ u32 RunSingleDec(void *ptr)
 		if (ce->dec->PriorityBoost) continue;
 
 		if (time_left) {
-			while (time_left > ce->dec->odm->term->frame_duration) time_left -= ce->dec->odm->term->frame_duration;
-			gf_sleep(time_left);
+			gf_sleep(1);
 		} else {
-			gf_sleep(ce->dec->odm->term->frame_duration);
+			gf_sleep(ce->dec->odm->term->frame_duration/2);
 		}
 	}
 	ce->flags |= GF_MM_CE_DEAD;
