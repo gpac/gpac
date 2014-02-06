@@ -73,7 +73,8 @@ static u32 threading_flags = 0;
 static Bool no_audio = GF_FALSE;
 static Bool term_step = GF_FALSE;
 static Bool no_regulation = GF_FALSE;
-static Bool bench_mode = GF_FALSE;
+static u32 bench_mode = 0;
+static u32 bench_mode_start = 0;
 static Bool eos_seen = GF_FALSE;
 Bool is_connected = GF_FALSE;
 Bool startup_file = GF_FALSE;
@@ -301,8 +302,6 @@ void PrintHelp()
 }
 
 
-
-
 static void PrintTime(u64 time)
 {
 	u32 ms, h, m, s;
@@ -312,6 +311,8 @@ static void PrintTime(u64 time)
 	ms = (u32) (time - (h*3600 + m*60 + s) * 1000);
 	fprintf(stderr, "%02d:%02d:%02d.%03d", h, m, s, ms);
 }
+
+void PrintAVInfo(Bool final);
 
 
 static u32 rti_update_time_ms = 200;
@@ -329,15 +330,18 @@ static void UpdateRTInfo(const char *legend)
 	if (display_rti) {
 		char szMsg[1024];
 
-		if (rti.total_cpu_usage) {
-			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-					gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+		if (rti.total_cpu_usage && (bench_mode!=2) ) {
+			sprintf(szMsg, "FPS %d CPU %2d (%02d) Mem %d kB", 
+					(u32) gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
 		} else {
-			sprintf(szMsg, "FPS %02.2f - CPU %02d - Mem %d kB", 
-				gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			sprintf(szMsg, "FPS %d CPU %02d Mem %d kB", 
+				(u32) gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		}
 		
 		if (display_rti==2) {
+			if (bench_mode==2) {
+				PrintAVInfo(GF_FALSE);
+			}
 			fprintf(stderr, "%s\r", szMsg); 
 		} else {
 			GF_Event evt;
@@ -406,12 +410,12 @@ u32 get_sys_col(int idx)
 }
 #endif
 
-void switch_bench(Bool is_on)
+void switch_bench(u32 is_on)
 {
 	bench_mode = is_on;
-	display_rti = is_on ;
+	display_rti = is_on ? 2 : 0;
 	ResetCaption();
-	gf_term_set_option(term, GF_OPT_VIDEO_BENCH, bench_mode ? 1 : 0);
+	gf_term_set_option(term, GF_OPT_VIDEO_BENCH, 3 ? 1 : 0);
 }
 
 #ifndef WIN32
@@ -1203,6 +1207,16 @@ int main (int argc, char **argv)
 
 	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
+
+	if (bench_mode) {
+		auto_exit = 1;
+		gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
+		gf_cfg_set_key(user.config, "Audio", "DriverName", "Raw Audio Output");
+		gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
+		gf_cfg_set_key(user.config, "Compositor", "ForceOpenGL", "no");
+		gf_cfg_discard_changes(user.config);
+	}
+
 	fprintf(stderr, "Loading GPAC Terminal\n");	
 	i = gf_sys_clock();
 	term = gf_term_new(&user);
@@ -1210,6 +1224,7 @@ int main (int argc, char **argv)
 		fprintf(stderr, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
 		list_modules(user.modules);
 		gf_modules_del(user.modules);
+		gf_cfg_discard_changes(cfg_file);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
 		if (logfile) fclose(logfile);
@@ -1218,7 +1233,9 @@ int main (int argc, char **argv)
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
 
 	if (bench_mode) {
-		switch_bench(1);
+		display_rti = 2;
+		bench_mode=2;
+		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, 1);
 	}
 
 	if (dump_mode) {
@@ -1227,7 +1244,7 @@ int main (int argc, char **argv)
 	} else {
 		/*check video output*/
 		str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
-		if (!strcmp(str, "Raw Video Output")) fprintf(stderr, "WARNING: using raw output video (memory only) - no display used\n");
+		if (!bench_mode && !strcmp(str, "Raw Video Output")) fprintf(stderr, "WARNING: using raw output video (memory only) - no display used\n");
 		/*check audio output*/
 		str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
 		if (!str || !strcmp(str, "No Audio Output Available")) fprintf(stderr, "WARNING: no audio output available - make sure no other program is locking the sound card\n");
@@ -1325,6 +1342,8 @@ int main (int argc, char **argv)
 		sprintf(szTemp, "views://%s", views);
 		gf_term_connect(term, szTemp);
 	}
+	if (bench_mode)
+		bench_mode_start = gf_sys_clock();
 
 	while (Run) {		
 		/*we don't want getchar to block*/
@@ -1822,6 +1841,10 @@ force_input:
 		}
 	}
 
+	if (bench_mode) { 
+		PrintAVInfo(GF_TRUE);
+	}
+
 	i = gf_sys_clock();
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
@@ -1845,6 +1868,84 @@ force_input:
 	return 0;
 }
 
+static GF_ObjectManager *video_odm = NULL;
+static GF_ObjectManager *audio_odm = NULL;
+void PrintAVInfo(Bool final)
+{
+	GF_MediaInfo a_odi, v_odi;
+	Float avg_dec_time;
+	u32 tot_time=0;
+	Bool print_codecs = final;
+
+	if (!video_odm && !audio_odm) {
+		u32 count, i;
+		GF_ObjectManager *root_odm = root_odm = gf_term_get_root_object(term);
+		if (!root_odm) return;
+
+		count = gf_term_get_object_count(term, root_odm);
+		for (i=0; i<count; i++) {
+			GF_ObjectManager *odm = gf_term_get_object(term, root_odm, i);
+			if (!odm) break;
+			if (gf_term_get_object_info(term, odm, &v_odi) == GF_OK) {
+				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL)) {
+					video_odm = odm;
+				}
+				else if (!audio_odm && (v_odi.od_type == GF_STREAM_AUDIO)) {
+					audio_odm = odm;
+				}
+			}
+		}
+	}
+	if (video_odm) {
+		gf_term_get_object_info(term, video_odm, &v_odi);
+
+		avg_dec_time = 0;
+		if (v_odi.nb_dec_frames && v_odi.total_dec_time) { 
+			avg_dec_time = (Float) 1000 * v_odi.nb_dec_frames; 
+			avg_dec_time /= v_odi.total_dec_time; 
+		}
+	}
+	if (print_codecs && audio_odm) {
+		gf_term_get_object_info(term, audio_odm, &a_odi);
+	}
+
+	if (final) {
+		tot_time = gf_sys_clock() - bench_mode_start;
+		fprintf(stderr, "                                                                                     \r");
+		fprintf(stderr, "************** Bench Mode Done in %d ms ********************\n", tot_time);
+	} 
+	if (print_codecs) {
+		if (video_odm) {
+			fprintf(stderr, "%s %dx%d sar=%d:%d\n", v_odi.codec_name, v_odi.width, v_odi.height, v_odi.par ? (v_odi.par>>16)&0xFF : 1, v_odi.par ? (v_odi.par)&0xFF : 1);
+			if (final) {
+				fprintf(stderr, "%d frames FPS %.2f (ms/f %.2f avg %d max) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, ((Float)v_odi.total_dec_time)/v_odi.nb_dec_frames, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
+				if (v_odi.nb_droped) {
+					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_droped);
+				}
+				fprintf(stderr, "\n");
+			}
+		}
+		if (audio_odm) {
+			fprintf(stderr, "%s SR %d bpp %d\n", a_odi.codec_name, a_odi.sample_rate, a_odi.bits_per_sample);
+			if (final) {
+				fprintf(stderr, "%d frames (ms/f %.2f avg %d max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)a_odi.total_dec_time)/a_odi.nb_dec_frames, a_odi.max_dec_time, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
+				if (a_odi.nb_droped) {
+					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_droped);
+				}
+				fprintf(stderr, "\n");
+			} 
+		}
+		if (final) {
+			fprintf(stderr, "**********************************************************\n\n");
+			return;
+		}
+	}
+
+	if (video_odm) {
+		if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
+		fprintf(stderr, "%d frames %.2f (%dms max) - rate %d ", v_odi.nb_dec_frames, avg_dec_time, v_odi.max_dec_time, (u32) v_odi.instant_bitrate/1000);
+	}
+}
 
 void PrintWorldInfo(GF_Terminal *term)
 {

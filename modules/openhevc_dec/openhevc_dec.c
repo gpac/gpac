@@ -134,16 +134,16 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	u32 nb_threads = 1;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
-	if (gf_sys_get_rti(100, &rti, 0) ) {
+	if (gf_sys_get_rti(0, &rti, 0) ) {
 		nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
-		//checkme I have perf using too many threads
-		if (nb_threads > 6)
-			nb_threads = 6;
 	}
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads");
 	if (!sOpt) {
 		char szO[100];
+		//checkme I have perf using too many threads
+		if (nb_threads > 6)
+			nb_threads = 6;
 		sprintf(szO, "%d", nb_threads);
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads", szO);
 		ctx->nb_threads = nb_threads;

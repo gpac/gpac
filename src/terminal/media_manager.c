@@ -380,7 +380,8 @@ u32 MM_Loop(void *par)
 
 		if (do_regulate) {
 			if (left==term->frame_duration) {
-				gf_sleep(term->frame_duration);
+//				gf_sleep(term->frame_duration/2);
+				gf_sleep(1);
 			}
 		}
 	}

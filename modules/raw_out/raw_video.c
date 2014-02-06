@@ -27,6 +27,7 @@
 
 /*driver interfaces*/
 #include <gpac/modules/video_out.h>
+#include <gpac/modules/audio_out.h>
 #include <gpac/user.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
@@ -38,6 +39,9 @@ typedef struct
 	char *pixels;
 	u32 width, height;
 	u32 pixel_format, bpp;
+	Bool passthrough;
+
+	u32 sample_rate, nb_channels, chan_cfg;
 } RawContext;
 
 #define RAWCTX	RawContext *rc = (RawContext *)dr->opaque
@@ -53,9 +57,23 @@ static GF_Err raw_resize(GF_VideoOutput *dr, u32 w, u32 h)
 	return GF_OK;
 }
 
+static GF_Err RAW_BlitPassthrough(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
+{
+	return GF_OK;
+}
+
 GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
+	const char *opt;
 	RAWCTX;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "RAWVideo", "RawOutput");
+	if (opt && !strcmp(opt, "null")) {
+		rc->passthrough = 1;
+		dr->Blit = RAW_BlitPassthrough;
+		dr->hw_caps |= GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_STRETCH | GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_HAS_YUV_OVERLAY;
+	}
+
 	if (init_flags & GF_TERM_WINDOW_TRANSPARENT) {
 		rc->bpp = 4;
 		rc->pixel_format = GF_PIXEL_ARGB;
@@ -140,6 +158,94 @@ void DeleteVideoOutput(void *ifce)
 	gf_free(driv);
 }
 
+
+static GF_Err RAW_AudioSetup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
+{
+	return GF_OK;
+}
+
+static void RAW_AudioShutdown(GF_AudioOutput *dr)
+{
+}
+
+/*we assume what was asked is what we got*/
+static GF_Err RAW_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+{
+	RAWCTX;
+	rc->sample_rate = *SampleRate;
+	rc->nb_channels = *NbChannels;
+	rc->chan_cfg = channel_cfg;
+	return GF_OK;
+}
+
+static void RAW_WriteAudio(GF_AudioOutput *dr)
+{
+	char buf[4096];
+	dr->FillBuffer(dr->audio_renderer, buf, 4096);
+}
+
+static void RAW_Play(GF_AudioOutput *dr, u32 PlayType)
+{
+}
+
+static void RAW_SetVolume(GF_AudioOutput *dr, u32 Volume)
+{
+}
+
+static void RAW_SetPan(GF_AudioOutput *dr, u32 Pan)
+{
+}
+
+static GF_Err RAW_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
+{
+	return GF_OK;
+}
+
+static u32 RAW_GetAudioDelay(GF_AudioOutput *dr)
+{
+	return 0;
+}
+
+static u32 RAW_GetTotalBufferTime(GF_AudioOutput *dr)
+{
+	return 0;
+}
+
+void *NewRawAudioOutput()
+{
+	RawContext *ctx;
+	GF_AudioOutput *driv;
+	ctx = gf_malloc(sizeof(RawContext));
+	memset(ctx, 0, sizeof(RawContext));
+	driv = gf_malloc(sizeof(GF_AudioOutput));
+	memset(driv, 0, sizeof(GF_AudioOutput));
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Raw Audio Output", "gpac distribution")
+
+	driv->opaque = ctx;
+
+	driv->SelfThreaded = 0;
+	driv->Setup = RAW_AudioSetup;
+	driv->Shutdown = RAW_AudioShutdown;
+	driv->ConfigureOutput = RAW_ConfigureOutput;
+	driv->GetAudioDelay = RAW_GetAudioDelay;
+	driv->GetTotalBufferTime = RAW_GetTotalBufferTime;
+	driv->SetVolume = RAW_SetVolume;
+	driv->SetPan = RAW_SetPan;
+	driv->Play = RAW_Play;
+	driv->QueryOutputSampleRate = RAW_QueryOutputSampleRate;
+	driv->WriteAudio = RAW_WriteAudio;
+	return driv;
+}
+
+void DeleteAudioOutput(void *ifce)
+{
+	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
+	RawContext *ctx = (RawContext*)dr->opaque;
+	gf_free(ctx);
+	gf_free(dr);
+}
+
+
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 /*interface query*/
@@ -148,6 +254,7 @@ const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_VIDEO_OUTPUT_INTERFACE,
+		GF_AUDIO_OUTPUT_INTERFACE,
 		0
 	};
 	return si; 
@@ -158,6 +265,7 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewRawVideoOutput();
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewRawAudioOutput();
 	return NULL;
 }
 
@@ -168,6 +276,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	switch (ifce->InterfaceType) {
 	case GF_VIDEO_OUTPUT_INTERFACE:
 		DeleteVideoOutput((GF_VideoOutput *)ifce);
+		break;
+	case GF_AUDIO_OUTPUT_INTERFACE:
+		DeleteAudioOutput((GF_AudioOutput *)ifce);
 		break;
 	}
 }

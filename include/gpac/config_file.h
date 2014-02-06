@@ -216,6 +216,14 @@ char * gf_cfg_get_filename(GF_Config *iniFile);
  */
 GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
 
+
+/*!
+ * Do not save results to file
+ * \param iniFile The Configuration
+ * \return error code
+ */
+GF_Err gf_cfg_discard_changes(GF_Config *iniFile);
+
 /*! @} */
 
 #ifdef __cplusplus

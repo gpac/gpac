@@ -300,6 +300,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del_section) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_set_filename) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_discard_changes) )
 
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )

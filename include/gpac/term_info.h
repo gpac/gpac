@@ -102,7 +102,7 @@ typedef struct
 	u32 width, height, pixelFormat, par;
 
 	/*average birate over last second and max bitrate over one second at decoder input - expressed in bits per sec*/
-	u32 avg_bitrate, max_bitrate;
+	u32 avg_bitrate, instant_bitrate, max_bitrate;
 	u32 total_dec_time, max_dec_time, nb_dec_frames, nb_droped;
 
 	/*set if ISMACryp present on the object - will need refinement for IPMPX...

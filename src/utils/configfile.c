@@ -44,7 +44,8 @@ struct __tag_config
 {
 	char *fileName;
 	GF_List *sections;
-	Bool hasChanged;
+	Bool hasChanged, skip_changes;
+
 };
 
 
@@ -231,6 +232,7 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 	FILE *file;
 
 	if (!iniFile->hasChanged) return GF_OK;
+	if (iniFile->skip_changes) return GF_OK;
 	if (!iniFile->fileName) return GF_OK;
 
 	file = gf_f64_open(iniFile->fileName, "wt");
@@ -250,6 +252,14 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 		fprintf(file, "\n");
 	}
 	fclose(file);
+	return GF_OK;
+}
+
+GF_EXPORT 
+GF_Err gf_cfg_discard_changes(GF_Config *iniFile)
+{
+	if (!iniFile) return GF_BAD_PARAM;
+	iniFile->skip_changes = 1;
 	return GF_OK;
 }
 
