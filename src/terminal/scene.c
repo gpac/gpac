@@ -47,10 +47,10 @@ GF_EXPORT
 Double gf_scene_get_time(void *_is)
 {
 	GF_Scene *scene = (GF_Scene *)_is;
-#if 0
+#if 1
 	u32 ret;
 	GF_Clock *ck;
-	assert(is);
+	assert(scene);
 	ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
 	if (!ck) return 0.0;
 	ret = gf_clock_time(ck);
@@ -64,20 +64,6 @@ Double gf_scene_get_time(void *_is)
 #ifndef GPAC_DISABLE_VRML
 void gf_storage_save(M_Storage *storage);
 #endif
-
-void gf_scene_sample_time(GF_Scene *scene)
-{
-	u32 ret;
-	GF_Clock *ck;
-	ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
-	if (!ck) 
-		scene->simulation_time = 0;
-	else {
-		ret = gf_clock_time(ck);
-		if (scene->root_od->media_stop_time && (scene->root_od->media_stop_time<ret)) ret = (u32) scene->root_od->media_stop_time;
-		scene->simulation_time = ((Double) ret) / 1000.0;
-	}
-}
 
 static void inline_on_media_event(GF_Scene *scene, u32 type)
 {
@@ -271,8 +257,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
-	scene->simulation_time = 0;
-	
 
 	/*reset statc ressource flag since we destroyed scene objects*/
 	scene->static_media_ressources = GF_FALSE;
@@ -1326,7 +1310,6 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 
 	/*reset clock*/
 	gf_clock_reset(ck);
-	scene->simulation_time = from_time/1000.0;
 	if (!scene->is_dynamic_scene) gf_clock_set_time(ck, 0);
 
 	/*restart objects*/

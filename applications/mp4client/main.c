@@ -1173,8 +1173,8 @@ int main (int argc, char **argv)
 
 	{
 		GF_SystemRTInfo rti;
-		gf_sys_get_rti(0, &rti, 0);
-		fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
+		if (gf_sys_get_rti(0, &rti, 0))
+			fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
 	} 
 
 
@@ -1919,6 +1919,12 @@ void PrintAVInfo(Bool final)
 		tot_time = gf_sys_clock() - bench_mode_start;
 		fprintf(stderr, "                                                                                     \r");
 		fprintf(stderr, "************** Bench Mode Done in %d ms ********************\n", tot_time);
+
+		if (!video_odm) {
+			u32 nb_frames_drawn;
+			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+			fprintf(stderr, "Drawn %d frames FPS %.2f (simulation FPS %.2f)\n", nb_frames_drawn, ((Float)nb_frames_drawn*1000)/tot_time, FPS );
+		}
 	} 
 	if (print_codecs) {
 		if (video_odm) {
