@@ -152,10 +152,6 @@ struct _scene
 	*/
 	u32 graph_attached;
 
-
-	/*current simulation time of the compositor*/
-	Double simulation_time;
-
 	/*set to 1 when single time-line presentation with only static resources (ONE OD AU is detected or no media removal/adding possible)
 	This allows preventing OD/BIFS streams shutdown/startup when seeking.*/
 	Bool static_media_ressources;
@@ -250,7 +246,6 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time);
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
-void gf_scene_sample_time(GF_Scene *scene);
 
 Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
 

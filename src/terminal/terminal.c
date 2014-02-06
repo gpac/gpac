@@ -929,11 +929,7 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		return GF_OK;
 	case GF_OPT_VIDEO_BENCH:
 		term->bench_mode = value ? GF_TRUE : GF_FALSE;
-		term->compositor->no_regulation = term->bench_mode;
-
-		return GF_OK;
-		
-
+		//fallthrough
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
 	}
@@ -949,9 +945,11 @@ GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate)
 }
 
 GF_EXPORT
-Double gf_term_get_simulation_frame_rate(GF_Terminal *term)
+Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn)
 {
-	return term ? term->compositor->frame_rate : 0.0;
+	if (!term) return 0.0;
+	if (nb_frames_drawn) *nb_frames_drawn = term->compositor->frame_number;
+	return term->compositor->frame_rate;
 }
 
 
@@ -1895,34 +1893,6 @@ GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebu
 {
 	if (!term) return GF_BAD_PARAM;
 	return gf_sc_release_screen_buffer(term->compositor, framebuffer);
-}
-
-
-static void gf_term_sample_scenetime(GF_Scene *scene)
-{
-	u32 i, count;
-	Bool locked = gf_mx_try_lock(scene->root_od->term->net_mx);
-	/*we cannot grab the network mutex, therefore we are not sure if some resources are not being destroyed.
-	TODO: add a dedicated mutex for this condition instead of using the global net mutex*/
-	if (!locked) return;
-
-	gf_scene_sample_time(scene);
-	count = gf_list_count(scene->resources);
-	for (i=0; i<count; i++) {
-		GF_ObjectManager *odm = gf_list_get(scene->resources, i);
-		if (odm->subscene) gf_term_sample_scenetime(odm->subscene);
-	}
-	gf_mx_v(scene->root_od->term->net_mx);
-}
-
-GF_EXPORT
-u32 gf_term_sample_clocks(GF_Terminal *term)
-{
-	if (term->root_scene) {
-		gf_term_sample_scenetime(term->root_scene);
-		return (u32) (1000*term->root_scene->simulation_time);
-	}
-	return 0;
 }
 
 GF_EXPORT

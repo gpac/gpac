@@ -416,6 +416,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	compositor->extra_scenes = gf_list_new();
 	compositor->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
 
+	compositor->scene_sampled_clock = 0;
 	return GF_OK;
 }
 
@@ -662,7 +663,7 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
-	return gf_sc_ar_get_clock(compositor->audio_renderer);
+	return compositor->scene_sampled_clock;
 }
 
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size)
@@ -1433,6 +1434,10 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
 		break;
+	case GF_OPT_VIDEO_BENCH:
+		compositor->no_regulation = compositor->bench_mode = value ? GF_TRUE : GF_FALSE;
+		break;
+
 	case GF_OPT_YUV_HARDWARE:
 		compositor->enable_yuv_hw = value;
 		break;
@@ -1996,7 +2001,7 @@ extern u32 time_spent_in_anim;
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	GF_SceneGraph *sg;
-	u32 in_time, end_time, i, count, sim_time;
+	u32 in_time, end_time, i, count;
 	Bool frame_drawn;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
@@ -2017,7 +2022,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	gf_sc_reconfig_task(compositor);
 
-	/* if there is no scene, we draw a black screen to flush the screen */
+	/* if there is no scene*/
 	if (!compositor->scene && !gf_list_count(compositor->extra_scenes) ) {
 		gf_sc_draw_scene(compositor);
 		gf_sc_lock(compositor, 0);
@@ -2098,7 +2103,18 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		}
 	}
 
-	sim_time = gf_term_sample_clocks(compositor->term);
+	if (!compositor->bench_mode) {
+		compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
+	} else {
+		if (!compositor->scene_sampled_clock) {
+			compositor->scene_sampled_clock = 1;
+		} else if (compositor->force_bench_frame) {
+			//a system frame is pending on a future frame - we must increase our time
+			compositor->scene_sampled_clock += compositor->frame_duration;
+		}
+		compositor->force_bench_frame = 0;
+	}
+
 
 #ifndef GPAC_DISABLE_VRML
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their dirty flag set*/
@@ -2272,7 +2288,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->frame_draw_type = 0;
 
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - OTB %d\n", sim_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - OTB %d\n", compositor->scene_sampled_clock));
 			gf_sc_draw_scene(compositor);
 #ifndef GPAC_DISABLE_LOG
 			traverse_time = gf_sys_clock() - traverse_time;
@@ -2371,6 +2387,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->frame_dur[compositor->current_frame] = end_time;
 		compositor->frame_time[compositor->current_frame] = compositor->last_frame_time;
 		compositor->frame_number++;
+
+		if (compositor->bench_mode) {
+			//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
+			compositor->scene_sampled_clock += compositor->frame_duration;
+		}
 	}
 
 	gf_sc_lock(compositor, 0);
@@ -3126,4 +3147,9 @@ void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *
 	if (bpp) *bpp = 8;
 	if (channels) *channels = 0;
 	if (sample_rate) *sample_rate = 48000;
+}
+
+void gf_sc_has_system_pending_frame(GF_Compositor *compositor)
+{
+	compositor->force_bench_frame = 1;
 }

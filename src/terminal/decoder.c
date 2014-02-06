@@ -534,6 +534,7 @@ check_unit:
 			cap.cap.valueInt = 0;
 			sdec->GetCapabilities(codec->decio, &cap);
 			if (!cap.cap.valueInt) {
+				gf_odm_signal_eos(ch->odm);
 				gf_term_stop_codec(codec, 0);
 				if ((codec->type==GF_STREAM_OD) && (codec->nb_dec_frames==1)) {
 					/*this is just by safety, since seeking is only allowed when a single clock is present
@@ -558,7 +559,10 @@ check_unit:
 //	if (ch->first_au_fetched && !gf_clock_is_started(ch->clock)) goto exit;
 
 	/*check timing based on the input channel and main FPS*/
-	if (AU->DTS > obj_time /*+ codec->odm->term->half_frame_duration*/) goto exit;
+	if (AU->DTS > obj_time) {
+		gf_sc_has_system_pending_frame(ch->odm->term->compositor);
+		goto exit;
+	}
 
 	cts = AU->CTS;
 	/*in cases where no CTS was set for the BIFS (which may be interpreted as "now", although not compliant), use the object clock*/

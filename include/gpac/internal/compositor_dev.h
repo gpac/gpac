@@ -193,6 +193,7 @@ struct __tag_compositor
 
 	/*simulation frame rate*/
 	Double frame_rate;
+	Bool bench_mode, force_bench_frame;
 	Bool no_regulation;
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
@@ -201,6 +202,7 @@ struct __tag_compositor
 	u32 last_frame_time, caret_next_draw_time;
 	Bool show_caret;
 	Bool text_edit_changed;
+	u32 scene_sampled_clock;
 
 	u32 last_click_time;
 	u32 next_frame_delay;
@@ -1362,6 +1364,9 @@ GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bo
 
 Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
 void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *bpp, u32 *channels, u32 *sample_rate);
+
+//signals the compositor a system frame is pending on a future frame 
+void gf_sc_has_system_pending_frame(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }
