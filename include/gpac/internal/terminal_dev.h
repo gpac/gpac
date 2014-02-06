@@ -812,7 +812,7 @@ struct _generic_codec
 	Bool direct_vout;
 
 	/*statistics*/
-	u32 last_stat_start, cur_bit_size;
+	u32 last_stat_start, cur_bit_size, tot_bit_size, stat_start;
 	u32 avg_bit_rate, max_bit_rate;
 	u32 total_dec_time, nb_dec_frames, max_dec_time;
 	/*number of frames dropped at the presentation*/

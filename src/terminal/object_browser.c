@@ -131,7 +131,8 @@ u32 gf_term_get_current_service_id(GF_Terminal *term)
 
 static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 {
-	info->avg_bitrate = dec->avg_bit_rate;
+	info->instant_bitrate = dec->avg_bit_rate;
+	info->avg_bitrate = (u32) (dec->tot_bit_size * (1000.0 / (dec->last_unit_dts-dec->stat_start)) );
 	info->max_bitrate = dec->max_bit_rate;
 	info->nb_dec_frames = dec->nb_dec_frames;
 	info->max_dec_time = dec->max_dec_time;

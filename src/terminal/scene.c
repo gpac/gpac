@@ -41,6 +41,7 @@
 #endif
 
 #include "input_sensor.h"
+#include "media_memory.h"
 
 GF_EXPORT
 Double gf_scene_get_time(void *_is)
@@ -1524,6 +1525,8 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene)
 		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
 			if (odm->net_service != ns) {
 				if (!gf_scene_check_clocks(odm->net_service, NULL)) return 0;
+			} else if (odm->codec && odm->codec->CB && !gf_cm_is_eos(odm->codec->CB) ) {
+				return 0;
 			}
 		}
 	}

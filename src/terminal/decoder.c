@@ -303,25 +303,28 @@ Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 }
 
 
-static void codec_update_stats(GF_Codec *codec, u32 dataLength, u32 dec_time)
+static void codec_update_stats(GF_Codec *codec, u32 dataLength, u32 dec_time, u32 DTS)
 {
 	codec->total_dec_time += dec_time;
 	codec->nb_dec_frames++;
 	if (dec_time>codec->max_dec_time) codec->max_dec_time = dec_time;
 
 	if (dataLength) {
-		u32 now = gf_clock_time(codec->ck);
-		if (codec->last_stat_start + 1000 <= now) {
+		if (codec->last_stat_start + 2000 <= DTS) {
 			if (!codec->cur_bit_size) {
-				codec->last_stat_start = now;
+				codec->last_stat_start = DTS;
 			} else {
-				codec->avg_bit_rate = codec->cur_bit_size;
+				codec->avg_bit_rate = (u32) (codec->cur_bit_size * (1000.0 / (DTS-codec->last_stat_start) ) );
 				if (codec->avg_bit_rate > codec->max_bit_rate) codec->max_bit_rate = codec->avg_bit_rate;
-				codec->last_stat_start = now;
+				codec->last_stat_start = DTS;
 				codec->cur_bit_size = 0;
 			}
 		}
 		codec->cur_bit_size += 8*dataLength;
+		if (!codec->tot_bit_size) {
+			codec->stat_start = DTS;
+		}
+		codec->tot_bit_size += 8*dataLength;
 	}
 }
 
@@ -603,7 +606,7 @@ check_unit:
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in %d ms\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
 
-	codec_update_stats(codec, AU->dataLength, now);
+	codec_update_stats(codec, AU->dataLength, now, AU->DTS);
 	codec->prev_au_size = AU->dataLength;
 
 	/*destroy this AU*/
@@ -703,7 +706,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		gf_clock_resume(ch->clock);
 	}
 
-	codec_update_stats(codec, 0, now);
+	codec_update_stats(codec, 0, now, codec->odm->current_time);
 
 	gf_mx_v(scene_locked->root_od->term->compositor->mx);
 
@@ -1026,7 +1029,7 @@ scalable_retry:
 				}
 				AU->CTS += deltaTS;
 			}
-			codec_update_stats(codec, 0, now);
+			codec_update_stats(codec, 0, now, 0);
 			continue;
 
 		/*for all cases below, don't release the composition buffer until we are sure we are not
@@ -1046,7 +1049,7 @@ scalable_retry:
 					gf_cm_abort_buffering(codec->CB);
 			}
 
-			codec_update_stats(codec, AU->dataLength, now);
+			codec_update_stats(codec, AU->dataLength, now, AU->DTS);
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;

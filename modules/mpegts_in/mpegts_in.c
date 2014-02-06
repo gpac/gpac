@@ -652,7 +652,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						diff = (u32) pcr_diff - (stb - ts->stb_at_last_pcr);
 					}
 				}
-				if (diff<0) {
+				if (diff<-100) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLU", last pcr: "LLU")\n", diff, pcr, ts->pcr_last));
 				} else if (diff>0) {
 					u32 sleep_for=1;
