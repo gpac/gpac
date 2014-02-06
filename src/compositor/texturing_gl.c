@@ -414,7 +414,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
     
 	if (use_yuv_shaders) {
-		txh->tx_io->gl_format = GL_RED;
+		//we use LUMINANCE because GL_RED is not defined on android ...
+		txh->tx_io->gl_format = GL_LUMINANCE;
 		txh->tx_io->nb_comp = 1;
 		txh->tx_io->yuv_shader = 1;
 		if (txh->pixelformat==GF_PIXEL_YV12_10) {
@@ -466,9 +467,12 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
 
 		if (txh->tx_io->yuv_shader && (txh->pixelformat==GF_PIXEL_YV12_10)) {
+			//will never happen on GLES for now since we don't have GLES2 support yet ...
+#ifndef GPAC_USE_OGL_ES 
 		    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 			//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
 			glPixelTransferi(GL_RED_SCALE, 64);
+#endif
 		} else {
 		    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		}
