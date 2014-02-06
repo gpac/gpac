@@ -2415,7 +2415,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (compositor->next_frame_delay>2) {
 			u32 diff=0;
 			while (! compositor->msg_type) {
-				gf_sleep(0);
+				gf_sleep(1);
 				diff = gf_sys_clock() - in_time;
 				if (diff >= (u32) compositor->next_frame_delay)
 					break;
