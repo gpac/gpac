@@ -197,7 +197,8 @@ void PrintUsage()
 		"\t-pause:         pauses at first frame\n"
 		"\t-loop:          loops presentation\n"
 		"\t-no-regulation: disables framerate regulation\n"
-		"\t-bench:         sets playback in bench mode (as fast as possible)\n"
+		"\t-bench:         disable a/v output and bench source decoding (as fast as possible)\n"
+		"\t-vbench:        disable audio output, video sync bench source decoding/display (as fast as possible)\n"
 		"\t-fs:	           starts in fullscreen mode\n"
 		"\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC. \n"
 		"                    in this mode, URL argument of GPAC is ignored, GUI as well.\n"
@@ -1113,6 +1114,7 @@ int main (int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 		else if (!strcmp(arg, "-bench")) bench_mode = 1;
+		else if (!strcmp(arg, "-vbench")) bench_mode = 2;
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
 			i++;
@@ -1209,12 +1211,16 @@ int main (int argc, char **argv)
 
 
 	if (bench_mode) {
-		auto_exit = 1;
-		gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
-		gf_cfg_set_key(user.config, "Audio", "DriverName", "Raw Audio Output");
-		gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
-		gf_cfg_set_key(user.config, "Compositor", "ForceOpenGL", "no");
 		gf_cfg_discard_changes(user.config);
+		auto_exit = 1;
+		gf_cfg_set_key(user.config, "Audio", "DriverName", "Raw Audio Output");
+		if (bench_mode==1) {
+			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
+			gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
+			gf_cfg_set_key(user.config, "Compositor", "ForceOpenGL", "no");
+		} else {
+			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
+		}
 	}
 
 	fprintf(stderr, "Loading GPAC Terminal\n");	
@@ -1873,7 +1879,7 @@ static GF_ObjectManager *audio_odm = NULL;
 void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi;
-	Float avg_dec_time;
+	Float avg_dec_time=0;
 	u32 tot_time=0;
 	Bool print_codecs = final;
 
