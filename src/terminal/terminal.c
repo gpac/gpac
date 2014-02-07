@@ -2296,6 +2296,7 @@ void gf_term_switch_quality(GF_Terminal *term, Bool up)
 	gf_scene_switch_quality(term->root_scene, up);
 }
 
+GF_EXPORT
 GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height)
 {
 	if (!term) return GF_BAD_PARAM;

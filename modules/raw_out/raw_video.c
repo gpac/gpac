@@ -96,8 +96,8 @@ static void RAW_Shutdown(GF_VideoOutput *dr)
 
 static GF_Err RAW_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
-	RAWCTX;
 #if 0
+	RAWCTX;
 	char szName[1024];
 	sprintf(szName, "test%d.png", gf_sys_clock());
 	gf_img_png_enc_file(rc->pixels, rc->width, rc->height, rc->width*rc->bpp, rc->pixel_format, szName);
