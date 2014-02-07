@@ -558,7 +558,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Window ceated\n"));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 		}
 
 		if ( !ctx->gl_context ) {
@@ -605,7 +605,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Window ceated\n"));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 		}
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
@@ -1438,7 +1438,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				SDLVid_ResetWindow(ctx);
 			}
 			ctx->output_3d_type = 1;
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
 #ifdef GPAC_IPHONE
 //            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);

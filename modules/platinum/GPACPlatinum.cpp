@@ -1695,9 +1695,9 @@ void upnp_delete(GF_BaseInterface *ifce)
 
 
 
-//#ifdef __cplusplus
+#ifdef __cplusplus
 extern "C" {
-//#endif
+#endif
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces() 
@@ -1728,6 +1728,6 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 
 GPAC_MODULE_STATIC_DELARATION( platinum )
 
-//#ifdef __cplusplus
+#ifdef __cplusplus
 }
-//#endif
+#endif
