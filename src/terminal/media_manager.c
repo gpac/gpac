@@ -379,8 +379,12 @@ u32 MM_Loop(void *par)
 		}
 
 		if (do_regulate) {
-			if (left==term->frame_duration) {
-				gf_sleep(term->frame_duration/2);
+			if (term->bench_mode) {
+				gf_sleep(0);
+			} else {
+				if (left==term->frame_duration) {
+					gf_sleep(term->frame_duration/2);
+				}
 			}
 		}
 	}

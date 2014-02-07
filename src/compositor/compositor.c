@@ -296,6 +296,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	mesh_new_unit_bbox(compositor->unit_bbox);
 #endif
 
+	compositor->was_system_memory=1;
 	return GF_OK;
 }
 
@@ -1435,7 +1436,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		}
 		break;
 	case GF_OPT_VIDEO_BENCH:
-		compositor->no_regulation = compositor->bench_mode = value ? GF_TRUE : GF_FALSE;
+		compositor->bench_mode = value ? GF_TRUE : GF_FALSE;
 		break;
 
 	case GF_OPT_YUV_HARDWARE:
@@ -1942,6 +1943,13 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 
 		compositor_evaluate_envtests(compositor, 0);
+
+		{
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_VIDEO_SETUP;
+			gf_term_send_event(compositor->term, &evt);
+		}
 	} 
 }
 
@@ -2026,7 +2034,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (!compositor->scene && !gf_list_count(compositor->extra_scenes) ) {
 		gf_sc_draw_scene(compositor);
 		gf_sc_lock(compositor, 0);
-		if (!compositor->no_regulation) gf_sleep(compositor->frame_duration);
+		if (compositor->bench_mode && (compositor->force_bench_frame==1)) {
+			compositor->scene_sampled_clock += compositor->frame_duration;
+		}
+		else if (!compositor->no_regulation) {
+			gf_sleep(compositor->bench_mode ? 2 : compositor->frame_duration);
+		}
+		compositor->force_bench_frame=0;
 		return;
 	}
 
@@ -2106,9 +2120,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (!compositor->bench_mode) {
 		compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
 	} else {
-		if (!compositor->scene_sampled_clock) {
-			compositor->scene_sampled_clock = 1;
-		} else if (compositor->force_bench_frame) {
+		if (compositor->force_bench_frame==1) {
 			//a system frame is pending on a future frame - we must increase our time
 			compositor->scene_sampled_clock += compositor->frame_duration;
 		}
@@ -2407,8 +2419,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (frame_drawn) compositor->step_mode = 0;
 #endif
 
-	/*not threaded, let the owner decide*/
-	if (compositor->no_regulation) return;
+	/*let the owner decide*/
+	if (compositor->no_regulation) 
+		return;
+
+	/*we are in bench mode, just release for a moment the composition, oherwise we will constantly lock the compositor wich may have impact on scene decoding*/
+	if (compositor->bench_mode) {
+		gf_sleep(0);
+		return;
+	}
 
 	//we have a pending frame, return asap - we could sleep until frames matures but this give weird regulation 
 	if (compositor->next_frame_delay != (u32) -1) {
@@ -3149,7 +3168,13 @@ void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *
 	if (sample_rate) *sample_rate = 48000;
 }
 
-void gf_sc_has_system_pending_frame(GF_Compositor *compositor)
+void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending)
 {
-	compositor->force_bench_frame = 1;
+	if (frame_pending) {
+		if (!compositor->force_bench_frame)
+			compositor->force_bench_frame = 1;
+	} else {
+		//do not increase clock
+		compositor->force_bench_frame = 2;
+	}
 }

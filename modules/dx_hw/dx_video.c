@@ -530,7 +530,8 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	dd->output_3d_type = 0;
 #endif
 	GetWindowRect(dd->cur_hwnd, &rc);
-	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
+//	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
+	return GF_OK;
 }
 
 static void DD_Shutdown(GF_VideoOutput *dr)

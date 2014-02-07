@@ -166,7 +166,8 @@ void gf_modules_unload_library(ModuleInstance *inst)
 		return;
 
 #ifdef WIN32
-	FreeLibrary((HMODULE)inst->lib_handle);
+	if (strcmp(inst->name, "gm_openhevc_dec.dll"))
+		FreeLibrary((HMODULE)inst->lib_handle);
 #else
 	dlclose(inst->lib_handle);
 #endif

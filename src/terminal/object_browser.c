@@ -137,6 +137,7 @@ static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 	info->nb_dec_frames = dec->nb_dec_frames;
 	info->max_dec_time = dec->max_dec_time;
 	info->total_dec_time = dec->total_dec_time;
+	info->raw_media = dec->flags & GF_ESM_CODEC_IS_RAW_MEDIA;
 }
 
 GF_EXPORT
@@ -166,9 +167,12 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->duration = (Double) (s64)odm->subscene->duration;
 			info->duration /= 1000;
 			info->nb_droped = odm->subscene->scene_codec->nb_droped;
-		} else if (odm->subscene->is_dynamic_scene && odm->subscene->dyn_ck) {
-			info->current_time = gf_clock_time(odm->subscene->dyn_ck);
-			info->current_time /= 1000;
+		} else if (odm->subscene->is_dynamic_scene) {
+			if (odm->subscene->dyn_ck) {
+				info->current_time = gf_clock_time(odm->subscene->dyn_ck);
+				info->current_time /= 1000;
+			}
+			info->generated_scene = 1;
 		}
 	}
 
@@ -423,4 +427,5 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 	return GF_NOT_SUPPORTED;
 #endif
 }
+
 

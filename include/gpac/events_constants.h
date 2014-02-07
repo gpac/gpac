@@ -211,6 +211,7 @@ enum {
 
 		- when sent from plugin to gpac, indicates that hardware resources must be resetup before next render step (this is mainly
 		due to discard all openGL textures and cached objects)
+		- when sent from gpac to use, indicate aspect ratio has been modified and video output is ready
 	*/
 	GF_EVENT_VIDEO_SETUP,
 	/*queries the list of system colors - only exchanged between compositor and video output*/

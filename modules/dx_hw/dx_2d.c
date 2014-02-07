@@ -308,7 +308,8 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 
 	dd->ddraw_init = 1;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/
-	return CreateBackBuffer(dr, Width, Height, dd->yuv_init);
+	return GF_OK;
+	//CreateBackBuffer(dr, Width, Height, dd->yuv_init);
 }
 
 static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, LPDDRAWSURFACE surface)
@@ -834,11 +835,15 @@ rem_fmt:
 
 GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_system_memory)
 {
+	GF_Err e;
 	DDCONTEXT;
 #ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type) return GF_BAD_PARAM;
 #endif
-	if (!dd->ddraw_init) return InitDirectDraw(dr, width, height);
+	if (!dd->ddraw_init) {
+		e = InitDirectDraw(dr, width, height);
+		if (e) return e;
+	}
 	return CreateBackBuffer(dr, width, height, use_system_memory);
 }
 

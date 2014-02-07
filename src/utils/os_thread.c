@@ -558,7 +558,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 #endif /* GPAC_DISABLE_LOG */
 		assert(0);
 		return 0;
-	}
+	}>
 #endif /* NOT WIN32 */
 	mx->HolderCount = 1;
 	mx->Holder = caller;

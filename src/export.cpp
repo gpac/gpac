@@ -1312,6 +1312,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_jpeg_dec) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_png_dec) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_png_enc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_img_png_enc_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_file_dec) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_get_profile_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_version) )
@@ -1692,6 +1693,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_send_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_compositor) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_switch_quality) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_visual_output_size) )
 
 /*terminal_dev exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )

@@ -420,7 +420,8 @@ struct _tag_terminal
 	GF_Shortcut shortcuts[MAX_SHORTCUTS];
 	Fixed speed_ratio;
 
-	Bool bench_mode;
+	/*bench mode type: 0-none 1: regular 2- systems layers only: all decoders inputs are discarded*/
+	u32 bench_mode;
 };
 
 

@@ -310,6 +310,13 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 	GF_CodecCapability cap;
 	if (!mo->odm || !mo->odm->codec || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
+	if (mo->odm->term->bench_mode==2) {
+		if (sample_rate) *sample_rate = 44100;
+		if (bits_per_sample) *bits_per_sample = 16;
+		if (num_channels) *num_channels = 2;
+		if (channel_config) *channel_config = 0;
+		return GF_TRUE;
+	}
 	if (sample_rate) {
 		cap.CapCode = GF_CODEC_SAMPLERATE;
 		gf_codec_get_capability(mo->odm->codec, &cap);

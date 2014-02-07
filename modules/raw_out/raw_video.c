@@ -96,6 +96,12 @@ static void RAW_Shutdown(GF_VideoOutput *dr)
 
 static GF_Err RAW_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
+	RAWCTX;
+#if 0
+	char szName[1024];
+	sprintf(szName, "test%d.png", gf_sys_clock());
+	gf_img_png_enc_file(rc->pixels, rc->width, rc->height, rc->width*rc->bpp, rc->pixel_format, szName);
+#endif
 	return GF_OK;
 }
 
@@ -151,8 +157,6 @@ void DeleteVideoOutput(void *ifce)
 {
 	RawContext *rc;
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
-
-	RAW_Shutdown(driv);
 	rc = (RawContext *)driv->opaque;
 	gf_free(rc);
 	gf_free(driv);

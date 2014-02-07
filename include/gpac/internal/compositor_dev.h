@@ -193,7 +193,9 @@ struct __tag_compositor
 
 	/*simulation frame rate*/
 	Double frame_rate;
-	Bool bench_mode, force_bench_frame;
+	Bool bench_mode;
+	//0: no frame pending, 1: frame pending, needs clock increase, 2: frames are pending but one frame has been decoded, do not increase clock
+	u32 force_bench_frame;
 	Bool no_regulation;
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
@@ -1366,7 +1368,7 @@ Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
 void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *bpp, u32 *channels, u32 *sample_rate);
 
 //signals the compositor a system frame is pending on a future frame 
-void gf_sc_has_system_pending_frame(GF_Compositor *compositor);
+void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);
 
 #ifdef __cplusplus
 }

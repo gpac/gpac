@@ -72,6 +72,8 @@ typedef struct
 	u8 audio_pl;
 	u8 visual_pl;
 	u8 graphics_pl;
+	Bool raw_media;
+	Bool generated_scene;
 
 	/*name of module handling the service service */
 	const char *service_handler;
