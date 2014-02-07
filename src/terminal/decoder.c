@@ -110,10 +110,14 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attaching stream %d to codec %s\n", ch->esd->ESID, codec->decio->module_name));
 
-		/*lock the channel before setup in case we are using direct_decode */
-		gf_mx_p(ch->mx);
-		e = codec->decio->AttachStream(codec->decio, ch->esd);
-		gf_mx_v(ch->mx);
+		if (codec->odm->term->bench_mode==2) {
+			e = GF_OK;
+		} else {
+			/*lock the channel before setup in case we are using direct_decode */
+			gf_mx_p(ch->mx);
+			e = codec->decio->AttachStream(codec->decio, ch->esd);
+			gf_mx_v(ch->mx);
+		}
 
 		if (ch->esd->decoderConfig && ch->esd->decoderConfig->rvc_config) {
 			gf_odf_desc_del((GF_Descriptor *)ch->esd->decoderConfig->rvc_config);
@@ -295,7 +299,11 @@ Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 	assert(ch);
 	i = gf_list_find(codec->inChannels, ch);
 	if (i>=0) {
-		if (codec->decio) codec->decio->DetachStream(codec->decio, ch->esd->ESID);
+		if (codec->decio) {
+			if (codec->odm->term->bench_mode!=2) {
+				codec->decio->DetachStream(codec->decio, ch->esd->ESID);
+			}
+		}
 		gf_list_rem(codec->inChannels, (u32) i);
 		return 1;
 	}
@@ -534,8 +542,8 @@ check_unit:
 			cap.cap.valueInt = 0;
 			sdec->GetCapabilities(codec->decio, &cap);
 			if (!cap.cap.valueInt) {
-				gf_odm_signal_eos(ch->odm);
 				gf_term_stop_codec(codec, 0);
+				gf_odm_signal_eos(ch->odm);
 				if ((codec->type==GF_STREAM_OD) && (codec->nb_dec_frames==1)) {
 					/*this is just by safety, since seeking is only allowed when a single clock is present
 					in the scene*/
@@ -560,9 +568,10 @@ check_unit:
 
 	/*check timing based on the input channel and main FPS*/
 	if (AU->DTS > obj_time) {
-		gf_sc_has_system_pending_frame(ch->odm->term->compositor);
+		gf_sc_set_system_pending_frame(ch->odm->term->compositor, 1);
 		goto exit;
 	}
+	gf_sc_set_system_pending_frame(ch->odm->term->compositor, 0);
 
 	cts = AU->CTS;
 	/*in cases where no CTS was set for the BIFS (which may be interpreted as "now", although not compliant), use the object clock*/
@@ -605,7 +614,11 @@ check_unit:
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
 	now = gf_term_get_time(codec->odm->term);
-	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
+	if (codec->odm->term->bench_mode==2) {
+		e = GF_OK;
+	} else {
+		e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
+	}
 	now = gf_term_get_time(codec->odm->term) - now;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in %d ms\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
@@ -679,8 +692,9 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		/*signal seek*/
 		if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) return GF_OK;
 		gf_es_init_dummy(ch);
-
-		sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
+		if (codec->odm->term->bench_mode != 2) {
+			sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
+		}
 		gf_mx_v(scene_locked->root_od->term->compositor->mx);
 		started = gf_clock_is_started(ch->clock);
 		/*let's be nice to the scene loader (that usually involves quite some parsing), pause clock while
@@ -696,9 +710,14 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
 
 	if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) return GF_OK;
-	now = gf_term_get_time(codec->odm->term);
-	e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
-	now = gf_term_get_time(codec->odm->term) - now;
+
+	if (codec->odm->term->bench_mode == 2) {
+		e = GF_OK;
+	} else {
+		now = gf_term_get_time(codec->odm->term);
+		e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
+		now = gf_term_get_time(codec->odm->term) - now;
+	}
 	codec->last_unit_dts ++;
 	/*resume on error*/
 	if (e && (codec->last_unit_dts<2) ) {
@@ -847,14 +866,18 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 					return GF_OK;
 				assert( CU );
 				unit_size = 0;
-				e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
-				if (e==GF_OK) {
-					e = UnlockCompositionUnit(codec, CU, unit_size);
-					if (unit_size) return GF_OK;
+				if (codec->odm->term->bench_mode != 2) {
+					e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
+					if (e==GF_OK) {
+						e = UnlockCompositionUnit(codec, CU, unit_size);
+						if (unit_size) return GF_OK;
+					}
 				}
 			}
 			gf_term_stop_codec(codec, 0);
-			if (codec->CB) gf_cm_set_eos(codec->CB);
+			if (codec->CB) {
+				gf_cm_set_eos(codec->CB);
+			}
 		}
 		/*if no data, and channel not buffering, ABORT CB buffer (data timeout or EOS not detectable)*/
 		else if (ch && !ch->BufferOn && !ch->last_au_was_seek)
@@ -977,9 +1000,12 @@ scalable_retry:
 		now = gf_term_get_time(codec->odm->term);
 
 		assert( CU );
-		if (!CU->data && unit_size && !codec->CB->no_allocation)
+		if (!CU->data && unit_size && !codec->CB->no_allocation) {
 			e = GF_OUT_OF_MEM;
-		else {
+		} else if (codec->odm->term->bench_mode==2) {
+			unit_size = 0;
+			gf_cm_abort_buffering(codec->CB);
+		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		}
@@ -1224,8 +1250,9 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 {
 	cap->cap.valueInt = 0;
-	if (codec->decio) 
+	if (codec->decio) {
 		return codec->decio->GetCapabilities(codec->decio, cap);
+	}
 
 	if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
 		GF_BitStream *bs;

@@ -928,7 +928,7 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		gf_dm_set_data_rate(term->downloader, value);
 		return GF_OK;
 	case GF_OPT_VIDEO_BENCH:
-		term->bench_mode = value ? GF_TRUE : GF_FALSE;
+		term->bench_mode = value;
 		//fallthrough
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
@@ -2281,7 +2281,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	}
 	i=0;
 	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
-		if (odm->codec)
+		if (odm->codec) 
 			odm->codec->decio->SetCapabilities(odm->codec->decio, caps);
 		if (odm->net_service && (odm->net_service != root_service) )
 			odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &net_cmd);
@@ -2296,3 +2296,10 @@ void gf_term_switch_quality(GF_Terminal *term, Bool up)
 	gf_scene_switch_quality(term->root_scene, up);
 }
 
+GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height)
+{
+	if (!term) return GF_BAD_PARAM;
+	if (width) *width = term->compositor->vp_width;
+	if (height) *height = term->compositor->vp_height;
+	return GF_OK;
+}

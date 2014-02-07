@@ -1737,6 +1737,8 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	if (on_channel) {
 		if (nb_eos==nb_share_clock) {
 			on_channel->clock->has_seen_eos = 1;
+		} else {
+			nb_ck_running++;
 		}
 		if (nb_ck_running) return;
 	} else {

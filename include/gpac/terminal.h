@@ -105,6 +105,9 @@ GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate);
 /*gets simulation frame rate*/
 Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn);
 
+/*gets simulation frame rate*/
+GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height);
+
 /*process shortcuts*/
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
 

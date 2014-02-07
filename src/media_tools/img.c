@@ -653,6 +653,35 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	return GF_OK;
 }
 
+/* write a png file */
+GF_EXPORT
+GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file)
+{
+	GF_Err e;
+	FILE *png;
+	u32 dst_size = width*height*4;
+	char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
+	if (!dst) return GF_OUT_OF_MEM;
+
+	e = gf_img_png_enc(data, width, height, stride, pixel_format, dst, &dst_size);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error encoding image %s\n", gf_error_to_string(e) ));
+		goto exit;
+	} 
+
+	png = gf_f64_open(dst_file, "wb");
+	if (!png) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error opening destination file %s\n", dst_file ));
+		goto exit;
+	} 
+
+	gf_fwrite(dst, dst_size, 1, png);
+	fclose(png);
+
+exit:
+	gf_free(dst);
+	return e;
+}
 #else
 GF_EXPORT
 GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
@@ -665,6 +694,11 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	return GF_NOT_SUPPORTED;
 }
 
+GF_EXPORT
+GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file)
+{
+	return GF_NOT_SUPPORTED;
+}
 #endif	/*GPAC_HAS_PNG*/
 
 

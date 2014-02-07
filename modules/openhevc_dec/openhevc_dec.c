@@ -238,6 +238,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	switch (capability.CapCode) {
     case GF_CODEC_WAIT_RAP:
+		if (ctx->openHevcHandle)
             libOpenHevcFlush(ctx->openHevcHandle);
         return GF_OK;
 #ifdef OPEN_SHVC

@@ -653,6 +653,13 @@ void gf_cm_set_eos(GF_CompositionMemory *cb)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	cb->HasSeenEOS = 1;
+
+	//in bench mode eos cannot be signaled through flush of composition memory since it is always empty - do it here
+	if (cb->odm->term->bench_mode==2) {
+		cb->Status = CB_STOP;
+		gf_odm_signal_eos(cb->odm);
+	}
+
 	gf_term_invalidate_compositor(cb->odm->term);
 	gf_odm_lock(cb->odm, 0);
 }
