@@ -711,13 +711,13 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) return GF_OK;
 
+    now = gf_term_get_time(codec->odm->term);
 	if (codec->odm->term->bench_mode == 2) {
 		e = GF_OK;
 	} else {
-		now = gf_term_get_time(codec->odm->term);
 		e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
-		now = gf_term_get_time(codec->odm->term) - now;
 	}
+    now = gf_term_get_time(codec->odm->term) - now;
 	codec->last_unit_dts ++;
 	/*resume on error*/
 	if (e && (codec->last_unit_dts<2) ) {

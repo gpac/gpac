@@ -682,32 +682,32 @@ static SMJS_FUNC_PROP_GET( gpacevt_getProperty)
 
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
-		case 0:
-			*vp = INT_TO_JSVAL(evt->type);
-			break;
-		case 1:
+		case -1:
 #ifndef GPAC_DISABLE_SVG
 			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->key.key_code) )); 
 #endif
 			break;
-		case 2:
+		case -2:
 			*vp = INT_TO_JSVAL(evt->mouse.x); 
 			break;
-		case 3:
+		case -3:
 			*vp = INT_TO_JSVAL(evt->mouse.y); 
 			break;
-		case 4:
+		case -4:
 			if (gjs->term->compositor->hit_appear) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 			else if (gf_list_count(gjs->term->compositor->previous_sensors) ) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 			else if (gjs->term->compositor->text_selection) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 			else *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 			break;
-		case 5:
+		case -5:
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->mouse.wheel_pos)) );
 			break;
-		case 6:
+		case -6:
 			*vp = INT_TO_JSVAL( evt->mouse.button);
 			break;
+        case -7:
+            *vp = INT_TO_JSVAL(evt->type);
+            break;
 		}
 	} else if (SMJS_ID_IS_STRING(id)) {
 		char *name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
@@ -879,13 +879,13 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	GF_JSAPIParam par;
 
 	JSPropertySpec gpacEvtClassProps[] = {
-		SMJS_PROPERTY_SPEC("type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("keycode",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("mouse_x",			 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("mouse_y",			 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("picked",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("wheel",			 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("button",			 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("keycode",			 -1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("mouse_x",			 -2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("mouse_y",			 -3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("picked",			 -4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("wheel",			 -5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("button",			-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("type",			 -7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
