@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= -lgpac -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread -laxTLS
+LINKLIBS= -lgpac -laxTLS -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune
 LOCAL_LIB=../../bin/gcc -L../../extra_lib/lib/gcc
 
 #common objects
@@ -38,7 +38,6 @@ ifeq ($(CONFIG_WIN32),yes)
 endif
 
 ifeq ($(CONFIG_DARWIN), yes)
-LINKLIBS+= -lobjc
 LDFLAGS+=-framework Foundation
 endif
 

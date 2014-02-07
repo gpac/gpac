@@ -2033,11 +2033,12 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	/* if there is no scene*/
 	if (!compositor->scene && !gf_list_count(compositor->extra_scenes) ) {
 		gf_sc_draw_scene(compositor);
-		gf_sc_lock(compositor, 0);
+        //increase clock in bench mode before releasing mutex
 		if (compositor->bench_mode && (compositor->force_bench_frame==1)) {
 			compositor->scene_sampled_clock += compositor->frame_duration;
 		}
-		else if (!compositor->no_regulation) {
+		gf_sc_lock(compositor, 0);
+		if (!compositor->no_regulation) {
 			gf_sleep(compositor->bench_mode ? 2 : compositor->frame_duration);
 		}
 		compositor->force_bench_frame=0;
