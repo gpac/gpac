@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= -lgpac -laxTLS -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune
+LINKLIBS= -lgpac -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread -laxTLS
 LOCAL_LIB=../../bin/gcc -L../../extra_lib/lib/gcc
 
 #common objects
