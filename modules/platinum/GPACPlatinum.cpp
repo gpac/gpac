@@ -28,6 +28,50 @@
  *
  */
 
+//declaration of export functions is done first due to a linker bug on OSX ...
+#include <gpac/modules/term_ext.h>
+
+GF_TermExt *upnp_new();
+void upnp_delete(GF_BaseInterface *ifce);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
+    
+    GPAC_MODULE_EXPORT
+    const u32 *QueryInterfaces() 
+    {
+        static u32 si [] = {
+            GF_TERM_EXT_INTERFACE,
+            0
+        };
+        return si; 
+    }
+    
+    GPAC_MODULE_EXPORT
+    GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+    {
+        if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)upnp_new();
+        return NULL;
+    }
+    
+    GPAC_MODULE_EXPORT
+    void ShutdownInterface(GF_BaseInterface *ifce)
+    {
+        switch (ifce->InterfaceType) {
+            case GF_TERM_EXT_INTERFACE:
+                upnp_delete(ifce);
+                break;
+        }
+    }
+    
+    GPAC_MODULE_STATIC_DELARATION( platinum )
+    
+#ifdef __cplusplus
+}
+#endif
+
 
 #include "GPACPlatinum.h"
 
@@ -1693,41 +1737,3 @@ void upnp_delete(GF_BaseInterface *ifce)
 	gf_free(dr);
 }
 
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
-{
-	static u32 si [] = {
-		GF_TERM_EXT_INTERFACE,
-		0
-	};
-	return si; 
-}
-
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
-{
-	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)upnp_new();
-	return NULL;
-}
-
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
-{
-	switch (ifce->InterfaceType) {
-	case GF_TERM_EXT_INTERFACE:
-		upnp_delete(ifce);
-		break;
-	}
-}
-
-GPAC_MODULE_STATIC_DELARATION( platinum )
-
-#ifdef __cplusplus
-}
-#endif
