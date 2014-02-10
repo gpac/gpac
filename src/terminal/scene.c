@@ -1553,6 +1553,13 @@ GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i)
 	return gf_list_enum(scene->extra_scenes, i);
 }
 
+Bool gf_scene_is_dynamic_scene(GF_SceneGraph *sg)
+{
+	GF_Scene *scene = gf_sg_get_private(sg);
+	if (!scene) return 0;
+	return scene->is_dynamic_scene ? 1 : 0;
+}
+
 #define USE_TEXTURES	0
 
 void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)

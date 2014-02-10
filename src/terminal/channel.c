@@ -902,6 +902,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
 
 			}
+		} else 	if (hdr.OCRflag==2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u clock disctontinuity was signaled\n", ch->esd->ESID, gf_clock_real_time(ch->clock) ));
+			gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
+
+			//and re-init timing
+			gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
+			return;
 		} else {
 			u32 ck;
 			u32 OCR_TS;

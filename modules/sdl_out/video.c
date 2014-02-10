@@ -1495,20 +1495,24 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 }
 
 
-static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format , u32 pitch_y, unsigned char *src, u32 src_stride, u32 src_pf,
+static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format , u32 pitch_y, unsigned char *src, unsigned char *pU, unsigned char *pV, u32 src_stride, u32 src_pf,
 								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
 {
-	unsigned char *pY, *pU, *pV;
+	unsigned char *pY;
 	pY = src;
-	pU = src + src_stride * src_height;
-	pV = src + 5*src_stride * src_height/4;
 
+	if (!pU || !pV) {
+		pU = src + src_stride * src_height;
+		pV = src + 5*src_stride * src_height/4;
+	}
 
-	pY = pY + src_stride * src_wnd->y + src_wnd->x;
-	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
-	therefore force an even Y offset for U and V planes.*/
-	pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-	pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
+	if (src_wnd->y || src_wnd->x) {
+		pY = pY + src_stride * src_wnd->y + src_wnd->x;
+		/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
+		therefore force an even Y offset for U and V planes.*/
+		pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
+		pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
+	}
 
 
 	/*complete source copy*/
@@ -1548,6 +1552,32 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format , u32 pitch_y, 
 			if (i%2) {
 				pU += src_stride;
 				pV += src_stride;
+			}
+		}
+	} else if (src_pf==GF_PIXEL_YV12_10){
+		u32 i, j;
+		for (i=0; i<src_wnd->h; i++) {
+			u16 *py = (u16 *) (pY + i*src_stride);
+			for (j=0; j<src_wnd->w; j++) {
+				*pYD = (*py) >> 2;
+				pYD ++;
+				py++;
+			}
+		}
+		for (i=0; i<src_wnd->h/2; i++) {
+			u16 *pu = (u16 *) (pU + i*src_stride/2);
+			for (j=0; j<src_wnd->w/2; j++) {
+				*pUD = (*pu) >> 2;
+				pUD ++;
+				pu++;
+			}
+		}
+		for (i=0; i<src_wnd->h/2; i++) {
+			u16 *pv = (u16 *) (pV + i*src_stride/2);
+			for (j=0; j<src_wnd->w/2; j++) {
+				*pVD = (*pv) >> 2;
+				pVD ++;
+				pv++;
 			}
 		}
 
@@ -1629,7 +1659,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pY = pixels;
 		pU = pixels + h*pitch;
 		pV = pixels + 5*h*pitch/4;
-		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, video_src->u_ptr, video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
 
 		SDL_UnlockTexture(ctx->yuv_texture);
 

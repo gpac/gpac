@@ -414,7 +414,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 
 #ifndef GPAC_DISABLE_LOG
 	if (hr) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX Out] Failed blitting %s %s memory: error %08x\n", src->is_yuv ? "YUV" : "RGB", dd->systems_memory ? "systems" : "hardware", hr));
+		GF_LOG(dd->systems_memory ? GF_LOG_INFO : GF_LOG_ERROR, GF_LOG_MMIO, ("[DX Out] Failed blitting %s %s memory: error %08x\n", src->is_yuv ? "YUV" : "RGB", dd->systems_memory ? "systems" : "hardware", hr));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] %s blit %s memory %dx%d -> %dx%d\n", src->is_yuv ? "YUV" : "RGB", dd->systems_memory ? "systems" : "hardware", src_w, src_h, dst_w, dst_h));
 	}

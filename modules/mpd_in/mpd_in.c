@@ -210,6 +210,8 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 					param->url_query.current_download = 1;
 					param->url_query.has_new_data = group->has_new_data;
 					param->url_query.discontinuity_type = is_switched ? 1 : 0;
+					if (gf_dash_group_loop_detected(mpdin->dash, group_idx))
+						param->url_query.discontinuity_type = 2;
 					group->has_new_data = 0;
 					return GF_OK;
 				}
@@ -233,7 +235,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		if (e)
 			return e;
 
-        {
+		if (gf_dash_group_loop_detected(mpdin->dash, group_idx))
+			param->url_query.discontinuity_type = 2;
+
+		
+#ifndef GPAC_DISABLE_LOG		
+		{
             u32 timer2 = gf_sys_clock() - timer ;
             if (timer2 > 1000) {
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waiting for download to end took a long time : %u ms\n", timer2));
@@ -247,6 +254,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url ));
         }    
+#endif
     }
 
 
