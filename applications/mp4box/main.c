@@ -292,6 +292,8 @@ void PrintDASHUsage()
 			" \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 			"                       period appear in the MPD in the same order as specified with this option\n"
 			" \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
+			" \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
+			"                       only the xlink declared on the first rep of a period will be used\n"
 			" \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
 			"                       media with different roles belong to different adaptation sets.\n"
 			"\n"
@@ -1358,7 +1360,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		sep[0] = 0;
 		while (opts) {
 			sep = strchr(opts, ':');
+			if (sep && !strncmp(sep, "://", 3)) sep = strchr(sep+3, ':');
 			if (sep) sep[0] = 0;
+
 			if (!strnicmp(opts, "id=", 3)) {
 				u32 i;
 				strncpy(di->representationID, opts+3, 99);
@@ -1370,9 +1374,20 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
 					}
 				}
-			} else if (!strnicmp(opts, "period=", 7)) strncpy(di->periodID, opts+7, 99);
+			} else if (!strnicmp(opts, "period=", 7)) {
+				if (strlen(opts+7) > 99) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] PeriodID cannot exceed 99 characters in MP4Box, truncating ...\n"));
+				}
+				strncpy(di->periodID, opts+7, 99);
+			} 
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
+			else if (!strnicmp(opts, "xlink=", 6)) {
+				if (strlen(opts+6) > 199) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLink cannot exceed 99 characters in MP4Box, truncating ...\n"));
+				}
+				strncpy(di->xlink, opts+6, 199);
+			}
 			
 			if (!sep) break;
 			sep[0] = ':';

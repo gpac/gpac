@@ -276,6 +276,7 @@ typedef struct
 	char *file_name;
 	char representationID[100];
 	char periodID[100];
+	char xlink[100];
 	char role[100];
 	u32 bandwidth;
 } GF_DashSegmenterInput;
