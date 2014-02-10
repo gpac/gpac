@@ -1495,8 +1495,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 }
 
 
-static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format , u32 pitch_y, unsigned char *src, unsigned char *pU, unsigned char *pV, u32 src_stride, u32 src_pf,
-								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
+static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, unsigned char *src, unsigned char *pU, unsigned char *pV, u32 src_stride, u32 src_pf, u32 src_width, u32 src_height, const GF_Window *src_wnd)
 {
 	unsigned char *pY;
 	pY = src;
@@ -1659,7 +1658,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pY = pixels;
 		pU = pixels + h*pitch;
 		pV = pixels + 5*h*pitch/4;
-		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, video_src->u_ptr, video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
 
 		SDL_UnlockTexture(ctx->yuv_texture);
 
@@ -1691,7 +1690,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		SDL_LockYUVOverlay(ctx->yuv_overlay);
 
 		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YV12, ctx->yuv_overlay->pitches[0], 
-			video_src->video_buffer, video_src->pitch_y, video_src->pixel_format,
+			(unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format,
 			video_src->width, video_src->height, src_wnd);
 
 		SDL_UnlockYUVOverlay(ctx->yuv_overlay);
