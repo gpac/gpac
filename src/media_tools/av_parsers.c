@@ -3556,7 +3556,8 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 			if (sps->poc_proportional_to_timing_flag)
 				sps->num_ticks_poc_diff_one_minus1 = bs_get_ue(bs);
 			if (/*hrd_parameters_present_flag=*/gf_bs_read_int(bs, 1) ) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[hehv] HRD param parsing not implemented\n"));
+				goto exit;
+//				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[HEVC] HRD param parsing not implemented\n"));
 			}
 		}
 

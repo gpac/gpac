@@ -860,6 +860,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		compositor->has_size_info = (width && height) ? 1 : 0;
 		if (compositor->has_size_info != had_size_info) compositor->scene_width = compositor->scene_height = 0;
 
+		compositor->video_memory = gf_scene_is_dynamic_scene(scene_graph);
+
 #ifndef GPAC_DISABLE_3D
 		compositor->visual->camera.world_bbox.is_set = 0;
 #endif

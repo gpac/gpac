@@ -1180,6 +1180,8 @@ const char *gf_scene_get_service_url(GF_SceneGraph *sg);
 Bool gf_scene_is_over(GF_SceneGraph *sg);
 GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i);
 
+Bool gf_scene_is_dynamic_scene(GF_SceneGraph *sg);
+
 #ifndef GPAC_DISABLE_SVG
 
 void compositor_svg_build_gradient_texture(GF_TextureHandler *txh);

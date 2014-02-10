@@ -696,6 +696,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
         return;
     }
     gf_dm_disconnect(sess, 1);
+	gf_dm_clear_headers(sess);
 
     /*if threaded wait for thread exit*/
     if (sess->th) {

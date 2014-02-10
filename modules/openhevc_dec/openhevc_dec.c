@@ -208,7 +208,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->out_size;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = (ctx->luma_bpp==8) ? GF_PIXEL_YV12 : GF_PIXEL_YV12_10;
+		capability->cap.valueInt = (ctx->luma_bpp==10) ? GF_PIXEL_YV12_10 : GF_PIXEL_YV12;
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = 1;
@@ -262,7 +262,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLength )
 {
-	unsigned int a_w, a_h, a_stride;
+	unsigned int a_w, a_h, a_stride, bit_depth;
     OpenHevc_Frame_cpy openHevcFrame;
 	u8 *pY, *pU, *pV;
 
@@ -272,14 +272,16 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	a_w      = openHevcFrame.frameInfo.nWidth;
     a_h      = openHevcFrame.frameInfo.nHeight;
     a_stride = openHevcFrame.frameInfo.nYPitch;
+	bit_depth = openHevcFrame.frameInfo.nBitDepth;
 	if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) a_stride *= 2;
 
-    if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)) {
+	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) ){
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
 		ctx->out_size = ctx->stride * a_w * 3 / 2;
 		ctx->had_pic = GF_TRUE;
+		ctx->luma_bpp = ctx->chroma_bpp = bit_depth;
 		/*always force layer resize*/
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;

@@ -149,8 +149,10 @@ next_segment:
 
 			//we have to open the file
 
-			if (param.url_query.discontinuity_type==2)
+			if (param.url_query.discontinuity_type==2) {
 				gf_isom_reset_fragment_info(read->mov, 0);
+				read->clock_discontinuity = 1;
+			}
 
 			if (param.url_query.next_url_init_or_switch_segment) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
@@ -517,6 +519,8 @@ fetch_next:
 			ch->current_slh.decodingTimeStamp = ch->start;
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
+	ch->current_slh.OCRflag = ch->owner->clock_discontinuity ? 2 : 0;
+	ch->owner->clock_discontinuity = 0;
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
@@ -637,6 +641,13 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			return;
 		}
 	}
+	//flush request from terminal: only process if nothing is opened and we have pending segments
+	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments) {
+		read->in_data_flush = 0;
+		gf_mx_v(read->segment_mutex);
+		return;
+	}
+
 	//if this is a request from terminal to flush pending segments, do not attempt to open the current download one, only open the first available in the cache
 	if (!check_buffer_level && !in_progressive_mode) 
 		in_progressive_mode = 2;
@@ -676,7 +687,6 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		} 
 
 		if (e==GF_EOS) {
-			assert(!read->has_pending_segments);
 			for (i=0; i<count; i++) {
 				ch = (ISOMChannel *)gf_list_get(read->channels, i);
 				gf_term_on_sl_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
