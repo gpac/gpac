@@ -234,6 +234,7 @@ static void gf_html_track_init_js(GF_HTML_Track *track, JSContext *c, GF_HTML_Tr
     SMJS_SET_PRIVATE(c, track->_this, track);
 }
 
+/* Not yet used, removed for GCC warning
 static void gf_html_media_controller_init_js(GF_HTML_MediaController *mc, JSContext *c)
 {
     mc->c            = c;
@@ -249,6 +250,7 @@ static void gf_html_media_controller_init_js(GF_HTML_MediaController *mc, JSCont
     mc->seekable._this          = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, mc->_this);
     SMJS_SET_PRIVATE(c, mc->seekable._this, &mc->seekable);
 }
+*/
 
 static void gf_html_media_element_init_js(GF_HTML_MediaElement *me, JSContext *c, JSObject *node_obj)
 {

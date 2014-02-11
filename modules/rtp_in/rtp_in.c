@@ -714,6 +714,8 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			bps = 8.0f * gf_rtp_get_tcp_bytes_sent(ch->rtp_ch); bps *= 1000; bps /= time; com->net_stats.ctrl_bw_up = (u32) bps;
 		}
 		return GF_OK;
+	default:
+		break;
 	}
 	return GF_NOT_SUPPORTED;
 }

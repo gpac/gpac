@@ -1067,6 +1067,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			gf_odf_desc_del((GF_Descriptor *) dcd);
 		}
 		return GF_OK;
+	default:
+		break;
 	}
 	}
 	return GF_NOT_SUPPORTED;

@@ -396,6 +396,8 @@ GF_Err DC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->get_dsi.dsi = NULL;
 		com->get_dsi.dsi_len = 0;
 		return GF_OK;
+	default:
+		break;
 	}
 	return GF_OK;
 }

@@ -1229,9 +1229,7 @@ GF_Err gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target)
 
 GF_Err gf_mo_event_target_remove_by_index(GF_MediaObject *mo, u32 i)
 {
-	GF_DOMEventTarget *target;
     if (!mo) return GF_BAD_PARAM;
-	target = (GF_DOMEventTarget *)gf_list_get(mo->evt_targets, i);
     gf_list_rem(mo->evt_targets, i);
     return GF_OK;
 }
