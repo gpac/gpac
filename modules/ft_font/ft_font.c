@@ -557,7 +557,7 @@ typedef struct
 } ft_outliner;
 
 
-static int ft_move_to(FT_Vector *to, void *user)
+static int ft_move_to(const FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_move_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
@@ -565,7 +565,7 @@ static int ft_move_to(FT_Vector *to, void *user)
 	ftol->last_y = to->y;
 	return 0;
 }
-static int ft_line_to(FT_Vector *to, void *user)
+static int ft_line_to(const FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) {
@@ -575,14 +575,14 @@ static int ft_line_to(FT_Vector *to, void *user)
 	}
 	return 0;
 }
-static int ft_conic_to(FT_Vector * control, FT_Vector *to, void *user)
+static int ft_conic_to(const FT_Vector * control, const FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_quadratic_to(ftol->path, INT2FIX(control->x), INT2FIX(control->y), INT2FIX(to->x), INT2FIX(to->y) );
 	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) gf_path_close(ftol->path);
 	return 0;
 }
-static int ft_cubic_to(FT_Vector *c1, FT_Vector *c2, FT_Vector *to, void *user)
+static int ft_cubic_to(const FT_Vector *c1, const FT_Vector *c2, const FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_cubic_to(ftol->path, INT2FIX(c1->x), INT2FIX(c1->y), INT2FIX(c2->x), INT2FIX(c2->y), INT2FIX(to->x), INT2FIX(to->y) );
