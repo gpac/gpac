@@ -997,10 +997,10 @@ redecode:
 		pict.data[2] = outBuffer + 5 * ffd->stride * ctx->height / 4;
 		pict.linesize[0] = ffd->stride;
 		pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
-		pix_out = AV_PIX_FMT_YUV420P;
+		pix_out = PIX_FMT_YUV420P;
 		//this YUV format is handled natively in GPAC
-		if (ctx->pix_fmt==AV_PIX_FMT_YUV420P10LE) {
-			pix_out = AV_PIX_FMT_YUV420P10LE;
+		if (ctx->pix_fmt==PIX_FMT_YUV420P10LE) {
+			pix_out = PIX_FMT_YUV420P10LE;
 		}
 
 		if (!mmlevel && frame->interlaced_frame) {
