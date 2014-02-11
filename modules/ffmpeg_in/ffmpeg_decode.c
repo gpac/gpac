@@ -857,13 +857,23 @@ redecode:
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)
 		|| (ffd->direct_output && (frame->linesize[0] != ffd->stride)) 
+		|| (ffd->out_pix_fmt==GF_PIXEL_YV12 && (ctx->pix_fmt != PIX_FMT_YUV420P)) 
 		) {
 
 		ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width;
 		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
 			outsize = ctx->width * ctx->height * 3;
-		} else {
+		}
+		//this YUV format is handled natively in GPAC
+		else if (ctx->pix_fmt == PIX_FMT_YUV420P10LE) {
+			ffd->stride = 2* ctx->width;
 			outsize = ffd->stride * ctx->height * 3 / 2;
+			ffd->out_pix_fmt = GF_PIXEL_YV12_10;
+		}
+		//the rest will be YUV
+		else {
+			outsize = ffd->stride * ctx->height * 3 / 2;
+			ffd->out_pix_fmt = GF_PIXEL_YV12;
 		}
 
 		if (ffd->depth_codec) {
@@ -983,11 +993,16 @@ redecode:
 		pix_out = PIX_FMT_RGB24;
 	} else {
 		pict.data[0] = outBuffer;
-		pict.data[1] = outBuffer + ctx->width * ctx->height;
-		pict.data[2] = outBuffer + 5 * ctx->width * ctx->height / 4;
-		pict.linesize[0] = ctx->width;
-		pict.linesize[1] = pict.linesize[2] = ctx->width/2;
-		pix_out = PIX_FMT_YUV420P;
+		pict.data[1] = outBuffer + ffd->stride * ctx->height;
+		pict.data[2] = outBuffer + 5 * ffd->stride * ctx->height / 4;
+		pict.linesize[0] = ffd->stride;
+		pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
+		pix_out = AV_PIX_FMT_YUV420P;
+		//this YUV format is handled natively in GPAC
+		if (ctx->pix_fmt==AV_PIX_FMT_YUV420P10LE) {
+			pix_out = AV_PIX_FMT_YUV420P10LE;
+		}
+
 		if (!mmlevel && frame->interlaced_frame) {
 			avpicture_deinterlace((AVPicture *) frame, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 		}
