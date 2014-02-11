@@ -2588,20 +2588,20 @@ typedef enum {
 	XHR_CACHETYPE_MEMORY,
 } XHR_CacheType;
 
-typedef struct __xhr_context
+struct __xhr_context
 {
 	JSContext *c;
 	JSObject *_this;
 
 	/* callback functions */
-	JSFunction *onabort;
-	JSFunction *onerror;
-	JSFunction *onreadystatechange;
-	JSFunction *onload;
-	JSFunction *onloadstart;
-	JSFunction *onloadend;
-	JSFunction *onprogress;
-	JSFunction *ontimeout;
+	jsval onabort;
+	jsval onerror;
+	jsval onreadystatechange;
+	jsval onload;
+	jsval onloadstart;
+	jsval onloadend;
+	jsval onprogress;
+	jsval ontimeout;
 
 	XHR_ReadyState readyState;
 	Bool async;
@@ -2882,7 +2882,7 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	
 	gf_sg_lock_javascript(ctx->c, GF_TRUE);
 	if (ctx->onreadystatechange)
-		JS_CallFunction(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
+		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
 
 	gf_sg_lock_javascript(ctx->c, GF_FALSE);
 
@@ -2968,7 +2968,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_START);
 	if (ctx->onloadstart) {
 		jsval rval;
-		return JS_CallFunction(ctx->c, ctx->_this, ctx->onloadstart, 0, NULL, &rval);
+		return JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onloadstart, 0, NULL, &rval);
 	}
 	return JS_TRUE;
 }
@@ -3087,11 +3087,11 @@ static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_DONE);
 	if (ctx->onload) {
 		jsval rval;
-		JS_CallFunction(ctx->c, ctx->_this, ctx->onload, 0, NULL, &rval);
+		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onload, 0, NULL, &rval);
 	}
 	if (ctx->onloadend) {
 		jsval rval;
-		JS_CallFunction(ctx->c, ctx->_this, ctx->onloadend, 0, NULL, &rval);
+		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onloadend, 0, NULL, &rval);
 	}
 }
 
@@ -3134,7 +3134,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
 		if (ctx->onprogress) {
 			jsval rval;
-			JS_CallFunction(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
+			JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
 		}
 		return;
 	/*this is signaled sent AFTER headers*/
@@ -3150,7 +3150,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
 		if (ctx->onprogress) {
 			jsval rval;
-			JS_CallFunction(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
+			JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
 		}
 		return;
 
@@ -3248,7 +3248,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 		xml_http_fire_event(ctx, GF_EVENT_ERROR);
 		if (ctx->onerror) {
 			jsval rval;
-			JS_CallFunction(ctx->c, ctx->_this, ctx->onerror, 0, NULL, &rval);
+			JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onerror, 0, NULL, &rval);
 		}
 		return GF_BAD_PARAM;
 	}
@@ -3384,7 +3384,7 @@ static JSBool SMJS_FUNCTION(xml_http_abort)
 	xml_http_fire_event(ctx, GF_EVENT_ABORT);
 	if (ctx->onabort) {
 		jsval rval;
-		return JS_CallFunction(ctx->c, ctx->_this, ctx->onabort, 0, NULL, &rval);
+		return JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onabort, 0, NULL, &rval);
 	}
 
 	xml_http_reset(ctx);
@@ -3695,23 +3695,25 @@ static SMJS_FUNC_PROP_GET(xml_http_getProperty)
 	return SMJS_CALL_PROP_STUB();
 }
 
-JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, JSFunction **callbackfunc) {
-	if (!callbackfunc) return JS_FALSE;
-	if (*callbackfunc) gf_js_remove_root(c, callbackfunc, GF_JSGC_VAL);
-	*callbackfunc = NULL;
+JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, jsval *callbackfuncval) {
+	if (!callbackfuncval) return JS_FALSE;
+	if (*callbackfuncval) {
+		gf_js_remove_root(c, callbackfuncval, GF_JSGC_VAL);
+	}
 	if (JSVAL_IS_VOID(vp)) {
 		return JS_TRUE;
-	} 
-	else if (JSVAL_CHECK_STRING(vp)) {
+	} else if (JSVAL_CHECK_STRING(vp)) {
 		jsval fval;
-		char *callback = SMJS_CHARS(c, vp);
-		if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
-		*callbackfunc = JS_ValueToFunction(c, fval);
-		SMJS_FREE(c, callback);
+		char *callbackstr = SMJS_CHARS(c, vp);
+		if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callbackstr, &fval)) return JS_TRUE;
+		*callbackfuncval = fval;
+		SMJS_FREE(c, callbackstr);
 	} else if (JSVAL_IS_OBJECT(vp)) {
-		*callbackfunc = JS_ValueToFunction(c, vp);
+		*callbackfuncval = vp;
 	}
-	if (*callbackfunc) gf_js_add_root(c, callbackfunc, GF_JSGC_VAL);
+	if (*callbackfuncval) {
+		gf_js_add_root(c, callbackfuncval, GF_JSGC_VAL);
+	}
 	return JS_TRUE;
 }
 

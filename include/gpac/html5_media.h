@@ -195,9 +195,9 @@ typedef struct
     /* JavaScript counterpart */\
     JSObject                *_this;\
     GF_List                 *tracks; \
-	JSFunction				*onchange; \
-	JSFunction				*onaddtrack; \
-	JSFunction				*onremovetrack; \
+	jsval					onchange; \
+	jsval					onaddtrack; \
+	jsval					onremovetrack; \
     u32                     selected_index;
 
 typedef struct
