@@ -215,6 +215,7 @@ GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n) {
 	GF_DOMEventTarget *target = NULL;
 	//GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);
 	//*target = me->evt_target;
+#ifndef GPAC_DISABLE_SVG
 	if (!n->sgprivate->interact) {
 		GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
 	}
@@ -222,6 +223,7 @@ GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n) {
 		n->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_HTML_MEDIA, n);
 	}
 	target = n->sgprivate->interact->dom_evt;
+#endif
 	return target;
 }
 
