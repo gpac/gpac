@@ -1169,7 +1169,7 @@ static SMJS_FUNC_PROP_GET(html_track_list_get_onchange)
     return JS_TRUE;
 }
 
-JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, JSFunction **callbackfunc);
+JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, jsval *callbackfuncval);
 
 static SMJS_FUNC_PROP_SET(html_track_list_set_onchange)
 	if (html_is_track_list(c, obj)) {
