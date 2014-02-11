@@ -34,7 +34,7 @@
 #define DUMP_COORDINATES 1
 
 
-static const struct dom_event_def {u32 event;  const char *name; u32 category; } defined_dom_events [] =
+static const struct dom_event_def {GF_EventType event;  const char *name; GF_DOMEventCategory category; } defined_dom_events [] =
 {
 	{ GF_EVENT_ABORT, "abort", GF_DOM_EVENT_DOM },
 	{ GF_EVENT_ERROR, "error", GF_DOM_EVENT_DOM },
@@ -121,19 +121,6 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 	{ GF_EVENT_BATTERY, "battery", GF_DOM_EVENT_LASER },
 	{ GF_EVENT_CPU, "cpu", GF_DOM_EVENT_LASER },
 
-	/*MediaAccess events*/
-#if 0
-	{ GF_EVENT_MEDIA_BEGIN_SESSION_SETUP, "BeginSessionSetup", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_END_SESSION_SETUP, "EndSessionSetup", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_DATA_REQUEST, "DataRequest", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_PLAYABLE, "Playable", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_NOT_PLAYABLE, "NotPlayable", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_DATA_PROGRESS, "DataReceptionProgress", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_END_OF_DATA, "EndOfDataReception", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_STOP, "Stop", GF_DOM_EVENT_MEDIA_ACCESS },
-	{ GF_EVENT_MEDIA_ERROR, "Error", GF_DOM_EVENT_MEDIA_ACCESS },
-#endif
-
 	{ GF_EVENT_MEDIA_SETUP_BEGIN, "setupbegin", GF_DOM_EVENT_MEDIA},
 	{ GF_EVENT_MEDIA_SETUP_DONE, "setupdone", GF_DOM_EVENT_MEDIA},
 
@@ -165,10 +152,11 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 	{ GF_EVENT_HTML_MSE_SOURCE_OPEN, "sourceopen", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_SOURCE_ENDED, "sourceended", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_SOURCE_CLOSE, "sourceclose", GF_DOM_EVENT_MEDIASOURCE },
-	{ GF_EVENT_HTML_MSE_APPEND_START, "appendstart", GF_DOM_EVENT_MEDIASOURCE },
-	{ GF_EVENT_HTML_MSE_APPEND_END, "appendend", GF_DOM_EVENT_MEDIASOURCE },
-	{ GF_EVENT_HTML_MSE_APPEND_ERROR, "error", GF_DOM_EVENT_MEDIASOURCE },
-	{ GF_EVENT_HTML_MSE_APPEND_ABORT, "abort", GF_DOM_EVENT_MEDIASOURCE },
+	{ GF_EVENT_HTML_MSE_UPDATE_START, "updatestart", GF_DOM_EVENT_MEDIASOURCE },
+	{ GF_EVENT_HTML_MSE_UPDATE, "update", GF_DOM_EVENT_MEDIASOURCE },
+	{ GF_EVENT_HTML_MSE_UPDATE_END, "updateend", GF_DOM_EVENT_MEDIASOURCE },
+	{ GF_EVENT_HTML_MSE_UPDATE_ERROR, "error", GF_DOM_EVENT_MEDIASOURCE },
+	{ GF_EVENT_HTML_MSE_UPDATE_ABORT, "abort", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_ADD_SOURCE_BUFFER, "addsourcebuffer", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_REMOVE_SOURCE_BUFFER, "removesourcebuffer", GF_DOM_EVENT_MEDIASOURCE },
 
@@ -178,7 +166,7 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 };
 
 GF_EXPORT
-u32 gf_dom_event_type_by_name(const char *name)
+GF_EventType gf_dom_event_type_by_name(const char *name)
 {
 	u32 i, count;
 	count = sizeof(defined_dom_events) / sizeof(struct dom_event_def);
@@ -191,7 +179,7 @@ u32 gf_dom_event_type_by_name(const char *name)
 	return GF_EVENT_UNKNOWN;
 }
 
-const char *gf_dom_event_get_name(u32 type)
+const char *gf_dom_event_get_name(GF_EventType type)
 {
 	u32 i, count;
 	count = sizeof(defined_dom_events) / sizeof(struct dom_event_def);
@@ -202,7 +190,7 @@ const char *gf_dom_event_get_name(u32 type)
 	return "unknown";
 }
 
-u32 gf_dom_event_get_category(u32 type)
+GF_DOMEventCategory gf_dom_event_get_category(GF_EventType type)
 {
 	u32 i, count;
 	count = sizeof(defined_dom_events) / sizeof(struct dom_event_def);
@@ -210,11 +198,11 @@ u32 gf_dom_event_get_category(u32 type)
 		if (defined_dom_events[i].event == type)
 			return defined_dom_events[i].category;
 	}
-	return 0;
+	return GF_DOM_EVENT_UNKNOWN_CATEGORY;
 }
 
 
-static const struct predef_keyid {u32 key_code;  const char *name; } predefined_key_identifiers[] =
+static const struct predef_keyid {GF_KeyCode key_code;  const char *name; } predefined_key_identifiers[] =
 {
 	{ GF_KEY_ACCEPT, "Accept" },
 	{ GF_KEY_AGAIN, "Again" },
@@ -431,7 +419,7 @@ const char *gf_dom_get_key_name(u32 key_identifier)
 }
 
 
-u32 gf_dom_get_key_type(char *key_name)
+GF_KeyCode gf_dom_get_key_type(char *key_name)
 {
 	if (strlen(key_name) == 1) {
 		unsigned char c[2];

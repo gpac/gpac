@@ -520,6 +520,53 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
 		return;
 	}
+	if (com->command_type==GF_NET_SERVICE_PAUSE_CHANNELS || com->command_type==GF_NET_SERVICE_UNPAUSE_CHANNELS) {
+		u32					i;
+		GF_List				*od_list;
+		GF_ObjectManager	*odm;
+		Bool				pause;
+
+		pause = (com->command_type==GF_NET_SERVICE_PAUSE_CHANNELS ? GF_TRUE : GF_FALSE);
+		if (!service->owner) {
+			return;
+		}
+
+		/*browse all channels in the scene, running on this service, and get buffer info*/
+		od_list = NULL;
+		if (service->owner->subscene) {
+			od_list = service->owner->subscene->resources;
+		} else if (service->owner->parentscene) {
+			od_list = service->owner->parentscene->resources;
+		}
+		if (!od_list) {
+			return;
+		}
+		/*get exclusive access to media scheduler, to make sure ODs are not being manipulated*/
+		gf_mx_p(term->mm_mx);
+		if (!gf_list_count(od_list)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), cannot pause\n", service->url));
+		}
+		i=0;
+		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
+			u32 j, count;
+			if (!odm->codec) continue;
+			count = gf_list_count(odm->channels);
+			for (j=0; j<count; j++) {
+				void ch_buffer_on(GF_Channel *ch);
+				void ch_buffer_off(GF_Channel *ch);
+				GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
+				if (ch->service != service) continue;
+				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
+				if (pause) {
+					ch_buffer_on(ch);
+				} else {
+					ch_buffer_off(ch);
+				}
+			}
+		}
+		gf_mx_v(term->mm_mx);
+		return;
+	}
 
 	if (!com->base.on_channel) return;
 
@@ -1117,7 +1164,8 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 {
 	GF_ClientService *serv;
 	const char *szURI;
-	u32 total_size, bytes_done, net_status, bytes_per_sec;
+	u32 total_size, bytes_done, bytes_per_sec;
+	GF_NetIOStatus net_status;
 
 	if (!sess) return;
 

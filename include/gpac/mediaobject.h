@@ -156,7 +156,6 @@ GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo);
 void gf_mo_del(GF_MediaObject *mo);
 
 GF_DOMEventTarget  *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n);
-GF_DOMEventTarget  *gf_mo_event_target_add_object(GF_MediaObject *mo, void *object);
 GF_Err              gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target);
 GF_Err              gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node);
 GF_Err              gf_mo_event_target_remove_by_index(GF_MediaObject *mo, u32 i);

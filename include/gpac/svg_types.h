@@ -31,6 +31,7 @@ extern "C" {
 #endif
 
 #include <gpac/path2d.h>
+#include <gpac/events_constants.h>
 
 
 
@@ -224,7 +225,7 @@ enum {
 
 typedef struct
 {
-	u32 type;
+	GF_EventType type;
 	/*for accessKey and mouse button, or repeatCount when the event is a SMIL repeat */
 	u32 parameter;
 } XMLEV_Event;

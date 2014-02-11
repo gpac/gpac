@@ -138,16 +138,20 @@ void gf_html_track_del(GF_HTML_Track *track)
     if (track->language)    gf_free(track->language);
     if (track->mime)        gf_free(track->mime);
 
-    gf_mx_p(track->buffer_mutex);
-    while (gf_list_count(track->buffer))
-    {
-        GF_MSE_Packet *packet = (GF_MSE_Packet *)gf_list_get(track->buffer, 0);
-        gf_mse_packet_del(packet);
-        gf_list_rem(track->buffer, 0);
-    }
-    gf_mx_v(track->buffer_mutex);
-    gf_list_del(track->buffer);
-    gf_mx_del(track->buffer_mutex);
+    if (track->buffer_mutex) {
+		gf_mx_p(track->buffer_mutex);
+		while (gf_list_count(track->buffer))
+		{
+			GF_MSE_Packet *packet = (GF_MSE_Packet *)gf_list_get(track->buffer, 0);
+			gf_mse_packet_del(packet);
+			gf_list_rem(track->buffer, 0);
+		}
+		gf_mx_v(track->buffer_mutex);
+		gf_list_del(track->buffer);
+		gf_mx_del(track->buffer_mutex);
+	} else {
+		assert(track->buffer == NULL);
+	}
 	gf_free(track);
 }
 
@@ -179,6 +183,20 @@ void gf_html_media_element_del(GF_HTML_MediaElement *me)
     gf_free(me);
 }
 
+GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n) {
+	GF_DOMEventTarget *target = NULL;
+	//GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);
+	//*target = me->evt_target;
+	if (!n->sgprivate->interact) {
+		GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
+	}
+	if (!n->sgprivate->interact->dom_evt) {
+		n->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_HTML_MEDIA, n);
+	}
+	target = n->sgprivate->interact->dom_evt;
+	return target;
+}
+
 GF_HTML_MediaController *gf_html_media_controller_new()
 {
     GF_HTML_MediaController *mc;
@@ -203,5 +221,6 @@ void gf_html_mediacontroller_del(GF_HTML_MediaController *mc)
     gf_html_timeranges_del(&mc->played);
     gf_free(mc);
 }
+
 
 #endif

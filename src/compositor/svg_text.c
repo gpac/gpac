@@ -1246,6 +1246,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
+			case TAG_SVG_a:
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			}

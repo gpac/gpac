@@ -79,75 +79,77 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val);
 
 static GF_HTML_MediaRuntime *html_media_rt = NULL;
 
+/* Enumeration of the property codes for use in JS Bindings for the the HTML5 MediaError interface */
 typedef enum
 {
-    MEDIA_ERROR_PROP_ABORTED            = 0,
-    MEDIA_ERROR_PROP_NETWORK            = 1,
-    MEDIA_ERROR_PROP_DECODE             = 2,
-    MEDIA_ERROR_PROP_SRC_NOT_SUPPORTED  = 3,
-    MEDIA_ERROR_PROP_CODE               = 4
+    MEDIA_ERROR_PROP_ABORTED            = -1,
+    MEDIA_ERROR_PROP_NETWORK            = -2,
+    MEDIA_ERROR_PROP_DECODE             = -3,
+    MEDIA_ERROR_PROP_SRC_NOT_SUPPORTED  = -4,
+    MEDIA_ERROR_PROP_CODE               = -5
 } GF_HTML_MediaErrorPropEnum;
 
+/* Enumeration of the property codes for use in JS Bindings for the the HTML5 HTMLMediaElement interface */
 typedef enum 
 {
-    HTML_MEDIA_PROP_ERROR                       = 0,
-    HTML_MEDIA_PROP_SRC                         = 1,
-    HTML_MEDIA_PROP_CURRENTSRC                  = 2,
-    HTML_MEDIA_PROP_CROSSORIGIN                 = 3,
-    HTML_MEDIA_PROP_NETWORKSTATE                = 4,
-    HTML_MEDIA_PROP_PRELOAD                     = 5,
-    HTML_MEDIA_PROP_BUFFERED                    = 6,
-    HTML_MEDIA_PROP_READYSTATE                  = 7,
-    HTML_MEDIA_PROP_SEEKING                     = 8,
-    HTML_MEDIA_PROP_CURRENTTIME                 = 9,
-    HTML_MEDIA_PROP_DURATION                    = 10,
-    HTML_MEDIA_PROP_STARTDATE                   = 11,
-    HTML_MEDIA_PROP_PAUSED                      = 12,
-    HTML_MEDIA_PROP_DEFAULTPLAYBACKRATE         = 13,
-    HTML_MEDIA_PROP_PLAYBACKRATE                = 14,
-    HTML_MEDIA_PROP_PLAYED                      = 15,
-    HTML_MEDIA_PROP_SEEKABLE                    = 16,
-    HTML_MEDIA_PROP_ENDED                       = 17,
-    HTML_MEDIA_PROP_AUTOPLAY                    = 18,
-    HTML_MEDIA_PROP_LOOP                        = 19,
-    HTML_MEDIA_PROP_MEDIAGROUP                  = 20,
-    HTML_MEDIA_PROP_CONTROLLER                  = 21,
-    HTML_MEDIA_PROP_CONTROLS                    = 22,
-    HTML_MEDIA_PROP_VOLUME                      = 23,
-    HTML_MEDIA_PROP_MUTED                       = 24,
-    HTML_MEDIA_PROP_DEFAULTMUTED                = 25,
-    HTML_MEDIA_PROP_AUDIOTRACKS                 = 26,
-    HTML_MEDIA_PROP_VIDEOTRACKS                 = 27,
-    HTML_MEDIA_PROP_TEXTTRACKS                  = 28,
-    HTML_MEDIA_PROP_NETWORK_EMPTY               = 29,
-    HTML_MEDIA_PROP_NETWORK_IDLE                = 30,
-    HTML_MEDIA_PROP_NETWORK_LOADING             = 31,
-    HTML_MEDIA_PROP_NETWORK_NO_SOURCE           = 32,
-    HTML_MEDIA_PROP_HAVE_NOTHING                = 33,
-    HTML_MEDIA_PROP_HAVE_METADATA               = 34,
-    HTML_MEDIA_PROP_HAVE_CURRENT_DATA           = 35,
-    HTML_MEDIA_PROP_HAVE_FUTURE_DATA            = 36,
-    HTML_MEDIA_PROP_HAVE_ENOUGH_DATA            = 37,
+    HTML_MEDIA_PROP_SRC                         = -1,
+    HTML_MEDIA_PROP_CURRENTSRC                  = -2,
+    HTML_MEDIA_PROP_CROSSORIGIN                 = -3,
+    HTML_MEDIA_PROP_NETWORKSTATE                = -4,
+    HTML_MEDIA_PROP_PRELOAD                     = -5,
+    HTML_MEDIA_PROP_BUFFERED                    = -6,
+    HTML_MEDIA_PROP_READYSTATE                  = -7,
+    HTML_MEDIA_PROP_SEEKING                     = -8,
+    HTML_MEDIA_PROP_CURRENTTIME                 = -9,
+    HTML_MEDIA_PROP_DURATION                    = -10,
+    HTML_MEDIA_PROP_STARTDATE                   = -11,
+    HTML_MEDIA_PROP_PAUSED                      = -12,
+    HTML_MEDIA_PROP_DEFAULTPLAYBACKRATE         = -13,
+    HTML_MEDIA_PROP_PLAYBACKRATE                = -14,
+    HTML_MEDIA_PROP_PLAYED                      = -15,
+    HTML_MEDIA_PROP_SEEKABLE                    = -16,
+    HTML_MEDIA_PROP_ENDED                       = -17,
+    HTML_MEDIA_PROP_AUTOPLAY                    = -18,
+    HTML_MEDIA_PROP_LOOP                        = -19,
+    HTML_MEDIA_PROP_MEDIAGROUP                  = -20,
+    HTML_MEDIA_PROP_CONTROLLER                  = -21,
+    HTML_MEDIA_PROP_CONTROLS                    = -22,
+    HTML_MEDIA_PROP_VOLUME                      = -23,
+    HTML_MEDIA_PROP_MUTED                       = -24,
+    HTML_MEDIA_PROP_DEFAULTMUTED                = -25,
+    HTML_MEDIA_PROP_AUDIOTRACKS                 = -26,
+    HTML_MEDIA_PROP_VIDEOTRACKS                 = -27,
+    HTML_MEDIA_PROP_TEXTTRACKS                  = -28,
+    HTML_MEDIA_PROP_NETWORK_EMPTY               = -29,
+    HTML_MEDIA_PROP_NETWORK_IDLE                = -30,
+    HTML_MEDIA_PROP_NETWORK_LOADING             = -31,
+    HTML_MEDIA_PROP_NETWORK_NO_SOURCE           = -32,
+    HTML_MEDIA_PROP_HAVE_NOTHING                = -33,
+    HTML_MEDIA_PROP_HAVE_METADATA               = -34,
+    HTML_MEDIA_PROP_HAVE_CURRENT_DATA           = -35,
+    HTML_MEDIA_PROP_HAVE_FUTURE_DATA            = -36,
+    HTML_MEDIA_PROP_HAVE_ENOUGH_DATA            = -37,
+    HTML_MEDIA_PROP_ERROR                       = -38
 } GF_HTML_MediaEltPropEnum;
 
-/* HTMLVideoElement properties */
+/* Enumeration of the property codes for use in JS Bindings for the the HTML5 HTMLVideoElement interface */
 typedef enum {
-    HTML_VIDEO_PROP_WIDTH                       = 0,
-    HTML_VIDEO_PROP_HEIGHT                      = 1,
-    HTML_VIDEO_PROP_VIDEOWIDTH                  = 2,
-    HTML_VIDEO_PROP_VIDEOHEIGHT                 = 3,
-    HTML_VIDEO_PROP_POSTER                      = 4,
+    HTML_VIDEO_PROP_WIDTH                       = -1,
+    HTML_VIDEO_PROP_HEIGHT                      = -2,
+    HTML_VIDEO_PROP_VIDEOWIDTH                  = -3,
+    HTML_VIDEO_PROP_VIDEOHEIGHT                 = -4,
+    HTML_VIDEO_PROP_POSTER                      = -5
 } GF_HTML_VideoEltPropEnum;
 
-/* HTMLTrack properties */
+/* Enumeration of the property codes for use in JS Bindings for the the HTML5 HTMLTrackElement interface */
 typedef enum {
-    HTML_TRACK_PROP_ID                          = 0,
-    HTML_TRACK_PROP_KIND                        = 1,
-    HTML_TRACK_PROP_LABEL                       = 2,
-    HTML_TRACK_PROP_LANGUAGE                    = 3,
-    HTML_TRACK_PROP_SELECTED                    = 4,
-    HTML_TRACK_PROP_ENABLED                     = 5,
-    HTML_TRACK_PROP_INBANDTYPE                  = 6,
+    HTML_TRACK_PROP_ID                          = -1,
+    HTML_TRACK_PROP_KIND                        = -2,
+    HTML_TRACK_PROP_LABEL                       = -3,
+    HTML_TRACK_PROP_LANGUAGE                    = -4,
+    HTML_TRACK_PROP_SELECTED                    = -5,
+    HTML_TRACK_PROP_ENABLED                     = -6,
+    HTML_TRACK_PROP_INBANDTYPE                  = -7
 } GF_HTML_TrackPropEnum;
 
 #define HTML_MEDIA_JS_CHECK     GF_HTML_MediaElement *me; \
@@ -163,7 +165,8 @@ typedef enum {
 
 #define HTML_MEDIA_JS_START     HTML_MEDIA_JS_CHECK
 
-
+/* Structure copied over from svg_media.c
+   TODO : fix this - remove the copy */
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -175,6 +178,8 @@ typedef struct
 	Bool stop_requested;
 } SVG_video_stack;
 
+/* Structure copied over from svg_media.c
+   TODO : fix this - remove the copy */
 typedef struct
 {
 	GF_AudioInput input;
@@ -182,6 +187,11 @@ typedef struct
 	MFURL aurl;
 } SVG_audio_stack;
 
+/* Gets the GF_MediaObject associated with this node
+ *
+ *  \param n the node either an SVG/HTML5 video or audio element
+ *  \return the GF_MediaObject attached to this node or null if none
+ */
 static GF_MediaObject *gf_html_media_object(GF_Node *n)
 {
     GF_MediaObject *mo = NULL;
@@ -198,23 +208,6 @@ static GF_MediaObject *gf_html_media_object(GF_Node *n)
         mo = audio_stack->input.stream;
     }
     return mo;
-}
-
-static GF_HTML_MediaElement *html_media_element_get_from_node(JSContext *c, GF_Node *n)
-{
-    jsval vp;
-    JSObject *me_obj;
-    JSObject *node_obj;
-    GF_HTML_MediaElement *me = NULL;
-
-    node_obj = (JSObject *)n->sgprivate->interact->js_binding->node;
-    if (node_obj)
-    {
-        JS_GetProperty(c, node_obj, "gpac_me_impl", &vp);
-        me_obj = JSVAL_TO_OBJECT(vp);
-        me = (GF_HTML_MediaElement *)SMJS_GET_PRIVATE(c, me_obj);
-    }
-    return me;
 }
 
 static void gf_html_track_init_js(GF_HTML_Track *track, JSContext *c, GF_HTML_TrackList *tracklist)
@@ -241,7 +234,7 @@ static void gf_html_track_init_js(GF_HTML_Track *track, JSContext *c, GF_HTML_Tr
     SMJS_SET_PRIVATE(c, track->_this, track);
 }
 
-void gf_html_media_controller_init_js(GF_HTML_MediaController *mc, JSContext *c)
+static void gf_html_media_controller_init_js(GF_HTML_MediaController *mc, JSContext *c)
 {
     mc->c            = c;
     mc->_this        = JS_NewObject(c, &html_media_rt->mediaControllerClass._class, NULL, NULL);
@@ -257,7 +250,7 @@ void gf_html_media_controller_init_js(GF_HTML_MediaController *mc, JSContext *c)
     SMJS_SET_PRIVATE(c, mc->seekable._this, &mc->seekable);
 }
 
-void gf_html_media_element_init_js(GF_HTML_MediaElement *me, JSContext *c, JSObject *node_obj)
+static void gf_html_media_element_init_js(GF_HTML_MediaElement *me, JSContext *c, JSObject *node_obj)
 {
     me->c                       = c;
     me->_this                   = JS_NewObject(c, &html_media_rt->htmlMediaElementClass._class, NULL, node_obj);
@@ -291,6 +284,7 @@ void gf_html_media_element_init_js(GF_HTML_MediaElement *me, JSContext *c, JSObj
     me->seekable._this          = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, me->_this);
     SMJS_SET_PRIVATE(c, me->seekable._this, &me->seekable);
 }
+
 /*
  * TODO : Unused, create warnings on debian
 static void html_media_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
@@ -298,63 +292,71 @@ static void html_media_script_error(JSContext *c, const char *msg, JSErrorReport
     GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
 }*/
 
+/* Function to browse the tracks in the MediaObject associated with the Media Element and to create appropriate HTML Track objects 
+ * 
+ * \param c The JavaScript Context to create the new JS object
+ * \param me the HTMLMediaElement to update 
+ */
 static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElement *me)
 {
     GF_HTML_Track *track;
-    GF_Node *n = me->node;
-    if (n->sgprivate->tag == TAG_SVG_video) {
-        SVG_video_stack *video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
-        if (video_stack->txh.is_open)
+	GF_MediaObject *mo;
+    GF_ClientService *service;
+    GF_Scene *scene;
+    u32 i, count;
+
+	if (!me || !me->node) {
+		return;
+	}
+	mo = gf_html_media_object(me->node);
+	if (!mo || !mo->odm || !mo->odm->net_service || !mo->odm->parentscene) {
+		return;
+	}
+	service = mo->odm->net_service;
+	scene = mo->odm->parentscene;
+
+	count = gf_list_count(scene->resources);
+    for (i=0; i<count; i++) {
+        u32 j;
+        GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
+        if (odm->net_service != service) continue;
+        if (!odm->mo || !odm->OD) continue;
+        for (j = 0; j < gf_list_count(odm->OD->ESDescriptors); j++)
         {
-            GF_MediaObject *mo = video_stack->txh.stream;
-            GF_ClientService *service = mo->odm->net_service;
-            GF_Scene *scene = mo->odm->parentscene;
-            u32 i, count;
-            count = gf_list_count(scene->resources);
-            for (i=0; i<count; i++)
+            char id[256];
+            char *lang = "";
+            GF_ESD *esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, j);
+            sprintf(id, "track%d", esd->ESID);
+            if (esd->langDesc) 
             {
-                u32 j;
-                GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
-                if (odm->net_service != service) continue;
-                if (!odm->mo) continue;
-                for (j = 0; j < gf_list_count(odm->OD->ESDescriptors); j++)
+                lang  = "";
+            }
+            switch(odm->mo->type)
+            {
+            case GF_MEDIA_OBJECT_VIDEO:
+                if (!html_media_tracklist_has_track(&me->videoTracks, id))
                 {
-                    char id[256];
-                    char *lang = "";
-                    GF_ESD *esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, j);
-                    sprintf(id, "track%d", esd->ESID);
-                    if (esd->langDesc) 
-                    {
-                        lang  = "";
-                    }
-                    switch(odm->mo->type)
-                    {
-                    case GF_MEDIA_OBJECT_VIDEO:
-                        if (!html_media_tracklist_has_track(&me->videoTracks, id))
-                        {
-                            track = html_media_add_new_track_to_list(&me->videoTracks, HTML_MEDIA_TRACK_TYPE_VIDEO, 
-                                                                     "video/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
-                            gf_html_track_init_js(track, c, &me->videoTracks);
-                        }
-                        break;
-                    case GF_MEDIA_OBJECT_AUDIO:
-                        if (!html_media_tracklist_has_track(&me->audioTracks, id))
-                        {
-                            track = html_media_add_new_track_to_list(&me->audioTracks, HTML_MEDIA_TRACK_TYPE_AUDIO, 
-                                                                    "audio/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
-                            gf_html_track_init_js(track, c, &me->audioTracks);
-                        }
-                        break;
-                    case GF_MEDIA_OBJECT_TEXT:
-                        if (!html_media_tracklist_has_track(&me->textTracks, id))
-                        {
-                            track = html_media_add_new_track_to_list(&me->textTracks, HTML_MEDIA_TRACK_TYPE_TEXT, 
-                                                                     "text/plain", GF_TRUE, id, "myKind", "myLabel", lang);
-                            gf_html_track_init_js(track, c, &me->textTracks);
-                        }
-                        break;
-                    }
+                    track = html_media_add_new_track_to_list(&me->videoTracks, HTML_MEDIA_TRACK_TYPE_VIDEO, 
+                                                                "video/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
+                    gf_html_track_init_js(track, c, &me->videoTracks);
                 }
+                break;
+            case GF_MEDIA_OBJECT_AUDIO:
+                if (!html_media_tracklist_has_track(&me->audioTracks, id))
+                {
+                    track = html_media_add_new_track_to_list(&me->audioTracks, HTML_MEDIA_TRACK_TYPE_AUDIO, 
+                                                            "audio/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
+                    gf_html_track_init_js(track, c, &me->audioTracks);
+                }
+                break;
+            case GF_MEDIA_OBJECT_TEXT:
+                if (!html_media_tracklist_has_track(&me->textTracks, id))
+                {
+                    track = html_media_add_new_track_to_list(&me->textTracks, HTML_MEDIA_TRACK_TYPE_TEXT, 
+                                                                "text/plain", GF_TRUE, id, "myKind", "myLabel", lang);
+                    gf_html_track_init_js(track, c, &me->textTracks);
+                }
+                break;
             }
         }
     }
@@ -413,6 +415,43 @@ void *html_get_element_class(GF_Node *n)
     }
 }
 
+/* Used to retrieve the structure implementing the GF_HTML_MediaElement interface associated with this node
+ * Usually this is done with the private stack of the node (see gf_node_get_private), but in this case,
+ * the stack already contains the rendering stack SVG_video_stack.
+ * So, we store the structure implementing the GF_HTML_MediaElement interface in the JavaScript context of this node,
+ * as a non enumeratable property named 'gpac_me_impl'
+ *
+ *  \param c the global JavaScript context 
+ *  \param n the audio or video node
+ *  \return the GF_HTML_MediaElement associated with this node in the given context
+ */
+static GF_HTML_MediaElement *html_media_element_get_from_node(JSContext *c, GF_Node *n)
+{
+    jsval vp;
+    JSObject *me_obj;
+    JSObject *node_obj;
+    GF_HTML_MediaElement *me = NULL;
+
+    if ((n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) && n->sgprivate->interact && n->sgprivate->interact->js_binding) {
+		node_obj = (JSObject *)n->sgprivate->interact->js_binding->node;
+		if (node_obj)
+		{
+			JS_GetProperty(c, node_obj, "gpac_me_impl", &vp);
+			me_obj = JSVAL_TO_OBJECT(vp);
+			me = (GF_HTML_MediaElement *)SMJS_GET_PRIVATE(c, me_obj);
+		}
+	}
+    return me;
+}
+
+/* Creates the GF_HTML_MediaElement structure for this node
+ * Store it in the JavaScript context of this node, as a non enumeratable property named 'gpac_me_impl'
+ * see \ref html_media_element_get_from_node for retrieving it
+ *
+ *  \param c the global JavaScript context 
+ *  \param n the audio or video node
+ *  \param node_obj the JavaScript object representing the audio or video node
+ */
 void html_media_element_js_init(JSContext *c, JSObject *node_obj, GF_Node *n)
 {
     if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
@@ -425,11 +464,36 @@ void html_media_element_js_init(JSContext *c, JSObject *node_obj, GF_Node *n)
     }
 }
 
+/* Deletes the GF_HTML_MediaElement structure for this node
+ *
+ *  \param c the global JavaScript context 
+ *  \param n the audio or video node
+ */
 void html_media_element_js_finalize(JSContext *c, GF_Node *n)
 {
     GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);
     /* TODO: finalize child objects */
     gf_html_media_element_del(me);
+}
+
+/* Gets The EventTarget and SceneGraph from the GF_HTML_MediaElement structure for a audio/video JS node
+ *
+ *  \param c the global JavaScript context 
+ *  \param obj the JS object representing the HTMLAudioElement or HTMLVideoElement
+ *  \param target the GF_DOMEventTarget object
+ *  \param sg the scene graph
+ */
+void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg) {
+	if (!sg || !target) return;
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
+		GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ) {
+		GF_Node *n = (GF_Node *)SMJS_GET_PRIVATE(c, obj);
+		*target = gf_html_media_get_event_target_from_node(n);
+		*sg = n->sgprivate->scenegraph;
+	} else {
+		*target = NULL;
+		*sg = NULL;
+	}
 }
 
 static SMJS_FUNC_PROP_GET(html_media_error_get_code)
@@ -516,10 +580,16 @@ static void html_media_get_states(GF_MediaObject *mo, GF_HTML_MediaReadyState *r
     u32 min_buffer;
     if (!mo) return;
 
+	if (!mo->odm) {
+        *readyState = HAVE_NOTHING;
+        *networkState = NETWORK_EMPTY;
+		return;
+    }
+
     memset(&media_event, 0, sizeof(GF_DOMMediaEvent));
     media_event_collect_info(mo->odm->net_service, mo->odm, &media_event, &min_time, &min_buffer);
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] min_time: %d, min_buffer: %d loaded: "LLD"/"LLD"\n", 
-                                                        min_time, min_buffer, media_event.loaded_size, media_event.total_size));
+    //GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] min_time: %d, min_buffer: %d loaded: "LLD"/"LLD"\n", 
+    //                                                    min_time, min_buffer, media_event.loaded_size, media_event.total_size));
     if (min_buffer == 0)
     {
         *readyState = HAVE_NOTHING;
@@ -634,7 +704,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_buffered)
 
 static SMJS_FUNC_PROP_GET(html_media_get_seeking)
     HTML_MEDIA_JS_START
-    /* TODO: implement if for real */
+    /* TODO: implement it for real */
     *vp = BOOLEAN_TO_JSVAL( (me->seeking ? JS_TRUE : JS_FALSE) );
     return JS_TRUE;
 }
@@ -670,8 +740,7 @@ static SMJS_FUNC_PROP_SET(html_media_set_current_time)
     }
     JS_ValueToNumber(c, *vp, &d);
     par.time = d;
-    if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_TIME, (GF_Node *)n, &par))
-    {
+    if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_TIME, (GF_Node *)n, &par)) {
         return JS_TRUE;
     }
     return JS_TRUE;
@@ -683,17 +752,18 @@ static SMJS_FUNC_PROP_GET(html_media_get_duration)
     HTML_MEDIA_JS_START
     mo = gf_html_media_object(n);
     dur = gf_mo_get_duration(mo);
-    /*if (dur <= 0)
-    {
-        dur = video_stack->txh.last_frame_time;
-        dur /= 1000;
-    }*/
-    *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, dur));
+    if (dur <= 0) {
+		*vp = JS_GetNaNValue(c);
+    } else {
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, dur));
+	}
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_start_date)
     HTML_MEDIA_JS_START
+	// SpiderMonkey 1.8.5 JSObject * JS_NewDateObject(JSContext *cx, int year, int mon, int mday, int hour, int min, int sec);
+	*vp = JSVAL_NULL;
     /* TODO */
     return JS_TRUE;
 }
@@ -762,12 +832,9 @@ static SMJS_FUNC_PROP_GET(html_media_get_autoplay)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "autoplay", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
-        {
+        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) {
             *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
-        } 
-        else
-        {
+        } else {
             *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
@@ -790,12 +857,9 @@ static SMJS_FUNC_PROP_GET(html_media_get_loop)
     /* TODO: gf_mo_get_loop */
     if (gf_node_get_attribute_by_name(n, "loop", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
-        {
+        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) {
             *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
-        } 
-        else
-        {
+        } else {
             *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
@@ -837,7 +901,9 @@ static SMJS_FUNC_PROP_GET(html_media_get_controller)
     HTML_MEDIA_JS_START
     if (me->controller) {
         *vp = OBJECT_TO_JSVAL( me->controller->_this );
-    }
+    } else {
+		*vp = JSVAL_NULL;
+	}
     return JS_TRUE;
 }
 
@@ -852,12 +918,9 @@ static SMJS_FUNC_PROP_GET(html_media_get_controls)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "controls", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
-        {
+        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) {
             *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
-        } 
-        else
-        {
+        } else {
             *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
@@ -874,13 +937,10 @@ static SMJS_FUNC_PROP_SET(html_media_set_controls)
     return JS_TRUE;
 }
 
-static SMJS_FUNC_PROP_GET(html_media_get_volume)
-    Fixed volume = FIX_ONE;
+static SVG_audio_stack *html_media_get_audio_stack(GF_Node *n) {
     SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
-    HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag == TAG_SVG_video)
-    {
+    if (n->sgprivate->tag == TAG_SVG_video) {
         video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
         if (video_stack->audio) {
             audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
@@ -888,6 +948,14 @@ static SMJS_FUNC_PROP_GET(html_media_get_volume)
     } else if (n->sgprivate->tag == TAG_SVG_audio) {
         audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
     }
+	return audio_stack;
+}
+
+static SMJS_FUNC_PROP_GET(html_media_get_volume)
+    Fixed volume = FIX_ONE;
+    SVG_audio_stack *audio_stack = NULL;
+    HTML_MEDIA_JS_CHECK
+	audio_stack = html_media_get_audio_stack(n);
     if (audio_stack) {
         audio_stack->input.input_ifce.GetChannelVolume(&audio_stack->input.input_ifce.callback, &volume);
     }
@@ -897,18 +965,9 @@ static SMJS_FUNC_PROP_GET(html_media_get_volume)
 
 static SMJS_FUNC_PROP_SET(html_media_set_volume)
     jsdouble volume;
-    SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag == TAG_SVG_video)
-    {
-        video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
-        if (video_stack->audio) {
-            audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
-        }
-    } else if (n->sgprivate->tag == TAG_SVG_audio) {
-        audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
-    }
+	audio_stack = html_media_get_audio_stack(n);
     if (audio_stack) {
         JS_ValueToNumber(c, *vp, &volume);
         audio_stack->input.intensity = FLT2FIX(volume);
@@ -917,39 +976,23 @@ static SMJS_FUNC_PROP_SET(html_media_set_volume)
 }
 
 static SMJS_FUNC_PROP_GET(html_media_get_muted)
-    SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag == TAG_SVG_video)
-    {
-        video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
-        if (video_stack->audio) {
-            audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
-        }
-    } else if (n->sgprivate->tag == TAG_SVG_audio) {
-        audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
-    }
+	audio_stack = html_media_get_audio_stack(n);
     if (audio_stack) {
         *vp = BOOLEAN_TO_JSVAL(audio_stack->input.is_muted ? JS_TRUE : JS_FALSE);
-    }
+    } else {
+        *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
+	}
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET(html_media_set_muted)
-    SVG_video_stack *video_stack = NULL;
     SVG_audio_stack *audio_stack = NULL;
     HTML_MEDIA_JS_CHECK
-    if (n->sgprivate->tag == TAG_SVG_video)
-    {
-        video_stack = (SVG_video_stack *)n->sgprivate->UserPrivate;
-        if (video_stack->audio) {
-            audio_stack = (SVG_audio_stack *)video_stack->audio->sgprivate->UserPrivate;
-        }
-    } else if (n->sgprivate->tag == TAG_SVG_audio) {
-        audio_stack = (SVG_audio_stack *)n->sgprivate->UserPrivate;
-    }
+	audio_stack = html_media_get_audio_stack(n);
     if (audio_stack) {
-        audio_stack->input.is_muted = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE);
+        audio_stack->input.is_muted = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE ? GF_TRUE : GF_FALSE);
     }
     return JS_TRUE;
 }
@@ -959,16 +1002,15 @@ static SMJS_FUNC_PROP_GET(html_media_get_default_muted)
     HTML_MEDIA_JS_START
     if (gf_node_get_attribute_by_name(n, "muted", GF_XMLNS_SVG, GF_TRUE, GF_TRUE, &info)==GF_OK) {
         char *szAtt = gf_svg_dump_attribute(n, &info);
-        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) 
-        {
+        if (!strcmp(szAtt, "true") || !strcmp(szAtt, "TRUE")) {
             *vp =( BOOLEAN_TO_JSVAL( JS_TRUE ) );
-        } 
-        else
-        {
+        } else {
             *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
         }
         if (szAtt) gf_free(szAtt);
-    }
+    } else {
+        *vp =( BOOLEAN_TO_JSVAL( JS_FALSE ) );
+	}
     return JS_TRUE;
 }
 
@@ -995,7 +1037,7 @@ static SMJS_FUNC_PROP_GET(html_media_get_video_tracks)
 
 static SMJS_FUNC_PROP_GET(html_media_get_text_tracks)
     HTML_MEDIA_JS_START
-    *vp =( OBJECT_TO_JSVAL( me->videoTracks._this ) );
+    *vp =( OBJECT_TO_JSVAL( me->textTracks._this ) );
     return JS_TRUE;
 }
 
@@ -1010,13 +1052,11 @@ static JSBool SMJS_FUNCTION(html_time_ranges_start)
     GF_HTML_MediaTimeRanges *timeranges;
     SMJS_OBJ
     SMJS_ARGS
-    if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &html_media_rt->timeRangesClass, NULL)) 
-    {
+    if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &html_media_rt->timeRangesClass, NULL)) {
         return JS_TRUE;
     }
     timeranges = (GF_HTML_MediaTimeRanges *)SMJS_GET_PRIVATE(c, obj);
-    if (!timeranges) 
-    {
+    if (!timeranges) {
         return JS_TRUE;
     }
     if (JSVAL_IS_INT(argv[0])) {
@@ -1037,13 +1077,11 @@ static JSBool SMJS_FUNCTION(html_time_ranges_end)
     GF_HTML_MediaTimeRanges *timeranges;
     SMJS_OBJ
     SMJS_ARGS
-    if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &html_media_rt->timeRangesClass, NULL)) 
-    {
+    if ((argc!=1) || !GF_JS_InstanceOf(c, obj, &html_media_rt->timeRangesClass, NULL)) {
         return JS_TRUE;
     }
     timeranges = (GF_HTML_MediaTimeRanges *)SMJS_GET_PRIVATE(c, obj);
-    if (!timeranges) 
-    {
+    if (!timeranges) {
         return JS_TRUE;
     }
     if (JSVAL_IS_INT(argv[0])) {
@@ -1059,9 +1097,19 @@ static JSBool SMJS_FUNCTION(html_time_ranges_end)
     return JS_TRUE;
 }
 
+static Bool html_is_track_list(JSContext *c, JSObject *obj) {
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackListClass, NULL)) return GF_TRUE;
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->audioTrackListClass, NULL)) return GF_TRUE;
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->textTrackListClass, NULL)) return GF_TRUE;
+	return GF_FALSE;
+}
+
 static SMJS_FUNC_PROP_GET(html_track_list_get_length)
-    GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
-    *vp = INT_TO_JSVAL( gf_list_count(tracklist->tracks) );
+    GF_HTML_TrackList *tracklist;
+	if (html_is_track_list(c, obj)) {
+		tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		*vp = INT_TO_JSVAL( gf_list_count(tracklist->tracks) );
+	}
     return JS_TRUE;
 }
 
@@ -1069,29 +1117,38 @@ static JSBool SMJS_FUNCTION(html_track_list_get_track_by_id)
 {
     SMJS_OBJ
     SMJS_ARGS
-    char *str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, argv[0]) );
-    GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
-    GF_HTML_Track *track = html_media_tracklist_get_track(tracklist, str);
-    SMJS_FREE(c, str);
-    if (track) {
-        SMJS_SET_RVAL(OBJECT_TO_JSVAL(track->_this));
-    }
+	if (html_is_track_list(c, obj)) {
+		GF_HTML_TrackList *tracklist;
+		GF_HTML_Track *track;
+	    char *str;	
+		tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, argv[0]) );
+		track = html_media_tracklist_get_track(tracklist, str);
+		SMJS_FREE(c, str);
+		if (track) {
+			SMJS_SET_RVAL(OBJECT_TO_JSVAL(track->_this));
+		}
+	}
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_track_list_get_property)
-    GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
-    s32 index = SMJS_ID_TO_INT(id);
-    if (index >= 0 && (u32)index < gf_list_count(tracklist->tracks))
-    {
-        GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, (u32)index);
-        *vp = OBJECT_TO_JSVAL(track->_this);
-    }
+	if (html_is_track_list(c, obj)) {
+		GF_HTML_TrackList *tracklist;
+		s32 index;
+
+		tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		index = SMJS_ID_TO_INT(id);
+		if (index >= 0 && (u32)index < gf_list_count(tracklist->tracks)) {
+			GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, (u32)index);
+			*vp = OBJECT_TO_JSVAL(track->_this);
+		}
+	}
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_track_list_get_selected_index)
-    if (GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackClass, NULL)) {
+	if (html_is_track_list(c, obj)) {
         GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
         *vp = INT_TO_JSVAL(tracklist->selected_index);
     }
@@ -1099,34 +1156,69 @@ static SMJS_FUNC_PROP_GET(html_track_list_get_selected_index)
 }
 
 static SMJS_FUNC_PROP_GET(html_track_list_get_onchange)
+	if (html_is_track_list(c, obj)) {
+        GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		if (tracklist->onchange) {
+			*vp = OBJECT_TO_JSVAL(tracklist->onchange);
+		} else {
+			*vp = JSVAL_NULL;
+		}
+    }
     return JS_TRUE;
 }
 
+JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, JSFunction **callbackfunc);
+
 static SMJS_FUNC_PROP_SET(html_track_list_set_onchange)
+	if (html_is_track_list(c, obj)) {
+        GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		gf_set_js_eventhandler(c, *vp, &tracklist->onchange);
+    }
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_track_list_get_onaddtrack)
+	if (html_is_track_list(c, obj)) {
+        GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		if (tracklist->onaddtrack) {
+			*vp = OBJECT_TO_JSVAL(tracklist->onaddtrack);
+		} else {
+			*vp = JSVAL_NULL;
+		}
+    }
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET(html_track_list_set_onaddtrack)
+	if (html_is_track_list(c, obj)) {
+        GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		gf_set_js_eventhandler(c, *vp, &tracklist->onaddtrack);
+    }
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_track_list_get_onremovetrack)
+	if (html_is_track_list(c, obj)) {
+        GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		if (tracklist->onremovetrack) {
+			*vp = OBJECT_TO_JSVAL(tracklist->onremovetrack);
+		} else {
+			*vp = JSVAL_NULL;
+		}
+    }
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET(html_track_list_set_onremovetrack)
+	if (html_is_track_list(c, obj)) {
+        GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
+		gf_set_js_eventhandler(c, *vp, &tracklist->onremovetrack);
+    }
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(html_track_get_property)
-    if (GF_JS_InstanceOf(c, obj, &html_media_rt->audioTrackClass, NULL) ||
-        GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackClass, NULL) ||
-        GF_JS_InstanceOf(c, obj, &html_media_rt->textTrackClass, NULL))
-    {
+    if (html_is_track_list(c, obj)) {
         GF_HTML_Track *track = (GF_HTML_Track *)SMJS_GET_PRIVATE(c, obj);
         if (!SMJS_ID_IS_INT(id)) {
             return JS_TRUE;
@@ -1145,20 +1237,17 @@ static SMJS_FUNC_PROP_GET(html_track_get_property)
             *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, track->language ? track->language  : "") );
             return JS_TRUE;
         case HTML_TRACK_PROP_INBANDTYPE:
-            if (GF_JS_InstanceOf(c, obj, &html_media_rt->textTrackClass, NULL)) 
-            {
+            if (GF_JS_InstanceOf(c, obj, &html_media_rt->textTrackClass, NULL)) {
                 *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, track->mime ? track->mime  : "") );
                 return JS_TRUE;
             }
         case HTML_TRACK_PROP_SELECTED:
-            if (GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackClass, NULL)) 
-            {
+            if (GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackClass, NULL)) {
                 *vp = BOOLEAN_TO_JSVAL(track->enabled_or_selected ? JS_TRUE : JS_FALSE);
             }
             return JS_TRUE;
         case HTML_TRACK_PROP_ENABLED:
-            if (GF_JS_InstanceOf(c, obj, &html_media_rt->audioTrackClass, NULL)) 
-            {
+            if (GF_JS_InstanceOf(c, obj, &html_media_rt->audioTrackClass, NULL)) {
                 *vp = BOOLEAN_TO_JSVAL(track->enabled_or_selected ? JS_TRUE : JS_FALSE);
             }
             return JS_TRUE;
@@ -1168,10 +1257,7 @@ static SMJS_FUNC_PROP_GET(html_track_get_property)
 }
 
 static SMJS_FUNC_PROP_SET(html_track_set_property)
-    if (GF_JS_InstanceOf(c, obj, &html_media_rt->audioTrackClass, NULL) ||
-        GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackClass, NULL) ||
-        GF_JS_InstanceOf(c, obj, &html_media_rt->textTrackClass, NULL))
-    {
+    if (html_is_track_list(c, obj)) {
         GF_HTML_Track *track = (GF_HTML_Track *)SMJS_GET_PRIVATE(c, obj);
         if (!SMJS_ID_IS_INT(id)) {
             return JS_TRUE;
@@ -1180,13 +1266,13 @@ static SMJS_FUNC_PROP_SET(html_track_set_property)
         case HTML_TRACK_PROP_SELECTED:
             if (GF_JS_InstanceOf(c, obj, &html_media_rt->videoTrackClass, NULL)) 
             {
-                track->enabled_or_selected = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE);
+                track->enabled_or_selected = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE ? GF_TRUE : GF_FALSE);
             }
             return JS_TRUE;
         case HTML_TRACK_PROP_ENABLED:
             if (GF_JS_InstanceOf(c, obj, &html_media_rt->audioTrackClass, NULL)) 
             {
-                track->enabled_or_selected = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE);
+                track->enabled_or_selected = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE ? GF_TRUE : GF_FALSE);
             }
             return JS_TRUE;
         }
@@ -1200,6 +1286,8 @@ static SMJS_FUNC_PROP_GET(html_video_get_property)
         GF_FieldInfo    info;
         SVG_video_stack *video;
         GF_Node *n = (GF_Node *)SMJS_GET_PRIVATE(c, obj);
+		if (!n) return JS_TRUE;
+
         video = (SVG_video_stack *)n->sgprivate->UserPrivate;
         if (!SMJS_ID_IS_INT(id)) {
             return JS_TRUE;
@@ -1263,18 +1351,33 @@ static SMJS_FUNC_PROP_SET(html_video_set_property)
     return JS_TRUE;
 }
 
+static JSBool SMJS_FUNCTION(html_media_event_add_listener)
+{
+	JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node);
+	return gf_sg_js_event_add_listener(SMJS_CALL_ARGS, NULL);
+}
+
+static JSBool SMJS_FUNCTION(html_media_event_remove_listener)
+{
+	JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node);
+	return gf_sg_js_event_remove_listener(SMJS_CALL_ARGS, NULL);
+}
+
+static JSBool SMJS_FUNCTION(html_media_event_dispatch)
+{
+	return JS_TRUE;
+}
+
 void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_MediaRuntime *html_media_rt);
 
-void html_media_js_api_del()
-{
+void html_media_js_api_del() {
     if (html_media_rt) {
 		gf_free(html_media_rt);
 		html_media_rt = NULL;
 	}
 }
 
-void html_media_init_js_api(GF_SceneGraph *scene)
-{
+void html_media_init_js_api(GF_SceneGraph *scene) {
     /* HTML Media Element */
     if (!html_media_rt) {
         GF_SAFEALLOC(html_media_rt, GF_HTML_MediaRuntime);
@@ -1480,6 +1583,9 @@ void html_media_init_js_api(GF_SceneGraph *scene)
                 SMJS_FUNCTION_SPEC("play",                  svg_udom_smil_begin, 0),
                 SMJS_FUNCTION_SPEC("pause",                 svg_udom_smil_pause, 0),
                 SMJS_FUNCTION_SPEC("addTextTrack",          html_media_addTextTrack, 1),
+				SMJS_FUNCTION_SPEC("addEventListener",		html_media_event_add_listener, 3),
+				SMJS_FUNCTION_SPEC("removeEventListener",	html_media_event_remove_listener, 3),
+				SMJS_FUNCTION_SPEC("dispatchEvent",			html_media_event_dispatch, 1),
                 SMJS_FUNCTION_SPEC(0, 0, 0)
             };
             JSObject *elt_proto = dom_js_get_element_proto(scene->svg_js->js_ctx);

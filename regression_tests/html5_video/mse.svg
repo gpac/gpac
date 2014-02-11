@@ -1,6 +1,6 @@
 <svg width="800" height="800" viewBox="0 0 400 400" 
      xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-	 onwheel="(evt.wheelDelta > 0 ? p1.switchUp() : p1.switchDown());">
+	 >
 
   <defs>
     <solidColor id="backColor" solid-color="blue"/>

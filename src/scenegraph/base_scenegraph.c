@@ -62,9 +62,7 @@ GF_SceneGraph *gf_sg_new()
 
 #ifndef GPAC_DISABLE_SVG
 	tmp->dom_evt_mx = gf_mx_new("DOMEvent");
-	tmp->dom_evt.evt_list = gf_list_new();
-	tmp->dom_evt.ptr = tmp;
-	tmp->dom_evt.ptr_type = GF_DOM_EVENT_DOCUMENT;
+	tmp->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_DOCUMENT, tmp);
 	tmp->xlink_hrefs = gf_list_new();
 	tmp->smil_timed_elements = gf_list_new();
 	tmp->modified_smil_timed_elements = gf_list_new();
@@ -140,7 +138,8 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_sg_reset(sg);
 
 #ifndef GPAC_DISABLE_SVG
-	gf_list_del(sg->dom_evt.evt_list);
+
+	gf_dom_event_target_del(sg->dom_evt);
 	gf_list_del(sg->xlink_hrefs);
 	gf_list_del(sg->smil_timed_elements);
 	gf_list_del(sg->modified_smil_timed_elements);
@@ -337,11 +336,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	gf_mx_p(sg->dom_evt_mx);
 	/*remove listeners attached to the doc*/
-	while (gf_list_count(sg->dom_evt.evt_list)) {
-		GF_Node *n = gf_list_get(sg->dom_evt.evt_list, 0);
-		gf_dom_listener_del(n, &sg->dom_evt);
-	}
-
+	gf_dom_event_remove_all_listeners(sg->dom_evt);
 	/*flush any pending add_listener*/
 	gf_dom_listener_reset_defered(sg);
 	gf_mx_v(sg->dom_evt_mx);
@@ -1204,6 +1199,7 @@ void gf_node_setup(GF_Node *p, u32 tag)
 	GF_SAFEALLOC(p->sgprivate, NodePriv);
 	p->sgprivate->tag = tag;
 	p->sgprivate->flags = GF_SG_NODE_DIRTY;
+	//GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
 }
 
 GF_Node *gf_sg_new_base_node()
@@ -1521,12 +1517,8 @@ void gf_node_free(GF_Node *node)
 		}
 #ifndef GPAC_DISABLE_SVG
 		if (node->sgprivate->interact->dom_evt) {
-			while (gf_list_count(node->sgprivate->interact->dom_evt->evt_list)) {
-				GF_Node *n = gf_list_get(node->sgprivate->interact->dom_evt->evt_list, 0);
-				gf_dom_listener_del(n, node->sgprivate->interact->dom_evt);
-			}
-			gf_list_del(node->sgprivate->interact->dom_evt->evt_list);
-			gf_free(node->sgprivate->interact->dom_evt);
+			gf_dom_event_remove_all_listeners(node->sgprivate->interact->dom_evt);
+			gf_dom_event_target_del(node->sgprivate->interact->dom_evt);
 		}
 		if (node->sgprivate->interact->animations) {
 			gf_list_del(node->sgprivate->interact->animations);

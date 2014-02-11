@@ -1543,6 +1543,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_LOAD_START);
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/

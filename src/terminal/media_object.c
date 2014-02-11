@@ -543,7 +543,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
-
+	gf_term_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
+			
 	gf_odm_lock(mo->odm, 0);
 	if (codec->direct_vout) return codec->CB->pY;
 	return mo->frame;
@@ -1208,29 +1209,16 @@ GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo)
 	return mo->odm->subscene->graph;
 }
 
-static GF_DOMEventTarget *gf_mo_event_target_add(GF_MediaObject *mo, GF_DOMEventTargetType type, void *obj)
-{
-    GF_DOMEventTarget *target;
-    GF_SAFEALLOC(target, GF_DOMEventTarget);
-    target->ptr_type = type;
-    target->evt_list = gf_list_new();
-    target->ptr = obj;
-    gf_list_add(mo->evt_targets, target);
-    return target;
-}
+#include <gpac/html5_media.h>
 
 GF_EXPORT
 GF_DOMEventTarget *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n)
 {
+    GF_DOMEventTarget *target = NULL;
     if (!mo ||!n) return NULL;
-    return gf_mo_event_target_add(mo, GF_DOM_EVENT_NODE, n);
-}
-
-GF_EXPORT
-GF_DOMEventTarget *gf_mo_event_target_add_object(GF_MediaObject *mo, void *obj)
-{
-    if (!mo || !obj) return NULL;
-    return gf_mo_event_target_add(mo, GF_DOM_EVENT_JS, obj);
+	target = gf_html_media_get_event_target_from_node(n);
+	gf_list_add(mo->evt_targets, target);
+	return target;
 }
 
 GF_Err gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target)
@@ -1245,8 +1233,6 @@ GF_Err gf_mo_event_target_remove_by_index(GF_MediaObject *mo, u32 i)
 	GF_DOMEventTarget *target;
     if (!mo) return GF_BAD_PARAM;
 	target = (GF_DOMEventTarget *)gf_list_get(mo->evt_targets, i);
-	if (target && target->evt_list) gf_list_del(target->evt_list);
-	if (target) gf_free(target);
     gf_list_rem(mo->evt_targets, i);
     return GF_OK;
 }
@@ -1257,6 +1243,7 @@ GF_Node *gf_mo_event_target_enum_node(GF_MediaObject *mo, u32 *i)
     if (!mo || !i) return NULL;
     target = (GF_DOMEventTarget *)gf_list_enum(mo->evt_targets, i);
     if (!target) return NULL;
+	//if (target->ptr_type != GF_DOM_EVENT_TARGET_NODE) return NULL;
     return (GF_Node *)target->ptr;
 }
 
@@ -1281,8 +1268,6 @@ GF_Err gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node)
     for (i = 0; i < count; i++) {
         GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(mo->evt_targets, i);
         if (target->ptr == node) {
-			if (target && target->evt_list) gf_list_del(target->evt_list);
-			if (target) gf_free(target);
             gf_list_del_item(mo->evt_targets, target);
             return GF_OK;
         }
@@ -1293,7 +1278,7 @@ GF_Err gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node)
 GF_EXPORT
 GF_Node *gf_event_target_get_node(GF_DOMEventTarget *target)
 {
-    if (target && (target->ptr_type == GF_DOM_EVENT_NODE)) {
+    if (target && (target->ptr_type == GF_DOM_EVENT_TARGET_HTML_MEDIA)) {
         return (GF_Node *)target->ptr;
     }
     return NULL;
@@ -1319,6 +1304,7 @@ u32 gf_mo_event_target_count(GF_MediaObject *mo)
 
 void gf_mo_del(GF_MediaObject *mo)
 {
+	assert(gf_list_count(mo->evt_targets) == 0);
     gf_list_del(mo->evt_targets);
     gf_free(mo);
 }

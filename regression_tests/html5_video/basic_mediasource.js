@@ -21,3 +21,5 @@ function init()
 	alert("MediaSource object: "+ms);
 	enumerate(ms);
 }
+
+document.documentElement.addEventListener("load", init);

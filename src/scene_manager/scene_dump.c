@@ -2895,7 +2895,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 {
 	GF_ChildNodeItem *list;
 	char attName[100], *attValue, attID[100];
-	u32 i, count, nID;
+	u32 nID;
 	SVG_Element *svg = (SVG_Element *)n;
 	GF_FieldInfo info;
 	SVGAttribute *att;
@@ -3002,32 +3002,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		att = att->next;
 	}
 
-	/*re-translate dynamically created listeners/handlers */
-	if (n->sgprivate->interact && n->sgprivate->interact->dom_evt) {
-		count = gf_list_count(n->sgprivate->interact->dom_evt->evt_list);
-		for (i=0; i<count; i++) {
-			SVG_handlerElement *hdl;
-			GF_Node *listener = (GF_Node *)gf_list_get(n->sgprivate->interact->dom_evt->evt_list, i);
-			/*this listener has been created for internal use*/
-			if (listener->sgprivate->parents) continue;
-			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 0, 0, &info)==GF_OK) {
-				GF_DOMText *txt;
-				hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
-				if (!hdl) continue;
-				/*this handler was declared in the graph*/
-				if (hdl->sgprivate->parents 
-					&& (hdl->sgprivate->parents->next || (hdl->sgprivate->parents->node != listener))
-				)
-					continue;
-
-				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
-				if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) continue;
-				if (gf_node_get_attribute_by_tag((GF_Node*)hdl, TAG_XMLEV_ATT_event, 0, 0, &info)==GF_OK) {
-					fprintf(sdump->trace, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
-				}
-			}
-		}
-	}
+	gf_dom_event_dump_listeners(n, sdump->trace);
 	if (svg->children) {
 		fprintf(sdump->trace, ">");
 	} else {

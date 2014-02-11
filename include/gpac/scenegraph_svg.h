@@ -160,7 +160,7 @@ typedef struct __dom_full_node
 	u32 ns;
 } GF_DOMFullNode;
 
-enum
+typedef enum
 {
 	/*XMLNS is undefined*/
 	GF_XMLNS_UNDEFINED = 0,
@@ -175,19 +175,19 @@ enum
     GF_XMLNS_SVG_GPAC_EXTENSION,
 
 	/*any other namespace uses the CRC32 of the namespace as an identifier*/
-};
+} GF_NamespaceType;
 
 /*returns the built-in XMLNS id for this namespace if known, otherwise returns GF_XMLNS_UNDEFINED*/
-u32 gf_xml_get_namespace_id(char *name);
+GF_NamespaceType gf_xml_get_namespace_id(char *name);
 
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
 GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);
 u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);
 u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name);
-const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id);
+const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, GF_NamespaceType xmlns_id);
 
-u32 gf_xml_get_element_namespace(GF_Node *n);
-const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id);
+GF_NamespaceType gf_xml_get_element_namespace(GF_Node *n);
+const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id);
 
 void gf_xml_push_namespaces(GF_DOMNode *elt);
 void gf_xml_pop_namespaces(GF_DOMNode *elt);
@@ -235,20 +235,10 @@ typedef struct
 /*creates a new updates node and register node with parent*/
 GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent);
 
-typedef struct
-{
-	Bool bufferValid;
-	u32 level;
-	Fixed remaining_time;
-	u16 status;
-	const char *session_name;
-	u64 loaded_size, total_size;
-} GF_DOMMediaEvent;
-
 /* 
 	DOM event handling
 */
-enum
+typedef enum
 {
 	GF_DOM_EVENT_PHASE_CAPTURE = 1,
 	GF_DOM_EVENT_PHASE_AT_TARGET = 2,
@@ -261,31 +251,47 @@ enum
 	GF_DOM_EVENT_PHASE_CANCEL_ALL = 1<<6,
 	/*special phase indicating the default action of the event is prevented*/
 	GF_DOM_EVENT_PHASE_PREVENT = 1<<7,
-};
+} GF_DOMEventPhase;
 
 /*possible event targets*/
 typedef enum
 {
-	GF_DOM_EVENT_NODE,
-	GF_DOM_EVENT_DOCUMENT,
-	GF_DOM_EVENT_JS
+	GF_DOM_EVENT_TARGET_NODE,
+	GF_DOM_EVENT_TARGET_DOCUMENT,
+	GF_DOM_EVENT_TARGET_HTML_MEDIA,
+	GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE,
+	GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST,
+	GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER,
+	GF_DOM_EVENT_TARGET_XHR,
 } GF_DOMEventTargetType;
 
+
+/* Structure representing the DOM EventTarget Interface */
 typedef struct 
 {
-	GF_List *evt_list;
-	void *ptr;
-	GF_DOMEventTargetType ptr_type;
-	GF_List *listeners;
+	GF_List *listeners;				// list of SVG Listener nodes attached to this Event Target
+	void *ptr;						// pointer to the object implementing the DOM Event Target Interface
+	GF_DOMEventTargetType ptr_type; // type of the object implementing the DOM Event Target Interface
 } GF_DOMEventTarget;
 
+GF_DOMEventTarget *gf_dom_event_target_new(GF_DOMEventTargetType type, void *obj);
 GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target);
-
 
 typedef struct
 {
+	Bool bufferValid;
+	u32 level;
+	Fixed remaining_time;
+	u16 status;
+	const char *session_name;
+	u64 loaded_size, total_size;
+} GF_DOMMediaEvent;
+
+/* Structure representing a DOM Event */
+typedef struct
+{
 	/*event type, as defined in <gpac/events.h>*/
-	u32 type;
+	GF_EventType type;
 	/*event phase type, READ-ONLY
 	0: at target, 1: bubbling, 2: capturing , 3: canceled
 	*/
@@ -297,7 +303,7 @@ typedef struct
 	
 	/*we don't use a GF_DOMEventTarget here since the structure is only created when events are attached */
 	void *target;
-	u32 target_type;
+	GF_DOMEventTargetType target_type;
 
 	GF_DOMEventTarget *currentTarget;
 	Double timestamp;
@@ -356,11 +362,11 @@ use_stack: a list of parent node/use node pairs for bubbling phase - may be NULL
 */
 Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack);
 
-u32 gf_dom_event_type_by_name(const char *name);
-const char *gf_dom_event_get_name(u32 type);
+GF_EventType gf_dom_event_type_by_name(const char *name);
+const char *gf_dom_event_get_name(GF_EventType type);
 
-const char *gf_dom_get_key_name(u32 key_identifier);
-u32 gf_dom_get_key_type(char *key_name);
+const char *gf_dom_get_key_name(GF_KeyCode key_identifier);
+GF_KeyCode gf_dom_get_key_type(char *key_name);
 
 
 /*listener is simply a node added to the node events list. 
@@ -379,11 +385,6 @@ event list when destructed.*/
 	/* text content of the callback */ \
 	char *callback; 
 
-typedef struct __dom_listener
-{
-    GF_DOM_BASE_LISTENER
-} GF_DOMListener;
-
 typedef struct __xml_ev_handler 
 {
 	GF_DOM_BASE_NODE
@@ -391,10 +392,9 @@ typedef struct __xml_ev_handler
 	GF_DOM_BASE_LISTENER
 } GF_DOMHandler;
 
-
-
-enum
+typedef enum
 {
+	GF_DOM_EVENT_UNKNOWN_CATEGORY,
 	/*basic DOM events*/
 	GF_DOM_EVENT_DOM = 1,
 	/*DOM mutation events*/
@@ -417,22 +417,18 @@ enum
 	GF_DOM_EVENT_LASER = 1<<9,
 	/*HTML Media events*/
 	GF_DOM_EVENT_MEDIA = 1<<10,
-#if 0
-	/*MediaAccess events*/
-	GF_DOM_EVENT_MEDIA_ACCESS = 1<<11,
-#endif
 	/*HTML Media Source events*/
-	GF_DOM_EVENT_MEDIASOURCE = 1<<12,
+	GF_DOM_EVENT_MEDIASOURCE = 1<<11,
 
 	/*fake events - these events are NEVER fired*/
 	GF_DOM_EVENT_FAKE = 1<<31,
-};
-u32 gf_dom_event_get_category(u32 type);
+} GF_DOMEventCategory;
+GF_DOMEventCategory gf_dom_event_get_category(GF_EventType type);
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg);
 u32 gf_node_get_dom_event_filter(GF_Node *node);
 
-void gf_sg_register_event_type(GF_SceneGraph *sg, u32 type);
-void gf_sg_unregister_event_type(GF_SceneGraph *sg, u32 type);
+void gf_sg_register_event_type(GF_SceneGraph *sg, GF_DOMEventCategory category);
+void gf_sg_unregister_event_type(GF_SceneGraph *sg, GF_DOMEventCategory category);
 
 /*adds a listener to the node.
 The listener node is NOT registered with the node (it may very well not be a direct child of the node)
@@ -445,7 +441,7 @@ GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override
 Listener/handler are stored at the node level*/
-GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 event_param);
+GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, GF_EventType event_type, u32 event_param);
 
 
 void gf_node_register_iri(GF_SceneGraph *sg, XMLRI *iri);

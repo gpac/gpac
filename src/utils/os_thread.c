@@ -554,7 +554,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 		if (retCode == EINVAL)
 		  GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
 		if (retCode == EDEADLK)
-		  GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutext %p=%s] Deadlock detected.\n", mx, mx->log_name));
+		  GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
 #endif /* GPAC_DISABLE_LOG */
 		assert(0);
 		return 0;

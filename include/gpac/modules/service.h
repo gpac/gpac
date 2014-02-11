@@ -110,7 +110,7 @@ typedef enum
 
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
-	/*When using DASH, query the media range of the url passed in COnnectService - this is only used for local 
+	/*When using DASH, query the media range of the url passed in ConnectService - this is only used for local 
 	playback/validation of DASH sequences*/
 	GF_NET_SERVICE_QUERY_INIT_RANGE,
 	/* When using proxy between an input module and the terminal, exchange status using this command: input -> proxy */
@@ -122,6 +122,11 @@ typedef enum
 
 	/*query screen capabilities*/
 	GF_NET_SERVICE_MEDIA_CAP_QUERY,
+
+	/* pause all channels (send from a pull-mode module to the terminal) */
+	GF_NET_SERVICE_PAUSE_CHANNELS,
+	/* unpause all channels */
+	GF_NET_SERVICE_UNPAUSE_CHANNELS,
 
 } GF_NET_CHAN_CMD;
 
@@ -419,7 +424,7 @@ typedef struct
 
 typedef union __netcommand
 {
-	u32 command_type;
+	GF_NET_CHAN_CMD command_type;
 	GF_NetComBase base;
 	GF_NetComPlay play;
 	GF_NetComConfig cfg;

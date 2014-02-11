@@ -38,17 +38,16 @@ extern "C" {
 
 typedef enum 
 {
-    MEDIA_SOURCE_CLOSED = 0,
-    MEDIA_SOURCE_OPEN   = 1,
-    MEDIA_SOURCE_ENDED  = 2,
+    MEDIA_SOURCE_READYSTATE_CLOSED = 0,
+    MEDIA_SOURCE_READYSTATE_OPEN   = 1,
+    MEDIA_SOURCE_READYSTATE_ENDED  = 2,
 } GF_HTML_MediaSource_ReadyState;
 
 typedef enum 
 {
-    MEDIA_SOURCE_ABORT_MODE_NONE            = 0,
-    MEDIA_SOURCE_ABORT_MODE_CONTINUATION    = 1,
-    MEDIA_SOURCE_ABORT_MODE_OFFSET          = 2,
-} GF_HTML_MediaSource_AbortMode;
+    MEDIA_SOURCE_APPEND_MODE_SEGMENTS	= 0,
+    MEDIA_SOURCE_APPEND_MODE_SEQUENCE   = 1
+} GF_HTML_MediaSource_AppendMode;
 
 typedef enum 
 {
@@ -75,9 +74,9 @@ typedef struct
 
     GF_HTML_MediaSource_AppendState append_state;
     Bool                    buffer_full_flag;
-    GF_HTML_MediaSource_AbortMode   abort_mode;
-    double                  continuation_timestamp;
-    Bool                    continuation_timestamp_flag;
+    GF_HTML_MediaSource_AppendMode   append_mode;
+    double                  group_start_timestamp;
+    Bool                    group_start_timestamp_flag;
     double                  highest_end_timestamp;
     Bool                    highest_end_timestamp_set;
     Bool                    first_init_segment;
@@ -111,6 +110,8 @@ typedef struct
     GF_Thread               *parser_thread;
     GF_Thread               *remove_thread;
 
+	/* Object used to fire JavaScript events to */
+	GF_DOMEventTarget		*evt_target;
 } GF_HTML_SourceBuffer;
 
 typedef struct
@@ -119,6 +120,11 @@ typedef struct
     JSObject                *_this;
 
     GF_List                 *list;
+
+	struct _html_mediasource *parent;
+
+	/* Object used to fire JavaScript events to */
+	GF_DOMEventTarget		*evt_target;
 } GF_HTML_SourceBufferList;
 
 typedef enum
@@ -157,20 +163,27 @@ typedef struct _html_mediasource
        */
     GF_ClientService *service;
 
+	/* SceneGraph to be used before the node is actually attached */
+    GF_SceneGraph *sg;
+
     /* Node the MediaSource is attached to */
     GF_Node *node;
 
     /* object implementing Event Target Interface */
-    GF_DOMEventTarget *target;
+    GF_DOMEventTarget *evt_target;
 } GF_HTML_MediaSource;
 
 GF_HTML_MediaSource		*gf_mse_media_source_new();
 void					gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js);
+void					gf_mse_mediasource_open(GF_HTML_MediaSource *ms, struct _mediaobj *mo);
+void					gf_mse_mediasource_close(GF_HTML_MediaSource *ms);
+void					gf_mse_mediasource_end(GF_HTML_MediaSource *ms);
 
 GF_HTML_SourceBuffer   *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource);
 GF_Err                  gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime);
+void					gf_mse_add_source_buffer(GF_HTML_MediaSource *ms, GF_HTML_SourceBuffer *sb);
 void                    gf_mse_source_buffer_del(GF_HTML_SourceBuffer *sb);
-GF_Err                  gf_mse_source_buffer_abort(GF_HTML_SourceBuffer *sb, GF_HTML_MediaSource_AbortMode mode);
+GF_Err                  gf_mse_source_buffer_abort(GF_HTML_SourceBuffer *sb);
 void                    gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_ArrayBuffer *buffer);
 void                    gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb);
 u32                     gf_mse_source_buffer_remove(void *par);

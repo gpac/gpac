@@ -757,6 +757,11 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	nb_attributes = 0;
 #endif
 
+	/*set the root of the SVG tree BEFORE processing events in order to have it setup for script init (e.g. load events, including in root svg)*/
+	if ((tag == TAG_SVG_svg) && !parser->has_root) {
+		svg_init_root_element(parser, elt);
+	}
+
 	/*parse all att*/
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
@@ -886,6 +891,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (evtType != GF_EVENT_UNKNOWN) {
 				SVG_handlerElement *handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
 				gf_dom_add_text_node((GF_Node *)handler, gf_strdup(att->value) );
+				gf_node_init((GF_Node *)handler);
 				continue;
 			} 
 			svg_report(parser, GF_OK, "Skipping unknown event handler %s on node %s", att->name, name);
@@ -931,11 +937,6 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 		/* all other attributes (??? failed to be created) should fall in this category */
 		svg_report(parser, GF_OK, "Skipping attribute %s on node %s", att->name, name);
-	}
-
-	/*set the root of the SVG tree BEFORE processing events in order to have it setup for script init (e.g. load events)*/
-	if ((tag == TAG_SVG_svg) && !parser->has_root) {
-		svg_init_root_element(parser, elt);
 	}
 
 	/* When a handler element specifies the event attribute, an implicit listener is defined */

@@ -36,7 +36,7 @@
 */
 
 /*events*/
-enum {
+typedef enum {
 
 	/******************************************************
 
@@ -116,21 +116,7 @@ enum {
 	/*pseudo-event, only used in LASeR coding*/
 	GF_EVENT_EXECUTION_TIME,
 
-	/*MediaAccess events - cf http://www.w3.org/TR/MediaAccessEvents*/
-#if 0
-	GF_EVENT_MEDIA_BEGIN_SESSION_SETUP,
-	GF_EVENT_MEDIA_END_SESSION_SETUP,
-	GF_EVENT_MEDIA_DATA_REQUEST,
-	GF_EVENT_MEDIA_PLAYABLE,
-	GF_EVENT_MEDIA_NOT_PLAYABLE,
-	GF_EVENT_MEDIA_DATA_PROGRESS,
-	GF_EVENT_MEDIA_END_OF_DATA,
-	GF_EVENT_MEDIA_STOP,
-	GF_EVENT_MEDIA_ERROR,
-#endif
-
 	/*HTML5 media events*/
-
 	GF_EVENT_MEDIA_SETUP_BEGIN,	/*not HTML5 but should be :)*/
 	GF_EVENT_MEDIA_SETUP_DONE,	/*not HTML5 but should be :)*/
 	GF_EVENT_MEDIA_LOAD_START,
@@ -156,10 +142,11 @@ enum {
 	GF_EVENT_HTML_MSE_SOURCE_OPEN,
 	GF_EVENT_HTML_MSE_SOURCE_ENDED,
 	GF_EVENT_HTML_MSE_SOURCE_CLOSE,
-	GF_EVENT_HTML_MSE_APPEND_START,
-	GF_EVENT_HTML_MSE_APPEND_END,
-	GF_EVENT_HTML_MSE_APPEND_ERROR,
-	GF_EVENT_HTML_MSE_APPEND_ABORT,
+	GF_EVENT_HTML_MSE_UPDATE_START,
+	GF_EVENT_HTML_MSE_UPDATE,
+	GF_EVENT_HTML_MSE_UPDATE_END,
+	GF_EVENT_HTML_MSE_UPDATE_ERROR,
+	GF_EVENT_HTML_MSE_UPDATE_ABORT,
 	GF_EVENT_HTML_MSE_ADD_SOURCE_BUFFER,
 	GF_EVENT_HTML_MSE_REMOVE_SOURCE_BUFFER,
 
@@ -242,10 +229,10 @@ enum {
     /* Events for Keyboad */
     GF_EVENT_TEXT_EDITING_START,
     GF_EVENT_TEXT_EDITING_END
-};
+} GF_EventType;
 
 /*GPAC/DOM3 key codes*/
-enum {
+typedef enum {
 	GF_KEY_UNIDENTIFIED = 0,
 	GF_KEY_ACCEPT = 1, /* "Accept"    The Accept (Commit) key.*/
 	GF_KEY_AGAIN, /* "Again"  The Again key.*/
@@ -460,11 +447,11 @@ enum {
 
 	/*for joystick handling*/
 	GF_KEY_JOYSTICK
-};
+} GF_KeyCode;
 
 
 /*key modifiers state - set by terminal (not set by video driver)*/
-enum
+typedef enum
 {
 	GF_KEY_MOD_SHIFT = (1),
 	GF_KEY_MOD_CTRL = (1<<2),
@@ -473,7 +460,7 @@ enum
 	GF_KEY_EXT_NUMPAD = (1<<4),
 	GF_KEY_EXT_LEFT = (1<<5),
 	GF_KEY_EXT_RIGHT = (1<<6)
-};
+} GF_KeyModifier;
 
 /*sensor signaling*/
 enum

@@ -334,7 +334,7 @@ static void init_reader(ISOMChannel *ch)
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
-			u32 net_status;
+			GF_NetIOStatus net_status;
 			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 			if (net_status == GF_NETIO_DATA_EXCHANGE) {
 				ch->last_state = GF_OK;
@@ -474,7 +474,7 @@ fetch_next:
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 			if (ch->owner->dnload) {
-				u32 net_status;
+				GF_NetIOStatus net_status;
 				gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 				if (net_status == GF_NETIO_DATA_EXCHANGE) {
 					ch->last_state = GF_OK;
@@ -500,8 +500,12 @@ fetch_next:
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
-		if (ch->wait_for_segment_switch && ch->is_pulling)
+		if (ch->wait_for_segment_switch && ch->is_pulling) {
 			isor_segment_switch_or_refresh(ch->owner, 0);
+			if (ch->owner->seg_opened) {
+				return isor_reader_get_sample(ch);
+			}
+		}
 		return;
 	}
 	ch->last_state = GF_OK;

@@ -301,7 +301,9 @@ static void gf_smil_mark_modified(SMIL_Timing_RTI *rti, Bool remove)
 	if (remove) {
 		gf_list_del_item(sg->modified_smil_timed_elements, rti);
 	} else {
-		gf_list_add(sg->modified_smil_timed_elements, rti);
+		if (gf_list_find(sg->modified_smil_timed_elements, rti) == -1) {
+			gf_list_add(sg->modified_smil_timed_elements, rti);
+		}
 	}
 }
 
