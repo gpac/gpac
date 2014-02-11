@@ -44,7 +44,7 @@ static Bool MSE_CanHandleURL(GF_InputService *plug, const char *url)
 {
     if (!plug || !url)
       return GF_FALSE;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Can Handle URL request from terminal for URL '%s'\n", url));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received CanHandleURL request from terminal for URL '%s'\n", url));
     if (!strncmp(url, "blob:", 5)) {
         return GF_TRUE;
     } else {
@@ -126,7 +126,7 @@ static GF_Err MSE_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
             return GF_BAD_PARAM;
         } else {
             track->channel = channel;
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Channel Connection (%p) request from terminal for URL '%s'\n", channel, url));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Channel Connection request on Service %p from terminal for URL '%s#%s'\n", channel, msein->mediasource->blobURI, url));
             return sb->parser->ConnectChannel(sb->parser, channel, url, upstream);
         }
     } else {
@@ -144,7 +144,7 @@ static GF_Err MSE_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	if (track) {
 		track->channel = NULL;
 	}
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Disconnect channel (%p) request from terminal \n", channel));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Disconnect channel request on Service %p from terminal for channel %p\n", msein->mediasource->service, channel));
     return sb->parser->DisconnectChannel(sb->parser, channel);
 }
 
@@ -154,7 +154,7 @@ static GF_Err MSE_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Service Connection request (%p) from terminal for URL '%s'\n", serv, url));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Service Connection request on Service %p from terminal for URL '%s'\n", serv, url));
     if (!msein|| !serv || !url) {
 		return GF_BAD_PARAM;
 	} else {
@@ -172,7 +172,8 @@ static GF_Err MSE_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 /* There is no service description (no MPEG-4 IOD) for this module, the associated scene will be generated dynamically */
 static GF_Descriptor *MSE_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Service Description request from terminal for URL '%s'\n", sub_url));
+    GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Service Description request on Service %p from terminal for URL '%s'\n", msein->mediasource->service, sub_url));
     return NULL;
 }
 
@@ -181,7 +182,7 @@ static GF_Err MSE_CloseService(GF_InputService *plug)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
     assert( msein );
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Close Service (%p) request from terminal\n", msein->mediasource->service));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Close Service request on Service %p from terminal for URL '%s'\n", msein->mediasource->service, msein->mediasource->blobURI));
 	if (msein->mediasource) {
 		gf_term_on_disconnect(msein->mediasource->service, NULL, GF_OK);
 		gf_mse_mediasource_del(msein->mediasource, GF_FALSE);
@@ -202,10 +203,10 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     /* channel independant commands */
     switch (com->command_type) {
     case GF_NET_SERVICE_INFO:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Info command from terminal on Service (%p)\n", msein->mediasource->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Info command from terminal on Service %p for URL '%s'\n", msein->mediasource->service, msein->mediasource->blobURI));
         return GF_NOT_SUPPORTED;
     case GF_NET_SERVICE_HAS_AUDIO:
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Has Audio command from terminal on Service (%p)\n", msein->mediasource->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received HasAudio command from terminal on Service %p for URL '%s'\n", msein->mediasource->service, msein->mediasource->blobURI));
         return GF_OK;
     case GF_NET_SERVICE_QUALITY_SWITCH:
         return GF_NOT_SUPPORTED;
@@ -214,12 +215,12 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     }
 
     if (!com->base.on_channel) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received unknown command %d from terminal on Service (%p)\n", com->command_type, msein->mediasource->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received unknown command %d from terminal on Service %p for URL '%s'\n", com->command_type, msein->mediasource->service, msein->mediasource->blobURI));
 		return GF_NOT_SUPPORTED;
 	}
     sb = MSE_GetSourceBufferForChannel(msein->mediasource, com->base.on_channel);
     if (!sb || !sb->parser) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] SourceBuffer not ready on Service (%p)\n", msein->mediasource->service));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] SourceBuffer not ready on Service %p for URL '%s'\n", msein->mediasource->service, msein->mediasource->blobURI));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -303,7 +304,7 @@ static GF_Err MSE_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 static Bool MSE_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
     GF_MSE_In *msein = (GF_MSE_In*) plug->priv;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Can Handle URL In Service (%p) request from terminal for URL '%s'\n", msein->mediasource->service, url));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received CanHandleURLInService request on service %p from terminal for URL '%s'\n", msein->mediasource->service, url));
     if (!plug || !plug->priv) return GF_FALSE;
 	if (!strcmp(url, msein->mediasource->blobURI)) {
 		return GF_TRUE;

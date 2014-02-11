@@ -572,20 +572,24 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     DownloadedCacheEntry entry;
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags & GF_NETIO_SESSION_NOT_CACHED ? "no" : "yes" ));
     gf_dm_remove_cache_entry_from_session(sess);
-    entry = gf_dm_find_cached_entry_by_url(sess);
-    if (!entry) {
-		entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? 1 : 0);
-        gf_mx_p( sess->dm->cache_mx );
-        gf_list_add(sess->dm->cache_entries, entry);
-        gf_mx_v( sess->dm->cache_mx );
-		sess->is_range_continuation = 0;
-    }
-    assert( entry );
-    sess->cache_entry = entry;
-	sess->reused_cache_entry = 	gf_cache_is_in_progress(entry);
-	assert(!sess->reused_cache_entry);
-    gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
-    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
+	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
+		sess->cache_entry = NULL;
+	} else {
+		entry = gf_dm_find_cached_entry_by_url(sess);
+		if (!entry) {
+			entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? 1 : 0);
+			gf_mx_p( sess->dm->cache_mx );
+			gf_list_add(sess->dm->cache_entries, entry);
+			gf_mx_v( sess->dm->cache_mx );
+			sess->is_range_continuation = 0;
+		}
+		assert( entry );
+		sess->cache_entry = entry;
+		sess->reused_cache_entry = 	gf_cache_is_in_progress(entry);
+		assert(!sess->reused_cache_entry);
+		gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
+	}
 }
 
 void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url)
@@ -2401,7 +2405,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     assert( sess->status == GF_NETIO_WAIT_FOR_REPLY );
     bytesRead = res = 0;
     new_location = NULL;
-    sess->use_cache_file = 1;
+	if (!(sess->flags & GF_NETIO_SESSION_NOT_CACHED)) {
+	    sess->use_cache_file = 1;
+	}
 
 	//always set start time to the time at last attempt reply parsing
     sess->start_time = gf_sys_clock();
@@ -2528,9 +2534,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			if (rsp_code<300)
 				gf_cache_set_content_length(sess->cache_entry, ContentLength);
 			
-			/*Ivica patch*/
-			if (ContentLength==0)
-				sess->use_cache_file = 0;
         }
         else if (!stricmp(hdrp->name, "Content-Type")) {
             char * mime_type = gf_strdup(hdrp->value);
