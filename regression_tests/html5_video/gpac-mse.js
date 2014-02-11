@@ -116,12 +116,12 @@ Player.prototype.updateInfo = function() {
     }
 	this.ui.playLabel.textContent = nowVideo;
 	this.ui.playLabel.setAttribute("x", nowVideo/end*this.ui.bufferedRect.max);
-	this.ui.playBar.setAttribute("x", nowVideo/end*this.ui.bufferedRect.max);
+	this.ui.playBar.setAttribute("x", 10+nowVideo/end*this.ui.bufferedRect.max);
 	this.ui.startLabel.textContent = start;
 	this.ui.endLabel.textContent = end;
-	this.ui.startLabel.setAttribute("x", start/end*this.ui.bufferedRect.max);
-	this.ui.bufferedRect.setAttribute("x", start/end*this.ui.bufferedRect.max);
-	this.ui.bufferedRect.setAttribute("width", (end - start)/end*this.ui.bufferedRect.max);
+	this.ui.startLabel.setAttribute("x", 10+start/end*this.ui.bufferedRect.max);
+	this.ui.bufferedRect.setAttribute("x", 10+start/end*this.ui.bufferedRect.max);
+	this.ui.bufferedRect.setAttribute("width", (end - start)/end*this.ui.bufferedRect.max-10);
 }
 
 Player.prototype.updateDownloadInfo = function(index, url, done) {
@@ -204,7 +204,7 @@ Player.prototype.getNextSegment = function () {
 }
 
 function onDone(e) {
-    if (this.readyState == this.DONE) {
+    if (this.readyState == 4/*this.DONE*/) {
         this.player.updateDownloadInfo(this.player.fileIndexReordered, this.url, true);
         var arraybuffer = this.response;
         reportMessage("[video "+this.player.v.getAttribute("id")+"] Received ArrayBuffer (size: " + arraybuffer.byteLength + ")");
@@ -213,10 +213,12 @@ function onDone(e) {
             /* if there is a discontinuity in the file index, we need to inform the SourceBuffer */
             if (this.player.prevFileIndex != 0 && this.player.fileIndexReordered != this.player.prevFileIndex + 1) {
                 this.player.sb.abort("continuation");
+				reportMessage("[video "+this.player.v.getAttribute("id")+"] Changing append mode");
             }
             this.player.prevFileIndex = this.player.fileIndexReordered;
             /* we assume everything will be fine with this append */
             this.player.sb.appendBuffer(arraybuffer);
+			reportMessage("[video "+this.player.v.getAttribute("id")+"] Appending Buffer ArrayBuffer (size: " + arraybuffer.byteLength + ")");
         }
         this.player.url = null;
 		if (this.qualityChangeRequested != 0) {
@@ -230,8 +232,7 @@ function onDone(e) {
 
 Player.prototype.onSourceOpen = function (event) {
     reportMessage("[video "+this.v.getAttribute("id")+"] MediaSource opened");
-    /* GPAC Hack: since the event is not targeted to the MediaSource, we need to get the MediaSource back */
-    var ms = event.target.ms;
+    var ms = event.target;
 
     reportMessage("[video "+this.v.getAttribute("id")+"] Adding Source Buffer of type video/mp4 to the MediaSource");
     ms.player.sb = ms.addSourceBuffer("video/mp4");
@@ -243,6 +244,7 @@ Player.prototype.checkBufferLevel = function() {
     /* don't download a new segment if:
     - the SourceBuffer is not created
     - there is already a download going on */
+	reportMessage("[video "+this.v.getAttribute("id")+"] Checking buffer level on SourceBuffer "+this.sb+" "+this.url);
     if (this.sb != null && this.url == null) {
         if (this.sb.buffered.length > 0) {
 			if (this.v.currentTime >= this.sb.buffered.end(0)) {
@@ -259,7 +261,9 @@ Player.prototype.checkBufferLevel = function() {
             if (!this.sb.updating) {
                 reportMessage("[video "+this.v.getAttribute("id")+"] buffered attribute has no data, downloading new segment");
                 this.getNextSegment();
-            }
+            } else {
+                reportMessage("[video "+this.v.getAttribute("id")+"] Source Buffer still updating");
+			}
         }
     }
 }
@@ -347,12 +351,8 @@ function Player(vId, iId, aId, segmentFiles, segmentOrder) {
     reportMessage("[video "+vId+"] Attaching Media Source " + bloburl + " to video element");
 
     this.v = document.getElementById(vId);
-    /* GPAC Hack: the event should be dispatched to the MediaSource object not to the video */
-    this.v.addEventListener("sourceopen", this.onSourceOpen.bind(this));
+    this.ms.addEventListener("sourceopen", this.onSourceOpen.bind(this));
     this.v.src = bloburl;
-
-    /* GPAC hack to retrieve the MediaSource from the video when the sourceopen event is dispatched to the video */
-    this.v.ms = this.ms;
 
 	return this;
 }

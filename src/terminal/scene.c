@@ -219,14 +219,16 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 				obj = odm->mo;
 				while (gf_mo_event_target_count(obj)) {
 					GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, 0));
-					switch (gf_node_get_tag(n)) {
-						case TAG_MPEG4_InputSensor:
-							{
-								M_InputSensor* is = (M_InputSensor*)n;
-								is->enabled = 0;
-								InputSensorModified(n);
-								break;
-							}
+					if (n) {
+						switch (gf_node_get_tag(n)) {
+							case TAG_MPEG4_InputSensor:
+								{
+									M_InputSensor* is = (M_InputSensor*)n;
+									is->enabled = 0;
+									InputSensorModified(n);
+									break;
+								}
+						}
 					}
 					gf_mo_event_target_remove_by_index(obj, 0);
 				}	

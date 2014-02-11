@@ -25,6 +25,7 @@
 
 #include <gpac/module.h>
 #include <gpac/list.h>
+#include <gpac/thread.h>
 
 #ifndef _GF_MODULE_WRAP_H_
 #define _GF_MODULE_WRAP_H_
@@ -68,6 +69,9 @@ struct __tag_mod_man
 
 	/*all static modules store their InterfaceRegistry here*/
 	GF_List *plugin_registry;
+
+	/* Mutex to handle simultaneous calls to the load_interface function */
+	GF_Mutex *mutex;
 };
 
 #ifdef __cplusplus

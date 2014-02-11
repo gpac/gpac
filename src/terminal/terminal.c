@@ -1303,7 +1303,7 @@ void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_D
 }
 #endif
 
-void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec)
+void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec)
 {
 #ifndef GPAC_DISABLE_SVG
 	u32 i, count, min_buffer, min_time;
@@ -1317,7 +1317,7 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 	if (odm->mo) {
 		count = gf_mo_event_target_count(odm->mo);
 		if (!count) return;
-		if (!(gf_node_get_dom_event_filter((GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0))) & GF_DOM_EVENT_MEDIA))
+		if (0 && !(gf_node_get_dom_event_filter((GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0))) & GF_DOM_EVENT_MEDIA))
 			return;
 	} else {
 		count = 0;
@@ -1355,8 +1355,6 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 	if (!locked) return;
 
 	for (i=0; i<count; i++) {
-		//GF_Node *node = (GF_Node *)gf_list_get(odm->mo->nodes, i);
-		//gf_dom_event_fire(node, &evt);
 		GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(odm->mo->evt_targets, i);
 		sg_fire_dom_event(target, &evt, scene->graph, NULL);
 	}
@@ -1368,7 +1366,7 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_
 #endif
 }
 
-void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
+void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type)
 {
 	gf_term_service_media_event_with_download(odm, event_type, 0, 0, 0);
 }

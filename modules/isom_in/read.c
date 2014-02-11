@@ -175,6 +175,20 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 
 	/*service is opened, nothing to do*/
 	if (read->mov) {
+		if (read->dnload) {
+			u32 total, done, Bps;
+			GF_NetIOStatus status;
+			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total, &done, &Bps, &status);
+			/* If we have more than 50% of data, we assume we can unpause the channels and let the decoder start */
+			if (read->send_resume == GF_TRUE && total != 0 && 2*done >= total) {
+				GF_NetworkCommand com;
+				GF_Err response = GF_OK;
+				com.command_type = GF_NET_SERVICE_UNPAUSE_CHANNELS;
+				gf_term_on_command(read->service, &com, response);
+				read->send_resume = GF_FALSE;
+			}
+		}
+
 		/*end of chunk*/
 		if (read->frag_type && (param->reply==1) ) {
 			u64 bytesMissing = 0;
@@ -218,13 +232,22 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	}
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 	
-	/*ok let's go*/
+	/*ok let's go, we can setup the decoders */
 	read->time_scale = gf_isom_get_timescale(read->mov);
     if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
         send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
     } else {
         gf_term_on_connect(read->service, NULL, GF_OK);
     }
+
+	/* but until we are sure we have enough data to decode smoothly, let's pause all channels */
+	if (0) {
+		GF_NetworkCommand com;
+		GF_Err response = GF_OK;
+		com.command_type = GF_NET_SERVICE_PAUSE_CHANNELS;
+		gf_term_on_command(read->service, &com, response);
+		read->send_resume = GF_TRUE;
+	}
 	if (read->no_service_desc) isor_declare_objects(read);
 }
 

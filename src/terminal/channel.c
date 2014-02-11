@@ -32,7 +32,7 @@
 #include "media_memory.h"
 #include "media_control.h"
 
-static void ch_buffer_off(GF_Channel *ch)
+void ch_buffer_off(GF_Channel *ch)
 {
 	/*just in case*/
 	if (ch->BufferOn) {
@@ -43,7 +43,7 @@ static void ch_buffer_off(GF_Channel *ch)
 }
 
 
-static void ch_buffer_on(GF_Channel *ch)
+void ch_buffer_on(GF_Channel *ch)
 {
 	/*don't buffer on an already running clock*/
 	if (ch->clock->no_time_ctrl && ch->clock->clock_init && (ch->esd->ESID!=ch->clock->clockID) ) return;
@@ -368,6 +368,7 @@ static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 	if (update_info && ch->MaxBuffer) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 
 	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
+	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 	
 	if (!Channel_NeedsBuffering(ch, 0)) {
 		ch_buffer_off(ch);

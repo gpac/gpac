@@ -196,7 +196,7 @@ static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event, GF_Node *obs
 {
 	GF_Compositor *compositor;
 	GF_Font *font;
-	assert(event->currentTarget->ptr_type==GF_DOM_EVENT_NODE);
+	assert(event->currentTarget->ptr_type==GF_DOM_EVENT_TARGET_NODE);
 	assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_font);
 	font = gf_node_get_private((GF_Node*)event->currentTarget->ptr);
 	font->not_loaded = 0;

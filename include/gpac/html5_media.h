@@ -182,11 +182,11 @@ typedef struct
 typedef struct
 {
     BASE_HTML_TRACK
-    /*char                    *inBandMetadataTrackDispatchType;
-    GF_HTMLTextTrackMode    mode;
-    GF_HTMLTextTrackCueList cues;
-    GF_HTMLTextTrackCueList activeCues;
-    oncuechange; */
+	JSFunction				*oncuechange;
+    char                    *inBandMetadataTrackDispatchType;
+    //GF_HTMLTextTrackMode    mode;
+    //GF_HTMLTextTrackCueList cues;
+    //GF_HTMLTextTrackCueList activeCues;
 } GF_HTML_TextTrack;
 
 #define BASE_HTML_TRACK_LIST     \
@@ -195,7 +195,9 @@ typedef struct
     /* JavaScript counterpart */\
     JSObject                *_this;\
     GF_List                 *tracks; \
-    /* onchange, onaddtrack, onremovetrack */ \
+	JSFunction				*onchange; \
+	JSFunction				*onaddtrack; \
+	JSFunction				*onremovetrack; \
     u32                     selected_index;
 
 typedef struct
@@ -279,7 +281,10 @@ typedef struct
     GF_HTML_TrackList        audioTracks;
     GF_HTML_TrackList        videoTracks;
     GF_HTML_TrackList        textTracks;
+
+	GF_DOMEventTarget		 *evt_target;
 } GF_HTML_MediaElement;
+
 typedef struct 
 {
     /* JavaScript context used to create the JavaScript object below */
@@ -297,11 +302,16 @@ typedef struct
     u32     reference_count;
 } GF_HTML_ArrayBuffer;
 
-GF_Err gf_media_time_ranges_add(GF_HTML_MediaTimeRanges *timeranges, double start, double end);
-void gf_html_timeranges_reset(GF_HTML_MediaTimeRanges *range);
-void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range);
+/* 
+ * TimeRanges 
+ */
+GF_Err	gf_media_time_ranges_add(GF_HTML_MediaTimeRanges *timeranges, double start, double end);
+void	gf_html_timeranges_reset(GF_HTML_MediaTimeRanges *range);
+void	gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range);
 
-
+/*
+ * HTML5 TrackList
+ */
 GF_HTML_Track *html_media_add_new_track_to_list(GF_HTML_TrackList *tracklist,
                                                        GF_HTML_TrackType type, const char *mime, Bool enable_or_selected,
                                                        const char *id, const char *kind, const char *label, const char *lang);
@@ -309,25 +319,37 @@ Bool html_media_tracklist_has_track(GF_HTML_TrackList *tracklist, const char *id
 GF_HTML_Track *html_media_tracklist_get_track(GF_HTML_TrackList *tracklist, const char *id);
 void gf_html_tracklist_del(GF_HTML_TrackList *tlist);
 
+/*
+ * HTML5 Tracks
+ */
 GF_HTML_Track *gf_html_media_track_new(GF_HTML_TrackType type, const char *mime, Bool enable_or_selected,
                                        const char *id, const char *kind, const char *label, const char *lang);
 void gf_html_track_del(GF_HTML_Track *track);
 
+/* 
+ * HTML5 Media Element
+ */
 GF_HTML_MediaElement *gf_html_media_element_new(GF_Node *media_node, GF_HTML_MediaController *mc);
 void gf_html_media_element_del(GF_HTML_MediaElement *me);
+GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n);
 
+void html_media_element_js_init(JSContext *c, JSObject *new_obj, GF_Node *n);
+
+/* 
+ * HTML5 Media Controller
+ */
 GF_HTML_MediaController *gf_html_media_controller_new();
 void gf_html_media_controller_del(GF_HTML_MediaController *mc);
 
+/* 
+ * HTML5 Array Buffer
+ */
 GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length);
 JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *parent);
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js);
-
-void html_media_element_js_init(JSContext *c, JSObject *new_obj, GF_Node *n);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif	// _GF_HTMLMEDIA_H_
-

@@ -169,6 +169,7 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	GF_SAFEALLOC(tmp, GF_ModuleManager);
 	if (!tmp) return NULL;
 	tmp->cfg = config;
+	tmp->mutex = gf_mx_new("Module Manager");
 	gf_modules_get_module_directories(tmp, &num_dirs);
 
 	/* Initialize module list */
@@ -219,6 +220,7 @@ void gf_modules_del(GF_ModuleManager *pm)
 	gf_list_del(pm->plug_list);
 
 	if (pm->plugin_registry) gf_list_del(pm->plugin_registry);
+	gf_mx_del(pm->mutex);
 	gf_free(pm);
 }
 
@@ -289,15 +291,18 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : No Module Manager set\n"));
 		return NULL;
 	}
+	gf_mx_p(pm->mutex);
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
 	if (!inst){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : no module %d exist.\n", whichplug));
+		gf_mx_v(pm->mutex);
 		return NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface...%s\n", inst->name));
 	/*look in cache*/
 	if (!pm->cfg){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] No pm->cfg has been set !!!\n"));
+		gf_mx_v(pm->mutex);
 		return NULL;
 	}
 	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->name);
@@ -305,12 +310,14 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		const char * ifce_str = gf_4cc_to_str(InterfaceFamily);
 		snprintf(szKey, 32, "%s:yes", ifce_str ? ifce_str : "(null)");
 		if (!strstr(opt, szKey)){
+			gf_mx_v(pm->mutex);
 			return NULL;
 		}
 	}
 	if (!gf_modules_load_library(inst)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load library %s\n", inst->name));
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
+		gf_mx_v(pm->mutex);
 		return NULL;
 	}
 	if (!inst->query_func) {
@@ -359,12 +366,14 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	/*keep track of parent*/
 	ifce->HPLUG = inst;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface %s DONE.\n", inst->name));
+	gf_mx_v(pm->mutex);
 	return ifce;
 
 err_exit:
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface %s exit label, freing library...\n", inst->name));
 	gf_modules_unload_library(inst);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface %s EXIT.\n", inst->name));
+	gf_mx_v(pm->mutex);
 	return NULL;
 }
 

@@ -37,6 +37,8 @@
 #include <gpac/network.h>
 #include <gpac/xml.h>
 
+#include <gpac/html5_mse.h>
+
 #ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -50,6 +52,7 @@
 #include <gpac/html5_media.h>
 #include <gpac/internal/smjs_api.h>
 
+typedef struct __xhr_context XMLHTTPContext;
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
@@ -129,6 +132,111 @@ typedef struct
 
 static GF_DOMRuntime *dom_rt = NULL;
 
+typedef enum {
+	NODE_JSPROPERTY_NODENAME				= -1,
+	NODE_JSPROPERTY_NODEVALUE				= -2,
+	NODE_JSPROPERTY_NODETYPE				= -3,
+	NODE_JSPROPERTY_PARENTNODE				= -4,
+	NODE_JSPROPERTY_CHILDNODES				= -5,
+	NODE_JSPROPERTY_FIRSTCHILD				= -6,
+	NODE_JSPROPERTY_LASTCHILD				= -7,
+	NODE_JSPROPERTY_PREVIOUSSIBLING			= -8,
+	NODE_JSPROPERTY_NEXTSIBLING				= -9,
+	NODE_JSPROPERTY_ATTRIBUTES				= -10,
+	NODE_JSPROPERTY_OWNERDOCUMENT			= -11,
+	NODE_JSPROPERTY_NAMESPACEURI			= -12,
+	NODE_JSPROPERTY_PREFIX					= -13,
+	NODE_JSPROPERTY_LOCALNAME				= -14,
+	NODE_JSPROPERTY_BASEURI					= -15,
+	NODE_JSPROPERTY_TEXTCONTENT				= -16,
+	NODE_JSPROPERTY_FIRSTELEMENTCHILD		= -17,
+	NODE_JSPROPERTY_LASTELEMENTCHILD		= -18,
+	NODE_JSPROPERTY_PREVIOUSELEMENTSIBLING	= -19,
+	NODE_JSPROPERTY_NEXTELEMENTSIBLING		= -20
+} GF_DOMNodeJSProperty;
+
+typedef enum {
+	DOCUMENT_JSPROPERTY_DOCTYPE				= -1,
+	DOCUMENT_JSPROPERTY_IMPLEMENTATION		= -2,
+	DOCUMENT_JSPROPERTY_DOCUMENTELEMENT		= -3,
+	DOCUMENT_JSPROPERTY_INPUTENCODING		= -4,
+	DOCUMENT_JSPROPERTY_XMLENCODING			= -5,
+	DOCUMENT_JSPROPERTY_XMLSTANDALONE		= -6,
+	DOCUMENT_JSPROPERTY_XMLVERSION			= -7,
+	DOCUMENT_JSPROPERTY_STRICTERRORCHECKING	= -8,
+	DOCUMENT_JSPROPERTY_DOCUMENTURI			= -9,
+	DOCUMENT_JSPROPERTY_LOCATION			= -10,
+	DOCUMENT_JSPROPERTY_DOMCONFIG			= -11,
+	DOCUMENT_JSPROPERTY_GLOBAL				= -12
+} GF_DOMDocumentJSProperty;
+
+typedef enum {
+	ELEMENT_JSPROPERTY_TAGNAME			= -1,
+	ELEMENT_JSPROPERTY_SCHEMATYPEINFO	= -2,
+} GF_DOMElementJSProperty;
+
+typedef enum {
+	DCCI_JSPROPERTY_VALUE						= -1,
+	DCCI_JSPROPERTY_VALUETYPE					= -2,
+	DCCI_JSPROPERTY_PROPERTYTYPE				= -3,
+	DCCI_JSPROPERTY_READONLY					= -4,
+	DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE	= -5,
+	DCCI_JSPROPERTY_DCCIMETADATAINTERFACE		= -6,
+	DCCI_JSPROPERTY_VERSION						= -7,
+} GF_DCCIJSProperty;
+
+typedef enum {
+	NODELIST_JSPROPERTY_LENGTH = -1,
+} GF_DOMNodeListJSProperty;
+
+typedef enum {
+	EVENT_JSPROPERTY_TYPE						= -1,
+	EVENT_JSPROPERTY_TARGET						= -2,
+	EVENT_JSPROPERTY_CURRENTTARGET				= -3,
+	EVENT_JSPROPERTY_EVENTPHASE					= -4,
+	EVENT_JSPROPERTY_BUBBLES					= -5,
+	EVENT_JSPROPERTY_CANCELABLE					= -6,
+	EVENT_JSPROPERTY_TIMESTAMP					= -7,
+	EVENT_JSPROPERTY_NAMESPACEURI				= -8,
+	EVENT_JSPROPERTY_DEFAULTPREVENTED			= -9,
+	EVENT_JSPROPERTY_DETAIL						= -10,
+	EVENT_JSPROPERTY_DATA						= -11,
+	EVENT_JSPROPERTY_SCREENX					= -12,
+	EVENT_JSPROPERTY_SCREENY					= -13,
+	EVENT_JSPROPERTY_CLIENTX					= -14,
+	EVENT_JSPROPERTY_CLIENTY					= -15,
+	EVENT_JSPROPERTY_BUTTON						= -16,
+	EVENT_JSPROPERTY_RELATEDTARGET				= -17,
+	EVENT_JSPROPERTY_WHEELDELTA					= -18,
+	EVENT_JSPROPERTY_KEYIDENTIFIER				= -19,
+	EVENT_JSPROPERTY_KEYCHAR					= -20,
+	EVENT_JSPROPERTY_CHARCODE					= -21,
+	EVENT_JSPROPERTY_LENGTHCOMPUTABLE			= -22,
+	EVENT_JSPROPERTY_TYPEARG					= -23,
+	EVENT_JSPROPERTY_LOADED						= -24,
+	EVENT_JSPROPERTY_TOTAL						= -25,
+	EVENT_JSPROPERTY_BUFFERLEVELVALID			= -26,
+	EVENT_JSPROPERTY_BUFFERLEVEL				= -27,
+	EVENT_JSPROPERTY_BUFFERREMAININGTIME		= -28,
+	EVENT_JSPROPERTY_STATUS						= -29,
+	EVENT_JSPROPERTY_WIDTH						= -30,
+	EVENT_JSPROPERTY_HEIGHT						= -31,
+	EVENT_JSPROPERTY_OFFSETX					= -32,
+	EVENT_JSPROPERTY_OFFSETY					= -33,
+	EVENT_JSPROPERTY_VPWIDTH					= -34,
+	EVENT_JSPROPERTY_VPHEIGHT					= -35,
+	EVENT_JSPROPERTY_TRANSLATIONX				= -36,
+	EVENT_JSPROPERTY_TRANSLATIONY				= -37,
+	EVENT_JSPROPERTY_TYPE3D						= -38,
+	EVENT_JSPROPERTY_ERROR						= -39,
+} GF_DOMEventJSProperty;
+
+typedef enum {
+	TEXT_JSPROPERTY_DATA						= -1,
+	TEXT_JSPROPERTY_LENGTH						= -2,
+	TEXT_JSPROPERTY_ISELEMENTCONTENTWHITESPACE	= -3,
+	TEXT_JSPROPERTY_WHOLETEXT					= -4,
+} GF_DOMTextJSProperty;
 
 static JSBool SMJS_FUNCTION(xml_dom3_not_implemented)
 {
@@ -227,6 +335,32 @@ GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj)
 	return NULL;
 }
 
+static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGraph *doc, const char *name)
+{
+	GF_JSClass *__class;
+	JSObject *obj;
+	if (!doc || !doc->RootNode) return;
+
+	if (doc->reference_count)
+		doc->reference_count++;
+	gf_node_register(doc->RootNode, NULL);
+
+	__class = NULL;
+	if (dom_rt->get_document_class)
+		__class = (GF_JSClass *)dom_rt->get_document_class(doc);
+	if (!__class) __class = &dom_rt->domDocumentClass;
+
+	obj = JS_DefineObject(c, global, name, & __class->_class, 0, 0 );
+	SMJS_SET_PRIVATE(c, obj, doc);
+	doc->document = obj;
+}
+
+void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
+{
+	dom_js_define_document_ex(c, global, doc, "document");
+}
+
+/* Constructs a new document based on the given context and scene graph, used for documents in XHR */
 static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 {
 	GF_JSClass *jsclass;
@@ -240,7 +374,6 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 	jsclass = NULL;
 	if (dom_rt->get_document_class)
 		jsclass = (GF_JSClass *) dom_rt->get_document_class(sg);
-
 	if (!jsclass) jsclass = &dom_rt->domDocumentClass;
 
 	new_obj = JS_NewObject(c, & jsclass->_class, 0, 0);
@@ -475,17 +608,31 @@ static JSBool SMJS_FUNCTION(dom_nodelist_item)
 static SMJS_FUNC_PROP_GET( dom_nodelist_getProperty)
 
 	DOMNodeList *nl;
+	u32			count;
+	u32			idx;
 	if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)) {
 		return JS_TRUE;
 	}
+	nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
+	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
 
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
 	switch (SMJS_ID_TO_INT(id)) {
-	case 0:
-		nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
-		*vp = INT_TO_JSVAL( gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child) );
+	case NODELIST_JSPROPERTY_LENGTH:
+		*vp = INT_TO_JSVAL( count );
 		return JS_TRUE;
+	default:
+		idx = SMJS_ID_TO_INT(id);
+		if ((idx<0) || ((u32) idx>=count)) {
+			*vp = JSVAL_VOID;
+			return JS_TRUE;
+		} else {
+			GF_Node *n;
+			n = gf_node_list_get_child(nl->owner ? nl->owner->children : nl->child, idx);
+			*vp = dom_node_construct(c, n);
+			return JS_TRUE;
+		}
 	}
 	return JS_TRUE;
 }
@@ -522,94 +669,151 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-/*eventListeners routines used by document, element and connection interfaces*/
-JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *on_node)
+static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType evtType, GF_Node *vrml_node, 
+									 GF_SceneGraph **sg, GF_DOMEventTarget **target, GF_Node **n)
 {
-	GF_DOMEventTarget *target;
-	GF_FieldInfo info;
-	GF_Node *listener;
-	SVG_handlerElement *handler;
-	char *type, *callback;
-	u32 of = 0;
-	u32 evtType;
-	char *inNS = NULL;
-	GF_SceneGraph *sg = NULL;
-	JSFunction*fun = NULL;
-	GF_Node *n = NULL;
-	jsval funval = JSVAL_NULL;
-	JSObject *evt_handler;
-	SMJS_OBJ
-	SMJS_ARGS
+	Bool is_svg_document_class(JSContext *c, JSObject *obj);
+	Bool is_svg_element_class(JSContext *c, JSObject *obj);
+	Bool gf_mse_is_mse_object(JSContext *c, JSObject *obj);
+	*target = NULL;
+	*sg = NULL;
+	*n = NULL;
 
-	target = NULL;
-	/*document interface*/
-	sg = dom_get_doc(c, obj);
-	if (sg) {
+	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIA) {
+		void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
+		gf_html_media_get_event_target(c, obj, target, sg);
+	} else if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIASOURCE) {
+		void gf_mse_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
+		gf_mse_get_event_target(c, obj, target, sg);
+	} else if (GF_JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || is_svg_document_class(c, obj)) {
+		/*document interface*/
+		*sg = dom_get_doc(c, obj);
+		if (*sg) {
 #ifndef GPAC_DISABLE_SVG
-		target = &sg->dom_evt;
+			*target = (*sg)->dom_evt;
 #else
-		return JS_TRUE;
+			return JS_TRUE;
 #endif
-	} else {
-		if (on_node) {
-			n = on_node;
 		} else {
-			n = dom_get_element(c, obj);
+			return JS_TRUE;
 		}
-		if (n) sg = n->sgprivate->scenegraph;
+	} else if (GF_JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) || is_svg_element_class(c, obj)) {
+		/*Element interface*/
+		if (vrml_node) {
+			*n = vrml_node;
+		} else {
+			*n = dom_get_element(c, obj);
+		}
+		if (*n) {
+			*sg = (*n)->sgprivate->scenegraph;
+			if (!(*n)->sgprivate->interact->dom_evt) {
+				(*n)->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_NODE, *n);
+			}
+			*target = (*n)->sgprivate->interact->dom_evt;
+		} else {
+			return JS_TRUE;
+		}
+	} else if (GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL)) {
+		/*XHR interface*/
+		XMLHTTPContext *ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
+		if (ctx) {
+			GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx);
+			GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx);			
+			*sg = xml_get_scenegraph(c);
+			*target = xml_http_get_event_target(ctx);
+		} else {
+			return JS_TRUE;
+		}
+	} else {
+		return JS_TRUE;
 	}
+	return JS_TRUE;
+}
 
-	/*FIXME - SVG uDOM connection not supported yet*/
+static GF_Err sg_js_parse_event_args(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
+									 GF_EventType *evtType, 
+									 char **callback, jsval *funval, JSObject **evt_handler) {
+	u32 offset = 0;
+	char *type = NULL;
+	char *inNS = NULL;
 
-	if (!sg) return JS_TRUE;
+	*evtType = GF_EVENT_UNKNOWN;
+	*callback = NULL;
+	*funval = JSVAL_NULL;
+	if (evt_handler) *evt_handler = obj;
 
 	/*NS version (4 args in DOM2, 5 in DOM3 for evt_group param)*/
 	if (argc>=4) {
-		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+		if (!JSVAL_CHECK_STRING(argv[0])) return GF_BAD_PARAM;
 		inNS = js_get_utf8(c, argv[0]);
-		of = 1;
+		offset = 1;
 	}
-	evt_handler = obj;
 
-	type = callback = NULL;
-	if (!JSVAL_CHECK_STRING(argv[of])) goto err_exit;
-	type = SMJS_CHARS(c, argv[of]);
+	if (!JSVAL_CHECK_STRING(argv[offset])) goto err_exit;
+	type = SMJS_CHARS(c, argv[offset]);
 
-	if (JSVAL_CHECK_STRING(argv[of+1])) {
-		callback = SMJS_CHARS(c, argv[of+1]);
-		if (!callback) goto err_exit;
-	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[of+1]))) {
-			//fun = JS_ValueToFunction(c, argv[of+1]);
-			funval = argv[of+1];
+	if (JSVAL_CHECK_STRING(argv[offset+1])) {
+		*callback = SMJS_CHARS(c, argv[offset+1]);
+		if (!*callback) goto err_exit;
+	} else if (JSVAL_IS_OBJECT(argv[offset+1])) {
+		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[offset+1]))) {
+			*funval = argv[offset+1];
 		} else {
 			JSBool found;
 			jsval evt_fun;
-			evt_handler = JSVAL_TO_OBJECT(argv[of+1]);
-			found = JS_GetProperty(c, evt_handler, "handleEvent", &evt_fun);
+			if (evt_handler) {
+				*evt_handler = JSVAL_TO_OBJECT(argv[offset+1]);
+			} else {
+				goto err_exit;
+			}
+			found = JS_GetProperty(c, *evt_handler, "handleEvent", &evt_fun);
 			if (!found || !JSVAL_IS_OBJECT(evt_fun) ) goto err_exit;
 			if (!JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(evt_fun)) ) goto err_exit;
-			funval = evt_fun;
+			*funval = evt_fun;
 		}
 	}
 
-	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==GF_EVENT_UNKNOWN) goto err_exit;
+	*evtType = gf_dom_event_type_by_name(type);
+	if (*evtType==GF_EVENT_UNKNOWN) goto err_exit;
+
+	SMJS_FREE(c, type);
+	if (inNS) gf_free(inNS);
+	return GF_OK;
+
+err_exit:
+	if (inNS) gf_free(inNS);
+	if (type) SMJS_FREE(c, type);
+	if (callback) SMJS_FREE(c, *callback);
+	*callback = NULL;
+	*evtType = GF_EVENT_UNKNOWN;
+	*funval = JSVAL_NULL;
+	if (evt_handler) *evt_handler = NULL;
+	return GF_BAD_PARAM;
+}
+
+static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node *n, GF_Node *vrml_node,
+								JSContext *c, char *callback, jsval funval, JSObject *evt_handler)
+{
+	GF_FieldInfo info;
+	GF_Node *listener;
+	SVG_handlerElement *handler;
 
 	listener = gf_node_new(sg, TAG_SVG_listener);
 	/*we don't register the listener with the parent node , it will be registered
-	on gf_dom_listener__add*/
+	on gf_dom_listener_add*/
 
 	/*!!! create the handler in the scene owning the script context !!! */
 	{
+		/* removed in harmonisation with XHR, was it really needed ? 
 		GF_SceneGraph *sg = xml_get_scenegraph(c);
+		*/
 		handler = (SVG_handlerElement *) gf_node_new(sg, TAG_SVG_handler);
 		/*we register the handler with the listener node to avoid modifying the DOM*/
 		gf_node_register((GF_Node *)handler, listener);
 		gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
 
 		if (!callback) {
-			handler->js_fun = fun;
+			handler->js_fun = NULL;
 			handler->js_fun_val = *(u64 *) &funval;
 			if (handler->js_fun_val) {
 				handler->js_context = c;
@@ -642,13 +846,43 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *on_node)
 		handler->handle_event = gf_sg_handle_dom_event;
 #endif
 
-	if (on_node) {
+	if (vrml_node) {
 		handler->js_context = c;
 #ifndef GPAC_DISABLE_VRML
-		if (on_node->sgprivate->tag <= GF_NODE_RANGE_LAST_VRML)
+		if (vrml_node->sgprivate->tag <= GF_NODE_RANGE_LAST_VRML)
 			handler->handle_event = gf_sg_handle_dom_event_for_vrml;
 #endif
 	}
+
+	return listener;
+}
+
+/*eventListeners routines used by document, element and XHR interfaces*/
+JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node)
+{
+	GF_DOMEventTarget *target = NULL;
+	GF_Node *listener = NULL;	
+	GF_EventType evtType = GF_EVENT_UNKNOWN;	
+	GF_SceneGraph *sg = NULL;
+	char *callback = NULL;
+	jsval funval = JSVAL_NULL;
+	GF_Node *n = NULL;
+	JSObject *evt_handler = NULL;
+	GF_Err e;
+
+	SMJS_OBJ
+	SMJS_ARGS
+
+	/* Determine the event type and handler params */
+	e = sg_js_parse_event_args(c, obj, argc, argv, &evtType, &callback, &funval, &evt_handler);
+	if (e != GF_OK) goto err_exit;
+
+	/* First retrieve the scenegraph and the GF_DOMEventTarget object */
+	sg_js_get_event_target(c, obj, evtType, vrml_node, &sg, &target, &n);	
+	if (!sg || !target) goto err_exit;
+
+	listener = create_listener(sg, evtType, n, vrml_node, c, callback, funval, evt_handler);
+	if (!listener) goto err_exit;
 
 	/*don't add listener directly, post it and wait for event processing*/
 	if (n) {
@@ -658,9 +892,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *on_node)
 	}
 
 err_exit:
-	if (inNS) gf_free(inNS);
-	SMJS_FREE(c, type);
-	SMJS_FREE(c, callback);
+   if (callback) SMJS_FREE(c, callback);
    return JS_TRUE;
 }
 
@@ -673,69 +905,34 @@ JSBool SMJS_FUNCTION(dom_event_add_listener)
 JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 {
 #ifndef GPAC_DISABLE_SVG
-	char *type, *callback;
-	u32 of = 0;
-	u32 evtType, i, count;
-	char *inNS = NULL;
+	char *callback = NULL;
+	GF_EventType evtType = GF_EVENT_UNKNOWN;
+	u32 i, count;
 	GF_Node *node = NULL;
 	jsval funval = JSVAL_NULL;
 	GF_SceneGraph *sg = NULL;
 	GF_DOMEventTarget *target = NULL;
+	GF_Err e;
 	SMJS_OBJ
 	SMJS_ARGS
 
-	/*get the scenegraph first*/
-	sg = dom_get_doc(c, obj);
-	if (!sg) {
-		if (vrml_node) {
-			node = vrml_node;
-		} else {
-			node = dom_get_element(c, obj);
-		}
-		if (node) sg = node->sgprivate->scenegraph;
-	}
+	/* Determine the event type and handler params */
+	e = sg_js_parse_event_args(c, obj, argc, argv, &evtType, &callback, &funval, NULL);
+	if (e != GF_OK) goto err_exit;
 
-	if (!sg) return JS_TRUE;
+	/* First retrieve the scenegraph and the GF_DOMEventTarget object */
+	sg_js_get_event_target(c, obj, evtType, vrml_node, &sg, &target, &node);	
+	if (!sg || !target) return JS_TRUE;
+
 	/*flush all pending add_listener*/
 	gf_dom_listener_process_add(sg);
-	if (node) {
-		if (node->sgprivate->interact) target = node->sgprivate->interact->dom_evt;
-	}
-	/*FIXME - SVG uDOM connection not supported yet*/
-	else {
-		target = &sg->dom_evt;
-	}
-	if (!target) return JS_TRUE;
 
-
-	if (argc==4) {
-		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-		inNS = js_get_utf8(c, argv[0]);
-		of = 1;
-	}
-
-	type = callback = NULL;
-	if (!JSVAL_CHECK_STRING(argv[of])) goto err_exit;
-	type = SMJS_CHARS(c, argv[of]);
-
-	if (JSVAL_CHECK_STRING(argv[of+1])) {
-		callback = SMJS_CHARS(c, argv[of+1]);
-	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[of+1]) )) {
-			funval = argv[of+1];
-		}
-	}
-	if (!callback && JSVAL_IS_NULL(funval) ) goto err_exit;
-
-	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==GF_EVENT_UNKNOWN) goto err_exit;
-
-	count = gf_list_count(target->evt_list);
+	count = gf_list_count(target->listeners);
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_DOMText *txt;
 		SVG_handlerElement *hdl;
-		GF_Node *el = (GF_Node *)gf_list_get(target->evt_list, i);
+		GF_Node *el = (GF_Node *)gf_list_get(target->listeners, i);
 
 		gf_node_get_attribute_by_tag(el, TAG_XMLEV_ATT_event, GF_FALSE, GF_FALSE, &info);
 		if (!info.far_ptr) continue;
@@ -746,7 +943,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
 		if (! JSVAL_IS_NULL(funval) ) {
-			if (*(u64 *) &funval != hdl->js_fun_val) continue;
+			if (funval != *(jsval *)&hdl->js_fun_val) continue;
 		} else if (hdl->children) {
 			txt = (GF_DOMText *) hdl->children->node;
 			if (txt->sgprivate->tag != TAG_DOMText) continue;
@@ -762,9 +959,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 #endif
 
 err_exit:
-	if (inNS) gf_free(inNS);
-	SMJS_FREE(c, type);
-	SMJS_FREE(c, callback);
+	if (callback) SMJS_FREE(c, callback);
 	return JS_TRUE;
 }
 
@@ -914,19 +1109,26 @@ static JSBool SMJS_FUNCTION(xml_node_append_child)
 	GF_Node *n, *new_node;
 	SMJS_OBJ
 	SMJS_ARGS
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
+	if (!argc || !JSVAL_IS_OBJECT(argv[0])) {
+		return JS_TRUE;
+	}
 	n = dom_get_node(c, obj);
 	if (!n) {
 		return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	}
 
 	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!new_node) return JS_TRUE;
+	if (!new_node) {
+		return JS_TRUE;
+	}
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return JS_TRUE;
+	if (tag==TAG_DOMText) {
+		return JS_TRUE;
+	}
 
-	if (!check_dom_parents(c, n, new_node))
+	if (!check_dom_parents(c, n, new_node)) {
 		return JS_FALSE;
+	}
 
 	dom_node_inserted(c, new_node, n, -1);
 
@@ -1136,8 +1338,7 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 	par = (GF_ParentNode*)n;
 
 	switch (SMJS_ID_TO_INT(id)) {
-	/*"nodeName"*/
-	case 0:
+	case NODE_JSPROPERTY_NODENAME:
 		if (sg) {
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
 		}
@@ -1150,16 +1351,14 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
 		}
 		return JS_TRUE;
-	/*"nodeValue"*/
-	case 1:
+	case NODE_JSPROPERTY_NODEVALUE:
 		*vp = JSVAL_VOID;
 		if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent) );
 		}
 		return JS_TRUE;
-	/*"nodeType"*/
-	case 2:
+	case NODE_JSPROPERTY_NODETYPE:
 		if (sg) *vp = INT_TO_JSVAL(9);
 		else if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
@@ -1168,8 +1367,7 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 		}
 		else *vp = INT_TO_JSVAL(1);
 		return JS_TRUE;
-	/*"parentNode"*/
-	case 3:
+	case NODE_JSPROPERTY_PARENTNODE:
 		if (sg) {
 			*vp = JSVAL_NULL;
 		}
@@ -1180,15 +1378,13 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
 		}
 		return JS_TRUE;
-	/*"childNodes"*/
-	case 4:
+	case NODE_JSPROPERTY_CHILDNODES:
 		/*NOT SUPPORTED YET*/
 		if (sg) *vp = JSVAL_VOID;
 		else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
 		else *vp = dom_nodelist_construct(c, par);
 		return JS_TRUE;
-	/*"firstChild"*/
-	case 5:
+	case NODE_JSPROPERTY_FIRSTCHILD:
 		if (sg) *vp = dom_node_construct(c, sg->RootNode);
 		else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
 		else if (!par->children) {
@@ -1196,33 +1392,27 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 		}
 		else *vp = dom_node_construct(c, par->children->node);
 		return JS_TRUE;
-	/*"lastChild"*/
-	case 6:
+	case NODE_JSPROPERTY_LASTCHILD:
 		if (sg) *vp = dom_node_construct(c, sg->RootNode);
 		else if ((tag==TAG_DOMText) || !par->children) *vp = JSVAL_VOID;
 		else *vp = dom_node_construct(c, gf_node_list_get_child(par->children, -1) );
 		return JS_TRUE;
-	/*"previousSibling"*/
-	case 7:
+	case NODE_JSPROPERTY_PREVIOUSSIBLING:
 		/*works for doc as well since n is NULL*/
 		*vp = dom_node_get_sibling(c, n, GF_TRUE, GF_FALSE);
 		return JS_TRUE;
-	/*"nextSibling"*/
-	case 8:
+	case NODE_JSPROPERTY_NEXTSIBLING:
 		*vp = dom_node_get_sibling(c, n, GF_FALSE, GF_FALSE);
 		return JS_TRUE;
-	/*"attributes"*/
-	case 9:
+	case NODE_JSPROPERTY_ATTRIBUTES:
 		/*NOT SUPPORTED YET*/
 		*vp = JSVAL_VOID;
 		return JS_TRUE;
-	/*"ownerDocument"*/
-	case 10:
+	case NODE_JSPROPERTY_OWNERDOCUMENT:
 		if (sg) *vp = JSVAL_NULL;
 		else *vp = dom_document_construct(c, n->sgprivate->scenegraph);
 		return JS_TRUE;
-	/*"namespaceURI"*/
-	case 11:
+	case NODE_JSPROPERTY_NAMESPACEURI:
 		*vp = JSVAL_NULL;
 		if (!sg) {
 			tag = gf_xml_get_element_namespace(n);
@@ -1233,8 +1423,7 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			}
 		}
 		return JS_TRUE;
-	/*"prefix"*/
-	case 12:
+	case NODE_JSPROPERTY_PREFIX:
 		if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
 		else tag = gf_xml_get_element_namespace(n);
 		*vp = JSVAL_NULL;
@@ -1243,20 +1432,17 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			if (xmlns) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) );
 		}
 		return JS_TRUE;
-	/*"localName"*/
-	case 13:
+	case NODE_JSPROPERTY_LOCALNAME:
 		*vp = JSVAL_NULL;
 		if (!sg && (tag!=TAG_DOMText)) {
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, node_get_local_name(n) ) );
 		}
 		return JS_TRUE;
-	/*"baseURI"*/
-	case 14:
+	case NODE_JSPROPERTY_BASEURI:
 		/*NOT SUPPORTED YET*/
 		*vp = JSVAL_NULL;
 		return JS_TRUE;
-	/*"textContent"*/
-	case 15:
+	case NODE_JSPROPERTY_TEXTCONTENT:
 		*vp = JSVAL_VOID;
 		if (!sg)  {
 			char *res = gf_dom_flatten_textContent(n);
@@ -1264,8 +1450,7 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			gf_free(res);
 		}
 		return JS_TRUE;
-
-	case 16:/*firstElementChild*/
+	case NODE_JSPROPERTY_FIRSTELEMENTCHILD:
 		*vp = JSVAL_NULL;
 		if (n->sgprivate->tag!=TAG_DOMText) {
 			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
@@ -1278,7 +1463,7 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			}
 		}
 		return JS_TRUE;
-	case 17:/*lastElementChild*/
+	case NODE_JSPROPERTY_LASTELEMENTCHILD:
 		*vp = JSVAL_NULL;
 		if (n->sgprivate->tag!=TAG_DOMText) {
 			GF_Node *last = NULL;
@@ -1292,10 +1477,10 @@ static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 			if (last) *vp = dom_element_construct(c, last);
 		}
 		return JS_TRUE;
-	case 18:/*previousElementSibling*/
+	case NODE_JSPROPERTY_PREVIOUSELEMENTSIBLING:
 		*vp = dom_node_get_sibling(c, n, GF_TRUE, GF_TRUE);
 		return JS_TRUE;
-	case 19:/*nextElementSibling*/
+	case NODE_JSPROPERTY_NEXTELEMENTSIBLING:
 		*vp = dom_node_get_sibling(c, n, GF_FALSE, GF_TRUE);
 		return JS_TRUE;
 
@@ -1329,8 +1514,7 @@ static SMJS_FUNC_PROP_SET( dom_node_setProperty)
 	tag = n ? gf_node_get_tag(n) : 0;
 
 	switch (SMJS_ID_TO_INT(id)) {
-	/*"nodeValue"*/
-	case 1:
+	case NODE_JSPROPERTY_NODEVALUE:
 		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) gf_free(txt->textContent);
@@ -1339,12 +1523,10 @@ static SMJS_FUNC_PROP_SET( dom_node_setProperty)
 		}
 		/*we only support element and sg in the Node interface, no set*/
 		return JS_TRUE;
-	/*"prefix"*/
-	case 12:
+	case NODE_JSPROPERTY_PREFIX:
 		/*NOT SUPPORTED YET*/
 		return JS_TRUE;
-	/*"textContent"*/
-	case 15:
+	case NODE_JSPROPERTY_TEXTCONTENT:
 	{
 		char *txt;
 		txt = js_get_utf8(c, *vp);
@@ -1392,31 +1574,29 @@ static SMJS_FUNC_PROP_GET( dom_document_getProperty )
 	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
-	case -2:/*implementation*/
+	case DOCUMENT_JSPROPERTY_IMPLEMENTATION:
 		/*FIXME, this is wrong, we should have our own implementation
 		but at the current time we rely on the global object to provide it*/
 		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
 		return JS_TRUE;
-	case -3: /*"documentElement"*/
+	case DOCUMENT_JSPROPERTY_DOCUMENTELEMENT:
 		*vp = dom_element_construct(c, sg->RootNode);
 		return JS_TRUE;
-
-	case -12:/*global*/
+	case DOCUMENT_JSPROPERTY_GLOBAL:
 		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
 		return JS_TRUE;
 
-
 	/*NOT SUPPORTED YET*/
 
-	case -1: /*"doctype"*/
-	case -4: /*"inputEncoding"*/
-	case -5: /*"xmlEncoding"*/
-	case -6: /*"xmlStandalone"*/
-	case -7: /*"xmlVersion"*/
-	case -8: /*"strictErrorChecking"*/
-	case -9: /*"documentURI"*/
-	case -10: /*"location"*/
-	case -11: /*"domConfig"*/
+	case DOCUMENT_JSPROPERTY_DOCTYPE:
+	case DOCUMENT_JSPROPERTY_INPUTENCODING:
+	case DOCUMENT_JSPROPERTY_XMLENCODING:
+	case DOCUMENT_JSPROPERTY_XMLSTANDALONE:
+	case DOCUMENT_JSPROPERTY_XMLVERSION:
+	case DOCUMENT_JSPROPERTY_STRICTERRORCHECKING:
+	case DOCUMENT_JSPROPERTY_DOCUMENTURI:
+	case DOCUMENT_JSPROPERTY_LOCATION: 
+	case DOCUMENT_JSPROPERTY_DOMCONFIG: 
 		*vp = JSVAL_VOID;
 		return JS_TRUE;
 	}
@@ -1433,15 +1613,15 @@ static SMJS_FUNC_PROP_SET_NOVP(dom_document_setProperty)
 	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
-	case 6:/*"xmlStandalone"*/
+	case DOCUMENT_JSPROPERTY_XMLSTANDALONE:
 		break;
-	case 7:/*"xmlVersion"*/
+	case DOCUMENT_JSPROPERTY_XMLVERSION:
 		break;
-	case 8:/*"strictErrorChecking"*/
+	case DOCUMENT_JSPROPERTY_STRICTERRORCHECKING:
 		break;
-	case 9:/*"documentURI"*/
+	case DOCUMENT_JSPROPERTY_DOCUMENTURI:
 		break;
-	case 10:/*"domConfig"*/
+	case DOCUMENT_JSPROPERTY_DOMCONFIG:
 		break;
 
 	/*the rest is read-only*/
@@ -1611,10 +1791,10 @@ static SMJS_FUNC_PROP_GET( dom_element_getProperty)
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 	prop_id = SMJS_ID_TO_INT(id);
 	switch (prop_id) {
-	case 1: /*"tagName"*/
+	case ELEMENT_JSPROPERTY_TAGNAME:
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
 		return JS_TRUE;
-	case 2: /*"schemaTypeInfo"*/
+	case ELEMENT_JSPROPERTY_SCHEMATYPEINFO:
 		/*NOT SUPPORTED YET*/
 		*vp = JSVAL_VOID;
 		return JS_TRUE;
@@ -1927,7 +2107,7 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 					gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, GF_FALSE, GF_FALSE, &attType);
 					attname->type = attType.fieldType;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find attribute 'type' on <%s> element and cannot find target of the animation to parse attribute %s\n", gf_node_get_class_name(n), attname->name));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find target of the animation to parse attribute %s\n", attname->name));
 				}
 			}
 
@@ -2126,17 +2306,17 @@ static SMJS_FUNC_PROP_GET( dom_text_getProperty)
 	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
-	case 1: /*"data"*/
+	case TEXT_JSPROPERTY_DATA:
 		if (txt->textContent) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent ) );
 		else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
 		return JS_TRUE;
-	case 2:/*"length"*/
+	case TEXT_JSPROPERTY_LENGTH:
 		*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
 		return JS_TRUE;
-	case 3:/*"isElementContentWhitespace"*/
+	case TEXT_JSPROPERTY_ISELEMENTCONTENTWHITESPACE:
 		*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 		return JS_TRUE;
-	case 4:/*"wholeText"*/
+	case TEXT_JSPROPERTY_WHOLETEXT:
 		/*FIXME - this is wrong*/
 		*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
 		return JS_TRUE;
@@ -2152,7 +2332,7 @@ static SMJS_FUNC_PROP_SET( dom_text_setProperty)
 	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
-	case 1: /*"data"*/
+	case TEXT_JSPROPERTY_DATA:
 		if (txt->textContent) gf_free(txt->textContent);
 		txt->textContent = NULL;
 		if (JSVAL_CHECK_STRING(*vp)) {
@@ -2198,57 +2378,57 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 	if (evt==NULL) return JS_TRUE;
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
-		case 0: /*type*/
+		case EVENT_JSPROPERTY_TYPE:
 			s = JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) );
 			*vp = STRING_TO_JSVAL( s );
 			break;
-		case 1: /*target*/
+		case EVENT_JSPROPERTY_TARGET:
 			if (evt->is_vrml) return JS_TRUE;
 			switch (evt->target_type) {
-			case GF_DOM_EVENT_NODE:
+			case GF_DOM_EVENT_TARGET_NODE:
 				*vp = dom_element_construct(c, (GF_Node*) evt->target);
 				break;
-			case GF_DOM_EVENT_DOCUMENT:
+			case GF_DOM_EVENT_TARGET_DOCUMENT:
 				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->target);
+				break;
+			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
+				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
 				break;
 			}
 			return JS_TRUE;
-		case 2:	/*currentTarget*/
+		case EVENT_JSPROPERTY_CURRENTTARGET:
 			if (evt->is_vrml) return JS_TRUE;
 			switch (evt->currentTarget->ptr_type) {
-			case GF_DOM_EVENT_NODE:
+			case GF_DOM_EVENT_TARGET_NODE:
 				*vp = dom_element_construct(c, (GF_Node*) evt->currentTarget->ptr);
 				break;
-			case GF_DOM_EVENT_DOCUMENT:
+			case GF_DOM_EVENT_TARGET_DOCUMENT:
 				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr);
+				break;
+			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
+				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
 				break;
             default:
                 break;
 			}
 			return JS_TRUE;
-		/*eventPhase */
-		case 3:
+		case EVENT_JSPROPERTY_EVENTPHASE:
 			*vp = INT_TO_JSVAL( (evt->event_phase & 0x3) ); return JS_TRUE;
-		case 4: /*bubbles*/
+		case EVENT_JSPROPERTY_BUBBLES:
 			*vp = BOOLEAN_TO_JSVAL(evt->bubbles ? JS_TRUE : JS_FALSE); return JS_TRUE;
-		case 5: /*cancelable*/
+		case EVENT_JSPROPERTY_CANCELABLE:
 			*vp = BOOLEAN_TO_JSVAL(evt->cancelable ? JS_TRUE : JS_FALSE); return JS_TRUE;
-		case 6: /*namespaceURI*/
+		case EVENT_JSPROPERTY_NAMESPACEURI:
 			*vp = JSVAL_NULL;
 			return JS_TRUE;
-		/*timeStamp */
-		case 7:
+		case EVENT_JSPROPERTY_TIMESTAMP:
 			*vp = JSVAL_VOID;
 			return JS_TRUE;
-		/*defaultPrevented */
-		case 8:
+		case EVENT_JSPROPERTY_DEFAULTPREVENTED:
 			*vp = BOOLEAN_TO_JSVAL((evt->event_phase & GF_DOM_EVENT_PHASE_PREVENT) ? JS_TRUE : JS_FALSE); return JS_TRUE;
-
-
-		case 20:/*detail*/
+		case EVENT_JSPROPERTY_DETAIL:
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-
-		case 25: /*data*/
+		case EVENT_JSPROPERTY_DATA:
 		{
 			u32 len;
 			s16 txt[2];
@@ -2264,87 +2444,84 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 		}
 			return JS_TRUE;
 
-		case 30:/*screenX*/
+		case EVENT_JSPROPERTY_SCREENX:
 			*vp = INT_TO_JSVAL(evt->screenX); return JS_TRUE;
-		case 31: /*screenY*/
+		case EVENT_JSPROPERTY_SCREENY:
 			*vp = INT_TO_JSVAL(evt->screenY); return JS_TRUE;
-		case 32: /*clientX*/
+		case EVENT_JSPROPERTY_CLIENTX:
 			*vp = INT_TO_JSVAL(evt->clientX); return JS_TRUE;
-		case 33: /*clientY*/
+		case EVENT_JSPROPERTY_CLIENTY:
 			*vp = INT_TO_JSVAL(evt->clientY); return JS_TRUE;
-		case 34:/*button*/
+		case EVENT_JSPROPERTY_BUTTON:
 			*vp = INT_TO_JSVAL(evt->button); return JS_TRUE;
-		case 35:/*relatedTarget*/
+		case EVENT_JSPROPERTY_RELATEDTARGET:
 			if (evt->is_vrml) return JS_TRUE;
 			*vp = dom_element_construct(c, evt->relatedTarget);
 			return JS_TRUE;
-		case 36:/*wheelDelta*/
+		case EVENT_JSPROPERTY_WHEELDELTA:
 			*vp = INT_TO_JSVAL(FIX2INT(evt->new_scale) ); return JS_TRUE;
 
-
-		/*DOM3 event keyIndentifier*/
-		case 40:
+		case EVENT_JSPROPERTY_KEYIDENTIFIER:
 			s = JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->detail) );
 			*vp = STRING_TO_JSVAL( s );
 			 return JS_TRUE;
 		/*Mozilla keyChar, charCode: wrap up to same value*/
-		case 41:
-		case 42:
+		case EVENT_JSPROPERTY_KEYCHAR:
+		case EVENT_JSPROPERTY_CHARCODE:
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-
-		case 52:/*loaded*/
+		case EVENT_JSPROPERTY_LOADED:
 			if (!evt->media_event) return JS_TRUE;
 			*vp = INT_TO_JSVAL( evt->media_event->loaded_size);
 			return JS_TRUE;
-		case 53:/*total*/
+		case EVENT_JSPROPERTY_TOTAL:
 			if (!evt->media_event) return JS_TRUE;
 			*vp = INT_TO_JSVAL( evt->media_event->total_size);
 			return JS_TRUE;
-		case 54:/*bufferLevelValid*/
+		case EVENT_JSPROPERTY_BUFFERLEVELVALID:
 			if (!evt->media_event) return JS_TRUE;
 			*vp = BOOLEAN_TO_JSVAL( evt->media_event->bufferValid ? JS_TRUE : JS_FALSE);
 			return JS_TRUE;
-		case 55:/*bufferLevel*/
+		case EVENT_JSPROPERTY_BUFFERLEVEL:
 			if (!evt->media_event) return JS_TRUE;
 			*vp = INT_TO_JSVAL( evt->media_event->level);
 			return JS_TRUE;
-		case 56:/*bufferRemainingTime*/
+		case EVENT_JSPROPERTY_BUFFERREMAININGTIME:
 			if (!evt->media_event) return JS_TRUE;
 			*vp = JS_MAKE_DOUBLE(c, evt->media_event->remaining_time);
 			return JS_TRUE;
-		case 57:/*status*/
+		case EVENT_JSPROPERTY_STATUS:
 			if (!evt->media_event) return JS_TRUE;
 			*vp = INT_TO_JSVAL( evt->media_event->status);
 			return JS_TRUE;
 
 		/*VRML ones*/
-		case 60:/*width*/
+		case EVENT_JSPROPERTY_WIDTH:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.width) );
 			return JS_TRUE;
-		case 61:/*height*/
+		case EVENT_JSPROPERTY_HEIGHT:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.height) );
 			return JS_TRUE;
-		case 62:/*offset_x*/
+		case EVENT_JSPROPERTY_OFFSETX:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.x) );
 			return JS_TRUE;
-		case 63:/*offset_x*/
+		case EVENT_JSPROPERTY_OFFSETY:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.y) );
 			return JS_TRUE;
-		case 64:/*vp_width*/
+		case EVENT_JSPROPERTY_VPWIDTH:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.x) );
 			return JS_TRUE;
-		case 65:/*vp_height*/
+		case EVENT_JSPROPERTY_VPHEIGHT:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.y) );
 			return JS_TRUE;
-		case 66:/*translation_x*/
+		case EVENT_JSPROPERTY_TRANSLATIONX:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.x) );
 			return JS_TRUE;
-		case 67:/*translation_y*/
+		case EVENT_JSPROPERTY_TRANSLATIONY:
 			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.y) );
 			return JS_TRUE;
-		case 68:/*type3d*/
+		case EVENT_JSPROPERTY_TYPE3D:
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-		case 69:/*error*/
+		case EVENT_JSPROPERTY_ERROR:
 			*vp = INT_TO_JSVAL(evt->error_state); return JS_TRUE;
 
 		default: return JS_TRUE;
@@ -2359,11 +2536,38 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
  *
  *************************************************************/
 typedef enum {
-	XHR_READYSTATE_UNSENT,
-	XHR_READYSTATE_OPENED,
-	XHR_READYSTATE_HEADERS_RECEIVED,
-	XHR_READYSTATE_LOADING,
-	XHR_READYSTATE_DONE
+	XHR_ONABORT					= -1,
+	XHR_ONERROR					= -2,
+	XHR_ONLOAD					= -3,
+	XHR_ONLOADEND				= -4,
+	XHR_ONLOADSTART				= -5,
+	XHR_ONPROGRESS				= -6,
+	XHR_ONREADYSTATECHANGE		= -7,
+	XHR_ONTIMEOUT				= -8,
+	XHR_READYSTATE				= -9,
+	XHR_RESPONSE				= -10,
+	XHR_RESPONSETYPE			= -11,
+	XHR_RESPONSETEXT			= -12,
+	XHR_RESPONSEXML				= -13,
+	XHR_STATUS					= -14,
+	XHR_STATUSTEXT				= -15,
+	XHR_TIMEOUT					= -16,
+	XHR_UPLOAD					= -17,
+	XHR_WITHCREDENTIALS			= -18,
+	XHR_STATIC_UNSENT			= -19,
+	XHR_STATIC_OPENED			= -20,
+	XHR_STATIC_HEADERS_RECEIVED = -21,
+	XHR_STATIC_LOADING			= -22,
+	XHR_STATIC_DONE				= -23,
+	XHR_CACHE					= -24
+} XHR_JSProperty;
+
+typedef enum {
+	XHR_READYSTATE_UNSENT			= 0,
+	XHR_READYSTATE_OPENED			= 1,
+	XHR_READYSTATE_HEADERS_RECEIVED = 2,
+	XHR_READYSTATE_LOADING			= 3,
+	XHR_READYSTATE_DONE				= 4
 } XHR_ReadyState;
 
 typedef enum {
@@ -2376,14 +2580,33 @@ typedef enum {
 	XHR_RESPONSETYPE_STREAM
 } XHR_ResponseType;
 
+typedef enum {
+	XHR_CACHETYPE_NORMAL,
+	XHR_CACHETYPE_NONE,
+	XHR_CACHETYPE_MEMORY,
+} XHR_CacheType;
+
 typedef struct __xhr_context
 {
 	JSContext *c;
 	JSObject *_this;
+
+	/* callback functions */
+	JSFunction *onabort;
+	JSFunction *onerror;
 	JSFunction *onreadystatechange;
+	JSFunction *onload;
+	JSFunction *onloadstart;
+	JSFunction *onloadend;
+	JSFunction *onprogress;
+	JSFunction *ontimeout;
 
 	XHR_ReadyState readyState;
 	Bool async;
+
+	/* GPAC extension to control the caching of XHR-downloaded resources */
+	XHR_CacheType  cache;
+
 	/*header/header-val, terminated by NULL*/
 	char **headers;
 	u32 cur_header;
@@ -2405,9 +2628,24 @@ typedef struct __xhr_context
 
 	GF_SAXParser *sax;
 	GF_List *node_stack;
-	/*dom graph*/
+
+	GF_DOMEventTarget *event_target;
+
+	/* dom graph in which the XHR is created */
+	GF_SceneGraph *owning_graph;
+	/* dom graph used to parse XML into */
 	GF_SceneGraph *document;
 } XMLHTTPContext;
+
+static GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx)
+{
+	return ctx->owning_graph;
+}
+
+static GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx)
+{
+	return ctx->event_target;
+}
 
 static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
 {
@@ -2505,8 +2743,10 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 
 void xhr_del_array_buffer(void *udta)
 {
-	if (udta)
-		((XMLHTTPContext *)udta)->arraybuffer = NULL;;
+	if (udta) {
+		((XMLHTTPContext *)udta)->arraybuffer = NULL;
+		((XMLHTTPContext *)udta)->data = NULL;
+	}
 }
 
 static void xml_http_del_data(XMLHTTPContext *ctx)
@@ -2586,14 +2826,23 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 	ctx->ret_code = GF_OK;
 }
 
-static DECL_FINALIZE( xml_http_finalize)
+static DECL_FINALIZE(xml_http_finalize)
 
 	XMLHTTPContext *ctx;
 	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (ctx) {
-		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
+		if (ctx->onabort)				gf_js_remove_root(c, &(ctx->onabort), GF_JSGC_VAL);
+		if (ctx->onerror)				gf_js_remove_root(c, &(ctx->onerror), GF_JSGC_VAL);
+		if (ctx->onload)					gf_js_remove_root(c, &(ctx->onload), GF_JSGC_VAL);
+		if (ctx->onloadend)				gf_js_remove_root(c, &(ctx->onloadend), GF_JSGC_VAL);
+		if (ctx->onloadstart)			gf_js_remove_root(c, &(ctx->onloadstart), GF_JSGC_VAL);
+		if (ctx->onprogress)				gf_js_remove_root(c, &(ctx->onprogress), GF_JSGC_VAL);
+		if (ctx->onreadystatechange)		gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
+		if (ctx->ontimeout)				gf_js_remove_root(c, &(ctx->ontimeout), GF_JSGC_VAL);
 		xml_http_reset(ctx);
+		gf_dom_event_target_del(ctx->event_target);
+		ctx->event_target = NULL;
 		gf_free(ctx);
 	}
 }
@@ -2606,9 +2855,21 @@ static JSBool SMJS_FUNCTION(xml_http_constructor)
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	p->c = c;
 	p->_this = obj;
+	p->owning_graph = xml_get_scenegraph(c);
+	p->event_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_XHR, p);
 	SMJS_SET_PRIVATE(c, obj, p);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
 	return JS_TRUE;
+}
+
+static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
+{
+	GF_DOM_Event xhr_evt;
+	memset(&xhr_evt, 0, sizeof(GF_DOM_Event));
+	xhr_evt.type = evtType;
+	xhr_evt.target = ctx->event_target->ptr;
+	xhr_evt.target_type = ctx->event_target->ptr_type;
+	sg_fire_dom_event(ctx->event_target, &xhr_evt, ctx->owning_graph, NULL);
 }
 
 static void xml_http_state_change(XMLHTTPContext *ctx)
@@ -2620,9 +2881,6 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	gf_sg_lock_javascript(ctx->c, GF_TRUE);
 	if (ctx->onreadystatechange)
 		JS_CallFunction(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
-
-	/*todo - fire XHR events*/
-
 
 	gf_sg_lock_javascript(ctx->c, GF_FALSE);
 
@@ -2705,6 +2963,12 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	/*OPEN success*/
 	ctx->readyState = XHR_READYSTATE_OPENED;
 	xml_http_state_change(ctx);
+	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_START);
+	if (ctx->onloadstart) {
+		jsval rval;
+		JS_CallFunction(ctx->c, ctx->_this, ctx->onloadstart, 0, NULL, &rval);
+		return rval;
+	}
 	return JS_TRUE;
 }
 
@@ -2801,6 +3065,35 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 
 #define USE_PROGRESSIVE_SAX	0
 
+static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error) 
+{
+	/*if we get here, destroy downloader - FIXME we'll need a mutex here for sync case...*/
+	if (ctx->sess) {
+		gf_dm_sess_del(ctx->sess);
+		ctx->sess = NULL;
+	}
+
+	/*error, complete reset*/
+	if (error) {
+		xml_http_reset(ctx);
+	} else {
+		ctx->html_status = 200;
+	}
+	/*but stay in loaded mode*/
+	ctx->readyState = XHR_READYSTATE_DONE;
+	xml_http_state_change(ctx);
+	xml_http_fire_event(ctx, GF_EVENT_LOAD);
+	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_DONE);
+	if (ctx->onload) {
+		jsval rval;
+		JS_CallFunction(ctx->c, ctx->_this, ctx->onload, 0, NULL, &rval);
+	}
+	if (ctx->onloadend) {
+		jsval rval;
+		JS_CallFunction(ctx->c, ctx->_this, ctx->onloadend, 0, NULL, &rval);
+	}
+}
+
 static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	Bool locked = GF_FALSE;
@@ -2837,6 +3130,11 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		xml_http_reset_partial(ctx);
 		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
 		xml_http_state_change(ctx);
+		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
+		if (ctx->onprogress) {
+			jsval rval;
+			JS_CallFunction(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
+		}
 		return;
 	/*this is signaled sent AFTER headers*/
 	case GF_NETIO_PARSE_REPLY:
@@ -2846,6 +3144,13 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		ctx->readyState = XHR_READYSTATE_LOADING;
 		xml_http_state_change(ctx);
+		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
+		xml_http_state_change(ctx);
+		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
+		if (ctx->onprogress) {
+			jsval rval;
+			JS_CallFunction(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
+		}
 		return;
 
 	case GF_NETIO_GET_METHOD:
@@ -2880,9 +3185,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			ctx->document = gf_sg_new();
 			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
 			ctx->document->reference_count = 1;
-		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[XmlHttpRequest] content type %s - ResponseXML not supported\n", parameter->value));
-		}
+		} 
 		return;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (parameter->data && parameter->size) {
@@ -2919,22 +3222,9 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] Download error: %s\n", gf_error_to_string(parameter->error)));
 		break;
 	}
-
-	/*if we get here, destroy downloader - FIXME we'll need a mutex here for sync case...*/
-	if (ctx->sess) {
-		gf_dm_sess_del(ctx->sess);
-		ctx->sess = NULL;
+	if (ctx->async) {
+		xml_http_terminate(ctx, parameter->error);
 	}
-
-	/*error, complete reset*/
-	if (parameter->error) {
-		xml_http_reset(ctx);
-	} else {
-		ctx->html_status = 200;
-	}
-	/*but stay in loaded mode*/
-	ctx->readyState = XHR_READYSTATE_DONE;
-	xml_http_state_change(ctx);
 }
 
 static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
@@ -2954,6 +3244,11 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	if (!responseFile) {
 		ctx->html_status = 404;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot open local file %s\n", ctx->url));
+		xml_http_fire_event(ctx, GF_EVENT_ERROR);
+		if (ctx->onerror) {
+			jsval rval;
+			JS_CallFunction(ctx->c, ctx->_this, ctx->onerror, 0, NULL, &rval);
+		}
 		return GF_BAD_PARAM;
 	}
 	ctx->isFile = GF_TRUE;
@@ -2980,6 +3275,16 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 		par.value = "application/octet-stream";
 	}
 	xml_http_on_data(ctx, &par);
+
+	{
+		char contentLengthHeader[256];
+		memset(&par, 0, sizeof(GF_NETIO_Parameter));
+		par.msg_type = GF_NETIO_PARSE_HEADER;
+		par.name = "Content-Length";
+		sprintf(contentLengthHeader, "%d", ctx->size);
+		par.value = contentLengthHeader;
+		xml_http_on_data(ctx, &par);
+	}
 
 	memset(&par, 0, sizeof(GF_NETIO_Parameter));
 	par.msg_type = GF_NETIO_DATA_TRANSFERED;
@@ -3029,8 +3334,18 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	SMJS_FREE(c, data);
 
 	if (!strncmp(ctx->url, "http://", 7)) {
-
-		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED, xml_http_on_data, ctx, &e);			
+		u32 flags;
+		
+		flags = ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED;
+		if (ctx->cache != XHR_CACHETYPE_NORMAL) {
+			if (ctx->cache == XHR_CACHETYPE_NONE) {
+				flags |= GF_NETIO_SESSION_NOT_CACHED;
+			} 
+			if (ctx->cache == XHR_CACHETYPE_MEMORY) {
+				flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+			}
+		}
+		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, flags, xml_http_on_data, ctx, &e);			
 		if (!ctx->sess) return JS_TRUE;
 
 		/*start our download (whether the session is threaded or not)*/
@@ -3038,8 +3353,9 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 		if (e!=GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] Error processing %s: %s\n", ctx->url, gf_error_to_string(e) ));
 		}
-		/**/
-		if (!ctx->async && ctx->sess) gf_dm_sess_del(ctx->sess);
+		if (!ctx->async) {
+			xml_http_terminate(ctx, e);
+		}
 	} else {
 		e = xml_http_process_local(ctx);
 		if (e!=GF_OK) {
@@ -3063,6 +3379,13 @@ static JSBool SMJS_FUNCTION(xml_http_abort)
 	sess = ctx->sess;
 	ctx->sess = NULL;
 	if (sess) gf_dm_sess_del(sess);
+
+	xml_http_fire_event(ctx, GF_EVENT_ABORT);
+	if (ctx->onabort) {
+		jsval rval;
+		JS_CallFunction(ctx->c, ctx->_this, ctx->onabort, 0, NULL, &rval);
+		return rval;
+	}
 
 	xml_http_reset(ctx);
 	return JS_TRUE;
@@ -3168,7 +3491,7 @@ static JSBool SMJS_FUNCTION(xml_http_overrideMimeType)
 	return JS_TRUE;
 }
 
-static SMJS_FUNC_PROP_GET( xml_http_getProperty)
+static SMJS_FUNC_PROP_GET(xml_http_getProperty)
 
 	JSString *s;
 	XMLHTTPContext *ctx;
@@ -3179,20 +3502,66 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 	s = NULL;
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
-		/*onreadystatechange*/
-		case 0:
+		case XHR_ONABORT:
+			if (ctx->onabort) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onabort);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_ONERROR:
+			if (ctx->onerror) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onerror);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_ONLOAD:
+			if (ctx->onload) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onload);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_ONLOADSTART:
+			if (ctx->onloadstart) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onloadstart);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_ONLOADEND:
+			if (ctx->onloadend) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onloadend);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_ONPROGRESS:
+			if (ctx->onprogress) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onprogress);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_ONREADYSTATECHANGE:
 			if (ctx->onreadystatechange) {
 				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onreadystatechange);
 			} else {
 				*vp = JSVAL_VOID;
 			}
 			return JS_TRUE;
-		/*readyState*/
-		case 1:
+		case XHR_ONTIMEOUT:
+			if (ctx->ontimeout) {
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->ontimeout);
+			} else {
+				*vp = JSVAL_VOID;
+			}
+			return JS_TRUE;
+		case XHR_READYSTATE:
 			*vp = INT_TO_JSVAL(ctx->readyState); 
 			return JS_TRUE;
-		/*responseText*/
-		case 2:
+		case XHR_RESPONSETEXT:
 			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 			if (ctx->data) {
 				s = JS_NewStringCopyZ(c, ctx->data);
@@ -3201,8 +3570,7 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 				*vp = JSVAL_VOID;
 			}
 			return JS_TRUE;
-		/*responseXML*/
-		case 3:
+		case XHR_RESPONSEXML:
 			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
 			if (ctx->data && ctx->document) {
 				*vp = dom_document_construct(c, ctx->document);
@@ -3210,9 +3578,10 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 				*vp = JSVAL_VOID;
 			}
 			return JS_TRUE;
-		/*response*/
-		case 10:
-			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
+		case XHR_RESPONSE:
+			if (ctx->readyState<XHR_READYSTATE_LOADING) {
+				return JS_TRUE;
+			}
 			if (ctx->data) {
 				switch(ctx->responseType)
 				{
@@ -3243,12 +3612,10 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 				*vp = JSVAL_VOID;
 			}
 			return JS_TRUE;
-		/*status*/
-		case 4:
+		case XHR_STATUS:
 			*vp = INT_TO_JSVAL(ctx->html_status); 
 			return JS_TRUE;
-		/*statusText*/
-		case 5:
+		case XHR_STATUSTEXT:
 			if (ctx->statusText) {
 				s = JS_NewStringCopyZ(c, ctx->statusText);
 				*vp = STRING_TO_JSVAL( s );
@@ -3256,20 +3623,16 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
 				*vp = JSVAL_VOID;
 			}
 			return JS_TRUE;
-        /*timeout*/
-		case 6:
+		case XHR_TIMEOUT:
 			*vp = INT_TO_JSVAL(ctx->timeout); 
 			return JS_TRUE;
-		/* withCredentials */
-        case 7:
+        case XHR_WITHCREDENTIALS:
 			*vp = BOOLEAN_TO_JSVAL(ctx->withCredentials ? JS_TRUE : JS_FALSE); 
 			return JS_TRUE;
-        /* upload */
-		case 8:
+		case XHR_UPLOAD:
 			/* TODO */
 			return JS_TRUE;
-        /* responseType */
-		case 9:
+		case XHR_RESPONSETYPE:
 			switch (ctx->responseType)
             {
             case XHR_RESPONSETYPE_NONE:
@@ -3296,26 +3659,60 @@ static SMJS_FUNC_PROP_GET( xml_http_getProperty)
             }
 			*vp = STRING_TO_JSVAL( s );
 			return JS_TRUE;
-		case 100:
-			*vp = INT_TO_JSVAL(0);
+		case XHR_STATIC_UNSENT:
+			*vp = INT_TO_JSVAL(XHR_READYSTATE_UNSENT);
 			return JS_TRUE;
-		case 101:
-			*vp = INT_TO_JSVAL(1);
+		case XHR_STATIC_OPENED:
+			*vp = INT_TO_JSVAL(XHR_READYSTATE_OPENED);
 			return JS_TRUE;
-		case 102:
-			*vp = INT_TO_JSVAL(2);
+		case XHR_STATIC_HEADERS_RECEIVED:
+			*vp = INT_TO_JSVAL(XHR_READYSTATE_HEADERS_RECEIVED);
 			return JS_TRUE;
-		case 103:
-			*vp = INT_TO_JSVAL(3);
+		case XHR_STATIC_LOADING:
+			*vp = INT_TO_JSVAL(XHR_READYSTATE_LOADING);
 			return JS_TRUE;
-		case 104:
-			*vp = INT_TO_JSVAL(4);
+		case XHR_STATIC_DONE:
+			*vp = INT_TO_JSVAL(XHR_READYSTATE_DONE);
+			return JS_TRUE;
+		case XHR_CACHE:		
+			switch (ctx->cache) {
+			case XHR_CACHETYPE_NORMAL:
+				s = JS_NewStringCopyZ(c, "normal");
+				break;
+			case XHR_CACHETYPE_NONE:
+				s = JS_NewStringCopyZ(c, "none");
+				break;
+			case XHR_CACHETYPE_MEMORY:
+				s = JS_NewStringCopyZ(c, "memory");
+				break;
+			}
+			*vp = STRING_TO_JSVAL(s);
 			return JS_TRUE;
 		default:
 			return JS_TRUE;
 		}
 	}
 	return SMJS_CALL_PROP_STUB();
+}
+
+JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, JSFunction **callbackfunc) {
+	if (!callbackfunc) return JS_FALSE;
+	if (*callbackfunc) gf_js_remove_root(c, callbackfunc, GF_JSGC_VAL);
+	*callbackfunc = NULL;
+	if (JSVAL_IS_VOID(vp)) {
+		return JS_TRUE;
+	} 
+	else if (JSVAL_CHECK_STRING(vp)) {
+		jsval fval;
+		char *callback = SMJS_CHARS(c, vp);
+		if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
+		*callbackfunc = JS_ValueToFunction(c, fval);
+		SMJS_FREE(c, callback)
+	} else if (JSVAL_IS_OBJECT(vp)) {
+		*callbackfunc = JS_ValueToFunction(c, vp);
+	}
+	if (*callbackfunc) gf_js_add_root(c, callbackfunc, GF_JSGC_VAL);
+	return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET( xml_http_setProperty)
@@ -3327,36 +3724,37 @@ static SMJS_FUNC_PROP_SET( xml_http_setProperty)
 
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
-		/*onreadystatechange*/
-		case 0:
-		    if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
-		    ctx->onreadystatechange = NULL;
-
-		    if (JSVAL_IS_VOID(*vp)) {
-			    return JS_TRUE;
-		    }
-		    else if (JSVAL_CHECK_STRING(*vp)) {
-			    jsval fval;
-			    char *callback = SMJS_CHARS(c, *vp);
-			    if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
-			    ctx->onreadystatechange = JS_ValueToFunction(c, fval);
-			    SMJS_FREE(c, callback);
-		    } else if (JSVAL_IS_OBJECT(*vp)) {
-			    ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
-		    }
-		    if (ctx->onreadystatechange) gf_js_add_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
-		    return JS_TRUE;
+		case XHR_ONERROR: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onerror);
 			break;
-        /*timeout*/
-		case 6:
+		case XHR_ONABORT: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onabort);
+			break;
+		case XHR_ONLOAD: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onload);
+			break;
+		case XHR_ONLOADSTART: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onloadstart);
+			break;
+		case XHR_ONLOADEND: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onloadend);
+			break;
+		case XHR_ONPROGRESS: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onprogress);
+			break;
+		case XHR_ONREADYSTATECHANGE: 
+			gf_set_js_eventhandler(c, *vp, &ctx->onreadystatechange);
+			break;
+		case XHR_ONTIMEOUT: 
+			gf_set_js_eventhandler(c, *vp, &ctx->ontimeout);
+			break;
+		case XHR_TIMEOUT:
 			ctx->timeout = JSVAL_TO_INT(*vp);
 			return JS_TRUE;
-		/* withCredentials */
-        case 7:
+        case XHR_WITHCREDENTIALS:
 			ctx->withCredentials = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE ? GF_TRUE : GF_FALSE);
 			return JS_TRUE;
-        /* responseType */
-		case 9:
+		case XHR_RESPONSETYPE:
             { 
                 char *str = SMJS_CHARS(c, *vp);
 	            if (!str) return JS_TRUE;
@@ -3375,6 +3773,20 @@ static SMJS_FUNC_PROP_SET( xml_http_setProperty)
                 } else if (!strcmp(str, "stream")) {
                     ctx->responseType = XHR_RESPONSETYPE_STREAM;
                 }
+                break;
+			    return JS_TRUE;
+            }
+		case XHR_CACHE:			
+            { 
+                char *str = SMJS_CHARS(c, *vp);
+	            if (!str) return JS_TRUE;
+                if (!strcmp(str, "normal")) {
+                    ctx->cache = XHR_CACHETYPE_NORMAL;
+                } else if (!strcmp(str, "none")) {
+                    ctx->cache = XHR_CACHETYPE_NONE;
+                } else if (!strcmp(str, "memory")) {
+                    ctx->cache = XHR_CACHETYPE_MEMORY;
+                } 
                 break;
 			    return JS_TRUE;
             }
@@ -3400,8 +3812,7 @@ static SMJS_FUNC_PROP_GET(dcci_getProperty)
 
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
-		/*value*/
-		case 0:
+		case DCCI_JSPROPERTY_VALUE:
 			child = n->children;
 			while (child) {
 				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
@@ -3416,8 +3827,7 @@ static SMJS_FUNC_PROP_GET(dcci_getProperty)
 			}
 			*vp = JSVAL_NULL;
 			return JS_TRUE;
-		/*valueType*/
-		case 1:
+		case DCCI_JSPROPERTY_VALUETYPE:
 			value = "DOMString";
 			att = (GF_DOMFullAttribute*) n->attributes;
 			while (att) {
@@ -3430,8 +3840,7 @@ static SMJS_FUNC_PROP_GET(dcci_getProperty)
 			s = JS_NewStringCopyZ(c, value);
 			*vp = STRING_TO_JSVAL( s );
 			return JS_TRUE;
-		/*propertyType*/
-		case 2:
+		case DCCI_JSPROPERTY_PROPERTYTYPE:
 			value = "DOMString";
 			att = (GF_DOMFullAttribute*) n->attributes;
 			while (att) {
@@ -3444,8 +3853,7 @@ static SMJS_FUNC_PROP_GET(dcci_getProperty)
 			s = JS_NewStringCopyZ(c, value);
 			*vp = STRING_TO_JSVAL( s );
 			return JS_TRUE;
-		/*readOnly*/
-		case 3:
+		case DCCI_JSPROPERTY_READONLY:
 			att = (GF_DOMFullAttribute*) n->attributes;
 			while (att) {
 				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
@@ -3456,16 +3864,13 @@ static SMJS_FUNC_PROP_GET(dcci_getProperty)
 			}
 			*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 			return JS_TRUE;
-		/*DCCIMetadataInterfaceType*/
-		case 4:
+		case DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE:
 			*vp = JSVAL_NULL;
 			return JS_TRUE;
-		/*DCCIMetadataInterface*/
-		case 5:
+		case DCCI_JSPROPERTY_DCCIMETADATAINTERFACE:
 			*vp = JSVAL_NULL;
 			return JS_TRUE;
-		/*version*/
-		case 6:
+		case DCCI_JSPROPERTY_VERSION:
 			s = JS_NewStringCopyZ(c, "1.0");
 			*vp = STRING_TO_JSVAL( s );
 			return JS_TRUE;
@@ -3493,8 +3898,7 @@ static SMJS_FUNC_PROP_SET( dcci_setProperty)
 
 	if (SMJS_ID_IS_INT(id)) {
 		switch (SMJS_ID_TO_INT(id)) {
-		/*value*/
-		case 0:
+		case DCCI_JSPROPERTY_VALUE:
 			readonly = GF_FALSE;
 			att = (GF_DOMFullAttribute*) n->attributes;
 			while (att) {
@@ -3528,8 +3932,7 @@ static SMJS_FUNC_PROP_SET( dcci_setProperty)
 			gf_dom_event_fire((GF_Node*)n, &evt);
 			n->sgprivate->scenegraph->modified = GF_TRUE;
 			break;
-		/*propertyType*/
-		case 2:
+		case DCCI_JSPROPERTY_PROPERTYTYPE:
 			break;
 
 		/*all other properties are read-only*/
@@ -3703,7 +4106,6 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		/*Event class*/
 		JS_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 
-
 		JS_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
 		JS_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
 		JS_SETUP_CLASS(dom_rt->storageClass, "Storage", JSCLASS_HAS_PRIVATE, storage_getProperty, storage_setProperty, storage_finalize);
@@ -3720,51 +4122,51 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		JSFunctionSpec nodeFuncs[] = {
 			SMJS_FUNCTION_SPEC("insertBefore",			xml_node_insert_before, 2),
 			SMJS_FUNCTION_SPEC("replaceChild",			xml_node_replace_child, 2),
-			SMJS_FUNCTION_SPEC("removeChild",				xml_node_remove_child, 1),
-			SMJS_FUNCTION_SPEC("appendChild",				xml_node_append_child, 1),
+			SMJS_FUNCTION_SPEC("removeChild",			xml_node_remove_child, 1),
+			SMJS_FUNCTION_SPEC("appendChild",			xml_node_append_child, 1),
 			SMJS_FUNCTION_SPEC("hasChildNodes",			xml_node_has_children, 0),
 			SMJS_FUNCTION_SPEC("cloneNode",				xml_clone_node, 1),
 			SMJS_FUNCTION_SPEC("normalize",				xml_dom3_not_implemented, 0),
-			SMJS_FUNCTION_SPEC("isSupported",				xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("isSupported",			xml_dom3_not_implemented, 2),
 			SMJS_FUNCTION_SPEC("hasAttributes",			xml_node_has_attributes, 0),
 			SMJS_FUNCTION_SPEC("compareDocumentPosition", xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("isSameNode",				xml_node_is_same_node, 1),
+			SMJS_FUNCTION_SPEC("isSameNode",			xml_node_is_same_node, 1),
 			SMJS_FUNCTION_SPEC("lookupPrefix",			xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("isDefaultNamespace",		xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("lookupNamespaceURI",		xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("isDefaultNamespace",	xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("lookupNamespaceURI",	xml_dom3_not_implemented, 1),
 			/*we don't support full node compare*/
-			SMJS_FUNCTION_SPEC("isEqualNode",				xml_node_is_same_node, 1),
-			SMJS_FUNCTION_SPEC("getFeature",				xml_dom3_not_implemented, 2),
-			SMJS_FUNCTION_SPEC("setUserData",				xml_dom3_not_implemented, 3),
-			SMJS_FUNCTION_SPEC("getUserData",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("isEqualNode",			xml_node_is_same_node, 1),
+			SMJS_FUNCTION_SPEC("getFeature",			xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("setUserData",			xml_dom3_not_implemented, 3),
+			SMJS_FUNCTION_SPEC("getUserData",			xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec nodeProps[] = {
-			SMJS_PROPERTY_SPEC("nodeName",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("nodeValue",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("nodeType",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("parentNode",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("childNodes",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("firstChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("lastChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("previousSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("nextSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("attributes",		9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("ownerDocument",	10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("namespaceURI",	11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("prefix",			12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("localName",		13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("baseURI",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("nodeName",		NODE_JSPROPERTY_NODENAME,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("nodeValue",		NODE_JSPROPERTY_NODEVALUE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("nodeType",		NODE_JSPROPERTY_NODETYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("parentNode",	NODE_JSPROPERTY_PARENTNODE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("childNodes",	NODE_JSPROPERTY_CHILDNODES,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("firstChild",	NODE_JSPROPERTY_FIRSTCHILD,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("lastChild",		NODE_JSPROPERTY_LASTCHILD,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("previousSibling",NODE_JSPROPERTY_PREVIOUSSIBLING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("nextSibling",	NODE_JSPROPERTY_NEXTSIBLING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("attributes",	NODE_JSPROPERTY_ATTRIBUTES,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("ownerDocument",	NODE_JSPROPERTY_OWNERDOCUMENT,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("namespaceURI",	NODE_JSPROPERTY_NAMESPACEURI,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("prefix",		NODE_JSPROPERTY_PREFIX,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("localName",		NODE_JSPROPERTY_LOCALNAME,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("baseURI",		NODE_JSPROPERTY_BASEURI,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("textContent",	NODE_JSPROPERTY_TEXTCONTENT,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 			/*elementTraversal interface*/
-			SMJS_PROPERTY_SPEC("firstElementChild",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("lastElementChild",		17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("previousElementSibling",	18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("nextElementSibling",		19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("firstElementChild",		NODE_JSPROPERTY_FIRSTELEMENTCHILD,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("lastElementChild",		NODE_JSPROPERTY_LASTELEMENTCHILD,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("previousElementSibling",NODE_JSPROPERTY_PREVIOUSELEMENTSIBLING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("nextElementSibling",	NODE_JSPROPERTY_NEXTELEMENTSIBLING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
-		GF_JS_InitClass(c, global, 0, &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
+		GF_JS_InitClass(c, global, JS_NewObject(c, NULL, NULL, NULL), &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
 		if (!dom_rt->domNodeClass._proto) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOMCore] Not enough memory to initialize JS node class\n"));
 			return;
@@ -3780,42 +4182,42 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	{
 		JSFunctionSpec documentFuncs[] = {
 			SMJS_FUNCTION_SPEC("createElement",				xml_document_create_element, 1),
-			SMJS_FUNCTION_SPEC("createDocumentFragment",		xml_dom3_not_implemented, 0),
-			SMJS_FUNCTION_SPEC("createTextNode",				xml_document_create_text, 1),
+			SMJS_FUNCTION_SPEC("createDocumentFragment",	xml_dom3_not_implemented, 0),
+			SMJS_FUNCTION_SPEC("createTextNode",			xml_document_create_text, 1),
 			SMJS_FUNCTION_SPEC("createComment",				xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("createCDATASection",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("createCDATASection",		xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC("createProcessingInstruction",	xml_dom3_not_implemented, 2),
-			SMJS_FUNCTION_SPEC("createAttribute",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("createAttribute",			xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC("createEntityReference",		xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC("getElementsByTagName",		xml_document_elements_by_tag, 1),
-			SMJS_FUNCTION_SPEC("importNode",					xml_dom3_not_implemented, 2),
-			SMJS_FUNCTION_SPEC("createElementNS",				xml_document_create_element, 2),
+			SMJS_FUNCTION_SPEC("importNode",				xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("createElementNS",			xml_document_create_element, 2),
 			SMJS_FUNCTION_SPEC("createAttributeNS",			xml_dom3_not_implemented, 2),
-			SMJS_FUNCTION_SPEC("getElementsByTagNameNS",		xml_document_elements_by_tag, 2),
-			SMJS_FUNCTION_SPEC("getElementById",				xml_document_element_by_id, 1),
+			SMJS_FUNCTION_SPEC("getElementsByTagNameNS",	xml_document_elements_by_tag, 2),
+			SMJS_FUNCTION_SPEC("getElementById",			xml_document_element_by_id, 1),
 			SMJS_FUNCTION_SPEC("adoptNode",					xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC("normalizeDocument",			xml_dom3_not_implemented, 0),
-			SMJS_FUNCTION_SPEC("renameNode",					xml_dom3_not_implemented, 3),
+			SMJS_FUNCTION_SPEC("renameNode",				xml_dom3_not_implemented, 3),
 			/*eventTarget interface*/
 			JS_DOM3_EVENT_TARGET_INTERFACE
 			/*DocumentEvent interface*/
-			SMJS_FUNCTION_SPEC("createEvent",					xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("createEvent",				xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 
 		JSPropertySpec documentProps[] = {
-			SMJS_PROPERTY_SPEC("doctype",				-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("implementation",		-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("documentElement",		-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("inputEncoding",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("xmlEncoding",			-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("xmlStandalone",			-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("xmlVersion",			-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("strictErrorChecking",	-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("documentURI",			-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("location",			   -10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("domConfig",			   -11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("global",			   -12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("doctype",			 DOCUMENT_JSPROPERTY_DOCTYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("implementation",	 DOCUMENT_JSPROPERTY_IMPLEMENTATION,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("documentElement",	 DOCUMENT_JSPROPERTY_DOCUMENTELEMENT,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("inputEncoding",		 DOCUMENT_JSPROPERTY_INPUTENCODING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("xmlEncoding",		 DOCUMENT_JSPROPERTY_XMLENCODING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("xmlStandalone",		 DOCUMENT_JSPROPERTY_XMLSTANDALONE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("xmlVersion",		 DOCUMENT_JSPROPERTY_XMLVERSION,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("strictErrorChecking",DOCUMENT_JSPROPERTY_STRICTERRORCHECKING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("documentURI",		 DOCUMENT_JSPROPERTY_DOCUMENTURI,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("location",			 DOCUMENT_JSPROPERTY_LOCATION,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("domConfig",			 DOCUMENT_JSPROPERTY_DOMCONFIG,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("global",			 DOCUMENT_JSPROPERTY_GLOBAL,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0),
 		};
 
@@ -3827,30 +4229,30 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		JSFunctionSpec elementFuncs[] = {
 			SMJS_FUNCTION_SPEC("getAttribute",				xml_element_get_attribute, 1),
 			SMJS_FUNCTION_SPEC("setAttribute",				xml_element_set_attribute, 2),
-			SMJS_FUNCTION_SPEC("removeAttribute",				xml_element_remove_attribute, 1),
-			SMJS_FUNCTION_SPEC("getAttributeNS",				xml_element_get_attribute, 2),
-			SMJS_FUNCTION_SPEC("setAttributeNS",				xml_element_set_attribute, 3),
+			SMJS_FUNCTION_SPEC("removeAttribute",			xml_element_remove_attribute, 1),
+			SMJS_FUNCTION_SPEC("getAttributeNS",			xml_element_get_attribute, 2),
+			SMJS_FUNCTION_SPEC("setAttributeNS",			xml_element_set_attribute, 3),
 			SMJS_FUNCTION_SPEC("removeAttributeNS",			xml_element_remove_attribute, 2),
 			SMJS_FUNCTION_SPEC("hasAttribute",				xml_element_has_attribute, 1),
-			SMJS_FUNCTION_SPEC("hasAttributeNS",				xml_element_has_attribute, 2),
+			SMJS_FUNCTION_SPEC("hasAttributeNS",			xml_element_has_attribute, 2),
 			SMJS_FUNCTION_SPEC("getElementsByTagName",		xml_element_elements_by_tag, 1),
-			SMJS_FUNCTION_SPEC("getElementsByTagNameNS",		xml_element_elements_by_tag, 2),
-			SMJS_FUNCTION_SPEC("setIdAttribute",				xml_element_set_id, 2),
+			SMJS_FUNCTION_SPEC("getElementsByTagNameNS",	xml_element_elements_by_tag, 2),
+			SMJS_FUNCTION_SPEC("setIdAttribute",			xml_element_set_id, 2),
 			SMJS_FUNCTION_SPEC("setIdAttributeNS",			xml_element_set_id, 3),
 			SMJS_FUNCTION_SPEC("getAttributeNode",			xml_dom3_not_implemented, 1),
 			SMJS_FUNCTION_SPEC("setAttributeNode",			xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("removeAttributeNode",			xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("getAttributeNodeNS",			xml_dom3_not_implemented, 2),
-			SMJS_FUNCTION_SPEC("setAttributeNodeNS",			xml_dom3_not_implemented, 1),
-			SMJS_FUNCTION_SPEC("setIdAttributeNode",			xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("removeAttributeNode",		xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("getAttributeNodeNS",		xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("setAttributeNodeNS",		xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("setIdAttributeNode",		xml_dom3_not_implemented, 2),
 			/*eventTarget interface*/
 			JS_DOM3_EVENT_TARGET_INTERFACE
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 
 		JSPropertySpec elementProps[] = {
-			SMJS_PROPERTY_SPEC("tagName",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("schemaTypeInfo",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("tagName",		ELEMENT_JSPROPERTY_TAGNAME,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("schemaTypeInfo",ELEMENT_JSPROPERTY_SCHEMATYPEINFO,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0),
 		};
 		GF_JS_InitClass(c, global, dom_rt->domNodeClass._proto, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
@@ -3872,11 +4274,11 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec textProps[] = {
-			SMJS_PROPERTY_SPEC("data",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("length",						2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("data",						TEXT_JSPROPERTY_DATA,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("length",					TEXT_JSPROPERTY_LENGTH,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			/*text*/
-			SMJS_PROPERTY_SPEC("isElementContentWhitespace",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("wholeText",					4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("isElementContentWhitespace",TEXT_JSPROPERTY_ISELEMENTCONTENTWHITESPACE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("wholeText",					TEXT_JSPROPERTY_WHOLETEXT,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0),
 		};
 		GF_JS_InitClass(c, global, dom_rt->domNodeClass._proto, &dom_rt->domTextClass, 0, 0, textProps, textFuncs, 0, 0);
@@ -3896,56 +4298,56 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec eventProps[] = {
-			SMJS_PROPERTY_SPEC("type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("target",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("currentTarget",	 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("eventPhase",		 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("bubbles",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("cancelable",		 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("timeStamp",		 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("namespaceURI",	 7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("defaultPrevented", 8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("type",			EVENT_JSPROPERTY_TYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("target",		EVENT_JSPROPERTY_TARGET,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("currentTarget",	EVENT_JSPROPERTY_CURRENTTARGET,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("eventPhase",	EVENT_JSPROPERTY_EVENTPHASE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("bubbles",		EVENT_JSPROPERTY_BUBBLES,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("cancelable",	EVENT_JSPROPERTY_CANCELABLE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("timeStamp",		EVENT_JSPROPERTY_TIMESTAMP,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("namespaceURI",	EVENT_JSPROPERTY_NAMESPACEURI,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("defaultPrevented",EVENT_JSPROPERTY_DEFAULTPREVENTED,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			/*UIEvent*/
-			SMJS_PROPERTY_SPEC("detail",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("detail",			EVENT_JSPROPERTY_DETAIL,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			/*text, connectionEvent*/
-			SMJS_PROPERTY_SPEC("data",			25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("data",				EVENT_JSPROPERTY_DATA,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			/*MouseEvent*/
-			SMJS_PROPERTY_SPEC("screenX",			30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("screenY",			31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("clientX",			32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("clientY",			33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("button",			34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("relatedTarget",	35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("screenX",			EVENT_JSPROPERTY_SCREENX,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("screenY",			EVENT_JSPROPERTY_SCREENY,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("clientX",			EVENT_JSPROPERTY_CLIENTX,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("clientY",			EVENT_JSPROPERTY_CLIENTY,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("button",			EVENT_JSPROPERTY_BUTTON,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("relatedTarget",		EVENT_JSPROPERTY_RELATEDTARGET, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			/*wheelEvent*/
-			SMJS_PROPERTY_SPEC("wheelDelta",		36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("wheelDelta",		EVENT_JSPROPERTY_WHEELDELTA,    JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			/*keyboard*/
-			SMJS_PROPERTY_SPEC("keyIdentifier",	40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("keyChar",			41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("charCode",		42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("keyIdentifier",	EVENT_JSPROPERTY_KEYIDENTIFIER,     JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("keyChar",		EVENT_JSPROPERTY_KEYCHAR,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("charCode",		EVENT_JSPROPERTY_CHARCODE,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			/*progress*/
-			SMJS_PROPERTY_SPEC("lengthComputable",50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("typeArg",			51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("loaded",			52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("total",			53,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("bufferLevelValid",	54,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("bufferLevel",			55,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("bufferRemainingTime",	56,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("status",				57,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("lengthComputable",	EVENT_JSPROPERTY_LENGTHCOMPUTABLE,	JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("typeArg",			EVENT_JSPROPERTY_TYPEARG,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("loaded",			EVENT_JSPROPERTY_LOADED,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("total",				EVENT_JSPROPERTY_TOTAL,				JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("bufferLevelValid",	EVENT_JSPROPERTY_BUFFERLEVELVALID,  JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("bufferLevel",		EVENT_JSPROPERTY_BUFFERLEVEL,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("bufferRemainingTime",EVENT_JSPROPERTY_BUFFERREMAININGTIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("status",			EVENT_JSPROPERTY_STATUS,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			/*used by vrml*/
-			SMJS_PROPERTY_SPEC("width",			60,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("height",			61,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("offset_x",		62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("offset_y",		63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("vp_width",		64,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("vp_height",		65,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("translation_x",	66,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("translation_y",	67,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("type3d",			68,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("error",			69,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("width",			EVENT_JSPROPERTY_WIDTH,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("height",		EVENT_JSPROPERTY_HEIGHT,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("offset_x",		EVENT_JSPROPERTY_OFFSETX,     JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("offset_y",		EVENT_JSPROPERTY_OFFSETY,     JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("vp_width",		EVENT_JSPROPERTY_VPWIDTH,     JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("vp_height",		EVENT_JSPROPERTY_VPHEIGHT,    JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("translation_x",	EVENT_JSPROPERTY_TRANSLATIONX,JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("translation_y",	EVENT_JSPROPERTY_TRANSLATIONY,JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("type3d",		EVENT_JSPROPERTY_TYPE3D,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("error",			EVENT_JSPROPERTY_ERROR,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0),
 		};
@@ -3962,14 +4364,13 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		JS_DefineProperty(c, dom_rt->domEventClass._proto, "DOM_KEY_LOCATION_NUMPAD", INT_TO_JSVAL(3), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	}
 
-
 	{
 		JSFunctionSpec nodeListFuncs[] = {
 			SMJS_FUNCTION_SPEC("item", dom_nodelist_item, 1),
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec nodeListProps[] = {
-			SMJS_PROPERTY_SPEC("length",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("length",	NODELIST_JSPROPERTY_LENGTH,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		GF_JS_InitClass(c, global, 0, &dom_rt->domNodeListClass, 0, 0, nodeListProps, nodeListFuncs, 0, 0);
@@ -3978,40 +4379,50 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 	{
 		JSPropertySpec xmlHTTPRequestClassProps[] = {
-			SMJS_PROPERTY_SPEC("onreadystatechange",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-			SMJS_PROPERTY_SPEC("readyState",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("responseText",			2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("responseXML",			3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("status",				4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("statusText",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("timeout",				6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-			SMJS_PROPERTY_SPEC("withCredentials",		7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-			SMJS_PROPERTY_SPEC("upload",				8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("responseType",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-			SMJS_PROPERTY_SPEC("response",				10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("UNSENT",			100,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("OPENED",			101,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("HEADERS_RECEIVED",	102,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("LOADING",			103,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-			SMJS_PROPERTY_SPEC("DONE",				104,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("onabort",				XHR_ONABORT,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("onerror",				XHR_ONERROR,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("onload",				XHR_ONLOAD,				JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("onloadend",				XHR_ONLOADEND,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("onloadstart",			XHR_ONLOADSTART,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("onprogress",			XHR_ONPROGRESS,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("onreadystatechange",	XHR_ONREADYSTATECHANGE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("ontimeout",				XHR_ONTIMEOUT,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+			SMJS_PROPERTY_SPEC("readyState",			XHR_READYSTATE,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("response",				XHR_RESPONSE,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("responseType",			XHR_RESPONSETYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+			SMJS_PROPERTY_SPEC("responseText",			XHR_RESPONSETEXT,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("responseXML",			XHR_RESPONSEXML,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("status",				XHR_STATUS,				JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("statusText",			XHR_STATUSTEXT,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("timeout",				XHR_TIMEOUT,			JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+			SMJS_PROPERTY_SPEC("upload",				XHR_UPLOAD,				JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("withCredentials",		XHR_WITHCREDENTIALS,    JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+			SMJS_PROPERTY_SPEC("cache",					XHR_CACHE,				JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSPropertySpec xmlHTTPRequestStaticClassProps[] = {
+			SMJS_PROPERTY_SPEC("UNSENT",			XHR_STATIC_UNSENT,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, xml_http_getProperty, 0),
+			SMJS_PROPERTY_SPEC("OPENED",			XHR_STATIC_OPENED,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, xml_http_getProperty, 0),
+			SMJS_PROPERTY_SPEC("HEADERS_RECEIVED",	XHR_STATIC_HEADERS_RECEIVED,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, xml_http_getProperty, 0),
+			SMJS_PROPERTY_SPEC("LOADING",			XHR_STATIC_LOADING,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, xml_http_getProperty, 0),
+			SMJS_PROPERTY_SPEC("DONE",				XHR_STATIC_DONE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, xml_http_getProperty, 0),
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 		};
 		JSFunctionSpec xmlHTTPRequestClassFuncs[] = {
-			SMJS_FUNCTION_SPEC("open",					xml_http_open, 2),
-			SMJS_FUNCTION_SPEC("setRequestHeader",		xml_http_set_header, 2),
-			SMJS_FUNCTION_SPEC("send",					xml_http_send, 0),
 			SMJS_FUNCTION_SPEC("abort",					xml_http_abort, 0),
-			SMJS_FUNCTION_SPEC("wait",					xml_http_wait, 0),
 			SMJS_FUNCTION_SPEC("getAllResponseHeaders",	xml_http_get_all_headers, 0),
 			SMJS_FUNCTION_SPEC("getResponseHeader",		xml_http_get_header, 1),
+			SMJS_FUNCTION_SPEC("open",					xml_http_open, 2),
 			SMJS_FUNCTION_SPEC("overrideMimeType",		xml_http_overrideMimeType, 1),
+			SMJS_FUNCTION_SPEC("send",					xml_http_send, 0),
+			SMJS_FUNCTION_SPEC("setRequestHeader",		xml_http_set_header, 2),
+			SMJS_FUNCTION_SPEC("wait",					xml_http_wait, 0),
+			/*eventTarget interface*/
+			JS_DOM3_EVENT_TARGET_INTERFACE
 			/*todo - addEventListener and removeEventListener*/
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
-		GF_JS_InitClass(c, global, 0, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, xmlHTTPRequestStaticClassProps, 0);
+		GF_JS_InitClass(c, global, NULL, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, xmlHTTPRequestStaticClassProps, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] XMLHttpRequest class initialized\n"));
 	}
 
@@ -4040,13 +4451,13 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		if (dcci && dcci->RootNode) {
 
 			JSPropertySpec DCCIClassProps[] = {
-				SMJS_PROPERTY_SPEC("value",							0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-				SMJS_PROPERTY_SPEC("valueType",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("propertyType",					2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-				SMJS_PROPERTY_SPEC("readOnly",						3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("DCCIMetadataInterfaceType",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("DCCIMetadataInterface",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("version",							6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+				SMJS_PROPERTY_SPEC("value",						DCCI_JSPROPERTY_VALUE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+				SMJS_PROPERTY_SPEC("valueType",					DCCI_JSPROPERTY_VALUETYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+				SMJS_PROPERTY_SPEC("propertyType",				DCCI_JSPROPERTY_PROPERTYTYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+				SMJS_PROPERTY_SPEC("readOnly",					DCCI_JSPROPERTY_READONLY,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+				SMJS_PROPERTY_SPEC("DCCIMetadataInterfaceType",	DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+				SMJS_PROPERTY_SPEC("DCCIMetadataInterface",		DCCI_JSPROPERTY_DCCIMETADATAINTERFACE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+				SMJS_PROPERTY_SPEC("version",					DCCI_JSPROPERTY_VERSION,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 				SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 			};
 			JSFunctionSpec DCCIClassFuncs[] = {
@@ -4072,7 +4483,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 	u32 i, count;
 	if (n) {
         if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
-            html_media_element_js_finalize(c, n);
+            //html_media_element_js_finalize(c, n);
         }
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
 			JSObject *obj = (JSObject *)n->sgprivate->interact->js_binding->node;
@@ -4135,31 +4546,6 @@ void dom_js_unload()
 		gf_free(dom_rt);
 		dom_rt = NULL;
 	}
-}
-
-static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGraph *doc, const char *name)
-{
-	GF_JSClass *__class;
-	JSObject *obj;
-	if (!doc || !doc->RootNode) return;
-
-	if (doc->reference_count)
-		doc->reference_count++;
-
-	__class = NULL;
-	if (dom_rt->get_document_class)
-		__class = (GF_JSClass *)dom_rt->get_document_class(doc);
-	if (!__class) __class = &dom_rt->domDocumentClass;
-
-	obj = JS_DefineObject(c, global, name, & __class->_class, 0, 0 );
-	gf_node_register(doc->RootNode, NULL);
-	SMJS_SET_PRIVATE(c, obj, doc);
-	doc->document = obj;
-}
-
-void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
-{
-	dom_js_define_document_ex(c, global, doc, "document");
 }
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)

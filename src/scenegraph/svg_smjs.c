@@ -181,7 +181,7 @@ static JSBool SMJS_FUNCTION(svg_parse_xml)
 
 static void svg_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] %s in file %s:%d (%s)\n", msg, jserr->filename, jserr->lineno, jserr->linebuf));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] %s in file %s:%d (%s)\n", msg, jserr->filename, jserr->lineno+1, jserr->linebuf));
 }
 
 static JSBool SMJS_FUNCTION(svg_echo)
@@ -193,7 +193,7 @@ static JSBool SMJS_FUNCTION(svg_echo)
 	sg = (GF_SceneGraph *)SMJS_GET_PRIVATE(c, obj);
 	if (!sg) return JS_TRUE;
 
-	if (JSVAL_IS_STRING(argv[0])) {
+	{
 		char *str = SMJS_CHARS_FROM_STRING(c, JS_ValueToString(c, argv[0]) );
 		_ScriptMessage(sg, str);
 		SMJS_FREE(c, str);
@@ -1532,8 +1532,8 @@ static JSFunctionSpec connectionFuncs[] = {
 	/*eventTarget interface*/
 	{"addEventListenerNS", dom_event_add_listener, 4, 0, 0},
 	{"removeEventListenerNS", dom_event_remove_listener, 4, 0, 0},
-	{"addEventListenerNS", dom_event_add_listener, 3, 0, 0},
-	{"removeEventListenerNS", dom_event_remove_listener, 3, 0, 0},
+	{"addEventListener", dom_event_add_listener, 3, 0, 0},
+	{"removeEventListener", dom_event_remove_listener, 3, 0, 0},
 	/*connection interface*/
 	{"setEncoding", svg_connection_set_encoding, 1, 0, 0},
 	{"connect", svg_connection_connect, 1, 0, 0},
@@ -2143,6 +2143,21 @@ void *svg_get_document_class(GF_SceneGraph *sg)
 	return NULL;
 }
 
+Bool is_svg_document_class(JSContext *c, JSObject *obj)
+{
+	if (!obj) return GF_FALSE;
+	if (GF_JS_InstanceOf(c, obj, &svg_rt->svgDocument, NULL))
+		return GF_TRUE;
+	return GF_FALSE;
+}
+
+Bool is_svg_element_class(JSContext *c, JSObject *obj)
+{
+	if (!obj) return GF_FALSE;
+	if (GF_JS_InstanceOf(c, obj, &svg_rt->svgElement, NULL))
+		return GF_TRUE;
+	return GF_FALSE;
+}
 
 static void svg_init_js_api(GF_SceneGraph *scene)
 {
@@ -2391,7 +2406,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 
 	gf_sg_lock_javascript(sg->svg_js->js_ctx, GF_TRUE);
 
-	prev_event = SMJS_GET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event);
+	prev_event = (GF_DOM_Event *)SMJS_GET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event);
 	SMJS_SET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event, event);
 	ret = JS_EvaluateScript(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, (u32) strlen(utf8_script), 0, 0, &rval);
 	SMJS_SET_PRIVATE(sg->svg_js->js_ctx, sg->svg_js->event, prev_event);
@@ -2669,6 +2684,15 @@ void dump_root(const char *name, void *rp, void *data)
 }
 #endif
 
+/* Executes JavaScript code in response to an event being triggered
+  The code to be executed (stored in a GF_DOMHandler struct) is either:
+  - text content not yet passed to the JS engine
+     - text contained in a node's text content not yet parsed (node)
+	 - text, outside of a node, obtained by some external means (XHR, ...) - utf8_script
+  - already in the JS engine, in the form of:
+     - an anonymous function (js_fun_val)
+	 - a named function (js_fun) 
+*/
 static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer, char *utf8_script)
 {
 	GF_DOMText *txt = NULL;
@@ -2689,7 +2713,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			if (!txt) return GF_FALSE;
 		}
 		/*not sure about this (cf test struct-use-205-t.svg)*/
-		if (!node->sgprivate->parents) return GF_FALSE;
+		//if (!node->sgprivate->parents) return GF_FALSE;
 	}
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
@@ -2797,7 +2821,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 #endif
 
 	if (ret==JS_FALSE) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid handler textContent\n" ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid event handler script\n" ));
 		return GF_FALSE;
 	}
 	return GF_TRUE;

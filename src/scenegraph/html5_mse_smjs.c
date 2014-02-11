@@ -42,33 +42,32 @@
 typedef enum 
 {
     /* MediaSource properties */
-    HTML_MEDIASOURCE_PROP_SOURCEBUFFERS         = 34,
-    HTML_MEDIASOURCE_PROP_ACTIVESOURCEBUFFERS   = 35,
-    HTML_MEDIASOURCE_PROP_DURATION              = 36,
-    HTML_MEDIASOURCE_PROP_READYSTATE            = 37,
+    HTML_MEDIASOURCE_PROP_SOURCEBUFFERS         = -1,
+    HTML_MEDIASOURCE_PROP_ACTIVESOURCEBUFFERS   = -2,
+    HTML_MEDIASOURCE_PROP_DURATION              = -3,
+    HTML_MEDIASOURCE_PROP_READYSTATE            = -4,
     /* SourceBuffer properties */
-    HTML_SOURCEBUFFER_PROP_UPDATING             = 38,
-    HTML_SOURCEBUFFER_PROP_BUFFERED             = 39,
-    HTML_SOURCEBUFFER_PROP_TIMESTAMPOFFSET      = 40,
-    HTML_SOURCEBUFFER_PROP_TIMESCALE            = 41,
-    HTML_SOURCEBUFFER_PROP_AUDIOTRACKS          = 42,
-    HTML_SOURCEBUFFER_PROP_VIDEOTRACKS          = 43,
-    HTML_SOURCEBUFFER_PROP_TEXTTRACKS           = 44,
-    HTML_SOURCEBUFFER_PROP_APPENDWINDOWSTART    = 45,
-    HTML_SOURCEBUFFER_PROP_APPENDWINDOWEND      = 46,
+    HTML_SOURCEBUFFER_PROP_MODE					= -5,
+    HTML_SOURCEBUFFER_PROP_UPDATING             = -6,
+    HTML_SOURCEBUFFER_PROP_BUFFERED             = -7,
+    HTML_SOURCEBUFFER_PROP_TIMESTAMPOFFSET      = -8,
+    HTML_SOURCEBUFFER_PROP_TIMESCALE            = -9,
+    HTML_SOURCEBUFFER_PROP_AUDIOTRACKS          = -10,
+    HTML_SOURCEBUFFER_PROP_VIDEOTRACKS          = -11,
+    HTML_SOURCEBUFFER_PROP_TEXTTRACKS           = -12,
+    HTML_SOURCEBUFFER_PROP_APPENDWINDOWSTART    = -13,
+    HTML_SOURCEBUFFER_PROP_APPENDWINDOWEND      = -14,
     /* SourceBufferList properties */
-    HTML_SOURCEBUFFERLIST_PROP_LENGTH           = 47,
+    HTML_SOURCEBUFFERLIST_PROP_LENGTH           = -15,
 } GF_HTML_MediaSourcePropEnum;
 
 static GF_HTML_MediaRuntime *html_media_rt = NULL;
 
-static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_HTML_SourceBuffer *sb)
-{
-    sb->_this = JS_NewObject(c, &html_media_rt->sourceBufferClass._class, 0, 0);
-    //gf_js_add_root(c, &sb->_this, GF_JSGC_OBJECT);
-    SMJS_SET_PRIVATE(c, sb->_this, sb);
-    sb->buffered._this = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, sb->_this);
-    SMJS_SET_PRIVATE(c, sb->buffered._this, &sb->buffered);
+Bool gf_mse_is_mse_object(JSContext *c, JSObject *obj) {
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) return GF_TRUE;
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferClass, NULL) ) return GF_TRUE;
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferListClass, NULL) ) return GF_TRUE;
+	return GF_FALSE;
 }
 
 static GFINLINE GF_SceneGraph *mediasource_get_scenegraph(JSContext *c)
@@ -79,6 +78,36 @@ static GFINLINE GF_SceneGraph *mediasource_get_scenegraph(JSContext *c)
     scene = (GF_SceneGraph *)SMJS_GET_PRIVATE(c, global);
     assert(scene);
     return scene;
+}
+
+void gf_mse_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg) {
+	if (!sg || !target) return;
+	*sg = mediasource_get_scenegraph(c);
+	if (GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
+		GF_HTML_MediaSource *ms = NULL;
+		ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+		*target = ms->evt_target;
+	} else if (GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferClass, NULL) ) {
+		GF_HTML_SourceBuffer *sb = NULL;
+		sb = (GF_HTML_SourceBuffer *)SMJS_GET_PRIVATE(c, obj);
+		*target = sb->evt_target;
+	} else if (GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferListClass, NULL) ) {
+		GF_HTML_SourceBufferList *sbl = NULL;
+		sbl = (GF_HTML_SourceBufferList *)SMJS_GET_PRIVATE(c, obj);
+		*target = sbl->evt_target;
+	} else {
+		*target = NULL;
+		*sg = NULL;
+	}
+}
+
+static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_HTML_SourceBuffer *sb)
+{
+    sb->_this = JS_NewObject(c, &html_media_rt->sourceBufferClass._class, 0, 0);
+    //gf_js_add_root(c, &sb->_this, GF_JSGC_OBJECT);
+    SMJS_SET_PRIVATE(c, sb->_this, sb);
+    sb->buffered._this = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, sb->_this);
+    SMJS_SET_PRIVATE(c, sb->buffered._this, &sb->buffered);
 }
 
 #include <gpac/internal/terminal_dev.h>
@@ -100,6 +129,7 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
     sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, NULL, &par);
     isSupported = gf_term_is_type_supported((GF_Terminal *)par.term, mime);
     SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(isSupported ? JS_TRUE : JS_FALSE));
+	SMJS_FREE(c, mime);
     return JS_TRUE;
 }
 
@@ -108,40 +138,107 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
     SMJS_OBJ
     SMJS_ARGS
     GF_HTML_SourceBuffer    *sb;
-    GF_HTML_MediaSource     *p;
+    GF_HTML_MediaSource     *ms;
     const char              *mime;
+	GF_Err					e;
+
+	e = GF_OK;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
         return JS_TRUE;
     }
     if (!argc || !JSVAL_CHECK_STRING(argv[0])) 
     {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     mime = SMJS_CHARS(c, argv[0]);
     if (!strlen(mime))
     {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
-    p = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
-    if (p->readyState != MEDIA_SOURCE_OPEN) 
+    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+    if (ms->readyState != MEDIA_SOURCE_READYSTATE_OPEN) 
     {
-        return JS_TRUE;
+		dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+		e = GF_BAD_PARAM;
+		goto exit;
     }
-    assert(p->service);
-    sb = gf_mse_source_buffer_new(p);
-    gf_mse_source_buffer_load_parser(sb, mime);
-    mediasource_sourceBuffer_initjs(c, obj, sb);
-    SMJS_SET_RVAL( OBJECT_TO_JSVAL(sb->_this) );
-    return JS_TRUE;
+    assert(ms->service);
+    /* 
+	if (gf_list_count(ms->sourceBuffers.list) > 0) {
+		dom_throw_exception(c, GF_DOM_EXC_QUOTA_EXCEEDED_ERR);
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
+	*/
+    sb = gf_mse_source_buffer_new(ms);
+    e = gf_mse_source_buffer_load_parser(sb, mime);
+	if (e == GF_OK) {
+	    gf_mse_add_source_buffer(ms, sb);
+		mediasource_sourceBuffer_initjs(c, obj, sb);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(sb->_this) );
+	} else {
+		gf_mse_source_buffer_del(sb);
+		dom_throw_exception(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
+	}
+exit:
+	SMJS_FREE(c, mime);
+	if (e == GF_OK) {
+		return JS_TRUE;
+	} else {
+		return JS_FALSE;
+	}
 }
 
 static JSBool SMJS_FUNCTION(mediasource_removeSourceBuffer)
 {
+    SMJS_OBJ
+    SMJS_ARGS
+    GF_HTML_MediaSource *ms;
+    if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
+        return JS_TRUE;
+    }
+    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+	/* TODO */
     return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(mediasource_endOfStream)
 {
+    SMJS_OBJ
+    SMJS_ARGS
+    GF_HTML_MediaSource *ms;
+	u32 i;
+    if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
+        return JS_TRUE;
+    }
+    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+	if (ms->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
+		dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+	    return JS_FALSE;
+	}
+	for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) {
+		GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
+		if (sb->updating) {
+			dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+			return JS_FALSE;
+		}
+	}
+    if (argc > 0) 
+    {
+		char *error = NULL;
+		if (!JSVAL_CHECK_STRING(argv[0])) {
+			dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+			return JS_FALSE;
+		}
+	    error = SMJS_CHARS(c, argv[0]);
+		if (strcmp(error, "decode") && strcmp(error, "network")) {
+			SMJS_FREE(c, error);
+			dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+			return JS_FALSE;
+		}
+    }
+	gf_mse_mediasource_end(ms);
+	SMJS_FREE(c, error);
     return JS_TRUE;
 }
 
@@ -210,13 +307,13 @@ static SMJS_FUNC_PROP_GET(media_source_get_ready_state)
     if (p) {
         switch (p->readyState)
         {
-        case MEDIA_SOURCE_CLOSED:
+        case MEDIA_SOURCE_READYSTATE_CLOSED:
             *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "closed"));
             break;
-        case MEDIA_SOURCE_OPEN:
+        case MEDIA_SOURCE_READYSTATE_OPEN:
             *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "open"));
             break;
-        case MEDIA_SOURCE_ENDED:
+        case MEDIA_SOURCE_READYSTATE_ENDED:
             *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "ended"));
             break;
         }
@@ -232,7 +329,7 @@ static SMJS_FUNC_PROP_GET(media_source_get_duration)
     }
     p = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
     if (p) {
-        if (p->durationType == DURATION_NAN) {
+        if (p->readyState == MEDIA_SOURCE_READYSTATE_CLOSED || p->durationType == DURATION_NAN) {
             *vp = JS_GetNaNValue(c);
         } else if (p->durationType == DURATION_INFINITY) {
             *vp = JS_GetPositiveInfinityValue(c);
@@ -248,38 +345,60 @@ static SMJS_FUNC_PROP_SET(media_source_set_duration)
     return JS_TRUE;
 }
 
-static SMJS_FUNC_PROP_GET(sourcebufferlist_get_length)
+static SMJS_FUNC_PROP_GET( sourcebufferlist_getProperty)
     GF_HTML_SourceBufferList *p;
+	u32 count;
+	u32 idx;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferListClass, NULL) ) 
     {
         return JS_TRUE;
     }
     p = (GF_HTML_SourceBufferList *)SMJS_GET_PRIVATE(c, obj);
     if (p) {
-        u32 length = gf_list_count(p->list);
-        *vp = INT_TO_JSVAL(length);
+		count = gf_list_count(p->list);
+		if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+
+		switch (SMJS_ID_TO_INT(id)) {
+		case HTML_SOURCEBUFFERLIST_PROP_LENGTH:
+			*vp = INT_TO_JSVAL(count);
+			break;
+		default:
+			idx = SMJS_ID_TO_INT(id);
+			if ((idx<0) || ((u32) idx>=count)) {
+				*vp = JSVAL_VOID;
+				return JS_TRUE;
+			} else {
+				GF_HTML_SourceBuffer *sb;
+				sb = (GF_HTML_SourceBuffer *)gf_list_get(p->list, idx);
+				*vp = OBJECT_TO_JSVAL(sb->_this);
+				return JS_TRUE;
+			}
+
+		}
     }
     return JS_TRUE;
+
 }
+
 
 #define SB_BASIC_CHECK \
     GF_HTML_SourceBuffer *sb; \
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferClass, NULL) )  \
     { \
-        return JS_TRUE;\
+		return dom_throw_exception(c, GF_DOM_EXC_TYPE_MISMATCH_ERR); \
     }\
     sb = (GF_HTML_SourceBuffer *)SMJS_GET_PRIVATE(c, obj);\
     /* check if this source buffer is still in the list of source buffers */\
     if (!sb || gf_list_find(sb->mediasource->sourceBuffers.list, sb) < 0)\
     {\
-        return JS_TRUE;\
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR); \
     }
 
 #define SB_UPDATING_CHECK \
     SB_BASIC_CHECK \
     if (sb->updating)\
     {\
-        return JS_TRUE;\
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR); \
     }\
 
 /* FIXME : Function not used, generates warning on debian
@@ -295,13 +414,6 @@ static DECL_FINALIZE(sourcebuffer_finalize)
 }
 */
 
-static void gf_mse_sourcebuffer_reopen(GF_HTML_SourceBuffer *sb)
-{
-    if (sb->mediasource->readyState == MEDIA_SOURCE_ENDED) {
-        sb->mediasource->readyState = MEDIA_SOURCE_OPEN;
-    }
-}
-
 static JSBool SMJS_FUNCTION(sourcebuffer_appendBuffer)
 {
     SMJS_OBJ
@@ -310,25 +422,28 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendBuffer)
     JSObject             *js_ab;
 
     SB_UPDATING_CHECK
-    if (sb->mediasource->readyState == MEDIA_SOURCE_CLOSED) {
+    if (sb->mediasource->readyState == MEDIA_SOURCE_READYSTATE_CLOSED) {
         return JS_TRUE;
-    } 
-    gf_mse_sourcebuffer_reopen(sb);
+    } else if (sb->mediasource->readyState == MEDIA_SOURCE_READYSTATE_ENDED) {
+		gf_mse_mediasource_open(sb->mediasource, NULL);
+    }
 
     if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) 
     {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     js_ab = JSVAL_TO_OBJECT(argv[0]);
     if (!GF_JS_InstanceOf(c, js_ab, &html_media_rt->arrayBufferClass, NULL) ) 
     {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_TYPE_MISMATCH_ERR);
     }
     ab = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(c, js_ab);
     if (!ab->length)
     {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
+    /* TODO: handle buffer full flag case */
+	/* TODO: run the coded frame eviction algo */
     gf_mse_source_buffer_append_arraybuffer(sb, ab);
     return JS_TRUE;
 }
@@ -345,34 +460,13 @@ static JSBool SMJS_FUNCTION(sourcebuffer_abort)
 {
     SMJS_OBJ
     SMJS_ARGS
-    GF_HTML_MediaSource_AbortMode mode;
-    char *smode;
     SB_BASIC_CHECK
-    if (sb->mediasource->readyState != MEDIA_SOURCE_OPEN) {
+    if (sb->mediasource->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
         return JS_TRUE;
     } 
-
-    if (!argc || !JSVAL_CHECK_STRING(argv[0])) 
-    {
-        mode = MEDIA_SOURCE_ABORT_MODE_NONE;
-    }
-    smode = SMJS_CHARS(c, argv[0]);
-    if (!strlen(smode))
-    {
-        mode = MEDIA_SOURCE_ABORT_MODE_NONE;
-    } else if (!stricmp(smode, "continuation")) {
-        mode = MEDIA_SOURCE_ABORT_MODE_CONTINUATION;
-    } else if (!stricmp(smode, "timestampOffset")) {
-        mode = MEDIA_SOURCE_ABORT_MODE_OFFSET;
-    } else {
+    if (gf_mse_source_buffer_abort(sb) != GF_OK) {
         return JS_TRUE;
     }
-
-    if (gf_mse_source_buffer_abort(sb, mode) != GF_OK) 
-    {
-        return JS_TRUE;
-    }
-
     return JS_TRUE;
 }
 
@@ -382,18 +476,15 @@ static JSBool SMJS_FUNCTION(sourcebuffer_remove)
     SMJS_ARGS
     jsdouble start, end;
     SB_UPDATING_CHECK
-    if (argc < 2 || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1])) 
-    {
+    if (argc < 2 || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1])) {
         return JS_TRUE;
     }
     JS_ValueToNumber(c, argv[0], &start);
     JS_ValueToNumber(c, argv[1], &end);
-    if (start < 0 /* || start > sb->duration */ || start >= end) 
-    {
+    if (start < 0 /* || start > sb->duration */ || start >= end) {
         return JS_TRUE;
     }
-    if (sb->mediasource->readyState != MEDIA_SOURCE_OPEN) 
-    {
+    if (sb->mediasource->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
         return JS_TRUE;
     }
     sb->updating = GF_TRUE;
@@ -401,6 +492,47 @@ static JSBool SMJS_FUNCTION(sourcebuffer_remove)
         sb->remove_thread = gf_th_new(NULL);
     }
     gf_th_run(sb->remove_thread, gf_mse_source_buffer_remove, sb);
+    return JS_TRUE;
+}
+
+static SMJS_FUNC_PROP_GET(sourceBuffer_get_mode)
+    SB_BASIC_CHECK
+	if (sb->append_mode == MEDIA_SOURCE_APPEND_MODE_SEGMENTS) {
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "segments"));
+	} else if (sb->append_mode == MEDIA_SOURCE_APPEND_MODE_SEQUENCE) {
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "sequence"));
+	}
+    return JS_TRUE;
+}
+
+static SMJS_FUNC_PROP_SET(sourceBuffer_set_mode)
+	char *smode = NULL;
+    SB_BASIC_CHECK
+    if (!JSVAL_CHECK_STRING(*vp)) {
+        return JS_TRUE;
+    }
+    smode = SMJS_CHARS(c, *vp);
+	if (stricmp(smode, "segments") && stricmp(smode, "sequence")) {
+		return JS_TRUE;
+	}
+	if (sb->updating) {
+		return JS_TRUE;
+	}
+	if (sb->mediasource->readyState == MEDIA_SOURCE_READYSTATE_ENDED) {
+		gf_mse_mediasource_open(sb->mediasource, NULL);
+	}
+	if (sb->append_state == MEDIA_SOURCE_APPEND_STATE_PARSING_MEDIA_SEGMENT) {
+		return JS_TRUE;
+	}
+	if (!stricmp(smode, "segments")) {
+        sb->append_mode = MEDIA_SOURCE_APPEND_MODE_SEGMENTS;
+    } else if (!stricmp(smode, "sequence")) {
+        sb->append_mode = MEDIA_SOURCE_APPEND_MODE_SEQUENCE;
+    }
+	if (sb->append_mode == MEDIA_SOURCE_APPEND_MODE_SEQUENCE) {
+		/* TODO */
+	}
+	SMJS_FREE(c, smode);
     return JS_TRUE;
 }
 
@@ -490,8 +622,7 @@ static JSBool SMJS_FUNCTION(html_url_createObjectURL)
     char        blobURI[256];
 
     SMJS_SET_RVAL(JSVAL_NULL);
-    if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) 
-    {
+    if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) {
         return JS_TRUE;
     }
     js_ms = JSVAL_TO_OBJECT(argv[0]);
@@ -573,12 +704,10 @@ static JSBool SMJS_FUNCTION(arraybuffer_constructor)
     {
         return JS_TRUE;
     }
-    if (argc && !JSVAL_IS_NULL(argv[0]) && JSVAL_IS_INT(argv[0]))
-    {
+    if (argc && !JSVAL_IS_NULL(argv[0]) && JSVAL_IS_INT(argv[0])) {
         length = JSVAL_TO_INT(argv[0]);
     }
-    if (length > 0)
-    {
+    if (length > 0) {
         gf_arraybuffer_js_new(c, (char *)gf_malloc(length), length, NULL);
     }
     return JS_TRUE;
@@ -586,8 +715,7 @@ static JSBool SMJS_FUNCTION(arraybuffer_constructor)
 
 static SMJS_FUNC_PROP_GET(arraybuffer_get_byteLength)
     GF_HTML_ArrayBuffer *p;
-    if (!GF_JS_InstanceOf(c, obj, &html_media_rt->arrayBufferClass, NULL) ) 
-    {
+    if (!GF_JS_InstanceOf(c, obj, &html_media_rt->arrayBufferClass, NULL) ) {
         return JS_TRUE;
     }
     p = (GF_HTML_ArrayBuffer *)SMJS_GET_PRIVATE(c, obj);
@@ -606,80 +734,23 @@ static DECL_FINALIZE(arraybuffer_finalize)
 	gf_arraybuffer_del(p, GF_TRUE);
 }
 
-static JSBool SMJS_FUNCTION(js_event_add_listener)
+static JSBool SMJS_FUNCTION(mse_event_add_listener)
 {
-    SMJS_OBJ
-    SMJS_ARGS
-    char                *type = NULL;
-    char                *callback = NULL;
-    jsval               funval = JSVAL_NULL;
-    JSObject            *evt_handler = NULL;
-    u32                 evtType;
-    GF_DOMEventTarget   *target = NULL;
-    GF_DOMListener      *listener = NULL;
-
-    target = (GF_DOMEventTarget *)SMJS_GET_PRIVATE(c, obj);
-
-    if (!JSVAL_CHECK_STRING(argv[0])) {
-        goto err_exit;
-    }
-    type = SMJS_CHARS(c, argv[0]);
-
-    if (JSVAL_CHECK_STRING(argv[1])) {
-        callback = SMJS_CHARS(c, argv[1]);
-        if (!callback) {
-            goto err_exit;
-        }
-    } else if (JSVAL_IS_OBJECT(argv[1])) {
-        if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[1]))) {
-            funval = argv[1];
-        } else {
-            JSBool found;
-            jsval evt_fun;
-            evt_handler = JSVAL_TO_OBJECT(argv[1]);
-            found = JS_GetProperty(c, evt_handler, "handleEvent", &evt_fun);
-            if (!found || !JSVAL_IS_OBJECT(evt_fun) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(evt_fun))) {
-                goto err_exit;
-            }
-            funval = evt_fun;
-        }
-    }
-
-    evtType = gf_dom_event_type_by_name(type);
-    if (evtType==GF_EVENT_UNKNOWN) {
-        goto err_exit;
-    }
-
-    GF_SAFEALLOC(listener, GF_DOMListener);
-    if (!callback) {
-        listener->js_fun_val = *(u64 *) &funval;
-        if (listener->js_fun_val) {
-            listener->js_context = c;
-            /*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
-            gf_js_add_root((JSContext *)listener->js_context, &listener->js_fun_val, GF_JSGC_VAL);
-        }
-        listener->evt_listen_obj = evt_handler;
-    } else {
-        listener->callback = gf_strdup(callback);
-    }
-    gf_list_add(target->listeners, listener);
-
-err_exit:
-    SMJS_FREE(c, type);
-    SMJS_FREE(c, callback);
-    return JS_TRUE;
+	JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node);
+	return gf_sg_js_event_add_listener(SMJS_CALL_ARGS, NULL);
 }
 
-static JSBool SMJS_FUNCTION(js_event_remove_listener)
+static JSBool SMJS_FUNCTION(mediasource_event_remove_listener)
 {
-    return JS_TRUE;
+	JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node);
+	return gf_sg_js_event_remove_listener(SMJS_CALL_ARGS, NULL);
 }
 
-static JSBool SMJS_FUNCTION(js_event_dispatch)
+static JSBool SMJS_FUNCTION(mediasource_event_dispatch)
 {
+	/* TODO */
     return JS_TRUE;
 }
-
 
 void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_MediaRuntime *_html_media_rt)
 {
@@ -690,7 +761,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
         JS_SETUP_CLASS(html_media_rt->arrayBufferClass, "ArrayBuffer", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, arraybuffer_finalize);
         {
             JSPropertySpec arrayBufferClassProps[] = {
-                {"byteLength",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, arraybuffer_get_byteLength, 0},
+                {"byteLength",       -1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, arraybuffer_get_byteLength, 0},
                 {0, 0, 0, 0, 0}
             };
             GF_JS_InitClass(js_ctx, global, 0, &html_media_rt->arrayBufferClass, arraybuffer_constructor, 0, arrayBufferClassProps, 0, 0, 0);
@@ -710,9 +781,9 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
                 SMJS_FUNCTION_SPEC("addSourceBuffer", mediasource_addSourceBuffer, 1),
                 SMJS_FUNCTION_SPEC("removeSourceBuffer", mediasource_removeSourceBuffer, 1),
                 SMJS_FUNCTION_SPEC("endOfStream", mediasource_endOfStream, 1),
-                SMJS_FUNCTION_SPEC("addEventListener", js_event_add_listener, 3),
-                SMJS_FUNCTION_SPEC("removeEventListener", js_event_remove_listener, 3),
-                SMJS_FUNCTION_SPEC("dispatchEvent", js_event_dispatch, 1),
+                SMJS_FUNCTION_SPEC("addEventListener", mse_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("removeEventListener", mse_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("dispatchEvent", mse_event_add_listener, 1),
                 SMJS_FUNCTION_SPEC(0, 0, 0)
             };
             JSFunctionSpec htmlMediaSourceClassStaticFuncs[] = {
@@ -726,6 +797,7 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
         JS_SETUP_CLASS(html_media_rt->sourceBufferClass, "SourceBuffer", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_PropertyStub);
         {
             JSPropertySpec SourceBufferClassProps[] = {
+                {"mode",			  HTML_SOURCEBUFFER_PROP_MODE,             JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, sourceBuffer_get_mode, sourceBuffer_set_mode},
                 {"updating",          HTML_SOURCEBUFFER_PROP_UPDATING,         JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, sourceBuffer_get_updating, 0},
                 {"buffered",          HTML_SOURCEBUFFER_PROP_BUFFERED,         JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, sourceBuffer_get_buffered, 0},
                 {"timestampOffset",   HTML_SOURCEBUFFER_PROP_TIMESTAMPOFFSET,  JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, sourceBuffer_get_timestampOffset, sourceBuffer_set_timestampOffset},
@@ -742,19 +814,25 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
                 SMJS_FUNCTION_SPEC("appendStream", sourcebuffer_appendStream, 1),
                 SMJS_FUNCTION_SPEC("abort",  sourcebuffer_abort, 0),
                 SMJS_FUNCTION_SPEC("remove", sourcebuffer_remove, 2),
+                SMJS_FUNCTION_SPEC("addEventListener", mse_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("removeEventListener", mse_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("dispatchEvent", mse_event_add_listener, 1),
                 SMJS_FUNCTION_SPEC(0, 0, 0)
             };
             GF_JS_InitClass(js_ctx, global, 0, &html_media_rt->sourceBufferClass, 0, 0, SourceBufferClassProps, SourceBufferClassFuncs, 0, 0);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTML Media Source API] SourceBuffer class initialized\n"));
         }
 
-        JS_SETUP_CLASS(html_media_rt->sourceBufferListClass, "SourceBufferList", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_PropertyStub);
+        JS_SETUP_CLASS(html_media_rt->sourceBufferListClass, "SourceBufferList", JSCLASS_HAS_PRIVATE, sourcebufferlist_getProperty, JS_PropertyStub_forSetter, JS_PropertyStub);
         {
             JSPropertySpec SourceBufferListClassProps[] = {
-                {"length",        HTML_SOURCEBUFFERLIST_PROP_LENGTH,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, sourcebufferlist_get_length, 0},
+                {"length",        HTML_SOURCEBUFFERLIST_PROP_LENGTH,        JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
                 {0, 0, 0, 0, 0}
             };
             JSFunctionSpec SourceBufferListClassFuncs[] = {
+                SMJS_FUNCTION_SPEC("addEventListener", mse_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("removeEventListener", mse_event_add_listener, 3),
+                SMJS_FUNCTION_SPEC("dispatchEvent", mse_event_add_listener, 1),
                 SMJS_FUNCTION_SPEC(0, 0, 0)
             };
             GF_JS_InitClass(js_ctx, global, 0, &html_media_rt->sourceBufferListClass, 0, 0, SourceBufferListClassProps, SourceBufferListClassFuncs, 0, 0);

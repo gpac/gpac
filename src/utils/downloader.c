@@ -128,7 +128,8 @@ struct __gf_download_session
     GF_List *headers;
 
     GF_Socket *sock;
-    u32 num_retry, status;
+    u32 num_retry;
+	GF_NetIOStatus status;
 
     u32 flags;
 
@@ -733,7 +734,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 void http_do_requests(GF_DownloadSession *sess);
 
-static void gf_dm_sess_notify_state(GF_DownloadSession *sess, u32 dnload_status, GF_Err error)
+static void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnload_status, GF_Err error)
 {
     if (sess->user_proc) {
         GF_NETIO_Parameter par;
@@ -1953,7 +1954,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 }
 
 GF_EXPORT
-GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status)
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status)
 {
     if (!sess) return GF_BAD_PARAM;
     if (server) *server = sess->server_name;

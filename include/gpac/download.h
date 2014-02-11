@@ -130,7 +130,7 @@ extern "C" {
     void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
 
     /*!downloader session message types*/
-    enum
+    typedef enum
     {
         /*!signal that session is setup and waiting for connection request*/
         GF_NETIO_SETUP = 0,
@@ -156,7 +156,7 @@ extern "C" {
         GF_NETIO_DISCONNECTED,
         /*!downloader session failed (error code set) or done/destroyed (no error code)*/
         GF_NETIO_STATE_ERROR
-    };
+    } GF_NetIOStatus;
 
     /*!session download flags*/
     enum
@@ -371,7 +371,7 @@ extern "C" {
      *\param bytes_per_sec the average data rate in bytes per seconds
      *\param net_status the session status
      */
-    GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status);
+    GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
 
     /*!
      *\brief get start time

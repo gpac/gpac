@@ -30,12 +30,17 @@
 
 GF_HTML_MediaSource *gf_mse_media_source_new()
 {
-	GF_HTML_MediaSource *p;
-	GF_SAFEALLOC(p, GF_HTML_MediaSource);
-	p->sourceBuffers.list = gf_list_new();
-	p->activeSourceBuffers.list = gf_list_new();
-	p->reference_count = 1;
-	return p;
+	GF_HTML_MediaSource *ms;
+	GF_SAFEALLOC(ms, GF_HTML_MediaSource);
+	ms->sourceBuffers.list = gf_list_new();
+	ms->sourceBuffers.parent = ms;
+	ms->sourceBuffers.evt_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST, &ms->sourceBuffers);
+	ms->activeSourceBuffers.list = gf_list_new();
+	ms->activeSourceBuffers.parent = ms;
+	ms->activeSourceBuffers.evt_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST, &ms->activeSourceBuffers);
+	ms->reference_count = 1;
+	ms->evt_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE, ms);
+	return ms;
 }
 
 GF_EXPORT
@@ -53,11 +58,10 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 		}
 		if (!ms->reference_count) {
 			u32 i;
-			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) 
-			{
+			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) {
 				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
 
-				if (sb->parser)
+				if (sb->parser && sb->parser_connected)
 					sb->parser->CloseService(sb->parser);
 
 				gf_mse_source_buffer_del(sb);
@@ -66,9 +70,73 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 			/* all source buffer should have been deleted in the deletion of sourceBuffers */
 			gf_list_del(ms->activeSourceBuffers.list); 
 			if (ms->blobURI) gf_free(ms->blobURI);
+			gf_free(ms->evt_target);
 			gf_free(ms);
 		}
 	}
+}
+
+static void gf_mse_fire_event(GF_DOMEventTarget *target, GF_EventType event_type) 
+{
+	GF_SceneGraph *sg = NULL;
+    GF_DOM_Event  mse_event;
+	memset(&mse_event, 0, sizeof(GF_DOM_Event));
+    mse_event.type = event_type;
+	mse_event.target = target->ptr;
+	mse_event.target_type = target->ptr_type;
+	switch(target->ptr_type) {
+	case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
+		{
+			GF_HTML_MediaSource *ms = (GF_HTML_MediaSource *)target->ptr;
+			sg = ms->sg;
+		}
+		break;
+	case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
+		{
+			GF_HTML_SourceBufferList *list = (GF_HTML_SourceBufferList *)target->ptr;
+			sg = list->parent->sg;
+		}
+		break;
+	case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
+		{
+			GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)target->ptr;
+			sg = sb->mediasource->sg;
+		}
+		break;
+	}
+	assert(sg);
+    sg_fire_dom_event(target, &mse_event, sg, NULL);
+}
+
+GF_EXPORT
+void gf_mse_mediasource_open(GF_HTML_MediaSource *ms, struct _mediaobj *mo) 
+{
+	if (!ms) return;
+	if (!mo) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MSE] Cannot open media source without a media object\n"));
+		return;
+	}
+    ms->readyState = MEDIA_SOURCE_READYSTATE_OPEN;
+	/* getting the Scene Tree node attached to this media source */
+	ms->node = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(mo, 0));
+	ms->sg = gf_node_get_graph(ms->node);
+	gf_mse_fire_event(ms->evt_target, GF_EVENT_HTML_MSE_SOURCE_OPEN);
+}
+
+GF_EXPORT
+void gf_mse_mediasource_close(GF_HTML_MediaSource *ms)
+{
+	if (!ms) return;
+    ms->readyState = MEDIA_SOURCE_READYSTATE_CLOSED;
+	gf_mse_fire_event(ms->evt_target, GF_EVENT_HTML_MSE_SOURCE_CLOSE);
+}
+
+GF_EXPORT
+void gf_mse_mediasource_end(GF_HTML_MediaSource *ms)
+{
+	if (!ms) return;
+    ms->readyState = MEDIA_SOURCE_READYSTATE_ENDED;
+	gf_mse_fire_event(ms->evt_target, GF_EVENT_HTML_MSE_SOURCE_ENDED);
 }
 
 GF_HTML_SourceBuffer *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource)
@@ -83,11 +151,17 @@ GF_HTML_SourceBuffer *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource)
     source->tracks = gf_list_new();
     source->parser_thread = gf_th_new(name);
     source->remove_thread = gf_th_new(name);
-    source->abort_mode = MEDIA_SOURCE_ABORT_MODE_NONE;
+    source->append_mode = MEDIA_SOURCE_APPEND_MODE_SEGMENTS;
     source->appendWindowStart = 0;
     source->appendWindowEnd = GF_MAX_DOUBLE;
-    gf_list_add(mediasource->sourceBuffers.list, source);
+	source->evt_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER, source);
     return source;
+}
+
+void gf_mse_add_source_buffer(GF_HTML_MediaSource *ms, GF_HTML_SourceBuffer *sb) 
+{
+    gf_list_add(ms->sourceBuffers.list, sb);
+	gf_mse_fire_event(ms->sourceBuffers.evt_target, GF_EVENT_HTML_MSE_ADD_SOURCE_BUFFER);
 }
 
 static void gf_mse_reset_input_buffer(GF_List *input_buffer)
@@ -106,7 +180,7 @@ void gf_mse_source_buffer_del(GF_HTML_SourceBuffer *sb)
     gf_mse_reset_input_buffer(sb->input_buffer);
     gf_list_del(sb->input_buffer);
 
-	if (sb->prev_buffer) gf_arraybuffer_del(sb->prev_buffer, GF_FALSE);
+	if (sb->prev_buffer) gf_arraybuffer_del((GF_HTML_ArrayBuffer *)sb->prev_buffer, GF_FALSE);
 
 	tlist.tracks = sb->tracks;
     gf_html_tracklist_del(&tlist);
@@ -118,6 +192,18 @@ void gf_mse_source_buffer_del(GF_HTML_SourceBuffer *sb)
 
 }
 
+void gf_mse_source_buffer_set_update(GF_HTML_SourceBuffer *sb, Bool update)
+{
+	if (sb->updating == update) return;
+	sb->updating = update;
+	if (update) {
+		gf_mse_fire_event(sb->evt_target, GF_EVENT_HTML_MSE_UPDATE_START);
+	} else {
+		gf_mse_fire_event(sb->evt_target, GF_EVENT_HTML_MSE_UPDATE);
+		gf_mse_fire_event(sb->evt_target, GF_EVENT_HTML_MSE_UPDATE_END);
+	}
+}
+
 /*locates and loads an input service (demuxer, parser) for this source buffer based on mime type or segment name*/
 GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime)
 {
@@ -125,6 +211,12 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 
     const char *sPlug;
     if (mime) {
+		/* strip the 'codecs' and 'profile' parameters from the MIME type */
+		char *param = (char *)strchr(mime, ';');
+		if (param) {
+			*param = 0;
+		}
+
         /* Check MIME type to start the right InputService */
         sPlug = gf_cfg_get_key(sourcebuffer->mediasource->service->term->user->config, "MimeTypes", mime);
         if (sPlug) sPlug = strrchr(sPlug, '"');
@@ -132,17 +224,18 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
             sPlug += 2;
             parser = (GF_InputService *) gf_modules_load_interface_by_name(sourcebuffer->mediasource->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
         }
+
+		if (param) {
+			*param = ';';
+		}
     }
-    if (parser) 
-    {
+    if (parser) {
         sourcebuffer->parser = parser;
         parser->query_proxy = gf_mse_proxy;
         parser->proxy_udta = sourcebuffer;
         parser->proxy_type = GF_TRUE;
         return GF_OK;
-    }
-    else 
-    {
+    } else {
         GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MSE] Error locating plugin for source - mime type %s\n", mime));
         return GF_BAD_PARAM;
     }
@@ -156,22 +249,16 @@ static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, G
 
     track = NULL;
     type = HTML_MEDIA_TRACK_TYPE_UNKNOWN;
-    if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) 
-    {
+    if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
         type = HTML_MEDIA_TRACK_TYPE_VIDEO;
-    } 
-    else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) 
-    {
+    } else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) {
         type = HTML_MEDIA_TRACK_TYPE_AUDIO;
-    } 
-    else 
-    {
+    } else {
         /* TODO: Text tracks */
     }
 
     track = gf_html_media_track_new(type, "", GF_TRUE, "", "", "", "");
-    if (track)
-    {
+    if (track) {
         char mx_name[256];
         track->bin_id = esd->ESID;
         track->buffer = gf_list_new();
@@ -189,15 +276,12 @@ static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 {
 	if (!sb || !sb->parser || !sb->parser_connected) return GF_BAD_PARAM;
     sb->service_desc = (GF_ObjectDescriptor *)sb->parser->GetServiceDescriptor(sb->parser, GF_MEDIA_OBJECT_UNDEF, NULL);
-    if (sb->service_desc) 
-    {
+    if (sb->service_desc) {
         u32 count;
         count = gf_list_count(sb->service_desc->ESDescriptors);
-        if (count)
-        {
+        if (count) {
             u32 i;
-            for (i = 0; i < count; i++)
-            {
+            for (i = 0; i < count; i++) {
                 GF_ESD *esd = (GF_ESD *)gf_list_get(sb->service_desc->ESDescriptors, i);
                 gf_mse_source_buffer_add_track(sb, esd);
             }
@@ -220,21 +304,17 @@ static GF_Err gf_mse_source_buffer_store_track_desc(GF_HTML_SourceBuffer *sb, GF
 
     esd = (GF_ESD *)gf_list_get(od->ESDescriptors, 0);
     count = gf_list_count(sb->tracks);
-    for (i = 0; i < count; i++)
-    {
+    for (i = 0; i < count; i++) {
         track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
-        if (track->bin_id == esd->ESID)
-        {
+        if (track->bin_id == esd->ESID) {
             track->od = od;
             found = GF_TRUE;
             break;
         }
     }
-    if (!found)
-    {
+    if (!found) {
         track = gf_mse_source_buffer_add_track(sb, esd);
-        if (track)
-        {
+        if (track) {
             track->od = od;
         } else {
             /* TODO: error */
@@ -245,8 +325,7 @@ static GF_Err gf_mse_source_buffer_store_track_desc(GF_HTML_SourceBuffer *sb, GF
 }
 
 /* Traverses the list of Access Units already demuxed & parsed to update the buffered status */
-void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
-{
+void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb) {
     u32 i;
     u32 track_count;
     double start= 0;
@@ -262,16 +341,14 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
 
     /* merging the start and end for all tracks */
     track_count = gf_list_count(sb->tracks);
-    for (i = 0; i < track_count; i++)
-    {
+    for (i = 0; i < track_count; i++) {
         u32 j;
         u32 packet_count;
         GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
         gf_mx_p(track->buffer_mutex);
         packet_count = gf_list_count(track->buffer);
 		au_dur = 0;
-        for (j = 0; j < packet_count; j++)
-        {
+        for (j = 0; j < packet_count; j++) {
             GF_MSE_Packet *packet = (GF_MSE_Packet *)gf_list_get(track->buffer, j);
             if (packet) {
                 packet_start = (packet->sl_header.compositionTimeStamp * 1.0 )/ track->timescale;
@@ -284,27 +361,19 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
 					}
 				}
                 packet_end = ((packet->sl_header.compositionTimeStamp + au_dur) * 1.0) / track->timescale;
-                if (!start_set) 
-                {
+                if (!start_set) {
                     start = packet_start;
                     start_set = GF_TRUE;
-                } 
-                else 
-                {
-                    if (start > packet_start)
-                    {
+                } else {
+                    if (start > packet_start) {
                         start = packet_start;
                     }
                 }
-                if (!end_set) 
-                {
+				if (!end_set) {
                     end = packet_end;
                     end_set = GF_TRUE;
-                }
-                else
-                {
-                    if (end < packet_end)
-                    {
+                } else {
+                    if (end < packet_end) {
                         end = packet_end;
                     }
                 }
@@ -316,7 +385,7 @@ void gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb)
     /* Creating only one range for now */
     if (start_set && end_set) {
         gf_media_time_ranges_add(&sb->buffered, start, end);
-    }
+    } 
 }
 
 /* Deletes all unparsed data buffers from all tracks in the source buffer */
@@ -339,9 +408,10 @@ static void gf_mse_source_buffer_reset_parser(GF_HTML_SourceBuffer *sb)
     sb->append_state = MEDIA_SOURCE_APPEND_STATE_WAITING_FOR_SEGMENT;
 }
 
-GF_Err gf_mse_source_buffer_abort(GF_HTML_SourceBuffer *sb, GF_HTML_MediaSource_AbortMode mode)
+GF_Err gf_mse_source_buffer_abort(GF_HTML_SourceBuffer *sb)
 {
-    if (sb->continuation_timestamp_flag == GF_FALSE)
+/*
+if (sb->continuation_timestamp_flag == GF_FALSE)
     {
         if (sb->abort_mode == MEDIA_SOURCE_ABORT_MODE_CONTINUATION && !sb->highest_end_timestamp_set)
         {
@@ -353,21 +423,17 @@ GF_Err gf_mse_source_buffer_abort(GF_HTML_SourceBuffer *sb, GF_HTML_MediaSource_
             sb->continuation_timestamp_flag = GF_TRUE;
         }
     }
-
-    if (sb->updating) 
-    {
-        sb->updating = GF_FALSE;
-    }
-    sb->abort_mode = mode;
+//    sb->abort_mode = mode;
+*/
+	gf_mse_source_buffer_set_update(sb, GF_FALSE);
     sb->appendWindowStart = 0;
     sb->appendWindowEnd = GF_MAX_DOUBLE;
-
+	/*fire abort event at the SourceBuffer */	
     gf_mse_source_buffer_reset_parser(sb);
     return GF_OK;
 }
 
-void gf_mse_packet_del(GF_MSE_Packet *packet)
-{
+void gf_mse_packet_del(GF_MSE_Packet *packet) {
     gf_free(packet->data);
     gf_free(packet);
 }
@@ -405,11 +471,9 @@ static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
 
     gf_mx_p(track->buffer_mutex);
     frame_count = gf_list_count(track->buffer);
-    for (i = 0; i < frame_count; i++)
-    {
+    for (i = 0; i < frame_count; i++) {
         GF_MSE_Packet *frame = (GF_MSE_Packet *)gf_list_get(track->buffer, i);
-        if (frame->sl_header.compositionTimeStamp >= from && frame->sl_header.compositionTimeStamp < to) 
-        {
+        if (frame->sl_header.compositionTimeStamp >= from && frame->sl_header.compositionTimeStamp < to) {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Removing frame %g (%d frames)\n", (frame->sl_header.compositionTimeStamp*1.0)/track->timescale, gf_list_count(track->buffer)));
             gf_list_rem(track->buffer, i);
         }
@@ -422,38 +486,26 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
                                        GF_MSE_Packet           *frame,
 									   Bool *stored)
 {
-	*stored = 0;
-    if (sb->abort_mode != MEDIA_SOURCE_ABORT_MODE_NONE) 
-    {
-        switch (sb->abort_mode)
-        {
-        case MEDIA_SOURCE_ABORT_MODE_CONTINUATION:
-            sb->timestampOffset = sb->continuation_timestamp - (frame->sl_header.compositionTimeStamp*1.0/track->timescale);
-            break;
-        case MEDIA_SOURCE_ABORT_MODE_OFFSET:
-            sb->timestampOffset -= (frame->sl_header.compositionTimeStamp*1.0/track->timescale);
-            break;
-        default:
-        	break;
-        }
-        sb->continuation_timestamp_flag = GF_FALSE;
-        sb->abort_mode = MEDIA_SOURCE_ABORT_MODE_NONE;
+	*stored = GF_FALSE;
+    if (sb->append_mode == MEDIA_SOURCE_APPEND_MODE_SEQUENCE && sb->group_start_timestamp_flag) {
+        sb->timestampOffset = sb->group_start_timestamp - (frame->sl_header.compositionTimeStamp*1.0/track->timescale);
+		sb->highest_end_timestamp = sb->group_start_timestamp;
+		track->needs_rap = GF_TRUE; /* fix: should be on all track buffers */
+		sb->group_start_timestamp_flag = GF_FALSE;
     }
 
-    if (sb->timestampOffset < 0) {
-        u64 offset = (u64)((-sb->timestampOffset)*track->timescale);
-        if (offset > frame->sl_header.compositionTimeStamp || offset > frame->sl_header.decodingTimeStamp) 
-        {
+    if (sb->timestampOffset != 0) {
+        u64 offset = (u64)((sb->timestampOffset)*track->timescale);
+        if (offset > frame->sl_header.compositionTimeStamp || offset > frame->sl_header.decodingTimeStamp) {
              return GF_NON_COMPLIANT_BITSTREAM;
         }
+		frame->sl_header.compositionTimeStamp  += (u64)(sb->timestampOffset*track->timescale);
+		frame->sl_header.decodingTimeStamp     += (u64)(sb->timestampOffset*track->timescale);
+		/* check if the new CTS/DTS are in range */
     }
-    frame->sl_header.compositionTimeStamp  += (u64)(sb->timestampOffset*track->timescale);
-    frame->sl_header.decodingTimeStamp     += (u64)(sb->timestampOffset*track->timescale);
 
-    if (track->last_dts_set) 
-    {
-        if (track->last_dts*track->timescale > frame->sl_header.decodingTimeStamp) 
-        {
+    if (track->last_dts_set) {
+        if (track->last_dts*track->timescale > frame->sl_header.decodingTimeStamp) {
             return GF_NON_COMPLIANT_BITSTREAM;
         }
 
@@ -462,8 +514,7 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
          * or the difference between decode timestamp and last decode timestamp is greater than 100 milliseconds, 
          * then call endOfStream("decode") and abort these steps.
          */
-        if (frame->sl_header.decodingTimeStamp - track->last_dts*track->timescale > 0.1*track->timescale)
-        {
+        if (frame->sl_header.decodingTimeStamp - track->last_dts*track->timescale > 0.1*track->timescale) {
             return GF_NON_COMPLIANT_BITSTREAM;
         }
     }
@@ -478,8 +529,7 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
         return GF_OK;
     }
 
-    if (track->needs_rap) 
-    {
+    if (track->needs_rap) {
         if (!frame->sl_header.randomAccessPointFlag) {
             return GF_OK;
         }
@@ -495,13 +545,10 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
         }
     } 
 
-    if (!track->highest_pts_set) 
-    {
+    if (!track->highest_pts_set) {
         /* this is the first time a frame is processed in the append sequence */
         gf_mse_remove_frames_from_to(track, frame->sl_header.compositionTimeStamp, frame->sl_header.compositionTimeStamp /* + dur */);
-    } 
-    else if (track->highest_pts*track->timescale <= frame->sl_header.compositionTimeStamp) 
-    {
+    } else if (track->highest_pts*track->timescale <= frame->sl_header.compositionTimeStamp) {
         /* the highest pts has already been set in this append sequence, so we just need to remove frames from that point on, it's safe */
         gf_mse_remove_frames_from_to(track, (u64)(track->highest_pts*track->timescale), (u64)(track->highest_pts*track->timescale) /* + dur */);
     }
@@ -510,7 +557,7 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
 
     /* TODO: spliced frames */
 
-	*stored = 1;
+	*stored = GF_TRUE;
     gf_mx_p(track->buffer_mutex);
     gf_list_add(track->buffer, frame);
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Adding frame %g (%d frames)\n", (frame->sl_header.compositionTimeStamp*1.0)/track->timescale, gf_list_count(track->buffer)));
@@ -519,14 +566,12 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
     track->last_dts = (frame->sl_header.decodingTimeStamp*1.0/track->timescale);
     track->last_dts_set = GF_TRUE;
 
-    if (!track->highest_pts_set || (frame->sl_header.compositionTimeStamp /* + dur */) > track->highest_pts*track->timescale)
-    {
+    if (!track->highest_pts_set || (frame->sl_header.compositionTimeStamp /* + dur */) > track->highest_pts*track->timescale) {
         track->highest_pts_set = GF_TRUE;
         track->highest_pts = (frame->sl_header.compositionTimeStamp*1.0/track->timescale /* + dur */);
     }
 
-    if (!sb->highest_end_timestamp_set || (frame->sl_header.compositionTimeStamp*1.0 /* + dur */) > sb->highest_end_timestamp * track->timescale)
-    {
+    if (!sb->highest_end_timestamp_set || (frame->sl_header.compositionTimeStamp*1.0 /* + dur */) > sb->highest_end_timestamp * track->timescale) {
         sb->highest_end_timestamp_set = GF_TRUE;
         sb->highest_end_timestamp = (frame->sl_header.compositionTimeStamp*1.0/track->timescale /* + dur */);
     }
@@ -534,8 +579,11 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
     return GF_OK;
 }
 
-/* Threaded function: called as a result of an append buffer 
-   Parses/Demultiplexes media segments and places the parsed AU in the track buffers */
+/* Thread run function: called as a result of an append buffer 
+ * Parses/Demultiplexes media segments and places the parsed AU in the track buffers 
+ *
+ * \param par the GF_HTML_SourceBuffer object used for the append
+ */
 u32 gf_mse_parse_segment(void *par)
 {
     GF_MSE_Packet           *packet;
@@ -543,97 +591,84 @@ u32 gf_mse_parse_segment(void *par)
     GF_HTML_SourceBuffer    *sb = (GF_HTML_SourceBuffer *)par;
     u32                     i;
     u32                     track_count;
-    u32                     step;
 
-    /* step 0 is for forcing the parser to query the next fragment (if any and if needed), step 1 is for actual parsing */
-    step = 0;
+    if (!sb->parser_connected) {
+		GF_HTML_ArrayBuffer *buffer = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 0);
+		gf_list_rem(sb->input_buffer, 0);		   
+		assert(buffer);
+		/* we expect an initialization segment to connect the service */
+		if (!buffer->is_init) {
+			/* TODO: set the media element decode error and run the end of stream algo */
+			goto exit;
+		}
+        sb->parser->ConnectService(sb->parser, sb->mediasource->service, buffer->url);
+		sb->prev_buffer = buffer;
+    } else {
+        /* we expect a media segment */
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Starting to fetch AUs from parser\n"));
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Starting to fetch AUs from parser\n"));
+		/* For each track, ask the parser for all the Access Unit, until it is empty
+		 * AU are placed as GF_MSE_Packets in the track buffer 
+		 */
+		track_count = gf_list_count(sb->tracks);
+		while (1) {
+			u32 track_with_data = 0;
+			for (i = 0; i < track_count; i++) {
+				Bool stored = GF_FALSE;
+				GF_Err e;
+				track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
+				GF_SAFEALLOC(packet, GF_MSE_Packet);
+				assert(track->channel);
+				e = sb->parser->ChannelGetSLP(sb->parser, track->channel, 
+											  &packet->data, &packet->size, &packet->sl_header, 
+											  &packet->is_compressed, &packet->status, &packet->is_new_data);
+				assert(e == GF_OK);
+				if (packet->status == GF_OK && packet->is_new_data && packet->size) {
+					char *data;
+					assert(packet->is_new_data && packet->size);
+					data = (char *)gf_malloc(packet->size);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] New AU parsed %g\n", (packet->sl_header.compositionTimeStamp*1.0/track->timescale)));
+					memcpy(data, packet->data, packet->size);
+					packet->data = data;
+					gf_mse_process_coded_frame(sb, track, packet, &stored);
+					track_with_data++;
+					sb->parser->ChannelReleaseSLP(sb->parser, track->channel);
+				}
 
-    /* For each track, ask the parser for all the Access Unit, until it is empty
-     * AU are placed as GF_MSE_Packets in the track buffer 
-     */
-    track_count = gf_list_count(sb->tracks);
-    while (sb->updating)
-    {
-        u32 track_with_data = 0;
-        for (i = 0; i < track_count; i++)
-        {
-			Bool stored = 0;
-            GF_Err e;
-            track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
-            GF_SAFEALLOC(packet, GF_MSE_Packet);
-			assert(track->channel);
-            e = sb->parser->ChannelGetSLP(sb->parser, track->channel, 
-                                          &packet->data, &packet->size, &packet->sl_header, 
-                                          &packet->is_compressed, &packet->status, &packet->is_new_data);
-            if (e == GF_OK && packet->is_new_data && packet->size) 
-            {
-                char *data = (char *)gf_malloc(packet->size);
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] New AU parsed %g\n", (packet->sl_header.compositionTimeStamp*1.0/track->timescale)));
-                memcpy(data, packet->data, packet->size);
-                packet->data = data;
-                gf_mse_process_coded_frame(sb, track, packet, &stored);
-                track_with_data++;
-                sb->parser->ChannelReleaseSLP(sb->parser, track->channel);
-            }
-
-			if (!stored) gf_free(packet);
-        }
-        if (!track_with_data)
-        {
-            if (step) 
-            {
-                /* try to delete the previous buffer */
-                gf_arraybuffer_del((GF_HTML_ArrayBuffer *)sb->prev_buffer, GF_FALSE);
+				if (!stored) gf_free(packet);
+			}
+			if (!track_with_data) {
+				/* try to delete the previous buffer */
+				gf_arraybuffer_del((GF_HTML_ArrayBuffer *)sb->prev_buffer, GF_FALSE);
 				sb->prev_buffer = NULL;
-                /* get ready to receive a new segment and start a new thread */
-                sb->updating = GF_FALSE;
-                break;
-            }
-            step++; /* forcing a new call to the parser (the first call only fetched the next URL and did not parse anything)*/
-        }
+				/* get ready to receive a new segment and start a new thread */
+				break;
+			}
+		}
+		/* reaching here, the parser does not have enough data to produce new AU */
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Done fetching AUs from parser\n"));
     }
-
-    /* reaching here, the parser does not have enough data to produce new AU */
-
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Done fetching AUs from parser\n"));
+exit:
+	gf_mse_source_buffer_set_update(sb, GF_FALSE);
     return 0;
 }
 
 
 void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_ArrayBuffer *buffer)
 {
-    if (!sb || !buffer || !sb->parser || sb->updating) {
-        /* TODO: throw invalid access err or invalid state exception */
-        /* TODO: handle buffer full flag */
-        /* TODO: check the status of the media source */
-        return;
-    } else {
-        sb->updating = GF_TRUE;
-        /* TODO: fire an updatestart event */
+	assert(sb->parser);
+	gf_mse_source_buffer_set_update(sb, GF_TRUE);
 
-        buffer->url = (char *)gf_malloc(256);
-        sprintf(buffer->url, "gmem://%d@%p", buffer->length, buffer->data);
-        buffer->reference_count++;
-		buffer->is_init = (gf_isom_probe_file(buffer->url) == 2 ? GF_TRUE : GF_FALSE);
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Appending segment %s\n", buffer->url));
+    buffer->url = (char *)gf_malloc(256);
+    sprintf(buffer->url, "gmem://%d@%p", buffer->length, buffer->data);
+    buffer->reference_count++;
+	buffer->is_init = (gf_isom_probe_file(buffer->url) == 2 ? GF_TRUE : GF_FALSE);
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Appending segment %s to SourceBuffer %p\n", buffer->url, sb));
 
-        /* TODO: detect if the buffer contains an initialization segment or a media segment */
-        if (!sb->parser_connected) 
-        {
-            /* we expect an initialization segment to connect the service */
-            sb->parser->ConnectService(sb->parser, sb->mediasource->service, buffer->url);
-			sb->prev_buffer = buffer;
-        } else {
-            /* we expect a media segment */
-            gf_list_add(sb->input_buffer, buffer);
-            /* Call the parser (asynchronously) and return */
-            /* the updating attribute should be positioned back to 0 when the parser is done */
-            gf_th_run(sb->parser_thread, gf_mse_parse_segment, sb);
-        }
-
-    }
+    gf_list_add(sb->input_buffer, buffer);
+    /* Call the parser (asynchronously) and return */
+    /* the updating attribute will be positioned back to 0 when the parser is done */
+    gf_th_run(sb->parser_thread, gf_mse_parse_segment, sb);
 }
 
 /*
@@ -661,21 +696,18 @@ u32 gf_mse_source_buffer_remove(void *par)
     GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Removing media until next RAP\n"));
 
     track_count = gf_list_count(sb->tracks);
-    for (i = 0; i < track_count; i++)
-    {
+    for (i = 0; i < track_count; i++) {
         GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
         //end_set = GF_FALSE;
 
         /* find the next random access point */
         gf_mx_p(track->buffer_mutex);
         frame_count = gf_list_count(track->buffer);
-        for (j = 0; j < frame_count; j++) 
-        {
+        for (j = 0; j < frame_count; j++) {
             GF_MSE_Packet *frame = (GF_MSE_Packet *)gf_list_get(track->buffer, j);
             if ((frame->sl_header.randomAccessPointFlag && 
                  frame->sl_header.compositionTimeStamp >= sb->remove_end*track->timescale) ||
-                 (j == frame_count - 1))
-            {
+                 (j == frame_count - 1)) {
                 end = frame->sl_header.compositionTimeStamp;
                 //end_set = GF_TRUE;
                 break;
@@ -686,7 +718,7 @@ u32 gf_mse_source_buffer_remove(void *par)
         /* remove up to the next RAP found */
         gf_mse_remove_frames_from_to(track, (u64)sb->remove_start, end);
     }
-    sb->updating = GF_FALSE;
+	gf_mse_source_buffer_set_update(sb, GF_FALSE);
     return 0;
 }
 
@@ -697,12 +729,9 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
         return GF_BAD_PARAM;
     } else {
         GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)parser->proxy_udta;
-        switch (command->command_type)
-        {
+        switch (command->command_type) {
         case GF_NET_SERVICE_QUERY_INIT_RANGE:
-            /* The parser is asking for an initialization segment:
-               check for the media time and give the appropriate one */
-            break;
+			break;
         case GF_NET_SERVICE_QUERY_NEXT:
             /* The parser is asking for the next media segment in the buffer,
                check for the media time and give the right one */
@@ -710,9 +739,9 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
                 GF_HTML_ArrayBuffer *buffer;
                 /* The input buffer should not be modified by append operations at the same time, no need to protect access */
                 buffer = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 0);
-                if (buffer)
-                {
+                if (buffer) {
 					command->url_query.discontinuity_type = 0;
+					command->url_query.current_download = GF_FALSE;
 					command->url_query.start_range = 0;
 					command->url_query.end_range = 0;
 					command->url_query.switch_start_range = 0;
@@ -720,6 +749,7 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 					command->url_query.next_url_init_or_switch_segment = NULL;
 					if (buffer->is_init) { 
 						GF_HTML_ArrayBuffer *next = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 1);
+						command->url_query.discontinuity_type = 1;
 						if (next) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Next segment to parse %s with init \n", next->url, buffer->url));
 							command->url_query.next_url = next->url;
@@ -748,25 +778,20 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 				- all tracks parsed
 				- connect/disconnect
 				- */
-            if (command->status.is_add_media)
-            {
-                if (command->status.desc)
-                {
+            if (command->status.is_add_media) {
+                if (command->status.desc) {
                     gf_mse_source_buffer_store_track_desc(sb, (GF_ObjectDescriptor *)command->status.desc);
-                } 
-                else
-                {
+                } else {
                     /* this is the last add media, we can switch updating to false */
                     /* the first init segment was correctly processed */
-                    sb->updating = GF_FALSE;
+					gf_mse_source_buffer_set_update(sb, GF_FALSE);
                     /* TODO: set active tracks and send addsourcebuffer event */
                     /* TODO: send media loadedmetadata event */
                 }
                 gf_term_add_media(sb->mediasource->service, command->status.desc, (command->status.desc ? GF_TRUE : GF_FALSE));
             }
             /* general connection/disconnection messages from the media parser (not track related) */
-            else if (!command->status.channel) 
-            { 
+            else if (!command->status.channel) { 
                 /* connection message */
                 if (!command->status.is_disconnect) {
                     if (command->status.e == GF_OK) {
@@ -778,15 +803,13 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
                         /* wrong first init segment */
                         /* TODO: fire an error event */
                     }
-                    /* TODO: fire an updateend event */
                     gf_term_on_connect(sb->mediasource->service, command->status.channel, command->status.e);
                 } else {
                     gf_term_on_disconnect(sb->mediasource->service, command->status.channel, command->status.e);
                 }
             }
             /* channel (track related) specific connection/disconnection messages from the media parser */
-            else 
-            {
+            else {
                 if (!command->status.is_disconnect) {
                     gf_term_on_connect(sb->mediasource->service, command->status.channel, command->status.e);
                 } else {
@@ -837,10 +860,11 @@ GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
 											GF_Err *out_reception_status, Bool *is_new_data)
 {
 	GF_MSE_Packet *packet;
+	u32 count;
 	gf_mx_p(track->buffer_mutex);
+	count = gf_list_count(track->buffer);
 	packet = (GF_MSE_Packet *)gf_list_get(track->buffer, track->packet_index);
-	if (packet)
-	{
+	if (packet) {
 		*out_data_ptr = packet->data;
 		*out_data_size = packet->size;
 		*out_sl_hdr = packet->sl_header;
@@ -848,7 +872,7 @@ GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
 		*out_reception_status = packet->status;
 		*is_new_data = packet->is_new_data;
 		packet->is_new_data = GF_FALSE;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Sending AU to decoder with TS: %g (%d frames)\n", (packet->sl_header.compositionTimeStamp*1.0/track->timescale), gf_list_count(track->buffer)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Sending AU #%d/%d to decoder with TS: %g \n", track->packet_index, count, (packet->sl_header.compositionTimeStamp*1.0/track->timescale)));
 	} else {
 		*out_data_ptr = NULL;
 		*out_data_size = 0;

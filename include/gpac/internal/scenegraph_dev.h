@@ -253,7 +253,7 @@ struct __tag_scene_graph
 
 
 	GF_Mutex *dom_evt_mx;
-	GF_DOMEventTarget dom_evt;
+	GF_DOMEventTarget *dom_evt;
 	u32 nb_evts_focus;
 	u32 nb_evts_mouse;
 	u32 nb_evts_key;
@@ -264,7 +264,7 @@ struct __tag_scene_graph
 	u32 nb_evts_laser;
 	u32 nb_evts_media;
 	u32 nb_evts_svg;
-	u32 dom_evt_filter;
+	GF_DOMEventCategory dom_evt_filter;
 
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;
@@ -1121,7 +1121,10 @@ GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
 
-
+void	gf_dom_event_dump_listeners(GF_Node *n, FILE *f);
+void	gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target);
+void	gf_dom_event_target_del(GF_DOMEventTarget *target);
+GF_Err	gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target, GF_Node *listener);
 
 #ifdef __cplusplus
 }

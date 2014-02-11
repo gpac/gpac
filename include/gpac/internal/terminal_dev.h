@@ -1039,7 +1039,8 @@ struct _mediaobj
 	u32 framesize;
 	/*pointer to data frame */
 	char *frame;
-	/* used to dispatch Media Access Events and HTML5 Media and Media Source Events */
+	/* Objects implementing the DOM Event Target interface
+	   used to dispatch HTML5 Media and Media Source Events */
 	GF_List *evt_targets;
 	/*pointer to the node responsible for the creation of this media object
 	ONLY used for scene media type (animationStreams) 
@@ -1070,8 +1071,8 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl);
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
 
 /*media access events */
-void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type);
-void gf_term_service_media_event_with_download(GF_ObjectManager *odm, u32 event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec);
+void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);
+void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec);
 
 /*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
 u32 gf_mo_get_od_id(MFURL *url);

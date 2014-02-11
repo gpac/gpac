@@ -77,16 +77,7 @@ void gf_svg_node_del(GF_Node *node)
 	}
 	if (p->sgprivate->tag==TAG_SVG_listener) {
 		/*remove from target's listener list*/
-		GF_DOMEventTarget *evt = node->sgprivate->UserPrivate;
-		node->sgprivate->UserPrivate = NULL;
-		if (evt) 
-			gf_list_del_item(evt->evt_list, p);
-#if 0
-		if (evt && (gf_node_get_attribute_by_tag(p, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK)) {
-			u32 type = ((XMLEV_Event *)info.far_ptr)->type;
-			gf_sg_unregister_event_type(p->sgprivate->scenegraph, gf_dom_event_get_category(type));
-		}
-#endif
+		gf_dom_event_remove_listener_from_parent((GF_DOMEventTarget *)node->sgprivate->UserPrivate, (GF_Node *)p);
 	}
 	/*if this is a handler with a UserPrivate, this is a handler with an implicit listener 
 	(eg handler with ev:event=""). Destroy the associated listener*/
@@ -110,7 +101,7 @@ void gf_svg_node_del(GF_Node *node)
 		u32 i, count;
 		count = gf_dom_listener_count(node);
 		for (i=0; i<count; i++) {
-			GF_Node *listener = gf_list_get(node->sgprivate->interact->dom_evt->evt_list, i);
+			GF_Node *listener = (GF_Node *)gf_list_get(node->sgprivate->interact->dom_evt->listeners, i);
 			listener->sgprivate->UserPrivate = NULL;
 		}
 	}
