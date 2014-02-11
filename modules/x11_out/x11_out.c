@@ -1334,7 +1334,7 @@ xWindow->screennum=0;
 #ifdef GPAC_HAS_OPENGL
 	{
 	  int attribs[64];
-	  int i, nb_bits;
+	  int i, nb_bits, nb_depth_bits;
 
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent");
 	  /* Most outputs are 24/32 bits these days, use 8 bits per channel instead of 5, works better on MacOS X */
@@ -1342,30 +1342,80 @@ xWindow->screennum=0;
           if (!sOpt){
              gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent", "8");
           }
+retry_8bpp:
 	  i=0;
-	  attribs[i++] = GLX_RGBA;
+	  attribs[i++] = GLX_DRAWABLE_TYPE;
+	  attribs[i++] =  GLX_WINDOW_BIT;
+	  if (nb_bits>8) {
+		  attribs[i++] = GLX_RENDER_TYPE;
+		  attribs[i++] = GLX_RGBA_BIT;
+	  } else {
+		  attribs[i++] = GLX_RGBA;
+	  }
 	  attribs[i++] = GLX_RED_SIZE;
 	  attribs[i++] = nb_bits;
 	  attribs[i++] = GLX_GREEN_SIZE;
 	  attribs[i++] = nb_bits;
 	  attribs[i++] = GLX_BLUE_SIZE;
 	  attribs[i++] = nb_bits;
-	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
-	  nb_bits = sOpt ? atoi(sOpt) : 16;
+	  if (nb_bits==10) {
+		  attribs[i++] = GLX_ALPHA_SIZE;
+		  attribs[i++] = 2;
+	  }
+
+ 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
+	  nb_depth_bits = sOpt ? atoi(sOpt) : 16;
           if (!sOpt){
              gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth", "16");
           }
 	  if (nb_bits) {
 		  attribs[i++] = GLX_DEPTH_SIZE;
-		  attribs[i++] = nb_bits;
+		  attribs[i++] = nb_depth_bits;
 	  }
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
           if (!sOpt){
              gf_modules_set_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering", "yes");
           }
-	  if (!sOpt || !strcmp(sOpt, "yes")) attribs[i++] = GLX_DOUBLEBUFFER;
-	  attribs[i++] = None;
-	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
+	  if (!sOpt || !strcmp(sOpt, "yes")) {
+	  	  attribs[i++] = GLX_DOUBLEBUFFER;
+	  	  attribs[i++] = True;
+	  }
+          attribs[i++] = None;
+
+ 	  if (nb_bits>8) {
+		int fbcount=0;
+		GLXFBConfig *fb;
+		typedef GLXFBConfig * (* FnGlXChooseFBConfigProc)( Display *, int, int const *,int * );
+		typedef XVisualInfo * (* FnGlXGetVisualFromFBConfigProc)( Display *, GLXFBConfig );
+		typedef int (* FnGlXGetFBConfigAttrib) (Display *  dpy,  GLXFBConfig  config,  int  attribute,  int *  value);
+
+
+		FnGlXChooseFBConfigProc my_glXChooseFBConfig = (FnGlXChooseFBConfigProc) glXGetProcAddress("glXChooseFBConfig");
+		FnGlXGetVisualFromFBConfigProc my_glXGetVisualFromFBConfig = (FnGlXGetVisualFromFBConfigProc)glXGetProcAddress("glXGetVisualFromFBConfig");
+		FnGlXGetFBConfigAttrib my_glXGetFBConfigAttrib = (FnGlXGetFBConfigAttrib)glXGetProcAddress("glXGetFBConfigAttrib");
+
+		if (my_glXChooseFBConfig && my_glXGetVisualFromFBConfig) {
+			fb = my_glXChooseFBConfig(xWindow->display, xWindow->screennum, attribs, &fbcount);
+		}
+
+		if (fbcount==0) {
+			  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Failed to choose GLX config for 10 bit depth - retrying with 8 bit depth\n"));
+			  nb_bits = 8;
+			goto retry_8bpp;
+		}
+		  xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
+
+		if (my_glXGetFBConfigAttrib) {
+			int r, g, b;
+			glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_RED_SIZE, &r);
+			glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_GREEN_SIZE, &g);
+			glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_BLUE_SIZE, &b);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[GLX] Configured display asked %d bits got r:%d g:%d b:%d bits\n", nb_bits, r, g, b));
+		}
+ 	  } else {
+		  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
+	  }
+
 	  if (!xWindow->glx_visualinfo) {
 		  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error selecting GL display\n"));
 	  }
