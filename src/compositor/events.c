@@ -1240,6 +1240,8 @@ static Bool is_focus_target(GF_Node *elt)
 			case GF_EVENT_KEYUP:
 			case GF_EVENT_LONGKEYPRESS:
 				return 1;
+			default:
+				break;
 			}
 		}
 	}

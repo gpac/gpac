@@ -181,7 +181,7 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
 		dom_throw_exception(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
 	}
 exit:
-	SMJS_FREE(c, mime);
+	SMJS_FREE(c, (void *)mime);
 	if (e == GF_OK) {
 		return JS_TRUE;
 	} else {
@@ -192,12 +192,12 @@ exit:
 static JSBool SMJS_FUNCTION(mediasource_removeSourceBuffer)
 {
     SMJS_OBJ
-    SMJS_ARGS
-    GF_HTML_MediaSource *ms;
+//    SMJS_ARGS
+//    GF_HTML_MediaSource *ms;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
         return JS_TRUE;
     }
-    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+//    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
 	/* TODO */
     return JS_TRUE;
 }
@@ -459,7 +459,7 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendStream)
 static JSBool SMJS_FUNCTION(sourcebuffer_abort)
 {
     SMJS_OBJ
-    SMJS_ARGS
+//    SMJS_ARGS
     SB_BASIC_CHECK
     if (sb->mediasource->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
         return JS_TRUE;
@@ -740,13 +740,13 @@ static JSBool SMJS_FUNCTION(mse_event_add_listener)
 	return gf_sg_js_event_add_listener(SMJS_CALL_ARGS, NULL);
 }
 
-static JSBool SMJS_FUNCTION(mediasource_event_remove_listener)
+static JSBool SMJS_FUNCTION(mse_event_remove_listener)
 {
 	JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node);
 	return gf_sg_js_event_remove_listener(SMJS_CALL_ARGS, NULL);
 }
 
-static JSBool SMJS_FUNCTION(mediasource_event_dispatch)
+static JSBool SMJS_FUNCTION(mse_event_dispatch)
 {
 	/* TODO */
     return JS_TRUE;
@@ -782,8 +782,8 @@ void html_media_source_init_js_api(JSContext *js_ctx, JSObject *global, GF_HTML_
                 SMJS_FUNCTION_SPEC("removeSourceBuffer", mediasource_removeSourceBuffer, 1),
                 SMJS_FUNCTION_SPEC("endOfStream", mediasource_endOfStream, 1),
                 SMJS_FUNCTION_SPEC("addEventListener", mse_event_add_listener, 3),
-                SMJS_FUNCTION_SPEC("removeEventListener", mse_event_add_listener, 3),
-                SMJS_FUNCTION_SPEC("dispatchEvent", mse_event_add_listener, 1),
+                SMJS_FUNCTION_SPEC("removeEventListener", mse_event_remove_listener, 3),
+                SMJS_FUNCTION_SPEC("dispatchEvent", mse_event_dispatch, 1),
                 SMJS_FUNCTION_SPEC(0, 0, 0)
             };
             JSFunctionSpec htmlMediaSourceClassStaticFuncs[] = {

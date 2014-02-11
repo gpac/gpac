@@ -1263,6 +1263,8 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			}
 		}
 		break;
+	default:
+		break;
 	}
 }
 

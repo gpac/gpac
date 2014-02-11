@@ -37,11 +37,11 @@
 #include <gpac/network.h>
 #include <gpac/xml.h>
 
-#include <gpac/html5_mse.h>
-
 #ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY
+
+#include <gpac/html5_mse.h>
 
 #ifdef GPAC_ANDROID
 #ifndef XP_UNIX
@@ -2393,6 +2393,8 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 				break;
 			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
 				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
+				break;
+			default:
 				break;
 			}
 			return JS_TRUE;

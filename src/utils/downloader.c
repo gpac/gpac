@@ -1391,6 +1391,8 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
         case GF_NETIO_STATE_ERROR:
             go = 0;
             break;
+	default:
+	    break;
         }
     }
     sess->flags = flags;
@@ -1487,6 +1489,8 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
         case GF_NETIO_STATE_ERROR:
             go = 0;
             break;
+	default:
+            break;
         }
     }
     return sess->last_error;
@@ -1515,6 +1519,8 @@ GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
         case GF_NETIO_DISCONNECTED:
         case GF_NETIO_STATE_ERROR:
             go = 0;
+            break;
+	default:
             break;
         }
     }
@@ -2920,6 +2926,8 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->reassigned = 0;
 		}
         http_parse_remaining_body(sess, sHTTP);
+        break;
+    default:
         break;
     }
 }

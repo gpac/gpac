@@ -4851,6 +4851,8 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 		case GF_EVENT_SHORT_ACCESSKEY:
 			detail = lsr_to_dom_key(detail);
 			break;
+		default:
+			break;
 		}
 	}
 	x.value = y.value = 0;
