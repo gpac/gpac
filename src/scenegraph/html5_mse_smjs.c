@@ -236,9 +236,9 @@ static JSBool SMJS_FUNCTION(mediasource_endOfStream)
 			dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 			return JS_FALSE;
 		}
+	SMJS_FREE(c, error);
     }
 	gf_mse_mediasource_end(ms);
-	SMJS_FREE(c, error);
     return JS_TRUE;
 }
 

@@ -1126,6 +1126,9 @@ void	gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target);
 void	gf_dom_event_target_del(GF_DOMEventTarget *target);
 GF_Err	gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target, GF_Node *listener);
 
+/* returns associated DOMEventtarget for an HTML/SVG media element, or NULL otherwise*/
+GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n);
+
 #ifdef __cplusplus
 }
 #endif
