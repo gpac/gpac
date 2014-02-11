@@ -113,7 +113,8 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 
 	/*remote file, check if we use cache*/
 	if (read->is_remote) {
-		u32 total_size, status;
+		u32 total_size;
+		GF_NetIOStatus status;
 		e = gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, &status);
 		/*not ready*/
 		if ((e<GF_OK) || (status > GF_NETIO_DATA_EXCHANGE)) return 0;

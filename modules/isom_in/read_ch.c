@@ -503,7 +503,8 @@ fetch_next:
 		if (ch->wait_for_segment_switch && ch->is_pulling) {
 			isor_segment_switch_or_refresh(ch->owner, 0);
 			if (ch->owner->seg_opened) {
-				return isor_reader_get_sample(ch);
+				isor_reader_get_sample(ch);
+				return;
 			}
 		}
 		return;

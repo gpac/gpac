@@ -2968,8 +2968,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_START);
 	if (ctx->onloadstart) {
 		jsval rval;
-		JS_CallFunction(ctx->c, ctx->_this, ctx->onloadstart, 0, NULL, &rval);
-		return rval;
+		return JS_CallFunction(ctx->c, ctx->_this, ctx->onloadstart, 0, NULL, &rval);
 	}
 	return JS_TRUE;
 }
@@ -3385,8 +3384,7 @@ static JSBool SMJS_FUNCTION(xml_http_abort)
 	xml_http_fire_event(ctx, GF_EVENT_ABORT);
 	if (ctx->onabort) {
 		jsval rval;
-		JS_CallFunction(ctx->c, ctx->_this, ctx->onabort, 0, NULL, &rval);
-		return rval;
+		return JS_CallFunction(ctx->c, ctx->_this, ctx->onabort, 0, NULL, &rval);
 	}
 
 	xml_http_reset(ctx);
