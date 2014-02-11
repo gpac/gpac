@@ -1209,7 +1209,6 @@ GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo)
 	return mo->odm->subscene->graph;
 }
 
-#include <gpac/html5_media.h>
 
 GF_EXPORT
 GF_DOMEventTarget *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n)

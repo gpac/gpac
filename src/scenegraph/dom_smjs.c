@@ -53,6 +53,8 @@
 #include <gpac/internal/smjs_api.h>
 
 typedef struct __xhr_context XMLHTTPContext;
+GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx);
+GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx);
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
@@ -717,8 +719,6 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 		/*XHR interface*/
 		XMLHTTPContext *ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 		if (ctx) {
-			GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx);
-			GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx);			
 			*sg = xml_get_scenegraph(c);
 			*target = xml_http_get_event_target(ctx);
 		} else {
@@ -2637,12 +2637,12 @@ typedef struct __xhr_context
 	GF_SceneGraph *document;
 } XMLHTTPContext;
 
-static GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx)
+GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx)
 {
 	return ctx->owning_graph;
 }
 
-static GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx)
+GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx)
 {
 	return ctx->event_target;
 }
@@ -3707,7 +3707,7 @@ JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, JSFunction **callbackfunc)
 		char *callback = SMJS_CHARS(c, vp);
 		if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
 		*callbackfunc = JS_ValueToFunction(c, fval);
-		SMJS_FREE(c, callback)
+		SMJS_FREE(c, callback);
 	} else if (JSVAL_IS_OBJECT(vp)) {
 		*callbackfunc = JS_ValueToFunction(c, vp);
 	}

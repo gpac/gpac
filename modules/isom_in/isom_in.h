@@ -74,6 +74,7 @@ typedef struct
 	s32 has_pending_segments;
 
 	Bool clock_discontinuity;
+	Bool send_resume;
 } ISOMReader;
 
 
