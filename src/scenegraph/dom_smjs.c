@@ -2637,7 +2637,7 @@ typedef struct __xhr_context
 	GF_SceneGraph *owning_graph;
 	/* dom graph used to parse XML into */
 	GF_SceneGraph *document;
-} XMLHTTPContext;
+};
 
 GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx)
 {
