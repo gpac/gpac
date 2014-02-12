@@ -42,8 +42,10 @@
 /*set to 1 if you want MPD to use SegmentTemplate if possible instead of SegmentList*/
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
-/*uncomment to only play the first representation set*/
+/*uncomment to only play the first adaptation set*/
 //#define DEBUG_FIRST_SET_ONLY
+/*uncomment to play all but the first adaptation set*/
+//#define DEBUG_SKIP_FIRST_SET
 
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
@@ -53,6 +55,10 @@ typedef enum {
 	GF_DASH_STATE_CONNECTING,
 	GF_DASH_STATE_RUNNING,
 } GF_DASH_STATE;
+
+
+//shifts AST in the past(>0) or future (<0)  so that client starts request in the future or in the past
+//#define FORCE_DESYNC	4000
 
 
 typedef struct __dash_group GF_DASH_Group;
@@ -115,6 +121,9 @@ struct __dash_client
 	/* TODO - handle playback status for SPEED/SEEK through SIDX */
 	Double playback_start_range;
 	Double start_range_in_segment_at_next_period;
+
+
+	u32 min_timeout_between_404;
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group);
@@ -176,20 +185,16 @@ struct __dash_group
 
 	Double start_playback_range;
 
-	/*for debug purpose of templates only*/
-	u32 start_number;
-	u32 start_number_override;
-
 	Bool was_segment_base;
 	/*local file playback, do not delete them*/
 	Bool local_files;
-	/*next segment to download for this group*/
-	u32 download_segment_index;
+	/*next segment to download for this group - negative number to take into account SN wrapping*/
+	s32 download_segment_index;
 	/*number of segments pruged since the start of the period*/
 	u32 nb_segments_purged;
 
 	u32 nb_retry_on_last_segment;
-	u32 start_number_at_last_ast;
+	s32 start_number_at_last_ast;
 	u64 ast_at_init;
 
 	/*next file (cached) to delete at next GF_NET_SERVICE_QUERY_NEXT for this group*/
@@ -220,7 +225,9 @@ struct __dash_group
 
 	u32 time_at_first_failure;
 	Bool prev_segment_ok, segment_in_valid_range;
-	u32 nb_consecutive_fail, force_wait;
+	//this is the number of 404
+	u32 nb_consecutive_fail;
+	u64 retry_after_utc;
 	/*set when switching segment, indicates the current downloaded segment duration*/
 	u64 current_downloaded_segment_duration;
 
@@ -412,11 +419,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 
 	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
+
+#ifdef FORCE_DESYNC
+	availabilityStartTime -= FORCE_DESYNC;
+#endif
 	
 	ast_diff = (u32) (availabilityStartTime - group->dash->mpd->availabilityStartTime);
 	current_time = fetch_time;
-
-
 
 	if (current_time < availabilityStartTime) {
 		//if more than 1 sec consider we have a pb
@@ -593,7 +602,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			} else {
 				group->download_segment_index = shift;
 				group->ast_at_init = availabilityStartTime -  (u32) (ast_offset*1000);
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time %d ms: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->segment_duration, ast_diff));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] At current time "LLU" ms: Re-Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g AST_diff=%d\n", current_time, start_number, shift, group->segment_duration, ast_diff));
 			}
 			group->start_number_at_last_ast = start_number;
 		}
@@ -608,6 +617,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->nb_segments_in_rep = shift + nb_segs_in_update;
 			group->dash->ignore_mpd_duration = 1;
 		}
+		group->prev_segment_ok = GF_TRUE;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment duration unknown - cannot estimate current startNumber\n"));
 	}
@@ -1029,7 +1039,8 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segme
 	GF_MPD_AdaptationSet *set;
 	GF_MPD_Period *period;
 	Double start_time;
-	u32 timescale, segment_index;
+	u32 timescale;
+	s32 segment_index;
 	u64 duration;
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	timescale = 0;
@@ -1039,11 +1050,7 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segme
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	set = group->adaptation_set;
 	period = group->period;
-	segment_index = 0;
-	if (group->download_segment_index >= group->nb_cached_segments) {
-//		segment_index = group->download_segment_index - group->nb_cached_segments;
-		segment_index = group->download_segment_index;
-	}
+	segment_index = group->download_segment_index;
 
 	/*single segment: return nothing*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
@@ -1084,22 +1091,17 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segme
 		if (period->segment_template->duration) duration = period->segment_template->duration;
 		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
-		if (!group->start_number_override && period->segment_template->start_number) 
-			group->start_number = period->segment_template->start_number;
+
 	}
 	if (set->segment_template) {
 		if (set->segment_template->duration) duration = set->segment_template->duration;
 		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
-		if (!group->start_number_override && set->segment_template->start_number) 
-			group->start_number = set->segment_template->start_number;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->duration) duration = rep->segment_template->duration;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
-		if (!group->start_number_override && rep->segment_template->start_number) 
-			group->start_number = rep->segment_template->start_number;
 	}
 	if (!timescale) timescale=1;
 
@@ -1878,7 +1880,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	}
 
 	gf_dash_resolve_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
-	*segment_duration = (resolve_type==GF_DASH_RESOLVE_URL_MEDIA) ? (u32) ((Double) (*segment_duration) * 1000.0 / timescale) : 0;
+	*segment_duration = (resolve_type==GF_DASH_RESOLVE_URL_MEDIA) ? (u32) ((Double) ((*segment_duration) * 1000.0) / timescale) : 0;
 
 	/*single URL*/
 //	if (rep->segment_base || set->segment_base || period->segment_base) {
@@ -2055,9 +2057,6 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		if (rep->segment_template->start_number != (u32) -1) start_number = rep->segment_template->start_number;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 	}
-
-	if (group->start_number_override)
-		start_number = group->start_number;
 
 	/*offset the start_number with the number of discarded segments (no longer in our lists)*/
 	start_number += group->nb_segments_purged;
@@ -2493,6 +2492,18 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 	dash->groups = NULL;
 }
 
+static u32 gf_dash_get_start_number(GF_DASH_Group *group, GF_MPD_Representation *rep)
+{
+	if (rep->segment_list && rep->segment_list->start_number) return rep->segment_list->start_number;
+	if (group->adaptation_set->segment_list && group->adaptation_set->segment_list->start_number) return group->adaptation_set->segment_list->start_number;
+	if (group->period->segment_list && group->period->segment_list->start_number) return group->period->segment_list->start_number;
+
+	if (rep->segment_template && rep->segment_template->start_number) return rep->segment_template->start_number;
+	if (group->adaptation_set->segment_template && group->adaptation_set->segment_template->start_number) return group->adaptation_set->segment_template->start_number;
+	if (group->period->segment_template && group->period->segment_template->start_number) return group->period->segment_template->start_number;
+
+	return 0;
+}
 
 /* create groups (implementation of adaptations set) */
 GF_Err gf_dash_setup_groups(GF_DashClient *dash)
@@ -2907,6 +2918,11 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		u32 nb_rep_ok = 0;
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_i);
 
+#ifdef DEBUG_SKIP_FIRST_SET
+		if (group_i==0) 
+			continue;
+#endif
+
 		nb_rep = gf_list_count(group->adaptation_set->representations);
 
 		if ((nb_rep>1) && !group->adaptation_set->segment_alignment && !group->adaptation_set->subsegment_alignment) {
@@ -3202,7 +3218,7 @@ restart_period:
 				Bool cache_full = 1;
 
 				/*wait if nothing is ready to be downloaded*/
-				if (min_wait>0) {
+				if (min_wait>1) {
 					u32 sleep_for = MIN(min_wait/2, 1000);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", min_wait, sleep_for));
 					gf_sleep(sleep_for);
@@ -3271,7 +3287,7 @@ restart_period:
 
 			/* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
 			we need to check if a new playlist is ready */
-			if (group->nb_segments_in_rep && (group->download_segment_index>=group->nb_segments_in_rep)) {
+			if (group->nb_segments_in_rep && (group->download_segment_index >= (s32) group->nb_segments_in_rep)) {
 				u32 timer = gf_sys_clock() - dash->last_update_time;
 				Bool update_playlist = 0;
 				/* update of the playlist, only if indicated */
@@ -3295,7 +3311,7 @@ restart_period:
 					gf_sleep(16);
 				}
 				/* Now that the playlist is up to date, we can check again */
-				if (group->download_segment_index >= group->nb_segments_in_rep) {
+				if (group->download_segment_index >= (s32) group->nb_segments_in_rep) {
 					/* if there is a specified update period, we redo the whole process */
 					if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 						if (! group->maybe_end_of_stream) {
@@ -3339,15 +3355,25 @@ restart_period:
 			if (!group->broken_timing && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->is_m3u8) {
 				s32 to_wait = 0;
 				u32 seg_dur_ms=0;
+#ifndef GPAC_DISABLE_LOG
+				u32 start_number = gf_dash_get_start_number(group, rep);
+#endif
 				s64 segment_ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, &seg_dur_ms);
 				s64 now = (s64) gf_net_get_utc();
-				clock_time = gf_sys_clock();
-				
+
+
+				if (group->retry_after_utc > (u64) now) {
+					min_wait = (u32) (group->retry_after_utc - (u64) now);
+					gf_mx_v(dash->dl_mutex);
+					continue;
+				}
+
+				clock_time = gf_sys_clock();			
 				to_wait = (s32) (segment_ast - now);
 
 				/*if segment AST is greater than now, it is not yet available - we would need an estimate on how long the request takes to be sent to the server in order to be more reactive ...*/
 				if (to_wait > 1) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") is not yet available on server - requesting later in %d ms\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, to_wait));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") is not yet available on server - requesting later in %d ms\n", i+1, gf_sys_clock(), group->download_segment_index + start_number, segment_ast, to_wait));
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 					}
@@ -3356,7 +3382,7 @@ restart_period:
 						min_wait = to_wait;
 					continue;
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") should now be available on server since %d ms - requesting it\n", i+1, gf_sys_clock(), group->download_segment_index + group->start_number, segment_ast, -to_wait));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD") should now be available on server since %d ms - requesting it\n", i+1, gf_sys_clock(), group->download_segment_index + start_number, segment_ast, -to_wait));
 
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
@@ -3369,6 +3395,7 @@ restart_period:
 				}
 			}
 			min_wait = 0;
+
 
 			/* At this stage, there are some segments left to be downloaded */
 			e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL);
@@ -3410,6 +3437,9 @@ restart_period:
 				/*TODO decide what is the best, fetch from another representation or ignore ...*/
 				if (e != GF_OK) {
 					clock_time = gf_sys_clock();
+					min_wait = dash->min_timeout_between_404;
+					group->retry_after_utc = min_wait + gf_net_get_utc();
+
 					if (group->maybe_end_of_stream) {
 						if (group->maybe_end_of_stream==2) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Couldn't get segment %s (error %s) and end of period was guessed during last update - stoping playback\n", new_base_seg_url, gf_error_to_string(e)));
@@ -3421,34 +3451,27 @@ restart_period:
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - segment was lost at server/proxy side\n", new_base_seg_url, gf_error_to_string(e)));
 						group->download_segment_index++;
 						group->segment_in_valid_range=0;
-#if 0
-					} else if (in_segment_avail_time) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Couldn't get segment %s during its availability period (%s) - retrying\n", new_base_seg_url, gf_error_to_string(e)));
-						min_wait = 30;
-#endif
 					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
-						group->time_at_first_failure = clock_time;
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
-						min_wait = group->force_wait ? group->force_wait : 0;
-						group->force_wait = 0;
+						if (!group->loop_detected) {
+							group->time_at_first_failure = clock_time;
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
+						}
 					}
-					//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost
-					else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration )) {
-						min_wait = group->force_wait ? group->force_wait : 0;
-						group->force_wait = 0;
+					//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost - we add 100ms safety
+					else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration + 100 )) {
 					} else {
 						if (group->prev_segment_ok) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 							group->time_at_first_failure = 0;
 							group->prev_segment_ok = GF_FALSE;
 						}
-#if 0
+#if 1
 						group->nb_consecutive_fail ++;
 						//we are lost ....
 						if (group->nb_consecutive_fail == 20) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering slow refresh mode\n"));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
 							min_wait = 1000;
-//							group->maybe_end_of_stream = 1;
+							group->maybe_end_of_stream = 1;
 						} else 
 #endif
 						{
@@ -3463,7 +3486,7 @@ restart_period:
 
 				group->prev_segment_ok = GF_TRUE;
 				if (group->time_at_first_failure) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Recovered segment %s - was our download schedule too early ?\n", new_base_seg_url));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", new_base_seg_url));
 					group->time_at_first_failure = 0;
 					group->nb_consecutive_fail = 0;
 				}
@@ -3677,7 +3700,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group)
 	dash->playback_start_range -= seg_start;
 
 	first_downloaded = last_downloaded = group->download_segment_index;
-	if (group->download_segment_index +1 >= group->nb_cached_segments) {
+	if (group->download_segment_index + 1 >= (s32) group->nb_cached_segments) {
 		first_downloaded = group->download_segment_index + 1 - group->nb_cached_segments;
 	}
 	/*we are seeking in our download range, just go on*/
@@ -3972,6 +3995,8 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 	dash->disable_switching = disable_switching;
 	dash->first_select_mode = first_select_mode;	
 	dash->idle_interval = 1000;
+	dash->min_timeout_between_404 = 500;
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Client created\n"));
 	return dash;
 }
@@ -4584,6 +4609,15 @@ GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width
 }
 
 GF_EXPORT
+GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_between_404)
+{
+	if (!dash) return GF_BAD_PARAM;
+	dash->min_timeout_between_404 = min_timeout_between_404;
+	return GF_OK;
+}
+
+
+GF_EXPORT
 GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
@@ -4629,20 +4663,6 @@ u32 gf_dash_get_min_buffer_time(GF_DashClient *dash)
 	return dash ? dash->mpd->min_buffer_time : 0;
 }
 
-
-static u32 gf_dash_get_start_number(GF_DASH_Group *group, GF_MPD_Representation *rep)
-{
-	if (rep->segment_list && rep->segment_list->start_number) return rep->segment_list->start_number;
-	if (group->adaptation_set->segment_list && group->adaptation_set->segment_list->start_number) return group->adaptation_set->segment_list->start_number;
-	if (group->period->segment_list && group->period->segment_list->start_number) return group->period->segment_list->start_number;
-
-	if (rep->segment_template && rep->segment_template->start_number) return rep->segment_template->start_number;
-	if (group->adaptation_set->segment_template && group->adaptation_set->segment_template->start_number) return group->adaptation_set->segment_template->start_number;
-	if (group->period->segment_template && group->period->segment_template->start_number) return group->period->segment_template->start_number;
-
-	return 0;
-}
-
 GF_EXPORT
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name)
 {
@@ -4653,6 +4673,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	char *seg_url, *seg_name, *seg_sep;
 	GF_MPD_Representation *rep;
 	GF_DASH_Group *group = NULL;
+	s64 utc = gf_net_get_utc();
 	if (!latest_segment_name) return GF_BAD_PARAM;
 
 	for (i=0; i<gf_list_count(dash->groups); i++) {
@@ -4689,13 +4710,12 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	}
 
 	if (!found) {
+		gf_free(seg_url);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No representation found matching the resync segment name %s\n", latest_segment_name));
 		return GF_BAD_PARAM;
 	}
 
 	start_number = gf_dash_get_start_number(group, rep);
-	if (group->start_number_override)
-		start_number = group->start_number;
 
 	if (seg_sep) {
 		char *sep_template, *sep_name, c;
@@ -4750,62 +4770,97 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 			latest_template += strlen(sep_template);
 			sep_template[0]='$';
 		}
+		if (earliest_segment_number && !latest_segment_number) {
+			latest_segment_number = earliest_segment_number;
+		}
+
+		gf_free(seg_url);
 
 		//todo - recompute an AST offset so that the AST of the new segment equals UTC(now) + offset
 		if (latest_segment_number) {
-			//there's been a loop in segments, use new latest avail startTime
-			if (start_number > latest_segment_number) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", start_number , latest_segment_number));
-				group->start_number = latest_segment_number - 1;
-				group->start_number_override = 1;
-				group->download_segment_index = 0;
-				group->loop_detected = GF_TRUE;
-				
-#if 0
-				//for now loops in start number means end of stream
-				if (group->nb_cached_segments) {
-					group->maybe_end_of_stream = 1;
-					dash->active_period_index = 0;
-					dash->request_period_switch = 2;
-				}
-#endif
-			} else if (start_number + group->download_segment_index > latest_segment_number) {
-				u32 new_idx = 1 + latest_segment_number - start_number;
-				if (new_idx + 10 < group->download_segment_index) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", start_number , latest_segment_number));
-					group->start_number = latest_segment_number - 1;
-					group->start_number_override = 1;
-					group->download_segment_index = 0;
-					group->loop_detected = GF_TRUE;
-				} else {
-					if (new_idx >= group->download_segment_index)
-						group->download_segment_index = 1 + latest_segment_number - start_number;
-					group->nb_consecutive_fail = 0;
-					group->force_wait = (u32) group->current_downloaded_segment_duration;
-				}
+			Bool range_valid = GF_FALSE;
+			Bool loop_detected = GF_FALSE;
+			s32 nb_seg_diff = 0;
+			s32 range_in = 0;
+			//how many segment ahead are we ?
+			nb_seg_diff = start_number + group->download_segment_index;
+			nb_seg_diff -= latest_segment_number;
+
+			//we are just too early for this request, do request later
+			if (nb_seg_diff == 1 ) {
+				nb_seg_diff = 0;
 			}
-			else if (earliest_segment_number) {
-				if (start_number + group->download_segment_index >= earliest_segment_number) {
-					group->segment_in_valid_range = 1;
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in segment %d download but range is correct (%d - %d) - server loss ? \n", group->start_number + group->download_segment_index, earliest_segment_number, latest_segment_number));
-				} else if (start_number > earliest_segment_number) {
-					group->start_number = earliest_segment_number;
-					group->start_number_override = 1;
-					group->download_segment_index = 0;
-					group->nb_consecutive_fail = 0;
-					//for now loops in start number means end of stream
-					if (group->nb_cached_segments) {
-						group->maybe_end_of_stream = 1;
-						dash->active_period_index = 0;
-						dash->request_period_switch = 2;
+
+			//if earliest is not given, allow 4 segments
+			if (!earliest_segment_number) range_in = 4;
+			else range_in = latest_segment_number - earliest_segment_number;
+
+			//we fall in the buffer of the sender, we liklely have a loss
+			if ((nb_seg_diff<0) && (nb_seg_diff + range_in) >= 0) {
+				range_valid = GF_TRUE;
+				nb_seg_diff = 0;
+			}
+
+			if (latest_segment_number <= start_number ) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", start_number , latest_segment_number));
+				loop_detected = GF_TRUE;
+			}
+
+			//inidcate we are in valid range
+			if (nb_seg_diff == 0 ) {
+				for (i=0; i< gf_list_count(dash->groups); i++) {
+					GF_DASH_Group *a_group = gf_list_get(dash->groups, i);
+					if (a_group==group) {
+						a_group->segment_in_valid_range = range_valid;
+					} else {
+						u32 sn = gf_dash_get_start_number(a_group, gf_list_get(a_group->adaptation_set->representations, a_group->active_rep_index) );
+						if ((sn == start_number) && (sn + a_group->download_segment_index <= 1+latest_segment_number)) {
+							a_group->segment_in_valid_range = range_valid;
+						} else {
+							//this is dirty, if segments do not share the same time sn/duration/co we will break everything ...
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Lost sync between adaptation sets - reseting group to last known sync adaptation set... \n", start_number , latest_segment_number));
+							a_group->download_segment_index = group->download_segment_index;
+							a_group->start_number_at_last_ast = group->start_number_at_last_ast;
+							a_group->ast_at_init = group->ast_at_init;
+						}
 					}
-				} else {
-					group->download_segment_index = earliest_segment_number - start_number - 1;
-					group->nb_consecutive_fail = 0;
 				}
+				return GF_OK;
+			}
+
+			if (nb_seg_diff) {
+				//compute how far ahead or behind we were
+				Double off_time_in_sec = nb_seg_diff * group->segment_duration;
+
+				for (i=0; i< gf_list_count(dash->groups); i++) {
+					s64 ast, diff;
+					s32 nb_seg;
+					group = gf_list_get(dash->groups, i);
+
+					nb_seg = (s32) (off_time_in_sec * group->segment_duration);
+
+					start_number = gf_dash_get_start_number(group, gf_list_get(group->adaptation_set->representations, group->active_rep_index) );
+
+					//rewind the index but don't change the AST - the next segment will then be
+					//	    start_number + group->download_segment_index - nb_seg_diff
+					//ie    start_number + group->download_segment_index - (start_number + group->download_segment_index - latest_segment_number)
+					//ie    latest_segment_number
+					group->download_segment_index -= nb_seg_diff;
+					group->start_number_at_last_ast -= nb_seg_diff;
+					//adjust ast so that the new segment is available right away
+					ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, NULL);
+					diff = utc - ast;
+					group->ast_at_init += diff;
+
+					//indicate we need to retry download with same download_segment_index
+					group->prev_segment_ok = GF_TRUE;
+					group->time_at_first_failure = 0;
+					if (loop_detected) 
+						group->loop_detected = GF_TRUE;
+
+				} 
 			}
 		}
-		gf_free(seg_url);
 		return GF_OK;
 	}
 

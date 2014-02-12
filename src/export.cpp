@@ -787,6 +787,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1926,7 +1927,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_utc_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_enable_utc_drift_compensation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_max_resolution) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_min_timeout_between_404) )
 #endif
 
 #ifndef GPAC_DISABLE_VTT

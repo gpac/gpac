@@ -85,6 +85,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %u at OTB %u with audio delay %d ms)\n", drift + audio_delay_ms, ts, obj_time, audio_delay_ms));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
+		*size = 0;
 		return NULL;
 	}
 #endif

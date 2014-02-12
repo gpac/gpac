@@ -250,7 +250,16 @@ next_segment:
 
 					/*we changed our moov structure, sample_num now starts from 0*/
 					ch->sample_num = 0;
-				} 
+				}
+				//a loop was detected, our timing is no longer reliable if we use edit lists - just reset the sample time to tfdt ...
+				else if (param.url_query.discontinuity_type==2) {
+					ch->sample_num = 0;
+					if (ch->has_edit_list) {
+						ch->sample_time = gf_isom_get_current_tfdt(read->mov, ch->track);
+						//next read will query sample for ch->sample_time + 1
+						if (ch->sample_time) ch->sample_time--;
+					}
+				}
 				/*rewrite all upcoming SPS/PPS into the samples*/
 				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 				ch->last_state = GF_OK;
@@ -602,13 +611,16 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	GF_NetworkCommand com;
 	ISOMChannel *ch;
 
-	if (read->in_data_flush) 
+	if (read->in_data_flush) {
+		if (check_buffer_level && !is_chunk_flush) read->has_pending_segments++;
 		return;
-	//pull request from term: if no segments are pending (received but not yet parsed) ignore
-//	if (!check_buffer_level && !read->has_pending_segments)
-//		return;
+	}
 
-	gf_mx_p(read->segment_mutex);
+	//if another thread grabs the mutex at the same time, just return
+	if (!gf_mx_try_lock(read->segment_mutex)) {
+		if (check_buffer_level && !is_chunk_flush) read->has_pending_segments++;
+		return;
+	}
 	read->in_data_flush = 1;
 	count = gf_list_count(read->channels);
 
