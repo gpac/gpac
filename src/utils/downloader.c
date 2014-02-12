@@ -125,6 +125,8 @@ struct __gf_download_session
     DownloadedCacheEntry cache_entry;
 	Bool reused_cache_entry;
 
+	//mime type, only used when the session is not cached.
+	char *mime_type;
     GF_List *headers;
 
     GF_Socket *sock;
@@ -132,7 +134,6 @@ struct __gf_download_session
 	GF_NetIOStatus status;
 
     u32 flags;
-
     u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
     u32 bytes_per_sec;
 	u64 start_time_utc;
@@ -655,6 +656,10 @@ static void gf_dm_clear_headers(GF_DownloadSession *sess)
 		gf_free(hdr->name);
 		gf_free(hdr->value);
 		gf_free(hdr);
+	}
+	if (sess->mime_type) {
+		gf_free(sess->mime_type);
+		sess->mime_type = NULL;
 	}
 }
 
@@ -1414,8 +1419,8 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
             return oldMimeIfAny;
     }
     entry = gf_dm_refresh_cache_entry (sess);
-    if (!entry)
-	return NULL;
+    if (!entry) 
+		return sess->mime_type;
     assert( entry == sess->cache_entry && entry);
     return gf_cache_get_mime_type( sess->cache_entry );
 }
@@ -2550,9 +2555,15 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             if (val) val[0] = 0;
 
 			strlwr(mime_type);
-			if (rsp_code<300)
-	            gf_cache_set_mime_type(sess->cache_entry, mime_type);
-            gf_free(mime_type);
+			if (rsp_code<300) {
+	            if (sess->cache_entry) {
+					gf_cache_set_mime_type(sess->cache_entry, mime_type);
+				} else {
+					sess->mime_type = mime_type;
+					mime_type = NULL;
+				}
+			}
+            if (mime_type) gf_free(mime_type);
         }
         else if (!stricmp(hdrp->name, "Content-Range")) {
             range = 1;

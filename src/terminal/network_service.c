@@ -677,8 +677,8 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code,
 	(*ret_code) = GF_OK;
 	if (strnicmp(url, "http", 4)) return NULL;
 
-	/*don't use any NetIO and don't issue a HEAD command, always go for GET and store the session */
-	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, NULL, NULL, ret_code);
+	/*don't use any NetIO and don't issue a HEAD command, always go for GET, use cache and store the session*/
+	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED , NULL, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
