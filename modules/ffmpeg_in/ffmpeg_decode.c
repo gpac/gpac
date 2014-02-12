@@ -31,6 +31,10 @@
 #define HAS_HEVC
 #endif
 
+#if defined(GPAC_ANDROID) || defined(GPAC_IPHONE)
+#define NO_10bit
+#endif
+
 
 /**
  * Allocates data for FFMPEG decoding
@@ -864,12 +868,14 @@ redecode:
 		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
 			outsize = ctx->width * ctx->height * 3;
 		}
+#ifndef NO_10bit
 		//this YUV format is handled natively in GPAC
 		else if (ctx->pix_fmt == PIX_FMT_YUV420P10LE) {
 			ffd->stride = 2* ctx->width;
 			outsize = ffd->stride * ctx->height * 3 / 2;
 			ffd->out_pix_fmt = GF_PIXEL_YV12_10;
 		}
+#endif
 		//the rest will be YUV
 		else {
 			outsize = ffd->stride * ctx->height * 3 / 2;
@@ -998,11 +1004,12 @@ redecode:
 		pict.linesize[0] = ffd->stride;
 		pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
 		pix_out = PIX_FMT_YUV420P;
+#ifndef NO_10bit
 		//this YUV format is handled natively in GPAC
 		if (ctx->pix_fmt==PIX_FMT_YUV420P10LE) {
 			pix_out = PIX_FMT_YUV420P10LE;
 		}
-
+#endif
 		if (!mmlevel && frame->interlaced_frame) {
 			avpicture_deinterlace((AVPicture *) frame, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 		}
