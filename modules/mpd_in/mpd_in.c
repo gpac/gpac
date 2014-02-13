@@ -749,6 +749,16 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		}
 	}
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TimeBetween404");
+	if (opt) {
+		gf_dash_set_min_timeout_between_404(mpdin->dash, atoi(opt));
+	}
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "SegmentExpirationThreshold");
+	if (opt) {
+		gf_dash_set_segment_expiration_threshold(mpdin->dash, atoi(opt));
+	}
+
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
 	if (e) {
