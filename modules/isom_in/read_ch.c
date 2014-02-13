@@ -180,6 +180,13 @@ next_segment:
 				gf_isom_release_segment(read->mov, 1);
 				//gf_isom_reset_fragment_info(read->mov, 1);
 				read->drop_next_segment = 1;
+				//error opening the segment, reset everything ...
+				gf_isom_reset_fragment_info(read->mov, 0);
+				for (i=0; i<count; i++) {
+					ISOMChannel *ch = gf_list_get(read->channels, i);
+					ch->sample_num = 0;
+				}
+
 				//cannot open file, don't change our state
 				gf_mx_v(read->segment_mutex);
 				return;
@@ -659,7 +666,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		}
 	}
 	//flush request from terminal: only process if nothing is opened and we have pending segments
-	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments) {
+	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && !read->drop_next_segment) {
 		read->in_data_flush = 0;
 		gf_mx_v(read->segment_mutex);
 		return;

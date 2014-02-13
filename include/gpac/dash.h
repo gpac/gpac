@@ -276,6 +276,9 @@ GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height);
 //sets min time in ms between a 404 and the next request on the same group. The default value is 500 ms. 
 GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_between_404);
 
+//sets time in ms after which 404 request for a segment will indicate segment lost. The default value is 100 ms. 
+GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_after_ms);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

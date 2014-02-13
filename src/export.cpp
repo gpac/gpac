@@ -1928,6 +1928,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_enable_utc_drift_compensation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_max_resolution) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_min_timeout_between_404) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_segment_expiration_threshold) )
 #endif
 
 #ifndef GPAC_DISABLE_VTT
