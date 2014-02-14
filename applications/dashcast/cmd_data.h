@@ -82,6 +82,8 @@ typedef struct {
 	int ast_offset;
 	/* MPD time shift buffer depth in seconds */
 	int time_shift;
+	/* MPD minimumUpdatePeriod in seconds */
+	int minimum_update_period;
 	/* Send message on port 1234 once fragment is ready */
 	int send_message;
 	/* End of Segment Box name */

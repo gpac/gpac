@@ -175,12 +175,15 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	fprintf(f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
 							"%s=\"%s\" "
 							"minBufferTime=\"PT%fS\" %s type=\"%s\" "
-							"profiles=\"urn:mpeg:dash:profile:full:2011\">\n",
+							"profiles=\"urn:mpeg:dash:profile:full:2011\"",
 							(cmddata->mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime",
 							(cmddata->mode == ON_DEMAND) ? presentation_duration : availability_start_time,
 							cmddata->min_buffer_time, time_shift,
 							(cmddata->mode == ON_DEMAND) ? "static" : "dynamic");
-
+	if (cmddata->minimum_update_period > 0 ) {
+		fprintf(f, " minimumUpdatePeriod=\"PT%dS\"", cmddata->minimum_update_period);
+	}
+	fprintf(f, ">\n");
 	fprintf(f,
 		" <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
 		"  <Title>%s</Title>\n"
@@ -190,7 +193,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		fprintf(f, " <BaseURL>%s</BaseURL>\n", cmddata->base_url);
 	}
 
-	fprintf(f, " <Period id=\"\">\n");
+	fprintf(f, " <Period start=\"0\" id=\"\">\n");
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
 		fprintf(f, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");

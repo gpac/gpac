@@ -341,6 +341,7 @@ void dc_cmd_data_init(CmdData *cmd_data)
 	cmd_data->mode = ON_DEMAND;
 	cmd_data->ast_offset = -1;
 	cmd_data->min_buffer_time = -1;
+	cmd_data->minimum_update_period = -1;
 	cmd_data->use_source_timing = 1;
 
 	cmd_data->audio_lst = gf_list_new();
@@ -465,6 +466,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 					"    -out outdir:str          outdir is the output data directory (default: output)\n"
 					"    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
 					"    -ast-offset dur:int      dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
+					"    -mpd-refresh dur:int     dur is the MPD minimumUpdatePeriod in seconds\n"
 					"    -time-shift dur:int      dur is the MPD TimeShiftBufferDepth in seconds\n"
 					"                                - the default value is 10. Specify -1 to keep all files.\n"
 					"    -min-buffer dur:float    dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
@@ -690,6 +692,15 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return -1;
 			}
 			cmd_data->ast_offset = atoi(argv[i]);
+			i++;
+		} else if (strcmp(argv[i], "-mpd-refresh") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			if (cmd_data->minimum_update_period != -1) {
+				fprintf(stderr, "minimumUpdatePeriod (mpd-refresh) has already been specified.\n");
+				fprintf(stderr, "%s", command_usage);
+				return -1;
+			}
+			cmd_data->minimum_update_period = atoi(argv[i]);
 			i++;
 		} else if (strcmp(argv[i], "-time-shift") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
