@@ -1939,6 +1939,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 		bin128 word128;
 		Bool use_word128 = GF_FALSE;
 		Bool use_text = GF_FALSE;
+		Bool big_endian = GF_TRUE;
  		const char *szFile = NULL;
  		const char *szString = NULL;
 		const char *szBase64 = NULL;
@@ -1973,6 +1974,10 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 			} else if (!stricmp(att->name, "data")) {
 				szData = att->value;
 				if (!strnicmp(szData, "0x", 2)) szData += 2;
+			} else if (!stricmp(att->name, "endian")) {
+				if (!stricmp(att->value, "little")) {
+					big_endian = GF_FALSE;
+				}
 			}
 		}
 		if (szString) {
@@ -1989,7 +1994,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 				gf_bs_write_int(bs, ret, nb_bits);
 				gf_bs_write_data(bs, data, ret);
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Error decoding base64 %s\n", att->value));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML/NHML] Error decoding base64 %s\n", att->value));
 			}
 			gf_free(data);
 		} else if (szData) {
@@ -2006,8 +2011,18 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 			gf_bs_write_data(bs, data, len/2);
 			gf_free(data);
 		} else if (nb_bits) {
-			if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
-			else gf_bs_write_long_int(bs, value, nb_bits);
+			if (!big_endian) {
+				if (nb_bits == 16)
+					gf_bs_write_u16_le(bs, (u32)value);
+				else if (nb_bits == 32)
+					gf_bs_write_u32_le(bs, (u32)value);
+				else
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML/NHML] Little-endian values can only be 16 or 32-bit\n"));
+			}
+			else {
+				if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
+				else gf_bs_write_long_int(bs, value, nb_bits);
+			}
 		} else if (szFile) {
 			char block[1024];
 			FILE *_tmp = gf_f64_open(szFile, use_text ? "rt" : "rb");
