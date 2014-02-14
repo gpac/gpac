@@ -520,56 +520,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
 		return;
 	}
-	if (com->command_type==GF_NET_SERVICE_PAUSE_CHANNELS || com->command_type==GF_NET_SERVICE_UNPAUSE_CHANNELS) {
-		u32					i;
-		GF_List				*od_list;
-		GF_ObjectManager	*odm;
-		Bool				pause;
-
-		pause = (com->command_type==GF_NET_SERVICE_PAUSE_CHANNELS ? GF_TRUE : GF_FALSE);
-		if (!service->owner) {
-			return;
-		}
-
-		/*browse all channels in the scene, running on this service, and get buffer info*/
-		od_list = NULL;
-		if (service->owner->subscene) {
-			od_list = service->owner->subscene->resources;
-		} else if (service->owner->parentscene) {
-			od_list = service->owner->parentscene->resources;
-		}
-		if (!od_list) {
-			return;
-		}
-		/*get exclusive access to media scheduler, to make sure ODs are not being manipulated*/
-		gf_mx_p(term->mm_mx);
-		if (!gf_list_count(od_list)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), cannot pause\n", service->url));
-		}
-		i=0;
-		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
-			u32 j, count;
-			if (!odm->codec) continue;
-			count = gf_list_count(odm->channels);
-			for (j=0; j<count; j++) {
-				void ch_buffer_on(GF_Channel *ch);
-				void ch_buffer_off(GF_Channel *ch);
-				GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
-				if (ch->service != service) continue;
-				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
-				if (pause) {
-					ch_buffer_on(ch);
-				} else {
-					ch_buffer_off(ch);
-				}
-			}
-		}
-		gf_mx_v(term->mm_mx);
-		return;
-	}
 
 	if (!com->base.on_channel) return;
-
 
 	ch = gf_term_get_channel(service, com->base.on_channel);
 	if (!ch) return;
@@ -650,6 +602,21 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	case GF_NET_CHAN_RESET:
 		gf_es_reset_buffers(ch);
+		break;
+	case GF_NET_CHAN_PAUSE:
+		gf_es_buffer_on(ch);
+		break;
+	case GF_NET_CHAN_RESUME:
+		gf_es_buffer_off(ch);
+		break;
+	case GF_NET_CHAN_BUFFER:
+		//lock channel before updating buffer info, otherwise we may collect wrong HTML media info
+		gf_mx_p(ch->mx);
+		ch->BufferTime = com->buffer.occupancy;
+		ch->MaxBuffer = com->buffer.max;
+		gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+		ch->MaxBuffer = 0;
+		gf_mx_v(ch->mx);
 		break;
 	default:
 		return;
@@ -932,7 +899,6 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 {
 	GF_DownloadSession *download_session = NULL;
 	char *sURL;
-	const char *opt;
 	GF_ClientService *serv;
 	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code, &download_session);
 	if (!ifce) return NULL;
@@ -945,19 +911,6 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	serv->Clocks = gf_list_new();
 	serv->dnloads = gf_list_new();
 	serv->pending_service_session = download_session;
-
-	opt = gf_cfg_get_key(term->user->config, "Network", "HTTPRebuffer");
-	if (!opt) {
-		opt = "5000";
-		gf_cfg_set_key(term->user->config, "Network", "HTTPRebuffer", "5000");
-	}
-	serv->download_rebuffer = atoi(opt);
-	opt = gf_cfg_get_key(term->user->config, "Network", "HTTPAutoRebuffer");
-	if (!opt) {
-		opt = "no";
-		gf_cfg_set_key(term->user->config, "Network", "HTTPAutoRebuffer", "no");
-	}
-	serv->auto_rebuffer = !strcmp(opt, "yes") ? 1 : 0;
 
 	gf_list_add(term->net_services, serv);
 
@@ -1198,57 +1151,6 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s received %d / %d\n", szURI, bytes_done, total_size));
 		gf_term_service_media_event_with_download(serv->owner, GF_EVENT_MEDIA_PROGRESS, bytes_done, total_size, bytes_per_sec);
-
-		/*JLF fix this*/
-		if (0&& (serv->download_rebuffer || serv->auto_rebuffer) && serv->owner && !(serv->owner->flags & GF_ODM_DESTROYED) && serv->owner->duration) {
-			GF_Clock *ck = gf_odm_get_media_clock(serv->owner);
-			Double download_percent, playback_percent, adj_percent;
-			download_percent = 100 * bytes_done; 
-			download_percent /= total_size;
-
-			playback_percent = 100 * serv->owner->current_time; 
-			playback_percent /= serv->owner->duration;
-			if (serv->auto_rebuffer)
-				adj_percent = 0.0;
-			else
-				adj_percent = 100.0 * serv->download_rebuffer / serv->owner->duration;
-
-			if (playback_percent >= download_percent) {
-				if (gf_clock_is_started(ck)) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Played %d %% but downloaded %d %% - Pausing\n", (u32) playback_percent, (u32) download_percent));
-					if (!serv->is_paused) {
-						serv->is_paused = 1;
-						mediacontrol_pause(serv->owner);
-					}
-					gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_WAITING);
-					gf_term_on_message(serv, GF_OK, "HTTP Buffering ...");
-				}
-			} else if (playback_percent + adj_percent <= download_percent) {
-				Double time_to_play = 0;
-				Double time_to_download = 0;
-				/*automatic rebuffer: make sure we can finish playback before resuming*/
-				if (serv->auto_rebuffer) {
-					if (bytes_per_sec) {
-						time_to_download = 1000.0*(total_size - bytes_done);
-						time_to_download /= bytes_per_sec;
-					}
-					time_to_play = (Double) serv->owner->duration;
-					time_to_play -= serv->owner->current_time;
-				}
-				if ((time_to_download<=time_to_play) && !gf_clock_is_started(ck)) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Played %d %% and downloaded %d %% - Resuming\n", (u32) playback_percent, (u32) download_percent));
-					if (serv->auto_rebuffer) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Auto-rebuffer done: should be done downloading in %d ms and remains %d ms to play\n", (u32) time_to_download, (u32) (serv->owner->duration - serv->owner->current_time) ));
-					}
-					gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_PLAYING);
-					if (serv->is_paused) {
-						serv->is_paused = 0;
-						mediacontrol_resume(serv->owner);
-					}
-					gf_term_on_message(serv, GF_OK, "HTTP Resuming playback");
-				}
-			}
-		}
 		break;
 	case GF_NETIO_DATA_TRANSFERED:
 		gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_LOAD_DONE);

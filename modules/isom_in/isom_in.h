@@ -57,7 +57,6 @@ typedef struct
 	/*remote file handling*/
 	GF_DownloadSession * dnload;
 	u64 missing_bytes, last_size;
-
 	Bool no_service_desc;
 	u32 base_track_id;
 
@@ -74,7 +73,6 @@ typedef struct
 	s32 has_pending_segments;
 
 	Bool clock_discontinuity;
-	Bool send_resume;
 } ISOMReader;
 
 
@@ -115,6 +113,9 @@ typedef struct
 	u32 frame_cts_offset;
 	u64 prev_dts, max_cts;
 	GF_ISOSample *cache_sample;
+
+	Bool buffering;
+	u32 buffer_min, buffer_max;
 } ISOMChannel;
 void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);

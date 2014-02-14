@@ -114,6 +114,88 @@ void send_proxy_command(ISOMReader *read, Bool is_disconnect, Bool is_add_media,
 	read->input->query_proxy(read->input, &command);
 }
 
+void isor_check_buffer_level(ISOMReader *read)
+{
+	Double dld_time_remaining, mov_rate;
+	GF_NetworkCommand com;
+	u32 i, total, done, Bps;
+	u64 dur;
+	GF_NetIOStatus status;
+	Bool do_buffer = GF_FALSE;
+	if (!read->dnload) return;
+	if (!read->mov) return;
+
+	gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total, &done, &Bps, &status);
+	if (!Bps) return;
+
+	dld_time_remaining = total-done;
+	dld_time_remaining /= Bps;
+	mov_rate = total;
+	dur = gf_isom_get_duration(read->mov);
+	if (dur) {
+		mov_rate /= dur;
+		mov_rate *= gf_isom_get_timescale(read->mov);
+	}
+
+	for (i=0; i<gf_list_count(read->channels); i++) {
+		ISOMChannel *ch = gf_list_get(read->channels, i);
+		Double time_remain_ch = (Double) gf_isom_get_media_duration(read->mov, ch->track);
+		u32 buffer_level=0;
+		if (total==done) {
+			time_remain_ch = 0;
+			do_buffer = GF_FALSE;
+		} else if (ch->last_state == GF_EOS) {
+			time_remain_ch = 0;
+			do_buffer = GF_TRUE;
+		} else {
+			u64 data_offset;
+			u32 di, sn = ch->sample_num ? ch->sample_num : 1;
+			GF_ISOSample *samp = gf_isom_get_sample_info(read->mov, ch->track, sn, &di, &data_offset);
+			if (!samp) continue;
+
+			data_offset += samp->dataLength;
+			//we don't have enough data
+			if (((data_offset + ch->buffer_min * mov_rate/1000 > done))) {
+				do_buffer = GF_TRUE;
+			}
+			//we have enough buffer
+			else if ((data_offset + ch->buffer_max * mov_rate/1000 <= done)) {
+				do_buffer = GF_FALSE;
+			} 
+			time_remain_ch -= (samp->DTS + samp->CTS_Offset);
+			if (time_remain_ch<0) time_remain_ch=0;
+			gf_isom_sample_del(&samp);
+
+			time_remain_ch /= ch->time_scale;
+			//we add 2 seconds safety
+			if (time_remain_ch && (time_remain_ch < dld_time_remaining + 2)) {
+				do_buffer = GF_TRUE;
+				buffer_level = (u32) (ch->buffer_max * time_remain_ch / dld_time_remaining);
+			} else {
+				buffer_level = (u32) (1000 * (data_offset - done)/mov_rate);
+			}
+		}
+
+		if (do_buffer != ch->buffering) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[IsoMedia] Buffering %s at %d: %g sec still to download and %g sec still to play on track %d (movie rate %g - download rate %g kbps)\n", do_buffer ? "on" : "off", gf_sys_clock(), dld_time_remaining , time_remain_ch, ch->track_id, mov_rate*8/1000, Bps*8.0/1000));
+
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = do_buffer ? GF_NET_CHAN_PAUSE : GF_NET_CHAN_RESUME;
+			com.buffer.on_channel = ch->channel;
+			gf_term_on_command(read->service, &com, GF_OK);
+			ch->buffering = do_buffer;
+		} else if (ch->buffering) {
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_CHAN_BUFFER;
+			com.buffer.on_channel = ch->channel;
+			com.buffer.min = ch->buffer_min;
+			com.buffer.max = ch->buffer_max;
+			com.buffer.occupancy = buffer_level;
+			gf_term_on_command(read->service, &com, GF_OK);
+		}
+	}
+}
+
 void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
@@ -175,19 +257,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 
 	/*service is opened, nothing to do*/
 	if (read->mov) {
-		if (read->dnload) {
-			u32 total, done, Bps;
-			GF_NetIOStatus status;
-			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total, &done, &Bps, &status);
-			/* If we have more than 50% of data, we assume we can unpause the channels and let the decoder start */
-			if (read->send_resume == GF_TRUE && total != 0 && 2*done >= total) {
-				GF_NetworkCommand com;
-				GF_Err response = GF_OK;
-				com.command_type = GF_NET_SERVICE_UNPAUSE_CHANNELS;
-				gf_term_on_command(read->service, &com, response);
-				read->send_resume = GF_FALSE;
-			}
-		}
+		isor_check_buffer_level(read);
 
 		/*end of chunk*/
 		if (read->frag_type && (param->reply==1) ) {
@@ -240,14 +310,6 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
         gf_term_on_connect(read->service, NULL, GF_OK);
     }
 
-	/* but until we are sure we have enough data to decode smoothly, let's pause all channels */
-	if (0) {
-		GF_NetworkCommand com;
-		GF_Err response = GF_OK;
-		com.command_type = GF_NET_SERVICE_PAUSE_CHANNELS;
-		gf_term_on_command(read->service, &com, response);
-		read->send_resume = GF_TRUE;
-	}
 	if (read->no_service_desc) isor_declare_objects(read);
 }
 
@@ -804,6 +866,7 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 	*out_data_size = 0;
 	*sl_compressed = GF_FALSE;
 	*out_reception_status = GF_OK;
+	*is_new_data = GF_FALSE;
 	ch = isor_get_channel(read, channel);
 	if (!ch) return GF_STREAM_NOT_FOUND;
 	if (!ch->is_playing) return GF_OK;
@@ -995,9 +1058,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		//dash or HTTP, do rebuffer if not disabled
-		if (plug->query_proxy || read->dnload) {
-			//if (!com->buffer.max) com->buffer.max = 1000;
-			//com->buffer.min = com->buffer.max;
+		if (plug->query_proxy) {
+		} else if (read->dnload) {
+			ch->buffer_min = com->buffer.min;
+			ch->buffer_max = com->buffer.max;
 		} else {
 			com->buffer.max = com->buffer.min = 0;
 		}
@@ -1042,6 +1106,9 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		ch->is_playing = 1;
 		if (com->play.dash_segment_switch) ch->wait_for_segment_switch = 1;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
+
+		//and check buffer level on play request
+		isor_check_buffer_level(read);
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		isor_reset_reader(ch);

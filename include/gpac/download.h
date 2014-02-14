@@ -191,7 +191,13 @@ extern "C" {
         const char *name;
         /*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
         char *value;
-        /*response code - only valid for GF_NETIO_PARSE_REPLY. Set to 1 in GF_NETIO_DATA_EXCHANGE to indicate end of chunk transfer*/
+        /*message-dependend
+			for GF_NETIO_PARSE_REPLY, response code
+			for GF_NETIO_DATA_EXCHANGE 
+				Set to 1 in to indicate end of chunk transfer
+				Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
+			for all other, usage is reserved
+		*/
         u32 reply;
         /*download session for which the message is being sent*/
 		GF_DownloadSession *sess;

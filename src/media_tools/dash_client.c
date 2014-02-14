@@ -4684,7 +4684,6 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	char *seg_url, *seg_name, *seg_sep;
 	GF_MPD_Representation *rep;
 	GF_DASH_Group *group = NULL;
-	s64 utc = gf_net_get_utc();
 	if (!latest_segment_name) return GF_BAD_PARAM;
 
 	for (i=0; i<gf_list_count(dash->groups); i++) {
@@ -4789,7 +4788,6 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 
 		//todo - recompute an AST offset so that the AST of the new segment equals UTC(now) + offset
 		if (latest_segment_number) {
-			Bool range_valid = GF_FALSE;
 			Bool loop_detected = GF_FALSE;
 			s32 nb_seg_diff = 0;
 			s32 range_in = 0;
@@ -4799,74 +4797,45 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 
 			//we are just too early for this request, do request later
 			if (nb_seg_diff == 1 ) {
-				nb_seg_diff = 0;
+				//set to false, eg don't increment seg index
+				group->segment_in_valid_range = GF_FALSE;
 				return GF_OK;
 			}
 
-			//if earliest is not given, allow 4 segments
+			//if earliest is not given, allow 5 segments
 			if (!earliest_segment_number) range_in = 4;
 			else range_in = latest_segment_number - earliest_segment_number;
 
-			//we fall in the buffer of the sender, we liklely have a loss
-			if ((nb_seg_diff<0) && (nb_seg_diff + range_in) >= 0) {
-				range_valid = GF_TRUE;
-				nb_seg_diff = 0;
-			}
-			
-			//inidcate we are in valid range
-			if (nb_seg_diff == 0 ) {
-				group->segment_in_valid_range = range_valid;
-				return GF_OK;
-			}
-
+			//loop
 			if (latest_segment_number <= start_number ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Loop in segment start numbers detected - old start %d new seg %d\n", start_number , latest_segment_number));
 				loop_detected = GF_TRUE;
 			}
-#if 1
-			if (latest_segment_number <= start_number ) {
-				for (i=0; i< gf_list_count(dash->groups); i++) {
-					group = gf_list_get(dash->groups, i);
-					group->start_number_at_last_ast = 0;
-					if (loop_detected) 
-						group->loop_detected = GF_TRUE;
+			//we are behind live 
+			else if (nb_seg_diff<0) {
+				//we fall in the buffer of the sender, we liklely have a loss
+				if (nb_seg_diff + range_in >= 0) {
+					group->segment_in_valid_range = GF_TRUE;
+					return GF_OK;
 				}
-				dash->force_mpd_update = GF_TRUE;
+				//we are late (something wrong happen locally maybe) - If not too late (5 segs) jump to newest
+				else if (earliest_segment_number && (start_number + group->download_segment_index + 5 >= earliest_segment_number)) {
+					group->download_segment_index = latest_segment_number - start_number;
+					group->segment_in_valid_range = GF_FALSE;
+					return GF_OK;
+				}
+				//we are too late resync...
 			}
-#else
-			if (nb_seg_diff) {
-				//compute how far ahead or behind we were
-				Double off_time_in_sec = nb_seg_diff * group->segment_duration;
 
-				for (i=0; i< gf_list_count(dash->groups); i++) {
-					s64 ast, diff;
-					s32 nb_seg;
-					group = gf_list_get(dash->groups, i);
-
-					nb_seg = (s32) (off_time_in_sec * group->segment_duration);
-
-					start_number = gf_dash_get_start_number(group, gf_list_get(group->adaptation_set->representations, group->active_rep_index) );
-
-					//rewind the index but don't change the AST - the next segment will then be
-					//	    start_number + group->download_segment_index - nb_seg_diff
-					//ie    start_number + group->download_segment_index - (start_number + group->download_segment_index - latest_segment_number)
-					//ie    latest_segment_number
-					group->download_segment_index -= nb_seg_diff;
-					group->start_number_at_last_ast -= nb_seg_diff;
-					//adjust ast so that the new segment is available right away
-					ast = (s64) gf_dash_get_segment_availability_start_time(dash->mpd, group, group->download_segment_index, NULL);
-					diff = utc - ast;
-					group->ast_at_init += diff;
-
-					//indicate we need to retry download with same download_segment_index
-					group->prev_segment_ok = GF_TRUE;
-					group->time_at_first_failure = 0;
-					if (loop_detected) 
-						group->loop_detected = GF_TRUE;
-
-				} 
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Sync to live was lost - reloading MPD\n"));
+			for (i=0; i< gf_list_count(dash->groups); i++) {
+				group = gf_list_get(dash->groups, i);
+				//force reinit of timeline for this group
+				group->start_number_at_last_ast = 0;
+				if (loop_detected) 
+					group->loop_detected = GF_TRUE;
 			}
-#endif
+			dash->force_mpd_update = GF_TRUE;
 		}
 		return GF_OK;
 	}

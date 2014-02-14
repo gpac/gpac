@@ -75,10 +75,6 @@ struct _net_service
 	/*quick hack for avoiding double session creation*/
 	GF_DownloadSession *pending_service_session;
 
-	/*rebuffer window for http/...*/
-	u32 download_rebuffer;
-	Bool auto_rebuffer;
-
 	Bool is_paused;
 
 	/*used by DASH until we rewrite the input module API:
@@ -687,6 +683,9 @@ struct _es_channel
 	Bool last_au_was_seek;
 	Bool no_timestamps;
 	u32 prev_aggregated_dts;
+
+	Bool pull_forced_buffer;
+
 };
 
 /*creates a new channel for this stream*/
@@ -728,6 +727,10 @@ void gf_es_reset_timing(GF_Channel *ch);
 void gf_cm_reset_timing(GF_CompositionMemory *cb);
 /*reset timing of all objects associated with this clock*/
 void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity);
+//turns on buffering on the stream
+void gf_es_buffer_on(GF_Channel *ch);
+//turns off buffering on the stream
+void gf_es_buffer_off(GF_Channel *ch);
 
 /*
 		decoder stuff

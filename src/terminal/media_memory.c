@@ -513,11 +513,10 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	/*if paused or stop or buffering, do nothing*/
 	switch (cb->Status) {
 	case CB_BUFFER:
-		return NULL;
 	case CB_STOP:
 	case CB_PAUSE:
 		/*only visual buffers deliver data when paused*/
-		if (cb->odm->codec->type != GF_STREAM_VISUAL) goto exit;
+		if (cb->odm->codec->type != GF_STREAM_VISUAL) return NULL;
 		break;
 	case CB_BUFFER_DONE:
 		cb->Status = CB_PLAY;
@@ -536,7 +535,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			mediasensor_update_timing(cb->odm, 1);
 #endif
 		}
-		goto exit;
+		return NULL;
 	}
 
 	/*update the timing*/
@@ -555,12 +554,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			gf_odm_signal_eos(cb->odm);
 		}
 	}
-	out = cb->output;
-
-	//assert(out->TS >= cb->LastRenderedTS);
-
-exit:
-	return out;
+	return cb->output;
 }
 
 
