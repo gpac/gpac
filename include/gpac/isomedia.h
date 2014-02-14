@@ -1152,7 +1152,8 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 
 /*clones the entire movie file to destination. Tracks can be cloned if clone_tracks is set, in which case hint tracks can be
 kept if keep_hint_tracks is set
-if keep_pssh, all pssh boxes will be kept*/
+if keep_pssh, all pssh boxes will be kept
+fragment information (mvex) is not kept*/
 GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh);
 
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
