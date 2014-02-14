@@ -1887,7 +1887,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			if (!runtime) {
 				sess->bytes_per_sec = 0;
 			} else {
-				sess->bytes_per_sec = (1000 * sess->bytes_done) / runtime;
+				u64 nb_bytes = sess->bytes_done;
+				sess->bytes_per_sec = (u32) (1000*nb_bytes / runtime);
 			}
 		}
 	}
@@ -2314,17 +2315,17 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
         if (sess->status>=GF_NETIO_DISCONNECTED)
             return GF_REMOTE_SERVICE_ERROR;
 
-#if 1
-        if (sess->dm && sess->dm->limit_data_rate && sess->bytes_per_sec) {
+		if (sess->dm && sess->dm->limit_data_rate && sess->bytes_per_sec) {
             if (sess->bytes_per_sec > sess->dm->limit_data_rate) {
                 /*update state*/
                 u32 runtime = gf_sys_clock() - sess->start_time;
-				sess->bytes_per_sec = (1000 * sess->bytes_done) / runtime;
+				u64 nb_bytes = sess->bytes_done;
+				sess->bytes_per_sec = (u32) (1000*nb_bytes / runtime);
                 if (sess->bytes_per_sec > sess->dm->limit_data_rate) return GF_OK;
             }
         }
-#endif
-        e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
+
+		e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
         if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
 			if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && !sess->chunked && (gf_sys_clock() - sess->start_time > 5000))) {
                 sess->total_size = sess->bytes_done;
@@ -2709,10 +2710,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                     if (read > 0) {
                         sess->bytes_done += read;
                         sess->total_size = total_size;
+						sess->bytes_per_sec = 0xFFFFFFFF;
                         par.size = read;
                         par.msg_type = GF_NETIO_DATA_EXCHANGE;
-                        par.error = GF_OK;
-                        par.reply = 200;
+                        par.error = GF_EOS;
+                        par.reply = 2;
                         par.data = file_cache_buff;
                         gf_dm_sess_user_io(sess, &par);
                     }

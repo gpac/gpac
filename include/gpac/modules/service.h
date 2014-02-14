@@ -47,6 +47,8 @@ typedef enum
 	/*channel control, app->module. Note that most modules don't need to handle pause/resume/set_speed*/
 	GF_NET_CHAN_PLAY,
 	GF_NET_CHAN_STOP,
+
+	/* pause channel (can be sent from service to terminal send from a pull-mode module to indicate buffer on/off) */
 	GF_NET_CHAN_PAUSE,
 	GF_NET_CHAN_RESUME,
 	GF_NET_CHAN_SET_SPEED,
@@ -54,7 +56,8 @@ typedef enum
 	GF_NET_CHAN_CONFIG,
 	/*channel duration, app<->module (in case duration is not known at setup)*/
 	GF_NET_CHAN_DURATION,
-	/*channel buffer, app->module*/
+	/*queries channel buffer min/max, app->module. Default values are passed and can be overriden by the module.
+	PULL channels will get this command but buffering has to be handled by the service*/
 	GF_NET_CHAN_BUFFER,
 	/*channel buffer query, app<-module*/
 	GF_NET_CHAN_BUFFER_QUERY,
@@ -122,11 +125,6 @@ typedef enum
 
 	/*query screen capabilities*/
 	GF_NET_SERVICE_MEDIA_CAP_QUERY,
-
-	/* pause all channels (send from a pull-mode module to the terminal) */
-	GF_NET_SERVICE_PAUSE_CHANNELS,
-	/* unpause all channels */
-	GF_NET_SERVICE_UNPAUSE_CHANNELS,
 
 } GF_NET_CHAN_CMD;
 

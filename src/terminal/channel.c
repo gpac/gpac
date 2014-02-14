@@ -32,7 +32,7 @@
 #include "media_memory.h"
 #include "media_control.h"
 
-void ch_buffer_off(GF_Channel *ch)
+void gf_es_buffer_off(GF_Channel *ch)
 {
 	/*just in case*/
 	if (ch->BufferOn) {
@@ -43,7 +43,7 @@ void ch_buffer_off(GF_Channel *ch)
 }
 
 
-void ch_buffer_on(GF_Channel *ch)
+void gf_es_buffer_on(GF_Channel *ch)
 {
 	/*don't buffer on an already running clock*/
 	if (ch->clock->no_time_ctrl && ch->clock->clock_init && (ch->esd->ESID!=ch->clock->clockID) ) return;
@@ -79,7 +79,7 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 	ch->seed_ts = 0;
 	ch->min_ts_inc = 0;
 	ch->min_computed_cts = 0;
-	ch_buffer_off(ch);
+	gf_es_buffer_off(ch);
 
 	if (ch->buffer) gf_free(ch->buffer);
 	ch->buffer = NULL;
@@ -226,9 +226,8 @@ GF_Err gf_es_start(GF_Channel *ch)
 	/*and start buffering - pull channels always turn off buffering immediately, otherwise 
 	buffering size is setup by the network service - except InputSensor*/
 	if ((ch->esd->decoderConfig->streamType != GF_STREAM_INTERACT) || ch->esd->URLString) {
-		/*don't trigger rebuffer*/
-		//if (ch->MinBuffer || (ch->clock->clock_init && ch->clock->Paused))
-			ch_buffer_on(ch);
+		if (! ch->is_pulling)
+			gf_es_buffer_on(ch);
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
 	ch->es_state = GF_ESM_ES_RUNNING;
@@ -253,7 +252,7 @@ GF_Err gf_es_stop(GF_Channel *ch)
 		break;
 	}
 
-	ch_buffer_off(ch);
+	gf_es_buffer_off(ch);
 
 	ch->es_state = GF_ESM_ES_CONNECTED;
 	Channel_Reset(ch, 0);
@@ -371,7 +370,7 @@ static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 	
 	if (!Channel_NeedsBuffering(ch, 0)) {
-		ch_buffer_off(ch);
+		gf_es_buffer_off(ch);
 		if (ch->MaxBuffer && update_info) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 
 		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYING);
@@ -626,7 +625,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		u32 retry = 100;
 		u32 current_frame;
 		GF_Terminal *term = ch->odm->term;
-		ch_buffer_off(ch);
+		gf_es_buffer_off(ch);
 
 		gf_es_lock(ch, 0);
 		if (gf_mx_try_lock(term->mm_mx)) {
@@ -1324,7 +1323,7 @@ void gf_es_on_eos(GF_Channel *ch)
 	ch->IsEndOfStream = 1;
 	
 	/*flush buffer*/
-	ch_buffer_off(ch);
+	gf_es_buffer_off(ch);
 	if (ch->len)
 		Channel_DispatchAU(ch, 0);
 
@@ -1360,8 +1359,14 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		return ch->AU_buffer_first;
 	}
 
-	/*pull from stream - resume clock if needed*/
-	if (!ch->MinBuffer) ch_buffer_off(ch);
+	//pull channel is buffering: fetch first frame for systems, or fetch until CB is full
+	if (ch->BufferOn) {
+		if (ch->odm->codec && ch->odm->codec->CB) {
+			if (ch->odm->codec->CB->UnitCount) return NULL;
+		} else {
+			if (ch->first_au_fetched) return NULL;
+		}
+	}
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
 
@@ -1376,10 +1381,12 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 			//if we have a composition buffer, only trigger buffering when no more data is available in the CB
 			if (ch->odm->codec && ch->odm->codec->CB && ch->odm->codec->CB->UnitCount<=1) {
 				gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
-				ch_buffer_on(ch);
+				gf_es_buffer_on(ch);
+				ch->pull_forced_buffer = 1;
 			} else if (!ch->odm->codec || !ch->odm->codec->CB) {
 				gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
-				ch_buffer_on(ch);
+				gf_es_buffer_on(ch);
+				ch->pull_forced_buffer = 1;
 			}
 		}
 		return NULL;
@@ -1446,9 +1453,11 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	ch->AU_buffer_pull->flags = 0;
 	if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
 
-	if (ch->BufferOn) {
+	if (ch->pull_forced_buffer) {
+		assert(ch->BufferOn);
 		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYING);
-		ch_buffer_off(ch);
+		ch->pull_forced_buffer=0;
+		gf_es_buffer_off(ch);
 	}
 	return ch->AU_buffer_pull;
 }
@@ -1459,7 +1468,7 @@ void gf_es_init_dummy(GF_Channel *ch)
 	Bool comp, is_new_data;
 	GF_Err e, state;
 	/*pull from stream - resume clock if needed*/
-	ch_buffer_off(ch);
+	gf_es_buffer_off(ch);
 
 	ch->ts_res = 1000;
 	if (ch->is_pulling) {
@@ -1520,7 +1529,7 @@ void gf_es_drop_au(GF_Channel *ch)
 
 	/*if we get under our limit, rebuffer EXCEPT WHEN EOS is signaled*/
 	if (!ch->IsEndOfStream && Channel_NeedsBuffering(ch, 1)) {
-		ch_buffer_on(ch);
+		gf_es_buffer_on(ch);
 		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_WAITING);
 	}
 
@@ -1552,7 +1561,7 @@ static void refresh_non_interactive_clocks(GF_ObjectManager *odm)
 	while ((ch = (GF_Channel*)gf_list_enum(in_scene->root_od->channels, &i)) ) {
 		if (ch->clock->no_time_ctrl) {
 			in_scene->root_od->flags |= GF_ODM_NO_TIME_CTRL;
-			//if (ch->clock->use_ocr && ch->BufferOn) ch_buffer_off(ch);
+			//if (ch->clock->use_ocr && ch->BufferOn) gf_es_buffer_off(ch);
 		}
 	}
 
@@ -1562,7 +1571,7 @@ static void refresh_non_interactive_clocks(GF_ObjectManager *odm)
 		while ((ch = (GF_Channel*)gf_list_enum(test_od->channels, &j)) ) {
 			if (ch->clock->no_time_ctrl) {
 				test_od->flags |= GF_ODM_NO_TIME_CTRL;
-				//if (ch->clock->use_ocr && ch->BufferOn) ch_buffer_off(ch);
+				//if (ch->clock->use_ocr && ch->BufferOn) gf_es_buffer_off(ch);
 			}
 		}
 	}
@@ -1623,22 +1632,25 @@ void gf_es_on_connect(GF_Channel *ch)
 	}
 	/*buffer setup*/
 	ch->MinBuffer = ch->MaxBuffer = 0;
-	/*set default values*/
-	com.buffer.max = com.buffer.min = 0;
-	if (can_buffer) {
-		com.buffer.max = 1000;
-		sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "BufferLength");
-		if (sOpt) com.buffer.max = atoi(sOpt);
-		com.buffer.min = 0;
-		sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "RebufferLength");
-		if (sOpt) com.buffer.min = atoi(sOpt);
-	}
 
+	/*set default values*/
+	com.buffer.max = 1000;
+	com.buffer.min = 0;
+	sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "BufferLength");
+	if (sOpt) com.buffer.max = atoi(sOpt);
+	com.buffer.min = 0;
+	sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "RebufferLength");
+	if (sOpt) com.buffer.min = atoi(sOpt);
+
+	//set the buffer command even though the channel is pulling, in order to indicate to the service the prefered values
 	com.command_type = GF_NET_CHAN_BUFFER;
 	com.base.on_channel = ch;
 	if (gf_term_service_command(ch->service, &com) == GF_OK) {
-		ch->MinBuffer = com.buffer.min;
-		ch->MaxBuffer = com.buffer.max;
+		//only set the values if we can buffer
+		if (can_buffer) {
+			ch->MinBuffer = com.buffer.min;
+			ch->MaxBuffer = com.buffer.max;
+		}
 	}
 
 	if (ch->esd->decoderConfig->streamType == GF_STREAM_PRIVATE_SCENE &&
@@ -1676,7 +1688,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 	GF_CENCConfig cenc_cfg;
 
 	/*always buffer when fetching keys*/
-	ch_buffer_on(ch);
+	gf_es_buffer_on(ch);
 	ch->is_protected = 1;
 
 	memset(&evt, 0, sizeof(GF_IPMPEvent));
@@ -1724,7 +1736,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 	if (ch->ipmp_tool) {
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 		if (e) gf_term_message(ch->odm->term, ch->service->url, "Error setting up DRM tool", e);
-		ch_buffer_off(ch);
+		gf_es_buffer_off(ch);
 		return;
 	}
 
@@ -1737,13 +1749,13 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 		if (e==GF_OK) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[IPMP] Associating IPMP tool %s to channel %d\n", ch->ipmp_tool->module_name, ch->esd->ESID));
-			ch_buffer_off(ch);
+			gf_es_buffer_off(ch);
 			return;
 		}
 		gf_modules_close_interface((GF_BaseInterface *) ch->ipmp_tool);
 		ch->ipmp_tool = NULL;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[IPMP] No IPMP tool suitable to handle channel protection scheme %s (KMS URI %s)\n", drm_cfg->scheme_uri, drm_cfg->kms_uri)); 
-	ch_buffer_off(ch);
+	gf_es_buffer_off(ch);
 }
 

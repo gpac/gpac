@@ -509,9 +509,10 @@ void gf_scene_buffering_info(GF_Scene *scene)
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &j))) {
 			/*count only re-buffering channels*/
 			if (!ch->BufferOn) continue;
-
-			max_buffer += ch->MaxBuffer;
-			cur_buffer += (ch->BufferTime>0) ? ch->BufferTime : 1;
+			if (ch->MaxBuffer) {
+				max_buffer += ch->MaxBuffer;
+				cur_buffer += (ch->BufferTime>0) ? ch->BufferTime : 0;
+			}
 		}
 	}
 
