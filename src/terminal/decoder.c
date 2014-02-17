@@ -374,7 +374,7 @@ refetch_AU:
 				//gf_es_drop_au(ch);
 				continue;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, AU->DTS));
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;

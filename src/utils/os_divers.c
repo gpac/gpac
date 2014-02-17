@@ -2290,7 +2290,7 @@ u64 gf_net_get_utc()
 
 
 
-
+GF_EXPORT
 GF_Err gf_bin128_parse(char *string, bin128 value)
 {
 	u32 len;

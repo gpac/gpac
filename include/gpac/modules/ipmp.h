@@ -112,6 +112,7 @@ typedef struct
 	u64 isma_BSO;
 	/*CENC sample auxiliary information*/
 	char *sai;
+	u8 IV_size;
 	u32 saiz;
 } GF_IPMPEvent;
 

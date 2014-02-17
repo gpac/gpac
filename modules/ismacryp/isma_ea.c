@@ -283,13 +283,12 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	priv->state = ISMAEA_STATE_ERROR;
 
 	if ((cfg->scheme_type != GF_4CC('c', 'e', 'n', 'c')) && (cfg->scheme_type != GF_4CC('c','b','c','1'))) return GF_NOT_SUPPORTED;
-	if (cfg->scheme_version != 1) return GF_NOT_SUPPORTED;
+	if (cfg->scheme_version != 0x00010000) return GF_NOT_SUPPORTED;
 
 	for (i = 0; i < cfg->PSSH_count; i++) {
 		GF_NetComDRMConfigPSSH *pssh = &cfg->PSSHs[i];
 		char szSystemID[33];
 		u32 j;
-		u8 cypherOffset;
 
 		memset(szSystemID, 0, 33);
 		for (j=0; j<16; j++) {
@@ -301,24 +300,46 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] System ID %s not supported\n", szSystemID));
 			continue;
 		}
-		
-		cypherOffset = pssh->private_data[0];
-		
-		/*now we search a key*/
-		priv->KID_count = pssh->KID_count;
-		if (priv->KIDs) {
-			gf_free(priv->KIDs);
-			priv->KIDs = NULL;
-		}
-		priv->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
-		if (priv->keys) {
-			gf_free(priv->keys);
-			priv->keys = NULL;
-		}
-		priv->keys = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+		else {
+			u8 cypherOffset;
+			bin128 cypherKey, cypherIV;
+			GF_Crypt *mc;
 
-		memmove(priv->KIDs, pssh->KIDs, pssh->KID_count*sizeof(bin128));
-		memmove(priv->keys, pssh->private_data + cypherOffset + 1, pssh->KID_count*sizeof(bin128));
+			/*GPAC DRM TEST system info, used to validate cypher offset in CENC packager
+				keyIDs as usual (before private data)
+				URL len on 8 bits
+				URL
+				keys, cyphered with oyur magic key :)
+			*/
+			cypherOffset = pssh->private_data[0] + 1;
+			gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
+			gf_bin128_parse("0x00000000000000000000000000000001", cypherIV);
+
+			mc = gf_crypt_open("AES-128", "CTR");
+			if (!mc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
+				return GF_IO_ERR;
+			}
+			gf_crypt_init(mc, cypherKey, 16, cypherIV);
+			gf_crypt_decrypt(mc, pssh->private_data+cypherOffset, pssh->private_data_size-cypherOffset);
+			gf_crypt_close(mc);
+
+			/*now we search a key*/
+			priv->KID_count = pssh->KID_count;
+			if (priv->KIDs) {
+				gf_free(priv->KIDs);
+				priv->KIDs = NULL;
+			}
+			priv->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+			if (priv->keys) {
+				gf_free(priv->keys);
+				priv->keys = NULL;
+			}
+			priv->keys = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+
+			memmove(priv->KIDs, pssh->KIDs, pssh->KID_count*sizeof(bin128));
+			memmove(priv->keys, pssh->private_data + cypherOffset, pssh->KID_count*sizeof(bin128));
+		}
 	}
 
 	if (cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c'))
@@ -380,7 +401,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	if (!priv->crypt) return GF_SERVICE_ERROR;
 	
-	if (!evt->is_encrypted) return GF_OK;
+	if (!evt->is_encrypted || !evt->IV_size) return GF_OK;
 
 	cyphertext_bs = gf_bs_new(evt->data, evt->data_size, GF_BITSTREAM_READ);
 	sai_bs = gf_bs_new(evt->sai, evt->saiz, GF_BITSTREAM_READ);
@@ -393,9 +414,10 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		goto exit;
 	}
 	memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
+	sai->IV_size = evt->IV_size;
 	/*read sample auxiliary information from bitstream*/
 	gf_bs_read_data(sai_bs,  (char *)KID, 16);
-	gf_bs_read_data(sai_bs, (char *)sai->IV, 16);
+	gf_bs_read_data(sai_bs, (char *)sai->IV, sai->IV_size);
 	sai->subsample_count = gf_bs_read_u16(sai_bs);
 	if (sai->subsample_count) {
 		sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
@@ -414,7 +436,9 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	}
 
 	if (priv->first_crypted_samp) {
-		memmove(IV, sai->IV, 16);
+		memmove(IV, sai->IV, sai->IV_size);
+		if (sai->IV_size == 8)
+			memset(IV+8, 0, sizeof(char)*8);
 		e = gf_crypt_init(priv->crypt, priv->key, 16, IV);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", priv->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
@@ -427,7 +451,9 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			GF_BitStream *bs;
 			bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
 			gf_bs_write_u8(bs, 0);	/*begin of counter*/
-			gf_bs_write_data(bs,(char *)sai->IV, 16);
+			gf_bs_write_data(bs,(char *)sai->IV, sai->IV_size);
+			if (sai->IV_size == 8)
+				gf_bs_write_u64(bs, 0); /*0-padded if IV_size == 8*/
 			gf_bs_del(bs);
 			gf_crypt_set_state(priv->crypt, IV, 17);
 		}

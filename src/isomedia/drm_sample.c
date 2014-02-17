@@ -982,10 +982,10 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 			sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
 			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
 		}
-		gf_bs_del(bs);
+		gf_bs_del(bs);	
 	}
-	gf_list_add(senc->samp_aux_info, sai);
 
+	gf_list_add(senc->samp_aux_info, sai);
 	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len);
 
 	return GF_OK;
@@ -1037,7 +1037,7 @@ Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *tr
 	return (has_saiz && has_saio);
 }
 
-static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, GF_CENCSampleAuxInfo **sai)
+static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u8 IV_size, GF_CENCSampleAuxInfo **sai)
 {
 	GF_BitStream *bs;
 	u32 offset, prev_sai_size, size, i, j, nb_saio;
@@ -1077,8 +1077,9 @@ static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNum
 	gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 
 	*sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+	memset(*sai, 0, sizeof(GF_CENCSampleAuxInfo)); 
 	bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
-	gf_bs_read_data(bs, (char *)(*sai)->IV, 16);
+	gf_bs_read_data(bs, (char *)(*sai)->IV, IV_size);
 	if (size > 16) {
 		(*sai)->subsample_count = gf_bs_read_u16(bs);
 		(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
@@ -1100,6 +1101,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_Box *a_box = NULL;
 	u32 i, type;
 	GF_CENCSampleAuxInfo *a_sai;
+	u8 IV_size;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1129,9 +1131,13 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		*sai = NULL;
 	}
 
+	gf_isom_get_sample_cenc_info_ex(trak, NULL, sampleNumber, NULL, &IV_size, NULL);
+	if (!IV_size)
+		return GF_OK;
+
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
 	if (gf_isom_cenc_has_saiz_saio(stbl, NULL)) {
-		return gf_isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, sai);
+		return gf_isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, IV_size, sai);
 	}
 
 	a_sai = NULL;

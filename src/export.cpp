@@ -279,6 +279,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_decode) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_bin128_parse) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_find) )
