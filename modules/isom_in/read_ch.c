@@ -569,6 +569,7 @@ fetch_next:
 				bin128 KID;
 
 				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID);
+				ch->current_slh.IV_size = IV_size;
 				if (Is_Encrypted) {
 					ch->current_slh.cenc_encrypted = 1;
 					sai = NULL;
@@ -578,7 +579,7 @@ fetch_next:
 						bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 						/*write sample auxiliary information*/
 						gf_bs_write_data(bs, (char *)KID, 16);
-						gf_bs_write_data(bs, (char *)sai->IV, 16);
+						gf_bs_write_data(bs, (char *)sai->IV, IV_size);
 						gf_bs_write_u16(bs, sai->subsample_count);
 						for (ivar = 0; ivar < sai->subsample_count; ivar++) {
 							gf_bs_write_u16(bs, sai->subsamples[ivar].bytes_clear_data);

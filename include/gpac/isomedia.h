@@ -1952,7 +1952,7 @@ typedef struct
 
 typedef struct __cenc_sample_aux_info
 {
-	u8 IV_size; //0, 8 or 16
+	u8 IV_size; //0, 8 or 16; it MUST NOT be written to file
 	bin128 IV; /*can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
     u16 subsample_count;
 	GF_CENCSubSampleEntry *subsamples;

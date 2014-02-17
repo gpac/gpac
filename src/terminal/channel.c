@@ -1269,6 +1269,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		} else if (hdr.cenc_encrypted) {
 			evt.sai = hdr.sai;
 			evt.saiz = hdr.saiz;
+			evt.IV_size = hdr.IV_size;
 		}
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 
@@ -1418,6 +1419,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 			} else if (slh.cenc_encrypted) {
 				evt.sai = slh.sai;
 				evt.saiz = slh.saiz;
+				evt.IV_size = slh.IV_size;
 			}
 			evt.channel = ch;
 			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);

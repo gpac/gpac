@@ -783,7 +783,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u64 BSO, u8 IV_size, Bool 
 	char t[3];
 
 	if (isNewSample) {
-		prev_block_count = (u64) ceil(BSO / 16.0);
+		prev_block_count = BSO % 16 ? BSO / 16 + 1 : BSO / 16;
 		remain = 0;
 	}
 	else {
@@ -859,7 +859,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 	pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 	cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_data(sai_bs, IV, 16);
+	gf_bs_write_data(sai_bs, IV, IV_size);
 	subsamples = gf_list_new();
 	if (!subsamples) {
 		e = GF_IO_ERR;
@@ -948,7 +948,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 	pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 	cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_data(sai_bs, IV, 16);
+	gf_bs_write_data(sai_bs, IV, IV_size);
 	subsamples = gf_list_new();
 	if (!subsamples) {
 		e = GF_IO_ERR;
@@ -1154,24 +1154,14 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				break;
 			case GF_CRYPT_SELENC_NON_RAP:
 				if (samp->IsRAP || all_rap) {
-					GF_BitStream *sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-					bin128 tmp;
-					memset(tmp, 0, sizeof(bin128));
-
-					gf_bs_write_data(sai_bs, tmp, 16);
-					gf_bs_write_u16(sai_bs, 0);
-					gf_bs_get_content(sai_bs, &buf, &len);
-					gf_bs_del(sai_bs);
-					sai_bs = NULL;
-
-					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 16, buf, len);
-					if (e) goto exit;
-					gf_free(buf);
+					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
+					if (e) 
+						goto exit;
 					buf = NULL;
 
 					//alreaduy done: memset(tmp, 0, 16);
 
-					e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, tmp);
+					e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL);
 					if (e) goto exit;
 
 					gf_isom_sample_del(&samp);
@@ -1334,8 +1324,11 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		cyphertext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 		pleintext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
+		sai->IV_size = IV_size;
 		if (!prev_sample_encrypted) {
-			memmove(IV, sai->IV, 16);
+			memmove(IV, sai->IV, sai->IV_size);
+			if (sai->IV_size == 8)
+				memset(IV+8, 0, sizeof(char)*8);
 			e = gf_crypt_init(mc, tci->key, 16, IV);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
@@ -1351,7 +1344,9 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				GF_BitStream *bs;
 				bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
 				gf_bs_write_u8(bs, 0);	/*begin of counter*/
-				gf_bs_write_data(bs, (char *)sai->IV, 16);
+				gf_bs_write_data(bs, (char *)sai->IV, sai->IV_size);
+				if (sai->IV_size == 8)
+					gf_bs_write_u64(bs, 0);
 				gf_bs_del(bs);
 				gf_crypt_set_state(mc, IV, 17);
 			}
@@ -1598,21 +1593,22 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		Bool is_pssh;
 		u32 version, cypherMode, specInfoSize, len, KID_count, j;
-		bin128 cypherKey, systemID;
+		bin128 cypherKey, cypherIV, systemID;
 		GF_XMLAttribute *att;
 		char *data, *specInfo;
 		GF_BitStream *bs;
 		bin128 *KIDs;
-		u8 cypherOffset;
+		s32 cypherOffset = -1;
+		Bool has_key = GF_FALSE, has_IV = GF_FALSE;
 
 		if (strcmp(node->name, "DRMInfo")) continue;
 
 		j = 0;
 		is_pssh = GF_FALSE;
 		version = cypherMode = 0;
-		cypherOffset = 0;
 		data = specInfo = NULL;
 		bs = NULL;
+
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 			if (!strcmp(att->name, "type")) {
 				if (!strcmp(att->value, "pssh")) 
@@ -1627,8 +1623,12 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 					cypherMode = 1;
 				else if (!strcmp(att->value, "clear")) 
 					cypherMode = 2;
-			} else if (!strcmp(att->name, "cypher-key")) {
+			} else if (!strcmp(att->name, "cypherKey")) {
 				gf_bin128_parse(att->value, cypherKey);
+				has_key = GF_TRUE;
+			} else if (!strcmp(att->name, "cypherIV")) {
+				gf_bin128_parse(att->value, cypherIV);
+				has_IV = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherOffset")) {
 				cypherOffset = atoi(att->value);
 			}
@@ -1662,12 +1662,21 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 			KIDs = NULL;
 		}
 
-		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0) + 1;
+		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
 		data = (char *)gf_malloc(len*sizeof(char));
-		memmove(data, &cypherOffset, 1);
-		gf_bs_read_data(bs, data+1, len-1);
-		if (cypherOffset) {
+		gf_bs_read_data(bs, data, len);
+
+		if (has_key && has_IV && (cypherOffset >= 0)) {
 			/*TODO*/
+			GF_Crypt *mc;
+			mc = gf_crypt_open("AES-128", "CTR");
+			if (!mc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
+				return GF_IO_ERR;
+			}
+			e = gf_crypt_init(mc, cypherKey, 16, cypherIV);
+			gf_crypt_encrypt(mc, data+cypherOffset, len-cypherOffset);
+			gf_crypt_close(mc);
 		}
 		e = gf_cenc_set_pssh(mp4, systemID, version, KID_count, KIDs, data, len);
 		if (specInfo) gf_free(specInfo);
