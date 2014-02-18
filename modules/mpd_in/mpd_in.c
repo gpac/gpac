@@ -246,13 +246,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
                 GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waiting for download to end took a long time : %u ms\n", timer2));
             }
 			if (param->url_query.end_range) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s (Media Range: "LLD"-"LLD") at UTC "LLU" ms\n", src_url, param->url_query.start_range, param->url_query.end_range, gf_net_get_utc() ));
+	            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s bytes "LLD"-"LLD"\n", src_url, param->url_query.start_range, param->url_query.end_range));
 			} else {
-	            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Switching segment playback to %s at UTC "LLU" ms\n", src_url, gf_net_get_utc()));
+	            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s\n", src_url));
 			}
-            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] segment start time %g sec\n", gf_dash_group_current_segment_start_time(mpdin->dash, group_idx) ));
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n\tsegment start time %g sec\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url, gf_dash_group_current_segment_start_time(mpdin->dash, group_idx)  ));
         }    
 #endif
     }
@@ -379,7 +377,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 			u32 bytes_per_sec;
 			const char *url;
 			gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps - chunk start at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps - chunk start at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
 
 			if (group->mpdin->use_low_latency) 
 				MPD_NotifyData(group, 1);
@@ -395,7 +393,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 		const char *url;
 		u64 start_time = gf_dm_sess_get_utc_start(group->sess);
 		gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chunk at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chunk at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
 	}
 }
 

@@ -314,6 +314,10 @@ Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 static void codec_update_stats(GF_Codec *codec, u32 dataLength, u32 dec_time, u32 DTS)
 {
 	codec->total_dec_time += dec_time;
+	codec->last_frame_time = gf_sys_clock();
+	if (!codec->nb_dec_frames)
+		codec->first_frame_time = codec->last_frame_time;
+
 	codec->nb_dec_frames++;
 	if (dec_time>codec->max_dec_time) codec->max_dec_time = dec_time;
 

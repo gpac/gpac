@@ -137,6 +137,8 @@ static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 	info->nb_dec_frames = dec->nb_dec_frames;
 	info->max_dec_time = dec->max_dec_time;
 	info->total_dec_time = dec->total_dec_time;
+	info->first_frame_time = dec->first_frame_time;
+	info->last_frame_time = dec->last_frame_time;
 	info->raw_media = dec->flags & GF_ESM_CODEC_IS_RAW_MEDIA;
 }
 

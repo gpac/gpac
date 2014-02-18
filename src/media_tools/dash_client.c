@@ -700,7 +700,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 	time_since_start = gf_sys_clock() - group->download_start_time;
 
 	if (group->min_bandwidth_selected) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - no lower bitrate available ...\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - no lower bitrate available ...\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
 		return GF_OK;
 	}
 	
@@ -849,7 +849,7 @@ retry:
 		/*file cannot be cached on disk !*/
 		if (group) {
 			if (dash_io->get_cache_name(dash_io, group->segment_download) == NULL) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Segment %s cannot be cached on disk, will use direct streaming\n", url));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s cannot be cached on disk, will use direct streaming\n", url));
 				group->segment_must_be_streamed = 1;
 				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
 				group->is_downloading = 1;
@@ -1461,7 +1461,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updating playlist at UTC time "LLU" - availabilityStartTime "LLU"\n", fetch_time, new_mpd->availabilityStartTime));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating playlist at UTC time "LLU" - availabilityStartTime "LLU"\n", fetch_time, new_mpd->availabilityStartTime));
 
 	timeline_start_time = 0;
 	/*if not infinity for timeShift, compute min media time before merge and adjust it*/
@@ -2665,7 +2665,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	e = gf_isom_parse_box((GF_Box **) &sidx, bs);
 	if (e) return e;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Loading SIDX - %d entries - Earliest Presentation Time "LLD"\n", sidx->nb_refs, sidx->earliest_presentation_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Loading SIDX - %d entries - Earliest Presentation Time "LLD"\n", sidx->nb_refs, sidx->earliest_presentation_time));
 
 	offset = sidx->first_offset + anchor_position;
 	rep->segment_list->timescale = sidx->timescale;
@@ -2679,7 +2679,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 		} else {
 			GF_SAFEALLOC(seg, GF_MPD_SegmentURL);
 			GF_SAFEALLOC(seg->media_range, GF_MPD_ByteRange);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found media segment size %d - duration %d - start with SAP: %d - SAP type %d - SAP Deltat Time %d\n",
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Found media segment size %d - duration %d - start with SAP: %d - SAP type %d - SAP Deltat Time %d\n",
 				sidx->refs[i].reference_size, sidx->refs[i].subsegment_duration, sidx->refs[i].starts_with_SAP, sidx->refs[i].SAP_type, sidx->refs[i].SAP_delta_time));
 
 			seg->media_range->start_range = offset;
@@ -3213,7 +3213,7 @@ restart_period:
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error updating MPD %s\n", gf_error_to_string(e)));
 				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updated MPD in %d ms\n", diff));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated MPD in %d ms\n", diff));
 				}
 			} else {
 				Bool all_groups_done = 1;
@@ -3318,7 +3318,7 @@ restart_period:
 					if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 						if (! group->maybe_end_of_stream) {
 							u32 now = gf_sys_clock();
-							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] End of segment list reached (%d segments but idx is %d), waiting for next MPD update\n", group->nb_segments_in_rep, group->download_segment_index));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of segment list reached (%d segments but idx is %d), waiting for next MPD update\n", group->nb_segments_in_rep, group->download_segment_index));
 							if (group->nb_cached_segments)
 								continue;
 							
@@ -3335,7 +3335,7 @@ restart_period:
 						}
 					} else {
 						/* if not, we are really at the end of the playlist, we can quit */
-						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] End of playlist reached... downloading remaining elements..."));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of playlist reached... downloading remaining elements..."));
 						group->done = 1;
 						break;
 					}
@@ -3345,7 +3345,7 @@ restart_period:
 			gf_mx_p(dash->dl_mutex);
 
 			if (group->force_switch_bandwidth && !dash->auto_switch_count) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Forcing representation switch, retesting group"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Forcing representation switch, retesting group"));
 				gf_dash_switch_group_representation(dash, group);
 				/*restart*/
 				i--;
@@ -3537,7 +3537,7 @@ restart_period:
 					group->cached[group->nb_cached_segments].start_range = start_range;
 					group->cached[group->nb_cached_segments].end_range = end_range;
 				}
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
 				group->nb_cached_segments++;
 				gf_dash_update_buffering(group, dash);
 				/* download enhancement representation of this segment*/
@@ -3923,7 +3923,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
 		goto exit;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] DASH client initialized from MPD at UTC time "LLU" - availabilityStartTime "LLU"\n", dash->mpd_fetch_time , dash->mpd->availabilityStartTime));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH client initialized from MPD at UTC time "LLU" - availabilityStartTime "LLU"\n", dash->mpd_fetch_time , dash->mpd->availabilityStartTime));
 	if (is_local && dash->mpd->minimum_update_period) {
 		e = gf_dash_update_manifest(dash);
 		if (e != GF_OK) {
