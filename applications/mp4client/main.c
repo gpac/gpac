@@ -76,6 +76,7 @@ static Bool term_step = GF_FALSE;
 static Bool no_regulation = GF_FALSE;
 static u32 bench_mode = 0;
 static u32 bench_mode_start = 0;
+static u32 bench_buffer = 0;
 static Bool eos_seen = GF_FALSE;
 Bool is_connected = GF_FALSE;
 Bool startup_file = GF_FALSE;
@@ -519,13 +520,23 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 		break;
 	case GF_EVENT_PROGRESS:
-	{
-		char *szTitle = "";
-		if (evt->progress.progress_type==0) szTitle = "Buffer ";
-		else if (evt->progress.progress_type==1) szTitle = "Download ";
-		else if (evt->progress.progress_type==2) szTitle = "Import ";
-		gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
-	}
+		{
+			char *szTitle = "";
+			if (evt->progress.progress_type==0) {
+				szTitle = "Buffer ";
+				if (bench_mode) {
+					if (evt->progress.done >= evt->progress.total) bench_buffer = 0;
+					else bench_buffer = 1 + 100*evt->progress.done / evt->progress.total;
+					break;
+				}
+			}
+			else if (evt->progress.progress_type==1) {
+				if (bench_mode) break;
+				szTitle = "Download ";
+			}
+			else if (evt->progress.progress_type==2) szTitle = "Import ";
+			gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
+		}
 		break;
 	
 
@@ -762,12 +773,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		return 1;
 	}
-	case GF_EVENT_VIDEO_SETUP:
-		if (bench_mode) {
-			fprintf(stderr, "Video setup - starting benchmark\n");
-			bench_mode_start = gf_sys_clock();
-		}
-		break;
 	}
 	return 0;
 }
@@ -1922,6 +1927,12 @@ void PrintAVInfo(Bool final)
 			}
 		}
 	}
+
+	if (bench_buffer) {
+		fprintf(stderr, "Buffering %d %% ", bench_buffer-1);
+		return;
+	}
+
 	if (video_odm) {
 		gf_term_get_object_info(term, video_odm, &v_odi);
 		avg_dec_time = 0;
@@ -1952,7 +1963,10 @@ void PrintAVInfo(Bool final)
 		if (video_odm) {
 			fprintf(stderr, "%s %dx%d sar=%d:%d duration %.2fs\n", v_odi.codec_name, v_odi.width, v_odi.height, v_odi.par ? (v_odi.par>>16)&0xFF : 1, v_odi.par ? (v_odi.par)&0xFF : 1, v_odi.duration);
 			if (final) {
-				fprintf(stderr, "%d frames FPS %.2f (ms/f %.2f avg %d max) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, ((Float)v_odi.total_dec_time)/v_odi.nb_dec_frames, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
+				u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
+				if (!dec_run_time) dec_run_time = 1;
+				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
+				fprintf(stderr, "%d frames FPS %.2f (max %d ms/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
 				if (v_odi.nb_droped) {
 					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_droped);
 				}
@@ -1962,7 +1976,10 @@ void PrintAVInfo(Bool final)
 		if (audio_odm) {
 			fprintf(stderr, "%s SR %d num channels %d bpp %d duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, a_odi.bits_per_sample, a_odi.duration);
 			if (final) {
-				fprintf(stderr, "%d frames (ms/f %.2f avg %d max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)a_odi.total_dec_time)/a_odi.nb_dec_frames, a_odi.max_dec_time, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
+				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
+				if (!dec_run_time) dec_run_time = 1;
+				if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
+				fprintf(stderr, "%d frames (ms/f %.2f avg %d max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
 				if (a_odi.nb_droped) {
 					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_droped);
 				}
@@ -1974,7 +1991,9 @@ void PrintAVInfo(Bool final)
 			gf_term_get_visual_output_size(term, &w, &h);
 			fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name, s_odi.width, s_odi.height, w, h, s_odi.duration);
 			if (final) {
-				fprintf(stderr, "%d frames FPS %.2f (ms/f %.2f avg %d max) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / tot_time, ((Float)s_odi.total_dec_time)/s_odi.nb_dec_frames, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
+				if (!dec_run_time) dec_run_time = 1;
+				fprintf(stderr, "%d frames FPS %.2f (max %d ms/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
 				fprintf(stderr, "\n");
 			}
 		}
@@ -1985,8 +2004,10 @@ void PrintAVInfo(Bool final)
 	}
 
 	if (video_odm) {
+		tot_time = v_odi.last_frame_time - v_odi.first_frame_time;
+		if (!tot_time) tot_time=1;
 		if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-		fprintf(stderr, "%d frames %.2f (%dms max) - rate %d ", v_odi.nb_dec_frames, avg_dec_time, v_odi.max_dec_time, (u32) v_odi.instant_bitrate/1000);
+		fprintf(stderr, "%d frames FPS %.2f (%dms max) - rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time, (u32) v_odi.instant_bitrate/1000);
 	}
 	else if (scene_odm) {
 		avg_dec_time = 0;
@@ -1997,7 +2018,6 @@ void PrintAVInfo(Bool final)
 		if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
 		fprintf(stderr, "%d frames %.2f (%dms max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
 	}
-	
 }
 
 void PrintWorldInfo(GF_Terminal *term)

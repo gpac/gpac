@@ -1935,7 +1935,6 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		{
 			compositor_2d_set_aspect_ratio(compositor);
 		}
-
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 
 #ifndef GPAC_DISABLE_LOG
@@ -1945,13 +1944,6 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 
 		compositor_evaluate_envtests(compositor, 0);
-
-		{
-			GF_Event evt;
-			memset(&evt, 0, sizeof(GF_Event));
-			evt.type = GF_EVENT_VIDEO_SETUP;
-			gf_term_send_event(compositor->term, &evt);
-		}
 	} 
 }
 

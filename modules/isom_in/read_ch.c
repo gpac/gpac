@@ -494,6 +494,8 @@ fetch_next:
 				gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 				if (net_status == GF_NETIO_DATA_EXCHANGE) {
 					ch->last_state = GF_OK;
+					if (!ch->has_edit_list) 
+						ch->sample_num--;
 				}
 			}
 			else if (ch->owner->input->query_proxy) {
@@ -662,16 +664,20 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			read->in_data_flush = 0;
 			read->has_pending_segments++;
 			gf_mx_v(read->segment_mutex);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Buffer level %d ms higher than max allowed %d ms - skipping dispatch\n", com.buffer.occupancy,  com.buffer.max));
+			if (count) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] Buffer level %d ms higher than max allowed %d ms - skipping dispatch\n", com.buffer.occupancy,  com.buffer.max));
+			}
 			return;
 		}
 	}
+#if 1
 	//flush request from terminal: only process if nothing is opened and we have pending segments
 	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && !read->drop_next_segment) {
 		read->in_data_flush = 0;
 		gf_mx_v(read->segment_mutex);
 		return;
 	}
+#endif
 
 	//if this is a request from terminal to flush pending segments, do not attempt to open the current download one, only open the first available in the cache
 	if (!check_buffer_level && !in_progressive_mode) 
