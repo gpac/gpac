@@ -381,8 +381,9 @@ static Bool setup_grey_callback(EVGSurface *surf)
 
 	case GF_PIXEL_RGBA:
 		if (use_const) {
-			if (!a) return 0;
-			if (a!=0xFF) {
+			if (!a) {
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgba_fill_erase;
+			} else if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgba_fill_const_a;
 			} else {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgba_fill_const;

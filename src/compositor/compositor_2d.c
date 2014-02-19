@@ -59,6 +59,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 #endif
 }
 
+
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
 #if defined(GPAC_USE_OGL_ES)
@@ -129,6 +130,60 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 #endif
 }
 
+#endif
+
+
+#ifndef GPAC_DISABLE_3D
+void c2d_glauto_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
+{
+	SFColor rgb;
+	if (!visual->is_attached) return;
+	
+	if (!BackColor && !visual->offscreen) {
+		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+			BackColor = visual->compositor->back_color;
+		}
+	}
+	//we only work in immediate mode, clear the whole screen
+	rgb.red = GF_COL_R(BackColor);
+	rgb.green = GF_COL_G(BackColor);
+	rgb.blue = GF_COL_B(BackColor);
+	visual_3d_clear(visual, rgb , GF_COL_A(BackColor));
+}
+
+void compositor_2d_openglauto_flush_video(GF_Compositor *compositor)
+{
+	GF_TraverseState a_tr_state;
+
+	if (compositor->traverse_state->immediate_draw) {
+		//nothing drawn, nothing to do
+		if (!compositor->visual->opengl_auto_drawn.count) {
+			return;
+		}
+		//nodes where drawn on canvas, push texture
+		gf_sc_texture_set_data(compositor->opengl_auto_txh);
+	} else {
+		//nodes where drawn on canvas, push texture
+		if (compositor->visual->opengl_auto_drawn.count) {
+			gf_sc_texture_set_data(compositor->opengl_auto_txh);
+		}
+	}
+	a_tr_state.visual = compositor->visual;
+
+	visual_3d_set_state(compositor->visual, V3D_STATE_LIGHT, 0);
+	visual_3d_enable_antialias(compositor->visual, 0);
+	gf_sc_texture_set_blend_mode(compositor->opengl_auto_txh, TX_MODULATE);
+	visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
+	a_tr_state.mesh_num_textures = gf_sc_texture_enable(compositor->opengl_auto_txh, NULL);
+	if (a_tr_state.mesh_num_textures ) {
+		visual_3d_mesh_paint(&a_tr_state, compositor->opengl_auto_mesh);
+		gf_sc_texture_disable(compositor->opengl_auto_txh);
+	}
+	compositor->visual->opengl_auto_drawn.count = 0;
+	//in immediate mode always clear the canvas
+	if (compositor->traverse_state->immediate_draw)
+		memset(compositor->opengl_auto_txh->data, 0, 4*compositor->opengl_auto_txh->width*compositor->opengl_auto_txh->height);
+}
 
 Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
@@ -153,9 +208,10 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 		GF_Mesh *mesh;
 		size.x = ctx->bi->unclip.width;
 		size.y = ctx->bi->unclip.height;
-		orig.x = ctx->bi->unclip.x + INT2FIX(visual->compositor->vp_width)/2;
-		orig.y = INT2FIX(visual->compositor->vp_height)/2 - ctx->bi->unclip.y + ctx->bi->unclip.height;
-
+		if (visual->compositor->opengl_raster) {
+			orig.x = ctx->bi->unclip.x + INT2FIX(visual->compositor->vp_width)/2;
+			orig.y = INT2FIX(visual->compositor->vp_height)/2 - ctx->bi->unclip.y + ctx->bi->unclip.height;
+		}
 		mesh = new_mesh();
 		mesh_new_rectangle(mesh, size, &orig, 1);
 		visual_3d_mesh_paint(tr_state, mesh);
@@ -165,6 +221,86 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 		return 1;
 	}
 	return 0;
+}
+
+Bool c2d_glauto_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
+{
+	return 0;
+}
+#endif
+
+void compositor_2d_reset_gl_auto(GF_Compositor *compositor)
+{
+#ifndef GPAC_DISABLE_3D
+	if (compositor->opengl_auto_txh) {
+		if (compositor->opengl_auto_txh->data) {
+			gf_free(compositor->opengl_auto_txh->data);
+			compositor->opengl_auto_txh->data = NULL;
+		}
+		if (compositor->opengl_auto_txh->tx_io) 
+			gf_sc_texture_release(compositor->opengl_auto_txh);
+
+		gf_free(compositor->opengl_auto_txh);
+		compositor->opengl_auto_txh = NULL;
+	}
+	if (compositor->opengl_auto_mesh)
+		mesh_free(compositor->opengl_auto_mesh);
+#endif
+}
+
+#ifndef GPAC_DISABLE_3D
+static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
+{
+	GF_Matrix mx;
+	Fixed hh, hw;
+	GF_Compositor *compositor = visual->compositor;
+	visual->is_attached = 1;
+
+	visual_3d_setup(visual);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, compositor->vp_width, compositor->vp_height);
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glLineWidth(1.0f);
+
+#ifndef GPAC_USE_OGL_ES
+	glDisable(GL_POLYGON_SMOOTH);
+#endif
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+
+	glDisable(GL_NORMALIZE);
+	glDisable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LEQUAL);
+	
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	if (compositor->opengl_raster) {
+		glDisable(GL_LINE_SMOOTH);
+	} else {
+		glEnable(GL_LINE_SMOOTH);
+	}
+
+	hw = INT2FIX(compositor->vp_width)/2;
+	hh = INT2FIX(compositor->vp_height)/2;
+	gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
+
+	visual_3d_set_matrix_mode(visual, V3D_MATRIX_PROJECTION);
+	visual_3d_matrix_load(visual, mx.m);
+
+	visual_3d_set_matrix_mode(visual, V3D_MATRIX_MODELVIEW);
+	gf_mx_init(mx);
+#ifdef OPENGL_RASTER
+	if (compositor->opengl_raster) {
+		gf_mx_add_scale(&mx, 1, -1, 1);
+		gf_mx_add_translation(&mx, -hw, -hh, 0);
+	}
+#endif
+
+	visual_3d_matrix_load(visual, mx.m);
+
+	return GF_OK;
 }
 #endif
 
@@ -184,52 +320,67 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
 		callbacks.fill_rect = c2d_gl_fill_rect;
 
-		visual->DrawBitmap = c2d_gl_draw_bitmap;
+		visual->DrawBitmap = c2d_glauto_draw_bitmap;
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
-		if (e==GF_OK) {
-			GF_Matrix mx;
-			Fixed hh, hw;
-			visual->is_attached = 2;
-
-			visual_3d_setup(visual);
-			glClear(GL_DEPTH_BUFFER_BIT);
-			glViewport(0, 0, compositor->vp_width, compositor->vp_height);
-
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			glLineWidth(1.0f);
-
-#ifndef GPAC_USE_OGL_ES
-			glDisable(GL_POLYGON_SMOOTH);
-#endif
-			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-
-			glDisable(GL_NORMALIZE);
-			glDisable(GL_LINE_SMOOTH);
-			glDisable(GL_DEPTH_TEST);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glDepthFunc(GL_LEQUAL);
-
-			hw = INT2FIX(compositor->vp_width)/2;
-			hh = INT2FIX(compositor->vp_height)/2;
-			gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
-
-			visual_3d_set_matrix_mode(visual, V3D_MATRIX_PROJECTION);
-			visual_3d_matrix_load(visual, mx.m);
-
-			visual_3d_set_matrix_mode(visual, V3D_MATRIX_MODELVIEW);
-			gf_mx_init(mx);
-			gf_mx_add_scale(&mx, 1, -1, 1);
-			gf_mx_add_translation(&mx, -hw, -hh, 0);
-			visual_3d_matrix_load(visual, mx.m);
-
-			return GF_OK;
-		}
+		if (e) return e;
+		
+		return compositor_2d_setup_opengl(visual);
 	}
 #endif
 
+#ifndef GPAC_DISABLE_3D
+	if (compositor->opengl_auto) {
+
+		if (!compositor->opengl_auto_txh) {
+			GF_SAFEALLOC(compositor->opengl_auto_txh, GF_TextureHandler);
+			if (!compositor->opengl_auto_txh) return GF_IO_ERR;
+			compositor->opengl_auto_txh->compositor = compositor;
+		}
+
+		if ((compositor->opengl_auto_txh->width != compositor->vp_width) || (compositor->opengl_auto_txh->height != compositor->vp_height)) {
+			SFVec2f size;
+			compositor->opengl_auto_txh->data = gf_realloc(compositor->opengl_auto_txh->data, 4*compositor->vp_width*compositor->vp_height);		
+			if (!visual->compositor->traverse_state->immediate_draw)
+				memset(compositor->opengl_auto_txh->data, 0, 4*compositor->opengl_auto_txh->width*compositor->opengl_auto_txh->height);
+
+			if (compositor->opengl_auto_txh->tx_io) 
+				gf_sc_texture_release(compositor->opengl_auto_txh);
+		
+			compositor->opengl_auto_txh->width = compositor->vp_width;
+			compositor->opengl_auto_txh->height = compositor->vp_height;
+			compositor->opengl_auto_txh->stride = 4*compositor->vp_width;
+			compositor->opengl_auto_txh->pixelformat = GF_PIXEL_RGBA;
+			compositor->opengl_auto_txh->transparent = 1;
+			compositor->opengl_auto_txh->flags = GF_SR_TEXTURE_PRIVATE_MEDIA | GF_SR_TEXTURE_NO_GL_FLIP;
+	        gf_sc_texture_allocate(compositor->opengl_auto_txh);
+
+			if (!compositor->opengl_auto_mesh)
+				compositor->opengl_auto_mesh = new_mesh();
+
+			size.x = INT2FIX(compositor->vp_width);
+			size.y = INT2FIX(compositor->vp_height);
+			mesh_new_rectangle(compositor->opengl_auto_mesh, size, NULL, 1);
+		}
+		if (!compositor->opengl_auto_txh->data) return GF_IO_ERR;
+
+		if (visual->compositor->traverse_state->immediate_draw)
+			memset(compositor->opengl_auto_txh->data, 0, 4*compositor->opengl_auto_txh->width*compositor->opengl_auto_txh->height);
+
+		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->opengl_auto_txh->data,
+							compositor->opengl_auto_txh->width,
+							compositor->opengl_auto_txh->height,
+							0,
+							compositor->opengl_auto_txh->width * 4,
+							(GF_PixelFormat) GF_PIXEL_RGBA);
+		if (e) return e;
+		e = compositor_2d_setup_opengl(visual);
+		if (e) return e;
+		visual->ClearSurface = c2d_glauto_clear_surface;
+		visual->DrawBitmap = c2d_glauto_draw_bitmap;
+		return GF_OK;
+	}
+#endif
 
 	compositor->hw_locked = 0;
 	e = GF_IO_ERR;
@@ -295,6 +446,14 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 		compositor->rasterizer->surface_detach(visual->raster_surface);
 		visual->is_attached = 0;
 	}
+
+#ifndef GPAC_DISABLE_3D
+	if (compositor->opengl_auto) {
+		compositor_2d_openglauto_flush_video(compositor);
+		return;
+	}
+#endif //GPAC_DISABLE_3D
+
 	if (compositor->hw_context) {
 		compositor->video_out->LockOSContext(compositor->video_out, 0);
 		compositor->hw_context = NULL;
@@ -935,6 +1094,14 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 
 #ifdef OPENGL_RASTER
 	if (compositor->opengl_raster) {
+		evt.setup.opengl_mode = 1;
+		evt.setup.system_memory = 0;
+		evt.setup.back_buffer = 1;
+	}
+#endif
+
+#ifndef GPAC_DISABLE_3D
+	if (compositor->opengl_auto) {
 		evt.setup.opengl_mode = 1;
 		evt.setup.system_memory = 0;
 		evt.setup.back_buffer = 1;

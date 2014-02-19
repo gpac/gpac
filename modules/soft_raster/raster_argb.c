@@ -595,6 +595,31 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
+void evg_rgba_fill_erase(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+{
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
+	u8 *p;
+	s32 i;
+	u32 len;
+
+	for (i=0; i<count; i++) {
+		p = dst + spans[i].x*surf->pitch_x;
+		len = spans[i].len;
+	
+		if (spans[i].coverage != 0xFF) {
+/*			while (len--) {
+				*p = 0xFF-spans[i].coverage;
+				p += surf->pitch_x;
+			}
+*/		} else {
+			while (len--) {
+				*(u32 *)p = 0;
+				p += surf->pitch_x;
+			}
+		}
+	}
+}
+
 void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;

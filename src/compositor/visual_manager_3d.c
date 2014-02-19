@@ -1534,6 +1534,8 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 		}
 	}
 
+	if (tr_state->visual->type_3d == 4) return;
+
 	/*strike path*/
 	if (!asp->pen_props.width || !GF_COL_A(asp->line_color)) return;
 

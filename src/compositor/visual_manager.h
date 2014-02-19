@@ -181,6 +181,9 @@ struct _visual_manager
 	u32 num_clips;
 	u32 max_clips;
 
+	//when using 2D layering in opengl, we store the bounding rect of drawn objects betwwen GL calls, so we
+	//can flush only the minimum part of the texture
+	GF_RectArray opengl_auto_drawn;
 
 	u32 nb_views, current_view, autostereo_type, camera_layout;
 	Bool reverse_views;
@@ -196,6 +199,8 @@ struct _visual_manager
 	GF_SHADERID yuv_glsl_fragment;
 	GF_SHADERID yuv_rect_glsl_program;
 	GF_SHADERID yuv_rect_glsl_fragment;
+
+	GF_SHADERID current_texture_glsl_program;
 #endif
 
 #ifdef GF_SR_USE_DEPTH

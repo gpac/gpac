@@ -255,10 +255,12 @@ struct __tag_compositor
 	u32 aspect_ratio, antiAlias, texture_text_mode;
 	Bool high_speed, stress_mode;
 	Bool was_opengl;
+	Bool autoconfig_opengl;
 	u32 force_opengl_2d;
 #ifdef OPENGL_RASTER
 	Bool opengl_raster;
 #endif
+	Bool opengl_auto;
 
 	/*key modif*/
 	u32 key_states;
@@ -492,8 +494,11 @@ struct __tag_compositor
 	Fixed interoccular_offset;
 	/*specifies distance the camera focal point and the screen plane : <0 is behind the screen, >0 is in front*/
 	Fixed focus_distance;
+
+	struct _gf_sc_texture_handler *opengl_auto_txh;
+	GF_Mesh *opengl_auto_mesh;
 #endif
-	
+
 	Bool texture_from_decoder_memory;
     
 	u32 networks_time;
@@ -1125,6 +1130,10 @@ void compositor_2d_release_video_access(GF_VisualManager *surf);
 void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 
+#ifndef GPAC_DISABLE_3D
+void compositor_2d_openglauto_flush_video(GF_Compositor *compositor);
+#endif
+
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale);
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
@@ -1371,6 +1380,8 @@ void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *
 
 //signals the compositor a system frame is pending on a future frame 
 void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);
+
+void compositor_2d_reset_gl_auto(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }
