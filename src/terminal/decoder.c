@@ -50,7 +50,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	*e = Codec_Load(tmp, base_layer, PL);
 
 	if (*e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] Cannot find decoder for stream type %s\n", gf_esd_get_textual_description(base_layer) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
 		gf_free(tmp);
 		return NULL;
 	}

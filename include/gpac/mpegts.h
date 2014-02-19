@@ -340,6 +340,8 @@ enum
 	GF_M2TS_EVT_SL_PCK,
 	/*An IP datagram has been received in a section - assoctiated parameter: IP datagram */
 	GF_M2TS_EVT_IP_DATAGRAM,
+	/*Duration has been estimated - assoctiated parameter: PES packet with no data, PTS is duration in msec*/
+	GF_M2TS_EVT_DURATION_ESTIMATED,
 
 	/*AAC config has been extracted - associated parameter: PES Packet with encoded M4ADecSpecInfo in its data
 		THIS MUST BE CLEANED UP
@@ -844,6 +846,10 @@ struct tag_m2ts_demux
 
 	Bool segment_switch;
 
+	//duration estimation
+	u64 first_pcr_found;
+	u16 pcr_pid;
+	u64 nb_pck_at_pcr;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();

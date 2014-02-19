@@ -228,6 +228,10 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 		break;
+	case GF_M2TS_AUDIO_AC3:
+		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AC3;
+		break;
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 	default:
 		gf_odf_desc_del((GF_Descriptor *)esd);
@@ -462,6 +466,16 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 			if (!stricmp((const char *) sdt->service, req_prog->fragment)) req_prog->id = sdt->service_id;
 			else if (sdt->service_id==prog_id)  req_prog->id = sdt->service_id;
 		}
+		if (!req_prog->id) {
+			count = gf_list_count(m2ts->ts->programs);
+			for (j=0; j<count; j++) {
+				GF_M2TS_Program *ts_prog = gf_list_get(m2ts->ts->programs, j);
+				if (prog_id==ts_prog->number) {
+					req_prog->id = prog_id;
+					break;
+					}
+			}
+		}
 		if (req_prog->id) {
 			GF_M2TS_Program *ts_prog;
 			count = gf_list_count(m2ts->ts->programs);
@@ -671,9 +685,11 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						}
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
+						sleep_for = MIN(com.buffer.occupancy/2, M2TS_BUFFER_MAX);
+
 #ifndef GPAC_DISABLE_LOG
 						if (!nb_sleep) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep (buffer occupancy %d ms)\n", com.buffer.occupancy));
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep for %d ms (buffer occupancy %d ms)\n", sleep_for, com.buffer.occupancy));
 						}
 						nb_sleep++;
 #endif
@@ -684,7 +700,6 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
 					}
 #endif
-					ts->nb_pck = 0;
 					ts->pcr_last = pcr;
 					ts->stb_at_last_pcr = gf_sys_clock();
 				} else {
@@ -727,6 +742,30 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		break;
 	case GF_M2TS_EVT_TOT:
+		break;
+
+	case GF_M2TS_EVT_DURATION_ESTIMATED:
+	{
+		u32 i, count;
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(com));
+		com.command_type = GF_NET_CHAN_DURATION;
+		com.duration.duration = ((GF_M2TS_PES_PCK *) param)->PTS;
+		com.duration.duration /= 1000;
+		count = gf_list_count(ts->programs);
+		for (i=0; i<count; i++) {
+			GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
+			u32 j, count2;
+			count2 = gf_list_count(prog->streams);
+			for (j=0; j<count2; j++) {
+				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
+				if (stream->user) {
+					com.base.on_channel = stream->user;
+					gf_term_on_command(m2ts->service, &com, GF_OK);
+				}
+			}
+		}
+	}
 		break;
 	}
 }

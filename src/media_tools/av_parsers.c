@@ -3278,6 +3278,14 @@ void profile_tier_level(GF_BitStream *bs, Bool ProfilePresentFlag, u8 MaxNumSubL
 	for (i=0; i<MaxNumSubLayersMinus1; i++) {
         ptl->sub_ptl[i].profile_present_flag = gf_bs_read_int(bs, 1);
 		ptl->sub_ptl[i].level_present_flag = gf_bs_read_int(bs, 1);
+	}
+	if (MaxNumSubLayersMinus1>0) {
+		for (i=MaxNumSubLayersMinus1; i<8; i++) {
+			/*reserved_zero_2bits*/gf_bs_read_int(bs, 2);
+		}
+	}
+
+	for (i=0; i<MaxNumSubLayersMinus1; i++) {
 		if (ProfilePresentFlag && ptl->sub_ptl[i].profile_present_flag) {
 			ptl->sub_ptl[i].profile_space = gf_bs_read_int(bs, 2);
 			ptl->sub_ptl[i].tier_flag = gf_bs_read_int(bs, 1);
@@ -3380,13 +3388,17 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	data_without_emulation_bytes = gf_malloc(size*sizeof(char));
 	data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
 	bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+//	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	if (!bs) goto exit;
 	
 	gf_bs_read_int(bs, 7);
 	layer_id = gf_bs_read_int(bs, 6);
 	/*temporal_id = */gf_bs_read_int(bs, 3);
 	vps_id = gf_bs_read_int(bs, 4);
-	if (vps_id>=16) goto exit;
+	if (vps_id>=16) {
+		sps_id = -1;
+		goto exit;
+	}
 
 	memset(&ptl, 0, sizeof(ptl));
 
@@ -3399,7 +3411,10 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	}
 
 	sps_id = bs_get_ue(bs);
-	if (sps_id>=16) goto exit;
+	if (sps_id>=16) {
+		sps_id = -1;
+		goto exit;
+	}
 	//fixme with latest shvc syntax !!
 	if (layer_id) sps_id=1;
 

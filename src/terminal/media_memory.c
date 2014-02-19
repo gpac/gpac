@@ -378,7 +378,6 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 	GF_CMUnit *cu;
 
 	gf_odm_lock(cb->odm, 1);
-
 	cu = cb->input;
 	cu->RenderedLength = 0;
 	if (cu->dataLength && cb->odm->raw_frame_sema)  {
@@ -395,11 +394,12 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 		cu->dataLength = 0;
 		cu = cu->next;
 	}
-	cb->output = cb->input;
 	cb->UnitCount = 0;
 	cb->HasSeenEOS = 0;
 
 	if (cb->odm->mo) cb->odm->mo->timestamp = 0;
+
+	cb->output = cb->input;
 	gf_odm_lock(cb->odm, 0);
 }
 
@@ -679,7 +679,9 @@ Bool gf_cm_is_running(GF_CompositionMemory *cb)
 
 Bool gf_cm_is_eos(GF_CompositionMemory *cb)
 {
-	return ( (cb->Status == CB_STOP) && cb->HasSeenEOS);
+	if (cb->HasSeenEOS)
+		return ( (cb->Status == CB_STOP) || (cb->UnitCount==0)) ? 1 : 0;
+	return 0;
 }
 
 void gf_cm_abort_buffering(GF_CompositionMemory *cb)

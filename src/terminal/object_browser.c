@@ -155,9 +155,17 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 
 	info->duration = (Double) (s64)odm->duration;
 	info->duration /= 1000;
+
 	if (odm->codec) {
 		/*since we don't remove ODs that failed setup, check for clock*/
-		if (odm->codec->ck) info->current_time = odm->codec->CB ? odm->current_time : gf_clock_time(odm->codec->ck);
+		if (odm->codec->ck) {
+			if (odm->codec->CB) {
+				info->current_time = odm->current_time ? odm->current_time : odm->codec->last_unit_cts;
+			} else {
+				info->current_time = gf_clock_time(odm->codec->ck);
+			}
+			info->current_time -= odm->codec->ck->init_time;
+		}
 		info->current_time /= 1000;
 		info->nb_droped = odm->codec->nb_droped;
 	} else if (odm->subscene) {
@@ -177,6 +185,8 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->generated_scene = 1;
 		}
 	}
+	if (info->current_time>info->duration)
+		info->current_time = info->duration;
 
 	info->buffer = -2;
 	info->db_unit_count = 0;

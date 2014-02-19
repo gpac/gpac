@@ -54,7 +54,6 @@
 
 #define DEBUG_TS_PACKET 0
 
-
 GF_EXPORT
 const char *gf_m2ts_get_stream_name(u32 streamType)
 {
@@ -80,6 +79,59 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_MPE_SECTIONS: return "MPE (Section)";
 
 	default: return "Unknown";
+	}
+}
+
+static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
+{
+	u64 file_size = 0;
+//	if (ts->duration>0) return;
+
+	if (ts->file) {
+		file_size = ts->file_size;
+	} else if (ts->dnload) {
+		u32 size;
+		gf_dm_sess_get_stats(ts->dnload, NULL, NULL, &size, NULL, NULL, NULL);
+		file_size = size;
+	} else {
+		return;
+	}
+
+	if (!ts->first_pcr_found) {
+		ts->first_pcr_found = PCR;
+		ts->pcr_pid = pcr_pid;
+		ts->nb_pck_at_pcr = ts->nb_pck;
+	} else if (ts->pcr_pid == pcr_pid) {
+		if (PCR < ts->first_pcr_found) {
+			ts->first_pcr_found = PCR;
+			ts->pcr_pid = pcr_pid;
+			ts->nb_pck_at_pcr = ts->nb_pck;
+		} else if (PCR-ts->first_pcr_found > 2*27000000) {
+			Bool changed = GF_FALSE;
+			Double pck_dur = (Double) (PCR-ts->first_pcr_found);
+			pck_dur /= (ts->nb_pck - ts->nb_pck_at_pcr);
+			pck_dur /= 27000000;
+
+			pck_dur *= ts->file_size;
+			pck_dur /= 188.0;
+			if ((u32) ts->duration != (u32) pck_dur) {
+				ts->duration = pck_dur;
+				changed = GF_TRUE;
+			}
+
+			ts->first_pcr_found = PCR;
+			ts->pcr_pid = pcr_pid;
+			ts->nb_pck_at_pcr = ts->nb_pck;
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Estimated duration based on instant bitrate: %g\n", ts->duration));
+
+			if (ts->on_event && changed) {
+				GF_M2TS_PES_PCK pck;
+				memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+				pck.PTS = (u64) (ts->duration*1000);
+				ts->on_event(ts, GF_M2TS_EVT_DURATION_ESTIMATED, &pck);
+			}
+		}
 	}
 }
 
@@ -1034,6 +1086,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Creating table %d %d\n", table_id, extended_table_id));
 			t->table_id = table_id;
 			t->ex_table_id = extended_table_id;
+			t->last_version_number = 0xFF;
 			t->sections = gf_list_new();
 			if (prev_t) prev_t->next = t;
 			else sec->table = t;
@@ -1086,6 +1139,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
 			gf_list_add(t->sections, section);
 
+			assert(t->section_number >=1);
 			if (t->section_number == 1) {
 				status |= GF_M2TS_TABLE_START;
 				if (t->last_version_number == t->version_number) {
@@ -1827,7 +1881,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	}
 }
 
-
+static u32 nb_pat=0;
 static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_M2TS_Program *prog;
@@ -1837,6 +1891,8 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	u32 data_size;
 	unsigned char *data;
 	GF_M2TS_Section *section;
+	
+	nb_pat++;
 
 	/*wait for the last section */
 	if (!(status&GF_M2TS_TABLE_END)) return;
@@ -1855,6 +1911,11 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
 	data = section->data;
 	data_size = section->data_size;
+
+	if (!(status&GF_M2TS_TABLE_UPDATE) && gf_list_count(ts->programs)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Multiple different PAT on single TS found, ignoring new PAT declaration (table id %d - extended table id %d)\n", table_id, ex_table_id));
+		return;
+	}
 
 	nb_progs = data_size / 4;	
 
@@ -2454,7 +2515,10 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				pck.PTS = es->program->last_pcr_value;
 				pck.stream = (GF_M2TS_PES *)es;
 				if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
-				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+				if (ts->on_event) {
+					gf_m2ts_estimate_duration(ts, es->program->last_pcr_value, hdr.pid);
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+				}
 			}
 		}
 
@@ -2950,9 +3014,6 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 	return GF_OK;
 }
 
-
-
-/* DVB fonction */
 
 static u32 gf_m2ts_demuxer_run(void *_p)
 {
