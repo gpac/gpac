@@ -508,8 +508,6 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 this is a blocking call since input may change the output (temporal scalability)*/
 GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 {
-	GF_CMUnit *out = NULL;
-
 	/*if paused or stop or buffering, do nothing*/
 	switch (cb->Status) {
 	case CB_BUFFER:
