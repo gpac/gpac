@@ -1139,7 +1139,6 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
 			gf_list_add(t->sections, section);
 
-			assert(t->section_number >=1);
 			if (t->section_number == 1) {
 				status |= GF_M2TS_TABLE_START;
 				if (t->last_version_number == t->version_number) {
