@@ -750,7 +750,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		GF_NetworkCommand com;
 		memset(&com, 0, sizeof(com));
 		com.command_type = GF_NET_CHAN_DURATION;
-		com.duration.duration = ((GF_M2TS_PES_PCK *) param)->PTS;
+		com.duration.duration = (Double) ((GF_M2TS_PES_PCK *) param)->PTS;
 		com.duration.duration /= 1000;
 		count = gf_list_count(ts->programs);
 		for (i=0; i<count; i++) {
