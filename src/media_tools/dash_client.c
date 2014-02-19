@@ -4686,6 +4686,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	GF_DASH_Group *group = NULL;
 	if (!latest_segment_name) return GF_BAD_PARAM;
 
+	seg_url = NULL;
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		group = gf_list_get(dash->groups, i);
 		for (j=0; j<gf_list_count(group->adaptation_set->representations); j++) {
@@ -4720,7 +4721,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 	}
 
 	if (!found) {
-		gf_free(seg_url);
+		if (seg_url) gf_free(seg_url);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No representation found matching the resync segment name %s\n", latest_segment_name));
 		return GF_BAD_PARAM;
 	}
