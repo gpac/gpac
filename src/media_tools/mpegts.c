@@ -112,7 +112,7 @@ static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
 			pck_dur /= (ts->nb_pck - ts->nb_pck_at_pcr);
 			pck_dur /= 27000000;
 
-			pck_dur *= ts->file_size;
+			pck_dur *= file_size;
 			pck_dur /= 188.0;
 			if ((u32) ts->duration != (u32) pck_dur) {
 				ts->duration = pck_dur;
