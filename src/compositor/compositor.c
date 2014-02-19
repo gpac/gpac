@@ -1958,8 +1958,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			}
 
 		}
+		if (!compositor->visual->type_3d) 
 #endif
-		if (!compositor->visual->type_3d) {
+		{
 			compositor_2d_set_aspect_ratio(compositor);
 #ifndef GPAC_DISABLE_3D
 			if (compositor->opengl_auto) {

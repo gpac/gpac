@@ -433,10 +433,12 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 		return;
 	}
 
+#ifndef GPAC_DISABLE_3D
 	if (visual->compositor->opengl_auto) {
 		visual_2d_texture_path_opengl_auto(visual, path, txh, ctx, orig_bounds, ext_mx, tr_state);
 		return;
 	}
+#endif
 
 	if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
 		GF_Window src, dst;
