@@ -1384,7 +1384,7 @@ retry_8bpp:
 
  	  if (nb_bits>8) {
 		int fbcount=0;
-		GLXFBConfig *fb;
+		GLXFBConfig *fb=NULL;
 		typedef GLXFBConfig * (* FnGlXChooseFBConfigProc)( Display *, int, int const *,int * );
 		typedef XVisualInfo * (* FnGlXGetVisualFromFBConfigProc)( Display *, GLXFBConfig );
 		typedef int (* FnGlXGetFBConfigAttrib) (Display *  dpy,  GLXFBConfig  config,  int  attribute,  int *  value);
@@ -1405,7 +1405,7 @@ retry_8bpp:
 		}
 		  xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
 
-		if (my_glXGetFBConfigAttrib) {
+		if (my_glXGetFBConfigAttrib && fb) {
 			int r, g, b;
 			glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_RED_SIZE, &r);
 			glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_GREEN_SIZE, &g);
