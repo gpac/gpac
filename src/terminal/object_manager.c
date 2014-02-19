@@ -1776,15 +1776,16 @@ void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *ch, u64 stream_durat
 {
 	if (odm->codec) {
 		if (ch->esd->decoderConfig->streamType == odm->codec->type)
-			if (odm->duration < stream_duration)
+			if (odm->duration/1000 != stream_duration/1000)
 				odm->duration = stream_duration;
 	} else if (odm->ocr_codec) {
 		if (ch->esd->decoderConfig->streamType == odm->ocr_codec->type)
-			if (odm->duration < stream_duration)
+			if (odm->duration/1000 != stream_duration/1000)
 				odm->duration = stream_duration;
 	} else if (odm->subscene && odm->subscene->scene_codec) {
 		//if (gf_list_find(odm->subscene->scene_codec->inChannels, ch) >= 0) {
-			if (odm->duration < stream_duration) odm->duration = stream_duration;
+			if (odm->duration/1000 != stream_duration/1000)
+				odm->duration = stream_duration;
 		//}
 	}
 

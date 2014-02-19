@@ -769,10 +769,10 @@ void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *hevc)
 			}
 			gf_odf_hevc_cfg_del(scfg);
 		}
-
-		gf_odf_hevc_cfg_write(hcfg, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->data, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
-
-		gf_odf_hevc_cfg_del(hcfg);
+		if (hcfg) {
+			gf_odf_hevc_cfg_write(hcfg, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->data, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_odf_hevc_cfg_del(hcfg);
+		}
 	}
 }
 

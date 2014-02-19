@@ -5306,7 +5306,7 @@ restart_import:
 			idx = gf_media_hevc_read_sps(buffer, nal_size, &hevc);
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
-				goto exit;
+				break;
 			}
 			add_sps = 0;
 			if ((hevc.sps[idx].state & AVC_SPS_PARSED) && !(hevc.sps[idx].state & AVC_SPS_DECLARED)) {
@@ -6834,14 +6834,14 @@ static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti,
 }
 
 /*rewrite last AVC sample currently stored in Annex-B format to ISO format (rewrite start code)*/
-void m2ts_rewrite_avc_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
+void m2ts_rewrite_nalu_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 {
 	GF_Err e;
 	u32 sc_pos, start;
 	GF_BitStream *bs;
 	GF_ISOSample *samp;
 	u32 count = gf_isom_get_sample_count(import->dest, tsimp->track);
-	if (!count || !tsimp->avccfg) return;
+	if (!count) return;
 
 	samp = gf_isom_get_sample(import->dest, tsimp->track, count, NULL);
 	sc_pos = 1;
@@ -6885,13 +6885,14 @@ static void hevc_cfg_add_nalu(GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u
 		ar->array_completeness = 1;
 		ar->type = nal_type;
 		ar->nalus = gf_list_new();
+		gf_list_add(hevccfg->param_array, ar);
 	}
-	GF_SAFEALLOC(sl, GF_AVCConfigSlot);
 	if (data) {
+		GF_SAFEALLOC(sl, GF_AVCConfigSlot);
 		sl->data = gf_malloc(sizeof(char)*data_len);
 		sl->size = data_len;
 		memcpy(sl->data, data, data_len);
-		gf_list_add(ar->nalus, ar);
+		gf_list_add(ar->nalus, sl);
 	} else {
 		ar->array_completeness = 0;
 	}
@@ -7033,6 +7034,13 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->nb_tracks++;
 					tsimp->nb_audio++;
 					break;
+				case GF_M2TS_AUDIO_DTS:
+					import->tk_info[idx].media_type = GF_4CC('D','T','S',' ');
+					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
+					import->tk_info[idx].lang = pes->lang;
+					import->nb_tracks++;
+					tsimp->nb_audio++;
+					break;					
 				case GF_M2TS_SYSTEMS_MPEG4_PES:
 				case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 					if (es->stream_type == GF_M2TS_SYSTEMS_MPEG4_PES) {
@@ -7198,20 +7206,36 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							import->tk_info[i].audio_info.sample_rate = pck->stream->aud_sr;
 							import->tk_info[i].audio_info.nb_channels = pck->stream->aud_nb_ch;
 							tsimp->nb_audio_configured++;
-						} else {
-							/*unpack AVC config*/
-							if (((pck->stream->stream_type==GF_M2TS_VIDEO_H264) || (pck->stream->stream_type==GF_M2TS_VIDEO_SVC)) && !pck->data[0] && !pck->data[1]) {
-								u32 nal_type = pck->data[4] & 0x1F;
-								if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
-									sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
-								}
-							}
-							if (pck->stream->vid_w && ! import->tk_info[i].video_info.width ) {
-								import->tk_info[i].video_info.width = pck->stream->vid_w;
-								import->tk_info[i].video_info.height = pck->stream->vid_h;
-								tsimp->nb_video_configured++;
+						} 
+						/*unpack AVC config*/
+						else if (((pck->stream->stream_type==GF_M2TS_VIDEO_H264) || (pck->stream->stream_type==GF_M2TS_VIDEO_SVC)) && !pck->data[0] && !pck->data[1]) {
+							u32 nal_type = pck->data[4] & 0x1F;
+							if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
+								sprintf(import->tk_info[i].szCodecProfile, "avc1.%02x%02x%02x", (u8) pck->data[5], (u8) pck->data[6], (u8) pck->data[7]);
 							}
 						}
+						else if (pck->stream->stream_type==GF_M2TS_VIDEO_HEVC) {
+							u32 nal_type = (pck->data[4] & 0x7E) >> 1;
+							if (nal_type == GF_HEVC_NALU_SEQ_PARAM) {
+								//todo ..;
+								sprintf(import->tk_info[i].szCodecProfile, "hvc1");
+							}
+						}
+						else if ((pck->stream->stream_type==GF_M2TS_AUDIO_EC3) || (pck->stream->stream_type==GF_M2TS_AUDIO_AC3) || (pck->stream->stream_type==GF_M2TS_AUDIO_DTS)) {
+							if (!import->tk_info[i].audio_info.sample_rate) {
+								//todo ...
+								import->tk_info[i].audio_info.sample_rate = 44100;
+								import->tk_info[i].audio_info.nb_channels = 2;
+								tsimp->nb_audio_configured++;
+								}
+						}
+
+						if (pck->stream->vid_w && ! import->tk_info[i].video_info.width ) {
+							import->tk_info[i].video_info.width = pck->stream->vid_w;
+							import->tk_info[i].video_info.height = pck->stream->vid_h;
+							tsimp->nb_video_configured++;
+						}
+
 						/*consider we are done if not using 4 on 2*/
 						if (!ts->has_4on2 
 							&& (tsimp->nb_video_configured == tsimp->nb_video)
@@ -7223,7 +7247,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 				}
 				if (!ts->has_4on2 && (import->trackID==pck->stream->pid) && (pck->stream->vid_h || pck->stream->aud_sr) )
-					//import->flags |= GF_IMPORT_DO_ABORT;
+					import->flags |= GF_IMPORT_DO_ABORT;
 				return;
 			}
 
@@ -7478,7 +7502,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 				} else {
 
-					if (tsimp->avccfg) m2ts_rewrite_avc_sample(import, tsimp);
+					if (tsimp->avccfg || tsimp->hevccfg) m2ts_rewrite_nalu_sample(import, tsimp);
+
 					e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
 				}
 				if (e) {
@@ -7703,6 +7728,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		GF_Err e = import->last_error;
 		import->last_error = GF_OK;
 		if (tsimp.avccfg) gf_odf_avc_cfg_del(tsimp.avccfg);
+		if (tsimp.hevccfg) gf_odf_hevc_cfg_del(tsimp.hevccfg);
   		gf_m2ts_demux_del(ts);
   		fclose(mts);
 		return e;
@@ -7730,9 +7756,21 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
 
 
-			m2ts_rewrite_avc_sample(import, &tsimp);
+			m2ts_rewrite_nalu_sample(import, &tsimp);
 
 			gf_odf_avc_cfg_del(tsimp.avccfg);
+		}
+
+		if (tsimp.hevccfg) {
+			u32 w = ((GF_M2TS_PES*)es)->vid_w;
+			u32 h = ((GF_M2TS_PES*)es)->vid_h;
+			gf_isom_hevc_config_update(import->dest, tsimp.track, 1, tsimp.hevccfg);
+			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
+			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
+
+			m2ts_rewrite_nalu_sample(import, &tsimp);
+
+			gf_odf_hevc_cfg_del(tsimp.hevccfg);
 		}
 
 
