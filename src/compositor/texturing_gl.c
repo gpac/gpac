@@ -870,17 +870,11 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				gf_sc_texture_release_stream(txh);
 			}
 		} else {
-			Bool needs_stride = (txh->width*txh->tx_io->nb_comp != txh->stride) ? 1 : 0;
-			if (needs_stride)
-		        glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride);
-
 			if (first_load) {
 				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
 			} else {
 				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
 			}
-			if (needs_stride)
-		        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 		}
 	} else {
 
