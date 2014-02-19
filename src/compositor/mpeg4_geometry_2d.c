@@ -263,7 +263,11 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
 
-	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->data) {
+	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->data 
+#ifndef GPAC_DISABLE_3D
+		&& !tr_state->visual->compositor->opengl_auto
+#endif
+		) {
 		Bool res;
 
 		/*get image size WITHOUT line size or antialias margin*/

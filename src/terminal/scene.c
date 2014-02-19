@@ -1520,8 +1520,10 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene)
 	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
 		if (!ck->has_seen_eos) return 0;
 	}
-	if (scene->scene_codec && (scene->scene_codec->Status != GF_ESM_CODEC_STOP)) return 0;
-	if (scene->od_codec && (scene->od_codec->Status != GF_ESM_CODEC_STOP)) return 0;
+	if (scene) {
+		if (scene->scene_codec && (scene->scene_codec->Status != GF_ESM_CODEC_STOP)) return 0;
+		if (scene->od_codec && (scene->od_codec->Status != GF_ESM_CODEC_STOP)) return 0;
+	}
 	return 1;
 }
 

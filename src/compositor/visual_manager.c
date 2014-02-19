@@ -55,6 +55,7 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->ClearSurface = visual_2d_clear_surface;
 
 #ifndef GPAC_DISABLE_3D
+
 #ifndef GPAC_DISABLE_VRML
 	tmp->navigation_stack = gf_list_new();
 	tmp->fog_stack = gf_list_new();
@@ -92,6 +93,7 @@ void visual_del(GF_VisualManager *visual)
 
 #ifndef GPAC_DISABLE_3D
 	visual_3d_reset_graphics(visual);
+	ra_del(&visual->opengl_auto_drawn);
 
 #ifndef GPAC_DISABLE_VRML
 	if (visual->navigation_stack) BindableStackDelete(visual->navigation_stack);

@@ -578,6 +578,9 @@ void gf_sc_del(GF_Compositor *compositor)
 		gf_list_del(compositor->traverse_state->use_stack);
 		gf_free(compositor->traverse_state);
 	}
+
+	compositor_2d_reset_gl_auto(compositor);
+
 #ifndef GPAC_DISABLE_3D
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
 #endif
@@ -1154,11 +1157,20 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceOpenGL");
 	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	if (!sOpt) {
+		compositor->visual->type_3d = 1;
+		compositor->recompute_ar = 1;
+		compositor->autoconfig_opengl = 1;
+	}
 
 #ifdef OPENGL_RASTER
 	compositor->opengl_raster = (sOpt && !strcmp(sOpt, "raster")) ? 1 : 0;
 	if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
 #endif
+
+	compositor->opengl_auto = (sOpt && !strcmp(sOpt, "auto")) ? 1 : 0;
+	//force this until we finish support for defer render in opengl auto mode
+	if (compositor->opengl_auto) compositor->traverse_state->immediate_draw = GF_TRUE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");
 	if (sOpt && !strcmp(sOpt, "Walk")) compositor->default_navigation_mode = GF_NAVIGATE_WALK;
@@ -1901,12 +1913,11 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
 
+		compositor->recompute_ar = 1;
 #ifndef GPAC_DISABLE_3D
 		/*change in 2D/3D config, force AR recompute/video restup*/
 		if (was_3d != compositor->visual->type_3d) compositor->recompute_ar = was_3d ? 1 : 2;
 #endif
-
-		compositor->recompute_ar = 1;
 	}
 }
 
@@ -1926,14 +1937,37 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 
 #ifndef GPAC_DISABLE_3D
+		if (compositor->autoconfig_opengl) {
+			compositor->visual->type_3d = 1;
+		}
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
+			if (compositor->autoconfig_opengl) {
+				visual_3d_init_yuv_shader(compositor->visual);
+				compositor->autoconfig_opengl = 0;
+				if (compositor->visual->yuv_rect_glsl_program) {
+					//to change to "auto" once the GL auto mode is stable
+					gf_cfg_set_key(compositor->user->config, "Compositor", "ForceOpenGL", "yes");
+					compositor->force_opengl_2d = 1;
+				} else {
+					gf_cfg_set_key(compositor->user->config, "Compositor", "ForceOpenGL", "no");
+					compositor->force_opengl_2d = 0;
+					compositor->visual->type_3d = 0;
+				}
+			}
+
 		}
-		else
 #endif
-		{
+		if (!compositor->visual->type_3d) {
 			compositor_2d_set_aspect_ratio(compositor);
+#ifndef GPAC_DISABLE_3D
+			if (compositor->opengl_auto) {
+				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
+				visual_3d_init_yuv_shader(compositor->visual);
+				ra_init(&compositor->visual->opengl_auto_drawn);
+			}
+#endif
 		}
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 

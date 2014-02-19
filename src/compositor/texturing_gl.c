@@ -131,7 +131,6 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 	txh->tx_io = NULL;
 }
 
-
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
@@ -224,6 +223,7 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 #ifndef GPAC_USE_OGL_ES 
 		if (txh->tx_io->yuv_shader) {
 			glUseProgram(0);
+			txh->compositor->visual->current_texture_glsl_program = 0;
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(txh->tx_io->gl_type, 0);
 		}
@@ -870,11 +870,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				gf_sc_texture_release_stream(txh);
 			}
 		} else {
+			Bool needs_stride = (txh->width*txh->tx_io->nb_comp != txh->stride) ? 1 : 0;
+			if (needs_stride)
+		        glPixelStorei(GL_UNPACK_ROW_LENGTH, txh->stride);
+
 			if (first_load) {
 				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
 			} else {
 				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
 			}
+			if (needs_stride)
+		        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 		}
 	} else {
 
@@ -920,6 +926,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 
 #ifndef GPAC_DISABLE_3D
+
+void gf_sc_texture_refresh_area(GF_TextureHandler *txh, GF_IRect *rc, void *mem)
+{
+	if (!txh->tx_io) return;
+
+	if (txh->tx_io->flags & TX_NEEDS_HW_LOAD) {
+		gf_sc_texture_push_image(txh, 0, 0);
+	}
+
+	glTexSubImage2D(txh->tx_io->gl_type, 0, rc->x, rc->y, rc->width, rc->height, txh->tx_io->gl_format, txh->tx_io->gl_dtype, mem);
+}
 
 static Bool tx_set_image(GF_TextureHandler *txh, Bool generate_mipmaps)
 {
@@ -1504,7 +1521,8 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	if (txh->tx_io->yuv_shader) {
 		/*use our program*/
 		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
-		glUseProgram(is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program);
+		compositor->visual->current_texture_glsl_program = is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program;
+		glUseProgram(compositor->visual->current_texture_glsl_program);
 
 		glEnable(txh->tx_io->gl_type);
 		

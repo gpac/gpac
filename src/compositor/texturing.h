@@ -42,6 +42,8 @@ void gf_sc_texture_reset(GF_TextureHandler *hdl);
 /*push data to hardware if needed, creating the hardware handle(s)*/
 Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Bool for2d);
 
+/*refreshes hardware data for given rect (eg glTexSubImage)*/
+void gf_sc_texture_refresh_area(GF_TextureHandler *, GF_IRect *rc, void *mem);
 /*gets texture transform matrix - returns 1 if not identity
 @tx_transform: texture transform node from appearance*/
 Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *mx, Bool for_picking);

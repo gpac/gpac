@@ -1042,7 +1042,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 			gf_mx2d_inverse(&tx);
 
 			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, bounds ? bounds : &span->bounds, &tx, tr_state);
-			visual_2d_draw_path_extended(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state, bounds ? bounds : &span->bounds, &tx);
+			visual_2d_draw_path_extended(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state, bounds ? bounds : &span->bounds, &tx, GF_FALSE);
 		} else {
 			visual_2d_draw_path(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state);
 		}

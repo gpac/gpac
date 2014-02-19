@@ -390,6 +390,7 @@ static char *glsl_yuv_shader = "\
 	uniform sampler2D y_plane;\
 	uniform sampler2D u_plane;\
 	uniform sampler2D v_plane;\
+	uniform float alpha;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -407,7 +408,7 @@ static char *glsl_yuv_shader = "\
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
 	    rgb.b = dot(yuv, B_mul); \
-		gl_FragColor = vec4(rgb, 1.0);\
+		gl_FragColor = vec4(rgb, alpha);\
 	}";
 
 
@@ -419,6 +420,7 @@ static char *glsl_yuv_rect_shader_strict = "\
 	uniform sampler2DRect v_plane;\
 	uniform float width;\
 	uniform float height;\
+	uniform float alpha;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -441,7 +443,7 @@ static char *glsl_yuv_rect_shader_strict = "\
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
 	    rgb.b = dot(yuv, B_mul); \
-		FragColor = vec4(rgb, 1.0);\
+		FragColor = vec4(rgb, alpha);\
 	}";
 
 static char *glsl_yuv_rect_shader_relaxed= "\
@@ -450,6 +452,7 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 	uniform sampler2DRect v_plane;\
 	uniform float width;\
 	uniform float height;\
+	uniform float alpha;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -471,7 +474,7 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
 	    rgb.b = dot(yuv, B_mul); \
-		gl_FragColor = vec4(rgb, 1.0);\
+		gl_FragColor = vec4(rgb, alpha);\
 	}";
 
 
@@ -1719,9 +1722,20 @@ void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alph
 
 void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
-	u32 a;
-	a = GF_COL_A(col);
+	u32 a = GF_COL_A(col);
 
+#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+	if (visual->compositor->visual->current_texture_glsl_program) {
+		int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
+		if (loc == -1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"alpha\" in YUV shader\n"));
+		} else {
+			GLfloat alpha = (GLfloat) a / 255.0f;
+			glUniform1f(loc, alpha);
+		}
+		return;
+	}
+#endif
 	glDisable(GL_LIGHTING);
 	if (a != 0xFF) {
 		glEnable(GL_BLEND);

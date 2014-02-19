@@ -310,6 +310,7 @@ GF_Err evg_surface_clear_bgra(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_rgba_fill_erase(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 GF_Err evg_surface_clear_rgba(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 
 void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
