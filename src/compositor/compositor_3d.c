@@ -113,7 +113,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 #endif
 
 	if (compositor->video_out->ProcessEvent(compositor->video_out, &evt)<0) {
-		compositor->reset_graphics=1;
+		gf_sc_reset_graphics(compositor);
 		return GF_OK;
 	}
 

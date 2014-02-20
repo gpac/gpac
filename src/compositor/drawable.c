@@ -643,6 +643,7 @@ static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 
 
 #ifndef GPAC_DISABLE_VRML
+
 DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx;
@@ -695,8 +696,43 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	ctx->flags |= drawable_get_aspect_2d_mpeg4(drawable->node, &ctx->aspect, tr_state);
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
-	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
-	else if (ctx->aspect.line_texture && ctx->aspect.line_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
+	if (ctx->aspect.fill_texture) {
+		if (ctx->aspect.fill_texture->needs_refresh) {
+			ctx->flags |= CTX_TEXTURE_DIRTY;
+		}
+#ifndef GPAC_DISABLE_3D
+		//in autoGL mode, a texture is dirty only if transparent. If not, the area covered over the video doesn't need to be repainted if unchanged 
+		//disable for color matrix as we don't yet handle them in GL
+		if (tr_state->visual->compositor->hybrid_opengl && !tr_state->visual->offscreen) {
+			u8 alpha = GF_COL_A(ctx->aspect.fill_color);
+			if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+
+			if (!ctx->aspect.fill_texture->transparent && (alpha==0xFF) && !ctx->aspect.fill_texture->compute_gradient_matrix)
+				ctx->flags |= CTX_HYBOGL_NO_CLEAR;
+			//if texture is transparent, we need to redraw all object below, wether they changed ot not, bacause we have erased this part of the canvas
+			else
+				ctx->flags |= CTX_TEXTURE_DIRTY;
+		}
+#endif
+	}
+	//same as above
+	if (ctx->aspect.line_texture) {
+		if (ctx->aspect.line_texture->needs_refresh) 
+			ctx->flags |= CTX_TEXTURE_DIRTY;
+
+#ifndef GPAC_DISABLE_3D
+		//in autoGL mode, a texture is dirty only if transparent. If not, the area covered over the video doesn't need to be repainted if unchanged 
+		//disable for color matrix as we don't yet handle them in GL
+		if (tr_state->visual->compositor->hybrid_opengl && !tr_state->visual->offscreen) {
+			u8 alpha = GF_COL_A(ctx->aspect.line_color);
+			if (!ctx->aspect.line_texture->transparent && (alpha==0xFF) && !ctx->aspect.line_texture->compute_gradient_matrix)
+				ctx->flags |= CTX_HYBOGL_NO_CLEAR;
+			//if texture is transparent, we need to redraw all object below, wether they changed ot not, bacause we have erased this part of the canvas
+			else
+				ctx->flags |= CTX_TEXTURE_DIRTY;
+		}
+#endif
+	}
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may 
 	completely break layout of children. We consider the node should be drawn*/

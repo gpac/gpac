@@ -240,6 +240,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 	case GF_EVENT_KEYUP:
         if ((event->key.key_code == GF_KEY_END)&&(event->key.flags & GF_KEY_MOD_CTRL)) { 
             GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
             evt.type = GF_EVENT_QUIT;
             validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);                
         }
@@ -421,6 +422,7 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
                 gf_free(snap_name);
             } else if (event->key.key_code == GF_KEY_END) {
                 GF_Event evt;
+				memset(&evt, 0, sizeof(GF_Event));
                 evt.type = GF_EVENT_QUIT;
                 validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);                
             } else if (event->key.key_code == GF_KEY_F1) {
@@ -947,6 +949,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
                 validator_xvs_next(validator, 0);
                 if (!validator->xvs_node) {
                     GF_Event evt;
+					memset(&evt, 0, sizeof(GF_Event));
                     evt.type = GF_EVENT_QUIT;
                     validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);                
                 } else {

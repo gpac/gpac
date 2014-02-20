@@ -285,17 +285,19 @@ Bool gf_sg_route_activate(GF_Route *r)
 		}
 	}
 #ifndef GPAC_DISABLE_LOG
-	if (r->IS_route) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing %s.%s IS %s.%s", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing ROUTE %s.%s TO %s.%s", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
-	}
-	if (r->FromField.fieldType==GF_SG_VRML_SFBOOL) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("\tBOOL VAL: %d\n", *((SFBool*)r->FromField.far_ptr)));
-	} else if (r->FromField.fieldType==GF_SG_VRML_SFINT32) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("\tINT VAL: %d\n", *((SFInt32*)r->FromField.far_ptr)));
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("\n"));
+	if (gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_INTERACT)) {
+		if (r->IS_route) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing %s.%s IS %s.%s", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing ROUTE %s.%s TO %s.%s", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
+		}
+		if (r->FromField.fieldType==GF_SG_VRML_SFBOOL) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("\tBOOL VAL: %d\n", *((SFBool*)r->FromField.far_ptr)));
+		} else if (r->FromField.fieldType==GF_SG_VRML_SFINT32) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("\tINT VAL: %d\n", *((SFInt32*)r->FromField.far_ptr)));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("\n"));
+		}
 	}
 #endif
 

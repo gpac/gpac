@@ -93,7 +93,7 @@ void visual_del(GF_VisualManager *visual)
 
 #ifndef GPAC_DISABLE_3D
 	visual_3d_reset_graphics(visual);
-	ra_del(&visual->opengl_auto_drawn);
+	ra_del(&visual->hybgl_drawn);
 
 #ifndef GPAC_DISABLE_VRML
 	if (visual->navigation_stack) BindableStackDelete(visual->navigation_stack);
@@ -288,6 +288,7 @@ void visual_reset_graphics(GF_VisualManager *visual)
 	if (visual->type_3d) {
 		visual_3d_reset_graphics(visual);
 	}
+	compositor_2d_reset_gl_auto(visual->compositor);
 #endif
 }
 

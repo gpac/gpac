@@ -247,8 +247,10 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
     hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &dd->pPrimary, NULL);
-	if( FAILED(hr) )
-        return GF_IO_ERR;
+	if( FAILED(hr) ) {
+   		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX Out] Failed creating primary surface: error %08x\n", hr));
+	    return GF_IO_ERR;
+	}
 
 	/*get pixel format of video board*/
 	memset (&pixelFmt, 0, sizeof(pixelFmt));

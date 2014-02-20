@@ -794,6 +794,7 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 {
 	GF_Event evt;
 	if (!term || !term->user) return;
+	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_MESSAGE;
 	evt.message.service = service;
 	evt.message.message = message;
@@ -2098,6 +2099,7 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 				break;
 			case GF_ACTION_EXIT:
+				memset(&evt, 0, sizeof(GF_Event));
 				evt.type = GF_EVENT_QUIT;
 				gf_term_send_event(term, &evt);
 				break;

@@ -500,6 +500,7 @@ GF_Err evg_surface_clear_rgbx(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 
 
 
+
 /*
 		32 bit RGBA
 */
@@ -511,16 +512,28 @@ GFINLINE static void overmask_rgba(u32 src, u8 *dst, u32 alpha)
 	u8 srcg = GF_COL_G(src);
 	u8 srcb = GF_COL_B(src);
 	u8 dsta = dst[3];
-	srca = mul255(srca, alpha);
-	if (dsta) {
+	/*special case for RGBA: 
+		if dst alpha is 0, consider the surface is empty and copy pixel
+		if source alpha is 0xFF erase the entire pixel
+	*/
+	if (dsta && (srca!=0xFF) ) {
+		u8 final_a;
 		u8 dstr = dst[0];
 		u8 dstg = dst[1];
 		u8 dstb = dst[2];
-		dst[0] = mul255(srca, srcr - dstr) + dstr;
-		dst[1] = mul255(srca, srcg - dstg) + dstg;
-		dst[2] = mul255(srca, srcb - dstb) + dstb;
-		if (dsta==0xFF) dst[3] = (u8)0xFF;
-		else dst[3] = mul255(srca, srca) + mul255(255-srca, dsta);
+
+		//do the maths , so that the result of the blend follows the sam DST = SRC*apha + DST(1-alpha)
+		//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
+		//aand an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
+		final_a = dsta + srca - mul255(dsta, srca);
+		if (final_a) {
+			dst[0] = (u8) ((srcr*srca + dstr*(dsta-srca)) / final_a);
+			dst[1] = (u8) ((srcg*srca + dstg*(dsta-srca)) / final_a);
+			dst[2] = (u8) ((srcb*srca + dstb*(dsta-srca)) / final_a);
+			dst[3] = final_a;
+		} else {
+			assert(0);
+		}
 	} else {
 		dst[0] = srcr;
 		dst[1] = srcg;
@@ -538,16 +551,28 @@ GFINLINE static void overmask_rgba_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 
 	while (count) {
 		u8 dsta = dst[3];
-		/*special case for RGBA: if dst alpha is 0, consider the surface is empty and copy pixel*/
-		if (dsta) {
+		/*special case for RGBA: 
+			if dst alpha is 0, consider the surface is empty and copy pixel
+			if source alpha is 0xFF erase the entire pixel
+		*/
+		if ((dsta != 0) && (srca != 0xFF)) {
+			u8 final_a;
 			u8 dstr = dst[0];
 			u8 dstg = dst[1];
 			u8 dstb = dst[2];
-			dst[0] = (u8) mul255(srca, srcr - dstr) + dstr;
-			dst[1] = (u8) mul255(srca, srcg - dstg) + dstg;
-			dst[2] = (u8) mul255(srca, srcb - dstb) + dstb;
-			if (dsta==0xFF) dst[3] = (u8)0xFF;
-			else dst[3] = (u8) mul255(srca, srca) + mul255(255-srca, dsta);
+
+			//do the maths , so that the result of the blend follows the sam DST = SRC*apha + DST(1-alpha)
+			//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
+			//aand an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
+			final_a = dsta + srca - mul255(dsta, srca);
+			if (final_a) {
+				dst[0] = (u8) ((srcr*srca + dstr*(dsta-srca)) / final_a);
+				dst[1] = (u8) ((srcg*srca + dstg*(dsta-srca)) / final_a);
+				dst[2] = (u8) ((srcb*srca + dstb*(dsta-srca)) / final_a);
+				dst[3] = final_a;
+			} else {
+				assert(0);
+			}
 		} else {
 			dst[0] = srcr;
 			dst[1] = srcg;
@@ -558,6 +583,7 @@ GFINLINE static void overmask_rgba_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 		count--;
 	}
 }
+
 
 void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
@@ -579,21 +605,53 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 		p = dst + spans[i].x*surf->pitch_x;
 		len = spans[i].len;
 	
-		if (spans[i].coverage != 0xFF) {
-			new_a = spans[i].coverage;
-			fin = (new_a<<24) | col_no_a;
-			overmask_rgba_const_run(fin, p, surf->pitch_x, len);
-		} else {
-			while (len--) {
-				*(p) = r;
-				*(p+1) = g;
-				*(p+2) = b;
-				*(p+3) = a;
-				p += surf->pitch_x;
-			}
+		new_a = spans[i].coverage;
+		fin = (new_a<<24) | col_no_a;
+		//we must blend in all cases since we have to merge with the dst alpha
+		overmask_rgba_const_run(fin, p, surf->pitch_x, len);
+	}
+}
+
+void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+{
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
+	u32 a, fin, col_no_a;
+	s32 i;
+
+	a = GF_COL_A(surf->fill_col);
+	col_no_a = surf->fill_col & 0x00FFFFFF;
+
+	for (i=0; i<count; i++) {
+		fin = mul255(a, spans[i].coverage);
+		fin = (fin<<24) | col_no_a;
+		overmask_rgba_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
+	}
+}
+
+void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+{
+	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
+	u8 *p;
+	u8 spanalpha, col_a;
+	s32 i;
+	u32 len;
+	u32 *col;
+
+	for (i=0; i<count; i++) {
+		p = dst + spans[i].x * surf->pitch_x;
+		len = spans[i].len;
+		spanalpha = spans[i].coverage;
+		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		col = surf->stencil_pix_run;
+		while (len--) {
+			//we must blend in all cases since we have to merge with the dst alpha
+			overmask_rgba(*col, p, spanalpha);
+			col++;
+			p += surf->pitch_x;
 		}
 	}
 }
+
 
 void evg_rgba_fill_erase(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
@@ -616,57 +674,6 @@ void evg_rgba_fill_erase(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 				*(u32 *)p = 0;
 				p += surf->pitch_x;
 			}
-		}
-	}
-}
-
-void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
-{
-	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u32 a, fin, col_no_a;
-	s32 i;
-
-	a = GF_COL_A(surf->fill_col);
-	col_no_a = surf->fill_col & 0x00FFFFFF;
-
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		fin = (fin<<24) | col_no_a;
-		overmask_rgba_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
-	}
-}
-
-
-void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
-{
-	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u8 *p;
-	u8 spanalpha, col_a;
-	s32 i;
-	u32 len;
-	u32 *col;
-
-	for (i=0; i<count; i++) {
-		p = dst + spans[i].x * surf->pitch_x;
-		len = spans[i].len;
-		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
-		col = surf->stencil_pix_run;
-		while (len--) {
-			col_a = GF_COL_A(*col);
-			if (col_a) {
-				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
-					overmask_rgba(*col, p, spanalpha);
-				} else {
-					u32 _col = *col;
-					p[0] = GF_COL_R(_col);
-					p[1] = GF_COL_G(_col);
-					p[2] = GF_COL_B(_col);
-					p[3] = GF_COL_A(_col);
-				}
-			}
-			col++;
-			p += surf->pitch_x;
 		}
 	}
 }

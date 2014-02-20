@@ -77,7 +77,6 @@ struct _visual_manager
 	u32 type_3d;
 #endif
 
-
 #ifndef GPAC_DISABLE_VRML
 	/*background stack*/
 	GF_List *back_stack;
@@ -95,9 +94,7 @@ struct _visual_manager
 
 	/*the one and only dirty rect collector for this visual manager*/
 	GF_RectArray to_redraw;
-#ifdef TRACK_OPAQUE_REGIONS
 	u32 draw_node_index;
-#endif
 
 	/*display list (list of drawable context). The first context with no drawable attached to 
 	it (ctx->drawable==NULL) marks the end of the display list*/
@@ -183,7 +180,8 @@ struct _visual_manager
 
 	//when using 2D layering in opengl, we store the bounding rect of drawn objects betwwen GL calls, so we
 	//can flush only the minimum part of the texture
-	GF_RectArray opengl_auto_drawn;
+	GF_RectArray hybgl_drawn;
+	u32 nb_objects_on_canvas_since_last_ogl_flush;
 
 	u32 nb_views, current_view, autostereo_type, camera_layout;
 	Bool reverse_views;

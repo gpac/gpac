@@ -1492,6 +1492,14 @@ static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state,
 void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 {
 	if (asp->line_texture) {
+		GF_Node *txtrans = NULL;
+		if (tr_state->appear 
+			&& (gf_node_get_tag( ((M_Appearance *)tr_state->appear)->material) == TAG_MPEG4_Material2D) 
+			&& (gf_node_get_tag(((M_Material2D *) ((M_Appearance *)tr_state->appear)->material)->lineProps) == TAG_MPEG4_XLineProperties) 
+		) {
+			txtrans = ((M_XLineProperties *) ((M_Material2D *) ((M_Appearance *)tr_state->appear)->material)->lineProps)->textureTransform;
+		}
+
 		/*We forgot to specify this in the spec ...*/
 		gf_sc_texture_set_blend_mode(asp->line_texture, TX_REPLACE);
 #if 0
@@ -1503,7 +1511,7 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 			gf_sc_texture_set_blend_mode(asp->txh, TX_REPLACE);
 		}
 #endif
-		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->line_texture, NULL/*asp->tx_trans*/);
+		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->line_texture, txtrans);
 		if (tr_state->mesh_num_textures) return;
 	}
 	/*no texture or not ready, use color*/
@@ -1534,7 +1542,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 		}
 	}
 
-	if (tr_state->visual->type_3d == 4) return;
+	if ((tr_state->visual->type_3d == 4) && !asp->line_texture) return;
 
 	/*strike path*/
 	if (!asp->pen_props.width || !GF_COL_A(asp->line_color)) return;
@@ -1543,7 +1551,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	if (!si) return;
 
 	if (!si->mesh_outline) {
-		si->is_vectorial = !tr_state->visual->compositor->raster_outlines;
+		si->is_vectorial = asp->line_texture ? GF_TRUE : !tr_state->visual->compositor->raster_outlines;
 		si->mesh_outline = new_mesh();
 #ifdef GPAC_HAS_GLU
 		if (si->is_vectorial) {

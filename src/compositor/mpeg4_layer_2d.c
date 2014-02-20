@@ -103,7 +103,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	SFVec2f prev_vp;
 
 #ifndef GPAC_DISABLE_3D
-	GF_Matrix mx3d;
+	GF_Matrix mx3d, prev_layer_mx;
 	GF_List *oldf, *oldn;
 	GF_List *node_list_backup;
 	GF_Rect prev_clipper;
@@ -164,6 +164,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_SORT:
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) {
+			gf_mx_copy(prev_layer_mx, tr_state->layer_matrix);
 			tr_state->layer_clipper = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 1);
 
 			visual_3d_matrix_push(tr_state->visual);
@@ -211,6 +212,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			tr_state->has_layer_clip = had_clip;
 			if (had_clip) {
 				tr_state->layer_clipper = prev_clipper;
+				gf_mx_copy(tr_state->layer_matrix, prev_layer_mx);
 				visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper);
 			}
 		} else 
@@ -236,6 +238,8 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 			}
 
+			rc.x -= FIX_ONE; rc.width += 2*FIX_ONE;
+			rc.y += FIX_ONE; rc.height += 2*FIX_ONE;
 			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
 			tr_state->traversing_mode = TRAVERSE_SORT;
