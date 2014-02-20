@@ -319,6 +319,44 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		}
 		*frame = avcodec_alloc_frame();
 	}
+#ifdef HAS_HEVC
+	if (ffd->oti == GPAC_OTI_VIDEO_HEVC) {
+		GF_SystemRTInfo rti;
+		u32 nb_threads, detected_nb_threads = 1;
+		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType");
+		if (sOpt && !strcmp(sOpt, "wpp")) av_opt_set(*ctx, "thread_type", "slice", 0);
+		else if (sOpt && !strcmp(sOpt, "frame+wpp")) av_opt_set(*ctx, "thread_type", "frameslice", 0);
+		else {
+			av_opt_set(*ctx, "thread_type", "frame", 0);
+			if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType", "frame");
+		}
+		if (gf_sys_get_rti(0, &rti, 0) ) {
+			detected_nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
+		}
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads");
+		if (!sOpt) {
+			char szO[100];
+			//checkme I have perf using too many threads
+			if (detected_nb_threads > 6) detected_nb_threads = 6;
+			sprintf(szO, "%d", detected_nb_threads);
+			gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads", szO);
+			nb_threads = detected_nb_threads;
+		} else {
+			nb_threads = atoi(sOpt);
+		}
+		if (nb_threads > detected_nb_threads) {
+			GF_LOG(GF_LOG_CODEC, GF_LOG_WARNING, ("[OpenHEVC] Initializing with %d threads but only %d available cores detected on the system\n", nb_threads, rti.nb_cores));
+		} else {
+			GF_LOG(GF_LOG_CODEC, GF_LOG_INFO, ("[OpenHEVC] Initializing with %d threads\n", nb_threads));
+		}
+		fprintf(stderr, "[OpenHEVC] Initializing with %d threads\n", nb_threads);
+        av_opt_set_int(*ctx, "threads", nb_threads, 0);
+
+        /* Set the decoder id */
+		//av_opt_set_int(openHevcContext->c->priv_data, "decoder-id", i, 0);
+
+	}
+#endif //HAS_HEVC
 	if (codec_id == CODEC_ID_RAWVIDEO) {
 		(*ctx)->codec_id = CODEC_ID_RAWVIDEO;
 		(*ctx)->pix_fmt = ffd->raw_pix_fmt;
@@ -330,7 +368,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		if (avcodec_open((*ctx), (*codec) )<0) return GF_NON_COMPLIANT_BITSTREAM;
 #endif
 	}
-
 	/*setup audio streams*/
 	if (ffd->st==GF_STREAM_AUDIO) {
 		if ((*codec)->id == CODEC_ID_MP2) {
@@ -394,44 +431,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	}
 
 
-#ifdef HAS_HEVC
-	if (ffd->oti == GPAC_OTI_VIDEO_HEVC) {
-		GF_SystemRTInfo rti;
-		u32 nb_threads, detected_nb_threads = 1;
-		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType");
-		if (sOpt && !strcmp(sOpt, "wpp")) av_opt_set(*ctx, "thread_type", "slice", 0);
-		else if (sOpt && !strcmp(sOpt, "frame+wpp")) av_opt_set(*ctx, "thread_type", "frameslice", 0);
-		else {
-			av_opt_set(*ctx, "thread_type", "frame", 0);
-			if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType", "frame");
-		}
-		if (gf_sys_get_rti(0, &rti, 0) ) {
-			detected_nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
-		}
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads");
-		if (!sOpt) {
-			char szO[100];
-			//checkme I have perf using too many threads
-			if (detected_nb_threads > 6) detected_nb_threads = 6;
-			sprintf(szO, "%d", detected_nb_threads);
-			gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads", szO);
-			nb_threads = detected_nb_threads;
-		} else {
-			nb_threads = atoi(sOpt);
-		}
-		if (nb_threads > detected_nb_threads) {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_WARNING, ("[OpenHEVC] Initializing with %d threads but only %d available cores detected on the system\n", nb_threads, rti.nb_cores));
-		} else {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_INFO, ("[OpenHEVC] Initializing with %d threads\n", nb_threads));
-		}
-		fprintf(stderr, "[OpenHEVC] Initializing with %d threads\n", nb_threads);
-	        av_opt_set_int(*ctx, "threads", nb_threads, 0);
-
-	        /* Set the decoder id */
-		//av_opt_set_int(openHevcContext->c->priv_data, "decoder-id", i, 0);
-
-	}
-#endif //HAS_HEVC
 	return GF_OK;
 }
 
