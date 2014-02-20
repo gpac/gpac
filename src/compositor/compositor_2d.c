@@ -36,6 +36,7 @@
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
+    return;
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[4];
 
@@ -63,6 +64,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
+    return;
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[4];
 
@@ -93,6 +95,7 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 
 static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
 {
+    return;
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[8];
 
@@ -296,7 +299,6 @@ Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState 
 		size.y = ctx->bi->unclip.height;
 		orig.x = ctx->bi->unclip.x ;
 		orig.y = ctx->bi->unclip.y;
-//		mesh_new_rectangle(visual->compositor->hybgl_mesh_background, size, &orig, ! gf_sc_texture_is_flipped(ctx->aspect.fill_texture) );
 		mesh_new_rectangle(visual->compositor->hybgl_mesh_background, size, &orig, 0);
 
 		visual_3d_mesh_paint(tr_state, visual->compositor->hybgl_mesh_background);

@@ -1566,15 +1566,3 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_STENCIL stencil)
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 }
 
-Bool gf_sc_texture_is_flipped(GF_TextureHandler *txh)
-{
-	switch (txh->pixelformat) {
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_YV12_10:
-	case GF_PIXEL_NV21:
-	case GF_PIXEL_I420:
-		if (txh->tx_io && txh->tx_io->yuv_shader) return 1;
-	default:
-		return (txh->tx_io->flags & TX_IS_FLIPPED) ? 1 : 0;
-	}
-}
