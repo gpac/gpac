@@ -568,6 +568,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    /* Have we been requested to quit (or another client message?) */
 		  case ClientMessage:
 		    if ( (xevent.xclient.format == 32) && (xevent.xclient.data.l[0] == xWindow->WM_DELETE_WINDOW) ) {
+				memset(&evt, 0, sizeof(GF_Event));
 		      evt.type = GF_EVENT_QUIT;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
 		    }
@@ -707,6 +708,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    break;
 
 		  case DestroyNotify:
+			  memset(&evt, 0, sizeof(GF_Event));
 		      evt.type = GF_EVENT_QUIT;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
 		    break;
@@ -737,6 +739,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   XSync(xWin->display, False);
   memset(&evt, 0, sizeof(GF_Event));
   evt.type = GF_EVENT_VIDEO_SETUP;
+  evt.hw_reset = 1;
   vout->on_event (vout->evt_cbk_hdl,&evt);
   xWin->is_init = 1;
   return GF_OK;

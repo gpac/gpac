@@ -59,8 +59,8 @@ OrderedGroup {
          emissiveColor 0 1 0
         }
         texture CompositeTexture2D {
-         pixelWidth 100
-         pixelHeight 100
+         pixelWidth 128
+         pixelHeight 128
          children [
           DEF S Shape {
            appearance Appearance {

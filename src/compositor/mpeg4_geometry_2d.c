@@ -265,7 +265,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 
 	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->data 
 #ifndef GPAC_DISABLE_3D
-		&& !tr_state->visual->compositor->opengl_auto
+		&& !tr_state->visual->compositor->hybrid_opengl
 #endif
 		) {
 		Bool res;

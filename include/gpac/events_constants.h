@@ -189,16 +189,15 @@ typedef enum {
 	GF_EVENT_SET_CAPTION,	/*set window caption*/
 	GF_EVENT_MOVE,		/*move window*/
 	GF_EVENT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
-	GF_EVENT_QUIT,	/*window is being closed*/
+	GF_EVENT_QUIT,	/*app is being closed - associated structure is evt.message to carry any potential reason for quiting*/
 	/*video hw setup message:
 		- when sent from gpac to plugin, indicates that the plugin should re-setup hardware context due to a window resize:
 			* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
 			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems
 			and implementations, it could be possible to resize a window without destroying the GL context.
 
-		- when sent from plugin to gpac, indicates that hardware resources must be resetup before next render step (this is mainly
-		due to discard all openGL textures and cached objects)
-		- when sent from gpac to use, indicate aspect ratio has been modified and video output is ready
+		- when sent from plugin to gpac, indicates that hardware has been setup. 
+		- when sent from gpac to user, indicate aspect ratio has been modified and video output is ready
 	*/
 	GF_EVENT_VIDEO_SETUP,
 	/*queries the list of system colors - only exchanged between compositor and video output*/
@@ -228,7 +227,7 @@ typedef enum {
 	GF_EVENT_OPENFILE,
     /* Events for Keyboad */
     GF_EVENT_TEXT_EDITING_START,
-    GF_EVENT_TEXT_EDITING_END
+    GF_EVENT_TEXT_EDITING_END,
 } GF_EventType;
 
 /*GPAC/DOM3 key codes*/

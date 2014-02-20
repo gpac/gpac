@@ -363,6 +363,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		break;
 	case WM_CLOSE:
 		if (hWnd==ctx->os_hwnd) {
+			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_QUIT;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
@@ -582,6 +583,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		if (evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
 		if (evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
 		if ((ctx->os_hwnd==ctx->fs_hwnd) && ctx->alt_down && (evt.key.key_code==GF_KEY_F4)) {
+			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_QUIT;
 		}
 		else if (ctx->ctrl_down && (evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_V)) {

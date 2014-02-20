@@ -315,8 +315,10 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 			}
 			ctx->bi->unclip = gf_rect_ft(&ctx->bi->clip);
 			tr_state->traversing_mode = TRAVERSE_BINDABLE;
+			ctx->flags |= CTX_BACKROUND_NOT_LAYER;
 			gf_node_traverse((GF_Node *) bck, tr_state);
 			tr_state->traversing_mode = TRAVERSE_SORT;
+			ctx->flags &= ~CTX_BACKROUND_NOT_LAYER;
 		} else {
 			visual->ClearSurface(visual, NULL, 0);
 		}
@@ -372,8 +374,8 @@ void ra_union_rect(GF_RectArray *ra, GF_IRect *rc)
 	assert(rc->width && rc->height);
 
 	for (i=0; i<ra->count; i++) { 
-		if (gf_irect_overlaps(&ra->list[i], rc)) { 
-			gf_irect_union(&ra->list[i], rc); 
+		if (gf_irect_overlaps(&ra->list[i].rect, rc)) { 
+			gf_irect_union(&ra->list[i].rect, rc); 
 			return; 
 		} 
 	}
@@ -406,14 +408,14 @@ void ra_refresh(GF_RectArray *ra)
 	u32 i, j, k;
 	for (i=0; i<ra->count; i++) {
 		for (j=i+1; j<ra->count; j++) {
-			switch (gf_irect_relation(&ra->list[j], &ra->list[i])) {
+			switch (gf_irect_relation(&ra->list[j].rect, &ra->list[i].rect)) {
 
 			/*both rectangles overlap, merge them and remove opaque node info*/
 			case 1:
-				gf_irect_union(&ra->list[i], &ra->list[j]);
+				gf_irect_union(&ra->list[i].rect, &ra->list[j].rect);
 #ifdef TRACK_OPAQUE_REGIONS
 				/*current dirty rect is no longer opaque*/
-				ra->opaque_node_index[i] = 0;
+				ra->list[i].opaque_node_index = 0;
 #endif
 				/*FALLTHROUGH*/
 			/*first rectangle covers second, just remove*/
@@ -422,9 +424,6 @@ void ra_refresh(GF_RectArray *ra)
 				k = ra->count - j - 1;
 				if (k) {
 					memmove(&ra->list[j], & ra->list[j+1], sizeof(GF_IRect)*k);
-#ifdef TRACK_OPAQUE_REGIONS
-					memmove(&ra->opaque_node_index[j], & ra->opaque_node_index[j+1], sizeof(u32)*k);
-#endif
 				}
 				ra->count--; 
 				if (ra->count>=2)
@@ -437,7 +436,7 @@ void ra_refresh(GF_RectArray *ra)
 	}
 }
 
-static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx_idx, DrawableContext **first_opaque)
+static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx_idx, DrawableContext **first_opaque)
 {
 	u32 i;
 	Bool needs_redraw;
@@ -450,7 +449,13 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 	/*node is modified*/
 	needs_redraw = (ctx->flags & CTX_REDRAW_MASK) ? 1 : 0;
 
-	/*node is transparent*/
+#ifndef GPAC_DISABLE_3D
+	if (ctx->flags & CTX_HYBOGL_NO_CLEAR) {
+		return 2;
+	}
+#endif
+
+	/*node is not transparent*/
 	if ((ctx->flags & CTX_NO_ANTIALIAS) && !(ctx->flags & CTX_IS_TRANSPARENT) ) {
 #ifdef TRACK_OPAQUE_REGIONS
 		is_transparent = 0;
@@ -460,31 +465,30 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 
 	for (i=0; i<ra->count; i++) { 
 		if (needs_redraw) {
-			switch (gf_irect_relation(&ra->list[i], rc)) { 
+			switch (gf_irect_relation(&ra->list[i].rect, rc)) { 
 			/*context intersects an existing rectangle, merge them and remove opaque idx info*/
 			case 1:
-				gf_irect_union(&ra->list[i], rc); 
+				gf_irect_union(&ra->list[i].rect, rc); 
 #ifdef TRACK_OPAQUE_REGIONS
-				ra->opaque_node_index[i]= 0; 
+				ra->list[i].opaque_node_index = 0; 
 #endif
-				return needs_redraw; 
+				return 1; 
 			/*context covers an existing rectangle, replace rect and add opaque idx info*/
 			case 2:
-				ra->list[i]= *rc; 
+				ra->list[i].rect= *rc; 
 #ifdef TRACK_OPAQUE_REGIONS
-				ra->opaque_node_index[i]= is_transparent ? 0 : ctx_idx; 
+				ra->list[i].opaque_node_index = is_transparent ? 0 : ctx_idx; 
 #endif
-				return needs_redraw; 
+				return 1; 
 			}
 		}
 #ifdef TRACK_OPAQUE_REGIONS
 		/*context unchanged coverring an entire area*/
-		else if (!is_transparent && gf_irect_inside(rc, &ra->list[i])) {
+		else if (!is_transparent && gf_irect_inside(rc, &ra->list[i].rect)) {
 			/*remove rect*/
 			u32 k = ra->count - i - 1;
 			if (k) {
-				memmove(&ra->list[i], & ra->list[i+1], sizeof(GF_IRect)*k);
-				memmove(&ra->opaque_node_index[i], & ra->opaque_node_index[i+1], sizeof(u32)*k);
+				memmove(&ra->list[i], & ra->list[i+1], sizeof(GF_RectArrayEntry)*k);
 			}
 			ra->count--; 
 			i--;
@@ -495,13 +499,10 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 	if (needs_redraw) {
 		ra_add(ra, rc); 
 #ifdef TRACK_OPAQUE_REGIONS
-		if (!ra->opaque_node_index)
-			ra->opaque_node_index = gf_malloc(sizeof(u32)*ra->alloc);
-
-		ra->opaque_node_index[ra->count-1] = is_transparent ? 0 : ctx_idx; 
+		ra->list[ra->count-1].opaque_node_index = is_transparent ? 0 : ctx_idx; 
 #endif
 	}
-	return needs_redraw;
+	return 1;
 }
 
 
@@ -513,11 +514,11 @@ static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 #ifdef TRACK_OPAQUE_REGIONS
 	u32 i;
 	for (i=0; i<ra->count; i++) { 
-		switch (gf_irect_relation(rc, &ra->list[i])) { 
+		switch (gf_irect_relation(rc, &ra->list[i].rect)) { 
 		/*dirty area intersects this dirty rectangle, merge them and remove opaque idx info*/
 		case 1:
-			gf_irect_union(&ra->list[i], rc); 
-			ra->opaque_node_index[i]= 0; 
+			gf_irect_union(&ra->list[i].rect, rc); 
+			ra->list[i].opaque_node_index = 0; 
 			return; 
 		/*dirty area is covered by this dirty rectangle, nothing to do*/
 		case 2:
@@ -528,10 +529,7 @@ static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 	/*not found, add rect*/
 	ra_add(ra, rc); 
 #ifdef TRACK_OPAQUE_REGIONS
-	if (!ra->opaque_node_index)
-		ra->opaque_node_index = gf_malloc(sizeof(u32)*ra->alloc);
-
-	ra->opaque_node_index[ra->count-1] = 0; 
+	ra->list[ra->count-1].opaque_node_index = 0; 
 #endif
 
 #else
@@ -539,10 +537,7 @@ static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 	ra_add(ra, rc); 
 
 #ifdef TRACK_OPAQUE_REGIONS
-	if (!ra->opaque_node_index)
-		ra->opaque_node_index = gf_malloc(sizeof(u32)*ra->alloc);
-
-	ra->opaque_node_index[ra->count-1] = 0; 
+	ra->list[ra->count-1].opaque_node_index = 0; 
 #endif
 
 #endif
@@ -554,6 +549,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	u32 k, i, count, num_nodes, num_changed;
 	GF_IRect refreshRect;
 	Bool redraw_all;
+	Bool hyb_force_redraw=GF_FALSE;
 #ifndef GPAC_DISABLE_VRML
 	M_Background2D *bck = NULL;
 	DrawableContext *bck_ctx = NULL;
@@ -563,6 +559,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	DrawableContext *first_opaque = NULL;
 	Bool has_clear = 0;
 	Bool has_changed = 0;
+	Bool redraw_all_on_background_change = GF_TRUE;
 
 	/*in direct mode the visual is always redrawn*/
 	if (tr_state->immediate_draw) {
@@ -576,28 +573,37 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	}
 
 	num_changed = 0;
-	
+
 	/*if the aspect ratio has changed redraw everything*/
 	redraw_all = tr_state->invalidate_all;
 
+#ifndef GPAC_DISABLE_3D
+	if (visual->compositor->hybrid_opengl && !visual->offscreen) redraw_all_on_background_change = GF_FALSE;
+#endif
 	/*check for background changes for transparent nodes*/
 #ifndef GPAC_DISABLE_VRML
 	bck = (M_Background2D*)gf_list_get(visual->back_stack, 0);
 	if (bck) {
 		if (!bck->isBound) {
-			if (visual->last_had_back) redraw_all = 1;
+			if (visual->last_had_back) {
+				if (redraw_all_on_background_change) redraw_all = 1;
+				else hyb_force_redraw = 1;
+			}
 			visual->last_had_back = 0;
 		} else {
-			if (!visual->last_had_back) redraw_all = 1;
 			bck_ctx = b2d_get_context(bck, visual->back_stack);
-			if (bck_ctx->flags & CTX_REDRAW_MASK) redraw_all = 1;
+			if (!visual->last_had_back || (bck_ctx->flags & CTX_REDRAW_MASK) ) {
+				if (redraw_all_on_background_change) redraw_all = 1;
+				else hyb_force_redraw = 1;
+			}
 			visual->last_had_back = (bck_ctx->aspect.fill_texture && !bck_ctx->aspect.fill_texture->transparent) ? 2 : 1;
 		}
 	} else 
 #endif
 	if (visual->last_had_back) {
 		visual->last_had_back = 0;
-		redraw_all = 1;
+		if (redraw_all_on_background_change) redraw_all = 1;
+		else hyb_force_redraw = 1;
 	}
 	
 	num_nodes = 0;
@@ -607,9 +613,13 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 		drawctx_update_info(ctx, visual);
 		if (!redraw_all) {
+			u32 res;
 			assert( gf_irect_inside(&visual->top_clipper, &ctx->bi->clip) );
-			if (register_context_rect(&visual->to_redraw, ctx, num_nodes, &first_opaque)) {
+			res = register_context_rect(&visual->to_redraw, ctx, num_nodes, &first_opaque);
+			if (res) {
 				num_changed ++;
+				if (res==2)
+					hyb_force_redraw=GF_TRUE;
 			}
 
 		}
@@ -658,8 +668,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		ra_clear(&visual->to_redraw);
 		ra_add(&visual->to_redraw, &visual->surf_rect);
 #ifdef TRACK_OPAQUE_REGIONS
-		if (!visual->to_redraw.opaque_node_index) visual->to_redraw.opaque_node_index = gf_malloc(sizeof(u32)*visual->to_redraw.alloc);
-		visual->to_redraw.opaque_node_index[0]=0;
+		visual->to_redraw.list[0].opaque_node_index=0;
 #endif
 	} else {
 		ra_refresh(&visual->to_redraw);
@@ -668,19 +677,20 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			visual->ClearSurface(visual, &visual->top_clipper, 0);
 		}
 	}
-#ifdef TRACK_OPAQUE_REGIONS
-	assert(!visual->to_redraw.count || (visual->to_redraw.opaque_node_index != NULL));
-#endif
-	
+
 	/*nothing to redraw*/
-	if (ra_is_empty(&visual->to_redraw) ) {
+	if (!hyb_force_redraw && ra_is_empty(&visual->to_redraw) ) {
+#ifndef GPAC_DISABLE_3D
+		//force canvas draw
+		visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
+#endif
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] No changes found since last frame - skipping redraw\n"));
 		goto exit;
 	}
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
-	if (first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0])) {
+	if (first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
 	}
@@ -690,9 +700,8 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	if (bck_ctx) {
 		drawable_check_bounds(bck_ctx, visual);
 		tr_state->ctx = bck_ctx;
-#ifdef TRACK_OPAQUE_REGIONS
 		visual->draw_node_index = 0;
-#endif
+
 		/*force clearing entire zone, not just viewport, when using color. If texture, we MUST
 		use the VP clipper in order to compute offsets when blitting bitmaps*/
 		if (bck_ctx->aspect.fill_texture && bck_ctx->aspect.fill_texture->stream) {
@@ -702,7 +711,9 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		}
 		bck_ctx->bi->unclip = gf_rect_ft(&bck_ctx->bi->clip);
 		bck_ctx->next = visual->context;
+		bck_ctx->flags |= CTX_BACKROUND_NOT_LAYER;
 		gf_node_traverse(bck_ctx->drawable->node, tr_state);
+		bck_ctx->flags &= ~CTX_BACKROUND_NOT_LAYER;
 	} else 
 #endif /*GPAC_DISABLE_VRML*/
 	{
@@ -711,10 +722,13 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			GF_IRect rc;
 			/*opaque area, skip*/
 #ifdef TRACK_OPAQUE_REGIONS
-			if (visual->to_redraw.opaque_node_index[k] > 0) continue;
+			if (visual->to_redraw.list[k].opaque_node_index > 0) continue;
 #endif
-			rc = visual->to_redraw.list[k];
+			rc = visual->to_redraw.list[k].rect;
 			visual->ClearSurface(visual, &rc, 0);
+		}
+		if (!count && hyb_force_redraw) {
+			visual->ClearSurface(visual, NULL, 0);
 		}
 	}
 	if (!redraw_all && !has_clear) visual->has_modif=0;
@@ -727,22 +741,18 @@ skip_background:
 		if (visual->to_redraw.count>1) GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\n"));
 
 		for (i=0; i<visual->to_redraw.count; i++) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, visual->to_redraw.list[i].x, visual->to_redraw.list[i].y, visual->to_redraw.list[i].width, visual->to_redraw.list[i].height));
-			assert(visual->to_redraw.list[i].width);
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, visual->to_redraw.list[i].rect.x, visual->to_redraw.list[i].rect.y, visual->to_redraw.list[i].rect.width, visual->to_redraw.list[i].rect.height));
+			assert(visual->to_redraw.list[i].rect.width);
 		}
 	}
 #endif
 	
-#ifdef TRACK_OPAQUE_REGIONS
 	visual->draw_node_index = 0;
-#endif
 
 	ctx = visual->context;
 	while (ctx && ctx->drawable) {
 
-#ifdef TRACK_OPAQUE_REGIONS
 		visual->draw_node_index ++;
-#endif
 		tr_state->ctx = ctx;
 
 		/*if overlay we cannot remove the context and cannot draw directly*/
@@ -764,10 +774,15 @@ skip_background:
 
 	if (visual->direct_flush) {
 		GF_DirtyRectangles dr;
+		u32 i;
 		dr.count = visual->to_redraw.count;
-		dr.list = visual->to_redraw.list;
+		dr.list = gf_malloc(sizeof(GF_IRect)*dr.count);
+		for (i=0; i<dr.count; i++) {
+			dr.list[i] = visual->to_redraw.list[i].rect;
+		}
 		visual->compositor->video_out->FlushRectangles(visual->compositor->video_out, &dr);
 		visual->compositor->skip_flush=1;
+		gf_free(dr.list);
 	}
 
 exit:

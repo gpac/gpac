@@ -28,6 +28,7 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 #include <gpac/options.h>
+#include <gpac/internal/terminal_dev.h>
 
 #ifdef OPENGL_RASTER
 #include "gl_inc.h"
@@ -134,55 +135,114 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 
 
 #ifndef GPAC_DISABLE_3D
-void c2d_glauto_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
 {
 	SFColor rgb;
 	if (!visual->is_attached) return;
 	
 	if (!BackColor && !visual->offscreen) {
 		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
-			BackColor = visual->compositor->back_color;
+			BackColor = visual->compositor->back_color & 0x00FFFFFF;
 		}
 	}
-	//we only work in immediate mode, clear the whole screen
-	rgb.red = GF_COL_R(BackColor);
-	rgb.green = GF_COL_G(BackColor);
-	rgb.blue = GF_COL_B(BackColor);
-	visual_3d_clear(visual, rgb , GF_COL_A(BackColor));
+	if (rc) {
+		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
+	} else {
+		rgb.red = INT2FIX( GF_COL_R(BackColor) ) / 255;
+		rgb.green = INT2FIX( GF_COL_G(BackColor) )/255;
+		rgb.blue = INT2FIX( GF_COL_B(BackColor) )/255;
+		visual_3d_clear(visual, rgb , GF_COL_A(BackColor));
+	}
 }
 
-void compositor_2d_openglauto_flush_video(GF_Compositor *compositor)
+void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 {
 	GF_TraverseState a_tr_state;
 
+	//check if texture data has changed - if so, mark texture to be updated
 	if (compositor->traverse_state->immediate_draw) {
 		//nothing drawn, nothing to do
-		if (!compositor->visual->opengl_auto_drawn.count) {
+		if (!compositor->visual->hybgl_drawn.count) {
 			return;
 		}
 		//nodes where drawn on canvas, push texture
-		gf_sc_texture_set_data(compositor->opengl_auto_txh);
+		gf_sc_texture_set_data(compositor->hybgl_txh);
 	} else {
 		//nodes where drawn on canvas, push texture
-		if (compositor->visual->opengl_auto_drawn.count) {
-			gf_sc_texture_set_data(compositor->opengl_auto_txh);
+		if (compositor->visual->hybgl_drawn.count) {
+			//we could actually use texSubImage here, but we would need either to copy the data before pushing it or use current stride which will result in pushing too much data ...
+			gf_sc_texture_set_data(compositor->hybgl_txh);
 		}
 	}
+	//if no object drawn since the last flush, no need to draw the texture
+	if (!compositor->visual->nb_objects_on_canvas_since_last_ogl_flush)
+		goto exit;
+
 	a_tr_state.visual = compositor->visual;
 
 	visual_3d_set_state(compositor->visual, V3D_STATE_LIGHT, 0);
 	visual_3d_enable_antialias(compositor->visual, 0);
-	gf_sc_texture_set_blend_mode(compositor->opengl_auto_txh, TX_MODULATE);
+	gf_sc_texture_set_blend_mode(compositor->hybgl_txh, TX_MODULATE);
 	visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
-	a_tr_state.mesh_num_textures = gf_sc_texture_enable(compositor->opengl_auto_txh, NULL);
+	a_tr_state.mesh_num_textures = gf_sc_texture_enable(compositor->hybgl_txh, NULL);
 	if (a_tr_state.mesh_num_textures ) {
-		visual_3d_mesh_paint(&a_tr_state, compositor->opengl_auto_mesh);
-		gf_sc_texture_disable(compositor->opengl_auto_txh);
+		if (area) {
+			u32 i;
+			Fixed umin, umax, vmin, vmax;
+			SFVec2f size, orig;
+			size.x = INT2FIX(area->width);
+			size.y = INT2FIX(area->height);
+
+			orig.x = INT2FIX(area->x);
+			orig.y = INT2FIX(area->y);
+			mesh_new_rectangle(compositor->hybgl_mesh, size, &orig, 1);
+
+			orig.x = INT2FIX(area->x) + INT2FIX(compositor->vp_width)/2;
+			orig.y = INT2FIX(compositor->vp_height)/2 - INT2FIX(area->y) + INT2FIX(area->height);
+			//set our coor texture so that we update only the right part of the canvas
+			umin = gf_divfix(orig.x, INT2FIX(compositor->vp_width));
+			umax = gf_divfix(orig.x+size.x, INT2FIX(compositor->vp_width));
+			vmin = gf_divfix(orig.y-size.y, INT2FIX(compositor->vp_height));
+			vmax = gf_divfix(orig.y, INT2FIX(compositor->vp_height));
+
+			for (i=0; i<compositor->hybgl_mesh->v_count; i++) {
+				if (compositor->hybgl_mesh->vertices[i].texcoords.x == FIX_ONE) {
+					compositor->hybgl_mesh->vertices[i].texcoords.x = umax;
+				} else {
+					compositor->hybgl_mesh->vertices[i].texcoords.x = umin;
+				}
+				if (compositor->hybgl_mesh->vertices[i].texcoords.y == FIX_ONE) {
+					compositor->hybgl_mesh->vertices[i].texcoords.y = vmax;
+				} else {
+					compositor->hybgl_mesh->vertices[i].texcoords.y = vmin;
+				}
+			}
+		}
+
+		visual_3d_mesh_paint(&a_tr_state, compositor->hybgl_mesh);
+		gf_sc_texture_disable(compositor->hybgl_txh);
+		
+		if (area) {
+			SFVec2f size;
+			size.x = INT2FIX(compositor->vp_width);
+			size.y = INT2FIX(compositor->vp_height);
+			mesh_new_rectangle(compositor->hybgl_mesh, size, NULL, 1);
+		}
 	}
-	compositor->visual->opengl_auto_drawn.count = 0;
+
+exit:
 	//in immediate mode always clear the canvas
-	if (compositor->traverse_state->immediate_draw)
-		memset(compositor->opengl_auto_txh->data, 0, 4*compositor->opengl_auto_txh->width*compositor->opengl_auto_txh->height);
+	if (compositor->traverse_state->immediate_draw) {
+		compositor->visual->hybgl_drawn.count = 0;
+		//partial flush, reset
+		if (area)
+			memset(compositor->hybgl_txh->data, 0, compositor->hybgl_txh->stride*compositor->hybgl_txh->height);
+	}
+	//complete flush (end of frame)
+	else if (!area) {
+		compositor->visual->hybgl_drawn.count = 0;
+	}
+	compositor->visual->nb_objects_on_canvas_since_last_ogl_flush = 0;
 }
 
 Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
@@ -223,32 +283,54 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 	return 0;
 }
 
-Bool c2d_glauto_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
+Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
-	return 0;
+	//for anything but background use regular routines
+	if (!(ctx->flags & CTX_IS_BACKGROUND)) return 0;
+
+	/*ignore texture transform for bitmap*/
+	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
+	if (tr_state->mesh_num_textures) {
+		SFVec2f size, orig;
+		size.x = ctx->bi->unclip.width;
+		size.y = ctx->bi->unclip.height;
+		orig.x = ctx->bi->unclip.x ;
+		orig.y = ctx->bi->unclip.y;
+//		mesh_new_rectangle(visual->compositor->hybgl_mesh_background, size, &orig, ! gf_sc_texture_is_flipped(ctx->aspect.fill_texture) );
+		mesh_new_rectangle(visual->compositor->hybgl_mesh_background, size, &orig, 0);
+
+		visual_3d_mesh_paint(tr_state, visual->compositor->hybgl_mesh_background);
+		gf_sc_texture_disable(ctx->aspect.fill_texture);
+		tr_state->mesh_num_textures = 0;
+	}
+	return 1;
 }
 #endif
 
+#ifndef GPAC_DISABLE_3D
 void compositor_2d_reset_gl_auto(GF_Compositor *compositor)
 {
-#ifndef GPAC_DISABLE_3D
-	if (compositor->opengl_auto_txh) {
-		if (compositor->opengl_auto_txh->data) {
-			gf_free(compositor->opengl_auto_txh->data);
-			compositor->opengl_auto_txh->data = NULL;
+	if (compositor->hybgl_txh) {
+		if (compositor->hybgl_txh->data) {
+			gf_free(compositor->hybgl_txh->data);
+			compositor->hybgl_txh->data = NULL;
 		}
-		if (compositor->opengl_auto_txh->tx_io) 
-			gf_sc_texture_release(compositor->opengl_auto_txh);
+		if (compositor->hybgl_txh->tx_io) 
+			gf_sc_texture_release(compositor->hybgl_txh);
 
-		gf_free(compositor->opengl_auto_txh);
-		compositor->opengl_auto_txh = NULL;
+		gf_free(compositor->hybgl_txh);
+		compositor->hybgl_txh = NULL;
 	}
-	if (compositor->opengl_auto_mesh)
-		mesh_free(compositor->opengl_auto_mesh);
-#endif
+	if (compositor->hybgl_mesh) {
+		mesh_free(compositor->hybgl_mesh);
+		compositor->hybgl_mesh = NULL;
+	}
+	if (compositor->hybgl_mesh_background) {
+		mesh_free(compositor->hybgl_mesh_background);
+		compositor->hybgl_mesh_background = NULL;
+	}
 }
 
-#ifndef GPAC_DISABLE_3D
 static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 {
 	GF_Matrix mx;
@@ -309,7 +391,6 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 	GF_Err e;
 	GF_Compositor *compositor = visual->compositor;
 
-
 	if (!visual->raster_surface) return GF_BAD_PARAM;
 
 #ifdef OPENGL_RASTER
@@ -320,7 +401,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
 		callbacks.fill_rect = c2d_gl_fill_rect;
 
-		visual->DrawBitmap = c2d_glauto_draw_bitmap;
+		visual->DrawBitmap = compositor_2d_hybgl_draw_bitmap;
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
 		if (e) return e;
@@ -330,54 +411,59 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 #endif
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->opengl_auto) {
+	if (compositor->hybrid_opengl) {
 
-		if (!compositor->opengl_auto_txh) {
-			GF_SAFEALLOC(compositor->opengl_auto_txh, GF_TextureHandler);
-			if (!compositor->opengl_auto_txh) return GF_IO_ERR;
-			compositor->opengl_auto_txh->compositor = compositor;
+		if (!compositor->hybgl_txh) {
+			GF_SAFEALLOC(compositor->hybgl_txh, GF_TextureHandler);
+			if (!compositor->hybgl_txh) return GF_IO_ERR;
+			compositor->hybgl_txh->compositor = compositor;
 		}
 
-		if ((compositor->opengl_auto_txh->width != compositor->vp_width) || (compositor->opengl_auto_txh->height != compositor->vp_height)) {
+		if ((compositor->hybgl_txh->width != compositor->vp_width) || (compositor->hybgl_txh->height != compositor->vp_height)) {
 			SFVec2f size;
-			compositor->opengl_auto_txh->data = gf_realloc(compositor->opengl_auto_txh->data, 4*compositor->vp_width*compositor->vp_height);		
-			if (!visual->compositor->traverse_state->immediate_draw)
-				memset(compositor->opengl_auto_txh->data, 0, 4*compositor->opengl_auto_txh->width*compositor->opengl_auto_txh->height);
+			compositor->hybgl_txh->data = gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);		
 
-			if (compositor->opengl_auto_txh->tx_io) 
-				gf_sc_texture_release(compositor->opengl_auto_txh);
+			if (compositor->hybgl_txh->tx_io) 
+				gf_sc_texture_release(compositor->hybgl_txh);
 		
-			compositor->opengl_auto_txh->width = compositor->vp_width;
-			compositor->opengl_auto_txh->height = compositor->vp_height;
-			compositor->opengl_auto_txh->stride = 4*compositor->vp_width;
-			compositor->opengl_auto_txh->pixelformat = GF_PIXEL_RGBA;
-			compositor->opengl_auto_txh->transparent = 1;
-			compositor->opengl_auto_txh->flags = GF_SR_TEXTURE_PRIVATE_MEDIA | GF_SR_TEXTURE_NO_GL_FLIP;
-	        gf_sc_texture_allocate(compositor->opengl_auto_txh);
+			compositor->hybgl_txh->width = compositor->vp_width;
+			compositor->hybgl_txh->height = compositor->vp_height;
+			compositor->hybgl_txh->stride = 4*compositor->vp_width;
+			compositor->hybgl_txh->pixelformat = GF_PIXEL_RGBA;
+			compositor->hybgl_txh->transparent = 1;
+			compositor->hybgl_txh->flags = GF_SR_TEXTURE_PRIVATE_MEDIA | GF_SR_TEXTURE_NO_GL_FLIP;
 
-			if (!compositor->opengl_auto_mesh)
-				compositor->opengl_auto_mesh = new_mesh();
+			memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
+			gf_sc_texture_allocate(compositor->hybgl_txh);
+			gf_sc_texture_set_data(compositor->hybgl_txh);
+
+			if (!compositor->hybgl_mesh)
+				compositor->hybgl_mesh = new_mesh();
+
+			if (!compositor->hybgl_mesh_background)
+				compositor->hybgl_mesh_background = new_mesh();
 
 			size.x = INT2FIX(compositor->vp_width);
 			size.y = INT2FIX(compositor->vp_height);
-			mesh_new_rectangle(compositor->opengl_auto_mesh, size, NULL, 1);
+			mesh_new_rectangle(compositor->hybgl_mesh, size, NULL, 1);
+			mesh_new_rectangle(compositor->hybgl_mesh_background, size, NULL, 0);
 		}
-		if (!compositor->opengl_auto_txh->data) return GF_IO_ERR;
+		if (!compositor->hybgl_txh->data) return GF_IO_ERR;
 
 		if (visual->compositor->traverse_state->immediate_draw)
-			memset(compositor->opengl_auto_txh->data, 0, 4*compositor->opengl_auto_txh->width*compositor->opengl_auto_txh->height);
+			memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
 
-		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->opengl_auto_txh->data,
-							compositor->opengl_auto_txh->width,
-							compositor->opengl_auto_txh->height,
+		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
+							compositor->hybgl_txh->width,
+							compositor->hybgl_txh->height,
 							0,
-							compositor->opengl_auto_txh->width * 4,
+							compositor->hybgl_txh->width * 4,
 							(GF_PixelFormat) GF_PIXEL_RGBA);
 		if (e) return e;
 		e = compositor_2d_setup_opengl(visual);
 		if (e) return e;
-		visual->ClearSurface = c2d_glauto_clear_surface;
-		visual->DrawBitmap = c2d_glauto_draw_bitmap;
+		visual->ClearSurface = compositor_2d_hybgl_clear_surface;
+		visual->DrawBitmap = compositor_2d_hybgl_draw_bitmap;
 		return GF_OK;
 	}
 #endif
@@ -415,7 +501,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 	e = GF_NOT_SUPPORTED;
 
-	if (compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 1)==GF_OK) {
+	e = compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 1);
+	if (e==GF_OK) {
 		compositor->hw_locked = 1;
 
 		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer,
@@ -448,8 +535,8 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->opengl_auto) {
-		compositor_2d_openglauto_flush_video(compositor);
+	if (compositor->hybrid_opengl) {
+		compositor_2d_hybgl_flush_video(compositor, NULL);
 		return;
 	}
 #endif //GPAC_DISABLE_3D
@@ -959,10 +1046,10 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 		for (i=0; i<tr_state->visual->to_redraw.count; i++) {
 			/*there's an opaque region above, don't draw*/
 #ifdef TRACK_OPAQUE_REGIONS
-			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
+			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.list[i].opaque_node_index) continue;
 #endif
 			clip = ctx->bi->clip;
-			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
+			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
 				if (visual->compositor->video_out->BlitTexture) {
 					if (!visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
@@ -1083,6 +1170,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	}
 
 	/*resize hardware surface*/
+	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
@@ -1101,7 +1189,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 #endif
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->opengl_auto) {
+	if (compositor->hybrid_opengl) {
 		evt.setup.opengl_mode = 1;
 		evt.setup.system_memory = 0;
 		evt.setup.back_buffer = 1;
@@ -1120,7 +1208,22 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 			));
 
 		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-		if (e) return e;
+		if (e) {
+#ifndef GPAC_DISABLE_3D
+			if (!compositor->hybrid_opengl) {
+				compositor->hybrid_opengl=1;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Failed to configure 2D output (%s) - retrying in OpenGL mode\n", gf_error_to_string(e) ));
+				return compositor_2d_set_aspect_ratio(compositor);
+			}
+#endif
+			compositor->video_setup_failed = GF_TRUE;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_QUIT;
+			evt.message.error = e;
+			evt.message.message = "Cannot setup video output";
+			gf_term_send_event(compositor->term, &evt);
+			return e;
+		}
 
 		compositor->was_opengl = evt.setup.opengl_mode;
 		compositor->was_system_memory = evt.setup.system_memory;		
@@ -1279,6 +1382,7 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 			gf_mx_copy(mx, tr_state->model_matrix);
 			gf_mx_inverse(&mx);
 			gf_mx_apply_rect(&mx, &orig);
+			gf_mx_apply_rect(&tr_state->layer_matrix, &orig);
 		} else
 #endif
 		{
@@ -1287,7 +1391,7 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 			gf_mx2d_inverse(&mx2d);
 			gf_mx2d_apply_rect(&mx2d, &orig);
 		}
-
+		
 		if (clip.x < orig.x) {
 			clip.width -= (orig.x - clip.x);
 			clip.x = orig.x;
@@ -1306,6 +1410,11 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 	if (for_layer) {
 		tr_state->layer_clipper = clip;
 		tr_state->has_layer_clip = 1;
+#ifndef GPAC_DISABLE_3D
+		if (tr_state->visual->type_3d) {
+			gf_mx_copy(tr_state->layer_matrix, tr_state->model_matrix);
+		}
+#endif
 	} else {
 		tr_state->clipper = clip;
 #ifndef GPAC_DISABLE_3D
@@ -1350,7 +1459,7 @@ Bool visual_2d_overlaps_overlay(GF_VisualManager *visual, DrawableContext *ctx, 
 		/*check previsously drawn areas*/
 		for (i=0; i<ol->ra.count; i++) {
 			/*we have drawn something here, don't draw*/
-			if (gf_irect_inside(&ol->ra.list[i], &clip))
+			if (gf_irect_inside(&ol->ra.list[i].rect, &clip))
 				break;
 		}
 		res++;
@@ -1386,7 +1495,7 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 		ra_refresh(&ol->ra);
 
 		for (i=0; i<ol->ra.count; i++) {
-			the_clip = ol->ra.list[i];
+			the_clip = ol->ra.list[i].rect;
 
 			/*draw all objects above this overlay*/
 			ctx = ol->ctx->next;
@@ -1397,7 +1506,7 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 					if (needs_draw) {
 						/*if first object above is not transparent and completely covers the overlay skip video redraw*/
 						if ((ctx->flags & CTX_IS_TRANSPARENT) || !gf_irect_inside(&prev_clip, &the_clip)) {
-							vid_clip = ol->ra.list[i];
+							vid_clip = ol->ra.list[i].rect;
 							gf_irect_intersect(&vid_clip, &ol->ctx->bi->clip);
 							compositor_2d_draw_bitmap_ex(visual, ol->ctx->aspect.fill_texture, ol->ctx, &vid_clip, &ol->ctx->bi->unclip, 0xFF, NULL, tr_state, 1);
 						}

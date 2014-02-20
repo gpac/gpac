@@ -485,7 +485,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	if (!term) return 0;
 	
 	if (gui_mode==1) {
-		if (evt->type==GF_EVENT_QUIT) Run = 0;
+		if (evt->type==GF_EVENT_QUIT) {
+			Run = 0;
+		}
 		return 0;
 	}
 
@@ -505,6 +507,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		} else {
 			servName = evt->message.service;
 		}
+
 
 		if (!evt->message.message) return 0;
 
@@ -727,6 +730,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		return 1;
 
 	case GF_EVENT_QUIT:
+		if (evt->message.error)  {
+			fprintf(stderr, "A fatal error was encoutered: %s (%s) - exiting ...\n", evt->message.message ? evt->message.message : "no details", gf_error_to_string(evt->message.error) );
+		}
 		Run = 0;
 		break;
 	case GF_EVENT_DISCONNECT:
@@ -1892,6 +1898,7 @@ force_input:
 static GF_ObjectManager *video_odm = NULL;
 static GF_ObjectManager *audio_odm = NULL;
 static GF_ObjectManager *scene_odm = NULL;
+static u32 last_odm_count = 0;
 void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
@@ -1899,6 +1906,14 @@ void PrintAVInfo(Bool final)
 	u32 tot_time=0;
 	Bool print_codecs = final;
 
+	if (scene_odm) {
+		GF_ObjectManager *root_odm = gf_term_get_root_object(term);
+		u32 count = gf_term_get_object_count(term, root_odm);
+		if (last_odm_count != count) {
+			last_odm_count = count;
+			scene_odm = NULL;
+		}
+	}
 	if (!video_odm && !audio_odm && !scene_odm) {
 		u32 count, i;
 		GF_ObjectManager *root_odm = root_odm = gf_term_get_root_object(term);
@@ -1991,10 +2006,18 @@ void PrintAVInfo(Bool final)
 			gf_term_get_visual_output_size(term, &w, &h);
 			fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name, s_odi.width, s_odi.height, w, h, s_odi.duration);
 			if (final) {
-				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
-				if (!dec_run_time) dec_run_time = 1;
-				fprintf(stderr, "%d frames FPS %.2f (max %d ms/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
-				fprintf(stderr, "\n");
+				if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) { 
+					u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
+					if (!dec_run_time) dec_run_time = 1;
+					fprintf(stderr, "%d frames FPS %.2f (max %d ms/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+					fprintf(stderr, "\n");
+				} else {
+					u32 nb_frames_drawn;
+					Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+					tot_time = gf_sys_clock() - bench_mode_start;
+					FPS = gf_term_get_framerate(term, 0);
+					fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
+				}
 			}
 		}
 		if (final) {
@@ -2010,13 +2033,20 @@ void PrintAVInfo(Bool final)
 		fprintf(stderr, "%d frames FPS %.2f (%dms max) - rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time, (u32) v_odi.instant_bitrate/1000);
 	}
 	else if (scene_odm) {
+
 		avg_dec_time = 0;
-		if (s_odi.nb_dec_frames && s_odi.total_dec_time) { 
+		if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) { 
 			avg_dec_time = (Float) 1000 * s_odi.nb_dec_frames; 
 			avg_dec_time /= s_odi.total_dec_time; 
+			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
+			fprintf(stderr, "%d frames %.2f (%dms max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+		} else {
+			u32 nb_frames_drawn;
+			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+			tot_time = gf_sys_clock() - bench_mode_start;
+			FPS = gf_term_get_framerate(term, 1);
+			fprintf(stderr, "%d frames FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 		}
-		if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-		fprintf(stderr, "%d frames %.2f (%dms max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
 	}
 }
 

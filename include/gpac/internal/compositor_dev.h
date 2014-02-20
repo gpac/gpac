@@ -191,6 +191,8 @@ struct __tag_compositor
 	GF_Mutex *ev_mx;
 #endif
 
+	Bool video_setup_failed;
+
 	/*simulation frame rate*/
 	Double frame_rate;
 	Bool bench_mode;
@@ -260,7 +262,10 @@ struct __tag_compositor
 #ifdef OPENGL_RASTER
 	Bool opengl_raster;
 #endif
-	Bool opengl_auto;
+
+	//in this mode all 2D raster is done through and RGBA canvas except background IO and textures which are done by the GPU. The canvas is then flushed to GPU. 
+	//the mode supports defer and immediate rendering
+	Bool hybrid_opengl;
 
 	/*key modif*/
 	u32 key_states;
@@ -495,8 +500,9 @@ struct __tag_compositor
 	/*specifies distance the camera focal point and the screen plane : <0 is behind the screen, >0 is in front*/
 	Fixed focus_distance;
 
-	struct _gf_sc_texture_handler *opengl_auto_txh;
-	GF_Mesh *opengl_auto_mesh;
+	struct _gf_sc_texture_handler *hybgl_txh;
+	GF_Mesh *hybgl_mesh;
+	GF_Mesh *hybgl_mesh_background;
 #endif
 
 	Bool texture_from_decoder_memory;
@@ -843,6 +849,8 @@ struct _traversing_state
 	Bool has_clip, has_layer_clip;
 	/*active clipper in world coord system */
 	GF_Rect clipper, layer_clipper;
+	/*current object (model) transformation at the given layer*/
+	GF_Matrix layer_matrix;
 
 	
 	/*set when traversing a cached group during offscreen bitmap construction.*/
@@ -1131,7 +1139,8 @@ void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 
 #ifndef GPAC_DISABLE_3D
-void compositor_2d_openglauto_flush_video(GF_Compositor *compositor);
+void compositor_2d_reset_gl_auto(GF_Compositor *compositor);
+void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area);
 #endif
 
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale);
@@ -1380,8 +1389,6 @@ void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *
 
 //signals the compositor a system frame is pending on a future frame 
 void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);
-
-void compositor_2d_reset_gl_auto(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }

@@ -324,6 +324,7 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	}
 		break;
 	case WM_CLOSE:
+		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_QUIT;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		return 1;
@@ -698,6 +699,7 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[GAPI] OpenGL initialize - %d x %d \n", gctx->bb_width, gctx->bb_height));
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_VIDEO_SETUP;
+	evt.hw_reset = 1;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
 }

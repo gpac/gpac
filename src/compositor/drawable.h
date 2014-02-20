@@ -217,6 +217,10 @@ enum
 	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,
 	/*indicates the context is in a flip coord state (used for image and text flip)*/
 	CTX_FLIPED_COORDS = 1<<10,
+	//flag set in opengl auto mode to indicate that the corresponding area should not be cleared but still redrawn (this means an opaque texture is used)
+	CTX_HYBOGL_NO_CLEAR = 1<<11,
+	//flag set in opengl auto mode to indicate that the corresponding area should not be cleared but still redrawn (this means an opaque texture is used)
+	CTX_BACKROUND_NOT_LAYER = 1<<12,
 };
 
 #define CTX_3DTYPE_MASK 0x7800

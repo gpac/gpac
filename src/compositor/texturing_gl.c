@@ -566,6 +566,7 @@ common:
 
 		if (!(txh->tx_io->flags & TX_IS_RECT)) return 1;
 		if (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) return 1;
+		//FIXME - we really want to go for shaders on RGB as well to avoid this copy on rect ext ...
 
 		if (!txh->tx_io->conv_data) {
 			txh->tx_io->conv_data = gf_malloc(sizeof(char)*txh->stride*txh->height);
@@ -1565,3 +1566,15 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_STENCIL stencil)
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 }
 
+Bool gf_sc_texture_is_flipped(GF_TextureHandler *txh)
+{
+	switch (txh->pixelformat) {
+	case GF_PIXEL_YV12:
+	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_NV21:
+	case GF_PIXEL_I420:
+		if (txh->tx_io && txh->tx_io->yuv_shader) return 1;
+	default:
+		return (txh->tx_io->flags & TX_IS_FLIPPED) ? 1 : 0;
+	}
+}

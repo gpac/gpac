@@ -36,7 +36,6 @@ Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2);
 /*@rc1 equales @rc2*/
 #define gf_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y)) 
 
-
 //#define TRACK_OPAQUE_REGIONS
 
 /*ra_: rectangle array macros to speed dirty rects*/
@@ -44,44 +43,31 @@ Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2);
 
 typedef struct
 {	
-	GF_IRect *list;
-	u32 count, alloc;
+	GF_IRect rect;
 #ifdef TRACK_OPAQUE_REGIONS
 	/*list of nodes covering (no transparency) each rect, or 0 otherwise.*/
-	u32 *opaque_node_index;
+	u32 opaque_node_index;
 #endif
+} GF_RectArrayEntry;
+
+typedef struct
+{	
+	GF_RectArrayEntry *list;
+	u32 count, alloc;
 } GF_RectArray;
 
-#ifdef TRACK_OPAQUE_REGIONS
-/*inits structure - called as a constructor*/
-#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)gf_malloc(sizeof(GF_IRect)*(ra)->alloc); (ra)->opaque_node_index = NULL;}
+#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_RectArrayEntry*)gf_malloc(sizeof(GF_RectArrayEntry)*(ra)->alloc); }
 /*deletes structure - called as a destructor*/
-#define ra_del(ra) { gf_free((ra)->list); if ((ra)->opaque_node_index) { gf_free((ra)->opaque_node_index); (ra)->opaque_node_index = NULL; } }
+#define ra_del(ra) { if ((ra)->list) gf_free((ra)->list);  }
 
 
 /*adds rect to list - expand if needed*/
 #define ra_add(ra, rc) {	\
 	if ((ra)->count==(ra)->alloc) { \
 		(ra)->alloc += RA_DEFAULT_STEP; \
-		(ra)->list = (GF_IRect*)gf_realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); \
-		if ( (ra)->opaque_node_index) (ra)->opaque_node_index = (u32*)gf_realloc((ra)->opaque_node_index, sizeof(u32) * (ra)->alloc); \
+		(ra)->list = (GF_RectArrayEntry*)gf_realloc((ra)->list, sizeof(GF_RectArrayEntry) * (ra)->alloc); \
 	}	\
-	(ra)->list[(ra)->count] = *rc; (ra)->count++;	}
-
-#else
-#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)gf_malloc(sizeof(GF_IRect)*(ra)->alloc);}
-/*deletes structure - called as a destructor*/
-#define ra_del(ra) { if ((ra)->list) gf_free((ra)->list); }
-
-
-/*adds rect to list - expand if needed*/
-#define ra_add(ra, rc) {	\
-	if ((ra)->count==(ra)->alloc) { \
-		(ra)->alloc += RA_DEFAULT_STEP; \
-		(ra)->list = (GF_IRect*)gf_realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); \
-	}	\
-	(ra)->list[(ra)->count] = *rc; (ra)->count++;	}
-#endif
+	(ra)->list[(ra)->count].rect = *rc; (ra)->count++;	}
 
 
 /*adds rectangle to the list performing union test*/

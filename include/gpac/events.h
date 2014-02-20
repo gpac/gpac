@@ -110,6 +110,9 @@ typedef struct
 			if not supported, mix of 2D (raster) and 3D (openGL) will be disabled
 	*/
 	u32 opengl_mode;
+
+	// resources must be resetup before next render step (this is mainly due to discard all openGL textures and cached objects) - inly used when sent from plugin to term
+	Bool hw_reset;
 } GF_EventVideoSetup;
 
 /*event proc return value: ignored

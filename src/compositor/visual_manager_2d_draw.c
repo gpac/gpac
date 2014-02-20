@@ -118,10 +118,10 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 		for (i=0; i<visual->to_redraw.count; i++) {
 			/*there's an opaque region above, don't draw*/
 #ifdef TRACK_OPAQUE_REGIONS
-			if (visual->draw_node_index<visual->to_redraw.opaque_node_index[i]) continue;
+			if (!is_erase && (visual->draw_node_index<visual->to_redraw.list[i].opaque_node_index)) continue;
 #endif
 			clip = ctx->bi->clip;
-			gf_irect_intersect(&clip, &visual->to_redraw.list[i]);
+			gf_irect_intersect(&clip, &visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s[%s] (indirect draw @ dirty rect idx %d)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node), i));
 				if (stencil) {
@@ -134,11 +134,15 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			}
 		}
 	}
+#ifndef GPAC_DISABLE_3D
+	if (!is_erase)
+		visual->nb_objects_on_canvas_since_last_ogl_flush++;
+#endif
 	if (has_modif) {
 		visual->has_modif = 1;
 #ifndef GPAC_DISABLE_3D
-		if (!visual->offscreen && visual->compositor->opengl_auto && !is_erase) 
-			ra_union_rect(&visual->opengl_auto_drawn, &ctx->bi->clip);
+		if (!visual->offscreen && visual->compositor->hybrid_opengl && !is_erase) 
+			ra_union_rect(&visual->hybgl_drawn, &ctx->bi->clip);
 #endif
 	}
 }
@@ -347,50 +351,80 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 #ifndef GPAC_DISABLE_3D
 void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state)
 {
-	void c2d_glauto_flush_video(GF_VisualManager *visual);
 	GF_Matrix mx;
 	u32 prev_mode = tr_state->traversing_mode;
 	u32 prev_type_3d = tr_state->visual->type_3d;
-	txh = ctx->aspect.fill_texture;
 
 	//we have drawn things on the canvas before this object
-	if (visual->opengl_auto_drawn.count) {
+	if (visual->hybgl_drawn.count) {
+		Bool line_texture = GF_FALSE;
 		u32 i;
-		u32 prev_color = ctx->aspect.fill_color;
-		Bool needs_flush = 0;
-		u8 alpha = ctx->aspect.fill_color? GF_COL_A(ctx->aspect.fill_color) : 0xFF;
-		Bool transparent = txh->transparent || (alpha!=0xFF);
+		u32 prev_color;
+		Bool transparent, had_flush = 0;
+		u32 nb_obj_left_on_canvas = visual->nb_objects_on_canvas_since_last_ogl_flush;
+		u8 alpha;
 
-		ctx->aspect.fill_texture = NULL;
-		ctx->aspect.fill_color = 0;
+		if (txh==ctx->aspect.line_texture) {
+			line_texture = GF_TRUE;
+			alpha = GF_COL_A(ctx->aspect.line_color);
+			prev_color = ctx->aspect.line_color;
+			ctx->aspect.line_texture = NULL;
+			ctx->aspect.line_color = 0;
+		} else {
+			alpha = GF_COL_A(ctx->aspect.fill_color);
+			if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+			prev_color = ctx->aspect.fill_color;
+			ctx->aspect.fill_texture = NULL;
+			ctx->aspect.fill_color = 0;
+		}
+		transparent = txh->transparent || (alpha!=0xFF);
+
 		//clear wherever we have overlap
-		for (i=0; i<visual->opengl_auto_drawn.count; i++) {
+		for (i=0; i<visual->hybgl_drawn.count; i++) {
 			GF_IRect rc = ctx->bi->clip;
-			gf_irect_intersect(&ctx->bi->clip, &visual->opengl_auto_drawn.list[i]);
+			gf_irect_intersect(&ctx->bi->clip, &visual->hybgl_drawn.list[i].rect);
 			if (ctx->bi->clip.width && ctx->bi->clip.height) {
 				//if something behind this, flush canvas to gpu
 				if (transparent) {
-					needs_flush = 1;
-					ctx->bi->clip = rc;
-					break;
-				} else {
-					//erase all part of the canvas below us
-					visual_2d_draw_path_extended(visual, ctx->drawable->path, ctx, NULL, NULL, tr_state, NULL, NULL, GF_TRUE);
-				}
-				ctx->bi->clip = rc;
-			}
-		}
-		ctx->aspect.fill_color = prev_color;
-		ctx->aspect.fill_texture = txh;
+					if (!had_flush) {
+						//flush the complete area below this object, regardless of intersections
+						compositor_2d_hybgl_flush_video(visual->compositor, tr_state->immediate_draw ? NULL : &rc);
+						had_flush = 1;
+					}
+					//if object was not completely in the flush region we will need to flush the canvas
+					if (gf_irect_inside(&rc, &visual->hybgl_drawn.list[i].rect)) {
+						assert(nb_obj_left_on_canvas);
+						nb_obj_left_on_canvas--;
+					}
+				} 
 
-		//no choice but to flush everything
-		if (needs_flush) {
-			compositor_2d_openglauto_flush_video(visual->compositor);
+				//erase all part of the canvas below us
+				if (!tr_state->immediate_draw) {
+					visual_2d_draw_path_extended(visual, ctx->drawable->path, ctx, NULL, NULL, tr_state, NULL, NULL, GF_TRUE);
+					//this part of the canvas is now dirty for next pass !
+					if (!tr_state->immediate_draw) {
+					}
+				}
+			}
+			ctx->bi->clip = rc;
+		}
+		if (line_texture) {
+			ctx->aspect.line_color = prev_color;
+			ctx->aspect.line_texture = txh;
+		} else {
+			ctx->aspect.fill_color = prev_color;
+			ctx->aspect.fill_texture = txh;
+		}
+
+		if (had_flush) {
+			visual->nb_objects_on_canvas_since_last_ogl_flush = nb_obj_left_on_canvas;
 		}
 	}
 
 	tr_state->visual->type_3d = 4;
 	tr_state->appear = ctx->appear;
+	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);
+
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
 	gf_mx_from_mx2d(&mx, &ctx->transform);
 	visual_3d_matrix_push(visual);
@@ -400,6 +434,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	visual_3d_matrix_pop(visual);
 	tr_state->visual->type_3d=prev_type_3d;
 	tr_state->traversing_mode=prev_mode;
+	if (ctx->col_mat) gf_cmx_init(&tr_state->color_mat);
 
 	ctx->flags |= CTX_PATH_FILLED;
 }
@@ -433,8 +468,9 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 		return;
 	}
 
+	
 #ifndef GPAC_DISABLE_3D
-	if (visual->compositor->opengl_auto) {
+	if (visual->compositor->hybrid_opengl) {
 		visual_2d_texture_path_opengl_auto(visual, path, txh, ctx, orig_bounds, ext_mx, tr_state);
 		return;
 	}
@@ -768,7 +804,7 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 	}
 	gf_path_del(path);
 #ifndef GPAC_DISABLE_3D
-	if (!visual->offscreen && visual->compositor->opengl_auto)
-		ra_union_rect(&visual->opengl_auto_drawn, rc);
+	if (!visual->offscreen && visual->compositor->hybrid_opengl)
+		ra_union_rect(&visual->hybgl_drawn, rc);
 #endif
 }

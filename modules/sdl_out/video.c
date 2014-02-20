@@ -510,6 +510,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 
 GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 {
+	Bool hw_reset = GF_FALSE;
 	SDLVID();
 	GF_Event evt;
 	
@@ -572,10 +573,12 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
+			hw_reset = GF_TRUE;
 		}
         SDL_SetWindowSize(ctx->screen, width, height);
 				
 #else
+		hw_reset = GF_TRUE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 #endif
 		assert(ctx->screen);
@@ -583,6 +586,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		ctx->height = height;
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
+		evt.setup.hw_reset = hw_reset;
 		dr->on_event(dr->evt_cbk_hdl, &evt);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] 3D Setup done\n"));
 	} else {
@@ -782,6 +786,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 				
 		case SDL_QUIT:
+			memset(&gpac_evt, 0, sizeof(GF_Event));
 			gpac_evt.type = GF_EVENT_QUIT;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			return 0;
@@ -1120,6 +1125,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_VIDEO_SETUP;
+			evt.setup.opengl_mode = 3;
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}
 	} else {

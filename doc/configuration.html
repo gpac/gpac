@@ -326,9 +326,9 @@ Allows video textures to be build directly from video decoder internal buffers. 
 
 
 
-<b>ForceOpenGL</b> [value: <i>"yes", "no", "raster"</i>]
+<b>ForceOpenGL</b> [value: <i>"yes", "no", "hybrid", "raster"</i>]
 <p style="text-indent: 5%">
-Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation).</p>
+Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not loo as nice as 2D mode. The hybrid mode performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).</p>
 <b>DefaultNavigationMode</b> [value: <i>"Walk", "Fly", "Examine"</i>]
 <p style="text-indent: 5%">
 Overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine).</p>

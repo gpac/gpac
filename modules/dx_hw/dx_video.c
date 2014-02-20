@@ -240,6 +240,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 {
 	const char *sOpt;
 	GF_Event evt;
+	Bool hw_reset = GF_FALSE;
 	DDCONTEXT
 
 #ifdef GPAC_USE_OGL_ES
@@ -300,6 +301,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	if ((dd->bound_hwnd == target_hwnd) && dd->gl_HRC) 
 		goto exit;
 
+	hw_reset = GF_TRUE;
 	dd->bound_hwnd = target_hwnd;
 
 	/*cleanup*/
@@ -398,8 +400,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			}
 		}
 		if (!found) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d - disabling GL\n", GetLastError() ));
-			return GF_IO_ERR; 
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d - disabling high color res GL and retrying\n", GetLastError() ));
+			dd->mode_high_bpp = 2;
+			return DD_SetupOpenGL(dr, offscreen_width, offscreen_height);
 		}
 
 		if (wglGetPixelFormatAttribivARB) {
@@ -497,7 +500,7 @@ exit:
 	if (dd->output_3d_type==1) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.opengl_mode = 1;
+		evt.setup.hw_reset = hw_reset;
 		dr->on_event(dr->evt_cbk_hdl, &evt);	
 	}
 	return GF_OK;

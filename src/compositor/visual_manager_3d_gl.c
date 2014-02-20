@@ -147,7 +147,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #else
 	const char *ext = NULL;
 
-	if (compositor->visual->type_3d) 
+	if (compositor->visual->type_3d || compositor->hybrid_opengl) 
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
 	if (!ext) ext = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions");

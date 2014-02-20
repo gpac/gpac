@@ -102,6 +102,8 @@ static Bool back_use_texture(M_Background2D *bck)
 
 static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state)
 {
+	Bool clear_all = GF_TRUE;	
+	u32 color;
 	Background2DStack *stack;
 	if (!ctx || !ctx->drawable || !ctx->drawable->node) return;
 	stack = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
@@ -109,6 +111,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	if (!ctx->bi->clip.width || !ctx->bi->clip.height) return;
 
 	stack->flags &= ~CTX_PATH_FILLED;
+	color = ctx->aspect.fill_color;
 
 	if (back_use_texture((M_Background2D *)ctx->drawable->node)) {
 
@@ -124,29 +127,49 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			visual_2d_texture_path(tr_state->visual, stack->drawable->path, ctx, tr_state);
 		}
 		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
-	} else {
-		
-		/*direct drawing, draw without clippers */
-		if (tr_state->immediate_draw) {
-			/*directly clear with specified color*/
-			tr_state->visual->ClearSurface(tr_state->visual, &ctx->bi->clip, ctx->aspect.fill_color);
-		} else {
-			u32 i;
-			GF_IRect clip;
-			for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-				/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-				if (tr_state->visual->draw_node_index<tr_state->visual->to_redraw.opaque_node_index[i]) continue;
+		tr_state->visual->has_modif = 1;
+#ifndef GPAC_DISABLE_3D
+		//in opengl auto mode we still have to clear the canvas
+		if (!tr_state->immediate_draw && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
+			clear_all = GF_FALSE;
+			color &= 0x00FFFFFF;
+		} else
 #endif
-				clip = ctx->bi->clip;
-				gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
-				if (clip.width && clip.height) {
-					tr_state->visual->ClearSurface(tr_state->visual, &clip, ctx->aspect.fill_color);
-				}
+			return;
+	}
+
+
+#ifndef GPAC_DISABLE_3D
+	if (clear_all && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
+		if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
+			color &= 0x00FFFFFF;
+			tr_state->visual->ClearSurface(tr_state->visual, NULL, color);
+			clear_all = GF_FALSE;
+		}
+	}
+#endif
+	/*direct drawing, draw without clippers */
+	if (tr_state->immediate_draw
+	) {
+		/*directly clear with specified color*/
+		if (clear_all)
+			tr_state->visual->ClearSurface(tr_state->visual, &ctx->bi->clip, color);
+	} else {
+		u32 i;
+		GF_IRect clip;
+		for (i=0; i<tr_state->visual->to_redraw.count; i++) {
+			/*there's an opaque region above, don't draw*/
+#ifdef TRACK_OPAQUE_REGIONS
+			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.list[i].opaque_node_index) continue;
+#endif
+			clip = ctx->bi->clip;
+			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i].rect);
+			if (clip.width && clip.height) {
+				tr_state->visual->ClearSurface(tr_state->visual, &clip, color);
 			}
 		}
-		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	}
+	stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	tr_state->visual->has_modif = 1;
 }
 
@@ -325,8 +348,14 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	} 
 
 	if (back_use_texture(bck) ) {
-		if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) 
+		if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) {
 			stack->flags |= CTX_TEXTURE_DIRTY;
+		}
+#ifndef GPAC_DISABLE_3D
+		if (stack->txh.compositor->hybrid_opengl && !tr_state->visual->offscreen) {
+			stack->flags |= CTX_HYBOGL_NO_CLEAR;
+		}
+#endif
 	}
 	status->ctx.flags = stack->flags;
 

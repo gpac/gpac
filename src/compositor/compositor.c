@@ -71,8 +71,8 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 
 	if (e) {
 		GF_Event evt;
+		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_MESSAGE;
-		evt.message.service = "";
 		evt.message.message = "Cannot switch to fullscreen";
 		evt.message.error = e;
 		gf_term_send_event(compositor->term, &evt);
@@ -82,7 +82,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] recomputing aspect ratio\n"));
 	compositor->recompute_ar = 1;
 	/*force signaling graphics reset*/
-	if (!compositor->reset_graphics) compositor->reset_graphics = 1;
+	if (!compositor->reset_graphics) gf_sc_reset_graphics(compositor);
 }
 
 
@@ -156,7 +156,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				compositor->recompute_ar = 1;
 				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
-			if (!compositor->reset_graphics) compositor->reset_graphics = 1;
 			notif_size=1;
 			
 		}
@@ -579,9 +578,8 @@ void gf_sc_del(GF_Compositor *compositor)
 		gf_free(compositor->traverse_state);
 	}
 
-	compositor_2d_reset_gl_auto(compositor);
-
 #ifndef GPAC_DISABLE_3D
+	compositor_2d_reset_gl_auto(compositor);
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
 #endif
 
@@ -787,6 +785,13 @@ static void gf_sc_reset(GF_Compositor *compositor)
 #ifdef GF_SR_USE_DEPTH
 	compositor->traverse_state->depth_gain = FIX_ONE;
 	compositor->traverse_state->depth_offset = 0;
+#endif
+
+#ifndef GPAC_DISABLE_3D
+	//force a recompute of the canvas
+	if (compositor->hybgl_txh) {
+		compositor->hybgl_txh->width = compositor->hybgl_txh->height = 0;
+	}
 #endif
 
 	assert(!compositor->visual->overlays);
@@ -1168,9 +1173,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
 #endif
 
-	compositor->opengl_auto = (sOpt && !strcmp(sOpt, "auto")) ? 1 : 0;
-	//force this until we finish support for defer render in opengl auto mode
-	if (compositor->opengl_auto) compositor->traverse_state->immediate_draw = GF_TRUE;
+	compositor->hybrid_opengl = (sOpt && !strcmp(sOpt, "hybrid")) ? 1 : 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");
 	if (sOpt && !strcmp(sOpt, "Walk")) compositor->default_navigation_mode = GF_NAVIGATE_WALK;
@@ -1337,7 +1340,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 
 
-	compositor->reset_graphics = 1;
+	gf_sc_reset_graphics(compositor);
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
 	gf_sc_lock(compositor, 0);
@@ -1395,7 +1398,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_REFRESH: 
-		compositor->reset_graphics = value; 
+		gf_sc_reset_graphics(compositor); 
 		compositor->traverse_state->invalidate_all = 1; 
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
@@ -1444,7 +1447,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			/*force resetup*/
 			compositor->root_visual_setup = 0;
 			/*force texture setup when switching to OpenGL*/
-			if (value) compositor->reset_graphics = 1;
+			if (value) gf_sc_reset_graphics(compositor);
 			/*force redraw*/
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
@@ -1536,7 +1539,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		if (value != compositor->disable_rect_ext) {
 			compositor->disable_rect_ext = value;
 			/*RECT texture support - we must reload HW*/
-			compositor->reset_graphics = 1;
+			gf_sc_reset_graphics(compositor);
 		}
 		break;
 	case GF_OPT_BITMAP_COPY: compositor->bitmap_use_pixels = value; break;
@@ -1946,8 +1949,10 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			if (compositor->autoconfig_opengl) {
 				visual_3d_init_yuv_shader(compositor->visual);
 				compositor->autoconfig_opengl = 0;
+
+				//to change to "auto" once the GL auto mode is stable
+#if 0
 				if (compositor->visual->yuv_rect_glsl_program) {
-					//to change to "auto" once the GL auto mode is stable
 					gf_cfg_set_key(compositor->user->config, "Compositor", "ForceOpenGL", "yes");
 					compositor->force_opengl_2d = 1;
 				} else {
@@ -1955,6 +1960,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 					compositor->force_opengl_2d = 0;
 					compositor->visual->type_3d = 0;
 				}
+#endif
 			}
 
 		}
@@ -1963,10 +1969,10 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		{
 			compositor_2d_set_aspect_ratio(compositor);
 #ifndef GPAC_DISABLE_3D
-			if (compositor->opengl_auto) {
+			if (compositor->hybrid_opengl) {
 				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
 				visual_3d_init_yuv_shader(compositor->visual);
-				ra_init(&compositor->visual->opengl_auto_drawn);
+				ra_init(&compositor->visual->hybgl_drawn);
 			}
 #endif
 		}
@@ -2001,8 +2007,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 
 	flags = compositor->traverse_state->immediate_draw;
-
-	if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
+	if (compositor->video_setup_failed) {
+		compositor->skip_flush = 1;
+	}
+	else if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
 		/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
 #ifdef GPAC_ANDROID
 		compositor->skip_flush = 0;
@@ -2039,7 +2047,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	GF_SceneGraph *sg;
 	u32 in_time, end_time, i, count;
-	Bool frame_drawn;
+	Bool frame_drawn, has_timed_nodes=GF_FALSE;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
 #endif
@@ -2158,30 +2166,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 
-#ifndef GPAC_DISABLE_VRML
-	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their dirty flag set*/
-#ifndef GPAC_DISABLE_LOG
-	route_time = gf_sys_clock();
-#endif
-
-	gf_sg_activate_routes(compositor->scene);
-	i = 0;
-	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
-		gf_sg_activate_routes(sg);
-	}
-
-#ifndef GPAC_DISABLE_LOG
-	route_time = gf_sys_clock() - route_time;
-#endif
-
-#else
-#ifndef GPAC_DISABLE_LOG
-	route_time = 0;
-#endif
-#endif /*GPAC_DISABLE_VRML*/
-
-
-
 #ifndef GPAC_DISABLE_SVG
 #if SVG_FIXME
 	{ /* Experimental (Not SVG compliant system events (i.e. battery, cpu ...) triggered to the root node)*/
@@ -2246,6 +2230,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			count--;
 			continue;
 		}
+		has_timed_nodes = GF_TRUE;
 	}
 #ifndef GPAC_DISABLE_LOG
 	time_node_time = gf_sys_clock() - time_node_time;
@@ -2263,6 +2248,34 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->text_edit_changed = 1;
 		}
 	}
+
+
+#ifndef GPAC_DISABLE_VRML
+	/*execute all routes:
+		before updating composite textures, otherwise nodes inside composite texture may never see their dirty flag set
+		after updating timed nodes to trigger all events based on time
+	*/
+#ifndef GPAC_DISABLE_LOG
+	route_time = gf_sys_clock();
+#endif
+
+	gf_sg_activate_routes(compositor->scene);
+	i = 0;
+	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
+		gf_sg_activate_routes(sg);
+	}
+
+#ifndef GPAC_DISABLE_LOG
+	route_time = gf_sys_clock() - route_time;
+#endif
+
+#else
+#ifndef GPAC_DISABLE_LOG
+	route_time = 0;
+#endif
+#endif /*GPAC_DISABLE_VRML*/
+
+
 
 	/*setup root visual BEFORE updating the composite textures (since they may depend on root setup)*/
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
@@ -2373,7 +2386,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 		if (compositor->stress_mode) {
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-			compositor->reset_graphics = 1;
+			gf_sc_reset_graphics(compositor);
 		}
 		compositor->reset_fonts = 0;
 	} else {
@@ -2429,11 +2442,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->frame_dur[compositor->current_frame] = end_time;
 		compositor->frame_time[compositor->current_frame] = compositor->last_frame_time;
 		compositor->frame_number++;
-
-		if (compositor->bench_mode) {
-			//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
-			compositor->scene_sampled_clock += compositor->frame_duration;
-		}
+	}
+	if (compositor->bench_mode && (frame_drawn || has_timed_nodes)) {
+		//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
+		compositor->scene_sampled_clock += compositor->frame_duration;
 	}
 
 	gf_sc_lock(compositor, 0);
@@ -2768,7 +2780,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
-			compositor->reset_graphics = 2;
+			gf_sc_reset_graphics(compositor);
 			if (event->setup.back_buffer) 
 				compositor->recompute_ar = 1;
 		}
@@ -2794,7 +2806,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_VIDEO_SETUP:
 		{
 			Bool locked = gf_mx_try_lock(compositor->mx);
-			compositor->reset_graphics = 2;
+			if (event->setup.hw_reset)
+				gf_sc_reset_graphics(compositor);
+	
 			if (event->setup.back_buffer) 
 				compositor->recompute_ar = 1;
 			if (locked) gf_mx_v(compositor->mx);

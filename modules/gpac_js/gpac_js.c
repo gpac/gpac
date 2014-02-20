@@ -572,6 +572,7 @@ static JSBool SMJS_FUNCTION(gpac_exit)
 	GF_Event evt;
 	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
+	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_QUIT;
 	gf_term_send_event(term, &evt);
 	return JS_TRUE;
@@ -587,7 +588,7 @@ static JSBool SMJS_FUNCTION(gpac_set_3d)
 	if (term->compositor->inherit_type_3d != type_3d) {
 		term->compositor->inherit_type_3d = type_3d;
 		term->compositor->root_visual_setup = 0;
-		term->compositor->reset_graphics = 1;
+		gf_sc_reset_graphics(term->compositor);
 	}
 	return JS_TRUE;
 }
