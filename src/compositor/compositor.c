@@ -1947,7 +1947,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
 			if (compositor->autoconfig_opengl) {
+#ifndef GPAC_USE_OGL_ES
 				visual_3d_init_yuv_shader(compositor->visual);
+#endif
 				compositor->autoconfig_opengl = 0;
 
 				//to change to "auto" once the GL auto mode is stable
@@ -1971,7 +1973,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #ifndef GPAC_DISABLE_3D
 			if (compositor->hybrid_opengl) {
 				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
+#ifndef GPAC_USE_OGL_ES
 				visual_3d_init_yuv_shader(compositor->visual);
+#endif
 				ra_init(&compositor->visual->hybgl_drawn);
 			}
 #endif
