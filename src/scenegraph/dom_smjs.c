@@ -3501,61 +3501,46 @@ static SMJS_FUNC_PROP_GET(xml_http_getProperty)
 
 	s = NULL;
 	if (SMJS_ID_IS_INT(id)) {
+		*vp = JSVAL_VOID;
 		switch (SMJS_ID_TO_INT(id)) {
 		case XHR_ONABORT:
 			if (ctx->onabort) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onabort);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onabort;
 			}
 			return JS_TRUE;
 		case XHR_ONERROR:
 			if (ctx->onerror) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onerror);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onerror;
 			}
 			return JS_TRUE;
 		case XHR_ONLOAD:
 			if (ctx->onload) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onload);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onload;
 			}
 			return JS_TRUE;
 		case XHR_ONLOADSTART:
 			if (ctx->onloadstart) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onloadstart);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onloadstart;
 			}
 			return JS_TRUE;
 		case XHR_ONLOADEND:
 			if (ctx->onloadend) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onloadend);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onloadend;
 			}
 			return JS_TRUE;
 		case XHR_ONPROGRESS:
 			if (ctx->onprogress) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onprogress);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onprogress;
 			}
 			return JS_TRUE;
 		case XHR_ONREADYSTATECHANGE:
 			if (ctx->onreadystatechange) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onreadystatechange);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->onreadystatechange;
 			}
 			return JS_TRUE;
 		case XHR_ONTIMEOUT:
 			if (ctx->ontimeout) {
-				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->ontimeout);
-			} else {
-				*vp = JSVAL_VOID;
+				*vp = ctx->ontimeout;
 			}
 			return JS_TRUE;
 		case XHR_READYSTATE:
